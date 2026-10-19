@@ -1,0 +1,90 @@
+/*
+ * Iris is a World Generator for Minecraft Bukkit Servers
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+package com.volmit.iris.core.gui;
+
+import com.volmit.iris.engine.IrisComplex;
+import com.volmit.iris.engine.framework.Engine;
+import com.volmit.iris.engine.object.InferredType;
+import com.volmit.iris.engine.object.IrisBiome;
+import com.volmit.iris.engine.object.IrisDimension;
+import com.volmit.iris.engine.object.IrisRegion;
+import org.bukkit.block.Biome;
+
+import java.util.Locale;
+
+/**
+ * Looks up everything the hover card can tell about one spot of the world; runs off the Swing thread.
+ */
+final class MapHoverProbe {
+    // IrisComplex measures slope as the height change over this many blocks.
+    private static final double SLOPE_STREAM_RANGE_BLOCKS = 3D;
+
+    private MapHoverProbe() {
+    }
+
+    static Details sample(Engine engine, double worldX, double worldZ) {
+        IrisComplex complex = engine.getComplex();
+        IrisBiome surfaceBiome = complex.getBaseBiomeStream().get(worldX, worldZ);
+        IrisBiome caveBiome = complex.getCaveBiomeStream().get(worldX, worldZ);
+        IrisRegion region = complex.getRegionStream().get(worldX, worldZ);
+        InferredType terrainKind = complex.getBridgeStream().get(worldX, worldZ);
+        Biome vanillaBiome = complex.getTrueBiomeDerivativeStream().get(worldX, worldZ);
+        double height = complex.getHeightStream().getDouble(worldX, worldZ);
+        double slope = complex.getSlopeStream().getDouble(worldX, worldZ);
+        IrisDimension dimension = engine.getDimension();
+        return new Details(
+                worldX,
+                worldZ,
+                surfaceBiome,
+                caveBiome,
+                region,
+                terrainKindName(surfaceBiome, terrainKind),
+                vanillaBiome == null ? null : vanillaBiome.getKey().getKey(),
+                height,
+                dimension == null ? 0D : dimension.getFluidHeight(),
+                Math.toDegrees(Math.atan(slope / SLOPE_STREAM_RANGE_BLOCKS))
+        );
+    }
+
+    // A shore biome sits on land the continent stream calls land or sea, so the biome's own type says it best.
+    private static String terrainKindName(IrisBiome surfaceBiome, InferredType continentKind) {
+        InferredType kind = surfaceBiome != null && surfaceBiome.getInferredType() != null
+                ? surfaceBiome.getInferredType()
+                : continentKind;
+        if (kind == null) {
+            return null;
+        }
+        String name = kind.name().toLowerCase(Locale.ROOT);
+        return Character.toUpperCase(name.charAt(0)) + name.substring(1);
+    }
+
+    record Details(
+            double worldX,
+            double worldZ,
+            IrisBiome surfaceBiome,
+            IrisBiome caveBiome,
+            IrisRegion region,
+            String terrainKind,
+            String vanillaBiome,
+            double height,
+            double fluidHeight,
+            double slopeDegrees
+    ) {
+    }
+}

@@ -18,7 +18,6 @@
 
 package com.volmit.iris.core.gui.components;
 
-import com.volmit.iris.core.gui.GuiHost;
 import com.volmit.iris.engine.IrisComplex;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.IrisBiome;
@@ -28,121 +27,87 @@ import com.volmit.iris.engine.object.IrisRegion;
 import com.volmit.iris.util.stream.ProceduralStream;
 
 import java.awt.Color;
-import java.awt.image.BufferedImage;
 import java.util.Arrays;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CancellationException;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BooleanSupplier;
 
+/**
+ * Draws map tiles for one generation of the pack: a hotload needs a new renderer, which also starts new labels.
+ */
 public final class IrisRenderer {
-    private static final int BLUE = new Color(45, 91, 156).getRGB();
-    private static final int YELLOW = new Color(211, 164, 67).getRGB();
-    private static final int GREEN = new Color(78, 137, 83).getRGB();
-    private static final int DEEP_WATER = new Color(20, 48, 92).getRGB();
-    private static final int SHALLOW_WATER = new Color(50, 112, 154).getRGB();
-    private static final int LOWLAND = new Color(78, 128, 76).getRGB();
-    private static final int HIGHLAND = new Color(151, 139, 92).getRGB();
-    private static final int ROCK = new Color(126, 119, 112).getRGB();
-    private static final int SNOW = new Color(226, 230, 232).getRGB();
+    private static final int BLUE = rgb(45, 91, 156);
+    private static final int YELLOW = rgb(211, 164, 67);
+    private static final int GREEN = rgb(78, 137, 83);
+    private static final int DEEP_WATER = rgb(20, 48, 92);
+    private static final int SHALLOW_WATER = rgb(50, 112, 154);
+    private static final int LOWLAND = rgb(78, 128, 76);
+    private static final int HIGHLAND = rgb(151, 139, 92);
+    private static final int ROCK = rgb(126, 119, 112);
+    private static final int SNOW = rgb(226, 230, 232);
+    private static final int UNKNOWN_SUBJECT = rgb(90, 92, 98);
+    private static final int LARGEST_SAMPLE_BLOCK_PIXELS = 16;
+    private static final double LARGEST_SAMPLE_BLOCK_BLOCKS = 64D;
 
-    private final Engine renderer;
+    private final Engine engine;
+    private final MapLabels labels = new MapLabels();
+    private final ConcurrentHashMap<LabelColorKey, Integer> labelColors = new ConcurrentHashMap<>();
 
-    public IrisRenderer(Engine renderer) {
-        this.renderer = Objects.requireNonNull(renderer, "renderer");
+    public IrisRenderer(Engine engine) {
+        this.engine = Objects.requireNonNull(engine, "engine");
     }
 
-    public BufferedImage render(double sx, double sz, double size, int resolution, RenderType currentType) {
-        return render(sx, sz, size, resolution, currentType, () -> false);
+    public MapLabels labels() {
+        return labels;
     }
 
-    public BufferedImage render(
-            double sx,
-            double sz,
-            double size,
-            int resolution,
-            RenderType currentType,
+    /**
+     * Renders the square of {@code size} pixels whose top left pixel samples the given world position.
+     *
+     * @param withHeights also sample terrain heights for shading; the height view always has them
+     */
+    public MapTile renderTile(
+            double startX,
+            double startZ,
+            double blocksPerPixel,
+            int size,
+            RenderType type,
+            boolean withHeights,
             BooleanSupplier cancelled
     ) {
-        return render(sx, sz, size, resolution, currentType, cancelled, false);
-    }
-
-    public BufferedImage renderStudio(
-            double sx,
-            double sz,
-            double size,
-            int resolution,
-            RenderType currentType,
-            BooleanSupplier cancelled
-    ) {
-        return render(sx, sz, size, resolution, currentType, cancelled, true);
-    }
-
-    private BufferedImage render(
-            double sx,
-            double sz,
-            double size,
-            int resolution,
-            RenderType currentType,
-            BooleanSupplier cancelled,
-            boolean studio
-    ) {
-        if (!Double.isFinite(sx) || !Double.isFinite(sz) || !Double.isFinite(size) || size <= 0D) {
-            throw new IllegalArgumentException("Vision render coordinates and size must be finite");
+        if (!Double.isFinite(startX) || !Double.isFinite(startZ) || !Double.isFinite(blocksPerPixel) || blocksPerPixel <= 0D) {
+            throw new IllegalArgumentException("Map tile coordinates and scale must be finite");
         }
-        if (resolution < 1) {
-            throw new IllegalArgumentException("Vision render resolution must be positive");
+        if (size < 1) {
+            throw new IllegalArgumentException("Map tile size must be positive");
         }
-        Objects.requireNonNull(currentType, "currentType");
+        Objects.requireNonNull(type, "type");
         Objects.requireNonNull(cancelled, "cancelled");
         checkCancelled(cancelled);
 
-        int[] pixels = renderPixels(sx, sz, size, resolution, currentType, cancelled, studio);
-        return GuiHost.uncachedImage(pixels, resolution, resolution);
+        TileGrid grid = new TileGrid(size + 2, startX - blocksPerPixel, startZ - blocksPerPixel, blocksPerPixel, cancelled);
+        int[] identities = sampleIdentities(grid, type);
+        double[] heights = withHeights || type == RenderType.HEIGHT ? sampleHeights(grid) : null;
+        short[] subjects = new short[identities.length];
+        short[] regions = new short[identities.length];
+        for (int index = 0; index < identities.length; index++) {
+            subjects[index] = subjectOf(identities[index]);
+            regions[index] = regionOf(identities[index]);
+        }
+        int[] colors = tileColors(size, type, subjects, heights);
+        MapLabels.Kind subjectKind = type == RenderType.REGION ? MapLabels.Kind.REGION : MapLabels.Kind.BIOME;
+        return new MapTile(size, blocksPerPixel, labels, subjectKind, colors, subjects, regions, heights);
     }
 
-    private int[] renderPixels(
-            double sx,
-            double sz,
-            double size,
-            int resolution,
-            RenderType currentType,
-            BooleanSupplier cancelled,
-            boolean studio
-    ) {
-        int[] pixels = new int[resolution * resolution];
-        double step = size / resolution;
-        if (studio && currentType == RenderType.HEIGHT) {
-            renderHeightAtlas(pixels, resolution, sx, sz, step, renderer, cancelled);
-            return pixels;
-        }
-        PixelShader shader = shader(currentType, studio);
-        if (studio && adaptiveStudioType(currentType)) {
-            renderAdaptiveAtlas(pixels, resolution, sx, sz, step, shader, cancelled);
-            return pixels;
-        }
-        int groupSize = sampleGroup(step, resolution);
-
-        for (int groupZ = 0; groupZ < resolution; groupZ += groupSize) {
-            checkCancelled(cancelled);
-            int maximumZ = Math.min(resolution, groupZ + groupSize);
-            for (int groupX = 0; groupX < resolution; groupX += groupSize) {
-                checkCancelled(cancelled);
-                int maximumX = Math.min(resolution, groupX + groupSize);
-                for (int pixelZ = groupZ; pixelZ < maximumZ; pixelZ++) {
-                    double z = sz + step * pixelZ;
-                    int row = pixelZ * resolution;
-                    for (int pixelX = groupX; pixelX < maximumX; pixelX++) {
-                        checkCancelled(cancelled);
-                        double x = sx + step * pixelX;
-                        pixels[row + pixelX] = shader.color(x, z);
-                    }
-                }
-            }
-        }
-
-        return pixels;
+    /**
+     * The colour a biome or region has on the map in the given view, for legends.
+     */
+    public int legendColor(MapLabels.Label label, RenderType type) {
+        RenderType colorType = type == RenderType.HEIGHT ? RenderType.BIOME : type;
+        return labelColor(label.id(), colorType);
     }
 
     public static int heightColor(double height, double maximumHeight, double fluidHeight) {
@@ -164,151 +129,96 @@ public final class IrisRenderer {
         return blend(ROCK, SNOW, (land - 0.78D) / 0.22D);
     }
 
-    static int sampleGroup(double step, int resolution) {
-        double absoluteStep = Math.abs(step);
-        if (!Double.isFinite(absoluteStep) || absoluteStep <= 0D) {
-            return 1;
-        }
-        return Math.max(1, Math.min(resolution, (int) Math.floor(16D / absoluteStep)));
+    private int[] sampleIdentities(TileGrid grid, RenderType type) {
+        IdentitySampler sampler = new IdentitySampler(grid, identityShader(type));
+        sampler.renderAll(sampleBlockPixels(grid.step()));
+        return sampler.identities;
     }
 
-    private PixelShader shader(RenderType currentType, boolean studio) {
-        IrisComplex complex = renderer.getComplex();
-        return switch (currentType) {
-            case BIOME, DECORATOR_LOAD, OBJECT_LOAD, LAYER_LOAD -> biomeShader(
-                    studio ? complex.getBaseBiomeStream() : complex.getTrueBiomeStream(), currentType);
-            case BIOME_LAND -> biomeShader(complex.getLandBiomeStream(), currentType);
-            case BIOME_SEA -> biomeShader(complex.getSeaBiomeStream(), currentType);
-            case REGION -> regionShader(complex, currentType);
-            case CAVE_LAND -> biomeShader(complex.getCaveBiomeStream(), currentType);
-            case HEIGHT -> heightShader(complex.getHeightStream());
-            case CONTINENT -> studio
-                    ? continentShader(complex.getBaseBiomeStream())
-                    : this::continentColor;
-        };
+    private double[] sampleHeights(TileGrid grid) {
+        return new HeightLattice(grid, engine.getComplex().getHeightStream()).interpolatedHeights();
     }
 
-    private static boolean adaptiveStudioType(RenderType type) {
-        return switch (type) {
-            case BIOME, DECORATOR_LOAD, OBJECT_LOAD, LAYER_LOAD, BIOME_LAND, BIOME_SEA, REGION, CAVE_LAND,
-                    CONTINENT -> true;
-            case HEIGHT -> false;
-        };
+    // Large uniform squares are filled after a few samples; squares stay small enough to not skip tiny biomes.
+    private static int sampleBlockPixels(double blocksPerPixel) {
+        int largestPixels = (int) Math.floor(LARGEST_SAMPLE_BLOCK_BLOCKS / blocksPerPixel);
+        return Integer.highestOneBit(Math.max(1, Math.min(LARGEST_SAMPLE_BLOCK_PIXELS, largestPixels)));
     }
 
-    private static void renderAdaptiveAtlas(
-            int[] pixels,
-            int resolution,
-            double startX,
-            double startZ,
-            double step,
-            PixelShader shader,
-            BooleanSupplier cancelled
-    ) {
-        int maximumPixels = Math.max(1, Math.min(16, (int) Math.floor(64D / step)));
-        int blockPixels = Integer.highestOneBit(maximumPixels);
-        AdaptiveSampler sampler = new AdaptiveSampler(pixels, resolution, startX, startZ, step, shader, cancelled);
-        for (int pixelZ = 0; pixelZ < resolution; pixelZ += blockPixels) {
-            int height = Math.min(blockPixels, resolution - pixelZ);
-            for (int pixelX = 0; pixelX < resolution; pixelX += blockPixels) {
-                sampler.render(pixelX, pixelZ, Math.min(blockPixels, resolution - pixelX), height);
-            }
-        }
-    }
-
-    private static void renderHeightAtlas(
-            int[] pixels,
-            int resolution,
-            double startX,
-            double startZ,
-            double step,
-            Engine engine,
-            BooleanSupplier cancelled
-    ) {
+    private IdentityShader identityShader(RenderType type) {
         IrisComplex complex = engine.getComplex();
+        ProceduralStream<IrisRegion> regionStream = complex.getRegionStream();
+        LabelLookup lookup = new LabelLookup(labels);
+        if (type == RenderType.REGION) {
+            return (double x, double z) -> {
+                short region = lookup.idOf(regionStream.get(x, z));
+                return identity(region, region);
+            };
+        }
+        ProceduralStream<IrisBiome> biomeStream = subjectBiomeStream(complex, type);
+        return (double x, double z) -> identity(lookup.idOf(biomeStream.get(x, z)), lookup.idOf(regionStream.get(x, z)));
+    }
+
+    private static ProceduralStream<IrisBiome> subjectBiomeStream(IrisComplex complex, RenderType type) {
+        return switch (type) {
+            case BIOME_LAND -> complex.getLandBiomeStream();
+            case BIOME_SEA -> complex.getSeaBiomeStream();
+            case CAVE_LAND -> complex.getCaveBiomeStream();
+            case BIOME, DECORATOR_LOAD, OBJECT_LOAD, LAYER_LOAD, HEIGHT, CONTINENT, REGION -> complex.getBaseBiomeStream();
+        };
+    }
+
+    private int[] tileColors(int size, RenderType type, short[] subjects, double[] heights) {
+        int[] colors = new int[size * size];
+        double maximumHeight = engine.getHeight();
+        double fluidHeight = fluidHeight();
+        short previousSubject = MapLabels.NONE;
+        int previousColor = UNKNOWN_SUBJECT;
+        for (int pixelZ = 0; pixelZ < size; pixelZ++) {
+            for (int pixelX = 0; pixelX < size; pixelX++) {
+                int gridIndex = (pixelZ + 1) * (size + 2) + pixelX + 1;
+                if (type == RenderType.HEIGHT) {
+                    colors[pixelZ * size + pixelX] = heightColor(heights[gridIndex], maximumHeight, fluidHeight);
+                    continue;
+                }
+                short subject = subjects[gridIndex];
+                if (subject != previousSubject) {
+                    previousSubject = subject;
+                    previousColor = labelColor(subject, type);
+                }
+                colors[pixelZ * size + pixelX] = previousColor;
+            }
+        }
+        return colors;
+    }
+
+    private double fluidHeight() {
         IrisDimension dimension = engine.getDimension();
-        double fluidHeight = dimension == null ? 0D : dimension.getFluidHeight();
-        int maximumPixels = Math.max(1, Math.min(16, (int) Math.floor(64D / step)));
-        int blockPixels = Integer.highestOneBit(maximumPixels);
-        HeightSampler sampler = new HeightSampler(
-                pixels,
-                resolution,
-                startX,
-                startZ,
-                step,
-                complex.getHeightStream(),
-                engine.getHeight(),
-                fluidHeight,
-                cancelled
-        );
-        for (int pixelZ = 0; pixelZ < resolution; pixelZ += blockPixels) {
-            int height = Math.min(blockPixels, resolution - pixelZ);
-            for (int pixelX = 0; pixelX < resolution; pixelX += blockPixels) {
-                sampler.render(pixelX, pixelZ, Math.min(blockPixels, resolution - pixelX), height);
-            }
+        return dimension == null ? 0D : dimension.getFluidHeight();
+    }
+
+    private int labelColor(short id, RenderType type) {
+        MapLabels.Label label = labels.label(id);
+        if (label == null) {
+            return UNKNOWN_SUBJECT;
         }
+        return labelColors.computeIfAbsent(new LabelColorKey(type, id), key -> subjectColor(label.subject(), type));
     }
 
-    private PixelShader biomeShader(ProceduralStream<IrisBiome> stream, RenderType currentType) {
-        IdentityHashMap<IrisBiome, Integer> colors = new IdentityHashMap<>();
-        return (double x, double z) -> {
-            IrisBiome biome = stream.get(x, z);
-            Integer color = colors.get(biome);
-            if (color == null) {
-                color = biome.getColor(renderer, currentType).getRGB();
-                colors.put(biome, color);
-            }
-            return color;
-        };
-    }
-
-    private PixelShader regionShader(IrisComplex complex, RenderType currentType) {
-        ProceduralStream<IrisRegion> stream = complex.getRegionStream();
-        IdentityHashMap<IrisRegion, Integer> colors = new IdentityHashMap<>();
-        return (double x, double z) -> {
-            IrisRegion region = stream.get(x, z);
-            Integer color = colors.get(region);
-            if (color == null) {
-                color = region.getColor(complex, currentType).getRGB();
-                colors.put(region, color);
-            }
-            return color;
-        };
-    }
-
-    private PixelShader heightShader(ProceduralStream<Double> stream) {
-        double maximumHeight = renderer.getHeight();
-        IrisDimension dimension = renderer.getDimension();
-        double fluidHeight = dimension == null ? 0D : dimension.getFluidHeight();
-        return (double x, double z) -> heightColor(stream.getDouble(x, z), maximumHeight, fluidHeight);
-    }
-
-    private int continentColor(double x, double z) {
-        IrisBiome biome = renderer.getBiome(
-                (int) Math.round(x),
-                renderer.getMaxHeight() - 1,
-                (int) Math.round(z)
-        );
-        return continentColor(biome);
-    }
-
-    private PixelShader continentShader(ProceduralStream<IrisBiome> stream) {
-        IdentityHashMap<IrisBiome, Integer> colors = new IdentityHashMap<>();
-        return (double x, double z) -> {
-            IrisBiome biome = stream.get(x, z);
-            Integer color = colors.get(biome);
-            if (color == null) {
-                color = continentColor(biome);
-                colors.put(biome, color);
-            }
-            return color;
-        };
-    }
-
-    private int continentColor(IrisBiome biome) {
-        if (biome == null) {
-            return GREEN;
+    private int subjectColor(Object subject, RenderType type) {
+        if (type == RenderType.CONTINENT && subject instanceof IrisBiome biome) {
+            return continentColor(biome);
         }
+        if (subject instanceof IrisRegion region) {
+            return region.getColor(engine.getComplex(), type).getRGB() & 0xFFFFFF;
+        }
+        if (subject instanceof IrisBiome biome) {
+            return biome.getColor(engine, type).getRGB() & 0xFFFFFF;
+        }
+        return UNKNOWN_SUBJECT;
+    }
+
+    private static int continentColor(IrisBiome biome) {
         List<IrisBiomeGeneratorLink> generators = biome.getGenerators();
         if (generators.isEmpty()) {
             return GREEN;
@@ -321,6 +231,22 @@ public final class IrisRenderer {
             return YELLOW;
         }
         return GREEN;
+    }
+
+    private static int identity(short subject, short region) {
+        return (subject << 16) | (region & 0xFFFF);
+    }
+
+    private static short subjectOf(int identity) {
+        return (short) (identity >> 16);
+    }
+
+    private static short regionOf(int identity) {
+        return (short) identity;
+    }
+
+    private static int rgb(int red, int green, int blue) {
+        return new Color(red, green, blue).getRGB() & 0xFFFFFF;
     }
 
     private static int blend(int first, int second, double progress) {
@@ -337,262 +263,208 @@ public final class IrisRenderer {
 
     private static void checkCancelled(BooleanSupplier cancelled) {
         if (cancelled.getAsBoolean() || Thread.currentThread().isInterrupted()) {
-            throw new CancellationException("Vision render cancelled");
+            throw new CancellationException("Map tile render cancelled");
         }
     }
 
     @FunctionalInterface
-    private interface PixelShader {
-        int color(double x, double z);
+    private interface IdentityShader {
+        int identity(double x, double z);
     }
 
-    private static final class AdaptiveSampler {
-        private final int[] pixels;
-        private final boolean[] sampled;
-        private final int resolution;
-        private final double startX;
-        private final double startZ;
-        private final double step;
-        private final PixelShader shader;
-        private final BooleanSupplier cancelled;
+    private record LabelColorKey(RenderType type, short id) {
+    }
 
-        private AdaptiveSampler(
-                int[] pixels,
-                int resolution,
-                double startX,
-                double startZ,
-                double step,
-                PixelShader shader,
-                BooleanSupplier cancelled
-        ) {
-            this.pixels = pixels;
-            this.sampled = new boolean[pixels.length];
-            this.resolution = resolution;
-            this.startX = startX;
-            this.startZ = startZ;
-            this.step = step;
-            this.shader = shader;
-            this.cancelled = cancelled;
+    /**
+     * The square of world positions one tile samples, including the one pixel ring borrowed from its neighbours.
+     */
+    private record TileGrid(int size, double startX, double startZ, double step, BooleanSupplier cancelled) {
+        double worldX(int gridX) {
+            return startX + gridX * step;
         }
 
-        private void render(int pixelX, int pixelZ, int width, int height) {
-            checkCancelled(cancelled);
+        double worldZ(int gridZ) {
+            return startZ + gridZ * step;
+        }
+    }
+
+    /**
+     * Labels the biomes and regions one tile meets, asking the shared labels only for ones this tile has not seen yet.
+     */
+    private static final class LabelLookup {
+        private final MapLabels labels;
+        private final IdentityHashMap<Object, Short> seen = new IdentityHashMap<>();
+
+        private LabelLookup(MapLabels labels) {
+            this.labels = labels;
+        }
+
+        short idOf(IrisBiome biome) {
+            if (biome == null) {
+                return MapLabels.NONE;
+            }
+            return seen.computeIfAbsent(biome, subject -> labels.idOf(biome));
+        }
+
+        short idOf(IrisRegion region) {
+            if (region == null) {
+                return MapLabels.NONE;
+            }
+            return seen.computeIfAbsent(region, subject -> labels.idOf(region));
+        }
+    }
+
+    /**
+     * Samples the biome and region of every grid cell in squares, filling a square without sampling its inside when
+     * its corners and centre agree, and splitting it into quarters otherwise.
+     */
+    private static final class IdentitySampler {
+        private final TileGrid grid;
+        private final IdentityShader shader;
+        private final int[] identities;
+        private final boolean[] sampled;
+
+        private IdentitySampler(TileGrid grid, IdentityShader shader) {
+            this.grid = grid;
+            this.shader = shader;
+            this.identities = new int[grid.size() * grid.size()];
+            this.sampled = new boolean[identities.length];
+        }
+
+        void renderAll(int blockPixels) {
+            int size = grid.size();
+            for (int gridZ = 0; gridZ < size; gridZ += blockPixels) {
+                int height = Math.min(blockPixels, size - gridZ);
+                for (int gridX = 0; gridX < size; gridX += blockPixels) {
+                    render(gridX, gridZ, Math.min(blockPixels, size - gridX), height);
+                }
+            }
+        }
+
+        private void render(int gridX, int gridZ, int width, int height) {
+            checkCancelled(grid.cancelled());
             if (width == 1 && height == 1) {
-                sample(pixelX, pixelZ);
+                sample(gridX, gridZ);
                 return;
             }
-            int maximumX = pixelX + width - 1;
-            int maximumZ = pixelZ + height - 1;
-            int centerX = pixelX + width / 2;
-            int centerZ = pixelZ + height / 2;
-            int color = sample(pixelX, pixelZ);
-            if (sample(maximumX, pixelZ) == color
-                    && sample(pixelX, maximumZ) == color
-                    && sample(maximumX, maximumZ) == color
-                    && sample(centerX, centerZ) == color) {
-                fill(pixelX, pixelZ, width, height, color);
+            if (fillIfUniform(gridX, gridZ, width, height)) {
                 return;
             }
             int leftWidth = Math.max(1, width / 2);
             int rightWidth = width - leftWidth;
             int topHeight = Math.max(1, height / 2);
             int bottomHeight = height - topHeight;
-            render(pixelX, pixelZ, leftWidth, topHeight);
+            render(gridX, gridZ, leftWidth, topHeight);
             if (rightWidth > 0) {
-                render(pixelX + leftWidth, pixelZ, rightWidth, topHeight);
+                render(gridX + leftWidth, gridZ, rightWidth, topHeight);
             }
             if (bottomHeight > 0) {
-                render(pixelX, pixelZ + topHeight, leftWidth, bottomHeight);
+                render(gridX, gridZ + topHeight, leftWidth, bottomHeight);
                 if (rightWidth > 0) {
-                    render(pixelX + leftWidth, pixelZ + topHeight, rightWidth, bottomHeight);
+                    render(gridX + leftWidth, gridZ + topHeight, rightWidth, bottomHeight);
                 }
             }
         }
 
-        private int sample(int pixelX, int pixelZ) {
-            int index = pixelZ * resolution + pixelX;
-            if (!sampled[index]) {
-                pixels[index] = shader.color(startX + pixelX * step, startZ + pixelZ * step);
-                sampled[index] = true;
+        private boolean fillIfUniform(int gridX, int gridZ, int width, int height) {
+            int maximumX = gridX + width - 1;
+            int maximumZ = gridZ + height - 1;
+            int identity = sample(gridX, gridZ);
+            boolean uniform = sample(maximumX, gridZ) == identity
+                    && sample(gridX, maximumZ) == identity
+                    && sample(maximumX, maximumZ) == identity
+                    && sample(gridX + width / 2, gridZ + height / 2) == identity;
+            if (!uniform) {
+                return false;
             }
-            return pixels[index];
-        }
-
-        private void fill(int pixelX, int pixelZ, int width, int height, int color) {
-            for (int row = pixelZ; row < pixelZ + height; row++) {
-                int start = row * resolution + pixelX;
-                Arrays.fill(pixels, start, start + width, color);
+            for (int row = gridZ; row <= maximumZ; row++) {
+                int start = row * grid.size() + gridX;
+                Arrays.fill(identities, start, start + width, identity);
                 Arrays.fill(sampled, start, start + width, true);
             }
+            return true;
+        }
+
+        private int sample(int gridX, int gridZ) {
+            int index = gridZ * grid.size() + gridX;
+            if (!sampled[index]) {
+                identities[index] = shader.identity(grid.worldX(gridX), grid.worldZ(gridZ));
+                sampled[index] = true;
+            }
+            return identities[index];
         }
     }
 
-    private static final class HeightSampler {
-        private static final double MAXIMUM_INTERPOLATION_ERROR = 1.5D;
+    /**
+     * Terrain heights from samples on a coarse lattice, smoothly interpolated in between. Iris heights are costly to
+     * sample, and shading turns the steps of cheaper shortcuts into visible creases, so a smooth curve through fewer
+     * exact samples looks better and draws an order of magnitude faster than sampling every pixel. The lattice lines
+     * up across tiles, so slopes continue seamlessly from one tile into the next.
+     */
+    private static final class HeightLattice {
+        private static final int LATTICE_PIXELS = 4;
+        private static final int LATTICE_MARGIN = 2;
 
-        private final int[] pixels;
-        private final double[] heights;
-        private final boolean[] sampled;
-        private final int resolution;
-        private final double startX;
-        private final double startZ;
-        private final double step;
+        private final TileGrid grid;
         private final ProceduralStream<Double> stream;
-        private final double maximumHeight;
-        private final double fluidHeight;
-        private final BooleanSupplier cancelled;
+        private final int pointsPerSide;
+        private final double[] points;
 
-        private HeightSampler(
-                int[] pixels,
-                int resolution,
-                double startX,
-                double startZ,
-                double step,
-                ProceduralStream<Double> stream,
-                double maximumHeight,
-                double fluidHeight,
-                BooleanSupplier cancelled
-        ) {
-            this.pixels = pixels;
-            this.heights = new double[pixels.length];
-            this.sampled = new boolean[pixels.length];
-            this.resolution = resolution;
-            this.startX = startX;
-            this.startZ = startZ;
-            this.step = step;
+        private HeightLattice(TileGrid grid, ProceduralStream<Double> stream) {
+            this.grid = grid;
             this.stream = stream;
-            this.maximumHeight = maximumHeight;
-            this.fluidHeight = fluidHeight;
-            this.cancelled = cancelled;
+            this.pointsPerSide = (grid.size() - 2) / LATTICE_PIXELS + LATTICE_MARGIN * 2 + 1;
+            this.points = new double[pointsPerSide * pointsPerSide];
         }
 
-        private void render(int pixelX, int pixelZ, int width, int height) {
-            checkCancelled(cancelled);
-            if (width == 1 && height == 1) {
-                pixels[pixelZ * resolution + pixelX] = heightColor(
-                        sample(pixelX, pixelZ), maximumHeight, fluidHeight);
-                return;
+        double[] interpolatedHeights() {
+            samplePoints();
+            int size = grid.size();
+            double[] heights = new double[size * size];
+            for (int gridZ = 0; gridZ < size; gridZ++) {
+                for (int gridX = 0; gridX < size; gridX++) {
+                    heights[gridZ * size + gridX] = heightAt(gridX - 1, gridZ - 1);
+                }
             }
-            int maximumX = pixelX + width - 1;
-            int maximumZ = pixelZ + height - 1;
-            int centerX = pixelX + width / 2;
-            int centerZ = pixelZ + height / 2;
-            double topLeft = sample(pixelX, pixelZ);
-            double topRight = sample(maximumX, pixelZ);
-            double bottomLeft = sample(pixelX, maximumZ);
-            double bottomRight = sample(maximumX, maximumZ);
-            if (matchesPlane(pixelX, pixelZ, width, height, topLeft, topRight, bottomLeft, bottomRight,
-                    centerX, pixelZ)
-                    && matchesPlane(pixelX, pixelZ, width, height, topLeft, topRight, bottomLeft, bottomRight,
-                    pixelX, centerZ)
-                    && matchesPlane(pixelX, pixelZ, width, height, topLeft, topRight, bottomLeft, bottomRight,
-                    maximumX, centerZ)
-                    && matchesPlane(pixelX, pixelZ, width, height, topLeft, topRight, bottomLeft, bottomRight,
-                    centerX, maximumZ)
-                    && matchesPlane(pixelX, pixelZ, width, height, topLeft, topRight, bottomLeft, bottomRight,
-                    centerX, centerZ)) {
-                fillPlane(pixelX, pixelZ, width, height, topLeft, topRight, bottomLeft, bottomRight);
-                return;
-            }
-            int leftWidth = Math.max(1, width / 2);
-            int rightWidth = width - leftWidth;
-            int topHeight = Math.max(1, height / 2);
-            int bottomHeight = height - topHeight;
-            render(pixelX, pixelZ, leftWidth, topHeight);
-            if (rightWidth > 0) {
-                render(pixelX + leftWidth, pixelZ, rightWidth, topHeight);
-            }
-            if (bottomHeight > 0) {
-                render(pixelX, pixelZ + topHeight, leftWidth, bottomHeight);
-                if (rightWidth > 0) {
-                    render(pixelX + leftWidth, pixelZ + topHeight, rightWidth, bottomHeight);
+            return heights;
+        }
+
+        // Lattice point 0 sits on the tile's first pixel; the margin covers the border ring and the curve's reach.
+        private void samplePoints() {
+            double latticeStep = grid.step() * LATTICE_PIXELS;
+            double firstX = grid.worldX(1) - LATTICE_MARGIN * latticeStep;
+            double firstZ = grid.worldZ(1) - LATTICE_MARGIN * latticeStep;
+            for (int pointZ = 0; pointZ < pointsPerSide; pointZ++) {
+                checkCancelled(grid.cancelled());
+                for (int pointX = 0; pointX < pointsPerSide; pointX++) {
+                    points[pointZ * pointsPerSide + pointX] = stream.getDouble(firstX + pointX * latticeStep,
+                            firstZ + pointZ * latticeStep);
                 }
             }
         }
 
-        private boolean matchesPlane(
-                int pixelX,
-                int pixelZ,
-                int width,
-                int height,
-                double topLeft,
-                double topRight,
-                double bottomLeft,
-                double bottomRight,
-                int sampleX,
-                int sampleZ
-        ) {
-            double predicted = interpolate(
-                    pixelX,
-                    pixelZ,
-                    width,
-                    height,
-                    topLeft,
-                    topRight,
-                    bottomLeft,
-                    bottomRight,
-                    sampleX,
-                    sampleZ
-            );
-            return Math.abs(sample(sampleX, sampleZ) - predicted) <= MAXIMUM_INTERPOLATION_ERROR;
-        }
-
-        private void fillPlane(
-                int pixelX,
-                int pixelZ,
-                int width,
-                int height,
-                double topLeft,
-                double topRight,
-                double bottomLeft,
-                double bottomRight
-        ) {
-            for (int row = pixelZ; row < pixelZ + height; row++) {
-                int offset = row * resolution;
-                for (int column = pixelX; column < pixelX + width; column++) {
-                    double value = interpolate(
-                            pixelX,
-                            pixelZ,
-                            width,
-                            height,
-                            topLeft,
-                            topRight,
-                            bottomLeft,
-                            bottomRight,
-                            column,
-                            row
-                    );
-                    pixels[offset + column] = heightColor(value, maximumHeight, fluidHeight);
-                }
+        private double heightAt(int pixelX, int pixelZ) {
+            int cellX = Math.floorDiv(pixelX, LATTICE_PIXELS);
+            int cellZ = Math.floorDiv(pixelZ, LATTICE_PIXELS);
+            double fractionX = (pixelX - cellX * LATTICE_PIXELS) / (double) LATTICE_PIXELS;
+            double fractionZ = (pixelZ - cellZ * LATTICE_PIXELS) / (double) LATTICE_PIXELS;
+            int baseX = cellX + LATTICE_MARGIN;
+            int baseZ = cellZ + LATTICE_MARGIN;
+            double[] rows = new double[4];
+            for (int row = 0; row < 4; row++) {
+                int offset = (baseZ - 1 + row) * pointsPerSide + baseX - 1;
+                rows[row] = catmullRom(points[offset], points[offset + 1], points[offset + 2], points[offset + 3], fractionX);
             }
+            return catmullRom(rows[0], rows[1], rows[2], rows[3], fractionZ);
         }
 
-        private double sample(int pixelX, int pixelZ) {
-            int index = pixelZ * resolution + pixelX;
-            if (!sampled[index]) {
-                heights[index] = stream.getDouble(startX + pixelX * step, startZ + pixelZ * step);
-                sampled[index] = true;
-            }
-            return heights[index];
-        }
-
-        private static double interpolate(
-                int pixelX,
-                int pixelZ,
-                int width,
-                int height,
-                double topLeft,
-                double topRight,
-                double bottomLeft,
-                double bottomRight,
-                int sampleX,
-                int sampleZ
-        ) {
-            double x = width <= 1 ? 0D : (sampleX - pixelX) / (double) (width - 1);
-            double z = height <= 1 ? 0D : (sampleZ - pixelZ) / (double) (height - 1);
-            double top = topLeft + (topRight - topLeft) * x;
-            double bottom = bottomLeft + (bottomRight - bottomLeft) * x;
-            return top + (bottom - top) * z;
+        private static double catmullRom(double before, double start, double end, double after, double fraction) {
+            double squared = fraction * fraction;
+            double cubed = squared * fraction;
+            return 0.5D * (2D * start
+                    + (end - before) * fraction
+                    + (2D * before - 5D * start + 4D * end - after) * squared
+                    + (3D * start - before - 3D * end + after) * cubed);
         }
     }
 }

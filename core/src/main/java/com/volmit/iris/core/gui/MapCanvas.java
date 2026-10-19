@@ -20,11 +20,12 @@ package com.volmit.iris.core.gui;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.gui.components.IrisRenderer;
+import com.volmit.iris.core.gui.components.MapLabels;
+import com.volmit.iris.core.gui.components.MapStyle;
 import com.volmit.iris.core.gui.components.RenderType;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.engine.object.IrisDimension;
-import com.volmit.iris.engine.object.IrisRegion;
 import com.volmit.iris.util.format.Form;
 
 import javax.swing.JMenuItem;
@@ -33,6 +34,7 @@ import javax.swing.JPopupMenu;
 import javax.swing.SwingUtilities;
 import javax.swing.Timer;
 import java.awt.Color;
+import java.awt.Cursor;
 import java.awt.EventQueue;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
@@ -73,6 +75,7 @@ final class MapCanvas extends JPanel {
     private static final double DEFAULT_BLOCKS_PER_PIXEL = 4D;
     private static final double WHEEL_ZOOM_EXPONENT = 0.08D;
     private static final double KEYBOARD_ZOOM_FACTOR = 1.189207115002721D;
+    private static final int LEGEND_REFRESH_MILLIS = 200;
 
     private final UUID openerId;
     private final Listener listener;
@@ -82,7 +85,9 @@ final class MapCanvas extends JPanel {
     private final Timer hoverTimer;
     private final Timer markerTimer;
     private final Timer notificationTimer;
+    private final Timer legendTimer;
     private final Map<String, Long> notifications = new LinkedHashMap<>();
+    private final HotloadComparison comparison = new HotloadComparison();
 
     private Engine engine;
     private IrisRenderer renderer;
@@ -90,13 +95,17 @@ final class MapCanvas extends JPanel {
     private VisionRenderController.Frame renderFrame;
     private BufferedImage tileLayer;
     private boolean tileLayerStale = true;
+    private long tileLayerVersion;
+    private MapStyle style = MapStyle.PLAIN;
     private RenderType currentType = RenderType.BIOME;
     private String viewLabel = MapView.BIOMES.label();
     private List<GuiMarker> players = List.of();
     private List<GuiMarker> entities = List.of();
-    private HoverInfo hoverInfo;
+    private QuickHover quickHover;
+    private MapHoverProbe.Details hoverDetails;
     private Point cursor;
     private Point dragOrigin;
+    private boolean draggingDivider;
     private double centerX;
     private double centerZ;
     private double heightMaximum;
@@ -135,6 +144,7 @@ final class MapCanvas extends JPanel {
         });
 
         this.hoverTimer = singleShotTimer(90, this::requestHover);
+        this.legendTimer = singleShotTimer(LEGEND_REFRESH_MILLIS, this::publishLegend);
         this.markerTimer = new Timer(650, event -> refreshMarkers());
         this.markerTimer.setCoalesce(true);
         this.notificationTimer = new Timer(200, event -> expireNotifications());
@@ -172,6 +182,18 @@ final class MapCanvas extends JPanel {
         return follow;
     }
 
+    MapStyle style() {
+        return style;
+    }
+
+    HotloadComparison.Mode comparisonMode() {
+        return comparison.hasBefore() ? comparison.mode() : HotloadComparison.Mode.OFF;
+    }
+
+    boolean hasBeforePicture() {
+        return comparison.hasBefore();
+    }
+
     void start() {
         refreshMarkers();
         requestRender();
@@ -195,6 +217,10 @@ final class MapCanvas extends JPanel {
         requestRender();
     }
 
+    String legendTitle() {
+        return currentType == RenderType.REGION ? "Regions in view" : "Biomes in view";
+    }
+
     // Tiles keep loading in the background only for the view on screen; a hidden canvas stops asking for new ones.
     void setActive(boolean nextActive) {
         active = nextActive;
@@ -211,12 +237,117 @@ final class MapCanvas extends JPanel {
             notifyUser("No active Iris engine");
             return;
         }
+        boolean captured = captureBeforePicture();
         renderer = new IrisRenderer(engine);
         overlay = new VisionOverlay(engine, openerId);
         contentRevision++;
         captureHeightRange();
         requestRender();
-        notifyUser("Refreshing");
+        notifyUser(captured && comparison.mode() == HotloadComparison.Mode.OFF
+                ? "Refreshing · press C to compare with before"
+                : "Refreshing");
+        listener.onTogglesChanged();
+    }
+
+    // Only a finished picture is worth comparing against; a half drawn one would show its gaps as changes.
+    private boolean captureBeforePicture() {
+        if (tileLayer == null || controller.progress(renderFrame).completion() < 1D) {
+            comparison.forget();
+            return false;
+        }
+        comparison.capture(currentTileLayer(), currentScene());
+        return true;
+    }
+
+    void toggleShading() {
+        applyStyle(style.withShading(!style.shading()));
+        notifyUser(style.shading() ? "Terrain shading on" : "Terrain shading off");
+        listener.onTogglesChanged();
+    }
+
+    void toggleRegionBorders() {
+        applyStyle(style.withRegionBorders(!style.regionBorders()));
+        notifyUser(style.regionBorders() ? "Region borders on" : "Region borders off");
+        listener.onTogglesChanged();
+    }
+
+    /**
+     * Highlights the biome or region, or clears the highlight when it is the one already highlighted.
+     */
+    void toggleHighlight(MapLabels.Label label) {
+        if (label == null) {
+            return;
+        }
+        MapStyle.Highlight current = style.highlight();
+        if (current != null && current.kind() == label.kind() && current.key().equals(label.key())) {
+            clearHighlight();
+            return;
+        }
+        applyStyle(style.withHighlight(new MapStyle.Highlight(label.kind(), label.key(), label.name())));
+        notifyUser("Highlighting " + label.name() + " · Esc clears");
+    }
+
+    void highlightUnderCursor() {
+        VisionRenderController.TilePixel pixel = cursor == null ? null : tilePixelAt(cursor);
+        if (pixel == null) {
+            notifyUser("Point at the map to highlight what is there");
+            return;
+        }
+        toggleHighlight(pixel.subject());
+    }
+
+    /**
+     * Esc steps back one layer of emphasis: the highlight first, then the comparison, then the help.
+     */
+    void dismissEmphasis() {
+        if (style.highlight() != null) {
+            clearHighlight();
+        } else if (comparisonMode() != HotloadComparison.Mode.OFF) {
+            showComparison(HotloadComparison.Mode.OFF);
+        } else if (help) {
+            toggleHelp();
+        }
+    }
+
+    private void clearHighlight() {
+        applyStyle(style.withHighlight(null));
+        notifyUser("Highlight cleared");
+    }
+
+    void cycleComparison() {
+        showComparison(comparisonMode().next());
+    }
+
+    void showComparison(HotloadComparison.Mode mode) {
+        if (!comparison.hasBefore()) {
+            notifyUser("Refresh or hotload the pack first, then compare with before");
+            listener.onTogglesChanged();
+            return;
+        }
+        comparison.setMode(mode);
+        notifyUser(switch (mode) {
+            case OFF -> "Comparison off";
+            case SWIPE -> "Drag the divider to compare before and now";
+            case CHANGES -> "Showing what changed in the hotload";
+        });
+        repaint();
+        listener.onTogglesChanged();
+    }
+
+    private void applyStyle(MapStyle next) {
+        boolean heightsWereNeeded = needsHeights();
+        style = next;
+        if (needsHeights() != heightsWereNeeded) {
+            requestRender();
+        } else {
+            tileLayerStale = true;
+            repaint();
+        }
+        scheduleLegendUpdate();
+    }
+
+    private boolean needsHeights() {
+        return style.shading() || currentType == RenderType.HEIGHT;
     }
 
     void toggleGrid() {
@@ -289,6 +420,7 @@ final class MapCanvas extends JPanel {
         }
         closed = true;
         hoverTimer.stop();
+        legendTimer.stop();
         markerTimer.stop();
         notificationTimer.stop();
         GuiHost.unregisterHotloadHook(hotloadHook);
@@ -308,6 +440,10 @@ final class MapCanvas extends JPanel {
             public void mouseMoved(MouseEvent event) {
                 cursor = event.getPoint();
                 setDetailedHover(event.isShiftDown());
+                setCursor(comparison.isNearDivider(event.getX(), getWidth())
+                        ? Cursor.getPredefinedCursor(Cursor.E_RESIZE_CURSOR)
+                        : Cursor.getDefaultCursor());
+                showQuickHover();
                 hoverTimer.restart();
                 refreshStatus();
             }
@@ -315,6 +451,11 @@ final class MapCanvas extends JPanel {
             @Override
             public void mouseDragged(MouseEvent event) {
                 cursor = event.getPoint();
+                if (draggingDivider) {
+                    comparison.moveDivider(event.getX(), getWidth());
+                    repaint();
+                    return;
+                }
                 if (dragOrigin == null) {
                     return;
                 }
@@ -322,7 +463,7 @@ final class MapCanvas extends JPanel {
                 centerZ += (dragOrigin.y - event.getY()) * blocksPerPixel;
                 dragOrigin = event.getPoint();
                 stopFollowing();
-                hoverInfo = null;
+                clearHover();
                 requestRender();
             }
 
@@ -339,6 +480,8 @@ final class MapCanvas extends JPanel {
                 cursor = event.getPoint();
                 if (event.isPopupTrigger()) {
                     showContextMenu(event);
+                } else if (SwingUtilities.isLeftMouseButton(event) && comparison.isNearDivider(event.getX(), getWidth())) {
+                    draggingDivider = true;
                 } else if (SwingUtilities.isLeftMouseButton(event)) {
                     dragOrigin = event.getPoint();
                 }
@@ -347,6 +490,7 @@ final class MapCanvas extends JPanel {
             @Override
             public void mouseReleased(MouseEvent event) {
                 dragOrigin = null;
+                draggingDivider = false;
                 if (event.isPopupTrigger()) {
                     showContextMenu(event);
                 }
@@ -375,7 +519,7 @@ final class MapCanvas extends JPanel {
             @Override
             public void mouseExited(MouseEvent event) {
                 cursor = null;
-                hoverInfo = null;
+                clearHover();
                 hoverTimer.stop();
                 refreshStatus();
                 repaint();
@@ -391,12 +535,37 @@ final class MapCanvas extends JPanel {
         int blockX = floorWorldCoordinate(screenToWorldX(point.x));
         int blockZ = floorWorldCoordinate(screenToWorldZ(point.y));
         JPopupMenu menu = new JPopupMenu();
+        addHighlightItems(menu, tilePixelAt(point));
         menu.add(menuItem("Show palettes here", () -> showPalettesAt(point)));
         menu.add(menuItem("Teleport here", () -> teleportTo(point)));
         menu.add(menuItem(currentType == RenderType.REGION ? "Open region file" : "Open biome file", () -> openInEditor(point)));
         menu.addSeparator();
         menu.add(menuItem("Copy coordinates (" + blockX + ", " + blockZ + ")", () -> copyCoordinates(blockX, blockZ)));
         menu.show(this, point.x, point.y);
+    }
+
+    private void addHighlightItems(JPopupMenu menu, VisionRenderController.TilePixel pixel) {
+        MapLabels.Label subject = pixel == null ? null : pixel.subject();
+        MapLabels.Label region = pixel == null ? null : pixel.region();
+        if (subject != null) {
+            menu.add(menuItem(highlightText(subject), () -> toggleHighlight(subject)));
+        }
+        if (region != null && subject != null && subject.kind() != MapLabels.Kind.REGION) {
+            menu.add(menuItem(highlightText(region), () -> toggleHighlight(region)));
+        }
+        if (style.highlight() != null) {
+            menu.add(menuItem("Clear highlight", this::clearHighlight));
+        }
+        if (menu.getComponentCount() > 0) {
+            menu.addSeparator();
+        }
+    }
+
+    private String highlightText(MapLabels.Label label) {
+        MapStyle.Highlight current = style.highlight();
+        boolean highlighted = current != null && current.kind() == label.kind() && current.key().equals(label.key());
+        String kind = label.kind() == MapLabels.Kind.REGION ? "region " : "";
+        return (highlighted ? "Stop highlighting " : "Highlight ") + kind + label.name();
     }
 
     private static JMenuItem menuItem(String text, Runnable action) {
@@ -459,7 +628,17 @@ final class MapCanvas extends JPanel {
 
     // The display server gets one finished picture per paint: handing it every tile separately made the map lag.
     private void renderTiles(Graphics2D canvas) {
-        canvas.drawImage(currentTileLayer(), 0, 0, null);
+        BufferedImage layer = currentTileLayer();
+        if (!comparison.isShowing()) {
+            canvas.drawImage(layer, 0, 0, null);
+            return;
+        }
+        boolean complete = controller.progress(renderFrame).completion() >= 1D;
+        comparison.paint(canvas, layer, tileLayerVersion, currentScene(), complete);
+    }
+
+    private HotloadComparison.Scene currentScene() {
+        return new HotloadComparison.Scene(currentType, style, blocksPerPixel, centerX, centerZ);
     }
 
     private BufferedImage currentTileLayer() {
@@ -478,6 +657,7 @@ final class MapCanvas extends JPanel {
                 layer.dispose();
             }
             tileLayerStale = false;
+            tileLayerVersion++;
         }
         return tileLayer;
     }
@@ -498,9 +678,8 @@ final class MapCanvas extends JPanel {
             int screenY = (int) Math.round(worldToScreenZ(worldZ));
             int tileWidth = Math.max(1, (int) Math.round(worldToScreenX(worldX + frameTileSpan)) - screenX);
             int tileHeight = Math.max(1, (int) Math.round(worldToScreenZ(worldZ + frameTileSpan)) - screenY);
-            BufferedImage image = tile.image();
-            if (image != null) {
-                canvas.drawImage(image, screenX, screenY, tileWidth, tileHeight, null);
+            if (tile.tile() != null) {
+                canvas.drawImage(tile.tile().image(style), screenX, screenY, tileWidth, tileHeight, null);
                 continue;
             }
             canvas.setColor(((tile.tileX() ^ tile.tileZ()) & 1L) == 0L ? TILE_EMPTY_A : TILE_EMPTY_B);
@@ -509,7 +688,7 @@ final class MapCanvas extends JPanel {
         }
     }
 
-    private static void drawFallback(Graphics2D canvas, VisionRenderController.Fallback fallback, int screenX, int screenY,
+    private void drawFallback(Graphics2D canvas, VisionRenderController.Fallback fallback, int screenX, int screenY,
                                      int tileWidth, int tileHeight) {
         if (fallback == null) {
             return;
@@ -519,7 +698,7 @@ final class MapCanvas extends JPanel {
             int top = screenY + (int) Math.round(piece.offsetZ() * tileHeight);
             int right = screenX + (int) Math.round((piece.offsetX() + piece.size()) * tileWidth);
             int bottom = screenY + (int) Math.round((piece.offsetZ() + piece.size()) * tileHeight);
-            canvas.drawImage(piece.image(), left, top, right, bottom,
+            canvas.drawImage(piece.tile().image(style), left, top, right, bottom,
                     piece.sourceX(), piece.sourceZ(), piece.sourceX() + piece.sourceSize(), piece.sourceZ() + piece.sourceSize(), null);
         }
     }
@@ -651,30 +830,21 @@ final class MapCanvas extends JPanel {
     }
 
     private void renderHover(Graphics2D canvas) {
-        HoverInfo info = hoverInfo;
-        if (info == null) {
+        QuickHover quick = quickHover;
+        if (quick == null || draggingDivider) {
             return;
         }
-        ArrayList<String> lines = new ArrayList<>();
-        lines.add(info.biomeName());
-        lines.add(info.regionName());
-        lines.add("Block " + ((int) info.worldX()) + ", " + ((int) info.worldZ()));
-        if (detailedHover) {
-            lines.add("Chunk " + ((int) info.worldX() >> 4) + ", " + ((int) info.worldZ() >> 4));
-            lines.add("Region file " + ((int) info.worldX() >> 9) + ", " + ((int) info.worldZ() >> 9));
-            lines.add("Key " + info.biomeKey());
-            lines.add("File " + info.biomeFile());
-        } else {
-            lines.add("Hold Shift for more, double-click for palettes");
-        }
-        int screenX = (int) Math.round(worldToScreenX(info.worldX())) + StudioTheme.scale(16);
-        int screenY = (int) Math.round(worldToScreenZ(info.worldZ()));
+        MapHoverProbe.Details details = hoverDetails;
+        List<String> lines = MapHoverCard.lines(quick.subject(), quick.region(), details, currentType, detailedHover,
+                quick.worldX(), quick.worldZ());
+        int screenX = (int) Math.round(worldToScreenX(quick.worldX())) + StudioTheme.scale(16);
+        int screenY = (int) Math.round(worldToScreenZ(quick.worldZ()));
         drawCard(canvas, screenX, screenY, 0D, 0D, lines);
     }
 
     private void renderHelp(Graphics2D canvas) {
         List<String> keys = List.of("Drag", "Wheel / + -", "\\", "Double-click", "Right-click", "Ctrl+Click", "Alt+Click",
-                "Shift", "R", "F", "G", "E", "M", "1 to 0, P", "/");
+                "Shift", "H", "Esc", "S", "B", "C", "R", "F", "G", "E", "M", "1 to 0, P", "/");
         List<String> descriptions = List.of(
                 "Move the map",
                 "Zoom in and out",
@@ -684,6 +854,11 @@ final class MapCanvas extends JPanel {
                 "Teleport there",
                 "Open the biome file",
                 "More details while hovering",
+                "Highlight what is under the cursor",
+                "Clear the highlight",
+                "Terrain shading",
+                "Region borders",
+                "Compare with before the last hotload",
                 "Redraw the map",
                 "Follow your player",
                 "Chunk and region grid",
@@ -776,6 +951,28 @@ final class MapCanvas extends JPanel {
         tileLayerStale = true;
         repaint();
         refreshStatus();
+        scheduleLegendUpdate();
+        if (quickHover != null && quickHover.subject() == null) {
+            showQuickHover();
+        }
+    }
+
+    // At most one count per interval however fast tiles arrive, so the legend stays live without costing frames.
+    private void scheduleLegendUpdate() {
+        if (!legendTimer.isRunning()) {
+            legendTimer.start();
+        }
+    }
+
+    private void publishLegend() {
+        if (closed || !active) {
+            return;
+        }
+        IrisRenderer legendRenderer = renderer;
+        RenderType type = currentType;
+        List<MapCensus.Share> shares = MapCensus.count(renderFrame, screenToWorldX(0D), screenToWorldZ(0D),
+                screenToWorldX(getWidth()), screenToWorldZ(getHeight()), label -> legendRenderer.legendColor(label, type));
+        listener.onLegendChanged(legendTitle(), shares, style.highlight());
     }
 
     private void requestRender() {
@@ -784,7 +981,7 @@ final class MapCanvas extends JPanel {
             repaint();
             return;
         }
-        hoverInfo = null;
+        clearHover();
         VisionRenderController.RenderSpec spec = new VisionRenderController.RenderSpec(
                 renderer,
                 currentType,
@@ -793,11 +990,13 @@ final class MapCanvas extends JPanel {
                 centerZ,
                 blocksPerPixel,
                 getWidth(),
-                getHeight()
+                getHeight(),
+                needsHeights()
         );
         renderFrame = controller.request(spec);
         repaint();
         refreshStatus();
+        scheduleLegendUpdate();
     }
 
     private void refreshStatus() {
@@ -894,25 +1093,38 @@ final class MapCanvas extends JPanel {
         double worldZ = screenToWorldZ(point.y);
         controller.submitProbe(
                 frame,
-                () -> sampleHover(probeEngine, worldX, worldZ),
-                info -> {
-                    hoverInfo = info;
-                    repaint();
+                () -> MapHoverProbe.sample(probeEngine, worldX, worldZ),
+                details -> {
+                    QuickHover quick = quickHover;
+                    if (quick != null && quick.worldX() == details.worldX() && quick.worldZ() == details.worldZ()) {
+                        hoverDetails = details;
+                        repaint();
+                    }
                 }
         );
     }
 
-    private static HoverInfo sampleHover(Engine engine, double worldX, double worldZ) {
-        IrisBiome biome = engine.getComplex().getBaseBiomeStream().get(worldX, worldZ);
-        IrisRegion region = engine.getComplex().getRegionStream().get(worldX, worldZ);
-        return new HoverInfo(
-                worldX,
-                worldZ,
-                biome.getName(),
-                region.getName(),
-                biome.getLoadKey(),
-                String.valueOf(biome.getLoadFile())
-        );
+    // The drawn tiles already know the biome and region under the cursor, so the card follows the mouse without waiting.
+    private void showQuickHover() {
+        Point point = cursor;
+        if (point == null || dragOrigin != null) {
+            return;
+        }
+        double worldX = screenToWorldX(point.x);
+        double worldZ = screenToWorldZ(point.y);
+        VisionRenderController.TilePixel pixel = tilePixelAt(point);
+        quickHover = new QuickHover(worldX, worldZ, pixel == null ? null : pixel.subject(), pixel == null ? null : pixel.region());
+        repaint();
+    }
+
+    private void clearHover() {
+        quickHover = null;
+        hoverDetails = null;
+    }
+
+    private VisionRenderController.TilePixel tilePixelAt(Point point) {
+        VisionRenderController.Frame frame = renderFrame;
+        return frame == null ? null : frame.pixelAt(screenToWorldX(point.x), screenToWorldZ(point.y));
     }
 
     private void stopFollowing() {
@@ -963,7 +1175,7 @@ final class MapCanvas extends JPanel {
         centerZ = next.centerZ();
         blocksPerPixel = next.blocksPerPixel();
         stopFollowing();
-        hoverInfo = null;
+        clearHover();
         requestRender();
     }
 
@@ -1017,15 +1229,10 @@ final class MapCanvas extends JPanel {
         void onTogglesChanged();
 
         void onShowPalettesAt(double worldX, double worldZ);
+
+        void onLegendChanged(String title, List<MapCensus.Share> shares, MapStyle.Highlight highlight);
     }
 
-    private record HoverInfo(
-            double worldX,
-            double worldZ,
-            String biomeName,
-            String regionName,
-            String biomeKey,
-            String biomeFile
-    ) {
+    private record QuickHover(double worldX, double worldZ, MapLabels.Label subject, MapLabels.Label region) {
     }
 }

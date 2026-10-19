@@ -20,10 +20,11 @@ package com.volmit.iris.core.gui;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.gui.components.IrisRenderer;
+import com.volmit.iris.core.gui.components.MapLabels;
+import com.volmit.iris.core.gui.components.MapTile;
 import com.volmit.iris.core.gui.components.RenderType;
 
 import java.awt.EventQueue;
-import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -60,7 +61,7 @@ final class VisionRenderController implements AutoCloseable {
     private static final int MAXIMUM_VISIBLE_TILES = 32_768;
     private static final int PROBE_QUEUE_CAPACITY = 1;
     private static final int COARSER_FALLBACK_LEVELS = 6;
-    private static final long CACHE_BYTES = 128L * 1024L * 1024L;
+    private static final long CACHE_BYTES = 256L * 1024L * 1024L;
 
     private final Runnable listener;
     private final int workerCount;
@@ -119,7 +120,7 @@ final class VisionRenderController implements AutoCloseable {
         List<VisibleTile> tiles = visibleTiles(spec, renderScale);
         Frame frame = new Frame(viewSequence.incrementAndGet(), spec, renderScale, tiles);
         for (VisibleTile tile : tiles) {
-            tile.setImage(cache.get(tile.key()));
+            tile.setTile(cachedTileServing(tile.key()));
         }
         currentFrame = frame;
         probeSequence.incrementAndGet();
@@ -133,8 +134,21 @@ final class VisionRenderController implements AutoCloseable {
      * A tile from another zoom level covering the given one, to draw while the real tile renders.
      */
     Fallback fallback(Frame frame, VisibleTile tile) {
+        MapTile withoutHeights = cache.get(tile.key().withHeights(false));
+        if (withoutHeights != null) {
+            return new Fallback(List.of(new FallbackPiece(withoutHeights, 0, 0, TILE_PIXELS, 0D, 0D, 1D)));
+        }
         Fallback coarser = coarserFallback(frame, tile);
         return coarser != null ? coarser : finerFallback(frame, tile);
+    }
+
+    // A tile drawn with heights serves just as well where no heights are needed, so turning shading off redraws nothing.
+    private MapTile cachedTileServing(TileKey key) {
+        MapTile exact = cache.get(key);
+        if (exact != null || key.heights()) {
+            return exact;
+        }
+        return cache.get(key.withHeights(true));
     }
 
     Progress progress(Frame frame) {
@@ -143,7 +157,7 @@ final class VisionRenderController implements AutoCloseable {
         }
         int ready = 0;
         for (VisibleTile tile : frame.tiles()) {
-            if (tile.image() != null) {
+            if (tile.tile() != null) {
                 ready++;
             }
         }
@@ -198,7 +212,7 @@ final class VisionRenderController implements AutoCloseable {
             for (long tileX = minimumX; tileX <= maximumX; tileX++) {
                 double deltaX = tileX + 0.5D - centerTileX;
                 double deltaZ = tileZ + 0.5D - centerTileZ;
-                TileKey key = new TileKey(spec.contentRevision(), spec.type(), renderScale, tileX, tileZ);
+                TileKey key = new TileKey(spec.contentRevision(), spec.type(), spec.heights(), renderScale, tileX, tileZ);
                 tiles.add(new VisibleTile(key, deltaX * deltaX + deltaZ * deltaZ));
             }
         }
@@ -283,19 +297,20 @@ final class VisionRenderController implements AutoCloseable {
         TileKey key = job.key();
         try {
             double tileSpan = TILE_PIXELS * key.blocksPerPixel();
-            BufferedImage image = job.renderer().renderStudio(
+            MapTile tile = job.renderer().renderTile(
                     key.tileX() * tileSpan,
                     key.tileZ() * tileSpan,
-                    tileSpan,
+                    key.blocksPerPixel(),
                     TILE_PIXELS,
                     key.type(),
+                    key.heights(),
                     () -> !isWanted(key)
             );
-            cache.put(key, image);
+            cache.put(key, tile);
             Frame frame = currentFrame;
             VisibleTile visible = frame == null ? null : frame.tile(key);
             if (visible != null) {
-                visible.setImage(image);
+                visible.setTile(tile);
                 publish();
             }
         } catch (CancellationException ignored) {
@@ -322,7 +337,8 @@ final class VisionRenderController implements AutoCloseable {
             }
             long parentX = Math.floorDiv(key.tileX(), scale);
             long parentZ = Math.floorDiv(key.tileZ(), scale);
-            BufferedImage parent = cache.get(new TileKey(key.contentRevision(), key.type(), parentScale, parentX, parentZ));
+            MapTile parent = cache.get(new TileKey(key.contentRevision(), key.type(), key.heights(), parentScale, parentX,
+                    parentZ));
             if (parent != null) {
                 int sourceX = (int) (key.tileX() - parentX * scale) * sourceSize;
                 int sourceZ = (int) (key.tileZ() - parentZ * scale) * sourceSize;
@@ -341,7 +357,7 @@ final class VisionRenderController implements AutoCloseable {
         List<FallbackPiece> pieces = new ArrayList<>(4);
         for (int childZ = 0; childZ < 2; childZ++) {
             for (int childX = 0; childX < 2; childX++) {
-                BufferedImage child = cache.get(new TileKey(key.contentRevision(), key.type(), childScale,
+                MapTile child = cache.get(new TileKey(key.contentRevision(), key.type(), key.heights(), childScale,
                         key.tileX() * 2L + childX, key.tileZ() * 2L + childZ));
                 if (child != null) {
                     pieces.add(new FallbackPiece(child, 0, 0, TILE_PIXELS, childX * 0.5D, childZ * 0.5D, 0.5D));
@@ -410,7 +426,8 @@ final class VisionRenderController implements AutoCloseable {
             double centerZ,
             double blocksPerPixel,
             int width,
-            int height
+            int height,
+            boolean heights
     ) {
         RenderSpec {
             Objects.requireNonNull(renderer, "renderer");
@@ -468,11 +485,33 @@ final class VisionRenderController implements AutoCloseable {
             return tilesByKey.get(key);
         }
 
+        /**
+         * The tile covering a world position together with the pixel of it there, or null when that tile is not drawn yet.
+         */
+        TilePixel pixelAt(double worldX, double worldZ) {
+            double tileSpan = TILE_PIXELS * renderBlocksPerPixel;
+            long tileX = (long) Math.floor(worldX / tileSpan);
+            long tileZ = (long) Math.floor(worldZ / tileSpan);
+            VisibleTile visible = tilesByKey.get(new TileKey(spec.contentRevision(), spec.type(), spec.heights(),
+                    renderBlocksPerPixel, tileX, tileZ));
+            MapTile tile = visible == null ? null : visible.tile();
+            if (tile == null) {
+                return null;
+            }
+            int pixelX = pixelWithin(worldX - tileX * tileSpan);
+            int pixelZ = pixelWithin(worldZ - tileZ * tileSpan);
+            return new TilePixel(tile, pixelX, pixelZ);
+        }
+
+        private int pixelWithin(double offsetBlocks) {
+            return Math.max(0, Math.min(TILE_PIXELS - 1, (int) Math.floor(offsetBlocks / renderBlocksPerPixel)));
+        }
+
         // Tiles are sorted centre first, and everything before the cursor is drawn or claimed, so each search resumes there.
         private VisibleTile nextMissing(Set<TileKey> inFlight, boolean advance) {
             for (int index = nextCandidate; index < tiles.size(); index++) {
                 VisibleTile tile = tiles.get(index);
-                if (tile.image() == null && !inFlight.contains(tile.key())) {
+                if (tile.tile() == null && !inFlight.contains(tile.key())) {
                     if (advance) {
                         nextCandidate = index + 1;
                     }
@@ -489,7 +528,7 @@ final class VisionRenderController implements AutoCloseable {
     static final class VisibleTile {
         private final TileKey key;
         private final double distanceSquared;
-        private volatile BufferedImage image;
+        private volatile MapTile tile;
 
         private VisibleTile(TileKey key, double distanceSquared) {
             this.key = key;
@@ -512,21 +551,38 @@ final class VisionRenderController implements AutoCloseable {
             return distanceSquared;
         }
 
-        BufferedImage image() {
-            return image;
+        MapTile tile() {
+            return tile;
         }
 
-        private void setImage(BufferedImage image) {
-            this.image = image;
+        private void setTile(MapTile tile) {
+            this.tile = tile;
         }
     }
 
-    record TileKey(long contentRevision, RenderType type, double blocksPerPixel, long tileX, long tileZ) {
+    /**
+     * @param heights whether the tile also carries terrain heights, for shading
+     */
+    record TileKey(long contentRevision, RenderType type, boolean heights, double blocksPerPixel, long tileX, long tileZ) {
         TileKey {
             Objects.requireNonNull(type, "type");
             if (!Double.isFinite(blocksPerPixel) || blocksPerPixel <= 0D) {
                 throw new IllegalArgumentException("Vision cache scale must be finite and positive");
             }
+        }
+
+        TileKey withHeights(boolean nextHeights) {
+            return new TileKey(contentRevision, type, nextHeights, blocksPerPixel, tileX, tileZ);
+        }
+    }
+
+    record TilePixel(MapTile tile, int pixelX, int pixelZ) {
+        MapLabels.Label subject() {
+            return tile.labels().label(tile.subjectAt(pixelX, pixelZ));
+        }
+
+        MapLabels.Label region() {
+            return tile.labels().label(tile.regionAt(pixelX, pixelZ));
         }
     }
 
@@ -536,7 +592,7 @@ final class VisionRenderController implements AutoCloseable {
     record Fallback(List<FallbackPiece> pieces) {
     }
 
-    record FallbackPiece(BufferedImage image, int sourceX, int sourceZ, int sourceSize, double offsetX, double offsetZ,
+    record FallbackPiece(MapTile tile, int sourceX, int sourceZ, int sourceSize, double offsetX, double offsetZ,
                          double size) {
     }
 
@@ -562,18 +618,18 @@ final class VisionRenderController implements AutoCloseable {
             this.entries = new LinkedHashMap<>(128, 0.75F, true);
         }
 
-        synchronized BufferedImage get(TileKey key) {
+        synchronized MapTile get(TileKey key) {
             CacheEntry entry = entries.get(key);
-            return entry == null ? null : entry.image();
+            return entry == null ? null : entry.tile();
         }
 
-        synchronized void put(TileKey key, BufferedImage image) {
-            long imageBytes = (long) image.getWidth() * image.getHeight() * Integer.BYTES;
-            CacheEntry previous = entries.put(key, new CacheEntry(image, imageBytes));
+        synchronized void put(TileKey key, MapTile tile) {
+            long tileBytes = tile.bytes();
+            CacheEntry previous = entries.put(key, new CacheEntry(tile, tileBytes));
             if (previous != null) {
                 bytes -= previous.bytes();
             }
-            bytes += imageBytes;
+            bytes += tileBytes;
             while (bytes > maximumBytes && !entries.isEmpty()) {
                 Iterator<Map.Entry<TileKey, CacheEntry>> iterator = entries.entrySet().iterator();
                 Map.Entry<TileKey, CacheEntry> eldest = iterator.next();
@@ -588,6 +644,6 @@ final class VisionRenderController implements AutoCloseable {
         }
     }
 
-    private record CacheEntry(BufferedImage image, long bytes) {
+    private record CacheEntry(MapTile tile, long bytes) {
     }
 }

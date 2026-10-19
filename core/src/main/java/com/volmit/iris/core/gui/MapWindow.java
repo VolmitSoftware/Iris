@@ -18,6 +18,8 @@
 
 package com.volmit.iris.core.gui;
 
+import com.volmit.iris.core.gui.components.MapStyle;
+
 import javax.swing.AbstractAction;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -30,6 +32,7 @@ import javax.swing.JSplitPane;
 import javax.swing.JToggleButton;
 import javax.swing.JToolBar;
 import javax.swing.KeyStroke;
+import javax.swing.SwingConstants;
 import javax.swing.text.JTextComponent;
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
@@ -68,6 +71,13 @@ public final class MapWindow implements MapCanvas.Listener {
     private final JToggleButton gridToggle = StudioToolbar.toggle("Grid", "Show chunk and region borders (G)");
     private final JToggleButton entitiesToggle = StudioToolbar.toggle("Entities", "Show mobs and other entities (E)");
     private final JToggleButton followToggle = StudioToolbar.toggle("Follow", "Keep your player in the middle (F)");
+    private final JToggleButton shadingToggle = StudioToolbar.toggle("Shading", "Shade hills and valleys on every view (S)");
+    private final JToggleButton bordersToggle = StudioToolbar.toggle("Borders", "Outline the regions on every view (B)");
+    private final JToggleButton swipeToggle = StudioToolbar.toggle("Before / after",
+            "Split the map between before and after the last hotload or refresh (C)");
+    private final JToggleButton changesToggle = StudioToolbar.toggle("Changes",
+            "Fade out everything the last hotload or refresh left the same (C twice)");
+    private final MapLegendPanel legendPanel;
 
     private NoiseExplorerGUI paletteExplorer;
     private MapView currentView;
@@ -80,6 +90,7 @@ public final class MapWindow implements MapCanvas.Listener {
         this.canvas = new MapCanvas(start.engine(), start.playerId(), this);
         this.viewList = new MapViewList(this::showView);
         this.viewListScroll = StudioToolbar.scroll(viewList);
+        this.legendPanel = new MapLegendPanel(share -> canvas.toggleHighlight(share.label()));
         canvas.centerOn(start.centerX(), start.centerZ());
         buildFrame();
     }
@@ -136,9 +147,21 @@ public final class MapWindow implements MapCanvas.Listener {
         mapControls.add(gridToggle);
         mapControls.add(entitiesToggle);
         mapControls.add(followToggle);
+        mapControls.add(toolbarSeparator());
+        mapControls.add(shadingToggle);
+        mapControls.add(bordersToggle);
+        mapControls.add(toolbarSeparator());
+        mapControls.add(swipeToggle);
+        mapControls.add(changesToggle);
         gridToggle.addActionListener(event -> canvas.toggleGrid());
         entitiesToggle.addActionListener(event -> canvas.toggleEntities());
         followToggle.addActionListener(event -> canvas.toggleFollow());
+        shadingToggle.addActionListener(event -> canvas.toggleShading());
+        bordersToggle.addActionListener(event -> canvas.toggleRegionBorders());
+        swipeToggle.addActionListener(event -> canvas.showComparison(
+                swipeToggle.isSelected() ? HotloadComparison.Mode.SWIPE : HotloadComparison.Mode.OFF));
+        changesToggle.addActionListener(event -> canvas.showComparison(
+                changesToggle.isSelected() ? HotloadComparison.Mode.CHANGES : HotloadComparison.Mode.OFF));
         mapControls.forEach(toolbar::add);
 
         paletteControls.add(StudioToolbar.button("Reset view", "Go back to the starting position and zoom (R)", this::resetPaletteView));
@@ -149,6 +172,12 @@ public final class MapWindow implements MapCanvas.Listener {
         mapControls.add(help);
         toolbar.add(help);
         return toolbar;
+    }
+
+    private static JComponent toolbarSeparator() {
+        JToolBar.Separator separator = new JToolBar.Separator();
+        separator.setOrientation(SwingConstants.VERTICAL);
+        return separator;
     }
 
     private void showView(MapView view) {
@@ -179,6 +208,7 @@ public final class MapWindow implements MapCanvas.Listener {
         setControlsVisible(paletteControls, false);
         useSidebar(viewListScroll);
         inspectorSlot.removeAll();
+        inspectorSlot.add(legendPanel, BorderLayout.CENTER);
         showCard(MAP_CARD);
         canvas.requestFocusInWindow();
     }
@@ -265,6 +295,15 @@ public final class MapWindow implements MapCanvas.Listener {
         gridToggle.setSelected(canvas.isGridVisible());
         entitiesToggle.setSelected(canvas.areEntitiesVisible());
         followToggle.setSelected(canvas.isFollowing());
+        shadingToggle.setSelected(canvas.style().shading());
+        bordersToggle.setSelected(canvas.style().regionBorders());
+        swipeToggle.setSelected(canvas.comparisonMode() == HotloadComparison.Mode.SWIPE);
+        changesToggle.setSelected(canvas.comparisonMode() == HotloadComparison.Mode.CHANGES);
+    }
+
+    @Override
+    public void onLegendChanged(String title, List<MapCensus.Share> shares, MapStyle.Highlight highlight) {
+        legendPanel.show(title, shares, highlight);
     }
 
     private void resetPaletteView() {
@@ -297,6 +336,11 @@ public final class MapWindow implements MapCanvas.Listener {
         bindMap(rootPane, KeyEvent.VK_G, 0, "grid", canvas::toggleGrid);
         bindMap(rootPane, KeyEvent.VK_E, 0, "entities", canvas::toggleEntities);
         bindMap(rootPane, KeyEvent.VK_F3, 0, "debug", canvas::toggleDebug);
+        bindMap(rootPane, KeyEvent.VK_H, 0, "highlight", canvas::highlightUnderCursor);
+        bindMap(rootPane, KeyEvent.VK_ESCAPE, 0, "dismiss", canvas::dismissEmphasis);
+        bindMap(rootPane, KeyEvent.VK_S, 0, "shading", canvas::toggleShading);
+        bindMap(rootPane, KeyEvent.VK_B, 0, "borders", canvas::toggleRegionBorders);
+        bindMap(rootPane, KeyEvent.VK_C, 0, "compare", canvas::cycleComparison);
         bindMap(rootPane, KeyEvent.VK_EQUALS, 0, "zoom-in", canvas::zoomIn);
         bindMap(rootPane, KeyEvent.VK_EQUALS, KeyEvent.SHIFT_DOWN_MASK, "zoom-in-plus", canvas::zoomIn);
         bindMap(rootPane, KeyEvent.VK_ADD, 0, "zoom-in-keypad", canvas::zoomIn);

@@ -21,6 +21,7 @@ package com.volmit.iris.engine.object.procedural.tree;
 import com.volmit.iris.engine.object.IrisMaterialPalette;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.Snippet;
+import com.volmit.iris.engine.object.procedural.ProceduralObjectCatalog;
 import com.volmit.iris.engine.object.annotations.MaxNumber;
 import com.volmit.iris.engine.object.annotations.MinNumber;
 import com.volmit.iris.engine.object.annotations.RegistryListBlockType;
@@ -28,7 +29,7 @@ import com.volmit.iris.engine.object.annotations.Required;
 
 import java.util.Optional;
 
-@Snippet("tree-decorator")
+@Snippet(ProceduralObjectCatalog.SNIPPET_FOLDER)
 @Desc("An accent block applied to a generated tree such as fruit on branch tips, vines on the trunk, snow on the crown, or a glowing underside.")
 public final class TreeDecorator {
     @Desc("Where this decorator is placed on the tree.")

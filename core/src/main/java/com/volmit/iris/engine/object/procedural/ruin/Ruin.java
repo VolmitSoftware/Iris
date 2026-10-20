@@ -27,6 +27,7 @@ import com.volmit.iris.engine.object.IrisObjectLimit;
 import com.volmit.iris.engine.object.IrisMaterialPalette;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.Snippet;
+import com.volmit.iris.engine.object.procedural.ProceduralObjectCatalog;
 import com.volmit.iris.engine.object.annotations.MaxNumber;
 import com.volmit.iris.engine.object.annotations.ArrayType;
 import com.volmit.iris.engine.object.annotations.MinNumber;
@@ -36,7 +37,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-@Snippet("ruin")
+@Snippet(ProceduralObjectCatalog.SNIPPET_FOLDER)
 @Desc("A single procedurally generated ruin: a crumbling man-made structure (pillar, wall, arch, foundation slab, or rubble pile). Iris bakes a pool of deterministic variants from these settings and scatters them at world-gen time, exactly like an object placement but generated from scratch instead of loaded from an iob file. Weathering swaps blocks for mossy or cracked variants by noise, erosion deletes blocks so the shape reads as collapsed, and a buried fraction sinks the ruin into the terrain.")
 public final class Ruin {
     @Desc("A human readable name used in logs and as the variant load key (procedural/<name>#<index>).")

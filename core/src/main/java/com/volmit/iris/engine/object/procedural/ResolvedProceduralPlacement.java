@@ -68,7 +68,7 @@ public abstract class ResolvedProceduralPlacement {
         return shape.name();
     }
 
-    /** The type of object, as the variant keys name it: tree, ruin, formation, coral, fungus or crystal. */
+    /** The type of object, named like its snippet folder: trees, ruins, formations, coral, fungi or crystals. */
     public String kind() {
         return shape.kind();
     }
@@ -116,7 +116,7 @@ public abstract class ResolvedProceduralPlacement {
         return keys;
     }
 
-    /** The key variant {@code index} is loaded under, like {@code procedural/tree/oak#0}. */
+    /** The key variant {@code index} is loaded under, like {@code procedural/trees/oak#0}. */
     public String variantKey(int index) {
         return "procedural/" + shape.kind() + "/" + shape.name() + "#" + index;
     }

@@ -29,7 +29,7 @@ public final class ResolvedFormation extends ResolvedProceduralPlacement {
     private final Formation settings;
 
     public ResolvedFormation(Formation settings, IrisData data) {
-        super(new Shape("formation", settings.name(), settings.chance(), settings.density(), settings.seed(), settings.variants(), settings.mode(),
+        super(new Shape("formations", settings.name(), settings.chance(), settings.density(), settings.seed(), settings.variants(), settings.mode(),
                 settings.rotation(), settings.clamp(), settings.carvingSupport(), settings.underwater(), settings.translate(),
                 settings.stiltSettings().orElse(null)), data);
         this.settings = settings;

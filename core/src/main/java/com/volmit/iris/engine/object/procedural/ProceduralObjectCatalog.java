@@ -20,7 +20,8 @@ package com.volmit.iris.engine.object.procedural;
 import com.google.gson.Gson;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisData;
-import com.volmit.iris.engine.object.annotations.Snippet;
+import com.volmit.iris.engine.object.IrisBiome;
+import com.volmit.iris.engine.object.IrisRegion;
 import com.volmit.iris.engine.object.procedural.coral.Coral;
 import com.volmit.iris.engine.object.procedural.coral.ResolvedCoral;
 import com.volmit.iris.engine.object.procedural.crystal.Crystal;
@@ -40,18 +41,29 @@ import java.io.Reader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Stream;
 
 /**
- * The procedural objects of one pack: those its regions and biomes declare, and those saved on their own as snippets,
- * such as {@code snippet/procedural-tree/oak.json}. A definition several places share is baked once.
+ * The procedural objects of one pack: those its regions and biomes declare, and those saved on their own as snippets
+ * in a folder per type under {@code snippet/procedural}, such as {@code snippet/procedural/trees/oak.json}. A definition several places share is baked once.
  */
 public final class ProceduralObjectCatalog {
     private static final Gson DEFINITION_JSON = new Gson();
-    private static final List<Class<?>> DEFINITION_TYPES = List.of(Tree.class, Ruin.class, Formation.class, Coral.class, Fungus.class, Crystal.class);
+    /** The snippet folder every procedural setting shares, so all of them live under {@code snippet/procedural}. */
+    public static final String SNIPPET_FOLDER = "procedural";
+    private static final Map<String, Class<?>> DEFINITION_TYPE_BY_FOLDER = Map.of(
+            "trees", Tree.class,
+            "ruins", Ruin.class,
+            "formations", Formation.class,
+            "coral", Coral.class,
+            "fungi", Fungus.class,
+            "crystals", Crystal.class);
 
     private final IrisData data;
     private final KMap<String, ResolvedProceduralPlacement> byDefinition = new KMap<>();
@@ -87,47 +99,58 @@ public final class ProceduralObjectCatalog {
     }
 
     /**
-     * Every procedural object the pack defines, in snippets or in regions and biomes, whether or not its dimensions
-     * reach them. Where two definitions share a type and name, the first one found stands for both.
+     * Every procedural object the pack defines, whether or not its dimensions reach them. A snippet is found at its file's
+     * path under {@code snippet/procedural}, like {@code trees/estranged/oak}; a definition only written in a region or
+     * biome at its type and name, like {@code trees/oak}.
      */
-    public List<ResolvedProceduralPlacement> definitions() {
-        Map<String, ResolvedProceduralPlacement> byTypeAndName = new LinkedHashMap<>();
-        for (Class<?> type : DEFINITION_TYPES) {
-            snippetDefinitions(type).forEach(definition -> addDefinition(byTypeAndName, placementOf(definition)));
-        }
-        data.getRegionLoader().streamAll().forEach(region -> addDefinitions(byTypeAndName, region.getProceduralObjects()));
-        data.getBiomeLoader().streamAll().forEach(biome -> addDefinitions(byTypeAndName, biome.getProceduralObjects()));
-        return List.copyOf(byTypeAndName.values());
+    public List<Definition> definitions() {
+        Map<ResolvedProceduralPlacement, String> pathByPlacement = new LinkedHashMap<>();
+        Set<String> takenPaths = new HashSet<>();
+        DEFINITION_TYPE_BY_FOLDER.forEach((folder, type) -> snippetDefinitions(folder, type)
+                .forEach((path, definition) -> addDefinition(pathByPlacement, takenPaths, placementOf(definition), path)));
+        Stream.concat(data.getRegionLoader().streamAll().map(IrisRegion::getProceduralObjects),
+                        data.getBiomeLoader().streamAll().map(IrisBiome::getProceduralObjects))
+                .filter(Objects::nonNull)
+                .flatMap(settings -> settings.resolved(data).stream())
+                .forEach(placement -> addDefinition(pathByPlacement, takenPaths, placement, placement.kind() + "/" + placement.name()));
+        List<Definition> definitions = new ArrayList<>();
+        pathByPlacement.forEach((placement, path) -> definitions.add(new Definition(path, placement)));
+        return definitions;
     }
 
-    private void addDefinitions(Map<String, ResolvedProceduralPlacement> byTypeAndName, ProceduralObjectSettings settings) {
-        if (settings == null) {
+    // The same definition found twice keeps its first path; two different ones never share a path.
+    private static void addDefinition(Map<ResolvedProceduralPlacement, String> pathByPlacement, Set<String> takenPaths,
+                                      ResolvedProceduralPlacement placement, String path) {
+        if (pathByPlacement.containsKey(placement)) {
             return;
         }
-        settings.resolved(data).forEach(placement -> addDefinition(byTypeAndName, placement));
+        String uniquePath = path;
+        for (int copy = 2; !takenPaths.add(uniquePath); copy++) {
+            uniquePath = path + " (" + copy + ")";
+        }
+        pathByPlacement.put(placement, uniquePath);
     }
 
-    private static void addDefinition(Map<String, ResolvedProceduralPlacement> byTypeAndName, ResolvedProceduralPlacement placement) {
-        byTypeAndName.putIfAbsent(placement.kind() + "/" + placement.name(), placement);
-    }
-
-    private List<Object> snippetDefinitions(Class<?> type) {
-        Path folder = data.getDataFolder().toPath().resolve("snippet").resolve(type.getAnnotation(Snippet.class).value());
+    /** The definitions in the snippet folder of one type, by their path under {@code snippet/procedural} without the extension. */
+    private Map<String, Object> snippetDefinitions(String typeFolder, Class<?> type) {
+        Path proceduralFolder = data.getDataFolder().toPath().resolve("snippet").resolve(SNIPPET_FOLDER);
+        Path folder = proceduralFolder.resolve(typeFolder);
         if (!Files.isDirectory(folder)) {
-            return List.of();
+            return Map.of();
         }
         try (Stream<Path> files = Files.walk(folder)) {
-            List<Object> definitions = new ArrayList<>();
+            Map<String, Object> definitions = new LinkedHashMap<>();
             files.filter(file -> file.toString().endsWith(".json")).sorted().forEach(file -> {
                 Object definition = readDefinition(file, type);
                 if (definition != null) {
-                    definitions.add(definition);
+                    String path = proceduralFolder.relativize(file).toString().replace('\\', '/');
+                    definitions.put(path.substring(0, path.length() - ".json".length()), definition);
                 }
             });
             return definitions;
         } catch (IOException error) {
             Iris.warn("Could not list the procedural objects in " + folder + ": " + error.getMessage());
-            return List.of();
+            return Map.of();
         }
     }
 
@@ -140,4 +163,7 @@ public final class ProceduralObjectCatalog {
         }
     }
 
+    /** A procedural object and where the pack keeps it, as a path under {@code snippet/procedural}. */
+    public record Definition(String path, ResolvedProceduralPlacement placement) {
+    }
 }

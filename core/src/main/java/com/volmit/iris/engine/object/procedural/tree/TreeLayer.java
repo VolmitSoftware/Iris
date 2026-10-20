@@ -20,9 +20,10 @@ package com.volmit.iris.engine.object.procedural.tree;
 
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.Snippet;
+import com.volmit.iris.engine.object.procedural.ProceduralObjectCatalog;
 import com.volmit.iris.engine.object.annotations.MinNumber;
 
-@Snippet("tree-layer")
+@Snippet(ProceduralObjectCatalog.SNIPPET_FOLDER)
 @Desc("An explicit canopy disc at a given vertical offset and radius. Define a list of these to bypass the profile and sculpt the crown by hand.")
 public final class TreeLayer {
     @Desc("The vertical offset of this disc, measured in blocks above the trunk base.")

@@ -20,12 +20,13 @@ package com.volmit.iris.engine.object.procedural.tree;
 
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.Snippet;
+import com.volmit.iris.engine.object.procedural.ProceduralObjectCatalog;
 import com.volmit.iris.engine.object.annotations.MaxNumber;
 import com.volmit.iris.engine.object.annotations.MinNumber;
 
 import java.util.Optional;
 
-@Snippet("tree-branches")
+@Snippet(ProceduralObjectCatalog.SNIPPET_FOLDER)
 @Desc("A branch system that throws limbs out of the trunk and places a leaf ball at each tip. When present, branches drive the canopy and only the topmost crown disc of the profile is still placed.")
 public final class TreeBranches {
     @Desc("How branch spawn chance varies over trunk height.")

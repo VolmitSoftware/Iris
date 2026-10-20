@@ -29,7 +29,7 @@ public final class ResolvedCrystal extends ResolvedProceduralPlacement {
     private final Crystal settings;
 
     public ResolvedCrystal(Crystal settings, IrisData data) {
-        super(new Shape("crystal", settings.name(), settings.chance(), settings.density(), settings.seed(), settings.variants(), settings.mode(),
+        super(new Shape("crystals", settings.name(), settings.chance(), settings.density(), settings.seed(), settings.variants(), settings.mode(),
                 settings.rotation(), settings.clamp(), settings.carvingSupport(), settings.underwater(), settings.translate(),
                 settings.stiltSettings().orElse(null)), data);
         this.settings = settings;

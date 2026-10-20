@@ -19,6 +19,7 @@ package com.volmit.iris.core.gui;
 
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.engine.object.IrisObject;
+import com.volmit.iris.engine.object.procedural.ProceduralObjectCatalog;
 import com.volmit.iris.engine.object.procedural.ResolvedProceduralPlacement;
 
 import java.util.LinkedHashMap;
@@ -26,16 +27,16 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * The objects the pack's procedural settings generate, one entry per definition in a folder per type.
+ * The objects the pack's procedural settings generate, one entry per definition, in the folders the pack keeps them in.
  */
 final class ProceduralObjectSource implements ObjectSource {
-    private static final Map<String, String> FOLDER_BY_KIND = Map.of(
-            "tree", "Trees",
-            "formation", "Formations",
-            "crystal", "Crystals",
+    private static final Map<String, String> FOLDER_LABEL_BY_KIND = Map.of(
+            "trees", "Trees",
+            "formations", "Formations",
+            "crystals", "Crystals",
             "coral", "Coral",
-            "fungus", "Fungi",
-            "ruin", "Ruins");
+            "fungi", "Fungi",
+            "ruins", "Ruins");
 
     private Map<String, ResolvedProceduralPlacement> definitionsByKey = Map.of();
 
@@ -44,11 +45,14 @@ final class ProceduralObjectSource implements ObjectSource {
         return "procedural object";
     }
 
+    // The type folder gets its label; the rest of the path stays as the pack has it.
     @Override
     public List<String> keys(IrisData data) {
         Map<String, ResolvedProceduralPlacement> byKey = new LinkedHashMap<>();
-        for (ResolvedProceduralPlacement definition : data.getProceduralObjects().definitions()) {
-            byKey.put(FOLDER_BY_KIND.getOrDefault(definition.kind(), definition.kind()) + "/" + definition.name(), definition);
+        for (ProceduralObjectCatalog.Definition definition : data.getProceduralObjects().definitions()) {
+            String kind = definition.placement().kind();
+            String key = FOLDER_LABEL_BY_KIND.getOrDefault(kind, kind) + definition.path().substring(kind.length());
+            byKey.put(key, definition.placement());
         }
         definitionsByKey = byKey;
         return List.copyOf(byKey.keySet());

@@ -37,7 +37,7 @@ public final class ResolvedTree extends ResolvedProceduralPlacement {
     private final Tree settings;
 
     public ResolvedTree(Tree settings, IrisData data) {
-        super(new Shape("tree", settings.name(), settings.chance(), settings.density(), settings.seed(), settings.variants(), settings.mode(),
+        super(new Shape("trees", settings.name(), settings.chance(), settings.density(), settings.seed(), settings.variants(), settings.mode(),
                 settings.rotation(), settings.clamp(), settings.carvingSupport(), settings.underwater(), settings.translate(),
                 settings.stiltSettings().orElse(null)), data);
         this.settings = settings;

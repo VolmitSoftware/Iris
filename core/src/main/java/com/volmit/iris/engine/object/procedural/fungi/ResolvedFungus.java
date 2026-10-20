@@ -33,7 +33,7 @@ public final class ResolvedFungus extends ResolvedProceduralPlacement {
     private final Fungus settings;
 
     public ResolvedFungus(Fungus settings, IrisData data) {
-        super(new Shape("fungus", settings.name(), settings.chance(), settings.density(), settings.seed(), settings.variants(), settings.mode(),
+        super(new Shape("fungi", settings.name(), settings.chance(), settings.density(), settings.seed(), settings.variants(), settings.mode(),
                 settings.rotation(), settings.clamp(), settings.carvingSupport(), settings.underwater(), settings.translate(),
                 settings.stiltSettings().orElse(null)), data);
         this.settings = settings;

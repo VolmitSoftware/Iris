@@ -20,6 +20,7 @@ package com.volmit.iris.engine.object.procedural.tree;
 
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.Snippet;
+import com.volmit.iris.engine.object.procedural.ProceduralObjectCatalog;
 import com.volmit.iris.engine.object.annotations.MaxNumber;
 import com.volmit.iris.engine.object.annotations.ArrayType;
 import com.volmit.iris.engine.object.annotations.MinNumber;
@@ -27,7 +28,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-@Snippet("tree-canopy")
+@Snippet(ProceduralObjectCatalog.SNIPPET_FOLDER)
 @Desc("The leaf crown of a procedural tree. Built from stacked dome-shaped discs (driven by the profile or by explicit layers) and optionally a branch system.")
 public final class TreeCanopy {
     @MinNumber(0)

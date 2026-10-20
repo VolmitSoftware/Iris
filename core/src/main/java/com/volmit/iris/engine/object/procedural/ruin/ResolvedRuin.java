@@ -29,7 +29,7 @@ public final class ResolvedRuin extends ResolvedProceduralPlacement {
     private final Ruin settings;
 
     public ResolvedRuin(Ruin settings, IrisData data) {
-        super(new Shape("ruin", settings.name(), settings.chance(), settings.density(), settings.seed(), settings.variants(), settings.mode(),
+        super(new Shape("ruins", settings.name(), settings.chance(), settings.density(), settings.seed(), settings.variants(), settings.mode(),
                 settings.rotation(), settings.clamp(), settings.carvingSupport(), settings.underwater(), settings.translate(),
                 settings.stiltSettings().orElse(null)), data);
         this.settings = settings;

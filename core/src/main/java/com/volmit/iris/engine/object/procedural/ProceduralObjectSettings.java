@@ -37,7 +37,7 @@ import java.util.List;
  * The procedural objects a region or biome declares, written as {@code "proceduralObjects": {"trees": [...], ...}}: things
  * Iris generates from scratch at world-gen time and places like object placements.
  */
-@Snippet("procedural-objects")
+@Snippet(ProceduralObjectCatalog.SNIPPET_FOLDER)
 @Desc("Procedurally generated objects placed in a biome or region. Unlike the objects block (which loads iob files), these are generated from scratch at world-gen time.")
 public final class ProceduralObjectSettings {
     private final transient AtomicCache<List<ResolvedProceduralPlacement>> resolved = new AtomicCache<>();

@@ -27,6 +27,7 @@ import com.volmit.iris.engine.object.IrisObjectLimit;
 import com.volmit.iris.engine.object.IrisMaterialPalette;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.Snippet;
+import com.volmit.iris.engine.object.procedural.ProceduralObjectCatalog;
 import com.volmit.iris.engine.object.annotations.MaxNumber;
 import com.volmit.iris.engine.object.annotations.MinNumber;
 import com.volmit.iris.engine.object.annotations.RegistryListBlockType;
@@ -34,7 +35,7 @@ import com.volmit.iris.engine.object.annotations.Required;
 
 import java.util.Optional;
 
-@Snippet("coral")
+@Snippet(ProceduralObjectCatalog.SNIPPET_FOLDER)
 @Desc("A single procedurally generated coral reef structure. Iris bakes a pool of deterministic variants from these settings and scatters them across the seafloor at world-gen time, exactly like an object placement but generated from scratch instead of loaded from an iob file. Mirrors the procedural tree system but tuned for underwater reefs: structural blocks are waterlogged so the coral stays alive, and placement defaults to anchoring on the terrain beneath the water surface.")
 public final class Coral {
     @Desc("A human readable name used in logs and as the variant load key.")

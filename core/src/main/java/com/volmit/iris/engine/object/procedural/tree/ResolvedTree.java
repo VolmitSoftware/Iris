@@ -33,6 +33,8 @@ public final class ResolvedTree extends ResolvedProceduralPlacement {
     private static final long VARIANT_SEED_STRIDE = 7919L;
     private static final double HEIGHT_JITTER_FRACTION = 0.3;
     private static final int MINIMUM_HEIGHT = 2;
+    /** Nearly three times the tallest tree in the packs. Taller settings are clamped so a typo bakes in seconds, not hours. */
+    static final int TALLEST_TREE_BLOCKS = 128;
 
     private final Tree settings;
 
@@ -55,8 +57,8 @@ public final class ResolvedTree extends ResolvedProceduralPlacement {
     protected List<IrisObject> bake(ObjectBuilder blocks) {
         List<IrisObject> baked = new ArrayList<>();
         int count = Math.max(1, settings.variants());
-        int lo = Math.min(settings.heightMin(), settings.heightMax());
-        int hi = Math.max(settings.heightMin(), settings.heightMax());
+        int lo = Math.min(Math.min(settings.heightMin(), settings.heightMax()), TALLEST_TREE_BLOCKS);
+        int hi = Math.min(Math.max(settings.heightMin(), settings.heightMax()), TALLEST_TREE_BLOCKS);
         RNG heightRng = new RNG(settings.seed());
 
         for (int i = 0; i < count; i++) {

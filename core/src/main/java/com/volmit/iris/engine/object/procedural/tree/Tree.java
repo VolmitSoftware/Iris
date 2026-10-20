@@ -104,10 +104,12 @@ public final class Tree {
     private TreeProfile profile = TreeProfile.OAK;
 
     @MinNumber(1)
+    @MaxNumber(ResolvedTree.TALLEST_TREE_BLOCKS)
     @Desc("Minimum trunk height in blocks.")
     private int heightMin = 8;
 
     @MinNumber(1)
+    @MaxNumber(ResolvedTree.TALLEST_TREE_BLOCKS)
     @Desc("Maximum trunk height in blocks.")
     private int heightMax = 12;
 

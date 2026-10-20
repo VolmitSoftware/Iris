@@ -19,8 +19,10 @@
 package com.volmit.iris.core.gui;
 
 import com.volmit.iris.core.gui.BlockTextures.BlockTexture;
+import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.IrisObject;
+import com.volmit.iris.engine.object.procedural.ProceduralObjectCatalog;
 import org.bukkit.NamespacedKey;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.util.BlockVector;
@@ -29,6 +31,7 @@ import javax.swing.JComponent;
 import java.awt.EventQueue;
 import java.awt.event.KeyEvent;
 import java.awt.image.BufferedImage;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -140,7 +143,10 @@ final class ObjectExplorer {
     }
 
     private List<String> objectKeys() {
-        return Arrays.asList(engine().getData().getObjectLoader().getPossibleKeys());
+        IrisData data = engine().getData();
+        List<String> keys = new ArrayList<>(Arrays.asList(data.getObjectLoader().getPossibleKeys()));
+        keys.addAll(data.getProceduralObjects().variantKeys());
+        return keys;
     }
 
     private void showCatalog(List<String> keys) {
@@ -179,9 +185,10 @@ final class ObjectExplorer {
     }
 
     private LoadedObject load(String key) {
-        IrisObject object = engine().getData().getObjectLoader().load(key);
+        IrisObject object = objectFor(key);
         if (object == null) {
-            throw new IllegalStateException("The object file could not be read");
+            throw new IllegalStateException(ProceduralObjectCatalog.isVariantKey(key)
+                    ? "This variant has no blocks" : "The object file could not be read");
         }
         Map<BlockVector, BlockData> blocks = new HashMap<>();
         object.getBlocks().forEach((position, block) -> {
@@ -192,6 +199,14 @@ final class ObjectExplorer {
         ObjectMesh mesh = ObjectMesh.build(blocks, this::modelOf);
         ObjectSummary summary = ObjectSummary.of(key, mesh.bounds(), blocks.values(), this::iconOf);
         return new LoadedObject(blocks, mesh, summary);
+    }
+
+    private IrisObject objectFor(String key) {
+        IrisData data = engine().getData();
+        if (ProceduralObjectCatalog.isVariantKey(key)) {
+            return data.getProceduralObjects().variant(key);
+        }
+        return data.getObjectLoader().load(key);
     }
 
     private void showLoaded(long revision, LoadedObject loaded) {

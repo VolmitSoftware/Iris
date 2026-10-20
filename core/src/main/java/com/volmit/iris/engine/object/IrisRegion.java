@@ -24,6 +24,7 @@ import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.loader.IrisRegistrant;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.object.annotations.*;
+import com.volmit.iris.engine.object.procedural.ProceduralObjectSettings;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.collection.KSet;
@@ -92,6 +93,8 @@ public class IrisRegion extends IrisRegistrant implements IRare {
     @ArrayType(min = 1, type = IrisObjectPlacement.class)
     @Desc("Objects define what schematics (iob files) iris will place in this region")
     private KList<IrisObjectPlacement> objects = new KList<>();
+    @Desc("Objects Iris generates from scratch instead of loading iob files: trees, ruins, rock formations, coral, fungi and crystals. Only surface placements generate in the world; all of them show in the map's Objects view.")
+    private ProceduralObjectSettings proceduralObjects = null;
     @MinNumber(0)
     @Desc("The min shore height")
     private double shoreHeightMin = 1.2;

@@ -30,6 +30,7 @@ import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.*;
 import com.volmit.iris.engine.object.annotations.Snippet;
 import com.volmit.iris.engine.object.matter.IrisMatterObject;
+import com.volmit.iris.engine.object.procedural.ProceduralObjectCatalog;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.context.IrisContext;
@@ -84,6 +85,7 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
     private ResourceLoader<IrisRavine> ravineLoader;
     private ResourceLoader<IrisMatterObject> matterObjectLoader;
     private KMap<String, KList<String>> possibleSnippets;
+    private ProceduralObjectCatalog proceduralObjects;
     private Gson gson;
     private Gson snippetLoader;
     private GsonBuilder builder;
@@ -383,6 +385,7 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
         this.scriptLoader = registerLoader(IrisScript.class);
         this.matterObjectLoader = registerLoader(IrisMatterObject.class);
         this.environment = PackEnvironment.create(this);
+        this.proceduralObjects = new ProceduralObjectCatalog(this);
         builder.registerTypeAdapterFactory(KeyedType::createTypeAdapter);
 
         gson = builder.create();
@@ -400,6 +403,7 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
         for (ResourceLoader<?> i : loaders.values()) {
             i.clearCache();
         }
+        proceduralObjects = new ProceduralObjectCatalog(this);
     }
 
     public void clearLists() {

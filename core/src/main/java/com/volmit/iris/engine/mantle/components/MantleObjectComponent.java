@@ -25,6 +25,8 @@ import com.volmit.iris.engine.mantle.EngineMantle;
 import com.volmit.iris.engine.mantle.IrisMantleComponent;
 import com.volmit.iris.engine.mantle.MantleWriter;
 import com.volmit.iris.engine.object.*;
+import com.volmit.iris.engine.object.procedural.ProceduralObjectSettings;
+import com.volmit.iris.engine.object.procedural.ResolvedProceduralPlacement;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.collection.KSet;
@@ -42,9 +44,11 @@ import com.volmit.iris.util.parallel.BurstExecutor;
 import org.bukkit.util.BlockVector;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
 
 @ComponentFlag(ReservedFlag.OBJECT)
 public class MantleObjectComponent extends IrisMantleComponent {
@@ -97,12 +101,45 @@ public class MantleObjectComponent extends IrisMantleComponent {
                 }
             }
         }
+
+        placeProceduralObjects(writer, rng, x, z, biome.getProceduralObjects());
+        placeProceduralObjects(writer, rng, x, z, region.getProceduralObjects());
+    }
+
+    @ChunkCoordinates
+    private void placeProceduralObjects(MantleWriter writer, RNG rng, int x, int z, ProceduralObjectSettings settings) {
+        for (ResolvedProceduralPlacement procedural : surfaceProceduralObjects(settings)) {
+            IrisObjectPlacement placement = procedural.placement();
+            if (rng.chance(placement.getChance() + rng.d(-0.005, 0.005))) {
+                try {
+                    placeObject(writer, rng, x << 4, z << 4, placement, () -> procedural.variant(rng));
+                } catch (Throwable e) {
+                    Iris.reportError(e);
+                    Iris.error("Failed to place the procedural object " + procedural.name() + " (" + e.getClass().getSimpleName() + ").");
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+    private List<ResolvedProceduralPlacement> surfaceProceduralObjects(ProceduralObjectSettings settings) {
+        if (settings == null) {
+            return List.of();
+        }
+        return settings.resolved(getData()).stream()
+                .filter(procedural -> procedural.placeable() && procedural.placement().getCarvingSupport().supportsSurface())
+                .toList();
     }
 
     @BlockCoordinates
     private void placeObject(MantleWriter writer, RNG rng, int x, int z, IrisObjectPlacement objectPlacement) {
+        placeObject(writer, rng, x, z, objectPlacement, () -> objectPlacement.getObject(getComplex(), rng));
+    }
+
+    @BlockCoordinates
+    private void placeObject(MantleWriter writer, RNG rng, int x, int z, IrisObjectPlacement objectPlacement, Supplier<IrisObject> nextObject) {
         for (int i = 0; i < objectPlacement.getDensity(rng, x, z, getData()); i++) {
-            IrisObject v = objectPlacement.getScale().get(rng, objectPlacement.getObject(getComplex(), rng));
+            IrisObject v = objectPlacement.getScale().get(rng, nextObject.get());
             if (v == null) {
                 return;
             }
@@ -151,7 +188,18 @@ public class MantleObjectComponent extends IrisMantleComponent {
             }
         }
 
+        guessProceduralKeys(v, rng, biome.getProceduralObjects());
+        guessProceduralKeys(v, rng, region.getProceduralObjects());
+
         return v;
+    }
+
+    private void guessProceduralKeys(Set<String> keys, RNG rng, ProceduralObjectSettings settings) {
+        for (ResolvedProceduralPlacement procedural : surfaceProceduralObjects(settings)) {
+            if (rng.chance(procedural.placement().getChance() + rng.d(-0.005, 0.005))) {
+                keys.addAll(procedural.variantKeys());
+            }
+        }
     }
 
     protected int computeRadius() {
@@ -259,6 +307,28 @@ public class MantleObjectComponent extends IrisMantleComponent {
         }
 
         e.complete();
-        return Math.max(xg.get(), zg.get());
+        return Math.max(Math.max(xg.get(), zg.get()), widestProceduralObject(dimension));
+    }
+
+    // Baking every variant here also keeps the first chunk that places one from waiting for it.
+    private int widestProceduralObject(IrisDimension dimension) {
+        int widest = 0;
+        for (var region : dimension.getAllRegions(this::getData)) {
+            widest = Math.max(widest, widestVariant(region.getProceduralObjects()));
+        }
+        for (var biome : dimension.getAllBiomes(this::getData)) {
+            widest = Math.max(widest, widestVariant(biome.getProceduralObjects()));
+        }
+        return widest;
+    }
+
+    private int widestVariant(ProceduralObjectSettings settings) {
+        int widest = 0;
+        for (ResolvedProceduralPlacement procedural : surfaceProceduralObjects(settings)) {
+            for (IrisObject variant : procedural.variants()) {
+                widest = Math.max(widest, Math.max(variant.getW(), variant.getD()));
+            }
+        }
+        return widest;
     }
 }

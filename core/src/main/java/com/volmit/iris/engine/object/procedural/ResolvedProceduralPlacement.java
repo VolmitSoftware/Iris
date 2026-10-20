@@ -68,6 +68,11 @@ public abstract class ResolvedProceduralPlacement {
         return shape.name();
     }
 
+    /** The type of object, as the variant keys name it: tree, ruin, formation, coral, fungus or crystal. */
+    public String kind() {
+        return shape.kind();
+    }
+
     /**
      * Whether the world generator can place it. A place mode this version does not know, such as v4's CEILING_HANG,
      * reads as null, and placing such an object on the surface would put it in the wrong place.
@@ -130,15 +135,6 @@ public abstract class ResolvedProceduralPlacement {
         return baked.get(rng.i(baked.size()));
     }
 
-    /** The baked variant loaded under {@code key}; null when it is not one of these, or baked no blocks. */
-    public IrisObject variant(String key) {
-        for (IrisObject variant : variants()) {
-            if (variant.getLoadKey().equals(key)) {
-                return variant;
-            }
-        }
-        return null;
-    }
 
     /** Bakes every variant; the default draws variant {@code i} from {@code seed + i * stride}. */
     protected List<IrisObject> bake(ObjectBuilder blocks) {

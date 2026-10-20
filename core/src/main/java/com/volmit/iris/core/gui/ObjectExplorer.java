@@ -19,10 +19,8 @@
 package com.volmit.iris.core.gui;
 
 import com.volmit.iris.core.gui.BlockTextures.BlockTexture;
-import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.IrisObject;
-import com.volmit.iris.engine.object.procedural.ProceduralObjectCatalog;
 import org.bukkit.NamespacedKey;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.util.BlockVector;
@@ -31,8 +29,6 @@ import javax.swing.JComponent;
 import java.awt.EventQueue;
 import java.awt.event.KeyEvent;
 import java.awt.image.BufferedImage;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -45,8 +41,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * The map window's Objects view: every object in the pack in a folder tree, the chosen one in 3D, and what it is made
- * of. Inspired by the Procedural Objects workbench.
+ * The map window's Objects and Procedural views: everything its source offers in a folder tree, the chosen one in 3D,
+ * and what it is made of. Inspired by the Procedural Objects workbench.
  */
 final class ObjectExplorer {
     private static final NamespacedKey TINT_BIOME = NamespacedKey.minecraft("plains");
@@ -55,10 +51,12 @@ final class ObjectExplorer {
 
     private final Engine startEngine;
     private final UUID worldId;
-    private final ObjectBrowser browser = new ObjectBrowser(this::showObject);
+    private final ObjectSource source;
+    private final ObjectBrowser browser;
     private final ObjectViewport viewport = new ObjectViewport();
     private final ObjectLayerCut layerCut = new ObjectLayerCut(shownLayers -> showLayerCut());
-    private final JComponent viewWithLayerCut = layerCut.floatingOver(viewport);
+    private final ObjectVariantPicker variantPicker = new ObjectVariantPicker(this::showVariant);
+    private final JComponent viewWithOverlays = variantPicker.floatingOver(layerCut.floatingOver(viewport));
     private final ObjectOverviewPanel overview = new ObjectOverviewPanel(this::showSeeThrough);
     private final StudioStatusBar statusBar = new StudioStatusBar();
     private final ExecutorService loader = Executors.newSingleThreadExecutor(runnable -> {
@@ -74,33 +72,39 @@ final class ObjectExplorer {
     private volatile BlockTextures textures;
     private volatile BiomeTintColors tintColors;
     private String shownKey;
+    private List<IrisObject> shownVariants = List.of();
     private LoadedObject shown;
     private ObjectMesh wholeMesh;
     private Set<String> seeThroughTypes = Set.of();
 
-    ObjectExplorer(Engine engine, UUID worldId) {
+    ObjectExplorer(Engine engine, UUID worldId, ObjectSource source) {
         this.startEngine = engine;
         this.worldId = worldId;
+        this.source = source;
+        this.browser = new ObjectBrowser(source.noun(), this::showObject);
         GuiHost.interruptOnPluginShutdown(loader);
         GuiHost.registerHotloadHook(hotloadHook);
         statusBar.showPosition(CAMERA_HINT);
         viewport.bindKey(KeyEvent.VK_PAGE_UP, "show-layer-above", () -> layerCut.stepBy(1));
         viewport.bindKey(KeyEvent.VK_PAGE_DOWN, "hide-top-layer", () -> layerCut.stepBy(-1));
+        viewport.bindKey(KeyEvent.VK_OPEN_BRACKET, "previous-variant", () -> variantPicker.stepBy(-1));
+        viewport.bindKey(KeyEvent.VK_CLOSE_BRACKET, "next-variant", () -> variantPicker.stepBy(1));
     }
 
     JComponent browser() {
         return browser;
     }
 
-    ObjectViewport viewport() {
-        return viewport;
-    }
-
     /**
-     * The 3D view with the slider that cuts away its top layers.
+     * The 3D view with the slider that cuts away its top layers and the bar that steps through variants.
      */
     JComponent view() {
-        return viewWithLayerCut;
+        return viewWithOverlays;
+    }
+
+    void setCoveredLeftWidth(int width) {
+        viewport.setCoveredLeftWidth(width);
+        variantPicker.setCoveredLeftWidth(width);
     }
 
     JComponent overview() {
@@ -143,10 +147,7 @@ final class ObjectExplorer {
     }
 
     private List<String> objectKeys() {
-        IrisData data = engine().getData();
-        List<String> keys = new ArrayList<>(Arrays.asList(data.getObjectLoader().getPossibleKeys()));
-        keys.addAll(data.getProceduralObjects().variantKeys());
-        return keys;
+        return source.keys(engine().getData());
     }
 
     private void showCatalog(List<String> keys) {
@@ -154,9 +155,10 @@ final class ObjectExplorer {
         browser.showObjects(keys);
         String key = shownKey != null && keys.contains(shownKey) ? shownKey : browser.firstObject();
         if (key == null) {
-            viewport.showMessage("This pack has no objects");
+            viewport.showMessage("This pack has no " + source.noun() + "s");
             overview.clear();
             layerCut.showHeight(1);
+            variantPicker.showVariants(0);
             return;
         }
         browser.select(key);
@@ -165,31 +167,54 @@ final class ObjectExplorer {
 
     private void showObject(String key) {
         shownKey = key;
-        shown = null;
-        wholeMesh = null;
-        meshRevision.incrementAndGet();
-        long revision = objectRevision.incrementAndGet();
-        viewport.showMessage("Loading " + key + "...");
-        statusBar.showActivity("Loading " + key + "...");
+        shownVariants = List.of();
+        variantPicker.showVariants(0);
+        long revision = startLoading(key);
         loader.execute(() -> {
             if (revision != objectRevision.get()) {
                 return;
             }
             try {
-                LoadedObject loaded = load(key);
-                EventQueue.invokeLater(() -> showLoaded(revision, loaded));
+                List<IrisObject> variants = source.variants(engine().getData(), key);
+                if (variants.isEmpty()) {
+                    throw new IllegalStateException("Nothing could be loaded for " + key);
+                }
+                LoadedObject loaded = load(variants.get(0));
+                EventQueue.invokeLater(() -> {
+                    if (revision == objectRevision.get()) {
+                        shownVariants = variants;
+                        variantPicker.showVariants(variants.size());
+                    }
+                    showLoaded(revision, loaded);
+                });
             } catch (RuntimeException error) {
                 EventQueue.invokeLater(() -> showFailure(revision, key, error));
             }
         });
     }
 
-    private LoadedObject load(String key) {
-        IrisObject object = objectFor(key);
-        if (object == null) {
-            throw new IllegalStateException(ProceduralObjectCatalog.isVariantKey(key)
-                    ? "This variant has no blocks" : "The object file could not be read");
-        }
+    private void showVariant(int index) {
+        IrisObject variant = shownVariants.get(index);
+        long revision = startLoading(variant.getLoadKey());
+        loader.execute(() -> {
+            if (revision != objectRevision.get()) {
+                return;
+            }
+            LoadedObject loaded = load(variant);
+            EventQueue.invokeLater(() -> showLoaded(revision, loaded));
+        });
+    }
+
+    private long startLoading(String key) {
+        shown = null;
+        wholeMesh = null;
+        meshRevision.incrementAndGet();
+        viewport.showMessage("Loading " + key + "...");
+        statusBar.showActivity("Loading " + key + "...");
+        return objectRevision.incrementAndGet();
+    }
+
+    private LoadedObject load(IrisObject object) {
         Map<BlockVector, BlockData> blocks = new HashMap<>();
         object.getBlocks().forEach((position, block) -> {
             if (!block.getMaterial().isAir()) {
@@ -197,17 +222,10 @@ final class ObjectExplorer {
             }
         });
         ObjectMesh mesh = ObjectMesh.build(blocks, this::modelOf);
-        ObjectSummary summary = ObjectSummary.of(key, mesh.bounds(), blocks.values(), this::iconOf);
+        ObjectSummary summary = ObjectSummary.of(object.getLoadKey(), mesh.bounds(), blocks.values(), this::iconOf);
         return new LoadedObject(blocks, mesh, summary);
     }
 
-    private IrisObject objectFor(String key) {
-        IrisData data = engine().getData();
-        if (ProceduralObjectCatalog.isVariantKey(key)) {
-            return data.getProceduralObjects().variant(key);
-        }
-        return data.getObjectLoader().load(key);
-    }
 
     private void showLoaded(long revision, LoadedObject loaded) {
         if (revision != objectRevision.get()) {

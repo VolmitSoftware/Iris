@@ -46,7 +46,9 @@ import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.IntConsumer;
 
 /**
@@ -56,7 +58,6 @@ import java.util.function.IntConsumer;
 public final class MapWindow implements MapCanvas.Listener {
     private static final String MAP_CARD = "map";
     private static final String PALETTES_CARD = "palettes";
-    private static final String OBJECTS_CARD = "objects";
     private static final String NOISE_CARD = "noise";
     private static final int SIDEBAR_WIDTH = 270;
     private static final int SIDEBAR_MINIMUM_WIDTH = 200;
@@ -91,7 +92,7 @@ public final class MapWindow implements MapCanvas.Listener {
     private final MapLegendPanel legendPanel;
 
     private NoiseExplorerGUI paletteExplorer;
-    private ObjectExplorer objectExplorer;
+    private final Map<MapView, ObjectExplorer> objectExplorers = new EnumMap<>(MapView.class);
     private NoiseExplorerGUI noiseExplorer;
     private JComponent noiseSidebar;
     private MapView currentView;
@@ -204,8 +205,8 @@ public final class MapWindow implements MapCanvas.Listener {
             showMap(previousView, view);
         } else if (view == MapView.PALETTES) {
             showPalettes(previousView);
-        } else if (view == MapView.OBJECTS) {
-            showObjects();
+        } else if (view == MapView.OBJECTS || view == MapView.PROCEDURAL) {
+            showObjectExplorer(view);
         } else {
             showNoise();
         }
@@ -246,20 +247,18 @@ public final class MapWindow implements MapCanvas.Listener {
         }
     }
 
-    private void showObjects() {
-        boolean firstOpen = objectExplorer == null;
-        if (firstOpen) {
-            createObjectExplorer();
-        }
+    private void showObjectExplorer(MapView view) {
+        boolean firstOpen = !objectExplorers.containsKey(view);
+        ObjectExplorer explorer = objectExplorers.computeIfAbsent(view, this::createObjectExplorer);
         canvas.setActive(false);
         showControls(explorerControls);
-        useSidebar(viewListAbove(objectExplorer.browser()));
+        useSidebar(viewListAbove(explorer.browser()));
         inspectorSlot.removeAll();
-        inspectorSlot.add(objectExplorer.overview(), BorderLayout.CENTER);
-        showCard(OBJECTS_CARD);
+        inspectorSlot.add(explorer.overview(), BorderLayout.CENTER);
+        showCard(view.name());
         EventQueue.invokeLater(() -> viewList.select(currentView));
         if (firstOpen) {
-            objectExplorer.open();
+            explorer.open();
         }
     }
 
@@ -273,11 +272,13 @@ public final class MapWindow implements MapCanvas.Listener {
         });
     }
 
-    private void createObjectExplorer() {
-        objectExplorer = new ObjectExplorer(start.engine(), start.worldId());
-        keepClearOfIsland(objectExplorer.viewport()::setCoveredLeftWidth);
-        content.add(objectExplorer.view(), OBJECTS_CARD);
-        statusBars.add(objectExplorer.statusBar(), OBJECTS_CARD);
+    private ObjectExplorer createObjectExplorer(MapView view) {
+        ObjectSource source = view == MapView.PROCEDURAL ? new ProceduralObjectSource() : new PackObjectSource();
+        ObjectExplorer explorer = new ObjectExplorer(start.engine(), start.worldId(), source);
+        keepClearOfIsland(explorer::setCoveredLeftWidth);
+        content.add(explorer.view(), view.name());
+        statusBars.add(explorer.statusBar(), view.name());
+        return explorer;
     }
 
     private void showNoise() {
@@ -391,7 +392,8 @@ public final class MapWindow implements MapCanvas.Listener {
     }
 
     private void resetExplorerView() {
-        if (currentView == MapView.OBJECTS) {
+        ObjectExplorer objectExplorer = objectExplorers.get(currentView);
+        if (objectExplorer != null) {
             objectExplorer.resetCamera();
             return;
         }
@@ -487,9 +489,7 @@ public final class MapWindow implements MapCanvas.Listener {
         if (paletteExplorer != null) {
             paletteExplorer.close();
         }
-        if (objectExplorer != null) {
-            objectExplorer.close();
-        }
+        objectExplorers.values().forEach(ObjectExplorer::close);
         if (noiseExplorer != null) {
             noiseExplorer.close();
         }

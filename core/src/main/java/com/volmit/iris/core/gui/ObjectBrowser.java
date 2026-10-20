@@ -51,15 +51,21 @@ final class ObjectBrowser extends JPanel {
     private final JTextField searchField = new JTextField();
     private final DefaultTreeModel treeModel = new DefaultTreeModel(new DefaultMutableTreeNode());
     private final JTree tree = new JTree(treeModel);
-    private final JLabel countLabel = new JLabel("Loading objects...");
+    private final JLabel countLabel = new JLabel();
+    private final String noun;
     private List<String> objectKeys = List.of();
     private String chosenKey;
     private boolean updatingSelection;
 
-    ObjectBrowser(Consumer<String> onObjectChosen) {
+    /**
+     * @param noun what one entry is called in the browser's texts, such as "object"
+     */
+    ObjectBrowser(String noun, Consumer<String> onObjectChosen) {
         super(new BorderLayout());
+        this.noun = noun;
         this.onObjectChosen = onObjectChosen;
-        StudioToolbar.makeSearchField(searchField, "Search objects...");
+        countLabel.setText("Loading " + noun + "s...");
+        StudioToolbar.makeSearchField(searchField, "Search " + noun + "s...");
         searchField.getDocument().addDocumentListener(new DocumentListener() {
             @Override
             public void insertUpdate(DocumentEvent event) {
@@ -97,7 +103,7 @@ final class ObjectBrowser extends JPanel {
 
     void showObjects(List<String> keys) {
         objectKeys = keys.stream().sorted(Comparator.comparing(key -> key.toLowerCase(Locale.ROOT))).toList();
-        countLabel.setText(objectKeys.size() == 1 ? "1 object" : objectKeys.size() + " objects");
+        countLabel.setText(objectKeys.size() == 1 ? "1 " + noun : objectKeys.size() + " " + noun + "s");
         rebuildTree();
     }
 
@@ -128,7 +134,7 @@ final class ObjectBrowser extends JPanel {
             }
         }
         if (root.getChildCount() == 0) {
-            root.add(new DefaultMutableTreeNode(Entry.note("No matching objects")));
+            root.add(new DefaultMutableTreeNode(Entry.note("No matching " + noun + "s")));
         }
         return root;
     }

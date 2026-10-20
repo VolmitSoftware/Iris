@@ -20,7 +20,6 @@ package com.volmit.iris.engine.object.procedural;
 import com.google.gson.Gson;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisData;
-import com.volmit.iris.engine.object.IrisObject;
 import com.volmit.iris.engine.object.annotations.Snippet;
 import com.volmit.iris.engine.object.procedural.coral.Coral;
 import com.volmit.iris.engine.object.procedural.coral.ResolvedCoral;
@@ -41,15 +40,14 @@ import java.io.Reader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.LinkedHashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 import java.util.stream.Stream;
 
 /**
  * The procedural objects of one pack: those its regions and biomes declare, and those saved on their own as snippets,
- * such as {@code snippet/procedural-tree/oak.json}. A definition several places share is baked once, and every variant
- * can be found again by its key.
+ * such as {@code snippet/procedural-tree/oak.json}. A definition several places share is baked once.
  */
 public final class ProceduralObjectCatalog {
     private static final Gson DEFINITION_JSON = new Gson();
@@ -57,7 +55,6 @@ public final class ProceduralObjectCatalog {
 
     private final IrisData data;
     private final KMap<String, ResolvedProceduralPlacement> byDefinition = new KMap<>();
-    private final KMap<String, ResolvedProceduralPlacement> byVariantKey = new KMap<>();
 
     public ProceduralObjectCatalog(IrisData data) {
         this.data = data;
@@ -74,7 +71,7 @@ public final class ProceduralObjectCatalog {
 
     private ResolvedProceduralPlacement placementOf(Object definition) {
         String identity = definition.getClass().getName() + DEFINITION_JSON.toJson(definition);
-        return byDefinition.computeIfAbsent(identity, ignored -> register(resolvedFor(definition)));
+        return byDefinition.computeIfAbsent(identity, ignored -> resolvedFor(definition));
     }
 
     private ResolvedProceduralPlacement resolvedFor(Object definition) {
@@ -89,22 +86,29 @@ public final class ProceduralObjectCatalog {
         };
     }
 
-    private ResolvedProceduralPlacement register(ResolvedProceduralPlacement placement) {
-        for (String key : placement.variantKeys()) {
-            byVariantKey.putIfAbsent(key, placement);
+    /**
+     * Every procedural object the pack defines, in snippets or in regions and biomes, whether or not its dimensions
+     * reach them. Where two definitions share a type and name, the first one found stands for both.
+     */
+    public List<ResolvedProceduralPlacement> definitions() {
+        Map<String, ResolvedProceduralPlacement> byTypeAndName = new LinkedHashMap<>();
+        for (Class<?> type : DEFINITION_TYPES) {
+            snippetDefinitions(type).forEach(definition -> addDefinition(byTypeAndName, placementOf(definition)));
         }
-        return placement;
+        data.getRegionLoader().streamAll().forEach(region -> addDefinitions(byTypeAndName, region.getProceduralObjects()));
+        data.getBiomeLoader().streamAll().forEach(biome -> addDefinitions(byTypeAndName, biome.getProceduralObjects()));
+        return List.copyOf(byTypeAndName.values());
     }
 
-    /** The key of every variant the pack defines, in snippets or in regions and biomes, whether or not its dimensions reach them. */
-    public List<String> variantKeys() {
-        Set<String> keys = new LinkedHashSet<>();
-        for (Class<?> type : DEFINITION_TYPES) {
-            snippetDefinitions(type).forEach(definition -> keys.addAll(placementOf(definition).variantKeys()));
+    private void addDefinitions(Map<String, ResolvedProceduralPlacement> byTypeAndName, ProceduralObjectSettings settings) {
+        if (settings == null) {
+            return;
         }
-        data.getRegionLoader().streamAll().forEach(region -> addVariantKeys(keys, region.getProceduralObjects()));
-        data.getBiomeLoader().streamAll().forEach(biome -> addVariantKeys(keys, biome.getProceduralObjects()));
-        return List.copyOf(keys);
+        settings.resolved(data).forEach(placement -> addDefinition(byTypeAndName, placement));
+    }
+
+    private static void addDefinition(Map<String, ResolvedProceduralPlacement> byTypeAndName, ResolvedProceduralPlacement placement) {
+        byTypeAndName.putIfAbsent(placement.kind() + "/" + placement.name(), placement);
     }
 
     private List<Object> snippetDefinitions(Class<?> type) {
@@ -136,22 +140,4 @@ public final class ProceduralObjectCatalog {
         }
     }
 
-    private void addVariantKeys(Set<String> keys, ProceduralObjectSettings settings) {
-        if (settings == null) {
-            return;
-        }
-        for (ResolvedProceduralPlacement placement : settings.resolved(data)) {
-            keys.addAll(placement.variantKeys());
-        }
-    }
-
-    /** The baked variant loaded under {@code key}; null when no definition resolved so far has it, or it baked no blocks. */
-    public IrisObject variant(String key) {
-        ResolvedProceduralPlacement placement = byVariantKey.get(key);
-        return placement == null ? null : placement.variant(key);
-    }
-
-    public static boolean isVariantKey(String key) {
-        return key.startsWith("procedural/");
-    }
 }

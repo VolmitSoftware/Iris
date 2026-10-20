@@ -26,7 +26,7 @@ import com.volmit.iris.engine.object.annotations.MinNumber;
 
 import java.util.Optional;
 
-@Snippet(ProceduralObjectCatalog.SNIPPET_FOLDER)
+@Snippet(ProceduralObjectCatalog.PART_FOLDER + "/tree-branches")
 @Desc("A branch system that throws limbs out of the trunk and places a leaf ball at each tip. When present, branches drive the canopy and only the topmost crown disc of the profile is still placed.")
 public final class TreeBranches {
     @Desc("How branch spawn chance varies over trunk height.")

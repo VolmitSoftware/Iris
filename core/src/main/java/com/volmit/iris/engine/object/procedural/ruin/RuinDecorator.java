@@ -29,7 +29,7 @@ import com.volmit.iris.engine.object.annotations.Required;
 
 import java.util.Optional;
 
-@Snippet(ProceduralObjectCatalog.SNIPPET_FOLDER)
+@Snippet(ProceduralObjectCatalog.PART_FOLDER + "/ruin-decorators")
 @Desc("An accent block applied to a generated ruin after it is built and eroded, such as moss carpets on broken tops, vines on the faces, or rubble scattered around the base.")
 public final class RuinDecorator {
     @Desc("Where on the ruin this accent is placed. TOP sits on the highest block of each column, SURFACE clings to air-facing vertical faces, BASE_SCATTER rings the ground footprint around the base.")

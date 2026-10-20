@@ -22,6 +22,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.engine.object.IrisRegion;
+import com.volmit.iris.engine.object.annotations.Snippet;
 import com.volmit.iris.engine.object.procedural.coral.Coral;
 import com.volmit.iris.engine.object.procedural.coral.ResolvedCoral;
 import com.volmit.iris.engine.object.procedural.crystal.Crystal;
@@ -55,15 +56,20 @@ import java.util.stream.Stream;
  */
 public final class ProceduralObjectCatalog {
     private static final Gson DEFINITION_JSON = new Gson();
-    /** The snippet folder every procedural setting shares, so all of them live under {@code snippet/procedural}. */
+    /**
+     * The snippet folder all procedural settings live under. Each type keeps its own subfolder because the editor
+     * validates a snippet folder against a single schema.
+     */
     public static final String SNIPPET_FOLDER = "procedural";
-    private static final Map<String, Class<?>> DEFINITION_TYPE_BY_FOLDER = Map.of(
-            "trees", Tree.class,
-            "ruins", Ruin.class,
-            "formations", Formation.class,
-            "coral", Coral.class,
-            "fungi", Fungus.class,
-            "crystals", Crystal.class);
+    public static final String TREE_FOLDER = SNIPPET_FOLDER + "/trees";
+    public static final String RUIN_FOLDER = SNIPPET_FOLDER + "/ruins";
+    public static final String FORMATION_FOLDER = SNIPPET_FOLDER + "/formations";
+    public static final String CORAL_FOLDER = SNIPPET_FOLDER + "/coral";
+    public static final String FUNGUS_FOLDER = SNIPPET_FOLDER + "/fungi";
+    public static final String CRYSTAL_FOLDER = SNIPPET_FOLDER + "/crystals";
+    public static final String SET_FOLDER = SNIPPET_FOLDER + "/sets";
+    public static final String PART_FOLDER = SNIPPET_FOLDER + "/parts";
+    private static final List<Class<?>> DEFINITION_TYPES = List.of(Tree.class, Ruin.class, Formation.class, Coral.class, Fungus.class, Crystal.class);
 
     private final IrisData data;
     private final KMap<String, ResolvedProceduralPlacement> byDefinition = new KMap<>();
@@ -106,7 +112,7 @@ public final class ProceduralObjectCatalog {
     public List<Definition> definitions() {
         Map<ResolvedProceduralPlacement, String> pathByPlacement = new LinkedHashMap<>();
         Set<String> takenPaths = new HashSet<>();
-        DEFINITION_TYPE_BY_FOLDER.forEach((folder, type) -> snippetDefinitions(folder, type)
+        DEFINITION_TYPES.forEach(type -> snippetDefinitions(type)
                 .forEach((path, definition) -> addDefinition(pathByPlacement, takenPaths, placementOf(definition), path)));
         Stream.concat(data.getRegionLoader().streamAll().map(IrisRegion::getProceduralObjects),
                         data.getBiomeLoader().streamAll().map(IrisBiome::getProceduralObjects))
@@ -132,9 +138,10 @@ public final class ProceduralObjectCatalog {
     }
 
     /** The definitions in the snippet folder of one type, by their path under {@code snippet/procedural} without the extension. */
-    private Map<String, Object> snippetDefinitions(String typeFolder, Class<?> type) {
-        Path proceduralFolder = data.getDataFolder().toPath().resolve("snippet").resolve(SNIPPET_FOLDER);
-        Path folder = proceduralFolder.resolve(typeFolder);
+    private Map<String, Object> snippetDefinitions(Class<?> type) {
+        Path snippetFolder = data.getDataFolder().toPath().resolve("snippet");
+        Path proceduralFolder = snippetFolder.resolve(SNIPPET_FOLDER);
+        Path folder = snippetFolder.resolve(type.getAnnotation(Snippet.class).value());
         if (!Files.isDirectory(folder)) {
             return Map.of();
         }

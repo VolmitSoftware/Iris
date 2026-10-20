@@ -28,7 +28,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-@Snippet(ProceduralObjectCatalog.SNIPPET_FOLDER)
+@Snippet(ProceduralObjectCatalog.PART_FOLDER + "/tree-canopies")
 @Desc("The leaf crown of a procedural tree. Built from stacked dome-shaped discs (driven by the profile or by explicit layers) and optionally a branch system.")
 public final class TreeCanopy {
     @MinNumber(0)

@@ -25,7 +25,7 @@ import com.volmit.iris.engine.object.annotations.MinNumber;
 import com.volmit.iris.engine.object.annotations.RegistryListBlockType;
 import com.volmit.iris.engine.object.annotations.Required;
 
-@Snippet(ProceduralObjectCatalog.SNIPPET_FOLDER)
+@Snippet(ProceduralObjectCatalog.PART_FOLDER + "/tree-secondary-leaves")
 @Desc("A weighted accent leaf or foliage block scattered through the canopy (blossoms, shroomlight, berries).")
 public final class TreeSecondaryLeaf {
     @Required

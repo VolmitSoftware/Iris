@@ -29,7 +29,7 @@ import com.volmit.iris.engine.object.annotations.Required;
 
 import java.util.Optional;
 
-@Snippet(ProceduralObjectCatalog.SNIPPET_FOLDER)
+@Snippet(ProceduralObjectCatalog.PART_FOLDER + "/tree-decorators")
 @Desc("An accent block applied to a generated tree such as fruit on branch tips, vines on the trunk, snow on the crown, or a glowing underside.")
 public final class TreeDecorator {
     @Desc("Where this decorator is placed on the tree.")

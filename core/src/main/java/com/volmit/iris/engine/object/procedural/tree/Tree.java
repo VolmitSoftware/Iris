@@ -37,7 +37,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-@Snippet(ProceduralObjectCatalog.SNIPPET_FOLDER)
+@Snippet(ProceduralObjectCatalog.TREE_FOLDER)
 @Desc("A single procedurally generated tree. Iris bakes a pool of deterministic variants from these settings and scatters them at world-gen time, exactly like an object placement but generated from scratch instead of loaded from an iob file.")
 public final class Tree {
     @Desc("A human readable name used in logs and as the variant load key.")

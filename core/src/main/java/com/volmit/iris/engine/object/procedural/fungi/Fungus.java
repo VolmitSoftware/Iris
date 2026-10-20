@@ -35,7 +35,7 @@ import com.volmit.iris.engine.object.annotations.Required;
 
 import java.util.Optional;
 
-@Snippet(ProceduralObjectCatalog.SNIPPET_FOLDER)
+@Snippet(ProceduralObjectCatalog.FUNGUS_FOLDER)
 @Desc("A single procedurally generated fungus (giant mushroom or shelf fungus). Iris bakes a pool of deterministic variants from these settings and scatters them at world-gen time, exactly like an object placement but generated from scratch instead of loaded from an iob file. The fungus is built as a stem column with a cap dome grown on top, mirroring the trunk-and-canopy model used by procedural trees.")
 public final class Fungus {
     @Desc("A human readable name used in logs and as the variant load key.")

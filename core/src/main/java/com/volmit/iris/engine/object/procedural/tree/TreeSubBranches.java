@@ -24,7 +24,7 @@ import com.volmit.iris.engine.object.procedural.ProceduralObjectCatalog;
 import com.volmit.iris.engine.object.annotations.MaxNumber;
 import com.volmit.iris.engine.object.annotations.MinNumber;
 
-@Snippet(ProceduralObjectCatalog.SNIPPET_FOLDER)
+@Snippet(ProceduralObjectCatalog.PART_FOLDER + "/tree-sub-branches")
 @Desc("One recursive level of sub-branches sprouting from each primary branch tip.")
 public final class TreeSubBranches {
     @MinNumber(1)

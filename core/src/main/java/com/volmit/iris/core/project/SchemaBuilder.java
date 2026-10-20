@@ -638,13 +638,17 @@ public class SchemaBuilder {
         JSONArray arr = new JSONArray();
         JSONObject str = new JSONObject();
         str.put("type", "string");
-        String key = "enum-snippet-" + snippet.value();
+        String key = "enum-snippet-" + snippet.value().replace('/', '-');
         str.put("$ref", "#/definitions/" + key);
 
         if (!definitions.containsKey(key)) {
             JSONObject j = new JSONObject();
             JSONArray snl = new JSONArray();
-            data.getPossibleSnippets(snippet.value()).forEach(snl::put);
+            String folderReferencePrefix = "snippet/" + snippet.value() + "/";
+            data.getPossibleSnippets(snippet.value()).forEach(reference -> {
+                snl.put(folderReferencePrefix + reference.substring("snippet/".length()));
+                snl.put(reference);
+            });
             j.put("enum", snl);
             definitions.put(key, j);
         }
@@ -724,7 +728,7 @@ public class SchemaBuilder {
             return "string";
         }
 
-        if (c.equals(KList.class)) {
+        if (List.class.isAssignableFrom(c)) {
             return "array";
         }
 

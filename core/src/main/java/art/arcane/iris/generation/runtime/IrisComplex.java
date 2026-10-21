@@ -1384,6 +1384,10 @@ public class IrisComplex implements DataProvider {
         return false;
     }
 
+    public boolean isPlatformMainThread() {
+        return terrainEngine.getPlatformHooks().isMainThread();
+    }
+
     public ProceduralStream<Double> getRawHeightStream() {
         return heightStream;
     }
@@ -1891,11 +1895,80 @@ public class IrisComplex implements DataProvider {
             return h;
         }
 
+        int grid = biomeBoundsSamplingStep;
+        if (!ChunkCorners.supports(grid)) {
+            for (int interpolatorIndex = 0; interpolatorIndex < frozenInterpolators.length; interpolatorIndex++) {
+                h += interpolateGenerators(engine, frozenInterpolators[interpolatorIndex], interpolatorIndex, frozenGenerators[interpolatorIndex], x, z, seed);
+            }
+            return h;
+        }
+
+        GridBoundsCache cache = gridBoundsCache.get();
+        int xi = (int) Math.floor(x);
+        int zi = (int) Math.floor(z);
+        int gx = xi & ~(grid - 1);
+        int gz = zi & ~(grid - 1);
+        double fx = (x - gx) / grid;
+        double fz = (z - gz) / grid;
+        ChunkCorners corners = cache.chunkCorners(xi >> 4, zi >> 4, frozenInterpolators.length, grid);
+        int cornerX = (gx - corners.originX) / grid;
+        int cornerZ = (gz - corners.originZ) / grid;
+        int cell = cornerZ * corners.cellsPerAxis + cornerX;
+        long heightSeed = seed + 239945;
         for (int interpolatorIndex = 0; interpolatorIndex < frozenInterpolators.length; interpolatorIndex++) {
-            h += interpolateGenerators(engine, frozenInterpolators[interpolatorIndex], interpolatorIndex, frozenGenerators[interpolatorIndex], x, z, seed);
+            IrisGenerator[] generators = frozenGenerators[interpolatorIndex];
+            if (generators.length == 0) {
+                continue;
+            }
+            int state = corners.cellState(interpolatorIndex, cell);
+            if (state == ChunkCorners.SILENT) {
+                continue;
+            }
+            long b00 = cornerAt(cache, engine, corners, interpolatorIndex, cornerX, cornerZ);
+            long b10 = fx == 0D ? 0L : cornerAt(cache, engine, corners, interpolatorIndex, cornerX + 1, cornerZ);
+            long b01 = fz == 0D ? 0L : cornerAt(cache, engine, corners, interpolatorIndex, cornerX, cornerZ + 1);
+            long b11 = fx == 0D || fz == 0D ? 0L : cornerAt(cache, engine, corners, interpolatorIndex, cornerX + 1, cornerZ + 1);
+            if (state == ChunkCorners.UNKNOWN) {
+                corners.classify(interpolatorIndex, cornerX, cornerZ, cell);
+                if (silentBounds(b00) && silentBounds(b10) && silentBounds(b01) && silentBounds(b11)) {
+                    continue;
+                }
+            }
+            double lo;
+            double hi;
+            if (fx == 0D && fz == 0D) {
+                lo = boundsLow(b00);
+                hi = boundsHigh(b00);
+            } else if (fz == 0D) {
+                lo = biLerp(boundsLow(b00), boundsLow(b10), boundsLow(b00), boundsLow(b10), fx, fz);
+                hi = biLerp(boundsHigh(b00), boundsHigh(b10), boundsHigh(b00), boundsHigh(b10), fx, fz);
+            } else if (fx == 0D) {
+                lo = biLerp(boundsLow(b00), boundsLow(b00), boundsLow(b01), boundsLow(b01), fx, fz);
+                hi = biLerp(boundsHigh(b00), boundsHigh(b00), boundsHigh(b01), boundsHigh(b01), fx, fz);
+            } else {
+                lo = biLerp(boundsLow(b00), boundsLow(b10), boundsLow(b01), boundsLow(b11), fx, fz);
+                hi = biLerp(boundsHigh(b00), boundsHigh(b10), boundsHigh(b01), boundsHigh(b11), fx, fz);
+            }
+            h += averageGeneratorHeights(generators, lo, hi, x, z, heightSeed);
         }
 
         return h;
+    }
+
+    private long cornerAt(GridBoundsCache cache, Engine engine, ChunkCorners corners, int interpolatorIndex, int column, int row) {
+        if (corners.known(interpolatorIndex, column, row)) {
+            return corners.corner(interpolatorIndex, column, row);
+        }
+        long packed = cornerBounds(cache, engine, frozenInterpolators[interpolatorIndex], interpolatorIndex,
+                frozenGenerators[interpolatorIndex], corners.originX + column * corners.grid, corners.originZ + row * corners.grid);
+        if (Double.isFinite(boundsLow(packed)) && Double.isFinite(boundsHigh(packed))) {
+            corners.remember(interpolatorIndex, column, row, packed);
+        }
+        return packed;
+    }
+
+    private static boolean silentBounds(long packed) {
+        return (packed & 0x7FFFFFFF7FFFFFFFL) == 0L;
     }
 
     private NoiseBounds naturalHeightBounds(
@@ -2268,11 +2341,117 @@ public class IrisComplex implements DataProvider {
         private final long[] packed = new long[GRID_BOUNDS_CACHE_SIZE];
         private final boolean[] valid = new boolean[GRID_BOUNDS_CACHE_SIZE];
         private final BoundsSampler sampler = new BoundsSampler();
+        private ChunkCorners recentCorners;
+        private ChunkCorners previousCorners;
+
+        private ChunkCorners chunkCorners(int chunkX, int chunkZ, int groups, int grid) {
+            ChunkCorners recent = recentCorners;
+            if (recent != null && recent.matches(chunkX, chunkZ, groups, grid)) {
+                return recent;
+            }
+            ChunkCorners previous = previousCorners;
+            if (previous != null && previous.matches(chunkX, chunkZ, groups, grid)) {
+                previousCorners = recent;
+                recentCorners = previous;
+                return previous;
+            }
+            ChunkCorners reused = previous != null && previous.fits(groups, grid) ? previous : new ChunkCorners(groups, grid);
+            reused.reset(chunkX, chunkZ);
+            previousCorners = recent;
+            recentCorners = reused;
+            return reused;
+        }
 
         private int slot(int cornerX, int cornerZ, int interpolatorIndex) {
             long h = (cornerX * 0x9E3779B97F4A7C15L) ^ (cornerZ * 0xC2B2AE3D27D4EB4FL) ^ (interpolatorIndex * 0x165667B19E3779F9L);
             h ^= (h >>> 32);
             return (int) (h & (GRID_BOUNDS_CACHE_SIZE - 1));
+        }
+    }
+
+    private static final class ChunkCorners {
+        private static final int UNKNOWN = 0;
+        private static final int SILENT = 1;
+        private static final int ACTIVE = 2;
+
+        private final int groups;
+        private final int grid;
+        private final int cornersPerAxis;
+        private final int cellsPerAxis;
+        private final long[] packed;
+        private final boolean[] known;
+        private final byte[] cellStates;
+        private int chunkX;
+        private int chunkZ;
+        private int originX;
+        private int originZ;
+
+        private ChunkCorners(int groups, int grid) {
+            this.groups = groups;
+            this.grid = grid;
+            cellsPerAxis = 16 / grid;
+            cornersPerAxis = cellsPerAxis + 1;
+            packed = new long[groups * cornersPerAxis * cornersPerAxis];
+            known = new boolean[packed.length];
+            cellStates = new byte[groups * cellsPerAxis * cellsPerAxis];
+        }
+
+        private static boolean supports(int grid) {
+            return grid >= 2 && grid <= 16 && Integer.bitCount(grid) == 1;
+        }
+
+        private boolean fits(int groups, int grid) {
+            return this.groups == groups && this.grid == grid;
+        }
+
+        private boolean matches(int chunkX, int chunkZ, int groups, int grid) {
+            return this.chunkX == chunkX && this.chunkZ == chunkZ && fits(groups, grid);
+        }
+
+        private void reset(int chunkX, int chunkZ) {
+            this.chunkX = chunkX;
+            this.chunkZ = chunkZ;
+            originX = chunkX << 4;
+            originZ = chunkZ << 4;
+            Arrays.fill(known, false);
+            Arrays.fill(cellStates, (byte) UNKNOWN);
+        }
+
+        private int cellState(int group, int cell) {
+            return cellStates[group * cellsPerAxis * cellsPerAxis + cell];
+        }
+
+        private void setCellState(int group, int cell, int state) {
+            cellStates[group * cellsPerAxis * cellsPerAxis + cell] = (byte) state;
+        }
+
+        private boolean known(int group, int column, int row) {
+            return known[index(group, column, row)];
+        }
+
+        private long corner(int group, int column, int row) {
+            return packed[index(group, column, row)];
+        }
+
+        private void remember(int group, int column, int row, long value) {
+            int index = index(group, column, row);
+            packed[index] = value;
+            known[index] = true;
+        }
+
+        private void classify(int group, int column, int row, int cell) {
+            int first = index(group, column, row);
+            int second = first + cornersPerAxis;
+            if (!known[first] || !known[first + 1] || !known[second] || !known[second + 1]) {
+                return;
+            }
+            boolean silent = silentBounds(packed[first]) && silentBounds(packed[first + 1])
+                    && silentBounds(packed[second]) && silentBounds(packed[second + 1]);
+            setCellState(group, cell, silent ? SILENT : ACTIVE);
+        }
+
+        private int index(int group, int column, int row) {
+            return (group * cornersPerAxis + row) * cornersPerAxis + column;
         }
     }
 

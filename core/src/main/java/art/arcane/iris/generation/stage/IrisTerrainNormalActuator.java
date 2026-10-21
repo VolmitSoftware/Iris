@@ -160,6 +160,7 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<NativeBloc
         private final ChunkedDataCache<IrisBiome> biomeCache;
         private final ChunkedDataCache<IrisRegion> regionCache;
         private final ChunkedDataCache<NativeBlockState> rockCache;
+        private final ChunkedDataCache<NativeBlockState> fluidCache;
         private final UpperDimensionContext upperContext;
         private final IrisOreBands dimensionSurfaceOres;
         private final IrisOreBands dimensionUndergroundOres;
@@ -192,6 +193,7 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<NativeBloc
             biomeCache = context.getBiome();
             regionCache = context.getRegion();
             rockCache = context.getRock();
+            fluidCache = context.getFluid();
             upperContext = getEngine().getUpperContext();
             dimensionSurfaceOres = hideOres ? IrisOreBands.EMPTY : dimension.getSurfaceOreBands();
             dimensionUndergroundOres = hideOres ? IrisOreBands.EMPTY : dimension.getUndergroundOreBands();
@@ -247,8 +249,10 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<NativeBloc
             IrisRiverMaterialConfig roleMaterial = hydrologyRoleMaterial(
                     hydrologyTerrain, bedMaterial, shoreMaterial, bankMaterial);
             int paintDepth = roleMaterial == null ? 0 : roleMaterial.getDepth();
-            NativeBlockState fluid = hydrologyFluid == null || transitionDisplaced
+            NativeBlockState fluid = transitionDisplaced
                     ? complex.resolveSurfaceFluid(realX, realZ)
+                    : hydrologyFluid == null
+                    ? fluidCache.get(xf, zf)
                     : complex.resolveHydrologyFluid(hydrologyFluid.profileKey(), realX, realZ);
             NativeBlockState rock = rockCache.get(xf, zf);
             NativeBlockState mappedSurfaceBlock = complex.getImageMapRuntime().sampleSurfaceBlock(realX, realZ);

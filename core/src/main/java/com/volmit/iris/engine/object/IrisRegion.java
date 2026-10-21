@@ -380,7 +380,7 @@ public class IrisRegion extends IrisRegistrant implements IRare {
                 Random rand = new Random(getName().hashCode() + getAllBiomeIds().hashCode());
                 RandomColor randomColor = new RandomColor(rand);
 
-                KList<IrisBiome> biomes = getRealLandBiomes(dataProvider);
+                KList<IrisBiome> biomes = new KList<>(getRealLandBiomes(dataProvider));
 
                 while (biomes.size() > 0) {
                     int index = rand.nextInt(biomes.size());

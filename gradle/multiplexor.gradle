@@ -56,14 +56,15 @@ gradle.projectsEvaluated {
                 : target[loaderPins[loader]].toString()
             String displayedPin = pin.startsWith(minecraft + '-') ? pin.substring(minecraft.length() + 1) : pin
             String artifactName = "Iris v${project.version} [${label}] ${minecraft}+${displayedPin}.jar"
+            boolean forge = loader == 'forge'
             buildTargets.add([
                 id: "${loader}-${minecraft}".toString(),
                 tasks: [":verify${label}${minecraft.replace('.', '_')}".toString()],
-                arguments: ['-PmoddedBuildParallelism=1', '-PmoddedTestForks=1',
+                arguments: ['-PmoddedBuildParallelism=1', "-PmoddedTestForks=${forge ? 2 : 1}".toString(),
                     '-PmultiplexorSandbox=true'],
                 java: 25,
-                memoryMiB: 8192,
-                workers: 2,
+                memoryMiB: forge ? 16384 : 8192,
+                workers: forge ? 8 : 2,
                 dependsOn: [],
                 artifacts: [[path: "adapters/${loader}/build/${minecraft}/libs/${artifactName}".toString(),
                     role: 'runtime', platforms: [loader], minecraftVersions: [minecraft]]]

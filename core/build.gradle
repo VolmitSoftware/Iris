@@ -1,3 +1,4 @@
+import groovy.json.JsonSlurper
 import io.github.slimjar.resolver.data.Mirror
 import org.gradle.api.attributes.java.TargetJvmVersion
 import org.gradle.api.file.FileTreeElement
@@ -217,10 +218,15 @@ def generateTemplates = tasks.register('generateTemplates', Copy) {
             return 'development'
         },
         commit: providers.provider {
-            String sourceHash = providers.environmentVariable('MULTIPLEXOR_SOURCE_HASH').orNull
-            if (sourceHash != null) {
-                if (!(sourceHash ==~ /[a-f0-9]{64}/)) {
-                    throw new GradleException('MULTIPLEXOR_SOURCE_HASH must be a SHA-256 source fingerprint')
+            String sourceHashesJson = providers.environmentVariable('MULTIPLEXOR_SOURCE_HASHES').orNull
+            if (sourceHashesJson != null) {
+                Object sourceHashes = new JsonSlurper().parseText(sourceHashesJson)
+                if (!(sourceHashes instanceof Map)) {
+                    throw new GradleException('MULTIPLEXOR_SOURCE_HASHES must map project paths to SHA-256 source fingerprints')
+                }
+                Object sourceHash = sourceHashes.get(rootProject.projectDir.canonicalPath)
+                if (!(sourceHash instanceof String) || !(sourceHash ==~ /[a-f0-9]{64}/)) {
+                    throw new GradleException("MULTIPLEXOR_SOURCE_HASHES requires a SHA-256 source fingerprint for ${rootProject.projectDir.canonicalPath}")
                 }
                 return "source-${sourceHash}"
             }

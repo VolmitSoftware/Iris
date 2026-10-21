@@ -505,10 +505,6 @@ public class IrisDepositModifier extends EngineAssignedModifier<NativeBlockState
         return scan;
     }
 
-    /**
-     * Ore clumps resolve their cave biome only to apply its ore frequency and size multipliers; when no biome of
-     * the loaded pack changes either, that lookup can never alter a clump and is skipped.
-     */
     private PackScan scanPack(IrisData data) {
         IrisDimension dimension = getDimension();
         if (data == null || dimension == null || getEngine().getDimensionStackContext() != null) {

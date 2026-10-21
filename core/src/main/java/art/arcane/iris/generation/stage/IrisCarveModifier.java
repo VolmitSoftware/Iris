@@ -79,15 +79,20 @@ public class IrisCarveModifier extends EngineAssignedModifier<NativeBlockState> 
     private static final int CAVE_BIOME_BLEND_CENTER_WEIGHT = 4;
     private static final int CAVE_BIOME_BLEND_TOTAL_WEIGHT = 8;
     private static final int SUBMERGED_FLOOR_SUBSTRATE_DEPTH = 8;
+    private static final long RANDOM_MULTIPLIER = 0x5DEECE66DL;
+    private static final long RANDOM_ADDEND = 0xBL;
+    private static final long RANDOM_MASK = (1L << 48) - 1;
     private static final MatterCavern BASIC_CAVERN = new MatterCavern(true, "", (byte) 0);
     private final RNG rng;
+    private final long caveBlendSeed;
     private final NativeBlockState AIR = B.getState("CAVE_AIR");
     private final NativeBlockState LAVA = B.getState("LAVA");
     private final IrisDecorantActuator decorant;
 
     public IrisCarveModifier(Engine engine) {
         super(engine, "Carve");
-        rng = new RNG(getEngine().getSeedManager().getCarve());
+        caveBlendSeed = getEngine().getSeedManager().getCarve();
+        rng = new RNG(caveBlendSeed);
         decorant = new IrisDecorantActuator(engine);
     }
 
@@ -1233,7 +1238,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<NativeBlockState> 
             return null;
         }
 
-        int roll = Math.floorMod(rng.nextParallelRNG(BlockPosition.toLong(x, y, z)).nextInt(), CAVE_BIOME_BLEND_TOTAL_WEIGHT);
+        int roll = Math.floorMod(caveBlendRandom(caveBlendSeed, x, y, z), CAVE_BIOME_BLEND_TOTAL_WEIGHT);
         if (roll < CAVE_BIOME_BLEND_CENTER_WEIGHT) {
             return center;
         }
@@ -1245,6 +1250,11 @@ public class IrisCarveModifier extends EngineAssignedModifier<NativeBlockState> 
             default -> sampleCaveBiome(caveBiomeCache, x, y, z - CAVE_BIOME_BLEND_RADIUS, resolverState);
         };
         return neighbor != null ? neighbor : center;
+    }
+
+    static int caveBlendRandom(long seed, int x, int y, int z) {
+        long scrambled = ((seed + BlockPosition.toLong(x, y, z)) ^ RANDOM_MULTIPLIER) & RANDOM_MASK;
+        return (int) (((scrambled * RANDOM_MULTIPLIER + RANDOM_ADDEND) & RANDOM_MASK) >>> 16);
     }
 
     private IrisBiome sampleCaveBiome(Long2ObjectOpenHashMap<IrisBiome> caveBiomeCache, int x, int y, int z, CaveInputs resolverState) {

@@ -56,6 +56,9 @@ public class IrisCarveModifierBoundarySupportTest {
         Field rng = IrisCarveModifier.class.getDeclaredField("rng");
         rng.setAccessible(true);
         rng.set(modifier, new RNG(71L));
+        Field seed = IrisCarveModifier.class.getDeclaredField("caveBlendSeed");
+        seed.setAccessible(true);
+        seed.setLong(modifier, 71L);
 
         IrisMatterSupport.ensureRegistered();
         Matter floorMatter = new IrisMatter(16, 16, 16);

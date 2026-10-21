@@ -8,7 +8,6 @@ import art.arcane.iris.generation.runtime.GenerationRuntime.BiomeMaxes;
 import art.arcane.iris.world.history.SavedBiomeRuntime;
 import art.arcane.iris.world.history.SavedBiomeUnavailableException;
 import art.arcane.iris.generation.terrain.IrisRegion;
-import art.arcane.iris.testsupport.Await;
 import art.arcane.iris.testsupport.PlatformBinding;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
@@ -37,13 +36,11 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.nio.file.Path;
-import java.time.Duration;
 import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
@@ -680,30 +677,19 @@ public class IrisEngineGenerationRuntimeScopeTest {
     }
 
     @Test
-    public void missingRouterReadWaitsForAttachmentPublication() throws Exception {
+    public void missingRouterReadsDoNotWaitForTheAttachmentMonitor() throws Exception {
         RuntimeFixture active = runtime(1, 1D, 1D, 1D);
         IrisEngine engine = engine(active.runtime, mock(EngineEffects.class), mock(EngineWorldManager.class));
-        GenerationHistoryRuntimeRouter router = historyRouter(engine);
-        GenerationHistoryRuntimeRouter.CoordinateScope scope = mock(GenerationHistoryRuntimeRouter.CoordinateScope.class);
-        when(router.openCoordinateScope(-17, 32)).thenReturn(scope);
-        CountDownLatch started = new CountDownLatch(1);
-        FutureTask<GenerationHistoryRuntimeRouter.CoordinateScope> read = new FutureTask<>(() -> {
-            started.countDown();
-            return engine.openGenerationHistoryCoordinateScope(-17, 32);
-        });
-        Thread reader = new Thread(read, "Pending history attachment");
-
+        ExecutorService reader = Executors.newSingleThreadExecutor();
         try {
             synchronized (engine.generationHistoryRuntimeRouterLock) {
-                reader.start();
-                assertTrue(started.await(5, TimeUnit.SECONDS));
-                awaitBlocked(reader);
-                engine.attachGenerationHistoryRuntimeRouter(router);
+                assertNull(reader.submit(() -> engine.openGenerationHistoryCoordinateScope(-17, 32))
+                        .get(5, TimeUnit.SECONDS));
+                assertTrue(reader.submit(engine::getGenerationHistoryRuntimeRouter).get(5, TimeUnit.SECONDS).isEmpty());
             }
-            assertSame(scope, read.get(5, TimeUnit.SECONDS));
         } finally {
-            reader.join(5_000L);
-            assertTrue("Pending router read did not finish", !reader.isAlive());
+            reader.shutdownNow();
+            assertTrue(reader.awaitTermination(5, TimeUnit.SECONDS));
         }
     }
 
@@ -713,27 +699,19 @@ public class IrisEngineGenerationRuntimeScopeTest {
         IrisEngine engine = engine(active.runtime, mock(EngineEffects.class), mock(EngineWorldManager.class));
         GenerationHistoryRuntimeRouter router = historyRouter(engine);
         engine.attachGenerationHistoryRuntimeRouter(router);
-        CountDownLatch started = new CountDownLatch(1);
-        FutureTask<GenerationHistoryRuntimeRouter.CoordinateScope> read = new FutureTask<>(() -> {
-            started.countDown();
-            return engine.openGenerationHistoryCoordinateScope(-17, 32);
-        });
-        Thread reader = new Thread(read, "Detached history read");
-
+        engine.detachGenerationHistoryRuntimeRouter(router);
+        ExecutorService reader = Executors.newSingleThreadExecutor();
         try {
             synchronized (engine.generationHistoryRuntimeRouterLock) {
-                engine.detachGenerationHistoryRuntimeRouter(router);
-                reader.start();
-                assertTrue(started.await(5, TimeUnit.SECONDS));
-                awaitBlocked(reader);
+                ExecutionException failure = assertThrows(ExecutionException.class, () -> reader.submit(
+                        () -> engine.openGenerationHistoryCoordinateScope(-17, 32)).get(5, TimeUnit.SECONDS));
+                assertTrue(failure.getCause() instanceof IllegalStateException);
+                assertEquals("Iris generation-history runtime router is detached.", failure.getCause().getMessage());
             }
-            ExecutionException failure = assertThrows(ExecutionException.class, () -> read.get(5, TimeUnit.SECONDS));
-            assertTrue(failure.getCause() instanceof IllegalStateException);
-            assertEquals("Iris generation-history runtime router is detached.", failure.getCause().getMessage());
             assertTrue(engine.getGenerationHistoryRuntimeRouter().isEmpty());
         } finally {
-            reader.join(5_000L);
-            assertTrue("Detached router read did not finish", !reader.isAlive());
+            reader.shutdownNow();
+            assertTrue(reader.awaitTermination(5, TimeUnit.SECONDS));
         }
         verify(router, never()).openCoordinateScope(anyInt(), anyInt());
     }
@@ -907,12 +885,6 @@ public class IrisEngineGenerationRuntimeScopeTest {
         when(router.engine()).thenReturn(engine);
         when(router.history()).thenReturn(history);
         return router;
-    }
-
-    private static void awaitBlocked(Thread thread) {
-        Await.reached("the reader to block on the engine lifecycle lock", Duration.ofSeconds(5L),
-                () -> thread.getState() == Thread.State.BLOCKED || !thread.isAlive());
-        assertEquals(Thread.State.BLOCKED, thread.getState());
     }
 
     private static IrisEngine engine(

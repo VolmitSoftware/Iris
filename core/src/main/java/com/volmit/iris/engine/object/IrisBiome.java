@@ -163,6 +163,8 @@ public class IrisBiome extends IrisRegistrant implements IRare {
     @ArrayType(min = 1, type = IrisBiomeGeneratorLink.class)
     @Desc("Generators for this biome. Multiple generators with different interpolation sizes will mix with other biomes how you would expect. This defines your biome height relative to the fluid height. Use negative for oceans.")
     private KList<IrisBiomeGeneratorLink> generators = new KList<IrisBiomeGeneratorLink>().qadd(new IrisBiomeGeneratorLink());
+    @Desc("Where this biome may be chosen when the dimension uses HYBRID terrain")
+    private IrisBiomePlacement placement = new IrisBiomePlacement();
     @ArrayType(min = 1, type = IrisDepositGenerator.class)
     @Desc("Define biome deposit generators that add onto the existing regional and global deposit generators")
     private KList<IrisDepositGenerator> deposits = new KList<>();

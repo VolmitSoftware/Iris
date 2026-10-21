@@ -48,6 +48,7 @@ import java.util.*;
 @ToString(exclude = "data")
 public class IrisComplex implements DataProvider {
     private static final BlockData AIR = Material.AIR.createBlockData();
+    private static final List<InferredType> HYBRID_PLACED_TYPES = List.of(InferredType.LAND, InferredType.SEA, InferredType.SHORE);
     private RNG rng;
     private double fluidHeight;
     private IrisData data;
@@ -69,6 +70,8 @@ public class IrisComplex implements DataProvider {
     private ProceduralStream<Integer> roundedHeighteightStream;
     private ProceduralStream<Double> maxHeightStream;
     private ProceduralStream<Double> overlayStream;
+    private ProceduralStream<Double> placementHeightStream;
+    private HybridBiomeSelector hybridBiomeSelector;
     private ProceduralStream<Double> heightFluidStream;
     private ProceduralStream<Double> slopeStream;
     private ProceduralStream<Integer> topSurfaceStream;
@@ -132,6 +135,10 @@ public class IrisComplex implements DataProvider {
                 : regionStyleStream
                 .selectRarity(data.getRegionLoader().loadAll(engine.getDimension().getRegions()), legacy)
                 .cache2D("regionStream", engine, cacheSize).waste("Region Stream");
+        boolean hybridTerrain = engine.getDimension().getTerrainMode() == IrisTerrainMode.HYBRID;
+        if (hybridTerrain) {
+            prepareHybridBiomePlacement(engine, cacheSize);
+        }
         regionIDStream = regionIdentityStream.convertCached((i) -> new UUID(Double.doubleToLongBits(i),
                 String.valueOf(i * 38445).hashCode() * 3245556666L)).waste("Region ID Stream");
         caveBiomeStream = regionStream.contextInjecting((c, x, z) -> IrisContext.getOr(engine).getChunkContext().getRegion().get(x, z))
@@ -143,7 +150,7 @@ public class IrisComplex implements DataProvider {
                         .onNull(emptyBiome)
                 ).convertAware2D(ProceduralStream::get).cache2D("caveBiomeStream", engine, cacheSize).waste("Cave Biome Stream");
         inferredStreams.put(InferredType.CAVE, caveBiomeStream);
-        landBiomeStream = regionStream.contextInjecting((c, x, z) -> IrisContext.getOr(engine).getChunkContext().getRegion().get(x, z))
+        landBiomeStream = hybridTerrain ? createHybridBiomeStream(engine, InferredType.LAND, cacheSize) : regionStream.contextInjecting((c, x, z) -> IrisContext.getOr(engine).getChunkContext().getRegion().get(x, z))
                 .convert((r)
                         -> engine.getDimension().getLandBiomeStyle().create(rng.nextParallelRNG(InferredType.LAND.ordinal()), getData()).stream()
                         .zoom(engine.getDimension().getBiomeZoom())
@@ -153,7 +160,7 @@ public class IrisComplex implements DataProvider {
                 ).convertAware2D(ProceduralStream::get)
                 .cache2D("landBiomeStream", engine, cacheSize).waste("Land Biome Stream");
         inferredStreams.put(InferredType.LAND, landBiomeStream);
-        seaBiomeStream = regionStream.contextInjecting((c, x, z) -> IrisContext.getOr(engine).getChunkContext().getRegion().get(x, z))
+        seaBiomeStream = hybridTerrain ? createHybridBiomeStream(engine, InferredType.SEA, cacheSize) : regionStream.contextInjecting((c, x, z) -> IrisContext.getOr(engine).getChunkContext().getRegion().get(x, z))
                 .convert((r)
                         -> engine.getDimension().getSeaBiomeStyle().create(rng.nextParallelRNG(InferredType.SEA.ordinal()), getData()).stream()
                         .zoom(engine.getDimension().getBiomeZoom())
@@ -163,7 +170,7 @@ public class IrisComplex implements DataProvider {
                 ).convertAware2D(ProceduralStream::get)
                 .cache2D("seaBiomeStream", engine, cacheSize).waste("Sea Biome Stream");
         inferredStreams.put(InferredType.SEA, seaBiomeStream);
-        shoreBiomeStream = regionStream.contextInjecting((c, x, z) -> IrisContext.getOr(engine).getChunkContext().getRegion().get(x, z))
+        shoreBiomeStream = hybridTerrain ? createHybridBiomeStream(engine, InferredType.SHORE, cacheSize) : regionStream.contextInjecting((c, x, z) -> IrisContext.getOr(engine).getChunkContext().getRegion().get(x, z))
                 .convert((r)
                         -> engine.getDimension().getShoreBiomeStyle().create(rng.nextParallelRNG(InferredType.SHORE.ordinal()), getData()).stream()
                         .zoom(engine.getDimension().getBiomeZoom())
@@ -173,6 +180,7 @@ public class IrisComplex implements DataProvider {
         inferredStreams.put(InferredType.SHORE, shoreBiomeStream);
         bridgeStream = focusBiome != null ? ProceduralStream.of((x, z) -> focusBiome.getInferredType(),
                 Interpolated.of(a -> 0D, a -> focusBiome.getInferredType())) :
+                hybridTerrain ? overlayStream.convert(this::inferTypeFromOverlay).cache2D("bridgeStream", engine, cacheSize).waste("Bridge Stream") :
                 engine.getDimension().getContinentalStyle().create(rng.nextParallelRNG(234234565), getData())
                         .bake().scale(1D / engine.getDimension().getContinentZoom()).bake().stream()
                         .convert((v) -> v >= engine.getDimension().getLandChance() ? InferredType.SEA : InferredType.LAND)
@@ -241,6 +249,53 @@ public class IrisComplex implements DataProvider {
         }
 
         return null;
+    }
+
+    private void prepareHybridBiomePlacement(Engine engine, int cacheSize) {
+        IrisShapedGeneratorStyle jitter = engine.getDimension().getBiomePlacementJitter();
+        RNG jitterRng = rng.nextParallelRNG(5_118_772);
+        placementHeightStream = overlayStream.add((x, z) -> jitter.get(jitterRng, getData(), x, z))
+                .cache2D("placementHeightStream", engine, cacheSize).waste("Placement Height Stream");
+        hybridBiomeSelector = new HybridBiomeSelector(rng.nextParallelRNG(9_302_115), data);
+        placedRegions(engine).forEach(this::assignInferredTypes);
+    }
+
+    private List<IrisRegion> placedRegions(Engine engine) {
+        if (focusRegion != null) {
+            return List.of(focusRegion);
+        }
+
+        return data.getRegionLoader().loadAll(engine.getDimension().getRegions());
+    }
+
+    private void assignInferredTypes(IrisRegion region) {
+        for (InferredType type : HYBRID_PLACED_TYPES) {
+            region.getBiomes(this, type).forEach(biome -> biome.setInferredType(type));
+        }
+    }
+
+    private ProceduralStream<IrisBiome> createHybridBiomeStream(Engine engine, InferredType type, int cacheSize) {
+        String name = type.name().toLowerCase() + "BiomeStream";
+        return regionStream.contextInjecting((c, x, z) -> IrisContext.getOr(engine).getChunkContext().getRegion().get(x, z))
+                .convertAware2D((region, x, z) -> {
+                    double zoom = hybridBiomeZoom(engine.getDimension(), region, type);
+                    return hybridBiomeSelector.select(region.getBiomes(this, type), placementHeightStream.get(x, z), x / zoom, z / zoom);
+                })
+                .cache2D(name, engine, cacheSize).waste(name);
+    }
+
+    private static double hybridBiomeZoom(IrisDimension dimension, IrisRegion region, InferredType type) {
+        double typeZoom = switch (type) {
+            case LAND -> dimension.getLandZoom();
+            case SEA -> dimension.getSeaZoom();
+            default -> 1;
+        };
+
+        return dimension.getBiomeZoom() * typeZoom * region.getBiomeZoom(type);
+    }
+
+    private InferredType inferTypeFromOverlay(double heightAboveFluid) {
+        return heightAboveFluid < 0 ? InferredType.SEA : InferredType.LAND;
     }
 
     private IrisRegion findRegion(IrisBiome focus, Engine engine) {

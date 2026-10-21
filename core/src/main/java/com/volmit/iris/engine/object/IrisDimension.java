@@ -219,6 +219,10 @@ public class IrisDimension extends IrisRegistrant {
     @ArrayType(min = 1, type = IrisShapedGeneratorStyle.class)
     @Desc("Overlay additional noise on top of the interoplated terrain.")
     private KList<IrisShapedGeneratorStyle> overlayNoise = new KList<>();
+    @Desc("Where the shape of the terrain comes from. HYBRID builds the base terrain from the overlay noise and chooses biomes by its height.")
+    private IrisTerrainMode terrainMode = IrisTerrainMode.BIOME;
+    @Desc("Only used by HYBRID terrain. Shifts the height biomes are chosen by, so biome borders don't follow the terrain's contour lines.")
+    private IrisShapedGeneratorStyle biomePlacementJitter = new IrisShapedGeneratorStyle(NoiseStyle.SIMPLEX, -8, 8);
     @Desc("If true, the spawner system has infinite energy. This is NOT recommended because it would allow for mobs to keep spawning over and over without a rate limit")
     private boolean infiniteEnergy = false;
     @MinNumber(0)

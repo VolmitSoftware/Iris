@@ -22,6 +22,8 @@ import javax.swing.AbstractAction;
 import javax.swing.JComponent;
 import javax.swing.KeyStroke;
 import javax.swing.SwingUtilities;
+import javax.swing.Timer;
+import java.awt.AlphaComposite;
 import java.awt.EventQueue;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
@@ -42,12 +44,16 @@ import java.util.function.UnaryOperator;
 /**
  * The 3D view of one object. Drag to orbit, shift-drag or middle-drag to pan, scroll to zoom; arrow keys orbit and
  * plus and minus zoom too. Frames are drawn on a background thread, one at a time, always for the latest camera.
+ * While the next object loads, the last picture stays up; only a slow load dims it under the loading animation.
  */
 final class ObjectViewport extends JComponent {
     private static final long serialVersionUID = -3175226517409913524L;
     private static final double WHEEL_ZOOM_EXPONENT = 0.12D;
     private static final double KEY_ZOOM_FACTOR = 1.1D;
     private static final int KEY_ORBIT_PIXELS = 12;
+    private static final float LOADING_DIM_OPACITY = 0.88F;
+    private static final double LOADING_BLOCK_SIZE = 16D;
+    private static final int LOADING_TEXT_GAP = 46;
 
     private final ExecutorService renderThread = Executors.newSingleThreadExecutor(runnable -> {
         Thread thread = new Thread(runnable, "Iris Object Viewer");
@@ -62,6 +68,9 @@ final class ObjectViewport extends JComponent {
     private boolean renderAgain;
     private Point dragPoint;
     private int coveredLeftWidth;
+    private final Timer loadingTicker = new Timer(LoadingAnimation.FRAME_MILLIS, event -> repaint());
+    private String loadingText;
+    private long loadingSinceMillis;
 
     ObjectViewport() {
         setOpaque(true);
@@ -84,13 +93,35 @@ final class ObjectViewport extends JComponent {
         requestFrame();
     }
 
+    // The last picture stays up until the first one of this mesh is drawn.
     void show(ObjectMesh nextMesh) {
         mesh = nextMesh;
         camera = ObjectCamera.START;
         message = nextMesh.isEmpty() ? "No visible blocks" : null;
-        frame = null;
+        if (nextMesh.isEmpty()) {
+            frame = null;
+            finishLoading();
+        }
         requestFrame();
         repaint();
+    }
+
+    /**
+     * Marks the view as loading something new. A load already under way keeps its start, so stepping quickly through
+     * objects still shows the animation once the wait adds up.
+     */
+    void showLoading(String text) {
+        if (loadingText == null) {
+            loadingSinceMillis = System.currentTimeMillis();
+        }
+        loadingText = text;
+        message = null;
+        loadingTicker.start();
+    }
+
+    private void finishLoading() {
+        loadingText = null;
+        loadingTicker.stop();
     }
 
     /**
@@ -117,6 +148,7 @@ final class ObjectViewport extends JComponent {
         mesh = null;
         message = text;
         frame = null;
+        finishLoading();
         repaint();
     }
 
@@ -136,6 +168,7 @@ final class ObjectViewport extends JComponent {
     }
 
     void close() {
+        loadingTicker.stop();
         renderThread.shutdownNow();
     }
 
@@ -168,6 +201,7 @@ final class ObjectViewport extends JComponent {
         rendering = false;
         if (frameMesh == mesh) {
             frame = image;
+            finishLoading();
             repaint();
         }
         if (renderAgain) {
@@ -183,8 +217,35 @@ final class ObjectViewport extends JComponent {
         if (frame != null) {
             graphics.drawImage(frame, 0, 0, null);
         }
+        if (loadingText != null && LoadingAnimation.isDue(loadingSinceMillis)) {
+            drawLoading((Graphics2D) graphics);
+        }
         if (message != null) {
             drawMessage((Graphics2D) graphics);
+        }
+    }
+
+    private void drawLoading(Graphics2D graphics) {
+        Graphics2D canvas = (Graphics2D) graphics.create();
+        try {
+            if (frame != null) {
+                canvas.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, LOADING_DIM_OPACITY));
+                canvas.setColor(getBackground());
+                canvas.fillRect(0, 0, getWidth(), getHeight());
+                canvas.setComposite(AlphaComposite.SrcOver);
+            }
+            int centerX = coveredLeftWidth + (getWidth() - coveredLeftWidth) / 2;
+            int centerY = getHeight() / 2;
+            long shownMillis = System.currentTimeMillis() - loadingSinceMillis - LoadingAnimation.SHOW_AFTER_MILLIS;
+            LoadingAnimation.paint(canvas, centerX, centerY, StudioTheme.scale(LOADING_BLOCK_SIZE), shownMillis);
+            canvas.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+            canvas.setFont(StudioTheme.font());
+            canvas.setColor(StudioTheme.MUTED_TEXT);
+            String text = loadingText + "...";
+            int textWidth = canvas.getFontMetrics().stringWidth(text);
+            canvas.drawString(text, centerX - textWidth / 2, centerY + StudioTheme.scale(LOADING_TEXT_GAP));
+        } finally {
+            canvas.dispose();
         }
     }
 

@@ -25,6 +25,8 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.KeyStroke;
 import javax.swing.Scrollable;
+import javax.swing.Timer;
+import java.awt.AlphaComposite;
 import java.awt.BorderLayout;
 import java.awt.Cursor;
 import java.awt.Dimension;
@@ -44,7 +46,8 @@ import java.util.function.IntConsumer;
 
 /**
  * Every variant of a procedural object side by side, drawn at one scale so their sizes compare. Clicking one opens it
- * in the 3D view.
+ * in the 3D view. While new thumbnails are drawn, each card keeps its old one faded until its own arrives; cards
+ * still waiting after a moment play the loading animation, one after another like a wave.
  */
 final class ObjectVariantGallery extends JPanel {
     private static final long serialVersionUID = 6153024487310558262L;
@@ -54,14 +57,19 @@ final class ObjectVariantGallery extends JPanel {
     private static final int EDGE_MARGIN = 16;
     // The variant bar floats over the bottom edge, so the last row scrolls clear of it.
     private static final int VARIANT_BAR_CLEARANCE = 64;
+    private static final float OUTDATED_THUMBNAIL_OPACITY = 0.35F;
+    private static final int THUMBNAIL_SIZE_PER_LOADING_BLOCK = 14;
+    private static final int LOADING_WAVE_STEP_MILLIS = 90;
 
     private final JLabel title = new JLabel(" ");
     private final CardGrid grid = new CardGrid();
     private final IntConsumer onVariantOpened;
     private final Runnable onThemeChanged;
     private final List<VariantCard> cards = new ArrayList<>();
+    private final Timer loadingTicker = new Timer(LoadingAnimation.FRAME_MILLIS, event -> repaintWaitingCards());
     private int coveredLeftWidth;
     private int selectedIndex;
+    private long waitingSinceMillis;
 
     /**
      * @param onVariantOpened told the index of a variant the user clicks
@@ -113,10 +121,33 @@ final class ObjectVariantGallery extends JPanel {
     }
 
     /**
-     * Empty cards for {@code count} variants, waiting for their thumbnails.
+     * Cards for {@code count} variants, waiting for their thumbnails. The cards already shown stay, with their old
+     * thumbnails faded, so a reroll never blanks the view.
      */
     void showVariants(String heading, int count, int selected) {
         title.setText(heading);
+        if (count != cards.size()) {
+            replaceCards(count);
+        }
+        startWaiting();
+        select(selected);
+    }
+
+    /** Fades every thumbnail while something new loads. */
+    void showLoading() {
+        startWaiting();
+    }
+
+    void showThumbnail(int index, BufferedImage thumbnail) {
+        if (index < cards.size()) {
+            cards.get(index).showThumbnail(thumbnail);
+        }
+        if (cards.stream().noneMatch(VariantCard::isWaiting)) {
+            loadingTicker.stop();
+        }
+    }
+
+    private void replaceCards(int count) {
         cards.clear();
         grid.removeAll();
         for (int index = 0; index < count; index++) {
@@ -124,14 +155,21 @@ final class ObjectVariantGallery extends JPanel {
             cards.add(card);
             grid.add(card);
         }
-        select(selected);
         grid.revalidate();
         grid.repaint();
     }
 
-    void showThumbnail(int index, BufferedImage thumbnail) {
-        if (index < cards.size()) {
-            cards.get(index).showThumbnail(thumbnail);
+    private void startWaiting() {
+        if (!loadingTicker.isRunning()) {
+            waitingSinceMillis = System.currentTimeMillis();
+            loadingTicker.start();
+        }
+        cards.forEach(VariantCard::markOutdated);
+    }
+
+    private void repaintWaitingCards() {
+        if (LoadingAnimation.isDue(waitingSinceMillis)) {
+            cards.stream().filter(VariantCard::isWaiting).forEach(VariantCard::repaint);
         }
     }
 
@@ -146,6 +184,7 @@ final class ObjectVariantGallery extends JPanel {
 
     void showMessage(String text) {
         title.setText(text);
+        loadingTicker.stop();
         cards.clear();
         grid.removeAll();
         grid.revalidate();
@@ -230,6 +269,7 @@ final class ObjectVariantGallery extends JPanel {
 
         private final int index;
         private BufferedImage thumbnail;
+        private boolean thumbnailOutdated;
         private boolean hovered;
 
         VariantCard(int index) {
@@ -256,7 +296,17 @@ final class ObjectVariantGallery extends JPanel {
 
         void showThumbnail(BufferedImage image) {
             thumbnail = image;
+            thumbnailOutdated = false;
             repaint();
+        }
+
+        void markOutdated() {
+            thumbnailOutdated = true;
+            repaint();
+        }
+
+        boolean isWaiting() {
+            return thumbnail == null || thumbnailOutdated;
         }
 
         private void setHovered(boolean nowHovered) {
@@ -277,16 +327,27 @@ final class ObjectVariantGallery extends JPanel {
                 int size = thumbnailSize();
                 canvas.setFont(StudioTheme.smallFont());
                 FontMetrics metrics = canvas.getFontMetrics();
-                if (thumbnail != null) {
-                    canvas.drawImage(thumbnail, padding, padding, size, size, null);
-                } else {
-                    canvas.setColor(StudioTheme.MUTED_TEXT);
-                    drawCentered(canvas, "Loading...", padding + size / 2);
-                }
+                drawThumbnail(canvas, padding, size);
                 canvas.setColor(StudioTheme.TEXT);
                 drawCentered(canvas, "Variant " + (index + 1), padding * 2 + size + metrics.getAscent());
             } finally {
                 canvas.dispose();
+            }
+        }
+
+        private void drawThumbnail(Graphics2D canvas, int padding, int size) {
+            if (thumbnail != null) {
+                Graphics2D faded = (Graphics2D) canvas.create();
+                if (thumbnailOutdated) {
+                    faded.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, OUTDATED_THUMBNAIL_OPACITY));
+                }
+                faded.drawImage(thumbnail, padding, padding, size, size, null);
+                faded.dispose();
+            }
+            if (isWaiting() && LoadingAnimation.isDue(waitingSinceMillis)) {
+                long shownMillis = System.currentTimeMillis() - waitingSinceMillis - LoadingAnimation.SHOW_AFTER_MILLIS;
+                LoadingAnimation.paint(canvas, padding + size / 2D, padding + size / 2D, size / (double) THUMBNAIL_SIZE_PER_LOADING_BLOCK,
+                        shownMillis - (long) index * LOADING_WAVE_STEP_MILLIS);
             }
         }
 

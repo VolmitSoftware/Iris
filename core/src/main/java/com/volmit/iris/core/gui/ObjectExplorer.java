@@ -155,7 +155,7 @@ final class ObjectExplorer {
 
     // Textures load first, since the first object would otherwise be drawn in flat colours.
     void open() {
-        statusBar.showActivity("Loading Minecraft textures...");
+        viewport.showLoading("Loading Minecraft textures");
         loader.execute(() -> {
             loadTextures();
             List<String> keys = objectKeys();
@@ -217,7 +217,7 @@ final class ObjectExplorer {
             variantPicker.forgetTriedSeeds();
             showVariantList(List.of(), OptionalLong.empty(), OptionalLong.empty(), 0);
         }
-        long revision = startLoading(key);
+        long revision = startBaking(key);
         loader.execute(() -> {
             if (revision != objectRevision.get()) {
                 return;
@@ -235,7 +235,7 @@ final class ObjectExplorer {
         int variantIndex = shownVariantIndex;
         shownSeed = OptionalLong.of(seed);
         variantPicker.showSeed(shownSeed, pack);
-        long revision = startLoading(key + " with seed " + seed);
+        long revision = startBaking(key + " with seed " + seed);
         loader.execute(() -> {
             if (revision == objectRevision.get()) {
                 loadVariants(revision, key, pack, OptionalLong.of(seed), variantIndex);
@@ -277,7 +277,7 @@ final class ObjectExplorer {
             return;
         }
         if (variants.isEmpty()) {
-            gallery.showMessage("Loading " + shownKey + "...");
+            gallery.showLoading();
         } else if (variants.size() == 1) {
             toggleComparing();
         } else {
@@ -380,12 +380,19 @@ final class ObjectExplorer {
         return new ObjectMesh.Bounds(0, 0, 0, sizeX, sizeY, sizeZ);
     }
 
+    // A new list of variants is on its way, so every thumbnail is outdated, unlike when stepping to another variant.
+    private long startBaking(String key) {
+        if (comparingVariants) {
+            gallery.showLoading();
+        }
+        return startLoading(key);
+    }
+
     private long startLoading(String key) {
         shown = null;
         wholeMesh = null;
         meshRevision.incrementAndGet();
-        viewport.showMessage("Loading " + key + "...");
-        statusBar.showActivity("Loading " + key + "...");
+        viewport.showLoading("Loading " + key);
         return objectRevision.incrementAndGet();
     }
 

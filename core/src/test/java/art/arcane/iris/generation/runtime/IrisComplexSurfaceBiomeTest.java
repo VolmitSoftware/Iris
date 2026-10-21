@@ -119,6 +119,8 @@ public class IrisComplexSurfaceBiomeTest {
         doReturn(false).when(base).isShore();
         doReturn(false).when(base).isAquatic();
         doReturn(3D).when(region).getShoreHeight(12D, 18D);
+        doReturn(1D).when(region).getShoreHeightMin();
+        doReturn(5D).when(region).getShoreHeightMax();
 
         IrisBiome resolved = IrisComplex.resolveSurfaceBiome(
                 68D,
@@ -143,6 +145,8 @@ public class IrisComplexSurfaceBiomeTest {
         IrisRegion region = mock(IrisRegion.class);
         doReturn(false).when(base).isShore();
         doReturn(3D).when(region).getShoreHeight(12D, 18D);
+        doReturn(1D).when(region).getShoreHeightMin();
+        doReturn(5D).when(region).getShoreHeightMax();
 
         IrisBiome resolved = IrisComplex.resolveSurfaceBiome(
                 63D,
@@ -168,6 +172,8 @@ public class IrisComplexSurfaceBiomeTest {
         doReturn(false).when(aquatic).isShore();
         doReturn(false).when(aquatic).isLand();
         doReturn(1D).when(region).getShoreHeight(4D, 7D);
+        doReturn(0.5D).when(region).getShoreHeightMin();
+        doReturn(1.5D).when(region).getShoreHeightMax();
 
         IrisBiome resolved = IrisComplex.resolveSurfaceBiome(
                 66D,
@@ -193,6 +199,8 @@ public class IrisComplexSurfaceBiomeTest {
         doReturn(false).when(base).isShore();
         doReturn(false).when(base).isLand();
         doReturn(3D).when(region).getShoreHeight(12D, 18D);
+        doReturn(1D).when(region).getShoreHeightMin();
+        doReturn(5D).when(region).getShoreHeightMax();
         doReturn(0D).when(region).getShoreMinimumWidth();
 
         IrisBiome resolved = IrisComplex.resolveSurfaceBiome(
@@ -218,6 +226,8 @@ public class IrisComplexSurfaceBiomeTest {
         IrisRegion region = mock(IrisRegion.class);
         doReturn(false).when(base).isShore();
         doReturn(3D).when(region).getShoreHeight(12D, 18D);
+        doReturn(1D).when(region).getShoreHeightMin();
+        doReturn(5D).when(region).getShoreHeightMax();
         doReturn(3D).when(region).getShoreMinimumWidth();
 
         IrisBiome resolved = IrisComplex.resolveSurfaceBiome(
@@ -244,6 +254,8 @@ public class IrisComplexSurfaceBiomeTest {
         doReturn(false).when(base).isShore();
         doReturn(false).when(base).isLand();
         doReturn(3D).when(region).getShoreHeight(12D, 18D);
+        doReturn(1D).when(region).getShoreHeightMin();
+        doReturn(5D).when(region).getShoreHeightMax();
         doReturn(3D).when(region).getShoreMinimumWidth();
 
         IrisBiome resolved = IrisComplex.resolveSurfaceBiome(
@@ -272,6 +284,8 @@ public class IrisComplexSurfaceBiomeTest {
         doReturn(false).when(base).isLand();
         doReturn(false).when(base).isAquatic();
         doReturn(3D).when(region).getShoreHeight(12D, 18D);
+        doReturn(1D).when(region).getShoreHeightMin();
+        doReturn(5D).when(region).getShoreHeightMax();
         doReturn(3D).when(region).getShoreMinimumWidth();
 
         assertSame(sea, IrisComplex.resolveSurfaceBiome(
@@ -304,6 +318,8 @@ public class IrisComplexSurfaceBiomeTest {
     public void shoreBandTopTradesHorizontalWidthForHeightOnSlopes() {
         IrisRegion region = mock(IrisRegion.class);
         doReturn(3D).when(region).getShoreHeight(12D, 18D);
+        doReturn(1D).when(region).getShoreHeightMin();
+        doReturn(5D).when(region).getShoreHeightMax();
         doReturn(3D).when(region).getShoreMinimumWidth();
 
         assertEquals(66D, IrisComplex.shoreBandTop(67D, region, 12D, 18D, 63D, constantSlope(0D)), 0D);

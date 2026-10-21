@@ -40,7 +40,7 @@ gradle.projectsEvaluated {
     File spiArtifact = project(':spi').tasks.named('jar', Jar).get().archiveFile.locationOnly.get().asFile
     buildTargets.addAll([
         [id: 'bukkit', tasks: [':buildBukkit'], arguments: [], java: 25,
-            memoryMiB: 6144, workers: 2, dependsOn: [], artifacts: [
+            memoryMiB: 8192, workers: 4, dependsOn: [], artifacts: [
                 [path: relativePath(bukkitArtifact), role: 'runtime', platforms: ['plugin'], minecraftVersions: bukkitVersions]]],
         [id: 'api', tasks: [':irisApi'], arguments: [], java: 25,
             memoryMiB: 6144, workers: 2, dependsOn: [], artifacts: [

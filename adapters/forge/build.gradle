@@ -66,10 +66,13 @@ String forgeVersion = providers.gradleProperty('forgeVersion').getOrElse(irisMod
 String buildLane = gradle.extensions.extraProperties.has('irisBuildLane')
     ? gradle.extensions.extraProperties.get('irisBuildLane').toString() : null
 if (buildLane != null) {
+    File laneCache = providers.gradleProperty('multiplexorSandbox').getOrElse('false').toBoolean()
+        ? new File(gradle.gradleUserHomeDir, "caches/iris-forge/${buildLane}")
+        : file(".gradle/iris-lanes/${buildLane}")
     plugins.withType(EnhancedPlugin).configureEach { EnhancedPlugin<?> forgePlugin ->
-        forgePlugin.globalCaches().set(layout.projectDirectory.dir(".gradle/iris-lanes/${buildLane}/forgegradle"))
+        forgePlugin.globalCaches().set(new File(laneCache, 'forgegradle'))
     }
-    minecraft.mavenizerOutput.set(layout.projectDirectory.dir(".gradle/iris-lanes/${buildLane}/mavenizer/repo"))
+    minecraft.mavenizerOutput.set(new File(laneCache, 'mavenizer/repo'))
 }
 Closure<String> loaderDisplayVersion = { String loaderVersion ->
     String coordinatePrefix = "${minecraftVersion}-"

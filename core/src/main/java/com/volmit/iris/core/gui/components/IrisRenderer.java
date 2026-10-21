@@ -214,15 +214,31 @@ public final class IrisRenderer {
             ProceduralStream<Double> regionNoise = complex.getRegionStyleStream();
             return new UnitNoise((gridIndex, x, z) -> regionNoise.get(x, z));
         }
-        IrisRegion region = engine.getData().getRegionLoader().load(layer.previewRegionKey());
-        if (region == null) {
-            return new UnitNoise((gridIndex, x, z) -> 0D);
-        }
         if (complex.isHybridTerrain()) {
             ProceduralStream<Double> placementHeight = complex.getPlacementHeightStream();
             return new PlacementHeightNoise((gridIndex, x, z) -> placementHeight.get(x, z), fluidHeight(), defaultHeightRange());
         }
+        if (layer.type() == RenderType.BIOME) {
+            return new UnitNoise(baseBiomePickNoise(complex));
+        }
+        IrisRegion region = engine.getData().getRegionLoader().load(layer.previewRegionKey());
+        if (region == null) {
+            return new UnitNoise((gridIndex, x, z) -> 0D);
+        }
         return new UnitNoise(biomePickNoise(complex, region, grid));
+    }
+
+    // The biome view shows each spot's base biome, which its own region picks from the biome list of the spot's type.
+    private static NoiseField baseBiomePickNoise(IrisComplex complex) {
+        ProceduralStream<IrisRegion> regions = complex.getRegionStream();
+        ProceduralStream<InferredType> types = complex.getBridgeStream();
+        Map<IrisRegion, Map<InferredType, ProceduralStream<Double>>> noiseByRegion = new IdentityHashMap<>();
+        return (gridIndex, x, z) -> {
+            IrisRegion region = regions.get(x, z);
+            return noiseByRegion.computeIfAbsent(region, subject -> new EnumMap<>(InferredType.class))
+                    .computeIfAbsent(types.get(x, z), type -> complex.biomePickNoiseStream(region, type))
+                    .get(x, z);
+        };
     }
 
     // Finding which biome list picked a spot is slow, so it is sampled in squares like the biomes; the noise is cheap.

@@ -78,7 +78,7 @@ public final class MapWindow implements MapCanvas.Listener {
     private final JPanel inspectorSlot = new JPanel(new BorderLayout());
     private final JComponent viewListScroll;
     private final JSplitPane explorerSplit = new JSplitPane(JSplitPane.VERTICAL_SPLIT);
-    private final JSplitPane regionInspectorSplit = new JSplitPane(JSplitPane.VERTICAL_SPLIT);
+    private final JSplitPane pickInspectorSplit = new JSplitPane(JSplitPane.VERTICAL_SPLIT);
     private final List<JComponent> mapControls = new ArrayList<>();
     private final List<JComponent> explorerControls = new ArrayList<>();
     private final List<JComponent> noiseControls = new ArrayList<>();
@@ -92,6 +92,7 @@ public final class MapWindow implements MapCanvas.Listener {
     private final JToggleButton bordersToggle = StudioToolbar.toggle("Borders", "Outline the regions on every view (B)");
     private final MapLegendPanel legendPanel;
     private final RegionExplorer regionExplorer;
+    private final BiomeExplorer biomeExplorer;
 
     private NoiseExplorerGUI paletteExplorer;
     private final Map<MapView, ObjectExplorer> objectExplorers = new EnumMap<>(MapView.class);
@@ -109,6 +110,7 @@ public final class MapWindow implements MapCanvas.Listener {
         this.viewListScroll = StudioToolbar.scroll(viewList);
         this.legendPanel = new MapLegendPanel(share -> canvas.toggleHighlight(share.label()));
         this.regionExplorer = new RegionExplorer(canvas::engine, canvas::previewRegion, canvas::showPicksAs);
+        this.biomeExplorer = new BiomeExplorer(canvas::engine, canvas::showPicksAs);
         canvas.centerOn(start.centerX(), start.centerZ());
         buildFrame();
     }
@@ -135,7 +137,7 @@ public final class MapWindow implements MapCanvas.Listener {
 
     private void buildFrame() {
         styleExplorerSplit();
-        styleRegionInspectorSplit();
+        stylePickInspectorSplit();
         content.add(canvas, MAP_CARD);
         statusBars.add(canvas.statusBar(), MAP_CARD);
         sidebar.add(viewListScroll, BorderLayout.CENTER);
@@ -228,6 +230,8 @@ public final class MapWindow implements MapCanvas.Listener {
         inspectorSlot.removeAll();
         if (view == MapView.REGIONS) {
             showRegionExplorer(previousView);
+        } else if (view == MapView.BIOMES) {
+            showBiomeExplorer();
         } else {
             useSidebar(viewListScroll);
             inspectorSlot.add(legendPanel, BorderLayout.CENTER);
@@ -242,19 +246,31 @@ public final class MapWindow implements MapCanvas.Listener {
             regionExplorer.loadRegions();
         }
         useSidebar(viewListAbove(regionExplorer.navigator()));
-        regionInspectorSplit.setTopComponent(regionExplorer.inspector());
-        regionInspectorSplit.setBottomComponent(legendPanel);
-        inspectorSlot.add(regionInspectorSplit, BorderLayout.CENTER);
+        showPickInspector(regionExplorer.inspector());
         EventQueue.invokeLater(() -> viewList.select(currentView));
         regionExplorer.measure(canvas.viewArea());
     }
 
-    private void styleRegionInspectorSplit() {
-        regionInspectorSplit.setBorder(BorderFactory.createMatteBorder(0, 1, 0, 0, StudioTheme.SEPARATOR));
-        regionInspectorSplit.setResizeWeight(0.7D);
-        regionInspectorSplit.setBackground(StudioTheme.PANEL_BACKGROUND);
-        regionInspectorSplit.setDividerSize(StudioTheme.scale(EXPLORER_DIVIDER_HEIGHT));
-        regionInspectorSplit.putClientProperty("FlatLaf.style", "style: grip");
+    private void showBiomeExplorer() {
+        useSidebar(viewListScroll);
+        showPickInspector(biomeExplorer.inspector());
+        biomeExplorer.measure(canvas.viewArea());
+    }
+
+    // The region and biome views share how the map draws its picks, so their switches show the same choice.
+    private void showPickInspector(PickInspectorPanel inspector) {
+        inspector.selectDisplay(canvas.pickDisplay());
+        pickInspectorSplit.setTopComponent(inspector);
+        pickInspectorSplit.setBottomComponent(legendPanel);
+        inspectorSlot.add(pickInspectorSplit, BorderLayout.CENTER);
+    }
+
+    private void stylePickInspectorSplit() {
+        pickInspectorSplit.setBorder(BorderFactory.createMatteBorder(0, 1, 0, 0, StudioTheme.SEPARATOR));
+        pickInspectorSplit.setResizeWeight(0.7D);
+        pickInspectorSplit.setBackground(StudioTheme.PANEL_BACKGROUND);
+        pickInspectorSplit.setDividerSize(StudioTheme.scale(EXPLORER_DIVIDER_HEIGHT));
+        pickInspectorSplit.putClientProperty("FlatLaf.style", "style: grip");
     }
 
     private void showPalettes(MapView previousView) {
@@ -420,12 +436,15 @@ public final class MapWindow implements MapCanvas.Listener {
         legendPanel.show(title, shares, highlight);
         if (currentView == MapView.REGIONS) {
             regionExplorer.measure(canvas.viewArea());
+        } else if (currentView == MapView.BIOMES) {
+            biomeExplorer.measure(canvas.viewArea());
         }
     }
 
     @Override
     public void onContentRefreshed() {
         regionExplorer.refresh();
+        biomeExplorer.refresh();
     }
 
     private void resetExplorerView() {
@@ -524,6 +543,7 @@ public final class MapWindow implements MapCanvas.Listener {
     private void close() {
         canvas.close();
         regionExplorer.close();
+        biomeExplorer.close();
         if (paletteExplorer != null) {
             paletteExplorer.close();
         }

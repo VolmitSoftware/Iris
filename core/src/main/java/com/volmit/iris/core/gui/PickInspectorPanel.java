@@ -33,9 +33,15 @@ import javax.swing.SwingConstants;
 import javax.swing.text.DefaultCaret;
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
+import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.FontMetrics;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
 import java.awt.GridLayout;
 import java.awt.Rectangle;
+import java.awt.RenderingHints;
+import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Locale;
@@ -43,10 +49,10 @@ import java.util.Map;
 import java.util.function.Consumer;
 
 /**
- * The region view's inspector: how the noise picks the regions, or for a chosen region how its biomes are picked,
- * measured against what is in view and put in words.
+ * The inspector of the region and biome views: how noise picks the regions or biomes in view, measured against what
+ * is in view and put in words, with a switch for how the map draws the picks.
  */
-final class RegionInspectorPanel extends JPanel {
+final class PickInspectorPanel extends JPanel {
     private static final long serialVersionUID = -2874105263188240317L;
     private static final String MESSAGE_CARD = "message";
     private static final String DETAILS_CARD = "details";
@@ -60,13 +66,15 @@ final class RegionInspectorPanel extends JPanel {
     private final JPanel cardPanel = new JPanel(cards);
     private final JTextArea message = wrappingText();
     private final JPanel details = new ViewportWidthPanel();
-    private final RegionHeightChart heightChart = new RegionHeightChart();
+    private final String picksName;
 
     /**
+     * @param picksName       what the map shows when it draws the picks: "Regions" or "Biomes"
      * @param onDisplayChosen receives how the map should draw the picks
      */
-    RegionInspectorPanel(Consumer<PickDisplay> onDisplayChosen) {
+    PickInspectorPanel(String picksName, Consumer<PickDisplay> onDisplayChosen) {
         super(new BorderLayout());
+        this.picksName = picksName;
         setPreferredSize(StudioTheme.scaledSize(PANEL_WIDTH, 0));
         setBackground(StudioTheme.PANEL_BACKGROUND);
         add(buildHeader(onDisplayChosen), BorderLayout.NORTH);
@@ -74,10 +82,13 @@ final class RegionInspectorPanel extends JPanel {
         cardPanel.add(buildMessageCard(), MESSAGE_CARD);
         details.setLayout(new BoxLayout(details, BoxLayout.Y_AXIS));
         details.setBackground(StudioTheme.PANEL_BACKGROUND);
-        heightChart.setAlignmentX(LEFT_ALIGNMENT);
         cardPanel.add(StudioToolbar.scroll(details), DETAILS_CARD);
         add(cardPanel, BorderLayout.CENTER);
-        showMeasuring("Regions");
+        showMeasuring(picksName);
+    }
+
+    void selectDisplay(PickDisplay display) {
+        displayButtons.get(display).setSelected(true);
     }
 
     void showMeasuring(String name) {
@@ -100,8 +111,31 @@ final class RegionInspectorPanel extends JPanel {
     void showCoverage(String regionName, RegionHeightCoverage coverage, List<String> notes) {
         showHeader(regionName, "Hybrid terrain · biomes by height");
         nameFirstDisplay("Biomes");
-        heightChart.show(coverage);
-        showDetails(List.of(heightChart), notes);
+        showDetails(List.of(heightChart(coverage)), notes);
+    }
+
+    /**
+     * One section per region in view, each with how it picks its biomes, then notes about all of them.
+     */
+    void showRegionSections(String detailText, List<Section> sections, List<String> notes) {
+        showHeader(picksName, detailText);
+        nameFirstDisplay(picksName);
+        List<JComponent> components = new ArrayList<>();
+        for (Section section : sections) {
+            components.add(new SectionHeader(section));
+            components.addAll(section.charts());
+            if (!section.notes().isEmpty()) {
+                components.add(notesText(section.notes()));
+            }
+        }
+        showDetails(components, notes);
+    }
+
+    static RegionHeightChart heightChart(RegionHeightCoverage coverage) {
+        RegionHeightChart chart = new RegionHeightChart();
+        chart.setAlignmentX(LEFT_ALIGNMENT);
+        chart.show(coverage);
+        return chart;
     }
 
     private JPanel buildHeader(Consumer<PickDisplay> onDisplayChosen) {
@@ -136,9 +170,9 @@ final class RegionInspectorPanel extends JPanel {
         return row;
     }
 
-    private static String displayName(PickDisplay display) {
+    private String displayName(PickDisplay display) {
         return switch (display) {
-            case PICKS -> "Regions";
+            case PICKS -> picksName;
             case NOISE -> "Noise";
             case BOTH -> "Both";
         };
@@ -170,16 +204,20 @@ final class RegionInspectorPanel extends JPanel {
         details.removeAll();
         charts.forEach(details::add);
         if (!notes.isEmpty()) {
-            JTextArea notesText = wrappingText();
-            notesText.setAlignmentX(LEFT_ALIGNMENT);
-            notesText.setBorder(StudioTheme.emptyBorder(4, 16, 12, 16));
-            notesText.setText(String.join(PARAGRAPH_BREAK, notes));
-            details.add(notesText);
+            details.add(notesText(notes));
         }
         details.revalidate();
         details.repaint();
         details.scrollRectToVisible(new Rectangle());
         cards.show(cardPanel, DETAILS_CARD);
+    }
+
+    private static JTextArea notesText(List<String> notes) {
+        JTextArea text = wrappingText();
+        text.setAlignmentX(LEFT_ALIGNMENT);
+        text.setBorder(StudioTheme.emptyBorder(4, 16, 12, 16));
+        text.setText(String.join(PARAGRAPH_BREAK, notes));
+        return text;
     }
 
     private static JLabel sectionLabel(String text) {
@@ -200,6 +238,69 @@ final class RegionInspectorPanel extends JPanel {
         text.setFont(StudioTheme.font());
         text.setForeground(StudioTheme.SECONDARY_TEXT);
         return text;
+    }
+
+    /**
+     * One region of the biome view's inspector.
+     *
+     * @param share how much of the view the region covers
+     */
+    record Section(String name, int color, double share, List<JComponent> charts, List<String> notes) {
+    }
+
+    /**
+     * A region's name in its colour above its charts, with how much of the view it covers.
+     */
+    private static final class SectionHeader extends JComponent {
+        private static final long serialVersionUID = -4730226930154581123L;
+        private static final int HEIGHT = 34;
+        private static final int MARGIN = 16;
+        private static final int SWATCH_SIZE = 12;
+        private static final int SWATCH_GAP = 8;
+
+        private final Section section;
+
+        private SectionHeader(Section section) {
+            this.section = section;
+            setAlignmentX(LEFT_ALIGNMENT);
+        }
+
+        @Override
+        public Dimension getPreferredSize() {
+            return StudioTheme.scaledSize(PANEL_WIDTH, HEIGHT);
+        }
+
+        @Override
+        public Dimension getMaximumSize() {
+            return new Dimension(Integer.MAX_VALUE, getPreferredSize().height);
+        }
+
+        @Override
+        protected void paintComponent(Graphics graphics) {
+            Graphics2D canvas = (Graphics2D) graphics.create();
+            try {
+                canvas.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+                canvas.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                canvas.setColor(StudioTheme.SEPARATOR);
+                canvas.fillRect(0, 0, getWidth(), 1);
+                int margin = StudioTheme.scale(MARGIN);
+                int swatch = StudioTheme.scale(SWATCH_SIZE);
+                canvas.setColor(new Color(section.color()));
+                int arc = StudioTheme.scale(4);
+                canvas.fillRoundRect(margin, (getHeight() - swatch) / 2, swatch, swatch, arc, arc);
+                canvas.setFont(StudioTheme.boldFont());
+                FontMetrics metrics = canvas.getFontMetrics();
+                int baseline = (getHeight() + metrics.getAscent() - metrics.getDescent()) / 2;
+                canvas.setColor(StudioTheme.TEXT);
+                canvas.drawString(section.name(), margin + swatch + StudioTheme.scale(SWATCH_GAP), baseline);
+                String share = NoisePickChart.percent(section.share()) + " of view";
+                canvas.setFont(StudioTheme.smallFont());
+                canvas.setColor(StudioTheme.SECONDARY_TEXT);
+                canvas.drawString(share, getWidth() - margin - canvas.getFontMetrics().stringWidth(share), baseline);
+            } finally {
+                canvas.dispose();
+            }
+        }
     }
 
     /**

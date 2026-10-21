@@ -227,15 +227,19 @@ final class MapCanvas extends JPanel {
         }
     }
 
+    PickDisplay pickDisplay() {
+        return pickDisplay;
+    }
+
     /**
-     * Draws the region view's picks, the noise that picks them, or both.
+     * Draws the region or biome view's picks, the noise that picks them, or both.
      */
     void showPicksAs(PickDisplay display) {
         if (display == pickDisplay) {
             return;
         }
         pickDisplay = display;
-        if (currentType.isRegionView()) {
+        if (currentType.drawsPickNoise()) {
             requestRender();
         }
     }
@@ -247,6 +251,7 @@ final class MapCanvas extends JPanel {
 
     private MapLayer currentLayer() {
         return switch (currentType) {
+            case BIOME -> MapLayer.biomes(pickDisplay);
             case REGION -> MapLayer.regions(pickDisplay);
             case REGION_PREVIEW -> MapLayer.regionPreview(previewRegionKey, pickDisplay);
             default -> MapLayer.of(currentType);
@@ -1098,7 +1103,7 @@ final class MapCanvas extends JPanel {
         double worldZ = screenToWorldZ(point.y);
         controller.submitProbe(
                 frame,
-                () -> MapHoverProbe.sample(probeEngine, worldX, worldZ, previewedRegion(), currentType.isRegionView()),
+                () -> MapHoverProbe.sample(probeEngine, worldX, worldZ, previewedRegion(), currentType.drawsPickNoise()),
                 details -> {
                     QuickHover quick = quickHover;
                     if (quick != null && quick.worldX() == details.worldX() && quick.worldZ() == details.worldZ()) {

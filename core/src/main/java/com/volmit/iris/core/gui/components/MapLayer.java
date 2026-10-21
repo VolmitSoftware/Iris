@@ -22,10 +22,10 @@ import java.util.Objects;
 
 /**
  * What a map tile shows: one of the render types, for a region preview which region every spot is treated as, and in
- * the region view whether the noise that picks is drawn too.
+ * the region and biome views whether the noise that picks is drawn too.
  *
  * @param previewRegionKey the region a {@link RenderType#REGION_PREVIEW} tile shows everywhere, null for every other type
- * @param display          how the picking noise is drawn; only the region view draws anything but the picks
+ * @param display          how the picking noise is drawn; only the region and biome views draw anything but the picks
  */
 public record MapLayer(RenderType type, String previewRegionKey, PickDisplay display) {
     public MapLayer {
@@ -34,13 +34,17 @@ public record MapLayer(RenderType type, String previewRegionKey, PickDisplay dis
         if ((type == RenderType.REGION_PREVIEW) != (previewRegionKey != null)) {
             throw new IllegalArgumentException("Only a region preview names a region");
         }
-        if (display != PickDisplay.PICKS && !type.isRegionView()) {
-            throw new IllegalArgumentException("Only the region view draws its picking noise");
+        if (display != PickDisplay.PICKS && !type.drawsPickNoise()) {
+            throw new IllegalArgumentException(type + " has no picking noise to draw");
         }
     }
 
     public static MapLayer of(RenderType type) {
         return new MapLayer(type, null, PickDisplay.PICKS);
+    }
+
+    public static MapLayer biomes(PickDisplay display) {
+        return new MapLayer(RenderType.BIOME, null, display);
     }
 
     public static MapLayer regions(PickDisplay display) {

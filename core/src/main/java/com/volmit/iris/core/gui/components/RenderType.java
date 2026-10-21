@@ -24,4 +24,11 @@ public enum RenderType {
     public boolean isRegionView() {
         return this == REGION || this == REGION_PREVIEW;
     }
+
+    /**
+     * Whether the view can draw the noise that picks what it shows: the regions, or the surface biomes.
+     */
+    public boolean drawsPickNoise() {
+        return isRegionView() || this == BIOME;
+    }
 }

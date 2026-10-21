@@ -68,17 +68,20 @@ final class MapHoverProbe {
                 dimension == null ? 0D : dimension.getFluidHeight(),
                 Math.toDegrees(Math.atan(slope / SLOPE_STREAM_RANGE_BLOCKS)),
                 complex.explainHybridChoice(region, worldX, worldZ),
-                explainPicks ? pickNoise(complex, region, previewRegion == null, worldX, worldZ) : null
+                explainPicks ? pickNoise(complex, region, previewRegion, worldX, worldZ) : null
         );
     }
 
     // HYBRID terrain picks biomes by height, which the placement line already tells, so only the region noise is left.
-    private static PickNoise pickNoise(IrisComplex complex, IrisRegion region, boolean regionPicked, double x, double z) {
-        Double regionNoise = regionPicked ? complex.getRegionStyleStream().get(x, z) : null;
+    // The preview shows surface biomes, which the height can move to another biome list; the real map shows base biomes.
+    private static PickNoise pickNoise(IrisComplex complex, IrisRegion region, IrisRegion previewRegion, double x, double z) {
+        Double regionNoise = previewRegion == null ? complex.getRegionStyleStream().get(x, z) : null;
         if (complex.isHybridTerrain() || region == null) {
             return new PickNoise(regionNoise, null, Double.NaN, null);
         }
-        InferredType biomeType = complex.surfacePickAsIfIn(region, x, z).type();
+        InferredType biomeType = previewRegion != null
+                ? complex.surfacePickAsIfIn(region, x, z).type()
+                : complex.getBridgeStream().get(x, z);
         return new PickNoise(regionNoise, biomeType, complex.biomePickNoise(region, biomeType, x, z),
                 complex.biomePickedByNoise(region, biomeType, x, z));
     }

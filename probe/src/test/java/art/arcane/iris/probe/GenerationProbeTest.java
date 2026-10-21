@@ -171,8 +171,8 @@ public final class GenerationProbeTest {
         after.put("total", new EngineMetrics.StageTotal(350.25D, 20L));
         after.put("context.prefill.height", new EngineMetrics.StageTotal(12.5D, 10L));
 
-        String line = GenerationProbe.stagesLine(new GenerationProbe.WindowMetrics(before, Map.of()),
-                new GenerationProbe.WindowMetrics(after, Map.of()), 10, 1);
+        String line = ProbeWindowMetrics.stagesLine(new ProbeWindowMetrics(before, Map.of()),
+                new ProbeWindowMetrics(after, Map.of()), 10, 1);
 
         assertEquals("IRIS_GENPROBE_STAGES version=1 chunks=10 threads=1 total=250.250 context.prefill.height=12.500", line);
     }
@@ -186,8 +186,8 @@ public final class GenerationProbeTest {
         after.put("generator_evaluations", 5_000L);
         after.put("corner_starcasts", 330L);
 
-        String line = GenerationProbe.countersLine(new GenerationProbe.WindowMetrics(Map.of(), before),
-                new GenerationProbe.WindowMetrics(Map.of(), after), 2);
+        String line = ProbeWindowMetrics.countersLine(new ProbeWindowMetrics(Map.of(), before),
+                new ProbeWindowMetrics(Map.of(), after), 2);
 
         assertEquals("IRIS_GENPROBE_COUNTERS version=1 chunks=2 generator_evaluations=4000"
                 + " generator_evaluations_per_chunk=2000.0 corner_starcasts=330 corner_starcasts_per_chunk=165.0", line);
@@ -200,7 +200,7 @@ public final class GenerationProbeTest {
         int tileSize = 512;
         int publicationRadius = 96;
         int reachChunks = 13;
-        List<HydrologyTileKey> keys = GenerationProbe.preplanTiles(configuration, tileSize, publicationRadius, reachChunks);
+        List<HydrologyTileKey> keys = ProbeHydrologyPreplan.tiles(configuration, tileSize, publicationRadius, reachChunks);
         Set<HydrologyTileKey> planned = new HashSet<>(keys);
 
         assertEquals(keys.size(), planned.size());

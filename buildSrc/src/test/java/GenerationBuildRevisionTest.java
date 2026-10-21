@@ -59,6 +59,22 @@ public class GenerationBuildRevisionTest {
     }
 
     @Test
+    public void hashesLargeShortAndEmptyEntriesIndependently() throws Exception {
+        Path dependency = temporary.newFile("multiple-entries.jar").toPath();
+        Map<String, String> contents = Map.of("example/Large.class", "abc".repeat(11_000),
+                "example/Short.class", "tail", "example/Zero.class", "");
+        try (ZipOutputStream output = new ZipOutputStream(Files.newOutputStream(dependency))) {
+            for (String name : List.of("example/Zero.class", "example/Short.class", "example/Large.class")) {
+                output.putNextEntry(new ZipEntry(name));
+                output.write(contents.get(name).getBytes(StandardCharsets.UTF_8));
+                output.closeEntry();
+            }
+        }
+        assertEquals("49217af891afa3111d1f70a390acacc8bad700528b61b1ecc5637c060aeb52cd",
+                GenerationBuildRevision.artifactHash(dependency));
+    }
+
+    @Test
     public void rejectsChangedAddedAndDeletedGenerationSources() throws Exception {
         Fixture fixture = fixture();
         Path source = fixture.root().resolve("generation/Noise.java");

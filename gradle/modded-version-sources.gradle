@@ -2,11 +2,17 @@ import groovy.json.JsonSlurper
 
 List<String> sourceOverlays = (List<String>) irisModTarget.overlays
 List<File> adapterSourceRoots = [projectDir, file('../modded-common'), file('../client-common')]
+int testForks = Math.max(1, Integer.parseInt(providers.gradleProperty('testForks').getOrElse('2')))
 
 tasks.named('compileTestJava', JavaCompile).configure {
     options.release.set((int) irisModTarget.java)
 }
 tasks.withType(Test).configureEach {
+    maxParallelForks = Math.min(2, Math.min(Runtime.runtime.availableProcessors(),
+        Math.min(gradle.startParameter.maxWorkerCount, testForks)))
+    if (gradle.extensions.extraProperties.has('irisBuildLane')) {
+        jvmArgs('-XX:ParallelGCThreads=2', '-XX:ConcGCThreads=1', '-XX:CICompilerCount=2')
+    }
     javaLauncher.set(javaToolchains.launcherFor {
         languageVersion = JavaLanguageVersion.of((int) irisModTarget.java)
     })

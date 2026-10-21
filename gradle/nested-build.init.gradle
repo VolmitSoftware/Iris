@@ -1,0 +1,31 @@
+Gradle rootBuild = gradle
+while (rootBuild.parent != null) {
+    rootBuild = rootBuild.parent
+}
+String buildLane = rootBuild.startParameter.projectProperties['irisBuildLane']
+if (buildLane == null) {
+    throw new GradleException('The nested build requires -PirisBuildLane.')
+}
+if (!(buildLane ==~ /[a-zA-Z0-9][a-zA-Z0-9._-]*/)) {
+    throw new GradleException('irisBuildLane must contain only letters, numbers, dots, underscores and hyphens.')
+}
+
+gradle.extensions.extraProperties.set('irisBuildLane', buildLane)
+gradle.startParameter.projectCacheDir = new File(gradle.startParameter.currentDir, ".gradle/iris-lanes/${buildLane}")
+gradle.beforeSettings { Settings settings ->
+    settings.gradle.startParameter.projectCacheDir = new File(settings.settingsDir, ".gradle/iris-lanes/${buildLane}")
+}
+gradle.beforeProject { Project candidate ->
+    boolean sharedRuntime = candidate.rootProject.name == 'Iris'
+        && candidate.path in [':core', ':core:agent', ':spi']
+    if (!candidate.rootProject.name.startsWith('iris-') && !sharedRuntime) {
+        candidate.layout.buildDirectory.set(candidate.layout.projectDirectory.dir("build/iris-lanes/${buildLane}"))
+    }
+    candidate.plugins.withId('io.papermc.paperweight.userdev') {
+        candidate.tasks.named('paperweightUserdevSetup').configure { Task setup ->
+            Directory taskCache = candidate.layout.projectDirectory.dir(".gradle/iris-lanes/${buildLane}/caches/paperweight/taskCache")
+            setup.mappedServerJar.set(taskCache.file('mappedServerJar.jar'))
+            setup.reobfMappings.set(taskCache.file('reobfMappings.tiny'))
+        }
+    }
+}

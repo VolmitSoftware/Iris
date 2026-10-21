@@ -30,6 +30,7 @@ import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.modded.ModdedGenPool;
 import art.arcane.volmlib.util.mantle.runtime.Mantle;
 
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Semaphore;
@@ -39,6 +40,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.LongSupplier;
 
 public final class ModdedPregenMethod implements PregeneratorMethod {
     private static final int ADAPTIVE_TIMEOUT_STEP = 3;
@@ -68,8 +70,14 @@ public final class ModdedPregenMethod implements PregeneratorMethod {
     private final int timeoutSeconds;
     private final PregenMantleBackpressure backpressure;
     private final PauseWhenEmptyGuard pauseGuard;
+    private final LongSupplier clock;
 
     public ModdedPregenMethod(Configuration configuration) {
+        this(configuration, System::nanoTime);
+    }
+
+    ModdedPregenMethod(Configuration configuration, LongSupplier clock) {
+        this.clock = Objects.requireNonNull(clock);
         runtime = configuration.runtime();
         engine = configuration.engine();
         sync = configuration.sync();
@@ -178,7 +186,7 @@ public final class ModdedPregenMethod implements PregeneratorMethod {
         if (sync || runtime.isServerThread()) {
             return;
         }
-        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(timeoutSeconds)
+        long deadline = clock.getAsLong() + TimeUnit.SECONDS.toNanos(timeoutSeconds)
                 + TimeUnit.MILLISECONDS.toNanos(FINAL_SAVE_TIMEOUT_MILLIS);
         boolean interrupted = false;
         try {
@@ -186,7 +194,7 @@ public final class ModdedPregenMethod implements PregeneratorMethod {
                 if (finalSaveOnServerThread.get() || !runtime.isRunning()) {
                     return;
                 }
-                if (System.nanoTime() >= deadline) {
+                if (clock.getAsLong() >= deadline) {
                     throw new IllegalStateException("Iris pregen chunk callbacks did not finish for "
                             + runtime.worldIdentity() + ": " + inFlight.get() + " pending");
                 }
@@ -263,14 +271,14 @@ public final class ModdedPregenMethod implements PregeneratorMethod {
     }
 
     private void awaitFinalSave(FinalSaveRequest request) {
-        long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(FINAL_SAVE_TIMEOUT_MILLIS);
+        long deadline = clock.getAsLong() + TimeUnit.MILLISECONDS.toNanos(FINAL_SAVE_TIMEOUT_MILLIS);
         boolean interrupted = false;
         try {
             while (true) {
                 if (deferFinalSaveIfRequested()) {
                     return;
                 }
-                long remainingNanos = deadline - System.nanoTime();
+                long remainingNanos = deadline - clock.getAsLong();
                 if (remainingNanos <= 0L) {
                     ModdedIrisLog.warn("Iris pregen level save did not complete in time for {}", runtime.worldIdentity());
                     return;

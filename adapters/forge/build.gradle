@@ -17,6 +17,7 @@
  */
 
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
+import net.minecraftforge.gradle.shadow.net.minecraftforge.gradleutils.shared.EnhancedPlugin
 import org.gradle.api.file.DeleteSpec
 import org.gradle.api.file.FileCopyDetails
 import org.gradle.api.file.FileSystemOperations
@@ -62,6 +63,14 @@ file('../../gradle.properties').withInputStream { InputStream stream -> rootProp
 String irisVersion = providers.gradleProperty('irisVersion').getOrElse(rootProperties.getProperty('irisVersion', '4.3.5'))
 String minecraftVersion = providers.gradleProperty('minecraftVersion').getOrElse(rootProperties.getProperty('minecraftVersion', '26.3'))
 String forgeVersion = providers.gradleProperty('forgeVersion').getOrElse(irisModTarget.forge.toString())
+String buildLane = gradle.extensions.extraProperties.has('irisBuildLane')
+    ? gradle.extensions.extraProperties.get('irisBuildLane').toString() : null
+if (buildLane != null) {
+    plugins.withType(EnhancedPlugin).configureEach { EnhancedPlugin<?> forgePlugin ->
+        forgePlugin.globalCaches().set(layout.projectDirectory.dir(".gradle/iris-lanes/${buildLane}/forgegradle"))
+    }
+    minecraft.mavenizerOutput.set(layout.projectDirectory.dir(".gradle/iris-lanes/${buildLane}/mavenizer/repo"))
+}
 Closure<String> loaderDisplayVersion = { String loaderVersion ->
     String coordinatePrefix = "${minecraftVersion}-"
     if (loaderVersion.startsWith(coordinatePrefix)) {
@@ -161,7 +170,9 @@ configurations.testRuntimeClasspath.extendsFrom(configurations.runtimeClasspath,
 }
 
 dependencies {
-    implementation minecraft.dependency("net.minecraftforge:forge:${forgeVersion}")
+    implementation(buildLane == null
+        ? minecraft.dependency("net.minecraftforge:forge:${forgeVersion}")
+        : minecraft.dependency("iris-${buildLane}", "net.minecraftforge:forge:${forgeVersion}"))
     testImplementation('junit:junit:4.13.2')
     testImplementation('org.mockito:mockito-core:5.23.0')
     testImplementation(testFixtures('art.arcane:core'))

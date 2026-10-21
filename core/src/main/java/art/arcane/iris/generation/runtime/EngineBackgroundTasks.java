@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -33,6 +34,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.LongSupplier;
 
 import static art.arcane.iris.generation.runtime.EngineShutdownSequence.appendFailure;
 import static art.arcane.iris.generation.runtime.EngineShutdownSequence.propagate;
@@ -47,8 +49,17 @@ final class EngineBackgroundTasks {
 
     private final Object backgroundTaskLock = new Object();
     private final List<TrackedBackgroundTask> backgroundTasks = new ArrayList<>();
+    private final LongSupplier clock;
     private boolean backgroundTaskAdmission;
     private int activeDrains;
+
+    EngineBackgroundTasks() {
+        this(System::nanoTime);
+    }
+
+    EngineBackgroundTasks(LongSupplier clock) {
+        this.clock = Objects.requireNonNull(clock);
+    }
 
     boolean scheduleTrackedTask(Runnable task) {
         return scheduleTrackedTask(task, false);
@@ -106,7 +117,7 @@ final class EngineBackgroundTasks {
     }
 
     BackgroundTaskDrain drainBackgroundTasks(String reason) {
-        long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(BACKGROUND_TASK_TIMEOUT_MILLIS);
+        long deadline = clock.getAsLong() + TimeUnit.MILLISECONDS.toNanos(BACKGROUND_TASK_TIMEOUT_MILLIS);
         Set<TrackedBackgroundTask> observed = Collections.newSetFromMap(new IdentityHashMap<>());
         Set<TrackedBackgroundTask> settledAtEntry = Collections.newSetFromMap(new IdentityHashMap<>());
         List<TrackedBackgroundTask> tasks;
@@ -135,7 +146,7 @@ final class EngineBackgroundTasks {
                         return new BackgroundTaskDrain(failure, allTasksComplete());
                     }
                 }
-                if (System.nanoTime() >= deadline) {
+                if (clock.getAsLong() >= deadline) {
                     for (TrackedBackgroundTask task : tasks) {
                         cancelBackgroundTask(task, reason);
                     }
@@ -170,7 +181,7 @@ final class EngineBackgroundTasks {
                                      long deadline, String reason) {
         Throwable failure = null;
         for (TrackedBackgroundTask task : tasks) {
-            long remaining = deadline - System.nanoTime();
+            long remaining = deadline - clock.getAsLong();
             if (remaining <= 0L) {
                 cancelBackgroundTask(task, reason);
                 failure = appendFailure(failure, new TimeoutException("Timed out waiting for Iris background tasks during " + reason + "."));

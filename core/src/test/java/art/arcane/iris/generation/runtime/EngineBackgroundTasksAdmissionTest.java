@@ -14,6 +14,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.LockSupport;
 
@@ -115,7 +116,8 @@ public class EngineBackgroundTasksAdmissionTest {
 
     @Test
     public void continuationsShareTheOriginalDrainDeadline() throws Exception {
-        Fixture fixture = fixture();
+        AtomicLong clock = new AtomicLong();
+        Fixture fixture = fixture(new EngineBackgroundTasks(clock::get));
         CountDownLatch firstEntered = new CountDownLatch(1);
         CountDownLatch firstRelease = new CountDownLatch(1);
         CountDownLatch saveEntered = new CountDownLatch(1);
@@ -132,9 +134,9 @@ public class EngineBackgroundTasksAdmissionTest {
                         fixture.tasks().scheduleAdmittedTask(fixture.engine(),
                                 () -> waitForRelease(saveEntered, saveRelease))));
                 assertTrue(saveEntered.await(5, TimeUnit.SECONDS));
-                TimeUnit.SECONDS.sleep(7);
+                clock.set(TimeUnit.SECONDS.toNanos(15) - TimeUnit.MILLISECONDS.toNanos(1));
                 firstRelease.countDown();
-                EngineBackgroundTasks.BackgroundTaskDrain result = drain.get(10, TimeUnit.SECONDS);
+                EngineBackgroundTasks.BackgroundTaskDrain result = drain.get(5, TimeUnit.SECONDS);
                 assertTrue(result.failure() instanceof TimeoutException);
                 assertThrows(IllegalStateException.class, () -> result.requireComplete("Studio cutover"));
             } finally {
@@ -287,7 +289,10 @@ public class EngineBackgroundTasksAdmissionTest {
     }
 
     private static Fixture fixture() {
-        EngineBackgroundTasks tasks = new EngineBackgroundTasks();
+        return fixture(new EngineBackgroundTasks());
+    }
+
+    private static Fixture fixture(EngineBackgroundTasks tasks) {
         tasks.openBackgroundTaskAdmission();
         GenerationSessionManager sessions = new GenerationSessionManager(true);
         Engine engine = mock(Engine.class);

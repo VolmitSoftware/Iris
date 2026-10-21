@@ -11,8 +11,10 @@ if (modTarget == null) {
 }
 String runtimeJava = providers.gradleProperty('irisRuntimeJava').getOrElse(modTarget.java.toString())
 String variant = adapter ? "minecraft${minecraftVersion}-java${runtimeJava}" : "java${runtimeJava}"
-File projectCacheRoot = gradle.startParameter.projectCacheDir ?: new File(settingsDir, '.gradle')
-gradle.startParameter.projectCacheDir = new File(projectCacheRoot, variant)
+if (!gradle.extensions.extraProperties.has('irisBuildLane')) {
+    File projectCacheRoot = gradle.startParameter.projectCacheDir ?: new File(settingsDir, '.gradle')
+    gradle.startParameter.projectCacheDir = new File(projectCacheRoot, variant)
+}
 
 String runtimeOutputVariant = runtimeJava == '21' ? 'java21/' : ''
 if (adapter) {

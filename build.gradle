@@ -329,7 +329,12 @@ List<Object> moddedSharedInputs = []
     'gradle/mod-target.gradle',
     'gradle/mod-targets.json',
     'gradle/runtime-cache.settings.gradle',
-    'gradle/modded-version-sources.gradle'
+    'gradle/nested-build.init.gradle',
+    'gradle/modded-version-sources.gradle',
+    'gradle/wrapper/gradle-wrapper.properties',
+    'gradle/wrapper/gradle-wrapper.jar',
+    'gradlew',
+    'gradlew.bat'
 ].each { String path -> moddedSharedInputs.add(layout.projectDirectory.file(path).asFile) }
 if (localVolmLibCheckout != null) {
     moddedSharedInputs.add(fileTree(localVolmLibCheckout) {
@@ -343,11 +348,11 @@ if (localVolmLibCheckout != null) {
 
 // The published master-SNAPSHOT is resolved inside the nested build, so no outer input changes when it
 // moves. Without a local checkout the Exec tasks always run and the nested build decides what is stale.
-Closure<Void> declareVolmLibInputs = { Exec task ->
+Closure<Void> declareVolmLibInputs = { IrisModdedBuild task ->
     task.inputs.property('volmLibStamp', volmLibStamp)
     String nativeBillow = providers.gradleProperty('includeNativeBillow').getOrElse('false')
     task.inputs.property('includeNativeBillow', nativeBillow)
-    task.environment('ORG_GRADLE_PROJECT_includeNativeBillow', nativeBillow)
+    task.environment.put('ORG_GRADLE_PROJECT_includeNativeBillow', nativeBillow)
     if (localVolmLibCheckout == null) {
         task.outputs.upToDateWhen { false }
     }
@@ -413,9 +418,29 @@ TaskProvider<Task> verifyModdedMatrix = tasks.register('verifyModdedMatrix') {
     description = 'Builds, tests and verifies the Fabric, Forge and NeoForge jars of every supported Minecraft mod target.'
 }
 List<TaskProvider<Copy>> moddedExports = []
-Map<String, TaskProvider<Exec>> selectedModdedBuilds = [:]
+Map<String, TaskProvider<IrisModdedBuild>> selectedModdedBuilds = [:]
 Map<String, TaskProvider<Copy>> selectedModdedExports = [:]
-TaskProvider<Exec> previousMatrixBuild = null
+int matrixParallelism = Math.min(gradle.startParameter.maxWorkerCount, Math.max(1,
+    providers.gradleProperty('moddedBuildParallelism').getOrElse(
+        Math.min(12, Math.max(1, Runtime.runtime.availableProcessors() - 4)).toString()).toInteger()))
+Provider<IrisModdedBuildService> matrixWorkers = gradle.sharedServices.registerIfAbsent(
+    'irisModdedBuilds', IrisModdedBuildService) {
+    maxParallelUsages.set(matrixParallelism)
+}
+List<String> nestedBuildArguments = [gradle.startParameter.buildCacheEnabled ? '--build-cache' : '--no-build-cache']
+String nestedJvmArguments = providers.gradleProperty('org.gradle.jvmargs').getOrElse('') +
+    ' -XX:ActiveProcessorCount=2'
+if (gradle.startParameter.rerunTasks) {
+    nestedBuildArguments.add('--rerun-tasks')
+}
+if (gradle.startParameter.refreshDependencies) {
+    nestedBuildArguments.add('--refresh-dependencies')
+}
+for (File initScript : gradle.startParameter.initScripts) {
+    nestedBuildArguments.addAll(['--init-script', initScript.absolutePath])
+}
+Map<Integer, TaskProvider<IrisModdedBuild>> daemonSlots = [:]
+int nextDaemonSlot = 0
 irisModTargets.each { String targetMinecraft, Map<String, Object> target ->
     String suffix = targetMinecraft.replace('.', '_')
     boolean selected = targetMinecraft == minecraftVersion
@@ -426,46 +451,66 @@ irisModTargets.each { String targetMinecraft, Map<String, Object> target ->
         String artifactName = irisArtifactName(label, "${targetMinecraft}+${displayedLoader}")
         File artifact = file("adapters/${loader}/build/${targetMinecraft}/libs/${artifactName}")
         boolean unitTests = ((List<String>) (target.testLoaders ?: moddedLoaderLabels.keySet().toList())).contains(loader)
-        TaskProvider<Exec> buildTarget = tasks.register("verify${label}${suffix}", Exec) {
+        int daemonSlot = nextDaemonSlot++ % matrixParallelism
+        TaskProvider<IrisModdedBuild> buildTarget = project(':adapters').tasks.register("verify${label}${suffix}", IrisModdedBuild) {
             group = 'verification'
             description = "Builds, tests and verifies the ${label} ${targetMinecraft} jar in its own Gradle build."
-            workingDir = file("adapters/${loader}")
-            List<String> command = [file(moddedWrapperScript).absolutePath, 'assemble', 'compileTestJava',
+            usesService(matrixWorkers)
+            dependsOn(project(':core').tasks.named('jar'), project(':core').tasks.named('testFixturesJar'))
+            workingDirectory.set(rootProject.file("adapters/${loader}"))
+            getLabel().set("${label} ${targetMinecraft}".toString())
+            artifactFile.set(artifact)
+            logFile.set(rootProject.layout.buildDirectory.file("reports/modded/${loader}-${targetMinecraft}.log"))
+            requiredEntries.set(commonModdedArtifactEntries + moddedLoaderEntries[loader])
+            forbiddenCoreClasses.set(bukkitCoupledCoreClasses)
+            javaRuntime.set((int) target.java)
+            List<String> command = [rootProject.file(moddedWrapperScript).absolutePath, 'assemble', 'compileTestJava',
                     'verifyLoggingPolicy', 'verifyNativeClassBoundary', '--console=plain',
-                    "-PirisVersion=${project.version}", "-PminecraftVersion=${targetMinecraft}",
+                    "--max-workers=${Math.min(2, gradle.startParameter.maxWorkerCount)}",
+                    "-Dorg.gradle.jvmargs=${nestedJvmArguments.trim()}",
+                    "-Dorg.gradle.daemon.registry.base=${rootProject.file(".gradle/iris-daemons/slot-${daemonSlot}").absolutePath}",
+                    '-Dorg.gradle.daemon.idletimeout=3600000',
+                    "-PirisBuildLane=${loader}-${targetMinecraft}",
+                    '--project-cache-dir', rootProject.file("adapters/${loader}/.gradle/iris-lanes/${loader}-${targetMinecraft}").absolutePath,
+                    '--init-script', rootProject.file('gradle/nested-build.init.gradle').absolutePath,
+                    "-PirisVersion=${rootProject.version}", "-PminecraftVersion=${targetMinecraft}",
                     "-P${moddedLoaderProperties[loader]}=${loaderPin}",
                     "-PuseLocalVolmLib=${localVolmLibCheckout != null}"]
             if (unitTests) {
                 command.add('test')
             }
-            commandLine(command)
+            command.add("-PtestForks=${providers.gradleProperty('moddedTestForks').getOrElse('1')}")
+            command.addAll(nestedBuildArguments)
+            commandLine.set(command.collect { Object argument -> argument.toString() })
             if (localVolmLibCheckout != null) {
-                environment('ORG_GRADLE_PROJECT_localVolmLibDirectory', localVolmLibCheckout.absolutePath)
+                environment.put('ORG_GRADLE_PROJECT_localVolmLibDirectory', localVolmLibCheckout.absolutePath)
             }
             inputs.files(moddedSharedInputs).withPropertyName('moddedSharedSources')
                 .withPathSensitivity(PathSensitivity.RELATIVE)
-            inputs.files(file("adapters/${loader}/src"), file("adapters/${loader}/build.gradle"),
-                    file("adapters/${loader}/settings.gradle")).withPropertyName('adapterSources')
+            inputs.files(rootProject.file("adapters/${loader}/src"), rootProject.file("adapters/${loader}/build.gradle"),
+                    rootProject.file("adapters/${loader}/settings.gradle"), rootProject.file("adapters/${loader}/gradle.properties"))
+                .withPropertyName('adapterSources')
+            inputs.files(gradle.startParameter.allInitScripts).withPropertyName('initScripts')
+                .withPathSensitivity(PathSensitivity.NONE)
+            outputs.upToDateWhen { !gradle.startParameter.refreshDependencies }
             inputs.properties(target)
             inputs.property('loaderVersion', loaderPin)
-            inputs.property('irisVersion', project.version.toString())
+            inputs.property('irisVersion', rootProject.version.toString())
             declareVolmLibInputs(it)
-            outputs.file(artifact)
             if (unitTests) {
-                outputs.dir(file("adapters/${loader}/build/${targetMinecraft}/test-results/test"))
-            }
-            doLast {
-                ModdedArtifactVerifier.verify(artifact, commonModdedArtifactEntries + moddedLoaderEntries[loader],
-                        bukkitCoupledCoreClasses)
-                ModdedArtifactVerifier.verifyJavaRuntime(artifact, (int) target.java)
-                logger.lifecycle("Verified ${artifact.name}")
+                outputs.dir(rootProject.file("adapters/${loader}/build/${targetMinecraft}/test-results/test"))
             }
         }
-        if (previousMatrixBuild != null) {
-            TaskProvider<Exec> preceding = previousMatrixBuild
-            buildTarget.configure { mustRunAfter(preceding) }
+        TaskProvider<IrisModdedBuild> previousSlotBuild = daemonSlots[daemonSlot]
+        if (previousSlotBuild != null) {
+            buildTarget.configure { mustRunAfter(previousSlotBuild) }
         }
-        previousMatrixBuild = buildTarget
+        daemonSlots[daemonSlot] = buildTarget
+        tasks.register("verify${label}${suffix}") {
+            group = 'verification'
+            description = "Builds, tests and verifies the ${label} ${targetMinecraft} jar."
+            dependsOn(buildTarget)
+        }
         verifyModdedMatrix.configure { dependsOn(buildTarget) }
         File legacyOutJar = new File(pluginOutDirectory, "Iris-${project.version}+mc${targetMinecraft}-${loader}.jar")
         FileTree staleTargetJars = fileTree(pluginOutDirectory) {
@@ -510,18 +555,6 @@ tasks.register('buildNeoforge') {
     group = 'iris'
     description = "Exports the verified NeoForge ${minecraftVersion} jar."
     dependsOn(selectedModdedExports.neoforge)
-}
-
-gradle.projectsEvaluated {
-    List<Task> sharedOutputTasks = allprojects.collectMany { Project candidate ->
-        candidate.tasks.findAll { Task task ->
-            task instanceof JavaCompile || task instanceof Jar || task instanceof Test
-        }
-    }
-    tasks.withType(Exec).matching { Task task -> task.name.startsWith('verify') }.configureEach {
-        mustRunAfter(sharedOutputTasks)
-        mustRunAfter(tasks.named('buildBukkit'))
-    }
 }
 
 tasks.named('check').configure {

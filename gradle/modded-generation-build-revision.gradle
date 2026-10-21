@@ -11,11 +11,13 @@ if (coreBuild == null) {
     throw new GradleException('The modded artifact requires the included Iris core build and its generation build revision.')
 }
 TaskReference buildRevisionVerification = coreBuild.task(':core:verifyGenerationBuildRevision')
+String buildLogicVariant = gradle.extensions.extraProperties.has('irisBuildLane')
+    ? "iris-lanes/${gradle.extensions.extraProperties.get('irisBuildLane')}/" : ''
 TaskProvider<JavaExec> resolvedRevisionVerification = tasks.register('verifyResolvedGenerationKernelDependencies', JavaExec) {
     group = 'verification'
     description = 'Checks the actual bundled generation library contents against the current build revision.'
     dependsOn(buildRevisionVerification)
-    classpath = files('../../buildSrc/build/libs/buildSrc.jar')
+    classpath = files("../../buildSrc/build/${buildLogicVariant}libs/buildSrc.jar")
     mainClass.set('art.arcane.iris.buildtools.GenerationBuildRevision')
     doFirst {
         String runtimeVariant = gradle.extensions.extraProperties.get('irisRuntimeOutputVariant').toString()

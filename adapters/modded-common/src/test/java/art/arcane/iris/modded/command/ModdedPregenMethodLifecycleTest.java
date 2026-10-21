@@ -21,6 +21,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.Assert.assertEquals;
@@ -97,6 +98,9 @@ public class ModdedPregenMethodLifecycleTest {
 
     @Test
     public void finalSaveWaitsForEveryCallbackBeyondFiveSeconds() throws Exception {
+        AtomicLong clock = new AtomicLong();
+        CountDownLatch started = new CountDownLatch(1);
+        CountDownLatch advanced = new CountDownLatch(2);
         CompletableFuture<ChunkLoad> load = new CompletableFuture<>();
         CompletableFuture<ChunkLoad> failedLoad = new CompletableFuture<>();
         PregenListener listener = mock(PregenListener.class);
@@ -110,16 +114,22 @@ public class ModdedPregenMethodLifecycleTest {
         }).when(runtime).execute(any());
         try (MockedStatic<MantleHeapPressure> pressure = mockStatic(MantleHeapPressure.class)) {
             pressure.when(MantleHeapPressure::memoryBudgetBytes).thenReturn(512L << 20);
-            method = new ModdedPregenMethod(new ModdedPregenMethod.Configuration(runtime, engine, false));
+            method = new ModdedPregenMethod(new ModdedPregenMethod.Configuration(runtime, engine, false), () -> {
+                long now = clock.get();
+                if (now >= TimeUnit.SECONDS.toNanos(6)) {
+                    advanced.countDown();
+                } else {
+                    started.countDown();
+                }
+                return now;
+            });
             method.generateChunk(2, 3, listener);
             method.generateChunk(4, 5, listener);
-            CountDownLatch started = new CountDownLatch(1);
-            Future<?> closing = executor.submit(() -> {
-                started.countDown();
-                method.close();
-            });
+            Future<?> closing = executor.submit(method::close);
             assertTrue(started.await(5, TimeUnit.SECONDS));
-            assertThrows(TimeoutException.class, () -> closing.get(6, TimeUnit.SECONDS));
+            clock.set(TimeUnit.SECONDS.toNanos(6));
+            assertTrue(advanced.await(5, TimeUnit.SECONDS));
+            assertFalse(closing.isDone());
             verify(runtime, never()).save();
             verify(engine, never()).syncGenerationHistory();
             load.complete(new ChunkLoad(true, null));

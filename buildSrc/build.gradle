@@ -21,11 +21,14 @@ repositories {
 // Nothing else asks buildSrc for `test`: Gradle only requests the jar that carries the build logic.
 // Gating the jar on the tests is what makes them run at all, and it costs nothing once they are green.
 tasks.named('jar').configure {
-    dependsOn(tasks.named('test'))
+    if (!gradle.extensions.extraProperties.has('irisBuildLane')) {
+        dependsOn(tasks.named('test'))
+    }
 }
 
 tasks.named('test').configure {
     jvmArgs('--add-opens=java.base/java.lang=ALL-UNNAMED')
+    jvmArgs('-XX:ParallelGCThreads=2', '-XX:ConcGCThreads=1', '-XX:CICompilerCount=2')
 }
 
 dependencies {

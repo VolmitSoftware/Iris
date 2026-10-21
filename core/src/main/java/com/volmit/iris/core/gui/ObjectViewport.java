@@ -64,6 +64,7 @@ final class ObjectViewport extends JComponent {
     private ObjectCamera camera = ObjectCamera.START;
     private BufferedImage frame;
     private String message = "Choose an object";
+    private EmptyState emptyState;
     private boolean rendering;
     private boolean renderAgain;
     private Point dragPoint;
@@ -98,6 +99,7 @@ final class ObjectViewport extends JComponent {
         mesh = nextMesh;
         camera = ObjectCamera.START;
         message = nextMesh.isEmpty() ? "No visible blocks" : null;
+        emptyState = null;
         if (nextMesh.isEmpty()) {
             frame = null;
             finishLoading();
@@ -116,6 +118,7 @@ final class ObjectViewport extends JComponent {
         }
         loadingText = text;
         message = null;
+        emptyState = null;
         loadingTicker.start();
     }
 
@@ -130,6 +133,7 @@ final class ObjectViewport extends JComponent {
     void replaceMesh(ObjectMesh nextMesh) {
         mesh = nextMesh;
         message = nextMesh.isEmpty() ? "No visible blocks" : null;
+        emptyState = null;
         requestFrame();
         repaint();
     }
@@ -147,6 +151,16 @@ final class ObjectViewport extends JComponent {
     void showMessage(String text) {
         mesh = null;
         message = text;
+        emptyState = null;
+        frame = null;
+        finishLoading();
+        repaint();
+    }
+
+    void showEmptyState(EmptyState state) {
+        mesh = null;
+        message = null;
+        emptyState = state;
         frame = null;
         finishLoading();
         repaint();
@@ -222,6 +236,9 @@ final class ObjectViewport extends JComponent {
         }
         if (message != null) {
             drawMessage((Graphics2D) graphics);
+        }
+        if (emptyState != null) {
+            emptyState.paint((Graphics2D) graphics, this, coveredLeftWidth + (getWidth() - coveredLeftWidth) / 2, getHeight() / 2);
         }
     }
 

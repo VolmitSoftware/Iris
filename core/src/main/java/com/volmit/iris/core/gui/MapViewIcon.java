@@ -37,11 +37,18 @@ final class MapViewIcon {
     }
 
     static Icon of(MapView view) {
-        return LOADED.computeIfAbsent(view, MapViewIcon::load);
+        return LOADED.computeIfAbsent(view, shown -> load(shown, SIZE));
     }
 
-    private static Icon load(MapView view) {
+    /**
+     * The view's icon drawn larger, for an empty view.
+     */
+    static Icon large(MapView view, int size) {
+        return load(view, size);
+    }
+
+    private static Icon load(MapView view, int size) {
         String fileName = view.name().toLowerCase(Locale.ROOT).replace('_', '-') + ".svg";
-        return new FlatSVGIcon(ICON_FOLDER + fileName, SIZE, SIZE, MapViewIcon.class.getClassLoader());
+        return new FlatSVGIcon(ICON_FOLDER + fileName, size, size, MapViewIcon.class.getClassLoader());
     }
 }

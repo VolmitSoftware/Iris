@@ -190,7 +190,7 @@ final class ObjectExplorer {
         browser.showObjects(keys);
         String key = shownKey != null && keys.contains(shownKey) ? shownKey : browser.firstObject();
         if (key == null) {
-            viewport.showMessage("This pack has no " + source.noun() + "s");
+            viewport.showEmptyState(source.emptyState());
             overview.clear();
             layerCut.showHeight(1);
             if (comparingVariants) {

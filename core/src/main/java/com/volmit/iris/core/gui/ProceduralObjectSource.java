@@ -39,11 +39,20 @@ final class ProceduralObjectSource implements ObjectSource {
             "fungi", "Fungi",
             "ruins", "Ruins");
 
+    private static final int EMPTY_ICON_SIZE = 40;
+
     private Map<String, ResolvedProceduralPlacement> definitionsByKey = Map.of();
 
     @Override
     public String noun() {
         return "procedural object";
+    }
+
+    @Override
+    public EmptyState emptyState() {
+        return new EmptyState(MapViewIcon.large(MapView.PROCEDURAL, EMPTY_ICON_SIZE), "No procedural objects yet",
+                "Declare them in a biome or region, or save a settings file per object, like",
+                "snippet/" + ProceduralObjectCatalog.TREE_FOLDER + "/oak.json", "They appear here once the pack reloads.");
     }
 
     // The type folder gets its label; the rest of the path stays as the pack has it.

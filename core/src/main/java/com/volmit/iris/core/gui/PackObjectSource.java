@@ -27,9 +27,17 @@ import java.util.List;
  * The pack's object files, by their load keys.
  */
 final class PackObjectSource implements ObjectSource {
+    private static final int EMPTY_ICON_SIZE = 40;
+
     @Override
     public String noun() {
         return "object";
+    }
+
+    @Override
+    public EmptyState emptyState() {
+        return new EmptyState(MapViewIcon.large(MapView.OBJECTS, EMPTY_ICON_SIZE), "No objects yet",
+                "Put the pack's .iob objects in", "objects/", "They appear here once the pack reloads.");
     }
 
     @Override

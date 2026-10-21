@@ -31,6 +31,9 @@ interface ObjectSource {
     /** What one entry is called, such as "object", for the browser's texts. */
     String noun();
 
+    /** What the view shows when the pack has no entries. */
+    EmptyState emptyState();
+
     /** The key of every entry, where a slash separates folders. */
     List<String> keys(IrisData data);
 

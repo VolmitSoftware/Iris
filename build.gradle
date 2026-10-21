@@ -333,6 +333,10 @@ Provider<IrisModdedBuildService> matrixWorkers = gradle.sharedServices.registerI
     maxParallelUsages.set(matrixParallelism)
 }
 List<String> nestedBuildArguments = [gradle.startParameter.buildCacheEnabled ? '--build-cache' : '--no-build-cache']
+String paperweightSources = providers.gradleProperty('paperweight.experimental.genSources').orNull
+if (paperweightSources != null) {
+    nestedBuildArguments.add("-Ppaperweight.experimental.genSources=${paperweightSources}".toString())
+}
 boolean multiplexorSandbox = providers.gradleProperty('multiplexorSandbox').getOrElse('false').toBoolean()
 int nestedWorkers = multiplexorSandbox
     ? Math.max(1, gradle.startParameter.maxWorkerCount.intdiv(matrixParallelism))

@@ -20,17 +20,26 @@ package com.volmit.iris.core.gui;
 
 import javax.swing.JComponent;
 import java.awt.Color;
+import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.Rectangle;
 import java.awt.RenderingHints;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 /**
  * One noise that picks regions or biomes: the spread of its values in view above the bands that pick each option,
- * and a table of how much of the noise each option is given and how much it gets in view.
+ * and a table of how much of the noise each option is given and how much it gets in view. A long table shows only
+ * the options with the most ground in view until asked for all; a noise with one option to pick is a single line.
  */
 final class NoisePickChart extends JComponent {
     private static final long serialVersionUID = 1873365510472853316L;
@@ -44,21 +53,36 @@ final class NoisePickChart extends JComponent {
     private static final Color HISTOGRAM_BAR = new Color(0x9D, 0xA0, 0xA8, 150);
     private static final Color BAND_DIVIDER = new Color(255, 255, 255, 70);
     private static final String WIDEST_SHARE = "▲ 100.0%";
+    private static final int SHORT_TABLE_ROWS = 6;
 
     private final NoisePickSpread spread;
+    private final List<NoisePickSpread.Row> rows;
     private final String optionNoun;
+    private final Consumer<Boolean> onShowAllRowsChanged;
+    private boolean showsAllRows;
+    private Rectangle showAllToggleBounds;
 
     /**
-     * @param optionNoun what the noise picks, as a table heading: "Regions" or "Biomes"
+     * @param optionNoun           what the noise picks, as a table heading: "Regions" or "Biomes"
+     * @param showsAllRows         whether a long table starts with all its rows
+     * @param onShowAllRowsChanged receives whether the table shows all its rows after the user asked for more or fewer
      */
-    NoisePickChart(NoisePickSpread spread, String optionNoun) {
+    NoisePickChart(NoisePickSpread spread, String optionNoun, boolean showsAllRows, Consumer<Boolean> onShowAllRowsChanged) {
         this.spread = spread;
+        this.rows = spread.rows();
         this.optionNoun = optionNoun;
+        this.showsAllRows = showsAllRows;
+        this.onShowAllRowsChanged = onShowAllRowsChanged;
         setAlignmentX(LEFT_ALIGNMENT);
+        listenForShowAllToggle();
     }
 
     @Override
     public Dimension getPreferredSize() {
+        if (hasSingleOption()) {
+            return new Dimension(StudioTheme.scale(PREFERRED_WIDTH), StudioTheme.scale(SECTION_GAP) + tableHeight()
+                    + StudioTheme.scale(BOTTOM_GAP));
+        }
         int height = StudioTheme.scale(SECTION_GAP) + spreadHeight() + StudioTheme.scale(SECTION_GAP) + tableHeight()
                 + StudioTheme.scale(BOTTOM_GAP);
         return new Dimension(StudioTheme.scale(PREFERRED_WIDTH), height);
@@ -78,6 +102,10 @@ final class NoisePickChart extends JComponent {
             int margin = StudioTheme.scale(MARGIN);
             int width = getWidth() - margin * 2;
             int top = StudioTheme.scale(SECTION_GAP);
+            if (hasSingleOption()) {
+                drawSingleOption(canvas, margin, top, width);
+                return;
+            }
             drawSpread(canvas, margin, top, width);
             drawTable(canvas, margin, top + spreadHeight() + StudioTheme.scale(SECTION_GAP), width);
         } finally {
@@ -90,8 +118,63 @@ final class NoisePickChart extends JComponent {
                 + StudioTheme.scale(2) + StudioTheme.scale(BAND_HEIGHT) + StudioTheme.scale(3) + smallMetrics().getHeight();
     }
 
+    private boolean hasSingleOption() {
+        return rows.size() == 1;
+    }
+
+    private boolean isLongTable() {
+        return rows.size() > SHORT_TABLE_ROWS;
+    }
+
     private int tableHeight() {
-        return sectionMetrics().getHeight() + StudioTheme.scale(TITLE_GAP) + rowHeight() * spread.rows().size();
+        int toggleRows = isLongTable() ? 1 : 0;
+        return sectionMetrics().getHeight() + StudioTheme.scale(TITLE_GAP) + rowHeight() * (shownRows().size() + toggleRows);
+    }
+
+    // A short table keeps the options with the most ground in view, still in the order the noise meets them.
+    private List<NoisePickSpread.Row> shownRows() {
+        if (showsAllRows || !isLongTable()) {
+            return rows;
+        }
+        Set<NoisePickSpread.Row> largest = rows.stream()
+                .sorted(Comparator.comparingDouble(NoisePickSpread.Row::actualShare).reversed())
+                .limit(SHORT_TABLE_ROWS)
+                .collect(Collectors.toSet());
+        return rows.stream().filter(largest::contains).toList();
+    }
+
+    private void listenForShowAllToggle() {
+        MouseAdapter toggle = new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent event) {
+                if (showAllToggleBounds == null || !showAllToggleBounds.contains(event.getPoint())) {
+                    return;
+                }
+                showsAllRows = !showsAllRows;
+                onShowAllRowsChanged.accept(showsAllRows);
+                revalidate();
+                repaint();
+            }
+
+            @Override
+            public void mouseMoved(MouseEvent event) {
+                boolean overToggle = showAllToggleBounds != null && showAllToggleBounds.contains(event.getPoint());
+                setCursor(overToggle ? Cursor.getPredefinedCursor(Cursor.HAND_CURSOR) : null);
+            }
+        };
+        addMouseListener(toggle);
+        addMouseMotionListener(toggle);
+    }
+
+    private void drawSingleOption(Graphics2D canvas, int x, int top, int width) {
+        drawSectionTitle(canvas, spread.title(), x, top + sectionMetrics().getAscent());
+        int rowTop = top + sectionMetrics().getHeight() + StudioTheme.scale(TITLE_GAP);
+        NoisePickSpread.Row row = rows.getFirst();
+        String only = "picked everywhere";
+        int nameRight = x + width - textMetrics().stringWidth(only) - StudioTheme.scale(10);
+        int baseline = drawOptionName(canvas, row, x, rowTop, nameRight);
+        canvas.setColor(StudioTheme.MUTED_TEXT);
+        drawRightAligned(canvas, only, x + width, baseline);
     }
 
     private void drawSpread(Graphics2D canvas, int x, int top, int width) {
@@ -151,20 +234,10 @@ final class NoisePickChart extends JComponent {
         drawRightAligned(canvas, "WEIGHT", weightRight, titleBaseline);
         drawRightAligned(canvas, "IN VIEW", actualRight, titleBaseline);
 
-        FontMetrics text = textMetrics();
         int rowHeight = rowHeight();
-        int swatchSize = text.getAscent() - text.getDescent();
         int rowTop = top + sectionMetrics().getHeight() + StudioTheme.scale(TITLE_GAP);
-        List<NoisePickSpread.Row> rows = spread.rows();
-        for (NoisePickSpread.Row row : rows) {
-            int baseline = rowTop + (rowHeight + text.getAscent() - text.getDescent()) / 2;
-            int arc = StudioTheme.scale(3);
-            canvas.setColor(new Color(row.option().color()));
-            canvas.fillRoundRect(x, rowTop + (rowHeight - swatchSize) / 2, swatchSize, swatchSize, arc, arc);
-            canvas.setFont(StudioTheme.font());
-            canvas.setColor(StudioTheme.TEXT);
-            int nameLeft = x + swatchSize + StudioTheme.scale(7);
-            canvas.drawString(fit(canvas, distinctName(row, rows), nameRight - nameLeft), nameLeft, baseline);
+        for (NoisePickSpread.Row row : shownRows()) {
+            int baseline = drawOptionName(canvas, row, x, rowTop, nameRight);
             canvas.setColor(StudioTheme.SECONDARY_TEXT);
             drawRightAligned(canvas, percent(row.weightShare()), weightRight, baseline);
             boolean farFromWeight = row.isFarBelowWeight() || row.isFarAboveWeight();
@@ -172,6 +245,35 @@ final class NoisePickChart extends JComponent {
             drawRightAligned(canvas, actualText(row), actualRight, baseline);
             rowTop += rowHeight;
         }
+        showAllToggleBounds = isLongTable() ? drawShowAllToggle(canvas, x, rowTop) : null;
+    }
+
+    // Returns the row's text baseline.
+    private int drawOptionName(Graphics2D canvas, NoisePickSpread.Row row, int x, int rowTop, int nameRight) {
+        FontMetrics text = textMetrics();
+        int rowHeight = rowHeight();
+        int swatchSize = text.getAscent() - text.getDescent();
+        int baseline = rowTop + (rowHeight + text.getAscent() - text.getDescent()) / 2;
+        int arc = StudioTheme.scale(3);
+        canvas.setColor(new Color(row.option().color()));
+        canvas.fillRoundRect(x, rowTop + (rowHeight - swatchSize) / 2, swatchSize, swatchSize, arc, arc);
+        canvas.setFont(StudioTheme.font());
+        canvas.setColor(StudioTheme.TEXT);
+        int nameLeft = x + swatchSize + StudioTheme.scale(7);
+        canvas.drawString(fit(canvas, distinctName(row, rows), nameRight - nameLeft), nameLeft, baseline);
+        return baseline;
+    }
+
+    private Rectangle drawShowAllToggle(Graphics2D canvas, int x, int rowTop) {
+        String text = showsAllRows
+                ? "Show fewer"
+                : "Show all " + rows.size() + " " + optionNoun.toLowerCase(Locale.ROOT);
+        FontMetrics metrics = textMetrics();
+        int baseline = rowTop + (rowHeight() + metrics.getAscent() - metrics.getDescent()) / 2;
+        canvas.setFont(StudioTheme.font());
+        canvas.setColor(StudioTheme.LINK);
+        canvas.drawString(text, x, baseline);
+        return new Rectangle(x, rowTop, metrics.stringWidth(text), rowHeight());
     }
 
     private int rowHeight() {

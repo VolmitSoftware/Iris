@@ -31,7 +31,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
-import java.util.stream.Collectors;
 
 /**
  * Samples the map in view to measure how regions and biomes are picked, and puts what stands out in words; shared by
@@ -40,6 +39,7 @@ import java.util.stream.Collectors;
 final class PickMeasuring {
     static final List<InferredType> PLACED_TYPES = List.of(InferredType.LAND, InferredType.SHORE, InferredType.SEA);
     private static final int SAMPLES_PER_SIDE = 96;
+    private static final int NAMED_IN_NOTES = 3;
 
     private PickMeasuring() {
     }
@@ -106,7 +106,6 @@ final class PickMeasuring {
             return;
         }
         if (rows.size() == 1) {
-            notes.add(rows.getFirst().option().name() + " is the only " + noun + ", so the " + noun + " noise has nothing to pick.");
             return;
         }
         if (spread.belowZeroShare() > 0D) {
@@ -120,7 +119,7 @@ final class PickMeasuring {
         List<String> starved = rows.stream().filter(NoisePickSpread.Row::isFarBelowWeight).map(row -> row.option().name()).toList();
         if (!starved.isEmpty()) {
             boolean single = starved.size() == 1;
-            notes.add(String.join(", ", starved) + (single ? " gets" : " get") + " under half " + (single ? "its" : "their")
+            notes.add(namedFew(starved) + (single ? " gets" : " get") + " under half " + (single ? "its" : "their")
                     + " weight in view (▼): the " + noun + " noise rarely reaches " + (single ? "its band." : "their bands."));
         }
     }
@@ -132,14 +131,14 @@ final class PickMeasuring {
     }
 
     static void addChildBiomeNote(List<String> notes, IrisComplex complex, IrisRegion region) {
-        String parents = PLACED_TYPES.stream()
+        List<String> parents = PLACED_TYPES.stream()
                 .flatMap(type -> complex.noisePickedBiomes(region, type).stream())
                 .filter(biome -> !biome.getChildren().isEmpty())
                 .map(IrisBiome::getName)
                 .distinct()
-                .collect(Collectors.joining(", "));
+                .toList();
         if (!parents.isEmpty()) {
-            notes.add(parents + " then hand some spots to child biomes by a noise of their own.");
+            notes.add(namedFew(parents) + " then hand some spots to child biomes by a noise of their own.");
         }
     }
 
@@ -150,6 +149,14 @@ final class PickMeasuring {
         notes.add(complex.isLegacyRarity()
                 ? "Legacy rarity: each weight is the total rarity minus the option's own."
                 : "Each weight is one over the rarity, so rarity 2 gets half the noise of rarity 1.");
+    }
+
+    // A long list of names buries the point of a note, so only the first few are named.
+    private static String namedFew(List<String> names) {
+        if (names.size() <= NAMED_IN_NOTES) {
+            return String.join(", ", names);
+        }
+        return String.join(", ", names.subList(0, NAMED_IN_NOTES)) + " and " + (names.size() - NAMED_IN_NOTES) + " more";
     }
 
     static String measuredNote() {

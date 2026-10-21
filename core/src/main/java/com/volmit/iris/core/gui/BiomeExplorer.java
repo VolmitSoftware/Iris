@@ -88,13 +88,20 @@ final class BiomeExplorer {
         for (RegionPicks region : measurement.regions()) {
             List<JComponent> charts = region.coverage() != null
                     ? List.of(PickInspectorPanel.heightChart(region.coverage()))
-                    : region.spreads().stream().map(spread -> (JComponent) new NoisePickChart(spread, "Biomes")).toList();
-            sections.add(new PickInspectorPanel.Section(region.name(), region.color(), region.share(), charts, region.notes()));
+                    : region.spreads().stream()
+                    .map(spread -> (JComponent) inspector.noiseChart(spread, "Biomes", region.key() + "/" + spread.title()))
+                    .toList();
+            sections.add(new PickInspectorPanel.Section(region.key(), region.name(), region.color(), region.share(),
+                    biomeCountText(region.biomeCount()), charts, region.notes()));
         }
         String detail = measurement.hybrid()
                 ? "Hybrid terrain · each region picks biomes by height"
                 : "Each region splits its own biome noise by rarity";
         inspector.showRegionSections(detail, sections, measurement.notes());
+    }
+
+    private static String biomeCountText(int count) {
+        return count == 1 ? "1 biome" : count + " biomes";
     }
 
     private Measurement measurePicks(MapCensus.ViewArea area) {
@@ -165,27 +172,35 @@ final class BiomeExplorer {
 
         private RegionPicks picks(Engine engine, int totalCount) {
             double share = totalCount == 0 ? 0D : count / (double) totalCount;
+            String key = region.getLoadKey();
             String name = region.getName();
             int color = PickMeasuring.regionColor(engine, region);
             List<String> notes = new ArrayList<>();
             if (complex.isHybridTerrain()) {
-                RegionHeightCoverage coverage = RegionHeightCoverage.measure(PickMeasuring.biomeRanges(engine, region),
+                List<RegionHeightCoverage.BiomeRange> ranges = PickMeasuring.biomeRanges(engine, region);
+                RegionHeightCoverage coverage = RegionHeightCoverage.measure(ranges,
                         pickingHeights.stream().mapToInt(Integer::intValue).toArray());
                 notes.addAll(coverage.notes());
-                return new RegionPicks(name, color, share, List.of(), coverage, notes);
+                return new RegionPicks(key, name, color, share, ranges.size(), List.of(), coverage, notes);
             }
             List<TypedSpread> inView = spreads.stream().filter(typed -> typed.spread().sampleCount() > 0).toList();
             PickMeasuring.addBiomeSpreadNotes(notes, inView);
             PickMeasuring.addChildBiomeNote(notes, complex, region);
-            return new RegionPicks(name, color, share, inView.stream().map(TypedSpread::spread).toList(), null, notes);
+            int biomeCount = (int) inView.stream()
+                    .flatMap(typed -> typed.spread().rows().stream())
+                    .map(row -> row.option().key())
+                    .distinct()
+                    .count();
+            return new RegionPicks(key, name, color, share, biomeCount, inView.stream().map(TypedSpread::spread).toList(),
+                    null, notes);
         }
     }
 
     /**
      * @param coverage how the region's biomes cover the heights in view in hybrid terrain, or null in biome terrain
      */
-    private record RegionPicks(String name, int color, double share, List<NoisePickSpread> spreads,
-                               RegionHeightCoverage coverage, List<String> notes) {
+    private record RegionPicks(String key, String name, int color, double share, int biomeCount,
+                               List<NoisePickSpread> spreads, RegionHeightCoverage coverage, List<String> notes) {
     }
 
     private record Measurement(boolean hybrid, List<RegionPicks> regions, List<String> notes) {

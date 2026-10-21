@@ -231,11 +231,11 @@ public final class GenerationBuildRevision {
                     throw new IOException("Duplicate dependency artifact entry: " + name);
                 }
             }
+            byte[] buffer = new byte[16 * 1024];
             for (Map.Entry<String, ZipEntry> entry : entries.entrySet()) {
                 update(digest, entry.getKey());
                 try (InputStream input = zip.getInputStream(entry.getValue())) {
                     MessageDigest content = digest();
-                    byte[] buffer = new byte[16 * 1024];
                     int read;
                     while ((read = input.read(buffer)) != -1) {
                         content.update(buffer, 0, read);

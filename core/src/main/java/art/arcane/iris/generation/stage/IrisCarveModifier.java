@@ -102,9 +102,9 @@ public class IrisCarveModifier extends EngineAssignedModifier<NativeBlockState> 
         PrecisionStopwatch caveStopwatch = PrecisionStopwatch.start();
         Mantle<Matter> mantle = getEngine().getMantle().getMantle();
         CaveInputs resolverState = new CaveInputs(getEngine());
-        Long2ObjectOpenHashMap<IrisBiome> caveBiomeCache = new Long2ObjectOpenHashMap<>(2048);
         IrisCarveScratch scratch = SCRATCH.get();
         scratch.reset();
+        Long2ObjectOpenHashMap<IrisBiome> caveBiomeCache = scratch.caveBiomeCache;
         CarveWallBuffer walls = scratch.walls;
         CarveColumnMask[] columnMasks = scratch.columnMasks;
         CarveColumnMask[] boundaryMasks = scratch.boundaryMasks;

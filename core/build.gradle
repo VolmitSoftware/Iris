@@ -217,6 +217,13 @@ def generateTemplates = tasks.register('generateTemplates', Copy) {
             return 'development'
         },
         commit: providers.provider {
+            String sourceHash = providers.environmentVariable('MULTIPLEXOR_SOURCE_HASH').orNull
+            if (sourceHash != null) {
+                if (!(sourceHash ==~ /[a-f0-9]{64}/)) {
+                    throw new GradleException('MULTIPLEXOR_SOURCE_HASH must be a SHA-256 source fingerprint')
+                }
+                return "source-${sourceHash}"
+            }
             String commitId = null
             Exception failure = null
             try {

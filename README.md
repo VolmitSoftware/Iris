@@ -248,34 +248,26 @@ which is what a board reader means.
 
 Requirements: JDK 25 (set `JAVA_HOME` to it). The Gradle wrapper handles everything else.
 
-```
-./gradlew buildAllToOut
-```
-
-builds every platform artifact into the workspace-level `../PluginOuts/` directory: the Bukkit jar
-and a Fabric, Forge and NeoForge jar for every Minecraft version in `gradle/mod-targets.json`
-(1.21.1, 26.1.2, 26.2 and 26.3):
-
-```
-Iris v<version> [CraftBukkit] <mc>.jar
-Iris v<version> [Fabric] <mc>+<loader>.jar
-Iris v<version> [Forge] <mc>+<loader>.jar
-Iris v<version> [NeoForge] <mc>+<loader>.jar
+```sh
+./gradlew buildAll
 ```
 
-Per-platform tasks: `./gradlew buildBukkit`, and `build<Loader><mc>` for one mod jar, for example
-`buildFabric26_2` or `buildNeoForge1_21_1`. `buildFabric`, `buildForge` and `buildNeoforge` export the
-26.3 jars. `./gradlew checkAll` runs every check, then builds and verifies all twelve mod jars and runs their
-unit tests; Forge 1.21.1 only compiles its tests because Forge 52 cannot bootstrap Minecraft outside
-FML. The
-SPI jar (the pure-JVM adapter/platform contract, not the stable plugin API) is built to `spi/build/libs/` by
-`./gradlew :spi:jar`.
+This builds and verifies the Bukkit plugin, API, SPI and the Fabric, Forge and NeoForge jars
+for every Minecraft version declared in `gradle/mod-targets.json`. Artifacts stay in the
+producing module's `build/` directory. The packed Bukkit plugin is in `build/libs/`, the
+API is in `build/api/`, the SPI is in `spi/build/libs/`, and mod jars are in
+`adapters/<loader>/build/<minecraft>/libs/`.
 
-`./gradlew buildAll` also runs `buildAllToOut` and copies the jars into a consumer dropin tree
-for a local test server. The consumer directory defaults to `../../[Minecraft Server]/consumers/`
-when it exists, otherwise `build/consumers/` inside the repo. `-Plocation=/path/to/consumers`
-changes only the consumer directory. Both tasks copy every verified platform jar into
-`../PluginOuts/`.
+Use `./gradlew buildBukkit` for the plugin, or `verify<Loader><mc>` for one mod jar,
+for example `verifyFabric26_2` or `verifyNeoForge1_21_1`. `buildFabric`, `buildForge`
+and `buildNeoforge` select the `minecraftVersion` Gradle property. `./gradlew checkAll`
+runs every check plus the complete mod matrix. Forge 1.21.1 compiles its tests because
+Forge 52 cannot bootstrap Minecraft outside FML.
+
+Multiplexor reads `gradle/multiplexor.gradle` to discover targets and build each in a
+separate source sandbox. Use its project build and deployment commands to export jars
+or install them into managed test instances. Gradle builds do not copy artifacts to
+external destinations.
 
 VolmLib is built from source when a `VolmLib` checkout sits beside the repo or in a parent directory
 (`VOLMLIB_DIR` or `-PlocalVolmLibDirectory=<path>` pick another one). Without one, or with

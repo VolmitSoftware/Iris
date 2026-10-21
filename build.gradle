@@ -9,9 +9,6 @@ import org.gradle.api.plugins.JavaPluginExtension
 import org.gradle.api.provider.Provider
 import org.gradle.jvm.toolchain.JavaLauncher
 import org.gradle.jvm.toolchain.JavaToolchainService
-import org.gradle.api.file.CopySpec
-import org.gradle.api.file.DeleteSpec
-import org.gradle.api.file.FileSystemOperations
 import org.gradle.api.file.FileTree
 import org.gradle.api.plugins.JavaPlugin
 import org.gradle.api.initialization.IncludedBuild
@@ -19,8 +16,6 @@ import org.gradle.api.tasks.Copy
 import org.gradle.api.tasks.compile.JavaCompile
 import org.gradle.jvm.tasks.Jar
 import org.gradle.jvm.toolchain.JavaLanguageVersion
-
-import javax.inject.Inject
 
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
@@ -59,13 +54,6 @@ apply plugin: 'art.arcane.volmit-packaging'
 apply from: file('gradle/runtime-relocations.gradle')
 apply from: file('gradle/volmlib-stamp.gradle')
 
-interface IrisFileOperations {
-    @Inject
-    FileSystemOperations getFileSystemOperations()
-}
-
-IrisFileOperations irisFileOperations = objects.newInstance(IrisFileOperations)
-
 group = 'art.arcane'
 version = providers.gradleProperty('irisVersion').getOrElse('4.3.5')
 
@@ -99,40 +87,10 @@ Closure<String> irisArtifactName = { String platform, String targetVersion ->
     return "Iris v${project.version} [${platform}] ${targetVersion}.jar"
 }
 String bukkitArtifactName = irisArtifactName('CraftBukkit', bukkitMinecraftRange)
-String fabricArtifactName = irisArtifactName('Fabric', "${minecraftVersion}+${loaderDisplayVersion(fabricLoaderVersion)}")
-String forgeArtifactName = irisArtifactName('Forge', "${minecraftVersion}+${loaderDisplayVersion(forgeVersion)}")
-String neoForgeArtifactName = irisArtifactName('NeoForge', "${minecraftVersion}+${loaderDisplayVersion(neoForgeVersion)}")
 Map<String, String> runtimeDownloadRelocations = (Map<String, String>) ext.runtimeDownloadRelocations
 List<String> runtimeDownloadedPrefixes = (List<String>) ext.runtimeDownloadedPrefixes
-File pluginOutDirectory = file(providers.gradleProperty('pluginOutDirectory').getOrElse('../PluginOuts'))
-File legacyBukkitJar = layout.buildDirectory.file("libs/Iris-${project.version}.jar").get().asFile
 File bukkitArtifact = layout.buildDirectory.file("libs/${bukkitArtifactName}").get().asFile
-File consumerBukkitArtifact = layout.buildDirectory.file("consumer/${bukkitArtifactName}").get().asFile
-File fabricArtifact = layout.projectDirectory.file("adapters/fabric/build/${minecraftVersion}/libs/${fabricArtifactName}").asFile
-File forgeArtifact = layout.projectDirectory.file("adapters/forge/build/${minecraftVersion}/libs/${forgeArtifactName}").asFile
-File neoForgeArtifact = layout.projectDirectory.file("adapters/neoforge/build/${minecraftVersion}/libs/${neoForgeArtifactName}").asFile
-File consumerDirectory = layout.buildDirectory.dir('consumer').get().asFile
-FileTree staleConsumerBukkitJars = fileTree(consumerDirectory) {
-    include('Iris v* [CraftBukkit] *.jar')
-}
-FileTree staleBukkitOutJars = fileTree(pluginOutDirectory) {
-    include('Iris v* [CraftBukkit] *.jar')
-}
-String selectedModdedSuffix = minecraftVersion.replace('.', '_')
 apply plugin: ApiGenerator
-
-// Where `buildAll` drops the per-platform jars for a local test server. Use the approved sibling
-// Multiplexor workspace when it exists, with a repo-local fallback for fresh clones.
-File multiplexorConsumerLocation = new File(rootDir, '../../[Minecraft Server]/consumers').canonicalFile
-String defaultConsumerLocation = multiplexorConsumerLocation.isDirectory()
-    ? multiplexorConsumerLocation.absolutePath
-    : layout.buildDirectory.dir('consumers').get().asFile.absolutePath
-String consumerLocation = providers.gradleProperty('location')
-    .getOrElse(defaultConsumerLocation)
-String bukkitConsumerPath = "${consumerLocation}/plugin-consumers/dropins/plugins"
-String fabricConsumerPath = "${consumerLocation}/fabric-mod-consumers/dropins/mods"
-String forgeConsumerPath = "${consumerLocation}/forge-mod-consumers/dropins/mods"
-String neoForgeConsumerPath = "${consumerLocation}/neoforge-mod-consumers/dropins/mods"
 
 List<String> nmsBindings = ['v26_2_R1', 'v26_3_R1']
 ext.nativeDevelopmentAdapters = nmsBindings
@@ -240,65 +198,14 @@ tasks.named('jar', Jar).configure {
         exclude('com/fren_gor/**')
 
     }
-    doFirst {
-        irisFileOperations.fileSystemOperations.delete { DeleteSpec spec -> spec.delete(legacyBukkitJar) }
-    }
     archiveFileName.set(bukkitArtifactName)
 }
 
-tasks.register('iris', Copy) {
-    group = 'iris'
-    dependsOn('packedJar')
-    from({ tasks.named('packedJar').get().outputJar })
-    rename { String ignored -> bukkitArtifactName }
-    into(layout.buildDirectory.dir('consumer'))
-    doFirst {
-        irisFileOperations.fileSystemOperations.delete { DeleteSpec spec -> spec.delete(staleConsumerBukkitJars) }
-    }
-}
-
-tasks.register('buildSwiftSwamp') {
-    group = 'iris'
-    description = 'Builds every platform jar and drops them in the local BUILDS output directory.'
-    outputs.upToDateWhen { false }
-    dependsOn('iris', "verifyFabric${selectedModdedSuffix}", "verifyForge${selectedModdedSuffix}",
-        "verifyNeoForge${selectedModdedSuffix}")
-    File swiftSwampOut = file('C://VolmitSoftware/BUILDS')
-    Map<String, File> swiftSwampSources = [
-        'Iris.jar'         : consumerBukkitArtifact,
-        'Iris-Fabric.jar'  : fabricArtifact,
-        'Iris-Forge.jar'   : forgeArtifact,
-        'Iris-Neoforge.jar': neoForgeArtifact
-    ]
-    doLast {
-        swiftSwampSources.each { String target, File source ->
-            irisFileOperations.fileSystemOperations.copy { CopySpec spec ->
-                spec.from(source)
-                spec.into(swiftSwampOut)
-                spec.rename { String ignored -> target }
-            }
-        }
-        println('')
-        println('=== Iris buildSwiftSwamp -> ' + swiftSwampOut + ' ===')
-        ['Iris.jar', 'Iris-Fabric.jar', 'Iris-Forge.jar', 'Iris-Neoforge.jar'].each { String jar ->
-            File produced = new File(swiftSwampOut, jar)
-            println(String.format('  %-24s %8d KB', jar, (long) (produced.length() / 1024)))
-        }
-    }
-}
-
-tasks.register('buildBukkit', Copy) {
-    group = 'iris'
-    dependsOn('packedJar')
-    from({ tasks.named('packedJar').get().outputJar })
-    rename { String ignored -> bukkitArtifactName }
-    into(pluginOutDirectory)
-    File legacyOutJar = new File(pluginOutDirectory, "Iris-${project.version}+mc${minecraftVersion}.jar")
-    doFirst {
-        irisFileOperations.fileSystemOperations.delete { DeleteSpec spec ->
-            spec.delete(staleBukkitOutJars, legacyOutJar)
-        }
-    }
+tasks.register('buildBukkit') {
+    group = 'build'
+    description = 'Builds and verifies the packed Bukkit plugin.'
+    dependsOn('packedJar', 'check', ':core:check', ':spi:check', ':adapters:bukkit:plugin:check')
+    dependsOn(nmsBindings.collect { String binding -> ":adapters:bukkit:nms:${binding}:check".toString() })
 }
 
 // The three loader jars come out of nested standalone Gradle builds driven through Exec. The outer
@@ -417,9 +324,7 @@ TaskProvider<Task> verifyModdedMatrix = tasks.register('verifyModdedMatrix') {
     group = 'verification'
     description = 'Builds, tests and verifies the Fabric, Forge and NeoForge jars of every supported Minecraft mod target.'
 }
-List<TaskProvider<Copy>> moddedExports = []
 Map<String, TaskProvider<IrisModdedBuild>> selectedModdedBuilds = [:]
-Map<String, TaskProvider<Copy>> selectedModdedExports = [:]
 int matrixParallelism = Math.min(gradle.startParameter.maxWorkerCount, Math.max(1,
     providers.gradleProperty('moddedBuildParallelism').getOrElse(
         Math.min(12, Math.max(1, Runtime.runtime.availableProcessors() - 4)).toString()).toInteger()))
@@ -428,6 +333,9 @@ Provider<IrisModdedBuildService> matrixWorkers = gradle.sharedServices.registerI
     maxParallelUsages.set(matrixParallelism)
 }
 List<String> nestedBuildArguments = [gradle.startParameter.buildCacheEnabled ? '--build-cache' : '--no-build-cache']
+if (providers.gradleProperty('multiplexorSandbox').getOrElse('false').toBoolean()) {
+    nestedBuildArguments.add('--no-daemon')
+}
 String nestedJvmArguments = providers.gradleProperty('org.gradle.jvmargs').getOrElse('') +
     ' -XX:ActiveProcessorCount=2'
 if (gradle.startParameter.rerunTasks) {
@@ -512,26 +420,8 @@ irisModTargets.each { String targetMinecraft, Map<String, Object> target ->
             dependsOn(buildTarget)
         }
         verifyModdedMatrix.configure { dependsOn(buildTarget) }
-        File legacyOutJar = new File(pluginOutDirectory, "Iris-${project.version}+mc${targetMinecraft}-${loader}.jar")
-        FileTree staleTargetJars = fileTree(pluginOutDirectory) {
-            include("Iris v* [${label}] ${targetMinecraft}+*.jar")
-        }
-        TaskProvider<Copy> export = tasks.register("build${label}${suffix}", Copy) {
-            group = 'iris'
-            description = "Exports the verified ${label} ${targetMinecraft} jar to the plugin output directory."
-            dependsOn(buildTarget)
-            from(artifact)
-            into(pluginOutDirectory)
-            doFirst {
-                irisFileOperations.fileSystemOperations.delete { DeleteSpec spec ->
-                    spec.delete(staleTargetJars, legacyOutJar)
-                }
-            }
-        }
-        moddedExports.add(export)
         if (selected) {
             selectedModdedBuilds[loader] = buildTarget
-            selectedModdedExports[loader] = export
         }
     }
 }
@@ -541,24 +431,20 @@ if (selectedModdedBuilds.isEmpty()) {
 
 tasks.register('buildFabric') {
     group = 'iris'
-    description = "Exports the verified Fabric ${minecraftVersion} jar."
-    dependsOn(selectedModdedExports.fabric)
+    description = "Builds and verifies the Fabric ${minecraftVersion} jar."
+    dependsOn(selectedModdedBuilds.fabric)
 }
 
 tasks.register('buildForge') {
     group = 'iris'
-    description = "Exports the verified Forge ${minecraftVersion} jar."
-    dependsOn(selectedModdedExports.forge)
+    description = "Builds and verifies the Forge ${minecraftVersion} jar."
+    dependsOn(selectedModdedBuilds.forge)
 }
 
 tasks.register('buildNeoforge') {
     group = 'iris'
-    description = "Exports the verified NeoForge ${minecraftVersion} jar."
-    dependsOn(selectedModdedExports.neoforge)
-}
-
-tasks.named('check').configure {
-    dependsOn(selectedModdedBuilds.fabric)
+    description = "Builds and verifies the NeoForge ${minecraftVersion} jar."
+    dependsOn(selectedModdedBuilds.neoforge)
 }
 
 tasks.register('checkAll') {
@@ -643,67 +529,10 @@ tasks.named('buildBukkit').configure {
     dependsOn('verifyBukkitArtifact')
 }
 
-tasks.named('iris').configure {
-    dependsOn('verifyBukkitArtifact')
-}
-
-tasks.register('buildAllToOut') {
-    group = 'iris'
-    description = 'Builds and verifies the Bukkit jar and every mod target jar into the plugin output directory.'
-    dependsOn('buildBukkit', ':spi:jar')
-    dependsOn(moddedExports)
-    doLast {
-        File[] jars = pluginOutDirectory.listFiles((java.io.FileFilter) { File f -> f.name.startsWith('Iris v') && f.name.endsWith('.jar') })
-        println('')
-        println('=== Iris buildAllToOut -> ' + pluginOutDirectory + ' ===')
-        if (jars != null) {
-            jars.sort { it.name }.each { File f ->
-                println(String.format('  %-60s %8d KB', f.name, (long) (f.length() / 1024)))
-            }
-        }
-    }
-}
-
 tasks.register('buildAll') {
-    group = 'iris'
-    outputs.upToDateWhen { false }
-    dependsOn('iris', 'buildAllToOut')
-    Map<String, List<Object>> consumerDrops = [
-        (bukkitConsumerPath)  : ['Iris.jar', consumerBukkitArtifact],
-        (fabricConsumerPath)  : ['Iris-Fabric.jar', fabricArtifact],
-        (forgeConsumerPath)   : ['Iris-Forge.jar', forgeArtifact],
-        (neoForgeConsumerPath): ['Iris-Neoforge.jar', neoForgeArtifact]
-    ]
-    doLast {
-        consumerDrops.each { String consumerPath, List<Object> drop ->
-            String keep = (String) drop.get(0)
-            File source = (File) drop.get(1)
-            irisFileOperations.fileSystemOperations.delete { DeleteSpec spec ->
-                consumerDrops.values().each { List<Object> other ->
-                    String name = (String) other.get(0)
-                    if (name != keep) {
-                        spec.delete(new File(consumerPath, name))
-                    }
-                }
-            }
-            irisFileOperations.fileSystemOperations.copy { CopySpec spec ->
-                spec.from(source)
-                spec.into(consumerPath)
-                spec.rename { String ignored -> keep }
-            }
-        }
-        println('')
-        println("=== Iris buildAll -> ${consumerLocation} ===")
-        println("  ${bukkitConsumerPath}/Iris.jar")
-        println("  ${fabricConsumerPath}/Iris-Fabric.jar")
-        println("  ${forgeConsumerPath}/Iris-Forge.jar")
-        println("  ${neoForgeConsumerPath}/Iris-Neoforge.jar")
-    }
-}
-tasks.register('buildPsychoLT') {
-    group = 'development'
-    description = 'Builds all verified Iris platform jars and stages them in the local test-server dropins and PluginOuts.'
-    dependsOn('buildAll')
+    group = 'build'
+    description = 'Builds and verifies the Bukkit plugin, API, SPI and every supported mod target.'
+    dependsOn('buildBukkit', 'irisApi', ':spi:jar', verifyModdedMatrix)
 }
 
 tasks.register('irisDev', Copy) {
@@ -1074,3 +903,5 @@ tasks.withType(PackedJar).configureEach {
         NativeRuntimeArtifacts.verifyPacked(task.outputJar.get().asFile, nativeRuntimeModules, embeddedNatives())
     }
 }
+
+apply from: file('gradle/multiplexor.gradle')

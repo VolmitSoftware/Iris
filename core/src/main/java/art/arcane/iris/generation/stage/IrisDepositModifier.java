@@ -227,7 +227,7 @@ public class IrisDepositModifier extends EngineAssignedModifier<NativeBlockState
         int engineHeight = getEngine().getHeight();
         List<PreparedClump> clumps = new ArrayList<>(limit - first);
         for (int l = first; l < limit; l++) {
-            RNG clumpRng = new RNG(clumpSeed(plan.seed(), l));
+            RNG clumpRng = new ClumpRandom(clumpSeed(plan.seed(), l));
             if (k.getPerClumpSpawnChance() < clumpRng.d()) {
                 continue;
             }
@@ -633,6 +633,30 @@ public class IrisDepositModifier extends EngineAssignedModifier<NativeBlockState
     }
 
     private record PackScan(IrisData data, boolean variants, boolean oreScaling) {
+    }
+
+    static final class ClumpRandom extends RNG {
+        private static final long MULTIPLIER = 0x5DEECE66DL;
+        private static final long ADDEND = 0xBL;
+        private static final long MASK = (1L << 48) - 1;
+
+        private long state;
+
+        ClumpRandom(long seed) {
+            super(seed);
+        }
+
+        @Override
+        public synchronized void setSeed(long seed) {
+            super.setSeed(seed);
+            state = (seed ^ MULTIPLIER) & MASK;
+        }
+
+        @Override
+        protected int next(int bits) {
+            state = (state * MULTIPLIER + ADDEND) & MASK;
+            return (int) (state >>> (48 - bits));
+        }
     }
 
     private record PreparedDeposit(IrisDepositGenerator generator, boolean ore, List<PreparedClump> clumps) {

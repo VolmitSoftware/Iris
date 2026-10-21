@@ -1,0 +1,73 @@
+import org.gradle.jvm.tasks.Jar
+
+Closure<Integer> compareMinecraft = { String left, String right ->
+    List<Integer> leftParts = left.tokenize('.').collect { String part -> Integer.parseInt(part) }
+    List<Integer> rightParts = right.tokenize('.').collect { String part -> Integer.parseInt(part) }
+    for (int index = 0; index < Math.max(leftParts.size(), rightParts.size()); index++) {
+        int comparison = Integer.compare(index < leftParts.size() ? leftParts[index] : 0,
+            index < rightParts.size() ? rightParts[index] : 0)
+        if (comparison != 0) {
+            return comparison
+        }
+    }
+    return 0
+}
+List<String> bukkitRange = providers.gradleProperty('bukkitMinecraftRange').getOrElse('26.1.2-26.3').tokenize('-')
+Map<String, Map<String, Object>> modTargets = (Map<String, Map<String, Object>>) project.ext.irisModTargets
+List<String> bukkitVersions = modTargets.keySet().findAll { String version ->
+    compareMinecraft(version, bukkitRange.first()) >= 0 && compareMinecraft(version, bukkitRange.last()) <= 0
+}.toList()
+Map<String, String> loaderLabels = [fabric: 'Fabric', forge: 'Forge', neoforge: 'NeoForge']
+Map<String, String> loaderPins = [fabric: 'fabricLoader', forge: 'forge', neoforge: 'neoForge']
+Map<String, String> loaderProperties = [fabric: 'fabricLoaderVersion', forge: 'forgeVersion', neoforge: 'neoForgeVersion']
+String selectedVersion = providers.gradleProperty('minecraftVersion').getOrElse('26.3')
+List<Map<String, Object>> buildTargets = []
+
+project.ext.multiplexor = [
+    schema: 1,
+    id: 'iris',
+    name: 'Iris',
+    sandbox: 'per-target',
+    parallelTargets: true,
+    sourceDependencies: ['volmlib'],
+    targets: buildTargets
+]
+
+gradle.projectsEvaluated {
+    File bukkitSource = tasks.named('jar', Jar).get().archiveFile.get().asFile
+    File bukkitArtifact = new File(bukkitSource.parentFile, bukkitSource.name.replaceFirst(/\.jar$/, '-packed.jar'))
+    File apiArtifact = tasks.named('irisApi', GenerateApiTask).get().outputFile.locationOnly.get().asFile
+    File spiArtifact = project(':spi').tasks.named('jar', Jar).get().archiveFile.locationOnly.get().asFile
+    buildTargets.addAll([
+        [id: 'bukkit', tasks: [':buildBukkit'], arguments: [], java: 25,
+            memoryMiB: 6144, workers: 2, dependsOn: [], artifacts: [
+                [path: relativePath(bukkitArtifact), role: 'runtime', platforms: ['plugin'], minecraftVersions: bukkitVersions]]],
+        [id: 'api', tasks: [':irisApi'], arguments: [], java: 25,
+            memoryMiB: 6144, workers: 2, dependsOn: [], artifacts: [
+                [path: relativePath(apiArtifact), role: 'api', platforms: ['plugin'], minecraftVersions: bukkitVersions]]],
+        [id: 'spi', tasks: [':spi:build'], arguments: [], java: 25,
+            memoryMiB: 4096, workers: 2, dependsOn: [], artifacts: [
+                [path: relativePath(spiArtifact), role: 'library', platforms: [], minecraftVersions: []]]]
+    ])
+    modTargets.each { String minecraft, Map<String, Object> target ->
+        loaderLabels.each { String loader, String label ->
+            String pin = minecraft == selectedVersion
+                ? providers.gradleProperty(loaderProperties[loader]).getOrElse(target[loaderPins[loader]].toString())
+                : target[loaderPins[loader]].toString()
+            String displayedPin = pin.startsWith(minecraft + '-') ? pin.substring(minecraft.length() + 1) : pin
+            String artifactName = "Iris v${project.version} [${label}] ${minecraft}+${displayedPin}.jar"
+            buildTargets.add([
+                id: "${loader}-${minecraft}".toString(),
+                tasks: [":verify${label}${minecraft.replace('.', '_')}".toString()],
+                arguments: ['-PmoddedBuildParallelism=1', '-PmoddedTestForks=1',
+                    '-PmultiplexorSandbox=true'],
+                java: 25,
+                memoryMiB: 8192,
+                workers: 2,
+                dependsOn: [],
+                artifacts: [[path: "adapters/${loader}/build/${minecraft}/libs/${artifactName}".toString(),
+                    role: 'runtime', platforms: [loader], minecraftVersions: [minecraft]]]
+            ])
+        }
+    }
+}

@@ -37,11 +37,6 @@ public class ApiGenerator implements Plugin<Project> {
             throw new GradleException("Publishing extension not found");
         }
 
-        publishing.getRepositories().maven(repository -> {
-            repository.setName("deployDir");
-            repository.setUrl(targetDirectory(target).toURI());
-        });
-
         publishing.getPublications().create("maven", MavenPublication.class, publication -> {
             publication.setGroupId(target.getGroup().toString());
             publication.setArtifactId("iris");
@@ -49,27 +44,19 @@ public class ApiGenerator implements Plugin<Project> {
             publication.artifact(task);
         });
     }
-
-    public static File targetDirectory(Project project) {
-        String dir = System.getenv("DEPLOY_DIR");
-        if (dir == null) {
-            return project.getLayout().getBuildDirectory().dir("api").get().getAsFile();
-        }
-        return new File(dir);
-    }
 }
 
 abstract class GenerateApiTask extends DefaultTask {
     public GenerateApiTask() {
         setGroup("iris");
         dependsOn("jar");
-        finalizedBy("publishMavenPublicationToDeployDirRepository");
         doLast(task -> getLogger().lifecycle("The API is located at " + getOutputFile().get().getAsFile().getAbsolutePath()));
 
         TaskProvider<Jar> jarTask = getProject().getTasks().named("jar", Jar.class);
         getInputFile().convention(jarTask.flatMap(Jar::getArchiveFile));
         getOutputFile().convention(getProject().getLayout().file(getInputFile().getLocationOnly().map(input ->
-                new File(ApiGenerator.targetDirectory(getProject()), input.getAsFile().getName()))));
+                new File(getProject().getLayout().getBuildDirectory().dir("api").get().getAsFile(),
+                        input.getAsFile().getName()))));
     }
 
     @InputFile

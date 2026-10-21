@@ -50,9 +50,12 @@ public class ApiGeneratorTest {
 
         assertEquals(jar.getArchiveFile().get().getAsFile(), api.getInputFile().get().getAsFile());
         assertEquals(jar.getArchiveFileName().get(), api.getOutputFile().get().getAsFile().getName());
-        assertEquals(ApiGenerator.targetDirectory(project), api.getOutputFile().get().getAsFile().getParentFile());
+        assertEquals(project.getLayout().getBuildDirectory().dir("api").get().getAsFile(),
+                api.getOutputFile().get().getAsFile().getParentFile());
+        assertTrue(api.getFinalizedBy().getDependencies(api).isEmpty());
 
         PublishingExtension publishing = project.getExtensions().getByType(PublishingExtension.class);
+        assertTrue(publishing.getRepositories().isEmpty());
         MavenPublication publication = (MavenPublication) publishing.getPublications().getByName("maven");
         assertEquals("art.arcane", publication.getGroupId());
         assertEquals("iris", publication.getArtifactId());

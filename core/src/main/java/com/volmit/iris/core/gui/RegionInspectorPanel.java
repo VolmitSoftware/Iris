@@ -18,86 +18,134 @@
 
 package com.volmit.iris.core.gui;
 
+import com.volmit.iris.core.gui.components.PickDisplay;
+
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
+import javax.swing.ButtonGroup;
+import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextArea;
+import javax.swing.JToggleButton;
 import javax.swing.Scrollable;
 import javax.swing.SwingConstants;
+import javax.swing.text.DefaultCaret;
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
-import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.GridLayout;
 import java.awt.Rectangle;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.function.Consumer;
 
 /**
- * The region view's inspector: for the chosen region, which of its biomes covers which ground height, and what that
- * means in words.
+ * The region view's inspector: how the noise picks the regions, or for a chosen region how its biomes are picked,
+ * measured against what is in view and put in words.
  */
 final class RegionInspectorPanel extends JPanel {
     private static final long serialVersionUID = -2874105263188240317L;
     private static final String MESSAGE_CARD = "message";
-    private static final String COVERAGE_CARD = "coverage";
+    private static final String DETAILS_CARD = "details";
     private static final int PANEL_WIDTH = 330;
     private static final String PARAGRAPH_BREAK = "\n\n";
 
     private final JLabel title = new JLabel();
     private final JLabel detail = new JLabel();
+    private final Map<PickDisplay, JToggleButton> displayButtons = new EnumMap<>(PickDisplay.class);
     private final CardLayout cards = new CardLayout();
     private final JPanel cardPanel = new JPanel(cards);
     private final JTextArea message = wrappingText();
-    private final RegionHeightChart chart = new RegionHeightChart();
-    private final JTextArea notes = wrappingText();
+    private final JPanel details = new ViewportWidthPanel();
+    private final RegionHeightChart heightChart = new RegionHeightChart();
 
-    RegionInspectorPanel() {
+    /**
+     * @param onDisplayChosen receives how the map should draw the picks
+     */
+    RegionInspectorPanel(Consumer<PickDisplay> onDisplayChosen) {
         super(new BorderLayout());
         setPreferredSize(StudioTheme.scaledSize(PANEL_WIDTH, 0));
         setBackground(StudioTheme.PANEL_BACKGROUND);
-        add(buildHeader(), BorderLayout.NORTH);
+        add(buildHeader(onDisplayChosen), BorderLayout.NORTH);
         cardPanel.setOpaque(false);
         cardPanel.add(buildMessageCard(), MESSAGE_CARD);
-        cardPanel.add(StudioToolbar.scroll(buildCoverageCard()), COVERAGE_CARD);
+        details.setLayout(new BoxLayout(details, BoxLayout.Y_AXIS));
+        details.setBackground(StudioTheme.PANEL_BACKGROUND);
+        heightChart.setAlignmentX(LEFT_ALIGNMENT);
+        cardPanel.add(StudioToolbar.scroll(details), DETAILS_CARD);
         add(cardPanel, BorderLayout.CENTER);
-        showNothingChosen();
+        showMeasuring("Regions");
     }
 
-    void showNothingChosen() {
-        showHeader("Regions", "Every region in its own colour");
-        showMessage("Pick a region on the left to fill the map with its biomes and see which biome covers which height.");
+    void showMeasuring(String name) {
+        showHeader(name, "Measuring what is in view…");
+        showMessage("");
     }
 
-    void showMeasuring(String regionName) {
-        showHeader(regionName, "Measuring the ground in view…");
+    void showRegionPicks(NoisePickSpread spread, List<String> notes) {
+        showHeader("Regions", "Region noise, split by rarity");
+        nameFirstDisplay("Regions");
+        showDetails(List.of(new NoisePickChart(spread, "Regions")), notes);
     }
 
-    void showBiomeTerrain(String regionName) {
-        showHeader(regionName, "Biome terrain");
-        showMessage("This dimension uses BIOME terrain, where biomes are placed by noise and ignore height. "
-                + "Set the dimension's terrainMode to HYBRID to choose biomes by the height of the ground.");
+    void showBiomePicks(String regionName, List<NoisePickSpread> spreads, List<String> notes) {
+        showHeader(regionName, "Biome terrain · biome noise, split by rarity");
+        nameFirstDisplay("Biomes");
+        showDetails(spreads.stream().map(spread -> (JComponent) new NoisePickChart(spread, "Biomes")).toList(), notes);
     }
 
-    void showCoverage(String regionName, RegionHeightCoverage coverage) {
-        showHeader(regionName, "Hybrid terrain · biomes by ground height");
-        chart.show(coverage);
-        notes.setText(notesText(coverage.notes()));
-        cards.show(cardPanel, COVERAGE_CARD);
+    void showCoverage(String regionName, RegionHeightCoverage coverage, List<String> notes) {
+        showHeader(regionName, "Hybrid terrain · biomes by height");
+        nameFirstDisplay("Biomes");
+        heightChart.show(coverage);
+        showDetails(List.of(heightChart), notes);
     }
 
-    private JPanel buildHeader() {
-        JPanel header = new JPanel(new GridLayout(0, 1, 0, StudioTheme.scale(2)));
+    private JPanel buildHeader(Consumer<PickDisplay> onDisplayChosen) {
+        JPanel header = new JPanel(new GridLayout(0, 1, 0, StudioTheme.scale(6)));
         header.setOpaque(false);
         header.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createMatteBorder(0, 0, 1, 0, StudioTheme.SEPARATOR),
-                StudioTheme.emptyBorder(10, 16, 9, 16)));
+                StudioTheme.emptyBorder(10, 16, 12, 16)));
         title.setFont(StudioTheme.titleFont());
         detail.setFont(StudioTheme.smallFont());
         detail.setForeground(StudioTheme.MUTED_TEXT);
         header.add(title);
         header.add(detail);
+        header.add(sectionLabel("Show"));
+        header.add(buildDisplayButtons(onDisplayChosen));
         return header;
+    }
+
+    private JPanel buildDisplayButtons(Consumer<PickDisplay> onDisplayChosen) {
+        JPanel row = new JPanel(new GridLayout(1, 0, StudioTheme.scale(4), 0));
+        row.setOpaque(false);
+        ButtonGroup group = new ButtonGroup();
+        for (PickDisplay display : PickDisplay.values()) {
+            JToggleButton button = new JToggleButton(displayName(display));
+            button.setFocusable(false);
+            button.setSelected(display == PickDisplay.PICKS);
+            button.addActionListener(event -> onDisplayChosen.accept(display));
+            group.add(button);
+            row.add(button);
+            displayButtons.put(display, button);
+        }
+        return row;
+    }
+
+    private static String displayName(PickDisplay display) {
+        return switch (display) {
+            case PICKS -> "Regions";
+            case NOISE -> "Noise";
+            case BOTH -> "Both";
+        };
+    }
+
+    private void nameFirstDisplay(String name) {
+        displayButtons.get(PickDisplay.PICKS).setText(name);
     }
 
     private JPanel buildMessageCard() {
@@ -108,20 +156,8 @@ final class RegionInspectorPanel extends JPanel {
         return card;
     }
 
-    private JPanel buildCoverageCard() {
-        JPanel card = new ViewportWidthPanel();
-        card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
-        card.setBackground(StudioTheme.PANEL_BACKGROUND);
-        chart.setAlignmentX(Component.LEFT_ALIGNMENT);
-        notes.setAlignmentX(Component.LEFT_ALIGNMENT);
-        notes.setBorder(StudioTheme.emptyBorder(0, 16, 12, 16));
-        card.add(chart);
-        card.add(notes);
-        return card;
-    }
-
-    private void showHeader(String regionName, String detailText) {
-        title.setText(regionName);
+    private void showHeader(String name, String detailText) {
+        title.setText(name);
         detail.setText(detailText);
     }
 
@@ -130,11 +166,27 @@ final class RegionInspectorPanel extends JPanel {
         cards.show(cardPanel, MESSAGE_CARD);
     }
 
-    private static String notesText(List<String> lines) {
-        if (lines.isEmpty()) {
-            return "Every ground height in view has a biome, and no two ranged biomes share one.";
+    private void showDetails(List<JComponent> charts, List<String> notes) {
+        details.removeAll();
+        charts.forEach(details::add);
+        if (!notes.isEmpty()) {
+            JTextArea notesText = wrappingText();
+            notesText.setAlignmentX(LEFT_ALIGNMENT);
+            notesText.setBorder(StudioTheme.emptyBorder(4, 16, 12, 16));
+            notesText.setText(String.join(PARAGRAPH_BREAK, notes));
+            details.add(notesText);
         }
-        return String.join(PARAGRAPH_BREAK, lines);
+        details.revalidate();
+        details.repaint();
+        details.scrollRectToVisible(new Rectangle());
+        cards.show(cardPanel, DETAILS_CARD);
+    }
+
+    private static JLabel sectionLabel(String text) {
+        JLabel label = new JLabel(text.toUpperCase(Locale.ROOT));
+        label.setForeground(StudioTheme.MUTED_TEXT);
+        label.setFont(StudioTheme.sectionFont());
+        return label;
     }
 
     private static JTextArea wrappingText() {
@@ -142,6 +194,7 @@ final class RegionInspectorPanel extends JPanel {
         text.setEditable(false);
         text.setFocusable(false);
         text.setOpaque(false);
+        ((DefaultCaret) text.getCaret()).setUpdatePolicy(DefaultCaret.NEVER_UPDATE);
         text.setLineWrap(true);
         text.setWrapStyleWord(true);
         text.setFont(StudioTheme.font());
@@ -150,7 +203,7 @@ final class RegionInspectorPanel extends JPanel {
     }
 
     /**
-     * Follows the scroll pane's width, so the chart stretches to it and the notes wrap inside it.
+     * Follows the scroll pane's width, so the charts stretch to it and the notes wrap inside it.
      */
     private static final class ViewportWidthPanel extends JPanel implements Scrollable {
         private static final long serialVersionUID = 6086542174870301352L;

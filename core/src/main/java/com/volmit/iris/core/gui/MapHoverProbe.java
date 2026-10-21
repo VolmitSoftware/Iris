@@ -41,8 +41,9 @@ final class MapHoverProbe {
 
     /**
      * @param previewRegionKey the region the region preview treats every spot as part of, or null for the real world
+     * @param explainPicks     also look up the noise values that picked the region and biome, for the region view
      */
-    static Details sample(Engine engine, double worldX, double worldZ, String previewRegionKey) {
+    static Details sample(Engine engine, double worldX, double worldZ, String previewRegionKey, boolean explainPicks) {
         IrisComplex complex = engine.getComplex();
         IrisRegion previewRegion = previewRegionKey == null ? null : engine.getData().getRegionLoader().load(previewRegionKey);
         IrisRegion region = previewRegion != null ? previewRegion : complex.getRegionStream().get(worldX, worldZ);
@@ -66,8 +67,20 @@ final class MapHoverProbe {
                 height,
                 dimension == null ? 0D : dimension.getFluidHeight(),
                 Math.toDegrees(Math.atan(slope / SLOPE_STREAM_RANGE_BLOCKS)),
-                complex.explainHybridChoice(region, worldX, worldZ)
+                complex.explainHybridChoice(region, worldX, worldZ),
+                explainPicks ? pickNoise(complex, region, previewRegion == null, worldX, worldZ) : null
         );
+    }
+
+    // HYBRID terrain picks biomes by height, which the placement line already tells, so only the region noise is left.
+    private static PickNoise pickNoise(IrisComplex complex, IrisRegion region, boolean regionPicked, double x, double z) {
+        Double regionNoise = regionPicked ? complex.getRegionStyleStream().get(x, z) : null;
+        if (complex.isHybridTerrain() || region == null) {
+            return new PickNoise(regionNoise, null, Double.NaN, null);
+        }
+        InferredType biomeType = complex.surfacePickAsIfIn(region, x, z).type();
+        return new PickNoise(regionNoise, biomeType, complex.biomePickNoise(region, biomeType, x, z),
+                complex.biomePickedByNoise(region, biomeType, x, z));
     }
 
     // A shore biome sits on land the continent stream calls land or sea, so the biome's own type says it best.
@@ -93,7 +106,16 @@ final class MapHoverProbe {
             double height,
             double fluidHeight,
             double slopeDegrees,
-            HybridBiomeSelector.Choice placement
+            HybridBiomeSelector.Choice placement,
+            PickNoise pickNoise
     ) {
+    }
+
+    /**
+     * @param regionNoise the region noise value, or null when the region preview chose the region
+     * @param biomeType   the biome list the biome noise picked from, or null when no noise picked the biome
+     * @param noisePick   the biome the noise picked, which a child biome can still replace
+     */
+    record PickNoise(Double regionNoise, InferredType biomeType, double biomeNoise, IrisBiome noisePick) {
     }
 }

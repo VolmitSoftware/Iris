@@ -27,6 +27,7 @@ import com.volmit.iris.engine.object.IrisBiome;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * The text of the card that follows the cursor: what the drawn map shows there at once, and the rest once probed.
@@ -95,6 +96,32 @@ final class MapHoverCard {
         if (details.placement() != null) {
             lines.add(placementText(details.placement()));
         }
+        if (details.pickNoise() != null) {
+            addPickNoise(lines, details.pickNoise(), surface);
+        }
+    }
+
+    private static void addPickNoise(List<String> lines, MapHoverProbe.PickNoise noise, IrisBiome surface) {
+        if (noise.regionNoise() != null) {
+            lines.add("Region noise " + noiseText(noise.regionNoise()));
+        }
+        if (noise.biomeType() == null) {
+            return;
+        }
+        String biomeNoise = capitalize(noise.biomeType().name().toLowerCase(Locale.ROOT)) + " biome noise "
+                + noiseText(noise.biomeNoise());
+        IrisBiome picked = noise.noisePick();
+        if (picked == null) {
+            lines.add(biomeNoise);
+        } else if (surface == null || picked.getLoadKey().equals(surface.getLoadKey())) {
+            lines.add(biomeNoise + " picks " + picked.getName());
+        } else {
+            lines.add(biomeNoise + " picks " + picked.getName() + ", then " + surface.getName() + " takes over");
+        }
+    }
+
+    private static String noiseText(double noise) {
+        return String.format(Locale.ROOT, "%.3f", noise);
     }
 
     // How hybrid terrain chose the base biome; a child biome or a coast can still replace it afterwards.

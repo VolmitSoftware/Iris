@@ -21,23 +21,33 @@ package com.volmit.iris.core.gui.components;
 import java.util.Objects;
 
 /**
- * What a map tile shows: one of the render types, and for a region preview which region every spot is treated as.
+ * What a map tile shows: one of the render types, for a region preview which region every spot is treated as, and in
+ * the region view whether the noise that picks is drawn too.
  *
  * @param previewRegionKey the region a {@link RenderType#REGION_PREVIEW} tile shows everywhere, null for every other type
+ * @param display          how the picking noise is drawn; only the region view draws anything but the picks
  */
-public record MapLayer(RenderType type, String previewRegionKey) {
+public record MapLayer(RenderType type, String previewRegionKey, PickDisplay display) {
     public MapLayer {
         Objects.requireNonNull(type, "type");
+        Objects.requireNonNull(display, "display");
         if ((type == RenderType.REGION_PREVIEW) != (previewRegionKey != null)) {
             throw new IllegalArgumentException("Only a region preview names a region");
+        }
+        if (display != PickDisplay.PICKS && !type.isRegionView()) {
+            throw new IllegalArgumentException("Only the region view draws its picking noise");
         }
     }
 
     public static MapLayer of(RenderType type) {
-        return new MapLayer(type, null);
+        return new MapLayer(type, null, PickDisplay.PICKS);
     }
 
-    public static MapLayer regionPreview(String regionKey) {
-        return new MapLayer(RenderType.REGION_PREVIEW, Objects.requireNonNull(regionKey, "regionKey"));
+    public static MapLayer regions(PickDisplay display) {
+        return new MapLayer(RenderType.REGION, null, display);
+    }
+
+    public static MapLayer regionPreview(String regionKey, PickDisplay display) {
+        return new MapLayer(RenderType.REGION_PREVIEW, Objects.requireNonNull(regionKey, "regionKey"), display);
     }
 }

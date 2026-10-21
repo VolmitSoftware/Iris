@@ -208,7 +208,7 @@ final class RegionHeightChart extends JComponent {
             canvas.drawString(label, x - metrics.stringWidth(label) / 2, axisTop + StudioTheme.scale(4) + metrics.getAscent());
         }
         canvas.setColor(StudioTheme.MUTED_TEXT);
-        canvas.drawString("Ground in view", StudioTheme.scale(PADDING), axisTop - StudioTheme.scale(4));
+        canvas.drawString("Heights in view", StudioTheme.scale(PADDING), axisTop - StudioTheme.scale(4));
     }
 
     private int tickStep() {

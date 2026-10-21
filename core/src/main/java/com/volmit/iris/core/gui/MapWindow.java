@@ -108,7 +108,7 @@ public final class MapWindow implements MapCanvas.Listener {
         this.viewList = new MapViewList(this::showView);
         this.viewListScroll = StudioToolbar.scroll(viewList);
         this.legendPanel = new MapLegendPanel(share -> canvas.toggleHighlight(share.label()));
-        this.regionExplorer = new RegionExplorer(canvas::engine, canvas::previewRegion);
+        this.regionExplorer = new RegionExplorer(canvas::engine, canvas::previewRegion, canvas::showPicksAs);
         canvas.centerOn(start.centerX(), start.centerZ());
         buildFrame();
     }

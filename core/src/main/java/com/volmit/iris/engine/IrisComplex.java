@@ -270,12 +270,61 @@ public class IrisComplex implements DataProvider {
      * The surface biome a spot would get if it belonged to the given region, for previewing one region across the map.
      */
     public IrisBiome surfaceBiomeAsIfIn(IrisRegion region, double x, double z) {
+        return surfacePickAsIfIn(region, x, z).biome();
+    }
+
+    /**
+     * Like {@link #surfaceBiomeAsIfIn}, also telling which of the region's biome lists the biome was picked from.
+     */
+    public BiomePick surfacePickAsIfIn(IrisRegion region, double x, double z) {
         if (focusBiome != null) {
-            return focusBiome;
+            return new BiomePick(focusBiome, focusBiome.getInferredType());
         }
 
-        IrisBiome base = implode(biomeInRegion(region, bridgeStream.get(x, z), x, z), x, z);
-        return fixBiomeType(heightStream.get(x, z), base, region, x, z, (type, xx, zz) -> biomeInRegion(region, type, xx, zz));
+        InferredType baseType = bridgeStream.get(x, z);
+        IrisBiome base = implode(biomeInRegion(region, baseType, x, z), x, z);
+        InferredType correctedType = correctedType(heightStream.get(x, z), base, region, x, z);
+        if (correctedType == null) {
+            return new BiomePick(base, baseType);
+        }
+
+        return new BiomePick(biomeInRegion(region, correctedType, x, z), correctedType);
+    }
+
+    /**
+     * The noise value that picks one of the region's biomes of this type in BIOME terrain, before rarity splits it.
+     */
+    public double biomePickNoise(IrisRegion region, InferredType type, double x, double z) {
+        return biomeNoiseStream(region, type).get(x, z);
+    }
+
+    /**
+     * The biome the noise picks from the region's biomes of this type in BIOME terrain, before child biomes or the
+     * coast replace it.
+     */
+    public IrisBiome biomePickedByNoise(IrisRegion region, InferredType type, double x, double z) {
+        return noiseBiomeStream(region, type).get(x, z);
+    }
+
+    /**
+     * {@link #biomePickNoise} as a stream, for sampling it many times.
+     */
+    public ProceduralStream<Double> biomePickNoiseStream(IrisRegion region, InferredType type) {
+        return biomeNoiseStream(region, type);
+    }
+
+    /**
+     * The region's biomes of this type in the order their rarities split the picking noise.
+     */
+    public KList<IrisBiome> noisePickedBiomes(IrisRegion region, InferredType type) {
+        return data.getBiomeLoader().loadAll(biomeKeys(region, type), biome -> biome.setInferredType(type));
+    }
+
+    /**
+     * The dimension's regions in the order their rarities split the region noise.
+     */
+    public KList<IrisRegion> noisePickedRegions() {
+        return data.getRegionLoader().loadAll(dimension.getRegions());
     }
 
     /**
@@ -302,8 +351,12 @@ public class IrisComplex implements DataProvider {
         return hybridBiomeSelector.choose(region.getBiomes(this, type), placementHeightStream.get(x, z), x / zoom, z / zoom);
     }
 
-    // The zooms stay chained one by one as they always were, so BIOME terrain keeps placing exactly the same biomes.
     private ProceduralStream<IrisBiome> noiseBiomeStream(IrisRegion region, InferredType type) {
+        return biomeNoiseStream(region, type).selectRarity(noisePickedBiomes(region, type), legacyRarity);
+    }
+
+    // The zooms stay chained one by one as they always were, so BIOME terrain keeps placing exactly the same biomes.
+    private ProceduralStream<Double> biomeNoiseStream(IrisRegion region, InferredType type) {
         ProceduralStream<Double> noise = dimension.getBiomeStyle(type).create(rng.nextParallelRNG(type.ordinal()), getData()).stream()
                 .zoom(dimension.getBiomeZoom());
         if (type == InferredType.LAND) {
@@ -312,8 +365,7 @@ public class IrisComplex implements DataProvider {
             noise = noise.zoom(dimension.getSeaZoom());
         }
 
-        return noise.zoom(region.getBiomeZoom(type))
-                .selectRarity(data.getBiomeLoader().loadAll(biomeKeys(region, type), biome -> biome.setInferredType(type)), legacyRarity);
+        return noise.zoom(region.getBiomeZoom(type));
     }
 
     private static KList<String> biomeKeys(IrisRegion region, InferredType type) {
@@ -376,25 +428,31 @@ public class IrisComplex implements DataProvider {
     }
 
     private IrisBiome fixBiomeType(double height, IrisBiome biome, IrisRegion region, double x, double z, BiomeOfType biomeOfType) {
+        InferredType correctedType = correctedType(height, biome, region, x, z);
+        return correctedType == null ? biome : biomeOfType.at(correctedType, x, z);
+    }
+
+    // The type the terrain height asks for when the biome doesn't fit it, or null when it does.
+    private InferredType correctedType(double height, IrisBiome biome, IrisRegion region, double x, double z) {
         double sh = region.getShoreHeight(x, z);
 
         if (height >= fluidHeight - 1 && height <= fluidHeight + sh && !biome.isShore()) {
-            return biomeOfType.at(InferredType.SHORE, x, z);
+            return InferredType.SHORE;
         }
 
         if (height > fluidHeight + sh && !biome.isLand()) {
-            return biomeOfType.at(InferredType.LAND, x, z);
+            return InferredType.LAND;
         }
 
         if (height < fluidHeight && !biome.isAquatic()) {
-            return biomeOfType.at(InferredType.SEA, x, z);
+            return InferredType.SEA;
         }
 
         if (height == fluidHeight && !biome.isShore()) {
-            return biomeOfType.at(InferredType.SHORE, x, z);
+            return InferredType.SHORE;
         }
 
-        return biome;
+        return null;
     }
 
     private double interpolateGenerators(Engine engine, IrisInterpolator interpolator, Set<IrisGenerator> generators, double x, double z, long seed) {
@@ -504,6 +562,12 @@ public class IrisComplex implements DataProvider {
 
     public void close() {
 
+    }
+
+    /**
+     * A biome and the type of biome list it was picked from.
+     */
+    public record BiomePick(IrisBiome biome, InferredType type) {
     }
 
     @FunctionalInterface

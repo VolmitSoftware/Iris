@@ -20,6 +20,7 @@ package com.volmit.iris.core.gui.components;
 
 import com.volmit.iris.engine.IrisComplex;
 import com.volmit.iris.engine.framework.Engine;
+import com.volmit.iris.engine.object.InferredType;
 import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.engine.object.IrisBiomeGeneratorLink;
 import com.volmit.iris.engine.object.IrisDimension;
@@ -28,8 +29,10 @@ import com.volmit.iris.util.stream.ProceduralStream;
 
 import java.awt.Color;
 import java.util.Arrays;
+import java.util.EnumMap;
 import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ConcurrentHashMap;
@@ -53,6 +56,9 @@ public final class IrisRenderer {
     private static final double LARGEST_SAMPLE_BLOCK_BLOCKS = 64D;
     private static final double DEFAULT_DEPTH_BELOW_SEA_BLOCKS = 48D;
     private static final double DEFAULT_HEIGHT_ABOVE_SEA_BLOCKS = 160D;
+    private static final int NOISE_LOW = rgb(5, 5, 5);
+    private static final int NOISE_HIGH = rgb(255, 255, 255);
+    private static final double DARKEST_PICK_SHADE = 0.3D;
 
     private final Engine engine;
     private final MapLabels labels = new MapLabels();
@@ -101,6 +107,9 @@ public final class IrisRenderer {
             regions[index] = regionOf(identities[index]);
         }
         int[] colors = type == RenderType.HEIGHT ? null : tileColors(size, type, subjects);
+        if (layer.display() != PickDisplay.PICKS) {
+            drawPickNoise(colors, grid, size, layer);
+        }
         MapLabels.Kind subjectKind = type == RenderType.REGION ? MapLabels.Kind.REGION : MapLabels.Kind.BIOME;
         return new MapTile(size, blocksPerPixel, labels, subjectKind, colors, defaultHeightRange(), subjects, regions, heights);
     }
@@ -181,6 +190,51 @@ public final class IrisRenderer {
         }
         short regionId = lookup.idOf(region);
         return (double x, double z) -> identity(lookup.idOf(complex.surfaceBiomeAsIfIn(region, x, z)), regionId);
+    }
+
+    private void drawPickNoise(int[] colors, TileGrid grid, int size, MapLayer layer) {
+        PickNoise noise = pickNoise(grid, layer);
+        for (int pixelZ = 0; pixelZ < size; pixelZ++) {
+            checkCancelled(grid.cancelled());
+            double worldZ = grid.worldZ(pixelZ + 1);
+            for (int pixelX = 0; pixelX < size; pixelX++) {
+                int index = pixelZ * size + pixelX;
+                double value = noise.valueAt((pixelZ + 1) * grid.size() + pixelX + 1, grid.worldX(pixelX + 1), worldZ);
+                colors[index] = layer.display() == PickDisplay.NOISE
+                        ? noise.color(value)
+                        : shade(colors[index], DARKEST_PICK_SHADE + (1D - DARKEST_PICK_SHADE) * noise.brightness(value));
+            }
+        }
+    }
+
+    // Regions and BIOME terrain biomes are picked by splitting a noise by rarity; HYBRID terrain biomes by a height.
+    private PickNoise pickNoise(TileGrid grid, MapLayer layer) {
+        IrisComplex complex = engine.getComplex();
+        if (layer.type() == RenderType.REGION) {
+            ProceduralStream<Double> regionNoise = complex.getRegionStyleStream();
+            return new UnitNoise((gridIndex, x, z) -> regionNoise.get(x, z));
+        }
+        IrisRegion region = engine.getData().getRegionLoader().load(layer.previewRegionKey());
+        if (region == null) {
+            return new UnitNoise((gridIndex, x, z) -> 0D);
+        }
+        if (complex.isHybridTerrain()) {
+            ProceduralStream<Double> placementHeight = complex.getPlacementHeightStream();
+            return new PlacementHeightNoise((gridIndex, x, z) -> placementHeight.get(x, z), fluidHeight(), defaultHeightRange());
+        }
+        return new UnitNoise(biomePickNoise(complex, region, grid));
+    }
+
+    // Finding which biome list picked a spot is slow, so it is sampled in squares like the biomes; the noise is cheap.
+    private static NoiseField biomePickNoise(IrisComplex complex, IrisRegion region, TileGrid grid) {
+        IdentitySampler typeSampler = new IdentitySampler(grid, (x, z) -> complex.surfacePickAsIfIn(region, x, z).type().ordinal());
+        typeSampler.renderAll(sampleBlockPixels(grid.step()));
+        int[] typeByGridIndex = typeSampler.identities;
+        InferredType[] types = InferredType.values();
+        Map<InferredType, ProceduralStream<Double>> noiseByType = new EnumMap<>(InferredType.class);
+        return (gridIndex, x, z) -> noiseByType
+                .computeIfAbsent(types[typeByGridIndex[gridIndex]], type -> complex.biomePickNoiseStream(region, type))
+                .get(x, z);
     }
 
     // Hybrid terrain decides land, coast and sea by height after the biomes are chosen, so the final biome tells.
@@ -276,6 +330,13 @@ public final class IrisRenderer {
         return new Color(red, green, blue).getRGB() & 0xFFFFFF;
     }
 
+    private static int shade(int color, double brightness) {
+        int red = (int) Math.round(((color >> 16) & 0xFF) * brightness);
+        int green = (int) Math.round(((color >> 8) & 0xFF) * brightness);
+        int blue = (int) Math.round((color & 0xFF) * brightness);
+        return (red << 16) | (green << 8) | blue;
+    }
+
     private static int blend(int first, int second, double progress) {
         double bounded = clamp(progress, 0D, 1D);
         int red = (int) Math.round(((first >> 16) & 0xFF) * (1D - bounded) + ((second >> 16) & 0xFF) * bounded);
@@ -300,6 +361,62 @@ public final class IrisRenderer {
     }
 
     private record LabelColorKey(RenderType type, short id) {
+    }
+
+    @FunctionalInterface
+    private interface NoiseField {
+        double at(int gridIndex, double x, double z);
+    }
+
+    /**
+     * A noise that picks regions or biomes, drawn on its own or as how bright the picks are.
+     */
+    private interface PickNoise {
+        double valueAt(int gridIndex, double x, double z);
+
+        int color(double value);
+
+        double brightness(double value);
+    }
+
+    /**
+     * A noise whose values run from 0 to 1, split into one band per region or biome by their rarities.
+     */
+    private record UnitNoise(NoiseField field) implements PickNoise {
+        @Override
+        public double valueAt(int gridIndex, double x, double z) {
+            return field.at(gridIndex, x, z);
+        }
+
+        @Override
+        public int color(double value) {
+            return blend(NOISE_LOW, NOISE_HIGH, value);
+        }
+
+        @Override
+        public double brightness(double value) {
+            return clamp(value, 0D, 1D);
+        }
+    }
+
+    /**
+     * The height above the fluid that HYBRID terrain picks biomes by, coloured like the height view.
+     */
+    private record PlacementHeightNoise(NoiseField field, double fluidHeight, MapStyle.HeightRange range) implements PickNoise {
+        @Override
+        public double valueAt(int gridIndex, double x, double z) {
+            return field.at(gridIndex, x, z);
+        }
+
+        @Override
+        public int color(double value) {
+            return heightColor(fluidHeight + value, range);
+        }
+
+        @Override
+        public double brightness(double value) {
+            return clamp((fluidHeight + value - range.lowest()) / Math.max(1D, range.highest() - range.lowest()), 0D, 1D);
+        }
     }
 
     /**

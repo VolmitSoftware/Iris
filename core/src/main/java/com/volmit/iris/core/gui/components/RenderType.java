@@ -19,5 +19,9 @@
 package com.volmit.iris.core.gui.components;
 
 public enum RenderType {
-    BIOME, BIOME_LAND, BIOME_SEA, REGION, REGION_PREVIEW, CAVE_LAND, HEIGHT, CONTINENT
+    BIOME, BIOME_LAND, BIOME_SEA, REGION, REGION_PREVIEW, CAVE_LAND, HEIGHT, CONTINENT;
+
+    public boolean isRegionView() {
+        return this == REGION || this == REGION_PREVIEW;
+    }
 }

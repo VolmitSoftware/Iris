@@ -23,6 +23,7 @@ import com.volmit.iris.core.gui.components.IrisRenderer;
 import com.volmit.iris.core.gui.components.MapLabels;
 import com.volmit.iris.core.gui.components.MapLayer;
 import com.volmit.iris.core.gui.components.MapStyle;
+import com.volmit.iris.core.gui.components.PickDisplay;
 import com.volmit.iris.core.gui.components.RenderType;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.IrisBiome;
@@ -97,6 +98,7 @@ final class MapCanvas extends JPanel {
     private MapStyle style = MapStyle.PLAIN;
     private RenderType currentType = RenderType.BIOME;
     private String previewRegionKey;
+    private PickDisplay pickDisplay = PickDisplay.PICKS;
     private String viewLabel = MapView.BIOMES.label();
     private List<GuiMarker> players = List.of();
     private List<GuiMarker> entities = List.of();
@@ -219,8 +221,21 @@ final class MapCanvas extends JPanel {
             return;
         }
         previewRegionKey = regionKey;
-        if (currentType == RenderType.REGION || currentType == RenderType.REGION_PREVIEW) {
+        if (currentType.isRegionView()) {
             currentType = regionKey == null ? RenderType.REGION : RenderType.REGION_PREVIEW;
+            requestRender();
+        }
+    }
+
+    /**
+     * Draws the region view's picks, the noise that picks them, or both.
+     */
+    void showPicksAs(PickDisplay display) {
+        if (display == pickDisplay) {
+            return;
+        }
+        pickDisplay = display;
+        if (currentType.isRegionView()) {
             requestRender();
         }
     }
@@ -231,7 +246,11 @@ final class MapCanvas extends JPanel {
     }
 
     private MapLayer currentLayer() {
-        return currentType == RenderType.REGION_PREVIEW ? MapLayer.regionPreview(previewRegionKey) : MapLayer.of(currentType);
+        return switch (currentType) {
+            case REGION -> MapLayer.regions(pickDisplay);
+            case REGION_PREVIEW -> MapLayer.regionPreview(previewRegionKey, pickDisplay);
+            default -> MapLayer.of(currentType);
+        };
     }
 
     String legendTitle() {
@@ -1079,7 +1098,7 @@ final class MapCanvas extends JPanel {
         double worldZ = screenToWorldZ(point.y);
         controller.submitProbe(
                 frame,
-                () -> MapHoverProbe.sample(probeEngine, worldX, worldZ, previewedRegion()),
+                () -> MapHoverProbe.sample(probeEngine, worldX, worldZ, previewedRegion(), currentType.isRegionView()),
                 details -> {
                     QuickHover quick = quickHover;
                     if (quick != null && quick.worldX() == details.worldX() && quick.worldZ() == details.worldZ()) {

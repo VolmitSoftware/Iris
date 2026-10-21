@@ -214,6 +214,7 @@ final class ObjectExplorer {
         int variantIndex = reloadingShownObject ? shownVariantIndex : 0;
         shownKey = key;
         if (!reloadingShownObject) {
+            variantPicker.forgetTriedSeeds();
             showVariantList(List.of(), OptionalLong.empty(), OptionalLong.empty(), 0);
         }
         long revision = startLoading(key);
@@ -364,8 +365,7 @@ final class ObjectExplorer {
     }
 
     private String galleryHeading() {
-        String seed = shownSeed.isPresent() ? " · seed " + shownSeed.getAsLong() : "";
-        return String.format(Locale.ROOT, "%s · %d variants%s", shownKey, shownVariants.size(), seed);
+        return String.format(Locale.ROOT, "%s · %d variants%s", shownKey, shownVariants.size(), seedNote());
     }
 
     private static ObjectMesh.Bounds largestSize(List<ObjectMesh> meshes) {
@@ -426,9 +426,17 @@ final class ObjectExplorer {
         String cut = layerCut.isCutting()
                 ? String.format(Locale.ROOT, " · showing layers 1-%d of %d", layerCut.shownLayerCount(), layerCut.layerCount())
                 : "";
-        String seed = shownSeed.isPresent() ? " · seed " + shownSeed.getAsLong() : "";
         statusBar.showSummary(String.format(Locale.ROOT, "%s%s · %,d blocks · %,d faces drawn%s",
-                summary.key(), seed, summary.blockCount(), mesh.faceCount(), cut));
+                summary.key(), seedNote(), summary.blockCount(), mesh.faceCount(), cut));
+    }
+
+    // A seed being tried is not in the pack until its "seed" field says so.
+    private String seedNote() {
+        if (shownSeed.isEmpty()) {
+            return "";
+        }
+        String note = " · seed " + shownSeed.getAsLong();
+        return shownSeed.equals(packSeed) ? note : note + " (the pack has " + packSeed.getAsLong() + ")";
     }
 
     private void showSeeThrough(Set<String> blockTypes) {

@@ -9,6 +9,7 @@ import art.arcane.iris.structure.nativegen.NativeStructureVolumeIndex;
 import art.arcane.iris.generation.runtime.IrisEngine;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.volmlib.nativelib.terrain.structure.NativeStructureVolume;
+import art.arcane.volmlib.nativelib.terrain.structure.StructureTerrainSettings;
 import art.arcane.iris.world.history.GenerationHistoryRuntimeRouter;
 import art.arcane.volmlib.util.collection.KList;
 import net.minecraft.SharedConstants;
@@ -69,7 +70,8 @@ public class NativeStructureVolumeIndexTest {
         StructureStart start = swampHut(0, 0, 4, 6);
         BoundingBox bounds = start.getPieces().getFirst().getBoundingBox();
 
-        KList<NativeStructureVolume> volumes = NativeStructureVolumeSource.appendPieces(null, STRUCTURE_KEY, start);
+        KList<NativeStructureVolume> volumes = NativeStructureVolumeSource.appendPieces(null, STRUCTURE_KEY, start,
+                StructureTerrainSettings.SOURCE, (x, z) -> 63);
 
         assertEquals(1, volumes.size());
         NativeStructureVolume volume = volumes.getFirst();
@@ -84,8 +86,10 @@ public class NativeStructureVolumeIndexTest {
 
     @Test
     public void invalidStartsContributeNoVolumes() {
-        assertNull(NativeStructureVolumeSource.appendPieces(null, STRUCTURE_KEY, StructureStart.INVALID_START));
-        assertNull(NativeStructureVolumeSource.appendPieces(null, STRUCTURE_KEY, null));
+        assertNull(NativeStructureVolumeSource.appendPieces(null, STRUCTURE_KEY, StructureStart.INVALID_START,
+                StructureTerrainSettings.SOURCE, (x, z) -> 63));
+        assertNull(NativeStructureVolumeSource.appendPieces(null, STRUCTURE_KEY, null,
+                StructureTerrainSettings.SOURCE, (x, z) -> 63));
     }
 
     @Test
@@ -323,7 +327,7 @@ public class NativeStructureVolumeIndexTest {
         BlockingResolver coordination = new BlockingResolver();
         NativeStructureVolumeIndex.OriginResolver volumes = (engine, chunkX, chunkZ) ->
                 new KList<>(new NativeStructureVolume(chunkX + ":" + chunkZ,
-                        -256, 0, -256, 256, 255, 256));
+                        -256, 0, -256, 256, 255, 256, null));
         NativeStructureVolumeIndex index = NativeStructureVolumeIndex.forTesting((engine, chunkX, chunkZ) -> {
             coordination.volumesAt(engine, chunkX, chunkZ);
             return volumes.volumesAt(engine, chunkX, chunkZ);
@@ -369,7 +373,7 @@ public class NativeStructureVolumeIndexTest {
                 terrain.join();
             }
             return new KList<>(new NativeStructureVolume(chunkX + ":" + chunkZ,
-                    -256, 0, -256, 256, 100, 256));
+                    -256, 0, -256, 256, 100, 256, null));
         });
         ExecutorService owner = Executors.newSingleThreadExecutor();
         ForkJoinPool workers = new ForkJoinPool(2);
@@ -544,7 +548,8 @@ public class NativeStructureVolumeIndexTest {
             if (chunkX != originChunkX || chunkZ != originChunkZ) {
                 return NativeStructureVolume.NONE;
             }
-            return NativeStructureVolumeSource.appendPieces(null, STRUCTURE_KEY, swampHut(chunkX, chunkZ, 4, 6));
+            return NativeStructureVolumeSource.appendPieces(null, STRUCTURE_KEY, swampHut(chunkX, chunkZ, 4, 6),
+                    StructureTerrainSettings.SOURCE, (x, z) -> 63);
         }
     }
 
@@ -596,7 +601,7 @@ public class NativeStructureVolumeIndexTest {
             return new KList<>(new NativeStructureVolume(
                     chunkX + ":" + chunkZ,
                     0, 0, 0,
-                    15, 255, 15));
+                    15, 255, 15, null));
         }
     }
     private record ScopedEngine(IrisEngine engine, AtomicInteger scopes) {

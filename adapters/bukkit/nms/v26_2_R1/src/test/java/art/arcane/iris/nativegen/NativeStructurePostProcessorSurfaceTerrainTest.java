@@ -245,8 +245,14 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
             for (int y = groundY + 1; y <= groundY + 32; y++) {
                 assertTrue("Roof at " + x + "," + y, state(blocks, x, y, 0).isAir());
             }
-            for (int y = 12; y < groundY; y++) {
+            int supportY = x < 2 ? groundY - 33 : 12;
+            for (int y = supportY; y < groundY; y++) {
                 assertTrue("Missing foundation at " + x + "," + y, state(blocks, x, y, 0).isSolid());
+            }
+            if (x < 2) {
+                for (int y = 13; y < supportY; y++) {
+                    assertTrue("Cave beneath support at " + x + "," + y, state(blocks, x, y, 0).isAir());
+                }
             }
         }
     }
@@ -266,6 +272,57 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
             assertEquals(Blocks.DIRT.defaultBlockState(), state(blocks, 0, y, 0));
         }
         assertTrue(state(blocks, 0, groundY + 1, 0).isAir());
+    }
+
+    @Test
+    public void flattenPreservesCavesBelowIntactGroundAtTheSkirtEdge() {
+        StructureStart start = desertStart();
+        int groundY = start.getBoundingBox().minY() - 1;
+        int x = start.getBoundingBox().maxX() + 23;
+        int z = start.getBoundingBox().minZ();
+        BoundingBox area = new BoundingBox(x, 0, z, x, 127, z);
+        Map<BlockPos, BlockState> blocks = new HashMap<>();
+        for (int y = groundY - 35; y <= groundY; y++) {
+            BlockState block = y >= groundY - 34 && y <= groundY - 13
+                    ? Blocks.CAVE_AIR.defaultBlockState() : Blocks.STONE.defaultBlockState();
+            put(blocks, x, y, z, block);
+        }
+        put(blocks, x, groundY - 1, z, Blocks.DIRT.defaultBlockState());
+        put(blocks, x, groundY, z, Blocks.GRASS_BLOCK.defaultBlockState());
+        NativeStructureTerrainIntegrator.TerrainTarget target = surfaceTarget(start, StructureTerrainMode.FLATTEN);
+        ((IrisStructureTerrain) target.terrain()).setHorizontalPadding(24).setFlattenRange(64);
+
+        NativeStructureSurfaceFitter.prepareSurfaceStructures(world(blocks), area, List.of(target), (px, pz) -> groundY);
+
+        for (int y = groundY - 34; y <= groundY - 13; y++) {
+            assertEquals("Cave at " + y, Blocks.CAVE_AIR.defaultBlockState(), state(blocks, x, y, z));
+        }
+        assertEquals(Blocks.DIRT.defaultBlockState(), state(blocks, x, groundY - 1, z));
+    }
+
+    @Test
+    public void flattenBridgesTheFoundationGapWithoutFillingACaveBelowItsSupport() {
+        StructureStart start = desertStart();
+        int groundY = start.getBoundingBox().minY() - 1;
+        BoundingBox area = new BoundingBox(0, 0, 0, 0, 127, 0);
+        Map<BlockPos, BlockState> blocks = new HashMap<>();
+        put(blocks, 0, groundY, 0, Blocks.GRASS_BLOCK.defaultBlockState());
+        for (int y = groundY - 11; y <= groundY - 9; y++) {
+            put(blocks, 0, y, 0, Blocks.STONE.defaultBlockState());
+        }
+        for (int y = groundY - 20; y <= groundY - 12; y++) {
+            put(blocks, 0, y, 0, Blocks.CAVE_AIR.defaultBlockState());
+        }
+
+        NativeStructureSurfaceFitter.prepareSurfaceStructures(world(blocks), area,
+                List.of(surfaceTarget(start, StructureTerrainMode.FLATTEN)), (x, z) -> groundY);
+
+        for (int y = groundY - 8; y < groundY; y++) {
+            assertEquals("Foundation at " + y, Blocks.STONE.defaultBlockState(), state(blocks, 0, y, 0));
+        }
+        for (int y = groundY - 20; y <= groundY - 12; y++) {
+            assertEquals("Cave at " + y, Blocks.CAVE_AIR.defaultBlockState(), state(blocks, 0, y, 0));
+        }
     }
 
     @Test
@@ -619,9 +676,17 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
             for (int z = 0; z <= 8; z++) {
                 int groundY = plan.flattenedHeights().get(NativeStructureTemplateOccupancy.columnKey(x, z)) - 1;
                 assertTrue("Village grade at " + x + "," + z + ": " + groundY, groundY >= 64 && groundY <= 70);
-                for (int y = 20; y <= groundY; y++) {
+                boolean originalFoundation = (x == 0 || x == 8) && (z == 0 || z == 8);
+                int supportY = originalFoundation ? 63 : 20;
+                for (int y = supportY; y <= groundY; y++) {
                     assertTrue("Disconnected village ground at " + x + "," + y + "," + z,
                             state(blocks, x, y, z).isSolid());
+                }
+                if (originalFoundation) {
+                    for (int y = 21; y < supportY; y++) {
+                        assertTrue("Cave beneath foundation at " + x + "," + y + "," + z,
+                                state(blocks, x, y, z).isAir());
+                    }
                 }
                 for (int y = groundY + 1; y <= 96; y++) {
                     assertTrue("Roof remains above village at " + x + "," + y + "," + z,

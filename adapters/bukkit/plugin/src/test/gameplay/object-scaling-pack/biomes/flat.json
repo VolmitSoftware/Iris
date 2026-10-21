@@ -1,0 +1,20 @@
+{
+  "name": "Flat",
+  "derivative": "minecraft:plains",
+  "vanillaDerivative": "minecraft:plains",
+  "layers": [
+    {"minHeight": 1, "maxHeight": 1, "palette": [{"block": "minecraft:lime_wool"}]},
+    {"minHeight": 128, "maxHeight": 128, "palette": [{"block": "minecraft:stone"}]}
+  ],
+  "generators": [{"generator": "flat", "min": 32, "max": 32}],
+  "objects": [{
+    "place": ["smolshroom1"],
+    "chance": 1,
+    "density": 8,
+    "mode": "ORGANIC_STILT",
+    "rotation": {"enabled": false},
+    "scale": {"size": 0.75, "interpolation": "NONE"},
+    "translate": {"y": 6},
+    "stiltSettings": {"organicMaxScan": 8, "organicJitter": 0, "organicScratch": 0}
+  }]
+}

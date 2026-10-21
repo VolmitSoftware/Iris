@@ -1,0 +1,6 @@
+{
+  "name": "Flat",
+  "landBiomes": ["flat"],
+  "seaBiomes": ["flat"],
+  "shoreBiomes": ["flat"]
+}

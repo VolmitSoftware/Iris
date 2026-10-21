@@ -105,7 +105,7 @@ public class NativeStructureVolumeMemoTest {
     }
 
     private static NativeStructureVolume volume(int minX, int minY, int minZ, int maxX, int maxY, int maxZ) {
-        return new NativeStructureVolume("minecraft:village_swamp", minX, minY, minZ, maxX, maxY, maxZ);
+        return new NativeStructureVolume("minecraft:village_swamp", minX, minY, minZ, maxX, maxY, maxZ, null);
     }
 
     private static final class RecordingHooks implements EnginePlatformHooks {

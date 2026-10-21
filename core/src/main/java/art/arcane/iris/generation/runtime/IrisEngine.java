@@ -930,7 +930,7 @@ public class IrisEngine implements Engine {
                             queryMaximumX,
                             queryMaximumZ);
                     for (NativeStructureVolume volume : resolved) {
-                        if (!volume.intersectsRect(minimumX, minimumZ, maximumX, maximumZ)) {
+                        if (!volume.intersectsInfluenceRect(minimumX, minimumZ, maximumX, maximumZ)) {
                             continue;
                         }
                         if (matches == null) {

@@ -232,6 +232,53 @@ public class IrisCaveCarver3DNearParityTest {
     }
 
     @Test
+    public void sparseProfilesSampleOnlyActiveColumnsAndDiscardPreviousPassColumns() {
+        for (int sampleStep : new int[]{1, 2, 3}) {
+            for (boolean adaptive : new boolean[]{false, true}) {
+                Engine engine = createEngine(128, 110);
+                AtomicInteger heightSamples = new AtomicInteger();
+                doAnswer(invocation -> {
+                    heightSamples.incrementAndGet();
+                    return 110;
+                }).when(engine).getHeight(anyInt(), anyInt(), anyBoolean());
+                IrisCaveProfile profile = createProfile(false, false)
+                        .setSampleStep(sampleStep).setAdaptiveSampling(adaptive)
+                        .setAllowFluid(false).setAllowSurfaceBreak(false)
+                        .setDensityThreshold(new IrisStyledRange(2D, 2D, new IrisGeneratorStyle(NoiseStyle.FLAT)));
+                IrisCaveCarver3D carver = new IrisCaveCarver3D(engine, profile);
+                double[] weights = new double[256];
+                weights[0] = 1D;
+                weights[255] = 1D;
+                WriterCapture first = createWriterCapture(128);
+
+                carver.carve(first.writer, 0, 0, weights, 0.08D, 0.24D);
+
+                assertEquals(2, heightSamples.get());
+                assertFalse(first.carvedCells.isEmpty());
+                for (String cell : first.carvedCells) {
+                    int x = coordinate(cell, 0);
+                    int z = coordinate(cell, 2);
+                    assertTrue(x == 0 && z == 0 || x == 15 && z == 15);
+                }
+
+                Arrays.fill(weights, 0D);
+                weights[(7 << 4) | 3] = 1D;
+                heightSamples.set(0);
+                WriterCapture second = createWriterCapture(128);
+
+                carver.carve(second.writer, 0, 0, weights, 0.08D, 0.24D);
+
+                assertEquals(1, heightSamples.get());
+                assertFalse(second.carvedCells.isEmpty());
+                for (String cell : second.carvedCells) {
+                    assertEquals(7, coordinate(cell, 0));
+                    assertEquals(3, coordinate(cell, 2));
+                }
+            }
+        }
+    }
+
+    @Test
     public void verticalDensityPreservesTwoBlockModuleTunnelsWithoutBleedingAcrossBands() throws Exception {
         for (int step : new int[]{2, 4, 8}) {
             Engine engine = createEngine(128, 110);

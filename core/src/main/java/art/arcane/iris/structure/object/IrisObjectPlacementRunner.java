@@ -49,6 +49,7 @@ import art.arcane.volmlib.util.math.BlockPosition;
 import art.arcane.volmlib.util.math.Position2;
 import art.arcane.volmlib.util.math.RNG;
 import art.arcane.volmlib.util.matter.MatterMarker;
+import it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap;
 
 import java.util.Comparator;
 import java.util.Objects;
@@ -1135,10 +1136,14 @@ final class IrisObjectPlacementRunner {
         int envelopeMinY = projection != null ? Integer.MIN_VALUE : worldY + bounds.minY() - warpMargin;
         int envelopeMaxY = projection != null ? Integer.MAX_VALUE : worldY + bounds.maxY() + warpMargin;
         boolean envelopeMeetsPiece = false;
+        boolean includesSurfaceCuts = false;
         for (NativeStructureVolume volume : volumes) {
             if (volume.intersects(minX, envelopeMinY, minZ, maxX, envelopeMaxY, maxZ)) {
                 envelopeMeetsPiece = true;
-                break;
+            }
+            if (volume.surfaceAdjustment() != null && volume.intersectsInfluenceRect(minX, minZ, maxX, maxZ)) {
+                envelopeMeetsPiece = true;
+                includesSurfaceCuts = true;
             }
         }
 
@@ -1148,6 +1153,7 @@ final class IrisObjectPlacementRunner {
 
         self.readLock.lock();
         try {
+            Long2LongOpenHashMap surfaceCuts = null;
             VectorMap<NativeBlockState>.Cursor cursor = self.blocks.cursor();
             while (cursor.next()) {
                 NativeBlockState state = cursor.value();
@@ -1186,6 +1192,28 @@ final class IrisObjectPlacementRunner {
                     if (volume.containsWithin(xx, worldBlockY, zz, projection == null ? warpMargin : 0)) {
                         return true;
                     }
+                }
+                if (!includesSurfaceCuts) {
+                    continue;
+                }
+                if (surfaceCuts == null) {
+                    surfaceCuts = new Long2LongOpenHashMap();
+                    surfaceCuts.defaultReturnValue(Long.MIN_VALUE);
+                }
+                long column = ((long) xx << 32) ^ (zz & 0xffffffffL);
+                long cut = surfaceCuts.get(column);
+                if (cut == Long.MIN_VALUE) {
+                    int surfaceY = Engine.hostHeight(engine, xx, zz, true) + engine.getMinHeight();
+                    int targetY = NativeStructureVolume.surfaceCutY(volumes, xx, zz, surfaceY);
+                    cut = ((long) surfaceY << 32) ^ (targetY & 0xffffffffL);
+                    surfaceCuts.put(column, cut);
+                }
+                int surfaceY = (int) (cut >> 32);
+                int targetY = (int) cut;
+                int margin = projection == null ? warpMargin : 0;
+                if (targetY < surfaceY && worldBlockY > (long) targetY - margin
+                        && worldBlockY <= (long) surfaceY + 1 + margin) {
+                    return true;
                 }
             }
         } finally {

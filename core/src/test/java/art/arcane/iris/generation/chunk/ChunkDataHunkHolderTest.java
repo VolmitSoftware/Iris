@@ -1,17 +1,26 @@
 package art.arcane.iris.generation.chunk;
 
+import art.arcane.iris.platform.bukkit.nms.INMS;
+import art.arcane.iris.platform.bukkit.nms.INMSBinding;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.generator.ChunkGenerator;
 import org.junit.Test;
+import org.mockito.MockedStatic;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
 public class ChunkDataHunkHolderTest {
@@ -88,6 +97,53 @@ public class ChunkDataHunkHolderTest {
             }
             assertEquals(767, holder.highestStoredY(9, 4));
         }
+    }
+
+    @Test
+    public void fallbackAppliesExplicitCaveAirBetweenSolidRunsWithNegativeMinimumHeight() {
+        ChunkGenerator.ChunkData chunk = mock(ChunkGenerator.ChunkData.class);
+        when(chunk.getMinHeight()).thenReturn(-256);
+        when(chunk.getMaxHeight()).thenReturn(512);
+        ChunkDataHunkHolder holder = new ChunkDataHunkHolder(chunk);
+        BlockData dirt = mock(BlockData.class);
+        BlockData coal = mock(BlockData.class);
+        BlockData caveAir = mock(BlockData.class);
+        NativeBlockState dirtState = state(dirt);
+        NativeBlockState coalState = state(coal);
+        NativeBlockState caveAirState = state(caveAir);
+        BlockData[] applied = new BlockData[768];
+        Arrays.fill(applied, dirt);
+        for (int y = 0; y <= 75; y++) {
+            holder.setRaw(14, y + 256, 6, y < 33 ? dirtState : y <= 54 ? caveAirState : coalState);
+        }
+        doAnswer(call -> {
+            int y = call.getArgument(1);
+            applied[y + 256] = call.getArgument(3);
+            return null;
+        }).when(chunk).setBlock(anyInt(), anyInt(), anyInt(), any(BlockData.class));
+        doAnswer(call -> {
+            int from = call.getArgument(1);
+            int to = call.getArgument(4);
+            BlockData block = call.getArgument(6);
+            Arrays.fill(applied, from + 256, to + 256, block);
+            return null;
+        }).when(chunk).setRegion(anyInt(), anyInt(), anyInt(), anyInt(), anyInt(), anyInt(), any(BlockData.class));
+
+        try (MockedStatic<INMS> nms = mockStatic(INMS.class)) {
+            nms.when(INMS::get).thenReturn(mock(INMSBinding.class));
+            holder.apply();
+        }
+
+        for (int y = -256; y < 512; y++) {
+            BlockData expected = y >= 33 && y <= 54 ? caveAir : y >= 55 && y <= 75 ? coal : dirt;
+            assertSame("column at " + y, expected, applied[y + 256]);
+        }
+    }
+
+    private static NativeBlockState state(BlockData data) {
+        NativeBlockState state = mock(NativeBlockState.class);
+        when(state.nativeHandle()).thenReturn(data);
+        return state;
     }
 
     private static ChunkDataHunkHolder holder(int height) {

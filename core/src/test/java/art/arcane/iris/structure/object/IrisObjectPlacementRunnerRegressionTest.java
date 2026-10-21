@@ -621,6 +621,91 @@ public class IrisObjectPlacementRunnerRegressionTest {
     }
 
     @Test
+    public void organicMushroomStiltsUseTheStemAndStopAtTheCaveFloor() {
+        NativeBlockState stem = state("minecraft:mushroom_stem", true);
+        NativeBlockState cap = state("minecraft:red_mushroom_block", true);
+        IrisObject mushroom = new IrisObject(1, 2, 1);
+        mushroom.setUnsigned(0, 0, 0, stem);
+        mushroom.setUnsigned(0, 1, 0, cap);
+        RecordingPlacer placer = new RecordingPlacer(null);
+        placer.terrain(0, 0, 0, 30, 120, 140);
+        placer.set(0, 30, 0, solid);
+        placer.writes().clear();
+        IrisObjectPlacement placement = placement().setMode(ObjectPlaceMode.ORGANIC_STILT)
+                .setStiltSettings(new IrisStiltSettings().setOrganicJitter(0).setOrganicScratch(0));
+
+        mushroom.place(0, 60, 0, placer, placement, new RNG(2L), data);
+
+        assertEquals(1, placer.writesOf(cap).size());
+        for (int y = 31; y < 60; y++) {
+            assertSame(stem, placer.get(0, y, 0));
+        }
+        assertSame(solid, placer.get(0, 30, 0));
+        assertTrue(placer.writes().stream().allMatch(write -> write.y() >= 31));
+    }
+
+    @Test
+    public void defaultOrganicStiltsDoNotReachAFloorMoreThanOneHundredBlocksBelow() {
+        NativeBlockState stem = state("minecraft:mushroom_stem", true);
+        IrisObject mushroom = new IrisObject(1, 1, 1);
+        mushroom.setUnsigned(0, 0, 0, stem);
+        RecordingPlacer placer = new RecordingPlacer(null);
+        placer.set(0, 30, 0, solid);
+        placer.writes().clear();
+        IrisObjectPlacement placement = placement().setMode(ObjectPlaceMode.ORGANIC_STILT)
+                .setStiltSettings(new IrisStiltSettings().setOrganicJitter(0).setOrganicScratch(0));
+
+        mushroom.place(0, 160, 0, placer, placement, new RNG(2L), data);
+
+        assertEquals(9, placer.world.values().stream().filter(block -> block == stem).count());
+        assertTrue(placer.writesOf(stem).stream().allMatch(write -> write.y() >= 152));
+        assertNull(placer.get(0, 151, 0));
+        assertSame(solid, placer.get(0, 30, 0));
+    }
+
+    @Test
+    public void shrinkingTwoBlockMushroomsPreservesTheStemUsedByOrganicStilts() {
+        NativeBlockState stem = state("minecraft:mushroom_stem", true);
+        NativeBlockState cap = state("minecraft:red_mushroom_block", true);
+        IrisObject mushroom = new IrisObject(1, 2, 1);
+        mushroom.setUnsigned(0, 0, 0, stem);
+        mushroom.setUnsigned(0, 1, 0, cap);
+        IrisObject scaled = mushroom.scaled(0.75, IrisObjectPlacementScaleInterpolator.NONE);
+        RecordingPlacer placer = new RecordingPlacer(null);
+        placer.set(0, ANCHOR_Y, 0, solid);
+        placer.writes().clear();
+        IrisObjectPlacement placement = placement().setMode(ObjectPlaceMode.ORGANIC_STILT)
+                .setStiltSettings(new IrisStiltSettings().setOrganicJitter(0).setOrganicScratch(0));
+
+        scaled.place(0, ANCHOR_Y + 10, 0, placer, placement, new RNG(2L), data);
+
+        assertSame(stem, placer.get(0, ANCHOR_Y + 1, 0));
+        assertEquals(1, placer.writesOf(cap).size());
+    }
+
+    @Test
+    public void centerHeightSurfaceSupportAllowsAnImportedRootAboveALowerAdjacentColumn() {
+        NativeBlockState wood = state("minecraft:spruce_wood", true);
+        IrisObject tree = new IrisObject(7, 27, 7);
+        tree.getBlocks().put(new IrisBlockVector(0, -13, 0), wood);
+        tree.getBlocks().put(new IrisBlockVector(1, -13, 0), wood);
+        tree.getBlocks().put(new IrisBlockVector(1, -13, -1), wood);
+        RecordingPlacer placer = new RecordingPlacer(null);
+        placer.terrain(0, 0, 0, 167);
+        placer.terrain(1, 0, 0, 163);
+        placer.terrain(1, -1, 0, 163);
+        IrisObjectPlacement placement = new IrisObjectPlacement()
+                .setRotation(IrisObjectRotation.of(0, 0, 0));
+
+        assertTrue(tree.place(0, -1, 0, placer, placement, new RNG(2L), data) >= 0);
+
+        assertSame(wood, placer.get(1, 167, 0));
+        assertNull(placer.get(1, 166, 0));
+        assertFalse(placer.isSurfaceSolid(1, 166, 0));
+        assertEquals(163, placer.highest(1, 0));
+    }
+
+    @Test
     public void stiltPaletteCannotIntroduceExcludedMaterialsOrContainers() {
         NativeBlockState calcite = state("minecraft:calcite", true);
         NativeBlockState barrel = state("minecraft:barrel", true);

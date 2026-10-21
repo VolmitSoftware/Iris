@@ -316,6 +316,11 @@ public class IrisCaveCarver3D {
                 for (int lz = 0; lz < 16; lz++) {
                     int z = z0 + lz;
                     int index = PowerOfTwoCoordinates.packLocal16(lx, lz);
+                    clampedWeights[index] = clampColumnWeight(columnWeights[index]);
+                    if (clampedWeights[index] <= resolvedMinWeight) {
+                        columnMaxY[index] = minY - 1;
+                        continue;
+                    }
                     int columnSurfaceY;
                     if (precomputedSurfaceHeights != null && precomputedSurfaceHeights.length > index) {
                         columnSurfaceY = precomputedSurfaceHeights[index];
@@ -340,7 +345,6 @@ public class IrisCaveCarver3D {
                     columnThreshold[index] = (thresholdDensity == null
                             ? constantThreshold
                             : thresholdDensity.fitDouble(thresholdMin, thresholdMax, x, z)) - thresholdBias;
-                    clampedWeights[index] = clampColumnWeight(columnWeights[index]);
                 }
             }
 

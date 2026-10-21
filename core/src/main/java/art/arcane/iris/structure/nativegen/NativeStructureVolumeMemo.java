@@ -54,7 +54,7 @@ public final class NativeStructureVolumeMemo {
         for (int chunkX = fromChunkX; chunkX <= toChunkX; chunkX++) {
             for (int chunkZ = fromChunkZ; chunkZ <= toChunkZ; chunkZ++) {
                 for (NativeStructureVolume volume : chunkVolumes(engine, hooks, chunkX, chunkZ)) {
-                    if (!volume.intersectsRect(minX, minZ, maxX, maxZ)) {
+                    if (!volume.intersectsInfluenceRect(minX, minZ, maxX, maxZ)) {
                         continue;
                     }
                     if (matches == null) {

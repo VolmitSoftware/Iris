@@ -56,7 +56,6 @@ public class MantleCarvingComponent extends IrisMantleComponent {
     private static final int FIELD_SIZE = CHUNK_SIZE + (BLEND_RADIUS * 2);
     private static final double MIN_WEIGHT = 0.08D;
     private static final double THRESHOLD_PENALTY = 0.24D;
-    private static final int MAX_BLENDED_PROFILE_PASSES = 2;
     private static final int MAX_POOLED_WEIGHT_BUFFERS = 64;
     /** Lattice columns kept for neighbouring chunks: about 3 KB each on land, roughly 50 MB when full. */
     private static final int DENSITY_GRID_COLUMNS = 16_384;
@@ -348,9 +347,9 @@ public class MantleCarvingComponent extends IrisMantleComponent {
             columnWeightedProfiles.add(new WeightedProfile(profile, weights, averageWeight, null, columnWeightedProfiles.size()));
         }
 
-        List<WeightedProfile> blendedProfiles = limitAndMergeBlendedProfiles(columnWeightedProfiles, MAX_BLENDED_PROFILE_PASSES, CHUNK_AREA);
+        columnWeightedProfiles.sort(MantleCarvingComponent::compareByCarveOrder);
         List<WeightedProfile> resolvedProfiles = resolveDimensionCarvingProfiles(chunkX, chunkZ, resolverState, blendScratch);
-        resolvedProfiles.addAll(blendedProfiles);
+        resolvedProfiles.addAll(columnWeightedProfiles);
         return resolvedProfiles;
     }
 
@@ -619,67 +618,6 @@ public class MantleCarvingComponent extends IrisMantleComponent {
         return surfaceHeights;
     }
 
-    private static List<WeightedProfile> limitAndMergeBlendedProfiles(List<WeightedProfile> blendedProfiles, int maxProfiles) {
-        return limitAndMergeBlendedProfiles(blendedProfiles, maxProfiles, CHUNK_AREA);
-    }
-
-    private static List<WeightedProfile> limitAndMergeBlendedProfiles(List<WeightedProfile> blendedProfiles, int maxProfiles, int areaSize) {
-        if (blendedProfiles == null || blendedProfiles.isEmpty()) {
-            return new ArrayList<>();
-        }
-
-        int clampedLimit = Math.max(1, maxProfiles);
-        List<WeightedProfile> rankedProfiles = new ArrayList<>(blendedProfiles);
-        rankedProfiles.sort(MantleCarvingComponent::compareBySelectionRank);
-        List<WeightedProfile> keptProfiles = new ArrayList<>();
-        int keptCount = Math.min(clampedLimit, rankedProfiles.size());
-        for (int index = 0; index < keptCount; index++) {
-            keptProfiles.add(rankedProfiles.get(index));
-        }
-
-        if (rankedProfiles.size() > keptCount) {
-            for (int columnIndex = 0; columnIndex < areaSize; columnIndex++) {
-                int dominantIndex = 0;
-                double dominantWeight = Double.NEGATIVE_INFINITY;
-                for (int keptIndex = 0; keptIndex < keptProfiles.size(); keptIndex++) {
-                    double keptWeight = keptProfiles.get(keptIndex).columnWeights[columnIndex];
-                    if (keptWeight > dominantWeight) {
-                        dominantWeight = keptWeight;
-                        dominantIndex = keptIndex;
-                    }
-                }
-
-                double droppedWeight = 0D;
-                for (int droppedIndex = keptCount; droppedIndex < rankedProfiles.size(); droppedIndex++) {
-                    droppedWeight += rankedProfiles.get(droppedIndex).columnWeights[columnIndex];
-                }
-                if (droppedWeight <= 0D) {
-                    continue;
-                }
-
-                WeightedProfile dominantProfile = keptProfiles.get(dominantIndex);
-                double mergedWeight = dominantProfile.columnWeights[columnIndex] + droppedWeight;
-                dominantProfile.columnWeights[columnIndex] = clampWeight(mergedWeight);
-            }
-        }
-
-        List<WeightedProfile> mergedProfiles = new ArrayList<>();
-        for (WeightedProfile keptProfile : keptProfiles) {
-            double averageWeight = computeAverageWeight(keptProfile.columnWeights, areaSize);
-            mergedProfiles.add(new WeightedProfile(keptProfile.profile, keptProfile.columnWeights, averageWeight, keptProfile.worldYRange, keptProfile.sequence));
-        }
-        mergedProfiles.sort(MantleCarvingComponent::compareByCarveOrder);
-        return mergedProfiles;
-    }
-
-    private static int compareBySelectionRank(WeightedProfile a, WeightedProfile b) {
-        int weightOrder = Double.compare(b.averageWeight, a.averageWeight);
-        if (weightOrder != 0) {
-            return weightOrder;
-        }
-        return Integer.compare(a.sequence, b.sequence);
-    }
-
     private static int compareByCarveOrder(WeightedProfile a, WeightedProfile b) {
         int weightOrder = Double.compare(a.averageWeight, b.averageWeight);
         if (weightOrder != 0) {
@@ -689,10 +627,6 @@ public class MantleCarvingComponent extends IrisMantleComponent {
     }
 
     private static double computeAverageWeight(double[] weights) {
-        return computeAverageWeight(weights, CHUNK_AREA);
-    }
-
-    private static double computeAverageWeight(double[] weights, int areaSize) {
         if (weights == null || weights.length == 0) {
             return 0D;
         }
@@ -700,7 +634,7 @@ public class MantleCarvingComponent extends IrisMantleComponent {
         for (double weight : weights) {
             sum += weight;
         }
-        return sum / Math.max(1, areaSize);
+        return sum / CHUNK_AREA;
     }
 
     private static double clampWeight(double value) {
@@ -729,10 +663,6 @@ public class MantleCarvingComponent extends IrisMantleComponent {
             this.averageWeight = averageWeight;
             this.worldYRange = worldYRange;
             this.sequence = sequence;
-        }
-
-        private double averageWeight() {
-            return averageWeight;
         }
     }
 

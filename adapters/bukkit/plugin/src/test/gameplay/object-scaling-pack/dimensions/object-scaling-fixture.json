@@ -1,0 +1,15 @@
+{
+  "name": "Object Scaling Fixture",
+  "version": 1,
+  "mode": {"type": "OVERWORLD"},
+  "regions": ["flat"],
+  "focusRegion": "flat",
+  "focus": "flat",
+  "landChance": 1,
+  "environment": "NORMAL",
+  "dimensionHeight": {"min": 0, "max": 128},
+  "logicalHeight": 128,
+  "fluidHeight": 0,
+  "bedrock": false,
+  "caveProfile": {"enabled": false}
+}

@@ -115,7 +115,7 @@ public final class NativeStructureVolumeIndex {
         for (int chunkX = fromChunkX; chunkX <= toChunkX; chunkX++) {
             for (int chunkZ = fromChunkZ; chunkZ <= toChunkZ; chunkZ++) {
                 for (NativeStructureVolume volume : chunkVolumes(engine, runtimeId, chunkX, chunkZ)) {
-                    if (!volume.intersectsRect(minX, minZ, maxX, maxZ)) {
+                    if (!volume.intersectsInfluenceRect(minX, minZ, maxX, maxZ)) {
                         continue;
                     }
                     if (matches == null) {
@@ -150,7 +150,7 @@ public final class NativeStructureVolumeIndex {
         for (int originX = chunkX - ORIGIN_REACH_CHUNKS; originX <= chunkX + ORIGIN_REACH_CHUNKS; originX++) {
             for (int originZ = chunkZ - ORIGIN_REACH_CHUNKS; originZ <= chunkZ + ORIGIN_REACH_CHUNKS; originZ++) {
                 for (NativeStructureVolume volume : scopedOriginVolumes(engine, originX, originZ, pinnedRuntimeId)) {
-                    if (!volume.intersectsRect(minX, minZ, maxX, maxZ)) {
+                    if (!volume.intersectsInfluenceRect(minX, minZ, maxX, maxZ)) {
                         continue;
                     }
                     if (volumes == null) {

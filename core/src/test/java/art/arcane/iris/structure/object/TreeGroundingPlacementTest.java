@@ -10,6 +10,8 @@ import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.testsupport.PlatformBinding;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
+import art.arcane.volmlib.nativelib.terrain.structure.NativeStructureVolume;
+import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
 import org.junit.Before;
 import org.junit.Rule;
@@ -82,6 +84,30 @@ public class TreeGroundingPlacementTest {
         }
         assertFalse(terrain.written.containsKey(new Position(0, 79, 0)));
         assertFalse(terrain.written.containsKey(new Position(2, 79, 0)));
+    }
+
+    @Test
+    public void nativeFlattenInfluenceDoesNotBlockRootExtensionsBelowItsPiece() {
+        Terrain terrain = new Terrain();
+        terrain.heights.put(new Column(1, 0), 77);
+        Engine engine = data.getEngine();
+        when(terrain.placer.getEngine()).thenReturn(engine);
+        when(engine.getDimension()).thenReturn(new IrisDimension());
+        when(engine.getHeight(anyInt(), anyInt(), anyBoolean())).thenAnswer(invocation ->
+                terrain.surface(invocation.getArgument(0), invocation.getArgument(1)));
+        NativeStructureVolume volume = new NativeStructureVolume("minecraft:village_plains",
+                10, 100, 0, 12, 110, 2,
+                new NativeStructureVolume.SurfaceAdjustment(List.of(
+                        new NativeStructureVolume.SurfaceAnchor(10, 12, 0, 2, 100, 4)), 16, 16));
+        when(engine.getNativeStructureVolumes(anyInt(), anyInt(), anyInt(), anyInt()))
+                .thenReturn(new KList<>(List.of(volume)));
+
+        assertTrue(place(tree(true), terrain, placement()) >= 0);
+
+        for (int y = 77; y <= 81; y++) {
+            assertSame(wood, terrain.written.get(new Position(1, y, 0)));
+        }
+        assertFalse(terrain.written.containsKey(new Position(1, 76, 0)));
     }
 
     @Test

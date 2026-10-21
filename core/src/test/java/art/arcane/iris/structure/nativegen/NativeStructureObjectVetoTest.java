@@ -13,6 +13,7 @@ import art.arcane.iris.structure.object.ObjectPlaceMode;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.mantle.EngineMantle;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.testsupport.PlatformBinding;
 import art.arcane.volmlib.util.math.Vector3i;
@@ -30,7 +31,10 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class NativeStructureObjectVetoTest {
@@ -52,6 +56,9 @@ public class NativeStructureObjectVetoTest {
         when(complex.getHeightStream()).thenReturn(heightStream);
         engine = mock(Engine.class);
         when(engine.getHeight()).thenReturn(256);
+        when(engine.getHeight(anyInt(), anyInt())).thenReturn(SURFACE_Y);
+        when(engine.getHeight(anyInt(), anyInt(), eq(true))).thenAnswer(invocation ->
+                engine.getHeight(invocation.getArgument(0), invocation.getArgument(1)));
         when(engine.getComplex()).thenReturn(complex);
         when(engine.getDimension()).thenReturn(mock(IrisDimension.class));
         volumes();
@@ -65,6 +72,79 @@ public class NativeStructureObjectVetoTest {
 
         assertTrue(place(placer) >= 0);
         assertFalse(placer.written().isEmpty());
+    }
+
+    @Test
+    public void flattenSkirtRejectsATreeWhoseGroundWillBeLoweredOutsideThePiece() {
+        RecordingPlacer placer = new RecordingPlacer(engine);
+        volumes(new NativeStructureVolume("minecraft:village_plains", 1, 64, -1, 11, 65, 7,
+                new NativeStructureVolume.SurfaceAdjustment(List.of(
+                        new NativeStructureVolume.SurfaceAnchor(1, 11, -1, 7, 64, 2)), 24, 64)));
+
+        assertEquals(-1, place(placer));
+        assertTrue(placer.written().isEmpty());
+    }
+
+    @Test
+    public void flattenSkirtKeepsATreeWhereTheGradeDoesNotLowerItsGround() {
+        RecordingPlacer placer = new RecordingPlacer(engine);
+        volumes(new NativeStructureVolume("minecraft:village_plains", 1, 96, -1, 11, 97, 7,
+                new NativeStructureVolume.SurfaceAdjustment(List.of(
+                        new NativeStructureVolume.SurfaceAnchor(1, 11, -1, 7, 96, 2)), 24, 64)));
+
+        assertTrue(place(placer) >= 0);
+        assertFalse(placer.written().isEmpty());
+    }
+
+    @Test
+    public void flattenCutKeepsObjectsBelowTheRemainingCaveRoof() {
+        when(engine.getHeight(anyInt(), anyInt())).thenReturn(140);
+        RecordingPlacer placer = new RecordingPlacer(engine);
+        volumes(new NativeStructureVolume("minecraft:village_plains", 1, 120, -1, 11, 121, 7,
+                new NativeStructureVolume.SurfaceAdjustment(List.of(
+                        new NativeStructureVolume.SurfaceAnchor(1, 11, -1, 7, 120, 2)), 24, 64)));
+
+        assertTrue(place(placer) >= 0);
+        assertFalse(placer.written().isEmpty());
+        verify(engine, times(1)).getHeight(0, 0);
+    }
+
+    @Test
+    public void flattenCutKeepsObjectsAboveTheRemovedSurfaceBand() {
+        when(engine.getHeight(anyInt(), anyInt())).thenReturn(40);
+        RecordingPlacer placer = new RecordingPlacer(engine);
+        volumes(new NativeStructureVolume("minecraft:village_plains", 1, 20, -1, 11, 21, 7,
+                new NativeStructureVolume.SurfaceAdjustment(List.of(
+                        new NativeStructureVolume.SurfaceAnchor(1, 11, -1, 7, 20, 2)), 24, 64)));
+
+        assertTrue(place(placer) >= 0);
+        assertFalse(placer.written().isEmpty());
+    }
+
+    @Test
+    public void flattenCutUsesHostGroundBelowAnUpperTerrainLayer() {
+        EngineMantle mantle = mock(EngineMantle.class);
+        when(engine.getMantle()).thenReturn(mantle);
+        when(mantle.trueHeight(anyInt(), anyInt())).thenReturn(40);
+        RecordingPlacer placer = new RecordingPlacer(engine);
+        volumes(new NativeStructureVolume("minecraft:village_plains", 1, 20, -1, 11, 21, 7,
+                new NativeStructureVolume.SurfaceAdjustment(List.of(
+                        new NativeStructureVolume.SurfaceAnchor(1, 11, -1, 7, 20, 2)), 24, 64)));
+
+        assertTrue(place(placer) >= 0);
+        assertFalse(placer.written().isEmpty());
+    }
+
+    @Test
+    public void flattenCutConvertsTheHostGroundToNegativeWorldCoordinates() {
+        when(engine.getMinHeight()).thenReturn(-256);
+        RecordingPlacer placer = new RecordingPlacer(engine);
+        volumes(new NativeStructureVolume("minecraft:village_plains", 1, -190, -1, 11, -189, 7,
+                new NativeStructureVolume.SurfaceAdjustment(List.of(
+                        new NativeStructureVolume.SurfaceAnchor(1, 11, -1, 7, -190, 2)), 24, 64)));
+
+        assertEquals(-1, place(placer));
+        assertTrue(placer.written().isEmpty());
     }
 
     @Test
@@ -250,7 +330,7 @@ public class NativeStructureObjectVetoTest {
     }
 
     private NativeStructureVolume volume(int minX, int minY, int minZ, int maxX, int maxY, int maxZ) {
-        return new NativeStructureVolume("minecraft:village_plains", minX, minY, minZ, maxX, maxY, maxZ);
+        return new NativeStructureVolume("minecraft:village_plains", minX, minY, minZ, maxX, maxY, maxZ, null);
     }
 
     private static NativeBlockState state(String key, boolean solid) {

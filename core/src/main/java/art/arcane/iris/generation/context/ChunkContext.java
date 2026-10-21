@@ -97,22 +97,23 @@ public class ChunkContext {
             }
             List<Runnable> fillTasks = new ArrayList<>(6);
             if (resolvedPlan.height) {
-                fillTasks.add(() -> height.fillRounded(roundedHeight));
+                fillTasks.add(new PrefillFillTask(() -> height.fillRounded(roundedHeight),
+                        capturePrefillMetric ? metrics.getContextPrefillHeight() : null));
             }
             if (resolvedPlan.biome) {
-                fillTasks.add(new PrefillFillTask(biome));
+                fillTasks.add(new PrefillFillTask(biome::fill, capturePrefillMetric ? metrics.getContextPrefillBiome() : null));
             }
             if (resolvedPlan.rock) {
-                fillTasks.add(new PrefillFillTask(rock));
+                fillTasks.add(new PrefillFillTask(rock::fill, capturePrefillMetric ? metrics.getContextPrefillRock() : null));
             }
             if (resolvedPlan.fluid) {
-                fillTasks.add(new PrefillFillTask(fluid));
+                fillTasks.add(new PrefillFillTask(fluid::fill, capturePrefillMetric ? metrics.getContextPrefillFluid() : null));
             }
             if (resolvedPlan.region) {
-                fillTasks.add(new PrefillFillTask(region));
+                fillTasks.add(new PrefillFillTask(region::fill, capturePrefillMetric ? metrics.getContextPrefillRegion() : null));
             }
             if (resolvedPlan.cave) {
-                fillTasks.add(new PrefillFillTask(cave));
+                fillTasks.add(new PrefillFillTask(cave::fill, capturePrefillMetric ? metrics.getContextPrefillCave() : null));
             }
 
             if (!shouldPrefillAsync(resolvedPlan, fillTasks.size())) {
@@ -297,15 +298,23 @@ public class ChunkContext {
     }
 
     private static final class PrefillFillTask implements Runnable {
-        private final ChunkedDataCache<?> dataCache;
+        private final Runnable fill;
+        private final EngineMetrics.StageTimer timer;
 
-        private PrefillFillTask(ChunkedDataCache<?> dataCache) {
-            this.dataCache = dataCache;
+        private PrefillFillTask(Runnable fill, EngineMetrics.StageTimer timer) {
+            this.fill = fill;
+            this.timer = timer;
         }
 
         @Override
         public void run() {
-            dataCache.fill();
+            if (timer == null) {
+                fill.run();
+                return;
+            }
+            long startedNanos = System.nanoTime();
+            fill.run();
+            timer.put((System.nanoTime() - startedNanos) / 1_000_000D);
         }
     }
 }

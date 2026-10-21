@@ -1,6 +1,7 @@
 package art.arcane.iris.generation.hydrology;
 
 import art.arcane.iris.generation.runtime.GenerationClosedException;
+import art.arcane.iris.generation.runtime.GenerationCounter;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.generation.concurrent.MultiBurst;
 import art.arcane.iris.generation.stream.ProvisionalSampling;
@@ -499,6 +500,9 @@ public final class HydrologyTileCache implements AutoCloseable {
     }
 
     public Optional<HydrologyColumnSample> columnAt(int blockX, int blockZ) {
+        if (GenerationCounter.ENABLED) {
+            GenerationCounter.HYDROLOGY_LOOKUPS.increment();
+        }
         return chunkColumns(blockX, blockZ).columnAt(blockX, blockZ);
     }
 
@@ -506,6 +510,9 @@ public final class HydrologyTileCache implements AutoCloseable {
         requireOpen();
         if (!waitsForbidden()) {
             return HydrologyColumnSnapshot.ready(columnAt(blockX, blockZ).orElse(null));
+        }
+        if (GenerationCounter.ENABLED) {
+            GenerationCounter.HYDROLOGY_LOOKUPS.increment();
         }
         int chunkX = Math.floorDiv(blockX, CHUNK_SIZE);
         int chunkZ = Math.floorDiv(blockZ, CHUNK_SIZE);

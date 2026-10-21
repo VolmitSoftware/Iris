@@ -1,15 +1,20 @@
 package art.arcane.iris.probe;
 
 import art.arcane.iris.generation.hydrology.HydrologyTileCache;
+import art.arcane.iris.generation.hydrology.HydrologyTileKey;
+import art.arcane.iris.generation.runtime.EngineMetrics;
 import org.junit.Test;
 
 import java.io.File;
 import java.nio.file.Path;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
@@ -128,7 +133,96 @@ public final class GenerationProbeTest {
         GenerationProbe.ProbeOptions defaults = GenerationProbe.ProbeOptions.fromSystemProperties();
         assertEquals(1, defaults.threads());
         assertNull(defaults.dumpFile());
-        assertThrows(IllegalArgumentException.class, () -> new GenerationProbe.ProbeOptions(0, null, false));
+        assertThrows(IllegalArgumentException.class,
+                () -> new GenerationProbe.ProbeOptions(0, null, false, false, false, false, false));
+        assertFalse(defaults.hydrologyPreplan());
+        assertFalse(defaults.historyRouter());
+        assertFalse(defaults.productionBuffers());
+        assertFalse(defaults.counters());
+    }
+
+    @Test
+    public void readsHarnessFidelityOptionsFromSystemProperties() {
+        System.setProperty("iris.probe.hydrologyPreplan", "true");
+        System.setProperty("iris.probe.historyRouter", "true");
+        System.setProperty("iris.probe.productionBuffers", "true");
+        System.setProperty("iris.generation.counters", "true");
+        try {
+            GenerationProbe.ProbeOptions options = GenerationProbe.ProbeOptions.fromSystemProperties();
+            assertTrue(options.hydrologyPreplan());
+            assertTrue(options.historyRouter());
+            assertTrue(options.productionBuffers());
+            assertTrue(options.counters());
+            assertFalse(options.parallel());
+        } finally {
+            System.clearProperty("iris.probe.hydrologyPreplan");
+            System.clearProperty("iris.probe.historyRouter");
+            System.clearProperty("iris.probe.productionBuffers");
+            System.clearProperty("iris.generation.counters");
+        }
+    }
+
+    @Test
+    public void stageLineReportsOnlyTheMeasuredWindow() {
+        Map<String, EngineMetrics.StageTotal> before = new LinkedHashMap<>();
+        before.put("total", new EngineMetrics.StageTotal(100D, 10L));
+        before.put("context.prefill.height", new EngineMetrics.StageTotal(0D, 0L));
+        Map<String, EngineMetrics.StageTotal> after = new LinkedHashMap<>();
+        after.put("total", new EngineMetrics.StageTotal(350.25D, 20L));
+        after.put("context.prefill.height", new EngineMetrics.StageTotal(12.5D, 10L));
+
+        String line = GenerationProbe.stagesLine(new GenerationProbe.WindowMetrics(before, Map.of()),
+                new GenerationProbe.WindowMetrics(after, Map.of()), 10, 1);
+
+        assertEquals("IRIS_GENPROBE_STAGES version=1 chunks=10 threads=1 total=250.250 context.prefill.height=12.500", line);
+    }
+
+    @Test
+    public void counterLineReportsWindowTotalsAndPerChunkRates() {
+        Map<String, Long> before = new LinkedHashMap<>();
+        before.put("generator_evaluations", 1_000L);
+        before.put("corner_starcasts", 0L);
+        Map<String, Long> after = new LinkedHashMap<>();
+        after.put("generator_evaluations", 5_000L);
+        after.put("corner_starcasts", 330L);
+
+        String line = GenerationProbe.countersLine(new GenerationProbe.WindowMetrics(Map.of(), before),
+                new GenerationProbe.WindowMetrics(Map.of(), after), 2);
+
+        assertEquals("IRIS_GENPROBE_COUNTERS version=1 chunks=2 generator_evaluations=4000"
+                + " generator_evaluations_per_chunk=2000.0 corner_starcasts=330 corner_starcasts_per_chunk=165.0", line);
+    }
+
+    @Test
+    public void hydrologyPreplanCoversEveryTileAScheduledChunkComposesFromPlusTheNeighbourRing() {
+        GenerationProbe.ProbeConfiguration configuration = new GenerationProbe.ProbeConfiguration(
+                new File("/tmp/pack"), "overworld", 256, 1024, 2048, 2048, false, false, 1337L);
+        int tileSize = 512;
+        int publicationRadius = 96;
+        int reachChunks = 13;
+        List<HydrologyTileKey> keys = GenerationProbe.preplanTiles(configuration, tileSize, publicationRadius, reachChunks);
+        Set<HydrologyTileKey> planned = new HashSet<>(keys);
+
+        assertEquals(keys.size(), planned.size());
+        for (GenerationProbe.ChunkCoordinate chunk : GenerationProbe.scheduleCoordinates(1280, 2048, 2048)) {
+            for (int offsetX = -reachChunks; offsetX <= reachChunks; offsetX++) {
+                for (int offsetZ = -reachChunks; offsetZ <= reachChunks; offsetZ++) {
+                    long minimumX = (long) (chunk.x() + offsetX) * 16L;
+                    long minimumZ = (long) (chunk.z() + offsetZ) * 16L;
+                    int firstX = Math.floorDiv(Math.toIntExact(minimumX - publicationRadius), tileSize) - 1;
+                    int lastX = Math.floorDiv(Math.toIntExact(minimumX + 15L + publicationRadius), tileSize) + 1;
+                    int firstZ = Math.floorDiv(Math.toIntExact(minimumZ - publicationRadius), tileSize) - 1;
+                    int lastZ = Math.floorDiv(Math.toIntExact(minimumZ + 15L + publicationRadius), tileSize) + 1;
+                    for (int tileX = firstX; tileX <= lastX; tileX++) {
+                        for (int tileZ = firstZ; tileZ <= lastZ; tileZ++) {
+                            assertTrue(planned.contains(new HydrologyTileKey(tileX, tileZ)));
+                        }
+                    }
+                }
+            }
+        }
+        HydrologyTileKey first = keys.getFirst();
+        assertEquals(new HydrologyTileKey(Math.floorDiv(2048 * 16 + 8, tileSize), Math.floorDiv(2048 * 16 + 8, tileSize)), first);
     }
 
     @Test

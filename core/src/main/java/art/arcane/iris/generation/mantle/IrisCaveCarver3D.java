@@ -43,6 +43,7 @@ import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.ForkJoinWorkerThread;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.LongAdder;
 
 public class IrisCaveCarver3D {
     private static final byte LIQUID_AIR = 0;
@@ -62,6 +63,11 @@ public class IrisCaveCarver3D {
     private static final int MAXIMUM_DENSITY_WORKERS = 4;
     private static final int[] LATTICE_TILE_OFFSETS = {0, 1, 16, 17};
     private static final int STANDALONE_DENSITY_GRID_COLUMNS = 1024;
+    private static final int[] CELL_CORNER_MASKS = {0b000011011, 0b000110110, 0b011011000, 0b110110000};
+    private static final LongAdder SOLID_CELLS = new LongAdder();
+    private static final LongAdder OPEN_CELLS = new LongAdder();
+    private static final LongAdder MIXED_CELLS = new LongAdder();
+    private static final LongAdder EXACT_ROWS = new LongAdder();
 
     private final Engine engine;
     private final IrisData data;
@@ -153,6 +159,10 @@ public class IrisCaveCarver3D {
         verticalDensityStep = parallelDensity ? Math.max(1, engine.getDimension().getCaveDensitySamplingStep()) : 1;
         worldMinimumY = engine.getWorld().minHeight();
         densityMaximumY = engine.getWorld().getHeight() - 1;
+    }
+
+    public static CellCounters cellCounters() {
+        return new CellCounters(SOLID_CELLS.sum(), OPEN_CELLS.sum(), MIXED_CELLS.sum(), EXACT_ROWS.sum());
     }
 
     public int carve(MantleWriter writer, int chunkX, int chunkZ) {
@@ -504,7 +514,9 @@ public class IrisCaveCarver3D {
             int minimumY = pass.minimumY() + index * rows;
             int maximumY = Math.min(pass.maximumY(), minimumY + rows - 1);
             if (minimumY <= maximumY) {
-                tasks.add(() -> classifyRows(pass, minimumY, maximumY, classified));
+                tasks.add(pass.cellKernel()
+                        ? () -> classifyCellRows(pass, minimumY, maximumY, classified)
+                        : () -> classifyRows(pass, minimumY, maximumY, classified));
             }
         }
         runDensityTasks(tasks, pool);
@@ -697,8 +709,23 @@ public class IrisCaveCarver3D {
             int[] columns, int[] columnTops, int columnCount, double[] thresholds,
             long[] fluidBoundaries, boolean[] surfaceBreakColumns, int[] surfaceBreakFloors,
             double surfaceBreakBoost, double[] verticalFade, CaveCarveScratch sourceScratch,
-            int adaptiveStep, double adaptiveMargin, int[] fluidTops, MatterCavern[] matterByY
+            int adaptiveStep, double adaptiveMargin, int[] fluidTops, MatterCavern[] matterByY, boolean cellKernel
     ) {
+    }
+
+    public record CellCounters(long solidCells, long openCells, long mixedCells, long exactRows) {
+        public long decided() {
+            return solidCells + openCells;
+        }
+
+        public long evaluated() {
+            return mixedCells;
+        }
+
+        public String machineLine() {
+            return "IRIS_GENPROBE_CARVE_CELLS solid=" + solidCells + " open=" + openCells + " mixed=" + mixedCells
+                    + " exact_rows=" + exactRows;
+        }
     }
 
     private static final class DensityTask implements Runnable, ForkJoinPool.ManagedBlocker {
@@ -795,7 +822,7 @@ public class IrisCaveCarver3D {
         byte[] classified = skipExistingCarved ? null : classifyPassParallel(new DensityPass(
                 x0, z0, minY, passMaxY, activeColumnIndices, activeColumnTopY, activeColumnCount,
                 passThreshold, surfaceFluidBoundaries, surfaceBreakColumn, surfaceBreakFloorY,
-                surfaceBreakThresholdBoost, verticalEdgeFade, scratch, 0, 0D, fluidMaxY, matterByY));
+                surfaceBreakThresholdBoost, verticalEdgeFade, scratch, 0, 0D, fluidMaxY, matterByY, false));
 
         for (int sectionIndex = minSection; sectionIndex <= maxSection; sectionIndex++) {
             int sectionMinY = Math.max(minY, PowerOfTwoCoordinates.chunkToBlock(sectionIndex));
@@ -944,12 +971,23 @@ public class IrisCaveCarver3D {
                 adaptiveSampleStep,
                 effectiveAdaptiveSampleStep
         );
+        boolean cellKernel = !skipExistingCarved && usesCellKernel(effectiveAdaptiveSampleStep);
+        if (cellKernel) {
+            prepareCellPlan(scratch, x0, z0, minY, passMaxY, activeColumnIndices, activeColumnCount,
+                    surfaceFluidBoundaries, surfaceBreakThresholdBoost);
+        }
 
         byte[] classified = skipExistingCarved ? null : classifyPassParallel(new DensityPass(
                 x0, z0, minY, passMaxY, activeColumnIndices, activeColumnTopY, activeColumnCount,
                 passThreshold, surfaceFluidBoundaries, surfaceBreakColumn, surfaceBreakFloorY,
                 surfaceBreakThresholdBoost, verticalEdgeFade, scratch, effectiveAdaptiveSampleStep, effectiveAdaptiveThresholdMargin,
-                fluidMaxY, matterByY));
+                fluidMaxY, matterByY, cellKernel));
+
+        if (cellKernel) {
+            return emitCellPass(chunk, scratch, classified, x0, z0, minY, passMaxY, minSection, maxSection,
+                    activeColumnIndices, activeColumnTopY, activeColumnCount, surfaceFluidBoundaries,
+                    surfaceBreakThresholdBoost, verticalEdgeFade, fluidMaxY, matterByY, fluidSupportPlan);
+        }
 
         for (int sectionIndex = minSection; sectionIndex <= maxSection; sectionIndex++) {
             int sectionMinY = Math.max(minY, PowerOfTwoCoordinates.chunkToBlock(sectionIndex));
@@ -1057,6 +1095,432 @@ public class IrisCaveCarver3D {
         }
 
         return adaptiveThresholdMargin + ((effectiveAdaptiveSampleStep - adaptiveSampleStep) * ADAPTIVE_DEEP_MARGIN_BOOST);
+    }
+
+    private boolean usesCellKernel(int effectiveAdaptiveSampleStep) {
+        return effectiveAdaptiveSampleStep == ADAPTIVE_DEEP_SAMPLE_STEP
+                && verticalDensityStep == 1
+                && parallelDensity
+                && (hasWarp || !hasModules);
+    }
+
+    private void prepareCellPlan(
+            CaveCarveScratch plan,
+            int x0,
+            int z0,
+            int minY,
+            int passMaxY,
+            int[] activeColumnIndices,
+            int activeColumnCount,
+            long[] surfaceFluidBoundaries,
+            double surfaceBreakThresholdBoost
+    ) {
+        int rows = passMaxY - minY + 1;
+        if (plan.rowActiveCount.length < rows + 1) {
+            plan.rowActiveCount = new int[rows + 1];
+        }
+        int[] rowActiveCount = plan.rowActiveCount;
+        Arrays.fill(rowActiveCount, 0, rows + 1, 0);
+        Arrays.fill(plan.cellPassBits, 0L);
+        Arrays.fill(plan.cellThresholdMin, Double.POSITIVE_INFINITY);
+        Arrays.fill(plan.cellThresholdMax, Double.NEGATIVE_INFINITY);
+        Arrays.fill(plan.cellThresholdMaxBoost, Double.NEGATIVE_INFINITY);
+        Arrays.fill(plan.cellBreakFloorMin, Integer.MAX_VALUE);
+        Arrays.fill(plan.cellCeilingFadeStart, Integer.MAX_VALUE);
+        Arrays.fill(plan.cellTopY, Integer.MIN_VALUE);
+        Arrays.fill(plan.cellProtected, false);
+        prepareAdaptiveGeometry(plan, ADAPTIVE_DEEP_SAMPLE_STEP, 2, 3);
+        double[] passThreshold = plan.passThreshold;
+        for (int activeIndex = 0; activeIndex < activeColumnCount; activeIndex++) {
+            int column = activeColumnIndices[activeIndex];
+            int cell = ((column >> 7) << 1) | ((column >> 3) & 1);
+            int top = plan.columnMaxY[column];
+            double threshold = passThreshold[column];
+            plan.cellPassBits[column >> 6] |= 1L << column;
+            plan.cellThresholdMin[cell] = Math.min(plan.cellThresholdMin[cell], threshold);
+            plan.cellThresholdMax[cell] = Math.max(plan.cellThresholdMax[cell], threshold);
+            if (plan.surfaceBreakColumn[column]) {
+                plan.cellThresholdMaxBoost[cell] = Math.max(plan.cellThresholdMaxBoost[cell], threshold + surfaceBreakThresholdBoost);
+                plan.cellBreakFloorMin[cell] = Math.min(plan.cellBreakFloorMin[cell], plan.surfaceBreakFloorY[column]);
+            } else {
+                plan.cellThresholdMaxBoost[cell] = Math.max(plan.cellThresholdMaxBoost[cell], threshold);
+            }
+            if (plan.surfaceCeilingColumn[column]) {
+                plan.cellCeilingFadeStart[cell] = Math.min(plan.cellCeilingFadeStart[cell], top - SURFACE_CEILING_FADE_DEPTH + 1);
+            }
+            plan.cellTopY[cell] = Math.max(plan.cellTopY[cell], top);
+            int protectStart = SurfaceFluidBoundaryPlan.NO_BOUNDARY;
+            int protectEnd = Integer.MIN_VALUE;
+            if (surfaceFluidBoundaries != null) {
+                long boundary = surfaceFluidBoundaries[column];
+                protectStart = SurfaceFluidBoundaryPlan.startY(boundary);
+                protectEnd = SurfaceFluidBoundaryPlan.endY(boundary);
+            }
+            plan.columnProtectStartY[column] = protectStart;
+            plan.columnProtectEndY[column] = protectEnd;
+            rowActiveCount[0]++;
+            rowActiveCount[top - minY + 1]--;
+            int protectedFrom = Math.max(protectStart, minY);
+            int protectedTo = Math.min(protectEnd, top);
+            if (protectedFrom <= protectedTo) {
+                rowActiveCount[protectedFrom - minY]--;
+                rowActiveCount[protectedTo - minY + 1]++;
+                plan.cellProtected[cell] = true;
+            }
+        }
+        for (int row = 1; row < rows; row++) {
+            rowActiveCount[row] += rowActiveCount[row - 1];
+        }
+        int latticeX = x0 >> CaveDensityGrid.LATTICE_SHIFT;
+        int latticeZ = z0 >> CaveDensityGrid.LATTICE_SHIFT;
+        int usedCorners = 0;
+        for (int cell = 0; cell < 4; cell++) {
+            if (plan.cellTopY[cell] >= minY) {
+                usedCorners |= CELL_CORNER_MASKS[cell];
+            }
+        }
+        for (int corner = 0; corner < 9; corner++) {
+            plan.cellCornerColumns[corner] = (usedCorners & (1 << corner)) == 0 ? null
+                    : densityGrid.column(this, densityGridOwner, densityMaximumY + 1,
+                    latticeX + (corner / 3), latticeZ + (corner % 3));
+        }
+    }
+
+    private int emitCellPass(
+            MantleChunk<Matter> chunk,
+            CaveCarveScratch scratch,
+            byte[] classified,
+            int x0,
+            int z0,
+            int minY,
+            int passMaxY,
+            int minSection,
+            int maxSection,
+            int[] activeColumnIndices,
+            int[] activeColumnTopY,
+            int activeColumnCount,
+            long[] surfaceFluidBoundaries,
+            double surfaceBreakThresholdBoost,
+            double[] verticalEdgeFade,
+            int[] fluidMaxY,
+            MatterCavern[] matterByY,
+            CaveFluidSupportPlan fluidSupportPlan
+    ) {
+        int carved = 0;
+        long[] rowBits = scratch.rowCarveBits;
+        for (int sectionIndex = minSection; sectionIndex <= maxSection; sectionIndex++) {
+            int sectionMinY = Math.max(minY, PowerOfTwoCoordinates.chunkToBlock(sectionIndex));
+            int sectionMaxY = Math.min(passMaxY, PowerOfTwoCoordinates.chunkToBlock(sectionIndex) + 15);
+            MatterSlice<MatterCavern> cavernSlice = resolveCavernSlice(scratch, chunk, sectionIndex);
+            for (int y = sectionMinY; y <= sectionMaxY; y++) {
+                int fadeIndex = y - minY;
+                if (scratch.rowActiveCount[fadeIndex] == 0) {
+                    continue;
+                }
+                MatterCavern verticalMatter = matterByY[fadeIndex];
+                if (classified != null) {
+                    carved += emitClassifiedRow(cavernSlice, classified, fadeIndex, y, verticalMatter, fluidSupportPlan);
+                    continue;
+                }
+                classifyAdaptiveRow(scratch, scratch, x0, z0, y, minY, activeColumnIndices, activeColumnTopY,
+                        activeColumnCount, surfaceFluidBoundaries, surfaceBreakThresholdBoost, verticalEdgeFade, rowBits);
+                for (int word = 0; word < 4; word++) {
+                    long bits = rowBits[word];
+                    while (bits != 0L) {
+                        int column = (word << 6) | Long.numberOfTrailingZeros(bits);
+                        bits &= bits - 1L;
+                        int localX = PowerOfTwoCoordinates.unpackLocal16X(column);
+                        int localZ = column & 15;
+                        MatterCavern matter = verticalMatter;
+                        if (verticalMatter != carveLava && y <= fluidMaxY[column]) {
+                            matter = resolveMatter(scratch, verticalMatter, x0 + localX, y, z0 + localZ, column, fluidMaxY,
+                                    cellThreshold(scratch, column, y, minY, surfaceBreakThresholdBoost, verticalEdgeFade));
+                        }
+                        writeCavern(cavernSlice, localX, y, localZ, matter, fluidSupportPlan);
+                        carved++;
+                    }
+                }
+            }
+        }
+        flushCellCounters(scratch);
+        return carved;
+    }
+
+    private int emitClassifiedRow(MatterSlice<MatterCavern> cavernSlice, byte[] classified, int fadeIndex, int y,
+                                  MatterCavern verticalMatter, CaveFluidSupportPlan fluidSupportPlan) {
+        int carved = 0;
+        int offset = fadeIndex * 256;
+        for (int column = 0; column < 256; column++) {
+            byte flags = classified[offset + column];
+            if ((flags & DENSITY_CARVE) == 0) {
+                continue;
+            }
+            MatterCavern matter = (flags & DENSITY_FLUID) != 0 ? carveFluid : verticalMatter;
+            writeCavern(cavernSlice, PowerOfTwoCoordinates.unpackLocal16X(column), y, column & 15, matter, fluidSupportPlan);
+            carved++;
+        }
+        return carved;
+    }
+
+    private void classifyCellRows(DensityPass pass, int minimumY, int maximumY, byte[] classified) {
+        CaveCarveScratch scratch = new CaveCarveScratch();
+        CaveCarveScratch plan = pass.sourceScratch();
+        long[] rowBits = scratch.rowCarveBits;
+        for (int y = minimumY; y <= maximumY; y++) {
+            int fadeIndex = y - pass.minimumY();
+            if (plan.rowActiveCount[fadeIndex] == 0) {
+                continue;
+            }
+            classifyAdaptiveRow(scratch, plan, pass.x(), pass.z(), y, pass.minimumY(), pass.columns(), pass.columnTops(),
+                    pass.columnCount(), pass.fluidBoundaries(), pass.surfaceBreakBoost(), pass.verticalFade(), rowBits);
+            MatterCavern verticalMatter = pass.matterByY()[fadeIndex];
+            int offset = fadeIndex * 256;
+            for (int word = 0; word < 4; word++) {
+                long bits = rowBits[word];
+                while (bits != 0L) {
+                    int column = (word << 6) | Long.numberOfTrailingZeros(bits);
+                    bits &= bits - 1L;
+                    MatterCavern matter = verticalMatter;
+                    if (verticalMatter != carveLava && y <= pass.fluidTops()[column]) {
+                        matter = resolveMatter(scratch, verticalMatter, pass.x() + PowerOfTwoCoordinates.unpackLocal16X(column),
+                                y, pass.z() + (column & 15), column, pass.fluidTops(),
+                                cellThreshold(plan, column, y, pass.minimumY(), pass.surfaceBreakBoost(), pass.verticalFade()));
+                    }
+                    classified[offset + column] = matter == carveFluid ? DENSITY_CARVE | DENSITY_FLUID : DENSITY_CARVE;
+                }
+            }
+        }
+        flushCellCounters(scratch);
+    }
+
+    private void classifyAdaptiveRow(
+            CaveCarveScratch scratch,
+            CaveCarveScratch plan,
+            int x0,
+            int z0,
+            int y,
+            int minY,
+            int[] activeColumnIndices,
+            int[] activeColumnTopY,
+            int activeColumnCount,
+            long[] surfaceFluidBoundaries,
+            double surfaceBreakThresholdBoost,
+            double[] verticalEdgeFade,
+            long[] rowBits
+    ) {
+        Arrays.fill(rowBits, 0L);
+        if (plan.rowActiveCount[y - minY] >= ADAPTIVE_MIN_PLANE_COLUMNS) {
+            classifyCellRow(scratch, plan, x0, z0, y, minY, surfaceBreakThresholdBoost, verticalEdgeFade, rowBits);
+            return;
+        }
+        int[] planeColumnIndices = scratch.planeColumnIndices;
+        double[] planeThresholdLimit = scratch.planeThresholdLimit;
+        boolean[] planeCarve = scratch.planeCarve;
+        int planeCount = 0;
+        for (int activeIndex = 0; activeIndex < activeColumnCount; activeIndex++) {
+            if (activeColumnTopY[activeIndex] < y) {
+                continue;
+            }
+            int columnIndex = activeColumnIndices[activeIndex];
+            if (SurfaceFluidBoundaryPlan.protects(surfaceFluidBoundaries, columnIndex, y)) {
+                continue;
+            }
+            planeColumnIndices[planeCount] = columnIndex;
+            planeThresholdLimit[planeCount] = cellLocalThreshold(plan, columnIndex, y, minY, surfaceBreakThresholdBoost,
+                    verticalEdgeFade) * normalizationFactor;
+            planeCount++;
+        }
+        classifyDensityPlane(scratch, x0, z0, y, planeColumnIndices, planeThresholdLimit, planeCount, planeCarve);
+        for (int planeIndex = 0; planeIndex < planeCount; planeIndex++) {
+            if (planeCarve[planeIndex]) {
+                int columnIndex = planeColumnIndices[planeIndex];
+                rowBits[columnIndex >> 6] |= 1L << columnIndex;
+            }
+        }
+        scratch.exactRows++;
+    }
+
+    private void classifyCellRow(
+            CaveCarveScratch scratch,
+            CaveCarveScratch plan,
+            int x0,
+            int z0,
+            int y,
+            int minY,
+            double surfaceBreakThresholdBoost,
+            double[] verticalEdgeFade,
+            long[] rowBits
+    ) {
+        int activeCells = 0;
+        int corners = 0;
+        for (int cell = 0; cell < 4; cell++) {
+            if (isCellActive(plan, cell, y)) {
+                activeCells |= 1 << cell;
+                corners |= CELL_CORNER_MASKS[cell];
+            }
+        }
+        if (activeCells == 0) {
+            return;
+        }
+        double[] density = scratch.rowLatticeDensity;
+        for (int corner = 0; corner < 9; corner++) {
+            if ((corners & (1 << corner)) != 0) {
+                density[corner] = cornerDensity(scratch, plan.cellCornerColumns[corner],
+                        x0 + (corner / 3) * ADAPTIVE_DEEP_SAMPLE_STEP, y, z0 + (corner % 3) * ADAPTIVE_DEEP_SAMPLE_STEP);
+            }
+        }
+        int fadeIndex = y - minY;
+        double fade = verticalEdgeFade[fadeIndex];
+        double closure = plan.surfaceClosureThreshold[fadeIndex];
+        for (int cell = 0; cell < 4; cell++) {
+            if ((activeCells & (1 << cell)) == 0) {
+                continue;
+            }
+            int corner = ((cell >> 1) * 3) + (cell & 1);
+            double d00 = density[corner];
+            double d01 = density[corner + 1];
+            double d10 = density[corner + 3];
+            double d11 = density[corner + 4];
+            double low = plan.cellThresholdMin[cell] - fade;
+            if (y >= plan.cellCeilingFadeStart[cell]) {
+                low = Math.min(low, closure);
+            }
+            double high = (y >= plan.cellBreakFloorMin[cell] ? plan.cellThresholdMaxBoost[cell] : plan.cellThresholdMax[cell]) - fade;
+            int decision = CaveCellKernel.decide(d00, d01, d10, d11,
+                    CaveCellKernel.threshold(low, normalizationFactor, inverseNormalization),
+                    CaveCellKernel.threshold(high, normalizationFactor, inverseNormalization));
+            if (decision == CaveCellKernel.NONE) {
+                scratch.solidCells++;
+            } else if (decision == CaveCellKernel.ALL) {
+                scratch.openCells++;
+                markActiveCellColumns(plan, cell, y, rowBits);
+            } else {
+                scratch.mixedCells++;
+                classifyMixedCell(plan, cell, y, minY, surfaceBreakThresholdBoost, verticalEdgeFade, d00, d01, d10, d11, rowBits);
+            }
+        }
+    }
+
+    private void classifyMixedCell(
+            CaveCarveScratch plan,
+            int cell,
+            int y,
+            int minY,
+            double surfaceBreakThresholdBoost,
+            double[] verticalEdgeFade,
+            double d00,
+            double d01,
+            double d10,
+            double d11,
+            long[] rowBits
+    ) {
+        double[] adaptiveTx = plan.adaptiveTx;
+        double[] adaptiveTz = plan.adaptiveTz;
+        int firstLocalX = (cell >> 1) << 3;
+        int firstLocalZ = (cell & 1) << 3;
+        for (int localX = firstLocalX; localX < firstLocalX + ADAPTIVE_DEEP_SAMPLE_STEP; localX++) {
+            int rowColumn = PowerOfTwoCoordinates.packLocal16(localX, firstLocalZ);
+            for (int column = rowColumn; column < rowColumn + ADAPTIVE_DEEP_SAMPLE_STEP; column++) {
+                if (!isCellColumnActive(plan, column, y)) {
+                    continue;
+                }
+                double tx = adaptiveTx[column];
+                double tz = adaptiveTz[column];
+                double dx0 = d00 + ((d10 - d00) * tx);
+                double dx1 = d01 + ((d11 - d01) * tx);
+                double predictedDensity = dx0 + ((dx1 - dx0) * tz);
+                if (predictedDensity <= cellThreshold(plan, column, y, minY, surfaceBreakThresholdBoost, verticalEdgeFade)) {
+                    rowBits[column >> 6] |= 1L << column;
+                }
+            }
+        }
+    }
+
+    private static void markActiveCellColumns(CaveCarveScratch plan, int cell, int y, long[] rowBits) {
+        int firstLocalX = (cell >> 1) << 3;
+        int firstLocalZ = (cell & 1) << 3;
+        for (int localX = firstLocalX; localX < firstLocalX + ADAPTIVE_DEEP_SAMPLE_STEP; localX++) {
+            int rowColumn = PowerOfTwoCoordinates.packLocal16(localX, firstLocalZ);
+            for (int column = rowColumn; column < rowColumn + ADAPTIVE_DEEP_SAMPLE_STEP; column++) {
+                if (isCellColumnActive(plan, column, y)) {
+                    rowBits[column >> 6] |= 1L << column;
+                }
+            }
+        }
+    }
+
+    private static boolean isCellActive(CaveCarveScratch plan, int cell, int y) {
+        if (y > plan.cellTopY[cell]) {
+            return false;
+        }
+        if (!plan.cellProtected[cell]) {
+            return true;
+        }
+        int firstLocalX = (cell >> 1) << 3;
+        int firstLocalZ = (cell & 1) << 3;
+        for (int localX = firstLocalX; localX < firstLocalX + ADAPTIVE_DEEP_SAMPLE_STEP; localX++) {
+            int rowColumn = PowerOfTwoCoordinates.packLocal16(localX, firstLocalZ);
+            for (int column = rowColumn; column < rowColumn + ADAPTIVE_DEEP_SAMPLE_STEP; column++) {
+                if (isCellColumnActive(plan, column, y)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private static boolean isCellColumnActive(CaveCarveScratch plan, int column, int y) {
+        return (plan.cellPassBits[column >> 6] & (1L << column)) != 0L
+                && plan.columnMaxY[column] >= y
+                && (y < plan.columnProtectStartY[column] || y > plan.columnProtectEndY[column]);
+    }
+
+    private double cornerDensity(CaveCarveScratch scratch, CaveDensityGrid.Column column, int x, int y, int z) {
+        if (column == null) {
+            return samplePlaneDensity(scratch, x, y, z);
+        }
+        double cached = column.get(y);
+        if (!Double.isNaN(cached)) {
+            return cached;
+        }
+        double density = samplePlaneDensity(scratch, x, y, z);
+        column.set(y, density);
+        return density;
+    }
+
+    private double cellThreshold(CaveCarveScratch plan, int column, int y, int minY, double surfaceBreakThresholdBoost,
+                                 double[] verticalEdgeFade) {
+        return CaveCellKernel.threshold(cellLocalThreshold(plan, column, y, minY, surfaceBreakThresholdBoost, verticalEdgeFade),
+                normalizationFactor, inverseNormalization);
+    }
+
+    private double cellLocalThreshold(CaveCarveScratch plan, int column, int y, int minY, double surfaceBreakThresholdBoost,
+                                      double[] verticalEdgeFade) {
+        double localThreshold = plan.passThreshold[column];
+        if (plan.surfaceBreakColumn[column] && y >= plan.surfaceBreakFloorY[column]) {
+            localThreshold += surfaceBreakThresholdBoost;
+        }
+        localThreshold -= verticalEdgeFade[y - minY];
+        return applySurfaceCeilingFade(plan, localThreshold, column, y, minY);
+    }
+
+    private static void flushCellCounters(CaveCarveScratch scratch) {
+        if (scratch.solidCells != 0L) {
+            SOLID_CELLS.add(scratch.solidCells);
+            scratch.solidCells = 0L;
+        }
+        if (scratch.openCells != 0L) {
+            OPEN_CELLS.add(scratch.openCells);
+            scratch.openCells = 0L;
+        }
+        if (scratch.mixedCells != 0L) {
+            MIXED_CELLS.add(scratch.mixedCells);
+            scratch.mixedCells = 0L;
+        }
+        if (scratch.exactRows != 0L) {
+            EXACT_ROWS.add(scratch.exactRows);
+            scratch.exactRows = 0L;
+        }
     }
 
     private int carvePassLattice(

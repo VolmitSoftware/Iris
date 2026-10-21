@@ -78,6 +78,7 @@ public final class MapWindow implements MapCanvas.Listener {
     private final JPanel inspectorSlot = new JPanel(new BorderLayout());
     private final JComponent viewListScroll;
     private final JSplitPane explorerSplit = new JSplitPane(JSplitPane.VERTICAL_SPLIT);
+    private final JSplitPane regionInspectorSplit = new JSplitPane(JSplitPane.VERTICAL_SPLIT);
     private final List<JComponent> mapControls = new ArrayList<>();
     private final List<JComponent> explorerControls = new ArrayList<>();
     private final List<JComponent> noiseControls = new ArrayList<>();
@@ -90,6 +91,7 @@ public final class MapWindow implements MapCanvas.Listener {
     private final JToggleButton shadingToggle = StudioToolbar.toggle("Shading", "Shade hills and valleys on every view (S)");
     private final JToggleButton bordersToggle = StudioToolbar.toggle("Borders", "Outline the regions on every view (B)");
     private final MapLegendPanel legendPanel;
+    private final RegionExplorer regionExplorer;
 
     private NoiseExplorerGUI paletteExplorer;
     private final Map<MapView, ObjectExplorer> objectExplorers = new EnumMap<>(MapView.class);
@@ -106,6 +108,7 @@ public final class MapWindow implements MapCanvas.Listener {
         this.viewList = new MapViewList(this::showView);
         this.viewListScroll = StudioToolbar.scroll(viewList);
         this.legendPanel = new MapLegendPanel(share -> canvas.toggleHighlight(share.label()));
+        this.regionExplorer = new RegionExplorer(canvas::engine, canvas::previewRegion);
         canvas.centerOn(start.centerX(), start.centerZ());
         buildFrame();
     }
@@ -132,6 +135,7 @@ public final class MapWindow implements MapCanvas.Listener {
 
     private void buildFrame() {
         styleExplorerSplit();
+        styleRegionInspectorSplit();
         content.add(canvas, MAP_CARD);
         statusBars.add(canvas.statusBar(), MAP_CARD);
         sidebar.add(viewListScroll, BorderLayout.CENTER);
@@ -221,11 +225,36 @@ public final class MapWindow implements MapCanvas.Listener {
         canvas.showView(view);
         canvas.setActive(true);
         showControls(mapControls);
-        useSidebar(viewListScroll);
         inspectorSlot.removeAll();
-        inspectorSlot.add(legendPanel, BorderLayout.CENTER);
+        if (view == MapView.REGIONS) {
+            showRegionExplorer(previousView);
+        } else {
+            useSidebar(viewListScroll);
+            inspectorSlot.add(legendPanel, BorderLayout.CENTER);
+        }
         showCard(MAP_CARD);
         canvas.requestFocusInWindow();
+    }
+
+    // The region inspector sits above the legend, which then lists the chosen region's biomes on the map.
+    private void showRegionExplorer(MapView previousView) {
+        if (previousView != MapView.REGIONS) {
+            regionExplorer.loadRegions();
+        }
+        useSidebar(viewListAbove(regionExplorer.navigator()));
+        regionInspectorSplit.setTopComponent(regionExplorer.inspector());
+        regionInspectorSplit.setBottomComponent(legendPanel);
+        inspectorSlot.add(regionInspectorSplit, BorderLayout.CENTER);
+        EventQueue.invokeLater(() -> viewList.select(currentView));
+        regionExplorer.measure(canvas.viewArea());
+    }
+
+    private void styleRegionInspectorSplit() {
+        regionInspectorSplit.setBorder(BorderFactory.createMatteBorder(0, 1, 0, 0, StudioTheme.SEPARATOR));
+        regionInspectorSplit.setResizeWeight(0.7D);
+        regionInspectorSplit.setBackground(StudioTheme.PANEL_BACKGROUND);
+        regionInspectorSplit.setDividerSize(StudioTheme.scale(EXPLORER_DIVIDER_HEIGHT));
+        regionInspectorSplit.putClientProperty("FlatLaf.style", "style: grip");
     }
 
     private void showPalettes(MapView previousView) {
@@ -389,6 +418,14 @@ public final class MapWindow implements MapCanvas.Listener {
     @Override
     public void onLegendChanged(String title, List<MapCensus.Share> shares, MapStyle.Highlight highlight) {
         legendPanel.show(title, shares, highlight);
+        if (currentView == MapView.REGIONS) {
+            regionExplorer.measure(canvas.viewArea());
+        }
+    }
+
+    @Override
+    public void onContentRefreshed() {
+        regionExplorer.refresh();
     }
 
     private void resetExplorerView() {
@@ -486,6 +523,7 @@ public final class MapWindow implements MapCanvas.Listener {
 
     private void close() {
         canvas.close();
+        regionExplorer.close();
         if (paletteExplorer != null) {
             paletteExplorer.close();
         }

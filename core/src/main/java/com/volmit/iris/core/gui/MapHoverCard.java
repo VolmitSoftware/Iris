@@ -21,6 +21,7 @@ package com.volmit.iris.core.gui;
 import com.volmit.iris.core.gui.components.MapLabels;
 import com.volmit.iris.core.gui.components.RenderType;
 import com.volmit.iris.core.loader.IrisRegistrant;
+import com.volmit.iris.engine.HybridBiomeSelector;
 import com.volmit.iris.engine.object.IrisBiome;
 
 import java.io.File;
@@ -91,6 +92,26 @@ final class MapHoverCard {
         if (details.vanillaBiome() != null) {
             lines.add("Minecraft biome " + details.vanillaBiome().replace('_', ' '));
         }
+        if (details.placement() != null) {
+            lines.add(placementText(details.placement()));
+        }
+    }
+
+    // How hybrid terrain chose the base biome; a child biome or a coast can still replace it afterwards.
+    private static String placementText(HybridBiomeSelector.Choice choice) {
+        String height = "Picked at " + heightAboveSea(choice.placementHeight()) + " · ";
+        if (choice.fallback()) {
+            return height + "no range covers it, closest range wins";
+        }
+        if (choice.rivalCount() == 0) {
+            return height + "the only biome in range";
+        }
+        return height + "beat " + choice.rivalCount() + (choice.rivalCount() == 1 ? " other biome" : " other biomes") + " in range";
+    }
+
+    private static String heightAboveSea(double height) {
+        long rounded = Math.round(height);
+        return rounded < 0 ? -rounded + " below sea" : rounded + " above sea";
     }
 
     private static void addSource(List<String> lines, MapLabels.Label label) {

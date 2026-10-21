@@ -19,9 +19,10 @@
 package com.volmit.iris.core.gui;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.gui.components.RenderType;
+import com.volmit.iris.core.gui.components.MapLayer;
 import com.volmit.iris.engine.IrisComplex;
 import com.volmit.iris.engine.framework.Engine;
+import com.volmit.iris.engine.object.IrisRegion;
 import com.volmit.iris.engine.object.IrisWorld;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.scheduling.J;
@@ -65,18 +66,24 @@ final class VisionOverlay {
         runOnServerThread(() -> teleportOpener(blockX, blockZ));
     }
 
-    Optional<String> openInEditor(double worldX, double worldZ, RenderType type) {
+    Optional<String> openInEditor(double worldX, double worldZ, MapLayer layer) {
         IrisComplex complex = engine.getComplex();
-        File file = switch (type) {
+        File file = switch (layer.type()) {
             case BIOME, HEIGHT ->
                     complex.getTrueBiomeStream().get(worldX, worldZ).openInVSCode();
             case BIOME_LAND -> complex.getLandBiomeStream().get(worldX, worldZ).openInVSCode();
             case BIOME_SEA -> complex.getSeaBiomeStream().get(worldX, worldZ).openInVSCode();
             case REGION -> complex.getRegionStream().get(worldX, worldZ).openInVSCode();
+            case REGION_PREVIEW -> openPreviewedBiome(complex, layer.previewRegionKey(), worldX, worldZ);
             case CAVE_LAND -> complex.getCaveBiomeStream().get(worldX, worldZ).openInVSCode();
             case CONTINENT -> null;
         };
         return Optional.ofNullable(file).map(File::getName);
+    }
+
+    private File openPreviewedBiome(IrisComplex complex, String regionKey, double worldX, double worldZ) {
+        IrisRegion region = engine.getData().getRegionLoader().load(regionKey);
+        return region == null ? null : complex.surfaceBiomeAsIfIn(region, worldX, worldZ).openInVSCode();
     }
 
     private void queuePlayerRefresh() {

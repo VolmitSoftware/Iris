@@ -21,8 +21,8 @@ package com.volmit.iris.core.gui;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.gui.components.IrisRenderer;
 import com.volmit.iris.core.gui.components.MapLabels;
+import com.volmit.iris.core.gui.components.MapLayer;
 import com.volmit.iris.core.gui.components.MapTile;
-import com.volmit.iris.core.gui.components.RenderType;
 
 import java.awt.EventQueue;
 import java.util.ArrayList;
@@ -212,7 +212,7 @@ final class VisionRenderController implements AutoCloseable {
             for (long tileX = minimumX; tileX <= maximumX; tileX++) {
                 double deltaX = tileX + 0.5D - centerTileX;
                 double deltaZ = tileZ + 0.5D - centerTileZ;
-                TileKey key = new TileKey(spec.contentRevision(), spec.type(), spec.heights(), renderScale, tileX, tileZ);
+                TileKey key = new TileKey(spec.contentRevision(), spec.layer(), spec.heights(), renderScale, tileX, tileZ);
                 tiles.add(new VisibleTile(key, deltaX * deltaX + deltaZ * deltaZ));
             }
         }
@@ -302,7 +302,7 @@ final class VisionRenderController implements AutoCloseable {
                     key.tileZ() * tileSpan,
                     key.blocksPerPixel(),
                     TILE_PIXELS,
-                    key.type(),
+                    key.layer(),
                     key.heights(),
                     () -> !isWanted(key)
             );
@@ -337,7 +337,7 @@ final class VisionRenderController implements AutoCloseable {
             }
             long parentX = Math.floorDiv(key.tileX(), scale);
             long parentZ = Math.floorDiv(key.tileZ(), scale);
-            MapTile parent = cache.get(new TileKey(key.contentRevision(), key.type(), key.heights(), parentScale, parentX,
+            MapTile parent = cache.get(new TileKey(key.contentRevision(), key.layer(), key.heights(), parentScale, parentX,
                     parentZ));
             if (parent != null) {
                 int sourceX = (int) (key.tileX() - parentX * scale) * sourceSize;
@@ -357,7 +357,7 @@ final class VisionRenderController implements AutoCloseable {
         List<FallbackPiece> pieces = new ArrayList<>(4);
         for (int childZ = 0; childZ < 2; childZ++) {
             for (int childX = 0; childX < 2; childX++) {
-                MapTile child = cache.get(new TileKey(key.contentRevision(), key.type(), key.heights(), childScale,
+                MapTile child = cache.get(new TileKey(key.contentRevision(), key.layer(), key.heights(), childScale,
                         key.tileX() * 2L + childX, key.tileZ() * 2L + childZ));
                 if (child != null) {
                     pieces.add(new FallbackPiece(child, 0, 0, TILE_PIXELS, childX * 0.5D, childZ * 0.5D, 0.5D));
@@ -420,7 +420,7 @@ final class VisionRenderController implements AutoCloseable {
 
     record RenderSpec(
             IrisRenderer renderer,
-            RenderType type,
+            MapLayer layer,
             long contentRevision,
             double centerX,
             double centerZ,
@@ -431,7 +431,7 @@ final class VisionRenderController implements AutoCloseable {
     ) {
         RenderSpec {
             Objects.requireNonNull(renderer, "renderer");
-            Objects.requireNonNull(type, "type");
+            Objects.requireNonNull(layer, "layer");
             if (!Double.isFinite(centerX) || !Double.isFinite(centerZ)) {
                 throw new IllegalArgumentException("Vision center must be finite");
             }
@@ -492,7 +492,7 @@ final class VisionRenderController implements AutoCloseable {
             double tileSpan = TILE_PIXELS * renderBlocksPerPixel;
             long tileX = (long) Math.floor(worldX / tileSpan);
             long tileZ = (long) Math.floor(worldZ / tileSpan);
-            VisibleTile visible = tilesByKey.get(new TileKey(spec.contentRevision(), spec.type(), spec.heights(),
+            VisibleTile visible = tilesByKey.get(new TileKey(spec.contentRevision(), spec.layer(), spec.heights(),
                     renderBlocksPerPixel, tileX, tileZ));
             MapTile tile = visible == null ? null : visible.tile();
             if (tile == null) {
@@ -563,16 +563,16 @@ final class VisionRenderController implements AutoCloseable {
     /**
      * @param heights whether the tile also carries terrain heights, for shading
      */
-    record TileKey(long contentRevision, RenderType type, boolean heights, double blocksPerPixel, long tileX, long tileZ) {
+    record TileKey(long contentRevision, MapLayer layer, boolean heights, double blocksPerPixel, long tileX, long tileZ) {
         TileKey {
-            Objects.requireNonNull(type, "type");
+            Objects.requireNonNull(layer, "layer");
             if (!Double.isFinite(blocksPerPixel) || blocksPerPixel <= 0D) {
                 throw new IllegalArgumentException("Vision cache scale must be finite and positive");
             }
         }
 
         TileKey withHeights(boolean nextHeights) {
-            return new TileKey(contentRevision, type, nextHeights, blocksPerPixel, tileX, tileZ);
+            return new TileKey(contentRevision, layer, nextHeights, blocksPerPixel, tileX, tileZ);
         }
     }
 

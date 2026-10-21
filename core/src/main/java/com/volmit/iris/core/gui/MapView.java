@@ -27,9 +27,10 @@ import java.awt.event.KeyEvent;
  */
 enum MapView {
     BIOMES("Biomes", "The biome at each spot, in the biome's colour", Group.WORLD, RenderType.BIOME, KeyEvent.VK_1),
-    REGIONS("Regions", "The region each spot belongs to", Group.WORLD, RenderType.REGION, KeyEvent.VK_2),
+    REGIONS("Regions", "The region each spot belongs to; pick one to see which biome covers which height",
+            Group.WORLD, RenderType.REGION, KeyEvent.VK_2),
     HEIGHT("Height", "Terrain height, from deep water to snowy peaks", Group.WORLD, RenderType.HEIGHT, KeyEvent.VK_3),
-    CONTINENTS("Continents", "Land, coast or sea, judged by each biome's first height generator",
+    CONTINENTS("Continents", "Land, coast or sea: where hybrid terrain ends up, or each biome's first height generator otherwise",
             Group.WORLD, RenderType.CONTINENT, KeyEvent.VK_4),
     LAND_BIOMES("Land biomes", "The land biome each spot would get, also where the sea is",
             Group.BIOME_STREAMS, RenderType.BIOME_LAND, KeyEvent.VK_5),

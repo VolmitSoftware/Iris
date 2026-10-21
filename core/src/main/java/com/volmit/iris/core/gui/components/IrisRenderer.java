@@ -76,7 +76,7 @@ public final class IrisRenderer {
             double startZ,
             double blocksPerPixel,
             int size,
-            RenderType type,
+            MapLayer layer,
             boolean withHeights,
             BooleanSupplier cancelled
     ) {
@@ -86,12 +86,13 @@ public final class IrisRenderer {
         if (size < 1) {
             throw new IllegalArgumentException("Map tile size must be positive");
         }
-        Objects.requireNonNull(type, "type");
+        Objects.requireNonNull(layer, "layer");
         Objects.requireNonNull(cancelled, "cancelled");
+        RenderType type = layer.type();
         checkCancelled(cancelled);
 
         TileGrid grid = new TileGrid(size + 2, startX - blocksPerPixel, startZ - blocksPerPixel, blocksPerPixel, cancelled);
-        int[] identities = sampleIdentities(grid, type);
+        int[] identities = sampleIdentities(grid, layer);
         double[] heights = withHeights || type == RenderType.HEIGHT ? sampleHeights(grid) : null;
         short[] subjects = new short[identities.length];
         short[] regions = new short[identities.length];
@@ -139,8 +140,8 @@ public final class IrisRenderer {
         return blend(ROCK, SNOW, (land - 0.78D) / 0.22D);
     }
 
-    private int[] sampleIdentities(TileGrid grid, RenderType type) {
-        IdentitySampler sampler = new IdentitySampler(grid, identityShader(type));
+    private int[] sampleIdentities(TileGrid grid, MapLayer layer) {
+        IdentitySampler sampler = new IdentitySampler(grid, identityShader(layer));
         sampler.renderAll(sampleBlockPixels(grid.step()));
         return sampler.identities;
     }
@@ -155,26 +156,41 @@ public final class IrisRenderer {
         return Integer.highestOneBit(Math.max(1, Math.min(LARGEST_SAMPLE_BLOCK_PIXELS, largestPixels)));
     }
 
-    private IdentityShader identityShader(RenderType type) {
+    private IdentityShader identityShader(MapLayer layer) {
         IrisComplex complex = engine.getComplex();
         ProceduralStream<IrisRegion> regionStream = complex.getRegionStream();
         LabelLookup lookup = new LabelLookup(labels);
-        if (type == RenderType.REGION) {
+        if (layer.type() == RenderType.REGION) {
             return (double x, double z) -> {
                 short region = lookup.idOf(regionStream.get(x, z));
                 return identity(region, region);
             };
         }
-        ProceduralStream<IrisBiome> biomeStream = subjectBiomeStream(complex, type);
+        if (layer.type() == RenderType.REGION_PREVIEW) {
+            return regionPreviewShader(complex, layer.previewRegionKey(), lookup);
+        }
+        ProceduralStream<IrisBiome> biomeStream = subjectBiomeStream(complex, layer.type());
         return (double x, double z) -> identity(lookup.idOf(biomeStream.get(x, z)), lookup.idOf(regionStream.get(x, z)));
     }
 
+    // Every spot is treated as part of the previewed region, so the tile shows the biomes that region places there.
+    private IdentityShader regionPreviewShader(IrisComplex complex, String regionKey, LabelLookup lookup) {
+        IrisRegion region = engine.getData().getRegionLoader().load(regionKey);
+        if (region == null) {
+            return (double x, double z) -> identity(MapLabels.NONE, MapLabels.NONE);
+        }
+        short regionId = lookup.idOf(region);
+        return (double x, double z) -> identity(lookup.idOf(complex.surfaceBiomeAsIfIn(region, x, z)), regionId);
+    }
+
+    // Hybrid terrain decides land, coast and sea by height after the biomes are chosen, so the final biome tells.
     private static ProceduralStream<IrisBiome> subjectBiomeStream(IrisComplex complex, RenderType type) {
         return switch (type) {
             case BIOME_LAND -> complex.getLandBiomeStream();
             case BIOME_SEA -> complex.getSeaBiomeStream();
             case CAVE_LAND -> complex.getCaveBiomeStream();
-            case BIOME, HEIGHT, CONTINENT, REGION -> complex.getBaseBiomeStream();
+            case CONTINENT -> complex.isHybridTerrain() ? complex.getTrueBiomeStream() : complex.getBaseBiomeStream();
+            case BIOME, HEIGHT, REGION, REGION_PREVIEW -> complex.getBaseBiomeStream();
         };
     }
 
@@ -211,7 +227,7 @@ public final class IrisRenderer {
 
     private int subjectColor(Object subject, RenderType type) {
         if (type == RenderType.CONTINENT && subject instanceof IrisBiome biome) {
-            return continentColor(biome);
+            return engine.getComplex().isHybridTerrain() ? continentColorByPlacement(biome) : continentColor(biome);
         }
         if (subject instanceof IrisRegion region) {
             return region.getColor(engine.getComplex(), type).getRGB() & 0xFFFFFF;
@@ -235,6 +251,13 @@ public final class IrisRenderer {
             return YELLOW;
         }
         return GREEN;
+    }
+
+    private static int continentColorByPlacement(IrisBiome biome) {
+        if (biome.isShore()) {
+            return YELLOW;
+        }
+        return biome.isSea() ? BLUE : GREEN;
     }
 
     private static int identity(short subject, short region) {

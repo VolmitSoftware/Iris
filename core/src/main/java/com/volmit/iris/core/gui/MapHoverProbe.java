@@ -18,6 +18,7 @@
 
 package com.volmit.iris.core.gui;
 
+import com.volmit.iris.engine.HybridBiomeSelector;
 import com.volmit.iris.engine.IrisComplex;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.InferredType;
@@ -38,11 +39,17 @@ final class MapHoverProbe {
     private MapHoverProbe() {
     }
 
-    static Details sample(Engine engine, double worldX, double worldZ) {
+    /**
+     * @param previewRegionKey the region the region preview treats every spot as part of, or null for the real world
+     */
+    static Details sample(Engine engine, double worldX, double worldZ, String previewRegionKey) {
         IrisComplex complex = engine.getComplex();
-        IrisBiome surfaceBiome = complex.getBaseBiomeStream().get(worldX, worldZ);
+        IrisRegion previewRegion = previewRegionKey == null ? null : engine.getData().getRegionLoader().load(previewRegionKey);
+        IrisRegion region = previewRegion != null ? previewRegion : complex.getRegionStream().get(worldX, worldZ);
+        IrisBiome surfaceBiome = previewRegion != null
+                ? complex.surfaceBiomeAsIfIn(previewRegion, worldX, worldZ)
+                : complex.getBaseBiomeStream().get(worldX, worldZ);
         IrisBiome caveBiome = complex.getCaveBiomeStream().get(worldX, worldZ);
-        IrisRegion region = complex.getRegionStream().get(worldX, worldZ);
         InferredType terrainKind = complex.getBridgeStream().get(worldX, worldZ);
         Biome vanillaBiome = complex.getTrueBiomeDerivativeStream().get(worldX, worldZ);
         double height = complex.getHeightStream().getDouble(worldX, worldZ);
@@ -58,7 +65,8 @@ final class MapHoverProbe {
                 vanillaBiome == null ? null : vanillaBiome.getKey().getKey(),
                 height,
                 dimension == null ? 0D : dimension.getFluidHeight(),
-                Math.toDegrees(Math.atan(slope / SLOPE_STREAM_RANGE_BLOCKS))
+                Math.toDegrees(Math.atan(slope / SLOPE_STREAM_RANGE_BLOCKS)),
+                complex.explainHybridChoice(region, worldX, worldZ)
         );
     }
 
@@ -84,7 +92,8 @@ final class MapHoverProbe {
             String vanillaBiome,
             double height,
             double fluidHeight,
-            double slopeDegrees
+            double slopeDegrees,
+            HybridBiomeSelector.Choice placement
     ) {
     }
 }

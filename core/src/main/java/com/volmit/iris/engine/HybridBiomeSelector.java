@@ -41,20 +41,17 @@ public class HybridBiomeSelector {
         this.data = data;
     }
 
-    public IrisBiome select(List<IrisBiome> candidates, double placementHeight, double x, double z) {
-        IrisBiome strongest = strongestAllowedBiome(candidates, placementHeight, x, z);
-        return strongest != null ? strongest : closestBiomeByHeight(candidates, placementHeight);
-    }
-
-    private IrisBiome strongestAllowedBiome(List<IrisBiome> candidates, double placementHeight, double x, double z) {
+    public Choice choose(List<IrisBiome> candidates, double placementHeight, double x, double z) {
         IrisBiome strongest = null;
         double strongestScore = Double.NEGATIVE_INFINITY;
+        int allowedCount = 0;
 
         for (IrisBiome biome : candidates) {
             if (!biome.getPlacement().allowsHeight(placementHeight)) {
                 continue;
             }
 
+            allowedCount++;
             double score = competitionScore(biome, x, z);
 
             if (score > strongestScore) {
@@ -63,7 +60,11 @@ public class HybridBiomeSelector {
             }
         }
 
-        return strongest;
+        if (strongest == null) {
+            return new Choice(closestBiomeByHeight(candidates, placementHeight), placementHeight, 0, true);
+        }
+
+        return new Choice(strongest, placementHeight, allowedCount - 1, false);
     }
 
     private double competitionScore(IrisBiome biome, double x, double z) {
@@ -90,5 +91,12 @@ public class HybridBiomeSelector {
         }
 
         return closest;
+    }
+
+    /**
+     * @param rivalCount how many other biomes allowed this height and lost the competition
+     * @param fallback   whether no biome allowed this height, so the one with the closest range was taken
+     */
+    public record Choice(IrisBiome biome, double placementHeight, int rivalCount, boolean fallback) {
     }
 }

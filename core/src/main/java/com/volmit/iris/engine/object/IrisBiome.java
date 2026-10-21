@@ -666,7 +666,7 @@ public class IrisBiome extends IrisRegistrant implements IRare {
 
     public Color getColor(Engine engine, RenderType type) {
         switch (type) {
-            case BIOME, HEIGHT, CAVE_LAND, REGION, BIOME_SEA, BIOME_LAND -> {
+            case BIOME, HEIGHT, CAVE_LAND, REGION, REGION_PREVIEW, BIOME_SEA, BIOME_LAND -> {
                 return this.cacheColor.aquire(() -> {
                     if (this.color == null) {
                         RandomColor randomColor = new RandomColor(getName().hashCode());

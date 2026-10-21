@@ -21,6 +21,7 @@ package com.volmit.iris.core.gui;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.gui.components.IrisRenderer;
 import com.volmit.iris.core.gui.components.MapLabels;
+import com.volmit.iris.core.gui.components.MapLayer;
 import com.volmit.iris.core.gui.components.MapStyle;
 import com.volmit.iris.core.gui.components.RenderType;
 import com.volmit.iris.engine.framework.Engine;
@@ -95,6 +96,7 @@ final class MapCanvas extends JPanel {
     private boolean tileLayerStale = true;
     private MapStyle style = MapStyle.PLAIN;
     private RenderType currentType = RenderType.BIOME;
+    private String previewRegionKey;
     private String viewLabel = MapView.BIOMES.label();
     private List<GuiMarker> players = List.of();
     private List<GuiMarker> entities = List.of();
@@ -197,14 +199,39 @@ final class MapCanvas extends JPanel {
             return;
         }
         viewLabel = view.label();
-        if (view.renderType() == currentType) {
+        RenderType nextType = view == MapView.REGIONS && previewRegionKey != null ? RenderType.REGION_PREVIEW : view.renderType();
+        if (nextType == currentType) {
             return;
         }
-        currentType = view.renderType();
+        currentType = nextType;
         if (currentType != RenderType.HEIGHT) {
             style = style.withHeightRange(null);
         }
         requestRender();
+    }
+
+    /**
+     * Shows the given region's biomes everywhere in the region view, as if every spot belonged to it; null shows the
+     * regions themselves again.
+     */
+    void previewRegion(String regionKey) {
+        if (Objects.equals(regionKey, previewRegionKey)) {
+            return;
+        }
+        previewRegionKey = regionKey;
+        if (currentType == RenderType.REGION || currentType == RenderType.REGION_PREVIEW) {
+            currentType = regionKey == null ? RenderType.REGION : RenderType.REGION_PREVIEW;
+            requestRender();
+        }
+    }
+
+    MapCensus.ViewArea viewArea() {
+        return new MapCensus.ViewArea(screenToWorldX(0D), screenToWorldZ(0D), screenToWorldX(getWidth()),
+                screenToWorldZ(getHeight()));
+    }
+
+    private MapLayer currentLayer() {
+        return currentType == RenderType.REGION_PREVIEW ? MapLayer.regionPreview(previewRegionKey) : MapLayer.of(currentType);
     }
 
     String legendTitle() {
@@ -233,6 +260,7 @@ final class MapCanvas extends JPanel {
         requestRender();
         notifyUser("Refreshing");
         listener.onTogglesChanged();
+        listener.onContentRefreshed();
     }
 
     void toggleShading() {
@@ -922,8 +950,7 @@ final class MapCanvas extends JPanel {
         }
         IrisRenderer legendRenderer = renderer;
         RenderType type = currentType;
-        MapCensus.ViewArea area = new MapCensus.ViewArea(screenToWorldX(0D), screenToWorldZ(0D),
-                screenToWorldX(getWidth()), screenToWorldZ(getHeight()));
+        MapCensus.ViewArea area = viewArea();
         List<MapCensus.Share> shares = MapCensus.count(renderFrame, area, label -> legendRenderer.legendColor(label, type));
         listener.onLegendChanged(legendTitle(), shares, style.highlight());
         if (type == RenderType.HEIGHT) {
@@ -952,7 +979,7 @@ final class MapCanvas extends JPanel {
         clearHover();
         VisionRenderController.RenderSpec spec = new VisionRenderController.RenderSpec(
                 renderer,
-                currentType,
+                currentLayer(),
                 contentRevision,
                 centerX,
                 centerZ,
@@ -1052,7 +1079,7 @@ final class MapCanvas extends JPanel {
         double worldZ = screenToWorldZ(point.y);
         controller.submitProbe(
                 frame,
-                () -> MapHoverProbe.sample(probeEngine, worldX, worldZ),
+                () -> MapHoverProbe.sample(probeEngine, worldX, worldZ, previewedRegion()),
                 details -> {
                     QuickHover quick = quickHover;
                     if (quick != null && quick.worldX() == details.worldX() && quick.worldZ() == details.worldZ()) {
@@ -1061,6 +1088,10 @@ final class MapCanvas extends JPanel {
                     }
                 }
         );
+    }
+
+    private String previewedRegion() {
+        return currentType == RenderType.REGION_PREVIEW ? previewRegionKey : null;
     }
 
     // The drawn tiles already know the biome and region under the cursor, so the card follows the mouse without waiting.
@@ -1161,10 +1192,10 @@ final class MapCanvas extends JPanel {
         }
         double worldX = screenToWorldX(point.x);
         double worldZ = screenToWorldZ(point.y);
-        RenderType type = currentType;
+        MapLayer layer = currentLayer();
         controller.submitProbe(
                 renderFrame,
-                () -> activeOverlay.openInEditor(worldX, worldZ, type),
+                () -> activeOverlay.openInEditor(worldX, worldZ, layer),
                 opened -> opened.ifPresent(fileName -> notifyUser("Opened " + fileName))
         );
     }
@@ -1186,6 +1217,8 @@ final class MapCanvas extends JPanel {
 
     interface Listener {
         void onTogglesChanged();
+
+        void onContentRefreshed();
 
         void onShowPalettesAt(double worldX, double worldZ);
 

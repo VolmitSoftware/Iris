@@ -51,6 +51,9 @@ public class IrisComplex implements DataProvider {
     private static final List<InferredType> HYBRID_PLACED_TYPES = List.of(InferredType.LAND, InferredType.SEA, InferredType.SHORE);
     private RNG rng;
     private double fluidHeight;
+    private IrisDimension dimension;
+    private boolean hybridTerrain;
+    private boolean legacyRarity;
     private IrisData data;
     private Map<IrisInterpolator, Set<IrisGenerator>> generators;
     private ProceduralStream<IrisRegion> regionStream;
@@ -99,6 +102,9 @@ public class IrisComplex implements DataProvider {
         this.data = engine.getData();
         double height = engine.getMaxHeight();
         fluidHeight = engine.getDimension().getFluidHeight();
+        dimension = engine.getDimension();
+        hybridTerrain = dimension.getTerrainMode() == IrisTerrainMode.HYBRID;
+        legacyRarity = dimension.isLegacyRarity();
         generators = new HashMap<>();
         focusBiome = engine.getFocus();
         focusRegion = engine.getFocusRegion();
@@ -135,7 +141,6 @@ public class IrisComplex implements DataProvider {
                 : regionStyleStream
                 .selectRarity(data.getRegionLoader().loadAll(engine.getDimension().getRegions()), legacy)
                 .cache2D("regionStream", engine, cacheSize).waste("Region Stream");
-        boolean hybridTerrain = engine.getDimension().getTerrainMode() == IrisTerrainMode.HYBRID;
         if (hybridTerrain) {
             prepareHybridBiomePlacement(engine, cacheSize);
         }
@@ -150,33 +155,11 @@ public class IrisComplex implements DataProvider {
                         .onNull(emptyBiome)
                 ).convertAware2D(ProceduralStream::get).cache2D("caveBiomeStream", engine, cacheSize).waste("Cave Biome Stream");
         inferredStreams.put(InferredType.CAVE, caveBiomeStream);
-        landBiomeStream = hybridTerrain ? createHybridBiomeStream(engine, InferredType.LAND, cacheSize) : regionStream.contextInjecting((c, x, z) -> IrisContext.getOr(engine).getChunkContext().getRegion().get(x, z))
-                .convert((r)
-                        -> engine.getDimension().getLandBiomeStyle().create(rng.nextParallelRNG(InferredType.LAND.ordinal()), getData()).stream()
-                        .zoom(engine.getDimension().getBiomeZoom())
-                        .zoom(engine.getDimension().getLandZoom())
-                        .zoom(r.getLandBiomeZoom())
-                        .selectRarity(data.getBiomeLoader().loadAll(r.getLandBiomes(), (t) -> t.setInferredType(InferredType.LAND)), legacy)
-                ).convertAware2D(ProceduralStream::get)
-                .cache2D("landBiomeStream", engine, cacheSize).waste("Land Biome Stream");
+        landBiomeStream = createRegionBiomeStream(engine, InferredType.LAND, cacheSize);
         inferredStreams.put(InferredType.LAND, landBiomeStream);
-        seaBiomeStream = hybridTerrain ? createHybridBiomeStream(engine, InferredType.SEA, cacheSize) : regionStream.contextInjecting((c, x, z) -> IrisContext.getOr(engine).getChunkContext().getRegion().get(x, z))
-                .convert((r)
-                        -> engine.getDimension().getSeaBiomeStyle().create(rng.nextParallelRNG(InferredType.SEA.ordinal()), getData()).stream()
-                        .zoom(engine.getDimension().getBiomeZoom())
-                        .zoom(engine.getDimension().getSeaZoom())
-                        .zoom(r.getSeaBiomeZoom())
-                        .selectRarity(data.getBiomeLoader().loadAll(r.getSeaBiomes(), (t) -> t.setInferredType(InferredType.SEA)), legacy)
-                ).convertAware2D(ProceduralStream::get)
-                .cache2D("seaBiomeStream", engine, cacheSize).waste("Sea Biome Stream");
+        seaBiomeStream = createRegionBiomeStream(engine, InferredType.SEA, cacheSize);
         inferredStreams.put(InferredType.SEA, seaBiomeStream);
-        shoreBiomeStream = hybridTerrain ? createHybridBiomeStream(engine, InferredType.SHORE, cacheSize) : regionStream.contextInjecting((c, x, z) -> IrisContext.getOr(engine).getChunkContext().getRegion().get(x, z))
-                .convert((r)
-                        -> engine.getDimension().getShoreBiomeStyle().create(rng.nextParallelRNG(InferredType.SHORE.ordinal()), getData()).stream()
-                        .zoom(engine.getDimension().getBiomeZoom())
-                        .zoom(r.getShoreBiomeZoom())
-                        .selectRarity(data.getBiomeLoader().loadAll(r.getShoreBiomes(), (t) -> t.setInferredType(InferredType.SHORE)), legacy)
-                ).convertAware2D(ProceduralStream::get).cache2D("shoreBiomeStream", engine, cacheSize).waste("Shore Biome Stream");
+        shoreBiomeStream = createRegionBiomeStream(engine, InferredType.SHORE, cacheSize);
         inferredStreams.put(InferredType.SHORE, shoreBiomeStream);
         bridgeStream = focusBiome != null ? ProceduralStream.of((x, z) -> focusBiome.getInferredType(),
                 Interpolated.of(a -> 0D, a -> focusBiome.getInferredType())) :
@@ -203,7 +186,8 @@ public class IrisComplex implements DataProvider {
                 .cache2D("trueBiomeStream-focus", engine, cacheSize) : heightStream
                 .convertAware2D((h, x, z) ->
                         fixBiomeType(h, baseBiomeStream.get(x, z),
-                                regionStream.contextInjecting((c, xx, zz) -> IrisContext.getOr(engine).getChunkContext().getRegion().get(xx, zz)).get(x, z), x, z, fluidHeight))
+                                regionStream.contextInjecting((c, xx, zz) -> IrisContext.getOr(engine).getChunkContext().getRegion().get(xx, zz)).get(x, z), x, z,
+                                (type, xx, zz) -> getBiomeStream(type).get(xx, zz)))
                 .cache2D("trueBiomeStream", engine, cacheSize).waste("True Biome Stream");
         trueBiomeDerivativeStream = trueBiomeStream.contextInjecting((c, x, z) -> IrisContext.getOr(engine).getChunkContext().getBiome().get(x, z))
                 .convert(IrisBiome::getDerivative).cache2D("trueBiomeDerivativeStream", engine, cacheSize).waste("True Biome Derivative Stream");
@@ -274,17 +258,74 @@ public class IrisComplex implements DataProvider {
         }
     }
 
-    private ProceduralStream<IrisBiome> createHybridBiomeStream(Engine engine, InferredType type, int cacheSize) {
-        String name = type.name().toLowerCase() + "BiomeStream";
+    private ProceduralStream<IrisBiome> createRegionBiomeStream(Engine engine, InferredType type, int cacheSize) {
+        String typeName = type.name().charAt(0) + type.name().substring(1).toLowerCase(Locale.ROOT);
         return regionStream.contextInjecting((c, x, z) -> IrisContext.getOr(engine).getChunkContext().getRegion().get(x, z))
-                .convertAware2D((region, x, z) -> {
-                    double zoom = hybridBiomeZoom(engine.getDimension(), region, type);
-                    return hybridBiomeSelector.select(region.getBiomes(this, type), placementHeightStream.get(x, z), x / zoom, z / zoom);
-                })
-                .cache2D(name, engine, cacheSize).waste(name);
+                .convertAware2D((region, x, z) -> biomeInRegion(region, type, x, z))
+                .cache2D(type.name().toLowerCase(Locale.ROOT) + "BiomeStream", engine, cacheSize)
+                .waste(typeName + " Biome Stream");
     }
 
-    private static double hybridBiomeZoom(IrisDimension dimension, IrisRegion region, InferredType type) {
+    /**
+     * The surface biome a spot would get if it belonged to the given region, for previewing one region across the map.
+     */
+    public IrisBiome surfaceBiomeAsIfIn(IrisRegion region, double x, double z) {
+        if (focusBiome != null) {
+            return focusBiome;
+        }
+
+        IrisBiome base = implode(biomeInRegion(region, bridgeStream.get(x, z), x, z), x, z);
+        return fixBiomeType(heightStream.get(x, z), base, region, x, z, (type, xx, zz) -> biomeInRegion(region, type, xx, zz));
+    }
+
+    /**
+     * Why HYBRID terrain gives a spot its base biome when the spot belongs to the given region; null for BIOME terrain.
+     */
+    public HybridBiomeSelector.Choice explainHybridChoice(IrisRegion region, double x, double z) {
+        if (!hybridTerrain || focusBiome != null) {
+            return null;
+        }
+
+        return chooseHybridBiome(region, bridgeStream.get(x, z), x, z);
+    }
+
+    private IrisBiome biomeInRegion(IrisRegion region, InferredType type, double x, double z) {
+        if (hybridTerrain) {
+            return chooseHybridBiome(region, type, x, z).biome();
+        }
+
+        return noiseBiomeStream(region, type).get(x, z);
+    }
+
+    private HybridBiomeSelector.Choice chooseHybridBiome(IrisRegion region, InferredType type, double x, double z) {
+        double zoom = hybridBiomeZoom(region, type);
+        return hybridBiomeSelector.choose(region.getBiomes(this, type), placementHeightStream.get(x, z), x / zoom, z / zoom);
+    }
+
+    // The zooms stay chained one by one as they always were, so BIOME terrain keeps placing exactly the same biomes.
+    private ProceduralStream<IrisBiome> noiseBiomeStream(IrisRegion region, InferredType type) {
+        ProceduralStream<Double> noise = dimension.getBiomeStyle(type).create(rng.nextParallelRNG(type.ordinal()), getData()).stream()
+                .zoom(dimension.getBiomeZoom());
+        if (type == InferredType.LAND) {
+            noise = noise.zoom(dimension.getLandZoom());
+        } else if (type == InferredType.SEA) {
+            noise = noise.zoom(dimension.getSeaZoom());
+        }
+
+        return noise.zoom(region.getBiomeZoom(type))
+                .selectRarity(data.getBiomeLoader().loadAll(biomeKeys(region, type), biome -> biome.setInferredType(type)), legacyRarity);
+    }
+
+    private static KList<String> biomeKeys(IrisRegion region, InferredType type) {
+        return switch (type) {
+            case LAND -> region.getLandBiomes();
+            case SEA -> region.getSeaBiomes();
+            case SHORE -> region.getShoreBiomes();
+            default -> region.getCaveBiomes();
+        };
+    }
+
+    private double hybridBiomeZoom(IrisRegion region, InferredType type) {
         double typeZoom = switch (type) {
             case LAND -> dimension.getLandZoom();
             case SEA -> dimension.getSeaZoom();
@@ -334,23 +375,23 @@ public class IrisComplex implements DataProvider {
         return null;
     }
 
-    private IrisBiome fixBiomeType(Double height, IrisBiome biome, IrisRegion region, Double x, Double z, double fluidHeight) {
+    private IrisBiome fixBiomeType(double height, IrisBiome biome, IrisRegion region, double x, double z, BiomeOfType biomeOfType) {
         double sh = region.getShoreHeight(x, z);
 
         if (height >= fluidHeight - 1 && height <= fluidHeight + sh && !biome.isShore()) {
-            return shoreBiomeStream.get(x, z);
+            return biomeOfType.at(InferredType.SHORE, x, z);
         }
 
         if (height > fluidHeight + sh && !biome.isLand()) {
-            return landBiomeStream.get(x, z);
+            return biomeOfType.at(InferredType.LAND, x, z);
         }
 
         if (height < fluidHeight && !biome.isAquatic()) {
-            return seaBiomeStream.get(x, z);
+            return biomeOfType.at(InferredType.SEA, x, z);
         }
 
         if (height == fluidHeight && !biome.isShore()) {
-            return shoreBiomeStream.get(x, z);
+            return biomeOfType.at(InferredType.SHORE, x, z);
         }
 
         return biome;
@@ -463,5 +504,10 @@ public class IrisComplex implements DataProvider {
 
     public void close() {
 
+    }
+
+    @FunctionalInterface
+    private interface BiomeOfType {
+        IrisBiome at(InferredType type, double x, double z);
     }
 }

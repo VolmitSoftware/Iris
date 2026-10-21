@@ -160,7 +160,8 @@ public abstract class ResolvedProceduralPlacement {
         return new RNG(shape.seed() + (index * VARIANT_SEED_STRIDE));
     }
 
-    protected final long seed() {
+    /** The seed every variant is baked from. */
+    public final long seed() {
         return shape.seed();
     }
 }

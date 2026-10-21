@@ -17,6 +17,9 @@
  */
 package com.volmit.iris.core.gui;
 
+import javax.swing.Box;
+import javax.swing.BoxLayout;
+import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -27,39 +30,82 @@ import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.geom.RoundRectangle2D;
+import java.util.OptionalLong;
 import java.util.function.IntConsumer;
+import java.util.function.LongConsumer;
 
 /**
- * A small bar floating at the bottom of the 3D view that steps through the variants of a procedural object. It hides
- * itself for anything with a single variant.
+ * A small bar floating at the bottom of the object view that steps through the variants of a procedural object and
+ * the seeds they are baked from, and switches between one variant in 3D and all of them side by side. It hides itself
+ * for anything with a single variant and no seed.
  */
 final class ObjectVariantPicker extends JPanel {
     private static final long serialVersionUID = -2716301839488217455L;
     private static final int BOTTOM_MARGIN = 14;
-    private static final int LABEL_WIDTH = 110;
-    private static final String SHORTCUT_HINT = " · [ and ]";
+    private static final int VARIANT_LABEL_WIDTH = 110;
+    private static final int SEED_LABEL_WIDTH = 100;
+    private static final int SECTION_GAP = 10;
+    private static final String VARIANT_SHORTCUT_HINT = " · [ and ]";
+    private static final String COMPARE_SHORTCUT_HINT = " · G";
 
-    private final JLabel shownVariant = new JLabel(" ", SwingConstants.CENTER);
+    private final JLabel shownVariant = label(VARIANT_LABEL_WIDTH);
+    private final JLabel shownSeed = label(SEED_LABEL_WIDTH);
+    private final JComponent variantStepper;
+    private final JComponent seedStepper;
+    private final JButton packSeedButton;
+    private final JButton compareButton;
     private final IntConsumer onVariantChosen;
+    private final LongConsumer onSeedChosen;
     private int variantCount;
     private int shownIndex;
+    private OptionalLong seed = OptionalLong.empty();
+    private OptionalLong packSeed = OptionalLong.empty();
     private int coveredLeftWidth;
 
     /**
      * @param onVariantChosen told the index of the variant to show whenever the user steps to another one
+     * @param onSeedChosen    told the seed to bake the variants from whenever the user steps to another one
+     * @param onCompareToggled told when the user switches between one variant and all of them
      */
-    ObjectVariantPicker(IntConsumer onVariantChosen) {
-        super(new BorderLayout());
+    ObjectVariantPicker(IntConsumer onVariantChosen, LongConsumer onSeedChosen, Runnable onCompareToggled) {
         this.onVariantChosen = onVariantChosen;
+        this.onSeedChosen = onSeedChosen;
+        setLayout(new BoxLayout(this, BoxLayout.X_AXIS));
         setOpaque(false);
         setBorder(StudioTheme.emptyBorder(3, 4, 3, 4));
-        shownVariant.setFont(StudioTheme.smallFont());
-        shownVariant.setForeground(StudioTheme.TEXT);
-        shownVariant.setPreferredSize(new Dimension(StudioTheme.scale(LABEL_WIDTH), shownVariant.getPreferredSize().height));
-        add(StudioToolbar.button("‹", "Previous variant" + SHORTCUT_HINT, () -> stepBy(-1)), BorderLayout.WEST);
-        add(shownVariant, BorderLayout.CENTER);
-        add(StudioToolbar.button("›", "Next variant" + SHORTCUT_HINT, () -> stepBy(1)), BorderLayout.EAST);
-        showVariants(0);
+        variantStepper = stepper(shownVariant,
+                StudioToolbar.button("‹", "Previous variant" + VARIANT_SHORTCUT_HINT, () -> stepBy(-1)),
+                StudioToolbar.button("›", "Next variant" + VARIANT_SHORTCUT_HINT, () -> stepBy(1)));
+        seedStepper = stepper(shownSeed,
+                StudioToolbar.button("‹", "Bake the variants from the previous seed", () -> stepSeedBy(-1)),
+                StudioToolbar.button("›", "Bake the variants from the next seed", () -> stepSeedBy(1)));
+        packSeedButton = StudioToolbar.button("Pack seed", "", () -> packSeed.ifPresent(onSeedChosen::accept));
+        compareButton = StudioToolbar.button("", "", onCompareToggled);
+        add(variantStepper);
+        add(Box.createHorizontalStrut(StudioTheme.scale(SECTION_GAP)));
+        add(seedStepper);
+        add(packSeedButton);
+        add(Box.createHorizontalStrut(StudioTheme.scale(SECTION_GAP)));
+        add(compareButton);
+        showComparing(false);
+        showVariants(0, 0);
+    }
+
+    private static JLabel label(int width) {
+        JLabel label = new JLabel(" ", SwingConstants.CENTER);
+        label.setFont(StudioTheme.smallFont());
+        label.setForeground(StudioTheme.TEXT);
+        label.setPreferredSize(new Dimension(StudioTheme.scale(width), label.getPreferredSize().height));
+        return label;
+    }
+
+    private static JComponent stepper(JLabel shown, JButton previous, JButton next) {
+        JPanel stepper = new JPanel(new BorderLayout());
+        stepper.setOpaque(false);
+        stepper.add(previous, BorderLayout.WEST);
+        stepper.add(shown, BorderLayout.CENTER);
+        stepper.add(next, BorderLayout.EAST);
+        return stepper;
     }
 
     /**
@@ -91,19 +137,39 @@ final class ObjectVariantPicker extends JPanel {
 
     void setCoveredLeftWidth(int width) {
         coveredLeftWidth = width;
-        if (getParent() != null) {
-            getParent().revalidate();
-        }
+        relayout();
     }
 
     /**
-     * Starts again at the first of {@code count} variants without telling anyone, since the first is what loads anyway.
+     * Shows variant {@code index} of {@code count} without telling anyone, since the caller already shows it.
      */
-    void showVariants(int count) {
+    void showVariants(int count, int index) {
         variantCount = count;
-        shownIndex = 0;
-        showLabel();
-        setVisible(count > 1);
+        shownIndex = index;
+        shownVariant.setText("Variant " + (index + 1) + " of " + count);
+        variantStepper.setVisible(count > 1);
+        compareButton.setVisible(count > 1);
+        showWhenUseful();
+    }
+
+    /**
+     * Shows the seed the variants are baked from, with a way back to the pack's own seed once another is chosen.
+     */
+    void showSeed(OptionalLong shown, OptionalLong pack) {
+        seed = shown;
+        packSeed = pack;
+        shownSeed.setText(shown.isPresent() ? "Seed " + shown.getAsLong() : " ");
+        seedStepper.setVisible(shown.isPresent());
+        boolean explored = shown.isPresent() && !shown.equals(pack);
+        packSeedButton.setVisible(explored);
+        pack.ifPresent(value -> packSeedButton.setToolTipText("Back to the seed the pack sets, " + value));
+        showWhenUseful();
+    }
+
+    void showComparing(boolean comparing) {
+        compareButton.setText(comparing ? "3D view" : "All variants");
+        compareButton.setToolTipText((comparing ? "Show the chosen variant in 3D" : "Show every variant side by side") + COMPARE_SHORTCUT_HINT);
+        relayout();
     }
 
     void stepBy(int step) {
@@ -111,12 +177,24 @@ final class ObjectVariantPicker extends JPanel {
             return;
         }
         shownIndex = Math.floorMod(shownIndex + step, variantCount);
-        showLabel();
+        showVariants(variantCount, shownIndex);
         onVariantChosen.accept(shownIndex);
     }
 
-    private void showLabel() {
-        shownVariant.setText("Variant " + (shownIndex + 1) + " of " + variantCount);
+    private void stepSeedBy(int step) {
+        seed.ifPresent(current -> onSeedChosen.accept(current + step));
+    }
+
+    private void showWhenUseful() {
+        setVisible(variantCount > 1 || seed.isPresent());
+        relayout();
+    }
+
+    private void relayout() {
+        if (getParent() != null) {
+            getParent().revalidate();
+            getParent().repaint();
+        }
     }
 
     @Override

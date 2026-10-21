@@ -18,6 +18,7 @@
 package com.volmit.iris.engine.object.procedural;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.engine.object.IrisBiome;
@@ -73,6 +74,7 @@ public final class ProceduralObjectCatalog {
 
     private final IrisData data;
     private final KMap<String, ResolvedProceduralPlacement> byDefinition = new KMap<>();
+    private final KMap<ResolvedProceduralPlacement, Object> definitionByPlacement = new KMap<>();
 
     public ProceduralObjectCatalog(IrisData data) {
         this.data = data;
@@ -89,7 +91,25 @@ public final class ProceduralObjectCatalog {
 
     private ResolvedProceduralPlacement placementOf(Object definition) {
         String identity = definition.getClass().getName() + DEFINITION_JSON.toJson(definition);
-        return byDefinition.computeIfAbsent(identity, ignored -> resolvedFor(definition));
+        return byDefinition.computeIfAbsent(identity, ignored -> {
+            ResolvedProceduralPlacement placement = resolvedFor(definition);
+            definitionByPlacement.put(placement, definition);
+            return placement;
+        });
+    }
+
+    /**
+     * The same definition as {@code placement}, baked from {@code seed} instead of its own, to compare seeds before
+     * choosing one. It is not kept, since a viewer may step through many seeds.
+     */
+    public ResolvedProceduralPlacement reseeded(ResolvedProceduralPlacement placement, long seed) {
+        Object definition = definitionByPlacement.get(placement);
+        if (definition == null) {
+            throw new IllegalArgumentException("The pack was reloaded since " + placement.name() + " was read");
+        }
+        JsonObject reseededJson = DEFINITION_JSON.toJsonTree(definition).getAsJsonObject();
+        reseededJson.addProperty("seed", seed);
+        return resolvedFor(data.getGson().fromJson(reseededJson, definition.getClass()));
     }
 
     private ResolvedProceduralPlacement resolvedFor(Object definition) {

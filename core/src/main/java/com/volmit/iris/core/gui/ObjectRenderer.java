@@ -47,6 +47,8 @@ final class ObjectRenderer {
     // A face's own texels end a hair inside its UV rectangle, so rounding never picks the texel next to it.
     private static final double TEXEL_EDGE_MARGIN = 1e-6D;
     private static final double FULL_ALPHA = 255D;
+    // Zoom 2 fills the picture with the object's bounding box; thumbnails keep a hair of margin around it.
+    private static final ObjectCamera THUMBNAIL_CAMERA = new ObjectCamera(ObjectCamera.START.yaw(), ObjectCamera.START.pitch(), 1.9D, 0D, 0D);
 
     private final int width;
     private final int height;
@@ -56,13 +58,15 @@ final class ObjectRenderer {
     private final Projection projection;
     private final int gridColor = GRID.getRGB() & 0xFFFFFF;
 
-    private ObjectRenderer(ObjectMesh mesh, ObjectCamera camera, BufferedImage image, int coveredLeftWidth) {
+    private ObjectRenderer(BufferedImage image, Projection projection) {
         this.width = image.getWidth();
         this.height = image.getHeight();
         this.pixels = ((DataBufferInt) image.getRaster().getDataBuffer()).getData();
         this.depths = new double[pixels.length];
         this.showsObject = new boolean[pixels.length];
-        this.projection = new Projection(mesh.bounds(), camera, width, height, coveredLeftWidth);
+        this.projection = projection;
+        Arrays.fill(pixels, StudioTheme.EDITOR_BACKGROUND.getRGB() & 0xFFFFFF);
+        Arrays.fill(depths, Double.NEGATIVE_INFINITY);
     }
 
     /**
@@ -70,21 +74,38 @@ final class ObjectRenderer {
      *                         fitted in the rest
      */
     static BufferedImage render(ObjectMesh mesh, ObjectCamera camera, int width, int height, int coveredLeftWidth) {
-        BufferedImage image = new BufferedImage(Math.max(1, width), Math.max(1, height), BufferedImage.TYPE_INT_RGB);
-        ObjectRenderer renderer = new ObjectRenderer(mesh, camera, image, Math.max(0, Math.min(width - 1, coveredLeftWidth)));
-        Arrays.fill(renderer.pixels, StudioTheme.EDITOR_BACKGROUND.getRGB() & 0xFFFFFF);
-        Arrays.fill(renderer.depths, Double.NEGATIVE_INFINITY);
+        BufferedImage image = blankImage(width, height);
+        int covered = Math.max(0, Math.min(image.getWidth() - 1, coveredLeftWidth));
+        ObjectRenderer renderer = new ObjectRenderer(image, new Projection(mesh.bounds(), mesh.bounds(), camera, image.getWidth(), image.getHeight(), covered));
         renderer.drawGrid(mesh.bounds());
+        renderer.drawMesh(mesh);
+        return image;
+    }
+
+    /**
+     * Draws {@code mesh} from the starting angle, without the floor grid, at the scale that fits an object of
+     * {@code sizeToFit}. Objects drawn with the same size compare at their true sizes, standing on the same ground.
+     */
+    static BufferedImage renderThumbnail(ObjectMesh mesh, ObjectMesh.Bounds sizeToFit, int width, int height) {
+        BufferedImage image = blankImage(width, height);
+        new ObjectRenderer(image, new Projection(mesh.bounds(), sizeToFit, THUMBNAIL_CAMERA, image.getWidth(), image.getHeight(), 0)).drawMesh(mesh);
+        return image;
+    }
+
+    private static BufferedImage blankImage(int width, int height) {
+        return new BufferedImage(Math.max(1, width), Math.max(1, height), BufferedImage.TYPE_INT_RGB);
+    }
+
+    private void drawMesh(ObjectMesh mesh) {
         for (ObjectMesh.Quad quad : mesh.solidQuads()) {
-            renderer.drawQuad(quad, Pass.SOLID);
+            drawQuad(quad, Pass.SOLID);
         }
         for (ObjectMesh.Quad quad : mesh.cutAwayQuads()) {
-            renderer.drawQuad(quad, Pass.CUT_AWAY_GHOST);
+            drawQuad(quad, Pass.CUT_AWAY_GHOST);
         }
-        for (ObjectMesh.Quad quad : renderer.farthestFirst(mesh.translucentQuads())) {
-            renderer.drawQuad(quad, Pass.BLENDED);
+        for (ObjectMesh.Quad quad : farthestFirst(mesh.translucentQuads())) {
+            drawQuad(quad, Pass.BLENDED);
         }
-        return image;
     }
 
     private List<ObjectMesh.Quad> farthestFirst(List<ObjectMesh.Quad> quads) {
@@ -263,17 +284,21 @@ final class ObjectRenderer {
         private final double screenCenterX;
         private final double screenCenterY;
 
-        private Projection(ObjectMesh.Bounds bounds, ObjectCamera camera, int width, int height, int coveredLeftWidth) {
-            this.centerX = (bounds.minX() + bounds.maxX()) / 2D;
-            this.centerY = (bounds.minY() + bounds.maxY()) / 2D;
-            this.centerZ = (bounds.minZ() + bounds.maxZ()) / 2D;
+        /**
+         * @param shown    the object drawn, centred across and standing where an object of {@code scaledAs} would
+         * @param scaledAs the size that is fitted to the view
+         */
+        private Projection(ObjectMesh.Bounds shown, ObjectMesh.Bounds scaledAs, ObjectCamera camera, int width, int height, int coveredLeftWidth) {
+            this.centerX = (shown.minX() + shown.maxX()) / 2D;
+            this.centerY = shown.minY() + scaledAs.sizeY() / 2D;
+            this.centerZ = (shown.minZ() + shown.maxZ()) / 2D;
             this.cosYaw = Math.cos(camera.yaw());
             this.sinYaw = Math.sin(camera.yaw());
             this.cosPitch = Math.cos(camera.pitch());
             this.sinPitch = Math.sin(camera.pitch());
             int visibleWidth = width - coveredLeftWidth;
-            double fit = fitAtStartingAngle(bounds, visibleWidth / (double) height);
-            this.pixelsPerBlock = camera.zoom() * fit * height / 2D / bounds.largestSize();
+            double fit = fitAtStartingAngle(scaledAs, visibleWidth / (double) height);
+            this.pixelsPerBlock = camera.zoom() * fit * height / 2D / scaledAs.largestSize();
             this.screenCenterX = coveredLeftWidth + visibleWidth / 2D + camera.panX() * visibleWidth / 2D;
             this.screenCenterY = height / 2D - camera.panY() * height / 2D;
         }

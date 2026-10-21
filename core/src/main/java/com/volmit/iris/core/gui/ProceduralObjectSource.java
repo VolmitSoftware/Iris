@@ -25,6 +25,7 @@ import com.volmit.iris.engine.object.procedural.ResolvedProceduralPlacement;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.OptionalLong;
 
 /**
  * The objects the pack's procedural settings generate, one entry per definition, in the folders the pack keeps them in.
@@ -62,5 +63,21 @@ final class ProceduralObjectSource implements ObjectSource {
     public List<IrisObject> variants(IrisData data, String key) {
         ResolvedProceduralPlacement definition = definitionsByKey.get(key);
         return definition == null ? List.of() : definition.variants();
+    }
+
+    @Override
+    public OptionalLong seed(String key) {
+        ResolvedProceduralPlacement definition = definitionsByKey.get(key);
+        return definition == null ? OptionalLong.empty() : OptionalLong.of(definition.seed());
+    }
+
+    // The pack's own seed reuses the variants world generation bakes.
+    @Override
+    public List<IrisObject> variants(IrisData data, String key, long seed) {
+        ResolvedProceduralPlacement definition = definitionsByKey.get(key);
+        if (definition == null) {
+            return List.of();
+        }
+        return definition.seed() == seed ? definition.variants() : data.getProceduralObjects().reseeded(definition, seed).variants();
     }
 }

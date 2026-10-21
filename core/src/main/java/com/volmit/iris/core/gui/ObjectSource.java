@@ -21,6 +21,7 @@ import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.engine.object.IrisObject;
 
 import java.util.List;
+import java.util.OptionalLong;
 
 /**
  * Where an object explorer gets what it shows: the pack's object files, or the objects Iris generates from settings.
@@ -35,4 +36,14 @@ interface ObjectSource {
 
     /** The objects of the entry, one for an object file and one per variant for a procedural object; empty when none load. */
     List<IrisObject> variants(IrisData data, String key);
+
+    /** The seed the pack bakes the entry's variants from; empty for anything not generated from a seed. */
+    default OptionalLong seed(String key) {
+        return OptionalLong.empty();
+    }
+
+    /** The entry's variants as {@code seed} would bake them; only asked of entries that have a seed. */
+    default List<IrisObject> variants(IrisData data, String key, long seed) {
+        throw new UnsupportedOperationException(key + " is not generated from a seed");
+    }
 }

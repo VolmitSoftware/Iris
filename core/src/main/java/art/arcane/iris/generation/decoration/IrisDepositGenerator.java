@@ -39,6 +39,7 @@ import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KSet;
 import art.arcane.volmlib.util.math.BlockPosition;
 import art.arcane.volmlib.util.math.RNG;
+import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -301,9 +302,9 @@ public class IrisDepositGenerator {
             return ClumpFootprint.EMPTY;
         }
         for (int cell = 0; cell < cells.count; cell++) {
-            rng.i(0, paletteSize);
+            cells.picks[cell] = rng.i(0, paletteSize);
         }
-        return new ClumpFootprint(cells.extentX * 2 + 1, cells.minY, false);
+        return new ClumpFootprint(cells.extentX * 2 + 1, cells.minY, cells, cells.stamp, getBlockData(rdata));
     }
 
     /**
@@ -630,8 +631,76 @@ public class IrisDepositGenerator {
         void add(int x, int y, int z);
     }
 
-    public record ClumpFootprint(int width, int minY, boolean empty) {
-        static final ClumpFootprint EMPTY = new ClumpFootprint(1, 0, true);
+    public static final class ClumpFootprint {
+        static final ClumpFootprint EMPTY = new ClumpFootprint(1, 0, null, 0L, null);
+
+        private final int width;
+        private final int minY;
+        private final FootprintCells source;
+        private final long stamp;
+        private final KList<NativeBlockState> palette;
+
+        private ClumpFootprint(int width, int minY, FootprintCells source, long stamp, KList<NativeBlockState> palette) {
+            this.width = width;
+            this.minY = minY;
+            this.source = source;
+            this.stamp = stamp;
+            this.palette = palette;
+        }
+
+        public int width() {
+            return width;
+        }
+
+        public int minY() {
+            return minY;
+        }
+
+        public boolean empty() {
+            return source == null;
+        }
+
+        public ClumpCells cells() {
+            if (source == null) {
+                return ClumpCells.EMPTY;
+            }
+            if (source.stamp != stamp) {
+                throw new IllegalStateException("Deposit footprint cells were resampled before they were read");
+            }
+            return source.toCells(palette);
+        }
+    }
+
+    public static final class ClumpCells {
+        static final ClumpCells EMPTY = new ClumpCells(new int[0], new NativeBlockState[0]);
+
+        private final int[] positions;
+        private final NativeBlockState[] blocks;
+
+        private ClumpCells(int[] positions, NativeBlockState[] blocks) {
+            this.positions = positions;
+            this.blocks = blocks;
+        }
+
+        public int size() {
+            return positions.length;
+        }
+
+        public int x(int cell) {
+            return (positions[cell] >> 12) - FootprintCells.OFFSET;
+        }
+
+        public int y(int cell) {
+            return ((positions[cell] >> 6) & (FootprintCells.AXIS - 1)) - FootprintCells.OFFSET;
+        }
+
+        public int z(int cell) {
+            return (positions[cell] & (FootprintCells.AXIS - 1)) - FootprintCells.OFFSET;
+        }
+
+        public NativeBlockState block(int cell) {
+            return blocks[cell];
+        }
     }
 
     private static final class FootprintCells implements CellSink {
@@ -639,10 +708,14 @@ public class IrisDepositGenerator {
         private static final int AXIS = 64;
         private final long[] occupied = new long[AXIS * AXIS * AXIS / 64];
         private final int[] touched = new int[AXIS * AXIS * AXIS / 64];
+        private int[] order = new int[256];
+        private int[] picks = new int[256];
+        private long[] sortKeys = new long[256];
         private int touchedCount;
         private int count;
         private int extentX;
         private int minY;
+        private long stamp;
 
         private void reset() {
             for (int index = 0; index < touchedCount; index++) {
@@ -652,6 +725,7 @@ public class IrisDepositGenerator {
             count = 0;
             extentX = 0;
             minY = Integer.MAX_VALUE;
+            stamp++;
         }
 
         @Override
@@ -667,9 +741,29 @@ public class IrisDepositGenerator {
                 touched[touchedCount++] = word;
             }
             occupied[word] = current | bit;
-            count++;
+            if (count == order.length) {
+                order = Arrays.copyOf(order, count * 2);
+                picks = Arrays.copyOf(picks, count * 2);
+                sortKeys = new long[count * 2];
+            }
+            order[count++] = index;
             extentX = Math.max(extentX, Math.abs(x));
             minY = Math.min(minY, y);
+        }
+
+        private ClumpCells toCells(KList<NativeBlockState> palette) {
+            for (int cell = 0; cell < count; cell++) {
+                sortKeys[cell] = ((long) order[cell] << 32) | picks[cell];
+            }
+            Arrays.sort(sortKeys, 0, count);
+            int[] positions = new int[count];
+            NativeBlockState[] blocks = new NativeBlockState[count];
+            for (int cell = 0; cell < count; cell++) {
+                long key = sortKeys[cell];
+                positions[cell] = (int) (key >>> 32);
+                blocks[cell] = palette.get((int) key);
+            }
+            return new ClumpCells(positions, blocks);
         }
     }
 }

@@ -18,6 +18,8 @@
 
 package com.volmit.iris.core.gui;
 
+import com.volmit.iris.core.gui.NoisePickSpread.Band;
+import com.volmit.iris.core.gui.NoisePickSpread.Option;
 import com.volmit.iris.engine.HybridBiomeSelector;
 import com.volmit.iris.engine.IrisComplex;
 import com.volmit.iris.engine.framework.Engine;
@@ -27,6 +29,8 @@ import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.engine.object.IrisRegion;
 import org.bukkit.block.Biome;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 
 /**
@@ -41,61 +45,108 @@ final class MapHoverProbe {
 
     /**
      * @param previewRegionKey the region the region preview treats every spot as part of, or null for the real world
-     * @param explainPicks     also look up the noise values that picked the region and biome, for the region view
+     * @param explainBiomePick whether the card shows the surface biome, so the whole way to it is worth looking up;
+     *                         otherwise only how the region was picked
      */
-    static Details sample(Engine engine, double worldX, double worldZ, String previewRegionKey, boolean explainPicks) {
+    static Details sample(Engine engine, double worldX, double worldZ, String previewRegionKey, boolean explainBiomePick) {
         IrisComplex complex = engine.getComplex();
         IrisRegion previewRegion = previewRegionKey == null ? null : engine.getData().getRegionLoader().load(previewRegionKey);
         IrisRegion region = previewRegion != null ? previewRegion : complex.getRegionStream().get(worldX, worldZ);
-        IrisBiome surfaceBiome = previewRegion != null
-                ? complex.surfaceBiomeAsIfIn(previewRegion, worldX, worldZ)
-                : complex.getBaseBiomeStream().get(worldX, worldZ);
-        IrisBiome caveBiome = complex.getCaveBiomeStream().get(worldX, worldZ);
-        InferredType terrainKind = complex.getBridgeStream().get(worldX, worldZ);
+        IrisComplex.BiomePick surfacePick = complex.surfacePickAsIfIn(region, worldX, worldZ);
         Biome vanillaBiome = complex.getTrueBiomeDerivativeStream().get(worldX, worldZ);
-        double height = complex.getHeightStream().getDouble(worldX, worldZ);
         double slope = complex.getSlopeStream().getDouble(worldX, worldZ);
         IrisDimension dimension = engine.getDimension();
         return new Details(
                 worldX,
                 worldZ,
-                surfaceBiome,
-                caveBiome,
+                surfacePick.biome(),
+                complex.getCaveBiomeStream().get(worldX, worldZ),
                 region,
-                terrainKindName(surfaceBiome, terrainKind),
                 vanillaBiome == null ? null : vanillaBiome.getKey().getKey(),
-                height,
+                complex.getHeightStream().getDouble(worldX, worldZ),
                 dimension == null ? 0D : dimension.getFluidHeight(),
                 Math.toDegrees(Math.atan(slope / SLOPE_STREAM_RANGE_BLOCKS)),
-                complex.explainHybridChoice(region, worldX, worldZ),
-                explainPicks ? pickNoise(complex, region, previewRegion, worldX, worldZ) : null
+                pickPath(engine, region, previewRegion != null, explainBiomePick ? surfacePick : null, worldX, worldZ)
         );
     }
 
-    // HYBRID terrain picks biomes by height, which the placement line already tells, so only the region noise is left.
-    // The preview shows surface biomes, which the height can move to another biome list; the real map shows base biomes.
-    private static PickNoise pickNoise(IrisComplex complex, IrisRegion region, IrisRegion previewRegion, double x, double z) {
-        Double regionNoise = previewRegion == null ? complex.getRegionStyleStream().get(x, z) : null;
-        if (complex.isHybridTerrain() || region == null) {
-            return new PickNoise(regionNoise, null, Double.NaN, null);
+    // The region preview chose the region itself; the real map picks it by the region noise.
+    private static List<PickStep> pickPath(Engine engine, IrisRegion region, boolean previewed,
+                                           IrisComplex.BiomePick surfacePick, double x, double z) {
+        List<PickStep> path = new ArrayList<>();
+        path.add(previewed ? previewedRegionStep(engine, region) : regionStep(engine, region, x, z));
+        if (surfacePick == null || surfacePick.type() == null || engine.getComplex().getFocusBiome() != null) {
+            return path;
         }
-        InferredType biomeType = previewRegion != null
-                ? complex.surfacePickAsIfIn(region, x, z).type()
-                : complex.getBridgeStream().get(x, z);
-        return new PickNoise(regionNoise, biomeType, complex.biomePickNoise(region, biomeType, x, z),
-                complex.biomePickedByNoise(region, biomeType, x, z));
+        PickStep biomeStep = engine.getComplex().isHybridTerrain()
+                ? heightStep(engine, region, surfacePick.type(), x, z)
+                : noiseStep(engine, region, surfacePick.type(), x, z);
+        if (biomeStep == null) {
+            return path;
+        }
+        path.add(biomeStep);
+        if (!biomeStep.picked().key().equals(surfacePick.biome().getLoadKey())) {
+            path.add(new PickStep(PickMeasuring.biomeOption(engine, surfacePick.biome()), "child", null, List.of(), Double.NaN));
+        }
+        return path;
     }
 
-    // A shore biome sits on land the continent stream calls land or sea, so the biome's own type says it best.
-    private static String terrainKindName(IrisBiome surfaceBiome, InferredType continentKind) {
-        InferredType kind = surfaceBiome != null && surfaceBiome.getInferredType() != null
-                ? surfaceBiome.getInferredType()
-                : continentKind;
-        if (kind == null) {
+    private static PickStep regionStep(Engine engine, IrisRegion region, double x, double z) {
+        IrisComplex complex = engine.getComplex();
+        double noise = complex.getRegionStyleStream().get(x, z);
+        List<Option> regions = complex.noisePickedRegions().stream()
+                .map(candidate -> PickMeasuring.regionOption(engine, candidate))
+                .toList();
+        return new PickStep(PickMeasuring.regionOption(engine, region), "region", noiseText(noise),
+                NoisePickSpread.splitNoise(regions, complex.isLegacyRarity()), noise);
+    }
+
+    private static PickStep previewedRegionStep(Engine engine, IrisRegion region) {
+        return new PickStep(PickMeasuring.regionOption(engine, region), "previewed", null, List.of(), Double.NaN);
+    }
+
+    private static PickStep noiseStep(Engine engine, IrisRegion region, InferredType type, double x, double z) {
+        IrisComplex complex = engine.getComplex();
+        double noise = complex.biomePickNoise(region, type, x, z);
+        List<Option> biomes = complex.noisePickedBiomes(region, type).stream()
+                .map(biome -> PickMeasuring.biomeOption(engine, biome))
+                .toList();
+        IrisBiome picked = complex.biomePickedByNoise(region, type, x, z);
+        return new PickStep(PickMeasuring.biomeOption(engine, picked), typeName(type), noiseText(noise),
+                NoisePickSpread.splitNoise(biomes, complex.isLegacyRarity()), noise);
+    }
+
+    // HYBRID terrain picks by the height a spot is placed at, and only competes where biome ranges share that height.
+    private static PickStep heightStep(Engine engine, IrisRegion region, InferredType type, double x, double z) {
+        HybridBiomeSelector.Choice choice = engine.getComplex().explainHybridChoice(region, type, x, z);
+        if (choice == null) {
             return null;
         }
-        String name = kind.name().toLowerCase(Locale.ROOT);
-        return Character.toUpperCase(name.charAt(0)) + name.substring(1);
+        return new PickStep(PickMeasuring.biomeOption(engine, choice.biome()), typeName(type) + ", " + competitionText(choice),
+                signedHeightText(choice.placementHeight()), List.of(), Double.NaN);
+    }
+
+    private static String competitionText(HybridBiomeSelector.Choice choice) {
+        if (choice.fallback()) {
+            return "nearest range";
+        }
+        if (choice.rivalCount() == 0) {
+            return "only fit";
+        }
+        return "beat " + choice.rivalCount();
+    }
+
+    private static String typeName(InferredType type) {
+        return type.name().toLowerCase(Locale.ROOT);
+    }
+
+    private static String noiseText(double noise) {
+        return String.format(Locale.ROOT, "%.3f", noise);
+    }
+
+    private static String signedHeightText(double heightAboveSea) {
+        long rounded = Math.round(heightAboveSea);
+        return rounded < 0 ? "−" + -rounded : "+" + rounded;
     }
 
     record Details(
@@ -104,21 +155,24 @@ final class MapHoverProbe {
             IrisBiome surfaceBiome,
             IrisBiome caveBiome,
             IrisRegion region,
-            String terrainKind,
             String vanillaBiome,
             double height,
             double fluidHeight,
             double slopeDegrees,
-            HybridBiomeSelector.Choice placement,
-            PickNoise pickNoise
+            List<PickStep> pickPath
     ) {
     }
 
     /**
-     * @param regionNoise the region noise value, or null when the region preview chose the region
-     * @param biomeType   the biome list the biome noise picked from, or null when no noise picked the biome
-     * @param noisePick   the biome the noise picked, which a child biome can still replace
+     * One step on the way to the spot's biome, starting with its region.
+     *
+     * @param reason what picked it: its kind, the biome list the noise picked from, or "child"
+     * @param value  the noise value or placement height that picked it, or null
+     * @param bands  the noise bands of all the options the noise picked from, empty when no noise picked it
      */
-    record PickNoise(Double regionNoise, InferredType biomeType, double biomeNoise, IrisBiome noisePick) {
+    record PickStep(Option picked, String reason, String value, List<Band> bands, double noise) {
+        boolean showsBands() {
+            return !bands.isEmpty();
+        }
     }
 }

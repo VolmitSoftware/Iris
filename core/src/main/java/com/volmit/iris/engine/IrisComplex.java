@@ -328,14 +328,14 @@ public class IrisComplex implements DataProvider {
     }
 
     /**
-     * Why HYBRID terrain gives a spot its base biome when the spot belongs to the given region; null for BIOME terrain.
+     * Why HYBRID terrain picks a biome from the region's biomes of this type at a spot; null for BIOME terrain.
      */
-    public HybridBiomeSelector.Choice explainHybridChoice(IrisRegion region, double x, double z) {
+    public HybridBiomeSelector.Choice explainHybridChoice(IrisRegion region, InferredType type, double x, double z) {
         if (!hybridTerrain || focusBiome != null) {
             return null;
         }
 
-        return chooseHybridBiome(region, bridgeStream.get(x, z), x, z);
+        return chooseHybridBiome(region, type, x, z);
     }
 
     private IrisBiome biomeInRegion(IrisRegion region, InferredType type, double x, double z) {

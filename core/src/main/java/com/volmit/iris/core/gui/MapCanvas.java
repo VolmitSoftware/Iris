@@ -1103,7 +1103,7 @@ final class MapCanvas extends JPanel {
         double worldZ = screenToWorldZ(point.y);
         controller.submitProbe(
                 frame,
-                () -> MapHoverProbe.sample(probeEngine, worldX, worldZ, previewedRegion(), currentType.drawsPickNoise()),
+                () -> MapHoverProbe.sample(probeEngine, worldX, worldZ, previewedRegion(), hoverExplainsBiomePick()),
                 details -> {
                     QuickHover quick = quickHover;
                     if (quick != null && quick.worldX() == details.worldX() && quick.worldZ() == details.worldZ()) {
@@ -1112,6 +1112,11 @@ final class MapCanvas extends JPanel {
                     }
                 }
         );
+    }
+
+    // These views' hover card names the surface biome, so the whole way to it is worth looking up.
+    private boolean hoverExplainsBiomePick() {
+        return currentType.drawsPickNoise() || currentType == RenderType.HEIGHT;
     }
 
     private String previewedRegion() {

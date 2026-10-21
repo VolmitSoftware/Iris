@@ -48,7 +48,14 @@ final class NoisePickSpread {
      * @param legacyRarity whether the dimension splits the noise the legacy way
      */
     static NoisePickSpread of(String title, List<Option> options, boolean legacyRarity) {
-        return new NoisePickSpread(title, legacyRarity ? legacyBands(options) : bands(options));
+        return new NoisePickSpread(title, splitNoise(options, legacyRarity));
+    }
+
+    /**
+     * The band of noise each option gets, in the order the noise meets them.
+     */
+    static List<Band> splitNoise(List<Option> options, boolean legacyRarity) {
+        return legacyRarity ? legacyBands(options) : bands(options);
     }
 
     void add(double noise) {

@@ -58,6 +58,11 @@ final class PickMeasuring {
         return new Option(region.getLoadKey(), region.getName(), regionColor(engine, region), region.getRarity());
     }
 
+    static Option biomeOption(Engine engine, IrisBiome biome) {
+        return new Option(biome.getLoadKey(), biome.getName(), biome.getColor(engine, RenderType.BIOME).getRGB() & 0xFFFFFF,
+                biome.getRarity());
+    }
+
     static int regionColor(Engine engine, IrisRegion region) {
         return region.getColor(engine.getComplex(), RenderType.REGION).getRGB() & 0xFFFFFF;
     }
@@ -159,11 +164,6 @@ final class PickMeasuring {
     static String typeName(InferredType type) {
         String name = type.name().toLowerCase(Locale.ROOT);
         return Character.toUpperCase(name.charAt(0)) + name.substring(1);
-    }
-
-    private static Option biomeOption(Engine engine, IrisBiome biome) {
-        return new Option(biome.getLoadKey(), biome.getName(), biome.getColor(engine, RenderType.BIOME).getRGB() & 0xFFFFFF,
-                biome.getRarity());
     }
 
     @FunctionalInterface

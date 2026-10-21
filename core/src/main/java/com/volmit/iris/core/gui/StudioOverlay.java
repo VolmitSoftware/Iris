@@ -18,26 +18,47 @@
 
 package com.volmit.iris.core.gui;
 
+import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
+import java.awt.Shape;
 import java.awt.geom.RoundRectangle2D;
 
 /**
  * Draws the floating cards (legends, hover details, hints) on top of a map, styled like IntelliJ's popups.
  */
 final class StudioOverlay {
+    private static final Color FOOTER_BACKGROUND = new ThemeColor(0xF7F8FA, 0x27292C);
+
     private StudioOverlay() {
     }
 
     static void drawCard(Graphics2D canvas, int x, int y, int width, int height) {
-        Object antialiasing = canvas.getRenderingHint(RenderingHints.KEY_ANTIALIASING);
-        canvas.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        RoundRectangle2D card = new RoundRectangle2D.Double(x + 0.5D, y + 0.5D, width - 1D, height - 1D,
+        drawCard(canvas, x, y, width, height, 0);
+    }
+
+    /**
+     * Draws a card whose bottom {@code footerHeight} pixels are a darker bar, like the shortcut bar of IntelliJ's popups.
+     */
+    static void drawCard(Graphics2D canvas, int x, int y, int width, int height, int footerHeight) {
+        Graphics2D card = (Graphics2D) canvas.create();
+        card.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        RoundRectangle2D outline = new RoundRectangle2D.Double(x + 0.5D, y + 0.5D, width - 1D, height - 1D,
                 StudioTheme.scale(StudioTheme.OVERLAY_ARC), StudioTheme.scale(StudioTheme.OVERLAY_ARC));
-        canvas.setColor(StudioTheme.OVERLAY_BACKGROUND);
-        canvas.fill(card);
-        canvas.setColor(StudioTheme.OVERLAY_BORDER);
-        canvas.draw(card);
-        canvas.setRenderingHint(RenderingHints.KEY_ANTIALIASING, antialiasing);
+        card.setColor(StudioTheme.OVERLAY_BACKGROUND);
+        card.fill(outline);
+        if (footerHeight > 0) {
+            int footerTop = y + height - footerHeight;
+            Shape cardClip = card.getClip();
+            card.clip(outline);
+            card.setColor(FOOTER_BACKGROUND);
+            card.fillRect(x, footerTop, width, footerHeight);
+            card.setColor(StudioTheme.OVERLAY_BORDER);
+            card.fillRect(x, footerTop, width, 1);
+            card.setClip(cardClip);
+        }
+        card.setColor(StudioTheme.OVERLAY_BORDER);
+        card.draw(outline);
+        card.dispose();
     }
 }

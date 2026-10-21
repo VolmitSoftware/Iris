@@ -1,8 +1,10 @@
 package art.arcane.iris.probe;
 
+import art.arcane.iris.generation.hydrology.HydrologyTileCache;
 import org.junit.Test;
 
 import java.io.File;
+import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -74,6 +76,59 @@ public final class GenerationProbeTest {
         assertEquals(1280, distinct.size());
         assertTrue(coordinates.stream().allMatch(coordinate -> Math.abs(coordinate.x() - 2048) <= 18));
         assertTrue(coordinates.stream().allMatch(coordinate -> Math.abs(coordinate.z() + 2048) <= 18));
+    }
+
+    @Test
+    public void ordersMeasuredChunksOutwardFromTheCenterWithoutTouchingWarmup() {
+        List<GenerationProbe.ChunkCoordinate> coordinates = GenerationProbe.scheduleCoordinates(320, 2048, 2048);
+        List<Integer> order = GenerationProbe.spiralOrder(coordinates, 64, 2048, 2048);
+
+        assertEquals(256, order.size());
+        assertEquals(256, new HashSet<>(order).size());
+        assertTrue(order.stream().allMatch(index -> index >= 64));
+        int previousRing = -1;
+        for (int index : order) {
+            GenerationProbe.ChunkCoordinate coordinate = coordinates.get(index);
+            int ring = Math.max(Math.abs(coordinate.x() - 2048), Math.abs(coordinate.z() - 2048));
+            assertTrue(ring >= previousRing);
+            previousRing = ring;
+        }
+    }
+
+    @Test
+    public void pregenerationAreaCoversEveryScheduledChunk() {
+        GenerationProbe.ProbeConfiguration configuration = new GenerationProbe.ProbeConfiguration(
+                new File("/tmp/pack"), "overworld", 64, 256, 2048, 2048, true, false, 1337L);
+        HydrologyTileCache.PregenerationArea area = GenerationProbe.pregenerationArea(configuration);
+
+        for (GenerationProbe.ChunkCoordinate coordinate : GenerationProbe.scheduleCoordinates(320, 2048, 2048)) {
+            assertTrue(((long) coordinate.x() << 4) >= area.minimumBlockX());
+            assertTrue((((long) coordinate.x() << 4) + 15L) <= area.maximumBlockX());
+            assertTrue(((long) coordinate.z() << 4) >= area.minimumBlockZ());
+            assertTrue((((long) coordinate.z() << 4) + 15L) <= area.maximumBlockZ());
+        }
+    }
+
+    @Test
+    public void readsThroughputAndDumpOptionsFromSystemProperties() {
+        System.setProperty("iris.probe.threads", "16");
+        System.setProperty("iris.probe.dumpFile", "/tmp/iris-dump.bin");
+        System.setProperty("iris.probe.pregenProfile", "true");
+        try {
+            GenerationProbe.ProbeOptions options = GenerationProbe.ProbeOptions.fromSystemProperties();
+            assertEquals(16, options.threads());
+            assertEquals(Path.of("/tmp/iris-dump.bin"), options.dumpFile());
+            assertTrue(options.pregenProfile());
+            assertTrue(options.parallel());
+        } finally {
+            System.clearProperty("iris.probe.threads");
+            System.clearProperty("iris.probe.dumpFile");
+            System.clearProperty("iris.probe.pregenProfile");
+        }
+        GenerationProbe.ProbeOptions defaults = GenerationProbe.ProbeOptions.fromSystemProperties();
+        assertEquals(1, defaults.threads());
+        assertNull(defaults.dumpFile());
+        assertThrows(IllegalArgumentException.class, () -> new GenerationProbe.ProbeOptions(0, null, false));
     }
 
     @Test

@@ -173,10 +173,27 @@ tasks.register('genProbe', JavaExec) {
     if (providers.gradleProperty('probeNativeLibrary').isPresent()) {
         systemProperty('volmlib.noise.nativeBillowLibrary', providers.gradleProperty('probeNativeLibrary').get())
     }
+    systemProperty('iris.probe.threads', providers.gradleProperty('probeThreads').orElse('1').get())
+    systemProperty('iris.probe.pregenProfile', providers.gradleProperty('probePregenProfile').orElse('false').get())
     dependsOn(':core:compileJava')
     doFirst {
         if (!probePack.isPresent() || probePack.get().isBlank()) {
             throw new GradleException('genProbe requires -PprobePack=/absolute/path/to/pack')
+        }
+        Provider<String> probeDumpFile = providers.gradleProperty('probeDumpFile')
+        if (probeDumpFile.isPresent()) {
+            File dump = new File(probeDumpFile.get())
+            if (!dump.isAbsolute() || dump.isDirectory()) {
+                throw new GradleException('probeDumpFile must be an absolute file path')
+            }
+            java.nio.file.Path normalizedDump = dump.canonicalFile.toPath()
+            if (normalizedDump.startsWith(rootProject.projectDir.canonicalFile.toPath())) {
+                throw new GradleException('probeDumpFile must point outside the repository')
+            }
+            if (normalizedDump.parent == null || !normalizedDump.parent.toFile().isDirectory()) {
+                throw new GradleException('probeDumpFile parent directory must already exist')
+            }
+            systemProperty('iris.probe.dumpFile', normalizedDump.toString())
         }
         if (!probeDimension.isPresent() || probeDimension.get().isBlank()) {
             throw new GradleException('genProbe requires -PprobeDimension=<dimension-key>')
@@ -191,6 +208,22 @@ tasks.register('genProbe', JavaExec) {
             probeMulticore.get(),
             probeStudio.get(),
             probeSeed.orElse('1337').get())
+    }
+}
+
+tasks.register('genDiff', JavaExec) {
+    group = 'verification'
+    description = 'Compares two genProbe chunk dumps and reports block, surface, biome and per-category parity.'
+    mainClass = 'art.arcane.iris.probe.GenerationDiff'
+    classpath = sourceSets.main.runtimeClasspath
+    maxHeapSize = '4g'
+    doFirst {
+        Provider<String> baseline = providers.gradleProperty('diffBaseline')
+        Provider<String> candidate = providers.gradleProperty('diffCandidate')
+        if (!baseline.isPresent() || !candidate.isPresent()) {
+            throw new GradleException('genDiff requires -PdiffBaseline=<dump> and -PdiffCandidate=<dump>')
+        }
+        args(baseline.get(), candidate.get(), providers.gradleProperty('diffWorstChunks').orElse('10').get())
     }
 }
 
@@ -353,9 +386,13 @@ tasks.register('transitionProbe', JavaExec) {
                 if (parent == null || !parent.isDirectory()) {
                     throw new GradleException('probeJfr parent directory must already exist')
                 }
+                String settings = providers.gradleProperty('probeJfrSettings').orElse('profile').get()
+                if (settings.isBlank() || settings.contains(',')) {
+                    throw new GradleException('probeJfrSettings must name a JFR configuration or an absolute .jfc path')
+                }
                 task.jvmArgs(
                         '-XX:FlightRecorderOptions=stackdepth=256',
-                        "-XX:StartFlightRecording=filename=${normalized},settings=profile,dumponexit=true"
+                        "-XX:StartFlightRecording=filename=${normalized},settings=${settings},dumponexit=true"
                 )
             }
         }

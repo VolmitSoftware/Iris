@@ -32,8 +32,13 @@ import art.arcane.iris.generation.runtime.EngineWorldManager;
 import art.arcane.iris.generation.runtime.EngineWorldManagerProvider;
 import art.arcane.iris.generation.runtime.MeteredCache;
 import art.arcane.iris.generation.runtime.PreservationRegistry;
+import art.arcane.iris.configuration.IrisSettings;
+import art.arcane.iris.generation.concurrent.MultiBurst;
+import art.arcane.iris.generation.hydrology.HydrologyTileCache;
+import art.arcane.iris.generation.hydrology.runtime.IrisHydrologyRuntime;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.world.IrisWorld;
+import art.arcane.iris.world.pregen.PregenPerformanceProfile;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.IrisServices;
 import art.arcane.volmlib.nativelib.terrain.NativeBiome;
@@ -42,6 +47,7 @@ import art.arcane.volmlib.util.hunk.Hunk;
 import art.arcane.volmlib.util.noise.FractalBillowSimplexNoise;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -55,7 +61,11 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 public final class GenerationProbe {
     private static final List<Throwable> REPORTED = Collections.synchronizedList(new ArrayList<>());
@@ -158,7 +168,60 @@ public final class GenerationProbe {
         }
     }
 
+    record ProbeOptions(int threads, Path dumpFile, boolean pregenProfile) {
+        ProbeOptions {
+            if (threads < 1) {
+                throw new IllegalArgumentException("Thread count must be at least 1.");
+            }
+            if (dumpFile != null && !dumpFile.isAbsolute()) {
+                throw new IllegalArgumentException("Dump file must be an absolute path.");
+            }
+        }
+
+        static ProbeOptions fromSystemProperties() {
+            String dump = System.getProperty("iris.probe.dumpFile", "").trim();
+            return new ProbeOptions(
+                    Integer.parseInt(System.getProperty("iris.probe.threads", "1").trim()),
+                    dump.isEmpty() ? null : Path.of(dump),
+                    Boolean.parseBoolean(System.getProperty("iris.probe.pregenProfile", "false").trim()));
+        }
+
+        boolean parallel() {
+            return threads > 1;
+        }
+    }
+
     record ChunkCoordinate(int x, int z) {
+    }
+
+    record ChunkOutcome(int index, ChunkCoordinate coordinate, long elapsedNanos,
+                        Hunk<NativeBlockState> blocks, Hunk<NativeBiome> biomes, List<Throwable> failures) {
+    }
+
+    record ThroughputSummary(int threads, boolean multicore, boolean pregenProfile, int burstParallelism,
+                             int noiseCacheSize, int measuredChunks, long warmupWallNanos, long measuredWallNanos,
+                             long latencySumNanos, TimingSummary latencies, int unattributedReports) {
+        String machineLine() {
+            double wallSeconds = measuredWallNanos / 1_000_000_000D;
+            double chunksPerSecond = wallSeconds == 0D ? 0D : measuredChunks / wallSeconds;
+            return String.format(Locale.ROOT,
+                    "IRIS_GENPROBE_THROUGHPUT version=1 threads=%d multicore=%s pregen_profile=%s burst_parallelism=%d noise_cache_size=%d measured_chunks=%d warmup_wall_ms=%.3f measured_wall_ms=%.3f wall_cps=%.3f latency_sum_ms=%.3f latency_median_ms=%.3f latency_p95_ms=%.3f latency_max_ms=%.3f effective_concurrency=%.2f unattributed_reports=%d",
+                    threads,
+                    multicore,
+                    pregenProfile,
+                    burstParallelism,
+                    noiseCacheSize,
+                    measuredChunks,
+                    nanosToMillis(warmupWallNanos),
+                    nanosToMillis(measuredWallNanos),
+                    chunksPerSecond,
+                    nanosToMillis(latencySumNanos),
+                    nanosToMillis(latencies.medianNanos()),
+                    nanosToMillis(latencies.p95Nanos()),
+                    nanosToMillis(latencies.maxNanos()),
+                    measuredWallNanos == 0L ? 0D : latencySumNanos / (double) measuredWallNanos,
+                    unattributedReports);
+        }
     }
 
     record TimingSummary(long medianNanos, long p95Nanos, long maxNanos, long totalNanos) {
@@ -183,6 +246,10 @@ public final class GenerationProbe {
                 total += sample;
             }
             return new TimingSummary(median, sorted.get(p95Index), sorted.get(size - 1), total);
+        }
+
+        TimingSummary withTotal(long totalNanos) {
+            return new TimingSummary(medianNanos, p95Nanos, maxNanos, totalNanos);
         }
     }
 
@@ -220,8 +287,10 @@ public final class GenerationProbe {
 
     public static void main(String[] args) {
         ProbeConfiguration configuration;
+        ProbeOptions options;
         try {
             configuration = ProbeConfiguration.parse(args);
+            options = ProbeOptions.fromSystemProperties();
         } catch (Throwable e) {
             System.out.println("[genprobe] FAIL: " + e.getMessage());
             e.printStackTrace(System.out);
@@ -231,7 +300,7 @@ public final class GenerationProbe {
 
         int exitCode;
         try {
-            ProbeResult result = run(configuration);
+            ProbeResult result = run(configuration, options);
             System.out.println(result.machineLine());
             exitCode = result.failedChunks() == 0 ? 0 : 1;
         } catch (Throwable e) {
@@ -272,7 +341,7 @@ public final class GenerationProbe {
         return coordinates;
     }
 
-    private static ProbeResult run(ProbeConfiguration configuration) throws Throwable {
+    private static ProbeResult run(ProbeConfiguration configuration, ProbeOptions options) throws Throwable {
         if (!configuration.packSource().isDirectory()) {
             throw new IllegalArgumentException("Pack folder not found: " + configuration.packSource().getAbsolutePath());
         }
@@ -296,6 +365,9 @@ public final class GenerationProbe {
             System.out.println("[genprobe] center chunk: " + configuration.centerChunkX() + "," + configuration.centerChunkZ());
             System.out.println("[genprobe] multicore: " + configuration.multicore());
             System.out.println("[genprobe] studio: " + configuration.studio());
+            System.out.println("[genprobe] threads: " + options.threads());
+            System.out.println("[genprobe] pregen profile: " + options.pregenProfile());
+            System.out.println("[genprobe] dump file: " + (options.dumpFile() == null ? "none" : options.dumpFile()));
 
             long engineStart = System.nanoTime();
             data = IrisData.get(pack);
@@ -327,7 +399,7 @@ public final class GenerationProbe {
                     + " minY=" + engine.getMinHeight() + " maxY=" + engine.getMaxHeight()
                     + " timeMs=" + String.format(Locale.ROOT, "%.3f", nanosToMillis(engineReadyNanos)));
             long nativeSamplesBefore = FractalBillowSimplexNoise.nativeSampleCount();
-            GenerationResult generation = generate(engine, configuration);
+            GenerationResult generation = generateWithProfile(engine, configuration, options);
             verifyBackend(nativeSamplesBefore);
             String status = generation.failedChunks() == 0 ? "PASS" : "FAIL";
             printGenerationFailures(generation);
@@ -401,77 +473,213 @@ public final class GenerationProbe {
         System.out.println("[genprobe] offline pack validation: PASS");
     }
 
-    private static GenerationResult generate(Engine engine, ProbeConfiguration configuration) {
+    private static GenerationResult generateWithProfile(Engine engine, ProbeConfiguration configuration,
+                                                        ProbeOptions options) throws Exception {
+        if (!options.pregenProfile()) {
+            return generate(engine, configuration, options);
+        }
+        PregenPerformanceProfile.apply(engine);
+        IrisHydrologyRuntime hydrology = engine.getComplex().getHydrologyRuntime();
+        try (HydrologyTileCache.PregenerationScope ignored = hydrology == null ? null
+                : hydrology.preparePregeneration(pregenerationArea(configuration))) {
+            return generate(engine, configuration, options);
+        } finally {
+            PregenPerformanceProfile.restore();
+        }
+    }
+
+    static HydrologyTileCache.PregenerationArea pregenerationArea(ProbeConfiguration configuration) {
+        List<ChunkCoordinate> coordinates = scheduleCoordinates(
+                configuration.warmupChunks() + configuration.measuredChunks(),
+                configuration.centerChunkX(), configuration.centerChunkZ());
+        int minimumX = Integer.MAX_VALUE;
+        int minimumZ = Integer.MAX_VALUE;
+        int maximumX = Integer.MIN_VALUE;
+        int maximumZ = Integer.MIN_VALUE;
+        for (ChunkCoordinate coordinate : coordinates) {
+            minimumX = Math.min(minimumX, coordinate.x());
+            minimumZ = Math.min(minimumZ, coordinate.z());
+            maximumX = Math.max(maximumX, coordinate.x());
+            maximumZ = Math.max(maximumZ, coordinate.z());
+        }
+        int centerBlockX = Math.toIntExact(Math.clamp(((long) configuration.centerChunkX() << 4) + 8L,
+                (long) minimumX << 4, (((long) maximumX + 1L) << 4) - 1L));
+        int centerBlockZ = Math.toIntExact(Math.clamp(((long) configuration.centerChunkZ() << 4) + 8L,
+                (long) minimumZ << 4, (((long) maximumZ + 1L) << 4) - 1L));
+        return new HydrologyTileCache.PregenerationArea(centerBlockX, centerBlockZ,
+                (long) minimumX << 4, (long) minimumZ << 4,
+                (((long) maximumX + 1L) << 4) - 1L, (((long) maximumZ + 1L) << 4) - 1L);
+    }
+
+    static List<Integer> spiralOrder(List<ChunkCoordinate> coordinates, int fromIndex, int centerChunkX,
+                                     int centerChunkZ) {
+        List<Integer> order = new ArrayList<>(coordinates.size() - fromIndex);
+        for (int index = fromIndex; index < coordinates.size(); index++) {
+            order.add(index);
+        }
+        order.sort(Comparator
+                .comparingInt((Integer index) -> ringOf(coordinates.get(index), centerChunkX, centerChunkZ))
+                .thenComparingDouble(index -> angleOf(coordinates.get(index), centerChunkX, centerChunkZ)));
+        return order;
+    }
+
+    private static int ringOf(ChunkCoordinate coordinate, int centerChunkX, int centerChunkZ) {
+        return Math.max(Math.abs(coordinate.x() - centerChunkX), Math.abs(coordinate.z() - centerChunkZ));
+    }
+
+    private static double angleOf(ChunkCoordinate coordinate, int centerChunkX, int centerChunkZ) {
+        return Math.atan2(coordinate.z() - centerChunkZ, coordinate.x() - centerChunkX);
+    }
+
+    private static GenerationResult generate(Engine engine, ProbeConfiguration configuration,
+                                             ProbeOptions options) throws Exception {
         int totalChunks = configuration.warmupChunks() + configuration.measuredChunks();
         List<ChunkCoordinate> coordinates = scheduleCoordinates(
                 totalChunks, configuration.centerChunkX(), configuration.centerChunkZ());
-        List<Long> measuredTimings = new ArrayList<>(configuration.measuredChunks());
-        MessageDigest signature = sha256();
-        int successfulChunks = 0;
-        int failedChunks = 0;
-        long firstChunkNanos = 0L;
-        Map<String, Integer> distinctFailures = new LinkedHashMap<>();
-        Map<String, String> firstFailureChunk = new LinkedHashMap<>();
         int height = engine.getTarget().getHeight();
-
-        for (int index = 0; index < totalChunks; index++) {
-            ChunkCoordinate coordinate = coordinates.get(index);
-            drainReported();
-            List<Throwable> failures = new ArrayList<>();
-            Hunk<NativeBlockState> blocks = Hunk.newArrayHunk(16, height, 16);
-            Hunk<NativeBiome> biomes = Hunk.newArrayHunk(16, height, 16);
-            long started = System.nanoTime();
-            try {
-                engine.generate(
-                        coordinate.x() << 4,
-                        coordinate.z() << 4,
-                        blocks,
-                        biomes,
-                        configuration.multicore());
-            } catch (Throwable e) {
-                failures.add(e);
-            }
-            long elapsed = System.nanoTime() - started;
-            failures.addAll(drainReported());
-
-            if (index == 0) {
-                firstChunkNanos = elapsed;
-            }
-            if (index >= configuration.warmupChunks()) {
-                measuredTimings.add(elapsed);
-            }
-
-            if (failures.isEmpty()) {
-                successfulChunks++;
-                updateSignature(signature, coordinate, blocks, biomes, height);
+        ChunkDump.Header header = new ChunkDump.Header(configuration.dimensionKey(), configuration.seed(),
+                engine.getMinHeight(), height);
+        try (OutcomeSink sink = new OutcomeSink(options.dumpFile(), header, configuration.measuredChunks())) {
+            if (options.parallel()) {
+                generateParallel(engine, configuration, options, coordinates, sink);
             } else {
-                failedChunks++;
-                recordFailures(coordinate, failures, distinctFailures, firstFailureChunk);
+                generateSequential(engine, configuration, coordinates, sink);
             }
+            return sink.result(configuration);
+        }
+    }
 
-            int completed = index + 1;
-            if (completed == configuration.warmupChunks()) {
-                System.out.println("[genprobe] warmup complete: " + configuration.warmupChunks() + " chunks");
-            } else if (completed > configuration.warmupChunks()
-                    && (completed == totalChunks || (completed - configuration.warmupChunks()) % 128 == 0)) {
-                System.out.println("[genprobe] measured progress: "
-                        + (completed - configuration.warmupChunks()) + "/" + configuration.measuredChunks());
+    private static void generateSequential(Engine engine, ProbeConfiguration configuration,
+                                           List<ChunkCoordinate> coordinates, OutcomeSink sink) throws IOException {
+        int totalChunks = coordinates.size();
+        long measuredStartEpochMillis = 0L;
+        for (int index = 0; index < totalChunks; index++) {
+            if (index == configuration.warmupChunks()) {
+                measuredStartEpochMillis = System.currentTimeMillis();
+            }
+            drainReported();
+            ChunkOutcome outcome = generateChunk(engine, index, coordinates.get(index), configuration.multicore());
+            outcome.failures().addAll(drainReported());
+            sink.accept(outcome, index >= configuration.warmupChunks());
+            printProgress(configuration, index + 1, totalChunks);
+        }
+        printWindow(measuredStartEpochMillis, System.currentTimeMillis());
+    }
+
+    private static void printWindow(long startEpochMillis, long endEpochMillis) {
+        System.out.println("IRIS_GENPROBE_WINDOW phase=measured start_epoch_ms=" + startEpochMillis
+                + " end_epoch_ms=" + endEpochMillis);
+    }
+
+    private static void generateParallel(Engine engine, ProbeConfiguration configuration, ProbeOptions options,
+                                         List<ChunkCoordinate> coordinates, OutcomeSink sink) throws Exception {
+        ChunkOutcome[] outcomes = new ChunkOutcome[coordinates.size()];
+        ExecutorService executor = Executors.newFixedThreadPool(options.threads());
+        long warmupWallNanos;
+        long measuredWallNanos;
+        List<Throwable> unattributed = new ArrayList<>();
+        try {
+            drainReported();
+            List<Integer> warmup = new ArrayList<>(configuration.warmupChunks());
+            for (int index = 0; index < configuration.warmupChunks(); index++) {
+                warmup.add(index);
+            }
+            long warmupStarted = System.nanoTime();
+            runPhase(executor, engine, configuration, coordinates, warmup, outcomes);
+            warmupWallNanos = System.nanoTime() - warmupStarted;
+            unattributed.addAll(drainReported());
+            System.out.println("[genprobe] warmup complete: " + configuration.warmupChunks() + " chunks on "
+                    + options.threads() + " threads");
+
+            List<Integer> measured = spiralOrder(coordinates, configuration.warmupChunks(),
+                    configuration.centerChunkX(), configuration.centerChunkZ());
+            long measuredStartEpochMillis = System.currentTimeMillis();
+            long measuredStarted = System.nanoTime();
+            runPhase(executor, engine, configuration, coordinates, measured, outcomes);
+            measuredWallNanos = System.nanoTime() - measuredStarted;
+            printWindow(measuredStartEpochMillis, System.currentTimeMillis());
+            unattributed.addAll(drainReported());
+            System.out.println("[genprobe] measured progress: " + configuration.measuredChunks() + "/"
+                    + configuration.measuredChunks());
+        } finally {
+            executor.shutdown();
+            if (!executor.awaitTermination(30L, TimeUnit.SECONDS)) {
+                executor.shutdownNow();
             }
         }
 
-        if (!distinctFailures.isEmpty()) {
-            System.out.println("[genprobe] DISTINCT ROOT CAUSES (" + distinctFailures.size() + "):");
-            for (Map.Entry<String, Integer> entry : distinctFailures.entrySet()) {
-                System.out.println("  x" + entry.getValue() + " (first at chunk "
-                        + firstFailureChunk.get(entry.getKey()) + ") " + entry.getKey());
-            }
+        for (int index = 0; index < outcomes.length; index++) {
+            ChunkOutcome outcome = outcomes[index];
+            outcomes[index] = null;
+            sink.accept(outcome, index >= configuration.warmupChunks());
         }
-        return new GenerationResult(
-                successfulChunks,
-                failedChunks,
-                firstChunkNanos,
-                TimingSummary.from(measuredTimings),
-                HexFormat.of().formatHex(signature.digest()).substring(0, 16));
+        sink.reportUnattributed(unattributed);
+        TimingSummary latencies = TimingSummary.from(sink.measuredTimings());
+        ThroughputSummary throughput = new ThroughputSummary(
+                options.threads(),
+                configuration.multicore(),
+                options.pregenProfile(),
+                MultiBurst.burst.parallelism(),
+                IrisSettings.get().getPerformance().getNoiseCacheSize(),
+                configuration.measuredChunks(),
+                warmupWallNanos,
+                measuredWallNanos,
+                latencies.totalNanos(),
+                latencies,
+                unattributed.size());
+        sink.measuredWallNanos(measuredWallNanos);
+        System.out.println(throughput.machineLine());
+    }
+
+    private static void runPhase(ExecutorService executor, Engine engine, ProbeConfiguration configuration,
+                                 List<ChunkCoordinate> coordinates, List<Integer> order,
+                                 ChunkOutcome[] outcomes) throws Exception {
+        List<Future<ChunkOutcome>> futures = new ArrayList<>(order.size());
+        for (int index : order) {
+            ChunkCoordinate coordinate = coordinates.get(index);
+            futures.add(executor.submit(() -> generateChunk(engine, index, coordinate, configuration.multicore())));
+        }
+        for (Future<ChunkOutcome> future : futures) {
+            ChunkOutcome outcome;
+            try {
+                outcome = future.get();
+            } catch (ExecutionException failure) {
+                Throwable cause = failure.getCause();
+                if (cause instanceof Error error) {
+                    throw error;
+                }
+                if (cause instanceof Exception exception) {
+                    throw exception;
+                }
+                throw new IllegalStateException(cause);
+            }
+            outcomes[outcome.index()] = outcome;
+        }
+    }
+
+    private static ChunkOutcome generateChunk(Engine engine, int index, ChunkCoordinate coordinate,
+                                              boolean multicore) {
+        int height = engine.getTarget().getHeight();
+        List<Throwable> failures = new ArrayList<>();
+        Hunk<NativeBlockState> blocks = Hunk.newArrayHunk(16, height, 16);
+        Hunk<NativeBiome> biomes = Hunk.newArrayHunk(16, height, 16);
+        long started = System.nanoTime();
+        try {
+            engine.generate(coordinate.x() << 4, coordinate.z() << 4, blocks, biomes, multicore);
+        } catch (Throwable e) {
+            failures.add(e);
+        }
+        return new ChunkOutcome(index, coordinate, System.nanoTime() - started, blocks, biomes, failures);
+    }
+
+    private static void printProgress(ProbeConfiguration configuration, int completed, int totalChunks) {
+        if (completed == configuration.warmupChunks()) {
+            System.out.println("[genprobe] warmup complete: " + configuration.warmupChunks() + " chunks");
+        } else if (completed > configuration.warmupChunks()
+                && (completed == totalChunks || (completed - configuration.warmupChunks()) % 128 == 0)) {
+            System.out.println("[genprobe] measured progress: "
+                    + (completed - configuration.warmupChunks()) + "/" + configuration.measuredChunks());
+        }
     }
 
     private static void recordFailures(ChunkCoordinate coordinate, List<Throwable> failures,
@@ -499,30 +707,40 @@ public final class GenerationProbe {
                 nanosToMillis(generation.measuredTimings().maxNanos())));
     }
 
-    private static void updateSignature(MessageDigest digest, ChunkCoordinate coordinate,
-                                        Hunk<NativeBlockState> blocks, Hunk<NativeBiome> biomes, int height) {
+    private static void updateSignature(MessageDigest digest, ChunkDump.ChunkSnapshot snapshot, int height) {
         MessageDigest blockDigest = sha256();
         MessageDigest biomeDigest = sha256();
-        updateDigest(digest, coordinate.x() + "," + coordinate.z());
-        updateDigest(blockDigest, coordinate.x() + "," + coordinate.z());
-        updateDigest(biomeDigest, coordinate.x() + "," + coordinate.z());
-        for (int x = 0; x < 16; x++) {
-            for (int z = 0; z < 16; z++) {
-                for (int y = 0; y < height; y++) {
-                    NativeBlockState state = blocks.get(x, y, z);
-                    NativeBiome biome = biomes.get(x, y, z);
-                    String stateKey = state == null ? "minecraft:air" : state.key();
-                    String biomeKey = biome == null ? "null" : biome.key();
-                    updateDigest(digest, stateKey);
-                    updateDigest(digest, biomeKey);
-                    updateDigest(blockDigest, stateKey);
-                    updateDigest(biomeDigest, biomeKey);
-                }
-            }
+        String coordinateLabel = snapshot.chunkX() + "," + snapshot.chunkZ();
+        updateDigest(digest, coordinateLabel);
+        updateDigest(blockDigest, coordinateLabel);
+        updateDigest(biomeDigest, coordinateLabel);
+        byte[][] blockKeys = terminatedKeys(snapshot.blockPalette());
+        byte[][] biomeKeys = terminatedKeys(snapshot.biomePalette());
+        char[] blocks = snapshot.blocks();
+        char[] biomes = snapshot.biomes();
+        int size = 256 * height;
+        for (int index = 0; index < size; index++) {
+            byte[] stateKey = blockKeys[blocks[index]];
+            byte[] biomeKey = biomeKeys[biomes[index]];
+            digest.update(stateKey);
+            digest.update(biomeKey);
+            blockDigest.update(stateKey);
+            biomeDigest.update(biomeKey);
         }
-        System.out.println("GENPROBE_CHUNK_HASH chunk=" + coordinate.x() + "," + coordinate.z()
+        System.out.println("GENPROBE_CHUNK_HASH chunk=" + coordinateLabel
                 + " blocks=" + HexFormat.of().formatHex(blockDigest.digest()).substring(0, 16)
                 + " biomes=" + HexFormat.of().formatHex(biomeDigest.digest()).substring(0, 16));
+    }
+
+    private static byte[][] terminatedKeys(String[] palette) {
+        byte[][] encoded = new byte[palette.length][];
+        for (int index = 0; index < palette.length; index++) {
+            byte[] key = palette[index].getBytes(StandardCharsets.UTF_8);
+            byte[] terminated = new byte[key.length + 1];
+            System.arraycopy(key, 0, terminated, 0, key.length);
+            encoded[index] = terminated;
+        }
+        return encoded;
     }
 
     private static void updateDigest(MessageDigest digest, String value) {
@@ -658,5 +876,89 @@ public final class GenerationProbe {
 
     private static double nanosToMillis(long nanos) {
         return nanos / 1_000_000D;
+    }
+
+    private static final class OutcomeSink implements AutoCloseable {
+        private final MessageDigest signature = sha256();
+        private final List<Long> measuredTimings;
+        private final Map<String, Integer> distinctFailures = new LinkedHashMap<>();
+        private final Map<String, String> firstFailureChunk = new LinkedHashMap<>();
+        private final ChunkDump.Writer dump;
+        private final int height;
+        private int successfulChunks;
+        private int failedChunks;
+        private int unattributedReports;
+        private long firstChunkNanos;
+        private long measuredWallNanos = -1L;
+
+        private OutcomeSink(Path dumpFile, ChunkDump.Header header, int measuredChunks) throws IOException {
+            this.measuredTimings = new ArrayList<>(measuredChunks);
+            this.height = header.height();
+            this.dump = dumpFile == null ? null : new ChunkDump.Writer(dumpFile, header);
+        }
+
+        void accept(ChunkOutcome outcome, boolean measured) throws IOException {
+            if (outcome.index() == 0) {
+                firstChunkNanos = outcome.elapsedNanos();
+            }
+            if (measured) {
+                measuredTimings.add(outcome.elapsedNanos());
+            }
+            if (!outcome.failures().isEmpty()) {
+                failedChunks++;
+                recordFailures(outcome.coordinate(), outcome.failures(), distinctFailures, firstFailureChunk);
+                return;
+            }
+            successfulChunks++;
+            ChunkDump.ChunkSnapshot snapshot = ChunkDump.capture(outcome.coordinate().x(), outcome.coordinate().z(),
+                    outcome.blocks(), outcome.biomes(), height);
+            updateSignature(signature, snapshot, height);
+            if (dump != null) {
+                dump.write(snapshot);
+            }
+        }
+
+        void reportUnattributed(List<Throwable> reports) {
+            unattributedReports += reports.size();
+            if (!reports.isEmpty()) {
+                printDistinctCauses("parallel generation reported errors without a chunk owner", reports);
+            }
+        }
+
+        void measuredWallNanos(long nanos) {
+            measuredWallNanos = nanos;
+        }
+
+        List<Long> measuredTimings() {
+            return measuredTimings;
+        }
+
+        GenerationResult result(ProbeConfiguration configuration) {
+            if (!distinctFailures.isEmpty()) {
+                System.out.println("[genprobe] DISTINCT ROOT CAUSES (" + distinctFailures.size() + "):");
+                for (Map.Entry<String, Integer> entry : distinctFailures.entrySet()) {
+                    System.out.println("  x" + entry.getValue() + " (first at chunk "
+                            + firstFailureChunk.get(entry.getKey()) + ") " + entry.getKey());
+                }
+            }
+            TimingSummary timings = TimingSummary.from(measuredTimings);
+            if (measuredWallNanos >= 0L) {
+                timings = timings.withTotal(measuredWallNanos);
+            }
+            int failures = failedChunks + (unattributedReports > 0 && failedChunks == 0 ? 1 : 0);
+            return new GenerationResult(
+                    successfulChunks,
+                    failures,
+                    firstChunkNanos,
+                    timings,
+                    HexFormat.of().formatHex(signature.digest()).substring(0, 16));
+        }
+
+        @Override
+        public void close() throws IOException {
+            if (dump != null) {
+                dump.close();
+            }
+        }
     }
 }

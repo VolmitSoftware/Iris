@@ -60,7 +60,7 @@ gradle.projectsEvaluated {
             buildTargets.add([
                 id: "${loader}-${minecraft}".toString(),
                 tasks: [":verify${label}${minecraft.replace('.', '_')}".toString()],
-                arguments: ['-PmoddedBuildParallelism=1', "-PmoddedTestForks=${forge ? 2 : 1}".toString(),
+                arguments: ['-PmoddedBuildParallelism=1', "-PmoddedTestForks=${forge ? 4 : 1}".toString(),
                     '-PmultiplexorSandbox=true'],
                 java: 25,
                 memoryMiB: forge ? 16384 : 8192,

@@ -8,8 +8,8 @@ tasks.named('compileTestJava', JavaCompile).configure {
     options.release.set((int) irisModTarget.java)
 }
 tasks.withType(Test).configureEach {
-    maxParallelForks = Math.min(2, Math.min(Runtime.runtime.availableProcessors(),
-        Math.min(gradle.startParameter.maxWorkerCount, testForks)))
+    maxParallelForks = Math.min(Runtime.runtime.availableProcessors(),
+        Math.min(gradle.startParameter.maxWorkerCount, testForks))
     if (gradle.extensions.extraProperties.has('irisBuildLane')) {
         jvmArgs('-XX:ParallelGCThreads=2', '-XX:ConcGCThreads=1', '-XX:CICompilerCount=2')
     }

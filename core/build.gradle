@@ -1,4 +1,5 @@
 import groovy.json.JsonSlurper
+import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import io.github.slimjar.resolver.data.Mirror
 import org.gradle.api.attributes.java.TargetJvmVersion
 import org.gradle.api.file.FileTreeElement
@@ -198,8 +199,16 @@ slimJar {
     }
 }
 
+TaskProvider<Task> slimJarTask = tasks.named('slimJar')
+tasks.withType(ShadowJar).configureEach {
+    dependsOn(slimJarTask)
+}
+
 def embeddedAgentJar = project(':core:agent').tasks.named('jar', Jar)
-tasks.named('processResources').configure {
+tasks.named('processResources').configure { Task resources ->
+    resources.setFinalizedBy(resources.finalizedBy.getDependencies(resources).findAll { Task finalizer ->
+        finalizer != slimJarTask.get()
+    })
     from(embeddedAgentJar.map { it.archiveFile }) {
         rename { String ignored -> 'agent.jar' }
     }
@@ -460,7 +469,7 @@ List<String> dependencyBuildMetadata = [
 
 String languageTomlSupportClassPattern = 'art/arcane/volmlib/util/config/(?:TomlCodec|ConfigJson|ConfigExposePolicy|ConfigDoc|ConfigDescription|ConfigDocumentation)(?:\\$[^/]+)?\\.class'
 
-tasks.named('shadowJar', com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar).configure {
+tasks.named('shadowJar', ShadowJar).configure {
     inputs.property('languageTomlSupportClassPattern', languageTomlSupportClassPattern)
     dependsOn(embeddedAgentJar)
     mergeServiceFiles()

@@ -334,7 +334,7 @@ Provider<IrisModdedBuildService> matrixWorkers = gradle.sharedServices.registerI
 }
 List<String> nestedBuildArguments = [gradle.startParameter.buildCacheEnabled ? '--build-cache' : '--no-build-cache']
 if (providers.gradleProperty('multiplexorSandbox').getOrElse('false').toBoolean()) {
-    nestedBuildArguments.add('--no-daemon')
+    nestedBuildArguments.addAll(['--no-daemon', '-PmultiplexorSandbox=true'])
 }
 String nestedJvmArguments = providers.gradleProperty('org.gradle.jvmargs').getOrElse('') +
     ' -XX:ActiveProcessorCount=2'

@@ -839,11 +839,11 @@ final class MapCanvas extends JPanel {
             return;
         }
         MapHoverProbe.Details details = hoverDetails;
-        List<String> lines = MapHoverCard.lines(quick.subject(), quick.region(), details, currentType, detailedHover,
+        MapHoverCard card = MapHoverCard.of(quick.subject(), quick.region(), details, currentType, detailedHover,
                 quick.worldX(), quick.worldZ());
         int screenX = (int) Math.round(worldToScreenX(quick.worldX())) + StudioTheme.scale(16);
         int screenY = (int) Math.round(worldToScreenZ(quick.worldZ()));
-        drawCard(canvas, screenX, screenY, 0D, 0D, lines);
+        card.paint(canvas, screenX, screenY, getWidth(), getHeight());
     }
 
     private void renderHelp(Graphics2D canvas) {

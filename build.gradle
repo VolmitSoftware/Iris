@@ -364,7 +364,6 @@ irisModTargets.each { String targetMinecraft, Map<String, Object> target ->
             group = 'verification'
             description = "Builds, tests and verifies the ${label} ${targetMinecraft} jar in its own Gradle build."
             usesService(matrixWorkers)
-            dependsOn(project(':core').tasks.named('jar'), project(':core').tasks.named('testFixturesJar'))
             workingDirectory.set(rootProject.file("adapters/${loader}"))
             getLabel().set("${label} ${targetMinecraft}".toString())
             artifactFile.set(artifact)

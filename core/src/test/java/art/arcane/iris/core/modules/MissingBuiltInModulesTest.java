@@ -35,12 +35,11 @@ public class MissingBuiltInModulesTest {
     private static final File PACK = new File("packs", "overworld");
 
     @Test
-    public void aPackWithNoModulesIsToldWhichJarToCopyWhere() {
+    public void aPackWithNoModulesIsToldHowToGetThem() {
         String warning = MissingBuiltInModules.warning(PACK, List.of()).orElseThrow();
 
         assertTrue(warning, warning.startsWith("Pack overworld loads without the built-in modules (iris-builtins.jar)"));
-        assertTrue(warning, warning.contains("does not bundle iris-builtins.jar; use a complete build, or copy the jar into "
-                + new File(PACK, "modules").getPath() + "."));
+        assertTrue(warning, warning.endsWith("does not bundle iris-builtins.jar; build the plugin with ./gradlew iris."));
     }
 
     @Test

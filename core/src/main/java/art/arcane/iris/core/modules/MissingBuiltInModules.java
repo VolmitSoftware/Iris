@@ -45,6 +45,6 @@ final class MissingBuiltInModules {
         return Optional.of("Pack " + packFolder.getName() + " loads without the built-in modules (" + JAR_NAME + "): its world gets"
                 + " only its layout (biomes and heights), with no terrain blocks, ores, caves, decorations, objects or vanilla features,"
                 + " and no loot, block drops, entity spawns or ambient effects. This build of Iris does not bundle " + JAR_NAME
-                + "; use a complete build, or copy the jar into " + new File(packFolder, PackModuleSet.MODULES_FOLDER).getPath() + ".");
+                + "; build the plugin with ./gradlew iris.");
     }
 }

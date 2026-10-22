@@ -376,6 +376,7 @@ public class IrisNaturalCaveScanTest {
             chunk = mock(MantleChunk.class);
             doReturn(engine).when(modifier).getEngine();
             doReturn(complex).when(modifier).getComplex();
+            doReturn(complex).when(engine).getComplex();
             doReturn(32).when(engine).getHeight();
             doReturn(new SeedManager(1337L)).when(engine).getSeedManager();
             doReturn(engineMantle).when(engine).getMantle();

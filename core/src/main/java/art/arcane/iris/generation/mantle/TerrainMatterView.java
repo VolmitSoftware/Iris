@@ -136,12 +136,8 @@ public final class TerrainMatterView {
         SOUTH(false, 15);
 
         private final int[] positions = new int[256];
-        private final boolean fixedX;
-        private final int coordinate;
 
         Face(boolean fixedX, int coordinate) {
-            this.fixedX = fixedX;
-            this.coordinate = coordinate;
             for (int y = 0; y < 16; y++) {
                 for (int offset = 0; offset < 16; offset++) {
                     int x = fixedX ? coordinate : offset;
@@ -149,14 +145,6 @@ public final class TerrainMatterView {
                     positions[y * 16 + offset] = (z << 8) | (y << 4) | x;
                 }
             }
-        }
-
-        int x(int offset) {
-            return fixedX ? coordinate : offset;
-        }
-
-        int z(int offset) {
-            return fixedX ? offset : coordinate;
         }
     }
 

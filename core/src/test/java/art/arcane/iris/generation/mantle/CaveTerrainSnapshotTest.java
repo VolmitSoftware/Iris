@@ -57,10 +57,20 @@ public class CaveTerrainSnapshotTest {
             for (TerrainMatterView.Face face : TerrainMatterView.Face.values()) {
                 for (int height : new int[]{0, 1, 37, SECTIONS * 16, SECTIONS * 16 + 9}) {
                     MatterCavern[] expected = TerrainMatterView.getComposedFace(chunk, face, height);
-                    MatterCavern[] actual = snapshot.composedFace(face, height);
-                    assertEquals(expected.length, actual.length);
+                    assertEquals(height * 16, expected.length);
                     for (int index = 0; index < expected.length; index++) {
-                        assertSame(face + " " + index, expected[index], actual[index]);
+                        int offset = index & 15;
+                        int x = switch (face) {
+                            case WEST -> 0;
+                            case EAST -> 15;
+                            case NORTH, SOUTH -> offset;
+                        };
+                        int z = switch (face) {
+                            case NORTH -> 0;
+                            case SOUTH -> 15;
+                            case WEST, EAST -> offset;
+                        };
+                        assertSame(face + " " + index, expected[index], snapshot.composedCavern(x, index >> 4, z));
                     }
                 }
             }

@@ -16,16 +16,19 @@ import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.generation.terrain.IrisMaterialPalette;
 import art.arcane.iris.pack.loading.IrisData;
+import art.arcane.iris.pack.loading.ResourceLoader;
 import art.arcane.iris.pack.validation.ContentGate;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.iris.testsupport.PlatformLeakGuard;
+import art.arcane.iris.world.entity.IrisMarker;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KMap;
 import art.arcane.volmlib.util.math.BlockPosition;
 import art.arcane.volmlib.util.math.RNG;
+import art.arcane.volmlib.util.matter.MatterMarker;
 import art.arcane.volmlib.util.stream.ProceduralStream;
 import org.junit.After;
 import org.junit.Before;
@@ -46,6 +49,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -60,6 +64,7 @@ public class ObjectPlacementGoldenTest {
     private static final int OBJECTS = 200;
     private static final int SEEDS = 5;
     private static final long GOLDEN = 0x408f9d4113015897L;
+    private static final long MARKER_GOLDEN = 0x60b4bbf1144b239cL;
 
     private static final List<String> PALETTE = List.of(
             "minecraft:stone",
@@ -177,6 +182,51 @@ public class ObjectPlacementGoldenTest {
             Files.writeString(Path.of(dumpPath), dump.toString());
         }
         assertEquals(Long.toHexString(GOLDEN), Long.toHexString(combined));
+    }
+
+    @Test
+    public void markedPlacementsMatchTheRecordedBlockStream() {
+        ResourceLoader<IrisMarker> markers = mock(ResourceLoader.class, withSettings().stubOnly());
+        IrisMarker anywhere = new IrisMarker();
+        anywhere.setEmptyAbove(false);
+        when(markers.load("anywhere")).thenReturn(anywhere);
+        when(markers.load("open")).thenReturn(new IrisMarker());
+        when(objectData.getMarkerLoader()).thenReturn(markers);
+        Random random = new Random(77L);
+        List<IrisObjectRotation> rotations = rotations();
+        long combined = 23L;
+        int markerWrites = 0;
+        for (int index = 0; index < 40; index++) {
+            IrisObject object = randomObject(random, index);
+            object.setLoader(objectData);
+            IrisObjectPlacement base = new IrisObjectPlacement();
+            base.setMode(ObjectPlaceMode.STRUCTURE_PIECE);
+            base.setRequireSurfaceSupport(false);
+            IrisObjectMarker loose = new IrisObjectMarker();
+            loose.setMarker("anywhere");
+            loose.setMaximumMarkers(1 + random.nextInt(6));
+            loose.setMark(new KList<>(new IrisBlockData("minecraft:stone"), new IrisBlockData("minecraft:oak_leaves")));
+            IrisObjectMarker exact = new IrisObjectMarker();
+            exact.setMarker("open");
+            exact.setExact(true);
+            exact.setMark(new KList<>(new IrisBlockData("minecraft:oak_log[axis=y]")));
+            base.setMarkers(new KList<>(loose, exact));
+            for (int rotationIndex = 0; rotationIndex < rotations.size(); rotationIndex++) {
+                IrisObjectPlacement placement = base.toPlacement("marked");
+                placement.setRotation(rotations.get(rotationIndex));
+                for (int seed = 0; seed < 3; seed++) {
+                    RNG rng = new RNG(index * 31L + rotationIndex * 7L + seed);
+                    GoldenPlacer placer = new GoldenPlacer(engine, false);
+                    int result = object.place(100 + index, 80 + seed, 200 - index, placer, placement, rng, null, null, data);
+                    long hash = mix(placer.hash, result);
+                    hash = mix(hash, rng.nextLong());
+                    combined = mix(combined, hash);
+                    markerWrites += placer.markerWrites;
+                }
+            }
+        }
+        assertTrue(markerWrites > 100);
+        assertEquals(Long.toHexString(MARKER_GOLDEN), Long.toHexString(combined));
     }
 
     private static long mix(long hash, long value) {
@@ -583,6 +633,7 @@ public class ObjectPlacementGoldenTest {
         private final Map<Long, Map<Class<?>, Object>> extra = new HashMap<>();
         private long hash = 31L;
         private int writes;
+        private int markerWrites;
 
         private GoldenPlacer(Engine engine, boolean preventDecay) {
             this.engine = engine;
@@ -682,6 +733,9 @@ public class ObjectPlacementGoldenTest {
         @Override
         public <T> void setData(int xx, int yy, int zz, T value) {
             record("data", xx, yy, zz, value == null ? "null" : value.getClass().getSimpleName() + ":" + value);
+            if (value instanceof MatterMarker) {
+                markerWrites++;
+            }
             extra.computeIfAbsent(key(xx, yy, zz), ignored -> new HashMap<>()).put(value == null ? Object.class : value.getClass(), value);
         }
 

@@ -1,7 +1,7 @@
 package art.arcane.iris.generation.stage;
 
 import art.arcane.iris.generation.block.B;
-import art.arcane.iris.generation.chunk.ChunkDataHunkHolder;
+import art.arcane.iris.generation.chunk.SectionBuffer;
 import art.arcane.iris.generation.chunk.ColumnExtentListeningHunk;
 import art.arcane.iris.generation.concurrent.BurstExecutor;
 import art.arcane.iris.generation.concurrent.MultiBurst;
@@ -15,7 +15,6 @@ import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.hunk.Hunk;
 import art.arcane.volmlib.util.hunk.storage.ArrayHunk;
 import org.bukkit.block.data.BlockData;
-import org.bukkit.generator.ChunkGenerator;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -65,8 +64,8 @@ public class IrisPerfectionModifierColumnTest {
         NativeBlockState[] palette = {null, fixture.air, fixture.water, fixture.stone,
                 fixture.decorant, fixture.half, fixture.spike(true, false), fixture.spike(false, true)};
         for (int trial = 0; trial < 8; trial++) {
-            ChunkDataHunkHolder bounded = holder(64);
-            ChunkDataHunkHolder full = holder(64);
+            SectionBuffer bounded = new SectionBuffer(64);
+            SectionBuffer full = new SectionBuffer(64);
             for (int x = 0; x < 16; x++) {
                 for (int z = 0; z < 16; z++) {
                     int top = random.nextInt(64);
@@ -89,13 +88,6 @@ public class IrisPerfectionModifierColumnTest {
                 }
             }
         }
-    }
-
-    private static ChunkDataHunkHolder holder(int height) {
-        ChunkGenerator.ChunkData chunk = mock(ChunkGenerator.ChunkData.class);
-        when(chunk.getMinHeight()).thenReturn(0);
-        when(chunk.getMaxHeight()).thenReturn(height);
-        return new ChunkDataHunkHolder(chunk);
     }
 
     @Test

@@ -94,10 +94,15 @@ public class PregenPerformanceProfileTest {
     @Test
     public void raisingBurstParallelismOnlyGrowsThePool() {
         int before = MultiBurst.burst.parallelism();
-        assertFalse(MultiBurst.burst.raiseParallelism(before));
-        assertTrue(MultiBurst.burst.raiseParallelism(before + 1));
-        assertEquals(before + 1, MultiBurst.burst.parallelism());
-        assertFalse(MultiBurst.burst.raiseParallelism(before));
+        try {
+            assertFalse(MultiBurst.burst.raiseParallelism(before));
+            assertTrue(MultiBurst.burst.raiseParallelism(before + 1));
+            assertEquals(before + 1, MultiBurst.burst.parallelism());
+            assertFalse(MultiBurst.burst.raiseParallelism(before));
+        } finally {
+            MultiBurst.burst.restoreParallelism();
+        }
+        assertEquals(before, MultiBurst.burst.parallelism());
     }
 
     @Test

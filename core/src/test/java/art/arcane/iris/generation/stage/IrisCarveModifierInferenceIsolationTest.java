@@ -97,11 +97,11 @@ public class IrisCarveModifierInferenceIsolationTest {
         doReturn(0D).when(region).getShoreHeight(anyDouble(), anyDouble());
         Method fixBiomeType = IrisComplex.class.getDeclaredMethod(
                 "fixBiomeType",
-                Double.class,
+                double.class,
                 IrisBiome.class,
                 IrisRegion.class,
-                Double.class,
-                Double.class,
+                double.class,
+                double.class,
                 double.class
         );
         fixBiomeType.setAccessible(true);

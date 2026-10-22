@@ -2,6 +2,7 @@ package art.arcane.iris.generation.mantle;
 
 import art.arcane.iris.configuration.IrisSettings;
 import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.runtime.IrisEngine;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.testsupport.Await;
 import art.arcane.iris.testsupport.PlatformBinding;
@@ -76,17 +77,22 @@ public class MatterGeneratorConcurrencyTest {
     @Test
     public void externalWindowsBoundManagedBlockedComponentSubmissions() throws Exception {
         GeneratorFixture fixture = new GeneratorFixture(true);
-        int maximum = 2 * MatterGenerator.COMPONENT_SUBMISSION_LIMIT;
+        int pooled = 2 * MatterGenerator.COMPONENT_SUBMISSION_LIMIT;
+        int maximum = pooled + 2;
         CountDownLatch admitted = new CountDownLatch(maximum);
         CountDownLatch excess = new CountDownLatch(1);
         CountDownLatch release = new CountDownLatch(1);
         AtomicInteger started = new AtomicInteger();
+        AtomicInteger startedOnDispatcher = new AtomicInteger();
         AtomicInteger completed = new AtomicInteger();
         RecordingComponent component = new RecordingComponent(ReservedFlag.OBJECT, 0, 64) {
             @Override
             public void generateLayer(MantleWriter writer, int x, int z, ChunkContext context) {
                 if (started.incrementAndGet() > maximum) {
                     excess.countDown();
+                }
+                if (MatterGenerator.DISPATCHER.ownsCurrentThread()) {
+                    startedOnDispatcher.incrementAndGet();
                 }
                 admitted.countDown();
                 awaitManaged(release);
@@ -102,6 +108,7 @@ public class MatterGeneratorConcurrencyTest {
             await(admitted);
             assertFalse(excess.await(300L, TimeUnit.MILLISECONDS));
             assertEquals(maximum, started.get());
+            assertEquals(pooled, startedOnDispatcher.get());
             assertEquals(maximum, activeClaims(fixture, 0, 4) + activeClaims(fixture, 32, 4));
             verify(fixture.mantle.getChunk(-4, -4), never()).release();
         } finally {
@@ -358,14 +365,23 @@ public class MatterGeneratorConcurrencyTest {
     }
 
     @Test
-    public void multicoreComponentRunsOnTheDispatcher() {
+    public void multicoreComponentsSpreadAcrossTheDispatcherWhileTheCallerHelps() {
         GeneratorFixture fixture = new GeneratorFixture();
         Thread caller = Thread.currentThread();
-        Set<Thread> threads = ConcurrentHashMap.newKeySet();
+        AtomicInteger dispatcherRuns = new AtomicInteger();
+        AtomicInteger completed = new AtomicInteger();
+        CountDownLatch dispatched = new CountDownLatch(1);
         RecordingComponent ordinary = new RecordingComponent(ReservedFlag.OBJECT, 0, 16) {
             @Override
             public void generateLayer(MantleWriter writer, int x, int z, ChunkContext context) {
-                threads.add(Thread.currentThread());
+                if (Thread.currentThread() == caller) {
+                    await(dispatched);
+                } else {
+                    assertTrue(MatterGenerator.DISPATCHER.ownsCurrentThread());
+                    dispatcherRuns.incrementAndGet();
+                    dispatched.countDown();
+                }
+                completed.incrementAndGet();
             }
         };
         TestMatterGenerator generator = fixture.generator(List.of(
@@ -374,40 +390,156 @@ public class MatterGeneratorConcurrencyTest {
 
         generator.generateMatter(0, 0, true, fixture.context);
 
-        assertFalse(threads.isEmpty());
-        assertFalse(threads.contains(caller));
+        assertEquals(9, completed.get());
+        assertTrue(dispatcherRuns.get() > 0);
     }
 
     @Test
-    public void asyncComponentReceivesCallerContextAndCallerScopeIsRestored() {
+    public void componentsReceiveTheCallerContextOnEveryThreadAndCallerScopeIsRestored() {
         GeneratorFixture fixture = new GeneratorFixture();
-        AtomicReference<IrisContext> observed = new AtomicReference<>();
-        AtomicReference<Thread> observedThread = new AtomicReference<>();
-        RecordingComponent concurrent = new RecordingComponent(ReservedFlag.CARVED, 0, 0) {
+        Thread callerThread = Thread.currentThread();
+        Set<IrisContext> observed = ConcurrentHashMap.newKeySet();
+        AtomicInteger dispatcherRuns = new AtomicInteger();
+        CountDownLatch dispatched = new CountDownLatch(1);
+        RecordingComponent concurrent = new RecordingComponent(ReservedFlag.CARVED, 0, 16) {
             @Override
             public void generateLayer(MantleWriter writer, int x, int z, ChunkContext context) {
-                observed.set(IrisContext.require());
-                observedThread.set(Thread.currentThread());
+                observed.add(IrisContext.require());
+                if (Thread.currentThread() == callerThread) {
+                    await(dispatched);
+                } else {
+                    assertTrue(MatterGenerator.DISPATCHER.ownsCurrentThread());
+                    dispatcherRuns.incrementAndGet();
+                    dispatched.countDown();
+                }
             }
         };
         TestMatterGenerator generator = fixture.generator(List.of(
-                new MantlePass(List.of(concurrent), 0, 0)
+                new MantlePass(List.of(concurrent), 1, 0)
         ));
 
         assertNull(IrisContext.get());
         try (IrisContext.Scope ignored = IrisContext.open(fixture.engine, 91L, fixture.context)) {
             IrisContext caller = IrisContext.require();
-            Thread callerThread = Thread.currentThread();
             generator.generateMatter(0, 0, true, fixture.context);
 
-            assertNotSame(callerThread, observedThread.get());
-            assertSame(fixture.engine, observed.get().getEngine());
-            assertSame(fixture.context, observed.get().getChunkContext());
-            assertEquals(91L, observed.get().getGenerationSessionId());
+            assertTrue(dispatcherRuns.get() > 0);
+            for (IrisContext context : observed) {
+                assertSame(fixture.engine, context.getEngine());
+                assertSame(fixture.context, context.getChunkContext());
+                assertEquals(91L, context.getGenerationSessionId());
+            }
             assertSame(caller, IrisContext.require());
         }
         assertNull(IrisContext.get());
     }
+
+    @Test
+    public void externalBarrierRunsItsQueuedComponentsWhileTheDispatcherIsBusy() throws Exception {
+        GeneratorFixture fixture = new GeneratorFixture(true);
+        CountDownLatch releaseDispatcher = new CountDownLatch(1);
+        List<Future<?>> blockers = occupyDispatcher(releaseDispatcher);
+        AtomicReference<Thread> generationThread = new AtomicReference<>();
+        Set<Thread> threads = ConcurrentHashMap.newKeySet();
+        AtomicInteger completed = new AtomicInteger();
+        RecordingComponent component = new RecordingComponent(ReservedFlag.OBJECT, 0, 16) {
+            @Override
+            public void generateLayer(MantleWriter writer, int x, int z, ChunkContext context) {
+                threads.add(Thread.currentThread());
+                completed.incrementAndGet();
+            }
+        };
+        TestMatterGenerator generator = fixture.generator(List.of(new MantlePass(List.of(component), 1, 0)));
+        try {
+            CompletableFuture<Void> generation = CompletableFuture.runAsync(() -> {
+                generationThread.set(Thread.currentThread());
+                generator.generateMatter(0, 0, true, fixture.context);
+            });
+            generation.get(5L, TimeUnit.SECONDS);
+            assertEquals(9, completed.get());
+            assertEquals(Set.of(generationThread.get()), threads);
+            assertEquals(0, activeClaims(fixture, 0, 1));
+        } finally {
+            releaseDispatcher.countDown();
+            for (Future<?> blocker : blockers) {
+                blocker.get(10L, TimeUnit.SECONDS);
+            }
+        }
+    }
+
+    @Test
+    public void dispatcherComponentsRunInsideTheCallersGenerationRuntime() {
+        GeneratorFixture fixture = new GeneratorFixture(true, true);
+        Thread caller = Thread.currentThread();
+        fixture.bindRuntime(caller);
+        IrisEngine engine = (IrisEngine) fixture.engine;
+        AtomicInteger dispatcherRuns = new AtomicInteger();
+        AtomicInteger unscopedRuns = new AtomicInteger();
+        AtomicInteger completed = new AtomicInteger();
+        CountDownLatch dispatched = new CountDownLatch(1);
+        RecordingComponent component = new RecordingComponent(ReservedFlag.OBJECT, 0, 64) {
+            @Override
+            public void generateLayer(MantleWriter writer, int x, int z, ChunkContext context) {
+                if (!engine.hasGenerationRuntimeScope() || engine.captureGenerationRuntimeBinding() != fixture.runtime) {
+                    unscopedRuns.incrementAndGet();
+                }
+                if (Thread.currentThread() == caller) {
+                    await(dispatched);
+                } else {
+                    dispatcherRuns.incrementAndGet();
+                    dispatched.countDown();
+                }
+                completed.incrementAndGet();
+            }
+        };
+        TestMatterGenerator generator = fixture.generator(List.of(new MantlePass(List.of(component), 4, 0)));
+
+        generator.generateMatter(0, 0, true, fixture.context);
+
+        assertEquals(81, completed.get());
+        assertEquals(0, unscopedRuns.get());
+        assertTrue(dispatcherRuns.get() > 0);
+        assertEquals(fixture.openedRuntimes.get(), fixture.closedRuntimes.get());
+        assertTrue(fixture.openedRuntimes.get() >= dispatcherRuns.get());
+    }
+
+    @Test
+    public void helpersOnlyRunQueuedComponentsBoundToTheirOwnRuntime() {
+        GeneratorFixture fixture = new GeneratorFixture();
+        IrisEngine.GenerationRuntimeBinding own = mock(IrisEngine.GenerationRuntimeBinding.class);
+        IrisEngine.GenerationRuntimeBinding foreign = mock(IrisEngine.GenerationRuntimeBinding.class);
+        AtomicInteger runs = new AtomicInteger();
+        MatterGenerator.MatterComponentTask bound = new MatterGenerator.MatterComponentTask(
+                new MatterGenerator.MatterTaskKey(fixture.mantle, 0, 0, ReservedFlag.OBJECT));
+        bound.queue(runs::incrementAndGet, own);
+        MatterGenerator.MatterComponentTask unbound = new MatterGenerator.MatterComponentTask(
+                new MatterGenerator.MatterTaskKey(fixture.mantle, 1, 0, ReservedFlag.OBJECT));
+        unbound.queue(runs::incrementAndGet, null);
+
+        bound.runIfQueued(foreign);
+        unbound.runIfQueued(foreign);
+        assertEquals(0, runs.get());
+        bound.runIfQueued(own);
+        unbound.runIfQueued(null);
+        bound.runIfQueued(null);
+        assertEquals(3, runs.get());
+    }
+
+    private static List<Future<?>> occupyDispatcher(CountDownLatch release) {
+        int blockers = Math.max(1, MultiBurst.burst.parallelism()) * 4;
+        List<Future<?>> futures = new ArrayList<>(blockers);
+        for (int index = 0; index < blockers; index++) {
+            futures.add(MultiBurst.burst.submit(() -> {
+                try {
+                    assertTrue(release.await(30L, TimeUnit.SECONDS));
+                } catch (InterruptedException interruption) {
+                    Thread.currentThread().interrupt();
+                }
+            }));
+        }
+        return futures;
+    }
+
 
     @Test
     public void terrainPhasePreparesContentReachWithoutPublishingPlanned() {
@@ -702,6 +834,42 @@ public class MatterGeneratorConcurrencyTest {
     }
 
     @Test
+    public void componentStartedByAHelperIsNotDroppedWhenItsSubmissionFinishesFirst() throws Exception {
+        GeneratorFixture fixture = new GeneratorFixture();
+        MatterGenerator.MatterTaskKey key = new MatterGenerator.MatterTaskKey(fixture.mantle, 3, 0, ReservedFlag.OBJECT);
+        MatterGenerator.MatterComponentTask task = new MatterGenerator.MatterComponentTask(key);
+        CountDownLatch running = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        CountDownLatch polls = new CountDownLatch(2);
+        task.queue(() -> {
+            if (task.start()) {
+                running.countDown();
+                await(release);
+                task.finish(null);
+            }
+        }, null);
+        Future<?> submission = mock(Future.class);
+        when(submission.isDone()).thenAnswer(invocation -> {
+            polls.countDown();
+            return true;
+        });
+        task.setSubmission(submission);
+        CompletableFuture<Void> helper = CompletableFuture.runAsync(() -> task.runIfQueued(null));
+        await(running);
+        CompletableFuture<Void> waiter = CompletableFuture.runAsync(
+                () -> task.await(MatterGenerator.COMPONENT_TASK_TIMEOUT_MS));
+        try {
+            await(polls);
+            assertFalse(waiter.isDone());
+        } finally {
+            release.countDown();
+        }
+        helper.get(5L, TimeUnit.SECONDS);
+        waiter.get(5L, TimeUnit.SECONDS);
+        verify(submission, never()).cancel(anyBoolean());
+    }
+
+    @Test
     public void interruptedWaiterDrainsRunningTaskAndRestoresInterrupt() throws Exception {
         GeneratorFixture fixture = new GeneratorFixture();
         MatterGenerator.MatterTaskKey key = new MatterGenerator.MatterTaskKey(fixture.mantle, 0, 0, ReservedFlag.OBJECT);
@@ -814,9 +982,18 @@ public class MatterGeneratorConcurrencyTest {
         private final Engine engine;
         private final Mantle<Matter> mantle;
         private final ChunkContext context;
+        private final IrisEngine.GenerationRuntimeBinding runtime = mock(IrisEngine.GenerationRuntimeBinding.class);
+        private final ThreadLocal<Integer> runtimeDepth = ThreadLocal.withInitial(() -> 0);
+        private final AtomicInteger openedRuntimes = new AtomicInteger();
+        private final AtomicInteger closedRuntimes = new AtomicInteger();
+        private volatile Thread boundThread;
 
         private GeneratorFixture() {
             this(false);
+        }
+
+        private GeneratorFixture(boolean lockingChunks) {
+            this(lockingChunks, false);
         }
 
         /**
@@ -825,11 +1002,29 @@ public class MatterGeneratorConcurrencyTest {
          *                      blocks exactly like production
          */
         @SuppressWarnings("unchecked")
-        private GeneratorFixture(boolean lockingChunks) {
+        private GeneratorFixture(boolean lockingChunks, boolean runtimeBoundCaller) {
             IrisDimension dimension = mock(IrisDimension.class);
             when(dimension.isUseMantle()).thenReturn(true);
             EngineMantle engineMantle = mock(EngineMantle.class);
-            engine = mock(Engine.class);
+            if (runtimeBoundCaller) {
+                IrisEngine irisEngine = mock(IrisEngine.class);
+                when(irisEngine.hasGenerationRuntimeScope()).thenAnswer(invocation -> runtimeBound());
+                when(irisEngine.captureGenerationRuntimeBinding()).thenAnswer(invocation -> runtimeBound() ? runtime : null);
+                when(irisEngine.openGenerationRuntimeScope(runtime)).thenAnswer(invocation -> {
+                    openedRuntimes.incrementAndGet();
+                    runtimeDepth.set(runtimeDepth.get() + 1);
+                    IrisEngine.GenerationRuntimeScope scope = mock(IrisEngine.GenerationRuntimeScope.class);
+                    doAnswer(close -> {
+                        runtimeDepth.set(runtimeDepth.get() - 1);
+                        closedRuntimes.incrementAndGet();
+                        return null;
+                    }).when(scope).close();
+                    return scope;
+                });
+                engine = irisEngine;
+            } else {
+                engine = mock(Engine.class);
+            }
             when(engine.getDimension()).thenReturn(dimension);
             when(engine.getMantle()).thenReturn(engineMantle);
             mantle = mock(Mantle.class);
@@ -844,6 +1039,14 @@ public class MatterGeneratorConcurrencyTest {
                     mantle.getChunk(invocation.getArgument(0), invocation.getArgument(1)).use());
             context = mock(ChunkContext.class);
             when(context.getGenerationSessionId()).thenReturn(91L);
+        }
+
+        private void bindRuntime(Thread thread) {
+            boundThread = thread;
+        }
+
+        private boolean runtimeBound() {
+            return Thread.currentThread() == boundThread || runtimeDepth.get() > 0;
         }
 
         private TestMatterGenerator generator(List<MantlePass> passes) {

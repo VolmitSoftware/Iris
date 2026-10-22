@@ -64,6 +64,7 @@ public class IrisCaveCarver3D {
     private static final int[] LATTICE_TILE_OFFSETS = {0, 1, 16, 17};
     private static final int STANDALONE_DENSITY_GRID_COLUMNS = 1024;
     private static final int[] CELL_CORNER_MASKS = {0b000011011, 0b000110110, 0b011011000, 0b110110000};
+    private static final long[] CELL_Z_MASKS = {0x00FF00FF00FF00FFL, 0xFF00FF00FF00FF00L};
     private static final LongAdder SOLID_CELLS = new LongAdder();
     private static final LongAdder OPEN_CELLS = new LongAdder();
     private static final LongAdder MIXED_CELLS = new LongAdder();
@@ -1128,6 +1129,7 @@ public class IrisCaveCarver3D {
         Arrays.fill(plan.cellBreakFloorMin, Integer.MAX_VALUE);
         Arrays.fill(plan.cellCeilingFadeStart, Integer.MAX_VALUE);
         Arrays.fill(plan.cellTopY, Integer.MIN_VALUE);
+        Arrays.fill(plan.cellMinTopY, Integer.MAX_VALUE);
         Arrays.fill(plan.cellProtected, false);
         prepareAdaptiveGeometry(plan, ADAPTIVE_DEEP_SAMPLE_STEP, 2, 3);
         double[] passThreshold = plan.passThreshold;
@@ -1149,6 +1151,7 @@ public class IrisCaveCarver3D {
                 plan.cellCeilingFadeStart[cell] = Math.min(plan.cellCeilingFadeStart[cell], top - SURFACE_CEILING_FADE_DEPTH + 1);
             }
             plan.cellTopY[cell] = Math.max(plan.cellTopY[cell], top);
+            plan.cellMinTopY[cell] = Math.min(plan.cellMinTopY[cell], top);
             int protectStart = SurfaceFluidBoundaryPlan.NO_BOUNDARY;
             int protectEnd = Integer.MIN_VALUE;
             if (surfaceFluidBoundaries != null) {
@@ -1389,14 +1392,26 @@ public class IrisCaveCarver3D {
             int decision = CaveCellKernel.decide(d00, d01, d10, d11,
                     CaveCellKernel.threshold(low, normalizationFactor, inverseNormalization),
                     CaveCellKernel.threshold(high, normalizationFactor, inverseNormalization));
+            boolean uniform = !plan.cellProtected[cell] && y <= plan.cellMinTopY[cell];
             if (decision == CaveCellKernel.NONE) {
                 scratch.solidCells++;
             } else if (decision == CaveCellKernel.ALL) {
                 scratch.openCells++;
-                markActiveCellColumns(plan, cell, y, rowBits);
+                if (uniform) {
+                    int word = (cell >> 1) << 1;
+                    long mask = CELL_Z_MASKS[cell & 1];
+                    rowBits[word] |= plan.cellPassBits[word] & mask;
+                    rowBits[word + 1] |= plan.cellPassBits[word + 1] & mask;
+                } else {
+                    markActiveCellColumns(plan, cell, y, rowBits);
+                }
             } else {
                 scratch.mixedCells++;
-                classifyMixedCell(plan, cell, y, minY, surfaceBreakThresholdBoost, verticalEdgeFade, d00, d01, d10, d11, rowBits);
+                if (uniform && y < plan.cellCeilingFadeStart[cell] && y < plan.cellBreakFloorMin[cell]) {
+                    classifyPlainMixedCell(plan, cell, fade, d00, d01, d10, d11, rowBits);
+                } else {
+                    classifyMixedCell(plan, cell, y, minY, surfaceBreakThresholdBoost, verticalEdgeFade, d00, d01, d10, d11, rowBits);
+                }
             }
         }
     }
@@ -1420,19 +1435,53 @@ public class IrisCaveCarver3D {
         int firstLocalZ = (cell & 1) << 3;
         for (int localX = firstLocalX; localX < firstLocalX + ADAPTIVE_DEEP_SAMPLE_STEP; localX++) {
             int rowColumn = PowerOfTwoCoordinates.packLocal16(localX, firstLocalZ);
+            double tx = adaptiveTx[rowColumn];
+            double dx0 = d00 + ((d10 - d00) * tx);
+            double dx1 = d01 + ((d11 - d01) * tx);
+            double slope = dx1 - dx0;
             for (int column = rowColumn; column < rowColumn + ADAPTIVE_DEEP_SAMPLE_STEP; column++) {
                 if (!isCellColumnActive(plan, column, y)) {
                     continue;
                 }
-                double tx = adaptiveTx[column];
-                double tz = adaptiveTz[column];
-                double dx0 = d00 + ((d10 - d00) * tx);
-                double dx1 = d01 + ((d11 - d01) * tx);
-                double predictedDensity = dx0 + ((dx1 - dx0) * tz);
+                double predictedDensity = dx0 + (slope * adaptiveTz[column]);
                 if (predictedDensity <= cellThreshold(plan, column, y, minY, surfaceBreakThresholdBoost, verticalEdgeFade)) {
                     rowBits[column >> 6] |= 1L << column;
                 }
             }
+        }
+    }
+
+    private void classifyPlainMixedCell(
+            CaveCarveScratch plan,
+            int cell,
+            double fade,
+            double d00,
+            double d01,
+            double d10,
+            double d11,
+            long[] rowBits
+    ) {
+        double[] passThreshold = plan.passThreshold;
+        double[] adaptiveTx = plan.adaptiveTx;
+        double[] adaptiveTz = plan.adaptiveTz;
+        int firstLocalX = (cell >> 1) << 3;
+        int firstLocalZ = (cell & 1) << 3;
+        for (int localX = firstLocalX; localX < firstLocalX + ADAPTIVE_DEEP_SAMPLE_STEP; localX++) {
+            int rowColumn = PowerOfTwoCoordinates.packLocal16(localX, firstLocalZ);
+            double tx = adaptiveTx[rowColumn];
+            double dx0 = d00 + ((d10 - d00) * tx);
+            double dx1 = d01 + ((d11 - d01) * tx);
+            double slope = dx1 - dx0;
+            long bits = 0L;
+            for (int offset = 0; offset < ADAPTIVE_DEEP_SAMPLE_STEP; offset++) {
+                int column = rowColumn + offset;
+                double predictedDensity = dx0 + (slope * adaptiveTz[column]);
+                if (predictedDensity <= CaveCellKernel.threshold(passThreshold[column] - fade, normalizationFactor,
+                        inverseNormalization)) {
+                    bits |= 1L << offset;
+                }
+            }
+            rowBits[rowColumn >> 6] |= bits << (rowColumn & 63);
         }
     }
 

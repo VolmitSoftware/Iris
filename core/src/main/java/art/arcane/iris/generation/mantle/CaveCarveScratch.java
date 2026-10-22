@@ -76,6 +76,7 @@ final class CaveCarveScratch {
     final int[] cellBreakFloorMin = new int[4];
     final int[] cellCeilingFadeStart = new int[4];
     final int[] cellTopY = new int[4];
+    final int[] cellMinTopY = new int[4];
     final boolean[] cellProtected = new boolean[4];
     final int[] columnProtectStartY = new int[256];
     final int[] columnProtectEndY = new int[256];

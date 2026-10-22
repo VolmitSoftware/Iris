@@ -26,7 +26,7 @@ public class MultiBurst extends MultiBurstSupport {
     private final AtomicInteger parallelismBaseline = new AtomicInteger();
 
     public MultiBurst() {
-        this("Iris");
+        this("Iris", Thread.MIN_PRIORITY, MultiBurstSupport::performanceProcessors);
     }
 
     public MultiBurst(String name) {
@@ -140,8 +140,15 @@ public class MultiBurst extends MultiBurstSupport {
 
     static final class HydrologyBurst extends MultiBurst {
         HydrologyBurst() {
-            super("Iris Hydrology", () -> Math.max(2,
-                    IrisSettings.getThreadCount(IrisSettings.get().getConcurrency().getParallelism())));
+            super("Iris Hydrology", HydrologyBurst::plannerParallelism);
+        }
+
+        static int plannerParallelism() {
+            return plannerParallelism(MultiBurstSupport.performanceProcessors());
+        }
+
+        static int plannerParallelism(int performanceProcessors) {
+            return Math.max(4, performanceProcessors);
         }
 
         @Override

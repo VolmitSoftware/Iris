@@ -30,7 +30,6 @@ import art.arcane.iris.generation.decoration.IrisVacuumSettings;
 import art.arcane.iris.world.entity.IrisMarker;
 
 import art.arcane.iris.pack.loading.IrisData;
-import art.arcane.iris.generation.runtime.GenerationFailures;
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.volmlib.nativelib.terrain.structure.NativeStructureVolume;
@@ -52,6 +51,7 @@ import art.arcane.volmlib.util.matter.MatterMarker;
 import it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap;
 
 import java.util.Comparator;
+import java.util.IdentityHashMap;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -475,127 +475,53 @@ final class IrisObjectPlacementRunner {
         int vacuumLowest = Integer.MAX_VALUE;
         int vacuumHighest = Integer.MIN_VALUE;
         self.readLock.lock();
-
-        KMap<IrisBlockVector, String> markers = null;
-
         try {
-            VectorMap<NativeBlockState> blocks = self.blocks;
-            VectorMap<TileData> states = self.states;
-            TreeGrounding tree = self.getTreeGrounding();
-            // Zero-tile objects are the common case: skip the two Key allocations VectorMap#get needs to prove null.
-            boolean hasStates = !states.isEmpty();
+            ObjectPlacementBake bake = ObjectPlacementBake.of(self, spin, ceilingHang, translating ? translateOffset : null);
+            PlacementStates palette = new PlacementStates(bake.palette(), config.getRotation(), spinx, spiny, spinz,
+                    preventingDecay, placer.isDebugSmartBore(), excludedStiltMaterials);
+            double[] exact = warped || hasEdits || eroding ? bake.exact(self, spin) : null;
+            String[] markers = config.getMarkers().isNotEmpty() && placer.getEngine() != null
+                    ? resolveMarkers(config, rng, x, yv, z, rdata, bake) : null;
+            int[] tileBlocks = bake.tileBlocks();
+            TileData[] tileValues = bake.tileValues();
+            int tileCursor = 0;
+            int count = bake.count();
 
-            if (config.getMarkers().isNotEmpty() && placer.getEngine() != null) {
-                markers = new KMap<>();
-                KList<IrisBlockVector> list = StreamSupport.stream(blocks.keys().spliterator(), false)
-                        .collect(KList.collector());
-                // Marker selection persists into the mantle, so it must be seed-deterministic.
-                // Derive a side stream keyed on the placement position instead of consuming the
-                // caller's rng: consuming draws there would shift every later placement in the
-                // chunk and invalidate existing worlds/goldenhashes.
-                RNG markerRng = rng.nextParallelRNG(((((long) x) << 32) | (z & 0xFFFFFFFFL)) * 31L + yv);
-
-                int markerIndex = 0;
-                for (IrisObjectMarker j : config.getMarkers()) {
-                    IrisMarker marker = self.getLoader().getMarkerLoader().load(j.getMarker());
-                    int markerSalt = markerIndex++;
-
-                    if (marker == null || marker.isCompatExcluded()) {
-                        continue;
-                    }
-
-                    int max = j.getMaximumMarkers();
-                    for (IrisBlockVector i : list.shuffleCopy(markerRng.nextParallelRNG(markerSalt))) {
-                        if (max <= 0) {
-                            break;
-                        }
-
-                        NativeBlockState data = blocks.get(i);
-                        if (data == null) {
-                            continue;
-                        }
-
-                        for (NativeBlockState k : j.getMark(rdata)) {
-                            if (max <= 0) {
-                                break;
-                            }
-
-                            if (j.isExact() ? k.matches(data) : IrisObjectShaping.materialKey(k).equals(IrisObjectShaping.materialKey(data))) {
-                                boolean a = !blocks.containsKey((IrisBlockVector) i.clone().add(new IrisBlockVector(0, 1, 0)));
-                                boolean fff = !blocks.containsKey((IrisBlockVector) i.clone().add(new IrisBlockVector(0, 2, 0)));
-
-                                if (!marker.isEmptyAbove() || (a && fff)) {
-                                    markers.put(i, j.getMarker());
-                                    max--;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            VectorMap<NativeBlockState>.Cursor cursor = blocks.cursor();
-            while (cursor.next()) {
-                IrisBlockVector g = cursor.key();
-                NativeBlockState d;
+            for (int index = 0; index < count; index++) {
+                int entry = bake.paletteIndex(index);
                 TileData tile = null;
+                if (tileBlocks != null && tileCursor < tileBlocks.length && tileBlocks[tileCursor] == index) {
+                    tile = tileValues[tileCursor++];
+                }
 
-                try {
-                    d = cursor.value();
-                    if (hasStates) {
-                        tile = states.get(g);
+                if (stilting && palette.stiltLayer(entry)) {
+                    int layer = bake.layerY(index);
+                    if (layer < lowest) {
+                        lowest = layer;
                     }
-                } catch (Throwable e) {
-                    GenerationFailures.rethrowEngineFailure(e);
-                    IrisLogging.reportError(e);
-                    IrisLogging.warn("Failed to read block node " + g.getBlockX() + "," + g.getBlockY() + "," + g.getBlockZ() + " in object " + self.getLoadKey() + " (cme)");
-                    d = IrisObject.States.air();
-                }
-
-                if (d == null) {
-                    IrisLogging.warn("Failed to read block node " + g.getBlockX() + "," + g.getBlockY() + "," + g.getBlockZ() + " in object " + self.getLoadKey() + " (null)");
-                    d = IrisObject.States.air();
-                }
-
-                if (placer.isDebugSmartBore() && IrisObject.States.vair().equals(d)) {
-                    d = IrisObject.States.vairDebug();
-                }
-
-                NativeBlockState data = d;
-                IrisBlockVector i = g.clone();
-                spin.rotate(i);
-                if (ceilingHang) {
-                    i.setY(-i.getBlockY());
-                }
-                if (translating) {
-                    i.add(translateOffset);
-                }
-
-                if (stilting && IrisObjectShaping.isStiltLayerBlock(data)) {
-                    if (i.getBlockY() < lowest) {
-                        lowest = i.getBlockY();
-                    }
-                    if (i.getBlockY() > topLayer) {
-                        topLayer = i.getBlockY();
+                    if (layer > topLayer) {
+                        topLayer = layer;
                     }
                 }
 
-                if (preventingDecay && IrisProceduralBlocks.hasProperty(data, "distance") && "false".equals(IrisProceduralBlocks.propertyValue(data, "persistent"))) {
-                    data = data.withProperty("persistent", "true");
-                }
-
+                NativeBlockState data = palette.decayed(entry);
+                boolean edited = false;
                 if (hasEdits) {
+                    double exactX = exact[index * 3];
+                    double exactY = exact[index * 3 + 1];
+                    double exactZ = exact[index * 3 + 2];
                     for (IrisObjectReplace j : config.getEdit()) {
                         if (rng.chance(j.getChance())) {
                             for (NativeBlockState k : j.getFind(rdata)) {
                                 if (j.isExact() ? k.matches(data) : IrisObjectShaping.materialKey(k).equals(IrisObjectShaping.materialKey(data))) {
-                                    NativeBlockState newData = j.getReplace(rng, i.getX() + x, i.getY() + y, i.getZ() + z, rdata);
+                                    NativeBlockState newData = j.getReplace(rng, exactX + x, exactY + y, exactZ + z, rdata);
 
                                     boolean sameMaterial = IrisObjectShaping.materialKey(newData).equals(IrisObjectShaping.materialKey(data));
                                     if (sameMaterial && !(newData.isCustom() || data.isCustom()))
                                         data = BlockDataMergeSupport.merge(data, newData);
                                     else
                                         data = newData;
+                                    edited = true;
 
                                     Optional<TileData> t = j.getReplace().getTile(rng, x, y, z, rdata);
                                     if (t.isPresent()) {
@@ -609,18 +535,21 @@ final class IrisObjectPlacementRunner {
                     }
                 }
 
-                data = config.getRotation().rotate(data, spinx, spiny, spinz);
-                if (data == null) {
+                StateFacts facts = edited ? palette.factsOf(data) : palette.facts(entry);
+                NativeBlockState rotated = facts.rotated();
+                if (rotated == null) {
                     continue;
                 }
-                xx = x + (int) Math.round(i.getX());
-
-                int yy = y + (int) Math.round(i.getY());
-                zz = z + (int) Math.round(i.getZ());
+                xx = x + bake.offsetX(index);
+                int yy = y + bake.offsetY(index);
+                zz = z + bake.offsetZ(index);
 
                 if (warped) {
-                    xx += surfaceWarp.fitDouble(-warpHalf, warpHalf, i.getX() + x, i.getY() + y, i.getZ() + z);
-                    zz += surfaceWarp.fitDouble(-warpHalf, warpHalf, i.getZ() + z, i.getY() + y, i.getX() + x);
+                    double exactX = exact[index * 3];
+                    double exactY = exact[index * 3 + 1];
+                    double exactZ = exact[index * 3 + 2];
+                    xx += surfaceWarp.fitDouble(-warpHalf, warpHalf, exactX + x, exactY + y, exactZ + z);
+                    zz += surfaceWarp.fitDouble(-warpHalf, warpHalf, exactZ + z, exactY + y, exactX + x);
                 }
 
                 if (paint) {
@@ -628,8 +557,8 @@ final class IrisObjectPlacementRunner {
                     if (surface == IrisPaintSurfaceProjection.MISSING) {
                         continue;
                     }
-                    if (!B.isVineBlock(data)) {
-                        yy = (int) Math.round(i.getY()) + Math.floorDiv(self.h, 2) + surface + yrand;
+                    if (!B.isVineBlock(rotated)) {
+                        yy = bake.offsetY(index) + Math.floorDiv(self.h, 2) + surface + yrand;
                     }
                 }
 
@@ -637,13 +566,18 @@ final class IrisObjectPlacementRunner {
                     continue;
                 }
 
-                boolean canopy = tree != null && tree.isCanopy(g.getBlockX(), g.getBlockY(), g.getBlockZ());
+                boolean canopy = bake.canopy(index);
                 if (canopy && !placer.beginTreeCanopy(new BlockPosition(xx, yy, zz))) {
                     continue;
                 }
 
                 try {
-                    data = normalizePlacedWaterlogging(data, placer, xx, yy, zz, waterlogCandidate);
+                    data = rotated;
+                    if (facts.waterloggable()) {
+                        data = waterlogCandidate || facts.authoredWaterlogged()
+                                ? IrisProceduralBlocks.normalizeWaterlogging(data, placer.get(xx, yy, zz), waterlogCandidate)
+                                : facts.dry();
+                    }
 
                     if (!rawStructurePiece && B.isVineBlock(data)) {
                         data = attachVineFaces(placer, data, xx, yy, zz);
@@ -652,9 +586,7 @@ final class IrisObjectPlacementRunner {
                     // Short-circuit order matters for cost only: the mantle read is paid solely
                     // for vine blocks. Both operands are pure, so the value is unchanged.
                     boolean wouldReplace = !rawStructurePiece && B.isVineBlock(data) && B.isSolid(placer.get(xx, yy, zz));
-                    String material = IrisObjectShaping.materialKey(data);
-                    boolean air = material.equals("minecraft:air") || material.equals("minecraft:cave_air");
-                    boolean place = shouldPlaceObjectBlock(rawStructurePiece, air, wouldReplace);
+                    boolean place = shouldPlaceObjectBlock(rawStructurePiece, facts.air(), wouldReplace);
 
                     if (data.isCustom() || place) {
                         placer.set(xx, yy, zz, data);
@@ -668,8 +600,8 @@ final class IrisObjectPlacementRunner {
                         if (tile != null) {
                             placer.setTile(xx, yy, zz, tile);
                         }
-                        if (markers != null && markers.containsKey(g)) {
-                            placer.setData(xx, yy, zz, new MatterMarker(markers.get(g)));
+                        if (markers != null && markers[index] != null) {
+                            placer.setData(xx, yy, zz, new MatterMarker(markers[index]));
                         }
                         if (listener != null) {
                             listener.accept(new BlockPosition(xx, yy, zz), data);
@@ -687,27 +619,21 @@ final class IrisObjectPlacementRunner {
                     }
                 }
             }
-        } finally {
-            self.readLock.unlock();
-        }
 
-        if (grounding != null) {
-            for (TreeGrounding.Extension extension : grounding.extensions()) {
-                for (int rootY = extension.topY(); rootY >= extension.bottomY(); rootY--) {
-                    NativeBlockState rootState = normalizePlacedWaterlogging(extension.state(), placer,
-                            extension.x(), rootY, extension.z(), waterlogCandidate);
-                    placer.set(extension.x(), rootY, extension.z(), rootState);
-                    if (listener != null) {
-                        listener.accept(new BlockPosition(extension.x(), rootY, extension.z()), rootState);
+            if (grounding != null) {
+                for (TreeGrounding.Extension extension : grounding.extensions()) {
+                    for (int rootY = extension.topY(); rootY >= extension.bottomY(); rootY--) {
+                        NativeBlockState rootState = normalizePlacedWaterlogging(extension.state(), placer,
+                                extension.x(), rootY, extension.z(), waterlogCandidate);
+                        placer.set(extension.x(), rootY, extension.z(), rootState);
+                        if (listener != null) {
+                            listener.accept(new BlockPosition(extension.x(), rootY, extension.z()), rootState);
+                        }
                     }
                 }
             }
-        }
 
-        if (stilting) {
-            self.readLock.lock();
-            try {
-                VectorMap<NativeBlockState> blocks = self.blocks;
+            if (stilting) {
                 IrisStiltSettings settings = stiltSettings;
 
                 double erodeCentroidX = 0;
@@ -715,93 +641,51 @@ final class IrisObjectPlacementRunner {
                 double erodeMaxDist = 1;
                 if (eroding) {
                     int centroidCount = 0;
-                    VectorMap<NativeBlockState>.Cursor centroidCursor = blocks.cursor();
-                    while (centroidCursor.next()) {
-                        IrisBlockVector rot = centroidCursor.key().clone();
-                        spin.rotate(rot);
-                        if (translating) {
-                            rot.add(translateOffset);
-                        }
-                        if (rot.getBlockY() == lowest) {
-                            NativeBlockState bd = centroidCursor.value();
-                            if (bd != null && IrisObjectShaping.shouldStilt(bd, excludedStiltMaterials)) {
-                                erodeCentroidX += rot.getX();
-                                erodeCentroidZ += rot.getZ();
-                                centroidCount++;
-                            }
+                    for (int index = 0; index < count; index++) {
+                        if (bake.layerY(index) == lowest && palette.shouldStilt(bake.paletteIndex(index))) {
+                            erodeCentroidX += exact[index * 3];
+                            erodeCentroidZ += exact[index * 3 + 2];
+                            centroidCount++;
                         }
                     }
                     if (centroidCount > 0) {
                         erodeCentroidX /= centroidCount;
                         erodeCentroidZ /= centroidCount;
                     }
-                    VectorMap<NativeBlockState>.Cursor spreadCursor = blocks.cursor();
-                    while (spreadCursor.next()) {
-                        IrisBlockVector rot = spreadCursor.key().clone();
-                        spin.rotate(rot);
-                        if (translating) {
-                            rot.add(translateOffset);
-                        }
-                        if (rot.getBlockY() == lowest) {
-                            NativeBlockState bd = spreadCursor.value();
-                            if (bd != null && IrisObjectShaping.shouldStilt(bd, excludedStiltMaterials)) {
-                                double dx = rot.getX() - erodeCentroidX;
-                                double dz = rot.getZ() - erodeCentroidZ;
-                                double dist = Math.sqrt(dx * dx + dz * dz);
-                                if (dist > erodeMaxDist) {
-                                    erodeMaxDist = dist;
-                                }
+                    for (int index = 0; index < count; index++) {
+                        if (bake.layerY(index) == lowest && palette.shouldStilt(bake.paletteIndex(index))) {
+                            double dx = exact[index * 3] - erodeCentroidX;
+                            double dz = exact[index * 3 + 2] - erodeCentroidZ;
+                            double dist = Math.sqrt(dx * dx + dz * dz);
+                            if (dist > erodeMaxDist) {
+                                erodeMaxDist = dist;
                             }
                         }
                     }
                 }
 
-                VectorMap<NativeBlockState>.Cursor stiltCursor = blocks.cursor();
-                while (stiltCursor.next()) {
-                    IrisBlockVector g = stiltCursor.key();
-                    NativeBlockState sourceData;
-                    try {
-                        sourceData = stiltCursor.value();
-                    } catch (Throwable e) {
-                        GenerationFailures.rethrowEngineFailure(e);
-                        IrisLogging.reportError(e);
-                        IrisLogging.warn("Failed to read block node " + g.getBlockX() + "," + g.getBlockY() + "," + g.getBlockZ() + " in object " + self.getLoadKey() + " (stilt cme)");
-                        sourceData = IrisObject.States.air();
-                    }
-
-                    if (sourceData == null) {
-                        IrisLogging.warn("Failed to read block node " + g.getBlockX() + "," + g.getBlockY() + "," + g.getBlockZ() + " in object " + self.getLoadKey() + " (stilt null)");
-                        sourceData = IrisObject.States.air();
-                    }
-
-                    if (!IrisObjectShaping.shouldStilt(sourceData, excludedStiltMaterials)) {
+                int targetLayer = ceilingHang ? topLayer : lowest;
+                for (int index = 0; index < count; index++) {
+                    int entry = bake.paletteIndex(index);
+                    if (!palette.shouldStilt(entry)) {
                         continue;
                     }
 
-                    NativeBlockState d = sourceData;
+                    NativeBlockState d;
                     if (settings != null && settings.getPalette() != null) {
                         d = config.getStiltSettings().getPalette().get(rng, x, y, z, rdata);
                     } else {
-                        String mat = IrisObjectShaping.materialKey(d);
-                        if (mat.equals("minecraft:grass_block") || mat.equals("minecraft:mycelium") || mat.equals("minecraft:podzol") || mat.equals("minecraft:dirt_path")) {
-                            d = IrisObject.States.dirt();
-                        }
+                        d = palette.stiltDefault(entry);
                     }
 
-                    IrisBlockVector i = g.clone();
-                    spin.rotate(i);
-                    if (ceilingHang) {
-                        i.setY(-i.getBlockY());
-                    }
-                    if (translating) {
-                        i.add(translateOffset);
-                    }
-                    int targetLayer = ceilingHang ? topLayer : lowest;
-                    if (i.getBlockY() != targetLayer)
+                    if (bake.layerY(index) != targetLayer)
                         continue;
-                    d = config.getRotation().rotate(d, spinx, spiny, spinz);
+                    d = palette.rotate(d);
 
                     if (hasEdits) {
+                        double exactX = exact[index * 3];
+                        double exactY = exact[index * 3 + 1];
+                        double exactZ = exact[index * 3 + 2];
                         for (IrisObjectReplace j : config.getEdit()) {
                             if (rng.chance(j.getChance())) {
                                 for (NativeBlockState k : j.getFind(rdata)) {
@@ -809,7 +693,7 @@ final class IrisObjectPlacementRunner {
                                         continue;
                                     }
                                     if (j.isExact() ? k.matches(d) : IrisObjectShaping.materialKey(k).equals(IrisObjectShaping.materialKey(d))) {
-                                        NativeBlockState newData = j.getReplace(rng, i.getX() + x, i.getY() + y, i.getZ() + z, rdata);
+                                        NativeBlockState newData = j.getReplace(rng, exactX + x, exactY + y, exactZ + z, rdata);
 
                                         if (IrisObjectShaping.materialKey(newData).equals(IrisObjectShaping.materialKey(d))) {
                                             d = BlockDataMergeSupport.merge(d, newData);
@@ -822,15 +706,18 @@ final class IrisObjectPlacementRunner {
                         }
                     }
 
-                    if (d == null || !IrisObjectShaping.shouldStilt(d, excludedStiltMaterials))
+                    if (d == null || !palette.shouldStiltPlaced(d))
                         continue;
 
-                    xx = x + (int) Math.round(i.getX());
-                    zz = z + (int) Math.round(i.getZ());
+                    xx = x + bake.offsetX(index);
+                    zz = z + bake.offsetZ(index);
 
                     if (warped) {
-                        xx += surfaceWarp.fitDouble(-warpHalf, warpHalf, i.getX() + x, i.getY() + y, i.getZ() + z);
-                        zz += surfaceWarp.fitDouble(-warpHalf, warpHalf, i.getZ() + z, i.getY() + y, i.getX() + x);
+                        double exactX = exact[index * 3];
+                        double exactY = exact[index * 3 + 1];
+                        double exactZ = exact[index * 3 + 2];
+                        xx += surfaceWarp.fitDouble(-warpHalf, warpHalf, exactX + x, exactY + y, exactZ + z);
+                        zz += surfaceWarp.fitDouble(-warpHalf, warpHalf, exactZ + z, exactY + y, exactX + x);
                     }
 
                     if (organic) {
@@ -891,8 +778,6 @@ final class IrisObjectPlacementRunner {
 
                     int highest = placer.getHighest(xx, zz, self.getLoader(), true);
 
-
-
                     int lowerBound = highest - 1;
                     if (settings != null) {
                         lowerBound -= config.getStiltSettings().getOverStilt() - rng.i(0, config.getStiltSettings().getYRand());
@@ -901,8 +786,8 @@ final class IrisObjectPlacementRunner {
                     }
 
                     if (eroding) {
-                        double dx = i.getX() - erodeCentroidX;
-                        double dz = i.getZ() - erodeCentroidZ;
+                        double dx = exact[index * 3] - erodeCentroidX;
+                        double dz = exact[index * 3 + 2] - erodeCentroidZ;
                         double normalizedDist = Math.sqrt(dx * dx + dz * dz) / erodeMaxDist;
                         normalizedDist = Math.min(normalizedDist, 1.0);
                         int totalDepth = (lowest + y) - lowerBound;
@@ -933,11 +818,10 @@ final class IrisObjectPlacementRunner {
                         }
                         placer.set(xx, j, zz, normalizePlacedWaterlogging(d, placer, xx, j, zz, waterlogCandidate));
                     }
-
                 }
-            } finally {
-                self.readLock.unlock();
             }
+        } finally {
+            self.readLock.unlock();
         }
 
         if (vacuuming && vacuumLowest != Integer.MAX_VALUE && placer.getEngine() != null) {
@@ -974,7 +858,74 @@ final class IrisObjectPlacementRunner {
         if (state == null || !IrisProceduralBlocks.hasProperty(state, "waterlogged")) {
             return state;
         }
+        if (!enabled && !"true".equals(IrisProceduralBlocks.propertyValue(state, "waterlogged"))) {
+            return IrisProceduralBlocks.normalizeWaterlogging(state, null, false);
+        }
         return IrisProceduralBlocks.normalizeWaterlogging(state, placer.get(x, y, z), enabled);
+    }
+
+    private String[] resolveMarkers(IrisObjectPlacement config, RNG rng, int x, int yv, int z, IrisData rdata,
+                                    ObjectPlacementBake bake) {
+        self.readLock.lock();
+        try {
+            VectorMap<NativeBlockState> blocks = self.blocks;
+            KMap<IrisBlockVector, String> markers = new KMap<>();
+            KList<IrisBlockVector> list = StreamSupport.stream(blocks.keys().spliterator(), false)
+                    .collect(KList.collector());
+            // Marker selection persists into the mantle, so it must be seed-deterministic.
+            // Derive a side stream keyed on the placement position instead of consuming the
+            // caller's rng: consuming draws there would shift every later placement in the
+            // chunk and invalidate existing worlds/goldenhashes.
+            RNG markerRng = rng.nextParallelRNG(((((long) x) << 32) | (z & 0xFFFFFFFFL)) * 31L + yv);
+
+            int markerIndex = 0;
+            for (IrisObjectMarker j : config.getMarkers()) {
+                IrisMarker marker = self.getLoader().getMarkerLoader().load(j.getMarker());
+                int markerSalt = markerIndex++;
+
+                if (marker == null || marker.isCompatExcluded()) {
+                    continue;
+                }
+
+                int max = j.getMaximumMarkers();
+                for (IrisBlockVector i : list.shuffleCopy(markerRng.nextParallelRNG(markerSalt))) {
+                    if (max <= 0) {
+                        break;
+                    }
+
+                    NativeBlockState data = blocks.get(i);
+                    if (data == null) {
+                        continue;
+                    }
+
+                    for (NativeBlockState k : j.getMark(rdata)) {
+                        if (max <= 0) {
+                            break;
+                        }
+
+                        if (j.isExact() ? k.matches(data) : IrisObjectShaping.materialKey(k).equals(IrisObjectShaping.materialKey(data))) {
+                            boolean a = !blocks.containsKey((IrisBlockVector) i.clone().add(new IrisBlockVector(0, 1, 0)));
+                            boolean fff = !blocks.containsKey((IrisBlockVector) i.clone().add(new IrisBlockVector(0, 2, 0)));
+
+                            if (!marker.isEmptyAbove() || (a && fff)) {
+                                markers.put(i, j.getMarker());
+                                max--;
+                            }
+                        }
+                    }
+                }
+            }
+
+            String[] resolved = new String[bake.count()];
+            VectorMap<NativeBlockState>.Cursor cursor = blocks.cursor();
+            int index = 0;
+            while (index < resolved.length && cursor.next()) {
+                resolved[index++] = markers.get(cursor.key());
+            }
+            return resolved;
+        } finally {
+            self.readLock.unlock();
+        }
     }
 
     private KList<IrisBlockVector> transformedPaintSupport(SpinKernel spin, IrisBlockVector translateOffset,
@@ -1337,152 +1288,159 @@ final class IrisObjectPlacementRunner {
         return result;
     }
 
-    /**
-     * Precomputed vector rotation for a single placement.
-     * <p>
-     * This mirrors {@link IrisObjectRotation#rotate(IrisBlockVector, int, int, int)} branch for branch, with two
-     * differences: it mutates the vector handed to it instead of cloning, and the per-axis angle plus its cosine
-     * and sine are resolved once instead of once per block. The angle is a pure function of the axis clamp and the
-     * spin, both fixed for the placement, and Math.cos/Math.sin are pure, so every produced double is identical to
-     * the value the per-call form would have produced.
-     */
-    private static final class SpinKernel {
-        private static final int MODE_NONE = 0;
-        private static final int MODE_FLIP = 1;
-        private static final int MODE_QUARTER = 2;
-        private static final int MODE_THREE_QUARTER = 3;
-        private static final int MODE_ANGLE = 4;
+    private record StateFacts(NativeBlockState rotated, boolean waterloggable, boolean authoredWaterlogged,
+                              NativeBlockState dry, boolean air) {
+        private static final StateFacts ROTATED_AWAY = new StateFacts(null, false, false, null, false);
+    }
 
-        private final boolean rotates;
-        private final int xMode;
-        private final int yMode;
-        private final int zMode;
-        private final double xCos;
-        private final double xSin;
-        private final double yCos;
-        private final double ySin;
-        private final double zCos;
-        private final double zSin;
+    private static final class PlacementStates {
+        private static final Object ROTATED_AWAY = new Object();
+        private static final byte UNKNOWN = 0;
+        private static final byte NO = 1;
+        private static final byte YES = 2;
 
-        private SpinKernel(IrisObjectRotation rotation, int spinx, int spiny, int spinz) {
-            rotates = rotation.canRotate();
-            xMode = rotation.canRotateX() ? modeOf(rotation.getXAxis()) : MODE_NONE;
-            zMode = rotation.canRotateZ() ? modeOf(rotation.getZAxis()) : MODE_NONE;
-            yMode = rotation.canRotateY() ? modeOf(rotation.getYAxis()) : MODE_NONE;
+        private final NativeBlockState[] palette;
+        private final IrisObjectRotation rotation;
+        private final int spinx;
+        private final int spiny;
+        private final int spinz;
+        private final boolean preventingDecay;
+        private final boolean debugSmartBore;
+        private final Set<String> excludedStiltMaterials;
+        private final NativeBlockState[] decayed;
+        private final StateFacts[] facts;
+        private final byte[] stiltLayers;
+        private final byte[] stilts;
+        private final NativeBlockState[] stiltDefaults;
+        private IdentityHashMap<NativeBlockState, Object> rotations;
+        private IdentityHashMap<NativeBlockState, StateFacts> editedFacts;
+        private IdentityHashMap<NativeBlockState, Boolean> placedStilts;
 
-            double xAngle = xMode == MODE_ANGLE ? rotation.getXRotation(spinx) : 0;
-            double zAngle = zMode == MODE_ANGLE ? rotation.getZRotation(spinz) : 0;
-            double yAngle = yMode == MODE_ANGLE ? rotation.getYRotation(spiny) : 0;
-            xCos = Math.cos(xAngle);
-            xSin = Math.sin(xAngle);
-            zCos = Math.cos(zAngle);
-            zSin = Math.sin(zAngle);
-            yCos = Math.cos(yAngle);
-            ySin = Math.sin(yAngle);
+        private PlacementStates(NativeBlockState[] palette, IrisObjectRotation rotation, int spinx, int spiny, int spinz,
+                                boolean preventingDecay, boolean debugSmartBore, Set<String> excludedStiltMaterials) {
+            this.palette = palette;
+            this.rotation = rotation;
+            this.spinx = spinx;
+            this.spiny = spiny;
+            this.spinz = spinz;
+            this.preventingDecay = preventingDecay;
+            this.debugSmartBore = debugSmartBore;
+            this.excludedStiltMaterials = excludedStiltMaterials;
+            this.decayed = new NativeBlockState[palette.length];
+            this.facts = new StateFacts[palette.length];
+            this.stiltLayers = new byte[palette.length];
+            this.stilts = new byte[palette.length];
+            this.stiltDefaults = new NativeBlockState[palette.length];
         }
 
-        private static int modeOf(IrisAxisRotationClamp clamp) {
-            if (!clamp.isLocked()) {
-                return MODE_ANGLE;
-            }
-
-            if (Math.abs(clamp.getMax()) % 360D == 180D) {
-                return MODE_FLIP;
-            }
-
-            if (clamp.getMax() % 360D == 90D || clamp.getMax() % 360D == -270D) {
-                return MODE_QUARTER;
-            }
-
-            if (clamp.getMax() == -90D || clamp.getMax() % 360D == 270D) {
-                return MODE_THREE_QUARTER;
-            }
-
-            return MODE_ANGLE;
+        private NativeBlockState source(int entry) {
+            NativeBlockState state = palette[entry];
+            return debugSmartBore && IrisObject.States.vair().equals(state) ? IrisObject.States.vairDebug() : state;
         }
 
-        /**
-         * Rotates in place. Axis order (X, then Z, then Y) is load bearing.
-         */
-        private void rotate(IrisBlockVector v) {
-            if (!rotates) {
-                return;
+        private boolean stiltLayer(int entry) {
+            byte known = stiltLayers[entry];
+            if (known == UNKNOWN) {
+                known = IrisObjectShaping.isStiltLayerBlock(source(entry)) ? YES : NO;
+                stiltLayers[entry] = known;
             }
+            return known == YES;
+        }
 
-            switch (xMode) {
-                case MODE_FLIP -> {
-                    v.setZ(-v.getZ());
-                    v.setY(-v.getY());
-                }
-                case MODE_QUARTER -> {
-                    double z = v.getZ();
-                    v.setZ(v.getY());
-                    v.setY(-z);
-                }
-                case MODE_THREE_QUARTER -> {
-                    double z = v.getZ();
-                    v.setZ(-v.getY());
-                    v.setY(z);
-                }
-                case MODE_ANGLE -> {
-                    double y = xCos * v.getY() - xSin * v.getZ();
-                    double z = xSin * v.getY() + xCos * v.getZ();
-                    v.setY(y);
-                    v.setZ(z);
-                }
-                default -> {
-                }
+        private NativeBlockState decayed(int entry) {
+            NativeBlockState resolved = decayed[entry];
+            if (resolved == null) {
+                NativeBlockState data = source(entry);
+                resolved = preventingDecay && IrisProceduralBlocks.hasProperty(data, "distance")
+                        && "false".equals(IrisProceduralBlocks.propertyValue(data, "persistent"))
+                        ? data.withProperty("persistent", "true") : data;
+                decayed[entry] = resolved;
             }
+            return resolved;
+        }
 
-            switch (zMode) {
-                case MODE_FLIP -> {
-                    v.setY(-v.getY());
-                    v.setX(-v.getX());
-                }
-                case MODE_QUARTER -> {
-                    double y = v.getY();
-                    v.setY(v.getX());
-                    v.setX(-y);
-                }
-                case MODE_THREE_QUARTER -> {
-                    double y = v.getY();
-                    v.setY(-v.getX());
-                    v.setX(y);
-                }
-                case MODE_ANGLE -> {
-                    double x = zCos * v.getX() - zSin * v.getY();
-                    double y = zSin * v.getX() + zCos * v.getY();
-                    v.setX(x);
-                    v.setY(y);
-                }
-                default -> {
-                }
+        private StateFacts facts(int entry) {
+            StateFacts resolved = facts[entry];
+            if (resolved == null) {
+                resolved = computeFacts(decayed(entry));
+                facts[entry] = resolved;
             }
+            return resolved;
+        }
 
-            switch (yMode) {
-                case MODE_FLIP -> {
-                    v.setX(-v.getX());
-                    v.setZ(-v.getZ());
-                }
-                case MODE_QUARTER -> {
-                    double x = v.getX();
-                    v.setX(v.getZ());
-                    v.setZ(-x);
-                }
-                case MODE_THREE_QUARTER -> {
-                    double x = v.getX();
-                    v.setX(-v.getZ());
-                    v.setZ(x);
-                }
-                case MODE_ANGLE -> {
-                    double x = yCos * v.getX() + ySin * v.getZ();
-                    double z = -ySin * v.getX() + yCos * v.getZ();
-                    v.setX(x);
-                    v.setZ(z);
-                }
-                default -> {
-                }
+        private StateFacts factsOf(NativeBlockState state) {
+            if (editedFacts == null) {
+                editedFacts = new IdentityHashMap<>();
             }
+            StateFacts resolved = editedFacts.get(state);
+            if (resolved == null) {
+                resolved = computeFacts(state);
+                editedFacts.put(state, resolved);
+            }
+            return resolved;
+        }
+
+        private StateFacts computeFacts(NativeBlockState state) {
+            NativeBlockState rotated = rotate(state);
+            if (rotated == null) {
+                return StateFacts.ROTATED_AWAY;
+            }
+            boolean waterloggable = IrisProceduralBlocks.hasProperty(rotated, "waterlogged");
+            boolean authored = waterloggable && "true".equals(IrisProceduralBlocks.propertyValue(rotated, "waterlogged"));
+            NativeBlockState dry = waterloggable ? IrisProceduralBlocks.normalizeWaterlogging(rotated, null, false) : rotated;
+            String material = IrisObjectShaping.materialKey(rotated);
+            boolean air = material.equals("minecraft:air") || material.equals("minecraft:cave_air");
+            return new StateFacts(rotated, waterloggable, authored, dry, air);
+        }
+
+        private NativeBlockState rotate(NativeBlockState state) {
+            if (state == null) {
+                return null;
+            }
+            if (rotations == null) {
+                rotations = new IdentityHashMap<>();
+            }
+            Object memo = rotations.get(state);
+            if (memo == null) {
+                NativeBlockState rotated = rotation.rotate(state, spinx, spiny, spinz);
+                memo = rotated == null ? ROTATED_AWAY : rotated;
+                rotations.put(state, memo);
+            }
+            return memo == ROTATED_AWAY ? null : (NativeBlockState) memo;
+        }
+
+        private boolean shouldStilt(int entry) {
+            byte known = stilts[entry];
+            if (known == UNKNOWN) {
+                known = IrisObjectShaping.shouldStilt(palette[entry], excludedStiltMaterials) ? YES : NO;
+                stilts[entry] = known;
+            }
+            return known == YES;
+        }
+
+        private NativeBlockState stiltDefault(int entry) {
+            NativeBlockState resolved = stiltDefaults[entry];
+            if (resolved == null) {
+                NativeBlockState state = palette[entry];
+                String material = IrisObjectShaping.materialKey(state);
+                resolved = material.equals("minecraft:grass_block") || material.equals("minecraft:mycelium")
+                        || material.equals("minecraft:podzol") || material.equals("minecraft:dirt_path")
+                        ? IrisObject.States.dirt() : state;
+                stiltDefaults[entry] = resolved;
+            }
+            return resolved;
+        }
+
+        private boolean shouldStiltPlaced(NativeBlockState state) {
+            if (placedStilts == null) {
+                placedStilts = new IdentityHashMap<>();
+            }
+            Boolean known = placedStilts.get(state);
+            if (known == null) {
+                known = IrisObjectShaping.shouldStilt(state, excludedStiltMaterials);
+                placedStilts.put(state, known);
+            }
+            return known;
         }
     }
 

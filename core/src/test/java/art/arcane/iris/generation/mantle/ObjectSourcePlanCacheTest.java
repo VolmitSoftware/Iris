@@ -164,6 +164,44 @@ public class ObjectSourcePlanCacheTest {
     }
 
     @Test
+    public void tryAcquireReportsBusySourcesWithoutConsumingThem() throws Exception {
+        ObjectSourcePlanCache cache = new ObjectSourcePlanCache(1024L * 1024L);
+        ObjectSourcePlan plan = planTouching(new int[]{0, 0}, new int[]{1, 0});
+        CountDownLatch entered = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        AtomicInteger builds = new AtomicInteger();
+        ExecutorService executor = Executors.newFixedThreadPool(1);
+        try {
+            Future<ObjectSourcePlan> owner = executor.submit(() -> cache.acquire(0, 0, 0, 0, 7, () -> {
+                builds.incrementAndGet();
+                entered.countDown();
+                await(release);
+                return plan;
+            }));
+            assertTrue(entered.await(5L, TimeUnit.SECONDS));
+
+            assertSame(ObjectSourcePlanCache.BUSY, cache.tryAcquire(0, 0, 1, 0, 7, () -> {
+                builds.incrementAndGet();
+                return plan;
+            }));
+            ObjectSourcePlan unrelated = planTouching(new int[]{5, 5});
+            assertSame(unrelated, cache.tryAcquire(5, 5, 5, 5, 7, () -> unrelated));
+            release.countDown();
+            assertSame(plan, owner.get(5L, TimeUnit.SECONDS));
+
+            assertSame(plan, cache.tryAcquire(0, 0, 1, 0, 7, () -> {
+                builds.incrementAndGet();
+                return plan;
+            }));
+            assertEquals(1, builds.get());
+            assertEquals(2L, cache.stats().drained());
+        } finally {
+            release.countDown();
+            executor.shutdownNow();
+        }
+    }
+
+    @Test
     public void concurrentDestinationsShareOneSourceBuild() throws Exception {
         ObjectSourcePlanCache cache = new ObjectSourcePlanCache(1024L * 1024L);
         int[][] touched = new int[8][];

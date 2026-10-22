@@ -5,6 +5,7 @@ import art.arcane.iris.generation.cache.ConcurrentClockCache;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.util.Arrays;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReferenceArray;
 
@@ -22,42 +23,63 @@ final class CaveDensityGrid {
     private static final AtomicInteger OWNERS = new AtomicInteger();
 
     private final ConcurrentClockCache<Column> columns;
+    private final ConcurrentClockCache<Column> warpColumns;
+    private final ConcurrentHashMap<Object, Owner> owners = new ConcurrentHashMap<>();
 
     CaveDensityGrid(int capacity) {
         columns = new ConcurrentClockCache<>(capacity);
+        warpColumns = new ConcurrentClockCache<>(capacity);
     }
 
-    static int nextOwner() {
-        return OWNERS.getAndIncrement();
+    Owner owner(Object fieldKey) {
+        return owners.computeIfAbsent(fieldKey, ignored -> new Owner(OWNERS.getAndIncrement()));
     }
 
-    Column column(Object owner, int ownerId, int height, int latticeX, int latticeZ) {
-        long key = (long) (ownerId & 0xFFFF) << 48 | (latticeX & COORDINATE_MASK) << 24 | (latticeZ & COORDINATE_MASK);
-        Column cached = columns.get(key);
-        if (cached == null) {
-            cached = columns.putIfAbsent(key, new Column(owner, latticeX, latticeZ, height));
-        }
-        return cached.matches(owner, latticeX, latticeZ) ? cached : null;
+    Column column(Owner owner, int height, int latticeX, int latticeZ) {
+        return column(columns, owner, height, latticeX, latticeZ);
+    }
+
+    Column warpColumn(Owner owner, int height, int latticeX, int latticeZ) {
+        return column(warpColumns, owner, height, latticeX, latticeZ);
     }
 
     void clear() {
         columns.clear();
+        warpColumns.clear();
+        owners.clear();
+    }
+
+    private static Column column(ConcurrentClockCache<Column> cache, Owner owner, int height, int latticeX, int latticeZ) {
+        long key = (long) (owner.id & 0xFFFF) << 48 | (latticeX & COORDINATE_MASK) << 24 | (latticeZ & COORDINATE_MASK);
+        Column cached = cache.get(key);
+        if (cached == null) {
+            cached = cache.putIfAbsent(key, new Column(owner, latticeX, latticeZ, height));
+        }
+        return cached.matches(owner, latticeX, latticeZ) ? cached : null;
+    }
+
+    static final class Owner {
+        private final int id;
+
+        private Owner(int id) {
+            this.id = id;
+        }
     }
 
     static final class Column {
-        private final Object owner;
+        private final Owner owner;
         private final int latticeX;
         private final int latticeZ;
         private final AtomicReferenceArray<double[]> segments;
 
-        private Column(Object owner, int latticeX, int latticeZ, int height) {
+        private Column(Owner owner, int latticeX, int latticeZ, int height) {
             this.owner = owner;
             this.latticeX = latticeX;
             this.latticeZ = latticeZ;
             segments = new AtomicReferenceArray<>(Math.ceilDiv(Math.max(1, height), SEGMENT_SIZE));
         }
 
-        boolean matches(Object owner, int latticeX, int latticeZ) {
+        boolean matches(Owner owner, int latticeX, int latticeZ) {
             return this.owner == owner && this.latticeX == latticeX && this.latticeZ == latticeZ;
         }
 

@@ -370,8 +370,8 @@ public class IrisCaveCarver3DNearParityTest {
                         fullWeights(), 0D, 0D, null, filledHeights(110)));
             } else {
                 carver.carve(capture.writer, 0, 0, fullWeights(), 0D, 0D, null, filledHeights(110));
+                assertFalse(capture.carvedCells.isEmpty());
             }
-            assertFalse(capture.carvedCells.isEmpty());
             Field scratchField = IrisCaveCarver3D.class.getDeclaredField("scratchCache");
             scratchField.setAccessible(true);
             ThreadLocal<?> scratchCache = (ThreadLocal<?>) scratchField.get(carver);
@@ -384,6 +384,12 @@ public class IrisCaveCarver3DNearParityTest {
                 assertNull(slice);
             }
             for (CaveDensityGrid.Column column : scratch.densityColumns) {
+                assertNull(column);
+            }
+            for (CaveDensityGrid.Column column : scratch.cellLattice.densityColumns) {
+                assertNull(column);
+            }
+            for (CaveDensityGrid.Column column : scratch.cellLattice.warpColumns) {
                 assertNull(column);
             }
         }
@@ -1269,7 +1275,7 @@ public class IrisCaveCarver3DNearParityTest {
         doAnswer(invocation -> {
             lookups.incrementAndGet();
             return invocation.callRealMethod();
-        }).when(grid).column(any(), anyInt(), anyInt(), anyInt(), anyInt());
+        }).when(grid).column(any(), anyInt(), anyInt(), anyInt());
         return grid;
     }
 

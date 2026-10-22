@@ -65,6 +65,10 @@ public class IrisOreGenerator {
     }
 
     public NativeBlockState generate(int x, int y, int z, RNG rng, IrisData data) {
+        return generate(x, y, z, rng, data, data == null ? null : data.getEngine());
+    }
+
+    public NativeBlockState generate(int x, int y, int z, RNG rng, IrisData data, Engine engine) {
         if (threshold <= 0 || !range.contains(y)) {
             return null;
         }
@@ -73,7 +77,7 @@ public class IrisOreGenerator {
             return null;
         }
 
-        if (chance(rng, data).sample(x, y, z) > threshold) {
+        if (chance(rng, data, engine).sample(x, y, z) > threshold) {
             return null;
         }
 
@@ -81,8 +85,11 @@ public class IrisOreGenerator {
     }
 
     private OreChance chance(RNG rng, IrisData data) {
+        return chance(rng, data, data == null ? null : data.getEngine());
+    }
+
+    private OreChance chance(RNG rng, IrisData data, Engine engine) {
         long seed = rng.getSeed();
-        Engine engine = data == null ? null : data.getEngine();
         CachedChance recent = recentChance;
         if (recent != null && recent.key.seed == seed && recent.key.data == data && recent.key.engine == engine) {
             return recent.chance;

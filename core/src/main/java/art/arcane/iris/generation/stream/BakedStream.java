@@ -33,22 +33,18 @@ public final class BakedStream<T> extends BasicStream<T> implements ChunkFillabl
     public T get(double x, double z) {
         int blockX = (int) x;
         int blockZ = (int) z;
-        Object values = cache.read(plane, blockX >> 4, blockZ >> 4);
-        return values == null ? scalar.get(blockX, blockZ) : (T) ((Object[]) values)[((blockZ & 15) << 4) | (blockX & 15)];
-    }
-
-    @SuppressWarnings("unchecked")
-    public T sparse(int blockX, int blockZ) {
-        Object published = publishedPlane(blockX >> 4, blockZ >> 4);
-        if (published != null) {
-            return (T) ((Object[]) published)[((blockZ & 15) << 4) | (blockX & 15)];
+        int index = ((blockZ & 15) << 4) | (blockX & 15);
+        ChunkPlanes.Plane values = cache.planeIfPresent(plane, blockX >> 4, blockZ >> 4);
+        if (values != null && values.ready(index)) {
+            return (T) values.objectAt(index);
         }
-        ChunkBakeCache.enterSparse();
-        try {
+        if (!cache.memoAllowed()) {
             return scalar.get(blockX, blockZ);
-        } finally {
-            ChunkBakeCache.exitSparse();
         }
+        long revision = ProvisionalSampling.revision();
+        T value = scalar.get(blockX, blockZ);
+        cache.storeObject(plane, blockX, blockZ, value, revision);
+        return value;
     }
 
     @Override
@@ -70,20 +66,14 @@ public final class BakedStream<T> extends BasicStream<T> implements ChunkFillabl
     public void fillChunkRaw(int worldX, int worldZ, Object[] target) {
         int chunkX = worldX >> 4;
         int chunkZ = worldZ >> 4;
-        Object values = cache.bakingAllowed() ? cache.bake(plane, chunkX, chunkZ) : publishedPlane(chunkX, chunkZ);
-        if (values != null) {
-            System.arraycopy(values, 0, target, 0, 256);
+        if (cache.memoAllowed()) {
+            System.arraycopy(cache.complete(plane, chunkX, chunkZ), 0, target, 0, 256);
             return;
         }
         int originX = chunkX << 4;
         int originZ = chunkZ << 4;
         for (int index = 0; index < 256; index++) {
-            target[index] = scalar.get(originX + (index & 15), originZ + (index >> 4));
+            target[index] = get(originX + (index & 15), originZ + (index >> 4));
         }
-    }
-
-    private Object publishedPlane(int chunkX, int chunkZ) {
-        ChunkPlanes planes = cache.planesIfPresent(chunkX, chunkZ);
-        return planes == null ? null : planes.published(plane);
     }
 }

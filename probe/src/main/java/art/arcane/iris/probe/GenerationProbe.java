@@ -18,6 +18,8 @@
 
 package art.arcane.iris.probe;
 
+import art.arcane.iris.generation.bake.BakePlane;
+import art.arcane.iris.generation.bake.GeneratorEvaluations;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.pack.PackValidationResult;
 import art.arcane.iris.pack.PackValidator;
@@ -553,9 +555,11 @@ public final class GenerationProbe {
                                            List<ChunkCoordinate> coordinates, OutcomeSink sink) throws IOException {
         int totalChunks = coordinates.size();
         long measuredStartEpochMillis = 0L;
+        GeneratorEvaluations.Snapshot measuredStartEvaluations = GeneratorEvaluations.snapshot();
         for (int index = 0; index < totalChunks; index++) {
             if (index == configuration.warmupChunks()) {
                 measuredStartEpochMillis = System.currentTimeMillis();
+                measuredStartEvaluations = GeneratorEvaluations.snapshot();
             }
             drainReported();
             ChunkOutcome outcome = generateChunk(engine, index, coordinates.get(index), configuration.multicore());
@@ -563,12 +567,22 @@ public final class GenerationProbe {
             sink.accept(outcome, index >= configuration.warmupChunks());
             printProgress(configuration, index + 1, totalChunks);
         }
-        printWindow(measuredStartEpochMillis, System.currentTimeMillis());
+        printWindow(engine, measuredStartEpochMillis, System.currentTimeMillis(), measuredStartEvaluations);
     }
 
-    private static void printWindow(long startEpochMillis, long endEpochMillis) {
+    private static void printWindow(Engine engine, long startEpochMillis, long endEpochMillis, GeneratorEvaluations.Snapshot startEvaluations) {
         System.out.println("IRIS_GENPROBE_WINDOW phase=measured start_epoch_ms=" + startEpochMillis
                 + " end_epoch_ms=" + endEpochMillis);
+        GeneratorEvaluations.Snapshot evaluations = GeneratorEvaluations.snapshot().minus(startEvaluations);
+        System.out.printf(Locale.ROOT, "IRIS_GENPROBE_GENERATORS baked_chunks=%d baked_evaluations=%d evaluations_per_baked_chunk=%.3f batched_evaluations=%d scalar_evaluations=%d%n",
+                evaluations.bakedChunks(), evaluations.bakedEvaluations(), evaluations.bakedEvaluationsPerChunk(),
+                evaluations.batchedEvaluations(), evaluations.scalarEvaluations());
+        long[] census = engine.getComplex().bakeCensus();
+        StringBuilder planes = new StringBuilder("IRIS_GENPROBE_BAKE entries=").append(census[BakePlane.values().length]);
+        for (BakePlane plane : BakePlane.values()) {
+            planes.append(' ').append(plane.name().toLowerCase(Locale.ROOT)).append('=').append(census[plane.ordinal()]);
+        }
+        System.out.println(planes);
     }
 
     private static void generateParallel(Engine engine, ProbeConfiguration configuration, ProbeOptions options,
@@ -594,10 +608,11 @@ public final class GenerationProbe {
             List<Integer> measured = spiralOrder(coordinates, configuration.warmupChunks(),
                     configuration.centerChunkX(), configuration.centerChunkZ());
             long measuredStartEpochMillis = System.currentTimeMillis();
+            GeneratorEvaluations.Snapshot measuredStartEvaluations = GeneratorEvaluations.snapshot();
             long measuredStarted = System.nanoTime();
             runPhase(executor, engine, configuration, coordinates, measured, outcomes);
             measuredWallNanos = System.nanoTime() - measuredStarted;
-            printWindow(measuredStartEpochMillis, System.currentTimeMillis());
+            printWindow(engine, measuredStartEpochMillis, System.currentTimeMillis(), measuredStartEvaluations);
             unattributed.addAll(drainReported());
             System.out.println("[genprobe] measured progress: " + configuration.measuredChunks() + "/"
                     + configuration.measuredChunks());

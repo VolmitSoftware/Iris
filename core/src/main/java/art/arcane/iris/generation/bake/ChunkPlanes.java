@@ -2,12 +2,17 @@ package art.arcane.iris.generation.bake;
 
 import art.arcane.iris.generation.stream.ProvisionalSampling;
 
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.AtomicReferenceArray;
 
 public final class ChunkPlanes {
+    private static final VarHandle READY = MethodHandles.arrayElementVarHandle(long[].class);
+
     private final int chunkX;
     private final int chunkZ;
-    private final AtomicReferenceArray<Object> planes = new AtomicReferenceArray<>(BakePlane.PLANES.length);
+    private final AtomicReferenceArray<Plane> planes = new AtomicReferenceArray<>(BakePlane.PLANES.length);
     private volatile ColumnBake columnBake;
 
     ChunkPlanes(int chunkX, int chunkZ) {
@@ -23,40 +28,50 @@ public final class ChunkPlanes {
         return chunkZ;
     }
 
-    public Object published(BakePlane plane) {
-        Object state = planes.getAcquire(plane.ordinal());
-        return state instanceof Pending ? null : state;
+    public Plane planeIfPresent(BakePlane kind) {
+        return planes.getAcquire(kind.ordinal());
     }
 
-    Object plane(BakePlane plane, PlaneSource source) {
-        int slot = plane.ordinal();
+    public Object published(BakePlane kind) {
+        Plane plane = planes.getAcquire(kind.ordinal());
+        return plane != null && plane.complete ? plane.values : null;
+    }
+
+    public Plane plane(BakePlane kind) {
+        int slot = kind.ordinal();
+        Plane plane = planes.getAcquire(slot);
+        if (plane != null) {
+            return plane;
+        }
+        Plane created = new Plane(kind);
+        Plane witness = planes.compareAndExchangeRelease(slot, null, created);
+        return witness == null ? created : witness;
+    }
+
+    Object complete(BakePlane kind, PlaneSource source) {
+        Plane plane = plane(kind);
         while (true) {
-            Object state = planes.getAcquire(slot);
-            if (state != null && !(state instanceof Pending)) {
-                return state;
+            if (plane.complete) {
+                return plane.values;
             }
-            if (state instanceof Pending pending) {
-                if (pending.owner == Thread.currentThread()) {
-                    return source.compute(plane, chunkX, chunkZ);
+            Pending running = plane.filling.get();
+            if (running != null) {
+                if (running.owner == Thread.currentThread()) {
+                    return plane.unpublishedFill(source, chunkX, chunkZ);
                 }
-                pending.await();
+                running.await();
                 continue;
             }
             Pending pending = new Pending(Thread.currentThread());
-            if (!planes.compareAndSet(slot, null, pending)) {
+            if (!plane.filling.compareAndSet(null, pending)) {
                 continue;
             }
-            Object computed = null;
-            boolean publishable = false;
             try {
-                long revision = ProvisionalSampling.revision();
-                computed = source.compute(plane, chunkX, chunkZ);
-                publishable = revision == ProvisionalSampling.revision();
+                return plane.fill(source, chunkX, chunkZ);
             } finally {
-                planes.setRelease(slot, publishable ? computed : null);
+                plane.filling.set(null);
                 pending.complete();
             }
-            return computed;
         }
     }
 
@@ -75,6 +90,97 @@ public final class ChunkPlanes {
             columnBake = bake;
         }
         return bake;
+    }
+
+    public static final class Plane {
+        private final BakePlane kind;
+        private final Object values;
+        private final long[] ready = new long[4];
+        private final AtomicReference<Pending> filling = new AtomicReference<>();
+        private volatile boolean complete;
+
+        private Plane(BakePlane kind) {
+            this.kind = kind;
+            this.values = kind.doubles() ? new double[256] : new Object[256];
+        }
+
+        public boolean ready(int index) {
+            return complete || ((long) READY.getAcquire(ready, index >>> 6) & (1L << (index & 63))) != 0L;
+        }
+
+        public double doubleAt(int index) {
+            return ((double[]) values)[index];
+        }
+
+        public Object objectAt(int index) {
+            return ((Object[]) values)[index];
+        }
+
+        public void storeDouble(int index, double value) {
+            ((double[]) values)[index] = value;
+            markReady(index);
+        }
+
+        public void storeObject(int index, Object value) {
+            ((Object[]) values)[index] = value;
+            markReady(index);
+        }
+
+        private void markReady(int index) {
+            READY.getAndBitwiseOrRelease(ready, index >>> 6, 1L << (index & 63));
+        }
+
+        private long[] missing() {
+            long[] missing = new long[4];
+            for (int word = 0; word < 4; word++) {
+                missing[word] = ~(long) READY.getAcquire(ready, word);
+            }
+            return missing;
+        }
+
+        private Object fill(PlaneSource source, int chunkX, int chunkZ) {
+            long[] missing = missing();
+            Object computed = kind.doubles() ? new double[256] : new Object[256];
+            long revision = ProvisionalSampling.revision();
+            source.fill(kind, chunkX, chunkZ, missing, computed);
+            if (revision != ProvisionalSampling.revision()) {
+                return merge(missing, computed);
+            }
+            for (int index = 0; index < 256; index++) {
+                if ((missing[index >>> 6] & (1L << (index & 63))) != 0L) {
+                    if (kind.doubles()) {
+                        ((double[]) values)[index] = ((double[]) computed)[index];
+                    } else {
+                        ((Object[]) values)[index] = ((Object[]) computed)[index];
+                    }
+                }
+            }
+            for (int word = 0; word < 4; word++) {
+                READY.setRelease(ready, word, -1L);
+            }
+            complete = true;
+            return values;
+        }
+
+        private Object unpublishedFill(PlaneSource source, int chunkX, int chunkZ) {
+            long[] missing = missing();
+            Object computed = kind.doubles() ? new double[256] : new Object[256];
+            source.fill(kind, chunkX, chunkZ, missing, computed);
+            return merge(missing, computed);
+        }
+
+        private Object merge(long[] missing, Object computed) {
+            for (int index = 0; index < 256; index++) {
+                if ((missing[index >>> 6] & (1L << (index & 63))) == 0L) {
+                    if (kind.doubles()) {
+                        ((double[]) computed)[index] = ((double[]) values)[index];
+                    } else {
+                        ((Object[]) computed)[index] = ((Object[]) values)[index];
+                    }
+                }
+            }
+            return computed;
+        }
     }
 
     private static final class Pending {

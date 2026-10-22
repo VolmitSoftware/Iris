@@ -6,7 +6,6 @@ import art.arcane.iris.generation.noise.TerrainBatchScratch;
 import art.arcane.volmlib.util.math.M;
 
 import java.util.Arrays;
-import java.util.concurrent.atomic.LongAdder;
 
 public final class TerrainProgram {
     private static final int SKIPPED = 0;
@@ -16,7 +15,6 @@ public final class TerrainProgram {
     private final IrisGenerator[][] generators;
     private final GeneratorProgram[][] programs;
     private final long heightSeed;
-    private final LongAdder evaluations = new LongAdder();
 
     private TerrainProgram(IrisGenerator[][] generators, GeneratorProgram[][] programs, long heightSeed) {
         this.generators = generators;
@@ -44,19 +42,11 @@ public final class TerrainProgram {
         return generators[group].length;
     }
 
-    public long evaluations() {
-        return evaluations.sum();
-    }
-
-    public void countScalarEvaluations(int count) {
-        evaluations.add(count);
-    }
-
-    public void accumulate(int group, TerrainBatchScratch scratch, double[] xs, double[] zs, int count,
+    public long accumulate(int group, TerrainBatchScratch scratch, double[] xs, double[] zs, int count,
                            double[] lows, double[] highs, double[] heights) {
         IrisGenerator[] members = generators[group];
         if (members.length == 0 || count == 0) {
-            return;
+            return 0L;
         }
         int mark = scratch.mark();
         int indexMark = scratch.indexMark();
@@ -87,7 +77,7 @@ public final class TerrainProgram {
         }
         if (activeCount == 0) {
             scratch.resetIndices(indexMark);
-            return;
+            return 0L;
         }
         double[] activeX = scratch.buffer(activeCount);
         double[] activeZ = scratch.buffer(activeCount);
@@ -129,8 +119,8 @@ public final class TerrainProgram {
         for (int index = 0; index < activeCount; index++) {
             heights[activeIndex[index]] += sums[index] / members.length;
         }
-        evaluations.add((long) activeCount * members.length);
         scratch.reset(mark);
         scratch.resetIndices(indexMark);
+        return (long) activeCount * members.length;
     }
 }

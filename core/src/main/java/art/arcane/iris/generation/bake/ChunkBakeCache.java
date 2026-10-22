@@ -1,29 +1,25 @@
 package art.arcane.iris.generation.bake;
 
 import art.arcane.iris.generation.cache.ConcurrentClockCache;
+import art.arcane.iris.generation.stream.ProvisionalSampling;
 
 import java.util.Objects;
-import java.util.function.DoubleSupplier;
 import java.util.function.Supplier;
 
 public final class ChunkBakeCache implements BakeCache {
-    private static final ThreadLocal<int[]> DEPTH = ThreadLocal.withInitial(() -> new int[2]);
-    private static final int BAKING = 0;
-    private static final int SPARSE = 1;
+    private static final ThreadLocal<int[]> SPARSE = ThreadLocal.withInitial(() -> new int[1]);
 
     private final PlaneSource source;
-    private final PlaneSource tracked;
     private volatile ConcurrentClockCache<ChunkPlanes> entries;
 
     public ChunkBakeCache(PlaneSource source, int capacityChunks) {
         this.source = Objects.requireNonNull(source, "Bake plane source");
-        this.tracked = new TrackedSource(source);
         this.entries = new ConcurrentClockCache<>(Math.max(16, capacityChunks));
     }
 
     @Override
     public ColumnBake get(int chunkX, int chunkZ) {
-        return planes(chunkX, chunkZ).columnBake(tracked);
+        return planes(chunkX, chunkZ).columnBake(source);
     }
 
     @Override
@@ -50,6 +46,19 @@ public final class ChunkBakeCache implements BakeCache {
         entries.clear();
     }
 
+    public long[] census() {
+        long[] counts = new long[BakePlane.PLANES.length + 1];
+        entries.forEach(planes -> {
+            counts[BakePlane.PLANES.length]++;
+            for (BakePlane plane : BakePlane.PLANES) {
+                if (planes.planeIfPresent(plane) != null) {
+                    counts[plane.ordinal()]++;
+                }
+            }
+        });
+        return counts;
+    }
+
     public ChunkPlanes planes(int chunkX, int chunkZ) {
         ConcurrentClockCache<ChunkPlanes> current = entries;
         long key = key(chunkX, chunkZ);
@@ -61,38 +70,35 @@ public final class ChunkBakeCache implements BakeCache {
         return entries.get(key(chunkX, chunkZ));
     }
 
-    public Object bake(BakePlane plane, int chunkX, int chunkZ) {
-        return planes(chunkX, chunkZ).plane(plane, tracked);
-    }
-
-    public Object read(BakePlane plane, int chunkX, int chunkZ) {
+    public ChunkPlanes.Plane planeIfPresent(BakePlane plane, int chunkX, int chunkZ) {
         ChunkPlanes planes = entries.get(key(chunkX, chunkZ));
-        if (planes != null) {
-            Object published = planes.published(plane);
-            if (published != null) {
-                return published;
-            }
-        }
-        if (!denseReadsAllowed()) {
-            return null;
-        }
-        return (planes != null ? planes : planes(chunkX, chunkZ)).plane(plane, tracked);
+        return planes == null ? null : planes.planeIfPresent(plane);
     }
 
-    public boolean denseReadsAllowed() {
-        int[] depth = DEPTH.get();
-        if (depth[SPARSE] > 0 || source.mainThread()) {
-            return false;
+    public ChunkPlanes.Plane plane(BakePlane plane, int chunkX, int chunkZ) {
+        return planes(chunkX, chunkZ).plane(plane);
+    }
+
+    public Object complete(BakePlane plane, int chunkX, int chunkZ) {
+        return planes(chunkX, chunkZ).complete(plane, source);
+    }
+
+    public boolean memoAllowed() {
+        return SPARSE.get()[0] == 0 && !source.mainThread();
+    }
+
+    public void storeDouble(BakePlane plane, int blockX, int blockZ, double value, long revision) {
+        if (revision != ProvisionalSampling.revision()) {
+            return;
         }
-        return depth[BAKING] > 0 || source.generationContext();
+        planes(blockX >> 4, blockZ >> 4).plane(plane).storeDouble(((blockZ & 15) << 4) | (blockX & 15), value);
     }
 
-    public boolean bakingAllowed() {
-        return !inSparseScope() && !source.mainThread();
-    }
-
-    public static boolean inSparseScope() {
-        return DEPTH.get()[SPARSE] > 0;
+    public void storeObject(BakePlane plane, int blockX, int blockZ, Object value, long revision) {
+        if (revision != ProvisionalSampling.revision()) {
+            return;
+        }
+        planes(blockX >> 4, blockZ >> 4).plane(plane).storeObject(((blockZ & 15) << 4) | (blockX & 15), value);
     }
 
     public static <T> T sparse(Supplier<T> action) {
@@ -104,73 +110,19 @@ public final class ChunkBakeCache implements BakeCache {
         }
     }
 
-    public static double sparseDouble(DoubleSupplier action) {
-        enterSparse();
-        try {
-            return action.getAsDouble();
-        } finally {
-            exitSparse();
-        }
-    }
-
-    public static void sparse(Runnable action) {
-        enterSparse();
-        try {
-            action.run();
-        } finally {
-            exitSparse();
-        }
-    }
-
     public static void enterSparse() {
-        DEPTH.get()[SPARSE]++;
+        SPARSE.get()[0]++;
     }
 
     public static void exitSparse() {
-        DEPTH.get()[SPARSE]--;
+        SPARSE.get()[0]--;
+    }
+
+    public static boolean inSparseScope() {
+        return SPARSE.get()[0] > 0;
     }
 
     public static long key(int chunkX, int chunkZ) {
         return ((long) chunkX << 32) ^ (chunkZ & 0xffffffffL);
-    }
-
-    private static final class TrackedSource implements PlaneSource {
-        private final PlaneSource delegate;
-
-        private TrackedSource(PlaneSource delegate) {
-            this.delegate = delegate;
-        }
-
-        @Override
-        public Object compute(BakePlane plane, int chunkX, int chunkZ) {
-            int[] depth = DEPTH.get();
-            depth[BAKING]++;
-            try {
-                return delegate.compute(plane, chunkX, chunkZ);
-            } finally {
-                depth[BAKING]--;
-            }
-        }
-
-        @Override
-        public ColumnBake assemble(ChunkPlanes planes) {
-            int[] depth = DEPTH.get();
-            depth[BAKING]++;
-            try {
-                return delegate.assemble(planes);
-            } finally {
-                depth[BAKING]--;
-            }
-        }
-
-        @Override
-        public boolean mainThread() {
-            return delegate.mainThread();
-        }
-
-        @Override
-        public boolean generationContext() {
-            return delegate.generationContext();
-        }
     }
 }

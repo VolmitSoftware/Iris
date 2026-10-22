@@ -33,10 +33,7 @@ public final class BakedHeightStream extends BasicStream<Double> implements Chun
         if (mainThread.getAsBoolean()) {
             return nonblocking.noise(x, z);
         }
-        int blockX = (int) x;
-        int blockZ = (int) z;
-        Object values = cache.read(BakePlane.HEIGHT, blockX >> 4, blockZ >> 4);
-        return values == null ? resolved.noise(blockX, blockZ) : ((double[]) values)[((blockZ & 15) << 4) | (blockX & 15)];
+        return column((int) x, (int) z, !ChunkBakeCache.inSparseScope());
     }
 
     @Override
@@ -65,18 +62,15 @@ public final class BakedHeightStream extends BasicStream<Double> implements Chun
             throw new IllegalArgumentException("Expected a 16x16 target array.");
         }
         boolean main = mainThread.getAsBoolean();
-        if (!main && (worldX & 15) == 0 && (worldZ & 15) == 0) {
-            Object values = ChunkBakeCache.inSparseScope() ? published(worldX >> 4, worldZ >> 4)
-                    : cache.bake(BakePlane.HEIGHT, worldX >> 4, worldZ >> 4);
-            if (values != null) {
-                System.arraycopy(values, 0, target, 0, 256);
-                return;
-            }
+        boolean memo = !main && !ChunkBakeCache.inSparseScope();
+        if (memo && (worldX & 15) == 0 && (worldZ & 15) == 0) {
+            System.arraycopy(cache.complete(BakePlane.HEIGHT, worldX >> 4, worldZ >> 4), 0, target, 0, 256);
+            return;
         }
         for (int index = 0; index < 256; index++) {
             int x = worldX + (index & 15);
             int z = worldZ + (index >> 4);
-            target[index] = main ? nonblocking.noise(x, z) : column(x, z);
+            target[index] = main ? nonblocking.noise(x, z) : column(x, z, memo);
         }
     }
 
@@ -89,13 +83,18 @@ public final class BakedHeightStream extends BasicStream<Double> implements Chun
         }
     }
 
-    private double column(int x, int z) {
-        Object values = published(x >> 4, z >> 4);
-        return values == null ? resolved.noise(x, z) : ((double[]) values)[((z & 15) << 4) | (x & 15)];
-    }
-
-    private Object published(int chunkX, int chunkZ) {
-        ChunkPlanes planes = cache.planesIfPresent(chunkX, chunkZ);
-        return planes == null ? null : planes.published(BakePlane.HEIGHT);
+    private double column(int x, int z, boolean memo) {
+        int index = ((z & 15) << 4) | (x & 15);
+        ChunkPlanes.Plane values = cache.planeIfPresent(BakePlane.HEIGHT, x >> 4, z >> 4);
+        if (values != null && values.ready(index)) {
+            return values.doubleAt(index);
+        }
+        if (!memo) {
+            return resolved.noise(x, z);
+        }
+        long revision = ProvisionalSampling.revision();
+        double value = resolved.noise(x, z);
+        cache.storeDouble(BakePlane.HEIGHT, x, z, value, revision);
+        return value;
     }
 }

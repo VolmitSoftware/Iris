@@ -1,11 +1,9 @@
 package art.arcane.iris.generation.bake;
 
 public interface PlaneSource {
-    Object compute(BakePlane plane, int chunkX, int chunkZ);
+    void fill(BakePlane plane, int chunkX, int chunkZ, long[] missing, Object values);
 
     ColumnBake assemble(ChunkPlanes planes);
 
     boolean mainThread();
-
-    boolean generationContext();
 }

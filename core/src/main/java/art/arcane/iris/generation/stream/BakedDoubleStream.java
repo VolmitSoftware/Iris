@@ -37,21 +37,18 @@ public final class BakedDoubleStream extends BasicStream<Double> implements Chun
     public double getDouble(double x, double z) {
         int blockX = (int) x;
         int blockZ = (int) z;
-        Object values = cache.read(plane, blockX >> 4, blockZ >> 4);
-        return values == null ? scalar.getDouble(blockX, blockZ) : ((double[]) values)[((blockZ & 15) << 4) | (blockX & 15)];
-    }
-
-    public double sparse(int blockX, int blockZ) {
-        Object published = publishedPlane(blockX >> 4, blockZ >> 4);
-        if (published != null) {
-            return ((double[]) published)[((blockZ & 15) << 4) | (blockX & 15)];
+        int index = ((blockZ & 15) << 4) | (blockX & 15);
+        ChunkPlanes.Plane values = cache.planeIfPresent(plane, blockX >> 4, blockZ >> 4);
+        if (values != null && values.ready(index)) {
+            return values.doubleAt(index);
         }
-        ChunkBakeCache.enterSparse();
-        try {
+        if (!cache.memoAllowed()) {
             return scalar.getDouble(blockX, blockZ);
-        } finally {
-            ChunkBakeCache.exitSparse();
         }
+        long revision = ProvisionalSampling.revision();
+        double value = scalar.getDouble(blockX, blockZ);
+        cache.storeDouble(plane, blockX, blockZ, value, revision);
+        return value;
     }
 
     @Override
@@ -81,15 +78,14 @@ public final class BakedDoubleStream extends BasicStream<Double> implements Chun
         }
         int chunkX = worldX >> 4;
         int chunkZ = worldZ >> 4;
-        Object values = cache.bakingAllowed() ? cache.bake(plane, chunkX, chunkZ) : publishedPlane(chunkX, chunkZ);
-        if (values != null) {
-            System.arraycopy(values, 0, target, 0, 256);
+        if (cache.memoAllowed()) {
+            System.arraycopy(cache.complete(plane, chunkX, chunkZ), 0, target, 0, 256);
             return;
         }
         int originX = chunkX << 4;
         int originZ = chunkZ << 4;
         for (int index = 0; index < 256; index++) {
-            target[index] = scalar.getDouble(originX + (index & 15), originZ + (index >> 4));
+            target[index] = getDouble(originX + (index & 15), originZ + (index >> 4));
         }
     }
 
@@ -100,10 +96,5 @@ public final class BakedDoubleStream extends BasicStream<Double> implements Chun
         for (int index = 0; index < 256; index++) {
             target[index] = values[index];
         }
-    }
-
-    private Object publishedPlane(int chunkX, int chunkZ) {
-        ChunkPlanes planes = cache.planesIfPresent(chunkX, chunkZ);
-        return planes == null ? null : planes.published(plane);
     }
 }

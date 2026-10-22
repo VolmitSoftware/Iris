@@ -4,6 +4,7 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import art.arcane.volmlib.util.cache.CacheKey;
 
+import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
@@ -14,6 +15,7 @@ import java.util.function.Supplier;
 import static art.arcane.iris.generation.cache.Cache.key;
 
 final class ObjectSourcePlanCache {
+    static final ObjectSourcePlan BUSY = new ObjectSourcePlan(List.of());
     private static final long MAXIMUM_RETAINED_BYTES = 512L * 1024L * 1024L;
     private static final int ENTRY_BYTES = 64;
 
@@ -66,6 +68,19 @@ final class ObjectSourcePlanCache {
             current.plans.asMap().computeIfPresent(source, (Long key, Entry mapped) -> mapped.visitors == visitors ? null : mapped);
         }
         return plan;
+    }
+
+    ObjectSourcePlan tryAcquire(int sourceChunkX, int sourceChunkZ, int destinationChunkX, int destinationChunkZ,
+                                int sourceChunkRadius, Supplier<ObjectSourcePlan> builder) {
+        State current = state;
+        long source = CacheKey.mix(key(sourceChunkX, sourceChunkZ));
+        if (current.plans.getIfPresent(source) == null) {
+            Pending pending = current.pending.get(source);
+            if (pending != null && pending.owner != Thread.currentThread()) {
+                return BUSY;
+            }
+        }
+        return acquire(sourceChunkX, sourceChunkZ, destinationChunkX, destinationChunkZ, sourceChunkRadius, builder);
     }
 
     private ObjectSourcePlan claim(State current, long source, Entry entry, int destinationChunkX, int destinationChunkZ,

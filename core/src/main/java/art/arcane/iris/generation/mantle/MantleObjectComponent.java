@@ -88,6 +88,8 @@ public class MantleObjectComponent extends IrisMantleComponent {
     private static final Map<String, CaveRejectLogState> CAVE_REJECT_LOG_STATE = new ConcurrentHashMap<>();
     private static final Set<String> MISSING_LOAD_KEY_WARNED = ConcurrentHashMap.newKeySet();
     private static final long SOURCE_PLAN_STATS_INTERVAL_MS = 30_000L;
+    private static final int MAXIMUM_TREE_MATERIALS = 8192;
+    private static final Map<NativeBlockState, TreeBlockMaterial> TREE_MATERIALS = new ConcurrentHashMap<>();
 
     private final Object collisionRuleLock;
     private final ObjectSourcePlanCache sourcePlans;
@@ -124,7 +126,14 @@ public class MantleObjectComponent extends IrisMantleComponent {
     }
 
     private static void writeTreeMaterial(IObjectPlacer placer, int x, int y, int z, NativeBlockState data) {
-        placer.setData(x, y, z, TreeBlockMaterial.of(data));
+        TreeBlockMaterial material = TREE_MATERIALS.get(data);
+        if (material == null) {
+            material = TreeBlockMaterial.of(data);
+            if (TREE_MATERIALS.size() < MAXIMUM_TREE_MATERIALS) {
+                TREE_MATERIALS.putIfAbsent(data, material);
+            }
+        }
+        placer.setData(x, y, z, material);
     }
 
     @Override
@@ -157,19 +166,23 @@ public class MantleObjectComponent extends IrisMantleComponent {
         ObjectDestinationTransaction transaction = new ObjectDestinationTransaction(writer, x, z);
         int radius = getRadius();
         int sourceChunkRadius = sourceChunkRadius(radius);
-        replaySourceChunks(
-                x,
-                z,
-                radius,
-                (sourceX, sourceZ) -> {
-                    ObjectSourcePlan plan = sourcePlans.acquire(sourceX, sourceZ, x, z, sourceChunkRadius,
-                            () -> buildSourcePlan(writer, sourceX, sourceZ, context));
-                    if (plan != null) {
-                        transaction.apply(plan);
-                        plan.persistContinuations(writer, sourceX, sourceZ, x, z);
-                    }
-                }
-        );
+        int side = (sourceChunkRadius * 2) + 1;
+        ObjectSourcePlan[] plans = new ObjectSourcePlan[side * side];
+        int[] slot = new int[1];
+        replaySourceChunks(x, z, radius, (sourceX, sourceZ) -> plans[slot[0]++] = sourcePlans.tryAcquire(
+                sourceX, sourceZ, x, z, sourceChunkRadius, () -> buildSourcePlan(writer, sourceX, sourceZ, context)));
+        slot[0] = 0;
+        replaySourceChunks(x, z, radius, (sourceX, sourceZ) -> {
+            ObjectSourcePlan plan = plans[slot[0]++];
+            if (plan == ObjectSourcePlanCache.BUSY) {
+                plan = sourcePlans.acquire(sourceX, sourceZ, x, z, sourceChunkRadius,
+                        () -> buildSourcePlan(writer, sourceX, sourceZ, context));
+            }
+            if (plan != null) {
+                transaction.apply(plan);
+                plan.persistContinuations(writer, sourceX, sourceZ, x, z);
+            }
+        });
         transaction.commit();
         logSourcePlanStats();
     }

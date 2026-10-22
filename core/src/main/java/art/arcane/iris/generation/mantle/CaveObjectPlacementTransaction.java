@@ -32,13 +32,14 @@ import art.arcane.volmlib.util.math.BlockPosition;
 import art.arcane.iris.generation.block.B;
 import art.arcane.volmlib.util.collection.KList;
 import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
+import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import org.jetbrains.annotations.Nullable;
-
-import java.util.HashMap;
-import java.util.Map;
 
 final class CaveObjectPlacementTransaction implements IObjectPlacer {
     private static final int CACHE_MISS = Integer.MIN_VALUE;
+    private static final int POSITION_BITS = 21;
+    private static final int POSITION_LIMIT = 1 << (POSITION_BITS - 1);
+    private static final long POSITION_MASK = (1L << POSITION_BITS) - 1L;
 
     private final IObjectPlacer delegate;
     private final Engine engine;
@@ -46,11 +47,14 @@ final class CaveObjectPlacementTransaction implements IObjectPlacer {
     private final int minDepthBelowSurface;
     private final int worldHeight;
     private final KList<BufferedMutation> mutations;
-    private final Map<PositionKey, NativeBlockState> bufferedBlocks;
+    private final Long2ObjectOpenHashMap<NativeBlockState> bufferedBlocks;
     private final Long2IntOpenHashMap surfaceHeights;
     private final Long2IntOpenHashMap caveCeilings;
     private int blockWrites;
     private BlockPosition canopyPosition;
+    private boolean originKnown;
+    private int originX;
+    private int originZ;
 
     CaveObjectPlacementTransaction(IObjectPlacer delegate, int anchorY, int minDepthBelowSurface) {
         this.delegate = delegate;
@@ -59,7 +63,7 @@ final class CaveObjectPlacementTransaction implements IObjectPlacer {
         this.minDepthBelowSurface = Math.max(0, minDepthBelowSurface);
         this.worldHeight = engine == null ? 0 : engine.getHeight();
         this.mutations = new KList<>();
-        this.bufferedBlocks = new HashMap<>();
+        this.bufferedBlocks = new Long2ObjectOpenHashMap<>();
         this.surfaceHeights = new Long2IntOpenHashMap();
         this.caveCeilings = new Long2IntOpenHashMap();
         this.surfaceHeights.defaultReturnValue(CACHE_MISS);
@@ -73,7 +77,14 @@ final class CaveObjectPlacementTransaction implements IObjectPlacer {
         }
 
         IrisComplex complex = engine == null ? null : engine.getComplex();
+        boolean previousChecked = false;
+        int previousX = 0;
+        int previousY = 0;
+        int previousZ = 0;
         for (BufferedMutation mutation : mutations) {
+            if (previousChecked && mutation.x() == previousX && mutation.y() == previousY && mutation.z() == previousZ) {
+                continue;
+            }
             if (complex != null
                     && !complex.allowsNewDiscreteContentAt(mutation.x(), mutation.z())) {
                 discard();
@@ -95,6 +106,10 @@ final class CaveObjectPlacementTransaction implements IObjectPlacer {
                 discard();
                 return CommitResult.REJECTED_HYDROLOGY;
             }
+            previousChecked = true;
+            previousX = mutation.x();
+            previousY = mutation.y();
+            previousZ = mutation.z();
         }
 
         applyMutations();
@@ -165,7 +180,7 @@ final class CaveObjectPlacementTransaction implements IObjectPlacer {
             return;
         }
         mutations.add(new BlockMutation(x, y, z, state, isCanopy(x, y, z)));
-        bufferedBlocks.put(new PositionKey(x, y, z), state);
+        bufferedBlocks.put(bufferKey(x, y, z), state);
         blockWrites++;
     }
 
@@ -190,7 +205,7 @@ final class CaveObjectPlacementTransaction implements IObjectPlacer {
 
     @Override
     public NativeBlockState get(int x, int y, int z) {
-        NativeBlockState buffered = bufferedBlocks.get(new PositionKey(x, y, z));
+        NativeBlockState buffered = bufferedBlocks.isEmpty() ? null : bufferedBlocks.get(bufferKey(x, y, z));
         return buffered == null ? delegate.get(x, y, z) : buffered;
     }
 
@@ -211,7 +226,7 @@ final class CaveObjectPlacementTransaction implements IObjectPlacer {
 
     @Override
     public boolean isSolid(int x, int y, int z) {
-        NativeBlockState buffered = bufferedBlocks.get(new PositionKey(x, y, z));
+        NativeBlockState buffered = bufferedBlocks.isEmpty() ? null : bufferedBlocks.get(bufferKey(x, y, z));
         return buffered == null ? delegate.isSolid(x, y, z) : B.isSolid(buffered);
     }
 
@@ -253,7 +268,7 @@ final class CaveObjectPlacementTransaction implements IObjectPlacer {
         }
         mutations.add(new DataMutation(x, y, z, data, isCanopy(x, y, z)));
         if (data instanceof NativeBlockState state) {
-            bufferedBlocks.put(new PositionKey(x, y, z), state);
+            bufferedBlocks.put(bufferKey(x, y, z), state);
             blockWrites++;
         }
     }
@@ -276,6 +291,22 @@ final class CaveObjectPlacementTransaction implements IObjectPlacer {
     @Override
     public Engine getEngine() {
         return engine;
+    }
+
+    private long bufferKey(int x, int y, int z) {
+        if (!originKnown) {
+            originX = x;
+            originZ = z;
+            originKnown = true;
+        }
+        int dx = x - originX;
+        int dz = z - originZ;
+        if (dx < -POSITION_LIMIT || dx >= POSITION_LIMIT || dz < -POSITION_LIMIT || dz >= POSITION_LIMIT
+                || y < -POSITION_LIMIT || y >= POSITION_LIMIT) {
+            throw new IllegalStateException("Cave object write at " + x + "," + y + "," + z
+                    + " is too far from its first write at " + originX + "," + originZ);
+        }
+        return ((dx & POSITION_MASK) << (POSITION_BITS * 2)) | ((dz & POSITION_MASK) << POSITION_BITS) | (y & POSITION_MASK);
     }
 
     private boolean isWithinBounds(int x, int y, int z) {
@@ -361,6 +392,4 @@ final class CaveObjectPlacementTransaction implements IObjectPlacer {
         }
     }
 
-    private record PositionKey(int x, int y, int z) {
-    }
 }

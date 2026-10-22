@@ -40,6 +40,11 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
     private int hydrologyGateChunkX;
     private int hydrologyGateChunkZ;
     private boolean hydrologyGateOpen;
+    private boolean subterrainKnown;
+    private int subterrainX;
+    private int subterrainY;
+    private int subterrainZ;
+    private boolean subterrainProtects;
 
     ObjectDestinationTransaction(MantleWriter writer, int destinationChunkX, int destinationChunkZ) {
         this.writer = writer;
@@ -396,8 +401,17 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
     }
 
     private boolean protectsSubterrain(int x, int y, int z) {
+        if (subterrainKnown && x == subterrainX && y == subterrainY && z == subterrainZ) {
+            return subterrainProtects;
+        }
         Engine engine = getEngine();
-        return engine != null && SubterrainRasterizer.protectsPlacement(engine.getSubterrainCell(x, y, z));
+        boolean protects = engine != null && SubterrainRasterizer.protectsPlacement(engine.getSubterrainCell(x, y, z));
+        subterrainX = x;
+        subterrainY = y;
+        subterrainZ = z;
+        subterrainProtects = protects;
+        subterrainKnown = true;
+        return protects;
     }
 
     private boolean hasProtectedHydrology(int x, int y, int z) {

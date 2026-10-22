@@ -1,5 +1,7 @@
 package art.arcane.iris.generation.bake;
 
+import art.arcane.iris.generation.runtime.GenerationCounter;
+
 import java.util.concurrent.atomic.LongAdder;
 
 public final class GeneratorEvaluations {
@@ -12,15 +14,24 @@ public final class GeneratorEvaluations {
     }
 
     public static void bakedChunk(long evaluations) {
+        if (!GenerationCounter.ENABLED) {
+            return;
+        }
         BAKED_CHUNKS.increment();
         BAKED.add(evaluations);
     }
 
     public static void batched(long evaluations) {
+        if (!GenerationCounter.ENABLED) {
+            return;
+        }
         BATCHED.add(evaluations);
     }
 
     public static void scalar(int evaluations) {
+        if (!GenerationCounter.ENABLED) {
+            return;
+        }
         SCALAR.add(evaluations);
     }
 

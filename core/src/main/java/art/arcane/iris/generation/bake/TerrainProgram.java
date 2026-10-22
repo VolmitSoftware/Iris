@@ -85,6 +85,16 @@ public final class TerrainProgram {
         }
         int mark = scratch.mark();
         int indexMark = scratch.indexMark();
+        try {
+            return accumulate(members, group, scratch, xs, zs, count, lows, highs, heights);
+        } finally {
+            scratch.reset(mark);
+            scratch.resetIndices(indexMark);
+        }
+    }
+
+    private long accumulate(IrisGenerator[] members, int group, TerrainBatchScratch scratch, double[] xs, double[] zs,
+                            int count, double[] lows, double[] highs, double[] heights) {
         int[] modes = scratch.indices(count);
         int activeCount = 0;
         for (int index = 0; index < count; index++) {
@@ -111,7 +121,6 @@ public final class TerrainProgram {
             activeCount++;
         }
         if (activeCount == 0) {
-            scratch.resetIndices(indexMark);
             return 0L;
         }
         double[] activeX = scratch.buffer(activeCount);
@@ -154,8 +163,6 @@ public final class TerrainProgram {
         for (int index = 0; index < activeCount; index++) {
             heights[activeIndex[index]] += sums[index] / members.length;
         }
-        scratch.reset(mark);
-        scratch.resetIndices(indexMark);
         return (long) activeCount * members.length;
     }
 }

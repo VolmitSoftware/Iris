@@ -6,14 +6,21 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReferenceArray;
 import java.util.function.Predicate;
 
 public final class SubterrainPlanner {
+    private static final int PLAN_CACHE_SLOTS = 4096;
+    private static final int TILE_CACHE_SLOTS = 1024;
+    private static final Comparator<SubterrainPlan> PLAN_ORDER =
+            Comparator.comparingInt(SubterrainPlan::priority).reversed().thenComparing(SubterrainPlan::id);
+
     private final List<Definition> definitions;
     private final long seed;
     private final int minY;
     private final int maxYExclusive;
-    private final ThreadLocal<CandidateTile> sampleTile = new ThreadLocal<>();
+    private final AtomicReferenceArray<CachedPlan> planCache = new AtomicReferenceArray<>(PLAN_CACHE_SLOTS);
+    private final AtomicReferenceArray<CandidateTile> tileCache = new AtomicReferenceArray<>(TILE_CACHE_SLOTS);
     private final Predicate<SubterrainBounds> allowedBounds;
     private final RegionResolver regionResolver;
 
@@ -70,8 +77,9 @@ public final class SubterrainPlanner {
         if (minX > maxX || minZ > maxZ) {
             throw new IllegalArgumentException("Subterrain query bounds are inverted");
         }
-        List<SubterrainPlan> result = new ArrayList<>();
-        for (Definition definition : definitions) {
+        List<SubterrainPlan> result = null;
+        for (int definitionIndex = 0; definitionIndex < definitions.size(); definitionIndex++) {
+            Definition definition = definitions.get(definitionIndex);
             long firstX = Math.floorDiv(minX, definition.spacing()) - 1L;
             long lastX = Math.floorDiv(maxX, definition.spacing()) + 1L;
             long firstZ = Math.floorDiv(minZ, definition.spacing()) - 1L;
@@ -81,14 +89,20 @@ public final class SubterrainPlanner {
             }
             for (long gridX = firstX; gridX <= lastX; gridX++) {
                 for (long gridZ = firstZ; gridZ <= lastZ; gridZ++) {
-                    SubterrainPlan plan = create(definition, gridX, gridZ);
+                    SubterrainPlan plan = plan(definitionIndex, definition, gridX, gridZ);
                     if (plan != null && plan.bounds().intersects(minX, minZ, maxX, maxZ)) {
+                        if (result == null) {
+                            result = new ArrayList<>();
+                        }
                         result.add(plan);
                     }
                 }
             }
         }
-        result.sort(Comparator.comparingInt(SubterrainPlan::priority).reversed().thenComparing(SubterrainPlan::id));
+        if (result == null) {
+            return List.of();
+        }
+        result.sort(PLAN_ORDER);
         return List.copyOf(result);
     }
 
@@ -96,20 +110,7 @@ public final class SubterrainPlanner {
         if (isEmpty() || y < minY || y >= maxYExclusive) {
             return SubterrainCell.OUTSIDE;
         }
-        int chunkX = Math.floorDiv(x, 16);
-        int chunkZ = Math.floorDiv(z, 16);
-        CandidateTile tile = sampleTile.get();
-        if (tile == null || tile.chunkX() != chunkX || tile.chunkZ() != chunkZ) {
-            long baseX = (long) chunkX * 16;
-            long baseZ = (long) chunkZ * 16;
-            tile = new CandidateTile(chunkX, chunkZ, plansForBounds(
-                    (int) Math.max(Integer.MIN_VALUE, baseX - 1),
-                    (int) Math.max(Integer.MIN_VALUE, baseZ - 1),
-                    (int) Math.min(Integer.MAX_VALUE, baseX + 16),
-                    (int) Math.min(Integer.MAX_VALUE, baseZ + 16)));
-            sampleTile.set(tile);
-        }
-        return sample(tile.plans(), x, y, z);
+        return sample(candidates(Math.floorDiv(x, 16), Math.floorDiv(z, 16)), x, y, z);
     }
 
     public SubterrainCell sample(List<SubterrainPlan> candidates, int x, int y, int z) {
@@ -127,10 +128,38 @@ public final class SubterrainPlanner {
         return selected;
     }
 
+    private List<SubterrainPlan> candidates(int chunkX, int chunkZ) {
+        int slot = (int) mix(((long) chunkX << 32) ^ (chunkZ & 0xffffffffL)) & (TILE_CACHE_SLOTS - 1);
+        CandidateTile tile = tileCache.getAcquire(slot);
+        if (tile != null && tile.chunkX() == chunkX && tile.chunkZ() == chunkZ) {
+            return tile.plans();
+        }
+        long baseX = (long) chunkX * 16;
+        long baseZ = (long) chunkZ * 16;
+        List<SubterrainPlan> plans = plansForBounds(
+                (int) Math.max(Integer.MIN_VALUE, baseX - 1),
+                (int) Math.max(Integer.MIN_VALUE, baseZ - 1),
+                (int) Math.min(Integer.MAX_VALUE, baseX + 16),
+                (int) Math.min(Integer.MAX_VALUE, baseZ + 16));
+        tileCache.setRelease(slot, new CandidateTile(chunkX, chunkZ, plans));
+        return plans;
+    }
+
+    private SubterrainPlan plan(int definitionIndex, Definition definition, long gridX, long gridZ) {
+        int slot = (int) mix(mix(gridX ^ definition.seedSalt()) ^ Long.rotateLeft(gridZ, 29)) & (PLAN_CACHE_SLOTS - 1);
+        CachedPlan cached = planCache.getAcquire(slot);
+        if (cached != null && cached.definition() == definitionIndex && cached.gridX() == gridX && cached.gridZ() == gridZ) {
+            return cached.plan();
+        }
+        SubterrainPlan plan = create(definition, gridX, gridZ);
+        planCache.setRelease(slot, new CachedPlan(definitionIndex, gridX, gridZ, plan));
+        return plan;
+    }
+
     private SubterrainCell raw(List<SubterrainPlan> candidates, int x, int y, int z) {
         SubterrainCell selected = SubterrainCell.OUTSIDE;
-        for (SubterrainPlan plan : candidates) {
-            SubterrainCell cell = plan.sample(x, y, z);
+        for (int index = 0; index < candidates.size(); index++) {
+            SubterrainCell cell = candidates.get(index).sample(x, y, z);
             if (cell.solid() && cell.room().reservedSolid()) {
                 return cell;
             }
@@ -210,6 +239,9 @@ public final class SubterrainPlanner {
     }
 
     private record CandidateTile(int chunkX, int chunkZ, List<SubterrainPlan> plans) {
+    }
+
+    private record CachedPlan(int definition, long gridX, long gridZ, SubterrainPlan plan) {
     }
 
     record Definition(String id, IrisSubterrainFamily family, IrisSubterrainFluid fluid, String biome, int spacing, double probability,

@@ -16,8 +16,8 @@ art/arcane/iris/generation/block/IrisCustomData.java
 art/arcane/iris/generation/block/LegacyTileData.java
 art/arcane/iris/generation/block/TileData.java
 art/arcane/iris/generation/chunk/ChunkBiomeHunkView.java
-art/arcane/iris/generation/chunk/ChunkDataHunkHolder.java
 art/arcane/iris/generation/chunk/ChunkDataHunkView.java
+art/arcane/iris/generation/chunk/ChunkDataOutput.java
 art/arcane/iris/generation/chunk/ChunkHunkView.java
 art/arcane/iris/generation/chunk/LinkedTerrainChunk.java
 art/arcane/iris/generation/chunk/TerrainChunk.java

@@ -24,7 +24,6 @@ import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.iris.testsupport.PlatformLeakGuard;
-import art.arcane.iris.generation.geometry.IrisBlockVector;
 import art.arcane.iris.generation.context.ChunkContext;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.mantle.runtime.Mantle;
@@ -33,13 +32,8 @@ import art.arcane.volmlib.util.matter.Matter;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 
-import java.io.DataOutputStream;
-import java.io.File;
-import java.io.FileOutputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -59,9 +53,6 @@ import static org.mockito.Mockito.verify;
 public class MantleObjectComponentBoundaryRadiusTest {
     @ClassRule
     public static final PlatformLeakGuard PLATFORM_GUARD = PlatformLeakGuard.clean();
-
-    @Rule
-    public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
     @Before
     public void bindPlatform() {
@@ -92,7 +83,7 @@ public class MantleObjectComponentBoundaryRadiusTest {
                 .setRotation(IrisObjectRotation.of(90, 0, 0))
                 .setTranslate(new IrisObjectTranslate().setX(3).setY(4));
 
-        assertEquals(53, MantleObjectComponent.calculatePlacementReach(new IrisBlockVector(5, 48, 7), placement, 1D));
+        assertEquals(27, PlacementReach.of(new IrisObject(5, 48, 7), placement, 1D).horizontal());
     }
 
     @Test
@@ -103,7 +94,7 @@ public class MantleObjectComponentBoundaryRadiusTest {
                 .setMode(ObjectPlaceMode.VACUUM)
                 .setVacuumSettings(new IrisVacuumSettings().setRadius(12));
 
-        assertEquals(39, MantleObjectComponent.calculatePlacementReach(new IrisBlockVector(5, 4, 3), placement, placement.getMaximumScale(null)));
+        assertEquals(22, PlacementReach.of(new IrisObject(5, 4, 3), placement, placement.getMaximumScale(null)).horizontal());
     }
 
     @Test
@@ -126,15 +117,12 @@ public class MantleObjectComponentBoundaryRadiusTest {
     public void inheritedRadiusMatchesScaledFrameAndExplicitScaleOverridesIt() {
         IrisDimension dimension = new IrisDimension().setAllObjectScaleFactor(2D);
         IrisObjectPlacement inherited = new IrisObjectPlacement();
-        IrisBlockVector size = new IrisBlockVector(8, 8, 8);
-        assertEquals(16, MantleObjectComponent.calculatePlacementReach(size, inherited,
-                inherited.getMaximumScale(dimension)));
+        IrisObject object = new IrisObject(8, 8, 8);
+        assertEquals(8, PlacementReach.of(object, inherited, inherited.getMaximumScale(dimension)).horizontal());
         dimension.setAllObjectScaleFactor(0.5D);
-        assertEquals(4, MantleObjectComponent.calculatePlacementReach(size, inherited,
-                inherited.getMaximumScale(dimension)));
+        assertEquals(2, PlacementReach.of(object, inherited, inherited.getMaximumScale(dimension)).horizontal());
         inherited.setScale(new IrisObjectScale().setSize(1D));
-        assertEquals(8, MantleObjectComponent.calculatePlacementReach(size, inherited,
-                inherited.getMaximumScale(dimension)));
+        assertEquals(4, PlacementReach.of(object, inherited, inherited.getMaximumScale(dimension)).horizontal());
     }
 
     @Test
@@ -183,10 +171,11 @@ public class MantleObjectComponentBoundaryRadiusTest {
 
     @Test
     public void collisionInputRadiusCoversBothSourceTraversalLegs() {
-        assertEquals(82, MantleObjectComponent.calculateInputRadius(33, false));
-        assertEquals(130, MantleObjectComponent.calculateInputRadius(33, true));
+        assertEquals(84, MantleObjectComponent.calculateInputRadius(33, 35, false));
+        assertEquals(132, MantleObjectComponent.calculateInputRadius(33, 35, true));
+        assertEquals(82, MantleObjectComponent.calculateInputRadius(33, 0, false));
         assertEquals(Integer.MAX_VALUE,
-                MantleObjectComponent.calculateInputRadius(Integer.MAX_VALUE, true));
+                MantleObjectComponent.calculateInputRadius(Integer.MAX_VALUE, Integer.MAX_VALUE, true));
     }
 
     @Test
@@ -199,7 +188,7 @@ public class MantleObjectComponentBoundaryRadiusTest {
         for (int radius = 0; radius < 300; radius++) {
             for (boolean collisions : new boolean[]{false, true}) {
                 assertTrue(MantleObjectComponent.calculateEagerInputRadius(radius, collisions)
-                        <= MantleObjectComponent.calculateInputRadius(radius, collisions));
+                        <= MantleObjectComponent.calculateInputRadius(radius, radius, collisions));
             }
         }
         assertEquals(Integer.MAX_VALUE,
@@ -231,27 +220,25 @@ public class MantleObjectComponentBoundaryRadiusTest {
         when(engineMantle.getEngine()).thenReturn(engine);
         when(engineMantle.getData()).thenReturn(data);
 
-        assertEquals(53, new MantleObjectComponent(engineMantle).getRadius());
+        assertEquals(27, new MantleObjectComponent(engineMantle).getRadius());
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void upperDimensionObjectsDriveRadiusAndCollisionMode() {
         IrisObjectPlacement placement = new IrisObjectPlacement()
+                .setPlace(new KList<>("upper/tree"))
                 .setRotation(IrisObjectRotation.of(90, 0, 0))
                 .setTranslate(new IrisObjectTranslate().setX(3).setY(4));
         placement.getForbiddenCollisions().add("upper/blocker");
         IrisData baseData = mock(IrisData.class);
         IrisData upperData = mock(IrisData.class);
-        IrisProceduralPlacement proceduralPlacement = mock(IrisProceduralPlacement.class);
-        when(proceduralPlacement.getVariantObjects(upperData))
-                .thenReturn(new KList<>(new IrisObject(5, 48, 7)));
-        when(proceduralPlacement.asPlacement()).thenReturn(placement);
-        IrisProceduralObjects proceduralObjects = mock(IrisProceduralObjects.class);
-        when(proceduralObjects.isEmpty()).thenReturn(false);
-        when(proceduralObjects.getAllPlacements()).thenReturn(new KList<>(proceduralPlacement));
+        ResourceLoader<IrisObject> upperObjects = mock(ResourceLoader.class);
+        when(upperObjects.load("upper/tree")).thenReturn(new IrisObject(5, 48, 7));
+        when(upperData.getObjectLoader()).thenReturn(upperObjects);
         IrisRegion upperRegion = mock(IrisRegion.class);
-        when(upperRegion.getObjects()).thenReturn(new KList<>());
-        when(upperRegion.getProceduralObjects()).thenReturn(proceduralObjects);
+        when(upperRegion.getObjects()).thenReturn(new KList<>(placement));
+        when(upperRegion.getSurfaceObjects()).thenReturn(new KList<>(placement));
         IrisDimension baseDimension = mock(IrisDimension.class);
         when(baseDimension.getAllObjectScaleFactor()).thenReturn(1D);
         when(baseDimension.isUpperDimensionObjects()).thenReturn(true);
@@ -273,20 +260,13 @@ public class MantleObjectComponentBoundaryRadiusTest {
 
         MantleObjectComponent component = new MantleObjectComponent(engineMantle);
 
-        assertEquals(53, component.getRadius());
-        assertEquals(182, component.getInputRadius());
+        assertEquals(5, component.getRadius());
+        assertEquals(41, component.getInputRadius());
     }
 
     @Test
     @SuppressWarnings("unchecked")
-    public void translatedTreeCachesDistantSourcesAndSchedulesOnlyItsDestination() throws Exception {
-        File objectFile = temporaryFolder.newFile("tree.iob");
-        try (DataOutputStream output = new DataOutputStream(new FileOutputStream(objectFile))) {
-            output.writeInt(1);
-            output.writeInt(1);
-            output.writeInt(1);
-        }
-
+    public void translatedTreeCachesDistantSourcesAndSchedulesOnlyItsDestination() {
         IrisObjectPlacement placement = new IrisObjectPlacement()
                 .setPlace(new KList<>("test/tree"))
                 .setTranslate(new IrisObjectTranslate().setX(32));
@@ -298,7 +278,7 @@ public class MantleObjectComponentBoundaryRadiusTest {
         when(dimension.getReachableBiomes(any())).thenReturn(new KList<>(biome));
 
         ResourceLoader<IrisObject> objectLoader = mock(ResourceLoader.class);
-        when(objectLoader.findFile("test/tree")).thenReturn(objectFile);
+        when(objectLoader.load("test/tree")).thenReturn(new IrisObject(1, 1, 1));
         IrisData data = mock(IrisData.class);
         when(data.getObjectLoader()).thenReturn(objectLoader);
 
@@ -310,9 +290,9 @@ public class MantleObjectComponentBoundaryRadiusTest {
         when(engineMantle.getData()).thenReturn(data);
 
         MantleObjectComponent component = spy(new MantleObjectComponent(engineMantle));
-        assertEquals(33, component.getRadius());
+        assertEquals(32, component.getRadius());
         assertEquals(0, component.getOutputRadius());
-        assertEquals(82, component.getInputRadius());
+        assertEquals(68, component.getInputRadius());
 
         Mantle<Matter> mantle = mock(Mantle.class);
         MantleChunk<Matter> chunk = mock(MantleChunk.class);
@@ -341,9 +321,9 @@ public class MantleObjectComponentBoundaryRadiusTest {
 
         component.generateLayer(directWriter, 0, 0, mock(ChunkContext.class));
 
-        assertEquals(49, directOrigins.get());
+        assertEquals(25, directOrigins.get());
         component.generateLayer(directWriter, 0, 0, mock(ChunkContext.class));
-        assertEquals(49, directOrigins.get());
+        assertEquals(25, directOrigins.get());
 
         List<String> generatedChunks = new ArrayList<>();
         doAnswer(invocation -> {
@@ -370,14 +350,14 @@ public class MantleObjectComponentBoundaryRadiusTest {
                 component.getRadius(),
                 (chunkX, chunkZ) -> replayedSources.add(chunkX + "," + chunkZ)
         );
-        assertEquals(49, replayedSources.size());
-        assertEquals("-3,-3", replayedSources.getFirst());
-        assertEquals("-3,-2", replayedSources.get(1));
-        assertEquals("3,3", replayedSources.getLast());
+        assertEquals(25, replayedSources.size());
+        assertEquals("-2,-2", replayedSources.getFirst());
+        assertEquals("-2,-1", replayedSources.get(1));
+        assertEquals("2,2", replayedSources.getLast());
 
         placement.getForbiddenCollisions().add("test/tree");
         component.hotload();
-        assertEquals(130, component.getInputRadius());
+        assertEquals(100, component.getInputRadius());
     }
 
     private static final class TestMatterGenerator implements MatterGenerator {

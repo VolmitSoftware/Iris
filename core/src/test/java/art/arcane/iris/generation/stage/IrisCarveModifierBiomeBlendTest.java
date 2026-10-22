@@ -132,6 +132,9 @@ public class IrisCarveModifierBiomeBlendTest {
         Field field = IrisCarveModifier.class.getDeclaredField("rng");
         field.setAccessible(true);
         field.set(modifier, rng);
+        Field seed = IrisCarveModifier.class.getDeclaredField("caveBlendSeed");
+        seed.setAccessible(true);
+        seed.setLong(modifier, SEED);
         return modifier;
     }
 

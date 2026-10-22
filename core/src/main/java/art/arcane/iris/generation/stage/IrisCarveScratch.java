@@ -21,6 +21,7 @@ package art.arcane.iris.generation.stage;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.volmlib.util.matter.MatterCavern;
 import art.arcane.volmlib.util.math.PowerOfTwoCoordinates;
+import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -32,6 +33,7 @@ final class IrisCarveScratch {
     final int[] surfaceHeights = new int[256];
     final CarveWallBuffer walls = new CarveWallBuffer(512);
     final Map<String, IrisBiome> customBiomeCache = new HashMap<>();
+    final Long2ObjectOpenHashMap<IrisBiome> caveBiomeCache = new Long2ObjectOpenHashMap<>(4096);
     int[] upperSurfaceHeights;
     boolean customCaveBiomePresent;
 
@@ -56,6 +58,7 @@ final class IrisCarveScratch {
         }
         walls.clear();
         customBiomeCache.clear();
+        caveBiomeCache.clear();
         customCaveBiomePresent = false;
     }
 }

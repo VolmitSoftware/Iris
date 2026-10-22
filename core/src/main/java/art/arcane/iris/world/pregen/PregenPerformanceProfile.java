@@ -24,6 +24,7 @@ import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.platform.generation.PlatformChunkGenerator;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.generation.concurrent.MultiBurst;
+import art.arcane.volmlib.util.parallel.MultiBurstSupport;
 
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -45,7 +46,7 @@ public final class PregenPerformanceProfile {
             changed = true;
         }
 
-        if (MultiBurst.burst.raiseParallelism(pregenBurstParallelism(Runtime.getRuntime().availableProcessors()))) {
+        if (MultiBurst.burst.raiseParallelism(pregenBurstParallelism(MultiBurstSupport.performanceProcessors()))) {
             PARALLELISM_HOLDERS.incrementAndGet();
             changed = true;
         }
@@ -88,8 +89,8 @@ public final class PregenPerformanceProfile {
         apply(generator == null ? null : generator.getEngine());
     }
 
-    static int pregenBurstParallelism(int availableProcessors) {
-        return Math.max(4, availableProcessors * 2);
+    static int pregenBurstParallelism(int performanceProcessors) {
+        return Math.max(4, performanceProcessors * 2);
     }
 
     private static void prepareNoiseCacheInPlace(Engine engine) {

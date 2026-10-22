@@ -66,6 +66,24 @@ final class CaveCarveScratch {
     final int[] tileLocalX = new int[4];
     final int[] tileLocalZ = new int[4];
     final int[] tileTopY = new int[4];
+    final long[] rowCarveBits = new long[4];
+    final long[] cellPassBits = new long[4];
+    final CaveDensityLattice cellLattice = new CaveDensityLattice();
+    final double[] cellThresholdMin = new double[4];
+    final double[] cellThresholdMax = new double[4];
+    final double[] cellThresholdMaxBoost = new double[4];
+    final int[] cellBreakFloorMin = new int[4];
+    final int[] cellCeilingFadeStart = new int[4];
+    final int[] cellTopY = new int[4];
+    final int[] cellMinTopY = new int[4];
+    final boolean[] cellProtected = new boolean[4];
+    final int[] columnProtectStartY = new int[256];
+    final int[] columnProtectEndY = new int[256];
+    int[] rowActiveCount = new int[0];
+    long solidCells;
+    long openCells;
+    long mixedCells;
+    long exactRows;
     CaveFieldModuleState[] activeModules = new CaveFieldModuleState[0];
     double[] activeModuleRemainingMin = new double[0];
     double[] activeModuleRemainingMax = new double[0];
@@ -79,10 +97,33 @@ final class CaveCarveScratch {
     int adaptiveGeometryStep = -1;
     int adaptiveGeometryAxisCells = -1;
     boolean fullWeightsInitialized;
+    int[] latticeY = new int[0];
+    int[] latticeSnapY = new int[0];
+    double[] latticeWarpA = new double[0];
+    double[] latticeWarpB = new double[0];
+    double[] latticeWarpedX = new double[0];
+    double[] latticeWarpedY = new double[0];
+    double[] latticeWarpedZ = new double[0];
+    double[] latticeDensity = new double[0];
 
     void releaseReferences() {
         Arrays.fill(sectionMatter, null);
         Arrays.fill(sectionSlices, null);
         Arrays.fill(densityColumns, null);
+        cellLattice.releaseReferences();
+    }
+
+    void ensureLatticeBatch(int size) {
+        if (latticeY.length >= size) {
+            return;
+        }
+        latticeY = new int[size];
+        latticeSnapY = new int[size];
+        latticeWarpA = new double[size];
+        latticeWarpB = new double[size];
+        latticeWarpedX = new double[size];
+        latticeWarpedY = new double[size];
+        latticeWarpedZ = new double[size];
+        latticeDensity = new double[size];
     }
 }

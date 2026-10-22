@@ -19,11 +19,10 @@ import art.arcane.iris.generation.decoration.IrisDecorator;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.hunk.Hunk;
 import art.arcane.iris.generation.block.B;
-import art.arcane.iris.generation.chunk.ChunkDataHunkHolder;
+import art.arcane.iris.generation.chunk.SectionBuffer;
 import art.arcane.iris.generation.chunk.ColumnExtentListeningHunk;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
-import org.bukkit.generator.ChunkGenerator;
 import art.arcane.volmlib.util.mantle.runtime.Mantle;
 import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
 import art.arcane.volmlib.util.matter.Matter;
@@ -165,10 +164,7 @@ public class IrisNaturalCaveScanTest {
                     fullOutput.listen((x, y, z, state) -> fullWrites.add(x + ":" + y + ":" + z + ":" + state.key())), null);
 
             Fixture bounded = new Fixture(true);
-            ChunkGenerator.ChunkData chunkData = mock(ChunkGenerator.ChunkData.class);
-            doReturn(0).when(chunkData).getMinHeight();
-            doReturn(32).when(chunkData).getMaxHeight();
-            ChunkDataHunkHolder holder = new ChunkDataHunkHolder(chunkData);
+            SectionBuffer holder = new SectionBuffer(32);
             bounded.sparseOutput(holder);
             List<String> boundedWrites = new ArrayList<>();
             bounded.modifier.decorateNaturalCaves(-32, 48, new ColumnExtentListeningHunk<>(holder,

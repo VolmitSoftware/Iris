@@ -20,7 +20,7 @@ package art.arcane.iris.platform.bukkit.nms;
 
 import art.arcane.volmlib.nativelib.terrain.ServerShutdownBoundary;
 
-import art.arcane.volmlib.nativelib.terrain.NativeBlockVolume;
+import art.arcane.volmlib.nativelib.terrain.NativeSectionVolume;
 
 import art.arcane.volmlib.nativelib.terrain.BukkitTerrainBuffer;
 
@@ -217,7 +217,7 @@ public interface INMSBinding extends NativeTerrainAccess {
         return false;
     }
 
-    default boolean applyChunkDataBlocks(ChunkGenerator.ChunkData chunkData, NativeBlockVolume data) {
+    default boolean applyChunkDataBlocks(ChunkGenerator.ChunkData chunkData, NativeSectionVolume data) {
         return false;
     }
 

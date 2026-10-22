@@ -177,7 +177,7 @@ public class IrisEngine implements Engine {
     volatile GenerationHistoryRuntimeRouter generationHistoryRuntimeRouter;
     @Getter(AccessLevel.NONE)
     @Setter(AccessLevel.NONE)
-    private boolean generationHistoryRoutingRequired;
+    private volatile boolean generationHistoryRoutingRequired;
     @Getter(AccessLevel.NONE)
     @Setter(AccessLevel.NONE)
     volatile EngineTarget publishedTarget;
@@ -1011,13 +1011,7 @@ public class IrisEngine implements Engine {
     }
 
     public Optional<GenerationHistoryRuntimeRouter> getGenerationHistoryRuntimeRouter() {
-        GenerationHistoryRuntimeRouter router = generationHistoryRuntimeRouter;
-        if (router != null) {
-            return Optional.of(router);
-        }
-        synchronized (generationHistoryRuntimeRouterLock) {
-            return Optional.ofNullable(generationHistoryRuntimeRouter);
-        }
+        return Optional.ofNullable(generationHistoryRuntimeRouter);
     }
 
     public GenerationHistoryRuntimeRouter.CoordinateScope openGenerationHistoryCoordinateScope(
@@ -1028,13 +1022,14 @@ public class IrisEngine implements Engine {
         if (router != null) {
             return router.openCoordinateScope(blockX, blockZ);
         }
-        synchronized (generationHistoryRuntimeRouterLock) {
-            router = generationHistoryRuntimeRouter;
-            if (router == null && generationHistoryRoutingRequired) {
-                throw new IllegalStateException("Iris generation-history runtime router is detached.");
-            }
+        if (!generationHistoryRoutingRequired) {
+            return null;
         }
-        return router == null ? null : router.openCoordinateScope(blockX, blockZ);
+        router = generationHistoryRuntimeRouter;
+        if (router == null) {
+            throw new IllegalStateException("Iris generation-history runtime router is detached.");
+        }
+        return router.openCoordinateScope(blockX, blockZ);
     }
 
     public boolean hasGenerationRuntimeScope() {

@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.stage;
 
+import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.volmlib.util.matter.MatterCavern;
 import org.junit.Test;
 
@@ -49,6 +50,7 @@ public class IrisCarveScratchTest {
         scratch.boundaryMasks[0].add(13);
         scratch.walls.put(1, 12, 2, cavern);
         scratch.customBiomeCache.put("cave", null);
+        scratch.caveBiomeCache.put(42L, new IrisBiome());
         scratch.customCaveBiomePresent = true;
 
         scratch.reset();
@@ -56,6 +58,7 @@ public class IrisCarveScratchTest {
         assertTrue(scratch.columnMasks[0].isEmpty());
         assertTrue(scratch.boundaryMasks[0].isEmpty());
         assertTrue(scratch.customBiomeCache.isEmpty());
+        assertTrue(scratch.caveBiomeCache.isEmpty());
         assertFalse(scratch.customCaveBiomePresent);
         int[] wallCount = new int[1];
         scratch.walls.forEach((x, y, z, value) -> wallCount[0]++);

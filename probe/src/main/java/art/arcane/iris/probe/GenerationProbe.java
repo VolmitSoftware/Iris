@@ -20,6 +20,8 @@ package art.arcane.iris.probe;
 
 import art.arcane.iris.generation.bake.BakePlane;
 import art.arcane.iris.generation.bake.GeneratorEvaluations;
+import art.arcane.iris.generation.mantle.IrisCaveCarver3D;
+import art.arcane.iris.pack.datapack.DataVersion;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.pack.PackValidationResult;
 import art.arcane.iris.pack.PackValidator;
@@ -40,6 +42,9 @@ import art.arcane.iris.generation.hydrology.HydrologyTileCache;
 import art.arcane.iris.generation.hydrology.runtime.IrisHydrologyRuntime;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.world.IrisWorld;
+import art.arcane.iris.world.history.GenerationHistory;
+import art.arcane.iris.world.history.GenerationHistoryRuntimeRouter;
+import art.arcane.iris.world.history.IrisBoundarySignatureSampler;
 import art.arcane.iris.world.pregen.PregenPerformanceProfile;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.IrisServices;
@@ -63,6 +68,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -170,7 +176,8 @@ public final class GenerationProbe {
         }
     }
 
-    record ProbeOptions(int threads, Path dumpFile, boolean pregenProfile) {
+    record ProbeOptions(int threads, Path dumpFile, boolean pregenProfile, boolean hydrologyPreplan,
+                        boolean historyRouter, boolean productionBuffers, boolean counters) {
         ProbeOptions {
             if (threads < 1) {
                 throw new IllegalArgumentException("Thread count must be at least 1.");
@@ -185,7 +192,15 @@ public final class GenerationProbe {
             return new ProbeOptions(
                     Integer.parseInt(System.getProperty("iris.probe.threads", "1").trim()),
                     dump.isEmpty() ? null : Path.of(dump),
-                    Boolean.parseBoolean(System.getProperty("iris.probe.pregenProfile", "false").trim()));
+                    booleanProperty("iris.probe.pregenProfile"),
+                    booleanProperty("iris.probe.hydrologyPreplan"),
+                    booleanProperty("iris.probe.historyRouter"),
+                    booleanProperty("iris.probe.productionBuffers"),
+                    booleanProperty("iris.generation.counters"));
+        }
+
+        private static boolean booleanProperty(String key) {
+            return Boolean.parseBoolean(System.getProperty(key, "false").trim());
         }
 
         boolean parallel() {
@@ -304,6 +319,7 @@ public final class GenerationProbe {
         try {
             ProbeResult result = run(configuration, options);
             System.out.println(result.machineLine());
+            System.out.println(IrisCaveCarver3D.cellCounters().machineLine());
             exitCode = result.failedChunks() == 0 ? 0 : 1;
         } catch (Throwable e) {
             System.out.println("[genprobe] FAIL: probe execution failed");
@@ -356,7 +372,7 @@ public final class GenerationProbe {
         Throwable executionFailure = null;
         try {
             File pack = clonePack(configuration.packSource(), workRoot);
-            configureProbeRuntime(workRoot);
+            configureProbeRuntime(workRoot, options.historyRouter());
             validatePack(pack);
 
             System.out.println("[genprobe] pack: " + configuration.packSource().getAbsolutePath());
@@ -369,29 +385,48 @@ public final class GenerationProbe {
             System.out.println("[genprobe] studio: " + configuration.studio());
             System.out.println("[genprobe] threads: " + options.threads());
             System.out.println("[genprobe] pregen profile: " + options.pregenProfile());
+            System.out.println("[genprobe] hydrology preplan: " + options.hydrologyPreplan());
+            System.out.println("[genprobe] history router: " + options.historyRouter());
+            System.out.println("[genprobe] production buffers: " + options.productionBuffers());
+            System.out.println("[genprobe] counters: " + options.counters());
             System.out.println("[genprobe] dump file: " + (options.dumpFile() == null ? "none" : options.dumpFile()));
 
             long engineStart = System.nanoTime();
+            File worldFolder = new File(workRoot, "world");
             data = IrisData.get(pack);
-            IrisDimension dimension = data.getDimensionLoader().load(configuration.dimensionKey());
-            if (dimension == null) {
-                throw new IllegalStateException("Dimension '" + configuration.dimensionKey()
-                        + "' did not load from " + pack.getAbsolutePath());
+            IrisDimension dimension = loadDimension(data, configuration.dimensionKey());
+            GenerationHistory history = null;
+            if (options.historyRouter()) {
+                history = HeadlessGenerationHistorySession.create(new RealPackProbeSupport.HistoryRequest(
+                        worldFolder.toPath(), data, dimension, configuration.seed()), DataVersion.getLatest().get());
+                data.close();
+                data = IrisData.openRuntime(history.activePackRoot().toFile());
+                data.bindGenerationRegistryContract(history.activeEpoch().registryContract());
+                dimension = loadDimension(data, configuration.dimensionKey());
             }
             IrisWorld world = IrisWorld.builder()
                     .platformIdentity("iris:probe")
                     .name("probe")
                     .seed(configuration.seed())
-                    .worldFolder(new File(workRoot, "world"))
+                    .worldFolder(worldFolder)
                     .minHeight(dimension.getMinHeight())
                     .maxHeight(dimension.getMaxHeight())
                     .build();
             EngineTarget target = new EngineTarget(world, dimension, data);
-            engine = new IrisEngine(
-                    target,
-                    configuration.studio()
-                            ? IrisEngine.InitializationMode.STUDIO
-                            : IrisEngine.InitializationMode.RUNTIME);
+            IrisEngine.InitializationMode mode = configuration.studio()
+                    ? IrisEngine.InitializationMode.STUDIO
+                    : IrisEngine.InitializationMode.RUNTIME;
+            GenerationHistoryRuntimeRouter router = null;
+            if (history == null) {
+                engine = new IrisEngine(target, mode);
+            } else {
+                IrisEngine historyEngine = new IrisEngine(target, mode,
+                        history.paths().activationMantleRoot(history.activeActivation().activationId()),
+                        history.activeEpoch().kernelVersion(), null);
+                engine = historyEngine;
+                router = GenerationHistoryRuntimeRouter.attach(historyEngine, history, IrisBoundarySignatureSampler.INSTANCE);
+                router.preloadActiveRuntimes();
+            }
             long engineReadyNanos = System.nanoTime() - engineStart;
 
             List<Throwable> initNoise = settleAndDrain();
@@ -400,9 +435,16 @@ public final class GenerationProbe {
                     + " seed=" + engine.getSeedManager().getSeed()
                     + " minY=" + engine.getMinHeight() + " maxY=" + engine.getMaxHeight()
                     + " timeMs=" + String.format(Locale.ROOT, "%.3f", nanosToMillis(engineReadyNanos)));
+            System.out.println("IRIS_GENPROBE_MANTLE version=1 radius=" + engine.getMantle().getRadius()
+                    + " real_radius=" + engine.getMantle().getRealRadius());
+            ProbeChunkGenerator generator = new ProbeChunkGenerator(engine, router, options.productionBuffers());
             long nativeSamplesBefore = FractalBillowSimplexNoise.nativeSampleCount();
-            GenerationResult generation = generateWithProfile(engine, configuration, options);
+            GenerationResult generation = generateWithProfile(generator, configuration, options);
             verifyBackend(nativeSamplesBefore);
+            if (options.productionBuffers()) {
+                System.out.println("IRIS_GENPROBE_BUFFERS version=1 mode=production biome_expanded_chunks="
+                        + generator.expandedBiomeHunks());
+            }
             String status = generation.failedChunks() == 0 ? "PASS" : "FAIL";
             printGenerationFailures(generation);
             return new ProbeResult(
@@ -447,7 +489,16 @@ public final class GenerationProbe {
         }
     }
 
-    private static void configureProbeRuntime(File workRoot) {
+    private static IrisDimension loadDimension(IrisData data, String dimensionKey) {
+        IrisDimension dimension = data.getDimensionLoader().load(dimensionKey);
+        if (dimension == null) {
+            throw new IllegalStateException("Dimension '" + dimensionKey + "' did not load from "
+                    + data.getDataFolder().getAbsolutePath());
+        }
+        return dimension;
+    }
+
+    private static void configureProbeRuntime(File workRoot, boolean generationRegistry) {
         REPORTED.clear();
         StubPlatform.bindGenerationStateHandlers();
         StubPlatform.verbose(false);
@@ -458,7 +509,8 @@ public final class GenerationProbe {
         IrisServices.register(EngineEffectsProvider.class, (EngineEffectsProvider) InertEffects::new);
         IrisServices.register(EnginePlatformHooks.class, new InertPlatformHooks());
         IrisPlatforms.unbind();
-        IrisPlatforms.bind(new StubPlatform(new File(workRoot, "platform-data")));
+        IrisPlatforms.bind(new StubPlatform(new File(workRoot, "platform-data"),
+                generationRegistry ? ProbeGenerationRegistry.INSTANCE : null));
     }
 
     private static void validatePack(File pack) {
@@ -475,19 +527,33 @@ public final class GenerationProbe {
         System.out.println("[genprobe] offline pack validation: PASS");
     }
 
-    private static GenerationResult generateWithProfile(Engine engine, ProbeConfiguration configuration,
+    private static GenerationResult generateWithProfile(ProbeChunkGenerator generator, ProbeConfiguration configuration,
                                                         ProbeOptions options) throws Exception {
+        Engine engine = generator.engine();
         if (!options.pregenProfile()) {
-            return generate(engine, configuration, options);
+            preplanHydrology(engine, configuration, options);
+            return generate(generator, configuration, options);
         }
         PregenPerformanceProfile.apply(engine);
         IrisHydrologyRuntime hydrology = engine.getComplex().getHydrologyRuntime();
         try (HydrologyTileCache.PregenerationScope ignored = hydrology == null ? null
                 : hydrology.preparePregeneration(pregenerationArea(configuration))) {
-            return generate(engine, configuration, options);
+            preplanHydrology(engine, configuration, options);
+            return generate(generator, configuration, options);
         } finally {
             PregenPerformanceProfile.restore();
         }
+    }
+
+    private static void preplanHydrology(Engine engine, ProbeConfiguration configuration, ProbeOptions options)
+            throws Exception {
+        if (!options.hydrologyPreplan()) {
+            return;
+        }
+        Optional<ProbeHydrologyPreplan> preplan = ProbeHydrologyPreplan.run(engine, configuration);
+        printDistinctCauses("hydrology preplan reported errors", drainReported());
+        System.out.println(preplan.map(ProbeHydrologyPreplan::machineLine)
+                .orElse("IRIS_GENPROBE_HYDROLOGY_PREPLAN version=1 tiles=0 skipped=no-hydrology"));
     }
 
     static HydrologyTileCache.PregenerationArea pregenerationArea(ProbeConfiguration configuration) {
@@ -533,8 +599,9 @@ public final class GenerationProbe {
         return Math.atan2(coordinate.z() - centerChunkZ, coordinate.x() - centerChunkX);
     }
 
-    private static GenerationResult generate(Engine engine, ProbeConfiguration configuration,
+    private static GenerationResult generate(ProbeChunkGenerator generator, ProbeConfiguration configuration,
                                              ProbeOptions options) throws Exception {
+        Engine engine = generator.engine();
         int totalChunks = configuration.warmupChunks() + configuration.measuredChunks();
         List<ChunkCoordinate> coordinates = scheduleCoordinates(
                 totalChunks, configuration.centerChunkX(), configuration.centerChunkZ());
@@ -543,31 +610,44 @@ public final class GenerationProbe {
                 engine.getMinHeight(), height);
         try (OutcomeSink sink = new OutcomeSink(options.dumpFile(), header, configuration.measuredChunks())) {
             if (options.parallel()) {
-                generateParallel(engine, configuration, options, coordinates, sink);
+                generateParallel(generator, configuration, options, coordinates, sink);
             } else {
-                generateSequential(engine, configuration, coordinates, sink);
+                generateSequential(generator, configuration, options, coordinates, sink);
             }
             return sink.result(configuration);
         }
     }
 
-    private static void generateSequential(Engine engine, ProbeConfiguration configuration,
-                                           List<ChunkCoordinate> coordinates, OutcomeSink sink) throws IOException {
+    private static void generateSequential(ProbeChunkGenerator generator, ProbeConfiguration configuration,
+                                           ProbeOptions options, List<ChunkCoordinate> coordinates,
+                                           OutcomeSink sink) throws IOException {
         int totalChunks = coordinates.size();
         long measuredStartEpochMillis = 0L;
+        ProbeWindowMetrics measuredStart = null;
         GeneratorEvaluations.Snapshot measuredStartEvaluations = GeneratorEvaluations.snapshot();
         for (int index = 0; index < totalChunks; index++) {
             if (index == configuration.warmupChunks()) {
                 measuredStartEpochMillis = System.currentTimeMillis();
                 measuredStartEvaluations = GeneratorEvaluations.snapshot();
+                measuredStart = ProbeWindowMetrics.capture(generator.engine(), options.counters());
             }
             drainReported();
-            ChunkOutcome outcome = generateChunk(engine, index, coordinates.get(index), configuration.multicore());
+            ChunkOutcome outcome = generator.generate(index, coordinates.get(index), configuration.multicore());
             outcome.failures().addAll(drainReported());
             sink.accept(outcome, index >= configuration.warmupChunks());
             printProgress(configuration, index + 1, totalChunks);
         }
-        printWindow(engine, measuredStartEpochMillis, System.currentTimeMillis(), measuredStartEvaluations);
+        printWindow(generator.engine(), measuredStartEpochMillis, System.currentTimeMillis(), measuredStartEvaluations);
+        printWindowMetrics(measuredStart, ProbeWindowMetrics.capture(generator.engine(), options.counters()),
+                configuration.measuredChunks(), options);
+    }
+
+    private static void printWindowMetrics(ProbeWindowMetrics start, ProbeWindowMetrics end, int chunks,
+                                           ProbeOptions options) {
+        System.out.println(ProbeWindowMetrics.stagesLine(start, end, chunks, options.threads()));
+        if (options.counters()) {
+            System.out.println(ProbeWindowMetrics.countersLine(start, end, chunks));
+        }
     }
 
     private static void printWindow(Engine engine, long startEpochMillis, long endEpochMillis, GeneratorEvaluations.Snapshot startEvaluations) {
@@ -585,8 +665,9 @@ public final class GenerationProbe {
         System.out.println(planes);
     }
 
-    private static void generateParallel(Engine engine, ProbeConfiguration configuration, ProbeOptions options,
-                                         List<ChunkCoordinate> coordinates, OutcomeSink sink) throws Exception {
+    private static void generateParallel(ProbeChunkGenerator generator, ProbeConfiguration configuration,
+                                         ProbeOptions options, List<ChunkCoordinate> coordinates,
+                                         OutcomeSink sink) throws Exception {
         ChunkOutcome[] outcomes = new ChunkOutcome[coordinates.size()];
         ExecutorService executor = Executors.newFixedThreadPool(options.threads());
         long warmupWallNanos;
@@ -599,7 +680,7 @@ public final class GenerationProbe {
                 warmup.add(index);
             }
             long warmupStarted = System.nanoTime();
-            runPhase(executor, engine, configuration, coordinates, warmup, outcomes);
+            runPhase(executor, generator, configuration, coordinates, warmup, outcomes);
             warmupWallNanos = System.nanoTime() - warmupStarted;
             unattributed.addAll(drainReported());
             System.out.println("[genprobe] warmup complete: " + configuration.warmupChunks() + " chunks on "
@@ -607,12 +688,15 @@ public final class GenerationProbe {
 
             List<Integer> measured = spiralOrder(coordinates, configuration.warmupChunks(),
                     configuration.centerChunkX(), configuration.centerChunkZ());
+            ProbeWindowMetrics measuredStart = ProbeWindowMetrics.capture(generator.engine(), options.counters());
             long measuredStartEpochMillis = System.currentTimeMillis();
             GeneratorEvaluations.Snapshot measuredStartEvaluations = GeneratorEvaluations.snapshot();
             long measuredStarted = System.nanoTime();
-            runPhase(executor, engine, configuration, coordinates, measured, outcomes);
+            runPhase(executor, generator, configuration, coordinates, measured, outcomes);
             measuredWallNanos = System.nanoTime() - measuredStarted;
-            printWindow(engine, measuredStartEpochMillis, System.currentTimeMillis(), measuredStartEvaluations);
+            printWindow(generator.engine(), measuredStartEpochMillis, System.currentTimeMillis(), measuredStartEvaluations);
+            printWindowMetrics(measuredStart, ProbeWindowMetrics.capture(generator.engine(), options.counters()),
+                    configuration.measuredChunks(), options);
             unattributed.addAll(drainReported());
             System.out.println("[genprobe] measured progress: " + configuration.measuredChunks() + "/"
                     + configuration.measuredChunks());
@@ -646,13 +730,13 @@ public final class GenerationProbe {
         System.out.println(throughput.machineLine());
     }
 
-    private static void runPhase(ExecutorService executor, Engine engine, ProbeConfiguration configuration,
-                                 List<ChunkCoordinate> coordinates, List<Integer> order,
-                                 ChunkOutcome[] outcomes) throws Exception {
+    private static void runPhase(ExecutorService executor, ProbeChunkGenerator generator,
+                                 ProbeConfiguration configuration, List<ChunkCoordinate> coordinates,
+                                 List<Integer> order, ChunkOutcome[] outcomes) throws Exception {
         List<Future<ChunkOutcome>> futures = new ArrayList<>(order.size());
         for (int index : order) {
             ChunkCoordinate coordinate = coordinates.get(index);
-            futures.add(executor.submit(() -> generateChunk(engine, index, coordinate, configuration.multicore())));
+            futures.add(executor.submit(() -> generator.generate(index, coordinate, configuration.multicore())));
         }
         for (Future<ChunkOutcome> future : futures) {
             ChunkOutcome outcome;
@@ -670,21 +754,6 @@ public final class GenerationProbe {
             }
             outcomes[outcome.index()] = outcome;
         }
-    }
-
-    private static ChunkOutcome generateChunk(Engine engine, int index, ChunkCoordinate coordinate,
-                                              boolean multicore) {
-        int height = engine.getTarget().getHeight();
-        List<Throwable> failures = new ArrayList<>();
-        Hunk<NativeBlockState> blocks = Hunk.newArrayHunk(16, height, 16);
-        Hunk<NativeBiome> biomes = Hunk.newArrayHunk(16, height, 16);
-        long started = System.nanoTime();
-        try {
-            engine.generate(coordinate.x() << 4, coordinate.z() << 4, blocks, biomes, multicore);
-        } catch (Throwable e) {
-            failures.add(e);
-        }
-        return new ChunkOutcome(index, coordinate, System.nanoTime() - started, blocks, biomes, failures);
     }
 
     private static void printProgress(ProbeConfiguration configuration, int completed, int totalChunks) {

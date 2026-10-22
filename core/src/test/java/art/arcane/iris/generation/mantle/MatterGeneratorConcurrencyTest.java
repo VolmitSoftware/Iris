@@ -76,7 +76,7 @@ public class MatterGeneratorConcurrencyTest {
     @Test
     public void externalWindowsBoundManagedBlockedComponentSubmissions() throws Exception {
         GeneratorFixture fixture = new GeneratorFixture(true);
-        int maximum = 2 * MatterGenerator.COMPONENT_SUBMISSION_BATCH_SIZE;
+        int maximum = 2 * MatterGenerator.COMPONENT_SUBMISSION_LIMIT;
         CountDownLatch admitted = new CountDownLatch(maximum);
         CountDownLatch excess = new CountDownLatch(1);
         CountDownLatch release = new CountDownLatch(1);
@@ -115,10 +115,10 @@ public class MatterGeneratorConcurrencyTest {
     }
 
     @Test
-    public void externalWindowDefersSharedClaimsUntilItsOwnBatchesComplete() throws Exception {
+    public void externalWindowDefersSharedClaimsUntilItsOwnSubmissionsComplete() throws Exception {
         GeneratorFixture fixture = new GeneratorFixture(true);
         List<MatterGenerator.MatterComponentTask> shared = new ArrayList<>();
-        for (int z = -4; z < -4 + MatterGenerator.COMPONENT_SUBMISSION_BATCH_SIZE; z++) {
+        for (int z = -4; z < -4 + MatterGenerator.COMPONENT_SUBMISSION_LIMIT; z++) {
             MatterGenerator.MatterTaskKey key = new MatterGenerator.MatterTaskKey(
                     fixture.mantle, -4, z, ReservedFlag.OBJECT);
             MatterGenerator.MatterComponentTask task = new MatterGenerator.MatterComponentTask(key);
@@ -137,7 +137,7 @@ public class MatterGeneratorConcurrencyTest {
         CompletableFuture<Void> generation = CompletableFuture.runAsync(
                 () -> generator.generateMatter(0, 0, true, fixture.context));
         try {
-            Await.until("all privately owned component batches", Duration.ofSeconds(10L),
+            Await.until("all privately owned component submissions", Duration.ofSeconds(10L),
                     () -> completed.get() == 81 - shared.size());
             assertFalse(generation.isDone());
         } finally {
@@ -149,16 +149,17 @@ public class MatterGeneratorConcurrencyTest {
     }
 
     @Test
-    public void failedSubmissionBatchDrainsItsWritersBeforeReturning() throws Exception {
+    public void failedSubmissionDrainsItsWritersBeforeReturning() throws Exception {
         GeneratorFixture fixture = new GeneratorFixture(true);
         CountDownLatch failed = new CountDownLatch(1);
-        CountDownLatch started = new CountDownLatch(MatterGenerator.COMPONENT_SUBMISSION_BATCH_SIZE - 1);
+        CountDownLatch started = new CountDownLatch(MatterGenerator.COMPONENT_SUBMISSION_LIMIT - 1);
         CountDownLatch release = new CountDownLatch(1);
         IllegalStateException failure = new IllegalStateException("Component rejected its input");
         RecordingComponent component = new RecordingComponent(ReservedFlag.OBJECT, 0, 64) {
             @Override
             public void generateLayer(MantleWriter writer, int x, int z, ChunkContext context) {
                 if (x == -4 && z == -4) {
+                    await(started);
                     failed.countDown();
                     throw failure;
                 }
@@ -172,7 +173,7 @@ public class MatterGeneratorConcurrencyTest {
         try {
             await(failed);
             await(started);
-            if (MatterGenerator.COMPONENT_SUBMISSION_BATCH_SIZE > 1) {
+            if (MatterGenerator.COMPONENT_SUBMISSION_LIMIT > 1) {
                 assertFalse(generation.isDone());
                 verify(fixture.mantle.getChunk(-4, -4), never()).release();
             }
@@ -184,6 +185,69 @@ public class MatterGeneratorConcurrencyTest {
         assertSame(failure, observed.getCause());
         verify(fixture.mantle.getChunk(-4, -4)).release();
         assertEquals(0, activeClaims(fixture, 0, 4));
+    }
+
+    @Test
+    public void externalWindowKeepsSubmittingPastAStragglingComponent() throws Exception {
+        GeneratorFixture fixture = new GeneratorFixture(true);
+        CountDownLatch release = new CountDownLatch(1);
+        AtomicInteger completed = new AtomicInteger();
+        RecordingComponent component = new RecordingComponent(ReservedFlag.OBJECT, 0, 64) {
+            @Override
+            public void generateLayer(MantleWriter writer, int x, int z, ChunkContext context) {
+                if (x == -4 && z == -4) {
+                    awaitManaged(release);
+                }
+                completed.incrementAndGet();
+            }
+        };
+        TestMatterGenerator generator = fixture.generator(List.of(new MantlePass(List.of(component), 4, 0)));
+        CompletableFuture<Void> generation = CompletableFuture.runAsync(
+                () -> generator.generateMatter(0, 0, true, fixture.context));
+        try {
+            Await.until("every chunk but the straggler", Duration.ofSeconds(10L), () -> completed.get() == 80);
+            assertFalse(generation.isDone());
+        } finally {
+            release.countDown();
+        }
+        generation.get(10L, TimeUnit.SECONDS);
+        assertEquals(81, completed.get());
+        assertEquals(0, activeClaims(fixture, 0, 4));
+    }
+
+    @Test
+    public void inlineWindowFinishesItsOwnChunksBeforeJoiningAClaimAnotherGenerationHolds() throws Exception {
+        GeneratorFixture fixture = new GeneratorFixture(true);
+        MantleChunk<Matter> held = fixture.mantle.getChunk(1, 0);
+        CountDownLatch claimed = new CountDownLatch(1);
+        CountDownLatch releaseClaim = new CountDownLatch(1);
+        Set<Long> completed = ConcurrentHashMap.newKeySet();
+        RecordingComponent component = new RecordingComponent(ReservedFlag.OBJECT, 0, 16) {
+            @Override
+            public void generateLayer(MantleWriter writer, int x, int z, ChunkContext context) {
+                completed.add((((long) x) << 32) ^ (z & 0xffffffffL));
+            }
+        };
+        TestMatterGenerator generator = fixture.generator(List.of(new MantlePass(List.of(component), 1, 0)));
+        CompletableFuture<Void> holder = CompletableFuture.runAsync(() -> {
+            assertTrue(held.tryClaim(ReservedFlag.OBJECT));
+            claimed.countDown();
+            await(releaseClaim);
+            held.completeClaim(ReservedFlag.OBJECT);
+        });
+        await(claimed);
+        CompletableFuture<Void> generation = CompletableFuture.runAsync(
+                () -> generator.generateMatter(0, 0, false, fixture.context));
+        try {
+            Await.until("the eight unclaimed chunks", Duration.ofSeconds(10L), () -> completed.size() == 8);
+            assertFalse(generation.isDone());
+        } finally {
+            releaseClaim.countDown();
+        }
+        holder.get(10L, TimeUnit.SECONDS);
+        generation.get(10L, TimeUnit.SECONDS);
+        assertEquals(8, completed.size());
+        assertTrue(held.isFlagged(ReservedFlag.OBJECT));
     }
 
     @Test
@@ -812,6 +876,25 @@ public class MatterGeneratorConcurrencyTest {
                 }
                 return null;
             }).when(chunk).raiseFlagSuspend(any(), any(Runnable.class));
+            when(chunk.tryClaim(any())).thenAnswer(invocation -> {
+                if (flagged.contains(invocation.getArgument(0)) || !lock.tryLock()) {
+                    return false;
+                }
+                if (flagged.contains(invocation.getArgument(0))) {
+                    lock.unlock();
+                    return false;
+                }
+                return true;
+            });
+            doAnswer(invocation -> {
+                flagged.add(invocation.getArgument(0));
+                lock.unlock();
+                return null;
+            }).when(chunk).completeClaim(any());
+            doAnswer(invocation -> {
+                lock.unlock();
+                return null;
+            }).when(chunk).abandonClaim(any());
             return chunk;
         }
 

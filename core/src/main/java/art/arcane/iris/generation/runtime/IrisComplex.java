@@ -2212,6 +2212,9 @@ public class IrisComplex implements DataProvider {
         long sharedKey = SharedCornerBounds.key(gx, gz);
         long packed = shared.get(sharedKey, interpolatorIndex);
         if (packed == Long.MIN_VALUE) {
+            if (GenerationCounter.ENABLED) {
+                GenerationCounter.CORNER_STARCASTS.increment();
+            }
             packed = computePackedBounds(cache, engine, interpolator, generators, gx, gz);
             if (!Double.isFinite(boundsLow(packed)) || !Double.isFinite(boundsHigh(packed))) {
                 // A non-finite corner is a transient sampling fault, not a fact about the terrain:
@@ -2576,6 +2579,9 @@ public class IrisComplex implements DataProvider {
             return height / generators.length;
         }
         GeneratorEvaluations.scalar(generators.length);
+        if (GenerationCounter.ENABLED) {
+            GenerationCounter.GENERATOR_EVALUATIONS.add(generators.length);
+        }
         for (IrisGenerator generator : generators) {
             double noise = generator.getHeight(x, z, seed);
             if (!Double.isFinite(noise)) {

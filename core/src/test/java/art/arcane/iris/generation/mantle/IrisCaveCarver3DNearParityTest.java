@@ -13,6 +13,7 @@ import art.arcane.iris.generation.noise.IrisStyledRange;
 import art.arcane.iris.world.IrisWorld;
 import art.arcane.iris.generation.noise.NoiseStyle;
 import art.arcane.volmlib.util.noise.CNG;
+import art.arcane.volmlib.util.noise.program.NoiseProgram;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.mantle.runtime.Mantle;
 import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
@@ -148,7 +149,7 @@ public class IrisCaveCarver3DNearParityTest {
             sampledY.add((int) y);
             return x * 0.0001D + y * 0.01D + z * 0.0002D;
         }).when(density).noiseFastSigned3D(anyDouble(), anyDouble(), anyDouble());
-        baseDensityField.set(carver, density);
+        baseDensityField.set(carver, NoiseProgram.compileSigned3D(density));
         Method prepare = IrisCaveCarver3D.class.getDeclaredMethod("prepareVerticalDensityPlane",
                 CaveCarveScratch.class, int.class, int.class, int.class);
         prepare.setAccessible(true);
@@ -168,7 +169,7 @@ public class IrisCaveCarver3DNearParityTest {
         doReturn(1).when(dimension).getCaveDensitySamplingStep();
         IrisCaveCarver3D scalar = new IrisCaveCarver3D(engine,
                 createProfile(false, false).setDetailWeight(0D).setAllowFluid(false));
-        baseDensityField.set(scalar, density);
+        baseDensityField.set(scalar, NoiseProgram.compileSigned3D(density));
         CaveCarveScratch scalarScratch = new CaveCarveScratch();
         for (int index = 0; index < 256; index++) {
             scalarScratch.planeColumnIndices[index] = index;
@@ -292,10 +293,10 @@ public class IrisCaveCarver3DNearParityTest {
             IrisCaveCarver3D carver = new IrisCaveCarver3D(engine, profile);
             CNG base = mock(CNG.class, withSettings().stubOnly());
             doReturn(1D).when(base).noiseFastSigned3D(anyDouble(), anyDouble(), anyDouble());
-            baseDensityField.set(carver, base);
+            baseDensityField.set(carver, NoiseProgram.compileSigned3D(base));
             CNG module = mock(CNG.class, withSettings().stubOnly());
             doReturn(-1D).when(module).noiseFastSigned3D(anyDouble(), anyDouble(), anyDouble());
-            moduleDensityField.set(((CaveFieldModuleState[]) modulesField.get(carver))[0], module);
+            moduleDensityField.set(((CaveFieldModuleState[]) modulesField.get(carver))[0], NoiseProgram.compileSigned3D(module));
             WriterCapture capture = createWriterCapture(128);
             carver.carve(capture.writer, -1, 2, fullWeights(), 0D, 0D, null, filledHeights(110));
             assertEquals(512, capture.carvedCells.size());
@@ -364,13 +365,13 @@ public class IrisCaveCarver3DNearParityTest {
                     }
                     return -1D;
                 }).when(density).noiseFastSigned3D(anyDouble(), anyDouble(), anyDouble());
-                baseDensityField.set(carver, density);
+                baseDensityField.set(carver, NoiseProgram.compileSigned3D(density));
                 assertThrows(IllegalStateException.class, () -> carver.carve(capture.writer, 0, 0,
                         fullWeights(), 0D, 0D, null, filledHeights(110)));
             } else {
                 carver.carve(capture.writer, 0, 0, fullWeights(), 0D, 0D, null, filledHeights(110));
+                assertFalse(capture.carvedCells.isEmpty());
             }
-            assertFalse(capture.carvedCells.isEmpty());
             Field scratchField = IrisCaveCarver3D.class.getDeclaredField("scratchCache");
             scratchField.setAccessible(true);
             ThreadLocal<?> scratchCache = (ThreadLocal<?>) scratchField.get(carver);
@@ -383,6 +384,12 @@ public class IrisCaveCarver3DNearParityTest {
                 assertNull(slice);
             }
             for (CaveDensityGrid.Column column : scratch.densityColumns) {
+                assertNull(column);
+            }
+            for (CaveDensityGrid.Column column : scratch.cellLattice.densityColumns) {
+                assertNull(column);
+            }
+            for (CaveDensityGrid.Column column : scratch.cellLattice.warpColumns) {
                 assertNull(column);
             }
         }
@@ -439,7 +446,7 @@ public class IrisCaveCarver3DNearParityTest {
         }).when(detail).noiseFastSigned3D(anyDouble(), anyDouble(), anyDouble());
         Field detailField = IrisCaveCarver3D.class.getDeclaredField("detailDensity");
         detailField.setAccessible(true);
-        detailField.set(carver, detail);
+        detailField.set(carver, NoiseProgram.compileSigned3D(detail));
         WriterCapture capture = createWriterCapture(128);
         try (ForkJoinPool pool = new ForkJoinPool(4)) {
             assertEquals(0, pool.submit(() -> carver.carve(capture.writer, 0, 0, fullWeights(),
@@ -772,7 +779,7 @@ public class IrisCaveCarver3DNearParityTest {
         rejectedDensity.put("11:10:10", -1D);
         rejectedDensity.put("9:10:10", -1D);
         CoordinateDensityCNG rejectedNoise = new CoordinateDensityCNG(rejectedDensity);
-        baseDensityField.set(carver, rejectedNoise);
+        baseDensityField.set(carver, NoiseProgram.compileSigned3D(rejectedNoise));
 
         boolean rejected = (boolean) aquiferCupSupportMethod.invoke(
                 carver, new CaveCarveScratch(), 10, 10, 10, 0D);
@@ -781,7 +788,7 @@ public class IrisCaveCarver3DNearParityTest {
         assertEquals(List.of("10:9:10", "10:8:10", "11:10:10", "9:10:10"), rejectedNoise.sampledCoordinates);
 
         CoordinateDensityCNG acceptedNoise = new CoordinateDensityCNG(Map.of());
-        baseDensityField.set(carver, acceptedNoise);
+        baseDensityField.set(carver, NoiseProgram.compileSigned3D(acceptedNoise));
 
         boolean accepted = (boolean) aquiferCupSupportMethod.invoke(
                 carver, new CaveCarveScratch(), 10, 10, 10, 0D);
@@ -1100,7 +1107,7 @@ public class IrisCaveCarver3DNearParityTest {
                 AtomicLong isolatedSamples = new AtomicLong();
                 IrisCaveCarver3D shared = new IrisCaveCarver3D(engine,
                         createProfile(warp, modules).setAdaptiveSampling(true), new CaveDensityGrid(4096));
-                baseDensityField.set(shared, new CountingCNG((CNG) baseDensityField.get(shared), sharedSamples));
+                baseDensityField.set(shared, NoiseProgram.compileSigned3D(new CountingCNG((NoiseProgram) baseDensityField.get(shared), sharedSamples)));
                 for (int chunkX = -1; chunkX <= 1; chunkX++) {
                     for (int chunkZ = -1; chunkZ <= 1; chunkZ++) {
                         WriterCapture sharedCapture = createWriterCapture(96);
@@ -1108,7 +1115,7 @@ public class IrisCaveCarver3DNearParityTest {
                                 null, filledHeights(90));
                         IrisCaveCarver3D isolated = new IrisCaveCarver3D(engine,
                                 createProfile(warp, modules).setAdaptiveSampling(true));
-                        baseDensityField.set(isolated, new CountingCNG((CNG) baseDensityField.get(isolated), isolatedSamples));
+                        baseDensityField.set(isolated, NoiseProgram.compileSigned3D(new CountingCNG((NoiseProgram) baseDensityField.get(isolated), isolatedSamples)));
                         WriterCapture isolatedCapture = createWriterCapture(96);
                         int isolatedCarved = isolated.carve(isolatedCapture.writer, chunkX, chunkZ, fullWeights(), 0D, 0D,
                                 null, filledHeights(90));
@@ -1241,7 +1248,7 @@ public class IrisCaveCarver3DNearParityTest {
         new IrisCaveCarver3D(engine, profile).carve(expected.writer, -1, 2,
                 fullWeights(), 0D, 0D, null, filledHeights(110));
         IrisCaveCarver3D carver = new IrisCaveCarver3D(engine, profile);
-        CNG original = (CNG) baseDensityField.get(carver);
+        NoiseProgram original = (NoiseProgram) baseDensityField.get(carver);
         CNG density = mock(CNG.class, withSettings().stubOnly());
         AtomicBoolean entered = new AtomicBoolean();
         WriterCapture nested = createWriterCapture(128);
@@ -1252,9 +1259,9 @@ public class IrisCaveCarver3DNearParityTest {
             double x = invocation.getArgument(0);
             double y = invocation.getArgument(1);
             double z = invocation.getArgument(2);
-            return original.noiseFastSigned3D(x, y, z);
+            return original.sampleSigned3D(x, y, z);
         }).when(density).noiseFastSigned3D(anyDouble(), anyDouble(), anyDouble());
-        baseDensityField.set(carver, density);
+        baseDensityField.set(carver, NoiseProgram.compileSigned3D(density));
         WriterCapture actual = createWriterCapture(128);
         carver.carve(actual.writer, -1, 2, fullWeights(), 0D, 0D, null, filledHeights(110));
         assertTrue(entered.get());
@@ -1268,7 +1275,7 @@ public class IrisCaveCarver3DNearParityTest {
         doAnswer(invocation -> {
             lookups.incrementAndGet();
             return invocation.callRealMethod();
-        }).when(grid).column(any(), anyInt(), anyInt(), anyInt(), anyInt());
+        }).when(grid).column(any(), anyInt(), anyInt(), anyInt());
         return grid;
     }
 
@@ -1292,10 +1299,10 @@ public class IrisCaveCarver3DNearParityTest {
     }
 
     private void countSkippableSamples(IrisCaveCarver3D carver, AtomicLong samples) throws Exception {
-        detailDensityField.set(carver, new CountingCNG((CNG) detailDensityField.get(carver), samples));
+        detailDensityField.set(carver, NoiseProgram.compileSigned3D(new CountingCNG((NoiseProgram) detailDensityField.get(carver), samples)));
         CaveFieldModuleState[] modules = (CaveFieldModuleState[]) modulesField.get(carver);
         for (CaveFieldModuleState module : modules) {
-            moduleDensityField.set(module, new CountingCNG((CNG) moduleDensityField.get(module), samples));
+            moduleDensityField.set(module, NoiseProgram.compileSigned3D(new CountingCNG((NoiseProgram) moduleDensityField.get(module), samples)));
         }
     }
 
@@ -1893,10 +1900,10 @@ public class IrisCaveCarver3DNearParityTest {
     }
 
     private static final class CountingCNG extends CNG {
-        private final CNG delegate;
+        private final NoiseProgram delegate;
         private final AtomicLong samples;
 
-        private CountingCNG(CNG delegate, AtomicLong samples) {
+        private CountingCNG(NoiseProgram delegate, AtomicLong samples) {
             super(new RNG(41_117L));
             this.delegate = delegate;
             this.samples = samples;
@@ -1905,7 +1912,7 @@ public class IrisCaveCarver3DNearParityTest {
         @Override
         public double noiseFastSigned3D(double x, double y, double z) {
             samples.incrementAndGet();
-            return delegate.noiseFastSigned3D(x, y, z);
+            return delegate.sampleSigned3D(x, y, z);
         }
     }
 

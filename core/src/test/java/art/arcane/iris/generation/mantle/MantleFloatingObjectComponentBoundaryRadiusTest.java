@@ -31,11 +31,6 @@ import art.arcane.iris.testsupport.PlatformBinding;
 import art.arcane.volmlib.util.collection.KList;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
-
-import java.io.DataOutputStream;
-import java.io.File;
-import java.io.FileOutputStream;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
@@ -45,22 +40,12 @@ public class MantleFloatingObjectComponentBoundaryRadiusTest {
     @Rule
     public final PlatformBinding platform = PlatformBinding.mockPlatform();
 
-    @Rule
-    public TemporaryFolder temporaryFolder = new TemporaryFolder();
-
     @Test
     @SuppressWarnings("unchecked")
-    public void transformedFloatingPlacementExpandsOwnerRadius() throws Exception {
-        File objectFile = temporaryFolder.newFile("floating.iob");
-        try (DataOutputStream output = new DataOutputStream(new FileOutputStream(objectFile))) {
-            output.writeInt(1);
-            output.writeInt(1);
-            output.writeInt(1);
-        }
-
+    public void transformedFloatingPlacementExpandsOwnerRadius() {
         IrisObjectPlacement placement = new IrisObjectPlacement()
                 .setPlace(new KList<>("test/floating"))
-                .setTranslate(new IrisObjectTranslate().setX(32));
+                .setTranslate(new IrisObjectTranslate().setX(-32));
         IrisFloatingChildBiomes floatingChild = new IrisFloatingChildBiomes()
                 .setFloatingObjects(new KList<>(placement));
         IrisBiome biome = new IrisBiome().setFloatingChildBiomes(new KList<>(floatingChild));
@@ -69,7 +54,7 @@ public class MantleFloatingObjectComponentBoundaryRadiusTest {
         when(dimension.getReachableBiomes(org.mockito.ArgumentMatchers.any())).thenReturn(new KList<>(biome));
 
         ResourceLoader<IrisObject> objectLoader = mock(ResourceLoader.class);
-        when(objectLoader.findFile("test/floating")).thenReturn(objectFile);
+        when(objectLoader.load("test/floating")).thenReturn(new IrisObject(1, 1, 1));
         IrisData data = mock(IrisData.class);
         when(data.getObjectLoader()).thenReturn(objectLoader);
 
@@ -79,8 +64,8 @@ public class MantleFloatingObjectComponentBoundaryRadiusTest {
         when(engineMantle.getEngine()).thenReturn(engine);
         when(engineMantle.getData()).thenReturn(data);
 
-        assertEquals(33, new MantleFloatingObjectComponent(engineMantle).getRadius());
+        assertEquals(32, new MantleFloatingObjectComponent(engineMantle).getRadius());
         when(dimension.getAllObjectScaleFactor()).thenReturn(2D);
-        assertEquals(34, new MantleFloatingObjectComponent(engineMantle).getRadius());
+        assertEquals(33, new MantleFloatingObjectComponent(engineMantle).getRadius());
     }
 }

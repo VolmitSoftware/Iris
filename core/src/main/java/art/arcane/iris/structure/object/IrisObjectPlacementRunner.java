@@ -475,212 +475,38 @@ final class IrisObjectPlacementRunner {
         int topLayer = Integer.MIN_VALUE;
         int vacuumLowest = Integer.MAX_VALUE;
         int vacuumHighest = Integer.MIN_VALUE;
-        ObjectPlacementBake bake = ObjectPlacementBake.of(self, spin, ceilingHang, translating ? translateOffset : null);
-        PlacementStates palette = new PlacementStates(bake.palette(), config.getRotation(), spinx, spiny, spinz,
-                preventingDecay, placer.isDebugSmartBore(), excludedStiltMaterials);
-        double[] exact = warped || hasEdits || eroding ? bake.exact(self, spin) : null;
-        String[] markers = config.getMarkers().isNotEmpty() && placer.getEngine() != null
-                ? resolveMarkers(config, rng, x, yv, z, rdata, bake) : null;
-        int[] tileBlocks = bake.tileBlocks();
-        TileData[] tileValues = bake.tileValues();
-        int tileCursor = 0;
-        int count = bake.count();
+        self.readLock.lock();
+        try {
+            ObjectPlacementBake bake = ObjectPlacementBake.of(self, spin, ceilingHang, translating ? translateOffset : null);
+            PlacementStates palette = new PlacementStates(bake.palette(), config.getRotation(), spinx, spiny, spinz,
+                    preventingDecay, placer.isDebugSmartBore(), excludedStiltMaterials);
+            double[] exact = warped || hasEdits || eroding ? bake.exact(self, spin) : null;
+            String[] markers = config.getMarkers().isNotEmpty() && placer.getEngine() != null
+                    ? resolveMarkers(config, rng, x, yv, z, rdata, bake) : null;
+            int[] tileBlocks = bake.tileBlocks();
+            TileData[] tileValues = bake.tileValues();
+            int tileCursor = 0;
+            int count = bake.count();
 
-        for (int index = 0; index < count; index++) {
-            int entry = bake.paletteIndex(index);
-            TileData tile = null;
-            if (tileBlocks != null && tileCursor < tileBlocks.length && tileBlocks[tileCursor] == index) {
-                tile = tileValues[tileCursor++];
-            }
-
-            if (stilting && palette.stiltLayer(entry)) {
-                int layer = bake.layerY(index);
-                if (layer < lowest) {
-                    lowest = layer;
-                }
-                if (layer > topLayer) {
-                    topLayer = layer;
-                }
-            }
-
-            NativeBlockState data = palette.decayed(entry);
-            boolean edited = false;
-            if (hasEdits) {
-                double exactX = exact[index * 3];
-                double exactY = exact[index * 3 + 1];
-                double exactZ = exact[index * 3 + 2];
-                for (IrisObjectReplace j : config.getEdit()) {
-                    if (rng.chance(j.getChance())) {
-                        for (NativeBlockState k : j.getFind(rdata)) {
-                            if (j.isExact() ? k.matches(data) : IrisObjectShaping.materialKey(k).equals(IrisObjectShaping.materialKey(data))) {
-                                NativeBlockState newData = j.getReplace(rng, exactX + x, exactY + y, exactZ + z, rdata);
-
-                                boolean sameMaterial = IrisObjectShaping.materialKey(newData).equals(IrisObjectShaping.materialKey(data));
-                                if (sameMaterial && !(newData.isCustom() || data.isCustom()))
-                                    data = BlockDataMergeSupport.merge(data, newData);
-                                else
-                                    data = newData;
-                                edited = true;
-
-                                Optional<TileData> t = j.getReplace().getTile(rng, x, y, z, rdata);
-                                if (t.isPresent()) {
-                                    tile = t.get();
-                                } else if (!sameMaterial) {
-                                    tile = null;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            StateFacts facts = edited ? palette.factsOf(data) : palette.facts(entry);
-            NativeBlockState rotated = facts.rotated();
-            if (rotated == null) {
-                continue;
-            }
-            xx = x + bake.offsetX(index);
-            int yy = y + bake.offsetY(index);
-            zz = z + bake.offsetZ(index);
-
-            if (warped) {
-                double exactX = exact[index * 3];
-                double exactY = exact[index * 3 + 1];
-                double exactZ = exact[index * 3 + 2];
-                xx += surfaceWarp.fitDouble(-warpHalf, warpHalf, exactX + x, exactY + y, exactZ + z);
-                zz += surfaceWarp.fitDouble(-warpHalf, warpHalf, exactZ + z, exactY + y, exactX + x);
-            }
-
-            if (paint) {
-                int surface = paintProjection.surfaceY(xx, zz);
-                if (surface == IrisPaintSurfaceProjection.MISSING) {
-                    continue;
-                }
-                if (!B.isVineBlock(rotated)) {
-                    yy = bake.offsetY(index) + Math.floorDiv(self.h, 2) + surface + yrand;
-                }
-            }
-
-            if (config.isMeld() && !rawStructurePiece && !placer.isSolid(xx, yy, zz)) {
-                continue;
-            }
-
-            boolean canopy = bake.canopy(index);
-            if (canopy && !placer.beginTreeCanopy(new BlockPosition(xx, yy, zz))) {
-                continue;
-            }
-
-            try {
-                data = rotated;
-                if (facts.waterloggable()) {
-                    data = waterlogCandidate || facts.authoredWaterlogged()
-                            ? IrisProceduralBlocks.normalizeWaterlogging(data, placer.get(xx, yy, zz), waterlogCandidate)
-                            : facts.dry();
-                }
-
-                if (!rawStructurePiece && B.isVineBlock(data)) {
-                    data = attachVineFaces(placer, data, xx, yy, zz);
-                }
-
-                // Short-circuit order matters for cost only: the mantle read is paid solely
-                // for vine blocks. Both operands are pure, so the value is unchanged.
-                boolean wouldReplace = !rawStructurePiece && B.isVineBlock(data) && B.isSolid(placer.get(xx, yy, zz));
-                boolean place = shouldPlaceObjectBlock(rawStructurePiece, facts.air(), wouldReplace);
-
-                if (data.isCustom() || place) {
-                    placer.set(xx, yy, zz, data);
-                    if (heightmap != null) {
-                        Position2 pos = new Position2(xx, zz);
-                        Integer currentHeight = heightmap.get(pos);
-                        if (currentHeight == null || currentHeight < yy) {
-                            heightmap.put(pos, yy);
-                        }
-                    }
-                    if (tile != null) {
-                        placer.setTile(xx, yy, zz, tile);
-                    }
-                    if (markers != null && markers[index] != null) {
-                        placer.setData(xx, yy, zz, new MatterMarker(markers[index]));
-                    }
-                    if (listener != null) {
-                        listener.accept(new BlockPosition(xx, yy, zz), data);
-                    }
-                    if (vacuuming && yy < vacuumLowest) {
-                        vacuumLowest = yy;
-                    }
-                    if (vacuuming && yy > vacuumHighest) {
-                        vacuumHighest = yy;
-                    }
-                }
-            } finally {
-                if (canopy) {
-                    placer.endTreeCanopy();
-                }
-            }
-        }
-
-        if (grounding != null) {
-            for (TreeGrounding.Extension extension : grounding.extensions()) {
-                for (int rootY = extension.topY(); rootY >= extension.bottomY(); rootY--) {
-                    NativeBlockState rootState = normalizePlacedWaterlogging(extension.state(), placer,
-                            extension.x(), rootY, extension.z(), waterlogCandidate);
-                    placer.set(extension.x(), rootY, extension.z(), rootState);
-                    if (listener != null) {
-                        listener.accept(new BlockPosition(extension.x(), rootY, extension.z()), rootState);
-                    }
-                }
-            }
-        }
-
-        if (stilting) {
-            IrisStiltSettings settings = stiltSettings;
-
-            double erodeCentroidX = 0;
-            double erodeCentroidZ = 0;
-            double erodeMaxDist = 1;
-            if (eroding) {
-                int centroidCount = 0;
-                for (int index = 0; index < count; index++) {
-                    if (bake.layerY(index) == lowest && palette.shouldStilt(bake.paletteIndex(index))) {
-                        erodeCentroidX += exact[index * 3];
-                        erodeCentroidZ += exact[index * 3 + 2];
-                        centroidCount++;
-                    }
-                }
-                if (centroidCount > 0) {
-                    erodeCentroidX /= centroidCount;
-                    erodeCentroidZ /= centroidCount;
-                }
-                for (int index = 0; index < count; index++) {
-                    if (bake.layerY(index) == lowest && palette.shouldStilt(bake.paletteIndex(index))) {
-                        double dx = exact[index * 3] - erodeCentroidX;
-                        double dz = exact[index * 3 + 2] - erodeCentroidZ;
-                        double dist = Math.sqrt(dx * dx + dz * dz);
-                        if (dist > erodeMaxDist) {
-                            erodeMaxDist = dist;
-                        }
-                    }
-                }
-            }
-
-            int targetLayer = ceilingHang ? topLayer : lowest;
             for (int index = 0; index < count; index++) {
                 int entry = bake.paletteIndex(index);
-                if (!palette.shouldStilt(entry)) {
-                    continue;
+                TileData tile = null;
+                if (tileBlocks != null && tileCursor < tileBlocks.length && tileBlocks[tileCursor] == index) {
+                    tile = tileValues[tileCursor++];
                 }
 
-                NativeBlockState d;
-                if (settings != null && settings.getPalette() != null) {
-                    d = config.getStiltSettings().getPalette().get(rng, x, y, z, rdata);
-                } else {
-                    d = palette.stiltDefault(entry);
+                if (stilting && palette.stiltLayer(entry)) {
+                    int layer = bake.layerY(index);
+                    if (layer < lowest) {
+                        lowest = layer;
+                    }
+                    if (layer > topLayer) {
+                        topLayer = layer;
+                    }
                 }
 
-                if (bake.layerY(index) != targetLayer)
-                    continue;
-                d = palette.rotate(d);
-
+                NativeBlockState data = palette.decayed(entry);
+                boolean edited = false;
                 if (hasEdits) {
                     double exactX = exact[index * 3];
                     double exactY = exact[index * 3 + 1];
@@ -688,16 +514,21 @@ final class IrisObjectPlacementRunner {
                     for (IrisObjectReplace j : config.getEdit()) {
                         if (rng.chance(j.getChance())) {
                             for (NativeBlockState k : j.getFind(rdata)) {
-                                if (d == null) {
-                                    continue;
-                                }
-                                if (j.isExact() ? k.matches(d) : IrisObjectShaping.materialKey(k).equals(IrisObjectShaping.materialKey(d))) {
+                                if (j.isExact() ? k.matches(data) : IrisObjectShaping.materialKey(k).equals(IrisObjectShaping.materialKey(data))) {
                                     NativeBlockState newData = j.getReplace(rng, exactX + x, exactY + y, exactZ + z, rdata);
 
-                                    if (IrisObjectShaping.materialKey(newData).equals(IrisObjectShaping.materialKey(d))) {
-                                        d = BlockDataMergeSupport.merge(d, newData);
-                                    } else {
-                                        d = newData;
+                                    boolean sameMaterial = IrisObjectShaping.materialKey(newData).equals(IrisObjectShaping.materialKey(data));
+                                    if (sameMaterial && !(newData.isCustom() || data.isCustom()))
+                                        data = BlockDataMergeSupport.merge(data, newData);
+                                    else
+                                        data = newData;
+                                    edited = true;
+
+                                    Optional<TileData> t = j.getReplace().getTile(rng, x, y, z, rdata);
+                                    if (t.isPresent()) {
+                                        tile = t.get();
+                                    } else if (!sameMaterial) {
+                                        tile = null;
                                     }
                                 }
                             }
@@ -705,10 +536,13 @@ final class IrisObjectPlacementRunner {
                     }
                 }
 
-                if (d == null || !palette.shouldStiltPlaced(d))
+                StateFacts facts = edited ? palette.factsOf(data) : palette.facts(entry);
+                NativeBlockState rotated = facts.rotated();
+                if (rotated == null) {
                     continue;
-
+                }
                 xx = x + bake.offsetX(index);
+                int yy = y + bake.offsetY(index);
                 zz = z + bake.offsetZ(index);
 
                 if (warped) {
@@ -719,105 +553,276 @@ final class IrisObjectPlacementRunner {
                     zz += surfaceWarp.fitDouble(-warpHalf, warpHalf, exactZ + z, exactY + y, exactX + x);
                 }
 
-                if (organic) {
-                    int startY = targetLayer + y;
-                    int maxScan = settings != null ? Math.max(1, settings.getOrganicMaxScan()) : 48;
-                    int jitterMax = settings != null ? Math.max(0, settings.getOrganicJitter()) : 3;
-                    double scratch = settings != null ? Math.max(0, Math.min(1, settings.getOrganicScratch())) : 0.55;
-                    long colHash = ((long) xx * 341873128712L) ^ ((long) zz * 132897987541L);
-                    int jitter = jitterMax > 0 ? (int) (Math.abs(colHash) % (jitterMax + 1)) : 0;
-
-                    if (ceilingHang) {
-                        int scan = 0;
-                        int solidY = startY + 1;
-                        while (scan < maxScan && !placer.isSolid(xx, solidY, zz)) {
-                            solidY++;
-                            scan++;
-                        }
-                        int topBound = (scan < maxScan ? solidY - 1 : startY + Math.min(maxScan, 8)) - jitter;
-                        int total = topBound - startY;
-                        for (int j = startY; j <= topBound; j++) {
-                            if (scratch > 0 && total > 0) {
-                                double ratio = (double) (j - startY) / total;
-                                if (ratio > (1.0 - scratch)) {
-                                    long sh = ((long) xx * 341873128712L) ^ ((long) j * 132897987541L) ^ ((long) zz * 735791245321L);
-                                    double skipChance = (ratio - (1.0 - scratch)) / scratch;
-                                    if ((Math.abs(sh) % 1000) / 1000.0 < skipChance * 0.7) {
-                                        continue;
-                                    }
-                                }
-                            }
-                            placer.set(xx, j, zz, normalizePlacedWaterlogging(d, placer, xx, j, zz, waterlogCandidate));
-                        }
-                    } else {
-                        int scan = 0;
-                        int solidY = startY - 1;
-                        while (scan < maxScan && !placer.isSolid(xx, solidY, zz)) {
-                            solidY--;
-                            scan++;
-                        }
-                        int bottomBound = (scan < maxScan ? solidY + 1 : startY - Math.min(maxScan, 8)) + jitter;
-                        int total = startY - bottomBound;
-                        for (int j = startY; j >= bottomBound; j--) {
-                            if (scratch > 0 && total > 0) {
-                                double ratio = (double) (startY - j) / total;
-                                if (ratio > (1.0 - scratch)) {
-                                    long sh = ((long) xx * 341873128712L) ^ ((long) j * 132897987541L) ^ ((long) zz * 735791245321L);
-                                    double skipChance = (ratio - (1.0 - scratch)) / scratch;
-                                    if ((Math.abs(sh) % 1000) / 1000.0 < skipChance * 0.7) {
-                                        continue;
-                                    }
-                                }
-                            }
-                            placer.set(xx, j, zz, normalizePlacedWaterlogging(d, placer, xx, j, zz, waterlogCandidate));
-                        }
+                if (paint) {
+                    int surface = paintProjection.surfaceY(xx, zz);
+                    if (surface == IrisPaintSurfaceProjection.MISSING) {
+                        continue;
                     }
+                    if (!B.isVineBlock(rotated)) {
+                        yy = bake.offsetY(index) + Math.floorDiv(self.h, 2) + surface + yrand;
+                    }
+                }
+
+                if (config.isMeld() && !rawStructurePiece && !placer.isSolid(xx, yy, zz)) {
                     continue;
                 }
 
-                int highest = placer.getHighest(xx, zz, self.getLoader(), true);
-
-                int lowerBound = highest - 1;
-                if (settings != null) {
-                    lowerBound -= config.getStiltSettings().getOverStilt() - rng.i(0, config.getStiltSettings().getYRand());
-                    if (settings.getYMax() != 0)
-                        lowerBound -= Math.min(config.getStiltSettings().getYMax() - (lowest + y - highest), 0);
+                boolean canopy = bake.canopy(index);
+                if (canopy && !placer.beginTreeCanopy(new BlockPosition(xx, yy, zz))) {
+                    continue;
                 }
 
-                if (eroding) {
-                    double dx = exact[index * 3] - erodeCentroidX;
-                    double dz = exact[index * 3 + 2] - erodeCentroidZ;
-                    double normalizedDist = Math.sqrt(dx * dx + dz * dz) / erodeMaxDist;
-                    normalizedDist = Math.min(normalizedDist, 1.0);
-                    int totalDepth = (lowest + y) - lowerBound;
-                    int erodeDepth = (int) (totalDepth * Math.pow(1.0 - normalizedDist, 1.5));
-                    lowerBound = (lowest + y) - erodeDepth;
-                }
-
-                for (int j = lowest + y; j > lowerBound; j--) {
-                    NativeBlockState fluidState = placer.get(xx, j, zz);
-                    if (B.isFluid(fluidState)) {
-                        break;
+                try {
+                    data = rotated;
+                    if (facts.waterloggable()) {
+                        data = waterlogCandidate || facts.authoredWaterlogged()
+                                ? IrisProceduralBlocks.normalizeWaterlogging(data, placer.get(xx, yy, zz), waterlogCandidate)
+                                : facts.dry();
                     }
-                    if (eroding) {
-                        int depth = (lowest + y) - j;
-                        int totalDepth = (lowest + y) - lowerBound;
-                        double depthRatio = totalDepth > 0 ? (double) depth / totalDepth : 0;
-                        if (depthRatio > 0.4) {
-                            long hash = ((long) (xx * 341873128712L) ^ ((long) j * 132897987541L) ^ ((long) zz * 735791245321L));
-                            double skipChance = (depthRatio - 0.4) / 0.6;
-                            if ((Math.abs(hash) % 1000) / 1000.0 < skipChance * 0.7) {
-                                continue;
+
+                    if (!rawStructurePiece && B.isVineBlock(data)) {
+                        data = attachVineFaces(placer, data, xx, yy, zz);
+                    }
+
+                    // Short-circuit order matters for cost only: the mantle read is paid solely
+                    // for vine blocks. Both operands are pure, so the value is unchanged.
+                    boolean wouldReplace = !rawStructurePiece && B.isVineBlock(data) && B.isSolid(placer.get(xx, yy, zz));
+                    boolean place = shouldPlaceObjectBlock(rawStructurePiece, facts.air(), wouldReplace);
+
+                    if (data.isCustom() || place) {
+                        placer.set(xx, yy, zz, data);
+                        if (heightmap != null) {
+                            Position2 pos = new Position2(xx, zz);
+                            Integer currentHeight = heightmap.get(pos);
+                            if (currentHeight == null || currentHeight < yy) {
+                                heightmap.put(pos, yy);
+                            }
+                        }
+                        if (tile != null) {
+                            placer.setTile(xx, yy, zz, tile);
+                        }
+                        if (markers != null && markers[index] != null) {
+                            placer.setData(xx, yy, zz, new MatterMarker(markers[index]));
+                        }
+                        if (listener != null) {
+                            listener.accept(new BlockPosition(xx, yy, zz), data);
+                        }
+                        if (vacuuming && yy < vacuumLowest) {
+                            vacuumLowest = yy;
+                        }
+                        if (vacuuming && yy > vacuumHighest) {
+                            vacuumHighest = yy;
+                        }
+                    }
+                } finally {
+                    if (canopy) {
+                        placer.endTreeCanopy();
+                    }
+                }
+            }
+
+            if (grounding != null) {
+                for (TreeGrounding.Extension extension : grounding.extensions()) {
+                    for (int rootY = extension.topY(); rootY >= extension.bottomY(); rootY--) {
+                        NativeBlockState rootState = normalizePlacedWaterlogging(extension.state(), placer,
+                                extension.x(), rootY, extension.z(), waterlogCandidate);
+                        placer.set(extension.x(), rootY, extension.z(), rootState);
+                        if (listener != null) {
+                            listener.accept(new BlockPosition(extension.x(), rootY, extension.z()), rootState);
+                        }
+                    }
+                }
+            }
+
+            if (stilting) {
+                IrisStiltSettings settings = stiltSettings;
+
+                double erodeCentroidX = 0;
+                double erodeCentroidZ = 0;
+                double erodeMaxDist = 1;
+                if (eroding) {
+                    int centroidCount = 0;
+                    for (int index = 0; index < count; index++) {
+                        if (bake.layerY(index) == lowest && palette.shouldStilt(bake.paletteIndex(index))) {
+                            erodeCentroidX += exact[index * 3];
+                            erodeCentroidZ += exact[index * 3 + 2];
+                            centroidCount++;
+                        }
+                    }
+                    if (centroidCount > 0) {
+                        erodeCentroidX /= centroidCount;
+                        erodeCentroidZ /= centroidCount;
+                    }
+                    for (int index = 0; index < count; index++) {
+                        if (bake.layerY(index) == lowest && palette.shouldStilt(bake.paletteIndex(index))) {
+                            double dx = exact[index * 3] - erodeCentroidX;
+                            double dz = exact[index * 3 + 2] - erodeCentroidZ;
+                            double dist = Math.sqrt(dx * dx + dz * dz);
+                            if (dist > erodeMaxDist) {
+                                erodeMaxDist = dist;
+                            }
+                        }
+                    }
+                }
+
+                int targetLayer = ceilingHang ? topLayer : lowest;
+                for (int index = 0; index < count; index++) {
+                    int entry = bake.paletteIndex(index);
+                    if (!palette.shouldStilt(entry)) {
+                        continue;
+                    }
+
+                    NativeBlockState d;
+                    if (settings != null && settings.getPalette() != null) {
+                        d = config.getStiltSettings().getPalette().get(rng, x, y, z, rdata);
+                    } else {
+                        d = palette.stiltDefault(entry);
+                    }
+
+                    if (bake.layerY(index) != targetLayer)
+                        continue;
+                    d = palette.rotate(d);
+
+                    if (hasEdits) {
+                        double exactX = exact[index * 3];
+                        double exactY = exact[index * 3 + 1];
+                        double exactZ = exact[index * 3 + 2];
+                        for (IrisObjectReplace j : config.getEdit()) {
+                            if (rng.chance(j.getChance())) {
+                                for (NativeBlockState k : j.getFind(rdata)) {
+                                    if (d == null) {
+                                        continue;
+                                    }
+                                    if (j.isExact() ? k.matches(d) : IrisObjectShaping.materialKey(k).equals(IrisObjectShaping.materialKey(d))) {
+                                        NativeBlockState newData = j.getReplace(rng, exactX + x, exactY + y, exactZ + z, rdata);
+
+                                        if (IrisObjectShaping.materialKey(newData).equals(IrisObjectShaping.materialKey(d))) {
+                                            d = BlockDataMergeSupport.merge(d, newData);
+                                        } else {
+                                            d = newData;
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
 
-                    if (B.isVineBlock(d)) {
-                        d = attachVineFaces(placer, d, xx, j, zz);
+                    if (d == null || !palette.shouldStiltPlaced(d))
+                        continue;
+
+                    xx = x + bake.offsetX(index);
+                    zz = z + bake.offsetZ(index);
+
+                    if (warped) {
+                        double exactX = exact[index * 3];
+                        double exactY = exact[index * 3 + 1];
+                        double exactZ = exact[index * 3 + 2];
+                        xx += surfaceWarp.fitDouble(-warpHalf, warpHalf, exactX + x, exactY + y, exactZ + z);
+                        zz += surfaceWarp.fitDouble(-warpHalf, warpHalf, exactZ + z, exactY + y, exactX + x);
                     }
-                    placer.set(xx, j, zz, normalizePlacedWaterlogging(d, placer, xx, j, zz, waterlogCandidate));
+
+                    if (organic) {
+                        int startY = targetLayer + y;
+                        int maxScan = settings != null ? Math.max(1, settings.getOrganicMaxScan()) : 48;
+                        int jitterMax = settings != null ? Math.max(0, settings.getOrganicJitter()) : 3;
+                        double scratch = settings != null ? Math.max(0, Math.min(1, settings.getOrganicScratch())) : 0.55;
+                        long colHash = ((long) xx * 341873128712L) ^ ((long) zz * 132897987541L);
+                        int jitter = jitterMax > 0 ? (int) (Math.abs(colHash) % (jitterMax + 1)) : 0;
+
+                        if (ceilingHang) {
+                            int scan = 0;
+                            int solidY = startY + 1;
+                            while (scan < maxScan && !placer.isSolid(xx, solidY, zz)) {
+                                solidY++;
+                                scan++;
+                            }
+                            int topBound = (scan < maxScan ? solidY - 1 : startY + Math.min(maxScan, 8)) - jitter;
+                            int total = topBound - startY;
+                            for (int j = startY; j <= topBound; j++) {
+                                if (scratch > 0 && total > 0) {
+                                    double ratio = (double) (j - startY) / total;
+                                    if (ratio > (1.0 - scratch)) {
+                                        long sh = ((long) xx * 341873128712L) ^ ((long) j * 132897987541L) ^ ((long) zz * 735791245321L);
+                                        double skipChance = (ratio - (1.0 - scratch)) / scratch;
+                                        if ((Math.abs(sh) % 1000) / 1000.0 < skipChance * 0.7) {
+                                            continue;
+                                        }
+                                    }
+                                }
+                                placer.set(xx, j, zz, normalizePlacedWaterlogging(d, placer, xx, j, zz, waterlogCandidate));
+                            }
+                        } else {
+                            int scan = 0;
+                            int solidY = startY - 1;
+                            while (scan < maxScan && !placer.isSolid(xx, solidY, zz)) {
+                                solidY--;
+                                scan++;
+                            }
+                            int bottomBound = (scan < maxScan ? solidY + 1 : startY - Math.min(maxScan, 8)) + jitter;
+                            int total = startY - bottomBound;
+                            for (int j = startY; j >= bottomBound; j--) {
+                                if (scratch > 0 && total > 0) {
+                                    double ratio = (double) (startY - j) / total;
+                                    if (ratio > (1.0 - scratch)) {
+                                        long sh = ((long) xx * 341873128712L) ^ ((long) j * 132897987541L) ^ ((long) zz * 735791245321L);
+                                        double skipChance = (ratio - (1.0 - scratch)) / scratch;
+                                        if ((Math.abs(sh) % 1000) / 1000.0 < skipChance * 0.7) {
+                                            continue;
+                                        }
+                                    }
+                                }
+                                placer.set(xx, j, zz, normalizePlacedWaterlogging(d, placer, xx, j, zz, waterlogCandidate));
+                            }
+                        }
+                        continue;
+                    }
+
+                    int highest = placer.getHighest(xx, zz, self.getLoader(), true);
+
+                    int lowerBound = highest - 1;
+                    if (settings != null) {
+                        lowerBound -= config.getStiltSettings().getOverStilt() - rng.i(0, config.getStiltSettings().getYRand());
+                        if (settings.getYMax() != 0)
+                            lowerBound -= Math.min(config.getStiltSettings().getYMax() - (lowest + y - highest), 0);
+                    }
+
+                    if (eroding) {
+                        double dx = exact[index * 3] - erodeCentroidX;
+                        double dz = exact[index * 3 + 2] - erodeCentroidZ;
+                        double normalizedDist = Math.sqrt(dx * dx + dz * dz) / erodeMaxDist;
+                        normalizedDist = Math.min(normalizedDist, 1.0);
+                        int totalDepth = (lowest + y) - lowerBound;
+                        int erodeDepth = (int) (totalDepth * Math.pow(1.0 - normalizedDist, 1.5));
+                        lowerBound = (lowest + y) - erodeDepth;
+                    }
+
+                    for (int j = lowest + y; j > lowerBound; j--) {
+                        NativeBlockState fluidState = placer.get(xx, j, zz);
+                        if (B.isFluid(fluidState)) {
+                            break;
+                        }
+                        if (eroding) {
+                            int depth = (lowest + y) - j;
+                            int totalDepth = (lowest + y) - lowerBound;
+                            double depthRatio = totalDepth > 0 ? (double) depth / totalDepth : 0;
+                            if (depthRatio > 0.4) {
+                                long hash = ((long) (xx * 341873128712L) ^ ((long) j * 132897987541L) ^ ((long) zz * 735791245321L));
+                                double skipChance = (depthRatio - 0.4) / 0.6;
+                                if ((Math.abs(hash) % 1000) / 1000.0 < skipChance * 0.7) {
+                                    continue;
+                                }
+                            }
+                        }
+
+                        if (B.isVineBlock(d)) {
+                            d = attachVineFaces(placer, d, xx, j, zz);
+                        }
+                        placer.set(xx, j, zz, normalizePlacedWaterlogging(d, placer, xx, j, zz, waterlogCandidate));
+                    }
                 }
             }
+        } finally {
+            self.readLock.unlock();
         }
 
         if (vacuuming && vacuumLowest != Integer.MAX_VALUE && placer.getEngine() != null) {

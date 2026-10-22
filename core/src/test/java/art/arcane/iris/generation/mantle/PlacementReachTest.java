@@ -108,6 +108,15 @@ public class PlacementReachTest {
     }
 
     @Test
+    public void slopeRotationIsBoundedEvenWhenTheConfiguredRotationIsDisabled() {
+        IrisObject object = singleBlockObject(21, 9, 21);
+        IrisObjectPlacement placement = new IrisObjectPlacement().setRotation(IrisObjectRotation.of(0D, 0D, 0D));
+
+        assertEquals(10, PlacementReach.of(object, placement, 1D).horizontal());
+        assertEquals(15, PlacementReach.of(object, placement.setRotateTowardsSlope(true), 1D).horizontal());
+    }
+
+    @Test
     public void unionKeepsTheLargestReachAndTheLargestInput() {
         PlacementReach union = new PlacementReach(10, 2).union(new PlacementReach(4, 12));
 

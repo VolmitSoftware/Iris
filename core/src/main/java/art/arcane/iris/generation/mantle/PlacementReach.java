@@ -61,6 +61,10 @@ public record PlacementReach(int horizontal, int readMargin) {
         return new Profile(Objects.requireNonNull(placement, "placement"));
     }
 
+    public static int supportReadMargin(int surfaceSupportBuffer) {
+        return 1 + Math.max(0, surfaceSupportBuffer);
+    }
+
     public int input() {
         return saturate((long) horizontal + readMargin);
     }
@@ -73,10 +77,6 @@ public record PlacementReach(int horizontal, int readMargin) {
 
     public PlacementReach withReadMargin(int minimumReadMargin) {
         return minimumReadMargin <= readMargin ? this : new PlacementReach(horizontal, minimumReadMargin);
-    }
-
-    public static int supportReadMargin(int surfaceSupportBuffer) {
-        return 1 + Math.max(0, surfaceSupportBuffer);
     }
 
     private static int roundedBound(double maximumMagnitude) {
@@ -99,6 +99,7 @@ public record PlacementReach(int horizontal, int readMargin) {
         private final IrisBlockVector translation;
         private final boolean rotating;
         private final boolean radial;
+        private final boolean vertical;
         private final int[] spinsX;
         private final int[] spinsY;
         private final int[] spinsZ;
@@ -117,7 +118,9 @@ public record PlacementReach(int horizontal, int readMargin) {
             this.spinsY = rotating ? distinctSpins(configuredRotation, Axis.Y) : new int[]{0};
             this.spinsZ = rotating ? distinctSpins(configuredRotation, Axis.Z) : new int[]{0};
             long kernels = (long) spinsX.length * spinsY.length * spinsZ.length;
-            this.radial = rotating && (placement.isRotateTowardsSlope() || kernels > MAXIMUM_ROTATION_KERNELS);
+            this.radial = placement.isRotateTowardsSlope() || (rotating && kernels > MAXIMUM_ROTATION_KERNELS);
+            this.vertical = placement.isRotateTowardsSlope()
+                    || (rotating && (configuredRotation.canRotateX() || configuredRotation.canRotateZ()));
             this.additive = saturate((long) warpReach(placement.getWarp()) + vacuumReach(placement));
             this.readMargin = supportReadMargin(placement.getSurfaceSupportBuffer());
         }
@@ -134,11 +137,11 @@ public record PlacementReach(int horizontal, int readMargin) {
         }
 
         private int rotatedReach(Extent extent) {
-            if (!rotating) {
-                return unrotatedReach(extent);
-            }
             if (radial) {
                 return radialReach(extent);
+            }
+            if (!rotating) {
+                return unrotatedReach(extent);
             }
             double maximum = 0D;
             for (int spinX : spinsX) {
@@ -172,7 +175,6 @@ public record PlacementReach(int horizontal, int readMargin) {
         }
 
         private int radialReach(Extent extent) {
-            boolean vertical = rotation.canRotateX() || rotation.canRotateZ();
             double translateX = translation == null ? 0D : translation.getX();
             double translateY = translation == null ? 0D : translation.getY();
             double translateZ = translation == null ? 0D : translation.getZ();

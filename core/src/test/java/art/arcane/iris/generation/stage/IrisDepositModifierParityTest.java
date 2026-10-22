@@ -108,6 +108,18 @@ public class IrisDepositModifierParityTest {
     }
 
     @Test
+    public void unscaledPacksSkipOreCaveBiomeLookupsWithIdenticalOutput() {
+        for (long seed : new long[]{101L, -73L, 90181L}) {
+            AtomicInteger scannedLookups = new AtomicInteger();
+            AtomicInteger unscannedLookups = new AtomicInteger();
+            long[] scanned = generateConfigured(seed, false, true, true, scannedLookups, null, false);
+            long[] unscanned = generateConfigured(seed, false, true, false, unscannedLookups, null, false);
+            assertArrayEquals("seed=" + seed, unscanned, scanned);
+            assertTrue(scannedLookups.get() < unscannedLookups.get());
+        }
+    }
+
+    @Test
     public void unmatchableSurfaceBiomeFiltersSkipClumpsWithoutChangingOutput() {
         long[] expected = {-681153659952315909L, 784L, 2118L, 53L, 67L, 10L};
         AtomicInteger clumps = new AtomicInteger();
@@ -126,9 +138,15 @@ public class IrisDepositModifierParityTest {
         return generateConfigured(seed, multicore, caveVariant, enumerablePack, caveBiomeLookups, null);
     }
 
-    @SuppressWarnings("unchecked")
     private long[] generateConfigured(long seed, boolean multicore, boolean caveVariant, boolean enumerablePack,
                                       AtomicInteger caveBiomeLookups, AtomicInteger unmatchableClumps) {
+        return generateConfigured(seed, multicore, caveVariant, enumerablePack, caveBiomeLookups, unmatchableClumps, true);
+    }
+
+    @SuppressWarnings("unchecked")
+    private long[] generateConfigured(long seed, boolean multicore, boolean caveVariant, boolean enumerablePack,
+                                      AtomicInteger caveBiomeLookups, AtomicInteger unmatchableClumps,
+                                      boolean oreScaling) {
         Engine engine = mock(Engine.class, withSettings().stubOnly().defaultAnswer(RETURNS_DEEP_STUBS));
         ChunkContext context = mock(ChunkContext.class, withSettings().stubOnly().defaultAnswer(RETURNS_DEEP_STUBS));
         IrisDimension dimension = new IrisDimension();
@@ -136,8 +154,10 @@ public class IrisDepositModifierParityTest {
         IrisBiome surface = new IrisBiome();
         IrisBiome cave = new IrisBiome();
         cave.setLoadKey("allowed");
-        cave.setOreDepositFrequencyMultiplier(0.65D);
-        cave.setOreDepositSizeMultiplier(1.5D);
+        if (oreScaling) {
+            cave.setOreDepositFrequencyMultiplier(0.65D);
+            cave.setOreDepositSizeMultiplier(1.5D);
+        }
         IrisBiome denied = new IrisBiome();
         denied.setLoadKey("denied");
         IrisDepositVariant variant = new IrisDepositVariant().setMinHeight(-64).setMaxHeight(64);

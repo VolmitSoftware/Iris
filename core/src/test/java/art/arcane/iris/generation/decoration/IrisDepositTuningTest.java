@@ -16,6 +16,8 @@ import org.junit.Test;
 import org.mockito.MockedStatic;
 
 import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -256,6 +258,40 @@ public class IrisDepositTuningTest {
         assertNull(generator.sampleClumpFootprint(new RNG(1L), data));
         generator.setShape(IrisDepositShape.VANILLA_SCATTERED).setMinSize(4).setMaxSize(4);
         assertNull(generator.sampleClumpFootprint(new RNG(1L), data));
+    }
+
+    @Test
+    public void ellipsoidFootprintCellsMatchTheBuiltClumpInPlacementOrder() {
+        IrisData data = mock(IrisData.class);
+        IrisDepositGenerator generator = new IrisDepositGenerator();
+        for (String key : new String[]{"minecraft:iron_ore", "minecraft:gold_ore", "minecraft:copper_ore"}) {
+            IrisBlockData block = mock(IrisBlockData.class);
+            NativeBlockState state = mock(NativeBlockState.class);
+            when(block.getBlockData(data)).thenReturn(state);
+            when(state.key()).thenReturn(key);
+            generator.getPalette().add(block);
+        }
+        generator.setShape(IrisDepositShape.VANILLA_ELLIPSOID);
+        for (int size : new int[]{0, 1, 3, 4, 9, 17, 25, 64}) {
+            generator.setMinSize(size).setMaxSize(size);
+            for (long seed = 0; seed < 300; seed++) {
+                IrisObject clump = generator.getClump(null, new RNG(seed), data);
+                List<String> expected = new ArrayList<>();
+                VectorMap<NativeBlockState>.Cursor cursor = clump.getBlocks().cursor();
+                while (cursor.next()) {
+                    expected.add(cursor.key().getBlockX() + "," + cursor.key().getBlockY() + ","
+                            + cursor.key().getBlockZ() + "=" + cursor.value().key());
+                }
+                RNG sampled = new RNG(seed);
+                IrisDepositGenerator.ClumpCells cells = generator.sampleClumpFootprint(sampled, data).cells();
+                List<String> actual = new ArrayList<>();
+                for (int cell = 0; cell < cells.size(); cell++) {
+                    actual.add(cells.x(cell) + "," + cells.y(cell) + "," + cells.z(cell) + "="
+                            + cells.block(cell).key());
+                }
+                assertEquals("size " + size + " seed " + seed, expected, actual);
+            }
+        }
     }
 
     @Test

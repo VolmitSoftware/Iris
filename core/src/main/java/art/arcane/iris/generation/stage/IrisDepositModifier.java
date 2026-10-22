@@ -52,14 +52,14 @@ import art.arcane.iris.pack.loading.ResourceLoader;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Function;
+import java.util.function.Predicate;
 
 public class IrisDepositModifier extends EngineAssignedModifier<NativeBlockState> {
     private static final int CLUMPS_PER_BATCH = 8;
     private static final int PREPARATION_BATCH_COUNT = 4;
 
     private final RNG rng;
-    private volatile DepositVariantScan variantScan;
+    private volatile PackScan packScan;
 
     public IrisDepositModifier(Engine engine) {
         super(engine, "Deposit");
@@ -87,6 +87,7 @@ public class IrisDepositModifier extends EngineAssignedModifier<NativeBlockState
 
         BurstExecutor burst = burst().burst(multicore);
         long seed = x * 341873128712L + z * 132897987541L;
+        int highestSurface = highestTerrainSurface(x, z, null, context);
         PreparedDeposit[] prepared = new PreparedDeposit[PREPARATION_BATCH_COUNT];
         int pending = 0;
         IrisEngine generationEngine = getEngine() instanceof IrisEngine irisEngine
@@ -103,7 +104,8 @@ public class IrisDepositModifier extends EngineAssignedModifier<NativeBlockState
                     int limit = Math.min(plan.attempts(), first + CLUMPS_PER_BATCH);
                     int index = pending++;
                     burst.queue(scopedDepositTask(
-                            () -> prepared[index] = prepare(plan, firstAttempt, limit, x, z, null, context), preparation, index));
+                            () -> prepared[index] = prepare(plan, firstAttempt, limit, x, z, null, context, highestSurface),
+                            preparation, index));
                     if (pending == prepared.length) {
                         completeBatches(burst, prepared, chunk, terrain, x, z, preparation);
                         pending = 0;
@@ -172,7 +174,7 @@ public class IrisDepositModifier extends EngineAssignedModifier<NativeBlockState
         DepositPlan plan = plan(k, rng, context);
         for (int first = 0; first < plan.attempts(); first += CLUMPS_PER_BATCH) {
             int limit = Math.min(plan.attempts(), first + CLUMPS_PER_BATCH);
-            place(prepare(plan, first, limit, cx, cz, he, context), chunk, data, cx, cz, he, context);
+            place(prepare(plan, first, limit, cx, cz, he, context, Integer.MIN_VALUE), chunk, data, cx, cz, he, context);
         }
     }
 
@@ -213,21 +215,27 @@ public class IrisDepositModifier extends EngineAssignedModifier<NativeBlockState
         return false;
     }
 
-    private PreparedDeposit prepare(DepositPlan plan, int first, int limit, int cx, int cz, HeightMap he, ChunkContext context) {
+    private PreparedDeposit prepare(DepositPlan plan, int first, int limit, int cx, int cz, HeightMap he,
+                                    ChunkContext context, int highestSurface) {
         IrisDepositGenerator k = plan.generator();
         boolean oreDeposit = plan.ore();
-        boolean needsCaveBiome = oreDeposit || k.usesCaveBiomeFilter();
+        boolean scalable = oreDeposit && packScan().oreScaling();
+        boolean needsCaveBiome = scalable || k.usesCaveBiomeFilter();
         IrisDimensionCarvingResolver.State carvingState = needsCaveBiome ? new IrisDimensionCarvingResolver.State() : null;
+        boolean terrainScoped = k.getPlacementScope() == IrisDepositPlacementScope.TERRAIN;
+        int highest = highestSurface;
+        int engineHeight = getEngine().getHeight();
         List<PreparedClump> clumps = new ArrayList<>(limit - first);
-        int terrainLimit = Integer.MIN_VALUE;
         for (int l = first; l < limit; l++) {
-            long clumpSeed = clumpSeed(plan.seed(), l);
-            RNG clumpRng = new RNG(clumpSeed);
+            RNG clumpRng = new RNG(clumpSeed(plan.seed(), l));
             if (k.getPerClumpSpawnChance() < clumpRng.d()) {
                 continue;
             }
 
             IrisDepositGenerator.ClumpFootprint footprint = k.sampleClumpFootprint(clumpRng, getData());
+            if (footprint != null && footprint.empty() && !scalable) {
+                continue;
+            }
             IrisObject clump = footprint == null ? k.getClump(getEngine(), clumpRng, getData()) : null;
 
             int dim = footprint == null ? clump.getW() : footprint.width();
@@ -242,9 +250,9 @@ public class IrisDepositModifier extends EngineAssignedModifier<NativeBlockState
             int x = clumpRng.i(min, max + 1);
             int z = clumpRng.i(min, max + 1);
             int terrainSurface = getDepositTerrainSurface(cx, cz, x, z, he, context);
-            int height = k.getPlacementScope() == IrisDepositPlacementScope.TERRAIN
+            int height = terrainScoped
                     ? depositSurfaceLimit(terrainSurface, k.getSurfaceClearance())
-                    : getEngine().getHeight() - 1;
+                    : engineHeight - 1;
 
             if (height < 0) {
                 continue;
@@ -252,7 +260,7 @@ public class IrisDepositModifier extends EngineAssignedModifier<NativeBlockState
 
             int y = sampleHeight(
                     k.getHeightDistribution(), clumpRng, k.getMinHeight(), k.getMaxHeight(),
-                    Math.min(height, getEngine().getHeight() - 1));
+                    Math.min(height, engineHeight - 1));
             if (y == Integer.MIN_VALUE) {
                 continue;
             }
@@ -262,7 +270,16 @@ public class IrisDepositModifier extends EngineAssignedModifier<NativeBlockState
                 continue;
             }
 
-            int biomeY = Math.max(0, Math.min(getEngine().getHeight() - 1, y));
+            boolean footprintLimited = footprint != null && terrainScoped && !footprint.empty();
+            if (footprintLimited && highest == Integer.MIN_VALUE) {
+                highest = highestTerrainSurface(cx, cz, he, context);
+            }
+            int terrainLimit = highest - Math.max(0, k.getSurfaceClearance());
+            if (footprintLimited && !scalable && y + footprint.minY() > terrainLimit) {
+                continue;
+            }
+
+            int biomeY = Math.max(0, Math.min(engineHeight - 1, y));
             IrisBiome surfaceBiome = context.getBiome().get(x, z);
             IrisBiome depositBiome = needsCaveBiome
                     ? getEngine().getCaveBiome(
@@ -272,43 +289,34 @@ public class IrisDepositModifier extends EngineAssignedModifier<NativeBlockState
                 continue;
             }
 
-            if (oreDeposit) {
-                if (depositBiome != null) {
-                    double frequencyMultiplier = depositBiome.getOreDepositFrequencyMultiplier();
-                    if (frequencyMultiplier < 1D
-                            && !passesOreFrequency(frequencyMultiplier, clumpRng.d())) {
-                        continue;
-                    }
+            if (oreDeposit && depositBiome != null) {
+                double frequencyMultiplier = depositBiome.getOreDepositFrequencyMultiplier();
+                if (frequencyMultiplier < 1D
+                        && !passesOreFrequency(frequencyMultiplier, clumpRng.d())) {
+                    continue;
+                }
 
-                    double sizeMultiplier = depositBiome.getOreDepositSizeMultiplier();
-                    if (sizeMultiplier != 1D) {
-                        IrisObject scaledClump = k.getClump(getEngine(), clumpRng, getData(), sizeMultiplier);
-                        int scaledDimension = scaledClump.getW();
-                        x = clampDepositCenter(x, scaledDimension, 16);
-                        if (clippedHeight) {
-                            y = clampDepositCenter(y, scaledDimension, getEngine().getHeight());
-                        }
-                        z = clampDepositCenter(z, scaledDimension, 16);
-                        clump = scaledClump;
+                double sizeMultiplier = depositBiome.getOreDepositSizeMultiplier();
+                if (sizeMultiplier != 1D) {
+                    IrisObject scaledClump = k.getClump(getEngine(), clumpRng, getData(), sizeMultiplier);
+                    int scaledDimension = scaledClump.getW();
+                    x = clampDepositCenter(x, scaledDimension, 16);
+                    if (clippedHeight) {
+                        y = clampDepositCenter(y, scaledDimension, engineHeight);
                     }
+                    z = clampDepositCenter(z, scaledDimension, 16);
+                    clump = scaledClump;
                 }
             }
 
-            if (clump == null) {
-                if (k.getPlacementScope() == IrisDepositPlacementScope.TERRAIN && !footprint.empty()) {
-                    if (terrainLimit == Integer.MIN_VALUE) {
-                        terrainLimit = chunkTerrainLimit(cx, cz, he, context, k.getSurfaceClearance());
-                    }
-                    if (y + footprint.minY() > terrainLimit) {
-                        continue;
-                    }
-                }
-                RNG replay = new RNG(clumpSeed);
-                replay.d();
-                clump = k.getClump(getEngine(), replay, getData());
+            if (clump != null) {
+                clumps.add(new PreparedClump(clump, null, x, y, z, clumpRng));
+                continue;
             }
-
-            clumps.add(new PreparedClump(clump, x, y, z, clumpRng));
+            if (footprint.empty() || footprintLimited && y + footprint.minY() > terrainLimit) {
+                continue;
+            }
+            clumps.add(new PreparedClump(null, footprint.cells(), x, y, z, clumpRng));
         }
         return new PreparedDeposit(k, oreDeposit, clumps);
     }
@@ -318,72 +326,24 @@ public class IrisDepositModifier extends EngineAssignedModifier<NativeBlockState
         if (deposit.clumps().isEmpty()) {
             return;
         }
-        IrisDepositGenerator k = deposit.generator();
-        boolean oreDeposit = deposit.ore();
-        IrisDimensionCarvingResolver.State carvingState = new IrisDimensionCarvingResolver.State();
-        IrisDimension dimension = getDimension();
-        boolean variants = depositVariantsPossible();
+        ClumpPlacement placement = new ClumpPlacement(deposit.generator(), deposit.ore(), chunk, data, cx, cz, he,
+                context, depositVariantsPossible());
         for (PreparedClump prepared : deposit.clumps()) {
-            IrisObject clump = prepared.object();
             int x = prepared.x();
             int y = prepared.y();
             int z = prepared.z();
             RNG rng = prepared.rng();
-
-            VectorMap<NativeBlockState>.Cursor cursor = clump.getBlocks().cursor();
+            IrisDepositGenerator.ClumpCells cells = prepared.cells();
+            if (cells != null) {
+                for (int cell = 0; cell < cells.size(); cell++) {
+                    placement.place(cells.x(cell) + x, cells.y(cell) + y, cells.z(cell) + z, cells.block(cell), rng);
+                }
+                continue;
+            }
+            VectorMap<NativeBlockState>.Cursor cursor = prepared.object().getBlocks().cursor();
             while (cursor.next()) {
                 IrisBlockVector j = cursor.key();
-                int nx = j.getBlockX() + x;
-                int ny = j.getBlockY() + y;
-                int nz = j.getBlockZ() + z;
-
-                if (nx > 15 || nx < 0 || ny >= getEngine().getHeight() || ny < 0 || nz < 0 || nz > 15) {
-                    continue;
-                }
-                int columnSurface = getDepositTerrainSurface(cx, cz, nx, nz, he, context);
-                if (!placementSurfaceAllows(
-                        k.getPlacementScope(), ny, columnSurface, k.getSurfaceClearance())) {
-                    continue;
-                }
-
-                DimensionStackLayout stackLayout = context.getDimensionStackLayout(nx, nz);
-                if (stackLayout != null && stackLayout.isHostFeatureProtectedY(ny)) {
-                    continue;
-                }
-
-                NativeBlockState current = data.get(nx, ny, nz);
-                if (!canReplaceDepositTarget(current)) {
-                    continue;
-                }
-                if (!k.isReplaceBedrock() && IrisProceduralBlocks.materialKey(current).equals("minecraft:bedrock")) {
-                    continue;
-                }
-
-                IrisBiome candidateSurfaceBiome = null;
-                boolean exteriorSurface = false;
-                if (oreDeposit) {
-                    candidateSurfaceBiome = context.getBiome().get(nx, nz);
-                    exteriorSurface = k.hasSurfaceReplaceableBlocks(candidateSurfaceBiome)
-                            && isTerrainSurface(data, nx, ny, nz, columnSurface);
-                }
-                if (!canReplaceDepositHost(k, current, candidateSurfaceBiome, exteriorSurface)) {
-                    continue;
-                }
-                boolean adjacentToAir = k.getDiscardChanceOnAirExposure() > 0D
-                        && isAdjacentToAir(data, nx, ny, nz);
-                if (shouldDiscardExposed(k.getDiscardChanceOnAirExposure(), rng.d(), adjacentToAir)) {
-                    continue;
-                }
-
-                if (chunk.get(nx, ny, nz, MatterCavern.class) == null) {
-                    NativeBlockState ore = cursor.value();
-                    NativeBlockState remapped = variants ? resolveDepositVariant(
-                            cx, cz, nx, ny, nz, ore, dimension, context, carvingState) : null;
-                    NativeBlockState finalBlock = remapped != null
-                            ? remapped
-                            : B.toDeepSlateOre(current, ore);
-                    data.set(nx, ny, nz, finalBlock);
-                }
+                placement.place(j.getBlockX() + x, j.getBlockY() + y, j.getBlockZ() + z, cursor.value(), rng);
             }
         }
     }
@@ -397,17 +357,17 @@ public class IrisDepositModifier extends EngineAssignedModifier<NativeBlockState
     }
 
     /**
-     * The highest block a TERRAIN-scoped deposit may place anywhere in the chunk; a clump whose lowest block sits
-     * above it would have every block rejected by {@link #placementSurfaceAllows}.
+     * The highest terrain surface in the chunk. A TERRAIN-scoped clump whose lowest block sits above it, less the
+     * generator's clearance, would have every block rejected by {@link #placementSurfaceAllows}.
      */
-    private int chunkTerrainLimit(int cx, int cz, HeightMap he, ChunkContext context, int surfaceClearance) {
+    private int highestTerrainSurface(int cx, int cz, HeightMap he, ChunkContext context) {
         int highest = Integer.MIN_VALUE;
         for (int x = 0; x < 16; x++) {
             for (int z = 0; z < 16; z++) {
                 highest = Math.max(highest, getDepositTerrainSurface(cx, cz, x, z, he, context));
             }
         }
-        return highest - Math.max(0, surfaceClearance);
+        return highest;
     }
 
     static int depositSurfaceLimit(int surfaceY) {
@@ -532,39 +492,48 @@ public class IrisDepositModifier extends EngineAssignedModifier<NativeBlockState
      * enumerate (stacked dimensions, unreadable loaders) keeps the lookup.
      */
     private boolean depositVariantsPossible() {
+        return packScan().variants();
+    }
+
+    private PackScan packScan() {
         IrisData data = getData();
-        DepositVariantScan scan = variantScan;
+        PackScan scan = packScan;
         if (scan == null || scan.data() != data) {
-            scan = new DepositVariantScan(data, scanDepositVariants(data));
-            variantScan = scan;
+            scan = scanPack(data);
+            packScan = scan;
         }
-        return scan.possible();
+        return scan;
     }
 
-    private boolean scanDepositVariants(IrisData data) {
+    private PackScan scanPack(IrisData data) {
         IrisDimension dimension = getDimension();
-        if (data == null || dimension == null || getEngine().getDimensionStackContext() != null
-                || dimension.getDepositVariants() == null || !dimension.getDepositVariants().isEmpty()) {
-            return true;
+        if (data == null || dimension == null || getEngine().getDimensionStackContext() != null) {
+            return new PackScan(data, true, true);
         }
-        Boolean regions = declaresVariants(data.getRegionLoader(), IrisRegion::getDepositVariants);
-        Boolean biomes = declaresVariants(data.getBiomeLoader(), IrisBiome::getDepositVariants);
-        return regions == null || regions || biomes == null || biomes;
+        Boolean regionVariants = anyLoaded(data.getRegionLoader(), region -> declaresVariants(region.getDepositVariants()));
+        Boolean biomeVariants = anyLoaded(data.getBiomeLoader(), biome -> declaresVariants(biome.getDepositVariants()));
+        Boolean oreScaling = anyLoaded(data.getBiomeLoader(), IrisDepositModifier::scalesOreDeposits);
+        boolean variants = declaresVariants(dimension.getDepositVariants())
+                || regionVariants == null || regionVariants || biomeVariants == null || biomeVariants;
+        return new PackScan(data, variants, oreScaling == null || oreScaling);
     }
 
-    private static <T extends IrisRegistrant> Boolean declaresVariants(ResourceLoader<T> loader,
-                                                Function<T, ? extends List<IrisDepositVariant>> variants) {
+    private static boolean declaresVariants(List<IrisDepositVariant> declared) {
+        return declared == null || !declared.isEmpty();
+    }
+
+    private static boolean scalesOreDeposits(IrisBiome biome) {
+        return biome.getOreDepositFrequencyMultiplier() < 1D || biome.getOreDepositSizeMultiplier() != 1D;
+    }
+
+    private static <T extends IrisRegistrant> Boolean anyLoaded(ResourceLoader<T> loader, Predicate<T> test) {
         String[] keys = loader == null ? null : loader.getPossibleKeys();
         if (keys == null) {
             return null;
         }
         for (String key : keys) {
             T loaded = loader.load(key);
-            if (loaded == null) {
-                continue;
-            }
-            List<IrisDepositVariant> declared = variants.apply(loaded);
-            if (declared == null || !declared.isEmpty()) {
+            if (loaded != null && test.test(loaded)) {
                 return true;
             }
         }
@@ -659,12 +628,95 @@ public class IrisDepositModifier extends EngineAssignedModifier<NativeBlockState
     private record DepositPlan(IrisDepositGenerator generator, long seed, boolean ore, int attempts) {
     }
 
-    private record DepositVariantScan(IrisData data, boolean possible) {
+    private record PackScan(IrisData data, boolean variants, boolean oreScaling) {
     }
 
     private record PreparedDeposit(IrisDepositGenerator generator, boolean ore, List<PreparedClump> clumps) {
     }
 
-    private record PreparedClump(IrisObject object, int x, int y, int z, RNG rng) {
+    private record PreparedClump(IrisObject object, IrisDepositGenerator.ClumpCells cells, int x, int y, int z, RNG rng) {
+    }
+
+    private final class ClumpPlacement {
+        private final IrisDepositGenerator generator;
+        private final boolean ore;
+        private final MantleChunk chunk;
+        private final Hunk<NativeBlockState> data;
+        private final int chunkX;
+        private final int chunkZ;
+        private final HeightMap heightMap;
+        private final ChunkContext context;
+        private final boolean variants;
+        private final IrisDimension dimension;
+        private final IrisDimensionCarvingResolver.State carvingState = new IrisDimensionCarvingResolver.State();
+        private final IrisDepositPlacementScope scope;
+        private final int surfaceClearance;
+        private final double discardChance;
+        private final int height;
+
+        private ClumpPlacement(IrisDepositGenerator generator, boolean ore, MantleChunk chunk,
+                               Hunk<NativeBlockState> data, int chunkX, int chunkZ, HeightMap heightMap,
+                               ChunkContext context, boolean variants) {
+            this.generator = generator;
+            this.ore = ore;
+            this.chunk = chunk;
+            this.data = data;
+            this.chunkX = chunkX;
+            this.chunkZ = chunkZ;
+            this.heightMap = heightMap;
+            this.context = context;
+            this.variants = variants;
+            this.dimension = getDimension();
+            this.scope = generator.getPlacementScope();
+            this.surfaceClearance = generator.getSurfaceClearance();
+            this.discardChance = generator.getDiscardChanceOnAirExposure();
+            this.height = getEngine().getHeight();
+        }
+
+        private void place(int nx, int ny, int nz, NativeBlockState block, RNG rng) {
+            if (nx > 15 || nx < 0 || ny >= height || ny < 0 || nz < 0 || nz > 15) {
+                return;
+            }
+            int columnSurface = getDepositTerrainSurface(chunkX, chunkZ, nx, nz, heightMap, context);
+            if (!placementSurfaceAllows(scope, ny, columnSurface, surfaceClearance)) {
+                return;
+            }
+
+            DimensionStackLayout stackLayout = context.getDimensionStackLayout(nx, nz);
+            if (stackLayout != null && stackLayout.isHostFeatureProtectedY(ny)) {
+                return;
+            }
+
+            NativeBlockState current = data.get(nx, ny, nz);
+            if (!canReplaceDepositTarget(current)) {
+                return;
+            }
+            if (!generator.isReplaceBedrock() && IrisProceduralBlocks.materialKey(current).equals("minecraft:bedrock")) {
+                return;
+            }
+
+            IrisBiome candidateSurfaceBiome = null;
+            boolean exteriorSurface = false;
+            if (ore) {
+                candidateSurfaceBiome = context.getBiome().get(nx, nz);
+                exteriorSurface = generator.hasSurfaceReplaceableBlocks(candidateSurfaceBiome)
+                        && isTerrainSurface(data, nx, ny, nz, columnSurface);
+            }
+            if (!canReplaceDepositHost(generator, current, candidateSurfaceBiome, exteriorSurface)) {
+                return;
+            }
+            if (discardChance > 0D) {
+                boolean adjacentToAir = isAdjacentToAir(data, nx, ny, nz);
+                if (shouldDiscardExposed(discardChance, rng.d(), adjacentToAir)) {
+                    return;
+                }
+            }
+
+            if (chunk.get(nx, ny, nz, MatterCavern.class) == null) {
+                NativeBlockState remapped = variants ? resolveDepositVariant(
+                        chunkX, chunkZ, nx, ny, nz, block, dimension, context, carvingState) : null;
+                data.set(nx, ny, nz, remapped != null ? remapped : B.toDeepSlateOre(current, block));
+            }
+        }
     }
 }

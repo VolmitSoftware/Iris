@@ -971,6 +971,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<NativeBlockState> 
             }
         }
         CaveInputs resolver = CaveInputs.forContentChunk(getEngine(), blockX >> 4, blockZ >> 4);
+        boolean caveFloorMarkers = getDimension().hasUndergroundSpawners(getEngine());
         Long2ObjectOpenHashMap<IrisBiome> caveBiomes = new Long2ObjectOpenHashMap<>(256);
         Map<String, IrisBiome> customBiomes = new HashMap<>();
         int width = output.getWidth();
@@ -993,13 +994,11 @@ public class IrisCarveModifier extends EngineAssignedModifier<NativeBlockState> 
                             CaveZone zone = new CaveZone();
                             zone.setFloor(floor);
                             zone.setCeiling(y - 1);
-                            if (zone.isValid(resolver.height)
-                                    && (subterrainCell(worldX, floor, worldZ).occupied()
+                            SubterrainCell floorCell = zone.isValid(resolver.height)
+                                    ? subterrainCell(worldX, floor, worldZ) : null;
+                            if (floorCell != null && (floorCell.occupied()
                                     || !isNaturalTerrainOpening(getComplex(), worldX, floor, worldZ, context))) {
-                                if (markerRoll(worldX, zone.ceiling, worldZ, 0x9E3779B97F4A7C15L)) {
-                                    mantle.set(worldX, zone.ceiling, worldZ, MarkerMatter.CAVE_CEILING);
-                                }
-                                if (markerRoll(worldX, zone.floor, worldZ, 0xC2B2AE3D27D4EB4FL)) {
+                                if (caveFloorMarkers && markerRoll(worldX, zone.floor, worldZ, 0xC2B2AE3D27D4EB4FL)) {
                                     mantle.set(worldX, zone.floor, worldZ, MarkerMatter.CAVE_FLOOR);
                                 }
                                 IrisBiome floorBiome = resolveCaveBoundaryBiome(terrain, localX, floor, localZ,
@@ -1007,7 +1006,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<NativeBlockState> 
                                 IrisBiome ceilingBiome = resolveCaveBoundaryBiome(terrain, localX, y - 1, localZ,
                                         worldX, worldZ, resolver, caveBiomes, customBiomes);
                                 decorateZone(output, zone, localX, localZ, worldX, worldZ,
-                                        floorBiome, ceilingBiome);
+                                        floorBiome, ceilingBiome, floorCell);
                                 if (extent != null) {
                                     top = extent.highestStoredY(localX, localZ);
                                 }
@@ -1023,9 +1022,8 @@ public class IrisCarveModifier extends EngineAssignedModifier<NativeBlockState> 
         restoreSubterrainSolids(output, blockX >> 4, blockZ >> 4, true);
     }
 
-    private void decorateZone(Hunk<NativeBlockState> output, CaveZone zone,
-                              int rx, int rz, int xx, int zz, IrisBiome floorBiome, IrisBiome ceilingBiome) {
-        SubterrainCell feature = subterrainCell(xx, zone.getFloor(), zz);
+    private void decorateZone(Hunk<NativeBlockState> output, CaveZone zone, int rx, int rz, int xx, int zz,
+                              IrisBiome floorBiome, IrisBiome ceilingBiome, SubterrainCell feature) {
         boolean reservedPassage = feature.owned() && feature.room().reservedPassage();
         int maxY = output.getHeight();
         IrisDecorator[] surfaceDecorators = floorBiome == null

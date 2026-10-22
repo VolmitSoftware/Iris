@@ -36,6 +36,8 @@ import java.util.Map;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 public class IrisPerfectionModifier extends EngineAssignedModifier<NativeBlockState> {
+    private static final int SOLID = 1;
+    private static final int SPIKE = 2;
     private static final BoundBlockState AIR = BoundBlockState.of("AIR");
     private static final BoundBlockState WATER = BoundBlockState.of("WATER");
     private static final Map<String, BoundBlockState> ORE_BASES = buildOreBases();
@@ -97,19 +99,22 @@ public class IrisPerfectionModifier extends EngineAssignedModifier<NativeBlockSt
 
     private void perfectSlice(Hunk<NativeBlockState> output, int x) {
         IntArrayList surfaces = new IntArrayList();
+        StateClasses classes = new StateClasses();
         for (int z = 0; z < 16; z++) {
             boolean changed;
             do {
                 surfaces.clear();
-                int top = getHeight(output, x, z);
+                int top = getHeight(output, x, z, classes);
                 boolean inside = true;
                 surfaces.add(top);
                 for (int y = top; y >= 0; y--) {
                     NativeBlockState block = output.get(x, y, z);
-                    if (IrisSpeleothems.isSpike(block)) {
+                    int flags = classes.of(block);
+                    if ((flags & SPIKE) != 0) {
                         block = normalizeSpike(block, output, x, z, y, AIR.get(), WATER.get());
+                        flags = classes.of(block);
                     }
-                    boolean now = block != null && !(B.isAir(block) || B.isFluid(block));
+                    boolean now = (flags & SOLID) != 0;
                     if (now != inside) {
                         inside = now;
                         if (inside) {
@@ -203,17 +208,29 @@ public class IrisPerfectionModifier extends EngineAssignedModifier<NativeBlockSt
         burst.complete();
     }
 
-    private int getHeight(Hunk<NativeBlockState> output, int x, int z) {
+    private int getHeight(Hunk<NativeBlockState> output, int x, int z, StateClasses classes) {
         for (int i = Math.min(output.getHeight() - 1, ColumnExtent.highestStoredY(output, x, z)); i >= 0; i--) {
-            NativeBlockState b = output.get(x, i, z);
-
-            if (b != null) {
-                if (!B.isAir(b) && !B.isFluid(b)) {
-                    return i;
-                }
+            if ((classes.of(output.get(x, i, z)) & SOLID) != 0) {
+                return i;
             }
         }
 
         return 0;
+    }
+
+    private static final class StateClasses {
+        private NativeBlockState last;
+        private int lastFlags;
+
+        private int of(NativeBlockState state) {
+            if (state == null) {
+                return 0;
+            }
+            if (state != last) {
+                last = state;
+                lastFlags = (state.isAir() || state.isFluid() ? 0 : SOLID) | (IrisSpeleothems.isSpike(state) ? SPIKE : 0);
+            }
+            return lastFlags;
+        }
     }
 }

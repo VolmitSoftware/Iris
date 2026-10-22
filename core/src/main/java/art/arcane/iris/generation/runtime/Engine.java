@@ -347,6 +347,13 @@ public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, 
         return planner == null ? SubterrainCell.OUTSIDE : planner.sample(x, y + getWorld().minHeight(), z);
     }
 
+    @ChunkCoordinates
+    default boolean subterrainAbsentInChunk(int chunkX, int chunkZ) {
+        IrisComplex complex = getComplex();
+        SubterrainPlanner planner = complex == null ? null : SubterrainChunkCells.activePlanner(complex, getDimension());
+        return planner == null || !planner.hasCandidates(chunkX, chunkZ);
+    }
+
     @BlockCoordinates
     default IrisBiome getSubterrainBiome(int x, int y, int z) {
         SubterrainCell cell = getSubterrainCell(x, y, z);
@@ -406,6 +413,7 @@ public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, 
             return;
         }
         IrisComplex complex = getComplex();
+        boolean subterrain = !subterrainAbsentInChunk(x >> 4, z >> 4);
         int caveTop = getHeight(x, z) - 2;
         IrisRegion region = getRegion(x, 0, z);
         IrisBiome surface = null;
@@ -419,7 +427,7 @@ public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, 
             for (int index = 0; index < biomes.length; index++) {
                 int y = index * step;
                 regions[index] = region;
-                IrisBiome featureBiome = getSubterrainBiome(x, y, z);
+                IrisBiome featureBiome = subterrain ? getSubterrainBiome(x, y, z) : null;
                 if (featureBiome != null) {
                     biomes[index] = featureBiome;
                     continue;

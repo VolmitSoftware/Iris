@@ -61,6 +61,15 @@ public class NativeTerrainReceiptTest {
     }
 
     @Test
+    public void repeatedEncodingOnOneThreadKeepsLegacyBytes() throws Exception {
+        for (int round = 0; round < 6; round++) {
+            SavedTerrainChunk chunk = chunk(round % 2 == 0);
+            String epoch = "epoch-" + round;
+            assertArrayEquals(legacyEncode(chunk, round, epoch), NativeTerrainReceipt.encode(chunk, round, epoch));
+        }
+    }
+
+    @Test
     public void saturatedStringCachesPreserveModifiedUtfBytes() throws Exception {
         for (int padding : new int[]{0, 300}) {
             List<String> keys = new ArrayList<>(300);

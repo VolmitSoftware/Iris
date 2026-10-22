@@ -36,7 +36,8 @@ public final class SavedBiomeCapture {
                 Math.addExact(startX, 15), Math.addExact(startZ, 15)).isEmpty();
         Map<Integer, List<SavedBiomeChunk.Span>> vertical = new HashMap<>(exactVolume ? 256 : 16);
         Cells cells = new Cells(activationId);
-        Column column = new Column(engine, minimumY, height, exactVolume ? 1 : 4);
+        Column column = new Column(engine, minimumY, height, exactVolume ? 1 : 4,
+                !engine.subterrainAbsentInChunk(stage.chunkX(), stage.chunkZ()));
         for (int localX = 0; localX < 16; localX++) {
             for (int localZ = 0; localZ < 16; localZ++) {
                 int blockX = startX + localX;
@@ -82,7 +83,8 @@ public final class SavedBiomeCapture {
         for (int index = 0; index < column.biomes().length; index++) {
             int worldY = minimumY + index * column.step();
             SavedBiomeChunk.Cell current = cells.cell(column.biomes()[index], column.regions()[index]);
-            if (floating != null && !column.engine().getSubterrainCell(blockX, index * column.step(), blockZ).occupied()) {
+            if (floating != null && (!column.subterrain()
+                    || !column.engine().getSubterrainCell(blockX, index * column.step(), blockZ).occupied())) {
                 current = overlay(current, floating.volumeAt(blockX & 15, worldY - minimumY, blockZ & 15));
             }
             if (transition != null) {
@@ -139,9 +141,10 @@ public final class SavedBiomeCapture {
                 Objects.requireNonNull(region, "region").getLoadKey());
     }
 
-    private record Column(Engine engine, int minimumY, int height, int step, IrisBiome[] biomes, IrisRegion[] regions) {
-        private Column(Engine engine, int minimumY, int height, int step) {
-            this(engine, minimumY, height, step, new IrisBiome[(height + step - 1) / step],
+    private record Column(Engine engine, int minimumY, int height, int step, boolean subterrain, IrisBiome[] biomes,
+                          IrisRegion[] regions) {
+        private Column(Engine engine, int minimumY, int height, int step, boolean subterrain) {
+            this(engine, minimumY, height, step, subterrain, new IrisBiome[(height + step - 1) / step],
                     new IrisRegion[(height + step - 1) / step]);
         }
     }

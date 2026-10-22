@@ -99,6 +99,7 @@ public final class GenerationSemanticIndex {
     private volatile IOException journalFailure;
     private long appendingRegionKey;
     private RegionShard appendingBase;
+    private boolean journalStorageReady;
 
     private GenerationSemanticIndex(
             Path dimensionRoot,
@@ -264,12 +265,13 @@ public final class GenerationSemanticIndex {
             if (updates.isEmpty()) {
                 return;
             }
-            ensureStorageDirectory();
+            ensureJournalStorage();
+            boolean existingJournal = journalEntries.containsKey(regionKey);
             appendingRegionKey = regionKey;
             appendingBase = baseRegion;
             publicationLock.unlock();
             try {
-                SemanticJournal.append(directory, regionX, regionZ, updates, unpublished, durability);
+                SemanticJournal.append(directory, regionX, regionZ, updates, unpublished, durability, existingJournal);
             } catch (JournalAppendFailure failure) {
                 journalFailure = failure;
                 throw failure;
@@ -1193,6 +1195,14 @@ public final class GenerationSemanticIndex {
         return true;
     }
 
+    private void ensureJournalStorage() throws IOException {
+        if (journalStorageReady) {
+            return;
+        }
+        ensureStorageDirectory();
+        journalStorageReady = true;
+    }
+
     private void ensureStorageDirectory() throws IOException {
         validateDimensionRoot();
         Path irisDirectory = ensureChildDirectory(dimensionRoot, "iris");
@@ -1958,18 +1968,17 @@ public final class GenerationSemanticIndex {
                 int regionZ,
                 List<ChunkGenerationSemantics> claims,
                 boolean unpublished,
-                DeferredDurability durability
+                DeferredDurability durability,
+                boolean existing
         ) throws IOException {
             Path file = directory.resolve(journalFileName(regionX, regionZ));
-            boolean created = !Files.exists(file, LinkOption.NOFOLLOW_LINKS);
-            if (!created && !Files.isRegularFile(file, LinkOption.NOFOLLOW_LINKS)) {
+            boolean created = !existing && !Files.exists(file, LinkOption.NOFOLLOW_LINKS);
+            if (!existing && !created && !Files.isRegularFile(file, LinkOption.NOFOLLOW_LINKS)) {
                 throw invalid(file, "path is not a regular file");
             }
-            FileChannel opened = FileChannel.open(
-                    file,
-                    StandardOpenOption.CREATE,
-                    StandardOpenOption.WRITE
-            );
+            FileChannel opened = existing
+                    ? FileChannel.open(file, StandardOpenOption.WRITE)
+                    : FileChannel.open(file, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
             boolean uncertain = created;
             boolean restored = false;
             try (FileChannel channel = opened) {

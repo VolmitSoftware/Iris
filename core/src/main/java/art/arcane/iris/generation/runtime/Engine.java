@@ -342,13 +342,22 @@ public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, 
 
     @BlockCoordinates
     default SubterrainCell getSubterrainCell(int x, int y, int z) {
-        if (getComplex() == null || getDimension() == null
-                || !getDimension().allowsSubterrainFeatures()
-                || getDimension().getSubterrainFeatures() == null || getDimension().getSubterrainFeatures().isEmpty()) {
+        IrisComplex complex = getComplex();
+        IrisDimension dimension = getDimension();
+        if (complex == null || dimension == null
+                || !dimension.allowsSubterrainFeatures()
+                || dimension.getSubterrainFeatures() == null || dimension.getSubterrainFeatures().isEmpty()) {
             return SubterrainCell.OUTSIDE;
         }
-        SubterrainPlanner planner = getComplex().getSubterrainPlanner();
+        SubterrainPlanner planner = complex.getSubterrainPlanner();
         return planner == null ? SubterrainCell.OUTSIDE : planner.sample(x, y + getWorld().minHeight(), z);
+    }
+
+    @ChunkCoordinates
+    default boolean subterrainAbsentInChunk(int chunkX, int chunkZ) {
+        IrisComplex complex = getComplex();
+        SubterrainPlanner planner = complex == null ? null : complex.getSubterrainPlanner();
+        return planner == null || !planner.hasCandidates(chunkX, chunkZ);
     }
 
     @BlockCoordinates
@@ -410,6 +419,7 @@ public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, 
             return;
         }
         IrisComplex complex = getComplex();
+        boolean subterrain = !subterrainAbsentInChunk(x >> 4, z >> 4);
         int caveTop = getHeight(x, z) - 2;
         IrisRegion region = getRegion(x, 0, z);
         IrisBiome surface = null;
@@ -423,7 +433,7 @@ public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, 
             for (int index = 0; index < biomes.length; index++) {
                 int y = index * step;
                 regions[index] = region;
-                IrisBiome featureBiome = getSubterrainBiome(x, y, z);
+                IrisBiome featureBiome = subterrain ? getSubterrainBiome(x, y, z) : null;
                 if (featureBiome != null) {
                     biomes[index] = featureBiome;
                     continue;

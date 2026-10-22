@@ -12,8 +12,10 @@ import art.arcane.volmlib.util.cache.CacheKey;
 import art.arcane.volmlib.util.collection.KList;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.WeakHashMap;
@@ -34,12 +36,13 @@ public final class NativeStructureVolumeIndex {
     private static final int ORIGIN_REACH_CHUNKS = StructureOwnershipRecordView.MAX_REFERENCE_DISTANCE_CHUNKS;
     private static final int MAX_CACHED_ORIGIN_CHUNKS = 16_384;
     private static final int MAX_CACHED_QUERY_CHUNKS = 4_096;
+    private static final int CACHE_STRIPES = 32;
     private static final Map<Engine, NativeStructureVolumeIndex> INDEXES =
             Collections.synchronizedMap(new WeakHashMap<>());
 
     private final OriginResolver origins;
-    private final Map<RuntimeChunkKey, KList<NativeStructureVolume>> originCache = lru(MAX_CACHED_ORIGIN_CHUNKS);
-    private final Map<RuntimeChunkKey, KList<NativeStructureVolume>> queryCache = lru(MAX_CACHED_QUERY_CHUNKS);
+    private final VolumeCache originCache = new VolumeCache(MAX_CACHED_ORIGIN_CHUNKS);
+    private final VolumeCache queryCache = new VolumeCache(MAX_CACHED_QUERY_CHUNKS);
     private final ConcurrentHashMap<RuntimeChunkKey, CompletableFuture<KList<NativeStructureVolume>>> originBuilds =
             new ConcurrentHashMap<>();
     private final ConcurrentHashMap<RuntimeChunkKey, CompletableFuture<KList<NativeStructureVolume>>> queryBuilds =
@@ -180,12 +183,10 @@ public final class NativeStructureVolumeIndex {
             Engine engine, int chunkX, int chunkZ, Integer pinnedRuntimeId
     ) {
         if (pinnedRuntimeId != null) {
-            synchronized (originCache) {
-                KList<NativeStructureVolume> cached = originCache.get(
-                        new RuntimeChunkKey(pinnedRuntimeId, chunkKey(chunkX, chunkZ)));
-                if (cached != null) {
-                    return cached;
-                }
+            KList<NativeStructureVolume> cached = originCache.get(
+                    new RuntimeChunkKey(pinnedRuntimeId, chunkKey(chunkX, chunkZ)));
+            if (cached != null) {
+                return cached;
             }
         }
         return originVolumes(engine, chunkX, chunkZ);
@@ -210,22 +211,19 @@ public final class NativeStructureVolumeIndex {
     }
 
     void evictRuntime(int runtimeId) {
-        synchronized (originCache) {
-            originBuilds.keySet().removeIf(key -> key.runtimeId() == runtimeId);
-            originCache.keySet().removeIf(key -> key.runtimeId() == runtimeId);
-        }
-        synchronized (queryCache) {
-            queryBuilds.keySet().removeIf(key -> key.runtimeId() == runtimeId);
-            queryCache.keySet().removeIf(key -> key.runtimeId() == runtimeId);
-        }
+        originBuilds.keySet().removeIf(key -> key.runtimeId() == runtimeId);
+        originCache.evictRuntime(runtimeId);
+        queryBuilds.keySet().removeIf(key -> key.runtimeId() == runtimeId);
+        queryCache.evictRuntime(runtimeId);
     }
 
     private KList<NativeStructureVolume> cached(
-            Map<RuntimeChunkKey, KList<NativeStructureVolume>> cache,
+            VolumeCache volumes,
             ConcurrentHashMap<RuntimeChunkKey, CompletableFuture<KList<NativeStructureVolume>>> builds,
             RuntimeChunkKey key,
             Supplier<KList<NativeStructureVolume>> loader
     ) {
+        Map<RuntimeChunkKey, KList<NativeStructureVolume>> cache = volumes.stripe(key);
         synchronized (cache) {
             KList<NativeStructureVolume> hit = cache.get(key);
             if (hit != null) {
@@ -312,6 +310,39 @@ public final class NativeStructureVolumeIndex {
                 return size() > capacity;
             }
         };
+    }
+
+    private static final class VolumeCache {
+        private final List<Map<RuntimeChunkKey, KList<NativeStructureVolume>>> stripes;
+
+        private VolumeCache(int capacity) {
+            int stripeCapacity = Math.max(1, capacity / CACHE_STRIPES);
+            List<Map<RuntimeChunkKey, KList<NativeStructureVolume>>> created = new ArrayList<>(CACHE_STRIPES);
+            for (int stripe = 0; stripe < CACHE_STRIPES; stripe++) {
+                created.add(lru(stripeCapacity));
+            }
+            stripes = List.copyOf(created);
+        }
+
+        private Map<RuntimeChunkKey, KList<NativeStructureVolume>> stripe(RuntimeChunkKey key) {
+            int hash = key.hashCode();
+            return stripes.get((hash ^ (hash >>> 16)) & (CACHE_STRIPES - 1));
+        }
+
+        private KList<NativeStructureVolume> get(RuntimeChunkKey key) {
+            Map<RuntimeChunkKey, KList<NativeStructureVolume>> cache = stripe(key);
+            synchronized (cache) {
+                return cache.get(key);
+            }
+        }
+
+        private void evictRuntime(int runtimeId) {
+            for (Map<RuntimeChunkKey, KList<NativeStructureVolume>> cache : stripes) {
+                synchronized (cache) {
+                    cache.keySet().removeIf(key -> key.runtimeId() == runtimeId);
+                }
+            }
+        }
     }
 
     static int runtimeChunkHash(int runtimeId, long chunkKey) {

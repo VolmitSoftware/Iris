@@ -623,6 +623,15 @@ public class IrisEngine implements Engine {
         return Engine.super.getSubterrainCell(x, y, z);
     }
 
+    @ChunkCoordinates
+    @Override
+    public boolean subterrainAbsentInChunk(int chunkX, int chunkZ) {
+        if (!hasGenerationRuntimeScope() && generationHistoryRuntimeRouter != null) {
+            return false;
+        }
+        return Engine.super.subterrainAbsentInChunk(chunkX, chunkZ);
+    }
+
     @BlockCoordinates
     @Override
     public IrisBiome getSubterrainBiome(int x, int y, int z) {

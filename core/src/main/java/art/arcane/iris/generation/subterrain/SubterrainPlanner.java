@@ -106,6 +106,10 @@ public final class SubterrainPlanner {
         return List.copyOf(result);
     }
 
+    public boolean hasCandidates(int chunkX, int chunkZ) {
+        return !isEmpty() && !candidates(chunkX, chunkZ).isEmpty();
+    }
+
     public SubterrainCell sample(int x, int y, int z) {
         if (isEmpty() || y < minY || y >= maxYExclusive) {
             return SubterrainCell.OUTSIDE;

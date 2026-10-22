@@ -8,6 +8,7 @@ import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.generation.runtime.DimensionStackContext;
 import art.arcane.iris.generation.runtime.DimensionStackLayout;
 import art.arcane.iris.generation.runtime.DimensionTerrainContext;
+import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.runtime.IrisEngine;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.stream.ProvisionalSampling;
@@ -27,6 +28,7 @@ import org.bukkit.block.Biome;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
@@ -46,7 +48,7 @@ public final class BukkitBiomePolicy<H, V> implements NativeBiomeSourcePolicy<H>
     private static final int STRONGHOLD_RING_SEARCH_RADIUS = 112;
     private static final int STRONGHOLD_RING_SEARCH_QUART_STEP = 4;
 
-    private final long seed;
+    private final RNG biomeRng;
     private final Engine engine;
     private final BukkitChunkGenerator platformGenerator;
     private final NativeBiomeRegistry<H, V> biomeCustomRegistry;
@@ -64,7 +66,7 @@ public final class BukkitBiomePolicy<H, V> implements NativeBiomeSourcePolicy<H>
         this.engine = engine;
         this.platformGenerator = options.platformGenerator();
         this.possibleBiomeRegistry = options.possibleBiomeRegistry();
-        this.seed = options.seed();
+        this.biomeRng = new RNG(options.seed());
         this.biomeCustomRegistry = registry;
         this.biomeRegistry = biomeCustomRegistry;
         this.fallbackBiome = resolveFallbackBiome(this.biomeRegistry, this.biomeCustomRegistry);
@@ -826,7 +828,7 @@ public final class BukkitBiomePolicy<H, V> implements NativeBiomeSourcePolicy<H>
             int z,
             IrisDimensionCarvingResolver.State resolverState
     ) {
-        return resolveVisibleBiomeHolder(x, y, z, resolverState, null);
+        return resolveVisibleBiomeHolder(x, y, z, resolverState, null, null);
     }
 
     private H resolveVisibleBiomeHolder(
@@ -836,31 +838,43 @@ public final class BukkitBiomePolicy<H, V> implements NativeBiomeSourcePolicy<H>
             IrisDimensionCarvingResolver.State resolverState,
             DimensionStackLayout stackLayout
     ) {
+        return resolveVisibleBiomeHolder(x, y, z, resolverState, stackLayout, null);
+    }
+
+    private H resolveVisibleBiomeHolder(
+            int x,
+            int y,
+            int z,
+            IrisDimensionCarvingResolver.State resolverState,
+            DimensionStackLayout stackLayout,
+            ChunkResolution chunk
+    ) {
         int blockX = x << 2;
         int blockY = y << 2;
         int blockZ = z << 2;
-        Optional<String> historicalKey = engine.getComplex().historicalPhysicalBiomeKeyAt(
+        IrisComplex complex = chunk == null ? engine.getComplex() : chunk.complex;
+        Optional<String> historicalKey = complex.historicalPhysicalBiomeKeyAt(
                 blockX, blockY, blockZ);
         if (historicalKey.isPresent()) {
             return resolvePhysicalBiomeHolder(historicalKey.get());
         }
         BiomeResolution resolution = resolveBiomeResolution(
-                x, y, z, resolverState, true, stackLayout);
+                x, y, z, resolverState, true, stackLayout, chunk);
         if (resolution == null) {
             return getFallbackBiome();
         }
 
-        return resolveVisibleBiomeHolder(resolution);
+        return resolveVisibleBiomeHolder(resolution, chunk);
     }
 
-    private H resolveVisibleBiomeHolder(BiomeResolution resolution) {
+    private H resolveVisibleBiomeHolder(BiomeResolution resolution, ChunkResolution chunk) {
         if (resolution.irisBiome.isCustom()) {
-            return resolveCustomHolder(resolution);
+            return resolveCustomHolder(resolution, chunk);
         }
 
         Biome vanillaBiome = resolution.underground
-                ? resolution.irisBiome.getGroundBiome(resolution.rng, engine, resolution.blockX, resolution.blockY, resolution.blockZ)
-                : resolution.irisBiome.getSkyBiome(resolution.rng, engine, resolution.blockX, resolution.blockY, resolution.blockZ);
+                ? resolution.irisBiome.getGroundBiome(biomeRng, engine, resolution.blockX, resolution.blockY, resolution.blockZ)
+                : resolution.irisBiome.getSkyBiome(biomeRng, engine, resolution.blockX, resolution.blockY, resolution.blockZ);
         H holder = biomeRegistry.lookup(vanillaBiome);
         if (holder != null) {
             return holder;
@@ -869,11 +883,12 @@ public final class BukkitBiomePolicy<H, V> implements NativeBiomeSourcePolicy<H>
         return getFallbackBiome();
     }
 
-    private H resolveCustomHolder(BiomeResolution resolution) {
-        IrisBiomeCustom customBiome = resolution.irisBiome.getCustomBiome(resolution.rng, engine, resolution.blockX, resolution.blockY, resolution.blockZ);
+    private H resolveCustomHolder(BiomeResolution resolution, ChunkResolution chunk) {
+        IrisBiomeCustom customBiome = resolution.irisBiome.getCustomBiome(biomeRng, engine, resolution.blockX, resolution.blockY, resolution.blockZ);
         if (customBiome != null) {
-            H holder = runtimeBiomeState().customBiomes().get(customBiomeKey(
-                    resolution.dimension, customBiome.getId()));
+            H holder = chunk == null
+                    ? runtimeBiomeState().customBiomes().get(customBiomeKey(resolution.dimension, customBiome.getId()))
+                    : chunk.customHolder(resolution.dimension, customBiome);
             if (holder != null) {
                 return holder;
             }
@@ -883,7 +898,7 @@ public final class BukkitBiomePolicy<H, V> implements NativeBiomeSourcePolicy<H>
     }
 
     private BiomeResolution resolveStructureBiomeResolution(int x, int y, int z) {
-        return resolveBiomeResolution(x, y, z, null, false);
+        return resolveBiomeResolution(x, y, z, null, false, null, null);
     }
 
     private H resolvePhysicalBiomeHolder(String physicalKey) {
@@ -902,61 +917,46 @@ public final class BukkitBiomePolicy<H, V> implements NativeBiomeSourcePolicy<H>
             int x,
             int y,
             int z,
-            IrisDimensionCarvingResolver.State resolverState
-    ) {
-        return resolveBiomeResolution(x, y, z, resolverState, true);
-    }
-
-    private BiomeResolution resolveBiomeResolution(
-            int x,
-            int y,
-            int z,
-            IrisDimensionCarvingResolver.State resolverState,
-            boolean includeDimensionStack
-    ) {
-        return resolveBiomeResolution(
-                x, y, z, resolverState, includeDimensionStack, null);
-    }
-
-    private BiomeResolution resolveBiomeResolution(
-            int x,
-            int y,
-            int z,
             IrisDimensionCarvingResolver.State resolverState,
             boolean includeDimensionStack,
-            DimensionStackLayout stackLayout
+            DimensionStackLayout stackLayout,
+            ChunkResolution chunk
     ) {
         if (engine == null || engine.isClosed()) {
             return null;
         }
 
-        if (engine.getComplex() == null) {
+        if ((chunk == null ? engine.getComplex() : chunk.complex) == null) {
             return null;
         }
 
         int blockX = x << 2;
         int blockZ = z << 2;
         int blockY = y << 2;
-        int worldMinHeight = engine.getWorld().minHeight();
+        int worldMinHeight = chunk == null ? engine.getWorld().minHeight() : chunk.worldMinHeight;
         int internalY = blockY - worldMinHeight;
         int caveSwitchInternalY = Math.max(-8 - worldMinHeight, 40);
-        IrisBiome featureBiome = engine.getSubterrainBiome(blockX, internalY, blockZ);
+        IrisBiome featureBiome = chunk != null && !chunk.subterrain
+                ? null : engine.getSubterrainBiome(blockX, internalY, blockZ);
         if (featureBiome != null) {
-            return createBiomeResolution(featureBiome, true, engine.getDimension(), blockX, blockY, blockZ);
+            return new BiomeResolution(featureBiome, true, chunk == null ? engine.getDimension() : chunk.dimension,
+                    blockX, blockY, blockZ);
         }
         DimensionStackLayout.Layer stackLayer = includeDimensionStack
                 ? stackLayout == null
-                        ? resolveDimensionStackLayer(engine, blockX, internalY, blockZ)
+                        ? resolveDimensionStackLayer(
+                                chunk == null ? engine.getDimensionStackContext() : chunk.stackContext,
+                                blockX, internalY, blockZ)
                         : stackLayout.layerAt(internalY)
                 : null;
         IrisDimension owningDimension = stackLayer == null
-                ? engine.getDimension()
+                ? chunk == null ? engine.getDimension() : chunk.dimension
                 : stackLayer.terrainContext().getDimension();
         if (stackLayer != null && !stackLayer.terrainContext().isSelfReferencing()) {
             IrisBiome stackedBiome = stackLayer.biome();
             return stackedBiome == null
                     ? null
-                    : createBiomeResolution(
+                    : new BiomeResolution(
                             stackedBiome, false, owningDimension, blockX, blockY, blockZ);
         }
         boolean deepUnderground = internalY <= caveSwitchInternalY;
@@ -976,41 +976,31 @@ public final class BukkitBiomePolicy<H, V> implements NativeBiomeSourcePolicy<H>
                     )
                     : stackLayer.biome();
         } else if (deepUnderground) {
-            int surfaceInternalY = Engine.hostHeight(engine, blockX, blockZ, true);
+            int surfaceInternalY = chunk == null
+                    ? Engine.hostHeight(engine, blockX, blockZ, true)
+                    : chunk.hostHeight(blockX, blockZ);
             underground = internalY <= surfaceInternalY - 8;
             irisBiome = underground
                     ? engine.getCaveBiome(blockX, internalY, blockZ, resolverState)
-                    : engine.getHostSurfaceBiome(blockX, blockZ);
+                    : hostSurfaceBiome(chunk, blockX, blockZ);
         } else {
-            irisBiome = engine.getHostSurfaceBiome(blockX, blockZ);
+            irisBiome = hostSurfaceBiome(chunk, blockX, blockZ);
         }
         if (irisBiome == null && underground) {
             irisBiome = stackLayer == null
-                    ? engine.getHostSurfaceBiome(blockX, blockZ)
+                    ? hostSurfaceBiome(chunk, blockX, blockZ)
                     : stackLayer.biome();
         }
         if (irisBiome == null) {
             return null;
         }
 
-        return createBiomeResolution(
+        return new BiomeResolution(
                 irisBiome, underground, owningDimension, blockX, blockY, blockZ);
     }
 
-    private BiomeResolution createBiomeResolution(
-            IrisBiome irisBiome,
-            boolean underground,
-            IrisDimension dimension,
-            int blockX,
-            int blockY,
-            int blockZ
-    ) {
-        RNG noiseRng = new RNG(seed
-                ^ (((long) blockX) * 341873128712L)
-                ^ (((long) blockY) * 132897987541L)
-                ^ (((long) blockZ) * 42317861L));
-        return new BiomeResolution(
-                irisBiome, underground, dimension, blockX, blockY, blockZ, noiseRng);
+    private IrisBiome hostSurfaceBiome(ChunkResolution chunk, int blockX, int blockZ) {
+        return chunk == null ? engine.getHostSurfaceBiome(blockX, blockZ) : chunk.hostSurfaceBiome(blockX, blockZ);
     }
 
     private H getFallbackBiome() {
@@ -1094,12 +1084,11 @@ public final class BukkitBiomePolicy<H, V> implements NativeBiomeSourcePolicy<H>
     }
 
     private static DimensionStackLayout.Layer resolveDimensionStackLayer(
-            Engine engine,
+            DimensionStackContext stackContext,
             int blockX,
             int internalY,
             int blockZ
     ) {
-        DimensionStackContext stackContext = engine.getDimensionStackContext();
         return stackContext == null ? null : stackContext.getLayerAt(blockX, internalY, blockZ);
     }
 
@@ -1136,7 +1125,6 @@ public final class BukkitBiomePolicy<H, V> implements NativeBiomeSourcePolicy<H>
         private final int blockX;
         private final int blockY;
         private final int blockZ;
-        private final RNG rng;
 
         private BiomeResolution(
                 IrisBiome irisBiome,
@@ -1144,8 +1132,7 @@ public final class BukkitBiomePolicy<H, V> implements NativeBiomeSourcePolicy<H>
                 IrisDimension dimension,
                 int blockX,
                 int blockY,
-                int blockZ,
-                RNG rng
+                int blockZ
         ) {
             this.irisBiome = irisBiome;
             this.underground = underground;
@@ -1153,7 +1140,100 @@ public final class BukkitBiomePolicy<H, V> implements NativeBiomeSourcePolicy<H>
             this.blockX = blockX;
             this.blockY = blockY;
             this.blockZ = blockZ;
-            this.rng = rng;
+        }
+    }
+
+    private final class ChunkVisibleResolver implements VisibleResolver<H> {
+        private final IrisDimensionCarvingResolver.State resolverState = new IrisDimensionCarvingResolver.State();
+        private final boolean flat = platformGenerator != null && platformGenerator.usesFlatStudioTerrain();
+        private ChunkResolution chunk;
+
+        @Override
+        public H biome(int quartX, int quartY, int quartZ) {
+            if (flat) {
+                return fallbackBiome;
+            }
+            int chunkX = quartX >> 2;
+            int chunkZ = quartZ >> 2;
+            ChunkResolution current = chunk;
+            if (current == null || current.chunkX != chunkX || current.chunkZ != chunkZ) {
+                current = new ChunkResolution(chunkX, chunkZ);
+                chunk = current;
+            }
+            return resolveVisibleBiomeHolder(quartX, quartY, quartZ, resolverState, null, current);
+        }
+    }
+
+    private final class ChunkResolution {
+        private static final int COLUMNS = 16;
+
+        private final int chunkX;
+        private final int chunkZ;
+        private final IrisComplex complex;
+        private final IrisDimension dimension;
+        private final DimensionStackContext stackContext;
+        private final int worldMinHeight;
+        private final boolean subterrain;
+        private final RuntimeBiomeState<H, V> runtimeState;
+        private final int[] hostHeights = new int[COLUMNS];
+        private final boolean[] hostHeightResolved = new boolean[COLUMNS];
+        private final IrisBiome[] hostSurfaces = new IrisBiome[COLUMNS];
+        private final boolean[] hostSurfaceResolved = new boolean[COLUMNS];
+        private IrisDimension[] customDimensions = new IrisDimension[4];
+        private IrisBiomeCustom[] customBiomes = new IrisBiomeCustom[4];
+        private Object[] customHolders = new Object[4];
+        private int customCount;
+
+        private ChunkResolution(int chunkX, int chunkZ) {
+            this.chunkX = chunkX;
+            this.chunkZ = chunkZ;
+            this.complex = engine.getComplex();
+            this.dimension = engine.getDimension();
+            this.stackContext = engine.getDimensionStackContext();
+            this.worldMinHeight = engine.getWorld().minHeight();
+            this.subterrain = !engine.subterrainAbsentInChunk(chunkX, chunkZ);
+            this.runtimeState = runtimeBiomeState();
+        }
+
+        private int hostHeight(int blockX, int blockZ) {
+            int column = column(blockX, blockZ);
+            if (!hostHeightResolved[column]) {
+                hostHeights[column] = Engine.hostHeight(engine, blockX, blockZ, true);
+                hostHeightResolved[column] = true;
+            }
+            return hostHeights[column];
+        }
+
+        private IrisBiome hostSurfaceBiome(int blockX, int blockZ) {
+            int column = column(blockX, blockZ);
+            if (!hostSurfaceResolved[column]) {
+                hostSurfaces[column] = engine.getHostSurfaceBiome(blockX, blockZ);
+                hostSurfaceResolved[column] = true;
+            }
+            return hostSurfaces[column];
+        }
+
+        @SuppressWarnings("unchecked")
+        private H customHolder(IrisDimension owner, IrisBiomeCustom custom) {
+            for (int index = 0; index < customCount; index++) {
+                if (customBiomes[index] == custom && customDimensions[index] == owner) {
+                    return (H) customHolders[index];
+                }
+            }
+            H holder = runtimeState.customBiomes().get(customBiomeKey(owner, custom.getId()));
+            if (customCount == customBiomes.length) {
+                customDimensions = Arrays.copyOf(customDimensions, customCount * 2);
+                customBiomes = Arrays.copyOf(customBiomes, customCount * 2);
+                customHolders = Arrays.copyOf(customHolders, customCount * 2);
+            }
+            customDimensions[customCount] = owner;
+            customBiomes[customCount] = custom;
+            customHolders[customCount++] = holder;
+            return holder;
+        }
+
+        private static int column(int blockX, int blockZ) {
+            return ((blockX & 15) >> 2) << 2 | ((blockZ & 15) >> 2);
         }
     }
 
@@ -1181,8 +1261,7 @@ public final class BukkitBiomePolicy<H, V> implements NativeBiomeSourcePolicy<H>
     }
     @Override
     public VisibleResolver<H> visibleResolver() {
-        IrisDimensionCarvingResolver.State state = new IrisDimensionCarvingResolver.State();
-        return (x, y, z) -> getVisibleNoiseBiomeWithActiveGenerationLease(x, y, z, state);
+        return new ChunkVisibleResolver();
     }
 
 }

@@ -155,7 +155,7 @@ public final class GenerationSemanticCapture {
         int minimumX = Math.multiplyExact(chunkX, CHUNK_SIZE);
         int minimumZ = Math.multiplyExact(chunkZ, CHUNK_SIZE);
         BitSet resolvedCaves = new BitSet();
-        CaveBiomes caveBiomes = new CaveBiomes(engine, scoped);
+        CaveBiomes caveBiomes = new CaveBiomes(engine, scoped, chunkX, chunkZ);
         mantle.iterateChunk(chunkX, chunkZ, MatterCavern.class, (localX, y, localZ, cavern) -> {
             if (!caveSpace.test(localX, y, localZ)) {
                 return;
@@ -276,15 +276,17 @@ public final class GenerationSemanticCapture {
     private static final class CaveBiomes {
         private final Engine engine;
         private final boolean scoped;
+        private final boolean subterrain;
         private final CaveFallback fallback;
         private final IrisDimensionCarvingResolver.State fallbackState = new IrisDimensionCarvingResolver.State();
         private IrisDimensionCarvingResolver.Snapshot snapshot;
         private int minimumY;
         private String lastKey;
 
-        private CaveBiomes(Engine engine, boolean scoped) {
+        private CaveBiomes(Engine engine, boolean scoped, int chunkX, int chunkZ) {
             this.engine = engine;
             this.scoped = scoped;
+            this.subterrain = scoped && !engine.subterrainAbsentInChunk(chunkX, chunkZ);
             this.fallback = scoped && engine instanceof IrisEngine irisEngine
                     && irisEngine.hasGenerationRuntimeScope() && !engine.getPlatformHooks().isMainThread()
                     ? new CaveFallback(engine.getComplex(), engine.getDimensionStackContext())
@@ -306,7 +308,7 @@ public final class GenerationSemanticCapture {
                 snapshot = IrisDimensionCarvingResolver.snapshot(engine);
                 minimumY = engine.getWorld().minHeight();
             }
-            IrisBiome featureBiome = engine.getSubterrainBiome(x, y, z);
+            IrisBiome featureBiome = subterrain ? engine.getSubterrainBiome(x, y, z) : null;
             if (featureBiome != null) {
                 return featureBiome;
             }

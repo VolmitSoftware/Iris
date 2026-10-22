@@ -36,10 +36,12 @@ public class BukkitSubterrainBiomePrecedenceTest {
         owner.setAccessible(true);
         owner.set(policy, engine);
         DimensionStackLayout stack = mock(DimensionStackLayout.class);
+        Class<?> chunkResolution = Class.forName(BukkitBiomePolicy.class.getName() + "$ChunkResolution");
         Method resolve = BukkitBiomePolicy.class.getDeclaredMethod("resolveBiomeResolution", int.class, int.class,
-                int.class, IrisDimensionCarvingResolver.State.class, boolean.class, DimensionStackLayout.class);
+                int.class, IrisDimensionCarvingResolver.State.class, boolean.class, DimensionStackLayout.class,
+                chunkResolution);
         resolve.setAccessible(true);
-        Object resolved = resolve.invoke(policy, 3, 40, -5, null, true, stack);
+        Object resolved = resolve.invoke(policy, 3, 40, -5, null, true, stack, null);
         assertSame(feature, field(resolved, "irisBiome"));
         assertSame(host, field(resolved, "dimension"));
         assertEquals(true, field(resolved, "underground"));

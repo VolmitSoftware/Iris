@@ -26,6 +26,7 @@ import art.arcane.iris.pack.value.IrisRange;
 import art.arcane.iris.generation.noise.IrisGeneratorStyle;
 import art.arcane.iris.generation.noise.IrisStyledRange;
 import art.arcane.volmlib.util.noise.CNG;
+import art.arcane.volmlib.util.noise.program.NoiseProgram;
 import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
 import art.arcane.volmlib.util.math.M;
 import art.arcane.volmlib.util.math.PowerOfTwoCoordinates;
@@ -73,9 +74,9 @@ public class IrisCaveCarver3D {
     private final Engine engine;
     private final IrisData data;
     private final IrisCaveProfile profile;
-    private final CNG baseDensity;
-    private final CNG detailDensity;
-    private final CNG warpDensity;
+    private final NoiseProgram baseDensity;
+    private final NoiseProgram detailDensity;
+    private final NoiseProgram warpDensity;
     private final CNG surfaceBreakDensity;
     private final RNG thresholdRng;
     private final CaveFieldModuleState[] modules;
@@ -123,9 +124,9 @@ public class IrisCaveCarver3D {
         List<CaveFieldModuleState> moduleStates = new ArrayList<>();
 
         RNG baseRng = new RNG(engine.getSeedManager().getCarve());
-        this.baseDensity = profile.getBaseDensityStyle().create(baseRng.nextParallelRNG(934_447), data);
-        this.detailDensity = profile.getDetailDensityStyle().create(baseRng.nextParallelRNG(612_991), data);
-        this.warpDensity = profile.getWarpStyle().create(baseRng.nextParallelRNG(770_713), data);
+        this.baseDensity = NoiseProgram.compileSigned3D(profile.getBaseDensityStyle().create(baseRng.nextParallelRNG(934_447), data));
+        this.detailDensity = NoiseProgram.compileSigned3D(profile.getDetailDensityStyle().create(baseRng.nextParallelRNG(612_991), data));
+        this.warpDensity = NoiseProgram.compileSigned3D(profile.getWarpStyle().create(baseRng.nextParallelRNG(770_713), data));
         this.surfaceBreakDensity = profile.getSurfaceBreakStyle().create(baseRng.nextParallelRNG(341_219), data);
         this.thresholdRng = baseRng.nextParallelRNG(489_112);
         this.baseWeight = profile.getBaseWeight();
@@ -143,7 +144,7 @@ public class IrisCaveCarver3D {
         int index = 0;
         for (IrisCaveFieldModule module : profile.getModules()) {
             CNG moduleDensity = module.getStyle().create(baseRng.nextParallelRNG(1_000_003L + (index * 65_537L)), data);
-            CaveFieldModuleState state = new CaveFieldModuleState(module, moduleDensity);
+            CaveFieldModuleState state = new CaveFieldModuleState(module, NoiseProgram.compileSigned3D(moduleDensity));
             moduleStates.add(state);
             weight += Math.abs(state.weight);
             index++;
@@ -2644,7 +2645,7 @@ public class IrisCaveCarver3D {
     }
 
     private boolean classifyDensityPointNoWarpNoModules(int x, int y, int z, double thresholdLimit) {
-        double density = baseDensity.noiseFastSigned3D(x, y, z) * baseWeight;
+        double density = baseDensity.sampleSigned3D(x, y, z) * baseWeight;
         if ((density + detailMinContribution) > thresholdLimit) {
             return false;
         }
@@ -2652,7 +2653,7 @@ public class IrisCaveCarver3D {
             return true;
         }
 
-        density += detailDensity.noiseFastSigned3D(x, y, z) * detailWeight;
+        density += detailDensity.sampleSigned3D(x, y, z) * detailWeight;
         return density <= thresholdLimit;
     }
 
@@ -2670,7 +2671,7 @@ public class IrisCaveCarver3D {
             return classifyDensityPointNoWarpNoModules(x, y, z, thresholdLimit);
         }
 
-        double density = baseDensity.noiseFastSigned3D(x, y, z) * baseWeight;
+        double density = baseDensity.sampleSigned3D(x, y, z) * baseWeight;
         if ((density + detailMinContribution + remainingMin[0]) > thresholdLimit) {
             return false;
         }
@@ -2678,7 +2679,7 @@ public class IrisCaveCarver3D {
             return true;
         }
 
-        density += detailDensity.noiseFastSigned3D(x, y, z) * detailWeight;
+        density += detailDensity.sampleSigned3D(x, y, z) * detailWeight;
         if ((density + remainingMin[0]) > thresholdLimit) {
             return false;
         }
@@ -2720,7 +2721,7 @@ public class IrisCaveCarver3D {
         double warpedX = x + (warpA * warpStrength);
         double warpedY = y + (warpB * warpStrength);
         double warpedZ = z + ((warpA - warpB) * 0.5D * warpStrength);
-        double density = baseDensity.noiseFastSigned3D(warpedX, warpedY, warpedZ) * baseWeight;
+        double density = baseDensity.sampleSigned3D(warpedX, warpedY, warpedZ) * baseWeight;
         if ((density + detailMinContribution) > thresholdLimit) {
             return false;
         }
@@ -2728,7 +2729,7 @@ public class IrisCaveCarver3D {
             return true;
         }
 
-        density += detailDensity.noiseFastSigned3D(warpedX, warpedY, warpedZ) * detailWeight;
+        density += detailDensity.sampleSigned3D(warpedX, warpedY, warpedZ) * detailWeight;
         return density <= thresholdLimit;
     }
 
@@ -2756,7 +2757,7 @@ public class IrisCaveCarver3D {
         double warpedX = x + (warpA * warpStrength);
         double warpedY = y + (warpB * warpStrength);
         double warpedZ = z + ((warpA - warpB) * 0.5D * warpStrength);
-        double density = baseDensity.noiseFastSigned3D(warpedX, warpedY, warpedZ) * baseWeight;
+        double density = baseDensity.sampleSigned3D(warpedX, warpedY, warpedZ) * baseWeight;
         if ((density + detailMinContribution + remainingMin[0]) > thresholdLimit) {
             return false;
         }
@@ -2764,7 +2765,7 @@ public class IrisCaveCarver3D {
             return true;
         }
 
-        density += detailDensity.noiseFastSigned3D(warpedX, warpedY, warpedZ) * detailWeight;
+        density += detailDensity.sampleSigned3D(warpedX, warpedY, warpedZ) * detailWeight;
         if ((density + remainingMin[0]) > thresholdLimit) {
             return false;
         }
@@ -3020,8 +3021,8 @@ public class IrisCaveCarver3D {
     }
 
     private double sampleDensityNoWarpNoModules(int x, int y, int z) {
-        double density = baseDensity.noiseFastSigned3D(x, y, z) * baseWeight;
-        density += detailDensity.noiseFastSigned3D(x, y, z) * detailWeight;
+        double density = baseDensity.sampleSigned3D(x, y, z) * baseWeight;
+        density += detailDensity.sampleSigned3D(x, y, z) * detailWeight;
         return density * inverseNormalization;
     }
 
@@ -3032,11 +3033,11 @@ public class IrisCaveCarver3D {
         }
 
         CaveFieldModuleState[] localModules = scratch.activeModules;
-        double density = baseDensity.noiseFastSigned3D(x, y, z) * baseWeight;
-        density += detailDensity.noiseFastSigned3D(x, y, z) * detailWeight;
+        double density = baseDensity.sampleSigned3D(x, y, z) * baseWeight;
+        density += detailDensity.sampleSigned3D(x, y, z) * detailWeight;
         for (int moduleIndex = 0; moduleIndex < activeModuleCount; moduleIndex++) {
             CaveFieldModuleState module = localModules[moduleIndex];
-            double moduleDensity = module.density.noiseFastSigned3D(x, y, z) - module.threshold;
+            double moduleDensity = module.density.sampleSigned3D(x, y, z) - module.threshold;
             if (module.invert) {
                 moduleDensity = -moduleDensity;
             }
@@ -3057,8 +3058,8 @@ public class IrisCaveCarver3D {
         double warpedX = x + (warpA * warpStrength);
         double warpedY = y + (warpB * warpStrength);
         double warpedZ = z + ((warpA - warpB) * 0.5D * warpStrength);
-        double density = baseDensity.noiseFastSigned3D(warpedX, warpedY, warpedZ) * baseWeight;
-        density += detailDensity.noiseFastSigned3D(warpedX, warpedY, warpedZ) * detailWeight;
+        double density = baseDensity.sampleSigned3D(warpedX, warpedY, warpedZ) * baseWeight;
+        density += detailDensity.sampleSigned3D(warpedX, warpedY, warpedZ) * detailWeight;
         return density * inverseNormalization;
     }
 
@@ -3082,11 +3083,11 @@ public class IrisCaveCarver3D {
         double warpedX = x + (warpA * warpStrength);
         double warpedY = y + (warpB * warpStrength);
         double warpedZ = z + ((warpA - warpB) * 0.5D * warpStrength);
-        double density = baseDensity.noiseFastSigned3D(warpedX, warpedY, warpedZ) * baseWeight;
-        density += detailDensity.noiseFastSigned3D(warpedX, warpedY, warpedZ) * detailWeight;
+        double density = baseDensity.sampleSigned3D(warpedX, warpedY, warpedZ) * baseWeight;
+        density += detailDensity.sampleSigned3D(warpedX, warpedY, warpedZ) * detailWeight;
         for (int moduleIndex = 0; moduleIndex < activeModuleCount; moduleIndex++) {
             CaveFieldModuleState module = localModules[moduleIndex];
-            double moduleDensity = module.density.noiseFastSigned3D(warpedX, warpedY, warpedZ) - module.threshold;
+            double moduleDensity = module.density.sampleSigned3D(warpedX, warpedY, warpedZ) - module.threshold;
             if (module.invert) {
                 moduleDensity = -moduleDensity;
             }
@@ -3110,8 +3111,8 @@ public class IrisCaveCarver3D {
         scratch.warpCacheX[slot] = sx;
         scratch.warpCacheY[slot] = sy;
         scratch.warpCacheZ[slot] = sz;
-        scratch.warpCacheA[slot] = warpDensity.noiseFastSigned3D(sx, sy, sz);
-        scratch.warpCacheB[slot] = warpDensity.noiseFastSigned3D(sx + 31.37D, sy - 17.21D, sz + 23.91D);
+        scratch.warpCacheA[slot] = warpDensity.sampleSigned3D(sx, sy, sz);
+        scratch.warpCacheB[slot] = warpDensity.sampleSigned3D(sx + 31.37D, sy - 17.21D, sz + 23.91D);
         return slot;
     }
 
@@ -3227,7 +3228,7 @@ public class IrisCaveCarver3D {
     private boolean isAquiferCandidate(CaveCarveScratch scratch, int x, int y, int z, double localThreshold) {
         double depthFactor = Math.max(0D, Math.min(1.5D, (fluidHeight - y) / 48D));
         double cutoff = 0.35D + (depthFactor * 0.2D);
-        if (detailDensity.noiseFastSigned3D(x, y * 0.5D, z) <= cutoff) {
+        if (detailDensity.sampleSigned3D(x, y * 0.5D, z) <= cutoff) {
             return false;
         }
         return !fluidRequiresFloor || hasAquiferCupSupport(scratch, x, y, z, localThreshold);

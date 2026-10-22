@@ -2,6 +2,8 @@ package art.arcane.iris.generation.runtime;
 
 import art.arcane.iris.configuration.IrisSettings;
 import art.arcane.iris.world.pregen.PregenPerformanceProfile;
+import art.arcane.iris.generation.bake.ChunkBakeCache;
+import art.arcane.iris.generation.bake.PlaneSource;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.hydrology.HydrologyPlanner;
 import art.arcane.iris.generation.hydrology.HydrologyPlannerSettings;
@@ -48,17 +50,14 @@ public class IrisComplexHydrologyNoiseCacheTest {
         try (Fixture fixture = new Fixture(1_024)) {
             ProceduralStream<Double> wrapper = fixture.complex.getRawHeightStream();
             assertEquals(13D, fixture.height.getDouble(18, 5), 0D);
-            assertEquals(13D, fixture.rawHeight.getDouble(18, 5), 0D);
 
             PregenPerformanceProfile.apply(fixture.engine);
 
-            assertEquals(4_096L * 256L, fixture.height.getMaxSize());
-            assertEquals(4_096L * 256L, fixture.rawHeight.getMaxSize());
+            assertTrue(fixture.bakes.capacity() >= 4_096);
             assertEquals(1_024L * 256L, fixture.biomes.getMaxSize());
             assertSame(wrapper, fixture.complex.getRawHeightStream());
             assertEquals(47D, wrapper.getDouble(18, 5), 0D);
             assertEquals(13D, fixture.height.getDouble(18, 5), 0D);
-            assertEquals(13D, fixture.rawHeight.getDouble(18, 5), 0D);
         } finally {
             PregenPerformanceProfile.restore();
             IrisSettings.settings = previousSettings;
@@ -75,7 +74,7 @@ public class IrisComplexHydrologyNoiseCacheTest {
             fixture.complex.ensureTerrainNoiseCacheSize(4_096);
 
             fixture.assertCapacities(32_768);
-            assertEquals(4_096L * 256L, fixture.rawHeight.getMaxSize());
+            assertTrue(fixture.bakes.capacity() >= 4_096);
             assertEquals(reservedBytes, budget.reservedBytes());
             fixture.complex.close();
             assertEquals(0L, budget.reservedBytes());
@@ -88,7 +87,7 @@ public class IrisComplexHydrologyNoiseCacheTest {
             fixture.complex.ensureTerrainNoiseCacheSize(4_096);
 
             fixture.assertCapacities(65_536);
-            assertEquals(65_536L * 256L, fixture.rawHeight.getMaxSize());
+            assertTrue(fixture.bakes.capacity() >= 65_536);
         }
     }
 
@@ -229,11 +228,54 @@ public class IrisComplexHydrologyNoiseCacheTest {
             HydrologyNoiseCacheBudget budget = new HydrologyNoiseCacheBudget(Long.MAX_VALUE);
             setField(fixture.complex, "detached", true);
             fixture.complex.expandHydrologyNoiseCaches(budget);
+            fixture.complex.reserveHydrologyBake(budget);
             fixture.assertCapacities(1_024);
+            assertEquals(1_024, fixture.bakes.capacity());
             setField(fixture.complex, "detached", false);
             fixture.complex.setHydrologyRuntime(null);
             fixture.complex.expandHydrologyNoiseCaches(budget);
+            fixture.complex.reserveHydrologyBake(budget);
             fixture.assertCapacities(1_024);
+            assertEquals(1_024, fixture.bakes.capacity());
+            assertEquals(0L, budget.reservedBytes());
+        }
+    }
+
+    @Test
+    public void plannerReservationGrowsTheBakeToTheHydrologyTarget() throws Exception {
+        try (Fixture fixture = new Fixture(1_024)) {
+            HydrologyNoiseCacheBudget budget = new HydrologyNoiseCacheBudget(Long.MAX_VALUE);
+            fixture.complex.reserveHydrologyBake(budget);
+            fixture.complex.reserveHydrologyBake(budget);
+            assertEquals(32_768, fixture.bakes.capacity());
+            assertEquals(2L * (32_768L - 1_024L) * 4_096L, budget.reservedBytes());
+            fixture.complex.ensureTerrainNoiseCacheSize(4_096);
+            assertEquals(32_768, fixture.bakes.capacity());
+            fixture.complex.close();
+            assertEquals(0L, budget.reservedBytes());
+            fixture.complex.reserveHydrologyBake(budget);
+            assertEquals(0L, budget.reservedBytes());
+        }
+    }
+
+    @Test
+    public void plannerReservationTakesOnlyTheGrantedShareOfTheBudget() throws Exception {
+        try (Fixture fixture = new Fixture(1_024)) {
+            HydrologyNoiseCacheBudget budget = new HydrologyNoiseCacheBudget(2L * 80L * 4_096L + 4_095L);
+            fixture.complex.reserveHydrologyBake(budget);
+            assertEquals(1_104, fixture.bakes.capacity());
+            assertEquals(2L * 80L * 4_096L, budget.reservedBytes());
+            fixture.complex.close();
+            assertEquals(0L, budget.reservedBytes());
+        }
+    }
+
+    @Test
+    public void plannerReservationLeavesLargerBakesUnchanged() throws Exception {
+        try (Fixture fixture = new Fixture(65_536)) {
+            HydrologyNoiseCacheBudget budget = new HydrologyNoiseCacheBudget(Long.MAX_VALUE);
+            fixture.complex.reserveHydrologyBake(budget);
+            assertEquals(65_536, fixture.bakes.capacity());
             assertEquals(0L, budget.reservedBytes());
         }
     }
@@ -297,7 +339,7 @@ public class IrisComplexHydrologyNoiseCacheTest {
         private final CachedStream2D<IrisRegion> regions;
         private final CachedStream2D<InferredType> bridge;
         private final CachedDoubleStream2D height;
-        private final CachedDoubleStream2D rawHeight;
+        private final ChunkBakeCache bakes;
 
         private Fixture(int capacity) throws Exception {
             services.when(() -> IrisServices.get(PreservationRegistry.class)).thenReturn(mock(PreservationRegistry.class));
@@ -305,10 +347,10 @@ public class IrisComplexHydrologyNoiseCacheTest {
             regions = objectCache(capacity);
             bridge = objectCache(capacity);
             height = heightCache(capacity);
-            rawHeight = heightCache(capacity);
+            bakes = new ChunkBakeCache(mock(PlaneSource.class), capacity);
             complex.setNaturalHeightStream(height);
             complex.setHeightStream(ProceduralStream.ofDouble((x, z) -> 47D));
-            setField(complex, "cachedHeightStream", rawHeight);
+            setField(complex, "bakeCache", bakes);
             when(engine.getComplex()).thenReturn(complex);
             complex.setBaseBiomeStream(biomes);
             complex.setRegionStream(regions);

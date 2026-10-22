@@ -83,7 +83,7 @@ public class IrisComplexSelfSelectionTest {
             Field field = IrisComplex.class.getDeclaredField("childSelectionPlans");
             field.setAccessible(true);
             field.set(complex, plans);
-            implode = IrisComplex.class.getDeclaredMethod("implode", IrisBiome.class, Double.class, Double.class, int.class);
+            implode = IrisComplex.class.getDeclaredMethod("implode", IrisBiome.class, double.class, double.class, int.class);
             implode.setAccessible(true);
         }
 
@@ -106,7 +106,7 @@ public class IrisComplexSelfSelectionTest {
         }
 
         @Override
-        public CNG getChildrenGenerator(RNG rng, int signature, double scale) {
+        public CNG getChildrenGenerator(long seed, double scale) {
             return noise;
         }
     }

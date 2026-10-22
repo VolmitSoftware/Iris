@@ -3,6 +3,7 @@ package art.arcane.iris.generation.terrain;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.image.IrisImageMapRuntime;
 import art.arcane.iris.generation.image.IrisImageMapApplication;
+import art.arcane.iris.generation.stream.RarityStream;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.studio.generation.BiomeBuffetLayout;
 import art.arcane.volmlib.util.collection.KList;
@@ -24,7 +25,7 @@ public final class RegionSelection {
                 regions.add(region);
             }
         }
-        ProceduralStream<IrisRegion> selected = options.style().selectRarity(regions);
+        ProceduralStream<IrisRegion> selected = new RarityStream<>(options.style(), regions);
         if (!options.imageMaps().has(IrisImageMapApplication.REGION)) {
             return selected;
         }

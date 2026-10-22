@@ -515,7 +515,10 @@ public class IrisBiome extends IrisRegistrant implements Rarity {
     }
 
     public CNG getChildrenGenerator(RNG random, int sig, double scale) {
-        long seed = deriveChildStyleSeed(random, sig).getSeed();
+        return getChildrenGenerator(deriveChildStyleSeed(random, sig).getSeed(), scale);
+    }
+
+    public CNG getChildrenGenerator(long seed, double scale) {
         IrisData data = getLoader();
         Engine engine = data == null ? null : data.getEngine();
         CachedChildGenerator recent = recentChildGenerator;
@@ -531,6 +534,10 @@ public class IrisBiome extends IrisRegistrant implements Rarity {
 
     static RNG deriveChildStyleSeed(RNG random, int signature) {
         return random.nextParallelRNG(signature * CHILDREN_SEED_SALT);
+    }
+
+    public static long childStyleSeed(RNG random, int signature) {
+        return deriveChildStyleSeed(random, signature).getSeed();
     }
 
     public KList<NativeBlockState> generateLayers(IrisDimension dim, double wx, double wz, RNG random, int maxDepth, int height, IrisData rdata, IrisComplex complex) {

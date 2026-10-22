@@ -244,7 +244,7 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
         synchronized (chunk) {
             Matter matter = chunk.getOrCreate(y >> 4);
             if ((t instanceof NativeBlockState || t instanceof MatterCavern)
-                    && (hasProtectedHydrology(matter, x, y, z) || protectsSubterrainPlacement(x, y, z))) {
+                    && hasProtectedHydrology(matter, x, y, z)) {
                 return;
             }
             if (t instanceof NativeBlockState) {

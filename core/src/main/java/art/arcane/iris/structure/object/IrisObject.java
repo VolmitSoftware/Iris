@@ -61,6 +61,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.BiConsumer;
@@ -144,6 +145,7 @@ public class IrisObject extends IrisRegistrant {
     protected transient AtomicCache<AxisAlignedBB> aabb = new AtomicCache<>();
     transient final AtomicCache<KList<IrisBlockVector>> surfaceSupportOffsets = new AtomicCache<>();
     transient final AtomicCache<FloatingObjectFootprint> floatingFootprint = new AtomicCache<>();
+    transient final ConcurrentHashMap<ObjectPlacementBake.Key, ObjectPlacementBake> placementBakes = new ConcurrentHashMap<>();
     @Getter
     @Setter
     private transient TreeGrounding treeGrounding;

@@ -72,6 +72,66 @@ public class IrisComplexBoundsBiomeCacheTest {
     }
 
     @Test
+    public void wholeColumnSamplesAreSharedAcrossThreadMemos() throws Exception {
+        IrisBiome first = new IrisBiome();
+        IrisBiome second = new IrisBiome();
+        ProceduralStream<IrisBiome> source = ProceduralStream.of(
+                (x, z) -> x.intValue() < 0 || z.intValue() < 0 ? first : second,
+                Interpolated.of(value -> 0D, value -> first));
+        try (MockedStatic<IrisServices> services = mockStatic(IrisServices.class)) {
+            services.when(() -> IrisServices.get(PreservationRegistry.class))
+                    .thenReturn(mock(PreservationRegistry.class));
+            CachedStream2D<IrisBiome> stream = spy(new CachedStream2D<>("bounds", mock(Engine.class), source, 16));
+            Fixture fixture = new Fixture(stream);
+            IrisInterpolator interpolator = new IrisInterpolator()
+                    .setFunction(InterpolationMethod.STARCAST_12).setHorizontalScale(1.25D);
+            fixture.setBounds(interpolator, first, -15.25D, 63.5D);
+            fixture.setBounds(interpolator, second, 7.75D, 127.25D);
+            Object otherThread = fixture.newGridCache();
+            for (int z = -2; z <= 2; z++) {
+                for (int x = -2; x <= 2; x++) {
+                    fixture.sample(interpolator, x, z);
+                }
+            }
+            long firstReads = streamReads(stream);
+            for (int z = -2; z <= 2; z++) {
+                for (int x = -2; x <= 2; x++) {
+                    NoiseBounds expected = interpolator.interpolateBounds(x, z, (xx, zz) ->
+                            (int) xx < 0 || (int) zz < 0
+                                    ? new NoiseBounds(-15.25D, 63.5D) : new NoiseBounds(7.75D, 127.25D));
+                    assertBits(expected, fixture.sample(otherThread, interpolator, x, z));
+                }
+            }
+            assertTrue(firstReads > 0L);
+            assertEquals(firstReads, streamReads(stream));
+        }
+    }
+
+    @Test
+    public void replacingAWholeColumnStreamDropsSharedSamples() throws Exception {
+        IrisBiome first = new IrisBiome();
+        IrisBiome second = new IrisBiome();
+        try (MockedStatic<IrisServices> services = mockStatic(IrisServices.class)) {
+            services.when(() -> IrisServices.get(PreservationRegistry.class))
+                    .thenReturn(mock(PreservationRegistry.class));
+            Fixture fixture = new Fixture(new CachedStream2D<>("bounds", mock(Engine.class), constant(first), 16));
+            IrisInterpolator interpolator = new IrisInterpolator();
+            fixture.setBounds(interpolator, first, -10D, 20D);
+            fixture.setBounds(interpolator, second, 50D, 80D);
+
+            assertBits(new NoiseBounds(-10D, 20D), fixture.sample(interpolator, 0, 0));
+            fixture.complex.setBaseBiomeStream(new CachedStream2D<>("bounds", mock(Engine.class), constant(second), 16));
+            assertBits(new NoiseBounds(50D, 80D), fixture.sample(fixture.newGridCache(), interpolator, 0, 0));
+        }
+    }
+
+    private static long streamReads(CachedStream2D<IrisBiome> stream) {
+        return mockingDetails(stream).getInvocations().stream()
+                .filter(invocation -> invocation.getMethod().getName().equals("get"))
+                .count();
+    }
+
+    @Test
     public void uncachedBiomeStreamsPreserveFractionalSamplesWithinOneColumn() throws Exception {
         IrisBiome first = new IrisBiome();
         IrisBiome second = new IrisBiome();
@@ -248,7 +308,19 @@ public class IrisComplexBoundsBiomeCacheTest {
         }
 
         private NoiseBounds sample(IrisInterpolator interpolator, double x, double z) throws ReflectiveOperationException {
-            return (NoiseBounds) sample.invoke(complex, cache, null, interpolator, new IrisGenerator[0], x, z);
+            return sample(cache, interpolator, x, z);
+        }
+
+        private NoiseBounds sample(Object gridCache, IrisInterpolator interpolator, double x, double z)
+                throws ReflectiveOperationException {
+            return (NoiseBounds) sample.invoke(complex, gridCache, null, interpolator, new IrisGenerator[0], x, z);
+        }
+
+        private Object newGridCache() throws ReflectiveOperationException {
+            Class<?> cacheClass = Class.forName("art.arcane.iris.generation.runtime.IrisComplex$GridBoundsCache");
+            Constructor<?> constructor = cacheClass.getDeclaredConstructor();
+            constructor.setAccessible(true);
+            return constructor.newInstance();
         }
     }
 }

@@ -69,6 +69,12 @@ public final class GeneratorProgram {
         double[] fractionZ = scratch.buffer(count);
         scratch.clearLattice(count * 4);
         int detailed = 0;
+        double previousX = Double.NaN;
+        double previousZ = Double.NaN;
+        int cellNorthWest = -1;
+        int cellNorthEast = -1;
+        int cellSouthWest = -1;
+        int cellSouthEast = -1;
         for (int index = 0; index < count; index++) {
             double lowerX = Math.floor(xs[index] / SURFACE_GRID) * SURFACE_GRID;
             double lowerZ = Math.floor(zs[index] / SURFACE_GRID) * SURFACE_GRID;
@@ -76,10 +82,28 @@ public final class GeneratorProgram {
             double dz = (zs[index] - lowerZ) / SURFACE_GRID;
             fractionX[index] = dx;
             fractionZ[index] = dz;
-            northWest[index] = scratch.lattice(lowerX, lowerZ);
-            northEast[index] = dx == 0D ? -1 : scratch.lattice(lowerX + SURFACE_GRID, lowerZ);
-            southWest[index] = dz == 0D ? -1 : scratch.lattice(lowerX, lowerZ + SURFACE_GRID);
-            southEast[index] = dx == 0D || dz == 0D ? -1 : scratch.lattice(lowerX + SURFACE_GRID, lowerZ + SURFACE_GRID);
+            if (Double.doubleToRawLongBits(lowerX) != Double.doubleToRawLongBits(previousX)
+                    || Double.doubleToRawLongBits(lowerZ) != Double.doubleToRawLongBits(previousZ)) {
+                previousX = lowerX;
+                previousZ = lowerZ;
+                cellNorthWest = scratch.lattice(lowerX, lowerZ);
+                cellNorthEast = -1;
+                cellSouthWest = -1;
+                cellSouthEast = -1;
+            }
+            if (dx != 0D && cellNorthEast < 0) {
+                cellNorthEast = scratch.lattice(lowerX + SURFACE_GRID, lowerZ);
+            }
+            if (dz != 0D && cellSouthWest < 0) {
+                cellSouthWest = scratch.lattice(lowerX, lowerZ + SURFACE_GRID);
+            }
+            if (dx != 0D && dz != 0D && cellSouthEast < 0) {
+                cellSouthEast = scratch.lattice(lowerX + SURFACE_GRID, lowerZ + SURFACE_GRID);
+            }
+            northWest[index] = cellNorthWest;
+            northEast[index] = dx == 0D ? -1 : cellNorthEast;
+            southWest[index] = dz == 0D ? -1 : cellSouthWest;
+            southEast[index] = dx == 0D || dz == 0D ? -1 : cellSouthEast;
             if (dx != 0D || dz != 0D) {
                 detailed++;
             }

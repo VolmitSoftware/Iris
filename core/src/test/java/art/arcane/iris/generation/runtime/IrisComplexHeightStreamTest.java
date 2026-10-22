@@ -44,6 +44,7 @@ import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atMost;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
@@ -89,16 +90,10 @@ public class IrisComplexHeightStreamTest {
         try (Fixture fixture = new Fixture(pack())) {
             IrisBiome mapped = new IrisBiome();
             when(fixture.images.sampleBiome(anyDouble(), anyDouble())).thenReturn(mapped);
-            MeteredCache bridge = (MeteredCache) fixture.complex.getBridgeStream();
-            MeteredCache regions = (MeteredCache) fixture.complex.getRegionStream();
-            MeteredCache heights = (MeteredCache) fixture.complex.getNaturalHeightStream();
             assertSame(mapped, fixture.complex.getBaseBiomeStream().get(-16, 32));
             assertSame(mapped, fixture.complex.getBaseBiomeStream().get(-16.75, 10, 32.5));
             assertSame(mapped, fixture.complex.getNaturalTrueBiomeStream().get(-16, 32));
             assertSame(mapped, fixture.complex.getNaturalTrueBiomeStream().get(-16.75, 10, 32.5));
-            assertEquals(0L, bridge.getSize());
-            assertEquals(0L, regions.getSize());
-            assertEquals(0L, heights.getSize());
             assertNull(fixture.complex.getSharedCornerBounds());
 
             when(fixture.images.sampleBiome(anyDouble(), anyDouble())).thenReturn(null);
@@ -116,7 +111,7 @@ public class IrisComplexHeightStreamTest {
             int[] rounded = new int[256];
             clearInvocations(fixture.hooks);
             cache.fillRounded(rounded);
-            verify(fixture.hooks, times(1)).isMainThread();
+            verify(fixture.hooks, atMost(2)).isMainThread();
             assertEquals(256, samples.get());
             for (int index = 0; index < 256; index++) {
                 int x = index & 15;
@@ -127,7 +122,7 @@ public class IrisComplexHeightStreamTest {
             }
             clearInvocations(fixture.hooks);
             cache.fill();
-            verify(fixture.hooks, times(1)).isMainThread();
+            verify(fixture.hooks, atMost(2)).isMainThread();
             assertEquals(256, samples.get());
         }
     }

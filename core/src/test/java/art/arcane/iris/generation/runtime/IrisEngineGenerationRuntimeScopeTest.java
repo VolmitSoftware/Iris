@@ -42,6 +42,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -431,25 +432,36 @@ public class IrisEngineGenerationRuntimeScopeTest {
         };
         MultiBurst workerPool = new MultiBurst("Generation Runtime Scope Test", Thread.NORM_PRIORITY, () -> 2);
         when(detached.target.getBurster()).thenReturn(workerPool);
-        AtomicReference<EngineTarget> observedTarget = new AtomicReference<>();
-        AtomicReference<Thread> observedThread = new AtomicReference<>();
+        Set<EngineTarget> observedTargets = new CopyOnWriteArraySet<>();
+        Set<Thread> workerThreads = new CopyOnWriteArraySet<>();
+        CountDownLatch workerRan = new CountDownLatch(1);
+        Thread caller = Thread.currentThread();
         EngineStage stage = (x, z, blocks, biomes, multicore, context) -> {
-            observedTarget.set(engine.getTarget());
-            observedThread.set(Thread.currentThread());
+            observedTargets.add(engine.getTarget());
+            if (Thread.currentThread() == caller) {
+                try {
+                    assertTrue(workerRan.await(5L, TimeUnit.SECONDS));
+                } catch (InterruptedException interruption) {
+                    Thread.currentThread().interrupt();
+                    throw new AssertionError(interruption);
+                }
+                return;
+            }
+            workerThreads.add(Thread.currentThread());
+            workerRan.countDown();
         };
         ChunkContext context = mock(ChunkContext.class);
         when(context.getGenerationSessionId()).thenReturn(17L);
-        Thread caller = Thread.currentThread();
 
         try (IrisEngine.GenerationRuntimeScope ignored = engine.openGenerationRuntimeScope(binding)) {
-            mode.burst(stage).generate(0, 0, null, null, true, context);
+            mode.burst(stage, stage).generate(0, 0, null, null, true, context);
         } finally {
             mode.close();
             workerPool.close();
         }
 
-        assertSame(detached.target, observedTarget.get());
-        assertNotSame(caller, observedThread.get());
+        assertEquals(Set.of(detached.target), observedTargets);
+        assertTrue(!workerThreads.isEmpty() && !workerThreads.contains(caller));
     }
 
     @Test

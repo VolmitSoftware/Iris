@@ -99,7 +99,7 @@ public class PregenPerformanceProfileTest {
     }
 
     @Test
-    public void pregenerationWantsTwoBurstWorkersPerCore() {
+    public void pregenerationWantsTwoBurstWorkersPerPerformanceCore() {
         assertEquals(32, PregenPerformanceProfile.pregenBurstParallelism(16));
         assertEquals(4, PregenPerformanceProfile.pregenBurstParallelism(1));
     }

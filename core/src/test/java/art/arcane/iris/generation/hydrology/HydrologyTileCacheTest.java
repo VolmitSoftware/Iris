@@ -697,6 +697,29 @@ public class HydrologyTileCacheTest {
     }
 
     @Test
+    public void pregenSpeculationStaysWithinTheGenerationReachOfTheArea() {
+        HydrologyPlanner planner = mock(HydrologyPlanner.class);
+        HydrologyTile tile = mock(HydrologyTile.class);
+        HydrologyPlannerSettings settings = stalePrefetchSettings();
+        when(planner.settings()).thenReturn(settings);
+        ArrayList<HydrologyTileKey> planned = new ArrayList<>();
+        doAnswer(invocation -> {
+            planned.add(invocation.getArgument(0));
+            return tile;
+        }).when(planner).plan(any(HydrologyTileKey.class));
+        HydrologyTileCache cache = new HydrologyTileCache(planner, 128, Runnable::run);
+        try (HydrologyTileCache.PregenerationScope ignored = cache.preparePregeneration(
+                new HydrologyTileCache.PregenerationArea(1024, 1024, 736, 736, 1311, 1311))) {
+            assertEquals(prefetchRectangle(0, 1, 0, 1), new HashSet<>(planned));
+            cache.prepareChunkColumns(800, 800);
+            cache.prepareChunkColumns(1300, 1300);
+            assertEquals(prefetchRectangle(0, 1, 0, 1), new HashSet<>(planned));
+            assertEquals(4, planned.size());
+        }
+        cache.close();
+    }
+
+    @Test
     public void pregenScopesRestoreStudioPrefetchAndIgnoreSupersededClose() {
         HydrologyPlanner planner = mock(HydrologyPlanner.class);
         HydrologyTile tile = mock(HydrologyTile.class);

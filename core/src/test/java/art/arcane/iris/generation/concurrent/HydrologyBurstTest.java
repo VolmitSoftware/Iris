@@ -12,6 +12,7 @@ import java.util.concurrent.ForkJoinTask;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
@@ -58,6 +59,13 @@ public class HydrologyBurstTest {
             MultiBurst.close(pool);
         }
         assertTrue(pool.isTerminated());
+    }
+
+    @Test
+    public void plannerPoolFollowsThePerformanceCores() {
+        assertEquals(12, MultiBurst.HydrologyBurst.plannerParallelism(12));
+        assertEquals(4, MultiBurst.HydrologyBurst.plannerParallelism(1));
+        assertEquals(32, MultiBurst.HydrologyBurst.plannerParallelism(32));
     }
 
     @Test

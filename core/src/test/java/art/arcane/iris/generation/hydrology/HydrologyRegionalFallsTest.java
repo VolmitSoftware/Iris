@@ -40,7 +40,7 @@ public final class HydrologyRegionalFallsTest {
         SurfaceBounds bounds = new SurfaceBounds(-2, -2, 1, 2);
         HydrologyFootprintCompiler compiler = new HydrologyFootprintCompiler(SETTINGS, TERRAIN, planner.geometrySampler);
         compiler.seedRegionalSurface(network, bounds);
-        HydrologyCrossTileResolver.MaterializedHydrology materialized = new HydrologyCrossTileResolver(planner)
+        HydrologyCrossTileResolver.MaterializedHydrology materialized = planner.crossTile
                 .materializeFinalHydrology(new HydrologyCaveCourseFilter.Result(network.nodes(), network.edges(),
                         network.outlets(), network.courses(), plans), new ArrayList<>(), compiler, true);
         HydrologyCaveCourseFilter.Result clipped = HydrologyCrossTileResolver.clipRegionalPlans(materialized.result(), network, bounds);
@@ -108,7 +108,7 @@ public final class HydrologyRegionalFallsTest {
         compiler.seedRegionalSurface(regional, bounds);
         HydrologyCaveCourseFilter.Result result = new HydrologyCaveCourseFilter.Result(metadata.nodes(), metadata.edges(),
                 metadata.outlets(), metadata.courses(), plans);
-        HydrologyCrossTileResolver.MaterializedHydrology materialized = new HydrologyCrossTileResolver(planner)
+        HydrologyCrossTileResolver.MaterializedHydrology materialized = planner.crossTile
                 .materializeFinalHydrology(result, new ArrayList<>(), compiler, true);
         assertEquals("A clipped raster cannot replace the full regional containment proof", 1, validations.get());
         HydrologyCaveCourseFilter.Result clipped = HydrologyCrossTileResolver.clipRegionalPlans(materialized.result(), regional, bounds);

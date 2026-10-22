@@ -5,6 +5,7 @@ import art.arcane.iris.generation.hydrology.policy.SurfaceRiverPolicy;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCavePlan;
 import org.junit.Test;
 
+import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -13,6 +14,9 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.HexFormat;
 import java.util.Map;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.TimeUnit;
+import java.util.function.UnaryOperator;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -28,12 +32,34 @@ public class HydrologyPlanHashTest {
 
     @Test
     public void fullTilePlansAreByteIdentical() {
+        PlanDigest plan = planDigest(planner -> planner);
+        assertTrue("planned courses: " + plan.courses(), plan.courses() > 0);
+        assertTrue("planned columns: " + plan.columns(), plan.columns() > 0);
+        assertEquals(EXPECTED_PLAN_DIGEST, plan.digest());
+    }
+
+    @Test(timeout = 180000)
+    public void fallbackTrialBatchSizeNeverChangesThePlan() throws Exception {
+        for (int trialLimit : new int[]{1, 2, 8, 16}) {
+            ForkJoinPool pool = new ForkJoinPool(16);
+            try {
+                PlanDigest plan = pool.submit(() -> planDigest(planner -> withTrialLimit(planner, trialLimit)))
+                        .get(60L, TimeUnit.SECONDS);
+                assertEquals("trial limit " + trialLimit, EXPECTED_PLAN_DIGEST, plan.digest());
+            } finally {
+                pool.shutdownNow();
+                assertTrue(pool.awaitTermination(5L, TimeUnit.SECONDS));
+            }
+        }
+    }
+
+    private static PlanDigest planDigest(UnaryOperator<HydrologyPlanner> configure) {
         MessageDigest canonical = sha256();
         int courses = 0;
         int columns = 0;
         for (long seed : new long[]{77L, 19L}) {
             HydrologyPlannerSettings settings = planSettings();
-            HydrologyPlanner planner = new HydrologyPlanner(seed, settings, rollingCoast(112));
+            HydrologyPlanner planner = configure.apply(new HydrologyPlanner(seed, settings, rollingCoast(112)));
             for (HydrologyTileKey key : TILES) {
                 HydrologyTile tile = planner.plan(key);
                 courses += tile.courses().size();
@@ -41,9 +67,18 @@ public class HydrologyPlanHashTest {
                 render(tile, canonical);
             }
         }
-        assertTrue("planned courses: " + courses, courses > 0);
-        assertTrue("planned columns: " + columns, columns > 0);
-        assertEquals(EXPECTED_PLAN_DIGEST, HexFormat.of().formatHex(canonical.digest()));
+        return new PlanDigest(HexFormat.of().formatHex(canonical.digest()), courses, columns);
+    }
+
+    private static HydrologyPlanner withTrialLimit(HydrologyPlanner planner, int trialLimit) {
+        try {
+            Field crossTile = HydrologyPlanner.class.getDeclaredField("crossTile");
+            crossTile.setAccessible(true);
+            crossTile.set(planner, new HydrologyCrossTileResolver(planner, trialLimit));
+            return planner;
+        } catch (ReflectiveOperationException failure) {
+            throw new IllegalStateException(failure);
+        }
     }
 
     private static void render(HydrologyTile tile, MessageDigest digest) {
@@ -221,6 +256,9 @@ public class HydrologyPlanHashTest {
                 HydrologyPlannerSettings.SeaCaves.disabled(),
                 HydrologyPlannerSettings.SurfacePolicyBounds.NONE
         );
+    }
+
+    private record PlanDigest(String digest, int courses, int columns) {
     }
 
     private static final class CanonicalDigest {

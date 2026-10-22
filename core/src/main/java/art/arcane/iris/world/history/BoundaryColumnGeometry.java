@@ -257,11 +257,16 @@ public final class BoundaryColumnGeometry implements NativeBlockColumn {
         }
 
         void add(Voxel voxel) {
+            add(voxel, 1);
+        }
+
+        void add(Voxel voxel, int run) {
             Objects.requireNonNull(voxel, "Geometry voxel");
             if (count == 0 || !sameVoxel(voxels[count - 1], voxel)) {
                 voxels[count++] = voxel;
             }
-            ends[count - 1] = ++length;
+            length += run;
+            ends[count - 1] = length;
         }
 
         BoundaryColumnGeometry build(int minimumY) {

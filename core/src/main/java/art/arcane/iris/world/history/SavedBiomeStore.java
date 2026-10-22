@@ -622,10 +622,16 @@ public final class SavedBiomeStore {
     private static byte[] encode(SavedBiomeChunk chunk) throws IOException {
         LinkedHashMap<SavedBiomeChunk.Cell, Integer> palette = new LinkedHashMap<>();
         LinkedHashMap<SavedBiomeChunk.Column, Integer> columns = new LinkedHashMap<>();
+        byte[] columnIndices = new byte[256];
         for (int z = 0; z < 16; z++) {
             for (int x = 0; x < 16; x++) {
                 SavedBiomeChunk.Column column = chunk.column(x, z);
-                columns.computeIfAbsent(column, ignored -> columns.size());
+                int known = columns.size();
+                int index = columns.computeIfAbsent(column, ignored -> columns.size());
+                columnIndices[z * 16 + x] = (byte) index;
+                if (index < known) {
+                    continue;
+                }
                 palette.computeIfAbsent(column.surface(), ignored -> palette.size());
                 palette.computeIfAbsent(column.caveBase(), ignored -> palette.size());
                 for (SavedBiomeChunk.Span span : column.vertical()) {
@@ -660,11 +666,7 @@ public final class SavedBiomeStore {
                     writeUnsigned(output, palette.get(span.cell()));
                 }
             }
-            for (int z = 0; z < 16; z++) {
-                for (int x = 0; x < 16; x++) {
-                    output.writeByte(columns.get(chunk.column(x, z)));
-                }
-            }
+            output.write(columnIndices);
         }
         if (raw.size() > MAXIMUM_DECODED_BYTES) {
             throw new IOException("Saved biome chunk exceeds its decoded size limit");

@@ -89,6 +89,24 @@ public class IrisComplexChunkCornersTest {
     }
 
     @Test
+    public void nestedHeightSamplesLeaveTheOuterChunkBlockIntact() throws Exception {
+        ReentrantGenerator reentrant = new ReentrantGenerator();
+        IrisInterpolator[] interpolators = {new ZeroFreeInterpolator(), new PatchInterpolator(4, -2D)};
+        IrisGenerator[][] generators = {{reentrant}, {new WaveGenerator(0.5D)}};
+        IrisComplex candidate = createComplex(4, interpolators, generators);
+        IrisComplex reference = createComplex(4, interpolators, generators);
+        SplittableRandom random = new SplittableRandom(99L);
+        for (int sample = 0; sample < 4_000; sample++) {
+            double x = coordinate(random);
+            double z = coordinate(random);
+            reentrant.target = reference;
+            double expected = expectedHeight(reference, interpolators, generators, x, z);
+            reentrant.target = candidate;
+            assertEquals(Double.doubleToRawLongBits(expected), Double.doubleToRawLongBits(interpolatedHeight(candidate, x, z)));
+        }
+    }
+
+    @Test
     public void nonFiniteCornersFailTheSameWayAndAreRetried() throws Exception {
         NaNCornerInterpolator interpolator = new NaNCornerInterpolator();
         IrisInterpolator[] interpolators = {interpolator};
@@ -191,6 +209,13 @@ public class IrisComplexChunkCornersTest {
         }
     }
 
+    private static final class ZeroFreeInterpolator extends IrisInterpolator {
+        @Override
+        public NoiseBounds interpolateBounds(double x, double z, NoiseBoundsProvider provider) {
+            return new NoiseBounds(x * 0.01D - 1D, z * 0.01D + 3D);
+        }
+    }
+
     private static final class ZeroInterpolator extends IrisInterpolator {
         private final boolean negative;
 
@@ -224,6 +249,26 @@ public class IrisComplexChunkCornersTest {
                 return new NoiseBounds(Double.NaN, 1D);
             }
             return new NoiseBounds(0.25D, 0.5D);
+        }
+    }
+
+    private static final class ReentrantGenerator extends IrisGenerator {
+        private IrisComplex target;
+        private boolean nested;
+
+        @Override
+        public double getHeight(double x, double z, long seed) {
+            if (nested) {
+                return Math.cos(x * 0.13D) * 0.5D;
+            }
+            nested = true;
+            try {
+                return (interpolatedHeight(target, x + 4099D, z - 2053D) + interpolatedHeight(target, x - 8191D, z + 1031D)) * 0.001D;
+            } catch (Exception e) {
+                throw new IllegalStateException(e);
+            } finally {
+                nested = false;
+            }
         }
     }
 

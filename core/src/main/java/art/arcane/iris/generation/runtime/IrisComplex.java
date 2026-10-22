@@ -1896,14 +1896,24 @@ public class IrisComplex implements DataProvider {
         }
 
         int grid = biomeBoundsSamplingStep;
-        if (!ChunkCorners.supports(grid)) {
+        GridBoundsCache cache = gridBoundsCache.get();
+        if (!ChunkCorners.supports(grid) || cache.cornersInUse) {
             for (int interpolatorIndex = 0; interpolatorIndex < frozenInterpolators.length; interpolatorIndex++) {
                 h += interpolateGenerators(engine, frozenInterpolators[interpolatorIndex], interpolatorIndex, frozenGenerators[interpolatorIndex], x, z, seed);
             }
             return h;
         }
 
-        GridBoundsCache cache = gridBoundsCache.get();
+        cache.cornersInUse = true;
+        try {
+            return cornerBlockHeight(cache, engine, grid, x, z, seed);
+        } finally {
+            cache.cornersInUse = false;
+        }
+    }
+
+    private double cornerBlockHeight(GridBoundsCache cache, Engine engine, int grid, double x, double z, long seed) {
+        double h = 0;
         int xi = (int) Math.floor(x);
         int zi = (int) Math.floor(z);
         int gx = xi & ~(grid - 1);
@@ -2343,6 +2353,7 @@ public class IrisComplex implements DataProvider {
         private final BoundsSampler sampler = new BoundsSampler();
         private ChunkCorners recentCorners;
         private ChunkCorners previousCorners;
+        private boolean cornersInUse;
 
         private ChunkCorners chunkCorners(int chunkX, int chunkZ, int groups, int grid) {
             ChunkCorners recent = recentCorners;

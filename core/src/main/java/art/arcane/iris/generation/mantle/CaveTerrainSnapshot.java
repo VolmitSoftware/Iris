@@ -144,20 +144,6 @@ public final class CaveTerrainSnapshot {
         }
     }
 
-    public MatterCavern[] composedFace(TerrainMatterView.Face face, int height) {
-        Objects.requireNonNull(face, "Terrain face");
-        if (height < 0) {
-            throw new IllegalArgumentException("Terrain face height must be nonnegative");
-        }
-        MatterCavern[] result = new MatterCavern[Math.multiplyExact(height, 16)];
-        for (int y = 0; y < height; y++) {
-            for (int offset = 0; offset < 16; offset++) {
-                result[y * 16 + offset] = composedCavern(face.x(offset), y, face.z(offset));
-            }
-        }
-        return result;
-    }
-
     private void captureSection(int section, Matter matter) {
         caverns[section] = copy(matter.getSlice(MatterCavern.class), MatterCavern[]::new);
         hydrology[section] = copy(matter.getSlice(HydrologyCaveCell.class), HydrologyCaveCell[]::new);

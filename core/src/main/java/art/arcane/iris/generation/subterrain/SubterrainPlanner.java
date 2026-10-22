@@ -1,6 +1,7 @@
 package art.arcane.iris.generation.subterrain;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
@@ -111,6 +112,10 @@ public final class SubterrainPlanner {
             return SubterrainCell.OUTSIDE;
         }
         return sample(candidates(Math.floorDiv(x, 16), Math.floorDiv(z, 16)), x, y, z);
+    }
+
+    public ChunkSampler chunkSampler(int chunkX, int chunkZ) {
+        return new ChunkSampler(this, chunkX, chunkZ, isEmpty() ? List.of() : candidates(chunkX, chunkZ));
     }
 
     public SubterrainCell sample(List<SubterrainPlan> candidates, int x, int y, int z) {
@@ -235,6 +240,79 @@ public final class SubterrainPlanner {
         public Options {
             features = List.copyOf(Objects.requireNonNull(features));
             Objects.requireNonNull(regionResolver);
+        }
+    }
+
+    public static final class ChunkSampler {
+        private final SubterrainPlanner planner;
+        private final int chunkX;
+        private final int chunkZ;
+        private final List<SubterrainPlan> plans;
+        private final int[] columnMinY;
+        private final int[] columnMaxY;
+
+        private ChunkSampler(SubterrainPlanner planner, int chunkX, int chunkZ, List<SubterrainPlan> plans) {
+            this.planner = planner;
+            this.chunkX = chunkX;
+            this.chunkZ = chunkZ;
+            this.plans = plans;
+            if (plans.isEmpty()) {
+                columnMinY = null;
+                columnMaxY = null;
+                return;
+            }
+            columnMinY = new int[256];
+            columnMaxY = new int[256];
+            Arrays.fill(columnMinY, Integer.MAX_VALUE);
+            Arrays.fill(columnMaxY, Integer.MIN_VALUE);
+            int baseX = chunkX << 4;
+            int baseZ = chunkZ << 4;
+            for (int index = 0; index < plans.size(); index++) {
+                SubterrainBounds bounds = plans.get(index).bounds();
+                int lowX = Math.max(bounds.minX(), baseX) - baseX;
+                int highX = Math.min(bounds.maxX(), baseX + 15) - baseX;
+                int lowZ = Math.max(bounds.minZ(), baseZ) - baseZ;
+                int highZ = Math.min(bounds.maxZ(), baseZ + 15) - baseZ;
+                for (int localX = lowX; localX <= highX; localX++) {
+                    for (int localZ = lowZ; localZ <= highZ; localZ++) {
+                        int column = (localX << 4) | localZ;
+                        columnMinY[column] = Math.min(columnMinY[column], bounds.minY());
+                        columnMaxY[column] = Math.max(columnMaxY[column], bounds.maxY());
+                    }
+                }
+            }
+        }
+
+        public boolean isEmpty() {
+            return plans.isEmpty();
+        }
+
+        public SubterrainCell sample(int x, int y, int z) {
+            if ((x >> 4) != chunkX || (z >> 4) != chunkZ) {
+                return planner.sample(x, y, z);
+            }
+            if (plans.isEmpty() || y < planner.minY || y >= planner.maxYExclusive) {
+                return SubterrainCell.OUTSIDE;
+            }
+            return sampleColumn(x, y, z);
+        }
+
+        public SubterrainCell sampleCandidates(int x, int y, int z) {
+            if (plans.isEmpty()) {
+                return SubterrainCell.OUTSIDE;
+            }
+            if ((x >> 4) != chunkX || (z >> 4) != chunkZ) {
+                return planner.sample(plans, x, y, z);
+            }
+            return sampleColumn(x, y, z);
+        }
+
+        private SubterrainCell sampleColumn(int x, int y, int z) {
+            int column = ((x & 15) << 4) | (z & 15);
+            if (y < columnMinY[column] || y > columnMaxY[column]) {
+                return SubterrainCell.OUTSIDE;
+            }
+            return planner.sample(plans, x, y, z);
         }
     }
 

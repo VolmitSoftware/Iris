@@ -342,12 +342,8 @@ public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, 
 
     @BlockCoordinates
     default SubterrainCell getSubterrainCell(int x, int y, int z) {
-        if (getComplex() == null || getDimension() == null
-                || !getDimension().allowsSubterrainFeatures()
-                || getDimension().getSubterrainFeatures() == null || getDimension().getSubterrainFeatures().isEmpty()) {
-            return SubterrainCell.OUTSIDE;
-        }
-        SubterrainPlanner planner = getComplex().getSubterrainPlanner();
+        IrisComplex complex = getComplex();
+        SubterrainPlanner planner = complex == null ? null : SubterrainChunkCells.activePlanner(complex, getDimension());
         return planner == null ? SubterrainCell.OUTSIDE : planner.sample(x, y + getWorld().minHeight(), z);
     }
 

@@ -67,7 +67,8 @@ public class IrisCarveModifierInferenceIsolationTest {
                 int.class,
                 IrisCarveModifier.CaveInputs.class,
                 Long2ObjectOpenHashMap.class,
-                Map.class
+                Map.class,
+                CaveLayerMemo.class
         );
         paintBoundaryZone.setAccessible(true);
         paintBoundaryZone.invoke(
@@ -83,7 +84,8 @@ public class IrisCarveModifierInferenceIsolationTest {
                 1,
                 new IrisCarveModifier.CaveInputs(engine),
                 new Long2ObjectOpenHashMap<IrisBiome>(),
-                customBiomes
+                customBiomes,
+                new CaveLayerMemo()
         );
 
         IrisBiome fallback = new IrisBiome();

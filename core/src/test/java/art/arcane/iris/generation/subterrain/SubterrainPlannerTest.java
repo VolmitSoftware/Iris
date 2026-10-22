@@ -638,6 +638,48 @@ public class SubterrainPlannerTest {
         assertTrue(original.sample(anchor.x(), anchor.y(), anchor.z()).occupied());
     }
 
+    @Test
+    public void chunkSamplersMatchCoordinateSamplingInsideAndAroundTheirChunk() {
+        for (IrisSubterrainFamily family : IrisSubterrainFamily.values()) {
+            int length = family == IrisSubterrainFamily.TECTONIC_FAULT ? 208 : 64;
+            SubterrainPlanner planner = planner(compactFeature(family).setLength(length).setProbability(0.6));
+            SubterrainPlanner reference = planner(compactFeature(family).setLength(length).setProbability(0.6));
+            SubterrainPlan plan = first(planner);
+            int centerChunkX = plan.centerX() >> 4;
+            int centerChunkZ = plan.centerZ() >> 4;
+            int occupied = 0;
+            int emptyChunks = 0;
+            for (int chunkX = centerChunkX - 3; chunkX <= centerChunkX + 3; chunkX += 2) {
+                for (int chunkZ = centerChunkZ - 3; chunkZ <= centerChunkZ + 3; chunkZ += 2) {
+                    SubterrainPlanner.ChunkSampler sampler = planner.chunkSampler(chunkX, chunkZ);
+                    List<SubterrainPlan> chunkPlans = reference.plansForBounds((chunkX << 4) - 1, (chunkZ << 4) - 1,
+                            (chunkX << 4) + 16, (chunkZ << 4) + 16);
+                    if (sampler.isEmpty()) {
+                        emptyChunks++;
+                    }
+                    for (int x = (chunkX << 4) - 3; x < (chunkX << 4) + 19; x++) {
+                        for (int z = (chunkZ << 4) - 3; z < (chunkZ << 4) + 19; z++) {
+                            for (int y = -66; y <= 99; y++) {
+                                SubterrainCell expected = reference.sample(x, y, z);
+                                assertEquals(family + " " + x + "," + y + "," + z, expected, sampler.sample(x, y, z));
+                                assertEquals(family + " candidates " + x + "," + y + "," + z,
+                                        reference.sample(chunkPlans, x, y, z), sampler.sampleCandidates(x, y, z));
+                                if (expected.occupied()) {
+                                    occupied++;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            assertTrue(family + " occupied", occupied > 100);
+            assertTrue(family + " empty chunks", emptyChunks < 16);
+        }
+        SubterrainPlanner empty = new SubterrainPlanner(new SubterrainPlanner.Options(List.of(), 7123, -64, 97, (x, z) -> "test-region"));
+        assertTrue(empty.chunkSampler(3, -5).isEmpty());
+        assertEquals(SubterrainCell.OUTSIDE, empty.chunkSampler(3, -5).sample(50, 10, -70));
+    }
+
     @Test(expected = IllegalArgumentException.class)
     public void duplicateIdentifiersAreRejected() {
         IrisSubterrainFeature feature = feature(IrisSubterrainFamily.CENOTE);

@@ -97,33 +97,11 @@ final class CaveCarveScratch {
     int adaptiveGeometryStep = -1;
     int adaptiveGeometryAxisCells = -1;
     boolean fullWeightsInitialized;
-    int[] latticeY = new int[0];
-    int[] latticeSnapY = new int[0];
-    double[] latticeWarpA = new double[0];
-    double[] latticeWarpB = new double[0];
-    double[] latticeWarpedX = new double[0];
-    double[] latticeWarpedY = new double[0];
-    double[] latticeWarpedZ = new double[0];
-    double[] latticeDensity = new double[0];
 
     void releaseReferences() {
         Arrays.fill(sectionMatter, null);
         Arrays.fill(sectionSlices, null);
         Arrays.fill(densityColumns, null);
         cellLattice.releaseReferences();
-    }
-
-    void ensureLatticeBatch(int size) {
-        if (latticeY.length >= size) {
-            return;
-        }
-        latticeY = new int[size];
-        latticeSnapY = new int[size];
-        latticeWarpA = new double[size];
-        latticeWarpB = new double[size];
-        latticeWarpedX = new double[size];
-        latticeWarpedY = new double[size];
-        latticeWarpedZ = new double[size];
-        latticeDensity = new double[size];
     }
 }

@@ -32,7 +32,7 @@ public class IrisCaveCarver3DLatticeTest {
     private static final int WORLD_HEIGHT = 384;
 
     @Test
-    public void batchedLatticeColumnsMatchScalarPlaneDensityBitForBit() throws Exception {
+    public void batchedLatticePointsMatchScalarPlaneDensityBitForBit() throws Exception {
         Engine engine = createEngine();
         CaveDensityGrid grid = new CaveDensityGrid(256);
         IrisCaveProfile[] profiles = {
@@ -43,9 +43,9 @@ public class IrisCaveCarver3DLatticeTest {
                         module(NoiseStyle.VASCULAR_THIN, 1.28D, 8D, 220D, false)),
                 profile(NoiseStyle.SIMPLEX, 0.5D, 0D, NoiseStyle.FRACTAL_BILLOW_SIMPLEX, 0.656D)
         };
-        Method sampleLatticeColumn = IrisCaveCarver3D.class.getDeclaredMethod("sampleLatticeColumn",
-                CaveCarveScratch.class, CaveDensityGrid.Column.class, int.class, int.class, int.class);
-        sampleLatticeColumn.setAccessible(true);
+        Method sampleLatticePoints = IrisCaveCarver3D.class.getDeclaredMethod("sampleLatticePoints",
+                CaveLatticeBatch.class, CaveDensityLattice.class, int.class, int.class, int.class);
+        sampleLatticePoints.setAccessible(true);
         Method samplePlaneDensity = IrisCaveCarver3D.class.getDeclaredMethod("samplePlaneDensity",
                 CaveCarveScratch.class, int.class, int.class, int.class);
         samplePlaneDensity.setAccessible(true);
@@ -55,23 +55,30 @@ public class IrisCaveCarver3DLatticeTest {
         for (IrisCaveProfile profile : profiles) {
             IrisCaveCarver3D carver = new IrisCaveCarver3D(engine, profile, grid);
             CaveDensityGrid.Owner warpOwner = (CaveDensityGrid.Owner) warpOwnerField.get(carver);
-            CaveCarveScratch batch = new CaveCarveScratch();
+            CaveLatticeBatch batch = new CaveLatticeBatch();
+            CaveDensityLattice lattice = new CaveDensityLattice();
             CaveCarveScratch reference = new CaveCarveScratch();
-            for (int trial = 0; trial < 48; trial++) {
+            for (int trial = 0; trial < 24; trial++) {
                 int latticeX = random.nextInt(4001) - 2000;
                 int latticeZ = random.nextInt(4001) - 2000;
-                int x = latticeX << CaveDensityGrid.LATTICE_SHIFT;
-                int z = latticeZ << CaveDensityGrid.LATTICE_SHIFT;
+                int x0 = latticeX << CaveDensityGrid.LATTICE_SHIFT;
+                int z0 = latticeZ << CaveDensityGrid.LATTICE_SHIFT;
+                for (int corner = 0; corner < CaveDensityLattice.CORNERS; corner++) {
+                    lattice.warpColumns[corner] = (trial + corner) % 3 == 0 ? null
+                            : grid.warpColumn(warpOwner, WORLD_HEIGHT + 1, latticeX + corner / 3, latticeZ + corner % 3);
+                }
                 int count = selectRows(random, batch);
-                CaveDensityGrid.Column warpColumn = trial % 3 == 0 ? null
-                        : grid.warpColumn(warpOwner, WORLD_HEIGHT + 1, latticeX, latticeZ);
                 for (int pass = 0; pass < 2; pass++) {
-                    sampleLatticeColumn.invoke(carver, batch, warpColumn, x, z, count);
-                    for (int index = 0; index < count; index++) {
-                        int y = batch.latticeY[index];
-                        double expected = (double) samplePlaneDensity.invoke(carver, reference, x, y, z);
-                        assertEquals("x=" + x + " y=" + y + " z=" + z + " pass=" + pass,
-                                Double.doubleToRawLongBits(expected), Double.doubleToRawLongBits(batch.latticeDensity[index]));
+                    sampleLatticePoints.invoke(carver, batch, lattice, x0, z0, count);
+                    for (int corner = 0; corner < CaveDensityLattice.CORNERS; corner++) {
+                        int x = x0 + (corner / 3) * 8;
+                        int z = z0 + (corner % 3) * 8;
+                        for (int index = batch.cornerStart[corner]; index < batch.cornerStart[corner + 1]; index++) {
+                            int y = batch.y[index];
+                            double expected = (double) samplePlaneDensity.invoke(carver, reference, x, y, z);
+                            assertEquals("x=" + x + " y=" + y + " z=" + z + " pass=" + pass,
+                                    Double.doubleToRawLongBits(expected), Double.doubleToRawLongBits(batch.density[index]));
+                        }
                     }
                 }
             }
@@ -107,16 +114,23 @@ public class IrisCaveCarver3DLatticeTest {
         assertNotSame(warpOwnerField.get(first), warpOwnerField.get(otherWarp));
     }
 
-    private static int selectRows(Random random, CaveCarveScratch scratch) {
-        int start = random.nextInt(40);
-        int end = start + 20 + random.nextInt(WORLD_HEIGHT - start - 20);
-        scratch.ensureLatticeBatch(end - start + 1);
+    private static int selectRows(Random random, CaveLatticeBatch batch) {
+        batch.ensure(WORLD_HEIGHT * CaveDensityLattice.CORNERS);
         int count = 0;
-        for (int y = start; y <= end; y++) {
-            if (random.nextInt(5) != 0) {
-                scratch.latticeY[count++] = y;
+        for (int corner = 0; corner < CaveDensityLattice.CORNERS; corner++) {
+            batch.cornerStart[corner] = count;
+            if (random.nextInt(4) == 0) {
+                continue;
+            }
+            int start = random.nextInt(40);
+            int end = start + random.nextInt(WORLD_HEIGHT - start);
+            for (int y = start; y <= end; y++) {
+                if (random.nextInt(5) != 0) {
+                    batch.y[count++] = y;
+                }
             }
         }
+        batch.cornerStart[CaveDensityLattice.CORNERS] = count;
         return count;
     }
 

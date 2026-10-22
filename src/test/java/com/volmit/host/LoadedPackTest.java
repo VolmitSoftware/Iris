@@ -137,29 +137,19 @@ class LoadedPackTest {
                     loaded.packModules().stream().map(DiscoveredModule::origin).toList());
             var order = loaded.placement().stages().stream().map(stage -> stage.stage().id().toString()).toList();
             assertTrue(order.indexOf("bundled:core/mark") < order.indexOf("user:core/after"), order.toString());
-            assertTrue(loaded.replacedJars().isEmpty());
         }
     }
 
     @Test
-    void aPackJarNamedLikeABundledJarIsLeftOutAndNamed(@TempDir Path build) {
-        var bundledJar = module("host.bundled.BundledModule", "bundled:core", NO_MEMBERS, NO_STAGES).writeInto(build, "bundled.jar");
-        module("pack.stale.StaleModule", "bundled:core", NO_MEMBERS, NO_STAGES).writeInto(pack, "bundled.jar");
+    void aPackCopyOfABundledJarFailsNamingBothJars(@TempDir Path build) {
+        var bundled = module("host.bundled.BundledModule", "bundled:core", NO_MEMBERS, NO_STAGES);
+        var bundledJar = bundled.writeInto(build, "bundled.jar");
+        bundled.writeInto(pack, "bundled.jar");
 
-        try (var loaded = LoadedPack.load(pack, HOST.bundlingJars(bundledJar))) {
-            assertEquals(List.of("host.bundled.BundledModule"),
-                    loaded.packModules().stream().map(found -> found.module().getClass().getName()).toList());
-            assertEquals(List.of(Path.of("modules", "bundled.jar").toString()), loaded.replacedJars());
-        }
-    }
+        var error = assertThrows(IllegalArgumentException.class, () -> LoadedPack.load(pack, HOST.bundlingJars(bundledJar)));
 
-    @Test
-    void bundledJarsNeedDistinctJarFileNames() {
-        var host = ModuleHost.of(List.of());
-
-        assertThrows(IllegalArgumentException.class, () -> host.bundlingJars(Path.of("notes.txt")));
-        assertThrows(IllegalArgumentException.class, () -> host.bundlingJars(Path.of("one", "same.jar"), Path.of("two", "same.jar")));
-        assertThrows(IllegalArgumentException.class, () -> host.bundlingJars(Path.of("one", "same.jar")).bundlingJars(Path.of("two", "same.jar")));
+        assertTrue(error.getMessage().contains("Class host.bundled.BundledModule is in both module jars bundled.jar"
+                + PackModules.BUNDLED_ORIGIN_SUFFIX + " and " + Path.of("modules", "bundled.jar")), error.getMessage());
     }
 
     /** Keeps the level and first line of every message, which is enough to see where the summary went. */

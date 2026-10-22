@@ -53,11 +53,6 @@ public final class LoadedPack implements AutoCloseable {
         return packModules.modules();
     }
 
-    /** The pack's own jars that a jar the host bundles replaced; see {@link PackModules#replacedJars()}. */
-    public List<String> replacedJars() {
-        return packModules.replacedJars();
-    }
-
     /** Classes the pack's jars use that nobody has, per jar; see {@link PackModules#missingClasses()}. */
     public List<MissingClasses> missingClasses() {
         return packModules.missingClasses();

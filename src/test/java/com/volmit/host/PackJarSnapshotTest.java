@@ -57,7 +57,7 @@ class PackJarSnapshotTest {
             var module = packModules.modules().getFirst();
             var location = Path.of(module.module().getClass().getProtectionDomain().getCodeSource().getLocation().toURI());
             assertEquals(1, snapshotDirectories().size());
-            assertEquals(snapshotDirectories().getFirst().resolve("gamma.jar"), location);
+            assertEquals(snapshotDirectories().getFirst().resolve("0-gamma.jar"), location);
             assertEquals(origin("gamma.jar"), module.origin());
 
             Files.delete(original);

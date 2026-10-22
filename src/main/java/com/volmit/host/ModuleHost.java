@@ -55,7 +55,6 @@ public record ModuleHost(
         HostTypes.of(hostTypePackages);
         requireFieldNames(reservedHostFields);
         requireFolderNames(reservedFolders);
-        requireJarFileNames(bundledJars);
     }
 
     /** The given built-in modules, exposing only the Iris API and reserving nothing. Jar copies go to
@@ -102,10 +101,8 @@ public record ModuleHost(
     }
 
     /** This configuration also loading {@code jars}, module jars the host ships, with every pack, as if they were in its
-     * {@code modules} folder: before the pack's own jars, in the given order, in the same class loader. A pack jar with the
-     * same file name, such as an old copy, is left out, so a pack can never load a stale copy; {@link LoadedPack#replacedJars()}
-     * names it, for the host to tell the pack's owner. Their file names must differ and end in {@code .jar}; whether they
-     * exist is checked when a pack loads.
+     * {@code modules} folder: before the pack's own jars, in the given order, in the same class loader. Whether they exist
+     * is checked when a pack loads.
      */
     public ModuleHost bundlingJars(Path... jars) {
         var bundled = new ArrayList<>(bundledJars);
@@ -160,19 +157,6 @@ public record ModuleHost(
             if (!ResourceKind.isFolderName(folder)) {
                 throw new IllegalArgumentException("Reserved folder '" + folder + "' is not a folder name directly below the"
                         + " pack root, such as biomes");
-            }
-        }
-    }
-
-    private static void requireJarFileNames(List<Path> jars) {
-        var names = new TreeSet<String>();
-        for (var jar : jars) {
-            var name = Objects.requireNonNull(jar, "bundled jar").getFileName();
-            if (name == null || !name.toString().endsWith(PackModules.JAR_EXTENSION)) {
-                throw new IllegalArgumentException("Bundled module jar " + jar + " is not a .jar file");
-            }
-            if (!names.add(name.toString())) {
-                throw new IllegalArgumentException("Two bundled module jars are named " + name);
             }
         }
     }

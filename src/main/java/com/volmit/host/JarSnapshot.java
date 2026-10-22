@@ -23,6 +23,7 @@ final class JarSnapshot {
     static final String DIRECTORY_PREFIX = "iris-pack-modules-";
     static final String OWNER_FILE = "owner.txt";
     static final String OWNER_HEADER = "Iris pack module jar copies";
+    private static final String COPY_NAME_SEPARATOR = "-";
 
     /** A module jar to copy: its origin, which every message names, and the file. */
     record SourceJar(String origin, Path file) {
@@ -48,15 +49,15 @@ final class JarSnapshot {
         this.jars = List.copyOf(jars);
     }
 
-    /** Copies {@code jars}, whose file names differ, into a new directory below {@code temporaryRoot}. Leaves nothing
-     * behind if a copy fails.
+    /** Copies {@code jars} into a new directory below {@code temporaryRoot}, each copy named by its place in the list so
+     * jars of the same file name from different places do not collide. Leaves nothing behind if a copy fails.
      */
     static JarSnapshot take(List<SourceJar> jars, Path temporaryRoot) {
         var directory = createOwnedDirectory(temporaryRoot);
         var copies = new ArrayList<CopiedJar>(jars.size());
         try {
-            for (var jar : jars) {
-                copies.add(copy(jar, directory));
+            for (int index = 0; index < jars.size(); index++) {
+                copies.add(copy(jars.get(index), directory.resolve(index + COPY_NAME_SEPARATOR + jars.get(index).file().getFileName())));
             }
             return new JarSnapshot(directory, copies);
         } catch (RuntimeException | Error failure) {
@@ -117,8 +118,7 @@ final class JarSnapshot {
         return OWNER_HEADER + "\n" + pid + "\n";
     }
 
-    private static CopiedJar copy(SourceJar jar, Path directory) {
-        var copy = directory.resolve(jar.file().getFileName().toString());
+    private static CopiedJar copy(SourceJar jar, Path copy) {
         try {
             Files.copy(jar.file(), copy);
             return new CopiedJar(jar.origin(), copy);

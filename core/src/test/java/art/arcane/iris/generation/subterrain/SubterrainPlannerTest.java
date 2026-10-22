@@ -1,6 +1,7 @@
 package art.arcane.iris.generation.subterrain;
 
 import art.arcane.iris.pack.value.IrisRange;
+import art.arcane.volmlib.util.collection.KList;
 import com.google.gson.Gson;
 import com.google.gson.JsonParseException;
 import org.junit.Test;
@@ -10,6 +11,11 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.HashSet;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -438,6 +444,74 @@ public class SubterrainPlannerTest {
                     }
                 }
             }
+        }
+    }
+
+    @Test
+    public void alternatingChunkSamplingResolvesEachCandidateCellOnce() {
+        IrisSubterrainFeature feature = feature(IrisSubterrainFamily.CENOTE).setAllowedRegions(new KList<>("test-region"));
+        AtomicInteger regionQueries = new AtomicInteger();
+        SubterrainPlanner planner = new SubterrainPlanner(new SubterrainPlanner.Options(List.of(feature), 7123, -64, 97,
+                (x, z) -> {
+                    regionQueries.incrementAndGet();
+                    return "test-region";
+                }));
+        for (int round = 0; round < 500; round++) {
+            planner.sample(7, 10, 7);
+            planner.sample(23, 10, 7);
+            planner.sample(7, 10, 23);
+            planner.sample(-9, 10, -9);
+        }
+        int firstRound = regionQueries.get();
+        assertTrue("candidate cells resolved " + firstRound + " times", firstRound <= 16);
+        for (int round = 0; round < 500; round++) {
+            planner.plansForBounds(-1, -1, 16, 16);
+            planner.plansForBounds(15, 15, 32, 32);
+        }
+        assertEquals(firstRound, regionQueries.get());
+    }
+
+    @Test
+    public void concurrentCrossChunkSamplingMatchesAFreshPlanner() throws Exception {
+        List<IrisSubterrainFeature> features = List.of(compactFeature(IrisSubterrainFamily.CENOTE).setSpacing(96),
+                compactFeature(IrisSubterrainFamily.TRAVERTINE_TERRACES).setSpacing(160));
+        SubterrainPlanner shared = new SubterrainPlanner(new SubterrainPlanner.Options(features, 4242, -64, 97, (x, z) -> "test-region"));
+        SubterrainPlanner reference = new SubterrainPlanner(new SubterrainPlanner.Options(features, 4242, -64, 97, (x, z) -> "test-region"));
+        int threads = 8;
+        ExecutorService pool = Executors.newFixedThreadPool(threads);
+        try {
+            List<Future<Integer>> results = new ArrayList<>();
+            for (int thread = 0; thread < threads; thread++) {
+                int offset = thread;
+                results.add(pool.submit(() -> {
+                    int occupied = 0;
+                    for (int step = 0; step < 6000; step++) {
+                        int x = Math.floorMod(step * 37 + offset * 101, 2400) - 1200;
+                        int z = Math.floorMod(step * 53 + offset * 211, 2400) - 1200;
+                        int y = Math.floorMod(step * 11 + offset, 150) - 60;
+                        int chunkX = Math.floorDiv(x, 16) * 16;
+                        int chunkZ = Math.floorDiv(z, 16) * 16;
+                        SubterrainCell expected;
+                        synchronized (reference) {
+                            expected = reference.sample(reference.plansForBounds(chunkX - 1, chunkZ - 1, chunkX + 16, chunkZ + 16), x, y, z);
+                        }
+                        SubterrainCell actual = shared.sample(x, y, z);
+                        assertEquals(expected, actual);
+                        if (actual.occupied()) {
+                            occupied++;
+                        }
+                    }
+                    return occupied;
+                }));
+            }
+            int occupied = 0;
+            for (Future<Integer> result : results) {
+                occupied += result.get(60, TimeUnit.SECONDS);
+            }
+            assertTrue(occupied > 0);
+        } finally {
+            pool.shutdownNow();
+            assertTrue(pool.awaitTermination(10, TimeUnit.SECONDS));
         }
     }
 

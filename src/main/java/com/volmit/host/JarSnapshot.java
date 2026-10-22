@@ -24,7 +24,15 @@ final class JarSnapshot {
     static final String OWNER_FILE = "owner.txt";
     static final String OWNER_HEADER = "Iris pack module jar copies";
 
-    /** A module jar: its path relative to the pack, which every message names, and its copy. */
+    /** A module jar to copy: its origin, which every message names, and the file. */
+    record SourceJar(String origin, Path file) {
+        SourceJar {
+            Objects.requireNonNull(origin, "origin");
+            Objects.requireNonNull(file, "file");
+        }
+    }
+
+    /** A module jar: its origin, which every message names, and its copy. */
     record CopiedJar(String origin, Path copy) {
         CopiedJar {
             Objects.requireNonNull(origin, "origin");
@@ -40,15 +48,15 @@ final class JarSnapshot {
         this.jars = List.copyOf(jars);
     }
 
-    /** Copies {@code jars}, which lie under {@code packRoot}, into a new directory below
-     * {@code temporaryRoot}. Leaves nothing behind if a copy fails.
+    /** Copies {@code jars}, whose file names differ, into a new directory below {@code temporaryRoot}. Leaves nothing
+     * behind if a copy fails.
      */
-    static JarSnapshot take(Path packRoot, List<Path> jars, Path temporaryRoot) {
+    static JarSnapshot take(List<SourceJar> jars, Path temporaryRoot) {
         var directory = createOwnedDirectory(temporaryRoot);
         var copies = new ArrayList<CopiedJar>(jars.size());
         try {
             for (var jar : jars) {
-                copies.add(copy(packRoot, jar, directory));
+                copies.add(copy(jar, directory));
             }
             return new JarSnapshot(directory, copies);
         } catch (RuntimeException | Error failure) {
@@ -61,7 +69,7 @@ final class JarSnapshot {
         return jars;
     }
 
-    /** The pack-relative origin of a copy, or {@code null} if {@code location} is not one of them. */
+    /** The origin of a copy, or {@code null} if {@code location} is not one of them. */
     String originOf(Path location) {
         return jars.stream()
                 .filter(jar -> jar.copy().equals(location))
@@ -109,14 +117,13 @@ final class JarSnapshot {
         return OWNER_HEADER + "\n" + pid + "\n";
     }
 
-    private static CopiedJar copy(Path packRoot, Path jar, Path directory) {
-        var origin = packRoot.relativize(jar).toString();
-        var copy = directory.resolve(jar.getFileName().toString());
+    private static CopiedJar copy(SourceJar jar, Path directory) {
+        var copy = directory.resolve(jar.file().getFileName().toString());
         try {
-            Files.copy(jar, copy);
-            return new CopiedJar(origin, copy);
+            Files.copy(jar.file(), copy);
+            return new CopiedJar(jar.origin(), copy);
         } catch (IOException exception) {
-            throw new UncheckedIOException("Cannot copy module jar " + origin, exception);
+            throw new UncheckedIOException("Cannot copy module jar " + jar.origin(), exception);
         }
     }
 }

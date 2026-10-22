@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /** The module jars of one pack: every {@code <pack>/modules/*.jar}, each with the modules it lists,
  * ordered by file name so the result never depends on directory listing order. Hosts normally load packs
@@ -46,18 +47,21 @@ import java.util.stream.Collectors;
 public final class PackModules implements AutoCloseable {
     public static final String MODULES_DIRECTORY = "modules";
     static final String JAR_EXTENSION = ".jar";
+    static final String BUNDLED_ORIGIN_SUFFIX = " (bundled with the host)";
     private static final String TEMPORARY_DIRECTORY_PROPERTY = "java.io.tmpdir";
     static final System.Logger DEFAULT_LOGGER = System.getLogger(PackModules.class.getName());
 
     private final List<DiscoveredModule> modules;
     private final List<MissingClasses> missingClasses;
+    private final List<String> replacedJars;
     private final URLClassLoader loader;
     private final JarSnapshot snapshot;
 
-    private PackModules(
-            List<DiscoveredModule> modules, List<MissingClasses> missingClasses, URLClassLoader loader, JarSnapshot snapshot) {
+    private PackModules(List<DiscoveredModule> modules, List<MissingClasses> missingClasses, List<String> replacedJars,
+                        URLClassLoader loader, JarSnapshot snapshot) {
         this.modules = List.copyOf(modules);
         this.missingClasses = List.copyOf(missingClasses);
+        this.replacedJars = List.copyOf(replacedJars);
         this.loader = loader;
         this.snapshot = snapshot;
     }
@@ -86,13 +90,25 @@ public final class PackModules implements AutoCloseable {
 
     /** Like {@link #load(Path, Collection)}, copying the jars below {@code temporaryRoot} and logging to {@code logger}. */
     static PackModules load(Path packRoot, Collection<String> exposedHostPackages, Path temporaryRoot, System.Logger logger) {
+        return load(packRoot, exposedHostPackages, List.of(), temporaryRoot, logger);
+    }
+
+    /** Like {@link #load(Path, Collection, Path, System.Logger)}, also loading the host's {@code bundledJars} as if they were
+     * in the pack, before its own jars and in the given order. A pack jar with a bundled jar's file name, such as an old copy
+     * of it, is left out, so the host's copy is the one that loads; {@link #replacedJars()} names it.
+     */
+    static PackModules load(Path packRoot, Collection<String> exposedHostPackages, List<Path> bundledJars, Path temporaryRoot,
+                            System.Logger logger) {
         Objects.requireNonNull(packRoot, "packRoot");
         Objects.requireNonNull(logger, "logger");
         var host = new ExposedHostClassLoader(IrisModule.class.getClassLoader(), ExposedPackages.apiAnd(exposedHostPackages));
         StaleJarSnapshots.remove(temporaryRoot);
-        var snapshot = JarSnapshot.take(packRoot, findModuleJars(packRoot), temporaryRoot);
+        var packJars = findModuleJars(packRoot);
+        var replacedPackJars = packJarsNamedLike(packJars, bundledJars);
+        var snapshot = JarSnapshot.take(sourceJars(packRoot, bundledJars, packJars, replacedPackJars), temporaryRoot);
+        var replacedJars = replacedPackJars.stream().map(jar -> packRoot.relativize(jar).toString()).toList();
         try {
-            var packModules = loadSnapshot(packRoot, snapshot, host, logger);
+            var packModules = loadSnapshot(packRoot, snapshot, replacedJars, host, logger);
             logLoad(logger, packName(packRoot), packModules);
             return packModules;
         } catch (RuntimeException | Error failure) {
@@ -114,6 +130,11 @@ public final class PackModules implements AutoCloseable {
         return missingClasses;
     }
 
+    /** The pack's own jars, relative to the pack, that a bundled jar of the same file name replaced, in file name order. */
+    public List<String> replacedJars() {
+        return replacedJars;
+    }
+
     /** Closes the class loader, then deletes the jar copies, which an open loader would keep locked on Windows. */
     @Override
     public void close() {
@@ -131,10 +152,11 @@ public final class PackModules implements AutoCloseable {
         return Path.of(System.getProperty(TEMPORARY_DIRECTORY_PROPERTY));
     }
 
-    private static PackModules loadSnapshot(Path packRoot, JarSnapshot snapshot, ExposedHostClassLoader host, System.Logger logger) {
+    private static PackModules loadSnapshot(Path packRoot, JarSnapshot snapshot, List<String> replacedJars,
+                                            ExposedHostClassLoader host, System.Logger logger) {
         var jars = snapshot.jars().stream().map(ModuleJar::read).toList();
         var missingClasses = PackClassCheck.requireLinkable(jars, host);
-        return defineModules(packRoot, jars, missingClasses, host, snapshot, logger);
+        return defineModules(packRoot, jars, missingClasses, replacedJars, host, snapshot, logger);
     }
 
     private static List<Path> findModuleJars(Path packRoot) {
@@ -150,17 +172,40 @@ public final class PackModules implements AutoCloseable {
         }
     }
 
+    private static List<Path> packJarsNamedLike(List<Path> packJars, List<Path> bundledJars) {
+        var bundledNames = bundledJars.stream().map(PackModules::fileName).collect(Collectors.toSet());
+        return packJars.stream().filter(jar -> bundledNames.contains(fileName(jar))).toList();
+    }
+
+    private static List<JarSnapshot.SourceJar> sourceJars(Path packRoot, List<Path> bundledJars, List<Path> packJars,
+                                                          List<Path> replacedPackJars) {
+        var bundled = bundledJars.stream().map(jar -> new JarSnapshot.SourceJar(bundledOrigin(jar), jar));
+        var own = packJars.stream()
+                .filter(Predicate.not(replacedPackJars::contains))
+                .map(jar -> new JarSnapshot.SourceJar(packRoot.relativize(jar).toString(), jar));
+        return Stream.concat(bundled, own).toList();
+    }
+
+    /** How messages name a bundled jar: its file name, marked as the host's. */
+    static String bundledOrigin(Path bundledJar) {
+        return fileName(bundledJar) + BUNDLED_ORIGIN_SUFFIX;
+    }
+
+    private static String fileName(Path jar) {
+        return jar.getFileName().toString();
+    }
+
     private static boolean isJar(Path path) {
         return Files.isRegularFile(path) && path.getFileName().toString().endsWith(JAR_EXTENSION);
     }
 
     private static PackModules defineModules(
-            Path packRoot, List<ModuleJar> jars, List<MissingClasses> missingClasses, ClassLoader host, JarSnapshot snapshot,
-            System.Logger logger) {
+            Path packRoot, List<ModuleJar> jars, List<MissingClasses> missingClasses, List<String> replacedJars, ClassLoader host,
+            JarSnapshot snapshot, System.Logger logger) {
         var loader = newPackClassLoader(packRoot, jars, host);
         try {
             var modules = createModules(jars, loader, snapshot, logger);
-            return new PackModules(modules, withoutDeclaredOptional(missingClasses, modules), loader, snapshot);
+            return new PackModules(modules, withoutDeclaredOptional(missingClasses, modules), replacedJars, loader, snapshot);
         } catch (RuntimeException | Error failure) {
             closeAfterFailure(loader, failure);
             throw failure;

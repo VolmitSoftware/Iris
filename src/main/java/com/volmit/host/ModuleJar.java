@@ -24,8 +24,8 @@ import java.util.zip.ZipFile;
 
 /** One jar in a pack's modules directory, the entry classes it names and the classes it holds,
  * each with the classes it links against. {@code path} is the load's copy of the jar
- * ({@link JarSnapshot}); {@code origin} is the original's path relative to the pack, which every
- * message names.
+ * ({@link JarSnapshot}); {@code origin}, the original's path relative to the pack or a bundled jar's name, is what
+ * every message names.
  *
  * <p>The entry points are the jar's own {@code META-INF/services/com.volmit.IrisModule} file, in
  * the format {@link java.util.ServiceLoader} reads: one module class per line, so a jar holds as many

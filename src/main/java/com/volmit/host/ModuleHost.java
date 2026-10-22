@@ -13,7 +13,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
 
-/** The host's side of every pack load, the same for all packs: its built-in modules, the host
+/** The host's side of every pack load, the same for all packs: its built-in modules, the module jars it bundles, the host
  * packages pack modules may use besides the Iris API, the JSON fields the host itself uses (which no
  * settings key may take), the packages of the classes the host describes itself and the pack folders it
  * reads itself (which no resource kind may read). Build it once and pass it to every
@@ -37,6 +37,7 @@ public record ModuleHost(
         Map<FeatureAttachment.Target, Set<String>> reservedHostFields,
         Set<String> hostTypePackages,
         Set<String> reservedFolders,
+        List<Path> bundledJars,
         Path jarCopyRoot,
         System.Logger logger) {
     private static final String TEMPORARY_DIRECTORY_PROPERTY = "java.io.tmpdir";
@@ -47,12 +48,14 @@ public record ModuleHost(
         reservedHostFields = copyOf(reservedHostFields);
         hostTypePackages = Set.copyOf(hostTypePackages);
         reservedFolders = Set.copyOf(reservedFolders);
+        bundledJars = List.copyOf(bundledJars);
         Objects.requireNonNull(jarCopyRoot, "jarCopyRoot");
         Objects.requireNonNull(logger, "logger");
         ExposedPackages.apiAnd(exposedHostPackages);
         HostTypes.of(hostTypePackages);
         requireFieldNames(reservedHostFields);
         requireFolderNames(reservedFolders);
+        requireJarFileNames(bundledJars);
     }
 
     /** The given built-in modules, exposing only the Iris API and reserving nothing. Jar copies go to
@@ -60,7 +63,7 @@ public record ModuleHost(
      */
     public static ModuleHost of(List<? extends IrisModule> builtInModules) {
         var builtIns = builtInModules.stream().map(DiscoveredModule::builtIn).toList();
-        return new ModuleHost(builtIns, Set.of(), Map.of(), Set.of(), Set.of(), systemTemporaryDirectory(),
+        return new ModuleHost(builtIns, Set.of(), Map.of(), Set.of(), Set.of(), List.of(), systemTemporaryDirectory(),
                 PackModules.DEFAULT_LOGGER);
     }
 
@@ -69,7 +72,7 @@ public record ModuleHost(
      */
     public ModuleHost exposing(String... packages) {
         return new ModuleHost(builtIns, union(exposedHostPackages, packages), reservedHostFields,
-                hostTypePackages, reservedFolders, jarCopyRoot, logger);
+                hostTypePackages, reservedFolders, bundledJars, jarCopyRoot, logger);
     }
 
     /** This configuration with {@code fields} also reserved as JSON fields the host itself uses,
@@ -77,7 +80,7 @@ public record ModuleHost(
      */
     public ModuleHost reservingFields(Map<FeatureAttachment.Target, Set<String>> fields) {
         return new ModuleHost(builtIns, exposedHostPackages, merge(reservedHostFields, fields),
-                hostTypePackages, reservedFolders, jarCopyRoot, logger);
+                hostTypePackages, reservedFolders, bundledJars, jarCopyRoot, logger);
     }
 
     /** This configuration with the classes in {@code packages}, each with its subpackages, described by
@@ -87,7 +90,7 @@ public record ModuleHost(
      */
     public ModuleHost describingHostTypesIn(String... packages) {
         return new ModuleHost(builtIns, exposedHostPackages, reservedHostFields,
-                union(hostTypePackages, packages), reservedFolders, jarCopyRoot, logger);
+                union(hostTypePackages, packages), reservedFolders, bundledJars, jarCopyRoot, logger);
     }
 
     /** This configuration with {@code folders}, folder names directly below a pack's root, also read by the host
@@ -95,7 +98,20 @@ public record ModuleHost(
      */
     public ModuleHost reservingFolders(String... folders) {
         return new ModuleHost(builtIns, exposedHostPackages, reservedHostFields, hostTypePackages,
-                union(reservedFolders, folders), jarCopyRoot, logger);
+                union(reservedFolders, folders), bundledJars, jarCopyRoot, logger);
+    }
+
+    /** This configuration also loading {@code jars}, module jars the host ships, with every pack, as if they were in its
+     * {@code modules} folder: before the pack's own jars, in the given order, in the same class loader. A pack jar with the
+     * same file name, such as an old copy, is left out, so a pack can never load a stale copy; {@link LoadedPack#replacedJars()}
+     * names it, for the host to tell the pack's owner. Their file names must differ and end in {@code .jar}; whether they
+     * exist is checked when a pack loads.
+     */
+    public ModuleHost bundlingJars(Path... jars) {
+        var bundled = new ArrayList<>(bundledJars);
+        bundled.addAll(Arrays.asList(jars));
+        return new ModuleHost(builtIns, exposedHostPackages, reservedHostFields, hostTypePackages, reservedFolders,
+                bundled, jarCopyRoot, logger);
     }
 
     /** This configuration copying module jars into new directories below {@code directory}, such as a
@@ -103,7 +119,7 @@ public record ModuleHost(
      */
     public ModuleHost copyingJarsTo(Path directory) {
         return new ModuleHost(builtIns, exposedHostPackages, reservedHostFields, hostTypePackages,
-                reservedFolders, directory, logger);
+                reservedFolders, bundledJars, directory, logger);
     }
 
     /** This configuration logging each pack load's module summary and missing-classes warning, and every module's own
@@ -114,7 +130,7 @@ public record ModuleHost(
         Objects.requireNonNull(logger, "logger");
         var loggedBuiltIns = builtIns.stream().map(builtIn -> builtIn.loggingTo(logger)).toList();
         return new ModuleHost(loggedBuiltIns, exposedHostPackages, reservedHostFields, hostTypePackages,
-                reservedFolders, jarCopyRoot, logger);
+                reservedFolders, bundledJars, jarCopyRoot, logger);
     }
 
     /** The built-in modules followed by a pack's modules, in the order {@link LoadedModules} installs them. */
@@ -144,6 +160,19 @@ public record ModuleHost(
             if (!ResourceKind.isFolderName(folder)) {
                 throw new IllegalArgumentException("Reserved folder '" + folder + "' is not a folder name directly below the"
                         + " pack root, such as biomes");
+            }
+        }
+    }
+
+    private static void requireJarFileNames(List<Path> jars) {
+        var names = new TreeSet<String>();
+        for (var jar : jars) {
+            var name = Objects.requireNonNull(jar, "bundled jar").getFileName();
+            if (name == null || !name.toString().endsWith(PackModules.JAR_EXTENSION)) {
+                throw new IllegalArgumentException("Bundled module jar " + jar + " is not a .jar file");
+            }
+            if (!names.add(name.toString())) {
+                throw new IllegalArgumentException("Two bundled module jars are named " + name);
             }
         }
     }

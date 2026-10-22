@@ -78,7 +78,7 @@ public final class DiscoveredModule {
         return log;
     }
 
-    /** The jar path relative to the pack, or "host classpath" for built-in modules. */
+    /** The jar path relative to the pack, a bundled jar's name, or "host classpath" for built-in modules. */
     public String origin() {
         return origin;
     }

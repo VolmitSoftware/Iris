@@ -13,7 +13,6 @@ public final class ChunkPlanes {
     private final int chunkX;
     private final int chunkZ;
     private final AtomicReferenceArray<Plane> planes = new AtomicReferenceArray<>(BakePlane.PLANES.length);
-    private volatile ColumnBake columnBake;
 
     ChunkPlanes(int chunkX, int chunkZ) {
         this.chunkX = chunkX;
@@ -70,21 +69,10 @@ public final class ChunkPlanes {
         }
     }
 
-    ColumnBake columnBake() {
-        return columnBake;
-    }
-
-    ColumnBake columnBake(PlaneSource source) {
-        ColumnBake bake = columnBake;
-        if (bake != null) {
-            return bake;
+    void release() {
+        for (int slot = 0; slot < planes.length(); slot++) {
+            planes.setRelease(slot, null);
         }
-        long revision = ProvisionalSampling.revision();
-        bake = source.assemble(this);
-        if (revision == ProvisionalSampling.revision()) {
-            columnBake = bake;
-        }
-        return bake;
     }
 
     public static final class Plane {

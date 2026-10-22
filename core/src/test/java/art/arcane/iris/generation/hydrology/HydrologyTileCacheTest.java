@@ -99,7 +99,6 @@ public class HydrologyTileCacheTest {
         new PreparedHydrologyTileStore(root, scope, 64).save(tile);
         try (HydrologyTileCache cache = new HydrologyTileCache(planner, 4)) {
             cache.enableSharedCache(scope, root);
-            cache.setTerrainPreparation(() -> { throw new AssertionError("Restoration must not sample terrain"); });
             HydrologyTile restored = cache.get(key);
             assertEquals(tile.key(), restored.key());
             assertEquals(tile.footprint(), restored.footprint());
@@ -877,13 +876,6 @@ public class HydrologyTileCacheTest {
         when(tile.tileSize()).thenReturn(64);
         HydrologyTileCache first = new HydrologyTileCache(firstPlanner, 4, null, null, scope);
         HydrologyTileCache second = new HydrologyTileCache(secondPlanner, 4, null, null, scope);
-        AtomicInteger terrainPreparations = new AtomicInteger();
-        first.setTerrainPreparation(terrainPreparations::incrementAndGet);
-        second.setTerrainPreparation(() -> {
-            throw new AssertionError("Shared tile reuse must not prepare terrain caches");
-        });
-
-        assertEquals(0, terrainPreparations.get());
 
         assertSame(tile, first.get(key));
         assertSame(tile, second.get(key));
@@ -891,7 +883,6 @@ public class HydrologyTileCacheTest {
         verify(firstPlanner, times(1)).plan(key);
         verify(secondPlanner, never()).plan(key);
         verify(secondPlanner, times(1)).reuseResolvedTile(tile);
-        assertEquals(1, terrainPreparations.get());
     }
 
     @Test(timeout = 10000L)

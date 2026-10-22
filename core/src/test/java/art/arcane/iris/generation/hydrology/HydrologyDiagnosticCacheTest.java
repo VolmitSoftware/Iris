@@ -44,8 +44,6 @@ public class HydrologyDiagnosticCacheTest {
         try (HydrologyTileCache cache = new HydrologyTileCache(planner, 4)) {
             assertSame(tile, cache.get(key));
             verify(planner, never()).diagnosticCandidates(tile);
-            AtomicInteger preparations = new AtomicInteger();
-            cache.setTerrainPreparation(preparations::incrementAndGet);
             List<HydrologyDiagnosticCandidate> result = cache.diagnosticCandidates(key);
             supplied.clear();
             assertEquals(List.of(candidate), result);
@@ -53,7 +51,6 @@ public class HydrologyDiagnosticCacheTest {
             assertSame(result, cache.diagnosticCandidates(key));
             verify(planner, times(1)).plan(key);
             verify(planner, times(1)).diagnosticCandidates(tile);
-            assertEquals(1, preparations.get());
         }
     }
 

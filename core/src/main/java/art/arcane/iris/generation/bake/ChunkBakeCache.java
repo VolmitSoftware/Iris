@@ -3,6 +3,7 @@ package art.arcane.iris.generation.bake;
 import art.arcane.iris.generation.cache.ConcurrentClockCache;
 import art.arcane.iris.generation.stream.ProvisionalSampling;
 
+import java.util.Arrays;
 import java.util.Objects;
 
 public final class ChunkBakeCache {
@@ -10,6 +11,7 @@ public final class ChunkBakeCache {
     static final int MAXIMUM_CAPACITY = 32_768;
     static final long BYTES_PER_ENTRY = 13L * 1_024L;
     static final int HEAP_SHARE = 32;
+    private static final int RECENT_SLOTS = 16;
     private static final ThreadLocal<int[]> SPARSE = ThreadLocal.withInitial(() -> new int[1]);
 
     private final PlaneSource source;
@@ -52,17 +54,16 @@ public final class ChunkBakeCache {
 
     public ChunkPlanes.Plane planeIfPresent(BakePlane plane, int chunkX, int chunkZ) {
         long key = key(chunkX, chunkZ);
+        int slot = Recent.slot(chunkX, chunkZ);
         Recent last = recent.get();
         int current = generation;
-        ChunkPlanes planes;
-        if (last.key == key && last.generation == current) {
-            planes = last.planes;
-        } else {
+        ChunkPlanes planes = last.get(key, slot, current);
+        if (planes == null) {
             planes = entries.get(key);
             if (planes == null) {
                 return null;
             }
-            last.remember(key, planes, current);
+            last.remember(key, slot, planes, current);
         }
         return planes.planeIfPresent(plane);
     }
@@ -73,6 +74,10 @@ public final class ChunkBakeCache {
 
     public Object complete(BakePlane plane, int chunkX, int chunkZ) {
         return remembered(chunkX, chunkZ).complete(plane, source);
+    }
+
+    public void fillColumns(BakePlane plane, int chunkX, int chunkZ, long[] columns, Object target) {
+        remembered(chunkX, chunkZ).plane(plane).fillColumns(source, chunkX, chunkZ, columns, target);
     }
 
     public boolean memoAllowed() {
@@ -102,7 +107,7 @@ public final class ChunkBakeCache {
     private ChunkPlanes remembered(int chunkX, int chunkZ) {
         int current = generation;
         ChunkPlanes planes = planes(chunkX, chunkZ);
-        recent.get().remember(key(chunkX, chunkZ), planes, current);
+        recent.get().remember(key(chunkX, chunkZ), Recent.slot(chunkX, chunkZ), planes, current);
         return planes;
     }
 
@@ -123,14 +128,25 @@ public final class ChunkBakeCache {
     }
 
     private static final class Recent {
-        private long key;
+        private final long[] keys = new long[RECENT_SLOTS];
+        private final ChunkPlanes[] planes = new ChunkPlanes[RECENT_SLOTS];
         private int generation = -1;
-        private ChunkPlanes planes;
 
-        private void remember(long key, ChunkPlanes planes, int generation) {
-            this.key = key;
-            this.planes = planes;
-            this.generation = generation;
+        private static int slot(int chunkX, int chunkZ) {
+            return ((chunkZ & 3) << 2) | (chunkX & 3);
+        }
+
+        private ChunkPlanes get(long key, int slot, int generation) {
+            return this.generation == generation && keys[slot] == key ? planes[slot] : null;
+        }
+
+        private void remember(long key, int slot, ChunkPlanes value, int generation) {
+            if (this.generation != generation) {
+                Arrays.fill(planes, null);
+                this.generation = generation;
+            }
+            keys[slot] = key;
+            planes[slot] = value;
         }
     }
 }

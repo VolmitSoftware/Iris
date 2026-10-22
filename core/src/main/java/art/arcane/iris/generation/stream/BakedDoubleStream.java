@@ -81,6 +81,21 @@ public final class BakedDoubleStream extends BasicStream<Double> implements Chun
         }
     }
 
+    public void fillColumns(int chunkX, int chunkZ, long[] columns, double[] target) {
+        if (cache.memoAllowed()) {
+            cache.fillColumns(plane, chunkX, chunkZ, columns, target);
+            return;
+        }
+        int originX = chunkX << 4;
+        int originZ = chunkZ << 4;
+        for (int word = 0; word < 4; word++) {
+            for (long bits = columns[word]; bits != 0L; bits &= bits - 1L) {
+                int index = (word << 6) | Long.numberOfTrailingZeros(bits);
+                target[index] = getDouble(originX + (index & 15), originZ + (index >> 4));
+            }
+        }
+    }
+
     @Override
     public void fillChunkRaw(int worldX, int worldZ, Object[] target) {
         double[] values = new double[256];

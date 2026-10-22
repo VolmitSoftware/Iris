@@ -145,6 +145,55 @@ public final class ChunkPlanes {
             return values;
         }
 
+        void fillColumns(PlaneSource source, int chunkX, int chunkZ, long[] columns, Object target) {
+            long[] missing = new long[4];
+            boolean any = false;
+            if (!complete) {
+                for (int word = 0; word < 4; word++) {
+                    missing[word] = columns[word] & ~(long) READY.getAcquire(ready, word);
+                    any |= missing[word] != 0L;
+                }
+            }
+            if (!any) {
+                copyColumns(columns, values, target);
+                return;
+            }
+            long revision = ProvisionalSampling.revision();
+            source.fill(kind, chunkX, chunkZ, missing, target);
+            long[] known = new long[4];
+            for (int word = 0; word < 4; word++) {
+                known[word] = columns[word] & ~missing[word];
+            }
+            copyColumns(known, values, target);
+            if (revision == ProvisionalSampling.revision()) {
+                publish(missing, target);
+            }
+        }
+
+        private void publish(long[] missing, Object computed) {
+            copyColumns(missing, computed, values);
+            for (int word = 0; word < 4; word++) {
+                if (missing[word] != 0L) {
+                    READY.getAndBitwiseOrRelease(ready, word, missing[word]);
+                }
+            }
+        }
+
+        private void copyColumns(long[] columns, Object from, Object to) {
+            for (int word = 0; word < 4; word++) {
+                long bits = columns[word];
+                while (bits != 0L) {
+                    int index = (word << 6) | Long.numberOfTrailingZeros(bits);
+                    if (kind.doubles()) {
+                        ((double[]) to)[index] = ((double[]) from)[index];
+                    } else {
+                        ((Object[]) to)[index] = ((Object[]) from)[index];
+                    }
+                    bits &= bits - 1L;
+                }
+            }
+        }
+
         private Object unpublishedFill(PlaneSource source, int chunkX, int chunkZ) {
             long[] missing = missing();
             Object computed = kind.doubles() ? new double[256] : new Object[256];

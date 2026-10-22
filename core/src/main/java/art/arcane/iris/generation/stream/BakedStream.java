@@ -54,6 +54,21 @@ public final class BakedStream<T> extends BasicStream<T> implements ChunkFillabl
         return scalar.fromDouble(d);
     }
 
+    public void fillColumns(int chunkX, int chunkZ, long[] columns, Object[] target) {
+        if (cache.memoAllowed()) {
+            cache.fillColumns(plane, chunkX, chunkZ, columns, target);
+            return;
+        }
+        int originX = chunkX << 4;
+        int originZ = chunkZ << 4;
+        for (int word = 0; word < 4; word++) {
+            for (long bits = columns[word]; bits != 0L; bits &= bits - 1L) {
+                int index = (word << 6) | Long.numberOfTrailingZeros(bits);
+                target[index] = get(originX + (index & 15), originZ + (index >> 4));
+            }
+        }
+    }
+
     @Override
     public void fillChunkRaw(int worldX, int worldZ, Object[] target) {
         int chunkX = worldX >> 4;

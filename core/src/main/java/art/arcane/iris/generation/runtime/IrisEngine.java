@@ -179,6 +179,8 @@ public class IrisEngine implements Engine {
     @Getter(AccessLevel.NONE)
     @Setter(AccessLevel.NONE)
     private volatile boolean generationHistoryRoutingRequired;
+    @Getter(AccessLevel.NONE)
+    @Setter(AccessLevel.NONE)
     private volatile SubterrainGate subterrainGate;
     @Getter(AccessLevel.NONE)
     @Setter(AccessLevel.NONE)

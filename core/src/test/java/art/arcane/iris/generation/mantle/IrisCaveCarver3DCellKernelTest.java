@@ -84,6 +84,11 @@ public class IrisCaveCarver3DCellKernelTest {
     }
 
     @Test
+    public void packStyleProfilesSharingFieldsMatchGoldenWriteSequence() throws Exception {
+        assertScenario(Scenario.PACK_SHARED, 0xdbe20a1ca87f9cc7L, 269035);
+    }
+
+    @Test
     public void cellKernelDecidesCellsWithoutColumnEvaluation() throws Exception {
         IrisCaveCarver3D.CellCounters before = IrisCaveCarver3D.cellCounters();
         run(Scenario.WARP_MODULES, false);
@@ -196,7 +201,31 @@ public class IrisCaveCarver3DCellKernelTest {
         return profile;
     }
 
+    private static IrisCaveProfile packProfile(NoiseStyle warp, double warpZoom, double warpStrength, NoiseStyle base,
+                                               double baseZoom, double threshold, IrisCaveFieldModule... modules) {
+        IrisCaveProfile profile = baseProfile(true, false);
+        profile.setWarpStyle(new IrisGeneratorStyle(warp).zoomed(warpZoom));
+        profile.setWarpStrength(warpStrength);
+        profile.setBaseDensityStyle(new IrisGeneratorStyle(base).zoomed(baseZoom));
+        profile.setDetailDensityStyle(new IrisGeneratorStyle(NoiseStyle.SIMPLEX).zoomed(0.5D));
+        profile.setBaseWeight(0.82D);
+        profile.setDetailWeight(0.15D);
+        profile.setDensityThreshold(new IrisStyledRange(threshold - 0.06D, threshold + 0.05D,
+                new IrisGeneratorStyle(NoiseStyle.SIMPLEX).zoomed(0.78D)));
+        profile.setThresholdBias(0.12D);
+        profile.setSampleStep(2);
+        profile.setModules(new KList<>(modules));
+        return profile;
+    }
+
+    private static IrisCaveFieldModule packModule(NoiseStyle style, double zoom, double weight, double threshold,
+                                                  double minY, double maxY, boolean invert) {
+        return new IrisCaveFieldModule(new IrisGeneratorStyle(style).zoomed(zoom), weight, threshold,
+                new IrisRange(minY, maxY), invert);
+    }
+
     private enum Scenario {
+        PACK_SHARED,
         WARP_MODULES,
         WARP_TERRAIN,
         STYLED_BLEND,
@@ -207,6 +236,20 @@ public class IrisCaveCarver3DCellKernelTest {
         FLOOR_FLUID_LAYERED;
 
         IrisCaveProfile[] profiles() {
+            if (this == PACK_SHARED) {
+                return new IrisCaveProfile[]{
+                        packProfile(NoiseStyle.FRACTAL_WATER, 0.44D, 3.2D, NoiseStyle.PERLIN_IRIS, 0.72D, -0.02D,
+                                packModule(NoiseStyle.FRACTAL_FBM_SIMPLEX, 0.24D, 0.08D, 0.03D, 10D, 140D, false),
+                                packModule(NoiseStyle.SIMPLEX_VASCULAR, 1.02D, 0.05D, 0.07D, 4D, 90D, true)),
+                        packProfile(NoiseStyle.FRACTAL_WATER, 0.44D, 3.2D, NoiseStyle.FRACTAL_BILLOW_SIMPLEX, 0.656D, 0.01D,
+                                packModule(NoiseStyle.CELLULAR_BILINEAR, 1.32D, 0.06D, 0.02D, 20D, 150D, false)),
+                        packProfile(NoiseStyle.FRACTAL_WATER, 0.44D, 3.2D, NoiseStyle.PERLIN_IRIS, 0.72D, 0.04D,
+                                packModule(NoiseStyle.FRACTAL_FBM_SIMPLEX, 0.24D, 0.08D, 0.03D, 10D, 140D, false),
+                                packModule(NoiseStyle.SIMPLEX_VASCULAR, 1.02D, 0.05D, 0.07D, 4D, 90D, true)),
+                        packProfile(NoiseStyle.PERLIN_IRIS, 0.35D, 2.4D, NoiseStyle.IRIS_DOUBLE, 0.68D, -0.04D,
+                                packModule(NoiseStyle.VASCULAR_THIN, 1.28D, 0.04D, 0.05D, 8D, 120D, false))
+                };
+            }
             if (this == FLOOR_FLUID_LAYERED) {
                 return new IrisCaveProfile[]{
                         baseProfile(true, true).setAllowFluid(true).setFluidRequiresFloor(true).setFluidMinDepthBelowSurface(4),
@@ -228,7 +271,7 @@ public class IrisCaveCarver3DCellKernelTest {
                         .setFluidMinDepthBelowSurface(6).setAllowLava(false);
                 case NO_WARP_MODULES -> baseProfile(false, true);
                 case LATTICE -> baseProfile(true, true).setSampleStep(3);
-                case FLOOR_FLUID_LAYERED -> baseProfile(true, true);
+                case FLOOR_FLUID_LAYERED, PACK_SHARED -> baseProfile(true, true);
             };
         }
 
@@ -239,6 +282,7 @@ public class IrisCaveCarver3DCellKernelTest {
                 int worldZ = (chunkZ << 4) + (index & 15);
                 double blend = 0.5D + 0.6D * Math.sin(worldX * 0.11D) * Math.cos(worldZ * 0.07D);
                 weights[index] = switch (this) {
+                    case PACK_SHARED -> 0.5D + 0.6D * Math.sin(worldX * 0.13D + layer * 1.7D) * Math.cos(worldZ * 0.09D - layer);
                     case STYLED_BLEND, FLUID_BOUNDARY -> blend;
                     case FLOOR_FLUID_LAYERED -> layer == 0 ? blend : 1D - blend;
                     default -> 1D;

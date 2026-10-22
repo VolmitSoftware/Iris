@@ -34,6 +34,8 @@ import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.block.B;
 import art.arcane.iris.generation.context.ChunkContext;
 import art.arcane.volmlib.util.stream.ProceduralStream;
+import art.arcane.iris.generation.stream.BakedDoubleStream;
+import art.arcane.iris.generation.stream.BakedStream;
 import art.arcane.iris.generation.stream.ChunkFillableDoubleStream2D;
 import art.arcane.iris.generation.simd.SimdSupport;
 import art.arcane.volmlib.util.documentation.ChunkCoordinates;
@@ -64,6 +66,12 @@ public class MantleCarvingComponent extends IrisMantleComponent {
     private static final int[] KERNEL_DX = new int[KERNEL_SIZE];
     private static final int[] KERNEL_DZ = new int[KERNEL_SIZE];
     private static final double[] KERNEL_WEIGHT = new double[KERNEL_SIZE];
+    private static final int NEIGHBOURS = 9;
+    private static final int[] NEIGHBOUR_DX = new int[NEIGHBOURS];
+    private static final int[] NEIGHBOUR_DZ = new int[NEIGHBOURS];
+    private static final long[][] NEIGHBOUR_COLUMNS = new long[NEIGHBOURS][4];
+    private static final int[] FIELD_NEIGHBOUR = new int[FIELD_SIZE * FIELD_SIZE];
+    private static final int[] FIELD_COLUMN = new int[FIELD_SIZE * FIELD_SIZE];
     private static final ThreadLocal<BlendScratch> BLEND_SCRATCH = ThreadLocal.withInitial(BlendScratch::new);
 
     private final Object profileCarverLock = new Object();
@@ -79,6 +87,22 @@ public class MantleCarvingComponent extends IrisMantleComponent {
                 int edgeDistance = Math.max(Math.abs(offsetX), Math.abs(offsetZ));
                 KERNEL_WEIGHT[kernelIndex] = (BLEND_RADIUS + 1D) - edgeDistance;
                 kernelIndex++;
+            }
+        }
+        for (int neighbour = 0; neighbour < NEIGHBOURS; neighbour++) {
+            NEIGHBOUR_DX[neighbour] = (neighbour / 3) - 1;
+            NEIGHBOUR_DZ[neighbour] = (neighbour % 3) - 1;
+        }
+        for (int fieldX = 0; fieldX < FIELD_SIZE; fieldX++) {
+            int offsetX = fieldX - BLEND_RADIUS;
+            for (int fieldZ = 0; fieldZ < FIELD_SIZE; fieldZ++) {
+                int offsetZ = fieldZ - BLEND_RADIUS;
+                int neighbour = ((Math.floorDiv(offsetX, CHUNK_SIZE) + 1) * 3) + Math.floorDiv(offsetZ, CHUNK_SIZE) + 1;
+                int column = ((offsetZ & (CHUNK_SIZE - 1)) << 4) | (offsetX & (CHUNK_SIZE - 1));
+                int fieldIndex = (fieldX * FIELD_SIZE) + fieldZ;
+                FIELD_NEIGHBOUR[fieldIndex] = neighbour;
+                FIELD_COLUMN[fieldIndex] = column;
+                NEIGHBOUR_COLUMNS[neighbour][column >>> 6] |= 1L << (column & 63);
             }
         }
     }
@@ -128,7 +152,7 @@ public class MantleCarvingComponent extends IrisMantleComponent {
 
     private void generateLayer(MantleWriter writer, int x, int z, ChunkContext context, BlendScratch blendScratch) {
         IrisComplex complex = context.getComplex();
-        IrisDimensionCarvingResolver.State resolverState = new IrisDimensionCarvingResolver.State();
+        IrisDimensionCarvingResolver.State resolverState = blendScratch.resolverState;
         int[] chunkSurfaceHeights = prepareChunkSurfaceHeights(x, z, context, blendScratch.chunkSurfaceHeights);
         PrecisionStopwatch resolveStopwatch = PrecisionStopwatch.start();
         List<WeightedProfile> weightedProfiles = resolveWeightedProfiles(x, z, complex, resolverState);
@@ -422,7 +446,7 @@ public class MantleCarvingComponent extends IrisMantleComponent {
     private void fillProfileField(IrisCaveProfile[] profileField, int chunkX, int chunkZ, IrisComplex complex, IrisDimensionCarvingResolver.State resolverState, BlendScratch blendScratch) {
         int startX = PowerOfTwoCoordinates.chunkToBlock(chunkX) - BLEND_RADIUS;
         int startZ = PowerOfTwoCoordinates.chunkToBlock(chunkZ) - BLEND_RADIUS;
-        prefillProfileFieldSamples(startX, startZ, complex, blendScratch);
+        prefillProfileFieldSamples(chunkX, chunkZ, startX, startZ, complex, blendScratch);
 
         for (int fieldX = 0; fieldX < FIELD_SIZE; fieldX++) {
             int worldX = startX + fieldX;
@@ -519,17 +543,28 @@ public class MantleCarvingComponent extends IrisMantleComponent {
         return resolved;
     }
 
-    private void prefillProfileFieldSamples(int startX, int startZ, IrisComplex complex, BlendScratch blendScratch) {
-        fillFieldHeights(complex.getNaturalHeightStream(), startX, startZ, blendScratch.fieldSurfaceHeights);
-        Arrays.fill(blendScratch.fieldFluidHeights, complex.getFluidHeight());
-        fillFieldFluidPresence(complex, startX, startZ, blendScratch.fieldSurfaceHeights,
-                blendScratch.fieldFluidHeights, blendScratch.fieldHasFluid);
-        fillFieldObjects(complex.getRegionStream(), startX, startZ, blendScratch.fieldRegions);
-        fillFieldObjects(complex.getNaturalTrueBiomeStream(), startX, startZ, blendScratch.fieldSurfaceBiomes);
-        fillFieldObjects(complex.getCaveBiomeStream(), startX, startZ, blendScratch.fieldCaveBiomes);
+    private void prefillProfileFieldSamples(int chunkX, int chunkZ, int startX, int startZ, IrisComplex complex, BlendScratch blendScratch) {
+        fillFieldHeights(complex.getNaturalHeightStream(), chunkX, chunkZ, startX, startZ, blendScratch);
+        double fluidHeight = complex.getFluidHeight();
+        Arrays.fill(blendScratch.fieldFluidHeights, fluidHeight);
+        fillFieldFluidPresence(complex.getFluidStream(), chunkX, chunkZ, startX, startZ, Math.round(fluidHeight), blendScratch);
+        fillFieldObjects(complex.getRegionStream(), chunkX, chunkZ, startX, startZ, blendScratch.fieldRegions, blendScratch.neighbourObjects);
+        fillFieldObjects(complex.getNaturalTrueBiomeStream(), chunkX, chunkZ, startX, startZ, blendScratch.fieldSurfaceBiomes, blendScratch.neighbourObjects);
+        fillFieldObjects(complex.getCaveBiomeStream(), chunkX, chunkZ, startX, startZ, blendScratch.fieldCaveBiomes, blendScratch.neighbourObjects);
     }
 
-    private <T> void fillFieldObjects(ProceduralStream<T> stream, int startX, int startZ, T[] target) {
+    @SuppressWarnings("unchecked")
+    private <T> void fillFieldObjects(ProceduralStream<T> stream, int chunkX, int chunkZ, int startX, int startZ, T[] target, Object[][] neighbourObjects) {
+        if (stream instanceof BakedStream<?> baked) {
+            for (int neighbour = 0; neighbour < NEIGHBOURS; neighbour++) {
+                baked.fillColumns(chunkX + NEIGHBOUR_DX[neighbour], chunkZ + NEIGHBOUR_DZ[neighbour],
+                        NEIGHBOUR_COLUMNS[neighbour], neighbourObjects[neighbour]);
+            }
+            for (int fieldIndex = 0; fieldIndex < target.length; fieldIndex++) {
+                target[fieldIndex] = (T) neighbourObjects[FIELD_NEIGHBOUR[fieldIndex]][FIELD_COLUMN[fieldIndex]];
+            }
+            return;
+        }
         for (int fieldX = 0; fieldX < FIELD_SIZE; fieldX++) {
             int worldX = startX + fieldX;
             for (int fieldZ = 0; fieldZ < FIELD_SIZE; fieldZ++) {
@@ -538,7 +573,19 @@ public class MantleCarvingComponent extends IrisMantleComponent {
         }
     }
 
-    private void fillFieldHeights(ProceduralStream<Double> stream, int startX, int startZ, double[] target) {
+    private void fillFieldHeights(ProceduralStream<Double> stream, int chunkX, int chunkZ, int startX, int startZ, BlendScratch blendScratch) {
+        double[] target = blendScratch.fieldSurfaceHeights;
+        if (stream instanceof BakedDoubleStream baked) {
+            double[][] neighbourHeights = blendScratch.neighbourHeights;
+            for (int neighbour = 0; neighbour < NEIGHBOURS; neighbour++) {
+                baked.fillColumns(chunkX + NEIGHBOUR_DX[neighbour], chunkZ + NEIGHBOUR_DZ[neighbour],
+                        NEIGHBOUR_COLUMNS[neighbour], neighbourHeights[neighbour]);
+            }
+            for (int fieldIndex = 0; fieldIndex < target.length; fieldIndex++) {
+                target[fieldIndex] = neighbourHeights[FIELD_NEIGHBOUR[fieldIndex]][FIELD_COLUMN[fieldIndex]];
+            }
+            return;
+        }
         for (int fieldX = 0; fieldX < FIELD_SIZE; fieldX++) {
             int worldX = startX + fieldX;
             for (int fieldZ = 0; fieldZ < FIELD_SIZE; fieldZ++) {
@@ -547,20 +594,41 @@ public class MantleCarvingComponent extends IrisMantleComponent {
         }
     }
 
-    private void fillFieldFluidPresence(
-            IrisComplex complex,
-            int startX,
-            int startZ,
-            double[] surfaceHeights,
-            double[] fluidHeights,
-            boolean[] target
-    ) {
+    private void fillFieldFluidPresence(ProceduralStream<NativeBlockState> stream, int chunkX, int chunkZ, int startX, int startZ,
+                                        long roundedFluidHeight, BlendScratch blendScratch) {
+        double[] surfaceHeights = blendScratch.fieldSurfaceHeights;
+        boolean[] target = blendScratch.fieldHasFluid;
+        if (stream instanceof BakedStream<?> baked) {
+            long[][] submerged = blendScratch.neighbourSubmerged;
+            for (long[] columns : submerged) {
+                Arrays.fill(columns, 0L);
+            }
+            for (int fieldIndex = 0; fieldIndex < target.length; fieldIndex++) {
+                if (Math.round(surfaceHeights[fieldIndex]) < roundedFluidHeight) {
+                    int column = FIELD_COLUMN[fieldIndex];
+                    submerged[FIELD_NEIGHBOUR[fieldIndex]][column >>> 6] |= 1L << (column & 63);
+                }
+            }
+            Object[][] neighbourObjects = blendScratch.neighbourObjects;
+            for (int neighbour = 0; neighbour < NEIGHBOURS; neighbour++) {
+                long[] columns = submerged[neighbour];
+                if ((columns[0] | columns[1] | columns[2] | columns[3]) != 0L) {
+                    baked.fillColumns(chunkX + NEIGHBOUR_DX[neighbour], chunkZ + NEIGHBOUR_DZ[neighbour],
+                            columns, neighbourObjects[neighbour]);
+                }
+            }
+            for (int fieldIndex = 0; fieldIndex < target.length; fieldIndex++) {
+                target[fieldIndex] = Math.round(surfaceHeights[fieldIndex]) < roundedFluidHeight
+                        && B.isFluid((NativeBlockState) neighbourObjects[FIELD_NEIGHBOUR[fieldIndex]][FIELD_COLUMN[fieldIndex]]);
+            }
+            return;
+        }
         for (int fieldX = 0; fieldX < FIELD_SIZE; fieldX++) {
             int worldX = startX + fieldX;
             for (int fieldZ = 0; fieldZ < FIELD_SIZE; fieldZ++) {
                 int fieldIndex = (fieldX * FIELD_SIZE) + fieldZ;
-                target[fieldIndex] = B.isFluid(complex.getFluidStream().get(worldX, startZ + fieldZ))
-                        && Math.round(surfaceHeights[fieldIndex]) < Math.round(fluidHeights[fieldIndex]);
+                target[fieldIndex] = B.isFluid(stream.get(worldX, startZ + fieldZ))
+                        && Math.round(surfaceHeights[fieldIndex]) < roundedFluidHeight;
             }
         }
     }
@@ -682,6 +750,10 @@ public class MantleCarvingComponent extends IrisMantleComponent {
         private final IrisBiome[] fieldCaveBiomes = new IrisBiome[FIELD_SIZE * FIELD_SIZE];
         private final int[] chunkSurfaceHeights = new int[CHUNK_AREA];
         private final double[] chunkSurfaceHeightSamples = new double[CHUNK_AREA];
+        private final double[][] neighbourHeights = new double[NEIGHBOURS][CHUNK_AREA];
+        private final Object[][] neighbourObjects = new Object[NEIGHBOURS][CHUNK_AREA];
+        private final long[][] neighbourSubmerged = new long[NEIGHBOURS][4];
+        private final IrisDimensionCarvingResolver.State resolverState = new IrisDimensionCarvingResolver.State();
         private int nextWeightBuffer;
         private boolean inUse;
 
@@ -705,6 +777,9 @@ public class MantleCarvingComponent extends IrisMantleComponent {
             Arrays.fill(fieldRegions, null);
             Arrays.fill(fieldSurfaceBiomes, null);
             Arrays.fill(fieldCaveBiomes, null);
+            for (Object[] objects : neighbourObjects) {
+                Arrays.fill(objects, null);
+            }
             columnProfileWeights.clear();
             profileOrder.clear();
             nextWeightBuffer = 0;

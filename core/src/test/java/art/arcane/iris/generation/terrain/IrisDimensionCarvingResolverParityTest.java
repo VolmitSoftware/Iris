@@ -167,6 +167,32 @@ public class IrisDimensionCarvingResolverParityTest {
     }
 
     @Test
+    public void rootsWithoutSelectableChildrenResolveToThemselvesWithoutSampling() {
+        for (List<String> children : List.of(List.<String>of(), List.of("missing-child"))) {
+            Fixture fixture = createFixture();
+            IrisDimensionCarvingEntry parent = spy(fixture.engine.getDimension().getCarvingEntryIndex().get("root-low"));
+            parent.setChildRecursionDepth(3);
+            parent.setChildren(new KList<>(children));
+            CNG generator = mock(CNG.class);
+            doReturn(0.5D).when(generator).noiseFast2D(anyDouble(), anyDouble());
+            doReturn(generator).when(parent).getChildrenGenerator(anyLong(), any(IrisData.class));
+            IrisDimensionCarvingResolver.State state = new IrisDimensionCarvingResolver.State();
+
+            for (int worldY = -80; worldY < 140; worldY += 13) {
+                for (int x = -20; x < 20; x += 3) {
+                    for (int z = -20; z < 20; z += 7) {
+                        assertSame(legacyResolveFromRoot(fixture.engine, parent, x, worldY, z),
+                                IrisDimensionCarvingResolver.resolveFromRoot(fixture.engine, parent, x, worldY, z, state));
+                        assertSame(parent, IrisDimensionCarvingResolver.resolveFromRoot(fixture.engine, parent, x, worldY, z, state));
+                    }
+                }
+            }
+
+            verify(generator, never()).noiseFast2D(anyDouble(), anyDouble());
+        }
+    }
+
+    @Test
     public void repeatedColumnResolutionSamplesChildrenOnceAcrossHeights() {
         Fixture fixture = createFixture();
         IrisDimensionCarvingEntry parent = spy(fixture.engine.getDimension().getCarvingEntryIndex().get("root-low"));

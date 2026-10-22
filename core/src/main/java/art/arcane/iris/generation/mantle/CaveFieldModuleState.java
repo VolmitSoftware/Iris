@@ -20,10 +20,10 @@ package art.arcane.iris.generation.mantle;
 
 import art.arcane.iris.generation.cave.IrisCaveFieldModule;
 import art.arcane.iris.pack.value.IrisRange;
-import art.arcane.volmlib.util.noise.CNG;
+import art.arcane.volmlib.util.noise.program.NoiseProgram;
 
 final class CaveFieldModuleState {
-    final CNG density;
+    final NoiseProgram density;
     final int minY;
     final int maxY;
     final double weight;
@@ -32,7 +32,7 @@ final class CaveFieldModuleState {
     final double minContribution;
     final double maxContribution;
 
-    CaveFieldModuleState(IrisCaveFieldModule module, CNG density) {
+    CaveFieldModuleState(IrisCaveFieldModule module, NoiseProgram density) {
         IrisRange range = module.getVerticalRange();
         this.density = density;
         this.minY = (int) Math.floor(range.getMin());
@@ -47,12 +47,12 @@ final class CaveFieldModuleState {
     }
 
     double sample(double x, int y, double z) {
-        double sampled = density.noiseFastSigned3D(x, y, z);
+        double sampled = density.sampleSigned3D(x, y, z);
         return invert ? (threshold - sampled) * weight : (sampled - threshold) * weight;
     }
 
     double sample(double x, double y, double z) {
-        double sampled = density.noiseFastSigned3D(x, y, z);
+        double sampled = density.sampleSigned3D(x, y, z);
         return invert ? (threshold - sampled) * weight : (sampled - threshold) * weight;
     }
 }

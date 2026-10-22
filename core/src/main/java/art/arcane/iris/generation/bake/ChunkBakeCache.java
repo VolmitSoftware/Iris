@@ -7,9 +7,9 @@ import java.util.Objects;
 
 public final class ChunkBakeCache {
     public static final int MINIMUM_CAPACITY = 2_048;
-    public static final int MAXIMUM_CAPACITY = 32_768;
-    public static final long BYTES_PER_ENTRY = 13L * 1_024L;
-    public static final int HEAP_SHARE = 32;
+    static final int MAXIMUM_CAPACITY = 32_768;
+    static final long BYTES_PER_ENTRY = 13L * 1_024L;
+    static final int HEAP_SHARE = 32;
     private static final ThreadLocal<int[]> SPARSE = ThreadLocal.withInitial(() -> new int[1]);
 
     private final PlaneSource source;

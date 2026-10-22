@@ -25,7 +25,6 @@ import art.arcane.iris.generation.bake.ChunkPlanes;
 import art.arcane.iris.generation.bake.ColumnBake;
 import art.arcane.iris.generation.bake.GeneratorEvaluations;
 import art.arcane.iris.generation.bake.PlaneSource;
-import art.arcane.iris.generation.bake.SparseHeightMemo;
 import art.arcane.iris.generation.bake.TerrainProgram;
 import art.arcane.iris.generation.noise.TerrainBatchScratch;
 import art.arcane.iris.generation.simd.SimdSupport;
@@ -133,15 +132,14 @@ import java.nio.file.Path;
 import java.util.function.BiFunction;
 
 @Data
-@EqualsAndHashCode(exclude = {"data", "gridBoundsCache", "sharedCornerBounds", "terrainProgram", "bakeCache", "sparseBaseHeights", "biomeRegistry", "regionRegistry", "blockRegistry", "regionSource", "baseBiomeSource", "caveSource", "rockSource", "fluidSource", "childStyleSeed", "inferredByType", "naturalHeightSource", "naturalTrueBiomeSource", "trueBiomeSource", "frozenInterpolators", "frozenGenerators", "inferredBiomeStreams", "hydrologyRuntime", "imageMapRuntime", "terrainEngine", "terrain3D", "hydrologyBanks3D"})
-@ToString(exclude = {"data", "gridBoundsCache", "sharedCornerBounds", "terrainProgram", "bakeCache", "sparseBaseHeights", "biomeRegistry", "regionRegistry", "blockRegistry", "regionSource", "baseBiomeSource", "caveSource", "rockSource", "fluidSource", "childStyleSeed", "inferredByType", "naturalHeightSource", "naturalTrueBiomeSource", "trueBiomeSource", "frozenInterpolators", "frozenGenerators", "inferredBiomeStreams", "hydrologyRuntime", "imageMapRuntime", "terrainEngine", "terrain3D", "hydrologyBanks3D"})
+@EqualsAndHashCode(exclude = {"data", "gridBoundsCache", "sharedCornerBounds", "terrainProgram", "bakeCache", "biomeRegistry", "regionRegistry", "blockRegistry", "regionSource", "baseBiomeSource", "caveSource", "rockSource", "fluidSource", "childStyleSeed", "inferredByType", "naturalHeightSource", "naturalTrueBiomeSource", "trueBiomeSource", "frozenInterpolators", "frozenGenerators", "inferredBiomeStreams", "hydrologyRuntime", "imageMapRuntime", "terrainEngine", "terrain3D", "hydrologyBanks3D"})
+@ToString(exclude = {"data", "gridBoundsCache", "sharedCornerBounds", "terrainProgram", "bakeCache", "biomeRegistry", "regionRegistry", "blockRegistry", "regionSource", "baseBiomeSource", "caveSource", "rockSource", "fluidSource", "childStyleSeed", "inferredByType", "naturalHeightSource", "naturalTrueBiomeSource", "trueBiomeSource", "frozenInterpolators", "frozenGenerators", "inferredBiomeStreams", "hydrologyRuntime", "imageMapRuntime", "terrainEngine", "terrain3D", "hydrologyBanks3D"})
 public class IrisComplex implements DataProvider {
     private static final NoiseBounds ZERO_NOISE_BOUNDS = new NoiseBounds(0D, 0D);
     private static final AtomicLong lastBoundsFailureLog = new AtomicLong(0L);
     private static final int GRID_BOUNDS_CACHE_SIZE = 8192;
     private static final int STUDIO_NOISE_CACHE_SIZE = 32_768;
     private static final int TERRAIN_COLUMN_CACHE_SIZE = 524_288;
-    private static final int SPARSE_BASE_HEIGHT_CAPACITY = 1 << 17;
     private static final int BAKE_CHUNKS_PER_NOISE_CHUNK = 8;
     /** One million corners: about 20 MB, roughly a 4000 by 4000 block area at the 4-block grid. */
     private static final int SHARED_CORNER_BOUNDS_CAPACITY = 1 << 20;
@@ -175,8 +173,6 @@ public class IrisComplex implements DataProvider {
     private transient volatile TerrainProgram terrainProgram;
     @Getter(AccessLevel.NONE)
     private final transient ChunkBakeCache bakeCache;
-    @Getter(AccessLevel.NONE)
-    private final transient SparseHeightMemo sparseBaseHeights = new SparseHeightMemo(SPARSE_BASE_HEIGHT_CAPACITY);
     @Getter(AccessLevel.NONE)
     private final transient BakeRegistry<IrisBiome> biomeRegistry = new BakeRegistry<>();
     @Getter(AccessLevel.NONE)
@@ -467,7 +463,7 @@ public class IrisComplex implements DataProvider {
                 (x, z) -> getHeight(engine, x, z, engine.getSeedManager().getHeight()),
                 engine.getDimension().getTerrainSamplingStep());
         baseTerrainHeightStream = new BakedDoubleStream(bakeCache, BakePlane.BASE_HEIGHT,
-                ProceduralStream.ofDouble(this::sparseBaseTerrainHeight));
+                ProceduralStream.ofDouble(this::sampleUnblendedNaturalTerrainHeight));
         boolean terrain3DEnabled = false;
         for (IrisBiome biome : generatorBiomes) {
             if (biome.getTerrain3D() != null) {
@@ -503,9 +499,9 @@ public class IrisComplex implements DataProvider {
                     engine.getHeight(),
                     engine.getDimension(),
                     data,
-                    (x, z, naturalHeight) -> ChunkBakeCache.sparse(() -> sampleHydrologyNatural(engine, x, z, naturalHeight)),
+                    (x, z, naturalHeight) -> sampleHydrologyNatural(engine, x, z, naturalHeight),
                     new HydrologyHeightProvider(),
-                    (x, z) -> ChunkBakeCache.sparse(() -> describeNaturalHeight(engine, x, z)),
+                    (x, z) -> describeNaturalHeight(engine, x, z),
                     this::sampleNaturalOcean,
                     footprint -> new MantleHydrologyCaveVoxelView(engine, this, footprint),
                     () -> engine.getPlatformHooks().isMainThread(),
@@ -991,23 +987,6 @@ public class IrisComplex implements DataProvider {
         return true;
     }
 
-    private void basePlane(int chunkX, int chunkZ, long[] missing, double[] values) {
-        int originX = chunkX << 4;
-        int originZ = chunkZ << 4;
-        long[] compute = missing.clone();
-        for (int index = 0; index < 256; index++) {
-            if ((compute[index >>> 6] & (1L << (index & 63))) == 0L) {
-                continue;
-            }
-            double memoized = sparseBaseHeights.get(originX + (index & 15), originZ + (index >> 4));
-            if (!Double.isNaN(memoized)) {
-                values[index] = memoized;
-                compute[index >>> 6] &= ~(1L << (index & 63));
-            }
-        }
-        bakeBaseHeights(chunkX, chunkZ, compute, values);
-    }
-
     private void prefetchBaseHeights(int chunkX, int chunkZ, long[] naturalMissing) {
         ChunkPlanes.Plane base = bakeCache.plane(BakePlane.BASE_HEIGHT, chunkX, chunkZ);
         int originX = chunkX << 4;
@@ -1021,11 +1000,6 @@ public class IrisComplex implements DataProvider {
             int x = originX + (index & 15);
             int z = originZ + (index >> 4);
             if (terrain3D != null && !terrain3D.requiresBaseHeight(x, z)) {
-                continue;
-            }
-            double memoized = sparseBaseHeights.get(x, z);
-            if (!Double.isNaN(memoized)) {
-                base.storeDouble(index, memoized);
                 continue;
             }
             compute[index >>> 6] |= 1L << (index & 63);
@@ -1071,21 +1045,6 @@ public class IrisComplex implements DataProvider {
         return program;
     }
 
-    private double sparseBaseTerrainHeight(double x, double z) {
-        int blockX = (int) x;
-        int blockZ = (int) z;
-        if (x != blockX || z != blockZ) {
-            return sampleUnblendedNaturalTerrainHeight(x, z);
-        }
-        double memoized = sparseBaseHeights.get(blockX, blockZ);
-        if (!Double.isNaN(memoized)) {
-            return memoized;
-        }
-        double height = sampleUnblendedNaturalTerrainHeight(x, z);
-        sparseBaseHeights.put(blockX, blockZ, height);
-        return height;
-    }
-
     private void sampleNaturalBatch(long[] coordinates, int count, double[] heights) {
         long[] required = new long[count];
         int requiredCount = 0;
@@ -1094,17 +1053,20 @@ public class IrisComplex implements DataProvider {
             int z = RiverFootprint.unpackZ(coordinates[index]);
             if (bakedColumn(BakePlane.NATURAL_HEIGHT, x, z)
                     || terrain3D != null && !terrain3D.requiresBaseHeight(x, z)
-                    || bakedColumn(BakePlane.BASE_HEIGHT, x, z)
-                    || !Double.isNaN(sparseBaseHeights.get(x, z))) {
+                    || bakedColumn(BakePlane.BASE_HEIGHT, x, z)) {
                 continue;
             }
             required[requiredCount++] = coordinates[index];
         }
         if (requiredCount > 0) {
             double[] baseHeights = new double[requiredCount];
+            long revision = ProvisionalSampling.revision();
             resolveBaseHeightBatch(required, requiredCount, baseHeights);
-            for (int index = 0; index < requiredCount; index++) {
-                sparseBaseHeights.put(RiverFootprint.unpackX(required[index]), RiverFootprint.unpackZ(required[index]), baseHeights[index]);
+            if (bakeCache.memoAllowed()) {
+                for (int index = 0; index < requiredCount; index++) {
+                    bakeCache.storeDouble(BakePlane.BASE_HEIGHT, RiverFootprint.unpackX(required[index]),
+                            RiverFootprint.unpackZ(required[index]), baseHeights[index], revision);
+                }
             }
         }
         for (int index = 0; index < count; index++) {
@@ -1126,12 +1088,7 @@ public class IrisComplex implements DataProvider {
 
         @Override
         public double sample(int blockX, int blockZ) {
-            ChunkBakeCache.enterSparse();
-            try {
-                return naturalHeightStream.getDouble(blockX, blockZ);
-            } finally {
-                ChunkBakeCache.exitSparse();
-            }
+            return naturalHeightStream.getDouble(blockX, blockZ);
         }
 
         @Override
@@ -1145,12 +1102,7 @@ public class IrisComplex implements DataProvider {
                 IrisHydrologyNaturalHeightProvider.super.sampleBatch(coordinates, count, heights);
                 return;
             }
-            ChunkBakeCache.enterSparse();
-            try {
-                sampleNaturalBatch(coordinates, count, heights);
-            } finally {
-                ChunkBakeCache.exitSparse();
-            }
+            sampleNaturalBatch(coordinates, count, heights);
         }
     }
 
@@ -1160,7 +1112,7 @@ public class IrisComplex implements DataProvider {
             switch (plane) {
                 case REGION -> objectPlane(regionSource, chunkX, chunkZ, missing, (Object[]) values);
                 case BASE_BIOME -> objectPlane(baseBiomeSource, chunkX, chunkZ, missing, (Object[]) values);
-                case BASE_HEIGHT -> basePlane(chunkX, chunkZ, missing, (double[]) values);
+                case BASE_HEIGHT -> bakeBaseHeights(chunkX, chunkZ, missing, (double[]) values);
                 case NATURAL_HEIGHT -> naturalPlane(chunkX, chunkZ, missing, (double[]) values);
                 case NATURAL_TRUE_BIOME -> objectPlane(naturalTrueBiomeSource, chunkX, chunkZ, missing, (Object[]) values);
                 case HEIGHT -> heightPlane(chunkX, chunkZ, missing, (double[]) values);
@@ -3052,7 +3004,6 @@ public class IrisComplex implements DataProvider {
         }
         releaseHydrologyNoiseCaches();
         bakeCache.clear();
-        sparseBaseHeights.clear();
         if (transitionDisplacement != null) {
             transitionDisplacement.clear();
         }

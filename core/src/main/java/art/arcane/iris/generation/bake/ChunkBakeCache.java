@@ -4,7 +4,6 @@ import art.arcane.iris.generation.cache.ConcurrentClockCache;
 import art.arcane.iris.generation.stream.ProvisionalSampling;
 
 import java.util.Objects;
-import java.util.function.Supplier;
 
 public final class ChunkBakeCache implements BakeCache {
     private static final ThreadLocal<int[]> SPARSE = ThreadLocal.withInitial(() -> new int[1]);
@@ -128,15 +127,6 @@ public final class ChunkBakeCache implements BakeCache {
         last.planes = planes;
         last.entries = current;
         return planes;
-    }
-
-    public static <T> T sparse(Supplier<T> action) {
-        enterSparse();
-        try {
-            return action.get();
-        } finally {
-            exitSparse();
-        }
     }
 
     public static void enterSparse() {

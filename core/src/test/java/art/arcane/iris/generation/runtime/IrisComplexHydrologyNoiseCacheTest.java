@@ -4,7 +4,6 @@ import art.arcane.iris.configuration.IrisSettings;
 import art.arcane.iris.world.pregen.PregenPerformanceProfile;
 import art.arcane.iris.generation.bake.ChunkBakeCache;
 import art.arcane.iris.generation.bake.PlaneSource;
-import art.arcane.iris.generation.bake.SparseHeightMemo;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.hydrology.HydrologyPlanner;
 import art.arcane.iris.generation.hydrology.HydrologyPlannerSettings;
@@ -309,7 +308,6 @@ public class IrisComplexHydrologyNoiseCacheTest {
             complex.setNaturalHeightStream(height);
             complex.setHeightStream(ProceduralStream.ofDouble((x, z) -> 47D));
             setField(complex, "bakeCache", bakes);
-            setField(complex, "sparseBaseHeights", new SparseHeightMemo(16));
             when(engine.getComplex()).thenReturn(complex);
             complex.setBaseBiomeStream(biomes);
             complex.setRegionStream(regions);

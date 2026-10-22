@@ -40,6 +40,26 @@ public class GeneratorProgramParityTest {
     }
 
     @Test
+    public void singlePointProgramHeightsMatchScalarHeightsBitForBit() {
+        SplittableRandom random = new SplittableRandom(0xFEEDL);
+        TerrainBatchScratch scratch = new TerrainBatchScratch();
+        for (int generatorIndex = 0; generatorIndex < 160; generatorIndex++) {
+            long shapeSeed = random.nextLong();
+            IrisGenerator scalar = generator(new SplittableRandom(shapeSeed));
+            IrisGenerator compiled = generator(new SplittableRandom(shapeSeed));
+            long superSeed = random.nextLong();
+            GeneratorProgram program = compiled.compileProgram(superSeed);
+            for (int sample = 0; sample < 400; sample++) {
+                double x = coordinate(random);
+                double z = random.nextInt(5) == 0 ? x : coordinate(random);
+                assertEquals("generator " + generatorIndex + " point " + x + "," + z,
+                        Double.doubleToRawLongBits(scalar.getHeight(x, z, superSeed)),
+                        Double.doubleToRawLongBits(program.height(scratch, x, z)));
+            }
+        }
+    }
+
+    @Test
     public void chunkGridsMatchScalarHeightsBitForBit() {
         SplittableRandom random = new SplittableRandom(0xC0FFEEL);
         TerrainBatchScratch scratch = new TerrainBatchScratch();

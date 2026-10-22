@@ -34,6 +34,41 @@ public final class TerrainProgram {
         return new TerrainProgram(generators, programs, heightSeed);
     }
 
+    public long heightSeed() {
+        return heightSeed;
+    }
+
+    public double average(int group, TerrainBatchScratch scratch, double low, double high, double x, double z) {
+        IrisGenerator[] members = generators[group];
+        if (members.length == 0) {
+            return 0D;
+        }
+        if (!Double.isFinite(low) || !Double.isFinite(high)) {
+            throw new IllegalStateException("Terrain generator bounds were not finite at " + x + "," + z
+                    + " (generator=" + members[0].getLoadKey() + ", bounds=" + low + ".." + high + ").");
+        }
+        double height = 0D;
+        if (low == high) {
+            for (int member = 0; member < members.length; member++) {
+                height += low;
+            }
+            return height / members.length;
+        }
+        GeneratorEvaluations.scalar(members.length);
+        GeneratorProgram[] compiled = programs[group];
+        for (int member = 0; member < members.length; member++) {
+            GeneratorProgram program = compiled[member];
+            double noise = program != null ? program.height(scratch, x, z) : members[member].getHeight(x, z, heightSeed);
+            if (!Double.isFinite(noise)) {
+                throw new IllegalStateException("Terrain generator noise was not finite at " + x + "," + z
+                        + " (generator=" + members[member].getLoadKey() + ", noise=" + noise
+                        + ", bounds=" + low + ".." + high + ").");
+            }
+            height += M.lerp(low, high, noise);
+        }
+        return height / members.length;
+    }
+
     public int groups() {
         return generators.length;
     }

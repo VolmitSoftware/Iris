@@ -58,6 +58,70 @@ public final class GeneratorProgram {
         surfaceHeights(scratch, xs, zs, count, out);
     }
 
+    public double height(TerrainBatchScratch scratch, double x, double z) {
+        if (layers.length == 0) {
+            return 0D;
+        }
+        if (surfaceDetail == 1D) {
+            return sample(scratch, x, z);
+        }
+        double lowerX = Math.floor(x / SURFACE_GRID) * SURFACE_GRID;
+        double lowerZ = Math.floor(z / SURFACE_GRID) * SURFACE_GRID;
+        double dx = (x - lowerX) / SURFACE_GRID;
+        double dz = (z - lowerZ) / SURFACE_GRID;
+        IrisGenerator.SurfaceCacheStripe[] stripes = generator.surfaceStripes();
+        double northWest = lattice(scratch, stripes, lowerX, lowerZ);
+        if (dx == 0D && dz == 0D) {
+            return northWest;
+        }
+        double north = dx == 0D ? northWest
+                : IrisInterpolation.lerp(northWest, lattice(scratch, stripes, lowerX + SURFACE_GRID, lowerZ), dx);
+        double smooth = north;
+        if (dz != 0D) {
+            double southWest = lattice(scratch, stripes, lowerX, lowerZ + SURFACE_GRID);
+            double south = dx == 0D ? southWest
+                    : IrisInterpolation.lerp(southWest, lattice(scratch, stripes, lowerX + SURFACE_GRID, lowerZ + SURFACE_GRID), dx);
+            smooth = IrisInterpolation.lerp(north, south, dz);
+        }
+        return surfaceDetail == 0D ? smooth : smooth + (sample(scratch, x, z) - smooth) * surfaceDetail;
+    }
+
+    private double lattice(TerrainBatchScratch scratch, IrisGenerator.SurfaceCacheStripe[] stripes, double x, double z) {
+        if (x != (int) x || z != (int) z) {
+            return sample(scratch, x, z);
+        }
+        int mark = scratch.mark();
+        double[] cached = scratch.buffer(1);
+        boolean hit = IrisGenerator.cachedSurface(stripes, x, z, superSeed, cached, 0);
+        double value = cached[0];
+        scratch.reset(mark);
+        if (hit) {
+            return value;
+        }
+        double height = sample(scratch, x, z);
+        IrisGenerator.storeSurface(stripes, x, z, superSeed, height);
+        return height;
+    }
+
+    private double sample(TerrainBatchScratch scratch, double x, double z) {
+        double sampleX = (x + offsetX) / zoom;
+        double sampleZ = (z + offsetZ) / zoom;
+        double value = multiplicitive ? 1D : 0D;
+        for (NoiseLayerProgram layer : layers) {
+            double noise = layer.sample(scratch, sampleX, sampleZ);
+            value = multiplicitive ? value * noise : value + noise;
+        }
+        value = multiplicitive ? value * opacity : (value / totalOpacity) * opacity;
+        if (Double.isNaN(value)) {
+            value = 0D;
+        }
+        if (cliffs != null) {
+            double height = IrisInterpolation.lerp(cliffHeightMin, cliffHeightMax, cliffs.sample(scratch, sampleX, sampleZ));
+            value = (Math.round((value * 255D) / height) * height) / 255D;
+        }
+        return cellCracks ? generator.cell(x, z, value, 0D) : value;
+    }
+
     private void surfaceHeights(TerrainBatchScratch scratch, double[] xs, double[] zs, int count, double[] out) {
         int mark = scratch.mark();
         int indexMark = scratch.indexMark();

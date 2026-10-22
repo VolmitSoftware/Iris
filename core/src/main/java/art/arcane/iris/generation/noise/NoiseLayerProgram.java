@@ -125,6 +125,53 @@ public final class NoiseLayerProgram {
         scratch.reset(mark);
     }
 
+    public double sample(TerrainBatchScratch scratch, double x, double z) {
+        if (!enabled) {
+            return offsetY;
+        }
+        double sampleX = x;
+        double sampleZ = z;
+        if (children.length > 0) {
+            int mark = scratch.mark();
+            double[] pair = scratch.buffer(2);
+            for (int child = 0; child < children.length; child++) {
+                children[child].samplePair(scratch, x, z, pair);
+                double offset = childOffsets[child];
+                sampleX += pair[0] - offset;
+                sampleZ += pair[1] - offset;
+            }
+            scratch.reset(mark);
+        }
+        return post(program.sample2D((sampleX / zoom) + offsetX, (sampleZ / zoom) + offsetZ));
+    }
+
+    private void samplePair(TerrainBatchScratch scratch, double x, double z, double[] out) {
+        if (!enabled) {
+            out[0] = offsetY;
+            out[1] = offsetY;
+            return;
+        }
+        double forwardX = x;
+        double forwardZ = z;
+        double reverseX = z;
+        double reverseZ = x;
+        if (children.length > 0) {
+            int mark = scratch.mark();
+            double[] pair = scratch.buffer(2);
+            for (int child = 0; child < children.length; child++) {
+                children[child].samplePair(scratch, x, z, pair);
+                double offset = childOffsets[child];
+                forwardX += pair[0] - offset;
+                forwardZ += pair[1] - offset;
+                reverseX += pair[1] - offset;
+                reverseZ += pair[0] - offset;
+            }
+            scratch.reset(mark);
+        }
+        out[0] = post(program.sample2D((forwardX / zoom) + offsetX, (forwardZ / zoom) + offsetZ));
+        out[1] = post(program.sample2D((reverseX / zoom) + offsetX, (reverseZ / zoom) + offsetZ));
+    }
+
     private double post(double raw) {
         double n = raw * opacity;
         n = negative ? (-n + opacity) : n;

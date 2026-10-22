@@ -2149,7 +2149,19 @@ public class IrisComplex implements DataProvider {
         double hi = sampledBounds.max();
         double lo = sampledBounds.min();
 
-        return averageGeneratorHeights(generators, lo, hi, x, z, seed + 239945);
+        return groupHeight(interpolatorIndex, generators, lo, hi, x, z, seed + 239945);
+    }
+
+    private double groupHeight(int group, IrisGenerator[] generators, double low, double high, double x, double z, long heightSeed) {
+        TerrainProgram program = terrainProgram;
+        if (program == null && terrainEngine != null) {
+            program = terrainProgram();
+        }
+        if (program == null || program.heightSeed() != heightSeed || group >= program.groups()
+                || program.groupSize(group) != generators.length || generators != frozenGenerators[group]) {
+            return averageGeneratorHeights(generators, low, high, x, z, heightSeed);
+        }
+        return program.average(group, BATCH_SCRATCH.get(), low, high, x, z);
     }
 
     private NoiseBounds gridSampleBounds(Engine engine, IrisInterpolator interpolator, int interpolatorIndex, IrisGenerator[] generators, double x, double z) {
@@ -2349,7 +2361,7 @@ public class IrisComplex implements DataProvider {
                 lo = biLerp(boundsLow(b00), boundsLow(b10), boundsLow(b01), boundsLow(b11), fx, fz);
                 hi = biLerp(boundsHigh(b00), boundsHigh(b10), boundsHigh(b01), boundsHigh(b11), fx, fz);
             }
-            h += averageGeneratorHeights(generators, lo, hi, x, z, heightSeed);
+            h += groupHeight(interpolatorIndex, generators, lo, hi, x, z, heightSeed);
         }
 
         return h;

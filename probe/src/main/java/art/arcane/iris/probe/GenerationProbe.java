@@ -177,7 +177,7 @@ public final class GenerationProbe {
     }
 
     record ProbeOptions(int threads, Path dumpFile, boolean pregenProfile, boolean hydrologyPreplan,
-                        boolean historyRouter, boolean productionBuffers, boolean counters) {
+                        boolean historyRouter, boolean productionBuffers, boolean counters, boolean historyDigest) {
         ProbeOptions {
             if (threads < 1) {
                 throw new IllegalArgumentException("Thread count must be at least 1.");
@@ -196,7 +196,8 @@ public final class GenerationProbe {
                     booleanProperty("iris.probe.hydrologyPreplan"),
                     booleanProperty("iris.probe.historyRouter"),
                     booleanProperty("iris.probe.productionBuffers"),
-                    booleanProperty("iris.generation.counters"));
+                    booleanProperty("iris.generation.counters"),
+                    booleanProperty("iris.probe.historyDigest"));
         }
 
         private static boolean booleanProperty(String key) {
@@ -437,13 +438,17 @@ public final class GenerationProbe {
                     + " timeMs=" + String.format(Locale.ROOT, "%.3f", nanosToMillis(engineReadyNanos)));
             System.out.println("IRIS_GENPROBE_MANTLE version=1 radius=" + engine.getMantle().getRadius()
                     + " real_radius=" + engine.getMantle().getRealRadius());
-            ProbeChunkGenerator generator = new ProbeChunkGenerator(engine, router, options.productionBuffers());
+            ProbeChunkGenerator generator = new ProbeChunkGenerator(engine, router, options.productionBuffers(),
+                    options.historyDigest());
             long nativeSamplesBefore = FractalBillowSimplexNoise.nativeSampleCount();
             GenerationResult generation = generateWithProfile(generator, configuration, options);
             verifyBackend(nativeSamplesBefore);
             if (options.productionBuffers()) {
                 System.out.println("IRIS_GENPROBE_BUFFERS version=1 mode=production biome_expanded_chunks="
                         + generator.expandedBiomeHunks());
+            }
+            if (generator.historySummary() != null) {
+                System.out.println(generator.historySummary());
             }
             String status = generation.failedChunks() == 0 ? "PASS" : "FAIL";
             printGenerationFailures(generation);

@@ -36,12 +36,19 @@ final class ProbeChunkGenerator {
     private final Engine engine;
     private final GenerationHistoryRuntimeRouter router;
     private final boolean productionBuffers;
+    private final HistoryDigest historyDigest;
     private final AtomicInteger expandedBiomeHunks = new AtomicInteger();
 
-    ProbeChunkGenerator(Engine engine, GenerationHistoryRuntimeRouter router, boolean productionBuffers) {
+    ProbeChunkGenerator(Engine engine, GenerationHistoryRuntimeRouter router, boolean productionBuffers,
+                        boolean historyDigest) {
         this.engine = engine;
         this.router = router;
         this.productionBuffers = productionBuffers;
+        this.historyDigest = historyDigest && router != null ? new HistoryDigest(router) : null;
+    }
+
+    String historySummary() {
+        return historyDigest == null ? null : historyDigest.summary();
     }
 
     Engine engine() {
@@ -64,6 +71,13 @@ final class ProbeChunkGenerator {
             failures.add(e);
         }
         long elapsed = System.nanoTime() - started;
+        if (historyDigest != null && failures.isEmpty()) {
+            try {
+                historyDigest.record(coordinate.x(), coordinate.z());
+            } catch (Throwable e) {
+                failures.add(e);
+            }
+        }
         if (biomes instanceof ProductionBiomeHunk production && production.expanded()) {
             expandedBiomeHunks.incrementAndGet();
         }

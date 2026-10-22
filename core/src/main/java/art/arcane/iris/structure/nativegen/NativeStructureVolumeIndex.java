@@ -12,15 +12,14 @@ import art.arcane.volmlib.util.cache.CacheKey;
 import art.arcane.volmlib.util.collection.KList;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.WeakHashMap;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.function.BooleanSupplier;
 import java.util.function.IntConsumer;
 import java.util.function.Supplier;
 
@@ -36,7 +35,6 @@ public final class NativeStructureVolumeIndex {
     private static final int ORIGIN_REACH_CHUNKS = StructureOwnershipRecordView.MAX_REFERENCE_DISTANCE_CHUNKS;
     private static final int MAX_CACHED_ORIGIN_CHUNKS = 16_384;
     private static final int MAX_CACHED_QUERY_CHUNKS = 4_096;
-    private static final int CACHE_STRIPES = 32;
     private static final Map<Engine, NativeStructureVolumeIndex> INDEXES =
             Collections.synchronizedMap(new WeakHashMap<>());
 
@@ -223,12 +221,9 @@ public final class NativeStructureVolumeIndex {
             RuntimeChunkKey key,
             Supplier<KList<NativeStructureVolume>> loader
     ) {
-        Map<RuntimeChunkKey, KList<NativeStructureVolume>> cache = volumes.stripe(key);
-        synchronized (cache) {
-            KList<NativeStructureVolume> hit = cache.get(key);
-            if (hit != null) {
-                return hit;
-            }
+        KList<NativeStructureVolume> hit = volumes.get(key);
+        if (hit != null) {
+            return hit;
         }
 
         CompletableFuture<KList<NativeStructureVolume>> future = new CompletableFuture<>();
@@ -239,22 +234,16 @@ public final class NativeStructureVolumeIndex {
 
         // Close the check-then-claim window: a racer whose cache check missed before the
         // previous builder cached could claim the build slot after it retired and rebuild.
-        synchronized (cache) {
-            KList<NativeStructureVolume> published = cache.get(key);
-            if (published != null) {
-                future.complete(published);
-                builds.remove(key, future);
-                return published;
-            }
+        KList<NativeStructureVolume> published = volumes.get(key);
+        if (published != null) {
+            future.complete(published);
+            builds.remove(key, future);
+            return published;
         }
 
         try {
             KList<NativeStructureVolume> built = loader.get();
-            synchronized (cache) {
-                if (builds.get(key) == future) {
-                    cache.put(key, built);
-                }
-            }
+            volumes.publish(key, built, () -> builds.get(key) == future);
             future.complete(built);
             return built;
         } catch (RuntimeException | Error error) {
@@ -301,47 +290,44 @@ public final class NativeStructureVolumeIndex {
         }
     }
 
-    private static Map<RuntimeChunkKey, KList<NativeStructureVolume>> lru(int capacity) {
-        return new LinkedHashMap<>(16, 0.75F, true) {
-            @Override
-            protected boolean removeEldestEntry(
-                    Map.Entry<RuntimeChunkKey, KList<NativeStructureVolume>> eldest
-            ) {
-                return size() > capacity;
-            }
-        };
-    }
-
     private static final class VolumeCache {
-        private final List<Map<RuntimeChunkKey, KList<NativeStructureVolume>>> stripes;
+        private final int capacity;
+        private final ConcurrentHashMap<RuntimeChunkKey, KList<NativeStructureVolume>> entries = new ConcurrentHashMap<>();
+        private final ConcurrentLinkedQueue<RuntimeChunkKey> insertionOrder = new ConcurrentLinkedQueue<>();
 
         private VolumeCache(int capacity) {
-            int stripeCapacity = Math.max(1, capacity / CACHE_STRIPES);
-            List<Map<RuntimeChunkKey, KList<NativeStructureVolume>>> created = new ArrayList<>(CACHE_STRIPES);
-            for (int stripe = 0; stripe < CACHE_STRIPES; stripe++) {
-                created.add(lru(stripeCapacity));
-            }
-            stripes = List.copyOf(created);
-        }
-
-        private Map<RuntimeChunkKey, KList<NativeStructureVolume>> stripe(RuntimeChunkKey key) {
-            int hash = key.hashCode();
-            return stripes.get((hash ^ (hash >>> 16)) & (CACHE_STRIPES - 1));
+            this.capacity = capacity;
         }
 
         private KList<NativeStructureVolume> get(RuntimeChunkKey key) {
-            Map<RuntimeChunkKey, KList<NativeStructureVolume>> cache = stripe(key);
-            synchronized (cache) {
-                return cache.get(key);
+            return entries.get(key);
+        }
+
+        private void publish(RuntimeChunkKey key, KList<NativeStructureVolume> volumes, BooleanSupplier current) {
+            boolean[] inserted = new boolean[1];
+            entries.compute(key, (ignored, previous) -> {
+                if (!current.getAsBoolean()) {
+                    return previous;
+                }
+                inserted[0] = previous == null;
+                return volumes;
+            });
+            if (!inserted[0]) {
+                return;
+            }
+            insertionOrder.add(key);
+            while (entries.size() > capacity) {
+                RuntimeChunkKey eldest = insertionOrder.poll();
+                if (eldest == null) {
+                    return;
+                }
+                entries.remove(eldest);
             }
         }
 
         private void evictRuntime(int runtimeId) {
-            for (Map<RuntimeChunkKey, KList<NativeStructureVolume>> cache : stripes) {
-                synchronized (cache) {
-                    cache.keySet().removeIf(key -> key.runtimeId() == runtimeId);
-                }
-            }
+            entries.keySet().removeIf(key -> key.runtimeId() == runtimeId);
+            insertionOrder.removeIf(key -> key.runtimeId() == runtimeId);
         }
     }
 

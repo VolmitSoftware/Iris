@@ -180,6 +180,7 @@ tasks.register('genProbe', JavaExec) {
     systemProperty('iris.probe.pregenProfile', providers.gradleProperty('probePregenProfile').orElse('false').get())
     systemProperty('iris.probe.hydrologyPreplan', providers.gradleProperty('probeHydrologyPreplan').orElse('false').get())
     systemProperty('iris.probe.historyRouter', providers.gradleProperty('probeHistoryRouter').orElse('false').get())
+    systemProperty('iris.probe.historyDigest', providers.gradleProperty('probeHistoryDigest').orElse('false').get())
     systemProperty('iris.probe.productionBuffers', providers.gradleProperty('probeProductionBuffers').orElse('false').get())
     String probeCounters = providers.gradleProperty('probeCounters').orElse('false').get()
     systemProperty('iris.generation.counters', probeCounters)

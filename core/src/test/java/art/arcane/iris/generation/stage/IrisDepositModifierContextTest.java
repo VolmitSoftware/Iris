@@ -54,8 +54,8 @@ public class IrisDepositModifierContextTest {
         try (Fixture fixture = new Fixture(engine, true)) {
             fixture.generateAndCheckCleanup();
             verify(engine, times(1)).captureGenerationRuntimeBinding();
-            verify(engine, times(4)).openGenerationRuntimeScope(fixture.binding);
-            assertEquals(4, fixture.closedScopes.get());
+            verify(engine, times(1)).openGenerationRuntimeScope(fixture.binding);
+            assertEquals(1, fixture.closedScopes.get());
         }
     }
 
@@ -84,13 +84,13 @@ public class IrisDepositModifierContextTest {
             assertSame(failure, assertThrows(IllegalStateException.class, () ->
                     fixture.modifier.modify(32, -48, Hunk.newArrayHunk(16, 16, 16), true, fixture.context)));
             verify(fixture.chunk).release();
-            assertEquals(4, fixture.closedScopes.get());
+            assertEquals(1, fixture.closedScopes.get());
             assertNull(IrisContext.get());
         }
     }
 
     @Test
-    public void callerPlanFailureStillDrainsWorkersAndRestoresContext() throws Exception {
+    public void callerPlanFailureQueuesNoWorkAndRestoresContext() throws Exception {
         try (Fixture fixture = new Fixture(mock(IrisEngine.class, RETURNS_DEEP_STUBS), true)) {
             IllegalStateException failure = new IllegalStateException("caller deposit plan failed");
             doThrow(failure).when(fixture.biomeDeposit).getSpawnChance();
@@ -102,25 +102,24 @@ public class IrisDepositModifierContextTest {
                 assertEquals(19L, IrisContext.require().getGenerationSessionId());
             }
             verify(fixture.chunk).release();
-            assertEquals(3, fixture.closedScopes.get());
-            assertEquals(10, fixture.completed.get());
+            assertEquals(0, fixture.closedScopes.get());
+            assertEquals(0, fixture.completed.get());
             assertNull(IrisContext.get());
         }
     }
 
     @Test
-    public void callerFailureRetainsDistinctWorkerFailuresAfterDraining() throws Exception {
+    public void distinctWorkerFailuresAreRetainedAfterDraining() throws Exception {
         try (Fixture fixture = new Fixture(mock(IrisEngine.class, RETURNS_DEEP_STUBS), true)) {
-            IllegalStateException caller = new IllegalStateException("caller failure");
             IllegalArgumentException firstWorker = new IllegalArgumentException("first worker failure");
             UnsupportedOperationException secondWorker = new UnsupportedOperationException("second worker failure");
+            when(fixture.dimensionDeposit.getMinPerChunk()).thenReturn(200);
+            when(fixture.dimensionDeposit.getMaxPerChunk()).thenReturn(200);
             doThrow(firstWorker, secondWorker).when(fixture.dimensionDeposit).getClump(any(), any(), any());
-            doThrow(caller).when(fixture.biomeDeposit).getSpawnChance();
-            assertSame(caller, assertThrows(IllegalStateException.class, () ->
+            assertSame(firstWorker, assertThrows(IllegalArgumentException.class, () ->
                     fixture.modifier.modify(32, -48, Hunk.newArrayHunk(16, 16, 16), true, fixture.context)));
-            assertEquals(2, caller.getSuppressed().length);
-            assertSame(firstWorker, caller.getSuppressed()[0]);
-            assertSame(secondWorker, caller.getSuppressed()[1]);
+            assertEquals(1, firstWorker.getSuppressed().length);
+            assertSame(secondWorker, firstWorker.getSuppressed()[0]);
             verify(fixture.chunk).release();
             assertEquals(3, fixture.closedScopes.get());
             assertNull(IrisContext.get());

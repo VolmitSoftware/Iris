@@ -120,13 +120,40 @@ public final class IrisTransitionGeometryActuator extends EngineAssignedComponen
 
         @Override
         public BoundaryColumnGeometry.Voxel voxel(int localX, int worldY, int localZ) {
-            NativeBlockState state = blocks.getRaw(localX, worldY - minimumY, localZ);
-            if (state == null) {
-                if (air == null) {
-                    air = IrisPlatforms.get().registries().air();
-                }
-                state = air;
+            return voxelOf(stateAt(localX, worldY - minimumY, localZ));
+        }
+
+        @Override
+        public void scanColumn(int localX, int localZ, int minimumY, int height, SavedTerrainChunk.VoxelRuns runs) {
+            if (height <= 0) {
+                return;
             }
+            int base = minimumY - this.minimumY;
+            NativeBlockState runState = stateAt(localX, base, localZ);
+            int start = 0;
+            for (int offset = 1; offset < height; offset++) {
+                NativeBlockState state = stateAt(localX, base + offset, localZ);
+                if (state != runState) {
+                    runs.add(start, offset, voxelOf(runState));
+                    start = offset;
+                    runState = state;
+                }
+            }
+            runs.add(start, height, voxelOf(runState));
+        }
+
+        private NativeBlockState stateAt(int localX, int offset, int localZ) {
+            NativeBlockState state = blocks.getRaw(localX, offset, localZ);
+            if (state != null) {
+                return state;
+            }
+            if (air == null) {
+                air = IrisPlatforms.get().registries().air();
+            }
+            return air;
+        }
+
+        private BoundaryColumnGeometry.Voxel voxelOf(NativeBlockState state) {
             if (state != lastState) {
                 lastVoxel = voxels.computeIfAbsent(state, GeometrySource::encode);
                 lastState = state;

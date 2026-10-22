@@ -63,38 +63,32 @@ public final class SavedTerrainChunk {
         }
         Math.addExact(minimumY, height);
         List<TerrainBoundarySignature> columns = new ArrayList<>(256);
-        BoundaryColumnGeometry.Runs runs = new BoundaryColumnGeometry.Runs(height);
+        ColumnScan scan = new ColumnScan(height);
         for (int x = 0; x < 16; x++) {
             for (int z = 0; z < 16; z++) {
                 if (boundaryOnly && x != 0 && x != 15 && z != 0 && z != 15) {
                     columns.add(null);
                     continue;
                 }
-                runs.clear();
+                scan.reset();
+                source.scanColumn(x, z, minimumY, height, scan);
+                scan.requireCovered();
                 List<String> biomePalette = new ArrayList<>(4);
                 short[] biomeIndices = new short[height / 4];
-                int surface = 0;
-                int floor = 0;
-                int fluid = -1;
-                for (int offset = 0; offset < height; offset++) {
-                    int y = minimumY + offset;
-                    BoundaryColumnGeometry.Voxel voxel = Objects.requireNonNull(source.voxel(x, y, z), "voxel");
-                    runs.add(voxel);
-                    if (voxel.phase() != BoundaryColumnGeometry.Phase.AIR) {
-                        surface = offset;
+                String lastBiome = null;
+                short lastIndex = 0;
+                for (int offset = 0; offset < height; offset += 4) {
+                    String biome = Objects.requireNonNull(source.biome(x, minimumY + offset, z), "physical biome");
+                    if (biome != lastBiome) {
+                        lastIndex = paletteIndex(biomePalette, biome);
+                        lastBiome = biome;
                     }
-                    if (voxel.phase() == BoundaryColumnGeometry.Phase.SOLID) {
-                        floor = offset;
-                    }
-                    if (!voxel.fluidStateKey().isEmpty()) {
-                        fluid = offset;
-                    }
-                    if (offset % 4 == 0) {
-                        String biome = Objects.requireNonNull(source.biome(x, y, z), "physical biome");
-                        biomeIndices[offset / 4] = paletteIndex(biomePalette, biome);
-                    }
+                    biomeIndices[offset / 4] = lastIndex;
                 }
-                BoundaryColumnGeometry geometry = runs.build(minimumY);
+                int surface = scan.surface;
+                int floor = scan.floor;
+                int fluid = scan.fluid;
+                BoundaryColumnGeometry geometry = scan.runs.build(minimumY);
                 OptionalInt groundSurface = source.groundSurface(x, z);
                 if (groundSurface.isPresent()) {
                     floor = geometry.surfaceOffsetNear(groundSurface.getAsInt());
@@ -209,5 +203,64 @@ public final class SavedTerrainChunk {
         BoundaryColumnGeometry.Voxel voxel(int localX, int worldY, int localZ) throws IOException;
 
         String biome(int localX, int worldY, int localZ) throws IOException;
+
+        default void scanColumn(int localX, int localZ, int minimumY, int height, VoxelRuns runs) throws IOException {
+            for (int offset = 0; offset < height; offset++) {
+                runs.add(offset, offset + 1, voxel(localX, minimumY + offset, localZ));
+            }
+        }
+    }
+
+    @FunctionalInterface
+    public interface VoxelRuns {
+        void add(int startOffset, int endOffset, BoundaryColumnGeometry.Voxel voxel);
+    }
+
+    private static final class ColumnScan implements VoxelRuns {
+        private final BoundaryColumnGeometry.Runs runs;
+        private final int height;
+        private int covered;
+        private int surface;
+        private int floor;
+        private int fluid;
+
+        private ColumnScan(int height) {
+            this.runs = new BoundaryColumnGeometry.Runs(height);
+            this.height = height;
+        }
+
+        private void reset() {
+            runs.clear();
+            covered = 0;
+            surface = 0;
+            floor = 0;
+            fluid = -1;
+        }
+
+        @Override
+        public void add(int startOffset, int endOffset, BoundaryColumnGeometry.Voxel voxel) {
+            Objects.requireNonNull(voxel, "voxel");
+            if (startOffset != covered || endOffset <= startOffset || endOffset > height) {
+                throw new IllegalArgumentException("Voxel runs must cover the column in order");
+            }
+            runs.add(voxel, endOffset - startOffset);
+            covered = endOffset;
+            int last = endOffset - 1;
+            if (voxel.phase() != BoundaryColumnGeometry.Phase.AIR) {
+                surface = last;
+            }
+            if (voxel.phase() == BoundaryColumnGeometry.Phase.SOLID) {
+                floor = last;
+            }
+            if (!voxel.fluidStateKey().isEmpty()) {
+                fluid = last;
+            }
+        }
+
+        private void requireCovered() {
+            if (covered != height) {
+                throw new IllegalStateException("Voxel runs must cover the whole column");
+            }
+        }
     }
 }

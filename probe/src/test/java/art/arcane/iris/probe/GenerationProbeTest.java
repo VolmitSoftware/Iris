@@ -134,7 +134,7 @@ public final class GenerationProbeTest {
         assertEquals(1, defaults.threads());
         assertNull(defaults.dumpFile());
         assertThrows(IllegalArgumentException.class,
-                () -> new GenerationProbe.ProbeOptions(0, null, false, false, false, false, false));
+                () -> new GenerationProbe.ProbeOptions(0, null, false, false, false, false, false, false));
         assertFalse(defaults.hydrologyPreplan());
         assertFalse(defaults.historyRouter());
         assertFalse(defaults.productionBuffers());

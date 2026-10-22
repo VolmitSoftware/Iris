@@ -43,7 +43,7 @@ public final class HydrologyTileCache implements AutoCloseable {
     private static final byte AROUND_EMPTY = 1;
     private static final byte AROUND_PUBLISHED = 2;
     private static final int MAXIMUM_PREGENERATION_TILES = 4096;
-    private static final int PREGENERATION_HALO_BLOCKS = 512;
+    private static final int PREGENERATION_HALO_BLOCKS = 256;
     private static final HydrologyColumnSample[] NO_COLUMNS = new HydrologyColumnSample[CHUNK_COLUMN_COUNT];
     private static final Cache<SharedTileKey, HydrologyTile> SHARED_TILES = Caffeine.newBuilder()
             .maximumWeight(HydrologyCacheBudget.sharedStudioBytes())

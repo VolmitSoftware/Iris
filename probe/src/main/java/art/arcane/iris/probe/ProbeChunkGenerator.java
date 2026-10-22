@@ -18,6 +18,7 @@
 
 package art.arcane.iris.probe;
 
+import art.arcane.iris.generation.chunk.SectionBuffer;
 import art.arcane.iris.generation.context.IrisContext;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.GenerationSessionLease;
@@ -70,7 +71,7 @@ final class ProbeChunkGenerator {
     }
 
     private Hunk<NativeBlockState> newBlocks(int height) {
-        return productionBuffers ? new ProductionBlockHunk(height) : Hunk.newArrayHunk(16, height, 16);
+        return productionBuffers ? new SectionBuffer(height) : Hunk.newArrayHunk(16, height, 16);
     }
 
     private Hunk<NativeBiome> newBiomes(int height) {

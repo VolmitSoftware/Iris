@@ -6,8 +6,7 @@ import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.iris.testsupport.PlatformLeakGuard;
-import art.arcane.iris.generation.chunk.ChunkDataHunkHolder;
-import org.bukkit.generator.ChunkGenerator;
+import art.arcane.iris.generation.chunk.SectionBuffer;
 import org.junit.After;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -37,7 +36,7 @@ public class PlatformStateRebindTest {
             "art.arcane.iris.generation.biome.IrisBiomeLayerGenerator",
             "art.arcane.iris.studio.generation.BiomeBuffetGenerator",
             "art.arcane.iris.generation.mantle.EngineMantle",
-            "art.arcane.iris.generation.chunk.ChunkDataHunkHolder");
+            "art.arcane.iris.generation.chunk.SectionBuffer");
 
     @After
     public void unbindPlatform() {
@@ -47,10 +46,7 @@ public class PlatformStateRebindTest {
     @Test
     public void chunkDataAirIsResolvedAgainstTheCurrentlyBoundPlatform() {
         NativeBlockState first = bindPlatform("first");
-        ChunkGenerator.ChunkData chunk = mock(ChunkGenerator.ChunkData.class);
-        when(chunk.getMinHeight()).thenReturn(-64);
-        when(chunk.getMaxHeight()).thenReturn(320);
-        ChunkDataHunkHolder holder = new ChunkDataHunkHolder(chunk);
+        SectionBuffer holder = new SectionBuffer(384);
 
         assertSame(first, holder.getRaw(0, -1, 0));
 

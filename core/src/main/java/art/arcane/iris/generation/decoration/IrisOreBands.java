@@ -79,6 +79,14 @@ public final class IrisOreBands {
         return minY <= maxY;
     }
 
+    public int lowestY() {
+        return minY;
+    }
+
+    public int highestY() {
+        return maxY;
+    }
+
     public boolean contains(int y) {
         return y >= minY && y <= maxY;
     }

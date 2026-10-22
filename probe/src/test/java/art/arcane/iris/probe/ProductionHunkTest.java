@@ -1,5 +1,6 @@
 package art.arcane.iris.probe;
 
+import art.arcane.iris.generation.chunk.SectionBuffer;
 import art.arcane.volmlib.nativelib.terrain.NativeBiome;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.hunk.Hunk;
@@ -19,7 +20,7 @@ public final class ProductionHunkTest {
 
     @Test
     public void blockHunkIgnoresNullWritesAndTracksTheHighestStoredCellPerColumn() {
-        ProductionBlockHunk blocks = new ProductionBlockHunk(HEIGHT);
+        SectionBuffer blocks = new SectionBuffer(HEIGHT);
         NativeBlockState stone = StubPlatform.blockStateForTest("minecraft:stone");
         NativeBlockState dirt = StubPlatform.blockStateForTest("minecraft:dirt");
 
@@ -37,7 +38,7 @@ public final class ProductionHunkTest {
 
     @Test
     public void dumpCaptureOfTheBlockHunkMatchesAnArrayHunkHoldingTheSameWrites() {
-        ProductionBlockHunk production = new ProductionBlockHunk(HEIGHT);
+        SectionBuffer production = new SectionBuffer(HEIGHT);
         Hunk<NativeBlockState> array = Hunk.newArrayHunk(16, HEIGHT, 16);
         Hunk<NativeBiome> biomes = Hunk.newArrayHunk(16, HEIGHT, 16);
         NativeBlockState stone = StubPlatform.blockStateForTest("minecraft:stone");

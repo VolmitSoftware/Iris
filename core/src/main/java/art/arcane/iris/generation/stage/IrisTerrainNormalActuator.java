@@ -36,6 +36,7 @@ import art.arcane.iris.generation.hydrology.IrisRiverMaterialConfig;
 import art.arcane.iris.generation.hydrology.IrisSurfaceRiverBankConfig;
 import art.arcane.iris.generation.terrain.Terrain3DColumn;
 import art.arcane.iris.generation.block.BoundBlockState;
+import art.arcane.iris.generation.chunk.ColumnRunHunk;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.iris.generation.context.ChunkedDataCache;
 import art.arcane.iris.generation.context.ChunkContext;
@@ -176,6 +177,15 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<NativeBloc
         private IrisOreBands regionSurfaceOres;
         private IrisOreBands biomeUndergroundOres;
         private IrisOreBands regionUndergroundOres;
+        private int surfaceOreTop;
+        private int surfaceOreFloor;
+        private int undergroundOreTop;
+        private int undergroundOreFloor;
+        private int columnX;
+        private int columnZ;
+        private NativeBlockState runState;
+        private int runTop = -1;
+        private int runBottom;
 
         private ColumnPainter(int x, int z, Hunk<NativeBlockState> h, ChunkContext context) {
             this.x = x;
@@ -260,8 +270,12 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<NativeBloc
             regionSurfaceOres = hideOres ? IrisOreBands.EMPTY : region.getSurfaceOreBands();
             biomeUndergroundOres = hideOres ? IrisOreBands.EMPTY : biome.getUndergroundOreBands();
             regionUndergroundOres = hideOres ? IrisOreBands.EMPTY : region.getUndergroundOreBands();
-            boolean hasSurfaceOres = biomeSurfaceOres.hasOres() || regionSurfaceOres.hasOres() || dimensionSurfaceOres.hasOres();
-            boolean hasUndergroundOres = biomeUndergroundOres.hasOres() || regionUndergroundOres.hasOres() || dimensionUndergroundOres.hasOres();
+            surfaceOreTop = oreTop(biomeSurfaceOres, regionSurfaceOres, dimensionSurfaceOres);
+            surfaceOreFloor = oreFloor(biomeSurfaceOres, regionSurfaceOres, dimensionSurfaceOres);
+            undergroundOreTop = oreTop(biomeUndergroundOres, regionUndergroundOres, dimensionUndergroundOres);
+            undergroundOreFloor = oreFloor(biomeUndergroundOres, regionUndergroundOres, dimensionUndergroundOres);
+            columnX = xf;
+            columnZ = zf;
             int bedrockFloor = bedrockEnabled ? 1 : 0;
             KList<NativeBlockState> blocks = null;
             KList<NativeBlockState> ceilingBlocks = null;
@@ -269,7 +283,7 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<NativeBloc
 
             for (int i = topY; i >= 0; i--) {
                 if (i == 0 && bedrockEnabled) {
-                    h.setRaw(xf, i, zf, bedrock);
+                    put(i, bedrock);
                     continue;
                 }
 
@@ -280,16 +294,16 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<NativeBloc
                         ceilingBlocks = null;
                     }
                     if (terrainSpan < 0 || i > terrainColumn.floor(terrainSpan)) {
-                        h.setRaw(xf, i, zf, air);
+                        put(i, air);
                         continue;
                     }
                     layerSurfaceY = terrainColumn.floor(terrainSpan);
                     layerCeilingY = terrainColumn.ceiling(terrainSpan);
                 }
 
-                NativeBlockState ore = hasSurfaceOres ? surfaceOre(realX, i, realZ) : null;
+                NativeBlockState ore = i <= surfaceOreTop && i >= surfaceOreFloor ? surfaceOre(realX, i, realZ) : null;
                 if (ore != null) {
-                    h.setRaw(xf, i, zf, ore);
+                    put(i, ore);
                     continue;
                 }
 
@@ -298,7 +312,7 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<NativeBloc
                     if (hydrologyFluid == null && fblocks == null) {
                         fblocks = biome.generateSeaLayers(realX, realZ, rng, hf - he, data);
                     }
-                    h.setRaw(xf, i, zf, HydrologyFluidLayerSelector.select(
+                    put(i, HydrologyFluidLayerSelector.select(
                             fblocks,
                             fdepth,
                             fluid,
@@ -310,7 +324,7 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<NativeBloc
                 if (i <= he) {
                     int depth = layerSurfaceY - i;
                     if (depth == 0 && mappedSurfaceBlock != null) {
-                        h.setRaw(xf, i, zf, mappedSurfaceBlock);
+                        put(i, mappedSurfaceBlock);
                         continue;
                     }
                     if (blocks == null) {
@@ -324,7 +338,7 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<NativeBloc
 
                     int deepFloor = Math.max(bedrockFloor, layerCeilingY > 0 ? layerCeilingY + 2 : 0);
                     if (i >= deepFloor && depth >= Math.max(blocks.size(), paintDepth)) {
-                        paintDeep(xf, zf, realX, realZ, i, deepFloor, rock, hasSurfaceOres, hasUndergroundOres);
+                        paintDeep(realX, realZ, i, deepFloor, rock);
                         i = deepFloor;
                         continue;
                     }
@@ -335,7 +349,7 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<NativeBloc
                                     2, layerCeilingY, data, complex);
                         }
                         int ceilingDepth = i - layerCeilingY;
-                        h.setRaw(xf, i, zf, ceilingBlocks.hasIndex(ceilingDepth)
+                        put(i, ceilingBlocks.hasIndex(ceilingDepth)
                                 ? ceilingBlocks.get(ceilingDepth) : rock);
                         continue;
                     }
@@ -348,17 +362,19 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<NativeBloc
                         if (riverOwned && depth <= riverBed.getPadding() && IrisProceduralBlocks.isGravityAffected(layerBlock)) {
                             layerBlock = riverBed.getPaddingPalette().get(rng, realX, i, realZ, data);
                         }
-                        h.setRaw(xf, i, zf, layerBlock);
+                        put(i, layerBlock);
                         continue;
                     }
 
-                    ore = hasUndergroundOres ? undergroundOre(realX, i, realZ) : null;
-                    h.setRaw(xf, i, zf, ore != null ? ore : rock);
+                    ore = i <= undergroundOreTop && i >= undergroundOreFloor ? undergroundOre(realX, i, realZ) : null;
+                    put(i, ore != null ? ore : rock);
                 }
             }
+            flush();
 
             if (upperContext != null) {
-                paintUpper(xf, zf, realX, realZ);
+                paintUpper(realX, realZ);
+                flush();
             }
         }
 
@@ -366,15 +382,78 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<NativeBloc
          * Paints the solid run from {@code top} down to {@code floor}, which lies below every biome
          * layer, river material, mapped surface and cave ceiling of its span: only ores or rock land there.
          */
-        private void paintDeep(int xf, int zf, int realX, int realZ, int top, int floor, NativeBlockState rock,
-                               boolean hasSurfaceOres, boolean hasUndergroundOres) {
-            for (int y = top; y >= floor; y--) {
-                NativeBlockState ore = hasSurfaceOres ? surfaceOre(realX, y, realZ) : null;
-                if (ore == null && hasUndergroundOres) {
+        private void paintDeep(int realX, int realZ, int top, int floor, NativeBlockState rock) {
+            int bandTop = Math.min(top, Math.max(surfaceOreTop, undergroundOreTop));
+            int bandFloor = Math.max(floor, Math.min(surfaceOreFloor, undergroundOreFloor));
+            if (bandTop < bandFloor) {
+                putRun(top, floor, rock);
+                return;
+            }
+            if (top > bandTop) {
+                putRun(top, bandTop + 1, rock);
+            }
+            for (int y = bandTop; y >= bandFloor; y--) {
+                NativeBlockState ore = y <= surfaceOreTop && y >= surfaceOreFloor ? surfaceOre(realX, y, realZ) : null;
+                if (ore == null && y <= undergroundOreTop && y >= undergroundOreFloor) {
                     ore = undergroundOre(realX, y, realZ);
                 }
-                h.setRaw(xf, y, zf, ore != null ? ore : rock);
+                put(y, ore != null ? ore : rock);
             }
+            if (bandFloor > floor) {
+                putRun(bandFloor - 1, floor, rock);
+            }
+        }
+
+        private void put(int y, NativeBlockState state) {
+            putRun(y, y, state);
+        }
+
+        private void putRun(int top, int bottom, NativeBlockState state) {
+            if (runTop >= 0 && state == runState && top == runBottom - 1) {
+                runBottom = bottom;
+                return;
+            }
+            flush();
+            runState = state;
+            runTop = top;
+            runBottom = bottom;
+        }
+
+        private void flush() {
+            if (runTop < 0) {
+                return;
+            }
+            ColumnRunHunk.fillColumnRun(h, columnX, columnZ, runBottom, runTop, runState);
+            runTop = -1;
+            runState = null;
+        }
+
+        private static int oreTop(IrisOreBands first, IrisOreBands second, IrisOreBands third) {
+            int top = Integer.MIN_VALUE;
+            if (first.hasOres()) {
+                top = Math.max(top, first.highestY());
+            }
+            if (second.hasOres()) {
+                top = Math.max(top, second.highestY());
+            }
+            if (third.hasOres()) {
+                top = Math.max(top, third.highestY());
+            }
+            return top;
+        }
+
+        private static int oreFloor(IrisOreBands first, IrisOreBands second, IrisOreBands third) {
+            int floor = Integer.MAX_VALUE;
+            if (first.hasOres()) {
+                floor = Math.min(floor, first.lowestY());
+            }
+            if (second.hasOres()) {
+                floor = Math.min(floor, second.lowestY());
+            }
+            if (third.hasOres()) {
+                floor = Math.min(floor, third.lowestY());
+            }
+            return floor;
         }
 
         private NativeBlockState surfaceOre(int realX, int y, int realZ) {
@@ -405,7 +484,7 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<NativeBloc
             return ore;
         }
 
-        private void paintUpper(int xf, int zf, int realX, int realZ) {
+        private void paintUpper(int realX, int realZ) {
             UpperDimensionContext.Column upperColumn = upperContext.sampleColumn(realX, realZ);
             int upperSurfaceY = upperColumn.surfaceY();
             if (upperSurfaceY >= chunkHeight - 1) {
@@ -420,11 +499,11 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<NativeBloc
 
             for (int y = chunkHeight - 1; y >= upperSurfaceY; y--) {
                 if (y == chunkHeight - 1 && bedrockEnabled) {
-                    h.setRaw(xf, y, zf, bedrock);
+                    put(y, bedrock);
                     continue;
                 }
                 if (!upperColumn.isSolid(y)) {
-                    h.setRaw(xf, y, zf, air);
+                    put(y, air);
                     continue;
                 }
                 int faceY = upperColumn.faceY(y);
@@ -434,7 +513,7 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<NativeBloc
                     upperBlocks = null;
                 }
                 if (y == faceY && upperMappedSurface != null) {
-                    h.setRaw(xf, y, zf, upperMappedSurface);
+                    put(y, upperMappedSurface);
                     continue;
                 }
                 int depthFromFace = y - faceY;
@@ -444,9 +523,9 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<NativeBloc
                             upperContext.getData(), upperContext.getSurfaceSlopeStream(sourceSurfaceY));
                 }
                 if (upperBlocks != null && upperBlocks.hasIndex(depthFromFace)) {
-                    h.setRaw(xf, y, zf, upperBlocks.get(depthFromFace));
+                    put(y, upperBlocks.get(depthFromFace));
                 } else {
-                    h.setRaw(xf, y, zf, upperRock);
+                    put(y, upperRock);
                 }
             }
         }

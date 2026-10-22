@@ -28,7 +28,7 @@ final class CaveDensityGrid {
 
     CaveDensityGrid(int capacity) {
         columns = new ConcurrentClockCache<>(capacity);
-        warpColumns = new ConcurrentClockCache<>(capacity);
+        warpColumns = new ConcurrentClockCache<>(Math.max(1, capacity >> 2));
     }
 
     Owner owner(Object fieldKey) {

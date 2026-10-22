@@ -162,8 +162,8 @@ archive. The host project also provides `:core:defaultModuleSourcesJar` for the 
 
 Iris builds the built-in modules as an ordinary pack module jar, `iris-builtins.jar`, and bundles it into the plugin:
 Iris's `:core:builtinModulesJar` packages it from core's compiled classes, so it always fits the Iris it ships with, and
-every pack loads it as if it were in its `modules/` folder (IrisApi's `ModuleHost.bundlingJars`). A pack's own
-`modules/iris-builtins.jar`, such as an old copy, is left out, and Iris warns once with its path. `./gradlew builtinModulesJar`
+every pack loads it as if it were in its `modules/` folder (IrisApi's `ModuleHost.bundlingJars`). A pack must not hold a
+copy of it: its classes would be in two jars, so the pack fails to load naming both. `./gradlew builtinModulesJar`
 here runs that task and copies the jar to `build/libs/iris-builtins.jar`. `builtin-modules.txt` lists what goes in:
 `module <class>` lines (the jar's entry points, written to `META-INF/services/com.volmit.IrisModule`) and `include <pattern>`
 lines for further classes. The plugin's own classes leave those classes out; Iris's Bukkit artifact check fails the build if

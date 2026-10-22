@@ -142,6 +142,7 @@ public class IrisComplex implements DataProvider {
     private static final int STUDIO_NOISE_CACHE_SIZE = 32_768;
     private static final int TERRAIN_COLUMN_CACHE_SIZE = 524_288;
     private static final int SPARSE_BASE_HEIGHT_CAPACITY = 1 << 17;
+    private static final int BAKE_CHUNKS_PER_NOISE_CHUNK = 8;
     /** One million corners: about 20 MB, roughly a 4000 by 4000 block area at the 4-block grid. */
     private static final int SHARED_CORNER_BOUNDS_CAPACITY = 1 << 20;
     /** The slope streams measure the rise across a run of this many blocks, so gradient is slope over run. */
@@ -414,7 +415,7 @@ public class IrisComplex implements DataProvider {
 
             return value;
         });
-        bakeCache = new ChunkBakeCache(new BakeSource(), cacheSize * 8);
+        bakeCache = new ChunkBakeCache(new BakeSource(), cacheSize * BAKE_CHUNKS_PER_NOISE_CHUNK);
         rockSource = engine.getDimension().getRockPalette().getLayerGenerator(rng.nextParallelRNG(45), data).stream()
                 .select(engine.getDimension().getRockPalette().getBlockData(data));
         rockStream = new BakedStream<>(bakeCache, BakePlane.ROCK, rockSource);
@@ -579,7 +580,7 @@ public class IrisComplex implements DataProvider {
         if (minimumChunks <= 0) {
             throw new IllegalArgumentException("Terrain noise cache size must be positive");
         }
-        bakeCache.ensureCapacity(minimumChunks);
+        bakeCache.ensureCapacity(minimumChunks * BAKE_CHUNKS_PER_NOISE_CHUNK);
     }
 
     void expandHydrologyNoiseCaches() {

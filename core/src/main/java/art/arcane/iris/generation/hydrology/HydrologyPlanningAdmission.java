@@ -10,6 +10,8 @@ import java.util.function.BooleanSupplier;
 
 final class HydrologyPlanningAdmission {
     private static final long BYTES_PER_ROOT = 2L * 1024L * 1024L * 1024L;
+    private static final long BYTES_PER_TRIAL = 128L * 1024L * 1024L;
+    private static final int MAXIMUM_TRIAL_LIMIT = 16;
     private static final int MAXIMUM_ROOTS = rootLimit(
             Runtime.getRuntime().maxMemory(), Runtime.getRuntime().availableProcessors());
     private static final int MAXIMUM_TRIALS = trialLimit(Runtime.getRuntime().maxMemory(), MAXIMUM_ROOTS);
@@ -48,7 +50,7 @@ final class HydrologyPlanningAdmission {
         if (maximumRoots < 1) {
             throw new IllegalArgumentException("Maximum hydrology roots must be positive.");
         }
-        return (int) Math.clamp(maximumHeap / maximumRoots / (1024L * 1024L * 1024L), 1L, 16L);
+        return (int) Math.clamp(maximumHeap / maximumRoots / BYTES_PER_TRIAL, 1L, MAXIMUM_TRIAL_LIMIT);
     }
 
     static int rootLimit(long maximumHeap, int processors) {

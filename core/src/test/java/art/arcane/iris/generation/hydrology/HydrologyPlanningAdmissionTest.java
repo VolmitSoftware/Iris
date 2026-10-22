@@ -50,12 +50,16 @@ public class HydrologyPlanningAdmissionTest {
 
     @Test
     public void trialLimitSharesWorkingMemoryBetweenAdmittedRoots() {
-        long gibibyte = 1024L * 1024L * 1024L;
-        assertEquals(1, HydrologyPlanningAdmission.trialLimit(1280L * 1024L * 1024L, 1));
-        assertEquals(2, HydrologyPlanningAdmission.trialLimit(2L * gibibyte, 1));
-        assertEquals(2, HydrologyPlanningAdmission.trialLimit(4L * gibibyte, 2));
-        assertEquals(1, HydrologyPlanningAdmission.trialLimit(gibibyte / 2L, 1));
-        assertEquals(8, HydrologyPlanningAdmission.trialLimit(64L * gibibyte, 8));
+        long mebibyte = 1024L * 1024L;
+        long gibibyte = 1024L * mebibyte;
+        assertEquals(1, HydrologyPlanningAdmission.trialLimit(64L * mebibyte, 1));
+        assertEquals(1, HydrologyPlanningAdmission.trialLimit(128L * mebibyte, 1));
+        assertEquals(4, HydrologyPlanningAdmission.trialLimit(gibibyte / 2L, 1));
+        assertEquals(4, HydrologyPlanningAdmission.trialLimit(gibibyte, 2));
+        assertEquals(10, HydrologyPlanningAdmission.trialLimit(1280L * mebibyte, 1));
+        assertEquals(16, HydrologyPlanningAdmission.trialLimit(2L * gibibyte, 1));
+        assertEquals(16, HydrologyPlanningAdmission.trialLimit(6L * gibibyte, 3));
+        assertEquals(16, HydrologyPlanningAdmission.trialLimit(16L * gibibyte, 8));
         assertEquals(16, HydrologyPlanningAdmission.trialLimit(Long.MAX_VALUE, 8));
         assertThrows(IllegalArgumentException.class, () -> HydrologyPlanningAdmission.trialLimit(gibibyte, 0));
     }

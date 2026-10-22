@@ -197,7 +197,7 @@ public final class HydrologyPlanner {
                 geometrySampler,
                 settings.seaLevel()
         );
-        this.crossTile = new HydrologyCrossTileResolver(this);
+        this.crossTile = new HydrologyCrossTileResolver(this, HydrologyPlanningAdmission.maximumTrials());
         this.outletPlanner = new HydrologyOutletPlanner(this);
         this.sourcePlanner = new HydrologySourcePlanner(this);
         this.routeGeometry = new HydrologyRouteGeometry(this);

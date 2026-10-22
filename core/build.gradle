@@ -476,6 +476,10 @@ tasks.named('shadowJar', ShadowJar).configure {
     if (providers.gradleProperty('irisRuntimeJava').getOrElse(rootProject.irisModTarget.java.toString()) == '21') {
         exclude('art/arcane/volmlib/util/noise/NativeBillowLoader*.class')
         exclude('art/arcane/volmlib/util/noise/BillowBatch*.class')
+        exclude('art/arcane/volmlib/util/noise/NativeNoiseLibrary*.class')
+        exclude('art/arcane/volmlib/util/noise/program/NativeNoise*.class')
+        exclude('art/arcane/volmlib/util/noise/program/NativeProgramEncoder*.class')
+        exclude('art/arcane/volmlib/native/**')
     }
     // minimize() stays off. Caffeine reaches its 520 generated cache and node classes through
     // MethodHandles.Lookup.findClass on a computed name, and the VolmLib command, GUI and hotload

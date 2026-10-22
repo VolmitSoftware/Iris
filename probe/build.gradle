@@ -171,7 +171,10 @@ tasks.register('genProbe', JavaExec) {
     systemProperty('iris.probe.expectedBackend', providers.gradleProperty('probeExpectedBackend').orElse('').get())
     systemProperty('iris.probe.requireNativeSamples', providers.gradleProperty('probeRequireNativeSamples').orElse('false').get())
     if (providers.gradleProperty('probeNativeLibrary').isPresent()) {
-        systemProperty('volmlib.noise.nativeBillowLibrary', providers.gradleProperty('probeNativeLibrary').get())
+        systemProperty('volmlib.native.library', providers.gradleProperty('probeNativeLibrary').get())
+    }
+    if (providers.gradleProperty('probeNativePolicy').isPresent()) {
+        systemProperty('volmlib.native', providers.gradleProperty('probeNativePolicy').get())
     }
     systemProperty('iris.probe.threads', providers.gradleProperty('probeThreads').orElse('1').get())
     systemProperty('iris.probe.pregenProfile', providers.gradleProperty('probePregenProfile').orElse('false').get())

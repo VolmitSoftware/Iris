@@ -54,7 +54,6 @@ import art.arcane.iris.generation.subterrain.SubterrainRasterizer;
 import art.arcane.iris.generation.subterrain.SubterrainPlan;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.volmlib.util.collection.KList;
-import art.arcane.volmlib.util.collection.KMap;
 import art.arcane.volmlib.util.collection.KSet;
 import art.arcane.iris.generation.context.ChunkContext;
 import art.arcane.volmlib.util.documentation.BlockCoordinates;
@@ -69,12 +68,12 @@ import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.block.DataProvider;
-import art.arcane.iris.generation.geometry.IrisBlockVector;
 
-import java.io.IOException;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -94,6 +93,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
     private final ObjectSourcePlanCache sourcePlans;
     private final AtomicLong lastSourcePlanStatsLog = new AtomicLong();
     private volatile int collisionRuleState;
+    private volatile int inputReach;
 
     public MantleObjectComponent(EngineMantle engineMantle) {
         super(engineMantle, ReservedFlag.OBJECT, 2);
@@ -134,7 +134,8 @@ public class MantleObjectComponent extends IrisMantleComponent {
 
     @Override
     public int getInputRadius() {
-        return calculateInputRadius(getRadius(), hasCollisionRules());
+        int radius = getRadius();
+        return calculateInputRadius(radius, inputReach, hasCollisionRules());
     }
 
     @Override
@@ -297,11 +298,11 @@ public class MantleObjectComponent extends IrisMantleComponent {
         return inputRadius >= Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) inputRadius;
     }
 
-    static int calculateInputRadius(int radius, boolean sourceAnchoredCollisions) {
+    static int calculateInputRadius(int radius, int inputReach, boolean sourceAnchoredCollisions) {
         int normalizedRadius = Math.max(0, radius);
         long sourceChunkRadius = sourceChunkRadius(normalizedRadius);
         long sourceLegs = sourceAnchoredCollisions ? 2L : 1L;
-        long inputRadius = (sourceChunkRadius * 16L * sourceLegs) + normalizedRadius + 1L;
+        long inputRadius = (sourceChunkRadius * 16L * sourceLegs) + Math.max(normalizedRadius, inputReach) + 1L;
         return inputRadius >= Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) inputRadius;
     }
 
@@ -1370,7 +1371,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
             int id = rng.i(0, Integer.MAX_VALUE);
             IrisObjectPlacement placement = objectPlacement.toPlacement(v.getLoadKey());
             placement.setMode(ObjectPlaceMode.CENTER_HEIGHT);
-            placement.setRotation(buildUpsideDownRotation());
+            placement.setRotation(upsideDownRotation());
             placement.setCarvingSupport(CarvingMode.ANYWHERE);
             if (forcePlace) {
                 placement.setForcePlace(true);
@@ -1408,7 +1409,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
         }
     }
 
-    private IrisObjectRotation buildUpsideDownRotation() {
+    private static IrisObjectRotation upsideDownRotation() {
         IrisObjectRotation rt = new IrisObjectRotation();
         rt.setEnabled(true);
         rt.setXAxis(new IrisAxisRotationClamp(true, true, 180D, 180D, 90D));
@@ -1785,135 +1786,13 @@ public class MantleObjectComponent extends IrisMantleComponent {
 
     protected int computeRadius() {
         KSet<String> warnedLargeObjects = new KSet<>();
-        int radius = computeDimensionRadius(getDimension(), this::getData, warnedLargeObjects);
+        PlacementReach reach = new ReachScan(getDimension(), this::getData, warnedLargeObjects).dimension();
         UpperDimensionContext upperContext = activeUpperContext();
         if (upperContext != null) {
-            radius = Math.max(radius, computeDimensionRadius(
-                    upperContext.getDimension(),
-                    upperContext,
-                    warnedLargeObjects
-            ));
+            reach = reach.union(new ReachScan(upperContext.getDimension(), upperContext, warnedLargeObjects).upperDimension());
         }
-        return radius;
-    }
-
-    private int computeDimensionRadius(
-            IrisDimension dimension,
-            DataProvider dataProvider,
-            KSet<String> warnedLargeObjects
-    ) {
-        KMap<String, IrisBlockVector> sizeCache = new KMap<>();
-        int radius = 0;
-        for (IrisRegion region : dimension.getAllRegions(dataProvider)) {
-            if (region == null) {
-                continue;
-            }
-            radius = Math.max(radius, computePlacementRadius(
-                    region.getObjects(),
-                    dimension,
-                    dataProvider,
-                    sizeCache,
-                    warnedLargeObjects
-            ));
-            radius = Math.max(radius, computeProceduralRadius(region.getProceduralObjects(), dimension, dataProvider));
-        }
-        for (IrisBiome biome : dimension.getReachableBiomes(dataProvider)) {
-            if (biome == null) {
-                continue;
-            }
-            radius = Math.max(radius, computePlacementRadius(
-                    biome.getObjects(),
-                    dimension,
-                    dataProvider,
-                    sizeCache,
-                    warnedLargeObjects
-            ));
-            radius = Math.max(radius, computeProceduralRadius(biome.getProceduralObjects(), dimension, dataProvider));
-        }
-        return radius;
-    }
-
-    private int computePlacementRadius(
-            KList<IrisObjectPlacement> placements,
-            IrisDimension dimension,
-            DataProvider dataProvider,
-            KMap<String, IrisBlockVector> sizeCache,
-            KSet<String> warnedLargeObjects
-    ) {
-        int radius = 0;
-        for (IrisObjectPlacement placement : placements) {
-            if (placement == null) {
-                continue;
-            }
-            for (String objectKey : placement.getPlace()) {
-                try {
-                    IrisBlockVector size = loadObjectSize(dataProvider, sizeCache, objectKey);
-                    if (size == null) {
-                        continue;
-                    }
-                    int reach = calculatePlacementReach(size, placement, placement.getMaximumScale(dimension));
-                    if (reach > 128 && warnedLargeObjects.add(objectKey)) {
-                        IrisLogging.warn("Object " + objectKey + " has a large placement reach (" + reach + " blocks) and may increase memory usage!");
-                    }
-                    radius = Math.max(radius, reach);
-                } catch (Throwable e) {
-                    GenerationFailures.rethrowEngineFailure(e);
-                    IrisLogging.reportError(e);
-                }
-            }
-        }
-        return radius;
-    }
-
-    private int computeProceduralRadius(IrisProceduralObjects procedural, IrisDimension dimension, DataProvider dataProvider) {
-        if (procedural == null || procedural.isEmpty()) {
-            return 0;
-        }
-        int radius = 0;
-        for (IrisProceduralPlacement placement : procedural.getAllPlacements()) {
-            if (placement == null) {
-                continue;
-            }
-            KList<IrisObject> variants = placement.getVariantObjects(dataProvider.getData());
-            if (variants == null) {
-                continue;
-            }
-            IrisObjectPlacement objectPlacement = placement.asPlacement();
-            for (IrisObject variant : variants) {
-                if (variant == null) {
-                    continue;
-                }
-                IrisBlockVector size = new IrisBlockVector(variant.getW(), variant.getH(), variant.getD());
-                radius = Math.max(radius, calculatePlacementReach(size, objectPlacement, objectPlacement.getMaximumScale(dimension)));
-            }
-        }
-        return radius;
-    }
-
-    static int calculatePlacementReach(IrisBlockVector size, IrisObjectPlacement placement, double scale) {
-        if (size == null) {
-            return 0;
-        }
-        if (placement == null) {
-            return Math.max(Math.abs(size.getBlockX()), Math.abs(size.getBlockZ()));
-        }
-
-        int width = scaledDimension(size.getBlockX(), scale);
-        int height = scaledDimension(size.getBlockY(), scale);
-        int depth = scaledDimension(size.getBlockZ(), scale);
-        IrisObjectRotation rotation = placement.getRotation();
-        boolean rotateX = rotation != null && rotation.isEnabled() && rotation.getXAxis() != null && rotation.getXAxis().isEnabled();
-        boolean rotateZ = rotation != null && rotation.isEnabled() && rotation.getZAxis() != null && rotation.getZAxis().isEnabled();
-        int footprint = rotateX || rotateZ ? Math.max(width, Math.max(height, depth)) : Math.max(width, depth);
-        int translation = calculateTranslationReach(placement.getTranslate(), rotation, rotateX || rotateZ);
-        int warp = placement.getWarp() != null && !placement.getWarp().isFlat()
-                ? (int) Math.ceil(Math.abs(placement.getWarp().getMultiplier()) / 2D)
-                : 0;
-        int vacuum = IrisObjectVacuum.isVacuumMode(placement.getMode())
-                ? 2 * IrisObjectVacuum.resolveRadius(placement.getMode(), placement.getVacuumSettings())
-                : 0;
-        long reach = (long) footprint + translation + warp + vacuum;
-        return reach > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) reach;
+        inputReach = reach.input();
+        return reach.horizontal();
     }
 
     static boolean allowsObjectPlacement(
@@ -1926,9 +1805,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
         if (complex == null || object == null) {
             return true;
         }
-        int reach = calculatePlacementReach(
-                new IrisBlockVector(object.getW(), object.getH(), object.getD()),
-                placement, 1D);
+        int reach = transitionFootprint(object, placement);
         return complex.allowsNewGenerationFootprint(
                 saturatedOffset(anchorX, -reach),
                 saturatedOffset(anchorZ, -reach),
@@ -1936,20 +1813,34 @@ public class MantleObjectComponent extends IrisMantleComponent {
                 saturatedOffset(anchorZ, reach));
     }
 
+    private static int transitionFootprint(IrisObject object, IrisObjectPlacement placement) {
+        int width = Math.abs(object.getW());
+        int height = Math.abs(object.getH());
+        int depth = Math.abs(object.getD());
+        if (placement == null) {
+            return Math.max(width, depth);
+        }
+        IrisObjectRotation rotation = placement.getRotation();
+        boolean rotateX = rotation != null && rotation.isEnabled() && rotation.getXAxis() != null && rotation.getXAxis().isEnabled();
+        boolean rotateZ = rotation != null && rotation.isEnabled() && rotation.getZAxis() != null && rotation.getZAxis().isEnabled();
+        int footprint = rotateX || rotateZ ? Math.max(width, Math.max(height, depth)) : Math.max(width, depth);
+        int translation = transitionTranslation(placement.getTranslate(), rotation, rotateX || rotateZ);
+        int warp = placement.getWarp() != null && !placement.getWarp().isFlat()
+                ? (int) Math.ceil(Math.abs(placement.getWarp().getMultiplier()) / 2D)
+                : 0;
+        int vacuum = IrisObjectVacuum.isVacuumMode(placement.getMode())
+                ? 2 * IrisObjectVacuum.resolveRadius(placement.getMode(), placement.getVacuumSettings())
+                : 0;
+        long reach = (long) footprint + translation + warp + vacuum;
+        return reach > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) reach;
+    }
+
     private static int saturatedOffset(int coordinate, int offset) {
         long result = (long) coordinate + offset;
         return (int) Math.max(Integer.MIN_VALUE, Math.min(Integer.MAX_VALUE, result));
     }
 
-    private static int scaledDimension(int dimension, double scale) {
-        int absoluteDimension = Math.abs(dimension);
-        if (scale == 1D) {
-            return absoluteDimension;
-        }
-        return (int) Math.ceil(absoluteDimension * scale);
-    }
-
-    private static int calculateTranslationReach(IrisObjectTranslate translate, IrisObjectRotation rotation, boolean rotateVertically) {
+    private static int transitionTranslation(IrisObjectTranslate translate, IrisObjectRotation rotation, boolean rotateVertically) {
         if (translate == null || !translate.canTranslate()) {
             return 0;
         }
@@ -1961,22 +1852,6 @@ public class MantleObjectComponent extends IrisMantleComponent {
         }
         boolean rotateY = rotation != null && rotation.isEnabled() && rotation.getYAxis() != null && rotation.getYAxis().isEnabled();
         return rotateY ? (int) Math.ceil(Math.hypot(x, z)) : (int) Math.max(Math.abs(x), Math.abs(z));
-    }
-
-    private IrisBlockVector loadObjectSize(
-            DataProvider dataProvider,
-            KMap<String, IrisBlockVector> sizeCache,
-            String objectKey
-    ) {
-        return sizeCache.computeIfAbsent(objectKey, k -> {
-            try {
-                return IrisObject.sampleSize(dataProvider.getData().getObjectLoader().findFile(objectKey));
-            } catch (IOException e) {
-                IrisLogging.reportError(e);
-            }
-
-            return null;
-        });
     }
 
     private UpperDimensionContext activeUpperContext() {
@@ -2044,6 +1919,187 @@ public class MantleObjectComponent extends IrisMantleComponent {
             surfaceY = getEngineMantle().trueHeight(x, z);
             surfaceHeights.put(columnKey, surfaceY);
             return surfaceY;
+        }
+    }
+
+    private static final class ReachScan {
+        private final IrisDimension dimension;
+        private final DataProvider dataProvider;
+        private final KSet<String> warnedLargeObjects;
+        private final Map<String, PlacementReach.Extent> extents;
+        private final Set<ObjectPlaceMode> caveVacuumModes;
+
+        private ReachScan(IrisDimension dimension, DataProvider dataProvider, KSet<String> warnedLargeObjects) {
+            this.dimension = dimension;
+            this.dataProvider = dataProvider;
+            this.warnedLargeObjects = warnedLargeObjects;
+            this.extents = new HashMap<>();
+            this.caveVacuumModes = caveVacuumModes(dimension, dataProvider);
+        }
+
+        private PlacementReach dimension() {
+            PlacementReach reach = PlacementReach.NONE;
+            for (IrisRegion region : dimension.getAllRegions(dataProvider)) {
+                if (region != null) {
+                    reach = reach.union(placements(region.getObjects())).union(procedural(region.getProceduralObjects()));
+                }
+            }
+            for (IrisBiome biome : dimension.getReachableBiomes(dataProvider)) {
+                if (biome != null) {
+                    reach = reach.union(placements(biome.getObjects())).union(procedural(biome.getProceduralObjects()));
+                }
+            }
+            return reach.withReadMargin(PlacementReach.supportReadMargin(dimension.getObjectSurfaceSupportBuffer()));
+        }
+
+        private PlacementReach upperDimension() {
+            PlacementReach reach = PlacementReach.NONE;
+            for (IrisRegion region : dimension.getAllRegions(dataProvider)) {
+                if (region != null) {
+                    reach = reach.union(upperPlacements(region.getSurfaceObjects()));
+                }
+            }
+            for (IrisBiome biome : dimension.getReachableBiomes(dataProvider)) {
+                if (biome != null) {
+                    reach = reach.union(upperPlacements(biome.getSurfaceObjects()));
+                }
+            }
+            return reach;
+        }
+
+        private PlacementReach placements(KList<IrisObjectPlacement> placements) {
+            PlacementReach reach = PlacementReach.NONE;
+            if (placements == null) {
+                return reach;
+            }
+            for (IrisObjectPlacement placement : placements) {
+                if (placement != null) {
+                    reach = reach.union(objects(placement, profiles(placement)));
+                }
+            }
+            return reach;
+        }
+
+        private PlacementReach upperPlacements(KList<IrisObjectPlacement> placements) {
+            PlacementReach reach = PlacementReach.NONE;
+            if (placements == null) {
+                return reach;
+            }
+            for (IrisObjectPlacement placement : placements) {
+                if (placement == null) {
+                    continue;
+                }
+                IrisObjectPlacement upper = placement.toPlacement(placement.getPlace().toArray(new String[0]));
+                upper.setMode(ObjectPlaceMode.CENTER_HEIGHT);
+                upper.setRotation(upsideDownRotation());
+                upper.setCarvingSupport(CarvingMode.ANYWHERE);
+                reach = reach.union(objects(placement, new KList<>(PlacementReach.profile(upper))));
+            }
+            return reach;
+        }
+
+        private PlacementReach objects(IrisObjectPlacement placement, KList<PlacementReach.Profile> profiles) {
+            PlacementReach reach = PlacementReach.NONE;
+            double scale = placement.getMaximumScale(dimension);
+            for (String objectKey : placement.getPlace()) {
+                try {
+                    PlacementReach.Extent extent = extent(objectKey);
+                    if (extent == null) {
+                        continue;
+                    }
+                    PlacementReach.Extent scaled = extent.scaled(scale);
+                    for (PlacementReach.Profile profile : profiles) {
+                        PlacementReach objectReach = profile.of(scaled);
+                        if (objectReach.horizontal() > 128 && warnedLargeObjects.add(objectKey)) {
+                            IrisLogging.warn("Object " + objectKey + " has a large placement reach (" + objectReach.horizontal() + " blocks) and may increase memory usage!");
+                        }
+                        reach = reach.union(objectReach);
+                    }
+                } catch (Throwable e) {
+                    GenerationFailures.rethrowEngineFailure(e);
+                    IrisLogging.reportError(e);
+                }
+            }
+            return reach;
+        }
+
+        private PlacementReach procedural(IrisProceduralObjects procedural) {
+            PlacementReach reach = PlacementReach.NONE;
+            if (procedural == null || procedural.isEmpty()) {
+                return reach;
+            }
+            for (IrisProceduralPlacement placement : procedural.getAllPlacements()) {
+                if (placement == null) {
+                    continue;
+                }
+                KList<IrisObject> variants = placement.getVariantObjects(dataProvider.getData());
+                if (variants == null) {
+                    continue;
+                }
+                IrisObjectPlacement objectPlacement = placement.asPlacement();
+                KList<PlacementReach.Profile> profiles = profiles(objectPlacement);
+                double scale = objectPlacement.getMaximumScale(dimension);
+                for (IrisObject variant : variants) {
+                    if (variant == null) {
+                        continue;
+                    }
+                    PlacementReach.Extent extent = PlacementReach.Extent.of(variant).scaled(scale);
+                    for (PlacementReach.Profile profile : profiles) {
+                        reach = reach.union(profile.of(extent));
+                    }
+                }
+            }
+            return reach;
+        }
+
+        private KList<PlacementReach.Profile> profiles(IrisObjectPlacement placement) {
+            KList<PlacementReach.Profile> profiles = new KList<>(PlacementReach.profile(placement));
+            if (placement.getMode() != ObjectPlaceMode.CENTER_HEIGHT
+                    || placement.getCarvingSupport() == CarvingMode.SURFACE_ONLY) {
+                return profiles;
+            }
+            for (ObjectPlaceMode mode : caveVacuumModes) {
+                IrisObjectPlacement cave = placement.toPlacement(placement.getPlace().toArray(new String[0]));
+                cave.setMode(mode);
+                profiles.add(PlacementReach.profile(cave));
+            }
+            return profiles;
+        }
+
+        private PlacementReach.Extent extent(String objectKey) {
+            if (extents.containsKey(objectKey)) {
+                return extents.get(objectKey);
+            }
+            IrisObject object = dataProvider.getData().getObjectLoader().load(objectKey);
+            PlacementReach.Extent extent = object == null ? null : PlacementReach.Extent.of(object);
+            extents.put(objectKey, extent);
+            return extent;
+        }
+
+        private static Set<ObjectPlaceMode> caveVacuumModes(IrisDimension dimension, DataProvider dataProvider) {
+            Set<ObjectPlaceMode> modes = EnumSet.noneOf(ObjectPlaceMode.class);
+            addCaveVacuumMode(modes, dimension.getCaveProfile());
+            for (IrisRegion region : dimension.getAllRegions(dataProvider)) {
+                if (region != null) {
+                    addCaveVacuumMode(modes, region.getCaveProfile());
+                }
+            }
+            for (IrisBiome biome : dimension.getReachableBiomes(dataProvider)) {
+                if (biome != null) {
+                    addCaveVacuumMode(modes, biome.getCaveProfile());
+                }
+            }
+            return modes;
+        }
+
+        private static void addCaveVacuumMode(Set<ObjectPlaceMode> modes, IrisCaveProfile profile) {
+            if (profile == null) {
+                return;
+            }
+            ObjectPlaceMode mode = profile.getDefaultObjectPlaceMode();
+            if (mode != null && IrisObjectVacuum.isVacuumMode(mode)) {
+                modes.add(mode);
+            }
         }
     }
 

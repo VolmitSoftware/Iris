@@ -75,7 +75,6 @@ public class IrisCaveCarver3D {
     private static final double WARP_B_OFFSET_X = 31.37D;
     private static final double WARP_B_OFFSET_Y = 17.21D;
     private static final double WARP_B_OFFSET_Z = 23.91D;
-    private static final ThreadLocal<NoiseScratch> NOISE_SCRATCH = ThreadLocal.withInitial(NoiseScratch::new);
 
     private final Engine engine;
     private final IrisData data;
@@ -1009,7 +1008,7 @@ public class IrisCaveCarver3D {
 
         if (cellKernel) {
             if (classified == null) {
-                fillCellLattice(scratch, scratch, x0, z0, minY, passMaxY);
+                fillCellLattice(scratch, x0, z0, minY, passMaxY);
             }
             return emitCellPass(chunk, scratch, classified, x0, z0, minY, passMaxY, minSection, maxSection,
                     activeColumnIndices, activeColumnTopY, activeColumnCount, surfaceFluidBoundaries,
@@ -1237,16 +1236,24 @@ public class IrisCaveCarver3D {
         }
     }
 
-    private void fillCellLattice(CaveCarveScratch scratch, CaveCarveScratch plan, int x0, int z0, int fromY, int toY) {
-        CaveDensityLattice lattice = plan.cellLattice;
-        scratch.ensureLatticeBatch(toY - fromY + 1);
-        int[] latticeY = scratch.latticeY;
-        double[] density = scratch.latticeDensity;
+    private void fillCellLattice(CaveCarveScratch plan, int x0, int z0, int fromY, int toY) {
+        CaveLatticeBatch batch = CaveLatticeBatch.acquire();
+        try {
+            fillCellLattice(batch, plan.cellLattice, x0, z0, fromY, toY);
+        } finally {
+            batch.release();
+        }
+    }
+
+    private void fillCellLattice(CaveLatticeBatch batch, CaveDensityLattice lattice, int x0, int z0, int fromY, int toY) {
+        batch.ensure((toY - fromY + 1) * CaveDensityLattice.CORNERS);
+        int[] latticeY = batch.y;
+        int[] cornerStart = batch.cornerStart;
         long reads = 0L;
-        long samples = 0L;
+        int count = 0;
         for (int corner = 0; corner < CaveDensityLattice.CORNERS; corner++) {
+            cornerStart[corner] = count;
             CaveDensityGrid.Column column = lattice.densityColumns[corner];
-            int count = 0;
             for (int y = fromY; y <= toY; y++) {
                 if (!lattice.needs(corner, y)) {
                     continue;
@@ -1259,55 +1266,60 @@ public class IrisCaveCarver3D {
                     lattice.store(corner, y, cached);
                 }
             }
-            if (count == 0) {
-                continue;
-            }
-            samples += count;
-            sampleLatticeColumn(scratch, lattice.warpColumns[corner], x0 + (corner / 3) * ADAPTIVE_DEEP_SAMPLE_STEP,
-                    z0 + (corner % 3) * ADAPTIVE_DEEP_SAMPLE_STEP, count);
-            for (int index = 0; index < count; index++) {
-                lattice.store(corner, latticeY[index], density[index]);
-                if (column != null) {
-                    column.set(latticeY[index], density[index]);
+        }
+        cornerStart[CaveDensityLattice.CORNERS] = count;
+        if (count > 0) {
+            sampleLatticePoints(batch, lattice, x0, z0, count);
+            double[] density = batch.density;
+            for (int corner = 0; corner < CaveDensityLattice.CORNERS; corner++) {
+                CaveDensityGrid.Column column = lattice.densityColumns[corner];
+                for (int index = cornerStart[corner]; index < cornerStart[corner + 1]; index++) {
+                    lattice.store(corner, latticeY[index], density[index]);
+                    if (column != null) {
+                        column.set(latticeY[index], density[index]);
+                    }
                 }
             }
         }
         if (GenerationCounter.ENABLED) {
             GenerationCounter.CAVE_LATTICE_READS.add(reads);
-            GenerationCounter.CAVE_LATTICE_SAMPLES.add(samples);
+            GenerationCounter.CAVE_LATTICE_SAMPLES.add(count);
         }
     }
 
-    private void sampleLatticeColumn(CaveCarveScratch scratch, CaveDensityGrid.Column warpColumn, int x, int z, int count) {
-        int[] latticeY = scratch.latticeY;
-        double[] density = scratch.latticeDensity;
-        if (!hasWarp) {
-            for (int index = 0; index < count; index++) {
-                density[index] = sampleDensityNoWarpNoModules(x, latticeY[index], z);
+    private void sampleLatticePoints(CaveLatticeBatch batch, CaveDensityLattice lattice, int x0, int z0, int count) {
+        double[] xs = batch.warpedX;
+        double[] ys = batch.warpedY;
+        double[] zs = batch.warpedZ;
+        if (hasWarp) {
+            resolveLatticeWarp(batch, lattice, x0, z0);
+        } else {
+            int[] latticeY = batch.y;
+            int[] cornerStart = batch.cornerStart;
+            for (int corner = 0; corner < CaveDensityLattice.CORNERS; corner++) {
+                double x = x0 + (corner / 3) * ADAPTIVE_DEEP_SAMPLE_STEP;
+                double z = z0 + (corner % 3) * ADAPTIVE_DEEP_SAMPLE_STEP;
+                for (int index = cornerStart[corner]; index < cornerStart[corner + 1]; index++) {
+                    xs[index] = x;
+                    ys[index] = latticeY[index];
+                    zs[index] = z;
+                }
             }
-            return;
         }
-        resolveLatticeWarp(scratch, warpColumn, x, z, count);
-        double[] warpedX = scratch.latticeWarpedX;
-        double[] warpedY = scratch.latticeWarpedY;
-        double[] warpedZ = scratch.latticeWarpedZ;
+        NoiseScratch noise = batch.noise;
+        double[] density = batch.density;
+        double[] values = batch.values;
+        baseDensity.fillPoints3D(noise, xs, ys, zs, count, values);
         for (int index = 0; index < count; index++) {
-            density[index] = baseDensity.sampleSigned3D(warpedX[index], warpedY[index], warpedZ[index]) * baseWeight;
+            density[index] = values[index] * baseWeight;
         }
+        detailDensity.fillPoints3D(noise, xs, ys, zs, count, values);
         for (int index = 0; index < count; index++) {
-            density[index] += detailDensity.sampleSigned3D(warpedX[index], warpedY[index], warpedZ[index]) * detailWeight;
+            density[index] += values[index] * detailWeight;
         }
-        for (CaveFieldModuleState module : modules) {
-            for (int index = 0; index < count; index++) {
-                int y = latticeY[index];
-                if (y < module.minY || y > module.maxY) {
-                    continue;
-                }
-                double moduleDensity = module.density.sampleSigned3D(warpedX[index], warpedY[index], warpedZ[index]) - module.threshold;
-                if (module.invert) {
-                    moduleDensity = -moduleDensity;
-                }
-                density[index] += moduleDensity * module.weight;
+        if (hasWarp) {
+            for (CaveFieldModuleState module : modules) {
+                addLatticeModule(batch, module, count);
             }
         }
         for (int index = 0; index < count; index++) {
@@ -1315,78 +1327,186 @@ public class IrisCaveCarver3D {
         }
     }
 
-    private void resolveLatticeWarp(CaveCarveScratch scratch, CaveDensityGrid.Column warpColumn, int x, int z, int count) {
-        int[] latticeY = scratch.latticeY;
-        int[] snapY = scratch.latticeSnapY;
-        double[] warpA = scratch.latticeWarpA;
-        double[] warpB = scratch.latticeWarpB;
-        int snapCount = 0;
+    private void addLatticeModule(CaveLatticeBatch batch, CaveFieldModuleState module, int count) {
+        NoiseScratch noise = batch.noise;
+        int[] latticeY = batch.y;
+        double[] xs = batch.warpedX;
+        double[] ys = batch.warpedY;
+        double[] zs = batch.warpedZ;
+        double[] density = batch.density;
+        double[] values = batch.values;
+        int[] band = batch.pointIndex;
+        int inBand = 0;
         for (int index = 0; index < count; index++) {
-            int snap = snapWarp(latticeY[index]);
-            if (snapCount == 0 || snapY[snapCount - 1] != snap) {
-                snapY[snapCount++] = snap;
+            int y = latticeY[index];
+            if (y >= module.minY && y <= module.maxY) {
+                band[inBand++] = index;
             }
         }
+        if (inBand == 0) {
+            return;
+        }
+        if (inBand == count) {
+            module.density.fillPoints3D(noise, xs, ys, zs, count, values);
+            for (int index = 0; index < count; index++) {
+                double moduleDensity = values[index] - module.threshold;
+                if (module.invert) {
+                    moduleDensity = -moduleDensity;
+                }
+                density[index] += moduleDensity * module.weight;
+            }
+            return;
+        }
+        double[] bandX = batch.pointX;
+        double[] bandY = batch.pointY;
+        double[] bandZ = batch.pointZ;
+        for (int slot = 0; slot < inBand; slot++) {
+            int index = band[slot];
+            bandX[slot] = xs[index];
+            bandY[slot] = ys[index];
+            bandZ[slot] = zs[index];
+        }
+        module.density.fillPoints3D(noise, bandX, bandY, bandZ, inBand, values);
+        for (int slot = 0; slot < inBand; slot++) {
+            double moduleDensity = values[slot] - module.threshold;
+            if (module.invert) {
+                moduleDensity = -moduleDensity;
+            }
+            density[band[slot]] += moduleDensity * module.weight;
+        }
+    }
+
+    private void resolveLatticeWarp(CaveLatticeBatch batch, CaveDensityLattice lattice, int x0, int z0) {
+        int[] latticeY = batch.y;
+        int[] cornerStart = batch.cornerStart;
+        int[] snapStart = batch.snapStart;
+        int[] snapY = batch.snapY;
+        boolean[] snapMissing = batch.snapMissing;
+        double[] warpA = batch.warpA;
+        double[] warpB = batch.warpB;
+        int snapCount = 0;
+        int pending = 0;
         long computed = 0L;
-        int runStart = -1;
-        for (int snapIndex = 0; snapIndex <= snapCount; snapIndex++) {
-            boolean missing = false;
-            if (snapIndex < snapCount) {
-                int snap = snapY[snapIndex];
-                double cachedA = warpColumn == null ? Double.NaN : warpColumn.get(snap);
-                double cachedB = warpColumn == null ? Double.NaN : warpColumn.get(snap + 1);
-                missing = Double.isNaN(cachedA) || Double.isNaN(cachedB);
-                warpA[snapIndex] = cachedA;
-                warpB[snapIndex] = cachedB;
+        for (int corner = 0; corner < CaveDensityLattice.CORNERS; corner++) {
+            int first = snapCount;
+            snapStart[corner] = first;
+            for (int index = cornerStart[corner]; index < cornerStart[corner + 1]; index++) {
+                int snap = snapWarp(latticeY[index]);
+                if (snapCount == first || snapY[snapCount - 1] != snap) {
+                    snapY[snapCount++] = snap;
+                }
             }
-            if (runStart >= 0 && (!missing || snapY[snapIndex] != snapY[snapIndex - 1] + warpResolution)) {
-                computeLatticeWarpRun(scratch, warpColumn, x, z, runStart, snapIndex);
-                computed += snapIndex - runStart;
-                runStart = -1;
+            if (snapCount == first) {
+                continue;
             }
-            if (missing && runStart < 0) {
-                runStart = snapIndex;
+            int x = x0 + (corner / 3) * ADAPTIVE_DEEP_SAMPLE_STEP;
+            int z = z0 + (corner % 3) * ADAPTIVE_DEEP_SAMPLE_STEP;
+            CaveDensityGrid.Column warpColumn = lattice.warpColumns[corner];
+            int runStart = -1;
+            for (int snapIndex = first; snapIndex <= snapCount; snapIndex++) {
+                boolean missing = false;
+                if (snapIndex < snapCount) {
+                    int snap = snapY[snapIndex];
+                    double cachedA = warpColumn == null ? Double.NaN : warpColumn.get(snap);
+                    double cachedB = warpColumn == null ? Double.NaN : warpColumn.get(snap + 1);
+                    missing = Double.isNaN(cachedA) || Double.isNaN(cachedB);
+                    snapMissing[snapIndex] = missing;
+                    warpA[snapIndex] = cachedA;
+                    warpB[snapIndex] = cachedB;
+                }
+                if (runStart >= 0 && (!missing || snapY[snapIndex] != snapY[snapIndex - 1] + warpResolution)) {
+                    pending = queueLatticeWarpRun(batch, x, z, runStart, snapIndex, pending);
+                    computed += snapIndex - runStart;
+                    runStart = -1;
+                }
+                if (missing && runStart < 0) {
+                    runStart = snapIndex;
+                }
             }
+        }
+        snapStart[CaveDensityLattice.CORNERS] = snapCount;
+        if (pending > 0) {
+            evaluateLatticeWarpPoints(batch, lattice, pending);
         }
         if (GenerationCounter.ENABLED) {
             GenerationCounter.CAVE_WARP_SAMPLES.add(computed);
         }
-        double[] warpedX = scratch.latticeWarpedX;
-        double[] warpedY = scratch.latticeWarpedY;
-        double[] warpedZ = scratch.latticeWarpedZ;
-        int snapIndex = 0;
-        for (int index = 0; index < count; index++) {
-            int y = latticeY[index];
-            int snap = snapWarp(y);
-            while (snapY[snapIndex] != snap) {
-                snapIndex++;
+        double[] warpedX = batch.warpedX;
+        double[] warpedY = batch.warpedY;
+        double[] warpedZ = batch.warpedZ;
+        for (int corner = 0; corner < CaveDensityLattice.CORNERS; corner++) {
+            int x = x0 + (corner / 3) * ADAPTIVE_DEEP_SAMPLE_STEP;
+            int z = z0 + (corner % 3) * ADAPTIVE_DEEP_SAMPLE_STEP;
+            int snapIndex = snapStart[corner];
+            for (int index = cornerStart[corner]; index < cornerStart[corner + 1]; index++) {
+                int y = latticeY[index];
+                int snap = snapWarp(y);
+                while (snapY[snapIndex] != snap) {
+                    snapIndex++;
+                }
+                double a = warpA[snapIndex];
+                double b = warpB[snapIndex];
+                warpedX[index] = x + (a * warpStrength);
+                warpedY[index] = y + (b * warpStrength);
+                warpedZ[index] = z + ((a - b) * 0.5D * warpStrength);
             }
-            double a = warpA[snapIndex];
-            double b = warpB[snapIndex];
-            warpedX[index] = x + (a * warpStrength);
-            warpedY[index] = y + (b * warpStrength);
-            warpedZ[index] = z + ((a - b) * 0.5D * warpStrength);
         }
     }
 
-    private void computeLatticeWarpRun(CaveCarveScratch scratch, CaveDensityGrid.Column warpColumn, int x, int z, int from, int to) {
-        int[] snapY = scratch.latticeSnapY;
-        double[] warpA = scratch.latticeWarpA;
-        double[] warpB = scratch.latticeWarpB;
+    private int queueLatticeWarpRun(CaveLatticeBatch batch, int x, int z, int from, int to, int pending) {
+        int[] snapY = batch.snapY;
+        double[] pointX = batch.pointX;
+        double[] pointY = batch.pointY;
+        double[] pointZ = batch.pointZ;
+        int[] target = batch.pointIndex;
         int length = to - from;
+        int queued = pending;
         if (length == 1) {
-            warpA[from] = warpDensity.sampleSigned3D(x, snapY[from], z);
+            pointX[queued] = x;
+            pointY[queued] = snapY[from];
+            pointZ[queued] = z;
+            target[queued++] = from << 1;
         } else {
-            double[] column = scratch.latticeWarpedX;
-            warpDensity.fillColumn3D(NOISE_SCRATCH.get(), x, z, snapY[from], warpResolution, length, column);
-            System.arraycopy(column, 0, warpA, from, length);
+            double[] column = batch.values;
+            warpDensity.fillColumn3D(batch.noise, x, z, snapY[from], warpResolution, length, column);
+            System.arraycopy(column, 0, batch.warpA, from, length);
         }
         for (int snapIndex = from; snapIndex < to; snapIndex++) {
-            int snap = snapY[snapIndex];
-            warpB[snapIndex] = warpDensity.sampleSigned3D(x + WARP_B_OFFSET_X, snap - WARP_B_OFFSET_Y, z + WARP_B_OFFSET_Z);
-            if (warpColumn != null) {
-                warpColumn.set(snap, warpA[snapIndex]);
-                warpColumn.set(snap + 1, warpB[snapIndex]);
+            pointX[queued] = x + WARP_B_OFFSET_X;
+            pointY[queued] = snapY[snapIndex] - WARP_B_OFFSET_Y;
+            pointZ[queued] = z + WARP_B_OFFSET_Z;
+            target[queued++] = (snapIndex << 1) | 1;
+        }
+        return queued;
+    }
+
+    private void evaluateLatticeWarpPoints(CaveLatticeBatch batch, CaveDensityLattice lattice, int pending) {
+        double[] values = batch.values;
+        warpDensity.fillPoints3D(batch.noise, batch.pointX, batch.pointY, batch.pointZ, pending, values);
+        int[] target = batch.pointIndex;
+        double[] warpA = batch.warpA;
+        double[] warpB = batch.warpB;
+        for (int slot = 0; slot < pending; slot++) {
+            int code = target[slot];
+            if ((code & 1) == 0) {
+                warpA[code >> 1] = values[slot];
+            } else {
+                warpB[code >> 1] = values[slot];
+            }
+        }
+        int[] snapStart = batch.snapStart;
+        int[] snapY = batch.snapY;
+        boolean[] snapMissing = batch.snapMissing;
+        for (int corner = 0; corner < CaveDensityLattice.CORNERS; corner++) {
+            CaveDensityGrid.Column warpColumn = lattice.warpColumns[corner];
+            if (warpColumn == null) {
+                continue;
+            }
+            for (int snapIndex = snapStart[corner]; snapIndex < snapStart[corner + 1]; snapIndex++) {
+                if (snapMissing[snapIndex]) {
+                    warpColumn.set(snapY[snapIndex], warpA[snapIndex]);
+                    warpColumn.set(snapY[snapIndex] + 1, warpB[snapIndex]);
+                }
             }
         }
     }
@@ -1470,7 +1590,7 @@ public class IrisCaveCarver3D {
     private void classifyCellRows(DensityPass pass, int minimumY, int maximumY, byte[] classified) {
         CaveCarveScratch scratch = new CaveCarveScratch();
         CaveCarveScratch plan = pass.sourceScratch();
-        fillCellLattice(scratch, plan, pass.x(), pass.z(), minimumY, maximumY);
+        fillCellLattice(plan, pass.x(), pass.z(), minimumY, maximumY);
         long[] rowBits = scratch.rowCarveBits;
         for (int y = minimumY; y <= maximumY; y++) {
             int fadeIndex = y - pass.minimumY();

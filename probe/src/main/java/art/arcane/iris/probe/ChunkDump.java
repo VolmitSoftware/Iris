@@ -20,6 +20,7 @@ package art.arcane.iris.probe;
 
 import art.arcane.volmlib.nativelib.terrain.NativeBiome;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockVolume;
 import art.arcane.volmlib.util.hunk.Hunk;
 
 import java.io.BufferedInputStream;
@@ -84,11 +85,12 @@ public final class ChunkDump {
         char[] biomeIndices = new char[size];
         PaletteBuilder blockPalette = new PaletteBuilder();
         PaletteBuilder biomePalette = new PaletteBuilder();
+        NativeBlockVolume stored = blocks instanceof NativeBlockVolume volume ? volume : null;
         int index = 0;
         for (int x = 0; x < 16; x++) {
             for (int z = 0; z < 16; z++) {
                 for (int y = 0; y < height; y++) {
-                    NativeBlockState state = blocks.get(x, y, z);
+                    NativeBlockState state = stored == null ? blocks.get(x, y, z) : stored.getStoredRaw(x, y, z);
                     NativeBiome biome = biomes.get(x, y, z);
                     blockIndices[index] = blockPalette.indexOf(state, state == null ? NULL_BLOCK_KEY : null);
                     biomeIndices[index] = biomePalette.indexOf(biome, biome == null ? NULL_BIOME_KEY : null);

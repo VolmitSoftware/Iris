@@ -26,6 +26,7 @@ import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.LogLevel;
 import art.arcane.volmlib.nativelib.terrain.NativeBiome;
 import art.arcane.iris.spi.PlatformBiomeWriter;
+import art.arcane.iris.spi.PlatformGenerationRegistry;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockProperty;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.nativelib.entity.NativeEntityType;
@@ -78,7 +79,7 @@ public final class StubPlatform implements IrisPlatform {
         return StubBlockState.of(key);
     }
 
-    private final StubRegistries registries = new StubRegistries();
+    private final StubRegistries registries;
     private final StubScheduler scheduler = new StubScheduler();
     private final StubStructureHooks structureHooks = new StubStructureHooks();
     private final StubBiomeWriter biomeWriter = new StubBiomeWriter();
@@ -89,7 +90,12 @@ public final class StubPlatform implements IrisPlatform {
     }
 
     public StubPlatform(File dataFolder) {
+        this(dataFolder, null);
+    }
+
+    public StubPlatform(File dataFolder, PlatformGenerationRegistry generationRegistry) {
         this.dataFolder = dataFolder;
+        this.registries = new StubRegistries(generationRegistry);
     }
 
     private static final class StubBlockState implements NativeBlockState {
@@ -620,6 +626,20 @@ public final class StubPlatform implements IrisPlatform {
     }
 
     private static final class StubRegistries implements PlatformRegistries {
+        private final PlatformGenerationRegistry generationRegistry;
+
+        private StubRegistries(PlatformGenerationRegistry generationRegistry) {
+            this.generationRegistry = generationRegistry;
+        }
+
+        @Override
+        public PlatformGenerationRegistry generationRegistry() {
+            if (generationRegistry == null) {
+                return PlatformRegistries.super.generationRegistry();
+            }
+            return generationRegistry;
+        }
+
         @Override
         public NativeBlockState decodeBlockState(String key) {
             return blockOrNull(key);

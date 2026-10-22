@@ -791,7 +791,7 @@ public class IrisObjectPlacementRunnerRegressionTest {
 
                     object.place(0, ANCHOR_Y, 0, placer, placement, new RNG(2L), data);
 
-                    assertEquals(1, placer.blockReads);
+                    assertEquals(enabled || authored ? 1 : 0, placer.blockReads);
                     assertEquals(1, placer.writes().size());
                     assertSame(submerged && (enabled || authored) ? wet : dry,
                             placer.writes().get(0).state());

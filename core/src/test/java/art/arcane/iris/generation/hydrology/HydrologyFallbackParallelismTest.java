@@ -36,7 +36,8 @@ public class HydrologyFallbackParallelismTest {
     @Test(timeout = 15000)
     public void publicationRejectionConsumesTheNextCompletedOutletWithoutRebuildingIt() throws Exception {
         int parallelism = HydrologyPlanningAdmission.effectiveParallelism(4);
-        int batchSize = parallelism <= 2 ? 1 : Math.min(parallelism, HydrologyPlanningAdmission.maximumTrials());
+        int batchSize = HydrologyCrossTileResolver.fallbackTrialBatch(parallelism, parallelism - 1,
+                HydrologyPlanningAdmission.maximumTrials());
         AtomicIntegerArray builds = new AtomicIntegerArray(4);
         Fixture fixture = fixture(outlet -> {
             builds.incrementAndGet(outlet);
@@ -75,6 +76,23 @@ public class HydrologyFallbackParallelismTest {
             int completed = Math.min(4, Math.ceilDiv(2, batchSize) * batchSize);
             assertEquals(outlet < completed ? 1 : 0, builds.get(outlet));
         }
+    }
+
+    @Test
+    public void fallbackTrialBatchesGrowIntoIdleWorkersWithinTheTrialLimit() {
+        assertEquals(1, HydrologyCrossTileResolver.fallbackTrialBatch(1, 0, 16));
+        assertEquals(1, HydrologyCrossTileResolver.fallbackTrialBatch(2, 1, 16));
+        assertEquals(2, HydrologyCrossTileResolver.fallbackTrialBatch(12, 0, 16));
+        assertEquals(2, HydrologyCrossTileResolver.fallbackTrialBatch(12, 1, 16));
+        assertEquals(6, HydrologyCrossTileResolver.fallbackTrialBatch(12, 5, 16));
+        assertEquals(12, HydrologyCrossTileResolver.fallbackTrialBatch(12, 11, 16));
+        assertEquals(12, HydrologyCrossTileResolver.fallbackTrialBatch(12, 40, 16));
+        assertEquals(16, HydrologyCrossTileResolver.fallbackTrialBatch(32, 31, 16));
+        assertEquals(16, HydrologyCrossTileResolver.fallbackTrialBatch(32, 31, 64));
+        assertEquals(8, HydrologyCrossTileResolver.fallbackTrialBatch(12, 11, 8));
+        assertEquals(2, HydrologyCrossTileResolver.fallbackTrialBatch(12, 11, 2));
+        assertEquals(1, HydrologyCrossTileResolver.fallbackTrialBatch(12, 11, 1));
+        assertEquals(1, HydrologyCrossTileResolver.fallbackTrialBatch(12, 0, 1));
     }
 
     @Test(timeout = 15000)

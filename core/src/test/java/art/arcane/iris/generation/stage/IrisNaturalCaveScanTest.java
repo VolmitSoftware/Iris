@@ -7,6 +7,7 @@ import art.arcane.iris.generation.decoration.IrisCeilingDecorator;
 import art.arcane.iris.generation.decoration.IrisSurfaceDecorator;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.SeedManager;
+import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.generation.terrain.transform.TerrainTransformRuntime;
 import art.arcane.iris.generation.terrain.Terrain3DColumn;
 import art.arcane.iris.generation.context.ChunkContext;
@@ -18,11 +19,10 @@ import art.arcane.iris.generation.decoration.IrisDecorator;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.hunk.Hunk;
 import art.arcane.iris.generation.block.B;
-import art.arcane.iris.generation.chunk.ChunkDataHunkHolder;
+import art.arcane.iris.generation.chunk.SectionBuffer;
 import art.arcane.iris.generation.chunk.ColumnExtentListeningHunk;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
-import org.bukkit.generator.ChunkGenerator;
 import art.arcane.volmlib.util.mantle.runtime.Mantle;
 import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
 import art.arcane.volmlib.util.matter.Matter;
@@ -72,12 +72,17 @@ public class IrisNaturalCaveScanTest {
 
     @Test
     public void narrowScanPreservesDecoratedBlocksMarkersAndMutationOrder() throws Exception {
-        verifyScan(5, 3);
+        verifyScan(5, 3, true);
     }
 
     @Test
     public void chunkScanPreservesDecoratedBlocksMarkersAndMutationOrder() throws Exception {
-        verifyScan(16, 16);
+        verifyScan(16, 16, true);
+    }
+
+    @Test
+    public void scanWithoutCaveSpawnersWritesNoCaveMarkers() throws Exception {
+        verifyScan(16, 16, false);
     }
 
     @Test
@@ -159,10 +164,7 @@ public class IrisNaturalCaveScanTest {
                     fullOutput.listen((x, y, z, state) -> fullWrites.add(x + ":" + y + ":" + z + ":" + state.key())), null);
 
             Fixture bounded = new Fixture(true);
-            ChunkGenerator.ChunkData chunkData = mock(ChunkGenerator.ChunkData.class);
-            doReturn(0).when(chunkData).getMinHeight();
-            doReturn(32).when(chunkData).getMaxHeight();
-            ChunkDataHunkHolder holder = new ChunkDataHunkHolder(chunkData);
+            SectionBuffer holder = new SectionBuffer(32);
             bounded.sparseOutput(holder);
             List<String> boundedWrites = new ArrayList<>();
             bounded.modifier.decorateNaturalCaves(-32, 48, new ColumnExtentListeningHunk<>(holder,
@@ -277,8 +279,8 @@ public class IrisNaturalCaveScanTest {
         assertEquals(List.of("floor:0:0:3:3", "ceiling:0:0:8:3"), fixture.calls);
     }
 
-    private static void verifyScan(int width, int depth) throws Exception {
-        Fixture fixture = new Fixture();
+    private static void verifyScan(int width, int depth, boolean caveSpawners) throws Exception {
+        Fixture fixture = new Fixture(false, caveSpawners);
         Hunk<NativeBlockState> output = fixture.output(width, depth);
         List<String> writes = new ArrayList<>();
         fixture.modifier.decorateNaturalCaves(-32, 48,
@@ -302,10 +304,8 @@ public class IrisNaturalCaveScanTest {
                         }
                     }
                     expectedWrites.add(x + ":" + ceiling + ":" + z + ":minecraft:calcite");
-                    if ((boolean) markerRoll.invoke(fixture.modifier, x - 32, ceiling, z + 48, 0x9E3779B97F4A7C15L)) {
-                        expectedMarkers.add((x - 32) + ":" + ceiling + ":" + (z + 48) + ":" + MarkerMatter.CAVE_CEILING);
-                    }
-                    if ((boolean) markerRoll.invoke(fixture.modifier, x - 32, floor, z + 48, 0xC2B2AE3D27D4EB4FL)) {
+                    if (caveSpawners
+                            && (boolean) markerRoll.invoke(fixture.modifier, x - 32, floor, z + 48, 0xC2B2AE3D27D4EB4FL)) {
                         expectedMarkers.add((x - 32) + ":" + floor + ":" + (z + 48) + ":" + MarkerMatter.CAVE_FLOOR);
                     }
                 }
@@ -327,7 +327,7 @@ public class IrisNaturalCaveScanTest {
         assertEquals(expectedCalls, fixture.calls);
         assertEquals(expectedWrites, writes);
         assertEquals(expectedMarkers, fixture.markers);
-        assertTrue("fixture must exercise marker writes", !expectedMarkers.isEmpty());
+        assertEquals("fixture must exercise marker writes", caveSpawners, !expectedMarkers.isEmpty());
         verify(fixture.mantle).useChunk(-2, 3);
         verify(fixture.chunk).release();
     }
@@ -361,14 +361,22 @@ public class IrisNaturalCaveScanTest {
             this(false);
         }
 
-        @SuppressWarnings("unchecked")
         private Fixture(boolean buildAboveTop) throws Exception {
+            this(buildAboveTop, true);
+        }
+
+        @SuppressWarnings("unchecked")
+        private Fixture(boolean buildAboveTop, boolean caveSpawners) throws Exception {
             Engine engine = mock(Engine.class);
+            IrisDimension dimension = mock(IrisDimension.class);
+            doReturn(dimension).when(engine).getDimension();
+            doReturn(caveSpawners).when(dimension).hasUndergroundSpawners(engine);
             EngineMantle engineMantle = mock(EngineMantle.class);
             mantle = mock(Mantle.class);
             chunk = mock(MantleChunk.class);
             doReturn(engine).when(modifier).getEngine();
             doReturn(complex).when(modifier).getComplex();
+            doReturn(complex).when(engine).getComplex();
             doReturn(32).when(engine).getHeight();
             doReturn(new SeedManager(1337L)).when(engine).getSeedManager();
             doReturn(engineMantle).when(engine).getMantle();

@@ -36,6 +36,9 @@ import java.util.Map;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 public class IrisPerfectionModifier extends EngineAssignedModifier<NativeBlockState> {
+    private static final int SOLID = 1;
+    private static final int SPIKE = 2;
+    private static final int SLICE_TASKS = 16;
     private static final BoundBlockState AIR = BoundBlockState.of("AIR");
     private static final BoundBlockState WATER = BoundBlockState.of("WATER");
     private static final Map<String, BoundBlockState> ORE_BASES = buildOreBases();
@@ -85,65 +88,92 @@ public class IrisPerfectionModifier extends EngineAssignedModifier<NativeBlockSt
         if (getDimension().isHideOresForHiddenOre()) {
             hideOres(output, multicore);
         }
+        int tasks = multicore ? SLICE_TASKS : 1;
+        int slicesPerTask = 16 / tasks;
         BurstExecutor burst = burst().burst(multicore);
-        for (int index = 0; index < 16; index++) {
-            int columnX = index;
-            burst.queue(() -> perfectSlice(output, columnX));
+        for (int task = 0; task < tasks; task++) {
+            int firstSlice = task * slicesPerTask;
+            burst.queue(() -> perfectSlices(output, firstSlice, firstSlice + slicesPerTask));
         }
         burst.complete();
 
         getEngine().getMetrics().getPerfection().put(p.getMilliseconds());
     }
 
-    private void perfectSlice(Hunk<NativeBlockState> output, int x) {
+    private void perfectSlices(Hunk<NativeBlockState> output, int firstSlice, int lastSlice) {
         IntArrayList surfaces = new IntArrayList();
-        for (int z = 0; z < 16; z++) {
-            boolean changed;
-            do {
-                surfaces.clear();
-                int top = getHeight(output, x, z);
-                boolean inside = true;
-                surfaces.add(top);
-                for (int y = top; y >= 0; y--) {
-                    NativeBlockState block = output.get(x, y, z);
-                    if (IrisSpeleothems.isSpike(block)) {
-                        block = normalizeSpike(block, output, x, z, y, AIR.get(), WATER.get());
-                    }
-                    boolean now = block != null && !(B.isAir(block) || B.isFluid(block));
-                    if (now != inside) {
-                        inside = now;
-                        if (inside) {
-                            surfaces.add(y);
-                        }
-                    }
-                }
-                changed = false;
-                for (int index = 0; index < surfaces.size(); index++) {
-                    int y = surfaces.getInt(index);
-                    NativeBlockState tip = output.get(x, y, z);
-                    if (!B.isDecorant(tip)) {
-                        continue;
-                    }
-                    NativeBlockState below = output.get(x, y - 1, z);
-                    boolean remove = below == null || !B.canPlaceOnto(tip, below);
-                    boolean removeBelow = false;
-                    if (!remove && IrisProceduralBlocks.hasProperty(below, "half")) {
-                        NativeBlockState support = output.get(x, y - 2, z);
-                        if (support == null || !B.canPlaceOnto(below, support)) {
-                            remove = true;
-                            removeBelow = true;
-                        }
-                    }
-                    if (remove) {
-                        changed = true;
-                        output.set(x, y, z, AIR.get());
-                        if (removeBelow) {
-                            output.set(x, y - 1, z, AIR.get());
-                        }
-                    }
-                }
-            } while (changed);
+        StateFlags states = new StateFlags();
+        NativeBlockState air = AIR.get();
+        NativeBlockState water = WATER.get();
+        for (int x = firstSlice; x < lastSlice; x++) {
+            for (int z = 0; z < 16; z++) {
+                perfectColumn(output, x, z, surfaces, states, air, water);
+            }
         }
+    }
+
+    private static void perfectColumn(Hunk<NativeBlockState> output, int x, int z, IntArrayList surfaces,
+                                      StateFlags states, NativeBlockState air, NativeBlockState water) {
+        do {
+            surfaces.clear();
+            int top = getHeight(output, x, z, states);
+            boolean inside = true;
+            surfaces.add(top);
+            NativeBlockState classified = null;
+            int classifiedFlags = 0;
+            for (int y = top; y >= 0; y--) {
+                NativeBlockState block = output.get(x, y, z);
+                int flags = 0;
+                if (block != null) {
+                    if (block != classified) {
+                        classified = block;
+                        classifiedFlags = states.of(block);
+                    }
+                    flags = classifiedFlags;
+                    if ((flags & SPIKE) != 0) {
+                        block = normalizeSpike(block, output, x, z, y, air, water);
+                        flags = block == null ? 0 : states.of(block);
+                    }
+                }
+                boolean now = (flags & SOLID) != 0;
+                if (now != inside) {
+                    inside = now;
+                    if (inside) {
+                        surfaces.add(y);
+                    }
+                }
+            }
+        } while (removeUnsupportedDecorants(output, x, z, surfaces, air));
+    }
+
+    private static boolean removeUnsupportedDecorants(Hunk<NativeBlockState> output, int x, int z,
+                                                      IntArrayList surfaces, NativeBlockState air) {
+        boolean changed = false;
+        for (int index = 0; index < surfaces.size(); index++) {
+            int y = surfaces.getInt(index);
+            NativeBlockState tip = output.get(x, y, z);
+            if (!B.isDecorant(tip)) {
+                continue;
+            }
+            NativeBlockState below = output.get(x, y - 1, z);
+            boolean remove = below == null || !B.canPlaceOnto(tip, below);
+            boolean removeBelow = false;
+            if (!remove && IrisProceduralBlocks.hasProperty(below, "half")) {
+                NativeBlockState support = output.get(x, y - 2, z);
+                if (support == null || !B.canPlaceOnto(below, support)) {
+                    remove = true;
+                    removeBelow = true;
+                }
+            }
+            if (remove) {
+                changed = true;
+                output.set(x, y, z, air);
+                if (removeBelow) {
+                    output.set(x, y - 1, z, air);
+                }
+            }
+        }
+        return changed;
     }
 
     static NativeBlockState normalizeSpike(NativeBlockState state, Hunk<NativeBlockState> output,
@@ -203,17 +233,41 @@ public class IrisPerfectionModifier extends EngineAssignedModifier<NativeBlockSt
         burst.complete();
     }
 
-    private int getHeight(Hunk<NativeBlockState> output, int x, int z) {
+    private static int getHeight(Hunk<NativeBlockState> output, int x, int z, StateFlags states) {
+        NativeBlockState classified = null;
+        int classifiedFlags = 0;
         for (int i = Math.min(output.getHeight() - 1, ColumnExtent.highestStoredY(output, x, z)); i >= 0; i--) {
-            NativeBlockState b = output.get(x, i, z);
-
-            if (b != null) {
-                if (!B.isAir(b) && !B.isFluid(b)) {
-                    return i;
-                }
+            NativeBlockState state = output.get(x, i, z);
+            if (state == null) {
+                continue;
+            }
+            if (state != classified) {
+                classified = state;
+                classifiedFlags = states.of(state);
+            }
+            if ((classifiedFlags & SOLID) != 0) {
+                return i;
             }
         }
 
         return 0;
+    }
+
+    private static final class StateFlags {
+        private static final int SLOTS = 64;
+
+        private final NativeBlockState[] states = new NativeBlockState[SLOTS];
+        private final byte[] flags = new byte[SLOTS];
+
+        private int of(NativeBlockState state) {
+            int slot = System.identityHashCode(state) & (SLOTS - 1);
+            if (states[slot] == state) {
+                return flags[slot];
+            }
+            int computed = (state.isAir() || state.isFluid() ? 0 : SOLID) | (IrisSpeleothems.isSpike(state) ? SPIKE : 0);
+            states[slot] = state;
+            flags[slot] = (byte) computed;
+            return computed;
+        }
     }
 }

@@ -39,6 +39,7 @@ plugins {
 }
 
 apply from: rootProject.file('gradle/runtime-relocations.gradle')
+apply from: rootProject.file('gradle/java21-runtime-exclusions.gradle')
 
 def lib = 'art.arcane.iris.util'
 
@@ -178,6 +179,7 @@ dependencies {
 tasks.named('test').configure {
     maxHeapSize = '1g'
     jvmArgs('-XX:+ExitOnOutOfMemoryError')
+    systemProperty('iris.generation.counters', 'true')
 }
 
 java {
@@ -474,8 +476,7 @@ tasks.named('shadowJar', ShadowJar).configure {
     dependsOn(embeddedAgentJar)
     mergeServiceFiles()
     if (providers.gradleProperty('irisRuntimeJava').getOrElse(rootProject.irisModTarget.java.toString()) == '21') {
-        exclude('art/arcane/volmlib/util/noise/NativeBillowLoader*.class')
-        exclude('art/arcane/volmlib/util/noise/BillowBatch*.class')
+        exclude(java21RuntimeExclusions)
     }
     // minimize() stays off. Caffeine reaches its 520 generated cache and node classes through
     // MethodHandles.Lookup.findClass on a computed name, and the VolmLib command, GUI and hotload

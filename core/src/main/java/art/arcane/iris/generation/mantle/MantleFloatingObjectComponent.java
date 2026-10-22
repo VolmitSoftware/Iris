@@ -44,7 +44,6 @@ import art.arcane.volmlib.util.documentation.ChunkCoordinates;
 import art.arcane.volmlib.util.mantle.flag.ReservedFlag;
 import art.arcane.volmlib.util.math.RNG;
 
-import java.io.File;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
@@ -598,7 +597,7 @@ public class MantleFloatingObjectComponent extends IrisMantleComponent {
     @Override
     protected int computeRadius() {
         int maxObjectExtent = 0;
-        Map<String, IrisBlockVector> sizeCache = new HashMap<>();
+        Map<String, PlacementReach.Extent> extents = new HashMap<>();
         Set<String> warnedLargeObjects = new HashSet<>();
         try {
             IrisData data = getData();
@@ -608,15 +607,17 @@ public class MantleFloatingObjectComponent extends IrisMantleComponent {
                     continue;
                 }
                 for (IrisFloatingChildBiomes entry : entries) {
-                    maxObjectExtent = Math.max(maxObjectExtent, computePlacementRadius(entry.getFloatingObjects(), data, sizeCache, warnedLargeObjects));
-                    maxObjectExtent = Math.max(maxObjectExtent, computePlacementRadius(entry.getExtraObjects(), data, sizeCache, warnedLargeObjects));
-                    maxObjectExtent = Math.max(maxObjectExtent, computePlacementRadius(entry.getTopObjectOverrides(), data, sizeCache, warnedLargeObjects));
-                    maxObjectExtent = Math.max(maxObjectExtent, computePlacementRadius(entry.getBottomObjectOverrides(), data, sizeCache, warnedLargeObjects));
+                    PlacementScan scan = new PlacementScan(data, extents, warnedLargeObjects,
+                            entry.hasObjectShrink() ? entry.getShrinkScale().getMaxScale() : 1D);
+                    maxObjectExtent = Math.max(maxObjectExtent, scan.radius(entry.getFloatingObjects(), false));
+                    maxObjectExtent = Math.max(maxObjectExtent, scan.radius(entry.getExtraObjects(), true));
+                    maxObjectExtent = Math.max(maxObjectExtent, scan.radius(entry.getTopObjectOverrides(), true));
+                    maxObjectExtent = Math.max(maxObjectExtent, scan.radius(entry.getBottomObjectOverrides(), true));
                     try {
                         IrisBiome target = entry.getRealBiome(biome, data);
                         if (target != null) {
-                            maxObjectExtent = Math.max(maxObjectExtent, computePlacementRadius(entry.resolveTopObjects(target), data, sizeCache, warnedLargeObjects));
-                            maxObjectExtent = Math.max(maxObjectExtent, computePlacementRadius(entry.resolveBottomObjects(target), data, sizeCache, warnedLargeObjects));
+                            maxObjectExtent = Math.max(maxObjectExtent, scan.radius(entry.resolveTopObjects(target), true));
+                            maxObjectExtent = Math.max(maxObjectExtent, scan.radius(entry.resolveBottomObjects(target), true));
                         } else {
                             maxObjectExtent = Math.max(maxObjectExtent, MINIMUM_PLACEMENT_RADIUS);
                         }
@@ -635,44 +636,66 @@ public class MantleFloatingObjectComponent extends IrisMantleComponent {
         return maxObjectExtent;
     }
 
-    private int computePlacementRadius(KList<IrisObjectPlacement> placements, IrisData data,
-                                       Map<String, IrisBlockVector> sizeCache,
-                                       Set<String> warnedLargeObjects) {
-        if (placements == null) {
-            return MINIMUM_PLACEMENT_RADIUS;
+    private final class PlacementScan {
+        private final IrisData data;
+        private final Map<String, PlacementReach.Extent> extents;
+        private final Set<String> warnedLargeObjects;
+        private final double shrink;
+
+        private PlacementScan(IrisData data, Map<String, PlacementReach.Extent> extents, Set<String> warnedLargeObjects,
+                              double shrink) {
+            this.data = data;
+            this.extents = extents;
+            this.warnedLargeObjects = warnedLargeObjects;
+            this.shrink = shrink;
         }
-        if (placements.isEmpty()) {
-            return 0;
-        }
-        int radius = MINIMUM_PLACEMENT_RADIUS;
-        for (IrisObjectPlacement placement : placements) {
-            if (placement == null || placement.getPlace() == null) {
-                continue;
+
+        private int radius(KList<IrisObjectPlacement> placements, boolean anchored) {
+            if (placements == null) {
+                return MINIMUM_PLACEMENT_RADIUS;
             }
-            for (String objectKey : placement.getPlace()) {
-                try {
-                    IrisBlockVector size = sizeCache.get(objectKey);
-                    if (size == null) {
-                        File file = data.getObjectLoader().findFile(objectKey);
-                        if (file == null) {
+            if (placements.isEmpty()) {
+                return 0;
+            }
+            int radius = MINIMUM_PLACEMENT_RADIUS;
+            for (IrisObjectPlacement placement : placements) {
+                if (placement == null || placement.getPlace() == null) {
+                    continue;
+                }
+                PlacementReach.Profile profile = PlacementReach.profile(placement);
+                double scale = placement.getMaximumScale(getDimension());
+                for (String objectKey : placement.getPlace()) {
+                    try {
+                        PlacementReach.Extent extent = extent(objectKey);
+                        if (extent == null) {
                             continue;
                         }
-                        size = IrisObject.sampleSize(file);
-                        sizeCache.put(objectKey, size);
+                        PlacementReach.Extent scaled = extent.scaled(scale).scaled(shrink);
+                        int reach = anchored ? profile.anchored(scaled).horizontal() : profile.of(scaled).horizontal();
+                        if (reach > 128 && warnedLargeObjects.add(objectKey)) {
+                            IrisLogging.warn("Floating object " + objectKey + " has a large placement reach (" + reach + " blocks) and may increase memory usage!");
+                        }
+                        radius = Math.max(radius, reach);
+                    } catch (Throwable e) {
+                        GenerationFailures.rethrowEngineFailure(e);
+                        IrisLogging.reportError(e);
                     }
-                    int reach = MantleObjectComponent.calculatePlacementReach(size, placement, placement.getMaximumScale(getDimension()));
-                    if (reach > 128 && warnedLargeObjects.add(objectKey)) {
-                        IrisLogging.warn("Floating object " + objectKey + " has a large placement reach (" + reach + " blocks) and may increase memory usage!");
-                    }
-                    radius = Math.max(radius, reach);
-                } catch (Throwable e) {
-                    GenerationFailures.rethrowEngineFailure(e);
-                    IrisLogging.reportError(e);
                 }
             }
+            return radius;
         }
-        return radius;
+
+        private PlacementReach.Extent extent(String objectKey) {
+            if (extents.containsKey(objectKey)) {
+                return extents.get(objectKey);
+            }
+            IrisObject object = data.getObjectLoader().load(objectKey);
+            PlacementReach.Extent extent = object == null ? null : PlacementReach.Extent.of(object);
+            extents.put(objectKey, extent);
+            return extent;
+        }
     }
+
     private static final class PlacementSequence {
         private int ordinal;
 

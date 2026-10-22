@@ -112,39 +112,15 @@ public class IrisCarveModifierZoneParityTest {
 
     private List<String> bitsetZones(CarveColumnMask columnMask, int maxHeight) {
         List<String> zones = new ArrayList<>();
-        int firstHeight = columnMask.nextSetBit(0);
-        if (firstHeight < 0) {
-            return zones;
-        }
-
-        int floor = firstHeight;
-        int ceiling = -1;
-        int buf = firstHeight - 1;
-        int y = firstHeight;
-        while (y >= 0) {
-            if (y >= 0 && y <= maxHeight) {
-                if (y == buf + 1) {
-                    buf = y;
-                    ceiling = buf;
-                } else if (isValidZone(floor, ceiling, maxHeight)) {
-                    zones.add(zoneKey(floor, ceiling));
-                    floor = y;
-                    ceiling = -1;
-                    buf = y;
-                } else {
-                    floor = y;
-                    ceiling = -1;
-                    buf = y;
-                }
+        int floor = columnMask.nextSetBit(0);
+        while (floor >= 0 && floor <= maxHeight) {
+            int end = columnMask.nextClearBit(floor) - 1;
+            int ceiling = Math.min(end, maxHeight);
+            if (isValidZone(floor, ceiling, maxHeight)) {
+                zones.add(zoneKey(floor, ceiling));
             }
-
-            y = columnMask.nextSetBit(y + 1);
+            floor = columnMask.nextSetBit(end + 1);
         }
-
-        if (isValidZone(floor, ceiling, maxHeight)) {
-            zones.add(zoneKey(floor, ceiling));
-        }
-
         return zones;
     }
 

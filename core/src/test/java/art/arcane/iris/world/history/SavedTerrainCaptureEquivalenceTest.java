@@ -57,6 +57,24 @@ public class SavedTerrainCaptureEquivalenceTest {
     }
 
     @Test
+    public void runScanningSourcesMatchThePerVoxelReference() throws Exception {
+        Random random = new Random(20261022L);
+        for (int sample = 0; sample < 32; sample++) {
+            RandomSource voxels = new RandomSource(random, sample);
+            SavedTerrainChunk.VoxelSource runs = new RunScanningSource(voxels, new Random(sample));
+            for (boolean boundaryOnly : new boolean[]{true, false}) {
+                SavedTerrainChunk expected = referenceCapture(-3, 7, voxels, boundaryOnly);
+                SavedTerrainChunk actual = boundaryOnly
+                        ? SavedTerrainChunk.captureBoundary(-3, 7, MINIMUM_Y, HEIGHT, "minecraft:noise", runs)
+                        : SavedTerrainChunk.capture(-3, 7, MINIMUM_Y, HEIGHT, "minecraft:noise", runs);
+                assertSameTerrain(expected, actual);
+                assertArrayEquals(NativeTerrainReceipt.encode(expected, 1L, "epoch"),
+                        NativeTerrainReceipt.encode(actual, 1L, "epoch"));
+            }
+        }
+    }
+
+    @Test
     public void geometryMatchesTheReferenceOnWidePalettes() {
         Random random = new Random(7L);
         for (int sample = 0; sample < 32; sample++) {
@@ -182,6 +200,46 @@ public class SavedTerrainCaptureEquivalenceTest {
     private static BoundaryColumnGeometry.Voxel voxel(String state, BoundaryColumnGeometry.Phase phase, String fluid,
                                                       boolean protectedContent) {
         return new BoundaryColumnGeometry.Voxel(state, phase, fluid, protectedContent);
+    }
+
+    private static final class RunScanningSource implements SavedTerrainChunk.VoxelSource {
+        private final RandomSource source;
+        private final Random splits;
+
+        private RunScanningSource(RandomSource source, Random splits) {
+            this.source = source;
+            this.splits = splits;
+        }
+
+        @Override
+        public OptionalInt groundSurface(int localX, int localZ) {
+            return source.groundSurface(localX, localZ);
+        }
+
+        @Override
+        public BoundaryColumnGeometry.Voxel voxel(int localX, int worldY, int localZ) {
+            return source.voxel(localX, worldY, localZ);
+        }
+
+        @Override
+        public String biome(int localX, int worldY, int localZ) {
+            return source.biome(localX, worldY, localZ);
+        }
+
+        @Override
+        public void scanColumn(int localX, int localZ, int minimumY, int height, SavedTerrainChunk.VoxelRuns runs) {
+            int start = 0;
+            BoundaryColumnGeometry.Voxel current = source.voxel(localX, minimumY, localZ);
+            for (int offset = 1; offset < height; offset++) {
+                BoundaryColumnGeometry.Voxel next = source.voxel(localX, minimumY + offset, localZ);
+                if (next != current || splits.nextInt(16) == 0) {
+                    runs.add(start, offset, current);
+                    start = offset;
+                    current = next;
+                }
+            }
+            runs.add(start, height, current);
+        }
     }
 
     private static final class RandomSource implements SavedTerrainChunk.VoxelSource {

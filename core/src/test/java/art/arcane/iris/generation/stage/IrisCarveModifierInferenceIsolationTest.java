@@ -67,7 +67,8 @@ public class IrisCarveModifierInferenceIsolationTest {
                 int.class,
                 IrisCarveModifier.CaveInputs.class,
                 Long2ObjectOpenHashMap.class,
-                Map.class
+                Map.class,
+                CaveLayerMemo.class
         );
         paintBoundaryZone.setAccessible(true);
         paintBoundaryZone.invoke(
@@ -83,7 +84,8 @@ public class IrisCarveModifierInferenceIsolationTest {
                 1,
                 new IrisCarveModifier.CaveInputs(engine),
                 new Long2ObjectOpenHashMap<IrisBiome>(),
-                customBiomes
+                customBiomes,
+                new CaveLayerMemo()
         );
 
         IrisBiome fallback = new IrisBiome();
@@ -97,11 +99,11 @@ public class IrisCarveModifierInferenceIsolationTest {
         doReturn(0D).when(region).getShoreHeight(anyDouble(), anyDouble());
         Method fixBiomeType = IrisComplex.class.getDeclaredMethod(
                 "fixBiomeType",
-                Double.class,
+                double.class,
                 IrisBiome.class,
                 IrisRegion.class,
-                Double.class,
-                Double.class,
+                double.class,
+                double.class,
                 double.class
         );
         fixBiomeType.setAccessible(true);

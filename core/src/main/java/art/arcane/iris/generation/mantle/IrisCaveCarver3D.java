@@ -20,12 +20,15 @@ package art.arcane.iris.generation.mantle;
 
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.runtime.GenerationCounter;
 import art.arcane.iris.generation.cave.IrisCaveFieldModule;
 import art.arcane.iris.generation.cave.IrisCaveProfile;
 import art.arcane.iris.pack.value.IrisRange;
 import art.arcane.iris.generation.noise.IrisGeneratorStyle;
 import art.arcane.iris.generation.noise.IrisStyledRange;
 import art.arcane.volmlib.util.noise.CNG;
+import art.arcane.volmlib.util.noise.program.NoiseProgram;
+import art.arcane.volmlib.util.noise.program.NoiseScratch;
 import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
 import art.arcane.volmlib.util.math.M;
 import art.arcane.volmlib.util.math.PowerOfTwoCoordinates;
@@ -43,6 +46,7 @@ import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.ForkJoinWorkerThread;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.LongAdder;
 
 public class IrisCaveCarver3D {
     private static final byte LIQUID_AIR = 0;
@@ -62,13 +66,22 @@ public class IrisCaveCarver3D {
     private static final int MAXIMUM_DENSITY_WORKERS = 4;
     private static final int[] LATTICE_TILE_OFFSETS = {0, 1, 16, 17};
     private static final int STANDALONE_DENSITY_GRID_COLUMNS = 1024;
+    private static final int[] CELL_CORNER_MASKS = {0b000011011, 0b000110110, 0b011011000, 0b110110000};
+    private static final long[] CELL_Z_MASKS = {0x00FF00FF00FF00FFL, 0xFF00FF00FF00FF00L};
+    private static final LongAdder SOLID_CELLS = new LongAdder();
+    private static final LongAdder OPEN_CELLS = new LongAdder();
+    private static final LongAdder MIXED_CELLS = new LongAdder();
+    private static final LongAdder EXACT_ROWS = new LongAdder();
+    private static final double WARP_B_OFFSET_X = 31.37D;
+    private static final double WARP_B_OFFSET_Y = 17.21D;
+    private static final double WARP_B_OFFSET_Z = 23.91D;
 
     private final Engine engine;
     private final IrisData data;
     private final IrisCaveProfile profile;
-    private final CNG baseDensity;
-    private final CNG detailDensity;
-    private final CNG warpDensity;
+    private final NoiseProgram baseDensity;
+    private final NoiseProgram detailDensity;
+    private final NoiseProgram warpDensity;
     private final CNG surfaceBreakDensity;
     private final RNG thresholdRng;
     private final CaveFieldModuleState[] modules;
@@ -98,7 +111,8 @@ public class IrisCaveCarver3D {
     private final ThreadLocal<Boolean> carving = ThreadLocal.withInitial(() -> false);
     private final ThreadLocal<CaveCarveScratch> scratchCache = ThreadLocal.withInitial(CaveCarveScratch::new);
     private final CaveDensityGrid densityGrid;
-    private final int densityGridOwner = CaveDensityGrid.nextOwner();
+    private final CaveDensityGrid.Owner densityOwner;
+    private final CaveDensityGrid.Owner warpOwner;
 
     public IrisCaveCarver3D(Engine engine, IrisCaveProfile profile) {
         this(engine, profile, new CaveDensityGrid(STANDALONE_DENSITY_GRID_COLUMNS));
@@ -116,9 +130,9 @@ public class IrisCaveCarver3D {
         List<CaveFieldModuleState> moduleStates = new ArrayList<>();
 
         RNG baseRng = new RNG(engine.getSeedManager().getCarve());
-        this.baseDensity = profile.getBaseDensityStyle().create(baseRng.nextParallelRNG(934_447), data);
-        this.detailDensity = profile.getDetailDensityStyle().create(baseRng.nextParallelRNG(612_991), data);
-        this.warpDensity = profile.getWarpStyle().create(baseRng.nextParallelRNG(770_713), data);
+        this.baseDensity = NoiseProgram.compileSigned3D(profile.getBaseDensityStyle().create(baseRng.nextParallelRNG(934_447), data));
+        this.detailDensity = NoiseProgram.compileSigned3D(profile.getDetailDensityStyle().create(baseRng.nextParallelRNG(612_991), data));
+        this.warpDensity = NoiseProgram.compileSigned3D(profile.getWarpStyle().create(baseRng.nextParallelRNG(770_713), data));
         this.surfaceBreakDensity = profile.getSurfaceBreakStyle().create(baseRng.nextParallelRNG(341_219), data);
         this.thresholdRng = baseRng.nextParallelRNG(489_112);
         this.baseWeight = profile.getBaseWeight();
@@ -136,7 +150,7 @@ public class IrisCaveCarver3D {
         int index = 0;
         for (IrisCaveFieldModule module : profile.getModules()) {
             CNG moduleDensity = module.getStyle().create(baseRng.nextParallelRNG(1_000_003L + (index * 65_537L)), data);
-            CaveFieldModuleState state = new CaveFieldModuleState(module, moduleDensity);
+            CaveFieldModuleState state = new CaveFieldModuleState(module, NoiseProgram.compileSigned3D(moduleDensity));
             moduleStates.add(state);
             weight += Math.abs(state.weight);
             index++;
@@ -153,6 +167,25 @@ public class IrisCaveCarver3D {
         verticalDensityStep = parallelDensity ? Math.max(1, engine.getDimension().getCaveDensitySamplingStep()) : 1;
         worldMinimumY = engine.getWorld().minHeight();
         densityMaximumY = engine.getWorld().getHeight() - 1;
+        CaveFieldKey warpKey = CaveFieldKey.of(warpDensity);
+        warpOwner = densityGrid.owner(new WarpFieldKey(warpKey));
+        densityOwner = densityGrid.owner(new DensityFieldKey(hasWarp, warpKey, Double.doubleToRawLongBits(warpStrength),
+                CaveFieldKey.of(baseDensity), Double.doubleToRawLongBits(baseWeight), CaveFieldKey.of(detailDensity),
+                Double.doubleToRawLongBits(detailWeight), Double.doubleToRawLongBits(inverseNormalization),
+                moduleFieldKeys(modules)));
+    }
+
+    private static List<ModuleFieldKey> moduleFieldKeys(CaveFieldModuleState[] modules) {
+        List<ModuleFieldKey> keys = new ArrayList<>(modules.length);
+        for (CaveFieldModuleState module : modules) {
+            keys.add(new ModuleFieldKey(CaveFieldKey.of(module.density), module.minY, module.maxY,
+                    Double.doubleToRawLongBits(module.weight), Double.doubleToRawLongBits(module.threshold), module.invert));
+        }
+        return List.copyOf(keys);
+    }
+
+    public static CellCounters cellCounters() {
+        return new CellCounters(SOLID_CELLS.sum(), OPEN_CELLS.sum(), MIXED_CELLS.sum(), EXACT_ROWS.sum());
     }
 
     public int carve(MantleWriter writer, int chunkX, int chunkZ) {
@@ -504,7 +537,9 @@ public class IrisCaveCarver3D {
             int minimumY = pass.minimumY() + index * rows;
             int maximumY = Math.min(pass.maximumY(), minimumY + rows - 1);
             if (minimumY <= maximumY) {
-                tasks.add(() -> classifyRows(pass, minimumY, maximumY, classified));
+                tasks.add(pass.cellKernel()
+                        ? () -> classifyCellRows(pass, minimumY, maximumY, classified)
+                        : () -> classifyRows(pass, minimumY, maximumY, classified));
             }
         }
         runDensityTasks(tasks, pool);
@@ -697,8 +732,23 @@ public class IrisCaveCarver3D {
             int[] columns, int[] columnTops, int columnCount, double[] thresholds,
             long[] fluidBoundaries, boolean[] surfaceBreakColumns, int[] surfaceBreakFloors,
             double surfaceBreakBoost, double[] verticalFade, CaveCarveScratch sourceScratch,
-            int adaptiveStep, double adaptiveMargin, int[] fluidTops, MatterCavern[] matterByY
+            int adaptiveStep, double adaptiveMargin, int[] fluidTops, MatterCavern[] matterByY, boolean cellKernel
     ) {
+    }
+
+    public record CellCounters(long solidCells, long openCells, long mixedCells, long exactRows) {
+        public long decided() {
+            return solidCells + openCells;
+        }
+
+        public long evaluated() {
+            return mixedCells;
+        }
+
+        public String machineLine() {
+            return "IRIS_GENPROBE_CARVE_CELLS solid=" + solidCells + " open=" + openCells + " mixed=" + mixedCells
+                    + " exact_rows=" + exactRows;
+        }
     }
 
     private static final class DensityTask implements Runnable, ForkJoinPool.ManagedBlocker {
@@ -795,7 +845,7 @@ public class IrisCaveCarver3D {
         byte[] classified = skipExistingCarved ? null : classifyPassParallel(new DensityPass(
                 x0, z0, minY, passMaxY, activeColumnIndices, activeColumnTopY, activeColumnCount,
                 passThreshold, surfaceFluidBoundaries, surfaceBreakColumn, surfaceBreakFloorY,
-                surfaceBreakThresholdBoost, verticalEdgeFade, scratch, 0, 0D, fluidMaxY, matterByY));
+                surfaceBreakThresholdBoost, verticalEdgeFade, scratch, 0, 0D, fluidMaxY, matterByY, false));
 
         for (int sectionIndex = minSection; sectionIndex <= maxSection; sectionIndex++) {
             int sectionMinY = Math.max(minY, PowerOfTwoCoordinates.chunkToBlock(sectionIndex));
@@ -944,12 +994,26 @@ public class IrisCaveCarver3D {
                 adaptiveSampleStep,
                 effectiveAdaptiveSampleStep
         );
+        boolean cellKernel = !skipExistingCarved && usesCellKernel(effectiveAdaptiveSampleStep);
+        if (cellKernel) {
+            prepareCellPlan(scratch, x0, z0, minY, passMaxY, activeColumnIndices, activeColumnCount,
+                    surfaceFluidBoundaries, surfaceBreakThresholdBoost);
+        }
 
         byte[] classified = skipExistingCarved ? null : classifyPassParallel(new DensityPass(
                 x0, z0, minY, passMaxY, activeColumnIndices, activeColumnTopY, activeColumnCount,
                 passThreshold, surfaceFluidBoundaries, surfaceBreakColumn, surfaceBreakFloorY,
                 surfaceBreakThresholdBoost, verticalEdgeFade, scratch, effectiveAdaptiveSampleStep, effectiveAdaptiveThresholdMargin,
-                fluidMaxY, matterByY));
+                fluidMaxY, matterByY, cellKernel));
+
+        if (cellKernel) {
+            if (classified == null) {
+                fillCellLattice(scratch, x0, z0, minY, passMaxY);
+            }
+            return emitCellPass(chunk, scratch, classified, x0, z0, minY, passMaxY, minSection, maxSection,
+                    activeColumnIndices, activeColumnTopY, activeColumnCount, surfaceFluidBoundaries,
+                    surfaceBreakThresholdBoost, verticalEdgeFade, fluidMaxY, matterByY, fluidSupportPlan);
+        }
 
         for (int sectionIndex = minSection; sectionIndex <= maxSection; sectionIndex++) {
             int sectionMinY = Math.max(minY, PowerOfTwoCoordinates.chunkToBlock(sectionIndex));
@@ -1057,6 +1121,750 @@ public class IrisCaveCarver3D {
         }
 
         return adaptiveThresholdMargin + ((effectiveAdaptiveSampleStep - adaptiveSampleStep) * ADAPTIVE_DEEP_MARGIN_BOOST);
+    }
+
+    private boolean usesCellKernel(int effectiveAdaptiveSampleStep) {
+        return effectiveAdaptiveSampleStep == ADAPTIVE_DEEP_SAMPLE_STEP
+                && verticalDensityStep == 1
+                && parallelDensity
+                && (hasWarp || !hasModules);
+    }
+
+    private void prepareCellPlan(
+            CaveCarveScratch plan,
+            int x0,
+            int z0,
+            int minY,
+            int passMaxY,
+            int[] activeColumnIndices,
+            int activeColumnCount,
+            long[] surfaceFluidBoundaries,
+            double surfaceBreakThresholdBoost
+    ) {
+        int rows = passMaxY - minY + 1;
+        if (plan.rowActiveCount.length < rows + 1) {
+            plan.rowActiveCount = new int[rows + 1];
+        }
+        int[] rowActiveCount = plan.rowActiveCount;
+        Arrays.fill(rowActiveCount, 0, rows + 1, 0);
+        Arrays.fill(plan.cellPassBits, 0L);
+        Arrays.fill(plan.cellThresholdMin, Double.POSITIVE_INFINITY);
+        Arrays.fill(plan.cellThresholdMax, Double.NEGATIVE_INFINITY);
+        Arrays.fill(plan.cellThresholdMaxBoost, Double.NEGATIVE_INFINITY);
+        Arrays.fill(plan.cellBreakFloorMin, Integer.MAX_VALUE);
+        Arrays.fill(plan.cellCeilingFadeStart, Integer.MAX_VALUE);
+        Arrays.fill(plan.cellTopY, Integer.MIN_VALUE);
+        Arrays.fill(plan.cellMinTopY, Integer.MAX_VALUE);
+        Arrays.fill(plan.cellProtected, false);
+        prepareAdaptiveGeometry(plan, ADAPTIVE_DEEP_SAMPLE_STEP, 2, 3);
+        double[] passThreshold = plan.passThreshold;
+        for (int activeIndex = 0; activeIndex < activeColumnCount; activeIndex++) {
+            int column = activeColumnIndices[activeIndex];
+            int cell = ((column >> 7) << 1) | ((column >> 3) & 1);
+            int top = plan.columnMaxY[column];
+            double threshold = passThreshold[column];
+            plan.cellPassBits[column >> 6] |= 1L << column;
+            plan.cellThresholdMin[cell] = Math.min(plan.cellThresholdMin[cell], threshold);
+            plan.cellThresholdMax[cell] = Math.max(plan.cellThresholdMax[cell], threshold);
+            if (plan.surfaceBreakColumn[column]) {
+                plan.cellThresholdMaxBoost[cell] = Math.max(plan.cellThresholdMaxBoost[cell], threshold + surfaceBreakThresholdBoost);
+                plan.cellBreakFloorMin[cell] = Math.min(plan.cellBreakFloorMin[cell], plan.surfaceBreakFloorY[column]);
+            } else {
+                plan.cellThresholdMaxBoost[cell] = Math.max(plan.cellThresholdMaxBoost[cell], threshold);
+            }
+            if (plan.surfaceCeilingColumn[column]) {
+                plan.cellCeilingFadeStart[cell] = Math.min(plan.cellCeilingFadeStart[cell], top - SURFACE_CEILING_FADE_DEPTH + 1);
+            }
+            plan.cellTopY[cell] = Math.max(plan.cellTopY[cell], top);
+            plan.cellMinTopY[cell] = Math.min(plan.cellMinTopY[cell], top);
+            int protectStart = SurfaceFluidBoundaryPlan.NO_BOUNDARY;
+            int protectEnd = Integer.MIN_VALUE;
+            if (surfaceFluidBoundaries != null) {
+                long boundary = surfaceFluidBoundaries[column];
+                protectStart = SurfaceFluidBoundaryPlan.startY(boundary);
+                protectEnd = SurfaceFluidBoundaryPlan.endY(boundary);
+            }
+            plan.columnProtectStartY[column] = protectStart;
+            plan.columnProtectEndY[column] = protectEnd;
+            rowActiveCount[0]++;
+            rowActiveCount[top - minY + 1]--;
+            int protectedFrom = Math.max(protectStart, minY);
+            int protectedTo = Math.min(protectEnd, top);
+            if (protectedFrom <= protectedTo) {
+                rowActiveCount[protectedFrom - minY]--;
+                rowActiveCount[protectedTo - minY + 1]++;
+                plan.cellProtected[cell] = true;
+            }
+        }
+        for (int row = 1; row < rows; row++) {
+            rowActiveCount[row] += rowActiveCount[row - 1];
+        }
+        int usedCorners = 0;
+        for (int cell = 0; cell < 4; cell++) {
+            if (plan.cellTopY[cell] >= minY) {
+                usedCorners |= CELL_CORNER_MASKS[cell];
+            }
+        }
+        prepareCellLattice(plan, x0 >> CaveDensityGrid.LATTICE_SHIFT, z0 >> CaveDensityGrid.LATTICE_SHIFT, minY, passMaxY,
+                usedCorners);
+    }
+
+    private void prepareCellLattice(CaveCarveScratch plan, int latticeX, int latticeZ, int minY, int passMaxY, int usedCorners) {
+        CaveDensityLattice lattice = plan.cellLattice;
+        lattice.reset(minY, passMaxY - minY + 1);
+        for (int corner = 0; corner < CaveDensityLattice.CORNERS; corner++) {
+            boolean used = (usedCorners & (1 << corner)) != 0;
+            int cornerX = latticeX + (corner / 3);
+            int cornerZ = latticeZ + (corner % 3);
+            lattice.densityColumns[corner] = used ? densityGrid.column(densityOwner, densityMaximumY + 1, cornerX, cornerZ) : null;
+            lattice.warpColumns[corner] = used && hasWarp
+                    ? densityGrid.warpColumn(warpOwner, densityMaximumY + 2, cornerX, cornerZ) : null;
+        }
+        for (int y = minY; y <= passMaxY; y++) {
+            if (plan.rowActiveCount[y - minY] < ADAPTIVE_MIN_PLANE_COLUMNS) {
+                continue;
+            }
+            int cells = 0;
+            int corners = 0;
+            for (int cell = 0; cell < 4; cell++) {
+                if (isCellActive(plan, cell, y)) {
+                    cells |= 1 << cell;
+                    corners |= CELL_CORNER_MASKS[cell];
+                }
+            }
+            lattice.markRow(y, cells, corners);
+        }
+    }
+
+    private void fillCellLattice(CaveCarveScratch plan, int x0, int z0, int fromY, int toY) {
+        CaveLatticeBatch batch = CaveLatticeBatch.acquire();
+        try {
+            fillCellLattice(batch, plan.cellLattice, x0, z0, fromY, toY);
+        } finally {
+            batch.release();
+        }
+    }
+
+    private void fillCellLattice(CaveLatticeBatch batch, CaveDensityLattice lattice, int x0, int z0, int fromY, int toY) {
+        batch.ensure((toY - fromY + 1) * CaveDensityLattice.CORNERS);
+        int[] latticeY = batch.y;
+        int[] cornerStart = batch.cornerStart;
+        long reads = 0L;
+        int count = 0;
+        for (int corner = 0; corner < CaveDensityLattice.CORNERS; corner++) {
+            cornerStart[corner] = count;
+            CaveDensityGrid.Column column = lattice.densityColumns[corner];
+            for (int y = fromY; y <= toY; y++) {
+                if (!lattice.needs(corner, y)) {
+                    continue;
+                }
+                reads++;
+                double cached = column == null ? Double.NaN : column.get(y);
+                if (Double.isNaN(cached)) {
+                    latticeY[count++] = y;
+                } else {
+                    lattice.store(corner, y, cached);
+                }
+            }
+        }
+        cornerStart[CaveDensityLattice.CORNERS] = count;
+        if (count > 0) {
+            sampleLatticePoints(batch, lattice, x0, z0, count);
+            double[] density = batch.density;
+            for (int corner = 0; corner < CaveDensityLattice.CORNERS; corner++) {
+                CaveDensityGrid.Column column = lattice.densityColumns[corner];
+                for (int index = cornerStart[corner]; index < cornerStart[corner + 1]; index++) {
+                    lattice.store(corner, latticeY[index], density[index]);
+                    if (column != null) {
+                        column.set(latticeY[index], density[index]);
+                    }
+                }
+            }
+        }
+        if (GenerationCounter.ENABLED) {
+            GenerationCounter.CAVE_LATTICE_READS.add(reads);
+            GenerationCounter.CAVE_LATTICE_SAMPLES.add(count);
+        }
+    }
+
+    private void sampleLatticePoints(CaveLatticeBatch batch, CaveDensityLattice lattice, int x0, int z0, int count) {
+        double[] xs = batch.warpedX;
+        double[] ys = batch.warpedY;
+        double[] zs = batch.warpedZ;
+        if (hasWarp) {
+            resolveLatticeWarp(batch, lattice, x0, z0);
+        } else {
+            int[] latticeY = batch.y;
+            int[] cornerStart = batch.cornerStart;
+            for (int corner = 0; corner < CaveDensityLattice.CORNERS; corner++) {
+                double x = x0 + (corner / 3) * ADAPTIVE_DEEP_SAMPLE_STEP;
+                double z = z0 + (corner % 3) * ADAPTIVE_DEEP_SAMPLE_STEP;
+                for (int index = cornerStart[corner]; index < cornerStart[corner + 1]; index++) {
+                    xs[index] = x;
+                    ys[index] = latticeY[index];
+                    zs[index] = z;
+                }
+            }
+        }
+        NoiseScratch noise = batch.noise;
+        double[] density = batch.density;
+        double[] values = batch.values;
+        baseDensity.fillPoints3D(noise, xs, ys, zs, count, values);
+        for (int index = 0; index < count; index++) {
+            density[index] = values[index] * baseWeight;
+        }
+        detailDensity.fillPoints3D(noise, xs, ys, zs, count, values);
+        for (int index = 0; index < count; index++) {
+            density[index] += values[index] * detailWeight;
+        }
+        if (hasWarp) {
+            for (CaveFieldModuleState module : modules) {
+                addLatticeModule(batch, module, count);
+            }
+        }
+        for (int index = 0; index < count; index++) {
+            density[index] = density[index] * inverseNormalization;
+        }
+    }
+
+    private void addLatticeModule(CaveLatticeBatch batch, CaveFieldModuleState module, int count) {
+        NoiseScratch noise = batch.noise;
+        int[] latticeY = batch.y;
+        double[] xs = batch.warpedX;
+        double[] ys = batch.warpedY;
+        double[] zs = batch.warpedZ;
+        double[] density = batch.density;
+        double[] values = batch.values;
+        int[] band = batch.pointIndex;
+        int inBand = 0;
+        for (int index = 0; index < count; index++) {
+            int y = latticeY[index];
+            if (y >= module.minY && y <= module.maxY) {
+                band[inBand++] = index;
+            }
+        }
+        if (inBand == 0) {
+            return;
+        }
+        if (inBand == count) {
+            module.density.fillPoints3D(noise, xs, ys, zs, count, values);
+            for (int index = 0; index < count; index++) {
+                double moduleDensity = values[index] - module.threshold;
+                if (module.invert) {
+                    moduleDensity = -moduleDensity;
+                }
+                density[index] += moduleDensity * module.weight;
+            }
+            return;
+        }
+        double[] bandX = batch.pointX;
+        double[] bandY = batch.pointY;
+        double[] bandZ = batch.pointZ;
+        for (int slot = 0; slot < inBand; slot++) {
+            int index = band[slot];
+            bandX[slot] = xs[index];
+            bandY[slot] = ys[index];
+            bandZ[slot] = zs[index];
+        }
+        module.density.fillPoints3D(noise, bandX, bandY, bandZ, inBand, values);
+        for (int slot = 0; slot < inBand; slot++) {
+            double moduleDensity = values[slot] - module.threshold;
+            if (module.invert) {
+                moduleDensity = -moduleDensity;
+            }
+            density[band[slot]] += moduleDensity * module.weight;
+        }
+    }
+
+    private void resolveLatticeWarp(CaveLatticeBatch batch, CaveDensityLattice lattice, int x0, int z0) {
+        int[] latticeY = batch.y;
+        int[] cornerStart = batch.cornerStart;
+        int[] snapStart = batch.snapStart;
+        int[] snapY = batch.snapY;
+        boolean[] snapMissing = batch.snapMissing;
+        double[] warpA = batch.warpA;
+        double[] warpB = batch.warpB;
+        int snapCount = 0;
+        int pending = 0;
+        long computed = 0L;
+        for (int corner = 0; corner < CaveDensityLattice.CORNERS; corner++) {
+            int first = snapCount;
+            snapStart[corner] = first;
+            for (int index = cornerStart[corner]; index < cornerStart[corner + 1]; index++) {
+                int snap = snapWarp(latticeY[index]);
+                if (snapCount == first || snapY[snapCount - 1] != snap) {
+                    snapY[snapCount++] = snap;
+                }
+            }
+            if (snapCount == first) {
+                continue;
+            }
+            int x = x0 + (corner / 3) * ADAPTIVE_DEEP_SAMPLE_STEP;
+            int z = z0 + (corner % 3) * ADAPTIVE_DEEP_SAMPLE_STEP;
+            CaveDensityGrid.Column warpColumn = lattice.warpColumns[corner];
+            int runStart = -1;
+            for (int snapIndex = first; snapIndex <= snapCount; snapIndex++) {
+                boolean missing = false;
+                if (snapIndex < snapCount) {
+                    int snap = snapY[snapIndex];
+                    double cachedA = warpColumn == null ? Double.NaN : warpColumn.get(snap);
+                    double cachedB = warpColumn == null ? Double.NaN : warpColumn.get(snap + 1);
+                    missing = Double.isNaN(cachedA) || Double.isNaN(cachedB);
+                    snapMissing[snapIndex] = missing;
+                    warpA[snapIndex] = cachedA;
+                    warpB[snapIndex] = cachedB;
+                }
+                if (runStart >= 0 && (!missing || snapY[snapIndex] != snapY[snapIndex - 1] + warpResolution)) {
+                    pending = queueLatticeWarpRun(batch, x, z, runStart, snapIndex, pending);
+                    computed += snapIndex - runStart;
+                    runStart = -1;
+                }
+                if (missing && runStart < 0) {
+                    runStart = snapIndex;
+                }
+            }
+        }
+        snapStart[CaveDensityLattice.CORNERS] = snapCount;
+        if (pending > 0) {
+            evaluateLatticeWarpPoints(batch, lattice, pending);
+        }
+        if (GenerationCounter.ENABLED) {
+            GenerationCounter.CAVE_WARP_SAMPLES.add(computed);
+        }
+        double[] warpedX = batch.warpedX;
+        double[] warpedY = batch.warpedY;
+        double[] warpedZ = batch.warpedZ;
+        for (int corner = 0; corner < CaveDensityLattice.CORNERS; corner++) {
+            int x = x0 + (corner / 3) * ADAPTIVE_DEEP_SAMPLE_STEP;
+            int z = z0 + (corner % 3) * ADAPTIVE_DEEP_SAMPLE_STEP;
+            int snapIndex = snapStart[corner];
+            for (int index = cornerStart[corner]; index < cornerStart[corner + 1]; index++) {
+                int y = latticeY[index];
+                int snap = snapWarp(y);
+                while (snapY[snapIndex] != snap) {
+                    snapIndex++;
+                }
+                double a = warpA[snapIndex];
+                double b = warpB[snapIndex];
+                warpedX[index] = x + (a * warpStrength);
+                warpedY[index] = y + (b * warpStrength);
+                warpedZ[index] = z + ((a - b) * 0.5D * warpStrength);
+            }
+        }
+    }
+
+    private int queueLatticeWarpRun(CaveLatticeBatch batch, int x, int z, int from, int to, int pending) {
+        int[] snapY = batch.snapY;
+        double[] pointX = batch.pointX;
+        double[] pointY = batch.pointY;
+        double[] pointZ = batch.pointZ;
+        int[] target = batch.pointIndex;
+        int length = to - from;
+        int queued = pending;
+        if (length == 1) {
+            pointX[queued] = x;
+            pointY[queued] = snapY[from];
+            pointZ[queued] = z;
+            target[queued++] = from << 1;
+        } else {
+            double[] column = batch.values;
+            warpDensity.fillColumn3D(batch.noise, x, z, snapY[from], warpResolution, length, column);
+            System.arraycopy(column, 0, batch.warpA, from, length);
+        }
+        for (int snapIndex = from; snapIndex < to; snapIndex++) {
+            pointX[queued] = x + WARP_B_OFFSET_X;
+            pointY[queued] = snapY[snapIndex] - WARP_B_OFFSET_Y;
+            pointZ[queued] = z + WARP_B_OFFSET_Z;
+            target[queued++] = (snapIndex << 1) | 1;
+        }
+        return queued;
+    }
+
+    private void evaluateLatticeWarpPoints(CaveLatticeBatch batch, CaveDensityLattice lattice, int pending) {
+        double[] values = batch.values;
+        warpDensity.fillPoints3D(batch.noise, batch.pointX, batch.pointY, batch.pointZ, pending, values);
+        int[] target = batch.pointIndex;
+        double[] warpA = batch.warpA;
+        double[] warpB = batch.warpB;
+        for (int slot = 0; slot < pending; slot++) {
+            int code = target[slot];
+            if ((code & 1) == 0) {
+                warpA[code >> 1] = values[slot];
+            } else {
+                warpB[code >> 1] = values[slot];
+            }
+        }
+        int[] snapStart = batch.snapStart;
+        int[] snapY = batch.snapY;
+        boolean[] snapMissing = batch.snapMissing;
+        for (int corner = 0; corner < CaveDensityLattice.CORNERS; corner++) {
+            CaveDensityGrid.Column warpColumn = lattice.warpColumns[corner];
+            if (warpColumn == null) {
+                continue;
+            }
+            for (int snapIndex = snapStart[corner]; snapIndex < snapStart[corner + 1]; snapIndex++) {
+                if (snapMissing[snapIndex]) {
+                    warpColumn.set(snapY[snapIndex], warpA[snapIndex]);
+                    warpColumn.set(snapY[snapIndex] + 1, warpB[snapIndex]);
+                }
+            }
+        }
+    }
+
+    private int emitCellPass(
+            MantleChunk<Matter> chunk,
+            CaveCarveScratch scratch,
+            byte[] classified,
+            int x0,
+            int z0,
+            int minY,
+            int passMaxY,
+            int minSection,
+            int maxSection,
+            int[] activeColumnIndices,
+            int[] activeColumnTopY,
+            int activeColumnCount,
+            long[] surfaceFluidBoundaries,
+            double surfaceBreakThresholdBoost,
+            double[] verticalEdgeFade,
+            int[] fluidMaxY,
+            MatterCavern[] matterByY,
+            CaveFluidSupportPlan fluidSupportPlan
+    ) {
+        int carved = 0;
+        long[] rowBits = scratch.rowCarveBits;
+        for (int sectionIndex = minSection; sectionIndex <= maxSection; sectionIndex++) {
+            int sectionMinY = Math.max(minY, PowerOfTwoCoordinates.chunkToBlock(sectionIndex));
+            int sectionMaxY = Math.min(passMaxY, PowerOfTwoCoordinates.chunkToBlock(sectionIndex) + 15);
+            MatterSlice<MatterCavern> cavernSlice = resolveCavernSlice(scratch, chunk, sectionIndex);
+            for (int y = sectionMinY; y <= sectionMaxY; y++) {
+                int fadeIndex = y - minY;
+                if (scratch.rowActiveCount[fadeIndex] == 0) {
+                    continue;
+                }
+                MatterCavern verticalMatter = matterByY[fadeIndex];
+                if (classified != null) {
+                    carved += emitClassifiedRow(cavernSlice, classified, fadeIndex, y, verticalMatter, fluidSupportPlan);
+                    continue;
+                }
+                classifyAdaptiveRow(scratch, scratch, x0, z0, y, minY, activeColumnIndices, activeColumnTopY,
+                        activeColumnCount, surfaceFluidBoundaries, surfaceBreakThresholdBoost, verticalEdgeFade, rowBits);
+                for (int word = 0; word < 4; word++) {
+                    long bits = rowBits[word];
+                    while (bits != 0L) {
+                        int column = (word << 6) | Long.numberOfTrailingZeros(bits);
+                        bits &= bits - 1L;
+                        int localX = PowerOfTwoCoordinates.unpackLocal16X(column);
+                        int localZ = column & 15;
+                        MatterCavern matter = verticalMatter;
+                        if (verticalMatter != carveLava && y <= fluidMaxY[column]) {
+                            matter = resolveMatter(scratch, verticalMatter, x0 + localX, y, z0 + localZ, column, fluidMaxY,
+                                    cellThreshold(scratch, column, y, minY, surfaceBreakThresholdBoost, verticalEdgeFade));
+                        }
+                        writeCavern(cavernSlice, localX, y, localZ, matter, fluidSupportPlan);
+                        carved++;
+                    }
+                }
+            }
+        }
+        flushCellCounters(scratch);
+        return carved;
+    }
+
+    private int emitClassifiedRow(MatterSlice<MatterCavern> cavernSlice, byte[] classified, int fadeIndex, int y,
+                                  MatterCavern verticalMatter, CaveFluidSupportPlan fluidSupportPlan) {
+        int carved = 0;
+        int offset = fadeIndex * 256;
+        for (int column = 0; column < 256; column++) {
+            byte flags = classified[offset + column];
+            if ((flags & DENSITY_CARVE) == 0) {
+                continue;
+            }
+            MatterCavern matter = (flags & DENSITY_FLUID) != 0 ? carveFluid : verticalMatter;
+            writeCavern(cavernSlice, PowerOfTwoCoordinates.unpackLocal16X(column), y, column & 15, matter, fluidSupportPlan);
+            carved++;
+        }
+        return carved;
+    }
+
+    private void classifyCellRows(DensityPass pass, int minimumY, int maximumY, byte[] classified) {
+        CaveCarveScratch scratch = new CaveCarveScratch();
+        CaveCarveScratch plan = pass.sourceScratch();
+        fillCellLattice(plan, pass.x(), pass.z(), minimumY, maximumY);
+        long[] rowBits = scratch.rowCarveBits;
+        for (int y = minimumY; y <= maximumY; y++) {
+            int fadeIndex = y - pass.minimumY();
+            if (plan.rowActiveCount[fadeIndex] == 0) {
+                continue;
+            }
+            classifyAdaptiveRow(scratch, plan, pass.x(), pass.z(), y, pass.minimumY(), pass.columns(), pass.columnTops(),
+                    pass.columnCount(), pass.fluidBoundaries(), pass.surfaceBreakBoost(), pass.verticalFade(), rowBits);
+            MatterCavern verticalMatter = pass.matterByY()[fadeIndex];
+            int offset = fadeIndex * 256;
+            for (int word = 0; word < 4; word++) {
+                long bits = rowBits[word];
+                while (bits != 0L) {
+                    int column = (word << 6) | Long.numberOfTrailingZeros(bits);
+                    bits &= bits - 1L;
+                    MatterCavern matter = verticalMatter;
+                    if (verticalMatter != carveLava && y <= pass.fluidTops()[column]) {
+                        matter = resolveMatter(scratch, verticalMatter, pass.x() + PowerOfTwoCoordinates.unpackLocal16X(column),
+                                y, pass.z() + (column & 15), column, pass.fluidTops(),
+                                cellThreshold(plan, column, y, pass.minimumY(), pass.surfaceBreakBoost(), pass.verticalFade()));
+                    }
+                    classified[offset + column] = matter == carveFluid ? DENSITY_CARVE | DENSITY_FLUID : DENSITY_CARVE;
+                }
+            }
+        }
+        flushCellCounters(scratch);
+    }
+
+    private void classifyAdaptiveRow(
+            CaveCarveScratch scratch,
+            CaveCarveScratch plan,
+            int x0,
+            int z0,
+            int y,
+            int minY,
+            int[] activeColumnIndices,
+            int[] activeColumnTopY,
+            int activeColumnCount,
+            long[] surfaceFluidBoundaries,
+            double surfaceBreakThresholdBoost,
+            double[] verticalEdgeFade,
+            long[] rowBits
+    ) {
+        Arrays.fill(rowBits, 0L);
+        if (plan.rowActiveCount[y - minY] >= ADAPTIVE_MIN_PLANE_COLUMNS) {
+            classifyCellRow(scratch, plan, y, minY, surfaceBreakThresholdBoost, verticalEdgeFade, rowBits);
+            return;
+        }
+        int[] planeColumnIndices = scratch.planeColumnIndices;
+        double[] planeThresholdLimit = scratch.planeThresholdLimit;
+        boolean[] planeCarve = scratch.planeCarve;
+        int planeCount = 0;
+        for (int activeIndex = 0; activeIndex < activeColumnCount; activeIndex++) {
+            if (activeColumnTopY[activeIndex] < y) {
+                continue;
+            }
+            int columnIndex = activeColumnIndices[activeIndex];
+            if (SurfaceFluidBoundaryPlan.protects(surfaceFluidBoundaries, columnIndex, y)) {
+                continue;
+            }
+            planeColumnIndices[planeCount] = columnIndex;
+            planeThresholdLimit[planeCount] = cellLocalThreshold(plan, columnIndex, y, minY, surfaceBreakThresholdBoost,
+                    verticalEdgeFade) * normalizationFactor;
+            planeCount++;
+        }
+        classifyDensityPlane(scratch, x0, z0, y, planeColumnIndices, planeThresholdLimit, planeCount, planeCarve);
+        for (int planeIndex = 0; planeIndex < planeCount; planeIndex++) {
+            if (planeCarve[planeIndex]) {
+                int columnIndex = planeColumnIndices[planeIndex];
+                rowBits[columnIndex >> 6] |= 1L << columnIndex;
+            }
+        }
+        scratch.exactRows++;
+    }
+
+    private void classifyCellRow(
+            CaveCarveScratch scratch,
+            CaveCarveScratch plan,
+            int y,
+            int minY,
+            double surfaceBreakThresholdBoost,
+            double[] verticalEdgeFade,
+            long[] rowBits
+    ) {
+        CaveDensityLattice lattice = plan.cellLattice;
+        int activeCells = lattice.cells(y);
+        if (activeCells == 0) {
+            return;
+        }
+        int fadeIndex = y - minY;
+        double fade = verticalEdgeFade[fadeIndex];
+        double closure = plan.surfaceClosureThreshold[fadeIndex];
+        for (int cell = 0; cell < 4; cell++) {
+            if ((activeCells & (1 << cell)) == 0) {
+                continue;
+            }
+            int corner = ((cell >> 1) * 3) + (cell & 1);
+            double d00 = lattice.density(corner, y);
+            double d01 = lattice.density(corner + 1, y);
+            double d10 = lattice.density(corner + 3, y);
+            double d11 = lattice.density(corner + 4, y);
+            double low = plan.cellThresholdMin[cell] - fade;
+            if (y >= plan.cellCeilingFadeStart[cell]) {
+                low = Math.min(low, closure);
+            }
+            double high = (y >= plan.cellBreakFloorMin[cell] ? plan.cellThresholdMaxBoost[cell] : plan.cellThresholdMax[cell]) - fade;
+            int decision = CaveCellKernel.decide(d00, d01, d10, d11,
+                    CaveCellKernel.threshold(low, normalizationFactor, inverseNormalization),
+                    CaveCellKernel.threshold(high, normalizationFactor, inverseNormalization));
+            boolean uniform = !plan.cellProtected[cell] && y <= plan.cellMinTopY[cell];
+            if (decision == CaveCellKernel.NONE) {
+                scratch.solidCells++;
+            } else if (decision == CaveCellKernel.ALL) {
+                scratch.openCells++;
+                if (uniform) {
+                    int word = (cell >> 1) << 1;
+                    long mask = CELL_Z_MASKS[cell & 1];
+                    rowBits[word] |= plan.cellPassBits[word] & mask;
+                    rowBits[word + 1] |= plan.cellPassBits[word + 1] & mask;
+                } else {
+                    markActiveCellColumns(plan, cell, y, rowBits);
+                }
+            } else {
+                scratch.mixedCells++;
+                if (uniform && y < plan.cellCeilingFadeStart[cell] && y < plan.cellBreakFloorMin[cell]) {
+                    classifyPlainMixedCell(plan, cell, fade, d00, d01, d10, d11, rowBits);
+                } else {
+                    classifyMixedCell(plan, cell, y, minY, surfaceBreakThresholdBoost, verticalEdgeFade, d00, d01, d10, d11, rowBits);
+                }
+            }
+        }
+    }
+
+    private void classifyMixedCell(
+            CaveCarveScratch plan,
+            int cell,
+            int y,
+            int minY,
+            double surfaceBreakThresholdBoost,
+            double[] verticalEdgeFade,
+            double d00,
+            double d01,
+            double d10,
+            double d11,
+            long[] rowBits
+    ) {
+        double[] adaptiveTx = plan.adaptiveTx;
+        double[] adaptiveTz = plan.adaptiveTz;
+        int firstLocalX = (cell >> 1) << 3;
+        int firstLocalZ = (cell & 1) << 3;
+        for (int localX = firstLocalX; localX < firstLocalX + ADAPTIVE_DEEP_SAMPLE_STEP; localX++) {
+            int rowColumn = PowerOfTwoCoordinates.packLocal16(localX, firstLocalZ);
+            double tx = adaptiveTx[rowColumn];
+            double dx0 = d00 + ((d10 - d00) * tx);
+            double dx1 = d01 + ((d11 - d01) * tx);
+            double slope = dx1 - dx0;
+            for (int column = rowColumn; column < rowColumn + ADAPTIVE_DEEP_SAMPLE_STEP; column++) {
+                if (!isCellColumnActive(plan, column, y)) {
+                    continue;
+                }
+                double predictedDensity = dx0 + (slope * adaptiveTz[column]);
+                if (predictedDensity <= cellThreshold(plan, column, y, minY, surfaceBreakThresholdBoost, verticalEdgeFade)) {
+                    rowBits[column >> 6] |= 1L << column;
+                }
+            }
+        }
+    }
+
+    private void classifyPlainMixedCell(
+            CaveCarveScratch plan,
+            int cell,
+            double fade,
+            double d00,
+            double d01,
+            double d10,
+            double d11,
+            long[] rowBits
+    ) {
+        double[] passThreshold = plan.passThreshold;
+        double[] adaptiveTx = plan.adaptiveTx;
+        double[] adaptiveTz = plan.adaptiveTz;
+        int firstLocalX = (cell >> 1) << 3;
+        int firstLocalZ = (cell & 1) << 3;
+        for (int localX = firstLocalX; localX < firstLocalX + ADAPTIVE_DEEP_SAMPLE_STEP; localX++) {
+            int rowColumn = PowerOfTwoCoordinates.packLocal16(localX, firstLocalZ);
+            double tx = adaptiveTx[rowColumn];
+            double dx0 = d00 + ((d10 - d00) * tx);
+            double dx1 = d01 + ((d11 - d01) * tx);
+            double slope = dx1 - dx0;
+            long bits = 0L;
+            for (int offset = 0; offset < ADAPTIVE_DEEP_SAMPLE_STEP; offset++) {
+                int column = rowColumn + offset;
+                double predictedDensity = dx0 + (slope * adaptiveTz[column]);
+                if (predictedDensity <= CaveCellKernel.threshold(passThreshold[column] - fade, normalizationFactor,
+                        inverseNormalization)) {
+                    bits |= 1L << offset;
+                }
+            }
+            rowBits[rowColumn >> 6] |= bits << (rowColumn & 63);
+        }
+    }
+
+    private static void markActiveCellColumns(CaveCarveScratch plan, int cell, int y, long[] rowBits) {
+        int firstLocalX = (cell >> 1) << 3;
+        int firstLocalZ = (cell & 1) << 3;
+        for (int localX = firstLocalX; localX < firstLocalX + ADAPTIVE_DEEP_SAMPLE_STEP; localX++) {
+            int rowColumn = PowerOfTwoCoordinates.packLocal16(localX, firstLocalZ);
+            for (int column = rowColumn; column < rowColumn + ADAPTIVE_DEEP_SAMPLE_STEP; column++) {
+                if (isCellColumnActive(plan, column, y)) {
+                    rowBits[column >> 6] |= 1L << column;
+                }
+            }
+        }
+    }
+
+    private static boolean isCellActive(CaveCarveScratch plan, int cell, int y) {
+        if (y > plan.cellTopY[cell]) {
+            return false;
+        }
+        if (!plan.cellProtected[cell]) {
+            return true;
+        }
+        int firstLocalX = (cell >> 1) << 3;
+        int firstLocalZ = (cell & 1) << 3;
+        for (int localX = firstLocalX; localX < firstLocalX + ADAPTIVE_DEEP_SAMPLE_STEP; localX++) {
+            int rowColumn = PowerOfTwoCoordinates.packLocal16(localX, firstLocalZ);
+            for (int column = rowColumn; column < rowColumn + ADAPTIVE_DEEP_SAMPLE_STEP; column++) {
+                if (isCellColumnActive(plan, column, y)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private static boolean isCellColumnActive(CaveCarveScratch plan, int column, int y) {
+        return (plan.cellPassBits[column >> 6] & (1L << column)) != 0L
+                && plan.columnMaxY[column] >= y
+                && (y < plan.columnProtectStartY[column] || y > plan.columnProtectEndY[column]);
+    }
+
+    private double cellThreshold(CaveCarveScratch plan, int column, int y, int minY, double surfaceBreakThresholdBoost,
+                                 double[] verticalEdgeFade) {
+        return CaveCellKernel.threshold(cellLocalThreshold(plan, column, y, minY, surfaceBreakThresholdBoost, verticalEdgeFade),
+                normalizationFactor, inverseNormalization);
+    }
+
+    private double cellLocalThreshold(CaveCarveScratch plan, int column, int y, int minY, double surfaceBreakThresholdBoost,
+                                      double[] verticalEdgeFade) {
+        double localThreshold = plan.passThreshold[column];
+        if (plan.surfaceBreakColumn[column] && y >= plan.surfaceBreakFloorY[column]) {
+            localThreshold += surfaceBreakThresholdBoost;
+        }
+        localThreshold -= verticalEdgeFade[y - minY];
+        return applySurfaceCeilingFade(plan, localThreshold, column, y, minY);
+    }
+
+    private static void flushCellCounters(CaveCarveScratch scratch) {
+        if (scratch.solidCells != 0L) {
+            SOLID_CELLS.add(scratch.solidCells);
+            scratch.solidCells = 0L;
+        }
+        if (scratch.openCells != 0L) {
+            OPEN_CELLS.add(scratch.openCells);
+            scratch.openCells = 0L;
+        }
+        if (scratch.mixedCells != 0L) {
+            MIXED_CELLS.add(scratch.mixedCells);
+            scratch.mixedCells = 0L;
+        }
+        if (scratch.exactRows != 0L) {
+            EXACT_ROWS.add(scratch.exactRows);
+            scratch.exactRows = 0L;
+        }
     }
 
     private int carvePassLattice(
@@ -2131,7 +2939,7 @@ public class IrisCaveCarver3D {
     }
 
     private boolean classifyDensityPointNoWarpNoModules(int x, int y, int z, double thresholdLimit) {
-        double density = baseDensity.noiseFastSigned3D(x, y, z) * baseWeight;
+        double density = baseDensity.sampleSigned3D(x, y, z) * baseWeight;
         if ((density + detailMinContribution) > thresholdLimit) {
             return false;
         }
@@ -2139,7 +2947,7 @@ public class IrisCaveCarver3D {
             return true;
         }
 
-        density += detailDensity.noiseFastSigned3D(x, y, z) * detailWeight;
+        density += detailDensity.sampleSigned3D(x, y, z) * detailWeight;
         return density <= thresholdLimit;
     }
 
@@ -2157,7 +2965,7 @@ public class IrisCaveCarver3D {
             return classifyDensityPointNoWarpNoModules(x, y, z, thresholdLimit);
         }
 
-        double density = baseDensity.noiseFastSigned3D(x, y, z) * baseWeight;
+        double density = baseDensity.sampleSigned3D(x, y, z) * baseWeight;
         if ((density + detailMinContribution + remainingMin[0]) > thresholdLimit) {
             return false;
         }
@@ -2165,7 +2973,7 @@ public class IrisCaveCarver3D {
             return true;
         }
 
-        density += detailDensity.noiseFastSigned3D(x, y, z) * detailWeight;
+        density += detailDensity.sampleSigned3D(x, y, z) * detailWeight;
         if ((density + remainingMin[0]) > thresholdLimit) {
             return false;
         }
@@ -2207,7 +3015,7 @@ public class IrisCaveCarver3D {
         double warpedX = x + (warpA * warpStrength);
         double warpedY = y + (warpB * warpStrength);
         double warpedZ = z + ((warpA - warpB) * 0.5D * warpStrength);
-        double density = baseDensity.noiseFastSigned3D(warpedX, warpedY, warpedZ) * baseWeight;
+        double density = baseDensity.sampleSigned3D(warpedX, warpedY, warpedZ) * baseWeight;
         if ((density + detailMinContribution) > thresholdLimit) {
             return false;
         }
@@ -2215,7 +3023,7 @@ public class IrisCaveCarver3D {
             return true;
         }
 
-        density += detailDensity.noiseFastSigned3D(warpedX, warpedY, warpedZ) * detailWeight;
+        density += detailDensity.sampleSigned3D(warpedX, warpedY, warpedZ) * detailWeight;
         return density <= thresholdLimit;
     }
 
@@ -2243,7 +3051,7 @@ public class IrisCaveCarver3D {
         double warpedX = x + (warpA * warpStrength);
         double warpedY = y + (warpB * warpStrength);
         double warpedZ = z + ((warpA - warpB) * 0.5D * warpStrength);
-        double density = baseDensity.noiseFastSigned3D(warpedX, warpedY, warpedZ) * baseWeight;
+        double density = baseDensity.sampleSigned3D(warpedX, warpedY, warpedZ) * baseWeight;
         if ((density + detailMinContribution + remainingMin[0]) > thresholdLimit) {
             return false;
         }
@@ -2251,7 +3059,7 @@ public class IrisCaveCarver3D {
             return true;
         }
 
-        density += detailDensity.noiseFastSigned3D(warpedX, warpedY, warpedZ) * detailWeight;
+        density += detailDensity.sampleSigned3D(warpedX, warpedY, warpedZ) * detailWeight;
         if ((density + remainingMin[0]) > thresholdLimit) {
             return false;
         }
@@ -2477,8 +3285,8 @@ public class IrisCaveCarver3D {
         int latticeZ = z >> CaveDensityGrid.LATTICE_SHIFT;
         int slot = ((latticeX & 3) << 2) | (latticeZ & 3);
         CaveDensityGrid.Column column = parallelDensity ? scratch.densityColumns[slot] : null;
-        if (column == null || !column.matches(this, latticeX, latticeZ)) {
-            column = densityGrid.column(this, densityGridOwner, densityMaximumY + 1, latticeX, latticeZ);
+        if (column == null || !column.matches(densityOwner, latticeX, latticeZ)) {
+            column = densityGrid.column(densityOwner, densityMaximumY + 1, latticeX, latticeZ);
             if (parallelDensity) {
                 scratch.densityColumns[slot] = column;
             }
@@ -2507,8 +3315,8 @@ public class IrisCaveCarver3D {
     }
 
     private double sampleDensityNoWarpNoModules(int x, int y, int z) {
-        double density = baseDensity.noiseFastSigned3D(x, y, z) * baseWeight;
-        density += detailDensity.noiseFastSigned3D(x, y, z) * detailWeight;
+        double density = baseDensity.sampleSigned3D(x, y, z) * baseWeight;
+        density += detailDensity.sampleSigned3D(x, y, z) * detailWeight;
         return density * inverseNormalization;
     }
 
@@ -2519,11 +3327,11 @@ public class IrisCaveCarver3D {
         }
 
         CaveFieldModuleState[] localModules = scratch.activeModules;
-        double density = baseDensity.noiseFastSigned3D(x, y, z) * baseWeight;
-        density += detailDensity.noiseFastSigned3D(x, y, z) * detailWeight;
+        double density = baseDensity.sampleSigned3D(x, y, z) * baseWeight;
+        density += detailDensity.sampleSigned3D(x, y, z) * detailWeight;
         for (int moduleIndex = 0; moduleIndex < activeModuleCount; moduleIndex++) {
             CaveFieldModuleState module = localModules[moduleIndex];
-            double moduleDensity = module.density.noiseFastSigned3D(x, y, z) - module.threshold;
+            double moduleDensity = module.density.sampleSigned3D(x, y, z) - module.threshold;
             if (module.invert) {
                 moduleDensity = -moduleDensity;
             }
@@ -2544,8 +3352,8 @@ public class IrisCaveCarver3D {
         double warpedX = x + (warpA * warpStrength);
         double warpedY = y + (warpB * warpStrength);
         double warpedZ = z + ((warpA - warpB) * 0.5D * warpStrength);
-        double density = baseDensity.noiseFastSigned3D(warpedX, warpedY, warpedZ) * baseWeight;
-        density += detailDensity.noiseFastSigned3D(warpedX, warpedY, warpedZ) * detailWeight;
+        double density = baseDensity.sampleSigned3D(warpedX, warpedY, warpedZ) * baseWeight;
+        density += detailDensity.sampleSigned3D(warpedX, warpedY, warpedZ) * detailWeight;
         return density * inverseNormalization;
     }
 
@@ -2569,11 +3377,11 @@ public class IrisCaveCarver3D {
         double warpedX = x + (warpA * warpStrength);
         double warpedY = y + (warpB * warpStrength);
         double warpedZ = z + ((warpA - warpB) * 0.5D * warpStrength);
-        double density = baseDensity.noiseFastSigned3D(warpedX, warpedY, warpedZ) * baseWeight;
-        density += detailDensity.noiseFastSigned3D(warpedX, warpedY, warpedZ) * detailWeight;
+        double density = baseDensity.sampleSigned3D(warpedX, warpedY, warpedZ) * baseWeight;
+        density += detailDensity.sampleSigned3D(warpedX, warpedY, warpedZ) * detailWeight;
         for (int moduleIndex = 0; moduleIndex < activeModuleCount; moduleIndex++) {
             CaveFieldModuleState module = localModules[moduleIndex];
-            double moduleDensity = module.density.noiseFastSigned3D(warpedX, warpedY, warpedZ) - module.threshold;
+            double moduleDensity = module.density.sampleSigned3D(warpedX, warpedY, warpedZ) - module.threshold;
             if (module.invert) {
                 moduleDensity = -moduleDensity;
             }
@@ -2597,8 +3405,8 @@ public class IrisCaveCarver3D {
         scratch.warpCacheX[slot] = sx;
         scratch.warpCacheY[slot] = sy;
         scratch.warpCacheZ[slot] = sz;
-        scratch.warpCacheA[slot] = warpDensity.noiseFastSigned3D(sx, sy, sz);
-        scratch.warpCacheB[slot] = warpDensity.noiseFastSigned3D(sx + 31.37D, sy - 17.21D, sz + 23.91D);
+        scratch.warpCacheA[slot] = warpDensity.sampleSigned3D(sx, sy, sz);
+        scratch.warpCacheB[slot] = warpDensity.sampleSigned3D(sx + 31.37D, sy - 17.21D, sz + 23.91D);
         return slot;
     }
 
@@ -2714,7 +3522,7 @@ public class IrisCaveCarver3D {
     private boolean isAquiferCandidate(CaveCarveScratch scratch, int x, int y, int z, double localThreshold) {
         double depthFactor = Math.max(0D, Math.min(1.5D, (fluidHeight - y) / 48D));
         double cutoff = 0.35D + (depthFactor * 0.2D);
-        if (detailDensity.noiseFastSigned3D(x, y * 0.5D, z) <= cutoff) {
+        if (detailDensity.sampleSigned3D(x, y * 0.5D, z) <= cutoff) {
             return false;
         }
         return !fluidRequiresFloor || hasAquiferCupSupport(scratch, x, y, z, localThreshold);
@@ -2886,5 +3694,16 @@ public class IrisCaveCarver3D {
         }
 
         return verticalEdgeFade;
+    }
+
+    private record WarpFieldKey(CaveFieldKey field) {
+    }
+
+    private record ModuleFieldKey(CaveFieldKey field, int minY, int maxY, long weight, long threshold, boolean invert) {
+    }
+
+    private record DensityFieldKey(boolean warp, CaveFieldKey warpField, long warpStrength, CaveFieldKey base, long baseWeight,
+                                   CaveFieldKey detail, long detailWeight, long inverseNormalization,
+                                   List<ModuleFieldKey> modules) {
     }
 }

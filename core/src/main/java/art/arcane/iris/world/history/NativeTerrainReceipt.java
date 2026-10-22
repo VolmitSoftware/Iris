@@ -6,11 +6,16 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.OptionalInt;
+import java.util.zip.CRC32;
+import java.util.zip.Deflater;
+import java.util.zip.DeflaterOutputStream;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -18,6 +23,8 @@ public final class NativeTerrainReceipt {
     private static final int MAGIC = 0x4952544E;
     private static final int VERSION = 1;
     private static final int MAXIMUM_BYTES = 64 * 1024 * 1024;
+    private static final ThreadLocal<Deflater> DEFLATERS =
+            ThreadLocal.withInitial(() -> new Deflater(Deflater.DEFAULT_COMPRESSION, true));
 
     private NativeTerrainReceipt() {
     }
@@ -25,7 +32,9 @@ public final class NativeTerrainReceipt {
     public static byte[] encode(SavedTerrainChunk chunk, long activationId, String epochId) throws IOException {
         ByteArrayOutputStream bytes = new ByteArrayOutputStream();
         UtfCache strings = new UtfCache();
-        try (DataOutputStream output = new DataOutputStream(new BufferedOutputStream(new GZIPOutputStream(bytes)))) {
+        Deflater deflater = DEFLATERS.get();
+        deflater.reset();
+        try (DataOutputStream output = new DataOutputStream(new BufferedOutputStream(new GzipStream(bytes, deflater)))) {
             output.writeInt(MAGIC);
             output.writeInt(VERSION);
             output.writeInt(chunk.chunkX());
@@ -194,6 +203,60 @@ public final class NativeTerrainReceipt {
     }
 
     public record Decoded(SavedTerrainChunk terrain, long activationId, String epochId) {
+    }
+
+    private static final class GzipStream extends DeflaterOutputStream {
+        private static final int BUFFER_BYTES = 512;
+        private static final int TRAILER_BYTES = 8;
+        private static final byte[] HEADER = gzipHeader();
+
+        private final CRC32 checksum = new CRC32();
+
+        private GzipStream(OutputStream out, Deflater deflater) throws IOException {
+            super(out, deflater, BUFFER_BYTES);
+            out.write(HEADER);
+        }
+
+        @Override
+        public void write(byte[] buffer, int offset, int length) throws IOException {
+            super.write(buffer, offset, length);
+            checksum.update(buffer, offset, length);
+        }
+
+        @Override
+        public void finish() throws IOException {
+            if (def.finished()) {
+                return;
+            }
+            def.finish();
+            while (!def.finished()) {
+                int length = def.deflate(buf, 0, buf.length);
+                if (length > 0) {
+                    out.write(buf, 0, length);
+                }
+            }
+            byte[] trailer = new byte[TRAILER_BYTES];
+            writeLittleEndian(trailer, 0, (int) checksum.getValue());
+            writeLittleEndian(trailer, 4, (int) def.getBytesRead());
+            out.write(trailer);
+        }
+
+        private static void writeLittleEndian(byte[] target, int offset, int value) {
+            target[offset] = (byte) value;
+            target[offset + 1] = (byte) (value >>> 8);
+            target[offset + 2] = (byte) (value >>> 16);
+            target[offset + 3] = (byte) (value >>> 24);
+        }
+
+        private static byte[] gzipHeader() {
+            ByteArrayOutputStream empty = new ByteArrayOutputStream();
+            try (GZIPOutputStream gzip = new GZIPOutputStream(empty)) {
+                gzip.finish();
+            } catch (IOException failure) {
+                throw new IllegalStateException("Unable to resolve the platform gzip header", failure);
+            }
+            return Arrays.copyOf(empty.toByteArray(), 10);
+        }
     }
 
     private static final class UtfCache {

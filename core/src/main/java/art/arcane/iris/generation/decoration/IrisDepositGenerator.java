@@ -39,6 +39,7 @@ import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KSet;
 import art.arcane.volmlib.util.math.BlockPosition;
 import art.arcane.volmlib.util.math.RNG;
+import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -57,6 +58,7 @@ import lombok.experimental.Accessors;
 public class IrisDepositGenerator {
     private static final int FOOTPRINT_MAXIMUM_SIZE = 64;
     private static final ThreadLocal<FootprintCells> FOOTPRINT_CELLS = ThreadLocal.withInitial(FootprintCells::new);
+    private static final double[][] NODE_SINES = nodeSines();
     private static final long FNV_OFFSET_BASIS = 0xcbf29ce484222325L;
     private static final long FNV_PRIME = 0x100000001b3L;
 
@@ -282,28 +284,52 @@ public class IrisDepositGenerator {
      * only for clumps it keeps. Returns null without drawing when the shape has no footprint path.
      */
     public ClumpFootprint sampleClumpFootprint(RNG rng, IrisData rdata) {
-        if (shape != IrisDepositShape.VANILLA_ELLIPSOID || minSize > FOOTPRINT_MAXIMUM_SIZE
-                || maxSize > FOOTPRINT_MAXIMUM_SIZE) {
+        if (!usesClumpFootprints(rdata)) {
             return null;
         }
-        int paletteSize = getBlockData(rdata).size();
-        if (paletteSize == 0) {
-            return null;
-        }
+        KList<NativeBlockState> resolvedPalette = getBlockData(rdata);
+        int paletteSize = resolvedPalette.size();
         int size = rng.i(minSize, maxSize + 1);
         if (size <= 0) {
             return ClumpFootprint.EMPTY;
         }
         FootprintCells cells = FOOTPRINT_CELLS.get();
         cells.reset();
-        vanillaEllipsoidCells(rng, size, cells);
-        if (cells.count == 0) {
-            return ClumpFootprint.EMPTY;
+        if (paletteSize == 1) {
+            emitEllipsoidRows(rng, size, cells);
+            if (cells.count == 0) {
+                return ClumpFootprint.EMPTY;
+            }
+            skipUniformPicks(rng, cells.count);
+        } else {
+            emitEllipsoidCells(rng, size, cells, cells.scratch);
+            if (cells.count == 0) {
+                return ClumpFootprint.EMPTY;
+            }
+            for (int cell = 0; cell < cells.count; cell++) {
+                cells.picks[cell] = rng.i(0, paletteSize);
+            }
         }
-        for (int cell = 0; cell < cells.count; cell++) {
-            rng.i(0, paletteSize);
+        return new ClumpFootprint(cells.extentX * 2 + 1, cells.minY, cells, cells.stamp, resolvedPalette);
+    }
+
+    public boolean usesClumpFootprints(IrisData rdata) {
+        return shape == IrisDepositShape.VANILLA_ELLIPSOID && minSize <= FOOTPRINT_MAXIMUM_SIZE
+                && maxSize <= FOOTPRINT_MAXIMUM_SIZE && !getBlockData(rdata).isEmpty();
+    }
+
+    public static int lowestFootprintOffset(int size) {
+        return -4 - (Math.max(0, size) + 15) / 16;
+    }
+
+    private static void skipUniformPicks(RNG rng, int count) {
+        if (rng instanceof DepositRandom random) {
+            random.skip(2L * count);
+            return;
         }
-        return new ClumpFootprint(cells.extentX * 2 + 1, cells.minY, false);
+        for (int cell = 0; cell < count; cell++) {
+            rng.nextDouble();
+        }
     }
 
     /**
@@ -312,15 +338,87 @@ public class IrisDepositGenerator {
      * test is bit-identical to evaluating {@code nx * nx + ny * ny + nz * nz} in place.
      */
     static void vanillaEllipsoidCells(RNG rng, int size, CellSink sink) {
+        emitEllipsoidCells(rng, size, sink, new EllipsoidScratch());
+    }
+
+    private static void emitEllipsoidCells(RNG rng, int size, CellSink sink, EllipsoidScratch scratch) {
+        double[] nodes = ellipsoidNodes(rng, size, scratch);
+        for (int node = 0; node < size; node++) {
+            if (!scratch.sphere(nodes, node)) {
+                continue;
+            }
+            double[] squaredY = scratch.squaredY;
+            double[] squaredZ = scratch.squaredZ;
+            for (int x = scratch.minX; x <= scratch.maxX; x++) {
+                double nx = (x + 0.5D - scratch.centerX) / scratch.radius;
+                double squaredX = nx * nx;
+                if (squaredX >= 1D) {
+                    continue;
+                }
+                for (int y = 0; y < scratch.spanY; y++) {
+                    double squaredXY = squaredX + squaredY[y];
+                    if (squaredXY >= 1D) {
+                        continue;
+                    }
+                    for (int z = 0; z < scratch.spanZ; z++) {
+                        if (squaredXY + squaredZ[z] < 1D) {
+                            sink.add(x, scratch.minY + y, scratch.minZ + z);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private static void emitEllipsoidRows(RNG rng, int size, FootprintCells cells) {
+        EllipsoidScratch scratch = cells.scratch;
+        double[] nodes = ellipsoidNodes(rng, size, scratch);
+        for (int node = 0; node < size; node++) {
+            if (!scratch.sphere(nodes, node)) {
+                continue;
+            }
+            double[] squaredY = scratch.squaredY;
+            double[] squaredZ = scratch.squaredZ;
+            int zShift = scratch.minZ + FootprintCells.OFFSET;
+            for (int x = scratch.minX; x <= scratch.maxX; x++) {
+                double nx = (x + 0.5D - scratch.centerX) / scratch.radius;
+                double squaredX = nx * nx;
+                if (squaredX >= 1D) {
+                    continue;
+                }
+                for (int y = 0; y < scratch.spanY; y++) {
+                    double squaredXY = squaredX + squaredY[y];
+                    if (squaredXY >= 1D) {
+                        continue;
+                    }
+                    long row = 0L;
+                    for (int z = 0; z < scratch.spanZ; z++) {
+                        if (squaredXY + squaredZ[z] < 1D) {
+                            row |= 1L << (zShift + z);
+                        }
+                    }
+                    if (row != 0L) {
+                        cells.addRow(x, scratch.minY + y, row);
+                    }
+                }
+            }
+        }
+        cells.finishRows();
+    }
+
+    private static double[] ellipsoidNodes(RNG rng, int size, EllipsoidScratch scratch) {
         float angle = rng.nextFloat() * (float) Math.PI;
         float reach = size / 8F;
-        double startX = Math.sin(angle) * reach;
-        double endX = -Math.sin(angle) * reach;
-        double startZ = Math.cos(angle) * reach;
-        double endZ = -Math.cos(angle) * reach;
+        double sine = Math.sin(angle);
+        double cosine = Math.cos(angle);
+        double startX = sine * reach;
+        double endX = -sine * reach;
+        double startZ = cosine * reach;
+        double endZ = -cosine * reach;
         double startY = rng.nextInt(3) - 2;
         double endY = rng.nextInt(3) - 2;
-        double[] nodes = new double[size * 4];
+        double[] nodes = scratch.nodes(size * 4);
+        double[] sines = size < NODE_SINES.length ? NODE_SINES[size] : null;
 
         for (int i = 0; i < size; i++) {
             float progress = (float) i / size;
@@ -328,7 +426,8 @@ public class IrisDepositGenerator {
             nodes[i * 4] = startX + (endX - startX) * progress;
             nodes[i * 4 + 1] = startY + (endY - startY) * progress;
             nodes[i * 4 + 2] = startZ + (endZ - startZ) * progress;
-            nodes[i * 4 + 3] = ((Math.sin(Math.PI * progress) + 1D) * radiusNoise + 1D) / 2D;
+            double arc = sines == null ? Math.sin(Math.PI * progress) : sines[i];
+            nodes[i * 4 + 3] = ((arc + 1D) * radiusNoise + 1D) / 2D;
         }
 
         for (int i = 0; i < size - 1; i++) {
@@ -353,59 +452,20 @@ public class IrisDepositGenerator {
                 }
             }
         }
+        return nodes;
+    }
 
-        double[] squaredY = new double[16];
-        double[] squaredZ = new double[16];
-        for (int i = 0; i < size; i++) {
-            double radius = nodes[i * 4 + 3];
-            if (radius < 0D) {
-                continue;
+    private static double[][] nodeSines() {
+        double[][] sines = new double[FOOTPRINT_MAXIMUM_SIZE + 1][];
+        for (int size = 1; size <= FOOTPRINT_MAXIMUM_SIZE; size++) {
+            double[] values = new double[size];
+            for (int i = 0; i < size; i++) {
+                float progress = (float) i / size;
+                values[i] = Math.sin(Math.PI * progress);
             }
-            double centerX = nodes[i * 4];
-            double centerY = nodes[i * 4 + 1];
-            double centerZ = nodes[i * 4 + 2];
-            int minX = (int) Math.floor(centerX - radius);
-            int maxX = Math.max((int) Math.floor(centerX + radius), minX);
-            int minY = (int) Math.floor(centerY - radius);
-            int maxY = Math.max((int) Math.floor(centerY + radius), minY);
-            int minZ = (int) Math.floor(centerZ - radius);
-            int maxZ = Math.max((int) Math.floor(centerZ + radius), minZ);
-            int spanY = maxY - minY + 1;
-            int spanZ = maxZ - minZ + 1;
-            if (spanY > squaredY.length) {
-                squaredY = new double[spanY];
-            }
-            if (spanZ > squaredZ.length) {
-                squaredZ = new double[spanZ];
-            }
-            for (int y = 0; y < spanY; y++) {
-                double ny = (minY + y + 0.5D - centerY) / radius;
-                squaredY[y] = ny * ny;
-            }
-            for (int z = 0; z < spanZ; z++) {
-                double nz = (minZ + z + 0.5D - centerZ) / radius;
-                squaredZ[z] = nz * nz;
-            }
-
-            for (int x = minX; x <= maxX; x++) {
-                double nx = (x + 0.5D - centerX) / radius;
-                double squaredX = nx * nx;
-                if (squaredX >= 1D) {
-                    continue;
-                }
-                for (int y = 0; y < spanY; y++) {
-                    double squaredXY = squaredX + squaredY[y];
-                    if (squaredXY >= 1D) {
-                        continue;
-                    }
-                    for (int z = 0; z < spanZ; z++) {
-                        if (squaredXY + squaredZ[z] < 1D) {
-                            sink.add(x, minY + y, minZ + z);
-                        }
-                    }
-                }
-            }
+            sines[size] = values;
         }
+        return sines;
     }
 
     IrisObject generateVanillaScattered(RNG rng, IrisData rdata, int size) {
@@ -630,8 +690,134 @@ public class IrisDepositGenerator {
         void add(int x, int y, int z);
     }
 
-    public record ClumpFootprint(int width, int minY, boolean empty) {
-        static final ClumpFootprint EMPTY = new ClumpFootprint(1, 0, true);
+    public static final class ClumpFootprint {
+        static final ClumpFootprint EMPTY = new ClumpFootprint(1, 0, null, 0L, null);
+
+        private final int width;
+        private final int minY;
+        private final FootprintCells source;
+        private final long stamp;
+        private final KList<NativeBlockState> palette;
+
+        private ClumpFootprint(int width, int minY, FootprintCells source, long stamp, KList<NativeBlockState> palette) {
+            this.width = width;
+            this.minY = minY;
+            this.source = source;
+            this.stamp = stamp;
+            this.palette = palette;
+        }
+
+        public int width() {
+            return width;
+        }
+
+        public int minY() {
+            return minY;
+        }
+
+        public boolean empty() {
+            return source == null;
+        }
+
+        public ClumpCells cells() {
+            if (source == null) {
+                return ClumpCells.EMPTY;
+            }
+            if (source.stamp != stamp) {
+                throw new IllegalStateException("Deposit footprint cells were resampled before they were read");
+            }
+            return source.toCells(palette);
+        }
+    }
+
+    public static final class ClumpCells {
+        static final ClumpCells EMPTY = new ClumpCells(new int[0], new NativeBlockState[0], null);
+
+        private final int[] positions;
+        private final NativeBlockState[] blocks;
+        private final NativeBlockState uniform;
+
+        private ClumpCells(int[] positions, NativeBlockState[] blocks, NativeBlockState uniform) {
+            this.positions = positions;
+            this.blocks = blocks;
+            this.uniform = uniform;
+        }
+
+        public int size() {
+            return positions.length;
+        }
+
+        public int x(int cell) {
+            return (positions[cell] >> 12) - FootprintCells.OFFSET;
+        }
+
+        public int y(int cell) {
+            return ((positions[cell] >> 6) & (FootprintCells.AXIS - 1)) - FootprintCells.OFFSET;
+        }
+
+        public int z(int cell) {
+            return (positions[cell] & (FootprintCells.AXIS - 1)) - FootprintCells.OFFSET;
+        }
+
+        public NativeBlockState block(int cell) {
+            return blocks == null ? uniform : blocks[cell];
+        }
+    }
+
+    private static final class EllipsoidScratch {
+        private double[] nodes = new double[256];
+        private double[] squaredY = new double[16];
+        private double[] squaredZ = new double[16];
+        private double centerX;
+        private double radius;
+        private int minX;
+        private int maxX;
+        private int minY;
+        private int spanY;
+        private int minZ;
+        private int spanZ;
+
+        private double[] nodes(int length) {
+            if (nodes.length < length) {
+                nodes = new double[length];
+            }
+            return nodes;
+        }
+
+        private boolean sphere(double[] values, int node) {
+            double sphereRadius = values[node * 4 + 3];
+            if (sphereRadius < 0D) {
+                return false;
+            }
+            double sphereX = values[node * 4];
+            double sphereY = values[node * 4 + 1];
+            double sphereZ = values[node * 4 + 2];
+            minX = (int) Math.floor(sphereX - sphereRadius);
+            maxX = Math.max((int) Math.floor(sphereX + sphereRadius), minX);
+            minY = (int) Math.floor(sphereY - sphereRadius);
+            int maxY = Math.max((int) Math.floor(sphereY + sphereRadius), minY);
+            minZ = (int) Math.floor(sphereZ - sphereRadius);
+            int maxZ = Math.max((int) Math.floor(sphereZ + sphereRadius), minZ);
+            spanY = maxY - minY + 1;
+            spanZ = maxZ - minZ + 1;
+            if (spanY > squaredY.length) {
+                squaredY = new double[spanY];
+            }
+            if (spanZ > squaredZ.length) {
+                squaredZ = new double[spanZ];
+            }
+            for (int y = 0; y < spanY; y++) {
+                double ny = (minY + y + 0.5D - sphereY) / sphereRadius;
+                squaredY[y] = ny * ny;
+            }
+            for (int z = 0; z < spanZ; z++) {
+                double nz = (minZ + z + 0.5D - sphereZ) / sphereRadius;
+                squaredZ[z] = nz * nz;
+            }
+            centerX = sphereX;
+            radius = sphereRadius;
+            return true;
+        }
     }
 
     private static final class FootprintCells implements CellSink {
@@ -639,10 +825,16 @@ public class IrisDepositGenerator {
         private static final int AXIS = 64;
         private final long[] occupied = new long[AXIS * AXIS * AXIS / 64];
         private final int[] touched = new int[AXIS * AXIS * AXIS / 64];
+        private final EllipsoidScratch scratch = new EllipsoidScratch();
+        private int[] order = new int[256];
+        private int[] picks = new int[256];
+        private long[] sortKeys = new long[256];
         private int touchedCount;
         private int count;
         private int extentX;
         private int minY;
+        private boolean uniform;
+        private long stamp;
 
         private void reset() {
             for (int index = 0; index < touchedCount; index++) {
@@ -652,6 +844,8 @@ public class IrisDepositGenerator {
             count = 0;
             extentX = 0;
             minY = Integer.MAX_VALUE;
+            uniform = false;
+            stamp++;
         }
 
         @Override
@@ -667,9 +861,72 @@ public class IrisDepositGenerator {
                 touched[touchedCount++] = word;
             }
             occupied[word] = current | bit;
-            count++;
+            if (count == order.length) {
+                order = Arrays.copyOf(order, count * 2);
+                picks = Arrays.copyOf(picks, count * 2);
+                sortKeys = new long[count * 2];
+            }
+            order[count++] = index;
             extentX = Math.max(extentX, Math.abs(x));
             minY = Math.min(minY, y);
+        }
+
+        private void addRow(int x, int y, long row) {
+            int word = (x + OFFSET) * AXIS + (y + OFFSET);
+            long current = occupied[word];
+            if (current == 0L) {
+                touched[touchedCount++] = word;
+            }
+            occupied[word] = current | row;
+        }
+
+        private void finishRows() {
+            int cells = 0;
+            int extent = 0;
+            int lowest = Integer.MAX_VALUE;
+            for (int index = 0; index < touchedCount; index++) {
+                int word = touched[index];
+                cells += Long.bitCount(occupied[word]);
+                extent = Math.max(extent, Math.abs(word / AXIS - OFFSET));
+                lowest = Math.min(lowest, word % AXIS - OFFSET);
+            }
+            count = cells;
+            extentX = extent;
+            minY = lowest;
+            uniform = true;
+        }
+
+        private ClumpCells toCells(KList<NativeBlockState> palette) {
+            if (uniform) {
+                return toUniformCells(palette.get(0));
+            }
+            for (int cell = 0; cell < count; cell++) {
+                sortKeys[cell] = ((long) order[cell] << 32) | picks[cell];
+            }
+            Arrays.sort(sortKeys, 0, count);
+            int[] positions = new int[count];
+            NativeBlockState[] blocks = new NativeBlockState[count];
+            for (int cell = 0; cell < count; cell++) {
+                long key = sortKeys[cell];
+                positions[cell] = (int) (key >>> 32);
+                blocks[cell] = palette.get((int) key);
+            }
+            return new ClumpCells(positions, blocks, null);
+        }
+
+        private ClumpCells toUniformCells(NativeBlockState block) {
+            Arrays.sort(touched, 0, touchedCount);
+            int[] positions = new int[count];
+            int cell = 0;
+            for (int index = 0; index < touchedCount; index++) {
+                int word = touched[index];
+                long row = occupied[word];
+                while (row != 0L) {
+                    positions[cell++] = (word << 6) | Long.numberOfTrailingZeros(row);
+                    row &= row - 1L;
+                }
+            }
+            return new ClumpCells(positions, null, block);
         }
     }
 }

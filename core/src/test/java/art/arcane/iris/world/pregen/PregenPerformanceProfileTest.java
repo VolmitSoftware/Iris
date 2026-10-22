@@ -15,7 +15,6 @@ import java.util.concurrent.TimeUnit;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -46,13 +45,17 @@ public class PregenPerformanceProfileTest {
     }
 
     @Test
-    public void directEngineProfileResizesActualTerrainCachesWithoutRebuildingHistory() {
-        PregenPerformanceProfile.apply(engine);
+    public void directEngineProfileLeavesTerrainCachesAndHistoryUntouched() {
+        try {
+            PregenPerformanceProfile.apply(engine);
 
-        assertEquals(4_096, IrisSettings.get().getPerformance().getNoiseCacheSize());
-        verify(complex).ensureTerrainNoiseCacheSize(4_096);
-        verify(complex, never()).getHeightStream();
-        verify(engine, never()).hotloadComplex();
+            assertEquals(1_024, IrisSettings.get().getPerformance().getNoiseCacheSize());
+            verify(engine, never()).getComplex();
+            verify(complex, never()).getHeightStream();
+            verify(engine, never()).hotloadComplex();
+        } finally {
+            PregenPerformanceProfile.restore();
+        }
     }
 
     @Test
@@ -60,46 +63,30 @@ public class PregenPerformanceProfileTest {
         PlatformChunkGenerator generator = mock(PlatformChunkGenerator.class);
         when(generator.getEngine()).thenReturn(engine);
 
-        PregenPerformanceProfile.applyToGenerator(generator);
+        try {
+            PregenPerformanceProfile.applyToGenerator(generator);
 
-        verify(complex).ensureTerrainNoiseCacheSize(4_096);
-        verify(generator, never()).hotloadComplexAsync(30L, TimeUnit.SECONDS);
-        verify(engine, never()).hotloadComplex();
+            verify(generator, never()).hotloadComplexAsync(30L, TimeUnit.SECONDS);
+            verify(engine, never()).hotloadComplex();
+        } finally {
+            PregenPerformanceProfile.restore();
+        }
     }
 
     @Test
-    public void largerConfiguredCachesRemainLarger() {
-        IrisSettings.get().getPerformance().setNoiseCacheSize(8_192);
+    public void enginesCreatedDuringOrAfterPregenerationKeepTheConfiguredNoiseCacheSize() {
+        try {
+            PregenPerformanceProfile.applyToGenerator(null);
 
-        PregenPerformanceProfile.apply(engine);
-
-        assertEquals(8_192, IrisSettings.get().getPerformance().getNoiseCacheSize());
-        verify(complex).ensureTerrainNoiseCacheSize(8_192);
-    }
-
-    @Test
-    public void failedCachePreparationDoesNotChangeGlobalTuningOrAcquireAParallelismHold() {
-        int holders = PregenPerformanceProfile.parallelismHolders();
-        int parallelism = MultiBurst.burst.parallelism();
-        doThrow(new IllegalStateException("Runtime closed"))
-                .when(complex).ensureTerrainNoiseCacheSize(4_096);
-
-        assertThrows(IllegalStateException.class, () -> PregenPerformanceProfile.apply(engine));
-
+            assertEquals(1_024, IrisSettings.get().getPerformance().getNoiseCacheSize());
+        } finally {
+            PregenPerformanceProfile.restore();
+        }
         assertEquals(1_024, IrisSettings.get().getPerformance().getNoiseCacheSize());
-        assertEquals(parallelism, MultiBurst.burst.parallelism());
-        assertEquals(holders, PregenPerformanceProfile.parallelismHolders());
     }
 
     @Test
-    public void profileBeforeWorldCreationStillAppliesGlobalTuning() {
-        PregenPerformanceProfile.applyToGenerator(null);
-
-        assertEquals(4_096, IrisSettings.get().getPerformance().getNoiseCacheSize());
-    }
-
-    @Test
-    public void pregenerationWantsTwoBurstWorkersPerCore() {
+    public void pregenerationWantsTwoBurstWorkersPerPerformanceCore() {
         assertEquals(32, PregenPerformanceProfile.pregenBurstParallelism(16));
         assertEquals(4, PregenPerformanceProfile.pregenBurstParallelism(1));
     }
@@ -107,10 +94,15 @@ public class PregenPerformanceProfileTest {
     @Test
     public void raisingBurstParallelismOnlyGrowsThePool() {
         int before = MultiBurst.burst.parallelism();
-        assertFalse(MultiBurst.burst.raiseParallelism(before));
-        assertTrue(MultiBurst.burst.raiseParallelism(before + 1));
-        assertEquals(before + 1, MultiBurst.burst.parallelism());
-        assertFalse(MultiBurst.burst.raiseParallelism(before));
+        try {
+            assertFalse(MultiBurst.burst.raiseParallelism(before));
+            assertTrue(MultiBurst.burst.raiseParallelism(before + 1));
+            assertEquals(before + 1, MultiBurst.burst.parallelism());
+            assertFalse(MultiBurst.burst.raiseParallelism(before));
+        } finally {
+            MultiBurst.burst.restoreParallelism();
+        }
+        assertEquals(before, MultiBurst.burst.parallelism());
     }
 
     @Test

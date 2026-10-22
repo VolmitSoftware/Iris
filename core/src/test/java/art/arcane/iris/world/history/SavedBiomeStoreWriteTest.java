@@ -61,6 +61,16 @@ public class SavedBiomeStoreWriteTest {
     }
 
     @Test
+    public void consecutiveRecordsKeepIndependentlyCompressedBytes() throws Exception {
+        Path root = temporaryFolder.newFolder().toPath();
+        SavedBiomeStore store = SavedBiomeStore.open(root);
+        for (int x = 0; x < 4; x++) {
+            store.claimAndPersist(chunk(x, 3L));
+        }
+        assertArrayEquals(expectedRegion(4), Files.readAllBytes(regionPath(root)));
+    }
+
+    @Test
     public void relaxedDurabilityPreservesRecordsWithoutForcingEachAppend() throws Exception {
         String previousMode = System.getProperty(Durability.MODE_PROPERTY);
         Path root = temporaryFolder.newFolder().toPath();
@@ -379,6 +389,10 @@ public class SavedBiomeStoreWriteTest {
     }
 
     private static byte[] expectedRegion() throws IOException {
+        return expectedRegion(1);
+    }
+
+    private static byte[] expectedRegion(int records) throws IOException {
         ByteArrayOutputStream raw = new ByteArrayOutputStream();
         DataOutputStream data = new DataOutputStream(raw);
         data.writeLong(3L);
@@ -392,17 +406,6 @@ public class SavedBiomeStoreWriteTest {
         data.writeInt(1);
         data.write(new byte[]{0, 0, 1, (byte) 0x80, 3, 0});
         data.write(new byte[256]);
-        ByteArrayOutputStream body = new ByteArrayOutputStream();
-        DataOutputStream coordinates = new DataOutputStream(body);
-        coordinates.writeInt(0);
-        coordinates.writeInt(0);
-        coordinates.writeInt(raw.size());
-        Deflater deflater = new Deflater(Deflater.BEST_SPEED);
-        try (DeflaterOutputStream compressed = new DeflaterOutputStream(coordinates, deflater)) {
-            raw.writeTo(compressed);
-        } finally {
-            deflater.end();
-        }
         ByteArrayOutputStream region = new ByteArrayOutputStream();
         DataOutputStream output = new DataOutputStream(region);
         output.writeInt(0x4942494F);
@@ -410,9 +413,22 @@ public class SavedBiomeStoreWriteTest {
         output.writeInt(0);
         output.writeInt(0);
         output.writeInt(checksum(region.toByteArray()));
-        output.writeInt(body.size());
-        output.write(body.toByteArray());
-        output.writeInt(checksum(body.toByteArray()));
+        for (int x = 0; x < records; x++) {
+            ByteArrayOutputStream body = new ByteArrayOutputStream();
+            DataOutputStream coordinates = new DataOutputStream(body);
+            coordinates.writeInt(x);
+            coordinates.writeInt(0);
+            coordinates.writeInt(raw.size());
+            Deflater deflater = new Deflater(Deflater.BEST_SPEED);
+            try (DeflaterOutputStream compressed = new DeflaterOutputStream(coordinates, deflater)) {
+                raw.writeTo(compressed);
+            } finally {
+                deflater.end();
+            }
+            output.writeInt(body.size());
+            output.write(body.toByteArray());
+            output.writeInt(checksum(body.toByteArray()));
+        }
         return region.toByteArray();
     }
 

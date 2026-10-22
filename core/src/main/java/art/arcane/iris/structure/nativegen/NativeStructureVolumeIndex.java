@@ -13,12 +13,13 @@ import art.arcane.volmlib.util.collection.KList;
 
 import java.io.IOException;
 import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.WeakHashMap;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.function.BooleanSupplier;
 import java.util.function.IntConsumer;
 import java.util.function.Supplier;
 
@@ -38,8 +39,8 @@ public final class NativeStructureVolumeIndex {
             Collections.synchronizedMap(new WeakHashMap<>());
 
     private final OriginResolver origins;
-    private final Map<RuntimeChunkKey, KList<NativeStructureVolume>> originCache = lru(MAX_CACHED_ORIGIN_CHUNKS);
-    private final Map<RuntimeChunkKey, KList<NativeStructureVolume>> queryCache = lru(MAX_CACHED_QUERY_CHUNKS);
+    private final VolumeCache originCache = new VolumeCache(MAX_CACHED_ORIGIN_CHUNKS);
+    private final VolumeCache queryCache = new VolumeCache(MAX_CACHED_QUERY_CHUNKS);
     private final ConcurrentHashMap<RuntimeChunkKey, CompletableFuture<KList<NativeStructureVolume>>> originBuilds =
             new ConcurrentHashMap<>();
     private final ConcurrentHashMap<RuntimeChunkKey, CompletableFuture<KList<NativeStructureVolume>>> queryBuilds =
@@ -180,12 +181,10 @@ public final class NativeStructureVolumeIndex {
             Engine engine, int chunkX, int chunkZ, Integer pinnedRuntimeId
     ) {
         if (pinnedRuntimeId != null) {
-            synchronized (originCache) {
-                KList<NativeStructureVolume> cached = originCache.get(
-                        new RuntimeChunkKey(pinnedRuntimeId, chunkKey(chunkX, chunkZ)));
-                if (cached != null) {
-                    return cached;
-                }
+            KList<NativeStructureVolume> cached = originCache.get(
+                    new RuntimeChunkKey(pinnedRuntimeId, chunkKey(chunkX, chunkZ)));
+            if (cached != null) {
+                return cached;
             }
         }
         return originVolumes(engine, chunkX, chunkZ);
@@ -210,27 +209,21 @@ public final class NativeStructureVolumeIndex {
     }
 
     void evictRuntime(int runtimeId) {
-        synchronized (originCache) {
-            originBuilds.keySet().removeIf(key -> key.runtimeId() == runtimeId);
-            originCache.keySet().removeIf(key -> key.runtimeId() == runtimeId);
-        }
-        synchronized (queryCache) {
-            queryBuilds.keySet().removeIf(key -> key.runtimeId() == runtimeId);
-            queryCache.keySet().removeIf(key -> key.runtimeId() == runtimeId);
-        }
+        originBuilds.keySet().removeIf(key -> key.runtimeId() == runtimeId);
+        originCache.evictRuntime(runtimeId);
+        queryBuilds.keySet().removeIf(key -> key.runtimeId() == runtimeId);
+        queryCache.evictRuntime(runtimeId);
     }
 
     private KList<NativeStructureVolume> cached(
-            Map<RuntimeChunkKey, KList<NativeStructureVolume>> cache,
+            VolumeCache volumes,
             ConcurrentHashMap<RuntimeChunkKey, CompletableFuture<KList<NativeStructureVolume>>> builds,
             RuntimeChunkKey key,
             Supplier<KList<NativeStructureVolume>> loader
     ) {
-        synchronized (cache) {
-            KList<NativeStructureVolume> hit = cache.get(key);
-            if (hit != null) {
-                return hit;
-            }
+        KList<NativeStructureVolume> hit = volumes.get(key);
+        if (hit != null) {
+            return hit;
         }
 
         CompletableFuture<KList<NativeStructureVolume>> future = new CompletableFuture<>();
@@ -241,22 +234,16 @@ public final class NativeStructureVolumeIndex {
 
         // Close the check-then-claim window: a racer whose cache check missed before the
         // previous builder cached could claim the build slot after it retired and rebuild.
-        synchronized (cache) {
-            KList<NativeStructureVolume> published = cache.get(key);
-            if (published != null) {
-                future.complete(published);
-                builds.remove(key, future);
-                return published;
-            }
+        KList<NativeStructureVolume> published = volumes.get(key);
+        if (published != null) {
+            future.complete(published);
+            builds.remove(key, future);
+            return published;
         }
 
         try {
             KList<NativeStructureVolume> built = loader.get();
-            synchronized (cache) {
-                if (builds.get(key) == future) {
-                    cache.put(key, built);
-                }
-            }
+            volumes.publish(key, built, () -> builds.get(key) == future);
             future.complete(built);
             return built;
         } catch (RuntimeException | Error error) {
@@ -303,15 +290,45 @@ public final class NativeStructureVolumeIndex {
         }
     }
 
-    private static Map<RuntimeChunkKey, KList<NativeStructureVolume>> lru(int capacity) {
-        return new LinkedHashMap<>(16, 0.75F, true) {
-            @Override
-            protected boolean removeEldestEntry(
-                    Map.Entry<RuntimeChunkKey, KList<NativeStructureVolume>> eldest
-            ) {
-                return size() > capacity;
+    private static final class VolumeCache {
+        private final int capacity;
+        private final ConcurrentHashMap<RuntimeChunkKey, KList<NativeStructureVolume>> entries = new ConcurrentHashMap<>();
+        private final ConcurrentLinkedQueue<RuntimeChunkKey> insertionOrder = new ConcurrentLinkedQueue<>();
+
+        private VolumeCache(int capacity) {
+            this.capacity = capacity;
+        }
+
+        private KList<NativeStructureVolume> get(RuntimeChunkKey key) {
+            return entries.get(key);
+        }
+
+        private void publish(RuntimeChunkKey key, KList<NativeStructureVolume> volumes, BooleanSupplier current) {
+            boolean[] inserted = new boolean[1];
+            entries.compute(key, (ignored, previous) -> {
+                if (!current.getAsBoolean()) {
+                    return previous;
+                }
+                inserted[0] = previous == null;
+                return volumes;
+            });
+            if (!inserted[0]) {
+                return;
             }
-        };
+            insertionOrder.add(key);
+            while (entries.size() > capacity) {
+                RuntimeChunkKey eldest = insertionOrder.poll();
+                if (eldest == null) {
+                    return;
+                }
+                entries.remove(eldest);
+            }
+        }
+
+        private void evictRuntime(int runtimeId) {
+            entries.keySet().removeIf(key -> key.runtimeId() == runtimeId);
+            insertionOrder.removeIf(key -> key.runtimeId() == runtimeId);
+        }
     }
 
     static int runtimeChunkHash(int runtimeId, long chunkKey) {

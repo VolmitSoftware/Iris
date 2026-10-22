@@ -20,14 +20,29 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.ForkJoinWorkerThread;
 
 final class HydrologyCrossTileResolver {
     private static final int FALLBACK_TRIAL_PARALLELISM = 16;
+    private static final int MINIMUM_FALLBACK_TRIAL_BATCH = 2;
     private final HydrologyPlanner planner;
+    private final int trialLimit;
 
-    HydrologyCrossTileResolver(HydrologyPlanner planner) {
+    HydrologyCrossTileResolver(HydrologyPlanner planner, int trialLimit) {
+        if (trialLimit < 1) {
+            throw new IllegalArgumentException("Hydrology fallback trial limit must be positive.");
+        }
         this.planner = planner;
+        this.trialLimit = trialLimit;
+    }
+
+    static int fallbackTrialBatch(int parallelism, int idleWorkers, int trialLimit) {
+        if (parallelism <= 2) {
+            return 1;
+        }
+        int workers = Math.clamp(idleWorkers + 1L, MINIMUM_FALLBACK_TRIAL_BATCH, parallelism);
+        return Math.max(1, Math.min(workers, Math.min(trialLimit, FALLBACK_TRIAL_PARALLELISM)));
     }
 
     HydrologyOwnerDraft compileOwnerDraft(
@@ -285,12 +300,18 @@ final class HydrologyCrossTileResolver {
             List<OutletCandidate> outlets,
             int start
     ) {
-        int parallelism = HydrologyPlanningAdmission.effectiveParallelism(
-                Thread.currentThread() instanceof ForkJoinWorkerThread worker
-                        ? worker.getPool().getParallelism()
-                        : IrisPlatforms.isBound() ? MultiBurst.hydrology.parallelism() : 1);
-        int batchSize = parallelism <= 2 ? 1 : Math.max(1, Math.min(HydrologyPlanningAdmission.maximumTrials(),
-                Math.min(FALLBACK_TRIAL_PARALLELISM, parallelism)));
+        int parallelism;
+        int idleWorkers;
+        if (Thread.currentThread() instanceof ForkJoinWorkerThread worker) {
+            ForkJoinPool pool = worker.getPool();
+            parallelism = HydrologyPlanningAdmission.effectiveParallelism(pool.getParallelism());
+            idleWorkers = pool.getParallelism() - pool.getActiveThreadCount();
+        } else {
+            parallelism = HydrologyPlanningAdmission.effectiveParallelism(
+                    IrisPlatforms.isBound() ? MultiBurst.hydrology.parallelism() : 1);
+            idleWorkers = 0;
+        }
+        int batchSize = fallbackTrialBatch(parallelism, idleWorkers, trialLimit);
         int end = Math.min(outlets.size(), start + batchSize);
         ArrayList<Callable<FallbackTrial>> tasks = new ArrayList<>(end - start);
         HydrologyPlanner.PlanningSamples ownerSamples = planner.planningSamples.get();

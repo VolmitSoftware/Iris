@@ -1,6 +1,7 @@
 package art.arcane.iris.generation.hydrology;
 
 import art.arcane.iris.generation.runtime.GenerationClosedException;
+import art.arcane.iris.generation.runtime.GenerationCounter;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.generation.concurrent.MultiBurst;
 import art.arcane.iris.generation.stream.ProvisionalSampling;
@@ -43,7 +44,7 @@ public final class HydrologyTileCache implements AutoCloseable {
     private static final byte AROUND_EMPTY = 1;
     private static final byte AROUND_PUBLISHED = 2;
     private static final int MAXIMUM_PREGENERATION_TILES = 4096;
-    private static final int PREGENERATION_HALO_BLOCKS = 512;
+    private static final int PREGENERATION_HALO_BLOCKS = 256;
     private static final HydrologyColumnSample[] NO_COLUMNS = new HydrologyColumnSample[CHUNK_COLUMN_COUNT];
     private static final Cache<SharedTileKey, HydrologyTile> SHARED_TILES = Caffeine.newBuilder()
             .maximumWeight(HydrologyCacheBudget.sharedStudioBytes())
@@ -79,7 +80,6 @@ public final class HydrologyTileCache implements AutoCloseable {
     private volatile SharedCacheScope sharedCacheScope;
     private volatile PreparedHydrologyTileStore persistentStore;
     private volatile boolean neighbourPrefetchEnabled;
-    private volatile Runnable terrainPreparation;
     private PregenerationScope pregenerationScope;
     private int demandBatches;
     private int activePrefetches;
@@ -267,7 +267,6 @@ public final class HydrologyTileCache implements AutoCloseable {
     private List<HydrologyDiagnosticCandidate> planDiagnostics(HydrologyTileKey key, long epoch) {
         HydrologyTile tile = planInline(key, epoch);
         try (HydrologyPlanningAdmission.Permit ignored = HydrologyPlanningAdmission.acquireRoot(closed::get)) {
-            prepareTerrain();
             return List.copyOf(planner.diagnosticCandidates(tile));
         }
     }
@@ -458,7 +457,6 @@ public final class HydrologyTileCache implements AutoCloseable {
     /** Plans the tile under a root permit; a persisted plan is restored before any permit is taken. */
     private HydrologyTile planAdmitted(HydrologyTileKey key, long planningEpoch,
                                        SharedTileKey sharedKey, PreparedHydrologyTileStore store) {
-        prepareTerrain();
         HydrologyTile planned = planner.plan(key);
         synchronized (publicationLock) {
             if (sharedKey != null && !closed.get() && planningEpoch == cacheEpoch.get()) {
@@ -499,6 +497,9 @@ public final class HydrologyTileCache implements AutoCloseable {
     }
 
     public Optional<HydrologyColumnSample> columnAt(int blockX, int blockZ) {
+        if (GenerationCounter.ENABLED) {
+            GenerationCounter.HYDROLOGY_LOOKUPS.increment();
+        }
         return chunkColumns(blockX, blockZ).columnAt(blockX, blockZ);
     }
 
@@ -506,6 +507,9 @@ public final class HydrologyTileCache implements AutoCloseable {
         requireOpen();
         if (!waitsForbidden()) {
             return HydrologyColumnSnapshot.ready(columnAt(blockX, blockZ).orElse(null));
+        }
+        if (GenerationCounter.ENABLED) {
+            GenerationCounter.HYDROLOGY_LOOKUPS.increment();
         }
         int chunkX = Math.floorDiv(blockX, CHUNK_SIZE);
         int chunkZ = Math.floorDiv(blockZ, CHUNK_SIZE);
@@ -768,17 +772,6 @@ public final class HydrologyTileCache implements AutoCloseable {
             }
         }
         clear();
-    }
-
-    public void setTerrainPreparation(Runnable preparation) {
-        terrainPreparation = Objects.requireNonNull(preparation, "terrainPreparation");
-    }
-
-    private void prepareTerrain() {
-        Runnable preparation = terrainPreparation;
-        if (preparation != null) {
-            preparation.run();
-        }
     }
 
     private static void collectActiveLoad(List<CompletableFuture<?>> active, PendingLoad<?> load) {

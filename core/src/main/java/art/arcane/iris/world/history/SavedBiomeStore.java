@@ -49,6 +49,7 @@ public final class SavedBiomeStore {
     private static final int MAXIMUM_CACHED_CHUNKS = 128;
     private static final long MAXIMUM_CACHED_BYTES = 64L * 1024L * 1024L;
     private static final int MAXIMUM_WRITE_BATCH = 64;
+    private static final ThreadLocal<Deflater> DEFLATERS = ThreadLocal.withInitial(() -> new Deflater(Deflater.BEST_SPEED));
 
     private final Path dimensionRoot;
     private final Path directory;
@@ -464,12 +465,16 @@ public final class SavedBiomeStore {
     }
 
     private void ensureRegionFile(RegionIndex region) throws IOException {
+        if (region.fileReady) {
+            return;
+        }
         requireSafeAncestors();
         Files.createDirectories(directory);
         if (Files.exists(region.path, LinkOption.NOFOLLOW_LINKS)) {
             if (!Files.isRegularFile(region.path, LinkOption.NOFOLLOW_LINKS)) {
                 throw new IOException("Saved biome region is not a regular file: " + region.path);
             }
+            region.fileReady = true;
             return;
         }
         ByteBuffer header = ByteBuffer.allocate(HEADER_BYTES);
@@ -486,6 +491,7 @@ public final class SavedBiomeStore {
             }
             Files.move(temporary, region.path, StandardCopyOption.ATOMIC_MOVE);
             forceDirectory(directory);
+            region.fileReady = true;
         } finally {
             Files.deleteIfExists(temporary);
         }
@@ -622,10 +628,16 @@ public final class SavedBiomeStore {
     private static byte[] encode(SavedBiomeChunk chunk) throws IOException {
         LinkedHashMap<SavedBiomeChunk.Cell, Integer> palette = new LinkedHashMap<>();
         LinkedHashMap<SavedBiomeChunk.Column, Integer> columns = new LinkedHashMap<>();
+        byte[] columnIndices = new byte[256];
         for (int z = 0; z < 16; z++) {
             for (int x = 0; x < 16; x++) {
                 SavedBiomeChunk.Column column = chunk.column(x, z);
-                columns.computeIfAbsent(column, ignored -> columns.size());
+                int known = columns.size();
+                int index = columns.computeIfAbsent(column, ignored -> columns.size());
+                columnIndices[z * 16 + x] = (byte) index;
+                if (index < known) {
+                    continue;
+                }
                 palette.computeIfAbsent(column.surface(), ignored -> palette.size());
                 palette.computeIfAbsent(column.caveBase(), ignored -> palette.size());
                 for (SavedBiomeChunk.Span span : column.vertical()) {
@@ -660,11 +672,7 @@ public final class SavedBiomeStore {
                     writeUnsigned(output, palette.get(span.cell()));
                 }
             }
-            for (int z = 0; z < 16; z++) {
-                for (int x = 0; x < 16; x++) {
-                    output.writeByte(columns.get(chunk.column(x, z)));
-                }
-            }
+            output.write(columnIndices);
         }
         if (raw.size() > MAXIMUM_DECODED_BYTES) {
             throw new IOException("Saved biome chunk exceeds its decoded size limit");
@@ -674,11 +682,10 @@ public final class SavedBiomeStore {
         output.writeInt(chunk.chunkX());
         output.writeInt(chunk.chunkZ());
         output.writeInt(raw.size());
-        Deflater deflater = new Deflater(Deflater.BEST_SPEED);
+        Deflater deflater = DEFLATERS.get();
+        deflater.reset();
         try (DeflaterOutputStream compressed = new DeflaterOutputStream(output, deflater)) {
             raw.writeTo(compressed);
-        } finally {
-            deflater.end();
         }
         if (encoded.size() > MAXIMUM_RECORD_BYTES) {
             throw new IOException("Saved biome chunk exceeds its encoded size limit");
@@ -847,6 +854,7 @@ public final class SavedBiomeStore {
         private final int regionZ;
         private final long[] offsets = new long[1024];
         private final int[] lengths = new int[1024];
+        private boolean fileReady;
 
         private RegionIndex(Path path, int regionX, int regionZ) {
             this.path = path;

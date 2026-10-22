@@ -39,6 +39,7 @@ import art.arcane.volmlib.util.noise.NoiseGenerator;
 import art.arcane.volmlib.util.noise.OffsetNoiseGenerator;
 import art.arcane.volmlib.util.noise.PerlinNoise;
 import art.arcane.volmlib.util.noise.SimplexNoise;
+import art.arcane.volmlib.util.noise.program.NoiseProgram;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -47,8 +48,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.DoubleBinaryOperator;
 
 @Snippet("generator")
 @Accessors(chain = true)
@@ -198,44 +199,29 @@ public class IrisNoiseGenerator {
         return true;
     }
 
-    DoubleBinaryOperator prepareBatch(long superSeed, IrisData data, Engine engine) {
+    NoiseLayerProgram compileProgram(long superSeed, IrisData data, Engine engine) {
         if (!enabled) {
-            double value = offsetY;
-            return (x, z) -> value;
+            return NoiseLayerProgram.disabled(this);
         }
-        if (hasDeepFracture()) {
-            FractureSamples samples = new FractureSamples();
-            if (samples.prepare(this, superSeed, data, engine)) {
-                return samples::sample;
+        int enabledChildren = 0;
+        for (IrisNoiseGenerator child : fracture) {
+            if (child.isEnabled()) {
+                enabledChildren++;
             }
         }
-        DoubleBinaryOperator[] children = new DoubleBinaryOperator[fracture.size()];
-        double[] offsets = new double[fracture.size()];
+        NoiseLayerProgram[] children = new NoiseLayerProgram[enabledChildren];
+        double[] offsets = new double[enabledChildren];
         int salt = 33;
-        for (int index = 0; index < children.length; index++) {
-            IrisNoiseGenerator child = fracture.get(index);
+        int compiled = 0;
+        for (IrisNoiseGenerator child : fracture) {
             if (child.isEnabled()) {
-                children[index] = child.prepareBatch(superSeed + seed + salt, data, engine);
-                offsets[index] = child.getOpacity() / 2D;
+                children[compiled] = child.compileProgram(superSeed + seed + salt, data, engine);
+                offsets[compiled++] = child.getOpacity() / 2D;
             }
             salt += 819;
         }
-        CNG generator = getGenerator(superSeed, data, engine);
-        return (x, z) -> samplePrepared(generator, children, offsets, x, z);
-    }
-
-    private double samplePrepared(CNG generator, DoubleBinaryOperator[] children, double[] offsets,
-                                  double xv, double zv) {
-        double x = xv;
-        double z = zv;
-        for (int index = 0; index < children.length; index++) {
-            DoubleBinaryOperator child = children[index];
-            if (child != null) {
-                x += child.applyAsDouble(xv, zv) - offsets[index];
-                z += child.applyAsDouble(zv, xv) - offsets[index];
-            }
-        }
-        return sample(generator, x, z);
+        CNG generator = Objects.requireNonNull(getGenerator(superSeed, data, engine), "Noise layer generator");
+        return NoiseLayerProgram.of(this, NoiseProgram.compile2D(generator), children, offsets);
     }
 
     public KList<IrisNoiseGenerator> getAllComposites() {

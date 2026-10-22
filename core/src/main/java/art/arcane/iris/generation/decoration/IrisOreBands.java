@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.decoration;
 
+import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.pack.value.IrisRange;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
@@ -79,6 +80,14 @@ public final class IrisOreBands {
         return minY <= maxY;
     }
 
+    public int lowestY() {
+        return minY;
+    }
+
+    public int highestY() {
+        return maxY;
+    }
+
     public boolean contains(int y) {
         return y >= minY && y <= maxY;
     }
@@ -86,10 +95,10 @@ public final class IrisOreBands {
     /**
      * The ore placed at a Y inside {@link #contains(int)}, or null when no generator places one.
      */
-    public NativeBlockState generate(int x, int y, int z, RNG rng, IrisData data) {
+    public NativeBlockState generate(int x, int y, int z, RNG rng, IrisData data, Engine engine) {
         IrisOreGenerator[] candidates = byY == null ? generators : byY[y - minY];
         for (IrisOreGenerator candidate : candidates) {
-            NativeBlockState ore = candidate.generate(x, y, z, rng, data);
+            NativeBlockState ore = candidate.generate(x, y, z, rng, data, engine);
             if (ore != null) {
                 return ore;
             }

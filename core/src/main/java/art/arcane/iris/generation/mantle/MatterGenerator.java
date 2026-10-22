@@ -3,6 +3,7 @@ package art.arcane.iris.generation.mantle;
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.EnginePlatformHooks;
+import art.arcane.iris.generation.runtime.IrisEngine;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.generation.concurrent.MultiBurst;
 import art.arcane.iris.generation.context.ChunkContext;
@@ -23,13 +24,14 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 public interface MatterGenerator {
     MultiBurst DISPATCHER = MultiBurst.burst;
     ConcurrentHashMap<MatterTaskKey, MatterComponentTask> IN_FLIGHT_COMPONENTS = new ConcurrentHashMap<>();
-    int COMPONENT_SUBMISSION_BATCH_SIZE = Math.max(1, Math.min(8, Runtime.getRuntime().availableProcessors()));
+    int COMPONENT_SUBMISSION_LIMIT = Math.max(1, Math.min(8, Runtime.getRuntime().availableProcessors()));
     long COMPONENT_TASK_POLL_MS = 1000L;
     long COMPONENT_TASK_TIMEOUT_MS = Long.getLong("iris.mantle.componentTimeout", 120000L);
 
@@ -87,7 +89,7 @@ public interface MatterGenerator {
         if (passPlans.length == 0) {
             return;
         }
-        int prefetchRadius = passPlans[0].passChunkRadius();
+        int prefetchRadius = phasePrefetchRadius(passPlans, phase);
         LongOpenHashSet partialChunks = new LongOpenHashSet();
         List<MantleComponent> requiredComponents = enabledComponents();
         boolean terrainOnAccess = false;
@@ -104,8 +106,10 @@ public interface MatterGenerator {
             // close() releases the cached chunks, even when a pass throws, or detached pool threads
             // write into released chunks.
             List<MatterComponentTask> outstandingTasks = null;
-            List<MatterComponentTask> submittedTasks = multicore && !DISPATCHER.ownsCurrentThread()
-                    ? new ArrayList<>(COMPONENT_SUBMISSION_BATCH_SIZE)
+            List<DeferredComponent> deferredComponents = null;
+            IrisEngine.GenerationRuntimeBinding generationRuntime = scopedGenerationRuntime();
+            SubmissionWindow submissions = multicore && !DISPATCHER.ownsCurrentThread()
+                    ? new SubmissionWindow()
                     : null;
 
             try {
@@ -229,25 +233,28 @@ public interface MatterGenerator {
                                 for (int componentIndex = 0; componentIndex < eligibleComponentCount; componentIndex++) {
                                     MantleComponent component = eligibleComponents[componentIndex];
                                     outstandingTasks.add(runComponentAsync(
-                                            chunk, component, writer, finalPassX, finalPassZ, context, submittedTasks));
-                                    if (submittedTasks != null && submittedTasks.size() >= COMPONENT_SUBMISSION_BATCH_SIZE) {
-                                        awaitComponentTasks(submittedTasks);
-                                    }
+                                            chunk, component, writer, finalPassX, finalPassZ, context, submissions,
+                                            generationRuntime));
                                 }
                             } else {
                                 for (int componentIndex = 0; componentIndex < eligibleComponentCount; componentIndex++) {
                                     MantleComponent component = eligibleComponents[componentIndex];
-                                    runComponentInline(chunk, component, writer, finalPassX, finalPassZ, context);
+                                    if (!tryRunComponentInline(chunk, component, writer, finalPassX, finalPassZ, context)) {
+                                        if (deferredComponents == null) {
+                                            deferredComponents = new ArrayList<>();
+                                        }
+                                        deferredComponents.add(new DeferredComponent(chunk, component, finalPassX, finalPassZ));
+                                    }
                                 }
                             }
                         }
                     }
 
                     if (asyncComponents) {
+                        runQueuedComponentTasks(outstandingTasks, generationRuntime);
                         awaitComponentTasks(outstandingTasks);
-                        if (submittedTasks != null) {
-                            submittedTasks.clear();
-                        }
+                    } else if (deferredComponents != null) {
+                        runDeferredComponents(deferredComponents, writer, context);
                     }
                 }
 
@@ -320,6 +327,25 @@ public interface MatterGenerator {
         return new MatterGenerationPlan(plans, writerChunkRadius * 2, phase);
     }
 
+    private int phasePrefetchRadius(MatterPassPlan[] passPlans, MatterGenerationPhase phase) {
+        int radius = 0;
+        for (MatterPassPlan passPlan : passPlans) {
+            if (passPlan.passChunkRadius() > radius && generatesInPhase(passPlan.pass(), phase)) {
+                radius = passPlan.passChunkRadius();
+            }
+        }
+        return radius;
+    }
+
+    private boolean generatesInPhase(MantlePass pass, MatterGenerationPhase phase) {
+        for (MantleComponent component : pass.components()) {
+            if (phase.includes(component) && shouldGenerateComponent(component)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private List<MantleComponent> enabledComponents() {
         List<MantleComponent> components = new ArrayList<>();
         for (MantlePass pass : getComponents()) {
@@ -360,6 +386,19 @@ public interface MatterGenerator {
         return true;
     }
 
+    private IrisEngine.GenerationRuntimeBinding scopedGenerationRuntime() {
+        return getEngine() instanceof IrisEngine irisEngine && irisEngine.hasGenerationRuntimeScope()
+                ? irisEngine.captureGenerationRuntimeBinding()
+                : null;
+    }
+
+    private IrisEngine.GenerationRuntimeScope openGenerationRuntime(IrisEngine.GenerationRuntimeBinding binding) {
+        if (binding == null || !(getEngine() instanceof IrisEngine irisEngine)) {
+            return null;
+        }
+        return irisEngine.openGenerationRuntimeScope(binding);
+    }
+
     private boolean shouldGenerateComponent(MantleComponent component) {
         if (!component.isEnabled()) {
             return false;
@@ -376,7 +415,8 @@ public interface MatterGenerator {
             int chunkX,
             int chunkZ,
             ChunkContext context,
-            List<MatterComponentTask> submittedTasks
+            SubmissionWindow submissions,
+            IrisEngine.GenerationRuntimeBinding generationRuntime
     ) {
         MantleFlag flag = component.getFlag();
         MatterTaskKey key = new MatterTaskKey(getMantle(), chunkX, chunkZ, flag);
@@ -386,33 +426,99 @@ public interface MatterGenerator {
             return task;
         }
 
-        MatterComponentTask existing = IN_FLIGHT_COMPONENTS.putIfAbsent(key, task);
-        if (existing != null) {
-            return existing;
-        }
-
-        try {
-            if (DISPATCHER.ownsCurrentThread()) {
+        if (submissions == null) {
+            MatterComponentTask existing = IN_FLIGHT_COMPONENTS.putIfAbsent(key, task);
+            if (existing != null) {
+                return existing;
+            }
+            try {
                 // A pool thread runs its claim inline: a task queued behind pool threads that block
                 // on unmanaged waits (structure builds, cache locks) could starve the whole pool.
                 completeComponentTask(task, chunk, component, writer, chunkX, chunkZ, context, IrisContext.get());
                 return task;
+            } catch (Throwable throwable) {
+                task.cancel(throwable);
+                throw throwable;
+            }
+        }
+
+        MatterComponentTask running = IN_FLIGHT_COMPONENTS.get(key);
+        if (running != null) {
+            return running;
+        }
+        boolean submit = submissions.reserve();
+        MatterComponentTask existing = IN_FLIGHT_COMPONENTS.putIfAbsent(key, task);
+        if (existing != null) {
+            if (submit) {
+                submissions.release();
+            }
+            return existing;
+        }
+        try {
+            if (!submit) {
+                completeComponentTask(task, chunk, component, writer, chunkX, chunkZ, context, null);
+                return task;
             }
             IrisContext callerContext = IrisContext.get();
-            task.setSubmission(DISPATCHER.submit(() -> completeComponentTask(
-                    task,
-                    chunk,
-                    component,
-                    writer,
-                    chunkX,
-                    chunkZ,
-                    context,
-                    callerContext)));
-            submittedTasks.add(task);
+            submissions.track(task);
+            Runnable work = () -> runComponentTask(
+                    task, chunk, component, writer, chunkX, chunkZ, context, callerContext, generationRuntime);
+            task.queue(work, generationRuntime);
+            task.setSubmission(DISPATCHER.submit(work));
             return task;
         } catch (Throwable throwable) {
             task.cancel(throwable);
             throw throwable;
+        }
+    }
+
+    private boolean tryRunComponentInline(
+            MantleChunk<Matter> chunk,
+            MantleComponent component,
+            MantleWriter writer,
+            int chunkX,
+            int chunkZ,
+            ChunkContext context
+    ) {
+        MantleFlag flag = component.getFlag();
+        if (!chunk.tryClaim(flag)) {
+            return chunk.isFlagged(flag);
+        }
+        boolean generated = false;
+        try {
+            writer.withComponentPriority(component.getPriority(),
+                    () -> component.generateLayer(writer, chunkX, chunkZ, context));
+            generated = true;
+        } finally {
+            if (generated) {
+                chunk.completeClaim(flag);
+            } else {
+                chunk.abandonClaim(flag);
+            }
+        }
+        return true;
+    }
+
+    private void runDeferredComponents(List<DeferredComponent> deferredComponents, MantleWriter writer,
+                                       ChunkContext context) {
+        for (DeferredComponent deferred : deferredComponents) {
+            runComponentInline(deferred.chunk(), deferred.component(), writer, deferred.chunkX(), deferred.chunkZ(),
+                    context);
+        }
+        deferredComponents.clear();
+    }
+
+    private static void runQueuedComponentTasks(List<MatterComponentTask> tasks,
+                                                IrisEngine.GenerationRuntimeBinding helperRuntime) {
+        boolean interrupted = Thread.interrupted();
+        try {
+            for (int index = tasks.size() - 1; index >= 0; index--) {
+                tasks.get(index).runIfQueued(helperRuntime);
+            }
+        } finally {
+            if (interrupted) {
+                Thread.currentThread().interrupt();
+            }
         }
     }
 
@@ -520,18 +626,41 @@ public interface MatterGenerator {
             ChunkContext context,
             IrisContext callerContext
     ) {
+        Throwable failure = runComponentTask(task, chunk, component, writer, chunkX, chunkZ, context, callerContext, null);
+        if (failure instanceof RuntimeException runtime) {
+            throw runtime;
+        }
+        if (failure instanceof Error error) {
+            throw error;
+        }
+        if (failure != null) {
+            throw new CompletionException(failure);
+        }
+    }
+
+    private Throwable runComponentTask(
+            MatterComponentTask task,
+            MantleChunk<Matter> chunk,
+            MantleComponent component,
+            MantleWriter writer,
+            int chunkX,
+            int chunkZ,
+            ChunkContext context,
+            IrisContext callerContext,
+            IrisEngine.GenerationRuntimeBinding generationRuntime
+    ) {
         if (!task.start()) {
-            return;
+            return null;
         }
         Throwable failure = null;
         try {
-            runComponentWithContext(chunk, component, writer, chunkX, chunkZ, context, callerContext);
+            runComponentWithContext(chunk, component, writer, chunkX, chunkZ, context, callerContext, generationRuntime);
         } catch (Throwable throwable) {
             failure = throwable;
-            throw throwable;
         } finally {
             task.finish(failure);
         }
+        return failure;
     }
 
     private void runComponentWithContext(
@@ -541,17 +670,19 @@ public interface MatterGenerator {
             int chunkX,
             int chunkZ,
             ChunkContext context,
-            IrisContext callerContext
+            IrisContext callerContext,
+            IrisEngine.GenerationRuntimeBinding generationRuntime
     ) {
-        if (callerContext == null) {
+        if (callerContext == null && generationRuntime == null) {
             runComponentInline(chunk, component, writer, chunkX, chunkZ, context);
             return;
         }
 
-        try (IrisContext.Scope ignored = IrisContext.open(
-                callerContext.getEngine(),
-                callerContext.getGenerationSessionId(),
-                callerContext.getChunkContext())) {
+        try (IrisEngine.GenerationRuntimeScope runtimeScope = openGenerationRuntime(generationRuntime);
+             IrisContext.Scope contextScope = callerContext == null ? null : IrisContext.open(
+                     callerContext.getEngine(),
+                     callerContext.getGenerationSessionId(),
+                     callerContext.getChunkContext())) {
             runComponentInline(chunk, component, writer, chunkX, chunkZ, context);
         }
     }
@@ -574,6 +705,8 @@ public interface MatterGenerator {
         private final MatterTaskKey key;
         private final CompletableFuture<Void> future = new CompletableFuture<>();
         private volatile Future<?> submission;
+        private volatile Runnable queuedWork;
+        private volatile IrisEngine.GenerationRuntimeBinding queuedRuntime;
         private volatile Throwable failure;
         private boolean started;
         private boolean slowWarningIssued;
@@ -592,6 +725,22 @@ public interface MatterGenerator {
             runningThread = Thread.currentThread();
             startedNanos = System.nanoTime();
             return true;
+        }
+
+        synchronized boolean isStarted() {
+            return started;
+        }
+
+        void queue(Runnable work, IrisEngine.GenerationRuntimeBinding runtime) {
+            queuedRuntime = runtime;
+            queuedWork = work;
+        }
+
+        void runIfQueued(IrisEngine.GenerationRuntimeBinding helperRuntime) {
+            Runnable work = queuedWork;
+            if (work != null && !future.isDone() && (helperRuntime == null || helperRuntime == queuedRuntime)) {
+                work.run();
+            }
         }
 
         synchronized void setSubmission(Future<?> submission) {
@@ -647,7 +796,7 @@ public interface MatterGenerator {
                             continue;
                         }
                         Future<?> submitted = submission;
-                        boolean dropped = submitted != null && submitted.isDone();
+                        boolean dropped = submitted != null && submitted.isDone() && !isStarted();
                         long waited = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
                         if (dropped) {
                             IllegalStateException dispatchFailure = new IllegalStateException(
@@ -696,6 +845,43 @@ public interface MatterGenerator {
             }
             IrisLogging.warn(diagnostic.toString());
         }
+    }
+
+    final class SubmissionWindow {
+        private final Semaphore slots = new Semaphore(COMPONENT_SUBMISSION_LIMIT);
+        private volatile Throwable failure;
+
+        boolean reserve() {
+            Throwable observed = failure;
+            if (observed != null) {
+                throw new CompletionException(observed);
+            }
+            if (!slots.tryAcquire()) {
+                return false;
+            }
+            observed = failure;
+            if (observed != null) {
+                slots.release();
+                throw new CompletionException(observed);
+            }
+            return true;
+        }
+
+        void release() {
+            slots.release();
+        }
+
+        void track(MatterComponentTask task) {
+            task.future.whenComplete((ignored, throwable) -> {
+                if (throwable != null && failure == null) {
+                    failure = throwable;
+                }
+                slots.release();
+            });
+        }
+    }
+
+    record DeferredComponent(MantleChunk<Matter> chunk, MantleComponent component, int chunkX, int chunkZ) {
     }
 
     record MatterPassPlan(MantlePass pass, int passChunkRadius, int downstreamBlockRadius) {

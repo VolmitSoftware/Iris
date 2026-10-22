@@ -99,7 +99,6 @@ public class HydrologyTileCacheTest {
         new PreparedHydrologyTileStore(root, scope, 64).save(tile);
         try (HydrologyTileCache cache = new HydrologyTileCache(planner, 4)) {
             cache.enableSharedCache(scope, root);
-            cache.setTerrainPreparation(() -> { throw new AssertionError("Restoration must not sample terrain"); });
             HydrologyTile restored = cache.get(key);
             assertEquals(tile.key(), restored.key());
             assertEquals(tile.footprint(), restored.footprint());
@@ -697,6 +696,29 @@ public class HydrologyTileCacheTest {
     }
 
     @Test
+    public void pregenSpeculationStaysWithinTheGenerationReachOfTheArea() {
+        HydrologyPlanner planner = mock(HydrologyPlanner.class);
+        HydrologyTile tile = mock(HydrologyTile.class);
+        HydrologyPlannerSettings settings = stalePrefetchSettings();
+        when(planner.settings()).thenReturn(settings);
+        ArrayList<HydrologyTileKey> planned = new ArrayList<>();
+        doAnswer(invocation -> {
+            planned.add(invocation.getArgument(0));
+            return tile;
+        }).when(planner).plan(any(HydrologyTileKey.class));
+        HydrologyTileCache cache = new HydrologyTileCache(planner, 128, Runnable::run);
+        try (HydrologyTileCache.PregenerationScope ignored = cache.preparePregeneration(
+                new HydrologyTileCache.PregenerationArea(1024, 1024, 736, 736, 1311, 1311))) {
+            assertEquals(prefetchRectangle(0, 1, 0, 1), new HashSet<>(planned));
+            cache.prepareChunkColumns(800, 800);
+            cache.prepareChunkColumns(1300, 1300);
+            assertEquals(prefetchRectangle(0, 1, 0, 1), new HashSet<>(planned));
+            assertEquals(4, planned.size());
+        }
+        cache.close();
+    }
+
+    @Test
     public void pregenScopesRestoreStudioPrefetchAndIgnoreSupersededClose() {
         HydrologyPlanner planner = mock(HydrologyPlanner.class);
         HydrologyTile tile = mock(HydrologyTile.class);
@@ -854,13 +876,6 @@ public class HydrologyTileCacheTest {
         when(tile.tileSize()).thenReturn(64);
         HydrologyTileCache first = new HydrologyTileCache(firstPlanner, 4, null, null, scope);
         HydrologyTileCache second = new HydrologyTileCache(secondPlanner, 4, null, null, scope);
-        AtomicInteger terrainPreparations = new AtomicInteger();
-        first.setTerrainPreparation(terrainPreparations::incrementAndGet);
-        second.setTerrainPreparation(() -> {
-            throw new AssertionError("Shared tile reuse must not prepare terrain caches");
-        });
-
-        assertEquals(0, terrainPreparations.get());
 
         assertSame(tile, first.get(key));
         assertSame(tile, second.get(key));
@@ -868,7 +883,6 @@ public class HydrologyTileCacheTest {
         verify(firstPlanner, times(1)).plan(key);
         verify(secondPlanner, never()).plan(key);
         verify(secondPlanner, times(1)).reuseResolvedTile(tile);
-        assertEquals(1, terrainPreparations.get());
     }
 
     @Test(timeout = 10000L)

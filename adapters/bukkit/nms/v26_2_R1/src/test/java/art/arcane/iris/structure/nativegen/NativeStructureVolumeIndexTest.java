@@ -497,7 +497,13 @@ public class NativeStructureVolumeIndexTest {
     private static Map<?, ?> cache(NativeStructureVolumeIndex index, String name) throws Exception {
         Field field = NativeStructureVolumeIndex.class.getDeclaredField(name);
         field.setAccessible(true);
-        return (Map<?, ?>) field.get(index);
+        Object value = field.get(index);
+        if (value instanceof Map<?, ?> map) {
+            return map;
+        }
+        Field entries = value.getClass().getDeclaredField("entries");
+        entries.setAccessible(true);
+        return (Map<?, ?>) entries.get(value);
     }
 
     private static StructureStart swampHut(int chunkX, int chunkZ, int x, int z) {

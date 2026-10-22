@@ -19,6 +19,7 @@
 package art.arcane.iris.generation.runtime;
 
 import art.arcane.iris.generation.subterrain.SubterrainCell;
+import art.arcane.iris.generation.subterrain.SubterrainPlanner;
 import art.arcane.iris.generation.runtime.EngineBackgroundTasks.BackgroundTaskDrain;
 import art.arcane.iris.generation.runtime.EngineRuntimeBuilder.RuntimeAssembly;
 import art.arcane.iris.pack.loading.IrisData;
@@ -177,7 +178,10 @@ public class IrisEngine implements Engine {
     volatile GenerationHistoryRuntimeRouter generationHistoryRuntimeRouter;
     @Getter(AccessLevel.NONE)
     @Setter(AccessLevel.NONE)
-    private boolean generationHistoryRoutingRequired;
+    private volatile boolean generationHistoryRoutingRequired;
+    @Getter(AccessLevel.NONE)
+    @Setter(AccessLevel.NONE)
+    private volatile SubterrainGate subterrainGate;
     @Getter(AccessLevel.NONE)
     @Setter(AccessLevel.NONE)
     volatile EngineTarget publishedTarget;
@@ -613,14 +617,64 @@ public class IrisEngine implements Engine {
     @BlockCoordinates
     @Override
     public SubterrainCell getSubterrainCell(int x, int y, int z) {
-        if (!hasGenerationRuntimeScope() && generationHistoryRuntimeRouter != null) {
-            Optional<SubterrainCell> saved = generationHistoryRuntimeRouter.biomes()
-                    .subterrainCell(x, y + getWorld().minHeight(), z);
+        EngineThreadState.Frame frame = threadState.current();
+        GenerationHistoryRuntimeRouter router = generationHistoryRuntimeRouter;
+        if ((frame == null || frame.binding == null) && router != null) {
+            Optional<SubterrainCell> saved = router.biomes()
+                    .subterrainCell(x, y + targetIn(frame).getWorld().minHeight(), z);
             if (saved.isPresent()) {
                 return saved.get();
             }
         }
-        return Engine.super.getSubterrainCell(x, y, z);
+        if (frame == null || frame.assembly == null && (frame.environment == null || frame.binding != null)) {
+            GenerationRuntime current = selectedGenerationRuntime(frame);
+            if (current == null) {
+                return SubterrainCell.OUTSIDE;
+            }
+            SubterrainPlanner planner = admittedSubterrainPlanner(current.complex(), current.dimension());
+            return planner == null ? SubterrainCell.OUTSIDE
+                    : planner.sample(x, y + current.target().getWorld().minHeight(), z);
+        }
+        SubterrainPlanner planner = subterrainPlannerIn(frame);
+        return planner == null ? SubterrainCell.OUTSIDE
+                : planner.sample(x, y + targetIn(frame).getWorld().minHeight(), z);
+    }
+
+    @ChunkCoordinates
+    public SubterrainChunkCells subterrainChunkCells(int chunkX, int chunkZ) {
+        EngineThreadState.Frame frame = threadState.current();
+        if ((frame == null || frame.binding == null) && generationHistoryRuntimeRouter != null) {
+            return SubterrainChunkCells.delegated(this);
+        }
+        SubterrainPlanner planner = subterrainPlannerIn(frame);
+        return SubterrainChunkCells.planned(this, planner, chunkX, chunkZ,
+                planner == null ? 0 : targetIn(frame).getWorld().minHeight());
+    }
+
+    private SubterrainPlanner subterrainPlannerIn(EngineThreadState.Frame frame) {
+        IrisComplex complex = complexIn(frame);
+        return complex == null ? null : admittedSubterrainPlanner(complex, dimensionIn(frame));
+    }
+
+    private SubterrainPlanner admittedSubterrainPlanner(IrisComplex complex, IrisDimension dimension) {
+        if (complex == null || dimension == null) {
+            return null;
+        }
+        SubterrainGate gate = subterrainGate;
+        if (gate == null || gate.dimension() != dimension) {
+            gate = new SubterrainGate(dimension, SubterrainChunkCells.admits(dimension));
+            subterrainGate = gate;
+        }
+        return gate.admitted() ? complex.getSubterrainPlanner() : null;
+    }
+
+    @ChunkCoordinates
+    @Override
+    public boolean subterrainAbsentInChunk(int chunkX, int chunkZ) {
+        if (!hasGenerationRuntimeScope() && generationHistoryRuntimeRouter != null) {
+            return false;
+        }
+        return Engine.super.subterrainAbsentInChunk(chunkX, chunkZ);
     }
 
     @BlockCoordinates
@@ -1011,13 +1065,7 @@ public class IrisEngine implements Engine {
     }
 
     public Optional<GenerationHistoryRuntimeRouter> getGenerationHistoryRuntimeRouter() {
-        GenerationHistoryRuntimeRouter router = generationHistoryRuntimeRouter;
-        if (router != null) {
-            return Optional.of(router);
-        }
-        synchronized (generationHistoryRuntimeRouterLock) {
-            return Optional.ofNullable(generationHistoryRuntimeRouter);
-        }
+        return Optional.ofNullable(generationHistoryRuntimeRouter);
     }
 
     public GenerationHistoryRuntimeRouter.CoordinateScope openGenerationHistoryCoordinateScope(
@@ -1028,17 +1076,22 @@ public class IrisEngine implements Engine {
         if (router != null) {
             return router.openCoordinateScope(blockX, blockZ);
         }
-        synchronized (generationHistoryRuntimeRouterLock) {
-            router = generationHistoryRuntimeRouter;
-            if (router == null && generationHistoryRoutingRequired) {
-                throw new IllegalStateException("Iris generation-history runtime router is detached.");
-            }
+        if (!generationHistoryRoutingRequired) {
+            return null;
         }
-        return router == null ? null : router.openCoordinateScope(blockX, blockZ);
+        router = generationHistoryRuntimeRouter;
+        if (router == null) {
+            throw new IllegalStateException("Iris generation-history runtime router is detached.");
+        }
+        return router.openCoordinateScope(blockX, blockZ);
     }
 
     public boolean hasGenerationRuntimeScope() {
         return threadState.binding() != null;
+    }
+
+    public boolean hasGenerationHistoryRouting() {
+        return generationHistoryRuntimeRouter != null || generationHistoryRoutingRequired;
     }
 
     private boolean usesScopedNaturalTerrain() {
@@ -1338,7 +1391,10 @@ public class IrisEngine implements Engine {
 
     @Override
     public IrisComplex getComplex() {
-        EngineThreadState.Frame frame = threadState.current();
+        return complexIn(threadState.current());
+    }
+
+    private IrisComplex complexIn(EngineThreadState.Frame frame) {
         RuntimeAssembly assembly = frame == null ? null : frame.assembly;
         if (assembly != null && assembly.complex != null) {
             return assembly.complex;
@@ -1349,7 +1405,10 @@ public class IrisEngine implements Engine {
 
     @Override
     public EngineTarget getTarget() {
-        EngineThreadState.Frame frame = threadState.current();
+        return targetIn(threadState.current());
+    }
+
+    private EngineTarget targetIn(EngineThreadState.Frame frame) {
         RuntimeAssembly assembly = frame == null ? null : frame.assembly;
         if (assembly != null) {
             return assembly.target;
@@ -1377,7 +1436,10 @@ public class IrisEngine implements Engine {
 
     @Override
     public IrisDimension getDimension() {
-        EngineThreadState.Frame frame = threadState.current();
+        return dimensionIn(threadState.current());
+    }
+
+    private IrisDimension dimensionIn(EngineThreadState.Frame frame) {
         if (frame != null) {
             BiomeEnvironmentBinding environment = frame.environment;
             if (environment != null && frame.binding == null) {
@@ -1897,4 +1959,6 @@ public class IrisEngine implements Engine {
         }
     }
 
+    private record SubterrainGate(IrisDimension dimension, boolean admitted) {
+    }
 }

@@ -19,8 +19,11 @@
 package art.arcane.iris.generation.stage;
 
 import art.arcane.iris.generation.biome.IrisBiome;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
+import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.matter.MatterCavern;
 import art.arcane.volmlib.util.math.PowerOfTwoCoordinates;
+import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -29,9 +32,12 @@ import java.util.Map;
 final class IrisCarveScratch {
     final CarveColumnMask[] columnMasks = new CarveColumnMask[256];
     final CarveColumnMask[] boundaryMasks = new CarveColumnMask[256];
+    final CarveColumnMask[] wallMasks = new CarveColumnMask[256];
     final int[] surfaceHeights = new int[256];
     final CarveWallBuffer walls = new CarveWallBuffer(512);
     final Map<String, IrisBiome> customBiomeCache = new HashMap<>();
+    final Long2ObjectOpenHashMap<IrisBiome> caveBiomeCache = new Long2ObjectOpenHashMap<>(4096);
+    final CaveLayerMemo layers = new CaveLayerMemo();
     int[] upperSurfaceHeights;
     boolean customCaveBiomePresent;
 
@@ -39,6 +45,7 @@ final class IrisCarveScratch {
         for (int index = 0; index < columnMasks.length; index++) {
             columnMasks[index] = new CarveColumnMask();
             boundaryMasks[index] = new CarveColumnMask();
+            wallMasks[index] = new CarveColumnMask();
         }
     }
 
@@ -53,10 +60,58 @@ final class IrisCarveScratch {
         for (int index = 0; index < columnMasks.length; index++) {
             columnMasks[index].clear();
             boundaryMasks[index].clear();
+            wallMasks[index].clear();
         }
         walls.clear();
         customBiomeCache.clear();
+        caveBiomeCache.clear();
         customCaveBiomePresent = false;
+    }
+}
+
+final class CaveLayerMemo {
+    private static final int SLOTS = 4;
+
+    private final Layers[] floor = new Layers[SLOTS];
+    private final Layers[] ceiling = new Layers[SLOTS];
+    private int floorCount;
+    private int ceilingCount;
+
+    void reset() {
+        floorCount = 0;
+        ceilingCount = 0;
+    }
+
+    KList<NativeBlockState> floor(IrisBiome biome) {
+        return find(floor, floorCount, biome);
+    }
+
+    KList<NativeBlockState> ceiling(IrisBiome biome) {
+        return find(ceiling, ceilingCount, biome);
+    }
+
+    void rememberFloor(IrisBiome biome, KList<NativeBlockState> blocks) {
+        if (floorCount < SLOTS) {
+            floor[floorCount++] = new Layers(biome, blocks);
+        }
+    }
+
+    void rememberCeiling(IrisBiome biome, KList<NativeBlockState> blocks) {
+        if (ceilingCount < SLOTS) {
+            ceiling[ceilingCount++] = new Layers(biome, blocks);
+        }
+    }
+
+    private static KList<NativeBlockState> find(Layers[] entries, int count, IrisBiome biome) {
+        for (int index = 0; index < count; index++) {
+            if (entries[index].biome() == biome) {
+                return entries[index].blocks();
+            }
+        }
+        return null;
+    }
+
+    private record Layers(IrisBiome biome, KList<NativeBlockState> blocks) {
     }
 }
 
@@ -105,8 +160,57 @@ final class CarveColumnMask {
         }
     }
 
+    int nextClearBit(int fromBit) {
+        int startBit = Math.max(0, fromBit);
+        int wordIndex = startBit >> 6;
+        if (wordIndex > maxWord) {
+            return startBit;
+        }
+
+        long word = ~words[wordIndex] & (-1L << (startBit & 63));
+        while (true) {
+            if (word != 0L) {
+                return (wordIndex << 6) + Long.numberOfTrailingZeros(word);
+            }
+
+            wordIndex++;
+            if (wordIndex > maxWord) {
+                return wordIndex << 6;
+            }
+            word = ~words[wordIndex];
+        }
+    }
+
     boolean isEmpty() {
         return maxWord < 0;
+    }
+
+    void collectWalls(CarveColumnMask own, CarveColumnMask first, CarveColumnMask second,
+                      CarveColumnMask third, CarveColumnMask fourth) {
+        int top = Math.max(Math.max(topWord(first), topWord(second)), Math.max(topWord(third), topWord(fourth)));
+        clear();
+        if (top < 0) {
+            return;
+        }
+        if (top >= words.length) {
+            words = Arrays.copyOf(words, top + 1);
+        }
+        for (int index = 0; index <= top; index++) {
+            long walls = (word(first, index) | word(second, index) | word(third, index) | word(fourth, index))
+                    & ~word(own, index);
+            words[index] = walls;
+            if (walls != 0L) {
+                maxWord = index;
+            }
+        }
+    }
+
+    private static int topWord(CarveColumnMask mask) {
+        return mask == null ? -1 : mask.maxWord;
+    }
+
+    private static long word(CarveColumnMask mask, int index) {
+        return mask == null || index > mask.maxWord ? 0L : mask.words[index];
     }
 
     boolean contains(int y) {

@@ -120,7 +120,7 @@ public final class IrisDimensionCarvingResolver {
         }
 
         int remainingDepth = clampDepth(rootEntry.getChildRecursionDepth());
-        if (remainingDepth <= 0) {
+        if (remainingDepth <= 0 || terminal(engine, data, rootEntry, rootBiome, resolvedState)) {
             return rootEntry;
         }
 
@@ -131,13 +131,12 @@ public final class IrisDimensionCarvingResolver {
             return columns.entries[slot];
         }
 
-        Map<String, IrisDimensionCarvingEntry> entryIndex = resolveEntryIndex(engine, resolvedState);
         IrisDimensionCarvingEntry current = rootEntry;
         int depth = remainingDepth;
         boolean cacheable = true;
         while (depth > 0) {
             cacheable &= fixedChildStyle(current);
-            IrisDimensionCarvingEntry selected = selectChild(engine, data, current, worldX, worldZ, entryIndex, resolvedState);
+            IrisDimensionCarvingEntry selected = selectChild(engine, data, current, worldX, worldZ, resolvedState);
             if (selected == null || selected == current || selected.getWorldYRange() != null
                     && !selected.getWorldYRange().contains(worldY)) {
                 break;
@@ -162,6 +161,24 @@ public final class IrisDimensionCarvingResolver {
             columns.roots[slot] = rootEntry;
         }
         return current;
+    }
+
+    private static boolean terminal(Engine engine, IrisData data, IrisDimensionCarvingEntry entry, IrisBiome biome, State state) {
+        KList<String> children = entry.getChildren();
+        if (children == null || children.isEmpty()) {
+            return true;
+        }
+        return selectionPlan(engine, data, entry, biome, state).size() <= 1L;
+    }
+
+    private static IrisRaritySelection<CarvingChoice> selectionPlan(Engine engine, IrisData data, IrisDimensionCarvingEntry parent,
+                                                                    IrisBiome parentBiome, State state) {
+        IrisRaritySelection<CarvingChoice> selectionPlan = state.selectionPlans.get(parent);
+        if (selectionPlan == null) {
+            selectionPlan = buildSelectionPlan(data, parent, parentBiome, resolveEntryIndex(engine, state), state);
+            state.selectionPlans.put(parent, selectionPlan);
+        }
+        return selectionPlan;
     }
 
     private static boolean fixedChildStyle(IrisDimensionCarvingEntry entry) {
@@ -202,7 +219,6 @@ public final class IrisDimensionCarvingResolver {
             IrisDimensionCarvingEntry parent,
             int worldX,
             int worldZ,
-            Map<String, IrisDimensionCarvingEntry> entryIndex,
             State state
     ) {
         KList<String> children = parent.getChildren();
@@ -215,12 +231,7 @@ public final class IrisDimensionCarvingResolver {
             return parent;
         }
 
-        IrisRaritySelection<CarvingChoice> selectionPlan = state.selectionPlans.get(parent);
-        if (selectionPlan == null) {
-            selectionPlan = buildSelectionPlan(data, parent, parentBiome, entryIndex, state);
-            state.selectionPlans.put(parent, selectionPlan);
-        }
-
+        IrisRaritySelection<CarvingChoice> selectionPlan = selectionPlan(engine, data, parent, parentBiome, state);
         if (selectionPlan.size() <= 1L) {
             return parent;
         }

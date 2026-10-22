@@ -9,6 +9,7 @@ import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.EnginePlatformHooks;
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.runtime.IrisEngine;
+import art.arcane.iris.generation.runtime.SubterrainChunkCells;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.generation.terrain.IrisDimensionCarvingEntry;
 import art.arcane.iris.generation.terrain.IrisDimensionCarvingResolver;
@@ -145,6 +146,41 @@ public class IrisCarveModifierCaveInputsTest {
             assertSame(historical, inputs.resolve(-17, 20, 15));
             assertSame(historical, inputs.resolve(-17, 20, 32));
             assertEquals(captured, fixture.samples.get());
+        }
+    }
+
+    @Test
+    public void unroutedWorkerCapturesColumnsLikeTheEngineIncludingSubterrainBiomes() {
+        try (Fixture fixture = new Fixture()) {
+            when(fixture.engine.hasGenerationRuntimeScope()).thenReturn(false);
+            when(fixture.engine.hasGenerationHistoryRouting()).thenReturn(false);
+            doReturn(SubterrainChunkCells.delegated(fixture.engine)).when(fixture.engine).subterrainChunkCells(anyInt(), anyInt());
+            IrisBiome feature = biome("feature", 0);
+            doReturn(feature).when(fixture.engine).getSubterrainBiome(-20, 33, 18);
+            doReturn(feature).when(fixture.scalar).getSubterrainBiome(-20, 33, 18);
+            IrisCarveModifier.CaveInputs inputs = IrisCarveModifier.CaveInputs.forContentChunk(fixture.engine, -2, 1);
+            IrisDimensionCarvingResolver.State state = new IrisDimensionCarvingResolver.State();
+            for (int x = -35; x <= -13; x++) {
+                for (int z = 13; z <= 35; z += 2) {
+                    for (int y : new int[]{0, 30, 33, 34, 39, 40}) {
+                        assertSame(x + "," + y + "," + z, fixture.scalar.getCaveBiome(x, y, z, state), inputs.resolve(x, y, z));
+                    }
+                }
+            }
+            assertSame(feature, inputs.resolve(-20, 33, 18));
+            assertTrue(fixture.samples.get() > 0);
+        }
+    }
+
+    @Test
+    public void routedOrBoundUnscopedEnginesKeepCoordinateDispatch() {
+        try (Fixture fixture = new Fixture()) {
+            when(fixture.engine.hasGenerationRuntimeScope()).thenReturn(false);
+            when(fixture.engine.hasGenerationHistoryRouting()).thenReturn(true);
+            IrisBiome historical = biome("historical", 0);
+            when(fixture.engine.getCaveBiome(anyInt(), anyInt(), anyInt(), any(IrisDimensionCarvingResolver.State.class))).thenReturn(historical);
+            assertSame(historical, IrisCarveModifier.CaveInputs.forTerrainChunk(fixture.engine, -2, 1).resolve(-20, 20, 18));
+            assertEquals(0, fixture.samples.get());
         }
     }
 

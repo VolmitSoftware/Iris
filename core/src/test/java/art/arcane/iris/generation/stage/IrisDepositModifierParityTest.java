@@ -8,6 +8,7 @@ import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.decoration.IrisDepositBiomeScope;
 import art.arcane.iris.generation.decoration.IrisDepositGenerator;
 import art.arcane.iris.generation.decoration.IrisDepositHeightDistribution;
+import art.arcane.iris.generation.decoration.IrisDepositPlacementScope;
 import art.arcane.iris.generation.decoration.IrisDepositShape;
 import art.arcane.iris.generation.decoration.IrisDepositVariant;
 import art.arcane.iris.generation.terrain.IrisDimension;
@@ -108,6 +109,18 @@ public class IrisDepositModifierParityTest {
     }
 
     @Test
+    public void unscaledPacksSkipOreCaveBiomeLookupsWithIdenticalOutput() {
+        for (long seed : new long[]{101L, -73L, 90181L}) {
+            AtomicInteger scannedLookups = new AtomicInteger();
+            AtomicInteger unscannedLookups = new AtomicInteger();
+            long[] scanned = generateConfigured(seed, false, true, true, scannedLookups, null, false);
+            long[] unscanned = generateConfigured(seed, false, true, false, unscannedLookups, null, false);
+            assertArrayEquals("seed=" + seed, unscanned, scanned);
+            assertTrue(scannedLookups.get() < unscannedLookups.get());
+        }
+    }
+
+    @Test
     public void unmatchableSurfaceBiomeFiltersSkipClumpsWithoutChangingOutput() {
         long[] expected = {-681153659952315909L, 784L, 2118L, 53L, 67L, 10L};
         AtomicInteger clumps = new AtomicInteger();
@@ -115,6 +128,56 @@ public class IrisDepositModifierParityTest {
         assertArrayEquals(generateConfigured(101L, false), filtered);
         assertEquals(Arrays.toString(expected), Arrays.toString(filtered));
         assertEquals(0, clumps.get());
+    }
+
+    @Test
+    public void terrainFootprintsAboveTheHighestSurfaceAreSkippedWithoutChangingOutput() {
+        long[] expected = {-681153659952315909L, 784L, 2118L, 53L, 67L, 10L};
+        for (boolean multicore : new boolean[]{false, true}) {
+            AtomicInteger skipped = new AtomicInteger();
+            long[] withSkipped = generateConfigured(101L, multicore, true, false, new AtomicInteger(), null, true,
+                    skyDeposit(47, skipped));
+            assertEquals(Arrays.toString(expected), Arrays.toString(withSkipped));
+            assertEquals(0, skipped.get());
+            AtomicInteger sampled = new AtomicInteger();
+            long[] withSampled = generateConfigured(101L, multicore, true, false, new AtomicInteger(), null, true,
+                    skyDeposit(46, sampled));
+            assertEquals(Arrays.toString(expected), Arrays.toString(withSampled));
+            assertTrue(sampled.get() > 0);
+        }
+    }
+
+    @Test
+    public void aboveTerrainDepositsWithoutHostsAreSkippedWithoutChangingOutput() {
+        long[] expected = {-681153659952315909L, 784L, 2118L, 53L, 67L, 10L};
+        for (boolean multicore : new boolean[]{false, true}) {
+            AtomicInteger vacant = new AtomicInteger();
+            long[] withoutHosts = generateConfigured(101L, multicore, true, false, new AtomicInteger(), null, true,
+                    floatingDeposit(vacant), false);
+            assertEquals(Arrays.toString(expected), Arrays.toString(withoutHosts));
+            assertEquals(0, vacant.get());
+            AtomicInteger hosted = new AtomicInteger();
+            generateConfigured(101L, multicore, true, false, new AtomicInteger(), null, true,
+                    floatingDeposit(hosted), true);
+            assertTrue(hosted.get() > 0);
+        }
+    }
+
+    private IrisDepositGenerator floatingDeposit(AtomicInteger clumps) {
+        return new CountingPaletteGenerator(state("andesite"), clumps)
+                .setShape(IrisDepositShape.VANILLA_ELLIPSOID).setMinSize(9).setMaxSize(9)
+                .setMinPerChunk(40).setMaxPerChunk(40).setMinHeight(0).setMaxHeight(47)
+                .setHeightDistribution(IrisDepositHeightDistribution.UNIFORM).setSurfaceClearance(0)
+                .setPlacementScope(IrisDepositPlacementScope.ABOVE_TERRAIN)
+                .setPerClumpSpawnChance(1D).setReplaceableBlocks(new KList<>("stone"));
+    }
+
+    private IrisDepositGenerator skyDeposit(int minimumHeight, AtomicInteger clumps) {
+        return new CountingPaletteGenerator(state("andesite"), clumps)
+                .setShape(IrisDepositShape.VANILLA_ELLIPSOID).setMinSize(17).setMaxSize(17)
+                .setMinPerChunk(60).setMaxPerChunk(60).setMinHeight(minimumHeight).setMaxHeight(400)
+                .setHeightDistribution(IrisDepositHeightDistribution.UNIFORM).setSurfaceClearance(0)
+                .setPerClumpSpawnChance(1D).setReplaceableBlocks(new KList<>("stone"));
     }
 
     private long[] generateConfigured(long seed, boolean multicore) {
@@ -126,9 +189,30 @@ public class IrisDepositModifierParityTest {
         return generateConfigured(seed, multicore, caveVariant, enumerablePack, caveBiomeLookups, null);
     }
 
-    @SuppressWarnings("unchecked")
     private long[] generateConfigured(long seed, boolean multicore, boolean caveVariant, boolean enumerablePack,
                                       AtomicInteger caveBiomeLookups, AtomicInteger unmatchableClumps) {
+        return generateConfigured(seed, multicore, caveVariant, enumerablePack, caveBiomeLookups, unmatchableClumps, true);
+    }
+
+    private long[] generateConfigured(long seed, boolean multicore, boolean caveVariant, boolean enumerablePack,
+                                      AtomicInteger caveBiomeLookups, AtomicInteger unmatchableClumps,
+                                      boolean oreScaling) {
+        return generateConfigured(seed, multicore, caveVariant, enumerablePack, caveBiomeLookups, unmatchableClumps,
+                oreScaling, null, false);
+    }
+
+    private long[] generateConfigured(long seed, boolean multicore, boolean caveVariant, boolean enumerablePack,
+                                      AtomicInteger caveBiomeLookups, AtomicInteger unmatchableClumps,
+                                      boolean oreScaling, IrisDepositGenerator extraSurfaceDeposit) {
+        return generateConfigured(seed, multicore, caveVariant, enumerablePack, caveBiomeLookups, unmatchableClumps,
+                oreScaling, extraSurfaceDeposit, false);
+    }
+
+    @SuppressWarnings("unchecked")
+    private long[] generateConfigured(long seed, boolean multicore, boolean caveVariant, boolean enumerablePack,
+                                      AtomicInteger caveBiomeLookups, AtomicInteger unmatchableClumps,
+                                      boolean oreScaling, IrisDepositGenerator extraSurfaceDeposit,
+                                      boolean floatingHost) {
         Engine engine = mock(Engine.class, withSettings().stubOnly().defaultAnswer(RETURNS_DEEP_STUBS));
         ChunkContext context = mock(ChunkContext.class, withSettings().stubOnly().defaultAnswer(RETURNS_DEEP_STUBS));
         IrisDimension dimension = new IrisDimension();
@@ -136,8 +220,10 @@ public class IrisDepositModifierParityTest {
         IrisBiome surface = new IrisBiome();
         IrisBiome cave = new IrisBiome();
         cave.setLoadKey("allowed");
-        cave.setOreDepositFrequencyMultiplier(0.65D);
-        cave.setOreDepositSizeMultiplier(1.5D);
+        if (oreScaling) {
+            cave.setOreDepositFrequencyMultiplier(0.65D);
+            cave.setOreDepositSizeMultiplier(1.5D);
+        }
         IrisBiome denied = new IrisBiome();
         denied.setLoadKey("denied");
         IrisDepositVariant variant = new IrisDepositVariant().setMinHeight(-64).setMaxHeight(64);
@@ -168,6 +254,9 @@ public class IrisDepositModifierParityTest {
                     .setBiomeScope(IrisDepositBiomeScope.SURFACE)
                     .setIncludedBiomes(new KList<>("elsewhere"));
             surface.getDeposits().add(unmatchable);
+        }
+        if (extraSurfaceDeposit != null) {
+            surface.getDeposits().add(extraSurfaceDeposit);
         }
         when(engine.getHeight()).thenReturn(48);
         when(engine.getMinHeight()).thenReturn(-64);
@@ -220,6 +309,9 @@ public class IrisDepositModifierParityTest {
                             : y < 12 ? "deepslate" : "stone"));
                 }
             }
+        }
+        if (floatingHost) {
+            terrain.set(8, 44, 8, state("stone"));
         }
         MultiBurst burst = new MultiBurst("Deposit parity", () -> 4);
         when(engine.burst()).thenReturn(burst);

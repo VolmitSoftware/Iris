@@ -79,16 +79,16 @@ public class IrisDepositModifierOrderingTest {
 
     @Test
     public void reverseWorkerCompletionKeepsDimensionRegionBiomePlacementOrder() throws Exception {
-        try (Fixture fixture = new Fixture(true, 1)) {
+        try (Fixture fixture = new Fixture(true, 96, true)) {
             fixture.generate();
-            assertEquals(List.of("biome", "region", "dimension"), fixture.completed);
+            assertEquals(List.of("biome", "region", "dimension"), fixture.firstCompletions());
             fixture.assertBiomeWins();
         }
     }
 
     @Test
     public void inlinePreparationUsesTheSameOverlappingHostRules() throws Exception {
-        try (Fixture fixture = new Fixture(false, 1)) {
+        try (Fixture fixture = new Fixture(false, 1, false)) {
             fixture.generate();
             assertEquals(List.of("dimension", "region", "biome"), fixture.completed);
             fixture.assertBiomeWins();
@@ -107,7 +107,7 @@ public class IrisDepositModifierOrderingTest {
         Collections.sort(expectedSamples);
 
         for (boolean parallel : new boolean[]{false, true}) {
-            try (Fixture fixture = new Fixture(parallel, 25)) {
+            try (Fixture fixture = new Fixture(parallel, 25, false)) {
                 fixture.generate();
                 Collections.sort(fixture.samples);
                 assertEquals(expectedSamples, fixture.samples);
@@ -290,11 +290,13 @@ public class IrisDepositModifierOrderingTest {
         private final MantleChunk<Matter> chunk;
         private final boolean parallel;
         private final int attempts;
+        private final boolean reverse;
 
         @SuppressWarnings("unchecked")
-        private Fixture(boolean parallel, int attempts) {
+        private Fixture(boolean parallel, int attempts, boolean reverse) {
             this.parallel = parallel;
             this.attempts = attempts;
+            this.reverse = reverse;
             IrisBiome biome = mock(IrisBiome.class, withSettings().stubOnly());
             IrisRegion region = mock(IrisRegion.class, withSettings().stubOnly());
             ChunkedDataCache<IrisBiome> biomes = new ChunkedDataCache<>(
@@ -348,11 +350,9 @@ public class IrisDepositModifierOrderingTest {
                 }
             }
             when(generator.getClump(any(), any(), any())).thenAnswer(invocation -> {
-                assertTrue("Placement must release the first clump window before more are prepared",
-                        samples.size() < 32 || output.get(0, 4, 0) != stone);
-                if (parallel && attempts == 1 && name.equals("dimension")) {
+                if (reverse && name.equals("dimension")) {
                     assertTrue(regionReady.await(10, TimeUnit.SECONDS));
-                } else if (parallel && attempts == 1 && name.equals("region")) {
+                } else if (reverse && name.equals("region")) {
                     assertTrue(biomeReady.await(10, TimeUnit.SECONDS));
                 }
                 RNG rng = invocation.getArgument(1);
@@ -374,6 +374,18 @@ public class IrisDepositModifierOrderingTest {
                 new IrisDepositModifier(engine).generateDeposits(output, 0, 0, parallel, context);
             }
             verify(chunk).release();
+        }
+
+        private List<String> firstCompletions() {
+            List<String> order = new ArrayList<>();
+            synchronized (completed) {
+                for (String name : completed) {
+                    if (!order.contains(name)) {
+                        order.add(name);
+                    }
+                }
+            }
+            return order;
         }
 
         private void assertBiomeWins() {

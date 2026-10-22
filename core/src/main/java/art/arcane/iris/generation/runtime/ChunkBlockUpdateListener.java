@@ -50,4 +50,18 @@ final class ChunkBlockUpdateListener implements ColumnExtentListeningHunk.Listen
         }
         quiet = state;
     }
+
+    @Override
+    public void onRun(int x, int z, int yFromInclusive, int yToInclusive, NativeBlockState state) {
+        if (state == null || state == quiet) {
+            return;
+        }
+        if (B.isUpdatable(state) || state.isCustom()) {
+            for (int y = yToInclusive; y >= yFromInclusive; y--) {
+                updater.catchBlockUpdates(originX + x, y, originZ + z, state);
+            }
+            return;
+        }
+        quiet = state;
+    }
 }

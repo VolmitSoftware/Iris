@@ -175,7 +175,6 @@ public class IrisTerrainNormalActuatorColumnParityTest {
             when(complex.terrainColumn(eq(X), eq(Z), hydrology == null ? isNull() : any(HydrologyColumnSample.class)))
                     .thenReturn(terrainColumn);
             when(complex.naturalTerrainColumn(X, Z)).thenReturn(terrainColumn);
-            when(complex.resolveSurfaceFluid(anyDouble(), anyDouble())).thenReturn(fluid);
             when(context.getRoundedHeight(0, 0)).thenReturn(he);
             when(context.getBiome()).thenReturn(new ChunkedDataCache<>(
                     ProceduralStream.of((x, z) -> biome, Interpolated.of(value -> 0D, value -> biome)), X, Z, false));
@@ -183,6 +182,8 @@ public class IrisTerrainNormalActuatorColumnParityTest {
                     ProceduralStream.of((x, z) -> region, Interpolated.of(value -> 0D, value -> region)), X, Z, false));
             when(context.getRock()).thenReturn(new ChunkedDataCache<>(
                     ProceduralStream.of((x, z) -> rock, Interpolated.of(value -> 0D, value -> rock)), X, Z, false));
+            when(context.getFluid()).thenReturn(new ChunkedDataCache<>(
+                    ProceduralStream.of((x, z) -> fluid, Interpolated.of(value -> 0D, value -> fluid)), X, Z, false));
             when(biome.generateLayers(eq(dimension), anyDouble(), anyDouble(), any(RNG.class),
                     anyInt(), anyInt(), eq(data), eq(complex))).thenAnswer(invocation -> layers("layer", layerCount));
             when(biome.generateSeaLayers(anyDouble(), anyDouble(), any(RNG.class), anyInt(), eq(data)))

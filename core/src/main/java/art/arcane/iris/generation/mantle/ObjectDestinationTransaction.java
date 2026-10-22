@@ -8,7 +8,6 @@ import art.arcane.iris.generation.decoration.tree.TreeBlockMaterial;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveCell;
 import art.arcane.iris.generation.subterrain.SubterrainRasterizer;
 import art.arcane.iris.generation.block.TileData;
-import art.arcane.iris.structure.object.IObjectPlacer;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.math.BlockPosition;
 import art.arcane.iris.generation.block.B;
@@ -18,10 +17,11 @@ import org.jetbrains.annotations.Nullable;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
+import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -32,7 +32,7 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
     private final int destinationChunkX;
     private final int destinationChunkZ;
     private final int worldHeight;
-    private final List<Mutation> mutations;
+    private final MutationLog log = new MutationLog();
     private final List<PlacementRange> placements = new ArrayList<>();
     private final Long2ObjectOpenHashMap<Int2ObjectOpenHashMap<OverlayCell>> overlay;
     private BlockPosition canopyPosition;
@@ -40,13 +40,17 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
     private int hydrologyGateChunkX;
     private int hydrologyGateChunkZ;
     private boolean hydrologyGateOpen;
+    private boolean subterrainKnown;
+    private int subterrainX;
+    private int subterrainY;
+    private int subterrainZ;
+    private boolean subterrainProtects;
 
     ObjectDestinationTransaction(MantleWriter writer, int destinationChunkX, int destinationChunkZ) {
         this.writer = writer;
         this.destinationChunkX = destinationChunkX;
         this.destinationChunkZ = destinationChunkZ;
         this.worldHeight = writer.getMantle().getWorldHeight();
-        this.mutations = new ArrayList<>();
         this.overlay = new Long2ObjectOpenHashMap<>();
     }
 
@@ -55,11 +59,11 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
     }
 
     int mutationCheckpoint() {
-        return mutations.size();
+        return log.size();
     }
 
     ObjectSourcePlan sourcePlanSince(int checkpoint) {
-        if (checkpoint < 0 || checkpoint > mutations.size()) {
+        if (checkpoint < 0 || checkpoint > log.size()) {
             throw new IllegalArgumentException("Mutation checkpoint is outside the transaction");
         }
         ArrayList<PlacementRange> accepted = new ArrayList<>();
@@ -68,65 +72,91 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
                 accepted.add(new PlacementRange(placement.start() - checkpoint, placement.end() - checkpoint));
             }
         }
-        return new ObjectSourcePlan(mutations.subList(checkpoint, mutations.size()), accepted);
+        return new ObjectSourcePlan(log, checkpoint, accepted);
     }
 
     @Override
     public int beginObjectPlacement() {
-        return mutations.size();
+        return log.size();
     }
 
     @Override
     public void endObjectPlacement(int checkpoint) {
-        if (checkpoint >= 0 && checkpoint < mutations.size()) {
-            placements.add(new PlacementRange(checkpoint, mutations.size()));
+        if (checkpoint >= 0 && checkpoint < log.size()) {
+            placements.add(new PlacementRange(checkpoint, log.size()));
         }
     }
 
     void apply(ObjectSourcePlan plan) {
+        int slot = plan.destinationSlot(destinationChunkX, destinationChunkZ);
+        if (slot < 0) {
+            return;
+        }
+        int baseX = destinationChunkX << 4;
+        int baseZ = destinationChunkZ << 4;
         boolean skipCanopy = false;
-        for (Mutation mutation : plan.mutationsFor(destinationChunkX, destinationChunkZ)) {
-            if (mutation.key().type() == NativeBlockState.class) {
-                NativeBlockState existing = mutation.canopy() ? get(mutation.key().x(), mutation.key().y(), mutation.key().z()) : null;
+        int end = plan.slotEnd(slot);
+        for (int index = plan.slotStart(slot); index < end; index++) {
+            int cell = plan.cellAt(index);
+            int x = baseX | ObjectSourcePlan.cellX(cell);
+            int y = ObjectSourcePlan.cellY(cell);
+            int z = baseZ | ObjectSourcePlan.cellZ(cell);
+            Object value = plan.valueAt(index);
+            boolean custom = ObjectSourcePlan.isCustom(cell);
+            boolean canopy = ObjectSourcePlan.isCanopy(cell);
+            if (custom || value instanceof NativeBlockState) {
+                NativeBlockState existing = canopy ? get(x, y, z) : null;
                 skipCanopy = existing != null && existing.isSolid();
             }
-            if (mutation.canopy() && skipCanopy) {
+            if (canopy && skipCanopy) {
                 continue;
             }
-            switch (mutation) {
-                case SetMutation set -> setData(set.key().x(), set.key().y(), set.key().z(), set.value(), set);
-                case CustomBlockMutation custom -> set(custom.key().x(), custom.key().y(), custom.key().z(), custom.state(), custom);
+            if (custom) {
+                set(x, y, z, (NativeBlockState) value, true, canopy);
+            } else {
+                setData(x, y, z, value, true, canopy);
             }
         }
     }
 
     private void commitFenced() {
-        LinkedHashMap<DataKey, Object> originals = new LinkedHashMap<>();
+        CommitJournal journal = new CommitJournal();
         try {
-            for (Mutation mutation : mutations) {
-                if (!isDestination(mutation.x(), mutation.z())) {
+            for (int position = 0; position < log.size(); position++) {
+                int x = log.x(position);
+                int z = log.z(position);
+                if (!isDestination(x, z)) {
                     continue;
                 }
-                captureOriginal(originals, mutation.key());
-                if (mutation.key().type() == NativeBlockState.class) {
-                    TileWrapper tile = writer.getDataIfPresent(
-                            mutation.key().x(), mutation.key().y(), mutation.key().z(), TileWrapper.class);
-                    if (tile != null) {
-                        originals.putIfAbsent(new DataKey(
-                                mutation.key().x(), mutation.key().y(), mutation.key().z(), TileWrapper.class), tile);
+                int y = log.y(position);
+                Object value = log.value(position);
+                boolean custom = log.custom(position);
+                Class<?> type = log.type(position);
+                if (!journal.captured(x, y, z, type)) {
+                    journal.capture(x, y, z, type, publishedOrCleared(x, y, z, type));
+                }
+                if (type == NativeBlockState.class) {
+                    if (!journal.captured(x, y, z, TileWrapper.class)) {
+                        TileWrapper tile = writer.getDataIfPresent(x, y, z, TileWrapper.class);
+                        if (tile != null) {
+                            journal.capture(x, y, z, TileWrapper.class, tile);
+                        }
                     }
-                    Identifier identifier = writer.getDataIfPresent(
-                            mutation.key().x(), mutation.key().y(), mutation.key().z(), Identifier.class);
-                    if (identifier != null || mutation instanceof CustomBlockMutation) {
-                        originals.putIfAbsent(new DataKey(
-                                mutation.key().x(), mutation.key().y(), mutation.key().z(), Identifier.class),
-                                identifier == null ? CLEARED : identifier);
+                    if (!journal.captured(x, y, z, Identifier.class)) {
+                        Identifier identifier = writer.getDataIfPresent(x, y, z, Identifier.class);
+                        if (identifier != null || custom) {
+                            journal.capture(x, y, z, Identifier.class, identifier == null ? CLEARED : identifier);
+                        }
                     }
                 }
-                mutation.apply(writer);
+                if (custom) {
+                    writer.set(x, y, z, (NativeBlockState) value);
+                } else {
+                    writer.setData(x, y, z, value);
+                }
             }
         } catch (Throwable failure) {
-            rollback(originals, failure);
+            journal.rollback(failure);
             if (failure instanceof RuntimeException runtimeException) {
                 throw runtimeException;
             }
@@ -149,10 +179,10 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
 
     @Override
     public void set(int x, int y, int z, NativeBlockState state) {
-        set(x, y, z, state, null);
+        set(x, y, z, state, false, false);
     }
 
-    private void set(int x, int y, int z, NativeBlockState state, CustomBlockMutation replayed) {
+    private void set(int x, int y, int z, NativeBlockState state, boolean replayed, boolean replayedCanopy) {
         if (state == null) {
             return;
         }
@@ -167,8 +197,7 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
             cell.block = baseState;
             cell.tile = CLEARED;
             cell.identifier = identifier;
-            mutations.add(replayed != null
-                    ? replayed : new CustomBlockMutation(new DataKey(x, y, z, NativeBlockState.class), state, isCanopy(x, y, z)));
+            log.add(x, y, z, state, true, replayed ? replayedCanopy : isCanopy(x, y, z));
             return;
         }
         setData(x, y, z, state);
@@ -262,10 +291,10 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
 
     @Override
     public <T> void setData(int x, int y, int z, T data) {
-        setData(x, y, z, data, null);
+        setData(x, y, z, data, false, false);
     }
 
-    private void setData(int x, int y, int z, Object data, SetMutation replayed) {
+    private void setData(int x, int y, int z, Object data, boolean replayed, boolean replayedCanopy) {
         if (data == null || y < 0 || y >= worldHeight
                 || protectsSubterrain(x, y, z)) {
             return;
@@ -285,8 +314,7 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
         } else {
             cell.put(type, data);
         }
-        mutations.add(replayed != null
-                ? replayed : new SetMutation(new DataKey(x, y, z, type), data, isCanopy(x, y, z)));
+        log.add(x, y, z, data, false, replayed ? replayedCanopy : isCanopy(x, y, z));
     }
 
     @Override
@@ -368,18 +396,6 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
         return value == null ? CLEARED : value;
     }
 
-    private void captureOriginal(LinkedHashMap<DataKey, Object> originals, DataKey key) {
-        originals.computeIfAbsent(
-                key,
-                candidate -> publishedOrCleared(
-                        candidate.x(),
-                        candidate.y(),
-                        candidate.z(),
-                        candidate.type()
-                )
-        );
-    }
-
     private boolean isDestination(int x, int z) {
         return (x >> 4) == destinationChunkX && (z >> 4) == destinationChunkZ;
     }
@@ -396,8 +412,17 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
     }
 
     private boolean protectsSubterrain(int x, int y, int z) {
+        if (subterrainKnown && x == subterrainX && y == subterrainY && z == subterrainZ) {
+            return subterrainProtects;
+        }
         Engine engine = getEngine();
-        return engine != null && SubterrainRasterizer.protectsPlacement(engine.getSubterrainCell(x, y, z));
+        boolean protects = engine != null && SubterrainRasterizer.protectsPlacement(engine.getSubterrainCell(x, y, z));
+        subterrainX = x;
+        subterrainY = y;
+        subterrainZ = z;
+        subterrainProtects = protects;
+        subterrainKnown = true;
+        return protects;
     }
 
     private boolean hasProtectedHydrology(int x, int y, int z) {
@@ -419,20 +444,42 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
         return hydrologyGateOpen;
     }
 
-    private void rollback(LinkedHashMap<DataKey, Object> originals, Throwable failure) {
-        ArrayList<Map.Entry<DataKey, Object>> entries = new ArrayList<>(originals.entrySet());
-        for (int index = entries.size() - 1; index >= 0; index--) {
-            Map.Entry<DataKey, Object> entry = entries.get(index);
-            DataKey key = entry.getKey();
-            try {
-                writer.restoreData(key.x(), key.y(), key.z(), key.type(),
-                        entry.getValue() == CLEARED ? null : entry.getValue());
-            } catch (Throwable rollbackFailure) {
-                if (rollbackFailure != failure) {
-                    failure.addSuppressed(rollbackFailure);
+    private final class CommitJournal {
+        private final Reference2IntOpenHashMap<Class<?>> typeIds = new Reference2IntOpenHashMap<>();
+        private final LongOpenHashSet keys = new LongOpenHashSet();
+        private final ArrayList<Original> originals = new ArrayList<>();
+
+        private long key(int x, int y, int z, Class<?> type) {
+            int typeId = typeIds.computeIfAbsent(type, (Class<?> ignored) -> typeIds.size());
+            return ((long) typeId << 32) | ((long) y << 8) | ((long) (z & 15) << 4) | (x & 15);
+        }
+
+        private boolean captured(int x, int y, int z, Class<?> type) {
+            return keys.contains(key(x, y, z, type));
+        }
+
+        private void capture(int x, int y, int z, Class<?> type, Object value) {
+            if (keys.add(key(x, y, z, type))) {
+                originals.add(new Original(x, y, z, type, value));
+            }
+        }
+
+        private void rollback(Throwable failure) {
+            for (int index = originals.size() - 1; index >= 0; index--) {
+                Original original = originals.get(index);
+                try {
+                    writer.restoreData(original.x(), original.y(), original.z(), original.type(),
+                            original.value() == CLEARED ? null : original.value());
+                } catch (Throwable rollbackFailure) {
+                    if (rollbackFailure != failure) {
+                        failure.addSuppressed(rollbackFailure);
+                    }
                 }
             }
         }
+    }
+
+    private record Original(int x, int y, int z, Class<?> type, Object value) {
     }
 
     private static final class OverlayCell {
@@ -506,8 +553,6 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
         DataKey key();
 
         boolean canopy();
-
-        void apply(IObjectPlacer placer);
     }
 
     record SetMutation(DataKey key, Object value, boolean canopy) implements Mutation {
@@ -520,11 +565,6 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
         public int z() {
             return key.z();
         }
-
-        @Override
-        public void apply(IObjectPlacer placer) {
-            placer.setData(key.x(), key.y(), key.z(), value);
-        }
     }
 
     record CustomBlockMutation(DataKey key, NativeBlockState state, boolean canopy) implements Mutation {
@@ -536,11 +576,6 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
         @Override
         public int z() {
             return key.z();
-        }
-
-        @Override
-        public void apply(IObjectPlacer placer) {
-            placer.set(key.x(), key.y(), key.z(), state);
         }
     }
 }

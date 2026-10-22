@@ -18,6 +18,7 @@ import it.unimi.dsi.fastutil.longs.LongIterator;
 import it.unimi.dsi.fastutil.longs.LongArrayFIFOQueue;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 
+import java.util.Arrays;
 import java.util.Objects;
 
 public final class ErosionFieldCompiler {
@@ -159,44 +160,7 @@ public final class ErosionFieldCompiler {
         IntArrayList stations = geometry.stations;
         DoubleArrayList distance = geometry.distance;
         if (!geometry.prepared) {
-            for (int station = 0; station < count; station++) {
-                int radius = prepared.radii()[station];
-                int stationX = centerline.x()[station];
-                int stationZ = centerline.z()[station];
-                if (samplingBounds != null && !samplingBounds.intersects(stationX, stationZ, radius)) {
-                    continue;
-                }
-                int minimumZ = samplingBounds == null ? -radius : Math.max(-radius, samplingBounds.minimumZ() - stationZ);
-                int maximumZ = samplingBounds == null ? radius : Math.min(radius, samplingBounds.maximumZ() - stationZ);
-                int minimumX = samplingBounds == null ? -radius : Math.max(-radius, samplingBounds.minimumX() - stationX);
-                int maximumX = samplingBounds == null ? radius : Math.min(radius, samplingBounds.maximumX() - stationX);
-                for (int deltaZ = minimumZ; deltaZ <= maximumZ; deltaZ++) {
-                    for (int deltaX = minimumX; deltaX <= maximumX; deltaX++) {
-                        int cellX = stationX + deltaX;
-                        int cellZ = stationZ + deltaZ;
-                        double cellDistance = centerline.distanceToSegment(station, cellX, cellZ, SurfaceDistanceTable.SHARED);
-                        if (cellDistance > radius) {
-                            continue;
-                        }
-                        long key = RiverFootprint.pack(cellX, cellZ);
-                        int index = indices.putIfAbsent(key, stations.size());
-                        if (index < 0) {
-                            stations.add(station);
-                            distance.add(cellDistance);
-                            continue;
-                        }
-                        int existing = stations.getInt(index);
-                        double existingDistance = distance.getDouble(index);
-                        // A cell on a station's cross-section row ties between the two segments meeting
-                        // there; the later station owns it so the row uses the head its own ring bounded.
-                        if (cellDistance < existingDistance - EPSILON
-                                || Math.abs(cellDistance - existingDistance) <= EPSILON && station > existing) {
-                            stations.set(index, station);
-                            distance.set(index, cellDistance);
-                        }
-                    }
-                }
-            }
+            rasterize(centerline, prepared.radii(), count, samplingBounds, indices, stations, distance);
             geometry.prepared = true;
         }
         int oceanStart = oceanStart(centerline, valley, terminal);
@@ -912,10 +876,88 @@ public final class ErosionFieldCompiler {
         return 1D - t * t * (3D - 2D * t);
     }
 
+    static void rasterize(SurfaceCenterline centerline, int[] radii, int count, SurfaceBounds samplingBounds,
+                          Long2IntOpenHashMap indices, IntArrayList stations, DoubleArrayList distance) {
+        CellPages pages = new CellPages();
+        LongArrayList order = new LongArrayList();
+        for (int station = 0; station < count; station++) {
+            int radius = radii[station];
+            int stationX = centerline.x()[station];
+            int stationZ = centerline.z()[station];
+            if (samplingBounds != null && !samplingBounds.intersects(stationX, stationZ, radius)) {
+                continue;
+            }
+            int minimumZ = samplingBounds == null ? -radius : Math.max(-radius, samplingBounds.minimumZ() - stationZ);
+            int maximumZ = samplingBounds == null ? radius : Math.min(radius, samplingBounds.maximumZ() - stationZ);
+            int minimumX = samplingBounds == null ? -radius : Math.max(-radius, samplingBounds.minimumX() - stationX);
+            int maximumX = samplingBounds == null ? radius : Math.min(radius, samplingBounds.maximumX() - stationX);
+            for (int deltaZ = minimumZ; deltaZ <= maximumZ; deltaZ++) {
+                for (int deltaX = minimumX; deltaX <= maximumX; deltaX++) {
+                    int cellX = stationX + deltaX;
+                    int cellZ = stationZ + deltaZ;
+                    double cellDistance = centerline.distanceToSegment(station, cellX, cellZ, SurfaceDistanceTable.SHARED);
+                    if (cellDistance > radius) {
+                        continue;
+                    }
+                    int[] page = pages.page(cellX, cellZ);
+                    int offset = CellPages.offset(cellX, cellZ);
+                    int index = page[offset];
+                    if (index < 0) {
+                        page[offset] = stations.size();
+                        stations.add(station);
+                        distance.add(cellDistance);
+                        order.add(RiverFootprint.pack(cellX, cellZ));
+                        continue;
+                    }
+                    int existing = stations.getInt(index);
+                    double existingDistance = distance.getDouble(index);
+                    // A cell on a station's cross-section row ties between the two segments meeting
+                    // there; the later station owns it so the row uses the head its own ring bounded.
+                    if (cellDistance < existingDistance - EPSILON
+                            || Math.abs(cellDistance - existingDistance) <= EPSILON && station > existing) {
+                        stations.set(index, station);
+                        distance.set(index, cellDistance);
+                    }
+                }
+            }
+        }
+        for (int index = 0; index < order.size(); index++) {
+            indices.put(order.getLong(index), index);
+        }
+    }
+
     private static double side(SurfaceCenterline centerline, int station, int cellX, int cellZ) {
         double deltaX = cellX - centerline.x()[station];
         double deltaZ = cellZ - centerline.z()[station];
         return deltaX * centerline.normalX(station) + deltaZ * centerline.normalZ(station);
+    }
+
+    private static final class CellPages {
+        private static final int SHIFT = 6;
+        private static final int MASK = (1 << SHIFT) - 1;
+        private final Long2ObjectOpenHashMap<int[]> pages = new Long2ObjectOpenHashMap<>();
+        private long currentKey;
+        private int[] current;
+
+        private int[] page(int x, int z) {
+            long key = RiverFootprint.pack(x >> SHIFT, z >> SHIFT);
+            if (current != null && key == currentKey) {
+                return current;
+            }
+            int[] page = pages.get(key);
+            if (page == null) {
+                page = new int[1 << (SHIFT * 2)];
+                Arrays.fill(page, -1);
+                pages.put(key, page);
+            }
+            current = page;
+            currentKey = key;
+            return page;
+        }
+
+        private static int offset(int x, int z) {
+            return ((z & MASK) << SHIFT) | (x & MASK);
+        }
     }
 
     private static final class RasterGeometry {

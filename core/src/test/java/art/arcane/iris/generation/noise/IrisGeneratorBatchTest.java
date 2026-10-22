@@ -3,9 +3,6 @@ package art.arcane.iris.generation.noise;
 import art.arcane.volmlib.util.collection.KList;
 import org.junit.Test;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThrows;
@@ -34,7 +31,7 @@ public class IrisGeneratorBatchTest {
                     assertTrue(batch.supportsBatch());
                     double[] sampled = new double[XS.length];
                     for (long seed : seeds) {
-                        batch.getHeights(XS, ZS, seed, sampled, sampled.length);
+                        batch.compileProgram(seed).heights(new TerrainBatchScratch(), XS, ZS, sampled.length, sampled);
                         for (int index = 0; index < sampled.length; index++) {
                             assertEquals(style + " detail=" + detail + " seed=" + seed + " index=" + index,
                                     Double.doubleToRawLongBits(scalar.getHeight(XS[index], ZS[index], seed)),
@@ -54,7 +51,7 @@ public class IrisGeneratorBatchTest {
                 IrisGenerator batch = generator(style, detail, false).setCliffHeightMax(0D).setCellFractureHeight(0D);
                 double[] values = new double[XS.length];
                 for (long seed : new long[]{-1337L, Long.MAX_VALUE - 37L}) {
-                    batch.getHeights(XS, ZS, seed, values, XS.length);
+                    batch.compileProgram(seed).heights(new TerrainBatchScratch(), XS, ZS, XS.length, values);
                     for (int index = 0; index < XS.length; index++) {
                         assertEquals(Double.doubleToRawLongBits(scalar.getHeight(XS[index], ZS[index], seed)),
                                 Double.doubleToRawLongBits(values[index]));
@@ -65,13 +62,15 @@ public class IrisGeneratorBatchTest {
     }
 
     @Test
-    public void resolvesLayerContextOncePerBatch() {
+    public void resolvesLayerContextOncePerCompile() {
         IrisNoiseGenerator layer = spy(new IrisNoiseGenerator().setStyle(NoiseStyle.SIMPLEX.style()));
         IrisGenerator generator = new IrisGenerator().setComposite(new KList<>(layer));
         double[] sampled = new double[XS.length];
-        generator.getHeights(XS, ZS, 99L, sampled, XS.length);
+        GeneratorProgram program = generator.compileProgram(99L);
         verify(layer, times(1)).getGenerator(anyLong(), isNull(), isNull());
         clearInvocations(layer);
+        program.heights(new TerrainBatchScratch(), XS, ZS, XS.length, sampled);
+        verify(layer, times(0)).getGenerator(anyLong(), isNull(), isNull());
         for (int index = 0; index < XS.length; index++) {
             generator.getHeight(XS[index], ZS[index], 99L);
         }
@@ -79,24 +78,15 @@ public class IrisGeneratorBatchTest {
     }
 
     @Test
-    public void customGeneratorFallbackKeepsCoordinateOrder() {
-        List<Double> sampled = new ArrayList<>();
+    public void customGeneratorsCannotCompile() {
         IrisGenerator generator = new IrisGenerator() {
             @Override
             public double getHeight(double x, double z, long seed) {
-                sampled.add(x);
-                return sampled.size();
+                return x;
             }
         };
         assertFalse(generator.supportsBatch());
-        double[] values = new double[XS.length];
-        generator.getHeights(XS, ZS, 0L, values, values.length);
-        for (int index = 0; index < values.length; index++) {
-            assertEquals(Double.valueOf(XS[index]), sampled.get(index));
-            assertEquals(index + 1D, values[index], 0D);
-        }
-        assertThrows(IllegalArgumentException.class,
-                () -> generator.getHeights(new double[4097], new double[4097], 0L, new double[4097], 4097));
+        assertThrows(IllegalStateException.class, () -> generator.compileProgram(0L));
     }
 
     @Test

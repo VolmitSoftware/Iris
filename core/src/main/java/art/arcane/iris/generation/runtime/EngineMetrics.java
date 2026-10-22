@@ -24,63 +24,65 @@ import lombok.Data;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.DoubleAdder;
+import java.util.concurrent.atomic.LongAdder;
 
 @Data
 public class EngineMetrics {
-    private final AtomicRollingSequence total;
-    private final AtomicRollingSequence updates;
-    private final AtomicRollingSequence terrain;
-    private final AtomicRollingSequence biome;
-    private final AtomicRollingSequence parallax;
-    private final AtomicRollingSequence parallaxInsert;
-    private final AtomicRollingSequence post;
-    private final AtomicRollingSequence perfection;
-    private final AtomicRollingSequence api;
-    private final AtomicRollingSequence decoration;
-    private final AtomicRollingSequence cave;
-    private final AtomicRollingSequence ravine;
-    private final AtomicRollingSequence deposit;
-    private final AtomicRollingSequence carveResolve;
-    private final AtomicRollingSequence carveApply;
-    private final AtomicRollingSequence noiseHeightInterpolate;
-    private final AtomicRollingSequence noiseHeightGenerator;
-    private final AtomicRollingSequence contextPrefill;
-    private final AtomicRollingSequence contextPrefillHeight;
-    private final AtomicRollingSequence contextPrefillBiome;
-    private final AtomicRollingSequence contextPrefillRock;
-    private final AtomicRollingSequence contextPrefillFluid;
-    private final AtomicRollingSequence contextPrefillRegion;
-    private final AtomicRollingSequence contextPrefillCave;
-    private final AtomicRollingSequence pregenWaitPermit;
-    private final AtomicRollingSequence pregenWaitAdaptive;
+    private final StageTimer total;
+    private final StageTimer updates;
+    private final StageTimer terrain;
+    private final StageTimer biome;
+    private final StageTimer parallax;
+    private final StageTimer parallaxInsert;
+    private final StageTimer post;
+    private final StageTimer perfection;
+    private final StageTimer api;
+    private final StageTimer decoration;
+    private final StageTimer cave;
+    private final StageTimer ravine;
+    private final StageTimer deposit;
+    private final StageTimer carveResolve;
+    private final StageTimer carveApply;
+    private final StageTimer noiseHeightInterpolate;
+    private final StageTimer noiseHeightGenerator;
+    private final StageTimer contextPrefill;
+    private final StageTimer contextPrefillHeight;
+    private final StageTimer contextPrefillBiome;
+    private final StageTimer contextPrefillRock;
+    private final StageTimer contextPrefillFluid;
+    private final StageTimer contextPrefillRegion;
+    private final StageTimer contextPrefillCave;
+    private final StageTimer pregenWaitPermit;
+    private final StageTimer pregenWaitAdaptive;
 
     public EngineMetrics(int mem) {
-        this.total = new AtomicRollingSequence(mem);
-        this.terrain = new AtomicRollingSequence(mem);
-        this.api = new AtomicRollingSequence(mem);
-        this.biome = new AtomicRollingSequence(mem);
-        this.perfection = new AtomicRollingSequence(mem);
-        this.parallax = new AtomicRollingSequence(mem);
-        this.parallaxInsert = new AtomicRollingSequence(mem);
-        this.post = new AtomicRollingSequence(mem);
-        this.decoration = new AtomicRollingSequence(mem);
-        this.updates = new AtomicRollingSequence(mem);
-        this.cave = new AtomicRollingSequence(mem);
-        this.ravine = new AtomicRollingSequence(mem);
-        this.deposit = new AtomicRollingSequence(mem);
-        this.carveResolve = new AtomicRollingSequence(mem);
-        this.carveApply = new AtomicRollingSequence(mem);
-        this.noiseHeightInterpolate = new AtomicRollingSequence(mem);
-        this.noiseHeightGenerator = new AtomicRollingSequence(mem);
-        this.contextPrefill = new AtomicRollingSequence(mem);
-        this.contextPrefillHeight = new AtomicRollingSequence(mem);
-        this.contextPrefillBiome = new AtomicRollingSequence(mem);
-        this.contextPrefillRock = new AtomicRollingSequence(mem);
-        this.contextPrefillFluid = new AtomicRollingSequence(mem);
-        this.contextPrefillRegion = new AtomicRollingSequence(mem);
-        this.contextPrefillCave = new AtomicRollingSequence(mem);
-        this.pregenWaitPermit = new AtomicRollingSequence(mem);
-        this.pregenWaitAdaptive = new AtomicRollingSequence(mem);
+        this.total = new StageTimer(mem);
+        this.terrain = new StageTimer(mem);
+        this.api = new StageTimer(mem);
+        this.biome = new StageTimer(mem);
+        this.perfection = new StageTimer(mem);
+        this.parallax = new StageTimer(mem);
+        this.parallaxInsert = new StageTimer(mem);
+        this.post = new StageTimer(mem);
+        this.decoration = new StageTimer(mem);
+        this.updates = new StageTimer(mem);
+        this.cave = new StageTimer(mem);
+        this.ravine = new StageTimer(mem);
+        this.deposit = new StageTimer(mem);
+        this.carveResolve = new StageTimer(mem);
+        this.carveApply = new StageTimer(mem);
+        this.noiseHeightInterpolate = new StageTimer(mem);
+        this.noiseHeightGenerator = new StageTimer(mem);
+        this.contextPrefill = new StageTimer(mem);
+        this.contextPrefillHeight = new StageTimer(mem);
+        this.contextPrefillBiome = new StageTimer(mem);
+        this.contextPrefillRock = new StageTimer(mem);
+        this.contextPrefillFluid = new StageTimer(mem);
+        this.contextPrefillRegion = new StageTimer(mem);
+        this.contextPrefillCave = new StageTimer(mem);
+        this.pregenWaitPermit = new StageTimer(mem);
+        this.pregenWaitAdaptive = new StageTimer(mem);
     }
 
     public KMap<String, Double> pull() {
@@ -133,5 +135,62 @@ public class EngineMetrics {
         averages.put("pregen.wait.adaptive", pregenWaitAdaptive.getAverage());
         averages.entrySet().removeIf(entry -> !Double.isFinite(entry.getValue()) || entry.getValue() < 0D);
         return Map.copyOf(averages);
+    }
+
+    public Map<String, StageTotal> stageTotals() {
+        Map<String, StageTotal> totals = new LinkedHashMap<>();
+        totals.put("total", total.snapshot());
+        totals.put("terrain", terrain.snapshot());
+        totals.put("biome", biome.snapshot());
+        totals.put("parallax", parallax.snapshot());
+        totals.put("parallax.insert", parallaxInsert.snapshot());
+        totals.put("post", post.snapshot());
+        totals.put("perfection", perfection.snapshot());
+        totals.put("decoration", decoration.snapshot());
+        totals.put("api", api.snapshot());
+        totals.put("updates", updates.snapshot());
+        totals.put("cave", cave.snapshot());
+        totals.put("ravine", ravine.snapshot());
+        totals.put("deposit", deposit.snapshot());
+        totals.put("carve.resolve", carveResolve.snapshot());
+        totals.put("carve.apply", carveApply.snapshot());
+        totals.put("noise.height.interpolate", noiseHeightInterpolate.snapshot());
+        totals.put("noise.height.generator", noiseHeightGenerator.snapshot());
+        totals.put("context.prefill", contextPrefill.snapshot());
+        totals.put("context.prefill.height", contextPrefillHeight.snapshot());
+        totals.put("context.prefill.biome", contextPrefillBiome.snapshot());
+        totals.put("context.prefill.rock", contextPrefillRock.snapshot());
+        totals.put("context.prefill.fluid", contextPrefillFluid.snapshot());
+        totals.put("context.prefill.region", contextPrefillRegion.snapshot());
+        totals.put("context.prefill.cave", contextPrefillCave.snapshot());
+        totals.put("pregen.wait.permit", pregenWaitPermit.snapshot());
+        totals.put("pregen.wait.adaptive", pregenWaitAdaptive.snapshot());
+        return totals;
+    }
+
+    public static final class StageTimer extends AtomicRollingSequence {
+        private final DoubleAdder totalMillis = new DoubleAdder();
+        private final LongAdder samples = new LongAdder();
+
+        public StageTimer(int size) {
+            super(size);
+        }
+
+        @Override
+        public void put(double millis) {
+            super.put(millis);
+            totalMillis.add(millis);
+            samples.increment();
+        }
+
+        public StageTotal snapshot() {
+            return new StageTotal(totalMillis.sum(), samples.sum());
+        }
+    }
+
+    public record StageTotal(double millis, long samples) {
+        public StageTotal since(StageTotal earlier) {
+            return new StageTotal(millis - earlier.millis(), samples - earlier.samples());
+        }
     }
 }

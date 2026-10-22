@@ -95,9 +95,42 @@ public class ChunkContextPrefillPlanTest {
     }
 
     @Test
-    public void singleOrNoFillTaskPrefillsInline() {
-        assertFalse(ChunkContext.shouldPrefillAsync(ChunkContext.PrefillPlan.NO_CAVE, 0));
-        assertFalse(ChunkContext.shouldPrefillAsync(ChunkContext.PrefillPlan.NO_CAVE, 1));
+    public void generationWorkersPrefillInlineWithoutConsultingSharedExecutor() {
+        try (MockedStatic<IrisPlatforms> platforms = mockStatic(IrisPlatforms.class)) {
+            platforms.when(IrisPlatforms::isBound).thenReturn(true);
+            assertFalse(ChunkContext.shouldPrefillAsync(ChunkContext.PrefillPlan.NO_CAVE, false));
+            assertFalse(ChunkContext.shouldPrefillAsync(ChunkContext.PrefillPlan.ALL, false));
+            platforms.verifyNoInteractions();
+        }
+    }
+
+    @Test
+    public void platformMainThreadKeepsBlockingPrefillOffTheTickThread() {
+        try (MockedStatic<IrisPlatforms> platforms = mockStatic(IrisPlatforms.class)) {
+            platforms.when(IrisPlatforms::isBound).thenReturn(true);
+            assertTrue(ChunkContext.shouldPrefillAsync(ChunkContext.PrefillPlan.NO_CAVE, true));
+            assertFalse(ChunkContext.shouldPrefillAsync(ChunkContext.PrefillPlan.NONE, true));
+            assertFalse(ChunkContext.shouldPrefillAsync(ChunkContext.PrefillPlan.NATURAL_TERRAIN, true));
+        }
+    }
+
+    @Test
+    public void inlinePrefillFinishesHeightsBeforeTheBiomePassStarts() {
+        AtomicInteger caveCalls = new AtomicInteger();
+        AtomicInteger heightCalls = new AtomicInteger();
+        AtomicInteger biomeCalls = new AtomicInteger();
+        AtomicInteger rockCalls = new AtomicInteger();
+        AtomicInteger fluidCalls = new AtomicInteger();
+        AtomicInteger regionCalls = new AtomicInteger();
+        AtomicInteger heightsSeenByFirstBiome = new AtomicInteger(-1);
+        try (MockedStatic<IrisPlatforms> platforms = mockStatic(IrisPlatforms.class)) {
+            platforms.when(IrisPlatforms::isBound).thenReturn(true);
+            createContext(ChunkContext.PrefillPlan.NO_CAVE, caveCalls, heightCalls, biomeCalls, rockCalls,
+                    fluidCalls, regionCalls, null, () -> heightsSeenByFirstBiome.compareAndSet(-1, heightCalls.get()));
+        }
+
+        assertEquals(256, heightsSeenByFirstBiome.get());
+        assertEquals(256, biomeCalls.get());
     }
 
     @Test
@@ -110,7 +143,7 @@ public class ChunkContextPrefillPlanTest {
         AtomicInteger regionCalls = new AtomicInteger();
         try (MockedStatic<IrisPlatforms> platforms = mockStatic(IrisPlatforms.class)) {
             platforms.when(IrisPlatforms::isBound).thenReturn(true);
-            assertFalse(ChunkContext.shouldPrefillAsync(ChunkContext.PrefillPlan.NATURAL_TERRAIN, 5));
+            assertFalse(ChunkContext.shouldPrefillAsync(ChunkContext.PrefillPlan.NATURAL_TERRAIN, true));
             ChunkContext context = createContext(ChunkContext.PrefillPlan.NATURAL_TERRAIN,
                     caveCalls, heightCalls, biomeCalls, rockCalls, fluidCalls, regionCalls);
 
@@ -229,6 +262,22 @@ public class ChunkContextPrefillPlanTest {
             AtomicInteger regionCalls,
             IrisHydrologyRuntime runtime
     ) {
+        return createContext(prefillPlan, caveCalls, heightCalls, biomeCalls, rockCalls, fluidCalls, regionCalls,
+                runtime, () -> {
+                });
+    }
+
+    private ChunkContext createContext(
+            ChunkContext.PrefillPlan prefillPlan,
+            AtomicInteger caveCalls,
+            AtomicInteger heightCalls,
+            AtomicInteger biomeCalls,
+            AtomicInteger rockCalls,
+            AtomicInteger fluidCalls,
+            AtomicInteger regionCalls,
+            IrisHydrologyRuntime runtime,
+            Runnable biomeObserver
+    ) {
         IrisComplex complex = mock(IrisComplex.class);
 
         @SuppressWarnings("unchecked")
@@ -244,6 +293,7 @@ public class ChunkContextPrefillPlanTest {
         ProceduralStream<IrisBiome> biomeStream = mock(ProceduralStream.class);
         IrisBiome biome = mock(IrisBiome.class);
         doAnswer(invocation -> {
+            biomeObserver.run();
             biomeCalls.incrementAndGet();
             return biome;
         }).when(biomeStream).get(anyDouble(), anyDouble());

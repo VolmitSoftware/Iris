@@ -16,6 +16,9 @@ import art.arcane.iris.generation.hydrology.HydrologyColumnSample;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveCell;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.terrain.IrisRegion;
+import art.arcane.iris.generation.terrain.IrisDimension;
+import art.arcane.iris.generation.subterrain.SubterrainCell;
+import art.arcane.iris.generation.subterrain.SubterrainPlanner;
 import art.arcane.iris.generation.terrain.IrisDimensionCarvingResolver;
 import art.arcane.iris.structure.placement.IrisStructurePlacement;
 import art.arcane.volmlib.util.mantle.flag.ReservedFlag;
@@ -170,13 +173,14 @@ public final class GenerationSemanticCapture {
                     cavern == null ? null : cavern.getCustomBiome()
             );
         });
+        IrisComplex complex = engine.getComplex();
         mantle.iterateChunk(chunkX, chunkZ, HydrologyCaveCell.class, (localX, y, localZ, cell) -> {
             if (!caveSpace.test(localX, y, localZ)) {
                 return;
             }
             int blockX = minimumX + localX;
             int blockZ = minimumZ + localZ;
-            if (!hasFullHydrologyWeight(engine.getComplex(), blockX, blockZ)) {
+            if (!hasFullHydrologyWeight(complex, blockX, blockZ)) {
                 return;
             }
             captureCave(
@@ -199,12 +203,8 @@ public final class GenerationSemanticCapture {
                                 Math.addExact(minimumZ, localZ))));
             }
         });
-        mantle.iterateChunk(chunkX, chunkZ, String.class, (localX, y, localZ, marker) -> {
-            StructurePlacementMarker.Decoded decoded = StructurePlacementMarker.decode(marker);
-            if (decoded != null) {
-                semantics.addObject(decoded.objectKey());
-            }
-        });
+        ObjectMarkers objects = new ObjectMarkers(semantics);
+        mantle.iterateChunk(chunkX, chunkZ, String.class, (localX, y, localZ, marker) -> objects.add(marker));
     }
 
     private static boolean hasFullHydrologyWeight(IrisComplex complex, int blockX, int blockZ) {
@@ -273,10 +273,76 @@ public final class GenerationSemanticCapture {
         }
     }
 
+    private static final class ObjectMarkers {
+        private final ChunkGenerationSemantics.Builder semantics;
+        private String lastMarker;
+
+        private ObjectMarkers(ChunkGenerationSemantics.Builder semantics) {
+            this.semantics = semantics;
+        }
+
+        private void add(String marker) {
+            if (marker != null && marker.equals(lastMarker)) {
+                return;
+            }
+            StructurePlacementMarker.Decoded decoded = StructurePlacementMarker.decode(marker);
+            if (decoded != null) {
+                semantics.addObject(decoded.objectKey());
+            }
+            lastMarker = marker;
+        }
+    }
+
+    private static final class SubterrainBiomes {
+        private final Engine engine;
+        private final boolean live;
+        private final SubterrainPlanner planner;
+        private final int minimumY;
+
+        private SubterrainBiomes(Engine engine, boolean live, SubterrainPlanner planner, int minimumY) {
+            this.engine = engine;
+            this.live = live;
+            this.planner = planner;
+            this.minimumY = minimumY;
+        }
+
+        private static SubterrainBiomes of(Engine engine, int minimumY) {
+            if (engine.getClass() != IrisEngine.class) {
+                return new SubterrainBiomes(engine, false, null, 0);
+            }
+            IrisEngine irisEngine = (IrisEngine) engine;
+            if (!irisEngine.hasGenerationRuntimeScope() && irisEngine.getGenerationHistoryRuntimeRouter().isPresent()) {
+                return new SubterrainBiomes(engine, false, null, 0);
+            }
+            IrisComplex complex = engine.getComplex();
+            IrisDimension dimension = engine.getDimension();
+            SubterrainPlanner planner = complex == null || dimension == null || !dimension.allowsSubterrainFeatures()
+                    || dimension.getSubterrainFeatures() == null || dimension.getSubterrainFeatures().isEmpty()
+                    ? null
+                    : complex.getSubterrainPlanner();
+            return new SubterrainBiomes(engine, true, planner, minimumY);
+        }
+
+        private IrisBiome resolve(int x, int y, int z) {
+            if (!live) {
+                return engine.getSubterrainBiome(x, y, z);
+            }
+            if (planner == null) {
+                return null;
+            }
+            SubterrainCell cell = planner.sample(x, y + minimumY, z);
+            if (!cell.occupied() || cell.room().biome().isEmpty()) {
+                return null;
+            }
+            return engine.getSubterrainBiome(x, y, z);
+        }
+    }
+
     private static final class CaveBiomes {
         private final Engine engine;
         private final boolean scoped;
         private final CaveFallback fallback;
+        private SubterrainBiomes subterrain;
         private final IrisDimensionCarvingResolver.State fallbackState = new IrisDimensionCarvingResolver.State();
         private IrisDimensionCarvingResolver.Snapshot snapshot;
         private int minimumY;
@@ -305,8 +371,9 @@ public final class GenerationSemanticCapture {
             if (snapshot == null) {
                 snapshot = IrisDimensionCarvingResolver.snapshot(engine);
                 minimumY = engine.getWorld().minHeight();
+                subterrain = SubterrainBiomes.of(engine, minimumY);
             }
-            IrisBiome featureBiome = engine.getSubterrainBiome(x, y, z);
+            IrisBiome featureBiome = subterrain.resolve(x, y, z);
             if (featureBiome != null) {
                 return featureBiome;
             }

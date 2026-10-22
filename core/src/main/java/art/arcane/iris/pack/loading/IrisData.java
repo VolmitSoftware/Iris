@@ -109,6 +109,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Data
 public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
+    private static final int CUSTOM_BIOME_KEY_CACHE_LIMIT = 4096;
     private static final Map<File, IrisData> dataLoaders = new ConcurrentHashMap<>();
     // Loaders (cached or detached) that currently have registered engines; see hasActiveEngines.
     // Identity-keyed on purpose: Lombok's @Data hashCode over this class's mutable loader state
@@ -159,6 +160,10 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
     @Setter(AccessLevel.NONE)
     @EqualsAndHashCode.Exclude
     private transient volatile GenerationRegistryContractFactory.CustomBiomeResourceResolver customBiomeResourceResolver;
+    @Getter(AccessLevel.NONE)
+    @Setter(AccessLevel.NONE)
+    @EqualsAndHashCode.Exclude
+    private transient volatile CustomBiomeKeyCache customBiomeKeyCache;
     private transient volatile Engine soleEngine;
     @Getter(AccessLevel.NONE)
     @Setter(AccessLevel.NONE)
@@ -234,6 +239,32 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
         IrisDimension requiredDimension = Objects.requireNonNull(dimension, "dimension");
         IrisBiomeCustom requiredBiome = Objects.requireNonNull(customBiome, "customBiome");
         GenerationRegistryContractFactory.CustomBiomeResourceResolver resolver = customBiomeResourceResolver;
+        ContentGate gate = resolver == null ? getContentGate() : null;
+        Object owner = resolver == null ? gate : resolver;
+        CustomBiomeKeyCache cache = customBiomeKeyCache;
+        if (cache == null || cache.owner() != owner) {
+            cache = new CustomBiomeKeyCache(owner, new ConcurrentHashMap<>());
+            customBiomeKeyCache = cache;
+        }
+        CustomBiomeKey key = new CustomBiomeKey(requiredDimension.getLoadKey(), requiredBiome);
+        String cached = cache.keys().get(key);
+        if (cached != null) {
+            return cached;
+        }
+        String resolved = resolveCustomBiomeResourceKey(requiredDimension, requiredBiome, resolver, gate);
+        if (cache.keys().size() >= CUSTOM_BIOME_KEY_CACHE_LIMIT) {
+            cache.keys().clear();
+        }
+        cache.keys().put(key, resolved);
+        return resolved;
+    }
+
+    private String resolveCustomBiomeResourceKey(
+            IrisDimension requiredDimension,
+            IrisBiomeCustom requiredBiome,
+            GenerationRegistryContractFactory.CustomBiomeResourceResolver resolver,
+            ContentGate gate
+    ) {
         if (resolver != null) {
             try {
                 return resolver.resolve(
@@ -248,7 +279,7 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
         return GenerationRegistryContractFactory.customBiomeResourceKey(
                 requiredDimension.getLoadKey(),
                 requiredBiome,
-                getContentGate()
+                gate
         );
     }
 
@@ -1033,6 +1064,31 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
             Map<String, String> immutable = Map.copyOf(resolved);
             dimensionCustomBiomeResourceKeys.put(dimension, immutable);
             return immutable;
+        }
+    }
+
+    private record CustomBiomeKeyCache(Object owner, ConcurrentHashMap<CustomBiomeKey, String> keys) {
+    }
+
+    private static final class CustomBiomeKey {
+        private final String dimensionKey;
+        private final IrisBiomeCustom biome;
+        private final int hash;
+
+        private CustomBiomeKey(String dimensionKey, IrisBiomeCustom biome) {
+            this.dimensionKey = dimensionKey;
+            this.biome = biome;
+            hash = 31 * Objects.hashCode(dimensionKey) + System.identityHashCode(biome);
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            return other instanceof CustomBiomeKey key && key.biome == biome && Objects.equals(key.dimensionKey, dimensionKey);
+        }
+
+        @Override
+        public int hashCode() {
+            return hash;
         }
     }
 }

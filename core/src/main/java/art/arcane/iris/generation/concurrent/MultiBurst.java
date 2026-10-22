@@ -144,11 +144,11 @@ public class MultiBurst extends MultiBurstSupport {
         }
 
         static int plannerParallelism() {
-            return plannerParallelism(MultiBurstSupport.performanceProcessors());
+            return plannerParallelism(MultiBurstSupport.performanceProcessors(), Runtime.getRuntime().availableProcessors());
         }
 
-        static int plannerParallelism(int performanceProcessors) {
-            return Math.max(4, performanceProcessors);
+        static int plannerParallelism(int performanceProcessors, int availableProcessors) {
+            return Math.max(2, Math.min(Math.max(4, performanceProcessors), availableProcessors));
         }
 
         @Override

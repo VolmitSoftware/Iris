@@ -91,10 +91,15 @@ public final class GeneratorProgram {
             return sample(scratch, x, z);
         }
         int mark = scratch.mark();
-        double[] cached = scratch.buffer(1);
-        boolean hit = IrisGenerator.cachedSurface(stripes, x, z, superSeed, cached, 0);
-        double value = cached[0];
-        scratch.reset(mark);
+        boolean hit;
+        double value;
+        try {
+            double[] cached = scratch.buffer(1);
+            hit = IrisGenerator.cachedSurface(stripes, x, z, superSeed, cached, 0);
+            value = cached[0];
+        } finally {
+            scratch.reset(mark);
+        }
         if (hit) {
             return value;
         }
@@ -125,6 +130,15 @@ public final class GeneratorProgram {
     private void surfaceHeights(TerrainBatchScratch scratch, double[] xs, double[] zs, int count, double[] out) {
         int mark = scratch.mark();
         int indexMark = scratch.indexMark();
+        try {
+            fillSurfaceHeights(scratch, xs, zs, count, out);
+        } finally {
+            scratch.resetIndices(indexMark);
+            scratch.reset(mark);
+        }
+    }
+
+    private void fillSurfaceHeights(TerrainBatchScratch scratch, double[] xs, double[] zs, int count, double[] out) {
         int[] northWest = scratch.indices(count);
         int[] northEast = scratch.indices(count);
         int[] southWest = scratch.indices(count);
@@ -209,14 +223,21 @@ public final class GeneratorProgram {
             }
             out[index] = surfaceDetail == 0D ? smooth : smooth + (detail[detailIndex[index]] - smooth) * surfaceDetail;
         }
-        scratch.resetIndices(indexMark);
-        scratch.reset(mark);
     }
 
     private void resolveLattice(TerrainBatchScratch scratch, int nodes, double[] lattice) {
         IrisGenerator.SurfaceCacheStripe[] stripes = generator.surfaceStripes();
         int indexMark = scratch.indexMark();
         int mark = scratch.mark();
+        try {
+            fillLattice(scratch, nodes, lattice, stripes);
+        } finally {
+            scratch.reset(mark);
+            scratch.resetIndices(indexMark);
+        }
+    }
+
+    private void fillLattice(TerrainBatchScratch scratch, int nodes, double[] lattice, IrisGenerator.SurfaceCacheStripe[] stripes) {
         int[] missing = scratch.indices(nodes);
         double[] missingX = scratch.buffer(nodes);
         double[] missingZ = scratch.buffer(nodes);
@@ -242,12 +263,18 @@ public final class GeneratorProgram {
                 }
             }
         }
-        scratch.reset(mark);
-        scratch.resetIndices(indexMark);
     }
 
     private void sample(TerrainBatchScratch scratch, double[] xs, double[] zs, int count, double[] out) {
         int mark = scratch.mark();
+        try {
+            sampleBatch(scratch, xs, zs, count, out);
+        } finally {
+            scratch.reset(mark);
+        }
+    }
+
+    private void sampleBatch(TerrainBatchScratch scratch, double[] xs, double[] zs, int count, double[] out) {
         double[] sampleX = scratch.buffer(count);
         double[] sampleZ = scratch.buffer(count);
         double[] noise = scratch.buffer(count);
@@ -284,6 +311,5 @@ public final class GeneratorProgram {
                 out[index] = generator.cell(xs[index], zs[index], out[index], 0D);
             }
         }
-        scratch.reset(mark);
     }
 }

@@ -87,7 +87,7 @@ public class IrisEngineGenerationRuntimeScopeTest {
         when(historical.complex.getHydrologyRuntime()).thenReturn(hydrology);
         IrisHydrologyRuntimeContext context = new IrisHydrologyRuntimeContext(17L, 384, historical.dimension,
                 historical.data, (x, z, height) -> null, (x, z) -> 80D, (x, z) -> "constant",
-                (x, z) -> false, footprint -> null, () -> false, () -> {});
+                (x, z) -> false, footprint -> null, () -> false);
         Field runtimeContext = IrisHydrologyRuntime.class.getDeclaredField("context");
         runtimeContext.setAccessible(true);
         runtimeContext.set(hydrology, context);

@@ -63,9 +63,17 @@ public class HydrologyBurstTest {
 
     @Test
     public void plannerPoolFollowsThePerformanceCores() {
-        assertEquals(12, MultiBurst.HydrologyBurst.plannerParallelism(12));
-        assertEquals(4, MultiBurst.HydrologyBurst.plannerParallelism(1));
-        assertEquals(32, MultiBurst.HydrologyBurst.plannerParallelism(32));
+        assertEquals(12, MultiBurst.HydrologyBurst.plannerParallelism(12, 16));
+        assertEquals(4, MultiBurst.HydrologyBurst.plannerParallelism(1, 8));
+        assertEquals(32, MultiBurst.HydrologyBurst.plannerParallelism(32, 32));
+    }
+
+    @Test
+    public void plannerPoolNeverOutgrowsASmallHost() {
+        assertEquals(2, MultiBurst.HydrologyBurst.plannerParallelism(1, 1));
+        assertEquals(2, MultiBurst.HydrologyBurst.plannerParallelism(2, 2));
+        assertEquals(3, MultiBurst.HydrologyBurst.plannerParallelism(3, 3));
+        assertEquals(4, MultiBurst.HydrologyBurst.plannerParallelism(2, 4));
     }
 
     @Test

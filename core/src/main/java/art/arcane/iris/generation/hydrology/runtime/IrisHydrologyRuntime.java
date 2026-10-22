@@ -123,7 +123,6 @@ public final class IrisHydrologyRuntime implements AutoCloseable {
                 IrisPlatforms.isBound() ? MultiBurst.hydrology : null,
                 context.waitingForbidden()
         );
-        this.cache.setTerrainPreparation(context.terrainPreparation());
         IrisLogging.debug("Hydrology runtime: tileSize=%d publicationRadius=%d planningThreads=%d",
                 settings.routing().tileSize(), settings.publicationRadius(), MultiBurst.hydrology.parallelism());
     }

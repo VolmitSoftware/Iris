@@ -52,6 +52,14 @@ public final class NoiseLayerProgram {
             return;
         }
         int mark = scratch.mark();
+        try {
+            fill(scratch, xs, zs, count, out);
+        } finally {
+            scratch.reset(mark);
+        }
+    }
+
+    private void fill(TerrainBatchScratch scratch, double[] xs, double[] zs, int count, double[] out) {
         double[] sampleX = scratch.buffer(count);
         double[] sampleZ = scratch.buffer(count);
         if (children.length == 0) {
@@ -81,7 +89,6 @@ public final class NoiseLayerProgram {
         for (int index = 0; index < count; index++) {
             out[index] = post(out[index]);
         }
-        scratch.reset(mark);
     }
 
     void evaluatePair(TerrainBatchScratch scratch, double[] xs, double[] zs, int count, double[] forward, double[] reverse) {
@@ -91,6 +98,14 @@ public final class NoiseLayerProgram {
             return;
         }
         int mark = scratch.mark();
+        try {
+            fillPair(scratch, xs, zs, count, forward, reverse);
+        } finally {
+            scratch.reset(mark);
+        }
+    }
+
+    private void fillPair(TerrainBatchScratch scratch, double[] xs, double[] zs, int count, double[] forward, double[] reverse) {
         int pairs = count * 2;
         double[] sampleX = scratch.buffer(pairs);
         double[] sampleZ = scratch.buffer(pairs);
@@ -122,7 +137,6 @@ public final class NoiseLayerProgram {
             forward[index] = post(values[index]);
             reverse[index] = post(values[count + index]);
         }
-        scratch.reset(mark);
     }
 
     public double sample(TerrainBatchScratch scratch, double x, double z) {
@@ -133,14 +147,17 @@ public final class NoiseLayerProgram {
         double sampleZ = z;
         if (children.length > 0) {
             int mark = scratch.mark();
-            double[] pair = scratch.buffer(2);
-            for (int child = 0; child < children.length; child++) {
-                children[child].samplePair(scratch, x, z, pair);
-                double offset = childOffsets[child];
-                sampleX += pair[0] - offset;
-                sampleZ += pair[1] - offset;
+            try {
+                double[] pair = scratch.buffer(2);
+                for (int child = 0; child < children.length; child++) {
+                    children[child].samplePair(scratch, x, z, pair);
+                    double offset = childOffsets[child];
+                    sampleX += pair[0] - offset;
+                    sampleZ += pair[1] - offset;
+                }
+            } finally {
+                scratch.reset(mark);
             }
-            scratch.reset(mark);
         }
         return post(program.sample2D((sampleX / zoom) + offsetX, (sampleZ / zoom) + offsetZ));
     }
@@ -157,16 +174,19 @@ public final class NoiseLayerProgram {
         double reverseZ = x;
         if (children.length > 0) {
             int mark = scratch.mark();
-            double[] pair = scratch.buffer(2);
-            for (int child = 0; child < children.length; child++) {
-                children[child].samplePair(scratch, x, z, pair);
-                double offset = childOffsets[child];
-                forwardX += pair[0] - offset;
-                forwardZ += pair[1] - offset;
-                reverseX += pair[1] - offset;
-                reverseZ += pair[0] - offset;
+            try {
+                double[] pair = scratch.buffer(2);
+                for (int child = 0; child < children.length; child++) {
+                    children[child].samplePair(scratch, x, z, pair);
+                    double offset = childOffsets[child];
+                    forwardX += pair[0] - offset;
+                    forwardZ += pair[1] - offset;
+                    reverseX += pair[1] - offset;
+                    reverseZ += pair[0] - offset;
+                }
+            } finally {
+                scratch.reset(mark);
             }
-            scratch.reset(mark);
         }
         out[0] = post(program.sample2D((forwardX / zoom) + offsetX, (forwardZ / zoom) + offsetZ));
         out[1] = post(program.sample2D((reverseX / zoom) + offsetX, (reverseZ / zoom) + offsetZ));

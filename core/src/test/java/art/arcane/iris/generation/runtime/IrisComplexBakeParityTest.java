@@ -1,11 +1,11 @@
 package art.arcane.iris.generation.runtime;
 
 import art.arcane.iris.configuration.IrisSettings;
-import art.arcane.iris.generation.bake.BakePlane;
 import art.arcane.iris.generation.bake.GeneratorEvaluations;
 import art.arcane.iris.generation.block.B;
 import art.arcane.iris.generation.image.IrisImageMapApplication;
 import art.arcane.iris.generation.image.IrisImageMapRuntime;
+import art.arcane.iris.generation.stream.ChunkFillableDoubleStream2D;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.spi.IrisPlatform;
@@ -67,7 +67,8 @@ public class IrisComplexBakeParityTest {
             for (int chunk = 0; chunk < 48; chunk++) {
                 int chunkX = random.nextInt(-400, 400);
                 int chunkZ = random.nextInt(-400, 400);
-                double[] baked = (double[]) batched.complex.bakePlane(BakePlane.BASE_HEIGHT, chunkX, chunkZ);
+                double[] baked = new double[256];
+                batched.baseHeights().fillChunkDoubles(chunkX << 4, chunkZ << 4, baked);
                 for (int index = 0; index < 256; index++) {
                     int x = (chunkX << 4) + (index & 15);
                     int z = (chunkZ << 4) + (index >> 4);
@@ -88,7 +89,7 @@ public class IrisComplexBakeParityTest {
                 int chunkX = random.nextInt(-400, 400);
                 int chunkZ = random.nextInt(-400, 400);
                 GeneratorEvaluations.Snapshot before = GeneratorEvaluations.snapshot();
-                batched.complex.bakePlane(BakePlane.BASE_HEIGHT, chunkX, chunkZ);
+                batched.baseHeights().fillChunkDoubles(chunkX << 4, chunkZ << 4, new double[256]);
                 GeneratorEvaluations.Snapshot afterBatch = GeneratorEvaluations.snapshot();
                 for (int index = 0; index < 256; index++) {
                     scalar.complex.getBaseTerrainHeightStream().getDouble((chunkX << 4) + (index & 15), (chunkZ << 4) + (index >> 4));
@@ -193,6 +194,10 @@ public class IrisComplexBakeParityTest {
             doReturn(new SeedManager(1337L)).when(engine).getSeedManager();
             complex = new IrisComplex(engine);
             doReturn(complex).when(engine).getComplex();
+        }
+
+        private ChunkFillableDoubleStream2D baseHeights() {
+            return (ChunkFillableDoubleStream2D) complex.getBaseTerrainHeightStream();
         }
 
         @Override

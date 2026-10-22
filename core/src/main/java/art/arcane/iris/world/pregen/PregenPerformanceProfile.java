@@ -18,15 +18,12 @@
 
 package art.arcane.iris.world.pregen;
 
-import art.arcane.iris.configuration.IrisSettings;
-import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.platform.generation.PlatformChunkGenerator;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.generation.concurrent.MultiBurst;
 import art.arcane.volmlib.util.parallel.MultiBurstSupport;
 
-import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public final class PregenPerformanceProfile {
@@ -36,22 +33,11 @@ public final class PregenPerformanceProfile {
     }
 
     public static boolean apply() {
-        IrisSettings.IrisSettingsPerformance performance = IrisSettings.get().getPerformance();
-        int previousNoiseCacheSize = performance.getNoiseCacheSize();
-        int targetNoiseCacheSize = Math.max(previousNoiseCacheSize, 4_096);
-        boolean changed = false;
-
-        if (targetNoiseCacheSize != previousNoiseCacheSize) {
-            performance.setNoiseCacheSize(targetNoiseCacheSize);
-            changed = true;
+        if (!MultiBurst.burst.raiseParallelism(pregenBurstParallelism(MultiBurstSupport.performanceProcessors()))) {
+            return false;
         }
-
-        if (MultiBurst.burst.raiseParallelism(pregenBurstParallelism(MultiBurstSupport.performanceProcessors()))) {
-            PARALLELISM_HOLDERS.incrementAndGet();
-            changed = true;
-        }
-
-        return changed;
+        PARALLELISM_HOLDERS.incrementAndGet();
+        return true;
     }
 
     /**
@@ -75,13 +61,9 @@ public final class PregenPerformanceProfile {
     }
 
     public static void apply(Engine engine) {
-        if (engine != null) {
-            prepareNoiseCacheInPlace(engine);
-        }
         apply();
         if (engine != null) {
-            IrisLogging.info("Pregen profile applied: noiseCacheSize="
-                    + IrisSettings.get().getPerformance().getNoiseCacheSize());
+            IrisLogging.info("Pregen profile applied: burstParallelism=" + MultiBurst.burst.parallelism());
         }
     }
 
@@ -91,11 +73,5 @@ public final class PregenPerformanceProfile {
 
     static int pregenBurstParallelism(int performanceProcessors) {
         return Math.max(4, performanceProcessors * 2);
-    }
-
-    private static void prepareNoiseCacheInPlace(Engine engine) {
-        IrisComplex complex = Objects.requireNonNull(engine.getComplex(), "Pregeneration requires an active biome complex");
-        int configuredChunks = Math.max(IrisSettings.get().getPerformance().getNoiseCacheSize(), 4_096);
-        complex.ensureTerrainNoiseCacheSize(configuredChunks);
     }
 }

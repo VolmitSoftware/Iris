@@ -146,6 +146,7 @@ public class IrisObject extends IrisRegistrant {
     transient final AtomicCache<KList<IrisBlockVector>> surfaceSupportOffsets = new AtomicCache<>();
     transient final AtomicCache<FloatingObjectFootprint> floatingFootprint = new AtomicCache<>();
     transient final ConcurrentHashMap<ObjectPlacementBake.Key, ObjectPlacementBake> placementBakes = new ConcurrentHashMap<>();
+    transient volatile ObjectPlacementBake.Layout placementLayout;
     @Getter
     @Setter
     private transient TreeGrounding treeGrounding;

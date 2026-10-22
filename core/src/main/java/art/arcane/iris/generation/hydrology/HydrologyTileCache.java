@@ -80,7 +80,6 @@ public final class HydrologyTileCache implements AutoCloseable {
     private volatile SharedCacheScope sharedCacheScope;
     private volatile PreparedHydrologyTileStore persistentStore;
     private volatile boolean neighbourPrefetchEnabled;
-    private volatile Runnable terrainPreparation;
     private PregenerationScope pregenerationScope;
     private int demandBatches;
     private int activePrefetches;
@@ -268,7 +267,6 @@ public final class HydrologyTileCache implements AutoCloseable {
     private List<HydrologyDiagnosticCandidate> planDiagnostics(HydrologyTileKey key, long epoch) {
         HydrologyTile tile = planInline(key, epoch);
         try (HydrologyPlanningAdmission.Permit ignored = HydrologyPlanningAdmission.acquireRoot(closed::get)) {
-            prepareTerrain();
             return List.copyOf(planner.diagnosticCandidates(tile));
         }
     }
@@ -459,7 +457,6 @@ public final class HydrologyTileCache implements AutoCloseable {
     /** Plans the tile under a root permit; a persisted plan is restored before any permit is taken. */
     private HydrologyTile planAdmitted(HydrologyTileKey key, long planningEpoch,
                                        SharedTileKey sharedKey, PreparedHydrologyTileStore store) {
-        prepareTerrain();
         HydrologyTile planned = planner.plan(key);
         synchronized (publicationLock) {
             if (sharedKey != null && !closed.get() && planningEpoch == cacheEpoch.get()) {
@@ -775,17 +772,6 @@ public final class HydrologyTileCache implements AutoCloseable {
             }
         }
         clear();
-    }
-
-    public void setTerrainPreparation(Runnable preparation) {
-        terrainPreparation = Objects.requireNonNull(preparation, "terrainPreparation");
-    }
-
-    private void prepareTerrain() {
-        Runnable preparation = terrainPreparation;
-        if (preparation != null) {
-            preparation.run();
-        }
     }
 
     private static void collectActiveLoad(List<CompletableFuture<?>> active, PendingLoad<?> load) {

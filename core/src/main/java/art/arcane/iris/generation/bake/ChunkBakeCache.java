@@ -5,47 +5,36 @@ import art.arcane.iris.generation.stream.ProvisionalSampling;
 
 import java.util.Objects;
 
-public final class ChunkBakeCache implements BakeCache {
+public final class ChunkBakeCache {
+    public static final int MINIMUM_CAPACITY = 2_048;
+    static final int MAXIMUM_CAPACITY = 32_768;
+    static final long BYTES_PER_ENTRY = 13L * 1_024L;
+    static final int HEAP_SHARE = 32;
     private static final ThreadLocal<int[]> SPARSE = ThreadLocal.withInitial(() -> new int[1]);
 
     private final PlaneSource source;
+    private final ConcurrentClockCache<ChunkPlanes> entries;
     private final ThreadLocal<Recent> recent = ThreadLocal.withInitial(Recent::new);
-    private volatile ConcurrentClockCache<ChunkPlanes> entries;
+    private volatile int generation;
 
     public ChunkBakeCache(PlaneSource source, int capacityChunks) {
         this.source = Objects.requireNonNull(source, "Bake plane source");
         this.entries = new ConcurrentClockCache<>(Math.max(16, capacityChunks));
     }
 
-    @Override
-    public ColumnBake get(int chunkX, int chunkZ) {
-        return planes(chunkX, chunkZ).columnBake(source);
-    }
-
-    @Override
-    public ColumnBake getIfPresent(int chunkX, int chunkZ) {
-        ChunkPlanes planes = planesIfPresent(chunkX, chunkZ);
-        return planes == null ? null : planes.columnBake();
+    public static int capacityFor(long maxMemory) {
+        long entries = Math.max(0L, maxMemory) / HEAP_SHARE / BYTES_PER_ENTRY;
+        return (int) Math.max(MINIMUM_CAPACITY, Math.min(MAXIMUM_CAPACITY, entries));
     }
 
     public int capacity() {
         return entries.capacity();
     }
 
-    public synchronized void ensureCapacity(int chunks) {
-        ConcurrentClockCache<ChunkPlanes> current = entries;
-        if (current.capacity() >= chunks) {
-            return;
-        }
-        ConcurrentClockCache<ChunkPlanes> resized = new ConcurrentClockCache<>(chunks);
-        current.forEach(planes -> resized.putIfAbsent(key(planes.chunkX(), planes.chunkZ()), planes));
-        entries = resized;
-    }
-
-    public void clear() {
-        ConcurrentClockCache<ChunkPlanes> current = entries;
-        entries = new ConcurrentClockCache<>(current.capacity());
-        current.clear();
+    public synchronized void clear() {
+        generation++;
+        entries.forEach(ChunkPlanes::release);
+        entries.clear();
     }
 
     public long[] census() {
@@ -61,32 +50,19 @@ public final class ChunkBakeCache implements BakeCache {
         return counts;
     }
 
-    public ChunkPlanes planes(int chunkX, int chunkZ) {
-        ConcurrentClockCache<ChunkPlanes> current = entries;
-        long key = key(chunkX, chunkZ);
-        ChunkPlanes existing = current.get(key);
-        return existing != null ? existing : current.putIfAbsent(key, new ChunkPlanes(chunkX, chunkZ));
-    }
-
-    public ChunkPlanes planesIfPresent(int chunkX, int chunkZ) {
-        return entries.get(key(chunkX, chunkZ));
-    }
-
     public ChunkPlanes.Plane planeIfPresent(BakePlane plane, int chunkX, int chunkZ) {
         long key = key(chunkX, chunkZ);
         Recent last = recent.get();
-        ConcurrentClockCache<ChunkPlanes> current = entries;
+        int current = generation;
         ChunkPlanes planes;
-        if (last.key == key && last.entries == current) {
+        if (last.key == key && last.generation == current) {
             planes = last.planes;
         } else {
-            planes = current.get(key);
+            planes = entries.get(key);
             if (planes == null) {
                 return null;
             }
-            last.key = key;
-            last.planes = planes;
-            last.entries = current;
+            last.remember(key, planes, current);
         }
         return planes.planeIfPresent(plane);
     }
@@ -117,15 +93,16 @@ public final class ChunkBakeCache implements BakeCache {
         remembered(blockX >> 4, blockZ >> 4).plane(plane).storeObject(((blockZ & 15) << 4) | (blockX & 15), value);
     }
 
-    private ChunkPlanes remembered(int chunkX, int chunkZ) {
-        ConcurrentClockCache<ChunkPlanes> current = entries;
+    private ChunkPlanes planes(int chunkX, int chunkZ) {
         long key = key(chunkX, chunkZ);
-        ChunkPlanes existing = current.get(key);
-        ChunkPlanes planes = existing != null ? existing : current.putIfAbsent(key, new ChunkPlanes(chunkX, chunkZ));
-        Recent last = recent.get();
-        last.key = key;
-        last.planes = planes;
-        last.entries = current;
+        ChunkPlanes existing = entries.get(key);
+        return existing != null ? existing : entries.putIfAbsent(key, new ChunkPlanes(chunkX, chunkZ));
+    }
+
+    private ChunkPlanes remembered(int chunkX, int chunkZ) {
+        int current = generation;
+        ChunkPlanes planes = planes(chunkX, chunkZ);
+        recent.get().remember(key(chunkX, chunkZ), planes, current);
         return planes;
     }
 
@@ -147,7 +124,13 @@ public final class ChunkBakeCache implements BakeCache {
 
     private static final class Recent {
         private long key;
+        private int generation = -1;
         private ChunkPlanes planes;
-        private ConcurrentClockCache<ChunkPlanes> entries;
+
+        private void remember(long key, ChunkPlanes planes, int generation) {
+            this.key = key;
+            this.planes = planes;
+            this.generation = generation;
+        }
     }
 }

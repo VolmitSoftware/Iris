@@ -65,6 +65,7 @@ public class ObjectPlacementGoldenTest {
     private static final int SEEDS = 5;
     private static final long GOLDEN = 0x408f9d4113015897L;
     private static final long MARKER_GOLDEN = 0x60b4bbf1144b239cL;
+    private static final long HIGH_VARIANT_GOLDEN = 0xf017622340ecac42L;
 
     private static final List<String> PALETTE = List.of(
             "minecraft:stone",
@@ -227,6 +228,34 @@ public class ObjectPlacementGoldenTest {
         }
         assertTrue(markerWrites > 100);
         assertEquals(Long.toHexString(MARKER_GOLDEN), Long.toHexString(combined));
+    }
+
+    @Test
+    public void highVariantPlacementsMatchTheRecordedBlockStream() {
+        Random random = new Random(1444L);
+        IrisObjectRotation pine = rotation(new IrisAxisRotationClamp(true, false, -9D, 9D, 1D),
+                new IrisAxisRotationClamp(true, false, 0D, 270D, 90D), new IrisAxisRotationClamp(true, false, -9D, 9D, 1D));
+        long combined = 29L;
+        int writes = 0;
+        for (int index = 0; index < 16; index++) {
+            IrisObject object = randomObject(random, index);
+            object.setLoader(objectData);
+            IrisObjectPlacement placement = randomPlacement(random).toPlacement("pine");
+            placement.setRotation(pine);
+            for (int seed = 0; seed < 150; seed++) {
+                RNG rng = new RNG(index * 104_729L + seed);
+                GoldenPlacer placer = new GoldenPlacer(engine, (seed & 1) == 0);
+                int y = seed % 3 == 0 ? 90 + (seed & 7) : -1;
+                int result = object.place(300 + seed, y, -400 + index * 7, placer, placement, rng, null, null, data);
+                long hash = mix(placer.hash, result);
+                hash = mix(hash, rng.nextLong());
+                combined = mix(combined, hash);
+                writes += placer.writes;
+            }
+            assertTrue(object.placementBakes.size() <= 32);
+        }
+        assertTrue(writes > 10_000);
+        assertEquals(Long.toHexString(HIGH_VARIANT_GOLDEN), Long.toHexString(combined));
     }
 
     private static long mix(long hash, long value) {

@@ -343,8 +343,11 @@ public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, 
     @BlockCoordinates
     default SubterrainCell getSubterrainCell(int x, int y, int z) {
         IrisComplex complex = getComplex();
+        if (complex == null) {
+            return SubterrainCell.OUTSIDE;
+        }
         IrisDimension dimension = getDimension();
-        if (complex == null || dimension == null
+        if (dimension == null
                 || !dimension.allowsSubterrainFeatures()
                 || dimension.getSubterrainFeatures() == null || dimension.getSubterrainFeatures().isEmpty()) {
             return SubterrainCell.OUTSIDE;

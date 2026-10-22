@@ -20,7 +20,6 @@ import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Objects;
 
 final class ObjectSourcePlan {
     static final ObjectSourcePlan EMPTY = new ObjectSourcePlan(List.of());
@@ -45,18 +44,21 @@ final class ObjectSourcePlan {
     private final int estimatedRetainedBytes;
 
     ObjectSourcePlan(List<ObjectDestinationTransaction.Mutation> mutations) {
-        this(mutations, List.of());
+        this(MutationLog.of(mutations), 0, List.of());
     }
 
     ObjectSourcePlan(List<ObjectDestinationTransaction.Mutation> mutations, List<ObjectDestinationTransaction.PlacementRange> accepted) {
-        int count = mutations.size();
+        this(MutationLog.of(mutations), 0, accepted);
+    }
+
+    ObjectSourcePlan(MutationLog log, int from, List<ObjectDestinationTransaction.PlacementRange> accepted) {
+        int count = log.size() - from;
         long[] mutationDestinations = new long[count];
         Long2IntOpenHashMap destinationSlots = new Long2IntOpenHashMap();
         destinationSlots.defaultReturnValue(-1);
         LongArrayList firstSeen = new LongArrayList();
         for (int index = 0; index < count; index++) {
-            ObjectDestinationTransaction.Mutation mutation = Objects.requireNonNull(mutations.get(index), "mutation");
-            long destination = destinationKey(mutation.x() >> 4, mutation.z() >> 4);
+            long destination = destinationKey(log.x(from + index) >> 4, log.z(from + index) >> 4);
             mutationDestinations[index] = destination;
             if (destinationSlots.putIfAbsent(destination, firstSeen.size()) == -1) {
                 firstSeen.add(destination);
@@ -80,38 +82,23 @@ final class ObjectSourcePlan {
         valueIndexes = new int[count];
         ValueTable table = new ValueTable();
         for (int index = 0; index < count; index++) {
-            ObjectDestinationTransaction.Mutation mutation = mutations.get(index);
+            int logged = from + index;
             int position = cursor[destinationSlots.get(mutationDestinations[index])]++;
             positions[index] = position;
-            ObjectDestinationTransaction.DataKey key = mutation.key();
-            if (key.y() < 0 || key.y() > MAXIMUM_Y) {
-                throw new IllegalArgumentException("Object mutation height is outside the plan range: " + key.y());
+            int y = log.y(logged);
+            if (y < 0 || y > MAXIMUM_Y) {
+                throw new IllegalArgumentException("Object mutation height is outside the plan range: " + y);
             }
-            Object value;
-            int custom;
-            switch (mutation) {
-                case ObjectDestinationTransaction.SetMutation set -> {
-                    value = Objects.requireNonNull(set.value(), "mutation value");
-                    if (typeOf(value) != key.type()) {
-                        throw new IllegalArgumentException("Object mutation type " + key.type().getName()
-                                + " does not match its value " + value.getClass().getName());
-                    }
-                    custom = 0;
-                }
-                case ObjectDestinationTransaction.CustomBlockMutation block -> {
-                    value = Objects.requireNonNull(block.state(), "custom block state");
-                    custom = CUSTOM_BIT;
-                }
-            }
-            cells[position] = (key.y() << Y_SHIFT) | custom | (mutation.canopy() ? CANOPY_BIT : 0) | ((key.z() & 15) << 4) | (key.x() & 15);
-            valueIndexes[position] = table.indexOf(value);
+            cells[position] = (y << Y_SHIFT) | (log.custom(logged) ? CUSTOM_BIT : 0) | (log.canopy(logged) ? CANOPY_BIT : 0)
+                    | ((log.z(logged) & 15) << 4) | (log.x(logged) & 15);
+            valueIndexes[position] = table.indexOf(log.value(logged));
         }
         values = table.values.toArray();
 
         ArrayList<Placement> crossing = new ArrayList<>();
         for (int ordinal = 0; ordinal < accepted.size(); ordinal++) {
             ObjectDestinationTransaction.PlacementRange range = accepted.get(ordinal);
-            Placement placement = crossingPlacement(ordinal, range.start(), range.end(), mutations, mutationDestinations, destinationSlots, positions);
+            Placement placement = crossingPlacement(ordinal, range.start(), range.end(), log, from, mutationDestinations, destinationSlots, positions);
             if (placement != null) {
                 crossing.add(placement);
             }
@@ -147,12 +134,13 @@ final class ObjectSourcePlan {
             int ordinal,
             int start,
             int end,
-            List<ObjectDestinationTransaction.Mutation> mutations,
+            MutationLog log,
+            int from,
             long[] mutationDestinations,
             Long2IntOpenHashMap destinationSlots,
             int[] positions
     ) {
-        if (start < 0 || end > mutations.size() || start >= end) {
+        if (start < 0 || end > log.size() - from || start >= end) {
             throw new IllegalArgumentException("Object placement range is outside the plan");
         }
         long first = mutationDestinations[start];
@@ -172,11 +160,12 @@ final class ObjectSourcePlan {
         int maximumX = Integer.MIN_VALUE;
         int maximumZ = Integer.MIN_VALUE;
         for (int mutationIndex = start; mutationIndex < end; mutationIndex++) {
-            ObjectDestinationTransaction.Mutation mutation = mutations.get(mutationIndex);
-            minimumX = Math.min(minimumX, mutation.x());
-            minimumZ = Math.min(minimumZ, mutation.z());
-            maximumX = Math.max(maximumX, mutation.x());
-            maximumZ = Math.max(maximumZ, mutation.z());
+            int mutationX = log.x(from + mutationIndex);
+            int mutationZ = log.z(from + mutationIndex);
+            minimumX = Math.min(minimumX, mutationX);
+            minimumZ = Math.min(minimumZ, mutationZ);
+            maximumX = Math.max(maximumX, mutationX);
+            maximumZ = Math.max(maximumZ, mutationZ);
             long destination = mutationDestinations[mutationIndex];
             int touchedIndex = touchedIndexes.get(destination);
             if (touchedIndex < 0) {
@@ -214,6 +203,55 @@ final class ObjectSourcePlan {
 
     boolean isEmpty() {
         return destinations.length == 0;
+    }
+
+    int slotStart(int slot) {
+        return offsets[slot];
+    }
+
+    int slotEnd(int slot) {
+        return offsets[slot + 1];
+    }
+
+    int cellAt(int index) {
+        return cells[index];
+    }
+
+    Object valueAt(int index) {
+        return values[valueIndexes[index]];
+    }
+
+    static int cellX(int cell) {
+        return cell & 15;
+    }
+
+    static int cellZ(int cell) {
+        return (cell >>> 4) & 15;
+    }
+
+    static int cellY(int cell) {
+        return cell >>> Y_SHIFT;
+    }
+
+    static boolean isCustom(int cell) {
+        return (cell & CUSTOM_BIT) != 0;
+    }
+
+    static boolean isCanopy(int cell) {
+        return (cell & CANOPY_BIT) != 0;
+    }
+
+    ObjectDestinationTransaction.Mutation mutationAt(int chunkX, int chunkZ, int index) {
+        int cell = cells[index];
+        int x = (chunkX << 4) | cellX(cell);
+        int z = (chunkZ << 4) | cellZ(cell);
+        int y = cellY(cell);
+        Object value = valueAt(index);
+        return isCustom(cell)
+                ? new ObjectDestinationTransaction.CustomBlockMutation(
+                new ObjectDestinationTransaction.DataKey(x, y, z, NativeBlockState.class), (NativeBlockState) value, isCanopy(cell))
+                : new ObjectDestinationTransaction.SetMutation(
+                new ObjectDestinationTransaction.DataKey(x, y, z, typeOf(value)), value, isCanopy(cell));
     }
 
     List<ObjectDestinationTransaction.Mutation> mutationsFor(int chunkX, int chunkZ) {
@@ -266,19 +304,8 @@ final class ObjectSourcePlan {
 
     private List<ObjectDestinationTransaction.Mutation> decode(int chunkX, int chunkZ, int start, int length) {
         ObjectDestinationTransaction.Mutation[] decoded = new ObjectDestinationTransaction.Mutation[length];
-        int baseX = chunkX << 4;
-        int baseZ = chunkZ << 4;
         for (int index = 0; index < length; index++) {
-            int cell = cells[start + index];
-            int x = baseX | (cell & 15);
-            int z = baseZ | ((cell >>> 4) & 15);
-            int y = cell >>> Y_SHIFT;
-            Object value = values[valueIndexes[start + index]];
-            decoded[index] = (cell & CUSTOM_BIT) != 0
-                    ? new ObjectDestinationTransaction.CustomBlockMutation(
-                    new ObjectDestinationTransaction.DataKey(x, y, z, NativeBlockState.class), (NativeBlockState) value, (cell & CANOPY_BIT) != 0)
-                    : new ObjectDestinationTransaction.SetMutation(
-                    new ObjectDestinationTransaction.DataKey(x, y, z, typeOf(value)), value, (cell & CANOPY_BIT) != 0);
+            decoded[index] = mutationAt(chunkX, chunkZ, start + index);
         }
         return List.of(decoded);
     }

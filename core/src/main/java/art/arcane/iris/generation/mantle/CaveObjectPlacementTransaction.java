@@ -30,10 +30,11 @@ import art.arcane.iris.generation.hydrology.cave.HydrologyCaveCell;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.math.BlockPosition;
 import art.arcane.iris.generation.block.B;
-import art.arcane.volmlib.util.collection.KList;
 import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.Arrays;
 
 final class CaveObjectPlacementTransaction implements IObjectPlacer {
     private static final int CACHE_MISS = Integer.MIN_VALUE;
@@ -46,7 +47,16 @@ final class CaveObjectPlacementTransaction implements IObjectPlacer {
     private final int anchorY;
     private final int minDepthBelowSurface;
     private final int worldHeight;
-    private final KList<BufferedMutation> mutations;
+    private static final byte BLOCK = 0;
+    private static final byte TILE = 1;
+    private static final byte DATA = 2;
+    private int[] mutationX = new int[64];
+    private int[] mutationY = new int[64];
+    private int[] mutationZ = new int[64];
+    private Object[] mutationValues = new Object[64];
+    private byte[] mutationKinds = new byte[64];
+    private boolean[] mutationCanopies = new boolean[64];
+    private int mutationCount;
     private final Long2ObjectOpenHashMap<NativeBlockState> bufferedBlocks;
     private final Long2IntOpenHashMap surfaceHeights;
     private final Long2IntOpenHashMap caveCeilings;
@@ -62,7 +72,6 @@ final class CaveObjectPlacementTransaction implements IObjectPlacer {
         this.anchorY = anchorY;
         this.minDepthBelowSurface = Math.max(0, minDepthBelowSurface);
         this.worldHeight = engine == null ? 0 : engine.getHeight();
-        this.mutations = new KList<>();
         this.bufferedBlocks = new Long2ObjectOpenHashMap<>();
         this.surfaceHeights = new Long2IntOpenHashMap();
         this.caveCeilings = new Long2IntOpenHashMap();
@@ -81,35 +90,37 @@ final class CaveObjectPlacementTransaction implements IObjectPlacer {
         int previousX = 0;
         int previousY = 0;
         int previousZ = 0;
-        for (BufferedMutation mutation : mutations) {
-            if (previousChecked && mutation.x() == previousX && mutation.y() == previousY && mutation.z() == previousZ) {
+        for (int index = 0; index < mutationCount; index++) {
+            int x = mutationX[index];
+            int y = mutationY[index];
+            int z = mutationZ[index];
+            if (previousChecked && x == previousX && y == previousY && z == previousZ) {
                 continue;
             }
             if (complex != null
-                    && !complex.allowsNewDiscreteContentAt(mutation.x(), mutation.z())) {
+                    && !complex.allowsNewDiscreteContentAt(x, z)) {
                 discard();
                 return CommitResult.REJECTED_TRANSITION;
             }
-            if (!isWithinBounds(mutation.x(), mutation.y(), mutation.z())) {
+            if (!isWithinBounds(x, y, z)) {
                 discard();
                 return CommitResult.REJECTED_BOUNDS;
             }
-            SubterrainCell feature = engine.getSubterrainCell(mutation.x(), mutation.y(), mutation.z());
+            SubterrainCell feature = engine.getSubterrainCell(x, y, z);
             if (SubterrainRasterizer.protectsPlacement(feature)
-                    || feature != null && feature.solid() && delegate.isSolid(mutation.x(), mutation.y(), mutation.z())) {
+                    || feature != null && feature.solid() && delegate.isSolid(x, y, z)) {
                 discard();
                 return CommitResult.REJECTED_SUBTERRAIN;
             }
-            HydrologyCaveCell hydrology = delegate.getData(
-                    mutation.x(), mutation.y(), mutation.z(), HydrologyCaveCell.class);
+            HydrologyCaveCell hydrology = delegate.getData(x, y, z, HydrologyCaveCell.class);
             if (hydrology != null && hydrology.protectsPlacement()) {
                 discard();
                 return CommitResult.REJECTED_HYDROLOGY;
             }
             previousChecked = true;
-            previousX = mutation.x();
-            previousY = mutation.y();
-            previousZ = mutation.z();
+            previousX = x;
+            previousY = y;
+            previousZ = z;
         }
 
         applyMutations();
@@ -121,18 +132,26 @@ final class CaveObjectPlacementTransaction implements IObjectPlacer {
         boolean canopyOpen = false;
         boolean skipCanopy = false;
         try {
-            for (BufferedMutation mutation : mutations) {
-                if (mutation.value() instanceof NativeBlockState) {
+            for (int index = 0; index < mutationCount; index++) {
+                int x = mutationX[index];
+                int y = mutationY[index];
+                int z = mutationZ[index];
+                Object value = mutationValues[index];
+                boolean canopy = mutationCanopies[index];
+                if (value instanceof NativeBlockState) {
                     if (canopyOpen) {
                         delegate.endTreeCanopy();
                         canopyOpen = false;
                     }
-                    skipCanopy = mutation.canopy()
-                            && !delegate.beginTreeCanopy(new BlockPosition(mutation.x(), mutation.y(), mutation.z()));
-                    canopyOpen = mutation.canopy() && !skipCanopy;
+                    skipCanopy = canopy && !delegate.beginTreeCanopy(new BlockPosition(x, y, z));
+                    canopyOpen = canopy && !skipCanopy;
                 }
-                if (!mutation.canopy() || !skipCanopy) {
-                    mutation.apply(delegate);
+                if (!canopy || !skipCanopy) {
+                    switch (mutationKinds[index]) {
+                        case BLOCK -> delegate.set(x, y, z, (NativeBlockState) value);
+                        case TILE -> delegate.setTile(x, y, z, (TileData) value);
+                        default -> delegate.setData(x, y, z, value);
+                    }
                 }
             }
         } finally {
@@ -143,9 +162,29 @@ final class CaveObjectPlacementTransaction implements IObjectPlacer {
     }
 
     void discard() {
-        mutations.clear();
+        Arrays.fill(mutationValues, 0, mutationCount, null);
+        mutationCount = 0;
         bufferedBlocks.clear();
         blockWrites = 0;
+    }
+
+    private void buffer(byte kind, int x, int y, int z, Object value) {
+        if (mutationCount == mutationValues.length) {
+            int capacity = mutationCount * 2;
+            mutationX = Arrays.copyOf(mutationX, capacity);
+            mutationY = Arrays.copyOf(mutationY, capacity);
+            mutationZ = Arrays.copyOf(mutationZ, capacity);
+            mutationValues = Arrays.copyOf(mutationValues, capacity);
+            mutationKinds = Arrays.copyOf(mutationKinds, capacity);
+            mutationCanopies = Arrays.copyOf(mutationCanopies, capacity);
+        }
+        mutationX[mutationCount] = x;
+        mutationY[mutationCount] = y;
+        mutationZ[mutationCount] = z;
+        mutationValues[mutationCount] = value;
+        mutationKinds[mutationCount] = kind;
+        mutationCanopies[mutationCount] = isCanopy(x, y, z);
+        mutationCount++;
     }
 
     int getCaveCeiling(int x, int z) {
@@ -179,7 +218,7 @@ final class CaveObjectPlacementTransaction implements IObjectPlacer {
         if (state == null) {
             return;
         }
-        mutations.add(new BlockMutation(x, y, z, state, isCanopy(x, y, z)));
+        buffer(BLOCK, x, y, z, state);
         bufferedBlocks.put(bufferKey(x, y, z), state);
         blockWrites++;
     }
@@ -257,7 +296,7 @@ final class CaveObjectPlacementTransaction implements IObjectPlacer {
     @Override
     public void setTile(int x, int y, int z, TileData tile) {
         if (tile != null) {
-            mutations.add(new TileMutation(x, y, z, tile, isCanopy(x, y, z)));
+            buffer(TILE, x, y, z, tile);
         }
     }
 
@@ -266,7 +305,7 @@ final class CaveObjectPlacementTransaction implements IObjectPlacer {
         if (data == null) {
             return;
         }
-        mutations.add(new DataMutation(x, y, z, data, isCanopy(x, y, z)));
+        buffer(DATA, x, y, z, data);
         if (data instanceof NativeBlockState state) {
             bufferedBlocks.put(bufferKey(x, y, z), state);
             blockWrites++;
@@ -275,12 +314,11 @@ final class CaveObjectPlacementTransaction implements IObjectPlacer {
 
     @Override
     public <T> @Nullable T getData(int x, int y, int z, Class<T> type) {
-        for (int i = mutations.size() - 1; i >= 0; i--) {
-            BufferedMutation mutation = mutations.get(i);
-            if (mutation.x() != x || mutation.y() != y || mutation.z() != z) {
+        for (int index = mutationCount - 1; index >= 0; index--) {
+            if (mutationX[index] != x || mutationY[index] != y || mutationZ[index] != z) {
                 continue;
             }
-            Object value = mutation.value();
+            Object value = mutationValues[index];
             if (type.isInstance(value)) {
                 return type.cast(value);
             }
@@ -356,40 +394,4 @@ final class CaveObjectPlacementTransaction implements IObjectPlacer {
         REJECTED_HYDROLOGY,
         REJECTED_SUBTERRAIN
     }
-
-    private interface BufferedMutation {
-        int x();
-
-        int y();
-
-        int z();
-
-        Object value();
-
-        boolean canopy();
-
-        void apply(IObjectPlacer placer);
-    }
-
-    private record BlockMutation(int x, int y, int z, NativeBlockState value, boolean canopy) implements BufferedMutation {
-        @Override
-        public void apply(IObjectPlacer placer) {
-            placer.set(x, y, z, value);
-        }
-    }
-
-    private record TileMutation(int x, int y, int z, TileData value, boolean canopy) implements BufferedMutation {
-        @Override
-        public void apply(IObjectPlacer placer) {
-            placer.setTile(x, y, z, value);
-        }
-    }
-
-    private record DataMutation(int x, int y, int z, Object value, boolean canopy) implements BufferedMutation {
-        @Override
-        public void apply(IObjectPlacer placer) {
-            placer.setData(x, y, z, value);
-        }
-    }
-
 }

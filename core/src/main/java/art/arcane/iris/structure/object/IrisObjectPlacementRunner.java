@@ -30,7 +30,6 @@ import art.arcane.iris.generation.decoration.IrisVacuumSettings;
 import art.arcane.iris.world.entity.IrisMarker;
 
 import art.arcane.iris.pack.loading.IrisData;
-import art.arcane.iris.generation.runtime.GenerationFailures;
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.volmlib.nativelib.terrain.structure.NativeStructureVolume;

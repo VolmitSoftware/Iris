@@ -39,7 +39,8 @@ public class MissingBuiltInModulesTest {
         String warning = MissingBuiltInModules.warning(PACK, List.of()).orElseThrow();
 
         assertTrue(warning, warning.startsWith("Pack overworld loads without the built-in modules (iris-builtins.jar)"));
-        assertTrue(warning, warning.contains("Copy iris-builtins.jar into " + new File(PACK, "modules").getPath() + " to fix it."));
+        assertTrue(warning, warning.contains("does not bundle iris-builtins.jar; use a complete build, or copy the jar into "
+                + new File(PACK, "modules").getPath() + "."));
     }
 
     @Test

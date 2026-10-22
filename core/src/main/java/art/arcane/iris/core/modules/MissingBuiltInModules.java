@@ -25,8 +25,8 @@ import java.util.Collection;
 import java.util.Optional;
 
 /**
- * Notices a pack that loads without the built-in modules jar. Such a pack still loads and generates, but quietly without
- * what the jar's modules do, so the owner is told once, with the fix.
+ * Notices a pack that loads without the built-in modules jar, which happens only when this build of Iris does not bundle
+ * it. Such a pack still loads and generates, but quietly without what the jar's modules do, so the owner is told once.
  */
 final class MissingBuiltInModules {
     static final String JAR_NAME = "iris-builtins.jar";
@@ -44,7 +44,7 @@ final class MissingBuiltInModules {
         }
         return Optional.of("Pack " + packFolder.getName() + " loads without the built-in modules (" + JAR_NAME + "): its world gets"
                 + " only its layout (biomes and heights), with no terrain blocks, ores, caves, decorations, objects or vanilla features,"
-                + " and no loot, block drops, entity spawns or ambient effects. Copy " + JAR_NAME
-                + " into " + new File(packFolder, PackModuleSet.MODULES_FOLDER).getPath() + " to fix it.");
+                + " and no loot, block drops, entity spawns or ambient effects. This build of Iris does not bundle " + JAR_NAME
+                + "; use a complete build, or copy the jar into " + new File(packFolder, PackModuleSet.MODULES_FOLDER).getPath() + ".");
     }
 }

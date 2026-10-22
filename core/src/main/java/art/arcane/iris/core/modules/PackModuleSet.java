@@ -40,6 +40,7 @@ public final class PackModuleSet implements AutoCloseable {
     static final String MODULES_FOLDER = "modules";
     private static final String JAR_EXTENSION = ".jar";
     private static final String MISSING_BUILT_INS_KEY = "missing-built-in-modules:";
+    private static final String REPLACED_JAR_KEY = "replaced-module-jar:";
 
     private final File packFolder;
     private final Supplier<Gson> irisGson;
@@ -124,6 +125,7 @@ public final class PackModuleSet implements AutoCloseable {
             pack = loaded;
             state = State.LOADED;
             warnWhenBuiltInModulesAreMissing(loaded);
+            warnAboutReplacedJars(loaded);
         } catch (RuntimeException loadFailure) {
             failure = new PackModulesException(packFolder, loadFailure);
             state = State.FAILED;
@@ -135,6 +137,14 @@ public final class PackModuleSet implements AutoCloseable {
     private void warnWhenBuiltInModulesAreMissing(LoadedPack loaded) {
         MissingBuiltInModules.warning(packFolder, loaded.packModules())
                 .ifPresent(warning -> IrisLogging.warnOnce(MISSING_BUILT_INS_KEY + packFolder.getAbsolutePath(), "%s", warning));
+    }
+
+    /** A pack's own copy of a jar Iris bundles, such as an old {@code iris-builtins.jar}, is left out; its owner is told once. */
+    private void warnAboutReplacedJars(LoadedPack loaded) {
+        for (String jar : loaded.replacedJars()) {
+            String path = new File(packFolder, jar).getAbsolutePath();
+            IrisLogging.warnOnce(REPLACED_JAR_KEY + path, "%s is not loaded; Iris's own copy loads instead. Delete it.", path);
+        }
     }
 
     /** Each module jar's name, size and modification time, in name order. */

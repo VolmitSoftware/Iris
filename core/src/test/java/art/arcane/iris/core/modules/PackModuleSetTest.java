@@ -74,7 +74,7 @@ public class PackModuleSetTest {
         String warnings = warningsWhile(() -> new PackModuleSet(pack, Gson::new).pack());
 
         assertTrue(warnings, warnings.contains("[Iris/WARN] Pack without-builtins loads without the built-in modules (iris-builtins.jar)"));
-        assertTrue(warnings, warnings.contains("Copy iris-builtins.jar into " + new File(pack, "modules").getPath()));
+        assertTrue(warnings, warnings.contains("copy the jar into " + new File(pack, "modules").getPath()));
     }
 
     @Test

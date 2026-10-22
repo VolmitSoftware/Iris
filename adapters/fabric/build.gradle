@@ -58,6 +58,7 @@ IrisFileOperations irisFileOperations = objects.newInstance(IrisFileOperations)
 
 apply from: file('../../gradle/modded-generation-build-revision.gradle')
 apply from: file('../../gradle/volmlib-stamp.gradle')
+apply from: file('../../gradle/java21-runtime-exclusions.gradle')
 
 Properties rootProperties = new Properties()
 file('../../gradle.properties').withInputStream { InputStream stream -> rootProperties.load(stream) }
@@ -322,8 +323,7 @@ tasks.named('shadowJar', ShadowJar).configure {
     configurations = [project.configurations.named('bundle').get()]
     mergeServiceFiles()
     if ((int) irisModTarget.java == 21) {
-        exclude('art/arcane/volmlib/util/noise/NativeBillowLoader*.class')
-        exclude('art/arcane/volmlib/util/noise/BillowBatch*.class')
+        exclude(java21RuntimeExclusions)
     }
     exclude('META-INF/maven/**')
     exclude('META-INF/proguard/**')

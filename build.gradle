@@ -230,6 +230,7 @@ List<Object> moddedSharedInputs = []
     'gradle/libs.versions.toml',
     'gradle/volmlib-resolution.settings.gradle',
     'gradle/volmlib-stamp.gradle',
+    'gradle/java21-runtime-exclusions.gradle',
     'gradle/generation-build-revision.gradle',
     'gradle/modded-generation-build-revision.gradle',
     'gradle/native-minecraft-sources.gradle',
@@ -245,7 +246,8 @@ List<Object> moddedSharedInputs = []
 ].each { String path -> moddedSharedInputs.add(layout.projectDirectory.file(path).asFile) }
 if (localVolmLibCheckout != null) {
     moddedSharedInputs.add(fileTree(localVolmLibCheckout) {
-        include('shared/src/main/**', 'native-api/src/main/**', 'native-terrain-api/src/main/**',
+        include('shared/src/main/**', 'shared/src/nativeNoise/**', 'shared/native/noise/prebuilt/**',
+            'native-api/src/main/**', 'native-terrain-api/src/main/**',
             'native/**/src/main/**',
             'native/minecraft-common/src/**', 'packaging/src/main/**',
             '**/build.gradle', 'settings.gradle', 'gradle.properties', 'gradle/libs.versions.toml')

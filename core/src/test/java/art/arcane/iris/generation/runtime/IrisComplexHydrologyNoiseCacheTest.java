@@ -228,11 +228,54 @@ public class IrisComplexHydrologyNoiseCacheTest {
             HydrologyNoiseCacheBudget budget = new HydrologyNoiseCacheBudget(Long.MAX_VALUE);
             setField(fixture.complex, "detached", true);
             fixture.complex.expandHydrologyNoiseCaches(budget);
+            fixture.complex.reserveHydrologyBake(budget);
             fixture.assertCapacities(1_024);
+            assertEquals(1_024, fixture.bakes.capacity());
             setField(fixture.complex, "detached", false);
             fixture.complex.setHydrologyRuntime(null);
             fixture.complex.expandHydrologyNoiseCaches(budget);
+            fixture.complex.reserveHydrologyBake(budget);
             fixture.assertCapacities(1_024);
+            assertEquals(1_024, fixture.bakes.capacity());
+            assertEquals(0L, budget.reservedBytes());
+        }
+    }
+
+    @Test
+    public void plannerReservationGrowsTheBakeToTheHydrologyTarget() throws Exception {
+        try (Fixture fixture = new Fixture(1_024)) {
+            HydrologyNoiseCacheBudget budget = new HydrologyNoiseCacheBudget(Long.MAX_VALUE);
+            fixture.complex.reserveHydrologyBake(budget);
+            fixture.complex.reserveHydrologyBake(budget);
+            assertEquals(32_768, fixture.bakes.capacity());
+            assertEquals(2L * (32_768L - 1_024L) * 4_096L, budget.reservedBytes());
+            fixture.complex.ensureTerrainNoiseCacheSize(4_096);
+            assertEquals(32_768, fixture.bakes.capacity());
+            fixture.complex.close();
+            assertEquals(0L, budget.reservedBytes());
+            fixture.complex.reserveHydrologyBake(budget);
+            assertEquals(0L, budget.reservedBytes());
+        }
+    }
+
+    @Test
+    public void plannerReservationTakesOnlyTheGrantedShareOfTheBudget() throws Exception {
+        try (Fixture fixture = new Fixture(1_024)) {
+            HydrologyNoiseCacheBudget budget = new HydrologyNoiseCacheBudget(2L * 80L * 4_096L + 4_095L);
+            fixture.complex.reserveHydrologyBake(budget);
+            assertEquals(1_104, fixture.bakes.capacity());
+            assertEquals(2L * 80L * 4_096L, budget.reservedBytes());
+            fixture.complex.close();
+            assertEquals(0L, budget.reservedBytes());
+        }
+    }
+
+    @Test
+    public void plannerReservationLeavesLargerBakesUnchanged() throws Exception {
+        try (Fixture fixture = new Fixture(65_536)) {
+            HydrologyNoiseCacheBudget budget = new HydrologyNoiseCacheBudget(Long.MAX_VALUE);
+            fixture.complex.reserveHydrologyBake(budget);
+            assertEquals(65_536, fixture.bakes.capacity());
             assertEquals(0L, budget.reservedBytes());
         }
     }

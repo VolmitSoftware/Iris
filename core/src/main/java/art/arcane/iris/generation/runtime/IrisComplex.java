@@ -141,6 +141,7 @@ public class IrisComplex implements DataProvider {
     private static final int STUDIO_NOISE_CACHE_SIZE = 32_768;
     private static final int TERRAIN_COLUMN_CACHE_SIZE = 524_288;
     private static final int BAKE_CHUNKS_PER_NOISE_CHUNK = 8;
+    private static final int HYDROLOGY_BAKE_BUDGET_SHARES = 2;
     /** One million corners: about 20 MB, roughly a 4000 by 4000 block area at the 4-block grid. */
     private static final int SHARED_CORNER_BOUNDS_CAPACITY = 1 << 20;
     /** The slope streams measure the rise across a run of this many blocks, so gradient is slope over run. */
@@ -217,6 +218,9 @@ public class IrisComplex implements DataProvider {
     @Getter(AccessLevel.NONE)
     @Setter(AccessLevel.NONE)
     private transient boolean hydrologyNoiseCachesClosed;
+    @Getter(AccessLevel.NONE)
+    @Setter(AccessLevel.NONE)
+    private transient HydrologyNoiseCacheBudget.Reservation hydrologyBakeReservation;
     private RNG rng;
     private double fluidHeight;
     private IrisData data;
@@ -624,6 +628,27 @@ public class IrisComplex implements DataProvider {
         hydrologyNoiseCacheReservation.close();
         hydrologyNoiseCacheReservation = null;
         hydrologyNoiseCaches = List.of();
+    }
+
+    synchronized void reserveHydrologyBake(HydrologyNoiseCacheBudget budget) {
+        if (detached || hydrologyRuntime == null || hydrologyNoiseCachesClosed || hydrologyBakeReservation != null) {
+            return;
+        }
+        int capacity = bakeCache.capacity();
+        int requested = HydrologyNoiseCacheBudget.MAXIMUM_CHUNKS - capacity;
+        if (requested <= 0) {
+            return;
+        }
+        hydrologyBakeReservation = budget.reserve(HYDROLOGY_BAKE_BUDGET_SHARES, requested);
+        bakeCache.ensureCapacity(capacity + hydrologyBakeReservation.additionalChunks());
+    }
+
+    private synchronized void releaseHydrologyBake() {
+        if (hydrologyBakeReservation == null) {
+            return;
+        }
+        hydrologyBakeReservation.close();
+        hydrologyBakeReservation = null;
     }
 
     void enablePreparedHydrologyCache(String runtimeIdentity, Path persistentRoot) {
@@ -1085,9 +1110,11 @@ public class IrisComplex implements DataProvider {
 
     private final class HydrologyHeightProvider implements IrisHydrologyNaturalHeightProvider {
         private final boolean batch = supportsHeightBatch();
+        private volatile boolean bakeReserved;
 
         @Override
         public double sample(int blockX, int blockZ) {
+            reserveBake();
             return naturalHeightStream.getDouble(blockX, blockZ);
         }
 
@@ -1102,7 +1129,16 @@ public class IrisComplex implements DataProvider {
                 IrisHydrologyNaturalHeightProvider.super.sampleBatch(coordinates, count, heights);
                 return;
             }
+            reserveBake();
             sampleNaturalBatch(coordinates, count, heights);
+        }
+
+        private void reserveBake() {
+            if (bakeReserved) {
+                return;
+            }
+            bakeReserved = true;
+            reserveHydrologyBake(HydrologyNoiseCacheBudget.SHARED);
         }
     }
 
@@ -3003,6 +3039,7 @@ public class IrisComplex implements DataProvider {
             hydrologyRuntime.close();
         }
         releaseHydrologyNoiseCaches();
+        releaseHydrologyBake();
         bakeCache.clear();
         if (transitionDisplacement != null) {
             transitionDisplacement.clear();

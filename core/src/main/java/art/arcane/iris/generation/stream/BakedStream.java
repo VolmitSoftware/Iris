@@ -20,14 +20,6 @@ public final class BakedStream<T> extends BasicStream<T> implements ChunkFillabl
         this.scalar = Objects.requireNonNull(scalar, "Scalar source");
     }
 
-    public BakePlane plane() {
-        return plane;
-    }
-
-    public ProceduralStream<T> scalar() {
-        return scalar;
-    }
-
     @Override
     @SuppressWarnings("unchecked")
     public T get(double x, double z) {

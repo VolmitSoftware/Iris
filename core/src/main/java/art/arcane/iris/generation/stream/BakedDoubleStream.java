@@ -20,14 +20,6 @@ public final class BakedDoubleStream extends BasicStream<Double> implements Chun
         this.scalar = Objects.requireNonNull(scalar, "Scalar source");
     }
 
-    public BakePlane plane() {
-        return plane;
-    }
-
-    public ProceduralStream<Double> scalar() {
-        return scalar;
-    }
-
     @Override
     public Double get(double x, double z) {
         return getDouble(x, z);

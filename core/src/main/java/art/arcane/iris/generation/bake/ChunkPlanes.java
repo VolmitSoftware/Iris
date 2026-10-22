@@ -32,11 +32,6 @@ public final class ChunkPlanes {
         return planes.getAcquire(kind.ordinal());
     }
 
-    public Object published(BakePlane kind) {
-        Plane plane = planes.getAcquire(kind.ordinal());
-        return plane != null && plane.complete ? plane.values : null;
-    }
-
     public Plane plane(BakePlane kind) {
         int slot = kind.ordinal();
         Plane plane = planes.getAcquire(slot);

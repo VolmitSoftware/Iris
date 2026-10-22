@@ -351,6 +351,7 @@ public class DimensionTerrain3DCompositionTest {
         when(context.getBiome()).thenReturn(biomes);
         when(context.getRegion()).thenReturn(regions);
         when(context.getRock()).thenReturn(rocks);
+        when(context.getFluid()).thenReturn(mock(ChunkedDataCache.class));
         when(context.getRoundedHeight(0, 0)).thenReturn(rootHeight);
         Hunk<NativeBlockState> blocks = Hunk.newArrayHunk(1, 64, 1);
         new IrisTerrainNormalActuator(engine).paint(0, 0, blocks, context);

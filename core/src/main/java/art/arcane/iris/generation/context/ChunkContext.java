@@ -17,8 +17,6 @@ import art.arcane.volmlib.nativelib.terrain.NativeBiome;
 import art.arcane.volmlib.util.hunk.Hunk;
 import art.arcane.iris.generation.concurrent.MultiBurst;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 public class ChunkContext {
@@ -95,38 +93,11 @@ public class ChunkContext {
             if (hydrologyRuntime != null && (resolvedPlan.height || resolvedPlan.biome)) {
                 hydrologyRuntime.prepareChunkColumns(x, z);
             }
-            List<Runnable> fillTasks = new ArrayList<>(6);
-            if (resolvedPlan.height) {
-                fillTasks.add(() -> height.fillRounded(roundedHeight));
-            }
-            if (resolvedPlan.biome) {
-                fillTasks.add(new PrefillFillTask(biome));
-            }
-            if (resolvedPlan.rock) {
-                fillTasks.add(new PrefillFillTask(rock));
-            }
-            if (resolvedPlan.fluid) {
-                fillTasks.add(new PrefillFillTask(fluid));
-            }
-            if (resolvedPlan.region) {
-                fillTasks.add(new PrefillFillTask(region));
-            }
-            if (resolvedPlan.cave) {
-                fillTasks.add(new PrefillFillTask(cave));
-            }
-
-            if (!shouldPrefillAsync(resolvedPlan, fillTasks.size())) {
-                for (Runnable fillTask : fillTasks) {
-                    fillTask.run();
-                }
+            if (shouldPrefillAsync(resolvedPlan, complex.isPlatformMainThread())) {
+                prefillAsync(resolvedPlan);
             } else {
-                List<CompletableFuture<Void>> futures = new ArrayList<>(fillTasks.size());
-                for (Runnable fillTask : fillTasks) {
-                    futures.add(CompletableFuture.runAsync(fillTask, MultiBurst.burst));
-                }
-                for (CompletableFuture<Void> future : futures) {
-                    future.join();
-                }
+                prefillSurface(resolvedPlan);
+                prefillPalettes(resolvedPlan);
             }
             if (capturePrefillMetric) {
                 metrics.getContextPrefill().put((System.nanoTime() - totalStartNanos) / 1_000_000D);
@@ -134,12 +105,44 @@ public class ChunkContext {
         }
     }
 
-    static boolean shouldPrefillAsync(PrefillPlan prefillPlan, int fillTaskCount) {
-        if (prefillPlan == PrefillPlan.NATURAL_TERRAIN || fillTaskCount <= 1 || !IrisPlatforms.isBound()) {
+    static boolean shouldPrefillAsync(PrefillPlan prefillPlan, boolean platformMainThread) {
+        if (!platformMainThread || prefillPlan == PrefillPlan.NATURAL_TERRAIN || prefillPlan == PrefillPlan.NONE
+                || !IrisPlatforms.isBound()) {
             return false;
         }
 
         return !MultiBurst.burst.ownsCurrentThread();
+    }
+
+    private void prefillSurface(PrefillPlan prefillPlan) {
+        if (prefillPlan.height) {
+            height.fillRounded(roundedHeight);
+        }
+        if (prefillPlan.biome) {
+            biome.fill();
+        }
+    }
+
+    private void prefillPalettes(PrefillPlan prefillPlan) {
+        if (prefillPlan.rock) {
+            rock.fill();
+        }
+        if (prefillPlan.fluid) {
+            fluid.fill();
+        }
+        if (prefillPlan.region) {
+            region.fill();
+        }
+        if (prefillPlan.cave) {
+            cave.fill();
+        }
+    }
+
+    private void prefillAsync(PrefillPlan prefillPlan) {
+        CompletableFuture<Void> surface = CompletableFuture.runAsync(() -> prefillSurface(prefillPlan), MultiBurst.burst);
+        CompletableFuture<Void> palettes = CompletableFuture.runAsync(() -> prefillPalettes(prefillPlan), MultiBurst.burst);
+        surface.join();
+        palettes.join();
     }
 
     public void setTerrainBiomeOutput(Hunk<NativeBiome> terrainBiomes) {
@@ -294,18 +297,5 @@ public class ChunkContext {
     }
 
     public record TransitionTerrainColumn(Terrain3DColumn solids, int fluidHeight) {
-    }
-
-    private static final class PrefillFillTask implements Runnable {
-        private final ChunkedDataCache<?> dataCache;
-
-        private PrefillFillTask(ChunkedDataCache<?> dataCache) {
-            this.dataCache = dataCache;
-        }
-
-        @Override
-        public void run() {
-            dataCache.fill();
-        }
     }
 }

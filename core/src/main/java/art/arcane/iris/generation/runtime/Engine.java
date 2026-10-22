@@ -77,7 +77,6 @@ import java.awt.Color;
 import java.nio.file.Path;
 import java.util.Locale;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -223,10 +222,6 @@ public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, 
     }
 
     EngineWorldManager getWorldManager();
-
-    default UUID getBiomeID(int x, int z) {
-        return getComplex().getBaseBiomeIDStream().get(x, z);
-    }
 
     int getParallelism();
 

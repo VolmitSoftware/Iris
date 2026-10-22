@@ -259,6 +259,8 @@ public class IrisTerrainNormalActuatorHydrologyTest {
                     ProceduralStream.of((x, z) -> region, Interpolated.of(value -> 0D, value -> region)), 11, -4, false));
             when(context.getRock()).thenReturn(new ChunkedDataCache<>(
                     ProceduralStream.of((x, z) -> rock, Interpolated.of(value -> 0D, value -> rock)), 11, -4, false));
+            when(context.getFluid()).thenReturn(new ChunkedDataCache<>(
+                    ProceduralStream.of((x, z) -> null, Interpolated.of(value -> 0D, value -> null)), 11, -4, false));
             when(biome.generateLayers(eq(dimension), anyDouble(), anyDouble(), any(RNG.class),
                     anyInt(), anyInt(), eq(data), eq(complex))).thenReturn(new KList<>(List.of(grass)));
             Hunk<NativeBlockState> output = Hunk.newArrayHunk(1, 64, 1);

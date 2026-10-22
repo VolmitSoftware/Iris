@@ -29,7 +29,6 @@ import art.arcane.iris.generation.subterrain.SubterrainRasterizer;
 import art.arcane.iris.configuration.IrisSettings;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.pack.loading.IrisRegistrant;
-import art.arcane.iris.generation.cache.Cache;
 import art.arcane.iris.studio.generation.BiomeBuffetLayout;
 import art.arcane.iris.world.history.GenerationBlend;
 import art.arcane.iris.world.history.TransitionGenerationPlan;
@@ -52,8 +51,6 @@ import art.arcane.iris.generation.terrain.InferredType;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.biome.IrisBiomeGeneratorLink;
 import art.arcane.iris.pack.value.IrisRaritySelection;
-import art.arcane.iris.generation.decoration.IrisDecorationPart;
-import art.arcane.iris.generation.decoration.IrisDecorator;
 import art.arcane.iris.generation.noise.IrisGenerator;
 import art.arcane.iris.generation.noise.IrisGeneratorStyle;
 import art.arcane.iris.generation.terrain.ContinentGenerator;
@@ -80,12 +77,12 @@ import art.arcane.iris.generation.terrain.ProceduralTerrainHeightSampler;
 import art.arcane.iris.generation.terrain.HydrologyBankTerrainRuntime;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.IrisLogging;
-import art.arcane.volmlib.nativelib.terrain.NativeBiome;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.iris.generation.block.DataProvider;
 import art.arcane.volmlib.util.math.M;
 import art.arcane.volmlib.util.math.RNG;
+import art.arcane.volmlib.util.interpolation.IrisInterpolation;
 import art.arcane.volmlib.util.interpolation.NoiseBounds;
 import art.arcane.volmlib.util.interpolation.NoiseBoundsProvider;
 import art.arcane.volmlib.util.noise.CNG;
@@ -99,8 +96,10 @@ import lombok.Setter;
 import lombok.ToString;
 
 import java.lang.ref.WeakReference;
+import java.util.ArrayDeque;
 import java.util.Arrays;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.EnumMap;
@@ -133,6 +132,8 @@ public class IrisComplex implements DataProvider {
     private static final double SLOPE_RUN = 3D;
     /** A sheer coast would let shoreMinimumWidth buy unbounded height, so the shore band stops climbing here. */
     private static final double MAX_SHORE_BAND_GRADIENT = 3D;
+    static final double SHORE_NOISE_LOWEST = -0.5D;
+    static final double SHORE_NOISE_HIGHEST = 1.5D;
     private static final Comparator<IrisInterpolator> INTERPOLATOR_ORDER = Comparator
             .comparing((IrisInterpolator interpolator) -> interpolator.getFunction().name())
             .thenComparingDouble(IrisInterpolator::getHorizontalScale);
@@ -176,7 +177,6 @@ public class IrisComplex implements DataProvider {
     private ProceduralStream<IrisRegion> regionStream;
     private ProceduralStream<Double> regionStyleStream;
     private ProceduralStream<Double> regionIdentityStream;
-    private ProceduralStream<UUID> regionIDStream;
     private ProceduralStream<InferredType> bridgeStream;
     private ProceduralStream<IrisBiome> landBiomeStream;
     private ProceduralStream<IrisBiome> caveBiomeStream;
@@ -185,10 +185,8 @@ public class IrisComplex implements DataProvider {
     private ProceduralStream<IrisBiome> baseBiomeStream;
     @Getter(AccessLevel.NONE)
     private final transient boolean reuseNaturalBaseBiome;
-    private ProceduralStream<UUID> baseBiomeIDStream;
     private ProceduralStream<IrisBiome> naturalTrueBiomeStream;
     private ProceduralStream<IrisBiome> trueBiomeStream;
-    private ProceduralStream<NativeBiome> trueBiomeDerivativeStream;
     private ProceduralStream<Double> naturalHeightStream;
     private ProceduralStream<Double> baseTerrainHeightStream;
     @Getter(AccessLevel.NONE)
@@ -230,13 +228,6 @@ public class IrisComplex implements DataProvider {
     private ProceduralStream<Double> riverCarveWeightStream;
     private ProceduralStream<Double> riverWaterSurfaceStream;
     private ProceduralStream<Integer> topSurfaceStream;
-    private ProceduralStream<IrisDecorator> terrainSurfaceDecoration;
-    private ProceduralStream<IrisDecorator> terrainCeilingDecoration;
-    private ProceduralStream<IrisDecorator> terrainCaveSurfaceDecoration;
-    private ProceduralStream<IrisDecorator> terrainCaveCeilingDecoration;
-    private ProceduralStream<IrisDecorator> seaSurfaceDecoration;
-    private ProceduralStream<IrisDecorator> seaFloorDecoration;
-    private ProceduralStream<IrisDecorator> shoreSurfaceDecoration;
     private ProceduralStream<NativeBlockState> rockStream;
     private ProceduralStream<NativeBlockState> fluidStream;
     private Map<String, ProceduralStream<NativeBlockState>> hydrologyFluidStreams;
@@ -350,7 +341,9 @@ public class IrisComplex implements DataProvider {
                 preparedRegions,
                 (region, inferredType) -> compileInferredBiomeStream(engine, region, inferredType, emptyBiome)
         );
-        GeneratorGroup[] generatorGroups = freezeGeneratorGroups(generators);
+        GeneratorGroup[] generatorGroups = focusBiome == null && !buffetActive
+                ? contributingGroups(freezeGeneratorGroups(generators), baseCapableBiomes(preparedRegions))
+                : freezeGeneratorGroups(generators);
         int interpolatorCount = generatorGroups.length;
         frozenInterpolators = new IrisInterpolator[interpolatorCount];
         frozenGenerators = new IrisGenerator[interpolatorCount][];
@@ -384,8 +377,6 @@ public class IrisComplex implements DataProvider {
                 : GenerationStreams.cache2D(RegionSelection.select(new RegionSelection.Options(
                         engine.getDimension(), data, regionStyleStream, imageMapRuntime, null)),
                         "regionStream", engine, cacheSize);
-        regionIDStream = regionIdentityStream.convertCached((i) -> new UUID(Double.doubleToLongBits(i),
-                String.valueOf(i * 38445).hashCode() * 3245556666L));
         caveBiomeStream = GenerationStreams.cache2D(GenerationStreams.contextInjecting(regionStream, engine, (c, x, z) -> c.getRegion().get(x, z))
                 .convert((r) -> createInferredBiomeStream(r, InferredType.CAVE))
                 .convertAware2D(ProceduralStream::get), "caveBiomeStream", engine, cacheSize);
@@ -487,8 +478,6 @@ public class IrisComplex implements DataProvider {
         shoreSlopeStream = terrain3DEnabled ? baseTerrainHeightStream.slope(3) : naturalSlopeStream;
         trueBiomeStream = focusedBiomes != null ? GenerationStreams.cache2D(focusedBiomes, "trueBiomeStream-focus", engine, cacheSize) : GenerationStreams.cache2D(heightStream
                 .convertAware2D((terrainHeight, x, z) -> resolveHydrologySurfaceBiome(terrainHeight, x, z)), "trueBiomeStream", engine, cacheSize);
-        trueBiomeDerivativeStream = GenerationStreams.cache2D(GenerationStreams.contextInjecting(trueBiomeStream, engine, (c, x, z) -> c.getBiome().get(x, z))
-                .convert((b) -> IrisPlatforms.get().registries().biome(b.getDerivativeKey())), "trueBiomeDerivativeStream", engine, cacheSize);
         riverDistanceStream = GenerationStreams.cache2DDouble(ProceduralStream.ofDouble(this::resolveHydrologyDistance), "riverDistanceStream", engine, cacheSize);
         riverFlowStream = GenerationStreams.cache2DDouble(ProceduralStream.ofDouble(this::resolveHydrologyFlow), "riverFlowStream", engine, cacheSize);
         riverCarveWeightStream = GenerationStreams.cache2DDouble(ProceduralStream.ofDouble(this::resolveHydrologyCarveWeight), "riverCarveWeightStream", engine, cacheSize);
@@ -498,26 +487,6 @@ public class IrisComplex implements DataProvider {
                         riverWaterSurfaceStream.get(x, z)
                 )), "heightFluidStream", engine, cacheSize);
         maxHeightStream = ProceduralStream.ofDouble((x, z) -> height);
-        terrainSurfaceDecoration = GenerationStreams.cache2D(GenerationStreams.contextInjecting(trueBiomeStream, engine, (c, x, z) -> c.getBiome().get(x, z))
-                .convertAware2D((b, xx, zz) -> decorateFor(b, xx, zz, IrisDecorationPart.NONE)), "terrainSurfaceDecoration", engine, cacheSize);
-        terrainCeilingDecoration = GenerationStreams.cache2D(GenerationStreams.contextInjecting(trueBiomeStream, engine, (c, x, z) -> c.getBiome().get(x, z))
-                .convertAware2D((b, xx, zz) -> decorateFor(b, xx, zz, IrisDecorationPart.CEILING)), "terrainCeilingDecoration", engine, cacheSize);
-        terrainCaveSurfaceDecoration = GenerationStreams.cache2D(GenerationStreams.contextInjecting(caveBiomeStream, engine, (c, x, z) -> c.getCave().get(x, z))
-                .convertAware2D((b, xx, zz) -> decorateFor(b, xx, zz, IrisDecorationPart.NONE)), "terrainCaveSurfaceDecoration", engine, cacheSize);
-        terrainCaveCeilingDecoration = GenerationStreams.cache2D(GenerationStreams.contextInjecting(caveBiomeStream, engine, (c, x, z) -> c.getCave().get(x, z))
-                .convertAware2D((b, xx, zz) -> decorateFor(b, xx, zz, IrisDecorationPart.CEILING)), "terrainCaveCeilingDecoration", engine, cacheSize);
-        shoreSurfaceDecoration = GenerationStreams.cache2D(GenerationStreams.contextInjecting(trueBiomeStream, engine, (c, x, z) -> c.getBiome().get(x, z))
-                .convertAware2D((b, xx, zz) -> decorateFor(b, xx, zz, IrisDecorationPart.SHORE_LINE)), "shoreSurfaceDecoration", engine, cacheSize);
-        seaSurfaceDecoration = GenerationStreams.cache2D(GenerationStreams.contextInjecting(trueBiomeStream, engine, (c, x, z) -> c.getBiome().get(x, z))
-                .convertAware2D((b, xx, zz) -> decorateFor(b, xx, zz, IrisDecorationPart.SEA_SURFACE)), "seaSurfaceDecoration", engine, cacheSize);
-        seaFloorDecoration = GenerationStreams.cache2D(GenerationStreams.contextInjecting(trueBiomeStream, engine, (c, x, z) -> c.getBiome().get(x, z))
-                .convertAware2D((b, xx, zz) -> decorateFor(b, xx, zz, IrisDecorationPart.SEA_FLOOR)), "seaFloorDecoration", engine, cacheSize);
-        baseBiomeIDStream = GenerationStreams.cache2D(GenerationStreams.contextInjecting(trueBiomeStream, engine, (c, x, z) -> c.getBiome().get(x, z))
-                .convertAware2D((b, x, z) -> {
-                    UUID d = regionIDStream.get(x, z);
-                    return new UUID(b.getLoadKey().hashCode() * 818223L,
-                            d.hashCode());
-                }), "", engine, cacheSize);
         //@done
         TerrainTransformer transformer = engine.getDimension().getTerrainTransform() == null ? null
                 : TerrainTransformRegistry.discover().resolve(engine.getDimension().getTerrainTransform());
@@ -1415,6 +1384,10 @@ public class IrisComplex implements DataProvider {
         return false;
     }
 
+    public boolean isPlatformMainThread() {
+        return terrainEngine.getPlatformHooks().isMainThread();
+    }
+
     public ProceduralStream<Double> getRawHeightStream() {
         return heightStream;
     }
@@ -1629,24 +1602,6 @@ public class IrisComplex implements DataProvider {
         return proceduralTerrainHeight.sample(worldX, worldZ);
     }
 
-    private IrisDecorator decorateFor(IrisBiome b, double x, double z, IrisDecorationPart part) {
-        RNG rngc = new RNG(Cache.key(((int) x), ((int) z)));
-
-        for (IrisDecorator i : b.getDecorators()) {
-            if (!i.getPartOf().equals(part)) {
-                continue;
-            }
-
-            NativeBlockState block = i.getBlockData(b, rngc, x, z, data);
-
-            if (block != null) {
-                return i;
-            }
-        }
-
-        return null;
-    }
-
     private IrisBiome resolveHydrologySurfaceBiome(double terrainHeight, double x, double z) {
         HydrologyColumnSample sample = hydrologySample(x, z);
         HydrologyColumnLayer layer = sample == null ? null : sample.primarySurfaceLayer().orElse(null);
@@ -1730,6 +1685,33 @@ public class IrisComplex implements DataProvider {
         return bandTop + shoreMinimumWidth * Math.min(shoreSlopes.getDouble(x, z) / SLOPE_RUN, MAX_SHORE_BAND_GRADIENT);
     }
 
+    static boolean aboveShoreBand(
+            double height,
+            IrisRegion region,
+            double x,
+            double z,
+            double fluidHeight,
+            ProceduralStream<Double> shoreSlopes
+    ) {
+        if (region.getShoreMinimumWidth() <= 0) {
+            double minimum = region.getShoreHeightMin();
+            double maximum = region.getShoreHeightMax();
+            double lowestTop = fluidHeight + shoreHeightAt(minimum, maximum, SHORE_NOISE_LOWEST);
+            double highestTop = fluidHeight + shoreHeightAt(minimum, maximum, SHORE_NOISE_HIGHEST);
+            if (height > Math.max(lowestTop, highestTop)) {
+                return true;
+            }
+            if (height <= Math.min(lowestTop, highestTop)) {
+                return false;
+            }
+        }
+        return height > shoreBandTop(height, region, x, z, fluidHeight, shoreSlopes);
+    }
+
+    private static double shoreHeightAt(double minimum, double maximum, double noise) {
+        return minimum == maximum ? minimum : IrisInterpolation.lerp(minimum, maximum, noise);
+    }
+
     static IrisBiome resolveSurfaceBiome(
             double height,
             IrisBiome biome,
@@ -1745,13 +1727,15 @@ public class IrisComplex implements DataProvider {
         if (biome == null || region == null) {
             return biome;
         }
-        double shoreTop = shoreBandTop(height, region, x, z, fluidHeight, shoreSlopes);
 
-        if (height >= fluidHeight - 1 && height <= shoreTop && !biome.isShore()) {
-            return shoreBiomes.get(x, z);
-        }
-
-        if (height > shoreTop && !biome.isLand()) {
+        if (height >= fluidHeight - 1 && !biome.isShore()) {
+            if (!aboveShoreBand(height, region, x, z, fluidHeight, shoreSlopes)) {
+                return shoreBiomes.get(x, z);
+            }
+            if (!biome.isLand()) {
+                return landBiomes.get(x, z);
+            }
+        } else if (!biome.isLand() && aboveShoreBand(height, region, x, z, fluidHeight, shoreSlopes)) {
             return landBiomes.get(x, z);
         }
 
@@ -1911,11 +1895,90 @@ public class IrisComplex implements DataProvider {
             return h;
         }
 
+        int grid = biomeBoundsSamplingStep;
+        GridBoundsCache cache = gridBoundsCache.get();
+        if (!ChunkCorners.supports(grid) || cache.cornersInUse) {
+            for (int interpolatorIndex = 0; interpolatorIndex < frozenInterpolators.length; interpolatorIndex++) {
+                h += interpolateGenerators(engine, frozenInterpolators[interpolatorIndex], interpolatorIndex, frozenGenerators[interpolatorIndex], x, z, seed);
+            }
+            return h;
+        }
+
+        cache.cornersInUse = true;
+        try {
+            return cornerBlockHeight(cache, engine, grid, x, z, seed);
+        } finally {
+            cache.cornersInUse = false;
+        }
+    }
+
+    private double cornerBlockHeight(GridBoundsCache cache, Engine engine, int grid, double x, double z, long seed) {
+        double h = 0;
+        int xi = (int) Math.floor(x);
+        int zi = (int) Math.floor(z);
+        int gx = xi & ~(grid - 1);
+        int gz = zi & ~(grid - 1);
+        double fx = (x - gx) / grid;
+        double fz = (z - gz) / grid;
+        ChunkCorners corners = cache.chunkCorners(xi >> 4, zi >> 4, frozenInterpolators.length, grid);
+        int cornerX = (gx - corners.originX) / grid;
+        int cornerZ = (gz - corners.originZ) / grid;
+        int cell = cornerZ * corners.cellsPerAxis + cornerX;
+        long heightSeed = seed + 239945;
         for (int interpolatorIndex = 0; interpolatorIndex < frozenInterpolators.length; interpolatorIndex++) {
-            h += interpolateGenerators(engine, frozenInterpolators[interpolatorIndex], interpolatorIndex, frozenGenerators[interpolatorIndex], x, z, seed);
+            IrisGenerator[] generators = frozenGenerators[interpolatorIndex];
+            if (generators.length == 0) {
+                continue;
+            }
+            int state = corners.cellState(interpolatorIndex, cell);
+            if (state == ChunkCorners.SILENT) {
+                continue;
+            }
+            long b00 = cornerAt(cache, engine, corners, interpolatorIndex, cornerX, cornerZ);
+            long b10 = fx == 0D ? 0L : cornerAt(cache, engine, corners, interpolatorIndex, cornerX + 1, cornerZ);
+            long b01 = fz == 0D ? 0L : cornerAt(cache, engine, corners, interpolatorIndex, cornerX, cornerZ + 1);
+            long b11 = fx == 0D || fz == 0D ? 0L : cornerAt(cache, engine, corners, interpolatorIndex, cornerX + 1, cornerZ + 1);
+            if (state == ChunkCorners.UNKNOWN) {
+                corners.classify(interpolatorIndex, cornerX, cornerZ, cell);
+                if (silentBounds(b00) && silentBounds(b10) && silentBounds(b01) && silentBounds(b11)) {
+                    continue;
+                }
+            }
+            double lo;
+            double hi;
+            if (fx == 0D && fz == 0D) {
+                lo = boundsLow(b00);
+                hi = boundsHigh(b00);
+            } else if (fz == 0D) {
+                lo = biLerp(boundsLow(b00), boundsLow(b10), boundsLow(b00), boundsLow(b10), fx, fz);
+                hi = biLerp(boundsHigh(b00), boundsHigh(b10), boundsHigh(b00), boundsHigh(b10), fx, fz);
+            } else if (fx == 0D) {
+                lo = biLerp(boundsLow(b00), boundsLow(b00), boundsLow(b01), boundsLow(b01), fx, fz);
+                hi = biLerp(boundsHigh(b00), boundsHigh(b00), boundsHigh(b01), boundsHigh(b01), fx, fz);
+            } else {
+                lo = biLerp(boundsLow(b00), boundsLow(b10), boundsLow(b01), boundsLow(b11), fx, fz);
+                hi = biLerp(boundsHigh(b00), boundsHigh(b10), boundsHigh(b01), boundsHigh(b11), fx, fz);
+            }
+            h += averageGeneratorHeights(generators, lo, hi, x, z, heightSeed);
         }
 
         return h;
+    }
+
+    private long cornerAt(GridBoundsCache cache, Engine engine, ChunkCorners corners, int interpolatorIndex, int column, int row) {
+        if (corners.known(interpolatorIndex, column, row)) {
+            return corners.corner(interpolatorIndex, column, row);
+        }
+        long packed = cornerBounds(cache, engine, frozenInterpolators[interpolatorIndex], interpolatorIndex,
+                frozenGenerators[interpolatorIndex], corners.originX + column * corners.grid, corners.originZ + row * corners.grid);
+        if (Double.isFinite(boundsLow(packed)) && Double.isFinite(boundsHigh(packed))) {
+            corners.remember(interpolatorIndex, column, row, packed);
+        }
+        return packed;
+    }
+
+    private static boolean silentBounds(long packed) {
+        return (packed & 0x7FFFFFFF7FFFFFFFL) == 0L;
     }
 
     private NoiseBounds naturalHeightBounds(
@@ -2058,6 +2121,48 @@ public class IrisComplex implements DataProvider {
         return groups;
     }
 
+    static GeneratorGroup[] contributingGroups(GeneratorGroup[] groups, Collection<IrisBiome> baseBiomes) {
+        List<GeneratorGroup> contributing = new ArrayList<>(groups.length);
+        for (GeneratorGroup group : groups) {
+            if (contributesHeight(group.generators(), baseBiomes)) {
+                contributing.add(group);
+            }
+        }
+        return contributing.toArray(new GeneratorGroup[0]);
+    }
+
+    private static boolean contributesHeight(IrisGenerator[] generators, Collection<IrisBiome> baseBiomes) {
+        for (IrisBiome biome : baseBiomes) {
+            GeneratorBounds bounds = computeGeneratorBounds(generators, biome);
+            if (bounds.min != 0D || bounds.max != 0D) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private Collection<IrisBiome> baseCapableBiomes(KList<IrisRegion> regions) {
+        Set<IrisBiome> reached = Collections.newSetFromMap(new IdentityHashMap<>());
+        ArrayDeque<IrisBiome> pending = new ArrayDeque<>();
+        for (IrisRegion region : regions) {
+            pending.addAll(loadInferredBiomes(region.getLandBiomes(), InferredType.LAND));
+            pending.addAll(loadInferredBiomes(region.getSeaBiomes(), InferredType.SEA));
+        }
+        pending.addAll(imageMapRuntime.getMappedBiomes());
+        while (!pending.isEmpty()) {
+            IrisBiome biome = pending.poll();
+            if (!reached.add(biome)) {
+                continue;
+            }
+            for (IrisBiome child : biome.getRealChildren(this)) {
+                if (child != null) {
+                    pending.add(child);
+                }
+            }
+        }
+        return reached;
+    }
+
     static double averageGeneratorHeights(
             IrisGenerator[] generators,
             double low,
@@ -2103,7 +2208,7 @@ public class IrisComplex implements DataProvider {
         for (int i = 0; i < frozenInterpolators.length; i++) {
             IdentityHashMap<IrisBiome, GeneratorBounds> interpolatorBounds = new IdentityHashMap<>(Math.max(allBiomes.size(), 16));
             for (IrisBiome biome : allBiomes) {
-                interpolatorBounds.put(biome, computeGeneratorBounds(engine, frozenGenerators[i], biome));
+                interpolatorBounds.put(biome, computeGeneratorBounds(frozenGenerators[i], biome));
             }
             bounds.put(frozenInterpolators[i], interpolatorBounds);
         }
@@ -2111,7 +2216,7 @@ public class IrisComplex implements DataProvider {
         return bounds;
     }
 
-    private GeneratorBounds computeGeneratorBounds(Engine engine, IrisGenerator[] generators, IrisBiome biome) {
+    private static GeneratorBounds computeGeneratorBounds(IrisGenerator[] generators, IrisBiome biome) {
         double min = 0D;
         double max = 0D;
 
@@ -2145,7 +2250,7 @@ public class IrisComplex implements DataProvider {
             return local;
         }
 
-        GeneratorBounds computed = computeGeneratorBounds(engine, generators, biome);
+        GeneratorBounds computed = computeGeneratorBounds(generators, biome);
         localBounds.put(biome, computed);
         return computed;
     }
@@ -2246,11 +2351,118 @@ public class IrisComplex implements DataProvider {
         private final long[] packed = new long[GRID_BOUNDS_CACHE_SIZE];
         private final boolean[] valid = new boolean[GRID_BOUNDS_CACHE_SIZE];
         private final BoundsSampler sampler = new BoundsSampler();
+        private ChunkCorners recentCorners;
+        private ChunkCorners previousCorners;
+        private boolean cornersInUse;
+
+        private ChunkCorners chunkCorners(int chunkX, int chunkZ, int groups, int grid) {
+            ChunkCorners recent = recentCorners;
+            if (recent != null && recent.matches(chunkX, chunkZ, groups, grid)) {
+                return recent;
+            }
+            ChunkCorners previous = previousCorners;
+            if (previous != null && previous.matches(chunkX, chunkZ, groups, grid)) {
+                previousCorners = recent;
+                recentCorners = previous;
+                return previous;
+            }
+            ChunkCorners reused = previous != null && previous.fits(groups, grid) ? previous : new ChunkCorners(groups, grid);
+            reused.reset(chunkX, chunkZ);
+            previousCorners = recent;
+            recentCorners = reused;
+            return reused;
+        }
 
         private int slot(int cornerX, int cornerZ, int interpolatorIndex) {
             long h = (cornerX * 0x9E3779B97F4A7C15L) ^ (cornerZ * 0xC2B2AE3D27D4EB4FL) ^ (interpolatorIndex * 0x165667B19E3779F9L);
             h ^= (h >>> 32);
             return (int) (h & (GRID_BOUNDS_CACHE_SIZE - 1));
+        }
+    }
+
+    private static final class ChunkCorners {
+        private static final int UNKNOWN = 0;
+        private static final int SILENT = 1;
+        private static final int ACTIVE = 2;
+
+        private final int groups;
+        private final int grid;
+        private final int cornersPerAxis;
+        private final int cellsPerAxis;
+        private final long[] packed;
+        private final boolean[] known;
+        private final byte[] cellStates;
+        private int chunkX;
+        private int chunkZ;
+        private int originX;
+        private int originZ;
+
+        private ChunkCorners(int groups, int grid) {
+            this.groups = groups;
+            this.grid = grid;
+            cellsPerAxis = 16 / grid;
+            cornersPerAxis = cellsPerAxis + 1;
+            packed = new long[groups * cornersPerAxis * cornersPerAxis];
+            known = new boolean[packed.length];
+            cellStates = new byte[groups * cellsPerAxis * cellsPerAxis];
+        }
+
+        private static boolean supports(int grid) {
+            return grid >= 2 && grid <= 16 && Integer.bitCount(grid) == 1;
+        }
+
+        private boolean fits(int groups, int grid) {
+            return this.groups == groups && this.grid == grid;
+        }
+
+        private boolean matches(int chunkX, int chunkZ, int groups, int grid) {
+            return this.chunkX == chunkX && this.chunkZ == chunkZ && fits(groups, grid);
+        }
+
+        private void reset(int chunkX, int chunkZ) {
+            this.chunkX = chunkX;
+            this.chunkZ = chunkZ;
+            originX = chunkX << 4;
+            originZ = chunkZ << 4;
+            Arrays.fill(known, false);
+            Arrays.fill(cellStates, (byte) UNKNOWN);
+        }
+
+        private int cellState(int group, int cell) {
+            return cellStates[group * cellsPerAxis * cellsPerAxis + cell];
+        }
+
+        private void setCellState(int group, int cell, int state) {
+            cellStates[group * cellsPerAxis * cellsPerAxis + cell] = (byte) state;
+        }
+
+        private boolean known(int group, int column, int row) {
+            return known[index(group, column, row)];
+        }
+
+        private long corner(int group, int column, int row) {
+            return packed[index(group, column, row)];
+        }
+
+        private void remember(int group, int column, int row, long value) {
+            int index = index(group, column, row);
+            packed[index] = value;
+            known[index] = true;
+        }
+
+        private void classify(int group, int column, int row, int cell) {
+            int first = index(group, column, row);
+            int second = first + cornersPerAxis;
+            if (!known[first] || !known[first + 1] || !known[second] || !known[second + 1]) {
+                return;
+            }
+            boolean silent = silentBounds(packed[first]) && silentBounds(packed[first + 1])
+                    && silentBounds(packed[second]) && silentBounds(packed[second + 1]);
+            setCellState(group, cell, silent ? SILENT : ACTIVE);
+        }
+
+        private int index(int group, int column, int row) {
+            return (group * cornersPerAxis + row) * cornersPerAxis + column;
         }
     }
 

@@ -19,7 +19,6 @@
 package art.arcane.iris.engine.framework.structure.fit;
 
 import art.arcane.iris.builtin.structure.StructureTerrainMode;
-import art.arcane.iris.engine.object.placement.IrisObjectVacuum;
 import com.volmit.ModuleLog;
 import com.volmit.block.BlockState;
 import com.volmit.vanilla.DecorationStep;
@@ -123,6 +122,17 @@ final class SurfaceFitting {
         return resolveSurface(anchors, worldX, worldZ, originalY).targetY();
     }
 
+    /** How far {@code value} lies outside {@code [low, high]}; 0 inside. Iris's vacuum measures footprints the same way. */
+    private static int outset(int value, int low, int high) {
+        if (value < low) {
+            return low - value;
+        }
+        if (value > high) {
+            return value - high;
+        }
+        return 0;
+    }
+
     private static SurfaceResolution resolveSurface(List<SurfaceAnchor> anchors, int worldX, int worldZ, int originalY) {
         int localTargetY = originalY;
         SurfaceAnchor selectedLocal = null;
@@ -130,8 +140,8 @@ final class SurfaceFitting {
         long weightedTargetY = 0L;
         long maximumInfluence = 0L;
         for (SurfaceAnchor anchor : anchors) {
-            int outX = IrisObjectVacuum.outset(worldX, anchor.minX(), anchor.maxX());
-            int outZ = IrisObjectVacuum.outset(worldZ, anchor.minZ(), anchor.maxZ());
+            int outX = outset(worldX, anchor.minX(), anchor.maxX());
+            int outZ = outset(worldZ, anchor.minZ(), anchor.maxZ());
             boolean containsColumn = outX == 0 && outZ == 0;
             long distanceSquared = (long) outX * outX + (long) outZ * outZ;
             long radiusSquared = (long) SURFACE_TERRAIN_RADIUS * SURFACE_TERRAIN_RADIUS;

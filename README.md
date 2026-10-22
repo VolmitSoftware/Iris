@@ -160,16 +160,19 @@ archive. The host project also provides `:core:defaultModuleSourcesJar` for the 
 
 ## Built-in modules as a pack module jar
 
-`./gradlew builtinModulesJar` builds `build/libs/iris-builtins.jar`, the built-in modules as an ordinary pack
-module jar for a pack's `modules/` folder. `builtin-modules.txt` lists what goes in: `module <class>` lines
-(the jar's entry points, written to `META-INF/services/com.volmit.IrisModule`) and `include <pattern>` lines
-for further classes. The classes come from Iris core's compiled output, which the task builds first.
-Before the jar lands in `build/libs`, `ModuleJarCheck` of IrisApi runs the class checks of a pack load on it,
-with the packages Iris exposes (`art.arcane.iris.builtin`, VolmLib's `art.arcane.volmlib` and Gson's
-`com.google.gson`, all three on the check's classpath); a listed class that uses Iris internals fails the task
-naming the class and what it uses. A VolmLib class that Iris's Bukkit jar strips (the list is Iris's
-`core/volmlib-left-out-of-bukkit-jar.txt`, which its shadowJar reads too) is on that classpath but missing on a
-server, so the check treats it as missing and fails the task naming it. `check` runs the task.
+Iris builds the built-in modules as an ordinary pack module jar, `iris-builtins.jar`, and bundles it into the plugin:
+Iris's `:core:builtinModulesJar` packages it from core's compiled classes, so it always fits the Iris it ships with, and
+every pack loads it as if it were in its `modules/` folder (IrisApi's `ModuleHost.bundlingJars`). A pack's own
+`modules/iris-builtins.jar`, such as an old copy, is left out, and Iris warns once with its path. `./gradlew builtinModulesJar`
+here runs that task and copies the jar to `build/libs/iris-builtins.jar`. `builtin-modules.txt` lists what goes in:
+`module <class>` lines (the jar's entry points, written to `META-INF/services/com.volmit.IrisModule`) and `include <pattern>`
+lines for further classes. The plugin's own classes leave those classes out; Iris's Bukkit artifact check fails the build if
+core still uses one of them.
+Before the jar is used, `ModuleJarCheck` of IrisApi runs the class checks of a pack load on it, with the packages Iris
+exposes (`art.arcane.iris.builtin`, VolmLib's `art.arcane.volmlib` and Gson's `com.google.gson`, all three on the check's
+classpath); a listed class that uses Iris internals fails the task naming the class and what it uses. A VolmLib class that
+Iris's Bukkit jar strips (the list is Iris's `core/volmlib-left-out-of-bukkit-jar.txt`, which its shadowJar reads too) is on
+that classpath but missing on a server, so the check treats it as missing and fails the task naming it. `check` runs the task.
 
 The jar holds `iris:post`, `iris:perfection`, `iris:matter`, `iris:loot`, `iris:spawn`, `iris:vanilla-features` and
 `iris:carve`, and the object placement stages `iris:prepare`, `iris:anchor`, `iris:validate`, `iris:bore`, `iris:blocks`, `iris:stilt`, `iris:vacuum` and `iris:snow`. They are
@@ -179,10 +182,9 @@ mantle's planned blocks; the placement stages read the placement being run throu
 spawn services, which have no chunk to ask, ask `LiveWorld` (both below). Without the jar a pack's world has no caves, vanilla
 placed features, loot, block drops, entity spawns or ambient effects, and its biomes' `loot`, `blockDrops`, `entitySpawners` and
 `effects` are not read.
-Iris no longer compiles them in (`IrisModuleHost.generationModules()`), so a pack gets them by putting
-`iris-builtins.jar` into its `modules` folder; the built-ins that order after their stages (`iris:floating`,
-`iris:objects`, `iris:decorant`, `iris:custom`) only order, so a pack without the jar still loads. Iris warns once per pack folder
-when a pack loads none of the jar's modules (`IrisModuleHost.JAR_MODULE_IDS`, which a test keeps equal to
+Iris no longer compiles them in (`IrisModuleHost.generationModules()`); every pack gets them from the bundled jar. A pack
+still loads without them, as with an Iris build that bundles no jar, and Iris warns once per pack folder when a pack loads
+none of the jar's modules (`IrisModuleHost.JAR_MODULE_IDS`, which a test keeps equal to
 `builtin-modules.txt`): add a module to the jar and to that list together.
 
 `art.arcane.iris.builtin` also holds what the compiled-in built-ins and the jar must share, because each sees its own copy of

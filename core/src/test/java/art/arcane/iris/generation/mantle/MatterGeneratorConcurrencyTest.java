@@ -526,16 +526,25 @@ public class MatterGeneratorConcurrencyTest {
     }
 
     private static List<Future<?>> occupyDispatcher(CountDownLatch release) {
-        int blockers = Math.max(1, MultiBurst.burst.parallelism()) * 4;
+        int parallelism = Math.max(1, MultiBurst.burst.parallelism());
+        int blockers = parallelism * 4;
+        CountDownLatch started = new CountDownLatch(parallelism);
         List<Future<?>> futures = new ArrayList<>(blockers);
         for (int index = 0; index < blockers; index++) {
             futures.add(MultiBurst.burst.submit(() -> {
+                started.countDown();
                 try {
                     assertTrue(release.await(30L, TimeUnit.SECONDS));
                 } catch (InterruptedException interruption) {
                     Thread.currentThread().interrupt();
                 }
             }));
+        }
+        try {
+            assertTrue(started.await(30L, TimeUnit.SECONDS));
+        } catch (InterruptedException interruption) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Interrupted while occupying the burst dispatcher.", interruption);
         }
         return futures;
     }

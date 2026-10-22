@@ -66,6 +66,25 @@ final class CaveCarveScratch {
     final int[] tileLocalX = new int[4];
     final int[] tileLocalZ = new int[4];
     final int[] tileTopY = new int[4];
+    final long[] rowCarveBits = new long[4];
+    final long[] cellPassBits = new long[4];
+    final double[] rowLatticeDensity = new double[9];
+    final CaveDensityGrid.Column[] cellCornerColumns = new CaveDensityGrid.Column[9];
+    final double[] cellThresholdMin = new double[4];
+    final double[] cellThresholdMax = new double[4];
+    final double[] cellThresholdMaxBoost = new double[4];
+    final int[] cellBreakFloorMin = new int[4];
+    final int[] cellCeilingFadeStart = new int[4];
+    final int[] cellTopY = new int[4];
+    final int[] cellMinTopY = new int[4];
+    final boolean[] cellProtected = new boolean[4];
+    final int[] columnProtectStartY = new int[256];
+    final int[] columnProtectEndY = new int[256];
+    int[] rowActiveCount = new int[0];
+    long solidCells;
+    long openCells;
+    long mixedCells;
+    long exactRows;
     CaveFieldModuleState[] activeModules = new CaveFieldModuleState[0];
     double[] activeModuleRemainingMin = new double[0];
     double[] activeModuleRemainingMax = new double[0];
@@ -84,5 +103,6 @@ final class CaveCarveScratch {
         Arrays.fill(sectionMatter, null);
         Arrays.fill(sectionSlices, null);
         Arrays.fill(densityColumns, null);
+        Arrays.fill(cellCornerColumns, null);
     }
 }

@@ -86,7 +86,7 @@ final class PackSchemaBuilder {
         FeatureSchema complete(Map<String, ObjectType> types) {
             var descriptor = catalogued.descriptor();
             return new FeatureSchema(descriptor.id(), descriptor.name(), catalogued.role(), owner.info(), descriptor.key(), descriptor.root(),
-                    descriptor.attachment().targets(), types.get(descriptor.type().getName()));
+                    descriptor.targets(),types.get(descriptor.type().getName()));
         }
     }
 

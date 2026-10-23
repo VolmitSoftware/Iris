@@ -368,16 +368,17 @@ The graph is resolved once per pack load. Activation is decided per invocation:
 
 1. The invocation gets `ConfiguredSettings`: for each settings type, the entries configured for it, in
    level order. For a placement the host passes the placement's own declarations. For a chunk or mantle
-   invocation the runner collects them itself from `FeatureSettings`: every distinct entry, by level and
-   source, of the chunk's 16 by 16 columns.
+   invocation the runner asks `FeatureSettings.declaredInChunk` for each conditioned type: every distinct
+   entry, by level and source, of the chunk's 16 by 16 columns. Its default reads every column; a host
+   that knows the regions and biomes of a chunk answers from those instead (Iris does).
 2. The invocation looks up each distinct `when` type once.
 3. One pass in resolved order marks a stage active when its settings have an entry (or it has no
    condition) and every stage it requires is active.
 
 So an inactive requirement deactivates its dependents. That is not an error. Soft edges never
 affect activation. The cost per invocation is two small arrays and one pass over stages and
-REQUIRED edges, plus, for chunks, one settings read per column and conditioned type. The body reads
-the entries with `ctx.configured(type)`, a never-empty `List<FeatureSettings.Entry<S>>`. Only the
+REQUIRED edges, plus, for chunks, one `declaredInChunk` per conditioned type. The body reads
+the entries with `ctx.configured(type)`, a never-empty `SettingsStack<S>`. Only the
 stage's own `when` type is readable that way; any other type, or a stage without a condition,
 throws and names `when(...)` and `settings()` as the fixes. Bodies take only the context, so one
 definition type per pipeline covers conditioned and unconditioned stages alike.
@@ -388,15 +389,20 @@ and a placement that configures a base and a subclass value configures the type 
 
 A chunk stage is active when any column of the chunk configures it, so a biome border inside a chunk
 never hides a feature on either side. The body then reads `ctx.settings().at(type, x, z)` per column,
-or at the chunk's centre column (local 7, 7) for behaviour that happens once per chunk.
+or at the chunk's centre column (`ChunkContext.centreX()`/`centreZ()`, local 7, 7) for behaviour that
+happens once per chunk. `ChunkContext`, shared by chunk and mantle contexts, also names the chunk
+(`chunkX()`, `chunkZ()`) and its `area()`, so no module hand-builds chunk boxes or shifts by 4.
 
 ### Settings levels
 
-Settings are declared at levels: the dimension, a region, a biome (the column's surface biome) and a
-placement. `FeatureSettings.at(type, x, z)` returns one entry per level that declares the type at that
-column, in that order, each with its level, the declaring resource and the value. Levels stack: there is
-no "most specific wins" and no field merge. A module decides what several entries mean: deposits run
-once per entry, a surface block may take the most specific. The alternatives each hide a decision from
+Settings are declared at levels (`com.volmit.config.Level`): `DIMENSION`, `REGION`, `BIOME` (the
+column's surface biome) and `PLACEMENT`. `@Feature(targets = ...)` names the levels a type may be
+declared at, and the same enum orders the entries. `FeatureSettings.at(type, x, z)` returns a
+`SettingsStack`: one entry per level that declares the type at that column, in that order, each with its
+level, the declaring resource and the value. Levels stack: there is no "most specific wins" and no field
+merge. A module decides what several entries mean: deposits run once per entry (`values()`), a surface
+block may take the most specific (`mostSpecific()`), a dimension-wide setting reads `dimension()`. The
+stack offers those picks so modules do not each write their own; it never merges. The alternatives each hide a decision from
 the module: overriding would make a biome's deposits silently drop the dimension's, merging would need a
 rule per field. Something spanning several columns reads at one origin column: per chunk the centre
 column, per placed object the column it is anchored at. Cave biomes are not a level.
@@ -514,7 +520,8 @@ the host from publishing the chunk.
 
 A chunk stage writes only its chunk but may look around it: its `TerrainSampler` covers the chunk and the 16 blocks
 around it, so a stage that smooths a surface reads its neighbors' heights (`surfaceY`, which spares the host the slope
-that `column` works out). The sampler also gives the dimension's
+that `column` works out, or `surfaceHeight`, the same height rounded to a block, which every stage placing on the
+surface used to write out as `(int) Math.round(surfaceY(x, z))`). The sampler also gives the dimension's
 `fluidHeight()` and, per column, `upperDimensionY` where a dimension stacked above begins; a stage writes nothing at or
 above it. The mantle's `blocks()` are the blocks placements wrote into the mantle for chunks to take over (objects,
 structures): a chunk stage copies them into its chunk, as Iris's `iris:matter` does. They are the host's layer, so they
@@ -827,7 +834,7 @@ Why these lines:
   builds the noise. It hangs off `PackResources`, like `blocks()`, because noise depends on the pack snapshot
   (its expressions and image maps), and every context that has resources (stages, validators, hooks) can
   build noise. The host caches per snapshot, so stage bodies may ask for a sampler per invocation. The seed is
-  the module's: noise lines up across chunks only when it comes from `worldSeed()`, not a stage's stream.
+  the module's: noise lines up across chunks only when it comes from `world().seed()`, not a stage's stream.
 - **`NoiseSampler` moved to `com.volmit.noise`** and gained a two-dimensional `sample(x, z)`: Iris's noise
   gives different fields in two and three dimensions, and most features sample columns.
 - **`NoiseSampler.scaled(factor)`** is a style with an extra coordinate scale that the host folds into its generator: a cave
@@ -979,20 +986,25 @@ each world a state store and tells modules when worlds start and stop.
 
 - **The world.** `PackWorld` is one world generating with one pack snapshot: seed, resources, the settings of its
   dimension and of the regions and biomes it can reach (what mantle reaches see), and `state(type, create)`.
-  `InvocationContext.world()` hands it to every stage; services take it as their first argument; hooks get it. A
-  placement outside any world, such as a studio paste, has none and throws.
+  `InvocationContext.world()` hands it to every stage and never throws; services take it as their first argument;
+  hooks get it. The context once also carried `worldSeed()` and `resources()`, copies of the world's, kept because a
+  studio paste had no world; the host now builds a world for each placement a tool makes outside the worlds it
+  generates (the pack's resources and settings, a seed it picks, a state store closed when the placement ends, no
+  hooks), so the copies are gone and the world is the one place for seed and resources.
 - **The store.** One instance per type, keyed by class: a class is compile-checked and module-owned, so two modules
   never share an entry by accident, and it matches the internal `state(Class, factory)` Iris already used. A factory
   runs once per type even when threads race (the others wait and get the same instance); it may ask for other state
   on its own thread, since creation holds one re-entrant lock, and asking for the type being created fails naming the
   chain instead of recursing or deadlocking. A factory that throws keeps nothing. Reads of existing state take no lock.
   `WorldStates` is the reference store hosts use.
-- **Hooks.** `ModuleLifecycle` has `packLoaded(resources, settings)`, `worldStarted(world)`, `warmUp(world)` and
+- **Hooks.** `ModuleLifecycle` has `packLoaded(pack)`, `worldStarted(world)`, `warmUp(world)` and
   `worldStopped(world)`,
   each a no-op by default, registered with `FeatureRegistry.registerLifecycle` like validators, so the host knows the
   owning module for errors and orders hooks by module id. A module class may implement it and register itself.
   `packLoaded` runs once per snapshot before its first world starts; a pack that is only validated or edited in studio
-  is not loaded in this sense. The settings it gets are the whole pack's, as validators see them.
+  is not loaded in this sense. Its `PackContext` gives the snapshot's resources, the whole pack's settings (as
+  validators see them) and the module's log; a context rather than two arguments, so the hook can log without the
+  module keeping its setup log in a field.
 - **Hotload semantics.** A world's state lives as long as the world runs with one pack snapshot. A hotload stops the
   world and starts a new one with the reloaded pack; so does a reload of the pack's resources while the world runs,
   such as a tool rewriting structure files. State therefore never outlives the resources it was built from, and
@@ -1031,8 +1043,10 @@ gives each module a `ModuleLog` instead.
   supplies the `System.Logger`. `warnOnce` keys are kept per log, so they belong to the module, and past a few hundred new
   keys it only debugs, which keeps a key space nobody bounded from growing.
 - **Where a module reaches it.** `InvocationContext.log()` for stage bodies and generators, `PackWorld.log()` for services
-  and lifecycle hooks, `ModuleSetup.log()` during `setup`. The world and the context agree: the runners hand a stage a
-  view of the world whose log is its module's (`PackWorld.withLog`, a host method; the view shares the state store), and
+  and lifecycle hooks, `PackContext.log()` in `packLoaded`, `ModuleSetup.log()` during `setup`. The world and the context
+  agree: the runners hand a stage a view of the world whose log is its module's (`PackWorld.withLog`, a host method; the
+  view shares the state store, and the graph keeps the last view per module, so a run of invocations of one world builds
+  it once; several worlds sharing one graph only rebuild it when they alternate), and
   `LifecycleRunner` and `ServiceRegistration.scope` do the same for hooks and providers. A host that calls a provider itself
   must scope the world, or the provider's lines carry the host's label.
 - **Why not `System.Logger` for modules.** A module that logs through the JDK works where the host installed a logger

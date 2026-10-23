@@ -1,6 +1,10 @@
 package com.volmit.host;
 
 import com.volmit.ModuleLifecycle;
+import com.volmit.ModuleLog;
+import com.volmit.PackContext;
+import com.volmit.config.PackSettings;
+import com.volmit.resource.PackResources;
 import com.volmit.world.PackWorld;
 import java.util.Objects;
 
@@ -17,4 +21,11 @@ public record LifecycleRegistration(ModuleLifecycle lifecycle, DiscoveredModule 
     PackWorld scope(PackWorld world) {
         return world.withLog(module.log());
     }
+
+    /** The pack snapshot as this hook's module sees it, whose {@link PackContext#log} is the module's own. */
+    PackContext pack(PackResources resources, PackSettings settings) {
+        return new LoadedPackContext(resources, settings, module.log());
+    }
+
+    private record LoadedPackContext(PackResources resources, PackSettings settings, ModuleLog log) implements PackContext {}
 }

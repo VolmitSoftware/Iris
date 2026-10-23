@@ -1,7 +1,6 @@
 package com.volmit.generation;
 
 import com.volmit.ModuleLog;
-import com.volmit.resource.PackResources;
 import com.volmit.world.PackWorld;
 
 /** Host-owned invocation inputs. Views must not be retained or used by detached tasks.
@@ -10,17 +9,13 @@ import com.volmit.world.PackWorld;
  * a stream of its own, and an object generator from {@link com.volmit.object.ObjectGenerationContext#random()}.
  */
 public interface InvocationContext {
-    long worldSeed();
-    PackResources resources();
-
-    /** The world this invocation generates, where modules keep their per-world state ({@link PackWorld#state}). An
-     * invocation outside any world, such as an object a studio tool pastes, throws IllegalStateException.
+    /** The world this invocation generates: its seed, the pack snapshot's resources, its settings and the state modules
+     * keep for it ({@link PackWorld#state}). Every invocation has one. A placement a tool makes outside a world the host
+     * generates, such as a studio paste, gets a world of its own that lives for that placement.
      */
     PackWorld world();
 
-    /** The log of the module this invocation runs for, labelled with the module's id. The same as
-     * {@code world().log()}, which a host overrides where an invocation has no world.
-     */
+    /** The log of the module this invocation runs for, labelled with the module's id. The same as {@code world().log()}. */
     default ModuleLog log() {
         return world().log();
     }

@@ -1,6 +1,5 @@
 package com.volmit.example;
 
-import com.volmit.FeatureAttachment.Target;
 import com.volmit.IrisFeature;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
@@ -8,6 +7,7 @@ import com.volmit.ModuleSetup;
 import com.volmit.block.BlockState;
 import com.volmit.config.Feature;
 import com.volmit.config.FeatureSettings.Entry;
+import com.volmit.config.Level;
 import com.volmit.example.chunk.GrassModule;
 import com.volmit.example.chunk.GrassSettings;
 import com.volmit.example.chunk.TerrainModule;
@@ -49,7 +49,7 @@ class ChunkPipelineTest {
     private static final ResourceId PLAINS = ResourceId.parse("pack:biome/plains");
     private static final ResourceId SWAMP = ResourceId.parse("pack:biome/swamp");
 
-    @Feature(id = "test:levels", name = "Levels", key = "levels", targets = {Target.DIMENSION, Target.BIOME})
+    @Feature(id = "test:levels", name = "Levels", key = "levels", targets = {Level.DIMENSION, Level.BIOME})
     static final class Marker implements IrisFeature {}
 
     private static ChunkRunner runner() {
@@ -67,7 +67,7 @@ class ChunkPipelineTest {
     }
 
     private static Entry<GrassSettings> grass(ResourceId biome) {
-        return new Entry<>(Target.BIOME, biome, new GrassSettings());
+        return new Entry<>(Level.BIOME, biome, new GrassSettings());
     }
 
     @Test
@@ -107,17 +107,17 @@ class ChunkPipelineTest {
 
     @Test
     void levelsStackAndTheBodyGetsEveryDistinctEntryOfTheChunkInLevelOrder() {
-        var dimension = new Entry<>(Target.DIMENSION, DIMENSION, new Marker());
-        var plains = new Entry<>(Target.BIOME, PLAINS, new Marker());
-        var swamp = new Entry<>(Target.BIOME, SWAMP, new Marker());
+        var dimension = new Entry<>(Level.DIMENSION, DIMENSION, new Marker());
+        var plains = new Entry<>(Level.BIOME, PLAINS, new Marker());
+        var swamp = new Entry<>(Level.BIOME, SWAMP, new Marker());
         var received = new ArrayList<List<ResourceId>>();
         var stage = Stage.chunk("test:levels/read");
         IrisModule module = new IrisModule() {
             public ModuleInfo info() { return ModuleInfo.of("test:levels", "Levels", "1"); }
             public void setup(ModuleSetup setup) {
                 setup.stages().define(stage).when(Marker.class).run(context -> {
-                    received.add(context.configured(Marker.class).stream().map(Entry::source).toList());
-                    received.add(context.settings().at(Marker.class, 0, 0).stream().map(Entry::source).toList());
+                    received.add(context.configured(Marker.class).entries().stream().map(Entry::source).toList());
+                    received.add(context.settings().at(Marker.class, 0, 0).entries().stream().map(Entry::source).toList());
                 });
             }
         };
@@ -133,7 +133,7 @@ class ChunkPipelineTest {
     @Test
     void mantleStagesWriteBeyondTheirChunkAndChunkStagesReadTheirOwnPart() {
         var loaded = LoadedModules.load(List.of(DiscoveredModule.builtIn(new VeinModule())), Map.of(), Set.of(), Set.of());
-        var vein = new Entry<>(Target.BIOME, PLAINS, new VeinSettings(12, 4));
+        var vein = new Entry<>(Level.BIOME, PLAINS, new VeinSettings(12, 4));
         int reach = loaded.mantle().stages().getFirst().reachBlocks(new DeclaredSettings(vein));
         assertEquals(3, reach, "a 12 block vein from the centre column runs 3 blocks into the next chunk");
         var mantle = new MemoryMantle();

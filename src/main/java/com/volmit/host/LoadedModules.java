@@ -1,6 +1,6 @@
 package com.volmit.host;
 
-import com.volmit.FeatureAttachment;
+import com.volmit.config.Level;
 import com.volmit.host.schema.PackSchema;
 import com.volmit.stage.Pipeline;
 import java.util.Collection;
@@ -33,7 +33,7 @@ public record LoadedModules(
      */
     public static LoadedModules load(
             List<DiscoveredModule> modules,
-            Map<FeatureAttachment.Target, Set<String>> reservedHostFields,
+            Map<Level, Set<String>> reservedHostFields,
             Collection<String> hostTypePackages,
             Collection<String> reservedFolders) {
         var registry = new ModuleRegistry(reservedHostFields, Set.copyOf(reservedFolders));

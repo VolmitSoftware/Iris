@@ -1,7 +1,7 @@
 package com.volmit.host;
 
-import com.volmit.FeatureAttachment;
 import com.volmit.IrisModule;
+import com.volmit.config.Level;
 import com.volmit.resource.ResourceKind;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -34,7 +34,7 @@ import java.util.TreeSet;
 public record ModuleHost(
         List<DiscoveredModule> builtIns,
         Set<String> exposedHostPackages,
-        Map<FeatureAttachment.Target, Set<String>> reservedHostFields,
+        Map<Level, Set<String>> reservedHostFields,
         Set<String> hostTypePackages,
         Set<String> reservedFolders,
         List<Path> bundledJars,
@@ -75,9 +75,9 @@ public record ModuleHost(
     }
 
     /** This configuration with {@code fields} also reserved as JSON fields the host itself uses,
-     * merged per attachment target with the fields reserved before.
+     * merged per level with the fields reserved before.
      */
-    public ModuleHost reservingFields(Map<FeatureAttachment.Target, Set<String>> fields) {
+    public ModuleHost reservingFields(Map<Level, Set<String>> fields) {
         return new ModuleHost(builtIns, exposedHostPackages, merge(reservedHostFields, fields),
                 hostTypePackages, reservedFolders, bundledJars, jarCopyRoot, logger);
     }
@@ -141,15 +141,15 @@ public record ModuleHost(
         return Path.of(System.getProperty(TEMPORARY_DIRECTORY_PROPERTY));
     }
 
-    private static Map<FeatureAttachment.Target, Set<String>> copyOf(Map<FeatureAttachment.Target, Set<String>> fields) {
-        var copy = new EnumMap<FeatureAttachment.Target, Set<String>>(FeatureAttachment.Target.class);
+    private static Map<Level, Set<String>> copyOf(Map<Level, Set<String>> fields) {
+        var copy = new EnumMap<Level, Set<String>>(Level.class);
         fields.forEach((target, names) -> copy.put(target, Set.copyOf(names)));
         return Map.copyOf(copy);
     }
 
     /** A blank field name, or one with ':' like a feature id, fails here, as it would as a settings key. */
-    private static void requireFieldNames(Map<FeatureAttachment.Target, Set<String>> fields) {
-        fields.values().forEach(names -> names.forEach(FeatureAttachment::requireFieldName));
+    private static void requireFieldNames(Map<Level, Set<String>> fields) {
+        fields.values().forEach(names -> names.forEach(FeatureDescriptor::requireFieldName));
     }
 
     private static void requireFolderNames(Set<String> folders) {
@@ -161,10 +161,10 @@ public record ModuleHost(
         }
     }
 
-    private static Map<FeatureAttachment.Target, Set<String>> merge(
-            Map<FeatureAttachment.Target, Set<String>> existing,
-            Map<FeatureAttachment.Target, Set<String>> added) {
-        var merged = new EnumMap<FeatureAttachment.Target, Set<String>>(FeatureAttachment.Target.class);
+    private static Map<Level, Set<String>> merge(
+            Map<Level, Set<String>> existing,
+            Map<Level, Set<String>> added) {
+        var merged = new EnumMap<Level, Set<String>>(Level.class);
         existing.forEach((target, names) -> merged.put(target, new TreeSet<>(names)));
         added.forEach((target, names) -> merged.computeIfAbsent(target, ignored -> new TreeSet<>()).addAll(names));
         return merged;

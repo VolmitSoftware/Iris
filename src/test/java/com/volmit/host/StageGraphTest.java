@@ -1,7 +1,7 @@
 package com.volmit.host;
 
-import com.volmit.FeatureAttachment;
 import com.volmit.FeatureRegistry;
+import com.volmit.config.Level;
 import com.volmit.IrisFeature;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
@@ -47,7 +47,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class StageGraphTest {
     private static final BlockState STONE = new BlockState("minecraft:stone");
 
-    @Feature(id = "test:owner/toggle", name = "Toggle", key = "ownerToggle", targets = FeatureAttachment.Target.OBJECT_PLACEMENT)
+    @Feature(id = "test:owner/toggle", name = "Toggle", key = "ownerToggle", targets = Level.PLACEMENT)
     static final class Toggle implements IrisFeature {}
 
     static final class Unannotated implements IrisFeature {}
@@ -403,7 +403,7 @@ class StageGraphTest {
         var refusals = new ArrayList<String>();
         var graph = resolve(Pipeline.PLACEMENT, module("test:owner", stages -> {
             stages.define(Stage.placement("test:owner/toggled")).when(Toggle.class).run(context -> {
-                configured.add(context.configured(Toggle.class).getFirst().value());
+                configured.add(context.configured(Toggle.class).mostSpecific().orElseThrow());
                 refusals.add(assertThrows(IllegalStateException.class, () -> context.configured(SnowSettings.class)).getMessage());
             });
             stages.define(Stage.placement("test:owner/plain")).run(context -> refusals.add(
@@ -572,7 +572,7 @@ class StageGraphTest {
             stages.define(mark).reach(2).run(context -> {});
         }))), Map.of(), Set.of(), Set.of());
         var computed = loaded.mantle().stages().getFirst();
-        var toggled = new DeclaredSettings(new Entry<>(FeatureAttachment.Target.DIMENSION, ResourceId.parse("pack:dimension/main"), new Toggle()));
+        var toggled = new DeclaredSettings(new Entry<>(Level.DIMENSION, ResourceId.parse("pack:dimension/main"), new Toggle()));
 
         assertEquals(4, computed.reachBlocks(DeclaredSettings.NONE));
         assertEquals(40, computed.reachBlocks(toggled));
@@ -605,7 +605,7 @@ class StageGraphTest {
             stages.define(follower).requires(toggled).run(context -> ran.add("follower"));
         }));
         var runner = new MantleRunner(graph);
-        var toggle = new Entry<>(FeatureAttachment.Target.BIOME, ResourceId.parse("pack:biome/plains"), new Toggle());
+        var toggle = new Entry<>(Level.BIOME, ResourceId.parse("pack:biome/plains"), new Toggle());
         var nowhere = TestContexts.mantle(0, 0, ColumnSettings.NONE, null);
         var oneColumn = TestContexts.mantle(0, 0, new ColumnSettings((x, z) -> x == 15 && z == 0 ? List.of(toggle) : List.of()), null);
 

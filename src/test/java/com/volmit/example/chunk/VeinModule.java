@@ -5,6 +5,7 @@ import com.volmit.ModuleInfo;
 import com.volmit.ModuleSetup;
 import com.volmit.block.BlockState;
 import com.volmit.config.PackSettings;
+import com.volmit.generation.ChunkContext;
 import com.volmit.mantle.BlockBox;
 import com.volmit.mantle.MantleCodec;
 import com.volmit.mantle.MantleKey;
@@ -28,8 +29,6 @@ public final class VeinModule implements IrisModule {
     public static final MantleStage PLAN = Stage.mantle("example:veins/plan");
     public static final ChunkStage<Void> PLACE = Stage.chunk("example:veins/place");
     public static final BlockState ORE_BLOCK = new BlockState("minecraft:iron_ore");
-    private static final int CHUNK_WIDTH = 16;
-    private static final int CHUNK_CENTRE = 7;
     private static final int PLANNED = 1;
 
     @Override
@@ -46,18 +45,18 @@ public final class VeinModule implements IrisModule {
 
     /** How far the longest vein any level of the pack declares runs past its chunk. */
     public static int reach(PackSettings settings) {
-        int longest = settings.declared(VeinSettings.class).stream().mapToInt(vein -> vein.value().length()).max().orElse(0);
-        return Math.max(0, longest - (CHUNK_WIDTH - CHUNK_CENTRE));
+        int longest = settings.declared(VeinSettings.class).values().stream().mapToInt(VeinSettings::length).max().orElse(0);
+        return Math.max(0, longest - (ChunkContext.CHUNK_WIDTH - ChunkContext.CENTRE_COLUMN));
     }
 
     /** One vein per level that configures veins at the chunk's centre column: levels stack. */
     private static void plan(MantleStageContext context) {
-        int startX = context.originX() + CHUNK_CENTRE;
-        int z = context.originZ() + CHUNK_CENTRE;
+        int startX = context.centreX();
+        int z = context.centreZ();
         var ore = context.mantle().layer(ORE);
-        for (var vein : context.settings().at(VeinSettings.class, startX, z)) {
-            for (int step = 0; step < vein.value().length(); step++) {
-                ore.set(startX + step, vein.value().y(), z, PLANNED);
+        for (var vein : context.settings().at(VeinSettings.class, startX, z).values()) {
+            for (int step = 0; step < vein.length(); step++) {
+                ore.set(startX + step, vein.y(), z, PLANNED);
             }
         }
     }

@@ -34,7 +34,7 @@ public final class MossModule implements IrisModule {
     }
 
     private static void spread(PlacementStageContext context) {
-        var moss = context.configured(MossSettings.class).getFirst().value();    // a placement declares its settings once
+        var moss = context.configured(MossSettings.class).mostSpecific().orElseThrow();    // a placement declares its settings once
         var anchor = context.output(AnchorModule.HEIGHT).anchor();
         var access = context.access();
         int groundY = anchor.y() - 1;

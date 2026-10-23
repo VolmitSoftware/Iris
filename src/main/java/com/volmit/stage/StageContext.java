@@ -1,9 +1,8 @@
 package com.volmit.stage;
 
 import com.volmit.IrisFeature;
-import com.volmit.config.FeatureSettings.Entry;
+import com.volmit.config.SettingsStack;
 import com.volmit.random.WorldRandom;
-import java.util.List;
 
 /** Per-invocation view handed to one stage body. Do not retain it after the body returns. */
 public interface StageContext {
@@ -20,10 +19,10 @@ public interface StageContext {
      */
     <O> O output(Stage<O> stage);
 
-    /** The entries of the settings this stage is conditioned on with {@code when(settingsType)}, in level order: the
+    /** The stack of the settings this stage is conditioned on with {@code when(settingsType)}, in level order: the
      * ones that activated it in this invocation, so never empty. A placement has its own declarations; a chunk or
      * mantle invocation has every distinct entry of the chunk's columns. Any other type, or a stage without a
      * condition, throws IllegalStateException; read other settings through the context's {@code settings()}.
      */
-    <S extends IrisFeature> List<Entry<S>> configured(Class<S> settingsType);
+    <S extends IrisFeature> SettingsStack<S> configured(Class<S> settingsType);
 }

@@ -21,6 +21,14 @@ public interface TerrainSampler {
     default double surfaceY(int worldX, int worldZ) {
         return column(worldX, worldZ).surfaceY();
     }
+
+    /** The column's surface height in whole blocks: {@link #surfaceY} rounded to the nearest block, for a module that
+     * places blocks at the surface. The host may answer it from the whole height it keeps. Outside the bounds it throws
+     * like {@link #column}.
+     */
+    default int surfaceHeight(int worldX, int worldZ) {
+        return (int) Math.round(surfaceY(worldX, worldZ));
+    }
     BiomeSample biome(int worldX, int y, int worldZ);
 
     /** The {@link BiomeSample#caveBiome()} alone, for a module that asks it block by block and needs neither the region
@@ -43,7 +51,9 @@ public interface TerrainSampler {
     OptionalInt upperDimensionY(int worldX, int worldZ);
 
     /** The id of the column's surface biome, as {@link BiomeSample#surfaceBiome()} gives it, for a module that asks about every
-     * column of a chunk and has no use for the rest of the sample. The host may answer it without working out the cave biome.
+     * column of a chunk and has no use for the rest of the sample. The surface biome is the column's, the same at every
+     * height, so this takes no Y; the default samples at the bottom. The host may answer it without working out the cave
+     * biome. Outside the bounds it throws like {@link #column}.
      */
     default ResourceId surfaceBiome(int worldX, int worldZ) {
         return biome(worldX, bounds().minY(), worldZ).surfaceBiome();

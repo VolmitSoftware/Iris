@@ -1,9 +1,9 @@
 package com.volmit.host;
 
-import com.volmit.FeatureAttachment;
 import com.volmit.FeatureRegistry;
 import com.volmit.IrisFeature;
 import com.volmit.ModuleLifecycle;
+import com.volmit.config.Level;
 import com.volmit.mantle.MantleCodec;
 import com.volmit.mantle.MantleKey;
 import com.volmit.mantle.MantleLifetime;
@@ -56,10 +56,10 @@ public final class ModuleRegistry implements FeatureRegistry {
     }
 
     /**
-     * @param reservedHostFields JSON fields the host itself uses, per attachment target, which no settings key may take
+     * @param reservedHostFields JSON fields the host itself uses, per level, which no settings key may take
      * @param reservedFolders folders below the pack root that the host reads itself, which no resource kind may read
      */
-    public ModuleRegistry(Map<FeatureAttachment.Target, Set<String>> reservedHostFields, Set<String> reservedFolders) {
+    public ModuleRegistry(Map<Level, Set<String>> reservedHostFields, Set<String> reservedFolders) {
         reservedHostFields.forEach((target, names) -> names.forEach(name -> reserveHostField(target, name)));
         this.reservedFolders = Set.copyOf(reservedFolders);
     }
@@ -105,8 +105,14 @@ public final class ModuleRegistry implements FeatureRegistry {
     }
 
     @Override
-    public void registerSettings(Class<? extends IrisFeature> settingsType) {
+    public void registerSettings(Class<? extends IrisFeature>... settingsTypes) {
         checkOpen();
+        for (var settingsType : settingsTypes) {
+            registerOneSettings(settingsType);
+        }
+    }
+
+    private void registerOneSettings(Class<? extends IrisFeature> settingsType) {
         var descriptor = FeatureDescriptor.of(settingsType);
         requireOwnedId("Settings " + settingsType.getName() + " with feature id", descriptor.id());
         catalogSettings(descriptor, registering);
@@ -261,8 +267,8 @@ public final class ModuleRegistry implements FeatureRegistry {
         }
     }
 
-    private void reserveHostField(FeatureAttachment.Target target, String name) {
-        keyClaimants.put(new KeyAtTarget(target, FeatureAttachment.requireFieldName(name)), KeyClaimant.hostField());
+    private void reserveHostField(Level target, String name) {
+        keyClaimants.put(new KeyAtTarget(target, FeatureDescriptor.requireFieldName(name)), KeyClaimant.hostField());
     }
 
     private void claim(FeatureDescriptor<?> descriptor, DiscoveredModule owner) {
@@ -270,7 +276,7 @@ public final class ModuleRegistry implements FeatureRegistry {
         requireUnclaimedKeys(descriptor, owner);
         featureTypes.add(descriptor.type());
         featureIds.add(descriptor.id());
-        descriptor.attachment().targets().forEach(target ->
+        descriptor.targets().forEach(target ->
                 keyClaimants.put(new KeyAtTarget(target, descriptor.key()), KeyClaimant.of(descriptor, owner)));
     }
 
@@ -284,7 +290,7 @@ public final class ModuleRegistry implements FeatureRegistry {
      * names the claimants in a fixed order, so it does not depend on which module registered first.
      */
     private void requireUnclaimedKeys(FeatureDescriptor<?> descriptor, DiscoveredModule owner) {
-        for (var target : descriptor.attachment().targets()) {
+        for (var target : descriptor.targets()) {
             var earlier = keyClaimants.get(new KeyAtTarget(target, descriptor.key()));
             if (earlier == null) continue;
             var later = KeyClaimant.of(descriptor, owner);
@@ -295,8 +301,8 @@ public final class ModuleRegistry implements FeatureRegistry {
         }
     }
 
-    private static String targetName(FeatureAttachment.Target target) {
-        return target.name().toLowerCase(Locale.ROOT).replace('_', ' ');
+    private static String targetName(Level target) {
+        return target.name().toLowerCase(Locale.ROOT);
     }
 
     private void checkOpen() {
@@ -305,7 +311,7 @@ public final class ModuleRegistry implements FeatureRegistry {
         }
     }
 
-    private record KeyAtTarget(FeatureAttachment.Target target, String key) {}
+    private record KeyAtTarget(Level target, String key) {}
 
     /** Who holds a key: a field of the host's own JSON, a built-in module's feature or a pack module's, in that order. */
     private record KeyClaimant(Source source, String feature, String text) implements Comparable<KeyClaimant> {

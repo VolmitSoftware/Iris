@@ -1,8 +1,6 @@
 package com.volmit.config;
 
 import com.volmit.IrisFeature;
-import com.volmit.config.FeatureSettings.Entry;
-import java.util.List;
 
 /** Every settings declaration of the pack the host is loading, for what depends on the whole pack rather
  * than one column, such as how far a mantle stage reaches ({@link com.volmit.stage.PackReach}).
@@ -15,5 +13,5 @@ public interface PackSettings {
     /** Every entry of {@code featureType} the pack declares, dimension first, then regions, then biomes;
      * empty when nothing declares it.
      */
-    <F extends IrisFeature> List<Entry<F>> declared(Class<F> featureType);
+    <F extends IrisFeature> SettingsStack<F> declared(Class<F> featureType);
 }

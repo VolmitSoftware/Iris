@@ -24,7 +24,7 @@ public final class MossModule implements IrisModule {
              .when(MossSettings.class)                      // only where a pack configures moss
              .requires(AnchorModule.HEIGHT, BlocksModule.COMPLETE)
              .softAfter(StageRef.of("iris:snow/finish"))    // ordering only, if snow is set up
-             .run(ctx -> spread(ctx.output(AnchorModule.HEIGHT), ctx.configured(MossSettings.class).getFirst().value()));
+             .run(ctx -> spread(ctx.output(AnchorModule.HEIGHT), ctx.configured(MossSettings.class).mostSpecific().orElseThrow()));
     }
 }
 ```
@@ -78,24 +78,31 @@ still condition its stages on it, as moss does on `iris:snow`.
 
 ## Settings levels
 
-Settings can be declared at several levels: the dimension, a region, a biome and, in a placement, the
-placement itself. Each level's declaration is its own entry, and levels stack: nothing is merged and no
-level overrides another. A module decides what several entries mean, such as running a deposit once per
-entry, or using the most specific one.
+Settings can be declared at several levels (`com.volmit.config.Level`): the dimension, a region, a biome
+and, in a placement, the placement itself. Each level's declaration is its own entry, and levels stack:
+nothing is merged and no level overrides another. A module decides what several entries mean, such as
+running a deposit once per entry, or using the most specific one.
+
+Every lookup answers a `SettingsStack`: the entries in level order, with what modules usually pick from them.
 
 ```java
-for (var entry : ctx.settings().at(DepositSettings.class, worldX, worldZ)) {   // every level at this column
-    entry.level();   // DIMENSION, REGION, BIOME or OBJECT_PLACEMENT, in that order
-    entry.source();  // the declaring resource, such as overworld:biome/desert/dunes
-    entry.value();   // the decoded settings
+var here = ctx.settings().at(DepositSettings.class, worldX, worldZ);   // every level at this column
+here.values();        // every level's value: DIMENSION, REGION, BIOME, PLACEMENT, in that order
+here.dimension();     // the dimension's value, if it declares one
+here.level(Level.BIOME);
+here.mostSpecific();  // the last level's value
+for (var entry : here) {
+    entry.level();    // where it is declared
+    entry.source();   // the declaring resource, such as overworld:biome/desert/dunes
+    entry.value();    // the decoded settings
 }
 ```
 
 Settings are read per column, at the column's surface biome. A chunk or mantle stage conditioned with
-`when(...)` runs when any column of the chunk has an entry, so a biome border inside a chunk never
-hides a feature, and `ctx.configured(type)` gives every distinct entry of the chunk. It then reads
-`ctx.settings().at(...)` per column, or at the chunk's centre column (local 7, 7) for something that
-happens once per chunk. Something that spans several columns, such as a placed object, uses the column
+`when(...)` runs when any column of the chunk has an entry (`FeatureSettings.declaredInChunk`), so a
+biome border inside a chunk never hides a feature, and `ctx.configured(type)` gives every distinct entry
+of the chunk. It then reads `ctx.settings().at(...)` per column, or at the chunk's centre column
+(`ctx.centreX()`, `ctx.centreZ()`) for something that happens once per chunk. Something that spans several columns, such as a placed object, uses the column
 it treats as its origin. In a placement `ctx.configured(type)` gives the placement's own entry; a
 placement declares each settings type once. An entry is found under the class whose `@Feature` declares
 it, so a value of a subclass counts as its annotated superclass.
@@ -145,7 +152,7 @@ graph.define(APPLY).run(CaveModule::apply);   // reads its own chunk's CAVES and
 A chunk stage writes only its own chunk but may look around it: `ctx.terrain()` covers the chunk and the 16 blocks
 around it, gives the dimension's `fluidHeight()` and, per column, `upperDimensionY(x, z)` where a dimension stacked above
 begins (write nothing there). `surfaceY(x, z)` is a column's height alone, cheaper than `column(x, z)` when a stage needs
-no slope. `surfaceBiome(x, z)` is the id of a column's surface biome alone and `surfaceKind(x, z)` what it was generated as (`BiomeKind`: land, sea,
+no slope, and `surfaceHeight(x, z)` the same height rounded to the block a stage places on. `surfaceBiome(x, z)` is the id of a column's surface biome alone and `surfaceKind(x, z)` what it was generated as (`BiomeKind`: land, sea,
 shore); `surfaceBlock(x, z)` is the block an image map gives the ground there, `minWorldY()` the world Y of the dimension's bottom, and
 `upperDimension()` the dimension stacked above (`UpperDimension`: its own settings, resources and image-map blocks), for a stage that fills in its ground.
 `ctx.settings().declaredBy(biomeId, Type.class)` reads what a biome declares itself, such as a cave biome of a `BiomeSample`, which is no level of
@@ -157,10 +164,13 @@ carved a void, whatever the chunk's blocks show there. Stages only read both. `b
 ```java
 graph.define(INSERT).run(ctx -> {
     var blocks = ctx.hunk(BlockState.class);
-    var chunk = new BlockBox(ctx.originX(), 0, ctx.originZ(), ctx.originX() + 16, blocks.getHeight(), ctx.originZ() + 16);
-    ctx.mantle().blocks().visit(chunk, (x, y, z, block) -> blocks.set(x - ctx.originX(), y, z - ctx.originZ(), block));
+    ctx.mantle().blocks().visit(ctx.area(), (x, y, z, block) -> blocks.set(x - ctx.originX(), y, z - ctx.originZ(), block));
 });
 ```
+
+Chunk and mantle contexts share `ChunkContext`: `originX()`/`originZ()` (the chunk's first block), `chunkX()`/`chunkZ()`,
+`centreX()`/`centreZ()` (the world X and Z of the centre column) and `area()`, the chunk's columns at the terrain's full
+height.
 
 `reach(blocks)` is the distance in blocks along X and Z beyond the stage's footprint: the chunk for a
 mantle stage, the X/Z bounds of the placed object for a placement stage, whole columns in both cases.
@@ -179,7 +189,7 @@ biomes it can reach) when the pack loads, and asks each mantle stage with
 graph.define(PLAN).when(VeinSettings.class).reach(VeinModule::reach).writesMantle(ORE).run(VeinModule::plan);
 
 static int reach(PackSettings settings) {
-    int longest = settings.declared(VeinSettings.class).stream().mapToInt(vein -> vein.value().length()).max().orElse(0);
+    int longest = settings.declared(VeinSettings.class).values().stream().mapToInt(VeinSettings::length).max().orElse(0);
     return Math.max(0, longest - 9);   // a vein starts at the chunk's centre column
 }
 ```
@@ -255,7 +265,7 @@ it builds for one world, such as a cache or a worker, it keeps in that world's s
 
 ```java
 private static void plant(ChunkStageContext context) {
-    planted(context.world()).add(context.originX() >> 4, context.originZ() >> 4);
+    planted(context.world()).add(context.chunkX(), context.chunkZ());
 }
 
 static PlantedChunks planted(PackWorld world) {
@@ -264,8 +274,9 @@ static PlantedChunks planted(PackWorld world) {
 ```
 
 - `ctx.world()` is the `PackWorld` an invocation generates: its seed, the pack snapshot's resources, the settings of
-  its dimension and the regions and biomes it can reach, and `state(type, create)`. Every stage context has it; a
-  placement outside any world, such as a studio paste, throws.
+  its dimension and the regions and biomes it can reach, and `state(type, create)`. Every stage context has it and it
+  never throws: a placement outside the worlds the host generates, such as a studio paste, gets a world of its own with
+  the pack's resources and settings, a seed the host picks and a state store that lives as long as the placement.
 - `state` creates each type once per world, even when threads race, and hands every caller the same instance. A
   factory may ask for other state; asking for the type being created fails instead of recursing. A factory that throws
   keeps nothing. Use a class of the module as the type.
@@ -286,8 +297,8 @@ public final class RuinsModule implements IrisModule, ModuleLifecycle {
 }
 ```
 
-- `packLoaded(resources, settings)` runs once per pack snapshot, before the first world using it starts; `settings`
-  holds every entry of the whole pack.
+- `packLoaded(pack)` runs once per pack snapshot, before the first world using it starts: `pack.resources()`,
+  `pack.settings()` (every entry of the whole pack) and `pack.log()`, the module's log.
 - `worldStarted(world)` runs before the world generates anything, `worldStopped(world)` when it stops; its state is
   still readable there.
 - `warmUp(world)` runs after every module's `worldStarted` and may be slow: build caches in the world's state there,
@@ -321,8 +332,8 @@ private static void decorate(ChunkStageContext context) {
 
 - A message is plain text, never a format string.
 - `context.log()` (stage bodies, object generators), `fit.log()` (vanilla structure fits), `world.log()` (services and
-  lifecycle hooks, which get a world as their argument) and `setup.log()` are the same module's log. Keep the setup's log in a
-  field when `packLoaded`, which has no world, needs to log.
+  lifecycle hooks, which get a world as their argument), `pack.log()` (`packLoaded`) and `setup.log()` are the same
+  module's log.
 - Do not use `System.out`, `System.getLogger` or a logging library of your own: the host cannot label or report them.
 
 ## Services
@@ -454,7 +465,7 @@ completion from it.
 
 ```java
 @Desc("Plants flowers and bushes")
-@Feature(id = "example:flora", name = "Flora", key = "flora", targets = Target.BIOME)   // packs write "flora": {...}
+@Feature(id = "example:flora", name = "Flora", key = "flora", targets = Level.BIOME)   // packs write "flora": {...}
 public final class FloraSettings implements IrisFeature {
     @Desc("Plants per chunk") @Required @MinNumber(0) @MaxNumber(64)
     private int density = 4;                                         // default 4
@@ -516,7 +527,7 @@ public final class FloraSettings implements IrisFeature {
   use them.
 - Settings named in `when(...)` and object generator settings are described automatically. Settings
   that no stage names, such as ones read only through `FeatureSettings.at(...)`, are registered with
-  `setup.registry().registerSettings(WindSettings.class)` in `setup`. Their feature id follows the module
+  `setup.registry().registerSettings(WindSettings.class, GustSettings.class)` in `setup`. Their feature id follows the module
   id like any other, and once registered, other modules may name them in `when(...)`.
 - A class of a built-in module that Iris's own classes hold, such as the clamp field of an object placement, is
   registered with `registry.registerHeldType(Clamp.class)`, so studio describes it from the class (as an
@@ -557,19 +568,20 @@ Settings describe blocks, noise and ranges with IrisApi's value types, which rea
 | `Object` | any JSON value | as decoded: objects as maps, arrays as lists, numbers as `Double` |
 
 ```java
-@Feature(id = "example:veins", name = "Veins", key = "veins", targets = Target.BIOME)
+@Feature(id = "example:veins", name = "Veins", key = "veins", targets = Level.BIOME)
 public final class VeinSettings implements IrisFeature {
     private List<BlockSpec> palette = List.of(BlockSpec.of("iron_ore"));
     private NoiseStyle density = NoiseStyle.of("SIMPLEX").withZoom(16);
 }
 
 // in a stage
-NoiseSampler density = ctx.resources().noise().sampler(veins.density(), ctx.worldSeed() ^ VEIN_SALT);
-BlockState ore = ctx.resources().blocks().resolve(veins.palette().getFirst());
+var resources = ctx.world().resources();
+NoiseSampler density = resources.noise().sampler(veins.density(), ctx.world().seed() ^ VEIN_SALT);
+BlockState ore = resources.blocks().resolve(veins.palette().getFirst());
 ```
 
 Noise belongs to the host: a style names one of its noise generators (`@Ref(Reference.NOISE_STYLE)`), or an
-expression or image map of the pack, and the host builds the noise. Seed it from `worldSeed()`, so the noise
+expression or image map of the pack, and the host builds the noise. Seed it from `world().seed()`, so the noise
 lines up across chunks; the host keeps what it builds for the pack, so asking again is cheap. A `BlockSpec` may
 name a block without a namespace, a custom block of the pack's `blocks` folder, or a block only some platforms
 have; resolving it never fails: the backup, then air, stands in. A `PaletteSpec` picks one of its blocks per position
@@ -601,8 +613,8 @@ public void setup(ModuleSetup setup) {
     setup.registry().registerService(VanillaStructures.class, new VanillaStructures() {
         @Override
         public VanillaStructureRule rule(ResourceId structure, VanillaStructureContext world) {
-            return world.settings().declared(CastleSettings.class).stream()
-                    .anyMatch(castle -> castle.value().replaces().equals(structure.toString()))
+            return world.settings().declared(CastleSettings.class).values().stream()
+                    .anyMatch(castle -> castle.replaces().equals(structure.toString()))
                     ? VanillaStructureRule.REPLACE : VanillaStructureRule.GENERATE;
         }
     });
@@ -649,7 +661,7 @@ Every method has a default that changes nothing, so a provider implements only w
 @Override
 public List<VanillaStructureStart> starts(int chunkX, int chunkZ, VanillaStructureStartContext context) {
     if (!castleChunk(context.world().seed(), chunkX, chunkZ)) return List.of();
-    int surface = (int) context.terrain().column((chunkX << 4) + 8, (chunkZ << 4) + 8).surfaceY();
+    int surface = context.terrain().surfaceHeight((chunkX << 4) + 8, (chunkZ << 4) + 8);
     return List.of(VanillaStructureStart.at(ResourceId.parse("minecraft:village_plains"), chunkX, chunkZ, surface)
             .withMemo(new StartMemo("{\"mode\":\"VACUUM\"}", "")));
 }
@@ -730,7 +742,7 @@ class of the pack is defined. The last error below lists every kind of unusable 
 uses, one group per kind:
 
 ```
-Module jar modules/alpha.jar contains Iris API class com.volmit.FeatureAttachment and 130 more; Iris provides the API at runtime, so mark the Iris API dependency compileOnly (Maven: provided) and keep module classes out of com.volmit.*
+Module jar modules/alpha.jar contains Iris API class com.volmit.FeatureRegistry and 130 more; Iris provides the API at runtime, so mark the Iris API dependency compileOnly (Maven: provided) and keep module classes out of com.volmit.*
 
 Module jar modules/caves.jar contains class art.arcane.iris.engine.modules.CarveModule of package art.arcane.iris.engine.modules, which Iris provides to modules at runtime; compile against it compileOnly (Maven: provided) instead of shipping it, and keep module classes out of art.arcane.iris.engine.modules.*
 
@@ -807,10 +819,10 @@ no JSON. The host renders it and merges it with its own fields:
   files' type: an `ObjectKind` naming an entry of `types()`, or a `HostKind` for a built-in kind whose class the
   host describes itself. `ResourceReferenceKind(kind)` is an option naming a resource of a kind by its key.
 
-For the stilt example the host sees one `OBJECT_PLACEMENT` feature. The records are abridged:
+For the stilt example the host sees one `PLACEMENT` feature. The records are abridged:
 
 ```
-FeatureSchema[id=iris:stilt, name=Stilt, role=SETTINGS, module=Stilts (iris:stilt), key=stilt, root=Optional.empty, targets=[OBJECT_PLACEMENT],
+FeatureSchema[id=iris:stilt, name=Stilt, role=SETTINGS, module=Stilts (iris:stilt), key=stilt, root=Optional.empty, targets=[PLACEMENT],
   settings=ObjectType[name=com.volmit.example.placement.StiltSettings, description=Fills the space below an object down to the ground,
     snippet=Optional.empty, options=[SchemaOption[name=maxDepth, kind=IntegerKind[], description=Maximum blocks filled below each
     lowest object block, required=false, minimum=OptionalDouble[1.0], maximum=OptionalDouble.empty, defaultValue=Optional[16]]]]]
@@ -824,7 +836,9 @@ schema, after a module jar changes.
 `PlacementRunner` owns the edit for one attempt. It commits once if no stage rejects or throws
 and closes the edit in every case. Stages get buffered `PlacementAccess` without commit rights.
 
-The host keeps one `PackWorld` per world and pack snapshot. `WorldStates` is the reference store behind
+The host keeps one `PackWorld` per world and pack snapshot, and builds one for each placement a tool makes outside
+those worlds (a studio paste), with its own `WorldStates` that it closes when the placement ends; no hook runs for it.
+`WorldStates` is the reference store behind
 `PackWorld.state`, and `LifecycleRunner` calls a pack's hooks the way `ModuleLifecycle` promises:
 
 ```java

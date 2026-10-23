@@ -1,7 +1,5 @@
 package com.volmit;
 
-import com.volmit.config.PackSettings;
-import com.volmit.resource.PackResources;
 import com.volmit.world.PackWorld;
 
 /** What a module does when the host loads a pack and starts or stops a world with it. Every hook does nothing by
@@ -19,11 +17,11 @@ import com.volmit.world.PackWorld;
  * serve several packs and worlds at once.
  */
 public interface ModuleLifecycle {
-    /** The pack's modules are installed and its resources can be read. {@code settings} holds every entry of every
-     * dimension, region and biome of the pack, as validators see them. A hook that throws stops the pack's worlds from
-     * starting, naming its module.
+    /** The pack's modules are set up and its resources can be read: {@code pack} gives the resources, every settings
+     * entry of every dimension, region and biome of the pack (as validators see them) and the module's log. A hook that
+     * throws stops the pack's worlds from starting, naming its module.
      */
-    default void packLoaded(PackResources resources, PackSettings settings) {}
+    default void packLoaded(PackContext pack) {}
 
     /** {@code world} starts, before it generates anything: the place to build state eagerly, such as caches a world
      * would otherwise build on its first chunk. A hook that throws stops the world from starting, naming its module; the

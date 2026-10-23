@@ -1,6 +1,6 @@
 package com.volmit.host.schema;
 
-import com.volmit.FeatureAttachment;
+import com.volmit.config.Level;
 import com.volmit.resource.ResourceId;
 import java.util.Comparator;
 import java.util.List;
@@ -34,8 +34,8 @@ public record PackSchema(List<FeatureSchema> features, List<ResourceKindSchema> 
                 .orElseThrow(() -> new NoSuchElementException("No resource kind: " + id));
     }
 
-    /** The module features of one attachment target, by JSON key. */
-    public List<FeatureSchema> fields(FeatureAttachment.Target target) {
+    /** The module features written in the files of one level, by JSON key. */
+    public List<FeatureSchema> fields(Level target) {
         Objects.requireNonNull(target, "target");
         return features.stream()
                 .filter(feature -> feature.targets().contains(target))

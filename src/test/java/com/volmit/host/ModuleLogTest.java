@@ -5,9 +5,11 @@ import com.volmit.ModuleInfo;
 import com.volmit.ModuleLifecycle;
 import com.volmit.ModuleLog;
 import com.volmit.ModuleSetup;
+import com.volmit.PackContext;
 import com.volmit.stage.ChunkStage;
 import com.volmit.stage.Pipeline;
 import com.volmit.stage.Stage;
+import com.volmit.support.EmptyResources;
 import com.volmit.support.TestContexts;
 import com.volmit.support.TestModuleJar;
 import com.volmit.support.TestSetups;
@@ -267,5 +269,47 @@ class ModuleLogTest {
         seen.get(0).info("from a hook");
 
         assertEquals(List.of("[test:alpha] from a service", "[test:alpha] from a hook"), logger.messages());
+    }
+
+    @Test
+    void packLoadedGetsThePackWithTheModulesOwnLog() {
+        var logger = new RecordingLogger();
+        var module = new IrisModule() {
+            public ModuleInfo info() { return ModuleInfo.of(ALPHA, "Loads", "1"); }
+            public void setup(ModuleSetup setup) {
+                setup.registry().registerLifecycle(new ModuleLifecycle() {
+                    @Override
+                    public void packLoaded(PackContext pack) { pack.log().info("loaded " + pack.resources().packId()); }
+                });
+            }
+        };
+        var catalog = LoadedModules.load(List.of(DiscoveredModule.builtIn(module).loggingTo(logger)), Map.of(), Set.of(), Set.of())
+                .catalog();
+
+        try (var world = new TestWorld()) {
+            new LifecycleRunner(catalog).packLoaded(new EmptyResources(), world.settings());
+        }
+
+        assertEquals(List.of("[test:alpha] loaded test:pack"), logger.messages());
+    }
+
+    @Test
+    void aStageBodySeesTheSameScopedWorldOnEveryInvocationOfTheSameWorld() {
+        var seen = new ArrayList<PackWorld>();
+        var stage = Stage.chunk("test:alpha/scope");
+        var module = new IrisModule() {
+            public ModuleInfo info() { return ModuleInfo.of(ALPHA, "Scope", "1"); }
+            public void setup(ModuleSetup setup) { setup.stages().define(stage).run(context -> seen.add(context.world())); }
+        };
+        var runner = new ChunkRunner(TestSetups.stages(module).resolve(Pipeline.CHUNK));
+
+        try (var first = new TestWorld(); var second = new TestWorld()) {
+            for (var world : List.of(first, first, second)) {
+                runner.generate(TestContexts.generation(Map.of(), null, null, world), TestContexts.SEED, StageTimings.NONE);
+            }
+        }
+
+        assertSame(seen.get(0), seen.get(1), "the module's view of a world is built once, not per invocation");
+        assertNotSame(seen.get(1), seen.get(2), "another world gets its own view");
     }
 }

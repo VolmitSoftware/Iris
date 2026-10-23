@@ -6,7 +6,7 @@ package com.volmit.noise;
  */
 public interface NoiseFactory {
     /** The noise {@code style} describes, seeded with {@code seed}. The same style and seed give the same values
-     * in every world of the pack, so derive the seed from the world seed ({@code context.worldSeed()}), not from a
+     * in every world of the pack, so derive the seed from the world seed ({@code context.world().seed()}), not from a
      * stage's random stream, when the noise must line up across chunks. The host keeps what it builds for the pack
      * snapshot, so asking again for the same style and seed is cheap.
      *

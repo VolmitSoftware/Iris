@@ -1,7 +1,7 @@
 package com.volmit.host.schema;
 
-import com.volmit.FeatureAttachment;
 import com.volmit.ModuleInfo;
+import com.volmit.config.Level;
 import com.volmit.resource.ResourceId;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -16,7 +16,7 @@ import java.util.Set;
  * @param module the module that owns the feature id
  * @param key the JSON key the settings are written under, declared by the feature, the same at every target
  * @param root the option whose value the key holds, when the JSON is that value and not an object of options
- * @param targets where the keys appear, in {@link FeatureAttachment.Target} order
+ * @param targets the levels whose files hold the key, in {@link Level} order
  * @param settings the settings class; its description describes the value
  */
 public record FeatureSchema(
@@ -26,7 +26,7 @@ public record FeatureSchema(
         ModuleInfo module,
         String key,
         Optional<String> root,
-        Set<FeatureAttachment.Target> targets,
+        Set<Level> targets,
         ObjectType settings) {
     public FeatureSchema {
         Objects.requireNonNull(id, "id");

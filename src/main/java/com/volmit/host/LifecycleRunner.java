@@ -28,15 +28,16 @@ public final class LifecycleRunner {
         this.lifecycles = Objects.requireNonNull(catalog, "catalog").lifecycles();
     }
 
-    /** Runs every {@code packLoaded} hook in order; the first that throws ends the run with an IllegalStateException
-     * naming its module, and the hooks after it do not run.
+    /** Runs every {@code packLoaded} hook in order, each with a {@link com.volmit.PackContext} whose log is its module's;
+     * the first that throws ends the run with an IllegalStateException naming its module, and the hooks after it do not
+     * run.
      */
     public void packLoaded(PackResources resources, PackSettings settings) {
         Objects.requireNonNull(resources, "resources");
         Objects.requireNonNull(settings, "settings");
         for (var registration : lifecycles) {
             try {
-                registration.lifecycle().packLoaded(resources, settings);
+                registration.lifecycle().packLoaded(registration.pack(resources, settings));
             } catch (RuntimeException failure) {
                 throw failed("loading pack " + resources.packId(), registration, failure);
             }

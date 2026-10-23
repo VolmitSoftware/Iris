@@ -16,7 +16,8 @@ types that carry them and lists what the Iris adapter still owes.
 | Module entry point | `IrisModule.info()`, `IrisModule.setup(ModuleSetup)` (`stages()`, `registry()`, `log()`), host `ModuleSetups.run` |
 | Module-owned work and ordering | `Stage`, `StageRef`, one stage definition type per pipeline, `requires`/`softAfter`/`softBefore` |
 | Activation by configuration | `when(settingsType)`, `StageContext.configured(settingsType)`, host `ConfiguredSettings` (entries per declared `@Feature` type; any column of a chunk) |
-| Stacked settings levels, read per column | `FeatureSettings.at(type, x, z)`, `FeatureSettings.Entry` (level, source, value) |
+| Stacked settings levels, read per column | `Level`, `FeatureSettings.at(type, x, z)` and `declaredInChunk(type, chunkX, chunkZ)`, `SettingsStack` (`values`, `dimension`, `level`, `mostSpecific`), `FeatureSettings.Entry` (level, source, value) |
+| Chunk coordinates in stages | `ChunkContext` (`chunkX`, `chunkZ`, `centreX`, `centreZ`, `area`), shared by `GenerationContext` and `MantleGenerationContext` |
 | Typed results between modules | stage outputs, `StageContext.output` |
 | Per-block work with single-pass cost | `BlockStage`, fused block passes |
 | Pack-load validation and diagnostics | host `StageGraphBuilder`, `ResolvedGraph`, `LoadedModules` |
@@ -34,7 +35,7 @@ types that carry them and lists what the Iris adapter still owes.
 | Module-owned pack resources | `ResourceKind`, `FeatureRegistry.registerResourceKind`, `@ResourceRef`, host `ModuleHost.reservingFolders`, `FeatureCatalog.resourceKinds()`, `ResourceKindSchema`, `ValueKind.ResourceReferenceKind` |
 | Module-owned pack checks | `Validator`, `ValidationContext`, `Problem`, `Severity`, `Subject`, `FeatureRegistry.registerValidator`, host `FeatureCatalog.validators()` |
 | Per-world module state | `PackWorld` (`state`), `InvocationContext.world()`, host `WorldStates` |
-| Module lifecycle across loads, hotloads and reloads | `ModuleLifecycle`, `FeatureRegistry.registerLifecycle`, host `FeatureCatalog.lifecycles()`, `LifecycleRunner` |
+| Module lifecycle across loads, hotloads and reloads | `ModuleLifecycle`, `PackContext`, `FeatureRegistry.registerLifecycle`, host `FeatureCatalog.lifecycles()`, `LifecycleRunner` |
 | Host questions answered by modules | `@Service`, `Providers`, `FeatureRegistry.registerService`, host `FeatureCatalog.services(type)` / `service(type)`; services `ObjectsAt`, `StructureLocator` (`LocateResult`), `SaplingGrowth`, `Loot`, `BlockDrops`, `EntitySpawns`, `CaveBiomes`, `AmbientEffects`, `VanillaFeatures` (`DecorationStep`); values `ItemDrop`, `EntitySpec`, `ItemRegistry` (`PackResources.items()`) |
 | Terrain and settings sampling | `TerrainSampler`, `BiomeSample`, `TerrainSample`, `FeatureSettings` |
 | Dense chunk output | `Hunk<T>`, `GenerationContext.hunk`, reference `ArrayHunk<T>` |
@@ -141,7 +142,12 @@ running Iris is the pack publisher's responsibility.
   settings the biome declares itself (empty when it declares none or is unknown); `BlockRegistry.oreFor` answers from the platform.
 - Answer `TerrainSampler.fluidHeight()` (the height the host fills with fluid below) and `upperDimensionY(x, z)` (where a
   dimension stacked above begins; empty when none does). `surfaceY(x, z)` equals `column(x, z).surfaceY()`; a host
-  overrides it when the height costs less than the whole column.
+  overrides it when the height costs less than the whole column. `surfaceHeight(x, z)` must equal
+  `(int) Math.round(surfaceY(x, z))`.
+- Answer `FeatureSettings.at` in level order with no allocation a column read can avoid, and `declaredInChunk` with
+  exactly the distinct entries (by level and source) of the chunk's 16 by 16 columns, in the order the default gives:
+  level order, then the order the first column holding an entry was found, columns by X and then Z. Answer it from the
+  regions and biomes the chunk holds where the host knows them.
 - Make placement edits atomic across blocks, block entities, markers and mantle in generation
   storage. Abort chunk publication when any stage fails.
 - Preserve unknown persisted mantle layers or fail explicitly.
@@ -188,6 +194,8 @@ running Iris is the pack publisher's responsibility.
 
 - Keep one `PackWorld` per world and pack snapshot and pass it to every invocation of the world
   (`InvocationContext.world()`), to service calls and to hooks. Use `WorldStates` (or the same rules) for its store.
+  A placement a tool makes outside those worlds (a studio paste) gets a `PackWorld` of its own: the pack's resources
+  and settings, a seed the host picks, a store closed when the placement ends, and no hooks. `world()` never throws.
 - Call the hooks with `LifecycleRunner`: `packLoaded` once per pack snapshot before its first world starts,
   `worldStarted` before the world generates anything, `warmUp` after it (on a thread of your choice, and wait for it before
   the world's first generation; report a failure naming the module and carry on), `worldStopped` when it stops. On a hotload, and when the pack's

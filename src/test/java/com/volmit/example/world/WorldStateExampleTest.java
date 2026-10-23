@@ -70,7 +70,7 @@ class WorldStateExampleTest {
         }
 
         private static void plant(ChunkStageContext context) {
-            planted(context.world()).chunks.add(key(context.originX() >> 4, context.originZ() >> 4));
+            planted(context.world()).chunks.add(key(context.chunkX(), context.chunkZ()));
         }
 
         private static Set<String> objectsAt(PackWorld world, int chunkX, int chunkZ) {

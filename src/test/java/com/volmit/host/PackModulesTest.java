@@ -642,11 +642,11 @@ class PackModulesTest {
                 public @interface Feature {
                     String id();
                     String name();
-                    com.volmit.FeatureAttachment.Target[] targets();
+                    com.volmit.config.Level[] targets();
                 }
                 """).writeInto(build, "api-without-keys.jar");
         module("pack.old.Old", "old:flora", """
-                @com.volmit.config.Feature(id = "old:flora/wild-patch", name = "Patch", targets = com.volmit.FeatureAttachment.Target.BIOME)
+                @com.volmit.config.Feature(id = "old:flora/wild-patch", name = "Patch", targets = com.volmit.config.Level.BIOME)
                 public static final class Patch implements com.volmit.IrisFeature {}
                 """, "registry.registerSettings(Patch.class);")
                 .compileAgainstOlderApi(apiWithoutKeys)
@@ -689,18 +689,18 @@ class PackModulesTest {
                 .source("pack.ClashSettings", """
                         package pack;
 
-                        import com.volmit.FeatureAttachment.Target;
+                        import com.volmit.config.Level;
                         import com.volmit.IrisFeature;
                         import com.volmit.config.Feature;
 
-                        @Feature(id = "mine:core/clash", name = "Clash", key = "moss", targets = Target.OBJECT_PLACEMENT)
+                        @Feature(id = "mine:core/clash", name = "Clash", key = "moss", targets = Level.PLACEMENT)
                         public final class ClashSettings implements IrisFeature {
                         }
                         """)
                 .writeInto(pack, "clash.jar");
 
         try (var packModules = PackModules.load(pack)) {
-            assertEquals("object placement key \"moss\" is claimed by example:moss (host classpath) and mine:core/clash ("
+            assertEquals("placement key \"moss\" is claimed by example:moss (host classpath) and mine:core/clash ("
                             + origin("clash.jar") + "); give one of the settings another key in its @Feature",
                     failure(() -> loadWithBuiltIns(packModules)));
         }

@@ -36,7 +36,7 @@ public final class StiltModule implements IrisModule {
     }
 
     private static void fill(PlacementStageContext context) {
-        var stilt = context.configured(StiltSettings.class).getFirst().value();    // a placement declares its settings once
+        var stilt = context.configured(StiltSettings.class).mostSpecific().orElseThrow();    // a placement declares its settings once
         var anchor = context.output(AnchorModule.HEIGHT);
         for (var block : context.output(BOUNDS).lowestLayer()) {
             var bottom = anchor.worldPosition(context.request(), block.position());

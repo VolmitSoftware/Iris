@@ -2,6 +2,7 @@ package com.volmit.host;
 
 import com.volmit.*;
 import com.volmit.config.Feature;
+import com.volmit.config.Level;
 import com.volmit.mantle.*;
 import com.volmit.resource.ResourceKind;
 import com.volmit.service.Providers;
@@ -21,22 +22,22 @@ import java.util.function.Consumer;
 import static org.junit.jupiter.api.Assertions.*;
 
 class ModuleRegistryTest {
-    @Feature(id = "test:core/one", name = "One", key = "coreOne", targets = FeatureAttachment.Target.BIOME)
+    @Feature(id = "test:core/one", name = "One", key = "coreOne", targets = Level.BIOME)
     static class One implements IrisFeature {}
-    @Feature(id = "test:core/two", name = "Two", key = "coreTwo", targets = FeatureAttachment.Target.DIMENSION)
+    @Feature(id = "test:core/two", name = "Two", key = "coreTwo", targets = Level.DIMENSION)
     static class Two implements IrisFeature {}
-    @Feature(id = "test:core/one", name = "Duplicate", key = "coreOne", targets = FeatureAttachment.Target.REGION)
+    @Feature(id = "test:core/one", name = "Duplicate", key = "coreOne", targets = Level.REGION)
     static class Duplicate implements IrisFeature {}
-    @Feature(id = "test:ores", name = "Ores", key = "deposits", targets = {FeatureAttachment.Target.BIOME, FeatureAttachment.Target.REGION})
+    @Feature(id = "test:ores", name = "Ores", key = "deposits", targets = {Level.BIOME, Level.REGION})
     static class Ores implements IrisFeature {}
-    @Feature(id = "test:minerals", name = "Minerals", key = "deposits", targets = FeatureAttachment.Target.REGION)
+    @Feature(id = "test:minerals", name = "Minerals", key = "deposits", targets = Level.REGION)
     static class Minerals implements IrisFeature {}
-    @Feature(id = "test:veins", name = "Veins", key = "deposits", targets = FeatureAttachment.Target.DIMENSION)
+    @Feature(id = "test:veins", name = "Veins", key = "deposits", targets = Level.DIMENSION)
     static class Veins implements IrisFeature {}
-    @Feature(id = "test:named", name = "Named", key = "name", targets = FeatureAttachment.Target.BIOME)
+    @Feature(id = "test:named", name = "Named", key = "name", targets = Level.BIOME)
     static class Named implements IrisFeature {}
     static class MissingAnnotation implements IrisFeature {}
-    @Feature(id = "test:core/abstract", name = "Abstract", key = "coreAbstract", targets = FeatureAttachment.Target.BIOME)
+    @Feature(id = "test:core/abstract", name = "Abstract", key = "coreAbstract", targets = Level.BIOME)
     abstract static class AbstractFeature implements IrisFeature {}
 
     /** Runs {@code registrations} as the setup(...) of a built-in module with the given id. */
@@ -187,7 +188,7 @@ class ModuleRegistryTest {
 
     @Test
     void aKeyTheHostUsesAsAFieldOfTheTargetIsRefusedNamingIris() {
-        var reserved = Map.of(FeatureAttachment.Target.BIOME, Set.of("name", "generators"));
+        var reserved = Map.of(Level.BIOME, Set.of("name", "generators"));
 
         var clash = assertThrows(IllegalArgumentException.class,
                 () -> LoadedModules.load(discovered(settingsModule("test:named", Named.class)), reserved, Set.of(), Set.of()));
@@ -198,7 +199,7 @@ class ModuleRegistryTest {
 
     @Test
     void aHostFieldOfAnotherTargetDoesNotTakeTheKey() {
-        var reserved = Map.of(FeatureAttachment.Target.REGION, Set.of("name"));
+        var reserved = Map.of(Level.REGION, Set.of("name"));
 
         var loaded = LoadedModules.load(discovered(settingsModule("test:named", Named.class)), reserved, Set.of(), Set.of());
 
@@ -225,7 +226,7 @@ class ModuleRegistryTest {
 
     @Test
     void aRefusedKeyLeavesNothingClaimedByTheFailedFeature() {
-        var registry = new ModuleRegistry(Map.of(FeatureAttachment.Target.REGION, Set.of("deposits")), Set.of());
+        var registry = new ModuleRegistry(Map.of(Level.REGION, Set.of("deposits")), Set.of());
 
         assertThrows(IllegalArgumentException.class, () -> registerAs(registry, "test:ores", settings -> settings.registerSettings(Ores.class)));
 
@@ -251,6 +252,15 @@ class ModuleRegistryTest {
 
         assertEquals(List.of("test:core/one"), registry.freeze().settings().stream().map(value -> value.id().toString()).toList());
         assertTrue(registry.registeredByOwner(One.class));
+    }
+
+    @Test
+    void oneCallRegistersSeveralSettingsTypes() {
+        var registry = new ModuleRegistry();
+        registerAs(registry, "test:core", settings -> settings.registerSettings(One.class, Two.class));
+
+        assertEquals(List.of("test:core/one", "test:core/two"),
+                registry.freeze().settings().stream().map(value -> value.id().toString()).sorted().toList());
     }
 
     @Test

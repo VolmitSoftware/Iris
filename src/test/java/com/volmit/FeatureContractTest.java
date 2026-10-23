@@ -11,7 +11,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class FeatureContractTest {
     @Desc("Example settings")
     @Snippet("fill-settings")
-    @Feature(id = "example:fill", name = "Fill", key = "fill", targets = FeatureAttachment.Target.BIOME)
+    @Feature(id = "example:fill", name = "Fill", key = "fill", targets = Level.BIOME)
     public static class FillOptions implements IrisFeature {
         @Desc("Replacement value")
         @MinNumber(0)
@@ -41,27 +41,27 @@ class FeatureContractTest {
         assertEquals(ResourceId.parse("example:fill"), descriptor.id());
         assertEquals("fill", descriptor.key());
         assertEquals(java.util.Optional.empty(), descriptor.root());
-        assertEquals(java.util.Set.of(FeatureAttachment.Target.BIOME), descriptor.attachment().targets());
+        assertEquals(java.util.Set.of(Level.BIOME), descriptor.targets());
         assertEquals(1, descriptor.options().options().size());
     }
 
-    @Feature(id = "example:blank", name = "Blank", key = " ", targets = FeatureAttachment.Target.BIOME)
+    @Feature(id = "example:blank", name = "Blank", key = " ", targets = Level.BIOME)
     static class BlankKey implements IrisFeature {}
 
-    @Feature(id = "example:namespaced", name = "Namespaced", key = "example:namespaced", targets = FeatureAttachment.Target.BIOME)
+    @Feature(id = "example:namespaced", name = "Namespaced", key = "example:namespaced", targets = Level.BIOME)
     static class NamespacedKey implements IrisFeature {}
 
-    @Feature(id = "example:list", name = "List", key = "items", root = "items", targets = FeatureAttachment.Target.BIOME)
+    @Feature(id = "example:list", name = "List", key = "items", root = "items", targets = Level.BIOME)
     static class ListRoot implements IrisFeature {
         private java.util.List<String> items = java.util.List.of();
     }
 
-    @Feature(id = "example:missing", name = "Missing", key = "missing", root = "absent", targets = FeatureAttachment.Target.BIOME)
+    @Feature(id = "example:missing", name = "Missing", key = "missing", root = "absent", targets = Level.BIOME)
     static class RootNamingNoOption implements IrisFeature {
         private java.util.List<String> items = java.util.List.of();
     }
 
-    @Feature(id = "example:two", name = "Two", key = "two", root = "items", targets = FeatureAttachment.Target.BIOME)
+    @Feature(id = "example:two", name = "Two", key = "two", root = "items", targets = Level.BIOME)
     static class RootWithAnotherOption implements IrisFeature {
         private java.util.List<String> items = java.util.List.of();
         private int unreachable = 1;

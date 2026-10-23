@@ -33,12 +33,12 @@ public final class GrassModule implements IrisModule {
         var blocks = context.hunk(BlockState.class);
         for (int x = 0; x < blocks.getWidth(); x++) {
             for (int z = 0; z < blocks.getDepth(); z++) {
-                var here = context.settings().at(GrassSettings.class, context.originX() + x, context.originZ() + z);
+                var here = context.settings().at(GrassSettings.class, context.originX() + x, context.originZ() + z).mostSpecific();
                 int height = heights.at(x, z);
                 if (here.isEmpty() || height <= 0) {
                     continue;
                 }
-                blocks.set(x, height - 1, z, here.getLast().value().block());   // the most specific level wins here
+                blocks.set(x, height - 1, z, here.get().block());
             }
         }
     }

@@ -4,7 +4,7 @@ import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
 import com.volmit.ModuleLifecycle;
 import com.volmit.ModuleSetup;
-import com.volmit.config.PackSettings;
+import com.volmit.PackContext;
 import com.volmit.resource.PackResources;
 import com.volmit.support.EmptyResources;
 import com.volmit.support.TestWorld;
@@ -24,7 +24,7 @@ class LifecycleRunnerTest {
             public ModuleInfo info() { return ModuleInfo.of(id, "Lifecycle " + id, "1"); }
             public void setup(ModuleSetup setup) {
                 setup.registry().registerLifecycle(new ModuleLifecycle() {
-                    public void packLoaded(PackResources resources, PackSettings settings) { record("loaded"); }
+                    @Override public void packLoaded(PackContext pack) { record("loaded"); }
                     public void worldStarted(PackWorld world) { record("started"); }
                     public void warmUp(PackWorld world) { record("warmed"); }
                     public void worldStopped(PackWorld world) { record("stopped"); }

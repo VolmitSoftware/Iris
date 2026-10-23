@@ -1,5 +1,6 @@
 package com.volmit.host;
 
+import com.volmit.ModuleLog;
 import com.volmit.resource.ResourceId;
 import com.volmit.stage.Pipeline;
 import com.volmit.stage.Stage;
@@ -11,6 +12,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -212,6 +214,7 @@ final class GraphResolver {
         var executables = new ExecutableStage[order.length];
         var readable = new BitSet[order.length];
         var settingsTypes = new ArrayList<Class<?>>();
+        var worldsByLog = new IdentityHashMap<ModuleLog, ScopedWorlds>();
         for (int index = 0; index < order.length; index++) {
             int node = order[index];
             var declaration = nodes.get(node);
@@ -226,7 +229,7 @@ final class GraphResolver {
                     readable[index].stream().toArray(),
                     settingsSlot(declaration, settingsTypes),
                     StageStreams.idHash(declaration.stage().id()),
-                    declaration.log());
+                    worldsByLog.computeIfAbsent(declaration.log(), ScopedWorlds::new));
             stages.add(new ResolvedStage(declaration.stage(), declaration.module(), declaration.settings(),
                     incomingEdges(node, position), absentSoftTargets.get(node), declaration.reach()));
         }

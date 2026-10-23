@@ -15,6 +15,10 @@ import java.util.function.Function;
  * such as after a tool rewrote some of its files. State therefore never outlives the resources it was built from.
  * Invocations that began before the restart finish with the world they began with.
  *
+ * <p>A placement a tool makes outside the worlds the host generates, such as a studio paste, runs in a world of its own
+ * that the host builds for that placement: the pack's resources and settings, a seed the host picks, and a state store
+ * that lives as long as the placement. No lifecycle hook runs for it.
+ *
  * <p>Safe to use from any thread.
  */
 public interface PackWorld {

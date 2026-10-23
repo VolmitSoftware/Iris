@@ -10,7 +10,7 @@ import com.volmit.stage.StageGraph;
 import com.volmit.validation.Validator;
 
 /** Host implementation collects non-stage registrations before loading pack configuration.
- * Feature IDs must be unique. JSON fields must be unique per attachment target, including the
+ * Feature IDs must be unique. JSON keys must be unique per {@link com.volmit.config.Level}, including the
  * settings types stages name in {@code when(...)}. Feature IDs, mantle keys and resource kind ids a module
  * registers are its module id or start with it and {@code /}, such as {@code iris:snow} or {@code iris:snow/depth}.
  */
@@ -25,14 +25,14 @@ public interface FeatureRegistry {
 
     <F extends IrisFeature> void registerObject(Class<F> featureType, ObjectGeneratorFactory<F> factory);
 
-    /** Catalogs a settings type that no stage names in {@code when(...)}, such as one read only
-     * through {@link com.volmit.config.FeatureSettings#at}, so the host decodes it and studio
-     * describes it. Settings that a stage names are catalogued without this; registering them as
-     * well changes nothing. The type's feature id must be this module's id or start with it and
-     * {@code /}. Once registered, other modules may name the type in {@code when(...)} (see
-     * {@link StageGraph}).
+    /** Catalogs settings types that no stage names in {@code when(...)}, such as ones read only
+     * through {@link com.volmit.config.FeatureSettings#at}, so the host decodes them and studio
+     * describes them: {@code registerSettings(WindSettings.class, GustSettings.class)}. Settings that a
+     * stage names are catalogued without this; registering them as well changes nothing. Each type's
+     * feature id must be this module's id or start with it and {@code /}. Once registered, other
+     * modules may name the types in {@code when(...)} (see {@link StageGraph}).
      */
-    void registerSettings(Class<? extends IrisFeature> settingsType);
+    void registerSettings(Class<? extends IrisFeature>... settingsTypes);
 
     /** Describes a class that Iris's own classes hold, such as the clamp of an object placement, so studio shows
      * its fields as this class declares them. The class must be one the host loads: a built-in module's class, or a

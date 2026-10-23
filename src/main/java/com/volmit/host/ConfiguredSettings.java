@@ -1,18 +1,18 @@
 package com.volmit.host;
 
-import com.volmit.FeatureAttachment;
 import com.volmit.IrisFeature;
 import com.volmit.config.FeatureSettings.Entry;
+import com.volmit.config.Level;
+import com.volmit.config.SettingsStack;
 import com.volmit.resource.ResourceId;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-/** The settings entries configured for one invocation, per settings type, in level order. A stage
- * conditioned on a type is active when the type has at least one entry, and reads them all with
+/** The settings configured for one invocation, one {@link SettingsStack} per settings type. A stage
+ * conditioned on a type is active when its stack is not empty, and reads it with
  * {@link com.volmit.stage.StageContext#configured}. For a placement these are the placement's own declarations; for
  * a chunk the runners collect every distinct entry of the chunk's columns themselves. Entries are grouped by their
  * declared settings type ({@link FeatureDescriptor#declaredType}), so a value of a subclass counts as the type it is
@@ -20,12 +20,11 @@ import java.util.Objects;
  */
 public final class ConfiguredSettings {
     private static final ConfiguredSettings NONE = new ConfiguredSettings(Map.of());
-    private static final Comparator<Entry<?>> LEVEL_ORDER = Comparator.comparing(Entry::level);
 
-    private final Map<Class<?>, List<Entry<?>>> entries;
+    private final Map<Class<?>, SettingsStack<?>> stacks;
 
-    private ConfiguredSettings(Map<Class<?>, List<Entry<?>>> entries) {
-        this.entries = Map.copyOf(entries);
+    private ConfiguredSettings(Map<Class<?>, SettingsStack<?>> stacks) {
+        this.stacks = Map.copyOf(stacks);
     }
 
     public static ConfiguredSettings none() {
@@ -39,8 +38,23 @@ public final class ConfiguredSettings {
             Objects.requireNonNull(entry, "entry");
             grouped.computeIfAbsent(FeatureDescriptor.declaredType(entry.value().getClass()), ignored -> new ArrayList<>()).add(entry);
         }
-        grouped.replaceAll((type, group) -> group.stream().sorted(LEVEL_ORDER).toList());
-        return grouped.isEmpty() ? NONE : new ConfiguredSettings(grouped);
+        if (grouped.isEmpty()) {
+            return NONE;
+        }
+        var stacks = new HashMap<Class<?>, SettingsStack<?>>();
+        grouped.forEach((type, group) -> stacks.put(type, stackOf(group)));
+        return new ConfiguredSettings(stacks);
+    }
+
+    /** The stacks of these types, each kept under its own type; empty stacks are left out. */
+    static ConfiguredSettings ofStacks(Map<Class<?>, SettingsStack<?>> stacks) {
+        var configured = new HashMap<Class<?>, SettingsStack<?>>();
+        stacks.forEach((type, stack) -> {
+            if (!stack.isEmpty()) {
+                configured.put(type, stack);
+            }
+        });
+        return configured.isEmpty() ? NONE : new ConfiguredSettings(configured);
     }
 
     /** One placement's own settings, at most one value per declared type, declared by {@code source}. */
@@ -54,15 +68,20 @@ public final class ConfiguredSettings {
             if (types.putIfAbsent(declared, value) != null) {
                 throw new IllegalArgumentException("Settings configured twice: " + declared.getName());
             }
-            entries.add(new Entry<>(FeatureAttachment.Target.OBJECT_PLACEMENT, source, value));
+            entries.add(new Entry<>(Level.PLACEMENT, source, value));
         }
         return of(entries);
     }
 
-    /** The entries of {@code type}, in level order; empty when nothing configures it. */
-    @SuppressWarnings("unchecked") // Entries are grouped by the declared type of their value.
-    public <S extends IrisFeature> List<Entry<S>> find(Class<S> type) {
-        var found = entries.get(type);
-        return found == null ? List.of() : (List<Entry<S>>) (List<?>) found;
+    /** The stack of {@code type}; empty when nothing configures it. */
+    @SuppressWarnings("unchecked") // Stacks are grouped by the declared type of their values.
+    public <S extends IrisFeature> SettingsStack<S> find(Class<S> type) {
+        var found = stacks.get(type);
+        return found == null ? SettingsStack.empty() : (SettingsStack<S>) found;
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"}) // A group holds entries of one declared type.
+    private static SettingsStack<?> stackOf(List<Entry<?>> group) {
+        return SettingsStack.of((List) group);
     }
 }

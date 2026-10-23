@@ -1,12 +1,14 @@
 package com.volmit.host;
 
-import com.volmit.FeatureAttachment;
 import com.volmit.IrisFeature;
 import com.volmit.config.Feature;
+import com.volmit.config.Level;
 import com.volmit.config.OptionsMetadata;
 import com.volmit.resource.ResourceId;
 import java.lang.annotation.IncompleteAnnotationException;
 import java.lang.reflect.Modifier;
+import java.util.Collections;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -17,6 +19,7 @@ import java.util.Set;
  * @param key the JSON key packs write the settings under at each target; see {@link Feature#key}
  * @param root the option whose value the key holds, when the JSON is one option's value instead of an object
  *     of options; see {@link Feature#root}
+ * @param targets the levels whose pack files hold the key, at least one
  */
 public record FeatureDescriptor<F extends IrisFeature>(
         ResourceId id,
@@ -24,8 +27,10 @@ public record FeatureDescriptor<F extends IrisFeature>(
         String key,
         Optional<String> root,
         Class<F> type,
-        FeatureAttachment attachment,
+        Set<Level> targets,
         OptionsMetadata options) {
+    private static final char NAMESPACE_SEPARATOR = ':';
+
     public FeatureDescriptor {
         Objects.requireNonNull(id, "id");
         Objects.requireNonNull(name, "name");
@@ -35,9 +40,31 @@ public record FeatureDescriptor<F extends IrisFeature>(
         requireKey(id, key);
         Objects.requireNonNull(root, "root");
         Objects.requireNonNull(type, "type");
-        Objects.requireNonNull(attachment, "attachment");
+        targets = requireTargets(targets);
         Objects.requireNonNull(options, "options");
         root.ifPresent(option -> requireOnlyOption(type, option, options));
+    }
+
+    /** Checks a JSON field name that is not a feature id: a settings key or a field the host itself uses.
+     * It is not blank and has no ':', which every feature id has.
+     */
+    public static String requireFieldName(String name) {
+        Objects.requireNonNull(name, "name");
+        if (name.isBlank()) {
+            throw new IllegalArgumentException("Field must not be blank");
+        }
+        if (name.indexOf(NAMESPACE_SEPARATOR) >= 0) {
+            throw new IllegalArgumentException("Field " + name + " contains ':', which only feature ids may contain");
+        }
+        return name;
+    }
+
+    private static Set<Level> requireTargets(Set<Level> targets) {
+        Objects.requireNonNull(targets, "targets");
+        if (targets.isEmpty()) {
+            throw new IllegalArgumentException("At least one target is required");
+        }
+        return Collections.unmodifiableSet(EnumSet.copyOf(targets));
     }
 
     /** Reads the @Feature declaration of a concrete settings class. */
@@ -57,7 +84,7 @@ public record FeatureDescriptor<F extends IrisFeature>(
                     annotation.key(),
                     annotation.root().isEmpty() ? Optional.empty() : Optional.of(annotation.root()),
                     type,
-                    new FeatureAttachment(Set.of(annotation.targets())),
+                    Set.of(annotation.targets()),
                     OptionsMetadata.inspect(type));
         } catch (IncompleteAnnotationException missing) {
             throw IncompleteFeatureException.of(type, annotation, missing);
@@ -85,7 +112,7 @@ public record FeatureDescriptor<F extends IrisFeature>(
 
     private static void requireKey(ResourceId id, String key) {
         try {
-            FeatureAttachment.requireFieldName(key);
+            requireFieldName(key);
         } catch (IllegalArgumentException invalid) {
             throw new IllegalArgumentException("Invalid key of feature " + id + ": " + invalid.getMessage()
                     + "; a key is a plain JSON field name such as \"deposits\"", invalid);

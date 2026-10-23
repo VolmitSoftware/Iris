@@ -7,7 +7,6 @@ import com.volmit.hunk.Hunk;
 import com.volmit.mantle.Mantle;
 import com.volmit.object.ObjectTransformer;
 import com.volmit.placement.PlacementContext;
-import com.volmit.resource.PackResources;
 import com.volmit.world.TerrainSampler;
 import com.volmit.world.BlockView;
 import com.volmit.world.PackWorld;
@@ -33,8 +32,6 @@ public final class TestContexts {
         return new GenerationContext() {
             public int originX() { return 0; }
             public int originZ() { return 0; }
-            public long worldSeed() { return SEED; }
-            public PackResources resources() { throw new AssertionError("Unused resources"); }
             public PackWorld world() { return used(world, "world"); }
             public TerrainSampler terrain() { throw new AssertionError("Unused terrain"); }
             public FeatureSettings settings() { return used(settings, "settings"); }
@@ -53,8 +50,6 @@ public final class TestContexts {
         return new MantleGenerationContext() {
             public int originX() { return originX; }
             public int originZ() { return originZ; }
-            public long worldSeed() { return SEED; }
-            public PackResources resources() { throw new AssertionError("Unused resources"); }
             public PackWorld world() { throw new AssertionError("Unused world"); }
             public TerrainSampler terrain() { throw new AssertionError("Unused terrain"); }
             public FeatureSettings settings() { return settings; }
@@ -68,8 +63,6 @@ public final class TestContexts {
 
     public static PlacementContext placement(BlockView blocks) {
         return new PlacementContext() {
-            public long worldSeed() { return SEED; }
-            public PackResources resources() { throw new AssertionError("Unused resources"); }
             public PackWorld world() { throw new AssertionError("Unused world"); }
             public TerrainSampler terrain() { throw new AssertionError("Unused terrain"); }
             public FeatureSettings settings() { throw new AssertionError("Unused settings"); }

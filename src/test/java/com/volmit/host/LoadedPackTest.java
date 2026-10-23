@@ -1,6 +1,6 @@
 package com.volmit.host;
 
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
 import com.volmit.support.TestModuleJar;
 import example.builtin.CarveModule;
 import org.junit.jupiter.api.AfterEach;
@@ -84,8 +84,8 @@ class LoadedPackTest {
     void invalidHostConfigurationFailsWhenBuilt() {
         var host = ModuleHost.of(List.of());
         assertThrows(IllegalArgumentException.class, () -> host.exposing("org.*"));
-        assertThrows(IllegalArgumentException.class, () -> host.reservingFields(Map.of(Target.BIOME, Set.of(" "))));
-        assertThrows(IllegalArgumentException.class, () -> host.reservingFields(Map.of(Target.BIOME, Set.of("iris:carve"))));
+        assertThrows(IllegalArgumentException.class, () -> host.reservingFields(Map.of(Level.BIOME, Set.of(" "))));
+        assertThrows(IllegalArgumentException.class, () -> host.reservingFields(Map.of(Level.BIOME, Set.of("iris:carve"))));
         assertEquals(List.of(), host.builtIns());
         assertEquals(Set.of(), host.exposedHostPackages());
     }
@@ -95,13 +95,13 @@ class LoadedPackTest {
         var host = ModuleHost.of(List.of())
                 .exposing("example.first")
                 .exposing("example.second")
-                .reservingFields(Map.of(Target.BIOME, Set.of("carving"), Target.REGION, Set.of("spawns")))
-                .reservingFields(Map.of(Target.BIOME, Set.of("objects")))
+                .reservingFields(Map.of(Level.BIOME, Set.of("carving"), Level.REGION, Set.of("spawns")))
+                .reservingFields(Map.of(Level.BIOME, Set.of("objects")))
                 .reservingFolders("biomes")
                 .reservingFolders("regions");
 
         assertEquals(Set.of("example.first", "example.second"), host.exposedHostPackages());
-        assertEquals(Map.of(Target.BIOME, Set.of("carving", "objects"), Target.REGION, Set.of("spawns")), host.reservedHostFields());
+        assertEquals(Map.of(Level.BIOME, Set.of("carving", "objects"), Level.REGION, Set.of("spawns")), host.reservedHostFields());
         assertEquals(Set.of("biomes", "regions"), host.reservedFolders());
     }
 

@@ -4,7 +4,8 @@ import java.lang.annotation.*;
 
 /** Identity and JSON attachment for an IrisFeature configuration class. The {@code id}, such as
  * {@code "example:moss"}, is the feature's identity in the stage graph, logs and lookups by class. Packs write
- * the settings under the short {@code key}, such as {@code "moss": {...}}, at each of the targets.
+ * the settings under the short {@code key}, such as {@code "moss": {...}}, at each of the targets, the {@link Level}s
+ * of a pack's dimension, region, biome or object placement files.
  *
  * <p>The key is a plain JSON field name: not blank, no ':'. It is unique per target across all loaded modules
  * and the JSON fields the host itself uses at that target, so it must not be a field of a biome, region or
@@ -22,5 +23,6 @@ public @interface Feature {
     String name();
     String key();
     String root() default "";
-    com.volmit.FeatureAttachment.Target[] targets();
+    /** The levels packs may write the settings at. */
+    Level[] targets();
 }

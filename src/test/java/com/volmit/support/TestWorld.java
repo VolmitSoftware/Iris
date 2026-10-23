@@ -2,13 +2,12 @@ package com.volmit.support;
 
 import com.volmit.IrisFeature;
 import com.volmit.ModuleLog;
-import com.volmit.config.FeatureSettings.Entry;
 import com.volmit.config.PackSettings;
+import com.volmit.config.SettingsStack;
 import com.volmit.host.ModuleLogs;
 import com.volmit.host.WorldStates;
 import com.volmit.resource.PackResources;
 import com.volmit.world.PackWorld;
-import java.util.List;
 import java.util.function.Function;
 
 /** A world for tests: the test seed, no resources, no declared settings, and a real state store. */
@@ -38,8 +37,8 @@ public final class TestWorld implements PackWorld, AutoCloseable {
     @Override
     public PackSettings settings() {
         return new PackSettings() {
-            public <F extends IrisFeature> List<Entry<F>> declared(Class<F> featureType) {
-                return List.of();
+            public <F extends IrisFeature> SettingsStack<F> declared(Class<F> featureType) {
+                return SettingsStack.empty();
             }
         };
     }

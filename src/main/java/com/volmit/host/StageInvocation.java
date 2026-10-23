@@ -1,13 +1,12 @@
 package com.volmit.host;
 
 import com.volmit.IrisFeature;
-import com.volmit.config.FeatureSettings.Entry;
+import com.volmit.config.SettingsStack;
 import com.volmit.random.WorldRandom;
 import com.volmit.stage.BlockStageContext;
 import com.volmit.stage.Stage;
 import com.volmit.world.PackWorld;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Objects;
 import java.util.function.BooleanSupplier;
 import java.util.stream.IntStream;
@@ -30,7 +29,6 @@ final class StageInvocation {
     private final Object[] outputs;
     private final long invocationSeed;
     private final WorldRandom[] streams;
-    private final PackWorld[] scopedWorlds;
     private int current = NO_STAGE;
 
     StageInvocation(ResolvedGraph graph, long invocationSeed, ConfiguredSettings settings) {
@@ -41,7 +39,6 @@ final class StageInvocation {
         Arrays.fill(outputs, PENDING);
         this.invocationSeed = invocationSeed;
         streams = new WorldRandom[graph.size()];
-        scopedWorlds = new PackWorld[graph.size()];
     }
 
     boolean isActive(int position) {
@@ -127,10 +124,7 @@ final class StageInvocation {
         if (current == NO_STAGE) {
             return world;
         }
-        if (scopedWorlds[current] == null) {
-            scopedWorlds[current] = world.withLog(graph.executable(current).log());
-        }
-        return scopedWorlds[current];
+        return graph.executable(current).worlds().of(world);
     }
 
     private ExecutableStage currentStage() {
@@ -140,9 +134,9 @@ final class StageInvocation {
         return graph.executable(current);
     }
 
-    /** The entries that activated the running stage, which must be conditioned on {@code type}. */
-    @SuppressWarnings("unchecked") // The slot holds the entries of the type the stage is conditioned on.
-    <S extends IrisFeature> List<Entry<S>> configured(Class<S> type) {
+    /** The stack that activated the running stage, which must be conditioned on {@code type}. */
+    @SuppressWarnings("unchecked") // The slot holds the stack of the type the stage is conditioned on.
+    <S extends IrisFeature> SettingsStack<S> configured(Class<S> type) {
         Objects.requireNonNull(type, "settingsType");
         if (current == NO_STAGE) {
             throw new IllegalStateException("Configured settings can only be read while a stage runs");
@@ -154,7 +148,7 @@ final class StageInvocation {
                     + ") but is not conditioned on it; add when(" + type.getSimpleName() + ".class) to its definition,"
                     + " or read other settings through settings()");
         }
-        return (List<Entry<S>>) settingsBySlot[slot];
+        return (SettingsStack<S>) settingsBySlot[slot];
     }
 
     @SuppressWarnings("unchecked") // Settings types come from when(Class<? extends IrisFeature>).
@@ -162,8 +156,8 @@ final class StageInvocation {
         var types = graph.settingsTypes();
         var values = new Object[types.size()];
         for (int slot = 0; slot < values.length; slot++) {
-            var entries = settings.find((Class<? extends IrisFeature>) types.get(slot));
-            values[slot] = entries.isEmpty() ? null : entries;
+            var stack = settings.find((Class<? extends IrisFeature>) types.get(slot));
+            values[slot] = stack.isEmpty() ? null : stack;
         }
         return values;
     }

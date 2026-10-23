@@ -2,6 +2,7 @@ package com.volmit.support;
 
 import com.volmit.IrisFeature;
 import com.volmit.config.FeatureSettings;
+import com.volmit.config.SettingsStack;
 import java.util.List;
 import java.util.function.BiFunction;
 
@@ -23,10 +24,10 @@ public final class ColumnSettings implements FeatureSettings {
 
     @Override
     @SuppressWarnings("unchecked") // Filtered by the requested type.
-    public <F extends IrisFeature> List<Entry<F>> at(Class<F> featureType, int worldX, int worldZ) {
-        return columns.apply(worldX, worldZ).stream()
+    public <F extends IrisFeature> SettingsStack<F> at(Class<F> featureType, int worldX, int worldZ) {
+        return SettingsStack.of(columns.apply(worldX, worldZ).stream()
                 .filter(entry -> featureType.isInstance(entry.value()))
                 .map(entry -> (Entry<F>) entry)
-                .toList();
+                .toList());
     }
 }

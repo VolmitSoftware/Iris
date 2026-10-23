@@ -42,7 +42,7 @@ public final class SnowModule implements IrisModule {
     }
 
     private static void cover(PlacementStageContext context) {
-        var snow = context.configured(SnowSettings.class).getFirst().value();    // a placement declares its settings once
+        var snow = context.configured(SnowSettings.class).mostSpecific().orElseThrow();    // a placement declares its settings once
         var layer = SNOW.withProperty("layers", Integer.toString(snow.layers()));
         var access = context.access();
         for (var top : context.output(COLLECT).tops()) {

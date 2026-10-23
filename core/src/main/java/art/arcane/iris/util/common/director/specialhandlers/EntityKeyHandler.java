@@ -21,7 +21,7 @@ package art.arcane.iris.util.common.director.specialhandlers;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.modules.PackModulesException;
 import art.arcane.iris.core.pack.PackDirectoryResolver;
-import art.arcane.iris.builtin.spawn.EntityDefinition;
+import art.arcane.iris.engine.spawn.SpawnResources;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.util.common.director.DirectorParameterHandler;
 import art.arcane.volmlib.util.collection.KList;
@@ -70,7 +70,7 @@ public final class EntityKeyHandler implements DirectorParameterHandler<String> 
     /** A pack whose modules fail to load has no entities to offer; its failure was reported when it loaded. */
     private static void addEntityKeys(Set<String> keys, IrisData data) {
         try {
-            data.getPackResources().ids(EntityDefinition.class).forEach(id -> keys.add(id.path()));
+            data.getPackResources().ids(SpawnResources.ENTITIES).forEach(id -> keys.add(id.path()));
         } catch (PackModulesException ignored) {
         }
     }

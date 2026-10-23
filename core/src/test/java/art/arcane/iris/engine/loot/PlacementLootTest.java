@@ -54,6 +54,7 @@ public class PlacementLootTest {
     private static final String EAST_CHEST = "minecraft:chest[facing=east]";
     private static final long LOOT_SEED = 99L;
 
+    private PackResources resources;
     private PlacementLoot placement;
 
     @Before
@@ -63,7 +64,7 @@ public class PlacementLootTest {
         for (String key : List.of("everywhere", "chests", "this-chest", "other")) {
             fixture.resource(LootResources.TABLES, key, TestSettings.of(LootTable.class, "{\"name\": \"" + key + "\"}"));
         }
-        PackResources resources = data.getPackResources();
+        resources = data.getPackResources();
         BlockRegistry blocks = mock(BlockRegistry.class);
         when(resources.blocks()).thenReturn(blocks);
         when(blocks.resolve(any(BlockState.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -71,19 +72,23 @@ public class PlacementLootTest {
         placement = new PlacementLoot(resources, () -> Set.of("minecraft:chests/simple_dungeon"), LOOT_SEED, ModuleLogs.discarding());
     }
 
+    private Loot.Table table(String key) {
+        return new Loot.Table(resources.idOf(key));
+    }
+
     @Test
     public void aTableThatNamesTheExactStateBeatsOneThatNamesTheKindOfBlock() {
         List<ObjectLootEntry> pack = List.of(entry("everywhere", 1, false), entry("chests", 1, false, CHEST), entry("this-chest", 1, true, CHEST));
 
-        assertEquals(new Loot.Table("this-chest"), pick(List.of(), pack, CHEST));
-        assertEquals(new Loot.Table("chests"), pick(List.of(), pack, EAST_CHEST));
+        assertEquals(table("this-chest"), pick(List.of(), pack, CHEST));
+        assertEquals(table("chests"), pick(List.of(), pack, EAST_CHEST));
     }
 
     @Test
     public void aTableThatNamesNoBlockServesChestsNothingElseNames() {
         List<ObjectLootEntry> pack = List.of(entry("everywhere", 1, false), entry("other", 1, false, "minecraft:barrel"));
 
-        assertEquals(new Loot.Table("everywhere"), pick(List.of(), pack, CHEST));
+        assertEquals(table("everywhere"), pick(List.of(), pack, CHEST));
     }
 
     @Test
@@ -101,10 +106,10 @@ public class PlacementLootTest {
 
         for (int i = 0; i < 4000; i++) {
             Loot.Source picked = placement.pick(List.of(), pack, BlockState.parse(CHEST), rng, 0, 64, 0);
-            if (picked.equals(new Loot.Table("everywhere"))) {
+            if (picked.equals(table("everywhere"))) {
                 everywhere++;
             } else {
-                assertEquals(new Loot.Table("chests"), picked);
+                assertEquals(table("chests"), picked);
             }
         }
 

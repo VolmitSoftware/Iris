@@ -1,6 +1,6 @@
 package art.arcane.iris.engine.modifier;
 
-import art.arcane.iris.builtin.IrisSeed;
+import art.arcane.iris.builtin.IrisSeeds;
 import art.arcane.iris.builtin.floating.FloatingHost;
 import art.arcane.iris.builtin.objects.ObjectHost;
 import art.arcane.iris.engine.decorator.BiomeDecorators;
@@ -16,6 +16,7 @@ import com.volmit.stage.ChunkStageContext;
 import com.volmit.world.PackWorld;
 import org.junit.Test;
 
+import java.util.Optional;
 import java.util.function.Function;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -25,7 +26,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.withSettings;
 
 /** A column whose biome declares no floating child biomes gets no island: nothing is written or decorated. */
 public class FloatingIslandsTest {
@@ -60,9 +60,10 @@ public class FloatingIslandsTest {
 
     @SuppressWarnings("unchecked")
     private static PackWorld world(FloatingHost host) {
-        PackWorld world = mock(PackWorld.class, withSettings().extraInterfaces(FloatingHost.Source.class, ObjectHost.Source.class, IrisSeed.Source.class));
-        when(((FloatingHost.Source) world).floating()).thenReturn(host);
-        when(((ObjectHost.Source) world).objects()).thenReturn(mock(ObjectHost.class));
+        PackWorld world = mock(PackWorld.class);
+        when(world.extension(FloatingHost.class)).thenReturn(Optional.of(host));
+        when(world.extension(ObjectHost.class)).thenReturn(Optional.of(mock(ObjectHost.class)));
+        when(world.extension(IrisSeeds.class)).thenReturn(Optional.of(seed -> 0L));
         when(world.resources()).thenReturn(mock(PackResources.class));
         PackSettings nothingDeclared = mock(PackSettings.class);
         when(nothingDeclared.declared(any())).thenAnswer(invocation -> SettingsStack.empty());

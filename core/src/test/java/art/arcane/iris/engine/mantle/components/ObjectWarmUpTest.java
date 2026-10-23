@@ -1,6 +1,7 @@
 package art.arcane.iris.engine.mantle.components;
 
 import art.arcane.iris.builtin.IrisSeed;
+import art.arcane.iris.builtin.IrisSeeds;
 import art.arcane.iris.builtin.objects.ObjectHost;
 import art.arcane.iris.builtin.objects.ObjectHost.Declaration;
 import art.arcane.iris.builtin.objects.ObjectPlacement;
@@ -14,23 +15,23 @@ import com.volmit.world.PackWorld;
 import org.junit.Test;
 
 import java.util.List;
+import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.withSettings;
 
 /** Object placing builds its placements' noise and its procedural objects' variants before generation asks. */
 public class ObjectWarmUpTest {
     @Test
     public void everyPlacementAndProceduralObjectOfBiomesAndRegionsIsBuilt() {
         ObjectHost host = mock(ObjectHost.class);
-        IrisSeed.Source seeds = mock(IrisSeed.Source.class);
-        PackWorld world = mock(PackWorld.class, withSettings().extraInterfaces(ObjectHost.Source.class, IrisSeed.Source.class));
-        when(((ObjectHost.Source) world).objects()).thenReturn(host);
-        when(((IrisSeed.Source) world).seed(IrisSeed.COMPONENT)).thenReturn(1337L);
+        IrisSeeds seeds = seed -> seed == IrisSeed.COMPONENT ? 1337L : 0L;
+        PackWorld world = mock(PackWorld.class);
+        when(world.extension(ObjectHost.class)).thenReturn(Optional.of(host));
+        when(world.extension(IrisSeeds.class)).thenReturn(Optional.of(seeds));
         ObjectPlacement biomePlacement = placement();
         ObjectPlacement regionPlacement = placement();
         ProceduralObjectSettings biomeProceduralSettings = new ProceduralObjectSettings();

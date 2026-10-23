@@ -71,13 +71,13 @@ public class PackModuleResourceKindTest {
 
             public final class KeepValidator implements Validator {
                 public void validate(ValidationContext pack) {
-                    for (ResourceId id : pack.resources().ids(Keep.class)) {
-                        Keep keep = pack.resources().require(CastleModule.KEEPS.key(id));
+                    for (ResourceId id : pack.resources().ids(CastleModule.KEEPS)) {
+                        Keep keep = pack.resources().require(CastleModule.KEEPS, id);
                         if (keep.towers() > 8) {
                             pack.report(Problem.error(Subject.file("keeps/" + id.path() + ".json"), "Keep has " + keep.towers() + " towers; at most 8 fit."));
                         }
                         ResourceId next = new ResourceId(id.namespace(), keep.next().isEmpty() ? id.path() : keep.next());
-                        if (pack.resources().find(CastleModule.KEEPS.key(next)).isEmpty()) {
+                        if (pack.resources().find(CastleModule.KEEPS, next).isEmpty()) {
                             pack.report(Problem.warning(Subject.resource(id), "Keep leads to missing keep " + keep.next() + "."));
                         }
                     }
@@ -108,7 +108,7 @@ public class PackModuleResourceKindTest {
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
     @Test
-    public void aPackModulesKindIsReadFromItsFolderAndServedByType() throws Exception {
+    public void aPackModulesKindIsReadFromItsFolderAndServedAsThatKind() throws Exception {
         Path pack = castlePack("castles");
         write(pack, "keeps/main.json", "{\"towers\":6,\"next\":\"towers/north\"}");
         write(pack, "keeps/towers/north.json", "{}");
@@ -117,14 +117,14 @@ public class PackModuleResourceKindTest {
             ResourceKind<?> keeps = keepKind(data);
             ResourceId main = new ResourceId("castles", "main");
 
-            assertEquals(List.of(main, new ResourceId("castles", "towers/north")), data.getPackResources().ids(keeps.type()));
-            Object keep = data.getPackResources().find(keeps.key(main)).orElseThrow();
+            assertEquals(List.of(main, new ResourceId("castles", "towers/north")), data.getPackResources().ids(keeps));
+            Object keep = data.getPackResources().find(keeps, main).orElseThrow();
             assertEquals(6, keep.getClass().getMethod("towers").invoke(keep));
             assertEquals("towers/north", keep.getClass().getMethod("next").invoke(keep));
-            Object north = data.getPackResources().find(keeps.key(new ResourceId("castles", "towers/north"))).orElseThrow();
+            Object north = data.getPackResources().find(keeps, new ResourceId("castles", "towers/north")).orElseThrow();
             assertEquals("an omitted field keeps its default", 4, north.getClass().getMethod("towers").invoke(north));
-            assertSame("read once per pack load", keep, data.getPackResources().find(keeps.key(main)).orElseThrow());
-            assertTrue(data.getPackResources().find(keeps.key(new ResourceId("castles", "missing"))).isEmpty());
+            assertSame("read once per pack load", keep, data.getPackResources().find(keeps, main).orElseThrow());
+            assertTrue(data.getPackResources().find(keeps, new ResourceId("castles", "missing")).isEmpty());
             assertTrue(data.getPackResources().moduleFolderNames().containsAll(List.of("keeps", "structures")));
             assertTrue(data.resourceFolderNames().contains("keeps"));
         } finally {
@@ -140,7 +140,7 @@ public class PackModuleResourceKindTest {
         try {
             ResourceKind<?> keeps = keepKind(data);
 
-            assertThrows(IllegalStateException.class, () -> data.getPackResources().find(keeps.key(new ResourceId("broken-castles", "main"))));
+            assertThrows(IllegalStateException.class, () -> data.getPackResources().find(keeps, new ResourceId("broken-castles", "main")));
         } finally {
             data.close();
         }

@@ -19,6 +19,7 @@
 package art.arcane.iris.core.modules;
 
 import art.arcane.iris.builtin.IrisSeed;
+import art.arcane.iris.builtin.IrisSeeds;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.loader.ResourceLoader;
 import art.arcane.iris.engine.object.material.IrisBlockData;
@@ -40,7 +41,7 @@ import com.volmit.item.ItemRegistry;
 import com.volmit.noise.NoiseFactory;
 import com.volmit.resource.PackResources;
 import com.volmit.resource.ResourceId;
-import com.volmit.resource.ResourceKey;
+import com.volmit.resource.ResourceKind;
 import com.volmit.world.PackBiome;
 import com.volmit.world.PackWorld;
 import com.volmit.object.BlockEntityData;
@@ -62,7 +63,7 @@ import static org.mockito.Mockito.when;
  * own noise over an empty pack, a few blocks by name and the world's seeds, all in memory, so the module is tested through IrisApi alone.
  * Biomes and regions have the ids {@code test:<key>}; a declaration made for {@code <key>} has the source {@code test:<kind>/<key>}.
  */
-public final class CarveTestWorld implements PackWorld, IrisSeed.Source {
+public final class CarveTestWorld implements PackWorld {
     public static final String NAMESPACE = "test";
     public static final int MIN_HEIGHT = -64;
     private static final Set<String> AIRS = Set.of("minecraft:air", "minecraft:cave_air", "minecraft:void_air");
@@ -149,13 +150,9 @@ public final class CarveTestWorld implements PackWorld, IrisSeed.Source {
     }
 
     @Override
-    public PackWorld withLog(ModuleLog log) {
-        return this;
-    }
-
-    @Override
-    public long seed(IrisSeed seed) {
-        return seed == IrisSeed.CARVE ? carveSeed : carveSeed + seed.ordinal();
+    public <T> Optional<T> extension(Class<T> type) {
+        IrisSeeds seeds = seed -> seed == IrisSeed.CARVE ? carveSeed : carveSeed + seed.ordinal();
+        return type == IrisSeeds.class ? Optional.of(type.cast(seeds)) : Optional.empty();
     }
 
     @SuppressWarnings("unchecked")
@@ -196,17 +193,16 @@ public final class CarveTestWorld implements PackWorld, IrisSeed.Source {
         }
 
         @Override
-        @SuppressWarnings("unchecked")
-        public <T> Optional<T> find(ResourceKey<T> key) {
-            if (key.type() != PackBiome.class) {
+        public <T> Optional<T> find(ResourceKind<T> kind, ResourceId id) {
+            if (!kind.equals(BIOMES)) {
                 return Optional.empty();
             }
-            return Optional.ofNullable((T) biomes.get(key.id()));
+            return Optional.ofNullable(kind.type().cast(biomes.get(id)));
         }
 
         @Override
-        public List<ResourceId> ids(Class<?> type) {
-            return type == PackBiome.class ? biomes.keySet().stream().sorted().toList() : List.of();
+        public List<ResourceId> ids(ResourceKind<?> kind) {
+            return kind.equals(BIOMES) ? biomes.keySet().stream().sorted().toList() : List.of();
         }
     }
 

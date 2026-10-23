@@ -103,7 +103,7 @@ public class EntitySpawningTest {
 
         EntitySpawns.MarkerRule rule = new EntitySpawning().marker(world, "camp").orElseThrow();
 
-        assertEquals(List.of("zombies"), rule.spawners());
+        assertEquals("a spawner the pack lacks is left out", List.of(world.resources().idOf("zombies")), rule.spawners());
         assertTrue(rule.emptyAbove());
         assertFalse(rule.removeOnChange());
     }
@@ -123,16 +123,16 @@ public class EntitySpawningTest {
         when(engine.getMinHeight()).thenReturn(-64);
 
         EntitySpawns.Plan plan = new EntitySpawning()
-                .plan(world, new EntitySpawns.Marker(MARKER_BLOCK, "camp", "camp/zombies", false))
+                .plan(world, new EntitySpawns.Marker(MARKER_BLOCK, "camp", world.resources().idOf("camp/zombies"), false))
                 .orElseThrow();
 
-        assertEquals("camp/zombies", plan.spawner());
+        assertEquals(world.resources().idOf("camp/zombies"), plan.spawner());
         assertTrue("an exhaustion chance above 1 always uses the marker up", plan.exhaustsMarker());
         assertEquals(2, plan.attempts().size());
         for (EntitySpawns.Attempt attempt : plan.attempts()) {
             assertEquals(new BlockPosition(40, 71, -12), attempt.at());
             assertFalse(attempt.checkSurface());
-            assertEquals("minecraft:zombie", attempt.entity().type());
+            assertEquals(Optional.of("minecraft:zombie"), attempt.entity().type());
         }
     }
 
@@ -140,7 +140,7 @@ public class EntitySpawningTest {
     public void aSpawnerThatCannotFireOrHasNoEntitiesPlansNothing() {
         fixture.resource(SpawnResources.SPAWNERS, "empty", new Spawner());
 
-        Optional<EntitySpawns.Plan> plan = new EntitySpawning().plan(world, new EntitySpawns.Marker(MARKER_BLOCK, "camp", "empty", false));
+        Optional<EntitySpawns.Plan> plan = new EntitySpawning().plan(world, new EntitySpawns.Marker(MARKER_BLOCK, "camp", world.resources().idOf("empty"), false));
 
         assertTrue(plan.isEmpty());
     }
@@ -150,11 +150,11 @@ public class EntitySpawningTest {
         fixture.resource(SpawnResources.ENTITIES, "cow", TestSettings.of(EntityDefinition.class,
                 "{\"type\": \"minecraft:cow\", \"customName\": \"&6Bessie\", \"baby\": true}"));
 
-        EntitySpec spec = new EntitySpawning().entity(world, "cow").orElseThrow();
+        EntitySpec spec = new EntitySpawning().entity(world, world.resources().idOf("cow")).orElseThrow();
 
-        assertEquals("minecraft:cow", spec.type());
-        assertEquals("&6Bessie", spec.customName());
+        assertEquals(Optional.of("minecraft:cow"), spec.type());
+        assertEquals(Optional.of("&6Bessie"), spec.customName());
         assertTrue(spec.flags().baby());
-        assertTrue(new EntitySpawning().entity(world, "nothing").isEmpty());
+        assertTrue(new EntitySpawning().entity(world, world.resources().idOf("nothing")).isEmpty());
     }
 }

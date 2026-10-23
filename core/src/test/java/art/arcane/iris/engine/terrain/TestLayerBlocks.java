@@ -65,10 +65,5 @@ public final class TestLayerBlocks {
         public ModuleLog log() {
             return ModuleLogs.discarding();
         }
-
-        @Override
-        public PackWorld withLog(ModuleLog log) {
-            return this;
-        }
     }
 }

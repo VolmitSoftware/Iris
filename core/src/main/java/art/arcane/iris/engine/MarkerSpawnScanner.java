@@ -26,6 +26,7 @@ import art.arcane.iris.util.common.plugin.Chunks;
 import art.arcane.iris.util.common.scheduling.J;
 import art.arcane.volmlib.util.collection.KMap;
 import art.arcane.volmlib.util.collection.KSet;
+import com.volmit.resource.ResourceId;
 import com.volmit.service.EntitySpawns;
 import art.arcane.volmlib.util.matter.MatterMarker;
 import org.bukkit.Chunk;
@@ -53,7 +54,7 @@ final class MarkerSpawnScanner {
     }
 
     /** A spawner a marker names, and the marker. */
-    record MarkerSpawner(String marker, String spawner) {
+    record MarkerSpawner(String marker, ResourceId spawner) {
     }
 
     Map<IrisPosition, List<MarkerSpawner>> getSpawnersFromMarkers(Chunk c) {
@@ -80,7 +81,7 @@ final class MarkerSpawnScanner {
                 return;
             }
 
-            for (String spawner : rule.get().spawners()) {
+            for (ResourceId spawner : rule.get().spawners()) {
                 addOnce(p.computeIfAbsent(pos, (k) -> new ArrayList<>()), new MarkerSpawner(t.getTag(), spawner));
             }
         });
@@ -178,7 +179,7 @@ final class MarkerSpawnScanner {
             MarkerSpawnData data = markerData.computeIfAbsent(position, k -> new MarkerSpawnData());
             data.requiresEmptyAbove = data.requiresEmptyAbove || rule.get().emptyAbove();
 
-            for (String spawner : rule.get().spawners()) {
+            for (ResourceId spawner : rule.get().spawners()) {
                 addOnce(data.spawners, new MarkerSpawner(t.getTag(), spawner));
             }
         });

@@ -57,7 +57,7 @@ public final class BiomeModule implements IrisModule {
     }
 
     private static void write(ChunkStageContext context) {
-        IrisChunk chunk = IrisChunk.current();
+        IrisChunk chunk = context.extension(IrisChunk.class).orElseThrow();
         chunk.state(BiomeWriter.class, BiomeWriter::new).write(chunk.originX(), chunk.originZ(), chunk.biomes(), chunk.context());
     }
 

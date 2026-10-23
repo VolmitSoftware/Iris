@@ -18,6 +18,7 @@
 
 package art.arcane.iris.core.modules;
 
+import art.arcane.iris.builtin.MatterMantle;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.spi.PlatformBlockState;
 import com.volmit.block.BlockState;
@@ -30,10 +31,11 @@ import com.volmit.world.PackWorld;
 import com.volmit.world.TerrainSampler;
 
 import java.util.Collection;
+import java.util.Optional;
 
 /**
  * One chunk of an Iris engine as an IrisApi chunk invocation: the chunk's block hunk, Iris's terrain
- * streams, the pack's module settings and the chunk's mantle, which IrisApi gives chunk stages read-only.
+ * streams, the pack's module settings and the chunk's mantle, which IrisApi lets chunk stages write in their own chunk only.
  * Pack resources are the pack snapshot's, shared by every invocation of it.
  */
 final class IrisGenerationContext implements GenerationContext {
@@ -42,6 +44,7 @@ final class IrisGenerationContext implements GenerationContext {
     /** The mantle too reaches this far around the chunk; chunks beyond its own are pinned when a stage first reads them. */
     private static final int MANTLE_MARGIN_BLOCKS = 16;
     private static final int CHUNK_WIDTH = 16;
+    private static final int CHUNK_SHIFT = 4;
 
     private final Engine engine;
     private final int originX;
@@ -50,13 +53,19 @@ final class IrisGenerationContext implements GenerationContext {
     private final IrisTerrainSampler terrain;
     private final ChunkModuleSettings settings;
     private final IrisModuleMantle mantle;
+    private final IrisChunk irisChunk;
     private PackWorld world;
 
-    /** {@code states} convert the chunk's blocks, in the hunk and in the planned blocks of its mantle alike. */
+    /**
+     * {@code states} convert the chunk's blocks, in the hunk and in the planned blocks of its mantle alike;
+     * {@code irisChunk} is what Iris's built-in chunk stages see of the chunk as an extension.
+     */
     IrisGenerationContext(Engine engine, int originX, int originZ, art.arcane.iris.util.project.hunk.Hunk<PlatformBlockState> blocks,
-                          PlatformBlockStates states, IrisModuleMantle.Chunks mantleChunks, Collection<MantleRegistration<?>> mantleLayers) {
+                          PlatformBlockStates states, IrisModuleMantle.Chunks mantleChunks, Collection<MantleRegistration<?>> mantleLayers,
+                          IrisChunk irisChunk) {
         PackResourceIds ids = new PackResourceIds(engine.getData().getDataFolder());
         this.engine = engine;
+        this.irisChunk = irisChunk;
         this.originX = originX;
         this.originZ = originZ;
         this.blocks = new BlockStateHunk(blocks, states);
@@ -101,6 +110,17 @@ final class IrisGenerationContext implements GenerationContext {
         return (com.volmit.hunk.Hunk<T>) blocks;
     }
 
+    /** Iris's own view of the chunk, and the matter of its own chunk with loaded-only reads of its neighbours. */
+    @Override
+    public <T> Optional<T> extension(Class<T> type) {
+        if (type == IrisChunk.class) {
+            return HostExtensions.as(type, irisChunk);
+        }
+        if (type == MatterMantle.class) {
+            return HostExtensions.as(type, new OwnChunkMatter(mantle, originX >> CHUNK_SHIFT, originZ >> CHUNK_SHIFT));
+        }
+        return Optional.empty();
+    }
 
     /** The world this invocation first asked for; it keeps it if the world restarts meanwhile. */
     @Override

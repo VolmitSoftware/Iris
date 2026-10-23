@@ -86,7 +86,7 @@ public class IrisLiveWorldTest {
         ModuleResourceFixture.serve(data);
         when(engine.getData()).thenReturn(data);
         when(engine.getMinHeight()).thenReturn(BOTTOM);
-        live = LiveWorld.of(new EngineGeneration(engine).world());
+        live = new EngineGeneration(engine).world().extension(LiveWorld.class).orElseThrow();
     }
 
     @Test

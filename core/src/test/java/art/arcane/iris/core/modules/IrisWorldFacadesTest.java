@@ -19,6 +19,7 @@
 package art.arcane.iris.core.modules;
 
 import art.arcane.iris.builtin.IrisSeed;
+import art.arcane.iris.builtin.IrisSeeds;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.SeedManager;
@@ -30,7 +31,6 @@ import java.util.EnumMap;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -60,13 +60,8 @@ public class IrisWorldFacadesTest {
         }
 
         for (IrisSeed seed : IrisSeed.values()) {
-            assertEquals(seed.name(), expected.get(seed).longValue(), seed.of(world));
+            assertEquals(seed.name(), expected.get(seed).longValue(), world.extension(IrisSeeds.class).orElseThrow().seed(seed));
         }
-    }
-
-    @Test
-    public void aWorldIrisDoesNotGenerateHasNoIrisSeeds() {
-        assertThrows(IllegalArgumentException.class, () -> IrisSeed.POST.of(mock(PackWorld.class)));
     }
 
     private static Engine engine(IrisDimension dimension) {

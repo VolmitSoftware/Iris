@@ -118,11 +118,20 @@ public class IrisModuleMantleTest {
     @Test
     public void theMatterSideGivesTheMantleChunksTheInvocationReachesAndNoOthers() {
         IrisModuleMantle mantle = mantle(new BlockBox(0, 0, 0, 16, HEIGHT, 16));
-        MatterMantle matter = MatterMantle.of(mantle);
+        MatterMantle matter = mantle;
 
         org.junit.Assert.assertSame(chunk(3, 4), matter.chunk(3, 4));
         org.junit.Assert.assertNull("nothing is loaded that the host did not say is", matter.loadedChunk(3, 4));
-        org.junit.Assert.assertThrows(IllegalArgumentException.class, () -> MatterMantle.of(new InMemoryOnly()));
+    }
+
+    @Test
+    public void aChunkInvocationsMatterHoldsItsOwnChunkAndReadsNeighboursOnlyWhenLoaded() {
+        IrisModuleMantle mantle = mantle(new BlockBox(-16, 0, -16, 48, HEIGHT, 48));
+        MatterMantle own = new OwnChunkMatter(mantle, 1, 1);
+
+        org.junit.Assert.assertSame(chunk(1, 1), own.chunk(1, 1));
+        org.junit.Assert.assertNull("a neighbour is no chunk of the invocation's own", own.chunk(2, 1));
+        org.junit.Assert.assertNull("a neighbour the world does not hold is not read", own.loadedChunk(2, 1));
     }
 
     @Test
@@ -299,7 +308,8 @@ public class IrisModuleMantleTest {
 
         try (LoadedPack pack = LoadedPack.load(folder.newFolder("pack").toPath(),
                 ModuleHost.of(List.of(veins)).copyingJarsTo(folder.newFolder("copies").toPath()))) {
-            ModuleMantleComponent.forPack(engine, pack, Set.of()).getFirst().generate(0, 0, this::chunk);
+            ModuleMantleComponent.forPack(engine, pack, Set.of()).getFirst().generate(0, 0, this::chunk,
+                    new IrisMantleChunk(engine, null, 0, 0, null));
 
             BlockBox neighborBounds = new BlockBox(16, 0, 0, 32, HEIGHT, 16);
             IrisModuleMantle neighbor = new IrisModuleMantle(neighborBounds, this::chunk, pack.catalog().mantle(), PlannedBlocks.none(neighborBounds));
@@ -316,33 +326,5 @@ public class IrisModuleMantleTest {
 
     private static DataInputStream input(byte[] bytes) {
         return new DataInputStream(new ByteArrayInputStream(bytes));
-    }
-
-    /** A mantle that is none of Iris's. */
-    private static final class InMemoryOnly implements com.volmit.mantle.Mantle {
-        @Override
-        public BlockBox bounds() {
-            return new BlockBox(0, 0, 0, 0, 0, 0);
-        }
-
-        @Override
-        public <T> MantleLayer<T> layer(MantleKey<T> key) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public MantleLayer<BlockState> blocks() {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public MantleLayer<Boolean> caverns() {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public MantleEdit edit() {
-            throw new UnsupportedOperationException();
-        }
     }
 }

@@ -24,6 +24,7 @@ import com.volmit.host.FeatureCatalog;
 import com.volmit.host.ServiceRegistration;
 import com.volmit.entity.EntitySpec;
 import com.volmit.item.ItemDrop;
+import com.volmit.resource.PackResources;
 import com.volmit.resource.ResourceId;
 import com.volmit.service.AmbientEffects;
 import com.volmit.service.BlockDrops;
@@ -98,23 +99,30 @@ public final class ModuleServices {
 
     /** The objects every module would place in the chunk at {@code chunkX}, {@code chunkZ}, guessed without generating it. */
     public static Set<String> objectsAt(Engine engine, int chunkX, int chunkZ) {
+        IrisPackResources resources = engine.getData().getPackResources();
         Set<String> keys = new LinkedHashSet<>();
         for (Provider<ObjectsAt> provider : providers(engine, ObjectsAt.class)) {
-            keys.addAll(provider.service().objectsAt(provider.world(), chunkX, chunkZ));
+            provider.service().objectsAt(provider.world(), chunkX, chunkZ).forEach(id -> keys.add(resources.keyOf(PackResources.OBJECTS, id)));
         }
         return keys;
     }
 
-    /** The biomes and regions of the engine's layout that every module says place the object {@code objectKey}. */
-    public static ObjectsAt.PlacedBy objectPlacers(Engine engine, String objectKey) {
+    /** The keys of the biomes and regions of the engine's layout that every module says place the object {@code objectKey}. */
+    public static ObjectPlacers objectPlacers(Engine engine, String objectKey) {
+        IrisPackResources resources = engine.getData().getPackResources();
+        ResourceId object = resources.idOf(objectKey);
         Set<String> biomes = new LinkedHashSet<>();
         Set<String> regions = new LinkedHashSet<>();
         for (Provider<ObjectsAt> provider : providers(engine, ObjectsAt.class)) {
-            ObjectsAt.PlacedBy placedBy = provider.service().placedBy(provider.world(), objectKey);
-            biomes.addAll(placedBy.biomes());
-            regions.addAll(placedBy.regions());
+            ObjectsAt.PlacedBy placedBy = provider.service().placedBy(provider.world(), object);
+            placedBy.biomes().forEach(id -> biomes.add(resources.keyOf(PackResources.BIOMES, id)));
+            placedBy.regions().forEach(id -> regions.add(resources.keyOf(PackResources.REGIONS, id)));
         }
-        return new ObjectsAt.PlacedBy(biomes, regions);
+        return new ObjectPlacers(biomes, regions);
+    }
+
+    /** The keys of the biomes and regions that place an object. */
+    public record ObjectPlacers(Set<String> biomes, Set<String> regions) {
     }
 
     /** The loot tables the modules say the container at {@code site} draws from, in module order. */
@@ -126,11 +134,11 @@ public final class ModuleServices {
         return tables;
     }
 
-    /** The items loot table {@code key} gives at {@code site}, from the module that knows the table. */
-    public static List<ItemDrop> lootItems(Engine engine, Loot.Site site, String key) {
+    /** The items loot table {@code table} gives at {@code site}, from the module that knows the table. */
+    public static List<ItemDrop> lootItems(Engine engine, Loot.Site site, ResourceId table) {
         List<ItemDrop> items = new ArrayList<>();
         for (Provider<Loot> provider : providers(engine, Loot.class)) {
-            items.addAll(provider.service().items(provider.world(), site, key));
+            items.addAll(provider.service().items(provider.world(), site, table));
         }
         return items;
     }
@@ -160,8 +168,8 @@ public final class ModuleServices {
 
     /** The objects every module places as trees. */
     public static SaplingGrowth.TreeObjects treeObjects(Engine engine) {
-        Set<String> objects = new LinkedHashSet<>();
-        Set<String> procedural = new LinkedHashSet<>();
+        Set<ResourceId> objects = new LinkedHashSet<>();
+        Set<ResourceId> procedural = new LinkedHashSet<>();
         for (Provider<SaplingGrowth> provider : providers(engine, SaplingGrowth.class)) {
             SaplingGrowth.TreeObjects trees = provider.service().treeObjects(provider.world());
             objects.addAll(trees.objects());
@@ -181,10 +189,11 @@ public final class ModuleServices {
         return Optional.empty();
     }
 
-    /** The entity {@code key} as the first module that knows it would spawn it. */
+    /** The entity the pack names {@code key} as the first module that knows it would spawn it. */
     public static Optional<EntitySpec> entity(Engine engine, String key) {
+        ResourceId id = engine.getData().getPackResources().idOf(key);
         for (Provider<EntitySpawns> provider : providers(engine, EntitySpawns.class)) {
-            Optional<EntitySpec> entity = provider.service().entity(provider.world(), key);
+            Optional<EntitySpec> entity = provider.service().entity(provider.world(), id);
             if (entity.isPresent()) {
                 return entity;
             }
@@ -223,7 +232,7 @@ public final class ModuleServices {
     public static Set<String> structureKeys(IrisData data) {
         Set<String> keys = new LinkedHashSet<>();
         for (StructureLocator provider : catalog(data).services(StructureLocator.class)) {
-            keys.addAll(provider.structures(data.getPackResources()));
+            keys.addAll(structureKeysOf(data, provider.structures(data.getPackResources())));
         }
         return keys;
     }
@@ -232,7 +241,7 @@ public final class ModuleServices {
     public static Set<String> locatableStructures(Engine engine) {
         Set<String> keys = new LinkedHashSet<>();
         for (Provider<StructureLocator> provider : providers(engine, StructureLocator.class)) {
-            keys.addAll(provider.service().locatable(provider.world()));
+            keys.addAll(structureKeysOf(engine.getData(), provider.service().locatable(provider.world())));
         }
         return keys;
     }
@@ -249,7 +258,7 @@ public final class ModuleServices {
     public static Set<String> placedStructures(Engine engine) {
         Set<String> keys = new LinkedHashSet<>();
         for (Provider<StructureLocator> provider : providers(engine, StructureLocator.class)) {
-            keys.addAll(provider.service().placed(provider.world()));
+            keys.addAll(structureKeysOf(engine.getData(), provider.service().placed(provider.world())));
         }
         return keys;
     }
@@ -265,7 +274,8 @@ public final class ModuleServices {
      */
     public static StructureSearch locateStructure(Engine engine, String key, int fromX, int fromZ, int maxRadiusChunks) {
         LocateResult result = structureLocatorOf(engine, key, StructureLocator::placed)
-                .map(provider -> provider.service().locate(provider.world(), key, fromX, fromZ, maxRadiusChunks))
+                .map(provider -> provider.service().locate(provider.world(), structureIdOf(engine.getData(), key), fromX, fromZ,
+                        maxRadiusChunks))
                 .orElse(LocateResult.NOT_FOUND);
         return StructureSearch.of(result, engine);
     }
@@ -339,19 +349,39 @@ public final class ModuleServices {
         }
     }
 
-    /** The first provider, in the catalog's order, whose structures of the kind {@code keys} lists hold {@code key}. */
+    /** The first provider, in the catalog's order, whose structures of the kind {@code structures} lists hold {@code key}. */
     private static Optional<Provider<StructureLocator>> structureLocatorOf(Engine engine, String key,
-                                                                          BiFunction<StructureLocator, PackWorld, Set<String>> keys) {
+                                                                          BiFunction<StructureLocator, PackWorld, Set<ResourceId>> structures) {
         if (key == null || key.isBlank()) {
             return Optional.empty();
         }
-        String wanted = normalized(key);
+        ResourceId wanted = structureIdOf(engine.getData(), key);
         for (Provider<StructureLocator> provider : providers(engine, StructureLocator.class)) {
-            if (keys.apply(provider.service(), provider.world()).stream().map(ModuleServices::normalized).anyMatch(wanted::equals)) {
+            if (structures.apply(provider.service(), provider.world()).contains(wanted)) {
                 return Optional.of(provider);
             }
         }
         return Optional.empty();
+    }
+
+    /**
+     * The id of the structure Iris's commands name {@code key}: a key with a namespace is that id
+     * ({@code minecraft:village}), any other a structure of the pack. Ids are lower case, so keys match without regard
+     * to case.
+     */
+    private static ResourceId structureIdOf(IrisData data, String key) {
+        String trimmed = key.trim();
+        return trimmed.indexOf(':') >= 0 ? ResourceId.parse(normalized(trimmed)) : data.getPackResources().idOf(trimmed);
+    }
+
+    /** The keys Iris's commands show for {@code structures}: a pack structure by its path, any other by its id. */
+    private static Set<String> structureKeysOf(IrisData data, Set<ResourceId> structures) {
+        IrisPackResources resources = data.getPackResources();
+        Set<String> keys = new LinkedHashSet<>();
+        for (ResourceId structure : structures) {
+            keys.add(resources.keyOf(structure));
+        }
+        return keys;
     }
 
     /** The platform structures every provider lists with {@code structures}, as lower-case registry keys. */

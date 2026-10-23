@@ -156,7 +156,7 @@ public class LootValidatorTest {
     public void aTableThatFailsToLoadIsReportedWithoutStoppingTheCheck() {
         table("fine", "{\"loot\":[{\"type\":\"stone\"}]}");
         table("broken", "{\"loot\":[{\"type\":\"stone\"}]}");
-        when(resources.find(LootResources.TABLES.key(new ResourceId("test", "broken")))).thenThrow(new IllegalStateException("Expected an int but was STRING at line 1 column 12 path $.rarity"));
+        when(resources.find(LootResources.TABLES, new ResourceId("test", "broken"))).thenThrow(new IllegalStateException("Expected an int but was STRING at line 1 column 12 path $.rarity"));
 
         assertEquals(List.of("Loot table 'broken' cannot be read: Expected an int but was STRING at line 1 column 12 path $.rarity"), errors());
     }

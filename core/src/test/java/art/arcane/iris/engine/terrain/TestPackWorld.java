@@ -18,7 +18,7 @@
 
 package art.arcane.iris.engine.terrain;
 
-import art.arcane.iris.builtin.IrisSeed;
+import art.arcane.iris.builtin.IrisSeeds;
 import art.arcane.iris.core.modules.ModuleSettings;
 import com.volmit.config.Level;
 import com.volmit.IrisFeature;
@@ -39,7 +39,7 @@ import java.util.Optional;
 import java.util.function.Function;
 
 /** A world of a pack's resources whose dimension declares the given settings and whose complex and terrain seeds are given, for tests of the terrain's support classes. */
-public final class TestPackWorld implements PackWorld, IrisSeed.Source {
+public final class TestPackWorld implements PackWorld {
     private static final ResourceId DIMENSION = ResourceId.parse("test:dimension/overworld");
 
     private final PackResources resources;
@@ -84,11 +84,6 @@ public final class TestPackWorld implements PackWorld, IrisSeed.Source {
     }
 
     @Override
-    public long seed(IrisSeed which) {
-        return seed;
-    }
-
-    @Override
     public PackResources resources() {
         return resources;
     }
@@ -109,7 +104,8 @@ public final class TestPackWorld implements PackWorld, IrisSeed.Source {
     }
 
     @Override
-    public PackWorld withLog(ModuleLog log) {
-        return this;
+    public <T> Optional<T> extension(Class<T> type) {
+        IrisSeeds everySeedIsTheWorlds = which -> seed;
+        return type == IrisSeeds.class ? Optional.of(type.cast(everySeedIsTheWorlds)) : Optional.empty();
     }
 }

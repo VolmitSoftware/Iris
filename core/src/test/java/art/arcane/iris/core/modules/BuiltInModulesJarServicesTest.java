@@ -50,6 +50,7 @@ import org.junit.rules.TemporaryFolder;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Optional;
 import java.util.OptionalInt;
 
 import static org.junit.Assert.assertEquals;
@@ -133,9 +134,9 @@ public class BuiltInModulesJarServicesTest {
         try (LoadedPack loaded = load()) {
             Loot loot = loaded.catalog().services(Loot.class).getFirst();
 
-            List<Loot.Source> tables = loot.tables(world, new Loot.Site(AT, null, false, false));
+            List<Loot.Source> tables = loot.tables(world, new Loot.Site(AT, Optional.empty(), false, false));
 
-            assertEquals(List.of(new Loot.Table("dungeon/chest")), tables);
+            assertEquals(List.of(new Loot.Table(world.resources().idOf("dungeon/chest"))), tables);
         }
     }
 

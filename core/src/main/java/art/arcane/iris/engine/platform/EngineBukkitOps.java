@@ -82,6 +82,7 @@ import org.bukkit.loot.Lootable;
 
 import java.lang.reflect.Method;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
@@ -420,9 +421,9 @@ public final class EngineBukkitOps {
     private static Loot.Site lootSite(Engine engine, Block b, boolean nativeLootDefined) {
         BlockPosition position = new BlockPosition(b.getX(), b.getY() - engine.getMinHeight(), b.getZ());
         BlockData data = b.getBlockData();
-        com.volmit.block.BlockState container = BukkitBlockResolution.isStorageChest(data)
-                ? com.volmit.block.BlockState.parse(PlatformBlockStates.namespaced(BukkitBlockState.of(data).key()))
-                : null;
+        Optional<com.volmit.block.BlockState> container = BukkitBlockResolution.isStorageChest(data)
+                ? Optional.of(com.volmit.block.BlockState.parse(PlatformBlockStates.namespaced(BukkitBlockState.of(data).key())))
+                : Optional.empty();
         return new Loot.Site(position, container, nativeLootDefined, false);
     }
 
@@ -473,11 +474,11 @@ public final class EngineBukkitOps {
 
     /** The items of {@code tables} at the spot, in the tables' order: the modules' for pack tables, the platform's own for platform tables. */
     private static List<ItemStack> lootItems(Engine engine, boolean debug, List<Loot.Source> tables, World world, int x, int y, int z) {
-        Loot.Site site = new Loot.Site(new BlockPosition(x, y - engine.getMinHeight(), z), null, false, debug);
+        Loot.Site site = new Loot.Site(new BlockPosition(x, y - engine.getMinHeight(), z), Optional.empty(), false, debug);
         List<ItemStack> items = new KList<>();
         for (Loot.Source source : tables) {
             switch (source) {
-                case Loot.Table table -> items.addAll(BukkitItemStacks.createAll(ModuleServices.lootItems(engine, site, table.key())));
+                case Loot.Table table -> items.addAll(BukkitItemStacks.createAll(ModuleServices.lootItems(engine, site, table.id())));
                 case Loot.PlatformTable table -> items.addAll(platformLoot(table, world, x, y, z));
             }
         }

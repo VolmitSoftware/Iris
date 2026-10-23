@@ -24,8 +24,6 @@ import com.volmit.host.WorldStates;
 import com.volmit.resource.PackResources;
 import com.volmit.world.PackWorld;
 
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
 /**
@@ -39,20 +37,13 @@ final class ToolWorld implements PackWorld, AutoCloseable {
     private final PackSettings settings;
     private final WorldStates states;
     private final ModuleLog log;
-    private final Map<ModuleLog, ToolWorld> viewsByLog;
 
     ToolWorld(long seed, PackResources resources, PackSettings settings) {
-        this(seed, resources, settings, new WorldStates(), IrisApiLogger.hostLog(), new ConcurrentHashMap<>());
-    }
-
-    private ToolWorld(long seed, PackResources resources, PackSettings settings, WorldStates states, ModuleLog log,
-                      Map<ModuleLog, ToolWorld> viewsByLog) {
         this.seed = seed;
         this.resources = resources;
         this.settings = settings;
-        this.states = states;
-        this.log = log;
-        this.viewsByLog = viewsByLog;
+        this.states = new WorldStates();
+        this.log = IrisApiLogger.hostLog();
     }
 
     @Override
@@ -78,11 +69,6 @@ final class ToolWorld implements PackWorld, AutoCloseable {
     @Override
     public ModuleLog log() {
         return log;
-    }
-
-    @Override
-    public PackWorld withLog(ModuleLog log) {
-        return viewsByLog.computeIfAbsent(log, moduleLog -> new ToolWorld(seed, resources, settings, states, moduleLog, viewsByLog));
     }
 
     @Override

@@ -23,7 +23,7 @@ import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
 import art.arcane.volmlib.util.matter.Matter;
 import com.volmit.noise.NoiseSampler;
 import art.arcane.iris.builtin.IrisStages;
-import art.arcane.iris.builtin.IrisSeed;
+import art.arcane.iris.builtin.IrisSeeds;
 import art.arcane.iris.builtin.floating.FloatingHost;
 import art.arcane.iris.builtin.objects.ObjectHost;
 import art.arcane.iris.builtin.post.PostProcessingSlabsSettings;
@@ -74,7 +74,7 @@ import com.volmit.object.BlockEntityData;
 import com.volmit.resource.PackResources;
 import com.volmit.resource.ResourceId;
 import com.volmit.config.FeatureSettings.Entry;
-import com.volmit.resource.ResourceKey;
+import com.volmit.resource.ResourceKind;
 import com.volmit.stage.Pipeline;
 import com.volmit.world.BiomeKind;
 import com.volmit.world.BiomeSample;
@@ -339,6 +339,11 @@ public final class ApiChunk implements GenerationContext {
     }
 
     @Override
+    public <T> Optional<T> extension(Class<T> type) {
+        return type == MatterMantle.class ? Optional.of(type.cast(new ChunkMantle())) : Optional.empty();
+    }
+
+    @Override
     @SuppressWarnings("unchecked")
     public <T> Hunk<T> hunk(Class<T> type) {
         if (type != BlockState.class) {
@@ -488,8 +493,8 @@ public final class ApiChunk implements GenerationContext {
         }
 
         @Override
-        public MantleLayer<Boolean> caverns() {
-            return new CarvedLayer();
+        public boolean isCarved(int x, int y, int z) {
+            return carved.contains(new BlockPosition(x, y, z));
         }
 
         @Override
@@ -534,55 +539,21 @@ public final class ApiChunk implements GenerationContext {
         }
     }
 
-    private final class CarvedLayer implements MantleLayer<Boolean> {
-        @Override
-        public Boolean get(int x, int y, int z) {
-            return carved.contains(new BlockPosition(x, y, z)) ? Boolean.TRUE : null;
-        }
-
-        @Override
-        public void set(int x, int y, int z, Boolean value) {
-            throw new UnsupportedOperationException("Caverns are read-only");
-        }
-
-        @Override
-        public void remove(int x, int y, int z) {
-            throw new UnsupportedOperationException("Caverns are read-only");
-        }
-
-        @Override
-        public void visit(BlockBox area, MantleVisitor<Boolean> visitor) {
-            List<BlockPosition> positions = new ArrayList<>(carved);
-            positions.sort(VISIT_ORDER);
-            for (BlockPosition position : positions) {
-                if (area.contains(position.x(), position.y(), position.z())) {
-                    visitor.accept(position.x(), position.y(), position.z(), Boolean.TRUE);
-                }
-            }
-        }
-
-        @Override
-        public void clear(BlockBox area) {
-            throw new UnsupportedOperationException("Caverns are read-only");
-        }
-    }
-
-    /** A world of the chunk: its pack's blocks, a state store and Iris's seeds, each the world seed plus its place. */
-    /** A world without floating islands: its floating host answers no surface biome, so no column has an island. */
-    private final class World implements PackWorld, IrisSeed.Source, FloatingHost.Source, ObjectHost.Source {
+    /**
+     * A world of the chunk: its pack's blocks, a state store and Iris's seeds, each the world seed plus its place. It has
+     * no floating islands: its floating host answers no surface biome, so no column has an island.
+     */
+    private final class World implements PackWorld {
         private final Resources resources = new Resources();
         private final Map<Class<?>, Object> states = new HashMap<>();
+        private final IrisSeeds seeds = seed -> SEED + seed.ordinal();
         private final FloatingHost floating = mock(FloatingHost.class);
         private final ObjectHost objects = mock(ObjectHost.class);
 
         @Override
-        public FloatingHost floating() {
-            return floating;
-        }
-
-        @Override
-        public ObjectHost objects() {
-            return objects;
+        public <T> Optional<T> extension(Class<T> type) {
+            Object offered = type == IrisSeeds.class ? seeds : type == FloatingHost.class ? floating : type == ObjectHost.class ? objects : null;
+            return Optional.ofNullable(offered).map(type::cast);
         }
 
         @Override
@@ -620,15 +591,6 @@ public final class ApiChunk implements GenerationContext {
             return ModuleLogs.discarding();
         }
 
-        @Override
-        public PackWorld withLog(ModuleLog log) {
-            return this;
-        }
-
-        @Override
-        public long seed(IrisSeed seed) {
-            return SEED + seed.ordinal();
-        }
     }
 
     private static final class Resources implements PackResources {
@@ -670,12 +632,12 @@ public final class ApiChunk implements GenerationContext {
         }
 
         @Override
-        public <T> Optional<T> find(ResourceKey<T> key) {
+        public <T> Optional<T> find(ResourceKind<T> kind, ResourceId id) {
             return Optional.empty();
         }
 
         @Override
-        public List<ResourceId> ids(Class<?> type) {
+        public List<ResourceId> ids(ResourceKind<?> kind) {
             return List.of();
         }
     }

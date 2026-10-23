@@ -3,11 +3,13 @@ package art.arcane.iris.core.modules;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.loader.ResourceLoader;
 import art.arcane.iris.engine.object.prefab.IrisObject;
+import art.arcane.iris.engine.object.world.biome.IrisBiome;
+import art.arcane.iris.engine.object.world.region.IrisRegion;
 import com.volmit.block.BlockState;
 import com.volmit.mantle.BlockBox;
 import com.volmit.object.GeneratedObject;
 import com.volmit.object.ObjectBlock;
-import com.volmit.resource.ResourceKey;
+import com.volmit.resource.PackResources;
 import com.volmit.world.BlockPosition;
 
 import java.util.List;
@@ -39,8 +41,31 @@ public final class PackResourceFixture {
         return resources;
     }
 
-    /** The key of the oak in the pack in {@code packFolder}. */
-    public static ResourceKey<GeneratedObject> oakKey(java.io.File packFolder) {
-        return new ResourceKey<>(new PackResourceIds(packFolder).of(OAK_KEY), GeneratedObject.class);
+    /** The oak {@code resources} serve, as a module finds it by its key. */
+    public static GeneratedObject oak(PackResources resources) {
+        return resources.require(PackResources.OBJECTS, resources.idOf(OAK_KEY));
+    }
+
+    /** The resources of a pack in {@code packFolder} without objects, biomes or regions, which names its keys by id. */
+    @SuppressWarnings("unchecked")
+    public static IrisPackResources empty(java.io.File packFolder) {
+        IrisData data = mock(IrisData.class);
+        when(data.getDataFolder()).thenReturn(packFolder);
+        holdNoObjectsBiomesOrRegions(data);
+        return new IrisPackResources(data, List::of);
+    }
+
+    /** Makes {@code data} (a mock) a pack without objects, biomes or regions, so resources built over it index none. */
+    @SuppressWarnings("unchecked")
+    public static void holdNoObjectsBiomesOrRegions(IrisData data) {
+        ResourceLoader<IrisObject> objects = mock(ResourceLoader.class);
+        ResourceLoader<IrisBiome> biomes = mock(ResourceLoader.class);
+        ResourceLoader<IrisRegion> regions = mock(ResourceLoader.class);
+        when(objects.getPossibleKeys()).thenReturn(new String[0]);
+        when(biomes.getPossibleKeys()).thenReturn(new String[0]);
+        when(regions.getPossibleKeys()).thenReturn(new String[0]);
+        when(data.getObjectLoader()).thenReturn(objects);
+        when(data.getBiomeLoader()).thenReturn(biomes);
+        when(data.getRegionLoader()).thenReturn(regions);
     }
 }

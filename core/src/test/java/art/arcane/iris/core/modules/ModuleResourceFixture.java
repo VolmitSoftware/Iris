@@ -20,6 +20,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -34,7 +35,7 @@ public final class ModuleResourceFixture {
     private static final Map<IrisPackResources, ModuleResourceFixture> SERVED = new IdentityHashMap<>();
 
     private final IrisPackResources resources;
-    private final Map<Class<?>, List<ResourceId>> ids = new HashMap<>();
+    private final Map<ResourceKind<?>, List<ResourceId>> ids = new HashMap<>();
 
     private ModuleResourceFixture(IrisPackResources resources) {
         this.resources = resources;
@@ -45,6 +46,8 @@ public final class ModuleResourceFixture {
         IrisPackResources resources = mock(IrisPackResources.class);
         when(data.getPackResources()).thenReturn(resources);
         when(resources.idOf(anyString())).thenAnswer(invocation -> idOf(invocation.getArgument(0)));
+        when(resources.keyOf(any(ResourceId.class))).thenAnswer(invocation -> keyOf(invocation.getArgument(0)));
+        when(resources.keyOf(any(ResourceKind.class), any(ResourceId.class))).thenAnswer(invocation -> keyOf(invocation.getArgument(1)));
         ModuleResourceFixture fixture = new ModuleResourceFixture(resources);
         SERVED.put(resources, fixture);
         return fixture;
@@ -82,14 +85,18 @@ public final class ModuleResourceFixture {
     /** Serves {@code resource} as the resource of {@code kind} the pack names by {@code key}. */
     public <T> ModuleResourceFixture resource(ResourceKind<T> kind, String key, T resource) {
         ResourceId id = idOf(key);
-        when(resources.find(kind.key(id))).thenReturn(Optional.of(resource));
-        List<ResourceId> kindIds = ids.computeIfAbsent(kind.type(), ignored -> new ArrayList<>());
+        when(resources.find(kind, id)).thenReturn(Optional.of(resource));
+        List<ResourceId> kindIds = ids.computeIfAbsent(kind, ignored -> new ArrayList<>());
         kindIds.add(id);
-        when(resources.ids(kind.type())).thenReturn(kindIds.stream().sorted().toList());
+        when(resources.ids(kind)).thenReturn(kindIds.stream().sorted().toList());
         return this;
     }
 
     private static ResourceId idOf(String key) {
         return new ResourceId(NAMESPACE, key.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9_./-]", "_"));
+    }
+
+    private static String keyOf(ResourceId id) {
+        return id.namespace().equals(NAMESPACE) ? id.path() : id.toString();
     }
 }

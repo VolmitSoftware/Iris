@@ -9,6 +9,8 @@ import art.arcane.iris.builtin.carve.CarvingEntry;
 import art.arcane.iris.builtin.carve.CarvingSettings;
 import art.arcane.iris.builtin.floating.FloatingChildSettings;
 import art.arcane.iris.core.modules.BuiltInPack;
+import art.arcane.iris.core.modules.IrisPackResources;
+import art.arcane.iris.core.modules.PackResourceFixture;
 import com.google.gson.Gson;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
 import art.arcane.iris.core.loader.IrisData;
@@ -17,6 +19,7 @@ import art.arcane.volmlib.util.collection.KList;
 import com.volmit.IrisFeature;
 import org.junit.Test;
 
+import java.io.File;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -59,11 +62,13 @@ public class IrisDimensionReachableBiomesTest {
         IrisBiome disabledDeep = biome("disabled-deep");
         IrisBiome unused = biome("unused");
 
+        IrisPackResources resources = PackResourceFixture.empty(new File("pack"));
         IrisData data = mock(IrisData.class);
         ResourceLoader<IrisRegion> regionLoader = mock(ResourceLoader.class);
         ResourceLoader<IrisBiome> biomeLoader = mock(ResourceLoader.class);
         when(data.getRegionLoader()).thenReturn(regionLoader);
         when(data.getBiomeLoader()).thenReturn(biomeLoader);
+        when(data.getPackResources()).thenReturn(resources);
         when(regionLoader.load("reachable")).thenReturn(reachable);
         when(biomeLoader.load("parent")).thenReturn(parent);
         when(biomeLoader.load("child")).thenReturn(child);
@@ -106,11 +111,13 @@ public class IrisDimensionReachableBiomesTest {
         IrisBiome d = biome("d", floatingChildren(floating("b")))
                 .setChildren(new KList<>("a"));
 
+        IrisPackResources resources = PackResourceFixture.empty(new File("pack"));
         IrisData data = mock(IrisData.class);
         ResourceLoader<IrisRegion> regionLoader = mock(ResourceLoader.class);
         ResourceLoader<IrisBiome> biomeLoader = mock(ResourceLoader.class);
         when(data.getRegionLoader()).thenReturn(regionLoader);
         when(data.getBiomeLoader()).thenReturn(biomeLoader);
+        when(data.getPackResources()).thenReturn(resources);
         when(regionLoader.load("reachable")).thenReturn(reachable);
         when(biomeLoader.load("a")).thenReturn(a);
         when(biomeLoader.load("b")).thenReturn(b);

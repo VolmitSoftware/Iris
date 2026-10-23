@@ -492,7 +492,7 @@ public class SchemaBuilder {
     }
 
     private PackResourceList putModuleResourceRef(JSONObject property, ResourceKind<?> kind) {
-        List<String> keys = data.getPackResources().ids(kind.type()).stream().map(ResourceId::path).toList();
+        List<String> keys = data.getPackResources().ids(kind).stream().map(ResourceId::path).toList();
         return putResourceKeys(property, new PackResourceList(kind.folder(), ModuleResourceFiles.typeName(kind)), keys);
     }
 

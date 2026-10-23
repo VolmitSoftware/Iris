@@ -114,19 +114,19 @@ public final class BukkitItemStacks {
         meta.setUnbreakable(drop.unbreakable());
         flags(drop).forEach(meta::addItemFlags);
 
-        if (drop.customModel() != null) {
+        if (drop.customModel().isPresent()) {
             CustomModelDataComponent customModelData = meta.getCustomModelDataComponent();
-            customModelData.setFloats(List.of(drop.customModel().floatValue()));
+            customModelData.setFloats(List.of((float) drop.customModel().getAsInt()));
             meta.setCustomModelDataComponent(customModelData);
         }
 
         int maxDurability = stack.getType().getMaxDurability();
-        if (drop.damage() != null && maxDurability > 0 && meta instanceof Damageable damageable) {
-            damageable.setDamage((int) Math.round(Math.max(0, Math.min(maxDurability, drop.damage() * maxDurability))));
+        if (drop.damage().isPresent() && maxDurability > 0 && meta instanceof Damageable damageable) {
+            damageable.setDamage((int) Math.round(Math.max(0, Math.min(maxDurability, drop.damage().getAsDouble() * maxDurability))));
         }
 
-        if (drop.leatherColor() != null && meta instanceof LeatherArmorMeta leather) {
-            Color c = Color.decode(drop.leatherColor());
+        if (drop.leatherColor().isPresent() && meta instanceof LeatherArmorMeta leather) {
+            Color c = Color.decode(drop.leatherColor().get());
             leather.setColor(org.bukkit.Color.fromRGB(c.getRed(), c.getGreen(), c.getBlue()));
         }
 
@@ -135,9 +135,7 @@ public final class BukkitItemStacks {
             colorable.setColor(dye);
         }
 
-        if (drop.displayName() != null) {
-            meta.setDisplayName(C.translateAlternateColorCodes('&', drop.displayName()));
-        }
+        drop.displayName().ifPresent(name -> meta.setDisplayName(C.translateAlternateColorCodes('&', name)));
 
         meta.setLore(lore(drop));
         return meta;
@@ -185,11 +183,11 @@ public final class BukkitItemStacks {
     }
 
     private static DyeColor dyeColor(ItemDrop drop) {
-        if (drop.dyeColor() == null) {
+        if (drop.dyeColor().isEmpty()) {
             return null;
         }
         try {
-            return DyeColor.valueOf(drop.dyeColor());
+            return DyeColor.valueOf(drop.dyeColor().get());
         } catch (IllegalArgumentException e) {
             return null;
         }
@@ -207,9 +205,7 @@ public final class BukkitItemStacks {
                 lore.add(colored);
             }
         }
-        if (drop.source() != null) {
-            addSourceLore(lore, drop.source());
-        }
+        drop.source().ifPresent(source -> addSourceLore(lore, source));
         return lore;
     }
 
@@ -217,12 +213,12 @@ public final class BukkitItemStacks {
         if (lore.isNotEmpty()) {
             lore.add(LORE_RULE);
         }
-        if (source.table() == null) {
+        if (source.table().isEmpty()) {
             lore.add(C.GRAY + "1 in " + source.entryRarity() + " Chance (" + Form.pc(1D / source.entryRarity(), CHANCE_DIGITS) + ")");
             return;
         }
         long combined = (long) source.tableRarity() * source.entryRarity();
-        lore.add(C.GRAY + "From: " + source.table() + " (" + Form.pc(1D / source.tableRarity(), CHANCE_DIGITS) + ")");
+        lore.add(C.GRAY + "From: " + source.table().get() + " (" + Form.pc(1D / source.tableRarity(), CHANCE_DIGITS) + ")");
         lore.add(C.GRAY + "1 in " + combined + " Chance (" + Form.pc(1D / combined, CHANCE_DIGITS) + ")");
     }
 }

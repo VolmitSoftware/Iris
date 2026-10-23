@@ -18,6 +18,7 @@
 
 package art.arcane.iris.core.modules;
 
+import art.arcane.iris.builtin.placement.ObjectPlacement;
 import art.arcane.iris.engine.framework.Engine;
 import com.volmit.config.FeatureSettings;
 import com.volmit.mantle.BlockBox;
@@ -30,6 +31,7 @@ import com.volmit.world.TerrainSample;
 import com.volmit.world.PackWorld;
 import com.volmit.world.TerrainSampler;
 
+import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.function.Supplier;
 
@@ -40,14 +42,25 @@ final class IrisPlacementInputs implements PlacementContext {
     private final FeatureSettings settings;
     private final BlockView blocks;
     private final Supplier<PackWorld> worldSource;
+    private final ObjectPlacement placement;
     private PackWorld world;
 
-    /** @param worldSource the world the placement generates in, asked for the first time a stage needs it */
-    IrisPlacementInputs(TerrainSampler terrain, FeatureSettings settings, BlockView blocks, Supplier<PackWorld> worldSource) {
+    /**
+     * @param worldSource the world the placement generates in, asked for the first time a stage needs it
+     * @param placement   what Iris's built-in placement stages see of the placement as an extension
+     */
+    IrisPlacementInputs(TerrainSampler terrain, FeatureSettings settings, BlockView blocks, Supplier<PackWorld> worldSource,
+                        ObjectPlacement placement) {
         this.terrain = terrain;
         this.settings = settings;
         this.blocks = blocks;
         this.worldSource = worldSource;
+        this.placement = placement;
+    }
+
+    @Override
+    public <T> Optional<T> extension(Class<T> type) {
+        return type == ObjectPlacement.class ? HostExtensions.as(type, placement) : Optional.empty();
     }
 
     /** The world of the engine's runtime, as it is when the placement first asks. */

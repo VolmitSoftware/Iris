@@ -19,6 +19,7 @@
 package art.arcane.iris.core.modules;
 
 import art.arcane.iris.builtin.IrisSeed;
+import art.arcane.iris.builtin.IrisSeeds;
 import art.arcane.iris.builtin.LiveWorld;
 import art.arcane.iris.builtin.floating.FloatingHost;
 import art.arcane.iris.builtin.structure.StructureHost;
@@ -29,47 +30,33 @@ import com.volmit.ModuleLog;
 import com.volmit.config.PackSettings;
 import com.volmit.host.WorldStates;
 import com.volmit.world.PackWorld;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.Optional;
 import java.util.function.Function;
 
 /**
  * One Iris world as modules see it: an engine runtime generating with one snapshot of its pack's resources, and the
  * state modules keep for it. {@link ModuleWorlds} makes one when the runtime is built and a new one whenever the
- * pack's resources reload under it. Iris's built-in modules reach the engine through {@link #of(PackWorld)}, as built-in
- * reaches do through {@link IrisPackSettings#of}.
+ * pack's resources reload under it. Iris's built-in modules reach what they need of Iris through its
+ * {@linkplain #extension extensions}: the world's seeds, its live view and the object, floating and structure hosts.
  */
-public final class IrisPackWorld implements PackWorld, IrisSeed.Source, LiveWorld.Source, ObjectHost.Source, FloatingHost.Source, StructureHost.Source {
+public final class IrisPackWorld implements PackWorld {
     private final Engine engine;
     private final IrisPackResources resources;
     private final WorldStates states;
     private final ModuleLog log;
-    private final Map<ModuleLog, IrisPackWorld> viewsByLog;
     private final LiveWorld liveWorld;
+    private final IrisSeeds seeds;
     private volatile IrisObjectHost objectHost;
     private volatile IrisFloatingHost floatingHost;
     private volatile IrisStructureHost structureHost;
 
     IrisPackWorld(Engine engine) {
-        this(engine, engine.getData().getPackResources(), new WorldStates(), IrisApiLogger.hostLog(), new ConcurrentHashMap<>());
-    }
-
-    private IrisPackWorld(Engine engine, IrisPackResources resources, WorldStates states, ModuleLog log,
-                          Map<ModuleLog, IrisPackWorld> viewsByLog) {
         this.engine = engine;
-        this.resources = resources;
-        this.states = states;
-        this.log = log;
-        this.viewsByLog = viewsByLog;
+        this.resources = engine.getData().getPackResources();
+        this.states = new WorldStates();
+        this.log = IrisApiLogger.hostLog();
         this.liveWorld = new IrisLiveWorld(engine, resources);
-    }
-
-    /** Iris's own view of {@code world}, which Iris hands to every stage, service and lifecycle hook. */
-    public static IrisPackWorld of(PackWorld world) {
-        if (!(world instanceof IrisPackWorld irisWorld)) {
-            throw new IllegalArgumentException("Built-in modules work in worlds Iris generates, not " + world);
-        }
-        return irisWorld;
+        this.seeds = this::seedOf;
     }
 
     /** The engine generating this world. */
@@ -107,19 +94,35 @@ public final class IrisPackWorld implements PackWorld, IrisSeed.Source, LiveWorl
         return log;
     }
 
-    /** One view per log, since the services ask for a module's view on every call. */
     @Override
-    public IrisPackWorld withLog(ModuleLog log) {
-        return viewsByLog.computeIfAbsent(log, moduleLog -> new IrisPackWorld(engine, resources, states, moduleLog, viewsByLog));
+    public <T> Optional<T> extension(Class<T> type) {
+        return HostExtensions.as(type, offered(type));
     }
 
-    @Override
-    public LiveWorld liveWorld() {
-        return liveWorld;
+    /** The engine is offered only for the structure built-ins, which drive Iris's structure locator themselves. */
+    private Object offered(Class<?> type) {
+        if (type == Engine.class) {
+            return engine;
+        }
+        if (type == IrisSeeds.class) {
+            return seeds;
+        }
+        if (type == LiveWorld.class) {
+            return liveWorld;
+        }
+        if (type == ObjectHost.class) {
+            return objects();
+        }
+        if (type == FloatingHost.class) {
+            return floating();
+        }
+        if (type == StructureHost.class) {
+            return structures();
+        }
+        return null;
     }
 
-    @Override
-    public long seed(IrisSeed seed) {
+    private long seedOf(IrisSeed seed) {
         SeedManager seeds = engine.getSeedManager();
         return switch (seed) {
             case BIOME -> seeds.getBiome();
@@ -136,8 +139,7 @@ public final class IrisPackWorld implements PackWorld, IrisSeed.Source, LiveWorl
         };
     }
 
-    @Override
-    public ObjectHost objects() {
+    private ObjectHost objects() {
         IrisObjectHost host = objectHost;
         if (host == null) {
             host = new IrisObjectHost(engine, log);
@@ -146,8 +148,7 @@ public final class IrisPackWorld implements PackWorld, IrisSeed.Source, LiveWorl
         return host;
     }
 
-    @Override
-    public FloatingHost floating() {
+    private FloatingHost floating() {
         IrisFloatingHost host = floatingHost;
         if (host == null) {
             host = new IrisFloatingHost(engine, log);
@@ -156,8 +157,7 @@ public final class IrisPackWorld implements PackWorld, IrisSeed.Source, LiveWorl
         return host;
     }
 
-    @Override
-    public StructureHost structures() {
+    private StructureHost structures() {
         IrisStructureHost host = structureHost;
         if (host == null) {
             host = new IrisStructureHost(engine, log);

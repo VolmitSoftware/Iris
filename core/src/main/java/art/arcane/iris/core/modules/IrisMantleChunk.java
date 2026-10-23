@@ -26,13 +26,11 @@ import java.util.function.Function;
 
 /**
  * Iris's own view of the chunk whose mantle stages are running: the engine, the mantle writer prepared around
- * the chunk and the generating chunk's sampled context. Iris's built-in mantle stages read them through
- * {@link #current()}, bound on the thread running the mantle graph, and write Iris's own mantle data; pack
- * modules cannot see this class.
+ * the chunk and the generating chunk's sampled context. Iris offers it as an extension of the mantle invocation, so
+ * its built-in mantle stages and the hosts they call read it with {@code context.extension(IrisMantleChunk.class)} and
+ * write Iris's own mantle data; pack modules cannot see this class.
  */
 public final class IrisMantleChunk {
-    private static final ScopedValue<IrisMantleChunk> CURRENT = ScopedValue.newInstance();
-
     private final Engine engine;
     private final MantleWriter writer;
     private final int chunkX;
@@ -45,18 +43,6 @@ public final class IrisMantleChunk {
         this.chunkX = chunkX;
         this.chunkZ = chunkZ;
         this.context = context;
-    }
-
-    /** The mantle chunk whose stages run on this thread. */
-    public static IrisMantleChunk current() {
-        if (!CURRENT.isBound()) {
-            throw new IllegalStateException("No Iris mantle chunk is generating on this thread");
-        }
-        return CURRENT.get();
-    }
-
-    void runBound(Runnable generation) {
-        ScopedValue.where(CURRENT, this).run(generation);
     }
 
     public Engine engine() {

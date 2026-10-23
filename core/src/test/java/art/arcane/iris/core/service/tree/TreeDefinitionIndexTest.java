@@ -43,6 +43,7 @@ public class TreeDefinitionIndexTest {
         when(engine.getDimension()).thenReturn(dimension);
         IrisData data = mock(IrisData.class);
         when(engine.getData()).thenReturn(data);
+        ModuleResourceFixture.serve(data);
         ModuleResourceFixture.serveModules(data, new ObjectModule());
         when(engine.getGeneration()).thenReturn(new EngineGeneration(engine));
         when(dimension.getAllRegions(engine)).thenReturn(new KList<IrisRegion>().qadd(region));

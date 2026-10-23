@@ -217,7 +217,7 @@ public final class ModuleResourceClosure {
     private Object lookup(ResourceKind<?> kind, String key) {
         IrisPackResources resources = data.getPackResources();
         try {
-            return resources.find(kind.key(resources.idOf(key))).orElse(null);
+            return resources.find(kind, resources.idOf(key)).orElse(null);
         } catch (IllegalStateException failedToLoad) {
             return null;
         }

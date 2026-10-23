@@ -54,16 +54,10 @@ public final class BukkitAmbientEffects {
     }
 
     private static void playOnEntityThread(Player player, Engine engine, AmbientEffects.Effect effect) {
-        if (effect.sound() != null) {
-            playSound(player, effect.sound());
-        }
-        if (effect.particles() != null) {
-            showParticles(player, engine, effect.particles());
-        }
+        effect.sound().ifPresent(sound -> playSound(player, sound));
+        effect.particles().ifPresent(particles -> showParticles(player, engine, particles));
         effect.commands().forEach(command -> runCommand(player, command));
-        if (effect.potion() != null) {
-            givePotion(player, effect.potion());
-        }
+        effect.potion().ifPresent(potion -> givePotion(player, potion));
     }
 
     private static void playSound(Player player, AmbientEffects.Sound sound) {

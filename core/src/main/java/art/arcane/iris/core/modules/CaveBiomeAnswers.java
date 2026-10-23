@@ -21,6 +21,8 @@ package art.arcane.iris.core.modules;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
+import com.volmit.resource.PackResources;
+import com.volmit.resource.ResourceId;
 import com.volmit.service.CaveBiomes;
 import com.volmit.world.PackWorld;
 
@@ -36,12 +38,12 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class CaveBiomeAnswers {
     private static final CaveBiomes NO_PROVIDER = new CaveBiomes() {
         @Override
-        public Optional<String> overriddenBiome(PackWorld world, int x, int y, int z) {
+        public Optional<ResourceId> overriddenBiome(PackWorld world, int x, int y, int z) {
             return Optional.empty();
         }
 
         @Override
-        public int minDepthBelowSurface(PackWorld world, String biomeKey) {
+        public int minDepthBelowSurface(PackWorld world, ResourceId biome) {
             return 0;
         }
     };
@@ -60,8 +62,8 @@ public final class CaveBiomeAnswers {
 
     /** The pack biome the module puts at the position whatever the regions say; null where it overrides nothing or names a biome the pack lacks. {@code y} is the height above the dimension's bottom. */
     public IrisBiome overriddenBiome(int x, int y, int z) {
-        Optional<String> key = provider.overriddenBiome(world, x, y, z);
-        return key.isEmpty() ? null : overridingBiome(key.get());
+        Optional<ResourceId> biome = provider.overriddenBiome(world, x, y, z);
+        return biome.isEmpty() ? null : overridingBiome(data.getPackResources().keyOf(PackResources.BIOMES, biome.get()));
     }
 
     /** How many blocks below the surface the caves of the pack biome {@code biomeKey} begin; 0 where nothing limits them. */
@@ -70,7 +72,7 @@ public final class CaveBiomeAnswers {
         if (depth != null) {
             return depth;
         }
-        return minDepths.computeIfAbsent(biomeKey, key -> provider.minDepthBelowSurface(world, key));
+        return minDepths.computeIfAbsent(biomeKey, key -> provider.minDepthBelowSurface(world, world.resources().idOf(key)));
     }
 
     private IrisBiome overridingBiome(String key) {

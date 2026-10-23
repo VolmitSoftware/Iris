@@ -44,17 +44,16 @@ public class ToolWorldTest {
     }
 
     @Test
-    public void everyLogViewSharesTheStateAndClosingTheWorldClosesIt() {
+    public void theWorldKeepsItsStateUntilItIsClosed() {
         PackResources resources = mock(PackResources.class);
         Tracked tracked;
         try (ToolWorld world = new ToolWorld(SEED, resources, mock(PackSettings.class))) {
             tracked = world.state(Tracked.class, ignored -> new Tracked());
-            PackWorld view = world.withLog(mock(ModuleLog.class));
 
-            assertSame(tracked, view.state(Tracked.class, ignored -> new Tracked()));
-            assertSame(resources, view.resources());
-            assertEquals(SEED, view.seed());
-            assertEquals(0, view.minHeight());
+            assertSame(tracked, world.state(Tracked.class, ignored -> new Tracked()));
+            assertSame(resources, world.resources());
+            assertEquals(SEED, world.seed());
+            assertEquals(0, world.minHeight());
             assertFalse(tracked.closed);
         }
 

@@ -19,6 +19,7 @@
 package art.arcane.iris.core.modules;
 
 import art.arcane.iris.builtin.IrisSeed;
+import art.arcane.iris.builtin.IrisSeeds;
 import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.Engine;
@@ -131,24 +132,18 @@ public class ModuleLogTest {
     }
 
     @Test
-    public void aWorldViewCarriesTheModulesLogAndSharesTheWorldsState() {
+    public void theWorldOffersIrissOwnCodeTheEngineAndItsSeedsAsExtensions() {
         Engine engine = mock(Engine.class);
         when(engine.getData()).thenReturn(mock(IrisData.class));
         when(engine.getDimension()).thenReturn(new IrisDimension());
         SeedManager seeds = mock(SeedManager.class);
         when(seeds.getPost()).thenReturn(POST_SEED);
         when(engine.getSeedManager()).thenReturn(seeds);
-        IrisPackWorld world = new IrisPackWorld(engine);
-        ModuleLog decorant = log();
+        PackWorld world = new IrisPackWorld(engine);
 
-        PackWorld view = world.withLog(decorant);
-
-        assertSame(decorant, view.log());
-        assertSame("one view per module", view, world.withLog(decorant));
-        assertSame(view, view.withLog(decorant));
-        assertSame("state is the world's", world.state(Marker.class, ignored -> new Marker()), view.state(Marker.class, ignored -> new Marker()));
-        assertSame("Iris's own code still reaches the engine through a view", engine, IrisPackWorld.of(view).engine());
-        assertEquals("and its seeds", POST_SEED, IrisSeed.POST.of(view));
+        assertSame(engine, world.extension(Engine.class).orElseThrow());
+        assertEquals(POST_SEED, world.extension(IrisSeeds.class).orElseThrow().seed(IrisSeed.POST));
+        assertTrue("nothing else is offered", world.extension(String.class).isEmpty());
     }
 
     @Test
@@ -171,8 +166,5 @@ public class ModuleLogTest {
 
     private String err() {
         return err.toString(StandardCharsets.UTF_8);
-    }
-
-    private static final class Marker {
     }
 }

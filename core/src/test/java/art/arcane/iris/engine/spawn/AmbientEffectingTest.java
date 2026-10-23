@@ -35,9 +35,9 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -92,13 +92,13 @@ public class AmbientEffectingTest {
         List<AmbientEffects.Effect> due = new AmbientEffecting().due(world, AT);
 
         assertEquals(1, due.size());
-        AmbientEffects.Sound sound = due.getFirst().sound();
+        AmbientEffects.Sound sound = due.getFirst().sound().orElseThrow();
         assertEquals("ambient.cave", sound.key());
         assertTrue(Math.abs(sound.offsetX()) <= 4 && Math.abs(sound.offsetY()) <= 4 && Math.abs(sound.offsetZ()) <= 4);
         assertEquals(2F, sound.volume(), 0);
         assertEquals(0.5F, sound.pitch(), 0);
-        assertEquals(new AmbientEffects.Potion("luck", 1, 100), due.getFirst().potion());
-        assertNull(due.getFirst().particles());
+        assertEquals(Optional.of(new AmbientEffects.Potion("luck", 1, 100)), due.getFirst().potion());
+        assertTrue(due.getFirst().particles().isEmpty());
         assertTrue(due.getFirst().commands().isEmpty());
     }
 
@@ -109,18 +109,19 @@ public class AmbientEffectingTest {
 
         AmbientEffects.Effect effect = new AmbientEffecting().due(world, AT).getFirst();
 
-        assertEquals("flame", effect.particles().key());
-        assertEquals(5, effect.particles().forward(), 0);
-        assertEquals(0, effect.particles().sideways(), 0);
-        assertEquals(0.5, effect.particles().altX(), 0);
-        assertEquals(0.25, effect.particles().extra(), 0);
-        assertEquals(2, effect.particles().count());
+        AmbientEffects.Particles particles = effect.particles().orElseThrow();
+        assertEquals("flame", particles.key());
+        assertEquals(5, particles.forward(), 0);
+        assertEquals(0, particles.sideways(), 0);
+        assertEquals(0.5, particles.altX(), 0);
+        assertEquals(0.25, particles.extra(), 0);
+        assertEquals(2, particles.count());
         assertEquals(1, effect.commands().size());
         assertEquals(List.of("say hi {x}"), effect.commands().getFirst().command().commands());
         assertEquals(3, effect.commands().getFirst().command().delay());
         assertEquals(2, effect.commands().getFirst().offsetX(), 0);
-        assertNull(effect.sound());
-        assertNull(effect.potion());
+        assertTrue(effect.sound().isEmpty());
+        assertTrue(effect.potion().isEmpty());
     }
 
     @Test

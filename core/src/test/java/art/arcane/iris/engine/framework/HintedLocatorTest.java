@@ -95,6 +95,7 @@ public class HintedLocatorTest {
         when(engine.isClosed()).thenReturn(false);
         when(engine.acquireGenerationLease(any(String.class))).thenReturn(GenerationSessionLease.noop());
         when(data.getBiomeLoader()).thenReturn(biomeLoader);
+        ModuleResourceFixture.serve(data);
         ModuleResourceFixture.serveModules(data, new ObjectModule());
         when(engine.getGeneration()).thenReturn(new EngineGeneration(engine));
         stubReachableBiomes();

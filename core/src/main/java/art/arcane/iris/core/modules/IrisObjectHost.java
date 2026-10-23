@@ -45,6 +45,7 @@ import art.arcane.iris.util.project.noise.NoiseType;
 import art.arcane.volmlib.util.cache.CacheKey;
 import art.arcane.volmlib.util.math.RNG;
 import com.volmit.config.Level;
+import com.volmit.generation.InvocationContext;
 import com.volmit.IrisFeature;
 import com.volmit.ModuleLog;
 import com.volmit.config.FeatureSettings;
@@ -117,8 +118,8 @@ final class IrisObjectHost implements ObjectHost {
     }
 
     @Override
-    public ObjectChunk chunk() {
-        IrisMantleChunk chunk = IrisMantleChunk.current();
+    public ObjectChunk chunk(InvocationContext context) {
+        IrisMantleChunk chunk = context.extension(IrisMantleChunk.class).orElseThrow();
         return new IrisObjectChunk(chunk.engine(), chunk.writer(), log, this::options);
     }
 

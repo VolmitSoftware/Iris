@@ -19,7 +19,7 @@ import com.volmit.block.BlockSpec;
 import com.volmit.block.BlockState;
 import com.volmit.block.PaletteSampler;
 import com.volmit.block.PaletteSpec;
-import com.volmit.config.OptionsMetadata;
+import com.volmit.host.OptionsMetadata;
 import com.volmit.noise.NoiseSampler;
 import com.volmit.noise.NoiseStyle;
 import com.volmit.object.BlockEntityData;

@@ -112,12 +112,16 @@ public final class ModuleMantleComponent implements MantleComponent {
 
     @Override
     public void generateLayer(MantleWriter writer, int x, int z, ChunkContext context) {
-        new IrisMantleChunk(engine, writer, x, z, context).runBound(() -> generate(x, z, writer::acquireChunk));
+        generate(x, z, writer::acquireChunk, new IrisMantleChunk(engine, writer, x, z, context));
     }
 
-    /** Runs the stage for chunk {@code x}, {@code z}, with the mantle chunks within the stage's reach of it. */
-    void generate(int x, int z, IrisModuleMantle.Chunks chunks) {
-        IrisMantleGenerationContext inputs = new IrisMantleGenerationContext(engine, x, z, reachBlocks, chunks, pack.catalog().mantle());
+    /**
+     * Runs the stage for chunk {@code x}, {@code z}, with the mantle chunks within the stage's reach of it and
+     * {@code irisChunk} as Iris's own view of the chunk.
+     */
+    void generate(int x, int z, IrisModuleMantle.Chunks chunks, IrisMantleChunk irisChunk) {
+        IrisMantleGenerationContext inputs = new IrisMantleGenerationContext(engine, x, z, reachBlocks, chunks, pack.catalog().mantle(),
+                irisChunk);
         runner.generate(stage.stage(), inputs, ModuleSeeds.chunk(engine.getSeedManager().getSeed(), x, z),
                 new StageMetrics(engine.getMetrics()));
     }

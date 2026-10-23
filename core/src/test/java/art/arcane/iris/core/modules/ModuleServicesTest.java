@@ -29,6 +29,7 @@ import com.volmit.ModuleSetup;
 import com.volmit.host.LoadedPack;
 import com.volmit.host.ModuleHost;
 import com.volmit.resource.PackResources;
+import com.volmit.resource.ResourceId;
 import com.volmit.service.LocateResult;
 import com.volmit.service.ObjectsAt;
 import com.volmit.service.StructureLocator;
@@ -88,30 +89,30 @@ public class ModuleServicesTest {
             var registry = setup.registry();
             registry.registerService(ObjectsAt.class, new ObjectsAt() {
                 @Override
-                public Set<String> objectsAt(PackWorld world, int chunkX, int chunkZ) {
+                public Set<ResourceId> objectsAt(PackWorld world, int chunkX, int chunkZ) {
                     logOwners.add(id + (world.log() == registeredLog ? " has its own log" : " has another module's log"));
-                    return Set.of(object + "@" + chunkX + "," + chunkZ);
+                    return Set.of(world.resources().idOf(object + "/" + chunkX + "/" + chunkZ));
                 }
 
                 @Override
-                public PlacedBy placedBy(PackWorld world, String objectKey) {
-                    return new PlacedBy(Set.of(object + "-biome"), Set.of(id + "-region"));
+                public PlacedBy placedBy(PackWorld world, ResourceId placedObject) {
+                    return new PlacedBy(Set.of(world.resources().idOf(object + "-biome")), Set.of(world.resources().idOf(id.replace(':', '-') + "-region")));
                 }
             });
             registry.registerService(StructureLocator.class, new StructureLocator() {
                 @Override
-                public Set<String> structures(PackResources resources) {
-                    return Set.of(structure, structure + "/unplaced");
+                public Set<ResourceId> structures(PackResources resources) {
+                    return Set.of(resources.idOf(structure), resources.idOf(structure + "/unplaced"));
                 }
 
                 @Override
-                public Set<String> locatable(PackWorld world) {
-                    return Set.of(structure);
+                public Set<ResourceId> locatable(PackWorld world) {
+                    return Set.of(world.resources().idOf(structure));
                 }
 
                 @Override
-                public LocateResult locate(PackWorld world, String key, int fromX, int fromZ, int maxRadiusChunks) {
-                    searches.add(id + " " + key + " " + fromX + " " + fromZ + " " + maxRadiusChunks);
+                public LocateResult locate(PackWorld world, ResourceId located, int fromX, int fromZ, int maxRadiusChunks) {
+                    searches.add(id + " " + located.path() + " " + fromX + " " + fromZ + " " + maxRadiusChunks);
                     return LocateResult.found(new BlockPosition(fromX + 16, 70, fromZ));
                 }
             });
@@ -130,6 +131,7 @@ public class ModuleServicesTest {
         when(modules.pack()).thenReturn(pack);
         when(data.getModules()).thenReturn(modules);
         when(data.getDataFolder()).thenReturn(folder.getRoot());
+        PackResourceFixture.holdNoObjectsBiomesOrRegions(data);
         IrisPackResources resources = new IrisPackResources(data, List::of);
         when(data.getPackResources()).thenReturn(resources);
         engine = mock(Engine.class);
@@ -148,7 +150,7 @@ public class ModuleServicesTest {
 
     @Test
     public void objectsAtCombinesEveryModulesObjectsInModuleOrder() {
-        assertEquals(List.of("tree@3,-4", "bush@3,-4", "rock@3,-4"), List.copyOf(ModuleServices.objectsAt(engine, 3, -4)));
+        assertEquals(List.of("tree/3/-4", "bush/3/-4", "rock/3/-4"),List.copyOf(ModuleServices.objectsAt(engine, 3, -4)));
     }
 
     @Test
@@ -160,10 +162,10 @@ public class ModuleServicesTest {
 
     @Test
     public void objectPlacersCombineTheBiomesAndRegionsOfEveryModule() {
-        ObjectsAt.PlacedBy placers = ModuleServices.objectPlacers(engine, "trees/oak");
+        ModuleServices.ObjectPlacers placers = ModuleServices.objectPlacers(engine, "trees/oak");
 
         assertEquals(Set.of("rock-biome", "tree-biome", "bush-biome"), placers.biomes());
-        assertEquals(Set.of("test:zeta-region", "test:alpha-region", "test:beta-region"), placers.regions());
+        assertEquals(Set.of("test-zeta-region", "test-alpha-region", "test-beta-region"), placers.regions());
     }
 
     @Test
@@ -181,7 +183,7 @@ public class ModuleServicesTest {
         ModuleServices.StructureSearch result = ModuleServices.locateStructure(engine, "Castle", 100, -200, 64);
 
         assertEquals(new ModuleServices.StructureSearch(ModuleServices.StructureSearch.Outcome.FOUND, 116, 70 - 64, -200), result);
-        assertEquals(List.of("test:beta Castle 100 -200 64"), searches);
+        assertEquals("the key is read as the pack's lower-case id", List.of("test:beta castle 100 -200 64"), searches);
     }
 
     @Test

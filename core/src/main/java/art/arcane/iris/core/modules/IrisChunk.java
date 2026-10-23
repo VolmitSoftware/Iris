@@ -28,13 +28,11 @@ import java.util.function.Function;
 
 /**
  * Iris's own view of the chunk whose module stages are running: the engine, Iris's block and biome hunks and
- * the chunk's sampled context. Iris's built-in chunk stages read them through {@link #current()}, bound on the
- * generating thread while the chunk graph runs, and work on Iris's types directly; pack modules cannot see
+ * the chunk's sampled context. Iris offers it as an extension of the chunk invocation, so its built-in chunk stages
+ * read it with {@code context.extension(IrisChunk.class)} and work on Iris's types directly; pack modules cannot see
  * this class.
  */
 public final class IrisChunk {
-    private static final ScopedValue<IrisChunk> CURRENT = ScopedValue.newInstance();
-
     private final Engine engine;
     private final int originX;
     private final int originZ;
@@ -52,18 +50,6 @@ public final class IrisChunk {
         this.biomes = biomes;
         this.multicore = multicore;
         this.context = context;
-    }
-
-    /** The chunk generating on this thread. */
-    public static IrisChunk current() {
-        if (!CURRENT.isBound()) {
-            throw new IllegalStateException("No Iris chunk is generating on this thread");
-        }
-        return CURRENT.get();
-    }
-
-    void runBound(Runnable generation) {
-        ScopedValue.where(CURRENT, this).run(generation);
     }
 
     public Engine engine() {

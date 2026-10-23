@@ -57,19 +57,19 @@ public class CaveBiomeBandsTest {
     public void aPositionInsideAnEnabledBandGetsTheBandsBiomeKey() {
         CaveBiomeBands bands = new CaveBiomeBands();
 
-        assertEquals("world Y -54 is in the band from -64 to 0", Optional.of("band/shallow"), bands.overriddenBiome(world, 5, 10, 5));
-        assertEquals("the band's end is in it", Optional.of("band/shallow"), bands.overriddenBiome(world, 5, 64, 5));
+        assertEquals("world Y -54 is in the band from -64 to 0", Optional.of(CarveTestWorld.id("band/shallow")), bands.overriddenBiome(world, 5, 10, 5));
+        assertEquals("the band's end is in it", Optional.of(CarveTestWorld.id("band/shallow")), bands.overriddenBiome(world, 5, 64, 5));
         assertEquals("above it", Optional.empty(), bands.overriddenBiome(world, 5, 65, 5));
         assertEquals("a disabled band overrides nothing", Optional.empty(), bands.overriddenBiome(world, 5, 200 - MIN_HEIGHT - 50, 5));
         assertEquals("a band whose biome the pack lacks overrides nothing", Optional.empty(), bands.overriddenBiome(world, 5, 305 - MIN_HEIGHT, 5));
-        assertEquals("the key is trimmed as the pack is asked for it", Optional.of("band/padded"), bands.overriddenBiome(world, 5, 550 - MIN_HEIGHT, 5));
+        assertEquals("the key is trimmed as the pack is asked for it", Optional.of(CarveTestWorld.id("band/padded")), bands.overriddenBiome(world, 5, 550 - MIN_HEIGHT, 5));
     }
 
     @Test
     public void aBiomeKeyHasTheMinimumDepthItsSettingsDeclareAndZeroWhenTheKeyIsUnknown() {
         CaveBiomeBands bands = new CaveBiomeBands();
 
-        assertEquals(30, bands.minDepthBelowSurface(world, "band/shallow"));
-        assertEquals(0, bands.minDepthBelowSurface(world, "band/unknown"));
+        assertEquals(30, bands.minDepthBelowSurface(world, CarveTestWorld.id("band/shallow")));
+        assertEquals(0, bands.minDepthBelowSurface(world, CarveTestWorld.id("band/unknown")));
     }
 }

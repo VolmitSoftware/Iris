@@ -10,6 +10,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.OptionalInt;
 
 import static org.junit.Assert.assertEquals;
@@ -52,7 +53,7 @@ public class LootItemsTest {
         assertEquals(amount, drop.amount());
         assertEquals(level, drop.enchantments().getFirst().level());
         assertEquals(bonus, drop.attributes().getFirst().amount(), 0D);
-        assertEquals(damage, drop.damage(), 0D);
+        assertEquals(damage, drop.damage().orElseThrow(), 0D);
     }
 
     @Test
@@ -64,7 +65,7 @@ public class LootItemsTest {
         ItemDrop drop = new LootItems(registry, false).give(entry, rng);
 
         assertEquals(2, drop.amount());
-        assertNull(drop.damage());
+        assertTrue(drop.damage().isEmpty());
         assertEquals(untouched.nextLong(), rng.nextLong());
     }
 
@@ -85,9 +86,9 @@ public class LootItemsTest {
         List<ItemDrop> drops = new LootItems(registry, true).draw("dungeon", table, LOOT_SEED, 0, 64, 0);
 
         for (ItemDrop drop : drops) {
-            assertEquals(new ItemDrop.Source("dungeon", 4, 3), drop.source());
+            assertEquals(Optional.of(new ItemDrop.Source(Optional.of("dungeon"), 4, 3)), drop.source());
         }
-        assertTrue(new LootItems(registry, false).draw("dungeon", table, LOOT_SEED, 0, 64, 0).stream().allMatch(drop -> drop.source() == null));
+        assertTrue(new LootItems(registry, false).draw("dungeon", table, LOOT_SEED, 0, 64, 0).stream().allMatch(drop -> drop.source().isEmpty()));
     }
 
     @Test

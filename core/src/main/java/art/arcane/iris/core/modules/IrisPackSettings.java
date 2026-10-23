@@ -36,13 +36,15 @@ import com.volmit.resource.ResourceId;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * The settings an engine's pack declares, for working out mantle stage reaches when the pack loads and for vanilla
  * structure hooks: the engine's dimension, then every region it can reach, then every biome. Iris's built-in modules
- * decide from Iris's own pack data instead of module settings; they reach the engine through {@link #of(PackSettings)}.
+ * decide from Iris's own pack data instead of module settings; they reach it through the object, floating and structure
+ * hosts the settings offer as {@linkplain #extension extensions}.
  */
-public final class IrisPackSettings implements PackSettings, ObjectHost.Source, FloatingHost.Source, StructureHost.Source {
+public final class IrisPackSettings implements PackSettings {
     static final String DIMENSION = "dimension";
     static final String REGION = "region";
     static final String BIOME = "biome";
@@ -55,32 +57,31 @@ public final class IrisPackSettings implements PackSettings, ObjectHost.Source, 
         this.ids = new PackResourceIds(engine.getData().getDataFolder());
     }
 
-    /** Iris's own view of {@code settings}, which Iris hands to every reach it works out. */
-    public static IrisPackSettings of(PackSettings settings) {
-        if (!(settings instanceof IrisPackSettings irisSettings)) {
-            throw new IllegalArgumentException("Built-in modules read an Iris engine's pack, not " + settings);
-        }
-        return irisSettings;
-    }
-
     /** The engine whose pack is loading. */
     public Engine engine() {
         return engine;
     }
 
     @Override
-    public ObjectHost objects() {
-        return new IrisObjectHost(engine, IrisApiLogger.hostLog());
+    public <T> Optional<T> extension(Class<T> type) {
+        return HostExtensions.as(type, offered(type));
     }
 
-    @Override
-    public FloatingHost floating() {
-        return new IrisFloatingHost(engine, IrisApiLogger.hostLog());
-    }
-
-    @Override
-    public StructureHost structures() {
-        return new IrisStructureHost(engine, IrisApiLogger.hostLog());
+    /** The engine is offered only for the structure built-ins, which drive Iris's structure locator themselves. */
+    private Object offered(Class<?> type) {
+        if (type == Engine.class) {
+            return engine;
+        }
+        if (type == ObjectHost.class) {
+            return new IrisObjectHost(engine, IrisApiLogger.hostLog());
+        }
+        if (type == FloatingHost.class) {
+            return new IrisFloatingHost(engine, IrisApiLogger.hostLog());
+        }
+        if (type == StructureHost.class) {
+            return new IrisStructureHost(engine, IrisApiLogger.hostLog());
+        }
+        return null;
     }
 
     @Override

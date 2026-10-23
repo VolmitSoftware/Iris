@@ -90,9 +90,10 @@ public final class ModuleObjectPlacement {
         try (ToolWorld toolWorld = engine == null ? new ToolWorld(worldSeed, data.getPackResources(), new PackDeclaredSettings(data)) : null) {
             IrisPlacementInputs inputs = new IrisPlacementInputs(terrain(engine, ids, area),
                     new PlacementModuleSettings(worldSettings(engine, ids), config.getModuleSettings(), source),
-                    new PlacerBlockView(placer, area, states), engine != null ? IrisPlacementInputs.worldOf(engine) : () -> toolWorld);
-            PlacementOutcome outcome = placement.runBound(() -> new PlacementRunner(graph)
-                    .place(request, edit, inputs, seed, config.getModuleSettings().placement(source), metrics));
+                    new PlacerBlockView(placer, area, states), engine != null ? IrisPlacementInputs.worldOf(engine) : () -> toolWorld,
+                    placement);
+            PlacementOutcome outcome = new PlacementRunner(graph)
+                    .place(request, edit, inputs, seed, config.getModuleSettings().placement(source), metrics);
             return outcome.isPlaced()
                     ? ObjectPlacementResult.placed(placement.anchorY())
                     : ObjectPlacementResult.rejected(outcome.rejection().orElseThrow());

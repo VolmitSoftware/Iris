@@ -46,6 +46,7 @@ import art.arcane.volmlib.util.math.RNG;
 import art.arcane.volmlib.util.matter.MatterBiomeInject;
 import art.arcane.volmlib.util.matter.slices.BiomeInjectMatter;
 import com.volmit.ModuleLog;
+import com.volmit.generation.InvocationContext;
 import com.volmit.resource.ResourceId;
 
 import java.util.Map;
@@ -128,11 +129,12 @@ final class IrisFloatingHost implements FloatingHost {
     }
 
     @Override
-    public void placeFloating(PlaceableObject object, int worldX, int worldZ, ObjectPlacement placement, RNG random) {
+    public void placeFloating(InvocationContext context, PlaceableObject object, int worldX, int worldZ, ObjectPlacement placement,
+                              RNG random) {
         IrisObject placed = (IrisObject) object;
         IrisData data = engine.getData();
         IrisObjectPlacement floating = ObjectPlacements.host(placement, data).toPlacement(placed.getLoadKey());
-        MantleWriter writer = IrisMantleChunk.current().writer();
+        MantleWriter writer = writerOf(context);
         int id = random.i(0, Integer.MAX_VALUE);
         try {
             placed.place(worldX, FLOATING_OBJECT_Y, worldZ, writer, floating, random, (block, state) -> writeMarker(writer, placed, id, block.getX(),
@@ -143,20 +145,25 @@ final class IrisFloatingHost implements FloatingHost {
     }
 
     @Override
-    public void placeOnTop(PlaceableObject object, int worldX, int y, int worldZ, ObjectPlacement placement, IslandAnchor anchor, RNG random) {
-        placeAgainstIsland((IrisObject) object, worldX, y, worldZ, placement, NO_ROTATION, anchor, random, "anchored");
+    public void placeOnTop(InvocationContext context, PlaceableObject object, int worldX, int y, int worldZ, ObjectPlacement placement,
+                           IslandAnchor anchor, RNG random) {
+        placeAgainstIsland(writerOf(context), (IrisObject) object, worldX, y, worldZ, placement, NO_ROTATION, anchor, random, "anchored");
     }
 
     @Override
-    public void placeUnder(PlaceableObject object, int worldX, int y, int worldZ, int yRotation, ObjectPlacement placement,
-                           IslandAnchor anchor, RNG random) {
-        placeAgainstIsland((IrisObject) object, worldX, y, worldZ, placement, IrisObjectRotation.xFlip180WithY(yRotation), anchor, random,
-                "inverted");
+    public void placeUnder(InvocationContext context, PlaceableObject object, int worldX, int y, int worldZ, int yRotation,
+                           ObjectPlacement placement, IslandAnchor anchor, RNG random) {
+        placeAgainstIsland(writerOf(context), (IrisObject) object, worldX, y, worldZ, placement, IrisObjectRotation.xFlip180WithY(yRotation),
+                anchor, random, "inverted");
+    }
+
+    private static MantleWriter writerOf(InvocationContext context) {
+        return context.extension(IrisMantleChunk.class).orElseThrow().writer();
     }
 
     /** Places the object through a transaction that writes nothing unless every block lands where the anchor allows. */
-    private void placeAgainstIsland(IrisObject object, int worldX, int y, int worldZ, ObjectPlacement placement, IrisObjectRotation rotation,
-                                    IslandAnchor anchor, RNG random, String kind) {
+    private void placeAgainstIsland(MantleWriter writer, IrisObject object, int worldX, int y, int worldZ, ObjectPlacement placement,
+                                    IrisObjectRotation rotation, IslandAnchor anchor, RNG random, String kind) {
         IrisData data = engine.getData();
         IrisObjectPlacement anchored = ObjectPlacements.host(placement, data).toPlacement(object.getLoadKey());
         anchored.setMode(anchored.getMode().onFloatingIsland());
@@ -166,7 +173,7 @@ final class IrisFloatingHost implements FloatingHost {
         anchored.setBottom(false);
 
         FloatingObjectPlacementTransaction transaction = new FloatingObjectPlacementTransaction(
-                new IslandAnchorPlacer(IrisMantleChunk.current().writer(), anchor));
+                new IslandAnchorPlacer(writer, anchor));
         int id = random.i(0, Integer.MAX_VALUE);
         try {
             int resultY = object.place(worldX, y, worldZ, transaction, anchored, random, (block, state) -> writeMarker(transaction, object, id,

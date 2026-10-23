@@ -62,7 +62,7 @@ public class StructureResourcesTest {
     public void theStructureModuleListsThePacksStructuresForIrissIndexThroughItsLocator() throws Exception {
         IrisData data = IrisData.openValidation(castlePack("listed").toFile());
         try {
-            assertEquals(Set.of("castle"), new StructureLocating().structures(data.getPackResources()));
+            assertEquals(Set.of(new ResourceId("listed", "castle")), new StructureLocating().structures(data.getPackResources()));
             assertEquals(Set.of("castle"), ModuleServices.structureKeys(data));
         } finally {
             data.close();
@@ -81,7 +81,7 @@ public class StructureResourcesTest {
             assertEquals("castle", castle.getLoadKey());
             assertEquals(pack.resolve("structures/castle.json").toFile(), castle.getLoadFile());
             assertSame(data, castle.getLoader());
-            assertSame(castle, data.getPackResources().find(StructureResources.STRUCTURES.key(new ResourceId("castles", "castle"))).orElseThrow());
+            assertSame(castle, data.getPackResources().find(StructureResources.STRUCTURES, new ResourceId("castles", "castle")).orElseThrow());
             assertEquals("castle/start", StructureResources.pool(data, "castle/start").getPieces().getFirst().getPiece());
             assertEquals("castle/start", StructureResources.piece(data, "castle/start").getObject());
             assertEquals(List.of("castle"), StructureResources.structureKeys(data));
@@ -101,7 +101,7 @@ public class StructureResourcesTest {
         try {
             assertNull(StructureResources.structure(data, "ruin"));
             assertThrows(IllegalStateException.class,
-                    () -> data.getPackResources().find(StructureResources.STRUCTURES.key(new ResourceId("broken", "ruin"))));
+                    () -> data.getPackResources().find(StructureResources.STRUCTURES, new ResourceId("broken", "ruin")));
         } finally {
             data.close();
         }

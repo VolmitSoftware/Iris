@@ -56,7 +56,7 @@ public class FloatingObjectPlacingBoundaryRadiusTest {
 
     private static PackSettings pack(FloatingChildSettings declared, ObjectHost objects) {
         FloatingHost floating = mock(FloatingHost.class);
-        return new FloatingPack() {
+        return new PackSettings() {
             @Override
             @SuppressWarnings("unchecked")
             public <T extends IrisFeature> SettingsStack<T> declared(Class<T> featureType) {
@@ -65,17 +65,12 @@ public class FloatingObjectPlacingBoundaryRadiusTest {
             }
 
             @Override
-            public FloatingHost floating() {
-                return floating;
-            }
-
-            @Override
-            public ObjectHost objects() {
-                return objects;
+            public <T> Optional<T> extension(Class<T> type) {
+                if (type == FloatingHost.class) {
+                    return Optional.of(type.cast(floating));
+                }
+                return type == ObjectHost.class ? Optional.of(type.cast(objects)) : Optional.empty();
             }
         };
-    }
-
-    private interface FloatingPack extends PackSettings, FloatingHost.Source, ObjectHost.Source {
     }
 }

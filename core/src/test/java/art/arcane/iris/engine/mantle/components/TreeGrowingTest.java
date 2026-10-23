@@ -44,7 +44,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.withSettings;
 
 /** Trees only replace the platform's growth when the dimension asks for it and a placement of the area grows that species. */
 public class TreeGrowingTest {
@@ -63,8 +62,8 @@ public class TreeGrowingTest {
         host = mock(ObjectHost.class);
         settings = mock(FeatureSettings.class);
         when(host.columnSettings()).thenReturn(settings);
-        world = mock(PackWorld.class, withSettings().extraInterfaces(ObjectHost.Source.class));
-        when(((ObjectHost.Source) world).objects()).thenReturn(host);
+        world = mock(PackWorld.class);
+        when(world.extension(ObjectHost.class)).thenReturn(Optional.of(host));
     }
 
     @Test

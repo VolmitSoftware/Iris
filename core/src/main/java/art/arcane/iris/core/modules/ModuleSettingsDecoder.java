@@ -34,11 +34,11 @@ import com.google.gson.stream.JsonWriter;
 import com.volmit.config.Level;
 import com.volmit.IrisFeature;
 import com.volmit.block.BlockState;
-import com.volmit.config.OptionsMetadata;
 import com.volmit.config.Snippet;
 import com.volmit.host.FeatureCatalog;
 import com.volmit.host.FeatureDescriptor;
 import com.volmit.host.ObjectRegistration;
+import com.volmit.host.OptionsMetadata;
 import com.volmit.resource.ResourceId;
 
 import java.io.IOException;
@@ -83,9 +83,10 @@ public final class ModuleSettingsDecoder {
     ModuleSettingsDecoder(FeatureCatalog catalog, Path packFolder, Supplier<Gson> irisGson) {
         this.packFolder = packFolder;
         this.irisGson = irisGson;
+        PackResourceIds packIds = new PackResourceIds(packFolder.toFile());
         this.gson = new GsonBuilder()
                 .registerTypeAdapter(BlockState.class, textAdapter(BlockState::parse, BlockState::key))
-                .registerTypeAdapter(ResourceId.class, textAdapter(ResourceId::parse, ResourceId::toString))
+                .registerTypeAdapter(ResourceId.class, textAdapter(text -> resourceIdOf(packIds, text), ResourceId::toString))
                 .registerTypeAdapterFactory(new HostTypes())
                 .registerTypeAdapterFactory(new SnippetReferences())
                 .create();
@@ -93,6 +94,11 @@ public final class ModuleSettingsDecoder {
             settings.put(target, settingsAt(catalog, target));
             keys.put(target, keysAt(catalog, target));
         }
+    }
+
+    /** A resource id as written: {@code namespace:path}, or a pack key such as {@code desert/dunes}, which names a resource of the pack. */
+    private static ResourceId resourceIdOf(PackResourceIds packIds, String text) {
+        return text.indexOf(':') >= 0 ? ResourceId.parse(text) : packIds.of(text);
     }
 
     /** Every JSON key the pack's modules read at {@code target}: the keys of their features, object generators' included. */

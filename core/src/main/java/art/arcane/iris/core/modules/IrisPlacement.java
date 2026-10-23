@@ -43,12 +43,11 @@ import com.volmit.resource.PackResources;
 import com.volmit.world.BlockPosition;
 
 import java.util.Optional;
-import java.util.function.Supplier;
 
 /**
  * Iris's own inputs of the object placement being run: the placement settings, object, placer and cave that IrisApi
- * does not describe, answered to Iris's built-in placement stages as an {@link ObjectPlacement}, bound on the placing
- * thread while the placement graph runs. Pack modules cannot see this class.
+ * does not describe, answered to Iris's built-in placement stages as an {@link ObjectPlacement}, the extension of the
+ * placement invocation. Pack modules cannot see this class.
  */
 public final class IrisPlacement implements ObjectPlacement {
     private static final int NOT_ANCHORED = Integer.MIN_VALUE;
@@ -87,9 +86,6 @@ public final class IrisPlacement implements ObjectPlacement {
         this.terrain = new IrisPlacementTerrain(placer, object.getLoader(), data, states);
     }
 
-    <T> T runBound(Supplier<T> placement) {
-        return ObjectPlacement.runBound(this, placement);
-    }
 
     @Override
     public ObjectShape object() {

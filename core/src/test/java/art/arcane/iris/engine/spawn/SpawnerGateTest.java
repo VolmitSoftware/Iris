@@ -51,7 +51,7 @@ public class SpawnerGateTest {
         when(engine.getWorld()).thenReturn(engineWorld);
         when(engine.getData()).thenReturn(mock(IrisData.class));
         when(engine.getEngineData()).thenReturn(new IrisEngineData());
-        live = LiveWorld.of(new EngineGeneration(engine).world());
+        live = new EngineGeneration(engine).world().extension(LiveWorld.class).orElseThrow();
     }
 
     @Test
@@ -105,7 +105,7 @@ public class SpawnerGateTest {
         when(engine.getData()).thenReturn(mock(IrisData.class));
         when(engine.getWorld()).thenReturn(mock(IrisWorld.class));
 
-        assertFalse(SpawnerGate.canSpawn("any", spawner("{}"), LiveWorld.of(new EngineGeneration(engine).world()), 0, 0));
+        assertFalse(SpawnerGate.canSpawn("any", spawner("{}"), new EngineGeneration(engine).world().extension(LiveWorld.class).orElseThrow(), 0, 0));
     }
 
     private static Spawner spawner(String json) {

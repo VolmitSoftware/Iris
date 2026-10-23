@@ -37,6 +37,8 @@ import static org.mockito.Mockito.when;
 /**
  * What a loot table gives at fixed spots of a fixed world, as the whole drawn items, hashed. The numbers were taken
  * before the loot classes became settings of the loot module; a change in them changes the loot of existing worlds.
+ * They were retaken once when an item's absent values became {@code Optional}s: the items printed the old way (absent
+ * values as {@code null}) still hashed to the old numbers, -492887340, -92432338, -1096436977, -1436497629 and -1714085578.
  */
 public class LootDrawPinTest {
     private static final long LOOT_SEED = 8123456789L;
@@ -78,6 +80,6 @@ public class LootDrawPinTest {
             hashes.add(drops.toString().hashCode());
         }
 
-        assertEquals(List.of(-492887340, -92432338, -1096436977, -1436497629, -1714085578), hashes);
+        assertEquals(List.of(-1656514080, 672855254, -359051997, -717275247, 1936773406), hashes);
     }
 }

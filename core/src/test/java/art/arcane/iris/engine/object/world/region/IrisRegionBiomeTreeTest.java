@@ -24,12 +24,15 @@ import art.arcane.iris.builtin.floating.FloatingChildSettings;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.loader.ResourceLoader;
 import art.arcane.iris.core.modules.BuiltInPack;
+import art.arcane.iris.core.modules.IrisPackResources;
+import art.arcane.iris.core.modules.PackResourceFixture;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.volmlib.util.collection.KList;
 import com.google.gson.Gson;
 import com.volmit.IrisFeature;
 import org.junit.Test;
 
+import java.io.File;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -51,9 +54,11 @@ public class IrisRegionBiomeTreeTest {
         IrisBiome mushroom = biome("carving/mushroom", new CarvingBiomeSettings("carving/nested"));
         IrisBiome nested = biome("carving/nested");
 
+        IrisPackResources resources = PackResourceFixture.empty(new File("pack"));
         IrisData data = mock(IrisData.class);
         ResourceLoader<IrisBiome> biomes = mock(ResourceLoader.class);
         when(data.getBiomeLoader()).thenReturn(biomes);
+        when(data.getPackResources()).thenReturn(resources);
         when(biomes.load("plains")).thenReturn(plains);
         when(biomes.load("meadow")).thenReturn(meadow);
         when(biomes.load("carving/mushroom")).thenReturn(mushroom);

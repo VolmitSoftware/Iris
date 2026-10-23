@@ -10,8 +10,9 @@ import com.volmit.block.BlockState;
 import com.volmit.mantle.BlockBox;
 import com.volmit.object.GeneratedObject;
 import com.volmit.object.ObjectBlock;
+import com.volmit.resource.PackResources;
 import com.volmit.resource.ResourceId;
-import com.volmit.resource.ResourceKey;
+import com.volmit.resource.ResourceKind;
 import com.volmit.world.BlockPosition;
 import com.volmit.world.PackBiome;
 import com.volmit.world.PackRegion;
@@ -109,21 +110,21 @@ public class IrisPackResourcesTest {
 
     @Test
     public void aPackObjectIsItsGeometry() {
-        Optional<GeneratedObject> found = resources.find(new ResourceKey<>(id("trees/oak"), GeneratedObject.class));
+        Optional<GeneratedObject> found = resources.find(PackResources.OBJECTS, id("trees/oak"));
 
         assertSame(tree, found.orElseThrow());
     }
 
     @Test
     public void aPackBiomeIsBuiltFromTheBiomeFile() {
-        PackBiome biome = resources.require(new ResourceKey<>(id("desert/dunes"), PackBiome.class));
+        PackBiome biome = resources.require(PackResources.BIOMES, id("desert/dunes"));
 
         assertEquals(new PackBiome(id("desert/dunes"), "Dunes", ResourceId.parse("minecraft:desert"), 3, List.of(id("desert/oasis"))), biome);
     }
 
     @Test
     public void aPackRegionIsBuiltFromTheRegionFileWithItsFourBiomeListsAsPackIds() {
-        PackRegion region = resources.require(new ResourceKey<>(id("desert"), PackRegion.class));
+        PackRegion region = resources.require(PackResources.REGIONS, id("desert"));
 
         assertEquals(new PackRegion(id("desert"), "The Desert", 2, List.of(id("desert/dunes")), List.of(id("ocean")),
                 List.of(id("beach")), List.of(id("caves/dry"))), region);
@@ -131,8 +132,8 @@ public class IrisPackResourcesTest {
 
     @Test
     public void oneIdCanBeABiomeAndARegion() {
-        PackBiome biome = resources.require(new ResourceKey<>(id("desert"), PackBiome.class));
-        PackRegion region = resources.require(new ResourceKey<>(id("desert"), PackRegion.class));
+        PackBiome biome = resources.require(PackResources.BIOMES, id("desert"));
+        PackRegion region = resources.require(PackResources.REGIONS, id("desert"));
 
         assertEquals("Desert biome", biome.name());
         assertEquals("The Desert", region.name());
@@ -140,19 +141,27 @@ public class IrisPackResourcesTest {
 
     @Test
     public void anIdThePackLacksForThatKindIsAbsent() {
-        assertEquals(Optional.empty(), resources.find(new ResourceKey<>(id("desert/dunes"), PackRegion.class)));
-        assertEquals(Optional.empty(), resources.find(new ResourceKey<>(id("trees/birch"), GeneratedObject.class)));
+        assertEquals(Optional.empty(), resources.find(PackResources.REGIONS, id("desert/dunes")));
+        assertEquals(Optional.empty(), resources.find(PackResources.OBJECTS, id("trees/birch")));
     }
 
     @Test
     public void anIdOfAnotherNamespaceIsAbsent() {
-        assertEquals(Optional.empty(), resources.find(new ResourceKey<>(new ResourceId("other", "trees/oak"), GeneratedObject.class)));
+        assertEquals(Optional.empty(), resources.find(PackResources.OBJECTS, new ResourceId("other", "trees/oak")));
     }
 
     @Test
-    public void aTypeIrisDoesNotServeIsRejectedWhetherOrNotTheIdExists() {
-        assertThrows(IllegalArgumentException.class, () -> resources.find(new ResourceKey<>(id("trees/oak"), String.class)));
-        assertThrows(IllegalArgumentException.class, () -> resources.find(new ResourceKey<>(id("missing"), String.class)));
+    public void aKindIrisDoesNotServeIsRejectedWhetherOrNotTheIdExists() {
+        ResourceKind<GeneratedObject> unserved = ResourceKind.of("test:unserved", "unserved", GeneratedObject.class);
+
+        assertThrows(IllegalArgumentException.class, () -> resources.find(unserved, id("trees/oak")));
+        assertThrows(IllegalArgumentException.class, () -> resources.find(unserved, id("missing")));
+    }
+
+    @Test
+    public void theIdsOfAKindAreThePacksKeysOfThatKindInIdOrder() {
+        assertEquals(List.of(id("desert"), id("desert/dunes")), resources.ids(PackResources.BIOMES));
+        assertEquals(List.of(id("trees/oak")), resources.ids(PackResources.OBJECTS));
     }
 
     @Test
@@ -160,15 +169,13 @@ public class IrisPackResourcesTest {
         when(objectLoader.getPossibleKeys()).thenReturn(new String[]{"trees/broken"});
         IrisPackResources fresh = new IrisPackResources(data, List::of);
 
-        assertThrows(IllegalStateException.class, () -> fresh.find(new ResourceKey<>(id("trees/broken"), GeneratedObject.class)));
+        assertThrows(IllegalStateException.class, () -> fresh.find(PackResources.OBJECTS, id("trees/broken")));
     }
 
     @Test
     public void eachResourceIsBuiltOncePerSnapshot() {
-        ResourceKey<PackBiome> key = new ResourceKey<>(id("desert/dunes"), PackBiome.class);
-
-        PackBiome first = resources.require(key);
-        PackBiome second = resources.require(key);
+        PackBiome first = resources.require(PackResources.BIOMES, id("desert/dunes"));
+        PackBiome second = resources.require(PackResources.BIOMES, id("desert/dunes"));
 
         assertSame(first, second);
         verify(biomeLoader, times(1)).load("desert/dunes");
@@ -182,6 +189,6 @@ public class IrisPackResourcesTest {
         when(objectLoader.load("Trees/Oak")).thenReturn(object);
         IrisPackResources fresh = new IrisPackResources(data, List::of);
 
-        assertSame(tree, fresh.require(new ResourceKey<>(id("trees/oak"), GeneratedObject.class)));
+        assertSame(tree, fresh.require(PackResources.OBJECTS, id("trees/oak")));
     }
 }

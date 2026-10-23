@@ -40,6 +40,7 @@ import art.arcane.volmlib.util.math.RNG;
 import art.arcane.volmlib.util.scheduling.PrecisionStopwatch;
 import com.volmit.entity.EntitySpec;
 import com.volmit.item.ItemAttribute;
+import com.volmit.resource.ResourceId;
 import com.volmit.service.Loot;
 import com.volmit.world.BlockPosition;
 import org.bukkit.Bukkit;
@@ -67,6 +68,7 @@ import org.bukkit.util.Vector;
 import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.Random;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -141,8 +143,8 @@ public final class BukkitEntitySpawner {
         }
 
         if (e instanceof Panda panda) {
-            panda.setMainGene(resolveGene(spec.pandaMainGene()));
-            panda.setHiddenGene(resolveGene(spec.pandaHiddenGene()));
+            panda.setMainGene(resolveGene(spec.pandaMainGene().orElse(null)));
+            panda.setHiddenGene(resolveGene(spec.pandaHiddenGene().orElse(null)));
         }
 
         if (e instanceof Villager villager) {
@@ -154,9 +156,7 @@ public final class BukkitEntitySpawner {
             mob.setAware(spec.flags().aware());
         }
 
-        if (spec.spawnEffect() != null) {
-            showSpawnEffect(e, spec.spawnEffect());
-        }
+        spec.spawnEffect().ifPresent(effect -> showSpawnEffect(e, effect));
 
         runCommands(spec, at);
 
@@ -191,7 +191,7 @@ public final class BukkitEntitySpawner {
 
     private static void applyFlags(Entity e, EntitySpec spec) {
         EntitySpec.Flags flags = spec.flags();
-        e.setCustomName(spec.customName() != null ? C.translateAlternateColorCodes('&', spec.customName()) : null);
+        e.setCustomName(spec.customName().map(name -> C.translateAlternateColorCodes('&', name)).orElse(null));
         e.setCustomNameVisible(flags.customNameVisible());
         e.setGlowing(flags.glowing());
         e.setGravity(flags.gravity());
@@ -219,31 +219,17 @@ public final class BukkitEntitySpawner {
         l.setAI(spec.flags().ai());
         l.setCanPickupItems(spec.flags().pickupItems());
 
-        if (spec.leashHolder() != null) {
-            l.setLeashHolder(spawn(gen, spec.leashHolder(), at));
-        }
+        spec.leashHolder().ifPresent(holder -> l.setLeashHolder(spawn(gen, holder, at)));
 
         l.setRemoveWhenFarAway(spec.flags().removable());
 
         EntitySpec.Equipment equipment = spec.equipment();
-        if (equipment.helmet() != null) {
-            l.getEquipment().setHelmet(BukkitItemStacks.create(equipment.helmet()));
-        }
-        if (equipment.chestplate() != null) {
-            l.getEquipment().setChestplate(BukkitItemStacks.create(equipment.chestplate()));
-        }
-        if (equipment.leggings() != null) {
-            l.getEquipment().setLeggings(BukkitItemStacks.create(equipment.leggings()));
-        }
-        if (equipment.boots() != null) {
-            l.getEquipment().setBoots(BukkitItemStacks.create(equipment.boots()));
-        }
-        if (equipment.mainHand() != null) {
-            l.getEquipment().setItemInMainHand(BukkitItemStacks.create(equipment.mainHand()));
-        }
-        if (equipment.offHand() != null) {
-            l.getEquipment().setItemInOffHand(BukkitItemStacks.create(equipment.offHand()));
-        }
+        equipment.helmet().ifPresent(item -> l.getEquipment().setHelmet(BukkitItemStacks.create(item)));
+        equipment.chestplate().ifPresent(item -> l.getEquipment().setChestplate(BukkitItemStacks.create(item)));
+        equipment.leggings().ifPresent(item -> l.getEquipment().setLeggings(BukkitItemStacks.create(item)));
+        equipment.boots().ifPresent(item -> l.getEquipment().setBoots(BukkitItemStacks.create(item)));
+        equipment.mainHand().ifPresent(item -> l.getEquipment().setItemInMainHand(BukkitItemStacks.create(item)));
+        equipment.offHand().ifPresent(item -> l.getEquipment().setItemInOffHand(BukkitItemStacks.create(item)));
     }
 
     private static void runCommands(EntitySpec spec, Location at) {
@@ -338,7 +324,7 @@ public final class BukkitEntitySpawner {
         }
 
         if (spec.isSpecial()) {
-            return IrisServices.get(ExternalDataSVC.class).spawnMob(at, Identifier.fromString(spec.specialType()));
+            return IrisServices.get(ExternalDataSVC.class).spawnMob(at, Identifier.fromString(spec.specialType().orElseThrow()));
         }
 
         return BukkitPlatform.spawnEntity(at, bukkitType(spec), bukkitReason(spec));
@@ -346,11 +332,12 @@ public final class BukkitEntitySpawner {
 
     /** The platform's entity type of the spec, unknown when it names none. */
     public static EntityType bukkitType(EntitySpec spec) {
-        if (spec.type().isBlank()) {
+        String type = spec.type().orElse("");
+        if (type.isBlank()) {
             return EntityType.UNKNOWN;
         }
 
-        NamespacedKey key = NamespacedKey.fromString(spec.type().trim().toLowerCase(Locale.ROOT));
+        NamespacedKey key = NamespacedKey.fromString(type.trim().toLowerCase(Locale.ROOT));
         if (key == null) {
             return EntityType.UNKNOWN;
         }
@@ -360,12 +347,13 @@ public final class BukkitEntitySpawner {
     }
 
     private static CreatureSpawnEvent.SpawnReason bukkitReason(EntitySpec spec) {
-        if (spec.reason() == null || spec.reason().isBlank()) {
+        String reason = spec.reason().orElse("");
+        if (reason.isBlank()) {
             return CreatureSpawnEvent.SpawnReason.NATURAL;
         }
 
         try {
-            return CreatureSpawnEvent.SpawnReason.valueOf(spec.reason().trim().toUpperCase(Locale.ROOT));
+            return CreatureSpawnEvent.SpawnReason.valueOf(reason.trim().toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException e) {
             return CreatureSpawnEvent.SpawnReason.NATURAL;
         }
@@ -385,8 +373,8 @@ public final class BukkitEntitySpawner {
 
     private static void showSpawnEffect(Entity p, EntitySpec.SpawnEffect fx) {
         J.runEntity(p, () -> {
-            Sound soundType = fx.sound() == null ? null : resolveKeyed(Sound.class, fx.sound());
-            Particle particleType = fx.particle() == null ? null : resolveKeyed(Particle.class, fx.particle());
+            Sound soundType = fx.sound().map(sound -> resolveKeyed(Sound.class, sound)).orElse(null);
+            Particle particleType = fx.particle().map(particle -> resolveKeyed(Particle.class, particle)).orElse(null);
             if (soundType != null) {
                 Location part = p.getLocation().clone().add(RNG.r.i(-fx.soundDistance(), fx.soundDistance()), RNG.r.i(-fx.soundDistance(), fx.soundDistance()), RNG.r.i(-fx.soundDistance(), fx.soundDistance()));
                 p.getWorld().playSound(part, soundType, (float) fx.volume(), (float) RNG.r.d(fx.minPitch(), fx.maxPitch()));
@@ -424,10 +412,10 @@ public final class BukkitEntitySpawner {
             @Override
             public Collection<ItemStack> populateLoot(Random random, LootContext context) {
                 BlockPosition position = new BlockPosition(finalAt.getBlockX(), finalAt.getBlockY() - gen.getMinHeight(), finalAt.getBlockZ());
-                Loot.Site site = new Loot.Site(position, null, false, gen.isStudio());
+                Loot.Site site = new Loot.Site(position, Optional.empty(), false, gen.isStudio());
                 KList<ItemStack> items = new KList<>();
 
-                for (String table : spec.lootTables()) {
+                for (ResourceId table : spec.lootTables()) {
                     items.addAll(BukkitItemStacks.createAll(ModuleServices.lootItems(gen, site, table)));
                 }
 

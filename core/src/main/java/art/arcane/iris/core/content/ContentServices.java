@@ -18,6 +18,7 @@
 
 package art.arcane.iris.core.content;
 
+import art.arcane.iris.core.modules.IrisPackResources;
 import art.arcane.iris.core.modules.ModuleServices;
 import art.arcane.iris.core.modules.PlatformBlockStates;
 import art.arcane.iris.engine.framework.Engine;
@@ -26,6 +27,7 @@ import com.volmit.entity.EntitySpec;
 import com.volmit.item.ItemAttribute;
 import com.volmit.item.ItemDrop;
 import com.volmit.item.ItemEnchantment;
+import com.volmit.resource.ResourceId;
 import com.volmit.service.AmbientEffects;
 import com.volmit.service.BlockDrops;
 import com.volmit.service.EntitySpawns;
@@ -51,12 +53,14 @@ public final class ContentServices {
      * @param containerKey the platform's key for the block when it is a storage chest an object may have given loot, else null
      */
     public static List<ContentLoot.Part> containerLoot(Engine engine, int x, int worldY, int z, String containerKey, boolean nativeLootDefined) {
-        BlockState container = containerKey == null ? null : BlockState.parse(PlatformBlockStates.namespaced(containerKey));
+        Optional<BlockState> container = containerKey == null
+                ? Optional.empty()
+                : Optional.of(BlockState.parse(PlatformBlockStates.namespaced(containerKey)));
         Loot.Site site = new Loot.Site(position(engine, x, worldY, z), container, nativeLootDefined, false);
         List<ContentLoot.Part> parts = new ArrayList<>();
         for (Loot.Source source : ModuleServices.lootTables(engine, site)) {
             switch (source) {
-                case Loot.Table table -> parts.add(new ContentLoot.Items(tableItems(engine, x, worldY, z, table.key())));
+                case Loot.Table table -> parts.add(new ContentLoot.Items(tableItems(engine, x, worldY, z, table.id())));
                 case Loot.PlatformTable table -> parts.add(new ContentLoot.PlatformTable(table.key(), table.seed()));
             }
         }
@@ -65,8 +69,12 @@ public final class ContentServices {
 
     /** The items the pack's loot table {@code tableKey} gives at the spot. */
     public static List<ContentItem> tableItems(Engine engine, int x, int worldY, int z, String tableKey) {
-        Loot.Site site = new Loot.Site(position(engine, x, worldY, z), null, false, false);
-        return ModuleServices.lootItems(engine, site, tableKey).stream().map(ContentServices::itemOf).toList();
+        return tableItems(engine, x, worldY, z, engine.getData().getPackResources().idOf(tableKey));
+    }
+
+    private static List<ContentItem> tableItems(Engine engine, int x, int worldY, int z, ResourceId table) {
+        Loot.Site site = new Loot.Site(position(engine, x, worldY, z), Optional.empty(), false, false);
+        return ModuleServices.lootItems(engine, site, table).stream().map(ContentServices::itemOf).toList();
     }
 
     /** What the modules drop for the block with the platform's key {@code blockKey} broken at the spot. */
@@ -83,13 +91,16 @@ public final class ContentServices {
 
     /** What the first module that knows the spawner plans at the marker block. */
     public static Optional<ContentSpawns.Plan> planMarkerSpawn(Engine engine, int x, int worldY, int z, String marker, String spawner, boolean initial) {
-        return planned(engine, new EntitySpawns.Marker(position(engine, x, worldY, z), marker, spawner, initial));
+        ResourceId spawnerId = engine.getData().getPackResources().idOf(spawner);
+        return planned(engine, new EntitySpawns.Marker(position(engine, x, worldY, z), marker, spawnerId, initial));
     }
 
     /** What the marker with the tag {@code tag} does; empty for a tag no module knows. */
     public static Optional<ContentSpawns.MarkerRule> markerRule(Engine engine, String tag) {
+        IrisPackResources resources = engine.getData().getPackResources();
         return ModuleServices.markerRule(engine, tag)
-                .map(rule -> new ContentSpawns.MarkerRule(rule.spawners(), rule.emptyAbove(), rule.removeOnChange()));
+                .map(rule -> new ContentSpawns.MarkerRule(rule.spawners().stream().map(resources::keyOf).toList(),
+                        rule.emptyAbove(), rule.removeOnChange()));
     }
 
     /** The entity of the pack named {@code key} as a module would spawn it; empty for an unknown key. */
@@ -121,10 +132,12 @@ public final class ContentServices {
     }
 
     private static ContentItem itemOf(ItemDrop drop) {
-        return new ContentItem(drop.item(), drop.amount(), drop.displayName(), drop.lore(),
+        return new ContentItem(drop.item(), drop.amount(), drop.displayName().orElse(null), drop.lore(),
                 drop.enchantments().stream().map(ContentServices::enchantmentOf).toList(),
                 drop.attributes().stream().map(ContentServices::attributeOf).toList(), drop.unbreakable(), drop.flags(),
-                drop.customModel(), drop.damage(), drop.leatherColor(), drop.dyeColor(), drop.customNbt());
+                drop.customModel().isPresent() ? drop.customModel().getAsInt() : null,
+                drop.damage().isPresent() ? drop.damage().getAsDouble() : null,
+                drop.leatherColor().orElse(null), drop.dyeColor().orElse(null), drop.customNbt());
     }
 
     private static ContentItem.Enchantment enchantmentOf(ItemEnchantment enchantment) {
@@ -135,12 +148,19 @@ public final class ContentServices {
         return new ContentItem.Attribute(attribute.attribute(), attribute.name(), attribute.operation(), attribute.amount());
     }
 
+    /**
+     * The adapters' entity keeps their conventions: a missing type, special type or name is empty text, anything else
+     * missing is {@code null}. Loot tables are named by their ids' paths, which is how the adapters ask
+     * {@link #tableItems} for them again.
+     */
     private static ContentEntity entityOf(EntitySpec spec) {
-        return new ContentEntity(spec.type(), spec.specialType(), spec.reason(), spec.customName(), flagsOf(spec.flags()),
+        return new ContentEntity(spec.type().orElse(""), spec.specialType().orElse(""), spec.reason().orElse(null),
+                spec.customName().orElse(""), flagsOf(spec.flags()),
                 equipmentOf(spec.equipment()), spec.passengers().stream().map(ContentServices::entityOf).toList(),
-                spec.attributes().stream().map(ContentServices::attributeOf).toList(), spec.lootTables(), spec.lootShuffleSeed(),
-                spec.leashHolder() == null ? null : entityOf(spec.leashHolder()), spawnEffectOf(spec.spawnEffect()),
-                spec.riseOutOfGround(), spec.pandaMainGene(), spec.pandaHiddenGene(), spec.applySettingsToSpecial(),
+                spec.attributes().stream().map(ContentServices::attributeOf).toList(),
+                spec.lootTables().stream().map(ResourceId::path).toList(), spec.lootShuffleSeed(),
+                spec.leashHolder().map(ContentServices::entityOf).orElse(null), spec.spawnEffect().map(ContentServices::spawnEffectOf).orElse(null),
+                spec.riseOutOfGround(), spec.pandaMainGene().orElse(null), spec.pandaHiddenGene().orElse(null), spec.applySettingsToSpecial(),
                 spec.commands().stream().map(ContentServices::commandOf).toList());
     }
 
@@ -155,16 +175,13 @@ public final class ContentServices {
                 optionalItem(equipment.offHand()));
     }
 
-    private static ContentItem optionalItem(ItemDrop drop) {
-        return drop == null ? null : itemOf(drop);
+    private static ContentItem optionalItem(Optional<ItemDrop> drop) {
+        return drop.map(ContentServices::itemOf).orElse(null);
     }
 
     private static ContentEntity.SpawnEffect spawnEffectOf(EntitySpec.SpawnEffect effect) {
-        if (effect == null) {
-            return null;
-        }
-        return new ContentEntity.SpawnEffect(effect.sound(), effect.soundDistance(), effect.minPitch(), effect.maxPitch(),
-                effect.volume(), effect.particle(), effect.particleOffset(), effect.particleCount(), effect.altX(), effect.altY(),
+        return new ContentEntity.SpawnEffect(effect.sound().orElse(null), effect.soundDistance(), effect.minPitch(), effect.maxPitch(),
+                effect.volume(), effect.particle().orElse(null), effect.particleOffset(), effect.particleCount(), effect.altX(), effect.altY(),
                 effect.altZ(), effect.randomAltX(), effect.randomAltY(), effect.randomAltZ(), effect.extra());
     }
 
@@ -173,19 +190,20 @@ public final class ContentServices {
     }
 
     private static ContentEffect effectOf(AmbientEffects.Effect effect) {
-        return new ContentEffect(soundOf(effect.sound()), particlesOf(effect.particles()),
+        return new ContentEffect(effect.sound().map(ContentServices::soundOf).orElse(null),
+                effect.particles().map(ContentServices::particlesOf).orElse(null),
                 effect.commands().stream().map(command -> new ContentEffect.Command(commandOf(command.command()),
                         command.offsetX(), command.offsetY(), command.offsetZ())).toList(),
-                effect.potion() == null ? null : new ContentEffect.Potion(effect.potion().key(), effect.potion().strength(), effect.potion().ticks()));
+                effect.potion().map(potion -> new ContentEffect.Potion(potion.key(), potion.strength(), potion.ticks())).orElse(null));
     }
 
     private static ContentEffect.Sound soundOf(AmbientEffects.Sound sound) {
-        return sound == null ? null : new ContentEffect.Sound(sound.key(), sound.offsetX(), sound.offsetY(), sound.offsetZ(),
+        return new ContentEffect.Sound(sound.key(), sound.offsetX(), sound.offsetY(), sound.offsetZ(),
                 sound.volume(), sound.pitch());
     }
 
     private static ContentEffect.Particles particlesOf(AmbientEffects.Particles particles) {
-        return particles == null ? null : new ContentEffect.Particles(particles.key(), particles.forward(), particles.sideways(),
+        return new ContentEffect.Particles(particles.key(), particles.forward(), particles.sideways(),
                 particles.jitterX(), particles.jitterZ(), particles.lift(), particles.count(), particles.altX(), particles.altY(),
                 particles.altZ(), particles.extra());
     }

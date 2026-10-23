@@ -18,6 +18,7 @@
 
 package art.arcane.iris.core.modules;
 
+import art.arcane.iris.builtin.MatterMantle;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.util.common.data.B;
 import com.volmit.config.FeatureSettings;
@@ -29,6 +30,7 @@ import com.volmit.world.PackWorld;
 import com.volmit.world.TerrainSampler;
 
 import java.util.Collection;
+import java.util.Optional;
 
 /**
  * One chunk of an Iris engine as an IrisApi mantle invocation: the mantle around the chunk as far as the
@@ -47,12 +49,15 @@ final class IrisMantleGenerationContext implements MantleGenerationContext {
     private final IrisTerrainSampler terrain;
     private final ChunkModuleSettings settings;
     private final IrisModuleMantle mantle;
+    private final IrisMantleChunk irisChunk;
     private PackWorld world;
 
+    /** {@code irisChunk} is what Iris's built-in mantle stages see of the chunk as an extension. */
     IrisMantleGenerationContext(Engine engine, int chunkX, int chunkZ, int reachBlocks, IrisModuleMantle.Chunks chunks,
-                                Collection<MantleRegistration<?>> layers) {
+                                Collection<MantleRegistration<?>> layers, IrisMantleChunk irisChunk) {
         PackResourceIds ids = new PackResourceIds(engine.getData().getDataFolder());
         this.engine = engine;
+        this.irisChunk = irisChunk;
         this.originX = chunkX << CHUNK_SHIFT;
         this.originZ = chunkZ << CHUNK_SHIFT;
         this.terrain = new IrisTerrainSampler(engine, ids, originX, originZ, Math.max(reachBlocks, TERRAIN_MARGIN_BLOCKS));
@@ -86,6 +91,18 @@ final class IrisMantleGenerationContext implements MantleGenerationContext {
     @Override
     public Mantle mantle() {
         return mantle;
+    }
+
+    /** Iris's own view of the chunk, and the matter of the mantle as far as the stage reaches. */
+    @Override
+    public <T> Optional<T> extension(Class<T> type) {
+        if (type == IrisMantleChunk.class) {
+            return HostExtensions.as(type, irisChunk);
+        }
+        if (type == MatterMantle.class) {
+            return HostExtensions.as(type, mantle);
+        }
+        return Optional.empty();
     }
 
 

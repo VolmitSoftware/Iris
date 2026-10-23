@@ -41,6 +41,7 @@ import com.volmit.resource.ResourceId;
 import com.volmit.service.VanillaStructures;
 import com.volmit.vanilla.DecorationStep;
 import com.volmit.vanilla.PieceKind;
+import com.volmit.vanilla.StartKey;
 import com.volmit.vanilla.StartMemo;
 import com.volmit.vanilla.StructureFit;
 import com.volmit.vanilla.TemplateCells;
@@ -51,12 +52,14 @@ import com.volmit.world.BlockPosition;
 import com.volmit.world.PackWorld;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.WeakHashMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
@@ -66,6 +69,8 @@ import java.util.function.Supplier;
  * states and back through caches, so a provider can read and write blocks without allocating per block.
  */
 public final class ModuleStructureFitting implements NativeStructureFitting {
+    /** One key per platform start for as long as the platform keeps the start, so a start fitted in many chunks is known again. */
+    private static final Map<Object, StartKey> START_KEYS = Collections.synchronizedMap(new WeakHashMap<>());
     private static final Map<Object, BlockState> API_STATES = new ConcurrentHashMap<>();
     private static final Map<BlockState, Object> NATIVE_STATES = new ConcurrentHashMap<>();
     private static final Map<Object, Integer> NATIVE_TRAITS = new ConcurrentHashMap<>();
@@ -360,8 +365,8 @@ public final class ModuleStructureFitting implements NativeStructureFitting {
         }
 
         @Override
-        public Object key() {
-            return start.key();
+        public StartKey key() {
+            return START_KEYS.computeIfAbsent(start.key(), ignored -> StartKey.create());
         }
     }
 

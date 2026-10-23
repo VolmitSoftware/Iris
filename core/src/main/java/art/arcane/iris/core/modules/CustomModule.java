@@ -55,7 +55,7 @@ public final class CustomModule implements IrisModule {
     }
 
     private static void record(ChunkStageContext context) {
-        IrisChunk chunk = IrisChunk.current();
+        IrisChunk chunk = context.extension(IrisChunk.class).orElseThrow();
         if (chunk.bypassesMantleStages()) {
             return;
         }

@@ -186,8 +186,9 @@ public class CarveSettingsDecodingTest {
         ModuleSettings settings = decoder.decode(Level.BIOME, new JSONObject("{\"carvingBiome\": \"carving/mushroom\"}"), "biome test");
 
         assertEquals("carving/mushroom", settings.find(CarvingBiomeSettings.class).orElseThrow().biome());
-        assertEquals(Set.of("carving/mushroom"), settings.treeBiomes());
-        assertEquals(Set.of(), settings.usedBiomes(ModuleSettings.NONE));
+        IrisPackResources resources = PackResourceFixture.empty(packFolder.toFile());
+        assertEquals(Set.of("carving/mushroom"), settings.treeBiomes(resources));
+        assertEquals(Set.of(), settings.usedBiomes(resources, ModuleSettings.NONE));
     }
 
     @Test

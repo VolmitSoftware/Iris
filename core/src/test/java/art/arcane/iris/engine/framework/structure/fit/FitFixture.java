@@ -9,6 +9,7 @@ import com.volmit.mantle.BlockBox;
 import com.volmit.resource.ResourceId;
 import com.volmit.vanilla.DecorationStep;
 import com.volmit.vanilla.PieceKind;
+import com.volmit.vanilla.StartKey;
 import com.volmit.vanilla.StartMemo;
 import com.volmit.vanilla.StructureFit;
 import com.volmit.vanilla.TemplateCells;
@@ -249,7 +250,7 @@ final class FitFixture {
                           Piece... pieces) {
         StartMemo memo = new StartMemo(terrainJson, stiltsJson);
         StructureFit.Start start = new StructureFit.Start() {
-            private final Object key = new Object();
+            private final StartKey key = StartKey.create();
 
             @Override
             public ResourceId structure() {
@@ -287,7 +288,7 @@ final class FitFixture {
             }
 
             @Override
-            public Object key() {
+            public StartKey key() {
                 return key;
             }
         };

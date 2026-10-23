@@ -25,6 +25,8 @@ import art.arcane.volmlib.util.math.RNG;
 import com.google.gson.Gson;
 import com.volmit.entity.EntitySpec;
 import com.volmit.item.ItemRegistry;
+import com.volmit.resource.PackResources;
+import com.volmit.resource.ResourceId;
 import org.junit.Test;
 
 import java.util.Optional;
@@ -38,6 +40,8 @@ import static org.mockito.Mockito.when;
 /**
  * What an entity of the pack becomes when it is made from a fixed stream, hashed. The number was taken before the entity
  * classes became settings of the spawn module; a change in it changes the equipment, attributes and passengers worlds spawn.
+ * It was retaken once when absent values became {@code Optional}s and loot tables ids: the spec printed the old way (empty
+ * texts as {@code ""}, other absent values as {@code null}, tables by key) still hashed to the old number, -819231818.
  */
 public class EntityResolutionPinTest {
     private static final long STREAM_SEED = 4321L;
@@ -67,8 +71,11 @@ public class EntityResolutionPinTest {
         Optional<Sky> sky = Optional.of(new Sky(0L, false, false));
         EntityDefinition entity = new Gson().fromJson(ENTITY, EntityDefinition.class);
 
-        EntitySpec spec = new EntityResolution(new LootItems(registry, false), sky, new EffectTimers()).resolve(entity, new RNG(STREAM_SEED));
+        PackResources resources = mock(PackResources.class);
+        when(resources.idOf(anyString())).thenAnswer(invocation -> new ResourceId("test", invocation.getArgument(0)));
 
-        assertEquals(-819231818, spec.toString().hashCode());
+        EntitySpec spec = new EntityResolution(resources, new LootItems(registry, false), sky, new EffectTimers()).resolve(entity, new RNG(STREAM_SEED));
+
+        assertEquals(1441930785, spec.toString().hashCode());
     }
 }

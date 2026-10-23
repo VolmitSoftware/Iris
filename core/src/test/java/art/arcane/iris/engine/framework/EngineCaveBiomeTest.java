@@ -31,6 +31,7 @@ import art.arcane.iris.util.project.stream.ProceduralStream;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
 import com.volmit.ModuleSetup;
+import com.volmit.resource.ResourceId;
 import com.volmit.service.CaveBiomes;
 import com.volmit.world.PackWorld;
 import org.junit.Before;
@@ -86,6 +87,7 @@ public class EngineCaveBiomeTest {
     @SuppressWarnings("unchecked")
     public void mockEngine() {
         data = mock(IrisData.class);
+        ModuleResourceFixture.serve(data);
         ResourceLoader<IrisBiome> biomes = mock(ResourceLoader.class);
         when(data.getBiomeLoader()).thenReturn(biomes);
         when(biomes.load("band/deep")).thenReturn(band);
@@ -112,13 +114,13 @@ public class EngineCaveBiomeTest {
     private CaveBiomes caves(String overridden, int minDepth) {
         return new CaveBiomes() {
             @Override
-            public Optional<String> overriddenBiome(PackWorld world, int x, int y, int z) {
-                return Optional.ofNullable(overridden);
+            public Optional<ResourceId> overriddenBiome(PackWorld world, int x, int y, int z) {
+                return Optional.ofNullable(overridden).map(world.resources()::idOf);
             }
 
             @Override
-            public int minDepthBelowSurface(PackWorld world, String biomeKey) {
-                return biomeKey.equals("cave/lush") ? minDepth : 0;
+            public int minDepthBelowSurface(PackWorld world, ResourceId biome) {
+                return biome.equals(world.resources().idOf("cave/lush")) ? minDepth : 0;
             }
         };
     }
@@ -170,14 +172,14 @@ public class EngineCaveBiomeTest {
         CaveBiomes counting = caves(null, 10);
         serve(new CaveBiomes() {
             @Override
-            public Optional<String> overriddenBiome(PackWorld world, int x, int y, int z) {
-                return y > SURFACE_Y ? Optional.of("band/deep") : Optional.empty();
+            public Optional<ResourceId> overriddenBiome(PackWorld world, int x, int y, int z) {
+                return y > SURFACE_Y ? Optional.of(world.resources().idOf("band/deep")) : Optional.empty();
             }
 
             @Override
-            public int minDepthBelowSurface(PackWorld world, String biomeKey) {
+            public int minDepthBelowSurface(PackWorld world, ResourceId biome) {
                 depthQuestions.incrementAndGet();
-                return counting.minDepthBelowSurface(world, biomeKey);
+                return counting.minDepthBelowSurface(world, biome);
             }
         });
 

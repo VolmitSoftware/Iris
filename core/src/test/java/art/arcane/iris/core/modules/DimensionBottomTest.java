@@ -124,7 +124,7 @@ public class DimensionBottomTest {
             graph.define(Stage.placement("test:bottom/placement")).run(context -> {
                 record(context.terrain());
                 viewBounds.add(context.access().bounds());
-                ObjectPlacement.current().anchoredAt(BOTTOM);
+                context.extension(ObjectPlacement.class).orElseThrow().anchoredAt(BOTTOM);
                 context.access().set(new PlacedBlock(new BlockPosition(0, BOTTOM, 0), STONE, Optional.empty()));
                 context.access().mantle().layer(MARKS).set(0, BOTTOM, 0, "bottom");
             });
@@ -187,7 +187,7 @@ public class DimensionBottomTest {
     public void aMantleStageWritingAtHeightZeroHitsTheBottomOfTheMantle() {
         ModuleMantleComponent.forPack(engine, pack, Set.of()).stream()
                 .filter(component -> component.stage().stage().id().toString().equals("test:bottom/mantle"))
-                .forEach(component -> component.generate(0, 0, storage::chunk));
+                .forEach(component -> component.generate(0, 0, storage::chunk, new IrisMantleChunk(engine, null, 0, 0, null)));
 
         assertEquals("bottom", storage.value(MARKS, TEXT, 0, BOTTOM, 0));
         assertSamplesAndBoundsAgree();

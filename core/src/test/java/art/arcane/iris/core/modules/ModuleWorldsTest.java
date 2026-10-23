@@ -153,7 +153,7 @@ public class ModuleWorldsTest {
         assertEquals(List.of("loaded", "started"), calls);
         assertEquals(SEED, world.seed());
         assertSame(data.getPackResources(), world.resources());
-        assertSame(engine, IrisPackWorld.of(world).engine());
+        assertSame(engine, world.engine());
         Remembered built = world.state(Remembered.class, ignored -> new Remembered(calls));
         assertSame(built, generation.state(Remembered.class, ignored -> new Remembered(calls)));
     }

@@ -423,11 +423,9 @@ public class IrisObjectPlacementRegressionTest {
     /** Looks up the pack's oak through the placement's resources. */
     private static final class FindModule implements IrisModule {
         private static final PlacementStage<Void> FIND = Stage.placement("test:find/oak");
-        private final java.io.File packFolder;
         private final List<Object> found;
 
-        private FindModule(java.io.File packFolder, List<Object> found) {
-            this.packFolder = packFolder;
+        private FindModule(List<Object> found) {
             this.found = found;
         }
 
@@ -439,14 +437,14 @@ public class IrisObjectPlacementRegressionTest {
         @Override
         public void setup(ModuleSetup setup) {
             setup.stages().define(FIND).requires(IrisStages.Blocks.COMPLETE).run(context ->
-                    found.add(context.world().resources().find(PackResourceFixture.oakKey(packFolder)).orElseThrow()));
+                    found.add(PackResourceFixture.oak(context.world().resources())));
         }
     }
 
     @Test
     public void aPasteWithoutAnEngineFindsThePacksResourcesThroughItsWorld() throws IOException {
         List<Object> found = new ArrayList<>();
-        usePack(List.of(new FindModule(folder.getRoot(), found)));
+        usePack(List.of(new FindModule(found)));
         PackResourceFixture.serve(data);
 
         ObjectPlacementResult result = place(placement(), ANCHOR_Y, new RecordingPlacer(null), null);
@@ -511,11 +509,9 @@ public class IrisObjectPlacementRegressionTest {
     /** Lays the pack's oak on its side, a quarter turn about X, through the placement's object transformer. */
     private static final class TurnModule implements IrisModule {
         private static final PlacementStage<Void> TURN = Stage.placement("test:turn/oak");
-        private final java.io.File packFolder;
         private final List<GeneratedObject> turned;
 
-        private TurnModule(java.io.File packFolder, List<GeneratedObject> turned) {
-            this.packFolder = packFolder;
+        private TurnModule(List<GeneratedObject> turned) {
             this.turned = turned;
         }
 
@@ -527,7 +523,7 @@ public class IrisObjectPlacementRegressionTest {
         @Override
         public void setup(ModuleSetup setup) {
             setup.stages().define(TURN).requires(IrisStages.Blocks.COMPLETE).run(context -> turned.add(context.objects().transform(
-                    context.world().resources().require(PackResourceFixture.oakKey(packFolder)),
+                    PackResourceFixture.oak(context.world().resources()),
                     new ObjectTransform(90, 0, 0, 1, 1, 1, false, false, false))));
         }
     }
@@ -535,7 +531,7 @@ public class IrisObjectPlacementRegressionTest {
     @Test
     public void aPlacementStageTurnsAnObjectThroughTheObjectTransformer() throws IOException {
         List<GeneratedObject> turned = new ArrayList<>();
-        usePack(List.of(new TurnModule(folder.getRoot(), turned)));
+        usePack(List.of(new TurnModule(turned)));
         PackResourceFixture.serve(data);
 
         ObjectPlacementResult result = place(placement(), ANCHOR_Y, new RecordingPlacer(null), null);

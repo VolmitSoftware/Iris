@@ -31,7 +31,6 @@ import com.volmit.noise.NoiseFactory;
 import com.volmit.object.GeneratedObject;
 import com.volmit.resource.PackResources;
 import com.volmit.resource.ResourceId;
-import com.volmit.resource.ResourceKey;
 import com.volmit.resource.ResourceKind;
 import com.volmit.world.PackBiome;
 import com.volmit.world.PackRegion;
@@ -52,11 +51,11 @@ import java.util.function.Supplier;
  * snapshot shares. Each load or hotload of the pack's data makes a new one, with a new {@link #snapshotId()}, and so
  * does every reload of its module resources ({@link IrisData#dump()}, {@link IrisData#invalidateStructureResources()}).
  * <p>
- * Served by the type the key asks for: {@link GeneratedObject} (a pack object, as its geometry), {@link PackBiome},
- * {@link PackRegion}, and the type of every {@link ResourceKind} the pack's modules register, read from the kind's
- * folder ({@link ModuleResourceFiles}). All use the id {@code <pack namespace>:<key>} that {@link PackResourceIds}
+ * Served by kind: the host kinds {@link #OBJECTS} (a pack object, as its geometry), {@link #BIOMES} and
+ * {@link #REGIONS}, and every {@link ResourceKind} the pack's modules register, read from the kind's folder
+ * ({@link ModuleResourceFiles}). All use the id {@code <pack namespace>:<key>} that {@link PackResourceIds}
  * gives the pack's biomes in a biome sample, so one id can name a biome and a region. An id the pack lacks, or of
- * another namespace, is absent; any other type fails with {@link IllegalArgumentException}. A resource that exists
+ * another namespace, is absent; any other kind fails with {@link IllegalArgumentException}. A resource that exists
  * but cannot be loaded fails with {@link IllegalStateException}. Each resource is built once and kept for the
  * snapshot. The module kinds are looked up the first time one is asked for, which loads the pack's modules.
  * <p>
@@ -64,7 +63,7 @@ import java.util.function.Supplier;
  * styles through Iris's generators, expressions and image maps ({@link IrisNoiseFactory}), both kept per snapshot.
  */
 public final class IrisPackResources implements PackResources {
-    private static final String SERVED_TYPES = "GeneratedObject, PackBiome, PackRegion and the types of the pack's module resource kinds";
+    private static final String SERVED_TYPES = "the host kinds (objects, biomes, regions) and the pack's module resource kinds";
 
     private final IrisData data;
     private final PackResourceIds ids;
@@ -73,9 +72,9 @@ public final class IrisPackResources implements PackResources {
     private final BlockRegistry blocks;
     private final ItemRegistry items = new IrisItemRegistry();
     private final NoiseFactory noise;
-    private final Map<Class<?>, Kind<?>> irisKinds;
+    private final Map<ResourceId, Kind<?>> irisKinds;
     private final Supplier<List<ResourceKind<?>>> moduleKindList;
-    private volatile Map<Class<?>, Kind<?>> moduleKinds;
+    private volatile Map<ResourceId, Kind<?>> moduleKinds;
     private volatile List<String> moduleFolders;
     private boolean announcedToModules;
 
@@ -93,9 +92,9 @@ public final class IrisPackResources implements PackResources {
         this.blocks = new IrisBlockRegistry(data);
         this.noise = new IrisNoiseFactory(data);
         this.irisKinds = Map.of(
-                GeneratedObject.class, Kind.<IrisObject, GeneratedObject>ofLoader(ids, data::getObjectLoader, (id, object) -> object.getGeometry()),
-                PackBiome.class, Kind.<IrisBiome, PackBiome>ofLoader(ids, data::getBiomeLoader, this::biomeOf),
-                PackRegion.class, Kind.<IrisRegion, PackRegion>ofLoader(ids, data::getRegionLoader, this::regionOf));
+                OBJECTS.id(), Kind.<IrisObject, GeneratedObject>ofLoader(ids, data::getObjectLoader, (id, object) -> object.getGeometry()),
+                BIOMES.id(), Kind.<IrisBiome, PackBiome>ofLoader(ids, data::getBiomeLoader, this::biomeOf),
+                REGIONS.id(), Kind.<IrisRegion, PackRegion>ofLoader(ids, data::getRegionLoader, this::regionOf));
     }
 
     @Override
@@ -141,14 +140,14 @@ public final class IrisPackResources implements PackResources {
     }
 
     @Override
-    @SuppressWarnings("unchecked") // The kinds are keyed by the type they serve.
-    public <T> Optional<T> find(ResourceKey<T> key) {
-        return ((Kind<T>) kindOf(key.type())).find(key.id());
+    @SuppressWarnings("unchecked") // A kind's id names the one kind registered under it, which serves the kind's type.
+    public <T> Optional<T> find(ResourceKind<T> kind, ResourceId id) {
+        return ((Kind<T>) kindOf(kind)).find(id);
     }
 
     @Override
-    public List<ResourceId> ids(Class<?> type) {
-        return kindOf(type).ids();
+    public List<ResourceId> ids(ResourceKind<?> kind) {
+        return kindOf(kind).ids();
     }
 
     /** The id of the resource the pack names by {@code packKey}, such as {@code overworld:castle/keep} for {@code castle/keep}. */
@@ -167,27 +166,27 @@ public final class IrisPackResources implements PackResources {
         return folders;
     }
 
-    private Kind<?> kindOf(Class<?> type) {
-        Kind<?> iris = irisKinds.get(type);
+    private Kind<?> kindOf(ResourceKind<?> kind) {
+        Kind<?> iris = irisKinds.get(kind.id());
         if (iris != null) {
             return iris;
         }
-        Kind<?> module = moduleKinds().get(type);
+        Kind<?> module = moduleKinds().get(kind.id());
         if (module == null) {
-            throw new IllegalArgumentException("Iris serves pack resources of " + SERVED_TYPES + ", not " + type.getName());
+            throw new IllegalArgumentException("Iris serves pack resources of " + SERVED_TYPES + ", not " + kind.id());
         }
         return module;
     }
 
-    private Map<Class<?>, Kind<?>> moduleKinds() {
-        Map<Class<?>, Kind<?>> kinds = moduleKinds;
+    private Map<ResourceId, Kind<?>> moduleKinds() {
+        Map<ResourceId, Kind<?>> kinds = moduleKinds;
         if (kinds != null) {
             return kinds;
         }
         synchronized (this) {
             if (moduleKinds == null) {
-                Map<Class<?>, Kind<?>> found = new HashMap<>();
-                moduleKindList.get().forEach(kind -> found.put(kind.type(), moduleKind(kind)));
+                Map<ResourceId, Kind<?>> found = new HashMap<>();
+                moduleKindList.get().forEach(kind -> found.put(kind.id(), moduleKind(kind)));
                 moduleKinds = Map.copyOf(found);
             }
             return moduleKinds;
@@ -201,8 +200,22 @@ public final class IrisPackResources implements PackResources {
 
     /** Iris's own biome that {@code id}, as a {@code BiomeSample} gives it, names; for host code that reads what the biome declares. */
     Optional<IrisBiome> irisBiome(ResourceId id) {
-        String key = irisKinds.get(PackBiome.class).keyOf(id);
+        String key = irisKinds.get(BIOMES.id()).keyOf(id);
         return key == null ? Optional.empty() : Optional.ofNullable(data.getBiomeLoader().load(key));
+    }
+
+    /**
+     * The key Iris's own code names {@code id} by, a resource of {@code kind}: the pack key that has the id, else the
+     * id's path when it is of the pack's namespace, else the id as written ({@code minecraft:village}).
+     */
+    public String keyOf(ResourceKind<?> kind, ResourceId id) {
+        String key = kindOf(kind).keyOf(id);
+        return key == null ? keyOf(id) : key;
+    }
+
+    /** The key Iris's own code names {@code id} by when no index of keys is at hand: its path in the pack's namespace, else the id as written. */
+    public String keyOf(ResourceId id) {
+        return id.namespace().equals(ids.namespace()) ? id.path() : id.toString();
     }
 
     private PackBiome biomeOf(ResourceId id, IrisBiome biome) {

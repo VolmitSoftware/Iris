@@ -21,6 +21,7 @@ package art.arcane.iris.core.modules;
 import com.volmit.IrisFeature;
 import com.volmit.config.LinkedBiomes;
 import com.volmit.host.ConfiguredSettings;
+import com.volmit.resource.PackResources;
 import com.volmit.resource.ResourceId;
 
 import java.util.Collection;
@@ -60,21 +61,24 @@ public final class ModuleSettings {
         return values.isEmpty();
     }
 
-    /** The biomes these settings add to the biome tree of the owner's regions ({@link LinkedBiomes#treeBiomes}), in a fixed order. */
-    public Set<String> treeBiomes() {
-        return linkedBiomes(LinkedBiomes::treeBiomes);
+    /**
+     * The keys of the biomes these settings add to the biome tree of the owner's regions ({@link LinkedBiomes#treeBiomes}),
+     * in a fixed order.
+     */
+    public Set<String> treeBiomes(IrisPackResources resources) {
+        return linkedBiomes(resources, linked -> linked.treeBiomes(resources));
     }
 
     /**
-     * The biomes these settings use besides ({@link LinkedBiomes#usedBiomes}), in a fixed order.
+     * The keys of the biomes these settings use besides ({@link LinkedBiomes#usedBiomes}), in a fixed order.
      *
      * @param dimension the settings of the dimension the owner is part of
      */
-    public Set<String> usedBiomes(ModuleSettings dimension) {
-        return linkedBiomes(linked -> linked.usedBiomes(dimension.values()));
+    public Set<String> usedBiomes(IrisPackResources resources, ModuleSettings dimension) {
+        return linkedBiomes(resources, linked -> linked.usedBiomes(resources, dimension.values()));
     }
 
-    private Set<String> linkedBiomes(Function<LinkedBiomes, Set<String>> pick) {
+    private Set<String> linkedBiomes(IrisPackResources resources, Function<LinkedBiomes, Set<ResourceId>> pick) {
         if (values.isEmpty()) {
             return Set.of();
         }
@@ -82,7 +86,7 @@ public final class ModuleSettings {
         values.values().stream()
                 .filter(LinkedBiomes.class::isInstance)
                 .sorted(Comparator.comparing(value -> value.getClass().getName()))
-                .forEach(value -> biomes.addAll(pick.apply((LinkedBiomes) value)));
+                .forEach(value -> pick.apply((LinkedBiomes) value).forEach(id -> biomes.add(resources.keyOf(PackResources.BIOMES, id))));
         return biomes;
     }
 

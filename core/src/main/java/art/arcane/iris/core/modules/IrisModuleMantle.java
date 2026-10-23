@@ -112,8 +112,8 @@ final class IrisModuleMantle implements Mantle, MatterMantle {
     }
 
     @Override
-    public MantleLayer<Boolean> caverns() {
-        return new MantleCaverns(bounds, chunks);
+    public boolean isCarved(int x, int y, int z) {
+        return new MantleCaverns(bounds, chunks).isCarved(x, y, z);
     }
 
     @Override
@@ -262,9 +262,9 @@ final class IrisModuleMantle implements Mantle, MatterMantle {
         }
 
         @Override
-        public MantleLayer<Boolean> caverns() {
+        public boolean isCarved(int x, int y, int z) {
             requireOpen();
-            return new MantleCaverns(bounds, chunks);
+            return new MantleCaverns(bounds, chunks).isCarved(x, y, z);
         }
 
         @Override

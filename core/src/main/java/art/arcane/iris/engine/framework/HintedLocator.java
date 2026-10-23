@@ -391,7 +391,7 @@ public final class HintedLocator<T> implements Locator<T> {
         }
 
         IrisComplex complex = engine.getComplex();
-        ObjectsAt.PlacedBy placers = ModuleServices.objectPlacers(engine, objectKey);
+        ModuleServices.ObjectPlacers placers = ModuleServices.objectPlacers(engine, objectKey);
         BiomeSource source = new BiomeSource(engine);
         KSet<String> landHosts = new KSet<>();
         KSet<String> seaHosts = new KSet<>();

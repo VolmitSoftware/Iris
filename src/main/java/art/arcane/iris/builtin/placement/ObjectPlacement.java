@@ -26,28 +26,17 @@ import com.volmit.resource.PackResources;
 import com.volmit.world.BlockPosition;
 
 import java.util.Optional;
-import java.util.function.Supplier;
 
 /**
  * The object placement being run, as Iris's built-in placement stages see it: what is placed and with which settings, the
  * terrain it is placed on, and the few block operations that only the platform can do. Iris implements it for each
- * placement and binds it to the placing thread while the placement graph runs; the stages read it through {@link #current()}.
+ * placement and offers it as an extension of the placement invocation: {@code context.extension(ObjectPlacement.class)}.
  * Heights are in the coordinates of the placement stages: above the dimension's bottom.
  * <p>
  * It never hands out an engine, pack data or a platform type; everything it answers is an IrisApi, VolmLib or
  * {@code art.arcane.iris.builtin} value.
  */
 public interface ObjectPlacement {
-    /** The placement running on this thread. */
-    static ObjectPlacement current() {
-        return PlacementBinding.current();
-    }
-
-    /** Runs {@code placement} with {@code inputs} as {@link #current()} on this thread. */
-    static <T> T runBound(ObjectPlacement inputs, Supplier<T> placement) {
-        return PlacementBinding.run(inputs, placement);
-    }
-
     ObjectShape object();
 
     /** The settings as the caller passed them; the stages derive what they change (the rotation) themselves. */

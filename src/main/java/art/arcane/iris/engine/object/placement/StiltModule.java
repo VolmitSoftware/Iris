@@ -133,7 +133,7 @@ public final class StiltModule implements IrisModule {
         private final ErodeShape erode;
 
         private StiltColumns(PlacementStageContext context, PreparedPlacement prepared, StiltLayers layers) {
-            this.placement = ObjectPlacement.current();
+            this.placement = context.extension(ObjectPlacement.class).orElseThrow();
             this.prepared = prepared;
             this.context = context;
             this.config = prepared.settings();

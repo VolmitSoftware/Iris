@@ -24,21 +24,8 @@ import com.volmit.world.PackWorld;
  * The seeds Iris derives from a world's seed for its own features. Iris derives them one after another from a shared
  * random, so they cannot be worked out from the world seed alone. Built-in modules seed their randoms and noise with
  * them, so worlds generated before the features were modules generate the same; a pack module derives its own seeds
- * from {@link PackWorld#seed()}.
+ * from {@link PackWorld#seed()}. A world Iris generates answers for them through its {@link IrisSeeds} extension.
  */
 public enum IrisSeed {
-    BIOME, CARVE, COMPLEX, COMPONENT, DECORATOR, DEPOSIT, ENTITY, LOOT, MANTLE, POST, TERRAIN;
-
-    /** This seed of {@code world}, which must be a world Iris generates. */
-    public long of(PackWorld world) {
-        if (world instanceof Source source) {
-            return source.seed(this);
-        }
-        throw new IllegalArgumentException("Built-in modules generate Iris's own worlds, not " + world);
-    }
-
-    /** Iris's worlds answer for their seeds. */
-    public interface Source {
-        long seed(IrisSeed seed);
-    }
+    BIOME, CARVE, COMPLEX, COMPONENT, DECORATOR, DEPOSIT, ENTITY, LOOT, MANTLE, POST, TERRAIN
 }

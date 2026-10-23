@@ -76,7 +76,7 @@ public final class ValidateModule implements IrisModule {
     }
 
     private static void checkSurface(PlacementStageContext context) {
-        ObjectPlacement placement = ObjectPlacement.current();
+        ObjectPlacement placement = context.extension(ObjectPlacement.class).orElseThrow();
         PreparedPlacement prepared = context.output(IrisStages.Prepare.TRANSFORMS);
         PlacementSettings settings = prepared.settings();
         if (settings.forcePlace() || settings.fromBottom() || prepared.mode().has(PlaceTrait.FREE_HEIGHT)) {
@@ -110,7 +110,7 @@ public final class ValidateModule implements IrisModule {
     }
 
     private static void checkLimits(PlacementStageContext context) {
-        ObjectPlacement placement = ObjectPlacement.current();
+        ObjectPlacement placement = context.extension(ObjectPlacement.class).orElseThrow();
         PreparedPlacement prepared = context.output(IrisStages.Prepare.TRANSFORMS);
         PlacementSettings settings = prepared.settings();
         if (settings.forcePlace() || prepared.mode().has(PlaceTrait.RAW_STAMP)) {
@@ -139,7 +139,7 @@ public final class ValidateModule implements IrisModule {
             return;
         }
         int y = context.output(IrisStages.Anchor.HEIGHT).y() + prepared.randomY();
-        if (meetsNativeStructure(context, ObjectPlacement.current(), prepared, y)) {
+        if (meetsNativeStructure(context, context.extension(ObjectPlacement.class).orElseThrow(), prepared, y)) {
             context.reject("native-structure");
         }
     }
@@ -198,7 +198,7 @@ public final class ValidateModule implements IrisModule {
     }
 
     private static void checkCollisions(PlacementStageContext context) {
-        ObjectPlacement placement = ObjectPlacement.current();
+        ObjectPlacement placement = context.extension(ObjectPlacement.class).orElseThrow();
         PreparedPlacement prepared = context.output(IrisStages.Prepare.TRANSFORMS);
         PlacementSettings settings = prepared.settings();
         if (settings.forcePlace() || prepared.mode().has(PlaceTrait.RAW_STAMP)

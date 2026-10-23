@@ -34,7 +34,7 @@ import java.util.Optional;
  */
 public final class CaveBiomeBands implements CaveBiomes {
     @Override
-    public Optional<String> overriddenBiome(PackWorld world, int x, int y, int z) {
+    public Optional<ResourceId> overriddenBiome(PackWorld world, int x, int y, int z) {
         CarvingResolver resolver = CarvingResolver.of(world);
         ResolvedCarvingEntry rootEntry = resolver.rootEntryAt(y);
         if (rootEntry == null) {
@@ -44,12 +44,12 @@ public final class CaveBiomeBands implements CaveBiomes {
         if (resolver.entryBiome(entry) == null) {
             return Optional.empty();
         }
-        return Optional.of(entry.biomeKey().trim());
+        return Optional.of(world.resources().idOf(entry.biomeKey().trim()));
     }
 
     @Override
-    public int minDepthBelowSurface(PackWorld world, String biomeKey) {
-        return Depths.of(world).minDepthBelowSurface(world.resources().idOf(biomeKey));
+    public int minDepthBelowSurface(PackWorld world, ResourceId biome) {
+        return Depths.of(world).minDepthBelowSurface(biome);
     }
 
     /** The minimum depths the world's biomes declare ({@code caveMinDepthBelowSurface}), found by biome id. */

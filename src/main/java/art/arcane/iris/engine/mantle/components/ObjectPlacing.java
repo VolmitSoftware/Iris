@@ -56,7 +56,7 @@ public final class ObjectPlacing {
 
     /** The object placing of {@code world}. */
     public static ObjectPlacing of(PackWorld world) {
-        return world.state(ObjectPlacing.class, generating -> new ObjectPlacing(ObjectHost.of(generating), generating.log()));
+        return world.state(ObjectPlacing.class, generating -> new ObjectPlacing(generating.extension(ObjectHost.class).orElseThrow(), generating.log()));
     }
 
     /** Places what originates in the chunk {@code context} generates. */

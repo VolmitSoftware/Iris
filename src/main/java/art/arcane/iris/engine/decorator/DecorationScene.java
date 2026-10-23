@@ -18,6 +18,7 @@
 package art.arcane.iris.engine.decorator;
 
 import art.arcane.iris.builtin.IrisSeed;
+import art.arcane.iris.builtin.IrisSeeds;
 import com.volmit.ModuleLog;
 import com.volmit.block.BlockRegistry;
 import com.volmit.block.BlockState;
@@ -52,7 +53,7 @@ public final class DecorationScene {
     public static DecorationScene of(ChunkStageContext context) {
         Mantle mantle = context.mantle();
         return new DecorationScene(context.hunk(BlockState.class), context.world().resources().blocks(), context.terrain(),
-                mantle == null ? null : mantle.blocks(), BiomeDecorators.of(context.world()), IrisSeed.COMPONENT.of(context.world()),
+                mantle == null ? null : mantle.blocks(), BiomeDecorators.of(context.world()), context.world().extension(IrisSeeds.class).orElseThrow().seed(IrisSeed.COMPONENT),
                 context.log());
     }
 

@@ -18,6 +18,7 @@
 package art.arcane.iris.engine.modifier;
 
 import art.arcane.iris.builtin.IrisSeed;
+import art.arcane.iris.builtin.IrisSeeds;
 import art.arcane.iris.builtin.deposit.DepositGenerator;
 import art.arcane.iris.builtin.deposit.DepositHeightDistribution;
 import art.arcane.iris.builtin.deposit.DepositPlacementScope;
@@ -36,13 +37,11 @@ import com.volmit.config.FeatureSettings;
 import com.volmit.config.Level;
 import com.volmit.config.SettingsStack;
 import com.volmit.hunk.Hunk;
-import com.volmit.mantle.MantleLayer;
+import com.volmit.mantle.Mantle;
 import com.volmit.resource.PackResources;
 import com.volmit.resource.ResourceId;
-import com.volmit.resource.ResourceKey;
 import com.volmit.stage.ChunkStageContext;
 import com.volmit.world.BiomeSample;
-import com.volmit.world.PackBiome;
 import com.volmit.world.PackWorld;
 import com.volmit.world.TerrainSampler;
 
@@ -78,7 +77,7 @@ final class DepositPlacer {
     private final Map<ResourceId, Optional<BiomeIdentity>> biomeIdentities = new ConcurrentHashMap<>();
 
     DepositPlacer(PackWorld world) {
-        this.rng = new RNG(IrisSeed.DEPOSIT.of(world));
+        this.rng = new RNG(world.extension(IrisSeeds.class).orElseThrow().seed(IrisSeed.DEPOSIT));
         this.resources = world.resources();
         this.registry = resources.blocks();
         this.log = world.log();
@@ -112,7 +111,7 @@ final class DepositPlacer {
     }
 
     private Optional<BiomeIdentity> identityOf(ResourceId biome) {
-        return biomeIdentities.computeIfAbsent(biome, id -> resources.find(new ResourceKey<>(id, PackBiome.class))
+        return biomeIdentities.computeIfAbsent(biome, id -> resources.find(PackResources.BIOMES, id)
                 .map(found -> new BiomeIdentity(id.path(), found.platformBiome().toString(), found.vanillaBiome().toString())));
     }
 
@@ -121,7 +120,7 @@ final class DepositPlacer {
         private final Hunk<BlockState> blocks;
         private final TerrainSampler terrain;
         private final FeatureSettings settings;
-        private final MantleLayer<Boolean> caverns;
+        private final Mantle mantle;
         private final int originX;
         private final int originZ;
         private final int worldHeight;
@@ -136,7 +135,7 @@ final class DepositPlacer {
             this.blocks = context.hunk(BlockState.class);
             this.terrain = context.terrain();
             this.settings = context.settings();
-            this.caverns = context.mantle().caverns();
+            this.mantle = context.mantle();
             this.originX = context.originX();
             this.originZ = context.originZ();
             this.worldHeight = blocks.getHeight();
@@ -250,7 +249,7 @@ final class DepositPlacer {
                     continue;
                 }
 
-                if (caverns.get(originX + nx, ny, originZ + nz) == null) {
+                if (!mantle.isCarved(originX + nx, ny, originZ + nz)) {
                     BlockState ore = clump.blocks().get(j);
                     BlockState remapped = remapped(nx, ny, nz, ore);
                     BlockState finalBlock = remapped != null

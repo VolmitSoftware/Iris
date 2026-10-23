@@ -19,14 +19,13 @@
 package art.arcane.iris.engine.framework.structure.fit;
 
 import com.volmit.block.BlockState;
+import com.volmit.vanilla.StartKey;
 import com.volmit.vanilla.TemplateCells;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -52,7 +51,7 @@ final class RigidSupport {
         try {
             BatchCellBudget budget = new BatchCellBudget();
             List<SupportRequest> requests = new ArrayList<>();
-            Set<Object> seenStarts = Collections.newSetFromMap(new IdentityHashMap<>());
+            Set<StartKey> seenStarts = new HashSet<>();
             for (FitStart start : starts) {
                 if (!SurfaceFitting.requiresSurfaceTerrain(start) || !seenStarts.add(start.key())) {
                     continue;

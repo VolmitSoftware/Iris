@@ -92,7 +92,7 @@ public final class BlocksModule implements IrisModule {
     }
 
     private static void write(BlockStageContext context, WrittenBlocks written) {
-        ObjectPlacement placement = ObjectPlacement.current();
+        ObjectPlacement placement = context.extension(ObjectPlacement.class).orElseThrow();
         PreparedPlacement prepared = context.output(IrisStages.Prepare.TRANSFORMS);
         PlacementSettings settings = prepared.settings();
         PlacementWorld world = new PlacementWorld(context.access(), prepared.traits());
@@ -198,7 +198,7 @@ public final class BlocksModule implements IrisModule {
      * where the marker either allows anything above or finds two blocks of air.
      */
     private static void placeMarkers(PlacementStageContext context) {
-        ObjectPlacement placement = ObjectPlacement.current();
+        ObjectPlacement placement = context.extension(ObjectPlacement.class).orElseThrow();
         PreparedPlacement prepared = context.output(IrisStages.Prepare.TRANSFORMS);
         PlacementSettings settings = prepared.settings();
         if (settings.markers().isEmpty() || !prepared.terrain().hasWorld()) {

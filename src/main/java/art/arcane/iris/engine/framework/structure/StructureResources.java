@@ -87,7 +87,7 @@ public final class StructureResources {
         }
         IrisPackResources resources = data.getPackResources();
         try {
-            return resources.find(kind.key(resources.idOf(key))).orElse(null);
+            return resources.find(kind, resources.idOf(key)).orElse(null);
         } catch (IllegalStateException failedToLoad) {
             return null;
         }
@@ -99,6 +99,6 @@ public final class StructureResources {
     }
 
     private static List<String> keys(PackResources pack, ResourceKind<?> kind) {
-        return pack.ids(kind.type()).stream().map(ResourceId::path).toList();
+        return pack.ids(kind).stream().map(ResourceId::path).toList();
     }
 }

@@ -19,6 +19,7 @@
 package art.arcane.iris.engine.mantle.components;
 
 import art.arcane.iris.builtin.IrisSeed;
+import art.arcane.iris.builtin.IrisSeeds;
 import art.arcane.iris.builtin.floating.FloatingChildBiome;
 import art.arcane.iris.builtin.floating.FloatingChildSettings;
 import art.arcane.iris.builtin.floating.FloatingHost;
@@ -87,7 +88,8 @@ public final class FloatingObjectPlacing {
     /** The floating object placing of {@code world}. */
     public static FloatingObjectPlacing of(PackWorld world, ModuleLog log) {
         return world.state(FloatingObjectPlacing.class,
-                generating -> new FloatingObjectPlacing(FloatingWorld.of(generating), IrisSeed.MANTLE.of(generating), log));
+                generating -> new FloatingObjectPlacing(FloatingWorld.of(generating),
+                        generating.extension(IrisSeeds.class).orElseThrow().seed(IrisSeed.MANTLE), log));
     }
 
     /** Places what originates in the chunk of {@code context} into the mantle. */
@@ -101,7 +103,7 @@ public final class FloatingObjectPlacing {
                 new FloatingIslandBoundarySampler(host::surfaceBiome), log);
 
         FloatingIslandSample.clearChunkMemo();
-        Chunk chunk = new Chunk(minX, minZ, worldHeight, chunkRng, samples, sampleColumns(samples, minX, minZ));
+        Chunk chunk = new Chunk(context, minX, minZ,worldHeight, chunkRng, samples, sampleColumns(samples, minX, minZ));
 
         // The maps are lookup indices only. Iteration MUST follow the encounter order of the deterministic 0..255 column
         // scan: identity-hash order changes per JVM run, and the shared chunk random makes placement output depend on order.
@@ -204,7 +206,7 @@ public final class FloatingObjectPlacing {
                 continue;
             }
             int key = columns.get(rng.i(columns.size()));
-            host.placeFloating(picked.get(), chunk.minX + (key & 15), chunk.minZ + (key >> 4), placement, rng);
+            host.placeFloating(chunk.context, picked.get(),chunk.minX + (key & 15), chunk.minZ + (key >> 4), placement, rng);
         }
     }
 
@@ -239,7 +241,7 @@ public final class FloatingObjectPlacing {
             int x = pickedX - footprint.tallestX();
             int z = pickedZ - footprint.tallestZ();
             int y = pickTopY + 1 - footprint.lowestSolidY();
-            host.placeOnTop(object, x, y, z, placement, IslandFace.top(chunk.resolver, entry, pickTopY, chunk.worldHeight), rng);
+            host.placeOnTop(chunk.context, object,x, y, z, placement, IslandFace.top(chunk.resolver, entry, pickTopY, chunk.worldHeight), rng);
         }
     }
 
@@ -266,7 +268,7 @@ public final class FloatingObjectPlacing {
             int x = invertedBaseX(chunk.minX, pickedXf, footprint, turn);
             int z = invertedBaseZ(chunk.minZ, pickedZf, footprint, turn);
             int y = invertedBaseY(pickBottomY, footprint, turn);
-            host.placeUnder(object, x, y, z, turn.yRotation(), placement,
+            host.placeUnder(chunk.context, object,x, y, z, turn.yRotation(), placement,
                     IslandFace.bottom(chunk.resolver, entry, pickBottomY, chunk.worldHeight), rng);
         }
     }
@@ -386,7 +388,8 @@ public final class FloatingObjectPlacing {
 
     /** How far, in blocks along X and Z, the floating objects of the pack {@code settings} describe may write beyond their chunk. */
     public static int reach(PackSettings settings, ModuleLog log) {
-        Reach reach = new Reach(FloatingHost.of(settings), ObjectHost.of(settings), log);
+        Reach reach = new Reach(settings.extension(FloatingHost.class).orElseThrow(),
+                settings.extension(ObjectHost.class).orElseThrow(), log);
         int maxObjectExtent = MIN_REACH_BLOCKS;
         try {
             for (Entry<FloatingChildSettings> declared : settings.declared(FloatingChildSettings.class)) {
@@ -476,7 +479,7 @@ public final class FloatingObjectPlacing {
     }
 
     /** What one chunk's placements share: where it is, its random, and its columns' island samples. */
-    private record Chunk(int minX, int minZ, int worldHeight, RNG rng, FloatingIslandSampleResolver resolver,
-                         FloatingIslandSample[] samples) {
+    private record Chunk(MantleStageContext context, int minX, int minZ, int worldHeight, RNG rng,
+                         FloatingIslandSampleResolver resolver, FloatingIslandSample[] samples) {
     }
 }

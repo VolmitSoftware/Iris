@@ -50,7 +50,7 @@ public final class BoreModule implements IrisModule {
         if (!settings.bore()) {
             return;
         }
-        ObjectPlacement placement = ObjectPlacement.current();
+        ObjectPlacement placement = context.extension(ObjectPlacement.class).orElseThrow();
         WorldVolume volume = WorldVolume.of(placement, prepared, context.output(IrisStages.Anchor.FINAL).y());
         PlacementWorld world = new PlacementWorld(context.access(), prepared.traits());
         for (int x = volume.minX(); x <= volume.maxX(); x++) {

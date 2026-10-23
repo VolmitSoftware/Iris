@@ -16,25 +16,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.builtin.placement;
+package art.arcane.iris.builtin;
 
-import java.util.function.Supplier;
-
-/** The placement bound to the placing thread. */
-final class PlacementBinding {
-    private static final ScopedValue<ObjectPlacement> CURRENT = ScopedValue.newInstance();
-
-    private PlacementBinding() {
-    }
-
-    static ObjectPlacement current() {
-        if (!CURRENT.isBound()) {
-            throw new IllegalStateException("No Iris object placement is running on this thread");
-        }
-        return CURRENT.get();
-    }
-
-    static <T> T run(ObjectPlacement placement, Supplier<T> body) {
-        return ScopedValue.where(CURRENT, placement).call(body::get);
-    }
+/**
+ * The {@link IrisSeed}s of a world Iris generates, which it offers as an extension of the world:
+ * {@code world.extension(IrisSeeds.class).orElseThrow().seed(IrisSeed.CARVE)}.
+ */
+public interface IrisSeeds {
+    long seed(IrisSeed seed);
 }

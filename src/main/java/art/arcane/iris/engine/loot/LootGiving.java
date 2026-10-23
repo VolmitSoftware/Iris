@@ -19,12 +19,14 @@
 package art.arcane.iris.engine.loot;
 
 import art.arcane.iris.builtin.IrisSeed;
+import art.arcane.iris.builtin.IrisSeeds;
 import art.arcane.iris.builtin.LiveWorld;
 import art.arcane.iris.builtin.LiveWorld.ObjectLoots;
 import art.arcane.iris.builtin.loot.LootResolver;
 import art.arcane.iris.builtin.loot.LootTable;
 import art.arcane.volmlib.util.math.RNG;
 import com.volmit.item.ItemDrop;
+import com.volmit.resource.ResourceId;
 import com.volmit.service.Loot;
 import com.volmit.world.PackWorld;
 
@@ -40,7 +42,7 @@ import java.util.Optional;
 public final class LootGiving implements Loot {
     @Override
     public List<Source> tables(PackWorld world, Site site) {
-        LiveWorld live = LiveWorld.of(world);
+        LiveWorld live = world.extension(LiveWorld.class).orElseThrow();
         int x = site.position().x();
         int z = site.position().z();
         int relativeY = site.position().y();
@@ -49,11 +51,11 @@ public final class LootGiving implements Loot {
 
         List<Source> sources = new ArrayList<>();
         boolean objectLootDefined = site.nativeLootDefined();
-        Optional<ObjectLoots> objectLoots = site.container() == null ? Optional.empty() : live.objectLoots(x, relativeY, z);
+        Optional<ObjectLoots> objectLoots = site.container().isEmpty() ? Optional.empty() : live.objectLoots(x, relativeY, z);
         if (objectLoots.isPresent()) {
             objectLootDefined = objectLootDefined || objectLoots.get().defined();
             Source picked = placementLoot(world, live).pick(objectLoots.get().platformTables(), objectLoots.get().packTables(),
-                    site.container(), rng, x, worldY, z);
+                    site.container().get(), rng, x, worldY, z);
             if (picked != null) {
                 sources.add(picked);
                 if (objectLoots.get().overridesGlobalLoot()) {
@@ -62,19 +64,20 @@ public final class LootGiving implements Loot {
             }
         }
 
-        LootTables.resolveEnvironmentSources(sources, world, rng, x, relativeY, z, objectLootDefined, Table::new);
+        LootTables.resolveEnvironmentSources(sources, world, rng, x, relativeY, z, objectLootDefined,
+                key -> new Table(world.resources().idOf(key)));
         return sources;
     }
 
     @Override
-    public List<ItemDrop> items(PackWorld world, Site site, String key) {
-        LootTable table = LootResources.table(world.resources(), key);
+    public List<ItemDrop> items(PackWorld world, Site site, ResourceId tableId) {
+        LootTable table = LootResources.table(world.resources(), tableId);
         if (table == null) {
             return List.of();
         }
-        int worldY = site.position().y() + LiveWorld.of(world).bottomY();
+        int worldY = site.position().y() + world.extension(LiveWorld.class).orElseThrow().bottomY();
         return new LootItems(world.resources().items(), site.debug())
-                .draw(key, table, lootSeed(world), site.position().x(), worldY, site.position().z());
+                .draw(tableId.path(), table, lootSeed(world), site.position().x(), worldY, site.position().z());
     }
 
     private static PlacementLoot placementLoot(PackWorld world, LiveWorld live) {
@@ -82,6 +85,6 @@ public final class LootGiving implements Loot {
     }
 
     private static long lootSeed(PackWorld world) {
-        return IrisSeed.LOOT.of(world);
+        return world.extension(IrisSeeds.class).orElseThrow().seed(IrisSeed.LOOT);
     }
 }

@@ -83,7 +83,7 @@ public final class LootTables {
             boolean objectLootDefined,
             Function<String, T> mapper
     ) {
-        LiveWorld live = LiveWorld.of(world);
+        LiveWorld live = world.extension(LiveWorld.class).orElseThrow();
         boolean belowSurface = relativeY < live.terrainHeight(x, z);
         boolean distinctContextualBiome = belowSurface && !live.caveBiome(x, relativeY, z).equals(live.surfaceBiome(x, z));
 

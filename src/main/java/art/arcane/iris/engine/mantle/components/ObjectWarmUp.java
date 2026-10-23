@@ -25,6 +25,7 @@ import art.arcane.iris.builtin.objects.ObjectSettings;
 import art.arcane.iris.builtin.objects.ProceduralObjectSettings;
 import art.arcane.iris.builtin.objects.ProceduralPlacement;
 import art.arcane.iris.builtin.IrisSeed;
+import art.arcane.iris.builtin.IrisSeeds;
 import art.arcane.iris.engine.object.procedural.ResolvedProceduralObjects;
 import art.arcane.volmlib.util.math.RNG;
 import com.volmit.config.Level;
@@ -48,8 +49,8 @@ final class ObjectWarmUp {
     private int warmed;
 
     ObjectWarmUp(PackWorld world) {
-        this.host = ObjectHost.of(world);
-        this.root = new RNG(IrisSeed.COMPONENT.of(world) + ROOT_SEED_SALT);
+        this.host = world.extension(ObjectHost.class).orElseThrow();
+        this.root = new RNG(world.extension(IrisSeeds.class).orElseThrow().seed(IrisSeed.COMPONENT) + ROOT_SEED_SALT);
     }
 
     void warm() {

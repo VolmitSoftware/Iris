@@ -86,7 +86,7 @@ final class PlacementLoot {
     }
 
     private Loot.Source packSource(String key) {
-        return LootResources.table(resources, key) == null ? null : new Loot.Table(key);
+        return LootResources.table(resources, key) == null ? null : new Loot.Table(resources.idOf(key));
     }
 
     private Loot.Source platformSource(String name, int x, int worldY, int z) {

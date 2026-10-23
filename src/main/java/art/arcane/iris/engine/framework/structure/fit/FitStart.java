@@ -21,6 +21,7 @@ package art.arcane.iris.engine.framework.structure.fit;
 import art.arcane.iris.builtin.structure.StructureTerrain;
 import art.arcane.iris.engine.framework.structure.NativeStructureFit;
 import com.volmit.vanilla.DecorationStep;
+import com.volmit.vanilla.StartKey;
 import com.volmit.vanilla.StructureFit;
 import com.volmit.vanilla.TerrainAdaptation;
 
@@ -88,7 +89,7 @@ final class FitStart {
         return bounds;
     }
 
-    Object key() {
+    StartKey key() {
         return start.key();
     }
 }

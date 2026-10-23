@@ -62,7 +62,7 @@ public final class AnchorModule implements IrisModule {
     }
 
     private static AnchorHeight height(PlacementStageContext context) {
-        ObjectPlacement placement = ObjectPlacement.current();
+        ObjectPlacement placement = context.extension(ObjectPlacement.class).orElseThrow();
         PreparedPlacement prepared = context.output(IrisStages.Prepare.TRANSFORMS);
         PlacementSettings settings = prepared.settings();
         boolean structurePiece = prepared.mode().has(PlaceTrait.RAW_STAMP);
@@ -89,7 +89,7 @@ public final class AnchorModule implements IrisModule {
 
     private static AnchorHeight finalHeight(PlacementStageContext context) {
         int y = context.output(IrisStages.Anchor.HEIGHT).y() + context.output(IrisStages.Prepare.TRANSFORMS).randomY();
-        ObjectPlacement.current().anchoredAt(y);
+        context.extension(ObjectPlacement.class).orElseThrow().anchoredAt(y);
         return new AnchorHeight(y);
     }
 

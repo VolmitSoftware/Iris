@@ -41,7 +41,7 @@ import java.util.concurrent.ConcurrentMap;
 public final class BlockDropping implements BlockDrops {
     @Override
     public Result drops(PackWorld world, Broken broken) {
-        LiveWorld live = LiveWorld.of(world);
+        LiveWorld live = world.extension(LiveWorld.class).orElseThrow();
         int x = broken.position().x();
         int y = broken.position().y();
         int z = broken.position().z();

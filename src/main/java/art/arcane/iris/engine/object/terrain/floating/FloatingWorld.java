@@ -19,6 +19,7 @@
 package art.arcane.iris.engine.object.terrain.floating;
 
 import art.arcane.iris.builtin.IrisSeed;
+import art.arcane.iris.builtin.IrisSeeds;
 import art.arcane.iris.builtin.carve.CarvingEntry;
 import art.arcane.iris.builtin.carve.CarvingSettings;
 import art.arcane.iris.builtin.carve.CaveProfile;
@@ -71,8 +72,10 @@ public final class FloatingWorld {
     }
 
     private static FloatingWorld create(PackWorld world) {
-        return new FloatingWorld(FloatingHost.of(world), ObjectHost.of(world), world.resources().noise(), IrisSeed.TERRAIN.of(world),
-                IrisSeed.CARVE.of(world), world.minHeight(), dimensionCarvingOf(world));
+        IrisSeeds seeds = world.extension(IrisSeeds.class).orElseThrow();
+        return new FloatingWorld(world.extension(FloatingHost.class).orElseThrow(), world.extension(ObjectHost.class).orElseThrow(),
+                world.resources().noise(), seeds.seed(IrisSeed.TERRAIN), seeds.seed(IrisSeed.CARVE), world.minHeight(),
+                dimensionCarvingOf(world));
     }
 
     private static List<CarvingEntry> dimensionCarvingOf(PackWorld world) {

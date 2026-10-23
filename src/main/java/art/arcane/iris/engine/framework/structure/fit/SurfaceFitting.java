@@ -22,15 +22,14 @@ import art.arcane.iris.builtin.structure.StructureTerrainMode;
 import com.volmit.ModuleLog;
 import com.volmit.block.BlockState;
 import com.volmit.vanilla.DecorationStep;
+import com.volmit.vanilla.StartKey;
 import com.volmit.vanilla.TemplateCells;
 import com.volmit.vanilla.TerrainAdaptation;
 import com.volmit.world.BlockPosition;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -222,7 +221,7 @@ final class SurfaceFitting {
                                                                    int maximumTemplateCells, ModuleLog log) {
         Box influenceArea = area.widened(SURFACE_TERRAIN_RADIUS);
         List<SurfaceAnchor> anchors = new ArrayList<>();
-        Set<Object> seenStarts = Collections.newSetFromMap(new IdentityHashMap<>());
+        Set<StartKey> seenStarts = new HashSet<>();
         for (FitStart start : starts) {
             if (!requiresSourceSurfaceTerrain(start) || !seenStarts.add(start.key())) {
                 continue;
@@ -288,7 +287,7 @@ final class SurfaceFitting {
         Map<Long, Integer> columnCaps = new HashMap<>();
         Set<Long> foundationBases = new HashSet<>();
         Set<Long> occupiedCells = new HashSet<>();
-        Set<Object> seenStarts = Collections.newSetFromMap(new IdentityHashMap<>());
+        Set<StartKey> seenStarts = new HashSet<>();
         for (FitStart start : starts) {
             if (start.terrain().resolvedMode() != StructureTerrainMode.VACUUM || !seenStarts.add(start.key())) {
                 continue;

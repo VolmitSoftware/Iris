@@ -91,7 +91,7 @@ public final class VacuumModule implements IrisModule {
 
         private Bend(PlacementStageContext context, PreparedPlacement prepared) {
             VacuumProfile vacuum = prepared.mode().vacuum();
-            this.placement = ObjectPlacement.current();
+            this.placement = context.extension(ObjectPlacement.class).orElseThrow();
             this.prepared = prepared;
             this.terrain = prepared.terrain();
             this.world = new PlacementWorld(context.access(), prepared.traits());

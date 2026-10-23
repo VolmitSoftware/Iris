@@ -24,7 +24,6 @@ import art.arcane.iris.builtin.spawn.SpawnCooldowns;
 import com.volmit.IrisFeature;
 import com.volmit.resource.ResourceId;
 import com.volmit.world.BlockPosition;
-import com.volmit.world.PackWorld;
 
 import java.util.List;
 import java.util.Optional;
@@ -36,22 +35,9 @@ import java.util.Set;
  * the layout through its {@link com.volmit.world.TerrainSampler}; a service has no chunk, so it asks here.
  *
  * <p>X and Z are world coordinates; Y is the height above the dimension's bottom, as everywhere in IrisApi.
- * Safe to use from any thread. Reached through {@link #of(PackWorld)}.
+ * Safe to use from any thread. Iris offers it as an extension of its worlds: {@code world.extension(LiveWorld.class)}.
  */
 public interface LiveWorld {
-    /** The live view of {@code world}, which must be a world Iris generates. */
-    static LiveWorld of(PackWorld world) {
-        if (world instanceof Source source) {
-            return source.liveWorld();
-        }
-        throw new IllegalArgumentException("Built-in modules work in worlds Iris generates, not " + world);
-    }
-
-    /** Iris's worlds answer for their live view. */
-    interface Source {
-        LiveWorld liveWorld();
-    }
-
     /** The platform's block Y of height 0, the dimension's bottom: a position's height plus this is its Y in the platform. */
     int bottomY();
 

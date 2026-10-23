@@ -30,6 +30,8 @@ import art.arcane.volmlib.util.math.RNG;
 import com.volmit.entity.EntitySpec;
 import com.volmit.item.ItemAttribute;
 import com.volmit.item.ItemDrop;
+import com.volmit.resource.PackResources;
+import com.volmit.resource.ResourceId;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -43,12 +45,17 @@ final class EntityResolution {
     private static final long PASSENGER_STREAM_BASE = 234858L;
     private static final long LEASH_HOLDER_STREAM = 234548L;
 
+    private final PackResources resources;
     private final LootItems items;
     private final Optional<Sky> sky;
     private final EffectTimers timers;
 
-    /** @param sky the sky of the world the entity appears in, whose time and weather decide which of its commands run; none while the world has no platform world */
-    EntityResolution(LootItems items, Optional<Sky> sky, EffectTimers timers) {
+    /**
+     * @param resources names the entity's loot tables by id
+     * @param sky       the sky of the world the entity appears in, whose time and weather decide which of its commands run; none while the world has no platform world
+     */
+    EntityResolution(PackResources resources, LootItems items, Optional<Sky> sky, EffectTimers timers) {
+        this.resources = resources;
         this.items = items;
         this.sky = sky;
         this.timers = timers;
@@ -62,21 +69,24 @@ final class EntityResolution {
         }
 
         List<ItemAttribute> attributes = drawAttributes(entity, rng);
-        List<String> lootTables = List.copyOf(entity.loot().tables());
+        List<ResourceId> lootTables = entity.loot().tables().stream().map(resources::idOf).toList();
         long lootShuffleSeed = lootTables.isEmpty() ? 0L : rng.nextLong();
-        EntitySpec leashHolder = entity.leashHolder() == null ? null : resolve(entity.leashHolder(), rng.nextParallelRNG(LEASH_HOLDER_STREAM));
+        Optional<EntitySpec> leashHolder = entity.leashHolder() == null
+                ? Optional.empty()
+                : Optional.of(resolve(entity.leashHolder(), rng.nextParallelRNG(LEASH_HOLDER_STREAM)));
         EntitySpec.Equipment equipment = new EntitySpec.Equipment(
                 equip(entity.helmet(), rng), equip(entity.chestplate(), rng), equip(entity.leggings(), rng),
                 equip(entity.boots(), rng), equip(entity.mainHand(), rng), equip(entity.offHand(), rng));
 
-        return new EntitySpec(
-                entity.type() == null ? "" : entity.type(),
-                entity.specialType() == null ? "" : entity.specialType(),
-                entity.reason(),
-                entity.customName() == null ? "" : entity.customName(),
-                flagsOf(entity), equipment, passengers, attributes, lootTables, lootShuffleSeed, leashHolder,
-                spawnEffectOf(entity), entity.spawnEffectRiseOutOfGround(), entity.pandaMainGene(),
-                entity.pandaHiddenGene(), entity.applySettingsToCustomMobAnyways(), commandsOf(entity));
+        return new EntitySpec(textOf(entity.type()), textOf(entity.specialType()), textOf(entity.reason()),
+                textOf(entity.customName()), flagsOf(entity), equipment, passengers, attributes, lootTables, lootShuffleSeed,
+                leashHolder, spawnEffectOf(entity), entity.spawnEffectRiseOutOfGround(), textOf(entity.pandaMainGene()),
+                textOf(entity.pandaHiddenGene()), entity.applySettingsToCustomMobAnyways(), commandsOf(entity));
+    }
+
+    /** A text the pack may leave out or blank, as absent then. */
+    private static Optional<String> textOf(String text) {
+        return text == null || text.isBlank() ? Optional.empty() : Optional.of(text);
     }
 
     private static EntitySpec.Flags flagsOf(EntityDefinition entity) {
@@ -100,23 +110,23 @@ final class EntityResolution {
         return attributes;
     }
 
-    private ItemDrop equip(LootEntry piece, RNG rng) {
+    private Optional<ItemDrop> equip(LootEntry piece, RNG rng) {
         if (piece == null || !LootResolver.oneIn(rng, piece.rarity())) {
-            return null;
+            return Optional.empty();
         }
-        return items.give(piece, rng);
+        return Optional.ofNullable(items.give(piece, rng));
     }
 
     /** The entity's spawn effect when it shows this time: an effect only shows now and then, as its interval and chance say. */
-    private EntitySpec.SpawnEffect spawnEffectOf(EntityDefinition entity) {
+    private Optional<EntitySpec.SpawnEffect> spawnEffectOf(EntityDefinition entity) {
         AmbientEffect effect = entity.spawnEffect();
         if (effect == null || !timers.shouldPlayNow(effect)) {
-            return null;
+            return Optional.empty();
         }
-        return new EntitySpec.SpawnEffect(effect.sound(), effect.soundDistance(), effect.minPitch(),
-                effect.maxPitch(), effect.volume(), effect.particleEffect(), effect.particleOffset(),
+        return Optional.of(new EntitySpec.SpawnEffect(textOf(effect.sound()), effect.soundDistance(), effect.minPitch(),
+                effect.maxPitch(), effect.volume(), textOf(effect.particleEffect()), effect.particleOffset(),
                 effect.particleCount(), effect.particleAltX(), effect.particleAltY(), effect.particleAltZ(),
-                effect.randomAltX(), effect.randomAltY(), effect.randomAltZ(), effect.extra());
+                effect.randomAltX(), effect.randomAltY(), effect.randomAltZ(), effect.extra()));
     }
 
     private List<EntitySpec.Command> commandsOf(EntityDefinition entity) {

@@ -72,7 +72,7 @@ public final class PrepareModule implements IrisModule {
     }
 
     private static ObjectRotation slope(PlacementStageContext context) {
-        ObjectPlacement placement = ObjectPlacement.current();
+        ObjectPlacement placement = context.extension(ObjectPlacement.class).orElseThrow();
         PlacementSettings settings = placement.settings();
         ObjectRotation requested = settings.rotation();
         boolean checksSlope = !settings.forcePlace() && !settings.slopeCondition().isDefault();
@@ -112,7 +112,7 @@ public final class PrepareModule implements IrisModule {
     }
 
     private static PreparedPlacement transforms(PlacementStageContext context) {
-        ObjectPlacement placement = ObjectPlacement.current();
+        ObjectPlacement placement = context.extension(ObjectPlacement.class).orElseThrow();
         PlacementSettings settings = placement.settings();
         ObjectRotation rotation = context.output(IrisStages.Prepare.SLOPE);
         ObjectShape object = placement.object();

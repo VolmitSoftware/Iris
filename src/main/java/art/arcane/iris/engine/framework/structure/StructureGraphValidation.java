@@ -77,7 +77,7 @@ public final class StructureGraphValidation {
         Set<String> replacementOutputStructures = new LinkedHashSet<>();
         Map<String, List<SampledVerticalEnvelope>> sampledVerticalEnvelopes = new LinkedHashMap<>();
         PackStructureResolver resolver = new PackStructureResolver(data);
-        for (ResourceId id : data.getPackResources().ids(IrisStructure.class)) {
+        for (ResourceId id : data.getPackResources().ids(StructureResources.STRUCTURES)) {
             String structureKey = id.path();
             if (structureKey.equals(LEGACY_INDEX_KEY) || (activeStructureKeys != null && !activeStructureKeys.contains(structureKey))) {
                 continue;

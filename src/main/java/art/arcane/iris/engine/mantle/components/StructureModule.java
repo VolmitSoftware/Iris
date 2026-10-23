@@ -51,10 +51,10 @@ public final class StructureModule implements IrisModule {
     }
 
     private static void place(MantleStageContext context) {
-        StructureHost.of(context.world()).placeChunk();
+        context.world().extension(StructureHost.class).orElseThrow().placeChunk(context);
     }
 
     private static int reach(PackSettings settings) {
-        return StructureHost.of(settings).reach();
+        return settings.extension(StructureHost.class).orElseThrow().reach();
     }
 }

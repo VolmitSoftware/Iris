@@ -22,9 +22,8 @@ import art.arcane.volmlib.util.math.RNG;
 import com.volmit.config.Level;
 import com.volmit.IrisFeature;
 import com.volmit.config.FeatureSettings;
-import com.volmit.config.PackSettings;
+import com.volmit.generation.InvocationContext;
 import com.volmit.resource.ResourceId;
-import com.volmit.world.PackWorld;
 
 import java.util.List;
 import java.util.Optional;
@@ -32,25 +31,11 @@ import java.util.function.Function;
 
 /**
  * What {@code iris:objects} asks of Iris: the objects of the pack, how Iris scales and places them, and the layout around
- * a world position. Iris's worlds implement it; a module reaches it with {@link #of}. Nothing here hands out the engine.
+ * a world position. Iris offers it as an extension of its worlds and of the settings of the pack it loads:
+ * {@code world.extension(ObjectHost.class)}, {@code settings.extension(ObjectHost.class)}. Nothing here hands out the
+ * engine.
  */
 public interface ObjectHost {
-    /** The host of the world {@code settings} are the pack's of, which must be a world Iris generates. */
-    static ObjectHost of(PackSettings settings) {
-        if (settings instanceof Source source) {
-            return source.objects();
-        }
-        throw new IllegalArgumentException("Built-in modules generate Iris's own worlds, not " + settings);
-    }
-
-    /** The host of {@code world}, which must be a world Iris generates. */
-    static ObjectHost of(PackWorld world) {
-        if (world instanceof Source source) {
-            return source.objects();
-        }
-        throw new IllegalArgumentException("Built-in modules generate Iris's own worlds, not " + world);
-    }
-
     /** Whether Iris's debug setting is on. */
     boolean debugging();
 
@@ -66,8 +51,8 @@ public interface ObjectHost {
     /** The random a chunk's objects are placed with: the same for the same chunk of the same world. */
     RNG chunkRandom(int chunkX, int chunkZ);
 
-    /** The chunk whose objects are being placed on this thread. */
-    ObjectChunk chunk();
+    /** The chunk whose objects the mantle invocation {@code context} places. */
+    ObjectChunk chunk(InvocationContext context);
 
     /** The object of the pack that {@code key} names. */
     Optional<PlaceableObject> object(String key);
@@ -117,11 +102,6 @@ public interface ObjectHost {
 
     /** What the dimension stacked above declares to place at a column, where each is null when its level declares none. */
     record UpperObjects(ObjectSettings biome, ObjectSettings region, String biomeKey, String regionKey) {
-    }
-
-    /** Iris's worlds answer for their objects. */
-    interface Source {
-        ObjectHost objects();
     }
 
     /** One region's or biome's declaration of settings. */

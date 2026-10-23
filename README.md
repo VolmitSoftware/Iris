@@ -79,7 +79,7 @@ regions and biomes. The loot tables, spawners, entities and markers are plain mo
 `EntityDefinition`, `SpawnMarker`). `PlacementLoot` picks the table an object placement gives one of its chests.
 `iris:decorant`, `iris:terrain` and `iris:deposit` ship in the built-ins jar and keep their per-world workers (`BiomeDecorators`, `TerrainShaper`,
 `DepositPlacer`) in the world's state store (`context.world().state(...)`); the modules still compiled into Iris reach the same store through
-`IrisChunk.state(...)` / `engine.getGeneration().state(...)`.
+the `IrisChunk` their invocation offers (`context.extension(IrisChunk.class)`, then `state(...)`) or `engine.getGeneration().state(...)`.
 
 Settings move off Iris's classes one feature at a time. `iris:deposit` is the first whose settings are IrisApi types
 only: `DepositSettings` holds `DepositGenerator`s (blocks as `BlockSpec`, its enums beside it in
@@ -188,24 +188,30 @@ none of the jar's modules (`IrisModuleHost.JAR_MODULE_IDS`, which a test keeps e
 `builtin-modules.txt`): add a module to the jar and to that list together.
 
 `art.arcane.iris.builtin` also holds what the compiled-in built-ins and the jar must share, because each sees its own copy of
-every other class: `IrisSeed` (Iris's per-feature world seeds, a facade Iris's worlds implement, so existing worlds generate the
-same) and `terrain.LayerBlocks` (the world's picks from the biomes' palette layers: terrain, caves and post pick from the same
+every other class. The facades among them are interfaces Iris implements and offers through IrisApi's extension point, never
+through the thread or a cast: a module asks `world.extension(X.class)` for what belongs to a world (`IrisSeeds`, `LiveWorld`,
+`ObjectHost`, `FloatingHost`, `StructureHost`), `context.extension(X.class)` for what belongs to one invocation (`ObjectPlacement`
+in a placement stage, `MatterMantle` in a chunk or mantle stage) and `settings.extension(X.class)` for a reach worked out
+before any world exists, each with `.orElseThrow()`, since a built-in runs only where Iris offers them. `IrisSeeds` gives
+Iris's per-feature world seeds (`seeds.seed(IrisSeed.CARVE)`), so existing worlds generate the same; `terrain.LayerBlocks` (the world's picks from the biomes' palette layers: terrain, caves and post pick from the same
 layers, and a layer's noise is built once per world by whichever asks first), `LiveWorld` (what the loot and spawn services ask a
 running world, outside any chunk stage: the layout and settings at a block, the platform's weather and loot tables, the
-objects' loot and the spawner cooldowns Iris saves with the world; values only, implemented by Iris's worlds like `IrisSeed`),
+objects' loot and the spawner cooldowns Iris saves with the world; values only),
 `loot.LootResolver` (the random streams loot is drawn from, shared with the hosts that fill containers) and the loot and
 marker lists of an object placement (`loot.ObjectLoot`, `loot.ObjectVanillaLoot`, `spawn.PlacementMarker`, which the modules
 register as held types, because Iris's `IrisObjectPlacement` holds them). The placement stages need more of the object being
-placed than IrisApi describes, so `placement.ObjectPlacement` is the facade Iris implements for each placement and binds to the placing
-thread (`ObjectPlacement.current()`): the object's size (`ObjectShape`), the placement's settings (`PlacementSettings`, read from
+placed than IrisApi describes, so `placement.ObjectPlacement` is the facade Iris implements for each placement and offers with
+its invocation (`context.extension(ObjectPlacement.class)`): the object's size (`ObjectShape`), the placement's settings (`PlacementSettings`, read from
 Iris's `IrisObjectPlacement`), the terrain questions of its placer and the world around it (`PlacementTerrain`), the surface warp,
 and the block operations only the platform can do (turning a state with the object, merging two states, matching, traits of the
 placement's own states). Its types answer with IrisApi, VolmLib and built-in values only. `prepare.PreparedPlacement`, the output of
 `iris:prepare/transforms`, lives in the exposed package too, because `IrisStages` names it. `iris:post` reads its switches
 (`postProcessingWalls`, `postProcessingSlabs`) and the biome's `wall` and `slab` as module settings through its context.
 
-`iris:carve` also reads the mantle's matter slices through `MatterMantle` (a facade Iris's mantle implements: the chunk of
-`MatterCavern`s and markers it plans and applies, which the platform and the rest of Iris read as slices, not as module layers). What a
+`iris:carve` also reads the mantle's matter slices through `MatterMantle` (the chunk of `MatterCavern`s and markers it plans and
+applies, which the platform and the rest of Iris read as slices, not as module layers). A mantle stage gets the whole mantle; a
+chunk stage gets its own chunk and the neighbors the world already holds in memory, which is all the cave apply stage ever read,
+so it writes nothing outside its chunk. What a
 cave's walls, floor and ceiling get comes from the terrain and decorant built-ins of the same jar (`terrain.BiomeLayers`,
 `terrain.TerrainPalettes`, the biome decorators), through carve's own `CaveDressing`, which tests replace with fixed blocks.
 A cave's dimension, region and biome settings are found by the id the layout's biome samples carry (`DeclaredByLevel`), its

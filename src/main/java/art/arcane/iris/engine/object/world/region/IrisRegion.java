@@ -153,7 +153,7 @@ public class IrisRegion extends IrisRegistrant implements IRare {
                     continue;
                 }
 
-                names.addAll(biome.getModuleSettings().treeBiomes());
+                names.addAll(biome.getModuleSettings().treeBiomes(g.getData().getPackResources()));
                 b.put(biome.getLoadKey(), biome);
                 names.addAll(biome.getChildren());
             }
@@ -250,7 +250,7 @@ public class IrisRegion extends IrisRegistrant implements IRare {
                     continue;
                 }
 
-                names.addAll(biome.getModuleSettings().treeBiomes());
+                names.addAll(biome.getModuleSettings().treeBiomes(biome.getLoader().getPackResources()));
                 b.put(biome.getLoadKey(), biome);
                 names.addAll(biome.getChildren());
             }

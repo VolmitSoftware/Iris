@@ -19,6 +19,7 @@
 package art.arcane.iris.engine.framework.structure.fit;
 
 import art.arcane.iris.engine.mantle.components.StructureCarvingFootprint;
+import com.volmit.vanilla.StartKey;
 
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -163,8 +164,8 @@ final class CarveFootprints {
         }
     }
 
-    /** The platform's start has no value equality, so the key pins the exact start a chunk carves against. */
-    private record CarveFootprintKey(Object start, int padding) {
+    /** A start's key is equal only to itself, so the key pins the exact start a chunk carves against. */
+    private record CarveFootprintKey(StartKey start, int padding) {
     }
 
     private record CachedCarveFootprint(StructureCarvingFootprint footprint, int cells) {

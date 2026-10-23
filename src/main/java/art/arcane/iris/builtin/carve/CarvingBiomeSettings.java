@@ -25,6 +25,8 @@ import com.volmit.config.Feature;
 import com.volmit.config.LinkedBiomes;
 import com.volmit.config.Ref;
 import com.volmit.config.Reference;
+import com.volmit.resource.PackResources;
+import com.volmit.resource.ResourceId;
 
 import java.util.Set;
 
@@ -48,7 +50,7 @@ public final class CarvingBiomeSettings implements IrisFeature, LinkedBiomes {
     }
 
     @Override
-    public Set<String> treeBiomes() {
-        return Set.of(biome());
+    public Set<ResourceId> treeBiomes(PackResources pack) {
+        return biome().isBlank() ? Set.of() : Set.of(pack.idOf(biome()));
     }
 }

@@ -18,6 +18,7 @@
 package art.arcane.iris.engine.actuator;
 
 import art.arcane.iris.builtin.IrisSeed;
+import art.arcane.iris.builtin.IrisSeeds;
 import art.arcane.iris.builtin.terrain.OreSettings;
 import com.volmit.resource.PackResources;
 import com.volmit.world.PackWorld;
@@ -36,7 +37,7 @@ final class TerrainOres {
 
     TerrainOres(PackWorld world) {
         this.resources = world.resources();
-        this.terrainSeed = IrisSeed.TERRAIN.of(world);
+        this.terrainSeed = world.extension(IrisSeeds.class).orElseThrow().seed(IrisSeed.TERRAIN);
     }
 
     /** The ores of {@code world}. */

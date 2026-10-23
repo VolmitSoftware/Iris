@@ -32,6 +32,10 @@ import com.volmit.item.ItemRegistry;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.OptionalDouble;
 import java.util.OptionalInt;
 
 /**
@@ -106,10 +110,18 @@ public final class LootItems {
         int amount = Math.max(MIN_AMOUNT, LootResolver.inclusive(rng, entry.minAmount(), entry.maxAmount()));
         List<ItemEnchantment> enchantments = drawEnchantments(entry, rng);
         List<ItemAttribute> attributes = drawAttributes(entry, rng);
-        Double damage = maxDurability.getAsInt() > 0 ? 1D - rng.d(entry.minDurability(), entry.maxDurability()) : null;
-        return new ItemDrop(type, amount, entry.displayName(), entry.lore(), enchantments, attributes,
-                entry.unbreakable(), entry.itemFlags(), entry.customModel(), damage, entry.leatherColor(),
-                entry.dyeColor(), entry.customNbt(), debug ? sourceOf(entry, table) : null);
+        OptionalDouble damage = maxDurability.getAsInt() > 0
+                ? OptionalDouble.of(1D - rng.d(entry.minDurability(), entry.maxDurability()))
+                : OptionalDouble.empty();
+        return new ItemDrop(type, amount, Optional.ofNullable(entry.displayName()), entry.lore(), enchantments, attributes,
+                entry.unbreakable(), entry.itemFlags(), customModelOf(entry), damage, Optional.ofNullable(entry.leatherColor()),
+                Optional.ofNullable(entry.dyeColor()), Objects.requireNonNullElse(entry.customNbt(), Map.of()),
+                debug ? Optional.of(sourceOf(entry, table)) : Optional.empty());
+    }
+
+    private static OptionalInt customModelOf(LootEntry entry) {
+        Integer customModel = entry.customModel();
+        return customModel == null ? OptionalInt.empty() : OptionalInt.of(customModel);
     }
 
     private static List<ItemEnchantment> drawEnchantments(LootEntry entry, RNG rng) {
@@ -142,9 +154,9 @@ public final class LootItems {
 
     private static ItemDrop.Source sourceOf(LootEntry entry, LootTable table) {
         if (table == null) {
-            return new ItemDrop.Source(null, 0, entry.rarity());
+            return new ItemDrop.Source(Optional.empty(), 0, entry.rarity());
         }
-        return new ItemDrop.Source(table.name(), table.rarity(), entry.rarity());
+        return new ItemDrop.Source(Optional.ofNullable(table.name()), table.rarity(), entry.rarity());
     }
 
     private static boolean isAir(String type) {

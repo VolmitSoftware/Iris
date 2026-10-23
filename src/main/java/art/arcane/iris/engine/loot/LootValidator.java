@@ -55,7 +55,7 @@ public final class LootValidator implements Validator {
 
     private static List<Problem> checkTables(PackResources resources) {
         List<Problem> problems = new ArrayList<>();
-        for (ResourceId id : resources.ids(LootTable.class)) {
+        for (ResourceId id : resources.ids(LootResources.TABLES)) {
             String lootKey = id.path();
             List<String> errors = new ArrayList<>();
             LootTable table = readTable(resources, id, lootKey, errors);
@@ -68,7 +68,7 @@ public final class LootValidator implements Validator {
     }
 
     private static List<Problem> checkReferences(ValidationContext pack) {
-        Set<ResourceId> lootIds = Set.copyOf(pack.resources().ids(LootTable.class));
+        Set<ResourceId> lootIds = Set.copyOf(pack.resources().ids(LootResources.TABLES));
         List<Problem> problems = new ArrayList<>();
         List<Entry<LootSettings>> declared = new ArrayList<>(pack.settings().declared(LootSettings.class).entries());
         declared.sort(Comparator.comparing(Entry<LootSettings>::level).thenComparing(Entry::source));
@@ -93,7 +93,7 @@ public final class LootValidator implements Validator {
 
     private static LootTable readTable(PackResources resources, ResourceId id, String key, List<String> errors) {
         try {
-            return resources.find(LootResources.TABLES.key(id)).orElse(null);
+            return resources.find(LootResources.TABLES, id).orElse(null);
         } catch (IllegalStateException failedToLoad) {
             errors.add("Loot table '" + key + "' cannot be read: " + failedToLoad.getMessage());
             return null;

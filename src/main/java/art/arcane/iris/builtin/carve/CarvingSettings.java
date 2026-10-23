@@ -24,6 +24,8 @@ import com.volmit.config.Desc;
 import com.volmit.config.Feature;
 import com.volmit.config.LinkedBiomes;
 import com.volmit.config.MinItems;
+import com.volmit.resource.PackResources;
+import com.volmit.resource.ResourceId;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -68,11 +70,11 @@ public final class CarvingSettings implements IrisFeature, LinkedBiomes {
     }
 
     @Override
-    public Set<String> usedBiomes(Collection<IrisFeature> dimension) {
-        Set<String> biomes = new LinkedHashSet<>();
+    public Set<ResourceId> usedBiomes(PackResources pack, Collection<IrisFeature> dimension) {
+        Set<ResourceId> biomes = new LinkedHashSet<>();
         for (CarvingEntry entry : entries()) {
-            if (entry != null && entry.enabled()) {
-                biomes.add(entry.biome());
+            if (entry != null && entry.enabled() && entry.biome() != null && !entry.biome().isBlank()) {
+                biomes.add(pack.idOf(entry.biome()));
             }
         }
         return biomes;

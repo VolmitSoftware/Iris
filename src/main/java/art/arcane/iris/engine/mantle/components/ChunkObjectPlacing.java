@@ -89,7 +89,7 @@ final class ChunkObjectPlacing {
         this.host = host;
         this.log = log;
         this.context = context;
-        this.chunk = host.chunk();
+        this.chunk = host.chunk(context);
         this.terrain = context.terrain();
         this.chunkX = context.chunkX();
         this.chunkZ = context.chunkZ();

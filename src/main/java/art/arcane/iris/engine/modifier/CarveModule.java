@@ -19,6 +19,7 @@
 package art.arcane.iris.engine.modifier;
 
 import art.arcane.iris.builtin.IrisSeed;
+import art.arcane.iris.builtin.IrisSeeds;
 import art.arcane.iris.builtin.IrisStages;
 import art.arcane.iris.builtin.MatterMantle;
 import art.arcane.iris.builtin.carve.CarvingBiomeSettings;
@@ -81,12 +82,12 @@ public final class CarveModule implements IrisModule {
         if (!carves(context)) {
             return;
         }
-        MatterMantle mantle = MatterMantle.of(context.mantle());
+        MatterMantle mantle = context.extension(MatterMantle.class).orElseThrow();
         caveCarving(context).carve(mantle, context.terrain(), context.chunkX(), context.chunkZ());
     }
 
     private static void applyCaves(ChunkStageContext context) {
-        MatterMantle mantle = MatterMantle.of(context.mantle());
+        MatterMantle mantle = context.extension(MatterMantle.class).orElseThrow();
         Hunk<BlockState> blocks = context.hunk(BlockState.class);
         caveApplying(context).apply(mantle, context.terrain(), context.chunkX(), context.chunkZ(), blocks, CaveDressing.of(context));
     }
@@ -114,7 +115,8 @@ public final class CarveModule implements IrisModule {
     /** What the carvers need of the world, from the dimension's settings and the first terrain they see (constant for the world). */
     private static CarveWorld carveWorld(PackWorld world, TerrainSampler terrain) {
         int lavaHeight = dimensionSetting(world, CaveLavaHeightSettings.class, CaveLavaHeightSettings::height, CaveLavaHeightSettings.DEFAULT_HEIGHT);
-        return new CarveWorld(world.resources().noise(), IrisSeed.CARVE.of(world), terrain.bounds().maxY(), terrain.fluidHeight(), lavaHeight,
+        return new CarveWorld(world.resources().noise(), world.extension(IrisSeeds.class).orElseThrow().seed(IrisSeed.CARVE),
+                terrain.bounds().maxY(), terrain.fluidHeight(), lavaHeight,
                 world.minHeight());
     }
 

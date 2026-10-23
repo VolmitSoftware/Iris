@@ -18,6 +18,7 @@
 package art.arcane.iris.engine.decorator;
 
 import art.arcane.iris.builtin.IrisSeed;
+import art.arcane.iris.builtin.IrisSeeds;
 import art.arcane.iris.builtin.decorant.DecorantSettings;
 import art.arcane.iris.builtin.decorant.DecorationPart;
 import art.arcane.iris.builtin.decorant.Decorator;
@@ -59,7 +60,7 @@ public final class BiomeDecorators {
         this.world = world;
         this.resources = world.resources();
         this.log = world.log();
-        this.decoratorSeed = IrisSeed.DECORATOR.of(world);
+        this.decoratorSeed = world.extension(IrisSeeds.class).orElseThrow().seed(IrisSeed.DECORATOR);
     }
 
     /** The world's decorators, kept in its state store. */

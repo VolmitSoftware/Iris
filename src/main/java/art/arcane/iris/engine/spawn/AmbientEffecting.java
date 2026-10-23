@@ -42,7 +42,7 @@ import java.util.Optional;
 public final class AmbientEffecting implements AmbientEffects {
     @Override
     public List<Effect> due(PackWorld world, BlockPosition at) {
-        LiveWorld live = LiveWorld.of(world);
+        LiveWorld live = world.extension(LiveWorld.class).orElseThrow();
         EffectTimers timers = world.state(EffectTimers.class, ignored -> new EffectTimers());
         Optional<Sky> sky = live.sky();
 
@@ -65,8 +65,8 @@ public final class AmbientEffecting implements AmbientEffects {
     }
 
     private static Effect play(AmbientEffect effect, Optional<Sky> sky) {
-        Sound sound = effect.sound() == null ? null : soundOf(effect);
-        Particles particles = effect.particleEffect() == null ? null : particlesOf(effect);
+        Optional<Sound> sound = effect.sound() == null ? Optional.empty() : Optional.of(soundOf(effect));
+        Optional<Particles> particles = effect.particleEffect() == null ? Optional.empty() : Optional.of(particlesOf(effect));
         return new Effect(sound, particles, commandsOf(effect.commandRegistry(), sky), potionOf(effect));
     }
 
@@ -115,14 +115,14 @@ public final class AmbientEffecting implements AmbientEffects {
         return commands;
     }
 
-    private static Potion potionOf(AmbientEffect effect) {
+    private static Optional<Potion> potionOf(AmbientEffect effect) {
         if (effect.potionStrength() <= -1) {
-            return null;
+            return Optional.empty();
         }
 
         int shortest = Math.min(effect.potionTicksMax(), effect.potionTicksMin());
         int longest = Math.max(effect.potionTicksMax(), effect.potionTicksMin());
-        return new Potion(effect.potionEffect(), effect.potionStrength(), RNG.r.i(shortest, longest));
+        return Optional.of(new Potion(effect.potionEffect(), effect.potionStrength(), RNG.r.i(shortest, longest)));
     }
 
     private static double commandOffset(double offset, boolean random) {

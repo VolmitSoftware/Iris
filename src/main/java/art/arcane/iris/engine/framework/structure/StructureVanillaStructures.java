@@ -18,8 +18,6 @@
 
 package art.arcane.iris.engine.framework.structure;
 
-import art.arcane.iris.core.modules.IrisPackSettings;
-import art.arcane.iris.core.modules.IrisPackWorld;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.IrisStructureLocator;
 import art.arcane.iris.engine.framework.StructurePlacementGrid;
@@ -64,7 +62,7 @@ public final class StructureVanillaStructures implements VanillaStructures {
      */
     @Override
     public VanillaStructureRule rule(ResourceId structure, VanillaStructureContext context) {
-        Engine engine = IrisPackSettings.of(context.settings()).engine();
+        Engine engine = context.settings().extension(Engine.class).orElseThrow();
         String key = structure.toString();
         boolean replaced = IrisStructureLocator.suppressesVanilla(engine, key);
         boolean blocked = replaced || ImportedStructures.of(context.settings()).disables(key);
@@ -135,7 +133,7 @@ public final class StructureVanillaStructures implements VanillaStructures {
     }
 
     private static Engine engine(PackWorld world) {
-        return IrisPackWorld.of(world).engine();
+        return world.extension(Engine.class).orElseThrow();
     }
 
     private static Set<ResourceId> structureIds(Set<String> keys) {

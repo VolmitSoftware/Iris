@@ -18,6 +18,7 @@
 package art.arcane.iris.engine.actuator;
 
 import art.arcane.iris.builtin.IrisSeed;
+import art.arcane.iris.builtin.IrisSeeds;
 import art.arcane.iris.builtin.terrain.OreSettings;
 import art.arcane.volmlib.util.math.RNG;
 import com.volmit.config.FeatureSettings.Entry;
@@ -49,7 +50,7 @@ final class OreWarmUp {
     OreWarmUp(PackWorld world, TerrainOres ores) {
         this.world = world;
         this.ores = ores;
-        this.root = new RNG(IrisSeed.COMPONENT.of(world) + ROOT_SEED_SALT);
+        this.root = new RNG(world.extension(IrisSeeds.class).orElseThrow().seed(IrisSeed.COMPONENT) + ROOT_SEED_SALT);
     }
 
     void warm() {

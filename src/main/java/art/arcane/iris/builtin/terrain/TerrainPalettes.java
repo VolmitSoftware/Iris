@@ -18,6 +18,7 @@
 package art.arcane.iris.builtin.terrain;
 
 import art.arcane.iris.builtin.IrisSeed;
+import art.arcane.iris.builtin.IrisSeeds;
 import art.arcane.volmlib.util.cache.AtomicCache;
 import art.arcane.volmlib.util.math.RNG;
 import com.volmit.block.BlockState;
@@ -61,7 +62,7 @@ public final class TerrainPalettes {
 
     TerrainPalettes(PackWorld world) {
         this.world = world;
-        this.complexSeed = IrisSeed.COMPLEX.of(world);
+        this.complexSeed = world.extension(IrisSeeds.class).orElseThrow().seed(IrisSeed.COMPLEX);
     }
 
     /** The palettes of {@code world}. */

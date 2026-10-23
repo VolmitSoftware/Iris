@@ -20,34 +20,20 @@ package art.arcane.iris.builtin;
 
 import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
 import art.arcane.volmlib.util.matter.Matter;
-import com.volmit.host.ReadOnlyMantle;
-import com.volmit.mantle.Mantle;
 
 /**
  * Iris's mantle as the matter slices it stores, for the built-ins whose data the platform and the rest of Iris read as
  * slices rather than through a {@link com.volmit.mantle.MantleLayer}: caves ({@code MatterCavern}) and markers. The
- * slices are VolmLib's own types, which a pack module may use as well; Iris's worlds implement this next to
- * {@link Mantle}, and {@link #of(Mantle)} reaches it from an invocation's mantle.
+ * slices are VolmLib's own types, which a pack module may use as well. Iris offers it as an extension of its mantle and
+ * chunk invocations: {@code context.extension(MatterMantle.class)}.
+ *
+ * <p>A chunk invocation's matter mantle holds its own chunk only, which the stage may write, as a chunk stage writes the
+ * mantle of its own chunk; it reads its neighbours through {@link #loadedChunk} alone.
  *
  * <p>Heights are as the mantle stores them: above the dimension's bottom. A chunk the invocation reaches is pinned for
  * as long as the invocation runs; callers neither release it nor keep it afterwards.
  */
 public interface MatterMantle {
-    /**
-     * The matter side of {@code mantle}, which must be a mantle Iris hands to its stages. A chunk stage's mantle is read-only
-     * to the stage; the matter behind it is not, and a built-in chunk stage that writes markers into it (the caves' floors and
-     * ceilings) is why this reaches through.
-     */
-    static MatterMantle of(Mantle mantle) {
-        if (mantle instanceof ReadOnlyMantle readOnly) {
-            return of(readOnly.host());
-        }
-        if (mantle instanceof MatterMantle matter) {
-            return matter;
-        }
-        throw new IllegalArgumentException("Built-in modules write Iris's own mantle, not " + mantle);
-    }
-
     /** The mantle chunk at chunk coordinates {@code chunkX}, {@code chunkZ}, or null outside what the invocation reaches. */
     MantleChunk<Matter> chunk(int chunkX, int chunkZ);
 

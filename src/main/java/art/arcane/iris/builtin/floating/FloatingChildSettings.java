@@ -25,6 +25,8 @@ import com.volmit.config.Desc;
 import com.volmit.config.Feature;
 import com.volmit.config.LinkedBiomes;
 import com.volmit.config.MinItems;
+import com.volmit.resource.PackResources;
+import com.volmit.resource.ResourceId;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -56,15 +58,21 @@ public final class FloatingChildSettings implements IrisFeature, LinkedBiomes {
     }
 
     @Override
-    public Set<String> usedBiomes(Collection<IrisFeature> dimension) {
+    public Set<ResourceId> usedBiomes(PackResources pack, Collection<IrisFeature> dimension) {
         CarvingSettings carving = dimension.stream().filter(CarvingSettings.class::isInstance).map(CarvingSettings.class::cast).findFirst().orElse(null);
-        Set<String> biomes = new LinkedHashSet<>();
+        Set<ResourceId> biomes = new LinkedHashSet<>();
         for (FloatingChildBiome child : children()) {
             if (child != null) {
-                biomes.add(child.biome());
-                biomes.add(carving == null ? child.carving() : carving.biomeOf(child.carving()));
+                addBiome(pack, biomes, child.biome());
+                addBiome(pack, biomes, carving == null ? child.carving() : carving.biomeOf(child.carving()));
             }
         }
         return biomes;
+    }
+
+    private static void addBiome(PackResources pack, Set<ResourceId> biomes, String key) {
+        if (key != null && !key.isBlank()) {
+            biomes.add(pack.idOf(key));
+        }
     }
 }

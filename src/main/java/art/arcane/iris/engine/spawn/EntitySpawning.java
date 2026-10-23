@@ -19,6 +19,7 @@
 package art.arcane.iris.engine.spawn;
 
 import art.arcane.iris.builtin.IrisSeed;
+import art.arcane.iris.builtin.IrisSeeds;
 import art.arcane.iris.builtin.LiveWorld;
 import art.arcane.iris.builtin.LiveWorld.Level;
 import art.arcane.iris.builtin.loot.LootResolver;
@@ -37,6 +38,7 @@ import art.arcane.volmlib.util.scheduling.ChronoLatch;
 import com.volmit.config.Range;
 import com.volmit.entity.EntitySpec;
 import com.volmit.resource.PackResources;
+import com.volmit.resource.ResourceId;
 import com.volmit.service.EntitySpawns;
 import com.volmit.world.BlockPosition;
 import com.volmit.world.PackWorld;
@@ -76,15 +78,16 @@ public final class EntitySpawning implements EntitySpawns {
         if (count <= 0) {
             return;
         }
-        Spawner spawner = SpawnResources.spawner(world.resources(), plan.spawner());
+        String spawnerKey = plan.spawner().path();
+        Spawner spawner = SpawnResources.spawner(world.resources(), spawnerKey);
         if (spawner != null) {
-            SpawnerGate.spawned(plan.spawner(), spawner, LiveWorld.of(world), plan.chunkX(), plan.chunkZ());
+            SpawnerGate.spawned(spawnerKey, spawner, world.extension(LiveWorld.class).orElseThrow(), plan.chunkX(), plan.chunkZ());
         }
     }
 
     @Override
-    public Optional<EntitySpec> entity(PackWorld world, String key) {
-        EntityDefinition entity = SpawnResources.entity(world.resources(), key);
+    public Optional<EntitySpec> entity(PackWorld world, ResourceId id) {
+        EntityDefinition entity = SpawnResources.entity(world.resources(), id.path());
         if (entity == null) {
             return Optional.empty();
         }
@@ -101,13 +104,13 @@ public final class EntitySpawning implements EntitySpawns {
             return Optional.empty();
         }
 
-        List<String> spawners = new ArrayList<>();
+        List<ResourceId> spawners = new ArrayList<>();
         for (String key : marker.spawners()) {
             if (SpawnResources.spawner(world.resources(), key) == null) {
                 world.log().error("Cannot load spawner: " + key + " for marker " + tag, null);
                 continue;
             }
-            spawners.add(key);
+            spawners.add(world.resources().idOf(key));
         }
         return Optional.of(new MarkerRule(spawners, marker.emptyAbove(), marker.removeOnChange()));
     }
@@ -119,14 +122,14 @@ public final class EntitySpawning implements EntitySpawns {
             return;
         }
         PackResources resources = world.resources();
-        LiveWorld.of(world).spawnCooldowns().forgetExpired(key -> {
+        world.extension(LiveWorld.class).orElseThrow().spawnCooldowns().forgetExpired(key -> {
             Spawner spawner = SpawnResources.spawner(resources, key);
             return spawner == null ? -1L : spawner.maximumRate().interval();
         });
     }
 
     private Optional<Plan> planChunk(PackWorld world, Chunk chunk) {
-        LiveWorld live = LiveWorld.of(world);
+        LiveWorld live = world.extension(LiveWorld.class).orElseThrow();
         Predicate<KeyedSpawner> canSpawn = keyed -> SpawnerGate.canSpawn(keyed.key(), keyed.spawner(), live, chunk.chunkX(), chunk.chunkZ());
         int blockX = PowerOfTwoCoordinates.chunkToBlock(chunk.chunkX());
         int blockZ = PowerOfTwoCoordinates.chunkToBlock(chunk.chunkZ());
@@ -161,7 +164,7 @@ public final class EntitySpawning implements EntitySpawns {
                 addAttempt(attempts, world, chosen, at, true);
             }
         }
-        return attempts.isEmpty() ? Optional.empty() : Optional.of(new Plan(chosen.key(), chunk.chunkX(), chunk.chunkZ(), false, attempts));
+        return attempts.isEmpty() ? Optional.empty() : Optional.of(new Plan(world.resources().idOf(chosen.key()), chunk.chunkX(), chunk.chunkZ(), false, attempts));
     }
 
     /** Where a spawner of its group puts an entity at the column; null when it has no place for one. */
@@ -182,7 +185,8 @@ public final class EntitySpawning implements EntitySpawns {
     }
 
     private Optional<Plan> planMarker(PackWorld world, Marker marker) {
-        Spawner spawner = SpawnResources.spawner(world.resources(), marker.spawner());
+        String spawnerKey = marker.spawner().path();
+        Spawner spawner = SpawnResources.spawner(world.resources(), spawnerKey);
         SpawnMarker spawnMarker = SpawnResources.marker(world.resources(), marker.marker());
         if (spawner == null) {
             return Optional.empty();
@@ -197,8 +201,8 @@ public final class EntitySpawning implements EntitySpawns {
         BlockPosition position = marker.position();
         int chunkX = PowerOfTwoCoordinates.blockToChunkFloor(position.x());
         int chunkZ = PowerOfTwoCoordinates.blockToChunkFloor(position.z());
-        LiveWorld live = LiveWorld.of(world);
-        if (!SpawnerGate.canSpawn(marker.spawner(), spawner, live, chunkX, chunkZ)) {
+        LiveWorld live = world.extension(LiveWorld.class).orElseThrow();
+        if (!SpawnerGate.canSpawn(spawnerKey, spawner, live, chunkX, chunkZ)) {
             return Optional.empty();
         }
 
@@ -210,7 +214,7 @@ public final class EntitySpawning implements EntitySpawns {
         List<Attempt> attempts = new ArrayList<>();
         BlockPosition above = new BlockPosition(position.x(), position.y() + AIR_ABOVE_MARKER, position.z());
         for (int i = 0; i < count; i++) {
-            addAttempt(attempts, world, new Candidate(marker.spawner(), spawner, spawn), above, false);
+            addAttempt(attempts, world, new Candidate(spawnerKey, spawner, spawn), above, false);
         }
         return attempts.isEmpty() ? Optional.empty() : Optional.of(new Plan(marker.spawner(), chunkX, chunkZ, exhaustsMarker, attempts));
     }
@@ -233,9 +237,9 @@ public final class EntitySpawning implements EntitySpawns {
     }
 
     private static EntityResolution resolution(PackWorld world) {
-        LiveWorld live = LiveWorld.of(world);
+        LiveWorld live = world.extension(LiveWorld.class).orElseThrow();
         LootItems items = new LootItems(world.resources().items(), live.studio());
-        return new EntityResolution(items, live.sky(), world.state(EffectTimers.class, ignored -> new EffectTimers()));
+        return new EntityResolution(world.resources(), items, live.sky(),world.state(EffectTimers.class, ignored -> new EffectTimers()));
     }
 
     private static EntityRandom entityRandom(PackWorld world) {
@@ -270,7 +274,7 @@ public final class EntitySpawning implements EntitySpawns {
         private final RNG rng;
 
         private EntityRandom(PackWorld world) {
-            this.rng = new RNG(IrisSeed.ENTITY.of(world));
+            this.rng = new RNG(world.extension(IrisSeeds.class).orElseThrow().seed(IrisSeed.ENTITY));
         }
 
         private RNG rng() {

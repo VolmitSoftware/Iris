@@ -100,7 +100,7 @@ public final class SpawnResources {
             return null;
         }
         try {
-            return resources.find(kind.key(resources.idOf(key))).orElse(null);
+            return resources.find(kind, resources.idOf(key)).orElse(null);
         } catch (IllegalStateException failedToLoad) {
             return null;
         }
@@ -108,6 +108,6 @@ public final class SpawnResources {
 
     /** A key's id has the key as its path, so the path names the resource again wherever a key is expected. */
     private static List<String> keys(PackResources resources, ResourceKind<?> kind) {
-        return resources.ids(kind.type()).stream().map(ResourceId::path).toList();
+        return resources.ids(kind).stream().map(ResourceId::path).toList();
     }
 }

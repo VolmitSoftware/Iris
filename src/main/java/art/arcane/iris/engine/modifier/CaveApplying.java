@@ -34,8 +34,6 @@ import com.volmit.block.BlockState;
 import com.volmit.hunk.Hunk;
 import com.volmit.resource.PackResources;
 import com.volmit.resource.ResourceId;
-import com.volmit.resource.ResourceKey;
-import com.volmit.world.PackBiome;
 import com.volmit.world.PackWorld;
 import com.volmit.world.TerrainSampler;
 import lombok.Data;
@@ -666,7 +664,7 @@ public class CaveApplying {
         private ResourceId existingBiomeId(String key) {
             ResourceId id = resources.idOf(key);
             try {
-                return resources.find(new ResourceKey<>(id, PackBiome.class)).isPresent() ? id : null;
+                return resources.find(PackResources.BIOMES, id).isPresent() ? id : null;
             } catch (IllegalStateException unreadable) {
                 return null;
             }

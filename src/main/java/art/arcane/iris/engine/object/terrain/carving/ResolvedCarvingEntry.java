@@ -24,7 +24,6 @@ import com.volmit.ModuleLog;
 import com.volmit.config.Range;
 import com.volmit.noise.NoiseSampler;
 import com.volmit.resource.PackResources;
-import com.volmit.resource.ResourceKey;
 import com.volmit.world.PackBiome;
 
 import java.util.List;
@@ -82,7 +81,7 @@ public final class ResolvedCarvingEntry {
             }
 
             try {
-                return resources.find(new ResourceKey<>(resources.idOf(biomeKey.trim()), PackBiome.class)).orElse(null);
+                return resources.find(PackResources.BIOMES, resources.idOf(biomeKey.trim())).orElse(null);
             } catch (IllegalStateException unreadable) {
                 log.warnOnce("carving-biome:" + biomeKey, "The biome " + biomeKey + " of a carving entry cannot be loaded: " + unreadable.getMessage());
                 return null;

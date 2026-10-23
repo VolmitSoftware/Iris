@@ -79,6 +79,6 @@ public final class ObjectModule implements IrisModule, ModuleLifecycle {
     }
 
     private static int reach(PackSettings settings, ModuleLog log) {
-        return new PlacementReach(ObjectHost.of(settings), log).ofPack(settings);
+        return new PlacementReach(settings.extension(ObjectHost.class).orElseThrow(), log).ofPack(settings);
     }
 }

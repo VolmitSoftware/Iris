@@ -21,34 +21,17 @@ package art.arcane.iris.builtin.floating;
 import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.builtin.objects.PlaceableObject;
 import art.arcane.volmlib.util.math.RNG;
-import com.volmit.config.PackSettings;
+import com.volmit.generation.InvocationContext;
 import com.volmit.resource.ResourceId;
-import com.volmit.world.PackWorld;
 
 import java.util.Optional;
 
 /**
  * What {@code iris:floating} asks of Iris beyond the API: the biome of any column, a biome's own terrain height, the sky
- * biome an island paints, and placing Iris objects against an island. Iris's worlds implement it; a module reaches it
- * with {@link #of}.
+ * biome an island paints, and placing Iris objects against an island. Iris offers it as an extension of its worlds and
+ * of the settings of the pack it loads: {@code world.extension(FloatingHost.class)}.
  */
 public interface FloatingHost {
-    /** The host of the world {@code settings} are the pack's of, which must be a world Iris generates. */
-    static FloatingHost of(PackSettings settings) {
-        if (settings instanceof Source source) {
-            return source.floating();
-        }
-        throw new IllegalArgumentException("Built-in modules generate Iris's own worlds, not " + settings);
-    }
-
-    /** The host of {@code world}, which must be a world Iris generates. */
-    static FloatingHost of(PackWorld world) {
-        if (world instanceof Source source) {
-            return source.floating();
-        }
-        throw new IllegalArgumentException("Built-in modules generate Iris's own worlds, not " + world);
-    }
-
     /** The biome of the column's surface, the biome an island grows from; any column, not only the chunk's. */
     ResourceId surfaceBiome(int worldX, int worldZ);
 
@@ -70,24 +53,21 @@ public interface FloatingHost {
     /** {@code object} shrunk by {@code factor} (below 1), the variant picked with {@code random}. */
     Optional<PlaceableObject> shrink(PlaceableObject object, double factor, RNG random);
 
-    /** Places {@code object} floating free at the column, into the chunk the mantle is generating. */
-    void placeFloating(PlaceableObject object, int worldX, int worldZ, ObjectPlacement placement, RNG random);
+    /** Places {@code object} floating free at the column, into the chunk the mantle invocation {@code context} generates. */
+    void placeFloating(InvocationContext context, PlaceableObject object, int worldX, int worldZ, ObjectPlacement placement,
+                       RNG random);
 
     /**
-     * Places {@code object} on an island's top, its lowest block at {@code y}, into the chunk the mantle is generating; nothing
-     * is written unless every block it writes is one {@code anchor} lets it write.
+     * Places {@code object} on an island's top, its lowest block at {@code y}, into the chunk the mantle invocation
+     * {@code context} generates; nothing is written unless every block it writes is one {@code anchor} lets it write.
      */
-    void placeOnTop(PlaceableObject object, int worldX, int y, int worldZ, ObjectPlacement placement, IslandAnchor anchor, RNG random);
+    void placeOnTop(InvocationContext context, PlaceableObject object, int worldX, int y, int worldZ,
+                    ObjectPlacement placement, IslandAnchor anchor, RNG random);
 
     /**
      * Places {@code object} upside down under an island, turned {@code yRotation} degrees about Y, as {@link #placeOnTop} does
      * on top.
      */
-    void placeUnder(PlaceableObject object, int worldX, int y, int worldZ, int yRotation, ObjectPlacement placement,
-                    IslandAnchor anchor, RNG random);
-
-    /** A world that hands out its {@link FloatingHost}. */
-    interface Source {
-        FloatingHost floating();
-    }
+    void placeUnder(InvocationContext context, PlaceableObject object, int worldX, int y, int worldZ, int yRotation,
+                    ObjectPlacement placement, IslandAnchor anchor, RNG random);
 }

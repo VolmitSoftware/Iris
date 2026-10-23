@@ -49,8 +49,12 @@ public final class LootResources {
         if (key == null || key.isBlank()) {
             return null;
         }
+        return table(resources, resources.idOf(key));
+    }
+
+    public static LootTable table(PackResources resources, ResourceId id) {
         try {
-            return resources.find(TABLES.key(resources.idOf(key))).orElse(null);
+            return resources.find(TABLES, id).orElse(null);
         } catch (IllegalStateException failedToLoad) {
             return null;
         }
@@ -58,6 +62,6 @@ public final class LootResources {
 
     /** The key of every loot table of the pack, in key order. */
     public static List<String> tableKeys(PackResources resources) {
-        return resources.ids(TABLES.type()).stream().map(ResourceId::path).toList();
+        return resources.ids(TABLES).stream().map(ResourceId::path).toList();
     }
 }

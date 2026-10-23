@@ -41,6 +41,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * How {@code iris:objects} grows trees: when a sapling grows, the tree comes from the tree placements of the biome and
@@ -53,7 +54,7 @@ public final class TreeGrowing implements SaplingGrowth {
 
     @Override
     public Optional<Growth> grow(PackWorld world, Sapling sapling, Surroundings surroundings) {
-        ObjectHost host = ObjectHost.of(world);
+        ObjectHost host = world.extension(ObjectHost.class).orElseThrow();
         BlockPosition at = sapling.at();
         TreeGrowthSettings growth = treeGrowth(host, at);
         if (!growth.enabled()) {
@@ -72,12 +73,12 @@ public final class TreeGrowing implements SaplingGrowth {
         GrowthSink sink = new GrowthSink(surroundings, host);
         BlockPosition center = sapling.center();
         host.placeInto(object, center.x(), center.y() + object.height() / 2, center.z(), placement.get(), sink, RNG.r);
-        return Optional.of(new Growth(object.key(), sink.placed()));
+        return Optional.of(new Growth(world.resources().idOf(object.key()), sink.placed()));
     }
 
     @Override
     public TreeObjects treeObjects(PackWorld world) {
-        ObjectHost host = ObjectHost.of(world);
+        ObjectHost host = world.extension(ObjectHost.class).orElseThrow();
         Set<String> objects = new HashSet<>();
         Set<String> procedural = new HashSet<>();
         for (Declaration<ObjectSettings> declaration : host.declarations(ObjectSettings.class)) {
@@ -86,7 +87,11 @@ public final class TreeGrowing implements SaplingGrowth {
         for (Declaration<ProceduralObjectSettings> declaration : host.declarations(ProceduralObjectSettings.class)) {
             collectProceduralTrees(declaration.settings().trees(), procedural);
         }
-        return new TreeObjects(objects, procedural);
+        return new TreeObjects(idsOf(world, objects), idsOf(world, procedural));
+    }
+
+    private static Set<ResourceId> idsOf(PackWorld world, Set<String> keys) {
+        return keys.stream().map(world.resources()::idOf).collect(Collectors.toSet());
     }
 
     private static TreeGrowthSettings treeGrowth(ObjectHost host, BlockPosition at) {

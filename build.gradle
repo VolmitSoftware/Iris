@@ -439,6 +439,21 @@ if (selectedModdedBuilds.isEmpty()) {
     throw new GradleException("Minecraft ${minecraftVersion} is not a mod target in gradle/mod-targets.json")
 }
 
+tasks.register('prepareRelease', Sync) {
+    group = 'distribution'
+    description = 'Builds, verifies and stages one selected mod loader jar for publication.'
+    Provider<IrisModdedBuild> releaseBuild = providers.provider {
+        String releaseLoader = providers.gradleProperty('releaseLoader').orNull
+        if (!moddedLoaderLabels.containsKey(releaseLoader)) {
+            throw new GradleException('prepareRelease requires -PreleaseLoader=fabric, forge or neoforge')
+        }
+        return selectedModdedBuilds[releaseLoader].get()
+    }
+    dependsOn(releaseBuild)
+    from(releaseBuild.flatMap { IrisModdedBuild task -> task.artifactFile })
+    into(layout.buildDirectory.dir('release'))
+}
+
 tasks.register('buildFabric') {
     group = 'iris'
     description = "Builds and verifies the Fabric ${minecraftVersion} jar."

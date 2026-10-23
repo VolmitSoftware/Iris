@@ -1,0 +1,8 @@
+{
+  "name": "Iris",
+  "platform": "modded",
+  "versionProperty": "irisVersion",
+  "betaTag": "modded-beta",
+  "targets": "gradle/mod-targets.json",
+  "volmlibRef": "master"
+}

@@ -1,0 +1,157 @@
+name: Release
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+    paths:
+      - '.github/**'
+      - '**/*.gradle'
+      - '**/gradle.properties'
+      - 'gradle/**/*.json'
+
+permissions:
+  contents: read
+
+env:
+  PYTHONDONTWRITEBYTECODE: '1'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Test release handling
+        run: python3 -m unittest discover -s .github -p 'test_release.py' -v
+
+  plan:
+    needs: validate
+    if: github.event_name == 'push' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    runs-on: ubuntu-latest
+    outputs:
+      channel: ${{ steps.release.outputs.channel }}
+      version: ${{ steps.release.outputs.version }}
+      attempt: ${{ steps.release.outputs.attempt }}
+      version_property: ${{ steps.release.outputs.version_property }}
+      matrix: ${{ steps.release.outputs.matrix }}
+      volmlib_ref: ${{ steps.release.outputs.volmlib_ref }}
+      wormholes_ref: ${{ steps.release.outputs.wormholes_ref }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Select release channel and targets
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 .github/release.py plan
+
+  build:
+    needs: plan
+    if: needs.plan.outputs.channel != 'none'
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    env:
+      ORG_GRADLE_PROJECT_localVolmLibDirectory: ${{ github.workspace }}/VolmLib
+      RELEASE_VERSION: ${{ needs.plan.outputs.version }}
+      VERSION_PROPERTY: ${{ needs.plan.outputs.version_property }}
+      RELEASE_LOADER: ${{ matrix.loader }}
+      MINECRAFT_VERSION: ${{ matrix.minecraft }}
+    steps:
+      - name: Check out release sources
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          path: project
+          submodules: recursive
+          persist-credentials: false
+      - name: Check out VolmLib
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: VolmitSoftware/VolmLib
+          ref: ${{ needs.plan.outputs.volmlib_ref }}
+          path: VolmLib
+          persist-credentials: false
+      - name: Check out Wormholes API sources
+        if: needs.plan.outputs.wormholes_ref != ''
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: VolmitSoftware/Wormholes
+          ref: ${{ needs.plan.outputs.wormholes_ref }}
+          path: WormholesPlugin
+          submodules: recursive
+          persist-credentials: false
+      - name: Set up Java 21 toolchain
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Set up Java 25
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad
+        with:
+          distribution: temurin
+          java-version: '25'
+      - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6
+      - name: Build Wormholes API
+        if: needs.plan.outputs.wormholes_ref != ''
+        working-directory: WormholesPlugin
+        run: ./gradlew apiJar --no-daemon --max-workers=2 '-Dorg.gradle.jvmargs=-Xmx2g -Dfile.encoding=UTF-8'
+      - name: Locate Wormholes API
+        if: needs.plan.outputs.wormholes_ref != ''
+        shell: bash
+        run: |
+          api_jars=(WormholesPlugin/build/libs/*-api.jar)
+          test "${#api_jars[@]}" -eq 1
+          test -f "${api_jars[0]}"
+          echo "ORG_GRADLE_PROJECT_wormholesApiJar=$PWD/${api_jars[0]}" >> "$GITHUB_ENV"
+      - name: Build and verify release jar
+        working-directory: project
+        shell: bash
+        run: |
+          arguments=(prepareRelease --no-daemon --max-workers=2
+            '-Dorg.gradle.jvmargs=-Xmx2g -Dfile.encoding=UTF-8'
+            "-P$VERSION_PROPERTY=$RELEASE_VERSION")
+          if [[ "$RELEASE_LOADER" != bukkit ]]; then
+            arguments+=("-PreleaseLoader=$RELEASE_LOADER" "-PminecraftVersion=$MINECRAFT_VERSION"
+              -PmoddedBuildParallelism=1 -PmoddedTestForks=1)
+          fi
+          ./gradlew "${arguments[@]}"
+      - name: Upload verified jar
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: release-${{ matrix.id }}
+          path: project/build/release/*.jar
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 0
+
+  publish:
+    needs: [plan, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    concurrency:
+      group: release-publication
+      cancel-in-progress: false
+      queue: max
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Download complete release matrix
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+        with:
+          pattern: release-*
+          path: build/release-artifacts
+      - name: Publish verified release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_ATTEMPT: ${{ needs.plan.outputs.attempt }}
+          RELEASE_VOLMLIB_REF: ${{ needs.plan.outputs.volmlib_ref }}
+          RELEASE_WORMHOLES_REF: ${{ needs.plan.outputs.wormholes_ref }}
+        run: python3 .github/release.py publish --artifacts build/release-artifacts

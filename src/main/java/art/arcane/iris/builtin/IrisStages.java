@@ -126,7 +126,7 @@ public final class IrisStages {
     /** Module {@code iris:carve}: caves, planned in the mantle and cut into each chunk's terrain. */
     public static final class Carve {
         /** Plans the caves of the dimension's cave profiles into the mantle, one block into each neighbor. */
-        public static final MantleStage<Void> CAVES = Stage.mantle("iris:carve/caves");
+        public static final MantleStage CAVES = Stage.mantle("iris:carve/caves");
         /** Cuts the planned caves out of the chunk's terrain and decorates their floors and ceilings. */
         public static final ChunkStage<Void> APPLY = Stage.chunk("iris:carve/apply");
 
@@ -137,7 +137,7 @@ public final class IrisStages {
     /** Module {@code iris:objects}: the objects the dimension's regions and biomes place. */
     public static final class Objects {
         /** Places surface, cave and upper-dimension objects into the mantle, after the caves they anchor in. */
-        public static final MantleStage<Void> PLACE = Stage.mantle("iris:objects/place");
+        public static final MantleStage PLACE = Stage.mantle("iris:objects/place");
 
         private Objects() {
         }
@@ -146,7 +146,7 @@ public final class IrisStages {
     /** Module {@code iris:floating}: the floating islands of floating child biomes. */
     public static final class Floating {
         /** Places the objects on and under the islands into the mantle, after the dimension's other objects. */
-        public static final MantleStage<Void> OBJECTS = Stage.mantle("iris:floating/objects");
+        public static final MantleStage OBJECTS = Stage.mantle("iris:floating/objects");
         /** Writes the islands' solid blocks. */
         public static final ChunkStage<Void> SOLIDS = Stage.chunk("iris:floating/solids");
         /** Decorates the islands' tops and bottoms once the chunk's own decoration is done. */
@@ -159,7 +159,7 @@ public final class IrisStages {
     /** Module {@code iris:structure}: Iris structures, assembled from pieces. */
     public static final class Structure {
         /** Places the structures of the dimension, its regions and biomes into the mantle, after objects and floating objects. */
-        public static final MantleStage<Void> PLACE = Stage.mantle("iris:structure/place");
+        public static final MantleStage PLACE = Stage.mantle("iris:structure/place");
 
         private Structure() {
         }

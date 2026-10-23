@@ -22,14 +22,13 @@ import art.arcane.iris.builtin.IrisStages;
 import art.arcane.iris.builtin.floating.FloatingChildSettings;
 import art.arcane.iris.builtin.floating.MergeFloatingChildrenSettings;
 import art.arcane.iris.engine.mantle.components.FloatingObjectPlacing;
-import com.volmit.FeatureRegistry;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
 import com.volmit.ModuleLog;
+import com.volmit.ModuleSetup;
 import com.volmit.config.PackSettings;
 import com.volmit.stage.ChunkStageContext;
 import com.volmit.stage.MantleStageContext;
-import com.volmit.stage.StageGraph;
 
 /**
  * Module {@code iris:floating}: the islands of floating child biomes, their objects in the mantle after the
@@ -48,20 +47,19 @@ public final class FloatingModule implements IrisModule {
     }
 
     @Override
-    public void register(FeatureRegistry registry) {
-        log = registry.log();
+    public void setup(ModuleSetup setup) {
+        log = setup.log();
+        var registry = setup.registry();
         registry.registerSettings(FloatingChildSettings.class);
         registry.registerSettings(MergeFloatingChildrenSettings.class);
-    }
 
-    @Override
-    public void install(StageGraph graph) {
-        graph.define(IrisStages.Floating.OBJECTS).softAfter(IrisStages.Objects.PLACE.ref()).reach(this::objectReach)
+        var graph = setup.stages();
+        graph.define(IrisStages.Floating.OBJECTS).softAfter(IrisStages.Objects.PLACE).reach(this::objectReach)
                 .run(FloatingModule::objects);
         // Ordering only: iris:post ships in the built-ins jar, which a pack may not have.
-        graph.define(IrisStages.Floating.SOLIDS).softAfter(IrisStages.Post.SMOOTH.ref()).run(FloatingModule::solids);
+        graph.define(IrisStages.Floating.SOLIDS).softAfter(IrisStages.Post.SMOOTH).run(FloatingModule::solids);
         // Ordering only: iris:decorant ships in the built-ins jar, which a pack may not have.
-        graph.define(IrisStages.Floating.DECORATE).softAfter(IrisStages.Decorant.DECORATE.ref()).run(FloatingModule::decorate);
+        graph.define(IrisStages.Floating.DECORATE).softAfter(IrisStages.Decorant.DECORATE).run(FloatingModule::decorate);
     }
 
     private static void objects(MantleStageContext context) {

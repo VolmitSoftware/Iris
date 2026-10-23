@@ -22,7 +22,7 @@ core (`art.arcane.iris.core.modules.BiomeModule` and `CustomModule`) and Iris re
 the built-ins jar. Their stage constants stay in `art.arcane.iris.builtin.IrisStages`, so packs can still order after them.
 
 Built-in modules log through the `ModuleLog` IrisApi hands them (`context.log()` in a stage body, `world.log()` in a
-service or hook, `registry.log()` while registering), which labels each line with the module's id, so these sources do not
+service or hook, `setup.log()` during setup), which labels each line with the module's id, so these sources do not
 use `IrisLogging`. Classes of the host's object model (the host-classes list) and code that only has an engine or pack
 data still log as Iris itself.
 

@@ -31,10 +31,10 @@ import art.arcane.iris.builtin.carve.UpperDimensionCarvingSettings;
 import art.arcane.iris.builtin.terrain.TerrainPalettes;
 import art.arcane.iris.engine.mantle.components.CarveWorld;
 import art.arcane.iris.engine.mantle.components.CaveCarving;
-import com.volmit.FeatureRegistry;
 import com.volmit.IrisFeature;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
+import com.volmit.ModuleSetup;
 import com.volmit.config.FeatureSettings;
 import com.volmit.config.FeatureSettings.Entry;
 import com.volmit.FeatureAttachment.Target;
@@ -45,7 +45,6 @@ import com.volmit.block.BlockTrait;
 import com.volmit.service.CaveBiomes;
 import com.volmit.stage.ChunkStageContext;
 import com.volmit.stage.MantleStageContext;
-import com.volmit.stage.StageGraph;
 import com.volmit.world.PackWorld;
 import com.volmit.world.TerrainSampler;
 
@@ -72,7 +71,8 @@ public final class CarveModule implements IrisModule {
     }
 
     @Override
-    public void register(FeatureRegistry registry) {
+    public void setup(ModuleSetup setup) {
+        var registry = setup.registry();
         registry.registerSettings(CaveProfile.class);
         registry.registerSettings(CarvingSettings.class);
         registry.registerSettings(CarvingEnabledSettings.class);
@@ -81,10 +81,8 @@ public final class CarveModule implements IrisModule {
         registry.registerSettings(CaveLavaHeightSettings.class);
         registry.registerSettings(UpperDimensionCarvingSettings.class);
         registry.registerService(CaveBiomes.class, new CaveBiomeBands());
-    }
 
-    @Override
-    public void install(StageGraph graph) {
+        var graph = setup.stages();
         graph.define(IrisStages.Carve.CAVES).reach(CAVE_REACH_BLOCKS).run(CarveModule::planCaves);
         graph.define(IrisStages.Carve.APPLY).requires(IrisStages.Terrain.SHAPE).run(CarveModule::applyCaves);
     }

@@ -22,12 +22,11 @@ import art.arcane.iris.builtin.IrisStages;
 import art.arcane.iris.builtin.structure.StructureHost;
 import art.arcane.iris.builtin.structure.StructurePlacementSettings;
 import art.arcane.iris.builtin.structure.StructureSettings;
-import com.volmit.FeatureRegistry;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
+import com.volmit.ModuleSetup;
 import com.volmit.config.PackSettings;
 import com.volmit.stage.MantleStageContext;
-import com.volmit.stage.StageGraph;
 
 /**
  * Module {@code iris:structure}: the structure placements a pack declares, and the mantle stage that places the jigsaw
@@ -44,13 +43,10 @@ public final class StructureModule implements IrisModule {
     }
 
     @Override
-    public void install(StageGraph graph) {
-        graph.define(IrisStages.Structure.PLACE).softAfter(IrisStages.Objects.PLACE.ref(), IrisStages.Floating.OBJECTS.ref())
+    public void setup(ModuleSetup setup) {
+        setup.stages().define(IrisStages.Structure.PLACE).softAfter(IrisStages.Objects.PLACE, IrisStages.Floating.OBJECTS)
                 .reach(StructureModule::reach).run(StructureModule::place);
-    }
-
-    @Override
-    public void register(FeatureRegistry registry) {
+        var registry = setup.registry();
         registry.registerSettings(StructureSettings.class);
         registry.registerSettings(StructurePlacementSettings.class);
     }

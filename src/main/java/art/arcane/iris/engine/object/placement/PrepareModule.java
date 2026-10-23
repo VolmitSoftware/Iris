@@ -35,11 +35,10 @@ import art.arcane.iris.builtin.prepare.SlopeClip;
 import art.arcane.iris.builtin.prepare.TransformedBounds;
 import art.arcane.volmlib.util.math.IrisBlockVector;
 import art.arcane.volmlib.util.math.RNG;
-import com.volmit.FeatureRegistry;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
+import com.volmit.ModuleSetup;
 import com.volmit.stage.PlacementStageContext;
-import com.volmit.stage.StageGraph;
 
 import java.util.Optional;
 
@@ -61,15 +60,13 @@ public final class PrepareModule implements IrisModule {
     }
 
     @Override
-    public void install(StageGraph graph) {
+    public void setup(ModuleSetup setup) {
+        var graph = setup.stages();
         graph.define(IrisStages.Prepare.SLOPE).produce(PrepareModule::slope);
         graph.define(IrisStages.Prepare.TRANSFORMS)
                 .requires(IrisStages.Prepare.SLOPE)
                 .produce(PrepareModule::transforms);
-    }
-
-    @Override
-    public void register(FeatureRegistry registry) {
+        var registry = setup.registry();
         registry.registerHeldType(SlopeClip.class);
         registry.registerHeldType(AxisRotationClamp.class);
     }
@@ -87,7 +84,7 @@ public final class PrepareModule implements IrisModule {
         }
         if (checksSlope && !settings.slopeCondition().isValid(placement.terrain().slopeAt(placement.x(), placement.z()))) {
             context.reject("slope");
-            return requested;
+            return null;
         }
         return settings.rotateTowardsSlope() ? turnedDownhill(placement, requested) : requested;
     }

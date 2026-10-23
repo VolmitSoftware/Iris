@@ -33,9 +33,9 @@ import art.arcane.iris.builtin.spawn.SpawnMarker;
 import art.arcane.iris.engine.spawn.SpawnResources;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
-import com.volmit.FeatureRegistry;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
+import com.volmit.ModuleSetup;
 import com.volmit.block.BlockState;
 import com.volmit.block.BlockTrait;
 import com.volmit.object.BlockEntityData;
@@ -43,7 +43,6 @@ import com.volmit.object.ObjectBlock;
 import com.volmit.placement.PlacedBlock;
 import com.volmit.stage.BlockStageContext;
 import com.volmit.stage.PlacementStageContext;
-import com.volmit.stage.StageGraph;
 import com.volmit.world.BlockPosition;
 
 import java.util.Map;
@@ -77,7 +76,8 @@ public final class BlocksModule implements IrisModule {
     }
 
     @Override
-    public void install(StageGraph graph) {
+    public void setup(ModuleSetup setup) {
+        var graph = setup.stages();
         graph.define(IrisStages.Blocks.WRITE)
                 .requires(IrisStages.Prepare.TRANSFORMS, IrisStages.Anchor.FINAL, IrisStages.Bore.CLEAR)
                 .accumulate(WrittenBlocks::new, BlocksModule::write);
@@ -88,11 +88,7 @@ public final class BlocksModule implements IrisModule {
                 .requires(IrisStages.Blocks.WRITE, IrisStages.Blocks.MARKERS)
                 .run(context -> {
                 });
-    }
-
-    @Override
-    public void register(FeatureRegistry registry) {
-        registry.registerHeldType(ObjectReplace.class);
+        setup.registry().registerHeldType(ObjectReplace.class);
     }
 
     private static void write(BlockStageContext context, WrittenBlocks written) {

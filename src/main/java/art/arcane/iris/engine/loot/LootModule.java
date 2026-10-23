@@ -22,12 +22,11 @@ import art.arcane.iris.builtin.loot.BlockDropSettings;
 import art.arcane.iris.builtin.loot.LootSettings;
 import art.arcane.iris.builtin.loot.ObjectLoot;
 import art.arcane.iris.builtin.loot.ObjectVanillaLoot;
-import com.volmit.FeatureRegistry;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
+import com.volmit.ModuleSetup;
 import com.volmit.service.BlockDrops;
 import com.volmit.service.Loot;
-import com.volmit.stage.StageGraph;
 
 /**
  * Module {@code iris:loot}: the loot tables of the pack ({@link LootResources}), the {@link LootSettings} and
@@ -44,11 +43,8 @@ public final class LootModule implements IrisModule {
     }
 
     @Override
-    public void install(StageGraph graph) {
-    }
-
-    @Override
-    public void register(FeatureRegistry registry) {
+    public void setup(ModuleSetup setup) {
+        var registry = setup.registry();
         registry.registerSettings(LootSettings.class);
         registry.registerSettings(BlockDropSettings.class);
         registry.registerHeldType(ObjectLoot.class);

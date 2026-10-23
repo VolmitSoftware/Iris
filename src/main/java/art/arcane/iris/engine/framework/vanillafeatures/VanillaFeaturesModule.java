@@ -19,11 +19,10 @@
 package art.arcane.iris.engine.framework.vanillafeatures;
 
 import art.arcane.iris.builtin.vanillafeatures.ImportedFeaturesSettings;
-import com.volmit.FeatureRegistry;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
+import com.volmit.ModuleSetup;
 import com.volmit.service.VanillaFeatures;
-import com.volmit.stage.StageGraph;
 
 /**
  * Module {@code iris:vanilla-features}: whether the platform's own placed features (ores, trees, plants, springs) run
@@ -40,11 +39,8 @@ public final class VanillaFeaturesModule implements IrisModule {
     }
 
     @Override
-    public void install(StageGraph graph) {
-    }
-
-    @Override
-    public void register(FeatureRegistry registry) {
+    public void setup(ModuleSetup setup) {
+        var registry = setup.registry();
         registry.registerSettings(ImportedFeaturesSettings.class);
         registry.registerService(VanillaFeatures.class, new ImportedFeatures());
     }

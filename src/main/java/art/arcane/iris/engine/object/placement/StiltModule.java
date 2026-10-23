@@ -26,15 +26,14 @@ import art.arcane.iris.builtin.prepare.PreparedPlacement;
 import art.arcane.iris.builtin.stilt.StiltLayers;
 import art.arcane.iris.builtin.stilt.StiltSettings;
 import art.arcane.volmlib.util.math.RNG;
-import com.volmit.FeatureRegistry;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
+import com.volmit.ModuleSetup;
 import com.volmit.block.BlockState;
 import com.volmit.block.BlockTrait;
 import com.volmit.object.ObjectBlock;
 import com.volmit.stage.BlockStageContext;
 import com.volmit.stage.PlacementStageContext;
-import com.volmit.stage.StageGraph;
 import com.volmit.world.BlockPosition;
 
 import java.util.List;
@@ -70,20 +69,17 @@ public final class StiltModule implements IrisModule {
     }
 
     @Override
-    public void install(StageGraph graph) {
+    public void setup(ModuleSetup setup) {
+        var graph = setup.stages();
         graph.define(IrisStages.Stilt.LAYERS)
                 .requires(IrisStages.Prepare.TRANSFORMS)
                 // Ordered after boring only so it shares the block pass that writes the object.
-                .softAfter(IrisStages.Bore.CLEAR.ref())
+                .softAfter(IrisStages.Bore.CLEAR)
                 .accumulate(StiltLayers::new, StiltModule::collectLayer);
         graph.define(IrisStages.Stilt.FILL)
                 .requires(IrisStages.Stilt.LAYERS, IrisStages.Anchor.FINAL, IrisStages.Blocks.COMPLETE)
                 .run(StiltModule::fill);
-    }
-
-    @Override
-    public void register(FeatureRegistry registry) {
-        registry.registerHeldType(StiltSettings.class);
+        setup.registry().registerHeldType(StiltSettings.class);
     }
 
     private static void collectLayer(BlockStageContext context, StiltLayers layers) {

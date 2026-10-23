@@ -22,13 +22,13 @@ import art.arcane.iris.builtin.IrisStages;
 import art.arcane.iris.builtin.terrain.HideOresSettings;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
+import com.volmit.ModuleSetup;
 import com.volmit.block.BlockRegistry;
 import com.volmit.block.BlockState;
 import com.volmit.block.BlockTrait;
 import com.volmit.hunk.Hunk;
 import com.volmit.resource.ResourceId;
 import com.volmit.stage.ChunkStageContext;
-import com.volmit.stage.StageGraph;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -54,8 +54,8 @@ public final class PerfectionModule implements IrisModule {
     }
 
     @Override
-    public void install(StageGraph graph) {
-        graph.define(IrisStages.Perfection.SURFACE).requires(IrisStages.Floating.DECORATE).run(PerfectionModule::perfect);
+    public void setup(ModuleSetup setup) {
+        setup.stages().define(IrisStages.Perfection.SURFACE).requires(IrisStages.Floating.DECORATE).run(PerfectionModule::perfect);
     }
 
     private static void perfect(ChunkStageContext context) {

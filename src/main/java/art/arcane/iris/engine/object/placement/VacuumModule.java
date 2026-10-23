@@ -27,13 +27,12 @@ import art.arcane.iris.builtin.placement.PlaneNoise;
 import art.arcane.iris.builtin.prepare.PreparedPlacement;
 import art.arcane.iris.builtin.prepare.TransformedBounds;
 import art.arcane.iris.builtin.vacuum.VacuumSettings;
-import com.volmit.FeatureRegistry;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
+import com.volmit.ModuleSetup;
 import com.volmit.block.BlockState;
 import com.volmit.block.BlockTrait;
 import com.volmit.stage.PlacementStageContext;
-import com.volmit.stage.StageGraph;
 
 /**
  * Module {@code iris:vacuum}: bends the terrain around an object of a vacuum mode so it meets the object's
@@ -55,16 +54,12 @@ public final class VacuumModule implements IrisModule {
     }
 
     @Override
-    public void install(StageGraph graph) {
-        graph.define(IrisStages.Vacuum.TERRAIN)
+    public void setup(ModuleSetup setup) {
+        setup.stages().define(IrisStages.Vacuum.TERRAIN)
                 .requires(IrisStages.Blocks.WRITE, IrisStages.Blocks.COMPLETE, IrisStages.Prepare.TRANSFORMS)
                 .reach(IrisObjectVacuum.MAX_RADIUS_BLOCKS)
                 .run(VacuumModule::bendTerrain);
-    }
-
-    @Override
-    public void register(FeatureRegistry registry) {
-        registry.registerHeldType(VacuumSettings.class);
+        setup.registry().registerHeldType(VacuumSettings.class);
     }
 
     private static void bendTerrain(PlacementStageContext context) {

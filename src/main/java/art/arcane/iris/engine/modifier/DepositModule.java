@@ -24,13 +24,11 @@ import art.arcane.iris.builtin.deposit.DepositSettings;
 import art.arcane.iris.builtin.deposit.DepositVariantSettings;
 import art.arcane.iris.builtin.deposit.OreFrequencySettings;
 import art.arcane.iris.builtin.deposit.OreSizeSettings;
-import com.volmit.FeatureRegistry;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
+import com.volmit.ModuleSetup;
 import com.volmit.config.FeatureSettings;
-import com.volmit.config.FeatureSettings.Entry;
 import com.volmit.stage.ChunkStageContext;
-import com.volmit.stage.StageGraph;
 
 import java.util.List;
 
@@ -51,22 +49,20 @@ public final class DepositModule implements IrisModule {
     }
 
     @Override
-    public void register(FeatureRegistry registry) {
+    public void setup(ModuleSetup setup) {
+        var registry = setup.registry();
         registry.registerSettings(DepositVariantSettings.class);
         registry.registerSettings(OreFrequencySettings.class);
         registry.registerSettings(OreSizeSettings.class);
-    }
 
-    @Override
-    public void install(StageGraph graph) {
-        graph.define(IrisStages.Deposit.ORES)
+        setup.stages().define(IrisStages.Deposit.ORES)
                 .when(DepositSettings.class)
                 .requires(IrisStages.Terrain.SHAPE)
-                .softAfter(IrisStages.Floating.SOLIDS.ref())
+                .softAfter(IrisStages.Floating.SOLIDS)
                 .run(DepositModule::place);
     }
 
-    private static void place(ChunkStageContext context, List<Entry<DepositSettings>> inChunk) {
+    private static void place(ChunkStageContext context) {
         List<DepositGenerator> generators = generatorsAtCentre(context.settings(), context.originX(), context.originZ());
         if (generators.isEmpty()) {
             return;

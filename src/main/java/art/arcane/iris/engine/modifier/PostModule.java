@@ -22,10 +22,9 @@ import art.arcane.iris.builtin.IrisStages;
 import art.arcane.iris.builtin.post.PostProcessingSettings;
 import art.arcane.iris.builtin.post.PostProcessingSlabsSettings;
 import art.arcane.iris.builtin.post.PostProcessingWallsSettings;
-import com.volmit.FeatureRegistry;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
-import com.volmit.stage.StageGraph;
+import com.volmit.ModuleSetup;
 
 /** Module {@code iris:post}: smooths the carved surface with {@link SurfaceSmoothing}. */
 public final class PostModule implements IrisModule {
@@ -37,15 +36,12 @@ public final class PostModule implements IrisModule {
     }
 
     @Override
-    public void register(FeatureRegistry registry) {
+    public void setup(ModuleSetup setup) {
+        var registry = setup.registry();
         registry.registerSettings(PostProcessingSettings.class);
         registry.registerSettings(PostProcessingSlabsSettings.class);
         registry.registerSettings(PostProcessingWallsSettings.class);
-    }
-
-    @Override
-    public void install(StageGraph graph) {
         // Ordering only: iris:carve ships in the built-ins jar, which a pack may not have.
-        graph.define(IrisStages.Post.SMOOTH).softAfter(IrisStages.Carve.APPLY.ref()).run(SurfaceSmoothing::smooth);
+        setup.stages().define(IrisStages.Post.SMOOTH).softAfter(IrisStages.Carve.APPLY).run(SurfaceSmoothing::smooth);
     }
 }

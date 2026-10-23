@@ -21,11 +21,11 @@ package art.arcane.iris.engine.modifier;
 import art.arcane.iris.builtin.IrisStages;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
+import com.volmit.ModuleSetup;
 import com.volmit.block.BlockState;
 import com.volmit.hunk.Hunk;
 import com.volmit.mantle.BlockBox;
 import com.volmit.stage.ChunkStageContext;
-import com.volmit.stage.StageGraph;
 import com.volmit.world.TerrainSampler;
 
 /**
@@ -45,10 +45,10 @@ public final class MatterModule implements IrisModule {
     }
 
     @Override
-    public void install(StageGraph graph) {
-        graph.define(IrisStages.Matter.INSERT)
+    public void setup(ModuleSetup setup) {
+        setup.stages().define(IrisStages.Matter.INSERT)
                 .requires(IrisStages.Floating.SOLIDS)
-                .softAfter(IrisStages.Deposit.ORES.ref())
+                .softAfter(IrisStages.Deposit.ORES)
                 .run(MatterModule::insert);
     }
 

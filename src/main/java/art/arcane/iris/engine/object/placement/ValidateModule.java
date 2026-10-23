@@ -29,14 +29,13 @@ import art.arcane.iris.builtin.placement.PlacementTerrain;
 import art.arcane.iris.builtin.placement.StructureVolumes;
 import art.arcane.iris.builtin.prepare.PreparedPlacement;
 import art.arcane.iris.builtin.validate.ObjectLimit;
-import com.volmit.FeatureRegistry;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
 import com.volmit.ModuleLog;
+import com.volmit.ModuleSetup;
 import com.volmit.block.BlockState;
 import com.volmit.object.ObjectBlock;
 import com.volmit.stage.PlacementStageContext;
-import com.volmit.stage.StageGraph;
 import com.volmit.world.BlockPosition;
 
 import java.util.Optional;
@@ -59,7 +58,8 @@ public final class ValidateModule implements IrisModule {
     }
 
     @Override
-    public void install(StageGraph graph) {
+    public void setup(ModuleSetup setup) {
+        var graph = setup.stages();
         graph.define(IrisStages.Validate.SURFACE)
                 .requires(IrisStages.Anchor.HEIGHT)
                 .run(ValidateModule::checkSurface);
@@ -72,11 +72,7 @@ public final class ValidateModule implements IrisModule {
         graph.define(IrisStages.Validate.COLLISIONS)
                 .requires(IrisStages.Validate.STRUCTURES, IrisStages.Anchor.HEIGHT)
                 .run(ValidateModule::checkCollisions);
-    }
-
-    @Override
-    public void register(FeatureRegistry registry) {
-        registry.registerHeldType(ObjectLimit.class);
+        setup.registry().registerHeldType(ObjectLimit.class);
     }
 
     private static void checkSurface(PlacementStageContext context) {

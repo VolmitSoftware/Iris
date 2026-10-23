@@ -27,16 +27,15 @@ import art.arcane.iris.builtin.objects.SurfaceSupportBufferSettings;
 import art.arcane.iris.builtin.objects.TreeGrowthSettings;
 import art.arcane.iris.builtin.objects.UpperObjectsForceSettings;
 import art.arcane.iris.builtin.objects.UpperObjectsSettings;
-import com.volmit.FeatureRegistry;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
 import com.volmit.ModuleLifecycle;
 import com.volmit.ModuleLog;
+import com.volmit.ModuleSetup;
 import com.volmit.config.PackSettings;
 import com.volmit.service.ObjectsAt;
 import com.volmit.service.SaplingGrowth;
 import com.volmit.stage.MantleStageContext;
-import com.volmit.stage.StageGraph;
 import com.volmit.world.PackWorld;
 
 /**
@@ -58,14 +57,11 @@ public final class ObjectModule implements IrisModule, ModuleLifecycle {
     }
 
     @Override
-    public void install(StageGraph graph) {
+    public void setup(ModuleSetup setup) {
+        log = setup.log();
         // Ordering only: iris:carve ships in the built-ins jar, which a pack may not have.
-        graph.define(IrisStages.Objects.PLACE).softAfter(IrisStages.Carve.CAVES.ref()).reach(this::reach).run(ObjectModule::place);
-    }
-
-    @Override
-    public void register(FeatureRegistry registry) {
-        log = registry.log();
+        setup.stages().define(IrisStages.Objects.PLACE).softAfter(IrisStages.Carve.CAVES).reach(this::reach).run(ObjectModule::place);
+        var registry = setup.registry();
         registry.registerService(ObjectsAt.class, new ObjectLocating());
         registry.registerService(SaplingGrowth.class, new TreeGrowing());
         registry.registerSettings(ObjectSettings.class);

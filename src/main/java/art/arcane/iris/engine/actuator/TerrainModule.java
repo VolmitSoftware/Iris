@@ -32,12 +32,11 @@ import art.arcane.iris.builtin.terrain.RockPaletteSettings;
 import art.arcane.iris.builtin.terrain.SeaLayersSettings;
 import art.arcane.iris.builtin.terrain.SlabSettings;
 import art.arcane.iris.builtin.terrain.WallSettings;
-import com.volmit.FeatureRegistry;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
 import com.volmit.ModuleLifecycle;
+import com.volmit.ModuleSetup;
 import com.volmit.stage.ChunkStageContext;
-import com.volmit.stage.StageGraph;
 import com.volmit.world.PackWorld;
 
 import art.arcane.iris.builtin.terrain.TerrainPalettes;
@@ -57,7 +56,9 @@ public final class TerrainModule implements IrisModule, ModuleLifecycle {
     }
 
     @Override
-    public void register(FeatureRegistry registry) {
+    public void setup(ModuleSetup setup) {
+        setup.stages().define(IrisStages.Terrain.SHAPE).run(TerrainModule::shape);
+        var registry = setup.registry();
         registry.registerSettings(LayersSettings.class);
         registry.registerSettings(SeaLayersSettings.class);
         registry.registerSettings(CaveCeilingLayersSettings.class);
@@ -79,11 +80,6 @@ public final class TerrainModule implements IrisModule, ModuleLifecycle {
     public void warmUp(PackWorld world) {
         TerrainPalettes.of(world).warm();
         new OreWarmUp(world).warm();
-    }
-
-    @Override
-    public void install(StageGraph graph) {
-        graph.define(IrisStages.Terrain.SHAPE).run(TerrainModule::shape);
     }
 
     private static void shape(ChunkStageContext context) {

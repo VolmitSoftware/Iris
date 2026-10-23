@@ -28,15 +28,14 @@ import art.arcane.iris.engine.decorator.IrisSeaFloorDecorator;
 import art.arcane.iris.engine.decorator.IrisSeaSurfaceDecorator;
 import art.arcane.iris.engine.decorator.IrisShoreLineDecorator;
 import art.arcane.iris.engine.decorator.IrisSurfaceDecorator;
-import com.volmit.FeatureRegistry;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
 import com.volmit.ModuleLifecycle;
+import com.volmit.ModuleSetup;
 import com.volmit.block.BlockState;
 import com.volmit.config.FeatureSettings;
 import com.volmit.hunk.Hunk;
 import com.volmit.stage.ChunkStageContext;
-import com.volmit.stage.StageGraph;
 import com.volmit.world.BiomeKind;
 import com.volmit.world.PackWorld;
 import com.volmit.world.TerrainSampler;
@@ -56,7 +55,10 @@ public final class DecorantModule implements IrisModule, ModuleLifecycle {
     }
 
     @Override
-    public void register(FeatureRegistry registry) {
+    public void setup(ModuleSetup setup) {
+        // Ordering only: iris:matter ships in the built-ins jar, which a pack may not have.
+        setup.stages().define(IrisStages.Decorant.DECORATE).softAfter(IrisStages.Matter.INSERT).run(DecorantModule::decorate);
+        var registry = setup.registry();
         registry.registerSettings(DecorantSettings.class);
         registry.registerSettings(DecorateSettings.class);
         registry.registerLifecycle(this);
@@ -65,12 +67,6 @@ public final class DecorantModule implements IrisModule, ModuleLifecycle {
     @Override
     public void warmUp(PackWorld world) {
         BiomeDecorators.of(world).warm();
-    }
-
-    @Override
-    public void install(StageGraph graph) {
-        // Ordering only: iris:matter ships in the built-ins jar, which a pack may not have.
-        graph.define(IrisStages.Decorant.DECORATE).softAfter(IrisStages.Matter.INSERT.ref()).run(DecorantModule::decorate);
     }
 
     private static void decorate(ChunkStageContext context) {

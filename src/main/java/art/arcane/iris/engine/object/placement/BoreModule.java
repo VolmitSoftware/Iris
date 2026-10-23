@@ -24,9 +24,9 @@ import art.arcane.iris.builtin.placement.PlacementSettings;
 import art.arcane.iris.builtin.prepare.PreparedPlacement;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
+import com.volmit.ModuleSetup;
 import com.volmit.block.BlockState;
 import com.volmit.stage.PlacementStageContext;
-import com.volmit.stage.StageGraph;
 
 /** Module {@code iris:bore}: fills the object's volume with air, extended up and down as configured. */
 public final class BoreModule implements IrisModule {
@@ -38,8 +38,8 @@ public final class BoreModule implements IrisModule {
     }
 
     @Override
-    public void install(StageGraph graph) {
-        graph.define(IrisStages.Bore.CLEAR)
+    public void setup(ModuleSetup setup) {
+        setup.stages().define(IrisStages.Bore.CLEAR)
                 .requires(IrisStages.Anchor.FINAL, IrisStages.Validate.COLLISIONS)
                 .run(BoreModule::clear);
     }

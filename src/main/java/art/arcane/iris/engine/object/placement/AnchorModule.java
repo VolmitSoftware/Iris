@@ -31,8 +31,8 @@ import art.arcane.iris.builtin.prepare.PreparedPlacement;
 import art.arcane.iris.builtin.prepare.TransformedBounds;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
+import com.volmit.ModuleSetup;
 import com.volmit.stage.PlacementStageContext;
-import com.volmit.stage.StageGraph;
 
 import java.util.Optional;
 
@@ -51,7 +51,8 @@ public final class AnchorModule implements IrisModule {
     }
 
     @Override
-    public void install(StageGraph graph) {
+    public void setup(ModuleSetup setup) {
+        var graph = setup.stages();
         graph.define(IrisStages.Anchor.HEIGHT)
                 .requires(IrisStages.Prepare.TRANSFORMS)
                 .produce(AnchorModule::height);
@@ -72,7 +73,7 @@ public final class AnchorModule implements IrisModule {
         int y = settings.fromBottom() ? object.height() + 1 + prepared.rotatedCenterY() : placement.requestedY();
         if (!settings.forcePlace() && !structurePiece && rejectsCarvingAnchor(prepared, placement.x(), y, placement.z())) {
             context.reject(CARVING_ANCHOR);
-            return new AnchorHeight(y);
+            return null;
         }
         if (placement.requestedY() < 0 || !settings.bottom() || structurePiece) {
             return new AnchorHeight(y);
@@ -81,6 +82,7 @@ public final class AnchorModule implements IrisModule {
         if (!settings.forcePlace() && settings.carvingSupport() != CarvingMode.CARVING_ONLY
                 && rejectsCarvingAnchor(prepared, placement.x(), y, placement.z())) {
             context.reject(CARVING_ANCHOR);
+            return null;
         }
         return new AnchorHeight(y);
     }

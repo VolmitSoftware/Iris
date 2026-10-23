@@ -24,10 +24,10 @@ import art.arcane.iris.builtin.prepare.PreparedPlacement;
 import art.arcane.volmlib.util.math.RNG;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
+import com.volmit.ModuleSetup;
 import com.volmit.block.BlockState;
 import com.volmit.placement.PlacedBlock;
 import com.volmit.stage.PlacementStageContext;
-import com.volmit.stage.StageGraph;
 import com.volmit.world.BlockPosition;
 
 import java.util.LinkedHashMap;
@@ -50,10 +50,10 @@ public final class SnowModule implements IrisModule {
     }
 
     @Override
-    public void install(StageGraph graph) {
-        graph.define(IrisStages.Snow.COVER)
+    public void setup(ModuleSetup setup) {
+        setup.stages().define(IrisStages.Snow.COVER)
                 .requires(IrisStages.Blocks.WRITE, IrisStages.Blocks.COMPLETE, IrisStages.Prepare.TRANSFORMS)
-                .softAfter(IrisStages.Stilt.FILL.ref(), IrisStages.Vacuum.TERRAIN.ref())
+                .softAfter(IrisStages.Stilt.FILL, IrisStages.Vacuum.TERRAIN)
                 .run(SnowModule::cover);
     }
 

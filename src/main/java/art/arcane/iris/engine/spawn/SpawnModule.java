@@ -21,12 +21,11 @@ package art.arcane.iris.engine.spawn;
 import art.arcane.iris.builtin.spawn.EffectSettings;
 import art.arcane.iris.builtin.spawn.PlacementMarker;
 import art.arcane.iris.builtin.spawn.SpawnerSettings;
-import com.volmit.FeatureRegistry;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
+import com.volmit.ModuleSetup;
 import com.volmit.service.AmbientEffects;
 import com.volmit.service.EntitySpawns;
-import com.volmit.stage.StageGraph;
 
 /**
  * Module {@code iris:spawn}: the spawners, entities and markers of the pack ({@link SpawnResources}), the
@@ -44,11 +43,8 @@ public final class SpawnModule implements IrisModule {
     }
 
     @Override
-    public void install(StageGraph graph) {
-    }
-
-    @Override
-    public void register(FeatureRegistry registry) {
+    public void setup(ModuleSetup setup) {
+        var registry = setup.registry();
         registry.registerSettings(SpawnerSettings.class);
         registry.registerSettings(EffectSettings.class);
         registry.registerHeldType(PlacementMarker.class);

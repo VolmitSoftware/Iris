@@ -18,17 +18,10 @@ public final class ChunkRunner {
         }
     }
 
-    /** Runs one chunk. A conditional stage is active when any of the chunk's 16 by 16 columns has an
-     * entry of its settings in {@code inputs.settings()}, and receives every distinct entry of those
-     * columns. The host derives {@code invocationSeed} from the world seed and the chunk position; each
-     * stage draws from its own stream of that seed ({@link StageStreams}).
-     */
-    public void generate(GenerationContext inputs, long invocationSeed) {
-        generate(inputs, invocationSeed, StageTimings.NONE);
-    }
-
-    /** Runs one chunk like {@link #generate(GenerationContext, long)} and reports to {@code timings} how long each
-     * stage that ran took.
+    /** Runs one chunk and reports to {@code timings} how long each stage that ran took. A conditional stage is active
+     * when any of the chunk's 16 by 16 columns has an entry of its settings in {@code inputs.settings()}, and reads
+     * every distinct entry of those columns. The host derives {@code invocationSeed} from the world seed and the chunk
+     * position; each stage draws from its own stream of that seed ({@link StageStreams}).
      */
     public void generate(GenerationContext inputs, long invocationSeed, StageTimings timings) {
         Objects.requireNonNull(timings, "timings");

@@ -2,10 +2,10 @@ package com.volmit.example.placement;
 
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
+import com.volmit.ModuleSetup;
 import com.volmit.stage.PlacementStage;
 import com.volmit.stage.PlacementStageContext;
 import com.volmit.stage.Stage;
-import com.volmit.stage.StageGraph;
 import com.volmit.world.BlockPosition;
 import com.volmit.world.BlockView;
 
@@ -19,8 +19,8 @@ public final class AnchorModule implements IrisModule {
     }
 
     @Override
-    public void install(StageGraph graph) {
-        graph.define(HEIGHT)
+    public void setup(ModuleSetup setup) {
+        setup.stages().define(HEIGHT)
                 .requires(PrepareModule.TRANSFORMS)
                 .produce(AnchorModule::restOnSurface);
     }

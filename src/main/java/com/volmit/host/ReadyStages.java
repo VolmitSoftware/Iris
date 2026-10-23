@@ -6,7 +6,7 @@ import java.util.PriorityQueue;
 /** Choice among stages whose predecessors have all run. Node numbers follow lexical stage id
  * order, so each queue yields the lexically smallest ready stage. To keep block passes fused,
  * an open pass continues while a block stage is ready, and ready invocation stages run before
- * a new pass opens. The choice depends only on ids and edges, never on install order.
+ * a new pass opens. The choice depends only on ids and edges, never on setup order.
  */
 final class ReadyStages {
     private final PriorityQueue<Integer> invocation = new PriorityQueue<>();

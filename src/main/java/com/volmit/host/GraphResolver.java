@@ -17,7 +17,7 @@ import java.util.Optional;
 import java.util.TreeMap;
 
 /** Validates and orders the stages of one pipeline. Nodes are numbered in lexical id order,
- * which makes every choice below independent of module install order.
+ * which makes every choice below independent of module setup order.
  */
 final class GraphResolver {
     private final Pipeline pipeline;

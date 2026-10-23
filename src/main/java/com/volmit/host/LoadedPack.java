@@ -29,7 +29,7 @@ public final class LoadedPack implements AutoCloseable {
         this.loaded = loaded;
     }
 
-    /** Loads the pack's module jars, installs them with the host's built-in modules and resolves the
+    /** Loads the pack's module jars, sets them up with the host's built-in modules and resolves the
      * pipelines. Fails with the first load error, naming the jar or module at fault.
      */
     public static LoadedPack load(Path packRoot, ModuleHost host) {

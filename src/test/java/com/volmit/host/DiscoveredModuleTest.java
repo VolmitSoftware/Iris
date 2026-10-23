@@ -2,8 +2,8 @@ package com.volmit.host;
 
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
+import com.volmit.ModuleSetup;
 import com.volmit.stage.Stage;
-import com.volmit.stage.StageGraph;
 import org.junit.jupiter.api.Test;
 import java.util.List;
 import java.util.Map;
@@ -20,8 +20,8 @@ class DiscoveredModuleTest {
             return infoCalls == 1 ? ModuleInfo.of("first:core", "First", "1") : ModuleInfo.of("second:core", "Second", "2");
         }
 
-        public void install(StageGraph graph) {
-            graph.define(Stage.placement("first:core/mark")).run(context -> {});
+        public void setup(ModuleSetup setup) {
+            setup.stages().define(Stage.placement("first:core/mark")).run(context -> {});
         }
     }
 
@@ -42,7 +42,7 @@ class DiscoveredModuleTest {
     void builtInWhoseInfoIsNullFailsNamingTheClass() {
         var module = new IrisModule() {
             public ModuleInfo info() { return null; }
-            public void install(StageGraph graph) {}
+            public void setup(ModuleSetup setup) {}
         };
 
         var error = assertThrows(NullPointerException.class, () -> DiscoveredModule.builtIn(module));

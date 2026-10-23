@@ -11,7 +11,7 @@ import java.util.Objects;
  * @param blocks how far, in blocks along X and Z, the stage writes blocks or mantle values beyond its
  *     footprint: the chunk's 16 by 16 columns for a mantle stage, the X/Z bounds of the placed object
  *     for a placement stage. 0 means only inside it, and is all a chunk stage may declare. Height is not
- *     limited: the footprint is whole columns. A number declared at install, or for a mantle stage a
+ *     limited: the footprint is whole columns. A number declared during setup, or for a mantle stage a
  *     {@link PackReach} worked out from the pack's settings when the pack loads.
  * @param mantleLayers the mantle layers the stage writes, each once, in declaration order
  */
@@ -30,7 +30,7 @@ public record StageReach(PackReach blocks, List<MantleKey<?>> mantleLayers) {
         }
     }
 
-    /** A reach of a number of blocks declared at install. */
+    /** A reach of a number of blocks declared during setup. */
     public StageReach(int blocks, List<MantleKey<?>> mantleLayers) {
         this(new FixedReach(blocks), mantleLayers);
     }

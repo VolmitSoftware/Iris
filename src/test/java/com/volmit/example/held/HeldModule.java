@@ -1,9 +1,8 @@
 package com.volmit.example.held;
 
-import com.volmit.FeatureRegistry;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
-import com.volmit.stage.StageGraph;
+import com.volmit.ModuleSetup;
 
 /** A built-in module whose settings class is held by a class of the host, not by a feature. */
 public final class HeldModule implements IrisModule {
@@ -13,11 +12,8 @@ public final class HeldModule implements IrisModule {
     }
 
     @Override
-    public void install(StageGraph graph) {}
-
-    @Override
-    public void register(FeatureRegistry registry) {
-        registry.registerHeldType(ClampSettings.class);
-        registry.registerHeldType(ClampSettings.class);
+    public void setup(ModuleSetup setup) {
+        setup.registry().registerHeldType(ClampSettings.class);
+        setup.registry().registerHeldType(ClampSettings.class);
     }
 }

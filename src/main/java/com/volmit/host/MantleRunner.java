@@ -32,16 +32,22 @@ public final class MantleRunner {
         activationSettings = activationSettings(graph);
     }
 
-    /** Runs {@code stage} for one chunk, if it is active there. A conditional stage is active when any of
-     * the chunk's 16 by 16 columns has an entry of its settings, and receives every distinct entry of those
-     * columns; it is inactive wherever a stage it requires is. The host derives {@code invocationSeed} from
-     * the world seed and the chunk position; each stage draws from its own stream of it.
+    /** Runs {@code stage} for one chunk, if it is active there, and reports to {@code timings} how long it took. A
+     * conditional stage is active when any of the chunk's 16 by 16 columns has an entry of its settings, and reads
+     * every distinct entry of those columns; it is inactive wherever a stage it requires is. The host derives
+     * {@code invocationSeed} from the world seed and the chunk position; each stage draws from its own stream of it.
      */
-    public void generate(Stage<?> stage, MantleGenerationContext inputs, long invocationSeed) {
+    public void generate(Stage<?> stage, MantleGenerationContext inputs, long invocationSeed, StageTimings timings) {
+        Objects.requireNonNull(timings, "timings");
         int position = position(stage);
         var settings = ChunkSettings.collect(activationSettings.get(position), inputs::settings, inputs.originX(), inputs.originZ());
         var mantle = new MantleInvocation(new StageInvocation(graph, invocationSeed, settings), inputs);
+        if (!mantle.stages().isActive(position)) {
+            return;
+        }
+        long started = System.nanoTime();
         mantle.stages().runInvocationStage(position, mantle);
+        timings.record(graph.stages().get(position), System.nanoTime() - started);
     }
 
     private int position(Stage<?> stage) {

@@ -1,18 +1,18 @@
 package com.volmit.example.world;
 
-import com.volmit.FeatureRegistry;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
 import com.volmit.ModuleLifecycle;
+import com.volmit.ModuleSetup;
 import com.volmit.host.ChunkRunner;
 import com.volmit.host.DiscoveredModule;
 import com.volmit.host.LifecycleRunner;
 import com.volmit.host.LoadedModules;
+import com.volmit.host.StageTimings;
 import com.volmit.service.ObjectsAt;
 import com.volmit.stage.ChunkStage;
 import com.volmit.stage.ChunkStageContext;
 import com.volmit.stage.Stage;
-import com.volmit.stage.StageGraph;
 import com.volmit.support.ColumnSettings;
 import com.volmit.support.TestContexts;
 import com.volmit.support.TestWorld;
@@ -43,11 +43,9 @@ class WorldStateExampleTest {
 
         public ModuleInfo info() { return ModuleInfo.of("example:ruins", "Ruins", "1"); }
 
-        public void install(StageGraph graph) {
-            graph.define(PLANT).run(RuinsModule::plant);
-        }
-
-        public void register(FeatureRegistry registry) {
+        public void setup(ModuleSetup setup) {
+            setup.stages().define(PLANT).run(RuinsModule::plant);
+            var registry = setup.registry();
             registry.registerLifecycle(this);
             registry.registerService(ObjectsAt.class, new ObjectsAt() {
                 @Override
@@ -95,7 +93,8 @@ class WorldStateExampleTest {
             var startedWith = RuinsModule.planted(world);
             assertEquals(TestContexts.SEED, startedWith.seed);
 
-            new ChunkRunner(pack.chunk()).generate(TestContexts.generation(Map.of(), ColumnSettings.NONE, null, world), TestContexts.SEED);
+            new ChunkRunner(pack.chunk()).generate(TestContexts.generation(Map.of(), ColumnSettings.NONE, null, world), TestContexts.SEED,
+                    StageTimings.NONE);
 
             assertSame(startedWith, RuinsModule.planted(world), "the stage used the state the hook built");
             assertEquals(Set.of("ruins/arch"), objects.objectsAt(world, 0, 0));

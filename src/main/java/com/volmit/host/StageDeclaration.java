@@ -5,16 +5,16 @@ import com.volmit.ModuleLog;
 import com.volmit.mantle.MantleKey;
 import com.volmit.resource.ResourceId;
 import com.volmit.stage.PackReach;
-import com.volmit.stage.Pipeline;
 import com.volmit.stage.Stage;
+import com.volmit.stage.StageAction;
+import com.volmit.stage.StageFunction;
 import com.volmit.stage.StageRef;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
 
-/** One stage as declared during install. It becomes immutable once its body is set. */
+/** One stage as declared during setup. It becomes immutable once its body is set. */
 final class StageDeclaration {
     private final Stage<?> stage;
     private final ResourceId module;
@@ -46,8 +46,24 @@ final class StageDeclaration {
         addSoftReferences(softAfter, references);
     }
 
+    void softAfter(Stage<?>... stages) {
+        addSoftReferences(softAfter, references(stages));
+    }
+
     void softBefore(StageRef... references) {
         addSoftReferences(softBefore, references);
+    }
+
+    void softBefore(Stage<?>... stages) {
+        addSoftReferences(softBefore, references(stages));
+    }
+
+    private static StageRef[] references(Stage<?>... stages) {
+        var references = new StageRef[stages.length];
+        for (int index = 0; index < stages.length; index++) {
+            references[index] = Objects.requireNonNull(stages[index], "stage").ref();
+        }
+        return references;
     }
 
     void condition(Class<? extends IrisFeature> settingsType) {
@@ -60,7 +76,6 @@ final class StageDeclaration {
 
     void reach(int blocks) {
         checkOpen();
-        if (blocks > 0) requireOutsideChunkPipeline("a reach of " + blocks + " blocks");
         if (blocks < 0) {
             throw new IllegalArgumentException("Stage " + this + " declares a negative reach of " + blocks + " blocks");
         }
@@ -69,13 +84,7 @@ final class StageDeclaration {
 
     void reach(PackReach computed) {
         checkOpen();
-        Objects.requireNonNull(computed, "reach");
-        if (stage.pipeline() != Pipeline.MANTLE) {
-            throw new IllegalArgumentException("Stage " + this + " is a " + stage.pipeline().name().toLowerCase(Locale.ROOT)
-                    + " stage and declares a reach worked out when the pack loads, which only mantle stages may;"
-                    + " declare a number of blocks with reach(blocks)");
-        }
-        declareReach(computed);
+        declareReach(Objects.requireNonNull(computed, "reach"));
     }
 
     private void declareReach(PackReach declared) {
@@ -93,7 +102,6 @@ final class StageDeclaration {
 
     void writesMantle(MantleKey<?>... layers) {
         checkOpen();
-        requireOutsideChunkPipeline("mantle writes");
         for (var layer : layers) {
             Objects.requireNonNull(layer, "mantle layer");
             if (mantleLayers.stream().anyMatch(declared -> declared.id().equals(layer.id()))) {
@@ -101,6 +109,26 @@ final class StageDeclaration {
             }
             mantleLayers.add(layer);
         }
+    }
+
+    /** Sets an invocation body without output. */
+    void run(StageAction<?> action) {
+        Objects.requireNonNull(action, "action");
+        complete(new StageBody.Invocation(context -> {
+            action.run(cast(context));
+            return null;
+        }), false, "produce");
+    }
+
+    /** Sets an invocation body with output. */
+    void produce(StageFunction<?, ?> function) {
+        Objects.requireNonNull(function, "function");
+        complete(new StageBody.Invocation(context -> function.run(cast(context))), true, "run");
+    }
+
+    @SuppressWarnings("unchecked") // The executor passes the context of the pipeline this stage was declared in.
+    private static <T> T cast(Object value) {
+        return (T) value;
     }
 
     /** Sets the only body. alternativeMethod names the builder method for the other output kind. */
@@ -178,14 +206,6 @@ final class StageDeclaration {
                 ? "declares output " + stage.outputType().getSimpleName()
                 : "declares no output";
         return "Stage " + this + " " + declared + "; define it with " + alternativeMethod + "(...)";
-    }
-
-    /** Chunk stages write only their own chunk: the host may already have generated its neighbors. */
-    private void requireOutsideChunkPipeline(String declared) {
-        if (stage.pipeline() != Pipeline.CHUNK) return;
-        throw new IllegalArgumentException("Stage " + this + " is a chunk stage and declares " + declared
-                + ", but chunk stages write only their own chunk and read the mantle; define work that writes the"
-                + " mantle or reaches beyond its chunk as a mantle stage (Stage.mantle), which runs before the chunks it reaches");
     }
 
     private void checkOpen() {

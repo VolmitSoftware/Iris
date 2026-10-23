@@ -11,7 +11,7 @@ into this project; the test sources contain example ports only.
 ## Modules own their stages
 
 There are no host-defined hooks or phases. A module declares stages as constants and defines
-them in `install`. Other modules order themselves against those constants.
+them in `setup`. Other modules order themselves against those constants.
 
 ```java
 public final class MossModule implements IrisModule {
@@ -19,15 +19,19 @@ public final class MossModule implements IrisModule {
 
     public ModuleInfo info() { return ModuleInfo.of("example:moss", "Moss", "1.0.0"); }
 
-    public void install(StageGraph graph) {
-        graph.define(SPREAD)
+    public void setup(ModuleSetup setup) {
+        setup.stages().define(SPREAD)
              .when(MossSettings.class)                      // only where a pack configures moss
              .requires(AnchorModule.HEIGHT, BlocksModule.COMPLETE)
-             .softAfter(StageRef.of("iris:snow/finish"))    // ordering only, if snow is installed
-             .run((ctx, moss) -> spread(ctx.output(AnchorModule.HEIGHT), moss.getFirst().value()));
+             .softAfter(StageRef.of("iris:snow/finish"))    // ordering only, if snow is set up
+             .run(ctx -> spread(ctx.output(AnchorModule.HEIGHT), ctx.configured(MossSettings.class).getFirst().value()));
     }
 }
 ```
+
+`IrisModule` has two methods: `info()` and `setup(ModuleSetup)`. `setup` runs once while the pack
+loads. `setup.stages()` defines stages, `setup.registry()` takes every other contribution and
+`setup.log()` is the module's log.
 
 - `Stage.placement`, `Stage.placementBlock`, `Stage.chunk` and `Stage.mantle` create stages for the
   placement pipeline (once per attempt), the placement pipeline (once per object block), the chunk
@@ -39,18 +43,33 @@ public final class MossModule implements IrisModule {
   Defining an id twice fails.
 - `requires(...)` takes another module's stage constant. It orders, makes the output readable
   and deactivates this stage wherever the requirement is inactive.
-- `softAfter` and `softBefore` take ids and only order. There is no hard "before".
+- `softAfter` and `softBefore` only order. They take a stage constant, or a `StageRef` id when the
+  other module may be absent and you cannot compile against it. There is no hard "before".
 - `run(...)` ends a stage without output, `produce(...)` a stage with output and
-  `accumulate(initial, collector)` a block stage whose accumulator becomes its output.
-- `when(settingsType)` runs the stage only where those settings are configured, and the body gets every
-  configured entry (see Settings levels below).
+  `accumulate(initial, collector)` a block stage whose accumulator becomes its output. A producer that
+  rejects the placement attempt may return null; any other null output fails the attempt.
+- `when(settingsType)` runs the stage only where those settings are configured.
+  `ctx.configured(settingsType)` gives the body every configured entry that activated it (see Settings
+  levels below); asking for any other type throws.
 - `ctx.output(stage)` works only for stages the current stage transitively requires.
+- `define` returns a definition for the stage's pipeline, so it offers only what that pipeline allows:
+  `reach` and `writesMantle` exist on placement and mantle definitions, never on chunk ones.
+
+Which edge to use:
+
+| You need | Use |
+| --- | --- |
+| Another stage's output, or to run only where it runs | `requires(stage)` |
+| To run after a stage that may be absent or inactive, without reading it | `softAfter(stage)` |
+| Another module's stage to run after yours, without it naming you | `softBefore(stage)` |
+| To order against a module you do not compile against | `softAfter(StageRef.of("id"))` / `softBefore(StageRef.of("id"))` |
+| To run only where settings are configured | `when(Settings.class)` |
 - `ctx.random()` is the stage's own random stream, derived from the invocation seed and the stage
   id. Installing or removing other modules, or how much they draw, never changes what a stage
   draws. A block stage has one stream per placement, drawn across the blocks of its pass.
   The stream is a `WorldRandom` (see Random streams below).
 
-`IrisModule.register(FeatureRegistry)` stays for non-stage contributions: geometry generators,
+`setup.registry()` takes the non-stage contributions: geometry generators,
 mantle layers, settings no stage names (see Settings for studio), pack resource kinds, validators,
 lifecycle hooks and services (see below). Their feature ids, mantle keys and kind ids are the module id or start with it and `/`,
 like stage ids: `iris:snow` or `iris:snow/depth` for module `iris:snow`. A settings type named in `when(...)` needs a feature id that at least one
@@ -74,11 +93,12 @@ for (var entry : ctx.settings().at(DepositSettings.class, worldX, worldZ)) {   /
 
 Settings are read per column, at the column's surface biome. A chunk or mantle stage conditioned with
 `when(...)` runs when any column of the chunk has an entry, so a biome border inside a chunk never
-hides a feature, and its body receives every distinct entry of the chunk. It then reads
+hides a feature, and `ctx.configured(type)` gives every distinct entry of the chunk. It then reads
 `ctx.settings().at(...)` per column, or at the chunk's centre column (local 7, 7) for something that
 happens once per chunk. Something that spans several columns, such as a placed object, uses the column
-it treats as its origin. In a placement the body receives the placement's own entry; a placement
-declares each settings type once.
+it treats as its origin. In a placement `ctx.configured(type)` gives the placement's own entry; a
+placement declares each settings type once. An entry is found under the class whose `@Feature` declares
+it, so a value of a subclass counts as its annotated superclass.
 
 A feature whose settings class has exactly one option may be written as that option's value, such as
 `"snow": 0.5` for `"snow": {"amount": 0.5}` or a bare list for a class holding one list.
@@ -115,7 +135,7 @@ chunks around it, and the chunk's mantle is complete when its chunk stages read 
 no outputs: they pass data on through mantle layers. The two pipelines meet only in the mantle.
 
 ```java
-public static final MantleStage<Void> CARVE = Stage.mantle("example:caves/carve");
+public static final MantleStage CARVE = Stage.mantle("example:caves/carve");
 public static final ChunkStage<Void> APPLY = Stage.chunk("example:caves/apply");
 
 graph.define(CARVE).when(CaveSettings.class).reach(32).writesMantle(CAVES).run(CaveModule::carve);
@@ -145,7 +165,7 @@ graph.define(INSERT).run(ctx -> {
 `reach(blocks)` is the distance in blocks along X and Z beyond the stage's footprint: the chunk for a
 mantle stage, the X/Z bounds of the placed object for a placement stage, whole columns in both cases.
 It defaults to 0. `writesMantle(...)` names the mantle layers the stage writes; each must be
-registered by some module. A chunk stage that declares either fails the install, and its mantle is
+registered by some module. A chunk stage's definition has neither method, and its mantle is
 read-only. `pack.placement().reach()` gives the host the largest reach of a pipeline and the largest
 per mantle layer.
 
@@ -153,7 +173,7 @@ When how far a mantle stage writes depends on the pack, such as the longest vein
 any level configures, it declares a `PackReach` instead of a number. The host works it out from the
 pack's settings (`PackSettings.declared(type)`: every entry of the dimension and of the regions and
 biomes it can reach) when the pack loads, and asks each mantle stage with
-`ResolvedStage.reachBlocks(settings)`. Only mantle stages may declare one.
+`ResolvedStage.reachBlocks(settings)`. Only mantle definitions offer it.
 
 ```java
 graph.define(PLAN).when(VeinSettings.class).reach(VeinModule::reach).writesMantle(ORE).run(VeinModule::plan);
@@ -176,8 +196,8 @@ of the pack, each read into a new instance of a class of the module.
 ```java
 public static final ResourceKind<Keep> KEEPS = ResourceKind.of("example:castle/keep", "keeps", Keep.class);
 
-public void register(FeatureRegistry registry) {
-    registry.registerResourceKind(KEEPS);           // reads <pack>/keeps/**/*.json
+public void setup(ModuleSetup setup) {
+    setup.registry().registerResourceKind(KEEPS);   // reads <pack>/keeps/**/*.json
 }
 
 // anywhere the pack's resources are at hand, such as a stage or a validator
@@ -256,8 +276,8 @@ hook does nothing by default, and a module class may implement it and register i
 
 ```java
 public final class RuinsModule implements IrisModule, ModuleLifecycle {
-    public void register(FeatureRegistry registry) {
-        registry.registerLifecycle(this);
+    public void setup(ModuleSetup setup) {
+        setup.registry().registerLifecycle(this);
     }
 
     public void worldStarted(PackWorld world) {
@@ -301,8 +321,8 @@ private static void decorate(ChunkStageContext context) {
 
 - A message is plain text, never a format string.
 - `context.log()` (stage bodies, object generators), `fit.log()` (vanilla structure fits), `world.log()` (services and
-  lifecycle hooks, which get a world as their argument) and `registry.log()` (while `register` runs) are the same module's log. Keep the registry's log in a
-  field when `packLoaded`, which has no world, needs to log. `registry.log()` outside `register` throws.
+  lifecycle hooks, which get a world as their argument) and `setup.log()` are the same module's log. Keep the setup's log in a
+  field when `packLoaded`, which has no world, needs to log.
 - Do not use `System.out`, `System.getLogger` or a logging library of your own: the host cannot label or report them.
 
 ## Services
@@ -312,8 +332,8 @@ services: small interfaces marked `@Service` in `com.volmit.service`. A module r
 them up in the pack's catalog instead of knowing the feature.
 
 ```java
-public void register(FeatureRegistry registry) {
-    registry.registerService(ObjectsAt.class, new RuinsObjects());
+public void setup(ModuleSetup setup) {
+    setup.registry().registerService(ObjectsAt.class, new RuinsObjects());
 }
 
 final class RuinsObjects implements ObjectsAt {
@@ -496,7 +516,7 @@ public final class FloraSettings implements IrisFeature {
   use them.
 - Settings named in `when(...)` and object generator settings are described automatically. Settings
   that no stage names, such as ones read only through `FeatureSettings.at(...)`, are registered with
-  `registry.registerSettings(WindSettings.class)` in `register`. Their feature id follows the module
+  `setup.registry().registerSettings(WindSettings.class)` in `setup`. Their feature id follows the module
   id like any other, and once registered, other modules may name them in `when(...)`.
 - A class of a built-in module that Iris's own classes hold, such as the clamp field of an object placement, is
   registered with `registry.registerHeldType(Clamp.class)`, so studio describes it from the class (as an
@@ -577,8 +597,8 @@ A module decides over the platform's own structures, the ones Minecraft, data pa
 generates it (`BLOCK`).
 
 ```java
-public void register(FeatureRegistry registry) {
-    registry.registerService(VanillaStructures.class, new VanillaStructures() {
+public void setup(ModuleSetup setup) {
+    setup.registry().registerService(VanillaStructures.class, new VanillaStructures() {
         @Override
         public VanillaStructureRule rule(ResourceId structure, VanillaStructureContext world) {
             return world.settings().declared(CastleSettings.class).stream()
@@ -656,23 +676,29 @@ var host = ModuleHost.of(builtInModules)
 try (var pack = LoadedPack.load(packRoot, host)) {
     System.out.println(pack.placement().describe());
 
+    StageTimings timings = (stage, nanos) -> metrics.time(stage, nanos);   // or StageTimings.NONE
+
     var placer = new PlacementRunner(pack.placement());
     PlacementOutcome outcome = placer.place(request, edit, inputs, placementSeed,
-            ConfiguredSettings.placement(objectId, stilt, snow));
+            ConfiguredSettings.placement(objectId, stilt, snow), timings);
 
     var mantle = new MantleRunner(pack.mantle());
-    for (var stage : pack.mantle().stages()) {                            // each stage its own pass, first
-        mantle.generate(stage.stage(), mantleContext, chunkSeed);         // for each chunk it reaches
+    for (var stage : pack.mantle().stages()) {                                // each stage its own pass, first
+        mantle.generate(stage.stage(), mantleContext, chunkSeed, timings);    // for each chunk it reaches
     }
-    new ChunkRunner(pack.chunk()).generate(generationContext, chunkSeed, (stage, nanos) -> metrics.time(stage, nanos));
+    new ChunkRunner(pack.chunk()).generate(generationContext, chunkSeed, timings);
 }   // stop using the runners before the pack closes
 ```
+
+All three runners report how long each stage that ran took to their `StageTimings`. A block stage is
+reported once per placement, with its time summed over the blocks of its pass. Stages that are
+inactive or throw are not reported.
 
 `ModuleHost` holds what the host passes to every pack load: built-in modules (their `info()` is read
 once, here), the host packages pack modules may use, the JSON fields it uses itself per target, the
 packages of the classes it describes itself and the pack folders it reads itself. Each method adds to what earlier calls configured. Package names,
 reserved fields and reserved folders are checked when it is built. `LoadedPack.load`
-loads the pack's jars, installs them after the built-ins, catalogs settings and registrations,
+loads the pack's jars, sets them up after the built-ins, catalogs settings and registrations,
 describes them for studio and resolves the three pipelines. It returns a complete pack or throws with nothing left open. `close()`
 releases the pack's class loader and its jar copies. `PackModules` and `LoadedModules`, which it
 uses, stay available for tests and special cases.
@@ -742,14 +768,14 @@ Pack overworld uses 2 modules:
 
 A pack without jars logs `Pack overworld uses no modules: no jars in its modules directory`.
 
-`LoadedModules.load` installs every module, catalogs the settings types named in `when(...)`
+`LoadedModules.load` sets up every module, catalogs the settings types named in `when(...)`
 together with explicitly registered settings, geometry and mantle registrations, resource kinds and
 validators and service providers (`catalog().resourceKinds()`, `catalog().validators()`,
 `catalog().registrations(service)`), describes them and resolves the pipelines. Graph errors
 (missing requirement, cycle, a stage outside its module's id, duplicate, cross-pipeline edge) fail
 here, at pack load, and so do duplicate module ids and feature ids or mantle keys outside the
 module's id, and a settings key two features take at one target or that is a reserved host field. Errors about one module name its jar or "host classpath", and so does a module
-that fails to link a class while installing, such as a jar built against an API whose methods have
+that fails to link a class during setup, such as a jar built against an API whose methods have
 since changed:
 
 ```
@@ -843,7 +869,8 @@ world's state store (`PackWorld.state`).
 ```
 
 The tests cover graph resolution and every error path, fusion, activation cascade, outputs,
-rejection and rollback, install-order determinism, id ownership of stages, settings, objects and
+rejection and rollback, setup-order determinism, `configured` reads, stage timings of all three
+runners, id ownership of stages, settings, objects and
 mantle keys, reach per stage, pipeline and mantle layer, reach worked out when the pack loads (mantle
 stages only, never negative), one mantle stage per runner call with activation that follows its
 requirements, chunk stages that declare reach or mantle writes (`StageGraphTest`, `ModuleRegistryTest`), settings entries per type in level order
@@ -884,7 +911,7 @@ outside the platform loader, non-exported JDK packages (`sun.misc.Unsafe` and `j
 load), several kinds of unusable class in one error, classes missing from an
 exposed package, optional dependencies that only warn, declared optional packages (fully and partly
 excused, per jar, never excusing an error, invalid names), references that must still load
-(arrays, the JDK, other pack jars, missing annotation types), linkage errors during install, and a
+(arrays, the JDK, other pack jars, missing annotation types), linkage errors during setup, and a
 pack jar that requires a stage of a built-in module in `example.builtin`, outside `com.volmit`,
 which loads only when the host exposes that package. `ExposedHostClassLoaderTest` checks what the
 pack loader's parent shows, `ExposedPackagesTest` which package names it accepts and how they

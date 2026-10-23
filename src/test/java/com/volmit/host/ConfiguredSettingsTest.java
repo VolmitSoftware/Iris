@@ -32,6 +32,20 @@ class ConfiguredSettingsTest {
         assertEquals(List.of(), ConfiguredSettings.none().find(Levels.class));
     }
 
+    @Feature(id = "test:base", name = "Base", key = "base", targets = {Target.BIOME, Target.OBJECT_PLACEMENT})
+    static class Base implements IrisFeature {}
+
+    static final class Refined extends Base {}
+
+    @Test
+    void aSubclassValueIsFoundUnderTheTypeThatDeclaresItsFeature() {
+        var refined = new Entry<>(Target.BIOME, BIOME, new Refined());
+
+        assertEquals(List.of(refined), ConfiguredSettings.of(List.of(refined)).find(Base.class));
+        var twice = assertThrows(IllegalArgumentException.class, () -> ConfiguredSettings.placement(OBJECT, new Base(), new Refined()));
+        assertEquals("Settings configured twice: " + Base.class.getName(), twice.getMessage());
+    }
+
     @Test
     void aPlacementDeclaresEachTypeOnce() {
         var levels = new Levels();

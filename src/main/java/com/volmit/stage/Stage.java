@@ -47,8 +47,8 @@ public abstract sealed class Stage<O> permits PlacementStage, BlockStage, ChunkS
     }
 
     /** Mantle stages have no output: each runs as its own pass, so they pass data on through mantle layers. */
-    public static MantleStage<Void> mantle(String id) {
-        return new MantleStage<>(id, Void.class);
+    public static MantleStage mantle(String id) {
+        return new MantleStage(id);
     }
 
     public final ResourceId id() {

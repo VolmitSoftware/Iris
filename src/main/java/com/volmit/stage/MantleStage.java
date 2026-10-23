@@ -5,9 +5,9 @@ package com.volmit.stage;
  * so a stage sees what earlier stages wrote into neighboring chunks. Mantle stages therefore have no
  * output; they pass data on through mantle layers.
  */
-public final class MantleStage<O> extends Stage<O> {
-    MantleStage(String id, Class<O> outputType) {
-        super(id, outputType);
+public final class MantleStage extends Stage<Void> {
+    MantleStage(String id) {
+        super(id, Void.class);
     }
 
     @Override

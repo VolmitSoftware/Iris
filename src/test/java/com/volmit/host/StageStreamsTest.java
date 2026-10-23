@@ -2,6 +2,7 @@ package com.volmit.host;
 
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
+import com.volmit.ModuleSetup;
 import com.volmit.block.BlockState;
 import com.volmit.mantle.BlockBox;
 import com.volmit.object.GeneratedObject;
@@ -14,6 +15,7 @@ import com.volmit.stage.StageContext;
 import com.volmit.stage.StageGraph;
 import com.volmit.support.MemoryEdit;
 import com.volmit.support.TestContexts;
+import com.volmit.support.TestSetups;
 import com.volmit.support.TestTerrain;
 import com.volmit.world.BlockPosition;
 import org.junit.jupiter.api.Test;
@@ -38,14 +40,12 @@ class StageStreamsTest {
     private static IrisModule module(String id, Consumer<StageGraph> install) {
         return new IrisModule() {
             public ModuleInfo info() { return ModuleInfo.of(id, "Test module " + id, "1"); }
-            public void install(StageGraph graph) { install.accept(graph); }
+            public void setup(ModuleSetup setup) { install.accept(setup.stages()); }
         };
     }
 
     private static ResolvedGraph resolve(Pipeline pipeline, IrisModule... modules) {
-        var builder = new StageGraphBuilder();
-        for (var module : modules) builder.install(DiscoveredModule.builtIn(module));
-        return builder.resolve(pipeline);
+        return TestSetups.stages(modules).resolve(pipeline);
     }
 
     private static PlacementRequest request() {
@@ -57,7 +57,7 @@ class StageStreamsTest {
     private Map<String, List<Long>> place(ResolvedGraph graph, long invocationSeed) {
         draws.clear();
         var outcome = new PlacementRunner(graph).place(request(), new MemoryEdit(new TestTerrain((x, z) -> 5)),
-                TestContexts.placement(), invocationSeed, ConfiguredSettings.none());
+                TestContexts.placement(), invocationSeed, ConfiguredSettings.none(), StageTimings.NONE);
         assertTrue(outcome.isPlaced());
         return Map.copyOf(draws);
     }
@@ -131,7 +131,7 @@ class StageStreamsTest {
         var graph = resolve(Pipeline.CHUNK, module("a:mod", stages -> stages.define(Stage.chunk("a:mod/ores"))
                 .run(context -> drawn.add((long) context.random().nextInt(BOUND)))));
 
-        new ChunkRunner(graph).generate(TestContexts.generation(Map.of()), TestContexts.SEED);
+        new ChunkRunner(graph).generate(TestContexts.generation(Map.of()), TestContexts.SEED, StageTimings.NONE);
 
         assertEquals(firstDraws(TestContexts.SEED, "a:mod/ores", 1), drawn);
     }

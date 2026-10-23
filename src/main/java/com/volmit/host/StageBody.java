@@ -14,11 +14,11 @@ sealed interface StageBody {
 
     @FunctionalInterface
     interface InvocationWork {
-        Object run(Object context, Object settings);
+        Object run(Object context);
     }
 
     @FunctionalInterface
     interface BlockWork {
-        void run(BlockStageContext context, Object settings, Object accumulator);
+        void run(BlockStageContext context, Object accumulator);
     }
 }

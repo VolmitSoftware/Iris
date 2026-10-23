@@ -64,6 +64,25 @@ public record FeatureDescriptor<F extends IrisFeature>(
         }
     }
 
+    /** The settings type a value of {@code valueClass} is configured as: the nearest class of its hierarchy that
+     * declares {@code @Feature}, so a subclass without its own declaration counts as its declared superclass.
+     */
+    public static Class<?> declaredType(Class<?> valueClass) {
+        return DECLARED_TYPES.get(Objects.requireNonNull(valueClass, "valueClass"));
+    }
+
+    private static final ClassValue<Class<?>> DECLARED_TYPES = new ClassValue<>() {
+        @Override
+        protected Class<?> computeValue(Class<?> valueClass) {
+            for (Class<?> type = valueClass; type != null; type = type.getSuperclass()) {
+                if (type.getDeclaredAnnotation(Feature.class) != null) {
+                    return type;
+                }
+            }
+            throw new IllegalArgumentException("Missing @Feature: " + valueClass.getName() + " and its superclasses declare none");
+        }
+    };
+
     private static void requireKey(ResourceId id, String key) {
         try {
             FeatureAttachment.requireFieldName(key);

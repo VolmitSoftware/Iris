@@ -2,12 +2,12 @@ package com.volmit.example.placement;
 
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
+import com.volmit.ModuleSetup;
 import com.volmit.placement.PlacedBlock;
 import com.volmit.stage.BlockStage;
 import com.volmit.stage.BlockStageContext;
 import com.volmit.stage.PlacementStage;
 import com.volmit.stage.Stage;
-import com.volmit.stage.StageGraph;
 
 /** Port of PlacementModuleBlocks: write each transformed block; COMPLETE marks the pass done. */
 public final class BlocksModule implements IrisModule {
@@ -21,11 +21,12 @@ public final class BlocksModule implements IrisModule {
     }
 
     @Override
-    public void install(StageGraph graph) {
-        graph.define(WRITE)
+    public void setup(ModuleSetup setup) {
+        var stages = setup.stages();
+        stages.define(WRITE)
                 .requires(PrepareModule.ROTATE, AnchorModule.HEIGHT)
                 .run(BlocksModule::write);
-        graph.define(COMPLETE)
+        stages.define(COMPLETE)
                 .requires(WRITE)
                 .run(context -> {});
     }

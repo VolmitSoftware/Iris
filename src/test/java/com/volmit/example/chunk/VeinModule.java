@@ -1,10 +1,9 @@
 package com.volmit.example.chunk;
 
-import com.volmit.FeatureRegistry;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
+import com.volmit.ModuleSetup;
 import com.volmit.block.BlockState;
-import com.volmit.config.FeatureSettings.Entry;
 import com.volmit.config.PackSettings;
 import com.volmit.mantle.BlockBox;
 import com.volmit.mantle.MantleCodec;
@@ -15,11 +14,9 @@ import com.volmit.stage.ChunkStageContext;
 import com.volmit.stage.MantleStage;
 import com.volmit.stage.MantleStageContext;
 import com.volmit.stage.Stage;
-import com.volmit.stage.StageGraph;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
-import java.util.List;
 
 /** Work across chunks: a mantle stage plans veins into the mantle, past its own chunk, and a chunk stage
  * later turns its own chunk's part of the mantle into blocks. The two pipelines meet only in the mantle.
@@ -28,7 +25,7 @@ import java.util.List;
  */
 public final class VeinModule implements IrisModule {
     public static final MantleKey<Integer> ORE = new MantleKey<>("example:veins/ore", Integer.class);
-    public static final MantleStage<Void> PLAN = Stage.mantle("example:veins/plan");
+    public static final MantleStage PLAN = Stage.mantle("example:veins/plan");
     public static final ChunkStage<Void> PLACE = Stage.chunk("example:veins/place");
     public static final BlockState ORE_BLOCK = new BlockState("minecraft:iron_ore");
     private static final int CHUNK_WIDTH = 16;
@@ -41,14 +38,10 @@ public final class VeinModule implements IrisModule {
     }
 
     @Override
-    public void install(StageGraph graph) {
-        graph.define(PLAN).when(VeinSettings.class).reach(VeinModule::reach).writesMantle(ORE).run(VeinModule::plan);
-        graph.define(PLACE).run(VeinModule::place);
-    }
-
-    @Override
-    public void register(FeatureRegistry registry) {
-        registry.registerMantle(ORE, MantleLifetime.GENERATION, new IntegerCodec());
+    public void setup(ModuleSetup setup) {
+        setup.registry().registerMantle(ORE, MantleLifetime.GENERATION, new IntegerCodec());
+        setup.stages().define(PLAN).when(VeinSettings.class).reach(VeinModule::reach).writesMantle(ORE).run(VeinModule::plan);
+        setup.stages().define(PLACE).run(VeinModule::place);
     }
 
     /** How far the longest vein any level of the pack declares runs past its chunk. */
@@ -58,7 +51,7 @@ public final class VeinModule implements IrisModule {
     }
 
     /** One vein per level that configures veins at the chunk's centre column: levels stack. */
-    private static void plan(MantleStageContext context, List<Entry<VeinSettings>> inChunk) {
+    private static void plan(MantleStageContext context) {
         int startX = context.originX() + CHUNK_CENTRE;
         int z = context.originZ() + CHUNK_CENTRE;
         var ore = context.mantle().layer(ORE);

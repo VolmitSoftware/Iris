@@ -1,12 +1,15 @@
 package com.volmit.host;
 
 import com.volmit.IrisFeature;
+import com.volmit.config.FeatureSettings.Entry;
 import com.volmit.random.WorldRandom;
 import com.volmit.stage.BlockStageContext;
 import com.volmit.stage.Stage;
 import com.volmit.world.PackWorld;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
+import java.util.function.BooleanSupplier;
 import java.util.stream.IntStream;
 
 /** Pipeline-independent state of one invocation: activation, settings, stage outputs and stage
@@ -19,6 +22,7 @@ import java.util.stream.IntStream;
 final class StageInvocation {
     private static final Object PENDING = new Object();
     private static final int NO_STAGE = -1;
+    private static final BooleanSupplier NEVER_REJECTED = () -> false;
 
     private final ResolvedGraph graph;
     private final Object[] settingsBySlot;
@@ -51,15 +55,23 @@ final class StageInvocation {
     }
 
     void runInvocationStage(int position, Object context) {
+        runInvocationStage(position, context, NEVER_REJECTED);
+    }
+
+    /** {@code rejected} tells, after the stage ran, whether it rejected the attempt; a rejecting stage may return null. */
+    void runInvocationStage(int position, Object context, BooleanSupplier rejected) {
         if (!active[position]) {
             return;
         }
         var executable = graph.executable(position);
         var work = ((StageBody.Invocation) executable.body()).work();
         current = position;
-        var output = work.run(context, settings(executable));
+        var output = work.run(context);
         current = NO_STAGE;
-        complete(position, requireDeclaredOutput(executable, output));
+        if (output == null && executable.stage().producesOutput() && !rejected.getAsBoolean()) {
+            throw new NullPointerException("Stage " + executable.stage() + " produced a null output");
+        }
+        complete(position, output);
     }
 
     Object newAccumulator(int position) {
@@ -75,7 +87,7 @@ final class StageInvocation {
         var executable = graph.executable(position);
         var work = ((StageBody.Block) executable.body()).work();
         current = position;
-        work.run(context, settings(executable), accumulator);
+        work.run(context, accumulator);
         current = NO_STAGE;
     }
 
@@ -128,16 +140,21 @@ final class StageInvocation {
         return graph.executable(current);
     }
 
-    private Object settings(ExecutableStage executable) {
-        int slot = executable.settingsSlot();
-        return slot == ExecutableStage.NO_SETTINGS ? null : settingsBySlot[slot];
-    }
-
-    private static Object requireDeclaredOutput(ExecutableStage executable, Object output) {
-        if (output == null && executable.stage().producesOutput()) {
-            throw new NullPointerException("Stage " + executable.stage() + " produced a null output");
+    /** The entries that activated the running stage, which must be conditioned on {@code type}. */
+    @SuppressWarnings("unchecked") // The slot holds the entries of the type the stage is conditioned on.
+    <S extends IrisFeature> List<Entry<S>> configured(Class<S> type) {
+        Objects.requireNonNull(type, "settingsType");
+        if (current == NO_STAGE) {
+            throw new IllegalStateException("Configured settings can only be read while a stage runs");
         }
-        return output;
+        var executable = graph.executable(current);
+        int slot = executable.settingsSlot();
+        if (slot == ExecutableStage.NO_SETTINGS || graph.settingsTypes().get(slot) != type) {
+            throw new IllegalStateException("Stage " + executable.stage() + " read configured(" + type.getSimpleName()
+                    + ") but is not conditioned on it; add when(" + type.getSimpleName() + ".class) to its definition,"
+                    + " or read other settings through settings()");
+        }
+        return (List<Entry<S>>) settingsBySlot[slot];
     }
 
     @SuppressWarnings("unchecked") // Settings types come from when(Class<? extends IrisFeature>).

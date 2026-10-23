@@ -130,7 +130,7 @@ public record ModuleHost(
                 reservedFolders, bundledJars, jarCopyRoot, logger);
     }
 
-    /** The built-in modules followed by a pack's modules, in the order {@link LoadedModules} installs them. */
+    /** The built-in modules followed by a pack's modules, in the order {@link LoadedModules} sets them up. */
     List<DiscoveredModule> withPackModules(List<DiscoveredModule> packModules) {
         var modules = new ArrayList<>(builtIns);
         modules.addAll(Objects.requireNonNull(packModules, "packModules"));

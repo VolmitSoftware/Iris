@@ -15,8 +15,9 @@ phase or hook has special status in the API.
 
 ```mermaid
 flowchart TD
-    Modules[Built-in and addon modules] --> Install[install: define stages]
-    Modules --> Register[register: geometry, mantle layers, resource kinds, validators, hooks, services]
+    Modules[Built-in and addon modules] --> Setup[setup]
+    Setup --> Install[stages: define stages]
+    Setup --> Register[registry: geometry, mantle layers, resource kinds, validators, hooks, services]
     Install --> Resolve[Resolve per pipeline at pack load]
     Install --> Settings[when settings types]
     Settings --> Catalog[Frozen feature catalog]
@@ -243,13 +244,13 @@ expected is not a problem to show in studio.
 
 A class the host hides fails, even though the pack might never run that code, because it exists:
 the module was written against Iris's copy, and the error says to ship the library or use the API
-instead of leaving the author with a `NoClassDefFoundError` during install or generation.
+instead of leaving the author with a `NoClassDefFoundError` during setup or generation.
 
 There is no version gating. Packs ship their module jars and Iris never downloads any, so whether
 a jar works with the running Iris is the pack publisher's responsibility. The class check catches
 API and exposed classes that no longer exist. It does not check methods and fields: a jar built
 against an API whose methods have changed fails with a linkage error, which `LoadedModules.load`
-reports with the module's jar when it happens during install, and which surfaces at generation
+reports with the module's jar when it happens during setup, and which surfaces at generation
 time when it happens only in a stage body.
 
 Closing `PackModules` closes the loader and then deletes the copies. Classes loaded before that
@@ -301,20 +302,26 @@ resolve time.
 | `PlacementStage<O>` | PLACEMENT | once per placement attempt | `PlacementStageContext` |
 | `BlockStage<O>` | PLACEMENT | once per object block, in a block pass | `BlockStageContext` |
 | `ChunkStage<O>` | CHUNK | once per chunk invocation | `ChunkStageContext` |
-| `MantleStage<Void>` | MANTLE | once per chunk, before the chunks it reaches generate, each stage its own pass | `MantleStageContext` |
+| `MantleStage` | MANTLE | once per chunk, before the chunks it reaches generate, each stage its own pass | `MantleStageContext` |
+
+`StageGraph.define` returns one definition type per stage type: `PlacementStageDefinition<O>`,
+`BlockStageDefinition<O>`, `ChunkStageDefinition<O>` and `MantleStageDefinition`. Each offers only
+what its pipeline allows, so these rules are compile errors instead of load failures: a chunk
+stage has no `reach` or `writesMantle`, only a mantle stage has `reach(PackReach)`, and only a
+block stage has `accumulate`.
 
 Rules enforced by `StageGraphBuilder` and the resolver:
 
 1. The stage id must start with the defining module's id and `/`. A second definition of an id
    fails. Two modules with the same id fail.
-2. `requires(stage...)` adds a REQUIRED edge. If the stage is not installed, loading fails with
-   both stage ids, the requiring module and the namespace the missing module should have.
-3. `softAfter(ref...)` and `softBefore(ref...)` add SOFT edges only when the referenced id is
-   installed. Absent targets are kept for diagnostics. A module cannot force itself before
-   another module's stage with a hard edge.
+2. `requires(stage...)` adds a REQUIRED edge. If the stage is not defined by any module, loading
+   fails with both stage ids, the requiring module and the namespace the missing module should have.
+3. `softAfter(...)` and `softBefore(...)` take stage constants or `StageRef` ids and add SOFT edges
+   only when the referenced id is defined. Absent targets are kept for diagnostics. A module cannot
+   force itself before another module's stage with a hard edge.
 4. A stage with output must be defined with `produce` (or `accumulate` for block stages), and a
    stage without output with `run`. Every defined stage needs exactly one body before its
-   module's `install` returns.
+   module's `setup` returns.
 5. A stage and everything it references must be in the same pipeline, soft references included.
 6. Cycles fail and print the whole cycle: each stage with its module and the kind of each edge.
 
@@ -327,7 +334,7 @@ all run, the lexically smallest id goes first, with one refinement for fusion:
 - otherwise a ready invocation stage runs first;
 - otherwise a block stage opens a new pass.
 
-The result depends only on ids and edges, never on install order. A tie-break on raw lexical id
+The result depends only on ids and edges, never on setup order. A tie-break on raw lexical id
 alone would interleave unrelated invocation stages into block passes and split them. Note that
 no topological order can put every unordered pair in lexical order once edges point against the
 alphabet, so "lexical" here always means "lexical among ready stages".
@@ -352,7 +359,8 @@ identity, which is a handful of entries, then reads the array. There is no hashi
 Reading anything outside that list throws `IllegalStateException` and names the fix. A block
 stage's accumulator is created once per placement and becomes readable when its pass ends;
 reading it from inside the same pass throws. A null output from a stage that declares one fails
-the invocation.
+the invocation, unless the stage rejected the placement attempt. These checks run when a stage
+reads or produces, not at load: the graph knows which outputs a stage may read, not which it does.
 
 ### Activation
 
@@ -368,8 +376,15 @@ The graph is resolved once per pack load. Activation is decided per invocation:
 
 So an inactive requirement deactivates its dependents. That is not an error. Soft edges never
 affect activation. The cost per invocation is two small arrays and one pass over stages and
-REQUIRED edges, plus, for chunks, one settings read per column and conditioned type. The entries are
-passed to the body as its second argument, a never-empty `List<FeatureSettings.Entry<S>>`.
+REQUIRED edges, plus, for chunks, one settings read per column and conditioned type. The body reads
+the entries with `ctx.configured(type)`, a never-empty `List<FeatureSettings.Entry<S>>`. Only the
+stage's own `when` type is readable that way; any other type, or a stage without a condition,
+throws and names `when(...)` and `settings()` as the fixes. Bodies take only the context, so one
+definition type per pipeline covers conditioned and unconditioned stages alike.
+
+`ConfiguredSettings` groups a value under the class whose `@Feature` declares it: the value's class or
+its nearest superclass that carries the annotation. So a subclass value is found by `when(Base.class)`,
+and a placement that configures a base and a subclass value configures the type twice.
 
 A chunk stage is active when any column of the chunk configures it, so a biome border inside a chunk
 never hides a feature on either side. The body then reads `ctx.settings().at(type, x, z)` per column,
@@ -396,9 +411,11 @@ are ordered only by the tie-break, so they are where two modules can silently co
 
 ## Placement attempts
 
-`PlacementRunner.place(request, edit, inputs, invocationSeed, settings)` owns the edit. It runs active stages in
+`PlacementRunner.place(request, edit, inputs, invocationSeed, settings, timings)` owns the edit. It runs active stages in
 order, stops after the current stage or block once a stage calls `reject(reason)`, commits only
-when nothing rejected or threw, and closes the edit in every case. Stages receive a buffered
+when nothing rejected or threw, and closes the edit in every case. A producer that rejects may
+return null, since no later stage reads its output; a null output without a rejection fails the
+attempt. Stages receive a buffered
 `PlacementAccess` view of the edit without commit or close, and it expires with the attempt.
 
 ## Random streams
@@ -488,7 +505,7 @@ the platform's Y at its boundary.
 
 ## Chunk invocations
 
-`ChunkRunner.generate(inputs, invocationSeed)` runs active chunk stages once each in resolved order.
+`ChunkRunner.generate(inputs, invocationSeed, timings)` runs active chunk stages once each in resolved order.
 `GenerationContext.hunk(type)` returns the host-owned local volume of that value type, shared by
 all stages of the invocation. Hunk coordinates are local. Samples and mantle coordinates use
 world X and Z, and Y as the height above the dimension's bottom. A chunk stage writes only its own chunk and reads the mantle: the runner hands it a view
@@ -504,8 +521,9 @@ structures): a chunk stage copies them into its chunk, as Iris's `iris:matter` d
 need no registration, and stages only read them; placements keep writing blocks through `PlacementAccess.set`.
 A mantle stage's `TerrainSampler` covers the same margin (at least 16 blocks, more when its reach is larger): a carver blends
 the profiles of the columns around its chunk, so it reads their heights and biomes though it writes only the mantle.
-`ChunkRunner.generate(inputs, seed, timings)` reports how long each stage that ran took, so the host times modules
-instead of modules timing themselves.
+All three runners take a `StageTimings` and report how long each stage that ran took, so the host times modules
+instead of modules timing themselves. A block stage is reported once per placement, its time summed over the blocks
+of its pass; an inactive stage or one that throws is not reported.
 
 The ground a chunk stage fills in needs more of the host than heights. `surfaceBiome(x, z)` answers the biome id of a column without working out the
 cave biome; `surfaceKind` says what that biome was generated as (land, sea or shore; a cave biome is always `CAVE`), `surfaceBlock` the block an image
@@ -521,7 +539,7 @@ marked need not show in the chunk (under a dimension above, the cave stage leave
 
 Some work writes beyond its chunk: a carver whose tunnels cross chunk borders, a vein running on into
 the next chunk. A chunk stage cannot do that, because the host may already have generated the
-neighbor. Such work is a mantle stage. `MantleRunner.generate(stage, inputs, invocationSeed)` runs one
+neighbor. Such work is a mantle stage. `MantleRunner.generate(stage, inputs, invocationSeed, timings)` runs one
 mantle stage for one chunk, if it is active there, against the mantle around it
 (`MantleGenerationContext`: origin, terrain, settings, mantle), without a block hunk.
 
@@ -530,7 +548,7 @@ order for every chunk within that stage's reach plus the reach of every later st
 then the next stage the same way. A stage therefore sees, in the chunks around it, everything earlier
 stages wrote, and a chunk's mantle is complete when its chunk stages read it. In Iris each mantle stage
 is one mantle component, a pass of its own, whose radius is the stage's reach. Because stages of one
-chunk run in different invocations, mantle stages have no outputs: `Stage.mantle` declares `Void`, and
+chunk run in different invocations, mantle stages have no outputs: `MantleStage` is not generic, and
 stages pass data on through mantle layers. `requires(...)` still orders mantle stages and still
 deactivates a stage in a chunk where a stage it requires is inactive; the runner works that out from
 the settings of the stage and everything it requires, and collects only those.
@@ -552,20 +570,20 @@ graph.define(CARVE).reach(32).writesMantle(CaveModule.CAVES).run(CaveModule::car
 
 - `reach(blocks)`: how far, in blocks along X and Z, the stage writes blocks or mantle values beyond
   its footprint. The footprint is the chunk's 16 by 16 columns for a mantle stage and the X/Z bounds of
-  the placed object for a placement or block stage. A chunk stage writes only its chunk; declaring a
-  reach above 0 on one fails the install, naming mantle stages as the place for the work. Whole
+  the placed object for a placement or block stage. A chunk stage writes only its chunk, so
+  `ChunkStageDefinition` has no `reach`. Whole
   columns: height is not limited, because Iris prepares chunks and mantle as full columns. Leaving it out means 0. Declaring it twice or
-  negative fails while the module installs.
+  negative fails during the module's setup.
 - `reach(PackReach)`: for a mantle stage whose reach depends on the pack, such as the largest object
   or the longest vein any level configures. The host works it out once per pack load from
   `PackSettings`, every entry of a settings type the dimension and its reachable regions and biomes
   declare, and asks each stage with `ResolvedStage.reachBlocks(settings)`; a negative result fails
-  there, naming the stage. Placement and chunk stages may not declare one: placement areas and chunks
+  there, naming the stage. Only `MantleStageDefinition` offers it: placement areas and chunks
   are sized without the pack's settings. It counts as declaring the reach, so it cannot be combined
   with `reach(blocks)`.
 - `writesMantle(layers...)`: the mantle layers the stage writes. Every layer must be registered by
-  some module with the same value type, or the pack load fails naming stage and layer. Chunk stages
-  cannot declare any.
+  some module with the same value type, or the pack load fails naming stage and layer.
+  `ChunkStageDefinition` has no `writesMantle`.
 
 Each resolved stage carries its `StageReach`. `ResolvedGraph.reach()` collects a `PipelineReach`:
 the largest reach of the pipeline's stages, and per mantle layer the largest reach of the stages
@@ -583,7 +601,7 @@ as its reach. Terrain samples are computed, not prepared, and need nothing.
 
 ## Settings, geometry and storage
 
-Settings types implement `IrisFeature` and carry `@Feature` (namespaced id, display name, attachment targets). `when(type)` validates the annotation while the module installs. The id
+Settings types implement `IrisFeature` and carry `@Feature` (namespaced id, display name, attachment targets). `when(type)` validates the annotation during the module's setup. The id
 must be owned by a module naming the type (see Namespaces), or the owner registers the type itself
 with `FeatureRegistry.registerSettings`. That is for settings no stage names, such as settings read
 only through `FeatureSettings.at(...)`; registering a type a stage also names changes nothing, and a
@@ -740,7 +758,7 @@ instance of each class with it and reads the fields of that instance as the defa
 alternatives were worse: reading no defaults leaves studio without the values a pack gets when it
 leaves a field out, and parsing initializers from class files cannot see values a constructor sets.
 Running module code is not new at this point: the load has already run the module's constructor,
-`info()`, `install` and `register`. The host creates settings this way anyway before decoding JSON
+`info()` and `setup`. The host creates settings this way anyway before decoding JSON
 into them, so a constructor that would fail here would fail on every decode: the load fails with the
 constructor's exception, and a class without the constructor fails too, rather than describing
 settings the host cannot create.
@@ -1013,7 +1031,7 @@ gives each module a `ModuleLog` instead.
   supplies the `System.Logger`. `warnOnce` keys are kept per log, so they belong to the module, and past a few hundred new
   keys it only debugs, which keeps a key space nobody bounded from growing.
 - **Where a module reaches it.** `InvocationContext.log()` for stage bodies and generators, `PackWorld.log()` for services
-  and lifecycle hooks, `FeatureRegistry.log()` during `register`. The world and the context agree: the runners hand a stage a
+  and lifecycle hooks, `ModuleSetup.log()` during `setup`. The world and the context agree: the runners hand a stage a
   view of the world whose log is its module's (`PackWorld.withLog`, a host method; the view shares the state store), and
   `LifecycleRunner` and `ServiceRegistration.scope` do the same for hooks and providers. A host that calls a provider itself
   must scope the world, or the provider's lines carry the host's label.

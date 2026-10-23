@@ -2,12 +2,12 @@ package com.volmit.example.placement;
 
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
+import com.volmit.ModuleSetup;
 import com.volmit.object.ObjectBlock;
 import com.volmit.stage.BlockStage;
 import com.volmit.stage.BlockStageContext;
 import com.volmit.stage.PlacementStage;
 import com.volmit.stage.Stage;
-import com.volmit.stage.StageGraph;
 
 /** Port of PlacementModulePreparation: choose transforms once, rotate each block in the pass. */
 public final class PrepareModule implements IrisModule {
@@ -21,10 +21,11 @@ public final class PrepareModule implements IrisModule {
     }
 
     @Override
-    public void install(StageGraph graph) {
-        graph.define(TRANSFORMS)
+    public void setup(ModuleSetup setup) {
+        var stages = setup.stages();
+        stages.define(TRANSFORMS)
                 .produce(context -> new Transforms(context.random().nextInt(QUARTER_TURNS)));
-        graph.define(ROTATE)
+        stages.define(ROTATE)
                 .requires(TRANSFORMS)
                 .run(PrepareModule::rotate);
     }

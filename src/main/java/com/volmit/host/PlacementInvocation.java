@@ -1,6 +1,8 @@
 package com.volmit.host;
 
+import com.volmit.IrisFeature;
 import com.volmit.config.FeatureSettings;
+import com.volmit.config.FeatureSettings.Entry;
 import com.volmit.object.ObjectBlock;
 import com.volmit.object.ObjectTransformer;
 import com.volmit.placement.PlacementAccess;
@@ -13,6 +15,7 @@ import com.volmit.stage.BlockStageContext;
 import com.volmit.stage.Stage;
 import com.volmit.world.BlockView;
 import com.volmit.world.TerrainSampler;
+import java.util.List;
 import java.util.Objects;
 
 /** The context every stage of one placement attempt receives. Block accessors work only while
@@ -68,6 +71,11 @@ final class PlacementInvocation implements BlockStageContext {
     @Override
     public <O> O output(Stage<O> stage) {
         return stages.output(stage);
+    }
+
+    @Override
+    public <S extends IrisFeature> List<Entry<S>> configured(Class<S> settingsType) {
+        return stages.configured(settingsType);
     }
 
     @Override

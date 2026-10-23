@@ -10,7 +10,6 @@ import com.volmit.validation.Validator;
 import com.volmit.service.VanillaStructures;
 import com.volmit.stage.PlacementStage;
 import com.volmit.stage.Stage;
-import com.volmit.stage.StageGraph;
 import org.junit.jupiter.api.Test;
 import java.io.DataInput;
 import java.io.DataOutput;
@@ -40,13 +39,12 @@ class ModuleRegistryTest {
     @Feature(id = "test:core/abstract", name = "Abstract", key = "coreAbstract", targets = FeatureAttachment.Target.BIOME)
     abstract static class AbstractFeature implements IrisFeature {}
 
-    /** Runs {@code registrations} as the register(...) of a built-in module with the given id. */
+    /** Runs {@code registrations} as the setup(...) of a built-in module with the given id. */
     private static void registerAs(ModuleRegistry registry, String moduleId, Consumer<FeatureRegistry> registrations) {
-        registry.register(DiscoveredModule.builtIn(new IrisModule() {
+        ModuleSetups.run(DiscoveredModule.builtIn(new IrisModule() {
             public ModuleInfo info() { return ModuleInfo.of(moduleId, "Test module " + moduleId, "1"); }
-            public void install(StageGraph graph) {}
-            public void register(FeatureRegistry registry) { registrations.accept(registry); }
-        }));
+            public void setup(ModuleSetup setup) { registrations.accept(setup.registry()); }
+        }), new StageGraphBuilder(), registry);
     }
 
     @Test
@@ -132,8 +130,10 @@ class ModuleRegistryTest {
         var conditioned = new IrisModule() {
             static final PlacementStage<Void> WORK = Stage.placement("test:core/work");
             public ModuleInfo info() { return ModuleInfo.of("test:core", "Conditioned", "1"); }
-            public void install(StageGraph graph) { graph.define(WORK).when(One.class).run((context, one) -> {}); }
-            public void register(FeatureRegistry registry) { registry.registerObject(Two.class, ignored -> context -> null); }
+            public void setup(ModuleSetup setup) {
+                setup.stages().define(WORK).when(One.class).run(context -> {});
+                setup.registry().registerObject(Two.class, ignored -> context -> null);
+            }
         };
         var loaded = LoadedModules.load(List.of(DiscoveredModule.builtIn(conditioned)), Map.of(), Set.of(), Set.of());
         assertEquals(List.of("test:core/one"), loaded.catalog().settings().stream().map(value -> value.id().toString()).toList());
@@ -157,8 +157,7 @@ class ModuleRegistryTest {
     private static IrisModule settingsModule(String id, Class<? extends IrisFeature> settings) {
         return new IrisModule() {
             public ModuleInfo info() { return ModuleInfo.of(id, id, "1"); }
-            public void install(StageGraph graph) {}
-            public void register(FeatureRegistry registry) { registry.registerSettings(settings); }
+            public void setup(ModuleSetup setup) { setup.registry().registerSettings(settings); }
         };
     }
 
@@ -217,8 +216,7 @@ class ModuleRegistryTest {
         var conditioned = new IrisModule() {
             static final PlacementStage<Void> WORK = Stage.placement("test:minerals/work");
             public ModuleInfo info() { return ModuleInfo.of("test:minerals", "Minerals", "1"); }
-            public void install(StageGraph graph) { graph.define(WORK).when(Minerals.class).run((context, minerals) -> {}); }
-            public void register(FeatureRegistry registry) {}
+            public void setup(ModuleSetup setup) { setup.stages().define(WORK).when(Minerals.class).run(context -> {}); }
         };
         var stage = assertThrows(IllegalArgumentException.class,
                 () -> LoadedModules.load(discovered(settingsModule("test:ores", Ores.class), conditioned), Map.of(), Set.of(), Set.of()));
@@ -238,8 +236,7 @@ class ModuleRegistryTest {
     private static IrisModule ownerOfOne(String name) {
         return new IrisModule() {
             public ModuleInfo info() { return ModuleInfo.of("test:core", name, "1"); }
-            public void install(StageGraph graph) {}
-            public void register(FeatureRegistry registry) { registry.registerSettings(One.class); }
+            public void setup(ModuleSetup setup) { setup.registry().registerSettings(One.class); }
         };
     }
 
@@ -276,13 +273,12 @@ class ModuleRegistryTest {
     void settingsTheirOwnerRegisteredMayBeNamedByAnyModule() {
         var owner = new IrisModule() {
             public ModuleInfo info() { return ModuleInfo.of("test:core", "Owner", "1"); }
-            public void install(StageGraph graph) {}
-            public void register(FeatureRegistry registry) { registry.registerSettings(One.class); }
+            public void setup(ModuleSetup setup) { setup.registry().registerSettings(One.class); }
         };
         var user = new IrisModule() {
             static final PlacementStage<Void> WORK = Stage.placement("test:user/work");
             public ModuleInfo info() { return ModuleInfo.of("test:user", "User", "1"); }
-            public void install(StageGraph graph) { graph.define(WORK).when(One.class).run((context, one) -> {}); }
+            public void setup(ModuleSetup setup) { setup.stages().define(WORK).when(One.class).run(context -> {}); }
         };
 
         var loaded = LoadedModules.load(List.of(DiscoveredModule.builtIn(owner), DiscoveredModule.builtIn(user)), Map.of(), Set.of(), Set.of());
@@ -370,7 +366,7 @@ class ModuleRegistryTest {
         });
 
         assertThrows(IllegalStateException.class, () -> registry.registerLifecycle(new ModuleLifecycle() {}),
-                "registration outside IrisModule.register");
+                "registration outside IrisModule.setup");
         var catalog = registry.freeze();
         assertEquals(List.of(first, second, other), catalog.lifecycles().stream().map(LifecycleRegistration::lifecycle).toList());
         assertEquals("test:alpha", catalog.lifecycles().getFirst().module().info().id().toString());

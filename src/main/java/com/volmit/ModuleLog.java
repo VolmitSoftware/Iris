@@ -4,7 +4,7 @@ package com.volmit;
  * to its own log, so a module never needs a logging library of its own and its lines are easy to find. Each module has
  * its own: reach it as {@code context.log()} in stage bodies and generators
  * ({@link com.volmit.generation.InvocationContext#log}), as {@link com.volmit.world.PackWorld#log} in services and
- * lifecycle hooks, and as {@link FeatureRegistry#log} while the module registers.
+ * lifecycle hooks, and as {@link ModuleSetup#log} during the module's setup.
  *
  * <p>Safe to use from any thread. A message is plain text, not a format string.
  */

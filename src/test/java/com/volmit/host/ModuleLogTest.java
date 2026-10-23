@@ -1,16 +1,16 @@
 package com.volmit.host;
 
-import com.volmit.FeatureRegistry;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
 import com.volmit.ModuleLifecycle;
 import com.volmit.ModuleLog;
+import com.volmit.ModuleSetup;
 import com.volmit.stage.ChunkStage;
 import com.volmit.stage.Pipeline;
 import com.volmit.stage.Stage;
-import com.volmit.stage.StageGraph;
 import com.volmit.support.TestContexts;
 import com.volmit.support.TestModuleJar;
+import com.volmit.support.TestSetups;
 import com.volmit.support.TestWorld;
 import com.volmit.world.PackWorld;
 import java.lang.System.Logger.Level;
@@ -64,7 +64,7 @@ class ModuleLogTest {
     private static IrisModule module(String id) {
         return new IrisModule() {
             public ModuleInfo info() { return ModuleInfo.of(id, "Log " + id, "1"); }
-            public void install(StageGraph graph) {}
+            public void setup(ModuleSetup setup) {}
         };
     }
 
@@ -197,21 +197,18 @@ class ModuleLogTest {
     }
 
     @Test
-    void theRegistryGivesTheRegisteringModuleItsLogDuringRegister() {
+    void setupGivesTheModuleItsOwnLog() {
         var logger = new RecordingLogger();
         var logs = new ArrayList<ModuleLog>();
-        var registering = new IrisModule() {
-            public ModuleInfo info() { return ModuleInfo.of(BETA, "Registers", "1"); }
-            public void install(StageGraph graph) {}
-            public void register(FeatureRegistry registry) { logs.add(registry.log()); }
+        var settingUp = new IrisModule() {
+            public ModuleInfo info() { return ModuleInfo.of(BETA, "Sets up", "1"); }
+            public void setup(ModuleSetup setup) { logs.add(setup.log()); }
         };
-        var registry = new ModuleRegistry();
 
-        registry.register(DiscoveredModule.builtIn(registering).loggingTo(logger));
-        logs.get(0).info("registered");
+        TestSetups.install(new StageGraphBuilder(), DiscoveredModule.builtIn(settingUp).loggingTo(logger));
+        logs.get(0).info("set up");
 
-        assertEquals(List.of("[test:beta] registered"), logger.messages());
-        assertThrows(IllegalStateException.class, registry::log);
+        assertEquals(List.of("[test:beta] set up"), logger.messages());
     }
 
     @Test
@@ -220,12 +217,12 @@ class ModuleLogTest {
         var alphaStage = Stage.chunk("test:alpha/first");
         var betaStage = Stage.chunk("test:beta/second");
         var builder = new StageGraphBuilder();
-        builder.install(DiscoveredModule.builtIn(stagedModule(ALPHA, alphaStage, null)).loggingTo(logger));
-        builder.install(DiscoveredModule.builtIn(stagedModule(BETA, betaStage, alphaStage)).loggingTo(logger));
+        TestSetups.install(builder, DiscoveredModule.builtIn(stagedModule(ALPHA, alphaStage, null)).loggingTo(logger));
+        TestSetups.install(builder, DiscoveredModule.builtIn(stagedModule(BETA, betaStage, alphaStage)).loggingTo(logger));
         var runner = new ChunkRunner(builder.resolve(Pipeline.CHUNK));
 
         try (var world = new TestWorld()) {
-            runner.generate(TestContexts.generation(Map.of(), null, null, world), TestContexts.SEED);
+            runner.generate(TestContexts.generation(Map.of(), null, null, world), TestContexts.SEED, StageTimings.NONE);
         }
 
         assertEquals(List.of("[test:alpha] context", "[test:alpha] world", "[test:beta] context", "[test:beta] world"),
@@ -235,10 +232,10 @@ class ModuleLogTest {
     private static IrisModule stagedModule(String id, ChunkStage<Void> stage, ChunkStage<Void> after) {
         return new IrisModule() {
             public ModuleInfo info() { return ModuleInfo.of(id, "Stage " + id, "1"); }
-            public void install(StageGraph graph) {
-                var definition = graph.define(stage);
+            public void setup(ModuleSetup setup) {
+                var definition = setup.stages().define(stage);
                 if (after != null) {
-                    definition.softAfter(after.ref());
+                    definition.softAfter(after);
                 }
                 definition.run(context -> {
                     context.log().info("context");
@@ -254,9 +251,8 @@ class ModuleLogTest {
         var seen = new ArrayList<ModuleLog>();
         var module = new IrisModule() {
             public ModuleInfo info() { return ModuleInfo.of(ALPHA, "Hooks", "1"); }
-            public void install(StageGraph graph) {}
-            public void register(FeatureRegistry registry) {
-                registry.registerLifecycle(new ModuleLifecycle() {
+            public void setup(ModuleSetup setup) {
+                setup.registry().registerLifecycle(new ModuleLifecycle() {
                     public void worldStarted(PackWorld world) { seen.add(world.log()); }
                 });
             }

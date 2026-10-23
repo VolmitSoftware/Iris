@@ -1,6 +1,8 @@
 package com.volmit.host;
 
+import com.volmit.IrisFeature;
 import com.volmit.config.FeatureSettings;
+import com.volmit.config.FeatureSettings.Entry;
 import com.volmit.generation.GenerationContext;
 import com.volmit.hunk.Hunk;
 import com.volmit.mantle.Mantle;
@@ -10,6 +12,7 @@ import com.volmit.world.PackWorld;
 import com.volmit.stage.ChunkStageContext;
 import com.volmit.stage.Stage;
 import com.volmit.world.TerrainSampler;
+import java.util.List;
 import java.util.Objects;
 
 /** The context every stage of one chunk invocation receives. The mantle is read-only. */
@@ -29,6 +32,11 @@ final class ChunkInvocation implements ChunkStageContext {
     @Override
     public <O> O output(Stage<O> stage) {
         return stages.output(stage);
+    }
+
+    @Override
+    public <S extends IrisFeature> List<Entry<S>> configured(Class<S> settingsType) {
+        return stages.configured(settingsType);
     }
 
     @Override

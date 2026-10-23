@@ -2,17 +2,15 @@ package com.volmit.example.placement;
 
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
+import com.volmit.ModuleSetup;
 import com.volmit.block.BlockState;
-import com.volmit.config.FeatureSettings.Entry;
 import com.volmit.placement.PlacedBlock;
 import com.volmit.stage.BlockStage;
 import com.volmit.stage.PlacementStage;
 import com.volmit.stage.PlacementStageContext;
 import com.volmit.stage.Stage;
-import com.volmit.stage.StageGraph;
 import com.volmit.stage.StageRef;
 import com.volmit.world.BlockPosition;
-import java.util.List;
 import java.util.Optional;
 
 /** Port of PlacementModuleSnow: collect written tops, then cover them after the finishing work
@@ -29,21 +27,22 @@ public final class SnowModule implements IrisModule {
     }
 
     @Override
-    public void install(StageGraph graph) {
-        graph.define(COLLECT)
+    public void setup(ModuleSetup setup) {
+        var stages = setup.stages();
+        stages.define(COLLECT)
                 .when(SnowSettings.class)
                 .requires(BlocksModule.WRITE)
-                .accumulate(SnowHeights::new, (context, snow, heights) -> heights.include(
+                .accumulate(SnowHeights::new, (context, heights) -> heights.include(
                         context.output(AnchorModule.HEIGHT).worldPosition(context.request(), context.block().position())));
-        graph.define(FINISH)
+        stages.define(FINISH)
                 .when(SnowSettings.class)
                 .requires(COLLECT, BlocksModule.COMPLETE)
                 .softAfter(StageRef.of("iris:stilt/fill"), StageRef.of("iris:vacuum/finish"))
                 .run(SnowModule::cover);
     }
 
-    private static void cover(PlacementStageContext context, List<Entry<SnowSettings>> settings) {
-        var snow = settings.getFirst().value();    // a placement declares its settings once
+    private static void cover(PlacementStageContext context) {
+        var snow = context.configured(SnowSettings.class).getFirst().value();    // a placement declares its settings once
         var layer = SNOW.withProperty("layers", Integer.toString(snow.layers()));
         var access = context.access();
         for (var top : context.output(COLLECT).tops()) {

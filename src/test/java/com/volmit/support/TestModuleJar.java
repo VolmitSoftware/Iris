@@ -38,7 +38,7 @@ public final class TestModuleJar {
     private final List<Path> classpath = new ArrayList<>(List.of(classesOf(IrisModule.class)));
     private final List<String> compilerExports = new ArrayList<>();
 
-    /** An entry class with the given module id whose install body may use {@code graph}. */
+    /** An entry class with the given module id whose setup body may use {@code graph} and {@code registry}. */
     public static TestModuleJar module(String className, String moduleId, String members, String install) {
         return module(className, moduleId, List.of(), members, install);
     }
@@ -198,7 +198,11 @@ public final class TestModuleJar {
 
                     public ModuleInfo info() { return %s; }
 
-                    public void install(StageGraph graph) { %s }
+                    public void setup(com.volmit.ModuleSetup setup) {
+                        StageGraph graph = setup.stages();
+                        com.volmit.FeatureRegistry registry = setup.registry();
+                        %s
+                    }
                 }
                 """.formatted(className.substring(0, dot), className.substring(dot + 1), members, info, install);
     }

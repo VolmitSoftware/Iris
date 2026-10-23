@@ -39,7 +39,7 @@ public record LoadedModules(
         var registry = new ModuleRegistry(reservedHostFields, Set.copyOf(reservedFolders));
         var stages = new StageGraphBuilder();
         for (var discovered : modules) {
-            installModule(discovered, stages, registry);
+            setUpModule(discovered, stages, registry);
         }
         stages.settingsTypes(registry::registeredByOwner).forEach(registry::registerStageSettings);
         var catalog = registry.freeze();
@@ -75,13 +75,12 @@ public record LoadedModules(
     /** The pack load checks that every class a module uses exists, not that every method or field
      * it uses does, so a jar built against another Iris API can still fail to link here.
      */
-    private static void installModule(DiscoveredModule discovered, StageGraphBuilder stages, ModuleRegistry registry) {
+    private static void setUpModule(DiscoveredModule discovered, StageGraphBuilder stages, ModuleRegistry registry) {
         try {
-            stages.install(discovered);
-            registry.register(discovered);
+            ModuleSetups.run(discovered, stages, registry);
         } catch (LinkageError error) {
             throw new IllegalArgumentException("Module " + discovered.info().id() + " from "
-                    + discovered.origin() + " failed to link or initialize a class while installing: " + error
+                    + discovered.origin() + " failed to link or initialize a class during setup: " + error
                     + "; a missing method or field means the jar was built against a different Iris API", error);
         } catch (IncompleteFeatureException incomplete) {
             throw new IllegalArgumentException("Module " + discovered.info().id() + " from " + discovered.origin() + ": "

@@ -5,7 +5,7 @@ import java.util.List;
 
 /** Checks the classes of all jars of one pack before its class loader exists, so a pack that
  * cannot link fails at load with the jar to fix, not later with a {@link NoClassDefFoundError}
- * during install or generation.
+ * during setup or generation.
  */
 final class PackClassCheck {
     private PackClassCheck() {}

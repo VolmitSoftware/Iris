@@ -3,9 +3,7 @@ package com.volmit.host;
 import com.volmit.FeatureAttachment;
 import com.volmit.FeatureRegistry;
 import com.volmit.IrisFeature;
-import com.volmit.IrisModule;
 import com.volmit.ModuleLifecycle;
-import com.volmit.ModuleLog;
 import com.volmit.mantle.MantleCodec;
 import com.volmit.mantle.MantleKey;
 import com.volmit.mantle.MantleLifetime;
@@ -26,8 +24,8 @@ import java.util.Set;
 /** Reference host registry. Single-threaded registration ends with freeze(); the catalog is
  * immutable. IDs are unique across feature kinds. A feature's JSON key (see {@link com.volmit.config.Feature#key})
  * is unique per attachment target, and may not equal a host JSON field passed in to reserve it; a clash fails the
- * registration naming the key, the target and both claimants. Modules register through
- * {@link #register(DiscoveredModule)}; object feature ids, mantle keys, resource kind ids and explicitly registered
+ * registration naming the key, the target and both claimants. Modules register during their setup
+ * ({@link ModuleSetups#run}); object feature ids, mantle keys, resource kind ids and explicitly registered
  * settings ids must be the registering module's id or start with it and '/' ({@link com.volmit.ModuleInfo#ownsId}).
  * Resource kinds have unique ids, types and folders, and no kind may read a folder the host reserves for its own
  * files. Lifecycle hooks and service providers are registered by the module that owns them; a service whose providers
@@ -66,28 +64,19 @@ public final class ModuleRegistry implements FeatureRegistry {
         this.reservedFolders = Set.copyOf(reservedFolders);
     }
 
-    /** Lets the module register its contributions through {@link IrisModule#register}. */
-    public void register(DiscoveredModule discovered) {
+    /** Accepts {@code discovered}'s registrations until {@link #endSetup()}; see {@link ModuleSetups#run}. */
+    void beginSetup(DiscoveredModule discovered) {
         Objects.requireNonNull(discovered, "discovered");
         checkOpen();
         if (registering != null) {
-            throw new IllegalStateException("Module " + discovered.info().id() + " registered during " + registering.info().id());
+            throw new IllegalStateException("Module " + discovered.info().id() + " set up during " + registering.info().id());
         }
         registering = discovered;
         registered.add(discovered);
-        try {
-            discovered.module().register(this);
-        } finally {
-            registering = null;
-        }
     }
 
-    @Override
-    public ModuleLog log() {
-        if (registering == null) {
-            throw new IllegalStateException("The registry's log is only available during IrisModule.register");
-        }
-        return registering.log();
+    void endSetup() {
+        registering = null;
     }
 
     @Override
@@ -151,7 +140,7 @@ public final class ModuleRegistry implements FeatureRegistry {
         checkOpen();
         Objects.requireNonNull(validator, "validator");
         if (registering == null) {
-            throw new IllegalStateException("Validator " + validator + " registered outside IrisModule.register");
+            throw new IllegalStateException("Validator " + validator + " registered outside IrisModule.setup");
         }
         validators.add(new ValidatorRegistration(validator, registering));
     }
@@ -225,7 +214,7 @@ public final class ModuleRegistry implements FeatureRegistry {
 
     private void requireOwnedId(String registration, ResourceId id) {
         if (registering == null) {
-            throw new IllegalStateException(registration + " " + id + " registered outside IrisModule.register");
+            throw new IllegalStateException(registration + " " + id + " registered outside IrisModule.setup");
         }
         var info = registering.info();
         if (info.ownsId(id)) return;
@@ -235,7 +224,7 @@ public final class ModuleRegistry implements FeatureRegistry {
 
     private void requireRegistering(String registration) {
         if (registering == null) {
-            throw new IllegalStateException(registration + " registered outside IrisModule.register");
+            throw new IllegalStateException(registration + " registered outside IrisModule.setup");
         }
     }
 

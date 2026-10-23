@@ -2,15 +2,15 @@ package com.volmit.example;
 
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
+import com.volmit.ModuleSetup;
 import com.volmit.block.BlockState;
 import com.volmit.example.placement.*;
 import com.volmit.host.ConfiguredSettings;
-import com.volmit.host.DiscoveredModule;
 import com.volmit.host.LoadedModules;
 import com.volmit.host.PlacementRunner;
 import com.volmit.host.ResolvedGraph;
-import com.volmit.host.StageGraphBuilder;
 import com.volmit.host.StageStreams;
+import com.volmit.host.StageTimings;
 import com.volmit.mantle.BlockBox;
 import com.volmit.object.GeneratedObject;
 import com.volmit.object.ObjectBlock;
@@ -20,9 +20,9 @@ import com.volmit.resource.ResourceId;
 import com.volmit.stage.Pipeline;
 import com.volmit.stage.PlacementStage;
 import com.volmit.stage.Stage;
-import com.volmit.stage.StageGraph;
 import com.volmit.support.MemoryEdit;
 import com.volmit.support.TestContexts;
+import com.volmit.support.TestSetups;
 import com.volmit.support.TestTerrain;
 import com.volmit.world.BlockPosition;
 import org.junit.jupiter.api.Test;
@@ -86,9 +86,7 @@ class PlacementLifecyclePortTest {
             """;
 
     private static ResolvedGraph resolve(List<? extends IrisModule> modules) {
-        var builder = new StageGraphBuilder();
-        modules.stream().map(DiscoveredModule::builtIn).forEach(builder::install);
-        return builder.resolve(Pipeline.PLACEMENT);
+        return TestSetups.stages(modules.toArray(IrisModule[]::new)).resolve(Pipeline.PLACEMENT);
     }
 
     private static List<String> order(ResolvedGraph graph) {
@@ -112,7 +110,8 @@ class PlacementLifecyclePortTest {
     private static MemoryEdit place(ResolvedGraph graph, ConfiguredSettings settings) {
         var terrain = terrain();
         var edit = new MemoryEdit(terrain);
-        var outcome = new PlacementRunner(graph).place(request(), edit, TestContexts.placement(terrain), TestContexts.SEED, settings);
+        var outcome = new PlacementRunner(graph).place(request(), edit, TestContexts.placement(terrain), TestContexts.SEED, settings,
+                StageTimings.NONE);
         assertTrue(outcome.isPlaced());
         return edit;
     }
@@ -183,8 +182,8 @@ class PlacementLifecyclePortTest {
         var capModule = new IrisModule() {
             static final PlacementStage<Void> CAP = Stage.placement("example:cap/top");
             public ModuleInfo info() { return ModuleInfo.of("example:cap", "Cap", "1"); }
-            public void install(StageGraph graph) {
-                graph.define(CAP).requires(StiltModule.FILL).run(context -> context.access().set(
+            public void setup(ModuleSetup setup) {
+                setup.stages().define(CAP).requires(StiltModule.FILL).run(context -> context.access().set(
                         new PlacedBlock(new BlockPosition(5, 20, 5), PLANKS, Optional.empty())));
             }
         };

@@ -5,14 +5,13 @@ import com.volmit.resource.ResourceId;
 import com.volmit.stage.BlockStage;
 import com.volmit.stage.BlockStageDefinition;
 import com.volmit.stage.ChunkStage;
-import com.volmit.stage.ChunkStageContext;
+import com.volmit.stage.ChunkStageDefinition;
 import com.volmit.stage.MantleStage;
-import com.volmit.stage.MantleStageContext;
+import com.volmit.stage.MantleStageDefinition;
 import com.volmit.stage.Pipeline;
 import com.volmit.stage.PlacementStage;
-import com.volmit.stage.PlacementStageContext;
+import com.volmit.stage.PlacementStageDefinition;
 import com.volmit.stage.Stage;
-import com.volmit.stage.StageDefinition;
 import com.volmit.stage.StageGraph;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -24,8 +23,8 @@ import java.util.TreeSet;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-/** Reference host collection of module stages. Install every module, then resolve each pipeline
- * once per pack load. Install order never affects the result. If a module's install throws,
+/** Reference host collection of module stages. Set up every module ({@link ModuleSetups#run}), then resolve each
+ * pipeline once per pack load. Setup order never affects the result. If a module's setup throws,
  * discard the whole builder: it may hold a partial module. Errors about one module name its origin.
  *
  * <p>A module defines only stages whose ids start with its own id and '/', and a settings type
@@ -36,23 +35,27 @@ import java.util.stream.Collectors;
 public final class StageGraphBuilder implements StageGraph {
     private final Map<ResourceId, StageDeclaration> declarations = new HashMap<>();
     private final Map<ResourceId, DiscoveredModule> modules = new HashMap<>();
-    private DiscoveredModule installing;
+    private DiscoveredModule settingUp;
 
-    public void install(DiscoveredModule discovered) {
+    /** Accepts {@code discovered}'s stages until {@link #endSetup(boolean)}; see {@link ModuleSetups#run}. */
+    void beginSetup(DiscoveredModule discovered) {
         Objects.requireNonNull(discovered, "discovered");
         claimModule(discovered);
-        installing = discovered;
-        try {
-            discovered.module().install(this);
-        } finally {
-            installing = null;
+        settingUp = discovered;
+    }
+
+    /** Stops accepting the module's stages. With {@code completed}, every stage it defined must have a body. */
+    void endSetup(boolean completed) {
+        var moduleId = settingUp.info().id();
+        settingUp = null;
+        if (completed) {
+            requireCompleteDefinitions(moduleId);
         }
-        requireCompleteDefinitions(discovered.info().id());
     }
 
     @Override
-    public <O> StageDefinition<PlacementStageContext, O> define(PlacementStage<O> stage) {
-        return new InvocationStageDraft<>(declare(stage));
+    public <O> PlacementStageDefinition<O> define(PlacementStage<O> stage) {
+        return new PlacementStageDraft<>(declare(stage));
     }
 
     @Override
@@ -61,13 +64,13 @@ public final class StageGraphBuilder implements StageGraph {
     }
 
     @Override
-    public <O> StageDefinition<ChunkStageContext, O> define(ChunkStage<O> stage) {
-        return new InvocationStageDraft<>(declare(stage));
+    public <O> ChunkStageDefinition<O> define(ChunkStage<O> stage) {
+        return new ChunkStageDraft<>(declare(stage));
     }
 
     @Override
-    public <O> StageDefinition<MantleStageContext, O> define(MantleStage<O> stage) {
-        return new InvocationStageDraft<>(declare(stage));
+    public MantleStageDefinition define(MantleStage stage) {
+        return new MantleStageDraft(declare(stage));
     }
 
     public ResolvedGraph resolve(Pipeline pipeline) {
@@ -91,8 +94,8 @@ public final class StageGraphBuilder implements StageGraph {
 
     private void claimModule(DiscoveredModule discovered) {
         var moduleId = discovered.info().id();
-        if (installing != null) {
-            throw new IllegalStateException("Module " + moduleId + " installed during " + installing.info().id());
+        if (settingUp != null) {
+            throw new IllegalStateException("Module " + moduleId + " set up during " + settingUp.info().id());
         }
         var previous = modules.putIfAbsent(moduleId, discovered);
         if (previous != null) {
@@ -139,7 +142,7 @@ public final class StageGraphBuilder implements StageGraph {
 
     private StageDeclaration declare(Stage<?> stage) {
         Objects.requireNonNull(stage, "stage");
-        var discovered = requireInstallingModule(stage);
+        var discovered = requireModuleInSetup(stage);
         requireOwnedStageId(stage, discovered);
 
         var module = discovered.info().id();
@@ -152,11 +155,11 @@ public final class StageGraphBuilder implements StageGraph {
         return declaration;
     }
 
-    private DiscoveredModule requireInstallingModule(Stage<?> stage) {
-        if (installing == null) {
-            throw new IllegalStateException("Stage " + stage + " defined outside IrisModule.install");
+    private DiscoveredModule requireModuleInSetup(Stage<?> stage) {
+        if (settingUp == null) {
+            throw new IllegalStateException("Stage " + stage + " defined outside IrisModule.setup");
         }
-        return installing;
+        return settingUp;
     }
 
     private static void requireOwnedStageId(Stage<?> stage, DiscoveredModule discovered) {

@@ -1,12 +1,11 @@
 package com.volmit.host;
 
-import com.volmit.FeatureRegistry;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
 import com.volmit.ModuleLifecycle;
+import com.volmit.ModuleSetup;
 import com.volmit.config.PackSettings;
 import com.volmit.resource.PackResources;
-import com.volmit.stage.StageGraph;
 import com.volmit.support.EmptyResources;
 import com.volmit.support.TestWorld;
 import com.volmit.world.PackWorld;
@@ -23,9 +22,8 @@ class LifecycleRunnerTest {
     private static IrisModule module(String id, List<String> calls, String failingHook) {
         return new IrisModule() {
             public ModuleInfo info() { return ModuleInfo.of(id, "Lifecycle " + id, "1"); }
-            public void install(StageGraph graph) {}
-            public void register(FeatureRegistry registry) {
-                registry.registerLifecycle(new ModuleLifecycle() {
+            public void setup(ModuleSetup setup) {
+                setup.registry().registerLifecycle(new ModuleLifecycle() {
                     public void packLoaded(PackResources resources, PackSettings settings) { record("loaded"); }
                     public void worldStarted(PackWorld world) { record("started"); }
                     public void warmUp(PackWorld world) { record("warmed"); }
@@ -118,8 +116,7 @@ class LifecycleRunnerTest {
     void modulesWithoutAWarmUpHookWarmUpNothing() {
         var module = new IrisModule() {
             public ModuleInfo info() { return ModuleInfo.of("test:plain", "Plain", "1"); }
-            public void install(StageGraph graph) {}
-            public void register(FeatureRegistry registry) { registry.registerLifecycle(new ModuleLifecycle() {}); }
+            public void setup(ModuleSetup setup) { setup.registry().registerLifecycle(new ModuleLifecycle() {}); }
         };
         try (var world = new TestWorld()) {
             runner(module).warmUp(world);

@@ -5,6 +5,7 @@ import com.volmit.FeatureRegistry;
 import com.volmit.IrisFeature;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
+import com.volmit.ModuleSetup;
 import com.volmit.block.BlockState;
 import com.volmit.config.Feature;
 import com.volmit.config.FeatureSettings.Entry;
@@ -29,6 +30,7 @@ import com.volmit.support.ColumnSettings;
 import com.volmit.support.DeclaredSettings;
 import com.volmit.support.MemoryEdit;
 import com.volmit.support.TestContexts;
+import com.volmit.support.TestSetups;
 import com.volmit.support.TestTerrain;
 import com.volmit.world.BlockPosition;
 import com.volmit.example.placement.SnowModule;
@@ -53,20 +55,16 @@ class StageGraphTest {
     private static IrisModule module(String id, Consumer<StageGraph> install) {
         return new IrisModule() {
             public ModuleInfo info() { return ModuleInfo.of(id, "Test module " + id, "1"); }
-            public void install(StageGraph graph) { install.accept(graph); }
+            public void setup(ModuleSetup setup) { install.accept(setup.stages()); }
         };
     }
 
     private static ResolvedGraph resolve(Pipeline pipeline, IrisModule... modules) {
-        var builder = new StageGraphBuilder();
-        for (var module : modules) builder.install(DiscoveredModule.builtIn(module));
-        return builder.resolve(pipeline);
+        return TestSetups.stages(modules).resolve(pipeline);
     }
 
     private static List<Class<? extends IrisFeature>> resolveSettings(IrisModule... modules) {
-        var builder = new StageGraphBuilder();
-        for (var module : modules) builder.install(DiscoveredModule.builtIn(module));
-        return builder.settingsTypes(type -> false);
+        return TestSetups.stages(modules).settingsTypes(type -> false);
     }
 
     private static List<String> order(ResolvedGraph graph) {
@@ -89,7 +87,11 @@ class StageGraphTest {
     }
 
     private static PlacementOutcome place(ResolvedGraph graph, MemoryEdit edit, ConfiguredSettings settings) {
-        return new PlacementRunner(graph).place(twoBlockRequest(), edit, TestContexts.placement(), TestContexts.SEED, settings);
+        return place(graph, edit, settings, StageTimings.NONE);
+    }
+
+    private static PlacementOutcome place(ResolvedGraph graph, MemoryEdit edit, ConfiguredSettings settings, StageTimings timings) {
+        return new PlacementRunner(graph).place(twoBlockRequest(), edit, TestContexts.placement(), TestContexts.SEED, settings, timings);
     }
 
     @Test
@@ -173,6 +175,21 @@ class StageGraphTest {
     }
 
     @Test
+    void softEdgesTakeTheStageConstantLikeItsId() {
+        var late = Stage.placement("test:soft/late");
+        var early = Stage.placement("test:soft/early");
+        var last = Stage.placement("test:soft/last");
+        var graph = resolve(Pipeline.PLACEMENT, module("test:soft", stages -> {
+            stages.define(early).softAfter(late).run(context -> {});
+            stages.define(last).run(context -> {});
+            stages.define(late).softBefore(last).run(context -> {});
+        }));
+
+        assertEquals(List.of("test:soft/late", "test:soft/early", "test:soft/last"), order(graph));
+        assertEquals(List.of(new StageEdge(late.id(), early.id(), StageEdge.Kind.SOFT)), graph.stages().get(1).incoming());
+    }
+
+    @Test
     void missingRequirementNamesBothStagesAndTheirModules() {
         var absent = Stage.placement("other:gone/absent");
         var error = assertThrows(IllegalArgumentException.class, () -> resolve(Pipeline.PLACEMENT,
@@ -203,7 +220,7 @@ class StageGraphTest {
                     stages.define(a).requires(b).run(context -> {});
                     stages.define(c).requires(a).run(context -> {});
                 }),
-                module("other:second", stages -> stages.define(b).softAfter(c.ref()).run(context -> {}))));
+                module("other:second", stages -> stages.define(b).softAfter(c).run(context -> {}))));
 
         assertEquals("Stage cycle in pipeline PLACEMENT: other:second/b (module other:second) -[required]-> "
                 + "test:first/a (module test:first) -[required]-> test:first/c (module test:first) -[soft]-> "
@@ -232,31 +249,30 @@ class StageGraphTest {
         assertTrue(duplicate.getMessage().contains("already defined by module test:one"), duplicate.getMessage());
 
         var module = module("test:twice", stages -> {});
-        var builder = new StageGraphBuilder();
-        builder.install(DiscoveredModule.builtIn(module));
-        assertThrows(IllegalArgumentException.class, () -> builder.install(DiscoveredModule.builtIn(module)));
+        var builder = TestSetups.stages(module);
+        assertThrows(IllegalArgumentException.class, () -> TestSetups.install(builder, DiscoveredModule.builtIn(module)));
     }
 
     @Test
     void settingsMustBeOwnedByAModuleThatNamesThem() {
         var foreign = assertThrows(IllegalArgumentException.class, () -> resolveSettings(
-                module("other:user", stages -> stages.define(Stage.placement("other:user/work")).when(Toggle.class).run((context, toggle) -> {}))));
+                module("other:user", stages -> stages.define(Stage.placement("other:user/work")).when(Toggle.class).run(context -> {}))));
         assertEquals("Settings type " + Toggle.class.getName() + " has feature id test:owner/toggle, which none of the modules "
                 + "naming it in when(...) owns: other:user from host classpath. A feature id is the id of the module that owns "
                 + "the settings, such as other:user, or starts with it and '/', such as other:user/toggle", foreign.getMessage());
 
         var sameNamespace = assertThrows(IllegalArgumentException.class, () -> resolveSettings(
-                module("test:user", stages -> stages.define(Stage.placement("test:user/work")).when(Toggle.class).run((context, toggle) -> {}))));
+                module("test:user", stages -> stages.define(Stage.placement("test:user/work")).when(Toggle.class).run(context -> {}))));
         assertTrue(sameNamespace.getMessage().contains("none of the modules naming it in when(...) owns: test:user from host classpath"),
                 sameNamespace.getMessage());
 
         var shared = resolveSettings(
-                module("test:owner", stages -> stages.define(Stage.placement("test:owner/work")).when(Toggle.class).run((context, toggle) -> {})),
-                module("other:user", stages -> stages.define(Stage.placement("other:user/work")).when(Toggle.class).run((context, toggle) -> {})));
+                module("test:owner", stages -> stages.define(Stage.placement("test:owner/work")).when(Toggle.class).run(context -> {})),
+                module("other:user", stages -> stages.define(Stage.placement("other:user/work")).when(Toggle.class).run(context -> {})));
         assertEquals(List.of(Toggle.class), shared);
 
         var snowOnMoss = resolveSettings(new SnowModule(), module("example:moss", stages ->
-                stages.define(Stage.placement("example:moss/on-snow")).when(SnowSettings.class).run((context, snow) -> {})));
+                stages.define(Stage.placement("example:moss/on-snow")).when(SnowSettings.class).run(context -> {})));
         assertTrue(snowOnMoss.contains(SnowSettings.class), "moss may condition on iris:snow, which iris:snow owns");
     }
 
@@ -303,7 +319,7 @@ class StageGraphTest {
     }
 
     @Test
-    void invalidDeclarationsFailWhileInstalling() {
+    void invalidDeclarationsFailDuringSetup() {
         assertThrows(IllegalArgumentException.class, () -> resolve(Pipeline.PLACEMENT, module("test:self", stages -> {
             var self = Stage.placement("test:self/work");
             stages.define(self).requires(self).run(context -> {});
@@ -314,10 +330,10 @@ class StageGraphTest {
             definition.when(Toggle.class);
         })));
         assertThrows(IllegalArgumentException.class, () -> resolve(Pipeline.PLACEMENT, module("test:plain", stages ->
-                stages.define(Stage.placement("test:plain/work")).when(Unannotated.class).run((context, settings) -> {}))));
+                stages.define(Stage.placement("test:plain/work")).when(Unannotated.class).run(context -> {}))));
 
         var retained = new ArrayList<StageGraph>();
-        new StageGraphBuilder().install(DiscoveredModule.builtIn(module("test:retained", retained::add)));
+        TestSetups.stages(module("test:retained", retained::add));
         assertThrows(IllegalStateException.class, () -> retained.getFirst().define(Stage.placement("test:retained/late")));
     }
 
@@ -366,7 +382,7 @@ class StageGraphTest {
         var unrelated = Stage.placement("test:cascade/unrelated");
         var events = new ArrayList<String>();
         var graph = resolve(Pipeline.PLACEMENT, module("test:cascade", stages -> {
-            stages.define(toggled).when(Toggle.class).produce((context, toggle) -> {
+            stages.define(toggled).when(Toggle.class).produce(context -> {
                 events.add("toggled");
                 return 1;
             });
@@ -379,6 +395,64 @@ class StageGraphTest {
         events.clear();
         place(graph, flatEdit(), ConfiguredSettings.placement(ResourceId.parse("test:placement"), new Toggle()));
         assertEquals(List.of("toggled", "dependent:1", "unrelated"), events);
+    }
+
+    @Test
+    void aConditionedStageReadsOnlyTheSettingsItIsConditionedOn() {
+        var configured = new ArrayList<Object>();
+        var refusals = new ArrayList<String>();
+        var graph = resolve(Pipeline.PLACEMENT, module("test:owner", stages -> {
+            stages.define(Stage.placement("test:owner/toggled")).when(Toggle.class).run(context -> {
+                configured.add(context.configured(Toggle.class).getFirst().value());
+                refusals.add(assertThrows(IllegalStateException.class, () -> context.configured(SnowSettings.class)).getMessage());
+            });
+            stages.define(Stage.placement("test:owner/plain")).run(context -> refusals.add(
+                    assertThrows(IllegalStateException.class, () -> context.configured(Toggle.class)).getMessage()));
+        }));
+        var toggle = new Toggle();
+
+        place(graph, flatEdit(), ConfiguredSettings.placement(ResourceId.parse("test:placement"), toggle));
+
+        assertEquals(List.of(toggle), configured);
+        assertEquals(List.of(
+                "Stage test:owner/plain read configured(Toggle) but is not conditioned on it; add when(Toggle.class) to its"
+                        + " definition, or read other settings through settings()",
+                "Stage test:owner/toggled read configured(SnowSettings) but is not conditioned on it; add when(SnowSettings.class)"
+                        + " to its definition, or read other settings through settings()"), refusals);
+    }
+
+    @Test
+    void aProducerThatRejectsTheAttemptMayReturnNull() {
+        var graph = resolve(Pipeline.PLACEMENT, module("test:reject", stages ->
+                stages.define(Stage.placement("test:reject/height", Integer.class)).produce(context -> {
+                    context.reject("no ground");
+                    return null;
+                })));
+        var edit = flatEdit();
+
+        var outcome = place(graph, edit, ConfiguredSettings.none());
+        assertEquals(PlacementOutcome.Status.REJECTED, outcome.status());
+        assertEquals(Optional.of("no ground"), outcome.rejection());
+        assertFalse(edit.committed());
+    }
+
+    @Test
+    void placementTimesEachStageThatRanOnceAndABlockStageOncePerPass() {
+        var prepare = Stage.placement("test:timed/prepare");
+        var write = Stage.placementBlock("test:timed/write");
+        var graph = resolve(Pipeline.PLACEMENT, module("test:timed", stages -> {
+            stages.define(prepare).run(context -> {});
+            stages.define(write).requires(prepare).run(context -> {});
+            stages.define(Stage.placement("test:timed/off")).when(Toggle.class).run(context -> {});
+        }));
+        var timed = new ArrayList<String>();
+
+        place(graph, flatEdit(), ConfiguredSettings.none(), (stage, nanos) -> {
+            assertTrue(nanos >= 0);
+            timed.add(stage.stage().id().toString());
+        });
+
+        assertEquals(List.of("test:timed/prepare", "test:timed/write"), timed);
     }
 
     @Test
@@ -510,18 +584,12 @@ class StageGraphTest {
     }
 
     @Test
-    void onlyMantleStagesWorkOutTheirReachAndNeverANegativeOne() {
+    void aWorkedOutReachIsNeverNegativeAndIsDeclaredOnce() {
         var negative = LoadedModules.load(List.of(DiscoveredModule.builtIn(module("test:reach", stages ->
                 stages.define(Stage.mantle("test:reach/carve")).reach(settings -> -1).run(context -> {})))), Map.of(), Set.of(), Set.of());
         var failure = assertThrows(IllegalStateException.class, () -> negative.mantle().stages().getFirst().reachBlocks(DeclaredSettings.NONE));
         assertEquals("Stage test:reach/carve of module test:reach worked out a negative reach of -1 blocks for this pack", failure.getMessage());
 
-        var placement = assertThrows(IllegalArgumentException.class, () -> resolve(Pipeline.PLACEMENT, module("test:reach", stages ->
-                stages.define(Stage.placement("test:reach/work")).reach(settings -> 1).run(context -> {}))));
-        assertEquals("Stage test:reach/work (module test:reach) is a placement stage and declares a reach worked out when the pack"
-                + " loads, which only mantle stages may; declare a number of blocks with reach(blocks)", placement.getMessage());
-        assertThrows(IllegalArgumentException.class, () -> resolve(Pipeline.CHUNK, module("test:reach", stages ->
-                stages.define(Stage.chunk("test:reach/work")).reach(settings -> 0).run(context -> {}))));
         var twice = assertThrows(IllegalStateException.class, () -> resolve(Pipeline.MANTLE, module("test:reach", stages ->
                 stages.define(Stage.mantle("test:reach/carve")).reach(2).reach(settings -> 1).run(context -> {}))));
         assertEquals("Stage test:reach/carve (module test:reach) already declares a reach of 2 blocks", twice.getMessage());
@@ -533,7 +601,7 @@ class StageGraphTest {
         var follower = Stage.mantle("test:owner/follower");
         var ran = new ArrayList<String>();
         var graph = resolve(Pipeline.MANTLE, module("test:owner", stages -> {
-            stages.define(toggled).when(Toggle.class).run((context, entries) -> ran.add("toggled"));
+            stages.define(toggled).when(Toggle.class).run(context -> ran.add("toggled"));
             stages.define(follower).requires(toggled).run(context -> ran.add("follower"));
         }));
         var runner = new MantleRunner(graph);
@@ -541,14 +609,18 @@ class StageGraphTest {
         var nowhere = TestContexts.mantle(0, 0, ColumnSettings.NONE, null);
         var oneColumn = TestContexts.mantle(0, 0, new ColumnSettings((x, z) -> x == 15 && z == 0 ? List.of(toggle) : List.of()), null);
 
-        runner.generate(follower, nowhere, TestContexts.SEED);
+        var timed = new ArrayList<String>();
+        StageTimings timings = (stage, nanos) -> timed.add(stage.stage().id().toString());
+
+        runner.generate(follower, nowhere, TestContexts.SEED, timings);
         assertEquals(List.of(), ran, "a stage whose requirement is inactive in the chunk is inactive too");
-        runner.generate(follower, oneColumn, TestContexts.SEED);
+        runner.generate(follower, oneColumn, TestContexts.SEED, timings);
         assertEquals(List.of("follower"), ran, "only the asked stage runs; its requirement ran in its own pass");
-        runner.generate(toggled, oneColumn, TestContexts.SEED);
+        runner.generate(toggled, oneColumn, TestContexts.SEED, timings);
         assertEquals(List.of("follower", "toggled"), ran);
+        assertEquals(List.of("test:owner/follower", "test:owner/toggled"), timed, "only stages that ran are timed");
         var foreign = assertThrows(IllegalArgumentException.class,
-                () -> runner.generate(Stage.mantle("test:owner/absent"), nowhere, TestContexts.SEED));
+                () -> runner.generate(Stage.mantle("test:owner/absent"), nowhere, TestContexts.SEED, StageTimings.NONE));
         assertEquals("Stage test:owner/absent is not a stage of this mantle graph", foreign.getMessage());
     }
 
@@ -578,30 +650,13 @@ class StageGraphTest {
                 + " but it is registered as java.lang.Integer", mismatch.getMessage());
     }
 
-    @Test
-    void chunkStagesNeitherReachBeyondTheirChunkNorWriteTheMantle() {
-        var depth = new MantleKey<>("test:reach/depth", Integer.class);
-        var carve = Stage.chunk("test:reach/carve");
-
-        var reach = assertThrows(IllegalArgumentException.class, () -> resolve(Pipeline.CHUNK,
-                module("test:reach", stages -> stages.define(carve).reach(8).run(context -> {}))));
-        assertEquals("Stage test:reach/carve (module test:reach) is a chunk stage and declares a reach of 8 blocks, but chunk"
-                + " stages write only their own chunk and read the mantle; define work that writes the mantle or reaches beyond"
-                + " its chunk as a mantle stage (Stage.mantle), which runs before the chunks it reaches", reach.getMessage());
-        var writes = assertThrows(IllegalArgumentException.class, () -> resolve(Pipeline.CHUNK,
-                module("test:reach", stages -> stages.define(carve).writesMantle(depth).run(context -> {}))));
-        assertTrue(writes.getMessage().startsWith("Stage test:reach/carve (module test:reach) is a chunk stage and declares mantle writes"),
-                writes.getMessage());
-        assertDoesNotThrow(() -> resolve(Pipeline.CHUNK, module("test:reach", stages -> stages.define(carve).reach(0).run(context -> {}))));
-    }
-
     /** {@code module}, also registering {@code layers}. */
     private static IrisModule withMantle(IrisModule module, MantleKey<?>... layers) {
         return new IrisModule() {
             public ModuleInfo info() { return module.info(); }
-            public void install(StageGraph graph) { module.install(graph); }
-            public void register(FeatureRegistry registry) {
-                for (var layer : layers) registerLayer(registry, layer);
+            public void setup(ModuleSetup setup) {
+                module.setup(setup);
+                for (var layer : layers) registerLayer(setup.registry(), layer);
             }
         };
     }

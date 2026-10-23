@@ -53,22 +53,18 @@ class PackSchemaTest {
     private static final String FLORA = "example:flora";
     private static final String HOST_TYPES = "com.volmit.example.hosttypes";
     private static final String FLORA_SOURCE = "settings example:flora (module example:flora from modules/flora.jar)";
-    private static final String NO_STAGES = "";
+    private static final String NO_MEMBERS = "";
 
     @TempDir
     Path packs;
     private int brokenPacks;
 
-    private static final String FLORA_MODULE_MEMBERS = """
-            public void register(com.volmit.FeatureRegistry registry) {
-                registry.registerSettings(WindSettings.class);
-                registry.registerSettings(FloraSettings.class);
-                registry.registerObject(BushSettings.class, bush -> context -> null);
-            }
+    private static final String FLORA_SETUP = """
+            registry.registerSettings(WindSettings.class);
+            registry.registerSettings(FloraSettings.class);
+            registry.registerObject(BushSettings.class, bush -> context -> null);
+            graph.define(Stage.chunk("example:flora/plant")).when(FloraSettings.class).run(context -> {});
             """;
-
-    private static final String FLORA_INSTALL =
-            "graph.define(Stage.chunk(\"example:flora/plant\")).when(FloraSettings.class).run((context, flora) -> {});";
 
     private static final String FLORA_SETTINGS = """
             package pack.flora;
@@ -165,7 +161,7 @@ class PackSchemaTest {
             """;
 
     private static TestModuleJar flora() {
-        return module("pack.flora.FloraModule", FLORA, FLORA_MODULE_MEMBERS, FLORA_INSTALL)
+        return module("pack.flora.FloraModule", FLORA, NO_MEMBERS, FLORA_SETUP)
                 .source("pack.flora.FloraSettings", FLORA_SETTINGS)
                 .source("pack.flora.Season", SEASON)
                 .source("pack.flora.Patch", PATCH)
@@ -314,7 +310,7 @@ class PackSchemaTest {
 
     @Test
     void sameModulesGiveTheSameDescriptionWhateverTheJarOrder() {
-        var other = module("pack.other.OtherModule", "example:other", NO_STAGES, NO_STAGES);
+        var other = module("pack.other.OtherModule", "example:other", NO_MEMBERS, "");
         var first = pack("first");
         flora().writeInto(first, "a.jar");
         other.writeInto(first, "b.jar");
@@ -381,7 +377,7 @@ class PackSchemaTest {
     @Test
     void packModulesCannotRegisterHeldTypes() {
         var jar = module("pack.flora.FloraModule", FLORA,
-                "public void register(com.volmit.FeatureRegistry registry) { registry.registerHeldType(pack.flora.Clamp.class); }", NO_STAGES)
+                NO_MEMBERS, "registry.registerHeldType(pack.flora.Clamp.class);")
                 .source("pack.flora.Clamp", "package pack.flora; public final class Clamp { private int minimum; }");
         var pack = pack("held-by-pack");
         jar.writeInto(pack, "flora.jar");
@@ -394,7 +390,7 @@ class PackSchemaTest {
     @Test
     void packModulesMayDescribeAHostClassOfAnExposedPackage() {
         var jar = module("pack.flora.FloraModule", FLORA,
-                "public void register(com.volmit.FeatureRegistry registry) { registry.registerHeldType(com.volmit.example.held.ClampSettings.class); }", NO_STAGES)
+                NO_MEMBERS, "registry.registerHeldType(com.volmit.example.held.ClampSettings.class);")
                 .compileAgainstHostOf(ClampSettings.class);
         var pack = pack("held-exposed");
         jar.writeInto(pack, "flora.jar");
@@ -420,7 +416,7 @@ class PackSchemaTest {
 
     private IllegalArgumentException loadFailure(ModuleHost host, String body, String... otherSources) {
         var jar = module("pack.flora.FloraModule", FLORA,
-                "public void register(com.volmit.FeatureRegistry registry) { registry.registerSettings(FloraSettings.class); }", NO_STAGES)
+                NO_MEMBERS, "registry.registerSettings(FloraSettings.class);")
                 .compileAgainstHostOf(Palette.class)
                 .source("pack.flora.FloraSettings", """
                         package pack.flora;
@@ -453,7 +449,7 @@ class PackSchemaTest {
     void settingsWhoseJsonIsOneOptionsValueNameThatOptionAsTheRoot() {
         var pack = pack("rooted");
         module("pack.flora.FloraModule", FLORA,
-                "public void register(com.volmit.FeatureRegistry registry) { registry.registerSettings(FloraSettings.class); }", NO_STAGES)
+                NO_MEMBERS, "registry.registerSettings(FloraSettings.class);")
                 .source("pack.flora.FloraSettings", """
                         package pack.flora;
 
@@ -486,7 +482,7 @@ class PackSchemaTest {
     void settingsMayHoldTheApisValueTypesWhichAreDescribedLikeSettings() {
         var pack = pack("values");
         module("pack.flora.FloraModule", FLORA,
-                "public void register(com.volmit.FeatureRegistry registry) { registry.registerSettings(FloraSettings.class); }", NO_STAGES)
+                NO_MEMBERS, "registry.registerSettings(FloraSettings.class);")
                 .source("pack.flora.FloraSettings", """
                         package pack.flora;
 
@@ -558,7 +554,7 @@ class PackSchemaTest {
     void defaultsLeaveOutWhatJsonCannotHold() {
         var pack = pack("defaults");
         module("pack.flora.FloraModule", FLORA,
-                "public void register(com.volmit.FeatureRegistry registry) { registry.registerSettings(FloraSettings.class); }", NO_STAGES)
+                NO_MEMBERS, "registry.registerSettings(FloraSettings.class);")
                 .source("pack.flora.FloraSettings", """
                         package pack.flora;
 
@@ -663,7 +659,7 @@ class PackSchemaTest {
 
         var pack = pack("module-folder");
         module("pack.flora.FloraModule", FLORA,
-                "public void register(com.volmit.FeatureRegistry registry) { registry.registerSettings(FloraSettings.class); }", NO_STAGES)
+                NO_MEMBERS, "registry.registerSettings(FloraSettings.class);")
                 .source("pack.flora.FloraSettings", """
                         package pack.flora;
 
@@ -689,7 +685,7 @@ class PackSchemaTest {
     void inheritedOptionsComeBeforeTheirSubclasssOwn() {
         var pack = pack("inherited");
         module("pack.flora.FloraModule", FLORA,
-                "public void register(com.volmit.FeatureRegistry registry) { registry.registerSettings(FloraSettings.class); }", NO_STAGES)
+                NO_MEMBERS, "registry.registerSettings(FloraSettings.class);")
                 .source("pack.flora.Base", "package pack.flora; abstract class Base { private int zeta; private int alpha; }")
                 .source("pack.flora.FloraSettings", """
                         package pack.flora;
@@ -705,15 +701,13 @@ class PackSchemaTest {
     }
 
     private static final String CASTLE = "example:castle";
-    private static final String CASTLE_MEMBERS = """
-            public void register(com.volmit.FeatureRegistry registry) {
-                registry.registerResourceKind(com.volmit.resource.ResourceKind.of("example:castle/keep", "keeps", Keep.class));
-                registry.registerSettings(CastleSettings.class);
-            }
+    private static final String CASTLE_SETUP = """
+            registry.registerResourceKind(com.volmit.resource.ResourceKind.of("example:castle/keep", "keeps", Keep.class));
+            registry.registerSettings(CastleSettings.class);
             """;
 
     private static TestModuleJar castle() {
-        return module("pack.castle.CastleModule", CASTLE, CASTLE_MEMBERS, NO_STAGES)
+        return module("pack.castle.CastleModule", CASTLE, NO_MEMBERS, CASTLE_SETUP)
                 .source("pack.castle.Keep", """
                         package pack.castle;
 
@@ -793,12 +787,10 @@ class PackSchemaTest {
 
     @Test
     void packKindsCannotReadIntoHostTypes() {
-        var jar = module("pack.castle.CastleModule", CASTLE, """
-                public void register(com.volmit.FeatureRegistry registry) {
-                    registry.registerResourceKind(com.volmit.resource.ResourceKind.of("example:castle/palette", "palettes",
-                            %s.class));
-                }
-                """.formatted(Palette.class.getName()), NO_STAGES).compileAgainstHostOf(Palette.class);
+        var jar = module("pack.castle.CastleModule", CASTLE, NO_MEMBERS, """
+                registry.registerResourceKind(com.volmit.resource.ResourceKind.of("example:castle/palette", "palettes",
+                        %s.class));
+                """.formatted(Palette.class.getName())).compileAgainstHostOf(Palette.class);
         var pack = pack("castle-host-type");
         jar.writeInto(pack, "castle.jar");
         var host = NO_BUILT_INS.exposing(HOST_TYPES).describingHostTypesIn(HOST_TYPES);
@@ -828,8 +820,7 @@ class PackSchemaTest {
     private static com.volmit.IrisModule registering(String id, ResourceKind<?> kind) {
         return new com.volmit.IrisModule() {
             public com.volmit.ModuleInfo info() { return com.volmit.ModuleInfo.of(id, "Kinds", "test"); }
-            public void install(com.volmit.stage.StageGraph graph) {}
-            public void register(com.volmit.FeatureRegistry registry) { registry.registerResourceKind(kind); }
+            public void setup(com.volmit.ModuleSetup setup) { setup.registry().registerResourceKind(kind); }
         };
     }
 }

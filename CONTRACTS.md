@@ -13,13 +13,14 @@ types that carry them and lists what the Iris adapter still owes.
 | Namespace ownership | module-prefixed stage, feature and mantle ids, `ModuleInfo.ownsStage`/`ownsId`; no reserved namespaces |
 | Randomness independent of other modules | `StageContext.random()`, host `StageStreams`, invocation seed passed to the runners |
 | Random values identical on every JDK | `WorldRandom`, pinned by `WorldRandomTest` |
-| Module-owned work and ordering | `Stage`, `StageRef`, stage definitions, `requires`/`softAfter`/`softBefore` |
-| Activation by configuration | `when(settingsType)`, host `ConfiguredSettings` (entries per type; any column of a chunk) |
+| Module entry point | `IrisModule.info()`, `IrisModule.setup(ModuleSetup)` (`stages()`, `registry()`, `log()`), host `ModuleSetups.run` |
+| Module-owned work and ordering | `Stage`, `StageRef`, one stage definition type per pipeline, `requires`/`softAfter`/`softBefore` |
+| Activation by configuration | `when(settingsType)`, `StageContext.configured(settingsType)`, host `ConfiguredSettings` (entries per declared `@Feature` type; any column of a chunk) |
 | Stacked settings levels, read per column | `FeatureSettings.at(type, x, z)`, `FeatureSettings.Entry` (level, source, value) |
 | Typed results between modules | stage outputs, `StageContext.output` |
 | Per-block work with single-pass cost | `BlockStage`, fused block passes |
 | Pack-load validation and diagnostics | host `StageGraphBuilder`, `ResolvedGraph`, `LoadedModules` |
-| Reference execution | host `PlacementRunner`, `ChunkRunner`, `MantleRunner` |
+| Reference execution | host `PlacementRunner`, `ChunkRunner`, `MantleRunner`, each timed through host `StageTimings` |
 | Work across chunks and mantle writes | `Stage.mantle`, `MantleStage`, `MantleStageContext`, `MantleGenerationContext`; chunk stages read the mantle only |
 | Annotated settings | `IrisFeature`, `@Feature` (id, short JSON `key`, optional `root`), config annotations, `OptionsMetadata`, `LinkedBiomes` (`treeBiomes`, `usedBiomes`: pack biomes the settings bring into the layout) |
 | Area a stage writes | `reach(blocks)`, `reach(PackReach)`, `writesMantle(...)` on stage definitions, `PackSettings`, host `StageReach`, `ResolvedStage.reachBlocks`, `PipelineReach` |
@@ -118,6 +119,8 @@ running Iris is the pack publisher's responsibility.
   work inside the ported stages.
 - Derive one seed per placement (world seed and the placement's stable identity) and per chunk
   (world seed and chunk position) and pass it to `PlacementRunner.place` / `ChunkRunner.generate`.
+- Pass every runner a `StageTimings` that records into the host's metrics (or `StageTimings.NONE`), so
+  placement, mantle and chunk stages are all timed by the host rather than by the modules.
 - Prepare the area a placement may read or write, including neighbors: the placement pipeline's
   `reach()` around the placed object's bounds, each mantle layer by its own maximum. Never clip.
 - Work out each mantle stage's reach once per pack load (`ResolvedStage.reachBlocks(PackSettings)`),

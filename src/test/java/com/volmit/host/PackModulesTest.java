@@ -22,7 +22,7 @@ class PackModulesTest {
     private static final String ALPHA_MEMBERS =
             "public static final PlacementStage<Void> MARK = Stage.placement(\"alpha:core/mark\");";
     private static final String NO_MEMBERS = "";
-    private static final String NO_STAGES = "";
+    private static final String NO_SETUP = "";
     private static final String SHARED_CLASS = "pack.shared.Util";
     private static final String SHARED_SOURCE = "package pack.shared; public final class Util {}";
     private static final byte[] UNUSED_CLASS_BYTES = {(byte) 0xCA, (byte) 0xFE};
@@ -111,7 +111,7 @@ class PackModulesTest {
 
     @Test
     void packClassLoaderSeesOnlyTheApiTheJdkAndThePack() throws Exception {
-        module("pack.gamma.GammaModule", "gamma:core", NO_MEMBERS, NO_STAGES).writeInto(pack, "gamma.jar");
+        module("pack.gamma.GammaModule", "gamma:core", NO_MEMBERS, NO_SETUP).writeInto(pack, "gamma.jar");
 
         try (var packModules = PackModules.load(pack)) {
             var loader = packModules.modules().getFirst().module().getClass().getClassLoader();
@@ -123,7 +123,7 @@ class PackModulesTest {
 
     @Test
     void closingThePackStopsItsClassLoaderFromLoadingMoreClasses() throws Exception {
-        module("pack.gamma.GammaModule", "gamma:core", NO_MEMBERS, NO_STAGES)
+        module("pack.gamma.GammaModule", "gamma:core", NO_MEMBERS, NO_SETUP)
                 .source("pack.gamma.Unused", "package pack.gamma; final class Unused {}")
                 .writeInto(pack, "gamma.jar");
 
@@ -145,8 +145,8 @@ class PackModulesTest {
 
     @Test
     void jarNamingSeveralEntryPointsLoadsEachModuleInListedOrder() {
-        module("pack.First", "first:core", NO_MEMBERS, NO_STAGES)
-                .alsoModule("pack.Second", "second:core", NO_MEMBERS, NO_STAGES)
+        module("pack.First", "first:core", NO_MEMBERS, NO_SETUP)
+                .alsoModule("pack.Second", "second:core", NO_MEMBERS, NO_SETUP)
                 .writeInto(pack, "two.jar");
 
         try (var packModules = PackModules.load(pack)) {
@@ -160,7 +160,7 @@ class PackModulesTest {
 
     @Test
     void secondEntryPointOfAJarThatBreaksNamesItsClass() {
-        module("pack.First", "first:core", NO_MEMBERS, NO_STAGES)
+        module("pack.First", "first:core", NO_MEMBERS, NO_SETUP)
                 .entryPoint("pack.Missing")
                 .writeInto(pack, "two.jar");
 
@@ -170,7 +170,7 @@ class PackModulesTest {
 
     @Test
     void entryPointOfAnotherJarFailsNamingTheJarThatListsIt() {
-        module("pack.First", "first:core", NO_MEMBERS, NO_STAGES).writeInto(pack, "first.jar");
+        module("pack.First", "first:core", NO_MEMBERS, NO_SETUP).writeInto(pack, "first.jar");
         new TestModuleJar().entryPoint("pack.First").writeInto(pack, "second.jar");
 
         assertMentions(failure(() -> PackModules.load(pack)),
@@ -180,8 +180,8 @@ class PackModulesTest {
 
     @Test
     void optionalPackagesOfAnyModuleOfAJarExcuseItsMissingClasses(@TempDir Path build) {
-        module("pack.First", "first:core", List.of("org.optional"), NO_MEMBERS, NO_STAGES)
-                .alsoModule("pack.Second", "second:core", using(OPTIONAL_CLASS), NO_STAGES)
+        module("pack.First", "first:core", List.of("org.optional"), NO_MEMBERS, NO_SETUP)
+                .alsoModule("pack.Second", "second:core", using(OPTIONAL_CLASS), NO_SETUP)
                 .compileAgainst(library(build, "optional.jar", OPTIONAL_CLASS))
                 .writeInto(pack, "two.jar");
 
@@ -204,7 +204,7 @@ class PackModulesTest {
                 "Module jar " + origin("plain.jar") + " has a broken entry point pack.Plain: class does not implement com.volmit.IrisModule");
 
         var throwing = pack.resolve("throwing");
-        module("pack.Throwing", "throwing:core", "public Throwing() { throw new IllegalStateException(\"boom\"); }", NO_STAGES)
+        module("pack.Throwing", "throwing:core", "public Throwing() { throw new IllegalStateException(\"boom\"); }", NO_SETUP)
                 .writeInto(throwing, "throwing.jar");
         assertMentions(failure(() -> PackModules.load(throwing)),
                 "Module jar " + origin("throwing.jar") + " has a broken entry point pack.Throwing: constructor threw",
@@ -220,9 +220,9 @@ class PackModulesTest {
     @Test
     void sameClassInTwoJarsFailsBeforeAnyModuleIsConstructed() {
         var constructorMarker = "public %s() { System.setProperty(\"" + DEFINED_PROPERTY + "\", \"true\"); }";
-        module("pack.alpha.Alpha", "alpha:core", constructorMarker.formatted("Alpha"), NO_STAGES)
+        module("pack.alpha.Alpha", "alpha:core", constructorMarker.formatted("Alpha"), NO_SETUP)
                 .source(SHARED_CLASS, SHARED_SOURCE).writeInto(pack, "alpha.jar");
-        module("pack.beta.Beta", "beta:core", constructorMarker.formatted("Beta"), NO_STAGES)
+        module("pack.beta.Beta", "beta:core", constructorMarker.formatted("Beta"), NO_SETUP)
                 .source(SHARED_CLASS, SHARED_SOURCE).writeInto(pack, "beta.jar");
 
         try {
@@ -236,9 +236,9 @@ class PackModulesTest {
 
     @Test
     void moduleDescriptorsMayRepeatAcrossJars() {
-        module("pack.alpha.Alpha", "alpha:core", NO_MEMBERS, NO_STAGES)
+        module("pack.alpha.Alpha", "alpha:core", NO_MEMBERS, NO_SETUP)
                 .resource("module-info.class", UNUSED_CLASS_BYTES).writeInto(pack, "alpha.jar");
-        module("pack.beta.Beta", "beta:core", NO_MEMBERS, NO_STAGES)
+        module("pack.beta.Beta", "beta:core", NO_MEMBERS, NO_SETUP)
                 .resource("module-info.class", UNUSED_CLASS_BYTES).writeInto(pack, "beta.jar");
 
         try (var packModules = PackModules.load(pack)) {
@@ -248,9 +248,9 @@ class PackModulesTest {
 
     @Test
     void versionedClassOfAMultiReleaseJarCountsUnderItsBaseName() {
-        module("pack.alpha.Alpha", "alpha:core", NO_MEMBERS, NO_STAGES)
+        module("pack.alpha.Alpha", "alpha:core", NO_MEMBERS, NO_SETUP)
                 .source(SHARED_CLASS, SHARED_SOURCE).writeInto(pack, "alpha.jar");
-        module("pack.beta.Beta", "beta:core", NO_MEMBERS, NO_STAGES)
+        module("pack.beta.Beta", "beta:core", NO_MEMBERS, NO_SETUP)
                 .multiRelease()
                 .resource(VERSIONED_SHARED_CLASS, sharedClassFile())
                 .writeInto(pack, "beta.jar");
@@ -261,11 +261,11 @@ class PackModulesTest {
 
     @Test
     void versionedEntriesOutsideAMultiReleaseJarAreNotClasses() {
-        module("pack.alpha.Alpha", "alpha:core", NO_MEMBERS, NO_STAGES)
+        module("pack.alpha.Alpha", "alpha:core", NO_MEMBERS, NO_SETUP)
                 .source(SHARED_CLASS, SHARED_SOURCE)
                 .resource(VERSIONED_SHARED_CLASS, UNUSED_CLASS_BYTES)
                 .writeInto(pack, "alpha.jar");
-        module("pack.beta.Beta", "beta:core", NO_MEMBERS, NO_STAGES)
+        module("pack.beta.Beta", "beta:core", NO_MEMBERS, NO_SETUP)
                 .resource(VERSIONED_SHARED_CLASS, UNUSED_CLASS_BYTES)
                 .writeInto(pack, "beta.jar");
 
@@ -276,7 +276,7 @@ class PackModulesTest {
 
     @Test
     void multiReleaseJarMayHoldAVersionedCopyOfItsOwnClass() {
-        module("pack.alpha.Alpha", "alpha:core", NO_MEMBERS, NO_STAGES)
+        module("pack.alpha.Alpha", "alpha:core", NO_MEMBERS, NO_SETUP)
                 .source(SHARED_CLASS, SHARED_SOURCE)
                 .multiRelease()
                 .resource(VERSIONED_SHARED_CLASS, sharedClassFile())
@@ -289,7 +289,7 @@ class PackModulesTest {
 
     @Test
     void apiClassInAJarFailsNamingTheJarAndTheClass() {
-        module("pack.alpha.Alpha", "alpha:core", NO_MEMBERS, NO_STAGES)
+        module("pack.alpha.Alpha", "alpha:core", NO_MEMBERS, NO_SETUP)
                 .source("com.volmit.extra.Helper", "package com.volmit.extra; public final class Helper {}")
                 .source("com.volmit.extra.Other", "package com.volmit.extra; public final class Other {}")
                 .writeInto(pack, "alpha.jar");
@@ -302,7 +302,7 @@ class PackModulesTest {
 
     @Test
     void referenceToAHostLibraryFailsNamingTheJarAndBothClasses() {
-        module("pack.user.User", "user:core", "static Object probe() { return org.junit.jupiter.api.Test.class; }", NO_STAGES)
+        module("pack.user.User", "user:core", "static Object probe() { return org.junit.jupiter.api.Test.class; }", NO_SETUP)
                 .compileAgainstHostOf(Test.class)
                 .writeInto(pack, "user.jar");
 
@@ -315,7 +315,7 @@ class PackModulesTest {
 
     @Test
     void referenceToAJdkModuleOutsideThePlatformLoaderFailsNamingTheModule() {
-        module("pack.user.User", "user:core", using("com.sun.source.tree.Tree", "java.sql.Connection"), NO_STAGES)
+        module("pack.user.User", "user:core", using("com.sun.source.tree.Tree", "java.sql.Connection"), NO_SETUP)
                 .writeInto(pack, "user.jar");
 
         assertEquals("Module jar " + origin("user.jar") + " uses classes of JDK modules that are not available to modules:\n"
@@ -327,7 +327,7 @@ class PackModulesTest {
 
     @Test
     void referenceToANonExportedJdkPackageFailsNamingThePackageAndModule() {
-        module("pack.user.User", "user:core", using("jdk.internal.misc.Unsafe", "java.lang.String"), NO_STAGES)
+        module("pack.user.User", "user:core", using("jdk.internal.misc.Unsafe", "java.lang.String"), NO_SETUP)
                 .compileWithAccessTo("java.base", "jdk.internal.misc")
                 .writeInto(pack, "user.jar");
 
@@ -341,7 +341,7 @@ class PackModulesTest {
 
     @Test
     void supportedUnsafeFromJdkUnsupportedIsUsable() {
-        module("pack.user.User", "user:core", using("sun.misc.Unsafe", "java.lang.String"), NO_STAGES)
+        module("pack.user.User", "user:core", using("sun.misc.Unsafe", "java.lang.String"), NO_SETUP)
                 .writeInto(pack, "user.jar");
 
         try (var packModules = PackModules.load(pack)) {
@@ -351,7 +351,7 @@ class PackModulesTest {
 
     @Test
     void oneFailureReportsEveryKindOfUnusableClass() {
-        module("pack.user.User", "user:core", using("org.junit.jupiter.api.Test", "com.sun.source.tree.Tree"), NO_STAGES)
+        module("pack.user.User", "user:core", using("org.junit.jupiter.api.Test", "com.sun.source.tree.Tree"), NO_SETUP)
                 .compileAgainstHostOf(Test.class)
                 .writeInto(pack, "user.jar");
 
@@ -390,7 +390,7 @@ class PackModulesTest {
         module("pack.user.User", "user:core", """
                 static Object optional() { return org.optional.Feature.class; }
                 static Object hidden() { return org.junit.jupiter.api.Test.class; }
-                """, NO_STAGES)
+                """, NO_SETUP)
                 .compileAgainst(optionalLibrary)
                 .compileAgainstHostOf(Test.class)
                 .writeInto(pack, "user.jar");
@@ -402,7 +402,7 @@ class PackModulesTest {
 
     @Test
     void missingClassesInDeclaredOptionalPackagesDoNotWarn(@TempDir Path build) {
-        module("pack.user.User", "user:core", List.of("org.optional", "org.other."), using(OPTIONAL_CLASS, "org.other.deep.Thing"), NO_STAGES)
+        module("pack.user.User", "user:core", List.of("org.optional", "org.other."), using(OPTIONAL_CLASS, "org.other.deep.Thing"), NO_SETUP)
                 .compileAgainst(library(build, "optional.jar", OPTIONAL_CLASS, "org.other.deep.Thing"))
                 .writeInto(pack, "user.jar");
 
@@ -413,7 +413,7 @@ class PackModulesTest {
 
     @Test
     void missingClassesOutsideDeclaredOptionalPackagesStillWarn(@TempDir Path build) {
-        module("pack.user.User", "user:core", List.of("org.optional"), using(OPTIONAL_CLASS, "org.optionalx.Other", "org.slf4j.Logger"), NO_STAGES)
+        module("pack.user.User", "user:core", List.of("org.optional"), using(OPTIONAL_CLASS, "org.optionalx.Other", "org.slf4j.Logger"), NO_SETUP)
                 .compileAgainst(library(build, "optional.jar", OPTIONAL_CLASS, "org.optionalx.Other", "org.slf4j.Logger"))
                 .writeInto(pack, "user.jar");
 
@@ -426,10 +426,10 @@ class PackModulesTest {
     @Test
     void optionalPackagesExcuseOnlyTheirOwnJar(@TempDir Path build) {
         var optionalLibrary = library(build, "optional.jar", OPTIONAL_CLASS);
-        module("pack.alpha.Alpha", "alpha:core", List.of("org.optional"), using(OPTIONAL_CLASS), NO_STAGES)
+        module("pack.alpha.Alpha", "alpha:core", List.of("org.optional"), using(OPTIONAL_CLASS), NO_SETUP)
                 .compileAgainst(optionalLibrary)
                 .writeInto(pack, "alpha.jar");
-        module("pack.beta.Beta", "beta:core", using(OPTIONAL_CLASS), NO_STAGES)
+        module("pack.beta.Beta", "beta:core", using(OPTIONAL_CLASS), NO_SETUP)
                 .compileAgainst(optionalLibrary)
                 .writeInto(pack, "beta.jar");
 
@@ -441,14 +441,14 @@ class PackModulesTest {
     @Test
     void optionalPackagesNeverExcuseALoadError(@TempDir Path build) {
         var hidden = pack.resolve("hidden");
-        module("pack.user.User", "user:core", List.of("org.junit"), using("org.junit.jupiter.api.Test"), NO_STAGES)
+        module("pack.user.User", "user:core", List.of("org.junit"), using("org.junit.jupiter.api.Test"), NO_SETUP)
                 .compileAgainstHostOf(Test.class)
                 .writeInto(hidden, "user.jar");
         assertMentions(failure(() -> PackModules.load(hidden)),
                 "uses classes that exist in Iris but are hidden from modules:\n  pack.user.User -> org.junit.jupiter.api.Test");
 
         var newerApi = pack.resolve("newer-api");
-        module("pack.user.User", "user:core", List.of("com.volmit"), using("com.volmit.Newer"), NO_STAGES)
+        module("pack.user.User", "user:core", List.of("com.volmit"), using("com.volmit.Newer"), NO_SETUP)
                 .compileAgainst(library(build, "newer-api.jar", "com.volmit.Newer"))
                 .writeInto(newerApi, "user.jar");
         assertMentions(failure(() -> PackModules.load(newerApi)),
@@ -457,7 +457,7 @@ class PackModulesTest {
 
     @Test
     void invalidOptionalPackageFailsNamingTheJar() {
-        module("pack.user.User", "user:core", List.of("org.*"), NO_MEMBERS, NO_STAGES).writeInto(pack, "user.jar");
+        module("pack.user.User", "user:core", List.of("org.*"), NO_MEMBERS, NO_SETUP).writeInto(pack, "user.jar");
 
         assertMentions(failure(() -> PackModules.load(pack)),
                 "Module jar " + origin("user.jar") + " has a broken entry point pack.user.User: info() failed",
@@ -469,7 +469,7 @@ class PackModulesTest {
         var newerApi = new TestModuleJar()
                 .source("com.volmit.Newer", "package com.volmit; public final class Newer {}")
                 .writeInto(build, "newer-api.jar");
-        module("pack.user.User", "user:core", "static Object probe() { return com.volmit.Newer.class; }", NO_STAGES)
+        module("pack.user.User", "user:core", "static Object probe() { return com.volmit.Newer.class; }", NO_SETUP)
                 .compileAgainst(newerApi)
                 .writeInto(pack, "user.jar");
 
@@ -487,7 +487,7 @@ class PackModulesTest {
                         public @interface Marker {}
                         """)
                 .writeInto(build, "marker.jar");
-        var alpha = module("pack.alpha.Alpha", "alpha:core", NO_MEMBERS, NO_STAGES)
+        var alpha = module("pack.alpha.Alpha", "alpha:core", NO_MEMBERS, NO_SETUP)
                 .source("pack.alpha.Shared", """
                         package pack.alpha;
                         public record Shared(int[] values, String[][] names) {
@@ -551,7 +551,7 @@ class PackModulesTest {
         var newerBuiltIns = new TestModuleJar()
                 .source("example.builtin.Newer", "package example.builtin; public final class Newer {}")
                 .writeInto(build, "newer-built-ins.jar");
-        module("pack.user.User", "user:core", "static Object probe() { return example.builtin.Newer.class; }", NO_STAGES)
+        module("pack.user.User", "user:core", "static Object probe() { return example.builtin.Newer.class; }", NO_SETUP)
                 .compileAgainst(newerBuiltIns)
                 .writeInto(pack, "user.jar");
 
@@ -561,7 +561,7 @@ class PackModulesTest {
 
     @Test
     void classOfAnExposedHostPackageInAJarFails() {
-        module("pack.alpha.Alpha", "alpha:core", NO_MEMBERS, NO_STAGES)
+        module("pack.alpha.Alpha", "alpha:core", NO_MEMBERS, NO_SETUP)
                 .source("example.builtin.Copy", "package example.builtin; public final class Copy {}")
                 .writeInto(pack, "alpha.jar");
 
@@ -598,8 +598,8 @@ class PackModulesTest {
 
                         public final class Once implements IrisModule {
                             %s
-                            public void install(StageGraph graph) {
-                                graph.define(Stage.placement("once:core/mark")).run(context -> {});
+                            public void setup(com.volmit.ModuleSetup setup) {
+                                setup.stages().define(Stage.placement("once:core/mark")).run(context -> {});
                             }
                         }
                         """.formatted(answersOnce))
@@ -614,11 +614,11 @@ class PackModulesTest {
     }
 
     @Test
-    void methodMissingAtInstallFailsNamingTheJar(@TempDir Path build) {
+    void methodMissingAtSetupFailsNamingTheJar(@TempDir Path build) {
         var libraryWithMethod = new TestModuleJar()
                 .source("pack.lib.Lib", "package pack.lib; public final class Lib { public static void added() {} }")
                 .writeInto(build, "lib.jar");
-        module("pack.alpha.Alpha", "alpha:core", NO_MEMBERS, NO_STAGES)
+        module("pack.alpha.Alpha", "alpha:core", NO_MEMBERS, NO_SETUP)
                 .source("pack.lib.Lib", "package pack.lib; public final class Lib {}")
                 .writeInto(pack, "alpha.jar");
         module("pack.beta.Beta", "beta:core", NO_MEMBERS, "pack.lib.Lib.added();")
@@ -627,7 +627,7 @@ class PackModulesTest {
 
         try (var packModules = PackModules.load(pack)) {
             assertMentions(failure(() -> LoadedModules.load(packModules.modules(), Map.of(), Set.of(), Set.of())),
-                    "Module beta:core from " + origin("beta.jar") + " failed to link or initialize a class while installing",
+                    "Module beta:core from " + origin("beta.jar") + " failed to link or initialize a class during setup",
                     "java.lang.NoSuchMethodError", "pack.lib.Lib.added()");
         }
     }
@@ -646,10 +646,9 @@ class PackModulesTest {
                 }
                 """).writeInto(build, "api-without-keys.jar");
         module("pack.old.Old", "old:flora", """
-                public void register(com.volmit.FeatureRegistry registry) { registry.registerSettings(Patch.class); }
                 @com.volmit.config.Feature(id = "old:flora/wild-patch", name = "Patch", targets = com.volmit.FeatureAttachment.Target.BIOME)
                 public static final class Patch implements com.volmit.IrisFeature {}
-                """, NO_STAGES)
+                """, "registry.registerSettings(Patch.class);")
                 .compileAgainstOlderApi(apiWithoutKeys)
                 .writeInto(pack, "old.jar");
 
@@ -663,8 +662,8 @@ class PackModulesTest {
 
     @Test
     void duplicateModuleIdsAcrossJarsFailNamingBothJars() {
-        module("pack.one.Duplicate", "dup:core", NO_MEMBERS, NO_STAGES).writeInto(pack, "one.jar");
-        module("pack.two.Duplicate", "dup:core", NO_MEMBERS, NO_STAGES).writeInto(pack, "two.jar");
+        module("pack.one.Duplicate", "dup:core", NO_MEMBERS, NO_SETUP).writeInto(pack, "one.jar");
+        module("pack.two.Duplicate", "dup:core", NO_MEMBERS, NO_SETUP).writeInto(pack, "two.jar");
 
         try (var packModules = PackModules.load(pack)) {
             assertMentions(failure(() -> LoadedModules.load(packModules.modules(), Map.of(), Set.of(), Set.of())),
@@ -675,7 +674,7 @@ class PackModulesTest {
 
     @Test
     void duplicateOfABuiltInModuleFailsNamingTheJar() {
-        module("pack.Moss", "example:moss", NO_MEMBERS, NO_STAGES).writeInto(pack, "moss.jar");
+        module("pack.Moss", "example:moss", NO_MEMBERS, NO_SETUP).writeInto(pack, "moss.jar");
 
         try (var packModules = PackModules.load(pack)) {
             assertMentions(failure(() -> loadWithBuiltIns(packModules)),
@@ -686,8 +685,7 @@ class PackModulesTest {
 
     @Test
     void settingsKeyTakenByABuiltInFailsNamingBothModulesAndTheirJars() {
-        module("pack.Clash", "mine:core", "public void register(com.volmit.FeatureRegistry registry) { registry.registerSettings(ClashSettings.class); }",
-                NO_STAGES)
+        module("pack.Clash", "mine:core", NO_MEMBERS, "registry.registerSettings(ClashSettings.class);")
                 .source("pack.ClashSettings", """
                         package pack;
 
@@ -722,8 +720,8 @@ class PackModulesTest {
 
     @Test
     void duplicateModuleIdWithinOneJarFailsNamingBothClasses() {
-        module("pack.One", "dup:core", NO_MEMBERS, NO_STAGES)
-                .alsoModule("pack.Two", "dup:core", NO_MEMBERS, NO_STAGES)
+        module("pack.One", "dup:core", NO_MEMBERS, NO_SETUP)
+                .alsoModule("pack.Two", "dup:core", NO_MEMBERS, NO_SETUP)
                 .writeInto(pack, "both.jar");
 
         try (var packModules = PackModules.load(pack)) {

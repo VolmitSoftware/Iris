@@ -12,8 +12,9 @@ import com.volmit.stage.ChunkStageContext;
 import com.volmit.stage.Stage;
 import com.volmit.world.TerrainSampler;
 import java.util.Objects;
+import java.util.Optional;
 
-/** The context every stage of one chunk invocation receives. The mantle is read-only. */
+/** The context every stage of one chunk invocation receives. The mantle is writable in the chunk's own columns only. */
 final class ChunkInvocation implements ChunkStageContext {
     private final StageInvocation stages;
     private final GenerationContext inputs;
@@ -59,7 +60,7 @@ final class ChunkInvocation implements ChunkStageContext {
 
     @Override
     public Mantle mantle() {
-        return new ReadOnlyMantle(inputs.mantle());
+        return new ChunkMantle(inputs.mantle(), inputs.originX(), inputs.originZ());
     }
 
     @Override
@@ -70,6 +71,11 @@ final class ChunkInvocation implements ChunkStageContext {
     @Override
     public PackWorld world() {
         return stages.world(inputs.world());
+    }
+
+    @Override
+    public <T> Optional<T> extension(Class<T> type) {
+        return inputs.extension(type);
     }
 
     @Override

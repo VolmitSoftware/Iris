@@ -22,8 +22,9 @@ types that carry them and lists what the Iris adapter still owes.
 | Per-block work with single-pass cost | `BlockStage`, fused block passes |
 | Pack-load validation and diagnostics | host `StageGraphBuilder`, `ResolvedGraph`, `LoadedModules` |
 | Reference execution | host `PlacementRunner`, `ChunkRunner`, `MantleRunner`, each timed through host `StageTimings` |
-| Work across chunks and mantle writes | `Stage.mantle`, `MantleStage`, `MantleStageContext`, `MantleGenerationContext`; chunk stages read the mantle only |
-| Annotated settings | `IrisFeature`, `@Feature` (id, short JSON `key`, optional `root`), config annotations, `OptionsMetadata`, `LinkedBiomes` (`treeBiomes`, `usedBiomes`: pack biomes the settings bring into the layout) |
+| Work across chunks and mantle writes | `Stage.mantle`, `MantleStage`, `MantleStageContext`, `MantleGenerationContext`; chunk stages write registered layers in their own chunk only and read the neighbors |
+| Annotated settings | `IrisFeature`, `@Feature` (id, short JSON `key`, optional `root`), config annotations, host `OptionsMetadata`, `LinkedBiomes` (`treeBiomes`, `usedBiomes`: pack biomes the settings bring into the layout) |
+| Host facades for the host's own modules | `PackWorld.extension(type)`, `InvocationContext.extension(type)`, `PackSettings.extension(type)` (each an `Optional`, empty by default) |
 | Area a stage writes | `reach(blocks)`, `reach(PackReach)`, `writesMantle(...)` on stage definitions, `PackSettings`, host `StageReach`, `ResolvedStage.reachBlocks`, `PipelineReach` |
 | Settings described for studio | `@Desc`, `@Required`, `@MinNumber`, `@MaxNumber`, `@MinItems`, `@Snippet`, `@Ref`/`Reference`, `FeatureRegistry.registerSettings`, `FeatureRegistry.registerHeldType`, host `FeatureCatalog.heldTypes()`, host `LoadedPack.schema()` (`PackSchema`, `FeatureSchema`, `ObjectType`, `SchemaOption`, `ValueKind` with `HostKind`), `ModuleHost.describingHostTypesIn` |
 | Geometry and mantle registration | `FeatureRegistry`, host `ModuleRegistry`, `FeatureCatalog` |
@@ -31,7 +32,7 @@ types that carry them and lists what the Iris adapter still owes.
 | Noise from pack-described styles | `NoiseStyle`, `StyledRange`, `PackResources.noise()`, `NoiseFactory`, `NoiseSampler` |
 | Values in settings | `BlockSpec`, `PaletteSpec`, `NoiseStyle`, `StyledRange`, `Range`, `BlockPosition`, `JigsawOverrides`, `Object` as `ValueKind.AnyKind` |
 | Decisions over and fit of the platform's own structures | service `VanillaStructures` (`rule`, `starts`, `shift`, `reach`, `beforePieces`, `afterPieces`, `setup`, `startedStructures`, `locatableStarts`, `locateStart`, `ChunkFilter`), `VanillaStructureRule`, `VanillaStructureContext`, `VanillaStructureStart`, `VanillaStructureStartContext`, `VanillaStructureSetup`, `PlatformStart`, `StartMemo`, `StartReach`, `StructureFit` (`Start`, `Piece`, `ColumnVisitor`), `DecorationStep`, `TerrainAdaptation`, `PieceKind`, `TemplateCells`, `world.BlockAccess`, host `FeatureCatalog.registrations(service)` |
-| Pack-scoped resolution | `ResourceId` (`ofPackKey`), `ResourceKey<T>`, `PackResources` (`find`, `ids`, `idOf`), `PackBiome`, `PackRegion` |
+| Pack-scoped resolution | `ResourceId` (`ofPackKey`), `PackResources` (`find(kind, id)`, `require`, `ids(kind)`, `idOf`; kinds `BIOMES`, `REGIONS`, `OBJECTS`), `PackBiome`, `PackRegion` |
 | Module-owned pack resources | `ResourceKind`, `FeatureRegistry.registerResourceKind`, `@ResourceRef`, host `ModuleHost.reservingFolders`, `FeatureCatalog.resourceKinds()`, `ResourceKindSchema`, `ValueKind.ResourceReferenceKind` |
 | Module-owned pack checks | `Validator`, `ValidationContext`, `Problem`, `Severity`, `Subject`, `FeatureRegistry.registerValidator`, host `FeatureCatalog.validators()` |
 | Per-world module state | `PackWorld` (`state`), `InvocationContext.world()`, host `WorldStates` |
@@ -109,8 +110,10 @@ running Iris is the pack publisher's responsibility.
   decode them as Iris does, and render each `HostKind` with Iris's own description of the class.
 - Back each module's log with the host's own: `ModuleHost.loggingTo(logger)` where `logger` writes `DEBUG` only when the
   host's debug setting is on and writes an `ERROR` with a cause as the host reports its own failures. Implement
-  `PackWorld.log()` and `withLog(log)` (a view of the world sharing everything else) and hand services a world scoped to the
-  provider's module (`ServiceRegistration.scope`); the runners do it for stages and hooks.
+  `PackWorld.log()` (the host's own log) and hand services a world scoped to the provider's module
+  (`ServiceRegistration.scope`); the runners do it for stages and hooks.
+- Offer the facades of the host's own modules through `extension(type)` on the world, the invocation inputs and the pack
+  settings, and nowhere else: no thread-bound state and no interfaces for modules to cast to.
 - Hand modules heights above the dimension's bottom (0 = bottom block, whatever the platform's minimum
   height is) in every value that carries Y: samples, bounds, block views, placement edits, the mantle,
   hunks. X and Z stay world coordinates. Convert in one place at the boundary.
@@ -130,13 +133,15 @@ running Iris is the pack publisher's responsibility.
 - Run each mantle stage (`MantleRunner.generate(stage, ...)`) as its own pass, in resolved order: for
   every chunk within that stage's reach plus the reach of every later stage of a chunk, each chunk once,
   before the next stage and before that chunk generates, with the mantle widened by the stage's reach.
-  Give chunk stages that chunk's mantle; `ChunkRunner` makes it read-only. Give chunk stages a `TerrainSampler` over the
+  Give chunk stages that chunk's mantle; `ChunkRunner` limits writes to the chunk's own columns. Give chunk stages a `TerrainSampler` over the
   chunk and the 16 blocks around it, and mantle stages one over the chunk and the larger of their reach and 16 blocks.
 - Serve `Mantle.blocks()` in every invocation: the blocks placements wrote into the mantle, read-only, none where the
   dimension keeps no mantle or the chunk generates without it. A block a stage reads and writes back unchanged keeps
   the host's own identity of it (a custom block of a content plugin stays one).
-- Serve `Mantle.caverns()` in every invocation (read-only, none where the dimension keeps no mantle) and cover the chunk and the 16 blocks
+- Answer `Mantle.isCarved(x, y, z)` in every invocation (false where the dimension keeps no mantle) and cover the chunk and the 16 blocks
   around it in a chunk stage's mantle, as the sampler does.
+- Name pack resources to services by `ResourceId` and convert to the host's keys at the host's edge; read a `ResourceId`
+  setting written as a bare pack key as the pack's id of that key.
 - Answer `TerrainSampler.surfaceBiome(x, z)` (the id `biome(x, y, z).surfaceBiome()` gives), `surfaceKind`, `minWorldY()`, `surfaceBlock` (empty
   where no image map gives one) and `upperDimension()` (empty when nothing sits above); `FeatureSettings.declaredBy(biome, type)` answers the
   settings the biome declares itself (empty when it declares none or is unknown); `BlockRegistry.oreFor` answers from the platform.

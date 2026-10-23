@@ -80,10 +80,10 @@ public interface StructureFit {
         /** Every piece of the start, in the platform's order: also the pieces outside the chunk. */
         List<Piece> pieces();
 
-        /** An object that stays the same for this start for as long as the platform keeps it, across chunks: a key for
-         * caches about the start, held weakly so the start can be forgotten.
+        /** The key that stays the same for this start for as long as the platform keeps it, across chunks: for caches
+         * about the start, held weakly so the start can be forgotten.
          */
-        Object key();
+        StartKey key();
     }
 
     /** A piece of a start. */

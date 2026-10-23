@@ -6,7 +6,7 @@ import java.util.Objects;
 
 /** Reference executor of a resolved chunk graph: active stages run once, in resolved order.
  * It does not schedule neighbors or roll back hunks; a failed invocation must prevent the host
- * from publishing the chunk. Stages see the mantle read-only.
+ * from publishing the chunk. Stages write the mantle in the chunk's own columns only.
  */
 public final class ChunkRunner {
     private final ResolvedGraph graph;

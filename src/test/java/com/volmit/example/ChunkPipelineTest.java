@@ -21,7 +21,9 @@ import com.volmit.host.MantleRunner;
 import com.volmit.host.StageTimings;
 import com.volmit.hunk.Hunk;
 import com.volmit.mantle.BlockBox;
+import com.volmit.mantle.MantleLayer;
 import com.volmit.resource.ResourceId;
+import com.volmit.stage.ChunkStageContext;
 import com.volmit.stage.Pipeline;
 import com.volmit.stage.Stage;
 import com.volmit.support.ColumnSettings;
@@ -30,9 +32,11 @@ import com.volmit.support.MemoryMantle;
 import com.volmit.support.TestContexts;
 import com.volmit.support.TestSetups;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.BiConsumer;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -193,9 +197,8 @@ class ChunkPipelineTest {
             public ModuleInfo info() { return ModuleInfo.of("test:caves", "Caves", "1"); }
             public void setup(ModuleSetup setup) {
                 setup.stages().define(probe).run(context -> {
-                    var caverns = context.mantle().caverns();
-                    carved.add(String.valueOf(caverns.get(6, 9, 2)));
-                    carved.add(String.valueOf(caverns.get(6, 10, 2)));
+                    carved.add(String.valueOf(context.mantle().isCarved(6, 9, 2)));
+                    carved.add(String.valueOf(context.mantle().isCarved(6, 10, 2)));
                 });
             }
         };
@@ -205,8 +208,7 @@ class ChunkPipelineTest {
                 TestContexts.generation(Map.of(BlockState.class, blocks), ColumnSettings.NONE, mantle.within(chunkArea)), TestContexts.SEED,
                 StageTimings.NONE);
 
-        assertEquals(List.of("true", "null"), carved);
-        assertThrows(UnsupportedOperationException.class, () -> mantle.within(chunkArea).caverns().set(0, 0, 0, true));
+        assertEquals(List.of("true", "false"), carved);
     }
 
     @Test
@@ -221,22 +223,44 @@ class ChunkPipelineTest {
     }
 
     @Test
-    void chunkStagesReadTheMantleButCannotWriteIt() {
-        var stage = Stage.chunk("test:writer/work");
+    void chunkStagesWriteTheMantleOfTheirOwnChunkOnly() {
         var mantle = new MemoryMantle();
-        IrisModule module = new IrisModule() {
-            public ModuleInfo info() { return ModuleInfo.of("test:writer", "Writer", "1"); }
-            public void setup(ModuleSetup setup) {
-                setup.stages().define(stage).run(context -> context.mantle().layer(VeinModule.ORE).set(0, 0, 0, 1));
-            }
-        };
-        var graph = TestSetups.stages(module).resolve(Pipeline.CHUNK);
-        var inputs = TestContexts.generation(Map.of(), ColumnSettings.NONE, mantle.within(new BlockBox(0, BOTTOM, 0, CHUNK, TOP, CHUNK)));
+        var aroundTheChunk = new BlockBox(-CHUNK, BOTTOM, -CHUNK, 2 * CHUNK, TOP, 2 * CHUNK);
+        var graph = TestSetups.stages(oreWriter((context, layer) -> layer.set(15, 3, 0, 1))).resolve(Pipeline.CHUNK);
+
+        new ChunkRunner(graph).generate(TestContexts.generation(Map.of(), ColumnSettings.NONE, mantle.within(aroundTheChunk)),
+                TestContexts.SEED, StageTimings.NONE);
+
+        assertEquals(1, mantle.get(VeinModule.ORE, 15, 3, 0));
+    }
+
+    @Test
+    void chunkStagesReadTheirNeighboursMantleButCannotWriteIt() {
+        var mantle = new MemoryMantle();
+        var aroundTheChunk = new BlockBox(-CHUNK, BOTTOM, -CHUNK, 2 * CHUNK, TOP, 2 * CHUNK);
+        var read = new ArrayList<Integer>();
+        var graph = TestSetups.stages(oreWriter((context, layer) -> {
+            read.add(layer.get(CHUNK, 0, 0));
+            layer.set(CHUNK, 0, 0, 1);
+        })).resolve(Pipeline.CHUNK);
+        var inputs = TestContexts.generation(Map.of(), ColumnSettings.NONE, mantle.within(aroundTheChunk));
 
         var failure = assertThrows(UnsupportedOperationException.class,
                 () -> new ChunkRunner(graph).generate(inputs, TestContexts.SEED, StageTimings.NONE));
-        assertEquals("Chunk stages read the mantle but do not write it; write it from a mantle stage (Stage.mantle),"
-                + " which runs before the chunks it reaches", failure.getMessage());
-        assertNull(mantle.get(VeinModule.ORE, 0, 0, 0));
+        assertEquals("A chunk stage writes the mantle of its own chunk only; write around it from a mantle stage"
+                + " (Stage.mantle), which runs before the chunks it reaches; 16,0,0 is outside BlockBox[minX=0, minY=0,"
+                + " minZ=0, maxX=16, maxY=384, maxZ=16]", failure.getMessage());
+        assertEquals(Collections.singletonList(null), read, "the neighbour is read before the write fails");
+        assertNull(mantle.get(VeinModule.ORE, CHUNK, 0, 0));
+    }
+
+    private static IrisModule oreWriter(BiConsumer<ChunkStageContext, MantleLayer<Integer>> body) {
+        var stage = Stage.chunk("test:writer/work");
+        return new IrisModule() {
+            public ModuleInfo info() { return ModuleInfo.of("test:writer", "Writer", "1"); }
+            public void setup(ModuleSetup setup) {
+                setup.stages().define(stage).run(context -> body.accept(context, context.mantle().layer(VeinModule.ORE)));
+            }
+        };
     }
 }

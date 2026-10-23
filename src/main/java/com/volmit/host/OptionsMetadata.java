@@ -1,5 +1,14 @@
-package com.volmit.config;
+package com.volmit.host;
 
+import com.volmit.config.Desc;
+import com.volmit.config.MaxNumber;
+import com.volmit.config.MinItems;
+import com.volmit.config.MinNumber;
+import com.volmit.config.Ref;
+import com.volmit.config.Reference;
+import com.volmit.config.Required;
+import com.volmit.config.ResourceRef;
+import com.volmit.config.Snippet;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
@@ -7,7 +16,9 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 
-/** Annotation metadata, independent of JSON libraries. Does not decode or validate values. */
+/** For the host: the options a settings class declares with their annotations, independent of JSON libraries, as
+ * studio descriptions and settings decoders read them. Does not decode or validate values.
+ */
 public record OptionsMetadata(String description, String snippet, List<Option> options) {
     public OptionsMetadata {
         options = List.copyOf(options);

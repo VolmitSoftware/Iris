@@ -2,7 +2,6 @@ package com.volmit.host;
 
 import com.volmit.block.BlockState;
 import com.volmit.config.Desc;
-import com.volmit.config.OptionsMetadata;
 import com.volmit.config.Reference;
 import com.volmit.host.schema.TextFormat;
 import com.volmit.host.schema.ValueKind;
@@ -20,7 +19,6 @@ import com.volmit.host.schema.ValueKind.ReferenceKind;
 import com.volmit.host.schema.ValueKind.ResourceReferenceKind;
 import com.volmit.host.schema.ValueKind.TextKind;
 import com.volmit.resource.ResourceId;
-import com.volmit.resource.ResourceKey;
 import java.lang.reflect.GenericArrayType;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
@@ -95,7 +93,6 @@ final class ValueKinds {
         if (type == BlockState.class) return blockState(naming);
         if (type.isArray()) return new ListKind(kind(type.getComponentType(), naming), false);
         if (isCollection(type)) throw unsupported(type, " without type arguments; " + DECLARE_COLLECTION);
-        if (type == ResourceKey.class) throw resourceKey(type);
         requireNoNaming(type, naming);
         if (BOOLEANS.contains(type)) return new BooleanKind();
         if (INTEGERS.contains(type)) return new IntegerKind();
@@ -112,7 +109,6 @@ final class ValueKinds {
         if (raw == List.class || raw == Set.class) return new ListKind(kind(arguments[0], naming), raw == Set.class);
         if (raw == Map.class) return mapKind(generic, arguments, naming);
         if (isCollection(raw)) throw unsupported(generic, "; " + DECLARE_COLLECTION);
-        if (raw == ResourceKey.class) throw resourceKey(generic);
         throw unsupported(generic, "; only List, Set and Map may have type arguments");
     }
 
@@ -130,33 +126,25 @@ final class ValueKinds {
     }
 
     private ValueKind text(TextFormat format, Naming naming) {
-        if (naming.resource() != null) return resourceReference(format, naming);
+        if (naming.resource() != null) return resourceReference(naming);
         var reference = naming.reference();
         if (reference == null) return new TextKind(format);
-        if (format == TextFormat.RESOURCE_ID && PACK_REFERENCES.contains(reference)) throw packReferenceOnResourceId(reference);
+        if (PACK_REFERENCES.contains(reference)) return new ReferenceKind(reference, TextFormat.PLAIN);
         return new ReferenceKind(reference, format);
     }
 
-    /** Packs name a kind's resources by key without a namespace, as they name their biomes, so only plain text holds one. */
-    private ValueKind resourceReference(TextFormat format, Naming naming) {
+    /** Packs name a kind's resources by key without a namespace, as they name their biomes, so the JSON holds a key
+     * whether the field is a String or a ResourceId (which the host reads as the pack's id of that key).
+     */
+    private ValueKind resourceReference(Naming naming) {
         var resource = naming.resource();
         if (naming.reference() != null) {
             throw new SettingsTypeProblem("has both @Ref(" + naming.reference() + ") and @ResourceRef(" + resource.getName()
                     + "); an option names one kind of thing, so keep one");
         }
-        if (format != TextFormat.PLAIN) {
-            throw new SettingsTypeProblem("has @ResourceRef(" + resource.getName() + ") on ResourceId, but packs name a kind's"
-                    + " resources by key without a namespace, such as castle/start; use String");
-        }
         return resourceKinds.apply(resource).map(ResourceReferenceKind::new).orElseThrow(() -> new SettingsTypeProblem(
                 "has @ResourceRef(" + resource.getName() + "), but no module of the pack registers a resource kind read into"
                         + " that class; name the class of a kind registered with FeatureRegistry.registerResourceKind"));
-    }
-
-    /** Packs name their biomes, regions and objects by path without a namespace, so a ResourceId could not hold one. */
-    private static SettingsTypeProblem packReferenceOnResourceId(Reference reference) {
-        return new SettingsTypeProblem("has @Ref(" + reference + ") on ResourceId, but packs name their biomes,"
-                + " regions and objects by path without a namespace, such as desert/dunes; use String");
     }
 
     private static ValueKind blockState(Naming naming) {
@@ -196,13 +184,7 @@ final class ValueKinds {
                     + ", but @Ref fits only String and ResourceId and lists, sets and arrays of them");
         }
         throw new SettingsTypeProblem("has @ResourceRef(" + naming.resource().getName() + ") on " + type.getTypeName()
-                + ", but @ResourceRef fits only String and lists, sets and arrays of it");
-    }
-
-    /** ResourceKey's type argument is the Java class a resource loads as, which tells studio nothing to list. */
-    private static SettingsTypeProblem resourceKey(Type type) {
-        return unsupported(type, ", which names a Java type, not something studio can list; use ResourceId,"
-                + " with @Ref when it names a block, biome or other listed entry");
+                + ", but @ResourceRef fits only String and ResourceId and lists, sets and arrays of them");
     }
 
     private static boolean isCollection(Class<?> type) {

@@ -15,6 +15,7 @@ import com.volmit.stage.Stage;
 import com.volmit.world.BlockView;
 import com.volmit.world.TerrainSampler;
 import java.util.Objects;
+import java.util.Optional;
 
 /** The context every stage of one placement attempt receives. Block accessors work only while
  * a block pass is running.
@@ -116,6 +117,11 @@ final class PlacementInvocation implements BlockStageContext {
     @Override
     public PackWorld world() {
         return stages.world(inputs.world());
+    }
+
+    @Override
+    public <T> Optional<T> extension(Class<T> type) {
+        return inputs.extension(type);
     }
 
     @Override

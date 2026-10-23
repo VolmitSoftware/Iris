@@ -4,11 +4,12 @@ import java.lang.reflect.Modifier;
 import java.util.Objects;
 import java.util.regex.Pattern;
 
-/** A kind of resource a module reads from the pack: every JSON file below {@code <pack>/<folder>/}, each read
+/** A kind of resource read from the pack: every JSON file below {@code <pack>/<folder>/}, each read
  * into a new instance of {@code type}. A file's key is its path below the folder without {@code .json}, such as
  * {@code castle/keep}, and its id is {@code <pack namespace>:<key>}, the form {@link PackResources} uses for
- * every pack resource. The host serves resources of the kind through {@link PackResources#find} by
- * {@code type}, so each kind has a class of its own.
+ * every pack resource. A resource is found by its kind and its id, {@link PackResources#find}{@code (kind, id)};
+ * the host tells kinds apart by {@code type}, so each kind has a class of its own. The host's own kinds are the
+ * constants of {@link PackResources}.
  *
  * <p>Modules register kinds with {@link com.volmit.FeatureRegistry#registerResourceKind}. The id names the kind
  * in errors and studio and follows the module id like every other id the module owns: {@code iris:structure}
@@ -37,11 +38,6 @@ public record ResourceKind<T>(ResourceId id, String folder, Class<T> type) {
     /** Whether {@code name} may name a kind's folder: one folder name of lowercase letters, digits, '-', '_' and '.'. */
     public static boolean isFolderName(String name) {
         return FOLDER.matcher(name).matches() && !name.equals(".") && !name.equals("..");
-    }
-
-    /** The key {@link PackResources#find} takes for the resource {@code resource} of this kind. */
-    public ResourceKey<T> key(ResourceId resource) {
-        return new ResourceKey<>(resource, type);
     }
 
     private static void requireFolderName(ResourceId id, String folder) {

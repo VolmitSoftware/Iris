@@ -1,6 +1,7 @@
 package com.volmit.service;
 
 import com.volmit.entity.EntitySpec;
+import com.volmit.resource.ResourceId;
 import com.volmit.world.BlockPosition;
 import com.volmit.world.PackWorld;
 import java.util.List;
@@ -21,8 +22,8 @@ public interface EntitySpawns {
     /** Called with the number of entities of {@code plan} that appeared, so the spawner's rate limits count them. */
     void spawned(PackWorld world, Plan plan, int count);
 
-    /** The entity of the pack named {@code key} as this module would spawn it, for tools that spawn one on request; empty for an unknown key. */
-    Optional<EntitySpec> entity(PackWorld world, String key);
+    /** The pack's entity {@code entity} as this module would spawn it, for tools that spawn one on request; empty for an unknown one. */
+    Optional<EntitySpec> entity(PackWorld world, ResourceId entity);
 
     /** What a marker in the world means for spawning; empty for a marker this module does not know. */
     Optional<MarkerRule> marker(PackWorld world, String tag);
@@ -46,10 +47,10 @@ public interface EntitySpawns {
      *
      * @param position the marker's block: world X and Z, Y the height above the dimension's bottom
      * @param marker   the marker's tag
-     * @param spawner  the key of the spawner chosen among the marker's
+     * @param spawner  the pack's spawner chosen among the marker's
      * @param initial  whether the spawner's initial spawns are used rather than its ordinary ones
      */
-    record Marker(BlockPosition position, String marker, String spawner, boolean initial) implements Site {
+    record Marker(BlockPosition position, String marker, ResourceId spawner, boolean initial) implements Site {
         public Marker {
             Objects.requireNonNull(position, "position");
             Objects.requireNonNull(marker, "marker");
@@ -60,11 +61,11 @@ public interface EntitySpawns {
     /**
      * What a marker does.
      *
-     * @param spawners       keys of the spawners at the marker
+     * @param spawners       the pack's spawners at the marker
      * @param emptyAbove     whether it only counts with free space above it
      * @param removeOnChange whether it goes away when its block changes
      */
-    record MarkerRule(List<String> spawners, boolean emptyAbove, boolean removeOnChange) {
+    record MarkerRule(List<ResourceId> spawners, boolean emptyAbove, boolean removeOnChange) {
         public MarkerRule {
             spawners = List.copyOf(spawners);
         }
@@ -73,12 +74,12 @@ public interface EntitySpawns {
     /**
      * Entities to spawn, tried one after the other.
      *
-     * @param spawner        the key of the spawner that planned them
+     * @param spawner        the pack's spawner that planned them
      * @param chunkX         the chunk they spawn in, where the spawner's per-chunk limit counts them
      * @param exhaustsMarker whether the marker that led here is used up and should be removed
      * @param attempts       the spawns to try
      */
-    record Plan(String spawner, int chunkX, int chunkZ, boolean exhaustsMarker, List<Attempt> attempts) {
+    record Plan(ResourceId spawner, int chunkX, int chunkZ, boolean exhaustsMarker, List<Attempt> attempts) {
         public Plan {
             Objects.requireNonNull(spawner, "spawner");
             attempts = List.copyOf(attempts);

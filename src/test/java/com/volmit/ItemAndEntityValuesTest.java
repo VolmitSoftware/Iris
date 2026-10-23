@@ -13,6 +13,9 @@ import org.junit.jupiter.api.Test;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.OptionalDouble;
+import java.util.OptionalInt;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -23,8 +26,8 @@ class ItemAndEntityValuesTest {
         assertThrows(IllegalArgumentException.class, () -> ItemDrop.of("stick", 0));
 
         List<ItemEnchantment> enchantments = new ArrayList<>(List.of(new ItemEnchantment("sharpness", 3)));
-        ItemDrop drop = new ItemDrop("diamond_sword", 1, null, List.of(), enchantments, List.of(), false, List.of(), null,
-                0.25, null, null, Map.of(), null);
+        ItemDrop drop = new ItemDrop("diamond_sword", 1, Optional.empty(), List.of(), enchantments, List.of(), false, List.of(),
+                OptionalInt.empty(), OptionalDouble.of(0.25), Optional.empty(), Optional.empty(), Map.of(), Optional.empty());
         enchantments.clear();
 
         assertEquals(1, drop.enchantments().size());
@@ -33,9 +36,22 @@ class ItemAndEntityValuesTest {
     }
 
     @Test
+    void absentValuesAreEmptyNeverNull() {
+        ItemDrop stick = ItemDrop.of("stick", 1);
+
+        assertTrue(stick.displayName().isEmpty());
+        assertTrue(stick.damage().isEmpty());
+        assertTrue(stick.source().isEmpty());
+        assertThrows(NullPointerException.class, () -> new ItemDrop("stick", 1, null, List.of(), List.of(), List.of(), false,
+                List.of(), OptionalInt.empty(), OptionalDouble.empty(), Optional.empty(), Optional.empty(), Map.of(), Optional.empty()));
+        assertThrows(NullPointerException.class, () -> new AmbientEffects.Effect(null, Optional.empty(), List.of(), Optional.empty()));
+        assertThrows(NullPointerException.class, () -> new EntitySpawns.MarkerRule(null, false, false));
+    }
+
+    @Test
     void anEntityKnowsWhetherItIsAnotherPluginsMob() {
-        EntitySpec zombie = entity("minecraft:zombie", "");
-        EntitySpec special = entity("", "mythic:dragon");
+        EntitySpec zombie = entity(Optional.of("minecraft:zombie"), Optional.empty());
+        EntitySpec special = entity(Optional.empty(), Optional.of("mythic:dragon"));
 
         assertFalse(zombie.isSpecial());
         assertTrue(special.isSpecial());
@@ -44,7 +60,7 @@ class ItemAndEntityValuesTest {
     @Test
     void anAttemptSaysWhetherLightMatters() {
         BlockPosition at = new BlockPosition(1, 2, 3);
-        EntitySpec zombie = entity("minecraft:zombie", "");
+        EntitySpec zombie = entity(Optional.of("minecraft:zombie"), Optional.empty());
 
         assertFalse(new EntitySpawns.Attempt(at, zombie, EntitySpawns.Surface.LAND, 0, 15, true).restrictsLight());
         assertTrue(new EntitySpawns.Attempt(at, zombie, EntitySpawns.Surface.LAND, 0, 7, true).restrictsLight());
@@ -62,7 +78,8 @@ class ItemAndEntityValuesTest {
     void anAmbientEffectKeepsItsCommandsApartAndRefusesPartsWithoutKeys() {
         List<AmbientEffects.Command> commands = new ArrayList<>(List.of(
                 new AmbientEffects.Command(new EntitySpec.Command(List.of("say hi"), 0, false, 100), 1, 0, -1)));
-        AmbientEffects.Effect effect = new AmbientEffects.Effect(null, null, commands, new AmbientEffects.Potion("luck", 0, 100));
+        AmbientEffects.Effect effect = new AmbientEffects.Effect(Optional.empty(), Optional.empty(), commands,
+                Optional.of(new AmbientEffects.Potion("luck", 0, 100)));
         commands.clear();
 
         assertEquals(1, effect.commands().size());
@@ -71,9 +88,9 @@ class ItemAndEntityValuesTest {
         assertThrows(NullPointerException.class, () -> new AmbientEffects.Command(null, 0, 0, 0));
     }
 
-    private static EntitySpec entity(String type, String specialType) {
-        return new EntitySpec(type, specialType, null, "", new EntitySpec.Flags(false, true, true, false, true, false, false,
-                false, false, false, false), EntitySpec.Equipment.NONE, List.of(), List.of(), List.of(), 0L, null, null, false,
-                null, null, false, List.of());
+    private static EntitySpec entity(Optional<String> type, Optional<String> specialType) {
+        return new EntitySpec(type, specialType, Optional.empty(), Optional.empty(), new EntitySpec.Flags(false, true, true, false,
+                true, false, false, false, false, false, false), EntitySpec.Equipment.NONE, List.of(), List.of(), List.of(), 0L,
+                Optional.empty(), Optional.empty(), false, Optional.empty(), Optional.empty(), false, List.of());
     }
 }

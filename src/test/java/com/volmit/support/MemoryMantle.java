@@ -32,7 +32,7 @@ public final class MemoryMantle {
             public BlockBox bounds() { return bounds; }
             public <T> MantleLayer<T> layer(MantleKey<T> key) { return new Layer<>(key, bounds, true); }
             public MantleLayer<BlockState> blocks() { return new Layer<>(PLANNED_BLOCKS, bounds, false); }
-            public MantleLayer<Boolean> caverns() { return new Layer<>(CAVERNS, bounds, false); }
+            public boolean isCarved(int x, int y, int z) { return new Layer<>(CAVERNS, bounds, false).get(x, y, z) != null; }
             public MantleEdit edit() { throw new UnsupportedOperationException("Edits are not used in these tests"); }
         };
     }

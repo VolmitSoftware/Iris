@@ -11,6 +11,7 @@ import com.volmit.stage.MantleStageContext;
 import com.volmit.stage.Stage;
 import com.volmit.world.TerrainSampler;
 import java.util.Objects;
+import java.util.Optional;
 
 /** The context every stage of one mantle invocation receives. */
 final class MantleInvocation implements MantleStageContext {
@@ -64,6 +65,11 @@ final class MantleInvocation implements MantleStageContext {
     @Override
     public PackWorld world() {
         return stages.world(inputs.world());
+    }
+
+    @Override
+    public <T> Optional<T> extension(Class<T> type) {
+        return inputs.extension(type);
     }
 
     @Override

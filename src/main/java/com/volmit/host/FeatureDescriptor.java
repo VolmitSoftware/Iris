@@ -3,7 +3,6 @@ package com.volmit.host;
 import com.volmit.IrisFeature;
 import com.volmit.config.Feature;
 import com.volmit.config.Level;
-import com.volmit.config.OptionsMetadata;
 import com.volmit.resource.ResourceId;
 import java.lang.annotation.IncompleteAnnotationException;
 import java.lang.reflect.Modifier;

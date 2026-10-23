@@ -3,7 +3,6 @@ package com.volmit.world;
 import com.volmit.block.BlockFace;
 import com.volmit.block.BlockState;
 import com.volmit.block.BlockTrait;
-import com.volmit.mantle.BlockBox;
 import com.volmit.resource.ResourceId;
 
 /** The live blocks of an area of the platform's world, for code that reads and changes them in place while the
@@ -18,11 +17,7 @@ import com.volmit.resource.ResourceId;
  *
  * <p>Not thread-safe, and valid only while the call that handed it out runs.
  */
-public interface BlockAccess {
-    BlockBox bounds();
-
-    BlockState get(int x, int y, int z);
-
+public interface BlockAccess extends BlockView {
     /** Reads {@code into.length} blocks of a column upward: {@code into[i]} is the block at height {@code fromY + i}. */
     void column(int x, int z, int fromY, BlockState[] into);
 

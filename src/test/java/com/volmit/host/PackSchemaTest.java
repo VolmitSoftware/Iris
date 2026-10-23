@@ -595,9 +595,6 @@ class PackSchemaTest {
                 + " map keys must be String", "private Map<Integer, String> weights;");
         assertLoadFails("Field pack.flora.FloraSettings.letter of " + FLORA_SOURCE + " uses char, which settings cannot use; "
                 + ValueKinds.SUPPORTED_TYPES, "private char letter;");
-        assertLoadFails("Field pack.flora.FloraSettings.palette of " + FLORA_SOURCE + " uses com.volmit.resource.ResourceKey<java.lang.String>, which names"
-                + " a Java type, not something studio can list; use ResourceId, with @Ref when it names a block, biome or other listed entry",
-                "private ResourceKey<String> palette;");
         assertLoadFails("Field pack.flora.FloraSettings.names of " + FLORA_SOURCE + " uses ? extends java.lang.String, which is not a"
                 + " concrete type; name the type, such as List<String>", "private List<? extends String> names;");
     }
@@ -673,12 +670,29 @@ class PackSchemaTest {
     }
 
     @Test
-    void packReferencesFitOnlyPlainText() {
-        assertLoadFails("Field pack.flora.FloraSettings.home of " + FLORA_SOURCE + " has @Ref(PACK_BIOME) on ResourceId, but packs name"
-                + " their biomes, regions and objects by path without a namespace, such as desert/dunes; use String",
-                "@Ref(Reference.PACK_BIOME) private ResourceId home;");
-        assertTrue(loadFailure("@Ref(Reference.PACK_OBJECT) private List<ResourceId> objects;").getMessage()
-                .contains("has @Ref(PACK_OBJECT) on ResourceId"));
+    void packReferencesOnResourceIdsAreWrittenAsKeys() {
+        var pack = pack("pack-ids");
+        module("pack.flora.FloraModule", FLORA, NO_MEMBERS, "registry.registerSettings(FloraSettings.class);")
+                .source("pack.flora.FloraSettings", """
+                        package pack.flora;
+
+                        import com.volmit.IrisFeature;
+                        import com.volmit.config.*;
+                        import com.volmit.resource.ResourceId;
+                        import java.util.*;
+
+                        @Feature(id = "example:flora", name = "Flora", key = "flora", targets = Level.BIOME)
+                        public final class FloraSettings implements IrisFeature {
+                            @Ref(Reference.PACK_BIOME) private ResourceId home;
+                            @Ref(Reference.PACK_OBJECT) private List<ResourceId> objects = List.of();
+                        }
+                        """)
+                .writeInto(pack, "flora.jar");
+
+        var settings = schemaOf(pack, NO_BUILT_INS).type("pack.flora.FloraSettings");
+
+        assertEquals(new ReferenceKind(Reference.PACK_BIOME, TextFormat.PLAIN), option(settings, "home").kind());
+        assertEquals(new ListKind(new ReferenceKind(Reference.PACK_OBJECT, TextFormat.PLAIN), false), option(settings, "objects").kind());
     }
 
     @Test
@@ -807,10 +821,8 @@ class PackSchemaTest {
                 + " module of the pack registers a resource kind read into that class; name the class of a kind registered with"
                 + " FeatureRegistry.registerResourceKind", "@ResourceRef(Integer.class) private String keep;");
         assertLoadFails("Field pack.flora.FloraSettings.count of " + FLORA_SOURCE + " has @ResourceRef(java.lang.Integer) on int,"
-                + " but @ResourceRef fits only String and lists, sets and arrays of it", "@ResourceRef(Integer.class) private int count;");
-        assertLoadFails("Field pack.flora.FloraSettings.keep of " + FLORA_SOURCE + " has @ResourceRef(java.lang.Integer) on"
-                + " ResourceId, but packs name a kind's resources by key without a namespace, such as castle/start; use String",
-                "@ResourceRef(Integer.class) private ResourceId keep;");
+                + " but @ResourceRef fits only String and ResourceId and lists, sets and arrays of them",
+                "@ResourceRef(Integer.class) private int count;");
         assertLoadFails("Field pack.flora.FloraSettings.keep of " + FLORA_SOURCE + " has both @Ref(BLOCK) and"
                 + " @ResourceRef(java.lang.Integer); an option names one kind of thing, so keep one",
                 "@Ref(Reference.BLOCK) @ResourceRef(Integer.class) private String keep;");

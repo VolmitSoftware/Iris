@@ -15,7 +15,7 @@ public record ServiceRegistration(Class<?> service, Object provider, DiscoveredM
      * {@link PackWorld#log} is the module's own.
      */
     public PackWorld scope(PackWorld world) {
-        return world.withLog(module.log());
+        return ModuleWorld.of(world, module.log());
     }
 
     @Override

@@ -2,6 +2,7 @@ package com.volmit.service;
 
 import com.volmit.block.BlockState;
 import com.volmit.placement.PlacedBlock;
+import com.volmit.resource.ResourceId;
 import com.volmit.world.BlockPosition;
 import com.volmit.world.PackWorld;
 import java.util.List;
@@ -53,10 +54,11 @@ public interface SaplingGrowth {
     /**
      * The tree to place.
      *
-     * @param object the pack object key the tree comes from, in the form packs write it
+     * @param object the id of the object the tree comes from, as {@link com.volmit.resource.PackResources#idOf} gives it
+     *               for the object's key
      * @param blocks the blocks to place, in order, later ones over earlier ones
      */
-    record Growth(String object, List<PlacedBlock> blocks) {
+    record Growth(ResourceId object, List<PlacedBlock> blocks) {
         public Growth {
             Objects.requireNonNull(object, "object");
             blocks = List.copyOf(blocks);
@@ -64,12 +66,12 @@ public interface SaplingGrowth {
     }
 
     /**
-     * Object keys a module places as trees.
+     * Objects a module places as trees, by the ids {@link com.volmit.resource.PackResources#idOf} gives their keys.
      *
      * @param objects    pack objects its placements mark as trees
-     * @param procedural the keys of the objects its procedural trees generate, one per variant
+     * @param procedural the objects its procedural trees generate, one per variant
      */
-    record TreeObjects(Set<String> objects, Set<String> procedural) {
+    record TreeObjects(Set<ResourceId> objects, Set<ResourceId> procedural) {
         public static final TreeObjects NONE = new TreeObjects(Set.of(), Set.of());
 
         public TreeObjects {

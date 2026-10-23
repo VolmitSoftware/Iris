@@ -113,9 +113,9 @@ final class PlacementViews {
         }
 
         @Override
-        public MantleLayer<Boolean> caverns() {
-            bounds();
-            return new RestrictedMantleLayer<>(this, parent.caverns());
+        public boolean isCarved(int x, int y, int z) {
+            checkPosition(bounds(), x, y, z);
+            return parent.isCarved(x, y, z);
         }
     }
 

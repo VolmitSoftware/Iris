@@ -5,6 +5,7 @@ import com.volmit.world.BlockPosition;
 import com.volmit.world.PackWorld;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * The ambient effects of an area: sounds, particles, potion effects and commands that play around the players who stay
@@ -26,14 +27,17 @@ public interface AmbientEffects {
      * One effect that plays now. The host carries out the parts it has, in the order sound, particles, commands, potion.
      * A part the platform lacks, such as an unknown sound, is skipped.
      *
-     * @param sound     a sound to play, or null
-     * @param particles particles to show, or null
+     * @param sound     a sound to play; empty for none
+     * @param particles particles to show; empty for none
      * @param commands  console commands to run, none when the effect has no commands that may run now
-     * @param potion    a potion effect to give, or null
+     * @param potion    a potion effect to give; empty for none
      */
-    record Effect(Sound sound, Particles particles, List<Command> commands, Potion potion) {
+    record Effect(Optional<Sound> sound, Optional<Particles> particles, List<Command> commands, Optional<Potion> potion) {
         public Effect {
+            Objects.requireNonNull(sound, "sound");
+            Objects.requireNonNull(particles, "particles");
             commands = List.copyOf(commands);
+            Objects.requireNonNull(potion, "potion");
         }
     }
 

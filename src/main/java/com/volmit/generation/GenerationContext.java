@@ -21,10 +21,12 @@ public interface GenerationContext extends ChunkContext {
     @Override
     TerrainSampler terrain();
 
-    /** Non-null mantle access scoped to this invocation; the host owns its lifetime. Chunk stages read it
-     * only: the mantle pipeline has finished around the chunk, and writes throw. Like {@link #terrain()} it covers the
-     * chunk and the 16 blocks around it, so a stage that places something against a neighbor can see what the mantle
-     * holds there.
+    /** Non-null mantle access scoped to this invocation; the host owns its lifetime. Like {@link #terrain()} it covers
+     * the chunk and the 16 blocks around it, so a stage that places something against a neighbor can see what the mantle
+     * holds there. A chunk stage writes module layers inside its own chunk's columns only, such as markers it derives
+     * from the chunk's finished blocks: the mantle pipeline has finished around the chunk, and a neighbor may already
+     * be generated, so writes outside the chunk throw UnsupportedOperationException, as do writes to
+     * {@link Mantle#blocks()} and {@link Mantle#edit()}.
      */
     Mantle mantle();
 

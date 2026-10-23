@@ -1,4 +1,4 @@
-package com.volmit.config;
+package com.volmit.host;
 
 import java.io.IOException;
 import java.io.InputStream;

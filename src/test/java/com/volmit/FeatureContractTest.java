@@ -2,6 +2,7 @@ package com.volmit;
 
 import com.volmit.config.*;
 import com.volmit.host.FeatureDescriptor;
+import com.volmit.host.OptionsMetadata;
 import com.volmit.resource.ResourceId;
 import org.junit.jupiter.api.Test;
 

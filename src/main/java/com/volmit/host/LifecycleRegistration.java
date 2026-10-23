@@ -19,7 +19,7 @@ public record LifecycleRegistration(ModuleLifecycle lifecycle, DiscoveredModule 
      * module's own.
      */
     PackWorld scope(PackWorld world) {
-        return world.withLog(module.log());
+        return ModuleWorld.of(world, module.log());
     }
 
     /** The pack snapshot as this hook's module sees it, whose {@link PackContext#log} is the module's own. */

@@ -1,7 +1,7 @@
 package com.volmit;
 
 import com.volmit.block.BlockState;
-import com.volmit.config.OptionsMetadata;
+import com.volmit.host.OptionsMetadata;
 import com.volmit.resource.PackResources;
 import com.volmit.resource.ResourceId;
 import com.volmit.service.LocateResult;
@@ -30,6 +30,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class VanillaStructureValuesTest {
     private static final ResourceId VILLAGES = ResourceId.parse("minecraft:villages");
     private static final ResourceId CITY = ResourceId.parse("minecraft:ancient_city");
+    private static final ResourceId CASTLE = ResourceId.parse("test:castle");
 
     @Test
     void jigsawOverridesKeepThePacksJsonNamesAndDefaults() {
@@ -137,22 +138,22 @@ class VanillaStructureValuesTest {
     public void aLocatorPlacesWhatItCanLocateUnlessItSaysMore() {
         StructureLocator locator = new StructureLocator() {
             @Override
-            public Set<String> structures(PackResources pack) {
-                return Set.of("castle", "tower");
+            public Set<ResourceId> structures(PackResources pack) {
+                return Set.of(CASTLE, ResourceId.parse("test:tower"));
             }
 
             @Override
-            public Set<String> locatable(PackWorld world) {
-                return Set.of("castle");
+            public Set<ResourceId> locatable(PackWorld world) {
+                return Set.of(CASTLE);
             }
 
             @Override
-            public LocateResult locate(PackWorld world, String key, int fromX, int fromZ, int maxRadiusChunks) {
+            public LocateResult locate(PackWorld world, ResourceId structure, int fromX, int fromZ, int maxRadiusChunks) {
                 return LocateResult.NOT_FOUND;
             }
         };
 
-        assertEquals(Set.of("castle"), locator.placed(null));
+        assertEquals(Set.of(CASTLE), locator.placed(null));
     }
 
     @Test

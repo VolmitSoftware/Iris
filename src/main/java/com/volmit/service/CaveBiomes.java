@@ -1,5 +1,6 @@
 package com.volmit.service;
 
+import com.volmit.resource.ResourceId;
 import com.volmit.world.PackWorld;
 import java.util.Optional;
 
@@ -15,14 +16,14 @@ public interface CaveBiomes {
      * overrides nothing.
      *
      * @param y the height above the dimension's bottom
-     * @return the biome key as packs write it
+     * @return the biome's pack id
      */
-    Optional<String> overriddenBiome(PackWorld world, int x, int y, int z);
+    Optional<ResourceId> overriddenBiome(PackWorld world, int x, int y, int z);
 
     /**
-     * How many blocks below the surface a position must lie for the pack biome {@code biomeKey} to be the cave biome there;
+     * How many blocks below the surface a position must lie for the pack biome {@code biome} to be the cave biome there;
      * nearer the surface the surface's biome is. 0 for a biome that has no such limit. The answer depends on the world and the
      * biome only: the host asks once per biome and keeps it while the world runs.
      */
-    int minDepthBelowSurface(PackWorld world, String biomeKey);
+    int minDepthBelowSurface(PackWorld world, ResourceId biome);
 }

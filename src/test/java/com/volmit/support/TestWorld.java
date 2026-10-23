@@ -54,11 +54,6 @@ public final class TestWorld implements PackWorld, AutoCloseable {
     }
 
     @Override
-    public PackWorld withLog(ModuleLog log) {
-        return new TestWorld(states, log);
-    }
-
-    @Override
     public void close() {
         states.close();
     }

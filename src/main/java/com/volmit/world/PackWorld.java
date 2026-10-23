@@ -3,6 +3,7 @@ package com.volmit.world;
 import com.volmit.ModuleLog;
 import com.volmit.config.PackSettings;
 import com.volmit.resource.PackResources;
+import java.util.Optional;
 import java.util.function.Function;
 
 /** One world the host generates with a pack, for as long as the pack stays loaded: the world's seed, the pack's
@@ -57,8 +58,15 @@ public interface PackWorld {
      */
     ModuleLog log();
 
-    /** For the host: this world as {@code log}'s module sees it, sharing everything else, state included. The host calls it
-     * once per module it hands a world to; a module has no reason to.
+    /**
+     * What the host offers for this world beyond the API, as an object of {@code type}: empty when the host offers no
+     * such thing. A host extends the API this way for its own modules, such as Iris's built-in modules, which reach Iris's
+     * object placing or its derived seeds through interfaces of their own exposed package. The host fills it when it
+     * builds the world; a module that asks for a type the host does not know gets empty and decides itself whether that
+     * is an error. Pack modules written for any host use the API only. Per invocation inputs are
+     * {@link com.volmit.generation.InvocationContext#extension}.
      */
-    PackWorld withLog(ModuleLog log);
+    default <T> Optional<T> extension(Class<T> type) {
+        return Optional.empty();
+    }
 }

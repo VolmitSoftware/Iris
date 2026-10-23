@@ -157,8 +157,9 @@ shore); `surfaceBlock(x, z)` is the block an image map gives the ground there, `
 `upperDimension()` the dimension stacked above (`UpperDimension`: its own settings, resources and image-map blocks), for a stage that fills in its ground.
 `ctx.settings().declaredBy(biomeId, Type.class)` reads what a biome declares itself, such as a cave biome of a `BiomeSample`, which is no level of
 `at(...)`. A mantle stage's `ctx.terrain()` covers the chunk and the larger of its reach and 16 blocks around it; a chunk stage's `ctx.mantle()` covers the same area as its terrain. `ctx.mantle().blocks()` holds the blocks placements wrote into the mantle for the chunks to
-take over, such as objects and structures; a chunk stage copies them in (Iris's `iris:matter`). `ctx.mantle().caverns()` holds `true` where the cave planner
-carved a void, whatever the chunk's blocks show there. Stages only read both. `blocks().oreFor(rock, ore)` gives the ore variant that suits the rock
+take over, such as objects and structures; a chunk stage copies them in (Iris's `iris:matter`). `ctx.mantle().isCarved(x, y, z)` says whether the cave planner
+carved a void there, whatever the chunk's blocks show. Stages only read both. A chunk stage may write the layers its module registered, inside
+its own chunk's columns; around it, the mantle stays as the mantle stages left it. `blocks().oreFor(rock, ore)` gives the ore variant that suits the rock
 (deepslate ores in deepslate), which the platform decides, and `PackBiome.vanillaBiome()` the biome vanilla's rules see a pack biome as.
 
 ```java
@@ -211,8 +212,9 @@ public void setup(ModuleSetup setup) {
 }
 
 // anywhere the pack's resources are at hand, such as a stage or a validator
-Keep keep = resources.require(KEEPS.key(resources.idOf("towers/north")));
-List<ResourceId> all = resources.ids(Keep.class);  // every keep of the pack, in id order
+Keep keep = resources.require(KEEPS, resources.idOf("towers/north"));
+List<ResourceId> all = resources.ids(KEEPS);  // every keep of the pack, in id order
+PackBiome dunes = resources.require(PackResources.BIOMES, resources.idOf("desert/dunes"));  // the host's kinds alike
 ```
 
 - A file's key is its path below the folder without `.json` (`towers/north`), and its id is
@@ -221,15 +223,16 @@ List<ResourceId> all = resources.ids(Keep.class);  // every keep of the pack, in
   field names.
 - The kind's id follows the module id. The folder is one folder name directly below the pack root; the module
   chooses it, so a kind that replaces one of Iris's own keeps the folder and file format packs already have.
-- One folder holds one kind and one class backs one kind: `PackResources` finds resources by type. Two kinds
+- One folder holds one kind and one class backs one kind, which `@ResourceRef` names by its class. Two kinds
   claiming one folder, or a folder the host reads itself (`ModuleHost.reservingFolders`), fail the pack load,
   naming both owners.
 - The host creates each resource with the class's no-argument constructor and reads the JSON into it, as it does
   settings, so an omitted field keeps its default. It reads a resource once per pack load and hands every caller
   the same instance, so resources are values nobody may change. A reload (studio hotload) reads them again.
 - Studio describes the files from the class like settings: `@Desc`, `@MinNumber`, `@Required` and the rest. An
-  option that names a resource of a kind carries `@ResourceRef(Keep.class)` on a `String`, or a list, set or
-  array of them, and studio completes the kind's keys. Built-in kinds may read into a class the host describes
+  option that names a resource of a kind carries `@ResourceRef(Keep.class)` on a `String` or `ResourceId`, or a
+  list, set or array of them, and studio completes the kind's keys. Packs write the key either way; a `ResourceId`
+  field holds the pack's id of it. Built-in kinds may read into a class the host describes
   itself, as built-in settings may hold one.
 
 ```
@@ -244,8 +247,8 @@ problems with its own.
 
 ```java
 registry.registerValidator(pack -> {
-    for (ResourceId id : pack.resources().ids(Keep.class)) {
-        Keep keep = pack.resources().require(KEEPS.key(id));
+    for (ResourceId id : pack.resources().ids(KEEPS)) {
+        Keep keep = pack.resources().require(KEEPS, id);
         if (keep.towers() > 8) {
             pack.report(Problem.error(Subject.file("keeps/" + id.path() + ".json"), "Keep has " + keep.towers() + " towers; at most 8 fit."));
         }
@@ -348,11 +351,11 @@ public void setup(ModuleSetup setup) {
 }
 
 final class RuinsObjects implements ObjectsAt {
-    public Set<String> objectsAt(PackWorld world, int chunkX, int chunkZ) {
-        return planted(world).contains(chunkX, chunkZ) ? Set.of("ruins/arch") : Set.of();
+    public Set<ResourceId> objectsAt(PackWorld world, int chunkX, int chunkZ) {
+        return planted(world).contains(chunkX, chunkZ) ? Set.of(world.resources().idOf("ruins/arch")) : Set.of();
     }
 
-    public PlacedBy placedBy(PackWorld world, String objectKey) {
+    public PlacedBy placedBy(PackWorld world, ResourceId object) {
         return PlacedBy.NOTHING;
     }
 }
@@ -362,6 +365,8 @@ final class RuinsObjects implements ObjectsAt {
   Service methods take the world, and the provider keeps what it needs in the world's state store.
 - Services compute; they never act on the platform. What should happen in the world comes back as a value the host
   carries out on the right thread.
+- Services name pack resources by `ResourceId` (`world.resources().idOf(key)` for a key the pack wrote), and absent
+  values in what they return are `Optional`s.
 - Each service says how several providers combine, with `@Service(Providers.X)`: `ALL` (the host asks every provider
   and combines the answers), `FIRST` (the host asks in order until one answers) or `ONE` (at most one provider per
   pack; a second fails the pack load, naming both modules). Providers are in module id order, each module's in
@@ -370,7 +375,7 @@ final class RuinsObjects implements ObjectsAt {
 | Service | Providers | What the host asks |
 | --- | --- | --- |
 | `ObjectsAt` | `ALL` | The pack objects a module would place in a chunk, predicted without generating it, and the biomes and regions of the layout that place a given object (`PlacedBy`), so the host can narrow an object search to the areas it can appear in. |
-| `StructureLocator` | `FIRST` | Every structure key the module knows (the structure index), the ones a world places and can locate (commands complete them), every key under which it finds what a world places (`placed`: its own structures and the platform structures it starts or stands in for), and the nearest start of one, as a `LocateResult`: `Found(position)`, `NotFound` or `SearchLimitReached`. Keys match without regard to case. |
+| `StructureLocator` | `FIRST` | Every structure the module knows (the structure index), the ones a world places and can locate (commands complete them), every id under which it finds what a world places (`placed`: its own structures and the platform structures it starts or stands in for), and the nearest start of one, as a `LocateResult`: `Found(position)`, `NotFound` or `SearchLimitReached`. Ids are lower case, so a host matching typed keys matches without regard to case. |
 | `SaplingGrowth` | `ALL` | The tree a growing sapling becomes, as a `Growth` of placed blocks (the first module with one wins; none leaves the growth to the platform), and the objects the module places as trees (`TreeObjects`). The host passes `Surroundings` to read the world around the sapling and places the blocks itself. |
 | `Loot` | `ALL` | The loot tables a container draws from at a `Site` (`Table` of the pack, `PlatformTable` with the seed to draw it with), in the order their items are added, and the `ItemDrop`s one table gives there. The host puts them together, tells listeners, creates the stacks and shuffles the container. |
 | `BlockDrops` | `ALL` | What a module drops for a broken block: `ItemDrop`s, and whether the platform's own drops of the block are replaced. |
@@ -489,7 +494,7 @@ public final class FloraSettings implements IrisFeature {
   which are described the same way, IrisApi's value types among them (see Values in settings). `@Snippet("example/flora/patch")` on a class lets packs write it as a file under
   `snippet/example/flora/patch/`. A pack module's snippet names start with its module id as a folder
   path (`example/flora` for `example:flora`).
-  Anything else fails the pack load: `char`, other JDK classes such as `UUID` or `Optional`, `ResourceKey`,
+  Anything else fails the pack load: `char`, other JDK classes such as `UUID` or `Optional`,
   interfaces and abstract classes, inner (non-static) classes, collections without type arguments,
   concrete collections such as `ArrayList`, and maps with other keys.
 - `@Ref(Reference.X)` says what a `String` or `ResourceId` names, also on lists, sets and arrays of
@@ -497,9 +502,10 @@ public final class FloraSettings implements IrisFeature {
   (a structure or a family prefix such as `minecraft:village`), `STRUCTURE_SET`, `TEMPLATE_POOL` (a jigsaw template pool),
   `POTION_EFFECT`, `ENCHANTMENT`, `LOOT_TABLE` or `SPECIAL_ENTITY` (a mob of another plugin) from the server's registries, `NOISE_STYLE` from the host's noise
   styles, or `PACK_BIOME`, `PACK_REGION`, `PACK_OBJECT`, `PACK_EXPRESSION`, `PACK_IMAGE_MAP` or `PACK_STRUCTURE` (a jigsaw structure) of the pack.
-  The pack kinds fit `String` only, in the form packs use (`desert/dunes`), never `ResourceId`. `BlockState` fields name blocks without it. `@Ref` on any other field fails
+  Packs write the pack kinds in the form they always have (`desert/dunes`); on a `ResourceId` field the host reads that
+  as the pack's id (`resources.idOf(...)`), so the value goes straight to `PackResources.find`. `BlockState` fields name blocks without it. `@Ref` on any other field fails
   the load.
-- `@ResourceRef(Keep.class)` says that a `String`, or a list, set or array of them, names a resource of the
+- `@ResourceRef(Keep.class)` says that a `String` or `ResourceId`, or a list, set or array of them, names a resource of the
   module resource kind read into that class, by its key (see Pack resources of a module). The class must back a
   kind of the pack; anywhere else, or together with `@Ref`, it fails the load.
 - Packs write settings under the short `key` the feature declares, which is required: a plain JSON field name
@@ -855,11 +861,17 @@ Optional<Clock> clock = pack.catalog().service(Clock.class);            // a Pro
 
 ## Values that stay
 
-- `ResourceId` requires a namespace. `ResourceKey<T>` pairs it with a public type.
+- `ResourceId` requires a namespace. Services and values name pack resources by it; a host converts to its own keys
+  at its edge.
 - `PackResources` serves one immutable pack snapshot; caches must not survive a reload.
-  It serves pack objects (`GeneratedObject`), biomes (`PackBiome`), regions (`PackRegion`) and every module
-  resource kind; the requested type selects the kind, so `BiomeSample` ids look up directly. `ids(type)` lists
-  a kind.
+  It serves pack objects (`OBJECTS`, `GeneratedObject`), biomes (`BIOMES`, `PackBiome`), regions (`REGIONS`,
+  `PackRegion`) and every module resource kind: `find(kind, id)` (empty when absent), `require(kind, id)` and
+  `ids(kind)`, so `BiomeSample` ids look up directly.
+- Value records say "absent" with `Optional`, `OptionalInt` or `OptionalDouble` components, never with `null` or an
+  empty string (`ItemDrop`, `EntitySpec`, `AmbientEffects.Effect`). `StructureFit.Start.key()` is a `StartKey`, an
+  identity the host makes once per platform start.
+- A host reaches its own built-ins' facades through `extension(type)` on `PackWorld`, `InvocationContext` and
+  `PackSettings`; see DESIGN, "How a module reaches the host".
 - `BlockState` has value equality and sorted properties; `BlockRegistry` checks it against the
   platform and resolves `BlockSpec`s. It answers a state's traits (`AIR`, `SOLID`, `FLUID`, `FOLIAGE`, `DECORATION`,
   `VINE`, ...), tags, whether it attaches to a face (`canAttach`) and whether it can stand on a block (`canPlaceOn`, the
@@ -870,7 +882,8 @@ Optional<Clock> clock = pack.catalog().service(Clock.class);            // a Pro
 - `Hunk<T>` is a dense local volume; `ArrayHunk<T>` is the bounds-checked reference.
 - The `mantle` package keeps namespaced typed layers, codecs, lifetimes and buffered edits.
 - `IrisFeature`, `@Feature`, the config annotations (`@Desc`, `@Required`, `@MinNumber`,
-  `@MaxNumber`, `@MinItems`, `@Snippet`, `@Ref`) and `OptionsMetadata` describe settings.
+  `@MaxNumber`, `@MinItems`, `@Snippet`, `@Ref`) describe settings; the host reads them with `OptionsMetadata`
+  (`com.volmit.host`).
 
 Invocation views and random streams expire when the invocation ends. Stage bodies are shared by
 concurrent invocations and must not keep views, streams or mutable state; what a module keeps per world lives in the
@@ -937,5 +950,5 @@ loads and that other internal packages are still reported. `PackModulesSummaryTe
 ports in `src/test/java/com/volmit/example` rebuild preparation, anchoring, block writes, stilt and
 snow as separate modules, add a third-party moss module, and add a two-module chunk pipeline whose
 `ChunkPipelineTest` checks any-column activation, per-column reads, stacked levels, a mantle stage
-whose reach follows the pack's longest vein writing into the next chunk that a chunk stage then reads, and the read-only mantle of chunk stages. There
+whose reach follows the pack's longest vein writing into the next chunk that a chunk stage then reads, and that a chunk stage writes the mantle of its own chunk only. There
 is no Minecraft integration or production storage in these tests.

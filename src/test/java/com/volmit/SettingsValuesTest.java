@@ -2,7 +2,7 @@ package com.volmit;
 
 import com.volmit.block.BlockSpec;
 import com.volmit.block.PaletteSpec;
-import com.volmit.config.OptionsMetadata;
+import com.volmit.host.OptionsMetadata;
 import com.volmit.config.Range;
 import com.volmit.noise.NoiseFactory;
 import com.volmit.noise.NoiseSampler;

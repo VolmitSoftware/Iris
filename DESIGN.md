@@ -538,8 +538,11 @@ map gives the ground, `minWorldY` the world Y of the dimension's bottom (setting
 `upperDimension()` the dimension stacked above, whose own settings (`UpperDimension.settings()`), resources and image-map blocks decide what its ground is
 made of. A biome that is no column's surface biome, such as the cave biome of a `BiomeSample`, has its settings through `FeatureSettings.declaredBy`.
 The chunk stage's mantle covers the chunk and the 16 blocks around it like the sampler, so a decoration that attaches to a neighbor sees the blocks
-placements planned there; `Mantle.caverns()` is the host's read-only layer of carved voids, as `blocks()` is of planned blocks: a void the planner
-marked need not show in the chunk (under a dimension above, the cave stage leaves it solid), and a stage that places something solid asks it.
+placements planned there. It writes registered layers inside the chunk's own 16 by 16 columns only: the mantle pipeline has finished around the
+chunk, and a neighbor may already be generated, so its mantle stays as the pipeline left it (a write outside throws, naming `Stage.mantle`).
+`Mantle.isCarved(x, y, z)` is the host's answer whether the cave planner carved a block, as `blocks()` is its read-only layer of planned blocks: a
+void the planner marked need not show in the chunk (under a dimension above, the cave stage leaves it solid), and a stage that places something
+solid asks it. A yes-or-no question rather than a layer, because no module writes it and none needs to visit it.
 `BlockRegistry.oreFor(rock, ore)` is the platform's answer to which variant of an ore belongs in a rock.
 
 ## Mantle invocations
@@ -733,8 +736,6 @@ instead:
   layer: the host would need a format for each. `Object` is the exception: it means any JSON value
   (`AnyKind`), decoded as maps, lists, `Double`s, strings and booleans, for data whose shape belongs to
   someone else, such as a block entity's data in a `BlockSpec`;
-- `ResourceKey<T>`: its type argument is the Java class a resource loads as, which tells studio
-  nothing it could list; `ResourceId` with `@Ref` says what a value names;
 - interfaces and abstract classes: their fields depend on the subclass a pack would pick;
 - inner (non-static), local and anonymous classes, which cannot be created on their own;
 - raw `List`, `Set` and `Map`, concrete collections such as `ArrayList`, wildcards and type
@@ -753,9 +754,10 @@ biomes, regions, objects, expressions and image maps of the pack, the resource f
 refer to most. More kinds come when a
 module needs one and the host can serve it. `@Ref` fits `String` and `ResourceId` and lists, sets and
 arrays of them, where it applies to the elements. On any other field, a map included, it fails the
-load. The pack kinds (`PACK_BIOME`, `PACK_REGION`, `PACK_OBJECT`, `PACK_EXPRESSION`, `PACK_IMAGE_MAP`, `PACK_STRUCTURE`) fit `String` only: packs name their
-biomes, regions and objects by path without a namespace, such as `desert/dunes`, which a `ResourceId`
-cannot hold. `BlockState` always names a block, so its fields are block references without `@Ref`;
+load. The pack kinds (`PACK_BIOME`, `PACK_REGION`, `PACK_OBJECT`, `PACK_EXPRESSION`, `PACK_IMAGE_MAP`, `PACK_STRUCTURE`) are
+plain text in the JSON either way: packs name their biomes, regions and objects by path without a namespace, such as
+`desert/dunes`. On a `ResourceId` field the host reads that path as the pack's id of it (`PackResources.idOf`), and a
+value with a namespace as written, so a module can hand the value straight to `PackResources.find`. `BlockState` always names a block, so its fields are block references without `@Ref`;
 `@Ref(BLOCK)` there is accepted, any other kind fails.
 
 ### Defaults
@@ -846,9 +848,10 @@ Why these lines:
   have to know that rule, so the resources say it; a default method (namespace and key) serves a host without such characters.
 - **`TerrainSampler.caveBiome(x, y, z)`** is `biome(...).caveBiome()` without the region and the surface biome: a cave wall asks for the
   cave biome around it five times per block, and the other two lookups were most of the cost. A default method keeps every sampler valid.
-- **`ReadOnlyMantle.host()`** hands a host's own extension back the mantle behind a chunk stage's read-only view. A chunk stage may not
-  write the mantle, but Iris's cave stage stamps markers into the matter that the platform reads, through a built-in facade, so the
-  facade has to reach past the view. Not for pack modules: writing through it breaks the promise the view makes.
+- **A chunk stage writes its own chunk's mantle.** Iris's cave stage stamps markers into the matter the platform reads, in the chunk it
+  generates. Earlier the chunk's mantle was read-only and a built-in facade reached past the view to the host's mantle; now the view lets
+  any chunk stage write registered layers inside its own columns and reads the neighbors only, so no stage, built-in or not, needs a way
+  around it.
 - **`PackWorld.minHeight()`**: all heights are above the dimension's bottom, but packs write some settings as absolute
   world Y (cave biome bands, floating island altitudes, structure bands). Those are converted by the module with the
   platform's Y of the bottom, a default method (0) so a fixture without negative Y needs nothing.
@@ -944,9 +947,11 @@ the resources it serves itself.
   sit inside another's, whose files the host would then read twice. One folder holds one kind. The host's own
   folders are reserved with `ModuleHost.reservingFolders`. Either conflict fails the pack load in `ModuleRegistry`,
   naming both owners; the host is named as "the host".
-- **Type.** `PackResources` selects a kind by the requested type, so one class backs at most one kind and
-  `find(new ResourceKey<>(id, Keep.class))` needs no kind id. The class must be concrete; like settings it needs a
-  no-argument constructor, checked when the pack's description is built.
+- **Lookup.** `PackResources.find(KEEPS, id)` and `ids(KEEPS)` take the kind itself, the constant the module registered, and
+  return its type. The host's own kinds are constants of `PackResources` (`BIOMES`, `REGIONS`, `OBJECTS`), so one call
+  shape serves both, and no second key type (it used to be `ResourceKey`, a pair of id and class). One class still backs
+  at most one kind, because `@ResourceRef` names the kind by its class. The class must be concrete; like settings it
+  needs a no-argument constructor, checked when the pack's description is built.
 - **Reading.** The host creates the instance with that constructor and reads the JSON into it, exactly as it
   decodes settings, so a missing field keeps its default and studio's defaults are what packs get.
 - **Lifetime.** A resource is read once per pack snapshot and every caller gets the same instance, so resources
@@ -958,10 +963,10 @@ the resources it serves itself.
 - **Studio.** `PackSchema.resources()` lists each kind with its folder and the files' type, an `ObjectKind`
   described in `types()` or a `HostKind`. The host writes a schema per kind for the files below its folder. An
   option that names a resource of a kind carries `@ResourceRef(Keep.class)`: a class, not a kind id, so the
-  reference is checked by the compiler and matches how `PackResources` selects kinds. It becomes
+  reference is checked by the compiler (an annotation cannot hold the kind constant). It becomes
   `ResourceReferenceKind(kindId)`, and studio completes the kind's keys. Keys are pack paths without a
-  namespace, so only `String` fits, like the pack references of `@Ref`. A class that backs no kind of the pack
-  fails the load.
+  namespace in the JSON, like the pack references of `@Ref`; the field may be a `String` or a `ResourceId`, which the
+  host reads as the pack's id of the key. A class that backs no kind of the pack fails the load.
 
 ## Validators
 
@@ -1044,9 +1049,10 @@ gives each module a `ModuleLog` instead.
   keys it only debugs, which keeps a key space nobody bounded from growing.
 - **Where a module reaches it.** `InvocationContext.log()` for stage bodies and generators, `PackWorld.log()` for services
   and lifecycle hooks, `PackContext.log()` in `packLoaded`, `ModuleSetup.log()` during `setup`. The world and the context
-  agree: the runners hand a stage a view of the world whose log is its module's (`PackWorld.withLog`, a host method; the
-  view shares the state store, and the graph keeps the last view per module, so a run of invocations of one world builds
-  it once; several worlds sharing one graph only rebuild it when they alternate), and
+  agree: the runners hand a stage a view of the world whose log is its module's (built by the reference host around the
+  host's world, so a host implements no method for it; the view shares the state store and the extensions, and the graph
+  keeps the last view per module, so a run of invocations of one world builds it once; several worlds sharing one graph
+  only rebuild it when they alternate), and
   `LifecycleRunner` and `ServiceRegistration.scope` do the same for hooks and providers. A host that calls a provider itself
   must scope the world, or the provider's lines carry the host's label.
 - **Why not `System.Logger` for modules.** A module that logs through the JDK works where the host installed a logger
@@ -1083,12 +1089,14 @@ from a sapling, which drops a block has. A module answers such questions through
   second method for it (`EntitySpawns.spawned`, which keeps a spawner's rate limits).
   `AmbientEffects` follows the same rule: the module decides which effects are due (interval and chance, kept in the world's
   state) and every random value they carry, the host only plays them.
-- **Services now.** `ObjectsAt` (`ALL`): pack object keys a module would place in a chunk, predicted without
-  generating it, and the biomes and regions whose settings place a given object (`PlacedBy`, named by pack keys; the
-  host builds its search area from them through the biome tree it owns). `StructureLocator` (`FIRST`): every structure key a module knows, the ones a world places (`locatable`; `placed` adds the
-  platform structures the module starts or stands in for, and keys it places but cannot search for), and the
+- **Services now.** `ObjectsAt` (`ALL`): the ids of pack objects a module would place in a chunk, predicted without
+  generating it, and the biomes and regions whose settings place a given object (`PlacedBy`, by id; the
+  host builds its search area from them through the biome tree it owns). `StructureLocator` (`FIRST`): every structure a module knows, the ones a world places (`locatable`; `placed` adds the
+  platform structures the module starts or stands in for, and structures it places but cannot search for), and the
   nearest start of one as a `LocateResult` (`Found`, `NotFound`, `SearchLimitReached`; a sealed interface, so callers
-  switch over every outcome). Keys are pack keys as packs write them and match without regard to case.
+  switch over every outcome). Services name pack resources by `ResourceId`, like `PackResources`; the host turns ids into
+  the keys its commands and files use at its own edge. Ids are lower case, so a host matching a typed key matches without
+  regard to case.
   `CaveBiomes` (`ONE`): the pack biome a module puts at a position whatever the regions say (a band of the deep dark,
   `overriddenBiome`, the height counted above the dimension's bottom) and how deep below the surface a biome's caves begin
   (`minDepthBelowSurface`, asked once per biome and kept while the world runs). The host owns the 3D biome of a position (its regions, terrain height and the cave biome stream)
@@ -1119,10 +1127,26 @@ A module jar sees three things besides the JDK and its own pack's jars, and noth
    Whatever a second module could want goes here, host-neutral and tested without Iris.
 2. **Packages the host exposes**: libraries it shares (VolmLib, Gson) and the public face of its built-in modules
    (`art.arcane.iris.builtin`: stage constants, settings and output types packs may read).
-3. **Narrow facades for the host's own built-ins**, in that same exposed package: interfaces the host's worlds
-   implement, for what only the host's own features need from its internals, such as Iris's per-feature world seeds
-   (`IrisSeed`), which existing worlds depend on. A pack module never needs one. Every such type is a promise the host
-   keeps, so there are few, each answers one question, and none hands out an engine.
+3. **Narrow facades for the host's own built-ins**, in that same exposed package, for what only the host's own
+   features need from its internals, such as Iris's per-feature world seeds (`IrisSeeds`), which existing worlds depend
+   on. A pack module never needs one. Every such type is a promise the host keeps, so there are few, each answers one
+   question, and none hands out an engine.
+
+**The extension point.** A built-in reaches its facade through one door: `PackWorld.extension(type)` for what belongs to
+a world (seeds, the world at a block), `InvocationContext.extension(type)` for what belongs to one invocation (the
+platform chunk Iris generates, the placement being attempted), and `PackSettings.extension(type)` for what is worked out
+from a pack's settings before any world exists (how far a feature reaches). Each returns an `Optional`, empty by default,
+so a host offers what it has and a module states what it requires:
+`world.extension(IrisSeeds.class).orElseThrow()`. Why one door:
+
+- **No thread-locals.** Facades used to be bound to the current thread (`IrisChunk.current()`, `ObjectPlacement.current()`),
+  which only worked while the host's own code had bound them and broke silently on another thread. The context a stage
+  receives already says which invocation it is, so it carries the facade.
+- **No casts.** Facades used to be interfaces the host's world implemented (`IrisSeed.Source`) and modules cast to. A view of
+  the world (the one with a module's log) then had to implement every such interface too. The view forwards `extension`,
+  and that is all.
+- **Built-ins only, by convention.** The method is public API, and a pack module can call it; it gets only what the host
+  offers, typed by classes in the host's exposed package. Every type offered is a promise, as above.
 
 A module never reaches the host's engine, its data loader or its layout classes; it reads the layout through the API's
 values and its settings through `FeatureSettings`. Iris's mapping from its internals to this surface, with the

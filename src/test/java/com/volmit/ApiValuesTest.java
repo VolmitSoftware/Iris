@@ -38,7 +38,6 @@ class ApiValuesTest {
         assertEquals("y", state.properties().get("axis"));
         assertEquals("x", state.withProperty("axis", "x").properties().get("axis"));
         assertThrows(UnsupportedOperationException.class, () -> state.properties().clear());
-        assertThrows(IllegalArgumentException.class, () -> new ResourceKey<>("test:value", int.class));
     }
 
     @Test
@@ -187,10 +186,6 @@ class ApiValuesTest {
 
     @Test
     void resourceKindsReadOneFolderIntoAConcreteClass() {
-        var kind = ResourceKind.of("test:castle/keep", "keeps", Keep.class);
-        var id = ResourceId.parse("overworld:castle/main");
-
-        assertEquals(new ResourceKey<>(id, Keep.class), kind.key(id));
         assertTrue(ResourceKind.isFolderName("jigsaw-pools"));
         for (String folder : List.of("", ".", "..", "a/b", "Keeps", "a b")) {
             var failure = assertThrows(IllegalArgumentException.class, () -> ResourceKind.of("test:castle/keep", folder, Keep.class));

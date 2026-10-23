@@ -9,6 +9,7 @@ import com.volmit.host.DiscoveredModule;
 import com.volmit.host.LifecycleRunner;
 import com.volmit.host.LoadedModules;
 import com.volmit.host.StageTimings;
+import com.volmit.resource.ResourceId;
 import com.volmit.service.ObjectsAt;
 import com.volmit.stage.ChunkStage;
 import com.volmit.stage.ChunkStageContext;
@@ -30,6 +31,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class WorldStateExampleTest {
     static final class RuinsModule implements IrisModule, ModuleLifecycle {
         static final ChunkStage<Void> PLANT = Stage.chunk("example:ruins/plant");
+        static final ResourceId ARCH = new ResourceId("test", "ruins/arch");
 
         /** What ruins keeps per world. A field of the module would be shared by every world. */
         static final class PlantedChunks {
@@ -49,12 +51,12 @@ class WorldStateExampleTest {
             registry.registerLifecycle(this);
             registry.registerService(ObjectsAt.class, new ObjectsAt() {
                 @Override
-                public Set<String> objectsAt(PackWorld world, int chunkX, int chunkZ) {
+                public Set<ResourceId> objectsAt(PackWorld world, int chunkX, int chunkZ) {
                     return RuinsModule.objectsAt(world, chunkX, chunkZ);
                 }
 
                 @Override
-                public PlacedBy placedBy(PackWorld world, String objectKey) {
+                public PlacedBy placedBy(PackWorld world, ResourceId object) {
                     return PlacedBy.NOTHING;
                 }
             });
@@ -73,8 +75,8 @@ class WorldStateExampleTest {
             planted(context.world()).chunks.add(key(context.chunkX(), context.chunkZ()));
         }
 
-        private static Set<String> objectsAt(PackWorld world, int chunkX, int chunkZ) {
-            return planted(world).chunks.contains(key(chunkX, chunkZ)) ? Set.of("ruins/arch") : Set.of();
+        private static Set<ResourceId> objectsAt(PackWorld world, int chunkX, int chunkZ) {
+            return planted(world).chunks.contains(key(chunkX, chunkZ)) ? Set.of(ARCH) : Set.of();
         }
 
         private static long key(int chunkX, int chunkZ) {
@@ -97,7 +99,7 @@ class WorldStateExampleTest {
                     StageTimings.NONE);
 
             assertSame(startedWith, RuinsModule.planted(world), "the stage used the state the hook built");
-            assertEquals(Set.of("ruins/arch"), objects.objectsAt(world, 0, 0));
+            assertEquals(Set.of(RuinsModule.ARCH), objects.objectsAt(world, 0, 0));
             assertEquals(Set.of(), objects.objectsAt(world, 1, 0));
             lifecycles.worldStopped(world);
         }

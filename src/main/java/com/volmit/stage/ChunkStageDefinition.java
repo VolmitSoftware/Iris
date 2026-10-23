@@ -2,9 +2,9 @@ package com.volmit.stage;
 
 import com.volmit.IrisFeature;
 
-/** Declares one chunk stage. A chunk stage writes only its own chunk and reads the mantle, so it declares neither a
- * reach nor mantle layers: work that writes the mantle or reaches beyond its chunk is a {@link MantleStage}. Edges
- * work as on {@link PlacementStageDefinition}.
+/** Declares one chunk stage. A chunk stage writes only its own chunk, its blocks and its columns of the mantle, and
+ * reads the mantle around it, so it declares neither a reach nor mantle layers: work that writes the mantle beyond its
+ * chunk is a {@link MantleStage}. Edges work as on {@link PlacementStageDefinition}.
  */
 public interface ChunkStageDefinition<O> {
     ChunkStageDefinition<O> requires(Stage<?>... stages);

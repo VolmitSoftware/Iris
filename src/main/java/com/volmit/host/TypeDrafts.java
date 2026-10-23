@@ -1,6 +1,5 @@
 package com.volmit.host;
 
-import com.volmit.config.OptionsMetadata;
 import com.volmit.host.schema.ValueKind;
 import com.volmit.host.schema.ValueKind.ObjectKind;
 import com.volmit.resource.ResourceId;

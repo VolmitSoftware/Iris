@@ -89,8 +89,9 @@ public final class ModuleObjectPlacement {
                 new PlacementModuleSettings(worldSettings(engine, ids), config.getModuleSettings(), source),
                 new PlacerBlockView(placer, area, states), data.getPackResources(), engine);
         long seed = ModuleSeeds.placement(worldSeed, objectKey, x, requestedY, z);
+        StageMetrics metrics = new StageMetrics(engine != null ? engine.getMetrics() : null);
         PlacementOutcome outcome = placement.runBound(() -> new PlacementRunner(graph)
-                .place(request, edit, inputs, seed, config.getModuleSettings().placement(source)));
+                .place(request, edit, inputs, seed, config.getModuleSettings().placement(source), metrics));
         return outcome.isPlaced()
                 ? ObjectPlacementResult.placed(placement.anchorY())
                 : ObjectPlacementResult.rejected(outcome.rejection().orElseThrow());

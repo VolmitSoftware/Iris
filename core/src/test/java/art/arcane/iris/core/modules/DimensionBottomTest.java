@@ -34,9 +34,9 @@ import art.arcane.iris.util.common.data.B;
 import art.arcane.iris.util.project.hunk.Hunk;
 import art.arcane.iris.util.project.stream.ProceduralStream;
 import art.arcane.volmlib.util.math.RNG;
-import com.volmit.FeatureRegistry;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
+import com.volmit.ModuleSetup;
 import com.volmit.block.BlockState;
 import com.volmit.host.LoadedPack;
 import com.volmit.host.ModuleHost;
@@ -46,7 +46,6 @@ import com.volmit.mantle.MantleKey;
 import com.volmit.mantle.MantleLifetime;
 import com.volmit.placement.PlacedBlock;
 import com.volmit.stage.Stage;
-import com.volmit.stage.StageGraph;
 import com.volmit.world.BlockPosition;
 import com.volmit.world.TerrainSampler;
 import org.junit.After;
@@ -109,7 +108,9 @@ public class DimensionBottomTest {
     private final class BottomModule implements IrisModule {
         public ModuleInfo info() { return ModuleInfo.of("test:bottom", "Bottom", "1"); }
 
-        public void install(StageGraph graph) {
+        public void setup(ModuleSetup setup) {
+            setup.registry().registerMantle(MARKS, MantleLifetime.GENERATION, TEXT);
+            var graph = setup.stages();
             graph.define(Stage.chunk("test:bottom/chunk")).run(context -> {
                 record(context.terrain());
                 viewBounds.add(context.mantle().bounds());
@@ -127,10 +128,6 @@ public class DimensionBottomTest {
                 context.access().set(new PlacedBlock(new BlockPosition(0, BOTTOM, 0), STONE, Optional.empty()));
                 context.access().mantle().layer(MARKS).set(0, BOTTOM, 0, "bottom");
             });
-        }
-
-        public void register(FeatureRegistry registry) {
-            registry.registerMantle(MARKS, MantleLifetime.GENERATION, TEXT);
         }
     }
 

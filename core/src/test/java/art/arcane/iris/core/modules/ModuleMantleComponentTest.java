@@ -28,9 +28,9 @@ import art.arcane.volmlib.util.mantle.flag.MantleFlag;
 import art.arcane.volmlib.util.mantle.flag.ReservedFlag;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
+import com.volmit.ModuleSetup;
 import com.volmit.host.LoadedPack;
 import com.volmit.stage.Stage;
-import com.volmit.stage.StageGraph;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -61,8 +61,8 @@ public class ModuleMantleComponentTest {
 
     private final IrisModule marks = new IrisModule() {
         public ModuleInfo info() { return ModuleInfo.of("test:marks", "Marks", "1"); }
-        public void install(StageGraph graph) {
-            graph.define(Stage.mantle(MARK_STAGE)).requires(IrisStages.Structure.PLACE).reach(settings -> MARK_REACH).run(context -> { });
+        public void setup(ModuleSetup setup) {
+            setup.stages().define(Stage.mantle(MARK_STAGE)).requires(IrisStages.Structure.PLACE).reach(settings -> MARK_REACH).run(context -> { });
         }
     };
     private final IrisData data = mock(IrisData.class);

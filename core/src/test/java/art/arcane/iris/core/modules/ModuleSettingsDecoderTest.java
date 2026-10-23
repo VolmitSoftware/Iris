@@ -25,11 +25,11 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
-import com.volmit.FeatureRegistry;
 import com.volmit.FeatureAttachment.Target;
 import com.volmit.IrisFeature;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
+import com.volmit.ModuleSetup;
 import com.volmit.block.BlockSpec;
 import com.volmit.block.BlockState;
 import com.volmit.config.Range;
@@ -41,7 +41,6 @@ import com.volmit.noise.NoiseStyle;
 import com.volmit.noise.StyledRange;
 import com.volmit.resource.ResourceId;
 import com.volmit.stage.Stage;
-import com.volmit.stage.StageGraph;
 import com.volmit.world.BlockPosition;
 import org.junit.After;
 import org.junit.Before;
@@ -110,13 +109,10 @@ public class ModuleSettingsDecoderTest {
         }
 
         @Override
-        public void install(StageGraph graph) {
-            graph.define(Stage.chunk("iris:moss/spread")).when(MossSettings.class).run((context, moss) -> {
+        public void setup(ModuleSetup setup) {
+            setup.stages().define(Stage.chunk("iris:moss/spread")).when(MossSettings.class).run(context -> {
             });
-        }
-
-        @Override
-        public void register(FeatureRegistry registry) {
+            var registry = setup.registry();
             registry.registerSettings(CoverSettings.class);
             registry.registerSettings(MarksSettings.class);
             registry.registerSettings(ValuesSettings.class);

@@ -30,12 +30,12 @@ import com.volmit.FeatureAttachment.Target;
 import com.volmit.IrisFeature;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
+import com.volmit.ModuleSetup;
 import com.volmit.block.BlockState;
 import com.volmit.config.Feature;
 import com.volmit.host.LoadedPack;
 import com.volmit.host.ModuleHost;
 import com.volmit.stage.Stage;
-import com.volmit.stage.StageGraph;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -79,9 +79,9 @@ public class ModuleChunkGenerationTest {
         }
 
         @Override
-        public void install(StageGraph graph) {
-            graph.define(Stage.chunk("iris:pillar/raise")).when(PillarSettings.class).run((context, pillars) -> {
-                PillarSettings pillar = pillars.getLast().value();
+        public void setup(ModuleSetup setup) {
+            setup.stages().define(Stage.chunk("iris:pillar/raise")).when(PillarSettings.class).run(context -> {
+                PillarSettings pillar = context.configured(PillarSettings.class).getLast().value();
                 com.volmit.hunk.Hunk<BlockState> chunk = context.hunk(BlockState.class);
                 chunk.set(0, 1, 0, chunk.get(0, 0, 0));
                 chunk.set(pillar.x, 2, 0, pillar.block);
@@ -203,8 +203,8 @@ public class ModuleChunkGenerationTest {
         List<Object> found = new ArrayList<>();
         IrisModule finder = new IrisModule() {
             public ModuleInfo info() { return ModuleInfo.of("test:finder", "Finder", "1"); }
-            public void install(StageGraph graph) {
-                graph.define(Stage.chunk("test:finder/oak")).run(context ->
+            public void setup(ModuleSetup setup) {
+                setup.stages().define(Stage.chunk("test:finder/oak")).run(context ->
                         found.add(context.resources().find(PackResourceFixture.oakKey(folder.getRoot())).orElseThrow()));
             }
         };

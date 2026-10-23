@@ -20,8 +20,8 @@ package art.arcane.iris.core.modules;
 
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
+import com.volmit.ModuleSetup;
 import com.volmit.host.DiscoveredModule;
-import com.volmit.stage.StageGraph;
 import org.junit.Test;
 
 import java.io.File;
@@ -62,7 +62,7 @@ public class MissingBuiltInModulesTest {
             }
 
             @Override
-            public void install(StageGraph graph) {
+            public void setup(ModuleSetup setup) {
             }
         });
     }

@@ -26,13 +26,12 @@ import art.arcane.iris.engine.object.TestSettings;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.volmlib.util.collection.KList;
-import com.volmit.FeatureRegistry;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
+import com.volmit.ModuleSetup;
 import com.volmit.host.LoadedPack;
 import com.volmit.resource.ResourceId;
 import com.volmit.service.VanillaFeatures;
-import com.volmit.stage.StageGraph;
 import com.volmit.vanilla.DecorationStep;
 import com.volmit.world.PackWorld;
 import org.junit.After;
@@ -226,12 +225,8 @@ public class NativeFeatureGenerationPolicyTest {
         }
 
         @Override
-        public void install(StageGraph graph) {
-        }
-
-        @Override
-        public void register(FeatureRegistry registry) {
-            registry.registerService(VanillaFeatures.class, provider);
+        public void setup(ModuleSetup setup) {
+            setup.registry().registerService(VanillaFeatures.class, provider);
         }
     }
 }

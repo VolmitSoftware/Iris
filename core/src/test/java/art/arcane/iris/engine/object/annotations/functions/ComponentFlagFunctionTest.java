@@ -5,9 +5,9 @@ import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.modules.BuiltInPack;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
+import com.volmit.ModuleSetup;
 import com.volmit.host.LoadedPack;
 import com.volmit.stage.Stage;
-import com.volmit.stage.StageGraph;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -27,8 +27,8 @@ public class ComponentFlagFunctionTest {
     public void offersTheFlagsOfIrisMantleStagesInTheirOrderThenThePacksMantleStageIds() throws IOException {
         IrisModule moss = new IrisModule() {
             public ModuleInfo info() { return ModuleInfo.of("test:moss", "Moss", "1"); }
-            public void install(StageGraph graph) {
-                graph.define(Stage.mantle("test:moss/veins")).requires(IrisStages.Structure.PLACE).reach(8).run(context -> { });
+            public void setup(ModuleSetup setup) {
+                setup.stages().define(Stage.mantle("test:moss/veins")).requires(IrisStages.Structure.PLACE).reach(8).run(context -> { });
             }
         };
         IrisData data = mock(IrisData.class);

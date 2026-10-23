@@ -28,11 +28,10 @@ import art.arcane.iris.engine.decorator.DecoratorTestEngines;
 import art.arcane.iris.engine.object.world.IrisWorld;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.util.project.stream.ProceduralStream;
-import com.volmit.FeatureRegistry;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
+import com.volmit.ModuleSetup;
 import com.volmit.service.CaveBiomes;
-import com.volmit.stage.StageGraph;
 import com.volmit.world.PackWorld;
 import org.junit.Before;
 import org.junit.Test;
@@ -78,12 +77,8 @@ public class EngineCaveBiomeTest {
         }
 
         @Override
-        public void register(FeatureRegistry registry) {
-            registry.registerService(CaveBiomes.class, provider);
-        }
-
-        @Override
-        public void install(StageGraph graph) {
+        public void setup(ModuleSetup setup) {
+            setup.registry().registerService(CaveBiomes.class, provider);
         }
     }
 

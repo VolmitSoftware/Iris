@@ -3,13 +3,12 @@ package art.arcane.iris.core.pack;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.modules.IrisPackResources;
 import art.arcane.iris.core.modules.IrisValidationContext;
-import com.volmit.FeatureRegistry;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
+import com.volmit.ModuleSetup;
 import com.volmit.host.DiscoveredModule;
 import com.volmit.host.ValidatorRegistration;
 import com.volmit.resource.ResourceId;
-import com.volmit.stage.StageGraph;
 import com.volmit.validation.Problem;
 import com.volmit.validation.Subject;
 import com.volmit.validation.Validator;
@@ -119,11 +118,7 @@ public class ModulePackValidationTest {
             }
 
             @Override
-            public void install(StageGraph graph) {
-            }
-
-            @Override
-            public void register(FeatureRegistry registry) {
+            public void setup(ModuleSetup setup) {
             }
         };
         return new ValidatorRegistration(validator, DiscoveredModule.builtIn(module));

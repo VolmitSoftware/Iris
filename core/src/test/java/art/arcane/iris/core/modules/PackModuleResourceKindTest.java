@@ -36,16 +36,14 @@ public class PackModuleResourceKindTest {
 
             import com.volmit.*;
             import com.volmit.resource.ResourceKind;
-            import com.volmit.stage.StageGraph;
 
             public final class CastleModule implements IrisModule {
                 public static final ResourceKind<Keep> KEEPS = ResourceKind.of("example:castle/keep", "keeps", Keep.class);
 
                 public ModuleInfo info() { return ModuleInfo.of("example:castle", "Castles", "1"); }
-                public void install(StageGraph graph) {}
-                public void register(FeatureRegistry registry) {
-                    registry.registerResourceKind(KEEPS);
-                    registry.registerValidator(new KeepValidator());
+                public void setup(ModuleSetup setup) {
+                    setup.registry().registerResourceKind(KEEPS);
+                    setup.registry().registerValidator(new KeepValidator());
                 }
             }
             """;
@@ -91,13 +89,11 @@ public class PackModuleResourceKindTest {
 
             import com.volmit.*;
             import com.volmit.resource.ResourceKind;
-            import com.volmit.stage.StageGraph;
 
             public final class GreedyModule implements IrisModule {
                 public ModuleInfo info() { return ModuleInfo.of("example:greedy", "Greedy", "1"); }
-                public void install(StageGraph graph) {}
-                public void register(FeatureRegistry registry) {
-                    registry.registerResourceKind(ResourceKind.of("example:greedy/biome", "biomes", Grab.class));
+                public void setup(ModuleSetup setup) {
+                    setup.registry().registerResourceKind(ResourceKind.of("example:greedy/biome", "biomes", Grab.class));
                 }
             }
             """;

@@ -35,12 +35,12 @@ import com.volmit.FeatureAttachment.Target;
 import com.volmit.IrisFeature;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
+import com.volmit.ModuleSetup;
 import com.volmit.config.Feature;
 import com.volmit.host.LoadedPack;
 import com.volmit.placement.PlacedBlock;
 import com.volmit.stage.PlacementStage;
 import com.volmit.stage.Stage;
-import com.volmit.stage.StageGraph;
 import com.volmit.world.BlockPosition;
 import org.junit.After;
 import org.junit.Before;
@@ -92,10 +92,11 @@ public class ObjectPlacementModuleSettingsTest {
         }
 
         @Override
-        public void install(StageGraph graph) {
-            graph.define(TOP).when(GlowSettings.class).requires(IrisStages.Blocks.COMPLETE, IrisStages.Anchor.FINAL).run((context, glow) -> {
+        public void setup(ModuleSetup setup) {
+            setup.stages().define(TOP).when(GlowSettings.class).requires(IrisStages.Blocks.COMPLETE, IrisStages.Anchor.FINAL).run(context -> {
                 int y = context.output(IrisStages.Anchor.FINAL).y() + 1;
-                context.access().set(new PlacedBlock(new BlockPosition(0, y, 0), com.volmit.block.BlockState.parse(glow.getFirst().value().block), Optional.empty()));
+                String block = context.configured(GlowSettings.class).getFirst().value().block;
+                context.access().set(new PlacedBlock(new BlockPosition(0, y, 0), com.volmit.block.BlockState.parse(block), Optional.empty()));
             });
         }
     }

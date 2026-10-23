@@ -33,7 +33,9 @@ import com.volmit.block.BlockState;
 import com.volmit.block.BlockTrait;
 import com.volmit.host.DiscoveredModule;
 import com.volmit.host.ModuleRegistry;
+import com.volmit.host.ModuleSetups;
 import com.volmit.host.ServiceRegistration;
+import com.volmit.host.StageGraphBuilder;
 import com.volmit.mantle.BlockBox;
 import com.volmit.resource.ResourceId;
 import com.volmit.service.VanillaStructures;
@@ -88,7 +90,7 @@ public final class ModuleStructureFitting implements NativeStructureFitting {
     /** The built-in modules' registrations only: their stage graph needs the modules of the built-ins jar too. */
     public static NativeStructureFitting builtInModules() {
         ModuleRegistry registry = new ModuleRegistry();
-        IrisModuleHost.builtInModules().forEach(module -> registry.register(DiscoveredModule.builtIn(module)));
+        IrisModuleHost.builtInModules().forEach(module -> ModuleSetups.run(DiscoveredModule.builtIn(module), new StageGraphBuilder(), registry));
         return new ModuleStructureFitting(registry.freeze().registrations(VanillaStructures.class), () -> {
             throw new IllegalStateException("The built-in modules fit outside a world here: a start needs its memo"
                     + " and a fit without palettes");

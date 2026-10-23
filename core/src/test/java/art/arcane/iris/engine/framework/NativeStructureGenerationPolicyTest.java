@@ -11,11 +11,10 @@ import art.arcane.iris.engine.object.world.region.IrisRegion;
 import art.arcane.iris.builtin.structure.StructurePlacement;
 import art.arcane.iris.builtin.structure.NativeStructureSuppression;
 import art.arcane.volmlib.util.collection.KList;
-import com.volmit.FeatureRegistry;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
+import com.volmit.ModuleSetup;
 import com.volmit.host.LoadedPack;
-import com.volmit.stage.StageGraph;
 import art.arcane.iris.builtin.structure.StructureTerrain;
 import art.arcane.iris.core.modules.ModuleVanillaStructures;
 import com.google.gson.Gson;
@@ -267,12 +266,8 @@ public class NativeStructureGenerationPolicyTest {
         }
 
         @Override
-        public void install(StageGraph graph) {
-        }
-
-        @Override
-        public void register(FeatureRegistry registry) {
-            registry.registerService(VanillaStructures.class, provider);
+        public void setup(ModuleSetup setup) {
+            setup.registry().registerService(VanillaStructures.class, provider);
         }
     }
 }

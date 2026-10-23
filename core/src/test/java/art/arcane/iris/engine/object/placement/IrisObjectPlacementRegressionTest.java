@@ -34,9 +34,9 @@ import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.iris.util.project.stream.ProceduralStream;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
-import com.volmit.FeatureRegistry;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
+import com.volmit.ModuleSetup;
 import com.volmit.block.BlockState;
 import com.volmit.mantle.BlockBox;
 import com.volmit.mantle.Mantle;
@@ -50,7 +50,6 @@ import com.volmit.host.LoadedPack;
 import com.volmit.placement.PlacedBlock;
 import com.volmit.stage.PlacementStage;
 import com.volmit.stage.Stage;
-import com.volmit.stage.StageGraph;
 import com.volmit.world.BlockPosition;
 import org.junit.After;
 import org.junit.Before;
@@ -395,8 +394,8 @@ public class IrisObjectPlacementRegressionTest {
         }
 
         @Override
-        public void install(StageGraph graph) {
-            graph.define(CAP).requires(IrisStages.Blocks.COMPLETE, IrisStages.Blocks.WRITE).run(context -> {
+        public void setup(ModuleSetup setup) {
+            setup.stages().define(CAP).requires(IrisStages.Blocks.COMPLETE, IrisStages.Blocks.WRITE).run(context -> {
                 List<PlacedBlock> written = context.output(IrisStages.Blocks.WRITE).blocks();
                 writtenSizes.add(written.size());
                 BlockPosition first = written.getFirst().position();
@@ -415,8 +414,8 @@ public class IrisObjectPlacementRegressionTest {
         }
 
         @Override
-        public void install(StageGraph graph) {
-            graph.define(VETO).requires(IrisStages.Bore.CLEAR, IrisStages.Blocks.COMPLETE).run(context -> context.reject("veto"));
+        public void setup(ModuleSetup setup) {
+            setup.stages().define(VETO).requires(IrisStages.Bore.CLEAR, IrisStages.Blocks.COMPLETE).run(context -> context.reject("veto"));
         }
     }
 
@@ -437,8 +436,8 @@ public class IrisObjectPlacementRegressionTest {
         }
 
         @Override
-        public void install(StageGraph graph) {
-            graph.define(FIND).requires(IrisStages.Blocks.COMPLETE).run(context ->
+        public void setup(ModuleSetup setup) {
+            setup.stages().define(FIND).requires(IrisStages.Blocks.COMPLETE).run(context ->
                     found.add(context.resources().find(PackResourceFixture.oakKey(packFolder)).orElseThrow()));
         }
     }
@@ -472,17 +471,13 @@ public class IrisObjectPlacementRegressionTest {
         }
 
         @Override
-        public void install(StageGraph graph) {
-            graph.define(MARK).requires(IrisStages.Blocks.COMPLETE).run(context -> {
+        public void setup(ModuleSetup setup) {
+            setup.stages().define(MARK).requires(IrisStages.Blocks.COMPLETE).run(context -> {
                 Mantle mantle = context.access().mantle();
                 mantle.layer(MARKS).set(0, ANCHOR_Y, 0, "first");
                 mantle.layer(MARKS).set(1, ANCHOR_Y, 0, "second");
             });
-        }
-
-        @Override
-        public void register(FeatureRegistry registry) {
-            registry.registerMantle(MARKS, MantleLifetime.GENERATION, TEXT);
+            setup.registry().registerMantle(MARKS, MantleLifetime.GENERATION, TEXT);
         }
     }
 
@@ -529,8 +524,8 @@ public class IrisObjectPlacementRegressionTest {
         }
 
         @Override
-        public void install(StageGraph graph) {
-            graph.define(TURN).requires(IrisStages.Blocks.COMPLETE).run(context -> turned.add(context.objects().transform(
+        public void setup(ModuleSetup setup) {
+            setup.stages().define(TURN).requires(IrisStages.Blocks.COMPLETE).run(context -> turned.add(context.objects().transform(
                     context.resources().require(PackResourceFixture.oakKey(packFolder)),
                     new ObjectTransform(90, 0, 0, 1, 1, 1, false, false, false))));
         }

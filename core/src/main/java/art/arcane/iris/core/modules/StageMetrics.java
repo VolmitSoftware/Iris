@@ -27,9 +27,10 @@ import java.util.Map;
 import java.util.function.Function;
 
 /**
- * Iris's generation metrics for the built-in chunk stages that Iris timed under a name of its own before they were
- * modules, so studio and the integration metrics keep showing them: Iris times each such stage around its run
- * instead of the module timing itself. A ported built-in that reported a metric adds its stage here.
+ * Iris's generation metrics for the built-in stages that Iris timed under a name of its own before they were
+ * modules, so studio and the integration metrics keep showing them: Iris passes this to the placement, mantle and
+ * chunk runners, which time each stage around its run instead of the module timing itself. A ported built-in that
+ * reported a metric adds its stage here.
  */
 final class StageMetrics implements StageTimings {
     private static final double NANOS_PER_MILLISECOND = 1_000_000D;
@@ -39,7 +40,8 @@ final class StageMetrics implements StageTimings {
             "iris:carve/apply", EngineMetrics::getCave,
             "iris:deposit/ores", EngineMetrics::getDeposit,
             "iris:decorant/decorate", EngineMetrics::getDecoration,
-            "iris:terrain/shape", EngineMetrics::getTerrain);
+            "iris:terrain/shape", EngineMetrics::getTerrain,
+            "iris:biome/write", EngineMetrics::getBiome);
 
     private final EngineMetrics metrics;
 

@@ -39,6 +39,7 @@ import com.volmit.IrisFeature;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
 import com.volmit.ModuleLog;
+import com.volmit.ModuleSetup;
 import com.volmit.block.BlockFace;
 import com.volmit.block.BlockRegistry;
 import com.volmit.block.BlockSpec;
@@ -53,8 +54,11 @@ import com.volmit.host.ArrayHunk;
 import com.volmit.host.ChunkRunner;
 import com.volmit.host.DiscoveredModule;
 import com.volmit.host.ModuleLogs;
+import com.volmit.host.ModuleRegistry;
+import com.volmit.host.ModuleSetups;
 import com.volmit.host.ResolvedGraph;
 import com.volmit.host.StageGraphBuilder;
+import com.volmit.host.StageTimings;
 import com.volmit.hunk.Hunk;
 import com.volmit.item.ItemRegistry;
 import com.volmit.mantle.BlockBox;
@@ -71,7 +75,6 @@ import com.volmit.resource.ResourceId;
 import com.volmit.config.FeatureSettings.Entry;
 import com.volmit.resource.ResourceKey;
 import com.volmit.stage.Pipeline;
-import com.volmit.stage.StageGraph;
 import com.volmit.world.BiomeKind;
 import com.volmit.world.BiomeSample;
 import com.volmit.world.BlockPosition;
@@ -283,18 +286,19 @@ public final class ApiChunk implements GenerationContext {
     /** Runs {@code modules} as a pack's chunk graph, with an empty stand-in for the floating islands unless they bring their own. */
     public ApiChunk generate(IrisModule... modules) {
         StageGraphBuilder builder = new StageGraphBuilder();
+        ModuleRegistry registry = new ModuleRegistry();
         if (Arrays.stream(modules).noneMatch(module -> module.info().id().toString().equals(FLOATING_ID))) {
-            builder.install(DiscoveredModule.builtIn(new FloatingStandIn()));
+            ModuleSetups.run(DiscoveredModule.builtIn(new FloatingStandIn()), builder, registry);
         }
         for (IrisModule module : modules) {
-            builder.install(DiscoveredModule.builtIn(module));
+            ModuleSetups.run(DiscoveredModule.builtIn(module), builder, registry);
         }
         return generate(builder.resolve(Pipeline.CHUNK));
     }
 
     /** Runs a resolved chunk graph on this chunk, such as the one of a loaded pack. */
     public ApiChunk generate(ResolvedGraph graph) {
-        new ChunkRunner(graph).generate(this, SEED);
+        new ChunkRunner(graph).generate(this, SEED, StageTimings.NONE);
         return this;
     }
 
@@ -765,8 +769,8 @@ public final class ApiChunk implements GenerationContext {
         }
 
         @Override
-        public void install(StageGraph graph) {
-            graph.define(IrisStages.Terrain.SHAPE).run(context -> {
+        public void setup(ModuleSetup setup) {
+            setup.stages().define(IrisStages.Terrain.SHAPE).run(context -> {
             });
         }
     }
@@ -778,7 +782,8 @@ public final class ApiChunk implements GenerationContext {
         }
 
         @Override
-        public void install(StageGraph graph) {
+        public void setup(ModuleSetup setup) {
+            var graph = setup.stages();
             graph.define(IrisStages.Floating.SOLIDS).run(context -> {
             });
             graph.define(IrisStages.Floating.DECORATE).run(context -> {

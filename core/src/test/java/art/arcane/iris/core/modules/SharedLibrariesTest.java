@@ -42,11 +42,10 @@ public class SharedLibrariesTest {
             package pack.shared;
 
             import com.volmit.*;
-            import com.volmit.stage.*;
 
             public final class Shared implements IrisModule {
                 public ModuleInfo info() { return ModuleInfo.of("example:shared", "Shared", "1"); }
-                public void install(StageGraph graph) {
+                public void setup(ModuleSetup setup) {
                     new art.arcane.volmlib.util.math.RNG(7).nextInt();
                     com.google.gson.JsonParser.parseString("{\\"a\\": 1}");
                 }

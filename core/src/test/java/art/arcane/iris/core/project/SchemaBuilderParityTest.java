@@ -64,17 +64,16 @@ import art.arcane.iris.core.modules.PackModuleSet;
 import art.arcane.iris.core.modules.ModuleResourceFixture;
 import com.volmit.FeatureAttachment.Target;
 import com.volmit.IrisFeature;
-import com.volmit.FeatureRegistry;
 import art.arcane.iris.core.modules.BuiltInPack;
 import art.arcane.iris.core.modules.IrisModuleHost;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
+import com.volmit.ModuleSetup;
 import com.volmit.config.Feature;
 import com.volmit.host.LoadedPack;
 import com.volmit.host.ModuleHost;
 import com.volmit.host.schema.PackSchema;
 import com.volmit.stage.Stage;
-import com.volmit.stage.StageGraph;
 import com.volmit.vanilla.DecorationStep;
 import org.junit.After;
 import org.junit.Before;
@@ -853,12 +852,8 @@ public class SchemaBuilderParityTest {
         }
 
         @Override
-        public void install(StageGraph graph) {
-        }
-
-        @Override
-        public void register(FeatureRegistry registry) {
-            registry.registerSettings(StructureSettings.class);
+        public void setup(ModuleSetup setup) {
+            setup.registry().registerSettings(StructureSettings.class);
         }
     }
 
@@ -901,8 +896,8 @@ public class SchemaBuilderParityTest {
         }
 
         @Override
-        public void install(StageGraph graph) {
-            graph.define(Stage.placement("example:tint/paint")).when(TintSettings.class).run((context, tint) -> {
+        public void setup(ModuleSetup setup) {
+            setup.stages().define(Stage.placement("example:tint/paint")).when(TintSettings.class).run(context -> {
             });
         }
     }
@@ -922,8 +917,8 @@ public class SchemaBuilderParityTest {
         }
 
         @Override
-        public void install(StageGraph graph) {
-            graph.define(Stage.placement("example:glow/light")).when(GlowSettings.class).run((context, glow) -> {
+        public void setup(ModuleSetup setup) {
+            setup.stages().define(Stage.placement("example:glow/light")).when(GlowSettings.class).run(context -> {
             });
         }
     }

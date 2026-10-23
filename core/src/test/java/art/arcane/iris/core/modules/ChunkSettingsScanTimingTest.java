@@ -26,17 +26,18 @@ import com.volmit.FeatureAttachment.Target;
 import com.volmit.IrisFeature;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
+import com.volmit.ModuleSetup;
 import com.volmit.config.Feature;
 import com.volmit.config.FeatureSettings;
 import com.volmit.generation.MantleGenerationContext;
 import com.volmit.host.LoadedPack;
 import com.volmit.host.MantleRunner;
 import com.volmit.host.ModuleHost;
+import com.volmit.host.StageTimings;
 import com.volmit.mantle.Mantle;
 import com.volmit.resource.PackResources;
 import com.volmit.stage.MantleStage;
 import com.volmit.stage.Stage;
-import com.volmit.stage.StageGraph;
 import com.volmit.world.PackWorld;
 import com.volmit.world.TerrainSampler;
 import org.junit.Rule;
@@ -64,8 +65,8 @@ public class ChunkSettingsScanTimingTest {
     private static final int MEASURED_CHUNKS = 100_000;
     private static final int CHUNK_WIDTH = 16;
     private static final int BORDER_X = 8;
-    private static final MantleStage<Void> CONDITIONED = Stage.mantle("test:scan/conditioned");
-    private static final MantleStage<Void> PLAIN = Stage.mantle("test:scan/plain");
+    private static final MantleStage CONDITIONED = Stage.mantle("test:scan/conditioned");
+    private static final MantleStage PLAIN = Stage.mantle("test:scan/plain");
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();
@@ -79,9 +80,9 @@ public class ChunkSettingsScanTimingTest {
         assumeTrue("set " + TIMING_SWITCH + "=1 to run", "1".equals(System.getenv(TIMING_SWITCH)));
         IrisModule scan = new IrisModule() {
             public ModuleInfo info() { return ModuleInfo.of("test:scan", "Scan", "1"); }
-            public void install(StageGraph graph) {
-                graph.define(CONDITIONED).when(ScanSettings.class).run((context, entries) -> { });
-                graph.define(PLAIN).run(context -> { });
+            public void setup(ModuleSetup setup) {
+                setup.stages().define(CONDITIONED).when(ScanSettings.class).run(context -> context.configured(ScanSettings.class));
+                setup.stages().define(PLAIN).run(context -> { });
             }
         };
         Engine engine = borderEngine();
@@ -101,10 +102,10 @@ public class ChunkSettingsScanTimingTest {
     }
 
     /** Microseconds per chunk to run {@code stage} for {@code chunks} chunks in a row. */
-    private static double time(MantleRunner runner, MantleStage<Void> stage, FeatureSettings settings, int chunks) {
+    private static double time(MantleRunner runner, MantleStage stage, FeatureSettings settings, int chunks) {
         long started = System.nanoTime();
         for (int chunk = 0; chunk < chunks; chunk++) {
-            runner.generate(stage, inputs(chunk * CHUNK_WIDTH, settings), chunk);
+            runner.generate(stage, inputs(chunk * CHUNK_WIDTH, settings), chunk, StageTimings.NONE);
         }
         return (System.nanoTime() - started) / 1_000D / chunks;
     }

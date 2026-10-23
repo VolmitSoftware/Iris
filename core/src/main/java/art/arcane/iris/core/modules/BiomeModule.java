@@ -34,11 +34,10 @@ import art.arcane.volmlib.util.math.RNG;
 import art.arcane.volmlib.util.matter.Matter;
 import art.arcane.volmlib.util.matter.MatterBiomeInject;
 import art.arcane.volmlib.util.matter.slices.BiomeInjectMatter;
-import art.arcane.volmlib.util.scheduling.PrecisionStopwatch;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
+import com.volmit.ModuleSetup;
 import com.volmit.stage.ChunkStageContext;
-import com.volmit.stage.StageGraph;
 
 /**
  * Module {@code iris:biome}: writes each column's biome into the chunk's biome hunk, a custom biome under the
@@ -53,8 +52,8 @@ public final class BiomeModule implements IrisModule {
     }
 
     @Override
-    public void install(StageGraph graph) {
-        graph.define(IrisStages.Biome.WRITE).run(BiomeModule::write);
+    public void setup(ModuleSetup setup) {
+        setup.stages().define(IrisStages.Biome.WRITE).run(BiomeModule::write);
     }
 
     private static void write(ChunkStageContext context) {
@@ -75,7 +74,6 @@ public final class BiomeModule implements IrisModule {
 
         /** A partial biome write fails the chunk: a chunk flagged done with default biomes would keep them forever. */
         void write(int originX, int originZ, Hunk<PlatformBiome> biomes, ChunkContext context) {
-            PrecisionStopwatch stopwatch = PrecisionStopwatch.start();
             Mantle<Matter> mantle = engine.getMantle().getMantle();
             ChunkedDataCache<IrisBiome> biomeCache = context.getBiome();
             for (int localX = 0; localX < biomes.getWidth(); localX++) {
@@ -89,7 +87,6 @@ public final class BiomeModule implements IrisModule {
                     mantle.set(worldX, 0, worldZ, resolved.matter());
                 }
             }
-            engine.getMetrics().getBiome().put(stopwatch.getMilliseconds());
         }
 
         private String keyOf(IrisBiome biome, int worldX, int worldZ) {

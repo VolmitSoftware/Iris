@@ -26,10 +26,10 @@ import art.arcane.iris.builtin.deposit.DepositGenerator;
 import art.arcane.iris.builtin.deposit.DepositSettings;
 import art.arcane.iris.builtin.structure.StructureSettings;
 import com.volmit.FeatureAttachment.Target;
-import com.volmit.FeatureRegistry;
 import com.volmit.IrisFeature;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
+import com.volmit.ModuleSetup;
 import com.volmit.config.Feature;
 import com.volmit.config.PackSettings;
 import com.volmit.host.LoadedPack;
@@ -40,7 +40,6 @@ import com.volmit.host.schema.SchemaOption;
 import com.volmit.host.schema.ValueKind;
 import com.volmit.stage.MantleStage;
 import com.volmit.stage.Stage;
-import com.volmit.stage.StageGraph;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -89,10 +88,10 @@ public class BuiltInGenerationGraphTest {
 
     @Test
     public void aPackMantleStageCanOrderItselfAfterIrisStructures() throws IOException {
-        MantleStage<Void> mark = Stage.mantle("test:marks/mark");
+        MantleStage mark = Stage.mantle("test:marks/mark");
         IrisModule marks = new IrisModule() {
             public ModuleInfo info() { return ModuleInfo.of("test:marks", "Marks", "1"); }
-            public void install(StageGraph graph) { graph.define(mark).requires(IrisStages.Structure.PLACE).run(context -> { }); }
+            public void setup(ModuleSetup setup) { setup.stages().define(mark).requires(IrisStages.Structure.PLACE).run(context -> { }); }
         };
         try (LoadedPack pack = BuiltInPack.serve(mock(IrisData.class), folder, List.of(marks))) {
             List<String> order = ids(pack.mantle());
@@ -176,11 +175,8 @@ public class BuiltInGenerationGraphTest {
             return ModuleInfo.of("test:rival", "Rival", "1");
         }
 
-        public void install(StageGraph graph) {
-        }
-
-        public void register(FeatureRegistry registry) {
-            registry.registerSettings(settings);
+        public void setup(ModuleSetup setup) {
+            setup.registry().registerSettings(settings);
         }
     }
 

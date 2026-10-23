@@ -21,19 +21,21 @@ package art.arcane.iris.core.modules;
 import art.arcane.iris.engine.framework.EngineMetrics;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
+import com.volmit.ModuleSetup;
 import com.volmit.host.DiscoveredModule;
+import com.volmit.host.ModuleRegistry;
+import com.volmit.host.ModuleSetups;
 import com.volmit.host.ResolvedStage;
 import com.volmit.host.StageGraphBuilder;
 import com.volmit.stage.Pipeline;
 import com.volmit.stage.Stage;
-import com.volmit.stage.StageGraph;
 import org.junit.Test;
 
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 
-/** Iris times the built-in stages it reported under names of their own, post and perfection, around their runs. */
+/** Iris times the built-in stages it reported under names of their own, post, perfection and biome among them, around their runs. */
 public class StageMetricsTest {
     private static final long TWO_MILLISECONDS = 2_000_000L;
 
@@ -42,12 +44,13 @@ public class StageMetricsTest {
         EngineMetrics metrics = new EngineMetrics(4);
         StageMetrics timings = new StageMetrics(metrics);
 
-        for (ResolvedStage stage : stages("iris:post/smooth", "iris:perfection/surface", "iris:other/work")) {
+        for (ResolvedStage stage : stages("iris:post/smooth", "iris:perfection/surface", "iris:biome/write", "iris:other/work")) {
             timings.record(stage, TWO_MILLISECONDS);
         }
 
         assertEquals(2D, metrics.getPost().getAverage(), 0D);
         assertEquals(2D, metrics.getPerfection().getAverage(), 0D);
+        assertEquals(2D, metrics.getBiome().getAverage(), 0D);
     }
 
     @Test
@@ -59,18 +62,18 @@ public class StageMetricsTest {
         StageGraphBuilder builder = new StageGraphBuilder();
         for (String id : ids) {
             String module = id.substring(0, id.indexOf('/'));
-            builder.install(DiscoveredModule.builtIn(new IrisModule() {
+            ModuleSetups.run(DiscoveredModule.builtIn(new IrisModule() {
                 @Override
                 public ModuleInfo info() {
                     return ModuleInfo.of(module, module, "test");
                 }
 
                 @Override
-                public void install(StageGraph graph) {
-                    graph.define(Stage.chunk(id)).run(context -> {
+                public void setup(ModuleSetup setup) {
+                    setup.stages().define(Stage.chunk(id)).run(context -> {
                     });
                 }
-            }));
+            }), builder, new ModuleRegistry());
         }
         return builder.resolve(Pipeline.CHUNK).stages();
     }

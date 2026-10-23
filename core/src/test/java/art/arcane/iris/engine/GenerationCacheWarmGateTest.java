@@ -23,11 +23,10 @@ import art.arcane.iris.core.modules.ModuleResourceFixture;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.EngineGeneration;
 import art.arcane.iris.engine.framework.SeedManager;
-import com.volmit.FeatureRegistry;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
 import com.volmit.ModuleLifecycle;
-import com.volmit.stage.StageGraph;
+import com.volmit.ModuleSetup;
 import com.volmit.world.PackWorld;
 import org.junit.Test;
 
@@ -79,12 +78,8 @@ public class GenerationCacheWarmGateTest {
         }
 
         @Override
-        public void install(StageGraph graph) {
-        }
-
-        @Override
-        public void register(FeatureRegistry registry) {
-            registry.registerLifecycle(this);
+        public void setup(ModuleSetup setup) {
+            setup.registry().registerLifecycle(this);
         }
 
         @Override

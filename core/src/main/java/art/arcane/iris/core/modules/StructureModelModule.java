@@ -22,12 +22,11 @@ import art.arcane.iris.engine.framework.structure.StructureLocating;
 import art.arcane.iris.engine.framework.structure.StructureResources;
 import art.arcane.iris.engine.framework.structure.StructureValidator;
 import art.arcane.iris.engine.framework.structure.StructureVanillaStructures;
-import com.volmit.FeatureRegistry;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
+import com.volmit.ModuleSetup;
 import com.volmit.service.StructureLocator;
 import com.volmit.service.VanillaStructures;
-import com.volmit.stage.StageGraph;
 
 /**
  * Module {@code iris:structure-model}: Iris's jigsaw structure model, which the structure placements of
@@ -52,11 +51,8 @@ public final class StructureModelModule implements IrisModule {
     }
 
     @Override
-    public void install(StageGraph graph) {
-    }
-
-    @Override
-    public void register(FeatureRegistry registry) {
+    public void setup(ModuleSetup setup) {
+        var registry = setup.registry();
         StructureResources.kinds().forEach(registry::registerResourceKind);
         registry.registerValidator(new StructureValidator());
         registry.registerService(StructureLocator.class, new StructureLocating());

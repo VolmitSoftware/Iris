@@ -118,6 +118,7 @@ public final class ModuleMantleComponent implements MantleComponent {
     /** Runs the stage for chunk {@code x}, {@code z}, with the mantle chunks within the stage's reach of it. */
     void generate(int x, int z, IrisModuleMantle.Chunks chunks) {
         IrisMantleGenerationContext inputs = new IrisMantleGenerationContext(engine, x, z, reachBlocks, chunks, pack.catalog().mantle());
-        runner.generate(stage.stage(), inputs, ModuleSeeds.chunk(engine.getSeedManager().getSeed(), x, z));
+        runner.generate(stage.stage(), inputs, ModuleSeeds.chunk(engine.getSeedManager().getSeed(), x, z),
+                new StageMetrics(engine.getMetrics()));
     }
 }

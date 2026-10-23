@@ -22,15 +22,14 @@ import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.EngineGeneration;
 import art.arcane.iris.engine.framework.SeedManager;
-import com.volmit.FeatureRegistry;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
 import com.volmit.ModuleLifecycle;
+import com.volmit.ModuleSetup;
 import com.volmit.config.PackSettings;
 import com.volmit.host.LoadedPack;
 import com.volmit.host.ModuleHost;
 import com.volmit.resource.PackResources;
-import com.volmit.stage.StageGraph;
 import com.volmit.world.PackWorld;
 import org.junit.After;
 import org.junit.Before;
@@ -89,12 +88,8 @@ public class ModuleWorldsTest {
         }
 
         @Override
-        public void install(StageGraph graph) {
-        }
-
-        @Override
-        public void register(FeatureRegistry registry) {
-            registry.registerLifecycle(this);
+        public void setup(ModuleSetup setup) {
+            setup.registry().registerLifecycle(this);
         }
 
         @Override

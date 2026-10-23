@@ -48,8 +48,8 @@ public class PackModuleJarNextToBuiltInsTest {
 
             public final class %2$s implements IrisModule {
                 public ModuleInfo info() { return ModuleInfo.of("%3$s", "%2$s", "1"); }
-                public void install(StageGraph graph) {
-                    graph.define(Stage.placement("%3$s/work")).run(context -> {});
+                public void setup(ModuleSetup setup) {
+                    setup.stages().define(Stage.placement("%3$s/work")).run(context -> {});
                 }
             }
             """;

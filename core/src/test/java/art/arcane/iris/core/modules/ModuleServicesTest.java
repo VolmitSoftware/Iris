@@ -22,17 +22,16 @@ import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.EngineGeneration;
 import art.arcane.iris.engine.framework.SeedManager;
-import com.volmit.FeatureRegistry;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
 import com.volmit.ModuleLog;
+import com.volmit.ModuleSetup;
 import com.volmit.host.LoadedPack;
 import com.volmit.host.ModuleHost;
 import com.volmit.resource.PackResources;
 import com.volmit.service.LocateResult;
 import com.volmit.service.ObjectsAt;
 import com.volmit.service.StructureLocator;
-import com.volmit.stage.StageGraph;
 import com.volmit.world.BlockPosition;
 import com.volmit.world.PackWorld;
 import org.junit.After;
@@ -84,12 +83,9 @@ public class ModuleServicesTest {
         }
 
         @Override
-        public void install(StageGraph graph) {
-        }
-
-        @Override
-        public void register(FeatureRegistry registry) {
-            ModuleLog registeredLog = registry.log();
+        public void setup(ModuleSetup setup) {
+            ModuleLog registeredLog = setup.log();
+            var registry = setup.registry();
             registry.registerService(ObjectsAt.class, new ObjectsAt() {
                 @Override
                 public Set<String> objectsAt(PackWorld world, int chunkX, int chunkZ) {

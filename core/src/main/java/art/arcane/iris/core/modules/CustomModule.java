@@ -30,8 +30,8 @@ import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
 import art.arcane.volmlib.util.matter.Matter;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
+import com.volmit.ModuleSetup;
 import com.volmit.stage.ChunkStageContext;
-import com.volmit.stage.StageGraph;
 
 /**
  * Module {@code iris:custom}: records the chunk's content-plugin blocks for the server to place later: each
@@ -49,9 +49,9 @@ public final class CustomModule implements IrisModule {
     }
 
     @Override
-    public void install(StageGraph graph) {
+    public void setup(ModuleSetup setup) {
         // Ordering only: iris:perfection ships in the built-ins jar, which a pack may not have.
-        graph.define(IrisStages.Custom.BLOCKS).softAfter(IrisStages.Perfection.SURFACE.ref()).run(CustomModule::record);
+        setup.stages().define(IrisStages.Custom.BLOCKS).softAfter(IrisStages.Perfection.SURFACE).run(CustomModule::record);
     }
 
     private static void record(ChunkStageContext context) {

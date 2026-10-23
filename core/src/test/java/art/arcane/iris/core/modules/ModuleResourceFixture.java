@@ -6,6 +6,8 @@ import com.volmit.host.DiscoveredModule;
 import com.volmit.host.FeatureCatalog;
 import com.volmit.host.LoadedPack;
 import com.volmit.host.ModuleRegistry;
+import com.volmit.host.ModuleSetups;
+import com.volmit.host.StageGraphBuilder;
 import com.volmit.resource.ResourceId;
 import com.volmit.resource.ResourceKind;
 
@@ -72,7 +74,7 @@ public final class ModuleResourceFixture {
     public static FeatureCatalog catalogOf(IrisModule... modules) {
         ModuleRegistry registry = new ModuleRegistry();
         for (IrisModule module : modules) {
-            registry.register(DiscoveredModule.builtIn(module));
+            ModuleSetups.run(DiscoveredModule.builtIn(module), new StageGraphBuilder(), registry);
         }
         return registry.freeze();
     }

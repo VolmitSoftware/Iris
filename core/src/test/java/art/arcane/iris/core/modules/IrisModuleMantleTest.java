@@ -34,10 +34,10 @@ import art.arcane.volmlib.util.mantle.runtime.MantleHooks;
 import art.arcane.volmlib.util.matter.IrisMatter;
 import art.arcane.volmlib.util.matter.Matter;
 import art.arcane.volmlib.util.matter.MatterSlice;
-import com.volmit.FeatureRegistry;
 import com.volmit.block.BlockState;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
+import com.volmit.ModuleSetup;
 import com.volmit.host.LoadedPack;
 import com.volmit.host.MantleRegistration;
 import com.volmit.host.ModuleHost;
@@ -48,7 +48,6 @@ import com.volmit.mantle.MantleKey;
 import com.volmit.mantle.MantleLayer;
 import com.volmit.mantle.MantleLifetime;
 import com.volmit.stage.Stage;
-import com.volmit.stage.StageGraph;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -278,11 +277,11 @@ public class IrisModuleMantleTest {
         MantleKey<String> planned = new MantleKey<>("iris:veins/planned", String.class);
         IrisModule veins = new IrisModule() {
             public ModuleInfo info() { return ModuleInfo.of("iris:veins", "Veins", "1"); }
-            public void install(StageGraph graph) {
-                graph.define(Stage.mantle("iris:veins/plan")).reach(16).writesMantle(planned)
+            public void setup(ModuleSetup setup) {
+                setup.registry().registerMantle(planned, MantleLifetime.GENERATION, TEXT);
+                setup.stages().define(Stage.mantle("iris:veins/plan")).reach(16).writesMantle(planned)
                         .run(context -> context.mantle().layer(planned).set(context.originX() + 20, 34, context.originZ() + 3, "vein"));
             }
-            public void register(FeatureRegistry registry) { registry.registerMantle(planned, MantleLifetime.GENERATION, TEXT); }
         };
         Engine engine = mock(Engine.class);
         IrisData data = mock(IrisData.class);
@@ -312,8 +311,8 @@ public class IrisModuleMantleTest {
         List<Object> found = new ArrayList<>();
         IrisModule finder = new IrisModule() {
             public ModuleInfo info() { return ModuleInfo.of("iris:finder", "Finder", "1"); }
-            public void install(StageGraph graph) {
-                graph.define(Stage.mantle("iris:finder/oak")).reach(0).run(context ->
+            public void setup(ModuleSetup setup) {
+                setup.stages().define(Stage.mantle("iris:finder/oak")).reach(0).run(context ->
                         found.add(context.resources().find(PackResourceFixture.oakKey(folder.getRoot())).orElseThrow()));
             }
         };

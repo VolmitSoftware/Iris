@@ -39,7 +39,7 @@ import art.arcane.volmlib.util.json.JSONArray;
 import art.arcane.volmlib.util.json.JSONObject;
 import art.arcane.iris.core.modules.ModuleSettings;
 import art.arcane.iris.core.modules.ModuleTargets;
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
 import art.arcane.iris.util.common.parallel.BurstExecutor;
 import art.arcane.iris.util.common.parallel.MultiBurst;
 import art.arcane.volmlib.util.scheduling.ChronoLatch;
@@ -418,7 +418,7 @@ public class ResourceLoader<T extends IrisRegistrant> implements MeteredCache {
             PrecisionStopwatch p = PrecisionStopwatch.start();
             rawText = IO.readAll(j);
             JSONObject parsed = new JSONObject(rawText);
-            Optional<Target> moduleTarget = ModuleTargets.ofResource(objectClass);
+            Optional<Level> moduleTarget = ModuleTargets.ofResource(objectClass);
             JsonSchemaValidator.validateTopLevelKeys(parsed, rawText, j, resourceTypeName, objectClass, moduleKeys(moduleTarget));
             T t = getManager().getGson()
                     .fromJson(preprocess(parsed).toString(0), objectClass);
@@ -438,11 +438,11 @@ public class ResourceLoader<T extends IrisRegistrant> implements MeteredCache {
     }
 
     /** The keys the pack's modules read at {@code target}; none for resources that hold no module settings. */
-    private Set<String> moduleKeys(Optional<Target> target) {
+    private Set<String> moduleKeys(Optional<Level> target) {
         return target.map(found -> getManager().getModules().settings().keys(found)).orElse(Set.of());
     }
 
-    private ModuleSettings decodeModuleSettings(Target target, JSONObject json, String name) {
+    private ModuleSettings decodeModuleSettings(Level target, JSONObject json, String name) {
         return getManager().getModules().settings().decode(target, json, resourceTypeName + " " + name);
     }
 

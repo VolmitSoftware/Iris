@@ -21,10 +21,11 @@ package art.arcane.iris.core.modules;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.loader.IrisRegistrant;
 import art.arcane.iris.core.loader.ResourceLoader;
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
 import com.volmit.IrisFeature;
 import com.volmit.config.FeatureSettings.Entry;
 import com.volmit.config.PackSettings;
+import com.volmit.config.SettingsStack;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -45,16 +46,16 @@ final class PackDeclaredSettings implements PackSettings {
     }
 
     @Override
-    public <F extends IrisFeature> List<Entry<F>> declared(Class<F> featureType) {
+    public <F extends IrisFeature> SettingsStack<F> declared(Class<F> featureType) {
         List<Entry<F>> entries = new ArrayList<>();
-        addEntries(entries, featureType, Target.DIMENSION, IrisPackSettings.DIMENSION, data.getDimensionLoader());
-        addEntries(entries, featureType, Target.REGION, IrisPackSettings.REGION, data.getRegionLoader());
-        addEntries(entries, featureType, Target.BIOME, IrisPackSettings.BIOME, data.getBiomeLoader());
-        return List.copyOf(entries);
+        addEntries(entries, featureType, Level.DIMENSION, IrisPackSettings.DIMENSION, data.getDimensionLoader());
+        addEntries(entries, featureType, Level.REGION, IrisPackSettings.REGION, data.getRegionLoader());
+        addEntries(entries, featureType, Level.BIOME, IrisPackSettings.BIOME, data.getBiomeLoader());
+        return SettingsStack.of(entries);
     }
 
     private <F extends IrisFeature, R extends IrisRegistrant> void addEntries(List<Entry<F>> entries, Class<F> featureType,
-                                                                             Target level, String kind, ResourceLoader<R> loader) {
+                                                                             Level level, String kind, ResourceLoader<R> loader) {
         for (String key : Arrays.stream(loader.getPossibleKeys()).sorted().toList()) {
             R owner = loader.load(key, false);
             if (owner != null) {

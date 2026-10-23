@@ -25,7 +25,7 @@ import art.arcane.iris.builtin.decorant.Decorator;
 import art.arcane.iris.builtin.deposit.DepositGenerator;
 import art.arcane.iris.builtin.deposit.DepositSettings;
 import art.arcane.iris.builtin.structure.StructureSettings;
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
 import com.volmit.IrisFeature;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
@@ -103,7 +103,7 @@ public class BuiltInGenerationGraphTest {
     @Test
     public void depositsAreTheListOfGeneratorsOfEveryLevelWrittenUnderDeposits() throws IOException {
         try (LoadedPack pack = BuiltInPack.serve(mock(IrisData.class), folder, List.of())) {
-            for (Target level : List.of(Target.DIMENSION, Target.REGION, Target.BIOME)) {
+            for (Level level : List.of(Level.DIMENSION, Level.REGION, Level.BIOME)) {
                 FeatureSchema deposits = pack.schema().fields(level).stream()
                         .filter(feature -> feature.settings().name().equals(DepositSettings.class.getName()))
                         .findFirst().orElseThrow();
@@ -121,7 +121,7 @@ public class BuiltInGenerationGraphTest {
     @Test
     public void importedStructuresAreAnObjectOfOptionsOfTheDimension() throws IOException {
         try (LoadedPack pack = BuiltInPack.serve(mock(IrisData.class), folder, List.of())) {
-            FeatureSchema structures = pack.schema().fields(Target.DIMENSION).stream()
+            FeatureSchema structures = pack.schema().fields(Level.DIMENSION).stream()
                     .filter(feature -> feature.settings().name().equals(StructureSettings.class.getName()))
                     .findFirst().orElseThrow();
 
@@ -135,7 +135,7 @@ public class BuiltInGenerationGraphTest {
     @Test
     public void theBuiltInKeysAreUniquePerTargetAndNoFieldOfIris() throws IOException {
         try (LoadedPack pack = BuiltInPack.serve(mock(IrisData.class), folder, List.of())) {
-            for (Target target : Target.values()) {
+            for (Level target : Level.values()) {
                 List<String> keys = pack.schema().fields(target).stream().map(FeatureSchema::key).toList();
                 assertEquals(target + " " + keys, keys.size(), keys.stream().distinct().count());
                 assertTrue(target + " " + keys, keys.stream().noneMatch(ModuleTargets.reservedFields().get(target)::contains));
@@ -156,11 +156,11 @@ public class BuiltInGenerationGraphTest {
                 + " give one of the settings another key in its @Feature", field.getMessage());
     }
 
-    @Feature(id = "test:rival/deposits", name = "Rival deposits", key = "deposits", targets = Target.REGION)
+    @Feature(id = "test:rival/deposits", name = "Rival deposits", key = "deposits", targets = Level.REGION)
     public static final class TakesDeposits implements IrisFeature {
     }
 
-    @Feature(id = "test:rival/generators", name = "Rival generators", key = "generators", targets = Target.BIOME)
+    @Feature(id = "test:rival/generators", name = "Rival generators", key = "generators", targets = Level.BIOME)
     public static final class TakesAHostField implements IrisFeature {
     }
 
@@ -195,11 +195,11 @@ public class BuiltInGenerationGraphTest {
     @Test
     public void decoratorsAreTheBiomesListOfDecoratorsWrittenUnderDecorators() throws IOException {
         try (LoadedPack pack = BuiltInPack.serve(mock(IrisData.class), folder, List.of())) {
-            for (Target level : List.of(Target.DIMENSION, Target.REGION)) {
+            for (Level level : List.of(Level.DIMENSION, Level.REGION)) {
                 assertTrue(level + " has no decorators", pack.schema().fields(level).stream()
                         .noneMatch(feature -> feature.settings().name().equals(DecorantSettings.class.getName())));
             }
-            FeatureSchema decorant = pack.schema().fields(Target.BIOME).stream()
+            FeatureSchema decorant = pack.schema().fields(Level.BIOME).stream()
                     .filter(feature -> feature.settings().name().equals(DecorantSettings.class.getName()))
                     .findFirst().orElseThrow();
             assertEquals("decorators", decorant.key());

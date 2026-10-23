@@ -5,7 +5,7 @@ import art.arcane.iris.builtin.decorant.DecorationPart;
 import art.arcane.iris.builtin.decorant.Decorator;
 import art.arcane.volmlib.util.json.JSONObject;
 import com.google.gson.Gson;
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
 import com.volmit.block.BlockSpec;
 import com.volmit.host.LoadedPack;
 import com.volmit.host.ModuleHost;
@@ -136,23 +136,23 @@ public class DecorantSettingsDecodingTest {
     public void theFeatureIdIsNotAKey() {
         JSONObject byId = new JSONObject("{\"iris:decorant\": [{\"chance\": 1}]}");
 
-        assertSame(ModuleSettings.NONE, decoder.decode(Target.BIOME, byId, "biome meadow"));
-        assertTrue(decoder.keys(Target.BIOME).containsAll(Set.of("decorators", "deposits")));
-        assertFalse(decoder.keys(Target.BIOME).contains("iris:decorant"));
+        assertSame(ModuleSettings.NONE, decoder.decode(Level.BIOME, byId, "biome meadow"));
+        assertTrue(decoder.keys(Level.BIOME).containsAll(Set.of("decorators", "deposits")));
+        assertFalse(decoder.keys(Level.BIOME).contains("iris:decorant"));
     }
 
     @Test
     public void anObjectOfOptionsUnderDecoratorsIsRefused() {
         JSONObject object = new JSONObject("{\"decorators\": {\"decorators\": [{\"chance\": 1}]}}");
 
-        IllegalArgumentException refused = assertThrows(IllegalArgumentException.class, () -> decoder.decode(Target.BIOME, object, "biome meadow"));
+        IllegalArgumentException refused = assertThrows(IllegalArgumentException.class, () -> decoder.decode(Level.BIOME, object, "biome meadow"));
 
         assertEquals("Cannot read settings iris:decorant under \"decorators\" in biome meadow: write a list, [...], of the decorators,"
                 + " not an object of options", refused.getMessage());
     }
 
     private List<Decorator> decorators(String biomeJson) {
-        return decoder.decode(Target.BIOME, new JSONObject(biomeJson), "biome meadow")
+        return decoder.decode(Level.BIOME, new JSONObject(biomeJson), "biome meadow")
                 .find(DecorantSettings.class).orElseThrow().decorators();
     }
 }

@@ -288,6 +288,8 @@ public class IrisModuleMantleTest {
         SeedManager seeds = mock(SeedManager.class);
         when(engine.getData()).thenReturn(data);
         when(data.getDataFolder()).thenReturn(folder.getRoot());
+        IrisPackResources resources = new IrisPackResources(data, List::of);
+        when(data.getPackResources()).thenReturn(resources);
         when(engine.getSeedManager()).thenReturn(seeds);
         when(engine.getDimension()).thenReturn(new IrisDimension());
         when(engine.getRegion(anyInt(), anyInt())).thenReturn(new IrisRegion());
@@ -304,37 +306,6 @@ public class IrisModuleMantleTest {
             assertEquals("vein", neighbor.layer(planned).get(20, 34, 3));
         }
         assertTrue(chunks.containsKey(1L << 32));
-    }
-
-    @Test
-    public void aMantleStageFindsTheSnapshotsPackResources() throws IOException {
-        List<Object> found = new ArrayList<>();
-        IrisModule finder = new IrisModule() {
-            public ModuleInfo info() { return ModuleInfo.of("iris:finder", "Finder", "1"); }
-            public void setup(ModuleSetup setup) {
-                setup.stages().define(Stage.mantle("iris:finder/oak")).reach(0).run(context ->
-                        found.add(context.resources().find(PackResourceFixture.oakKey(folder.getRoot())).orElseThrow()));
-            }
-        };
-        Engine engine = mock(Engine.class);
-        IrisData data = mock(IrisData.class);
-        SeedManager seeds = mock(SeedManager.class);
-        when(engine.getData()).thenReturn(data);
-        when(data.getDataFolder()).thenReturn(folder.getRoot());
-        PackResourceFixture.serve(data);
-        when(engine.getSeedManager()).thenReturn(seeds);
-        when(engine.getDimension()).thenReturn(new IrisDimension());
-        when(engine.getRegion(anyInt(), anyInt())).thenReturn(new IrisRegion());
-        when(engine.getSurfaceBiome(anyInt(), anyInt())).thenReturn(new IrisBiome());
-        when(engine.getMinHeight()).thenReturn(WORLD_MIN_HEIGHT);
-        when(engine.getHeight()).thenReturn(SECTIONS * 16);
-
-        try (LoadedPack pack = LoadedPack.load(folder.newFolder("finder-pack").toPath(),
-                ModuleHost.of(List.of(finder)).copyingJarsTo(folder.newFolder("finder-copies").toPath()))) {
-            ModuleMantleComponent.forPack(engine, pack, Set.of()).getFirst().generate(0, 0, this::chunk);
-        }
-
-        assertEquals(List.of(PackResourceFixture.OAK), found);
     }
 
     private static byte[] bytes(ModuleLayerValues values) throws IOException {

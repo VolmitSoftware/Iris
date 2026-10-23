@@ -34,7 +34,7 @@ import art.arcane.iris.builtin.terrain.PaletteLayer;
 import art.arcane.iris.builtin.terrain.SlabSettings;
 import art.arcane.iris.builtin.terrain.WallSettings;
 import art.arcane.iris.engine.object.TestSettings;
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
 import com.volmit.IrisFeature;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
@@ -49,6 +49,7 @@ import com.volmit.block.PaletteSampler;
 import com.volmit.block.PaletteSpec;
 import com.volmit.config.FeatureSettings;
 import com.volmit.config.PackSettings;
+import com.volmit.config.SettingsStack;
 import com.volmit.generation.GenerationContext;
 import com.volmit.host.ArrayHunk;
 import com.volmit.host.ChunkRunner;
@@ -321,12 +322,8 @@ public final class ApiChunk implements GenerationContext {
     public FeatureSettings settings() {
         return new FeatureSettings() {
             @Override
-            public <F extends IrisFeature> List<Entry<F>> at(Class<F> featureType, int worldX, int worldZ) {
-                List<Entry<F>> entries = new ArrayList<>();
-                addEntries(entries, featureType, Target.DIMENSION, DIMENSION, dimensionSettings);
-                addEntries(entries, featureType, Target.REGION, REGION, regionSettings);
-                addEntries(entries, featureType, Target.BIOME, BIOME, biomeSettings);
-                return entries;
+            public <F extends IrisFeature> SettingsStack<F> at(Class<F> featureType, int worldX, int worldZ) {
+                return declaredAtEveryLevel(featureType);
             }
 
             @Override
@@ -351,21 +348,19 @@ public final class ApiChunk implements GenerationContext {
     }
 
     @Override
-    public long worldSeed() {
-        return SEED;
-    }
-
-    @Override
-    public PackResources resources() {
-        return world.resources;
-    }
-
-    @Override
     public PackWorld world() {
         return world;
     }
 
-    private static <F extends IrisFeature> void addEntries(List<Entry<F>> entries, Class<F> type, Target level, ResourceId source,
+    private <F extends IrisFeature> SettingsStack<F> declaredAtEveryLevel(Class<F> featureType) {
+        List<Entry<F>> entries = new ArrayList<>();
+        addEntries(entries, featureType, Level.DIMENSION, DIMENSION, dimensionSettings);
+        addEntries(entries, featureType, Level.REGION, REGION, regionSettings);
+        addEntries(entries, featureType, Level.BIOME, BIOME, biomeSettings);
+        return SettingsStack.of(entries);
+    }
+
+    private static <F extends IrisFeature> void addEntries(List<Entry<F>> entries, Class<F> type, Level level, ResourceId source,
                                                            List<IrisFeature> declared) {
         declared.stream().filter(type::isInstance).map(type::cast).forEach(value -> entries.add(new Entry<>(level, source, value)));
     }
@@ -604,12 +599,8 @@ public final class ApiChunk implements GenerationContext {
         public PackSettings settings() {
             return new PackSettings() {
                 @Override
-                public <F extends IrisFeature> List<Entry<F>> declared(Class<F> featureType) {
-                    List<Entry<F>> entries = new ArrayList<>();
-                    addEntries(entries, featureType, Target.DIMENSION, DIMENSION, dimensionSettings);
-                    addEntries(entries, featureType, Target.REGION, REGION, regionSettings);
-                    addEntries(entries, featureType, Target.BIOME, BIOME, biomeSettings);
-                    return entries;
+                public <F extends IrisFeature> SettingsStack<F> declared(Class<F> featureType) {
+                    return declaredAtEveryLevel(featureType);
                 }
             };
         }

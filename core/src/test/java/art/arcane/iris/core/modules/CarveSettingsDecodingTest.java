@@ -29,7 +29,7 @@ import art.arcane.iris.builtin.carve.CaveProfile;
 import art.arcane.iris.builtin.carve.UpperDimensionCarvingSettings;
 import art.arcane.volmlib.util.json.JSONObject;
 import com.google.gson.Gson;
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
 import com.volmit.host.LoadedPack;
 import com.volmit.host.ModuleHost;
 import org.junit.After;
@@ -81,7 +81,7 @@ public class CarveSettingsDecodingTest {
 
     @Test
     public void theOverworldReadsItsCaveProfileItsCarvingBandsAndCarvingEnabled() throws IOException {
-        ModuleSettings settings = decoder.decode(Target.DIMENSION, file("dimensions/overworld.json"), "dimension overworld");
+        ModuleSettings settings = decoder.decode(Level.DIMENSION, file("dimensions/overworld.json"), "dimension overworld");
 
         CaveProfile profile = settings.find(CaveProfile.class).orElseThrow();
         assertTrue(profile.enabled());
@@ -117,7 +117,7 @@ public class CarveSettingsDecodingTest {
     public void aRegionReadsItsCaveProfile() throws IOException {
         JSONObject region = file("regions/forests.json");
 
-        CaveProfile profile = decoder.decode(Target.REGION, region, "region forests").find(CaveProfile.class).orElseThrow();
+        CaveProfile profile = decoder.decode(Level.REGION, region, "region forests").find(CaveProfile.class).orElseThrow();
 
         assertTrue(profile.enabled());
         assertEquals(6, profile.verticalRange().min(), 0);
@@ -130,7 +130,7 @@ public class CarveSettingsDecodingTest {
     public void aBiomeReadsItsCaveProfileAndItsMinimumDepth() throws IOException {
         JSONObject biome = file("biomes/carving/amethyst.json");
 
-        ModuleSettings settings = decoder.decode(Target.BIOME, biome, "biome carving/amethyst");
+        ModuleSettings settings = decoder.decode(Level.BIOME, biome, "biome carving/amethyst");
 
         CaveProfile profile = settings.find(CaveProfile.class).orElseThrow();
         assertTrue(profile.enabled());
@@ -144,7 +144,7 @@ public class CarveSettingsDecodingTest {
 
     @Test
     public void aCaveProfileMayBeWrittenAsASnippetReference() {
-        ModuleSettings settings = decoder.decode(Target.BIOME, new JSONObject("{\"caveProfile\": \"snippet/cave-profile/shallow\"}"), "biome test");
+        ModuleSettings settings = decoder.decode(Level.BIOME, new JSONObject("{\"caveProfile\": \"snippet/cave-profile/shallow\"}"), "biome test");
 
         CaveProfile profile = settings.find(CaveProfile.class).orElseThrow();
         assertTrue(profile.enabled());
@@ -163,7 +163,7 @@ public class CarveSettingsDecodingTest {
                 ], "carvingEnabled": false}
                 """);
 
-        ModuleSettings settings = decoder.decode(Target.DIMENSION, json, "dimension test");
+        ModuleSettings settings = decoder.decode(Level.DIMENSION, json, "dimension test");
 
         List<CarvingEntry> bands = settings.find(CarvingSettings.class).orElseThrow().entries();
         assertEquals(3, bands.size());
@@ -183,7 +183,7 @@ public class CarveSettingsDecodingTest {
 
     @Test
     public void carvingBiomeIsABiomeKeyAndRegistersItWithTheBiomeTree() {
-        ModuleSettings settings = decoder.decode(Target.BIOME, new JSONObject("{\"carvingBiome\": \"carving/mushroom\"}"), "biome test");
+        ModuleSettings settings = decoder.decode(Level.BIOME, new JSONObject("{\"carvingBiome\": \"carving/mushroom\"}"), "biome test");
 
         assertEquals("carving/mushroom", settings.find(CarvingBiomeSettings.class).orElseThrow().biome());
         assertEquals(Set.of("carving/mushroom"), settings.treeBiomes());
@@ -192,11 +192,11 @@ public class CarveSettingsDecodingTest {
 
     @Test
     public void theOverworldReadsItsUpperDimensionCarvingAndANumberIsTheCaveLavaHeight() throws IOException {
-        ModuleSettings overworld = decoder.decode(Target.DIMENSION, file("dimensions/overworld.json"), "dimension overworld");
+        ModuleSettings overworld = decoder.decode(Level.DIMENSION, file("dimensions/overworld.json"), "dimension overworld");
         assertFalse(overworld.find(UpperDimensionCarvingSettings.class).orElseThrow().enabled());
         assertTrue("the overworld writes no cave lava height", overworld.find(CaveLavaHeightSettings.class).isEmpty());
 
-        ModuleSettings written = decoder.decode(Target.DIMENSION, new JSONObject("{\"caveLavaHeight\": 18, \"upperDimensionCarving\": true}"), "dimension test");
+        ModuleSettings written = decoder.decode(Level.DIMENSION, new JSONObject("{\"caveLavaHeight\": 18, \"upperDimensionCarving\": true}"), "dimension test");
         assertEquals(18, written.find(CaveLavaHeightSettings.class).orElseThrow().height());
         assertTrue(written.find(UpperDimensionCarvingSettings.class).orElseThrow().enabled());
         assertEquals(8, CaveLavaHeightSettings.DEFAULT_HEIGHT);
@@ -204,12 +204,12 @@ public class CarveSettingsDecodingTest {
 
     @Test
     public void everyKeyIsOnlyReadAtTheLevelsTheOldFieldExistedAt() {
-        assertTrue(decoder.keys(Target.DIMENSION).containsAll(List.of("caveProfile", "carving", "carvingEnabled", "caveLavaHeight", "upperDimensionCarving")));
-        assertTrue(decoder.keys(Target.REGION).contains("caveProfile"));
-        assertTrue(decoder.keys(Target.BIOME).containsAll(List.of("caveProfile", "carvingBiome", "caveMinDepthBelowSurface")));
-        assertFalse(decoder.keys(Target.REGION).contains("carving"));
-        assertFalse(decoder.keys(Target.DIMENSION).contains("carvingBiome"));
-        assertFalse(decoder.keys(Target.DIMENSION).contains("caveMinDepthBelowSurface"));
+        assertTrue(decoder.keys(Level.DIMENSION).containsAll(List.of("caveProfile", "carving", "carvingEnabled", "caveLavaHeight", "upperDimensionCarving")));
+        assertTrue(decoder.keys(Level.REGION).contains("caveProfile"));
+        assertTrue(decoder.keys(Level.BIOME).containsAll(List.of("caveProfile", "carvingBiome", "caveMinDepthBelowSurface")));
+        assertFalse(decoder.keys(Level.REGION).contains("carving"));
+        assertFalse(decoder.keys(Level.DIMENSION).contains("carvingBiome"));
+        assertFalse(decoder.keys(Level.DIMENSION).contains("caveMinDepthBelowSurface"));
     }
 
     private JSONObject file(String name) throws IOException {

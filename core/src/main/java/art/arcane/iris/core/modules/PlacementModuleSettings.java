@@ -18,9 +18,10 @@
 
 package art.arcane.iris.core.modules;
 
-import com.volmit.FeatureAttachment.Target;
 import com.volmit.IrisFeature;
 import com.volmit.config.FeatureSettings;
+import com.volmit.config.Level;
+import com.volmit.config.SettingsStack;
 import com.volmit.resource.ResourceId;
 
 import java.util.ArrayList;
@@ -34,8 +35,8 @@ import java.util.Optional;
 final class PlacementModuleSettings implements FeatureSettings {
     private static final FeatureSettings NO_WORLD = new FeatureSettings() {
         @Override
-        public <F extends IrisFeature> List<Entry<F>> at(Class<F> featureType, int worldX, int worldZ) {
-            return List.of();
+        public <F extends IrisFeature> SettingsStack<F> at(Class<F> featureType, int worldX, int worldZ) {
+            return SettingsStack.empty();
         }
     };
 
@@ -55,14 +56,14 @@ final class PlacementModuleSettings implements FeatureSettings {
     }
 
     @Override
-    public <F extends IrisFeature> List<Entry<F>> at(Class<F> featureType, int worldX, int worldZ) {
-        List<Entry<F>> worldEntries = world.at(featureType, worldX, worldZ);
+    public <F extends IrisFeature> SettingsStack<F> at(Class<F> featureType, int worldX, int worldZ) {
+        SettingsStack<F> worldEntries = world.at(featureType, worldX, worldZ);
         Optional<F> own = placement.find(featureType);
         if (own.isEmpty()) {
             return worldEntries;
         }
-        List<Entry<F>> entries = new ArrayList<>(worldEntries);
-        entries.add(new Entry<>(Target.OBJECT_PLACEMENT, source, own.get()));
-        return List.copyOf(entries);
+        List<Entry<F>> entries = new ArrayList<>(worldEntries.entries());
+        entries.add(new Entry<>(Level.PLACEMENT, source, own.get()));
+        return SettingsStack.of(entries);
     }
 }

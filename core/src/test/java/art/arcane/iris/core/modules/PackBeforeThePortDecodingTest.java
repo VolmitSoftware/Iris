@@ -32,7 +32,7 @@ import art.arcane.volmlib.util.json.JSONObject;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
 import com.volmit.block.BlockSpec;
 import com.volmit.host.LoadedPack;
 import com.volmit.host.ModuleHost;
@@ -88,7 +88,7 @@ public class PackBeforeThePortDecodingTest {
     public void aBiomeWithDecoratorsAndDepositsReadsBothUnderTheirOldKeys() throws IOException {
         JSONObject biome = file("biomes/mesa/red.json");
 
-        ModuleSettings settings = decoder.decode(Target.BIOME, biome, "biome mesa/red");
+        ModuleSettings settings = decoder.decode(Level.BIOME, biome, "biome mesa/red");
 
         List<Decorator> decorators = settings.find(DecorantSettings.class).orElseThrow().decorators();
         assertEquals(biome.getJSONArray("decorators").length(), decorators.size());
@@ -110,7 +110,7 @@ public class PackBeforeThePortDecodingTest {
     public void aBiomeWithManyDecoratorsAndDepositsReadsEveryEntry() throws IOException {
         JSONObject biome = file("biomes/temperate/roughplains.json");
 
-        ModuleSettings settings = decoder.decode(Target.BIOME, biome, "biome temperate/roughplains");
+        ModuleSettings settings = decoder.decode(Level.BIOME, biome, "biome temperate/roughplains");
 
         assertEquals(biome.getJSONArray("decorators").length(), settings.find(DecorantSettings.class).orElseThrow().decorators().size());
         List<DepositGenerator> deposits = settings.find(DepositSettings.class).orElseThrow().generators();
@@ -123,7 +123,7 @@ public class PackBeforeThePortDecodingTest {
     public void aRegionReadsItsDeposits() throws IOException {
         JSONObject region = file("regions/magnetics.json");
 
-        List<DepositGenerator> deposits = decoder.decode(Target.REGION, region, "region magnetics")
+        List<DepositGenerator> deposits = decoder.decode(Level.REGION, region, "region magnetics")
                 .find(DepositSettings.class).orElseThrow().generators();
 
         assertEquals(8, deposits.size());
@@ -136,7 +136,7 @@ public class PackBeforeThePortDecodingTest {
     public void theDimensionReadsItsDepositsAndItsImportedStructures() throws IOException {
         JSONObject dimension = file("dimensions/overworld.json");
 
-        ModuleSettings settings = decoder.decode(Target.DIMENSION, dimension, "dimension overworld");
+        ModuleSettings settings = decoder.decode(Level.DIMENSION, dimension, "dimension overworld");
 
         List<DepositGenerator> deposits = settings.find(DepositSettings.class).orElseThrow().generators();
         assertEquals(23, deposits.size());
@@ -155,7 +155,7 @@ public class PackBeforeThePortDecodingTest {
     public void aBiomeReadsItsObjectPlacementsAndKeepsTheJsonIrisReadsThemFrom() throws IOException {
         JSONObject biome = file("biomes/temperate/roughplains.json");
 
-        List<ObjectPlacement> objects = decoder.decode(Target.BIOME, biome, "biome temperate/roughplains")
+        List<ObjectPlacement> objects = decoder.decode(Level.BIOME, biome, "biome temperate/roughplains")
                 .find(ObjectSettings.class).orElseThrow().objects();
 
         assertEquals(biome.getJSONArray("objects").length(), objects.size());
@@ -171,7 +171,7 @@ public class PackBeforeThePortDecodingTest {
     public void aBiomeReadsItsProceduralTreesWithTheirPalettes() throws IOException {
         JSONObject biome = file("biomes/estranged/bloomspire-orchard.json");
 
-        ProceduralObjectSettings procedural = decoder.decode(Target.BIOME, biome, "biome estranged/bloomspire-orchard")
+        ProceduralObjectSettings procedural = decoder.decode(Level.BIOME, biome, "biome estranged/bloomspire-orchard")
                 .find(ProceduralObjectSettings.class).orElseThrow();
 
         assertEquals(biome.getJSONObject("proceduralObjects").getJSONArray("trees").length(), procedural.trees().size());
@@ -185,10 +185,10 @@ public class PackBeforeThePortDecodingTest {
 
     @Test
     public void everyTopLevelKeyOfTheseFilesIsAFieldOfIrisOrAKeyOfAModule() throws IOException {
-        Map<String, Target> files = Map.of("biomes/mesa/red.json", Target.BIOME, "biomes/temperate/roughplains.json", Target.BIOME,
-                "biomes/estranged/bloomspire-orchard.json", Target.BIOME, "regions/magnetics.json", Target.REGION, "dimensions/overworld.json", Target.DIMENSION);
+        Map<String, Level> files = Map.of("biomes/mesa/red.json", Level.BIOME, "biomes/temperate/roughplains.json", Level.BIOME,
+                "biomes/estranged/bloomspire-orchard.json", Level.BIOME, "regions/magnetics.json", Level.REGION, "dimensions/overworld.json", Level.DIMENSION);
 
-        for (Map.Entry<String, Target> file : files.entrySet()) {
+        for (Map.Entry<String, Level> file : files.entrySet()) {
             Set<String> unknown = new TreeSet<>(file(file.getKey()).keySet());
             unknown.removeAll(ModuleTargets.reservedFields().get(file.getValue()));
             unknown.removeAll(decoder.keys(file.getValue()));

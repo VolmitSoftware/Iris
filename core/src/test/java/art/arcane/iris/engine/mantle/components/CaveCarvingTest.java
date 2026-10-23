@@ -27,7 +27,7 @@ import art.arcane.iris.engine.object.TestSettings;
 import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
 import art.arcane.volmlib.util.matter.Matter;
 import art.arcane.volmlib.util.matter.MatterCavern;
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
 import com.volmit.config.Range;
 import com.volmit.noise.NoiseStyle;
 import com.volmit.noise.StyledRange;
@@ -71,7 +71,7 @@ public class CaveCarvingTest {
     public void aDisabledProfileDeclaresNothingAndTheDimensionsStillCarves() {
         world.dimension(profile(true));
         int dimensionOnly = carvedBlocks(BiomeSample::surfaceBiome);
-        world = newWorld().dimension(profile(true)).declare(Target.REGION, "region", profile(false));
+        world = newWorld().dimension(profile(true)).declare(Level.REGION, "region", profile(false));
 
         assertTrue(dimensionOnly > 0);
         assertEquals(dimensionOnly, carvedBlocks(BiomeSample::surfaceBiome));
@@ -79,7 +79,7 @@ public class CaveCarvingTest {
 
     @Test
     public void anEnabledProfileOfARegionReplacesTheDimensionsWithinItsOwnBounds() {
-        world.dimension(profile(true)).declare(Target.REGION, "region", TestSettings.with(profile(true), "verticalRange", Range.of(50D, 60D)));
+        world.dimension(profile(true)).declare(Level.REGION, "region", TestSettings.with(profile(true), "verticalRange", Range.of(50D, 60D)));
 
         int carved = carvedBlocks(BiomeSample::surfaceBiome);
 
@@ -89,7 +89,7 @@ public class CaveCarvingTest {
 
     @Test
     public void theCaveBiomeOfAColumnCarvesWithItsOwnProfileWhereTheDimensionDeclaresNone() {
-        world.declare(Target.BIOME, "cave/lush", profile(true));
+        world.declare(Level.BIOME, "cave/lush", profile(true));
 
         assertEquals("the surface biome declares none", 0, carvedBlocks(BiomeSample::surfaceBiome));
         assertTrue(carvedBlocks(sample -> sample.caveBiome().orElseThrow()) > 0);

@@ -27,7 +27,7 @@ import art.arcane.iris.builtin.floating.MergeFloatingChildrenSettings;
 import art.arcane.iris.builtin.floating.TopShapeMode;
 import art.arcane.volmlib.util.json.JSONObject;
 import com.google.gson.Gson;
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
 import com.volmit.host.LoadedPack;
 import com.volmit.host.ModuleHost;
 import org.junit.After;
@@ -81,7 +81,7 @@ public class FloatingSettingsDecodingTest {
     public void aBiomeReadsItsFloatingChildrenAndTheMergeFlag() throws IOException {
         JSONObject biome = file("biomes/magnetics/plains.json");
 
-        ModuleSettings settings = decoder.decode(Target.BIOME, biome, "biome magnetics/plains");
+        ModuleSettings settings = decoder.decode(Level.BIOME, biome, "biome magnetics/plains");
 
         List<FloatingChildBiome> children = settings.find(FloatingChildSettings.class).orElseThrow().children();
         assertEquals(biome.getJSONArray("floatingChildBiomes").length(), children.size());
@@ -106,19 +106,19 @@ public class FloatingSettingsDecodingTest {
 
     @Test
     public void aBiomeWithoutFloatingChildrenDeclaresNone() {
-        ModuleSettings settings = decoder.decode(Target.BIOME, new JSONObject("{\"mergeFloatingChildBiomes\": false, \"floatingChildBiomes\": [{}]}"), "biome test");
+        ModuleSettings settings = decoder.decode(Level.BIOME, new JSONObject("{\"mergeFloatingChildBiomes\": false, \"floatingChildBiomes\": [{}]}"), "biome test");
 
         assertFalse(settings.find(MergeFloatingChildrenSettings.class).orElseThrow().merge());
         assertEquals(1, settings.find(FloatingChildSettings.class).orElseThrow().children().size());
         assertEquals("an empty child keeps Iris's defaults", 160, settings.find(FloatingChildSettings.class).orElseThrow().children().getFirst().minHeightAboveSurface());
-        assertTrue(decoder.decode(Target.BIOME, new JSONObject("{}"), "biome test").isEmpty());
+        assertTrue(decoder.decode(Level.BIOME, new JSONObject("{}"), "biome test").isEmpty());
     }
 
     @Test
     public void theTargetAndTheCarvingOfEveryChildAreBiomesTheDimensionUses() throws IOException {
         JSONObject biome = file("biomes/magnetics/plains.json");
-        ModuleSettings biomeSettings = decoder.decode(Target.BIOME, biome, "biome magnetics/plains");
-        ModuleSettings dimensionSettings = decoder.decode(Target.DIMENSION, file("dimensions/overworld.json"), "dimension overworld");
+        ModuleSettings biomeSettings = decoder.decode(Level.BIOME, biome, "biome magnetics/plains");
+        ModuleSettings dimensionSettings = decoder.decode(Level.DIMENSION, file("dimensions/overworld.json"), "dimension overworld");
 
         Set<String> used = biomeSettings.usedBiomes(dimensionSettings);
 
@@ -140,9 +140,9 @@ public class FloatingSettingsDecodingTest {
 
     @Test
     public void bothKeysAreOnlyReadAtBiomes() {
-        assertTrue(decoder.keys(Target.BIOME).containsAll(List.of("floatingChildBiomes", "mergeFloatingChildBiomes")));
-        assertFalse(decoder.keys(Target.REGION).contains("floatingChildBiomes"));
-        assertFalse(decoder.keys(Target.DIMENSION).contains("mergeFloatingChildBiomes"));
+        assertTrue(decoder.keys(Level.BIOME).containsAll(List.of("floatingChildBiomes", "mergeFloatingChildBiomes")));
+        assertFalse(decoder.keys(Level.REGION).contains("floatingChildBiomes"));
+        assertFalse(decoder.keys(Level.DIMENSION).contains("mergeFloatingChildBiomes"));
     }
 
     private JSONObject file(String name) throws IOException {

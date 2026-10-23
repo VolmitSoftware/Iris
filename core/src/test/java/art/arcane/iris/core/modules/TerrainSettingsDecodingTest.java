@@ -37,7 +37,7 @@ import art.arcane.iris.builtin.terrain.SlabSettings;
 import art.arcane.iris.builtin.terrain.WallSettings;
 import art.arcane.volmlib.util.json.JSONObject;
 import com.google.gson.Gson;
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
 import com.volmit.block.BlockSpec;
 import com.volmit.host.LoadedPack;
 import com.volmit.host.ModuleHost;
@@ -95,7 +95,7 @@ public class TerrainSettingsDecodingTest {
     public void aLockedBiomeReadsItsLayersAndWall() throws IOException {
         JSONObject biome = file("biomes/mesa/yellow.json");
 
-        ModuleSettings settings = decoder.decode(Target.BIOME, biome, "biome mesa/yellow");
+        ModuleSettings settings = decoder.decode(Level.BIOME, biome, "biome mesa/yellow");
 
         List<PaletteLayer> layers = settings.find(LayersSettings.class).orElseThrow().layers();
         assertEquals(biome.getJSONArray("layers").length(), layers.size());
@@ -118,7 +118,7 @@ public class TerrainSettingsDecodingTest {
 
     @Test
     public void aSlabIsOneLayerWithIrisDefaults() throws IOException {
-        ModuleSettings settings = decoder.decode(Target.BIOME, file("biomes/mountain/shore/beach.json"), "biome mountain/shore/beach");
+        ModuleSettings settings = decoder.decode(Level.BIOME, file("biomes/mountain/shore/beach.json"), "biome mountain/shore/beach");
 
         PaletteLayer slab = settings.find(SlabSettings.class).orElseThrow().layer();
 
@@ -136,7 +136,7 @@ public class TerrainSettingsDecodingTest {
     public void seaLayersKeepTheirNoiseAndWeights() throws IOException {
         JSONObject biome = file("biomes/frozen/sea/river.json");
 
-        List<PaletteLayer> seaLayers = decoder.decode(Target.BIOME, biome, "biome frozen/sea/river").find(SeaLayersSettings.class).orElseThrow().layers();
+        List<PaletteLayer> seaLayers = decoder.decode(Level.BIOME, biome, "biome frozen/sea/river").find(SeaLayersSettings.class).orElseThrow().layers();
 
         assertEquals(biome.getJSONArray("seaLayers").length(), seaLayers.size());
         PaletteLayer first = seaLayers.getFirst();
@@ -154,7 +154,7 @@ public class TerrainSettingsDecodingTest {
     public void caveCeilingLayersAreAListOfLayers() throws IOException {
         JSONObject biome = file("biomes/carving/polarity-grotto.json");
 
-        List<PaletteLayer> ceiling = decoder.decode(Target.BIOME, biome, "biome carving/polarity-grotto")
+        List<PaletteLayer> ceiling = decoder.decode(Level.BIOME, biome, "biome carving/polarity-grotto")
                 .find(CaveCeilingLayersSettings.class).orElseThrow().layers();
 
         assertEquals(1, ceiling.size());
@@ -166,7 +166,7 @@ public class TerrainSettingsDecodingTest {
 
     @Test
     public void lockLayersMaxIsANumberAndLockLayersABoolean() {
-        ModuleSettings settings = decoder.decode(Target.BIOME, new JSONObject("{\"lockLayers\": false, \"lockLayersMax\": 4}"), "biome mesa");
+        ModuleSettings settings = decoder.decode(Level.BIOME, new JSONObject("{\"lockLayers\": false, \"lockLayersMax\": 4}"), "biome mesa");
 
         assertFalse(settings.find(LockLayersSettings.class).orElseThrow().locked());
         assertEquals(4, settings.find(LockLayersMaxSettings.class).orElseThrow().layers());
@@ -175,7 +175,7 @@ public class TerrainSettingsDecodingTest {
 
     @Test
     public void aLayerWrittenWithoutOptionsHasIrisDefaults() {
-        ModuleSettings settings = decoder.decode(Target.BIOME, new JSONObject("{\"layers\": [{}], \"slab\": {}}"), "biome plain");
+        ModuleSettings settings = decoder.decode(Level.BIOME, new JSONObject("{\"layers\": [{}], \"slab\": {}}"), "biome plain");
 
         PaletteLayer layer = settings.find(LayersSettings.class).orElseThrow().layers().getFirst();
         assertEquals(List.of(BlockSpec.of("grass_block")), layer.palette());
@@ -195,7 +195,7 @@ public class TerrainSettingsDecodingTest {
         Files.writeString(snippets.resolve("sandy.json"), "{\"minHeight\": 2, \"maxHeight\": 4, \"palette\": [{\"block\": \"sand\"}]}");
         ModuleSettingsDecoder snippetDecoder = new ModuleSettingsDecoder(pack.catalog(), snippets.getParent().getParent(), Gson::new);
 
-        PaletteLayer layer = snippetDecoder.decode(Target.BIOME, new JSONObject("{\"layers\": [\"snippet/biome-palette/sandy\", \"snippet/sandy\"]}"), "biome dunes")
+        PaletteLayer layer = snippetDecoder.decode(Level.BIOME, new JSONObject("{\"layers\": [\"snippet/biome-palette/sandy\", \"snippet/sandy\"]}"), "biome dunes")
                 .find(LayersSettings.class).orElseThrow().layers().getFirst();
 
         assertEquals(4, layer.maxHeight());
@@ -204,7 +204,7 @@ public class TerrainSettingsDecodingTest {
 
     @Test
     public void theDimensionReadsItsPalettesAndPostProcessingSwitches() {
-        ModuleSettings settings = decoder.decode(Target.DIMENSION, new JSONObject("""
+        ModuleSettings settings = decoder.decode(Level.DIMENSION, new JSONObject("""
                 {"rockPalette": {"style": {"style": "SIMPLEX", "zoom": 2}, "zoom": 9,
                                  "palette": [{"block": "minecraft:stone", "weight": 3}, {"block": "minecraft:granite"}]},
                  "fluidPalette": {"palette": [{"block": "minecraft:lava"}]},
@@ -224,7 +224,7 @@ public class TerrainSettingsDecodingTest {
 
     @Test
     public void theDimensionReadsItsBedrockDecoratingAndExplodedPaletteKeysAsPacksWriteThem() {
-        ModuleSettings settings = decoder.decode(Target.DIMENSION, new JSONObject(
+        ModuleSettings settings = decoder.decode(Level.DIMENSION, new JSONObject(
                 "{\"bedrock\": false, \"decorate\": false, \"explodeBiomePalettes\": true, \"explodeBiomePaletteSize\": 5}"), "dimension flat");
 
         assertFalse(settings.find(BedrockSettings.class).orElseThrow().bedrock());
@@ -232,14 +232,14 @@ public class TerrainSettingsDecodingTest {
         assertTrue(settings.find(ExplodeBiomePalettesSettings.class).orElseThrow().explode());
         assertEquals(5, settings.find(ExplodeBiomePaletteSizeSettings.class).orElseThrow().size());
         for (String key : Set.of("bedrock", "decorate", "explodeBiomePalettes", "explodeBiomePaletteSize")) {
-            assertTrue(key, decoder.keys(Target.DIMENSION).contains(key));
-            assertFalse(key + " is no field of Iris any more", ModuleTargets.reservedFields().get(Target.DIMENSION).contains(key));
+            assertTrue(key, decoder.keys(Level.DIMENSION).contains(key));
+            assertFalse(key + " is no field of Iris any more", ModuleTargets.reservedFields().get(Level.DIMENSION).contains(key));
         }
     }
 
     @Test
     public void aDimensionThatWritesNothingIsStoneAndWaterWithPostProcessingOn() {
-        ModuleSettings settings = decoder.decode(Target.DIMENSION, new JSONObject("{}"), "dimension overworld");
+        ModuleSettings settings = decoder.decode(Level.DIMENSION, new JSONObject("{}"), "dimension overworld");
 
         assertTrue(settings.find(RockPaletteSettings.class).isEmpty());
         assertEquals(List.of(BlockSpec.of("stone")), new RockPaletteSettings().palette().palette());
@@ -254,7 +254,7 @@ public class TerrainSettingsDecodingTest {
     @Test
     public void aBooleanWrittenAsAnObjectIsRefused() {
         IllegalArgumentException refused = assertThrows(IllegalArgumentException.class,
-                () -> decoder.decode(Target.BIOME, new JSONObject("{\"lockLayers\": {\"locked\": true}}"), "biome mesa"));
+                () -> decoder.decode(Level.BIOME, new JSONObject("{\"lockLayers\": {\"locked\": true}}"), "biome mesa"));
 
         assertTrue(refused.getMessage(), refused.getMessage().startsWith("Cannot read settings iris:terrain/lock-layers under \"lockLayers\" in biome mesa:"));
     }
@@ -262,7 +262,7 @@ public class TerrainSettingsDecodingTest {
     @Test
     public void layersWrittenAsAnObjectOfOptionsAreRefused() {
         IllegalArgumentException refused = assertThrows(IllegalArgumentException.class,
-                () -> decoder.decode(Target.BIOME, new JSONObject("{\"layers\": {\"layers\": []}}"), "biome mesa"));
+                () -> decoder.decode(Level.BIOME, new JSONObject("{\"layers\": {\"layers\": []}}"), "biome mesa"));
 
         assertEquals("Cannot read settings iris:terrain/layers under \"layers\" in biome mesa: write a list, [...], of the layers, not an object of options",
                 refused.getMessage());
@@ -270,22 +270,22 @@ public class TerrainSettingsDecodingTest {
 
     @Test
     public void theTerrainAndPostKeysAreModuleKeysAndNoLongerFieldsOfIris() {
-        assertTrue(decoder.keys(Target.BIOME).containsAll(Set.of("layers", "seaLayers", "caveCeilingLayers", "slab", "wall", "lockLayers", "lockLayersMax")));
-        assertTrue(decoder.keys(Target.DIMENSION).containsAll(Set.of("rockPalette", "fluidPalette", "postProcessing", "postProcessingSlabs", "postProcessingWalls")));
+        assertTrue(decoder.keys(Level.BIOME).containsAll(Set.of("layers", "seaLayers", "caveCeilingLayers", "slab", "wall", "lockLayers", "lockLayersMax")));
+        assertTrue(decoder.keys(Level.DIMENSION).containsAll(Set.of("rockPalette", "fluidPalette", "postProcessing", "postProcessingSlabs", "postProcessingWalls")));
         for (String key : Set.of("layers", "seaLayers", "caveCeilingLayers", "slab", "wall", "lockLayers", "lockLayersMax")) {
-            assertFalse(key, ModuleTargets.reservedFields().get(Target.BIOME).contains(key));
+            assertFalse(key, ModuleTargets.reservedFields().get(Level.BIOME).contains(key));
         }
         for (String key : Set.of("rockPalette", "fluidPalette", "postProcessing", "postProcessingSlabs", "postProcessingWalls")) {
-            assertFalse(key, ModuleTargets.reservedFields().get(Target.DIMENSION).contains(key));
+            assertFalse(key, ModuleTargets.reservedFields().get(Level.DIMENSION).contains(key));
         }
     }
 
     @Test
     public void everyTopLevelKeyOfTheseFilesIsAFieldOfIrisOrAKeyOfAModule() throws IOException {
-        Map<String, Target> files = Map.of("biomes/mesa/yellow.json", Target.BIOME, "biomes/mountain/shore/beach.json", Target.BIOME,
-                "biomes/frozen/sea/river.json", Target.BIOME, "biomes/carving/polarity-grotto.json", Target.BIOME);
+        Map<String, Level> files = Map.of("biomes/mesa/yellow.json", Level.BIOME, "biomes/mountain/shore/beach.json", Level.BIOME,
+                "biomes/frozen/sea/river.json", Level.BIOME, "biomes/carving/polarity-grotto.json", Level.BIOME);
 
-        for (Map.Entry<String, Target> file : files.entrySet()) {
+        for (Map.Entry<String, Level> file : files.entrySet()) {
             Set<String> unknown = new TreeSet<>(file(file.getKey()).keySet());
             unknown.removeAll(ModuleTargets.reservedFields().get(file.getValue()));
             unknown.removeAll(decoder.keys(file.getValue()));

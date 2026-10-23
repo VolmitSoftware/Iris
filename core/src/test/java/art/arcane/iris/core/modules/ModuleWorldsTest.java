@@ -26,10 +26,9 @@ import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
 import com.volmit.ModuleLifecycle;
 import com.volmit.ModuleSetup;
-import com.volmit.config.PackSettings;
+import com.volmit.PackContext;
 import com.volmit.host.LoadedPack;
 import com.volmit.host.ModuleHost;
-import com.volmit.resource.PackResources;
 import com.volmit.world.PackWorld;
 import org.junit.After;
 import org.junit.Before;
@@ -93,7 +92,7 @@ public class ModuleWorldsTest {
         }
 
         @Override
-        public void packLoaded(PackResources resources, PackSettings settings) {
+        public void packLoaded(PackContext pack) {
             record("loaded");
         }
 

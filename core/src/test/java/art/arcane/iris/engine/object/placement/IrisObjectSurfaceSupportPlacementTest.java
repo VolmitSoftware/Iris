@@ -86,6 +86,7 @@ public class IrisObjectSurfaceSupportPlacementTest {
         BuiltInPack.seedWorld(engine, 7L);
         data = mock(IrisData.class);
         when(data.getEngine()).thenReturn(engine);
+        when(engine.getData()).thenReturn(data);
         pack = BuiltInPack.serve(data, folder, List.of());
     }
 

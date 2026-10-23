@@ -6,7 +6,7 @@ import art.arcane.iris.builtin.structure.StructureTerrain;
 import art.arcane.iris.builtin.structure.StructureTerrainMode;
 import art.arcane.volmlib.util.json.JSONObject;
 import com.google.gson.Gson;
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
 import com.volmit.block.BlockSpec;
 import com.volmit.host.LoadedPack;
 import com.volmit.host.ModuleHost;
@@ -121,9 +121,9 @@ public class StructureSettingsDecodingTest {
     public void theFeatureIdIsNotAKeyAndEmptySettingsHaveTheDefaults() {
         JSONObject byId = new JSONObject("{\"iris:structure\": {\"disabled\": [\"minecraft:village\"]}}");
 
-        assertSame(ModuleSettings.NONE, decoder.decode(Target.DIMENSION, byId, "dimension overworld"));
-        assertTrue(decoder.keys(Target.DIMENSION).contains("importedStructures"));
-        assertFalse(decoder.keys(Target.DIMENSION).contains("iris:structure"));
+        assertSame(ModuleSettings.NONE, decoder.decode(Level.DIMENSION, byId, "dimension overworld"));
+        assertTrue(decoder.keys(Level.DIMENSION).contains("importedStructures"));
+        assertFalse(decoder.keys(Level.DIMENSION).contains("iris:structure"));
         StructureSettings defaults = settings("{\"importedStructures\": {}}");
         assertTrue(defaults.datapackOverrides());
         assertEquals(List.of(), defaults.disabled());
@@ -136,14 +136,14 @@ public class StructureSettingsDecodingTest {
         JSONObject list = new JSONObject("{\"importedStructures\": [\"minecraft:village\"]}");
 
         IllegalArgumentException refused = assertThrows(IllegalArgumentException.class,
-                () -> decoder.decode(Target.DIMENSION, list, "dimension overworld"));
+                () -> decoder.decode(Level.DIMENSION, list, "dimension overworld"));
 
         assertEquals("Cannot read settings iris:structure under \"importedStructures\" in dimension overworld:"
                 + " write the settings as an object, {\"<option>\": ...}", refused.getMessage());
     }
 
     private StructureSettings settings(String dimensionJson) {
-        return decoder.decode(Target.DIMENSION, new JSONObject(dimensionJson), "dimension overworld")
+        return decoder.decode(Level.DIMENSION, new JSONObject(dimensionJson), "dimension overworld")
                 .find(StructureSettings.class).orElseThrow();
     }
 }

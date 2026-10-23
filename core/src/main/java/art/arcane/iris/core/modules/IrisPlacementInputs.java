@@ -23,7 +23,6 @@ import com.volmit.config.FeatureSettings;
 import com.volmit.mantle.BlockBox;
 import com.volmit.object.ObjectTransformer;
 import com.volmit.placement.PlacementContext;
-import com.volmit.resource.PackResources;
 import com.volmit.world.BiomeKind;
 import com.volmit.world.BiomeSample;
 import com.volmit.world.BlockView;
@@ -32,27 +31,28 @@ import com.volmit.world.PackWorld;
 import com.volmit.world.TerrainSampler;
 
 import java.util.OptionalInt;
+import java.util.function.Supplier;
 
 /** The read-only IrisApi inputs of one Iris object placement. */
 final class IrisPlacementInputs implements PlacementContext {
     private final ObjectTransformer objects = new IrisObjectTransformer();
-    private final long worldSeed;
     private final TerrainSampler terrain;
     private final FeatureSettings settings;
     private final BlockView blocks;
-    private final PackResources resources;
-    private final Engine engine;
+    private final Supplier<PackWorld> worldSource;
     private PackWorld world;
 
-    /** @param engine the engine whose world the placement generates in, or null for a placement without one */
-    IrisPlacementInputs(long worldSeed, TerrainSampler terrain, FeatureSettings settings, BlockView blocks, PackResources resources,
-                        Engine engine) {
-        this.resources = resources;
-        this.engine = engine;
-        this.worldSeed = worldSeed;
+    /** @param worldSource the world the placement generates in, asked for the first time a stage needs it */
+    IrisPlacementInputs(TerrainSampler terrain, FeatureSettings settings, BlockView blocks, Supplier<PackWorld> worldSource) {
         this.terrain = terrain;
         this.settings = settings;
         this.blocks = blocks;
+        this.worldSource = worldSource;
+    }
+
+    /** The world of the engine's runtime, as it is when the placement first asks. */
+    static Supplier<PackWorld> worldOf(Engine engine) {
+        return () -> engine.getGeneration().world();
     }
 
     /** For placements without an engine, such as pasting an object into a world Iris does not generate. */
@@ -119,24 +119,11 @@ final class IrisPlacementInputs implements PlacementContext {
         return blocks;
     }
 
-    @Override
-    public long worldSeed() {
-        return worldSeed;
-    }
-
-    @Override
-    public PackResources resources() {
-        return resources;
-    }
-
     /** The world this placement first asked for; it keeps it if the world restarts meanwhile. */
     @Override
     public PackWorld world() {
-        if (engine == null) {
-            throw new IllegalStateException("This placement runs without an Iris engine, so it is not part of a world");
-        }
         if (world == null) {
-            world = engine.getGeneration().world();
+            world = worldSource.get();
         }
         return world;
     }

@@ -23,7 +23,7 @@ import art.arcane.iris.builtin.carve.CarvingSettings;
 import art.arcane.iris.builtin.carve.CaveDepthSettings;
 import art.arcane.iris.core.modules.CarveTestWorld;
 import com.google.gson.Gson;
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -50,7 +50,7 @@ public class CaveBiomeBandsTest {
         world = new CarveTestWorld()
                 .biome("band/shallow", 1).biome("band/padded", 1).biome("band/disabled", 1)
                 .dimension(new CarvingSettings(entries))
-                .declare(Target.BIOME, "band/shallow", new CaveDepthSettings(30));
+                .declare(Level.BIOME, "band/shallow", new CaveDepthSettings(30));
     }
 
     @Test

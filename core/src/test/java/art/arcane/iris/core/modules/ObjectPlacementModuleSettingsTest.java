@@ -31,7 +31,7 @@ import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.volmlib.util.math.RNG;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
 import com.volmit.IrisFeature;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
@@ -77,7 +77,7 @@ public class ObjectPlacementModuleSettingsTest {
     private LoadedPack pack;
     private Gson gson;
 
-    @Feature(id = "example:glow", name = "Glow", key = "glow", targets = Target.OBJECT_PLACEMENT)
+    @Feature(id = "example:glow", name = "Glow", key = "glow", targets = Level.PLACEMENT)
     public static final class GlowSettings implements IrisFeature {
         private String block = "minecraft:glowstone";
     }
@@ -95,7 +95,7 @@ public class ObjectPlacementModuleSettingsTest {
         public void setup(ModuleSetup setup) {
             setup.stages().define(TOP).when(GlowSettings.class).requires(IrisStages.Blocks.COMPLETE, IrisStages.Anchor.FINAL).run(context -> {
                 int y = context.output(IrisStages.Anchor.FINAL).y() + 1;
-                String block = context.configured(GlowSettings.class).getFirst().value().block;
+                String block = context.configured(GlowSettings.class).values().getFirst().block;
                 context.access().set(new PlacedBlock(new BlockPosition(0, y, 0), com.volmit.block.BlockState.parse(block), Optional.empty()));
             });
         }

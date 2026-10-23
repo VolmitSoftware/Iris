@@ -26,7 +26,7 @@ import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.project.hunk.Hunk;
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
 import com.volmit.IrisFeature;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
@@ -65,7 +65,7 @@ public class ModuleChunkGenerationTest {
     private Engine engine;
     private Hunk<PlatformBlockState> blocks;
 
-    @Feature(id = "iris:pillar", name = "Pillar", key = "pillar", targets = {Target.BIOME, Target.REGION, Target.DIMENSION})
+    @Feature(id = "iris:pillar", name = "Pillar", key = "pillar", targets = {Level.BIOME, Level.REGION, Level.DIMENSION})
     public static final class PillarSettings implements IrisFeature {
         private BlockState block = BlockState.parse("minecraft:stone");
         private int x;
@@ -81,7 +81,7 @@ public class ModuleChunkGenerationTest {
         @Override
         public void setup(ModuleSetup setup) {
             setup.stages().define(Stage.chunk("iris:pillar/raise")).when(PillarSettings.class).run(context -> {
-                PillarSettings pillar = context.configured(PillarSettings.class).getLast().value();
+                PillarSettings pillar = context.configured(PillarSettings.class).mostSpecific().orElseThrow();
                 com.volmit.hunk.Hunk<BlockState> chunk = context.hunk(BlockState.class);
                 chunk.set(0, 1, 0, chunk.get(0, 0, 0));
                 chunk.set(pillar.x, 2, 0, pillar.block);
@@ -98,6 +98,8 @@ public class ModuleChunkGenerationTest {
         SeedManager seeds = mock(SeedManager.class);
         when(engine.getData()).thenReturn(data);
         when(data.getDataFolder()).thenReturn(folder.getRoot());
+        IrisPackResources resources = new IrisPackResources(data, List::of);
+        when(data.getPackResources()).thenReturn(resources);
         when(engine.getSeedManager()).thenReturn(seeds);
         when(seeds.getSeed()).thenReturn(1L);
         when(engine.getDimension()).thenReturn(new IrisDimension());
@@ -194,29 +196,5 @@ public class ModuleChunkGenerationTest {
         PlatformBlockState state = mock(PlatformBlockState.class);
         when(state.key()).thenReturn(key);
         return state;
-    }
-
-    @Test
-    public void aChunkStageFindsTheSnapshotsPackResources() throws IOException {
-        IrisData data = engine.getData();
-        PackResourceFixture.serve(data);
-        List<Object> found = new ArrayList<>();
-        IrisModule finder = new IrisModule() {
-            public ModuleInfo info() { return ModuleInfo.of("test:finder", "Finder", "1"); }
-            public void setup(ModuleSetup setup) {
-                setup.stages().define(Stage.chunk("test:finder/oak")).run(context ->
-                        found.add(context.resources().find(PackResourceFixture.oakKey(folder.getRoot())).orElseThrow()));
-            }
-        };
-
-        try (LoadedPack finderPack = LoadedPack.load(folder.newFolder("finder-pack").toPath(),
-                ModuleHost.of(List.of(finder)).copyingJarsTo(folder.newFolder("finder-copies").toPath()))) {
-            when(engine.getRegion(anyInt(), anyInt())).thenReturn(new IrisRegion());
-            when(engine.getSurfaceBiome(anyInt(), anyInt())).thenReturn(new IrisBiome());
-
-            ModuleChunkGeneration.generate(finderPack, engine, 0, 0, blocks, null, false, null, ModuleChunkGenerationTest::platformState);
-        }
-
-        assertEquals(List.of(PackResourceFixture.OAK), found);
     }
 }

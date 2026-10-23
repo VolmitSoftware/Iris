@@ -9,7 +9,7 @@ import art.arcane.iris.builtin.objects.ProceduralObjectSettings;
 import art.arcane.iris.builtin.objects.ProceduralPlacement;
 import art.arcane.iris.engine.object.TestSettings;
 import art.arcane.volmlib.util.math.RNG;
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
 import com.volmit.world.PackWorld;
 import org.junit.Test;
 
@@ -40,11 +40,11 @@ public class ObjectWarmUpTest {
         when(host.procedural(eq(biomeProceduralSettings), any())).thenReturn(List.of(biomeTree));
         when(host.procedural(eq(regionProceduralSettings), any())).thenReturn(List.of(regionTree));
         when(host.declarations(ObjectSettings.class)).thenReturn(List.of(
-                new Declaration<>(Target.REGION, "region", objects(regionPlacement)),
-                new Declaration<>(Target.BIOME, "biome", objects(biomePlacement))));
+                new Declaration<>(Level.REGION, "region", objects(regionPlacement)),
+                new Declaration<>(Level.BIOME, "biome", objects(biomePlacement))));
         when(host.declarations(ProceduralObjectSettings.class)).thenReturn(List.of(
-                new Declaration<>(Target.REGION, "region", regionProceduralSettings),
-                new Declaration<>(Target.BIOME, "biome", biomeProceduralSettings)));
+                new Declaration<>(Level.REGION, "region", regionProceduralSettings),
+                new Declaration<>(Level.BIOME, "biome", biomeProceduralSettings)));
 
         new ObjectWarmUp(world).warm();
 

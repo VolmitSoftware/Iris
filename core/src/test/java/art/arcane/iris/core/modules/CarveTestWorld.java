@@ -22,7 +22,8 @@ import art.arcane.iris.builtin.IrisSeed;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.loader.ResourceLoader;
 import art.arcane.iris.engine.object.material.IrisBlockData;
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
+import com.volmit.config.SettingsStack;
 import com.volmit.IrisFeature;
 import com.volmit.ModuleLog;
 import com.volmit.block.BlockFace;
@@ -76,14 +77,14 @@ public final class CarveTestWorld implements PackWorld, IrisSeed.Source {
     private final Resources resources = new Resources();
     private long carveSeed = 1337L;
 
-    public CarveTestWorld declare(Target level, String key, IrisFeature value) {
+    public CarveTestWorld declare(Level level, String key, IrisFeature value) {
         String kind = level.name().toLowerCase();
         declared.add(new Entry<>(level, new ResourceId(NAMESPACE, kind + "/" + key), value));
         return this;
     }
 
     public CarveTestWorld dimension(IrisFeature value) {
-        return declare(Target.DIMENSION, "overworld", value);
+        return declare(Level.DIMENSION, "overworld", value);
     }
 
     public CarveTestWorld biome(String key, int rarity) {
@@ -121,8 +122,8 @@ public final class CarveTestWorld implements PackWorld, IrisSeed.Source {
         return new PackSettings() {
             @Override
             @SuppressWarnings("unchecked")
-            public <F extends IrisFeature> List<Entry<F>> declared(Class<F> featureType) {
-                return declared.stream().filter(entry -> featureType.isInstance(entry.value())).map(entry -> (Entry<F>) entry).toList();
+            public <F extends IrisFeature> SettingsStack<F> declared(Class<F> featureType) {
+                return SettingsStack.of(declared.stream().filter(entry -> featureType.isInstance(entry.value())).map(entry -> (Entry<F>) entry).toList());
             }
         };
     }

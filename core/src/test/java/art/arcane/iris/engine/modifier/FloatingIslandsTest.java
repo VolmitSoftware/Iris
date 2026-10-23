@@ -7,6 +7,7 @@ import art.arcane.iris.engine.decorator.BiomeDecorators;
 import com.volmit.block.BlockState;
 import com.volmit.config.FeatureSettings;
 import com.volmit.config.PackSettings;
+import com.volmit.config.SettingsStack;
 import com.volmit.host.ModuleLogs;
 import com.volmit.hunk.Hunk;
 import com.volmit.resource.PackResources;
@@ -44,7 +45,9 @@ public class FloatingIslandsTest {
         when(context.originZ()).thenReturn(CHUNK_ORIGIN);
         when(context.world()).thenReturn(world);
         when(context.hunk(BlockState.class)).thenReturn(output);
-        when(context.settings()).thenReturn(mock(FeatureSettings.class));
+        FeatureSettings nothingConfigured = mock(FeatureSettings.class);
+        when(nothingConfigured.at(any(), anyInt(), anyInt())).thenAnswer(invocation -> SettingsStack.empty());
+        when(context.settings()).thenReturn(nothingConfigured);
         when(context.mantle()).thenReturn(null);
         FloatingIslands islands = FloatingIslands.of(world, ModuleLogs.discarding());
 
@@ -61,7 +64,9 @@ public class FloatingIslandsTest {
         when(((FloatingHost.Source) world).floating()).thenReturn(host);
         when(((ObjectHost.Source) world).objects()).thenReturn(mock(ObjectHost.class));
         when(world.resources()).thenReturn(mock(PackResources.class));
-        when(world.settings()).thenReturn(mock(PackSettings.class));
+        PackSettings nothingDeclared = mock(PackSettings.class);
+        when(nothingDeclared.declared(any())).thenAnswer(invocation -> SettingsStack.empty());
+        when(world.settings()).thenReturn(nothingDeclared);
         when(world.state(any(), any())).thenAnswer(invocation -> {
             Class<?> type = invocation.getArgument(0);
             if (type == BiomeDecorators.class) {

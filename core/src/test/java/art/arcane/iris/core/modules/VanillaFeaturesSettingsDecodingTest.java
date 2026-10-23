@@ -21,7 +21,7 @@ package art.arcane.iris.core.modules;
 import art.arcane.iris.builtin.vanillafeatures.ImportedFeaturesSettings;
 import art.arcane.volmlib.util.json.JSONObject;
 import com.google.gson.Gson;
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
 import com.volmit.host.LoadedPack;
 import com.volmit.host.ModuleHost;
 import com.volmit.vanilla.DecorationStep;
@@ -90,8 +90,8 @@ public class VanillaFeaturesSettingsDecodingTest {
         assertEquals(List.of(), defaults.disabled());
         assertEquals(List.of(), defaults.steps());
         assertEquals(List.of(), defaults.disabledSteps());
-        assertSame(ModuleSettings.NONE, decoder.decode(Target.DIMENSION, byId, "dimension overworld"));
-        assertTrue(decoder.keys(Target.DIMENSION).contains("importedFeatures"));
+        assertSame(ModuleSettings.NONE, decoder.decode(Level.DIMENSION, byId, "dimension overworld"));
+        assertTrue(decoder.keys(Level.DIMENSION).contains("importedFeatures"));
     }
 
     @Test
@@ -99,14 +99,14 @@ public class VanillaFeaturesSettingsDecodingTest {
         JSONObject bare = new JSONObject("{\"importedFeatures\": true}");
 
         IllegalArgumentException refused = assertThrows(IllegalArgumentException.class,
-                () -> decoder.decode(Target.DIMENSION, bare, "dimension overworld"));
+                () -> decoder.decode(Level.DIMENSION, bare, "dimension overworld"));
 
         assertEquals("Cannot read settings iris:vanilla-features under \"importedFeatures\" in dimension overworld:"
                 + " write the settings as an object, {\"<option>\": ...}", refused.getMessage());
     }
 
     private ImportedFeaturesSettings settings(String dimensionJson) {
-        return decoder.decode(Target.DIMENSION, new JSONObject(dimensionJson), "dimension overworld")
+        return decoder.decode(Level.DIMENSION, new JSONObject(dimensionJson), "dimension overworld")
                 .find(ImportedFeaturesSettings.class).orElseThrow();
     }
 }

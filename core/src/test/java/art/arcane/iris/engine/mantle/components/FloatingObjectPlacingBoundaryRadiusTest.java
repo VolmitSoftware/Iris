@@ -25,10 +25,11 @@ import art.arcane.iris.builtin.objects.ObjectHost;
 import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.builtin.objects.ObjectSize;
 import art.arcane.iris.engine.object.TestSettings;
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
 import com.volmit.IrisFeature;
 import com.volmit.config.FeatureSettings.Entry;
 import com.volmit.config.PackSettings;
+import com.volmit.config.SettingsStack;
 import com.volmit.host.ModuleLogs;
 import com.volmit.resource.ResourceId;
 import org.junit.Test;
@@ -58,8 +59,9 @@ public class FloatingObjectPlacingBoundaryRadiusTest {
         return new FloatingPack() {
             @Override
             @SuppressWarnings("unchecked")
-            public <T extends IrisFeature> List<Entry<T>> declared(Class<T> featureType) {
-                return featureType == FloatingChildSettings.class ? List.of(new Entry<>(Target.BIOME, BIOME, (T) declared)) : List.of();
+            public <T extends IrisFeature> SettingsStack<T> declared(Class<T> featureType) {
+                return featureType == FloatingChildSettings.class ? SettingsStack.of(List.of(new Entry<>(Level.BIOME, BIOME, (T) declared)))
+                        : SettingsStack.empty();
             }
 
             @Override

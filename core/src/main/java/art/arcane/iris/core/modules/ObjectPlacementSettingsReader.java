@@ -27,7 +27,7 @@ import com.google.gson.TypeAdapterFactory;
 import com.google.gson.reflect.TypeToken;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
 
 import java.io.IOException;
 import java.util.function.Supplier;
@@ -66,7 +66,7 @@ public final class ObjectPlacementSettingsReader implements TypeAdapterFactory {
                 JsonElement json = elements.read(in);
                 IrisObjectPlacement placement = placements.fromJsonTree(json);
                 if (placement != null && json.isJsonObject()) {
-                    placement.setModuleSettings(decoder.get().decode(Target.OBJECT_PLACEMENT,
+                    placement.setModuleSettings(decoder.get().decode(Level.PLACEMENT,
                             new JSONObject(json.toString()), "object placement at " + path));
                 }
                 return placement;

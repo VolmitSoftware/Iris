@@ -44,7 +44,7 @@ import art.arcane.iris.util.project.noise.CNG;
 import art.arcane.iris.util.project.noise.NoiseType;
 import art.arcane.volmlib.util.cache.CacheKey;
 import art.arcane.volmlib.util.math.RNG;
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
 import com.volmit.IrisFeature;
 import com.volmit.ModuleLog;
 import com.volmit.config.FeatureSettings;
@@ -235,15 +235,15 @@ final class IrisObjectHost implements ObjectHost {
     public <F extends IrisFeature> List<Declaration<F>> declarations(Class<F> type) {
         List<Declaration<F>> found = new ArrayList<>();
         for (IrisRegion region : engine.getDimension().getAllRegions(engine)) {
-            addDeclaration(found, Target.REGION, region, type);
+            addDeclaration(found, Level.REGION, region, type);
         }
         for (IrisBiome biome : engine.getDimension().getReachableBiomes(engine)) {
-            addDeclaration(found, Target.BIOME, biome, type);
+            addDeclaration(found, Level.BIOME, biome, type);
         }
         return found;
     }
 
-    private static <F extends IrisFeature> void addDeclaration(List<Declaration<F>> found, Target level, IrisRegistrant owner, Class<F> type) {
+    private static <F extends IrisFeature> void addDeclaration(List<Declaration<F>> found, Level level, IrisRegistrant owner, Class<F> type) {
         if (owner == null) {
             return;
         }

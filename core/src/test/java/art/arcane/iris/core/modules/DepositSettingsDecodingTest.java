@@ -8,7 +8,7 @@ import art.arcane.iris.builtin.deposit.DepositSettings;
 import art.arcane.iris.builtin.deposit.DepositShape;
 import art.arcane.volmlib.util.json.JSONObject;
 import com.google.gson.Gson;
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
 import com.volmit.block.BlockSpec;
 import com.volmit.host.LoadedPack;
 import com.volmit.host.ModuleHost;
@@ -146,16 +146,16 @@ public class DepositSettingsDecodingTest {
     public void theFeatureIdIsNotAKey() {
         JSONObject byId = new JSONObject("{\"iris:deposit\": [{\"maxHeight\": 16}]}");
 
-        assertSame(ModuleSettings.NONE, decoder.decode(Target.REGION, byId, "region forests"));
-        assertTrue(decoder.keys(Target.REGION).contains("deposits"));
-        assertFalse(decoder.keys(Target.REGION).contains("iris:deposit"));
+        assertSame(ModuleSettings.NONE, decoder.decode(Level.REGION, byId, "region forests"));
+        assertTrue(decoder.keys(Level.REGION).contains("deposits"));
+        assertFalse(decoder.keys(Level.REGION).contains("iris:deposit"));
     }
 
     @Test
     public void anObjectOfOptionsUnderDepositsIsRefused() {
         JSONObject object = new JSONObject("{\"deposits\": {\"generators\": [{\"maxHeight\": 16}]}}");
 
-        IllegalArgumentException refused = assertThrows(IllegalArgumentException.class, () -> decoder.decode(Target.REGION, object, "region forests"));
+        IllegalArgumentException refused = assertThrows(IllegalArgumentException.class, () -> decoder.decode(Level.REGION, object, "region forests"));
 
         assertEquals("Cannot read settings iris:deposit under \"deposits\" in region forests: write a list, [...], of the generators,"
                 + " not an object of options", refused.getMessage());
@@ -165,7 +165,7 @@ public class DepositSettingsDecodingTest {
     public void nullUnderDepositsIsRefused() {
         JSONObject nothing = new JSONObject("{\"deposits\": null}");
 
-        IllegalArgumentException refused = assertThrows(IllegalArgumentException.class, () -> decoder.decode(Target.REGION, nothing, "region forests"));
+        IllegalArgumentException refused = assertThrows(IllegalArgumentException.class, () -> decoder.decode(Level.REGION, nothing, "region forests"));
 
         assertTrue(refused.getMessage(), refused.getMessage().contains("under \"deposits\" in region forests: the value is null; write a list"));
     }
@@ -174,13 +174,13 @@ public class DepositSettingsDecodingTest {
     public void aWronglyShapedGeneratorNamesTheKeyAndTheFile() {
         JSONObject broken = new JSONObject("{\"deposits\": [{\"maxHeight\": \"tall\"}]}");
 
-        IllegalArgumentException refused = assertThrows(IllegalArgumentException.class, () -> decoder.decode(Target.REGION, broken, "region forests"));
+        IllegalArgumentException refused = assertThrows(IllegalArgumentException.class, () -> decoder.decode(Level.REGION, broken, "region forests"));
 
         assertTrue(refused.getMessage(), refused.getMessage().startsWith("Cannot read settings iris:deposit under \"deposits\" in region forests: "));
     }
 
     private List<DepositGenerator> deposits(String regionJson) {
-        return decoder.decode(Target.REGION, new JSONObject(regionJson), "region forests")
+        return decoder.decode(Level.REGION, new JSONObject(regionJson), "region forests")
                 .find(DepositSettings.class).orElseThrow().generators();
     }
 }

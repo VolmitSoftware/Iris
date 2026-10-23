@@ -158,6 +158,8 @@ public class DimensionBottomTest {
         when(moduleSet.pack()).thenReturn(pack);
         when(data.getModules()).thenReturn(moduleSet);
         when(data.getDataFolder()).thenReturn(folder.getRoot());
+        IrisPackResources resources = new IrisPackResources(data, List::of);
+        when(data.getPackResources()).thenReturn(resources);
         when(data.getEngine()).thenReturn(engine);
         storage.bindTo(engine);
     }

@@ -26,7 +26,6 @@ import com.volmit.generation.GenerationContext;
 import com.volmit.host.MantleRegistration;
 import com.volmit.mantle.BlockBox;
 import com.volmit.mantle.Mantle;
-import com.volmit.resource.PackResources;
 import com.volmit.world.PackWorld;
 import com.volmit.world.TerrainSampler;
 
@@ -102,15 +101,6 @@ final class IrisGenerationContext implements GenerationContext {
         return (com.volmit.hunk.Hunk<T>) blocks;
     }
 
-    @Override
-    public long worldSeed() {
-        return engine.getSeedManager().getSeed();
-    }
-
-    @Override
-    public PackResources resources() {
-        return engine.getData().getPackResources();
-    }
 
     /** The world this invocation first asked for; it keeps it if the world restarts meanwhile. */
     @Override

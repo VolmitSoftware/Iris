@@ -35,7 +35,7 @@ import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.loot.LootResources;
 import art.arcane.volmlib.util.json.JSONObject;
 import com.google.gson.Gson;
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
 import com.volmit.block.BlockSpec;
 import com.volmit.host.LoadedPack;
 import com.volmit.host.ModuleHost;
@@ -93,7 +93,7 @@ public class LootAndSpawnPackDecodingTest {
 
     @Test
     public void theDimensionReadsItsLootReference() throws IOException {
-        ModuleSettings settings = decoder.decode(Target.DIMENSION, file("dimensions/overworld.json"), "dimension overworld");
+        ModuleSettings settings = decoder.decode(Level.DIMENSION, file("dimensions/overworld.json"), "dimension overworld");
 
         LootSettings loot = settings.find(LootSettings.class).orElseThrow();
         assertEquals(LootMode.FALLBACK, loot.mode());
@@ -105,7 +105,7 @@ public class LootAndSpawnPackDecodingTest {
 
     @Test
     public void aRegionReadsItsLootAndItsSpawners() throws IOException {
-        ModuleSettings settings = decoder.decode(Target.REGION, file("regions/terralost.json"), "region terralost");
+        ModuleSettings settings = decoder.decode(Level.REGION, file("regions/terralost.json"), "region terralost");
 
         LootSettings loot = settings.find(LootSettings.class).orElseThrow();
         assertEquals(LootMode.FALLBACK, loot.mode());
@@ -117,7 +117,7 @@ public class LootAndSpawnPackDecodingTest {
 
     @Test
     public void aRegionReadsItsBlockDrops() throws IOException {
-        ModuleSettings settings = decoder.decode(Target.REGION, file("regions/swamp.json"), "region swamp");
+        ModuleSettings settings = decoder.decode(Level.REGION, file("regions/swamp.json"), "region swamp");
 
         List<BlockDrop> drops = settings.find(BlockDropSettings.class).orElseThrow().drops();
         assertEquals(1, drops.size());
@@ -135,7 +135,7 @@ public class LootAndSpawnPackDecodingTest {
     public void aRegionReadsItsEffectsLootAndBlockDropsTogether() throws IOException {
         JSONObject region = file("regions/mushroom.json");
 
-        ModuleSettings settings = decoder.decode(Target.REGION, region, "region mushroom");
+        ModuleSettings settings = decoder.decode(Level.REGION, region, "region mushroom");
 
         List<AmbientEffect> effects = settings.find(EffectSettings.class).orElseThrow().effects();
         assertEquals(region.getJSONArray("effects").length(), effects.size());
@@ -162,7 +162,7 @@ public class LootAndSpawnPackDecodingTest {
 
     @Test
     public void aRegionsPotionEffectKeepsItsStrengthAndTicks() throws IOException {
-        ModuleSettings settings = decoder.decode(Target.REGION, file("regions/hot.json"), "region hot");
+        ModuleSettings settings = decoder.decode(Level.REGION, file("regions/hot.json"), "region hot");
 
         AmbientEffect potion = settings.find(EffectSettings.class).orElseThrow().effects().getFirst();
         assertEquals("CONFUSION", potion.potionEffect());
@@ -175,7 +175,7 @@ public class LootAndSpawnPackDecodingTest {
 
     @Test
     public void aBiomeReadsItsEffects() throws IOException {
-        ModuleSettings settings = decoder.decode(Target.BIOME, file("biomes/tropical/volcanoes.json"), "biome tropical/volcanoes");
+        ModuleSettings settings = decoder.decode(Level.BIOME, file("biomes/tropical/volcanoes.json"), "biome tropical/volcanoes");
 
         AmbientEffect smoke = settings.find(EffectSettings.class).orElseThrow().effects().getFirst();
         assertEquals("CAMPFIRE_SIGNAL_SMOKE", smoke.particleEffect());
@@ -191,12 +191,12 @@ public class LootAndSpawnPackDecodingTest {
     public void aDimensionHasNoEffects() throws IOException {
         JSONObject dimension = new JSONObject("{\"effects\": [{\"chance\": 1}], \"loot\": {}}");
 
-        ModuleSettings settings = decoder.decode(Target.DIMENSION, dimension, "dimension overworld");
+        ModuleSettings settings = decoder.decode(Level.DIMENSION, dimension, "dimension overworld");
 
         assertTrue(settings.find(EffectSettings.class).isEmpty());
-        assertFalse(decoder.keys(Target.DIMENSION).contains("effects"));
-        assertTrue(decoder.keys(Target.REGION).contains("effects"));
-        assertTrue(decoder.keys(Target.BIOME).containsAll(Set.of("loot", "blockDrops", "entitySpawners", "effects")));
+        assertFalse(decoder.keys(Level.DIMENSION).contains("effects"));
+        assertTrue(decoder.keys(Level.REGION).contains("effects"));
+        assertTrue(decoder.keys(Level.BIOME).containsAll(Set.of("loot", "blockDrops", "entitySpawners", "effects")));
     }
 
     @Test
@@ -241,15 +241,15 @@ public class LootAndSpawnPackDecodingTest {
     public void theFeatureIdsAreNotKeys() {
         JSONObject byId = new JSONObject("{\"iris:loot\": {\"tables\": [\"a\"]}, \"iris:spawn\": [\"a\"]}");
 
-        assertSame(ModuleSettings.NONE, decoder.decode(Target.REGION, byId, "region forests"));
+        assertSame(ModuleSettings.NONE, decoder.decode(Level.REGION, byId, "region forests"));
     }
 
     @Test
     public void aWrongShapeNamesTheKeyAndTheFile() {
         IllegalArgumentException list = assertThrows(IllegalArgumentException.class,
-                () -> decoder.decode(Target.REGION, new JSONObject("{\"entitySpawners\": {\"spawners\": [\"a\"]}}"), "region forests"));
+                () -> decoder.decode(Level.REGION, new JSONObject("{\"entitySpawners\": {\"spawners\": [\"a\"]}}"), "region forests"));
         IllegalArgumentException object = assertThrows(IllegalArgumentException.class,
-                () -> decoder.decode(Target.REGION, new JSONObject("{\"loot\": [\"a\"]}"), "region forests"));
+                () -> decoder.decode(Level.REGION, new JSONObject("{\"loot\": [\"a\"]}"), "region forests"));
 
         assertTrue(list.getMessage(), list.getMessage().contains("under \"entitySpawners\" in region forests"));
         assertTrue(object.getMessage(), object.getMessage().contains("under \"loot\" in region forests"));
@@ -259,9 +259,9 @@ public class LootAndSpawnPackDecodingTest {
     public void settingsEncodeBackToTheJsonThePackWrote() throws IOException {
         for (String file : List.of("regions/terralost.json", "regions/swamp.json", "regions/mushroom.json", "regions/hot.json")) {
             JSONObject region = this.file(file);
-            ModuleSettings settings = decoder.decode(Target.REGION, region, "region " + file);
+            ModuleSettings settings = decoder.decode(Level.REGION, region, "region " + file);
 
-            JSONObject written = decoder.encode(Target.REGION, settings);
+            JSONObject written = decoder.encode(Level.REGION, settings);
 
             for (String key : List.of("loot", "blockDrops", "entitySpawners", "effects")) {
                 assertEquals(file + " " + key, region.has(key), written.has(key));

@@ -103,6 +103,7 @@ public class IrisObjectPlacementRegressionTest {
         BuiltInPack.seedWorld(engine, 7L);
         data = mock(IrisData.class);
         when(data.getEngine()).thenReturn(engine);
+        when(engine.getData()).thenReturn(data);
         usePack(List.of());
         solid = registryState("minecraft:stone");
         schematicAir = registryState("minecraft:air");
@@ -438,17 +439,17 @@ public class IrisObjectPlacementRegressionTest {
         @Override
         public void setup(ModuleSetup setup) {
             setup.stages().define(FIND).requires(IrisStages.Blocks.COMPLETE).run(context ->
-                    found.add(context.resources().find(PackResourceFixture.oakKey(packFolder)).orElseThrow()));
+                    found.add(context.world().resources().find(PackResourceFixture.oakKey(packFolder)).orElseThrow()));
         }
     }
 
     @Test
-    public void aPlacementStageFindsTheSnapshotsPackResources() throws IOException {
-        PackResourceFixture.serve(data);
+    public void aPasteWithoutAnEngineFindsThePacksResourcesThroughItsWorld() throws IOException {
         List<Object> found = new ArrayList<>();
         usePack(List.of(new FindModule(folder.getRoot(), found)));
+        PackResourceFixture.serve(data);
 
-        ObjectPlacementResult result = place(placement(), ANCHOR_Y, new RecordingPlacer(engine), null);
+        ObjectPlacementResult result = place(placement(), ANCHOR_Y, new RecordingPlacer(null), null);
 
         assertTrue(result.isPlaced());
         assertEquals(List.of(PackResourceFixture.OAK), found);
@@ -526,18 +527,18 @@ public class IrisObjectPlacementRegressionTest {
         @Override
         public void setup(ModuleSetup setup) {
             setup.stages().define(TURN).requires(IrisStages.Blocks.COMPLETE).run(context -> turned.add(context.objects().transform(
-                    context.resources().require(PackResourceFixture.oakKey(packFolder)),
+                    context.world().resources().require(PackResourceFixture.oakKey(packFolder)),
                     new ObjectTransform(90, 0, 0, 1, 1, 1, false, false, false))));
         }
     }
 
     @Test
     public void aPlacementStageTurnsAnObjectThroughTheObjectTransformer() throws IOException {
-        PackResourceFixture.serve(data);
         List<GeneratedObject> turned = new ArrayList<>();
         usePack(List.of(new TurnModule(folder.getRoot(), turned)));
+        PackResourceFixture.serve(data);
 
-        ObjectPlacementResult result = place(placement(), ANCHOR_Y, new RecordingPlacer(engine), null);
+        ObjectPlacementResult result = place(placement(), ANCHOR_Y, new RecordingPlacer(null), null);
 
         assertTrue(result.isPlaced());
         assertEquals(List.of(new BlockPosition(0, 0, 0), new BlockPosition(0, 0, 1)),

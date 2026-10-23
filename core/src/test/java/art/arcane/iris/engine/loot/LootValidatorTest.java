@@ -6,11 +6,12 @@ import art.arcane.iris.builtin.loot.LootTable;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.modules.ModuleResourceFixture;
 import art.arcane.iris.engine.object.TestSettings;
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
 import com.volmit.IrisFeature;
 import com.volmit.config.FeatureSettings.Entry;
 import com.volmit.config.MaxNumber;
 import com.volmit.config.PackSettings;
+import com.volmit.config.SettingsStack;
 import com.volmit.resource.PackResources;
 import com.volmit.resource.ResourceId;
 import com.volmit.validation.Problem;
@@ -44,14 +45,14 @@ public class LootValidatorTest {
     public void acceptsValidLootTableAndReference() {
         table("global/clutter", "{\"name\":\"Clutter\",\"minPicked\":1,\"maxPicked\":2,"
                 + "\"loot\":[{\"type\":\"stick\",\"rarity\":2,\"minAmount\":1,\"maxAmount\":3}]}");
-        reference(Target.DIMENSION, "main", "{\"mode\":\"FALLBACK\",\"multiplier\":0.5,\"tables\":[\"global/clutter\"]}");
+        reference(Level.DIMENSION, "main", "{\"mode\":\"FALLBACK\",\"multiplier\":0.5,\"tables\":[\"global/clutter\"]}");
 
         assertTrue(errors().isEmpty());
     }
 
     @Test
     public void rejectsMissingLootReference() {
-        reference(Target.DIMENSION, "main", "{\"tables\":[\"missing\"]}");
+        reference(Level.DIMENSION, "main", "{\"tables\":[\"missing\"]}");
 
         assertEquals(List.of("Dimension 'main'.loot.tables[0] references missing loot table 'missing'."), errors());
     }
@@ -82,17 +83,17 @@ public class LootValidatorTest {
 
     @Test
     public void rejectsInvalidReferenceMultiplier() {
-        reference(Target.DIMENSION, "main", "{\"multiplier\":-1,\"tables\":[]}");
+        reference(Level.DIMENSION, "main", "{\"multiplier\":-1,\"tables\":[]}");
 
         assertEquals(List.of("Dimension 'main'.loot.multiplier must be a finite number from 0 to 16."), errors());
     }
 
     @Test
     public void enforcesPublishedLootMultiplierCap() {
-        reference(Target.DIMENSION, "accepted", "{\"multiplier\":16,\"tables\":[]}");
+        reference(Level.DIMENSION, "accepted", "{\"multiplier\":16,\"tables\":[]}");
         assertTrue(errors().isEmpty());
 
-        reference(Target.DIMENSION, "rejected", "{\"multiplier\":16.01,\"tables\":[]}");
+        reference(Level.DIMENSION, "rejected", "{\"multiplier\":16.01,\"tables\":[]}");
         assertEquals(List.of("Dimension 'rejected'.loot.multiplier must be a finite number from 0 to 16."), errors());
     }
 
@@ -136,7 +137,7 @@ public class LootValidatorTest {
     @Test
     public void clearModeWithTablesWarnsWithoutBlocking() {
         table("t", "{\"loot\":[{\"type\":\"minecraft:stone\"}]}");
-        reference(Target.BIOME, "x", "{\"mode\":\"CLEAR\",\"tables\":[\"t\"]}");
+        reference(Level.BIOME, "x", "{\"mode\":\"CLEAR\",\"tables\":[\"t\"]}");
 
         assertTrue(errors().isEmpty());
         assertEquals(List.of("Biome 'x'.loot uses mode CLEAR and lists 1 table(s); CLEAR clears parent tables"
@@ -146,7 +147,7 @@ public class LootValidatorTest {
 
     @Test
     public void clearModeWithMissingTableStillBlocksOnTheDanglingKey() {
-        reference(Target.BIOME, "x", "{\"mode\":\"CLEAR\",\"tables\":[\"missing\"]}");
+        reference(Level.BIOME, "x", "{\"mode\":\"CLEAR\",\"tables\":[\"missing\"]}");
 
         assertTrue(errors().contains("Biome 'x'.loot.tables[0] references missing loot table 'missing'."));
     }
@@ -163,7 +164,7 @@ public class LootValidatorTest {
     @Test
     public void referencesAreFoundByTheIdThePackGivesTheirKey() {
         table("Global/Clutter", "{\"loot\":[{\"type\":\"stick\"}]}");
-        reference(Target.REGION, "plains", "{\"tables\":[\"Global/Clutter\"]}");
+        reference(Level.REGION, "plains", "{\"tables\":[\"Global/Clutter\"]}");
 
         assertTrue(errors().isEmpty());
     }
@@ -172,7 +173,7 @@ public class LootValidatorTest {
         tables.resource(LootResources.TABLES, key, TestSettings.of(LootTable.class, json));
     }
 
-    private void reference(Target level, String key, String json) {
+    private void reference(Level level, String key, String json) {
         String folder = switch (level) {
             case DIMENSION -> "dimension";
             case REGION -> "region";
@@ -207,8 +208,8 @@ public class LootValidatorTest {
                 return new PackSettings() {
                     @Override
                     @SuppressWarnings("unchecked")
-                    public <F extends IrisFeature> List<Entry<F>> declared(Class<F> featureType) {
-                        return featureType == LootSettings.class ? (List<Entry<F>>) (List<?>) List.copyOf(references) : List.of();
+                    public <F extends IrisFeature> SettingsStack<F> declared(Class<F> featureType) {
+                        return featureType == LootSettings.class ? SettingsStack.of((List<Entry<F>>) (List<?>) List.copyOf(references)) : SettingsStack.empty();
                     }
                 };
             }

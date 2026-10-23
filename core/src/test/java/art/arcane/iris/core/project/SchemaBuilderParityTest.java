@@ -62,7 +62,7 @@ import art.arcane.volmlib.util.json.JSONArray;
 import art.arcane.volmlib.util.json.JSONObject;
 import art.arcane.iris.core.modules.PackModuleSet;
 import art.arcane.iris.core.modules.ModuleResourceFixture;
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
 import com.volmit.IrisFeature;
 import art.arcane.iris.core.modules.BuiltInPack;
 import art.arcane.iris.core.modules.IrisModuleHost;
@@ -874,7 +874,7 @@ public class SchemaBuilderParityTest {
         }
     }
 
-    @Feature(id = "example:tint", name = "Tint", key = "tint", targets = Target.OBJECT_PLACEMENT)
+    @Feature(id = "example:tint", name = "Tint", key = "tint", targets = Level.PLACEMENT)
     public static final class TintSettings implements IrisFeature {
         @com.volmit.config.MinItems(1)
         private List<com.volmit.block.BlockSpec> palette = List.of();
@@ -902,7 +902,7 @@ public class SchemaBuilderParityTest {
         }
     }
 
-    @Feature(id = "example:glow", name = "Glow", key = "glow", targets = Target.OBJECT_PLACEMENT)
+    @Feature(id = "example:glow", name = "Glow", key = "glow", targets = Level.PLACEMENT)
     public static final class GlowSettings implements IrisFeature {
         @com.volmit.config.Desc("How bright the glow is")
         @com.volmit.config.MinNumber(1)

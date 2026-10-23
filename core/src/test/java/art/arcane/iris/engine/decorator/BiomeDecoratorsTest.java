@@ -91,7 +91,7 @@ public class BiomeDecoratorsTest {
     public void warmingResolvesEveryDecoratorOfEveryBiomeThePackDeclares() {
         decorators.warm();
 
-        assertEquals(2, decorators.decorators(new DecoratedBiome("plains", chunk.world().settings().declared(DecorantSettings.class).getFirst().value(),
+        assertEquals(2, decorators.decorators(new DecoratedBiome("plains", chunk.world().settings().declared(DecorantSettings.class).values().getFirst(),
                 BiomeKind.LAND), DecorationPart.NONE).length);
     }
 

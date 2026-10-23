@@ -75,7 +75,7 @@ public class CaveAnchorsTest {
 
     private static TerrainSampler terrain() {
         TerrainSampler terrain = mock(TerrainSampler.class);
-        when(terrain.surfaceY(anyInt(), anyInt())).thenReturn((double) SURFACE);
+        when(terrain.surfaceHeight(anyInt(), anyInt())).thenReturn(SURFACE);
         when(terrain.biome(anyInt(), anyInt(), anyInt())).thenReturn(new BiomeSample(BIOME, BIOME, Optional.of(BIOME)));
         return terrain;
     }

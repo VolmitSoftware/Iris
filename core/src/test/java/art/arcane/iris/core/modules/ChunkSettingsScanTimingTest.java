@@ -22,7 +22,7 @@ import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
 import com.volmit.IrisFeature;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
@@ -35,7 +35,6 @@ import com.volmit.host.MantleRunner;
 import com.volmit.host.ModuleHost;
 import com.volmit.host.StageTimings;
 import com.volmit.mantle.Mantle;
-import com.volmit.resource.PackResources;
 import com.volmit.stage.MantleStage;
 import com.volmit.stage.Stage;
 import com.volmit.world.PackWorld;
@@ -71,7 +70,7 @@ public class ChunkSettingsScanTimingTest {
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();
 
-    @Feature(id = "test:scan", name = "Scan", key = "scan", targets = {Target.DIMENSION, Target.REGION, Target.BIOME})
+    @Feature(id = "test:scan", name = "Scan", key = "scan", targets = {Level.DIMENSION, Level.REGION, Level.BIOME})
     static final class ScanSettings implements IrisFeature {
     }
 
@@ -131,11 +130,9 @@ public class ChunkSettingsScanTimingTest {
         return new MantleGenerationContext() {
             public int originX() { return originX; }
             public int originZ() { return 0; }
-            public long worldSeed() { return 0L; }
             public TerrainSampler terrain() { throw new UnsupportedOperationException(); }
             public FeatureSettings settings() { return settings; }
             public Mantle mantle() { throw new UnsupportedOperationException(); }
-            public PackResources resources() { throw new UnsupportedOperationException(); }
             public PackWorld world() { throw new UnsupportedOperationException(); }
         };
     }

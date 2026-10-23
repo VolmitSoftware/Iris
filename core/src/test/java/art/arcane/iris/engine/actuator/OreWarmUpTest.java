@@ -3,7 +3,8 @@ package art.arcane.iris.engine.actuator;
 import art.arcane.iris.builtin.terrain.OreSettings;
 import art.arcane.iris.engine.modifier.ApiChunk;
 import art.arcane.iris.engine.terrain.TestPackWorld;
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
+import com.volmit.config.SettingsStack;
 import com.volmit.IrisFeature;
 import com.volmit.config.FeatureSettings.Entry;
 import com.volmit.config.PackSettings;
@@ -31,19 +32,19 @@ public class OreWarmUpTest {
         TerrainOres ores = mock(TerrainOres.class);
         List<Entry<OreSettings>> declared = new ArrayList<>();
         // The pack lists the dimension first, then regions and biomes, in no particular order.
-        declared.add(entry(Target.DIMENSION, "dimension/overworld", ores, "d0"));
-        declared.add(entry(Target.REGION, "region/y", ores, "y0"));
-        declared.add(entry(Target.BIOME, "biome/b", ores, "b0", "b1"));
-        declared.add(entry(Target.REGION, "region/x", ores, "x0", "x1"));
-        declared.add(entry(Target.BIOME, "biome/a", ores, "a0"));
+        declared.add(entry(Level.DIMENSION, "dimension/overworld", ores, "d0"));
+        declared.add(entry(Level.REGION, "region/y", ores, "y0"));
+        declared.add(entry(Level.BIOME, "biome/b", ores, "b0", "b1"));
+        declared.add(entry(Level.REGION, "region/x", ores, "x0", "x1"));
+        declared.add(entry(Level.BIOME, "biome/a", ores, "a0"));
         PackSettings settings = new PackSettings() {
             @Override
             @SuppressWarnings("unchecked")
-            public <F extends IrisFeature> List<Entry<F>> declared(Class<F> featureType) {
-                return (List<Entry<F>>) (List<?>) declared;
+            public <F extends IrisFeature> SettingsStack<F> declared(Class<F> featureType) {
+                return SettingsStack.of((List<Entry<F>>) (List<?>) declared);
             }
         };
-        TestPackWorld world = new TestPackWorld(new ApiChunk(0, 0, 16).resources(), settings, COMPONENT_SEED);
+        TestPackWorld world = new TestPackWorld(new ApiChunk(0, 0, 16).world().resources(), settings, COMPONENT_SEED);
 
         new OreWarmUp(world, ores).warm();
 
@@ -51,7 +52,7 @@ public class OreWarmUpTest {
                 "x0@" + (ROOT_SEED + 3), "x1@" + (ROOT_SEED + 4), "y0@" + (ROOT_SEED + 5), "d0@" + (ROOT_SEED + 6)), warmed);
     }
 
-    private Entry<OreSettings> entry(Target level, String source, TerrainOres ores, String... oreNames) {
+    private Entry<OreSettings> entry(Level level, String source, TerrainOres ores, String... oreNames) {
         OreSettings settings = new OreSettings(List.of());
         ResolvedOres declared = resolved(oreNames);
         when(ores.of(settings)).thenReturn(declared);

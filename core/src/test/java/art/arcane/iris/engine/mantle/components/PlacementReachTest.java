@@ -21,10 +21,11 @@ import art.arcane.volmlib.util.mantle.flag.ReservedFlag;
 import art.arcane.volmlib.util.mantle.runtime.Mantle;
 import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
 import art.arcane.volmlib.util.matter.Matter;
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
 import com.volmit.IrisFeature;
 import com.volmit.config.FeatureSettings.Entry;
 import com.volmit.config.PackSettings;
+import com.volmit.config.SettingsStack;
 import com.volmit.host.ModuleLogs;
 import com.volmit.resource.ResourceId;
 import org.junit.Test;
@@ -134,8 +135,8 @@ public class PlacementReachTest {
         return new PackSettings() {
             @Override
             @SuppressWarnings("unchecked")
-            public <T extends IrisFeature> List<Entry<T>> declared(Class<T> featureType) {
-                return featureType == type ? List.of(new Entry<>(Target.BIOME, SOURCE, (T) settings)) : List.of();
+            public <T extends IrisFeature> SettingsStack<T> declared(Class<T> featureType) {
+                return featureType == type ? SettingsStack.of(List.of(new Entry<>(Level.BIOME, SOURCE, (T) settings))) : SettingsStack.empty();
             }
         };
     }

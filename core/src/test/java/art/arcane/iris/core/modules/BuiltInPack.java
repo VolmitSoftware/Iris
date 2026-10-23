@@ -110,6 +110,8 @@ public final class BuiltInPack {
         when(moduleSet.pack()).thenReturn(pack);
         when(data.getModules()).thenReturn(moduleSet);
         when(data.getDataFolder()).thenReturn(folder.getRoot());
+        IrisPackResources resources = new IrisPackResources(data);
+        when(data.getPackResources()).thenReturn(resources);
         return pack;
     }
 

@@ -86,7 +86,16 @@ final class IrisUpperDimension implements UpperDimension {
 
         @Override
         public IrisBiome biome(ResourceId id) {
-            return ((IrisPackResources) upper.getData().getPackResources()).irisBiome(id).orElse(null);
+            return packResources().irisBiome(id).orElse(null);
+        }
+
+        @Override
+        public SettingsStacks stacks() {
+            return packResources().settingsStacks();
+        }
+
+        private IrisPackResources packResources() {
+            return (IrisPackResources) upper.getData().getPackResources();
         }
     }
 }

@@ -27,10 +27,11 @@ import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
 import art.arcane.iris.util.common.data.DataProvider;
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
 import com.volmit.IrisFeature;
 import com.volmit.config.FeatureSettings.Entry;
 import com.volmit.config.PackSettings;
+import com.volmit.config.SettingsStack;
 import com.volmit.resource.ResourceId;
 
 import java.util.ArrayList;
@@ -83,26 +84,26 @@ public final class IrisPackSettings implements PackSettings, ObjectHost.Source, 
     }
 
     @Override
-    public <F extends IrisFeature> List<Entry<F>> declared(Class<F> featureType) {
+    public <F extends IrisFeature> SettingsStack<F> declared(Class<F> featureType) {
         return declaredBy(engine.getDimension(), engine, ids, featureType);
     }
 
     /** The settings of {@code featureType} that {@code dimension} and every region and biome it reaches declare, in that order. */
-    static <F extends IrisFeature> List<Entry<F>> declaredBy(IrisDimension dimension, DataProvider data, PackResourceIds ids,
+    static <F extends IrisFeature> SettingsStack<F> declaredBy(IrisDimension dimension, DataProvider data, PackResourceIds ids,
                                                              Class<F> featureType) {
         List<Entry<F>> entries = new ArrayList<>();
-        addEntry(entries, featureType, Target.DIMENSION, ids.of(DIMENSION, dimension.getLoadKey()), dimension);
+        addEntry(entries, featureType, Level.DIMENSION, ids.of(DIMENSION, dimension.getLoadKey()), dimension);
         for (IrisRegion region : dimension.getAllRegions(data)) {
-            addEntry(entries, featureType, Target.REGION, ids.of(REGION, region.getLoadKey()), region);
+            addEntry(entries, featureType, Level.REGION, ids.of(REGION, region.getLoadKey()), region);
         }
         for (IrisBiome biome : dimension.getReachableBiomes(data)) {
-            addEntry(entries, featureType, Target.BIOME, ids.of(BIOME, biome.getLoadKey()), biome);
+            addEntry(entries, featureType, Level.BIOME, ids.of(BIOME, biome.getLoadKey()), biome);
         }
-        return List.copyOf(entries);
+        return SettingsStack.of(entries);
     }
 
     /** Adds {@code owner}'s settings of {@code featureType}, if it declares them, as an entry from {@code source}. */
-    static <F extends IrisFeature> void addEntry(List<Entry<F>> entries, Class<F> featureType, Target level, ResourceId source,
+    static <F extends IrisFeature> void addEntry(List<Entry<F>> entries, Class<F> featureType, Level level, ResourceId source,
                                                  IrisRegistrant owner) {
         owner.getModuleSettings().find(featureType).ifPresent(value -> entries.add(new Entry<>(level, source, value)));
     }

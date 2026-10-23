@@ -31,7 +31,7 @@ import com.google.gson.reflect.TypeToken;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
 import com.volmit.IrisFeature;
 import com.volmit.block.BlockState;
 import com.volmit.config.OptionsMetadata;
@@ -73,8 +73,8 @@ public final class ModuleSettingsDecoder {
     private static final String SNIPPET_FOLDER = "snippet";
     private static final String JSON_EXTENSION = ".json";
 
-    private final Map<Target, List<FeatureDescriptor<?>>> settings = new EnumMap<>(Target.class);
-    private final Map<Target, Set<String>> keys = new EnumMap<>(Target.class);
+    private final Map<Level, List<FeatureDescriptor<?>>> settings = new EnumMap<>(Level.class);
+    private final Map<Level, Set<String>> keys = new EnumMap<>(Level.class);
     private final Path packFolder;
     private final Gson gson;
     private final Supplier<Gson> irisGson;
@@ -89,14 +89,14 @@ public final class ModuleSettingsDecoder {
                 .registerTypeAdapterFactory(new HostTypes())
                 .registerTypeAdapterFactory(new SnippetReferences())
                 .create();
-        for (Target target : Target.values()) {
+        for (Level target : Level.values()) {
             settings.put(target, settingsAt(catalog, target));
             keys.put(target, keysAt(catalog, target));
         }
     }
 
     /** Every JSON key the pack's modules read at {@code target}: the keys of their features, object generators' included. */
-    public Set<String> keys(Target target) {
+    public Set<String> keys(Level target) {
         return keys.get(target);
     }
 
@@ -106,7 +106,7 @@ public final class ModuleSettingsDecoder {
      * @param resource names the file in errors, such as {@code biome desert/dunes}
      * @throws IllegalArgumentException when a value does not decode into its settings type
      */
-    public ModuleSettings decode(Target target, JSONObject json, String resource) {
+    public ModuleSettings decode(Level target, JSONObject json, String resource) {
         Map<Class<? extends IrisFeature>, IrisFeature> values = new LinkedHashMap<>();
         for (FeatureDescriptor<?> feature : settings.get(target)) {
             if (json.has(feature.key())) {
@@ -135,7 +135,7 @@ public final class ModuleSettingsDecoder {
      * The JSON that declares {@code values} at {@code target}: each settings feature under its key, in the shape the
      * feature is written in (a rooted feature as its root option's value), the inverse of {@link #decode}.
      */
-    public JSONObject encode(Target target, ModuleSettings values) {
+    public JSONObject encode(Level target, ModuleSettings values) {
         JSONObject json = new JSONObject();
         for (FeatureDescriptor<?> feature : settings.get(target)) {
             values.find(feature.type()).ifPresent(value -> json.put(feature.key(), writtenShape(feature, value)));
@@ -210,17 +210,17 @@ public final class ModuleSettingsDecoder {
                 .orElseThrow(() -> new IllegalStateException("Root " + root + " is no option of " + feature.type().getName()));
     }
 
-    private static List<FeatureDescriptor<?>> settingsAt(FeatureCatalog catalog, Target target) {
+    private static List<FeatureDescriptor<?>> settingsAt(FeatureCatalog catalog, Level target) {
         return catalog.settings().stream()
-                .filter(feature -> feature.attachment().targets().contains(target))
+                .filter(feature -> feature.targets().contains(target))
                 .toList();
     }
 
-    private static Set<String> keysAt(FeatureCatalog catalog, Target target) {
+    private static Set<String> keysAt(FeatureCatalog catalog, Level target) {
         Stream<FeatureDescriptor<?>> objects = catalog.objects().stream().map(ObjectRegistration::descriptor);
         Set<String> found = new TreeSet<>();
         Stream.concat(catalog.settings().stream(), objects)
-                .filter(feature -> feature.attachment().targets().contains(target))
+                .filter(feature -> feature.targets().contains(target))
                 .forEach(feature -> found.add(feature.key()));
         return Set.copyOf(found);
     }

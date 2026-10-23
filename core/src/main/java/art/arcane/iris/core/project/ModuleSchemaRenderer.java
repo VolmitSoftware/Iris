@@ -20,7 +20,7 @@ package art.arcane.iris.core.project;
 
 import art.arcane.volmlib.util.json.JSONArray;
 import art.arcane.volmlib.util.json.JSONObject;
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
 import com.volmit.config.Reference;
 import com.volmit.host.schema.FeatureSchema;
 import com.volmit.host.schema.ObjectType;
@@ -90,7 +90,7 @@ final class ModuleSchemaRenderer {
     }
 
     /** Adds every feature at {@code target} to {@code properties} under its key. */
-    void addFeatures(Target target, JSONObject properties) {
+    void addFeatures(Level target, JSONObject properties) {
         for (FeatureSchema feature : schema.fields(target)) {
             properties.put(feature.key(), featureProperty(feature));
         }

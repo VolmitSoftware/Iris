@@ -23,7 +23,8 @@ import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.builtin.objects.ObjectSettings;
 import art.arcane.iris.builtin.objects.TreeGrowthSettings;
 import art.arcane.iris.engine.object.TestSettings;
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
+import com.volmit.config.SettingsStack;
 import com.volmit.config.FeatureSettings;
 import com.volmit.config.FeatureSettings.Entry;
 import com.volmit.resource.ResourceId;
@@ -68,7 +69,7 @@ public class TreeGrowingTest {
 
     @Test
     public void aDimensionWithoutTreeOverridesLeavesTheGrowthToThePlatform() {
-        when(settings.at(TreeGrowthSettings.class, 10, 20)).thenReturn(List.of());
+        when(settings.at(TreeGrowthSettings.class, 10, 20)).thenReturn(SettingsStack.empty());
 
         Optional<SaplingGrowth.Growth> growth = new TreeGrowing().grow(world, OAK_SAPLING, mock(SaplingGrowth.Surroundings.class));
 
@@ -79,7 +80,7 @@ public class TreeGrowingTest {
     @Test
     public void withoutAPlacementThatGrowsTheSpeciesTheGrowthIsLeftToThePlatform() {
         TreeGrowthSettings enabled = TestSettings.of(TreeGrowthSettings.class, "{\"enabled\":true}");
-        when(settings.at(TreeGrowthSettings.class, 10, 20)).thenReturn(List.of(new Entry<>(Target.DIMENSION, SOURCE, enabled)));
+        when(settings.at(TreeGrowthSettings.class, 10, 20)).thenReturn(SettingsStack.of(List.of(new Entry<>(Level.DIMENSION, SOURCE, enabled))));
         ObjectSettings objects = TestSettings.with(new ObjectSettings(), "objects",
                 List.of(TestSettings.of(ObjectPlacement.class, "{\"place\":[\"a\"]}")));
         when(host.biomeAt(10, 70, 20)).thenReturn(BIOME);

@@ -21,8 +21,8 @@ package art.arcane.iris.core.modules;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import com.volmit.IrisFeature;
-import com.volmit.config.FeatureSettings.Entry;
 import com.volmit.config.PackSettings;
+import com.volmit.config.SettingsStack;
 
 import java.util.List;
 
@@ -43,7 +43,7 @@ final class DimensionSettings implements PackSettings {
     }
 
     @Override
-    public <F extends IrisFeature> List<Entry<F>> declared(Class<F> featureType) {
+    public <F extends IrisFeature> SettingsStack<F> declared(Class<F> featureType) {
         return IrisPackSettings.declaredBy(dimension, () -> data, ids, featureType);
     }
 }

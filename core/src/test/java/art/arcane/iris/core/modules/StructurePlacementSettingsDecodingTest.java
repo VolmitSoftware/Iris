@@ -28,7 +28,7 @@ import art.arcane.iris.builtin.structure.StructureTerrainMode;
 import art.arcane.iris.engine.framework.StructurePlacementGrid;
 import art.arcane.volmlib.util.json.JSONObject;
 import com.google.gson.Gson;
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
 import com.volmit.host.LoadedPack;
 import com.volmit.host.ModuleHost;
 import org.junit.After;
@@ -137,7 +137,7 @@ public class StructurePlacementSettingsDecodingTest {
 
     @Test
     public void theOverworldPlacementReadsAsThePackWroteIt() {
-        StructurePlacement placement = placements(Target.DIMENSION, OVERWORLD).getFirst();
+        StructurePlacement placement = placements(Level.DIMENSION, OVERWORLD).getFirst();
 
         assertEquals(List.of("minecraft:ancient_city"), placement.nativeStructures().stream().map(NativeStructureSource::structure).toList());
         assertEquals(1, placement.nativeStructures().getFirst().weight());
@@ -160,8 +160,8 @@ public class StructurePlacementSettingsDecodingTest {
 
     @Test
     public void placementsKeepTheirIdentityAndStarts() {
-        StructurePlacement overworld = placements(Target.DIMENSION, OVERWORLD).getFirst();
-        StructurePlacement anonymous = placements(Target.BIOME, ANONYMOUS).getFirst();
+        StructurePlacement overworld = placements(Level.DIMENSION, OVERWORLD).getFirst();
+        StructurePlacement anonymous = placements(Level.BIOME, ANONYMOUS).getFirst();
 
         assertEquals(-5401497891314909808L, StructurePlacementGrid.placementIdentity(overworld));
         assertEquals(-2165116524116229836L, StructurePlacementGrid.placementRng(overworld, 7, -11, 123L).getSeed());
@@ -173,12 +173,12 @@ public class StructurePlacementSettingsDecodingTest {
 
     @Test
     public void regionsAndBiomesDeclarePlacementsUnderTheSameKey() {
-        assertTrue(decoder.keys(Target.REGION).contains("structures"));
-        assertTrue(decoder.keys(Target.BIOME).contains("structures"));
-        assertEquals(1, placements(Target.REGION, OVERWORLD).size());
+        assertTrue(decoder.keys(Level.REGION).contains("structures"));
+        assertTrue(decoder.keys(Level.BIOME).contains("structures"));
+        assertEquals(1, placements(Level.REGION, OVERWORLD).size());
     }
 
-    private List<StructurePlacement> placements(Target target, String json) {
+    private List<StructurePlacement> placements(Level target, String json) {
         return decoder.decode(target, new JSONObject(json), "test resource")
                 .find(StructurePlacementSettings.class).orElseThrow().placements();
     }

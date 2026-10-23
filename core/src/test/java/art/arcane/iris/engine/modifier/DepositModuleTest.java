@@ -21,10 +21,11 @@ package art.arcane.iris.engine.modifier;
 import art.arcane.iris.builtin.deposit.DepositSettings;
 import art.arcane.iris.builtin.deposit.DepositGenerator;
 import art.arcane.iris.engine.object.TestSettings;
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
 import com.volmit.IrisFeature;
 import com.volmit.block.BlockState;
 import com.volmit.config.FeatureSettings;
+import com.volmit.config.SettingsStack;
 import com.volmit.resource.ResourceId;
 import org.junit.Test;
 
@@ -35,10 +36,11 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class DepositModuleTest {
-    private static final int CENTRE = 7;
+    private static final int COLUMN_X = 39;
+    private static final int COLUMN_Z = -9;
 
     @Test
-    public void everyLevelAtTheCentreColumnStacksInLevelOrder() {
+    public void everyLevelAtTheColumnStacksInLevelOrder() {
         DepositGenerator dimension = new DepositGenerator();
         DepositGenerator region = new DepositGenerator();
         DepositGenerator biome = new DepositGenerator();
@@ -46,20 +48,20 @@ public class DepositModuleTest {
         FeatureSettings settings = new FeatureSettings() {
             @Override
             @SuppressWarnings("unchecked")
-            public <F extends IrisFeature> List<Entry<F>> at(Class<F> type, int worldX, int worldZ) {
-                if (worldX != 32 + CENTRE || worldZ != -16 + CENTRE) {
-                    return List.of((Entry<F>) entry(Target.BIOME, "biome/other", elsewhere));
+            public <F extends IrisFeature> SettingsStack<F> at(Class<F> type, int worldX, int worldZ) {
+                if (worldX != COLUMN_X || worldZ != COLUMN_Z) {
+                    return SettingsStack.of(List.of((Entry<F>) entry(Level.BIOME, "biome/other", elsewhere)));
                 }
-                return List.of((Entry<F>) entry(Target.DIMENSION, "dimension/overworld", dimension),
-                        (Entry<F>) entry(Target.REGION, "region/hot", region),
-                        (Entry<F>) entry(Target.BIOME, "biome/desert", biome));
+                return SettingsStack.of(List.of((Entry<F>) entry(Level.DIMENSION, "dimension/overworld", dimension),
+                        (Entry<F>) entry(Level.REGION, "region/hot", region),
+                        (Entry<F>) entry(Level.BIOME, "biome/desert", biome)));
             }
         };
 
-        assertEquals(List.of(dimension, region, biome), DepositModule.generatorsAtCentre(settings, 32, -16));
+        assertEquals(List.of(dimension, region, biome), DepositModule.generatorsAt(settings, COLUMN_X, COLUMN_Z));
     }
 
-    private static FeatureSettings.Entry<DepositSettings> entry(Target level, String source, DepositGenerator generator) {
+    private static FeatureSettings.Entry<DepositSettings> entry(Level level, String source, DepositGenerator generator) {
         return new FeatureSettings.Entry<>(level, ResourceId.parse("pack:" + source), new DepositSettings(List.of(generator)));
     }
 

@@ -49,8 +49,8 @@ import java.util.function.BiConsumer;
  * rejects the placement.
  * <p>
  * Each stage draws from its own stream of one seed per placement, from the world seed and the placement's
- * identity: the object and the requested position. Without an engine there is no world seed, so one draw
- * from the caller's random stands in for it.
+ * identity: the object and the requested position. Without an engine, such as for a studio paste, the placement
+ * runs in a {@link ToolWorld} of its own, whose seed is one draw from the caller's random.
  */
 public final class ModuleObjectPlacement {
     private static final String UNNAMED_OBJECT = "unnamed";
@@ -85,16 +85,18 @@ public final class ModuleObjectPlacement {
         ResourceId source = ids.of("object", objectKey);
         PlacementRequest request = new PlacementRequest(ids.of("placement/" + objectKey + "/" + x + "/" + requestedY + "/" + z),
                 geometry, new BlockPosition(x, requestedY, z));
-        IrisPlacementInputs inputs = new IrisPlacementInputs(worldSeed, terrain(engine, ids, area),
-                new PlacementModuleSettings(worldSettings(engine, ids), config.getModuleSettings(), source),
-                new PlacerBlockView(placer, area, states), data.getPackResources(), engine);
         long seed = ModuleSeeds.placement(worldSeed, objectKey, x, requestedY, z);
         StageMetrics metrics = new StageMetrics(engine != null ? engine.getMetrics() : null);
-        PlacementOutcome outcome = placement.runBound(() -> new PlacementRunner(graph)
-                .place(request, edit, inputs, seed, config.getModuleSettings().placement(source), metrics));
-        return outcome.isPlaced()
-                ? ObjectPlacementResult.placed(placement.anchorY())
-                : ObjectPlacementResult.rejected(outcome.rejection().orElseThrow());
+        try (ToolWorld toolWorld = engine == null ? new ToolWorld(worldSeed, data.getPackResources(), new PackDeclaredSettings(data)) : null) {
+            IrisPlacementInputs inputs = new IrisPlacementInputs(terrain(engine, ids, area),
+                    new PlacementModuleSettings(worldSettings(engine, ids), config.getModuleSettings(), source),
+                    new PlacerBlockView(placer, area, states), engine != null ? IrisPlacementInputs.worldOf(engine) : () -> toolWorld);
+            PlacementOutcome outcome = placement.runBound(() -> new PlacementRunner(graph)
+                    .place(request, edit, inputs, seed, config.getModuleSettings().placement(source), metrics));
+            return outcome.isPlaced()
+                    ? ObjectPlacementResult.placed(placement.anchorY())
+                    : ObjectPlacementResult.rejected(outcome.rejection().orElseThrow());
+        }
     }
 
     /** Smart boring adds the object's bored air, so it has to happen before the geometry is read. */

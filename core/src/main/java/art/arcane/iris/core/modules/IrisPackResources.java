@@ -69,6 +69,7 @@ public final class IrisPackResources implements PackResources {
     private final IrisData data;
     private final PackResourceIds ids;
     private final UUID snapshotId = UUID.randomUUID();
+    private final SettingsStacks settingsStacks = new SettingsStacks();
     private final BlockRegistry blocks;
     private final ItemRegistry items = new IrisItemRegistry();
     private final NoiseFactory noise;
@@ -105,6 +106,11 @@ public final class IrisPackResources implements PackResources {
     @Override
     public UUID snapshotId() {
         return snapshotId;
+    }
+
+    /** The settings stacks of this snapshot's columns, which every world generating with it shares. */
+    SettingsStacks settingsStacks() {
+        return settingsStacks;
     }
 
     /**

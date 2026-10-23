@@ -20,12 +20,13 @@ package art.arcane.iris.engine.terrain;
 
 import art.arcane.iris.builtin.IrisSeed;
 import art.arcane.iris.core.modules.ModuleSettings;
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
 import com.volmit.IrisFeature;
 import com.volmit.ModuleLog;
 import com.volmit.config.FeatureSettings;
 import com.volmit.config.FeatureSettings.Entry;
 import com.volmit.config.PackSettings;
+import com.volmit.config.SettingsStack;
 import com.volmit.host.ModuleLogs;
 import com.volmit.resource.PackResources;
 import com.volmit.resource.ResourceId;
@@ -49,9 +50,8 @@ public final class TestPackWorld implements PackWorld, IrisSeed.Source {
     public TestPackWorld(PackResources resources, ModuleSettings dimensionSettings, long seed) {
         this(resources, new PackSettings() {
             @Override
-            public <F extends IrisFeature> List<Entry<F>> declared(Class<F> featureType) {
-                Optional<F> found = dimensionSettings.find(featureType);
-                return found.map(value -> List.of(new Entry<>(Target.DIMENSION, DIMENSION, value))).orElse(List.of());
+            public <F extends IrisFeature> SettingsStack<F> declared(Class<F> featureType) {
+                return dimensionStack(dimensionSettings, featureType);
             }
         }, seed);
     }
@@ -67,10 +67,15 @@ public final class TestPackWorld implements PackWorld, IrisSeed.Source {
     public static FeatureSettings dimensionLevel(ModuleSettings settings) {
         return new FeatureSettings() {
             @Override
-            public <F extends IrisFeature> List<Entry<F>> at(Class<F> featureType, int worldX, int worldZ) {
-                return settings.find(featureType).map(value -> List.of(new Entry<>(Target.DIMENSION, DIMENSION, value))).orElse(List.of());
+            public <F extends IrisFeature> SettingsStack<F> at(Class<F> featureType, int worldX, int worldZ) {
+                return dimensionStack(settings, featureType);
             }
         };
+    }
+
+    private static <F extends IrisFeature> SettingsStack<F> dimensionStack(ModuleSettings settings, Class<F> featureType) {
+        return settings.find(featureType).map(value -> SettingsStack.of(List.of(new Entry<>(Level.DIMENSION, DIMENSION, value))))
+                .orElseGet(SettingsStack::empty);
     }
 
     @Override

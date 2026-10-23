@@ -48,7 +48,7 @@ import art.arcane.volmlib.util.localization.MessageArgument;
 import art.arcane.volmlib.util.math.M;
 import art.arcane.volmlib.util.scheduling.ChronoLatch;
 import art.arcane.volmlib.util.scheduling.O;
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
 import org.zeroturnaround.zip.ZipUtil;
 
 import java.io.File;
@@ -201,7 +201,7 @@ public class IrisPackageCompiler {
             }
             b.append(structureClosure.writeTo(folder, minify));
             b.append(ImageMapPackageClosure.writeAll(dm, folder, minify));
-            a = withModuleSettings(dimension, Target.DIMENSION, dm).toString(minify ? 0 : 4);
+            a = withModuleSettings(dimension, Level.DIMENSION, dm).toString(minify ? 0 : 4);
             IO.writeAll(new File(folder, "dimensions/" + dimension.getLoadKey() + ".json"), a);
             b.append(IO.hash(a));
 
@@ -215,7 +215,7 @@ public class IrisPackageCompiler {
             b = new StringBuilder();
 
             for (IrisRegion i : regions) {
-                a = withModuleSettings(i, Target.REGION, dm).toString(minify ? 0 : 4);
+                a = withModuleSettings(i, Level.REGION, dm).toString(minify ? 0 : 4);
                 IO.writeAll(new File(folder, "regions/" + i.getLoadKey() + ".json"), a);
                 b.append(IO.hash(a));
             }
@@ -227,7 +227,7 @@ public class IrisPackageCompiler {
             }
 
             for (IrisBiome i : biomes) {
-                a = withModuleSettings(i, Target.BIOME, dm).toString(minify ? 0 : 4);
+                a = withModuleSettings(i, Level.BIOME, dm).toString(minify ? 0 : 4);
                 IO.writeAll(new File(folder, "biomes/" + i.getLoadKey() + ".json"), a);
                 b.append(IO.hash(a));
             }
@@ -256,7 +256,7 @@ public class IrisPackageCompiler {
     }
 
     /** The JSON of a dimension, region or biome with the settings its modules declare, which the resource itself does not hold. */
-    private static JSONObject withModuleSettings(IrisRegistrant resource, Target target, IrisData data) {
+    private static JSONObject withModuleSettings(IrisRegistrant resource, Level target, IrisData data) {
         JSONObject json = new JSONObject(new Gson().toJson(resource));
         JSONObject settings = data.getModules().settings().encode(target, resource.getModuleSettings());
         settings.keySet().forEach(key -> json.put(key, settings.get(key)));

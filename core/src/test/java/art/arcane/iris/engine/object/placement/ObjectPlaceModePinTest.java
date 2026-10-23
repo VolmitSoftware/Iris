@@ -78,6 +78,7 @@ public class ObjectPlaceModePinTest {
         BuiltInPack.seedWorld(engine, WORLD_SEED);
         data = mock(IrisData.class);
         when(data.getEngine()).thenReturn(engine);
+        when(engine.getData()).thenReturn(data);
         pack = BuiltInPack.serve(data, folder, List.of());
     }
 

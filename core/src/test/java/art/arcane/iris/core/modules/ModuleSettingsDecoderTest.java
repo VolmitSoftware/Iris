@@ -25,7 +25,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
 import com.volmit.IrisFeature;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
@@ -69,7 +69,7 @@ public class ModuleSettingsDecoderTest {
     private LoadedPack pack;
     private ModuleSettingsDecoder decoder;
 
-    @Feature(id = "iris:moss", name = "Moss", key = "moss", targets = {Target.BIOME, Target.REGION})
+    @Feature(id = "iris:moss", name = "Moss", key = "moss", targets = {Level.BIOME, Level.REGION})
     public static final class MossSettings implements IrisFeature {
         private int radius = 3;
         private BlockState block = new BlockState("minecraft:moss_block");
@@ -82,17 +82,17 @@ public class ModuleSettingsDecoderTest {
         private int size = 1;
     }
 
-    @Feature(id = "iris:moss/cover", name = "Cover", key = "mossCover", targets = Target.BIOME)
+    @Feature(id = "iris:moss/cover", name = "Cover", key = "mossCover", targets = Level.BIOME)
     public static final class CoverSettings implements IrisFeature {
         private double amount = 1;
     }
 
-    @Feature(id = "iris:moss/marks", name = "Marks", key = "mossMarks", targets = Target.BIOME)
+    @Feature(id = "iris:moss/marks", name = "Marks", key = "mossMarks", targets = Level.BIOME)
     public static final class MarksSettings implements IrisFeature {
         private List<IrisPosition> marks = List.of();
     }
 
-    @Feature(id = "iris:moss/values", name = "Values", key = "mossValues", targets = Target.BIOME)
+    @Feature(id = "iris:moss/values", name = "Values", key = "mossValues", targets = Level.BIOME)
     public static final class ValuesSettings implements IrisFeature {
         private List<BlockSpec> palette = List.of();
         private NoiseStyle style = NoiseStyle.of("SIMPLEX");
@@ -133,7 +133,7 @@ public class ModuleSettingsDecoderTest {
     }
 
     private MossSettings moss(String json) {
-        return decoder.decode(Target.BIOME, new JSONObject(json), "biome desert/dunes").find(MossSettings.class).orElseThrow();
+        return decoder.decode(Level.BIOME, new JSONObject(json), "biome desert/dunes").find(MossSettings.class).orElseThrow();
     }
 
     @Test
@@ -151,13 +151,13 @@ public class ModuleSettingsDecoderTest {
 
     @Test
     public void declaresNothingWhereNoKeyIsPresent() {
-        assertSame(ModuleSettings.NONE, decoder.decode(Target.BIOME, new JSONObject("{\"name\": \"Dunes\"}"), "biome desert/dunes"));
-        assertSame(ModuleSettings.NONE, decoder.decode(Target.DIMENSION, new JSONObject("{\"moss\": {}}"), "dimension overworld"));
+        assertSame(ModuleSettings.NONE, decoder.decode(Level.BIOME, new JSONObject("{\"name\": \"Dunes\"}"), "biome desert/dunes"));
+        assertSame(ModuleSettings.NONE, decoder.decode(Level.DIMENSION, new JSONObject("{\"moss\": {}}"), "dimension overworld"));
     }
 
     @Test
     public void theFeatureIdIsNotAKeyOfTheSettings() {
-        assertSame(ModuleSettings.NONE, decoder.decode(Target.BIOME, new JSONObject("{\"iris:moss\": {\"radius\": 7}}"), "biome desert/dunes"));
+        assertSame(ModuleSettings.NONE, decoder.decode(Level.BIOME, new JSONObject("{\"iris:moss\": {\"radius\": 7}}"), "biome desert/dunes"));
     }
 
     @Test
@@ -184,7 +184,7 @@ public class ModuleSettingsDecoderTest {
     public void apiValueTypesReadTheJsonIrisClassesRead() throws IOException {
         Path styles = Files.createDirectories(packFolder.resolve("snippet/style"));
         Files.writeString(styles.resolve("deepslate.json"), "{\"style\": \"STATIC\"}");
-        ValuesSettings values = decoder.decode(Target.BIOME, new JSONObject("""
+        ValuesSettings values = decoder.decode(Level.BIOME, new JSONObject("""
                 {"mossValues": {
                   "palette": [{"block": "minecraft:oak_log", "data": {"axis": "y", "waterlogged": true, "level": 3}, "weight": 2,
                                "backup": {"block": "stone"}, "tileData": {"Delay": 20, "SpawnData": {"entity": {"id": "zombie"}}}},
@@ -226,18 +226,18 @@ public class ModuleSettingsDecoderTest {
 
     @Test
     public void listsTheKeysModulesReadPerTarget() {
-        assertEquals(Set.of("moss", "mossCover", "mossMarks", "mossValues"), decoder.keys(Target.BIOME));
-        assertEquals(Set.of(), decoder.keys(Target.DIMENSION));
+        assertEquals(Set.of("moss", "mossCover", "mossMarks", "mossValues"), decoder.keys(Level.BIOME));
+        assertEquals(Set.of(), decoder.keys(Level.DIMENSION));
     }
 
     @Test
     public void settingsAreAlwaysAnObjectEvenWithOneOption() {
-        assertEquals(0.25, decoder.decode(Target.BIOME, new JSONObject("{\"mossCover\": {\"amount\": 0.25}}"), "biome desert/dunes")
+        assertEquals(0.25, decoder.decode(Level.BIOME, new JSONObject("{\"mossCover\": {\"amount\": 0.25}}"), "biome desert/dunes")
                 .find(CoverSettings.class).orElseThrow().amount, 0);
 
         for (String bare : List.of("0.5", "[1, 2]", "true")) {
             IllegalArgumentException refused = assertThrows(IllegalArgumentException.class,
-                    () -> decoder.decode(Target.BIOME, new JSONObject("{\"mossCover\": " + bare + "}"), "biome desert/dunes"));
+                    () -> decoder.decode(Level.BIOME, new JSONObject("{\"mossCover\": " + bare + "}"), "biome desert/dunes"));
             assertEquals("Cannot read settings iris:moss/cover under \"mossCover\" in biome desert/dunes: write the settings as an object,"
                     + " {\"<option>\": ...}", refused.getMessage());
         }
@@ -260,7 +260,7 @@ public class ModuleSettingsDecoderTest {
         }).create();
         ModuleSettingsDecoder withIrisGson = new ModuleSettingsDecoder(pack.catalog(), packFolder, () -> iris);
 
-        List<IrisPosition> marks = withIrisGson.decode(Target.BIOME, new JSONObject("{\"mossMarks\": {\"marks\": [\"a\", \"b\"]}}"), "biome desert/dunes")
+        List<IrisPosition> marks = withIrisGson.decode(Level.BIOME, new JSONObject("{\"mossMarks\": {\"marks\": [\"a\", \"b\"]}}"), "biome desert/dunes")
                 .find(MarksSettings.class).orElseThrow().marks;
 
         assertEquals(List.of(marked, marked), marks);

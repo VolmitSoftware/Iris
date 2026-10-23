@@ -27,7 +27,7 @@ import art.arcane.iris.builtin.terrain.OreGenerator;
 import art.arcane.iris.builtin.terrain.OreSettings;
 import art.arcane.volmlib.util.json.JSONObject;
 import com.google.gson.Gson;
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
 import com.volmit.block.BlockSpec;
 import com.volmit.host.LoadedPack;
 import com.volmit.host.ModuleHost;
@@ -81,7 +81,7 @@ public class OreSettingsDecodingTest {
     public void theOverworldReadsItsOresInTheOrderTheFileListsThem() throws IOException {
         JSONObject dimension = new JSONObject(Files.readString(packFolder.resolve("dimensions/overworld.json")));
 
-        List<OreGenerator> ores = decoder.decode(Target.DIMENSION, dimension, "dimension overworld")
+        List<OreGenerator> ores = decoder.decode(Level.DIMENSION, dimension, "dimension overworld")
                 .find(OreSettings.class).orElseThrow().generators();
 
         assertEquals(dimension.getJSONArray("ores").length(), ores.size());
@@ -113,7 +113,7 @@ public class OreSettingsDecodingTest {
                 ]}
                 """);
 
-        for (Target target : List.of(Target.REGION, Target.BIOME)) {
+        for (Level target : List.of(Level.REGION, Level.BIOME)) {
             List<OreGenerator> read = decoder.decode(target, ores, "test").find(OreSettings.class).orElseThrow().generators();
 
             assertEquals(2, read.size());
@@ -130,12 +130,12 @@ public class OreSettingsDecodingTest {
 
     @Test
     public void hideOresForHiddenOreIsABooleanOnTheDimension() {
-        ModuleSettings hidden = decoder.decode(Target.DIMENSION, new JSONObject("{\"hideOresForHiddenOre\": true}"), "dimension test");
-        ModuleSettings shown = decoder.decode(Target.DIMENSION, new JSONObject("{\"hideOresForHiddenOre\": false}"), "dimension test");
+        ModuleSettings hidden = decoder.decode(Level.DIMENSION, new JSONObject("{\"hideOresForHiddenOre\": true}"), "dimension test");
+        ModuleSettings shown = decoder.decode(Level.DIMENSION, new JSONObject("{\"hideOresForHiddenOre\": false}"), "dimension test");
 
         assertTrue(hidden.find(HideOresSettings.class).orElseThrow().hide());
         assertFalse(shown.find(HideOresSettings.class).orElseThrow().hide());
-        assertTrue("a dimension that does not write it declares nothing", decoder.decode(Target.DIMENSION, new JSONObject("{}"), "dimension test").isEmpty());
+        assertTrue("a dimension that does not write it declares nothing", decoder.decode(Level.DIMENSION, new JSONObject("{}"), "dimension test").isEmpty());
     }
 
     @Test
@@ -147,7 +147,7 @@ public class OreSettingsDecodingTest {
                 ]}
                 """);
 
-        for (Target target : List.of(Target.DIMENSION, Target.REGION, Target.BIOME)) {
+        for (Level target : List.of(Level.DIMENSION, Level.REGION, Level.BIOME)) {
             List<DepositVariant> variants = decoder.decode(target, json, "test").find(DepositVariantSettings.class).orElseThrow().variants();
 
             assertEquals(2, variants.size());
@@ -163,8 +163,8 @@ public class OreSettingsDecodingTest {
 
     @Test
     public void theTwoOreDepositMultipliersAreNumbersOnTheBiome() {
-        ModuleSettings tuned = decoder.decode(Target.BIOME, new JSONObject("{\"oreDepositFrequencyMultiplier\": 0.4, \"oreDepositSizeMultiplier\": 2}"), "biome test");
-        ModuleSettings plain = decoder.decode(Target.BIOME, new JSONObject("{}"), "biome test");
+        ModuleSettings tuned = decoder.decode(Level.BIOME, new JSONObject("{\"oreDepositFrequencyMultiplier\": 0.4, \"oreDepositSizeMultiplier\": 2}"), "biome test");
+        ModuleSettings plain = decoder.decode(Level.BIOME, new JSONObject("{}"), "biome test");
 
         assertEquals(0.4, tuned.find(OreFrequencySettings.class).orElseThrow().multiplier(), 0);
         assertEquals(2, tuned.find(OreSizeSettings.class).orElseThrow().multiplier(), 0);
@@ -174,10 +174,10 @@ public class OreSettingsDecodingTest {
 
     @Test
     public void everyKeyIsOnlyReadAtTheLevelsTheOldFieldExistedAt() {
-        assertTrue(decoder.keys(Target.DIMENSION).containsAll(List.of("ores", "hideOresForHiddenOre", "depositVariants")));
-        assertTrue(decoder.keys(Target.REGION).containsAll(List.of("ores", "depositVariants")));
-        assertFalse(decoder.keys(Target.REGION).contains("hideOresForHiddenOre"));
-        assertTrue(decoder.keys(Target.BIOME).containsAll(List.of("ores", "depositVariants", "oreDepositFrequencyMultiplier", "oreDepositSizeMultiplier")));
-        assertFalse(decoder.keys(Target.DIMENSION).contains("oreDepositFrequencyMultiplier"));
+        assertTrue(decoder.keys(Level.DIMENSION).containsAll(List.of("ores", "hideOresForHiddenOre", "depositVariants")));
+        assertTrue(decoder.keys(Level.REGION).containsAll(List.of("ores", "depositVariants")));
+        assertFalse(decoder.keys(Level.REGION).contains("hideOresForHiddenOre"));
+        assertTrue(decoder.keys(Level.BIOME).containsAll(List.of("ores", "depositVariants", "oreDepositFrequencyMultiplier", "oreDepositSizeMultiplier")));
+        assertFalse(decoder.keys(Level.DIMENSION).contains("oreDepositFrequencyMultiplier"));
     }
 }

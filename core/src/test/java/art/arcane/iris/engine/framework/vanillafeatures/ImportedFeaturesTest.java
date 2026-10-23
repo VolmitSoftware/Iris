@@ -20,10 +20,11 @@ package art.arcane.iris.engine.framework.vanillafeatures;
 
 import art.arcane.iris.builtin.vanillafeatures.ImportedFeaturesSettings;
 import art.arcane.iris.engine.object.TestSettings;
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
 import com.volmit.IrisFeature;
 import com.volmit.config.FeatureSettings.Entry;
 import com.volmit.config.PackSettings;
+import com.volmit.config.SettingsStack;
 import com.volmit.resource.ResourceId;
 import com.volmit.vanilla.DecorationStep;
 import com.volmit.world.PackWorld;
@@ -112,11 +113,11 @@ public class ImportedFeaturesTest {
         when(world.settings()).thenReturn(new PackSettings() {
             @Override
             @SuppressWarnings("unchecked")
-            public <F extends IrisFeature> List<Entry<F>> declared(Class<F> featureType) {
+            public <F extends IrisFeature> SettingsStack<F> declared(Class<F> featureType) {
                 if (settings == null || featureType != ImportedFeaturesSettings.class) {
-                    return List.of();
+                    return SettingsStack.empty();
                 }
-                return List.of((Entry<F>) new Entry<>(Target.DIMENSION, ResourceId.parse("test:overworld"), settings));
+                return SettingsStack.of(List.of((Entry<F>) new Entry<>(Level.DIMENSION, ResourceId.parse("test:overworld"), settings)));
             }
         });
         return world;

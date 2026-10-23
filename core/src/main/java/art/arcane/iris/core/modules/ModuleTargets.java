@@ -23,7 +23,7 @@ import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
 
 import java.util.EnumMap;
 import java.util.Map;
@@ -34,17 +34,17 @@ import java.util.Set;
  * Which Iris class holds the JSON of each attachment target that module settings can appear in.
  */
 public final class ModuleTargets {
-    private static final Map<Target, Class<?>> HOLDERS = Map.of(
-            Target.DIMENSION, IrisDimension.class,
-            Target.REGION, IrisRegion.class,
-            Target.BIOME, IrisBiome.class,
-            Target.OBJECT_PLACEMENT, IrisObjectPlacement.class);
+    private static final Map<Level, Class<?>> HOLDERS = Map.of(
+            Level.DIMENSION, IrisDimension.class,
+            Level.REGION, IrisRegion.class,
+            Level.BIOME, IrisBiome.class,
+            Level.PLACEMENT, IrisObjectPlacement.class);
 
     private ModuleTargets() {
     }
 
     /** The target whose JSON a resource of {@code resourceType} is, if module settings can appear in it. */
-    public static Optional<Target> ofResource(Class<?> resourceType) {
+    public static Optional<Level> ofResource(Class<?> resourceType) {
         return HOLDERS.entrySet().stream()
                 .filter(entry -> entry.getValue() == resourceType)
                 .map(Map.Entry::getKey)
@@ -52,8 +52,8 @@ public final class ModuleTargets {
     }
 
     /** Iris's own JSON fields per target, which no settings key may take. */
-    static Map<Target, Set<String>> reservedFields() {
-        Map<Target, Set<String>> fields = new EnumMap<>(Target.class);
+    static Map<Level, Set<String>> reservedFields() {
+        Map<Level, Set<String>> fields = new EnumMap<>(Level.class);
         HOLDERS.forEach((target, holder) -> fields.put(target, JsonFieldNames.of(holder)));
         return fields;
     }

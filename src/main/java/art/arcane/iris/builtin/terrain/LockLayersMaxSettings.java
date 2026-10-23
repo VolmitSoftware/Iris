@@ -18,14 +18,14 @@
 
 package art.arcane.iris.builtin.terrain;
 
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
 import com.volmit.IrisFeature;
 import com.volmit.config.Desc;
 import com.volmit.config.Feature;
 
 /** How many layers a locked biome iterates below the surface, written as {@code "lockLayersMax": 7}. A biome without the key iterates seven. */
 @Desc("The max layers to iterate below the surface for locked layer biomes (mesa).")
-@Feature(id = "iris:terrain/lock-layers-max", name = "Lock layers max", key = "lockLayersMax", root = "layers", targets = Target.BIOME)
+@Feature(id = "iris:terrain/lock-layers-max", name = "Lock layers max", key = "lockLayersMax", root = "layers", targets = Level.BIOME)
 public final class LockLayersMaxSettings implements IrisFeature {
     public static final int DEFAULT_LAYERS = 7;
 

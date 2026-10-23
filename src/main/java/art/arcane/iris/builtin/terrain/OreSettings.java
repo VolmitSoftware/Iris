@@ -18,7 +18,7 @@
 
 package art.arcane.iris.builtin.terrain;
 
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
 import com.volmit.IrisFeature;
 import com.volmit.config.Desc;
 import com.volmit.config.Feature;
@@ -33,7 +33,7 @@ import java.util.List;
  * like {@link OreGenerator}.
  */
 @Desc("Collection of ores to be generated")
-@Feature(id = "iris:terrain/ores", name = "Ores", key = "ores", root = "generators", targets = {Target.DIMENSION, Target.REGION, Target.BIOME})
+@Feature(id = "iris:terrain/ores", name = "Ores", key = "ores", root = "generators", targets = {Level.DIMENSION, Level.REGION, Level.BIOME})
 public final class OreSettings implements IrisFeature {
     @MinItems(1)
     @Desc("Collection of ores to be generated")

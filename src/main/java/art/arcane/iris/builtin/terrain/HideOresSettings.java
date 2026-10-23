@@ -18,7 +18,7 @@
 
 package art.arcane.iris.builtin.terrain;
 
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
 import com.volmit.IrisFeature;
 import com.volmit.config.Desc;
 import com.volmit.config.Feature;
@@ -28,7 +28,7 @@ import com.volmit.config.Feature;
  * material. Written as the bare boolean.
  */
 @Desc("When true, every ore block the generator would place (terrain ores, deposits, ores inside objects) is replaced with its base material such as stone, deepslate or netherrack, so drop-control plugins like HiddenOre can manage ore rewards themselves")
-@Feature(id = "iris:terrain/hide-ores", name = "Hide ores", key = "hideOresForHiddenOre", root = "hide", targets = Target.DIMENSION)
+@Feature(id = "iris:terrain/hide-ores", name = "Hide ores", key = "hideOresForHiddenOre", root = "hide", targets = Level.DIMENSION)
 public final class HideOresSettings implements IrisFeature {
     @Desc("When true, every ore block the generator would place (terrain ores, deposits, ores inside objects) is replaced with its base material such as stone, deepslate or netherrack, so drop-control plugins like HiddenOre can manage ore rewards themselves")
     private boolean hide = false;

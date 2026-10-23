@@ -22,9 +22,7 @@ import art.arcane.iris.builtin.IrisSeed;
 import art.arcane.iris.builtin.carve.CarvingEntry;
 import art.arcane.iris.builtin.carve.CarvingSettings;
 import com.volmit.ModuleLog;
-import com.volmit.config.FeatureSettings.Entry;
 import com.volmit.config.Range;
-import com.volmit.FeatureAttachment.Target;
 import com.volmit.noise.NoiseSampler;
 import com.volmit.resource.PackResources;
 import com.volmit.world.PackBiome;
@@ -72,13 +70,7 @@ public final class CarvingResolver {
     }
 
     private static List<CarvingEntry> dimensionEntries(PackWorld world) {
-        List<CarvingEntry> dimensionEntries = new ArrayList<>();
-        for (Entry<CarvingSettings> entry : world.settings().declared(CarvingSettings.class)) {
-            if (entry.level() == Target.DIMENSION) {
-                dimensionEntries.addAll(entry.value().entries());
-            }
-        }
-        return dimensionEntries;
+        return world.settings().declared(CarvingSettings.class).dimension().map(CarvingSettings::entries).orElse(List.of());
     }
 
     /** Every declared entry, enabled or not. */

@@ -18,7 +18,7 @@
 
 package art.arcane.iris.builtin.terrain;
 
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
 import com.volmit.IrisFeature;
 import com.volmit.config.Desc;
 import com.volmit.config.Feature;
@@ -30,7 +30,7 @@ import java.util.List;
  * that declares none gets one layer of grass, so the settings class default is what a biome without the key has.
  */
 @Desc("This defines the layers of materials in this biome. Each layer has a palette and min/max height and some other properties. Usually a grassy/sandy layer then a dirt layer then a stone layer. Iris will fill in the remaining blocks below your layers with stone.")
-@Feature(id = "iris:terrain/layers", name = "Layers", key = "layers", root = "layers", targets = Target.BIOME)
+@Feature(id = "iris:terrain/layers", name = "Layers", key = "layers", root = "layers", targets = Level.BIOME)
 public final class LayersSettings implements IrisFeature {
     @Desc("This defines the layers of materials in this biome. Each layer has a palette and min/max height and some other properties. Usually a grassy/sandy layer then a dirt layer then a stone layer. Iris will fill in the remaining blocks below your layers with stone.")
     private List<PaletteLayer> layers = List.of(new PaletteLayer());

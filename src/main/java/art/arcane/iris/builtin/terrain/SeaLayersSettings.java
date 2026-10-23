@@ -18,7 +18,7 @@
 
 package art.arcane.iris.builtin.terrain;
 
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
 import com.volmit.IrisFeature;
 import com.volmit.config.Desc;
 import com.volmit.config.Feature;
@@ -29,7 +29,7 @@ import java.util.List;
  * The layers of material filling the water column of a sea biome, written as {@code "seaLayers": [...]}, the list of layers.
  */
 @Desc("Layers of materials filling the water column of sea biomes, indexed downward from the water surface. Anything below the last layer is filled with the dimension fluid palette, not stone.")
-@Feature(id = "iris:terrain/sea-layers", name = "Sea layers", key = "seaLayers", root = "layers", targets = Target.BIOME)
+@Feature(id = "iris:terrain/sea-layers", name = "Sea layers", key = "seaLayers", root = "layers", targets = Level.BIOME)
 public final class SeaLayersSettings implements IrisFeature {
     @Desc("Layers of materials filling the water column of sea biomes, indexed downward from the water surface. Anything below the last layer is filled with the dimension fluid palette, not stone.")
     private List<PaletteLayer> layers = List.of();

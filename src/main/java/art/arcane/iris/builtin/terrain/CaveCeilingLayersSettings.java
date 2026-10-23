@@ -18,7 +18,7 @@
 
 package art.arcane.iris.builtin.terrain;
 
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
 import com.volmit.IrisFeature;
 import com.volmit.config.Desc;
 import com.volmit.config.Feature;
@@ -29,7 +29,7 @@ import java.util.List;
  * The layers of material on the ceilings of caves in a biome, written as {@code "caveCeilingLayers": [...]}, the list of layers.
  */
 @Desc("Layers of materials placed on cave ceilings in this biome, indexed upward from the ceiling surface. Must not have more entries than layers, whose height generators it reuses. Omitting this leaves cave ceilings unchanged.")
-@Feature(id = "iris:terrain/cave-ceiling-layers", name = "Cave ceiling layers", key = "caveCeilingLayers", root = "layers", targets = Target.BIOME)
+@Feature(id = "iris:terrain/cave-ceiling-layers", name = "Cave ceiling layers", key = "caveCeilingLayers", root = "layers", targets = Level.BIOME)
 public final class CaveCeilingLayersSettings implements IrisFeature {
     @Desc("Layers of materials placed on cave ceilings in this biome, indexed upward from the ceiling surface. Must not have more entries than layers, whose height generators it reuses. Omitting this leaves cave ceilings unchanged.")
     private List<PaletteLayer> layers = List.of();

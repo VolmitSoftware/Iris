@@ -17,14 +17,14 @@
  */
 package art.arcane.iris.builtin.terrain;
 
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
 import com.volmit.IrisFeature;
 import com.volmit.config.Desc;
 import com.volmit.config.Feature;
 
 /** Whether a dimension has a layer of bedrock at its bottom, written as {@code "bedrock": false}. A dimension without the key has it. */
 @Desc("Should bedrock be generated or not.")
-@Feature(id = "iris:terrain/bedrock", name = "Bedrock", key = "bedrock", root = "bedrock", targets = Target.DIMENSION)
+@Feature(id = "iris:terrain/bedrock", name = "Bedrock", key = "bedrock", root = "bedrock", targets = Level.DIMENSION)
 public final class BedrockSettings implements IrisFeature {
     @Desc("Should bedrock be generated or not.")
     private boolean bedrock = true;

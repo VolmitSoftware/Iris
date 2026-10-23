@@ -75,7 +75,7 @@ public final class BiomeDecorators {
 
     /** The biome of the entry a column's settings gave, which is the column's surface biome; null when the biome declares nothing. */
     public static DecoratedBiome biomeOf(FeatureSettings settings, int worldX, int worldZ, com.volmit.world.BiomeKind kind) {
-        List<Entry<DecorantSettings>> entries = settings.at(DecorantSettings.class, worldX, worldZ);
+        List<Entry<DecorantSettings>> entries = settings.at(DecorantSettings.class, worldX, worldZ).entries();
         if (entries.isEmpty()) {
             return null;
         }
@@ -108,7 +108,7 @@ public final class BiomeDecorators {
 
     /** Resolves every decorator of every biome the dimension reaches and builds its noise, so that generation finds them ready. */
     public void warm() {
-        List<Entry<DecorantSettings>> declared = new ArrayList<>(world.settings().declared(DecorantSettings.class));
+        List<Entry<DecorantSettings>> declared = new ArrayList<>(world.settings().declared(DecorantSettings.class).entries());
         declared.sort(Comparator.comparing(entry -> biomeKey(entry.source())));
         for (Entry<DecorantSettings> entry : declared) {
             DecoratedBiome biome = new DecoratedBiome(biomeKey(entry.source()), entry.value(), null);

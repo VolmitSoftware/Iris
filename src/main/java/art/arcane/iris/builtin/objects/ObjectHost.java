@@ -19,7 +19,7 @@
 package art.arcane.iris.builtin.objects;
 
 import art.arcane.volmlib.util.math.RNG;
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
 import com.volmit.IrisFeature;
 import com.volmit.config.FeatureSettings;
 import com.volmit.config.PackSettings;
@@ -125,6 +125,6 @@ public interface ObjectHost {
     }
 
     /** One region's or biome's declaration of settings. */
-    record Declaration<F extends IrisFeature>(Target level, String key, F settings) {
+    record Declaration<F extends IrisFeature>(Level level, String key, F settings) {
     }
 }

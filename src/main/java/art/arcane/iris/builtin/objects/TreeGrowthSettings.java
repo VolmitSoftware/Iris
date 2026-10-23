@@ -18,7 +18,7 @@
 
 package art.arcane.iris.builtin.objects;
 
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
 import com.volmit.IrisFeature;
 import com.volmit.config.Desc;
 import com.volmit.config.Feature;
@@ -28,7 +28,7 @@ import com.volmit.config.Snippet;
 /** Whether a dimension's saplings grow the trees of its object placements, written as {@code "treeSettings": {...}}. */
 @Snippet("tree-settings")
 @Desc("Tree growth override settings")
-@Feature(id = "iris:objects/trees", name = "Tree growth", key = "treeSettings", targets = Target.DIMENSION)
+@Feature(id = "iris:objects/trees", name = "Tree growth", key = "treeSettings", targets = Level.DIMENSION)
 public final class TreeGrowthSettings implements IrisFeature {
     @Required
     @Desc("Turn replacing on and off")

@@ -68,7 +68,6 @@ final class FloatingIslands {
     private static final int FIRST_LAYER_GENERATOR_SEED = 7235;
     private static final int MIN_PALETTE_DEPTH = 4;
     private static final int CHUNK_WIDTH = 16;
-    private static final int CHUNK_CENTRE = 7;
     private static final BlockState BARRIER = new BlockState("minecraft:barrier");
     private static final BlockState FALLBACK_SOLID = new BlockState("minecraft:stone");
     private static final String DEFAULT_FLUID = "minecraft:water";
@@ -449,9 +448,9 @@ final class FloatingIslands {
             this.originZ = context.originZ();
             this.output = context.hunk(BlockState.class);
             this.height = output.getHeight();
-            this.blocks = context.resources().blocks();
+            this.blocks = context.world().resources().blocks();
             this.settings = context.settings();
-            this.explosion = PaletteExplosion.of(settings, originX + CHUNK_CENTRE, originZ + CHUNK_CENTRE);
+            this.explosion = PaletteExplosion.of(settings, context.centreX(), context.centreZ());
             TerrainSampler terrain = context.terrain();
             this.slope = (x, z) -> terrain.column((int) x, (int) z).slope();
             this.boundarySampler = new FloatingIslandBoundarySampler(world.host()::surfaceBiome);

@@ -18,7 +18,7 @@
 
 package art.arcane.iris.builtin.spawn;
 
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
 import com.volmit.IrisFeature;
 import com.volmit.config.Desc;
 import com.volmit.config.Feature;
@@ -32,7 +32,7 @@ import java.util.List;
  * {@link AmbientEffect}s. They play around every player in the area.
  */
 @Desc("Effects are ambient effects such as potion effects, random sounds, or even particles around each player. All of these effects are played via packets so two players won't see/hear each others effects.\nDue to performance reasons, effects will play arround the player even if where the effect was played is no longer in the biome the player is in.")
-@Feature(id = "iris:spawn/effects", name = "Effects", key = "effects", root = "effects", targets = {Target.REGION, Target.BIOME})
+@Feature(id = "iris:spawn/effects", name = "Effects", key = "effects", root = "effects", targets = {Level.REGION, Level.BIOME})
 public final class EffectSettings implements IrisFeature {
     @MinItems(1)
     @Desc("Effects are ambient effects such as potion effects, random sounds, or even particles around each player.")

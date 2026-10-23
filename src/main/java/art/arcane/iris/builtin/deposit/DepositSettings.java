@@ -18,7 +18,7 @@
 
 package art.arcane.iris.builtin.deposit;
 
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
 import com.volmit.IrisFeature;
 import com.volmit.config.Desc;
 import com.volmit.config.Feature;
@@ -31,7 +31,7 @@ import java.util.List;
  * like {@link DepositGenerator}.
  */
 @Desc("Ores and other deposits generated in every chunk where this applies")
-@Feature(id = "iris:deposit", name = "Deposits", key = "deposits", root = "generators", targets = {Target.DIMENSION, Target.REGION, Target.BIOME})
+@Feature(id = "iris:deposit", name = "Deposits", key = "deposits", root = "generators", targets = {Level.DIMENSION, Level.REGION, Level.BIOME})
 public final class DepositSettings implements IrisFeature {
     @Desc("Define deposit generators that this applies to chunks")
     private List<DepositGenerator> generators = List.of();

@@ -150,7 +150,7 @@ public final class StiltModule implements IrisModule {
         /** The block the settings' palette picks for this placement, the same for every column; null without a palette. */
         private BlockState paletteBlock(StiltSettings stilt) {
             return stilt.palette()
-                    .map(spec -> context.resources().blocks().palette(spec, rng.getSeed()))
+                    .map(spec -> context.world().resources().blocks().palette(spec, rng.getSeed()))
                     .map(picker -> picker.at(placement.x(), anchorY, placement.z()))
                     .orElse(null);
         }
@@ -189,7 +189,7 @@ public final class StiltModule implements IrisModule {
                 return state;
             }
             return ObjectEdits.apply(config.edit(), state, Optional.empty(), rng, offset.x() + placement.x(), offset.y() + anchorY,
-                    offset.z() + placement.z(), ResolvedReplaces.of(context, prepared.terrain()), placement).data();
+                    offset.z() + placement.z(), ResolvedReplaces.of(context), placement).data();
         }
 
         private void growToSurface(BlockState state, BlockPosition offset, int x, int z) {

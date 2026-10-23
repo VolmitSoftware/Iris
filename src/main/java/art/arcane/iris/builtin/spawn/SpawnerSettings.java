@@ -18,7 +18,7 @@
 
 package art.arcane.iris.builtin.spawn;
 
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
 import com.volmit.IrisFeature;
 import com.volmit.config.Desc;
 import com.volmit.config.Feature;
@@ -33,7 +33,7 @@ import java.util.List;
  * {@link Spawner}s. A chunk may fire the spawners of its dimension, region and biome.
  */
 @Desc("Entity spawners that fire in this area")
-@Feature(id = "iris:spawn", name = "Entity spawners", key = "entitySpawners", root = "spawners", targets = {Target.DIMENSION, Target.REGION, Target.BIOME})
+@Feature(id = "iris:spawn", name = "Entity spawners", key = "entitySpawners", root = "spawners", targets = {Level.DIMENSION, Level.REGION, Level.BIOME})
 public final class SpawnerSettings implements IrisFeature {
     @MinItems(1)
     @ResourceRef(Spawner.class)

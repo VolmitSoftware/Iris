@@ -44,7 +44,6 @@ import java.util.Map;
 public final class PerfectionModule implements IrisModule {
     private static final String VERSION = "built-in";
     private static final String HALF = "half";
-    private static final int CENTER = 7;
     private static final BlockState AIR = new BlockState("minecraft:air");
     private static final Map<ResourceId, BlockState> ORE_BASES = oreBases();
 
@@ -63,7 +62,7 @@ public final class PerfectionModule implements IrisModule {
         if (hidesOres(context)) {
             hideOres(blocks, new IdentityHashMap<>());
         }
-        Surfaces surfaces = new Surfaces(blocks, context.resources().blocks(), new IdentityHashMap<>());
+        Surfaces surfaces = new Surfaces(blocks, context.world().resources().blocks(), new IdentityHashMap<>());
         boolean removed;
         do {
             removed = surfaces.removeUnsupportedDecorants();
@@ -72,8 +71,8 @@ public final class PerfectionModule implements IrisModule {
 
     /** The dimension's {@code hideOresForHiddenOre}, which every column of the chunk shares. */
     private static boolean hidesOres(ChunkStageContext context) {
-        return context.settings().at(HideOresSettings.class, context.originX() + CENTER, context.originZ() + CENTER).stream()
-                .anyMatch(entry -> entry.value().hide());
+        return context.settings().at(HideOresSettings.class, context.centreX(), context.centreZ()).dimension()
+                .map(HideOresSettings::hide).orElse(false);
     }
 
     /** {@code hidden} remembers per state instance what it is hidden as, itself for a block that is no ore. */

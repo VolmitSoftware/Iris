@@ -22,7 +22,6 @@ import art.arcane.iris.builtin.RegistryKeyFamily;
 import art.arcane.iris.builtin.structure.StructureAdjustment;
 import art.arcane.iris.builtin.structure.StructureSetFrequency;
 import art.arcane.iris.builtin.structure.StructureSettings;
-import com.volmit.config.FeatureSettings.Entry;
 import com.volmit.config.PackSettings;
 import com.volmit.resource.ResourceId;
 import com.volmit.vanilla.VanillaStructureSetup;
@@ -46,8 +45,7 @@ public final class ImportedStructures {
 
     /** The settings the dimension of {@code settings} declares, or the defaults when it declares none. */
     public static ImportedStructures of(PackSettings settings) {
-        List<Entry<StructureSettings>> declared = settings.declared(StructureSettings.class);
-        return new ImportedStructures(declared.isEmpty() ? new StructureSettings() : declared.getFirst().value());
+        return new ImportedStructures(settings.declared(StructureSettings.class).dimension().orElseGet(StructureSettings::new));
     }
 
     /** Whether the dimension disables the platform structure {@code key}, by family or by its exact key. */

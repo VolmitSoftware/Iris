@@ -32,7 +32,6 @@ import com.volmit.block.BlockState;
 import com.volmit.block.BlockTrait;
 import com.volmit.hunk.Hunk;
 import com.volmit.config.FeatureSettings;
-import com.volmit.config.FeatureSettings.Entry;
 import com.volmit.resource.ResourceId;
 import com.volmit.stage.ChunkStageContext;
 import com.volmit.world.TerrainSampler;
@@ -54,7 +53,6 @@ final class SurfaceSmoothing {
     private static final String SLAB_SUFFIX = "_slab";
     private static final String WATERLOGGED = "waterlogged";
     private static final String TRUE = "true";
-    private static final int CENTER = 7;
     /** A biome without a wall or slab picks no block. */
     private static final PaletteLayer NO_LAYER = PaletteLayer.withoutBlocks();
     /** Walls and slabs are picked once per column: the first signature of a layer's noise. */
@@ -79,7 +77,7 @@ final class SurfaceSmoothing {
 
     private SurfaceSmoothing(ChunkStageContext context) {
         this.blocks = context.hunk(BlockState.class);
-        this.registry = context.resources().blocks();
+        this.registry = context.world().resources().blocks();
         this.terrain = context.terrain();
         this.settings = context.settings();
         this.layerBlocks = LayerBlocks.of(context.world());
@@ -88,8 +86,8 @@ final class SurfaceSmoothing {
         this.originZ = context.originZ();
         this.planeWidth = blocks.getWidth() + 2;
         this.heights = heightPlane();
-        this.walls = enabled(PostProcessingWallsSettings.class, PostProcessingWallsSettings::enabled, PostProcessingWallsSettings.DEFAULT_ENABLED);
-        this.slabs = enabled(PostProcessingSlabsSettings.class, PostProcessingSlabsSettings::enabled, PostProcessingSlabsSettings.DEFAULT_ENABLED);
+        this.walls = enabled(context, PostProcessingWallsSettings.class, PostProcessingWallsSettings::enabled, PostProcessingWallsSettings.DEFAULT_ENABLED);
+        this.slabs = enabled(context, PostProcessingSlabsSettings.class, PostProcessingSlabsSettings::enabled, PostProcessingSlabsSettings.DEFAULT_ENABLED);
         this.fluidHeight = terrain.fluidHeight();
     }
 
@@ -112,15 +110,13 @@ final class SurfaceSmoothing {
      * corners are never read, so they are left unresolved.
      */
     /** A switch of the dimension, which every column of the chunk shares. */
-    private <S extends IrisFeature> boolean enabled(Class<S> type, Function<S, Boolean> enabled, boolean byDefault) {
-        List<Entry<S>> entries = settings.at(type, originX + CENTER, originZ + CENTER);
-        return entries.isEmpty() ? byDefault : enabled.apply(entries.getFirst().value());
+    private static <S extends IrisFeature> boolean enabled(ChunkStageContext context, Class<S> type, Function<S, Boolean> enabled, boolean byDefault) {
+        return context.settings().at(type, context.centreX(), context.centreZ()).dimension().map(enabled).orElse(byDefault);
     }
 
     /** The biome layer of the column's surface biome that {@code type} holds, or none. */
     private <S extends IrisFeature> PaletteLayer biomeLayer(Class<S> type, Function<S, PaletteLayer> layer, int x, int z) {
-        List<Entry<S>> entries = settings.at(type, x, z);
-        return entries.isEmpty() ? NO_LAYER : layer.apply(entries.getLast().value());
+        return settings.at(type, x, z).mostSpecific().map(layer).orElse(NO_LAYER);
     }
 
     /** The layer's block at the position, picked with the world's post-processing random, or null when it has none. */
@@ -146,7 +142,7 @@ final class SurfaceSmoothing {
     }
 
     private int surfaceHeight(int x, int z) {
-        return (int) Math.round(terrain.surfaceY(x, z));
+        return terrain.surfaceHeight(x, z);
     }
 
     private void post(int localX, int localZ) {

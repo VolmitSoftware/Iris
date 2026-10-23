@@ -104,7 +104,7 @@ public final class BlocksModule implements IrisModule {
         if (!settings.edit().isEmpty()) {
             ObjectEdits.Edited edited = ObjectEdits.apply(settings.edit(), data, blockEntity, new RNG(context.random().nextLong()),
                     offset.x() + placement.x(), offset.y() + anchorY, offset.z() + placement.z(),
-                    ResolvedReplaces.of(context, prepared.terrain()), placement);
+                    ResolvedReplaces.of(context), placement);
             data = edited.data();
             blockEntity = edited.blockEntity();
         }

@@ -59,20 +59,10 @@ public final class TerrainModule implements IrisModule, ModuleLifecycle {
     public void setup(ModuleSetup setup) {
         setup.stages().define(IrisStages.Terrain.SHAPE).run(TerrainModule::shape);
         var registry = setup.registry();
-        registry.registerSettings(LayersSettings.class);
-        registry.registerSettings(SeaLayersSettings.class);
-        registry.registerSettings(CaveCeilingLayersSettings.class);
-        registry.registerSettings(SlabSettings.class);
-        registry.registerSettings(WallSettings.class);
-        registry.registerSettings(LockLayersSettings.class);
-        registry.registerSettings(LockLayersMaxSettings.class);
-        registry.registerSettings(RockPaletteSettings.class);
-        registry.registerSettings(FluidPaletteSettings.class);
-        registry.registerSettings(OreSettings.class);
-        registry.registerSettings(HideOresSettings.class);
-        registry.registerSettings(BedrockSettings.class);
-        registry.registerSettings(ExplodeBiomePalettesSettings.class);
-        registry.registerSettings(ExplodeBiomePaletteSizeSettings.class);
+        registry.registerSettings(LayersSettings.class, SeaLayersSettings.class, CaveCeilingLayersSettings.class, SlabSettings.class,
+                WallSettings.class, LockLayersSettings.class, LockLayersMaxSettings.class, RockPaletteSettings.class, FluidPaletteSettings.class,
+                OreSettings.class, HideOresSettings.class, BedrockSettings.class, ExplodeBiomePalettesSettings.class,
+                ExplodeBiomePaletteSizeSettings.class);
         registry.registerLifecycle(this);
     }
 

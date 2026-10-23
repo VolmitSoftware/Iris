@@ -18,7 +18,7 @@
 
 package art.arcane.iris.builtin.deposit;
 
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
 import com.volmit.IrisFeature;
 import com.volmit.config.Desc;
 import com.volmit.config.Feature;
@@ -27,7 +27,7 @@ import com.volmit.config.MinNumber;
 
 /** A biome's {@code oreDepositSizeMultiplier}, written as the bare number. */
 @Desc("Multiplier applied to the block count of every ore deposit whose center is inside this biome. Non-ore deposits are unchanged.")
-@Feature(id = "iris:deposit/ore-size", name = "Ore deposit size", key = "oreDepositSizeMultiplier", root = "multiplier", targets = Target.BIOME)
+@Feature(id = "iris:deposit/ore-size", name = "Ore deposit size", key = "oreDepositSizeMultiplier", root = "multiplier", targets = Level.BIOME)
 public final class OreSizeSettings implements IrisFeature {
     private static final double UNCHANGED = 1D;
 

@@ -45,8 +45,7 @@ public final class SpawnModule implements IrisModule {
     @Override
     public void setup(ModuleSetup setup) {
         var registry = setup.registry();
-        registry.registerSettings(SpawnerSettings.class);
-        registry.registerSettings(EffectSettings.class);
+        registry.registerSettings(SpawnerSettings.class, EffectSettings.class);
         registry.registerHeldType(PlacementMarker.class);
         SpawnResources.kinds().forEach(registry::registerResourceKind);
         registry.registerService(EntitySpawns.class, new EntitySpawning());

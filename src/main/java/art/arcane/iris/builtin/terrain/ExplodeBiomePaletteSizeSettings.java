@@ -17,7 +17,7 @@
  */
 package art.arcane.iris.builtin.terrain;
 
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
 import com.volmit.IrisFeature;
 import com.volmit.config.Desc;
 import com.volmit.config.Feature;
@@ -26,7 +26,7 @@ import com.volmit.config.MinNumber;
 
 /** How many barrier blocks a dimension puts between layers when it explodes its biome palettes, written as {@code "explodeBiomePaletteSize": 3}. */
 @Desc("Customize the palette height explosion")
-@Feature(id = "iris:terrain/explode-palette-size", name = "Explode biome palette size", key = "explodeBiomePaletteSize", root = "size", targets = Target.DIMENSION)
+@Feature(id = "iris:terrain/explode-palette-size", name = "Explode biome palette size", key = "explodeBiomePaletteSize", root = "size", targets = Level.DIMENSION)
 public final class ExplodeBiomePaletteSizeSettings implements IrisFeature {
     public static final int DEFAULT_SIZE = 3;
 

@@ -18,14 +18,14 @@
 
 package art.arcane.iris.builtin.carve;
 
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
 import com.volmit.IrisFeature;
 import com.volmit.config.Desc;
 import com.volmit.config.Feature;
 
 /** A dimension's {@code upperDimensionCarving}, written as the bare boolean. */
 @Desc("When true, cave carving will cut through the upper dimension terrain. When false, the upper terrain is a solid untouched mass.")
-@Feature(id = "iris:carve/upper-dimension", name = "Upper dimension carving", key = "upperDimensionCarving", root = "enabled", targets = Target.DIMENSION)
+@Feature(id = "iris:carve/upper-dimension", name = "Upper dimension carving", key = "upperDimensionCarving", root = "enabled", targets = Level.DIMENSION)
 public final class UpperDimensionCarvingSettings implements IrisFeature {
     @Desc("When true, cave carving will cut through the upper dimension terrain. When false, the upper terrain is a solid untouched mass.")
     private boolean enabled = false;

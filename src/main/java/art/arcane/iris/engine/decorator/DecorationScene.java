@@ -51,7 +51,7 @@ public final class DecorationScene {
     /** The chunk of {@code context}, decorated with the world's decorators. */
     public static DecorationScene of(ChunkStageContext context) {
         Mantle mantle = context.mantle();
-        return new DecorationScene(context.hunk(BlockState.class), context.resources().blocks(), context.terrain(),
+        return new DecorationScene(context.hunk(BlockState.class), context.world().resources().blocks(), context.terrain(),
                 mantle == null ? null : mantle.blocks(), BiomeDecorators.of(context.world()), IrisSeed.COMPONENT.of(context.world()),
                 context.log());
     }
@@ -108,7 +108,7 @@ public final class DecorationScene {
 
     /** The height of the terrain at the column, rounded. */
     long roundedHeightAt(int worldX, int worldZ) {
-        return Math.round(terrain.surfaceY(worldX, worldZ));
+        return terrain.surfaceHeight(worldX, worldZ);
     }
 
     /** The block a placement planned at the position, or air; positions the mantle does not cover read as air. */

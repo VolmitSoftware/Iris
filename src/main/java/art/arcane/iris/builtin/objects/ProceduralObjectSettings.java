@@ -24,7 +24,7 @@ import art.arcane.iris.builtin.objects.formation.Formation;
 import art.arcane.iris.builtin.objects.fungi.Fungus;
 import art.arcane.iris.builtin.objects.ruin.Ruin;
 import art.arcane.iris.builtin.objects.tree.Tree;
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
 import com.volmit.IrisFeature;
 import com.volmit.config.Desc;
 import com.volmit.config.Feature;
@@ -40,7 +40,7 @@ import java.util.List;
  */
 @Snippet("procedural-objects")
 @Desc("Procedurally generated objects placed in a biome or region. Unlike the objects block (which loads iob files), these are generated from scratch at world-gen time.")
-@Feature(id = "iris:objects/procedural", name = "Procedural objects", key = "proceduralObjects", targets = {Target.REGION, Target.BIOME})
+@Feature(id = "iris:objects/procedural", name = "Procedural objects", key = "proceduralObjects", targets = {Level.REGION, Level.BIOME})
 public final class ProceduralObjectSettings implements IrisFeature {
     @MinItems(1)
     @Desc("Procedurally generated trees.")

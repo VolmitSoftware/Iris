@@ -18,14 +18,14 @@
 
 package art.arcane.iris.builtin.objects;
 
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
 import com.volmit.IrisFeature;
 import com.volmit.config.Desc;
 import com.volmit.config.Feature;
 
 /** Whether a dimension refuses surface objects over carved openings, written as {@code "requireObjectSurfaceSupport": true}. */
 @Desc("Refuse to place surface objects and trees over carved surface openings.")
-@Feature(id = "iris:objects/surface-support", name = "Require surface support", key = "requireObjectSurfaceSupport", root = "require", targets = Target.DIMENSION)
+@Feature(id = "iris:objects/surface-support", name = "Require surface support", key = "requireObjectSurfaceSupport", root = "require", targets = Level.DIMENSION)
 public final class RequireSurfaceSupportSettings implements IrisFeature {
     private static final boolean DEFAULT_REQUIRED = true;
 

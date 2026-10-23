@@ -20,13 +20,13 @@ package art.arcane.iris.engine.actuator;
 import art.arcane.iris.builtin.IrisSeed;
 import art.arcane.iris.builtin.terrain.OreSettings;
 import art.arcane.volmlib.util.math.RNG;
-import com.volmit.FeatureAttachment.Target;
 import com.volmit.config.FeatureSettings.Entry;
+import com.volmit.config.Level;
+import com.volmit.config.SettingsStack;
 import com.volmit.resource.ResourceId;
 import com.volmit.world.PackWorld;
 
 import java.util.Comparator;
-import java.util.List;
 import java.util.function.LongSupplier;
 
 /**
@@ -55,15 +55,15 @@ final class OreWarmUp {
     void warm() {
         LongSupplier seeds = () -> root.nextParallelRNG(warmed++).getSeed();
 
-        List<Entry<OreSettings>> declared = world.settings().declared(OreSettings.class);
-        warmLevel(declared, Target.BIOME, seeds);
-        warmLevel(declared, Target.REGION, seeds);
-        warmLevel(declared, Target.DIMENSION, seeds);
+        SettingsStack<OreSettings> declared = world.settings().declared(OreSettings.class);
+        warmLevel(declared, Level.BIOME, seeds);
+        warmLevel(declared, Level.REGION, seeds);
+        warmLevel(declared, Level.DIMENSION, seeds);
     }
 
     /** The ores of every owner at {@code level}, ordered by the key of the biome, region or dimension that declares them. */
-    private void warmLevel(List<Entry<OreSettings>> declared, Target level, LongSupplier seeds) {
-        declared.stream()
+    private void warmLevel(SettingsStack<OreSettings> declared, Level level, LongSupplier seeds) {
+        declared.entries().stream()
                 .filter(entry -> entry.level() == level)
                 .sorted(Comparator.comparing((Entry<OreSettings> entry) -> key(entry.source())))
                 .forEach(entry -> ores.of(entry.value()).warm(seeds));

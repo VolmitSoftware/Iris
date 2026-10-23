@@ -18,9 +18,6 @@
 package art.arcane.iris.builtin.terrain;
 
 import com.volmit.config.FeatureSettings;
-import com.volmit.config.FeatureSettings.Entry;
-
-import java.util.List;
 
 /** Whether a dimension separates the layers of its biomes with barrier blocks to show them apart, and how many barriers it puts between them. */
 public record PaletteExplosion(boolean exploded, int size) {
@@ -28,14 +25,10 @@ public record PaletteExplosion(boolean exploded, int size) {
 
     /** What the dimension at the column of {@code settings} declares. */
     public static PaletteExplosion of(FeatureSettings settings, int worldX, int worldZ) {
-        boolean exploded = dimensionValue(settings.at(ExplodeBiomePalettesSettings.class, worldX, worldZ), ExplodeBiomePalettesSettings::explode, false);
-        int size = dimensionValue(settings.at(ExplodeBiomePaletteSizeSettings.class, worldX, worldZ), ExplodeBiomePaletteSizeSettings::size,
-                ExplodeBiomePaletteSizeSettings.DEFAULT_SIZE);
+        boolean exploded = settings.at(ExplodeBiomePalettesSettings.class, worldX, worldZ).dimension()
+                .map(ExplodeBiomePalettesSettings::explode).orElse(false);
+        int size = settings.at(ExplodeBiomePaletteSizeSettings.class, worldX, worldZ).dimension()
+                .map(ExplodeBiomePaletteSizeSettings::size).orElse(ExplodeBiomePaletteSizeSettings.DEFAULT_SIZE);
         return new PaletteExplosion(exploded, size);
-    }
-
-    private static <S extends com.volmit.IrisFeature, V> V dimensionValue(List<Entry<S>> entries, java.util.function.Function<S, V> read, V fallback) {
-        return entries.stream().filter(entry -> entry.level() == com.volmit.FeatureAttachment.Target.DIMENSION).findFirst()
-                .map(entry -> read.apply(entry.value())).orElse(fallback);
     }
 }

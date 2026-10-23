@@ -18,7 +18,7 @@
 
 package art.arcane.iris.builtin.carve;
 
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
 import com.volmit.IrisFeature;
 import com.volmit.config.Desc;
 import com.volmit.config.Feature;
@@ -27,7 +27,7 @@ import com.volmit.config.MinNumber;
 
 /** A dimension's {@code caveLavaHeight}, written as the bare number. */
 @Desc("The subterranean fluid (cave lava) layer height, in engine-local Y where 0 is the bottom of the dimension, not world Y. With the default -64..320 height, 8 means world Y -56.")
-@Feature(id = "iris:carve/lava-height", name = "Cave lava height", key = "caveLavaHeight", root = "height", targets = Target.DIMENSION)
+@Feature(id = "iris:carve/lava-height", name = "Cave lava height", key = "caveLavaHeight", root = "height", targets = Level.DIMENSION)
 public final class CaveLavaHeightSettings implements IrisFeature {
     public static final int DEFAULT_HEIGHT = 8;
 

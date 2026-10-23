@@ -18,9 +18,10 @@
 
 package art.arcane.iris.engine.object.terrain.carving;
 
-import com.volmit.FeatureAttachment.Target;
 import com.volmit.IrisFeature;
 import com.volmit.config.FeatureSettings.Entry;
+import com.volmit.config.Level;
+import com.volmit.config.SettingsStack;
 import com.volmit.resource.ResourceId;
 import com.volmit.world.PackWorld;
 
@@ -46,19 +47,17 @@ public final class DeclaredByLevel<F extends IrisFeature> {
     }
 
     public static <F extends IrisFeature> DeclaredByLevel<F> of(PackWorld world, Class<F> type) {
-        F dimension = null;
+        SettingsStack<F> declared = world.settings().declared(type);
         Map<ResourceId, F> regions = new HashMap<>();
         Map<ResourceId, F> biomes = new HashMap<>();
-        for (Entry<F> entry : world.settings().declared(type)) {
-            if (entry.level() == Target.DIMENSION) {
-                dimension = entry.value();
-            } else if (entry.level() == Target.REGION) {
+        for (Entry<F> entry : declared) {
+            if (entry.level() == Level.REGION) {
                 regions.putIfAbsent(sampleId(entry.source()), entry.value());
-            } else if (entry.level() == Target.BIOME) {
+            } else if (entry.level() == Level.BIOME) {
                 biomes.putIfAbsent(sampleId(entry.source()), entry.value());
             }
         }
-        return new DeclaredByLevel<>(dimension, regions, biomes);
+        return new DeclaredByLevel<>(declared.dimension().orElse(null), regions, biomes);
     }
 
     /** The dimension's declaration; null when it declares none. */

@@ -18,7 +18,7 @@
 
 package art.arcane.iris.builtin.vanillafeatures;
 
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
 import com.volmit.IrisFeature;
 import com.volmit.config.Desc;
 import com.volmit.config.Feature;
@@ -34,7 +34,7 @@ import java.util.List;
  * decoration steps it leaves out. IrisApi types only.
  */
 @Desc("Controls native vanilla, mod, and ingested datapack PLACED FEATURE generation for this dimension. Placed features are ores, trees, plants, springs, geodes and every other decoration entry a biome declares. This is OFF by default: with 'enabled' false Iris generates exactly the terrain it always has and no native feature runs. With it true, every placed feature the biome's vanilla derivative declares runs over Iris terrain, in vanilla step order, on the same worldgen thread vanilla uses. Carvers are never imported - Iris has no NoiseGeneratorSettings, so there is nothing for a carver to carve against. Family matching on 'disabled' uses namespace, slash, or underscore boundaries, so 'minecraft:ore' covers every vanilla ore feature without matching unrelated names.")
-@Feature(id = "iris:vanilla-features", name = "Vanilla features", key = "importedFeatures", targets = Target.DIMENSION)
+@Feature(id = "iris:vanilla-features", name = "Vanilla features", key = "importedFeatures", targets = Level.DIMENSION)
 public final class ImportedFeaturesSettings implements IrisFeature {
     @Desc("Master switch. False (the default) means no native placed feature generates and chunk output is identical to a pack without this block at all. True runs the vanilla decoration feature pass over Iris terrain.")
     private boolean enabled = false;

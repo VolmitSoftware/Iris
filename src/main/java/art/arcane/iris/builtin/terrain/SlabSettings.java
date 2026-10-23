@@ -18,7 +18,7 @@
 
 package art.arcane.iris.builtin.terrain;
 
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
 import com.volmit.IrisFeature;
 import com.volmit.config.Desc;
 import com.volmit.config.Feature;
@@ -27,7 +27,7 @@ import com.volmit.config.Feature;
  * The slab post processing places on steps in a biome, written as {@code "slab": {...}}, one layer. A biome without the key has no slab.
  */
 @Desc("The default slab if iris decides to place a slab in this biome. Default is no slab.")
-@Feature(id = "iris:terrain/slab", name = "Slab", key = "slab", root = "layer", targets = Target.BIOME)
+@Feature(id = "iris:terrain/slab", name = "Slab", key = "slab", root = "layer", targets = Level.BIOME)
 public final class SlabSettings implements IrisFeature {
     @Desc("The default slab if iris decides to place a slab in this biome. Default is no slab.")
     private PaletteLayer layer = PaletteLayer.withoutBlocks();

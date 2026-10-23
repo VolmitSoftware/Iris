@@ -18,7 +18,7 @@
 
 package art.arcane.iris.builtin.post;
 
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
 import com.volmit.IrisFeature;
 import com.volmit.config.Desc;
 import com.volmit.config.Feature;
@@ -28,7 +28,7 @@ import com.volmit.config.Feature;
  * whatever it says, so it is declared to keep the key valid in packs.
  */
 @Desc("Use post processing or not")
-@Feature(id = "iris:post/enabled", name = "Post processing", key = "postProcessing", root = "enabled", targets = Target.DIMENSION)
+@Feature(id = "iris:post/enabled", name = "Post processing", key = "postProcessing", root = "enabled", targets = Level.DIMENSION)
 public final class PostProcessingSettings implements IrisFeature {
     public static final boolean DEFAULT_ENABLED = true;
 

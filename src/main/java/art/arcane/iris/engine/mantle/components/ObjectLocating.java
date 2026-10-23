@@ -22,7 +22,7 @@ import art.arcane.iris.builtin.objects.ObjectHost;
 import art.arcane.iris.builtin.objects.ObjectHost.Declaration;
 import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.builtin.objects.ObjectSettings;
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
 import com.volmit.service.ObjectsAt;
 import com.volmit.world.PackWorld;
 
@@ -48,7 +48,7 @@ public final class ObjectLocating implements ObjectsAt {
             if (!placesObject(declaration.settings().objects(), objectKey)) {
                 continue;
             }
-            (declaration.level() == Target.BIOME ? biomes : regions).add(declaration.key());
+            (declaration.level() == Level.BIOME ? biomes : regions).add(declaration.key());
         }
         return new PlacedBy(biomes, regions);
     }

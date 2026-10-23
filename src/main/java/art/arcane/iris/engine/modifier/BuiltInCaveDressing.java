@@ -57,7 +57,7 @@ final class BuiltInCaveDressing implements CaveDressing {
         this.layers = BiomeLayers.of(context.world());
         this.palettes = TerrainPalettes.of(context.world());
         this.settings = context.settings();
-        this.blocks = context.resources().blocks();
+        this.blocks = context.world().resources().blocks();
         this.explosion = PaletteExplosion.of(settings, context.originX(), context.originZ());
         this.slope = (x, z) -> terrain.column((int) x, (int) z).slope();
         this.scene = DecorationScene.of(context);

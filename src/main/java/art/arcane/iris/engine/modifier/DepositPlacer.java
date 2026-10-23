@@ -28,13 +28,13 @@ import art.arcane.iris.builtin.deposit.OreSizeSettings;
 import art.arcane.iris.engine.modifier.ResolvedDeposit.BiomeIdentity;
 import art.arcane.volmlib.util.math.IrisBlockVector;
 import art.arcane.volmlib.util.math.RNG;
-import com.volmit.FeatureAttachment.Target;
 import com.volmit.ModuleLog;
 import com.volmit.block.BlockRegistry;
 import com.volmit.block.BlockState;
 import com.volmit.block.BlockTrait;
 import com.volmit.config.FeatureSettings;
-import com.volmit.config.FeatureSettings.Entry;
+import com.volmit.config.Level;
+import com.volmit.config.SettingsStack;
 import com.volmit.hunk.Hunk;
 import com.volmit.mantle.MantleLayer;
 import com.volmit.resource.PackResources;
@@ -61,7 +61,6 @@ import java.util.function.Supplier;
  */
 final class DepositPlacer {
     private static final double UNCHANGED_ORE_MULTIPLIER = 1D;
-    private static final int CHUNK_SHIFT = 4;
     private static final int CHUNK_WIDTH = 16;
     private static final long CHUNK_X_SEED_FACTOR = 341873128712L;
     private static final long CHUNK_Z_SEED_FACTOR = 132897987541L;
@@ -100,9 +99,7 @@ final class DepositPlacer {
     /** Runs {@code generators}, in order, on the chunk of {@code context}. */
     void generate(ChunkStageContext context, List<DepositGenerator> generators) {
         Placing placing = new Placing(context);
-        int chunkX = context.originX() >> CHUNK_SHIFT;
-        int chunkZ = context.originZ() >> CHUNK_SHIFT;
-        long seed = chunkX * CHUNK_X_SEED_FACTOR + chunkZ * CHUNK_Z_SEED_FACTOR;
+        long seed = context.chunkX() * CHUNK_X_SEED_FACTOR + context.chunkZ() * CHUNK_Z_SEED_FACTOR;
         long mask = 0;
         for (DepositGenerator generator : generators) {
             long finalSeed = seed * ++mask;
@@ -294,7 +291,7 @@ final class DepositPlacer {
             if (!surfaceKnown) {
                 for (int x = 0; x < CHUNK_WIDTH; x++) {
                     for (int z = 0; z < CHUNK_WIDTH; z++) {
-                        surfaceHeights[x * CHUNK_WIDTH + z] = (int) Math.round(terrain.surfaceY(originX + x, originZ + z));
+                        surfaceHeights[x * CHUNK_WIDTH + z] = terrain.surfaceHeight(originX + x, originZ + z);
                     }
                 }
                 surfaceKnown = true;
@@ -318,19 +315,13 @@ final class DepositPlacer {
                 }
             }
 
-            BlockState match = matchDepositVariant(levelSettings(Target.REGION, worldX, worldZ), ore, worldY);
+            SettingsStack<DepositVariantSettings> declared = settings.at(DepositVariantSettings.class, worldX, worldZ);
+            BlockState match = matchDepositVariant(declared.level(Level.REGION), ore, worldY);
             if (match != null) {
                 return match;
             }
 
-            return matchDepositVariant(levelSettings(Target.DIMENSION, worldX, worldZ), ore, worldY);
-        }
-
-        private Optional<DepositVariantSettings> levelSettings(Target level, int worldX, int worldZ) {
-            return settings.at(DepositVariantSettings.class, worldX, worldZ).stream()
-                    .filter(entry -> entry.level() == level)
-                    .map(Entry::value)
-                    .findFirst();
+            return matchDepositVariant(declared.dimension(), ore, worldY);
         }
 
         private BlockState matchDepositVariant(Optional<DepositVariantSettings> owner, BlockState ore, int y) {

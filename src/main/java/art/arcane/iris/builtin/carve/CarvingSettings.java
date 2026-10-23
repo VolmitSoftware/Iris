@@ -18,7 +18,7 @@
 
 package art.arcane.iris.builtin.carve;
 
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
 import com.volmit.IrisFeature;
 import com.volmit.config.Desc;
 import com.volmit.config.Feature;
@@ -36,7 +36,7 @@ import java.util.Set;
  * The biome of every enabled entry takes part in the pack's layout like any biome the dimension reaches.
  */
 @Desc("Dimension-level cave biome carving overrides with absolute world Y ranges")
-@Feature(id = "iris:carve/bands", name = "Cave biome bands", key = "carving", root = "entries", targets = Target.DIMENSION)
+@Feature(id = "iris:carve/bands", name = "Cave biome bands", key = "carving", root = "entries", targets = Level.DIMENSION)
 public final class CarvingSettings implements IrisFeature, LinkedBiomes {
     @MinItems(1)
     @Desc("Dimension-level cave biome carving overrides with absolute world Y ranges")

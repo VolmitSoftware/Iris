@@ -41,7 +41,6 @@ import java.util.List;
  */
 public final class DepositModule implements IrisModule {
     private static final String VERSION = "built-in";
-    private static final int CHUNK_CENTRE = 7;
 
     @Override
     public ModuleInfo info() {
@@ -51,9 +50,7 @@ public final class DepositModule implements IrisModule {
     @Override
     public void setup(ModuleSetup setup) {
         var registry = setup.registry();
-        registry.registerSettings(DepositVariantSettings.class);
-        registry.registerSettings(OreFrequencySettings.class);
-        registry.registerSettings(OreSizeSettings.class);
+        registry.registerSettings(DepositVariantSettings.class, OreFrequencySettings.class, OreSizeSettings.class);
 
         setup.stages().define(IrisStages.Deposit.ORES)
                 .when(DepositSettings.class)
@@ -63,17 +60,17 @@ public final class DepositModule implements IrisModule {
     }
 
     private static void place(ChunkStageContext context) {
-        List<DepositGenerator> generators = generatorsAtCentre(context.settings(), context.originX(), context.originZ());
+        List<DepositGenerator> generators = generatorsAt(context.settings(), context.centreX(), context.centreZ());
         if (generators.isEmpty()) {
             return;
         }
         DepositPlacer.of(context.world()).generate(context, generators);
     }
 
-    /** Every level's generators at the centre column of the chunk whose first block is {@code originX}, {@code originZ}, in level order. */
-    static List<DepositGenerator> generatorsAtCentre(FeatureSettings settings, int originX, int originZ) {
-        return settings.at(DepositSettings.class, originX + CHUNK_CENTRE, originZ + CHUNK_CENTRE).stream()
-                .flatMap(entry -> entry.value().generators().stream())
+    /** Every level's generators at the column {@code x}, {@code z}, in level order. */
+    static List<DepositGenerator> generatorsAt(FeatureSettings settings, int x, int z) {
+        return settings.at(DepositSettings.class, x, z).values().stream()
+                .flatMap(declared -> declared.generators().stream())
                 .toList();
     }
 }

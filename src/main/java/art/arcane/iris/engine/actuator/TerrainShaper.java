@@ -29,11 +29,11 @@ import art.arcane.iris.builtin.terrain.PaletteExplosion;
 import art.arcane.iris.builtin.terrain.TerrainPalettes;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
-import com.volmit.FeatureAttachment.Target;
 import com.volmit.IrisFeature;
 import com.volmit.block.BlockState;
 import com.volmit.config.FeatureSettings;
-import com.volmit.config.FeatureSettings.Entry;
+import com.volmit.config.Level;
+import com.volmit.config.SettingsStack;
 import com.volmit.hunk.Hunk;
 import com.volmit.resource.ResourceId;
 import com.volmit.stage.ChunkStageContext;
@@ -41,15 +41,12 @@ import com.volmit.world.PackWorld;
 import com.volmit.world.TerrainSampler;
 import com.volmit.world.UpperDimension;
 
-import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
-import java.util.function.Function;
 
 /** What shaping terrain keeps for one world: the terrain stream's random and the palettes, layers and ores the columns are filled from. */
 final class TerrainShaper {
     private static final BlockState BEDROCK = new BlockState("minecraft:bedrock");
-    private static final int CHUNK_CENTRE = 7;
 
     private final TerrainPalettes palettes;
     private final BiomeLayers layers;
@@ -70,8 +67,8 @@ final class TerrainShaper {
         this.layers = layers;
         this.ores = ores;
         this.rng = new RNG(IrisSeed.TERRAIN.of(world));
-        this.levelsBelowTheDimensionDeclareOres = world.settings().declared(OreSettings.class).stream()
-                .anyMatch(entry -> entry.level() != Target.DIMENSION);
+        this.levelsBelowTheDimensionDeclareOres = world.settings().declared(OreSettings.class).entries().stream()
+                .anyMatch(entry -> entry.level() != Level.DIMENSION);
     }
 
     /** Fills the 16 x 16 columns of the chunk, one slice along x at a time. */
@@ -91,7 +88,7 @@ final class TerrainShaper {
 
         for (int zf = 0; zf < chunkDepth; zf++) {
             int realZ = zf + chunk.originZ;
-            int he = Math.min(chunkHeight, (int) Math.round(chunk.terrain.surfaceY(realX, realZ)));
+            int he = Math.min(chunkHeight, chunk.terrain.surfaceHeight(realX, realZ));
             int hf = Math.max(chunk.clampedFluidHeight, he);
             if (hf < 0) {
                 continue;
@@ -238,7 +235,7 @@ final class TerrainShaper {
     }
 
     private static <S extends IrisFeature> S biomeLevel(FeatureSettings settings, Class<S> type, int worldX, int worldZ) {
-        return settings.at(type, worldX, worldZ).stream().filter(entry -> entry.level() == Target.BIOME).map(Entry::value).findFirst().orElse(null);
+        return settings.at(type, worldX, worldZ).level(Level.BIOME).orElse(null);
     }
 
     /** A block the palette has none of leaves the column as it is. */
@@ -276,15 +273,15 @@ final class TerrainShaper {
             this.originX = context.originX();
             this.originZ = context.originZ();
             this.clampedFluidHeight = Math.min(blocks.getHeight(), terrain.fluidHeight());
-            int centreX = originX + CHUNK_CENTRE;
-            int centreZ = originZ + CHUNK_CENTRE;
-            this.bedrockEnabled = dimensionValue(settings.at(BedrockSettings.class, centreX, centreZ), BedrockSettings::bedrock, true);
-            this.hideOres = dimensionValue(settings.at(HideOresSettings.class, centreX, centreZ), HideOresSettings::hide, false);
+            int centreX = context.centreX();
+            int centreZ = context.centreZ();
+            this.bedrockEnabled = settings.at(BedrockSettings.class, centreX, centreZ).dimension().map(BedrockSettings::bedrock).orElse(true);
+            this.hideOres = settings.at(HideOresSettings.class, centreX, centreZ).dimension().map(HideOresSettings::hide).orElse(false);
             this.explosion = PaletteExplosion.of(settings, centreX, centreZ);
             this.slope = (x, z) -> terrain.column((int) x, (int) z).slope();
             this.upper = terrain.upperDimension();
             // Dimension-level ore lookups are chunk-invariant; resolving them per column paid the settings lookup times 256 per chunk for a constant.
-            this.dimensionOres = hideOres ? ResolvedOres.NONE : ores.of(levelValue(settings.at(OreSettings.class, centreX, centreZ), Target.DIMENSION));
+            this.dimensionOres = hideOres ? ResolvedOres.NONE : ores.of(settings.at(OreSettings.class, centreX, centreZ).dimension().orElse(null));
         }
 
         /** What the upper dimension declares about exploded palettes: a setting of the dimension, so the same for every column of the chunk. */
@@ -300,22 +297,8 @@ final class TerrainShaper {
             if (hideOres || !levelsBelowTheDimensionDeclareOres) {
                 return ColumnOres.NONE;
             }
-            List<Entry<OreSettings>> declared = settings.at(OreSettings.class, worldX, worldZ);
-            return new ColumnOres(ores.of(levelValue(declared, Target.REGION)), ores.of(levelValue(declared, Target.BIOME)));
+            SettingsStack<OreSettings> declared = settings.at(OreSettings.class, worldX, worldZ);
+            return new ColumnOres(ores.of(declared.level(Level.REGION).orElse(null)), ores.of(declared.level(Level.BIOME).orElse(null)));
         }
-    }
-
-    private static <S extends IrisFeature, V> V dimensionValue(List<Entry<S>> entries, Function<S, V> read, V fallback) {
-        S declared = levelValue(entries, Target.DIMENSION);
-        return declared == null ? fallback : read.apply(declared);
-    }
-
-    private static <S extends IrisFeature> S levelValue(List<Entry<S>> entries, Target level) {
-        for (Entry<S> entry : entries) {
-            if (entry.level() == level) {
-                return entry.value();
-            }
-        }
-        return null;
     }
 }

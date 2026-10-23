@@ -18,7 +18,7 @@
 
 package art.arcane.iris.builtin.objects;
 
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
 import com.volmit.IrisFeature;
 import com.volmit.config.Desc;
 import com.volmit.config.Feature;
@@ -27,7 +27,7 @@ import com.volmit.config.MinNumber;
 
 /** The least surface-support buffer a dimension gives its surface objects, written as {@code "objectSurfaceSupportBuffer": 2}. */
 @Desc("Minimum surface-support buffer, in blocks, applied to every surface object placement in this dimension. A placement may ask for more but never less.")
-@Feature(id = "iris:objects/surface-support-buffer", name = "Surface support buffer", key = "objectSurfaceSupportBuffer", root = "buffer", targets = Target.DIMENSION)
+@Feature(id = "iris:objects/surface-support-buffer", name = "Surface support buffer", key = "objectSurfaceSupportBuffer", root = "buffer", targets = Level.DIMENSION)
 public final class SurfaceSupportBufferSettings implements IrisFeature {
     private static final int DEFAULT_BUFFER_BLOCKS = 2;
 

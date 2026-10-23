@@ -18,7 +18,7 @@
 
 package art.arcane.iris.builtin.loot;
 
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
 import com.volmit.IrisFeature;
 import com.volmit.config.Desc;
 import com.volmit.config.Feature;
@@ -33,7 +33,7 @@ import java.util.List;
  * region and dimension.
  */
 @Desc("Define custom block drops for this area")
-@Feature(id = "iris:loot/drops", name = "Block drops", key = "blockDrops", root = "drops", targets = {Target.DIMENSION, Target.REGION, Target.BIOME})
+@Feature(id = "iris:loot/drops", name = "Block drops", key = "blockDrops", root = "drops", targets = {Level.DIMENSION, Level.REGION, Level.BIOME})
 public final class BlockDropSettings implements IrisFeature {
     @MinItems(1)
     @Desc("Define custom block drops for this area")

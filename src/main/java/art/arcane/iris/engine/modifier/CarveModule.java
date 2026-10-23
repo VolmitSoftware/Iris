@@ -35,9 +35,7 @@ import com.volmit.IrisFeature;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
 import com.volmit.ModuleSetup;
-import com.volmit.config.FeatureSettings;
-import com.volmit.config.FeatureSettings.Entry;
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.generation.ChunkContext;
 import com.volmit.hunk.Hunk;
 import com.volmit.block.BlockRegistry;
 import com.volmit.block.BlockState;
@@ -61,9 +59,6 @@ public final class CarveModule implements IrisModule {
     private static final String VERSION = "built-in";
     /** Blended cave walls reach one block past the chunk. */
     private static final int CAVE_REACH_BLOCKS = 1;
-    private static final int CHUNK_SHIFT = 4;
-    /** The centre column of a chunk, where per-chunk settings are read. */
-    private static final int CHUNK_CENTRE_BLOCKS = 7;
 
     @Override
     public ModuleInfo info() {
@@ -73,13 +68,8 @@ public final class CarveModule implements IrisModule {
     @Override
     public void setup(ModuleSetup setup) {
         var registry = setup.registry();
-        registry.registerSettings(CaveProfile.class);
-        registry.registerSettings(CarvingSettings.class);
-        registry.registerSettings(CarvingEnabledSettings.class);
-        registry.registerSettings(CarvingBiomeSettings.class);
-        registry.registerSettings(CaveDepthSettings.class);
-        registry.registerSettings(CaveLavaHeightSettings.class);
-        registry.registerSettings(UpperDimensionCarvingSettings.class);
+        registry.registerSettings(CaveProfile.class, CarvingSettings.class, CarvingEnabledSettings.class, CarvingBiomeSettings.class,
+                CaveDepthSettings.class, CaveLavaHeightSettings.class, UpperDimensionCarvingSettings.class);
         registry.registerService(CaveBiomes.class, new CaveBiomeBands());
 
         var graph = setup.stages();
@@ -88,29 +78,27 @@ public final class CarveModule implements IrisModule {
     }
 
     private static void planCaves(MantleStageContext context) {
-        if (!carves(context.settings(), context.originX(), context.originZ())) {
+        if (!carves(context)) {
             return;
         }
         MatterMantle mantle = MatterMantle.of(context.mantle());
-        caveCarving(context.world(), context.terrain(), context.settings(), context.originX(), context.originZ())
-                .carve(mantle, context.terrain(), context.originX() >> CHUNK_SHIFT, context.originZ() >> CHUNK_SHIFT);
+        caveCarving(context).carve(mantle, context.terrain(), context.chunkX(), context.chunkZ());
     }
 
     private static void applyCaves(ChunkStageContext context) {
         MatterMantle mantle = MatterMantle.of(context.mantle());
         Hunk<BlockState> blocks = context.hunk(BlockState.class);
-        caveApplying(context.world(), context.terrain(), context.settings(), context.originX(), context.originZ())
-                .apply(mantle, context.terrain(), context.originX() >> CHUNK_SHIFT, context.originZ() >> CHUNK_SHIFT, blocks, CaveDressing.of(context));
+        caveApplying(context).apply(mantle, context.terrain(), context.chunkX(), context.chunkZ(), blocks, CaveDressing.of(context));
     }
 
-    private static CaveCarving caveCarving(PackWorld world, TerrainSampler terrain, FeatureSettings settings, int originX, int originZ) {
-        return world.state(CaveCarving.class, generating -> new CaveCarving(generating, carveWorld(generating, terrain),
-                upperDimensionCarving(settings, originX, originZ), fluidColumns(generating)));
+    private static CaveCarving caveCarving(ChunkContext context) {
+        return context.world().state(CaveCarving.class, generating -> new CaveCarving(generating, carveWorld(generating, context.terrain()),
+                upperDimensionCarving(context), fluidColumns(generating)));
     }
 
-    private static CaveApplying caveApplying(PackWorld world, TerrainSampler terrain, FeatureSettings settings, int originX, int originZ) {
-        return world.state(CaveApplying.class, generating -> new CaveApplying(generating, carveWorld(generating, terrain),
-                upperDimensionCarving(settings, originX, originZ)));
+    private static CaveApplying caveApplying(ChunkContext context) {
+        return context.world().state(CaveApplying.class, generating -> new CaveApplying(generating, carveWorld(generating, context.terrain()),
+                upperDimensionCarving(context)));
     }
 
     /** The columns the dimension's fluid palette fills with a fluid. */
@@ -130,26 +118,23 @@ public final class CarveModule implements IrisModule {
                 world.minHeight());
     }
 
-    private static boolean upperDimensionCarving(FeatureSettings settings, int originX, int originZ) {
-        return dimensionEntry(settings, UpperDimensionCarvingSettings.class, originX + CHUNK_CENTRE_BLOCKS, originZ + CHUNK_CENTRE_BLOCKS)
-                .map(UpperDimensionCarvingSettings::enabled).orElse(false);
+    private static boolean upperDimensionCarving(ChunkContext context) {
+        return centreDimensionValue(context, UpperDimensionCarvingSettings.class).map(UpperDimensionCarvingSettings::enabled).orElse(false);
     }
 
     /**
      * A dimension turns carving off with {@code carvingEnabled}. Listing {@code CARVED} in {@code disabledComponents}
      * also does: Iris then skips this stage's mantle pass like any disabled component.
      */
-    private static boolean carves(FeatureSettings settings, int originX, int originZ) {
-        return dimensionEntry(settings, CarvingEnabledSettings.class, originX + CHUNK_CENTRE_BLOCKS, originZ + CHUNK_CENTRE_BLOCKS)
-                .map(CarvingEnabledSettings::enabled).orElse(true);
+    private static boolean carves(ChunkContext context) {
+        return centreDimensionValue(context, CarvingEnabledSettings.class).map(CarvingEnabledSettings::enabled).orElse(true);
     }
 
-    private static <F extends IrisFeature> Optional<F> dimensionEntry(FeatureSettings settings, Class<F> type, int x, int z) {
-        return settings.at(type, x, z).stream().filter(entry -> entry.level() == Target.DIMENSION).map(Entry::value).findFirst();
+    private static <F extends IrisFeature> Optional<F> centreDimensionValue(ChunkContext context, Class<F> type) {
+        return context.settings().at(type, context.centreX(), context.centreZ()).dimension();
     }
 
     private static <F extends IrisFeature, V> V dimensionSetting(PackWorld world, Class<F> type, Function<F, V> read, V fallback) {
-        return world.settings().declared(type).stream().filter(entry -> entry.level() == Target.DIMENSION).map(Entry::value).map(read)
-                .findFirst().orElse(fallback);
+        return world.settings().declared(type).dimension().map(read).orElse(fallback);
     }
 }

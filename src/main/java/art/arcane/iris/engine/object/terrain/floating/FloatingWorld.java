@@ -29,8 +29,6 @@ import art.arcane.iris.builtin.floating.MergeFloatingChildrenSettings;
 import art.arcane.iris.builtin.objects.ObjectHost;
 import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.builtin.objects.ObjectSettings;
-import com.volmit.FeatureAttachment.Target;
-import com.volmit.config.FeatureSettings.Entry;
 import com.volmit.noise.NoiseFactory;
 import com.volmit.resource.ResourceId;
 import com.volmit.world.PackWorld;
@@ -78,10 +76,7 @@ public final class FloatingWorld {
     }
 
     private static List<CarvingEntry> dimensionCarvingOf(PackWorld world) {
-        return world.settings().declared(CarvingSettings.class).stream()
-                .filter(entry -> entry.level() == Target.DIMENSION)
-                .map(Entry::value)
-                .findFirst()
+        return world.settings().declared(CarvingSettings.class).dimension()
                 .map(CarvingSettings::entries)
                 .orElse(List.of());
     }

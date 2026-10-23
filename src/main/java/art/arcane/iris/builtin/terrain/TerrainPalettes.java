@@ -20,10 +20,9 @@ package art.arcane.iris.builtin.terrain;
 import art.arcane.iris.builtin.IrisSeed;
 import art.arcane.volmlib.util.cache.AtomicCache;
 import art.arcane.volmlib.util.math.RNG;
-import com.volmit.FeatureAttachment.Target;
 import com.volmit.block.BlockState;
 import com.volmit.block.PaletteSpec;
-import com.volmit.config.FeatureSettings.Entry;
+import com.volmit.config.SettingsStack;
 import com.volmit.noise.NoiseSampler;
 import com.volmit.resource.PackResources;
 import com.volmit.world.PackWorld;
@@ -112,20 +111,16 @@ public final class TerrainPalettes {
 
         long seedOffset = upper.key().hashCode();
         RNG rng = new RNG(complexSeed ^ seedOffset);
-        List<Entry<RockPaletteSettings>> declared = upper.settings().at(RockPaletteSettings.class, (int) x, (int) z);
+        SettingsStack<RockPaletteSettings> declared = upper.settings().at(RockPaletteSettings.class, (int) x, (int) z);
         return columns(rockPalette(declared), rng.nextParallelRNG(ROCK_SIGNATURE), upper.resources());
     }
 
-    private static PaletteSpec rockPalette(List<Entry<RockPaletteSettings>> declared) {
-        return dimensionLevel(declared).map(Entry::value).orElseGet(RockPaletteSettings::new).palette();
+    private static PaletteSpec rockPalette(SettingsStack<RockPaletteSettings> declared) {
+        return declared.dimension().orElseGet(RockPaletteSettings::new).palette();
     }
 
-    private static PaletteSpec fluidPalette(List<Entry<FluidPaletteSettings>> declared) {
-        return dimensionLevel(declared).map(Entry::value).orElseGet(FluidPaletteSettings::new).palette();
-    }
-
-    private static <S extends com.volmit.IrisFeature> java.util.Optional<Entry<S>> dimensionLevel(List<Entry<S>> declared) {
-        return declared.stream().filter(entry -> entry.level() == Target.DIMENSION).findFirst();
+    private static PaletteSpec fluidPalette(SettingsStack<FluidPaletteSettings> declared) {
+        return declared.dimension().orElseGet(FluidPaletteSettings::new).palette();
     }
 
     /** The palette's blocks over the columns, picked by its noise: the noise at a column, from 0 to 1, is how far down the weighted list the block is. */

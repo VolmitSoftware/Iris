@@ -20,13 +20,11 @@ package art.arcane.iris.engine.framework.vanillafeatures;
 
 import art.arcane.iris.builtin.RegistryKeyFamily;
 import art.arcane.iris.builtin.vanillafeatures.ImportedFeaturesSettings;
-import com.volmit.config.FeatureSettings.Entry;
 import com.volmit.resource.ResourceId;
 import com.volmit.service.VanillaFeatures;
 import com.volmit.vanilla.DecorationStep;
 import com.volmit.world.PackWorld;
 
-import java.util.List;
 import java.util.Optional;
 
 /**
@@ -61,7 +59,6 @@ public final class ImportedFeatures implements VanillaFeatures {
     }
 
     private static ImportedFeaturesSettings settings(PackWorld world) {
-        List<Entry<ImportedFeaturesSettings>> declared = world.settings().declared(ImportedFeaturesSettings.class);
-        return declared.isEmpty() ? NONE : declared.getFirst().value();
+        return world.settings().declared(ImportedFeaturesSettings.class).dimension().orElse(NONE);
     }
 }

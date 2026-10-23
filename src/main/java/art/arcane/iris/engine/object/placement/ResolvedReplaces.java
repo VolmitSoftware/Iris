@@ -19,7 +19,6 @@
 package art.arcane.iris.engine.object.placement;
 
 import art.arcane.iris.builtin.blocks.ObjectReplace;
-import art.arcane.iris.builtin.placement.PlacementTerrain;
 import com.volmit.block.BlockRegistry;
 import com.volmit.stage.PlacementStageContext;
 
@@ -35,11 +34,8 @@ final class ResolvedReplaces {
         this.blocks = blocks;
     }
 
-    /** The replacements of the world {@code context} places in, or of the pack alone when the placement has no world. */
-    static ResolvedReplaces of(PlacementStageContext context, PlacementTerrain terrain) {
-        if (!terrain.hasWorld()) {
-            return new ResolvedReplaces(context.resources().blocks());
-        }
+    /** The replacements of the world {@code context} places in. */
+    static ResolvedReplaces of(PlacementStageContext context) {
         return context.world().state(ResolvedReplaces.class, world -> new ResolvedReplaces(world.resources().blocks()));
     }
 

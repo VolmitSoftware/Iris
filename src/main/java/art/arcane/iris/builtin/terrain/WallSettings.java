@@ -18,7 +18,7 @@
 
 package art.arcane.iris.builtin.terrain;
 
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
 import com.volmit.IrisFeature;
 import com.volmit.config.Desc;
 import com.volmit.config.Feature;
@@ -28,7 +28,7 @@ import com.volmit.config.Feature;
  * A biome without the key has no wall.
  */
 @Desc("The default wall if iris decides to place a wall higher than 2 blocks (steep hills or possibly cliffs)")
-@Feature(id = "iris:terrain/wall", name = "Wall", key = "wall", root = "layer", targets = Target.BIOME)
+@Feature(id = "iris:terrain/wall", name = "Wall", key = "wall", root = "layer", targets = Level.BIOME)
 public final class WallSettings implements IrisFeature {
     @Desc("The default wall if iris decides to place a wall higher than 2 blocks (steep hills or possibly cliffs)")
     private PaletteLayer layer = PaletteLayer.withoutBlocks();

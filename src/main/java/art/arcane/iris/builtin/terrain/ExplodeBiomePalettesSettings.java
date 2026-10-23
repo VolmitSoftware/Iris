@@ -17,14 +17,14 @@
  */
 package art.arcane.iris.builtin.terrain;
 
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
 import com.volmit.IrisFeature;
 import com.volmit.config.Desc;
 import com.volmit.config.Feature;
 
 /** Whether a dimension puts barrier blocks between the layers of its biomes to show them apart, written as {@code "explodeBiomePalettes": true}. */
 @Desc("Vertically split up the biome palettes with barrier blocks in between to visualize them. The gap size comes from explodeBiomePaletteSize.")
-@Feature(id = "iris:terrain/explode-palettes", name = "Explode biome palettes", key = "explodeBiomePalettes", root = "explode", targets = Target.DIMENSION)
+@Feature(id = "iris:terrain/explode-palettes", name = "Explode biome palettes", key = "explodeBiomePalettes", root = "explode", targets = Level.DIMENSION)
 public final class ExplodeBiomePalettesSettings implements IrisFeature {
     @Desc("Vertically split up the biome palettes with barrier blocks in between to visualize them. The gap size comes from explodeBiomePaletteSize.")
     private boolean explode = false;

@@ -47,7 +47,6 @@ import com.volmit.world.TerrainSampler;
  */
 public final class DecorantModule implements IrisModule, ModuleLifecycle {
     private static final String VERSION = "built-in";
-    private static final int CHUNK_CENTRE = 7;
 
     @Override
     public ModuleInfo info() {
@@ -59,8 +58,7 @@ public final class DecorantModule implements IrisModule, ModuleLifecycle {
         // Ordering only: iris:matter ships in the built-ins jar, which a pack may not have.
         setup.stages().define(IrisStages.Decorant.DECORATE).softAfter(IrisStages.Matter.INSERT).run(DecorantModule::decorate);
         var registry = setup.registry();
-        registry.registerSettings(DecorantSettings.class);
-        registry.registerSettings(DecorateSettings.class);
+        registry.registerSettings(DecorantSettings.class, DecorateSettings.class);
         registry.registerLifecycle(this);
     }
 
@@ -78,8 +76,8 @@ public final class DecorantModule implements IrisModule, ModuleLifecycle {
 
     /** A dimension decorates unless it says {@code decorate: false}. */
     private static boolean decorates(ChunkStageContext context) {
-        return context.settings().at(DecorateSettings.class, context.originX() + CHUNK_CENTRE, context.originZ() + CHUNK_CENTRE).stream()
-                .allMatch(entry -> entry.value().decorate());
+        return context.settings().at(DecorateSettings.class, context.centreX(), context.centreZ()).dimension()
+                .map(DecorateSettings::decorate).orElse(true);
     }
 
     /** Decorates the 16 x 16 columns of the chunk whose first block is {@code x}, {@code z}, a biome's decorators on the surface its blocks left. */
@@ -102,7 +100,7 @@ public final class DecorantModule implements IrisModule, ModuleLifecycle {
                 if (!decorators.hasDecorators(biome)) {
                     continue;
                 }
-                int height = (int) Math.round(terrain.surfaceY(realX, realZ));
+                int height = terrain.surfaceHeight(realX, realZ);
 
                 if (height >= 0 && height < fluidHeight && scene.isSolid(output.get(i, height, j))
                         && height + 1 < output.getHeight() && scene.isWater(output.get(i, height + 1, j))) {

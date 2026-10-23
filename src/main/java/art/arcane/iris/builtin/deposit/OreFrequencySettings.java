@@ -18,7 +18,7 @@
 
 package art.arcane.iris.builtin.deposit;
 
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
 import com.volmit.IrisFeature;
 import com.volmit.config.Desc;
 import com.volmit.config.Feature;
@@ -27,7 +27,7 @@ import com.volmit.config.MinNumber;
 
 /** A biome's {@code oreDepositFrequencyMultiplier}, written as the bare number. */
 @Desc("Multiplier applied to the frequency of every ore deposit whose center is inside this biome. A value of 0.4 keeps 40% of ore veins while leaving non-ore deposits unchanged.")
-@Feature(id = "iris:deposit/ore-frequency", name = "Ore deposit frequency", key = "oreDepositFrequencyMultiplier", root = "multiplier", targets = Target.BIOME)
+@Feature(id = "iris:deposit/ore-frequency", name = "Ore deposit frequency", key = "oreDepositFrequencyMultiplier", root = "multiplier", targets = Level.BIOME)
 public final class OreFrequencySettings implements IrisFeature {
     private static final double UNCHANGED = 1D;
 

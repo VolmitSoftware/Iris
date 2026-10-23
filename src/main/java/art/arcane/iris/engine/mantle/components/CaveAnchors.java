@@ -221,7 +221,7 @@ final class CaveAnchors {
         if (known != null) {
             return known;
         }
-        int surfaceY = (int) Math.round(terrain.surfaceY(x, z));
+        int surfaceY = terrain.surfaceHeight(x, z);
         surfaceHeights.put(columnKey, surfaceY);
         return surfaceY;
     }

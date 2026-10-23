@@ -23,8 +23,8 @@ import art.arcane.iris.builtin.loot.LootEntry;
 import art.arcane.iris.builtin.loot.LootMode;
 import art.arcane.iris.builtin.loot.LootSettings;
 import art.arcane.iris.builtin.loot.LootTable;
-import com.volmit.FeatureAttachment.Target;
 import com.volmit.config.FeatureSettings.Entry;
+import com.volmit.config.Level;
 import com.volmit.resource.PackResources;
 import com.volmit.resource.ResourceId;
 import com.volmit.validation.Problem;
@@ -70,7 +70,7 @@ public final class LootValidator implements Validator {
     private static List<Problem> checkReferences(ValidationContext pack) {
         Set<ResourceId> lootIds = Set.copyOf(pack.resources().ids(LootTable.class));
         List<Problem> problems = new ArrayList<>();
-        List<Entry<LootSettings>> declared = new ArrayList<>(pack.settings().declared(LootSettings.class));
+        List<Entry<LootSettings>> declared = new ArrayList<>(pack.settings().declared(LootSettings.class).entries());
         declared.sort(Comparator.comparing(Entry<LootSettings>::level).thenComparing(Entry::source));
         for (Entry<LootSettings> entry : declared) {
             String resourceKey = keyOf(entry);
@@ -106,21 +106,21 @@ public final class LootValidator implements Validator {
         return path.substring(path.indexOf(LEVEL_FOLDER_SEPARATOR) + 1);
     }
 
-    private static String hostType(Target level) {
+    private static String hostType(Level level) {
         return switch (level) {
             case DIMENSION -> "Dimension";
             case REGION -> "Region";
             case BIOME -> "Biome";
-            case OBJECT_PLACEMENT -> "Resource";
+            case PLACEMENT -> "Resource";
         };
     }
 
-    private static String folderOf(Target level) {
+    private static String folderOf(Level level) {
         return switch (level) {
             case DIMENSION -> "dimensions";
             case REGION -> "regions";
             case BIOME -> "biomes";
-            case OBJECT_PLACEMENT -> "placements";
+            case PLACEMENT -> "placements";
         };
     }
 

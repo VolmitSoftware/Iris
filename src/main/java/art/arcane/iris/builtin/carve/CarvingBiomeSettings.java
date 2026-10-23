@@ -18,7 +18,7 @@
 
 package art.arcane.iris.builtin.carve;
 
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
 import com.volmit.IrisFeature;
 import com.volmit.config.Desc;
 import com.volmit.config.Feature;
@@ -30,7 +30,7 @@ import java.util.Set;
 
 /** A biome's {@code carvingBiome}, written as the biome key: it registers that biome with the pack's layout and is not applied as a substitute under carvings. */
 @Desc("Registers the referenced biome with this pack's reachable biome set. It is NOT applied as a substitute under carvings; cave biomes come from the region's caveBiomes list.")
-@Feature(id = "iris:carve/biome", name = "Carving biome", key = "carvingBiome", root = "biome", targets = Target.BIOME)
+@Feature(id = "iris:carve/biome", name = "Carving biome", key = "carvingBiome", root = "biome", targets = Level.BIOME)
 public final class CarvingBiomeSettings implements IrisFeature, LinkedBiomes {
     @Ref(Reference.PACK_BIOME)
     @Desc("Registers the referenced biome with this pack's reachable biome set. It is NOT applied as a substitute under carvings; cave biomes come from the region's caveBiomes list.")

@@ -471,7 +471,7 @@ public class CaveCarving {
             int worldX = baseX + localX;
             for (int localZ = 0; localZ < CHUNK_SIZE; localZ++) {
                 int columnIndex = PowerOfTwoCoordinates.packLocal16(localX, localZ);
-                scratch[columnIndex] = (int) Math.round(terrain.surfaceY(worldX, baseZ + localZ));
+                scratch[columnIndex] = terrain.surfaceHeight(worldX, baseZ + localZ);
             }
         }
         return scratch;

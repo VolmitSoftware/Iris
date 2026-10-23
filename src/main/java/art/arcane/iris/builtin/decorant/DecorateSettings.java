@@ -17,14 +17,14 @@
  */
 package art.arcane.iris.builtin.decorant;
 
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
 import com.volmit.IrisFeature;
 import com.volmit.config.Desc;
 import com.volmit.config.Feature;
 
 /** Whether a dimension decorates at all, written as {@code "decorate": false}. A dimension without the key decorates. */
 @Desc("Generate decorations or not")
-@Feature(id = "iris:decorant/decorate", name = "Decorate", key = "decorate", root = "decorate", targets = Target.DIMENSION)
+@Feature(id = "iris:decorant/decorate", name = "Decorate", key = "decorate", root = "decorate", targets = Level.DIMENSION)
 public final class DecorateSettings implements IrisFeature {
     @Desc("Generate decorations or not")
     private boolean decorate = true;

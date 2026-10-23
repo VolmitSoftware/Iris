@@ -18,14 +18,14 @@
 
 package art.arcane.iris.builtin.terrain;
 
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
 import com.volmit.IrisFeature;
 import com.volmit.config.Desc;
 import com.volmit.config.Feature;
 
 /** Whether a biome's layers are locked to its highest possible height, written as {@code "lockLayers": true}. A biome without the key is not locked. */
 @Desc("Layers no longer descend from the surface block, they descend from the max possible height the biome can produce (constant) creating mesa like layers.")
-@Feature(id = "iris:terrain/lock-layers", name = "Lock layers", key = "lockLayers", root = "locked", targets = Target.BIOME)
+@Feature(id = "iris:terrain/lock-layers", name = "Lock layers", key = "lockLayers", root = "locked", targets = Level.BIOME)
 public final class LockLayersSettings implements IrisFeature {
     @Desc("Layers no longer descend from the surface block, they descend from the max possible height the biome can produce (constant) creating mesa like layers.")
     private boolean locked = false;

@@ -45,8 +45,7 @@ public final class LootModule implements IrisModule {
     @Override
     public void setup(ModuleSetup setup) {
         var registry = setup.registry();
-        registry.registerSettings(LootSettings.class);
-        registry.registerSettings(BlockDropSettings.class);
+        registry.registerSettings(LootSettings.class, BlockDropSettings.class);
         registry.registerHeldType(ObjectLoot.class);
         registry.registerHeldType(ObjectVanillaLoot.class);
         LootResources.kinds().forEach(registry::registerResourceKind);

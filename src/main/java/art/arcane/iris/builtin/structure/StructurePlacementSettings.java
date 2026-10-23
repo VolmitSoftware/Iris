@@ -18,7 +18,7 @@
 
 package art.arcane.iris.builtin.structure;
 
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
 import com.volmit.IrisFeature;
 import com.volmit.config.Desc;
 import com.volmit.config.Feature;
@@ -33,7 +33,7 @@ import java.util.List;
  */
 @Desc("Iris structure placements of this dimension, region or biome: where and how often its structures start.")
 @Feature(id = "iris:structure/placements", name = "Structure placements", key = "structures", root = "placements",
-        targets = {Target.DIMENSION, Target.REGION, Target.BIOME})
+        targets = {Level.DIMENSION, Level.REGION, Level.BIOME})
 public final class StructurePlacementSettings implements IrisFeature {
     @MinItems(1)
     @Desc("Iris structure placements, each independent of the others.")

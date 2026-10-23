@@ -18,7 +18,7 @@
 
 package art.arcane.iris.builtin.deposit;
 
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
 import com.volmit.IrisFeature;
 import com.volmit.config.Desc;
 import com.volmit.config.Feature;
@@ -33,7 +33,7 @@ import java.util.List;
  */
 @Desc("Deposit ore remap rules. Each entry declares a vertical band and a source->replacement block id map. Applied biome first, then region, then dimension; first matching rule wins.")
 @Feature(id = "iris:deposit/variants", name = "Deposit variants", key = "depositVariants", root = "variants",
-        targets = {Target.DIMENSION, Target.REGION, Target.BIOME})
+        targets = {Level.DIMENSION, Level.REGION, Level.BIOME})
 public final class DepositVariantSettings implements IrisFeature {
     @MinItems(1)
     @Desc("Deposit ore remap rules. Each entry declares a vertical band and a source->replacement block id map. Applied biome first, then region, then dimension; first matching rule wins.")

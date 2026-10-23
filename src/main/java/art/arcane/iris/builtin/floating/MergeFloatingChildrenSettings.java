@@ -18,14 +18,14 @@
 
 package art.arcane.iris.builtin.floating;
 
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
 import com.volmit.IrisFeature;
 import com.volmit.config.Desc;
 import com.volmit.config.Feature;
 
 /** A biome's {@code mergeFloatingChildBiomes}, written as the bare boolean. */
 @Desc("When true, every floating child entry is sampled independently and their solid masks are unioned, so multiple floating islands can stack, overlap, and collide instead of the picker choosing only one child per column.")
-@Feature(id = "iris:floating/merge", name = "Merge floating child biomes", key = "mergeFloatingChildBiomes", root = "merge", targets = Target.BIOME)
+@Feature(id = "iris:floating/merge", name = "Merge floating child biomes", key = "mergeFloatingChildBiomes", root = "merge", targets = Level.BIOME)
 public final class MergeFloatingChildrenSettings implements IrisFeature {
     @Desc("When true, every floating child entry is sampled independently and their solid masks are unioned, so multiple floating islands can stack, overlap, and collide instead of the picker choosing only one child per column.")
     private boolean merge = false;

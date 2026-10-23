@@ -27,7 +27,7 @@ import art.arcane.iris.builtin.objects.ProceduralPlacement;
 import art.arcane.iris.builtin.IrisSeed;
 import art.arcane.iris.engine.object.procedural.ResolvedProceduralObjects;
 import art.arcane.volmlib.util.math.RNG;
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
 import com.volmit.world.PackWorld;
 
 import java.util.Comparator;
@@ -41,6 +41,7 @@ import java.util.List;
  */
 final class ObjectWarmUp {
     private static final long ROOT_SEED_SALT = 7777L;
+    private static final Level[] WARMED_LEVELS = {Level.BIOME, Level.REGION};
 
     private final ObjectHost host;
     private final RNG root;
@@ -54,7 +55,7 @@ final class ObjectWarmUp {
     void warm() {
         List<Declaration<ObjectSettings>> placements = byKey(host.declarations(ObjectSettings.class));
         List<Declaration<ProceduralObjectSettings>> procedural = byKey(host.declarations(ProceduralObjectSettings.class));
-        for (Target level : new Target[]{Target.BIOME, Target.REGION}) {
+        for (Level level : WARMED_LEVELS) {
             for (Declaration<ObjectSettings> declaration : placements) {
                 if (declaration.level() == level) {
                     warmPlacements(declaration.settings().objects());

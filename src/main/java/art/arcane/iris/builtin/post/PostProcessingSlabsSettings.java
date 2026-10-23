@@ -18,7 +18,7 @@
 
 package art.arcane.iris.builtin.post;
 
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
 import com.volmit.IrisFeature;
 import com.volmit.config.Desc;
 import com.volmit.config.Feature;
@@ -27,7 +27,7 @@ import com.volmit.config.Feature;
  * Whether post processing adds slabs on steps in a dimension, written as {@code "postProcessingSlabs": false}. A dimension without the key adds them.
  */
 @Desc("Add slabs in post processing")
-@Feature(id = "iris:post/slabs", name = "Post processing slabs", key = "postProcessingSlabs", root = "enabled", targets = Target.DIMENSION)
+@Feature(id = "iris:post/slabs", name = "Post processing slabs", key = "postProcessingSlabs", root = "enabled", targets = Level.DIMENSION)
 public final class PostProcessingSlabsSettings implements IrisFeature {
     public static final boolean DEFAULT_ENABLED = true;
 

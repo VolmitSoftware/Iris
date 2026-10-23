@@ -18,7 +18,7 @@
 
 package art.arcane.iris.builtin.carve;
 
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
 import com.volmit.IrisFeature;
 import com.volmit.config.Desc;
 import com.volmit.config.Feature;
@@ -27,7 +27,7 @@ import com.volmit.config.MinNumber;
 
 /** A biome's {@code caveMinDepthBelowSurface}, written as the bare number of blocks. */
 @Desc("Minimum depth below terrain surface required before this cave biome can be selected.")
-@Feature(id = "iris:carve/min-depth", name = "Cave minimum depth", key = "caveMinDepthBelowSurface", root = "depth", targets = Target.BIOME)
+@Feature(id = "iris:carve/min-depth", name = "Cave minimum depth", key = "caveMinDepthBelowSurface", root = "depth", targets = Level.BIOME)
 public final class CaveDepthSettings implements IrisFeature {
     @MinNumber(0)
     @MaxNumber(256)

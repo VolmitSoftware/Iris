@@ -18,7 +18,7 @@
 
 package art.arcane.iris.builtin.loot;
 
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
 import com.volmit.IrisFeature;
 import com.volmit.config.Desc;
 import com.volmit.config.Feature;
@@ -37,7 +37,7 @@ import java.util.List;
  */
 @Snippet("loot-registry")
 @Desc("Reference loot tables in this area")
-@Feature(id = "iris:loot", name = "Loot", key = "loot", targets = {Target.DIMENSION, Target.REGION, Target.BIOME})
+@Feature(id = "iris:loot", name = "Loot", key = "loot", targets = {Level.DIMENSION, Level.REGION, Level.BIOME})
 public final class LootSettings implements IrisFeature {
     public static final double MAX_MULTIPLIER = 16D;
 

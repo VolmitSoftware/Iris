@@ -18,7 +18,7 @@
 
 package art.arcane.iris.builtin.objects;
 
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
 import com.volmit.IrisFeature;
 import com.volmit.config.Desc;
 import com.volmit.config.Feature;
@@ -32,7 +32,7 @@ import java.util.List;
  * places those of its centre column's region and of that column's biome, and of the cave biome where it places in caves.
  */
 @Desc("Objects define what schematics (iob files) iris will place here")
-@Feature(id = "iris:objects", name = "Objects", key = "objects", root = "objects", targets = {Target.REGION, Target.BIOME})
+@Feature(id = "iris:objects", name = "Objects", key = "objects", root = "objects", targets = {Level.REGION, Level.BIOME})
 public final class ObjectSettings implements IrisFeature {
     @MinItems(1)
     @Desc("Objects define what schematics (iob files) iris will place here")

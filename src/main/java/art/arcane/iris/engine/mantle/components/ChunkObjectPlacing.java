@@ -38,10 +38,10 @@ import art.arcane.iris.builtin.objects.UpperObjectsForceSettings;
 import art.arcane.iris.builtin.objects.UpperObjectsSettings;
 import art.arcane.iris.engine.object.procedural.ResolvedProceduralObjects;
 import art.arcane.volmlib.util.math.RNG;
-import com.volmit.FeatureAttachment.Target;
 import com.volmit.IrisFeature;
 import com.volmit.ModuleLog;
-import com.volmit.config.FeatureSettings.Entry;
+import com.volmit.config.Level;
+import com.volmit.config.SettingsStack;
 import com.volmit.resource.ResourceId;
 import com.volmit.stage.MantleStageContext;
 import com.volmit.world.TerrainSampler;
@@ -55,8 +55,8 @@ import java.util.OptionalInt;
  * and its procedural objects, in that order, all drawing from the one random of the chunk.
  */
 final class ChunkObjectPlacing {
-    private static final int CENTER_OFFSET_BLOCKS = 8;
-    private static final int CHUNK_SHIFT = 4;
+    /** Objects read their chunk's settings at local 8, 8 as Iris always did, not at the API's centre column (local 7, 7): moving it would move objects. */
+    private static final int OBJECT_COLUMN_OFFSET_BLOCKS = 8;
     private static final int CHUNK_WIDTH_BLOCKS = 16;
     private static final double CHANCE_JITTER = 0.005;
     private static final int[] CAVE_BIOME_SAMPLE_DEPTHS = {48, 80, 112};
@@ -91,10 +91,10 @@ final class ChunkObjectPlacing {
         this.context = context;
         this.chunk = host.chunk();
         this.terrain = context.terrain();
-        this.chunkX = context.originX() >> CHUNK_SHIFT;
-        this.chunkZ = context.originZ() >> CHUNK_SHIFT;
-        this.centerX = CENTER_OFFSET_BLOCKS + (chunkX << CHUNK_SHIFT);
-        this.centerZ = CENTER_OFFSET_BLOCKS + (chunkZ << CHUNK_SHIFT);
+        this.chunkX = context.chunkX();
+        this.chunkZ = context.chunkZ();
+        this.centerX = context.originX() + OBJECT_COLUMN_OFFSET_BLOCKS;
+        this.centerZ = context.originZ() + OBJECT_COLUMN_OFFSET_BLOCKS;
         this.rng = host.chunkRandom(chunkX, chunkZ);
         this.traceRegen = Thread.currentThread().getName().startsWith(REGEN_THREAD_PREFIX) && host.debugging();
         this.golden = chunk.goldenDebug(chunkX, chunkZ);
@@ -127,14 +127,10 @@ final class ChunkObjectPlacing {
     private Column readColumn() {
         ResourceId region = host.regionAt(centerX, centerZ);
         ResourceId surface = host.surfaceBiomeAt(centerX, centerZ);
-        int surfaceY = surfaceY(centerX, centerZ);
+        int surfaceY = terrain.surfaceHeight(centerX, centerZ);
         ResourceId cave = resolveCaveObjectBiome(surfaceY, surface);
         return new Column(region, surface, cave, surfaceY, objectsOf(cave, region, surface), proceduralOf(cave, region, surface),
                 profilesOf(cave, region, surface));
-    }
-
-    private int surfaceY(int x, int z) {
-        return (int) Math.round(terrain.surfaceY(x, z));
     }
 
     private ResourceId resolveCaveObjectBiome(int surfaceY, ResourceId surfaceBiome) {
@@ -161,39 +157,37 @@ final class ChunkObjectPlacing {
     }
 
     private ColumnObjects objectsOf(ResourceId cave, ResourceId region, ResourceId surface) {
-        List<Entry<ObjectSettings>> entries = context.settings().at(ObjectSettings.class, centerX, centerZ);
-        return new ColumnObjects(level(entries, Target.BIOME), caveSettings(cave, surface, entries, ObjectSettings.class), level(entries, Target.REGION));
+        SettingsStack<ObjectSettings> declared = context.settings().at(ObjectSettings.class, centerX, centerZ);
+        return new ColumnObjects(levelValue(declared, Level.BIOME), caveSettings(cave, surface, declared, ObjectSettings.class),
+                levelValue(declared, Level.REGION));
     }
 
     private ColumnProcedural proceduralOf(ResourceId cave, ResourceId region, ResourceId surface) {
-        List<Entry<ProceduralObjectSettings>> entries = context.settings().at(ProceduralObjectSettings.class, centerX, centerZ);
-        return new ColumnProcedural(level(entries, Target.BIOME),
-                caveSettings(cave, surface, entries, ProceduralObjectSettings.class), level(entries, Target.REGION));
+        SettingsStack<ProceduralObjectSettings> declared = context.settings().at(ProceduralObjectSettings.class, centerX, centerZ);
+        return new ColumnProcedural(levelValue(declared, Level.BIOME),
+                caveSettings(cave, surface, declared, ProceduralObjectSettings.class), levelValue(declared, Level.REGION));
     }
 
     private ColumnProfiles profilesOf(ResourceId cave, ResourceId region, ResourceId surface) {
-        List<Entry<CaveProfile>> entries = context.settings().at(CaveProfile.class, centerX, centerZ);
-        return new ColumnProfiles(level(entries, Target.BIOME), caveSettings(cave, surface, entries, CaveProfile.class), level(entries, Target.REGION));
+        SettingsStack<CaveProfile> declared = context.settings().at(CaveProfile.class, centerX, centerZ);
+        return new ColumnProfiles(levelValue(declared, Level.BIOME), caveSettings(cave, surface, declared, CaveProfile.class),
+                levelValue(declared, Level.REGION));
     }
 
-    private <F extends IrisFeature> F caveSettings(ResourceId cave, ResourceId surface, List<Entry<F>> entries, Class<F> type) {
+    private <F extends IrisFeature> F caveSettings(ResourceId cave, ResourceId surface, SettingsStack<F> declared, Class<F> type) {
         if (cave.equals(surface)) {
-            return level(entries, Target.BIOME);
+            return levelValue(declared, Level.BIOME);
         }
         return host.biomeDeclaration(cave, type).orElse(null);
     }
 
     private <F extends IrisFeature> F dimensionLevel(Class<F> type) {
-        return level(context.settings().at(type, centerX, centerZ), Target.DIMENSION);
+        return levelValue(context.settings().at(type, centerX, centerZ), Level.DIMENSION);
     }
 
-    private static <F extends IrisFeature> F level(List<Entry<F>> entries, Target level) {
-        for (Entry<F> entry : entries) {
-            if (entry.level() == level) {
-                return entry.value();
-            }
-        }
-        return null;
+    /** The value {@code level} declares, or null: the column records below hold null for a level that declares nothing. */
+    private static <F extends IrisFeature> F levelValue(SettingsStack<F> declared, Level level) {
+        return declared.level(level).orElse(null);
     }
 
     private boolean dimensionRequiresSurfaceSupport() {
@@ -288,8 +282,8 @@ final class ChunkObjectPlacing {
     }
 
     private void placeObject(Tally tally, ObjectPlacement placement, String scope) {
-        int blockX = chunkX << CHUNK_SHIFT;
-        int blockZ = chunkZ << CHUNK_SHIFT;
+        int blockX = context.originX();
+        int blockZ = context.originZ();
         int density = host.density(placement, rng, blockX, blockZ);
         for (int i = 0; i < density; i++) {
             tally.attempts++;
@@ -329,8 +323,8 @@ final class ChunkObjectPlacing {
 
     private void placeCaveObject(Tally tally, ObjectPlacement placement, CaveProfile profile, String scope,
                                  ResourceId expectedCaveBiome, CaveAnchors anchors) {
-        int minX = chunkX << CHUNK_SHIFT;
-        int minZ = chunkZ << CHUNK_SHIFT;
+        int minX = context.originX();
+        int minZ = context.originZ();
         int density = host.density(placement, rng, minX, minZ);
         CaveAnchors.Search search = caves.searchFor(placement, profile);
         for (int i = 0; i < density; i++) {
@@ -408,8 +402,8 @@ final class ChunkObjectPlacing {
         if (placements.isEmpty()) {
             return;
         }
-        int blockX = chunkX << CHUNK_SHIFT;
-        int blockZ = chunkZ << CHUNK_SHIFT;
+        int blockX = context.originX();
+        int blockZ = context.originZ();
         CaveAnchors anchors = newAnchors();
         for (ProceduralPlacement placement : placements) {
             boolean chancePassed = passesProceduralChance(rng, placement.chance());
@@ -521,8 +515,8 @@ final class ChunkObjectPlacing {
     }
 
     private void placeUpperObject(ObjectPlacement placement, boolean forcePlace, String scope) {
-        int minX = chunkX << CHUNK_SHIFT;
-        int minZ = chunkZ << CHUNK_SHIFT;
+        int minX = context.originX();
+        int minZ = context.originZ();
         int density = host.density(placement, rng, minX, minZ);
         for (int i = 0; i < density; i++) {
             Optional<PlaceableObject> picked = host.pickScaled(placement, rng);

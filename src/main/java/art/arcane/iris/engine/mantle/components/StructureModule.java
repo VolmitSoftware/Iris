@@ -47,8 +47,7 @@ public final class StructureModule implements IrisModule {
         setup.stages().define(IrisStages.Structure.PLACE).softAfter(IrisStages.Objects.PLACE, IrisStages.Floating.OBJECTS)
                 .reach(StructureModule::reach).run(StructureModule::place);
         var registry = setup.registry();
-        registry.registerSettings(StructureSettings.class);
-        registry.registerSettings(StructurePlacementSettings.class);
+        registry.registerSettings(StructureSettings.class, StructurePlacementSettings.class);
     }
 
     private static void place(MantleStageContext context) {

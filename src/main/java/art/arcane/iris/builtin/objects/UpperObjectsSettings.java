@@ -18,14 +18,14 @@
 
 package art.arcane.iris.builtin.objects;
 
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
 import com.volmit.IrisFeature;
 import com.volmit.config.Desc;
 import com.volmit.config.Feature;
 
 /** Whether the objects of a dimension are also placed in the terrain stacked above it, written as {@code "upperDimensionObjects": true}. */
 @Desc("When true, objects from the mantle (structures, trees, etc.) can be placed in the upper dimension terrain zone. When false, the upper terrain is protected from object placement.")
-@Feature(id = "iris:objects/upper", name = "Upper dimension objects", key = "upperDimensionObjects", root = "enabled", targets = Target.DIMENSION)
+@Feature(id = "iris:objects/upper", name = "Upper dimension objects", key = "upperDimensionObjects", root = "enabled", targets = Level.DIMENSION)
 public final class UpperObjectsSettings implements IrisFeature {
     @Desc("When true, objects from the mantle (structures, trees, etc.) can be placed in the upper dimension terrain zone. When false, the upper terrain is protected from object placement.")
     private boolean enabled = false;

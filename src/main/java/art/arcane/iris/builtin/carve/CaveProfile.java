@@ -19,7 +19,7 @@
 package art.arcane.iris.builtin.carve;
 
 import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
 import com.volmit.IrisFeature;
 import com.volmit.config.Desc;
 import com.volmit.config.Feature;
@@ -43,7 +43,7 @@ import java.util.Optional;
  */
 @Snippet("cave-profile")
 @Desc("Represents a configurable 3D cave profile.")
-@Feature(id = "iris:carve/profile", name = "Cave profile", key = "caveProfile", targets = {Target.DIMENSION, Target.REGION, Target.BIOME})
+@Feature(id = "iris:carve/profile", name = "Cave profile", key = "caveProfile", targets = {Level.DIMENSION, Level.REGION, Level.BIOME})
 public final class CaveProfile implements IrisFeature {
     @Desc("Enable profile-driven cave carving.")
     private boolean enabled = false;

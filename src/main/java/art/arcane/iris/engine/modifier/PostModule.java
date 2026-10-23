@@ -38,9 +38,7 @@ public final class PostModule implements IrisModule {
     @Override
     public void setup(ModuleSetup setup) {
         var registry = setup.registry();
-        registry.registerSettings(PostProcessingSettings.class);
-        registry.registerSettings(PostProcessingSlabsSettings.class);
-        registry.registerSettings(PostProcessingWallsSettings.class);
+        registry.registerSettings(PostProcessingSettings.class, PostProcessingSlabsSettings.class, PostProcessingWallsSettings.class);
         // Ordering only: iris:carve ships in the built-ins jar, which a pack may not have.
         setup.stages().define(IrisStages.Post.SMOOTH).softAfter(IrisStages.Carve.APPLY).run(SurfaceSmoothing::smooth);
     }

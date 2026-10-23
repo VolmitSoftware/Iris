@@ -18,7 +18,7 @@
 
 package art.arcane.iris.builtin.decorant;
 
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
 import com.volmit.IrisFeature;
 import com.volmit.config.Desc;
 import com.volmit.config.Feature;
@@ -32,7 +32,7 @@ import java.util.List;
  * {@link Decorator}.
  */
 @Desc("Decorators are used for things like tall grass, bisected flowers, and even kelp or cactus (random heights)")
-@Feature(id = "iris:decorant", name = "Decorators", key = "decorators", root = "decorators", targets = Target.BIOME)
+@Feature(id = "iris:decorant", name = "Decorators", key = "decorators", root = "decorators", targets = Level.BIOME)
 public final class DecorantSettings implements IrisFeature {
     @MinItems(1)
     @Desc("Decorators are used for things like tall grass, bisected flowers, and even kelp or cactus (random heights)")

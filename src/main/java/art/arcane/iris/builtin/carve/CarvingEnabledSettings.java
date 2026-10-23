@@ -18,14 +18,14 @@
 
 package art.arcane.iris.builtin.carve;
 
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
 import com.volmit.IrisFeature;
 import com.volmit.config.Desc;
 import com.volmit.config.Feature;
 
 /** A dimension's {@code carvingEnabled}, written as the bare boolean. */
 @Desc("Enable or disable all carving for this dimension")
-@Feature(id = "iris:carve/enabled", name = "Carving enabled", key = "carvingEnabled", root = "enabled", targets = Target.DIMENSION)
+@Feature(id = "iris:carve/enabled", name = "Carving enabled", key = "carvingEnabled", root = "enabled", targets = Level.DIMENSION)
 public final class CarvingEnabledSettings implements IrisFeature {
     @Desc("Enable or disable all carving for this dimension")
     private boolean enabled = true;

@@ -29,8 +29,6 @@ import art.arcane.iris.builtin.objects.TreeGrowthSettings;
 import art.arcane.iris.builtin.objects.TreeMode;
 import art.arcane.iris.builtin.objects.tree.Tree;
 import art.arcane.volmlib.util.math.RNG;
-import com.volmit.FeatureAttachment.Target;
-import com.volmit.config.FeatureSettings.Entry;
 import com.volmit.block.BlockState;
 import com.volmit.placement.PlacedBlock;
 import com.volmit.resource.ResourceId;
@@ -92,12 +90,7 @@ public final class TreeGrowing implements SaplingGrowth {
     }
 
     private static TreeGrowthSettings treeGrowth(ObjectHost host, BlockPosition at) {
-        for (Entry<TreeGrowthSettings> entry : host.columnSettings().at(TreeGrowthSettings.class, at.x(), at.z())) {
-            if (entry.level() == Target.DIMENSION) {
-                return entry.value();
-            }
-        }
-        return new TreeGrowthSettings();
+        return host.columnSettings().at(TreeGrowthSettings.class, at.x(), at.z()).dimension().orElseGet(TreeGrowthSettings::new);
     }
 
     /** One placement, picked at random, of the tree placements that grow {@code sapling}'s species. */

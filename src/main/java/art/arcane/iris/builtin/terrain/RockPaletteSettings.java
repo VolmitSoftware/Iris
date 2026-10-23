@@ -18,7 +18,7 @@
 
 package art.arcane.iris.builtin.terrain;
 
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
 import com.volmit.IrisFeature;
 import com.volmit.block.BlockSpec;
 import com.volmit.block.PaletteSpec;
@@ -31,7 +31,7 @@ import java.util.List;
  * The blocks that fill terrain below the layers of a dimension, written as {@code "rockPalette": {...}}, a palette. A dimension without the key is stone.
  */
 @Desc("The palette of blocks for 'stone'")
-@Feature(id = "iris:terrain/rock-palette", name = "Rock palette", key = "rockPalette", root = "palette", targets = Target.DIMENSION)
+@Feature(id = "iris:terrain/rock-palette", name = "Rock palette", key = "rockPalette", root = "palette", targets = Level.DIMENSION)
 public final class RockPaletteSettings implements IrisFeature {
     private static final String DEFAULT_BLOCK = "stone";
 

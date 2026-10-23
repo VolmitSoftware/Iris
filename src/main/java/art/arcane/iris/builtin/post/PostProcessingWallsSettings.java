@@ -18,7 +18,7 @@
 
 package art.arcane.iris.builtin.post;
 
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
 import com.volmit.IrisFeature;
 import com.volmit.config.Desc;
 import com.volmit.config.Feature;
@@ -27,7 +27,7 @@ import com.volmit.config.Feature;
  * Whether post processing paints walls on steep faces in a dimension, written as {@code "postProcessingWalls": false}. A dimension without the key paints them.
  */
 @Desc("Add painted walls in post processing")
-@Feature(id = "iris:post/walls", name = "Post processing walls", key = "postProcessingWalls", root = "enabled", targets = Target.DIMENSION)
+@Feature(id = "iris:post/walls", name = "Post processing walls", key = "postProcessingWalls", root = "enabled", targets = Level.DIMENSION)
 public final class PostProcessingWallsSettings implements IrisFeature {
     public static final boolean DEFAULT_ENABLED = true;
 

@@ -34,9 +34,9 @@ import art.arcane.iris.engine.object.terrain.floating.ResolvedFloatingChild;
 import art.arcane.volmlib.util.cache.CacheKey;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
-import com.volmit.FeatureAttachment.Target;
 import com.volmit.ModuleLog;
 import com.volmit.config.FeatureSettings.Entry;
+import com.volmit.config.Level;
 import com.volmit.config.PackSettings;
 import com.volmit.mantle.BlockBox;
 import com.volmit.resource.ResourceId;
@@ -60,7 +60,6 @@ import java.util.Set;
 public final class FloatingObjectPlacing {
     private static final int INVERTED_PICK_ATTEMPTS = 8;
     private static final long CHUNK_RANDOM_SALT = 0x0FA710BEL;
-    private static final int CHUNK_SHIFT = 4;
     private static final int CHUNK_COLUMNS = 256;
     private static final int MIN_REACH_BLOCKS = 16;
     private static final int LARGE_REACH_WARNING_BLOCKS = 128;
@@ -97,7 +96,7 @@ public final class FloatingObjectPlacing {
         int minZ = context.originZ();
         BlockBox bounds = context.terrain().bounds();
         int worldHeight = bounds.maxY() - bounds.minY();
-        RNG chunkRng = new RNG(CacheKey.key(minX >> CHUNK_SHIFT, minZ >> CHUNK_SHIFT) + mantleSeed + CHUNK_RANDOM_SALT);
+        RNG chunkRng = new RNG(CacheKey.key(context.chunkX(), context.chunkZ()) + mantleSeed + CHUNK_RANDOM_SALT);
         FloatingIslandSampleResolver samples = new FloatingIslandSampleResolver(world, worldHeight,
                 new FloatingIslandBoundarySampler(host::surfaceBiome), log);
 
@@ -391,7 +390,7 @@ public final class FloatingObjectPlacing {
         int maxObjectExtent = MIN_REACH_BLOCKS;
         try {
             for (Entry<FloatingChildSettings> declared : settings.declared(FloatingChildSettings.class)) {
-                if (declared.level() != Target.BIOME) {
+                if (declared.level() != Level.BIOME) {
                     continue;
                 }
                 ResourceId biome = biomeIdOf(declared.source());

@@ -18,7 +18,7 @@
 
 package art.arcane.iris.builtin.terrain;
 
-import com.volmit.FeatureAttachment.Target;
+import com.volmit.config.Level;
 import com.volmit.IrisFeature;
 import com.volmit.block.BlockSpec;
 import com.volmit.block.PaletteSpec;
@@ -31,7 +31,7 @@ import java.util.List;
  * The blocks that fill ocean columns and cave aquifers of a dimension, written as {@code "fluidPalette": {...}}, a palette. A dimension without the key is water.
  */
 @Desc("The dimension fluid block palette used for ocean columns and cave aquifers.")
-@Feature(id = "iris:terrain/fluid-palette", name = "Fluid palette", key = "fluidPalette", root = "palette", targets = Target.DIMENSION)
+@Feature(id = "iris:terrain/fluid-palette", name = "Fluid palette", key = "fluidPalette", root = "palette", targets = Level.DIMENSION)
 public final class FluidPaletteSettings implements IrisFeature {
     private static final String DEFAULT_BLOCK = "water";
 

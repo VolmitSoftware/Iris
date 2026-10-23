@@ -183,7 +183,7 @@ public class CaveApplying {
                 int localZ = columnIndex & 15;
                 int worldX = localX + chunkBlockX;
                 int worldZ = localZ + chunkBlockZ;
-                surfaceHeights[columnIndex] = (int) Math.round(terrain.surfaceY(worldX, worldZ));
+                surfaceHeights[columnIndex] = terrain.surfaceHeight(worldX, worldZ);
                 if (protectUpper) {
                     upperSurfaceHeights[columnIndex] = terrain.upperDimensionY(worldX, worldZ).getAsInt();
                 }

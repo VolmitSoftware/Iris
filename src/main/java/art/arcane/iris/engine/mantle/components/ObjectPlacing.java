@@ -23,15 +23,14 @@ import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.builtin.objects.ObjectSettings;
 import art.arcane.iris.builtin.objects.PlaceableObject;
 import art.arcane.volmlib.util.math.RNG;
-import com.volmit.FeatureAttachment.Target;
 import com.volmit.ModuleLog;
-import com.volmit.config.FeatureSettings.Entry;
+import com.volmit.config.Level;
 import com.volmit.config.PackSettings;
+import com.volmit.config.SettingsStack;
 import com.volmit.stage.MantleStageContext;
 import com.volmit.world.PackWorld;
 
 import java.util.HashSet;
-import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
@@ -44,6 +43,8 @@ public final class ObjectPlacing {
     private static final int CHUNK_CENTER_OFFSET_BLOCKS = 8;
     private static final int CHUNK_SHIFT = 4;
     private static final double CHANCE_JITTER = 0.005;
+    /** A guess draws from the biome's objects before the region's, as placing does. */
+    private static final Level[] GUESSED_LEVELS = {Level.BIOME, Level.REGION};
 
     private final ObjectHost host;
     private final ModuleLog log;
@@ -68,14 +69,10 @@ public final class ObjectPlacing {
         RNG rng = host.chunkRandom(chunkX, chunkZ);
         int centerX = (chunkX << CHUNK_SHIFT) + CHUNK_CENTER_OFFSET_BLOCKS;
         int centerZ = (chunkZ << CHUNK_SHIFT) + CHUNK_CENTER_OFFSET_BLOCKS;
-        List<Entry<ObjectSettings>> entries = host.columnSettings().at(ObjectSettings.class, centerX, centerZ);
+        SettingsStack<ObjectSettings> declared = host.columnSettings().at(ObjectSettings.class, centerX, centerZ);
         Set<String> keys = new HashSet<>();
-        for (Target level : new Target[]{Target.BIOME, Target.REGION}) {
-            for (Entry<ObjectSettings> entry : entries) {
-                if (entry.level() == level) {
-                    guessFrom(entry.value(), rng, chunkX, chunkZ, keys);
-                }
-            }
+        for (Level level : GUESSED_LEVELS) {
+            declared.level(level).ifPresent(settings -> guessFrom(settings, rng, chunkX, chunkZ, keys));
         }
         return keys;
     }

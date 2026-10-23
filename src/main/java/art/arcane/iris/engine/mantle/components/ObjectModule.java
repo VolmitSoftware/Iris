@@ -49,8 +49,6 @@ import com.volmit.world.PackWorld;
 public final class ObjectModule implements IrisModule, ModuleLifecycle {
     private static final String VERSION = "built-in";
 
-    private ModuleLog log;
-
     @Override
     public ModuleInfo info() {
         return ModuleInfo.of("iris:objects", "Objects", VERSION);
@@ -58,19 +56,16 @@ public final class ObjectModule implements IrisModule, ModuleLifecycle {
 
     @Override
     public void setup(ModuleSetup setup) {
-        log = setup.log();
+        ModuleLog log = setup.log();
         // Ordering only: iris:carve ships in the built-ins jar, which a pack may not have.
-        setup.stages().define(IrisStages.Objects.PLACE).softAfter(IrisStages.Carve.CAVES).reach(this::reach).run(ObjectModule::place);
+        setup.stages().define(IrisStages.Objects.PLACE).softAfter(IrisStages.Carve.CAVES).reach(settings -> reach(settings, log))
+                .run(ObjectModule::place);
         var registry = setup.registry();
         registry.registerService(ObjectsAt.class, new ObjectLocating());
         registry.registerService(SaplingGrowth.class, new TreeGrowing());
-        registry.registerSettings(ObjectSettings.class);
-        registry.registerSettings(ProceduralObjectSettings.class);
-        registry.registerSettings(TreeGrowthSettings.class);
-        registry.registerSettings(RequireSurfaceSupportSettings.class);
-        registry.registerSettings(SurfaceSupportBufferSettings.class);
-        registry.registerSettings(UpperObjectsSettings.class);
-        registry.registerSettings(UpperObjectsForceSettings.class);
+        registry.registerSettings(ObjectSettings.class, ProceduralObjectSettings.class, TreeGrowthSettings.class,
+                RequireSurfaceSupportSettings.class, SurfaceSupportBufferSettings.class, UpperObjectsSettings.class,
+                UpperObjectsForceSettings.class);
         registry.registerLifecycle(this);
     }
 
@@ -83,7 +78,7 @@ public final class ObjectModule implements IrisModule, ModuleLifecycle {
         ObjectPlacing.of(context.world()).place(context);
     }
 
-    private int reach(PackSettings settings) {
+    private static int reach(PackSettings settings, ModuleLog log) {
         return new PlacementReach(ObjectHost.of(settings), log).ofPack(settings);
     }
 }

@@ -22,6 +22,7 @@ import art.arcane.volmlib.util.math.RNG;
 import com.google.gson.JsonParser;
 import com.volmit.host.LoadedPack;
 import com.volmit.host.ModuleHost;
+import com.volmit.host.ModuleLoadException;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -74,7 +75,7 @@ public class SharedLibrariesTest {
     public void withoutTheLibrariesExposedTheyAreIrissHiddenClasses() throws IOException {
         Path pack = packWithSharedModule();
 
-        IllegalArgumentException failure = assertThrows(IllegalArgumentException.class, () -> LoadedPack.load(pack,
+        ModuleLoadException failure = assertThrows(ModuleLoadException.class, () -> LoadedPack.load(pack,
                 ModuleHost.of(List.of()).exposing(IrisModuleHost.BUILT_IN_API_PACKAGE).copyingJarsTo(folder.newFolder().toPath())));
 
         assertTrue(failure.getMessage(), failure.getMessage().contains("art.arcane.volmlib.util.math.RNG"));

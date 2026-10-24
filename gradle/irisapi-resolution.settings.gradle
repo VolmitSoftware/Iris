@@ -22,8 +22,9 @@
  *   apply from: new File(settingsDir, 'gradle/irisapi-resolution.settings.gradle')
  *
  * IrisApi is a separate project with no published artifact, so Iris always compiles against a sibling
- * checkout as a composite build. Core declares `com.volmit:IrisApi`; this substitutes it with the
- * checkout's root project.
+ * checkout as a composite build. Core declares `com.volmit:iris-api` (what modules see) and
+ * `com.volmit:iris-host` (what loads and runs them); this substitutes them with the checkout's `api`
+ * and `host` projects.
  *
  * Behaviour:
  *   -PlocalIrisApiDirectory=<path>    explicit IrisApi checkout (relative paths resolve against the
@@ -79,6 +80,7 @@ File irisResolveLocalIrisApiDirectory() {
 
 includeBuild(irisResolveLocalIrisApiDirectory()) {
     dependencySubstitution {
-        substitute(module('com.volmit:IrisApi')).using(project(':'))
+        substitute(module('com.volmit:iris-api')).using(project(':api'))
+        substitute(module('com.volmit:iris-host')).using(project(':host'))
     }
 }

@@ -49,17 +49,17 @@ final class BlockStateHunk implements Hunk<BlockState> {
     }
 
     @Override
-    public int getWidth() {
+    public int width() {
         return blocks.getWidth();
     }
 
     @Override
-    public int getHeight() {
+    public int height() {
         return blocks.getHeight();
     }
 
     @Override
-    public int getDepth() {
+    public int depth() {
         return blocks.getDepth();
     }
 
@@ -79,9 +79,9 @@ final class BlockStateHunk implements Hunk<BlockState> {
     }
 
     private void requireInside(int x, int y, int z) {
-        if (x < 0 || y < 0 || z < 0 || x >= getWidth() || y >= getHeight() || z >= getDepth()) {
+        if (x < 0 || y < 0 || z < 0 || x >= width() || y >= height() || z >= depth()) {
             throw new IndexOutOfBoundsException("Block " + x + ", " + y + ", " + z + " is outside the "
-                    + getWidth() + "x" + getHeight() + "x" + getDepth() + " chunk hunk");
+                    + width() + "x" + height() + "x" + depth() + " chunk hunk");
         }
     }
 }

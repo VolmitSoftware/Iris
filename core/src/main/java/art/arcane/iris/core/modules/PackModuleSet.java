@@ -21,6 +21,7 @@ package art.arcane.iris.core.modules;
 import art.arcane.iris.spi.IrisLogging;
 import com.google.gson.Gson;
 import com.volmit.host.LoadedPack;
+import com.volmit.host.ModuleLoadException;
 
 import java.io.File;
 import java.util.Arrays;
@@ -124,7 +125,7 @@ public final class PackModuleSet implements AutoCloseable {
             pack = loaded;
             state = State.LOADED;
             warnWhenBuiltInModulesAreMissing(loaded);
-        } catch (RuntimeException loadFailure) {
+        } catch (ModuleLoadException loadFailure) {
             failure = new PackModulesException(packFolder, loadFailure);
             state = State.FAILED;
             IrisLogging.error(failure.getMessage());

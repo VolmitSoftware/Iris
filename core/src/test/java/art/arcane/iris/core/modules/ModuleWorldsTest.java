@@ -29,6 +29,7 @@ import com.volmit.ModuleSetup;
 import com.volmit.PackContext;
 import com.volmit.host.LoadedPack;
 import com.volmit.host.ModuleHost;
+import com.volmit.host.ModuleLoadException;
 import com.volmit.world.PackWorld;
 import org.junit.After;
 import org.junit.Before;
@@ -270,7 +271,7 @@ public class ModuleWorldsTest {
     @Test
     public void aPackWhoseModulesFailToLoadRunsItsWorldWithoutHooks() {
         PackModuleSet broken = mock(PackModuleSet.class);
-        when(broken.pack()).thenThrow(new PackModulesException(folder.getRoot(), new IllegalArgumentException("broken jar")));
+        when(broken.pack()).thenThrow(new PackModulesException(folder.getRoot(), new ModuleLoadException(null, null, "broken jar", null)));
         when(data.getModules()).thenReturn(broken);
         EngineGeneration generation = generation();
 

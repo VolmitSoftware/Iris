@@ -54,8 +54,10 @@ dependencies {
     api(project(':spi'))
 
     // IrisApi, from the sibling checkout (gradle/irisapi-resolution.settings.gradle). Shaded without
-    // relocation: pack modules compile against com.volmit and the pack loader exposes that package.
-    implementation('com.volmit:IrisApi')
+    // relocation: pack modules compile against com.volmit and the pack loader exposes that package,
+    // except the host side (com.volmit.host), which loads and runs them.
+    implementation('com.volmit:iris-api')
+    implementation('com.volmit:iris-host')
 
     // Provided or Classpath
     compileOnly(libs.lombok)
@@ -111,7 +113,8 @@ dependencies {
     slim(libs.dom4j)
     slim(libs.jaxen)
 
-    testImplementation('com.volmit:IrisApi')
+    testImplementation('com.volmit:iris-api')
+    testImplementation('com.volmit:iris-host')
     testImplementation('junit:junit:4.13.2')
     testImplementation('org.mockito:mockito-core:5.23.0')
     testImplementation(libs.paper.api)
@@ -343,7 +346,8 @@ List<String> builtinPackagedPatterns = builtinModuleClasses.collectMany { String
 Provider<Directory> builtinModulesBuild = layout.buildDirectory.dir('builtin-modules')
 
 configurations {
-    // What the jar check sees besides Iris's classes: the IrisApi and the libraries Iris shares with pack modules.
+    // What the jar check sees besides Iris's classes: the IrisApi (its host side included, as in the plugin, where the
+    // check finds it hidden) and the libraries Iris shares with pack modules.
     builtinModulesCheckClasspath {
         canBeConsumed = false
         transitive = false
@@ -354,7 +358,8 @@ configurations {
 }
 
 dependencies {
-    builtinModulesCheckClasspath('com.volmit:IrisApi')
+    builtinModulesCheckClasspath('com.volmit:iris-api')
+    builtinModulesCheckClasspath('com.volmit:iris-host')
     builtinModulesCheckClasspath(volmLibCoordinate)
     builtinModulesCheckClasspath(libs.gson)
 }

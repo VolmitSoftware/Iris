@@ -31,7 +31,7 @@ public class IrisShoreLineDecoratorTest {
         Fixture fixture = createFixture(false);
         Hunk<BlockState> output = fixture.withSupport(AIR);
 
-        fixture.shoreline.decorate(0, 0, 0, 1, -1, 0, 1, -1, BIOME, FLUID_HEIGHT, output.getHeight());
+        fixture.shoreline.decorate(0, 0, 0, 1, -1, 0, 1, -1, BIOME, FLUID_HEIGHT, output.height());
 
         assertSame(AIR, output.get(0, FLUID_HEIGHT + 1, 0));
         verify(fixture.decorator).passesChanceGate(anyDouble(), anyDouble());
@@ -43,7 +43,7 @@ public class IrisShoreLineDecoratorTest {
         Fixture fixture = createFixture(false);
         Hunk<BlockState> output = fixture.withSupport(WATER);
 
-        fixture.shoreline.decorate(0, 0, 0, 1, -1, 0, 1, -1, BIOME, FLUID_HEIGHT, output.getHeight());
+        fixture.shoreline.decorate(0, 0, 0, 1, -1, 0, 1, -1, BIOME, FLUID_HEIGHT, output.height());
 
         assertSame(AIR, output.get(0, FLUID_HEIGHT + 1, 0));
         verify(fixture.decorator, never()).blockAt(anyDouble(), anyDouble(), anyDouble());
@@ -54,7 +54,7 @@ public class IrisShoreLineDecoratorTest {
         Fixture fixture = createFixture(false);
         Hunk<BlockState> output = fixture.withSupport(GRASS_BLOCK);
 
-        fixture.shoreline.decorate(0, 0, 0, 1, -1, 0, 1, -1, BIOME, FLUID_HEIGHT, output.getHeight());
+        fixture.shoreline.decorate(0, 0, 0, 1, -1, 0, 1, -1, BIOME, FLUID_HEIGHT, output.height());
 
         assertSame(POPPY, output.get(0, FLUID_HEIGHT + 1, 0));
     }
@@ -64,7 +64,7 @@ public class IrisShoreLineDecoratorTest {
         Fixture fixture = createFixture(true);
         Hunk<BlockState> output = fixture.withSupport(AIR);
 
-        fixture.shoreline.decorate(0, 0, 0, 1, -1, 0, 1, -1, BIOME, FLUID_HEIGHT, output.getHeight());
+        fixture.shoreline.decorate(0, 0, 0, 1, -1, 0, 1, -1, BIOME, FLUID_HEIGHT, output.height());
 
         assertSame(AIR, output.get(0, FLUID_HEIGHT + 1, 0));
     }

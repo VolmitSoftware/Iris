@@ -371,7 +371,7 @@ public final class ApiChunk implements GenerationContext {
     }
 
     private BlockBox chunkColumns() {
-        return new BlockBox(originX, 0, originZ, originX + WIDTH, blocks.getHeight(), originZ + WIDTH);
+        return new BlockBox(originX, 0, originZ, originX + WIDTH, blocks.height(), originZ + WIDTH);
     }
 
     /** The dimension above, which is the one generated. */
@@ -406,7 +406,7 @@ public final class ApiChunk implements GenerationContext {
         @Override
         public BlockBox bounds() {
             return new BlockBox(originX - TERRAIN_MARGIN, 0, originZ - TERRAIN_MARGIN, originX + WIDTH + TERRAIN_MARGIN,
-                    blocks.getHeight(), originZ + WIDTH + TERRAIN_MARGIN);
+                    blocks.height(), originZ + WIDTH + TERRAIN_MARGIN);
         }
 
         @Override

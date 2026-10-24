@@ -22,6 +22,7 @@ import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.loader.ResourceLoader;
 import art.arcane.iris.core.modules.PackModuleSet;
 import art.arcane.iris.core.modules.PackModulesException;
+import com.volmit.host.ModuleLoadException;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.volmlib.util.collection.KList;
 import org.junit.Test;
@@ -42,7 +43,7 @@ public class DatapackIngestBrokenModulesTest {
         when(dimensions.getPossibleKeys()).thenReturn(new String[]{"overworld"});
         when(dimensions.loadAll(new String[]{"overworld"})).thenReturn(new KList<>(new IrisDimension()));
         PackModuleSet modules = mock(PackModuleSet.class);
-        when(modules.pack()).thenThrow(new PackModulesException(new File("broken"), new IllegalArgumentException("Duplicate module example:moss")));
+        when(modules.pack()).thenThrow(new PackModulesException(new File("broken"), new ModuleLoadException(null, null, "Duplicate module example:moss", null)));
         IrisData data = mock(IrisData.class);
         when(data.getDimensionLoader()).thenReturn(dimensions);
         when(data.getModules()).thenReturn(modules);

@@ -1,5 +1,6 @@
 package art.arcane.iris.engine.object.placement;
 
+import art.arcane.iris.builtin.blocks.WrittenBlocks;
 import art.arcane.iris.builtin.carve.CarvingMode;
 import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
 import art.arcane.iris.builtin.validate.ObjectLimit;
@@ -47,7 +48,6 @@ import com.volmit.object.GeneratedObject;
 import com.volmit.object.ObjectBlock;
 import com.volmit.object.ObjectTransform;
 import com.volmit.host.LoadedPack;
-import com.volmit.placement.PlacedBlock;
 import com.volmit.stage.PlacementStage;
 import com.volmit.stage.Stage;
 import com.volmit.world.BlockPosition;
@@ -397,10 +397,10 @@ public class IrisObjectPlacementRegressionTest {
         @Override
         public void setup(ModuleSetup setup) {
             setup.stages().define(CAP).requires(IrisStages.Blocks.COMPLETE, IrisStages.Blocks.WRITE).run(context -> {
-                List<PlacedBlock> written = context.output(IrisStages.Blocks.WRITE).blocks();
-                writtenSizes.add(written.size());
-                BlockPosition first = written.getFirst().position();
-                context.access().set(new PlacedBlock(new BlockPosition(0, first.y() + 1, 0), written.getFirst().state(), Optional.empty()));
+                WrittenBlocks written = context.output(IrisStages.Blocks.WRITE);
+                writtenSizes.add(written.positions().size());
+                BlockPosition first = written.positions().getFirst();
+                context.access().set(0, first.y() + 1, 0, written.states().getFirst());
             });
         }
     }

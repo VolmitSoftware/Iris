@@ -16,7 +16,7 @@ String volmLibCoordinate = providers.gradleProperty('volmLibCoordinate')
 dependencies {
     implementation(project(':core'))
     // Module settings types the deserialization probe reads are IrisApi features.
-    compileOnly('com.volmit:IrisApi')
+    compileOnly('com.volmit:iris-api')
     compileOnly(libs.spigot)
     testImplementation('junit:junit:4.13.2')
     testImplementation(volmLibCoordinate) {

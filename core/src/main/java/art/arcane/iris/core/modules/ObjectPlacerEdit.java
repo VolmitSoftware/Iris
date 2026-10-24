@@ -25,12 +25,14 @@ import art.arcane.volmlib.util.matter.MatterMarker;
 import com.volmit.block.BlockState;
 import com.volmit.mantle.BlockBox;
 import com.volmit.mantle.Mantle;
+import com.volmit.object.BlockEntityData;
 import com.volmit.placement.PlacedBlock;
 import com.volmit.placement.PlacedMarker;
 import com.volmit.placement.PlacementEdit;
 import com.volmit.world.BlockPosition;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -52,7 +54,8 @@ final class ObjectPlacerEdit implements PlacementEdit {
     private final PlatformBlockStates states;
     private final BiConsumer<art.arcane.volmlib.util.math.BlockPosition, PlatformBlockState> listener;
     private final Supplier<PlacementMantle> mantleSource;
-    private final Map<BlockPosition, PlacedBlock> blocks = new LinkedHashMap<>();
+    private final Map<BlockPosition, BlockState> blocks = new LinkedHashMap<>();
+    private final Map<BlockPosition, BlockEntityData> blockEntities = new HashMap<>();
     private final List<PlacedMarker> markers = new ArrayList<>();
     private final List<BlockPosition> objectBlocks = new ArrayList<>();
     private PlacementMantle mantle;
@@ -82,15 +85,28 @@ final class ObjectPlacerEdit implements PlacementEdit {
     @Override
     public BlockState get(int x, int y, int z) {
         requireInside(x, y, z);
-        PlacedBlock buffered = blocks.get(new BlockPosition(x, y, z));
-        return buffered != null ? buffered.state() : states.toApi(placer.get(x, y, z));
+        BlockState buffered = blocks.get(new BlockPosition(x, y, z));
+        return buffered != null ? buffered : states.toApi(placer.get(x, y, z));
+    }
+
+    @Override
+    public void set(int x, int y, int z, BlockState state) {
+        requireInside(x, y, z);
+        buffer(new BlockPosition(x, y, z), state);
     }
 
     @Override
     public void set(PlacedBlock block) {
         BlockPosition position = block.position();
         requireInside(position.x(), position.y(), position.z());
-        blocks.put(position, block);
+        buffer(position, block.state());
+        block.blockEntity().ifPresent(entity -> blockEntities.put(position, entity));
+    }
+
+    /** A write without a block entity drops one buffered earlier at the same place. */
+    private void buffer(BlockPosition position, BlockState state) {
+        blocks.put(position, state);
+        blockEntities.remove(position);
     }
 
     @Override
@@ -131,6 +147,7 @@ final class ObjectPlacerEdit implements PlacementEdit {
     public void close() {
         discardMantle();
         blocks.clear();
+        blockEntities.clear();
         markers.clear();
         objectBlocks.clear();
         state = State.CLOSED;
@@ -150,11 +167,13 @@ final class ObjectPlacerEdit implements PlacementEdit {
     }
 
     private void writeBlocks() {
-        for (PlacedBlock block : blocks.values()) {
-            BlockPosition position = block.position();
-            placer.set(position.x(), position.y(), position.z(), states.toPlatform(block.state()));
-            block.blockEntity().ifPresent(entity -> placer.setTile(position.x(), position.y(), position.z(), BlockEntities.tileOf(entity)));
-        }
+        blocks.forEach((position, block) -> {
+            placer.set(position.x(), position.y(), position.z(), states.toPlatform(block));
+            BlockEntityData entity = blockEntities.get(position);
+            if (entity != null) {
+                placer.setTile(position.x(), position.y(), position.z(), BlockEntities.tileOf(entity));
+            }
+        });
     }
 
     private void writeMarkers() {
@@ -169,9 +188,8 @@ final class ObjectPlacerEdit implements PlacementEdit {
             return;
         }
         for (BlockPosition position : objectBlocks) {
-            PlacedBlock written = blocks.get(position);
             listener.accept(new art.arcane.volmlib.util.math.BlockPosition(position.x(), position.y(), position.z()),
-                    states.toPlatform(written.state()));
+                    states.toPlatform(blocks.get(position)));
         }
     }
 

@@ -20,6 +20,7 @@ package art.arcane.iris.core.modules;
 
 import art.arcane.iris.core.loader.IrisData;
 import com.volmit.host.LoadedPack;
+import com.volmit.host.ModuleLoadException;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -83,7 +84,7 @@ public class PackModuleJarNextToBuiltInsTest {
         PackModuleJar.write(packFolder, "carve.jar", "pack.ported.Ported",
                 Map.of("pack.ported.Ported", module("ported", "Ported", builtInId)));
 
-        IllegalArgumentException failure = assertThrows(IllegalArgumentException.class,
+        ModuleLoadException failure = assertThrows(ModuleLoadException.class,
                 () -> BuiltInPack.serve(mock(IrisData.class), folder, packFolder, List.of()));
 
         assertEquals("Duplicate module " + builtInId + " from " + Path.of("modules", "carve.jar") + " (pack.ported.Ported); already loaded from host classpath ("

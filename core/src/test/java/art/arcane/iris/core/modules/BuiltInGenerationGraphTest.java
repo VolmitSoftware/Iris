@@ -33,6 +33,7 @@ import com.volmit.ModuleSetup;
 import com.volmit.config.Feature;
 import com.volmit.config.PackSettings;
 import com.volmit.host.LoadedPack;
+import com.volmit.host.ModuleLoadException;
 import com.volmit.host.ResolvedGraph;
 import com.volmit.host.schema.FeatureSchema;
 import com.volmit.host.schema.ObjectType;
@@ -145,12 +146,12 @@ public class BuiltInGenerationGraphTest {
 
     @Test
     public void aModuleCannotTakeTheKeyOfABuiltInOrAFieldOfIris() {
-        IllegalArgumentException deposits = assertThrows(IllegalArgumentException.class,
+        ModuleLoadException deposits = assertThrows(ModuleLoadException.class,
                 () -> BuiltInPack.serve(mock(IrisData.class), folder, List.of(new RivalModule(TakesDeposits.class))));
         assertEquals("region key \"deposits\" is claimed by iris:deposit (host classpath) and test:rival/deposits (host classpath);"
                 + " give one of the settings another key in its @Feature", deposits.getMessage());
 
-        IllegalArgumentException field = assertThrows(IllegalArgumentException.class,
+        ModuleLoadException field = assertThrows(ModuleLoadException.class,
                 () -> BuiltInPack.serve(mock(IrisData.class), folder, List.of(new RivalModule(TakesAHostField.class))));
         assertEquals("biome key \"generators\" is claimed by Iris and test:rival/generators (host classpath);"
                 + " give one of the settings another key in its @Feature", field.getMessage());

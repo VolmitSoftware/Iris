@@ -39,7 +39,7 @@ public class FloatingIslandsTest {
         when(host.surfaceBiome(anyInt(), anyInt())).thenReturn(PLAIN_BIOME);
         PackWorld world = world(host);
         Hunk<BlockState> output = mock(Hunk.class);
-        when(output.getHeight()).thenReturn(64);
+        when(output.height()).thenReturn(64);
         ChunkStageContext context = mock(ChunkStageContext.class, RETURNS_DEEP_STUBS);
         when(context.originX()).thenReturn(CHUNK_ORIGIN);
         when(context.originZ()).thenReturn(CHUNK_ORIGIN);

@@ -95,7 +95,6 @@ public class NativeStartPlannerTest {
         assertEquals(34, start.y());
         assertTrue(start.isUnderground());
         assertTrue(start.replacesPlatformStart());
-        assertEquals(StructurePlacementGrid.placementIdentity(placement), start.identity());
         NativeStructureFit fit = NativeStructureFit.of(start.memo().orElseThrow());
         assertEquals(StructureTerrainMode.FORCE_CARVE, fit.terrain().resolvedMode());
         assertEquals(24, fit.terrain().horizontalPadding());

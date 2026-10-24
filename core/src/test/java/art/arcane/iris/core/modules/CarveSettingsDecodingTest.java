@@ -188,7 +188,7 @@ public class CarveSettingsDecodingTest {
         assertEquals("carving/mushroom", settings.find(CarvingBiomeSettings.class).orElseThrow().biome());
         IrisPackResources resources = PackResourceFixture.empty(packFolder.toFile());
         assertEquals(Set.of("carving/mushroom"), settings.treeBiomes(resources));
-        assertEquals(Set.of(), settings.usedBiomes(resources, ModuleSettings.NONE));
+        assertEquals(Set.of(), settings.usedBiomes(resources, ModuleSettings.NONE, "overworld"));
     }
 
     @Test

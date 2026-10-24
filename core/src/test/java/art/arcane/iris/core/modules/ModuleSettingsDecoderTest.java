@@ -39,6 +39,7 @@ import com.volmit.host.LoadedPack;
 import com.volmit.host.ModuleHost;
 import com.volmit.noise.NoiseStyle;
 import com.volmit.noise.StyledRange;
+import com.volmit.vanilla.JigsawOverrides;
 import com.volmit.resource.ResourceId;
 import com.volmit.stage.Stage;
 import com.volmit.geometry.BlockPosition;
@@ -100,6 +101,7 @@ public class ModuleSettingsDecoderTest {
         private Range light = Range.of(0, 15);
         private BlockPosition offset = new BlockPosition(0, 0, 0);
         private Map<String, Object> extra = Map.of();
+        private JigsawOverrides jigsaw = JigsawOverrides.none();
     }
 
     public static final class MossModule implements IrisModule {
@@ -214,6 +216,36 @@ public class ModuleSettingsDecoderTest {
         assertEquals(Range.of(16, 7), values.light);
         assertEquals(new BlockPosition(1, 0, 3), values.offset);
         assertEquals(Map.of("list", List.of(1.0, "a", true)), values.extra);
+    }
+
+    @Test
+    public void aNullMemberIsLeftOutSoTheFieldKeepsItsInitialiser() {
+        ValuesSettings values = values("""
+                {"mossValues": {
+                  "palette": [{"block": null, "data": null, "tileData": null}],
+                  "style": null,
+                  "height": {"style": null},
+                  "jigsaw": {"liquidSettings": null, "startPool": null}
+                }}
+                """);
+
+        assertEquals(BlockSpec.of("air"), values.palette.getFirst());
+        assertEquals(NoiseStyle.of("SIMPLEX"), values.style);
+        assertEquals(NoiseStyle.of("STATIC"), values.height.style());
+        assertEquals(JigsawOverrides.none(), values.jigsaw);
+    }
+
+    @Test
+    public void anUnknownEnumNameIsAnErrorNamingTheKnownOnes() {
+        IllegalArgumentException failure = assertThrows(IllegalArgumentException.class,
+                () -> values("{\"mossValues\": {\"jigsaw\": {\"liquidSettings\": \"WET\"}}}"));
+
+        assertTrue(failure.getMessage(), failure.getMessage().contains(
+                "\"WET\" is not one of [SOURCE, IGNORE_WATERLOGGING, APPLY_WATERLOGGING]"));
+    }
+
+    private ValuesSettings values(String json) {
+        return decoder.decode(Level.BIOME, new JSONObject(json), "biome desert/dunes").find(ValuesSettings.class).orElseThrow();
     }
 
     @Test

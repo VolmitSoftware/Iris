@@ -28,8 +28,8 @@ public class NativeStructureOwnershipRecordTest {
 
     @Test
     public void binaryRoundTripPreservesMultipleVersionedOwnershipRecords() throws Exception {
-        NativeStructureOwnershipRecord tavern = record("nova_structures:tavern_oak", 4, -7, 71L);
-        NativeStructureOwnershipRecord crypt = record("nova_structures:undead_crypt", 4, -7, 72L);
+        NativeStructureOwnershipRecord tavern = record("nova_structures:tavern_oak", 4, -7);
+        NativeStructureOwnershipRecord crypt = record("nova_structures:undead_crypt", 4, -7);
         NativeStructureOwnershipBundle bundle = NativeStructureOwnershipBundle.empty()
                 .with(tavern)
                 .with(crypt);
@@ -43,23 +43,23 @@ public class NativeStructureOwnershipRecordTest {
         assertEquals(crypt, restored.find("nova_structures:undead_crypt", 4, -7));
     }
 
-    /** The stilts and terrain fit JSON records written before memos hold, as the old Iris classes wrote them. */
     @Test
-    public void recordsWrittenBeforeMemosReadAsTheStructureModulesMemo() throws Exception {
-        String stilts = "{\"maxDepth\":91,\"palette\":{\"style\":{\"style\":\"STATIC\",\"cellularFrequency\":0.0,"
-                + "\"cellularZoom\":1.0,\"zoom\":1.0,\"multiplier\":1.0,\"exponent\":1.0,\"cacheSize\":0},\"zoom\":5.0,"
-                + "\"palette\":[{\"block\":\"minecraft:stone_bricks\",\"debug\":false,\"weight\":2,"
-                + "\"data\":{\"waterlogged\":false},\"tileData\":{}}]},\"spacing\":4,\"supportNonOccluding\":true}";
+    public void theStructureModulesMemoRoundTripsUnchanged() throws Exception {
+        String stilts = "{\"maxDepth\":91,\"palette\":{\"style\":{\"style\":\"STATIC\",\"zoom\":1.0},\"zoom\":5.0,"
+                + "\"palette\":[{\"block\":\"minecraft:stone_bricks\",\"weight\":2,\"data\":{\"waterlogged\":false}}]},"
+                + "\"spacing\":4,\"supportNonOccluding\":true}";
         String terrain = "{\"mode\":\"FORCE_CARVE\",\"horizontalPadding\":9,\"ceilingPadding\":3,\"floorPadding\":2,"
                 + "\"shape\":\"ERODED\",\"erosionStrength\":0.42,\"erosionFrequency\":0.17,\"lobeFrequency\":0.03,"
                 + "\"lobeStrength\":0.61}";
+        String text = "{\"terrain\":" + terrain + ",\"stilts\":" + stilts + "}";
         ByteArrayOutputStream encoded = new ByteArrayOutputStream();
-        new NativeStructureOwnershipRecord.MemoSnapshot(stilts, terrain).write(new DataOutputStream(encoded));
+        NativeStructureOwnershipRecord.MemoSnapshot.of(new NativeStartMemo(text)).write(new DataOutputStream(encoded));
 
         NativeStartMemo memo = NativeStructureOwnershipRecord.MemoSnapshot.read(
                 new DataInputStream(new ByteArrayInputStream(encoded.toByteArray()))).restore();
-        NativeStructureFit fit = NativeStructureFit.of(new StartMemo(memo.terrain(), memo.foundation()));
+        NativeStructureFit fit = NativeStructureFit.of(new StartMemo(memo.text()));
 
+        assertEquals(text, memo.text());
         assertEquals(StructureTerrainMode.FORCE_CARVE, fit.terrain().resolvedMode());
         assertEquals(StructureCarveShape.ERODED, fit.terrain().resolvedShape());
         assertEquals(9, fit.terrain().horizontalPadding());
@@ -83,7 +83,7 @@ public class NativeStructureOwnershipRecordTest {
 
     @Test
     public void recordCarriesLocateAndReferenceEnvelopeState() {
-        NativeStructureOwnershipRecord record = record("nova_structures:tavern_oak", -3, 9, 83L);
+        NativeStructureOwnershipRecord record = record("nova_structures:tavern_oak", -3, 9);
 
         assertEquals(47, record.baseY());
         assertEquals(43, record.contentMinY());
@@ -91,20 +91,18 @@ public class NativeStructureOwnershipRecordTest {
         assertEquals(58, record.locatorY());
         assertTrue(record.covers(-5, 11));
         assertFalse(record.covers(-6, 11));
-        assertEquals(83L, record.placementIdentity());
     }
 
     @Test
     public void referenceEnvelopeRefreshPreservesPersistedAuthority() {
         NativeStructureOwnershipRecord original = record(
-                "nova_structures:tavern_oak", -3, 9, 83L);
+                "nova_structures:tavern_oak", -3, 9);
 
         NativeStructureOwnershipRecord refreshed = original.withReferenceEnvelope(
                 -6, 0, 6, 12);
 
         assertEquals(original.schema(), refreshed.schema());
         assertEquals(original.ownershipKey(), refreshed.ownershipKey());
-        assertEquals(original.placementIdentity(), refreshed.placementIdentity());
         assertEquals(original.baseY(), refreshed.baseY());
         assertEquals(original.contentMinX(), refreshed.contentMinX());
         assertEquals(original.contentMinY(), refreshed.contentMinY());
@@ -122,9 +120,9 @@ public class NativeStructureOwnershipRecordTest {
     }
 
     @Test
-    public void ownershipRoundTripPreservesExactBoundsAndPriority() throws Exception {
+    public void ownershipRoundTripPreservesExactBounds() throws Exception {
         NativeStructureOwnershipRecord ownership = record(
-                "nova_structures:tavern_oak", -3, 9, 83L);
+                "nova_structures:tavern_oak", -3, 9);
         NativeStructureOwnershipBundle bundle = NativeStructureOwnershipBundle.empty().with(ownership);
         ByteArrayOutputStream encoded = new ByteArrayOutputStream();
         bundle.write(new DataOutputStream(encoded));
@@ -134,13 +132,13 @@ public class NativeStructureOwnershipRecordTest {
                 .find(ownership.structureKey(), ownership.originChunkX(), ownership.originChunkZ());
 
         assertNotNull(restored);
-        assertEquals(ownership.placementIdentity(), restored.placementIdentity());
         assertEquals(ownership.contentMinX(), restored.contentMinX());
         assertEquals(ownership.contentMinY(), restored.contentMinY());
         assertEquals(ownership.contentMinZ(), restored.contentMinZ());
         assertEquals(ownership.contentMaxX(), restored.contentMaxX());
         assertEquals(ownership.contentMaxY(), restored.contentMaxY());
         assertEquals(ownership.contentMaxZ(), restored.contentMaxZ());
+        assertEquals(ownership.memo(), restored.memo());
     }
 
     @Test
@@ -150,7 +148,6 @@ public class NativeStructureOwnershipRecordTest {
                 "nova_structures:tavern_oak",
                 0,
                 0,
-                1L,
                 47,
                 0,
                 43,
@@ -170,7 +167,7 @@ public class NativeStructureOwnershipRecordTest {
         Map<NativeStructureOwnershipRecord.OwnershipKey, NativeStructureOwnershipRecord> records =
                 new LinkedHashMap<>();
         for (int i = 0; i <= NativeStructureOwnershipBundle.MAX_RECORDS; i++) {
-            NativeStructureOwnershipRecord record = record("test:structure_" + i, 0, 0, i);
+            NativeStructureOwnershipRecord record = record("test:structure_" + i, 0, 0);
             records.put(record.ownershipKey(), record);
         }
         assertThrows(IllegalArgumentException.class,
@@ -179,17 +176,13 @@ public class NativeStructureOwnershipRecordTest {
         Map<NativeStructureOwnershipRecord.OwnershipKey, NativeStructureOwnershipRecord> oversized =
                 new LinkedHashMap<>();
         NativeStructureOwnershipRecord.MemoSnapshot largeDecision =
-                new NativeStructureOwnershipRecord.MemoSnapshot(
-                        "null",
-                        "{\"unused\":\"" + "x".repeat(65_000) + "\"}"
-                );
+                new NativeStructureOwnershipRecord.MemoSnapshot("{\"unused\":\"" + "x".repeat(65_000) + "\"}");
         for (int i = 0; i < 33; i++) {
             NativeStructureOwnershipRecord record = new NativeStructureOwnershipRecord(
                     NativeStructureOwnershipRecord.CURRENT_SCHEMA,
                     "test:large_" + i,
                     0,
                     0,
-                    i,
                     47,
                     0,
                     43,
@@ -218,7 +211,6 @@ public class NativeStructureOwnershipRecordTest {
                 "test:overflow",
                 Integer.MAX_VALUE,
                 0,
-                1L,
                 47,
                 0,
                 43,
@@ -243,7 +235,6 @@ public class NativeStructureOwnershipRecordTest {
                 "test:outside_envelope",
                 0,
                 0,
-                1L,
                 47,
                 -16,
                 43,
@@ -268,7 +259,6 @@ public class NativeStructureOwnershipRecordTest {
                 "test:displaced",
                 0,
                 0,
-                1L,
                 47,
                 80,
                 43,
@@ -291,14 +281,14 @@ public class NativeStructureOwnershipRecordTest {
 
     @Test
     public void nullableStiltRoundTripsAsNull() {
-        NativeStructureOwnershipRecord record = record("test:no_stilt", 0, 0, 1L);
+        NativeStructureOwnershipRecord record = record("test:no_stilt", 0, 0);
         NativeStartMemo memo = record.restoredMemo();
-        assertNull(NativeStructureFit.of(new StartMemo(memo.terrain(), memo.foundation())).stilts());
+        assertNull(NativeStructureFit.of(new StartMemo(memo.text())).stilts());
     }
 
     @Test
     public void bundlesWrittenUnderAnOlderSchemaRevisionFailClosed() throws Exception {
-        NativeStructureOwnershipRecord record = record("nova_structures:tavern_oak", 4, -7, 71L);
+        NativeStructureOwnershipRecord record = record("nova_structures:tavern_oak", 4, -7);
         NativeStructureOwnershipBundle bundle = NativeStructureOwnershipBundle.empty().with(record);
         ByteArrayOutputStream encoded = new ByteArrayOutputStream();
         bundle.write(new DataOutputStream(encoded));
@@ -319,7 +309,6 @@ public class NativeStructureOwnershipRecordTest {
         NativeStructureOwnershipRecord.writeString(output, " ", 512, "structure key");
         output.writeInt(0);
         output.writeInt(0);
-        output.writeLong(1L);
         output.writeInt(47);
         output.writeInt(0);
         output.writeInt(43);
@@ -339,14 +328,12 @@ public class NativeStructureOwnershipRecordTest {
                 new DataInputStream(new ByteArrayInputStream(encoded.toByteArray()))));
     }
 
-    private static NativeStructureOwnershipRecord record(String key, int originX, int originZ,
-                                                          long placementIdentity) {
+    private static NativeStructureOwnershipRecord record(String key, int originX, int originZ) {
         return new NativeStructureOwnershipRecord(
                 NativeStructureOwnershipRecord.CURRENT_SCHEMA,
                 key,
                 originX,
                 originZ,
-                placementIdentity,
                 47,
                 originX << 4,
                 43,
@@ -365,7 +352,6 @@ public class NativeStructureOwnershipRecordTest {
     }
 
     private static NativeStructureOwnershipRecord.MemoSnapshot decision() {
-        StartMemo memo = NativeStructureFit.NONE.memo();
-        return NativeStructureOwnershipRecord.MemoSnapshot.of(new NativeStartMemo(memo.terrain(), memo.foundation()));
+        return NativeStructureOwnershipRecord.MemoSnapshot.of(new NativeStartMemo(NativeStructureFit.NONE.memo().text()));
     }
 }

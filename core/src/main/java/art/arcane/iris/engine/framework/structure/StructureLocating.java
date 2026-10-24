@@ -37,7 +37,7 @@ import java.util.Set;
  * the ones the world's placements assemble from jigsaw pools, and their nearest start, searched with
  * {@link IrisStructureLocator}. The keys it places also name the platform structures its native placements start and
  * the ones its structures stand in for; it locates those too. The platform's own locate of a natively started
- * structure goes through {@link StructureVanillaStructures#locateStart} instead.
+ * structure goes through {@link #locateStart}, which searches the native placements' rings.
  * <p>
  * Iris's locator names structures by key: a pack structure by its pack key, a platform structure by its
  * {@code namespace:path}. A key with a namespace is that id; any other is the pack's.
@@ -64,12 +64,42 @@ public final class StructureLocating implements StructureLocator {
     public LocateResult locate(PackWorld world, ResourceId structure, int fromX, int fromZ, int maxRadiusChunks) {
         Engine engine = engine(world);
         String key = keyOf(world.resources(), IrisStructureLocator.placedKeysAndAliases(engine), structure);
-        IrisStructureLocator.LocateResult result = IrisStructureLocator.locate(engine, key, fromX, fromZ, maxRadiusChunks);
+        return apiResult(engine, IrisStructureLocator.locate(engine, key, fromX, fromZ, maxRadiusChunks));
+    }
+
+    @Override
+    public Set<ResourceId> startedStructures(PackWorld world) {
+        return platformIds(IrisStructureLocator.nativeKeys(engine(world)));
+    }
+
+    @Override
+    public Set<ResourceId> locatableStarts(PackWorld world) {
+        return platformIds(IrisStructureLocator.locatableNativeKeys(engine(world)));
+    }
+
+    /** Searches the rings of the placements that start {@code structure} natively, as the platform's own locate does. */
+    @Override
+    public LocateResult locateStart(PackWorld world, ResourceId structure, int fromX, int fromZ, int maxRings,
+                                    ChunkFilter accepts) {
+        Engine engine = engine(world);
+        return apiResult(engine, IrisStructureLocator.locateInPlacementRings(
+                engine, structure.toString(), fromX, fromZ, maxRings, accepts::accepts));
+    }
+
+    private static LocateResult apiResult(Engine engine, IrisStructureLocator.LocateResult result) {
         return switch (result.status()) {
             case FOUND -> LocateResult.found(new BlockPosition(result.originX(), result.baseY() - engine.getMinHeight(), result.originZ()));
             case NOT_FOUND -> LocateResult.NOT_FOUND;
             case SEARCH_LIMIT_REACHED -> LocateResult.SEARCH_LIMIT_REACHED;
         };
+    }
+
+    private static Set<ResourceId> platformIds(Set<String> keys) {
+        Set<ResourceId> ids = new LinkedHashSet<>();
+        for (String key : keys) {
+            ids.add(ResourceId.parse(key.toLowerCase(Locale.ROOT)));
+        }
+        return ids;
     }
 
     private static Engine engine(PackWorld world) {

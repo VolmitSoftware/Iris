@@ -19,18 +19,24 @@
 package art.arcane.iris.core.modules;
 
 import com.volmit.IrisFeature;
-import com.volmit.config.LinkedBiomes;
+import com.volmit.config.FeatureSettings;
+import com.volmit.config.Level;
+import com.volmit.config.PackSettings;
+import com.volmit.config.SettingsStack;
 import com.volmit.host.ConfiguredSettings;
 import com.volmit.resource.PackResources;
 import com.volmit.resource.ResourceId;
+import com.volmit.world.LinkedBiomes;
 
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
  * Module settings one dimension, region, biome or object placement declares, at most one value per settings
@@ -72,10 +78,24 @@ public final class ModuleSettings {
     /**
      * The keys of the biomes these settings use besides ({@link LinkedBiomes#usedBiomes}), in a fixed order.
      *
-     * @param dimension the settings of the dimension the owner is part of
+     * @param dimension    the settings of the dimension the owner is part of
+     * @param dimensionKey that dimension's key
      */
-    public Set<String> usedBiomes(IrisPackResources resources, ModuleSettings dimension) {
-        return linkedBiomes(resources, linked -> linked.usedBiomes(resources, dimension.values()));
+    public Set<String> usedBiomes(IrisPackResources resources, ModuleSettings dimension, String dimensionKey) {
+        PackSettings declared = dimension.declaredByDimension(() -> resources.idOf(IrisPackSettings.DIMENSION + "/" + dimensionKey));
+        return linkedBiomes(resources, linked -> linked.usedBiomes(resources, declared));
+    }
+
+    /** These settings as what a dimension declares itself: each type a stack of at most its dimension entry. */
+    private PackSettings declaredByDimension(Supplier<ResourceId> dimension) {
+        return new PackSettings() {
+            @Override
+            public <F extends IrisFeature> SettingsStack<F> declared(Class<F> featureType) {
+                return find(featureType)
+                        .map(value -> SettingsStack.of(List.of(new FeatureSettings.Entry<>(Level.DIMENSION, dimension.get(), value))))
+                        .orElse(SettingsStack.empty());
+            }
+        };
     }
 
     private Set<String> linkedBiomes(IrisPackResources resources, Function<LinkedBiomes, Set<ResourceId>> pick) {

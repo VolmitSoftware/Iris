@@ -185,7 +185,7 @@ public class TerrainIntegrationTest {
     public void omittedTerrainRetainsSourceSemanticsAndAnExplicitTerrainWins() {
         assertEquals(StructureTerrainMode.SOURCE, NativeStructureFit.NONE.resolvedTerrain().resolvedMode());
         assertEquals(StructureTerrainMode.PRESERVE,
-                NativeStructureFit.of(new StartMemo("{\"mode\":\"PRESERVE\"}", "null")).resolvedTerrain().resolvedMode());
+                NativeStructureFit.of(new StartMemo("{\"terrain\":{\"mode\":\"PRESERVE\"}}")).resolvedTerrain().resolvedMode());
     }
 
     @Test

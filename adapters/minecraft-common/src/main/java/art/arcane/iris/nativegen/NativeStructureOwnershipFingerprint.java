@@ -58,7 +58,6 @@ public final class NativeStructureOwnershipFingerprint {
                 structureKey,
                 origin.x(),
                 origin.z(),
-                resolvedPlan.placementIdentity(),
                 resolvedPlan.baseY(),
                 content.minX(),
                 content.minY(),

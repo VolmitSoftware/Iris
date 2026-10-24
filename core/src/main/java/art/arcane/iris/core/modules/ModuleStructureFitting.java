@@ -356,7 +356,7 @@ public final class ModuleStructureFitting implements NativeStructureFitting {
         @Override
         public Optional<StartMemo> memo() {
             NativeStartMemo memo = start.memo();
-            return memo == null ? Optional.empty() : Optional.of(new StartMemo(memo.terrain(), memo.foundation()));
+            return memo == null ? Optional.empty() : Optional.of(new StartMemo(memo.text()));
         }
 
         @Override

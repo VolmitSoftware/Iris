@@ -2,12 +2,8 @@ package art.arcane.iris.nativegen;
 
 import art.arcane.iris.engine.framework.NativeStructureOwnershipRecord;
 import art.arcane.iris.engine.framework.NativeStructureStartPlan;
-import art.arcane.iris.engine.framework.StructurePlacementGrid;
 import art.arcane.iris.engine.framework.NativeStartMemo;
 import art.arcane.iris.engine.framework.NativeStructureReach;
-import art.arcane.iris.builtin.structure.StructurePlacement;
-import com.google.gson.Gson;
-import com.google.gson.JsonObject;
 import net.minecraft.SharedConstants;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderSet;
@@ -51,7 +47,7 @@ public class NativeStructureOwnershipRecoveryTest {
         NativeStructureVerticalPlacer.alignOceanMonumentToSeaLevel(
                 expected, 0, 80, -64, 320);
         int expectedLocatorY = NativeStructureOwnershipFingerprint.locatorY(expected);
-        NativeStructureStartPlan plan = plan(origin, "recovery-exact", 24);
+        NativeStructureStartPlan plan = plan(origin, 24);
         StructureStart reloaded = new StructureStart(
                 structure,
                 origin,
@@ -66,8 +62,6 @@ public class NativeStructureOwnershipRecoveryTest {
                         plan, expected, false, reaches(plan));
 
         assertNotNull(recovered);
-        assertEquals(plan.placementIdentity(),
-                recovered.placementIdentity());
         assertEquals(expectedLocatorY, recovered.locatorY());
         assertNotEquals(NativeStructureOwnershipFingerprint.locatorY(reloaded),
                 recovered.locatorY());
@@ -82,7 +76,7 @@ public class NativeStructureOwnershipRecoveryTest {
         ChunkPos origin = new ChunkPos(-3, 6);
         OceanMonumentStructure structure = structure();
         StructureStart natural = monumentStart(structure, origin, seed);
-        NativeStructureStartPlan plan = plan(origin, "natural-ambiguous", 0);
+        NativeStructureStartPlan plan = plan(origin, 0);
 
         NativeStructureOwnershipRecord recovered =
                 NativeStructureOwnershipRecovery.proveCandidate(
@@ -93,7 +87,7 @@ public class NativeStructureOwnershipRecoveryTest {
     }
 
     @Test
-    public void changedPlacementIdentityOrGeometryCannotRecoverOwnership() {
+    public void changedOriginOrGeometryCannotRecoverOwnership() {
         long seed = 991723L;
         ChunkPos origin = new ChunkPos(2, 4);
         OceanMonumentStructure structure = structure();
@@ -102,20 +96,14 @@ public class NativeStructureOwnershipRecoveryTest {
         for (StructurePiece piece : changedGeometry.getPieces()) {
             piece.move(1, 0, 0);
         }
-        NativeStructureStartPlan originalIdentity = plan(
-                origin, "original-identity", 0);
-        NativeStructureStartPlan changedIdentity = plan(
-                new ChunkPos(origin.x() + 1, origin.z()), "changed-identity", 0);
+        NativeStructureStartPlan changedOrigin = plan(new ChunkPos(origin.x() + 1, origin.z()), 0);
 
-        assertNotEquals(
-                originalIdentity.placementIdentity(),
-                changedIdentity.placementIdentity());
         assertNull(NativeStructureOwnershipRecovery.proveCandidate(
                 "minecraft:monument", structure, expected,
-                changedIdentity, expected, false, reaches(changedIdentity)));
+                changedOrigin, expected, false, reaches(changedOrigin)));
         assertNull(NativeStructureOwnershipRecovery.proveCandidate(
                 "minecraft:monument", structure, changedGeometry,
-                plan(origin, "geometry-check", 0), expected, false, reaches(plan(origin, "geometry-check", 0))));
+                plan(origin, 0), expected, false, reaches(plan(origin, 0))));
     }
 
     @Test
@@ -127,7 +115,7 @@ public class NativeStructureOwnershipRecoveryTest {
         NativeStructureOwnershipRecord recovered =
                 NativeStructureOwnershipRecovery.proveCandidate(
                         "minecraft:monument", structure, expected,
-                        plan(origin, "fingerprint-check", 16), expected, false, reaches(plan(origin, "fingerprint-check", 16)));
+                        plan(origin, 16), expected, false, reaches(plan(origin, 16)));
         assertNotNull(recovered);
 
         StructureStart moved = monumentStart(structure, origin, seed);
@@ -146,7 +134,7 @@ public class NativeStructureOwnershipRecoveryTest {
         OceanMonumentStructure structure = structure();
         StructureStart start = monumentStart(structure, origin, seed);
         NativeStructureStartPlan plan = plan(
-                origin, "vacuum-envelope-refresh", "VACUUM", 0);
+                origin, "VACUUM", 0);
         BoundingBox content = NativeStructureReferenceEnvelope.contentBounds(start);
         NativeStructureOwnershipRecord stale = NativeStructureOwnershipFingerprint.capture(
                 structureKey, start, plan, content);
@@ -159,7 +147,6 @@ public class NativeStructureOwnershipRecoveryTest {
         assertNotEquals(stale, refreshed);
         assertEquals(stale.schema(), refreshed.schema());
         assertEquals(stale.ownershipKey(), refreshed.ownershipKey());
-        assertEquals(stale.placementIdentity(), refreshed.placementIdentity());
         assertEquals(stale.baseY(), refreshed.baseY());
         assertEquals(stale.locatorY(), refreshed.locatorY());
         assertEquals(stale.contentFingerprint(), refreshed.contentFingerprint());
@@ -183,7 +170,7 @@ public class NativeStructureOwnershipRecoveryTest {
         OceanMonumentStructure structure = structure();
         StructureStart expected = monumentStart(structure, origin, seed);
         NativeStructureStartPlan plan = plan(
-                origin, "vacuum-content-check", "VACUUM", 0);
+                origin, "VACUUM", 0);
         NativeStructureOwnershipRecord stale = NativeStructureOwnershipFingerprint.capture(
                 structureKey, expected, plan,
                 NativeStructureReferenceEnvelope.contentBounds(expected));
@@ -203,7 +190,7 @@ public class NativeStructureOwnershipRecoveryTest {
         ChunkPos origin = new ChunkPos(3, 8);
         OceanMonumentStructure structure = structure();
         StructureStart start = monumentStart(structure, origin, seed);
-        NativeStructureStartPlan plan = plan(origin, "current-force-carve", 24);
+        NativeStructureStartPlan plan = plan(origin, 24);
         BoundingBox envelope = NativeStructureReferenceEnvelope.referenceBounds(
                 start, structure, reaches(plan), structureKey);
         NativeStructureOwnershipRecord ownership = NativeStructureOwnershipFingerprint.capture(
@@ -220,7 +207,7 @@ public class NativeStructureOwnershipRecoveryTest {
         ChunkPos origin = new ChunkPos(3, 8);
         OceanMonumentStructure structure = structure();
         StructureStart start = monumentStart(structure, origin, seed);
-        NativeStructureStartPlan plan = plan(origin, "wide-force-carve", 24);
+        NativeStructureStartPlan plan = plan(origin, 24);
         NativeStructureOwnershipRecord ownership = NativeStructureOwnershipFingerprint.capture(structureKey, start, plan,
                 NativeStructureReferenceEnvelope.referenceBounds(start, structure, reaches(plan), structureKey));
 
@@ -243,7 +230,7 @@ public class NativeStructureOwnershipRecoveryTest {
             piece.move(shiftX, 0, 0);
         }
         NativeStructureStartPlan plan = plan(
-                origin, "clipped-vacuum", "VACUUM", 0);
+                origin, "VACUUM", 0);
         BoundingBox envelope = NativeStructureReferenceEnvelope.referenceBounds(
                 start, structure, reaches(plan), structureKey);
         NativeStructureOwnershipRecord ownership = NativeStructureOwnershipFingerprint.capture(
@@ -277,17 +264,12 @@ public class NativeStructureOwnershipRecoveryTest {
                 structure, origin, 0, new PiecesContainer(List.of(building)));
     }
 
-    private static NativeStructureStartPlan plan(ChunkPos origin,
-                                                  String placementId,
-                                                  int horizontalPadding) {
-        return plan(origin, placementId, "FORCE_CARVE", horizontalPadding);
+    private static NativeStructureStartPlan plan(ChunkPos origin, int horizontalPadding) {
+        return plan(origin, "FORCE_CARVE", horizontalPadding);
     }
 
     /** A start the structure module placed with a terrain fit of {@code terrainMode}, as its memo records it. */
-    private static NativeStructureStartPlan plan(ChunkPos origin,
-                                                  String placementId,
-                                                  String terrainMode,
-                                                  int horizontalPadding) {
+    private static NativeStructureStartPlan plan(ChunkPos origin, String terrainMode, int horizontalPadding) {
         String terrain = "{\"mode\":\"" + terrainMode + "\",\"horizontalPadding\":" + horizontalPadding + "}";
         return new NativeStructureStartPlan(
                 "minecraft:monument",
@@ -297,15 +279,14 @@ public class NativeStructureOwnershipRecoveryTest {
                         monumentStart(structure(), origin, 1L)).minY(),
                 false,
                 false,
-                StructurePlacementGrid.placementIdentity(placementWithId(placementId)),
                 null,
-                new NativeStartMemo(terrain, "null")
+                new NativeStartMemo("{\"terrain\":" + terrain + "}")
         );
     }
 
     /** The reach the structure module gives the plan's terrain fit: VACUUM its 12-block falloff, else the padding. */
     private static List<NativeStructureReach> reaches(NativeStructureStartPlan plan) {
-        String terrain = plan.memo().terrain();
+        String terrain = plan.memo().text();
         int padding = Integer.parseInt(terrain.replaceAll(".*\"horizontalPadding\":(\\d+).*", "$1"));
         return List.of(new NativeStructureReach(false, terrain.contains("VACUUM") ? 12 : padding));
     }
@@ -323,12 +304,5 @@ public class NativeStructureOwnershipRecoveryTest {
             }
         }
         return false;
-    }
-
-    /** A structure placement as a pack writing only its {@code placementId} has it. */
-    private static StructurePlacement placementWithId(String placementId) {
-        JsonObject json = new JsonObject();
-        json.addProperty("placementId", placementId);
-        return new Gson().fromJson(json, StructurePlacement.class);
     }
 }

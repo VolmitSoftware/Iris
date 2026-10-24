@@ -121,7 +121,7 @@ public class FloatingSettingsDecodingTest {
         ModuleSettings dimensionSettings = decoder.decode(Level.DIMENSION, file("dimensions/overworld.json"), "dimension overworld");
 
         IrisPackResources resources = PackResourceFixture.empty(packFolder.toFile());
-        Set<String> used = biomeSettings.usedBiomes(resources, dimensionSettings);
+        Set<String> used = biomeSettings.usedBiomes(resources, dimensionSettings, "overworld");
 
         assertEquals(new LinkedHashSet<>(List.of("mushroom/forest", "carving/mushroom", "tropical/wilds", "carving/lush-child")), used);
         assertEquals(Set.of(), biomeSettings.treeBiomes(resources));
@@ -135,9 +135,9 @@ public class FloatingSettingsDecodingTest {
         ModuleSettings dimensionSettings = BuiltInPack.settings(new CarvingSettings(List.of(band)));
 
         IrisPackResources resources = PackResourceFixture.empty(packFolder.toFile());
-        assertEquals(new LinkedHashSet<>(List.of("floating/target", "carving/deep")), biomeSettings.usedBiomes(resources, dimensionSettings));
+        assertEquals(new LinkedHashSet<>(List.of("floating/target", "carving/deep")), biomeSettings.usedBiomes(resources, dimensionSettings, "overworld"));
         assertEquals("without bands the name is taken as a biome key", new LinkedHashSet<>(List.of("floating/target", "deep")),
-                biomeSettings.usedBiomes(resources, ModuleSettings.NONE));
+                biomeSettings.usedBiomes(resources, ModuleSettings.NONE, "overworld"));
     }
 
     @Test

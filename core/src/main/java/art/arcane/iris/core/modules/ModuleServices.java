@@ -36,7 +36,6 @@ import com.volmit.service.ObjectsAt;
 import com.volmit.service.SaplingGrowth;
 import com.volmit.service.StructureLocator;
 import com.volmit.service.VanillaFeatures;
-import com.volmit.service.VanillaStructures;
 import com.volmit.geometry.BlockPosition;
 import com.volmit.world.PackWorld;
 import java.util.ArrayList;
@@ -283,7 +282,7 @@ public final class ModuleServices {
 
     /** The platform structures the world's modules start themselves, as lower-case registry keys. */
     public static Set<String> startedStructures(Engine engine) {
-        return platformStructures(engine, VanillaStructures::startedStructures);
+        return platformStructures(engine, StructureLocator::startedStructures);
     }
 
     /** Whether a module of the world starts the platform structure {@code key} itself. */
@@ -293,7 +292,7 @@ public final class ModuleServices {
 
     /** Whether a module of the world can find the starts it makes of the platform structure {@code key}. */
     public static boolean canLocateStart(Engine engine, String key) {
-        return key != null && platformStructures(engine, VanillaStructures::locatableStarts).contains(normalized(key));
+        return key != null && platformStructures(engine, StructureLocator::locatableStarts).contains(normalized(key));
     }
 
     /**
@@ -308,7 +307,7 @@ public final class ModuleServices {
         if (structure.isEmpty()) {
             return StructureSearch.NOT_FOUND;
         }
-        for (Provider<VanillaStructures> provider : providers(engine, VanillaStructures.class)) {
+        for (Provider<StructureLocator> provider : providers(engine, StructureLocator.class)) {
             if (!provider.service().locatableStarts(provider.world()).contains(structure.get())) {
                 continue;
             }
@@ -386,9 +385,9 @@ public final class ModuleServices {
     }
 
     /** The platform structures every provider lists with {@code structures}, as lower-case registry keys. */
-    private static Set<String> platformStructures(Engine engine, BiFunction<VanillaStructures, PackWorld, Set<ResourceId>> structures) {
+    private static Set<String> platformStructures(Engine engine, BiFunction<StructureLocator, PackWorld, Set<ResourceId>> structures) {
         Set<String> keys = new LinkedHashSet<>();
-        for (Provider<VanillaStructures> provider : providers(engine, VanillaStructures.class)) {
+        for (Provider<StructureLocator> provider : providers(engine, StructureLocator.class)) {
             structures.apply(provider.service(), provider.world()).forEach(id -> keys.add(id.toString()));
         }
         return keys;

@@ -60,7 +60,7 @@ public class NativeStructureOwnershipStoreTest {
                 3, 4, current.structureKey(), 2, 3);
 
         assertEquals(current, resolved);
-        assertEquals(terrain(9), resolved.restoredMemo().terrain());
+        assertEquals(memoText(terrain(9), 11L), resolved.restoredMemo().text());
         assertEquals(stale.contentFingerprint(), resolved.contentFingerprint());
         assertEquals(stale, storage.find(target, stale));
     }
@@ -404,19 +404,17 @@ public class NativeStructureOwnershipStoreTest {
         return engine;
     }
 
-    private static NativeStructureOwnershipRecord record(String key, int originX, int originZ,
-                                                          long placementIdentity) {
-        return record(key, originX, originZ, placementIdentity, "{}", 8);
+    /** {@code variant} goes into the record's memo, telling apart records that are otherwise alike. */
+    private static NativeStructureOwnershipRecord record(String key, int originX, int originZ, long variant) {
+        return record(key, originX, originZ, variant, "{}", 8);
     }
 
-    private static NativeStructureOwnershipRecord record(String key, int originX, int originZ,
-                                                          long placementIdentity,
+    private static NativeStructureOwnershipRecord record(String key, int originX, int originZ, long variant,
                                                           int referenceRadius) {
-        return record(key, originX, originZ, placementIdentity, "{}", referenceRadius);
+        return record(key, originX, originZ, variant, "{}", referenceRadius);
     }
 
-    private static NativeStructureOwnershipRecord record(String key, int originX, int originZ,
-                                                          long placementIdentity,
+    private static NativeStructureOwnershipRecord record(String key, int originX, int originZ, long variant,
                                                           String terrain,
                                                           int referenceRadius) {
         return new NativeStructureOwnershipRecord(
@@ -424,7 +422,6 @@ public class NativeStructureOwnershipStoreTest {
                 key,
                 originX,
                 originZ,
-                placementIdentity,
                 47,
                 originX << 4,
                 43,
@@ -438,8 +435,12 @@ public class NativeStructureOwnershipStoreTest {
                 originZ - referenceRadius,
                 originZ + referenceRadius,
                 FINGERPRINT,
-                new NativeStructureOwnershipRecord.MemoSnapshot("null", terrain)
+                new NativeStructureOwnershipRecord.MemoSnapshot(memoText(terrain, variant))
         );
+    }
+
+    private static String memoText(String terrain, long variant) {
+        return "{\"terrain\":" + terrain + ",\"variant\":" + variant + "}";
     }
 
     private static String terrain(int horizontalPadding) {

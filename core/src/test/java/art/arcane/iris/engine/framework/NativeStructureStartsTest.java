@@ -7,6 +7,7 @@ import art.arcane.iris.builtin.structure.StructureTerrain;
 import art.arcane.iris.builtin.structure.StructurePlacement;
 import art.arcane.iris.builtin.structure.StructureDistribution;
 import art.arcane.iris.builtin.structure.NativeStructureSource;
+import art.arcane.iris.engine.framework.structure.NativeStartPlanner;
 import art.arcane.iris.engine.object.TestSettings;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.volmlib.util.collection.KList;
@@ -35,8 +36,8 @@ import static org.mockito.Mockito.when;
 
 /**
  * The starts the pack's nativeStructures placements make, now through iris:structure's vanilla structure hook, are the
- * ones the core planner made before the move: the same chunks, structures, base heights and placement identities for
- * a fixed seed (pinned from the planner), and fits whose persisted JSON is unchanged.
+ * ones the core planner made before the move: the same chunks, structures, base heights and placements for a
+ * fixed seed (pinned from the planner), and fits whose persisted terrain and stilts JSON is unchanged.
  */
 public class NativeStructureStartsTest {
     private static final long SEED = 1337L;
@@ -44,60 +45,64 @@ public class NativeStructureStartsTest {
     private static final int GRID_RADIUS_CHUNKS = 6;
     private static final Gson GSON = new Gson();
 
-    /** chunkX chunkZ structure baseY placement identity, as NativeStructurePlacementPlanner.plansAt returned them. */
+    /**
+     * chunkX chunkZ structure baseY placement, as NativeStructurePlacementPlanner.plansAt returned them. Batch 6 dropped
+     * the trailing placement identity column (one value per placement: villages -2304053147360248982, cities
+     * 7830921123394837354, outposts 3980124831785354812) when starts stopped carrying it; the other columns are unchanged.
+     */
     private static final List<String> PLANNER_STARTS = List.of(
-            "-6 -4 minecraft:village_plains 72 villages -2304053147360248982",
-            "-6 0 minecraft:ancient_city -11 cities 7830921123394837354",
-            "-6 1 minecraft:pillager_outpost 92 outposts 3980124831785354812",
-            "-6 3 minecraft:village_plains 88 villages -2304053147360248982",
-            "-6 3 minecraft:ancient_city -14 cities 7830921123394837354",
-            "-5 -4 minecraft:pillager_outpost 64 outposts 3980124831785354812",
-            "-5 -3 minecraft:ancient_city -40 cities 7830921123394837354",
-            "-5 5 minecraft:pillager_outpost 76 outposts 3980124831785354812",
-            "-4 -5 minecraft:pillager_outpost 88 outposts 3980124831785354812",
-            "-4 -1 minecraft:village_plains 80 villages -2304053147360248982",
-            "-4 -1 minecraft:pillager_outpost 80 outposts 3980124831785354812",
-            "-4 1 minecraft:village_plains 76 villages -2304053147360248982",
-            "-4 1 minecraft:pillager_outpost 76 outposts 3980124831785354812",
-            "-3 -1 minecraft:village_plains 72 villages -2304053147360248982",
-            "-3 1 minecraft:pillager_outpost 68 outposts 3980124831785354812",
-            "-3 6 minecraft:village_plains 88 villages -2304053147360248982",
-            "-2 0 minecraft:village_plains 92 villages -2304053147360248982",
-            "-2 6 minecraft:pillager_outpost 80 outposts 3980124831785354812",
-            "-1 -4 minecraft:village_plains 92 villages -2304053147360248982",
-            "-1 4 minecraft:ancient_city -12 cities 7830921123394837354",
-            "-1 6 minecraft:ancient_city -23 cities 7830921123394837354",
-            "0 -6 minecraft:village_plains 88 villages -2304053147360248982",
-            "0 -2 minecraft:village_plains 80 villages -2304053147360248982",
-            "0 4 minecraft:pillager_outpost 68 outposts 3980124831785354812",
-            "0 6 minecraft:village_plains 64 villages -2304053147360248982",
-            "1 -6 minecraft:ancient_city -32 cities 7830921123394837354",
-            "1 -4 minecraft:pillager_outpost 76 outposts 3980124831785354812",
-            "1 0 minecraft:ancient_city -37 cities 7830921123394837354",
-            "1 2 minecraft:pillager_outpost 64 outposts 3980124831785354812",
-            "1 3 minecraft:ancient_city -38 cities 7830921123394837354",
-            "1 5 minecraft:ancient_city -12 cities 7830921123394837354",
-            "2 -2 minecraft:pillager_outpost 64 villages -2304053147360248982",
-            "2 5 minecraft:village_plains 80 villages -2304053147360248982",
-            "2 5 minecraft:pillager_outpost 80 outposts 3980124831785354812",
-            "3 -5 minecraft:village_plains 92 villages -2304053147360248982",
-            "3 1 minecraft:village_plains 80 villages -2304053147360248982",
-            "3 5 minecraft:pillager_outpost 72 villages -2304053147360248982",
-            "4 1 minecraft:ancient_city -16 cities 7830921123394837354",
-            "4 1 minecraft:pillager_outpost 72 outposts 3980124831785354812",
-            "4 3 minecraft:pillager_outpost 68 outposts 3980124831785354812",
-            "4 5 minecraft:pillager_outpost 64 outposts 3980124831785354812",
-            "4 6 minecraft:ancient_city -18 cities 7830921123394837354",
-            "5 -5 minecraft:village_plains 76 villages -2304053147360248982",
-            "5 -5 minecraft:ancient_city -24 cities 7830921123394837354",
-            "5 1 minecraft:pillager_outpost 64 outposts 3980124831785354812",
-            "5 2 minecraft:ancient_city -33 cities 7830921123394837354",
-            "5 4 minecraft:village_plains 88 villages -2304053147360248982",
-            "5 6 minecraft:village_plains 84 villages -2304053147360248982",
-            "6 -5 minecraft:pillager_outpost 68 outposts 3980124831785354812",
-            "6 -3 minecraft:village_plains 64 villages -2304053147360248982",
-            "6 -2 minecraft:pillager_outpost 92 outposts 3980124831785354812",
-            "6 2 minecraft:ancient_city -18 cities 7830921123394837354");
+            "-6 -4 minecraft:village_plains 72 villages",
+            "-6 0 minecraft:ancient_city -11 cities",
+            "-6 1 minecraft:pillager_outpost 92 outposts",
+            "-6 3 minecraft:village_plains 88 villages",
+            "-6 3 minecraft:ancient_city -14 cities",
+            "-5 -4 minecraft:pillager_outpost 64 outposts",
+            "-5 -3 minecraft:ancient_city -40 cities",
+            "-5 5 minecraft:pillager_outpost 76 outposts",
+            "-4 -5 minecraft:pillager_outpost 88 outposts",
+            "-4 -1 minecraft:village_plains 80 villages",
+            "-4 -1 minecraft:pillager_outpost 80 outposts",
+            "-4 1 minecraft:village_plains 76 villages",
+            "-4 1 minecraft:pillager_outpost 76 outposts",
+            "-3 -1 minecraft:village_plains 72 villages",
+            "-3 1 minecraft:pillager_outpost 68 outposts",
+            "-3 6 minecraft:village_plains 88 villages",
+            "-2 0 minecraft:village_plains 92 villages",
+            "-2 6 minecraft:pillager_outpost 80 outposts",
+            "-1 -4 minecraft:village_plains 92 villages",
+            "-1 4 minecraft:ancient_city -12 cities",
+            "-1 6 minecraft:ancient_city -23 cities",
+            "0 -6 minecraft:village_plains 88 villages",
+            "0 -2 minecraft:village_plains 80 villages",
+            "0 4 minecraft:pillager_outpost 68 outposts",
+            "0 6 minecraft:village_plains 64 villages",
+            "1 -6 minecraft:ancient_city -32 cities",
+            "1 -4 minecraft:pillager_outpost 76 outposts",
+            "1 0 minecraft:ancient_city -37 cities",
+            "1 2 minecraft:pillager_outpost 64 outposts",
+            "1 3 minecraft:ancient_city -38 cities",
+            "1 5 minecraft:ancient_city -12 cities",
+            "2 -2 minecraft:pillager_outpost 64 villages",
+            "2 5 minecraft:village_plains 80 villages",
+            "2 5 minecraft:pillager_outpost 80 outposts",
+            "3 -5 minecraft:village_plains 92 villages",
+            "3 1 minecraft:village_plains 80 villages",
+            "3 5 minecraft:pillager_outpost 72 villages",
+            "4 1 minecraft:ancient_city -16 cities",
+            "4 1 minecraft:pillager_outpost 72 outposts",
+            "4 3 minecraft:pillager_outpost 68 outposts",
+            "4 5 minecraft:pillager_outpost 64 outposts",
+            "4 6 minecraft:ancient_city -18 cities",
+            "5 -5 minecraft:village_plains 76 villages",
+            "5 -5 minecraft:ancient_city -24 cities",
+            "5 1 minecraft:pillager_outpost 64 outposts",
+            "5 2 minecraft:ancient_city -33 cities",
+            "5 4 minecraft:village_plains 88 villages",
+            "5 6 minecraft:village_plains 84 villages",
+            "6 -5 minecraft:pillager_outpost 68 outposts",
+            "6 -3 minecraft:village_plains 64 villages",
+            "6 -2 minecraft:pillager_outpost 92 outposts",
+            "6 2 minecraft:ancient_city -18 cities");
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();
@@ -121,9 +126,15 @@ public class NativeStructureStartsTest {
         List<String> starts = new ArrayList<>();
         for (int chunkX = -GRID_RADIUS_CHUNKS; chunkX <= GRID_RADIUS_CHUNKS; chunkX++) {
             for (int chunkZ = -GRID_RADIUS_CHUNKS; chunkZ <= GRID_RADIUS_CHUNKS; chunkZ++) {
-                for (NativeStructureStartPlan plan : NativeStructureStarts.plansAt(engine, chunkX, chunkZ)) {
+                List<NativeStructureStartPlan> plans = NativeStructureStarts.plansAt(engine, chunkX, chunkZ);
+                List<NativeStartPlanner.Plan> modulePlans = NativeStartPlanner.plansAt(engine, chunkX, chunkZ);
+                assertEquals(modulePlans.size(), plans.size());
+                for (int index = 0; index < plans.size(); index++) {
+                    NativeStructureStartPlan plan = plans.get(index);
+                    NativeStartPlanner.Plan modulePlan = modulePlans.get(index);
+                    assertEquals(modulePlan.source().structure(), plan.structureKey());
                     starts.add(plan.chunkX() + " " + plan.chunkZ() + " " + plan.structureKey() + " " + plan.baseY() + " "
-                            + placementId(placements, plan.placementIdentity()) + " " + plan.placementIdentity());
+                            + modulePlan.placement().placementId());
                 }
             }
         }
@@ -148,10 +159,10 @@ public class NativeStructureStartsTest {
 
         NativeStructureStartPlan plan = NativeStructureStarts.matchingPlan(engine, "MINECRAFT:ANCIENT_CITY", 0, 0);
 
-        assertEquals(new NativeStartMemo(GSON.toJson(terrain), GSON.toJson(stilt)), plan.memo());
+        assertEquals(new NativeStartMemo("{\"terrain\":" + GSON.toJson(terrain) + ",\"stilts\":" + GSON.toJson(stilt) + "}"),
+                plan.memo());
         assertEquals(new NativeJigsawOverrides("minecraft:village/plains/town_centers", "", 5, null, null, false,
                 "OCEAN_FLOOR_WG", null, null, NativeJigsawOverrides.SOURCE), plan.jigsaw());
-        assertEquals(StructurePlacementGrid.placementIdentity(fitted), plan.placementIdentity());
         assertNull(NativeStructureStarts.matchingPlan(engine, "minecraft:stronghold", 0, 0));
     }
 
@@ -166,11 +177,6 @@ public class NativeStructureStartsTest {
             withAdded(placement, "nativeStructures", source);
         }
         return placement;
-    }
-
-    private static String placementId(KList<StructurePlacement> placements, long identity) {
-        return placements.stream().filter(placement -> StructurePlacementGrid.placementIdentity(placement) == identity)
-                .findFirst().orElseThrow().placementId();
     }
 
     /** An engine whose pack serves the built-in modules, with terrain heights that vary per column and a high sea. */

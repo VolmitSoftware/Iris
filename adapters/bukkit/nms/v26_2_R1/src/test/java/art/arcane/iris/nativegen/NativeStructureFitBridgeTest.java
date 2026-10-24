@@ -993,7 +993,7 @@ public class NativeStructureFitBridgeTest {
     }
 
     private static NativeStartMemo memo(String terrainMode) {
-        return new NativeStartMemo("{\"mode\":\"" + terrainMode + "\"}", "null");
+        return new NativeStartMemo("{\"terrain\":{\"mode\":\"" + terrainMode + "\"}}");
     }
 
     /** {@code piece} as the bridge hands it to the fit. */

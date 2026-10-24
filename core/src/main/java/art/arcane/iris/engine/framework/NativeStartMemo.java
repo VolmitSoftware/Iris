@@ -2,13 +2,12 @@ package art.arcane.iris.engine.framework;
 
 import java.util.Objects;
 
-/**
- * What a module noted about a start it placed, as the host keeps it: two texts in the module's own format, one about
- * the start's terrain and one about its foundation. The host never reads them.
- */
-public record NativeStartMemo(String terrain, String foundation) {
+/** The memo a module gave a start it placed, as the host keeps it: one text the host never reads, not empty. */
+public record NativeStartMemo(String text) {
     public NativeStartMemo {
-        Objects.requireNonNull(terrain, "terrain");
-        Objects.requireNonNull(foundation, "foundation");
+        Objects.requireNonNull(text, "text");
+        if (text.isEmpty()) {
+            throw new IllegalArgumentException("A start memo's text must not be empty");
+        }
     }
 }

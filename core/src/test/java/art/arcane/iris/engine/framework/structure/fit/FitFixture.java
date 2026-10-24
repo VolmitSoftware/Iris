@@ -248,7 +248,7 @@ final class FitFixture {
 
     static FitStart start(String terrainJson, String stiltsJson, TerrainAdaptation adaptation, DecorationStep step,
                           Piece... pieces) {
-        StartMemo memo = new StartMemo(terrainJson, stiltsJson);
+        StartMemo memo = new StartMemo("{\"terrain\":" + terrainJson + ",\"stilts\":" + stiltsJson + "}");
         StructureFit.Start start = new StructureFit.Start() {
             private final StartKey key = StartKey.create();
 

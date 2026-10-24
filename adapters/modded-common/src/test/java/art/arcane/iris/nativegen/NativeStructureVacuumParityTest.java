@@ -57,7 +57,7 @@ public class NativeStructureVacuumParityTest {
 
         NativeStructureFitting.builtInModules().beforePieces(NativeStructureFitBridge.chunk(world(blocks), area,
                 List.of(new NativeStructureFitBridge.FitTarget("test:vacuum", start,
-                        new NativeStartMemo("{\"mode\":\"VACUUM\"}", "null"))), (x, z) -> SURFACE_Y));
+                        new NativeStartMemo("{\"terrain\":{\"mode\":\"VACUUM\"}}"))), (x, z) -> SURFACE_Y));
 
         assertEquals(original, blocks);
     }

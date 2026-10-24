@@ -83,8 +83,7 @@ public final class ModuleObjectPlacement {
         Engine engine = placer.getEngine();
         long worldSeed = engine != null ? engine.getSeedManager().getSeed() : rng.nextLong();
         ResourceId source = ids.of("object", objectKey);
-        PlacementRequest request = new PlacementRequest(ids.of("placement/" + objectKey + "/" + x + "/" + requestedY + "/" + z),
-                geometry, new BlockPosition(x, requestedY, z));
+        PlacementRequest request = new PlacementRequest(geometry, new BlockPosition(x, requestedY, z));
         long seed = ModuleSeeds.placement(worldSeed, objectKey, x, requestedY, z);
         StageMetrics metrics = new StageMetrics(engine != null ? engine.getMetrics() : null);
         try (ToolWorld toolWorld = engine == null ? new ToolWorld(worldSeed, data.getPackResources(), new PackDeclaredSettings(data)) : null) {

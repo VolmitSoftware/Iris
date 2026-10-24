@@ -347,7 +347,7 @@ public class IrisDimension extends IrisRegistrant {
             }
         }
 
-        addReachableBiomeKeys(pending, getModuleSettings().usedBiomes(data.getPackResources(), getModuleSettings()));
+        addReachableBiomeKeys(pending, getModuleSettings().usedBiomes(data.getPackResources(), getModuleSettings(), getLoadKey()));
 
         Set<String> visited = new HashSet<>();
         while (!pending.isEmpty()) {
@@ -370,7 +370,7 @@ public class IrisDimension extends IrisRegistrant {
             biomes.put(loadKey, biome);
             addReachableBiomeKeys(pending, biome.getChildren());
             addReachableBiomeKeys(pending, biome.getModuleSettings().treeBiomes(data.getPackResources()));
-            addReachableBiomeKeys(pending, biome.getModuleSettings().usedBiomes(data.getPackResources(), getModuleSettings()));
+            addReachableBiomeKeys(pending, biome.getModuleSettings().usedBiomes(data.getPackResources(), getModuleSettings(), getLoadKey()));
         }
 
         return biomes.v();

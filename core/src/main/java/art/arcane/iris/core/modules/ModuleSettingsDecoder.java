@@ -59,7 +59,8 @@ import java.util.stream.Stream;
 /**
  * Reads the module settings a dimension, region or biome declares: each settings feature of the pack at
  * that target, under the key the feature declares. Settings are created with their no-argument
- * constructor and the JSON is read into them, so an omitted option keeps its default. A {@link Snippet}
+ * constructor and the JSON is read into them under IrisApi's {@link DecodingContract}, so an omitted or null option
+ * keeps its default. A {@link Snippet}
  * type may be written as {@code "snippet/<name>"} or, as Iris's own snippets are, {@code "snippet/<snippet folder>/<name>"},
  * both read from {@code snippet/<snippet folder>/<name>.json}. IrisApi's value types ({@code BlockSpec},
  * {@code NoiseStyle} and the rest) are read like settings, and an {@code Object} as Gson reads any JSON value.
@@ -84,7 +85,7 @@ public final class ModuleSettingsDecoder {
         this.packFolder = packFolder;
         this.irisGson = irisGson;
         PackResourceIds packIds = new PackResourceIds(packFolder.toFile());
-        this.gson = new GsonBuilder()
+        this.gson = DecodingContract.appliedTo(new GsonBuilder())
                 .registerTypeAdapter(BlockState.class, textAdapter(BlockState::parse, BlockState::key))
                 .registerTypeAdapter(ResourceId.class, textAdapter(text -> resourceIdOf(packIds, text), ResourceId::toString))
                 .registerTypeAdapterFactory(new HostTypes())

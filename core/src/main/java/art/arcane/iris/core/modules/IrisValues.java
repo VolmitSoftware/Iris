@@ -110,7 +110,6 @@ public final class IrisValues {
         iris.setMultiplier(style.multiplier());
         iris.setFracture(style.fracture().map(fracture -> generatorStyle(fracture, resources)).orElse(null));
         iris.setExponent(style.exponent());
-        iris.setCacheSize(style.cacheSize());
         return iris;
     }
 

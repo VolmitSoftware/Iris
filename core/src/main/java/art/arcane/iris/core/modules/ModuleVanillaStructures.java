@@ -127,7 +127,7 @@ public final class ModuleVanillaStructures {
         if (structure.isEmpty()) {
             return List.of(NativeStructureReach.PLATFORM);
         }
-        Optional<StartMemo> startMemo = Optional.ofNullable(memo).map(note -> new StartMemo(note.terrain(), note.foundation()));
+        Optional<StartMemo> startMemo = Optional.ofNullable(memo).map(note -> new StartMemo(note.text()));
         List<NativeStructureReach> reaches = new ArrayList<>(structures.providers.size());
         for (ServiceRegistration registration : structures.providers) {
             StartReach reach = ask(registration, "reaching around vanilla structure " + structure.get(),
@@ -218,9 +218,8 @@ public final class ModuleVanillaStructures {
                 start.y() + minHeight,
                 start.isUnderground(),
                 start.replacesPlatformStart(),
-                start.identity(),
                 start.jigsaw().map(ModuleVanillaStructures::jigsaw).orElse(null),
-                start.memo().map(memo -> new NativeStartMemo(memo.terrain(), memo.foundation())).orElse(null));
+                start.memo().map(memo -> new NativeStartMemo(memo.text())).orElse(null));
     }
 
     private static NativeJigsawOverrides jigsaw(JigsawOverrides overrides) {

@@ -2,10 +2,6 @@ package art.arcane.iris.nativegen;
 
 import art.arcane.iris.engine.framework.NativeStructureOwnershipRecord;
 import art.arcane.iris.engine.framework.NativeStructureStartPlan;
-import art.arcane.iris.engine.framework.StructurePlacementGrid;
-import art.arcane.iris.builtin.structure.StructurePlacement;
-import com.google.gson.Gson;
-import com.google.gson.JsonObject;
 import art.arcane.iris.engine.framework.NativeStartMemo;
 import art.arcane.iris.engine.framework.NativeStructureReach;
 import net.minecraft.SharedConstants;
@@ -244,8 +240,7 @@ public class NativeStructureOwnershipFingerprintTest {
 
     private static NativeStructureStartPlan plan(ChunkPos origin, int baseY) {
         return new NativeStructureStartPlan("minecraft:monument", origin.x(), origin.z(), baseY, false, false,
-                StructurePlacementGrid.placementIdentity(placementWithId("monument-test")),
-                null, new NativeStartMemo("{\"mode\":\"SOURCE\"}", "null"));
+                null, new NativeStartMemo("{\"terrain\":{\"mode\":\"SOURCE\"}}"));
     }
 
     private static NativeStructureOwnershipRecord ownership(
@@ -329,12 +324,5 @@ public class NativeStructureOwnershipFingerprintTest {
             }
         }
         return null;
-    }
-
-    /** A structure placement as a pack writing only its {@code placementId} has it. */
-    private static StructurePlacement placementWithId(String placementId) {
-        JsonObject json = new JsonObject();
-        json.addProperty("placementId", placementId);
-        return new Gson().fromJson(json, StructurePlacement.class);
     }
 }

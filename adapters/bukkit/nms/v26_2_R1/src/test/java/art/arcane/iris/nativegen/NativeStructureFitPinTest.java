@@ -128,7 +128,7 @@ public class NativeStructureFitPinTest {
         List<NativeStructureFitBridge.FitTarget> targets = new ArrayList<>();
         for (FitTarget target : scenario.targets()) {
             targets.add(new NativeStructureFitBridge.FitTarget(target.structureId(), target.start(),
-                    new NativeStartMemo(target.terrainJson(), target.stiltJson())));
+                    new NativeStartMemo("{\"terrain\":" + target.terrainJson() + ",\"stilts\":" + target.stiltJson() + "}")));
         }
         NativeStructureFitting.Session fit = BuiltInFitting.FITTING.beforePieces(
                 NativeStructureFitBridge.chunk(world, CHUNK_AREA, targets, TerrainWorld::surfaceY));

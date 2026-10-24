@@ -15,6 +15,9 @@ import static org.junit.Assert.assertNull;
 /** The settings of {@code iris:objects} describe the same JSON an Iris object placement reads, and keep it for Iris to read. */
 public class ObjectPlacementMirrorTest {
     private static final Gson GSON = new Gson();
+    private static final String WARP_OPTION = "warp";
+    /** Iris's own cache size knob, which IrisApi's NoiseStyle leaves out; a placement's JSON still carries it to Iris. */
+    private static final String IRIS_ONLY_STYLE_OPTION = "cacheSize";
 
     @Test
     public void theSettingsDeclareEveryOptionOfIrisObjectPlacementAndNoOther() {
@@ -29,6 +32,7 @@ public class ObjectPlacementMirrorTest {
         JsonObject host = GSON.toJsonTree(new IrisObjectPlacement()).getAsJsonObject();
         JsonObject settings = GSON.toJsonTree(TestSettings.of(ObjectPlacement.class, "{}")).getAsJsonObject();
 
+        host.getAsJsonObject(WARP_OPTION).remove(IRIS_ONLY_STYLE_OPTION);
         for (String option : host.keySet()) {
             assertEquals("default of " + option, host.get(option), settings.get(option));
         }

@@ -13,7 +13,6 @@ public record NativeStructureOwnershipRecord(
         String structureKey,
         int originChunkX,
         int originChunkZ,
-        long placementIdentity,
         int baseY,
         int contentMinX,
         int contentMinY,
@@ -29,7 +28,7 @@ public record NativeStructureOwnershipRecord(
         String contentFingerprint,
         MemoSnapshot memo
 ) {
-    public static final int CURRENT_SCHEMA = 2;
+    public static final int CURRENT_SCHEMA = 3;
     public static final int MAX_REFERENCE_DISTANCE_CHUNKS = 8;
     private static final int MAX_KEY_BYTES = 512;
     private static final int MAX_FINGERPRINT_BYTES = 128;
@@ -70,7 +69,6 @@ public record NativeStructureOwnershipRecord(
     public static NativeStructureOwnershipRecord create(String structureKey,
                                                          int originChunkX,
                                                          int originChunkZ,
-                                                         long placementIdentity,
                                                          int baseY,
                                                          int contentMinX,
                                                          int contentMinY,
@@ -90,7 +88,6 @@ public record NativeStructureOwnershipRecord(
                 structureKey,
                 originChunkX,
                 originChunkZ,
-                placementIdentity,
                 baseY,
                 contentMinX,
                 contentMinY,
@@ -121,7 +118,6 @@ public record NativeStructureOwnershipRecord(
                 structureKey,
                 originChunkX,
                 originChunkZ,
-                placementIdentity,
                 baseY,
                 contentMinX,
                 contentMinY,
@@ -153,7 +149,6 @@ public record NativeStructureOwnershipRecord(
         writeString(output, structureKey, MAX_KEY_BYTES, "structure key");
         output.writeInt(originChunkX);
         output.writeInt(originChunkZ);
-        output.writeLong(placementIdentity);
         output.writeInt(baseY);
         output.writeInt(contentMinX);
         output.writeInt(contentMinY);
@@ -181,7 +176,6 @@ public record NativeStructureOwnershipRecord(
                     readString(input, MAX_KEY_BYTES, "structure key"),
                     input.readInt(),
                     input.readInt(),
-                    input.readLong(),
                     input.readInt(),
                     input.readInt(),
                     input.readInt(),
@@ -247,40 +241,30 @@ public record NativeStructureOwnershipRecord(
         }
     }
 
-    /**
-     * The start's memo as the record stores it: the foundation text, then the terrain text. Records written before
-     * memos existed hold the JSON of the start's stilts and terrain fit in these two places, which is what the module
-     * writes as its memo, so they read the same. A start without a memo stores two empty texts.
-     */
-    public record MemoSnapshot(String foundation, String terrain) {
-        private static final int MAX_MEMO_BYTES = 65_536;
-        private static final MemoSnapshot NONE = new MemoSnapshot("", "");
+    /** The start's memo as the record stores it: the module's text, empty for a start without a memo. */
+    public record MemoSnapshot(String text) {
+        private static final int MAX_MEMO_BYTES = 131_072;
+        private static final MemoSnapshot NONE = new MemoSnapshot("");
 
         public MemoSnapshot {
-            foundation = Objects.requireNonNull(foundation, "Native structure foundation memo must not be null");
-            terrain = Objects.requireNonNull(terrain, "Native structure terrain memo must not be null");
-            requireUtf8Limit(foundation, MAX_MEMO_BYTES, "foundation memo");
-            requireUtf8Limit(terrain, MAX_MEMO_BYTES, "terrain memo");
+            text = Objects.requireNonNull(text, "Native structure memo must not be null");
+            requireUtf8Limit(text, MAX_MEMO_BYTES, "memo");
         }
 
         public static MemoSnapshot of(NativeStartMemo memo) {
-            return memo == null ? NONE : new MemoSnapshot(memo.foundation(), memo.terrain());
+            return memo == null ? NONE : new MemoSnapshot(memo.text());
         }
 
         public NativeStartMemo restore() {
-            return equals(NONE) ? null : new NativeStartMemo(terrain, foundation);
+            return equals(NONE) ? null : new NativeStartMemo(text);
         }
 
         void write(DataOutputStream output) throws IOException {
-            writeString(output, foundation, MAX_MEMO_BYTES, "foundation memo");
-            writeString(output, terrain, MAX_MEMO_BYTES, "terrain memo");
+            writeString(output, text, MAX_MEMO_BYTES, "memo");
         }
 
         static MemoSnapshot read(DataInputStream input) throws IOException {
-            return new MemoSnapshot(
-                    readString(input, MAX_MEMO_BYTES, "foundation memo"),
-                    readString(input, MAX_MEMO_BYTES, "terrain memo")
-            );
+            return new MemoSnapshot(readString(input, MAX_MEMO_BYTES, "memo"));
         }
     }
 }

@@ -47,7 +47,8 @@ import static org.mockito.Mockito.when;
 /** IrisApi's value types read the JSON of Iris's own classes and resolve, and build noise, exactly as those do. */
 public class IrisValuesTest {
     private static final double[][] COLUMNS = {{0, 0}, {17.5, -3}, {-640, 1280}, {12345.25, 678.5}};
-    private static final Map<Class<?>, Set<String>> IRIS_ONLY_FIELDS = Map.of(IrisBlockData.class, Set.of("debug"));
+    private static final Map<Class<?>, Set<String>> IRIS_ONLY_FIELDS = Map.of(IrisBlockData.class, Set.of("debug"),
+            IrisGeneratorStyle.class, Set.of("cacheSize"));
 
     @After
     public void unbindPlatform() {

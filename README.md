@@ -440,7 +440,8 @@ Iris provides the API at runtime. At runtime a module can use the Iris API (`com
 packages the host exposes besides it (the built-in modules' stages and types, so packs can require
 their stages, and the libraries the host shares: Iris exposes VolmLib, `art.arcane.volmlib`, and Gson,
 `com.google.gson`), the JDK and the classes in its pack's module jars. Iris internals and the other
-libraries Iris bundles are hidden.
+libraries Iris bundles are hidden. Iris's own built-in modules (the IrisModule build) compile against exactly that:
+`iris-api`, VolmLib and Gson, all `compileOnly`, and run `ModuleJarCheck` on their jar.
 
 A module may use any library. One the host does not expose it ships inside its own jar or as another
 jar of the pack, and never borrows Iris's copy. A class may appear in only one jar of a pack, so two jars that

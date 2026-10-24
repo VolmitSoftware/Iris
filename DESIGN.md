@@ -1181,6 +1181,12 @@ A module never reaches the host's engine, its data loader or its layout classes;
 values and its settings through `FeatureSettings`. Iris's mapping from its internals to this surface, with the
 utilities that move into VolmLib, is in its notes (context.md, "How a module reaches the host").
 
+Iris's own built-ins hold to this at compile time: IrisModule is a build of its own whose compile classpath is
+`com.volmit:iris-api`, VolmLib, Gson and the JDK, never `iris-host` or Iris, and its jar passes `ModuleJarCheck`
+before Iris bundles it. Iris depends on IrisModule, not the reverse. What the built-ins cannot do through the API they
+ask through the facades of item 3, which Iris implements; the classes that need Iris itself (the layout model, the
+structure placer behind `StructureHost`, the object placers behind `ObjectHost`) are Iris's and live there.
+
 ## Not implemented
 
 - Host wiring, which lives in Iris: JSON decoding and validation, rendering `PackSchema` into Iris's schema and

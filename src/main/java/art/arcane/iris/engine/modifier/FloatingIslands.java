@@ -167,11 +167,7 @@ final class FloatingIslands {
     }
 
     private static BlockState fluidOf(BlockRegistry blocks, String key) {
-        try {
-            return blocks.resolve(key);
-        } catch (IllegalArgumentException unknown) {
-            return blocks.resolve(DEFAULT_FLUID);
-        }
+        return blocks.find(key).or(() -> blocks.find(DEFAULT_FLUID)).orElseThrow();
     }
 
     private static boolean hasSolidBelow(FloatingIslandSample sample, int k) {
@@ -447,7 +443,7 @@ final class FloatingIslands {
         Chunk(ChunkStageContext context) {
             this.originX = context.originX();
             this.originZ = context.originZ();
-            this.output = context.hunk(BlockState.class);
+            this.output = context.blocks();
             this.height = output.height();
             this.blocks = context.world().resources().blocks();
             this.settings = context.settings();

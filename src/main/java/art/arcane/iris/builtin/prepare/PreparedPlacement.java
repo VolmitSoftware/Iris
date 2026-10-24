@@ -27,7 +27,7 @@ import art.arcane.iris.builtin.placement.PlacementTerrain;
 import art.arcane.iris.builtin.placement.SurfaceWarp;
 import art.arcane.volmlib.util.math.IrisBlockVector;
 import com.volmit.block.BlockState;
-import com.volmit.world.BlockPosition;
+import com.volmit.geometry.BlockPosition;
 
 /**
  * What one placement chose before it is anchored: the settings it uses, the rotation it ended up with, the terrain

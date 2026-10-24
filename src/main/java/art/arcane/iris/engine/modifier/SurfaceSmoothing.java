@@ -77,7 +77,7 @@ final class SurfaceSmoothing {
     private final int fluidHeight;
 
     private SurfaceSmoothing(ChunkStageContext context) {
-        this.blocks = context.hunk(BlockState.class);
+        this.blocks = context.blocks();
         this.registry = context.world().resources().blocks();
         this.terrain = context.terrain();
         this.settings = context.settings();

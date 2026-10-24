@@ -34,7 +34,7 @@ import com.volmit.block.BlockTrait;
 import com.volmit.object.ObjectBlock;
 import com.volmit.stage.BlockStageContext;
 import com.volmit.stage.PlacementStageContext;
-import com.volmit.world.BlockPosition;
+import com.volmit.geometry.BlockPosition;
 
 import java.util.List;
 import java.util.Optional;

@@ -27,7 +27,7 @@ import com.volmit.ModuleInfo;
 import com.volmit.ModuleSetup;
 import com.volmit.block.BlockState;
 import com.volmit.stage.PlacementStageContext;
-import com.volmit.world.BlockPosition;
+import com.volmit.geometry.BlockPosition;
 
 import java.util.LinkedHashMap;
 import java.util.Map;

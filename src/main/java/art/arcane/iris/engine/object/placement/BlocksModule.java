@@ -42,7 +42,7 @@ import com.volmit.object.BlockEntityData;
 import com.volmit.object.ObjectBlock;
 import com.volmit.stage.BlockStageContext;
 import com.volmit.stage.PlacementStageContext;
-import com.volmit.world.BlockPosition;
+import com.volmit.geometry.BlockPosition;
 
 import java.util.Map;
 import java.util.Optional;

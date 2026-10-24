@@ -23,7 +23,7 @@ import art.arcane.volmlib.util.math.RNG;
 import com.volmit.block.BlockState;
 import com.volmit.block.BlockTrait;
 import com.volmit.resource.PackResources;
-import com.volmit.world.BlockPosition;
+import com.volmit.geometry.BlockPosition;
 
 import java.util.Optional;
 

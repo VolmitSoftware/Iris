@@ -71,13 +71,10 @@ final class ResolvedDepositVariant {
 
     /** The block the platform has under {@code key}; a replacement it lacks is reported once. */
     private Optional<BlockState> known(String key, boolean reportMissing) {
-        try {
-            return Optional.of(registry.resolve(key));
-        } catch (IllegalArgumentException unknownBlock) {
-            if (reportMissing) {
-                log.warnOnce("deposit-variant-block:" + key, "Deposit variant replaces ores with " + key + ", which this server does not have");
-            }
-            return Optional.empty();
+        Optional<BlockState> block = registry.find(key);
+        if (block.isEmpty() && reportMissing) {
+            log.warnOnce("deposit-variant-block:" + key, "Deposit variant replaces ores with " + key + ", which this server does not have");
         }
+        return block;
     }
 }

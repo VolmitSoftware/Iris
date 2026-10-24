@@ -25,7 +25,7 @@ import com.volmit.vanilla.DecorationStep;
 import com.volmit.vanilla.StartKey;
 import com.volmit.vanilla.TemplateCells;
 import com.volmit.vanilla.TerrainAdaptation;
-import com.volmit.world.BlockPosition;
+import com.volmit.geometry.BlockPosition;
 
 import java.util.ArrayList;
 import java.util.HashMap;

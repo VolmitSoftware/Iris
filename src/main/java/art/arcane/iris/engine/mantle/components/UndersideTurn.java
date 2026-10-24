@@ -18,7 +18,7 @@
 
 package art.arcane.iris.engine.mantle.components;
 
-import com.volmit.world.BlockPosition;
+import com.volmit.geometry.BlockPosition;
 
 /**
  * How Iris turns an object it hangs under an island: upside down about X, then a quarter turn about Y of {@code yRotation}

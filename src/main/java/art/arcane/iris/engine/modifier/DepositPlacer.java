@@ -132,7 +132,7 @@ final class DepositPlacer {
         private final Map<BlockState, Map<BlockState, BlockState>> suitedOres = new IdentityHashMap<>();
 
         Placing(ChunkStageContext context) {
-            this.blocks = context.hunk(BlockState.class);
+            this.blocks = context.blocks();
             this.terrain = context.terrain();
             this.settings = context.settings();
             this.mantle = context.mantle();

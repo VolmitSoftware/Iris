@@ -24,7 +24,7 @@ import com.volmit.block.BlockTrait;
 import com.volmit.object.BlockEntityData;
 import com.volmit.placement.PlacedBlock;
 import com.volmit.placement.PlacementAccess;
-import com.volmit.world.BlockPosition;
+import com.volmit.geometry.BlockPosition;
 
 import java.util.Optional;
 

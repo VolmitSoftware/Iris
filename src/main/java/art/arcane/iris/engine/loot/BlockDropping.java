@@ -45,7 +45,7 @@ public final class BlockDropping implements BlockDrops {
         int x = broken.position().x();
         int y = broken.position().y();
         int z = broken.position().z();
-        String brokenKey = world.resources().blocks().resolve(broken.block()).key();
+        String brokenKey = world.resources().blocks().find(broken.block().key()).orElse(broken.block()).key();
         ResolvedDrops resolved = world.state(ResolvedDrops.class, ignored -> new ResolvedDrops());
 
         List<ResolvedBlockDrop> providers = dropsFor(live, Level.BIOME, x, y, z, brokenKey, resolved, world);

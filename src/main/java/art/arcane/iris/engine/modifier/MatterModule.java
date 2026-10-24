@@ -24,7 +24,7 @@ import com.volmit.ModuleInfo;
 import com.volmit.ModuleSetup;
 import com.volmit.block.BlockState;
 import com.volmit.hunk.Hunk;
-import com.volmit.mantle.BlockBox;
+import com.volmit.geometry.BlockBox;
 import com.volmit.stage.ChunkStageContext;
 import com.volmit.world.TerrainSampler;
 
@@ -55,7 +55,7 @@ public final class MatterModule implements IrisModule {
     private static void insert(ChunkStageContext context) {
         int originX = context.originX();
         int originZ = context.originZ();
-        Hunk<BlockState> blocks = context.hunk(BlockState.class);
+        Hunk<BlockState> blocks = context.blocks();
         int[] limits = upperLimits(context.terrain(), originX, originZ);
         BlockBox chunk = new BlockBox(originX, 0, originZ, originX + CHUNK_WIDTH, blocks.height(), originZ + CHUNK_WIDTH);
         context.mantle().blocks().visit(chunk, (x, y, z, block) -> {

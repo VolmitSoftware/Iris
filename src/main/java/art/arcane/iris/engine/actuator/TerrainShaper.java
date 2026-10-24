@@ -268,7 +268,7 @@ final class TerrainShaper {
         private PaletteExplosion upperExplosion;
 
         Chunk(ChunkStageContext context) {
-            this.blocks = context.hunk(BlockState.class);
+            this.blocks = context.blocks();
             this.terrain = context.terrain();
             this.settings = context.settings();
             this.originX = context.originX();

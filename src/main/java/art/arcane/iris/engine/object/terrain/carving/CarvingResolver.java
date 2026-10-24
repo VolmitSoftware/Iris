@@ -59,7 +59,7 @@ public final class CarvingResolver {
     CarvingResolver(PackWorld world, List<CarvingEntry> declared) {
         this.resources = world.resources();
         this.log = world.log();
-        this.minHeight = world.minHeight();
+        this.minHeight = world.minWorldY();
         this.childSeed = world.extension(IrisSeeds.class).orElseThrow().seed(IrisSeed.CARVE) ^ CHILD_SEED_SALT;
         this.entries = declared.stream().filter(Objects::nonNull).map(ResolvedCarvingEntry::new).toList();
         this.index = indexById(entries);

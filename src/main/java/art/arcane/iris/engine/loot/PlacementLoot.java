@@ -63,7 +63,7 @@ final class PlacementLoot {
      */
     Loot.Source pick(List<? extends ObjectLootEntry> platformLoot, List<? extends ObjectLootEntry> packLoot, BlockState container,
                      RNG rng, int x, int worldY, int z) {
-        Candidates candidates = new Candidates(resources.blocks().resolve(container));
+        Candidates candidates = new Candidates(resources.blocks().find(container.key()).orElse(container));
         add(candidates, platformLoot, name -> platformSource(name, x, worldY, z));
         add(candidates, packLoot, this::packSource);
         List<Candidate> pool = candidates.pool();

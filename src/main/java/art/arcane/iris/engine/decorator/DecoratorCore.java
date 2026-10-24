@@ -20,7 +20,7 @@ package art.arcane.iris.engine.decorator;
 import art.arcane.iris.builtin.decorant.DecorationPart;
 import art.arcane.volmlib.util.math.RNG;
 import com.volmit.ModuleLog;
-import com.volmit.block.BlockFace;
+import com.volmit.geometry.BlockFace;
 import com.volmit.block.BlockState;
 import com.volmit.block.BlockTrait;
 import com.volmit.hunk.Hunk;

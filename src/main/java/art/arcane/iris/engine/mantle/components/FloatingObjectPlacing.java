@@ -39,10 +39,10 @@ import com.volmit.ModuleLog;
 import com.volmit.config.FeatureSettings.Entry;
 import com.volmit.config.Level;
 import com.volmit.config.PackSettings;
-import com.volmit.mantle.BlockBox;
+import com.volmit.geometry.BlockBox;
+import com.volmit.geometry.BlockPosition;
 import com.volmit.resource.ResourceId;
 import com.volmit.stage.MantleStageContext;
-import com.volmit.world.BlockPosition;
 import com.volmit.world.PackWorld;
 
 import java.util.HashMap;

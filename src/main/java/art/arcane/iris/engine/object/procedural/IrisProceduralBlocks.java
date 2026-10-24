@@ -24,7 +24,7 @@ import art.arcane.volmlib.util.math.Vector3i;
 import com.volmit.block.BlockState;
 import com.volmit.block.PaletteSpec;
 import com.volmit.object.ObjectBlock;
-import com.volmit.world.BlockPosition;
+import com.volmit.geometry.BlockPosition;
 
 import java.util.ArrayList;
 import java.util.List;

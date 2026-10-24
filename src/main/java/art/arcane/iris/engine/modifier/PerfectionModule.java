@@ -58,7 +58,7 @@ public final class PerfectionModule implements IrisModule {
     }
 
     private static void perfect(ChunkStageContext context) {
-        Hunk<BlockState> blocks = context.hunk(BlockState.class);
+        Hunk<BlockState> blocks = context.blocks();
         if (hidesOres(context)) {
             hideOres(blocks, new IdentityHashMap<>());
         }

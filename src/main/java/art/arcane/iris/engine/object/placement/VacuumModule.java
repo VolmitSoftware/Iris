@@ -33,7 +33,7 @@ import com.volmit.ModuleSetup;
 import com.volmit.block.BlockState;
 import com.volmit.block.BlockTrait;
 import com.volmit.stage.PlacementStageContext;
-import com.volmit.world.BlockPosition;
+import com.volmit.geometry.BlockPosition;
 
 /**
  * Module {@code iris:vacuum}: bends the terrain around an object of a vacuum mode so it meets the object's

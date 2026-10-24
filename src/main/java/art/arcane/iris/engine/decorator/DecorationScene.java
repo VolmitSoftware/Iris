@@ -52,7 +52,7 @@ public final class DecorationScene {
     /** The chunk of {@code context}, decorated with the world's decorators. */
     public static DecorationScene of(ChunkStageContext context) {
         Mantle mantle = context.mantle();
-        return new DecorationScene(context.hunk(BlockState.class), context.world().resources().blocks(), context.terrain(),
+        return new DecorationScene(context.blocks(),context.world().resources().blocks(), context.terrain(),
                 mantle == null ? null : mantle.blocks(), BiomeDecorators.of(context.world()), context.world().extension(IrisSeeds.class).orElseThrow().seed(IrisSeed.COMPONENT),
                 context.log());
     }
@@ -145,6 +145,6 @@ public final class DecorationScene {
     boolean canGoOn(BlockState decoration, BlockState surface) {
         return supports.computeIfAbsent(decoration, ignored -> new IdentityHashMap<>())
                 .computeIfAbsent(surface, known -> registry.canPlaceOn(decoration, known)
-                        && registry.canAttach(decoration, known, com.volmit.block.BlockFace.UP));
+                        && registry.canAttach(decoration, known, com.volmit.geometry.BlockFace.UP));
     }
 }

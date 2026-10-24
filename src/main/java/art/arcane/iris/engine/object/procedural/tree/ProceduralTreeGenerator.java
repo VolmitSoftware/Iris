@@ -24,7 +24,7 @@ import art.arcane.iris.engine.object.procedural.ProceduralShape;
 import art.arcane.volmlib.util.math.RNG;
 import com.volmit.block.BlockState;
 import com.volmit.object.ObjectBlock;
-import com.volmit.world.BlockPosition;
+import com.volmit.geometry.BlockPosition;
 
 import java.util.ArrayList;
 import java.util.HashMap;

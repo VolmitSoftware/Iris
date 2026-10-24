@@ -23,7 +23,7 @@ import art.arcane.iris.builtin.loot.ObjectVanillaLoot;
 import art.arcane.iris.builtin.spawn.SpawnCooldowns;
 import com.volmit.IrisFeature;
 import com.volmit.resource.ResourceId;
-import com.volmit.world.BlockPosition;
+import com.volmit.geometry.BlockPosition;
 
 import java.util.List;
 import java.util.Optional;

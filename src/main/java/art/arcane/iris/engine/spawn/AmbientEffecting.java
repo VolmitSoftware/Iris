@@ -28,7 +28,7 @@ import art.arcane.iris.builtin.spawn.SpawnCommand;
 import art.arcane.volmlib.util.math.RNG;
 import com.volmit.entity.EntitySpec;
 import com.volmit.service.AmbientEffects;
-import com.volmit.world.BlockPosition;
+import com.volmit.geometry.BlockPosition;
 import com.volmit.world.PackWorld;
 
 import java.util.ArrayList;

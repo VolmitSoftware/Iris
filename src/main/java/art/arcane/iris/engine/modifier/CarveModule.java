@@ -88,7 +88,7 @@ public final class CarveModule implements IrisModule {
 
     private static void applyCaves(ChunkStageContext context) {
         MatterMantle mantle = context.extension(MatterMantle.class).orElseThrow();
-        Hunk<BlockState> blocks = context.hunk(BlockState.class);
+        Hunk<BlockState> blocks = context.blocks();
         caveApplying(context).apply(mantle, context.terrain(), context.chunkX(), context.chunkZ(), blocks, CaveDressing.of(context));
     }
 
@@ -117,7 +117,7 @@ public final class CarveModule implements IrisModule {
         int lavaHeight = dimensionSetting(world, CaveLavaHeightSettings.class, CaveLavaHeightSettings::height, CaveLavaHeightSettings.DEFAULT_HEIGHT);
         return new CarveWorld(world.resources().noise(), world.extension(IrisSeeds.class).orElseThrow().seed(IrisSeed.CARVE),
                 terrain.bounds().maxY(), terrain.fluidHeight(), lavaHeight,
-                world.minHeight());
+                world.minWorldY());
     }
 
     private static boolean upperDimensionCarving(ChunkContext context) {

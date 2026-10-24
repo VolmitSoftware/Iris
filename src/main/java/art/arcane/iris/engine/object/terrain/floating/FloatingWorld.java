@@ -74,7 +74,7 @@ public final class FloatingWorld {
     private static FloatingWorld create(PackWorld world) {
         IrisSeeds seeds = world.extension(IrisSeeds.class).orElseThrow();
         return new FloatingWorld(world.extension(FloatingHost.class).orElseThrow(), world.extension(ObjectHost.class).orElseThrow(),
-                world.resources().noise(), seeds.seed(IrisSeed.TERRAIN), seeds.seed(IrisSeed.CARVE), world.minHeight(),
+                world.resources().noise(), seeds.seed(IrisSeed.TERRAIN), seeds.seed(IrisSeed.CARVE), world.minWorldY(),
                 dimensionCarvingOf(world));
     }
 

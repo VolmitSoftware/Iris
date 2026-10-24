@@ -33,7 +33,7 @@ import com.volmit.block.BlockState;
 import com.volmit.placement.PlacedBlock;
 import com.volmit.resource.ResourceId;
 import com.volmit.service.SaplingGrowth;
-import com.volmit.world.BlockPosition;
+import com.volmit.geometry.BlockPosition;
 import com.volmit.world.PackWorld;
 
 import java.util.ArrayList;

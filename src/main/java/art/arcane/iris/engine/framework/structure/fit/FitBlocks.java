@@ -18,7 +18,7 @@
 
 package art.arcane.iris.engine.framework.structure.fit;
 
-import com.volmit.block.BlockFace;
+import com.volmit.geometry.BlockFace;
 import com.volmit.block.BlockState;
 import com.volmit.block.BlockTrait;
 import com.volmit.resource.ResourceId;

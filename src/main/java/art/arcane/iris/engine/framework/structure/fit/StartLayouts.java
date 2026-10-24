@@ -22,7 +22,7 @@ import art.arcane.iris.builtin.structure.StructureTerrain;
 import art.arcane.iris.builtin.structure.StructureYBand;
 import art.arcane.iris.engine.framework.structure.NativeStructureFit;
 import art.arcane.volmlib.util.math.RNG;
-import com.volmit.mantle.BlockBox;
+import com.volmit.geometry.BlockBox;
 import com.volmit.vanilla.PlatformStart;
 import com.volmit.vanilla.StartReach;
 
@@ -67,8 +67,8 @@ public final class StartLayouts {
 
     private static int bandShift(PlatformStart start, StructureYBand band) {
         BlockBox bounds = start.bounds();
-        int minY = bounds.minY() + start.bottomY();
-        int maxY = bounds.maxY() - 1 + start.bottomY();
+        int minY = bounds.minY() + start.minWorldY();
+        int maxY = bounds.maxY() - 1 + start.minWorldY();
         int target = bandTargetMidpointY(minY, maxY, band.resolvedMin(), band.resolvedMax(), start.chunkX(), start.chunkZ());
         return Math.subtractExact(target, minY + (maxY - minY) / 2);
     }

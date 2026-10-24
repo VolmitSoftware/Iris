@@ -18,7 +18,7 @@
 
 package art.arcane.iris.engine.framework.structure.fit;
 
-import com.volmit.mantle.BlockBox;
+import com.volmit.geometry.BlockBox;
 
 /** A box of world blocks, every bound inclusive and Y in world heights, the way the platform's structures measure. */
 record Box(int minX, int minY, int minZ, int maxX, int maxY, int maxZ) {

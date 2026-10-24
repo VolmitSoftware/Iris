@@ -372,11 +372,7 @@ final class ResolvedDeposit {
     private static Set<ResourceId> replaceableMaterials(BlockRegistry registry, List<String> keys) {
         Set<ResourceId> materials = new HashSet<>();
         for (String key : keys) {
-            try {
-                materials.add(registry.resolve(key).material());
-            } catch (IllegalArgumentException unknownBlock) {
-                continue;
-            }
+            registry.find(key).ifPresent(block -> materials.add(block.material()));
         }
         return materials;
     }

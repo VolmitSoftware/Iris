@@ -75,9 +75,9 @@ public class CaveApplying {
         this.blocks = resources.blocks();
         this.upperDimensionCarving = upperDimensionCarving;
         this.rng = new RNG(world.carveSeed());
-        this.caveAir = blocks.resolve("minecraft:cave_air");
-        this.plainAir = blocks.resolve("minecraft:air");
-        this.lava = blocks.resolve("minecraft:lava");
+        this.caveAir = blocks.find("minecraft:cave_air").orElseThrow();
+        this.plainAir = blocks.find("minecraft:air").orElseThrow();
+        this.lava = blocks.find("minecraft:lava").orElseThrow();
     }
 
     /**

@@ -21,7 +21,7 @@ package art.arcane.iris.engine.framework.structure.fit;
 import com.volmit.vanilla.PieceKind;
 import com.volmit.vanilla.StructureFit;
 import com.volmit.vanilla.TemplateCells;
-import com.volmit.world.BlockPosition;
+import com.volmit.geometry.BlockPosition;
 
 import java.util.ArrayList;
 import java.util.List;

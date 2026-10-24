@@ -1,8 +1,8 @@
 # Iris default module
 
 This project owns the built-in Iris feature and setting sources under
-`src/main/java/art/arcane/iris/engine`. The files retain their existing packages, pack fields and
-direct dependencies on Iris internals.
+`src/main/java/art/arcane/iris`. The files keep the packages and pack fields they had in Iris. They build against
+the Iris API alone (see "Building" below); Iris depends on this project, never the reverse.
 
 Ported features are IrisApi modules that every pack loads before its own: object placement
 (`iris:prepare`, `iris:anchor`, `iris:validate`, `iris:bore`, `iris:blocks`, `iris:stilt`,
@@ -145,34 +145,38 @@ Every built-in stage is a full port: the module owns its logic and per-engine st
 work out their reach from the pack when it loads. A dimension's `disabledComponents` turns a mantle stage off
 by its flag (`CARVED`, `OBJECT`, `FLOATING_OBJECT`, `JIGSAW`) or by its stage id.
 
-Iris core and these sources still depend on each other. The Iris host build therefore compiles them
-together as one source set. This keeps the existing class names and platform artifacts while the
-features remain in a single physical source tree. It does not create an independent plugin artifact.
+## Building
 
-`source-patterns.txt` records the module's source ownership. The host's
-`:core:verifyDefaultModuleOwnership` task rejects declared feature sources in core, undeclared Java
-files here, and missing source families. `:core:bukkitPurityRatchet` checks this tree alongside
-core against the existing allowlist.
+This is a Gradle build of its own (`art.arcane:iris-module`). Its compile classpath is the Iris API
+(`com.volmit:iris-api`, from the sibling `../IrisApi` checkout; never `iris-host`), VolmLib, Gson, Lombok and the JDK,
+all `compileOnly`: a host provides them at runtime. VolmLib comes from a sibling `VolmLib` checkout when there is one,
+found the way Iris finds it (`-PuseLocalVolmLib=false`, `-PlocalVolmLibDirectory=<path>` or `VOLMLIB_DIR`), otherwise
+from the published `volmLibCoordinate` in `gradle.properties`, which matches Iris's. Classes compile with Iris's options
+(`-parameters`, no debug info) and `lombok.config` repeats Iris's, so they are the classes Iris shipped when it
+compiled these sources itself.
 
-From this directory, run `./gradlew check` to invoke the Iris host's joint compilation and purity
-check and build the module sources archive. Run `./gradlew builtinSourcesJar` to build just the
-archive. The host project also provides `:core:defaultModuleSourcesJar` for the same source tree.
+Iris includes this build (`includeBuild('../IrisModule')` in its `settings.gradle`) and depends on its classes: Iris
+core and its adapters still name many of them (the cut-over that ends this comes later). Classes that need Iris itself
+are Iris's and live in Iris core: the layout model (`IrisBiome`, `IrisRegion`, `IrisDimension`, generators, noise
+styles, expressions, images), the pack's objects and blocks, the structure model with its assembler, locator, fitting
+and placer (behind `StructureHost`), and the object placers behind `ObjectHost` and `FloatingHost`.
+
+`./gradlew check` compiles every source and builds the built-ins jar below, which runs the pack class checks.
 
 ## Built-in modules as a pack module jar
 
-Iris builds the built-in modules as an ordinary pack module jar, `iris-builtins.jar`, and bundles it into the plugin:
-Iris's `:core:builtinModulesJar` packages it from core's compiled classes, so it always fits the Iris it ships with, and
-every pack loads it as if it were in its `modules/` folder (IrisApi's `ModuleHost.bundlingJars`). A pack must not hold a
-copy of it: its classes would be in two jars, so the pack fails to load naming both. `./gradlew builtinModulesJar`
-here runs that task and copies the jar to `build/libs/iris-builtins.jar`. `builtin-modules.txt` lists what goes in:
-`module <class>` lines (the jar's entry points, written to `META-INF/services/com.volmit.IrisModule`) and `include <pattern>`
-lines for further classes. The plugin's own classes leave those classes out; Iris's Bukkit artifact check fails the build if
-core still uses one of them.
-Before the jar is used, `ModuleJarCheck` of IrisApi runs the class checks of a pack load on it, with the packages Iris
+This build packages the built-in modules as an ordinary pack module jar, `build/libs/iris-builtins.jar`, from its own
+classes, and Iris bundles it into the plugin: every pack loads it as if it were in its `modules/` folder (IrisApi's
+`ModuleHost.bundlingJars`). A pack must not hold a copy of it: its classes would be in two jars, so the pack fails to load
+naming both. `./gradlew builtinModulesJar` builds it. `builtin-modules.txt` lists what goes in: `module <class>` lines
+(the jar's entry points, written to `META-INF/services/com.volmit.IrisModule`) and `include <pattern>` lines for further
+classes. Iris asks for the jar by the capability `art.arcane:iris-builtins`; its plugin leaves the jar's classes out of
+its own, and its Bukkit artifact check fails the build if Iris still uses one of them.
+Before the jar is written, `ModuleJarCheck` of IrisApi runs the class checks of a pack load on it, with the packages Iris
 exposes (`art.arcane.iris.builtin`, VolmLib's `art.arcane.volmlib` and Gson's `com.google.gson`, all three on the check's
-classpath); a listed class that uses Iris internals fails the task naming the class and what it uses. A VolmLib class that
-Iris's Bukkit jar strips (the list is Iris's `core/volmlib-left-out-of-bukkit-jar.txt`, which its shadowJar reads too) is on
-that classpath but missing on a server, so the check treats it as missing and fails the task naming it. `check` runs the task.
+classpath, with this build's other classes as the host's); a listed class that uses a class outside the jar and those
+packages fails the task naming the class and what it uses. Iris checks the jar once more before bundling it, against the
+VolmLib classes its Bukkit jar strips (`core/volmlib-left-out-of-bukkit-jar.txt`), which only Iris knows.
 
 The jar holds `iris:post`, `iris:perfection`, `iris:matter`, `iris:loot`, `iris:spawn`, `iris:vanilla-features` and
 `iris:carve`, and the object placement stages `iris:prepare`, `iris:anchor`, `iris:validate`, `iris:bore`, `iris:blocks`, `iris:stilt`, `iris:vacuum` and `iris:snow`. They are

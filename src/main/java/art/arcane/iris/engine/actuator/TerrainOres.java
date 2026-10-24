@@ -18,7 +18,7 @@
 package art.arcane.iris.engine.actuator;
 
 import art.arcane.iris.builtin.IrisSeedPurposes;
-import art.arcane.iris.builtin.terrain.OreSettings;
+import art.arcane.iris.modules.terrain.OreSettings;
 import com.volmit.resource.PackResources;
 import com.volmit.world.PackWorld;
 

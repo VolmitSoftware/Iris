@@ -19,7 +19,7 @@
 package art.arcane.iris.engine.framework.vanillafeatures;
 
 import art.arcane.iris.builtin.RegistryKeyFamily;
-import art.arcane.iris.builtin.vanillafeatures.ImportedFeaturesSettings;
+import art.arcane.iris.modules.vanillafeatures.ImportedFeaturesSettings;
 import com.volmit.resource.ResourceId;
 import com.volmit.service.VanillaFeatures;
 import com.volmit.vanilla.DecorationStep;

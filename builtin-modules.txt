@@ -14,6 +14,9 @@
 #
 # Moving a module here means removing it from IrisModuleHost.generationModules() in Iris.
 
+# The settings and helper types only the jar's modules use, which Iris does not expose.
+include art/arcane/iris/modules/**
+
 module art.arcane.iris.engine.modifier.PostModule
 include art/arcane/iris/engine/modifier/SurfaceSmoothing*.class
 module art.arcane.iris.engine.modifier.PerfectionModule

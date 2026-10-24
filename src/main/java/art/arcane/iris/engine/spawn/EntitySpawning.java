@@ -26,7 +26,7 @@ import art.arcane.iris.builtin.spawn.SpawnCooldowns;
 import art.arcane.iris.builtin.spawn.SpawnMarker;
 import art.arcane.iris.builtin.spawn.SpawnSurface;
 import art.arcane.iris.builtin.spawn.Spawner;
-import art.arcane.iris.builtin.spawn.SpawnerSettings;
+import art.arcane.iris.modules.spawn.SpawnerSettings;
 import art.arcane.iris.engine.loot.LootItems;
 import art.arcane.iris.engine.spawn.SpawnResources.KeyedSpawner;
 import art.arcane.volmlib.util.collection.KList;

@@ -18,7 +18,7 @@
 
 package art.arcane.iris.engine.loot;
 
-import art.arcane.iris.builtin.loot.BlockDropSettings;
+import art.arcane.iris.modules.loot.BlockDropSettings;
 import art.arcane.iris.builtin.loot.LootSettings;
 import art.arcane.iris.builtin.loot.ObjectLoot;
 import art.arcane.iris.builtin.loot.ObjectVanillaLoot;

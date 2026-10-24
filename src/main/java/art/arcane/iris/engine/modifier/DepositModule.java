@@ -20,10 +20,10 @@ package art.arcane.iris.engine.modifier;
 
 import art.arcane.iris.builtin.IrisStages;
 import art.arcane.iris.builtin.deposit.DepositGenerator;
-import art.arcane.iris.builtin.deposit.DepositSettings;
-import art.arcane.iris.builtin.deposit.DepositVariantSettings;
-import art.arcane.iris.builtin.deposit.OreFrequencySettings;
-import art.arcane.iris.builtin.deposit.OreSizeSettings;
+import art.arcane.iris.modules.deposit.DepositSettings;
+import art.arcane.iris.modules.deposit.DepositVariantSettings;
+import art.arcane.iris.modules.deposit.OreFrequencySettings;
+import art.arcane.iris.modules.deposit.OreSizeSettings;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
 import com.volmit.ModuleSetup;

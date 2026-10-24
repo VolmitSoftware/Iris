@@ -19,7 +19,7 @@
 package art.arcane.iris.engine.modifier;
 
 import art.arcane.iris.builtin.IrisStages;
-import art.arcane.iris.builtin.terrain.HideOresSettings;
+import art.arcane.iris.modules.terrain.HideOresSettings;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
 import com.volmit.ModuleSetup;

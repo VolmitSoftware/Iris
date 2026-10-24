@@ -19,12 +19,12 @@
 package art.arcane.iris.engine.modifier;
 
 import art.arcane.iris.builtin.IrisSeedPurposes;
-import art.arcane.iris.builtin.post.PostProcessingSlabsSettings;
-import art.arcane.iris.builtin.post.PostProcessingWallsSettings;
-import art.arcane.iris.builtin.terrain.LayerBlocks;
+import art.arcane.iris.modules.post.PostProcessingSlabsSettings;
+import art.arcane.iris.modules.post.PostProcessingWallsSettings;
+import art.arcane.iris.modules.terrain.LayerBlocks;
 import art.arcane.iris.builtin.terrain.PaletteLayer;
-import art.arcane.iris.builtin.terrain.SlabSettings;
-import art.arcane.iris.builtin.terrain.WallSettings;
+import art.arcane.iris.modules.terrain.SlabSettings;
+import art.arcane.iris.modules.terrain.WallSettings;
 import art.arcane.volmlib.util.math.RNG;
 import com.volmit.IrisFeature;
 import com.volmit.block.BlockRegistry;

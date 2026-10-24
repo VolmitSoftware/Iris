@@ -19,9 +19,9 @@
 package art.arcane.iris.engine.modifier;
 
 import art.arcane.iris.builtin.IrisStages;
-import art.arcane.iris.builtin.post.PostProcessingSettings;
-import art.arcane.iris.builtin.post.PostProcessingSlabsSettings;
-import art.arcane.iris.builtin.post.PostProcessingWallsSettings;
+import art.arcane.iris.modules.post.PostProcessingSettings;
+import art.arcane.iris.modules.post.PostProcessingSlabsSettings;
+import art.arcane.iris.modules.post.PostProcessingWallsSettings;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
 import com.volmit.ModuleSetup;

@@ -17,8 +17,8 @@
  */
 package art.arcane.iris.engine.actuator;
 
-import art.arcane.iris.builtin.terrain.OreGenerator;
-import art.arcane.iris.builtin.terrain.OreSettings;
+import art.arcane.iris.modules.terrain.OreGenerator;
+import art.arcane.iris.modules.terrain.OreSettings;
 import com.volmit.block.BlockState;
 import com.volmit.resource.PackResources;
 

@@ -20,7 +20,7 @@ package art.arcane.iris.engine.object.terrain.carving;
 
 import art.arcane.iris.builtin.IrisSeedPurposes;
 import art.arcane.iris.builtin.carve.CarvingEntry;
-import art.arcane.iris.builtin.carve.CarvingSettings;
+import art.arcane.iris.modules.carve.CarvingSettings;
 import com.volmit.ModuleLog;
 import com.volmit.config.Range;
 import com.volmit.noise.NoiseSampler;

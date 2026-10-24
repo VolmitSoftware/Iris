@@ -18,7 +18,7 @@
 
 package art.arcane.iris.engine.modifier;
 
-import art.arcane.iris.builtin.carve.CaveDepthSettings;
+import art.arcane.iris.modules.carve.CaveDepthSettings;
 import art.arcane.iris.engine.object.terrain.carving.CarvingResolver;
 import art.arcane.iris.engine.object.terrain.carving.DeclaredByLevel;
 import art.arcane.iris.engine.object.terrain.carving.ResolvedCarvingEntry;

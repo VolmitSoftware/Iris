@@ -19,10 +19,10 @@ package art.arcane.iris.engine.modifier;
 
 import art.arcane.iris.builtin.decorant.DecorantSettings;
 import art.arcane.iris.builtin.decorant.DecorationPart;
-import art.arcane.iris.builtin.terrain.BiomeLayers;
-import art.arcane.iris.builtin.terrain.ColumnSlope;
-import art.arcane.iris.builtin.terrain.PaletteExplosion;
-import art.arcane.iris.builtin.terrain.TerrainPalettes;
+import art.arcane.iris.modules.terrain.BiomeLayers;
+import art.arcane.iris.modules.terrain.ColumnSlope;
+import art.arcane.iris.modules.terrain.PaletteExplosion;
+import art.arcane.iris.modules.terrain.TerrainPalettes;
 import art.arcane.iris.engine.decorator.BiomeDecorators;
 import art.arcane.iris.engine.decorator.DecoratedBiome;
 import art.arcane.iris.engine.decorator.DecorationScene;

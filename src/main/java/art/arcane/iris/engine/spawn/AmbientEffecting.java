@@ -20,7 +20,7 @@ package art.arcane.iris.engine.spawn;
 
 import art.arcane.iris.builtin.spawn.AmbientEffect;
 import art.arcane.iris.builtin.spawn.EffectCommands;
-import art.arcane.iris.builtin.spawn.EffectSettings;
+import art.arcane.iris.modules.spawn.EffectSettings;
 import art.arcane.iris.builtin.spawn.SpawnCommand;
 import art.arcane.iris.engine.loot.BlockBiomes;
 import art.arcane.iris.engine.loot.PlatformKeys;

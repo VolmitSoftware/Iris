@@ -20,7 +20,7 @@ package art.arcane.iris.engine.actuator;
 
 import art.arcane.iris.builtin.IrisStages;
 import art.arcane.iris.builtin.decorant.DecorantSettings;
-import art.arcane.iris.builtin.decorant.DecorateSettings;
+import art.arcane.iris.modules.decorant.DecorateSettings;
 import art.arcane.iris.engine.decorator.BiomeDecorators;
 import art.arcane.iris.engine.decorator.DecoratedBiome;
 import art.arcane.iris.engine.decorator.DecorationScene;

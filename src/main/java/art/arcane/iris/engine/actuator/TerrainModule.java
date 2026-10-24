@@ -19,19 +19,19 @@ package art.arcane.iris.engine.actuator;
 
 import art.arcane.iris.builtin.IrisStages;
 import art.arcane.iris.builtin.terrain.BedrockSettings;
-import art.arcane.iris.builtin.terrain.CaveCeilingLayersSettings;
-import art.arcane.iris.builtin.terrain.ExplodeBiomePaletteSizeSettings;
-import art.arcane.iris.builtin.terrain.ExplodeBiomePalettesSettings;
-import art.arcane.iris.builtin.terrain.FluidPaletteSettings;
-import art.arcane.iris.builtin.terrain.HideOresSettings;
+import art.arcane.iris.modules.terrain.CaveCeilingLayersSettings;
+import art.arcane.iris.modules.terrain.ExplodeBiomePaletteSizeSettings;
+import art.arcane.iris.modules.terrain.ExplodeBiomePalettesSettings;
+import art.arcane.iris.modules.terrain.FluidPaletteSettings;
+import art.arcane.iris.modules.terrain.HideOresSettings;
 import art.arcane.iris.builtin.terrain.LayersSettings;
-import art.arcane.iris.builtin.terrain.LockLayersMaxSettings;
-import art.arcane.iris.builtin.terrain.LockLayersSettings;
-import art.arcane.iris.builtin.terrain.OreSettings;
-import art.arcane.iris.builtin.terrain.RockPaletteSettings;
-import art.arcane.iris.builtin.terrain.SeaLayersSettings;
-import art.arcane.iris.builtin.terrain.SlabSettings;
-import art.arcane.iris.builtin.terrain.WallSettings;
+import art.arcane.iris.modules.terrain.LockLayersMaxSettings;
+import art.arcane.iris.modules.terrain.LockLayersSettings;
+import art.arcane.iris.modules.terrain.OreSettings;
+import art.arcane.iris.modules.terrain.RockPaletteSettings;
+import art.arcane.iris.modules.terrain.SeaLayersSettings;
+import art.arcane.iris.modules.terrain.SlabSettings;
+import art.arcane.iris.modules.terrain.WallSettings;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
 import com.volmit.ModuleLifecycle;
@@ -39,7 +39,7 @@ import com.volmit.ModuleSetup;
 import com.volmit.stage.ChunkStageContext;
 import com.volmit.world.PackWorld;
 
-import art.arcane.iris.builtin.terrain.TerrainPalettes;
+import art.arcane.iris.modules.terrain.TerrainPalettes;
 
 /**
  * Module {@code iris:terrain}: the chunk's ground, fluids and biome layers. Each column is filled from bedrock up

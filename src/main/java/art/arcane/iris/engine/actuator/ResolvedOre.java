@@ -17,7 +17,7 @@
  */
 package art.arcane.iris.engine.actuator;
 
-import art.arcane.iris.builtin.terrain.OreGenerator;
+import art.arcane.iris.modules.terrain.OreGenerator;
 import art.arcane.volmlib.util.cache.AtomicCache;
 import com.volmit.block.BlockRegistry;
 import com.volmit.block.BlockSpec;

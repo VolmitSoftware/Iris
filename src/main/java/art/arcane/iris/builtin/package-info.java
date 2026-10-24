@@ -24,15 +24,14 @@
  * <p>
  * Keep implementation out of it: stage bodies and anything that uses Iris internals live in the
  * built-in module classes outside this package, which packs cannot see. Settings and output types go in one
- * subpackage per built-in module, named after the module path, such as {@code art.arcane.iris.builtin.deposit}
- * for {@code iris:deposit}.
+ * subpackage per built-in module, named after the module path, such as {@code art.arcane.iris.builtin.spawn}
+ * for {@code iris:spawn}. A type only the built-ins jar uses, which Iris itself never reads, lives in
+ * {@code art.arcane.iris.modules} instead, which Iris does not expose.
  * <p>
- * Besides those, it holds what the compiled-in built-ins and the built-ins jar must share, since each sees its own copy
+ * Besides those, it holds what Iris and the built-ins jar must share, since each sees its own copy
  * of every other class: narrow facades only Iris's own built-ins use, interfaces Iris's worlds implement
- * ({@link art.arcane.iris.builtin.spawn.SpawnCooldowns}, {@link art.arcane.iris.builtin.objects.ObjectHost}), the seed purposes Iris
- * answers with its legacy seeds ({@link art.arcane.iris.builtin.IrisSeedPurposes}),
- * and per-world state several of them use ({@link art.arcane.iris.builtin.terrain.LayerBlocks},
- * {@link art.arcane.iris.builtin.terrain.BiomeLayers}, {@link art.arcane.iris.builtin.terrain.TerrainPalettes}). Keep them few: each is
+ * ({@link art.arcane.iris.builtin.spawn.SpawnCooldowns}, {@link art.arcane.iris.builtin.objects.ObjectHost}), and the seed purposes Iris
+ * answers with its legacy seeds ({@link art.arcane.iris.builtin.IrisSeedPurposes}). Keep them few: each is
  * a promise.
  * <p>
  * The placement stages ({@code iris:prepare} to {@code iris:snow}) reach the object being placed through

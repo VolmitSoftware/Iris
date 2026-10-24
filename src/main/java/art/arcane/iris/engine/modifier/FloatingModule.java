@@ -19,8 +19,8 @@
 package art.arcane.iris.engine.modifier;
 
 import art.arcane.iris.builtin.IrisStages;
-import art.arcane.iris.builtin.floating.FloatingChildSettings;
-import art.arcane.iris.builtin.floating.MergeFloatingChildrenSettings;
+import art.arcane.iris.modules.floating.FloatingChildSettings;
+import art.arcane.iris.modules.floating.MergeFloatingChildrenSettings;
 import art.arcane.iris.engine.mantle.components.FloatingObjectPlacing;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;

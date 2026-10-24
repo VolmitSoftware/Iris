@@ -20,12 +20,12 @@ package art.arcane.iris.engine.object.terrain.floating;
 
 import art.arcane.iris.builtin.IrisSeedPurposes;
 import art.arcane.iris.builtin.carve.CarvingEntry;
-import art.arcane.iris.builtin.carve.CarvingSettings;
+import art.arcane.iris.modules.carve.CarvingSettings;
 import art.arcane.iris.builtin.carve.CaveProfile;
 import art.arcane.iris.builtin.floating.FloatingChildBiome;
-import art.arcane.iris.builtin.floating.FloatingChildSettings;
+import art.arcane.iris.modules.floating.FloatingChildSettings;
 import art.arcane.iris.builtin.floating.FloatingHost;
-import art.arcane.iris.builtin.floating.MergeFloatingChildrenSettings;
+import art.arcane.iris.modules.floating.MergeFloatingChildrenSettings;
 import art.arcane.iris.builtin.objects.ObjectHost;
 import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.builtin.objects.ObjectSettings;

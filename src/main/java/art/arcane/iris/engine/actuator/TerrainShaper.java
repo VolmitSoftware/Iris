@@ -19,14 +19,14 @@ package art.arcane.iris.engine.actuator;
 
 import art.arcane.iris.builtin.IrisSeedPurposes;
 import art.arcane.iris.builtin.terrain.BedrockSettings;
-import art.arcane.iris.builtin.terrain.HideOresSettings;
-import art.arcane.iris.builtin.terrain.OreSettings;
+import art.arcane.iris.modules.terrain.HideOresSettings;
+import art.arcane.iris.modules.terrain.OreSettings;
 import art.arcane.iris.engine.actuator.ResolvedOres.YBand;
-import art.arcane.iris.builtin.terrain.BiomeLayers;
-import art.arcane.iris.builtin.terrain.ColumnSlope;
-import art.arcane.iris.builtin.terrain.LayeredBiome;
-import art.arcane.iris.builtin.terrain.PaletteExplosion;
-import art.arcane.iris.builtin.terrain.TerrainPalettes;
+import art.arcane.iris.modules.terrain.BiomeLayers;
+import art.arcane.iris.modules.terrain.ColumnSlope;
+import art.arcane.iris.modules.terrain.LayeredBiome;
+import art.arcane.iris.modules.terrain.PaletteExplosion;
+import art.arcane.iris.modules.terrain.TerrainPalettes;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
 import com.volmit.IrisFeature;
@@ -230,8 +230,8 @@ final class TerrainShaper {
     /** What the biome of the upper dimension at the column declares about its layers. */
     private LayeredBiome upperBiome(FeatureSettings upperSettings, int worldX, int worldZ) {
         return new LayeredBiome(biomeLevel(upperSettings, art.arcane.iris.builtin.terrain.LayersSettings.class, worldX, worldZ), null, null,
-                biomeLevel(upperSettings, art.arcane.iris.builtin.terrain.LockLayersSettings.class, worldX, worldZ),
-                biomeLevel(upperSettings, art.arcane.iris.builtin.terrain.LockLayersMaxSettings.class, worldX, worldZ), null);
+                biomeLevel(upperSettings, art.arcane.iris.modules.terrain.LockLayersSettings.class, worldX, worldZ),
+                biomeLevel(upperSettings, art.arcane.iris.modules.terrain.LockLayersMaxSettings.class, worldX, worldZ), null);
     }
 
     private static <S extends IrisFeature> S biomeLevel(FeatureSettings settings, Class<S> type, int worldX, int worldZ) {

@@ -18,9 +18,9 @@
 
 package art.arcane.iris.engine.spawn;
 
-import art.arcane.iris.builtin.spawn.EffectSettings;
+import art.arcane.iris.modules.spawn.EffectSettings;
 import art.arcane.iris.builtin.spawn.PlacementMarker;
-import art.arcane.iris.builtin.spawn.SpawnerSettings;
+import art.arcane.iris.modules.spawn.SpawnerSettings;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
 import com.volmit.ModuleSetup;

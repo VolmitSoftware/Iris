@@ -26,7 +26,7 @@ import art.arcane.iris.builtin.placement.PlacementTerrain;
 import art.arcane.iris.builtin.placement.PlaneNoise;
 import art.arcane.iris.builtin.prepare.PreparedPlacement;
 import art.arcane.iris.builtin.prepare.TransformedBounds;
-import art.arcane.iris.builtin.terrain.TerrainPalettes;
+import art.arcane.iris.modules.terrain.TerrainPalettes;
 import art.arcane.iris.builtin.vacuum.VacuumSettings;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;

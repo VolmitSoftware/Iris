@@ -22,13 +22,14 @@ import art.arcane.iris.builtin.structure.StructureStilts;
 import art.arcane.iris.builtin.structure.StructureTerrain;
 import art.arcane.iris.builtin.structure.StructureYBand;
 import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import com.volmit.vanilla.StartMemo;
 
 /**
  * How {@code iris:structure} places and fits one platform structure, or one start: how far it moves the platform's own
  * starts and into which band of world heights, whether they keep the platform's height, the foundation columns built
- * under their pieces and how they meet the terrain. A start the module places itself carries its fit as a memo, the
- * JSON of its terrain and stilts, which ownership records keep, so its later chunks use the fit it began with.
+ * under their pieces and how they meet the terrain. A start the module places itself carries its fit as a memo, one
+ * JSON object of its terrain and stilts, which the host keeps with the start, so its later chunks use the fit it began with.
  *
  * @param yBand null for no band
  * @param stilts null for no foundation columns
@@ -40,22 +41,28 @@ public record NativeStructureFit(int yShift, StructureYBand yBand, boolean keeps
     public static final NativeStructureFit NONE = new NativeStructureFit(0, null, false, null, null);
 
     private static final Gson MEMO_JSON = new Gson();
-    private static final String NO_STILTS = "null";
+    private static final String MEMO_TERRAIN = "terrain";
+    private static final String MEMO_STILTS = "stilts";
 
     /** The fit a start's memo records: its terrain and stilts, with no vertical adjustment. */
     public static NativeStructureFit of(StartMemo memo) {
-        StructureStilts stilts = NO_STILTS.equals(memo.foundation())
-                ? null : MEMO_JSON.fromJson(memo.foundation(), StructureStilts.class);
-        StructureTerrain terrain = MEMO_JSON.fromJson(memo.terrain(), StructureTerrain.class);
-        if (terrain == null) {
+        JsonObject text = MEMO_JSON.fromJson(memo.text(), JsonObject.class);
+        if (text == null || !text.has(MEMO_TERRAIN)) {
             throw new IllegalStateException("A start's memo has no terrain fit: " + memo);
         }
+        StructureTerrain terrain = MEMO_JSON.fromJson(text.get(MEMO_TERRAIN), StructureTerrain.class);
+        StructureStilts stilts = text.has(MEMO_STILTS) ? MEMO_JSON.fromJson(text.get(MEMO_STILTS), StructureStilts.class) : null;
         return new NativeStructureFit(0, null, false, stilts, terrain);
     }
 
-    /** The memo of a start placed with this fit's terrain and stilts. */
+    /** The memo of a start placed with this fit's terrain and stilts: one JSON object holding both. */
     public StartMemo memo() {
-        return new StartMemo(MEMO_JSON.toJson(resolvedTerrain()), MEMO_JSON.toJson(stilts));
+        JsonObject text = new JsonObject();
+        text.add(MEMO_TERRAIN, MEMO_JSON.toJsonTree(resolvedTerrain()));
+        if (stilts != null) {
+            text.add(MEMO_STILTS, MEMO_JSON.toJsonTree(stilts));
+        }
+        return new StartMemo(MEMO_JSON.toJson(text));
     }
 
     /** The terrain fitting; the structure's own adaptation (SOURCE) when none is set. */

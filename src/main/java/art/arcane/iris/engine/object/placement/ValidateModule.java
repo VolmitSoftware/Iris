@@ -28,6 +28,7 @@ import art.arcane.iris.builtin.placement.PlacementSettings;
 import art.arcane.iris.builtin.placement.PlacementTerrain;
 import art.arcane.iris.builtin.placement.StructureVolumes;
 import art.arcane.iris.builtin.prepare.PreparedPlacement;
+import art.arcane.iris.builtin.terrain.BedrockSettings;
 import art.arcane.iris.builtin.validate.ObjectLimit;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
@@ -35,8 +36,10 @@ import com.volmit.ModuleLog;
 import com.volmit.ModuleSetup;
 import com.volmit.block.BlockState;
 import com.volmit.object.ObjectBlock;
+import com.volmit.resource.ResourceId;
 import com.volmit.stage.PlacementStageContext;
 import com.volmit.geometry.BlockPosition;
+import com.volmit.world.PackWorld;
 
 import java.util.Optional;
 import java.util.Set;
@@ -84,7 +87,7 @@ public final class ValidateModule implements IrisModule {
         }
         int y = context.output(IrisStages.Anchor.HEIGHT).y();
         boolean sampled = placement.requestedY() < 0;
-        if (sampled && settings.carvingSupport().supportsSurface() && isOnBedrock(prepared, y)) {
+        if (sampled && settings.carvingSupport().supportsSurface() && isOnBedrock(context, prepared, y)) {
             warnImplausibleBedrockPlacement(placement, settings, y, context.log());
             context.reject("bedrock-anchor");
             return;
@@ -97,9 +100,12 @@ public final class ValidateModule implements IrisModule {
         }
     }
 
-    private static boolean isOnBedrock(PreparedPlacement prepared, int y) {
-        PlacementTerrain terrain = prepared.terrain();
-        return y <= BEDROCK_ROW && terrain.hasWorld() && terrain.hasBedrock();
+    private static boolean isOnBedrock(PlacementStageContext context, PreparedPlacement prepared, int y) {
+        return y <= BEDROCK_ROW && prepared.terrain().hasWorld() && hasBedrock(context.world());
+    }
+
+    private static boolean hasBedrock(PackWorld world) {
+        return world.settings().declared(BedrockSettings.class).dimension().map(BedrockSettings::bedrock).orElse(true);
     }
 
     private static boolean lacksSurfaceSupport(ObjectPlacement placement, PreparedPlacement prepared) {
@@ -158,7 +164,7 @@ public final class ValidateModule implements IrisModule {
             return false;
         }
         boolean painted = WorldVolume.isPainted(placement, prepared);
-        int worldY = y + terrain.minHeight();
+        int worldY = y + terrain.minWorldY();
         int envelopeMinY = painted ? Integer.MIN_VALUE : worldY - margin;
         int envelopeMaxY = painted ? Integer.MAX_VALUE : worldY + margin;
         if (!volumes.intersects(x - margin, envelopeMinY, z - margin, x + margin, envelopeMaxY, z + margin)) {
@@ -175,7 +181,7 @@ public final class ValidateModule implements IrisModule {
                     ? offset.y() + Math.floorDiv(placement.object().height(), 2)
                     + terrain.highest(blockX, blockZ, prepared.settings().underwater())
                     : y + offset.y();
-            int worldBlockY = blockY + terrain.minHeight();
+            int worldBlockY = blockY + terrain.minWorldY();
             if (volumes.containsWithin(blockX, worldBlockY, blockZ, prepared.warpMargin())) {
                 return true;
             }
@@ -212,11 +218,13 @@ public final class ValidateModule implements IrisModule {
     }
 
     private static boolean collidesWithForbiddenObject(PlacementTerrain terrain, PlacementSettings settings, WorldVolume volume) {
+        Set<ResourceId> forbidden = settings.forbiddenCollisions();
+        Set<ResourceId> allowed = settings.allowedCollisions();
         for (int x = volume.minX(); x <= volume.maxX(); x++) {
             for (int y = volume.minY(); y <= volume.maxY(); y++) {
                 for (int z = volume.minZ(); z <= volume.maxZ(); z++) {
-                    String key = terrain.objectKeyAt(x, y, z);
-                    if (key != null && settings.forbiddenCollisions().contains(key) && !settings.allowedCollisions().contains(key)) {
+                    Optional<ResourceId> placed = terrain.objectAt(x, y, z);
+                    if (placed.isPresent() && forbidden.contains(placed.get()) && !allowed.contains(placed.get())) {
                         return true;
                     }
                 }
@@ -226,7 +234,7 @@ public final class ValidateModule implements IrisModule {
     }
 
     private static void warnImplausibleBedrockPlacement(ObjectPlacement placement, PlacementSettings settings, int y, ModuleLog log) {
-        String key = placement.object().key();
+        String key = placement.object().id().map(ResourceId::toString).orElse(null);
         String fingerprint = (key == null ? "<null>" : key) + "|" + settings.mode();
         long now = System.currentTimeMillis();
         Long last = IMPLAUSIBLE_BEDROCK_WARNS.get(fingerprint);

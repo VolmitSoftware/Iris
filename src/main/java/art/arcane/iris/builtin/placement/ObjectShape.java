@@ -19,8 +19,10 @@
 package art.arcane.iris.builtin.placement;
 
 import art.arcane.volmlib.util.math.IrisBlockVector;
+import com.volmit.resource.ResourceId;
 
 import java.util.List;
+import java.util.Optional;
 
 /** The object being placed: its declared size, the block its offsets count from, and where it must stand on solid ground. */
 public interface ObjectShape {
@@ -37,8 +39,8 @@ public interface ObjectShape {
 
     int centerZ();
 
-    /** The pack's key of the object, or null for an object without one. */
-    String key();
+    /** The pack object this is; empty for an object the pack does not name, such as a procedural variant. */
+    Optional<ResourceId> id();
 
     /** The columns of the object's lowest solid layer, as offsets from its anchor before any transform; empty for the origin only. */
     List<IrisBlockVector> surfaceSupportOffsets();

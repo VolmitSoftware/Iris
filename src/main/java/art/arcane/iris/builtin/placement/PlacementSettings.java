@@ -27,9 +27,11 @@ import art.arcane.iris.builtin.prepare.SlopeClip;
 import art.arcane.iris.builtin.stilt.StiltSettings;
 import art.arcane.iris.builtin.vacuum.VacuumSettings;
 import art.arcane.iris.builtin.validate.ObjectLimit;
+import com.volmit.resource.ResourceId;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 /** The settings of one object placement, as the placement stages read them. */
 public interface PlacementSettings {
@@ -86,7 +88,9 @@ public interface PlacementSettings {
     /** The snow filter's depth, 0 for none. */
     double snow();
 
-    List<String> allowedCollisions();
+    /** The pack objects the placement may overlap even when {@link #forbiddenCollisions()} names them. */
+    Set<ResourceId> allowedCollisions();
 
-    List<String> forbiddenCollisions();
+    /** The pack objects the placement may not overlap. */
+    Set<ResourceId> forbiddenCollisions();
 }

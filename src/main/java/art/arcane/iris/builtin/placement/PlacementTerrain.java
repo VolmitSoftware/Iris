@@ -18,7 +18,9 @@
 
 package art.arcane.iris.builtin.placement;
 
-import com.volmit.block.BlockState;
+import com.volmit.resource.ResourceId;
+
+import java.util.Optional;
 
 /**
  * What a placement asks of the terrain and the world around it: heights, carving and water at a column, and the
@@ -53,20 +55,14 @@ public interface PlacementTerrain {
     /** The terrain height at a position between columns, as the dimension's height field gives it. */
     double heightAt(double x, double z);
 
-    /** Whether the dimension has a bedrock floor. */
-    boolean hasBedrock();
-
-    /** The real Y of the dimension's bottom. */
-    int minHeight();
+    /** The platform's Y of the dimension's bottom block. */
+    int minWorldY();
 
     /** The dimension's height in blocks. */
     int worldHeight();
 
-    /** The rock the dimension has at the column; air when it has none to say. */
-    BlockState rockAt(int x, int z);
-
     StructureVolumes structureVolumes(int minX, int minZ, int maxX, int maxZ);
 
-    /** The pack's key of the object placed at the block, or null when none was. */
-    String objectKeyAt(int x, int y, int z);
+    /** The pack object placed at the block; empty when none was. */
+    Optional<ResourceId> objectAt(int x, int y, int z);
 }

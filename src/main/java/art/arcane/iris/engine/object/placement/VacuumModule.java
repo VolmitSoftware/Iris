@@ -26,6 +26,7 @@ import art.arcane.iris.builtin.placement.PlacementTerrain;
 import art.arcane.iris.builtin.placement.PlaneNoise;
 import art.arcane.iris.builtin.prepare.PreparedPlacement;
 import art.arcane.iris.builtin.prepare.TransformedBounds;
+import art.arcane.iris.builtin.terrain.TerrainPalettes;
 import art.arcane.iris.builtin.vacuum.VacuumSettings;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
@@ -80,6 +81,7 @@ public final class VacuumModule implements IrisModule {
         private final PreparedPlacement prepared;
         private final PlacementTerrain terrain;
         private final PlacementWorld world;
+        private final PlacementStageContext context;
         private final int radius;
         private final int step;
         private final double falloff;
@@ -96,6 +98,7 @@ public final class VacuumModule implements IrisModule {
             this.prepared = prepared;
             this.terrain = prepared.terrain();
             this.world = new PlacementWorld(context.access(), prepared.traits());
+            this.context = context;
             VacuumSettings settings = prepared.settings().vacuum().orElse(null);
             this.radius = IrisObjectVacuum.resolveRadius(vacuum, settings);
             this.step = vacuum.columnStepBlocks();
@@ -158,8 +161,8 @@ public final class VacuumModule implements IrisModule {
         }
 
         private void raise(int x, int z, int fromY, int toY) {
-            BlockState fill = terrain.rockAt(x, z);
-            if (world.has(fill, BlockTrait.AIR)) {
+            BlockState fill = TerrainPalettes.of(context.world()).rockAt(x, z);
+            if (fill == null || world.has(fill, BlockTrait.AIR)) {
                 fill = STONE;
             }
             for (int y = fromY + 1; y <= toY; y++) {

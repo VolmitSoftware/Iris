@@ -203,8 +203,9 @@ public final class ModuleServices {
 
     /** What the first module that knows the marker {@code tag} says it does. */
     public static Optional<EntitySpawns.MarkerRule> markerRule(Engine engine, String tag) {
+        ResourceId id = engine.getData().getPackResources().idOf(tag);
         for (Provider<EntitySpawns> provider : providers(engine, EntitySpawns.class)) {
-            Optional<EntitySpawns.MarkerRule> rule = provider.service().marker(provider.world(), tag);
+            Optional<EntitySpawns.MarkerRule> rule = provider.service().marker(provider.world(), id);
             if (rule.isPresent()) {
                 return rule;
             }

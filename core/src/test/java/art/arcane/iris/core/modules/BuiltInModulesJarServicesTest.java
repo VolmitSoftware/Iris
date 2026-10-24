@@ -119,7 +119,7 @@ public class BuiltInModulesJarServicesTest {
             assertNotSame(BlockDropping.class, drops.getClass());
             BlockDrops.Result result = drops.drops(world, new BlockDrops.Broken(AT, new BlockState("minecraft:stone")));
             assertEquals(1, result.drops().size());
-            assertEquals("gravel", result.drops().getFirst().item());
+            assertEquals("minecraft:gravel", result.drops().getFirst().item().toString());
             assertEquals(2, result.drops().getFirst().amount());
             assertTrue(result.replacesVanillaDrops());
             assertEquals(BlockDrops.Result.NONE, drops.drops(world, new BlockDrops.Broken(AT, new BlockState("minecraft:dirt"))));

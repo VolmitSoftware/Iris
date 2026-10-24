@@ -54,7 +54,7 @@ final class MarkerSpawnScanner {
     }
 
     /** A spawner a marker names, and the marker. */
-    record MarkerSpawner(String marker, ResourceId spawner) {
+    record MarkerSpawner(ResourceId marker, ResourceId spawner) {
     }
 
     Map<IrisPosition, List<MarkerSpawner>> getSpawnersFromMarkers(Chunk c) {
@@ -82,7 +82,7 @@ final class MarkerSpawnScanner {
             }
 
             for (ResourceId spawner : rule.get().spawners()) {
-                addOnce(p.computeIfAbsent(pos, (k) -> new ArrayList<>()), new MarkerSpawner(t.getTag(), spawner));
+                addOnce(p.computeIfAbsent(pos, (k) -> new ArrayList<>()), new MarkerSpawner(markerId(t), spawner));
             }
         });
 
@@ -99,6 +99,10 @@ final class MarkerSpawnScanner {
             return Optional.empty();
         }
         return ModuleServices.markerRule(manager.getEngine(), marker.getTag());
+    }
+
+    private ResourceId markerId(MatterMarker marker) {
+        return manager.getEngine().getData().getPackResources().idOf(marker.getTag());
     }
 
     void forEachMarkerSpawner(Chunk c, BiConsumer<IrisPosition, List<MarkerSpawner>> consumer) {
@@ -180,7 +184,7 @@ final class MarkerSpawnScanner {
             data.requiresEmptyAbove = data.requiresEmptyAbove || rule.get().emptyAbove();
 
             for (ResourceId spawner : rule.get().spawners()) {
-                addOnce(data.spawners, new MarkerSpawner(t.getTag(), spawner));
+                addOnce(data.spawners, new MarkerSpawner(markerId(t), spawner));
             }
         });
 

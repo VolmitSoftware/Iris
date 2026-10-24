@@ -26,6 +26,7 @@ import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.EngineGeneration;
 import art.arcane.iris.engine.framework.SeedManager;
 import art.arcane.iris.builtin.spawn.EntityDefinition;
+import art.arcane.iris.builtin.spawn.IrisEntityExtras;
 import art.arcane.iris.builtin.spawn.SpawnMarker;
 import art.arcane.iris.builtin.spawn.Spawner;
 import art.arcane.iris.engine.object.TestSettings;
@@ -34,6 +35,8 @@ import art.arcane.iris.engine.object.world.IrisWorld;
 import art.arcane.iris.spi.PlatformWorld;
 import com.volmit.entity.EntitySpec;
 import com.volmit.item.ItemRegistry;
+import com.volmit.resource.ContentKey;
+import com.volmit.resource.ResourceId;
 import com.volmit.service.EntitySpawns;
 import com.volmit.geometry.BlockPosition;
 import com.volmit.world.PackWorld;
@@ -101,7 +104,7 @@ public class EntitySpawningTest {
         fixture.resource(SpawnResources.MARKERS, "camp", marker);
         fixture.resource(SpawnResources.SPAWNERS, "zombies", new Spawner());
 
-        EntitySpawns.MarkerRule rule = new EntitySpawning().marker(world, "camp").orElseThrow();
+        EntitySpawns.MarkerRule rule = new EntitySpawning().marker(world, world.resources().idOf("camp")).orElseThrow();
 
         assertEquals("a spawner the pack lacks is left out", List.of(world.resources().idOf("zombies")), rule.spawners());
         assertTrue(rule.emptyAbove());
@@ -110,8 +113,8 @@ public class EntitySpawningTest {
 
     @Test
     public void markersNoModuleKnowsAndTheCaveMarkersMeanNothing() {
-        assertTrue(new EntitySpawning().marker(world, "unknown").isEmpty());
-        assertTrue(new EntitySpawning().marker(world, "cave_floor").isEmpty());
+        assertTrue(new EntitySpawning().marker(world, world.resources().idOf("unknown")).isEmpty());
+        assertTrue(new EntitySpawning().marker(world, world.resources().idOf("cave_floor")).isEmpty());
     }
 
     @Test
@@ -123,7 +126,7 @@ public class EntitySpawningTest {
         when(engine.getMinHeight()).thenReturn(-64);
 
         EntitySpawns.Plan plan = new EntitySpawning()
-                .plan(world, new EntitySpawns.Marker(MARKER_BLOCK, "camp", world.resources().idOf("camp/zombies"), false))
+                .plan(world, new EntitySpawns.Marker(MARKER_BLOCK, world.resources().idOf("camp"), world.resources().idOf("camp/zombies"), false))
                 .orElseThrow();
 
         assertEquals(world.resources().idOf("camp/zombies"), plan.spawner());
@@ -132,7 +135,7 @@ public class EntitySpawningTest {
         for (EntitySpawns.Attempt attempt : plan.attempts()) {
             assertEquals(new BlockPosition(40, 71, -12), attempt.at());
             assertFalse(attempt.checkSurface());
-            assertEquals(Optional.of("minecraft:zombie"), attempt.entity().type());
+            assertEquals(vanilla("zombie"), attempt.entity().type());
         }
     }
 
@@ -140,7 +143,7 @@ public class EntitySpawningTest {
     public void aSpawnerThatCannotFireOrHasNoEntitiesPlansNothing() {
         fixture.resource(SpawnResources.SPAWNERS, "empty", new Spawner());
 
-        Optional<EntitySpawns.Plan> plan = new EntitySpawning().plan(world, new EntitySpawns.Marker(MARKER_BLOCK, "camp", world.resources().idOf("empty"), false));
+        Optional<EntitySpawns.Plan> plan = new EntitySpawning().plan(world, new EntitySpawns.Marker(MARKER_BLOCK, world.resources().idOf("camp"), world.resources().idOf("empty"), false));
 
         assertTrue(plan.isEmpty());
     }
@@ -152,9 +155,31 @@ public class EntitySpawningTest {
 
         EntitySpec spec = new EntitySpawning().entity(world, world.resources().idOf("cow")).orElseThrow();
 
-        assertEquals(Optional.of("minecraft:cow"), spec.type());
-        assertEquals(Optional.of("&6Bessie"), spec.customName());
-        assertTrue(spec.flags().baby());
+        assertEquals(vanilla("cow"), spec.type());
+        assertEquals(Optional.of("&6Bessie"), spec.appearance().customName());
+        assertTrue(spec.appearance().baby());
         assertTrue(new EntitySpawning().entity(world, world.resources().idOf("nothing")).isEmpty());
+    }
+
+    @Test
+    public void aMobOfAnotherProviderIsProvidedByNameWithItsIrisExtras() {
+        fixture.resource(SpawnResources.ENTITIES, "king", TestSettings.of(EntityDefinition.class,
+                "{\"type\": \"minecraft:zombie\", \"specialType\": \"MythicMobs:Skeleton King\", \"reason\": \"CUSTOM\"}"));
+
+        EntitySpec spec = new EntitySpawning().entity(world, world.resources().idOf("king")).orElseThrow();
+
+        assertEquals(new ContentKey.Provided("MythicMobs", "Skeleton King"), spec.type());
+        assertEquals(Optional.of("CUSTOM"), spec.extension(IrisEntityExtras.class).orElseThrow().reason());
+    }
+
+    @Test
+    public void anEntityWithoutAValidTypeIsNotSpawned() {
+        fixture.resource(SpawnResources.ENTITIES, "broken", TestSettings.of(EntityDefinition.class, "{\"type\": \"not a key!\"}"));
+
+        assertTrue(new EntitySpawning().entity(world, world.resources().idOf("broken")).isEmpty());
+    }
+
+    private static ContentKey vanilla(String name) {
+        return new ContentKey.Registered(ResourceId.parse("minecraft:" + name));
     }
 }

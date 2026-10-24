@@ -18,6 +18,7 @@ import art.arcane.iris.engine.object.world.region.IrisRegion;
 import com.volmit.config.Desc;
 import com.volmit.config.MaxNumber;
 import art.arcane.volmlib.util.math.RNG;
+import com.volmit.host.ModuleLogs;
 import com.volmit.item.ItemRegistry;
 import com.volmit.world.PackWorld;
 import org.junit.Test;
@@ -252,7 +253,7 @@ public class LootResolverTest {
     public void emptyLootTableReturnsNoItems() {
         LootTable table = TestSettings.of(LootTable.class, "{\"name\": \"empty\"}");
 
-        assertTrue(new LootItems(mock(ItemRegistry.class), false).draw("empty", table, 7L, 0, 64, 0).isEmpty());
+        assertTrue(new LootItems(mock(ItemRegistry.class), false, ModuleLogs.discarding()).draw("empty", table, 7L, 0, 64, 0).isEmpty());
     }
 
     @Test

@@ -23,8 +23,11 @@ import art.arcane.iris.builtin.spawn.EntityDefinition;
 import art.arcane.iris.builtin.LiveWorld.Sky;
 import art.arcane.volmlib.util.math.RNG;
 import com.google.gson.Gson;
+import com.volmit.ModuleLog;
 import com.volmit.entity.EntitySpec;
+import com.volmit.host.ModuleLogs;
 import com.volmit.item.ItemRegistry;
+import com.volmit.resource.ContentKey;
 import com.volmit.resource.PackResources;
 import com.volmit.resource.ResourceId;
 import org.junit.Test;
@@ -33,6 +36,7 @@ import java.util.Optional;
 import java.util.OptionalInt;
 
 import static org.junit.Assert.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -42,6 +46,8 @@ import static org.mockito.Mockito.when;
  * classes became settings of the spawn module; a change in it changes the equipment, attributes and passengers worlds spawn.
  * It was retaken once when absent values became {@code Optional}s and loot tables ids: the spec printed the old way (empty
  * texts as {@code ""}, other absent values as {@code null}, tables by key) still hashed to the old number, -819231818.
+ * It was retaken again when the spec was grouped, its keys became ids and content keys and the Iris-only knobs an
+ * extension: the spec printed the old way (flat fields, keys as written, operations by Bukkit name) still hashed to 1441930785.
  */
 public class EntityResolutionPinTest {
     private static final long STREAM_SEED = 4321L;
@@ -65,17 +71,23 @@ public class EntityResolutionPinTest {
     @Test
     public void anEntityResolvesToThePinnedSpec() {
         ItemRegistry registry = mock(ItemRegistry.class);
-        when(registry.maxDurability(anyString())).thenReturn(OptionalInt.of(0));
-        when(registry.maxDurability("iron_helmet")).thenReturn(OptionalInt.of(165));
-        when(registry.maxDurability("diamond_sword")).thenReturn(OptionalInt.of(1561));
+        when(registry.maxDurability(any(ContentKey.class))).thenReturn(OptionalInt.of(0));
+        when(registry.maxDurability(platformItem("iron_helmet"))).thenReturn(OptionalInt.of(165));
+        when(registry.maxDurability(platformItem("diamond_sword"))).thenReturn(OptionalInt.of(1561));
         Optional<Sky> sky = Optional.of(new Sky(0L, false, false));
         EntityDefinition entity = new Gson().fromJson(ENTITY, EntityDefinition.class);
 
         PackResources resources = mock(PackResources.class);
         when(resources.idOf(anyString())).thenAnswer(invocation -> new ResourceId("test", invocation.getArgument(0)));
 
-        EntitySpec spec = new EntityResolution(resources, new LootItems(registry, false), sky, new EffectTimers()).resolve(entity, new RNG(STREAM_SEED));
+        ModuleLog log = ModuleLogs.discarding();
+        EntitySpec spec = new EntityResolution(resources, new LootItems(registry, false, log), sky, new EffectTimers(), log)
+                .resolve(entity, new RNG(STREAM_SEED)).orElseThrow();
 
-        assertEquals(1441930785, spec.toString().hashCode());
+        assertEquals(-847596166, spec.toString().hashCode());
+    }
+
+    private static ContentKey platformItem(String name) {
+        return new ContentKey.Registered(ResourceId.ofPlatformKey(name));
     }
 }

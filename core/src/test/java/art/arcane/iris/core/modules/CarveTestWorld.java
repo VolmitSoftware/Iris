@@ -160,12 +160,13 @@ public final class CarveTestWorld implements PackWorld {
         IrisData pack = mock(IrisData.class);
         ResourceLoader<IrisBlockData> blocks = mock(ResourceLoader.class);
         when(pack.getBlockLoader()).thenReturn(blocks);
+        when(pack.getDataFolder()).thenReturn(new java.io.File(NAMESPACE));
         return pack;
     }
 
     private final class Resources implements PackResources {
         private final UUID snapshot = UUID.randomUUID();
-        private final NoiseFactory noise = new IrisNoiseFactory(data);
+        private final NoiseFactory noise = new IrisNoiseFactory(data, new IrisPackResources(data, java.util.List::of));
 
         @Override
         public ResourceId packId() {

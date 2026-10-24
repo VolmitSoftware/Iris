@@ -60,6 +60,11 @@ final class ModuleSchemaRenderer {
         void complete(JSONObject property, ResourceId kind);
     }
 
+    /** Points an option's string values at the completion list an Iris-extension annotation on its field names, if any. */
+    interface ExtensionCompletions {
+        void complete(JSONObject property, String typeName, String optionName);
+    }
+
     /** The definition key of Iris's own description of one of its classes, built the first time it is asked for. */
     interface HostDefinitions {
         String definition(String typeName);
@@ -69,6 +74,7 @@ final class ModuleSchemaRenderer {
     private final Map<String, JSONObject> definitions;
     private final ReferenceCompletions references;
     private final ResourceCompletions resources;
+    private final ExtensionCompletions extensions;
     private final HostDefinitions hostDefinitions;
     private final Function<String, Optional<String>> sameJsonHostTypes;
     private final Function<String, List<String>> snippetFiles;
@@ -78,12 +84,13 @@ final class ModuleSchemaRenderer {
      * @param snippetFiles lists the snippet references a pack has for a snippet folder, such as {@code snippet/thick}
      */
     ModuleSchemaRenderer(PackSchema schema, Map<String, JSONObject> definitions, ReferenceCompletions references,
-                         ResourceCompletions resources, HostDefinitions hostDefinitions,
+                         ResourceCompletions resources, ExtensionCompletions extensions, HostDefinitions hostDefinitions,
                          Function<String, Optional<String>> sameJsonHostTypes, Function<String, List<String>> snippetFiles) {
         this.schema = schema;
         this.definitions = definitions;
         this.references = references;
         this.resources = resources;
+        this.extensions = extensions;
         this.hostDefinitions = hostDefinitions;
         this.sameJsonHostTypes = sameJsonHostTypes;
         this.snippetFiles = snippetFiles;
@@ -166,7 +173,9 @@ final class ModuleSchemaRenderer {
         JSONObject properties = new JSONObject();
         JSONArray required = new JSONArray();
         for (SchemaOption option : type.options()) {
-            properties.put(option.name(), optionSchema(option));
+            JSONObject property = optionSchema(option);
+            extensions.complete(stringValuesOf(property), type.name(), option.name());
+            properties.put(option.name(), property);
             if (option.required()) {
                 required.put(option.name());
             }
@@ -176,6 +185,11 @@ final class ModuleSchemaRenderer {
             object.put("required", required);
         }
         return object;
+    }
+
+    /** The schema of the strings an option holds: its items for a list, itself otherwise. */
+    private static JSONObject stringValuesOf(JSONObject property) {
+        return property.has("items") ? property.getJSONObject("items") : property;
     }
 
     private JSONObject optionSchema(SchemaOption option) {

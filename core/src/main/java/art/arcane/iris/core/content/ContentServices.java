@@ -18,6 +18,7 @@
 
 package art.arcane.iris.core.content;
 
+import art.arcane.iris.builtin.spawn.IrisEntityExtras;
 import art.arcane.iris.core.modules.IrisPackResources;
 import art.arcane.iris.core.modules.ModuleServices;
 import art.arcane.iris.core.modules.PlatformBlockStates;
@@ -27,6 +28,7 @@ import com.volmit.entity.EntitySpec;
 import com.volmit.item.ItemAttribute;
 import com.volmit.item.ItemDrop;
 import com.volmit.item.ItemEnchantment;
+import com.volmit.resource.ContentKey;
 import com.volmit.resource.ResourceId;
 import com.volmit.service.AmbientEffects;
 import com.volmit.service.BlockDrops;
@@ -44,6 +46,8 @@ import java.util.Optional;
  * fill containers, drop blocks, spawn mobs and play effects themselves, ask here instead of reading the pack's classes.
  */
 public final class ContentServices {
+    private static final String LEATHER_COLOR_FORMAT = "#%06x";
+
     private ContentServices() {
     }
 
@@ -61,7 +65,7 @@ public final class ContentServices {
         for (Loot.Source source : ModuleServices.lootTables(engine, site)) {
             switch (source) {
                 case Loot.Table table -> parts.add(new ContentLoot.Items(tableItems(engine, x, worldY, z, table.id())));
-                case Loot.PlatformTable table -> parts.add(new ContentLoot.PlatformTable(table.key(), table.seed()));
+                case Loot.PlatformTable table -> parts.add(new ContentLoot.PlatformTable(table.table().toString(), table.seed()));
             }
         }
         return parts;
@@ -91,8 +95,8 @@ public final class ContentServices {
 
     /** What the first module that knows the spawner plans at the marker block. */
     public static Optional<ContentSpawns.Plan> planMarkerSpawn(Engine engine, int x, int worldY, int z, String marker, String spawner, boolean initial) {
-        ResourceId spawnerId = engine.getData().getPackResources().idOf(spawner);
-        return planned(engine, new EntitySpawns.Marker(position(engine, x, worldY, z), marker, spawnerId, initial));
+        IrisPackResources resources = engine.getData().getPackResources();
+        return planned(engine, new EntitySpawns.Marker(position(engine, x, worldY, z), resources.idOf(marker), resources.idOf(spawner), initial));
     }
 
     /** What the marker with the tag {@code tag} does; empty for a tag no module knows. */
@@ -131,21 +135,24 @@ public final class ContentServices {
         return new BlockPosition(x, worldY - engine.getMinHeight(), z);
     }
 
+    /** The adapters' item names everything by text: keys as written by their ids, the leather colour as {@code #rrggbb}. */
     private static ContentItem itemOf(ItemDrop drop) {
-        return new ContentItem(drop.item(), drop.amount(), drop.displayName().orElse(null), drop.lore(),
+        ItemDrop.Look look = drop.look();
+        return new ContentItem(drop.item().toString(), drop.amount(), look.displayName().orElse(null), look.lore(),
                 drop.enchantments().stream().map(ContentServices::enchantmentOf).toList(),
-                drop.attributes().stream().map(ContentServices::attributeOf).toList(), drop.unbreakable(), drop.flags(),
-                drop.customModel().isPresent() ? drop.customModel().getAsInt() : null,
-                drop.damage().isPresent() ? drop.damage().getAsDouble() : null,
-                drop.leatherColor().orElse(null), drop.dyeColor().orElse(null), drop.customNbt());
+                drop.attributes().stream().map(ContentServices::attributeOf).toList(), drop.wear().unbreakable(), drop.extras().flags(),
+                look.customModel().isPresent() ? look.customModel().getAsInt() : null,
+                drop.wear().damage().isPresent() ? drop.wear().damage().getAsDouble() : null,
+                look.leatherColor().isPresent() ? String.format(LEATHER_COLOR_FORMAT, look.leatherColor().getAsInt()) : null,
+                look.dyeColor().map(Enum::name).orElse(null), drop.extras().customNbt());
     }
 
     private static ContentItem.Enchantment enchantmentOf(ItemEnchantment enchantment) {
-        return new ContentItem.Enchantment(enchantment.key(), enchantment.level());
+        return new ContentItem.Enchantment(enchantment.key().toString(), enchantment.level());
     }
 
     private static ContentItem.Attribute attributeOf(ItemAttribute attribute) {
-        return new ContentItem.Attribute(attribute.attribute(), attribute.name(), attribute.operation(), attribute.amount());
+        return new ContentItem.Attribute(attribute.attribute().toString(), attribute.name(), attribute.operation().name(), attribute.amount());
     }
 
     /**
@@ -154,19 +161,26 @@ public final class ContentServices {
      * {@link #tableItems} for them again.
      */
     private static ContentEntity entityOf(EntitySpec spec) {
-        return new ContentEntity(spec.type().orElse(""), spec.specialType().orElse(""), spec.reason().orElse(null),
-                spec.customName().orElse(""), flagsOf(spec.flags()),
-                equipmentOf(spec.equipment()), spec.passengers().stream().map(ContentServices::entityOf).toList(),
+        IrisEntityExtras extras = spec.extension(IrisEntityExtras.class).orElse(IrisEntityExtras.NONE);
+        String type = spec.type() instanceof ContentKey.Registered registered ? registered.id().toString() : "";
+        String provided = spec.type() instanceof ContentKey.Provided mob ? mob.toString() : "";
+        return new ContentEntity(type, provided, extras.reason().orElse(null),
+                spec.appearance().customName().orElse(""), flagsOf(spec),
+                equipmentOf(spec.equipment()), spec.company().passengers().stream().map(ContentServices::entityOf).toList(),
                 spec.attributes().stream().map(ContentServices::attributeOf).toList(),
-                spec.lootTables().stream().map(ResourceId::path).toList(), spec.lootShuffleSeed(),
-                spec.leashHolder().map(ContentServices::entityOf).orElse(null), spec.spawnEffect().map(ContentServices::spawnEffectOf).orElse(null),
-                spec.riseOutOfGround(), spec.pandaMainGene().orElse(null), spec.pandaHiddenGene().orElse(null), spec.applySettingsToSpecial(),
-                spec.commands().stream().map(ContentServices::commandOf).toList());
+                spec.drops().lootTables().stream().map(ResourceId::path).toList(), spec.drops().shuffleSeed(),
+                spec.company().leashHolder().map(ContentServices::entityOf).orElse(null),
+                spec.arrival().effect().map(ContentServices::spawnEffectOf).orElse(null),
+                extras.riseOutOfGround(), extras.pandaMainGene().orElse(null), extras.pandaHiddenGene().orElse(null),
+                extras.applySettingsToProvidedMob(), spec.arrival().commands().stream().map(ContentServices::commandOf).toList());
     }
 
-    private static ContentEntity.Flags flagsOf(EntitySpec.Flags flags) {
-        return new ContentEntity.Flags(flags.customNameVisible(), flags.aware(), flags.ai(), flags.glowing(), flags.gravity(),
-                flags.invulnerable(), flags.silent(), flags.pickupItems(), flags.removable(), flags.keepEntity(), flags.baby());
+    private static ContentEntity.Flags flagsOf(EntitySpec spec) {
+        EntitySpec.Appearance appearance = spec.appearance();
+        EntitySpec.Behaviour behaviour = spec.behaviour();
+        return new ContentEntity.Flags(appearance.nameVisible(), behaviour.aware(), behaviour.ai(), appearance.glowing(), behaviour.gravity(),
+                behaviour.invulnerable(), behaviour.silent(), behaviour.pickupItems(), behaviour.removable(), behaviour.keepEntity(),
+                appearance.baby());
     }
 
     private static ContentEntity.Equipment equipmentOf(EntitySpec.Equipment equipment) {
@@ -179,10 +193,19 @@ public final class ContentServices {
         return drop.map(ContentServices::itemOf).orElse(null);
     }
 
+    /** The adapters' spawn effect holds both parts in one record; a part that is absent has no key and zeros. */
     private static ContentEntity.SpawnEffect spawnEffectOf(EntitySpec.SpawnEffect effect) {
-        return new ContentEntity.SpawnEffect(effect.sound().orElse(null), effect.soundDistance(), effect.minPitch(), effect.maxPitch(),
-                effect.volume(), effect.particle().orElse(null), effect.particleOffset(), effect.particleCount(), effect.altX(), effect.altY(),
-                effect.altZ(), effect.randomAltX(), effect.randomAltY(), effect.randomAltZ(), effect.extra());
+        Optional<EntitySpec.SpawnEffect.Sound> sound = effect.sound();
+        Optional<EntitySpec.SpawnEffect.Burst> burst = effect.particles();
+        Optional<EntitySpec.SpawnEffect.Motion> motion = burst.map(EntitySpec.SpawnEffect.Burst::motion);
+        return new ContentEntity.SpawnEffect(sound.map(present -> present.key().toString()).orElse(null),
+                sound.map(EntitySpec.SpawnEffect.Sound::distance).orElse(0), sound.map(EntitySpec.SpawnEffect.Sound::minPitch).orElse(0D),
+                sound.map(EntitySpec.SpawnEffect.Sound::maxPitch).orElse(0D), sound.map(EntitySpec.SpawnEffect.Sound::volume).orElse(0D),
+                burst.map(present -> present.key().toString()).orElse(null), burst.map(EntitySpec.SpawnEffect.Burst::offset).orElse(0),
+                burst.map(EntitySpec.SpawnEffect.Burst::count).orElse(0), motion.map(EntitySpec.SpawnEffect.Motion::x).orElse(0D),
+                motion.map(EntitySpec.SpawnEffect.Motion::y).orElse(0D), motion.map(EntitySpec.SpawnEffect.Motion::z).orElse(0D),
+                motion.map(EntitySpec.SpawnEffect.Motion::randomX).orElse(false), motion.map(EntitySpec.SpawnEffect.Motion::randomY).orElse(false),
+                motion.map(EntitySpec.SpawnEffect.Motion::randomZ).orElse(false), burst.map(EntitySpec.SpawnEffect.Burst::extra).orElse(0D));
     }
 
     private static ContentEntity.Command commandOf(EntitySpec.Command command) {
@@ -194,17 +217,18 @@ public final class ContentServices {
                 effect.particles().map(ContentServices::particlesOf).orElse(null),
                 effect.commands().stream().map(command -> new ContentEffect.Command(commandOf(command.command()),
                         command.offsetX(), command.offsetY(), command.offsetZ())).toList(),
-                effect.potion().map(potion -> new ContentEffect.Potion(potion.key(), potion.strength(), potion.ticks())).orElse(null));
+                effect.potion().map(potion -> new ContentEffect.Potion(potion.key().toString(), potion.strength(), potion.ticks())).orElse(null));
     }
 
     private static ContentEffect.Sound soundOf(AmbientEffects.Sound sound) {
-        return new ContentEffect.Sound(sound.key(), sound.offsetX(), sound.offsetY(), sound.offsetZ(),
+        return new ContentEffect.Sound(sound.key().toString(), sound.offsetX(), sound.offsetY(), sound.offsetZ(),
                 sound.volume(), sound.pitch());
     }
 
     private static ContentEffect.Particles particlesOf(AmbientEffects.Particles particles) {
-        return new ContentEffect.Particles(particles.key(), particles.forward(), particles.sideways(),
-                particles.jitterX(), particles.jitterZ(), particles.lift(), particles.count(), particles.altX(), particles.altY(),
-                particles.altZ(), particles.extra());
+        AmbientEffects.Spot spot = particles.spot();
+        AmbientEffects.Spread spread = particles.spread();
+        return new ContentEffect.Particles(particles.key().toString(), spot.forward(), spot.sideways(),
+                spot.jitterX(), spot.jitterZ(), spot.lift(), particles.count(), spread.x(), spread.y(), spread.z(), particles.extra());
     }
 }

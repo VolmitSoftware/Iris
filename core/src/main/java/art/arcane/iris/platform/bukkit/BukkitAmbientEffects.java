@@ -24,6 +24,7 @@ import art.arcane.iris.util.common.data.registry.RegistryUtil;
 import art.arcane.iris.util.common.scheduling.ConsoleCommands;
 import art.arcane.iris.util.common.scheduling.J;
 import com.volmit.entity.EntitySpec;
+import com.volmit.resource.ResourceId;
 import com.volmit.service.AmbientEffects;
 import org.bukkit.Location;
 import org.bukkit.NamespacedKey;
@@ -74,21 +75,23 @@ public final class BukkitAmbientEffects {
         if (type == null) {
             return;
         }
+        AmbientEffects.Spot where = particles.spot();
+        AmbientEffects.Spread spread = particles.spread();
         Location location = player.getLocation();
         Vector direction = location.getDirection();
         Location spot = location.clone()
-                .add(direction.clone().multiply(particles.forward()))
-                .add(direction.clone().rotateAroundY(QUARTER_TURN_RADIANS).multiply(particles.sideways()));
+                .add(direction.clone().multiply(where.forward()))
+                .add(direction.clone().rotateAroundY(QUARTER_TURN_RADIANS).multiply(where.sideways()));
         spot.setY(Math.round(engine.getHeight(spot.getBlockX(), spot.getBlockZ())) + ABOVE_SURFACE_BLOCKS);
-        spot.add(particles.jitterX(), 0, particles.jitterZ());
+        spot.add(where.jitterX(), 0, where.jitterZ());
         double x = spot.getX();
-        double y = spot.getY() + player.getWorld().getMinHeight() + particles.lift();
+        double y = spot.getY() + player.getWorld().getMinHeight() + where.lift();
         double z = spot.getZ();
         if (particles.extra() != 0) {
-            player.spawnParticle(type, x, y, z, particles.count(), particles.altX(), particles.altY(), particles.altZ(), particles.extra());
+            player.spawnParticle(type, x, y, z, particles.count(), spread.x(), spread.y(), spread.z(), particles.extra());
             return;
         }
-        player.spawnParticle(type, x, y, z, particles.count(), particles.altX(), particles.altY(), particles.altZ());
+        player.spawnParticle(type, x, y, z, particles.count(), spread.x(), spread.y(), spread.z());
     }
 
     private static void runCommand(Player player, AmbientEffects.Command command) {
@@ -110,12 +113,9 @@ public final class BukkitAmbientEffects {
         player.addPotionEffect(new PotionEffect(type, potion.ticks(), potion.strength(), true, false, false));
     }
 
-    /** The potion effect type a pack names, or luck for a name the platform does not know, with a warning once. */
-    private static PotionEffectType potionType(String name) {
-        if (name == null || name.isEmpty()) {
-            return PotionEffectType.LUCK;
-        }
-
+    /** The potion effect type a pack names, also by its legacy names, or luck for one the platform does not know, with a warning once. */
+    private static PotionEffectType potionType(ResourceId key) {
+        String name = key.toString();
         try {
             PotionEffectType resolved = PotionEffectTypes.resolve(name);
             if (resolved != null) {
@@ -131,8 +131,7 @@ public final class BukkitAmbientEffects {
         return PotionEffectType.LUCK;
     }
 
-    private static <T> T lookup(Class<T> type, String key) {
-        NamespacedKey namespacedKey = NamespacedKey.fromString(key);
-        return namespacedKey == null ? null : RegistryUtil.lookup(type).get(namespacedKey);
+    private static <T> T lookup(Class<T> type, ResourceId key) {
+        return RegistryUtil.lookup(type).get(new NamespacedKey(key.namespace(), key.path()));
     }
 }

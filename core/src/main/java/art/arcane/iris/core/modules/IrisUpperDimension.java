@@ -49,8 +49,8 @@ final class IrisUpperDimension implements UpperDimension {
     }
 
     @Override
-    public String key() {
-        return upper.getDimension().getLoadKey();
+    public ResourceId id() {
+        return resources.idOf(upper.getDimension().getLoadKey());
     }
 
     @Override

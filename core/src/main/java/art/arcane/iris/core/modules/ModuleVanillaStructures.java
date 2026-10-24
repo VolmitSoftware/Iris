@@ -66,6 +66,8 @@ import java.util.function.Function;
 public final class ModuleVanillaStructures {
     private static final Map<Engine, ModuleVanillaStructures> WORLDS = Collections.synchronizedMap(new WeakHashMap<>());
     private static final int START_TERRAIN_REACH_BLOCKS = 8;
+    /** How the native structure factory hears that the start connector constraint is removed. */
+    private static final String NO_START_JIGSAW = "NONE";
 
     private final PackResources snapshot;
     private final List<ServiceRegistration> providers;
@@ -223,8 +225,8 @@ public final class ModuleVanillaStructures {
 
     private static NativeJigsawOverrides jigsaw(JigsawOverrides overrides) {
         return new NativeJigsawOverrides(
-                overrides.startPool(),
-                overrides.startJigsawName(),
+                overrides.startPool().map(ResourceId::toString).orElse(""),
+                overrides.removesStartJigsaw() ? NO_START_JIGSAW : overrides.startJigsawName().map(ResourceId::toString).orElse(""),
                 boxed(overrides.maxDepth()),
                 boxed(overrides.maxDistanceHorizontal()),
                 boxed(overrides.maxDistanceVertical()),

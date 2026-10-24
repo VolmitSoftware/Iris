@@ -63,6 +63,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class ModdedItemTranslator {
     private static final Set<String> WARNED = ConcurrentHashMap.newKeySet();
     private static final String COLOR_CODES = "0123456789AaBbCcDdEeFfKkLlMmNnOoRrXx";
+    private static final String VANILLA_NAMESPACE = "minecraft:";
 
     private ModdedItemTranslator() {
     }
@@ -224,11 +225,12 @@ public final class ModdedItemTranslator {
         if (direct != null) {
             return direct;
         }
-        if (value.startsWith("generic_")) {
-            return lookupAttribute(registry, Identifier.tryParse("minecraft:" + value.substring("generic_".length())));
+        String path = value.startsWith(VANILLA_NAMESPACE) ? value.substring(VANILLA_NAMESPACE.length()) : value;
+        if (path.startsWith("generic_")) {
+            return lookupAttribute(registry, Identifier.tryParse(VANILLA_NAMESPACE + path.substring("generic_".length())));
         }
-        if (value.startsWith("generic.")) {
-            return lookupAttribute(registry, Identifier.tryParse("minecraft:" + value.substring("generic.".length())));
+        if (path.startsWith("generic.")) {
+            return lookupAttribute(registry, Identifier.tryParse(VANILLA_NAMESPACE + path.substring("generic.".length())));
         }
         return null;
     }

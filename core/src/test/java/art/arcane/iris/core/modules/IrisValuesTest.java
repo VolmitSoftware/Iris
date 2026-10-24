@@ -67,7 +67,7 @@ public class IrisValuesTest {
     @Test
     public void blockSpecsResolveThroughThePlatformWithTheirProperties() {
         UsableBlockPlatform.bind();
-        IrisBlockRegistry blocks = new IrisBlockRegistry(packWithoutCustomBlocks());
+        IrisBlockRegistry blocks = blocksOf(packWithoutCustomBlocks());
 
         assertEquals(BlockState.parse("minecraft:iron_ore"), blocks.resolve(BlockSpec.of("iron_ore")));
         assertEquals(BlockState.parse("minecraft:oak_log[axis=y]"), blocks.resolve(BlockSpec.of("minecraft:oak_log").withProperty("axis", "y")));
@@ -84,7 +84,7 @@ public class IrisValuesTest {
         bind(registries);
         IrisData data = packWithoutCustomBlocks();
         when(data.getBlockLoader().load("glowing_stone", false)).thenReturn(new IrisBlockData("minecraft:stone").setData(new KMap<String, Object>().qput("lit", true)));
-        IrisBlockRegistry blocks = new IrisBlockRegistry(data);
+        IrisBlockRegistry blocks = blocksOf(data);
 
         assertEquals(BlockState.parse("minecraft:stone[lit=true]"), blocks.resolve(BlockSpec.of("glowing_stone")));
         assertEquals(BlockState.parse("minecraft:cobblestone"), blocks.resolve(BlockSpec.of("mod:missing").withBackup(BlockSpec.of("cobblestone"))));
@@ -95,7 +95,7 @@ public class IrisValuesTest {
         UsableBlockPlatform.bind();
         TileData.TileFactory previous = TileData.bindPlatformFactory((state, properties) -> new TileData(state.key(), properties));
         try {
-            IrisBlockRegistry blocks = new IrisBlockRegistry(packWithoutCustomBlocks());
+            IrisBlockRegistry blocks = blocksOf(packWithoutCustomBlocks());
             BlockSpec spawner = BlockSpec.of("spawner").withTileData(Map.of("Delay", 20.0));
 
             assertEquals(Optional.empty(), blocks.blockEntity(BlockSpec.of("stone")));
@@ -105,7 +105,7 @@ public class IrisValuesTest {
             PlatformRegistries registries = mock(PlatformRegistries.class);
             when(registries.block(anyString())).thenReturn(withEntity);
             bind(registries);
-            BlockEntityData entity = new IrisBlockRegistry(packWithoutCustomBlocks()).blockEntity(BlockSpec.of("chest").withTileData(Map.of("Lock", "key")))
+            BlockEntityData entity = blocksOf(packWithoutCustomBlocks()).blockEntity(BlockSpec.of("chest").withTileData(Map.of("Lock", "key")))
                     .orElseThrow();
             assertEquals(BlockEntities.TILE_FORMAT, entity.format());
         } finally {
@@ -120,7 +120,7 @@ public class IrisValuesTest {
         IrisData data = packWithoutCustomBlocks();
         NoiseStyle style = new Gson().fromJson(json, NoiseStyle.class);
         CNG iris = new Gson().fromJson(json, IrisGeneratorStyle.class).create(new RNG(1337), data);
-        NoiseSampler sampler = new IrisNoiseFactory(data).sampler(style, 1337);
+        NoiseSampler sampler = noiseOf(data).sampler(style, 1337);
 
         for (double[] column : COLUMNS) {
             assertEquals(iris.noise(column[0], column[1]), sampler.sample(column[0], column[1]), 0);
@@ -133,7 +133,7 @@ public class IrisValuesTest {
         String json = "{\"style\": \"SIMPLEX\", \"zoom\": 4, \"exponent\": 1.5, \"fracture\": {\"style\": \"PERLIN\", \"zoom\": 2, \"multiplier\": 3}}";
         IrisData data = packWithoutCustomBlocks();
         CNG iris = new Gson().fromJson(json, IrisGeneratorStyle.class).create(new RNG(1337), data);
-        NoiseSampler sampler = new IrisNoiseFactory(data).sampler(new Gson().fromJson(json, NoiseStyle.class), 1337);
+        NoiseSampler sampler = noiseOf(data).sampler(new Gson().fromJson(json, NoiseStyle.class), 1337);
 
         for (double[] column : COLUMNS) {
             assertEquals(iris.noiseFastSigned2D(column[0], column[1]), sampler.signed(column[0], column[1]), 0);
@@ -148,7 +148,7 @@ public class IrisValuesTest {
         IrisData data = packWithoutCustomBlocks();
         double scale = 1.5D;
         CNG baked = new Gson().fromJson(json, IrisGeneratorStyle.class).createNoCache(new RNG(4242), data).bake().scale(scale).bake();
-        NoiseSampler plain = new IrisNoiseFactory(data).sampler(new Gson().fromJson(json, NoiseStyle.class), 4242);
+        NoiseSampler plain = noiseOf(data).sampler(new Gson().fromJson(json, NoiseStyle.class), 4242);
         NoiseSampler scaled = plain.scaled(scale);
 
         for (int x = -30; x <= 30; x += 3) {
@@ -160,7 +160,7 @@ public class IrisValuesTest {
 
     @Test
     public void theIrisStyleIsTheSignatureNoiseOfTheSeedThatSetsTheThicknessOfBiomeLayers() {
-        IrisNoiseFactory factory = new IrisNoiseFactory(packWithoutCustomBlocks());
+        IrisNoiseFactory factory = noiseOf(packWithoutCustomBlocks());
         long mismatches = 0;
         for (long seed : new long[]{1, 7235, -3999281L, 1337L * 31, 987654321987L}) {
             CNG signature = CNG.signature(new RNG(seed));
@@ -178,7 +178,7 @@ public class IrisValuesTest {
     @Test
     public void aStyleNameIrisDoesNotKnowIsFlat() {
         IrisData data = packWithoutCustomBlocks();
-        IrisNoiseFactory noise = new IrisNoiseFactory(data);
+        IrisNoiseFactory noise = noiseOf(data);
         NoiseSampler unknown = noise.sampler(NoiseStyle.of("NOT_A_STYLE"), 7);
         NoiseSampler flat = noise.sampler(NoiseStyle.of(NoiseStyle.FLAT), 7);
 
@@ -194,7 +194,7 @@ public class IrisValuesTest {
                 + "{\"block\": \"stone\"}, {\"block\": \"andesite\", \"weight\": 2}, {\"block\": \"granite\", \"weight\": 3}]}";
         IrisData data = packWithoutCustomBlocks();
         IrisMaterialPalette iris = new Gson().fromJson(json, IrisMaterialPalette.class);
-        PaletteSampler sampler = new IrisBlockRegistry(data).palette(new Gson().fromJson(json, PaletteSpec.class), 1337);
+        PaletteSampler sampler = blocksOf(data).palette(new Gson().fromJson(json, PaletteSpec.class), 1337);
 
         assertTrue("the positions cover several blocks", picksLike(iris, sampler, data, 1337).size() > 1);
     }
@@ -203,7 +203,7 @@ public class IrisValuesTest {
     public void aPaletteWithoutOptionsIsOneStoneEverywhereLikeIris() {
         UsableBlockPlatform.bind();
         IrisData data = packWithoutCustomBlocks();
-        PaletteSampler sampler = new IrisBlockRegistry(data).palette(new Gson().fromJson("{}", PaletteSpec.class), 7);
+        PaletteSampler sampler = blocksOf(data).palette(new Gson().fromJson("{}", PaletteSpec.class), 7);
 
         picksLike(new Gson().fromJson("{}", IrisMaterialPalette.class), sampler, data, 7);
         assertEquals(BlockState.parse("minecraft:stone"), sampler.at(3, 4, 5));
@@ -212,7 +212,7 @@ public class IrisValuesTest {
     @Test
     public void palettesAreBuiltOncePerSpecAndSeed() {
         UsableBlockPlatform.bind();
-        IrisBlockRegistry blocks = new IrisBlockRegistry(packWithoutCustomBlocks());
+        IrisBlockRegistry blocks = blocksOf(packWithoutCustomBlocks());
         PaletteSpec spec = PaletteSpec.of(List.of(BlockSpec.of("stone"), BlockSpec.of("dirt")));
 
         assertSame(blocks.palette(spec, 1), blocks.palette(PaletteSpec.of(spec.palette()), 1));
@@ -222,7 +222,7 @@ public class IrisValuesTest {
     @Test
     public void aPaletteWithNoBlockToPickIsRefused() {
         UsableBlockPlatform.bind();
-        IrisBlockRegistry blocks = new IrisBlockRegistry(packWithoutCustomBlocks());
+        IrisBlockRegistry blocks = blocksOf(packWithoutCustomBlocks());
 
         assertThrows(IllegalArgumentException.class, () -> blocks.palette(PaletteSpec.of(List.of()), 1));
         assertThrows(IllegalArgumentException.class, () -> blocks.palette(PaletteSpec.of(List.of(BlockSpec.of("stone").withWeight(0))), 1));
@@ -245,7 +245,16 @@ public class IrisValuesTest {
         @SuppressWarnings("unchecked")
         ResourceLoader<IrisBlockData> blocks = mock(ResourceLoader.class);
         when(data.getBlockLoader()).thenReturn(blocks);
+        when(data.getDataFolder()).thenReturn(new java.io.File("test-pack"));
         return data;
+    }
+
+    private static IrisBlockRegistry blocksOf(IrisData data) {
+        return new IrisBlockRegistry(data, new IrisPackResources(data, List::of));
+    }
+
+    private static IrisNoiseFactory noiseOf(IrisData data) {
+        return new IrisNoiseFactory(data, new IrisPackResources(data, List::of));
     }
 
     private static void bind(PlatformRegistries registries) {

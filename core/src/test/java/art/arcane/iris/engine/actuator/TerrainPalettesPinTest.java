@@ -11,6 +11,7 @@ import art.arcane.iris.engine.terrain.TerrainTestSettings;
 import art.arcane.iris.engine.terrain.TestPackWorld;
 import com.volmit.config.FeatureSettings;
 import com.volmit.resource.PackResources;
+import com.volmit.resource.ResourceId;
 import com.volmit.world.UpperDimension;
 import org.junit.After;
 import org.junit.Before;
@@ -117,8 +118,8 @@ public class TerrainPalettesPinTest {
             }
 
             @Override
-            public String key() {
-                return UPPER_DIMENSION_KEY;
+            public ResourceId id() {
+                return resources.idOf(UPPER_DIMENSION_KEY);
             }
 
             @Override

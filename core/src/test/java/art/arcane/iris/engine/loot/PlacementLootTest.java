@@ -30,6 +30,7 @@ import com.volmit.block.BlockRegistry;
 import com.volmit.block.BlockSpec;
 import com.volmit.block.BlockState;
 import com.volmit.resource.PackResources;
+import com.volmit.resource.ResourceId;
 import com.volmit.service.Loot;
 import org.junit.Before;
 import org.junit.Test;
@@ -122,7 +123,7 @@ public class PlacementLootTest {
 
         Loot.Source picked = pick(platform, List.of(), CHEST);
 
-        assertEquals(new Loot.PlatformTable("minecraft:chests/simple_dungeon",
+        assertEquals(new Loot.PlatformTable(ResourceId.parse("minecraft:chests/simple_dungeon"),
                 LootTables.seed(LOOT_SEED, "Vanilla minecraft:chests/simple_dungeon", 0, 64, 0)), picked);
     }
 

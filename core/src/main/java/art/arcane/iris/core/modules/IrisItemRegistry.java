@@ -24,33 +24,40 @@ import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.IrisServices;
 import art.arcane.iris.spi.PlatformItem;
 import com.volmit.item.ItemRegistry;
+import com.volmit.resource.ContentKey;
 
 import java.util.OptionalInt;
 
 /**
- * IrisApi's view of the bound platform's items: the platform's registry for plain keys, and the item providers of
- * Iris's external data service for keys with a namespace of their own ({@code itemsadder:ruby}), which is how packs name
- * custom items.
+ * IrisApi's view of the bound platform's items: the platform's registry for keys of its own namespace, and the item
+ * providers of Iris's external data service for every other item ({@code itemsadder:ruby}, {@code mmoitems_SWORD:KATANA}),
+ * which is how packs name custom items.
  */
 public final class IrisItemRegistry implements ItemRegistry {
-    private static final String MINECRAFT_PREFIX = "minecraft:";
-    private static final char NAMESPACE_SEPARATOR = ':';
+    private static final String PLATFORM_NAMESPACE = "minecraft";
 
     @Override
-    public OptionalInt maxDurability(String key) {
-        if (isCustomItem(key)) {
-            return customItemDurability(key);
+    public OptionalInt maxDurability(ContentKey item) {
+        if (isCustomItem(item)) {
+            return IrisServices.get(ExternalDataSVC.class).maxDurability(identifierOf(item));
         }
-        PlatformItem item = IrisPlatforms.get().registries().item(key);
-        return item == null ? OptionalInt.empty() : OptionalInt.of(item.maxDurability());
+        PlatformItem platform = IrisPlatforms.get().registries().item(item.toString());
+        return platform == null ? OptionalInt.empty() : OptionalInt.of(platform.maxDurability());
     }
 
-    /** Whether {@code key} names an item of an external provider, which resolves it, rather than of the platform. */
-    public static boolean isCustomItem(String key) {
-        return !key.startsWith(MINECRAFT_PREFIX) && key.indexOf(NAMESPACE_SEPARATOR) >= 0;
+    /** Whether {@code item} is one an external provider resolves rather than the platform. */
+    public static boolean isCustomItem(ContentKey item) {
+        return switch (item) {
+            case ContentKey.Provided ignored -> true;
+            case ContentKey.Registered registered -> !PLATFORM_NAMESPACE.equals(registered.id().namespace());
+        };
     }
 
-    private static OptionalInt customItemDurability(String key) {
-        return IrisServices.get(ExternalDataSVC.class).maxDurability(Identifier.fromString(key));
+    /** {@code item} as Iris's external data service names it. */
+    public static Identifier identifierOf(ContentKey item) {
+        return switch (item) {
+            case ContentKey.Provided provided -> new Identifier(provided.provider(), provided.name());
+            case ContentKey.Registered registered -> new Identifier(registered.id().namespace(), registered.id().path());
+        };
     }
 }

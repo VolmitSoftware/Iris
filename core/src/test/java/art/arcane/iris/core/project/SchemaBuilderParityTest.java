@@ -20,6 +20,7 @@ package art.arcane.iris.core.project;
 
 import art.arcane.iris.builtin.structure.StructureSettings;
 import art.arcane.iris.core.modules.StructureModelModule;
+import art.arcane.iris.engine.framework.structure.StructureResources;
 import art.arcane.iris.engine.mantle.components.StructureModule;
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import art.arcane.iris.core.loader.IrisData;
@@ -213,6 +214,11 @@ public class SchemaBuilderParityTest {
         assertEquals(4064, maxDepth.getInt("maximum"));
         assertFalse(properties.has("rotation"));
         assertFalse(properties.has("translate"));
+        assertEquals("@IrisStructureRef completes the keys of Iris's structure model",
+                "#/definitions/erz" + StructureResources.STRUCTURES.folder(),
+                properties.getJSONObject("structures").getJSONObject("items").getString("$ref"));
+        assertEquals("@Ref(kind = PackBiome.class) completes the pack's biome keys", "#/definitions/erzbiomes",
+                properties.getJSONObject("caveBiomes").getJSONObject("items").getString("$ref"));
         assertFalse(properties.has("scale"));
     }
 
@@ -518,8 +524,13 @@ public class SchemaBuilderParityTest {
         ModuleResourceFixture.serve(data);
         ResourceLoader<IrisExpression> expressionLoader = mock(ResourceLoader.class);
         ResourceLoader<IrisBlockData> blockLoader = mock(ResourceLoader.class);
+        ResourceLoader<IrisBiome> biomeLoader = mock(ResourceLoader.class);
         KMap<Class<? extends IrisRegistrant>, ResourceLoader<? extends IrisRegistrant>> loaders = new KMap<>();
         loaders.put(IrisExpression.class, expressionLoader);
+        loaders.put(IrisBiome.class, biomeLoader);
+        when(biomeLoader.getPossibleKeys()).thenReturn(new String[]{"plains"});
+        when(biomeLoader.getFolderName()).thenReturn("biomes");
+        when(biomeLoader.getResourceTypeName()).thenReturn("Biome");
         when(data.getBlockLoader()).thenReturn(blockLoader);
         when(data.getLoaders()).thenReturn(loaders);
         when(data.getPossibleSnippets(anyString())).thenReturn(new KList<>());

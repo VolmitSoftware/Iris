@@ -5,6 +5,7 @@ import art.arcane.iris.builtin.IrisSeeds;
 import art.arcane.iris.builtin.carve.CarvingEntry;
 import art.arcane.iris.builtin.carve.CarvingSettings;
 import art.arcane.iris.core.modules.CarveTestWorld;
+import art.arcane.iris.core.modules.IrisPackResources;
 import art.arcane.iris.core.modules.IrisValues;
 import art.arcane.iris.engine.object.value.IRare;
 import art.arcane.iris.util.project.noise.CNG;
@@ -281,7 +282,7 @@ public class CarvingResolverParityTest {
             long generatorSeed = seed ^ (idHash << 32) ^ CHILD_GENERATOR_SALT;
             double scale = Math.max(MIN_CHILD_SCALE, settings.childShrinkFactor());
             RNG random = new RNG(generatorSeed);
-            return IrisValues.generatorStyle(settings.childStyle()).createNoCache(random.nextParallelRNG(CHILD_GENERATOR_SIGNATURE), world.data())
+            return IrisValues.generatorStyle(settings.childStyle(), new IrisPackResources(world.data())).createNoCache(random.nextParallelRNG(CHILD_GENERATOR_SIGNATURE), world.data())
                     .bake().scale(scale).bake();
         }
     }

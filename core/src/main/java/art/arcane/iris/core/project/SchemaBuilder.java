@@ -18,6 +18,7 @@
 
 package art.arcane.iris.core.project;
 
+import art.arcane.iris.builtin.structure.IrisStructureRef;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformBlockProperty;
@@ -64,6 +65,7 @@ import com.volmit.host.schema.ObjectType;
 import com.volmit.host.schema.ResourceKindSchema;
 import com.volmit.host.schema.TextFormat;
 import com.volmit.host.schema.ValueKind;
+import com.volmit.resource.PackResources;
 import com.volmit.resource.ResourceId;
 import com.volmit.resource.ResourceKind;
 import org.jetbrains.annotations.NotNull;
@@ -90,6 +92,12 @@ public class SchemaBuilder {
     /** Namespaced key or family/namespace prefix: "minecraft:village_plains", "minecraft:village", "nova_structures:". */
     private static final String VANILLA_STRUCTURE_PREFIX_PATTERN = "^[a-z0-9_.-]+:[a-z0-9_./-]*$";
     private static final String LOOT_TABLE_DEFINITION = "loot-table-key";
+    private static final Map<ResourceId, Class<?>> IRIS_TYPES_OF_HOST_KINDS = Map.of(
+            PackResources.BIOMES.id(), IrisBiome.class,
+            PackResources.REGIONS.id(), IrisRegion.class,
+            PackResources.OBJECTS.id(), IrisObject.class,
+            PackResources.EXPRESSIONS.id(), IrisExpression.class,
+            PackResources.IMAGE_MAPS.id(), IrisImageMap.class);
     private static volatile JSONArray fontTypes;
     private final KMap<String, JSONObject> definitions;
     private final Class<?> root;
@@ -389,7 +397,7 @@ public class SchemaBuilder {
     private ModuleSchemaRenderer moduleSchemas() {
         if (moduleSchemas == null) {
             moduleSchemas = new ModuleSchemaRenderer(data.getModules().pack().schema(), definitions,
-                    this::completeReference, this::completeResourceReference, this::hostDefinition,
+                    this::completeReference, this::completeResourceReference, this::completeIrisExtension, this::hostDefinition,
                     typeName -> IrisValues.irisClassOf(typeName).map(Class::getName), data::getPossibleSnippets);
         }
         return moduleSchemas;
@@ -452,13 +460,24 @@ public class SchemaBuilder {
             case POTION_EFFECT -> putRegistryEnumRef(property, "enum-potion-effect-type", this::potionTypes);
             case ENCHANTMENT -> putRegistryEnumRef(property, "enum-enchantment", this::enchantTypes);
             case LOOT_TABLE -> putRegistryEnumRef(property, LOOT_TABLE_DEFINITION, this::lootTableKeys);
-            case PACK_BIOME -> putPackResourceRef(property, IrisBiome.class);
-            case PACK_REGION -> putPackResourceRef(property, IrisRegion.class);
-            case PACK_OBJECT -> putPackResourceRef(property, IrisObject.class);
             case NOISE_STYLE -> addEnum(NoiseStyle.class, property, new KList<>(), enumNames(NoiseStyle.class), Function.identity());
-            case PACK_EXPRESSION -> putPackResourceRef(property, IrisExpression.class);
-            case PACK_IMAGE_MAP -> putPackResourceRef(property, IrisImageMap.class);
-            case PACK_STRUCTURE -> putPackResourceRef(property, IrisStructure.class);
+        }
+    }
+
+    /** Completion for an option whose field carries an Iris-extension annotation, such as {@link IrisStructureRef}. */
+    private void completeIrisExtension(JSONObject property, String typeName, String optionName) {
+        Optional<Field> field = declaredField(typeName, optionName);
+        if (field.isEmpty() || !field.get().isAnnotationPresent(IrisStructureRef.class)) {
+            return;
+        }
+        putPackResourceRef(property, IrisStructure.class);
+    }
+
+    private static Optional<Field> declaredField(String typeName, String fieldName) {
+        try {
+            return Optional.of(Class.forName(typeName, false, SchemaBuilder.class.getClassLoader()).getDeclaredField(fieldName));
+        } catch (ClassNotFoundException | NoSuchFieldException notIris) {
+            return Optional.empty();
         }
     }
 
@@ -483,8 +502,13 @@ public class SchemaBuilder {
                 .orElse(null);
     }
 
-    /** Completion for a module option naming a resource of the module resource kind {@code kindId}. */
+    /** Completion for a module option naming a resource of the host or module resource kind {@code kindId}. */
     private void completeResourceReference(JSONObject property, ResourceId kindId) {
+        Class<?> irisType = IRIS_TYPES_OF_HOST_KINDS.get(kindId);
+        if (irisType != null) {
+            putPackResourceRef(property, irisType);
+            return;
+        }
         moduleKinds().stream()
                 .filter(kind -> kind.id().equals(kindId))
                 .findFirst()

@@ -35,6 +35,7 @@ import art.arcane.iris.engine.spawn.SpawnModule;
 import art.arcane.iris.engine.spawn.SpawnResources;
 import art.arcane.iris.spi.PlatformWorld;
 import com.volmit.item.ItemRegistry;
+import com.volmit.resource.ContentKey;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -46,7 +47,7 @@ import java.util.OptionalInt;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -71,7 +72,7 @@ public class ContentServicesTest {
         ModuleResourceFixture fixture = ModuleResourceFixture.serve(data);
         ModuleResourceFixture.serveModules(data, new SpawnModule(), new LootModule());
         ItemRegistry items = mock(ItemRegistry.class);
-        when(items.maxDurability(anyString())).thenReturn(OptionalInt.of(0));
+        when(items.maxDurability(any(ContentKey.class))).thenReturn(OptionalInt.of(0));
         when(data.getPackResources().items()).thenReturn(items);
         when(engine.getData()).thenReturn(data);
         IrisWorld engineWorld = mock(IrisWorld.class);
@@ -103,8 +104,8 @@ public class ContentServicesTest {
         assertTrue(guard.flags().baby());
         assertTrue(guard.flags().glowing());
         assertFalse(guard.isSpecial());
-        assertEquals("iron_helmet", guard.equipment().helmet().item());
-        assertEquals(List.of(new ContentItem.Enchantment("protection", 3)), guard.equipment().helmet().enchantments());
+        assertEquals("minecraft:iron_helmet", guard.equipment().helmet().item());
+        assertEquals(List.of(new ContentItem.Enchantment("minecraft:protection", 3)), guard.equipment().helmet().enchantments());
         assertEquals(List.of("guard/drops"), guard.lootTables());
         assertEquals(List.of(new ContentEntity.Command(List.of("say hi {x}"), 4, true, 20)), guard.commands());
         assertTrue(ContentServices.entity(engine, "nobody").isEmpty());
@@ -125,7 +126,7 @@ public class ContentServicesTest {
         List<ContentItem> items = ContentServices.tableItems(engine, 10, 64, -3, "guard/drops");
 
         assertEquals(1, items.size());
-        assertEquals("bread", items.getFirst().item());
+        assertEquals("minecraft:bread", items.getFirst().item());
         assertEquals(3, items.getFirst().amount());
         assertEquals(items, ContentServices.tableItems(engine, 10, 64, -3, "guard/drops"));
         assertTrue(ContentServices.tableItems(engine, 10, 64, -3, "missing").isEmpty());

@@ -21,6 +21,8 @@ package art.arcane.iris.core.modules;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.loader.IrisRegistrant;
 import art.arcane.iris.core.loader.ResourceLoader;
+import art.arcane.iris.engine.object.image.IrisImageMap;
+import art.arcane.iris.engine.object.noise.expression.IrisExpression;
 import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
@@ -28,6 +30,8 @@ import com.volmit.block.BlockRegistry;
 import com.volmit.host.ResourceKindRegistration;
 import com.volmit.item.ItemRegistry;
 import com.volmit.noise.NoiseFactory;
+import com.volmit.noise.PackExpression;
+import com.volmit.noise.PackImageMap;
 import com.volmit.object.GeneratedObject;
 import com.volmit.resource.PackResources;
 import com.volmit.resource.ResourceId;
@@ -52,7 +56,8 @@ import java.util.function.Supplier;
  * does every reload of its module resources ({@link IrisData#dump()}, {@link IrisData#invalidateStructureResources()}).
  * <p>
  * Served by kind: the host kinds {@link #OBJECTS} (a pack object, as its geometry), {@link #BIOMES} and
- * {@link #REGIONS}, and every {@link ResourceKind} the pack's modules register, read from the kind's folder
+ * {@link #REGIONS}, {@link #EXPRESSIONS} and {@link #IMAGE_MAPS} (each only as its id, which noise styles name), and
+ * every {@link ResourceKind} the pack's modules register, read from the kind's folder
  * ({@link ModuleResourceFiles}). All use the id {@code <pack namespace>:<key>} that {@link PackResourceIds}
  * gives the pack's biomes in a biome sample, so one id can name a biome and a region. An id the pack lacks, or of
  * another namespace, is absent; any other kind fails with {@link IllegalArgumentException}. A resource that exists
@@ -63,7 +68,7 @@ import java.util.function.Supplier;
  * styles through Iris's generators, expressions and image maps ({@link IrisNoiseFactory}), both kept per snapshot.
  */
 public final class IrisPackResources implements PackResources {
-    private static final String SERVED_TYPES = "the host kinds (objects, biomes, regions) and the pack's module resource kinds";
+    private static final String SERVED_TYPES = "the host kinds (objects, biomes, regions, expressions, image maps) and the pack's module resource kinds";
 
     private final IrisData data;
     private final PackResourceIds ids;
@@ -89,12 +94,14 @@ public final class IrisPackResources implements PackResources {
         this.data = data;
         this.ids = new PackResourceIds(data.getDataFolder());
         this.moduleKindList = moduleKinds;
-        this.blocks = new IrisBlockRegistry(data);
-        this.noise = new IrisNoiseFactory(data);
+        this.blocks = new IrisBlockRegistry(data, this);
+        this.noise = new IrisNoiseFactory(data, this);
         this.irisKinds = Map.of(
                 OBJECTS.id(), Kind.<IrisObject, GeneratedObject>ofLoader(ids, data::getObjectLoader, (id, object) -> object.getGeometry()),
                 BIOMES.id(), Kind.<IrisBiome, PackBiome>ofLoader(ids, data::getBiomeLoader, this::biomeOf),
-                REGIONS.id(), Kind.<IrisRegion, PackRegion>ofLoader(ids, data::getRegionLoader, this::regionOf));
+                REGIONS.id(), Kind.<IrisRegion, PackRegion>ofLoader(ids, data::getRegionLoader, this::regionOf),
+                EXPRESSIONS.id(), Kind.<IrisExpression, PackExpression>ofLoader(ids, data::getExpressionLoader, (id, expression) -> new PackExpression(id)),
+                IMAGE_MAPS.id(), Kind.<IrisImageMap, PackImageMap>ofLoader(ids, data::getImageMapLoader, (id, image) -> new PackImageMap(id)));
     }
 
     @Override

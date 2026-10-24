@@ -12,6 +12,7 @@ import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.volmlib.util.collection.KList;
 import com.google.gson.Gson;
 import com.volmit.host.LoadedPack;
+import com.volmit.resource.ResourceId;
 import com.volmit.vanilla.JigsawOverrides;
 import org.junit.After;
 import org.junit.Rule;
@@ -137,7 +138,7 @@ public class NativeStructureStartsTest {
                 + "{\"block\":\"minecraft:tuff\"}]}}", StructureTerrain.class);
         StructureStilts stilt = GSON.fromJson("{\"maxDepth\":40,\"spacing\":2,"
                 + "\"palette\":{\"palette\":[{\"block\":\"minecraft:stone_bricks\"}]}}", StructureStilts.class);
-        JigsawOverrides jigsaw = JigsawOverrides.none().withStartPool("minecraft:village/plains/town_centers")
+        JigsawOverrides jigsaw = JigsawOverrides.none().withStartPool(ResourceId.parse("minecraft:village/plains/town_centers"))
                 .withMaxDepth(5).withHeightmap(JigsawOverrides.Heightmap.OCEAN_FLOOR_WG).withExpansionHack(false);
         StructurePlacement fitted = TestSettings.with(placement("fitted", true, -40, -20, 1D,
                 TestSettings.with(source("minecraft:ancient_city", 1), "jigsaw", jigsaw)), "terrain", terrain, "stilt", stilt);

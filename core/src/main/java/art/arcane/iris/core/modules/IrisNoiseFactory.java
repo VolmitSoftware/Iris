@@ -40,15 +40,18 @@ final class IrisNoiseFactory implements NoiseFactory {
     private static final double NO_EXTRA_SCALE = 1D;
 
     private final IrisData data;
+    private final IrisPackResources resources;
     private final Map<NoiseStyle, IrisGeneratorStyle> styles = new ConcurrentHashMap<>();
 
-    IrisNoiseFactory(IrisData data) {
+    /** @param resources the snapshot whose keys the expressions and image maps of styles name */
+    IrisNoiseFactory(IrisData data, IrisPackResources resources) {
         this.data = data;
+        this.resources = resources;
     }
 
     @Override
     public NoiseSampler sampler(NoiseStyle style, long seed) {
-        IrisGeneratorStyle iris = styles.computeIfAbsent(style, IrisValues::generatorStyle);
+        IrisGeneratorStyle iris = styles.computeIfAbsent(style, unbuilt -> IrisValues.generatorStyle(unbuilt, resources));
         try {
             return new CngSampler(iris.create(new RNG(seed), data), () -> iris.createNoCache(new RNG(seed), data), NO_EXTRA_SCALE);
         } catch (RuntimeException failure) {

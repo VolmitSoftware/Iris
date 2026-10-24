@@ -21,7 +21,10 @@ package art.arcane.iris.engine.loot;
 import art.arcane.iris.builtin.loot.LootTable;
 import com.google.gson.Gson;
 import com.volmit.item.ItemDrop;
+import com.volmit.host.ModuleLogs;
 import com.volmit.item.ItemRegistry;
+import com.volmit.resource.ContentKey;
+import com.volmit.resource.ResourceId;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -30,7 +33,7 @@ import java.util.List;
 import java.util.OptionalInt;
 
 import static org.junit.Assert.assertEquals;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -39,6 +42,9 @@ import static org.mockito.Mockito.when;
  * before the loot classes became settings of the loot module; a change in them changes the loot of existing worlds.
  * They were retaken once when an item's absent values became {@code Optional}s: the items printed the old way (absent
  * values as {@code null}) still hashed to the old numbers, -492887340, -92432338, -1096436977, -1436497629 and -1714085578.
+ * They were retaken again when item, enchantment and attribute keys became ids and colours typed values: the items
+ * printed the old way (keys by path, operations by Bukkit name, colours as written) still hashed to -1656514080,
+ * 672855254, -359051997, -717275247 and 1936773406.
  */
 public class LootDrawPinTest {
     private static final long LOOT_SEED = 8123456789L;
@@ -62,17 +68,21 @@ public class LootDrawPinTest {
     @Before
     public void knowTheItems() {
         registry = mock(ItemRegistry.class);
-        when(registry.maxDurability(anyString())).thenReturn(OptionalInt.empty());
-        when(registry.maxDurability("diamond_sword")).thenReturn(OptionalInt.of(1561));
-        when(registry.maxDurability("diamond")).thenReturn(OptionalInt.of(0));
-        when(registry.maxDurability("bread")).thenReturn(OptionalInt.of(0));
-        when(registry.maxDurability("stick")).thenReturn(OptionalInt.of(0));
+        when(registry.maxDurability(any(ContentKey.class))).thenReturn(OptionalInt.empty());
+        when(registry.maxDurability(platformItem("diamond_sword"))).thenReturn(OptionalInt.of(1561));
+        when(registry.maxDurability(platformItem("diamond"))).thenReturn(OptionalInt.of(0));
+        when(registry.maxDurability(platformItem("bread"))).thenReturn(OptionalInt.of(0));
+        when(registry.maxDurability(platformItem("stick"))).thenReturn(OptionalInt.of(0));
+    }
+
+    private static ContentKey platformItem(String name) {
+        return new ContentKey.Registered(ResourceId.ofPlatformKey(name));
     }
 
     @Test
     public void aTableGivesThePinnedItemsAtEachSpot() {
         LootTable table = new Gson().fromJson(TABLE, LootTable.class);
-        LootItems items = new LootItems(registry, false);
+        LootItems items = new LootItems(registry, false, ModuleLogs.discarding());
 
         List<Integer> hashes = new ArrayList<>();
         for (int[] spot : SPOTS) {
@@ -80,6 +90,6 @@ public class LootDrawPinTest {
             hashes.add(drops.toString().hashCode());
         }
 
-        assertEquals(List.of(-1656514080, 672855254, -359051997, -717275247, 1936773406), hashes);
+        assertEquals(List.of(532699340, 1454887894, -1673240838, 1965175800, 1414053514), hashes);
     }
 }

@@ -48,7 +48,7 @@ import static org.mockito.Mockito.when;
 /** Trees only replace the platform's growth when the dimension asks for it and a placement of the area grows that species. */
 public class TreeGrowingTest {
     private static final SaplingGrowth.Sapling OAK_SAPLING = new SaplingGrowth.Sapling(
-            new BlockPosition(10, 70, 20), new BlockPosition(10, 70, 20), "TREE");
+            new BlockPosition(10, 70, 20), new BlockPosition(10, 70, 20), ResourceId.ofPlatformKey("TREE"));
     private static final ResourceId SOURCE = ResourceId.parse("test:dimension/overworld");
     private static final ResourceId BIOME = ResourceId.parse("test:plains");
     private static final ResourceId REGION = ResourceId.parse("test:overworld");

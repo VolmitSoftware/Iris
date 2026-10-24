@@ -486,10 +486,9 @@ public final class EngineBukkitOps {
     }
 
     private static List<ItemStack> platformLoot(Loot.PlatformTable table, World world, int x, int y, int z) {
-        NamespacedKey key = NamespacedKey.fromString(table.key());
-        LootTable platformTable = key == null ? null : Bukkit.getLootTable(key);
+        LootTable platformTable = Bukkit.getLootTable(new NamespacedKey(table.table().namespace(), table.table().path()));
         if (platformTable == null) {
-            IrisLogging.warn("Unknown vanilla loot table " + table.key());
+            IrisLogging.warn("Unknown vanilla loot table " + table.table());
             return List.of();
         }
         return new KList<>(platformTable.populateLoot(new RNG(table.seed()), new LootContext.Builder(new Location(world, x, y, z)).build()));

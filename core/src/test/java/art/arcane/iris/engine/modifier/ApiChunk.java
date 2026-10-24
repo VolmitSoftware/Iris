@@ -378,8 +378,8 @@ public final class ApiChunk implements GenerationContext {
         }
 
         @Override
-        public String key() {
-            return "overworld";
+        public ResourceId id() {
+            return ResourceId.parse("test:overworld");
         }
 
         @Override

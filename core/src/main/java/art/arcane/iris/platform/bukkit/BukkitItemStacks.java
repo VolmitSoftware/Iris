@@ -18,7 +18,6 @@
 
 package art.arcane.iris.platform.bukkit;
 
-import art.arcane.iris.core.link.Identifier;
 import art.arcane.iris.core.modules.IrisItemRegistry;
 import art.arcane.iris.core.service.ExternalDataSVC;
 import art.arcane.iris.spi.IrisLogging;
@@ -30,6 +29,7 @@ import art.arcane.volmlib.util.format.Form;
 import com.volmit.item.ItemAttribute;
 import com.volmit.item.ItemDrop;
 import com.volmit.item.ItemEnchantment;
+import com.volmit.resource.ResourceId;
 import org.bukkit.DyeColor;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -44,9 +44,8 @@ import org.bukkit.inventory.meta.LeatherArmorMeta;
 import org.bukkit.inventory.meta.components.CustomModelDataComponent;
 import org.bukkit.material.Colorable;
 
-import java.awt.Color;
 import java.util.List;
-import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 
 /** Creates the Bukkit item stacks that module {@link ItemDrop}s describe. */
@@ -66,7 +65,7 @@ public final class BukkitItemStacks {
                 return new ItemStack(Material.AIR);
             }
             stack.setItemMeta(applyProperties(stack, drop));
-            return BukkitPlatform.applyCustomNbt(stack, drop.customNbt().isEmpty() ? null : new KMap<>(drop.customNbt()));
+            return BukkitPlatform.applyCustomNbt(stack, customNbtOf(drop));
         } catch (Throwable e) {
             IrisLogging.reportError(e);
             return new ItemStack(Material.AIR);
@@ -88,7 +87,7 @@ public final class BukkitItemStacks {
     private static ItemStack baseStack(ItemDrop drop) {
         if (IrisItemRegistry.isCustomItem(drop.item())) {
             Optional<ItemStack> custom = IrisServices.get(ExternalDataSVC.class)
-                    .getItemStack(Identifier.fromString(drop.item()), drop.customNbt().isEmpty() ? null : new KMap<>(drop.customNbt()));
+                    .getItemStack(IrisItemRegistry.identifierOf(drop.item()), customNbtOf(drop));
             if (custom.isEmpty()) {
                 IrisLogging.warn("Unknown Material: " + drop.item());
                 return null;
@@ -97,7 +96,12 @@ public final class BukkitItemStacks {
             stack.setAmount(drop.amount());
             return stack;
         }
-        return new ItemStack(BukkitBlockResolution.getMaterial(drop.item()), drop.amount());
+        return new ItemStack(BukkitBlockResolution.getMaterial(drop.item().toString()), drop.amount());
+    }
+
+    private static KMap<String, Object> customNbtOf(ItemDrop drop) {
+        Map<String, Object> customNbt = drop.extras().customNbt();
+        return customNbt.isEmpty() ? null : new KMap<>(customNbt);
     }
 
     private static ItemMeta applyProperties(ItemStack stack, ItemDrop drop) {
@@ -111,31 +115,31 @@ public final class BukkitItemStacks {
             BukkitAttributes.apply(attribute, meta);
         }
 
-        meta.setUnbreakable(drop.unbreakable());
+        ItemDrop.Look look = drop.look();
+        ItemDrop.Wear wear = drop.wear();
+        meta.setUnbreakable(wear.unbreakable());
         flags(drop).forEach(meta::addItemFlags);
 
-        if (drop.customModel().isPresent()) {
+        if (look.customModel().isPresent()) {
             CustomModelDataComponent customModelData = meta.getCustomModelDataComponent();
-            customModelData.setFloats(List.of((float) drop.customModel().getAsInt()));
+            customModelData.setFloats(List.of((float) look.customModel().getAsInt()));
             meta.setCustomModelDataComponent(customModelData);
         }
 
         int maxDurability = stack.getType().getMaxDurability();
-        if (drop.damage().isPresent() && maxDurability > 0 && meta instanceof Damageable damageable) {
-            damageable.setDamage((int) Math.round(Math.max(0, Math.min(maxDurability, drop.damage().getAsDouble() * maxDurability))));
+        if (wear.damage().isPresent() && maxDurability > 0 && meta instanceof Damageable damageable) {
+            damageable.setDamage((int) Math.round(Math.max(0, Math.min(maxDurability, wear.damage().getAsDouble() * maxDurability))));
         }
 
-        if (drop.leatherColor().isPresent() && meta instanceof LeatherArmorMeta leather) {
-            Color c = Color.decode(drop.leatherColor().get());
-            leather.setColor(org.bukkit.Color.fromRGB(c.getRed(), c.getGreen(), c.getBlue()));
+        if (look.leatherColor().isPresent() && meta instanceof LeatherArmorMeta leather) {
+            leather.setColor(org.bukkit.Color.fromRGB(look.leatherColor().getAsInt()));
         }
 
-        DyeColor dye = dyeColor(drop);
-        if (dye != null && meta instanceof Colorable colorable) {
-            colorable.setColor(dye);
+        if (look.dyeColor().isPresent() && meta instanceof Colorable colorable) {
+            colorable.setColor(DyeColor.valueOf(look.dyeColor().get().name()));
         }
 
-        drop.displayName().ifPresent(name -> meta.setDisplayName(C.translateAlternateColorCodes('&', name)));
+        look.displayName().ifPresent(name -> meta.setDisplayName(C.translateAlternateColorCodes('&', name)));
 
         meta.setLore(lore(drop));
         return meta;
@@ -158,19 +162,13 @@ public final class BukkitItemStacks {
         }
     }
 
-    /** A bare path ({@code sharpness}) or a full namespaced key ({@code mymod:vorpal}), as the modded resolver accepts. */
-    private static Enchantment resolveEnchantment(String raw) {
-        if (raw.isBlank()) {
-            return null;
-        }
-        String value = raw.trim().toLowerCase(Locale.ROOT).replace(' ', '_');
-        NamespacedKey key = value.indexOf(':') >= 0 ? NamespacedKey.fromString(value) : NamespacedKey.minecraft(value);
-        return key == null ? null : Registry.ENCHANTMENT.get(key);
+    private static Enchantment resolveEnchantment(ResourceId key) {
+        return Registry.ENCHANTMENT.get(new NamespacedKey(key.namespace(), key.path()));
     }
 
     private static List<ItemFlag> flags(ItemDrop drop) {
         KList<ItemFlag> resolved = new KList<>();
-        for (String flag : drop.flags()) {
+        for (String flag : drop.extras().flags()) {
             if (flag == null) {
                 continue;
             }
@@ -182,20 +180,9 @@ public final class BukkitItemStacks {
         return resolved;
     }
 
-    private static DyeColor dyeColor(ItemDrop drop) {
-        if (drop.dyeColor().isEmpty()) {
-            return null;
-        }
-        try {
-            return DyeColor.valueOf(drop.dyeColor().get());
-        } catch (IllegalArgumentException e) {
-            return null;
-        }
-    }
-
     private static KList<String> lore(ItemDrop drop) {
         KList<String> lore = new KList<>();
-        for (String line : drop.lore()) {
+        for (String line : drop.look().lore()) {
             String colored = C.translateAlternateColorCodes('&', line);
             if (colored.length() > LORE_WRAP_WIDTH) {
                 for (String wrapped : Form.wrapWords(colored, LORE_WRAP_WIDTH).split("\\Q\n\\E")) {

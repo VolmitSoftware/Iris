@@ -32,6 +32,7 @@ import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KMap;
 import art.arcane.volmlib.util.data.Cuboid;
 import com.volmit.placement.PlacedBlock;
+import com.volmit.resource.ResourceId;
 import com.volmit.service.SaplingGrowth;
 import art.arcane.volmlib.util.math.BlockPosition;
 import art.arcane.iris.util.common.plugin.IrisService;
@@ -122,7 +123,7 @@ public class TreeSVC implements IrisService {
         SaplingGrowth.Sapling sapling = new SaplingGrowth.Sapling(
                 relativePosition(event.getLocation(), minHeight),
                 relativePosition(saplingPlane.getCenter(), minHeight),
-                event.getSpecies().name());
+                ResourceId.ofPlatformKey(event.getSpecies().name()));
         Optional<SaplingGrowth.Growth> growth = ModuleServices.growSapling(engine, sapling, new WorldSurroundings(event.getWorld(), saplingPlane));
 
         if (growth.isEmpty()) {

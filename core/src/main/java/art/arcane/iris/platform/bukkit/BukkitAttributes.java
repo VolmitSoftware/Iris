@@ -20,6 +20,7 @@ package art.arcane.iris.platform.bukkit;
 
 import art.arcane.iris.spi.IrisLogging;
 import com.volmit.item.ItemAttribute;
+import com.volmit.resource.ResourceId;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Registry;
 import org.bukkit.attribute.Attributable;
@@ -29,6 +30,7 @@ import org.bukkit.attribute.AttributeModifier;
 import org.bukkit.inventory.EquipmentSlotGroup;
 import org.bukkit.inventory.meta.ItemMeta;
 
+import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
@@ -37,8 +39,7 @@ import java.util.concurrent.ConcurrentHashMap;
 /** Applies the attribute modifiers a module decided on to Bukkit items and entities. */
 public final class BukkitAttributes {
     private static final Set<String> WARNED_ATTRIBUTES = ConcurrentHashMap.newKeySet();
-    private static final String GENERIC_UNDERSCORE = "generic_";
-    private static final String GENERIC_DOT = "generic.";
+    private static final List<String> GENERIC_PREFIXES = List.of("generic_", "generic.");
     private static final int MAX_NAME_LENGTH = 32;
     private static final String DEFAULT_NAME = "modifier";
 
@@ -63,41 +64,39 @@ public final class BukkitAttributes {
         }
     }
 
+    /** The attribute the key names; a vanilla key may still carry the {@code generic_} or {@code generic.} prefix older versions had. */
     private static Attribute resolveAttribute(ItemAttribute modifier) {
-        String value = modifier.attribute().trim().toLowerCase(Locale.ROOT);
-        Attribute resolved;
-        if (value.contains(":")) {
-            NamespacedKey key = NamespacedKey.fromString(value);
-            resolved = key == null ? null : Registry.ATTRIBUTE.get(key);
-        } else {
-            resolved = Registry.ATTRIBUTE.get(NamespacedKey.minecraft(value));
-            if (resolved == null && value.startsWith(GENERIC_UNDERSCORE)) {
-                resolved = Registry.ATTRIBUTE.get(NamespacedKey.minecraft(value.substring(GENERIC_UNDERSCORE.length())));
-            }
-            if (resolved == null && value.startsWith(GENERIC_DOT)) {
-                resolved = Registry.ATTRIBUTE.get(NamespacedKey.minecraft(value.substring(GENERIC_DOT.length())));
-            }
+        ResourceId id = modifier.attribute();
+        Attribute resolved = Registry.ATTRIBUTE.get(new NamespacedKey(id.namespace(), id.path()));
+        if (resolved == null && id.namespace().equals(NamespacedKey.MINECRAFT)) {
+            resolved = withoutGenericPrefix(id.path());
         }
-        if (resolved == null && WARNED_ATTRIBUTES.add(value)) {
-            IrisLogging.warn("Unknown attribute '" + modifier.attribute() + "' in attribute-modifier '" + modifier.name() + "'");
+        if (resolved == null && WARNED_ATTRIBUTES.add(id.toString())) {
+            IrisLogging.warn("Unknown attribute '" + id + "' in attribute-modifier '" + modifier.name() + "'");
         }
         return resolved;
     }
 
-    private static AttributeModifier create(ItemAttribute modifier) {
-        NamespacedKey key = NamespacedKey.minecraft(uniqueKey(modifier.name()));
-        return new AttributeModifier(key, modifier.amount(), resolveOperation(modifier.operation()), EquipmentSlotGroup.ANY);
+    private static Attribute withoutGenericPrefix(String path) {
+        for (String prefix : GENERIC_PREFIXES) {
+            if (path.startsWith(prefix)) {
+                return Registry.ATTRIBUTE.get(NamespacedKey.minecraft(path.substring(prefix.length())));
+            }
+        }
+        return null;
     }
 
-    private static AttributeModifier.Operation resolveOperation(String operation) {
-        if (operation.isBlank()) {
-            return AttributeModifier.Operation.ADD_NUMBER;
-        }
-        try {
-            return AttributeModifier.Operation.valueOf(operation.trim().toUpperCase(Locale.ROOT));
-        } catch (IllegalArgumentException e) {
-            return AttributeModifier.Operation.ADD_NUMBER;
-        }
+    private static AttributeModifier create(ItemAttribute modifier) {
+        NamespacedKey key = NamespacedKey.minecraft(uniqueKey(modifier.name()));
+        return new AttributeModifier(key, modifier.amount(), operationOf(modifier.operation()), EquipmentSlotGroup.ANY);
+    }
+
+    private static AttributeModifier.Operation operationOf(ItemAttribute.Operation operation) {
+        return switch (operation) {
+            case ADD_VALUE -> AttributeModifier.Operation.ADD_NUMBER;
+            case ADD_MULTIPLIED_BASE -> AttributeModifier.Operation.ADD_SCALAR;
+            case ADD_MULTIPLIED_TOTAL -> AttributeModifier.Operation.MULTIPLY_SCALAR_1;
+        };
     }
 
     private static String uniqueKey(String name) {

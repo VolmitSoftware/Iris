@@ -34,6 +34,7 @@ import com.volmit.block.PaletteSpec;
 import com.volmit.config.Range;
 import com.volmit.noise.StyledRange;
 import com.volmit.geometry.BlockPosition;
+import com.volmit.resource.PackResources;
 
 import java.util.List;
 import java.util.Map;
@@ -77,10 +78,10 @@ public final class IrisValues {
     }
 
     /** {@code spec} as the material palette Iris picks blocks from: its noise style, zoom and weighted blocks. */
-    static IrisMaterialPalette materialPalette(PaletteSpec spec) {
+    static IrisMaterialPalette materialPalette(PaletteSpec spec, IrisPackResources resources) {
         KList<IrisBlockData> blocks = new KList<>();
         spec.palette().forEach(block -> blocks.add(blockData(block)));
-        return new IrisMaterialPalette().setStyle(generatorStyle(spec.style())).setZoom(spec.zoom()).setPalette(blocks);
+        return new IrisMaterialPalette().setStyle(generatorStyle(spec.style(), resources)).setZoom(spec.zoom()).setPalette(blocks);
     }
 
     /** Iris's maps hold no null values; a JSON null in a map reads as absent, as it does for Iris's own fields. */
@@ -97,16 +98,17 @@ public final class IrisValues {
     /**
      * {@code style} as the generator style Iris builds noise from; a style name Iris does not know is flat. For behaviour that
      * reads Iris's generator itself, such as the cave carvers' signed 3D reads, which {@code PackResources.noise()} does not offer.
+     * The expression and image map ids become the pack keys of {@code resources} that have them.
      */
-    public static IrisGeneratorStyle generatorStyle(com.volmit.noise.NoiseStyle style) {
+    public static IrisGeneratorStyle generatorStyle(com.volmit.noise.NoiseStyle style, IrisPackResources resources) {
         IrisGeneratorStyle iris = new IrisGeneratorStyle(irisStyle(style.style()));
         iris.setCellularFrequency(style.cellularFrequency());
         iris.setCellularZoom(style.cellularZoom());
         iris.setZoom(style.zoom());
-        iris.setExpression(style.expression().orElse(null));
-        iris.setImageMap(style.imageMap().orElse(null));
+        iris.setExpression(style.expression().map(id -> resources.keyOf(PackResources.EXPRESSIONS, id)).orElse(null));
+        iris.setImageMap(style.imageMap().map(id -> resources.keyOf(PackResources.IMAGE_MAPS, id)).orElse(null));
         iris.setMultiplier(style.multiplier());
-        iris.setFracture(style.fracture().map(IrisValues::generatorStyle).orElse(null));
+        iris.setFracture(style.fracture().map(fracture -> generatorStyle(fracture, resources)).orElse(null));
         iris.setExponent(style.exponent());
         iris.setCacheSize(style.cacheSize());
         return iris;
@@ -115,7 +117,7 @@ public final class IrisValues {
     /** The noise style of each layer of the biome's surface, top first, as Iris's generators know them. */
     public static List<art.arcane.iris.engine.object.noise.NoiseStyle> layerStyles(art.arcane.iris.engine.object.world.biome.IrisBiome biome) {
         return LayerLoad.layersOf(biome.getModuleSettings().find(LayersSettings.class).orElse(null)).stream()
-                .map(layer -> generatorStyle(layer.style()).getStyle()).toList();
+                .map(layer -> irisStyle(layer.style().style())).toList();
     }
 
     /** {@code range} as the range Iris reads the same JSON into. */
@@ -124,8 +126,8 @@ public final class IrisValues {
     }
 
     /** {@code range} as the styled range Iris reads the same JSON into. */
-    public static IrisStyledRange styledRange(StyledRange range) {
-        return new IrisStyledRange(range.min(), range.max(), generatorStyle(range.style()));
+    public static IrisStyledRange styledRange(StyledRange range, IrisPackResources resources) {
+        return new IrisStyledRange(range.min(), range.max(), generatorStyle(range.style(), resources));
     }
 
     private static NoiseStyle irisStyle(String name) {

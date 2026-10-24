@@ -57,14 +57,19 @@ final class IrisBlockRegistry implements BlockRegistry {
     private static final int PALETTE_CACHE_SIZE = 256;
 
     private final IrisData data;
+    private final IrisPackResources resources;
     private final Map<BlockSpec, IrisBlockData> specs = new ConcurrentHashMap<>();
     /** Stages ask about every block of a chunk; the platform's state of each block is found once per snapshot. */
     private final Map<BlockState, PlatformBlockState> platformStates = new ConcurrentHashMap<>();
     private final LazyBoundedCache<SeededPalette, PaletteSampler> palettes = new LazyBoundedCache<>(PALETTE_CACHE_SIZE);
 
-    /** @param data the pack whose {@code blocks} folder custom blocks come from */
-    IrisBlockRegistry(IrisData data) {
+    /**
+     * @param data the pack whose {@code blocks} folder custom blocks come from
+     * @param resources the snapshot whose keys the expressions and image maps of palette styles name
+     */
+    IrisBlockRegistry(IrisData data, IrisPackResources resources) {
         this.data = data;
+        this.resources = resources;
     }
 
     @Override
@@ -96,7 +101,7 @@ final class IrisBlockRegistry implements BlockRegistry {
         if (seeded.spec().palette().stream().noneMatch(block -> block.weight() > 0)) {
             throw new IllegalArgumentException("Palette " + seeded.spec() + " has no block to pick: each block needs a weight of at least 1");
         }
-        IrisMaterialPalette palette = IrisValues.materialPalette(seeded.spec());
+        IrisMaterialPalette palette = IrisValues.materialPalette(seeded.spec(), resources);
         RNG rng = new RNG(seeded.seed());
         return (x, y, z) -> BlockState.parse(PlatformBlockStates.namespaced(palette.get(rng, x, y, z, data).key()));
     }

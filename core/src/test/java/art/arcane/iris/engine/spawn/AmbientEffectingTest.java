@@ -28,6 +28,7 @@ import art.arcane.iris.engine.object.world.region.IrisRegion;
 import art.arcane.iris.engine.object.world.IrisWorld;
 import art.arcane.iris.builtin.spawn.EffectSettings;
 import art.arcane.iris.spi.PlatformWorld;
+import com.volmit.resource.ResourceId;
 import com.volmit.service.AmbientEffects;
 import com.volmit.geometry.BlockPosition;
 import com.volmit.world.PackWorld;
@@ -93,11 +94,11 @@ public class AmbientEffectingTest {
 
         assertEquals(1, due.size());
         AmbientEffects.Sound sound = due.getFirst().sound().orElseThrow();
-        assertEquals("ambient.cave", sound.key());
+        assertEquals(ResourceId.parse("minecraft:ambient.cave"), sound.key());
         assertTrue(Math.abs(sound.offsetX()) <= 4 && Math.abs(sound.offsetY()) <= 4 && Math.abs(sound.offsetZ()) <= 4);
         assertEquals(2F, sound.volume(), 0);
         assertEquals(0.5F, sound.pitch(), 0);
-        assertEquals(Optional.of(new AmbientEffects.Potion("luck", 1, 100)), due.getFirst().potion());
+        assertEquals(Optional.of(new AmbientEffects.Potion(ResourceId.parse("minecraft:luck"), 1, 100)), due.getFirst().potion());
         assertTrue(due.getFirst().particles().isEmpty());
         assertTrue(due.getFirst().commands().isEmpty());
     }
@@ -110,10 +111,10 @@ public class AmbientEffectingTest {
         AmbientEffects.Effect effect = new AmbientEffecting().due(world, AT).getFirst();
 
         AmbientEffects.Particles particles = effect.particles().orElseThrow();
-        assertEquals("flame", particles.key());
-        assertEquals(5, particles.forward(), 0);
-        assertEquals(0, particles.sideways(), 0);
-        assertEquals(0.5, particles.altX(), 0);
+        assertEquals(ResourceId.parse("minecraft:flame"), particles.key());
+        assertEquals(5, particles.spot().forward(), 0);
+        assertEquals(0, particles.spot().sideways(), 0);
+        assertEquals(0.5, particles.spread().x(), 0);
         assertEquals(0.25, particles.extra(), 0);
         assertEquals(2, particles.count());
         assertEquals(1, effect.commands().size());

@@ -85,7 +85,7 @@ final class SurfaceSmoothing {
         this.postRandom = new RNG(context.world().extension(IrisSeeds.class).orElseThrow().seed(IrisSeed.POST));
         this.originX = context.originX();
         this.originZ = context.originZ();
-        this.planeWidth = blocks.getWidth() + 2;
+        this.planeWidth = blocks.width() + 2;
         this.heights = heightPlane();
         this.walls = enabled(context, PostProcessingWallsSettings.class, PostProcessingWallsSettings::enabled, PostProcessingWallsSettings.DEFAULT_ENABLED);
         this.slabs = enabled(context, PostProcessingSlabsSettings.class, PostProcessingSlabsSettings::enabled, PostProcessingSlabsSettings.DEFAULT_ENABLED);
@@ -98,8 +98,8 @@ final class SurfaceSmoothing {
     }
 
     private void smoothColumns() {
-        for (int i = 0; i < blocks.getWidth(); i++) {
-            for (int j = 0; j < blocks.getDepth(); j++) {
+        for (int i = 0; i < blocks.width(); i++) {
+            for (int j = 0; j < blocks.depth(); j++) {
                 post(i, j);
             }
         }
@@ -127,8 +127,8 @@ final class SurfaceSmoothing {
     }
 
     private int[] heightPlane() {
-        int width = blocks.getWidth();
-        int depth = blocks.getDepth();
+        int width = blocks.width();
+        int depth = blocks.depth();
         int[] plane = new int[planeWidth * (depth + 2)];
         for (int j = -1; j <= depth; j++) {
             boolean edge = j == -1 || j == depth;
@@ -346,7 +346,7 @@ final class SurfaceSmoothing {
     private void set(int x, int y, int z, BlockState block) {
         int localX = x - originX;
         int localZ = z - originZ;
-        if (localX < 0 || localZ < 0 || localX >= blocks.getWidth() || localZ >= blocks.getDepth() || y < 0 || y >= blocks.getHeight()) {
+        if (localX < 0 || localZ < 0 || localX >= blocks.width() || localZ >= blocks.depth() || y < 0 || y >= blocks.height()) {
             return;
         }
         blocks.set(localX, y, localZ, block);
@@ -358,7 +358,7 @@ final class SurfaceSmoothing {
      * opposite edge.
      */
     private BlockState get(int x, int y, int z) {
-        return blocks.get(clamp(x - originX, blocks.getWidth()), clamp(y, blocks.getHeight()), clamp(z - originZ, blocks.getDepth()));
+        return blocks.get(clamp(x - originX, blocks.width()), clamp(y, blocks.height()), clamp(z - originZ, blocks.depth()));
     }
 
     private static int clamp(int value, int size) {

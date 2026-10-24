@@ -77,9 +77,9 @@ public final class PerfectionModule implements IrisModule {
 
     /** {@code hidden} remembers per state instance what it is hidden as, itself for a block that is no ore. */
     private static void hideOres(Hunk<BlockState> blocks, Map<BlockState, BlockState> hidden) {
-        for (int x = 0; x < blocks.getWidth(); x++) {
-            for (int z = 0; z < blocks.getDepth(); z++) {
-                for (int y = blocks.getHeight() - 1; y >= 0; y--) {
+        for (int x = 0; x < blocks.width(); x++) {
+            for (int z = 0; z < blocks.depth(); z++) {
+                for (int y = blocks.height() - 1; y >= 0; y--) {
                     BlockState block = blocks.get(x, y, z);
                     BlockState shown = hidden.computeIfAbsent(block, state -> ORE_BASES.getOrDefault(state.material(), state));
                     if (shown != block) {
@@ -98,8 +98,8 @@ public final class PerfectionModule implements IrisModule {
         /** One pass over every column; whether it removed anything. */
         boolean removeUnsupportedDecorants() {
             boolean removed = false;
-            for (int x = 0; x < blocks.getWidth(); x++) {
-                for (int z = 0; z < blocks.getDepth(); z++) {
+            for (int x = 0; x < blocks.width(); x++) {
+                for (int z = 0; z < blocks.depth(); z++) {
                     for (int surface : surfaces(x, z)) {
                         removed |= removeIfUnsupported(x, surface, z);
                     }
@@ -149,7 +149,7 @@ public final class PerfectionModule implements IrisModule {
         }
 
         private int topSolid(int x, int z) {
-            for (int y = blocks.getHeight() - 1; y >= 0; y--) {
+            for (int y = blocks.height() - 1; y >= 0; y--) {
                 if (isSolid(blocks.get(x, y, z))) {
                     return y;
                 }

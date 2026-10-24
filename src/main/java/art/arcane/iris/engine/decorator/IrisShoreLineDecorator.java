@@ -60,7 +60,7 @@ public class IrisShoreLineDecorator extends IrisEngineDecorator {
 
         if (!decorator.isStacking()) {
             int targetY = height + 1;
-            if (targetY >= data.getHeight()
+            if (targetY >= data.height()
                     || !DecoratorCore.canReplaceStackTarget(scene, data.get(x, targetY, z), false)) {
                 return;
             }
@@ -80,7 +80,7 @@ public class IrisShoreLineDecorator extends IrisEngineDecorator {
 
         if (stack == 1) {
             int targetY = height + 1;
-            if (targetY >= data.getHeight() || !DecoratorCore.canReplaceStackTarget(scene, data.get(x, targetY, z), false)) {
+            if (targetY >= data.height() || !DecoratorCore.canReplaceStackTarget(scene, data.get(x, targetY, z), false)) {
                 return;
             }
 
@@ -94,7 +94,7 @@ public class IrisShoreLineDecorator extends IrisEngineDecorator {
         for (int i = 0; i < stack; i++) {
             int h = height + i;
             int targetY = h + 1;
-            if (targetY >= data.getHeight()
+            if (targetY >= data.height()
                     || !DecoratorCore.canReplaceStackTarget(scene, data.get(x, targetY, z), false)) {
                 break;
             }

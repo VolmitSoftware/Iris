@@ -40,7 +40,6 @@ import com.volmit.block.BlockState;
 import com.volmit.block.BlockTrait;
 import com.volmit.object.BlockEntityData;
 import com.volmit.object.ObjectBlock;
-import com.volmit.placement.PlacedBlock;
 import com.volmit.stage.BlockStageContext;
 import com.volmit.stage.PlacementStageContext;
 import com.volmit.world.BlockPosition;
@@ -133,9 +132,10 @@ public final class BlocksModule implements IrisModule {
         if (!shouldWrite(world, data, x, y, z, structurePiece)) {
             return;
         }
-        PlacedBlock placed = world.set(x, y, z, data, blockEntity);
-        placement.objectBlockWritten(placed.position());
-        written.add(placed);
+        world.set(x, y, z, data, blockEntity);
+        BlockPosition position = new BlockPosition(x, y, z);
+        placement.objectBlockWritten(position);
+        written.add(position, data);
     }
 
     /** The object block as Iris places it: debug air shows where smart boring bored, and leaves never decay where the placer prevents it. */
@@ -230,11 +230,11 @@ public final class BlocksModule implements IrisModule {
 
     private static KList<BlockPosition> candidates(WrittenBlocks written, MarkerRule rule, ObjectPlacement placement) {
         KList<BlockPosition> candidates = new KList<>();
-        for (PlacedBlock block : written.blocks()) {
-            if (rule.targets().stream().anyMatch(target -> marks(placement, rule, target, block.state()))) {
-                candidates.add(block.position());
+        written.forEach((position, state) -> {
+            if (rule.targets().stream().anyMatch(target -> marks(placement, rule, target, state))) {
+                candidates.add(position);
             }
-        }
+        });
         return candidates;
     }
 

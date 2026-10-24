@@ -56,7 +56,7 @@ public class IrisSeaSurfaceDecorator extends IrisEngineDecorator {
 
         if (stack == 1) {
             int targetY = height + 1;
-            if (targetY >= data.getHeight() || !DecoratorCore.canReplaceStackTarget(scene, data.get(x, targetY, z), false)) {
+            if (targetY >= data.height() || !DecoratorCore.canReplaceStackTarget(scene, data.get(x, targetY, z), false)) {
                 return;
             }
 

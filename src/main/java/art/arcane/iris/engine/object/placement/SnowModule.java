@@ -26,7 +26,6 @@ import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
 import com.volmit.ModuleSetup;
 import com.volmit.block.BlockState;
-import com.volmit.placement.PlacedBlock;
 import com.volmit.stage.PlacementStageContext;
 import com.volmit.world.BlockPosition;
 
@@ -76,8 +75,7 @@ public final class SnowModule implements IrisModule {
     /** The highest written block of each column, columns in the order they were first written. */
     private static Map<Long, BlockPosition> columnTops(WrittenBlocks written) {
         Map<Long, BlockPosition> tops = new LinkedHashMap<>();
-        for (PlacedBlock block : written.blocks()) {
-            BlockPosition position = block.position();
+        for (BlockPosition position : written.positions()) {
             tops.merge(columnKey(position), position, (current, next) -> next.y() > current.y() ? next : current);
         }
         return tops;

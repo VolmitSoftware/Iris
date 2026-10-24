@@ -50,13 +50,16 @@ final class PlacementWorld {
         return has(get(x, y, z), BlockTrait.SOLID);
     }
 
-    PlacedBlock set(int x, int y, int z, BlockState state) {
-        return set(x, y, z, state, Optional.empty());
+    void set(int x, int y, int z, BlockState state) {
+        access.set(x, y, z, state);
     }
 
-    PlacedBlock set(int x, int y, int z, BlockState state, Optional<BlockEntityData> blockEntity) {
-        PlacedBlock block = new PlacedBlock(new BlockPosition(x, y, z), state, blockEntity);
-        access.set(block);
-        return block;
+    /** A block entity needs the record; a plain block takes the write that allocates nothing. */
+    void set(int x, int y, int z, BlockState state, Optional<BlockEntityData> blockEntity) {
+        if (blockEntity.isEmpty()) {
+            access.set(x, y, z, state);
+            return;
+        }
+        access.set(new PlacedBlock(new BlockPosition(x, y, z), state, blockEntity));
     }
 }

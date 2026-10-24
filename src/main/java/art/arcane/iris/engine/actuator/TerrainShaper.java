@@ -75,7 +75,7 @@ final class TerrainShaper {
     /** Fills the 16 x 16 columns of the chunk, one slice along x at a time. */
     void shape(ChunkStageContext context) {
         Chunk chunk = new Chunk(context);
-        for (int sliceX = 0; sliceX < chunk.blocks.getWidth(); sliceX++) {
+        for (int sliceX = 0; sliceX < chunk.blocks.width(); sliceX++) {
             shapeSliver(chunk, sliceX);
         }
     }
@@ -83,8 +83,8 @@ final class TerrainShaper {
     /** One plane from the sky to bedrock, one block thick along x. */
     private void shapeSliver(Chunk chunk, int xf) {
         Hunk<BlockState> h = chunk.blocks;
-        int chunkHeight = h.getHeight();
-        int chunkDepth = h.getDepth();
+        int chunkHeight = h.height();
+        int chunkDepth = h.depth();
         int realX = xf + chunk.originX;
 
         for (int zf = 0; zf < chunkDepth; zf++) {
@@ -192,7 +192,7 @@ final class TerrainShaper {
     /** The upper dimension's ground, filled in from the top of the column down to where it ends. */
     private void fillUpperDimension(Chunk chunk, UpperDimension upper, int xf, int zf, int realX, int realZ) {
         Hunk<BlockState> h = chunk.blocks;
-        int chunkHeight = h.getHeight();
+        int chunkHeight = h.height();
         OptionalInt upperY = chunk.terrain.upperDimensionY(realX, realZ);
         if (upperY.isEmpty()) {
             return;
@@ -273,7 +273,7 @@ final class TerrainShaper {
             this.settings = context.settings();
             this.originX = context.originX();
             this.originZ = context.originZ();
-            this.clampedFluidHeight = Math.min(blocks.getHeight(), terrain.fluidHeight());
+            this.clampedFluidHeight = Math.min(blocks.height(), terrain.fluidHeight());
             int centreX = context.centreX();
             int centreZ = context.centreZ();
             this.bedrockEnabled = settings.at(BedrockSettings.class, centreX, centreZ).dimension().map(BedrockSettings::bedrock).orElse(true);

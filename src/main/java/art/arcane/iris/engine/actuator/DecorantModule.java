@@ -92,9 +92,9 @@ public final class DecorantModule implements IrisModule, ModuleLifecycle {
         int fluidHeight = scene.fluidHeight();
         int worldHeight = scene.worldHeight();
 
-        for (int i = 0; i < output.getWidth(); i++) {
+        for (int i = 0; i < output.width(); i++) {
             int realX = Math.round(x + i);
-            for (int j = 0; j < output.getDepth(); j++) {
+            for (int j = 0; j < output.depth(); j++) {
                 int realZ = Math.round(z + j);
                 DecoratedBiome biome = BiomeDecorators.biomeOf(settings, realX, realZ, terrain.surfaceKind(realX, realZ));
                 if (!decorators.hasDecorators(biome)) {
@@ -103,7 +103,7 @@ public final class DecorantModule implements IrisModule, ModuleLifecycle {
                 int height = terrain.surfaceHeight(realX, realZ);
 
                 if (height >= 0 && height < fluidHeight && scene.isSolid(output.get(i, height, j))
-                        && height + 1 < output.getHeight() && scene.isWater(output.get(i, height + 1, j))) {
+                        && height + 1 < output.height() && scene.isWater(output.get(i, height + 1, j))) {
                     seaSurfaceDecorator.decorate(i, j,
                             realX, Math.round(i + 1), Math.round(x + i - 1),
                             realZ, Math.round(z + j + 1), Math.round(z + j - 1),
@@ -120,7 +120,7 @@ public final class DecorantModule implements IrisModule, ModuleLifecycle {
                             biome, height, worldHeight);
                 }
 
-                if (height >= 0 && height < output.getHeight()) {
+                if (height >= 0 && height < output.height()) {
                     surfaceDecorator.decorate(i, j, realX, realZ, biome, height, worldHeight - height);
                 }
             }

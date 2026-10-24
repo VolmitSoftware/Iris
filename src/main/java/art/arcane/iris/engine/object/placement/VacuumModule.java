@@ -33,6 +33,7 @@ import com.volmit.ModuleSetup;
 import com.volmit.block.BlockState;
 import com.volmit.block.BlockTrait;
 import com.volmit.stage.PlacementStageContext;
+import com.volmit.world.BlockPosition;
 
 /**
  * Module {@code iris:vacuum}: bends the terrain around an object of a vacuum mode so it meets the object's
@@ -68,8 +69,8 @@ public final class VacuumModule implements IrisModule {
         if (!prepared.mode().bendsTerrain() || written.isEmpty() || !prepared.terrain().hasWorld()) {
             return;
         }
-        int baseY = written.blocks().stream().mapToInt(block -> block.position().y()).min().orElseThrow();
-        int topY = written.blocks().stream().mapToInt(block -> block.position().y()).max().orElseThrow();
+        int baseY = written.positions().stream().mapToInt(BlockPosition::y).min().orElseThrow();
+        int topY = written.positions().stream().mapToInt(BlockPosition::y).max().orElseThrow();
         new Bend(context, prepared).apply(baseY, topY);
     }
 

@@ -57,7 +57,7 @@ public final class MatterModule implements IrisModule {
         int originZ = context.originZ();
         Hunk<BlockState> blocks = context.hunk(BlockState.class);
         int[] limits = upperLimits(context.terrain(), originX, originZ);
-        BlockBox chunk = new BlockBox(originX, 0, originZ, originX + CHUNK_WIDTH, blocks.getHeight(), originZ + CHUNK_WIDTH);
+        BlockBox chunk = new BlockBox(originX, 0, originZ, originX + CHUNK_WIDTH, blocks.height(), originZ + CHUNK_WIDTH);
         context.mantle().blocks().visit(chunk, (x, y, z, block) -> {
             int localX = x - originX;
             int localZ = z - originZ;

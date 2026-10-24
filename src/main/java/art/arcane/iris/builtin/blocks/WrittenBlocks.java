@@ -18,25 +18,44 @@
 
 package art.arcane.iris.builtin.blocks;
 
-import com.volmit.placement.PlacedBlock;
+import com.volmit.block.BlockState;
+import com.volmit.world.BlockPosition;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.BiConsumer;
 
-/** The object's own blocks a placement wrote, in world positions, in the order they were written. */
+/**
+ * The object's own blocks a placement wrote, in world positions, in the order they were written. Positions and states
+ * are kept side by side, so recording a block allocates nothing beyond the position the placement already has.
+ */
 public final class WrittenBlocks {
-    private final List<PlacedBlock> blocks = new ArrayList<>();
+    private final List<BlockPosition> positions = new ArrayList<>();
+    private final List<BlockState> states = new ArrayList<>();
 
-    public void add(PlacedBlock block) {
-        blocks.add(block);
+    public void add(BlockPosition position, BlockState state) {
+        positions.add(position);
+        states.add(state);
     }
 
-    public List<PlacedBlock> blocks() {
-        return Collections.unmodifiableList(blocks);
+    public List<BlockPosition> positions() {
+        return Collections.unmodifiableList(positions);
+    }
+
+    /** The written states, each at the index of its position in {@link #positions()}. */
+    public List<BlockState> states() {
+        return Collections.unmodifiableList(states);
+    }
+
+    /** Each written block's position and state, in the order they were written. */
+    public void forEach(BiConsumer<BlockPosition, BlockState> action) {
+        for (int index = 0; index < positions.size(); index++) {
+            action.accept(positions.get(index), states.get(index));
+        }
     }
 
     public boolean isEmpty() {
-        return blocks.isEmpty();
+        return positions.isEmpty();
     }
 }

@@ -95,7 +95,7 @@ public final class DecorationScene {
 
     /** The height of the chunk's volume. */
     public int worldHeight() {
-        return blocks.getHeight();
+        return blocks.height();
     }
 
     public int fluidHeight() {

@@ -138,7 +138,7 @@ final class DepositPlacer {
             this.mantle = context.mantle();
             this.originX = context.originX();
             this.originZ = context.originZ();
-            this.worldHeight = blocks.getHeight();
+            this.worldHeight = blocks.height();
             this.minWorldY = terrain.minWorldY();
         }
 
@@ -413,9 +413,9 @@ final class DepositPlacer {
     }
 
     private static boolean isAirAt(Hunk<BlockState> data, int x, int y, int z, Predicate<BlockState> isAir) {
-        if (x < 0 || x >= data.getWidth()
-                || y < 0 || y >= data.getHeight()
-                || z < 0 || z >= data.getDepth()) {
+        if (x < 0 || x >= data.width()
+                || y < 0 || y >= data.height()
+                || z < 0 || z >= data.depth()) {
             return false;
         }
         return isAir.test(data.get(x, y, z));

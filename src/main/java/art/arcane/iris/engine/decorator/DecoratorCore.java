@@ -109,7 +109,7 @@ final class DecoratorCore {
                                    int x, int z, int realX, int height, int realZ,
                                    boolean underwater, boolean caveSkipFluid) {
         Hunk<BlockState> data = scene.blocks();
-        if (height < 0 || height >= data.getHeight()) {
+        if (height < 0 || height >= data.height()) {
             return;
         }
 
@@ -154,7 +154,7 @@ final class DecoratorCore {
         }
 
         int targetY = height + 1;
-        if (bd != null && targetY < data.getHeight() && scene.isAir(data.get(x, targetY, z))) {
+        if (bd != null && targetY < data.height() && scene.isAir(data.get(x, targetY, z))) {
             data.set(x, targetY, z, fixFacesForHunk(scene, bd, x, z, realX, targetY, realZ));
         }
     }
@@ -174,7 +174,7 @@ final class DecoratorCore {
     static void placeStackUp(ResolvedDecorator decorator, DecorationScene scene, int x, int z, int realX, int realZ,
                              int height, int max, PlaceOpts opts) {
         Hunk<BlockState> data = scene.blocks();
-        if (height < 0 || height >= data.getHeight()) {
+        if (height < 0 || height >= data.height()) {
             return;
         }
 
@@ -187,7 +187,7 @@ final class DecoratorCore {
 
         if (stack == 1) {
             int targetY = height + 1;
-            if (targetY >= data.getHeight()) {
+            if (targetY >= data.height()) {
                 return;
             }
 
@@ -227,7 +227,7 @@ final class DecoratorCore {
                 break;
             }
 
-            if (height + 1 + i >= data.getHeight()) {
+            if (height + 1 + i >= data.height()) {
                 break;
             }
 
@@ -249,7 +249,7 @@ final class DecoratorCore {
     static void placeStackDown(ResolvedDecorator decorator, DecorationScene scene, int x, int z, int realX, int realZ,
                                int height, int minHeight, int max, PlaceOpts opts) {
         Hunk<BlockState> data = scene.blocks();
-        if (height < 0 || height >= data.getHeight()) {
+        if (height < 0 || height >= data.height()) {
             return;
         }
 
@@ -323,7 +323,7 @@ final class DecoratorCore {
             return;
         }
 
-        if (max > 1 && height + 1 < data.getHeight()) {
+        if (max > 1 && height + 1 < data.height()) {
             data.set(xf, height + 1, zf, bd);
         }
     }
@@ -342,7 +342,7 @@ final class DecoratorCore {
         int placed = 0;
         for (int i = 0; i < stack; i++) {
             int h = height + 1 + i;
-            if (h >= height + max || h >= data.getHeight()) {
+            if (h >= height + max || h >= data.height()) {
                 break;
             }
             double threshold = stack == 1 ? 0.0 : ((double) i) / (stack - 1);
@@ -393,7 +393,7 @@ final class DecoratorCore {
 
             int xx = rX + face.dx();
             int zz = rZ + face.dz();
-            if (xx < 0 || xx > CHUNK_LAST || zz < 0 || zz > CHUNK_LAST || yy < 0 || yy >= hunk.getHeight()) {
+            if (xx < 0 || xx > CHUNK_LAST || zz < 0 || zz > CHUNK_LAST || yy < 0 || yy >= hunk.height()) {
                 continue;
             }
 
@@ -430,7 +430,7 @@ final class DecoratorCore {
     private static boolean canPlaceTwoBlockPlant(DecorationScene scene, int x, int z,
                                                  int lowerY, int upperY, boolean caveSkipFluid) {
         Hunk<BlockState> data = scene.blocks();
-        if (lowerY < 0 || upperY >= data.getHeight()) {
+        if (lowerY < 0 || upperY >= data.height()) {
             return false;
         }
 

@@ -273,7 +273,7 @@ public class CaveApplying {
             // Surface-break carving must not leave an ore cap suspended across the opening.
             for (int columnIndex = 0; columnIndex < surfaceHeights.length; columnIndex++) {
                 int surfaceY = surfaceHeights[columnIndex];
-                if (surfaceY <= 0 || surfaceY >= output.getHeight()) {
+                if (surfaceY <= 0 || surfaceY >= output.height()) {
                     continue;
                 }
 
@@ -540,7 +540,7 @@ public class CaveApplying {
         }
 
         private void processZone(CaveZone zone, int rx, int rz, int xx, int zz, Map<String, ResourceId> customBiomeCache) {
-            int maxY = output.getHeight();
+            int maxY = output.height();
 
             if (zone.ceiling + 1 < maxY && classes.isDecorant(output.get(rx, zone.ceiling + 1, rz))) {
                 output.set(rx, zone.ceiling + 1, rz, caveAir);

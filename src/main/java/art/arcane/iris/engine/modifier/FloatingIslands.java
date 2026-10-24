@@ -448,7 +448,7 @@ final class FloatingIslands {
             this.originX = context.originX();
             this.originZ = context.originZ();
             this.output = context.hunk(BlockState.class);
-            this.height = output.getHeight();
+            this.height = output.height();
             this.blocks = context.world().resources().blocks();
             this.settings = context.settings();
             this.explosion = PaletteExplosion.of(settings, context.centreX(), context.centreZ());

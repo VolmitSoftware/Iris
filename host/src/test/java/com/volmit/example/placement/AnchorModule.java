@@ -6,7 +6,7 @@ import com.volmit.ModuleSetup;
 import com.volmit.stage.PlacementStage;
 import com.volmit.stage.PlacementStageContext;
 import com.volmit.stage.Stage;
-import com.volmit.world.BlockPosition;
+import com.volmit.geometry.BlockPosition;
 import com.volmit.world.BlockView;
 
 /** Port of PlacementModuleAnchor with center-height sampling: rest the anchor on the surface. */

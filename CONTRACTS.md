@@ -28,7 +28,7 @@ types that carry them and lists what the Iris adapter still owes.
 | Area a stage writes | `reach(blocks)`, `reach(PackReach)`, `writesMantle(...)` on stage definitions, `PackSettings`, host `StageReach`, `ResolvedStage.reachBlocks`, `PipelineReach` |
 | Settings described for studio | `@Desc`, `@Required`, `@MinNumber`, `@MaxNumber`, `@MinItems`, `@Snippet`, `@Ref`/`Reference`, `FeatureRegistry.registerSettings`, `FeatureRegistry.registerHeldType`, host `FeatureCatalog.heldTypes()`, host `LoadedPack.schema()` (`PackSchema`, `FeatureSchema`, `ObjectType`, `SchemaOption`, `ValueKind` with `HostKind`), `ModuleHost.describingHostTypesIn` |
 | Geometry and mantle registration | `FeatureRegistry`, host `ModuleRegistry`, `FeatureCatalog` |
-| Block states and palettes | `BlockState`, `BlockRegistry`, `BlockPalette`, `BlockSpec` (`BlockRegistry.resolve(BlockSpec)`, `blockEntity`), `PaletteSpec` and `PaletteSampler` (`BlockRegistry.palette`) |
+| Block states and palettes | `BlockState`, `BlockRegistry` (`resolve(BlockSpec)`, `find(key)`, `blockEntity`, `hasTrait`, `oreFor`), `BlockTrait`, `BlockPalette`, `BlockSpec`, `PaletteSpec` and `PaletteSampler` (`BlockRegistry.palette`) |
 | Noise from pack-described styles | `NoiseStyle`, `StyledRange`, `PackResources.noise()`, `NoiseFactory`, `NoiseSampler` |
 | Values in settings | `BlockSpec`, `PaletteSpec`, `NoiseStyle`, `StyledRange`, `Range`, `BlockPosition`, `JigsawOverrides`, `Object` as `ValueKind.AnyKind` |
 | Decisions over and fit of the platform's own structures | service `VanillaStructures` (`rule`, `starts`, `shift`, `reach`, `beforePieces`, `afterPieces`, `setup`, `startedStructures`, `locatableStarts`, `locateStart`, `ChunkFilter`), `VanillaStructureRule`, `VanillaStructureContext`, `VanillaStructureStart`, `VanillaStructureStartContext`, `VanillaStructureSetup`, `PlatformStart`, `StartMemo`, `StartReach`, `StructureFit` (`Start`, `Piece`, `ColumnVisitor`), `DecorationStep`, `TerrainAdaptation`, `PieceKind`, `TemplateCells`, `world.BlockAccess`, host `FeatureCatalog.registrations(service)` |
@@ -39,7 +39,8 @@ types that carry them and lists what the Iris adapter still owes.
 | Module lifecycle across loads, hotloads and reloads | `ModuleLifecycle`, `PackContext`, `FeatureRegistry.registerLifecycle`, host `FeatureCatalog.lifecycles()`, `LifecycleRunner` |
 | Host questions answered by modules | `@Service`, `Providers`, `FeatureRegistry.registerService`, host `FeatureCatalog.services(type)` / `service(type)`; services `ObjectsAt`, `StructureLocator` (`LocateResult`), `SaplingGrowth`, `Loot`, `BlockDrops`, `EntitySpawns`, `CaveBiomes`, `AmbientEffects`, `VanillaFeatures` (`DecorationStep`); values `ItemDrop`, `EntitySpec`, `ItemRegistry` (`PackResources.items()`) |
 | Terrain and settings sampling | `TerrainSampler`, `BiomeSample`, `TerrainSample`, `FeatureSettings` |
-| Dense chunk output | `Hunk<T>`, `GenerationContext.hunk`, reference `ArrayHunk<T>` |
+| Dense chunk output | `Hunk<T>`, `GenerationContext.blocks`, reference `ArrayHunk<T>` |
+| Positions, boxes and faces | `com.volmit.geometry`: `BlockPosition`, `BlockBox`, `BlockFace` |
 | Sparse geometry and transforms | `ObjectGenerator`, `GeneratedObject`, `ObjectTransform`, `ObjectTransformer` |
 | Buffered placement writes | `PlacementRequest`, `PlacementAccess`, host-owned `PlacementEdit` |
 | Typed generation and persistent storage | `mantle` package |
@@ -238,7 +239,10 @@ running Iris is the pack publisher's responsibility.
   has one; the default is `sample * 2 - 1`.
   Answer `NoiseSampler.scaled(factor)` by building the generator again with the factor folded into its scale, leaving the sampler it
   is called on untouched (the default multiplies the coordinates, which may round differently).
-- Answer `PackWorld.minHeight()` (the platform's Y of the dimension's bottom), `PackResources.idOf(key)` (the ids the host gives
+- Answer `PackWorld.minWorldY()` with the platform's Y of the dimension's bottom, the same number `TerrainSampler.minWorldY()`,
+  `PlatformStart.minWorldY()` and `StructureFit.minWorldY()` give. Answer `BlockRegistry.find(key)` with the platform's block at
+  its default properties, empty for a block or property the platform lacks.
+- Answer `PackResources.idOf(key)` (the ids the host gives
   its own resources, characters an id cannot hold replaced) and `TerrainSampler.caveBiome(x, y, z)` (the cave biome of a block,
   without the work of the rest of the sample) when the defaults do not fit the host.
 - Answer `BlockRegistry.hasTrait` (`VINE` included) and `canPlaceOn` (the support rule decorations need) as the platform

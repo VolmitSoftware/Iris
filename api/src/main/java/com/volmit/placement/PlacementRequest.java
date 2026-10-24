@@ -1,9 +1,9 @@
 package com.volmit.placement;
 
-import com.volmit.mantle.BlockBox;
+import com.volmit.geometry.BlockBox;
+import com.volmit.geometry.BlockPosition;
 import com.volmit.object.GeneratedObject;
 import com.volmit.resource.ResourceId;
-import com.volmit.world.BlockPosition;
 import java.util.Objects;
 
 /** One placement attempt. Geometry is already transformed; anchor is a world block position (world X and Z, Y as the height

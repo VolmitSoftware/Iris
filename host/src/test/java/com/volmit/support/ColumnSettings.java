@@ -3,7 +3,9 @@ package com.volmit.support;
 import com.volmit.IrisFeature;
 import com.volmit.config.FeatureSettings;
 import com.volmit.config.SettingsStack;
+import com.volmit.resource.ResourceId;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.BiFunction;
 
 /** Settings declared per world column by a function, for chunk and mantle tests. */
@@ -29,5 +31,10 @@ public final class ColumnSettings implements FeatureSettings {
                 .filter(entry -> featureType.isInstance(entry.value()))
                 .map(entry -> (Entry<F>) entry)
                 .toList());
+    }
+
+    @Override
+    public <F extends IrisFeature> Optional<F> declaredBy(ResourceId biome, Class<F> featureType) {
+        return Optional.empty();
     }
 }

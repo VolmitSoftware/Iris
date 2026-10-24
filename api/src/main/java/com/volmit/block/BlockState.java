@@ -11,8 +11,10 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /** Immutable, platform-neutral block description with value equality.
- * Construction validates syntax, not platform availability or valid material properties.
- * Resolve through BlockRegistry before writing. Custom-content IDs are allowed.
+ * Construction validates syntax, not platform availability or valid material properties. Custom-content IDs are
+ * allowed. A state may be written as it is: the host gives the properties it leaves out the platform's defaults. The
+ * states the host hands out (from the world, a hunk, {@link BlockRegistry}) are complete, with every property, so a
+ * module compares them with a complete state, which {@link BlockRegistry#find} or {@link BlockRegistry#resolve} give.
  */
 public record BlockState(ResourceId material, Map<String, String> properties) {
     private static final String PROPERTIES_START = "[";

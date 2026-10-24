@@ -1,6 +1,6 @@
 package com.volmit.vanilla;
 
-import com.volmit.mantle.BlockBox;
+import com.volmit.geometry.BlockBox;
 import com.volmit.resource.ResourceId;
 
 /** One of the platform's own starts, as the platform made it, before the host publishes it. Valid only while the
@@ -26,8 +26,10 @@ public interface PlatformStart {
      */
     boolean aligned();
 
-    /** The world height of the dimension's bottom, for rules written in world heights, such as a band of world Y. */
-    int bottomY();
+    /** The Y in the world of the dimension's bottom block, such as {@code -64}, for rules written in world heights, such
+     * as a band of world Y; the same number as {@link com.volmit.world.PackWorld#minWorldY()}.
+     */
+    int minWorldY();
 
     /** The height of the terrain's surface at a column, above the dimension's bottom: the highest block of the terrain
      * the host generated there, fluids ignored.

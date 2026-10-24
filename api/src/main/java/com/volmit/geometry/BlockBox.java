@@ -1,4 +1,4 @@
-package com.volmit.mantle;
+package com.volmit.geometry;
 
 import java.util.Objects;
 

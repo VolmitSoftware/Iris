@@ -1,6 +1,7 @@
 package com.volmit.mantle;
 
 import com.volmit.block.BlockState;
+import com.volmit.geometry.BlockBox;
 
 /**
  * Invocation-scoped access to typed mantle data. X and Z are world block coordinates; Y is

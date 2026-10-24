@@ -8,7 +8,7 @@ import com.volmit.stage.BlockStage;
 import com.volmit.stage.PlacementStage;
 import com.volmit.stage.PlacementStageContext;
 import com.volmit.stage.Stage;
-import com.volmit.world.BlockPosition;
+import com.volmit.geometry.BlockPosition;
 
 /** Port of PlacementModuleStilt: collect the lowest layer per block, then fill down after writes. */
 public final class StiltModule implements IrisModule {

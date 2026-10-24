@@ -1,5 +1,7 @@
 package com.volmit.mantle;
 
+import com.volmit.geometry.BlockBox;
+
 /** A registered layer bounded by its owning Mantle view and sharing its lifetime.
  * Values must be non-null and treated as immutable. Wrong value types are rejected with
  * IllegalArgumentException; null arguments with NullPointerException.

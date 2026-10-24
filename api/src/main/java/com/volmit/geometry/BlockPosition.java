@@ -1,4 +1,4 @@
-package com.volmit.world;
+package com.volmit.geometry;
 
 /** A block position. Owning contracts specify whether it is local or in the world. A world position has
  * world X and Z and a Y that is the height above the dimension's bottom (0 = bottom).

@@ -1,7 +1,7 @@
 package com.volmit.service;
 
 import com.volmit.entity.EntitySpec;
-import com.volmit.world.BlockPosition;
+import com.volmit.geometry.BlockPosition;
 import com.volmit.world.PackWorld;
 import java.util.List;
 import java.util.Objects;

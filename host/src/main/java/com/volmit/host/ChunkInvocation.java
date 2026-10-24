@@ -1,6 +1,7 @@
 package com.volmit.host;
 
 import com.volmit.IrisFeature;
+import com.volmit.block.BlockState;
 import com.volmit.config.FeatureSettings;
 import com.volmit.config.SettingsStack;
 import com.volmit.generation.GenerationContext;
@@ -68,8 +69,8 @@ final class ChunkInvocation implements ChunkStageContext {
     }
 
     @Override
-    public <T> Hunk<T> hunk(Class<T> type) {
-        return inputs.hunk(type);
+    public Hunk<BlockState> blocks() {
+        return inputs.blocks();
     }
 
     @Override

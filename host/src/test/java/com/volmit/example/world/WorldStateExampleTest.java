@@ -95,7 +95,7 @@ class WorldStateExampleTest {
             var startedWith = RuinsModule.planted(world);
             assertEquals(TestContexts.SEED, startedWith.seed);
 
-            new ChunkRunner(pack.chunk()).generate(TestContexts.generation(Map.of(), ColumnSettings.NONE, null, world), TestContexts.SEED,
+            new ChunkRunner(pack.chunk()).generate(TestContexts.generation(null,ColumnSettings.NONE, null, world), TestContexts.SEED,
                     StageTimings.NONE);
 
             assertSame(startedWith, RuinsModule.planted(world), "the stage used the state the hook built");

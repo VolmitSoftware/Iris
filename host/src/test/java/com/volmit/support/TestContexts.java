@@ -1,5 +1,6 @@
 package com.volmit.support;
 
+import com.volmit.block.BlockState;
 import com.volmit.config.FeatureSettings;
 import com.volmit.generation.GenerationContext;
 import com.volmit.generation.MantleGenerationContext;
@@ -10,7 +11,6 @@ import com.volmit.placement.PlacementContext;
 import com.volmit.world.TerrainSampler;
 import com.volmit.world.BlockView;
 import com.volmit.world.PackWorld;
-import java.util.Map;
 
 /** Tests needing no platform facilities fail loudly if code starts using one. */
 public final class TestContexts {
@@ -18,17 +18,20 @@ public final class TestContexts {
 
     private TestContexts() {}
 
-    public static GenerationContext generation(Map<Class<?>, Hunk<?>> hunks) {
-        return generation(hunks, null, null);
+    /** The chunk at the origin; a null {@code blocks} fails when used. */
+    public static GenerationContext generation(Hunk<BlockState> blocks) {
+        return generation(blocks, null, null);
     }
 
-    /** The chunk at the origin; a null {@code settings} or {@code mantle} fails when used. */
-    public static GenerationContext generation(Map<Class<?>, Hunk<?>> hunks, FeatureSettings settings, Mantle mantle) {
-        return generation(hunks, settings, mantle, null);
+    /** The chunk at the origin; a null {@code blocks}, {@code settings} or {@code mantle} fails when used. */
+    public static GenerationContext generation(Hunk<BlockState> blocks, FeatureSettings settings, Mantle mantle) {
+        return generation(blocks, settings, mantle, null);
     }
 
-    /** The chunk at the origin in {@code world}; a null {@code settings}, {@code mantle} or {@code world} fails when used. */
-    public static GenerationContext generation(Map<Class<?>, Hunk<?>> hunks, FeatureSettings settings, Mantle mantle, PackWorld world) {
+    /** The chunk at the origin in {@code world}; a null {@code blocks}, {@code settings}, {@code mantle} or {@code world}
+     * fails when used.
+     */
+    public static GenerationContext generation(Hunk<BlockState> blocks, FeatureSettings settings, Mantle mantle, PackWorld world) {
         return new GenerationContext() {
             public int originX() { return 0; }
             public int originZ() { return 0; }
@@ -36,12 +39,7 @@ public final class TestContexts {
             public TerrainSampler terrain() { throw new AssertionError("Unused terrain"); }
             public FeatureSettings settings() { return used(settings, "settings"); }
             public Mantle mantle() { return used(mantle, "mantle"); }
-            @SuppressWarnings("unchecked")
-            public <T> Hunk<T> hunk(Class<T> type) {
-                var hunk = hunks.get(type);
-                if (hunk == null) throw new IllegalArgumentException("No hunk of " + type.getName());
-                return (Hunk<T>) hunk;
-            }
+            public Hunk<BlockState> blocks() { return used(blocks, "blocks"); }
         };
     }
 

@@ -1,6 +1,6 @@
 package com.volmit.service;
 
-import com.volmit.world.BlockPosition;
+import com.volmit.geometry.BlockPosition;
 import java.util.Objects;
 
 /** How a search for something in a world ended: found at a position, not there, or given up before covering the whole

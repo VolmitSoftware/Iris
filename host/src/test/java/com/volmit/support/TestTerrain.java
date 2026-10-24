@@ -1,7 +1,7 @@
 package com.volmit.support;
 
 import com.volmit.block.BlockState;
-import com.volmit.mantle.BlockBox;
+import com.volmit.geometry.BlockBox;
 import com.volmit.world.BlockView;
 import java.util.function.IntBinaryOperator;
 

@@ -1,13 +1,13 @@
 package com.volmit.support;
 
 import com.volmit.block.BlockState;
-import com.volmit.mantle.BlockBox;
+import com.volmit.geometry.BlockBox;
+import com.volmit.geometry.BlockPosition;
 import com.volmit.mantle.Mantle;
 import com.volmit.mantle.MantleEdit;
 import com.volmit.mantle.MantleKey;
 import com.volmit.mantle.MantleLayer;
 import com.volmit.mantle.MantleVisitor;
-import com.volmit.world.BlockPosition;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;

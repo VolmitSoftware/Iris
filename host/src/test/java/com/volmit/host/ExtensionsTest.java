@@ -4,6 +4,7 @@ import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
 import com.volmit.ModuleLog;
 import com.volmit.ModuleSetup;
+import com.volmit.block.BlockState;
 import com.volmit.config.FeatureSettings;
 import com.volmit.config.PackSettings;
 import com.volmit.generation.GenerationContext;
@@ -49,7 +50,7 @@ class ExtensionsTest {
             }
         };
         var world = new OfferingWorld(new WorldOffer("iris"));
-        var inputs = new OfferingChunk(TestContexts.generation(Map.of(), null, null, world), new ChunkOffer(0));
+        var inputs = new OfferingChunk(TestContexts.generation(null, null, null, world), new ChunkOffer(0));
 
         new ChunkRunner(TestSetups.stages(module).resolve(Pipeline.CHUNK)).generate(inputs, TestContexts.SEED, StageTimings.NONE);
 
@@ -81,6 +82,7 @@ class ExtensionsTest {
         public long seed() { return TestContexts.SEED; }
         public PackResources resources() { throw new AssertionError("Unused resources"); }
         public PackSettings settings() { throw new AssertionError("Unused settings"); }
+        public int minWorldY() { return 0; }
         public <T> T state(Class<T> type, Function<? super PackWorld, ? extends T> create) { return states.state(type, () -> create.apply(this)); }
         public ModuleLog log() { return ModuleLogs.discarding(); }
 
@@ -96,7 +98,7 @@ class ExtensionsTest {
         public TerrainSampler terrain() { return inputs.terrain(); }
         public FeatureSettings settings() { return inputs.settings(); }
         public Mantle mantle() { return inputs.mantle(); }
-        public <T> Hunk<T> hunk(Class<T> type) { return inputs.hunk(type); }
+        public Hunk<BlockState> blocks() { return inputs.blocks(); }
         public PackWorld world() { return inputs.world(); }
 
         @Override

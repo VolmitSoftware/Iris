@@ -31,13 +31,12 @@ public interface PackWorld {
     /** The settings of the world's dimension and of every region and biome it can reach, as mantle reaches see them. */
     PackSettings settings();
 
-    /** The platform's Y of the dimension's bottom (-64 in the overworld). Every height the API carries is above that
-     * bottom; settings that name an absolute world Y, as packs write them for the platform, are converted with it:
-     * {@code heightAboveBottom = worldY - minHeight()}. Zero unless the host's dimensions begin below Y 0.
+    /** The Y in the world of the dimension's bottom block, such as {@code -64} in the overworld. Every height the API
+     * carries is above that bottom; settings that name an absolute world Y, as packs write them for the platform, are
+     * converted with it: {@code heightAboveBottom = worldY - minWorldY()}. The same number as
+     * {@link TerrainSampler#minWorldY()}.
      */
-    default int minHeight() {
-        return 0;
-    }
+    int minWorldY();
 
     /**
      * The world's one {@code type} instance, created by {@code create} the first time anyone asks for it. Modules keep

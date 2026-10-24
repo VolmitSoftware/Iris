@@ -1,7 +1,7 @@
 package com.volmit.generation;
 
 import com.volmit.config.FeatureSettings;
-import com.volmit.mantle.BlockBox;
+import com.volmit.geometry.BlockBox;
 import com.volmit.world.TerrainSampler;
 
 /** What chunk and mantle invocations share: the chunk they run for, its terrain and its settings. X and Z are world

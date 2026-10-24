@@ -44,6 +44,11 @@ public final class TestWorld implements PackWorld, AutoCloseable {
     }
 
     @Override
+    public int minWorldY() {
+        return 0;
+    }
+
+    @Override
     public <T> T state(Class<T> type, Function<? super PackWorld, ? extends T> create) {
         return states.state(type, () -> create.apply(this));
     }

@@ -1,5 +1,6 @@
 package com.volmit.generation;
 
+import com.volmit.block.BlockState;
 import com.volmit.hunk.Hunk;
 import com.volmit.mantle.Mantle;
 import com.volmit.world.TerrainSampler;
@@ -30,8 +31,9 @@ public interface GenerationContext extends ChunkContext {
      */
     Mantle mantle();
 
-    /** The host-owned local volume of the given value type, shared by all stages of this
-     * invocation. Unsupported types throw IllegalArgumentException.
+    /** The chunk's blocks, which the stages of this invocation build one after the other: a volume of 16 by the
+     * dimension's height by 16, local to the chunk, owned by the host and shared by every stage of the invocation.
+     * Empty space is air.
      */
-    <T> Hunk<T> hunk(Class<T> type);
+    Hunk<BlockState> blocks();
 }

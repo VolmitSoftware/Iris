@@ -1,6 +1,6 @@
 package com.volmit.example.placement;
 
-import com.volmit.world.BlockPosition;
+import com.volmit.geometry.BlockPosition;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;

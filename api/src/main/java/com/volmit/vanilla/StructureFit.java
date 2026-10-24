@@ -2,10 +2,10 @@ package com.volmit.vanilla;
 
 import com.volmit.ModuleLog;
 import com.volmit.block.BlockState;
-import com.volmit.mantle.BlockBox;
+import com.volmit.geometry.BlockBox;
+import com.volmit.geometry.BlockPosition;
 import com.volmit.resource.ResourceId;
 import com.volmit.world.BlockAccess;
-import com.volmit.world.BlockPosition;
 import com.volmit.world.PackWorld;
 import java.util.List;
 import java.util.Optional;
@@ -33,10 +33,11 @@ public interface StructureFit {
      */
     BlockBox area();
 
-    /** The world height of the dimension's bottom, for rules written in world heights: a band of world heights, the
-     * platform's deepslate below 0, noise sampled at world heights.
+    /** The Y in the world of the dimension's bottom block, such as {@code -64}, for rules written in world heights: a
+     * band of world heights, the platform's deepslate below 0, noise sampled at world heights. The same number as
+     * {@link PackWorld#minWorldY()}.
      */
-    int bottomY();
+    int minWorldY();
 
     /** The chunk column's live blocks. */
     BlockAccess blocks();

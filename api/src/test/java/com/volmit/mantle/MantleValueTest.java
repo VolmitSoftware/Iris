@@ -1,5 +1,6 @@
 package com.volmit.mantle;
 
+import com.volmit.geometry.BlockBox;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;

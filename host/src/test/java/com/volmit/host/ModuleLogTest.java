@@ -224,7 +224,7 @@ class ModuleLogTest {
         var runner = new ChunkRunner(builder.resolve(Pipeline.CHUNK));
 
         try (var world = new TestWorld()) {
-            runner.generate(TestContexts.generation(Map.of(), null, null, world), TestContexts.SEED, StageTimings.NONE);
+            runner.generate(TestContexts.generation(null, null, null, world), TestContexts.SEED, StageTimings.NONE);
         }
 
         assertEquals(List.of("[test:alpha] context", "[test:alpha] world", "[test:beta] context", "[test:beta] world"),
@@ -305,7 +305,7 @@ class ModuleLogTest {
 
         try (var first = new TestWorld(); var second = new TestWorld()) {
             for (var world : List.of(first, first, second)) {
-                runner.generate(TestContexts.generation(Map.of(), null, null, world), TestContexts.SEED, StageTimings.NONE);
+                runner.generate(TestContexts.generation(null, null, null, world), TestContexts.SEED, StageTimings.NONE);
             }
         }
 

@@ -1,7 +1,7 @@
 package com.volmit.object;
 
 import com.volmit.block.BlockState;
-import com.volmit.world.BlockPosition;
+import com.volmit.geometry.BlockPosition;
 import java.util.Objects;
 import java.util.Optional;
 

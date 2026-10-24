@@ -1,12 +1,12 @@
 package com.volmit.support;
 
 import com.volmit.block.BlockState;
-import com.volmit.mantle.BlockBox;
+import com.volmit.geometry.BlockBox;
+import com.volmit.geometry.BlockPosition;
 import com.volmit.mantle.Mantle;
 import com.volmit.placement.PlacedBlock;
 import com.volmit.placement.PlacedMarker;
 import com.volmit.placement.PlacementEdit;
-import com.volmit.world.BlockPosition;
 import com.volmit.world.BlockView;
 import java.util.ArrayList;
 import java.util.HashMap;

@@ -30,7 +30,7 @@ public final class TerrainModule implements IrisModule {
     }
 
     private static SurfaceHeights shape(ChunkStageContext context) {
-        var blocks = context.hunk(BlockState.class);
+        var blocks = context.blocks();
         var heights = new SurfaceHeights(blocks.width(), blocks.depth());
         for (int x = 0; x < blocks.width(); x++) {
             for (int z = 0; z < blocks.depth(); z++) {

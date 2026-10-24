@@ -4,7 +4,8 @@ import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
 import com.volmit.ModuleSetup;
 import com.volmit.block.BlockState;
-import com.volmit.mantle.BlockBox;
+import com.volmit.geometry.BlockBox;
+import com.volmit.geometry.BlockPosition;
 import com.volmit.object.GeneratedObject;
 import com.volmit.object.ObjectBlock;
 import com.volmit.placement.PlacementRequest;
@@ -17,7 +18,6 @@ import com.volmit.support.MemoryEdit;
 import com.volmit.support.TestContexts;
 import com.volmit.support.TestSetups;
 import com.volmit.support.TestTerrain;
-import com.volmit.world.BlockPosition;
 import org.junit.jupiter.api.Test;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -131,7 +131,7 @@ class StageStreamsTest {
         var graph = resolve(Pipeline.CHUNK, module("a:mod", stages -> stages.define(Stage.chunk("a:mod/ores"))
                 .run(context -> drawn.add((long) context.random().nextInt(BOUND)))));
 
-        new ChunkRunner(graph).generate(TestContexts.generation(Map.of()), TestContexts.SEED, StageTimings.NONE);
+        new ChunkRunner(graph).generate(TestContexts.generation(null), TestContexts.SEED, StageTimings.NONE);
 
         assertEquals(firstDraws(TestContexts.SEED, "a:mod/ores", 1), drawn);
     }

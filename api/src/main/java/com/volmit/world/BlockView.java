@@ -1,7 +1,7 @@
 package com.volmit.world;
 
 import com.volmit.block.BlockState;
-import com.volmit.mantle.BlockBox;
+import com.volmit.geometry.BlockBox;
 
 /** Blocks of an area to read: a placement's prepared generation blocks ({@link com.volmit.placement.PlacementContext#blocks()}),
  * or, through {@link BlockAccess}, the live blocks of the platform's world. X and Z are world coordinates;

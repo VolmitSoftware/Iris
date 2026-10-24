@@ -20,7 +20,7 @@ import com.volmit.host.LoadedModules;
 import com.volmit.host.MantleRunner;
 import com.volmit.host.StageTimings;
 import com.volmit.hunk.Hunk;
-import com.volmit.mantle.BlockBox;
+import com.volmit.geometry.BlockBox;
 import com.volmit.mantle.MantleLayer;
 import com.volmit.resource.ResourceId;
 import com.volmit.stage.ChunkStageContext;
@@ -66,7 +66,7 @@ class ChunkPipelineTest {
 
     private static Hunk<BlockState> generate(ColumnSettings settings) {
         var blocks = new ArrayHunk<>(BlockState.class, SIZE, HEIGHT, SIZE, AIR);
-        runner().generate(TestContexts.generation(Map.of(BlockState.class, blocks), settings, null), TestContexts.SEED, StageTimings.NONE);
+        runner().generate(TestContexts.generation(blocks, settings, null), TestContexts.SEED, StageTimings.NONE);
         return blocks;
     }
 
@@ -128,7 +128,7 @@ class ChunkPipelineTest {
         var settings = new ColumnSettings((x, z) -> List.of(dimension, x < 8 ? swamp : plains));
 
         new ChunkRunner(TestSetups.stages(module).resolve(Pipeline.CHUNK))
-                .generate(TestContexts.generation(Map.of(), settings, null), TestContexts.SEED, StageTimings.NONE);
+                .generate(TestContexts.generation(null,settings, null), TestContexts.SEED, StageTimings.NONE);
 
         assertEquals(List.of(List.of(DIMENSION, SWAMP, PLAINS), List.of(DIMENSION, SWAMP)), received,
                 "the body sees every level of every column, a column read that column's levels");
@@ -150,7 +150,7 @@ class ChunkPipelineTest {
         var blocks = new ArrayHunk<>(BlockState.class, CHUNK, HEIGHT, CHUNK, AIR);
         var chunkArea = new BlockBox(0, BOTTOM, 0, CHUNK, TOP, CHUNK);
         new ChunkRunner(loaded.chunk()).generate(
-                TestContexts.generation(Map.of(BlockState.class, blocks), ColumnSettings.NONE, mantle.within(chunkArea)), TestContexts.SEED,
+                TestContexts.generation(blocks, ColumnSettings.NONE, mantle.within(chunkArea)), TestContexts.SEED,
                 StageTimings.NONE);
         assertEquals(VeinModule.ORE_BLOCK, blocks.get(7, 4, 7));
         assertEquals(VeinModule.ORE_BLOCK, blocks.get(15, 4, 7));
@@ -169,7 +169,7 @@ class ChunkPipelineTest {
             public ModuleInfo info() { return ModuleInfo.of("test:copy", "Copy", "1"); }
             public void setup(ModuleSetup setup) {
                 setup.stages().define(copy).run(context -> {
-                    var blocks = context.hunk(BlockState.class);
+                    var blocks = context.blocks();
                     context.mantle().blocks().visit(chunkArea, (x, y, z, block) -> blocks.set(x, y, z, block));
                 });
             }
@@ -177,7 +177,7 @@ class ChunkPipelineTest {
         var blocks = new ArrayHunk<>(BlockState.class, CHUNK, HEIGHT, CHUNK, GRASS);
 
         new ChunkRunner(TestSetups.stages(module).resolve(Pipeline.CHUNK)).generate(
-                TestContexts.generation(Map.of(BlockState.class, blocks), ColumnSettings.NONE, mantle.within(chunkArea)), TestContexts.SEED,
+                TestContexts.generation(blocks, ColumnSettings.NONE, mantle.within(chunkArea)), TestContexts.SEED,
                 StageTimings.NONE);
 
         assertEquals(stone, blocks.get(3, 2, 5));
@@ -205,7 +205,7 @@ class ChunkPipelineTest {
         var blocks = new ArrayHunk<>(BlockState.class, CHUNK, HEIGHT, CHUNK, AIR);
 
         new ChunkRunner(TestSetups.stages(module).resolve(Pipeline.CHUNK)).generate(
-                TestContexts.generation(Map.of(BlockState.class, blocks), ColumnSettings.NONE, mantle.within(chunkArea)), TestContexts.SEED,
+                TestContexts.generation(blocks, ColumnSettings.NONE, mantle.within(chunkArea)), TestContexts.SEED,
                 StageTimings.NONE);
 
         assertEquals(List.of("true", "false"), carved);
@@ -216,7 +216,7 @@ class ChunkPipelineTest {
         var timed = new ArrayList<String>();
         var blocks = new ArrayHunk<>(BlockState.class, SIZE, HEIGHT, SIZE, AIR);
 
-        runner().generate(TestContexts.generation(Map.of(BlockState.class, blocks), ColumnSettings.NONE, null), TestContexts.SEED,
+        runner().generate(TestContexts.generation(blocks, ColumnSettings.NONE, null), TestContexts.SEED,
                 (stage, nanos) -> timed.add(stage.stage().id() + (nanos >= 0 ? "" : " ran backwards")));
 
         assertEquals(List.of("iris:terrain/surface"), timed, "grass has no settings here, so it does not run and is not reported");
@@ -228,7 +228,7 @@ class ChunkPipelineTest {
         var aroundTheChunk = new BlockBox(-CHUNK, BOTTOM, -CHUNK, 2 * CHUNK, TOP, 2 * CHUNK);
         var graph = TestSetups.stages(oreWriter((context, layer) -> layer.set(15, 3, 0, 1))).resolve(Pipeline.CHUNK);
 
-        new ChunkRunner(graph).generate(TestContexts.generation(Map.of(), ColumnSettings.NONE, mantle.within(aroundTheChunk)),
+        new ChunkRunner(graph).generate(TestContexts.generation(null,ColumnSettings.NONE, mantle.within(aroundTheChunk)),
                 TestContexts.SEED, StageTimings.NONE);
 
         assertEquals(1, mantle.get(VeinModule.ORE, 15, 3, 0));
@@ -248,7 +248,7 @@ class ChunkPipelineTest {
             views.add(context.mantle().blocks());
         })).resolve(Pipeline.CHUNK);
 
-        new ChunkRunner(graph).generate(TestContexts.generation(Map.of(), ColumnSettings.NONE, mantle.within(aroundTheChunk)),
+        new ChunkRunner(graph).generate(TestContexts.generation(null,ColumnSettings.NONE, mantle.within(aroundTheChunk)),
                 TestContexts.SEED, StageTimings.NONE);
 
         assertSame(views.get(0), views.get(1));
@@ -265,7 +265,7 @@ class ChunkPipelineTest {
             read.add(layer.get(CHUNK, 0, 0));
             layer.set(CHUNK, 0, 0, 1);
         })).resolve(Pipeline.CHUNK);
-        var inputs = TestContexts.generation(Map.of(), ColumnSettings.NONE, mantle.within(aroundTheChunk));
+        var inputs = TestContexts.generation(null,ColumnSettings.NONE, mantle.within(aroundTheChunk));
 
         var failure = assertThrows(UnsupportedOperationException.class,
                 () -> new ChunkRunner(graph).generate(inputs, TestContexts.SEED, StageTimings.NONE));

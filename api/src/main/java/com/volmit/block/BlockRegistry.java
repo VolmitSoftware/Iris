@@ -1,23 +1,30 @@
 package com.volmit.block;
 
+import com.volmit.geometry.BlockFace;
 import com.volmit.object.BlockEntityData;
 import com.volmit.resource.ResourceId;
 import java.util.Optional;
 
-/** Host adapter for resolved states and cached behavior. No native platform objects escape.
- * Unknown materials, unsupported properties, and malformed states throw IllegalArgumentException.
- * Methods are safe for concurrent generation calls; predicates must not read the live world.
+/** What the platform knows about blocks, for one pack snapshot. No native platform objects escape. Methods are safe for
+ * concurrent generation calls; predicates must not read the live world.
+ *
+ * <p>Two ways to get a state: {@link #resolve(BlockSpec)} reads a block the way packs write it (a custom block of the
+ * pack, a backup, never failing), {@link #find(String)} asks the platform for exactly one block. Both answer complete
+ * states, with every property the platform gives the block, like the states the host hands out; compare against those.
  */
 public interface BlockRegistry {
-    BlockState resolve(String key);
-    default BlockState resolve(BlockState state) { return resolve(state.key()); }
-
     /** The state {@code spec} names, resolved the way packs expect, so it never throws for a block the platform lacks:
      * a block of the pack's {@code blocks} folder with the spec's properties over its own, else the platform's block
      * (a key without a namespace is {@code minecraft:}) with the spec's properties, else the backup resolved the same
      * way, else air.
      */
     BlockState resolve(BlockSpec spec);
+
+    /** The platform's block {@code key}, such as {@code minecraft:lava} or {@code minecraft:oak_log[axis=y]}, with the
+     * properties the key leaves out at the platform's defaults; empty when the platform has no such block or property.
+     * For a module that must know whether the platform has a block, unlike {@link #resolve(BlockSpec)}.
+     */
+    Optional<BlockState> find(String key);
 
     /** The block entity {@code spec}'s {@code tileData} describes, in the host's format; empty when the spec has none
      * or its resolved block has no block entity.
@@ -35,12 +42,9 @@ public interface BlockRegistry {
     PaletteSampler palette(PaletteSpec spec, long seed);
 
     /** The ore that suits the {@code rock} it is placed in, which the platform decides: an ore placed in deepslate is its
-     * deepslate variant, one placed in other rock its ordinary one. {@code ore} itself when it has no variant, and by
-     * default for a registry that knows none.
+     * deepslate variant, one placed in other rock its ordinary one; {@code ore} itself when it has no variant.
      */
-    default BlockState oreFor(BlockState rock, BlockState ore) {
-        return ore;
-    }
+    BlockState oreFor(BlockState rock, BlockState ore);
 
     boolean hasTrait(BlockState state, BlockTrait trait);
     boolean inTag(BlockState state, ResourceId tag);

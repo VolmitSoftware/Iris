@@ -6,7 +6,7 @@ import com.volmit.ModuleSetup;
 import com.volmit.block.BlockState;
 import com.volmit.config.PackSettings;
 import com.volmit.generation.ChunkContext;
-import com.volmit.mantle.BlockBox;
+import com.volmit.geometry.BlockBox;
 import com.volmit.mantle.MantleCodec;
 import com.volmit.mantle.MantleKey;
 import com.volmit.mantle.MantleLifetime;
@@ -62,7 +62,7 @@ public final class VeinModule implements IrisModule {
     }
 
     private static void place(ChunkStageContext context) {
-        var blocks = context.hunk(BlockState.class);
+        var blocks = context.blocks();
         var chunk = new BlockBox(context.originX(), 0, context.originZ(),
                 context.originX() + blocks.width(), blocks.height(), context.originZ() + blocks.depth());
         context.mantle().layer(ORE).visit(chunk, (x, y, z, planned) ->

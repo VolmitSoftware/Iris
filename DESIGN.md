@@ -539,7 +539,7 @@ the platform's Y at its boundary.
 ## Chunk invocations
 
 `ChunkRunner.generate(inputs, invocationSeed, timings)` runs active chunk stages once each in resolved order.
-`GenerationContext.hunk(type)` returns the host-owned local volume of that value type, shared by
+`GenerationContext.blocks()` returns the host-owned local volume of the chunk's blocks, shared by
 all stages of the invocation. Hunk coordinates are local. Samples and mantle coordinates use
 world X and Z, and Y as the height above the dimension's bottom. A chunk stage writes only its own chunk and reads the mantle: the runner hands it a view
 whose writes throw. The runner does no neighbor scheduling or rollback. A failed invocation must stop
@@ -853,7 +853,7 @@ withers return copies, and equality is by value, so the host can cache by them.
 | `IrisGeneratorStyle` | `com.volmit.noise.NoiseStyle` | `PackResources.noise()`, a `NoiseFactory` building `NoiseSampler`s |
 | `IrisStyledRange` | `com.volmit.noise.StyledRange` | `at(noise, seed, x, z)` |
 | `IrisRange` | `com.volmit.config.Range` | none: `contains`, `pick(WorldRandom)` |
-| `IrisPosition` | `com.volmit.world.BlockPosition` (existing record, now with a private no-argument constructor) | none |
+| `IrisPosition` | `com.volmit.geometry.BlockPosition` (existing record, now with a private no-argument constructor) | none |
 | `IrisDirection` | none: a module declares its own enum with the same constant names, and maps to `BlockFace` | |
 | `IrisObjectRotation`, `IrisObjectScale` | none: settings of the module that picks a rotation or scale | `ObjectTransform`, `ObjectTransformer` (existing) |
 | `ObjectPlaceMode` | none: an enum of the placement modules | |
@@ -881,9 +881,20 @@ Why these lines:
   generates. Earlier the chunk's mantle was read-only and a built-in facade reached past the view to the host's mantle; now the view lets
   any chunk stage write registered layers inside its own columns and reads the neighbors only, so no stage, built-in or not, needs a way
   around it.
-- **`PackWorld.minHeight()`**: all heights are above the dimension's bottom, but packs write some settings as absolute
-  world Y (cave biome bands, floating island altitudes, structure bands). Those are converted by the module with the
-  platform's Y of the bottom, a default method (0) so a fixture without negative Y needs nothing.
+- **One `minWorldY()`, never defaulted**: all heights are above the dimension's bottom, but packs write some settings as
+  absolute world Y (cave biome bands, floating island altitudes, structure bands). Those are converted by the module with
+  the platform's Y of the bottom. The world, the terrain sampler, platform starts and structure fits once called it
+  `minHeight`, `minWorldY` and `bottomY`, and the world's defaulted to 0, which is silently wrong in every overworld since
+  1.18; now each answers `minWorldY()` and a host must, so forgetting it fails to compile instead of shifting bands.
+- **No silently-wrong defaults.** `TerrainSampler.surfaceBlock`/`upperDimension`, `FeatureSettings.declaredBy` and
+  `BlockRegistry.oreFor` are abstract: their old defaults (empty, empty, empty, the ore unchanged) were answers a host
+  could ship without noticing they were wrong. Defaults kept are the ones correct for every host (`declaredInChunk`,
+  `NoiseSampler.signed`/`scaled`, `PackResources.idOf`, `TerrainSampler.caveBiome`).
+- **Geometry is its own package.** `BlockPosition`, `BlockBox` and `BlockFace` are used by the world, the mantle,
+  objects, placement and services alike; living in `world`, `mantle` and `block` made each of those packages import the
+  others for a coordinate.
+- **A chunk has one hunk, `blocks()`.** `hunk(Class)` promised volumes of other value types that no host ever
+  gave; a stage asking for one failed at run time.
 - **`NoiseSampler.signed(...)`** is the sample mapped to -1..1 that a host may answer from a per-thread memo of the
   coordinates it was just asked: a carver adds several fields and tests the sum around zero, and reads the same points
   of one field again and again, so the memo is the difference between caves that cost what they always did and caves that
@@ -900,8 +911,12 @@ Why these lines:
   A palette without a pickable block throws when the sampler is asked for, where Iris returned `null`: the API has
   no absent block, and `@MinItems(1)` already says a palette needs one.
 - **Resolving a `BlockSpec` never throws.** It follows what packs rely on: a custom block of the pack's
-  `blocks` folder, then the platform's block, then the backup, then air. `resolve(String)` keeps throwing for
-  an unknown key.
+  `blocks` folder, then the platform's block, then the backup, then air. A module that names a block in code asks
+  `find(key)`, which is empty for an unknown key instead of throwing, so the caller decides what absence means.
+  `resolve(BlockState)` is gone: a state is written as it is, and the host defaults its missing properties.
+- **`BlockTrait` lists only what is asked.** `INVENTORY`, `BLOCK_ENTITY` and `NEEDS_UPDATE` had no caller; a host
+  answering them was work for nothing. `BlockAccess.is` answers every trait the registry answers instead of throwing
+  for the ones outside the structure fit's set.
 - **Directions, rotations, scales and place modes stay module types.** They are small enums or settings whose
   meaning is a feature's (which axes may turn, by which steps; which anchor sampling a mode uses), and applying
   a rotation is already the host's `ObjectTransformer`. An API type would freeze a feature's choices.

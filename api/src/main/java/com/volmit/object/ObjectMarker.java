@@ -1,7 +1,7 @@
 package com.volmit.object;
 
 import com.volmit.resource.ResourceId;
-import com.volmit.world.BlockPosition;
+import com.volmit.geometry.BlockPosition;
 import java.util.Map;
 import java.util.Objects;
 

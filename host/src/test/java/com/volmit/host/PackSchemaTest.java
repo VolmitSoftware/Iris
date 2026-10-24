@@ -494,7 +494,7 @@ class PackSchemaTest {
                         import com.volmit.config.Range;
                         import com.volmit.noise.NoiseStyle;
                         import com.volmit.noise.StyledRange;
-                        import com.volmit.world.BlockPosition;
+                        import com.volmit.geometry.BlockPosition;
                         import java.util.*;
 
                         @Feature(id = "example:flora", name = "Flora", key = "flora", targets = Level.BIOME)
@@ -520,7 +520,7 @@ class PackSchemaTest {
         assertEquals(new ObjectKind("com.volmit.noise.StyledRange"), option(settings, "height").kind());
         assertEquals(new ObjectKind("com.volmit.config.Range"), option(settings, "light").kind());
         assertEquals(Optional.of(Map.of("max", 15.0, "min", 0.0)), option(settings, "light").defaultValue());
-        assertEquals(new ObjectKind("com.volmit.world.BlockPosition"), option(settings, "offset").kind());
+        assertEquals(new ObjectKind("com.volmit.geometry.BlockPosition"), option(settings, "offset").kind());
         assertEquals(Optional.of(Map.of("x", 1L, "y", 2L, "z", 3L)), option(settings, "offset").defaultValue());
         assertEquals(new AnyKind(), option(settings, "extra").kind(), "Object holds any JSON value");
 

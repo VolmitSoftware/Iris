@@ -1,7 +1,7 @@
 package com.volmit.example.placement;
 
 import com.volmit.placement.PlacementRequest;
-import com.volmit.world.BlockPosition;
+import com.volmit.geometry.BlockPosition;
 
 /** The world position the object's local anchor is placed at. */
 public record AnchorResult(BlockPosition anchor) {

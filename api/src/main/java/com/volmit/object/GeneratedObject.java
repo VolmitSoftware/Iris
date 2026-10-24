@@ -1,7 +1,7 @@
 package com.volmit.object;
 
-import com.volmit.mantle.BlockBox;
-import com.volmit.world.BlockPosition;
+import com.volmit.geometry.BlockBox;
+import com.volmit.geometry.BlockPosition;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;

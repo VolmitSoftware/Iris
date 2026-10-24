@@ -52,9 +52,7 @@ public interface FeatureSettings {
      * {@link #at}. {@code biome} is an id as a {@code BiomeSample} gives it. Empty when the biome declares none, or the
      * host knows no such biome.
      */
-    default <F extends IrisFeature> Optional<F> declaredBy(ResourceId biome, Class<F> featureType) {
-        return Optional.empty();
-    }
+    <F extends IrisFeature> Optional<F> declaredBy(ResourceId biome, Class<F> featureType);
 
     /** One level's declaration of the settings.
      *

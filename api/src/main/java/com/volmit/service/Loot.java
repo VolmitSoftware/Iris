@@ -1,9 +1,9 @@
 package com.volmit.service;
 
 import com.volmit.block.BlockState;
+import com.volmit.geometry.BlockPosition;
 import com.volmit.item.ItemDrop;
 import com.volmit.resource.ResourceId;
-import com.volmit.world.BlockPosition;
 import com.volmit.world.PackWorld;
 import java.util.List;
 import java.util.Objects;

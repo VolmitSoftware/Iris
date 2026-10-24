@@ -130,7 +130,10 @@ every API value that carries a height: terrain and biome samples, `BlockBox` bou
 sampler, block views, placement edits and the mantle, hunks, block palettes and noise samplers. The host
 converts to and from the platform's own Y at its boundary. The one place a module meets the platform's Y is a
 setting that names an absolute world Y, as packs write them (a cave biome band between Y -64 and 320): it converts
-with `world.minHeight()`, the platform's Y of the dimension's bottom.
+with `minWorldY()`, the world Y of the dimension's bottom (`heightAboveBottom = worldY - minWorldY()`). The world,
+the terrain sampler, platform starts and structure fits all answer it under that one name, and none of them has a
+default: a host that forgets it does not compile. `BlockBox`, `BlockPosition` and `BlockFace` live in
+`com.volmit.geometry`.
 
 ## Random streams
 
@@ -176,7 +179,7 @@ its own chunk's columns; around it, the mantle stays as the mantle stages left i
 
 ```java
 graph.define(INSERT).run(ctx -> {
-    var blocks = ctx.hunk(BlockState.class);
+    var blocks = ctx.blocks();
     ctx.mantle().blocks().visit(ctx.area(), (x, y, z, block) -> blocks.set(x - ctx.originX(), y, z - ctx.originZ(), block));
 });
 ```
@@ -898,6 +901,7 @@ Optional<Clock> clock = pack.catalog().service(Clock.class);            // a Pro
 - `GeneratedObject` is sparse, immutable local geometry. `PlacementRequest` aligns its anchor
   with a world position using checked arithmetic.
 - `Hunk<T>` is a dense local volume (`width()`, `height()`, `depth()`); `ArrayHunk<T>` is the bounds-checked reference.
+  A chunk's blocks are `GenerationContext.blocks()`, a `Hunk<BlockState>`.
 - A placement stage writes a plain block with `access.set(x, y, z, state)`, without a position, record or `Optional`;
   a block with a block entity goes through `access.set(PlacedBlock)`. `BlockState.withProperty` copies the properties once.
 - Invocation views (`ctx.mantle()`, its layers and blocks, a placement's `access().mantle()`) are made once per

@@ -2,7 +2,7 @@ package com.volmit.world;
 
 import com.volmit.block.BlockState;
 import com.volmit.resource.ResourceId;
-import com.volmit.mantle.BlockBox;
+import com.volmit.geometry.BlockBox;
 import java.util.Optional;
 import java.util.OptionalInt;
 
@@ -67,9 +67,7 @@ public interface TerrainSampler {
     /** The block an image map of the dimension gives the column's ground, replacing what its biome would put there; empty
      * where no map does. Outside the bounds it throws like {@link #column}.
      */
-    default Optional<BlockState> surfaceBlock(int worldX, int worldZ) {
-        return Optional.empty();
-    }
+    Optional<BlockState> surfaceBlock(int worldX, int worldZ);
 
     /** The Y in the world of the dimension's bottom block, such as {@code -64}: what to add to a height above the bottom
      * to get the Y a pack's settings name when they speak of world heights.
@@ -77,7 +75,5 @@ public interface TerrainSampler {
     int minWorldY();
 
     /** The dimension stacked above this one, whose ground starts at {@link #upperDimensionY}; empty when nothing sits above. */
-    default Optional<UpperDimension> upperDimension() {
-        return Optional.empty();
-    }
+    Optional<UpperDimension> upperDimension();
 }

@@ -1,6 +1,6 @@
 package com.volmit.example.placement;
 
-import com.volmit.world.BlockPosition;
+import com.volmit.geometry.BlockPosition;
 
 /** Placement-wide rotation chosen once per attempt, like Iris's spin kernel. */
 public record Transforms(int quarterTurns) {

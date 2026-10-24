@@ -45,8 +45,8 @@ final class ModuleWorld implements PackWorld {
     }
 
     @Override
-    public int minHeight() {
-        return world.minHeight();
+    public int minWorldY() {
+        return world.minWorldY();
     }
 
     @Override

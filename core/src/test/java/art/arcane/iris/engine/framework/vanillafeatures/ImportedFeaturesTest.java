@@ -18,7 +18,7 @@
 
 package art.arcane.iris.engine.framework.vanillafeatures;
 
-import art.arcane.iris.builtin.vanillafeatures.ImportedFeaturesSettings;
+import art.arcane.iris.modules.vanillafeatures.ImportedFeaturesSettings;
 import art.arcane.iris.engine.object.TestSettings;
 import com.volmit.config.Level;
 import com.volmit.IrisFeature;

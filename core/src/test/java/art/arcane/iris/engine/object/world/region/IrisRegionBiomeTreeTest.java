@@ -18,9 +18,9 @@
 
 package art.arcane.iris.engine.object.world.region;
 
-import art.arcane.iris.builtin.carve.CarvingBiomeSettings;
+import art.arcane.iris.modules.carve.CarvingBiomeSettings;
 import art.arcane.iris.builtin.floating.FloatingChildBiome;
-import art.arcane.iris.builtin.floating.FloatingChildSettings;
+import art.arcane.iris.modules.floating.FloatingChildSettings;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.loader.ResourceLoader;
 import art.arcane.iris.core.modules.BuiltInPack;

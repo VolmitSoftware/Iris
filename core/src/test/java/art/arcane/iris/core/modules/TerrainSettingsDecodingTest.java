@@ -18,23 +18,23 @@
 
 package art.arcane.iris.core.modules;
 
-import art.arcane.iris.builtin.post.PostProcessingSettings;
-import art.arcane.iris.builtin.post.PostProcessingSlabsSettings;
-import art.arcane.iris.builtin.post.PostProcessingWallsSettings;
-import art.arcane.iris.builtin.decorant.DecorateSettings;
+import art.arcane.iris.modules.post.PostProcessingSettings;
+import art.arcane.iris.modules.post.PostProcessingSlabsSettings;
+import art.arcane.iris.modules.post.PostProcessingWallsSettings;
+import art.arcane.iris.modules.decorant.DecorateSettings;
 import art.arcane.iris.builtin.terrain.BedrockSettings;
-import art.arcane.iris.builtin.terrain.CaveCeilingLayersSettings;
-import art.arcane.iris.builtin.terrain.ExplodeBiomePaletteSizeSettings;
-import art.arcane.iris.builtin.terrain.ExplodeBiomePalettesSettings;
-import art.arcane.iris.builtin.terrain.FluidPaletteSettings;
+import art.arcane.iris.modules.terrain.CaveCeilingLayersSettings;
+import art.arcane.iris.modules.terrain.ExplodeBiomePaletteSizeSettings;
+import art.arcane.iris.modules.terrain.ExplodeBiomePalettesSettings;
+import art.arcane.iris.modules.terrain.FluidPaletteSettings;
 import art.arcane.iris.builtin.terrain.LayersSettings;
-import art.arcane.iris.builtin.terrain.LockLayersMaxSettings;
-import art.arcane.iris.builtin.terrain.LockLayersSettings;
+import art.arcane.iris.modules.terrain.LockLayersMaxSettings;
+import art.arcane.iris.modules.terrain.LockLayersSettings;
 import art.arcane.iris.builtin.terrain.PaletteLayer;
-import art.arcane.iris.builtin.terrain.RockPaletteSettings;
-import art.arcane.iris.builtin.terrain.SeaLayersSettings;
-import art.arcane.iris.builtin.terrain.SlabSettings;
-import art.arcane.iris.builtin.terrain.WallSettings;
+import art.arcane.iris.modules.terrain.RockPaletteSettings;
+import art.arcane.iris.modules.terrain.SeaLayersSettings;
+import art.arcane.iris.modules.terrain.SlabSettings;
+import art.arcane.iris.modules.terrain.WallSettings;
 import art.arcane.volmlib.util.json.JSONObject;
 import com.google.gson.Gson;
 import com.volmit.config.Level;

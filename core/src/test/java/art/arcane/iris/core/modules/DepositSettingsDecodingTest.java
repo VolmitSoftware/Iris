@@ -4,7 +4,7 @@ import art.arcane.iris.builtin.deposit.DepositBiomeScope;
 import art.arcane.iris.builtin.deposit.DepositGenerator;
 import art.arcane.iris.builtin.deposit.DepositHeightDistribution;
 import art.arcane.iris.builtin.deposit.DepositPlacementScope;
-import art.arcane.iris.builtin.deposit.DepositSettings;
+import art.arcane.iris.modules.deposit.DepositSettings;
 import art.arcane.iris.builtin.deposit.DepositShape;
 import art.arcane.volmlib.util.json.JSONObject;
 import com.google.gson.Gson;

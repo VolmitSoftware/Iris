@@ -1,6 +1,6 @@
 package art.arcane.iris.engine.actuator;
 
-import art.arcane.iris.builtin.terrain.OreSettings;
+import art.arcane.iris.modules.terrain.OreSettings;
 import art.arcane.iris.engine.modifier.ApiChunk;
 import art.arcane.iris.engine.terrain.TestPackWorld;
 import com.volmit.config.Level;

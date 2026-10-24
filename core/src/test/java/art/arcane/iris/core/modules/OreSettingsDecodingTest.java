@@ -19,12 +19,12 @@
 package art.arcane.iris.core.modules;
 
 import art.arcane.iris.builtin.deposit.DepositVariant;
-import art.arcane.iris.builtin.deposit.DepositVariantSettings;
-import art.arcane.iris.builtin.deposit.OreFrequencySettings;
-import art.arcane.iris.builtin.deposit.OreSizeSettings;
-import art.arcane.iris.builtin.terrain.HideOresSettings;
-import art.arcane.iris.builtin.terrain.OreGenerator;
-import art.arcane.iris.builtin.terrain.OreSettings;
+import art.arcane.iris.modules.deposit.DepositVariantSettings;
+import art.arcane.iris.modules.deposit.OreFrequencySettings;
+import art.arcane.iris.modules.deposit.OreSizeSettings;
+import art.arcane.iris.modules.terrain.HideOresSettings;
+import art.arcane.iris.modules.terrain.OreGenerator;
+import art.arcane.iris.modules.terrain.OreSettings;
 import art.arcane.volmlib.util.json.JSONObject;
 import com.google.gson.Gson;
 import com.volmit.config.Level;

@@ -1,6 +1,6 @@
 package art.arcane.iris.engine.actuator;
 
-import art.arcane.iris.builtin.terrain.OreGenerator;
+import art.arcane.iris.modules.terrain.OreGenerator;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.loader.ResourceLoader;
 import art.arcane.iris.core.modules.IrisPackResources;

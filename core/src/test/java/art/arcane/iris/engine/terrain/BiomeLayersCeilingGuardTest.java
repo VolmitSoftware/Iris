@@ -1,9 +1,9 @@
 package art.arcane.iris.engine.terrain;
 
-import art.arcane.iris.builtin.terrain.BiomeLayers;
-import art.arcane.iris.builtin.terrain.LayeredBiome;
-import art.arcane.iris.builtin.terrain.PaletteExplosion;
-import art.arcane.iris.builtin.terrain.CaveCeilingLayersSettings;
+import art.arcane.iris.modules.terrain.BiomeLayers;
+import art.arcane.iris.modules.terrain.LayeredBiome;
+import art.arcane.iris.modules.terrain.PaletteExplosion;
+import art.arcane.iris.modules.terrain.CaveCeilingLayersSettings;
 import art.arcane.iris.builtin.terrain.LayersSettings;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.modules.IrisPackResources;

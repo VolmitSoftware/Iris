@@ -18,7 +18,7 @@
 
 package art.arcane.iris.engine.framework;
 
-import art.arcane.iris.builtin.vanillafeatures.ImportedFeaturesSettings;
+import art.arcane.iris.modules.vanillafeatures.ImportedFeaturesSettings;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.modules.BuiltInPack;
 import art.arcane.iris.core.modules.ModuleSettings;

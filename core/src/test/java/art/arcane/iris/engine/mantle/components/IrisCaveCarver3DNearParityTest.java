@@ -4,7 +4,7 @@ import art.arcane.iris.builtin.MatterMantle;
 import art.arcane.iris.builtin.carve.CaveFieldModule;
 import art.arcane.iris.builtin.carve.CaveProfile;
 import art.arcane.iris.core.modules.CarveTestWorld;
-import art.arcane.iris.builtin.terrain.FluidPaletteSettings;
+import art.arcane.iris.modules.terrain.FluidPaletteSettings;
 import art.arcane.iris.engine.framework.SeedManager;
 import art.arcane.iris.engine.object.TestSettings;
 import art.arcane.volmlib.util.mantle.runtime.MantleChunk;

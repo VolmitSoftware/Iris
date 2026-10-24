@@ -26,13 +26,13 @@ import art.arcane.iris.builtin.IrisStages;
 import art.arcane.iris.builtin.IrisSeedPurposes;
 import art.arcane.iris.builtin.floating.FloatingHost;
 import art.arcane.iris.builtin.objects.ObjectHost;
-import art.arcane.iris.builtin.post.PostProcessingSlabsSettings;
-import art.arcane.iris.builtin.post.PostProcessingWallsSettings;
+import art.arcane.iris.modules.post.PostProcessingSlabsSettings;
+import art.arcane.iris.modules.post.PostProcessingWallsSettings;
 import art.arcane.iris.builtin.prepare.SlopeClip;
-import art.arcane.iris.builtin.terrain.HideOresSettings;
+import art.arcane.iris.modules.terrain.HideOresSettings;
 import art.arcane.iris.builtin.terrain.PaletteLayer;
-import art.arcane.iris.builtin.terrain.SlabSettings;
-import art.arcane.iris.builtin.terrain.WallSettings;
+import art.arcane.iris.modules.terrain.SlabSettings;
+import art.arcane.iris.modules.terrain.WallSettings;
 import art.arcane.iris.engine.object.TestSettings;
 import com.volmit.config.Level;
 import com.volmit.IrisFeature;
@@ -85,6 +85,9 @@ import com.volmit.world.TerrainSample;
 import com.volmit.world.TerrainSampler;
 import com.volmit.world.UpperDimension;
 
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -334,7 +337,7 @@ public final class ApiChunk implements GenerationContext {
 
             @Override
             public <F extends IrisFeature> Optional<F> declaredBy(ResourceId biome, Class<F> featureType) {
-                return biomeSettings.stream().filter(featureType::isInstance).map(featureType::cast).findFirst();
+                return biomeSettings.stream().flatMap(value -> asDeclared(featureType, value).stream()).findFirst();
             }
         };
     }
@@ -369,7 +372,41 @@ public final class ApiChunk implements GenerationContext {
 
     private static <F extends IrisFeature> void addEntries(List<Entry<F>> entries, Class<F> type, Level level, ResourceId source,
                                                            List<IrisFeature> declared) {
-        declared.stream().filter(type::isInstance).map(type::cast).forEach(value -> entries.add(new Entry<>(level, source, value)));
+        declared.stream().flatMap(value -> asDeclared(type, value).stream()).forEach(value -> entries.add(new Entry<>(level, source, value)));
+    }
+
+    /**
+     * {@code value} as the {@code type} a module asks for. The built-ins jar loads the settings types only its modules use itself, so
+     * for one of its modules the copy a test declared, Iris's own, becomes the module's, as the pack's decoder would have built it.
+     */
+    private static <F extends IrisFeature> Optional<F> asDeclared(Class<F> type, IrisFeature value) {
+        if (type.isInstance(value)) {
+            return Optional.of(type.cast(value));
+        }
+        if (!type.getName().equals(value.getClass().getName())) {
+            return Optional.empty();
+        }
+        return Optional.of(copyOf(value, type));
+    }
+
+    private static <F> F copyOf(Object value, Class<F> type) {
+        try {
+            Constructor<F> constructor = type.getDeclaredConstructor();
+            constructor.setAccessible(true);
+            F copy = constructor.newInstance();
+            for (Field field : type.getDeclaredFields()) {
+                if (Modifier.isStatic(field.getModifiers())) {
+                    continue;
+                }
+                Field source = value.getClass().getDeclaredField(field.getName());
+                source.setAccessible(true);
+                field.setAccessible(true);
+                field.set(copy, source.get(value));
+            }
+            return copy;
+        } catch (ReflectiveOperationException failure) {
+            throw new IllegalStateException("Cannot copy " + value.getClass().getName() + " into the module's own type", failure);
+        }
     }
 
     private BlockBox chunkColumns() {

@@ -6,7 +6,7 @@ import art.arcane.iris.core.modules.IrisPackResources;
 import art.arcane.iris.core.modules.ModuleSettings;
 import art.arcane.iris.engine.UsableBlockPlatform;
 import art.arcane.iris.engine.object.material.IrisBlockData;
-import art.arcane.iris.builtin.terrain.TerrainPalettes;
+import art.arcane.iris.modules.terrain.TerrainPalettes;
 import art.arcane.iris.engine.terrain.TerrainTestSettings;
 import art.arcane.iris.engine.terrain.TestPackWorld;
 import com.volmit.config.FeatureSettings;

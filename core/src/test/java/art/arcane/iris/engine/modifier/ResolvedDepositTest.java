@@ -1,8 +1,8 @@
 package art.arcane.iris.engine.modifier;
 
 import art.arcane.iris.builtin.deposit.DepositGenerator;
-import art.arcane.iris.builtin.deposit.OreFrequencySettings;
-import art.arcane.iris.builtin.deposit.OreSizeSettings;
+import art.arcane.iris.modules.deposit.OreFrequencySettings;
+import art.arcane.iris.modules.deposit.OreSizeSettings;
 import art.arcane.iris.engine.modifier.ResolvedDeposit.BiomeIdentity;
 import art.arcane.volmlib.util.math.RNG;
 import com.google.gson.Gson;

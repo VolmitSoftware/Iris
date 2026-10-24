@@ -18,7 +18,7 @@
 
 package art.arcane.iris.core.modules;
 
-import art.arcane.iris.builtin.loot.BlockDropSettings;
+import art.arcane.iris.modules.loot.BlockDropSettings;
 import art.arcane.iris.builtin.loot.LootSettings;
 import art.arcane.iris.builtin.loot.LootTable;
 import art.arcane.iris.core.loader.IrisData;
@@ -34,6 +34,7 @@ import art.arcane.iris.engine.object.world.IrisWorld;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
+import com.volmit.IrisFeature;
 import com.volmit.block.BlockRegistry;
 import com.volmit.block.BlockSpec;
 import com.volmit.block.BlockState;
@@ -114,13 +115,12 @@ public class BuiltInModulesJarServicesTest {
     }
 
     @Test
-    public void blockDropsOfTheBiomeAtABrokenBlockComeFromTheJarsModule() throws IOException {
-        when(biome.getModuleSettings()).thenReturn(BuiltInPack.settings(TestSettings.of(BlockDropSettings.class, """
-                {"drops": [{"blocks": [{"block": "stone"}], "replaceVanillaDrops": true,
-                            "drops": [{"type": "gravel", "minAmount": 2, "maxAmount": 2}]}]}""")));
-
+    public void blockDropsOfTheBiomeAtABrokenBlockComeFromTheJarsModule() throws IOException, ClassNotFoundException {
         try (LoadedPack loaded = load()) {
             BlockDrops drops = loaded.catalog().services(BlockDrops.class).getFirst();
+            when(biome.getModuleSettings()).thenReturn(BuiltInPack.settings(jarSettings(drops, BlockDropSettings.class, """
+                    {"drops": [{"blocks": [{"block": "stone"}], "replaceVanillaDrops": true,
+                                "drops": [{"type": "gravel", "minAmount": 2, "maxAmount": 2}]}]}""")));
 
             assertEquals(BlockDropping.class.getName(), drops.getClass().getName());
             assertNotSame(BlockDropping.class, drops.getClass());
@@ -145,6 +145,14 @@ public class BuiltInModulesJarServicesTest {
 
             assertEquals(List.of(new Loot.Table(world.resources().idOf("dungeon/chest"))), tables);
         }
+    }
+
+    /**
+     * {@code json} decoded as the jar's own copy of {@code type}, the one {@code service}'s loader holds: settings types only the jar
+     * uses are not shared with Iris, so the pack's decoder hands the jar's modules values of their own classes.
+     */
+    private static IrisFeature jarSettings(Object service, Class<? extends IrisFeature> type, String json) throws ClassNotFoundException {
+        return TestSettings.of(service.getClass().getClassLoader().loadClass(type.getName()).asSubclass(IrisFeature.class), json);
     }
 
     private LoadedPack load() throws IOException {

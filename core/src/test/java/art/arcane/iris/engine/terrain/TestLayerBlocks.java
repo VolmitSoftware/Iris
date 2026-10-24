@@ -18,8 +18,8 @@
 
 package art.arcane.iris.engine.terrain;
 
-import art.arcane.iris.builtin.terrain.BiomeLayers;
-import art.arcane.iris.builtin.terrain.LayerBlocks;
+import art.arcane.iris.modules.terrain.BiomeLayers;
+import art.arcane.iris.modules.terrain.LayerBlocks;
 import com.volmit.ModuleLog;
 import com.volmit.config.PackSettings;
 import com.volmit.host.ModuleLogs;

@@ -19,14 +19,14 @@
 package art.arcane.iris.core.modules;
 
 import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
-import art.arcane.iris.builtin.carve.CarvingBiomeSettings;
-import art.arcane.iris.builtin.carve.CarvingEnabledSettings;
+import art.arcane.iris.modules.carve.CarvingBiomeSettings;
+import art.arcane.iris.modules.carve.CarvingEnabledSettings;
 import art.arcane.iris.builtin.carve.CarvingEntry;
-import art.arcane.iris.builtin.carve.CarvingSettings;
-import art.arcane.iris.builtin.carve.CaveDepthSettings;
+import art.arcane.iris.modules.carve.CarvingSettings;
+import art.arcane.iris.modules.carve.CaveDepthSettings;
 import art.arcane.iris.builtin.carve.CaveLavaHeightSettings;
 import art.arcane.iris.builtin.carve.CaveProfile;
-import art.arcane.iris.builtin.carve.UpperDimensionCarvingSettings;
+import art.arcane.iris.modules.carve.UpperDimensionCarvingSettings;
 import art.arcane.volmlib.util.json.JSONObject;
 import com.google.gson.Gson;
 import com.volmit.config.Level;

@@ -18,13 +18,13 @@
 
 package art.arcane.iris.engine.terrain;
 
-import art.arcane.iris.builtin.terrain.LayeredBiome;
-import art.arcane.iris.builtin.terrain.CaveCeilingLayersSettings;
+import art.arcane.iris.modules.terrain.LayeredBiome;
+import art.arcane.iris.modules.terrain.CaveCeilingLayersSettings;
 import art.arcane.iris.builtin.terrain.LayersSettings;
-import art.arcane.iris.builtin.terrain.LockLayersMaxSettings;
-import art.arcane.iris.builtin.terrain.LockLayersSettings;
-import art.arcane.iris.builtin.terrain.SeaLayersSettings;
-import art.arcane.iris.builtin.terrain.WallSettings;
+import art.arcane.iris.modules.terrain.LockLayersMaxSettings;
+import art.arcane.iris.modules.terrain.LockLayersSettings;
+import art.arcane.iris.modules.terrain.SeaLayersSettings;
+import art.arcane.iris.modules.terrain.WallSettings;
 import art.arcane.iris.core.modules.ModuleSettings;
 
 /** What a biome file declares about its layers, for tests that write biomes as pack JSON ({@link TerrainTestSettings}). */

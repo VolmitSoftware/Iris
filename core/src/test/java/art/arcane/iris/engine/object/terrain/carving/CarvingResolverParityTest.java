@@ -2,7 +2,7 @@ package art.arcane.iris.engine.object.terrain.carving;
 
 import art.arcane.iris.builtin.IrisSeedPurposes;
 import art.arcane.iris.builtin.carve.CarvingEntry;
-import art.arcane.iris.builtin.carve.CarvingSettings;
+import art.arcane.iris.modules.carve.CarvingSettings;
 import art.arcane.iris.core.modules.CarveTestWorld;
 import art.arcane.iris.core.modules.IrisPackResources;
 import art.arcane.iris.core.modules.IrisValues;

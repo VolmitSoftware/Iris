@@ -19,18 +19,18 @@
 package art.arcane.iris.core.modules;
 
 import art.arcane.iris.builtin.loot.BlockDrop;
-import art.arcane.iris.builtin.loot.BlockDropSettings;
+import art.arcane.iris.modules.loot.BlockDropSettings;
 import art.arcane.iris.builtin.loot.LootMode;
 import art.arcane.iris.builtin.loot.LootSettings;
 import art.arcane.iris.builtin.loot.LootSlot;
 import art.arcane.iris.builtin.loot.LootTable;
 import art.arcane.iris.builtin.spawn.AmbientEffect;
-import art.arcane.iris.builtin.spawn.EffectSettings;
+import art.arcane.iris.modules.spawn.EffectSettings;
 import art.arcane.iris.builtin.spawn.EntityDefinition;
 import art.arcane.iris.builtin.spawn.SpawnGroup;
 import art.arcane.iris.builtin.spawn.SpawnWeather;
 import art.arcane.iris.builtin.spawn.Spawner;
-import art.arcane.iris.builtin.spawn.SpawnerSettings;
+import art.arcane.iris.modules.spawn.SpawnerSettings;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.loot.LootResources;
 import art.arcane.volmlib.util.json.JSONObject;

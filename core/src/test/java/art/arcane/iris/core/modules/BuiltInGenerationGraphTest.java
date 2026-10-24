@@ -23,7 +23,7 @@ import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.builtin.decorant.DecorantSettings;
 import art.arcane.iris.builtin.decorant.Decorator;
 import art.arcane.iris.builtin.deposit.DepositGenerator;
-import art.arcane.iris.builtin.deposit.DepositSettings;
+import art.arcane.iris.modules.deposit.DepositSettings;
 import art.arcane.iris.builtin.structure.StructureSettings;
 import com.volmit.config.Level;
 import com.volmit.IrisFeature;

@@ -27,7 +27,7 @@ import art.arcane.iris.engine.object.TestSettings;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
 import art.arcane.iris.engine.object.world.IrisWorld;
-import art.arcane.iris.builtin.spawn.EffectSettings;
+import art.arcane.iris.modules.spawn.EffectSettings;
 import art.arcane.iris.spi.PlatformWorld;
 import com.volmit.resource.ResourceId;
 import com.volmit.service.AmbientEffects;

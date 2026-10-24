@@ -1,7 +1,7 @@
 package art.arcane.iris.engine.actuator;
 
 import art.arcane.iris.builtin.decorant.DecorantSettings;
-import art.arcane.iris.builtin.decorant.DecorateSettings;
+import art.arcane.iris.modules.decorant.DecorateSettings;
 import art.arcane.iris.builtin.decorant.Decorator;
 import art.arcane.iris.engine.modifier.ApiChunk;
 import art.arcane.iris.engine.object.TestSettings;

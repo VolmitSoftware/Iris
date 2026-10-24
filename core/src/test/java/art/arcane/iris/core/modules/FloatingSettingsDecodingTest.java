@@ -19,11 +19,11 @@
 package art.arcane.iris.core.modules;
 
 import art.arcane.iris.builtin.carve.CarvingEntry;
-import art.arcane.iris.builtin.carve.CarvingSettings;
+import art.arcane.iris.modules.carve.CarvingSettings;
 import art.arcane.iris.builtin.floating.FloatingBottomPaletteMode;
 import art.arcane.iris.builtin.floating.FloatingChildBiome;
-import art.arcane.iris.builtin.floating.FloatingChildSettings;
-import art.arcane.iris.builtin.floating.MergeFloatingChildrenSettings;
+import art.arcane.iris.modules.floating.FloatingChildSettings;
+import art.arcane.iris.modules.floating.MergeFloatingChildrenSettings;
 import art.arcane.iris.builtin.floating.TopShapeMode;
 import art.arcane.volmlib.util.json.JSONObject;
 import com.google.gson.Gson;

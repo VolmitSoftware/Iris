@@ -1,9 +1,9 @@
 package art.arcane.iris.engine.actuator;
 
 import art.arcane.iris.builtin.terrain.BedrockSettings;
-import art.arcane.iris.builtin.terrain.HideOresSettings;
+import art.arcane.iris.modules.terrain.HideOresSettings;
 import art.arcane.iris.builtin.terrain.LayersSettings;
-import art.arcane.iris.builtin.terrain.OreSettings;
+import art.arcane.iris.modules.terrain.OreSettings;
 import art.arcane.iris.engine.modifier.ApiChunk;
 import art.arcane.iris.engine.object.TestSettings;
 import com.volmit.block.BlockState;

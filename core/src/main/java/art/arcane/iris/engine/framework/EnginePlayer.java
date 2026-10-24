@@ -25,7 +25,7 @@ import art.arcane.iris.platform.bukkit.BukkitWorldBinding;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.util.common.scheduling.J;
 import art.arcane.volmlib.util.math.M;
-import com.volmit.world.BlockPosition;
+import com.volmit.geometry.BlockPosition;
 import lombok.Data;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;

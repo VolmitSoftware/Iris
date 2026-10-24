@@ -40,7 +40,6 @@ import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
 import com.volmit.ModuleLog;
 import com.volmit.ModuleSetup;
-import com.volmit.block.BlockFace;
 import com.volmit.block.BlockRegistry;
 import com.volmit.block.BlockSpec;
 import com.volmit.block.BlockState;
@@ -51,6 +50,9 @@ import com.volmit.config.FeatureSettings;
 import com.volmit.config.PackSettings;
 import com.volmit.config.SettingsStack;
 import com.volmit.generation.GenerationContext;
+import com.volmit.geometry.BlockBox;
+import com.volmit.geometry.BlockFace;
+import com.volmit.geometry.BlockPosition;
 import com.volmit.host.ArrayHunk;
 import com.volmit.host.ChunkRunner;
 import com.volmit.host.DiscoveredModule;
@@ -62,7 +64,6 @@ import com.volmit.host.StageGraphBuilder;
 import com.volmit.host.StageTimings;
 import com.volmit.hunk.Hunk;
 import com.volmit.item.ItemRegistry;
-import com.volmit.mantle.BlockBox;
 import com.volmit.mantle.Mantle;
 import com.volmit.mantle.MantleEdit;
 import com.volmit.mantle.MantleKey;
@@ -78,7 +79,6 @@ import com.volmit.resource.ResourceKind;
 import com.volmit.stage.Pipeline;
 import com.volmit.world.BiomeKind;
 import com.volmit.world.BiomeSample;
-import com.volmit.world.BlockPosition;
 import com.volmit.world.PackWorld;
 import com.volmit.world.TerrainSample;
 import com.volmit.world.TerrainSampler;
@@ -222,7 +222,7 @@ public final class ApiChunk implements GenerationContext {
     }
 
     /** The blocks the fixture's pack knows, by the rule in {@link Blocks}. */
-    public static BlockRegistry blocks() {
+    public static BlockRegistry blockRegistry() {
         return new Blocks();
     }
 
@@ -344,12 +344,8 @@ public final class ApiChunk implements GenerationContext {
     }
 
     @Override
-    @SuppressWarnings("unchecked")
-    public <T> Hunk<T> hunk(Class<T> type) {
-        if (type != BlockState.class) {
-            throw new IllegalArgumentException("Only block hunks");
-        }
-        return (Hunk<T>) blocks;
+    public Hunk<BlockState> blocks() {
+        return blocks;
     }
 
     @Override
@@ -443,6 +439,11 @@ public final class ApiChunk implements GenerationContext {
         @Override
         public Optional<UpperDimension> upperDimension() {
             return upperDimension != null && stackedOnItself ? Optional.of(new SelfUpper()) : Optional.empty();
+        }
+
+        @Override
+        public Optional<BlockState> surfaceBlock(int worldX, int worldZ) {
+            return Optional.empty();
         }
 
         @Override
@@ -577,6 +578,11 @@ public final class ApiChunk implements GenerationContext {
         }
 
         @Override
+        public int minWorldY() {
+            return minWorldY;
+        }
+
+        @Override
         public <T> T state(Class<T> type, Function<? super PackWorld, ? extends T> create) {
             Object known = states.get(type);
             if (known == null) {
@@ -648,11 +654,16 @@ public final class ApiChunk implements GenerationContext {
      */
     private static final class Blocks implements BlockRegistry {
         @Override
-        public BlockState resolve(String key) {
+        public Optional<BlockState> find(String key) {
             if (key.contains(UNKNOWN_BLOCK)) {
-                throw new IllegalArgumentException("Unknown block: " + key);
+                return Optional.empty();
             }
-            return BlockState.parse(key.contains(":") ? key : "minecraft:" + key);
+            return Optional.of(BlockState.parse(key.contains(":") ? key : "minecraft:" + key));
+        }
+
+        @Override
+        public BlockState oreFor(BlockState rock, BlockState ore) {
+            return ore;
         }
 
         @Override

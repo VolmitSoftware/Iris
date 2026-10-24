@@ -29,7 +29,7 @@ import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import com.volmit.config.PackSettings;
 import com.volmit.host.DiscoveredModule;
 import com.volmit.host.ServiceRegistration;
-import com.volmit.mantle.BlockBox;
+import com.volmit.geometry.BlockBox;
 import com.volmit.resource.PackResources;
 import com.volmit.resource.ResourceId;
 import com.volmit.service.VanillaStructures;
@@ -276,7 +276,7 @@ public final class ModuleVanillaStructures {
         }
 
         @Override
-        public int bottomY() {
+        public int minWorldY() {
             return start.bottomY();
         }
 

@@ -24,7 +24,7 @@ import art.arcane.iris.util.common.data.B;
 import com.volmit.config.FeatureSettings;
 import com.volmit.generation.MantleGenerationContext;
 import com.volmit.host.MantleRegistration;
-import com.volmit.mantle.BlockBox;
+import com.volmit.geometry.BlockBox;
 import com.volmit.mantle.Mantle;
 import com.volmit.world.PackWorld;
 import com.volmit.world.TerrainSampler;

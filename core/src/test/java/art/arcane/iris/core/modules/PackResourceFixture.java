@@ -6,11 +6,11 @@ import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
 import com.volmit.block.BlockState;
-import com.volmit.mantle.BlockBox;
+import com.volmit.geometry.BlockBox;
+import com.volmit.geometry.BlockPosition;
 import com.volmit.object.GeneratedObject;
 import com.volmit.object.ObjectBlock;
 import com.volmit.resource.PackResources;
-import com.volmit.world.BlockPosition;
 
 import java.util.List;
 

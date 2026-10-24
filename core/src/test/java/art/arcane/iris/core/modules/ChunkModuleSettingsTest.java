@@ -35,6 +35,7 @@ import org.junit.rules.TemporaryFolder;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
@@ -84,7 +85,17 @@ public class ChunkModuleSettingsTest {
     @Test
     public void aChunksSettingsMatchTheColumnByColumnScanOfTheApi() {
         ChunkModuleSettings settings = settings();
-        FeatureSettings columnByColumn = settings::at;
+        FeatureSettings columnByColumn = new FeatureSettings() {
+            @Override
+            public <F extends IrisFeature> SettingsStack<F> at(Class<F> featureType, int worldX, int worldZ) {
+                return settings.at(featureType, worldX, worldZ);
+            }
+
+            @Override
+            public <F extends IrisFeature> Optional<F> declaredBy(ResourceId biome, Class<F> featureType) {
+                return settings.declaredBy(biome, featureType);
+            }
+        };
 
         assertEquals(columnByColumn.declaredInChunk(StackedSettings.class, CHUNK_X, CHUNK_Z).entries(),
                 settings.declaredInChunk(StackedSettings.class, CHUNK_X, CHUNK_Z).entries());

@@ -40,13 +40,13 @@ import com.volmit.ModuleSetup;
 import com.volmit.block.BlockState;
 import com.volmit.host.LoadedPack;
 import com.volmit.host.ModuleHost;
-import com.volmit.mantle.BlockBox;
+import com.volmit.geometry.BlockBox;
+import com.volmit.geometry.BlockPosition;
 import com.volmit.mantle.MantleCodec;
 import com.volmit.mantle.MantleKey;
 import com.volmit.mantle.MantleLifetime;
 import com.volmit.placement.PlacedBlock;
 import com.volmit.stage.Stage;
-import com.volmit.world.BlockPosition;
 import com.volmit.world.TerrainSampler;
 import org.junit.After;
 import org.junit.Before;
@@ -114,7 +114,7 @@ public class DimensionBottomTest {
             graph.define(Stage.chunk("test:bottom/chunk")).run(context -> {
                 record(context.terrain());
                 viewBounds.add(context.mantle().bounds());
-                context.hunk(BlockState.class).set(0, BOTTOM, 0, STONE);
+                context.blocks().set(0, BOTTOM, 0, STONE);
             });
             graph.define(Stage.mantle("test:bottom/mantle")).reach(0).writesMantle(MARKS).run(context -> {
                 record(context.terrain());

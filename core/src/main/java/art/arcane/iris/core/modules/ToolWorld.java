@@ -61,6 +61,12 @@ final class ToolWorld implements PackWorld, AutoCloseable {
         return settings;
     }
 
+    /** A tool's world has no dimension: its bottom is Y 0. */
+    @Override
+    public int minWorldY() {
+        return 0;
+    }
+
     @Override
     public <T> T state(Class<T> type, Function<? super PackWorld, ? extends T> create) {
         return states.state(type, () -> create.apply(this));

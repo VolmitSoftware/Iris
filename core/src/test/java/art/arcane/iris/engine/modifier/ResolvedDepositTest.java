@@ -23,7 +23,7 @@ import static org.junit.Assert.assertTrue;
 public class ResolvedDepositTest {
     private static final long DEPOSIT_SEED = 41L;
 
-    private static final BlockRegistry BLOCKS = ApiChunk.blocks();
+    private static final BlockRegistry BLOCKS = ApiChunk.blockRegistry();
 
     @Test
     public void thePaletteResolvesThroughThePacksBlocks() {

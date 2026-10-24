@@ -23,10 +23,10 @@ import art.arcane.iris.engine.object.prefab.TileData;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.volmlib.util.math.IrisBlockVector;
 import com.volmit.block.BlockState;
-import com.volmit.mantle.BlockBox;
+import com.volmit.geometry.BlockBox;
+import com.volmit.geometry.BlockPosition;
 import com.volmit.object.GeneratedObject;
 import com.volmit.object.ObjectBlock;
-import com.volmit.world.BlockPosition;
 
 import java.util.LinkedHashMap;
 import java.util.List;

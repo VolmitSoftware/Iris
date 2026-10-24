@@ -33,11 +33,11 @@ import com.volmit.host.PlacementOutcome;
 import com.volmit.host.LoadedPack;
 import com.volmit.host.PlacementRunner;
 import com.volmit.host.ResolvedGraph;
-import com.volmit.mantle.BlockBox;
+import com.volmit.geometry.BlockBox;
+import com.volmit.geometry.BlockPosition;
 import com.volmit.object.GeneratedObject;
 import com.volmit.placement.PlacementRequest;
 import com.volmit.resource.ResourceId;
-import com.volmit.world.BlockPosition;
 import com.volmit.world.TerrainSampler;
 
 import java.util.Objects;

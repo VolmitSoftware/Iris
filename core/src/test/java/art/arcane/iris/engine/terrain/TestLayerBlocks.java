@@ -57,6 +57,11 @@ public final class TestLayerBlocks {
         }
 
         @Override
+        public int minWorldY() {
+            return 0;
+        }
+
+        @Override
         public <T> T state(Class<T> type, Function<? super PackWorld, ? extends T> create) {
             return type.cast(states.computeIfAbsent(type, ignored -> create.apply(this)));
         }

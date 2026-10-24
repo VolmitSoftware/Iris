@@ -67,7 +67,7 @@ public class PlacementLootTest {
         resources = data.getPackResources();
         BlockRegistry blocks = mock(BlockRegistry.class);
         when(resources.blocks()).thenReturn(blocks);
-        when(blocks.resolve(any(BlockState.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(blocks.find(any(String.class))).thenAnswer(invocation -> java.util.Optional.of(BlockState.parse(invocation.getArgument(0))));
         when(blocks.resolve(any(BlockSpec.class))).thenAnswer(invocation -> BlockState.parse(invocation.<BlockSpec>getArgument(0).block()));
         placement = new PlacementLoot(resources, () -> Set.of("minecraft:chests/simple_dungeon"), LOOT_SEED, ModuleLogs.discarding());
     }

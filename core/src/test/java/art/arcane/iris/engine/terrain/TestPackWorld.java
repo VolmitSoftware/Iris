@@ -70,6 +70,11 @@ public final class TestPackWorld implements PackWorld {
             public <F extends IrisFeature> SettingsStack<F> at(Class<F> featureType, int worldX, int worldZ) {
                 return dimensionStack(settings, featureType);
             }
+
+            @Override
+            public <F extends IrisFeature> Optional<F> declaredBy(ResourceId biome, Class<F> featureType) {
+                return Optional.empty();
+            }
         };
     }
 
@@ -91,6 +96,11 @@ public final class TestPackWorld implements PackWorld {
     @Override
     public PackSettings settings() {
         return settings;
+    }
+
+    @Override
+    public int minWorldY() {
+        return 0;
     }
 
     @Override

@@ -186,8 +186,8 @@ public class TreeSVC implements IrisService {
         }
     }
 
-    private static com.volmit.world.BlockPosition relativePosition(Location location, int minHeight) {
-        return new com.volmit.world.BlockPosition(location.getBlockX(), location.getBlockY() - minHeight, location.getBlockZ());
+    private static com.volmit.geometry.BlockPosition relativePosition(Location location, int minHeight) {
+        return new com.volmit.geometry.BlockPosition(location.getBlockX(), location.getBlockY() - minHeight, location.getBlockZ());
     }
 
     /** The world around the saplings as the modules read it; the saplings that grow count as air, as they are about to. */

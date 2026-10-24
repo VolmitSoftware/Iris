@@ -41,7 +41,7 @@ import com.volmit.ModuleSetup;
 import com.volmit.host.LoadedPack;
 import com.volmit.host.MantleRegistration;
 import com.volmit.host.ModuleHost;
-import com.volmit.mantle.BlockBox;
+import com.volmit.geometry.BlockBox;
 import com.volmit.mantle.MantleCodec;
 import com.volmit.mantle.MantleEdit;
 import com.volmit.mantle.MantleKey;

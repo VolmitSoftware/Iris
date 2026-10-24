@@ -22,13 +22,13 @@ import art.arcane.iris.engine.object.prefab.IrisObjectRotation;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.volmlib.util.math.IrisBlockVector;
-import com.volmit.mantle.BlockBox;
+import com.volmit.geometry.BlockBox;
+import com.volmit.geometry.BlockPosition;
 import com.volmit.object.GeneratedObject;
 import com.volmit.object.ObjectBlock;
 import com.volmit.object.ObjectMarker;
 import com.volmit.object.ObjectTransform;
 import com.volmit.object.ObjectTransformer;
-import com.volmit.world.BlockPosition;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;

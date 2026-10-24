@@ -32,7 +32,7 @@ import art.arcane.iris.engine.UsableBlockPlatform;
 import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.util.common.data.B;
 
-import com.volmit.block.BlockFace;
+import com.volmit.geometry.BlockFace;
 import com.volmit.block.BlockRegistry;
 import com.volmit.block.BlockSpec;
 import com.volmit.block.BlockState;
@@ -223,13 +223,22 @@ public class ProceduralObjectsGoldenTest {
      */
     private static final class HashedPalettes implements BlockRegistry {
         @Override
-        public BlockState resolve(String key) {
-            return BlockState.parse(PlatformBlockStates.namespaced(B.getState(key).key()));
+        public Optional<BlockState> find(String key) {
+            return Optional.of(stateOf(key));
         }
 
         @Override
         public BlockState resolve(BlockSpec spec) {
-            return resolve(spec.block());
+            return stateOf(spec.block());
+        }
+
+        @Override
+        public BlockState oreFor(BlockState rock, BlockState ore) {
+            return ore;
+        }
+
+        private static BlockState stateOf(String key) {
+            return BlockState.parse(PlatformBlockStates.namespaced(B.getState(key).key()));
         }
 
         @Override

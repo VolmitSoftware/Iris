@@ -25,7 +25,7 @@ import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.project.hunk.Hunk;
 import com.volmit.block.BlockState;
-import com.volmit.mantle.BlockBox;
+import com.volmit.geometry.BlockBox;
 import com.volmit.mantle.MantleLayer;
 import org.junit.After;
 import org.junit.Before;

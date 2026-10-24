@@ -29,7 +29,7 @@ import com.volmit.config.FeatureSettings;
 import com.volmit.config.FeatureSettings.Entry;
 import com.volmit.resource.ResourceId;
 import com.volmit.service.SaplingGrowth;
-import com.volmit.world.BlockPosition;
+import com.volmit.geometry.BlockPosition;
 import com.volmit.world.PackWorld;
 import org.junit.Before;
 import org.junit.Test;

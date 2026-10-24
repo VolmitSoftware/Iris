@@ -25,7 +25,7 @@ import com.volmit.block.BlockState;
 import com.volmit.config.FeatureSettings;
 import com.volmit.generation.GenerationContext;
 import com.volmit.host.MantleRegistration;
-import com.volmit.mantle.BlockBox;
+import com.volmit.geometry.BlockBox;
 import com.volmit.mantle.Mantle;
 import com.volmit.world.PackWorld;
 import com.volmit.world.TerrainSampler;
@@ -102,12 +102,8 @@ final class IrisGenerationContext implements GenerationContext {
     }
 
     @Override
-    @SuppressWarnings("unchecked") // The only hunk type is checked against the requested class.
-    public <T> com.volmit.hunk.Hunk<T> hunk(Class<T> type) {
-        if (type != BlockState.class) {
-            throw new IllegalArgumentException("Iris provides chunk hunks of " + BlockState.class.getName() + " only, not " + type.getName());
-        }
-        return (com.volmit.hunk.Hunk<T>) blocks;
+    public com.volmit.hunk.Hunk<BlockState> blocks() {
+        return blocks;
     }
 
     /** Iris's own view of the chunk, and the matter of its own chunk with loaded-only reads of its neighbours. */

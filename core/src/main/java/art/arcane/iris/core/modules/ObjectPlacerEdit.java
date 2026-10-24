@@ -23,13 +23,13 @@ import art.arcane.iris.engine.object.placement.IObjectPlacer;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.volmlib.util.matter.MatterMarker;
 import com.volmit.block.BlockState;
-import com.volmit.mantle.BlockBox;
+import com.volmit.geometry.BlockBox;
+import com.volmit.geometry.BlockPosition;
 import com.volmit.mantle.Mantle;
 import com.volmit.object.BlockEntityData;
 import com.volmit.placement.PlacedBlock;
 import com.volmit.placement.PlacedMarker;
 import com.volmit.placement.PlacementEdit;
-import com.volmit.world.BlockPosition;
 
 import java.util.ArrayList;
 import java.util.HashMap;

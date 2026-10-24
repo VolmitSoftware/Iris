@@ -35,7 +35,7 @@ import art.arcane.iris.spi.PlatformWorld;
 import com.volmit.entity.EntitySpec;
 import com.volmit.item.ItemRegistry;
 import com.volmit.service.EntitySpawns;
-import com.volmit.world.BlockPosition;
+import com.volmit.geometry.BlockPosition;
 import com.volmit.world.PackWorld;
 import org.junit.AfterClass;
 import org.junit.Before;

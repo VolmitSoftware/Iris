@@ -82,7 +82,7 @@ public class ModuleChunkGenerationTest {
         public void setup(ModuleSetup setup) {
             setup.stages().define(Stage.chunk("iris:pillar/raise")).when(PillarSettings.class).run(context -> {
                 PillarSettings pillar = context.configured(PillarSettings.class).mostSpecific().orElseThrow();
-                com.volmit.hunk.Hunk<BlockState> chunk = context.hunk(BlockState.class);
+                com.volmit.hunk.Hunk<BlockState> chunk = context.blocks();
                 chunk.set(0, 1, 0, chunk.get(0, 0, 0));
                 chunk.set(pillar.x, 2, 0, pillar.block);
             });

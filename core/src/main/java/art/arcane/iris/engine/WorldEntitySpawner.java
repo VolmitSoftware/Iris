@@ -28,7 +28,7 @@ import art.arcane.volmlib.util.math.Vector3d;
 import art.arcane.volmlib.util.matter.MatterMarker;
 import com.volmit.entity.EntitySpec;
 import com.volmit.service.EntitySpawns;
-import com.volmit.world.BlockPosition;
+import com.volmit.geometry.BlockPosition;
 import art.arcane.iris.core.gui.PregeneratorJob;
 import art.arcane.iris.core.tools.IrisToolbelt;
 import art.arcane.iris.engine.object.value.IrisPosition;

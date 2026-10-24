@@ -37,7 +37,7 @@ import com.volmit.service.SaplingGrowth;
 import com.volmit.service.StructureLocator;
 import com.volmit.service.VanillaFeatures;
 import com.volmit.service.VanillaStructures;
-import com.volmit.world.BlockPosition;
+import com.volmit.geometry.BlockPosition;
 import com.volmit.world.PackWorld;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;

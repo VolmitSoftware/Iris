@@ -37,7 +37,7 @@ public class IrisDecoratorCaveContextTest {
         doReturn(new ResolvedDecorator[]{decorator}).when(decorators).decorators(cave, DecorationPart.CEILING);
 
         Hunk<BlockState> output = new ArrayHunk<>(BlockState.class, 1, 128, 1, new BlockState("minecraft:water"));
-        DecorationScene scene = new DecorationScene(output, ApiChunk.blocks(), terrain, null, decorators, 1L, ModuleLogs.discarding());
+        DecorationScene scene = new DecorationScene(output, ApiChunk.blockRegistry(), terrain, null, decorators, 1L, ModuleLogs.discarding());
 
         new IrisSurfaceDecorator(scene).decorate(0, 0, 0, 0, 0, 0, 0, 0, cave, 10, 10);
         DecoratorCore.PlaceOpts surfaceOptions = DecoratorCore.SCRATCH_OPTS.get();

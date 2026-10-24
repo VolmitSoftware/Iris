@@ -67,16 +67,16 @@ public final class StructureFitting {
 
         private ChunkFit(StructureFit fit) {
             this.fit = fit;
-            this.blocks = new FitBlocks(fit.blocks(), fit.bottomY());
-            this.area = Box.of(fit.area(), fit.bottomY());
+            this.blocks = new FitBlocks(fit.blocks(), fit.minWorldY());
+            this.area = Box.of(fit.area(), fit.minWorldY());
             this.starts = resolvedStarts(fit);
-            this.surfaceHeight = (x, z) -> fit.surfaceY(x, z) + fit.bottomY();
+            this.surfaceHeight = (x, z) -> fit.surfaceY(x, z) + fit.minWorldY();
         }
 
         private static List<FitStart> resolvedStarts(StructureFit fit) {
             List<FitStart> starts = new ArrayList<>(fit.starts().size());
             for (StructureFit.Start start : fit.starts()) {
-                starts.add(new FitStart(start, fitOf(fit, start), fit.bottomY()));
+                starts.add(new FitStart(start, fitOf(fit, start), fit.minWorldY()));
             }
             return List.copyOf(starts);
         }
@@ -119,7 +119,7 @@ public final class StructureFitting {
         }
 
         private BlockState naturalBlock(int worldY) {
-            return fit.naturalBlock(worldY - fit.bottomY());
+            return fit.naturalBlock(worldY - fit.minWorldY());
         }
 
         private BlockState paletteBlock(PaletteSpec palette, long seed, int x, int y, int z) {

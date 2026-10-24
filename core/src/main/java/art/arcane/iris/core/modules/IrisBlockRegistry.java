@@ -27,13 +27,13 @@ import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.spi.PlatformFace;
 import art.arcane.volmlib.util.math.RNG;
-import com.volmit.block.BlockFace;
 import com.volmit.block.BlockRegistry;
 import com.volmit.block.BlockSpec;
 import com.volmit.block.BlockState;
 import com.volmit.block.BlockTrait;
 import com.volmit.block.PaletteSampler;
 import com.volmit.block.PaletteSpec;
+import com.volmit.geometry.BlockFace;
 import com.volmit.object.BlockEntityData;
 import com.volmit.resource.ResourceId;
 
@@ -43,7 +43,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * IrisApi's view of the bound platform's blocks. States convert through their keys, as {@link PlatformBlockStates}
- * does; the platform decides which blocks exist, so a key it does not know fails. Traits, tags and attachment to
+ * does; the platform decides which blocks exist, so {@link #find} is empty for a key it does not know and a state of
+ * a block it lacks fails. Traits, tags and attachment to
  * a face are the platform's own answers: its block tags, its falling blocks and its face support.
  * <p>
  * {@link BlockSpec}s resolve as Iris resolves the block data packs write ({@link IrisValues#blockData}): a block of
@@ -67,8 +68,12 @@ final class IrisBlockRegistry implements BlockRegistry {
     }
 
     @Override
-    public BlockState resolve(String key) {
-        return BlockState.parse(PlatformBlockStates.namespaced(platformState(key).key()));
+    public Optional<BlockState> find(String key) {
+        try {
+            return Optional.of(BlockState.parse(PlatformBlockStates.namespaced(platformState(key).key())));
+        } catch (IllegalArgumentException unknownBlockOrProperty) {
+            return Optional.empty();
+        }
     }
 
     @Override
@@ -123,10 +128,7 @@ final class IrisBlockRegistry implements BlockRegistry {
             case DECORATION -> platform.isDecorant();
             case VINE -> platform.isVineBlock();
             case ORE -> platform.isOre();
-            case INVENTORY -> platform.isStorage();
-            case BLOCK_ENTITY -> platform.hasTileEntity();
             case CUSTOM -> platform.isCustom();
-            case NEEDS_UPDATE -> platform.isUpdatable();
             case GRAVITY -> platform.hasGravity();
             case LOG -> platform.isLog();
             case LEAVES -> platform.isLeaves();

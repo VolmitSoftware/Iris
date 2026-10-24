@@ -67,7 +67,7 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.loot.LootContext;
 import org.bukkit.loot.LootTable;
 import com.volmit.service.Loot;
-import com.volmit.world.BlockPosition;
+import com.volmit.geometry.BlockPosition;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;

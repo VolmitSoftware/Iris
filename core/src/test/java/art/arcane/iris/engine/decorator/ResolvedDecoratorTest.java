@@ -142,7 +142,7 @@ public class ResolvedDecoratorTest {
     private static List<BlockState> state(String... keys) {
         List<BlockState> states = new ArrayList<>();
         for (String key : keys) {
-            states.add(ApiChunk.blocks().resolve(key));
+            states.add(ApiChunk.blockRegistry().find(key).orElseThrow());
         }
         return states;
     }

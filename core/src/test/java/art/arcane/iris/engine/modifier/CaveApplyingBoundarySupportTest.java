@@ -10,12 +10,13 @@ import art.arcane.volmlib.util.matter.MatterSlice;
 import com.volmit.block.BlockState;
 import com.volmit.host.ArrayHunk;
 import com.volmit.hunk.Hunk;
-import com.volmit.mantle.BlockBox;
+import com.volmit.geometry.BlockBox;
 import com.volmit.resource.ResourceId;
 import com.volmit.world.BiomeSample;
 import com.volmit.world.TerrainSample;
 import com.volmit.world.BiomeKind;
 import com.volmit.world.TerrainSampler;
+import com.volmit.world.UpperDimension;
 import org.junit.Test;
 
 import java.util.HashMap;
@@ -147,6 +148,16 @@ public class CaveApplyingBoundarySupportTest {
 
         @Override
         public OptionalInt upperDimensionY(int worldX, int worldZ) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public Optional<BlockState> surfaceBlock(int worldX, int worldZ) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public Optional<UpperDimension> upperDimension() {
             throw new UnsupportedOperationException();
         }
     }

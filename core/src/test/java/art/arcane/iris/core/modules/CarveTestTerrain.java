@@ -18,12 +18,14 @@
 
 package art.arcane.iris.core.modules;
 
-import com.volmit.mantle.BlockBox;
+import com.volmit.block.BlockState;
+import com.volmit.geometry.BlockBox;
 import com.volmit.resource.ResourceId;
 import com.volmit.world.BiomeSample;
 import com.volmit.world.TerrainSample;
 import com.volmit.world.BiomeKind;
 import com.volmit.world.TerrainSampler;
+import com.volmit.world.UpperDimension;
 
 import java.util.Optional;
 import java.util.OptionalInt;
@@ -112,6 +114,16 @@ public final class CarveTestTerrain implements TerrainSampler {
     public OptionalInt upperDimensionY(int worldX, int worldZ) {
         require(worldX, 0, worldZ);
         return upper == null ? OptionalInt.empty() : OptionalInt.of(upper.applyAsInt(worldX, worldZ));
+    }
+
+    @Override
+    public Optional<BlockState> surfaceBlock(int worldX, int worldZ) {
+        return Optional.empty();
+    }
+
+    @Override
+    public Optional<UpperDimension> upperDimension() {
+        return Optional.empty();
     }
 
     private void require(int worldX, int y, int worldZ) {

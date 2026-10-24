@@ -24,7 +24,7 @@ import com.volmit.resource.PackResources;
 import com.volmit.resource.ResourceId;
 import com.volmit.service.LocateResult;
 import com.volmit.service.StructureLocator;
-import com.volmit.world.BlockPosition;
+import com.volmit.geometry.BlockPosition;
 import com.volmit.world.PackWorld;
 
 import java.util.Collection;

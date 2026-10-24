@@ -37,7 +37,7 @@ import com.volmit.vanilla.VanillaStructureRule;
 import com.volmit.vanilla.VanillaStructureSetup;
 import com.volmit.vanilla.VanillaStructureStart;
 import com.volmit.vanilla.VanillaStructureStartContext;
-import com.volmit.world.BlockPosition;
+import com.volmit.geometry.BlockPosition;
 import com.volmit.world.PackWorld;
 
 import java.util.LinkedHashSet;

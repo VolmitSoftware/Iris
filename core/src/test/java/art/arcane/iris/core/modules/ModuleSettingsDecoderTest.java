@@ -41,7 +41,7 @@ import com.volmit.noise.NoiseStyle;
 import com.volmit.noise.StyledRange;
 import com.volmit.resource.ResourceId;
 import com.volmit.stage.Stage;
-import com.volmit.world.BlockPosition;
+import com.volmit.geometry.BlockPosition;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;

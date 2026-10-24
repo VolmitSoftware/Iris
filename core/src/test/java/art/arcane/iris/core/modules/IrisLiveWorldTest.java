@@ -44,7 +44,7 @@ import art.arcane.iris.engine.object.world.region.IrisRegion;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.spi.PlatformWorld;
 import art.arcane.volmlib.util.collection.KList;
-import com.volmit.world.BlockPosition;
+import com.volmit.geometry.BlockPosition;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;

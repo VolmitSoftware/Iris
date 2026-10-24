@@ -42,7 +42,7 @@ import com.volmit.entity.EntitySpec;
 import com.volmit.item.ItemAttribute;
 import com.volmit.resource.ResourceId;
 import com.volmit.service.Loot;
-import com.volmit.world.BlockPosition;
+import com.volmit.geometry.BlockPosition;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.NamespacedKey;

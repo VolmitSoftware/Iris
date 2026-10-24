@@ -30,6 +30,7 @@ import com.volmit.resource.ResourceId;
 import org.junit.Test;
 
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -55,6 +56,11 @@ public class DepositModuleTest {
                 return SettingsStack.of(List.of((Entry<F>) entry(Level.DIMENSION, "dimension/overworld", dimension),
                         (Entry<F>) entry(Level.REGION, "region/hot", region),
                         (Entry<F>) entry(Level.BIOME, "biome/desert", biome)));
+            }
+
+            @Override
+            public <F extends IrisFeature> Optional<F> declaredBy(ResourceId declaringBiome, Class<F> type) {
+                return Optional.empty();
             }
         };
 

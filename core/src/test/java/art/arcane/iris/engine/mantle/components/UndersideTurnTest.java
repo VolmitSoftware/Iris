@@ -2,7 +2,7 @@ package art.arcane.iris.engine.mantle.components;
 
 import art.arcane.iris.engine.object.prefab.IrisObjectRotation;
 import art.arcane.volmlib.util.math.IrisBlockVector;
-import com.volmit.world.BlockPosition;
+import com.volmit.geometry.BlockPosition;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;

@@ -53,7 +53,7 @@ public class ToolWorldTest {
             assertSame(tracked, world.state(Tracked.class, ignored -> new Tracked()));
             assertSame(resources, world.resources());
             assertEquals(SEED, world.seed());
-            assertEquals(0, world.minHeight());
+            assertEquals(0, world.minWorldY());
             assertFalse(tracked.closed);
         }
 

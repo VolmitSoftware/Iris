@@ -38,6 +38,11 @@ final class PlacementModuleSettings implements FeatureSettings {
         public <F extends IrisFeature> SettingsStack<F> at(Class<F> featureType, int worldX, int worldZ) {
             return SettingsStack.empty();
         }
+
+        @Override
+        public <F extends IrisFeature> Optional<F> declaredBy(ResourceId biome, Class<F> featureType) {
+            return Optional.empty();
+        }
     };
 
     private final FeatureSettings world;
@@ -65,5 +70,11 @@ final class PlacementModuleSettings implements FeatureSettings {
         List<Entry<F>> entries = new ArrayList<>(worldEntries.entries());
         entries.add(new Entry<>(Level.PLACEMENT, source, own.get()));
         return SettingsStack.of(entries);
+    }
+
+    /** A biome's own declaration is the world's: the placement's entry belongs to no biome. */
+    @Override
+    public <F extends IrisFeature> Optional<F> declaredBy(ResourceId biome, Class<F> featureType) {
+        return world.declaredBy(biome, featureType);
     }
 }

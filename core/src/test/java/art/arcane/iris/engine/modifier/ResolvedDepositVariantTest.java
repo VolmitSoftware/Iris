@@ -27,7 +27,7 @@ public class ResolvedDepositVariantTest {
     }
 
     private static ResolvedDepositVariant variant(String json) {
-        return new ResolvedDepositVariant(new Gson().fromJson(json, DepositVariant.class), ApiChunk.blocks(), LOG);
+        return new ResolvedDepositVariant(new Gson().fromJson(json, DepositVariant.class), ApiChunk.blockRegistry(), LOG);
     }
 
     @Test

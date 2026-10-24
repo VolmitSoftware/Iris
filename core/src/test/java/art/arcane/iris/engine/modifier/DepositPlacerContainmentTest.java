@@ -66,7 +66,7 @@ public class DepositPlacerContainmentTest {
 
     @Test
     public void airAndFluidTargetsAreRejected() {
-        BlockRegistry blocks = ApiChunk.blocks();
+        BlockRegistry blocks = ApiChunk.blockRegistry();
 
         assertTrue(DepositPlacer.canReplaceDepositTarget(blocks, new BlockState("minecraft:stone")));
         assertFalse(DepositPlacer.canReplaceDepositTarget(blocks, ApiChunk.AIR));
@@ -154,7 +154,7 @@ public class DepositPlacerContainmentTest {
 
     @Test
     public void exposureProbeChecksOnlyInBoundsOrthogonalNeighbors() {
-        BlockRegistry blocks = ApiChunk.blocks();
+        BlockRegistry blocks = ApiChunk.blockRegistry();
         Hunk<BlockState> data = new ArrayHunk<>(BlockState.class, 3, 3, 3, new BlockState("minecraft:stone"));
         Predicate<BlockState> isAir = state -> blocks.hasTrait(state, BlockTrait.AIR);
 

@@ -25,7 +25,7 @@ import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.common.data.B;
 import com.volmit.block.BlockState;
-import com.volmit.mantle.BlockBox;
+import com.volmit.geometry.BlockBox;
 import com.volmit.resource.ResourceId;
 import com.volmit.world.BiomeKind;
 import com.volmit.world.BiomeSample;

@@ -27,7 +27,6 @@ import com.volmit.config.Level;
 import com.volmit.config.SettingsStack;
 import com.volmit.IrisFeature;
 import com.volmit.ModuleLog;
-import com.volmit.block.BlockFace;
 import com.volmit.block.BlockSpec;
 import com.volmit.block.BlockState;
 import com.volmit.block.BlockTrait;
@@ -36,6 +35,7 @@ import com.volmit.block.PaletteSampler;
 import com.volmit.block.PaletteSpec;
 import com.volmit.config.FeatureSettings.Entry;
 import com.volmit.config.PackSettings;
+import com.volmit.geometry.BlockFace;
 import com.volmit.host.ModuleLogs;
 import com.volmit.item.ItemRegistry;
 import com.volmit.noise.NoiseFactory;
@@ -130,7 +130,7 @@ public final class CarveTestWorld implements PackWorld {
     }
 
     @Override
-    public int minHeight() {
+    public int minWorldY() {
         return MIN_HEIGHT;
     }
 
@@ -209,13 +209,22 @@ public final class CarveTestWorld implements PackWorld {
     /** Blocks by name: air, water and lava, a few decorations, falling blocks and ores (named {@code *_ore}); everything else is a solid cube. */
     public static final class Blocks implements BlockRegistry {
         @Override
-        public BlockState resolve(String key) {
-            return BlockState.parse(key.contains(":") ? key : "minecraft:" + key);
+        public Optional<BlockState> find(String key) {
+            return Optional.of(named(key));
         }
 
         @Override
         public BlockState resolve(BlockSpec spec) {
-            return resolve(spec.block());
+            return named(spec.block());
+        }
+
+        @Override
+        public BlockState oreFor(BlockState rock, BlockState ore) {
+            return ore;
+        }
+
+        private static BlockState named(String key) {
+            return BlockState.parse(key.contains(":") ? key : "minecraft:" + key);
         }
 
         @Override

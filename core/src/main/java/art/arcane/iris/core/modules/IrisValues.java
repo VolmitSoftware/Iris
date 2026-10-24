@@ -33,7 +33,7 @@ import com.volmit.block.BlockSpec;
 import com.volmit.block.PaletteSpec;
 import com.volmit.config.Range;
 import com.volmit.noise.StyledRange;
-import com.volmit.world.BlockPosition;
+import com.volmit.geometry.BlockPosition;
 
 import java.util.List;
 import java.util.Map;

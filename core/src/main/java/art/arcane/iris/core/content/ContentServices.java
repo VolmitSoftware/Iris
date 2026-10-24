@@ -32,7 +32,7 @@ import com.volmit.service.AmbientEffects;
 import com.volmit.service.BlockDrops;
 import com.volmit.service.EntitySpawns;
 import com.volmit.service.Loot;
-import com.volmit.world.BlockPosition;
+import com.volmit.geometry.BlockPosition;
 
 import java.util.ArrayList;
 import java.util.List;

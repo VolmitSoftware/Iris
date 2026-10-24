@@ -19,7 +19,7 @@
 package art.arcane.iris.core.modules;
 
 import art.arcane.iris.engine.framework.Engine;
-import com.volmit.mantle.BlockBox;
+import com.volmit.geometry.BlockBox;
 
 /**
  * Where IrisApi's heights meet Iris's. IrisApi measures every Y from the dimension's bottom (0 is the bottom

@@ -44,7 +44,7 @@ public class FloatingIslandsTest {
         when(context.originX()).thenReturn(CHUNK_ORIGIN);
         when(context.originZ()).thenReturn(CHUNK_ORIGIN);
         when(context.world()).thenReturn(world);
-        when(context.hunk(BlockState.class)).thenReturn(output);
+        when(context.blocks()).thenReturn(output);
         FeatureSettings nothingConfigured = mock(FeatureSettings.class);
         when(nothingConfigured.at(any(), anyInt(), anyInt())).thenAnswer(invocation -> SettingsStack.empty());
         when(context.settings()).thenReturn(nothingConfigured);

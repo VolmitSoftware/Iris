@@ -21,7 +21,7 @@ package art.arcane.iris.core.modules;
 import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
 import art.arcane.volmlib.util.matter.Matter;
 import art.arcane.volmlib.util.matter.MatterCavern;
-import com.volmit.mantle.BlockBox;
+import com.volmit.geometry.BlockBox;
 
 /**
  * The voids Iris's mantle holds for chunks to take over, IrisApi's {@link com.volmit.mantle.Mantle#isCarved}: where the

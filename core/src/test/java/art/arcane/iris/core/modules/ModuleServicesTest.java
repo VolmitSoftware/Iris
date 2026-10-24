@@ -33,7 +33,7 @@ import com.volmit.resource.ResourceId;
 import com.volmit.service.LocateResult;
 import com.volmit.service.ObjectsAt;
 import com.volmit.service.StructureLocator;
-import com.volmit.world.BlockPosition;
+import com.volmit.geometry.BlockPosition;
 import com.volmit.world.PackWorld;
 import org.junit.After;
 import org.junit.Before;

@@ -33,7 +33,7 @@ import art.arcane.iris.util.common.scheduling.J;
 import art.arcane.volmlib.util.matter.slices.MarkerMatter;
 import com.volmit.IrisFeature;
 import com.volmit.resource.ResourceId;
-import com.volmit.world.BlockPosition;
+import com.volmit.geometry.BlockPosition;
 
 import java.util.List;
 import java.util.Optional;

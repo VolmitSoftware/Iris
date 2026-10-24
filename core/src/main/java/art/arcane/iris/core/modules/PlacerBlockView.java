@@ -20,7 +20,7 @@ package art.arcane.iris.core.modules;
 
 import art.arcane.iris.engine.object.placement.IObjectPlacer;
 import com.volmit.block.BlockState;
-import com.volmit.mantle.BlockBox;
+import com.volmit.geometry.BlockBox;
 import com.volmit.world.BlockView;
 
 /**

@@ -28,7 +28,6 @@ import art.arcane.iris.engine.framework.nativefit.NativeFitStart;
 import art.arcane.iris.engine.framework.nativefit.NativeFitTrait;
 import art.arcane.iris.engine.framework.nativefit.NativeStructureFitting;
 import art.arcane.iris.engine.framework.nativefit.NativeTemplateCells;
-import com.volmit.block.BlockFace;
 import com.volmit.block.BlockState;
 import com.volmit.block.BlockTrait;
 import com.volmit.host.DiscoveredModule;
@@ -36,7 +35,9 @@ import com.volmit.host.ModuleRegistry;
 import com.volmit.host.ModuleSetups;
 import com.volmit.host.ServiceRegistration;
 import com.volmit.host.StageGraphBuilder;
-import com.volmit.mantle.BlockBox;
+import com.volmit.geometry.BlockBox;
+import com.volmit.geometry.BlockFace;
+import com.volmit.geometry.BlockPosition;
 import com.volmit.resource.ResourceId;
 import com.volmit.service.VanillaStructures;
 import com.volmit.vanilla.DecorationStep;
@@ -48,7 +49,6 @@ import com.volmit.vanilla.TemplateCells;
 import com.volmit.vanilla.TerrainAdaptation;
 import com.volmit.ModuleLog;
 import com.volmit.world.BlockAccess;
-import com.volmit.world.BlockPosition;
 import com.volmit.world.PackWorld;
 
 import java.util.ArrayList;
@@ -199,7 +199,7 @@ public final class ModuleStructureFitting implements NativeStructureFitting {
         }
 
         @Override
-        public int bottomY() {
+        public int minWorldY() {
             return chunk.bottomY();
         }
 

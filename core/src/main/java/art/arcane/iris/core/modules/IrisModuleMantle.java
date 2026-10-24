@@ -24,7 +24,7 @@ import art.arcane.volmlib.util.matter.MatterSlice;
 import com.volmit.block.BlockState;
 import com.volmit.host.MantleRegistration;
 import art.arcane.iris.builtin.MatterMantle;
-import com.volmit.mantle.BlockBox;
+import com.volmit.geometry.BlockBox;
 import com.volmit.mantle.Mantle;
 import com.volmit.mantle.MantleCodec;
 import com.volmit.mantle.MantleEdit;

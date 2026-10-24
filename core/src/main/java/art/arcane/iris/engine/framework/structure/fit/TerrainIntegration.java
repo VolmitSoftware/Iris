@@ -29,7 +29,7 @@ import com.volmit.block.BlockState;
 import com.volmit.block.PaletteSpec;
 import com.volmit.resource.ResourceId;
 import com.volmit.vanilla.TerrainAdaptation;
-import com.volmit.world.BlockPosition;
+import com.volmit.geometry.BlockPosition;
 
 import java.util.BitSet;
 import java.util.HashSet;

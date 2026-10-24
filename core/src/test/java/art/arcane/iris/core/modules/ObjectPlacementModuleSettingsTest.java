@@ -41,7 +41,7 @@ import com.volmit.host.LoadedPack;
 import com.volmit.placement.PlacedBlock;
 import com.volmit.stage.PlacementStage;
 import com.volmit.stage.Stage;
-import com.volmit.world.BlockPosition;
+import com.volmit.geometry.BlockPosition;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;

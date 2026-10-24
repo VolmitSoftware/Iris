@@ -2,10 +2,11 @@ package art.arcane.iris.engine.framework.structure.fit;
 
 import art.arcane.iris.engine.framework.structure.NativeStructureFit;
 import com.google.gson.Gson;
-import com.volmit.block.BlockFace;
 import com.volmit.block.BlockState;
 import com.volmit.block.BlockTrait;
-import com.volmit.mantle.BlockBox;
+import com.volmit.geometry.BlockBox;
+import com.volmit.geometry.BlockFace;
+import com.volmit.geometry.BlockPosition;
 import com.volmit.resource.ResourceId;
 import com.volmit.vanilla.DecorationStep;
 import com.volmit.vanilla.PieceKind;
@@ -15,7 +16,6 @@ import com.volmit.vanilla.StructureFit;
 import com.volmit.vanilla.TemplateCells;
 import com.volmit.vanilla.TerrainAdaptation;
 import com.volmit.world.BlockAccess;
-import com.volmit.world.BlockPosition;
 
 import java.util.ArrayList;
 import java.util.HashMap;

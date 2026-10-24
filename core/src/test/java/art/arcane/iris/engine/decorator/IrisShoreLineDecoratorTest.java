@@ -80,7 +80,7 @@ public class IrisShoreLineDecoratorTest {
         when(decorator.isForcePlace()).thenReturn(forcePlace);
         when(decorator.blockAt(anyDouble(), anyDouble(), anyDouble())).thenReturn(POPPY);
         Hunk<BlockState> blocks = new ArrayHunk<>(BlockState.class, 1, FLUID_HEIGHT + 3, 1, AIR);
-        return new Fixture(new IrisShoreLineDecorator(new DecorationScene(blocks, ApiChunk.blocks(), terrain, null, decorators, 17L,
+        return new Fixture(new IrisShoreLineDecorator(new DecorationScene(blocks, ApiChunk.blockRegistry(), terrain, null, decorators, 17L,
                 ModuleLogs.discarding())), decorator, blocks);
     }
 

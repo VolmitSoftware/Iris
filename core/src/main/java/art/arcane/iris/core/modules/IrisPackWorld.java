@@ -75,7 +75,7 @@ public final class IrisPackWorld implements PackWorld {
     }
 
     @Override
-    public int minHeight() {
+    public int minWorldY() {
         return engine.getWorld().minHeight();
     }
 

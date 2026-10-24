@@ -4,7 +4,7 @@ import art.arcane.iris.builtin.structure.StructureTerrain;
 import art.arcane.iris.builtin.structure.StructureYBand;
 import art.arcane.iris.engine.framework.structure.NativeStructureFit;
 import com.google.gson.Gson;
-import com.volmit.mantle.BlockBox;
+import com.volmit.geometry.BlockBox;
 import com.volmit.resource.ResourceId;
 import com.volmit.vanilla.PlatformStart;
 import com.volmit.vanilla.StartReach;
@@ -211,7 +211,7 @@ public class StartLayoutsTest {
             }
 
             @Override
-            public int bottomY() {
+            public int minWorldY() {
                 return BOTTOM_Y;
             }
 

@@ -29,7 +29,7 @@ import art.arcane.iris.engine.object.world.IrisWorld;
 import art.arcane.iris.builtin.spawn.EffectSettings;
 import art.arcane.iris.spi.PlatformWorld;
 import com.volmit.service.AmbientEffects;
-import com.volmit.world.BlockPosition;
+import com.volmit.geometry.BlockPosition;
 import com.volmit.world.PackWorld;
 import org.junit.Before;
 import org.junit.Test;

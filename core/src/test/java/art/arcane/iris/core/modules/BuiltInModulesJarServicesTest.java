@@ -40,7 +40,7 @@ import com.volmit.host.LoadedPack;
 import com.volmit.host.ModuleHost;
 import com.volmit.service.BlockDrops;
 import com.volmit.service.Loot;
-import com.volmit.world.BlockPosition;
+import com.volmit.geometry.BlockPosition;
 import com.volmit.world.PackWorld;
 import org.junit.Before;
 import org.junit.Rule;
@@ -84,7 +84,7 @@ public class BuiltInModulesJarServicesTest {
         IrisData data = mock(IrisData.class);
         tables = ModuleResourceFixture.serve(data);
         BlockRegistry blocks = mock(BlockRegistry.class);
-        when(blocks.resolve(any(BlockState.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(blocks.find(any(String.class))).thenAnswer(invocation -> java.util.Optional.of(BlockState.parse(invocation.getArgument(0))));
         when(blocks.resolve(any(BlockSpec.class))).thenAnswer(invocation -> BlockState.parse("minecraft:" + invocation.<BlockSpec>getArgument(0).block()));
         when(data.getPackResources().blocks()).thenReturn(blocks);
         when(data.getPackResources().items()).thenReturn(item -> OptionalInt.of(0));

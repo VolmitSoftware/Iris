@@ -23,7 +23,7 @@ import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
 import art.arcane.volmlib.util.matter.Matter;
 import com.volmit.block.BlockState;
-import com.volmit.mantle.BlockBox;
+import com.volmit.geometry.BlockBox;
 import com.volmit.mantle.MantleLayer;
 import com.volmit.mantle.MantleVisitor;
 

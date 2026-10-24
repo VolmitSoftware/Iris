@@ -20,8 +20,9 @@ package art.arcane.iris.core.modules;
 
 import art.arcane.iris.builtin.placement.ObjectPlacement;
 import art.arcane.iris.engine.framework.Engine;
+import com.volmit.block.BlockState;
 import com.volmit.config.FeatureSettings;
-import com.volmit.mantle.BlockBox;
+import com.volmit.geometry.BlockBox;
 import com.volmit.object.ObjectTransformer;
 import com.volmit.placement.PlacementContext;
 import com.volmit.world.BiomeKind;
@@ -30,6 +31,7 @@ import com.volmit.world.BlockView;
 import com.volmit.world.TerrainSample;
 import com.volmit.world.PackWorld;
 import com.volmit.world.TerrainSampler;
+import com.volmit.world.UpperDimension;
 
 import java.util.Optional;
 import java.util.OptionalInt;
@@ -103,6 +105,16 @@ final class IrisPlacementInputs implements PlacementContext {
 
             @Override
             public OptionalInt upperDimensionY(int worldX, int worldZ) {
+                throw withoutEngine();
+            }
+
+            @Override
+            public Optional<BlockState> surfaceBlock(int worldX, int worldZ) {
+                throw withoutEngine();
+            }
+
+            @Override
+            public Optional<UpperDimension> upperDimension() {
                 throw withoutEngine();
             }
         };

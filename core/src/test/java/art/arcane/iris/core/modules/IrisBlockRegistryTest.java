@@ -5,10 +5,11 @@ import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.spi.PlatformFace;
 import art.arcane.iris.spi.PlatformRegistries;
-import com.volmit.block.BlockFace;
 import com.volmit.block.BlockState;
 import com.volmit.block.BlockTrait;
+import com.volmit.geometry.BlockFace;
 import com.volmit.resource.ResourceId;
+import java.util.Optional;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -66,12 +67,12 @@ public class IrisBlockRegistryTest {
 
     @Test
     public void aKeyWithoutANamespaceIsMinecrafts() {
-        assertEquals(BlockState.parse("minecraft:stone"), blocks.resolve("stone"));
+        assertEquals(Optional.of(BlockState.parse("minecraft:stone")), blocks.find("stone"));
     }
 
     @Test
-    public void aBlockThePlatformDoesNotKnowIsRejected() {
-        assertThrows(IllegalArgumentException.class, () -> blocks.resolve("minecraft:nothing"));
+    public void aBlockThePlatformDoesNotKnowIsAbsentAndItsStateRejected() {
+        assertEquals(Optional.empty(), blocks.find("minecraft:nothing"));
         assertThrows(IllegalArgumentException.class, () -> blocks.hasTrait(BlockState.parse("minecraft:nothing"), BlockTrait.LOG));
         assertThrows(IllegalArgumentException.class, () -> blocks.inTag(BlockState.parse("minecraft:nothing"), ResourceId.parse("minecraft:logs")));
     }

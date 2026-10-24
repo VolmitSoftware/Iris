@@ -36,7 +36,7 @@ import org.bukkit.inventory.ItemStack;
 import com.volmit.block.BlockState;
 import com.volmit.service.BlockDrops;
 import com.volmit.service.EntitySpawns;
-import com.volmit.world.BlockPosition;
+import com.volmit.geometry.BlockPosition;
 
 import java.util.Optional;
 import java.util.function.Consumer;

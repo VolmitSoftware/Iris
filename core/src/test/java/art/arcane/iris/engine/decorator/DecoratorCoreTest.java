@@ -6,7 +6,7 @@ import com.volmit.block.BlockState;
 import com.volmit.host.ArrayHunk;
 import com.volmit.host.ModuleLogs;
 import com.volmit.hunk.Hunk;
-import com.volmit.mantle.BlockBox;
+import com.volmit.geometry.BlockBox;
 import com.volmit.mantle.MantleLayer;
 import com.volmit.mantle.MantleVisitor;
 import org.junit.Test;
@@ -380,7 +380,7 @@ public class DecoratorCoreTest {
     }
 
     private static DecorationScene scene(Hunk<BlockState> blocks, MantleLayer<BlockState> planned) {
-        return new DecorationScene(blocks, ApiChunk.blocks(), null, planned, null, 1L, ModuleLogs.discarding());
+        return new DecorationScene(blocks, ApiChunk.blockRegistry(), null, planned, null, 1L, ModuleLogs.discarding());
     }
 
     /** Blocks planned at "x,y,z" in world coordinates; everywhere else reads none. */

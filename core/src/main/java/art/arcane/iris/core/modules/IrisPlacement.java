@@ -81,9 +81,9 @@ public final class IrisPlacement implements ObjectPlacement {
         this.data = data;
         this.states = states;
         this.edit = edit;
-        this.shape = new IrisObjectShape(object);
+        this.shape = new IrisObjectShape(object, data.getPackResources());
         this.settings = new IrisPlacementSettings(config, data, states);
-        this.terrain = new IrisPlacementTerrain(placer, object.getLoader(), data, states);
+        this.terrain = new IrisPlacementTerrain(placer, object.getLoader(), data);
     }
 
 
@@ -128,7 +128,7 @@ public final class IrisPlacement implements ObjectPlacement {
         if (config.getHeightmap() == null) {
             return terrain;
         }
-        return new IrisPlacementTerrain(new HeightmapObjectPlacer(rng, x, requestedY, z, config, placer), object.getLoader(), data, states);
+        return new IrisPlacementTerrain(new HeightmapObjectPlacer(rng, x, requestedY, z, config, placer), object.getLoader(), data);
     }
 
     @Override

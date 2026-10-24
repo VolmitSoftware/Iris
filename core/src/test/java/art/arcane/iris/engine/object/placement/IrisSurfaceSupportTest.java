@@ -20,7 +20,7 @@ import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.volmlib.util.math.IrisBlockVector;
-import com.volmit.block.BlockState;
+import com.volmit.resource.ResourceId;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -28,6 +28,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
@@ -242,12 +243,7 @@ public class IrisSurfaceSupportTest {
         }
 
         @Override
-        public boolean hasBedrock() {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public int minHeight() {
+        public int minWorldY() {
             throw new UnsupportedOperationException();
         }
 
@@ -257,17 +253,12 @@ public class IrisSurfaceSupportTest {
         }
 
         @Override
-        public BlockState rockAt(int x, int z) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
         public StructureVolumes structureVolumes(int minX, int minZ, int maxX, int maxZ) {
             throw new UnsupportedOperationException();
         }
 
         @Override
-        public String objectKeyAt(int x, int y, int z) {
+        public Optional<ResourceId> objectAt(int x, int y, int z) {
             throw new UnsupportedOperationException();
         }
     }

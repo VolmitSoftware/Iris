@@ -10,7 +10,6 @@ import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.object.prefab.IrisObjectTranslate;
 import art.arcane.iris.engine.object.prefab.TileData;
 import art.arcane.iris.engine.object.terrain.carving.CarveResult;
-import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformBlockState;
@@ -74,11 +73,11 @@ public class ObjectPlaceModePinTest {
 
         engine = mock(Engine.class);
         when(engine.getHeight()).thenReturn(WORLD_HEIGHT);
-        when(engine.getDimension()).thenReturn(mock(IrisDimension.class));
         BuiltInPack.seedWorld(engine, WORLD_SEED);
         data = mock(IrisData.class);
         when(data.getEngine()).thenReturn(engine);
         when(engine.getData()).thenReturn(data);
+        BuiltInPack.runBareWorld(engine, data);
         pack = BuiltInPack.serve(data, folder, List.of());
     }
 

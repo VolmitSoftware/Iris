@@ -24,10 +24,10 @@ import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.NativeStructureVolume;
 import art.arcane.iris.engine.object.placement.IObjectPlacer;
-import art.arcane.iris.builtin.terrain.BedrockSettings;
-import art.arcane.iris.builtin.terrain.TerrainPalettes;
 import art.arcane.volmlib.util.collection.KList;
-import com.volmit.block.BlockState;
+import com.volmit.resource.ResourceId;
+
+import java.util.Optional;
 
 /**
  * An Iris object placer as the placement stages see their terrain. {@code loader} is the object's data, which the placer
@@ -55,13 +55,11 @@ final class IrisPlacementTerrain implements PlacementTerrain {
     private final IObjectPlacer placer;
     private final IrisData loader;
     private final IrisData data;
-    private final PlatformBlockStates states;
 
-    IrisPlacementTerrain(IObjectPlacer placer, IrisData loader, IrisData data, PlatformBlockStates states) {
+    IrisPlacementTerrain(IObjectPlacer placer, IrisData loader, IrisData data) {
         this.placer = placer;
         this.loader = loader;
         this.data = data;
-        this.states = states;
     }
 
     @Override
@@ -115,28 +113,13 @@ final class IrisPlacementTerrain implements PlacementTerrain {
     }
 
     @Override
-    public boolean hasBedrock() {
-        return engine().getDimension().getModuleSettings().find(BedrockSettings.class).map(BedrockSettings::bedrock).orElse(true);
-    }
-
-    @Override
-    public int minHeight() {
+    public int minWorldY() {
         return engine().getMinHeight();
     }
 
     @Override
     public int worldHeight() {
         return engine().getHeight();
-    }
-
-    @Override
-    public BlockState rockAt(int x, int z) {
-        Engine engine = engine();
-        if (engine.getComplex() == null) {
-            return PlatformBlockStates.AIR;
-        }
-        BlockState rock = TerrainPalettes.of(engine.getGeneration().world()).rockAt(x, z);
-        return rock == null ? PlatformBlockStates.AIR : rock;
     }
 
     @Override
@@ -149,13 +132,16 @@ final class IrisPlacementTerrain implements PlacementTerrain {
     }
 
     @Override
-    public String objectKeyAt(int x, int y, int z) {
+    public Optional<ResourceId> objectAt(int x, int y, int z) {
         Engine engine = data.getEngine();
         if (engine == null) {
             throw new IllegalStateException("Object placement requires active Iris data for collision settings.");
         }
         var placed = engine.getObjectPlacement(x, y, z);
-        return placed == null || placed.getObject() == null ? null : placed.getObject().getLoadKey();
+        if (placed == null || placed.getObject() == null) {
+            return Optional.empty();
+        }
+        return Optional.of(data.getPackResources().idOf(placed.getObject().getLoadKey()));
     }
 
     private Engine engine() {

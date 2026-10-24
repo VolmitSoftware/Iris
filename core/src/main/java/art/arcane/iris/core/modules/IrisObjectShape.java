@@ -21,15 +21,20 @@ package art.arcane.iris.core.modules;
 import art.arcane.iris.builtin.placement.ObjectShape;
 import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.volmlib.util.math.IrisBlockVector;
+import com.volmit.resource.PackResources;
+import com.volmit.resource.ResourceId;
 
 import java.util.List;
+import java.util.Optional;
 
 /** An Iris object as the placement stages see it. */
 final class IrisObjectShape implements ObjectShape {
     private final IrisObject object;
+    private final PackResources resources;
 
-    IrisObjectShape(IrisObject object) {
+    IrisObjectShape(IrisObject object, PackResources resources) {
         this.object = object;
+        this.resources = resources;
     }
 
     @Override
@@ -63,8 +68,8 @@ final class IrisObjectShape implements ObjectShape {
     }
 
     @Override
-    public String key() {
-        return object.getLoadKey();
+    public Optional<ResourceId> id() {
+        return Optional.ofNullable(object.getLoadKey()).map(resources::idOf);
     }
 
     @Override

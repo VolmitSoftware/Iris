@@ -104,6 +104,7 @@ public class IrisObjectPlacementRegressionTest {
         data = mock(IrisData.class);
         when(data.getEngine()).thenReturn(engine);
         when(engine.getData()).thenReturn(data);
+        BuiltInPack.runBareWorld(engine, data);
         usePack(List.of());
         solid = registryState("minecraft:stone");
         schematicAir = registryState("minecraft:air");

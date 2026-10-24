@@ -19,8 +19,12 @@
 package art.arcane.iris.core.modules;
 
 import art.arcane.iris.core.loader.IrisData;
+import art.arcane.iris.core.loader.ResourceLoader;
 import art.arcane.iris.engine.framework.Engine;
+import art.arcane.iris.engine.framework.EngineGeneration;
 import art.arcane.iris.engine.framework.SeedManager;
+import art.arcane.iris.engine.object.world.dimension.IrisDimension;
+import art.arcane.volmlib.util.collection.KList;
 import art.arcane.iris.engine.actuator.DecorantModule;
 import art.arcane.iris.engine.actuator.TerrainModule;
 import art.arcane.iris.engine.framework.vanillafeatures.VanillaFeaturesModule;
@@ -55,6 +59,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -129,6 +134,20 @@ public final class BuiltInPack {
             byType.put(value.getClass(), value);
         }
         return ModuleSettings.of(byType);
+    }
+
+    /**
+     * Makes the mocked {@code engine} over {@code data} a running world whose dimension declares nothing, so what the
+     * built-ins read from the world itself, such as the rock a vacuum raises columns with, is the settings' defaults.
+     */
+    public static void runBareWorld(Engine engine, IrisData data) {
+        IrisDimension dimension = mock(IrisDimension.class);
+        when(dimension.getModuleSettings()).thenReturn(ModuleSettings.NONE);
+        when(dimension.getAllRegions(any())).thenReturn(new KList<>());
+        when(dimension.getReachableBiomes(any())).thenReturn(new KList<>());
+        when(engine.getDimension()).thenReturn(dimension);
+        when(data.getBlockLoader()).thenReturn(mock(ResourceLoader.class));
+        when(engine.getGeneration()).thenReturn(new EngineGeneration(engine));
     }
 
     /** Placements into a world of {@code engine} derive their seeds from its world seed. */

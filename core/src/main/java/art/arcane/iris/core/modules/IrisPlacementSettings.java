@@ -35,9 +35,13 @@ import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import art.arcane.iris.engine.object.prefab.IrisObjectRotation;
 import art.arcane.iris.engine.object.prefab.IrisObjectTranslate;
 import com.volmit.block.BlockState;
+import com.volmit.resource.ResourceId;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /** An Iris object placement's settings as the placement stages read them. */
 final class IrisPlacementSettings implements PlacementSettings {
@@ -190,13 +194,17 @@ final class IrisPlacementSettings implements PlacementSettings {
     }
 
     @Override
-    public List<String> allowedCollisions() {
-        return config.getAllowedCollisions();
+    public Set<ResourceId> allowedCollisions() {
+        return objectIds(config.getAllowedCollisions());
     }
 
     @Override
-    public List<String> forbiddenCollisions() {
-        return config.getForbiddenCollisions();
+    public Set<ResourceId> forbiddenCollisions() {
+        return objectIds(config.getForbiddenCollisions());
+    }
+
+    private Set<ResourceId> objectIds(List<String> keys) {
+        return keys.stream().filter(Objects::nonNull).map(data.getPackResources()::idOf).collect(Collectors.toUnmodifiableSet());
     }
 
     private static final class Marker implements MarkerRule {

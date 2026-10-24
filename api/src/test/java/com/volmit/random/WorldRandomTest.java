@@ -1,5 +1,6 @@
 package com.volmit.random;
 
+import com.volmit.resource.ResourceId;
 import org.junit.jupiter.api.Test;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -33,6 +34,13 @@ class WorldRandomTest {
     void longsAreSplitMix64Outputs() {
         assertEquals(List.of(-4767286540954276203L, 2949826092126892291L, 5139283748462763858L,
                 6349198060258255764L, 701532786141963250L, -2430762948046562554L), draws(6, WorldRandom::nextLong));
+    }
+
+    @Test
+    void purposeSeedsFollowTheirSpecification() {
+        assertEquals(4999169706209116627L, WorldRandom.purposeSeed(42, ResourceId.parse("example:moss/patches")));
+        assertEquals(1770219120571522516L, WorldRandom.purposeSeed(42, ResourceId.parse("example:moss/caves")));
+        assertEquals(1140829150526819945L, WorldRandom.purposeSeed(-7, ResourceId.parse("example:moss/patches")));
     }
 
     @Test
@@ -251,7 +259,7 @@ class WorldRandomTest {
         assertEquals(Set.of("nextLong()", "nextLong(long)", "nextLong(long,long)", "nextInt()", "nextInt(int)",
                 "nextInt(int,int)", "nextBoolean()", "nextFloat()", "nextDouble()", "nextDouble(double)",
                 "nextDouble(double,double)", "nextGaussian()", "chance(double)", "pick(java.util.List)",
-                "shuffle(java.util.List)"), methods);
+                "shuffle(java.util.List)", "purposeSeed(long,com.volmit.resource.ResourceId)"), methods);
     }
 
     private static List<Integer> shuffled(int size) {

@@ -3,7 +3,9 @@ package com.volmit.host;
 import com.volmit.ModuleLog;
 import com.volmit.config.PackSettings;
 import com.volmit.resource.PackResources;
+import com.volmit.resource.ResourceId;
 import com.volmit.world.PackWorld;
+import com.volmit.world.RunningWorld;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
@@ -35,6 +37,11 @@ final class ModuleWorld implements PackWorld {
     }
 
     @Override
+    public long seed(ResourceId purpose) {
+        return world.seed(purpose);
+    }
+
+    @Override
     public PackResources resources() {
         return world.resources();
     }
@@ -47,6 +54,11 @@ final class ModuleWorld implements PackWorld {
     @Override
     public int minWorldY() {
         return world.minWorldY();
+    }
+
+    @Override
+    public Optional<RunningWorld> running() {
+        return world.running();
     }
 
     @Override

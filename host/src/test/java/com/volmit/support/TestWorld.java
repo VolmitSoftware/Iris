@@ -6,8 +6,12 @@ import com.volmit.config.PackSettings;
 import com.volmit.config.SettingsStack;
 import com.volmit.host.ModuleLogs;
 import com.volmit.host.WorldStates;
+import com.volmit.random.WorldRandom;
 import com.volmit.resource.PackResources;
+import com.volmit.resource.ResourceId;
 import com.volmit.world.PackWorld;
+import com.volmit.world.RunningWorld;
+import java.util.Optional;
 import java.util.function.Function;
 
 /** A world for tests: the test seed, no resources, no declared settings, and a real state store. */
@@ -30,6 +34,11 @@ public final class TestWorld implements PackWorld, AutoCloseable {
     }
 
     @Override
+    public long seed(ResourceId purpose) {
+        return WorldRandom.purposeSeed(seed(), purpose);
+    }
+
+    @Override
     public PackResources resources() {
         throw new AssertionError("Unused resources");
     }
@@ -46,6 +55,11 @@ public final class TestWorld implements PackWorld, AutoCloseable {
     @Override
     public int minWorldY() {
         return 0;
+    }
+
+    @Override
+    public Optional<RunningWorld> running() {
+        return Optional.empty();
     }
 
     @Override

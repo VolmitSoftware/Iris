@@ -1,5 +1,7 @@
 package com.volmit.random;
 
+import com.volmit.resource.ResourceId;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
 import java.util.ListIterator;
@@ -46,6 +48,8 @@ import java.util.RandomAccess;
  */
 public final class WorldRandom {
     private static final long GOLDEN_GAMMA = 0x9e3779b97f4a7c15L;
+    private static final long FNV_OFFSET_BASIS = 0xcbf29ce484222325L;
+    private static final long FNV_PRIME = 0x100000001b3L;
     private static final int INT_BITS = 32;
     private static final long UNSIGNED_INT_MASK = 0xffff_ffffL;
     private static final long INT_RANGE = 1L << INT_BITS;
@@ -58,6 +62,20 @@ public final class WorldRandom {
 
     public WorldRandom(long seed) {
         state = seed;
+    }
+
+    /**
+     * The seed for {@code purpose} of a world whose seed is {@code worldSeed}: {@code mix(worldSeed ^ mix(h))}, where
+     * {@code mix} is the finalizer above and {@code h} the 64-bit FNV-1a hash (offset basis {@code 0xcbf29ce484222325},
+     * prime {@code 0x100000001b3}) of the UTF-8 bytes of {@code purpose.toString()}. Different purposes give independent
+     * seeds; see {@link com.volmit.world.PackWorld#seed(ResourceId)}.
+     */
+    public static long purposeSeed(long worldSeed, ResourceId purpose) {
+        long hash = FNV_OFFSET_BASIS;
+        for (byte octet : purpose.toString().getBytes(StandardCharsets.UTF_8)) {
+            hash = (hash ^ (octet & 0xff)) * FNV_PRIME;
+        }
+        return mix(worldSeed ^ mix(hash));
     }
 
     /** A uniformly distributed {@code long}: the next SplitMix64 output. */

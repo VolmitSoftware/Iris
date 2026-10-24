@@ -208,6 +208,12 @@ running Iris is the pack publisher's responsibility.
   (`InvocationContext.world()`), to service calls and to hooks. Use `WorldStates` (or the same rules) for its store.
   A placement a tool makes outside those worlds (a studio paste) gets a `PackWorld` of its own: the pack's resources
   and settings, a seed the host picks, a store closed when the placement ends, and no hooks. `world()` never throws.
+- Answer `PackWorld.seed(purpose)` with `WorldRandom.purposeSeed(seed(), purpose)`, except for ids of your own built-ins
+  whose existing worlds depend on other seeds; the same world and purpose always get the same seed.
+- Answer `PackWorld.running()` for a world the host runs, empty for a tool's world. Its `layout()` covers every column of
+  the world (not one chunk), with the same values chunk stages read; its `settings()` are the settings at a column and a
+  biome's declarations as chunk stages see them; `highestBlock` is the platform's highest block now; `caveFloors` are
+  the cave floor markers of a chunk, in heights above the bottom; `sky()` is empty until the platform has the world.
 - Call the hooks with `LifecycleRunner`: `packLoaded` once per pack snapshot before its first world starts,
   `worldStarted` before the world generates anything, `warmUp` after it (on a thread of your choice, and wait for it before
   the world's first generation; report a failure naming the module and carry on), `worldStopped` when it stops. On a hotload, and when the pack's

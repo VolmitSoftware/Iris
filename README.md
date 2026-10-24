@@ -146,6 +146,12 @@ JDK may change, so use `pick` and `shuffle` instead of `Collections.shuffle`. Bo
 unbiased, `nextDouble` never returns its bound, and invalid bounds throw. It is not thread-safe: a
 stage uses its own stream within one invocation and must not share or keep it.
 
+A module's own world-wide randoms and noise take `world.seed(purpose)`, the seed the world gives a purpose id such as
+`example:moss/patches`: the same for the same world and purpose, independent across purposes, so two modules never
+mix the world seed into the same value by hand. Hosts answer `WorldRandom.purposeSeed(world.seed(), purpose)`, pinned
+like every other `WorldRandom` value; Iris answers its built-ins' `iris:seed/*` purposes with the seeds its worlds
+always had.
+
 ## The mantle pipeline and reach
 
 A chunk stage writes only its own chunk: the host may already have generated its neighbors. Work that
@@ -291,7 +297,7 @@ static PlantedChunks planted(PackWorld world) {
 }
 ```
 
-- `ctx.world()` is the `PackWorld` an invocation generates: its seed, the pack snapshot's resources, the settings of
+- `ctx.world()` is the `PackWorld` an invocation generates: its seed and purpose seeds, the pack snapshot's resources, the settings of
   its dimension and the regions and biomes it can reach, and `state(type, create)`. Every stage context has it and it
   never throws: a placement outside the worlds the host generates, such as a studio paste, gets a world of its own with
   the pack's resources and settings, a seed the host picks and a state store that lives as long as the placement.
@@ -382,6 +388,11 @@ final class RuinsObjects implements ObjectsAt {
   carries out on the right thread.
 - Services name pack resources by `ResourceId` (`world.resources().idOf(key)` for a key the pack wrote), and absent
   values in what they return are `Optional`s.
+- A service that answers about the world as it runs, outside any chunk, reads `world.running()`: the layout over every
+  column (`layout()`, a `TerrainSampler`), the settings at a column and what a biome declares (`settings()`), the
+  highest block now, the cave floors the mantle marked, the time and weather (`sky()`, empty until the platform has
+  the world), the platform's loot tables and whether the world is a debug (studio) world. It is empty for a tool's
+  world, which nothing runs.
 - Each service says how several providers combine, with `@Service(Providers.X)`: `ALL` (the host asks every provider
   and combines the answers), `FIRST` (the host asks in order until one answers) or `ONE` (at most one provider per
   pack; a second fails the pack load, naming both modules). Providers are in module id order, each module's in
@@ -611,12 +622,12 @@ public final class VeinSettings implements IrisFeature {
 
 // in a stage
 var resources = ctx.world().resources();
-NoiseSampler density = resources.noise().sampler(veins.density(), ctx.world().seed() ^ VEIN_SALT);
+NoiseSampler density = resources.noise().sampler(veins.density(), ctx.world().seed(VEIN_DENSITY));   // ResourceId example:veins/density
 BlockState ore = resources.blocks().resolve(veins.palette().getFirst());
 ```
 
 Noise belongs to the host: a style names one of its noise generators (`@Ref(Reference.NOISE_STYLE)`), or an
-expression or image map of the pack, and the host builds the noise. Seed it from `world().seed()`, so the noise
+expression or image map of the pack, and the host builds the noise. Seed it from a world seed (`world().seed(purpose)`), so the noise
 lines up across chunks; the host keeps what it builds for the pack, so asking again is cheap. A `BlockSpec` may
 name a block without a namespace, a custom block of the pack's `blocks` folder, or a block only some platforms
 have; resolving it never fails: the backup, then air, stands in. A `PaletteSpec` picks one of its blocks per position

@@ -37,6 +37,10 @@ def stream_seed(invocation_seed, stage_id):
     return mix(mix(invocation_seed & MASK64) ^ fnv1a64(stage_id))
 
 
+def purpose_seed(world_seed, purpose):
+    return mix((world_seed & MASK64) ^ mix(fnv1a64(purpose)))
+
+
 # fdlibm __ieee754_log (e_log.c), the algorithm StrictMath.log specifies.
 LN2_HI = 6.93147180369123816490e-01
 LN2_LO = 1.90821492927058770002e-10
@@ -210,6 +214,8 @@ def draws(label, method, count=6, seed=42):
 if __name__ == "__main__":
     print(f"fnv1a64(iris:stilt/fill) = {signed64(fnv1a64('iris:stilt/fill'))}")
     print(f"streamSeed(42, iris:stilt/fill) = {signed64(stream_seed(42, 'iris:stilt/fill'))}")
+    for seed, purpose in [(42, "example:moss/patches"), (42, "example:moss/caves"), (-7, "example:moss/patches")]:
+        print(f"purposeSeed({seed}, {purpose}) = {signed64(purpose_seed(seed, purpose))}")
     stage = WorldRandom(stream_seed(42, "iris:stilt/fill"))
     print(f"stage stream nextLong, nextInt, nextInt(1000000): "
           f"{stage.next_long()}, {stage.next_int()}, {stage.next_int_bound(1_000_000)}")

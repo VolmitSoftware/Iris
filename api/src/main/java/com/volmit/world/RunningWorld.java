@@ -1,0 +1,54 @@
+package com.volmit.world;
+
+import com.volmit.config.FeatureSettings;
+import com.volmit.geometry.BlockPosition;
+import com.volmit.resource.ResourceId;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+
+/** A world the host is running, as it is now, for services and lifecycle hooks: they have no chunk, so they ask the
+ * world's layout, settings and platform state here instead of through an invocation. A chunk stage uses its
+ * invocation's views, which may differ while the chunk generates.
+ *
+ * <p>X and Z are world coordinates; Y is the height above the dimension's bottom, as everywhere in the API. The views
+ * live as long as the world and are safe to use from any thread.
+ */
+public interface RunningWorld {
+    /** The world's terrain and biomes as generation lays them out, before anything was placed: its bounds are every
+     * column of the world at full height. The same answers a chunk stage's {@link TerrainSampler} gives for its columns.
+     */
+    TerrainSampler layout();
+
+    /** The settings at a world column, as a chunk stage's {@link FeatureSettings} gives them: the dimension's, the
+     * column's region's and its surface biome's; a cave biome's through {@link FeatureSettings#declaredBy}.
+     */
+    FeatureSettings settings();
+
+    /** The height of the highest block in the column now: the terrain with what objects and structures added.
+     * {@code ignoreFluid} skips fluid blocks, so it answers the ground under a sea.
+     */
+    int highestBlock(int worldX, int worldZ, boolean ignoreFluid);
+
+    /** The floors of the caves generation marked in the chunk, as positions of the floor blocks; none on a platform that
+     * cannot read them.
+     */
+    List<BlockPosition> caveFloors(int chunkX, int chunkZ);
+
+    /** The time and weather of the world; empty while the platform has not loaded the world. */
+    Optional<Sky> sky();
+
+    /** The ids of the loot tables the platform has, such as {@code minecraft:chests/simple_dungeon}. They do not change
+     * while the world runs.
+     */
+    Set<ResourceId> platformLootTables();
+
+    /** Whether the world is one a pack author is working on (Iris: a studio world): the host then shows where generated
+     * things came from, such as the sources of items ({@link com.volmit.item.ItemDrop#source()}).
+     */
+    boolean debug();
+
+    /** The world's time of day in ticks, whether it storms and whether it thunders. */
+    record Sky(long time, boolean storming, boolean thundering) {
+    }
+}

@@ -3,6 +3,7 @@ package com.volmit.world;
 import com.volmit.ModuleLog;
 import com.volmit.config.PackSettings;
 import com.volmit.resource.PackResources;
+import com.volmit.resource.ResourceId;
 import java.util.Optional;
 import java.util.function.Function;
 
@@ -25,6 +26,15 @@ import java.util.function.Function;
 public interface PackWorld {
     long seed();
 
+    /**
+     * The seed this world gives {@code purpose}, such as {@code example:moss/patches}: the same for the same world and
+     * purpose, independent across purposes. Seed a module's own randoms and noise with it instead of mixing
+     * {@link #seed()} by hand. A host answers {@link com.volmit.random.WorldRandom#purposeSeed} of the world's seed,
+     * except for purposes of its own modules whose worlds already depend on other seeds: Iris answers the ids of
+     * {@code iris:} purposes its built-in modules use with the seeds its worlds always had.
+     */
+    long seed(ResourceId purpose);
+
     /** The pack snapshot this world generates with. */
     PackResources resources();
 
@@ -37,6 +47,9 @@ public interface PackWorld {
      * {@link TerrainSampler#minWorldY()}.
      */
     int minWorldY();
+
+    /** The world as it runs now, for services and lifecycle hooks; empty for a tool's world, which nothing runs. */
+    Optional<RunningWorld> running();
 
     /**
      * The world's one {@code type} instance, created by {@code create} the first time anyone asks for it. Modules keep

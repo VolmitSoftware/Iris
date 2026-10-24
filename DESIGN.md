@@ -1068,6 +1068,18 @@ each world a state store and tells modules when worlds start and stop.
   studio paste had no world; the host now builds a world for each placement a tool makes outside the worlds it
   generates (the pack's resources and settings, a seed it picks, a state store closed when the placement ends, no
   hooks), so the copies are gone and the world is the one place for seed and resources.
+- **Purpose seeds.** `PackWorld.seed(purpose)` is the seed a world gives a purpose id, specified as
+  `WorldRandom.purposeSeed(seed(), purpose)` (FNV-1a of the id, SplitMix64-mixed with the world seed) and pinned. Modules
+  mixed `seed()` with salts by hand, and Iris's built-ins asked a facade (`IrisSeeds`) for its per-feature seeds; one
+  method serves both, because a host may answer its own built-ins' ids (`iris:seed/terrain`, `iris:seed/carve`) with the
+  seeds its existing worlds were generated with, and every other id by the specification.
+- **The running world.** `PackWorld.running()` is the world as it runs now, for services and lifecycle hooks, which have
+  no chunk to ask: the layout over every column as a `TerrainSampler`, the settings at a column and of a biome as
+  `FeatureSettings`, the highest block now, the cave floors the mantle marked, the sky (time and weather), the platform's
+  loot tables and whether it is a debug world. It reuses the chunk vocabulary instead of a second one: Iris's built-ins
+  read the same through a facade (`LiveWorld`, with its own `Level`, `BiomeKind` and `Sky`), now deleted. Empty for a
+  tool's world, which nothing runs. Which biome a block "is in" (cave below the surface, else surface) stays a module
+  rule, not API: hosts and modules disagree on it, and the layout already answers both biomes.
 - **The store.** One instance per type, keyed by class: a class is compile-checked and module-owned, so two modules
   never share an entry by accident, and it matches the internal `state(Class, factory)` Iris already used. A factory
   runs once per type even when threads race (the others wait and get the same instance); it may ask for other state
@@ -1216,16 +1228,16 @@ A module jar sees three things besides the JDK and its own pack's jars, and noth
 2. **Packages the host exposes**: libraries it shares (VolmLib, Gson) and the public face of its built-in modules
    (`art.arcane.iris.builtin`: stage constants, settings and output types packs may read).
 3. **Narrow facades for the host's own built-ins**, in that same exposed package, for what only the host's own
-   features need from its internals, such as Iris's per-feature world seeds (`IrisSeeds`), which existing worlds depend
-   on. A pack module never needs one. Every such type is a promise the host keeps, so there are few, each answers one
+   features need from its internals, such as the legacy random streams Iris's object placement draws from, which
+   existing worlds depend on. A pack module never needs one. Every such type is a promise the host keeps, so there are few, each answers one
    question, and none hands out an engine.
 
 **The extension point.** A built-in reaches its facade through one door: `PackWorld.extension(type)` for what belongs to
-a world (seeds, the world at a block), `InvocationContext.extension(type)` for what belongs to one invocation (the
+a world (the object system, spawner cooldowns Iris persists), `InvocationContext.extension(type)` for what belongs to one invocation (the
 platform chunk Iris generates, the placement being attempted), and `PackSettings.extension(type)` for what is worked out
 from a pack's settings before any world exists (how far a feature reaches). Each returns an `Optional`, empty by default,
 so a host offers what it has and a module states what it requires:
-`world.extension(IrisSeeds.class).orElseThrow()`. Why one door:
+`world.extension(ObjectHost.class).orElseThrow()`. Why one door:
 
 - **No thread-locals.** Facades used to be bound to the current thread (`IrisChunk.current()`, `ObjectPlacement.current()`),
   which only worked while the host's own code had bound them and broke silently on another thread. The context a stage

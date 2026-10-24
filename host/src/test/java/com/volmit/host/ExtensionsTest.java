@@ -10,12 +10,15 @@ import com.volmit.config.PackSettings;
 import com.volmit.generation.GenerationContext;
 import com.volmit.hunk.Hunk;
 import com.volmit.mantle.Mantle;
+import com.volmit.random.WorldRandom;
 import com.volmit.resource.PackResources;
+import com.volmit.resource.ResourceId;
 import com.volmit.stage.Pipeline;
 import com.volmit.stage.Stage;
 import com.volmit.support.TestContexts;
 import com.volmit.support.TestSetups;
 import com.volmit.world.PackWorld;
+import com.volmit.world.RunningWorld;
 import com.volmit.world.TerrainSampler;
 import java.util.ArrayList;
 import java.util.List;
@@ -80,9 +83,11 @@ class ExtensionsTest {
         }
 
         public long seed() { return TestContexts.SEED; }
+        public long seed(ResourceId purpose) { return WorldRandom.purposeSeed(seed(), purpose); }
         public PackResources resources() { throw new AssertionError("Unused resources"); }
         public PackSettings settings() { throw new AssertionError("Unused settings"); }
         public int minWorldY() { return 0; }
+        public Optional<RunningWorld> running() { return Optional.empty(); }
         public <T> T state(Class<T> type, Function<? super PackWorld, ? extends T> create) { return states.state(type, () -> create.apply(this)); }
         public ModuleLog log() { return ModuleLogs.discarding(); }
 

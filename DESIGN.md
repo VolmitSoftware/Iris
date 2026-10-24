@@ -43,7 +43,9 @@ flowchart TD
 ## Module loading
 
 The `IrisModule` implementation is the module's entry point. `info()` returns its id, display
-name, version and optional packages; there is no separate descriptor. A pack keeps its modules in
+name and version; there is no separate descriptor. What the jar needs at load (its optional packages) is in the jar's
+manifest, because it is the jar's, shared by every module in it, and because a module's identity should not carry
+class loading mechanics. A pack keeps its modules in
 `<pack>/modules/*.jar`, one or more modules per jar.
 
 The host loads a pack with `LoadedPack.load(packRoot, host)`. `ModuleHost` is the host's fixed
@@ -93,8 +95,8 @@ API):
 8. Creates one `URLClassLoader` for all copies, parent = `ExposedHostClassLoader`.
 9. Loads each entry class, checks that it implements `IrisModule` and comes from its own jar,
    instantiates it with the public no-argument constructor and calls `info()`, once.
-10. Drops each jar's missing classes that lie in the optional packages its module declares in
-   `info()`.
+10. Drops each jar's missing classes that lie in the optional packages its manifest declares
+   (`Iris-Optional-Packages`; an invalid name fails the load when the jar is read, in step 1).
 11. Logs one INFO summary of the pack's modules, and one WARNING if any missing classes remain.
 
 Any failure after step 3 closes the loader, if it exists, and deletes the copies.
@@ -178,7 +180,7 @@ intended use is the packages that hold built-in modules' stage constants, so tha
 the host's class and the same stage constant, which resolution requires: a copy would be a second
 definition of the id. Names match whole packages: `com.volmit` does not expose `com.volmitx`. A
 trailing dot is accepted; anything that is not a package name, such as a blank string or a
-wildcard, is rejected. `PackageName` holds these rules; module optional packages use them too.
+wildcard, is rejected. The host's `PackageName` holds these rules; a jar's optional packages use them too.
 
 A module may use any library. A library the host does not expose it ships itself, inside its own jar or as another
 jar of the pack, and never borrows the host's hidden copy: those can change with any host update, and two modules would
@@ -216,7 +218,7 @@ file, so nothing is loaded or initialized:
 | in an exposed package, but the host does not have it | load error: the jar was built against a different Iris API or Iris version |
 | in a JDK module the platform loader does not provide, such as `jdk.compiler` | load error: names the JDK module, which is not available to modules |
 | not exposed, but the host's loader has it (Iris internals, Iris's copy of a library) | load error: modules cannot use Iris's classes; ship the library in the pack or use the API |
-| nowhere | the pack loads, with a warning unless the module declares the package optional |
+| nowhere | the pack loads, with a warning unless the jar's manifest declares the package optional |
 
 The rows are checked in that order. The export row comes first because access does not depend on
 which loader finds the class: whoever loads `jdk.internal.misc.Unsafe`, `java.base` decides who may
@@ -240,24 +242,23 @@ logs one WARNING for the pack, one line per jar with at most five class names
 class throws `NoClassDefFoundError` when it runs; the verifier may also need it while linking a
 class that uses it, which then fails when that class is first used.
 
-A module that knows its jar uses such classes declares their packages as optional in `info()`:
+A jar that knows it uses such classes declares their packages as optional in its manifest, separated by spaces or
+commas:
 
-```java
-public ModuleInfo info() {
-    return ModuleInfo.of("example:moss", "Moss", "1.0.0")
-            .withOptionalPackages("org.slf4j", "org.apache.logging.log4j");
-}
+```
+Iris-Optional-Packages: org.slf4j org.apache.logging.log4j
 ```
 
 Each package covers its subpackages. Missing classes of that jar inside them are dropped from the
 warning and from `missingClasses()`; the rest still warn, and other jars of the pack are not
-affected. A jar with several modules is excused by the optional packages of all of them. `ModuleInfo.of(id, name, version)` declares none. Invalid names fail in `info()`, which the
-load reports as a broken entry point of the jar.
+affected. A jar with several modules declares once for all of them. Invalid names fail the load
+when the jar is read, naming the jar.
 
-The declaration lives in the entry point because all module metadata does. That fixes its timing:
-`info()` exists only once the entry class is defined, after the reference check. This is safe
-because the declaration only removes warnings. Every load error is decided in step 7, without it,
-so a declared package can never turn a hidden Iris class, an unavailable or non-exported JDK class
+The declaration lives in the manifest because it is about the jar, not about any one module: a jar shades a
+library for all of its modules, and the host already applied the declarations per jar. It used to be
+`ModuleInfo.withOptionalPackages`, which put class loading mechanics into a module's identity and could only be
+read once the entry classes were defined. The declaration only removes warnings. Every load error is decided in
+step 7, without it, so a declared package can never turn a hidden Iris class, an unavailable or non-exported JDK class
 or a class missing from an exposed package into a pass. `missingClasses()` drops the excused classes instead
 of flagging them: it then says exactly what the warning says, and a class the author declared
 expected is not a problem to show in studio.
@@ -850,6 +851,25 @@ settings, and pack JSON keeps its shape: the field names and the no-argument def
 included (an omitted `Range` bound is 16 or 32). They are values: accessors return unmodifiable views,
 withers return copies, and equality is by value, so the host can cache by them.
 
+### Decoding contract
+
+Every settings class, value type and pack resource kind is read the same way, by any host:
+
+- The host creates the instance with the no-argument constructor and reads each JSON member into the field of the
+  same name. It calls no setter and no other constructor.
+- A member the JSON leaves out keeps the field's initialiser. A member written as `null` counts as left out.
+- The host never writes `null` into a field. An enum name the enum does not know is an error that lists the known
+  names; it does not become `null` or the default.
+- So a getter returns its field as it is. Only a field whose initialiser is `null` can be absent
+  (`NoiseStyle.fracture`, `BlockSpec.backup`, the `JigsawOverrides` numbers), and its getter says so with `Optional`.
+  Constructors and withers in code reject `null` the same way.
+- No performance knobs. `NoiseStyle` has no cache size: how a host caches noise is its own business.
+  `multiplier` stays on every style: it is how far a style moves coordinates, read both when the style is another's
+  fracture and when it is an object placement's warp, so it is not the fracture's alone.
+
+Iris enforces this in its module settings decoder; a class that guards its getters against `null` is guarding against
+a host bug.
+
 | Iris class | API | Behaviour behind it |
 | --- | --- | --- |
 | `IrisBlockData` | `com.volmit.block.BlockSpec` | `BlockRegistry.resolve(BlockSpec)`, `blockEntity(BlockSpec)` |
@@ -948,8 +968,8 @@ states them through the `VanillaStructures` service; the host applies them on ev
   region and biome it can reach), the same view reaches are worked out from.
 - **Placing starts: `starts(chunkX, chunkZ, context)`.** Asked per chunk because the platform generates per chunk. A
   start carries everything the platform needs and nothing it can work out: structure, chunk, height above the
-  bottom, surface or underground, whether it takes the chunk from a platform start, jigsaw overrides, a memo, and an
-  identity the host persists with the start so a start found in a saved world can be traced to its placement. Across
+  bottom, surface or underground, whether it takes the chunk from a platform start, jigsaw overrides and a memo. No
+  identity of the placement: the host only stored it and never read it back, so it was dropped in batch 6. Across
   modules the host keeps the first start per structure and chunk in module id order. The context is the `PackWorld`
   plus a `TerrainSampler`.
 - **No fit values in the API.** How a start meets the terrain (Iris's SOURCE, PRESERVE, VACUUM, ENCASE, BORE,
@@ -969,11 +989,14 @@ states them through the `VanillaStructures` service; the host applies them on ev
   go through `BlockAccess`: `get`, `column` and `set` work on plain states, traits and tags answer the platform's own
   questions, so a fit scans millions of cells without a value per block. `state(type, factory)` holds a module's
   object for the chunk from `beforePieces` to the last `afterPieces`, the only place a fit keeps state.
-- **A memo instead of a persisted fit.** A start a module places carries a `StartMemo` (two texts, the module's to
-  fill). The host stores it with the start's ownership record and hands it back in `reach` and in every chunk's
-  `StructureFit`, so a start fits the same in every chunk it reaches, also after a restart or a pack change. Iris's
-  structure module writes its terrain and stilts JSON there, in the two places records always held them, so records
-  written before read the same.
+- **A memo instead of a persisted fit.** A start a module places carries a `StartMemo` (one opaque, non-empty text,
+  the module's to fill and parse). The host stores it with the start's ownership record and hands it back in `reach`
+  and in every chunk's `StructureFit`, so a start fits the same in every chunk it reaches, also after a restart or a
+  pack change. Iris's structure module writes one JSON object of its terrain and stilts there; how many parts a memo
+  has is the module's business, so the API holds one text.
+- **One locating service.** `StructureLocator` finds both the structures a module places itself (`locate`) and the
+  platform structures it starts (`startedStructures`, `locatableStarts`, `locateStart`); `VanillaStructures` only
+  decides and fits. A second structure module implements one service to be found by `/locate`.
 - **Setup before a world exists: `setup(context)`.** Structure set frequencies and protecting the platform's
   definitions from installed data packs are decided when the platform builds its structure state or the host
   installs data packs, before any world of the dimension runs. Frequencies multiply across modules; protection holds
@@ -1001,8 +1024,8 @@ the resources it serves itself.
   `EXPRESSIONS`, `IMAGE_MAPS`), so one call shape serves both, and no second key type (it used to be `ResourceKey`, a
   pair of id and class). One class still backs at most one kind, because `@Ref(kind = ...)` names the kind by its class. The class must be concrete; like settings it
   needs a no-argument constructor, checked when the pack's description is built.
-- **Reading.** The host creates the instance with that constructor and reads the JSON into it, exactly as it
-  decodes settings, so a missing field keeps its default and studio's defaults are what packs get.
+- **Reading.** The host creates the instance with that constructor and reads the JSON into it under the
+  decoding contract, exactly as it decodes settings, so a missing field keeps its default and studio's defaults are what packs get.
 - **Lifetime.** A resource is read once per pack snapshot and every caller gets the same instance, so resources
   are values: nobody may change one. A reload is a new snapshot (`snapshotId()` changes) that reads the files
   again. A file that fails to read is an error from `find`, not an absent resource.
@@ -1172,7 +1195,10 @@ from a sapling, which drops a block has. A module answers such questions through
   floating island. Settings say so by implementing `LinkedBiomes` (`treeBiomes`, which join a region's tree and so its terrain
   generators, and `usedBiomes`, which the dimension reaches without joining), instead of the host reading any module's
   settings class. `usedBiomes` receives the dimension's own settings, since a name may stand for something the dimension
-  declares (a floating island's `carving` is a band id or a biome key).
+  declares (a floating island's `carving` is a band id or a biome key). They come as a `PackSettings` holding only the
+  dimension's level, the API's lookup by type into a `SettingsStack`, not a raw collection of features; its regions
+  and biomes are left out because they are what the host is working out. `LinkedBiomes` is a layout concern, so it
+  lives in `world`.
 - **Why not per-world provider instances.** A factory per world (`world -> provider`) would let a provider hold its
   world, but every service method would then hide which world it answers for, and a host could not ask a pack-level
   question without a world. Passing the world keeps providers stateless like stage bodies and puts all per-world data

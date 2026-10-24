@@ -18,8 +18,8 @@ import java.util.Optional;
  * the pack's {@code blocks} folder, or a block that only some versions or mods have.
  *
  * <p>The host resolves it with {@link BlockRegistry#resolve(BlockSpec)} and its block entity with
- * {@link BlockRegistry#blockEntity(BlockSpec)}. A spec is a value: the host creates it with the no-argument
- * constructor and reads the JSON into it, and nothing changes it afterwards. Property values are text however the
+ * {@link BlockRegistry#blockEntity(BlockSpec)}. A spec is a value the host decodes as every settings class (see
+ * DESIGN.md, "Decoding contract"), and nothing changes it afterwards. Property values are text however the
  * pack writes them, so {@code "waterlogged": true} reads as {@code "true"}.
  */
 @Desc("A block, with optional properties, block entity data and a backup for platforms without it")
@@ -31,7 +31,7 @@ public final class BlockSpec {
     @Desc("The block to use. A key without a namespace is a Minecraft block or a block of the pack's blocks folder.")
     private String block = AIR;
 
-    @Desc("Optional properties for this block, such as 'waterlogged': true")
+    @Desc("The block's properties, such as \"waterlogged\": true.")
     private Map<String, String> data = Map.of();
 
     @MinNumber(1)
@@ -39,10 +39,10 @@ public final class BlockSpec {
     @Desc("The weight of this block in a list it is picked from. A weight of two is as if the block were in the list twice.")
     private int weight = 1;
 
-    @Desc("If the block cannot be created on this platform, this block is used instead.")
+    @Desc("The block used instead on a platform that does not have this one.")
     private BlockSpec backup;
 
-    @Desc("Optional block entity data for this block, such as a spawner's SpawnData")
+    @Desc("The block entity data, such as a spawner's SpawnData.")
     private Map<String, Object> tileData = Map.of();
 
     private BlockSpec() {
@@ -82,12 +82,12 @@ public final class BlockSpec {
 
     /** The block key as the pack wrote it. */
     public String block() {
-        return block == null ? AIR : block;
+        return block;
     }
 
     /** The properties as the pack wrote them, as text. */
     public Map<String, String> data() {
-        return data == null ? Map.of() : Collections.unmodifiableMap(data);
+        return Collections.unmodifiableMap(data);
     }
 
     public int weight() {
@@ -100,7 +100,7 @@ public final class BlockSpec {
 
     /** The block entity data as the pack wrote it: JSON objects as maps, arrays as lists, numbers as {@code Double}. */
     public Map<String, Object> tileData() {
-        return tileData == null ? Map.of() : Collections.unmodifiableMap(tileData);
+        return Collections.unmodifiableMap(tileData);
     }
 
     @Override

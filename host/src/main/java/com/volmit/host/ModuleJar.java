@@ -12,6 +12,7 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
@@ -19,6 +20,7 @@ import java.util.SortedSet;
 import java.util.function.Predicate;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
+import java.util.jar.Manifest;
 import java.util.zip.ZipFile;
 
 /** One jar in a pack's modules directory, the entry classes it names and the classes it holds,
@@ -31,9 +33,15 @@ import java.util.zip.ZipFile;
  * modules as it lists. The host reads that file from this jar only:
  * {@code ServiceLoader} would also return providers from parent class loaders and could not tell
  * which jar a broken entry came from.
+ *
+ * <p>The optional packages are those the jar's manifest lists under {@value #OPTIONAL_PACKAGES_ATTRIBUTE}, separated
+ * by spaces or commas: packages, with their subpackages, whose classes the jar uses but expects may be absent.
  */
-record ModuleJar(Path path, String origin, List<String> entryClasses, List<JarClass> classes) {
+record ModuleJar(Path path, String origin, List<String> entryClasses, List<JarClass> classes,
+                 List<PackageName> optionalPackages) {
     static final String ENTRY_POINT_FILE = "META-INF/services/" + IrisModule.class.getName();
+    static final String OPTIONAL_PACKAGES_ATTRIBUTE = "Iris-Optional-Packages";
+    private static final String OPTIONAL_PACKAGE_SEPARATORS = "[\\s,]+";
     private static final String COMMENT_START = "#";
     private static final String CLASS_FILE_SUFFIX = ".class";
     private static final String MODULE_DESCRIPTOR = "module-info" + CLASS_FILE_SUFFIX;
@@ -44,6 +52,7 @@ record ModuleJar(Path path, String origin, List<String> entryClasses, List<JarCl
         Objects.requireNonNull(origin, "origin");
         entryClasses = List.copyOf(entryClasses);
         classes = List.copyOf(classes);
+        optionalPackages = List.copyOf(optionalPackages);
     }
 
     /** A class in the jar, by binary name, and the binary names of the classes it links against. */
@@ -63,7 +72,8 @@ record ModuleJar(Path path, String origin, List<String> entryClasses, List<JarCl
         try (var file = openAsClassLoaderSeesIt(jar)) {
             var entryClasses = requireEntryClasses(origin, readEntryClasses(file));
             var classEntries = findClassEntries(file);
-            return new ModuleJar(jar, origin, entryClasses, readClasses(origin, file, classEntries));
+            return new ModuleJar(jar, origin, entryClasses, readClasses(origin, file, classEntries),
+                    readOptionalPackages(origin, file.getManifest()));
         } catch (IOException exception) {
             throw new ModuleLoadException(null, origin, "Module jar " + origin + " is not a readable jar", exception);
         }
@@ -94,6 +104,22 @@ record ModuleJar(Path path, String origin, List<String> entryClasses, List<JarCl
         requireDefinedHere(entryClass, type, snapshot);
         var module = instantiate(entryClass, type);
         return DiscoveredModule.fromJar(module, readIdentity(entryClass, module), origin);
+    }
+
+    private static List<PackageName> readOptionalPackages(String origin, Manifest manifest) {
+        var declared = manifest == null ? null : manifest.getMainAttributes().getValue(OPTIONAL_PACKAGES_ATTRIBUTE);
+        if (declared == null || declared.isBlank()) {
+            return List.of();
+        }
+        return Arrays.stream(declared.trim().split(OPTIONAL_PACKAGE_SEPARATORS))
+                .map(name -> requireOptionalPackage(origin, name))
+                .toList();
+    }
+
+    private static PackageName requireOptionalPackage(String origin, String name) {
+        return PackageName.tryParse(name).orElseThrow(() -> ModuleLoadException.ofJar(origin, "Module jar " + origin
+                + " declares optional package '" + name + "' in " + OPTIONAL_PACKAGES_ATTRIBUTE + ", which is not a package"
+                + " name; name a package such as org.slf4j, which covers that package and its subpackages"));
     }
 
     /** Opens the jar with the runtime's multi-release version, like the pack class loader does, so

@@ -16,26 +16,26 @@ import java.util.Objects;
  * at the position over {@code zoom} selects, each block counting {@link BlockSpec#weight() weight} times.
  *
  * <p>A palette is a description, not a picker: the host builds the picker
- * ({@link BlockRegistry#palette(PaletteSpec, long)}). It is a value the host creates with the no-argument
- * constructor and reads the JSON into; nothing changes it afterwards.
+ * ({@link BlockRegistry#palette(PaletteSpec, long)}). It is a value the host decodes as every settings class (see
+ * DESIGN.md, "Decoding contract"); nothing changes it afterwards.
  */
 @Snippet("palette")
-@Desc("A palette of materials")
+@Desc("Blocks picked by noise, each as often as its weight")
 public final class PaletteSpec {
     private static final String DEFAULT_STYLE = "STATIC";
     private static final double DEFAULT_ZOOM = 5;
     private static final String DEFAULT_BLOCK = "stone";
 
-    @Desc("The style of noise")
+    @Desc("The noise that picks the block at each position.")
     private NoiseStyle style = NoiseStyle.of(DEFAULT_STYLE);
 
     @MinNumber(0.0001)
-    @Desc("The terrain zoom mostly for zooming in on a wispy palette")
+    @Desc("How far the picking noise is stretched: above 1 gives larger patches of one block.")
     private double zoom = DEFAULT_ZOOM;
 
     @Required
     @MinItems(1)
-    @Desc("The palette of blocks to be used in this layer")
+    @Desc("The blocks to pick from.")
     private List<BlockSpec> palette = List.of(BlockSpec.of(DEFAULT_BLOCK));
 
     private PaletteSpec() {
@@ -63,7 +63,7 @@ public final class PaletteSpec {
 
     /** The noise that picks the blocks; the default {@code STATIC} style where the pack wrote none. */
     public NoiseStyle style() {
-        return style == null ? NoiseStyle.of(DEFAULT_STYLE) : style;
+        return style;
     }
 
     /** The factor the position is divided by before it is looked up in the noise. */
@@ -73,7 +73,7 @@ public final class PaletteSpec {
 
     /** The blocks to pick from, as the pack wrote them. */
     public List<BlockSpec> palette() {
-        return palette == null ? List.of() : Collections.unmodifiableList(palette);
+        return Collections.unmodifiableList(palette);
     }
 
     @Override

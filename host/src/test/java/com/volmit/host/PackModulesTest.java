@@ -179,7 +179,7 @@ class PackModulesTest {
     }
 
     @Test
-    void optionalPackagesOfAnyModuleOfAJarExcuseItsMissingClasses(@TempDir Path build) {
+    void aJarsOptionalPackagesExcuseTheMissingClassesOfAllItsModules(@TempDir Path build) {
         module("pack.First", "first:core", List.of("org.optional"), NO_MEMBERS, NO_SETUP)
                 .alsoModule("pack.Second", "second:core", using(OPTIONAL_CLASS), NO_SETUP)
                 .compileAgainst(library(build, "optional.jar", OPTIONAL_CLASS))
@@ -460,8 +460,8 @@ class PackModulesTest {
         module("pack.user.User", "user:core", List.of("org.*"), NO_MEMBERS, NO_SETUP).writeInto(pack, "user.jar");
 
         assertMentions(failure(() -> PackModules.load(pack)),
-                "Module jar " + origin("user.jar") + " has a broken entry point pack.user.User: info() failed",
-                "Optional package 'org.*' of module user:core is not a package name");
+                "Module jar " + origin("user.jar") + " declares optional package 'org.*' in Iris-Optional-Packages,"
+                        + " which is not a package name");
     }
 
     @Test

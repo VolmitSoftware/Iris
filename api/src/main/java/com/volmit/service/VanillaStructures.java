@@ -10,10 +10,8 @@ import com.volmit.vanilla.VanillaStructureRule;
 import com.volmit.vanilla.VanillaStructureSetup;
 import com.volmit.vanilla.VanillaStructureStart;
 import com.volmit.vanilla.VanillaStructureStartContext;
-import com.volmit.world.PackWorld;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 
 /** A module's say over the platform's own structures, the ones Minecraft, data packs and mods register, in the pack's
  * worlds. The host asks every provider, in module id order:
@@ -32,7 +30,8 @@ import java.util.Set;
  * from the pack (its settings and resources) and never from where a start would be. Rules combine with
  * {@link VanillaStructureRule#and}: any module may block the platform's starts. Shifts add up; reaches are all covered;
  * setups combine with {@link VanillaStructureSetup#and}. Every method may be called from any thread, concurrently, but
- * one chunk's {@link StructureFit} is used on one thread.
+ * one chunk's {@link StructureFit} is used on one thread. Finding the starts a module makes is
+ * {@link StructureLocator}'s, the one service that locates structures.
  */
 @Service(Providers.ALL)
 public interface VanillaStructures {
@@ -92,38 +91,5 @@ public interface VanillaStructures {
      */
     default VanillaStructureSetup setup(VanillaStructureContext context) {
         return VanillaStructureSetup.UNCHANGED;
-    }
-
-    /** The platform structures this module starts itself in {@code world} ({@link #starts}), wherever its own placements put
-     * them. The host's locate and structure commands send them to {@link #locateStart}.
-     */
-    default Set<ResourceId> startedStructures(PackWorld world) {
-        return Set.of();
-    }
-
-    /** Those of {@link #startedStructures} whose starts {@link #locateStart} can find in {@code world}: a start whose
-     * placement can never start in the world's height, for one, cannot be searched for.
-     */
-    default Set<ResourceId> locatableStarts(PackWorld world) {
-        return Set.of();
-    }
-
-    /**
-     * The start of the platform structure {@code structure} this module makes nearest to the column {@code fromX},
-     * {@code fromZ} (world coordinates), searched ring by ring outward through its placements' grids up to {@code maxRings}
-     * rings: the nearest start of the first ring that has one. The position is the start's origin: world X and Z, and Y the
-     * height above the dimension's bottom of its base. Only chunks {@code accepts} allows count; the host checks the start
-     * the platform made there and searches again without a chunk it refuses. An exception {@code accepts} throws ends the
-     * search and reaches the caller. Called with a structure from {@link #locatableStarts}, off the server's main thread.
-     */
-    default LocateResult locateStart(PackWorld world, ResourceId structure, int fromX, int fromZ, int maxRings,
-                                     ChunkFilter accepts) {
-        return LocateResult.NOT_FOUND;
-    }
-
-    /** Which chunks a {@link #locateStart} search may answer with. */
-    @FunctionalInterface
-    interface ChunkFilter {
-        boolean accepts(int chunkX, int chunkZ);
     }
 }

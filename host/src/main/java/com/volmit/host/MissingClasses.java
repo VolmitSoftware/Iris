@@ -1,13 +1,11 @@
 package com.volmit.host;
 
-import com.volmit.ModuleInfo;
-import com.volmit.PackageName;
 import java.util.List;
 import java.util.Objects;
 
 /** Classes a module jar uses that neither its pack, Iris nor the JDK has, usually optional
- * dependencies of a library the jar bundles, and that the jar's module does not declare
- * {@linkplain ModuleInfo#optionalPackages() optional}. The jar still loads; code that needs one of
+ * dependencies of a library the jar bundles, and that the jar's manifest does not declare optional
+ * ({@value ModuleJar#OPTIONAL_PACKAGES_ATTRIBUTE}). The jar still loads; code that needs one of
  * these classes throws {@link NoClassDefFoundError} when it runs.
  *
  * @param origin the jar path relative to its pack

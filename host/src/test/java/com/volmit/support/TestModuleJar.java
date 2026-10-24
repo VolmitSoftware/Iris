@@ -33,7 +33,9 @@ public final class TestModuleJar {
 
     private final Map<String, String> sources = new LinkedHashMap<>();
     private final Map<String, byte[]> resources = new LinkedHashMap<>();
+    private static final String OPTIONAL_PACKAGES_ATTRIBUTE = "Iris-Optional-Packages";
     private boolean multiRelease;
+    private final List<String> optionalPackages = new ArrayList<>();
     private final List<String> entryPoints = new ArrayList<>();
     private final List<Path> classpath = new ArrayList<>(List.of(classesOf(IrisModule.class)));
     private final List<String> compilerExports = new ArrayList<>();
@@ -43,15 +45,16 @@ public final class TestModuleJar {
         return module(className, moduleId, List.of(), members, install);
     }
 
-    /** Like {@link #module(String, String, String, String)}, with {@code info()} declaring {@code optionalPackages}. */
+    /** Like {@link #module(String, String, String, String)}, in a jar whose manifest declares {@code optionalPackages}. */
     public static TestModuleJar module(String className, String moduleId, List<String> optionalPackages, String members, String install) {
-        var info = moduleInfo(moduleId, optionalPackages);
-        return new TestModuleJar().source(className, moduleSource(className, info, members, install)).entryPoint(className);
+        var jar = new TestModuleJar();
+        jar.optionalPackages.addAll(optionalPackages);
+        return jar.source(className, moduleSource(className, moduleInfo(moduleId), members, install)).entryPoint(className);
     }
 
     /** Another entry class in the same jar, with the given module id; see {@link #module(String, String, String, String)}. */
     public TestModuleJar alsoModule(String className, String moduleId, String members, String install) {
-        var info = moduleInfo(moduleId, List.of());
+        var info = moduleInfo(moduleId);
         return source(className, moduleSource(className, info, members, install)).entryPoint(className);
     }
 
@@ -159,6 +162,9 @@ public final class TestModuleJar {
         var manifest = new Manifest();
         manifest.getMainAttributes().put(Attributes.Name.MANIFEST_VERSION, "1.0");
         if (multiRelease) manifest.getMainAttributes().put(Attributes.Name.MULTI_RELEASE, "true");
+        if (!optionalPackages.isEmpty()) {
+            manifest.getMainAttributes().putValue(OPTIONAL_PACKAGES_ATTRIBUTE, String.join(" ", optionalPackages));
+        }
         return manifest;
     }
 
@@ -177,11 +183,8 @@ public final class TestModuleJar {
         output.closeEntry();
     }
 
-    private static String moduleInfo(String moduleId, List<String> optionalPackages) {
-        var info = "ModuleInfo.of(\"%s\", \"%s\", \"1.0.0\")".formatted(moduleId, displayName(moduleId));
-        if (optionalPackages.isEmpty()) return info;
-        var packages = optionalPackages.stream().map(name -> '"' + name + '"').collect(Collectors.joining(", "));
-        return info + ".withOptionalPackages(" + packages + ")";
+    private static String moduleInfo(String moduleId) {
+        return "ModuleInfo.of(\"%s\", \"%s\", \"1.0.0\")".formatted(moduleId, displayName(moduleId));
     }
 
     private static String moduleSource(String className, String info, String members, String install) {

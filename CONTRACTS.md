@@ -7,7 +7,7 @@ types that carry them and lists what the Iris adapter still owes.
 
 | Requirement | Contract |
 | --- | --- |
-| Module identity and composition | `IrisModule`, `ModuleInfo` (with optional packages), `StageGraph` |
+| Module identity and composition | `IrisModule`, `ModuleInfo`, `StageGraph` |
 | Loading and unloading a pack | host `LoadedPack`, `ModuleHost` |
 | Module jars in a pack | `META-INF/services/com.volmit.IrisModule`, host `PackModules` (jar copies), `DiscoveredModule`, `MissingClasses` |
 | Namespace ownership | module-prefixed stage, feature and mantle ids, `ModuleInfo.ownsStage`/`ownsId`; no reserved namespaces |
@@ -31,13 +31,13 @@ types that carry them and lists what the Iris adapter still owes.
 | Block states and palettes | `BlockState`, `BlockRegistry` (`resolve(BlockSpec)`, `find(key)`, `blockEntity`, `hasTrait`, `oreFor`), `BlockTrait`, `BlockPalette`, `BlockSpec`, `PaletteSpec` and `PaletteSampler` (`BlockRegistry.palette`) |
 | Noise from pack-described styles | `NoiseStyle`, `StyledRange`, `PackResources.noise()`, `NoiseFactory`, `NoiseSampler` |
 | Values in settings | `BlockSpec`, `PaletteSpec`, `NoiseStyle`, `StyledRange`, `Range`, `BlockPosition`, `JigsawOverrides`, `Object` as `ValueKind.AnyKind` |
-| Decisions over and fit of the platform's own structures | service `VanillaStructures` (`rule`, `starts`, `shift`, `reach`, `beforePieces`, `afterPieces`, `setup`, `startedStructures`, `locatableStarts`, `locateStart`, `ChunkFilter`), `VanillaStructureRule`, `VanillaStructureContext`, `VanillaStructureStart`, `VanillaStructureStartContext`, `VanillaStructureSetup`, `PlatformStart`, `StartMemo`, `StartReach`, `StructureFit` (`Start`, `Piece`, `ColumnVisitor`), `DecorationStep`, `TerrainAdaptation`, `PieceKind`, `TemplateCells`, `world.BlockAccess`, host `FeatureCatalog.registrations(service)` |
+| Decisions over and fit of the platform's own structures | service `VanillaStructures` (`rule`, `starts`, `shift`, `reach`, `beforePieces`, `afterPieces`, `setup`), `VanillaStructureRule`, `VanillaStructureContext`, `VanillaStructureStart`, `VanillaStructureStartContext`, `VanillaStructureSetup`, `PlatformStart`, `StartMemo`, `StartReach`, `StructureFit` (`Start`, `Piece`, `ColumnVisitor`), `DecorationStep`, `TerrainAdaptation`, `PieceKind`, `TemplateCells`, `world.BlockAccess`, host `FeatureCatalog.registrations(service)` |
 | Pack-scoped resolution | `ResourceId` (`ofPackKey`, `ofPlatformKey`), `ContentKey`, `PackResources` (`find(kind, id)`, `require`, `ids(kind)`, `idOf`; kinds `BIOMES`, `REGIONS`, `OBJECTS`, `EXPRESSIONS`, `IMAGE_MAPS`), `PackBiome`, `PackRegion`, `PackExpression`, `PackImageMap` |
 | Module-owned pack resources | `ResourceKind`, `FeatureRegistry.registerResourceKind`, `@Ref(kind = ...)`, host `ModuleHost.reservingFolders`, `FeatureCatalog.resourceKinds()`, `ResourceKindSchema`, `ValueKind.ResourceReferenceKind` |
 | Module-owned pack checks | `Validator`, `ValidationContext`, `Problem`, `Severity`, `Subject`, `FeatureRegistry.registerValidator`, host `FeatureCatalog.validators()` |
 | Per-world module state | `PackWorld` (`state`), `InvocationContext.world()`, host `WorldStates` |
 | Module lifecycle across loads, hotloads and reloads | `ModuleLifecycle`, `PackContext`, `FeatureRegistry.registerLifecycle`, host `FeatureCatalog.lifecycles()`, `LifecycleRunner` |
-| Host questions answered by modules | `@Service`, `Providers`, `FeatureRegistry.registerService`, host `FeatureCatalog.services(type)` / `service(type)`; services `ObjectsAt`, `StructureLocator` (`LocateResult`), `SaplingGrowth`, `Loot`, `BlockDrops`, `EntitySpawns`, `CaveBiomes`, `AmbientEffects`, `VanillaFeatures` (`DecorationStep`); values `ItemDrop`, `EntitySpec`, `ItemRegistry` (`PackResources.items()`) |
+| Host questions answered by modules | `@Service`, `Providers`, `FeatureRegistry.registerService`, host `FeatureCatalog.services(type)` / `service(type)`; services `ObjectsAt`, `StructureLocator` (`LocateResult`, `startedStructures`, `locatableStarts`, `locateStart`, `ChunkFilter`), `SaplingGrowth`, `Loot`, `BlockDrops`, `EntitySpawns`, `CaveBiomes`, `AmbientEffects`, `VanillaFeatures` (`DecorationStep`); values `ItemDrop`, `EntitySpec`, `ItemRegistry` (`PackResources.items()`) |
 | Terrain and settings sampling | `TerrainSampler`, `BiomeSample`, `TerrainSample`, `FeatureSettings` |
 | Dense chunk output | `Hunk<T>`, `GenerationContext.blocks`, reference `ArrayHunk<T>` |
 | Positions, boxes and faces | `com.volmit.geometry`: `BlockPosition`, `BlockBox`, `BlockFace` |
@@ -78,8 +78,8 @@ with `--add-exports <module>/<package>=ALL-UNNAMED`. `sun.misc.Unsafe` from `jdk
 supported way for modules to use Unsafe. A class Iris has but hides, a class of an unavailable JDK
 module or non-exported JDK package, or one missing from an exposed package fails the pack load,
 naming the jar and the classes. A class nobody has (an optional dependency) only warns, unless
-its package is one the module declares optional with `ModuleInfo.withOptionalPackages(...)`
-(`PackageName`). That declaration never excuses a load error.
+its package is one the jar's manifest declares optional (`Iris-Optional-Packages`, read by the host's
+`ModuleJar`). That declaration never excuses a load error.
 
 Stage bodies and service providers keep no state; what a module keeps for a world lives in that world's state store,
 created once per type and world. A world's state lives while the world runs with one pack snapshot: a hotload or a
@@ -271,10 +271,10 @@ running Iris is the pack publisher's responsibility.
   `StructureFit`; a start without a memo stays without one.
 - Ask `starts` per chunk, in module id order, refuse a start outside the chunk asked for, keep the first start per
   structure, let a start take the chunk from a platform start only when it says so or the structure is `REPLACE`d,
-  apply its jigsaw overrides, keep its memo, record its identity with every start the host publishes, and ask again (same
-  answer) when locating or verifying a start found in the world.
-- Send the platform's locate of a structure some provider lists in `startedStructures` to that provider's
-  `locateStart` (module id order, the first that lists it in `locatableStarts`), convert the start's Y to the platform's,
+  apply its jigsaw overrides, keep its memo, and ask again (same answer) when locating or verifying a start found in
+  the world.
+- Send the platform's locate of a structure some `StructureLocator` provider lists in `startedStructures` to that
+  provider's `locateStart` (module id order, the first that lists it in `locatableStarts`), convert the start's Y to the platform's,
   check the start the platform made there before reporting it, and search again refusing that chunk when the check fails.
   Route the host's own structure commands by `startedStructures` the same way.
 - Ask `setup` per dimension before its worlds build their structure state and when installing data packs; multiply

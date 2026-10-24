@@ -104,17 +104,16 @@ class VanillaStructureValuesTest {
         assertFalse(start.isUnderground());
         assertFalse(start.replacesPlatformStart());
         assertEquals(Optional.empty(), start.memo());
-        var memo = new StartMemo("{\"mode\":\"VACUUM\"}", "null");
+        var memo = new StartMemo("{\"mode\":\"VACUUM\"}");
         assertEquals(Optional.of(memo), start.withMemo(memo).memo());
         assertNotEquals(start, start.withMemo(memo));
         assertEquals(Optional.empty(), start.jigsaw());
-        var underground = start.underground().replacingPlatformStart().withIdentity(-5L)
+        var underground = start.underground().replacingPlatformStart()
                 .withJigsaw(JigsawOverrides.none().withMaxDepth(3));
         assertTrue(underground.isUnderground());
         assertTrue(underground.replacesPlatformStart());
-        assertEquals(-5L, underground.identity());
         assertEquals(Optional.of(JigsawOverrides.none().withMaxDepth(3)), underground.jigsaw());
-        assertEquals(underground, start.withIdentity(-5L).replacingPlatformStart().underground()
+        assertEquals(underground, start.replacingPlatformStart().underground()
                 .withJigsaw(JigsawOverrides.none().withMaxDepth(3)));
     }
 
@@ -133,9 +132,6 @@ class VanillaStructureValuesTest {
         assertEquals(StartReach.PLATFORM, provider.reach(CITY, true, Optional.empty(), null));
         assertEquals(VanillaStructureSetup.UNCHANGED, provider.setup(null));
         assertEquals(VanillaStructureRule.GENERATE, new VanillaStructures() { }.rule(CITY, null));
-        assertEquals(Set.of(), provider.startedStructures(null));
-        assertEquals(Set.of(), provider.locatableStarts(null));
-        assertEquals(LocateResult.NOT_FOUND, provider.locateStart(null, CITY, 0, 0, 8, (chunkX, chunkZ) -> true));
     }
 
     @Test
@@ -158,6 +154,9 @@ class VanillaStructureValuesTest {
         };
 
         assertEquals(Set.of(CASTLE), locator.placed(null));
+        assertEquals(Set.of(), locator.startedStructures(null), "a locator that starts no platform structure finds none");
+        assertEquals(Set.of(), locator.locatableStarts(null));
+        assertEquals(LocateResult.NOT_FOUND, locator.locateStart(null, CITY, 0, 0, 8, (chunkX, chunkZ) -> true));
     }
 
     @Test

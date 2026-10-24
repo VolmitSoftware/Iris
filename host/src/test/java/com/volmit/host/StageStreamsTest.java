@@ -51,7 +51,7 @@ class StageStreamsTest {
     private static PlacementRequest request() {
         var blocks = IntStream.range(0, BLOCKS).mapToObj(x -> new ObjectBlock(new BlockPosition(x, 0, 0), STONE)).toList();
         var object = new GeneratedObject(new BlockBox(0, 0, 0, BLOCKS, 1, 1), new BlockPosition(0, 0, 0), blocks, List.of());
-        return new PlacementRequest(ResourceId.parse("test:attempt"), object, new BlockPosition(0, 10, 0));
+        return new PlacementRequest(object,new BlockPosition(0, 10, 0));
     }
 
     private Map<String, List<Long>> place(ResolvedGraph graph, long invocationSeed) {

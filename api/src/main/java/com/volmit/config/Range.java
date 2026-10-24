@@ -5,15 +5,15 @@ import java.util.Objects;
 
 /** A span of numbers from {@code min} to {@code max}, both included, as packs write it: {@code {"min": 0, "max": 15}},
  * or a snippet under {@code snippet/range/}. An omitted bound keeps its default, so give a settings field its own
- * default with {@link #of}. A value the host creates with the no-argument constructor and reads the JSON into.
+ * default with {@link #of}. A value the host decodes as every settings class (see DESIGN.md, "Decoding contract").
  */
 @Snippet("range")
-@Desc("Represents a range")
+@Desc("A span of numbers from min to max, both included")
 public final class Range {
-    @Desc("The minimum value")
+    @Desc("The lowest value.")
     private double min = 16;
 
-    @Desc("The maximum value")
+    @Desc("The highest value.")
     private double max = 32;
 
     private Range() {

@@ -14,10 +14,10 @@ import java.util.Optional;
 /** How noise is shaped, as packs write it: {@code {"style": "SIMPLEX", "zoom": 4}}, or a snippet under
  * {@code snippet/style/}. The style names one of the host's noise generators ({@link Reference#NOISE_STYLE}); an
  * expression or image map of the pack replaces it. A zoom stretches the noise, an exponent bends it, a fracture
- * style distorts its coordinates and a cellular frequency turns it into cells.
+ * distorts its coordinates and a cellular frequency turns it into cells.
  *
  * <p>A style is a description, not noise: the host builds the noise ({@link NoiseFactory#sampler}). It is a value
- * the host creates with the no-argument constructor and reads the JSON into; nothing changes it afterwards.
+ * the host decodes as every settings class (see DESIGN.md, "Decoding contract"); nothing changes it afterwards.
  */
 @Snippet("style")
 @Desc("A noise style: one of the host's noise generators, or an expression or image map of the pack, shaped by zoom, exponent, fracture and cells")
@@ -26,43 +26,38 @@ public final class NoiseStyle {
     public static final String FLAT = "FLAT";
 
     @Ref(Reference.NOISE_STYLE)
-    @Desc("The base noise style. Used when neither expression nor imageMap is set; a failed expression also falls back to this style.")
+    @Desc("The noise generator. Used when neither expression nor imageMap is set, and when an expression fails.")
     private String style = FLAT;
 
-    @Desc("If set above 0, this style will be cellularized")
+    @Desc("Above 0, the noise is turned into cells of this frequency.")
     private double cellularFrequency = 0;
 
-    @Desc("Cell zooms")
+    @Desc("How far the cells are stretched.")
     private double cellularZoom = 1;
 
     @MinNumber(0.00001)
-    @Desc("The zoom of this style")
+    @Desc("How far the noise is stretched: above 1 wider, below 1 tighter.")
     private double zoom = 1;
 
     @Ref(kind = PackExpression.class)
-    @Desc("Instead of using the style property, use a custom expression to represent this style.")
+    @Desc("An expression of the pack that gives the noise instead of the style.")
     private ResourceId expression;
 
     @Ref(kind = PackImageMap.class)
-    @Desc("Use an Image map instead of a generated value")
+    @Desc("An image map of the pack that gives the noise instead of the style, when there is no expression.")
     private ResourceId imageMap;
 
     @MinNumber(0.00001)
-    @Desc("The Output multiplier. Only used if parent is fracture.")
+    @Desc("When this style moves coordinates, as another style's fracture or as a warp: up to half this many blocks either way.")
     private double multiplier = 1;
 
-    @Desc("Apply a generator to the coordinate field fed into this parent generator. I.e. Distort your generator with another generator.")
+    @Desc("A style whose noise moves the coordinates this style is sampled at, distorting it.")
     private NoiseStyle fracture;
 
     @MinNumber(0.01562)
     @MaxNumber(64)
-    @Desc("The exponent")
+    @Desc("The power the noise is raised to: above 1 favours low values, below 1 high ones.")
     private double exponent = 1;
-
-    @MinNumber(0)
-    @MaxNumber(8192)
-    @Desc("If the cache size is set above 0, this generator will be cached")
-    private int cacheSize = 0;
 
     private NoiseStyle() {
     }
@@ -77,7 +72,6 @@ public final class NoiseStyle {
         multiplier = copy.multiplier;
         fracture = copy.fracture;
         exponent = copy.exponent;
-        cacheSize = copy.cacheSize;
     }
 
     /** The host's noise style {@code style}, such as {@code SIMPLEX}, with every other option at its default. */
@@ -96,7 +90,7 @@ public final class NoiseStyle {
 
     /** The base style's name; {@link #FLAT} where the pack wrote none. */
     public String style() {
-        return style == null ? FLAT : style;
+        return style;
     }
 
     public double cellularFrequency() {
@@ -121,10 +115,14 @@ public final class NoiseStyle {
         return Optional.ofNullable(imageMap);
     }
 
+    /** How far this style moves coordinates when it moves them, as another style's {@link #fracture} or as a warp: up
+     * to half this many blocks either way.
+     */
     public double multiplier() {
         return multiplier;
     }
 
+    /** The style whose noise moves the coordinates this style is sampled at, by its own {@link #multiplier}. */
     public Optional<NoiseStyle> fracture() {
         return Optional.ofNullable(fracture);
     }
@@ -133,34 +131,29 @@ public final class NoiseStyle {
         return exponent;
     }
 
-    public int cacheSize() {
-        return cacheSize;
-    }
-
     /** Whether the style gives no noise: the {@link #FLAT} base style without an expression or image map. */
     public boolean isFlat() {
-        return FLAT.equals(style()) && expression == null && imageMap == null;
+        return FLAT.equals(style) && expression == null && imageMap == null;
     }
 
     @Override
     public boolean equals(Object other) {
-        return other instanceof NoiseStyle that && style().equals(that.style())
+        return other instanceof NoiseStyle that && style.equals(that.style)
                 && Double.compare(cellularFrequency, that.cellularFrequency) == 0
                 && Double.compare(cellularZoom, that.cellularZoom) == 0 && Double.compare(zoom, that.zoom) == 0
                 && Objects.equals(expression, that.expression) && Objects.equals(imageMap, that.imageMap)
                 && Double.compare(multiplier, that.multiplier) == 0 && Objects.equals(fracture, that.fracture)
-                && Double.compare(exponent, that.exponent) == 0 && cacheSize == that.cacheSize;
+                && Double.compare(exponent, that.exponent) == 0;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(style(), cellularFrequency, cellularZoom, zoom, expression, imageMap, multiplier, fracture,
-                exponent, cacheSize);
+        return Objects.hash(style, cellularFrequency, cellularZoom, zoom, expression, imageMap, multiplier, fracture, exponent);
     }
 
     @Override
     public String toString() {
-        return "NoiseStyle[" + style() + expression().map(key -> ", expression " + key).orElse("")
+        return "NoiseStyle[" + style + expression().map(key -> ", expression " + key).orElse("")
                 + imageMap().map(key -> ", image map " + key).orElse("") + ", zoom " + zoom + "]";
     }
 }

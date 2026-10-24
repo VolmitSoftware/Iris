@@ -35,7 +35,7 @@ import java.util.stream.Stream;
  * a class that Iris hides from modules or that is missing from an exposed package.
  * Classes that nobody has are not an error, because the JVM only needs them when code that uses
  * them runs; they are reported as {@link #missingClasses()}, except those in the optional packages
- * the jar's module declares in its {@link com.volmit.ModuleInfo}.
+ * the jar's manifest declares ({@value ModuleJar#OPTIONAL_PACKAGES_ATTRIBUTE}).
  *
  * <p>A successful load logs one INFO summary of the pack's modules through a {@link System.Logger}, by
  * default the one named after this class, or the host's from {@link ModuleHost#loggingTo}, and one
@@ -188,7 +188,7 @@ public final class PackModules implements AutoCloseable {
         var loader = newPackClassLoader(packRoot, jars, host);
         try {
             var modules = createModules(jars, loader, snapshot, logger);
-            return new PackModules(modules, withoutDeclaredOptional(missingClasses, modules), loader, snapshot);
+            return new PackModules(modules, withoutDeclaredOptional(missingClasses, jars), loader, snapshot);
         } catch (RuntimeException | Error failure) {
             closeAfterFailure(loader, failure);
             throw failure;
@@ -219,16 +219,11 @@ public final class PackModules implements AutoCloseable {
                 .toList();
     }
 
-    /** A module's optional packages excuse only its own jar's missing classes; a jar with several
-     * modules is excused by the optional packages of all of them. They are read from {@code info()},
-     * so this runs after the entry classes exist; errors were decided before that and never depend on them.
-     */
-    private static List<MissingClasses> withoutDeclaredOptional(List<MissingClasses> missingClasses, List<DiscoveredModule> modules) {
-        var optionalPackages = modules.stream()
-                .collect(Collectors.groupingBy(DiscoveredModule::origin,
-                        Collectors.flatMapping(found -> found.info().optionalPackages().stream(), Collectors.toList())));
+    /** A jar's optional packages excuse only its own missing classes; errors were decided before and never depend on them. */
+    private static List<MissingClasses> withoutDeclaredOptional(List<MissingClasses> missingClasses, List<ModuleJar> jars) {
+        var optionalPackages = jars.stream().collect(Collectors.toMap(ModuleJar::origin, ModuleJar::optionalPackages));
         return missingClasses.stream()
-                .map(jar -> jar.outside(optionalPackages.get(jar.origin())))
+                .map(jar -> jar.outside(optionalPackages.getOrDefault(jar.origin(), List.of())))
                 .filter(Predicate.not(MissingClasses::isEmpty))
                 .toList();
     }

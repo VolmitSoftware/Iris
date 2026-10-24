@@ -80,7 +80,7 @@ class StageGraphTest {
         var object = new GeneratedObject(new BlockBox(0, 0, 0, 2, 1, 1), new BlockPosition(0, 0, 0),
                 List.of(new ObjectBlock(new BlockPosition(0, 0, 0), STONE), new ObjectBlock(new BlockPosition(1, 0, 0), STONE)),
                 List.of());
-        return new PlacementRequest(ResourceId.parse("test:attempt"), object, new BlockPosition(0, 10, 0));
+        return new PlacementRequest(object,new BlockPosition(0, 10, 0));
     }
 
     private static MemoryEdit flatEdit() {

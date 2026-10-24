@@ -3,17 +3,14 @@ package com.volmit.placement;
 import com.volmit.geometry.BlockBox;
 import com.volmit.geometry.BlockPosition;
 import com.volmit.object.GeneratedObject;
-import com.volmit.resource.ResourceId;
 import java.util.Objects;
 
 /** One placement attempt. Geometry is already transformed; anchor is a world block position (world X and Z, Y as the height
  * above the dimension's bottom).
  * World position = local position - object anchor + request anchor. Arithmetic never wraps.
- * id identifies this attempt within the host's generation plan.
  */
-public record PlacementRequest(ResourceId id, GeneratedObject object, BlockPosition anchor) {
+public record PlacementRequest(GeneratedObject object, BlockPosition anchor) {
     public PlacementRequest {
-        Objects.requireNonNull(id, "id");
         Objects.requireNonNull(object, "object");
         Objects.requireNonNull(anchor, "anchor");
     }

@@ -13,10 +13,9 @@ import java.util.Optional;
  * the chunk win unless the start {@link #replacesPlatformStart() replaces} them or the structure is
  * {@link VanillaStructureRule#REPLACE replaced} by a module.
  *
- * <p>{@link #identity()} names what placed the start, stable for one pack: the host records it with every start it
- * publishes, so a start found in the world later can be traced back to its placement. The {@link #memo() memo} is kept
- * with that record and handed back whenever the host asks the module about the start again, so a start that spans many
- * chunks keeps what the module decided for it when it was placed, even after the pack changed.
+ * <p>The {@link #memo() memo} is kept with the start and handed back whenever the host asks the module about the start
+ * again, so a start that spans many chunks keeps what the module decided for it when it was placed, even after the pack
+ * changed.
  */
 public final class VanillaStructureStart {
     private final ResourceId structure;
@@ -25,56 +24,49 @@ public final class VanillaStructureStart {
     private final int y;
     private final boolean underground;
     private final boolean replacesPlatformStart;
-    private final long identity;
     private final JigsawOverrides jigsaw;
     private final StartMemo memo;
 
     private VanillaStructureStart(ResourceId structure, int chunkX, int chunkZ, int y, boolean underground,
-                                  boolean replacesPlatformStart, long identity, JigsawOverrides jigsaw,
-                                  StartMemo memo) {
+                                  boolean replacesPlatformStart, JigsawOverrides jigsaw, StartMemo memo) {
         this.structure = Objects.requireNonNull(structure, "structure");
         this.chunkX = chunkX;
         this.chunkZ = chunkZ;
         this.y = y;
         this.underground = underground;
         this.replacesPlatformStart = replacesPlatformStart;
-        this.identity = identity;
         this.jigsaw = jigsaw;
         this.memo = memo;
     }
 
     /** A surface start of {@code structure} in chunk {@code chunkX, chunkZ}, planned at height {@code y}, with its
-     * registered definition, identity 0 and no memo.
+     * registered definition and no memo.
      */
     public static VanillaStructureStart at(ResourceId structure, int chunkX, int chunkZ, int y) {
-        return new VanillaStructureStart(structure, chunkX, chunkZ, y, false, false, 0L, null, null);
+        return new VanillaStructureStart(structure, chunkX, chunkZ, y, false, false, null, null);
     }
 
     /** This start with the structure's lowest block at {@link #y()} instead of on the surface. */
     public VanillaStructureStart underground() {
-        return new VanillaStructureStart(structure, chunkX, chunkZ, y, true, replacesPlatformStart, identity, jigsaw, memo);
+        return new VanillaStructureStart(structure, chunkX, chunkZ, y, true, replacesPlatformStart, jigsaw, memo);
     }
 
     /** This start, taking the chunk even where the platform already started the structure there. */
     public VanillaStructureStart replacingPlatformStart() {
-        return new VanillaStructureStart(structure, chunkX, chunkZ, y, underground, true, identity, jigsaw, memo);
-    }
-
-    public VanillaStructureStart withIdentity(long identity) {
-        return new VanillaStructureStart(structure, chunkX, chunkZ, y, underground, replacesPlatformStart, identity, jigsaw, memo);
+        return new VanillaStructureStart(structure, chunkX, chunkZ, y, underground, true, jigsaw, memo);
     }
 
     /** This start, assembled with {@code overrides} applied to a jigsaw structure's definition. Only jigsaw structures
      * take overrides: the host fails the start of any other structure that has some.
      */
     public VanillaStructureStart withJigsaw(JigsawOverrides overrides) {
-        return new VanillaStructureStart(structure, chunkX, chunkZ, y, underground, replacesPlatformStart, identity,
+        return new VanillaStructureStart(structure, chunkX, chunkZ, y, underground, replacesPlatformStart,
                 Objects.requireNonNull(overrides, "overrides"), memo);
     }
 
     /** This start with {@code memo}, which the host keeps with it and hands back in every later question about it. */
     public VanillaStructureStart withMemo(StartMemo memo) {
-        return new VanillaStructureStart(structure, chunkX, chunkZ, y, underground, replacesPlatformStart, identity, jigsaw,
+        return new VanillaStructureStart(structure, chunkX, chunkZ, y, underground, replacesPlatformStart, jigsaw,
                 Objects.requireNonNull(memo, "memo"));
     }
 
@@ -103,10 +95,6 @@ public final class VanillaStructureStart {
         return replacesPlatformStart;
     }
 
-    public long identity() {
-        return identity;
-    }
-
     /** Changes to the jigsaw definition; empty assembles the registered definition as it is. */
     public Optional<JigsawOverrides> jigsaw() {
         return Optional.ofNullable(jigsaw);
@@ -121,13 +109,13 @@ public final class VanillaStructureStart {
     public boolean equals(Object other) {
         return other instanceof VanillaStructureStart that && structure.equals(that.structure) && chunkX == that.chunkX
                 && chunkZ == that.chunkZ && y == that.y && underground == that.underground
-                && replacesPlatformStart == that.replacesPlatformStart && identity == that.identity
+                && replacesPlatformStart == that.replacesPlatformStart
                 && Objects.equals(jigsaw, that.jigsaw) && Objects.equals(memo, that.memo);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(structure, chunkX, chunkZ, y, underground, replacesPlatformStart, identity, jigsaw, memo);
+        return Objects.hash(structure, chunkX, chunkZ, y, underground, replacesPlatformStart, jigsaw, memo);
     }
 
     @Override

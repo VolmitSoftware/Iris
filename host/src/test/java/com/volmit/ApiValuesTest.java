@@ -80,23 +80,6 @@ class ApiValuesTest {
     }
 
     @Test
-    void moduleInfoDeclaresOptionalPackagesWithTheirSubpackages() {
-        var plain = ModuleInfo.of("example:moss", "Moss", "1.0.0");
-        var info = plain.withOptionalPackages("org.slf4j", "org.apache.logging.");
-
-        assertEquals(List.of(), plain.optionalPackages());
-        assertEquals(List.of(new PackageName("org.slf4j"), new PackageName("org.apache.logging")), info.optionalPackages());
-        assertEquals(List.of(), info.withOptionalPackages().optionalPackages());
-        assertTrue(info.optionalPackages().getFirst().contains("org.slf4j.spi.LocationAwareLogger"));
-        assertFalse(info.optionalPackages().getFirst().contains("org.slf4jx.Logger"));
-        for (var invalid : List.of("", "org.*", "org..slf4j", "1org")) {
-            var failure = assertThrows(IllegalArgumentException.class, () -> plain.withOptionalPackages(invalid));
-            assertTrue(failure.getMessage().startsWith("Optional package '" + invalid + "' of module example:moss is not a package name"),
-                    failure.getMessage());
-        }
-    }
-
-    @Test
     void moduleInfoTextFitsOnOneLogLine() {
         for (var broken : List.of("Moss\nINFO forged line", "Moss\r", "Moss\tTabbed", "Moss\u2028Next")) {
             var failure = assertThrows(IllegalArgumentException.class, () -> ModuleInfo.of("example:moss", broken, "1.0.0"));
@@ -155,10 +138,10 @@ class ApiValuesTest {
     @Test
     void placementAlignsAnchorsAndCheckedArithmeticNeverWraps() {
         var object = new GeneratedObject(new BlockBox(-1, -1, -1, 2, 2, 2), new BlockPosition(1, 1, 1), List.of(), List.of());
-        var request = new PlacementRequest(ResourceId.parse("test:placement"), object, new BlockPosition(-16, 64, -16));
+        var request = new PlacementRequest(object, new BlockPosition(-16, 64, -16));
         assertEquals(new BlockPosition(-16, 64, -16), request.worldPosition(object.anchor()));
         assertEquals(new BlockBox(-18, 62, -18, -15, 65, -15), request.footprint());
-        var overflow = new PlacementRequest(request.id(), object, new BlockPosition(Integer.MAX_VALUE, 0, 0));
+        var overflow = new PlacementRequest(object, new BlockPosition(Integer.MAX_VALUE, 0, 0));
         assertThrows(ArithmeticException.class, overflow::footprint);
     }
 

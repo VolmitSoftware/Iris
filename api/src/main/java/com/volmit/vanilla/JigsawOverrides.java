@@ -12,18 +12,18 @@ import java.util.OptionalInt;
 
 /** Changes to a platform jigsaw structure's definition before the platform assembles one start of it, as packs write
  * them: {@code {"startPool": "minecraft:village/plains/town_centers", "maxDepth": 4}}. Every option left out keeps
- * what the registered definition says. A value the host creates with the no-argument constructor and reads the JSON
- * into.
+ * what the registered definition says. A value the host decodes as every settings class (see DESIGN.md, "Decoding
+ * contract").
  */
-@Desc("Optional overrides applied to a live vanilla, datapack, or modded jigsaw definition before Minecraft assembles it. Omitted values preserve the registered source definition.")
+@Desc("Changes to a platform jigsaw structure's definition before a start of it is assembled. An option left out keeps the definition's value.")
 public final class JigsawOverrides {
     /** What packs write as the start connector to remove the definition's constraint. */
     private static final String NO_START_JIGSAW = "NONE";
 
     /** Whether the start piece follows one of the platform's heightmaps. */
-    @Desc("Controls whether a configured native jigsaw projects its start onto a Minecraft heightmap.")
+    @Desc("Which heightmap the start piece is placed on.")
     public enum Heightmap {
-        @Desc("Keeps the registered structure's own heightmap projection.")
+        @Desc("The definition's own heightmap.")
         SOURCE,
         @Desc("Removes heightmap projection: the start piece lands at the structure's literal start height.")
         NONE,
@@ -42,9 +42,9 @@ public final class JigsawOverrides {
     }
 
     /** Whether placed pieces take on the water they are placed into. */
-    @Desc("Controls waterlogging behavior for a configured native jigsaw.")
+    @Desc("Whether placed pieces take on the water they replace.")
     public enum Liquids {
-        @Desc("Keeps the registered structure's own liquid setting.")
+        @Desc("The definition's own liquid setting.")
         SOURCE,
         @Desc("Places pieces dry.")
         IGNORE_WATERLOGGING,
@@ -52,45 +52,45 @@ public final class JigsawOverrides {
         APPLY_WATERLOGGING
     }
 
-    @Desc("Optional registered template-pool key used instead of the source jigsaw's start pool. Empty preserves the source pool.")
+    @Desc("The template pool the start piece comes from. Left out, the definition's pool.")
     @Ref(Reference.TEMPLATE_POOL)
     private String startPool = "";
 
-    @Desc("Optional start connector name. Empty preserves the source value; the literal NONE removes the source constraint.")
+    @Desc("The start piece's connector. Left out, the definition's; NONE removes the definition's constraint.")
     private String startJigsawName = "";
 
     @MinNumber(0)
     @MaxNumber(20)
-    @Desc("Maximum jigsaw recursion depth. Null preserves the source value.")
+    @Desc("How many pieces deep the structure grows. Left out, the definition's depth.")
     private Integer maxDepth = null;
 
     @MinNumber(1)
     @MaxNumber(128)
-    @Desc("Exact horizontal block distance allowed from the start. Null preserves the source value.")
+    @Desc("How many blocks sideways pieces may reach from the start. Left out, the definition's distance.")
     private Integer maxDistanceHorizontal = null;
 
     @MinNumber(1)
     @MaxNumber(4064)
-    @Desc("Exact vertical block distance allowed from the start. Null preserves the source value.")
+    @Desc("How many blocks up or down pieces may reach from the start. Left out, the definition's distance.")
     private Integer maxDistanceVertical = null;
 
-    @Desc("Expansion-hack override. Null preserves the source value.")
+    @Desc("Whether the platform's expansion hack applies. Left out, the definition's setting.")
     private Boolean useExpansionHack = null;
 
-    @Desc("Heightmap projection override. SOURCE preserves the registered value and NONE removes projection.")
+    @Desc("The heightmap the start piece is placed on.")
     private Heightmap projectStartToHeightmap = Heightmap.SOURCE;
 
     @MinNumber(0)
     @MaxNumber(Integer.MAX_VALUE)
-    @Desc("Minimum distance retained above the dimension floor. Null preserves the source value.")
+    @Desc("How many blocks pieces stay above the dimension's bottom. Left out, the definition's padding.")
     private Integer dimensionPaddingBottom = null;
 
     @MinNumber(0)
     @MaxNumber(Integer.MAX_VALUE)
-    @Desc("Minimum distance retained below the dimension ceiling. Null preserves the source value.")
+    @Desc("How many blocks pieces stay below the dimension's top. Left out, the definition's padding.")
     private Integer dimensionPaddingTop = null;
 
-    @Desc("Waterlogging override. SOURCE preserves the registered value.")
+    @Desc("Whether placed pieces take on the water they replace.")
     private Liquids liquidSettings = Liquids.SOURCE;
 
     private JigsawOverrides() {
@@ -187,11 +187,11 @@ public final class JigsawOverrides {
 
     /** Whether the start connector constraint is removed, which packs write as {@code NONE}. */
     public boolean removesStartJigsaw() {
-        return startJigsawName != null && NO_START_JIGSAW.equalsIgnoreCase(startJigsawName.trim());
+        return NO_START_JIGSAW.equalsIgnoreCase(startJigsawName.trim());
     }
 
     private static Optional<ResourceId> platformKey(String key) {
-        return key == null || key.isBlank() ? Optional.empty() : Optional.of(ResourceId.ofPlatformKey(key));
+        return key.isBlank() ? Optional.empty() : Optional.of(ResourceId.ofPlatformKey(key));
     }
 
     public OptionalInt maxDepth() {
@@ -210,9 +210,9 @@ public final class JigsawOverrides {
         return Optional.ofNullable(useExpansionHack);
     }
 
-    /** The heightmap projection; {@link Heightmap#SOURCE} where the pack wrote none or one the host does not know. */
+    /** The heightmap projection; {@link Heightmap#SOURCE} where the pack wrote none. */
     public Heightmap projectStartToHeightmap() {
-        return projectStartToHeightmap == null ? Heightmap.SOURCE : projectStartToHeightmap;
+        return projectStartToHeightmap;
     }
 
     public OptionalInt dimensionPaddingBottom() {
@@ -223,9 +223,9 @@ public final class JigsawOverrides {
         return optional(dimensionPaddingTop);
     }
 
-    /** The waterlogging; {@link Liquids#SOURCE} where the pack wrote none or one the host does not know. */
+    /** The waterlogging; {@link Liquids#SOURCE} where the pack wrote none. */
     public Liquids liquidSettings() {
-        return liquidSettings == null ? Liquids.SOURCE : liquidSettings;
+        return liquidSettings;
     }
 
     private static OptionalInt optional(Integer value) {
@@ -256,8 +256,8 @@ public final class JigsawOverrides {
         return "JigsawOverrides[pool '" + written(startPool) + "', depth " + maxDepth + ", " + projectStartToHeightmap() + "]";
     }
 
-    /** A key as the pack wrote it, without surrounding blanks; empty when it wrote none. */
+    /** A key as the pack wrote it, without surrounding blanks. */
     private static String written(String key) {
-        return key == null ? "" : key.trim();
+        return key.trim();
     }
 }

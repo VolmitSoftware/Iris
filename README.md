@@ -416,8 +416,7 @@ modules/moss.jar
   com/example/moss/MossSettings.class
 ```
 
-`info()` gives the module id, display name and version, and optionally the packages whose classes
-the module expects may be missing (see below). The host reads it once, when it finds the module.
+`info()` gives the module id, display name and version. The host reads it once, when it finds the module.
 Every stage id of the module starts with the module id and `/`; the name is what logs show. Names
 and versions must fit on one line: line breaks and other control characters are rejected.
 
@@ -454,17 +453,18 @@ to Iris: module classes, and the libraries they shade, must not use them.
 Libraries often reference optional integrations they only use when present. A class that neither
 the pack, Iris nor the JDK has therefore does not fail the load: the pack loads, logs one warning
 listing such classes per jar, and code that needs one throws `NoClassDefFoundError` when it runs.
-A module that expects such classes to be absent declares their packages in `info()`, and the
-warning leaves them out:
+### Optional packages
 
-```java
-public ModuleInfo info() {
-    return ModuleInfo.of("example:moss", "Moss", "1.0.0")
-            .withOptionalPackages("org.slf4j", "org.apache.logging.log4j");   // with subpackages
+A jar that expects such classes to be absent declares their packages, with their subpackages, in its manifest, and
+the warning leaves them out. Which classes a jar may miss is the jar's business, not a module's identity:
+
+```kotlin
+tasks.jar {
+    manifest { attributes("Iris-Optional-Packages" to "org.slf4j org.apache.logging.log4j") }   // spaces or commas
 }
 ```
 
-A declaration covers only that module's own jar. It never excuses a load error: a class Iris hides,
+A declaration covers only that jar, all of its modules. It never excuses a load error: a class Iris hides,
 a JDK class modules cannot see or use, or a class missing from an exposed package fails even inside
 a declared package. Package names follow the rules of exposed packages (whole packages, trailing dot
 accepted, wildcards rejected).
@@ -539,11 +539,12 @@ public final class FloraSettings implements IrisFeature {
   (nothing could set another), or the load fails. There is no second form: the studio schema renders one shape and a
   wrong shape fails with a message naming the key and the file.
 - Options keep the order the class declares them in, a superclass's first.
-- Settings that bring other pack biomes into the pack's layout implement `LinkedBiomes`: `treeBiomes()` are biomes that join the
+- Settings that bring other pack biomes into the pack's layout implement `world.LinkedBiomes`: `treeBiomes()` are biomes that join the
   biome tree of every region the owner is in (the host registers their terrain generators with the region, as it does an
   owner's children), and `usedBiomes(dimension)` are biomes the settings use besides, which the dimension reaches so their
-  objects, decorators and settings take part in generation. `dimension` is the settings the owner's dimension declares, for
-  settings that name something the dimension declares, such as a band of its caves. The host asks every dimension and biome
+  objects, decorators and settings take part in generation. `dimension` is a `PackSettings` of what the owner's dimension
+  declares itself (`dimension.declared(CarvingSettings.class).dimension()`), for settings that name something the
+  dimension declares, such as a band of its caves. The host asks every dimension and biome
   it reaches and ignores blank keys and keys naming no biome.
 - Built-in settings may hold classes the host describes itself, such as Iris's palettes, which the host
   names with `ModuleHost.describingHostTypesIn(...)`. They appear as `HostKind` and pack modules cannot
@@ -595,7 +596,7 @@ Settings describe blocks, noise and ranges with IrisApi's value types, which rea
 | --- | --- | --- |
 | `BlockSpec` | `{"block": "iron_ore", "data": {"waterlogged": true}, "backup": {...}, "tileData": {...}}` | `resources.blocks().resolve(spec)` gives the `BlockState`, `blockEntity(spec)` its block entity |
 | `PaletteSpec` | `{"style": "SIMPLEX", "zoom": 8, "palette": [{"block": "stone"}, {"block": "andesite", "weight": 2}]}` or `"snippet/palette/<name>"` | `resources.blocks().palette(spec, seed)` gives a `PaletteSampler`: `at(x, y, z)` is the block there |
-| `NoiseStyle` | `{"style": "SIMPLEX", "zoom": 4, "fracture": {...}}` or `"snippet/style/<name>"` | `resources.noise().sampler(style, seed)` gives a `NoiseSampler` |
+| `NoiseStyle` | `{"style": "SIMPLEX", "zoom": 4, "fracture": {"style": "PERLIN", "multiplier": 2}}` or `"snippet/style/<name>"` | `resources.noise().sampler(style, seed)` gives a `NoiseSampler` |
 | `StyledRange` | `{"min": 4, "max": 12, "style": {...}}` | `range.at(resources.noise(), seed, x, z)` |
 | `Range` | `{"min": 0, "max": 15}` | `contains(value)`, `pick(random)` |
 | `BlockPosition` | `{"x": 1, "y": 2, "z": 3}` | its components |
@@ -622,6 +623,10 @@ have; resolving it never fails: the backup, then air, stands in. A `PaletteSpec`
 by noise (each block counts as often as its weight, the style's noise at x, y, z over `zoom` chooses); a palette of
 one block is that block everywhere, and one without a block to pick (an empty list, or only weights of zero) is an
 `IllegalArgumentException` when the sampler is asked for. Seed it like noise.
+
+Every value type and settings class is decoded the same way (DESIGN.md, "Decoding contract"): an option left out or
+written as `null` keeps its field's initialiser, and an enum name the enum does not know is an error. A getter
+therefore never needs a `null` check; only an option whose initialiser is `null` is optional.
 
 `NoiseSampler.signed(...)` is `sample * 2 - 1`, which a host may answer from a per-thread memo of the coordinates it was just asked (read it
 where one field is sampled at the same points again and again, as a carver does). `scaled(factor)` is the same noise with the coordinates
@@ -665,7 +670,7 @@ Every method has a default that changes nothing, so a provider implements only w
 - `starts(chunkX, chunkZ, context)`: the platform structures the module starts in that chunk itself. A
   `VanillaStructureStart` names the structure, its height above the bottom (`underground()` puts the structure's
   lowest block there; otherwise it sits on the surface), whether it takes the chunk from a platform start of the same
-  structure, a stable `identity` the host records with it, `JigsawOverrides` for jigsaw structures and a `StartMemo`.
+  structure, `JigsawOverrides` for jigsaw structures and a `StartMemo`.
   The context gives the world (`PackWorld`) and a `TerrainSampler` over the chunk. Answer from the world and chunk
   only: the host asks again when it locates structures and when it checks starts it finds in the world.
 - `shift(start, context)`: how many blocks one of the platform's own starts moves up or down before the host
@@ -685,11 +690,12 @@ Every method has a default that changes nothing, so a provider implements only w
 - `setup(context)`: before any world of the dimension exists, how often each structure set starts (`withFrequency`,
   multipliers of several modules multiply) and whether the data packs the host installs must leave the platform's own
   structure definitions alone (`protectingVanillaDefinitions`, for every pack once any dimension asks for it).
-- `startedStructures(world)`, `locatableStarts(world)` and `locateStart(world, structure, fromX, fromZ, maxRings,
-  accepts)`: the platform structures the module starts itself, the ones of them it can find, and the nearest start of one,
-  searched ring by ring through the module's own placement grids. The host sends the platform's `/locate` and its own
-  structure commands for those structures here, then checks the start it got in the world; `accepts` lets it skip chunks
-  it already refused.
+
+Finding the starts a module makes is `StructureLocator`'s, the one locating service: `startedStructures(world)`,
+`locatableStarts(world)` and `locateStart(world, structure, fromX, fromZ, maxRings, accepts)` give the platform
+structures the module starts itself, the ones of them it can find, and the nearest start of one, searched ring by ring
+through the module's own placement grids. The host sends the platform's `/locate` and its own structure commands for
+those structures there, then checks the start it got in the world; `accepts` lets it skip chunks it already refused.
 
 ```java
 @Override
@@ -697,12 +703,12 @@ public List<VanillaStructureStart> starts(int chunkX, int chunkZ, VanillaStructu
     if (!castleChunk(context.world().seed(), chunkX, chunkZ)) return List.of();
     int surface = context.terrain().surfaceHeight((chunkX << 4) + 8, (chunkZ << 4) + 8);
     return List.of(VanillaStructureStart.at(ResourceId.parse("minecraft:village_plains"), chunkX, chunkZ, surface)
-            .withMemo(new StartMemo("{\"mode\":\"VACUUM\"}", "")));
+            .withMemo(new StartMemo("{\"terrain\":\"VACUUM\"}")));
 }
 ```
 
-How a start meets the terrain is the module's: the API has no fit values. A `StartMemo` is two texts the module gives
-a start it places; the host persists them with the start and hands them back in `reach` and in every chunk's
+How a start meets the terrain is the module's: the API has no fit values. A `StartMemo` is one opaque, non-empty
+text the module gives a start it places; the host persists it with the start and hands it back in `reach` and in every chunk's
 `StructureFit`, so every chunk the start reaches fits it the same way, also after a restart. `JigsawOverrides` is a
 value type like `PaletteSpec`: settings may hold it, and packs write it as Iris always read it.
 
@@ -773,7 +779,7 @@ also in another jar of the pack (both jars are named), a class that uses a class
 a class of a JDK module modules cannot see, a class of a JDK package not exported to modules, a
 class missing from an exposed package, or an entry
 class that cannot be loaded, is not an `IrisModule`, is not in that jar, fails to construct or whose
-`info()` fails (an invalid optional package, for example). All checks before the last run before any
+`info()` fails, or a manifest that declares an invalid optional package. All checks before the last run before any
 class of the pack is defined. The last error below lists every kind of unusable class the jar
 uses, one group per kind:
 
@@ -798,7 +804,7 @@ The jar was built against a different Iris API or Iris version.
 ```
 
 Classes that nobody has only produce a warning, also available as `pack.missingClasses()`. Classes
-in the optional packages a jar's module declares appear in neither:
+in the optional packages a jar's manifest declares appear in neither:
 
 ```
 Pack overworld: module jars use classes that neither the pack, Iris nor the JDK has, usually optional dependencies of a bundled library. The jars load, but code that needs these classes throws NoClassDefFoundError when it runs:

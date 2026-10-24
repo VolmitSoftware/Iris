@@ -1,10 +1,9 @@
-package com.volmit.config;
+package com.volmit.world;
 
-import com.volmit.IrisFeature;
+import com.volmit.config.PackSettings;
 import com.volmit.resource.PackResources;
 import com.volmit.resource.ResourceId;
 
-import java.util.Collection;
 import java.util.Set;
 
 /**
@@ -30,10 +29,11 @@ public interface LinkedBiomes {
      * generation) without joining the region's biome tree.
      *
      * @param pack      the pack the settings belong to, which turns their keys into ids
-     * @param dimension the settings the owner's dimension declares, for settings that name something the dimension
-     *                  declares, such as a band of its caves
+     * @param dimension what the owner's dimension itself declares, each type as a stack of at most its dimension entry,
+     *                  for settings that name something the dimension declares, such as a band of its caves. The
+     *                  dimension's regions and biomes are not in it: they are what the host is working out.
      */
-    default Set<ResourceId> usedBiomes(PackResources pack, Collection<IrisFeature> dimension) {
+    default Set<ResourceId> usedBiomes(PackResources pack, PackSettings dimension) {
         return Set.of();
     }
 }

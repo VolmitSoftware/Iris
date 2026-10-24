@@ -1,4 +1,4 @@
-package com.volmit;
+package com.volmit.host;
 
 import java.util.Arrays;
 import java.util.Objects;
@@ -8,7 +8,7 @@ import java.util.Optional;
  * names match: {@code com.volmit} contains {@code com.volmit.stage.Stage} but not
  * {@code com.volmitx.Fake}.
  */
-public record PackageName(String name) implements Comparable<PackageName> {
+record PackageName(String name) implements Comparable<PackageName> {
     private static final char SEPARATOR = '.';
     private static final String SEPARATOR_PATTERN = "\\.";
 

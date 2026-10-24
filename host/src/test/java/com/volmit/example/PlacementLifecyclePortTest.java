@@ -100,7 +100,7 @@ class PlacementLifecyclePortTest {
                         new ObjectBlock(new BlockPosition(1, 0, 0), PLANKS),
                         new ObjectBlock(new BlockPosition(1, 1, 0), PLANKS)),
                 List.of());
-        return new PlacementRequest(ResourceId.parse("test:attempt"), object, new BlockPosition(0, 0, 0));
+        return new PlacementRequest(object,new BlockPosition(0, 0, 0));
     }
 
     private static TestTerrain terrain() {

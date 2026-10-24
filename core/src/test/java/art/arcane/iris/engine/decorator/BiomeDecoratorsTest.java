@@ -1,7 +1,6 @@
 package art.arcane.iris.engine.decorator;
 
-import art.arcane.iris.builtin.IrisSeed;
-import art.arcane.iris.builtin.IrisSeeds;
+import art.arcane.iris.builtin.IrisSeedPurposes;
 import art.arcane.iris.builtin.decorant.DecorantSettings;
 import art.arcane.iris.builtin.decorant.DecorationPart;
 import art.arcane.iris.builtin.decorant.Decorator;
@@ -72,7 +71,7 @@ public class BiomeDecoratorsTest {
 
     @Test
     public void everyDecoratorNoiseSeedIsAFunctionOfTheWorldsDecoratorSeedItsBiomeAndItsPlace() {
-        long decoratorSeed = world.extension(IrisSeeds.class).orElseThrow().seed(IrisSeed.DECORATOR);
+        long decoratorSeed = world.seed(IrisSeedPurposes.DECORATOR);
         long first = decorators.decorators(meadow, DecorationPart.NONE)[0].seed();
         long second = decorators.decorators(meadow, DecorationPart.NONE)[1].seed();
 

@@ -5,7 +5,9 @@ import art.arcane.iris.builtin.floating.FloatingChildBiome;
 import art.arcane.iris.builtin.floating.FloatingHost;
 import art.arcane.iris.engine.object.TestSettings;
 import com.google.gson.Gson;
+import com.volmit.resource.PackResources;
 import com.volmit.resource.ResourceId;
+import com.volmit.world.PackBiome;
 import org.junit.Test;
 
 import java.util.List;
@@ -13,11 +15,15 @@ import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.Assert.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class ResolvedFloatingChildCarvingResolutionTest {
+    private static final String NAMESPACE = "ns";
+
     @Test
     public void carvingBiome_loadsBiomeKeyWhenEntryIdMissing() {
         ResourceId biome = ResourceId.parse("ns:carving/mushroom");
@@ -41,8 +47,12 @@ public class ResolvedFloatingChildCarvingResolutionTest {
     }
 
     private static FloatingWorld world(List<CarvingEntry> dimensionCarving, Map<String, ResourceId> biomes) {
-        FloatingHost host = mock(FloatingHost.class);
-        when(host.biome(anyString())).thenAnswer(invocation -> Optional.ofNullable(biomes.get(invocation.getArgument(0, String.class))));
-        return new FloatingWorld(host, null, null, 0L, 0L, 0, dimensionCarving);
+        PackResources resources = mock(PackResources.class);
+        when(resources.idOf(anyString())).thenAnswer(invocation -> ResourceId.ofPackKey(NAMESPACE, invocation.getArgument(0, String.class)));
+        when(resources.find(eq(PackResources.BIOMES), any())).thenAnswer(invocation -> {
+            ResourceId id = invocation.getArgument(1);
+            return biomes.containsValue(id) ? Optional.of(new PackBiome(id, id.path(), id, 1, List.of())) : Optional.empty();
+        });
+        return new FloatingWorld(mock(FloatingHost.class), null, resources, null, 0L, 0L, 0, dimensionCarving);
     }
 }

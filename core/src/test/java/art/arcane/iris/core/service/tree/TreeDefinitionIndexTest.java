@@ -32,6 +32,8 @@ public class TreeDefinitionIndexTest {
         IrisDimension dimension = mock(IrisDimension.class);
         IrisRegion region = new IrisRegion();
         IrisBiome biome = new IrisBiome();
+        region.setLoadKey("forest");
+        biome.setLoadKey("forest/oaks");
 
         ObjectPlacement explicit = TestSettings.of(ObjectPlacement.class,
                 "{\"place\":[\"custom/ancient_oak\"],\"trees\":[{\"treeTypes\":[\"TREE\"],\"sizes\":[{}]}]}");

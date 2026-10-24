@@ -20,7 +20,7 @@ package art.arcane.iris.engine.spawn;
 
 import art.arcane.iris.engine.loot.LootItems;
 import art.arcane.iris.builtin.spawn.EntityDefinition;
-import art.arcane.iris.builtin.LiveWorld.Sky;
+import com.volmit.world.RunningWorld.Sky;
 import art.arcane.volmlib.util.math.RNG;
 import com.google.gson.Gson;
 import com.volmit.ModuleLog;

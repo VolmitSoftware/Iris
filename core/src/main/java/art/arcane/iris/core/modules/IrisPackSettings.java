@@ -19,7 +19,6 @@
 package art.arcane.iris.core.modules;
 
 import art.arcane.iris.core.loader.IrisRegistrant;
-import art.arcane.iris.builtin.floating.FloatingHost;
 import art.arcane.iris.builtin.structure.StructureHost;
 import art.arcane.iris.builtin.objects.ObjectHost;
 import art.arcane.iris.engine.framework.Engine;
@@ -74,9 +73,6 @@ public final class IrisPackSettings implements PackSettings {
         }
         if (type == ObjectHost.class) {
             return new IrisObjectHost(engine, IrisApiLogger.hostLog());
-        }
-        if (type == FloatingHost.class) {
-            return new IrisFloatingHost(engine, IrisApiLogger.hostLog());
         }
         if (type == StructureHost.class) {
             return new IrisStructureHost(engine, IrisApiLogger.hostLog());

@@ -18,8 +18,7 @@
 
 package art.arcane.iris.core.modules;
 
-import art.arcane.iris.builtin.IrisSeed;
-import art.arcane.iris.builtin.IrisSeeds;
+import art.arcane.iris.builtin.IrisSeedPurposes;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.loader.ResourceLoader;
 import art.arcane.iris.engine.object.material.IrisBlockData;
@@ -39,11 +38,13 @@ import com.volmit.geometry.BlockFace;
 import com.volmit.host.ModuleLogs;
 import com.volmit.item.ItemRegistry;
 import com.volmit.noise.NoiseFactory;
+import com.volmit.random.WorldRandom;
 import com.volmit.resource.PackResources;
 import com.volmit.resource.ResourceId;
 import com.volmit.resource.ResourceKind;
 import com.volmit.world.PackBiome;
 import com.volmit.world.PackWorld;
+import com.volmit.world.RunningWorld;
 import com.volmit.object.BlockEntityData;
 
 import java.util.ArrayList;
@@ -150,9 +151,18 @@ public final class CarveTestWorld implements PackWorld {
     }
 
     @Override
+    public long seed(ResourceId purpose) {
+        return IrisSeedPurposes.CARVE.equals(purpose) ? carveSeed : WorldRandom.purposeSeed(carveSeed, purpose);
+    }
+
+    @Override
+    public Optional<RunningWorld> running() {
+        return Optional.empty();
+    }
+
+    @Override
     public <T> Optional<T> extension(Class<T> type) {
-        IrisSeeds seeds = seed -> seed == IrisSeed.CARVE ? carveSeed : carveSeed + seed.ordinal();
-        return type == IrisSeeds.class ? Optional.of(type.cast(seeds)) : Optional.empty();
+        return Optional.empty();
     }
 
     @SuppressWarnings("unchecked")

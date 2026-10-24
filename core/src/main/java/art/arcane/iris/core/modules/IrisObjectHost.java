@@ -18,23 +18,19 @@
 
 package art.arcane.iris.core.modules;
 
-import art.arcane.iris.builtin.carve.CaveLavaHeightSettings;
 import art.arcane.iris.builtin.objects.ObjectBuilder;
 import art.arcane.iris.builtin.objects.ObjectChunk;
 import art.arcane.iris.builtin.objects.ObjectHost;
 import art.arcane.iris.builtin.objects.ObjectPlacement;
-import art.arcane.iris.builtin.objects.ObjectSettings;
 import art.arcane.iris.builtin.objects.ObjectSink;
 import art.arcane.iris.builtin.objects.ObjectSize;
 import art.arcane.iris.builtin.objects.PlaceableObject;
-import art.arcane.iris.builtin.objects.ProceduralObjectSettings;
 import art.arcane.iris.builtin.objects.ProceduralPlacement;
 import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.loader.IrisRegistrant;
-import art.arcane.iris.core.loader.ResourceLoader;
-import art.arcane.iris.engine.UpperDimensionContext;
 import art.arcane.iris.engine.framework.Engine;
+import art.arcane.iris.engine.framework.PlacedObject;
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import art.arcane.iris.engine.object.placement.ObjectPlacements;
 import art.arcane.iris.engine.object.prefab.IrisObject;
@@ -44,36 +40,29 @@ import art.arcane.iris.util.project.noise.CNG;
 import art.arcane.iris.util.project.noise.NoiseType;
 import art.arcane.volmlib.util.cache.CacheKey;
 import art.arcane.volmlib.util.math.RNG;
-import com.volmit.config.Level;
-import com.volmit.generation.InvocationContext;
 import com.volmit.IrisFeature;
 import com.volmit.ModuleLog;
-import com.volmit.config.FeatureSettings;
-import com.volmit.resource.ResourceId;
+import com.volmit.config.Level;
+import com.volmit.generation.InvocationContext;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Function;
 
 /**
- * What {@code iris:objects} asks of Iris, answered from the world's engine: the pack's objects, how Iris scales and places
- * them, and the layout around a world position.
+ * What {@code iris:objects} asks of Iris's object system, answered from the world's engine: the pack's objects, how Iris
+ * scales, picks and places them, and the loot of what it placed.
  */
 final class IrisObjectHost implements ObjectHost {
     private final Engine engine;
     private final ModuleLog log;
     private volatile PackResourceIds ids;
-    private final Map<ProceduralObjectSettings, List<ProceduralPlacement>> procedural = new ConcurrentHashMap<>();
     private final Map<ProceduralPlacement, IrisObjectPlacement> proceduralOptions = new ConcurrentHashMap<>();
-    private volatile Map<ResourceId, String> biomeKeys;
-    private volatile Map<ResourceId, String> regionKeys;
 
     IrisObjectHost(Engine engine, ModuleLog log) {
         this.engine = engine;
@@ -92,22 +81,6 @@ final class IrisObjectHost implements ObjectHost {
     @Override
     public boolean debugging() {
         return IrisSettings.get().getGeneral().isDebug();
-    }
-
-    @Override
-    public int caveLavaHeight() {
-        return engine.getDimension().getModuleSettings().find(CaveLavaHeightSettings.class).map(CaveLavaHeightSettings::height)
-                .orElse(CaveLavaHeightSettings.DEFAULT_HEIGHT);
-    }
-
-    @Override
-    public int fluidHeight() {
-        return engine.getDimension().getFluidHeight();
-    }
-
-    @Override
-    public FeatureSettings columnSettings() {
-        return new ChunkModuleSettings(engine, ids());
     }
 
     @Override
@@ -162,12 +135,6 @@ final class IrisObjectHost implements ObjectHost {
     }
 
     @Override
-    public List<ProceduralPlacement> procedural(ProceduralObjectSettings settings,
-                                                Function<ProceduralObjectSettings, List<ProceduralPlacement>> resolve) {
-        return procedural.computeIfAbsent(settings, resolve);
-    }
-
-    @Override
     public ObjectBuilder builder() {
         return new IrisObjectBuilder(engine.getData());
     }
@@ -178,58 +145,19 @@ final class IrisObjectHost implements ObjectHost {
     }
 
     @Override
-    public Optional<UpperObjects> upperObjects(int worldX, int worldZ) {
-        UpperDimensionContext upper = engine.getUpperContext();
-        if (upper == null) {
-            return Optional.empty();
-        }
-        IrisBiome biome = upper.getUpperBiome(worldX, worldZ);
-        IrisRegion region = upper.getUpperRegion(worldX, worldZ);
-        return Optional.of(new UpperObjects(
-                biome == null ? null : biome.getModuleSettings().find(ObjectSettings.class).orElse(null),
-                region == null ? null : region.getModuleSettings().find(ObjectSettings.class).orElse(null),
-                biome == null ? null : biome.getLoadKey(), region == null ? null : region.getLoadKey()));
-    }
-
-    @Override
     public int placeInto(PlaceableObject object, int x, int y, int z, ObjectPlacement placement, ObjectSink sink, RNG rng) {
         IrisData data = engine.getData();
         return ((IrisObject) object).place(x, y, z, new SinkPlacer(engine, sink), hostPlacement(placement), rng, data);
     }
 
     @Override
-    public ResourceId regionAt(int worldX, int worldZ) {
-        return ids().of(engine.getRegion(worldX, worldZ).getLoadKey());
-    }
-
-    @Override
-    public ResourceId surfaceBiomeAt(int worldX, int worldZ) {
-        return ids().of(engine.getSurfaceBiome(worldX, worldZ).getLoadKey());
-    }
-
-    @Override
-    public ResourceId biomeAt(int worldX, int y, int worldZ) {
-        return ids().of(engine.getBiome(worldX, y, worldZ).getLoadKey());
-    }
-
-    @Override
-    public <F extends IrisFeature> Optional<F> biomeDeclaration(ResourceId biome, Class<F> type) {
-        String key = biomeKeys().get(biome);
-        if (key == null) {
+    public Optional<ObjectLoots> placedLoot(int x, int y, int z) {
+        PlacedObject placed = engine.getObjectPlacement(x, y, z);
+        IrisObjectPlacement placement = placed == null ? null : placed.getPlacement();
+        if (placement == null) {
             return Optional.empty();
         }
-        IrisBiome loaded = engine.getData().getBiomeLoader().load(key);
-        return loaded == null ? Optional.empty() : loaded.getModuleSettings().find(type);
-    }
-
-    @Override
-    public <F extends IrisFeature> Optional<F> regionDeclaration(ResourceId region, Class<F> type) {
-        String key = regionKeys().get(region);
-        if (key == null) {
-            return Optional.empty();
-        }
-        IrisRegion loaded = engine.getData().getRegionLoader().load(key);
-        return loaded == null ? Optional.empty() : loaded.getModuleSettings().find(type);
+        return Optional.of(new ObjectLoots(placement.getLoot(), placement.getVanillaLoot(), placement.isOverrideGlobalLoot()));
     }
 
     @Override
@@ -244,40 +172,14 @@ final class IrisObjectHost implements ObjectHost {
         return found;
     }
 
-    private static <F extends IrisFeature> void addDeclaration(List<Declaration<F>> found, Level level, IrisRegistrant owner, Class<F> type) {
+    private <F extends IrisFeature> void addDeclaration(List<Declaration<F>> found, Level level, IrisRegistrant owner, Class<F> type) {
         if (owner == null) {
             return;
         }
-        owner.getModuleSettings().find(type).ifPresent(settings -> found.add(new Declaration<>(level, owner.getLoadKey(), settings)));
+        owner.getModuleSettings().find(type).ifPresent(settings -> found.add(new Declaration<>(level, ids().of(owner.getLoadKey()), settings)));
     }
 
     private IrisObjectPlacement hostPlacement(ObjectPlacement placement) {
         return ObjectPlacements.host(placement, engine.getData());
-    }
-
-    private Map<ResourceId, String> biomeKeys() {
-        Map<ResourceId, String> keys = biomeKeys;
-        if (keys == null) {
-            keys = indexOf(engine.getData().getBiomeLoader());
-            biomeKeys = keys;
-        }
-        return keys;
-    }
-
-    private Map<ResourceId, String> regionKeys() {
-        Map<ResourceId, String> keys = regionKeys;
-        if (keys == null) {
-            keys = indexOf(engine.getData().getRegionLoader());
-            regionKeys = keys;
-        }
-        return keys;
-    }
-
-    private Map<ResourceId, String> indexOf(ResourceLoader<?> loader) {
-        Map<ResourceId, String> index = new HashMap<>();
-        for (String key : loader.getPossibleKeys()) {
-            index.putIfAbsent(ids().of(key), key);
-        }
-        return Map.copyOf(index);
     }
 }

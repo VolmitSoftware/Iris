@@ -18,18 +18,17 @@
 
 package art.arcane.iris.core.modules;
 
-import art.arcane.iris.builtin.IrisSeed;
-import art.arcane.iris.builtin.IrisSeeds;
-import art.arcane.iris.builtin.LiveWorld;
 import art.arcane.iris.builtin.floating.FloatingHost;
-import art.arcane.iris.builtin.structure.StructureHost;
 import art.arcane.iris.builtin.objects.ObjectHost;
+import art.arcane.iris.builtin.spawn.SpawnCooldowns;
+import art.arcane.iris.builtin.structure.StructureHost;
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.framework.SeedManager;
 import com.volmit.ModuleLog;
 import com.volmit.config.PackSettings;
 import com.volmit.host.WorldStates;
+import com.volmit.resource.ResourceId;
 import com.volmit.world.PackWorld;
+import com.volmit.world.RunningWorld;
 import java.util.Optional;
 import java.util.function.Function;
 
@@ -37,15 +36,16 @@ import java.util.function.Function;
  * One Iris world as modules see it: an engine runtime generating with one snapshot of its pack's resources, and the
  * state modules keep for it. {@link ModuleWorlds} makes one when the runtime is built and a new one whenever the
  * pack's resources reload under it. Iris's built-in modules reach what they need of Iris through its
- * {@linkplain #extension extensions}: the world's seeds, its live view and the object, floating and structure hosts.
+ * {@linkplain #extension extensions}: the spawners' cooldowns Iris saves with the world and the object, floating and
+ * structure hosts.
  */
 public final class IrisPackWorld implements PackWorld {
     private final Engine engine;
     private final IrisPackResources resources;
     private final WorldStates states;
     private final ModuleLog log;
-    private final LiveWorld liveWorld;
-    private final IrisSeeds seeds;
+    private final SpawnCooldowns spawnCooldowns;
+    private volatile RunningWorld running;
     private volatile IrisObjectHost objectHost;
     private volatile IrisFloatingHost floatingHost;
     private volatile IrisStructureHost structureHost;
@@ -55,8 +55,7 @@ public final class IrisPackWorld implements PackWorld {
         this.resources = engine.getData().getPackResources();
         this.states = new WorldStates();
         this.log = IrisApiLogger.hostLog();
-        this.liveWorld = new IrisLiveWorld(engine, resources);
-        this.seeds = this::seedOf;
+        this.spawnCooldowns = new EngineSpawnCooldowns(engine);
     }
 
     /** The engine generating this world. */
@@ -67,6 +66,11 @@ public final class IrisPackWorld implements PackWorld {
     @Override
     public long seed() {
         return engine.getSeedManager().getSeed();
+    }
+
+    @Override
+    public long seed(ResourceId purpose) {
+        return IrisWorldSeeds.seed(engine.getSeedManager(), purpose);
     }
 
     @Override
@@ -82,6 +86,16 @@ public final class IrisPackWorld implements PackWorld {
     @Override
     public PackSettings settings() {
         return new IrisPackSettings(engine);
+    }
+
+    @Override
+    public Optional<RunningWorld> running() {
+        RunningWorld known = running;
+        if (known == null) {
+            known = new IrisRunningWorld(engine);
+            running = known;
+        }
+        return Optional.of(known);
     }
 
     @Override
@@ -104,11 +118,8 @@ public final class IrisPackWorld implements PackWorld {
         if (type == Engine.class) {
             return engine;
         }
-        if (type == IrisSeeds.class) {
-            return seeds;
-        }
-        if (type == LiveWorld.class) {
-            return liveWorld;
+        if (type == SpawnCooldowns.class) {
+            return spawnCooldowns;
         }
         if (type == ObjectHost.class) {
             return objects();
@@ -120,23 +131,6 @@ public final class IrisPackWorld implements PackWorld {
             return structures();
         }
         return null;
-    }
-
-    private long seedOf(IrisSeed seed) {
-        SeedManager seeds = engine.getSeedManager();
-        return switch (seed) {
-            case BIOME -> seeds.getBiome();
-            case CARVE -> seeds.getCarve();
-            case COMPLEX -> seeds.getComplex();
-            case COMPONENT -> seeds.getComponent();
-            case DECORATOR -> seeds.getDecorator();
-            case DEPOSIT -> seeds.getDeposit();
-            case ENTITY -> seeds.getEntity();
-            case LOOT -> seeds.getLoot();
-            case MANTLE -> seeds.getMantle();
-            case POST -> seeds.getPost();
-            case TERRAIN -> seeds.getTerrain();
-        };
     }
 
     private ObjectHost objects() {

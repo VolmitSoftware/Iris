@@ -54,8 +54,8 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Iris's answers to {@code iris:floating}: biomes by the engine's streams and loader, sky biomes into the engine's mantle,
- * and floating objects placed by Iris's own object placement into the mantle chunk being generated.
+ * Iris's answers to {@code iris:floating}: a biome's terrain height by its generators, sky biomes into the engine's
+ * mantle, and floating objects placed by Iris's own object placement into the mantle chunk being generated.
  */
 final class IrisFloatingHost implements FloatingHost {
     private static final IrisObjectRotation NO_ROTATION = IrisObjectRotation.of(0, 0, 0);
@@ -63,25 +63,11 @@ final class IrisFloatingHost implements FloatingHost {
 
     private final Engine engine;
     private final ModuleLog log;
-    private final PackResourceIds ids;
     private final Map<Double, IrisObjectScale> shrinkScales = new ConcurrentHashMap<>();
 
     IrisFloatingHost(Engine engine, ModuleLog log) {
         this.engine = engine;
         this.log = log;
-        this.ids = new PackResourceIds(engine.getData().getDataFolder());
-    }
-
-    @Override
-    public ResourceId surfaceBiome(int worldX, int worldZ) {
-        IrisBiome biome = engine.getSurfaceBiome(worldX, worldZ);
-        return biome == null ? null : ids.of(biome.getLoadKey());
-    }
-
-    @Override
-    public Optional<ResourceId> biome(String key) {
-        IrisBiome biome = engine.getData().getBiomeLoader().load(key);
-        return biome == null ? Optional.empty() : Optional.of(ids.of(biome.getLoadKey()));
     }
 
     @Override

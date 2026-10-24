@@ -1,7 +1,6 @@
 package art.arcane.iris.engine.object.terrain.carving;
 
-import art.arcane.iris.builtin.IrisSeed;
-import art.arcane.iris.builtin.IrisSeeds;
+import art.arcane.iris.builtin.IrisSeedPurposes;
 import art.arcane.iris.builtin.carve.CarvingEntry;
 import art.arcane.iris.builtin.carve.CarvingSettings;
 import art.arcane.iris.core.modules.CarveTestWorld;
@@ -262,7 +261,7 @@ public class CarvingResolverParityTest {
                 return parent;
             }
 
-            long seed = world.extension(IrisSeeds.class).orElseThrow().seed(IrisSeed.CARVE) ^ CHILD_SEED_SALT;
+            long seed = world.seed(IrisSeedPurposes.CARVE) ^ CHILD_SEED_SALT;
             LegacyCarvingChoice selected = legacyChildrenGenerator(parent, seed).fitRarity(options, worldX, worldZ);
             if (selected == null || selected.entry == null) {
                 return parent;

@@ -637,7 +637,7 @@ public class FloatingIslandBoundarySamplerTest {
         FloatingWorld world = mock(FloatingWorld.class);
         when(world.merges(parent)).thenReturn(merges);
         when(world.baseSeed()).thenReturn(baseSeed);
-        when(world.minHeight()).thenReturn(0);
+        when(world.minWorldY()).thenReturn(0);
         return world;
     }
 

@@ -266,6 +266,8 @@ public class LootResolverTest {
     }
 
     private static final class ResolutionFixture {
+        private static final int WORLD_HEIGHT = 256;
+
         private final Engine engine = mock(Engine.class, RETURNS_DEEP_STUBS);
         private final PackWorld world;
 
@@ -276,11 +278,13 @@ public class LootResolverTest {
             IrisComplex complex = engine.getComplex();
             IrisData data = mock(IrisData.class);
             ModuleResourceFixture tables = ModuleResourceFixture.serve(data);
+            ModuleResourceFixture.serveColumnSettings(data);
             for (String key : List.of("dimension", "region", "surface")) {
                 tables.resource(LootResources.TABLES, key, TestSettings.of(LootTable.class, "{\"name\": \"" + key + "\"}"));
             }
 
             when(engine.getData()).thenReturn(data);
+            when(engine.getHeight()).thenReturn(WORLD_HEIGHT);
             when(engine.getDimension()).thenReturn(dimension);
             when(dimension.getModuleSettings()).thenReturn(fallbackTo("dimension"));
             when(region.getModuleSettings()).thenReturn(fallbackTo("region"));

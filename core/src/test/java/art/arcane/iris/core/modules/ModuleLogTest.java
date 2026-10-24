@@ -18,8 +18,7 @@
 
 package art.arcane.iris.core.modules;
 
-import art.arcane.iris.builtin.IrisSeed;
-import art.arcane.iris.builtin.IrisSeeds;
+import art.arcane.iris.builtin.IrisSeedPurposes;
 import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.Engine;
@@ -132,7 +131,7 @@ public class ModuleLogTest {
     }
 
     @Test
-    public void theWorldOffersIrissOwnCodeTheEngineAndItsSeedsAsExtensions() {
+    public void theWorldOffersIrissOwnCodeTheEngineAndAnswersItsSeedPurposesWithTheLegacySeeds() {
         Engine engine = mock(Engine.class);
         when(engine.getData()).thenReturn(mock(IrisData.class));
         when(engine.getDimension()).thenReturn(new IrisDimension());
@@ -142,7 +141,7 @@ public class ModuleLogTest {
         PackWorld world = new IrisPackWorld(engine);
 
         assertSame(engine, world.extension(Engine.class).orElseThrow());
-        assertEquals(POST_SEED, world.extension(IrisSeeds.class).orElseThrow().seed(IrisSeed.POST));
+        assertEquals(POST_SEED, world.seed(IrisSeedPurposes.POST));
         assertTrue("nothing else is offered", world.extension(String.class).isEmpty());
     }
 

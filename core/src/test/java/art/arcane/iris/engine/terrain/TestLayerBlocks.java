@@ -24,10 +24,13 @@ import com.volmit.ModuleLog;
 import com.volmit.config.PackSettings;
 import com.volmit.host.ModuleLogs;
 import com.volmit.resource.PackResources;
+import com.volmit.resource.ResourceId;
 import com.volmit.world.PackWorld;
+import com.volmit.world.RunningWorld;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -49,6 +52,16 @@ public final class TestLayerBlocks {
         @Override
         public long seed() {
             return 0;
+        }
+
+        @Override
+        public long seed(ResourceId purpose) {
+            return 0;
+        }
+
+        @Override
+        public Optional<RunningWorld> running() {
+            return Optional.empty();
         }
 
         @Override

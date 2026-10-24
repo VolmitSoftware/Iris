@@ -18,7 +18,6 @@
 
 package art.arcane.iris.engine.terrain;
 
-import art.arcane.iris.builtin.IrisSeeds;
 import art.arcane.iris.core.modules.ModuleSettings;
 import com.volmit.config.Level;
 import com.volmit.IrisFeature;
@@ -31,6 +30,7 @@ import com.volmit.host.ModuleLogs;
 import com.volmit.resource.PackResources;
 import com.volmit.resource.ResourceId;
 import com.volmit.world.PackWorld;
+import com.volmit.world.RunningWorld;
 
 import java.util.HashMap;
 import java.util.List;
@@ -114,8 +114,17 @@ public final class TestPackWorld implements PackWorld {
     }
 
     @Override
+    public long seed(ResourceId purpose) {
+        return seed;
+    }
+
+    @Override
+    public Optional<RunningWorld> running() {
+        return Optional.empty();
+    }
+
+    @Override
     public <T> Optional<T> extension(Class<T> type) {
-        IrisSeeds everySeedIsTheWorlds = which -> seed;
-        return type == IrisSeeds.class ? Optional.of(type.cast(everySeedIsTheWorlds)) : Optional.empty();
+        return Optional.empty();
     }
 }

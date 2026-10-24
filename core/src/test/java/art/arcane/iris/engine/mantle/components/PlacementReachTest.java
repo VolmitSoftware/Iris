@@ -5,7 +5,6 @@ import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.builtin.objects.ObjectSettings;
 import art.arcane.iris.builtin.objects.ObjectSize;
 import art.arcane.iris.builtin.objects.PlaceableObject;
-import art.arcane.iris.builtin.objects.ProceduralObjectSettings;
 import art.arcane.iris.builtin.objects.ProceduralPlacement;
 import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
 import art.arcane.iris.builtin.prepare.ObjectRotation;
@@ -38,7 +37,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -77,11 +75,8 @@ public class PlacementReachTest {
                 "{\"xAxis\":{\"enabled\":true,\"min\":90,\"max\":90,\"interval\":90},\"yAxis\":{\"enabled\":false}}"));
         when(procedural.translate()).thenReturn(TestSettings.of(ObjectTranslate.class, "{\"x\":3,\"y\":4}"));
         when(procedural.vacuumSettings()).thenReturn(Optional.empty());
-        ObjectHost host = mock(ObjectHost.class);
-        ProceduralObjectSettings settings = new ProceduralObjectSettings();
-        when(host.procedural(eq(settings), any())).thenReturn(List.of(procedural));
 
-        assertEquals(53, new PlacementReach(host, ModuleLogs.discarding()).ofPack(declaring(ProceduralObjectSettings.class, settings)));
+        assertEquals(53, PlacementReach.of(new ObjectSize(variant.width(), variant.height(), variant.depth()), procedural));
     }
 
     @Test

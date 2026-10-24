@@ -1,6 +1,7 @@
 package art.arcane.iris.core.modules;
 
 import art.arcane.iris.core.loader.IrisData;
+import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import com.volmit.IrisModule;
 import com.volmit.host.DiscoveredModule;
 import com.volmit.host.FeatureCatalog;
@@ -51,6 +52,21 @@ public final class ModuleResourceFixture {
         ModuleResourceFixture fixture = new ModuleResourceFixture(resources);
         SERVED.put(resources, fixture);
         return fixture;
+    }
+
+    /**
+     * Makes {@code data} (a mock this fixture serves) a pack folder of the fixture's namespace whose registrants' module settings
+     * decode, so a running world's settings at a column name its dimension, region and biomes by the ids the fixture gives.
+     */
+    public static void serveColumnSettings(IrisData data) {
+        when(data.getDataFolder()).thenReturn(new File(NAMESPACE));
+        when(of(data).resources.settingsStacks()).thenReturn(new SettingsStacks());
+    }
+
+    /** Makes the pack's biome of {@code biome}'s load key {@code biome}, so settings a biome id names are {@code biome}'s. */
+    public ModuleResourceFixture biome(IrisBiome biome) {
+        when(resources.irisBiome(idOf(biome.getLoadKey()))).thenReturn(Optional.of(biome));
+        return this;
     }
 
     /** The fixture {@code data} (a mock) already serves from, or a new one. */

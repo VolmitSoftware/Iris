@@ -97,6 +97,7 @@ public class HintedLocatorTest {
         when(data.getBiomeLoader()).thenReturn(biomeLoader);
         ModuleResourceFixture.serve(data);
         ModuleResourceFixture.serveModules(data, new ObjectModule());
+        ModuleResourceFixture.serveColumnSettings(data);
         when(engine.getGeneration()).thenReturn(new EngineGeneration(engine));
         stubReachableBiomes();
     }

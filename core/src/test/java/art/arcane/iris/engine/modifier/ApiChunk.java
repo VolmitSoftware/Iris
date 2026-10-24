@@ -23,7 +23,7 @@ import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
 import art.arcane.volmlib.util.matter.Matter;
 import com.volmit.noise.NoiseSampler;
 import art.arcane.iris.builtin.IrisStages;
-import art.arcane.iris.builtin.IrisSeeds;
+import art.arcane.iris.builtin.IrisSeedPurposes;
 import art.arcane.iris.builtin.floating.FloatingHost;
 import art.arcane.iris.builtin.objects.ObjectHost;
 import art.arcane.iris.builtin.post.PostProcessingSlabsSettings;
@@ -80,6 +80,7 @@ import com.volmit.stage.Pipeline;
 import com.volmit.world.BiomeKind;
 import com.volmit.world.BiomeSample;
 import com.volmit.world.PackWorld;
+import com.volmit.world.RunningWorld;
 import com.volmit.world.TerrainSample;
 import com.volmit.world.TerrainSampler;
 import com.volmit.world.UpperDimension;
@@ -98,6 +99,7 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.IntBinaryOperator;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * One chunk as IrisApi shows it to a chunk stage, held in memory, so the ported built-ins are tested through the surface
@@ -109,6 +111,10 @@ public final class ApiChunk implements GenerationContext {
     public static final int WIDTH = 16;
     public static final BlockState AIR = new BlockState("minecraft:air");
     private static final long SEED = 1337L;
+    private static final List<ResourceId> IRIS_SEED_PURPOSES = List.of(IrisSeedPurposes.BIOME, IrisSeedPurposes.CARVE,
+            IrisSeedPurposes.COMPLEX, IrisSeedPurposes.COMPONENT, IrisSeedPurposes.DECORATOR, IrisSeedPurposes.DEPOSIT,
+            IrisSeedPurposes.ENTITY, IrisSeedPurposes.LOOT, IrisSeedPurposes.MANTLE, IrisSeedPurposes.POST,
+            IrisSeedPurposes.TERRAIN);
     private static final String FLOATING_ID = "iris:floating";
     /** What every noise of the fixture's pack samples, everywhere. */
     private static final double HALF = 0.5;
@@ -541,25 +547,42 @@ public final class ApiChunk implements GenerationContext {
     }
 
     /**
-     * A world of the chunk: its pack's blocks, a state store and Iris's seeds, each the world seed plus its place. It has
-     * no floating islands: its floating host answers no surface biome, so no column has an island.
+     * A world of the chunk: its pack's blocks, a state store and Iris's seeds, each the world seed plus its place among Iris's purposes. It has
+     * no floating islands: its running layout answers no surface biome and its biomes declare nothing, so no column has an island.
      */
     private final class World implements PackWorld {
         private final Resources resources = new Resources();
         private final Map<Class<?>, Object> states = new HashMap<>();
-        private final IrisSeeds seeds = seed -> SEED + seed.ordinal();
         private final FloatingHost floating = mock(FloatingHost.class);
         private final ObjectHost objects = mock(ObjectHost.class);
+        private final RunningWorld running = mock(RunningWorld.class);
+
+        World() {
+            TerrainSampler noSurfaceBiomes = mock(TerrainSampler.class);
+            FeatureSettings nothingDeclared = mock(FeatureSettings.class);
+            when(running.layout()).thenReturn(noSurfaceBiomes);
+            when(running.settings()).thenReturn(nothingDeclared);
+        }
 
         @Override
         public <T> Optional<T> extension(Class<T> type) {
-            Object offered = type == IrisSeeds.class ? seeds : type == FloatingHost.class ? floating : type == ObjectHost.class ? objects : null;
+            Object offered = type == FloatingHost.class ? floating : type == ObjectHost.class ? objects : null;
             return Optional.ofNullable(offered).map(type::cast);
         }
 
         @Override
         public long seed() {
             return SEED;
+        }
+
+        @Override
+        public long seed(ResourceId purpose) {
+            return SEED + IRIS_SEED_PURPOSES.indexOf(purpose);
+        }
+
+        @Override
+        public Optional<RunningWorld> running() {
+            return Optional.of(running);
         }
 
         @Override

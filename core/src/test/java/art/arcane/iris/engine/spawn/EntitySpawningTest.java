@@ -18,7 +18,6 @@
 
 package art.arcane.iris.engine.spawn;
 
-import art.arcane.iris.builtin.LiveWorld;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.modules.ModuleResourceFixture;
 import art.arcane.iris.engine.UsableBlockPlatform;
@@ -40,6 +39,7 @@ import com.volmit.resource.ResourceId;
 import com.volmit.service.EntitySpawns;
 import com.volmit.geometry.BlockPosition;
 import com.volmit.world.PackWorld;
+import com.volmit.world.RunningWorld;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -92,10 +92,10 @@ public class EntitySpawningTest {
 
     @Test
     public void aCaveWithoutFloorMarkersHasNowhereToSpawn() {
-        LiveWorld live = mock(LiveWorld.class);
-        when(live.caveFloors(2, 3)).thenReturn(List.of());
+        RunningWorld running = mock(RunningWorld.class);
+        when(running.caveFloors(2, 3)).thenReturn(List.of());
 
-        assertNull(EntitySpawning.caveSpawnPosition(live, 2, 3));
+        assertNull(EntitySpawning.caveSpawnPosition(running, 2, 3));
     }
 
     @Test

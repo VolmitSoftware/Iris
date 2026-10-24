@@ -30,6 +30,7 @@ import art.arcane.iris.engine.framework.SeedManager;
 import art.arcane.iris.engine.loot.BlockDropping;
 import art.arcane.iris.engine.loot.LootResources;
 import art.arcane.iris.engine.object.TestSettings;
+import art.arcane.iris.engine.object.world.IrisWorld;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
@@ -88,19 +89,25 @@ public class BuiltInModulesJarServicesTest {
         when(blocks.resolve(any(BlockSpec.class))).thenAnswer(invocation -> BlockState.parse("minecraft:" + invocation.<BlockSpec>getArgument(0).block()));
         when(data.getPackResources().blocks()).thenReturn(blocks);
         when(data.getPackResources().items()).thenReturn(item -> OptionalInt.of(0));
+        ModuleResourceFixture.serveColumnSettings(data);
         when(engine.getData()).thenReturn(data);
         when(engine.getMinHeight()).thenReturn(-64);
+        when(engine.getHeight()).thenReturn(384);
+        IrisWorld engineWorld = mock(IrisWorld.class);
+        when(engineWorld.minHeight()).thenReturn(-64);
+        when(engine.getWorld()).thenReturn(engineWorld);
         IrisComplex complex = mock(IrisComplex.class, RETURNS_DEEP_STUBS);
         when(complex.getHeightStream().get(X, Z)).thenReturn(64D);
         when(engine.getComplex()).thenReturn(complex);
         SeedManager seeds = mock(SeedManager.class);
         when(seeds.getLoot()).thenReturn(5L);
         when(engine.getSeedManager()).thenReturn(seeds);
-        biome = bare(IrisBiome.class);
-        dimension = bare(IrisDimension.class);
+        biome = bare(IrisBiome.class, "biome");
+        tables.biome(biome);
+        dimension = bare(IrisDimension.class, "dimension");
         when(engine.getBiome(X, Y, Z)).thenReturn(biome);
         when(engine.getSurfaceBiome(X, Z)).thenReturn(biome);
-        IrisRegion region = bare(IrisRegion.class);
+        IrisRegion region = bare(IrisRegion.class, "region");
         when(engine.getRegion(X, Z)).thenReturn(region);
         when(engine.getDimension()).thenReturn(dimension);
         world = new EngineGeneration(engine).world();
@@ -148,8 +155,9 @@ public class BuiltInModulesJarServicesTest {
                 .copyingJarsTo(folder.newFolder().toPath()));
     }
 
-    private static <T extends IrisRegistrant> T bare(Class<T> type) {
+    private static <T extends IrisRegistrant> T bare(Class<T> type, String key) {
         T owner = mock(type);
+        when(owner.getLoadKey()).thenReturn(key);
         when(owner.getModuleSettings()).thenReturn(ModuleSettings.NONE);
         return owner;
     }

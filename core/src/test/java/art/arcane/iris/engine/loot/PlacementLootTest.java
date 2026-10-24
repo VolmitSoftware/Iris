@@ -70,7 +70,7 @@ public class PlacementLootTest {
         when(resources.blocks()).thenReturn(blocks);
         when(blocks.find(any(String.class))).thenAnswer(invocation -> java.util.Optional.of(BlockState.parse(invocation.getArgument(0))));
         when(blocks.resolve(any(BlockSpec.class))).thenAnswer(invocation -> BlockState.parse(invocation.<BlockSpec>getArgument(0).block()));
-        placement = new PlacementLoot(resources, () -> Set.of("minecraft:chests/simple_dungeon"), LOOT_SEED, ModuleLogs.discarding());
+        placement = new PlacementLoot(resources, () -> Set.of(ResourceId.parse("minecraft:chests/simple_dungeon")), LOOT_SEED, ModuleLogs.discarding());
     }
 
     private Loot.Table table(String key) {

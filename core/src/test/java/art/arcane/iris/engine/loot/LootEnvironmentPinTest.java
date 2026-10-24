@@ -51,6 +51,7 @@ public class LootEnvironmentPinTest {
     private static final int Z = 20;
     private static final int SURFACE_Y = 70;
     private static final int CAVE_Y = 40;
+    private static final int WORLD_HEIGHT = 256;
 
     private Engine engine;
     private IrisDimension dimension;
@@ -63,15 +64,18 @@ public class LootEnvironmentPinTest {
         engine = mock(Engine.class, RETURNS_DEEP_STUBS);
         IrisData data = mock(IrisData.class);
         ModuleResourceFixture fixture = ModuleResourceFixture.serve(data);
+        ModuleResourceFixture.serveColumnSettings(data);
         for (String key : List.of("a", "b", "c", "d", "e")) {
             fixture.resource(LootResources.TABLES, key, table(key));
         }
         IrisComplex complex = engine.getComplex();
         when(engine.getData()).thenReturn(data);
+        when(engine.getHeight()).thenReturn(WORLD_HEIGHT);
         dimension = mock(IrisDimension.class);
         region = mock(IrisRegion.class);
         surface = biome("surface");
         cave = biome("cave");
+        fixture.biome(cave);
         when(engine.getDimension()).thenReturn(dimension);
         when(engine.getRegion(X, Z)).thenReturn(region);
         when(engine.getSurfaceBiome(X, Z)).thenReturn(surface);

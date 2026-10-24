@@ -20,6 +20,7 @@ package art.arcane.iris.engine.spawn;
 
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.modules.BuiltInPack;
+import art.arcane.iris.core.modules.ModuleResourceFixture;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.EngineGeneration;
 import art.arcane.iris.engine.object.TestSettings;
@@ -46,6 +47,8 @@ import static org.mockito.Mockito.when;
 /** The ambient effects due around a player: the region's, then the biome's, each when its interval and chance allow, fully decided. */
 public class AmbientEffectingTest {
     private static final BlockPosition AT = new BlockPosition(10, 70, -20);
+    private static final int SURFACE_HEIGHT = 64;
+    private static final int WORLD_HEIGHT = 256;
     private static final String SOUND_AND_POTION = """
             {"effects": [{"sound": "ambient.cave", "soundDistance": 4, "minPitch": 0.5, "maxPitch": 0.5, "volume": 2,
                           "potionEffect": "luck", "potionStrength": 1, "potionTicksMin": 100, "potionTicksMax": 100,
@@ -66,17 +69,25 @@ public class AmbientEffectingTest {
     @Before
     public void buildWorld() {
         engine = mock(Engine.class);
-        when(engine.getData()).thenReturn(mock(IrisData.class));
+        IrisData data = mock(IrisData.class);
+        ModuleResourceFixture fixture = ModuleResourceFixture.serve(data);
+        ModuleResourceFixture.serveColumnSettings(data);
+        when(engine.getData()).thenReturn(data);
         IrisWorld engineWorld = mock(IrisWorld.class);
         PlatformWorld platformWorld = mock(PlatformWorld.class);
         when(engineWorld.platformWorld()).thenReturn(platformWorld);
         when(engine.getWorld()).thenReturn(engineWorld);
         region = mock(IrisRegion.class);
         biome = mock(IrisBiome.class);
+        when(region.getLoadKey()).thenReturn("region");
+        when(biome.getLoadKey()).thenReturn("surface");
         when(region.getModuleSettings()).thenReturn(ModuleSettingsOf.none());
         when(biome.getModuleSettings()).thenReturn(ModuleSettingsOf.none());
+        fixture.biome(biome);
         when(engine.getRegion(10, -20)).thenReturn(region);
-        when(engine.getBiome(10, 70, -20)).thenReturn(biome);
+        when(engine.getSurfaceBiome(10, -20)).thenReturn(biome);
+        when(engine.getHeight(10, -20, true)).thenReturn(SURFACE_HEIGHT);
+        when(engine.getHeight()).thenReturn(WORLD_HEIGHT);
         world = new EngineGeneration(engine).world();
     }
 

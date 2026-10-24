@@ -18,27 +18,57 @@
 
 package art.arcane.iris.core.modules;
 
-import art.arcane.iris.builtin.IrisSeed;
-import art.arcane.iris.builtin.IrisSeeds;
+import art.arcane.iris.builtin.IrisSeedPurposes;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.SeedManager;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
+import com.volmit.random.WorldRandom;
+import com.volmit.resource.ResourceId;
 import com.volmit.world.PackWorld;
 import org.junit.Test;
 
-import java.util.EnumMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-/** An Iris world gives the built-ins Iris's own seeds. */
-public class IrisWorldFacadesTest {
+/** An Iris world answers Iris's seed purposes with its legacy seeds and every other purpose by the API's rule. */
+public class IrisWorldSeedsTest {
+    private static final long WORLD_SEED = 42L;
+
     @Test
-    public void everyIrisSeedIsTheSeedManagersSeedOfThatName() {
+    public void everyIrisSeedPurposeIsTheSeedManagersSeedOfThatName() {
+        Map<ResourceId, Long> expected = new LinkedHashMap<>();
+        expected.put(IrisSeedPurposes.BIOME, 1L);
+        expected.put(IrisSeedPurposes.CARVE, 2L);
+        expected.put(IrisSeedPurposes.COMPLEX, 3L);
+        expected.put(IrisSeedPurposes.COMPONENT, 4L);
+        expected.put(IrisSeedPurposes.DECORATOR, 5L);
+        expected.put(IrisSeedPurposes.DEPOSIT, 6L);
+        expected.put(IrisSeedPurposes.ENTITY, 7L);
+        expected.put(IrisSeedPurposes.LOOT, 8L);
+        expected.put(IrisSeedPurposes.MANTLE, 9L);
+        expected.put(IrisSeedPurposes.POST, 10L);
+        expected.put(IrisSeedPurposes.TERRAIN, 11L);
+        PackWorld world = new IrisPackWorld(engine(numberedSeeds()));
+
+        expected.forEach((purpose, seed) -> assertEquals(purpose.toString(), seed.longValue(), world.seed(purpose)));
+    }
+
+    @Test
+    public void anyOtherPurposeFollowsTheApisRule() {
+        ResourceId patches = new ResourceId("example", "moss/patches");
+        PackWorld world = new IrisPackWorld(engine(numberedSeeds()));
+
+        assertEquals(WorldRandom.purposeSeed(WORLD_SEED, patches), world.seed(patches));
+    }
+
+    private static SeedManager numberedSeeds() {
         SeedManager seeds = mock(SeedManager.class);
+        when(seeds.getSeed()).thenReturn(WORLD_SEED);
         when(seeds.getBiome()).thenReturn(1L);
         when(seeds.getCarve()).thenReturn(2L);
         when(seeds.getComplex()).thenReturn(3L);
@@ -50,24 +80,14 @@ public class IrisWorldFacadesTest {
         when(seeds.getMantle()).thenReturn(9L);
         when(seeds.getPost()).thenReturn(10L);
         when(seeds.getTerrain()).thenReturn(11L);
-        Engine engine = engine(new IrisDimension());
-        when(engine.getSeedManager()).thenReturn(seeds);
-        PackWorld world = new IrisPackWorld(engine);
-        Map<IrisSeed, Long> expected = new EnumMap<>(IrisSeed.class);
-        long next = 1;
-        for (IrisSeed seed : IrisSeed.values()) {
-            expected.put(seed, next++);
-        }
-
-        for (IrisSeed seed : IrisSeed.values()) {
-            assertEquals(seed.name(), expected.get(seed).longValue(), world.extension(IrisSeeds.class).orElseThrow().seed(seed));
-        }
+        return seeds;
     }
 
-    private static Engine engine(IrisDimension dimension) {
+    private static Engine engine(SeedManager seeds) {
         Engine engine = mock(Engine.class);
         when(engine.getData()).thenReturn(mock(IrisData.class));
-        when(engine.getDimension()).thenReturn(dimension);
+        when(engine.getDimension()).thenReturn(new IrisDimension());
+        when(engine.getSeedManager()).thenReturn(seeds);
         return engine;
     }
 }

@@ -18,12 +18,16 @@
 
 package art.arcane.iris.core.modules;
 
+import art.arcane.iris.engine.framework.SeedManager;
 import com.volmit.ModuleLog;
 import com.volmit.config.PackSettings;
 import com.volmit.host.WorldStates;
 import com.volmit.resource.PackResources;
+import com.volmit.resource.ResourceId;
 import com.volmit.world.PackWorld;
+import com.volmit.world.RunningWorld;
 
+import java.util.Optional;
 import java.util.function.Function;
 
 /**
@@ -32,14 +36,14 @@ import java.util.function.Function;
  * dimension, so its bottom is Y 0, and no lifecycle hook runs for it. Closing it closes the state modules kept.
  */
 final class ToolWorld implements PackWorld, AutoCloseable {
-    private final long seed;
+    private final SeedManager seeds;
     private final PackResources resources;
     private final PackSettings settings;
     private final WorldStates states;
     private final ModuleLog log;
 
     ToolWorld(long seed, PackResources resources, PackSettings settings) {
-        this.seed = seed;
+        this.seeds = new SeedManager(seed);
         this.resources = resources;
         this.settings = settings;
         this.states = new WorldStates();
@@ -48,7 +52,12 @@ final class ToolWorld implements PackWorld, AutoCloseable {
 
     @Override
     public long seed() {
-        return seed;
+        return seeds.getSeed();
+    }
+
+    @Override
+    public long seed(ResourceId purpose) {
+        return IrisWorldSeeds.seed(seeds, purpose);
     }
 
     @Override
@@ -65,6 +74,12 @@ final class ToolWorld implements PackWorld, AutoCloseable {
     @Override
     public int minWorldY() {
         return 0;
+    }
+
+    /** Nothing runs a tool's world. */
+    @Override
+    public Optional<RunningWorld> running() {
+        return Optional.empty();
     }
 
     @Override

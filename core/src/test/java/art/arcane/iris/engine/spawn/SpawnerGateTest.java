@@ -18,9 +18,6 @@
 
 package art.arcane.iris.engine.spawn;
 
-import art.arcane.iris.builtin.LiveWorld;
-import art.arcane.iris.builtin.LiveWorld.BiomeKind;
-import art.arcane.iris.builtin.LiveWorld.Sky;
 import art.arcane.iris.builtin.spawn.Spawner;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.Engine;
@@ -29,6 +26,8 @@ import art.arcane.iris.engine.object.TestSettings;
 import art.arcane.iris.engine.object.runtime.IrisEngineData;
 import art.arcane.iris.engine.object.world.IrisWorld;
 import art.arcane.iris.spi.PlatformWorld;
+import com.volmit.world.BiomeKind;
+import com.volmit.world.RunningWorld.Sky;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -39,7 +38,7 @@ import static org.mockito.Mockito.when;
 
 /** Whether a spawner may fire: the biome kind its group wants, the world's time and weather, and its rates in the engine's data. */
 public class SpawnerGateTest {
-    private LiveWorld live;
+    private SpawnerGate gate;
 
     @Before
     public void buildEngine() {
@@ -51,7 +50,7 @@ public class SpawnerGateTest {
         when(engine.getWorld()).thenReturn(engineWorld);
         when(engine.getData()).thenReturn(mock(IrisData.class));
         when(engine.getEngineData()).thenReturn(new IrisEngineData());
-        live = new EngineGeneration(engine).world().extension(LiveWorld.class).orElseThrow();
+        gate = SpawnerGate.of(new EngineGeneration(engine).world());
     }
 
     @Test
@@ -82,21 +81,21 @@ public class SpawnerGateTest {
     public void aSpawnerWithoutRatesAlwaysMayFire() {
         Spawner free = spawner("{}");
 
-        SpawnerGate.spawned("free", free, live, 3, 4);
+        gate.spawned("free", free, 3, 4);
 
-        assertTrue(SpawnerGate.canSpawn("free", free, live, 3, 4));
+        assertTrue(gate.canSpawn("free", free, 3, 4));
     }
 
     @Test
     public void aRateHoldsTheSpawnerBackForItsIntervalPerWorldAndPerChunk() {
         Spawner limited = spawner("{\"maximumRate\": {\"amount\": 1, \"per\": {\"minutes\": 10}}, \"maximumRatePerChunk\": {\"amount\": 1, \"per\": {\"minutes\": 10}}}");
 
-        assertTrue(SpawnerGate.canSpawn("limited", limited, live, 3, 4));
-        SpawnerGate.spawned("limited", limited, live, 3, 4);
+        assertTrue(gate.canSpawn("limited", limited, 3, 4));
+        gate.spawned("limited", limited, 3, 4);
 
-        assertFalse(SpawnerGate.canSpawn("limited", limited, live, 3, 4));
-        assertFalse(SpawnerGate.canSpawn("limited", limited, live, 9, 9));
-        assertTrue(SpawnerGate.canSpawn("other", limited, live, 9, 9));
+        assertFalse(gate.canSpawn("limited", limited, 3, 4));
+        assertFalse(gate.canSpawn("limited", limited, 9, 9));
+        assertTrue(gate.canSpawn("other", limited, 9, 9));
     }
 
     @Test
@@ -105,7 +104,7 @@ public class SpawnerGateTest {
         when(engine.getData()).thenReturn(mock(IrisData.class));
         when(engine.getWorld()).thenReturn(mock(IrisWorld.class));
 
-        assertFalse(SpawnerGate.canSpawn("any", spawner("{}"), new EngineGeneration(engine).world().extension(LiveWorld.class).orElseThrow(), 0, 0));
+        assertFalse(SpawnerGate.of(new EngineGeneration(engine).world()).canSpawn("any", spawner("{}"), 0, 0));
     }
 
     private static Spawner spawner(String json) {

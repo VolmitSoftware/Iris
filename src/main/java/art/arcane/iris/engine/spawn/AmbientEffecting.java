@@ -18,21 +18,22 @@
 
 package art.arcane.iris.engine.spawn;
 
-import art.arcane.iris.builtin.LiveWorld;
-import art.arcane.iris.builtin.LiveWorld.Level;
-import art.arcane.iris.builtin.LiveWorld.Sky;
 import art.arcane.iris.builtin.spawn.AmbientEffect;
 import art.arcane.iris.builtin.spawn.EffectCommands;
 import art.arcane.iris.builtin.spawn.EffectSettings;
 import art.arcane.iris.builtin.spawn.SpawnCommand;
+import art.arcane.iris.engine.loot.BlockBiomes;
 import art.arcane.iris.engine.loot.PlatformKeys;
 import art.arcane.volmlib.util.math.RNG;
 import com.volmit.ModuleLog;
+import com.volmit.config.Level;
 import com.volmit.entity.EntitySpec;
 import com.volmit.resource.ResourceId;
 import com.volmit.service.AmbientEffects;
 import com.volmit.geometry.BlockPosition;
 import com.volmit.world.PackWorld;
+import com.volmit.world.RunningWorld;
+import com.volmit.world.RunningWorld.Sky;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -45,18 +46,18 @@ import java.util.Optional;
 public final class AmbientEffecting implements AmbientEffects {
     @Override
     public List<Effect> due(PackWorld world, BlockPosition at) {
-        LiveWorld live = world.extension(LiveWorld.class).orElseThrow();
+        RunningWorld running = world.running().orElseThrow();
         EffectTimers timers = world.state(EffectTimers.class, ignored -> new EffectTimers());
-        Optional<Sky> sky = live.sky();
+        Optional<Sky> sky = running.sky();
 
         List<Effect> due = new ArrayList<>();
-        addDue(due, effectsOf(live, Level.REGION, at), timers, sky, world.log());
-        addDue(due, effectsOf(live, Level.BIOME, at), timers, sky, world.log());
+        addDue(due, effectsOf(running.settings().at(EffectSettings.class, at.x(), at.z()).level(Level.REGION)), timers, sky, world.log());
+        addDue(due, effectsOf(BlockBiomes.declaredAt(running, EffectSettings.class, at)), timers, sky, world.log());
         return due;
     }
 
-    private static List<AmbientEffect> effectsOf(LiveWorld live, Level level, BlockPosition at) {
-        return live.settings(EffectSettings.class, level, at.x(), at.y(), at.z()).map(EffectSettings::effects).orElse(List.of());
+    private static List<AmbientEffect> effectsOf(Optional<EffectSettings> declared) {
+        return declared.map(EffectSettings::effects).orElse(List.of());
     }
 
     private static void addDue(List<Effect> due, List<AmbientEffect> effects, EffectTimers timers, Optional<Sky> sky, ModuleLog log) {

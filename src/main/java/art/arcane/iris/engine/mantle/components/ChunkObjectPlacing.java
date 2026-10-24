@@ -20,6 +20,7 @@ package art.arcane.iris.engine.mantle.components;
 
 import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
 import art.arcane.iris.builtin.carve.CarvingMode;
+import art.arcane.iris.builtin.carve.CaveLavaHeightSettings;
 import art.arcane.iris.builtin.carve.CaveProfile;
 import art.arcane.iris.builtin.objects.CavePlacement;
 import art.arcane.iris.builtin.objects.ObjectChunk;
@@ -40,6 +41,7 @@ import art.arcane.iris.engine.object.procedural.ResolvedProceduralObjects;
 import art.arcane.volmlib.util.math.RNG;
 import com.volmit.IrisFeature;
 import com.volmit.ModuleLog;
+import com.volmit.config.FeatureSettings.Entry;
 import com.volmit.config.Level;
 import com.volmit.config.SettingsStack;
 import com.volmit.resource.ResourceId;
@@ -99,7 +101,7 @@ final class ChunkObjectPlacing {
         this.traceRegen = Thread.currentThread().getName().startsWith(REGEN_THREAD_PREFIX) && host.debugging();
         this.golden = chunk.goldenDebug(chunkX, chunkZ);
         this.worldHeight = context.mantle().bounds().maxY();
-        this.caveLavaHeight = host.caveLavaHeight();
+        this.caveLavaHeight = Optional.ofNullable(dimensionLevel(CaveLavaHeightSettings.class)).orElseGet(CaveLavaHeightSettings::new).height();
         this.effective = new EffectivePlacements(dimensionRequiresSurfaceSupport(), dimensionSurfaceSupportBuffer());
         this.caves = new CaveSettings(dimensionLevel(CaveProfile.class));
     }
@@ -125,8 +127,8 @@ final class ChunkObjectPlacing {
 
     /** The region and biomes at the chunk's centre and what each declares. */
     private Column readColumn() {
-        ResourceId region = host.regionAt(centerX, centerZ);
-        ResourceId surface = host.surfaceBiomeAt(centerX, centerZ);
+        ResourceId region = terrain.biome(centerX, terrain.bounds().minY(), centerZ).region();
+        ResourceId surface = terrain.surfaceBiome(centerX, centerZ);
         int surfaceY = terrain.surfaceHeight(centerX, centerZ);
         ResourceId cave = resolveCaveObjectBiome(surfaceY, surface);
         return new Column(region, surface, cave, surfaceY, objectsOf(cave, region, surface), proceduralOf(cave, region, surface),
@@ -141,7 +143,7 @@ final class ChunkObjectPlacing {
             if (sampled.isEmpty() || sampled.get().equals(surfaceBiome)) {
                 continue;
             }
-            if (hasCarvingObjects(host.biomeDeclaration(sampled.get(), ObjectSettings.class))) {
+            if (hasCarvingObjects(context.settings().declaredBy(sampled.get(), ObjectSettings.class))) {
                 ladderChoice = sampled.get();
             }
         }
@@ -178,7 +180,7 @@ final class ChunkObjectPlacing {
         if (cave.equals(surface)) {
             return levelValue(declared, Level.BIOME);
         }
-        return host.biomeDeclaration(cave, type).orElse(null);
+        return context.settings().declaredBy(cave, type).orElse(null);
     }
 
     private <F extends IrisFeature> F dimensionLevel(Class<F> type) {
@@ -395,7 +397,7 @@ final class ChunkObjectPlacing {
     }
 
     private List<ProceduralPlacement> proceduralPlacements(ProceduralObjectSettings settings) {
-        return settings == null ? List.of() : ResolvedProceduralObjects.of(host, settings);
+        return settings == null ? List.of() : ResolvedProceduralObjects.of(context.world(), settings);
     }
 
     private void placeProceduralFrom(List<ProceduralPlacement> placements, String scope, CaveProfile caveProfile, ResourceId expectedCaveBiome) {
@@ -491,17 +493,26 @@ final class ChunkObjectPlacing {
     }
 
     private void placeUpperObjects(Column column) {
-        Optional<ObjectHost.UpperObjects> upper = host.upperObjects(centerX, centerZ);
-        if (upper.isEmpty() || (upper.get().biome() == null && upper.get().region() == null)) {
+        SettingsStack<ObjectSettings> upper = terrain.upperDimension()
+                .map(dimension -> dimension.settings().at(ObjectSettings.class, centerX, centerZ))
+                .orElse(SettingsStack.empty());
+        Optional<Entry<ObjectSettings>> biome = levelEntry(upper, Level.BIOME);
+        Optional<Entry<ObjectSettings>> region = levelEntry(upper, Level.REGION);
+        if (biome.isEmpty() && region.isEmpty()) {
             return;
         }
         boolean forcePlace = upperObjectsForced();
-        placeUpperScope(upper.get().biome(), upper.get().biomeKey(), "upper-biome-surface", "biome", forcePlace);
-        placeUpperScope(upper.get().region(), upper.get().regionKey(), "upper-region-surface", "region", forcePlace);
+        biome.ifPresent(declared -> placeUpperScope(declared, "upper-biome-surface", "biome", forcePlace));
+        region.ifPresent(declared -> placeUpperScope(declared, "upper-region-surface", "region", forcePlace));
     }
 
-    private void placeUpperScope(ObjectSettings settings, String ownerKey, String scope, String kind, boolean forcePlace) {
-        for (ObjectPlacement placement : surfaceObjects(settings)) {
+    private static Optional<Entry<ObjectSettings>> levelEntry(SettingsStack<ObjectSettings> declared, Level level) {
+        return declared.entries().stream().filter(entry -> entry.level() == level).findFirst();
+    }
+
+    private void placeUpperScope(Entry<ObjectSettings> declared, String scope, String kind, boolean forcePlace) {
+        String ownerKey = declared.source().toString();
+        for (ObjectPlacement placement : surfaceObjects(declared.value())) {
             if (!rng.chance(placement.chance() + rng.d(-CHANCE_JITTER, CHANCE_JITTER))) {
                 continue;
             }

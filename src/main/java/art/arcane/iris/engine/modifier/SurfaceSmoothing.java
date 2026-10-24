@@ -18,8 +18,7 @@
 
 package art.arcane.iris.engine.modifier;
 
-import art.arcane.iris.builtin.IrisSeed;
-import art.arcane.iris.builtin.IrisSeeds;
+import art.arcane.iris.builtin.IrisSeedPurposes;
 import art.arcane.iris.builtin.post.PostProcessingSlabsSettings;
 import art.arcane.iris.builtin.post.PostProcessingWallsSettings;
 import art.arcane.iris.builtin.terrain.LayerBlocks;
@@ -82,7 +81,7 @@ final class SurfaceSmoothing {
         this.terrain = context.terrain();
         this.settings = context.settings();
         this.layerBlocks = LayerBlocks.of(context.world());
-        this.postRandom = new RNG(context.world().extension(IrisSeeds.class).orElseThrow().seed(IrisSeed.POST));
+        this.postRandom = new RNG(context.world().seed(IrisSeedPurposes.POST));
         this.originX = context.originX();
         this.originZ = context.originZ();
         this.planeWidth = blocks.width() + 2;

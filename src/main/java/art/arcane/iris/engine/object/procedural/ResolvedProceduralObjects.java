@@ -29,8 +29,12 @@ import art.arcane.iris.engine.object.procedural.fungi.ResolvedFungus;
 import art.arcane.iris.engine.object.procedural.ruin.ResolvedRuin;
 import art.arcane.iris.engine.object.procedural.tree.ResolvedTree;
 
+import com.volmit.world.PackWorld;
+
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
 
 /** The procedural objects a region or biome declares, each made placeable once per world, in the order the settings list them. */
@@ -38,12 +42,15 @@ public final class ResolvedProceduralObjects {
     private ResolvedProceduralObjects() {
     }
 
-    /** The placements {@code settings} declare in the world of {@code host}, resolved the first time a world asks. */
-    public static List<ProceduralPlacement> of(ObjectHost host, ProceduralObjectSettings settings) {
-        return host.procedural(settings, declared -> resolve(declared, host));
+    /** The placements {@code settings} declare in {@code world}, resolved the first time the world asks. */
+    public static List<ProceduralPlacement> of(PackWorld world, ProceduralObjectSettings settings) {
+        ObjectHost host = world.extension(ObjectHost.class).orElseThrow();
+        return world.state(ResolvedByDeclaration.class, ignored -> new ResolvedByDeclaration()).placements
+                .computeIfAbsent(settings, declared -> resolve(declared, host));
     }
 
-    static List<ProceduralPlacement> resolve(ProceduralObjectSettings settings, ObjectHost host) {
+    /** The placements {@code settings} declare, resolved anew, for work outside any world such as working out the pack's reach. */
+    public static List<ProceduralPlacement> resolve(ProceduralObjectSettings settings, ObjectHost host) {
         List<ProceduralPlacement> all = new ArrayList<>();
         for (Tree tree : settings.trees()) {
             all.add(new ResolvedTree(tree, host));
@@ -61,5 +68,10 @@ public final class ResolvedProceduralObjects {
         for (S entry : settings) {
             all.add(resolve.apply(entry, host));
         }
+    }
+
+    /** A world's resolved placements, by the settings that declare them. */
+    private static final class ResolvedByDeclaration {
+        private final Map<ProceduralObjectSettings, List<ProceduralPlacement>> placements = new ConcurrentHashMap<>();
     }
 }

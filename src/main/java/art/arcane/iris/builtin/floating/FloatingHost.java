@@ -27,17 +27,11 @@ import com.volmit.resource.ResourceId;
 import java.util.Optional;
 
 /**
- * What {@code iris:floating} asks of Iris beyond the API: the biome of any column, a biome's own terrain height, the sky
- * biome an island paints, and placing Iris objects against an island. Iris offers it as an extension of its worlds and
- * of the settings of the pack it loads: {@code world.extension(FloatingHost.class)}.
+ * What {@code iris:floating} asks of Iris beyond the API: a biome's own terrain height, the sky biome an island paints,
+ * and placing Iris objects against an island. Iris offers it as an extension of its worlds:
+ * {@code world.extension(FloatingHost.class)}.
  */
 public interface FloatingHost {
-    /** The biome of the column's surface, the biome an island grows from; any column, not only the chunk's. */
-    ResourceId surfaceBiome(int worldX, int worldZ);
-
-    /** The biome {@code key} names in the pack; empty when the pack has none. */
-    Optional<ResourceId> biome(String key);
-
     /** The height the terrain generators of {@code biome} give the column, as Iris shapes the biome's terrain with {@code seed}. */
     double biomeHeight(ResourceId biome, int worldX, int worldZ, long seed);
 

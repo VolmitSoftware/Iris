@@ -54,7 +54,7 @@ public final class ObjectLocating implements ObjectsAt {
             if (!placesObject(declaration.settings().objects(), resources, object)) {
                 continue;
             }
-            (declaration.level() == Level.BIOME ? biomes : regions).add(resources.idOf(declaration.key()));
+            (declaration.level() == Level.BIOME ? biomes : regions).add(declaration.id());
         }
         return new PlacedBy(biomes, regions);
     }

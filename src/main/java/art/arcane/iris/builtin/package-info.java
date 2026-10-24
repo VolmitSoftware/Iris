@@ -29,7 +29,8 @@
  * <p>
  * Besides those, it holds what the compiled-in built-ins and the built-ins jar must share, since each sees its own copy
  * of every other class: narrow facades only Iris's own built-ins use, interfaces Iris's worlds implement
- * ({@link art.arcane.iris.builtin.IrisSeed}, {@link art.arcane.iris.builtin.LiveWorld}, {@link art.arcane.iris.builtin.objects.ObjectHost}),
+ * ({@link art.arcane.iris.builtin.spawn.SpawnCooldowns}, {@link art.arcane.iris.builtin.objects.ObjectHost}), the seed purposes Iris
+ * answers with its legacy seeds ({@link art.arcane.iris.builtin.IrisSeedPurposes}),
  * and per-world state several of them use ({@link art.arcane.iris.builtin.terrain.LayerBlocks},
  * {@link art.arcane.iris.builtin.terrain.BiomeLayers}, {@link art.arcane.iris.builtin.terrain.TerrainPalettes}). Keep them few: each is
  * a promise.

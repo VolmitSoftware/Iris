@@ -18,9 +18,9 @@
 
 package art.arcane.iris.engine.spawn;
 
-import art.arcane.iris.builtin.LiveWorld.Sky;
 import art.arcane.iris.builtin.spawn.SpawnTimeBlock;
 import art.arcane.iris.builtin.spawn.SpawnWeather;
+import com.volmit.world.RunningWorld.Sky;
 
 /** The time of day and the weather a command or spawner of the pack asks for, checked against a world's sky. */
 final class SpawnConditions {

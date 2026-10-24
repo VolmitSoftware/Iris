@@ -18,14 +18,14 @@
 
 package art.arcane.iris.engine.mantle.components;
 
-import art.arcane.iris.builtin.IrisSeed;
-import art.arcane.iris.builtin.IrisSeeds;
+import art.arcane.iris.builtin.IrisSeedPurposes;
 import art.arcane.iris.builtin.floating.FloatingChildBiome;
 import art.arcane.iris.builtin.floating.FloatingChildSettings;
 import art.arcane.iris.builtin.floating.FloatingHost;
 import art.arcane.iris.builtin.floating.IslandFootprint;
 import art.arcane.iris.builtin.objects.ObjectHost;
 import art.arcane.iris.builtin.objects.ObjectPlacement;
+import art.arcane.iris.builtin.objects.ObjectSettings;
 import art.arcane.iris.builtin.objects.ObjectSize;
 import art.arcane.iris.builtin.objects.PlaceableObject;
 import art.arcane.iris.engine.object.terrain.floating.FloatingIslandBoundarySampler;
@@ -89,7 +89,7 @@ public final class FloatingObjectPlacing {
     public static FloatingObjectPlacing of(PackWorld world, ModuleLog log) {
         return world.state(FloatingObjectPlacing.class,
                 generating -> new FloatingObjectPlacing(FloatingWorld.of(generating),
-                        generating.extension(IrisSeeds.class).orElseThrow().seed(IrisSeed.MANTLE), log));
+                        generating.seed(IrisSeedPurposes.MANTLE), log));
     }
 
     /** Places what originates in the chunk of {@code context} into the mantle. */
@@ -100,7 +100,7 @@ public final class FloatingObjectPlacing {
         int worldHeight = bounds.maxY() - bounds.minY();
         RNG chunkRng = new RNG(CacheKey.key(context.chunkX(), context.chunkZ()) + mantleSeed + CHUNK_RANDOM_SALT);
         FloatingIslandSampleResolver samples = new FloatingIslandSampleResolver(world, worldHeight,
-                new FloatingIslandBoundarySampler(host::surfaceBiome), log);
+                new FloatingIslandBoundarySampler(world::surfaceBiome), log);
 
         FloatingIslandSample.clearChunkMemo();
         Chunk chunk = new Chunk(context, minX, minZ,worldHeight, chunkRng, samples, sampleColumns(samples, minX, minZ));
@@ -388,8 +388,7 @@ public final class FloatingObjectPlacing {
 
     /** How far, in blocks along X and Z, the floating objects of the pack {@code settings} describe may write beyond their chunk. */
     public static int reach(PackSettings settings, ModuleLog log) {
-        Reach reach = new Reach(settings.extension(FloatingHost.class).orElseThrow(),
-                settings.extension(ObjectHost.class).orElseThrow(), log);
+        Reach reach = new Reach(settings.extension(ObjectHost.class).orElseThrow(), biomeObjectsOf(settings), log);
         int maxObjectExtent = MIN_REACH_BLOCKS;
         try {
             for (Entry<FloatingChildSettings> declared : settings.declared(FloatingChildSettings.class)) {
@@ -413,18 +412,40 @@ public final class FloatingObjectPlacing {
         return path.startsWith(BIOME_PATH_PREFIX) ? new ResourceId(source.namespace(), path.substring(BIOME_PATH_PREFIX.length())) : source;
     }
 
+    /** The object settings every biome of the pack declares, by the biome's id. */
+    private static Map<ResourceId, ObjectSettings> biomeObjectsOf(PackSettings settings) {
+        Map<ResourceId, ObjectSettings> byBiome = new HashMap<>();
+        for (Entry<ObjectSettings> declared : settings.declared(ObjectSettings.class)) {
+            if (declared.level() == Level.BIOME) {
+                byBiome.putIfAbsent(biomeIdOf(declared.source()), declared.value());
+            }
+        }
+        return byBiome;
+    }
+
     /** The reach of floating children's objects, each object sized once. */
     private static final class Reach {
-        private final FloatingHost host;
         private final ObjectHost objects;
+        private final Map<ResourceId, ObjectSettings> biomeObjects;
         private final ModuleLog log;
         private final Map<String, Optional<ObjectSize>> sizes = new HashMap<>();
         private final Set<String> warnedLargeObjects = new HashSet<>();
 
-        private Reach(FloatingHost host, ObjectHost objects, ModuleLog log) {
-            this.host = host;
+        private Reach(ObjectHost objects, Map<ResourceId, ObjectSettings> biomeObjects, ModuleLog log) {
             this.objects = objects;
+            this.biomeObjects = biomeObjects;
             this.log = log;
+        }
+
+        /**
+         * The surface objects a child inherits: those of the biome it names when that biome declares objects, else its
+         * parent's. A named biome the pack lacks inherits the parent's while placing; one that declares no objects
+         * inherits none, so counting the parent's for it only widens the reach.
+         */
+        private List<ObjectPlacement> inheritedSurfaceObjects(FloatingChildBiome child, ResourceId parent) {
+            ResourceId named = child.biome().isBlank() ? parent : ResourceId.ofPackKey(parent.namespace(), child.biome());
+            ObjectSettings declared = biomeObjects.getOrDefault(named, biomeObjects.get(parent));
+            return FloatingWorld.surfaceObjects(Optional.ofNullable(declared));
         }
 
         int of(FloatingChildBiome child, ResourceId parent) {
@@ -434,8 +455,7 @@ public final class FloatingObjectPlacing {
             reach = Math.max(reach, placementRadius(child.topObjectOverrides()));
             reach = Math.max(reach, placementRadius(child.bottomObjectOverrides()));
             try {
-                ResourceId target = child.biome().isBlank() ? parent : host.biome(child.biome()).orElse(parent);
-                List<ObjectPlacement> surface = child.inheritObjects() ? FloatingWorld.surfaceObjects(objects, target) : List.of();
+                List<ObjectPlacement> surface = child.inheritObjects() ? inheritedSurfaceObjects(child, parent) : List.of();
                 reach = Math.max(reach, placementRadius(ResolvedFloatingChild.topObjects(child, surface)));
                 reach = Math.max(reach, placementRadius(ResolvedFloatingChild.bottomObjects(child)));
             } catch (Throwable e) {

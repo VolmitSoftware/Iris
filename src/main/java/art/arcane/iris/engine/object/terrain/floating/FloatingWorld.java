@@ -18,8 +18,7 @@
 
 package art.arcane.iris.engine.object.terrain.floating;
 
-import art.arcane.iris.builtin.IrisSeed;
-import art.arcane.iris.builtin.IrisSeeds;
+import art.arcane.iris.builtin.IrisSeedPurposes;
 import art.arcane.iris.builtin.carve.CarvingEntry;
 import art.arcane.iris.builtin.carve.CarvingSettings;
 import art.arcane.iris.builtin.carve.CaveProfile;
@@ -31,8 +30,11 @@ import art.arcane.iris.builtin.objects.ObjectHost;
 import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.builtin.objects.ObjectSettings;
 import com.volmit.noise.NoiseFactory;
+import com.volmit.resource.PackResources;
 import com.volmit.resource.ResourceId;
+import com.volmit.world.PackBiome;
 import com.volmit.world.PackWorld;
+import com.volmit.world.RunningWorld;
 
 import java.util.List;
 import java.util.Map;
@@ -40,29 +42,32 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * What the floating islands of one world are made from: the world's hosts, noise and seeds, the floating children each
- * biome declares, and the {@link ResolvedFloatingChild} of every child met, one per decoded entry. One per world ({@link #of}).
+ * What the floating islands of one world are made from: the world's hosts, layout, noise and seeds, the floating children
+ * each biome declares, and the {@link ResolvedFloatingChild} of every child met, one per decoded entry. One per world
+ * ({@link #of}).
  */
 public final class FloatingWorld {
     private static final long BASE_SEED_SALT = 0x5EED_F107_00F1B10CL;
 
     private final FloatingHost host;
     private final ObjectHost objects;
-    private final NoiseFactory noise;
+    private final PackResources resources;
+    private final RunningWorld running;
     private final long baseSeed;
     private final long carveSeed;
-    private final int minHeight;
+    private final int minWorldY;
     private final List<CarvingEntry> dimensionCarving;
     private final Map<FloatingChildBiome, ResolvedFloatingChild> resolved = new ConcurrentHashMap<>();
 
-    FloatingWorld(FloatingHost host, ObjectHost objects, NoiseFactory noise, long terrainSeed, long carveSeed, int minHeight,
-                  List<CarvingEntry> dimensionCarving) {
+    FloatingWorld(FloatingHost host, ObjectHost objects, PackResources resources, RunningWorld running, long terrainSeed,
+                  long carveSeed, int minWorldY, List<CarvingEntry> dimensionCarving) {
         this.host = host;
         this.objects = objects;
-        this.noise = noise;
+        this.resources = resources;
+        this.running = running;
         this.baseSeed = terrainSeed ^ BASE_SEED_SALT;
         this.carveSeed = carveSeed;
-        this.minHeight = minHeight;
+        this.minWorldY = minWorldY;
         this.dimensionCarving = List.copyOf(dimensionCarving);
     }
 
@@ -72,10 +77,9 @@ public final class FloatingWorld {
     }
 
     private static FloatingWorld create(PackWorld world) {
-        IrisSeeds seeds = world.extension(IrisSeeds.class).orElseThrow();
         return new FloatingWorld(world.extension(FloatingHost.class).orElseThrow(), world.extension(ObjectHost.class).orElseThrow(),
-                world.resources().noise(), seeds.seed(IrisSeed.TERRAIN), seeds.seed(IrisSeed.CARVE), world.minWorldY(),
-                dimensionCarvingOf(world));
+                world.resources(), world.running().orElseThrow(), world.seed(IrisSeedPurposes.TERRAIN), world.seed(IrisSeedPurposes.CARVE),
+                world.minWorldY(), dimensionCarvingOf(world));
     }
 
     private static List<CarvingEntry> dimensionCarvingOf(PackWorld world) {
@@ -93,7 +97,7 @@ public final class FloatingWorld {
     }
 
     public NoiseFactory noise() {
-        return noise;
+        return resources.noise();
     }
 
     /** The seed every island's noise and column random derive from. */
@@ -105,19 +109,29 @@ public final class FloatingWorld {
         return carveSeed;
     }
 
-    /** The platform's Y of the dimension's bottom. */
-    public int minHeight() {
-        return minHeight;
+    /** The Y in the world of the dimension's bottom block. */
+    public int minWorldY() {
+        return minWorldY;
+    }
+
+    /** The biome of the column's surface, the biome an island grows from; any column of the world. */
+    public ResourceId surfaceBiome(int worldX, int worldZ) {
+        return running.layout().surfaceBiome(worldX, worldZ);
+    }
+
+    /** The biome the pack names {@code key}; empty when the pack has none. */
+    public Optional<ResourceId> biome(String key) {
+        return resources.find(PackResources.BIOMES, resources.idOf(key)).map(PackBiome::id);
     }
 
     /** The floating children {@code biome} declares, in the order it lists them; none when it declares none. */
     public List<FloatingChildBiome> declaredBy(ResourceId biome) {
-        return objects.biomeDeclaration(biome, FloatingChildSettings.class).map(FloatingChildSettings::children).orElse(List.of());
+        return running.settings().declaredBy(biome, FloatingChildSettings.class).map(FloatingChildSettings::children).orElse(List.of());
     }
 
     /** Whether {@code biome} samples every floating child on its own and unions their islands instead of picking one per column. */
     public boolean merges(ResourceId biome) {
-        return objects.biomeDeclaration(biome, MergeFloatingChildrenSettings.class).map(MergeFloatingChildrenSettings::merge).orElse(false);
+        return running.settings().declaredBy(biome, MergeFloatingChildrenSettings.class).map(MergeFloatingChildrenSettings::merge).orElse(false);
     }
 
     public ResolvedFloatingChild resolve(FloatingChildBiome settings) {
@@ -129,8 +143,13 @@ public final class FloatingWorld {
     }
 
     /** The surface object placements {@code biome} declares. */
-    public static List<ObjectPlacement> surfaceObjects(ObjectHost objects, ResourceId biome) {
-        return objects.biomeDeclaration(biome, ObjectSettings.class).map(ObjectSettings::objects).orElse(List.of()).stream()
+    public List<ObjectPlacement> surfaceObjects(ResourceId biome) {
+        return surfaceObjects(running.settings().declaredBy(biome, ObjectSettings.class));
+    }
+
+    /** The surface object placements of the declared object settings; none when nothing is declared. */
+    public static List<ObjectPlacement> surfaceObjects(Optional<ObjectSettings> declared) {
+        return declared.map(ObjectSettings::objects).orElse(List.of()).stream()
                 .filter(placement -> placement.carvingSupport().supportsSurface())
                 .toList();
     }
@@ -148,6 +167,6 @@ public final class FloatingWorld {
 
     /** The cave profile {@code biome} declares; null when it declares none. */
     CaveProfile caveProfile(ResourceId biome) {
-        return objects.biomeDeclaration(biome, CaveProfile.class).orElse(null);
+        return running.settings().declaredBy(biome, CaveProfile.class).orElse(null);
     }
 }

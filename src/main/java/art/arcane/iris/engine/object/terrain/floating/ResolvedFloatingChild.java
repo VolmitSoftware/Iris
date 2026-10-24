@@ -141,14 +141,14 @@ public final class ResolvedFloatingChild {
         String carving = settings.carving();
         Optional<CarvingEntry> entry = world.dimensionCarving(carving);
         if (entry.isEmpty()) {
-            return world.host().biome(carving);
+            return world.biome(carving);
         }
         String biomeKey = entry.get().biome().trim();
-        return biomeKey.isEmpty() ? Optional.empty() : world.host().biome(biomeKey);
+        return biomeKey.isEmpty() ? Optional.empty() : world.biome(biomeKey);
     }
 
     public KList<ObjectPlacement> resolveTopObjects(ResourceId target) {
-        List<ObjectPlacement> surface = settings.inheritObjects() && target != null ? FloatingWorld.surfaceObjects(world.objects(), target) : List.of();
+        List<ObjectPlacement> surface = settings.inheritObjects() && target != null ? world.surfaceObjects(target) : List.of();
         return topObjects(settings, surface);
     }
 
@@ -193,6 +193,6 @@ public final class ResolvedFloatingChild {
         if (settings.biome().isBlank()) {
             return parent;
         }
-        return namedBiome.aquire(() -> world.host().biome(settings.biome())).orElse(parent);
+        return namedBiome.aquire(() -> world.biome(settings.biome())).orElse(parent);
     }
 }

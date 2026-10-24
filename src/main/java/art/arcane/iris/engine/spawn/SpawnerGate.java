@@ -18,21 +18,26 @@
 
 package art.arcane.iris.engine.spawn;
 
-import art.arcane.iris.builtin.LiveWorld;
-import art.arcane.iris.builtin.LiveWorld.BiomeKind;
-import art.arcane.iris.builtin.LiveWorld.Sky;
-import art.arcane.iris.builtin.spawn.SpawnRate;
 import art.arcane.iris.builtin.spawn.SpawnCooldowns;
+import art.arcane.iris.builtin.spawn.SpawnRate;
 import art.arcane.iris.builtin.spawn.Spawner;
+import com.volmit.world.BiomeKind;
+import com.volmit.world.PackWorld;
+import com.volmit.world.RunningWorld.Sky;
 
 import java.util.Optional;
 
 /**
  * Whether a spawner may fire: in a biome of the kind its group wants, in the time and weather it asks for, and not
  * more often than its rates allow. The rates count in the world's data, by the key the pack names the spawner by.
+ *
+ * @param sky       the world's time and weather when the gate was made; empty while the platform has not loaded the world
+ * @param cooldowns when the world's spawners last fired
  */
-final class SpawnerGate {
-    private SpawnerGate() {
+record SpawnerGate(Optional<Sky> sky, SpawnCooldowns cooldowns) {
+    /** The gate of the running world, with its time and weather now. */
+    static SpawnerGate of(PackWorld world) {
+        return new SpawnerGate(world.running().orElseThrow().sky(), world.extension(SpawnCooldowns.class).orElseThrow());
     }
 
     /** Whether a spawner of this group fires in a biome of {@code kind}. */
@@ -60,40 +65,39 @@ final class SpawnerGate {
     }
 
     /** Whether the spawner may fire in the chunk now. */
-    static boolean canSpawn(String key, Spawner spawner, LiveWorld live, int chunkX, int chunkZ) {
-        if (!canSpawn(key, spawner, live)) {
+    boolean canSpawn(String key, Spawner spawner, int chunkX, int chunkZ) {
+        if (!canSpawn(key, spawner)) {
             return false;
         }
 
         SpawnRate rate = spawner.maximumRatePerChunk();
-        return rate.isInfinite() || live.spawnCooldowns().canSpawnInChunk(chunkX, chunkZ, key, rate.interval());
+        return rate.isInfinite() || cooldowns.canSpawnInChunk(chunkX, chunkZ, key, rate.interval());
     }
 
     /** Counts a spawn of the spawner in the chunk against its rates. */
-    static void spawned(String key, Spawner spawner, LiveWorld live, int chunkX, int chunkZ) {
-        spawned(key, spawner, live);
+    void spawned(String key, Spawner spawner, int chunkX, int chunkZ) {
+        spawned(key, spawner);
         if (spawner.maximumRatePerChunk().isInfinite()) {
             return;
         }
 
-        live.spawnCooldowns().spawnedInChunk(chunkX, chunkZ, key);
+        cooldowns.spawnedInChunk(chunkX, chunkZ, key);
     }
 
-    private static boolean canSpawn(String key, Spawner spawner, LiveWorld live) {
-        Optional<Sky> sky = live.sky();
+    private boolean canSpawn(String key, Spawner spawner) {
         if (sky.isEmpty() || !suits(spawner, sky.get())) {
             return false;
         }
 
         SpawnRate rate = spawner.maximumRate();
-        return rate.isInfinite() || live.spawnCooldowns().canSpawn(key, rate.interval());
+        return rate.isInfinite() || cooldowns.canSpawn(key, rate.interval());
     }
 
-    private static void spawned(String key, Spawner spawner, LiveWorld live) {
+    private void spawned(String key, Spawner spawner) {
         if (spawner.maximumRate().isInfinite()) {
             return;
         }
 
-        live.spawnCooldowns().spawned(key);
+        cooldowns.spawned(key);
     }
 }

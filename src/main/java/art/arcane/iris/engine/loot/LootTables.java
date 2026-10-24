@@ -18,16 +18,20 @@
 
 package art.arcane.iris.engine.loot;
 
-import art.arcane.iris.builtin.LiveWorld;
-import art.arcane.iris.builtin.LiveWorld.Level;
 import art.arcane.iris.builtin.loot.LootMode;
 import art.arcane.iris.builtin.loot.LootResolver;
 import art.arcane.iris.builtin.loot.LootSettings;
 import art.arcane.volmlib.util.math.RNG;
+import com.volmit.config.Level;
+import com.volmit.config.SettingsStack;
+import com.volmit.resource.ResourceId;
 import com.volmit.world.PackWorld;
+import com.volmit.world.RunningWorld;
+import com.volmit.world.TerrainSampler;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Function;
 
 /**
@@ -63,9 +67,18 @@ public final class LootTables {
         return LootResolver.spatialOneIn(lootSeed, identity, entryIndex, x, y, z, rarity);
     }
 
-    /** The loot settings the level declares at the block; the defaults, which add nothing, when it declares none. */
-    private static LootSettings settingsAt(LiveWorld live, Level level, int x, int relativeY, int z) {
-        return live.settings(LootSettings.class, level, x, relativeY, z).orElseGet(LootSettings::new);
+    /** The declared loot settings; the defaults, which add nothing, when none are declared. */
+    private static LootSettings orDefaults(Optional<LootSettings> declared) {
+        return declared.orElseGet(LootSettings::new);
+    }
+
+    /** The cave biome of a block under the terrain's surface, when it is not the column's surface biome. */
+    private static Optional<ResourceId> distinctCaveBiome(TerrainSampler layout, int x, int relativeY, int z) {
+        if (relativeY >= layout.surfaceY(x, z) || !layout.bounds().contains(x, relativeY, z)) {
+            return Optional.empty();
+        }
+        ResourceId surface = layout.surfaceBiome(x, z);
+        return layout.caveBiome(x, relativeY, z).filter(cave -> !cave.equals(surface));
     }
 
     /**
@@ -83,15 +96,17 @@ public final class LootTables {
             boolean objectLootDefined,
             Function<String, T> mapper
     ) {
-        LiveWorld live = world.extension(LiveWorld.class).orElseThrow();
-        boolean belowSurface = relativeY < live.terrainHeight(x, z);
-        boolean distinctContextualBiome = belowSurface && !live.caveBiome(x, relativeY, z).equals(live.surfaceBiome(x, z));
+        RunningWorld running = world.running().orElseThrow();
+        Optional<ResourceId> distinctCaveBiome = distinctCaveBiome(running.layout(), x, relativeY, z);
+        SettingsStack<LootSettings> column = running.settings().at(LootSettings.class, x, z);
 
-        LootSettings dimensionLoot = settingsAt(live, Level.DIMENSION, x, relativeY, z);
-        LootSettings regionLoot = settingsAt(live, Level.REGION, x, relativeY, z);
-        LootSettings surfaceLoot = settingsAt(live, Level.SURFACE_BIOME, x, relativeY, z);
+        LootSettings dimensionLoot = orDefaults(column.dimension());
+        LootSettings regionLoot = orDefaults(column.level(Level.REGION));
+        LootSettings surfaceLoot = orDefaults(column.level(Level.BIOME));
         double multiplier = dimensionLoot.multiplier() * regionLoot.multiplier() * surfaceLoot.multiplier();
-        LootSettings contextualLoot = distinctContextualBiome ? settingsAt(live, Level.CAVE_BIOME, x, relativeY, z) : null;
+        LootSettings contextualLoot = distinctCaveBiome
+                .map(cave -> orDefaults(running.settings().declaredBy(cave, LootSettings.class)))
+                .orElse(null);
         if (contextualLoot != null) {
             multiplier *= contextualLoot.multiplier();
         }

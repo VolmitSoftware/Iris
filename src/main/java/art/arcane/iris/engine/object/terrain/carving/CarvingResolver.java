@@ -18,8 +18,7 @@
 
 package art.arcane.iris.engine.object.terrain.carving;
 
-import art.arcane.iris.builtin.IrisSeed;
-import art.arcane.iris.builtin.IrisSeeds;
+import art.arcane.iris.builtin.IrisSeedPurposes;
 import art.arcane.iris.builtin.carve.CarvingEntry;
 import art.arcane.iris.builtin.carve.CarvingSettings;
 import com.volmit.ModuleLog;
@@ -60,7 +59,7 @@ public final class CarvingResolver {
         this.resources = world.resources();
         this.log = world.log();
         this.minHeight = world.minWorldY();
-        this.childSeed = world.extension(IrisSeeds.class).orElseThrow().seed(IrisSeed.CARVE) ^ CHILD_SEED_SALT;
+        this.childSeed = world.seed(IrisSeedPurposes.CARVE) ^ CHILD_SEED_SALT;
         this.entries = declared.stream().filter(Objects::nonNull).map(ResolvedCarvingEntry::new).toList();
         this.index = indexById(entries);
     }

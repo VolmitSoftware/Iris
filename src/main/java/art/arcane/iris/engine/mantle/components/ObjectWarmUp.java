@@ -24,8 +24,7 @@ import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.builtin.objects.ObjectSettings;
 import art.arcane.iris.builtin.objects.ProceduralObjectSettings;
 import art.arcane.iris.builtin.objects.ProceduralPlacement;
-import art.arcane.iris.builtin.IrisSeed;
-import art.arcane.iris.builtin.IrisSeeds;
+import art.arcane.iris.builtin.IrisSeedPurposes;
 import art.arcane.iris.engine.object.procedural.ResolvedProceduralObjects;
 import art.arcane.volmlib.util.math.RNG;
 import com.volmit.config.Level;
@@ -44,13 +43,15 @@ final class ObjectWarmUp {
     private static final long ROOT_SEED_SALT = 7777L;
     private static final Level[] WARMED_LEVELS = {Level.BIOME, Level.REGION};
 
+    private final PackWorld world;
     private final ObjectHost host;
     private final RNG root;
     private int warmed;
 
     ObjectWarmUp(PackWorld world) {
+        this.world = world;
         this.host = world.extension(ObjectHost.class).orElseThrow();
-        this.root = new RNG(world.extension(IrisSeeds.class).orElseThrow().seed(IrisSeed.COMPONENT) + ROOT_SEED_SALT);
+        this.root = new RNG(world.seed(IrisSeedPurposes.COMPONENT) + ROOT_SEED_SALT);
     }
 
     void warm() {
@@ -71,7 +72,7 @@ final class ObjectWarmUp {
     }
 
     private static <F extends com.volmit.IrisFeature> List<Declaration<F>> byKey(List<Declaration<F>> declarations) {
-        return declarations.stream().sorted(Comparator.comparing(Declaration::key)).toList();
+        return declarations.stream().sorted(Comparator.comparing(Declaration::id)).toList();
     }
 
     private void warmPlacements(List<ObjectPlacement> placements) {
@@ -83,7 +84,7 @@ final class ObjectWarmUp {
     }
 
     private void warmProcedural(ProceduralObjectSettings settings) {
-        for (ProceduralPlacement placement : ResolvedProceduralObjects.of(host, settings)) {
+        for (ProceduralPlacement placement : ResolvedProceduralObjects.of(world, settings)) {
             placement.variant(root.nextParallelRNG(warmed++));
         }
     }

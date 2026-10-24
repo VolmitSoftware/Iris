@@ -18,7 +18,6 @@
 
 package art.arcane.iris.engine.spawn;
 
-import art.arcane.iris.builtin.LiveWorld.Sky;
 import art.arcane.iris.builtin.loot.LootEntry;
 import art.arcane.iris.builtin.spawn.AmbientEffect;
 import art.arcane.iris.builtin.spawn.EntityDefinition;
@@ -35,6 +34,7 @@ import com.volmit.item.ItemDrop;
 import com.volmit.resource.ContentKey;
 import com.volmit.resource.PackResources;
 import com.volmit.resource.ResourceId;
+import com.volmit.world.RunningWorld.Sky;
 
 import java.util.ArrayList;
 import java.util.List;

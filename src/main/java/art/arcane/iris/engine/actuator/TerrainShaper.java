@@ -17,8 +17,7 @@
  */
 package art.arcane.iris.engine.actuator;
 
-import art.arcane.iris.builtin.IrisSeed;
-import art.arcane.iris.builtin.IrisSeeds;
+import art.arcane.iris.builtin.IrisSeedPurposes;
 import art.arcane.iris.builtin.terrain.BedrockSettings;
 import art.arcane.iris.builtin.terrain.HideOresSettings;
 import art.arcane.iris.builtin.terrain.OreSettings;
@@ -67,7 +66,7 @@ final class TerrainShaper {
         this.palettes = palettes;
         this.layers = layers;
         this.ores = ores;
-        this.rng = new RNG(world.extension(IrisSeeds.class).orElseThrow().seed(IrisSeed.TERRAIN));
+        this.rng = new RNG(world.seed(IrisSeedPurposes.TERRAIN));
         this.levelsBelowTheDimensionDeclareOres = world.settings().declared(OreSettings.class).entries().stream()
                 .anyMatch(entry -> entry.level() != Level.DIMENSION);
     }

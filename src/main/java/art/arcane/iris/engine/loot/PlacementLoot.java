@@ -45,12 +45,12 @@ final class PlacementLoot {
     private static final char PROPERTIES_START = '[';
 
     private final PackResources resources;
-    private final Supplier<Set<String>> platformTables;
+    private final Supplier<Set<ResourceId>> platformTables;
     private final long lootSeed;
     private final ModuleLog log;
 
-    /** @param platformTables the keys of the loot tables the platform has, asked for only when a placement names one */
-    PlacementLoot(PackResources resources, Supplier<Set<String>> platformTables, long lootSeed, ModuleLog log) {
+    /** @param platformTables the ids of the loot tables the platform has, asked for only when a placement names one */
+    PlacementLoot(PackResources resources, Supplier<Set<ResourceId>> platformTables, long lootSeed, ModuleLog log) {
         this.resources = resources;
         this.platformTables = platformTables;
         this.lootSeed = lootSeed;
@@ -92,10 +92,20 @@ final class PlacementLoot {
 
     private Loot.Source platformSource(String name, int x, int worldY, int z) {
         String key = platformKey(name);
-        if (key == null || !platformTables.get().contains(key)) {
+        ResourceId table = key == null ? null : platformTableId(key);
+        if (table == null || !platformTables.get().contains(table)) {
             return null;
         }
-        return new Loot.PlatformTable(ResourceId.parse(key), LootTables.seed(lootSeed, LootTables.platformIdentity(key), x, worldY, z));
+        return new Loot.PlatformTable(table, LootTables.seed(lootSeed, LootTables.platformIdentity(key), x, worldY, z));
+    }
+
+    /** The id of the platform table the key names, or null for a key that is no id, which names no table. */
+    private static ResourceId platformTableId(String key) {
+        try {
+            return ResourceId.parse(key);
+        } catch (IllegalArgumentException notAnId) {
+            return null;
+        }
     }
 
     /** A placement's name for a platform table as the platform's key for it, or null for a name that cannot be one. */

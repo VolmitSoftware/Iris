@@ -342,7 +342,7 @@ public final class FloatingIslandSample {
         }
         double altNoise = altitudeCng.sample(wx, wz);
         double altClamped = Math.max(0, Math.min(1, altNoise));
-        int worldMin = world.minHeight();
+        int worldMin = world.minWorldY();
         int minAlt = Math.max(0, entry.settings().minHeightAboveSurface() - worldMin);
         int maxAlt = Math.max(minAlt, entry.settings().maxHeightAboveSurface() - worldMin);
         int baseY = minAlt + (int) Math.round(altClamped * (maxAlt - minAlt));

@@ -18,35 +18,29 @@
 
 package art.arcane.iris.builtin.objects;
 
+import art.arcane.iris.builtin.loot.ObjectLoot;
+import art.arcane.iris.builtin.loot.ObjectVanillaLoot;
 import art.arcane.volmlib.util.math.RNG;
-import com.volmit.config.Level;
 import com.volmit.IrisFeature;
-import com.volmit.config.FeatureSettings;
+import com.volmit.config.Level;
 import com.volmit.generation.InvocationContext;
 import com.volmit.resource.ResourceId;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.function.Function;
 
 /**
- * What {@code iris:objects} asks of Iris: the objects of the pack, how Iris scales and places them, and the layout around
- * a world position. Iris offers it as an extension of its worlds and of the settings of the pack it loads:
- * {@code world.extension(ObjectHost.class)}, {@code settings.extension(ObjectHost.class)}. Nothing here hands out the
- * engine.
+ * What {@code iris:objects} asks of Iris's object system: the pack's objects, how Iris scales, picks and places them, and
+ * the loot of what it placed. The layout, settings and seeds around an object are the API's. Iris offers it as an
+ * extension of its worlds and of the settings of the pack it loads: {@code world.extension(ObjectHost.class)},
+ * {@code settings.extension(ObjectHost.class)}.
+ *
+ * <p>Objects are named by the keys placements hold ({@link ObjectPlacement#place()}). The randoms are VolmLib's
+ * {@link RNG}, since the streams Iris draws objects with decide where existing worlds have them.
  */
 public interface ObjectHost {
-    /** Whether Iris's debug setting is on. */
+    /** Whether Iris's debug setting is on, which makes object placing trace what it does. */
     boolean debugging();
-
-    /** The height, above the dimension's bottom, up to which caves are filled with lava. */
-    int caveLavaHeight();
-
-    /** The height of the dimension's fluid. */
-    int fluidHeight();
-
-    /** The settings that apply at a world column, for work outside a chunk's generation. */
-    FeatureSettings columnSettings();
 
     /** The random a chunk's objects are placed with: the same for the same chunk of the same world. */
     RNG chunkRandom(int chunkX, int chunkZ);
@@ -69,42 +63,42 @@ public interface ObjectHost {
     /** Builds what placing the placement would build on first use, so the first chunk to place it does not wait. */
     void warm(ObjectPlacement placement, RNG rng);
 
-    /** The procedural objects {@code settings} declare, made placeable by {@code resolve} once per world. */
-    List<ProceduralPlacement> procedural(ProceduralObjectSettings settings,
-                                         Function<ProceduralObjectSettings, List<ProceduralPlacement>> resolve);
-
     /** A builder for one bake of objects made block by block. */
     ObjectBuilder builder();
-
-    /** The object settings of the biome and the region of the dimension stacked above, at the column; none where nothing sits above. */
-    Optional<UpperObjects> upperObjects(int worldX, int worldZ);
 
     /** Places the object into {@code sink}, which is outside any chunk's generation, such as a growing sapling's tree. */
     int placeInto(PlaceableObject object, int x, int y, int z, ObjectPlacement placement, ObjectSink sink, RNG rng);
 
-    /** The region at the column. */
-    ResourceId regionAt(int worldX, int worldZ);
+    /** The loot of the object placed at the block; empty when no object placement covers the block. */
+    Optional<ObjectLoots> placedLoot(int x, int y, int z);
 
-    /** The surface biome at the column. */
-    ResourceId surfaceBiomeAt(int worldX, int worldZ);
-
-    /** The biome at the position, which is the cave biome underground. */
-    ResourceId biomeAt(int worldX, int y, int worldZ);
-
-    /** The settings the biome declares itself, whichever column it is found at; empty when it declares none. */
-    <F extends IrisFeature> Optional<F> biomeDeclaration(ResourceId biome, Class<F> type);
-
-    /** The settings the region declares itself; empty when it declares none. */
-    <F extends IrisFeature> Optional<F> regionDeclaration(ResourceId region, Class<F> type);
-
-    /** Every region and every reachable biome that declares the settings, by the key the pack knows it by, regions first. */
+    /**
+     * Every region and every reachable biome that declares the settings, regions first. Unlike the sources of
+     * {@link com.volmit.config.PackSettings#declared}, which name the resource that declares them, each is named by the
+     * id a {@link com.volmit.world.BiomeSample} gives it.
+     */
     <F extends IrisFeature> List<Declaration<F>> declarations(Class<F> type);
 
-    /** What the dimension stacked above declares to place at a column, where each is null when its level declares none. */
-    record UpperObjects(ObjectSettings biome, ObjectSettings region, String biomeKey, String regionKey) {
+    /** One region's or biome's declaration of settings, by the id of the region or biome. */
+    record Declaration<F extends IrisFeature>(Level level, ResourceId id, F settings) {
     }
 
-    /** One region's or biome's declaration of settings. */
-    record Declaration<F extends IrisFeature>(Level level, String key, F settings) {
+    /**
+     * The loot an object placement gives its containers.
+     *
+     * @param packTables          tables of the pack
+     * @param platformTables      tables of the platform
+     * @param overridesGlobalLoot whether the placement's tables replace those of the dimension, region and biomes
+     */
+    record ObjectLoots(List<ObjectLoot> packTables, List<ObjectVanillaLoot> platformTables, boolean overridesGlobalLoot) {
+        public ObjectLoots {
+            packTables = List.copyOf(packTables);
+            platformTables = List.copyOf(platformTables);
+        }
+
+        /** Whether the placement names any table. */
+        public boolean defined() {
+            return !packTables.isEmpty() || !platformTables.isEmpty();
+        }
     }
 }

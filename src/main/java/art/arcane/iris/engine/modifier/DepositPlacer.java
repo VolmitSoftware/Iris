@@ -17,8 +17,7 @@
  */
 package art.arcane.iris.engine.modifier;
 
-import art.arcane.iris.builtin.IrisSeed;
-import art.arcane.iris.builtin.IrisSeeds;
+import art.arcane.iris.builtin.IrisSeedPurposes;
 import art.arcane.iris.builtin.deposit.DepositGenerator;
 import art.arcane.iris.builtin.deposit.DepositHeightDistribution;
 import art.arcane.iris.builtin.deposit.DepositPlacementScope;
@@ -77,7 +76,7 @@ final class DepositPlacer {
     private final Map<ResourceId, Optional<BiomeIdentity>> biomeIdentities = new ConcurrentHashMap<>();
 
     DepositPlacer(PackWorld world) {
-        this.rng = new RNG(world.extension(IrisSeeds.class).orElseThrow().seed(IrisSeed.DEPOSIT));
+        this.rng = new RNG(world.seed(IrisSeedPurposes.DEPOSIT));
         this.resources = world.resources();
         this.registry = resources.blocks();
         this.log = world.log();

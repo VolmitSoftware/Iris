@@ -61,7 +61,8 @@ the same JSON as Iris's `IrisObjectPlacement` and keeps the JSON it was read fro
 a placement as their own class (`ObjectPlacements.host`). What a jar cannot do, Iris does through the facades `ObjectHost` and
 `ObjectChunk` in `art.arcane.iris.builtin.objects`: loading and scaling the pack's objects, placing one with the placement
 stages into the chunk's mantle (on the surface, in a cave inside the cave's bounds, or hung from the terrain above), reading the
-carved space the cave carver planned, and the layout around a position. `ObjectPlacing` and its helpers (`ChunkObjectPlacing`,
+carved space the cave carver planned, and the loot an object placed at a block defines; the layout, the settings of a column and
+the upper dimension's objects come from IrisApi (`TerrainSampler`, `FeatureSettings`, `UpperDimension`). `ObjectPlacing` and its helpers (`ChunkObjectPlacing`,
 `CaveAnchors`, `PlacementReach`) decide what to place and where. The procedural generators (`engine/object/procedural`) stay
 compiled in, behind `ProceduralPlacement`, until they build `GeneratedObject`s instead of Iris objects.
 `iris:loot` owns the loot table resource kind (`LootResources`, folder `loot`), checks the tables and the references to
@@ -183,7 +184,7 @@ The jar holds `iris:post`, `iris:perfection`, `iris:matter`, `iris:loot`, `iris:
 written against IrisApi and `art.arcane.iris.builtin` alone: the chunk's `BlockState` hunk, the block registry's traits and
 `canPlaceOn`, the terrain sampler (heights around the chunk, slope, fluid height, where the upper dimension begins) and the
 mantle's planned blocks; the placement stages read the placement being run through the `ObjectPlacement` facade, and the loot and
-spawn services, which have no chunk to ask, ask `LiveWorld` (both below). Without the jar a pack's world has no caves, vanilla
+spawn services, which have no chunk to ask, ask the running world (`world.running()`, IrisApi's `RunningWorld`). Without the jar a pack's world has no caves, vanilla
 placed features, loot, block drops, entity spawns or ambient effects, and its biomes' `loot`, `blockDrops`, `entitySpawners` and
 `effects` are not read.
 Iris no longer compiles them in (`IrisModuleHost.generationModules()`); every pack gets them from the bundled jar. A pack
@@ -193,14 +194,14 @@ none of the jar's modules (`IrisModuleHost.JAR_MODULE_IDS`, which a test keeps e
 
 `art.arcane.iris.builtin` also holds what the compiled-in built-ins and the jar must share, because each sees its own copy of
 every other class. The facades among them are interfaces Iris implements and offers through IrisApi's extension point, never
-through the thread or a cast: a module asks `world.extension(X.class)` for what belongs to a world (`IrisSeeds`, `LiveWorld`,
-`ObjectHost`, `FloatingHost`, `StructureHost`), `context.extension(X.class)` for what belongs to one invocation (`ObjectPlacement`
+through the thread or a cast: a module asks `world.extension(X.class)` for what belongs to a world (`ObjectHost`,
+`FloatingHost`, `StructureHost`, `spawn.SpawnCooldowns`), `context.extension(X.class)` for what belongs to one invocation (`ObjectPlacement`
 in a placement stage, `MatterMantle` in a chunk or mantle stage) and `settings.extension(X.class)` for a reach worked out
-before any world exists, each with `.orElseThrow()`, since a built-in runs only where Iris offers them. `IrisSeeds` gives
-Iris's per-feature world seeds (`seeds.seed(IrisSeed.CARVE)`), so existing worlds generate the same; `terrain.LayerBlocks` (the world's picks from the biomes' palette layers: terrain, caves and post pick from the same
-layers, and a layer's noise is built once per world by whichever asks first), `LiveWorld` (what the loot and spawn services ask a
-running world, outside any chunk stage: the layout and settings at a block, the platform's weather and loot tables, the
-objects' loot and the spawner cooldowns Iris saves with the world; values only),
+before any world exists, each with `.orElseThrow()`, since a built-in runs only where Iris offers them. Iris's per-feature world seeds are
+IrisApi purpose seeds: `world.seed(IrisSeedPurposes.CARVE)` (`iris:seed/carve`), which Iris answers with the seeds its worlds always
+had, so existing worlds generate the same; `terrain.LayerBlocks` (the world's picks from the biomes' palette layers: terrain, caves and post pick from the same
+layers, and a layer's noise is built once per world by whichever asks first), `spawn.SpawnCooldowns` (the spawner cooldowns
+Iris saves with the world's data, so they survive a restart),
 `loot.LootResolver` (the random streams loot is drawn from, shared with the hosts that fill containers) and the loot and
 marker lists of an object placement (`loot.ObjectLoot`, `loot.ObjectVanillaLoot`, `spawn.PlacementMarker`, which the modules
 register as held types, because Iris's `IrisObjectPlacement` holds them). The placement stages need more of the object being
@@ -219,5 +220,5 @@ so it writes nothing outside its chunk. What a
 cave's walls, floor and ceiling get comes from the terrain and decorant built-ins of the same jar (`terrain.BiomeLayers`,
 `terrain.TerrainPalettes`, the biome decorators), through carve's own `CaveDressing`, which tests replace with fixed blocks.
 A cave's dimension, region and biome settings are found by the id the layout's biome samples carry (`DeclaredByLevel`), its
-absolute world Y bands convert with `PackWorld.minHeight()`, and its noise reads `NoiseSampler.signed(...)` (Iris's memoised signed read)
+absolute world Y bands convert with `PackWorld.minWorldY()`, and its noise reads `NoiseSampler.signed(...)` (Iris's memoised signed read)
 and `scaled(...)`. `caveLavaHeight` and `upperDimensionCarving` are its dimension settings.

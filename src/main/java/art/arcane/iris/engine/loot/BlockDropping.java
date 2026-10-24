@@ -18,19 +18,21 @@
 
 package art.arcane.iris.engine.loot;
 
-import art.arcane.iris.builtin.LiveWorld;
-import art.arcane.iris.builtin.LiveWorld.Level;
 import art.arcane.iris.builtin.loot.BlockDrop;
 import art.arcane.iris.builtin.loot.BlockDropSettings;
 import art.arcane.iris.builtin.loot.LootEntry;
 import art.arcane.iris.builtin.loot.LootResolver;
 import art.arcane.volmlib.util.math.RNG;
+import com.volmit.config.Level;
+import com.volmit.config.SettingsStack;
 import com.volmit.item.ItemDrop;
 import com.volmit.service.BlockDrops;
 import com.volmit.world.PackWorld;
+import com.volmit.world.RunningWorld;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -41,17 +43,15 @@ import java.util.concurrent.ConcurrentMap;
 public final class BlockDropping implements BlockDrops {
     @Override
     public Result drops(PackWorld world, Broken broken) {
-        LiveWorld live = world.extension(LiveWorld.class).orElseThrow();
-        int x = broken.position().x();
-        int y = broken.position().y();
-        int z = broken.position().z();
+        RunningWorld running = world.running().orElseThrow();
         String brokenKey = world.resources().blocks().find(broken.block().key()).orElse(broken.block()).key();
         ResolvedDrops resolved = world.state(ResolvedDrops.class, ignored -> new ResolvedDrops());
+        SettingsStack<BlockDropSettings> column = running.settings().at(BlockDropSettings.class, broken.position().x(), broken.position().z());
 
-        List<ResolvedBlockDrop> providers = dropsFor(live, Level.BIOME, x, y, z, brokenKey, resolved, world);
+        List<ResolvedBlockDrop> providers = dropsFor(BlockBiomes.declaredAt(running, BlockDropSettings.class, broken.position()), brokenKey, resolved, world);
         if (providers.stream().noneMatch(provider -> provider.drop().skipParents())) {
-            providers.addAll(dropsFor(live, Level.REGION, x, y, z, brokenKey, resolved, world));
-            providers.addAll(dropsFor(live, Level.DIMENSION, x, y, z, brokenKey, resolved, world));
+            providers.addAll(dropsFor(column.level(Level.REGION), brokenKey, resolved, world));
+            providers.addAll(dropsFor(column.dimension(), brokenKey, resolved, world));
         }
 
         LootItems items = new LootItems(world.resources().items(), false, world.log());
@@ -73,10 +73,10 @@ public final class BlockDropping implements BlockDrops {
         }
     }
 
-    private static List<ResolvedBlockDrop> dropsFor(LiveWorld live, Level level, int x, int y, int z, String brokenKey,
-                                                   ResolvedDrops resolved, PackWorld world) {
+    private static List<ResolvedBlockDrop> dropsFor(Optional<BlockDropSettings> declared, String brokenKey, ResolvedDrops resolved,
+                                                   PackWorld world) {
         List<ResolvedBlockDrop> matching = new ArrayList<>();
-        for (BlockDrop drop : live.settings(BlockDropSettings.class, level, x, y, z).map(BlockDropSettings::drops).orElse(List.of())) {
+        for (BlockDrop drop : declared.map(BlockDropSettings::drops).orElse(List.of())) {
             ResolvedBlockDrop candidate = resolved.of(drop, world);
             if (candidate.dropsFor(brokenKey)) {
                 matching.add(candidate);

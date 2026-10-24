@@ -102,7 +102,7 @@ final class PlacementReach {
 
     private int ofProcedural(ProceduralObjectSettings settings) {
         int radius = 0;
-        for (ProceduralPlacement placement : ResolvedProceduralObjects.of(host, settings)) {
+        for (ProceduralPlacement placement : ResolvedProceduralObjects.resolve(settings, host)) {
             for (PlaceableObject variant : placement.variants()) {
                 radius = Math.max(radius, of(new ObjectSize(variant.width(), variant.height(), variant.depth()), placement));
             }

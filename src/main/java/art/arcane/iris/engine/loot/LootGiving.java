@@ -18,11 +18,10 @@
 
 package art.arcane.iris.engine.loot;
 
-import art.arcane.iris.builtin.IrisSeed;
-import art.arcane.iris.builtin.IrisSeeds;
-import art.arcane.iris.builtin.LiveWorld;
-import art.arcane.iris.builtin.LiveWorld.ObjectLoots;
+import art.arcane.iris.builtin.IrisSeedPurposes;
 import art.arcane.iris.builtin.loot.LootResolver;
+import art.arcane.iris.builtin.objects.ObjectHost;
+import art.arcane.iris.builtin.objects.ObjectHost.ObjectLoots;
 import art.arcane.iris.builtin.loot.LootTable;
 import art.arcane.volmlib.util.math.RNG;
 import com.volmit.item.ItemDrop;
@@ -42,19 +41,19 @@ import java.util.Optional;
 public final class LootGiving implements Loot {
     @Override
     public List<Source> tables(PackWorld world, Site site) {
-        LiveWorld live = world.extension(LiveWorld.class).orElseThrow();
         int x = site.position().x();
         int z = site.position().z();
         int relativeY = site.position().y();
-        int worldY = relativeY + live.bottomY();
+        int worldY = relativeY + world.minWorldY();
         RNG rng = LootResolver.containerRng(lootSeed(world), x, worldY, z);
 
         List<Source> sources = new ArrayList<>();
         boolean objectLootDefined = site.nativeLootDefined();
-        Optional<ObjectLoots> objectLoots = site.container().isEmpty() ? Optional.empty() : live.objectLoots(x, relativeY, z);
+        Optional<ObjectLoots> objectLoots = site.container().isEmpty() ? Optional.empty()
+                : world.extension(ObjectHost.class).orElseThrow().placedLoot(x, relativeY, z);
         if (objectLoots.isPresent()) {
             objectLootDefined = objectLootDefined || objectLoots.get().defined();
-            Source picked = placementLoot(world, live).pick(objectLoots.get().platformTables(), objectLoots.get().packTables(),
+            Source picked = placementLoot(world).pick(objectLoots.get().platformTables(), objectLoots.get().packTables(),
                     site.container().get(), rng, x, worldY, z);
             if (picked != null) {
                 sources.add(picked);
@@ -75,16 +74,16 @@ public final class LootGiving implements Loot {
         if (table == null) {
             return List.of();
         }
-        int worldY = site.position().y() + world.extension(LiveWorld.class).orElseThrow().bottomY();
+        int worldY = site.position().y() + world.minWorldY();
         return new LootItems(world.resources().items(), site.debug(), world.log())
                 .draw(tableId.path(), table, lootSeed(world), site.position().x(), worldY, site.position().z());
     }
 
-    private static PlacementLoot placementLoot(PackWorld world, LiveWorld live) {
-        return new PlacementLoot(world.resources(), live::platformLootTables, lootSeed(world), world.log());
+    private static PlacementLoot placementLoot(PackWorld world) {
+        return new PlacementLoot(world.resources(), () -> world.running().orElseThrow().platformLootTables(), lootSeed(world), world.log());
     }
 
     private static long lootSeed(PackWorld world) {
-        return world.extension(IrisSeeds.class).orElseThrow().seed(IrisSeed.LOOT);
+        return world.seed(IrisSeedPurposes.LOOT);
     }
 }

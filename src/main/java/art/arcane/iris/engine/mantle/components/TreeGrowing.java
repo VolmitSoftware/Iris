@@ -28,13 +28,16 @@ import art.arcane.iris.builtin.objects.ProceduralObjectSettings;
 import art.arcane.iris.builtin.objects.TreeGrowthSettings;
 import art.arcane.iris.builtin.objects.TreeMode;
 import art.arcane.iris.builtin.objects.tree.Tree;
+import art.arcane.iris.engine.loot.BlockBiomes;
 import art.arcane.volmlib.util.math.RNG;
 import com.volmit.block.BlockState;
+import com.volmit.config.Level;
 import com.volmit.placement.PlacedBlock;
 import com.volmit.resource.ResourceId;
 import com.volmit.service.SaplingGrowth;
 import com.volmit.geometry.BlockPosition;
 import com.volmit.world.PackWorld;
+import com.volmit.world.RunningWorld;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -55,12 +58,13 @@ public final class TreeGrowing implements SaplingGrowth {
     @Override
     public Optional<Growth> grow(PackWorld world, Sapling sapling, Surroundings surroundings) {
         ObjectHost host = world.extension(ObjectHost.class).orElseThrow();
+        RunningWorld running = world.running().orElseThrow();
         BlockPosition at = sapling.at();
-        TreeGrowthSettings growth = treeGrowth(host, at);
+        TreeGrowthSettings growth = treeGrowth(running, at);
         if (!growth.enabled()) {
             return Optional.empty();
         }
-        Optional<ObjectPlacement> placement = pickPlacement(host, growth, sapling);
+        Optional<ObjectPlacement> placement = pickPlacement(running, growth, sapling);
         if (placement.isEmpty()) {
             return Optional.empty();
         }
@@ -70,7 +74,7 @@ public final class TreeGrowing implements SaplingGrowth {
             return Optional.empty();
         }
         PlaceableObject object = tree.get();
-        GrowthSink sink = new GrowthSink(surroundings, host);
+        GrowthSink sink = new GrowthSink(surroundings, running.layout().fluidHeight());
         BlockPosition center = sapling.center();
         host.placeInto(object, center.x(), center.y() + object.height() / 2, center.z(), placement.get(), sink, RNG.r);
         return Optional.of(new Growth(world.resources().idOf(object.key()), sink.placed()));
@@ -94,19 +98,18 @@ public final class TreeGrowing implements SaplingGrowth {
         return keys.stream().map(world.resources()::idOf).collect(Collectors.toSet());
     }
 
-    private static TreeGrowthSettings treeGrowth(ObjectHost host, BlockPosition at) {
-        return host.columnSettings().at(TreeGrowthSettings.class, at.x(), at.z()).dimension().orElseGet(TreeGrowthSettings::new);
+    private static TreeGrowthSettings treeGrowth(RunningWorld running, BlockPosition at) {
+        return running.settings().at(TreeGrowthSettings.class, at.x(), at.z()).dimension().orElseGet(TreeGrowthSettings::new);
     }
 
     /** One placement, picked at random, of the tree placements that grow {@code sapling}'s species. */
-    private static Optional<ObjectPlacement> pickPlacement(ObjectHost host, TreeGrowthSettings growth, Sapling sapling) {
+    private static Optional<ObjectPlacement> pickPlacement(RunningWorld running, TreeGrowthSettings growth, Sapling sapling) {
         List<ObjectPlacement> placements = new ArrayList<>();
         BlockPosition at = sapling.at();
-        ResourceId biome = host.biomeAt(at.x(), at.y(), at.z());
-        host.biomeDeclaration(biome, ObjectSettings.class).ifPresent(settings -> placements.addAll(matching(settings, sapling.species())));
+        BlockBiomes.declaredAt(running, ObjectSettings.class, at).ifPresent(settings -> placements.addAll(matching(settings, sapling.species())));
         if (growth.mode() == TreeMode.ALL || placements.isEmpty()) {
-            ResourceId region = host.regionAt(at.x(), at.z());
-            host.regionDeclaration(region, ObjectSettings.class).ifPresent(settings -> placements.addAll(matching(settings, sapling.species())));
+            running.settings().at(ObjectSettings.class, at.x(), at.z()).level(Level.REGION)
+                    .ifPresent(settings -> placements.addAll(matching(settings, sapling.species())));
         }
         if (placements.isEmpty()) {
             return Optional.empty();
@@ -153,12 +156,12 @@ public final class TreeGrowing implements SaplingGrowth {
     /** Places an object into a list of blocks, reading the world around the sapling through the host. */
     private static final class GrowthSink implements ObjectSink {
         private final Surroundings surroundings;
-        private final ObjectHost host;
+        private final int fluidHeight;
         private final List<PlacedBlock> placed = new ArrayList<>();
 
-        private GrowthSink(Surroundings surroundings, ObjectHost host) {
+        private GrowthSink(Surroundings surroundings, int fluidHeight) {
             this.surroundings = surroundings;
-            this.host = host;
+            this.fluidHeight = fluidHeight;
         }
 
         private List<PlacedBlock> placed() {
@@ -182,7 +185,7 @@ public final class TreeGrowing implements SaplingGrowth {
 
         @Override
         public int fluidHeight() {
-            return host.fluidHeight();
+            return fluidHeight;
         }
     }
 }

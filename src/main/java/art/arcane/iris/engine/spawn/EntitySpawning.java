@@ -18,13 +18,11 @@
 
 package art.arcane.iris.engine.spawn;
 
-import art.arcane.iris.builtin.IrisSeed;
-import art.arcane.iris.builtin.IrisSeeds;
-import art.arcane.iris.builtin.LiveWorld;
-import art.arcane.iris.builtin.LiveWorld.Level;
+import art.arcane.iris.builtin.IrisSeedPurposes;
 import art.arcane.iris.builtin.loot.LootResolver;
 import art.arcane.iris.builtin.spawn.EntityDefinition;
 import art.arcane.iris.builtin.spawn.EntitySpawn;
+import art.arcane.iris.builtin.spawn.SpawnCooldowns;
 import art.arcane.iris.builtin.spawn.SpawnMarker;
 import art.arcane.iris.builtin.spawn.SpawnSurface;
 import art.arcane.iris.builtin.spawn.Spawner;
@@ -35,13 +33,17 @@ import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.PowerOfTwoCoordinates;
 import art.arcane.volmlib.util.math.RNG;
 import art.arcane.volmlib.util.scheduling.ChronoLatch;
+import com.volmit.config.Level;
 import com.volmit.config.Range;
+import com.volmit.config.SettingsStack;
 import com.volmit.entity.EntitySpec;
 import com.volmit.resource.PackResources;
 import com.volmit.resource.ResourceId;
 import com.volmit.service.EntitySpawns;
 import com.volmit.geometry.BlockPosition;
+import com.volmit.world.BiomeKind;
 import com.volmit.world.PackWorld;
+import com.volmit.world.RunningWorld;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -62,7 +64,6 @@ public final class EntitySpawning implements EntitySpawns {
     private static final String CAVE_CEILING_MARKER = "cave_ceiling";
     private static final int AIR_ABOVE_MARKER = 1;
     private static final long COOLDOWN_CLEANUP_INTERVAL_MILLISECONDS = 60_000L;
-    private static final int LAYOUT_QUESTION_HEIGHT = 0;
 
     @Override
     public Optional<Plan> plan(PackWorld world, Site site) {
@@ -81,7 +82,7 @@ public final class EntitySpawning implements EntitySpawns {
         String spawnerKey = plan.spawner().path();
         Spawner spawner = SpawnResources.spawner(world.resources(), spawnerKey);
         if (spawner != null) {
-            SpawnerGate.spawned(spawnerKey, spawner, world.extension(LiveWorld.class).orElseThrow(), plan.chunkX(), plan.chunkZ());
+            SpawnerGate.of(world).spawned(spawnerKey, spawner, plan.chunkX(), plan.chunkZ());
         }
     }
 
@@ -122,25 +123,27 @@ public final class EntitySpawning implements EntitySpawns {
             return;
         }
         PackResources resources = world.resources();
-        world.extension(LiveWorld.class).orElseThrow().spawnCooldowns().forgetExpired(key -> {
+        world.extension(SpawnCooldowns.class).orElseThrow().forgetExpired(key -> {
             Spawner spawner = SpawnResources.spawner(resources, key);
             return spawner == null ? -1L : spawner.maximumRate().interval();
         });
     }
 
     private Optional<Plan> planChunk(PackWorld world, Chunk chunk) {
-        LiveWorld live = world.extension(LiveWorld.class).orElseThrow();
-        Predicate<KeyedSpawner> canSpawn = keyed -> SpawnerGate.canSpawn(keyed.key(), keyed.spawner(), live, chunk.chunkX(), chunk.chunkZ());
+        RunningWorld running = world.running().orElseThrow();
+        SpawnerGate gate = SpawnerGate.of(world);
+        Predicate<KeyedSpawner> canSpawn = keyed -> gate.canSpawn(keyed.key(), keyed.spawner(), chunk.chunkX(), chunk.chunkZ());
         int blockX = PowerOfTwoCoordinates.chunkToBlock(chunk.chunkX());
         int blockZ = PowerOfTwoCoordinates.chunkToBlock(chunk.chunkZ());
-        LiveWorld.BiomeKind centreKind = live.surfaceKind(blockX + BLOCKS_TO_CHUNK_CENTRE, blockZ + BLOCKS_TO_CHUNK_CENTRE);
+        BiomeKind centreKind = running.layout().surfaceKind(blockX + BLOCKS_TO_CHUNK_CENTRE, blockZ + BLOCKS_TO_CHUNK_CENTRE);
+        SettingsStack<SpawnerSettings> column = running.settings().at(SpawnerSettings.class, blockX, blockZ);
 
         List<KeyedSpawner> candidates = Stream.concat(
-                        shuffled(world, live, Level.DIMENSION, blockX, blockZ).stream()
+                        shuffled(world, column.dimension()).stream()
                                 .filter(canSpawn).filter(keyed -> SpawnerGate.suits(keyed.spawner(), centreKind)),
                         Stream.concat(
-                                shuffled(world, live, Level.REGION, blockX, blockZ).stream().filter(canSpawn),
-                                shuffled(world, live, Level.SURFACE_BIOME, blockX, blockZ).stream().filter(canSpawn)))
+                                shuffled(world, column.level(Level.REGION)).stream().filter(canSpawn),
+                                shuffled(world, column.level(Level.BIOME)).stream().filter(canSpawn)))
                 .filter(keyed -> chunk.livingEntities() < keyed.spawner().maxEntitiesPerChunk())
                 .toList();
 
@@ -149,17 +152,17 @@ public final class EntitySpawning implements EntitySpawns {
         if (chosen == null) {
             return Optional.empty();
         }
-        return planChunkSpawn(world, live, chunk, chosen);
+        return planChunkSpawn(world, running, chunk, chosen);
     }
 
-    private Optional<Plan> planChunkSpawn(PackWorld world, LiveWorld live, Chunk chunk, Candidate chosen) {
+    private Optional<Plan> planChunkSpawn(PackWorld world, RunningWorld running, Chunk chunk, Candidate chosen) {
         EntitySpawn spawn = chosen.spawn();
         int count = LootResolver.inclusive(RNG.r, spawn.minSpawns(), spawn.maxSpawns());
         List<Attempt> attempts = new ArrayList<>();
         for (int i = 0; i < count; i++) {
             int x = (chunk.chunkX() * CHUNK_SIZE) + RNG.r.i(CHUNK_SIZE);
             int z = (chunk.chunkZ() * CHUNK_SIZE) + RNG.r.i(CHUNK_SIZE);
-            BlockPosition at = spawnPosition(live, chosen.spawner(), chunk.chunkX(), chunk.chunkZ(), x, z);
+            BlockPosition at = spawnPosition(running, chosen.spawner(), chunk.chunkX(), chunk.chunkZ(), x, z);
             if (at != null) {
                 addAttempt(attempts, world, chosen, at, true);
             }
@@ -168,18 +171,18 @@ public final class EntitySpawning implements EntitySpawns {
     }
 
     /** Where a spawner of its group puts an entity at the column; null when it has no place for one. */
-    private static BlockPosition spawnPosition(LiveWorld live, Spawner spawner, int chunkX, int chunkZ, int x, int z) {
-        int height = live.highestBlock(x, z, true);
-        int heightWithFluid = live.highestBlock(x, z, false);
+    private static BlockPosition spawnPosition(RunningWorld running, Spawner spawner, int chunkX, int chunkZ, int x, int z) {
+        int height = running.highestBlock(x, z, true);
+        int heightWithFluid = running.highestBlock(x, z, false);
         return switch (spawner.group()) {
             case NORMAL -> new BlockPosition(x, heightWithFluid + 1, z);
-            case CAVE -> caveSpawnPosition(live, chunkX, chunkZ);
+            case CAVE -> caveSpawnPosition(running, chunkX, chunkZ);
             case UNDERWATER, BEACH -> new BlockPosition(x, RNG.r.i(height + 1, heightWithFluid), z);
         };
     }
 
-    static BlockPosition caveSpawnPosition(LiveWorld live, int chunkX, int chunkZ) {
-        KList<BlockPosition> floors = new KList<>(live.caveFloors(chunkX, chunkZ));
+    static BlockPosition caveSpawnPosition(RunningWorld running, int chunkX, int chunkZ) {
+        KList<BlockPosition> floors = new KList<>(running.caveFloors(chunkX, chunkZ));
         BlockPosition floor = floors.getRandom(RNG.r);
         return floor == null ? null : new BlockPosition(floor.x(), floor.y() + AIR_ABOVE_MARKER, floor.z());
     }
@@ -201,8 +204,7 @@ public final class EntitySpawning implements EntitySpawns {
         BlockPosition position = marker.position();
         int chunkX = PowerOfTwoCoordinates.blockToChunkFloor(position.x());
         int chunkZ = PowerOfTwoCoordinates.blockToChunkFloor(position.z());
-        LiveWorld live = world.extension(LiveWorld.class).orElseThrow();
-        if (!SpawnerGate.canSpawn(spawnerKey, spawner, live, chunkX, chunkZ)) {
+        if (!SpawnerGate.of(world).canSpawn(spawnerKey, spawner, chunkX, chunkZ)) {
             return Optional.empty();
         }
 
@@ -236,9 +238,9 @@ public final class EntitySpawning implements EntitySpawns {
     }
 
     private static EntityResolution resolution(PackWorld world) {
-        LiveWorld live = world.extension(LiveWorld.class).orElseThrow();
-        LootItems items = new LootItems(world.resources().items(), live.studio(), world.log());
-        return new EntityResolution(world.resources(), items, live.sky(), world.state(EffectTimers.class, ignored -> new EffectTimers()),
+        RunningWorld running = world.running().orElseThrow();
+        LootItems items = new LootItems(world.resources().items(), running.debug(), world.log());
+        return new EntityResolution(world.resources(), items, running.sky(), world.state(EffectTimers.class, ignored -> new EffectTimers()),
                 world.log());
     }
 
@@ -251,9 +253,8 @@ public final class EntitySpawning implements EntitySpawns {
     }
 
     /** The spawners the dimension, region or surface biome at the column lists, in a random order. */
-    private static List<KeyedSpawner> shuffled(PackWorld world, LiveWorld live, Level level, int x, int z) {
-        List<String> keys = live.settings(SpawnerSettings.class, level, x, LAYOUT_QUESTION_HEIGHT, z)
-                .map(SpawnerSettings::spawners).orElse(List.of());
+    private static List<KeyedSpawner> shuffled(PackWorld world, Optional<SpawnerSettings> declared) {
+        List<String> keys = declared.map(SpawnerSettings::spawners).orElse(List.of());
         return new KList<>(SpawnResources.spawners(world.resources(), keys)).shuffleCopy(RNG.r);
     }
 
@@ -274,7 +275,7 @@ public final class EntitySpawning implements EntitySpawns {
         private final RNG rng;
 
         private EntityRandom(PackWorld world) {
-            this.rng = new RNG(world.extension(IrisSeeds.class).orElseThrow().seed(IrisSeed.ENTITY));
+            this.rng = new RNG(world.seed(IrisSeedPurposes.ENTITY));
         }
 
         private RNG rng() {

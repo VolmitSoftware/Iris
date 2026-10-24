@@ -18,8 +18,7 @@
 
 package art.arcane.iris.engine.modifier;
 
-import art.arcane.iris.builtin.IrisSeed;
-import art.arcane.iris.builtin.IrisSeeds;
+import art.arcane.iris.builtin.IrisSeedPurposes;
 import art.arcane.iris.builtin.decorant.DecorantSettings;
 import art.arcane.iris.builtin.decorant.DecorationPart;
 import art.arcane.iris.builtin.floating.FloatingBottomPaletteMode;
@@ -82,7 +81,7 @@ final class FloatingIslands {
 
     FloatingIslands(PackWorld world, ModuleLog log) {
         this.world = FloatingWorld.of(world);
-        this.rng = new RNG(world.extension(IrisSeeds.class).orElseThrow().seed(IrisSeed.TERRAIN) ^ ISLAND_RANDOM_SALT);
+        this.rng = new RNG(world.seed(IrisSeedPurposes.TERRAIN) ^ ISLAND_RANDOM_SALT);
         this.biomeLayers = BiomeLayers.of(world);
         this.log = log;
     }
@@ -450,7 +449,7 @@ final class FloatingIslands {
             this.explosion = PaletteExplosion.of(settings, context.centreX(), context.centreZ());
             TerrainSampler terrain = context.terrain();
             this.slope = (x, z) -> terrain.column((int) x, (int) z).slope();
-            this.boundarySampler = new FloatingIslandBoundarySampler(world.host()::surfaceBiome);
+            this.boundarySampler = new FloatingIslandBoundarySampler(world::surfaceBiome);
         }
     }
 }

@@ -22,8 +22,8 @@ import java.util.function.ToLongFunction;
 
 /**
  * When spawners last fired, which Iris keeps with the world's data so that a spawner's rates hold across restarts. Rates
- * count per spawner, by the key the pack names it by, in the world and in each chunk. Reached through
- * {@link art.arcane.iris.builtin.LiveWorld#spawnCooldowns()}.
+ * count per spawner, by the key the pack names it by, in the world and in each chunk. Iris offers it as an extension of
+ * its worlds: {@code world.extension(SpawnCooldowns.class)}.
  */
 public interface SpawnCooldowns {
     /** Whether the spawner may fire in the world again, {@code intervalMilliseconds} after it last did. */

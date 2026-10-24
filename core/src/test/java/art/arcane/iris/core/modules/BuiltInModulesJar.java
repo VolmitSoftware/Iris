@@ -19,74 +19,36 @@
 package art.arcane.iris.core.modules;
 
 import java.io.IOException;
-import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.PathMatcher;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.jar.JarEntry;
-import java.util.jar.JarOutputStream;
-import java.util.stream.Stream;
+import java.util.jar.JarFile;
 
 /**
- * The built-ins jar as IrisModule's {@code builtinModulesJar} packages it, written from the classes this test run compiled:
- * every class {@code builtin-modules.txt} lists ({@code module} lines with their nested classes, {@code include} patterns)
- * and the entry points in order. Tests load it from a pack's {@code modules} folder without building IrisModule.
+ * The built-ins jar Iris bundles (IrisModule builds it, Iris's {@code builtinModulesJar} checks it), for tests to load from a
+ * pack's {@code modules} folder.
  */
 public final class BuiltInModulesJar {
-    private static final String LIST_PROPERTY = "iris.builtinModulesList";
+    private static final String JAR_PROPERTY = "iris.builtinModulesJar";
     private static final String SERVICE_ENTRY = "META-INF/services/com.volmit.IrisModule";
     private static final String JAR_NAME = "iris-builtins.jar";
 
     private BuiltInModulesJar() {
     }
 
-    /** Writes {@code <pack>/modules/iris-builtins.jar} and returns its entry classes. */
+    /** Copies the jar to {@code <pack>/modules/iris-builtins.jar} and returns its entry classes in the order it lists them. */
     public static List<String> writeInto(Path pack) throws IOException {
-        List<String> modules = new ArrayList<>();
-        List<PathMatcher> classes = new ArrayList<>();
-        for (String line : Files.readAllLines(Path.of(System.getProperty(LIST_PROPERTY)))) {
-            String entry = line.replaceAll("#.*", "").trim();
-            if (entry.startsWith("module ")) {
-                String module = entry.substring("module ".length()).trim();
-                modules.add(module);
-                String path = module.replace('.', '/');
-                classes.add(glob(path + ".class"));
-                classes.add(glob(path + "$*.class"));
-            } else if (entry.startsWith("include ")) {
-                classes.add(glob(entry.substring("include ".length()).trim()));
-            }
-        }
-        Path root = classRoot();
+        Path built = Path.of(System.getProperty(JAR_PROPERTY));
         Path jar = Files.createDirectories(pack.resolve("modules")).resolve(JAR_NAME);
-        try (JarOutputStream output = new JarOutputStream(Files.newOutputStream(jar)); Stream<Path> files = Files.walk(root)) {
-            for (Path file : files.filter(Files::isRegularFile).sorted().toList()) {
-                Path relative = root.relativize(file);
-                if (classes.stream().anyMatch(matcher -> matcher.matches(relative))) {
-                    output.putNextEntry(new JarEntry(relative.toString().replace('\\', '/')));
-                    output.write(Files.readAllBytes(file));
-                    output.closeEntry();
-                }
-            }
-            output.putNextEntry(new JarEntry(SERVICE_ENTRY));
-            output.write((String.join("\n", modules) + "\n").getBytes(StandardCharsets.UTF_8));
-            output.closeEntry();
-        }
-        return modules;
+        Files.copy(built, jar);
+        return entryClasses(jar);
     }
 
-    private static PathMatcher glob(String pattern) {
-        return FileSystems.getDefault().getPathMatcher("glob:" + pattern);
-    }
-
-    private static Path classRoot() {
-        try {
-            return Path.of(IrisModuleHost.class.getProtectionDomain().getCodeSource().getLocation().toURI());
-        } catch (URISyntaxException e) {
-            throw new IllegalStateException("Iris's classes are not in a folder this test can read", e);
+    private static List<String> entryClasses(Path jar) throws IOException {
+        try (JarFile file = new JarFile(jar.toFile())) {
+            String entries = new String(file.getInputStream(file.getJarEntry(SERVICE_ENTRY)).readAllBytes(), StandardCharsets.UTF_8);
+            return entries.lines().map(String::trim).filter(line -> !line.isEmpty()).toList();
         }
     }
 }

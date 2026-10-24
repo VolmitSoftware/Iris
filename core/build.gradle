@@ -59,6 +59,10 @@ dependencies {
     implementation('com.volmit:iris-api')
     implementation('com.volmit:iris-host')
 
+    // The built-in modules (IrisModule, a build of its own against the Iris API). Core and the adapters still name their
+    // classes; the ones in the built-ins jar are left out of the plugin and load from the jar it bundles.
+    api('art.arcane:iris-module')
+
     // Provided or Classpath
     compileOnly(libs.lombok)
     annotationProcessor(libs.lombok)
@@ -128,7 +132,7 @@ tasks.named('test').configure {
     systemProperty('iris.irisToolbeltSource', file('src/main/java/art/arcane/iris/core/tools/IrisToolbelt.java').absolutePath)
     systemProperty('iris.irisCreatorSource', file('src/main/java/art/arcane/iris/core/tools/IrisCreator.java').absolutePath)
     systemProperty('iris.bukkitChunkGeneratorSource', file('src/main/java/art/arcane/iris/engine/platform/BukkitChunkGenerator.java').absolutePath)
-    systemProperty('iris.builtinModulesList', rootProject.file('../IrisModule/builtin-modules.txt').absolutePath)
+    systemProperty('iris.defaultModuleSources', rootProject.file('../IrisModule/src/main/java').absolutePath)
 }
 
 java {
@@ -313,41 +317,24 @@ List<String> dependencyBuildMetadata = [
     'META-INF/versions/*/OSGI-INF/**'
 ]
 
-// The built-in modules as a pack module jar, iris-builtins.jar, packaged from these compiled classes so it always fits this
-// build of Iris, checked as a pack load would check it, and bundled into the plugin (IrisModuleHost loads it with every pack).
-// What goes in is listed in IrisModule/builtin-modules.txt: "module <class>" (an entry point) or "include <ant pattern>".
+// The built-in modules as a pack module jar, iris-builtins.jar, which IrisModule builds from its classes and checks as a pack
+// load would. Iris bundles it into the plugin (IrisModuleHost loads it with every pack) after checking it once more against
+// what its own Bukkit jar leaves out of VolmLib, which only Iris knows.
 String builtinModulesJarName = 'iris-builtins.jar'
-String builtinModuleEntryFile = 'com.volmit.IrisModule'
-File builtinModulesFile = rootProject.file('../IrisModule/builtin-modules.txt')
 // The packages pack modules may use besides the IrisApi; IrisModuleHost.EXPOSED_PACKAGES lists the same.
 List<String> builtinExposedPackages = ['art.arcane.iris.builtin', 'art.arcane.volmlib', 'com.google.gson']
-List<String> builtinModuleClasses = []
-List<String> builtinClassPatterns = []
-builtinModulesFile.readLines()
-    .collect { String line -> line.contains('#') ? line.substring(0, line.indexOf('#')).trim() : line.trim() }
-    .findAll { String line -> !line.isEmpty() }
-    .each { String line ->
-        List<String> parts = line.split(/\s+/, 2) as List<String>
-        if (parts.size() < 2 || parts[1].isBlank()) {
-            throw new GradleException("${builtinModulesFile.name}: '${line}' needs a value after '${parts[0]}'")
-        }
-        if (parts[0] == 'module') {
-            builtinModuleClasses.add(parts[1].trim())
-        } else if (parts[0] == 'include') {
-            builtinClassPatterns.add(parts[1].trim())
-        } else {
-            throw new GradleException("${builtinModulesFile.name}: unknown line '${line}'; start it with 'module' or 'include'")
-        }
-    }
-List<String> builtinPackagedPatterns = builtinModuleClasses.collectMany { String moduleClass ->
-    String path = moduleClass.replace('.', '/')
-    [path + '.class', path + '$*.class']
-} + builtinClassPatterns
-Provider<Directory> builtinModulesBuild = layout.buildDirectory.dir('builtin-modules')
+Provider<RegularFile> bundledBuiltinModulesJar = layout.buildDirectory.file("builtin-modules/${builtinModulesJarName}")
 
 configurations {
-    // What the jar check sees besides Iris's classes: the IrisApi (its host side included, as in the plugin, where the
-    // check finds it hidden) and the libraries Iris shares with pack modules.
+    builtinModules {
+        canBeConsumed = false
+        transitive = false
+        attributes {
+            attribute(Usage.USAGE_ATTRIBUTE, objects.named(Usage, Usage.JAVA_RUNTIME))
+        }
+    }
+    // What the check sees besides the jar: the IrisApi (its host side included, as in the plugin, where the check finds it
+    // hidden), the libraries Iris shares with pack modules, and the module classes that are not in the jar.
     builtinModulesCheckClasspath {
         canBeConsumed = false
         transitive = false
@@ -358,77 +345,71 @@ configurations {
 }
 
 dependencies {
+    builtinModules('art.arcane:iris-module') {
+        capabilities {
+            requireCapability('art.arcane:iris-builtins')
+        }
+    }
     builtinModulesCheckClasspath('com.volmit:iris-api')
     builtinModulesCheckClasspath('com.volmit:iris-host')
+    builtinModulesCheckClasspath('art.arcane:iris-module')
     builtinModulesCheckClasspath(volmLibCoordinate)
     builtinModulesCheckClasspath(libs.gson)
 }
 
-def writeBuiltinModuleEntries = tasks.register('writeBuiltinModuleEntries') {
-    description = "Writes the built-ins jar's META-INF/services/${builtinModuleEntryFile}, one module class per line."
-    Provider<RegularFile> entries = builtinModulesBuild.map { it.file("services/${builtinModuleEntryFile}") }
-    inputs.file(builtinModulesFile)
-    outputs.file(entries)
-    doLast {
-        File entriesFile = entries.get().asFile
-        entriesFile.parentFile.mkdirs()
-        entriesFile.text = builtinModuleClasses.join('\n') + '\n'
-    }
-}
-
-def packageBuiltinModules = tasks.register('packageBuiltinModules', Jar) {
-    description = 'Packages the listed built-in modules and classes before they are checked.'
-    archiveFileName.set(builtinModulesJarName)
-    destinationDirectory.set(builtinModulesBuild.map { it.dir('unchecked') })
-    inputs.file(builtinModulesFile)
-    from(sourceSets.main.java.classesDirectory) {
-        include(builtinPackagedPatterns)
-    }
-    from(writeBuiltinModuleEntries) {
-        into('META-INF/services')
-    }
-}
-
 def builtinModulesJar = tasks.register('builtinModulesJar', JavaExec) {
     group = 'build'
-    description = "Builds build/builtin-modules/${builtinModulesJarName}, the built-in modules as a pack module jar, checked with" +
-        " IrisApi's pack class and reference checks as a pack load would."
-    dependsOn(packageBuiltinModules)
-    Provider<RegularFile> unchecked = packageBuiltinModules.flatMap { it.archiveFile }
-    Provider<RegularFile> checked = builtinModulesBuild.map { it.file(builtinModulesJarName) }
-    classpath = configurations.builtinModulesCheckClasspath + files(sourceSets.main.java.classesDirectory)
+    description = "Checks IrisModule's ${builtinModulesJarName} against the VolmLib classes the Bukkit jar leaves out and writes" +
+        " it to build/builtin-modules for bundling."
+    FileCollection built = configurations.builtinModules
+    classpath = configurations.builtinModulesCheckClasspath
     mainClass.set('com.volmit.host.ModuleJarCheck')
-    inputs.file(unchecked)
+    inputs.files(built)
     inputs.file(volmLibLeftOutFile)
-    outputs.file(checked)
+    outputs.file(bundledBuiltinModulesJar)
     argumentProviders.add({
-        [unchecked.get().asFile.absolutePath, "--left-out=${volmLibLeftOutFile.absolutePath}".toString()] + builtinExposedPackages
+        [built.singleFile.absolutePath, "--left-out=${volmLibLeftOutFile.absolutePath}".toString()] + builtinExposedPackages
     } as CommandLineArgumentProvider)
     ignoreExitValue = true
     ByteArrayOutputStream problems = new ByteArrayOutputStream()
     errorOutput = problems
     doFirst {
         // A jar from an earlier run that passed must not survive a run that fails.
-        checked.get().asFile.delete()
+        bundledBuiltinModulesJar.get().asFile.delete()
     }
     doLast {
         if (executionResult.get().exitValue != 0) {
-            throw new GradleException("The built-in modules jar breaks the rules of a pack module jar:\n" + problems.toString().trim() +
-                "\nFix the classes listed in ${builtinModulesFile.name}, or move what they use into the jar or into art.arcane.iris.builtin.")
+            throw new GradleException("The built-in modules jar uses what the Bukkit jar leaves out:\n" + problems.toString().trim() +
+                "\nUse another VolmLib class in IrisModule, or ship this one (core/${volmLibLeftOutFile.name}).")
         }
-        java.nio.file.Files.copy(unchecked.get().asFile.toPath(), checked.get().asFile.toPath())
+        java.nio.file.Files.copy(built.singleFile.toPath(), bundledBuiltinModulesJar.get().asFile.toPath())
     }
 }
 
-// The jar's classes load from the bundled jar only, in each pack's class loader, so the plugin's own classes leave them out.
+// The class entries of the bundled jar. Those classes load from it only, in each pack's class loader, so the plugin leaves
+// the module artifact's copies out.
+Set<String> builtinJarClassEntries = null
+Closure<Boolean> inBuiltinModulesJar = { FileTreeElement element ->
+    if (builtinJarClassEntries == null) {
+        builtinJarClassEntries = new java.util.zip.ZipFile(bundledBuiltinModulesJar.get().asFile).withCloseable { java.util.zip.ZipFile jar ->
+            jar.entries().toList().collect { it.name }.findAll { it.endsWith('.class') }.toSet()
+        }
+    }
+    builtinJarClassEntries.contains(element.relativePath.pathString)
+}
+
+tasks.named('test').configure {
+    inputs.files(builtinModulesJar)
+    systemProperty('iris.builtinModulesJar', bundledBuiltinModulesJar.get().asFile.absolutePath)
+}
+
 tasks.named('jar', Jar).configure {
-    exclude(builtinPackagedPatterns)
     from(builtinModulesJar)
 }
 
 tasks.named('shadowJar', com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar).configure {
     dependsOn(embeddedAgentJar)
-    exclude(builtinPackagedPatterns)
+    exclude(inBuiltinModulesJar)
     from(builtinModulesJar)
     mergeServiceFiles()
     // minimize() stays off. Caffeine reaches its 520 generated cache and node classes through
@@ -463,32 +444,26 @@ sourceSets {
     }
 }
 
-apply from: rootProject.file('gradle/default-module.gradle')
-
 tasks.register('bukkitPurityRatchet') {
     group = 'verification'
-    description = 'Checks host and default module Bukkit imports against the existing purity ceiling.'
+    description = 'Checks host Bukkit imports against the existing purity ceiling.'
     File allowlistFile = project.file('purity-allowlist.txt')
     File sourceRoot = project.file('src/main/java')
-    File defaultModuleSourceRoot = rootProject.file('../IrisModule/src/main/java')
     inputs.file(allowlistFile)
     inputs.dir(sourceRoot)
-    inputs.dir(defaultModuleSourceRoot)
     doLast {
         Set<String> allowed = allowlistFile.readLines().findAll { String line -> !line.isBlank() }.toSet()
         List<String> offenders = new ArrayList<>()
         List<String> coupled = new ArrayList<>()
-        [sourceRoot, defaultModuleSourceRoot].each { File root ->
-            root.eachFileRecurse { File f ->
-                if (!f.name.endsWith('.java')) {
-                    return
-                }
-                if (f.text.contains('org.bukkit')) {
-                    String rel = root.toPath().relativize(f.toPath()).toString()
-                    coupled.add(rel)
-                    if (!allowed.contains(rel)) {
-                        offenders.add(rootProject.projectDir.toPath().relativize(f.toPath()).toString())
-                    }
+        sourceRoot.eachFileRecurse { File f ->
+            if (!f.name.endsWith('.java')) {
+                return
+            }
+            if (f.text.contains('org.bukkit')) {
+                String rel = sourceRoot.toPath().relativize(f.toPath()).toString()
+                coupled.add(rel)
+                if (!allowed.contains(rel)) {
+                    offenders.add(rootProject.projectDir.toPath().relativize(f.toPath()).toString())
                 }
             }
         }

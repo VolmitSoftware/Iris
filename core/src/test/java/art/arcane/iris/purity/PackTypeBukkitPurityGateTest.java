@@ -509,11 +509,24 @@ public class PackTypeBukkitPurityGateTest {
         return snippets;
     }
 
+    /** The pack types live in two class roots: the built-in modules' (IrisModule) and Iris core's own layout model. */
     private static List<String> classNamesUnder(String packageInternalName) throws Exception {
-        assertNotNull("no code source for " + Snippet.class.getName() + " - cannot enumerate pack types",
-                Snippet.class.getProtectionDomain().getCodeSource());
-        URL location = Snippet.class.getProtectionDomain().getCodeSource().getLocation();
-        Path root = Paths.get(location.toURI());
+        Set<Path> roots = new LinkedHashSet<>(List.of(codeSourceRoot(Snippet.class), codeSourceRoot(IrisBiome.class)));
+        List<String> names = new ArrayList<>();
+        for (Path root : roots) {
+            names.addAll(classNamesUnder(root, packageInternalName));
+        }
+        return names;
+    }
+
+    private static Path codeSourceRoot(Class<?> type) throws Exception {
+        assertNotNull("no code source for " + type.getName() + " - cannot enumerate pack types",
+                type.getProtectionDomain().getCodeSource());
+        URL location = type.getProtectionDomain().getCodeSource().getLocation();
+        return Paths.get(location.toURI());
+    }
+
+    private static List<String> classNamesUnder(Path root, String packageInternalName) throws Exception {
         List<String> names = new ArrayList<>();
 
         if (Files.isDirectory(root)) {

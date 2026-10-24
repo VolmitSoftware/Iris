@@ -52,6 +52,14 @@ the JSON fields the host uses itself, host type packages and reserved folders. E
 configured, and all names are checked when it is built. `LoadedPack` runs `PackModules.load` (below), then
 `LoadedModules.load` on the built-ins followed by the pack's modules. If the second step fails it
 closes the first before rethrowing, so a failed load leaves no class loader or jar copy behind.
+
+Every load error is one unchecked type, `ModuleLoadException`, with `moduleId()` and `origin()` when the error is
+one module's or one jar's. Jar errors throw it directly with the jar. Anything a module's `setup` throws, the
+registry's and stage graph's checks included, is wrapped with that module's id and jar, the message unchanged; errors
+after setup (catalog, studio description, resolution) are wrapped without a module unless the check knows the stage's
+module. So hosts catch `ModuleLoadException` instead of `RuntimeException`, and a bug in the host itself still
+surfaces as what it is. `ModuleHost`'s own argument checks stay `IllegalArgumentException`: they are the host's
+configuration, not a pack's.
 `close()` closes the pack's class loader, then deletes its jar copies.
 
 A jar names its entry classes, one per line, in `META-INF/services/com.volmit.IrisModule`, the
@@ -136,7 +144,19 @@ Iris provides it at runtime; in production it is shaded into the Iris plugin jar
 holds Iris internals and the libraries Iris bundles, so it is not the pack loader's parent.
 `ExposedHostClassLoader` is: it delegates every class in an exposed package, and its subpackages,
 to the host's loader (the loader that defines the API) and everything else to the platform class
-loader, which holds the JDK. The api/host split is deferred, so `com.volmit.host` is visible too.
+loader, which holds the JDK.
+
+The host side, `com.volmit.host` (with `com.volmit.host.schema`), is never exposed, although it lies inside the
+API's root package. It is its own Gradle subproject and artifact (`host`, `com.volmit:iris-host`) next to the API
+(`api`, `com.volmit:iris-api`); Iris depends on both and shades both. `ExposedPackages` carves the host package out
+of every exposed package (`com.volmit` and anything the host passes), and the host may not expose it explicitly. A
+pack class that references a host class is therefore a hidden host class and fails the load, and a jar that ships a
+class anywhere under `com.volmit`, the host side included, fails as shipping API classes.
+
+*Why keep the name `com.volmit.host`.* The finding allowed a new root such as `com.volmit.hosting`, but any name
+under `com.volmit` would be exposed as well, and a root outside it (`com.volmithost`) reads like a different
+vendor. The exposure check can exclude one package exactly, so the carve-out is a single rule in one class, and no
+import in Iris or the tests changes.
 
 The platform loader provides the JDK modules defined to it and to the boot loader: `java.base`,
 `java.sql`, `java.net.http`, `java.compiler` and the other standard modules. JDK modules defined to
@@ -424,6 +444,13 @@ return null, since no later stage reads its output; a null output without a reje
 attempt. Stages receive a buffered
 `PlacementAccess` view of the edit without commit or close, and it expires with the attempt.
 
+`PlacementAccess.set(x, y, z, state)` is the per-block write: a placement writes thousands of blocks, and the record
+form (`set(PlacedBlock)`, for a block entity) costs a position, a record and an `Optional` per block. The edit
+implements both, so a host buffers a plain block as it likes (Iris keeps states and block entities in separate maps,
+so a plain block costs only its position key; an index into the placement area does not work, because a placement's
+area may be unbounded). The access view, its mantle view and that mantle's layer views are made once per attempt, as
+the chunk runner's mantle view is once per chunk invocation; asking again returns the same object.
+
 ## Random streams
 
 Every stage has its own random stream per invocation, `StageContext.random()`. There is no shared
@@ -690,7 +717,8 @@ core engine is modules as well. The host's own JSON fields are not in it; no key
   inlined copy, so a class used in many places is described once, and a class that contains itself,
   directly or through others, ends the walk at its own name. Two different classes with one name fail
   the load; only a built-in class and a pack class can collide that way.
-- Modules may also register a class that Iris's own classes hold (`registerHeldType`, `FeatureCatalog.heldTypes()`):
+- Modules may also register a class that Iris's own classes hold (`registerHeldType`, `FeatureCatalog.heldTypes()`;
+  deprecated for removal, transitional until the cut-over):
   it is described like any settings class reachable from a feature, but no `FeatureSchema` names it. This is for
   settings that live in a host class until their feature owns them, such as the clamp of an object placement. The class
   must be loaded by the host: a built-in module's, or one of a package the host exposes (the built-ins jar's modules
@@ -722,7 +750,8 @@ core engine is modules as well. The host's own JSON fields are not in it; no key
 
 Host types are classes the host describes in studio itself, such as Iris's palettes and noise styles,
 which built-in settings keep while their features move into modules. The host names their packages with
-`ModuleHost.describingHostTypesIn(...)`; the builder neither reads their fields nor describes them, and
+`ModuleHost.describingHostTypesIn(...)` (deprecated for removal with `HostKind`: transitional, until the cut-over, so
+it does not become permanent); the builder neither reads their fields nor describes them, and
 the host renders its own description where a `HostKind` appears. Pack modules' settings cannot use them:
 pack modules never see host classes anyway, and a host type in their settings fails the load. Without
 this, built-in settings would have to replace every Iris type with a describable copy before any feature

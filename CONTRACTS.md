@@ -67,8 +67,8 @@ Packs write settings under the short key the feature declares, as the settings o
 one option its `root` names; there is no second form. A key is unique per target across modules and the host's own
 JSON fields. The description is in a fixed order and holds module entries only.
 
-Modules compile against the API `compileOnly` and never ship it. At runtime they can use the API
-(`com.volmit.*`), the host packages the host chooses to expose, the JDK and the classes in their
+Modules compile against the API (`com.volmit:iris-api`) `compileOnly` and never ship it. At runtime they can use the
+API (`com.volmit.*` except the host side `com.volmit.host`, artifact `com.volmit:iris-host`), the host packages the host chooses to expose, the JDK and the classes in their
 own pack's jars. A host may expose libraries it shares with modules (Iris exposes VolmLib and Gson); any other
 library a module ships in the pack, never borrowing the host's copy. JDK modules
 outside the platform class loader, such as `jdk.compiler`, are not available, and neither are JDK
@@ -107,7 +107,8 @@ running Iris is the pack publisher's responsibility.
   `ConfiguredSettings.placement(...)`; the chunk and mantle runners collect a chunk's settings
   themselves.
 - Name the packages of the classes Iris describes itself with `ModuleHost.describingHostTypesIn(...)`,
-  decode them as Iris does, and render each `HostKind` with Iris's own description of the class.
+  decode them as Iris does, and render each `HostKind` with Iris's own description of the class. These, and
+  `registerHeldType`, are deprecated for removal: transitional, until the cut-over.
 - Back each module's log with the host's own: `ModuleHost.loggingTo(logger)` where `logger` writes `DEBUG` only when the
   host's debug setting is on and writes an `ERROR` with a cause as the host reports its own failures. Implement
   `PackWorld.log()` (the host's own log) and hand services a world scoped to the provider's module
@@ -159,7 +160,12 @@ running Iris is the pack publisher's responsibility.
 - Build one `ModuleHost` at startup with the built-in modules, exposed packages, reserved JSON
   fields. Its methods accumulate, so the configuration can be
   built in steps. Load each pack with `LoadedPack.load(packRoot, host)`
-  and close it only after nothing built from it is in use.
+  and close it only after nothing built from it is in use. Catch `ModuleLoadException`, the one type of every load
+  error, not `RuntimeException`.
+- Depend on both `com.volmit:iris-api` and `com.volmit:iris-host` and ship both; expose neither the host side nor
+  anything below it to packs (the loader refuses to).
+- Implement both `PlacementEdit.set` overloads; buffer a plain block (`set(x, y, z, state)`) without building a
+  `PlacedBlock` for it.
 - Pass a `System.Logger` that writes to the server log to `ModuleHost.loggingTo(...)`, so the
   per-pack module summary and missing-classes warning are visible, and a cache directory of the host
   to `ModuleHost.copyingJarsTo(...)` for the jar copies.

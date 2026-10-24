@@ -8,6 +8,17 @@ in the public contracts. Nothing here is stable yet.
 what the Iris host adapter still has to provide. Existing Iris features are not ported or wired
 into this project; the test sources contain example ports only.
 
+The build has two subprojects, one artifact each:
+
+| Subproject | Artifact | Packages | Who uses it |
+| --- | --- | --- | --- |
+| `api` | `com.volmit:iris-api` | `com.volmit` and its subpackages, except `com.volmit.host` | modules, `compileOnly`; the host |
+| `host` | `com.volmit:iris-host` | `com.volmit.host` and `com.volmit.host.schema` (depends on `iris-api`) | the host only |
+
+Pack jars never see the host side, though it lies inside `com.volmit`: the pack loader leaves it out, and a module
+that references a class of it fails the load. Tests that need both (the loader, the runners, the example ports) live
+in `host`; `api` tests the value types and `WorldRandom` alone.
+
 ## Modules own their stages
 
 There are no host-defined hooks or phases. A module declares stages as constants and defines
@@ -107,8 +118,9 @@ it treats as its origin. In a placement `ctx.configured(type)` gives the placeme
 placement declares each settings type once. An entry is found under the class whose `@Feature` declares
 it, so a value of a subclass counts as its annotated superclass.
 
-A feature whose settings class has exactly one option may be written as that option's value, such as
-`"snow": 0.5` for `"snow": {"amount": 0.5}` or a bare list for a class holding one list.
+Each feature has one JSON shape: the object of its settings class's options, or, when `@Feature` declares
+`root`, exactly the value of that one option (see "Settings for studio"). There is no shorthand that accepts
+either form.
 
 ## Coordinates
 
@@ -422,8 +434,9 @@ of its classes, passes the stripped ones too (`check(jar, exposedHostPackages, l
 `--left-out=<file>` on the command line; one Ant pattern or class per line): a jar that references one
 fails, naming the class.
 
-A module compiles against the Iris API as `compileOnly` (Maven: `provided`) and never ships it;
-Iris provides the API at runtime. At runtime a module can use the Iris API (`com.volmit.*`), the
+A module compiles against the Iris API (`com.volmit:iris-api`) as `compileOnly` (Maven: `provided`) and never ships it;
+Iris provides the API at runtime. At runtime a module can use the Iris API (`com.volmit.*` except the host side,
+`com.volmit.host`), the
 packages the host exposes besides it (the built-in modules' stages and types, so packs can require
 their stages, and the libraries the host shares: Iris exposes VolmLib, `art.arcane.volmlib`, and Gson,
 `com.google.gson`), the JDK and the classes in its pack's module jars. Iris internals and the other
@@ -530,7 +543,7 @@ public final class FloraSettings implements IrisFeature {
   it reaches and ignores blank keys and keys naming no biome.
 - Built-in settings may hold classes the host describes itself, such as Iris's palettes, which the host
   names with `ModuleHost.describingHostTypesIn(...)`. They appear as `HostKind` and pack modules cannot
-  use them.
+  use them. Both are deprecated for removal: transitional, until the cut-over.
 - Settings named in `when(...)` and object generator settings are described automatically. Settings
   that no stage names, such as ones read only through `FeatureSettings.at(...)`, are registered with
   `setup.registry().registerSettings(WindSettings.class, GustSettings.class)` in `setup`. Their feature id follows the module
@@ -538,6 +551,8 @@ public final class FloraSettings implements IrisFeature {
 - A class of a built-in module that Iris's own classes hold, such as the clamp field of an object placement, is
   registered with `registry.registerHeldType(Clamp.class)`, so studio describes it from the class (as an
   `ObjectType`, with no feature). Only built-in modules may; a pack module's class can never be a field of an Iris class.
+  `registerHeldType` (with `HeldTypeRegistration` and `FeatureCatalog.heldTypes()`) is deprecated for removal:
+  transitional, until the cut-over.
 
 A load error names the field, the settings and the module:
 
@@ -717,7 +732,8 @@ once, here), the host packages pack modules may use, the JSON fields it uses its
 packages of the classes it describes itself and the pack folders it reads itself. Each method adds to what earlier calls configured. Package names,
 reserved fields and reserved folders are checked when it is built. `LoadedPack.load`
 loads the pack's jars, sets them up after the built-ins, catalogs settings and registrations,
-describes them for studio and resolves the three pipelines. It returns a complete pack or throws with nothing left open. `close()`
+describes them for studio and resolves the three pipelines. It returns a complete pack or throws a
+`ModuleLoadException` with nothing left open. `close()`
 releases the pack's class loader and its jar copies. `PackModules` and `LoadedModules`, which it
 uses, stay available for tests and special cases.
 
@@ -737,7 +753,8 @@ Pack modules see the API plus the packages given to `ModuleHost.exposing(...)`, 
 subpackages. The host chooses those packages, such as the ones that hold built-in modules' stage
 constants. The load (`PackModules`, under `LoadedPack`) reads the entry points of each jar, in jar file
 name order and in the order each jar lists them, and loads every jar of the pack through one class loader. A pack without a `modules`
-directory has no modules. Errors name the
+directory has no modules. Every load error is a `ModuleLoadException` (unchecked), the one type a host catches;
+`moduleId()` and `origin()` name the module and jar at fault when the error is one module's or one jar's. Errors name the
 jar: no entry point, a class of an exposed package in the jar, a class that is
 also in another jar of the pack (both jars are named), a class that uses a class Iris has but hides,
 a class of a JDK module modules cannot see, a class of a JDK package not exported to modules, a
@@ -879,7 +896,11 @@ Optional<Clock> clock = pack.catalog().service(Clock.class);            // a Pro
   `PackResources.noise()` builds noise samplers from `NoiseStyle`s.
 - `GeneratedObject` is sparse, immutable local geometry. `PlacementRequest` aligns its anchor
   with a world position using checked arithmetic.
-- `Hunk<T>` is a dense local volume; `ArrayHunk<T>` is the bounds-checked reference.
+- `Hunk<T>` is a dense local volume (`width()`, `height()`, `depth()`); `ArrayHunk<T>` is the bounds-checked reference.
+- A placement stage writes a plain block with `access.set(x, y, z, state)`, without a position, record or `Optional`;
+  a block with a block entity goes through `access.set(PlacedBlock)`. `BlockState.withProperty` copies the properties once.
+- Invocation views (`ctx.mantle()`, its layers and blocks, a placement's `access().mantle()`) are made once per
+  invocation, so asking again returns the same view.
 - The `mantle` package keeps namespaced typed layers, codecs, lifetimes and buffered edits.
 - `IrisFeature`, `@Feature`, the config annotations (`@Desc`, `@Required`, `@MinNumber`,
   `@MaxNumber`, `@MinItems`, `@Snippet`, `@Ref`) describe settings; the host reads them with `OptionsMetadata`
@@ -905,7 +926,7 @@ requirements, chunk stages that declare reach or mantle writes (`StageGraphTest`
 that draws leaves the other stages' draws unchanged, block stages draw one stream across their pass,
 and the derivation is pinned to values computed from its specification (`StageStreamsTest`).
 `WorldRandomTest` pins every `WorldRandom` method, bounds and edge cases to values computed by an
-independent Python reference (`python3 -B src/test/reference/world_random.py`; the build does not
+independent Python reference (`python3 -B api/src/test/reference/world_random.py`; the build does not
 need Python) and fails if the type gains an unpinned method or implements `RandomGenerator`.
 `PackSchemaTest` loads module jars and checks their description: features under their targets by key, a root option,
 options in declaration order,
@@ -947,8 +968,9 @@ which JDK packages they may not use. `PackModulesAddExportsTest` runs in its own
 `addExportsTest` task that `check` runs, started with
 `--add-exports java.base/jdk.internal.misc=ALL-UNNAMED`; it checks that the exported package then
 loads and that other internal packages are still reported. `PackModulesSummaryTest` and `MissingClassesWarningTest` check the log texts. The example
-ports in `src/test/java/com/volmit/example` rebuild preparation, anchoring, block writes, stilt and
+ports in `host/src/test/java/com/volmit/example` rebuild preparation, anchoring, block writes, stilt and
 snow as separate modules, add a third-party moss module, and add a two-module chunk pipeline whose
 `ChunkPipelineTest` checks any-column activation, per-column reads, stacked levels, a mantle stage
-whose reach follows the pack's longest vein writing into the next chunk that a chunk stage then reads, and that a chunk stage writes the mantle of its own chunk only. There
-is no Minecraft integration or production storage in these tests.
+whose reach follows the pack's longest vein writing into the next chunk that a chunk stage then reads, that a chunk stage writes the mantle of its own chunk only, and that
+one invocation makes its mantle views once (`StageGraphTest` checks the same for a placement). `ExposedPackagesTest`
+also checks that the host side is never exposed. There is no Minecraft integration or production storage in these tests.

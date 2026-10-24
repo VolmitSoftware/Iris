@@ -24,7 +24,7 @@ import com.volmit.config.Desc;
 import com.volmit.config.Feature;
 import com.volmit.config.LinkedBiomes;
 import com.volmit.config.Ref;
-import com.volmit.config.Reference;
+import com.volmit.world.PackBiome;
 import com.volmit.resource.PackResources;
 import com.volmit.resource.ResourceId;
 
@@ -34,7 +34,7 @@ import java.util.Set;
 @Desc("Registers the referenced biome with this pack's reachable biome set. It is NOT applied as a substitute under carvings; cave biomes come from the region's caveBiomes list.")
 @Feature(id = "iris:carve/biome", name = "Carving biome", key = "carvingBiome", root = "biome", targets = Level.BIOME)
 public final class CarvingBiomeSettings implements IrisFeature, LinkedBiomes {
-    @Ref(Reference.PACK_BIOME)
+    @Ref(kind = PackBiome.class)
     @Desc("Registers the referenced biome with this pack's reachable biome set. It is NOT applied as a substitute under carvings; cave biomes come from the region's caveBiomes list.")
     private String biome = "";
 

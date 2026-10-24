@@ -25,6 +25,7 @@ import com.volmit.ModuleLog;
 import com.volmit.block.BlockSpec;
 import com.volmit.block.BlockState;
 import com.volmit.resource.PackResources;
+import com.volmit.resource.ResourceId;
 import com.volmit.service.Loot;
 
 import java.util.ArrayList;
@@ -94,7 +95,7 @@ final class PlacementLoot {
         if (key == null || !platformTables.get().contains(key)) {
             return null;
         }
-        return new Loot.PlatformTable(key, LootTables.seed(lootSeed, LootTables.platformIdentity(key), x, worldY, z));
+        return new Loot.PlatformTable(ResourceId.parse(key), LootTables.seed(lootSeed, LootTables.platformIdentity(key), x, worldY, z));
     }
 
     /** A placement's name for a platform table as the platform's key for it, or null for a name that cannot be one. */

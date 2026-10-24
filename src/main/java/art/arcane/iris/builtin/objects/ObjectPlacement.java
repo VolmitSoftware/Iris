@@ -45,11 +45,11 @@ import com.volmit.config.MaxNumber;
 import com.volmit.config.MinItems;
 import com.volmit.config.MinNumber;
 import com.volmit.config.Ref;
-import com.volmit.config.Reference;
 import com.volmit.config.Required;
 import com.volmit.config.Snippet;
 import com.volmit.noise.NoiseStyle;
 import com.volmit.noise.StyledRange;
+import com.volmit.object.GeneratedObject;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -71,7 +71,7 @@ public final class ObjectPlacement implements PlacementSource {
 
     @Required
     @MinItems(1)
-    @Ref(Reference.PACK_OBJECT)
+    @Ref(kind = GeneratedObject.class)
     @Desc("List of objects to place")
     private List<String> place = List.of();
     @Desc("Rotate this objects placement")
@@ -168,11 +168,11 @@ public final class ObjectPlacement implements PlacementSource {
     @Desc("This object / these objects override the following trees when they grow...")
     private List<TreeOverride> trees = List.of();
     @MinItems(1)
-    @Ref(Reference.PACK_OBJECT)
+    @Ref(kind = GeneratedObject.class)
     @Desc("List of objects to this object is allowed to collied with")
     private List<String> allowedCollisions = List.of();
     @MinItems(1)
-    @Ref(Reference.PACK_OBJECT)
+    @Ref(kind = GeneratedObject.class)
     @Desc("List of objects to this object is forbidden to collied with")
     private List<String> forbiddenCollisions = List.of();
     @Desc("Ignore any placement restrictions for this object")

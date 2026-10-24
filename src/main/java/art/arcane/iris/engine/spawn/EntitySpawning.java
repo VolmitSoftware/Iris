@@ -91,15 +91,15 @@ public final class EntitySpawning implements EntitySpawns {
         if (entity == null) {
             return Optional.empty();
         }
-        return Optional.of(resolution(world).resolve(entity, entityRandom(world).rng()));
+        return resolution(world).resolve(entity, entityRandom(world).rng());
     }
 
     @Override
-    public Optional<MarkerRule> marker(PackWorld world, String tag) {
-        if (tag.equals(CAVE_FLOOR_MARKER) || tag.equals(CAVE_CEILING_MARKER)) {
+    public Optional<MarkerRule> marker(PackWorld world, ResourceId tag) {
+        if (tag.path().equals(CAVE_FLOOR_MARKER) || tag.path().equals(CAVE_CEILING_MARKER)) {
             return Optional.empty();
         }
-        SpawnMarker marker = SpawnResources.marker(world.resources(), tag);
+        SpawnMarker marker = SpawnResources.marker(world.resources(), tag.path());
         if (marker == null) {
             return Optional.empty();
         }
@@ -187,7 +187,7 @@ public final class EntitySpawning implements EntitySpawns {
     private Optional<Plan> planMarker(PackWorld world, Marker marker) {
         String spawnerKey = marker.spawner().path();
         Spawner spawner = SpawnResources.spawner(world.resources(), spawnerKey);
-        SpawnMarker spawnMarker = SpawnResources.marker(world.resources(), marker.marker());
+        SpawnMarker spawnMarker = SpawnResources.marker(world.resources(), marker.marker().path());
         if (spawner == null) {
             return Optional.empty();
         }
@@ -231,15 +231,15 @@ public final class EntitySpawning implements EntitySpawns {
         }
 
         Range light = candidate.spawner().allowedLightLevels();
-        EntitySpec spec = resolution(world).resolve(entity, entityRandom(world).rng());
-        attempts.add(new Attempt(at, spec, surfaceOf(entity.surface()),
-                (int) Math.ceil(light.min()), (int) Math.floor(light.max()), checkSurface));
+        resolution(world).resolve(entity, entityRandom(world).rng()).ifPresent(spec -> attempts.add(new Attempt(at, spec,
+                surfaceOf(entity.surface()), (int) Math.ceil(light.min()), (int) Math.floor(light.max()), checkSurface)));
     }
 
     private static EntityResolution resolution(PackWorld world) {
         LiveWorld live = world.extension(LiveWorld.class).orElseThrow();
-        LootItems items = new LootItems(world.resources().items(), live.studio());
-        return new EntityResolution(world.resources(), items, live.sky(),world.state(EffectTimers.class, ignored -> new EffectTimers()));
+        LootItems items = new LootItems(world.resources().items(), live.studio(), world.log());
+        return new EntityResolution(world.resources(), items, live.sky(), world.state(EffectTimers.class, ignored -> new EffectTimers()),
+                world.log());
     }
 
     private static EntityRandom entityRandom(PackWorld world) {

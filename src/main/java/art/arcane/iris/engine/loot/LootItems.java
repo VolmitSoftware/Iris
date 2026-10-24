@@ -25,10 +25,13 @@ import art.arcane.iris.builtin.loot.LootSlot;
 import art.arcane.iris.builtin.loot.LootTable;
 import art.arcane.iris.builtin.loot.LootResolver;
 import art.arcane.volmlib.util.math.RNG;
+import com.volmit.ModuleLog;
 import com.volmit.item.ItemAttribute;
 import com.volmit.item.ItemDrop;
 import com.volmit.item.ItemEnchantment;
 import com.volmit.item.ItemRegistry;
+import com.volmit.resource.ContentKey;
+import com.volmit.resource.ResourceId;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -44,17 +47,21 @@ import java.util.OptionalInt;
  * must do with the result is the host's.
  */
 public final class LootItems {
-    private static final String AIR = "air";
-    private static final String MINECRAFT_PREFIX = "minecraft:";
+    private static final ContentKey AIR = new ContentKey.Registered(ResourceId.parse("minecraft:air"));
     private static final int MIN_AMOUNT = 1;
 
     private final ItemRegistry items;
     private final boolean debug;
+    private final ModuleLog log;
 
-    /** @param debug whether the items say where they came from */
-    public LootItems(ItemRegistry items, boolean debug) {
+    /**
+     * @param debug whether the items say where they came from
+     * @param log   hears of keys that name nothing the platform could have
+     */
+    public LootItems(ItemRegistry items, boolean debug, ModuleLog log) {
         this.items = items;
         this.debug = debug;
+        this.log = log;
     }
 
     /**
@@ -92,6 +99,24 @@ public final class LootItems {
         return resolve(entry, rng, null);
     }
 
+    /** The attribute modifiers that pass their chances, with their amounts drawn, as for an item or an entity. */
+    public List<ItemAttribute> attributes(List<ItemAttributeModifier> modifiers, RNG rng) {
+        List<ItemAttribute> attributes = new ArrayList<>();
+        for (ItemAttributeModifier modifier : modifiers) {
+            if (rng.nextDouble() >= modifier.chance()) {
+                continue;
+            }
+            String attribute = modifier.attribute();
+            if (attribute == null || attribute.isBlank()) {
+                continue;
+            }
+            double amount = rng.d(modifier.minAmount(), modifier.maxAmount());
+            PlatformKeys.id(attribute, log).ifPresent(id -> attributes.add(
+                    new ItemAttribute(id, modifier.name(), PlatformKeys.operation(modifier.operation()), amount)));
+        }
+        return attributes;
+    }
+
     private ItemDrop drawEntry(LootEntry entry, LootTable table, String identity, RNG rng, long lootSeed, int index, int x, int y, int z) {
         long combinedRarity = LootResolver.combinedRarity(entry.rarity(), table.rarity());
         if (!LootTables.spatialOneIn(lootSeed, identity, index, x, y, z, combinedRarity)) {
@@ -101,55 +126,44 @@ public final class LootItems {
     }
 
     private ItemDrop resolve(LootEntry entry, RNG rng, LootTable table) {
-        String type = entry.type();
-        OptionalInt maxDurability = items.maxDurability(type);
-        if (maxDurability.isEmpty() || isAir(type)) {
+        Optional<ContentKey> item = PlatformKeys.item(entry.type(), log);
+        if (item.isEmpty() || item.get().equals(AIR)) {
+            return null;
+        }
+        OptionalInt maxDurability = items.maxDurability(item.get());
+        if (maxDurability.isEmpty()) {
             return null;
         }
 
         int amount = Math.max(MIN_AMOUNT, LootResolver.inclusive(rng, entry.minAmount(), entry.maxAmount()));
         List<ItemEnchantment> enchantments = drawEnchantments(entry, rng);
-        List<ItemAttribute> attributes = drawAttributes(entry, rng);
+        List<ItemAttribute> attributes = attributes(entry.attributes(), rng);
         OptionalDouble damage = maxDurability.getAsInt() > 0
                 ? OptionalDouble.of(1D - rng.d(entry.minDurability(), entry.maxDurability()))
                 : OptionalDouble.empty();
-        return new ItemDrop(type, amount, Optional.ofNullable(entry.displayName()), entry.lore(), enchantments, attributes,
-                entry.unbreakable(), entry.itemFlags(), customModelOf(entry), damage, Optional.ofNullable(entry.leatherColor()),
-                Optional.ofNullable(entry.dyeColor()), Objects.requireNonNullElse(entry.customNbt(), Map.of()),
+        return new ItemDrop(item.get(), amount, lookOf(entry), enchantments, attributes, new ItemDrop.Wear(entry.unbreakable(), damage),
+                new ItemDrop.PlatformExtras(entry.itemFlags(), Objects.requireNonNullElse(entry.customNbt(), Map.of())),
                 debug ? Optional.of(sourceOf(entry, table)) : Optional.empty());
     }
 
-    private static OptionalInt customModelOf(LootEntry entry) {
+    private ItemDrop.Look lookOf(LootEntry entry) {
         Integer customModel = entry.customModel();
-        return customModel == null ? OptionalInt.empty() : OptionalInt.of(customModel);
+        return new ItemDrop.Look(Optional.ofNullable(entry.displayName()), entry.lore(),
+                customModel == null ? OptionalInt.empty() : OptionalInt.of(customModel),
+                PlatformKeys.rgb(entry.leatherColor(), log), PlatformKeys.dye(entry.dyeColor(), log));
     }
 
-    private static List<ItemEnchantment> drawEnchantments(LootEntry entry, RNG rng) {
+    private List<ItemEnchantment> drawEnchantments(LootEntry entry, RNG rng) {
         List<ItemEnchantment> enchantments = new ArrayList<>();
         for (LootEnchantment enchantment : entry.enchantments()) {
             String key = enchantment.enchantment();
             if (key == null || key.isBlank() || rng.nextDouble() >= enchantment.chance()) {
                 continue;
             }
-            int level = LootResolver.inclusive(rng, enchantment.minLevel(), enchantment.maxLevel());
-            enchantments.add(new ItemEnchantment(key, Math.max(1, level)));
+            int level = Math.max(1, LootResolver.inclusive(rng, enchantment.minLevel(), enchantment.maxLevel()));
+            PlatformKeys.id(key, log).ifPresent(id -> enchantments.add(new ItemEnchantment(id, level)));
         }
         return enchantments;
-    }
-
-    private static List<ItemAttribute> drawAttributes(LootEntry entry, RNG rng) {
-        List<ItemAttribute> attributes = new ArrayList<>();
-        for (ItemAttributeModifier modifier : entry.attributes()) {
-            if (rng.nextDouble() >= modifier.chance()) {
-                continue;
-            }
-            String attribute = modifier.attribute();
-            if (attribute == null || attribute.isBlank()) {
-                continue;
-            }
-            attributes.add(new ItemAttribute(attribute, modifier.name(), modifier.operation(), rng.d(modifier.minAmount(), modifier.maxAmount())));
-        }
-        return attributes;
     }
 
     private static ItemDrop.Source sourceOf(LootEntry entry, LootTable table) {
@@ -157,10 +171,5 @@ public final class LootItems {
             return new ItemDrop.Source(Optional.empty(), 0, entry.rarity());
         }
         return new ItemDrop.Source(Optional.ofNullable(table.name()), table.rarity(), entry.rarity());
-    }
-
-    private static boolean isAir(String type) {
-        String key = type.startsWith(MINECRAFT_PREFIX) ? type.substring(MINECRAFT_PREFIX.length()) : type;
-        return AIR.equalsIgnoreCase(key);
     }
 }

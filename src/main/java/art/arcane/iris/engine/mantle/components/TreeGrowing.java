@@ -114,10 +114,11 @@ public final class TreeGrowing implements SaplingGrowth {
         return Optional.of(placements.get(RNG.r.i(placements.size())));
     }
 
-    private static List<ObjectPlacement> matching(ObjectSettings settings, String species) {
+    /** The placements whose trees override {@code species}, which packs name by the path of its id, ignoring case. */
+    private static List<ObjectPlacement> matching(ObjectSettings settings, ResourceId species) {
         List<ObjectPlacement> matches = new ArrayList<>();
         for (ObjectPlacement placement : settings.objects()) {
-            if (placement.trees().stream().anyMatch(tree -> tree.matches(SAPLING_WIDTH, SAPLING_DEPTH, species))) {
+            if (placement.trees().stream().anyMatch(tree -> tree.matches(SAPLING_WIDTH, SAPLING_DEPTH, species.path()))) {
                 matches.add(placement);
             }
         }

@@ -54,7 +54,7 @@ public final class BlockDropping implements BlockDrops {
             providers.addAll(dropsFor(live, Level.DIMENSION, x, y, z, brokenKey, resolved, world));
         }
 
-        LootItems items = new LootItems(world.resources().items(), false);
+        LootItems items = new LootItems(world.resources().items(), false, world.log());
         List<ItemDrop> drops = new ArrayList<>();
         providers.forEach(provider -> fillDrops(provider.drop(), items, drops));
         return new Result(drops, providers.stream().anyMatch(provider -> provider.drop().replaceVanillaDrops()));

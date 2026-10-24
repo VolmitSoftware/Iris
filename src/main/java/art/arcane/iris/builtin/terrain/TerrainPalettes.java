@@ -26,6 +26,7 @@ import com.volmit.block.PaletteSpec;
 import com.volmit.config.SettingsStack;
 import com.volmit.noise.NoiseSampler;
 import com.volmit.resource.PackResources;
+import com.volmit.resource.ResourceId;
 import com.volmit.world.PackWorld;
 import com.volmit.world.UpperDimension;
 
@@ -58,7 +59,7 @@ public final class TerrainPalettes {
     private final long complexSeed;
     private final AtomicCache<ColumnBlocks> rock = new AtomicCache<>();
     private final AtomicCache<ColumnBlocks> fluid = new AtomicCache<>();
-    private final Map<String, ColumnBlocks> upperRocks = new ConcurrentHashMap<>();
+    private final Map<ResourceId, ColumnBlocks> upperRocks = new ConcurrentHashMap<>();
 
     TerrainPalettes(PackWorld world) {
         this.world = world;
@@ -88,7 +89,7 @@ public final class TerrainPalettes {
 
     /** The rock at the column of the upper dimension: the world's own when the upper dimension is the dimension itself. */
     public BlockState upperRockAt(UpperDimension upper, double x, double z) {
-        return upperRocks.computeIfAbsent(upper.key(), key -> upperRock(upper, x, z)).at(x, z);
+        return upperRocks.computeIfAbsent(upper.id(), id -> upperRock(upper, x, z)).at(x, z);
     }
 
     private ColumnBlocks rock() {
@@ -110,7 +111,8 @@ public final class TerrainPalettes {
             return rock();
         }
 
-        long seedOffset = upper.key().hashCode();
+        // Iris seeded this from the dimension's key; the id's path is that key for every key an id can hold unchanged.
+        long seedOffset = upper.id().path().hashCode();
         RNG rng = new RNG(complexSeed ^ seedOffset);
         SettingsStack<RockPaletteSettings> declared = upper.settings().at(RockPaletteSettings.class, (int) x, (int) z);
         return columns(rockPalette(declared), rng.nextParallelRNG(ROCK_SIGNATURE), upper.resources());

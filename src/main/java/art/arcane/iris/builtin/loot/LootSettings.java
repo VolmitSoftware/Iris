@@ -24,7 +24,7 @@ import com.volmit.config.Desc;
 import com.volmit.config.Feature;
 import com.volmit.config.MaxNumber;
 import com.volmit.config.MinNumber;
-import com.volmit.config.ResourceRef;
+import com.volmit.config.Ref;
 import com.volmit.config.Snippet;
 
 import java.util.Collections;
@@ -44,7 +44,7 @@ public final class LootSettings implements IrisFeature {
     @Desc("ADD = add on top of parent tables. REPLACE = clear parent tables, then add these. CLEAR = clear parent tables and add nothing, even if tables are listed. FALLBACK = only used when nothing else defined a table.")
     private LootMode mode = LootMode.ADD;
 
-    @ResourceRef(LootTable.class)
+    @Ref(kind = LootTable.class)
     @Desc("Add loot table registries here")
     private List<String> tables = List.of();
 

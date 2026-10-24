@@ -76,7 +76,7 @@ public final class LootGiving implements Loot {
             return List.of();
         }
         int worldY = site.position().y() + world.extension(LiveWorld.class).orElseThrow().bottomY();
-        return new LootItems(world.resources().items(), site.debug())
+        return new LootItems(world.resources().items(), site.debug(), world.log())
                 .draw(tableId.path(), table, lootSeed(world), site.position().x(), worldY, site.position().z());
     }
 

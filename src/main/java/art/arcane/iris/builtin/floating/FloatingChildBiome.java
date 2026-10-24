@@ -27,6 +27,7 @@ import com.volmit.config.MinNumber;
 import com.volmit.config.Ref;
 import com.volmit.config.Reference;
 import com.volmit.config.Snippet;
+import com.volmit.world.PackBiome;
 import com.volmit.noise.NoiseStyle;
 
 import java.util.Collections;
@@ -51,7 +52,7 @@ public final class FloatingChildBiome {
     private static final NoiseStyle DEFAULT_EDGE_TAPER_VARIATION_STYLE = NoiseStyle.of("SIMPLEX").withZoom(0.18D);
     private static final NoiseStyle DEFAULT_FOOTPRINT_STYLE = NoiseStyle.of("SIMPLEX");
 
-    @Ref(Reference.PACK_BIOME)
+    @Ref(kind = PackBiome.class)
     @Desc("The target biome whose visual design (layers, palette, decorators, surface objects, derivative, and — when topShapeMode=BIOME — generator profile) drives the floating island. Leave empty to reuse the parent biome (self).")
     private String biome = "";
 

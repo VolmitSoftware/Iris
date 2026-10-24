@@ -20,7 +20,7 @@ package art.arcane.iris.builtin.spawn;
 
 import com.volmit.config.Desc;
 import com.volmit.config.MinItems;
-import com.volmit.config.ResourceRef;
+import com.volmit.config.Ref;
 
 import java.util.Collections;
 import java.util.List;
@@ -29,7 +29,7 @@ import java.util.List;
 @Desc("Represents a marker")
 public final class SpawnMarker {
     @Desc("A list of spawners to add to anywhere this marker is.")
-    @ResourceRef(Spawner.class)
+    @Ref(kind = Spawner.class)
     @MinItems(1)
     private List<String> spawners = List.of();
 

@@ -21,7 +21,7 @@ package art.arcane.iris.builtin.carve;
 import com.volmit.config.Desc;
 import com.volmit.config.Range;
 import com.volmit.config.Ref;
-import com.volmit.config.Reference;
+import com.volmit.world.PackBiome;
 import com.volmit.config.Snippet;
 import com.volmit.noise.NoiseStyle;
 
@@ -47,7 +47,7 @@ public final class CarvingEntry {
     @Desc("Enable or disable this carving entry")
     private boolean enabled = true;
 
-    @Ref(Reference.PACK_BIOME)
+    @Ref(kind = PackBiome.class)
     @Desc("Cave biome to apply when world Y falls within worldYRange")
     private String biome = "";
 

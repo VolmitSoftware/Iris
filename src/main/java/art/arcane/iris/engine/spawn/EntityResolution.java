@@ -19,17 +19,20 @@
 package art.arcane.iris.engine.spawn;
 
 import art.arcane.iris.builtin.LiveWorld.Sky;
-import art.arcane.iris.builtin.loot.ItemAttributeModifier;
 import art.arcane.iris.builtin.loot.LootEntry;
 import art.arcane.iris.builtin.spawn.AmbientEffect;
 import art.arcane.iris.builtin.spawn.EntityDefinition;
+import art.arcane.iris.builtin.spawn.IrisEntityExtras;
 import art.arcane.iris.builtin.spawn.SpawnCommand;
 import art.arcane.iris.builtin.loot.LootResolver;
 import art.arcane.iris.engine.loot.LootItems;
+import art.arcane.iris.engine.loot.PlatformKeys;
 import art.arcane.volmlib.util.math.RNG;
+import com.volmit.ModuleLog;
 import com.volmit.entity.EntitySpec;
 import com.volmit.item.ItemAttribute;
 import com.volmit.item.ItemDrop;
+import com.volmit.resource.ContentKey;
 import com.volmit.resource.PackResources;
 import com.volmit.resource.ResourceId;
 
@@ -39,7 +42,9 @@ import java.util.Optional;
 
 /**
  * Turns an entity of the pack into the {@link EntitySpec} the host spawns, making every random choice in the order Iris
- * always made them: the passengers, the attribute modifiers, the leash holder and then the six pieces of equipment.
+ * always made them: the passengers, the attribute modifiers, the leash holder and then the six pieces of equipment. An
+ * entity that names no type the host could spawn resolves to nothing, after its random choices, so that the ones after
+ * it stay what they were.
  */
 final class EntityResolution {
     private static final long PASSENGER_STREAM_BASE = 234858L;
@@ -49,39 +54,50 @@ final class EntityResolution {
     private final LootItems items;
     private final Optional<Sky> sky;
     private final EffectTimers timers;
+    private final ModuleLog log;
 
     /**
      * @param resources names the entity's loot tables by id
      * @param sky       the sky of the world the entity appears in, whose time and weather decide which of its commands run; none while the world has no platform world
+     * @param log       hears of keys that name nothing the platform could have
      */
-    EntityResolution(PackResources resources, LootItems items, Optional<Sky> sky, EffectTimers timers) {
+    EntityResolution(PackResources resources, LootItems items, Optional<Sky> sky, EffectTimers timers, ModuleLog log) {
         this.resources = resources;
         this.items = items;
         this.sky = sky;
         this.timers = timers;
+        this.log = log;
     }
 
-    EntitySpec resolve(EntityDefinition entity, RNG rng) {
+    Optional<EntitySpec> resolve(EntityDefinition entity, RNG rng) {
         List<EntitySpec> passengers = new ArrayList<>();
         long passengerIndex = 0;
         for (EntityDefinition passenger : entity.passengers()) {
-            passengers.add(resolve(passenger, rng.nextParallelRNG(PASSENGER_STREAM_BASE + passengerIndex++)));
+            resolve(passenger, rng.nextParallelRNG(PASSENGER_STREAM_BASE + passengerIndex++)).ifPresent(passengers::add);
         }
 
-        List<ItemAttribute> attributes = drawAttributes(entity, rng);
+        List<ItemAttribute> attributes = items.attributes(entity.attributes(), rng);
         List<ResourceId> lootTables = entity.loot().tables().stream().map(resources::idOf).toList();
         long lootShuffleSeed = lootTables.isEmpty() ? 0L : rng.nextLong();
         Optional<EntitySpec> leashHolder = entity.leashHolder() == null
                 ? Optional.empty()
-                : Optional.of(resolve(entity.leashHolder(), rng.nextParallelRNG(LEASH_HOLDER_STREAM)));
+                : resolve(entity.leashHolder(), rng.nextParallelRNG(LEASH_HOLDER_STREAM));
         EntitySpec.Equipment equipment = new EntitySpec.Equipment(
                 equip(entity.helmet(), rng), equip(entity.chestplate(), rng), equip(entity.leggings(), rng),
                 equip(entity.boots(), rng), equip(entity.mainHand(), rng), equip(entity.offHand(), rng));
 
-        return new EntitySpec(textOf(entity.type()), textOf(entity.specialType()), textOf(entity.reason()),
-                textOf(entity.customName()), flagsOf(entity), equipment, passengers, attributes, lootTables, lootShuffleSeed,
-                leashHolder, spawnEffectOf(entity), entity.spawnEffectRiseOutOfGround(), textOf(entity.pandaMainGene()),
-                textOf(entity.pandaHiddenGene()), entity.applySettingsToCustomMobAnyways(), commandsOf(entity));
+        return typeOf(entity).map(type -> new EntitySpec(type, appearanceOf(entity), behaviourOf(entity), equipment, attributes,
+                new EntitySpec.Company(passengers, leashHolder), new EntitySpec.Drops(lootTables, lootShuffleSeed),
+                new EntitySpec.Arrival(spawnEffectOf(entity), commandsOf(entity)), List.of(extrasOf(entity))));
+    }
+
+    /** The provider's mob when the pack names one, otherwise the entity type. */
+    private Optional<ContentKey> typeOf(EntityDefinition entity) {
+        Optional<String> provided = textOf(entity.specialType());
+        if (provided.isPresent()) {
+            return PlatformKeys.provided(provided.get(), log);
+        }
+        return PlatformKeys.id(entity.type(), log).map(ContentKey.Registered::new);
     }
 
     /** A text the pack may leave out or blank, as absent then. */
@@ -89,25 +105,18 @@ final class EntityResolution {
         return text == null || text.isBlank() ? Optional.empty() : Optional.of(text);
     }
 
-    private static EntitySpec.Flags flagsOf(EntityDefinition entity) {
-        return new EntitySpec.Flags(entity.customNameVisible(), entity.aware(), entity.ai(), entity.glowing(),
-                entity.gravity(), entity.invulnerable(), entity.silent(), entity.pickupItems(), entity.removable(),
-                entity.keepEntity(), entity.baby());
+    private static EntitySpec.Appearance appearanceOf(EntityDefinition entity) {
+        return new EntitySpec.Appearance(textOf(entity.customName()), entity.customNameVisible(), entity.glowing(), entity.baby());
     }
 
-    private static List<ItemAttribute> drawAttributes(EntityDefinition entity, RNG rng) {
-        List<ItemAttribute> attributes = new ArrayList<>();
-        for (ItemAttributeModifier modifier : entity.attributes()) {
-            if (rng.nextDouble() >= modifier.chance()) {
-                continue;
-            }
-            String attribute = modifier.attribute();
-            if (attribute == null || attribute.isBlank()) {
-                continue;
-            }
-            attributes.add(new ItemAttribute(attribute, modifier.name(), modifier.operation(), rng.d(modifier.minAmount(), modifier.maxAmount())));
-        }
-        return attributes;
+    private static EntitySpec.Behaviour behaviourOf(EntityDefinition entity) {
+        return new EntitySpec.Behaviour(entity.aware(), entity.ai(), entity.gravity(), entity.invulnerable(), entity.silent(),
+                entity.pickupItems(), entity.removable(), entity.keepEntity());
+    }
+
+    private static IrisEntityExtras extrasOf(EntityDefinition entity) {
+        return new IrisEntityExtras(textOf(entity.reason()), entity.spawnEffectRiseOutOfGround(), textOf(entity.pandaMainGene()),
+                textOf(entity.pandaHiddenGene()), entity.applySettingsToCustomMobAnyways());
     }
 
     private Optional<ItemDrop> equip(LootEntry piece, RNG rng) {
@@ -123,10 +132,16 @@ final class EntityResolution {
         if (effect == null || !timers.shouldPlayNow(effect)) {
             return Optional.empty();
         }
-        return Optional.of(new EntitySpec.SpawnEffect(textOf(effect.sound()), effect.soundDistance(), effect.minPitch(),
-                effect.maxPitch(), effect.volume(), textOf(effect.particleEffect()), effect.particleOffset(),
-                effect.particleCount(), effect.particleAltX(), effect.particleAltY(), effect.particleAltZ(),
-                effect.randomAltX(), effect.randomAltY(), effect.randomAltZ(), effect.extra()));
+        Optional<EntitySpec.SpawnEffect.Sound> sound = PlatformKeys.id(effect.sound(), log).map(key ->
+                new EntitySpec.SpawnEffect.Sound(key, effect.soundDistance(), effect.minPitch(), effect.maxPitch(), effect.volume()));
+        Optional<EntitySpec.SpawnEffect.Burst> particles = PlatformKeys.id(effect.particleEffect(), log).map(key ->
+                new EntitySpec.SpawnEffect.Burst(key, effect.particleOffset(), effect.particleCount(), motionOf(effect), effect.extra()));
+        return Optional.of(new EntitySpec.SpawnEffect(sound, particles));
+    }
+
+    private static EntitySpec.SpawnEffect.Motion motionOf(AmbientEffect effect) {
+        return new EntitySpec.SpawnEffect.Motion(effect.particleAltX(), effect.particleAltY(), effect.particleAltZ(),
+                effect.randomAltX(), effect.randomAltY(), effect.randomAltZ());
     }
 
     private List<EntitySpec.Command> commandsOf(EntityDefinition entity) {

@@ -25,8 +25,11 @@ import art.arcane.iris.builtin.spawn.AmbientEffect;
 import art.arcane.iris.builtin.spawn.EffectCommands;
 import art.arcane.iris.builtin.spawn.EffectSettings;
 import art.arcane.iris.builtin.spawn.SpawnCommand;
+import art.arcane.iris.engine.loot.PlatformKeys;
 import art.arcane.volmlib.util.math.RNG;
+import com.volmit.ModuleLog;
 import com.volmit.entity.EntitySpec;
+import com.volmit.resource.ResourceId;
 import com.volmit.service.AmbientEffects;
 import com.volmit.geometry.BlockPosition;
 import com.volmit.world.PackWorld;
@@ -47,8 +50,8 @@ public final class AmbientEffecting implements AmbientEffects {
         Optional<Sky> sky = live.sky();
 
         List<Effect> due = new ArrayList<>();
-        addDue(due, effectsOf(live, Level.REGION, at), timers, sky);
-        addDue(due, effectsOf(live, Level.BIOME, at), timers, sky);
+        addDue(due, effectsOf(live, Level.REGION, at), timers, sky, world.log());
+        addDue(due, effectsOf(live, Level.BIOME, at), timers, sky, world.log());
         return due;
     }
 
@@ -56,40 +59,36 @@ public final class AmbientEffecting implements AmbientEffects {
         return live.settings(EffectSettings.class, level, at.x(), at.y(), at.z()).map(EffectSettings::effects).orElse(List.of());
     }
 
-    private static void addDue(List<Effect> due, List<AmbientEffect> effects, EffectTimers timers, Optional<Sky> sky) {
+    private static void addDue(List<Effect> due, List<AmbientEffect> effects, EffectTimers timers, Optional<Sky> sky, ModuleLog log) {
         for (AmbientEffect effect : effects) {
             if (timers.shouldPlayNow(effect)) {
-                due.add(play(effect, sky));
+                due.add(play(effect, sky, log));
             }
         }
     }
 
-    private static Effect play(AmbientEffect effect, Optional<Sky> sky) {
-        Optional<Sound> sound = effect.sound() == null ? Optional.empty() : Optional.of(soundOf(effect));
-        Optional<Particles> particles = effect.particleEffect() == null ? Optional.empty() : Optional.of(particlesOf(effect));
-        return new Effect(sound, particles, commandsOf(effect.commandRegistry(), sky), potionOf(effect));
+    private static Effect play(AmbientEffect effect, Optional<Sky> sky, ModuleLog log) {
+        Optional<Sound> sound = PlatformKeys.id(effect.sound(), log).map(key -> soundOf(key, effect));
+        Optional<Particles> particles = PlatformKeys.id(effect.particleEffect(), log).map(key -> particlesOf(key, effect));
+        return new Effect(sound, particles, commandsOf(effect.commandRegistry(), sky), potionOf(effect, log));
     }
 
-    private static Sound soundOf(AmbientEffect effect) {
+    private static Sound soundOf(ResourceId key, AmbientEffect effect) {
         int distance = effect.soundDistance();
         int offsetX = RNG.r.i(-distance, distance);
         int offsetY = RNG.r.i(-distance, distance);
         int offsetZ = RNG.r.i(-distance, distance);
         float pitch = (float) RNG.r.d(effect.minPitch(), effect.maxPitch());
-        return new Sound(effect.sound(), offsetX, offsetY, offsetZ, (float) effect.volume(), pitch);
+        return new Sound(key, offsetX, offsetY, offsetZ, (float) effect.volume(), pitch);
     }
 
-    private static Particles particlesOf(AmbientEffect effect) {
+    private static Particles particlesOf(ResourceId key, AmbientEffect effect) {
         double forward = RNG.r.i(effect.particleDistance()) + effect.particleAway();
         double sideways = RNG.r.d(-effect.particleDistanceWidth(), effect.particleDistanceWidth());
-        double jitterX = RNG.r.d();
-        double jitterZ = RNG.r.d();
-        int lift = RNG.r.i(effect.particleOffset());
-        double altX = randomized(effect.particleAltX(), effect.randomAltX());
-        double altY = randomized(effect.particleAltY(), effect.randomAltY());
-        double altZ = randomized(effect.particleAltZ(), effect.randomAltZ());
-        return new Particles(effect.particleEffect(), forward, sideways, jitterX, jitterZ, lift, effect.particleCount(),
-                altX, altY, altZ, effect.extra());
+        Spot spot = new Spot(forward, sideways, RNG.r.d(), RNG.r.d(), RNG.r.i(effect.particleOffset()));
+        Spread spread = new Spread(randomized(effect.particleAltX(), effect.randomAltX()),
+                randomized(effect.particleAltY(), effect.randomAltY()), randomized(effect.particleAltZ(), effect.randomAltZ()));
+        return new Particles(key, spot, effect.particleCount(), spread, effect.extra());
     }
 
     private static List<Command> commandsOf(EffectCommands registry, Optional<Sky> sky) {
@@ -115,14 +114,15 @@ public final class AmbientEffecting implements AmbientEffects {
         return commands;
     }
 
-    private static Optional<Potion> potionOf(AmbientEffect effect) {
+    private static Optional<Potion> potionOf(AmbientEffect effect, ModuleLog log) {
         if (effect.potionStrength() <= -1) {
             return Optional.empty();
         }
 
         int shortest = Math.min(effect.potionTicksMax(), effect.potionTicksMin());
         int longest = Math.max(effect.potionTicksMax(), effect.potionTicksMin());
-        return Optional.of(new Potion(effect.potionEffect(), effect.potionStrength(), RNG.r.i(shortest, longest)));
+        int ticks = RNG.r.i(shortest, longest);
+        return PlatformKeys.id(effect.potionEffect(), log).map(key -> new Potion(key, effect.potionStrength(), ticks));
     }
 
     private static double commandOffset(double offset, boolean random) {

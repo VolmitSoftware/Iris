@@ -23,7 +23,7 @@ import com.volmit.config.Desc;
 import com.volmit.config.MinItems;
 import com.volmit.config.MinNumber;
 import com.volmit.config.Required;
-import com.volmit.config.ResourceRef;
+import com.volmit.config.Ref;
 import com.volmit.config.Snippet;
 
 import java.util.Collections;
@@ -39,7 +39,7 @@ public final class ObjectLoot implements ObjectLootEntry {
     private boolean exact = false;
     @Desc("The loot table name")
     @Required
-    @ResourceRef(LootTable.class)
+    @Ref(kind = LootTable.class)
     private String name;
     @Desc("The weight of this loot table being chosen")
     @MinNumber(1)

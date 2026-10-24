@@ -1226,7 +1226,9 @@ A module jar sees three things besides the JDK and its own pack's jars, and noth
    blocks), pack resources and module resource kinds, per-world state, lifecycle hooks, services and validation.
    Whatever a second module could want goes here, host-neutral and tested without Iris.
 2. **Packages the host exposes**: libraries it shares (VolmLib, Gson) and the public face of its built-in modules
-   (`art.arcane.iris.builtin`: stage constants, settings and output types packs may read).
+   (`art.arcane.iris.builtin`: stage constants, settings and output types packs may read). A type only the host's
+   built-in modules read stays in their jar, unexposed, unless packs write it as a snippet: a snippet type the host
+   does not share must live under its module's id in a pack's snippet folders, which would move existing packs' files.
 3. **Narrow facades for the host's own built-ins**, in that same exposed package, for what only the host's own
    features need from its internals, such as the legacy random streams Iris's object placement draws from, which
    existing worlds depend on. A pack module never needs one. Every such type is a promise the host keeps, so there are few, each answers one
@@ -1257,6 +1259,32 @@ Iris's own built-ins hold to this at compile time: IrisModule is a build of its 
 before Iris bundles it. Iris depends on IrisModule, not the reverse. What the built-ins cannot do through the API they
 ask through the facades of item 3, which Iris implements; the classes that need Iris itself (the layout model, the
 structure placer behind `StructureHost`, the object placers behind `ObjectHost`) are Iris's and live there.
+
+### Iris extensions, with the reason each is not api yet
+
+What Iris's built-ins still ask through item 3, and why the API does not answer it yet. Each entry names what would let it go.
+Everything else they once asked a facade (a running world's sky, studio flag, cave floors and loot tables, the world seeds per
+feature, the layout at a column, the declarations of a biome or region, the rock of a column, whether the dimension has bedrock) is
+API now: `world.running()`, `world.seed(purpose)`, `TerrainSampler`, `FeatureSettings`, or the module's own settings.
+
+- **`MatterMantle`** (invocation). Carve plans its caves as VolmLib matter slices (`MatterCavern`, markers) that Iris and the
+  platform read back as slices. The API mantle has typed layers but no cavern layer; it goes when carve writes a layer the
+  API defines and Iris reads that instead.
+- **`ObjectHost`** (world). Iris's object system: loading and scaling a pack's objects, picking one by density, placing it
+  through Iris's placers, and the loot of what was placed. Objects are named by the string keys placements hold, and the API
+  has no object model. It goes when the API describes a placeable object and its placement.
+- **`ObjectPlacement`** with `ObjectShape`, `PlacementSettings` and `PlacementTerrain` (invocation). The object being placed,
+  read from Iris's `IrisObjectPlacement`, and the terrain questions of Iris's placers (carved, structure volumes, the object
+  already at a block). Its surface noise (`PlaneNoise`, `SurfaceWarp`) is Iris's own simplex and warp with a cache, which no
+  API noise reproduces value for value, so existing worlds would move. It goes with `ObjectHost`.
+- **`FloatingHost`** (world). Island height comes from Iris's biome generators and island tops are painted by Iris's biome
+  palettes, which the API layout does not describe; its object placing goes through `ObjectHost`.
+- **`StructureHost`** (world). Iris's structure placer, behind the structure model Iris owns. Its surface is already API
+  vocabulary; it goes when the API has a structure model.
+- **`spawn.SpawnCooldowns`** (world). Spawner cooldowns Iris saves with a world's engine data, so they survive a restart; API
+  per-world state is in memory only. It goes when the API can persist per-world state.
+- **Random parameters (`RNG`) in these facades and `loot.LootResolver`**. They are the legacy streams existing worlds were
+  generated from. They go when a world format change lets them be stage streams.
 
 ## Not implemented
 

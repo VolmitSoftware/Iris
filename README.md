@@ -238,14 +238,14 @@ PackBiome dunes = resources.require(PackResources.BIOMES, resources.idOf("desert
   field names.
 - The kind's id follows the module id. The folder is one folder name directly below the pack root; the module
   chooses it, so a kind that replaces one of Iris's own keeps the folder and file format packs already have.
-- One folder holds one kind and one class backs one kind, which `@ResourceRef` names by its class. Two kinds
+- One folder holds one kind and one class backs one kind, which `@Ref(kind = ...)` names by its class. Two kinds
   claiming one folder, or a folder the host reads itself (`ModuleHost.reservingFolders`), fail the pack load,
   naming both owners.
 - The host creates each resource with the class's no-argument constructor and reads the JSON into it, as it does
   settings, so an omitted field keeps its default. It reads a resource once per pack load and hands every caller
   the same instance, so resources are values nobody may change. A reload (studio hotload) reads them again.
 - Studio describes the files from the class like settings: `@Desc`, `@MinNumber`, `@Required` and the rest. An
-  option that names a resource of a kind carries `@ResourceRef(Keep.class)` on a `String` or `ResourceId`, or a
+  option that names a resource of a kind carries `@Ref(kind = Keep.class)` on a `String` or `ResourceId`, or a
   list, set or array of them, and studio completes the kind's keys. Packs write the key either way; a `ResourceId`
   field holds the pack's id of it. Built-in kinds may read into a class the host describes
   itself, as built-in settings may hold one.
@@ -492,7 +492,7 @@ public final class FloraSettings implements IrisFeature {
     @Desc("Plants per chunk") @Required @MinNumber(0) @MaxNumber(64)
     private int density = 4;                                         // default 4
 
-    @Ref(Reference.PACK_BIOME)
+    @Ref(kind = PackBiome.class)
     private List<String> biomes = List.of();                         // completes the pack's biomes
 
     private BlockState flower = new BlockState("minecraft:poppy");   // completes blocks without @Ref
@@ -517,14 +517,14 @@ public final class FloraSettings implements IrisFeature {
 - `@Ref(Reference.X)` says what a `String` or `ResourceId` names, also on lists, sets and arrays of
   them, so studio offers the right list: `BLOCK`, `ITEM`, `ENTITY`, `BIOME`, `STRUCTURE`, `STRUCTURE_PREFIX`
   (a structure or a family prefix such as `minecraft:village`), `STRUCTURE_SET`, `TEMPLATE_POOL` (a jigsaw template pool),
-  `POTION_EFFECT`, `ENCHANTMENT`, `LOOT_TABLE` or `SPECIAL_ENTITY` (a mob of another plugin) from the server's registries, `NOISE_STYLE` from the host's noise
-  styles, or `PACK_BIOME`, `PACK_REGION`, `PACK_OBJECT`, `PACK_EXPRESSION`, `PACK_IMAGE_MAP` or `PACK_STRUCTURE` (a jigsaw structure) of the pack.
-  Packs write the pack kinds in the form they always have (`desert/dunes`); on a `ResourceId` field the host reads that
-  as the pack's id (`resources.idOf(...)`), so the value goes straight to `PackResources.find`. `BlockState` fields name blocks without it. `@Ref` on any other field fails
-  the load.
-- `@ResourceRef(Keep.class)` says that a `String` or `ResourceId`, or a list, set or array of them, names a resource of the
-  module resource kind read into that class, by its key (see Pack resources of a module). The class must back a
-  kind of the pack; anywhere else, or together with `@Ref`, it fails the load.
+  `POTION_EFFECT`, `ENCHANTMENT`, `LOOT_TABLE` or `SPECIAL_ENTITY` (a mob of another plugin) from the server's registries, or `NOISE_STYLE` from the host's noise
+  styles. `BlockState` fields name blocks without it. `@Ref` on any other field fails the load.
+- `@Ref(kind = Keep.class)` says that a `String` or `ResourceId`, or a list, set or array of them, names a pack resource
+  of the kind read into that class, by its key: a host kind of `PackResources` (`PackBiome`, `PackRegion`,
+  `GeneratedObject`, `PackExpression`, `PackImageMap`) or a module resource kind (see Pack resources of a module).
+  Packs write the key in the form they always have (`desert/dunes`); on a `ResourceId` field the host reads that as
+  the pack's id (`resources.idOf(...)`), so the value goes straight to `PackResources.find`. A `@Ref` gives exactly
+  one of a `Reference` and a kind; a class no kind of the host or the pack reads into fails the load.
 - Packs write settings under the short `key` the feature declares, which is required: a plain JSON field name
   (not blank, no `:`), the same at every target: `"moss": {"amount": 0.5}`. The id (`example:moss`) stays the
   feature's identity in the stage graph, logs and `settings.declared(MossSettings.class)`; packs never write it.
@@ -571,12 +571,21 @@ Snippet name 'patch' of com.example.flora.Patch of settings example:flora (modul
 ## Items and entities
 
 A service describes an item or an entity as a value after making every random choice, and the host creates it on the
-platform. `ItemDrop` is one stack: the item key as the pack wrote it, the amount, name, lore, enchantments, attribute
-modifiers, damage as a fraction of the item's durability, colours and custom data. `EntitySpec` is one entity: its type
-or the other plugin's mob, flags, equipment (`ItemDrop`s), passengers, attribute modifiers, loot table keys, leash
-holder, spawn effect and console commands. Modules ask the platform about items through `resources.items()`
-(`ItemRegistry.maxDurability(key)`, empty for an item the platform lacks): whether an item can be damaged decides
-whether a loot entry draws a damage roll, so a module needs it to keep its random stream.
+platform. Everything the platform registers is named by a `ResourceId` (`minecraft:sharpness`); a module turns a key a
+pack wrote without a namespace or in upper case into one with `ResourceId.ofPlatformKey("SMOKE")` (`minecraft:smoke`).
+An item or entity type is a `ContentKey`: `Registered(id)` for one of a registry, or `Provided(provider, name)` for one
+another plugin provides by a name an id cannot hold (`mythicmobs:SkeletonKing`); the host routes a registered id of
+another namespace to the plugin that owns it.
+
+`ItemDrop` is one stack: the item, the amount, its `Look` (name, lore, custom model, leather colour as RGB, `DyeColor`),
+enchantments (`ItemEnchantment`), attribute modifiers (`ItemAttribute` with an `Operation`), its `Wear` (unbreakable,
+damage as a fraction of the item's durability), `PlatformExtras` (item flags and custom NBT, which only some platforms
+apply) and, for debugging, its `Source`. `EntitySpec` is one entity: its type, `Appearance`, `Behaviour`, equipment
+(`ItemDrop`s), attribute modifiers, `Company` (passengers, leash holder), `Drops` (loot table ids and their shuffle seed),
+`Arrival` (spawn effect and console commands) and host extensions, which `extension(type)` finds: what only one host
+knows how to apply travels as a value of that host's type and is ignored by the others. Modules ask the platform about
+items through `resources.items()` (`ItemRegistry.maxDurability(item)`, empty for an item the platform lacks): whether
+an item can be damaged decides whether a loot entry draws a damage roll, so a module needs it to keep its random stream.
 
 ## Values in settings
 
@@ -886,7 +895,8 @@ Optional<Clock> clock = pack.catalog().service(Clock.class);            // a Pro
   at its edge.
 - `PackResources` serves one immutable pack snapshot; caches must not survive a reload.
   It serves pack objects (`OBJECTS`, `GeneratedObject`), biomes (`BIOMES`, `PackBiome`), regions (`REGIONS`,
-  `PackRegion`) and every module resource kind: `find(kind, id)` (empty when absent), `require(kind, id)` and
+  `PackRegion`), expressions (`EXPRESSIONS`, `PackExpression`) and image maps (`IMAGE_MAPS`, `PackImageMap`), the last
+  two only as their ids, which noise styles name, and every module resource kind: `find(kind, id)` (empty when absent), `require(kind, id)` and
   `ids(kind)`, so `BiomeSample` ids look up directly.
 - Value records say "absent" with `Optional`, `OptionalInt` or `OptionalDouble` components, never with `null` or an
   empty string (`ItemDrop`, `EntitySpec`, `AmbientEffects.Effect`). `StructureFit.Start.key()` is a `StartKey`, an
@@ -942,8 +952,9 @@ for each unsupported field type, misplaced `@Ref` (pack kinds on `ResourceId` in
 class, bad or repeated snippet name and pack snippet outside its module's folder, host types in built-in
 settings (and the load error when a pack module uses one).
 `PackSchemaTest` also loads a module jar with a resource kind: the kind's files described from its class,
-`@ResourceRef` options as references to the kind, built-in kinds of host types, the load error for a pack kind
-of a host type, for a folder two kinds claim or the host reserves, and for a misplaced `@ResourceRef`.
+`@Ref(kind = ...)` options as references to the kind (host kinds included), built-in kinds of host types, the load error for a pack kind
+of a host type, for a folder two kinds claim or the host reserves, for a `@Ref` that gives both or neither of a
+reference and a kind, and for a misplaced `@Ref(kind = ...)`.
 `ModuleRegistryTest` checks kind ids, types and folders, the validator and lifecycle order, service providers in module
 order, the load error for a second provider of a `ONE` service and for providers of unmarked interfaces or of the
 wrong type. `WorldStatesTest` checks that each state is created once (also when threads race), nested creation, the

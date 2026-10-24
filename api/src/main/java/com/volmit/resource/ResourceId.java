@@ -4,12 +4,14 @@ import java.util.Locale;
 import java.util.Objects;
 import java.util.regex.Pattern;
 
-/** Case-sensitive namespaced identity. Parsing never supplies an implicit namespace. */
+/** Case-sensitive namespaced identity. {@link #parse} never supplies an implicit namespace; {@link #ofPackKey} and
+ * {@link #ofPlatformKey} turn the keys packs write into ids. */
 public record ResourceId(String namespace, String path) implements Comparable<ResourceId> {
     private static final Pattern NAMESPACE = Pattern.compile("[a-z0-9_.-]+");
     private static final Pattern PATH = Pattern.compile("[a-z0-9_./-]+");
     private static final Pattern NOT_PATH = Pattern.compile("[^a-z0-9_./-]");
     private static final String PATH_REPLACEMENT = "_";
+    private static final String PLATFORM_NAMESPACE = "minecraft";
 
     public ResourceId {
         Objects.requireNonNull(namespace, "namespace");
@@ -40,6 +42,17 @@ public record ResourceId(String namespace, String path) implements Comparable<Re
     public static ResourceId ofPackKey(String namespace, String key) {
         Objects.requireNonNull(key, "key");
         return new ResourceId(namespace, NOT_PATH.matcher(key.toLowerCase(Locale.ROOT)).replaceAll(PATH_REPLACEMENT));
+    }
+
+    /**
+     * The id of a platform key as packs write it, such as {@code minecraft:diamond_sword} for {@code DIAMOND_SWORD} or
+     * {@code Diamond Sword}: trimmed, lower-cased, spaces as {@code _}, in the {@code minecraft} namespace when it names
+     * none. Throws IllegalArgumentException when the result is still no id, such as for {@code a:b:c}.
+     */
+    public static ResourceId ofPlatformKey(String key) {
+        Objects.requireNonNull(key, "key");
+        String normalized = key.trim().toLowerCase(Locale.ROOT).replace(' ', '_');
+        return parse(normalized.indexOf(':') < 0 ? PLATFORM_NAMESPACE + ":" + normalized : normalized);
     }
 
     @Override

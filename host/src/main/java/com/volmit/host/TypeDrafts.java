@@ -32,7 +32,7 @@ final class TypeDrafts {
     private final HostTypes hostTypes;
     private final Function<Class<?>, Optional<ResourceId>> resourceKinds;
 
-    /** @param resourceKinds the id of the resource kind read into a class, which {@code @ResourceRef} options name */
+    /** @param resourceKinds the id of the module resource kind read into a class, which {@code @Ref(kind = ...)} options name */
     TypeDrafts(HostTypes hostTypes, Function<Class<?>, Optional<ResourceId>> resourceKinds) {
         this.hostTypes = hostTypes;
         this.resourceKinds = resourceKinds;

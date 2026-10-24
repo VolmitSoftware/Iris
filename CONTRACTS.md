@@ -32,8 +32,8 @@ types that carry them and lists what the Iris adapter still owes.
 | Noise from pack-described styles | `NoiseStyle`, `StyledRange`, `PackResources.noise()`, `NoiseFactory`, `NoiseSampler` |
 | Values in settings | `BlockSpec`, `PaletteSpec`, `NoiseStyle`, `StyledRange`, `Range`, `BlockPosition`, `JigsawOverrides`, `Object` as `ValueKind.AnyKind` |
 | Decisions over and fit of the platform's own structures | service `VanillaStructures` (`rule`, `starts`, `shift`, `reach`, `beforePieces`, `afterPieces`, `setup`, `startedStructures`, `locatableStarts`, `locateStart`, `ChunkFilter`), `VanillaStructureRule`, `VanillaStructureContext`, `VanillaStructureStart`, `VanillaStructureStartContext`, `VanillaStructureSetup`, `PlatformStart`, `StartMemo`, `StartReach`, `StructureFit` (`Start`, `Piece`, `ColumnVisitor`), `DecorationStep`, `TerrainAdaptation`, `PieceKind`, `TemplateCells`, `world.BlockAccess`, host `FeatureCatalog.registrations(service)` |
-| Pack-scoped resolution | `ResourceId` (`ofPackKey`), `PackResources` (`find(kind, id)`, `require`, `ids(kind)`, `idOf`; kinds `BIOMES`, `REGIONS`, `OBJECTS`), `PackBiome`, `PackRegion` |
-| Module-owned pack resources | `ResourceKind`, `FeatureRegistry.registerResourceKind`, `@ResourceRef`, host `ModuleHost.reservingFolders`, `FeatureCatalog.resourceKinds()`, `ResourceKindSchema`, `ValueKind.ResourceReferenceKind` |
+| Pack-scoped resolution | `ResourceId` (`ofPackKey`, `ofPlatformKey`), `ContentKey`, `PackResources` (`find(kind, id)`, `require`, `ids(kind)`, `idOf`; kinds `BIOMES`, `REGIONS`, `OBJECTS`, `EXPRESSIONS`, `IMAGE_MAPS`), `PackBiome`, `PackRegion`, `PackExpression`, `PackImageMap` |
+| Module-owned pack resources | `ResourceKind`, `FeatureRegistry.registerResourceKind`, `@Ref(kind = ...)`, host `ModuleHost.reservingFolders`, `FeatureCatalog.resourceKinds()`, `ResourceKindSchema`, `ValueKind.ResourceReferenceKind` |
 | Module-owned pack checks | `Validator`, `ValidationContext`, `Problem`, `Severity`, `Subject`, `FeatureRegistry.registerValidator`, host `FeatureCatalog.validators()` |
 | Per-world module state | `PackWorld` (`state`), `InvocationContext.world()`, host `WorldStates` |
 | Module lifecycle across loads, hotloads and reloads | `ModuleLifecycle`, `PackContext`, `FeatureRegistry.registerLifecycle`, host `FeatureCatalog.lifecycles()`, `LifecycleRunner` |
@@ -222,7 +222,8 @@ running Iris is the pack publisher's responsibility.
   at the boundary, like every other IrisApi height; the same goes for the positions of `Loot.Site`, `BlockDrops.Broken`,
   `EntitySpawns` and `SaplingGrowth`.
 - Create what `ItemDrop` and `EntitySpec` describe on the platform, skip what the platform lacks (an unknown enchantment,
-  attribute or item flag) with a warning, and run the checks that come with an `EntitySpawns.Attempt` (light, surface,
+  attribute or item flag) with a warning, route a `ContentKey.Provided` (and a `Registered` id of a namespace another
+  plugin owns) to that plugin, apply the `EntitySpec.extensions()` of the host's own types and ignore the rest, and run the checks that come with an `EntitySpawns.Attempt` (light, surface,
   free space) before spawning. Report how many entities appeared with `EntitySpawns.spawned`.
 - `AmbientEffects.due`: ask for the player's last sampled position (not every tick's), carry out an `Effect` in the order
   sound, particles, commands, potion, skip a part the platform lacks, and give no potion to a player who already has the
@@ -230,7 +231,8 @@ running Iris is the pack publisher's responsibility.
 - Decode IrisApi's value types like settings: `BlockSpec`, `PaletteSpec`, `NoiseStyle`, `StyledRange`, `Range` and
   `BlockPosition` from the JSON shapes in their docs, `Object` as maps, lists, `Double`s, strings and booleans.
   Read a `"snippet/<name>"` or `"snippet/<folder>/<name>"` string of a `@Snippet` type from
-  `snippet/<folder>/<name>.json`. Complete `NOISE_STYLE`, `PACK_EXPRESSION` and `PACK_IMAGE_MAP` references;
+  `snippet/<folder>/<name>.json`. Complete `NOISE_STYLE` references and `@Ref(kind = ...)` of the host kinds
+  (`EXPRESSIONS`, `IMAGE_MAPS` among them);
   rendering a value type with the host's own description of the same JSON is allowed.
 - Serve `PackResources.noise()`: build each style's noise from the host's generators, expressions and image maps,
   the same values for the same style and seed, cached per pack snapshot; an unknown style name is flat, a missing

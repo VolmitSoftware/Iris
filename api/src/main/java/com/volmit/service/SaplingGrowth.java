@@ -33,9 +33,10 @@ public interface SaplingGrowth {
      *
      * @param at      where the growth happened: world X and Z, Y the height above the dimension's bottom
      * @param center  the middle of the plane of saplings that grow together, the same way
-     * @param species the platform's name for the kind of tree that would grow, such as {@code TREE} or {@code JUNGLE}
+     * @param species the kind of tree that would grow, as the platform names it, such as {@code minecraft:tree} or
+     *                {@code minecraft:jungle} (Bukkit's tree types, lower-cased)
      */
-    record Sapling(BlockPosition at, BlockPosition center, String species) {
+    record Sapling(BlockPosition at, BlockPosition center, ResourceId species) {
         public Sapling {
             Objects.requireNonNull(at, "at");
             Objects.requireNonNull(center, "center");

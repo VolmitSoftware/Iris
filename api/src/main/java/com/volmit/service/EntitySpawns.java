@@ -25,8 +25,12 @@ public interface EntitySpawns {
     /** The pack's entity {@code entity} as this module would spawn it, for tools that spawn one on request; empty for an unknown one. */
     Optional<EntitySpec> entity(PackWorld world, ResourceId entity);
 
-    /** What a marker in the world means for spawning; empty for a marker this module does not know. */
-    Optional<MarkerRule> marker(PackWorld world, String tag);
+    /**
+     * What a marker in the world means for spawning; empty for a marker this module does not know. A marker's tag is a
+     * key of the pack, as an object's marker block names it, and {@code tag} the id the pack gives it
+     * ({@link com.volmit.resource.PackResources#idOf}).
+     */
+    Optional<MarkerRule> marker(PackWorld world, ResourceId tag);
 
     /** Where entities may spawn. */
     sealed interface Site permits Chunk, Marker {
@@ -46,11 +50,11 @@ public interface EntitySpawns {
      * A spawn at a marker.
      *
      * @param position the marker's block: world X and Z, Y the height above the dimension's bottom
-     * @param marker   the marker's tag
+     * @param marker   the id of the marker's tag, as {@link EntitySpawns#marker} takes it
      * @param spawner  the pack's spawner chosen among the marker's
      * @param initial  whether the spawner's initial spawns are used rather than its ordinary ones
      */
-    record Marker(BlockPosition position, String marker, ResourceId spawner, boolean initial) implements Site {
+    record Marker(BlockPosition position, ResourceId marker, ResourceId spawner, boolean initial) implements Site {
         public Marker {
             Objects.requireNonNull(position, "position");
             Objects.requireNonNull(marker, "marker");

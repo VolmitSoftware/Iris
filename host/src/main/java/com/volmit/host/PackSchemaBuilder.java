@@ -20,8 +20,8 @@ import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 /** Describes a loaded pack's catalogued settings and resource kinds for studio. Fails the load, naming the class,
- * field and module, on what the host could not render: an unsupported field type, a misplaced {@code @Ref} or
- * {@code @ResourceRef}, a class without a usable no-argument constructor, a snippet name used twice, a pack
+ * field and module, on what the host could not render: an unsupported field type, a misplaced {@code @Ref} or one
+ * naming a kind nobody has, a class without a usable no-argument constructor, a snippet name used twice, a pack
  * class's snippet name outside its module's path, or a pack module's resource kind read into a host type.
  */
 @SuppressWarnings("removal") // held types and host kinds are transitional, until the cut-over

@@ -5,6 +5,7 @@ import com.volmit.config.Ref;
 import com.volmit.config.Reference;
 import com.volmit.config.MaxNumber;
 import com.volmit.config.MinNumber;
+import com.volmit.resource.ResourceId;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
@@ -16,8 +17,8 @@ import java.util.OptionalInt;
  */
 @Desc("Optional overrides applied to a live vanilla, datapack, or modded jigsaw definition before Minecraft assembles it. Omitted values preserve the registered source definition.")
 public final class JigsawOverrides {
-    /** Removes the definition's start connector constraint when given as {@link #startJigsawName()}. */
-    public static final String NO_START_JIGSAW = "NONE";
+    /** What packs write as the start connector to remove the definition's constraint. */
+    private static final String NO_START_JIGSAW = "NONE";
 
     /** Whether the start piece follows one of the platform's heightmaps. */
     @Desc("Controls whether a configured native jigsaw projects its start onto a Minecraft heightmap.")
@@ -114,16 +115,23 @@ public final class JigsawOverrides {
     }
 
     /** These overrides, starting from the template pool {@code pool}, such as {@code minecraft:village/plains/town_centers}. */
-    public JigsawOverrides withStartPool(String pool) {
+    public JigsawOverrides withStartPool(ResourceId pool) {
         JigsawOverrides overrides = new JigsawOverrides(this);
-        overrides.startPool = Objects.requireNonNull(pool, "pool");
+        overrides.startPool = pool.toString();
         return overrides;
     }
 
-    /** These overrides, starting from the connector {@code name}; {@link #NO_START_JIGSAW} removes the constraint. */
-    public JigsawOverrides withStartJigsawName(String name) {
+    /** These overrides, starting from the connector {@code name}. */
+    public JigsawOverrides withStartJigsawName(ResourceId name) {
         JigsawOverrides overrides = new JigsawOverrides(this);
-        overrides.startJigsawName = Objects.requireNonNull(name, "name");
+        overrides.startJigsawName = name.toString();
+        return overrides;
+    }
+
+    /** These overrides, without the definition's start connector constraint. */
+    public JigsawOverrides withoutStartJigsaw() {
+        JigsawOverrides overrides = new JigsawOverrides(this);
+        overrides.startJigsawName = NO_START_JIGSAW;
         return overrides;
     }
 
@@ -167,14 +175,23 @@ public final class JigsawOverrides {
         return overrides;
     }
 
-    /** The template pool to start from; empty keeps the definition's. */
-    public String startPool() {
-        return startPool == null ? "" : startPool;
+    /** The template pool to start from, such as {@code minecraft:village/plains/town_centers}; empty keeps the definition's. */
+    public Optional<ResourceId> startPool() {
+        return platformKey(startPool);
     }
 
-    /** The start connector; empty keeps the definition's, {@link #NO_START_JIGSAW} removes it. */
-    public String startJigsawName() {
-        return startJigsawName == null ? "" : startJigsawName;
+    /** The start connector; empty keeps the definition's, unless {@link #removesStartJigsaw()}. */
+    public Optional<ResourceId> startJigsawName() {
+        return removesStartJigsaw() ? Optional.empty() : platformKey(startJigsawName);
+    }
+
+    /** Whether the start connector constraint is removed, which packs write as {@code NONE}. */
+    public boolean removesStartJigsaw() {
+        return startJigsawName != null && NO_START_JIGSAW.equalsIgnoreCase(startJigsawName.trim());
+    }
+
+    private static Optional<ResourceId> platformKey(String key) {
+        return key == null || key.isBlank() ? Optional.empty() : Optional.of(ResourceId.ofPlatformKey(key));
     }
 
     public OptionalInt maxDepth() {
@@ -217,8 +234,8 @@ public final class JigsawOverrides {
 
     @Override
     public boolean equals(Object other) {
-        return other instanceof JigsawOverrides that && startPool().equals(that.startPool())
-                && startJigsawName().equals(that.startJigsawName()) && Objects.equals(maxDepth, that.maxDepth)
+        return other instanceof JigsawOverrides that && written(startPool).equals(written(that.startPool))
+                && written(startJigsawName).equals(written(that.startJigsawName)) && Objects.equals(maxDepth, that.maxDepth)
                 && Objects.equals(maxDistanceHorizontal, that.maxDistanceHorizontal)
                 && Objects.equals(maxDistanceVertical, that.maxDistanceVertical)
                 && Objects.equals(useExpansionHack, that.useExpansionHack)
@@ -230,12 +247,17 @@ public final class JigsawOverrides {
 
     @Override
     public int hashCode() {
-        return Objects.hash(startPool(), startJigsawName(), maxDepth, maxDistanceHorizontal, maxDistanceVertical,
+        return Objects.hash(written(startPool), written(startJigsawName), maxDepth, maxDistanceHorizontal, maxDistanceVertical,
                 useExpansionHack, projectStartToHeightmap(), dimensionPaddingBottom, dimensionPaddingTop, liquidSettings());
     }
 
     @Override
     public String toString() {
-        return "JigsawOverrides[pool '" + startPool() + "', depth " + maxDepth + ", " + projectStartToHeightmap() + "]";
+        return "JigsawOverrides[pool '" + written(startPool) + "', depth " + maxDepth + ", " + projectStartToHeightmap() + "]";
+    }
+
+    /** A key as the pack wrote it, without surrounding blanks; empty when it wrote none. */
+    private static String written(String key) {
+        return key == null ? "" : key.trim();
     }
 }

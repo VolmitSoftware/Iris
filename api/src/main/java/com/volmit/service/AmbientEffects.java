@@ -2,6 +2,7 @@ package com.volmit.service;
 
 import com.volmit.entity.EntitySpec;
 import com.volmit.geometry.BlockPosition;
+import com.volmit.resource.ResourceId;
 import com.volmit.world.PackWorld;
 import java.util.List;
 import java.util.Objects;
@@ -44,32 +45,44 @@ public interface AmbientEffects {
     /**
      * A sound played to the player.
      *
-     * @param key     the platform's sound key
+     * @param key     the sound, such as {@code minecraft:ambient.cave}
      * @param offsetX blocks from the player where the sound seems to come from, as the other offsets
      * @param volume  the sound's volume
      * @param pitch   the sound's pitch
      */
-    record Sound(String key, int offsetX, int offsetY, int offsetZ, float volume, float pitch) {
+    record Sound(ResourceId key, int offsetX, int offsetY, int offsetZ, float volume, float pitch) {
         public Sound {
             Objects.requireNonNull(key, "key");
         }
     }
 
     /**
-     * Particles shown to the player. They appear {@code forward} blocks ahead of the player, {@code sideways} blocks to
-     * the right (negative for the left) and on the surface at that spot, one block up, moved by {@code jitterX} and
-     * {@code jitterZ} and by {@code lift} blocks up.
+     * Particles shown to the player.
      *
-     * @param key     the platform's particle key
-     * @param count   how many particles; none makes {@code altX}, {@code altY} and {@code altZ} their motion
-     * @param altX    the particles' offset or motion, as the other two
-     * @param extra   an extra value some particles take; 0 for none
+     * @param key    the particle, such as {@code minecraft:ash}
+     * @param spot   where they appear
+     * @param count  how many particles; none makes {@code spread} their motion
+     * @param spread how far the particles spread along each axis, or their motion when {@code count} is 0
+     * @param extra  an extra value some particles take; 0 for none
      */
-    record Particles(String key, double forward, double sideways, double jitterX, double jitterZ, int lift, int count,
-                     double altX, double altY, double altZ, double extra) {
+    record Particles(ResourceId key, Spot spot, int count, Spread spread, double extra) {
         public Particles {
             Objects.requireNonNull(key, "key");
+            Objects.requireNonNull(spot, "spot");
+            Objects.requireNonNull(spread, "spread");
         }
+    }
+
+    /**
+     * Where particles appear: {@code forward} blocks ahead of the player, {@code sideways} blocks to the right (negative
+     * for the left) and on the surface at that spot, one block up, moved by {@code jitterX} and {@code jitterZ} and by
+     * {@code lift} blocks up.
+     */
+    record Spot(double forward, double sideways, double jitterX, double jitterZ, int lift) {
+    }
+
+    /** A distance along each axis. */
+    record Spread(double x, double y, double z) {
     }
 
     /**
@@ -88,11 +101,11 @@ public interface AmbientEffects {
     /**
      * A potion effect for the player. A player who has the same potion effect with a stronger amplifier keeps it.
      *
-     * @param key      the platform's potion effect key
+     * @param key      the potion effect, such as {@code minecraft:night_vision}
      * @param strength the amplifier
      * @param ticks    how long it lasts, in server ticks
      */
-    record Potion(String key, int strength, int ticks) {
+    record Potion(ResourceId key, int strength, int ticks) {
         public Potion {
             Objects.requireNonNull(key, "key");
         }

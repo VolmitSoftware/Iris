@@ -743,7 +743,7 @@ core engine is modules as well. The host's own JSON fields are not in it; no key
 | `List<E>`, `E[]` | `ListKind(E, false)` |
 | `Set<E>` | `ListKind(E, true)` |
 | `Map<String, V>` | `MapKind(V)` |
-| `String` with `@ResourceRef(Type.class)` | `ResourceReferenceKind(id of the kind read into Type)` |
+| `String` with `@Ref(kind = Type.class)` | `ResourceReferenceKind(id of the kind read into Type)` |
 | a class in a host type package, in built-in settings | `HostKind(class name)` |
 | `Object` | `AnyKind`: any JSON value |
 | any other concrete class | `ObjectKind(class name)` |
@@ -776,17 +776,22 @@ adding anything a pack can write.
 
 ### References
 
-`@Ref(Reference.X)` says what a text value names. The kinds are a closed enum of what the Iris host
-can list today through its `RegistryList*` annotations: blocks, items, entities, platform biomes,
-structures, potion effects and enchantments from the server registries, the host's noise styles, and
-biomes, regions, objects, expressions and image maps of the pack, the resource folders Iris's own settings
-refer to most. More kinds come when a
-module needs one and the host can serve it. `@Ref` fits `String` and `ResourceId` and lists, sets and
+`@Ref` says what a text value names, in one of two ways, and exactly one of them. `@Ref(Reference.X)` names
+something of the platform: the kinds are a closed enum of what the Iris host can list today through its
+`RegistryList*` annotations: blocks, items, entities, platform biomes, structures, potion effects and
+enchantments from the server registries, and the host's noise styles. More come when a module needs one and the
+host can serve it. `@Ref(kind = Type.class)` names a pack resource of the kind read into `Type`, the host's
+(`PackBiome`, `PackRegion`, `GeneratedObject`, `PackExpression`, `PackImageMap`) or a module's, so one mechanism covers
+every resource of the pack (see Module-owned pack resources). It replaced both the `PACK_*` constants of `Reference`
+and a separate `@ResourceRef`: two spellings for "a resource of the pack" made a module author guess which one a kind
+needed. `@Ref` fits `String` and `ResourceId` and lists, sets and
 arrays of them, where it applies to the elements. On any other field, a map included, it fails the
-load. The pack kinds (`PACK_BIOME`, `PACK_REGION`, `PACK_OBJECT`, `PACK_EXPRESSION`, `PACK_IMAGE_MAP`, `PACK_STRUCTURE`) are
+load. Pack resources are
 plain text in the JSON either way: packs name their biomes, regions and objects by path without a namespace, such as
 `desert/dunes`. On a `ResourceId` field the host reads that path as the pack's id of it (`PackResources.idOf`), and a
-value with a namespace as written, so a module can hand the value straight to `PackResources.find`. `BlockState` always names a block, so its fields are block references without `@Ref`;
+value with a namespace as written, so a module can hand the value straight to `PackResources.find`. A resource the
+API has no type for, such as Iris's structure model, is a host extension: Iris's built-ins mark those fields with their
+own annotation (`@IrisStructureRef`), and to another host they are plain text. `BlockState` always names a block, so its fields are block references without `@Ref`;
 `@Ref(BLOCK)` there is accepted, any other kind fails.
 
 ### Defaults
@@ -992,9 +997,9 @@ the resources it serves itself.
   folders are reserved with `ModuleHost.reservingFolders`. Either conflict fails the pack load in `ModuleRegistry`,
   naming both owners; the host is named as "the host".
 - **Lookup.** `PackResources.find(KEEPS, id)` and `ids(KEEPS)` take the kind itself, the constant the module registered, and
-  return its type. The host's own kinds are constants of `PackResources` (`BIOMES`, `REGIONS`, `OBJECTS`), so one call
-  shape serves both, and no second key type (it used to be `ResourceKey`, a pair of id and class). One class still backs
-  at most one kind, because `@ResourceRef` names the kind by its class. The class must be concrete; like settings it
+  return its type. The host's own kinds are constants of `PackResources` (`BIOMES`, `REGIONS`, `OBJECTS`,
+  `EXPRESSIONS`, `IMAGE_MAPS`), so one call shape serves both, and no second key type (it used to be `ResourceKey`, a
+  pair of id and class). One class still backs at most one kind, because `@Ref(kind = ...)` names the kind by its class. The class must be concrete; like settings it
   needs a no-argument constructor, checked when the pack's description is built.
 - **Reading.** The host creates the instance with that constructor and reads the JSON into it, exactly as it
   decodes settings, so a missing field keeps its default and studio's defaults are what packs get.
@@ -1006,11 +1011,11 @@ the resources it serves itself.
   then renders the host's own description of the class. A pack module's kind of a host type fails the load.
 - **Studio.** `PackSchema.resources()` lists each kind with its folder and the files' type, an `ObjectKind`
   described in `types()` or a `HostKind`. The host writes a schema per kind for the files below its folder. An
-  option that names a resource of a kind carries `@ResourceRef(Keep.class)`: a class, not a kind id, so the
+  option that names a resource of a kind carries `@Ref(kind = Keep.class)`: a class, not a kind id, so the
   reference is checked by the compiler (an annotation cannot hold the kind constant). It becomes
   `ResourceReferenceKind(kindId)`, and studio completes the kind's keys. Keys are pack paths without a
   namespace in the JSON, like the pack references of `@Ref`; the field may be a `String` or a `ResourceId`, which the
-  host reads as the pack's id of the key. A class that backs no kind of the pack fails the load.
+  host reads as the pack's id of the key. A class that backs no kind of the host or the pack fails the load.
 
 ## Validators
 
@@ -1131,6 +1136,19 @@ from a sapling, which drops a block has. A module answers such questions through
   damaged), and the host reads what only the platform knows (light, the surface below, free space, the blocks around a
   sapling) through the attempt's conditions or a `Surroundings` view. A service that must hear how its plan went has a
   second method for it (`EntitySpawns.spawned`, which keeps a spawner's rate limits).
+- **Platform keys are ids.** What the platform registers (items, enchantments, attributes, sounds, particles, potion
+  effects, loot tables, tree species) travels as a `ResourceId`, never as the text a pack wrote: a host compares and
+  looks up one form, and a module normalises a pack's key once (`ResourceId.ofPlatformKey`, dropping a key that cannot
+  be one with a warning) instead of every host guessing at case and namespace. Item and entity types are a
+  `ContentKey`, because another plugin's mob or item is named by a provider and a name that may hold upper case,
+  spaces and `:`, which no id can; `Optional<ResourceId>` for "the other plugin's" would have lost exactly those. A
+  registered id of another namespace stays `Registered`, and the host routes it to the plugin that owns the namespace.
+  Choices with a fixed set of answers are enums (`ItemAttribute.Operation`, `DyeColor`), colours are RGB ints.
+- **Groups and extensions.** `ItemDrop` and `EntitySpec` group their components by what a host does with them
+  (`Look`, `Wear`, `PlatformExtras`; `Appearance`, `Behaviour`, `Company`, `Drops`, `Arrival`), each with a named
+  default, so a reader sees a dozen meaningful parts instead of seventeen positional ones. What only one host can apply
+  (Iris's spawn reason, panda genes, rising out of the ground) is not an API field: the module puts a value of the host's
+  own type in `EntitySpec.extensions()`, the host finds it with `extension(type)`, and other hosts ignore it.
   `AmbientEffects` follows the same rule: the module decides which effects are due (interval and chance, kept in the world's
   state) and every random value they carry, the host only plays them.
 - **Services now.** `ObjectsAt` (`ALL`): the ids of pack objects a module would place in a chunk, predicted without

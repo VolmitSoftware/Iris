@@ -3,6 +3,7 @@ package com.volmit.world;
 import com.volmit.block.BlockState;
 import com.volmit.config.FeatureSettings;
 import com.volmit.resource.PackResources;
+import com.volmit.resource.ResourceId;
 import java.util.Optional;
 
 /** The dimension stacked above the one being generated, whose ground hangs from the top of this one's volume. It may be
@@ -14,8 +15,8 @@ public interface UpperDimension {
     /** Whether the dimension above is this very dimension, stacked on itself. */
     boolean isThisDimension();
 
-    /** The key the pack knows the dimension by, such as {@code overworld}: what its noise seeds derive from. */
-    String key();
+    /** The id its pack gives the dimension's key, such as {@code overworld:overworld}: what its noise seeds derive from. */
+    ResourceId id();
 
     /** The settings of the upper dimension: its dimension, and the region and surface biome it has at the column. */
     FeatureSettings settings();

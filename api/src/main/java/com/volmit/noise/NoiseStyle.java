@@ -6,6 +6,8 @@ import com.volmit.config.MinNumber;
 import com.volmit.config.Ref;
 import com.volmit.config.Reference;
 import com.volmit.config.Snippet;
+import com.volmit.resource.PackResources;
+import com.volmit.resource.ResourceId;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -37,13 +39,13 @@ public final class NoiseStyle {
     @Desc("The zoom of this style")
     private double zoom = 1;
 
-    @Ref(Reference.PACK_EXPRESSION)
+    @Ref(kind = PackExpression.class)
     @Desc("Instead of using the style property, use a custom expression to represent this style.")
-    private String expression;
+    private ResourceId expression;
 
-    @Ref(Reference.PACK_IMAGE_MAP)
+    @Ref(kind = PackImageMap.class)
     @Desc("Use an Image map instead of a generated value")
-    private String imageMap;
+    private ResourceId imageMap;
 
     @MinNumber(0.00001)
     @Desc("The Output multiplier. Only used if parent is fracture.")
@@ -109,13 +111,13 @@ public final class NoiseStyle {
         return zoom;
     }
 
-    /** The key of the pack expression that replaces the base style. */
-    public Optional<String> expression() {
+    /** The pack expression that replaces the base style, by the id the pack gives its key; see {@link PackResources#EXPRESSIONS}. */
+    public Optional<ResourceId> expression() {
         return Optional.ofNullable(expression);
     }
 
-    /** The key of the pack image map that replaces the base style when there is no expression. */
-    public Optional<String> imageMap() {
+    /** The pack image map that replaces the base style when there is no expression; see {@link PackResources#IMAGE_MAPS}. */
+    public Optional<ResourceId> imageMap() {
         return Optional.ofNullable(imageMap);
     }
 

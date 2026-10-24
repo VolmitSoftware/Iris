@@ -2,6 +2,7 @@ package com.volmit.entity;
 
 import com.volmit.item.ItemAttribute;
 import com.volmit.item.ItemDrop;
+import com.volmit.resource.ContentKey;
 import com.volmit.resource.ResourceId;
 import java.util.List;
 import java.util.Objects;
@@ -9,57 +10,63 @@ import java.util.Optional;
 
 /**
  * An entity a module decided to spawn, with every random choice made: the host creates it on the platform and applies
- * what is set. Names are as authored in the pack, with {@code &} colour codes.
+ * what is set. A part the entity cannot have, such as equipment on an item frame, is left out. A host may leave a
+ * {@link ContentKey.Provided} mob as its provider set it up.
  *
- * @param type                 the entity type's key, such as {@code minecraft:zombie}; ignored when {@code specialType} is set
- * @param specialType          a mob of another plugin, written {@code PluginName:MobName}; empty for an entity of the platform
- * @param reason               the platform's spawn reason by name; empty for a natural spawn
- * @param customName           the name shown above the entity; empty for none
- * @param flags                the settings that every entity kind understands
- * @param equipment            what the entity wears and holds
- * @param passengers           entities that ride this one
- * @param attributes           attribute modifiers to apply
- * @param lootTables           the pack's loot tables the entity drops, instead of the platform's drops, when it dies
- * @param lootShuffleSeed      seeds how the drops of {@code lootTables} are shuffled
- * @param leashHolder          the entity that holds this one on a leash; empty for none
- * @param spawnEffect          an effect to show when the entity appears; empty for none
- * @param riseOutOfGround      whether the entity slowly climbs out of the ground when players are near
- * @param pandaMainGene        for pandas the main gene by name; empty to leave it to the platform
- * @param pandaHiddenGene      for pandas the hidden gene by name; empty to leave it to the platform
- * @param applySettingsToSpecial whether the settings also apply to a mob of another plugin
- * @param commands             console commands to run where the entity appears
+ * @param type       what the entity is: an entity type, such as {@code minecraft:zombie}, or a mob of a provider
+ * @param appearance how it looks
+ * @param behaviour  how it acts
+ * @param equipment  what it wears and holds
+ * @param attributes attribute modifiers to apply
+ * @param company    the entities that come with it
+ * @param drops      what it drops when it dies
+ * @param arrival    what happens where it appears
+ * @param extensions values for a particular host, which other hosts ignore; see {@link #extension}
  */
-public record EntitySpec(Optional<String> type, Optional<String> specialType, Optional<String> reason, Optional<String> customName,
-                         Flags flags, Equipment equipment, List<EntitySpec> passengers, List<ItemAttribute> attributes,
-                         List<ResourceId> lootTables, long lootShuffleSeed, Optional<EntitySpec> leashHolder,
-                         Optional<SpawnEffect> spawnEffect, boolean riseOutOfGround, Optional<String> pandaMainGene,
-                         Optional<String> pandaHiddenGene, boolean applySettingsToSpecial, List<Command> commands) {
+public record EntitySpec(ContentKey type, Appearance appearance, Behaviour behaviour, Equipment equipment,
+                         List<ItemAttribute> attributes, Company company, Drops drops, Arrival arrival, List<Object> extensions) {
     public EntitySpec {
         Objects.requireNonNull(type, "type");
-        Objects.requireNonNull(specialType, "specialType");
-        Objects.requireNonNull(reason, "reason");
-        Objects.requireNonNull(customName, "customName");
-        Objects.requireNonNull(flags, "flags");
+        Objects.requireNonNull(appearance, "appearance");
+        Objects.requireNonNull(behaviour, "behaviour");
         Objects.requireNonNull(equipment, "equipment");
-        passengers = List.copyOf(passengers);
         attributes = List.copyOf(attributes);
-        lootTables = List.copyOf(lootTables);
-        Objects.requireNonNull(leashHolder, "leashHolder");
-        Objects.requireNonNull(spawnEffect, "spawnEffect");
-        Objects.requireNonNull(pandaMainGene, "pandaMainGene");
-        Objects.requireNonNull(pandaHiddenGene, "pandaHiddenGene");
-        commands = List.copyOf(commands);
+        Objects.requireNonNull(company, "company");
+        Objects.requireNonNull(drops, "drops");
+        Objects.requireNonNull(arrival, "arrival");
+        extensions = List.copyOf(extensions);
     }
 
-    /** Whether the entity is a mob of another plugin. */
-    public boolean isSpecial() {
-        return specialType.isPresent();
+    /** The extension of type {@code type} the module added for its host; empty when it added none. */
+    public <T> Optional<T> extension(Class<T> type) {
+        return extensions.stream().filter(type::isInstance).map(type::cast).findFirst();
     }
 
-    /** What an entity can be set to be, whatever its kind; the host applies the ones its kind has. */
-    public record Flags(boolean customNameVisible, boolean aware, boolean ai, boolean glowing, boolean gravity,
-                        boolean invulnerable, boolean silent, boolean pickupItems, boolean removable,
-                        boolean keepEntity, boolean baby) {
+    /**
+     * How the entity looks.
+     *
+     * @param customName  the name shown above the entity, as authored in the pack with {@code &} colour codes; empty for none
+     * @param nameVisible whether the name shows even when nobody looks at the entity
+     */
+    public record Appearance(Optional<String> customName, boolean nameVisible, boolean glowing, boolean baby) {
+        public static final Appearance PLAIN = new Appearance(Optional.empty(), false, false, false);
+
+        public Appearance {
+            Objects.requireNonNull(customName, "customName");
+        }
+    }
+
+    /**
+     * How the entity acts; the host applies what the entity's kind has.
+     *
+     * @param aware       whether a mob notices its surroundings
+     * @param ai          whether a mob follows its goals
+     * @param removable   whether the entity despawns when far from players
+     * @param keepEntity  whether the entity is never culled
+     */
+    public record Behaviour(boolean aware, boolean ai, boolean gravity, boolean invulnerable, boolean silent,
+                            boolean pickupItems, boolean removable, boolean keepEntity) {
+        public static final Behaviour NATURAL = new Behaviour(true, true, true, false, false, false, false, false);
     }
 
     /** The items an entity wears and holds; empty for an empty slot. */
@@ -79,18 +86,88 @@ public record EntitySpec(Optional<String> type, Optional<String> specialType, Op
     }
 
     /**
-     * Sound and particles shown around an entity that appears. Offsets and the randomness of the particle motion are
-     * as in an effect of the pack; the host makes the random choices.
+     * The entities that come with this one.
      *
-     * @param sound    the platform's sound key; empty for no sound
-     * @param particle the platform's particle key; empty for no particles
+     * @param passengers  entities that ride this one
+     * @param leashHolder the entity that holds this one on a leash; empty for none
      */
-    public record SpawnEffect(Optional<String> sound, int soundDistance, double minPitch, double maxPitch, double volume,
-                              Optional<String> particle, int particleOffset, int particleCount, double altX, double altY,
-                              double altZ, boolean randomAltX, boolean randomAltY, boolean randomAltZ, double extra) {
+    public record Company(List<EntitySpec> passengers, Optional<EntitySpec> leashHolder) {
+        public static final Company NONE = new Company(List.of(), Optional.empty());
+
+        public Company {
+            passengers = List.copyOf(passengers);
+            Objects.requireNonNull(leashHolder, "leashHolder");
+        }
+    }
+
+    /**
+     * What the entity drops when it dies.
+     *
+     * @param lootTables  the pack's loot tables it drops instead of the platform's drops; none keeps the platform's
+     * @param shuffleSeed seeds how the drops of {@code lootTables} are shuffled
+     */
+    public record Drops(List<ResourceId> lootTables, long shuffleSeed) {
+        public static final Drops PLATFORM = new Drops(List.of(), 0L);
+
+        public Drops {
+            lootTables = List.copyOf(lootTables);
+        }
+    }
+
+    /**
+     * What happens where the entity appears.
+     *
+     * @param effect   an effect to show; empty for none
+     * @param commands console commands to run
+     */
+    public record Arrival(Optional<SpawnEffect> effect, List<Command> commands) {
+        public static final Arrival QUIET = new Arrival(Optional.empty(), List.of());
+
+        public Arrival {
+            Objects.requireNonNull(effect, "effect");
+            commands = List.copyOf(commands);
+        }
+    }
+
+    /**
+     * Sound and particles shown around an entity that appears. The host makes the random choices: where in range the
+     * sound plays, its pitch, and the particles' random motion.
+     */
+    public record SpawnEffect(Optional<Sound> sound, Optional<Burst> particles) {
         public SpawnEffect {
             Objects.requireNonNull(sound, "sound");
-            Objects.requireNonNull(particle, "particle");
+            Objects.requireNonNull(particles, "particles");
+        }
+
+        /**
+         * A sound played near the entity, at a pitch between {@code minPitch} and {@code maxPitch}.
+         *
+         * @param key      the sound, such as {@code minecraft:entity.zombie.ambient}
+         * @param distance how many blocks from the entity, at most, along each axis it seems to come from
+         */
+        public record Sound(ResourceId key, int distance, double minPitch, double maxPitch, double volume) {
+            public Sound {
+                Objects.requireNonNull(key, "key");
+            }
+        }
+
+        /**
+         * Particles shown around the entity.
+         *
+         * @param key    the particle, such as {@code minecraft:smoke}
+         * @param offset how many blocks up, at most, they appear
+         * @param count  how many particles; none makes {@code motion} their motion
+         * @param extra  an extra value some particles take; 0 for none
+         */
+        public record Burst(ResourceId key, int offset, int count, Motion motion, double extra) {
+            public Burst {
+                Objects.requireNonNull(key, "key");
+                Objects.requireNonNull(motion, "motion");
+            }
+        }
+
+        /** How far the particles spread or move along each axis; a random axis takes a random amount between minus and plus its value. */
+        public record Motion(double x, double y, double z, boolean randomX, boolean randomY, boolean randomZ) {
         }
     }
 

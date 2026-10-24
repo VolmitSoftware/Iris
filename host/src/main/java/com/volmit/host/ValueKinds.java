@@ -18,20 +18,23 @@ import com.volmit.host.schema.ValueKind.ObjectKind;
 import com.volmit.host.schema.ValueKind.ReferenceKind;
 import com.volmit.host.schema.ValueKind.ResourceReferenceKind;
 import com.volmit.host.schema.ValueKind.TextKind;
+import com.volmit.resource.PackResources;
 import com.volmit.resource.ResourceId;
+import com.volmit.resource.ResourceKind;
 import java.lang.reflect.GenericArrayType;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-/** Maps a settings field's declared type, {@code @Ref} and {@code @ResourceRef} to the JSON it takes. Host types
+/** Maps a settings field's declared type and {@code @Ref} to the JSON it takes. Host types
  * become host kinds where the settings may use them; other classes that are none of the built-in kinds become
  * object kinds through the given function. Throws {@link SettingsTypeProblem} for a type or reference that does
  * not fit.
@@ -45,8 +48,9 @@ final class ValueKinds {
             Byte.class, Short.class, Integer.class, Long.class);
     private static final Set<Class<?>> DECIMALS = Set.of(float.class, double.class, Float.class, Double.class);
     private static final String DECLARE_COLLECTION = "declare it as List<...>, Set<...> or Map<String, ...>";
-    private static final Set<Reference> PACK_REFERENCES = EnumSet.of(Reference.PACK_BIOME, Reference.PACK_REGION, Reference.PACK_OBJECT,
-            Reference.PACK_EXPRESSION, Reference.PACK_IMAGE_MAP, Reference.PACK_STRUCTURE);
+    private static final Map<Class<?>, ResourceId> HOST_KINDS = Stream.of(PackResources.BIOMES, PackResources.REGIONS,
+                    PackResources.OBJECTS, PackResources.EXPRESSIONS, PackResources.IMAGE_MAPS)
+            .collect(Collectors.toUnmodifiableMap(ResourceKind::type, ResourceKind::id));
 
     private final Function<Class<?>, ObjectKind> objects;
     private final HostTypes hostTypes;
@@ -68,12 +72,18 @@ final class ValueKinds {
         return kind(option.type(), new Naming(option.reference(), option.resource()));
     }
 
-    /** What a text option names: the field's {@code @Ref} and the class of its {@code @ResourceRef}, each null when absent. */
+    /** What a text option names: the registry or the kind's type of the field's {@code @Ref}, each null when absent. */
     private record Naming(Reference reference, Class<?> resource) {
         static final Naming NONE = new Naming(null, null);
 
         boolean isEmpty() {
             return reference == null && resource == null;
+        }
+
+        /** The annotation as written, for messages. */
+        @Override
+        public String toString() {
+            return reference != null ? "@Ref(" + reference + ")" : "@Ref(kind = " + resource.getName() + ")";
         }
     }
 
@@ -127,37 +137,29 @@ final class ValueKinds {
     }
 
     private ValueKind text(TextFormat format, Naming naming) {
-        if (naming.resource() != null) return resourceReference(naming);
+        if (naming.resource() != null) return resourceReference(naming.resource());
         var reference = naming.reference();
         if (reference == null) return new TextKind(format);
-        if (PACK_REFERENCES.contains(reference)) return new ReferenceKind(reference, TextFormat.PLAIN);
         return new ReferenceKind(reference, format);
     }
 
     /** Packs name a kind's resources by key without a namespace, as they name their biomes, so the JSON holds a key
      * whether the field is a String or a ResourceId (which the host reads as the pack's id of that key).
      */
-    private ValueKind resourceReference(Naming naming) {
-        var resource = naming.resource();
-        if (naming.reference() != null) {
-            throw new SettingsTypeProblem("has both @Ref(" + naming.reference() + ") and @ResourceRef(" + resource.getName()
-                    + "); an option names one kind of thing, so keep one");
-        }
+    private ValueKind resourceReference(Class<?> resource) {
+        var hostKind = HOST_KINDS.get(resource);
+        if (hostKind != null) return new ResourceReferenceKind(hostKind);
         return resourceKinds.apply(resource).map(ResourceReferenceKind::new).orElseThrow(() -> new SettingsTypeProblem(
-                "has @ResourceRef(" + resource.getName() + "), but no module of the pack registers a resource kind read into"
-                        + " that class; name the class of a kind registered with FeatureRegistry.registerResourceKind"));
+                "has @Ref(kind = " + resource.getName() + "), but neither the host nor a module of the pack has a resource kind"
+                        + " read into that class; name the type of a PackResources kind or of a kind registered with"
+                        + " FeatureRegistry.registerResourceKind"));
     }
 
     private static ValueKind blockState(Naming naming) {
-        var reference = naming.reference();
-        if (naming.resource() == null && (reference == null || reference == Reference.BLOCK)) {
+        if (naming.isEmpty() || naming.reference() == Reference.BLOCK) {
             return new ReferenceKind(Reference.BLOCK, TextFormat.BLOCK_STATE);
         }
-        if (naming.resource() != null) {
-            throw new SettingsTypeProblem("has @ResourceRef(" + naming.resource().getName() + ") on BlockState, which always"
-                    + " names a block; remove the @ResourceRef or use String");
-        }
-        throw new SettingsTypeProblem("has @Ref(" + reference + ") on BlockState, which always names a block;"
+        throw new SettingsTypeProblem("has " + naming + " on BlockState, which always names a block;"
                 + " remove the @Ref or use String or ResourceId");
     }
 
@@ -180,12 +182,8 @@ final class ValueKinds {
 
     private static void requireNoNaming(Type type, Naming naming) {
         if (naming.isEmpty()) return;
-        if (naming.reference() != null) {
-            throw new SettingsTypeProblem("has @Ref(" + naming.reference() + ") on " + type.getTypeName()
-                    + ", but @Ref fits only String and ResourceId and lists, sets and arrays of them");
-        }
-        throw new SettingsTypeProblem("has @ResourceRef(" + naming.resource().getName() + ") on " + type.getTypeName()
-                + ", but @ResourceRef fits only String and ResourceId and lists, sets and arrays of them");
+        throw new SettingsTypeProblem("has " + naming + " on " + type.getTypeName()
+                + ", but @Ref fits only String and ResourceId and lists, sets and arrays of them");
     }
 
     private static boolean isCollection(Class<?> type) {

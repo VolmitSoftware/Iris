@@ -29,6 +29,7 @@ import com.volmit.host.schema.ValueKind.ObjectKind;
 import com.volmit.host.schema.ValueKind.ReferenceKind;
 import com.volmit.host.schema.ValueKind.ResourceReferenceKind;
 import com.volmit.host.schema.ValueKind.TextKind;
+import com.volmit.resource.PackResources;
 import com.volmit.resource.ResourceId;
 import com.volmit.resource.ResourceKind;
 import com.volmit.support.TestModuleJar;
@@ -89,7 +90,7 @@ class PackSchemaTest {
                 private ResourceId palette = ResourceId.parse("example:flora/default");
                 @Ref(Reference.BLOCK)
                 private String ground = "minecraft:grass_block";
-                @Ref(Reference.PACK_BIOME) @MinItems(1)
+                @Ref(kind = com.volmit.world.PackBiome.class) @MinItems(1)
                 private List<String> biomes = List.of("plains", "forest");
                 @Ref(Reference.ITEM)
                 private ResourceId[] drops = {};
@@ -261,7 +262,7 @@ class PackSchemaTest {
         var settings = floraSchema().type("pack.flora.FloraSettings");
 
         assertEquals(new ReferenceKind(Reference.BLOCK, TextFormat.PLAIN), option(settings, "ground").kind());
-        assertEquals(new ListKind(new ReferenceKind(Reference.PACK_BIOME, TextFormat.PLAIN), false), option(settings, "biomes").kind());
+        assertEquals(new ListKind(new ResourceReferenceKind(PackResources.BIOMES.id()), false), option(settings, "biomes").kind());
         assertEquals(Optional.of(List.of("plains", "forest")), option(settings, "biomes").defaultValue());
         assertEquals(OptionalInt.of(1), option(settings, "biomes").minItems(), "@MinItems is described");
         assertEquals(OptionalInt.empty(), option(settings, "drops").minItems());
@@ -544,8 +545,8 @@ class PackSchemaTest {
         var style = schema.type("com.volmit.noise.NoiseStyle");
         assertEquals(Optional.of("style"), style.snippet(), "API classes keep the snippet folders packs already use");
         assertEquals(new ReferenceKind(Reference.NOISE_STYLE, TextFormat.PLAIN), option(style, "style").kind());
-        assertEquals(new ReferenceKind(Reference.PACK_EXPRESSION, TextFormat.PLAIN), option(style, "expression").kind());
-        assertEquals(new ReferenceKind(Reference.PACK_IMAGE_MAP, TextFormat.PLAIN), option(style, "imageMap").kind());
+        assertEquals(new ResourceReferenceKind(PackResources.EXPRESSIONS.id()), option(style, "expression").kind());
+        assertEquals(new ResourceReferenceKind(PackResources.IMAGE_MAPS.id()), option(style, "imageMap").kind());
         assertEquals(Optional.of("FLAT"), option(style, "style").defaultValue());
         assertEquals(List.of("palette", "range", "style", "style-range"), schema.snippets().stream().map(type -> type.snippet().orElseThrow()).toList());
     }
@@ -684,16 +685,16 @@ class PackSchemaTest {
 
                         @Feature(id = "example:flora", name = "Flora", key = "flora", targets = Level.BIOME)
                         public final class FloraSettings implements IrisFeature {
-                            @Ref(Reference.PACK_BIOME) private ResourceId home;
-                            @Ref(Reference.PACK_OBJECT) private List<ResourceId> objects = List.of();
+                            @Ref(kind = com.volmit.world.PackBiome.class) private ResourceId home;
+                            @Ref(kind = com.volmit.object.GeneratedObject.class) private List<ResourceId> objects = List.of();
                         }
                         """)
                 .writeInto(pack, "flora.jar");
 
         var settings = schemaOf(pack, NO_BUILT_INS).type("pack.flora.FloraSettings");
 
-        assertEquals(new ReferenceKind(Reference.PACK_BIOME, TextFormat.PLAIN), option(settings, "home").kind());
-        assertEquals(new ListKind(new ReferenceKind(Reference.PACK_OBJECT, TextFormat.PLAIN), false), option(settings, "objects").kind());
+        assertEquals(new ResourceReferenceKind(PackResources.BIOMES.id()), option(settings, "home").kind());
+        assertEquals(new ListKind(new ResourceReferenceKind(PackResources.OBJECTS.id()), false), option(settings, "objects").kind());
     }
 
     @Test
@@ -732,7 +733,7 @@ class PackSchemaTest {
                         public final class Keep {
                             @Desc("Towers on the walls") @MinNumber(1)
                             private int towers = 4;
-                            @ResourceRef(Keep.class)
+                            @Ref(kind = Keep.class)
                             private String next = "";
                         }
                         """)
@@ -746,7 +747,7 @@ class PackSchemaTest {
 
                         @Feature(id = "example:castle", name = "Castle", key = "castle", targets = Level.BIOME)
                         public final class CastleSettings implements IrisFeature {
-                            @ResourceRef(Keep.class)
+                            @Ref(kind = Keep.class)
                             private List<String> keeps = List.of("main");
                         }
                         """);
@@ -818,15 +819,16 @@ class PackSchemaTest {
 
     @Test
     void resourceReferencesNameARegisteredKindOnPlainText() {
-        assertLoadFails("Field pack.flora.FloraSettings.keep of " + FLORA_SOURCE + " has @ResourceRef(java.lang.Integer), but no"
-                + " module of the pack registers a resource kind read into that class; name the class of a kind registered with"
-                + " FeatureRegistry.registerResourceKind", "@ResourceRef(Integer.class) private String keep;");
-        assertLoadFails("Field pack.flora.FloraSettings.count of " + FLORA_SOURCE + " has @ResourceRef(java.lang.Integer) on int,"
-                + " but @ResourceRef fits only String and ResourceId and lists, sets and arrays of them",
-                "@ResourceRef(Integer.class) private int count;");
-        assertLoadFails("Field pack.flora.FloraSettings.keep of " + FLORA_SOURCE + " has both @Ref(BLOCK) and"
-                + " @ResourceRef(java.lang.Integer); an option names one kind of thing, so keep one",
-                "@Ref(Reference.BLOCK) @ResourceRef(Integer.class) private String keep;");
+        assertLoadFails("Field pack.flora.FloraSettings.keep of " + FLORA_SOURCE + " has @Ref(kind = java.lang.Integer), but"
+                + " neither the host nor a module of the pack has a resource kind read into that class; name the type of a"
+                + " PackResources kind or of a kind registered with FeatureRegistry.registerResourceKind",
+                "@Ref(kind = Integer.class) private String keep;");
+        assertLoadFails("Field pack.flora.FloraSettings.count of " + FLORA_SOURCE + " has @Ref(kind = java.lang.Integer) on int,"
+                + " but @Ref fits only String and ResourceId and lists, sets and arrays of them",
+                "@Ref(kind = Integer.class) private int count;");
+        assertLoadFails("Invalid @Ref on option: keep; give exactly one of a Reference or a kind",
+                "@Ref(value = Reference.BLOCK, kind = Integer.class) private String keep;");
+        assertLoadFails("Invalid @Ref on option: keep; give exactly one of a Reference or a kind", "@Ref private String keep;");
     }
 
     /** A built-in module {@code id} that registers {@code kind}. */

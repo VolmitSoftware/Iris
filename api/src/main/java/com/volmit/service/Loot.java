@@ -59,9 +59,9 @@ public interface Loot {
      * A loot table of the platform, such as {@code minecraft:chests/simple_dungeon}. The host draws it with {@code seed}
      * so that the same container always gets the same items.
      */
-    record PlatformTable(String key, long seed) implements Source {
+    record PlatformTable(ResourceId table, long seed) implements Source {
         public PlatformTable {
-            Objects.requireNonNull(key, "key");
+            Objects.requireNonNull(table, "table");
         }
     }
 }

@@ -5,7 +5,6 @@ import java.util.concurrent.atomic.LongAdder;
 public enum GenerationCounter {
     GENERATOR_EVALUATIONS("generator_evaluations"),
     CORNER_STARCASTS("corner_starcasts"),
-    HYDROLOGY_LOOKUPS("hydrology_lookups"),
     CAVE_LATTICE_READS("cave_lattice_reads"),
     CAVE_LATTICE_SAMPLES("cave_lattice_samples"),
     CAVE_WARP_SAMPLES("cave_warp_samples");

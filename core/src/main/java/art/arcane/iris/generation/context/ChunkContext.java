@@ -5,7 +5,7 @@ import art.arcane.iris.generation.runtime.DimensionStackLayout;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.runtime.EngineMetrics;
-import art.arcane.iris.generation.hydrology.runtime.IrisHydrologyRuntime;
+import art.arcane.iris.generation.hydrology.raster.ChunkWaterRaster;
 import art.arcane.iris.generation.biome.FloatingIslandBoundarySampler;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.mantle.CaveTerrainSnapshot;
@@ -25,6 +25,7 @@ public class ChunkContext {
     private FloatingBiomeOverlay floatingBiomes;
     private CaveTerrainSnapshot caveTerrain;
     private TransitionTerrainColumn[] transitionTerrain;
+    private volatile ChunkWaterRaster waterRaster;
     private final int x;
     private final int z;
     private final IrisComplex complex;
@@ -89,10 +90,6 @@ public class ChunkContext {
             PrefillPlan resolvedPlan = prefillPlan == null ? PrefillPlan.NO_CAVE : prefillPlan;
             boolean capturePrefillMetric = metrics != null;
             long totalStartNanos = capturePrefillMetric ? System.nanoTime() : 0L;
-            IrisHydrologyRuntime hydrologyRuntime = complex.getHydrologyRuntime();
-            if (hydrologyRuntime != null && (resolvedPlan.height || resolvedPlan.biome)) {
-                hydrologyRuntime.prepareChunkColumns(x, z);
-            }
             if (shouldPrefillAsync(resolvedPlan, complex.isPlatformMainThread())) {
                 prefillAsync(resolvedPlan);
             } else {
@@ -115,6 +112,9 @@ public class ChunkContext {
     }
 
     private void prefillSurface(PrefillPlan prefillPlan) {
+        if (prefillPlan.height || prefillPlan.biome) {
+            waterRaster();
+        }
         if (prefillPlan.height) {
             height.fillRounded(roundedHeight);
         }
@@ -207,6 +207,18 @@ public class ChunkContext {
 
     public IrisComplex getComplex() {
         return complex;
+    }
+
+    public ChunkWaterRaster waterRaster() {
+        ChunkWaterRaster known = waterRaster;
+        if (known != null) {
+            return known;
+        }
+        ChunkWaterRaster raster = complex.getHydrologyRuntime().raster(x >> 4, z >> 4);
+        if (!raster.provisional()) {
+            waterRaster = raster;
+        }
+        return raster;
     }
 
     public FloatingIslandBoundarySampler getFloatingIslandBoundarySampler() {

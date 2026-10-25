@@ -168,7 +168,7 @@ public final class NativeStructurePlacementPlanner {
     public static boolean isSubmerged(Engine engine, int blockX, int blockZ) {
         int localFluidHeight = engine.getComplex() == null
                 ? engine.getDimension().getFluidHeight()
-                : (int) Math.round(engine.getComplex().getRiverWaterSurfaceStream().get(blockX, blockZ));
+                : (int) Math.round(engine.getComplex().getWaterHeadStream().get(blockX, blockZ));
         return Engine.hostHeight(engine, blockX, blockZ, true) < localFluidHeight;
     }
 

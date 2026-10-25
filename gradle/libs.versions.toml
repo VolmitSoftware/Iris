@@ -29,6 +29,7 @@ gson = "2.14.0" # https://central.sonatype.com/artifact/com.google.code.gson/gso
 guava = "33.6.0-jre" # https://central.sonatype.com/artifact/com.google.guava/guava
 asm = "9.10.1" # https://central.sonatype.com/artifact/org.ow2.asm/asm
 caffeine = "3.2.4" # https://central.sonatype.com/artifact/com.github.ben-manes.caffeine/caffeine
+mockito = "5.23.0" # https://central.sonatype.com/artifact/org.mockito/mockito-core
 byte-buddy = "1.18.11" # https://central.sonatype.com/artifact/net.bytebuddy/byte-buddy
 dom4j = "2.2.0" # https://central.sonatype.com/artifact/org.dom4j/dom4j
 jaxen = "2.0.6" # https://central.sonatype.com/artifact/jaxen/jaxen
@@ -89,6 +90,7 @@ gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
 guava = { module = "com.google.guava:guava", version.ref = "guava" }
 asm = { module = "org.ow2.asm:asm", version.ref = "asm" }
 caffeine = { module = "com.github.ben-manes.caffeine:caffeine", version.ref = "caffeine" }
+mockito-core = { module = "org.mockito:mockito-core", version.ref = "mockito" }
 byteBuddy-core = { module = "net.bytebuddy:byte-buddy", version.ref = "byte-buddy" }
 byteBuddy-agent = { module = "net.bytebuddy:byte-buddy-agent", version.ref = "byte-buddy" }
 dom4j = { module = "org.dom4j:dom4j", version.ref = "dom4j" }

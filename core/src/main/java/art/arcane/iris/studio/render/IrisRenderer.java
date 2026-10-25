@@ -20,13 +20,10 @@ package art.arcane.iris.studio.render;
 
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.runtime.Engine;
-import art.arcane.iris.generation.hydrology.HydrologyCandidateKind;
-import art.arcane.iris.generation.hydrology.HydrologyDiagnosticCandidate;
-import art.arcane.iris.generation.hydrology.HydrologyDiagnosticRenderSample;
-import art.arcane.iris.generation.hydrology.HydrologyFeatureRef;
-import art.arcane.iris.generation.hydrology.HydrologyFeatureType;
-import art.arcane.iris.generation.hydrology.HydrologyRenderSample;
-import art.arcane.iris.generation.hydrology.runtime.IrisHydrologyRuntime;
+import art.arcane.iris.generation.hydrology.engine.HydrologyRuntime;
+import art.arcane.iris.generation.hydrology.query.HydrologyFeatureType;
+import art.arcane.iris.world.history.GenerationSemanticQueries;
+import art.arcane.iris.generation.stream.ProvisionalSampling;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.biome.IrisBiomeGeneratorLink;
 import art.arcane.iris.generation.terrain.IrisDimension;
@@ -36,13 +33,9 @@ import art.arcane.volmlib.util.stream.ProceduralStream;
 import java.awt.Color;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferInt;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.IdentityHashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CancellationException;
 import java.util.function.BooleanSupplier;
@@ -51,24 +44,19 @@ public final class IrisRenderer {
     private static final int BLUE = new Color(45, 91, 156).getRGB();
     private static final int YELLOW = new Color(211, 164, 67).getRGB();
     private static final int GREEN = new Color(78, 137, 83).getRGB();
-    private static final int HEADWATER = new Color(99, 184, 230).getRGB();
-    private static final int HEADWATER_DIRECTION = new Color(13, 38, 55).getRGB();
-    private static final int RIVER_CHANNEL = new Color(48, 112, 190).getRGB();
-    private static final int RIVER_RIFFLE = new Color(96, 166, 214).getRGB();
-    private static final int RIVER_CASCADE = new Color(135, 204, 232).getRGB();
-    private static final int SUBTERRANEAN_CHANNEL = new Color(102, 86, 196).getRGB();
-    private static final int RIDGE_TUNNEL = new Color(120, 99, 174).getRGB();
-    private static final int COASTAL_GROTTO = new Color(51, 174, 174).getRGB();
-    private static final int INLAND_GROTTO = new Color(116, 76, 150).getRGB();
-    private static final int RIVER_SINKHOLE = new Color(176, 146, 232).getRGB();
-    private static final int RIVER_MOUTH = new Color(54, 164, 205).getRGB();
-    private static final int RIVER_WATERFALL = new Color(190, 236, 255).getRGB();
-    private static final int CONFIRMED_DEEP_LAVA = new Color(194, 50, 22).getRGB();
-    private static final int STANDING_POOL = new Color(232, 120, 40).getRGB();
-    private static final int PROJECTED_SOURCE = new Color(225, 75, 178).getRGB();
-    private static final int PROJECTED_OUTLET = new Color(235, 145, 54).getRGB();
-    private static final int PROJECTED_DEEP_FLUID = new Color(175, 70, 118).getRGB();
+    private static final int WATER_STREAM = new Color(96, 166, 214).getRGB();
+    private static final int WATER_RIVER = new Color(48, 112, 190).getRGB();
+    private static final int WATER_MAJOR_RIVER = new Color(28, 72, 160).getRGB();
+    private static final int WATER_CASCADE = new Color(135, 204, 232).getRGB();
+    private static final int WATER_WATERFALL = new Color(190, 236, 255).getRGB();
+    private static final int WATER_MOUTH = new Color(54, 164, 205).getRGB();
+    private static final int WATER_POND = new Color(64, 140, 170).getRGB();
+    private static final int WATER_LAKE = new Color(40, 96, 140).getRGB();
+    private static final int WATER_DAM = new Color(150, 120, 84).getRGB();
+    private static final int WATER_SEA_INLET = new Color(51, 174, 174).getRGB();
+    private static final int WATER_CAVE_POOL = new Color(102, 86, 196).getRGB();
     private static final int NO_RIVER = new Color(28, 31, 38).getRGB();
+    private static final double RIVER_OVERLAY = 0.72D;
     private static final int DEEP_WATER = new Color(20, 48, 92).getRGB();
     private static final int SHALLOW_WATER = new Color(50, 112, 154).getRGB();
     private static final int LOWLAND = new Color(78, 128, 76).getRGB();
@@ -137,7 +125,7 @@ public final class IrisRenderer {
         BufferedImage image = new BufferedImage(resolution, resolution, BufferedImage.TYPE_INT_RGB);
         base.copyData(image.getRaster());
         int[] pixels = ((DataBufferInt) image.getRaster().getDataBuffer()).getData();
-        renderRiverAtlas(pixels, resolution, sx, sz, size / resolution, renderer.getComplex(), cancelled, true);
+        renderRiverAtlas(pixels, resolution, sx, sz, size / resolution, renderer, cancelled, true);
         checkCancelled(cancelled);
         return image;
     }
@@ -169,16 +157,16 @@ public final class IrisRenderer {
             renderHeightAtlas(pixels, resolution, sx, sz, step, renderer, cancelled);
             return image;
         }
-        PixelShader shader = shader(currentType, step, studio);
-        if (studio && currentType == RenderType.RIVER) {
+        if (currentType == RenderType.RIVER) {
             Arrays.fill(pixels, NO_RIVER);
-            renderRiverAtlas(pixels, resolution, sx, sz, step, renderer.getComplex(), cancelled, false);
+            renderRiverAtlas(pixels, resolution, sx, sz, step, renderer, cancelled, false);
             return image;
         }
+        PixelShader shader = shader(currentType, studio);
         if (studio && adaptiveStudioType(currentType)) {
             renderAdaptiveAtlas(pixels, resolution, sx, sz, step, shader, cancelled);
             if (currentType == RenderType.BIOME && riverOverlay) {
-                renderRiverAtlas(pixels, resolution, sx, sz, step, renderer.getComplex(), cancelled, true);
+                renderRiverAtlas(pixels, resolution, sx, sz, step, renderer, cancelled, true);
             }
             return image;
         }
@@ -205,54 +193,24 @@ public final class IrisRenderer {
         return image;
     }
 
-    public static int waterfallColor() {
-        return RIVER_WATERFALL;
-    }
-
-    public static int surfaceWaterColor() {
-        return RIVER_CHANNEL;
-    }
-
-    public static int subterraneanColor() {
-        return SUBTERRANEAN_CHANNEL;
-    }
-
-    public static int confirmedDeepLavaColor() {
-        return CONFIRMED_DEEP_LAVA;
+    public static List<HydrologyFeatureType> mapWaterTypes() {
+        return WaterMap.DRAWN;
     }
 
     public static int hydrologyFeatureColor(HydrologyFeatureType type) {
         Objects.requireNonNull(type, "type");
         return switch (type) {
-            case SURFACE_POOL -> RIVER_CHANNEL;
-            case RIFFLE -> RIVER_RIFFLE;
-            case CASCADE -> RIVER_CASCADE;
-            case WATERFALL -> RIVER_WATERFALL;
-            case SINKHOLE -> RIVER_SINKHOLE;
-            case RIDGE_BORE -> RIDGE_TUNNEL;
-            case UNDERGROUND_POOL, UNDERGROUND_DROP -> SUBTERRANEAN_CHANNEL;
-            case COASTAL_GROTTO -> COASTAL_GROTTO;
-            case INLAND_GROTTO -> INLAND_GROTTO;
-            case MOUTH -> RIVER_MOUTH;
-            case DEEP_POOL, DEEP_CHANNEL -> CONFIRMED_DEEP_LAVA;
-            case STANDING_POOL -> STANDING_POOL;
-        };
-    }
-
-    public static int headwaterColor() {
-        return HEADWATER;
-    }
-
-    public static int headwaterDirectionColor() {
-        return HEADWATER_DIRECTION;
-    }
-
-    public static int hydrologyDiagnosticColor(HydrologyCandidateKind kind) {
-        Objects.requireNonNull(kind, "kind");
-        return switch (kind) {
-            case SOURCE, TRIBUTARY, REGIONAL_SOURCE, COASTAL_CHANNEL -> PROJECTED_SOURCE;
-            case OUTLET -> PROJECTED_OUTLET;
-            case DEEP_FLUID, POOL -> PROJECTED_DEEP_FLUID;
+            case STREAM -> WATER_STREAM;
+            case RIVER -> WATER_RIVER;
+            case MAJOR_RIVER -> WATER_MAJOR_RIVER;
+            case CASCADE -> WATER_CASCADE;
+            case WATERFALL -> WATER_WATERFALL;
+            case MOUTH -> WATER_MOUTH;
+            case POND -> WATER_POND;
+            case LAKE -> WATER_LAKE;
+            case DAM -> WATER_DAM;
+            case SEA_INLET -> WATER_SEA_INLET;
+            case CAVE_POOL -> WATER_CAVE_POOL;
         };
     }
 
@@ -283,7 +241,7 @@ public final class IrisRenderer {
         return Math.max(1, Math.min(resolution, (int) Math.floor(16D / absoluteStep)));
     }
 
-    private PixelShader shader(RenderType currentType, double step, boolean studio) {
+    private PixelShader shader(RenderType currentType, boolean studio) {
         IrisComplex complex = renderer.getComplex();
         return switch (currentType) {
             case BIOME, DECORATOR_LOAD, OBJECT_LOAD, LAYER_LOAD -> biomeShader(
@@ -293,7 +251,7 @@ public final class IrisRenderer {
             case REGION -> regionShader(complex, currentType);
             case CAVE_LAND -> biomeShader(complex.getCaveBiomeStream(), currentType);
             case HEIGHT -> heightShader(studio ? complex.getNaturalHeightStream() : complex.getHeightStream());
-            case RIVER -> (double x, double z) -> riverColor(complex, x, z, step);
+            case RIVER -> throw new IllegalArgumentException("River maps render from the water raster atlas, not a pixel shader");
             case CONTINENT -> studio
                     ? continentShader(complex.getBaseBiomeStream())
                     : this::continentColor;
@@ -367,204 +325,32 @@ public final class IrisRenderer {
             double startX,
             double startZ,
             double step,
-            IrisComplex complex,
+            Engine engine,
             BooleanSupplier cancelled,
             boolean composite
     ) {
-        IrisHydrologyRuntime runtime = complex.getHydrologyRuntime();
-        if (runtime == null) {
+        HydrologyRuntime runtime = engine.getComplex().getHydrologyRuntime();
+        if (runtime == null || !runtime.enabled() || step > WaterMap.MAX_STEP) {
             return;
         }
-        Map<Long, HydrologyFeatureRef> headwaters = new LinkedHashMap<>();
-        int maximumPixels = Math.max(1, Math.min(16, (int) Math.floor(64D / step)));
-        int blockPixels = Integer.highestOneBit(maximumPixels);
-        for (int pixelZ = 0; pixelZ < resolution; pixelZ += blockPixels) {
-            int height = Math.min(blockPixels, resolution - pixelZ);
-            for (int pixelX = 0; pixelX < resolution; pixelX += blockPixels) {
-                renderRiverBlock(
-                        pixels,
-                        resolution,
-                        startX,
-                        startZ,
-                        step,
-                        runtime,
-                        cancelled,
-                        composite,
-                        !composite,
-                        headwaters,
-                        pixelX,
-                        pixelZ,
-                        Math.min(blockPixels, resolution - pixelX),
-                        height
-                );
+        WaterMap map = WaterMap.draw(runtime, resolution, startX, startZ, step, cancelled);
+        map.drawCavePools(GenerationSemanticQueries.recordedCavePools(engine, Math.floorDiv((int) Math.floor(startX), 16),
+                Math.floorDiv((int) Math.floor(startZ), 16), Math.floorDiv((int) Math.ceil(startX + resolution * step) - 1, 16),
+                Math.floorDiv((int) Math.ceil(startZ + resolution * step) - 1, 16)));
+        for (int pixelZ = 0; pixelZ < resolution; pixelZ++) {
+            for (int pixelX = 0; pixelX < resolution; pixelX++) {
+                HydrologyFeatureType type = map.at(pixelX, pixelZ);
+                if (type == null) {
+                    continue;
+                }
+                int index = pixelZ * resolution + pixelX;
+                int color = hydrologyFeatureColor(type);
+                pixels[index] = composite ? blend(pixels[index], color, RIVER_OVERLAY) : color;
             }
         }
-        renderHeadwaterDirections(pixels, resolution, startX, startZ, step, headwaters);
-    }
-
-    private static void renderRiverBlock(
-            int[] pixels,
-            int resolution,
-            double startX,
-            double startZ,
-            double step,
-            IrisHydrologyRuntime runtime,
-            BooleanSupplier cancelled,
-            boolean composite,
-            boolean diagnostics,
-            Map<Long, HydrologyFeatureRef> headwaters,
-            int pixelX,
-            int pixelZ,
-            int width,
-            int height
-    ) {
-        checkCancelled(cancelled);
-        HydrologyRenderSample sample = runtime.sampleRenderFootprint(
-                startX + pixelX * step,
-                startZ + pixelZ * step,
-                startX + (pixelX + width) * step,
-                startZ + (pixelZ + height) * step
-        );
-        HydrologyDiagnosticRenderSample diagnosticSample = diagnostics
-                ? runtime.sampleDiagnosticFootprint(
-                startX + pixelX * step,
-                startZ + pixelZ * step,
-                startX + (pixelX + width) * step,
-                startZ + (pixelZ + height) * step
-                )
-                : null;
-        collectHeadwaters(sample, headwaters);
-        if (!sample.present() && (diagnosticSample == null || !diagnosticSample.present())) {
-            return;
+        if (map.provisional()) {
+            ProvisionalSampling.mark();
         }
-        if (width == 1 && height == 1) {
-            int index = pixelZ * resolution + pixelX;
-            int color = sample.present()
-                    ? hydrologyColor(sample)
-                    : hydrologyDiagnosticColor(diagnosticSample);
-            pixels[index] = composite
-                    ? blend(pixels[index], color, 0.72D)
-                    : color;
-            return;
-        }
-        int leftWidth = Math.max(1, width / 2);
-        int rightWidth = width - leftWidth;
-        int topHeight = Math.max(1, height / 2);
-        int bottomHeight = height - topHeight;
-        renderRiverBlock(pixels, resolution, startX, startZ, step, runtime, cancelled, composite, diagnostics,
-                headwaters,
-                pixelX, pixelZ, leftWidth, topHeight);
-        if (rightWidth > 0) {
-            renderRiverBlock(pixels, resolution, startX, startZ, step, runtime, cancelled, composite, diagnostics,
-                    headwaters,
-                    pixelX + leftWidth, pixelZ, rightWidth, topHeight);
-        }
-        if (bottomHeight > 0) {
-            renderRiverBlock(pixels, resolution, startX, startZ, step, runtime, cancelled, composite, diagnostics,
-                    headwaters,
-                    pixelX, pixelZ + topHeight, leftWidth, bottomHeight);
-            if (rightWidth > 0) {
-                renderRiverBlock(pixels, resolution, startX, startZ, step, runtime, cancelled, composite, diagnostics,
-                        headwaters,
-                        pixelX + leftWidth, pixelZ + topHeight, rightWidth, bottomHeight);
-            }
-        }
-    }
-
-    private static void collectHeadwaters(
-            HydrologyRenderSample sample,
-            Map<Long, HydrologyFeatureRef> headwaters
-    ) {
-        for (HydrologyFeatureRef feature : sample.features()) {
-            if (!feature.source()) {
-                continue;
-            }
-            HydrologyFeatureRef existing = headwaters.putIfAbsent(feature.id(), feature);
-            if (existing != null && !existing.equals(feature)) {
-                throw new IllegalStateException("Hydrology headwater feature id collision in renderer footprint.");
-            }
-        }
-    }
-
-    private static void renderHeadwaterDirections(
-            int[] pixels,
-            int resolution,
-            double startX,
-            double startZ,
-            double step,
-            Map<Long, HydrologyFeatureRef> headwaters
-    ) {
-        if (resolution < 5 || headwaters.isEmpty()) {
-            return;
-        }
-        ArrayList<HydrologyFeatureRef> ordered = new ArrayList<>(headwaters.values());
-        ordered.sort(Comparator.comparingLong(HydrologyFeatureRef::id));
-        for (HydrologyFeatureRef feature : ordered) {
-            int pixelX = worldToPixel(feature.x(), startX, step, resolution);
-            int pixelZ = worldToPixel(feature.z(), startZ, step, resolution);
-            drawHeadwaterDirection(
-                    pixels,
-                    resolution,
-                    pixelX,
-                    pixelZ,
-                    feature.flowDeltaX(),
-                    feature.flowDeltaZ()
-            );
-        }
-    }
-
-    private static int worldToPixel(int coordinate, double start, double step, int resolution) {
-        int pixel = (int) StrictMath.floor((coordinate + 0.5D - start) / step);
-        int markerRadius = 2;
-        return Math.max(markerRadius, Math.min(resolution - markerRadius - 1, pixel));
-    }
-
-    private static void drawHeadwaterDirection(
-            int[] pixels,
-            int resolution,
-            int centerX,
-            int centerZ,
-            int flowX,
-            int flowZ
-    ) {
-        int markerRadius = Math.min(2, (resolution - 1) / 2);
-        for (int deltaZ = -markerRadius; deltaZ <= markerRadius; deltaZ++) {
-            for (int deltaX = -markerRadius; deltaX <= markerRadius; deltaX++) {
-                setPixel(pixels, resolution, centerX + deltaX, centerZ + deltaZ, HEADWATER);
-            }
-        }
-        if (flowX == 0 && flowZ == 0) {
-            setPixel(pixels, resolution, centerX, centerZ, HEADWATER_DIRECTION);
-            return;
-        }
-        setPixel(pixels, resolution, centerX - flowX * 2, centerZ - flowZ * 2, HEADWATER_DIRECTION);
-        setPixel(pixels, resolution, centerX - flowX, centerZ - flowZ, HEADWATER_DIRECTION);
-        setPixel(pixels, resolution, centerX, centerZ, HEADWATER_DIRECTION);
-        setPixel(pixels, resolution, centerX + flowX, centerZ + flowZ, HEADWATER_DIRECTION);
-        int tipX = centerX + flowX * 2;
-        int tipZ = centerZ + flowZ * 2;
-        setPixel(pixels, resolution, tipX, tipZ, HEADWATER_DIRECTION);
-        setPixel(
-                pixels,
-                resolution,
-                tipX - flowX - flowZ,
-                tipZ - flowZ + flowX,
-                HEADWATER_DIRECTION
-        );
-        setPixel(
-                pixels,
-                resolution,
-                tipX - flowX + flowZ,
-                tipZ - flowZ - flowX,
-                HEADWATER_DIRECTION
-        );
-    }
-
-    private static void setPixel(int[] pixels, int resolution, int x, int z, int color) {
-        if (x < 0 || x >= resolution || z < 0 || z >= resolution) {
-            return;
-        }
-        pixels[z * resolution + x] = color;
     }
 
     private PixelShader biomeShader(ProceduralStream<IrisBiome> stream, RenderType currentType) {
@@ -599,50 +385,6 @@ public final class IrisRenderer {
         IrisDimension dimension = renderer.getDimension();
         double fluidHeight = dimension == null ? 0D : dimension.getFluidHeight();
         return (double x, double z) -> heightColor(stream.getDouble(x, z), maximumHeight, fluidHeight);
-    }
-
-    private int riverColor(IrisComplex complex, double x, double z, double step) {
-        IrisHydrologyRuntime runtime = complex.getHydrologyRuntime();
-        if (runtime == null) {
-            return NO_RIVER;
-        }
-        double endX = x + step;
-        double endZ = z + step;
-        HydrologyRenderSample sample = runtime.sampleRenderFootprint(
-                StrictMath.min(x, endX),
-                StrictMath.min(z, endZ),
-                StrictMath.max(x, endX),
-                StrictMath.max(z, endZ)
-        );
-        if (sample.present()) {
-            return hydrologyColor(sample);
-        }
-        return hydrologyDiagnosticColor(runtime.sampleDiagnosticFootprint(
-                StrictMath.min(x, endX),
-                StrictMath.min(z, endZ),
-                StrictMath.max(x, endX),
-                StrictMath.max(z, endZ)
-        ));
-    }
-
-    static int hydrologyColor(HydrologyRenderSample sample) {
-        Objects.requireNonNull(sample, "sample");
-        HydrologyFeatureRef feature = sample.primaryFeature().orElse(null);
-        if (feature == null) {
-            return NO_RIVER;
-        }
-        if (feature.source()) {
-            return HEADWATER;
-        }
-        return hydrologyFeatureColor(feature.type());
-    }
-
-    static int hydrologyDiagnosticColor(HydrologyDiagnosticRenderSample sample) {
-        Objects.requireNonNull(sample, "sample");
-        HydrologyDiagnosticCandidate candidate = sample.candidates().isEmpty()
-                ? null
-                : sample.candidates().getFirst();
-        return candidate == null ? NO_RIVER : hydrologyDiagnosticColor(candidate.kind());
     }
 
     private int continentColor(double x, double z) {

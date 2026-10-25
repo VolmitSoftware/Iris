@@ -2,8 +2,6 @@ package art.arcane.iris.generation.decoration;
 
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.runtime.Engine;
-import art.arcane.iris.generation.hydrology.HydrologyColumnLayer;
-import art.arcane.iris.generation.hydrology.HydrologyColumnSample;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.hunk.Hunk;
@@ -71,21 +69,18 @@ final class IrisSugarCane {
 
     private static boolean plannedWater(Engine engine, int x, int y, int z) {
         IrisComplex complex = engine.getComplex();
-        HydrologyColumnSample sample = complex.sampleHydrologyColumn(x, z);
-        HydrologyColumnLayer fluid = sample == null ? null : sample.primarySurfaceFluidLayerOrNull();
-        if (fluid != null) {
-            return y > fluid.bedY() && y <= fluid.fluidHeadY()
-                    && supportsAdjacent(complex.resolveHydrologyFluid(fluid.profileKey(), x, z));
-        }
         int terrainHeight = (int) Math.round(complex.getHeightStream().getDouble(x, z));
-        int fluidHeight = (int) Math.round(complex.getRiverWaterSurfaceStream().getDouble(x, z));
+        int fluidHeight = (int) Math.round(complex.getWaterHeadStream().getDouble(x, z));
         if (y <= terrainHeight || y > fluidHeight) {
             return false;
+        }
+        if (complex.getWaterRoleStream().get(x, z).wet()) {
+            return supportsAdjacent(complex.resolveWaterFluid(x, z));
         }
         IrisBiome biome = complex.getTrueBiomeStream().get(x, z);
         KList<NativeBlockState> layers = biome.generateSeaLayers(x, z,
                 new RNG(engine.getSeedManager().getTerrain()), fluidHeight - terrainHeight, engine.getData());
         int depth = fluidHeight - y;
-        return supportsAdjacent(layers.hasIndex(depth) ? layers.get(depth) : complex.resolveSurfaceFluid(x, z));
+        return supportsAdjacent(layers.hasIndex(depth) ? layers.get(depth) : complex.resolveSeaFluid(x, z));
     }
 }

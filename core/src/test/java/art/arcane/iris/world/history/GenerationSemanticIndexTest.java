@@ -1,6 +1,6 @@
 package art.arcane.iris.world.history;
 
-import art.arcane.iris.generation.hydrology.HydrologyFeatureType;
+import art.arcane.iris.generation.hydrology.query.HydrologyFeatureType;
 import art.arcane.iris.testsupport.DurabilityMode;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import org.junit.ClassRule;
@@ -501,13 +501,89 @@ public final class GenerationSemanticIndexTest {
         Path shard = onlyShard(dimensionRoot.resolve("iris/generation/semantics"));
         byte[] encoded = Files.readAllBytes(shard);
         encoded[4] = 0;
-        encoded[5] = 7;
+        encoded[5] = 8;
         rewriteChecksum(encoded);
         replaceReferencedShard(dimensionRoot, shard, encoded);
 
         IOException error = assertThrows(IOException.class, () -> GenerationSemanticIndex.load(dimensionRoot));
 
-        assertTrue(error.getMessage().contains("unsupported format version 7"));
+        assertTrue(error.getMessage().contains("unsupported format version 8"));
+    }
+
+    @Test
+    public void legacyShardDiscardsHydrologyFeaturesInsteadOfReadingTheirOldTypeOrdinals() throws Exception {
+        Path dimensionRoot = temporaryFolder.newFolder("legacy-hydrology").toPath();
+        GenerationSemanticIndex index = GenerationSemanticIndex.load(dimensionRoot);
+        index.recordAndPersist(ChunkGenerationSemantics.builder(0, 0, 1L)
+                .addRegion("temperate")
+                .addRiverFeature("water", HydrologyFeatureType.MAJOR_RIVER, 9L, 3, 70, 4)
+                .seal()
+                .build());
+        Path shard = onlyShard(index.storageDirectory());
+        byte[] encoded = Files.readAllBytes(shard);
+        encoded[4] = 0;
+        encoded[5] = 6;
+        rewriteChecksum(encoded);
+        replaceReferencedShard(dimensionRoot, shard, encoded);
+
+        GenerationSemanticIndex loaded = GenerationSemanticIndex.load(dimensionRoot);
+        ChunkGenerationSemantics semantics = loaded.get(0, 0).orElseThrow();
+
+        assertTrue(semantics.riverFeatures().isEmpty());
+        assertEquals(Set.of("temperate"), semantics.regionKeys());
+        assertEquals(Set.of("water"), semantics.riverProfileKeys());
+        assertTrue(semantics.sealed());
+        assertTrue(loaded.findNearestRiver(
+                GenerationSemanticIndex.RiverQuery.acrossActivations(
+                        Set.of(HydrologyFeatureType.MAJOR_RIVER, HydrologyFeatureType.CASCADE),
+                        new ChunkGenerationSemantics.BlockPosition(0, 0, 0),
+                        4
+                ),
+                ChunkGenerationSemantics::sealed
+        ).isEmpty());
+    }
+
+    @Test
+    public void legacyShardIgnoresOldTypeOrdinalsBeyondTheCurrentFeatureTypes() throws Exception {
+        Path dimensionRoot = temporaryFolder.newFolder("legacy-hydrology-ordinals").toPath();
+        GenerationSemanticIndex index = GenerationSemanticIndex.load(dimensionRoot);
+        index.recordAndPersist(ChunkGenerationSemantics.builder(0, 0, 1L)
+                .addRegion("temperate")
+                .addRiverFeature("water", HydrologyFeatureType.STREAM, 9L, 3, 70, 4)
+                .seal()
+                .build());
+        Path shard = onlyShard(index.storageDirectory());
+        byte[] encoded = Files.readAllBytes(shard);
+        int legacyStandingPool = 13;
+        encoded[4] = 0;
+        encoded[5] = 6;
+        encoded[summaryRiverTypeOffset(encoded)] = (byte) legacyStandingPool;
+        encoded[firstRiverTypeOffset(encoded)] = (byte) legacyStandingPool;
+        rewriteChecksum(encoded);
+        replaceReferencedShard(dimensionRoot, shard, encoded);
+
+        ChunkGenerationSemantics semantics = GenerationSemanticIndex.load(dimensionRoot).get(0, 0).orElseThrow();
+
+        assertTrue(semantics.riverFeatures().isEmpty());
+        assertEquals(Set.of("temperate"), semantics.regionKeys());
+    }
+
+    @Test
+    public void currentShardKeepsEveryHydrologyFeatureType() throws Exception {
+        Path dimensionRoot = temporaryFolder.newFolder("current-hydrology").toPath();
+        GenerationSemanticIndex index = GenerationSemanticIndex.load(dimensionRoot);
+        ChunkGenerationSemantics.Builder builder = ChunkGenerationSemantics.builder(0, 0, 1L);
+        for (HydrologyFeatureType type : HydrologyFeatureType.values()) {
+            builder.addRiverFeature("water", type, type.ordinal() + 1L, type.ordinal(), 70, 4);
+        }
+        index.recordAndPersist(builder.seal().build());
+
+        ChunkGenerationSemantics semantics = GenerationSemanticIndex.load(dimensionRoot).get(0, 0).orElseThrow();
+
+        assertEquals(HydrologyFeatureType.values().length, semantics.riverFeatures().size());
+        for (ChunkGenerationSemantics.RiverFeatureOccurrence occurrence : semantics.riverFeatures()) {
+            assertEquals(occurrence.type().ordinal() + 1L, occurrence.featureId());
+        }
     }
 
     @Test
@@ -518,7 +594,7 @@ public final class GenerationSemanticIndexTest {
                 .addRegion("iris:temperate")
                 .addRiverFeature(
                         "iris:rivers/default",
-                        HydrologyFeatureType.RIFFLE,
+                        HydrologyFeatureType.STREAM,
                         17L,
                         1031,
                         71,
@@ -541,8 +617,7 @@ public final class GenerationSemanticIndexTest {
         assertEquals(new GenerationSemanticIndex.ChunkReference(64, -32, 7L), region.chunk());
         GenerationSemanticIndex.RiverMatch river = loaded.findNearestRiver(
                 GenerationSemanticIndex.RiverQuery.acrossActivations(
-                        java.util.Set.of(HydrologyFeatureType.RIFFLE),
-                        "iris:rivers/default",
+                        java.util.Set.of(HydrologyFeatureType.STREAM),
                         new ChunkGenerationSemantics.BlockPosition(1024, 0, -512),
                         2
                 ),
@@ -773,7 +848,7 @@ public final class GenerationSemanticIndexTest {
                 .addRiverProfile("rivers/default")
                 .addRiverFeature(
                         "rivers/default",
-                        HydrologyFeatureType.RIFFLE,
+                        HydrologyFeatureType.STREAM,
                         5L,
                         (chunkX << 4) + 7,
                         70,
@@ -863,6 +938,29 @@ public final class GenerationSemanticIndexTest {
                 (chunkX, chunkZ) -> claims.add(ChunkGenerationOwnership.packChunk(chunkX, chunkZ))
         );
         return claims;
+    }
+
+    private static int summaryRiverTypeOffset(byte[] encoded) {
+        ByteBuffer input = ByteBuffer.wrap(encoded);
+        input.position(28);
+        for (GenerationSemanticIndex.SemanticKind ignored : GenerationSemanticIndex.SemanticKind.values()) {
+            int count = Short.toUnsignedInt(input.getShort());
+            for (int index = 0; index < count; index++) {
+                int keyLength = Short.toUnsignedInt(input.getShort());
+                input.position(input.position() + keyLength);
+            }
+        }
+        return input.position() + Byte.BYTES;
+    }
+
+    private static int firstRiverTypeOffset(byte[] encoded) {
+        ByteBuffer input = ByteBuffer.wrap(encoded);
+        input.position(firstRecordFlagsOffset(encoded) + Byte.BYTES);
+        for (int list = 0; list < 5; list++) {
+            int count = Short.toUnsignedInt(input.getShort());
+            input.position(input.position() + count * Short.BYTES);
+        }
+        return input.position() + Short.BYTES + Short.BYTES;
     }
 
     private static int firstRecordFlagsOffset(byte[] encoded) {

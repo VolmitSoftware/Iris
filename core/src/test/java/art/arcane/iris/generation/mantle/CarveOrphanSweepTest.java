@@ -1,5 +1,11 @@
 package art.arcane.iris.generation.mantle;
 
+import art.arcane.iris.world.storage.matter.IrisMatterSupport;
+import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
+import art.arcane.volmlib.util.math.PowerOfTwoCoordinates;
+import art.arcane.volmlib.util.matter.IrisMatter;
+import art.arcane.volmlib.util.matter.Matter;
+import art.arcane.volmlib.util.matter.MatterCavern;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -9,6 +15,9 @@ import java.util.List;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class CarveOrphanSweepTest {
     private static final int WORLD_HEIGHT = 64;
@@ -173,6 +182,47 @@ public class CarveOrphanSweepTest {
 
         assertEquals(0, marked);
         assertTrue(fixture.marks().isEmpty());
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void solidAboveTheCaveCeilingIsNeverSweptOpen() {
+        IrisMatterSupport.ensureRegistered();
+        int[] ceilings = new int[256];
+        Arrays.fill(ceilings, CaveCeilingMask.UNMASKED);
+        ceilings[PowerOfTwoCoordinates.packLocal16(5, 5)] = 30;
+        for (boolean masked : new boolean[]{false, true}) {
+            Matter[] sections = new Matter[WORLD_HEIGHT >> 4];
+            MantleChunk<Matter> chunk = mock(MantleChunk.class);
+            when(chunk.sectionCount()).thenReturn(sections.length);
+            when(chunk.get(anyInt())).thenAnswer(call -> sections[call.<Integer>getArgument(0)]);
+            when(chunk.getOrCreate(anyInt())).thenAnswer(call -> {
+                int index = call.getArgument(0);
+                if (sections[index] == null) {
+                    sections[index] = new IrisMatter(16, 16, 16);
+                }
+                return sections[index];
+            });
+            MatterCavern open = new MatterCavern(true, "", (byte) 0);
+            for (int localX = 1; localX <= 14; localX++) {
+                for (int y = 25; y <= 35; y++) {
+                    for (int localZ = 1; localZ <= 14; localZ++) {
+                        if (localX != 5 || localZ != 5 || y < 33 || y > 34) {
+                            chunk.getOrCreate(y >> 4).slice(MatterCavern.class).set(localX, y & 15, localZ, open);
+                        }
+                    }
+                }
+            }
+            int[] surfaceHeights = new int[256];
+            Arrays.fill(surfaceHeights, SURFACE_Y);
+
+            int marked = CarveOrphanSweep.sweepChunk(chunk, surfaceHeights, SURFACE_BREAK_DEPTH, WORLD_CEILING_Y, null,
+                    masked ? ceilings : null);
+
+            MatterCavern swept = sections[2].<MatterCavern>slice(MatterCavern.class).get(5, 33 & 15, 5);
+            assertEquals(masked ? 0 : 2, marked);
+            assertEquals(!masked, swept != null);
+        }
     }
 
     private static final class Fixture implements CarveOrphanSweep.CarveAccess {

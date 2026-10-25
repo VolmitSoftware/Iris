@@ -3,8 +3,7 @@ package art.arcane.iris.platform.generation;
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.runtime.IrisEngine;
 import art.arcane.iris.generation.runtime.Engine;
-import art.arcane.iris.generation.hydrology.HydrologyPlannerSettings;
-import art.arcane.iris.generation.hydrology.runtime.IrisHydrologyRuntime;
+import art.arcane.iris.generation.hydrology.engine.HydrologyRuntime;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.studio.StudioMode;
 import org.bukkit.Chunk;
@@ -29,13 +28,14 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
-import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.atMostOnce;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.times;
 
@@ -48,18 +48,17 @@ public class BukkitChunkGeneratorSpawnHydrologyTest {
         fixture.generator.setEngine(null);
         fixture.generator.beginInitialEntry(false);
         fixture.generator.publishInitializedEngine(fixture.engine);
-        verify(fixture.hydrology).setNeighbourPrefetchEnabled(false);
 
         CompletableFuture<Void> prefetch = fixture.prefetch();
         fixture.lookup.complete(null);
         prefetch.get(5L, TimeUnit.SECONDS);
         verify(fixture.engine).startEntryHydrology(0, 0);
         fixture.generator.endStudioEntryBootstrap();
-        verify(fixture.hydrology, never()).setNeighbourPrefetchEnabled(true);
+        verifyOnlyEnablementChecked(fixture.hydrology);
 
         fixture.generator.completeInitialEntry();
         fixture.generator.completeInitialEntry();
-        verify(fixture.hydrology, times(1)).setNeighbourPrefetchEnabled(true);
+        verify(fixture.engine, times(1)).startEntryHydrology(0, 0);
     }
 
     @Test
@@ -71,28 +70,7 @@ public class BukkitChunkGeneratorSpawnHydrologyTest {
         fixture.generator.completeInitialEntry();
         fixture.generator.publishInitializedEngine(fixture.engine);
 
-        verifyNoInteractions(fixture.hydrology);
-    }
-
-    @Test
-    public void studioEntryDeferralAppliesToReplacementEngineUntilEntryCompletes() throws Exception {
-        Fixture fixture = new Fixture();
-        setField(fixture.generator, "studio", true);
-        fixture.generator.setEngine(null);
-        fixture.generator.beginInitialEntry(false);
-        fixture.generator.publishInitializedEngine(fixture.engine);
-        IrisEngine replacement = mock(IrisEngine.class);
-        IrisComplex complex = mock(IrisComplex.class);
-        IrisHydrologyRuntime hydrology = mock(IrisHydrologyRuntime.class);
-        when(replacement.getComplex()).thenReturn(complex);
-        when(complex.getHydrologyRuntime()).thenReturn(hydrology);
-
-        fixture.generator.publishInitializedEngine(replacement);
-        verify(fixture.hydrology).setNeighbourPrefetchEnabled(false);
-        verify(hydrology).setNeighbourPrefetchEnabled(false);
-        fixture.generator.completeInitialEntry();
-        verify(hydrology).setNeighbourPrefetchEnabled(true);
-        verify(fixture.hydrology, never()).setNeighbourPrefetchEnabled(true);
+        verifyOnlyEnablementChecked(fixture.hydrology);
     }
 
     @Test
@@ -125,7 +103,6 @@ public class BukkitChunkGeneratorSpawnHydrologyTest {
         setField(fixture.generator, "studioEntryBootstrapActive", new AtomicBoolean(false));
         fixture.generator.beginInitialEntry(false);
         fixture.generator.publishInitializedEngine(fixture.engine);
-        verify(fixture.hydrology).setNeighbourPrefetchEnabled(false);
         assertTrue(fixture.generator.shouldGenerateStructures());
 
         CompletableFuture<Void> prefetch = fixture.prefetch();
@@ -133,11 +110,10 @@ public class BukkitChunkGeneratorSpawnHydrologyTest {
         prefetch.get(5L, TimeUnit.SECONDS);
 
         verify(fixture.engine).startEntryHydrology(0, 0);
-        verify(fixture.hydrology, never()).prefetchArea(anyInt(), anyInt(), anyInt(), anyInt(), anyInt(), anyInt());
-        verify(fixture.hydrology, never()).setNeighbourPrefetchEnabled(true);
+        verifyOnlyEnablementChecked(fixture.hydrology);
         fixture.generator.completeInitialEntry();
         fixture.generator.completeInitialEntry();
-        verify(fixture.hydrology, times(1)).setNeighbourPrefetchEnabled(true);
+        verify(fixture.engine, times(1)).startEntryHydrology(0, 0);
     }
 
     @Test
@@ -147,13 +123,13 @@ public class BukkitChunkGeneratorSpawnHydrologyTest {
         fixture.generator.beginInitialEntry(false);
         fixture.generator.completeInitialEntry();
         fixture.generator.publishInitializedEngine(fixture.engine);
-        verifyNoInteractions(fixture.hydrology);
+        verifyOnlyEnablementChecked(fixture.hydrology);
 
         CompletableFuture<Void> prefetch = fixture.prefetch();
         fixture.lookup.complete(null);
         prefetch.get(5L, TimeUnit.SECONDS);
 
-        verify(fixture.hydrology).prefetchArea(-256, -256, 255, 255, 0, 0);
+        verify(fixture.hydrology).prepareWindowsAround(-16, -16, 15, 15, 1);
         verify(fixture.engine, never()).startEntryHydrology(anyInt(), anyInt());
     }
 
@@ -162,7 +138,7 @@ public class BukkitChunkGeneratorSpawnHydrologyTest {
         Fixture fixture = new Fixture();
 
         assertThrows(IllegalStateException.class, () -> fixture.generator.beginInitialEntry(false));
-        verifyNoInteractions(fixture.hydrology);
+        verifyOnlyEnablementChecked(fixture.hydrology);
     }
 
     @Test
@@ -172,7 +148,7 @@ public class BukkitChunkGeneratorSpawnHydrologyTest {
 
         assertFalse(prefetch.isDone());
         assertEquals(2, fixture.gate.availablePermits());
-        verifyNoInteractions(fixture.hydrology);
+        verifyOnlyEnablementChecked(fixture.hydrology);
         verify(fixture.world).getChunkAtAsync(0, 0, false);
         verify(fixture.world, never()).isChunkGenerated(anyInt(), anyInt());
         verify(fixture.world, never()).getChunkAtAsync(anyInt(), anyInt(), eq(true));
@@ -180,7 +156,7 @@ public class BukkitChunkGeneratorSpawnHydrologyTest {
         fixture.lookup.complete(null);
         prefetch.get(5L, TimeUnit.SECONDS);
 
-        verify(fixture.hydrology).prefetchArea(-256, -256, 255, 255, 0, 0);
+        verify(fixture.hydrology).prepareWindowsAround(-16, -16, 15, 15, 1);
         assertEquals(2, fixture.gate.availablePermits());
     }
 
@@ -191,7 +167,7 @@ public class BukkitChunkGeneratorSpawnHydrologyTest {
         fixture.lookup.complete(mock(Chunk.class));
         prefetch.get(5L, TimeUnit.SECONDS);
 
-        verifyNoInteractions(fixture.hydrology);
+        verifyOnlyEnablementChecked(fixture.hydrology);
     }
 
     @Test
@@ -202,7 +178,7 @@ public class BukkitChunkGeneratorSpawnHydrologyTest {
         fixture.lookup.complete(null);
         prefetch.get(5L, TimeUnit.SECONDS);
 
-        verifyNoInteractions(fixture.hydrology);
+        verifyOnlyEnablementChecked(fixture.hydrology);
         assertEquals(2, fixture.gate.availablePermits());
     }
 
@@ -225,7 +201,7 @@ public class BukkitChunkGeneratorSpawnHydrologyTest {
         }
         prefetch.get(5L, TimeUnit.SECONDS);
 
-        verifyNoInteractions(fixture.hydrology);
+        verifyOnlyEnablementChecked(fixture.hydrology);
         assertEquals(2, fixture.gate.availablePermits());
     }
 
@@ -237,7 +213,7 @@ public class BukkitChunkGeneratorSpawnHydrologyTest {
         fixture.lookup.complete(null);
         prefetch.get(5L, TimeUnit.SECONDS);
 
-        verifyNoInteractions(fixture.hydrology);
+        verifyOnlyEnablementChecked(fixture.hydrology);
         assertEquals(2, fixture.gate.availablePermits());
     }
 
@@ -249,19 +225,20 @@ public class BukkitChunkGeneratorSpawnHydrologyTest {
         fixture.lookup.complete(null);
         prefetch.get(5L, TimeUnit.SECONDS);
 
-        verifyNoInteractions(fixture.hydrology);
+        verifyOnlyEnablementChecked(fixture.hydrology);
     }
 
     @Test
     public void lateLookupDoesNotEnterReplacementHydrology() throws Exception {
         Fixture fixture = new Fixture();
         CompletableFuture<Void> prefetch = fixture.prefetch();
-        IrisHydrologyRuntime replacement = mock(IrisHydrologyRuntime.class);
+        HydrologyRuntime replacement = enabledHydrology();
         when(fixture.complex.getHydrologyRuntime()).thenReturn(replacement);
         fixture.lookup.complete(null);
         prefetch.get(5L, TimeUnit.SECONDS);
 
-        verifyNoInteractions(fixture.hydrology, replacement);
+        verifyOnlyEnablementChecked(fixture.hydrology);
+        verifyNoInteractions(replacement);
     }
 
     @Test
@@ -273,7 +250,7 @@ public class BukkitChunkGeneratorSpawnHydrologyTest {
         prefetch.get(5L, TimeUnit.SECONDS);
 
         verify(fixture.engine).startEntryHydrology(0, 0);
-        verifyNoInteractions(fixture.hydrology);
+        verifyOnlyEnablementChecked(fixture.hydrology);
     }
 
     @Test
@@ -286,7 +263,7 @@ public class BukkitChunkGeneratorSpawnHydrologyTest {
         ExecutionException result = assertThrows(ExecutionException.class,
                 () -> prefetch.get(5L, TimeUnit.SECONDS));
         assertSame(failure, result.getCause());
-        verifyNoInteractions(fixture.hydrology);
+        verifyOnlyEnablementChecked(fixture.hydrology);
         assertEquals(2, fixture.gate.availablePermits());
     }
 
@@ -298,7 +275,7 @@ public class BukkitChunkGeneratorSpawnHydrologyTest {
         fixture.lookup.completeExceptionally(new IllegalStateException("World unloaded"));
         prefetch.get(5L, TimeUnit.SECONDS);
 
-        verifyNoInteractions(fixture.hydrology);
+        verifyOnlyEnablementChecked(fixture.hydrology);
     }
 
     @Test
@@ -308,7 +285,7 @@ public class BukkitChunkGeneratorSpawnHydrologyTest {
         doAnswer(invocation -> {
             setField(fixture.generator, "closing", true);
             throw failure;
-        }).when(fixture.hydrology).prefetchArea(anyInt(), anyInt(), anyInt(), anyInt(), anyInt(), anyInt());
+        }).when(fixture.hydrology).prepareWindowsAround(anyInt(), anyInt(), anyInt(), anyInt(), anyInt());
         CompletableFuture<Void> prefetch = fixture.prefetch();
         fixture.lookup.complete(null);
 
@@ -316,6 +293,28 @@ public class BukkitChunkGeneratorSpawnHydrologyTest {
                 () -> prefetch.get(5L, TimeUnit.SECONDS));
         assertSame(failure, result.getCause());
         assertEquals(2, fixture.gate.availablePermits());
+    }
+
+    @Test
+    public void disabledHydrologySkipsTheSpawnLookup() throws Exception {
+        Fixture fixture = new Fixture();
+        when(fixture.hydrology.enabled()).thenReturn(false);
+
+        fixture.prefetch().get(5L, TimeUnit.SECONDS);
+
+        verify(fixture.world, never()).getChunkAtAsync(anyInt(), anyInt(), eq(false));
+        verifyOnlyEnablementChecked(fixture.hydrology);
+    }
+
+    private static HydrologyRuntime enabledHydrology() {
+        HydrologyRuntime hydrology = mock(HydrologyRuntime.class);
+        when(hydrology.enabled()).thenReturn(true);
+        return hydrology;
+    }
+
+    private static void verifyOnlyEnablementChecked(HydrologyRuntime hydrology) {
+        verify(hydrology, atMostOnce()).enabled();
+        verifyNoMoreInteractions(hydrology);
     }
 
     private static void setField(BukkitChunkGenerator generator, String name, Object value)
@@ -331,7 +330,7 @@ public class BukkitChunkGeneratorSpawnHydrologyTest {
                 new BukkitChunkGenerator.GenerationStageGate(2, generator::isClosing);
         private final IrisEngine engine = mock(IrisEngine.class);
         private final IrisComplex complex = mock(IrisComplex.class);
-        private final IrisHydrologyRuntime hydrology = mock(IrisHydrologyRuntime.class);
+        private final HydrologyRuntime hydrology = enabledHydrology();
         private final World world = mock(World.class);
         private final CompletableFuture<Chunk> lookup = new CompletableFuture<>();
 
@@ -341,9 +340,6 @@ public class BukkitChunkGeneratorSpawnHydrologyTest {
             doReturn(false).when(generator).usesFlatStudioTerrain();
             when(engine.getComplex()).thenReturn(complex);
             when(complex.getHydrologyRuntime()).thenReturn(hydrology);
-            HydrologyPlannerSettings settings = mock(HydrologyPlannerSettings.class, RETURNS_DEEP_STUBS);
-            when(settings.routing().tileSize()).thenReturn(512);
-            when(hydrology.settings()).thenReturn(settings);
             IrisDimension dimension = mock(IrisDimension.class);
             when(engine.getDimension()).thenReturn(dimension);
             when(dimension.getStudioMode()).thenReturn(StudioMode.NORMAL);

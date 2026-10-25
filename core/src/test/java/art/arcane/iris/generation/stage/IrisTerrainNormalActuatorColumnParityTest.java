@@ -8,13 +8,8 @@ import art.arcane.iris.generation.context.ChunkContext;
 import art.arcane.iris.generation.context.ChunkedDataCache;
 import art.arcane.iris.generation.decoration.IrisOreBands;
 import art.arcane.iris.generation.decoration.IrisOreGenerator;
-import art.arcane.iris.generation.hydrology.HydrologyColumnLayer;
-import art.arcane.iris.generation.hydrology.HydrologyColumnSample;
-import art.arcane.iris.generation.hydrology.HydrologyFeatureRef;
-import art.arcane.iris.generation.hydrology.HydrologyFeatureType;
-import art.arcane.iris.generation.hydrology.IrisHydrology;
-import art.arcane.iris.generation.hydrology.IrisRiverMaterialConfig;
-import art.arcane.iris.generation.hydrology.IrisSurfaceRiverBedConfig;
+import art.arcane.iris.generation.hydrology.config.IrisHydrologyMaterials;
+import art.arcane.iris.generation.hydrology.raster.WaterRole;
 import art.arcane.iris.generation.image.IrisImageMapRuntime;
 import art.arcane.iris.generation.noise.IrisGeneratorStyle;
 import art.arcane.iris.generation.runtime.Engine;
@@ -52,19 +47,22 @@ import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
- * Paints randomized columns (Terrain3D spans with cave ceilings, biome layers, river materials, a
- * mapped surface, bedrock, fluid, and surface and underground ores at every level) and compares
+ * Paints randomized columns (Terrain3D spans with cave ceilings, biome layers, water roles and their
+ * materials, a mapped surface, bedrock, fluid, and surface and underground ores at every level) and compares
  * each block with the per-block algorithm the painter replaced.
  */
 public class IrisTerrainNormalActuatorColumnParityTest {
     private static final int HEIGHT = 96;
     private static final int X = 21;
     private static final int Z = -7;
+    private static final Map<WaterRole, String> ROLE_PALETTE = Map.of(
+            WaterRole.CHANNEL, "bed", WaterRole.POND, "bed", WaterRole.MOUTH, "bed", WaterRole.CASCADE, "bed",
+            WaterRole.WATERFALL, "bed", WaterRole.SHORE, "shore", WaterRole.POND_SHORE, "shore",
+            WaterRole.DAM, "shore", WaterRole.BANK, "bank");
 
     @Rule
     public final PlatformBinding platform = PlatformBinding.of(IrisTerrainNormalActuatorColumnParityTest::distinctBlocks);
@@ -110,9 +108,12 @@ public class IrisTerrainNormalActuatorColumnParityTest {
         private final RNG rng = new RNG(0L);
         private final NativeBlockState rock = state("rock");
         private final NativeBlockState fluid = state("water");
+        private final NativeBlockState waterFluid = state("river_water");
         private final NativeBlockState mapped;
         private final Terrain3DColumn terrainColumn;
-        private final HydrologyColumnSample hydrology;
+        private final WaterRole role;
+        private final IrisHydrologyMaterials materials;
+        private final Map<String, NativeBlockState> palettes = new HashMap<>();
         private final int he;
         private final int surfaceFluid;
         private final KList<IrisOreGenerator> biomeSurface = new KList<>();
@@ -132,19 +133,14 @@ public class IrisTerrainNormalActuatorColumnParityTest {
             int seaCount = random.nextInt(3);
             int ceilingCount = random.nextInt(3);
             terrainColumn = random.nextBoolean() ? null : spans(random, Math.min(he, HEIGHT - 1));
-            IrisRiverMaterialConfig material = null;
-            if (random.nextInt(3) == 0) {
-                IrisMaterialPalette palette = mock(IrisMaterialPalette.class);
-                NativeBlockState riverBlock = state("river");
-                when(palette.get(any(RNG.class), anyDouble(), anyDouble(), anyDouble(), eq(data))).thenReturn(riverBlock);
-                material = new IrisRiverMaterialConfig().setEnabled(true).setDepth(random.nextInt(8)).setPalette(palette);
-            }
-            hydrology = material == null ? null : new HydrologyColumnSample(X, Z, he + 5, 0, false, "parent",
-                    List.of(bankLayer(random.nextBoolean())));
-            IrisHydrology rivers = new IrisHydrology();
-            if (material != null) {
-                rivers.getRivers().getSurface().getBanks().setShoreMaterial(material).setBankMaterial(material);
-            }
+            role = random.nextBoolean() ? WaterRole.NONE : WaterRole.values()[random.nextInt(WaterRole.values().length)];
+            boolean gravityLayers = random.nextInt(4) == 0;
+            materials = role == WaterRole.NONE || random.nextInt(3) == 0 ? null : new IrisHydrologyMaterials()
+                    .setBed(random.nextBoolean() ? palette("bed") : null)
+                    .setShore(random.nextBoolean() ? palette("shore") : null)
+                    .setBank(random.nextBoolean() ? palette("bank") : null)
+                    .setShoreDepth(1 + random.nextInt(8))
+                    .setAllowGravityBlocks(random.nextBoolean());
             for (int level = 0; level < 6; level++) {
                 KList<IrisOreGenerator> target = List.of(biomeSurface, biomeUnderground, regionSurface,
                         regionUnderground, dimensionSurface, dimensionUnderground).get(level);
@@ -160,7 +156,7 @@ public class IrisTerrainNormalActuatorColumnParityTest {
             region.setOres(regionOres);
             KList<IrisOreGenerator> dimensionOres = new KList<>(dimensionSurface);
             dimensionOres.addAll(dimensionUnderground);
-            dimension = new IrisDimension().setHydrology(rivers).setBedrock(bedrock).setHideOresForHiddenOre(false);
+            dimension = new IrisDimension().setBedrock(bedrock).setHideOresForHiddenOre(false);
             dimension.setOres(dimensionOres);
 
             when(engine.getDimension()).thenReturn(dimension);
@@ -170,10 +166,12 @@ public class IrisTerrainNormalActuatorColumnParityTest {
             IrisImageMapRuntime imageMap = mock(IrisImageMapRuntime.class);
             when(imageMap.sampleSurfaceBlock(anyDouble(), anyDouble())).thenReturn(mapped);
             when(complex.getImageMapRuntime()).thenReturn(imageMap);
-            when(complex.getRiverWaterSurfaceStream()).thenReturn(ProceduralStream.ofDouble((x, z) -> (double) surfaceFluid));
-            when(complex.sampleHydrologyColumn(X, Z)).thenReturn(hydrology);
-            when(complex.terrainColumn(eq(X), eq(Z), hydrology == null ? isNull() : any(HydrologyColumnSample.class)))
-                    .thenReturn(terrainColumn);
+            when(complex.getWaterHeadStream()).thenReturn(ProceduralStream.ofDouble((x, z) -> (double) surfaceFluid));
+            when(complex.getWaterRoleStream()).thenReturn(ProceduralStream.of((x, z) -> role, Interpolated.of(value -> 0D, value -> role)));
+            when(complex.resolveWaterMaterials(X, Z)).thenReturn(materials);
+            when(complex.resolveWaterFluid(X, Z)).thenReturn(waterFluid);
+            when(complex.naturalTrueHeight(X, Z)).thenReturn(he + 5);
+            when(complex.terrainColumn(X, Z)).thenReturn(terrainColumn);
             when(complex.naturalTerrainColumn(X, Z)).thenReturn(terrainColumn);
             when(context.getRoundedHeight(0, 0)).thenReturn(he);
             when(context.getBiome()).thenReturn(new ChunkedDataCache<>(
@@ -185,7 +183,7 @@ public class IrisTerrainNormalActuatorColumnParityTest {
             when(context.getFluid()).thenReturn(new ChunkedDataCache<>(
                     ProceduralStream.of((x, z) -> fluid, Interpolated.of(value -> 0D, value -> fluid)), X, Z, false));
             when(biome.generateLayers(eq(dimension), anyDouble(), anyDouble(), any(RNG.class),
-                    anyInt(), anyInt(), eq(data), eq(complex))).thenAnswer(invocation -> layers("layer", layerCount));
+                    anyInt(), anyInt(), eq(data), eq(complex))).thenAnswer(invocation -> layers(gravityLayers ? "sand" : "layer", layerCount));
             when(biome.generateSeaLayers(anyDouble(), anyDouble(), any(RNG.class), anyInt(), eq(data)))
                     .thenAnswer(invocation -> layers("sea", seaCount));
             when(biome.generateCeilingLayers(eq(dimension), anyDouble(), anyDouble(), any(RNG.class),
@@ -193,7 +191,7 @@ public class IrisTerrainNormalActuatorColumnParityTest {
             when(biome.getSurfaceOreBands()).thenReturn(IrisOreBands.of(biomeSurface));
             when(biome.getUndergroundOreBands()).thenReturn(IrisOreBands.of(biomeUnderground));
             description = "he=" + he + " fluid=" + surfaceFluid + " bedrock=" + bedrock + " mapped=" + (mapped != null)
-                    + " layers=" + layerCount + " column=" + terrainColumn + " material=" + (material == null ? -1 : material.getDepth());
+                    + " layers=" + layerCount + " column=" + terrainColumn + " role=" + role + " materials=" + materials;
         }
 
         @Override
@@ -209,7 +207,9 @@ public class IrisTerrainNormalActuatorColumnParityTest {
             int realZ = Z;
             NativeBlockState bedrockState = B.getState("BEDROCK");
             NativeBlockState airState = B.getState("AIR");
-            IrisSurfaceRiverBedConfig riverBed = dimension.getHydrology().getRivers().getSurface().getBed();
+            boolean wet = role.wet();
+            boolean seaFloor = !wet || role == WaterRole.INLET;
+            IrisHydrologyMaterials materials = role == WaterRole.INLET ? null : this.materials;
             int he = Math.min(chunkHeight, this.he);
             int surfaceFluidHeight = Math.min(chunkHeight, this.surfaceFluid);
             int hf = Math.max(surfaceFluidHeight, he);
@@ -217,21 +217,17 @@ public class IrisTerrainNormalActuatorColumnParityTest {
                 return;
             }
             int topY = Math.min(hf, chunkHeight - 1);
-            HydrologyColumnLayer hydrologyFluid = hydrology == null ? null : hydrology.primarySurfaceFluidLayerOrNull();
-            HydrologyColumnLayer hydrologyTerrain = hydrology == null ? null : hydrology.primarySurfaceLayerOrNull();
             int terrainSpan = terrainColumn == null ? -1 : terrainColumn.spanCount() - 1;
             int layerSurfaceY = he;
             int layerCeilingY = 0;
-            boolean exposeRiverStrata = dimension.getHydrology().getRivers().getSurface().getBanks().isExposeCutStrata()
-                    && hydrologyTerrain != null && hydrologyTerrain.terrainOwned() && !hydrologyTerrain.channel();
-            Terrain3DColumn naturalColumn = exposeRiverStrata ? terrainColumn : null;
+            boolean exposeStrata = role != WaterRole.NONE && seaFloor;
+            Terrain3DColumn naturalColumn = exposeStrata ? terrainColumn : null;
             int cut = 0;
-            boolean riverOwned = !riverBed.isAllowGravityBlocks()
-                    && hydrologyTerrain != null && hydrologyTerrain.terrainOwned();
-            IrisRiverMaterialConfig roleMaterial = IrisTerrainNormalActuator.hydrologyRoleMaterial(hydrologyTerrain,
-                    riverBed.getMaterial(),
-                    dimension.getHydrology().getRivers().getSurface().getBanks().getShoreMaterial(),
-                    dimension.getHydrology().getRivers().getSurface().getBanks().getBankMaterial());
+            boolean keepGravityAway = materials != null && !materials.isAllowGravityBlocks();
+            String paletteName = materials == null ? null : ROLE_PALETTE.get(role);
+            NativeBlockState paletteBlock = paletteName == null ? null : palettes.get(paletteName);
+            int paintDepth = paletteBlock == null ? 0 : paletteName.equals("shore") ? materials.getShoreDepth() : 1;
+            NativeBlockState columnFluid = wet ? waterFluid : fluid;
             OldBounds biomeSurfaceBounds = new OldBounds(biomeSurface);
             OldBounds regionSurfaceBounds = new OldBounds(regionSurface);
             OldBounds dimensionSurfaceBounds = new OldBounds(dimensionSurface);
@@ -280,10 +276,10 @@ public class IrisTerrainNormalActuatorColumnParityTest {
                 }
                 if (i > he && i <= hf) {
                     int fdepth = hf - i;
-                    if (hydrologyFluid == null && fblocks == null) {
+                    if (seaFloor && fblocks == null) {
                         fblocks = biome.generateSeaLayers(realX, realZ, rng, hf - he, data);
                     }
-                    h.setRaw(xf, i, zf, HydrologyFluidLayerSelector.select(fblocks, fdepth, fluid, hydrologyFluid != null));
+                    h.setRaw(xf, i, zf, HydrologyFluidLayerSelector.select(fblocks, fdepth, columnFluid, !seaFloor));
                     continue;
                 }
                 if (i <= he) {
@@ -293,8 +289,8 @@ public class IrisTerrainNormalActuatorColumnParityTest {
                         continue;
                     }
                     if (blocks == null) {
-                        if (exposeRiverStrata) {
-                            int naturalSurfaceY = naturalColumn == null ? hydrology.naturalHeight() : naturalColumn.surfaceY(layerSurfaceY);
+                        if (exposeStrata) {
+                            int naturalSurfaceY = naturalColumn == null ? he + 5 : naturalColumn.surfaceY(layerSurfaceY);
                             cut = Math.max(0, naturalSurfaceY - layerSurfaceY);
                         }
                         blocks = biome.generateLayers(dimension, realX, realZ, rng,
@@ -309,12 +305,11 @@ public class IrisTerrainNormalActuatorColumnParityTest {
                         continue;
                     }
                     int strataIndex = IrisTerrainNormalActuator.strataIndex(depth, cut, blocks.size());
-                    NativeBlockState layerBlock = IrisTerrainNormalActuator.paintHydrologyMaterial(
-                            blocks.hasIndex(strataIndex) ? blocks.get(strataIndex) : null,
-                            roleMaterial, depth, rng, realX, i, realZ, data);
+                    NativeBlockState layerBlock = paletteBlock != null && depth < paintDepth ? paletteBlock
+                            : blocks.hasIndex(strataIndex) ? blocks.get(strataIndex) : null;
                     if (layerBlock != null) {
-                        if (riverOwned && depth <= riverBed.getPadding() && IrisProceduralBlocks.isGravityAffected(layerBlock)) {
-                            layerBlock = riverBed.getPaddingPalette().get(rng, realX, i, realZ, data);
+                        if (keepGravityAway && IrisProceduralBlocks.isGravityAffected(layerBlock)) {
+                            layerBlock = rock;
                         }
                         h.setRaw(xf, i, zf, layerBlock);
                         continue;
@@ -348,9 +343,17 @@ public class IrisTerrainNormalActuatorColumnParityTest {
         private static KList<NativeBlockState> layers(String name, int count) {
             KList<NativeBlockState> layers = new KList<>();
             for (int index = 0; index < count; index++) {
-                layers.add(state(name + index));
+                layers.add(state(index % 2 == 0 && name.equals("sand") ? name : name + index));
             }
             return layers;
+        }
+
+        private IrisMaterialPalette palette(String name) {
+            IrisMaterialPalette palette = mock(IrisMaterialPalette.class);
+            NativeBlockState block = state(name);
+            palettes.put(name, block);
+            when(palette.get(any(RNG.class), anyDouble(), anyDouble(), anyDouble(), eq(data))).thenReturn(block);
+            return palette;
         }
 
         private static Terrain3DColumn spans(Random random, int top) {
@@ -386,13 +389,6 @@ public class IrisTerrainNormalActuatorColumnParityTest {
             when(style.create(any(), any())).thenReturn(chance);
             return generator.setPalette(palette).setChanceStyle(style).setThreshold(threshold)
                     .setRange(new IrisRange(min, max)).setGenerateSurface(surface);
-        }
-
-        private static HydrologyColumnLayer bankLayer(boolean shore) {
-            return new HydrologyColumnLayer(
-                    new HydrologyFeatureRef(21L, HydrologyFeatureType.RIFFLE, 22L, 23L, X, 63, Z, 1, 0, false),
-                    60, 63, 63, false, shore, !shore, false, false, false, true, false, false,
-                    "default", "river", "mouth", "shore", "bank", "cave");
         }
 
         private static NativeBlockState state(String key) {

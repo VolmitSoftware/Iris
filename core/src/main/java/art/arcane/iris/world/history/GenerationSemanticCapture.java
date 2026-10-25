@@ -11,9 +11,16 @@ import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.structure.placement.IrisStructureLocator;
 import art.arcane.iris.structure.placement.StructurePlacementMarker;
 import art.arcane.iris.structure.placement.StructurePlacementScope;
-import art.arcane.iris.generation.hydrology.HydrologyColumnLayer;
-import art.arcane.iris.generation.hydrology.HydrologyColumnSample;
+import art.arcane.iris.generation.hydrology.cave.HydrologyCaveAction;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveCell;
+import art.arcane.iris.generation.hydrology.grid.CellHash;
+import art.arcane.iris.generation.hydrology.engine.HydrologyRuntime;
+import art.arcane.iris.generation.hydrology.query.HydrologyFeatureType;
+import art.arcane.iris.generation.hydrology.raster.ChunkWaterRaster;
+import art.arcane.iris.generation.hydrology.raster.WaterRole;
+import art.arcane.iris.generation.hydrology.underground.SeaInlet;
+import art.arcane.iris.generation.hydrology.underground.SeaInletRasterizer;
+import art.arcane.iris.generation.hydrology.water.HydrologyTier;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.terrain.IrisRegion;
 import art.arcane.iris.generation.terrain.IrisDimension;
@@ -27,11 +34,19 @@ import art.arcane.volmlib.util.matter.Matter;
 import art.arcane.volmlib.util.matter.MatterCavern;
 import art.arcane.volmlib.util.matter.MatterStructurePOI;
 
+import java.util.ArrayDeque;
 import java.util.BitSet;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 public final class GenerationSemanticCapture {
     private static final int CHUNK_SIZE = 16;
+    private static final String INLET_PROFILE = HydrologyFeatureType.SEA_INLET.key();
+    private static final long CAVE_POOL_SALT = 0x43415645504f4f4cL;
 
     private GenerationSemanticCapture() {
     }
@@ -93,6 +108,7 @@ public final class GenerationSemanticCapture {
                 activationId
         );
         captureColumns(requiredEngine, chunkX, chunkZ, semantics);
+        captureWater(requiredEngine, chunkX, chunkZ, semantics);
         captureMantleFacts(requiredEngine, chunkX, chunkZ, semantics, caveSpace, scoped);
         captureStructures(requiredEngine, chunkX, chunkZ, semantics);
         return semantics.seal().build();
@@ -121,29 +137,94 @@ public final class GenerationSemanticCapture {
                         semantics.addRegion(region.getLoadKey());
                     }
                 }
+            }
+        }
+    }
+
+    private static void captureWater(
+            Engine engine,
+            int chunkX,
+            int chunkZ,
+            ChunkGenerationSemantics.Builder semantics
+    ) {
+        IrisComplex complex = engine.getComplex();
+        HydrologyRuntime runtime = complex.getHydrologyRuntime();
+        if (runtime == null || !runtime.enabled()) {
+            return;
+        }
+        ChunkWaterRaster raster = runtime.raster(chunkX, chunkZ);
+        if (raster.provisional()) {
+            throw new IllegalStateException("Chunk " + chunkX + "," + chunkZ
+                    + " cannot record its water features: its water raster is not planned on this thread.");
+        }
+        int minimumX = Math.multiplyExact(chunkX, CHUNK_SIZE);
+        int minimumZ = Math.multiplyExact(chunkZ, CHUNK_SIZE);
+        int minimumY = engine.getDimension().getMinHeight();
+        captureInlets(complex, runtime.inlets(chunkX, chunkZ), minimumX, minimumZ, minimumY, semantics);
+        if (raster.empty()) {
+            return;
+        }
+        Map<Long, Set<HydrologyFeatureType>> standing = new HashMap<>();
+        Set<WaterFeature> recorded = new HashSet<>();
+        for (int localX = 0; localX < CHUNK_SIZE; localX++) {
+            int blockX = minimumX + localX;
+            for (int localZ = 0; localZ < CHUNK_SIZE; localZ++) {
+                int blockZ = minimumZ + localZ;
                 if (!hasFullHydrologyWeight(complex, blockX, blockZ)) {
                     continue;
                 }
-                HydrologyColumnSample hydrology = complex.sampleHydrologyColumn(blockX, blockZ);
-                if (hydrology == null) {
+                WaterRole role = complex.getWaterRoleStream().get(blockX, blockZ);
+                if (!role.wet() || role == WaterRole.INLET) {
                     continue;
                 }
-                for (HydrologyColumnLayer layer : hydrology.layers()) {
-                    semantics.addRiverProfile(layer.profileKey());
-                    semantics.addRiverFeature(
-                            layer.profileKey(),
-                            layer.feature().type(),
-                            layer.feature().id(),
-                            layer.feature().x(),
-                            Math.addExact(
-                                    layer.feature().y(),
-                                    engine.getDimension().getMinHeight()
-                            ),
-                            layer.feature().z()
-                    );
+                long id = raster.featureId(localX, localZ);
+                Set<HydrologyFeatureType> types = role == WaterRole.POND
+                        ? standing.computeIfAbsent(id, feature -> runtime.standingWaterTypes(chunkX, chunkZ, feature))
+                        : flowingTypes(runtime, role, raster.tier(localX, localZ));
+                String fluid = Objects.requireNonNull(raster.fluid(localX, localZ),
+                        "Water column " + blockX + "," + blockZ + " has no fluid profile");
+                int y = Math.addExact((int) Math.round(complex.getWaterHeadStream().getDouble(blockX, blockZ)), minimumY);
+                for (HydrologyFeatureType type : types) {
+                    if (recorded.add(new WaterFeature(type, id))) {
+                        semantics.addRiverFeature(fluid, type, id, blockX, y, blockZ);
+                    }
                 }
             }
         }
+    }
+
+    private static void captureInlets(IrisComplex complex, List<SeaInlet> inlets, int minimumX, int minimumZ, int minimumY,
+                                      ChunkGenerationSemantics.Builder semantics) {
+        for (SeaInlet inlet : inlets) {
+            captureInlet(complex, inlet, minimumX, minimumZ, minimumY, semantics);
+        }
+    }
+
+    private static void captureInlet(IrisComplex complex, SeaInlet inlet, int minimumX, int minimumZ, int minimumY,
+                                     ChunkGenerationSemantics.Builder semantics) {
+        int[] column = new int[2];
+        for (int localX = 0; localX < CHUNK_SIZE; localX++) {
+            for (int localZ = 0; localZ < CHUNK_SIZE; localZ++) {
+                int blockX = minimumX + localX;
+                int blockZ = minimumZ + localZ;
+                if (SeaInletRasterizer.column(inlet, blockX, blockZ, column) && hasFullHydrologyWeight(complex, blockX, blockZ)) {
+                    semantics.addRiverFeature(INLET_PROFILE, HydrologyFeatureType.SEA_INLET, inlet.id(), blockX,
+                            Math.addExact(inlet.waterLevel(), minimumY), blockZ);
+                    return;
+                }
+            }
+        }
+    }
+
+    private static Set<HydrologyFeatureType> flowingTypes(HydrologyRuntime runtime, WaterRole role, HydrologyTier tier) {
+        return switch (role) {
+            case CHANNEL -> Set.of(runtime.channelType(tier));
+            case CASCADE -> Set.of(HydrologyFeatureType.CASCADE, runtime.channelType(tier));
+            case WATERFALL -> Set.of(HydrologyFeatureType.WATERFALL, runtime.channelType(tier));
+            case MOUTH -> Set.of(HydrologyFeatureType.MOUTH, runtime.channelType(tier));
+            case NONE, BANK, SHORE, POND, POND_SHORE, DAM, INLET ->
+                    throw new IllegalArgumentException("Water role " + role + " is not flowing water");
+        };
     }
 
     private static void captureMantleFacts(
@@ -174,9 +255,13 @@ public final class GenerationSemanticCapture {
             );
         });
         IrisComplex complex = engine.getComplex();
+        Map<Integer, String> poolCells = new HashMap<>();
         mantle.iterateChunk(chunkX, chunkZ, HydrologyCaveCell.class, (localX, y, localZ, cell) -> {
             if (!caveSpace.test(localX, y, localZ)) {
                 return;
+            }
+            if (cell != null && cell.action() == HydrologyCaveAction.POOL_SOURCE) {
+                poolCells.put(poolCell(localX, y, localZ), cell.fluidProfileKey());
             }
             int blockX = minimumX + localX;
             int blockZ = minimumZ + localZ;
@@ -192,10 +277,14 @@ public final class GenerationSemanticCapture {
                     blockZ,
                     cell == null ? null : cell.floodedBiomeKey()
             );
-            if (cell != null && cell.fluidProfileKey() != null && !cell.fluidProfileKey().isBlank()) {
+            if (cell != null && cell.isWet() && cell.fluidProfileKey() != null && !cell.fluidProfileKey().isBlank()
+                    && !HydrologyCaveCell.SEA_FLUID.equals(cell.fluidProfileKey())) {
                 semantics.addRiverProfile(cell.fluidProfileKey());
             }
         });
+        if (!poolCells.isEmpty()) {
+            captureCavePools(poolCells, minimumX, minimumZ, engine.getDimension().getMinHeight(), semantics);
+        }
         mantle.iterateChunk(chunkX, chunkZ, MatterStructurePOI.class, (localX, y, localZ, point) -> {
             if (point != null) {
                 semantics.addPointOfInterest(new ChunkGenerationSemantics.PointOfInterest(point.getType(),
@@ -205,6 +294,72 @@ public final class GenerationSemanticCapture {
         });
         ObjectMarkers objects = new ObjectMarkers(semantics);
         mantle.iterateChunk(chunkX, chunkZ, String.class, (localX, y, localZ, marker) -> objects.add(marker));
+    }
+
+    private static void captureCavePools(Map<Integer, String> cells, int minimumX, int minimumZ, int minimumY,
+                                         ChunkGenerationSemantics.Builder semantics) {
+        Set<Integer> visited = new HashSet<>();
+        for (int start : cells.keySet()) {
+            if (!visited.add(start)) {
+                continue;
+            }
+            int top = start;
+            ArrayDeque<Integer> queue = new ArrayDeque<>();
+            queue.add(start);
+            while (!queue.isEmpty()) {
+                int cell = queue.poll();
+                if (abovePoolCell(cell, top)) {
+                    top = cell;
+                }
+                for (int neighbour : poolNeighbours(cell)) {
+                    if (neighbour >= 0 && cells.containsKey(neighbour) && visited.add(neighbour)) {
+                        queue.add(neighbour);
+                    }
+                }
+            }
+            int blockX = minimumX + poolX(top);
+            int blockZ = minimumZ + poolZ(top);
+            int y = Math.addExact(poolY(top), minimumY);
+            semantics.addRiverFeature(cells.get(top), HydrologyFeatureType.CAVE_POOL, CellHash.mix(CAVE_POOL_SALT, y, blockX, blockZ),
+                    blockX, y, blockZ);
+        }
+    }
+
+    private static int poolCell(int localX, int y, int localZ) {
+        return (y << 8) | (localX << 4) | localZ;
+    }
+
+    private static int poolX(int cell) {
+        return (cell >> 4) & 15;
+    }
+
+    private static int poolZ(int cell) {
+        return cell & 15;
+    }
+
+    private static int poolY(int cell) {
+        return cell >>> 8;
+    }
+
+    private static boolean abovePoolCell(int cell, int top) {
+        if (poolY(cell) != poolY(top)) {
+            return poolY(cell) > poolY(top);
+        }
+        return poolX(cell) != poolX(top) ? poolX(cell) < poolX(top) : poolZ(cell) < poolZ(top);
+    }
+
+    private static int[] poolNeighbours(int cell) {
+        int x = poolX(cell);
+        int y = poolY(cell);
+        int z = poolZ(cell);
+        return new int[]{
+                x < 15 ? poolCell(x + 1, y, z) : -1,
+                x > 0 ? poolCell(x - 1, y, z) : -1,
+                z < 15 ? poolCell(x, y, z + 1) : -1,
+                z > 0 ? poolCell(x, y, z - 1) : -1,
+                poolCell(x, y + 1, z),
+                y > 0 ? poolCell(x, y - 1, z) : -1
+        };
     }
 
     private static boolean hasFullHydrologyWeight(IrisComplex complex, int blockX, int blockZ) {
@@ -428,4 +583,6 @@ public final class GenerationSemanticCapture {
     private record CaveColumn(IrisBiome surfaceBiome, IrisBiome caveBiome, int surfaceY, int minimumDepth) {
     }
 
+    private record WaterFeature(HydrologyFeatureType type, long id) {
+    }
 }

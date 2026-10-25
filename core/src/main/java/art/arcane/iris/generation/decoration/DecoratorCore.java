@@ -542,7 +542,7 @@ final class DecoratorCore {
         return stack;
     }
 
-    private static boolean allowsSurface(IrisDecorator decorator, NativeBlockState surface, IrisData data) {
+    static boolean allowsSurface(IrisDecorator decorator, NativeBlockState surface, IrisData data) {
         return decorator.isForcePlace()
                 || (decorator.getWhitelist() == null || matchesPalette(decorator.getWhitelistArray(data), surface))
                 && (decorator.getBlacklist() == null || !matchesPalette(decorator.getBlacklistArray(data), surface));

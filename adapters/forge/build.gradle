@@ -178,7 +178,7 @@ dependencies {
         ? minecraft.dependency("net.minecraftforge:forge:${forgeVersion}")
         : minecraft.dependency("iris-${buildLane}", "net.minecraftforge:forge:${forgeVersion}"))
     testImplementation('junit:junit:4.13.2')
-    testImplementation('org.mockito:mockito-core:5.23.0')
+    testImplementation(libs.mockito.core)
     testImplementation(testFixtures('art.arcane:core'))
     testImplementation(libs.spigot) {
         transitive = false
@@ -271,6 +271,8 @@ tasks.named('compileJava', JavaCompile).configure {
     options.compilerArgs.addAll(['-Xmaxerrs', '2000'])
     options.release.set((int) irisModTarget.java)
 }
+
+apply from: file('../../gradle/mockito-agent.gradle')
 
 tasks.named('test').configure {
 }

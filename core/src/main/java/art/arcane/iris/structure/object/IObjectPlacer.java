@@ -69,7 +69,7 @@ public interface IObjectPlacer {
         }
         int coordinateShift = getFluidHeight() - engine.getDimension().getFluidHeight();
         return coordinateShift + (int) Math.round(
-                engine.getComplex().getRiverWaterSurfaceStream().get(x, z)
+                engine.getComplex().getWaterHeadStream().get(x, z)
         );
     }
 

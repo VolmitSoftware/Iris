@@ -454,9 +454,9 @@ public class IrisStructureLocatorContractTest {
         when(engine.getComplex()).thenReturn(complex);
         when(complex.allowsNewGenerationFootprint(anyInt(), anyInt(), anyInt(), anyInt())).thenReturn(true);
         @SuppressWarnings("unchecked")
-        ProceduralStream<Double> riverHeight = mock(ProceduralStream.class);
-        when(complex.getRiverWaterSurfaceStream()).thenReturn(riverHeight);
-        when(riverHeight.get(anyDouble(), anyDouble())).thenReturn(63D);
+        ProceduralStream<Double> waterHead = mock(ProceduralStream.class);
+        when(complex.getWaterHeadStream()).thenReturn(waterHead);
+        when(waterHead.get(anyDouble(), anyDouble())).thenReturn(63D);
         when(engine.getAllBiomes()).thenReturn(new KList<>());
         when(engine.getHeight(anyInt(), anyInt(), eq(true))).thenReturn(128);
         when(engine.getDimension().getFluidHeight()).thenReturn(63);

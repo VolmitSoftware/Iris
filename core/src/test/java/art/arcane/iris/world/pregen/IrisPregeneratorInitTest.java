@@ -2,7 +2,6 @@ package art.arcane.iris.world.pregen;
 
 import art.arcane.iris.configuration.IrisSettings;
 import art.arcane.iris.spi.IrisLogging;
-import art.arcane.volmlib.util.scheduling.ChronoLatch;
 import art.arcane.volmlib.util.mantle.runtime.Mantle;
 import art.arcane.volmlib.util.math.Position2;
 import org.junit.Test;
@@ -11,11 +10,11 @@ import org.mockito.MockedStatic;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
-import java.lang.reflect.Method;
-import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -23,7 +22,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.CALLS_REAL_METHODS;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
@@ -32,7 +31,7 @@ import static org.mockito.Mockito.when;
 
 public class IrisPregeneratorInitTest {
     @Test
-    public void initDoesNotSaveBeforeGenerationStarts() throws Exception {
+    public void initDoesNotSaveBeforeGenerationStarts() {
         IrisSettings previousSettings = IrisSettings.settings;
         IrisSettings.settings = new IrisSettings();
         TrackingPregeneratorMethod method = new TrackingPregeneratorMethod();
@@ -42,14 +41,14 @@ public class IrisPregeneratorInitTest {
                 .radiusZ(16)
                 .build();
         try {
-            IrisPregenerator pregenerator = new IrisPregenerator(task, method, new NoOpPregenListener());
-            Method initMethod = IrisPregenerator.class.getDeclaredMethod("init");
-            initMethod.setAccessible(true);
-
-            initMethod.invoke(pregenerator);
+            new IrisPregenerator(task, method, new NoOpPregenListener(), null).start();
 
             assertEquals(1, method.initCalls.get());
-            assertEquals(0, method.saveCalls.get());
+            int init = method.lifecycle.indexOf("init");
+            int firstChunk = firstIndex(method.lifecycle, "chunk:");
+            int firstSave = method.lifecycle.indexOf("save");
+            assertTrue(init >= 0 && init < firstChunk);
+            assertTrue("a save ran before generation started: " + method.lifecycle, firstSave < 0 || firstSave > firstChunk);
         } finally {
             IrisSettings.settings = previousSettings;
         }
@@ -66,16 +65,69 @@ public class IrisPregeneratorInitTest {
                 .radiusZ(1)
                 .build();
         try {
-            IrisPregenerator pregenerator = new IrisPregenerator(task, method, new NoOpPregenListener());
+            IrisPregenerator pregenerator = new IrisPregenerator(task, method, new NoOpPregenListener(), null);
 
             pregenerator.start();
 
             int boundsIndex = method.lifecycle.indexOf("bounds");
-            int startIndex = method.lifecycle.indexOf("start:128,128");
-            int chunkIndex = method.lifecycle.indexOf("chunk");
+            int startIndex = method.lifecycle.indexOf("ahead:0,0");
+            int chunkIndex = firstIndex(method.lifecycle, "chunk:");
             assertTrue(boundsIndex >= 0);
             assertTrue(startIndex > boundsIndex);
             assertTrue(chunkIndex > startIndex);
+        } finally {
+            IrisSettings.settings = previousSettings;
+        }
+    }
+
+    @Test
+    public void pregenAnnouncesEachRegionItWillGenerateOnceRightAfterThePreviousRegionStarts() {
+        IrisSettings previousSettings = IrisSettings.settings;
+        IrisSettings.settings = new IrisSettings();
+        Set<Position2> cached = Set.of(new Position2(0, 0), new Position2(-1, 0), new Position2(1, 1));
+        TrackingPregeneratorMethod method = new TrackingPregeneratorMethod(cached);
+        PregenTask task = PregenTask.builder()
+                .center(new Position2(0, 0))
+                .radiusX(600)
+                .radiusZ(600)
+                .build();
+        try {
+            new IrisPregenerator(task, method, new NoOpPregenListener(), null).start();
+
+            assertEquals(13, method.generated.size());
+            for (String region : method.generated) {
+                assertFalse(cached.contains(position(region)));
+            }
+            assertAnnouncedOnceBetweenRegions(method, method.generated);
+        } finally {
+            IrisSettings.settings = previousSettings;
+        }
+    }
+
+    @Test
+    public void regionsSavedOnDiskAreNeverAnnouncedWithoutTheCacheWrapper() {
+        IrisSettings previousSettings = IrisSettings.settings;
+        IrisSettings.settings = new IrisSettings();
+        Set<Position2> saved = Set.of(new Position2(0, 0), new Position2(-1, 0), new Position2(1, 1));
+        TrackingPregeneratorMethod method = new TrackingPregeneratorMethod(Set.of());
+        PregenSavedChunkStatus status = new PregenSavedChunkStatus((chunkX, chunkZ) -> saved.contains(new Position2(chunkX >> 5, chunkZ >> 5)));
+        PregenTask task = PregenTask.builder()
+                .center(new Position2(0, 0))
+                .radiusX(600)
+                .radiusZ(600)
+                .build();
+        try {
+            new IrisPregenerator(task, method, new NoOpPregenListener(), status).start();
+
+            List<String> pending = new ArrayList<>();
+            for (String region : method.generated) {
+                if (!saved.contains(position(region))) {
+                    pending.add(region);
+                }
+            }
+            assertEquals(16, method.generated.size());
+            assertEquals(13, pending.size());
+            assertAnnouncedOnceBetweenRegions(method, pending);
         } finally {
             IrisSettings.settings = previousSettings;
         }
@@ -110,7 +162,7 @@ public class IrisPregeneratorInitTest {
                 .radiusZ(1)
                 .build();
         try {
-            IrisPregenerator pregenerator = new IrisPregenerator(task, method, new NoOpPregenListener());
+            IrisPregenerator pregenerator = new IrisPregenerator(task, method, new NoOpPregenListener(), null);
             pregeneratorReference.set(pregenerator);
 
             pregenerator.start();
@@ -139,7 +191,8 @@ public class IrisPregeneratorInitTest {
             IrisPregenerator pregenerator = new IrisPregenerator(
                     task,
                     method,
-                    new NoOpPregenListener(listenerObservedInterrupt));
+                    new NoOpPregenListener(listenerObservedInterrupt),
+                    null);
 
             pregenerator.start();
 
@@ -164,7 +217,7 @@ public class IrisPregeneratorInitTest {
                 .radiusZ(1)
                 .build();
         try {
-            IrisPregenerator pregenerator = new IrisPregenerator(task, method, new NoOpPregenListener());
+            IrisPregenerator pregenerator = new IrisPregenerator(task, method, new NoOpPregenListener(), null);
 
             pregenerator.start();
 
@@ -176,47 +229,87 @@ public class IrisPregeneratorInitTest {
     }
 
     @Test
-    public void outerHeapReclaimReleasesServerChunksBeforeMantleAndSurvivesChunkFailure() throws Exception {
-        for (boolean failReclaim : new boolean[]{false, true}) {
-            PregeneratorMethod generator = mock(PregeneratorMethod.class);
-            Mantle mantle = mock(Mantle.class);
-            when(generator.getMantle()).thenReturn(mantle);
-            IllegalStateException failure = new IllegalStateException("chunk reclaim failed");
-            if (failReclaim) {
-                doThrow(failure).when(generator).reclaimMemory();
+    public void outerHeapReclaimReleasesServerChunksBeforeMantleAndSurvivesChunkFailure() {
+        IrisSettings previousSettings = IrisSettings.settings;
+        IrisSettings.settings = new IrisSettings();
+        try {
+            for (boolean failReclaim : new boolean[]{false, true}) {
+                assertHeapReclaim(failReclaim);
             }
-            ChronoLatch latch = mock(ChronoLatch.class);
-            when(latch.flip()).thenReturn(true);
-            IrisPregenerator pregenerator = mock(IrisPregenerator.class, CALLS_REAL_METHODS);
-            Field generatorField = IrisPregenerator.class.getDeclaredField("generator");
-            generatorField.setAccessible(true);
-            generatorField.set(pregenerator, generator);
-            Field latchField = IrisPregenerator.class.getDeclaredField("heapReclaimLatch");
-            latchField.setAccessible(true);
-            latchField.set(pregenerator, latch);
-            Method reclaim = IrisPregenerator.class.getDeclaredMethod("reclaimHeapPressure");
-            reclaim.setAccessible(true);
-            try (MockedStatic<MantleHeapPressure> pressure = mockStatic(MantleHeapPressure.class);
-                 MockedStatic<IrisLogging> logging = mockStatic(IrisLogging.class)) {
-                reclaim.invoke(pregenerator);
-                InOrder order = inOrder(generator, mantle);
-                order.verify(generator).reclaimMemory();
-                order.verify(generator).getMantle();
-                order.verify(mantle).saveOldestIdleTectonicPlate();
-                pressure.verify(MantleHeapPressure::requestPanicReclaim);
-                if (failReclaim) {
-                    logging.verify(() -> IrisLogging.reportError(
-                            "Pregen could not reclaim completed server chunks under memory pressure.", failure));
-                }
+        } finally {
+            IrisSettings.settings = previousSettings;
+        }
+    }
+
+    private static void assertHeapReclaim(boolean failReclaim) {
+        PregeneratorMethod generator = mock(PregeneratorMethod.class);
+        Mantle mantle = mock(Mantle.class);
+        when(generator.getMantle()).thenReturn(mantle);
+        when(generator.getMethod(anyInt(), anyInt())).thenReturn("test");
+        IllegalStateException failure = new IllegalStateException("chunk reclaim failed");
+        if (failReclaim) {
+            doThrow(failure).when(generator).reclaimMemory();
+        }
+        PregenTask task = PregenTask.builder()
+                .center(new Position2(0, 0))
+                .radiusX(1)
+                .radiusZ(1)
+                .build();
+        IrisPregenerator pregenerator = new IrisPregenerator(task, generator, new NoOpPregenListener(), null);
+        try (MockedStatic<MantleHeapPressure> pressure = mockStatic(MantleHeapPressure.class);
+             MockedStatic<IrisLogging> logging = mockStatic(IrisLogging.class)) {
+            pressure.when(MantleHeapPressure::overHighWater).thenReturn(true, false);
+            pregenerator.start();
+            InOrder order = inOrder(generator, mantle);
+            order.verify(generator).reclaimMemory();
+            order.verify(generator).getMantle();
+            order.verify(mantle).saveOldestIdleTectonicPlate();
+            pressure.verify(MantleHeapPressure::requestPanicReclaim);
+            if (failReclaim) {
+                logging.verify(() -> IrisLogging.reportError(
+                        "Pregen could not reclaim completed server chunks under memory pressure.", failure));
             }
         }
     }
 
+    private static void assertAnnouncedOnceBetweenRegions(TrackingPregeneratorMethod method, List<String> pending) {
+        List<String> announced = new ArrayList<>();
+        for (List<String> batch : method.announced) {
+            announced.addAll(batch);
+        }
+        assertEquals(pending, announced);
+        for (int index = 0; index < pending.size(); index++) {
+            int announcement = method.lifecycle.indexOf("ahead:" + pending.get(index));
+            assertTrue(pending.get(index) + " is announced before its chunks",
+                    announcement >= 0 && announcement < method.lifecycle.indexOf("chunk:" + pending.get(index)));
+            if (index > 0) {
+                assertEquals(pending.get(index) + " is announced right after the first chunk of " + pending.get(index - 1),
+                        method.lifecycle.indexOf("chunk:" + pending.get(index - 1)) + 1, announcement);
+            }
+        }
+    }
+
+    private static int firstIndex(List<String> lifecycle, String prefix) {
+        for (int index = 0; index < lifecycle.size(); index++) {
+            if (lifecycle.get(index).startsWith(prefix)) {
+                return index;
+            }
+        }
+        return -1;
+    }
+
+    private static Position2 position(String region) {
+        String[] parts = region.split(",");
+        return new Position2(Integer.parseInt(parts[0]), Integer.parseInt(parts[1]));
+    }
+
     private static final class TrackingPregeneratorMethod implements PregeneratorMethod {
         private final AtomicInteger initCalls = new AtomicInteger();
-        private final AtomicInteger saveCalls = new AtomicInteger();
-        private final List<String> lifecycle = new ArrayList<>();
+        private final List<String> lifecycle = Collections.synchronizedList(new ArrayList<>());
+        private final List<List<String>> announced = new ArrayList<>();
+        private final List<String> generated = new ArrayList<>();
         private final boolean interruptOnClose;
+        private final Set<Position2> cachedRegions;
 
         private TrackingPregeneratorMethod() {
             this(false);
@@ -224,11 +317,18 @@ public class IrisPregeneratorInitTest {
 
         private TrackingPregeneratorMethod(boolean interruptOnClose) {
             this.interruptOnClose = interruptOnClose;
+            this.cachedRegions = Set.of();
+        }
+
+        private TrackingPregeneratorMethod(Set<Position2> cachedRegions) {
+            this.interruptOnClose = false;
+            this.cachedRegions = cachedRegions;
         }
 
         @Override
         public void init() {
             initCalls.incrementAndGet();
+            lifecycle.add("init");
         }
 
         @Override
@@ -240,12 +340,12 @@ public class IrisPregeneratorInitTest {
 
         @Override
         public void save() {
-            saveCalls.incrementAndGet();
+            lifecycle.add("save");
         }
 
         @Override
         public boolean supportsRegions(int x, int z, PregenListener listener) {
-            return false;
+            return cachedRegions.contains(new Position2(x, z));
         }
 
         @Override
@@ -259,7 +359,11 @@ public class IrisPregeneratorInitTest {
 
         @Override
         public void generateChunk(int x, int z, PregenListener listener) {
-            lifecycle.add("chunk");
+            String region = (x >> 5) + "," + (z >> 5);
+            lifecycle.add("chunk:" + region);
+            if (generated.isEmpty() || !generated.getLast().equals(region)) {
+                generated.add(region);
+            }
         }
 
         @Override
@@ -268,8 +372,15 @@ public class IrisPregeneratorInitTest {
         }
 
         @Override
-        public void onPregenStart(int centerBlockX, int centerBlockZ) {
-            lifecycle.add("start:" + centerBlockX + "," + centerBlockZ);
+        public void onRegionsAhead(List<long[]> regions) {
+            StringBuilder entry = new StringBuilder("ahead:");
+            List<String> batch = new ArrayList<>();
+            for (long[] region : regions) {
+                entry.append(entry.length() > 6 ? ";" : "").append(region[0]).append(',').append(region[1]);
+                batch.add(region[0] + "," + region[1]);
+            }
+            lifecycle.add(entry.toString());
+            announced.add(batch);
         }
 
         @Override

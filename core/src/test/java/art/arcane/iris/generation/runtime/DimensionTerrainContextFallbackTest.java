@@ -93,7 +93,7 @@ public class DimensionTerrainContextFallbackTest {
         when(dimension.getFluidHeight()).thenReturn(12);
         when(complex.getNaturalHeightStream()).thenReturn(naturalHeight);
         when(complex.getRawHeightStream()).thenReturn(resolvedHeight);
-        when(complex.getRiverWaterSurfaceStream()).thenReturn(resolvedFluidHeight);
+        when(complex.getWaterHeadStream()).thenReturn(resolvedFluidHeight);
         when(complex.getNaturalTrueBiomeStream()).thenReturn(naturalBiome);
         when(complex.getTrueBiomeStream()).thenReturn(resolvedBiome);
         when(complex.getRegionStream()).thenReturn(region);
@@ -106,7 +106,7 @@ public class DimensionTerrainContextFallbackTest {
         when(naturalBiome.get(12D, -8D)).thenReturn(naturalBiomeValue);
         when(resolvedBiome.get(12D, -8D)).thenReturn(resolvedBiomeValue);
         when(configuredFluid.get(12D, -8D)).thenReturn(naturalFluid);
-        when(complex.resolveSurfaceFluid(12D, -8D)).thenReturn(resolvedFluid);
+        when(complex.resolveSeaFluid(12D, -8D)).thenReturn(resolvedFluid);
 
         DimensionTerrainContext context = DimensionTerrainContext.forStack(engine, dimension);
         when(engine.answersFromNaturalTerrain(12, -8)).thenReturn(true);

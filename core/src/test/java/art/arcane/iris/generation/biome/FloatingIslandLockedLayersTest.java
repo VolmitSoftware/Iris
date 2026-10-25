@@ -2,6 +2,7 @@ package art.arcane.iris.generation.biome;
 
 import art.arcane.iris.generation.block.B;
 import art.arcane.iris.generation.context.ChunkContext;
+import art.arcane.iris.generation.hydrology.raster.WaterRole;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.stage.IrisFloatingChildBiomeModifier;
 import art.arcane.iris.generation.terrain.IrisDimension;
@@ -10,6 +11,8 @@ import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.hunk.Hunk;
 import art.arcane.volmlib.util.noise.CNG;
+import art.arcane.volmlib.util.stream.ProceduralStream;
+import art.arcane.volmlib.util.stream.interpolation.Interpolated;
 import org.junit.Test;
 import org.mockito.MockedStatic;
 
@@ -40,6 +43,8 @@ public class FloatingIslandLockedLayersTest {
         when(engine.getDimension()).thenReturn(new IrisDimension());
         when(engine.getSubterrainCell(anyInt(), anyInt(), anyInt())).thenReturn(null);
         when(engine.getComplex().allowsNewDiscreteContentAt(anyInt(), anyInt())).thenReturn(false);
+        when(engine.getComplex().getWaterRoleStream()).thenReturn(ProceduralStream.of((x, z) -> WaterRole.NONE,
+                Interpolated.of(value -> 0D, value -> WaterRole.NONE)));
         FloatingIslandBoundarySampler boundary = mock(FloatingIslandBoundarySampler.class);
         when(boundary.parent(anyInt(), anyInt())).thenReturn(parent);
         ChunkContext context = mock(ChunkContext.class);

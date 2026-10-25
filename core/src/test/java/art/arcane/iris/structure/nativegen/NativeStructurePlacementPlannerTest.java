@@ -117,17 +117,17 @@ public class NativeStructurePlacementPlannerTest {
     }
 
     @Test
-    public void submergedCheckUsesTheColumnRiverHead() {
+    public void submergedCheckUsesTheColumnWaterHead() {
         Engine engine = engine(77L, -64, 384, 66);
         IrisComplex complex = mock(IrisComplex.class);
         @SuppressWarnings("unchecked")
-        ProceduralStream<Double> riverHead = mock(ProceduralStream.class);
+        ProceduralStream<Double> waterHead = mock(ProceduralStream.class);
         when(engine.getComplex()).thenReturn(complex);
-        when(complex.getRiverWaterSurfaceStream()).thenReturn(riverHead);
-        when(riverHead.get(8, 8)).thenReturn(68D);
+        when(complex.getWaterHeadStream()).thenReturn(waterHead);
+        when(waterHead.get(8, 8)).thenReturn(68D);
 
         assertTrue(NativeStructurePlacementPlanner.isSubmerged(engine, 8, 8));
-        verify(riverHead).get(8, 8);
+        verify(waterHead).get(8, 8);
     }
 
     @Test

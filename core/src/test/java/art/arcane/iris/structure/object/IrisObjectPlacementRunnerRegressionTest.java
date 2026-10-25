@@ -42,6 +42,7 @@ import java.util.Optional;
 import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
@@ -136,6 +137,19 @@ public class IrisObjectPlacementRunnerRegressionTest {
 
         assertTrue(error.getMessage().contains("write failed"));
         assertEquals(1, placer.writes().size());
+    }
+
+    @Test
+    public void onWaterObjectsPlaceOnlyWhereTheirAnchorHoldsWater() {
+        IrisObjectPlacement placement = placement();
+        placement.setOnwater(true);
+        RecordingPlacer dry = new RecordingPlacer(null);
+        assertEquals(-1, lineObject(3).place(0, -1, 0, dry, placement, new RNG(2L), data));
+        assertTrue(dry.writes().isEmpty());
+        RecordingPlacer wet = new RecordingPlacer(null);
+        wet.setUnderwater(true);
+        assertNotEquals(-1, lineObject(3).place(0, -1, 0, wet, placement, new RNG(2L), data));
+        assertFalse(wet.writes().isEmpty());
     }
 
     @Test
@@ -853,6 +867,7 @@ public class IrisObjectPlacementRunnerRegressionTest {
         private int blockReads;
         private boolean debugSmartBore;
         private boolean highestFollowsWrites;
+        private boolean underwater;
 
         private RecordingPlacer(Engine engine) {
             this.engine = engine;
@@ -864,6 +879,10 @@ public class IrisObjectPlacementRunnerRegressionTest {
 
         private void setDebugSmartBore(boolean debugSmartBore) {
             this.debugSmartBore = debugSmartBore;
+        }
+
+        private void setUnderwater(boolean underwater) {
+            this.underwater = underwater;
         }
 
         private void terrain(int x, int z, int... spans) {
@@ -947,7 +966,7 @@ public class IrisObjectPlacementRunnerRegressionTest {
 
         @Override
         public boolean isUnderwater(int x, int z) {
-            return false;
+            return underwater;
         }
 
         @Override

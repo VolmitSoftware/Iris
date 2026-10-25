@@ -3,10 +3,7 @@ package art.arcane.iris.generation.decoration;
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.SeedManager;
-import art.arcane.iris.generation.hydrology.HydrologyColumnLayer;
-import art.arcane.iris.generation.hydrology.HydrologyColumnSample;
-import art.arcane.iris.generation.hydrology.HydrologyFeatureRef;
-import art.arcane.iris.generation.hydrology.HydrologyFeatureType;
+import art.arcane.iris.generation.hydrology.raster.WaterRole;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.hunk.Hunk;
@@ -25,6 +22,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
@@ -73,22 +72,44 @@ public class IrisSugarCaneTest {
     }
 
     @Test
-    public void crossChunkWaterUsesAcceptedHydrologyAtTheCorrectElevation() {
+    public void crossChunkCaneGrowsBesideEveryWetRoleAtItsWaterLevel() {
+        for (WaterRole role : WaterRole.values()) {
+            if (!role.wet()) {
+                continue;
+            }
+            Fixture fixture = new Fixture(1);
+            fixture.plannedTerrain();
+            fixture.output.set(0, 3, 0, fixture.soil);
+            fixture.water(role, 1, 3);
+            when(fixture.complex.resolveWaterFluid(-17, -16)).thenReturn(fixture.water);
+
+            assertTrue(role.name(), fixture.place(0, 0));
+            NativeBlockState lava = state("minecraft:lava");
+            when(fixture.complex.resolveWaterFluid(-17, -16)).thenReturn(lava);
+            assertFalse(role.name(), fixture.place(0, 0));
+            when(fixture.complex.resolveWaterFluid(-17, -16)).thenReturn(fixture.water);
+            fixture.water(role, 1, 2);
+            assertFalse(role.name(), fixture.place(0, 0));
+            fixture.water(role, 3, 5);
+            assertFalse(role.name(), fixture.place(0, 0));
+        }
+    }
+
+    @Test
+    public void crossChunkDryRolesNeverReadAWaterFluid() {
         Fixture fixture = new Fixture(1);
         fixture.plannedTerrain();
         fixture.output.set(0, 3, 0, fixture.soil);
-        HydrologyColumnLayer layer = wetLayer(1, 3);
-        when(fixture.complex.sampleHydrologyColumn(-17, -16)).thenReturn(new HydrologyColumnSample(
-                -17, -16, 6, 0, false, "parent", List.of(layer)));
-        when(fixture.complex.resolveHydrologyFluid("water", -17, -16)).thenReturn(fixture.water);
+        fixture.water(WaterRole.BANK, 1, 3);
+        IrisBiome biome = mock(IrisBiome.class);
+        when(fixture.complex.getTrueBiomeStream()).thenReturn(
+                ProceduralStream.of((x, z) -> biome, Interpolated.of(value -> 0D, value -> biome)));
+        when(fixture.engine.getSeedManager()).thenReturn(mock(SeedManager.class));
+        when(biome.generateSeaLayers(anyDouble(), anyDouble(), any(), anyInt(), any())).thenReturn(new KList<>());
+        when(fixture.complex.resolveSeaFluid(-17, -16)).thenReturn(fixture.water);
 
         assertTrue(fixture.place(0, 0));
-        NativeBlockState lava = state("minecraft:lava");
-        when(fixture.complex.resolveHydrologyFluid("water", -17, -16)).thenReturn(lava);
-        assertFalse(fixture.place(0, 0));
-        when(fixture.complex.sampleHydrologyColumn(-17, -16)).thenReturn(new HydrologyColumnSample(
-                -17, -16, 6, 0, false, "parent", List.of(wetLayer(1, 2))));
-        assertFalse(fixture.place(0, 0));
+        verify(fixture.complex, never()).resolveWaterFluid(anyInt(), anyInt());
     }
 
     @Test
@@ -124,8 +145,7 @@ public class IrisSugarCaneTest {
         Fixture fixture = new Fixture(1);
         fixture.plannedTerrain();
         fixture.output.set(0, 3, 0, fixture.soil);
-        when(fixture.complex.getHeightStream()).thenReturn(ProceduralStream.ofDouble((x, z) -> 1D));
-        when(fixture.complex.getRiverWaterSurfaceStream()).thenReturn(ProceduralStream.ofDouble((x, z) -> 3D));
+        fixture.water(WaterRole.NONE, 1, 3);
         IrisBiome biome = mock(IrisBiome.class);
         when(fixture.complex.getTrueBiomeStream()).thenReturn(
                 ProceduralStream.of((x, z) -> biome, Interpolated.of(value -> 0D, value -> biome)));
@@ -137,14 +157,6 @@ public class IrisSugarCaneTest {
         when(biome.generateSeaLayers(anyDouble(), anyDouble(), any(), anyInt(), any()))
                 .thenReturn(new KList<>(List.of(fixture.water)));
         assertTrue(fixture.place(0, 0));
-    }
-
-    private static HydrologyColumnLayer wetLayer(int bed, int head) {
-        HydrologyFeatureRef feature = new HydrologyFeatureRef(
-                11L, HydrologyFeatureType.RIFFLE, 12L, 13L, -17, head, -16, 1, 0, false);
-        return new HydrologyColumnLayer(feature, bed, head, head,
-                true, false, false, true, false, false, true, true, false,
-                "water", "river", "mouth", "shore", "bank", "cave");
     }
 
     private static NativeBlockState state(String key) {
@@ -169,8 +181,13 @@ public class IrisSugarCaneTest {
 
         private void plannedTerrain() {
             when(engine.getComplex()).thenReturn(complex);
-            when(complex.getHeightStream()).thenReturn(ProceduralStream.ofDouble((x, z) -> 3D));
-            when(complex.getRiverWaterSurfaceStream()).thenReturn(ProceduralStream.ofDouble((x, z) -> 0D));
+            water(WaterRole.NONE, 3, 0);
+        }
+
+        private void water(WaterRole role, int ground, int head) {
+            when(complex.getHeightStream()).thenReturn(ProceduralStream.ofDouble((x, z) -> (double) ground));
+            when(complex.getWaterHeadStream()).thenReturn(ProceduralStream.ofDouble((x, z) -> (double) head));
+            when(complex.getWaterRoleStream()).thenReturn(ProceduralStream.of((x, z) -> role, Interpolated.of(value -> 0D, value -> role)));
         }
 
         private boolean place(int x, int z) {

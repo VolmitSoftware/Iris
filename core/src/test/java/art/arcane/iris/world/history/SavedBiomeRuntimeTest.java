@@ -314,7 +314,7 @@ public class SavedBiomeRuntimeTest {
         Files.writeString(pack.resolve("regions/tropical.json"), "{\"landBiomes\":[\"wilds\"]}");
         Files.writeString(pack.resolve("biomes/wilds.json"), authoredOwner ? "{\"children\":[\"highlands\"]}" : "{}");
         Files.writeString(pack.resolve("biomes/highlands.json"), """
-                {"carvingBiome":"chalk-gardens","riverPolicy":{"floodedCaveBiomes":["flooded"]}}
+                {"carvingBiome":"chalk-gardens","hydrologyPolicy":{"shoreBiomes":["flooded"]}}
                 """);
         Files.writeString(pack.resolve("biomes/chalk-gardens.json"), "{}");
         Files.writeString(pack.resolve("biomes/flooded.json"), "{}");

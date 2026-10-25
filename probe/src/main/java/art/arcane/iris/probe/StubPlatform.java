@@ -49,9 +49,14 @@ import java.util.function.Consumer;
 public final class StubPlatform implements IrisPlatform {
     private static volatile boolean VERBOSE = false;
     private static volatile Consumer<Throwable> ERROR_SINK = null;
+    private static volatile boolean VANILLA_SOLIDITY = false;
 
     public static void verbose(boolean verbose) {
         VERBOSE = verbose;
+    }
+
+    public static void vanillaSolidity(boolean vanilla) {
+        VANILLA_SOLIDITY = vanilla;
     }
 
     public static void errorSink(Consumer<Throwable> sink) {
@@ -138,7 +143,14 @@ public final class StubPlatform implements IrisPlatform {
 
         @Override
         public boolean isSolid() {
-            return !isAir() && !isFluid();
+            if (isAir() || isFluid()) {
+                return false;
+            }
+            if (!VANILLA_SOLIDITY) {
+                return true;
+            }
+            byte voxel = HydrologyVoxels.classify(this);
+            return voxel == HydrologyVoxels.SOLID || voxel == HydrologyVoxels.WATER && isWaterLogged();
         }
 
         @Override

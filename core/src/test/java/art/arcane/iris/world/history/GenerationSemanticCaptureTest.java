@@ -17,7 +17,19 @@ import art.arcane.iris.pack.value.IrisRange;
 import art.arcane.iris.world.IrisWorld;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.iris.structure.placement.StructurePlacementMarker;
+import art.arcane.iris.generation.hydrology.cave.HydrologyCaveAction;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveCell;
+import art.arcane.iris.generation.hydrology.engine.HydrologyRuntime;
+import art.arcane.iris.generation.hydrology.plan.HydrologySettings;
+import art.arcane.iris.generation.hydrology.query.HydrologyFeatureType;
+import art.arcane.iris.generation.hydrology.raster.ChunkWaterRaster;
+import art.arcane.iris.generation.hydrology.raster.WaterRole;
+import art.arcane.iris.generation.hydrology.underground.SeaInlet;
+import art.arcane.iris.generation.hydrology.water.Pond;
+import art.arcane.iris.generation.hydrology.water.PondKind;
+import art.arcane.iris.generation.hydrology.water.Reach;
+import art.arcane.iris.testsupport.FakeHydrology;
+import art.arcane.iris.testsupport.WaterScene;
 import art.arcane.iris.generation.mantle.EngineMantle;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
@@ -34,11 +46,14 @@ import org.mockito.MockedStatic;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -56,6 +71,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public final class GenerationSemanticCaptureTest {
+    private static final int WATER_SEA_LEVEL = 40;
+
     @BeforeClass
     public static void initializeMantleBlockState() throws Exception {
         NativeBlockState air = mock(NativeBlockState.class);
@@ -98,6 +115,7 @@ public final class GenerationSemanticCaptureTest {
         HydrologyCaveCell duplicate = mock(HydrologyCaveCell.class);
         when(duplicate.floodedBiomeKey()).thenReturn("iris:duplicate");
         when(duplicate.fluidProfileKey()).thenReturn("iris:river");
+        when(duplicate.isWet()).thenReturn(true);
         doAnswer(invocation -> {
             Consumer4<Integer, Integer, Integer, HydrologyCaveCell> consumer = invocation.getArgument(3);
             consumer.accept(1, 4, 2, duplicate);
@@ -330,6 +348,48 @@ public final class GenerationSemanticCaptureTest {
     }
 
     @Test
+    public void everyChunkHoldingCavePoolWaterRecordsEachPoolItHoldsEvenInTheSeamRing() {
+        Fixture fixture = new Fixture();
+        IrisDimension dimension = mock(IrisDimension.class);
+        when(dimension.getMinHeight()).thenReturn(-64);
+        when(fixture.engine.getDimension()).thenReturn(dimension);
+        HydrologyCaveCell water = new HydrologyCaveCell(HydrologyCaveAction.POOL_SOURCE, "water", "");
+        HydrologyCaveCell lava = new HydrologyCaveCell(HydrologyCaveAction.POOL_SOURCE, "lava", "");
+        HydrologyCaveCell guard = HydrologyCaveCell.of(HydrologyCaveAction.SEAL_GUARD);
+        HydrologyCaveCell inlet = new HydrologyCaveCell(HydrologyCaveAction.WET_SOURCE, "water", "");
+        TransitionDisplacementField seam = mock(TransitionDisplacementField.class);
+        when(seam.seamWeight(anyInt(), anyInt())).thenReturn(0.5D);
+        when(fixture.complex.getTransitionDisplacement()).thenReturn(seam);
+        doAnswer(invocation -> {
+            Consumer4<Integer, Integer, Integer, HydrologyCaveCell> consumer = invocation.getArgument(3);
+            for (int x = 2; x <= 4; x++) {
+                for (int y = 40; y <= 42; y++) {
+                    consumer.accept(x, y, 6, water);
+                }
+            }
+            consumer.accept(1, 40, 6, guard);
+            consumer.accept(10, 20, 12, lava);
+            consumer.accept(11, 20, 12, lava);
+            consumer.accept(14, 30, 1, inlet);
+            return null;
+        }).when(fixture.mantle).iterateChunk(eq(-2), eq(3), eq(HydrologyCaveCell.class), any());
+
+        ChunkGenerationSemantics captured = GenerationSemanticCapture.capture(fixture.engine, -2, 3, 5L);
+
+        Set<String> pools = new HashSet<>();
+        for (ChunkGenerationSemantics.RiverFeatureOccurrence occurrence : captured.riverFeatures()) {
+            assertEquals(HydrologyFeatureType.CAVE_POOL, occurrence.type());
+            pools.add(occurrence.profileKey() + "@" + occurrence.position().x() + "," + occurrence.position().y() + "," + occurrence.position().z());
+        }
+        assertEquals("pools in the seam ring are recorded and other cave water is not a pool",
+                Set.of("water@-30,-22,54", "lava@-22,-44,60"), pools);
+
+        when(seam.seamWeight(anyInt(), anyInt())).thenReturn(1D);
+        assertEquals("wall guards name no fluid", Set.of("water", "lava"),
+                GenerationSemanticCapture.capture(fixture.engine, -2, 3, 5L).riverProfileKeys());
+    }
+
+    @Test
     public void cavePositionsRemainDistinctAcrossColumnsAndSectionBoundaries() {
         Fixture fixture = new Fixture();
         List<Integer> heights = List.of(0, 15, 16, 255, 256, 767, 4063);
@@ -359,6 +419,7 @@ public final class GenerationSemanticCaptureTest {
         HydrologyCaveCell duplicate = mock(HydrologyCaveCell.class);
         when(duplicate.floodedBiomeKey()).thenReturn("iris:duplicate");
         when(duplicate.fluidProfileKey()).thenReturn("iris:river");
+        when(duplicate.isWet()).thenReturn(true);
         doAnswer(invocation -> {
             Consumer4<Integer, Integer, Integer, HydrologyCaveCell> consumer = invocation.getArgument(3);
             for (int x = 0; x < 16; x++) {
@@ -403,8 +464,123 @@ public final class GenerationSemanticCaptureTest {
         assertEquals(Set.of(new ChunkGenerationSemantics.PointOfInterest("buried_treasure", new ChunkGenerationSemantics.BlockPosition(-30, 70, 51))), engine.getPOIsAt(-2, 3));
     }
 
+    @Test
+    public void recordsEachWaterFeatureTypeOncePerChunkFromTheEffectiveWater() {
+        HydrologySettings settings = FakeHydrology.settings(WATER_SEA_LEVEL);
+        Reach brook = WaterScene.line(11L, settings.tiers().getFirst(), 2, 40, 13, 40, (x, z) -> 62);
+        Reach trunk = WaterScene.line(12L, settings.majorTier(), 98, 104, 109, 104, (x, z) -> 62);
+        Pond dammed = standing(WaterScene.pond(21L, 63, 8, 8, 5), PondKind.NATURAL, 2);
+        Pond lake = standing(WaterScene.pond(31L, 63, 72, 8, 5), PondKind.LAKE, 0);
+        try (FakeHydrology hydrology = new FakeHydrology(() -> false, (x, z) -> 60, WATER_SEA_LEVEL, List.of(brook, trunk),
+                List.of(dammed), List.of(lake))) {
+            Fixture fixture = new Fixture();
+            fixture.water(hydrology.runtime);
+
+            assertEquals(Map.of(HydrologyFeatureType.POND, 21L, HydrologyFeatureType.DAM, 21L), features(fixture, 0, 0));
+            assertEquals(Map.of(HydrologyFeatureType.LAKE, 31L), features(fixture, 4, 0));
+            assertEquals(Map.of(HydrologyFeatureType.STREAM, 11L), features(fixture, 0, 2));
+            assertEquals(Map.of(HydrologyFeatureType.MAJOR_RIVER, 12L), features(fixture, 6, 6));
+            assertEquals(Map.of(), features(fixture, 5, 5));
+            ChunkGenerationSemantics pond = GenerationSemanticCapture.capture(fixture.engine, 0, 0, 5L);
+            for (ChunkGenerationSemantics.RiverFeatureOccurrence occurrence : pond.riverFeatures()) {
+                assertEquals("water", occurrence.profileKey());
+                assertEquals(63 - 64, occurrence.position().y());
+                assertEquals(WaterRole.POND, hydrology.runtime.raster(0, 0).role(occurrence.position().x() & 15,
+                        occurrence.position().z() & 15));
+            }
+        }
+    }
+
+    @Test
+    public void recordsSeaInletsInEveryChunkTheyPassUnderWithTheirOwnProfile() {
+        int stations = 8;
+        float[] xs = new float[stations];
+        float[] zs = new float[stations];
+        float[] halfWidth = new float[stations];
+        int[] floor = new int[stations];
+        int[] ceiling = new int[stations];
+        for (int station = 0; station < stations; station++) {
+            xs[station] = 4f + station * 8f;
+            zs[station] = 24f;
+            halfWidth[station] = 3f;
+            floor[station] = WATER_SEA_LEVEL - 3;
+            ceiling[station] = WATER_SEA_LEVEL + 5;
+        }
+        SeaInlet inlet = new SeaInlet(41L, xs, zs, halfWidth, WATER_SEA_LEVEL, floor, ceiling, 60, 24, 4);
+        try (FakeHydrology hydrology = new FakeHydrology(() -> false, (x, z) -> 90, WATER_SEA_LEVEL, List.of(), List.of(), List.of(),
+                List.of(inlet))) {
+            Fixture fixture = new Fixture();
+            fixture.water(hydrology.runtime);
+
+            for (int chunkX = 0; chunkX <= 3; chunkX++) {
+                List<ChunkGenerationSemantics.RiverFeatureOccurrence> occurrences = new ArrayList<>(
+                        GenerationSemanticCapture.capture(fixture.engine, chunkX, 1, 5L).riverFeatures());
+                assertEquals("chunk " + chunkX, 1, occurrences.size());
+                ChunkGenerationSemantics.RiverFeatureOccurrence occurrence = occurrences.getFirst();
+                assertEquals(HydrologyFeatureType.SEA_INLET, occurrence.type());
+                assertEquals(41L, occurrence.featureId());
+                assertEquals(HydrologyFeatureType.SEA_INLET.key(), occurrence.profileKey());
+                assertEquals(WATER_SEA_LEVEL - 64, occurrence.position().y());
+                assertEquals(chunkX, occurrence.position().x() >> 4);
+            }
+            assertEquals(Map.of(), features(fixture, 5, 1));
+            assertEquals(Map.of(), features(fixture, 1, 3));
+        }
+    }
+
+    @Test
+    public void seaInletCellsNeverRecordTheSeaKeyAsARiverProfile() {
+        Fixture fixture = new Fixture();
+        when(fixture.engine.getDimension()).thenReturn(new IrisDimension());
+        when(fixture.engine.getData()).thenReturn(mock(IrisData.class));
+        when(fixture.engine.getWorld()).thenReturn(IrisWorld.builder().minHeight(-64).maxHeight(320).build());
+        doAnswer(invocation -> {
+            Consumer4<Integer, Integer, Integer, HydrologyCaveCell> consumer = invocation.getArgument(3);
+            consumer.accept(1, 4, 2, new HydrologyCaveCell(HydrologyCaveAction.WET_SOURCE, HydrologyCaveCell.SEA_FLUID, ""));
+            consumer.accept(1, 5, 2, new HydrologyCaveCell(HydrologyCaveAction.WET_SOURCE, "iris:river", ""));
+            return null;
+        }).when(fixture.mantle).iterateChunk(eq(-2), eq(3), eq(HydrologyCaveCell.class), any());
+        GenerationHistory.GenerationStage stage = mock(GenerationHistory.GenerationStage.class);
+        GenerationActivation activation = mock(GenerationActivation.class);
+        when(activation.activationId()).thenReturn(5L);
+        when(stage.activation()).thenReturn(activation);
+        when(stage.chunkX()).thenReturn(-2);
+        when(stage.chunkZ()).thenReturn(3);
+
+        assertEquals(Set.of("iris:river"), GenerationSemanticCapture.capture(fixture.engine, stage, (x, y, z) -> true).riverProfileKeys());
+    }
+
+    @Test
+    public void waterCaptureFailsClosedOnAProvisionalRaster() {
+        try (FakeHydrology hydrology = new FakeHydrology(() -> true, (x, z) -> 60, WATER_SEA_LEVEL, 63)) {
+            hydrology.hold();
+            Fixture fixture = new Fixture();
+            fixture.water(hydrology.runtime);
+
+            IllegalStateException failure = assertThrows(IllegalStateException.class,
+                    () -> GenerationSemanticCapture.capture(fixture.engine, 0, 0, 5L));
+
+            assertTrue(failure.getMessage().contains("water raster is not planned"));
+        }
+    }
+
+    private static Map<HydrologyFeatureType, Long> features(Fixture fixture, int chunkX, int chunkZ) {
+        Map<HydrologyFeatureType, Long> features = new TreeMap<>();
+        for (ChunkGenerationSemantics.RiverFeatureOccurrence occurrence
+                : GenerationSemanticCapture.capture(fixture.engine, chunkX, chunkZ, 5L).riverFeatures()) {
+            assertEquals(null, features.put(occurrence.type(), occurrence.featureId()));
+        }
+        return features;
+    }
+
+    private static Pond standing(Pond pond, PondKind kind, int damRaise) {
+        return new Pond(pond.id(), kind, pond.level(), pond.floor(), pond.spillX(), pond.spillZ(), pond.spillHeight(), pond.mask(),
+                pond.outletReachId(), damRaise, pond.fluid(), pond.floorX(), pond.floorZ());
+    }
+
     private static final class Fixture {
         private final Engine engine;
+        private final IrisComplex complex = mock(IrisComplex.class);
         @SuppressWarnings("unchecked")
         private final Mantle<Matter> mantle = mock(Mantle.class);
 
@@ -417,11 +593,25 @@ public final class GenerationSemanticCaptureTest {
             IrisDimensionCarvingResolver.State state = new IrisDimensionCarvingResolver.State();
             when(engine.getCaveBiome(anyInt(), anyInt(), anyInt())).thenAnswer(invocation -> engine.getCaveBiome(
                     invocation.getArgument(0), invocation.getArgument(1), invocation.getArgument(2), state));
-            IrisComplex complex = mock(IrisComplex.class);
             EngineMantle engineMantle = mock(EngineMantle.class);
             when(engine.getComplex()).thenReturn(complex);
             when(engine.getMantle()).thenReturn(engineMantle);
             when(engineMantle.getMantle()).thenReturn(mantle);
+        }
+
+        private void water(HydrologyRuntime runtime) {
+            IrisDimension dimension = mock(IrisDimension.class);
+            when(dimension.getMinHeight()).thenReturn(-64);
+            when(engine.getDimension()).thenReturn(dimension);
+            when(complex.getHydrologyRuntime()).thenReturn(runtime);
+            when(complex.getWaterRoleStream()).thenReturn(ProceduralStream.of((x, z) -> {
+                ChunkWaterRaster raster = runtime.raster((int) Math.floor(x) >> 4, (int) Math.floor(z) >> 4);
+                return raster.role((int) Math.floor(x) & 15, (int) Math.floor(z) & 15);
+            }, Interpolated.of(role -> 0D, value -> WaterRole.NONE)));
+            when(complex.getWaterHeadStream()).thenReturn(ProceduralStream.ofDouble((x, z) -> {
+                ChunkWaterRaster raster = runtime.raster((int) Math.floor(x) >> 4, (int) Math.floor(z) >> 4);
+                return raster.waterHead((int) Math.floor(x) & 15, (int) Math.floor(z) & 15);
+            }));
         }
     }
 }

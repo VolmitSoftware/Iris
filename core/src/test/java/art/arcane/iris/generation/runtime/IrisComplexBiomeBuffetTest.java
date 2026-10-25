@@ -198,7 +198,7 @@ public class IrisComplexBiomeBuffetTest {
         Files.createDirectories(pack.resolve("generators"));
         Files.writeString(pack.resolve("dimensions/main.json"), """
                 {"focus":"alpha","regions":["owned"],"studioMode":"BIOME_BUFFET_1x1",
-                 "landChance":1,"carvingEnabled":false,"hydrology":{"rivers":{"enabled":false}}}
+                 "landChance":1,"carvingEnabled":false}
                 """);
         Files.writeString(pack.resolve("regions/owned.json"), "{\"landBiomes\":[\"alpha\"]}");
         Files.writeString(pack.resolve("generators/flat.json"), "{\"composite\":[]}");

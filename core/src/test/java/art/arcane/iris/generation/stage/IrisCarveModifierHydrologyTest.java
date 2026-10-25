@@ -2,6 +2,10 @@ package art.arcane.iris.generation.stage;
 
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveAction;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveCell;
+import art.arcane.iris.generation.subterrain.IrisSubterrainFamily;
+import art.arcane.iris.generation.subterrain.SubterrainCell;
+import art.arcane.iris.generation.subterrain.SubterrainRoom;
+import art.arcane.iris.testsupport.KeyedBlockState;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.matter.MatterCavern;
 import org.junit.Test;
@@ -123,5 +127,53 @@ public class IrisCarveModifierHydrologyTest {
                 HydrologyCaveCell.of(HydrologyCaveAction.DRY_AIR),
                 water
         ));
+    }
+
+    @Test
+    public void sealGuardsPlaceHostRockWhereTheBlockCannotHoldWater() {
+        NativeBlockState rock = new KeyedBlockState("minecraft:stone");
+        NativeBlockState air = mock(NativeBlockState.class);
+        when(air.isAir()).thenReturn(true);
+        NativeBlockState grass = new KeyedBlockState("minecraft:short_grass");
+        NativeBlockState sand = solid("minecraft:sand");
+        NativeBlockState gravel = solid("minecraft:gravel");
+        NativeBlockState granite = solid("minecraft:granite");
+        NativeBlockState water = mock(NativeBlockState.class);
+        when(water.isFluid()).thenReturn(true);
+        when(water.key()).thenReturn("minecraft:water[level=0]");
+
+        assertSame(rock, IrisCarveModifier.sealGuardState(air, rock));
+        assertSame(rock, IrisCarveModifier.sealGuardState(null, rock));
+        assertSame(rock, IrisCarveModifier.sealGuardState(grass, rock));
+        assertSame(rock, IrisCarveModifier.sealGuardState(sand, rock));
+        assertSame(rock, IrisCarveModifier.sealGuardState(gravel, rock));
+        assertSame(granite, IrisCarveModifier.sealGuardState(granite, rock));
+        assertSame(water, IrisCarveModifier.sealGuardState(water, rock));
+    }
+
+    @Test
+    public void subterrainRoomsNeverTakeAnyInletCell() {
+        SubterrainRoom room = new SubterrainRoom("room", "", IrisSubterrainFamily.CENOTE, 0, 0, 0, 0, 0, 0, -10, 10, 1D, 0, false, false,
+                SubterrainCell.Kind.AIR);
+        SubterrainCell open = new SubterrainCell(SubterrainCell.Kind.AIR, "", room);
+
+        assertTrue(IrisCarveModifier.subterrainOwns(open, null));
+        assertFalse(IrisCarveModifier.subterrainOwns(open, HydrologyCaveCell.of(HydrologyCaveAction.DRY_AIR)));
+        assertFalse(IrisCarveModifier.subterrainOwns(open, HydrologyCaveCell.of(HydrologyCaveAction.WET_SOURCE)));
+        assertFalse(IrisCarveModifier.subterrainOwns(open, HydrologyCaveCell.of(HydrologyCaveAction.SEAL_GUARD)));
+        assertFalse(IrisCarveModifier.subterrainOwns(SubterrainCell.OUTSIDE, null));
+        for (SubterrainCell.Kind kind : new SubterrainCell.Kind[]{SubterrainCell.Kind.WATER, SubterrainCell.Kind.LAVA}) {
+            SubterrainCell fluid = new SubterrainCell(kind, "", room);
+            assertTrue(IrisCarveModifier.subterrainOwns(fluid, null));
+            assertFalse("subterrain " + kind + " yields the inlet seal", IrisCarveModifier.subterrainOwns(fluid,
+                    HydrologyCaveCell.of(HydrologyCaveAction.SEAL_GUARD)));
+        }
+    }
+
+    private static NativeBlockState solid(String key) {
+        NativeBlockState state = mock(NativeBlockState.class);
+        when(state.isSolid()).thenReturn(true);
+        when(state.key()).thenReturn(key);
+        return state;
     }
 }

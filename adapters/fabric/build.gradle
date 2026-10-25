@@ -153,7 +153,7 @@ dependencies {
     String modConfiguration = irisModTarget.fabricRemap ? 'modImplementation' : 'implementation'
     add(modConfiguration, "net.fabricmc:fabric-loader:${fabricLoaderVersion}")
     testImplementation('junit:junit:4.13.2')
-    testImplementation('org.mockito:mockito-core:5.23.0')
+    testImplementation(libs.mockito.core)
     testImplementation(testFixtures('art.arcane:core'))
     testImplementation(libs.spigot) {
         transitive = false
@@ -235,6 +235,8 @@ tasks.named('compileJava', JavaCompile).configure {
     options.encoding = 'UTF-8'
     options.release.set((int) irisModTarget.java)
 }
+
+apply from: file('../../gradle/mockito-agent.gradle')
 
 tasks.named('test').configure {
 }

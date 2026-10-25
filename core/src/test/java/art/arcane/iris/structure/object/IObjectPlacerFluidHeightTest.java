@@ -32,42 +32,42 @@ public class IObjectPlacerFluidHeightTest {
     }
 
     @Test
-    public void engineLocalPlacersUseTheRoundedPerColumnRiverHead() {
+    public void engineLocalPlacersUseTheRoundedPerColumnWaterHead() {
         IObjectPlacer placer = placer(127, 127, 130.6D);
 
         assertEquals(131, placer.getFluidHeight(12, -7));
 
-        verify(riverHead(placer)).get(12, -7);
+        verify(waterHead(placer)).get(12, -7);
     }
 
     @Test
-    public void worldCoordinatePlacersShiftTheLocalRiverHeadExactlyOnce() {
+    public void worldCoordinatePlacersShiftTheLocalWaterHeadExactlyOnce() {
         IObjectPlacer placer = placer(63, 127, 130.6D);
 
         assertEquals(67, placer.getFluidHeight(12, -7));
 
-        verify(riverHead(placer)).get(12, -7);
+        verify(waterHead(placer)).get(12, -7);
     }
 
-    private static IObjectPlacer placer(int placerFluidHeight, int dimensionFluidHeight, double riverFluidHeight) {
+    private static IObjectPlacer placer(int placerFluidHeight, int dimensionFluidHeight, double waterHeadHeight) {
         IObjectPlacer placer = mock(IObjectPlacer.class, CALLS_REAL_METHODS);
         Engine engine = mock(Engine.class);
         IrisComplex complex = mock(IrisComplex.class);
         IrisDimension dimension = mock(IrisDimension.class);
         @SuppressWarnings("unchecked")
-        ProceduralStream<Double> riverHead = mock(ProceduralStream.class);
+        ProceduralStream<Double> waterHead = mock(ProceduralStream.class);
 
         when(placer.getFluidHeight()).thenReturn(placerFluidHeight);
         when(placer.getEngine()).thenReturn(engine);
         when(engine.getComplex()).thenReturn(complex);
         when(engine.getDimension()).thenReturn(dimension);
         when(dimension.getFluidHeight()).thenReturn(dimensionFluidHeight);
-        when(complex.getRiverWaterSurfaceStream()).thenReturn(riverHead);
-        when(riverHead.get(12, -7)).thenReturn(riverFluidHeight);
+        when(complex.getWaterHeadStream()).thenReturn(waterHead);
+        when(waterHead.get(12, -7)).thenReturn(waterHeadHeight);
         return placer;
     }
 
-    private static ProceduralStream<Double> riverHead(IObjectPlacer placer) {
-        return placer.getEngine().getComplex().getRiverWaterSurfaceStream();
+    private static ProceduralStream<Double> waterHead(IObjectPlacer placer) {
+        return placer.getEngine().getComplex().getWaterHeadStream();
     }
 }

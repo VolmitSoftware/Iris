@@ -1,5 +1,6 @@
 package art.arcane.iris.studio.view;
 
+import art.arcane.iris.generation.stream.ProvisionalSampling;
 import art.arcane.iris.studio.render.IrisRenderer;
 import art.arcane.iris.studio.render.RenderType;
 import art.arcane.iris.testsupport.Await;
@@ -14,7 +15,9 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BooleanSupplier;
+import java.util.function.LongSupplier;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
@@ -271,11 +274,124 @@ public class VisionRenderControllerTest {
         }
     }
 
+    @Test
+    public void provisionalTilesAreShownButNeverCachedAndRetriedUntilFinal() throws Exception {
+        IrisRenderer renderer = mock(IrisRenderer.class);
+        AtomicInteger calls = new AtomicInteger();
+        when(renderer.renderStudio(anyDouble(), anyDouble(), anyDouble(), anyInt(), any(RenderType.class),
+                any(BooleanSupplier.class))).thenAnswer(invocation -> {
+            if (calls.incrementAndGet() <= 2) {
+                ProvisionalSampling.mark();
+            }
+            return new BufferedImage(64, 64, BufferedImage.TYPE_INT_RGB);
+        });
+        VisionRenderController controller = controller(1);
+        try {
+            VisionRenderController.RenderSpec spec = spec(renderer, RenderType.RIVER, 1L, 32D, 32D, 1D, 64, 64);
+            VisionRenderController.Frame frame = controller.request(spec);
+            VisionRenderController.VisibleTile tile = frame.tiles().getFirst();
+            Await.until("the provisional tile to show", Duration.ofSeconds(2L), () -> controller.image(frame, tile) != null);
+            assertEquals(1, frame.tiles().size());
+            assertEquals(0, controller.progress(frame).ready());
+
+            VisionRenderController.Frame again = controller.request(spec);
+            Await.until("the uncached tile to render again", Duration.ofSeconds(2L), () -> calls.get() == 2
+                    && controller.image(again, again.tiles().getFirst()) != null);
+            assertEquals(0, controller.progress(again).ready());
+
+            Await.until("the retried tile to become final", Duration.ofSeconds(2L), () -> {
+                controller.retryProvisional(again);
+                return controller.progress(again).ready() == 1;
+            });
+            assertEquals(3, calls.get());
+            VisionRenderController.Frame cached = controller.request(spec);
+            assertEquals(1, controller.progress(cached).ready());
+            controller.retryProvisional(cached);
+            assertEquals(3, calls.get());
+        } finally {
+            controller.close();
+        }
+    }
+
+    @Test
+    public void provisionalRefinementKeepsTheBaseTileAndRetries() throws Exception {
+        IrisRenderer renderer = exactRenderer();
+        AtomicInteger refinements = new AtomicInteger();
+        BufferedImage refinedImage = new BufferedImage(64, 64, BufferedImage.TYPE_INT_RGB);
+        when(renderer.refineStudioBiome(anyDouble(), anyDouble(), anyDouble(), any(BufferedImage.class),
+                any(BooleanSupplier.class))).thenAnswer(invocation -> {
+            if (refinements.incrementAndGet() == 1) {
+                ProvisionalSampling.mark();
+                return new BufferedImage(64, 64, BufferedImage.TYPE_INT_RGB);
+            }
+            return refinedImage;
+        });
+        VisionRenderController controller = controller(1);
+        try {
+            VisionRenderController.Frame frame = controller.request(spec(renderer, RenderType.BIOME, 1L, 32D, 32D, 1D, 64, 64));
+            VisionRenderController.VisibleTile tile = frame.tiles().getFirst();
+            Await.until("the provisional refinement to finish", Duration.ofSeconds(2L), () -> refinements.get() == 1
+                    && controller.progress(frame).active() == 0);
+            BufferedImage base = controller.image(frame, tile);
+            assertNotEquals(refinedImage, base);
+            assertEquals(0, controller.progress(frame).ready());
+
+            Await.until("the retried refinement to become final", Duration.ofSeconds(2L), () -> {
+                controller.retryProvisional(frame);
+                return controller.progress(frame).ready() == 1;
+            });
+            assertSame(refinedImage, controller.image(frame, tile));
+            assertEquals(2, refinements.get());
+        } finally {
+            controller.close();
+        }
+    }
+
+    @Test
+    public void provisionalTilesBackOffFromHalfASecondDoublingToEightSeconds() throws Exception {
+        IrisRenderer renderer = mock(IrisRenderer.class);
+        AtomicInteger calls = new AtomicInteger();
+        when(renderer.renderStudio(anyDouble(), anyDouble(), anyDouble(), anyInt(), any(RenderType.class),
+                any(BooleanSupplier.class))).thenAnswer(invocation -> {
+            calls.incrementAndGet();
+            ProvisionalSampling.mark();
+            return new BufferedImage(64, 64, BufferedImage.TYPE_INT_RGB);
+        });
+        AtomicLong now = new AtomicLong();
+        VisionRenderController controller = controller(1, now::get);
+        try {
+            VisionRenderController.Frame frame = controller.request(spec(renderer, RenderType.RIVER, 1L, 32D, 32D, 1D, 64, 64));
+            long[] delays = {500L, 1000L, 2000L, 4000L, 8000L, 8000L};
+            long retryAt = 0L;
+            for (int attempt = 0; attempt < delays.length; attempt++) {
+                int expectedCalls = attempt + 1;
+                long delay = TimeUnit.MILLISECONDS.toNanos(delays[attempt]);
+                Await.until("the provisional render to settle", Duration.ofSeconds(2L), () -> calls.get() == expectedCalls
+                        && controller.progress(frame).active() == 0);
+                retryAt += delay;
+                now.set(retryAt - 1L);
+                controller.retryProvisional(frame);
+                assertEquals(expectedCalls, calls.get());
+                assertEquals(0, controller.progress(frame).active());
+                now.set(retryAt);
+                controller.retryProvisional(frame);
+            }
+            Await.until("the last retry to render", Duration.ofSeconds(2L), () -> calls.get() == delays.length + 1);
+            assertEquals(0, controller.progress(frame).ready());
+        } finally {
+            controller.close();
+        }
+    }
+
     private static VisionRenderController controller(int workers) {
+        return controller(workers, System::nanoTime);
+    }
+
+    private static VisionRenderController controller(int workers, LongSupplier clock) {
         return new VisionRenderController(
                 () -> {
                 },
-                new VisionRenderController.RuntimeOptions(workers, 8, false)
+                new VisionRenderController.RuntimeOptions(workers, 8, false, clock)
         );
     }
 

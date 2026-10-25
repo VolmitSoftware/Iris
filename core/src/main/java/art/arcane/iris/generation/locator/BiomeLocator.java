@@ -1,7 +1,6 @@
 package art.arcane.iris.generation.locator;
 
 import art.arcane.iris.generation.biome.IrisBiome;
-import art.arcane.iris.generation.hydrology.IrisRiverPolicy;
 import art.arcane.iris.generation.context.ChunkContext;
 import art.arcane.iris.generation.context.IrisContext;
 import art.arcane.iris.generation.runtime.Engine;
@@ -58,10 +57,12 @@ public final class BiomeLocator implements Locator<IrisBiome> {
     private final Set<Position2> surfaceTargets = ConcurrentHashMap.newKeySet();
     private volatile SubterrainPosition authoredTarget;
     private final ConcurrentHashMap<Position2, SubterrainPosition> cavernTargets = new ConcurrentHashMap<>();
+    private final HydrologyShoreTargets shores;
 
     public BiomeLocator(String key, boolean authored) {
         this.key = key;
         this.authored = authored;
+        this.shores = new HydrologyShoreTargets(Set.of(key));
     }
 
     public static Locator<IrisBiome> forBiome(Engine engine, String key, int originWorldY) {
@@ -79,7 +80,6 @@ public final class BiomeLocator implements Locator<IrisBiome> {
             for (String root : region.getShoreBiomes()) {
                 surfaceAllowed |= caveBranch(engine, root).contains(key);
             }
-            configured |= floodedBiome(region.getRiverPolicy(), key);
             for (String root : region.getCaveBiomes()) {
                 Set<String> branch = caveBranch(engine, root);
                 if (branch.contains(key)) {
@@ -97,9 +97,8 @@ public final class BiomeLocator implements Locator<IrisBiome> {
                 authored = true;
             }
         }
-        configured |= floodedBiome(engine.getDimension().getRiverPolicy(), key);
         for (IrisBiome biome : engine.getAllBiomes()) {
-            configured |= key.equals(biome.getCarvingBiome()) || floodedBiome(biome.getRiverPolicy(), key);
+            configured |= key.equals(biome.getCarvingBiome());
         }
         if (!authored && !configured && caveHosts.isEmpty()) {
             return Locator.surfaceBiome(key);
@@ -110,10 +109,6 @@ public final class BiomeLocator implements Locator<IrisBiome> {
         locator.originWorldY = originWorldY;
         locator.surfaceAllowed = surfaceAllowed;
         return locator;
-    }
-
-    private static boolean floodedBiome(IrisRiverPolicy policy, String key) {
-        return policy != null && policy.getFloodedCaveBiomes() != null && policy.getFloodedCaveBiomes().contains(key);
     }
 
     private static Set<String> caveBranch(Engine engine, String root) {
@@ -201,7 +196,7 @@ public final class BiomeLocator implements Locator<IrisBiome> {
 
     @Override
     public boolean matches(Engine engine, Position2 chunk) {
-        if (surfaceAllowed && Locator.chunkContainsSurfaceBiome(engine, chunk, key)) {
+        if (surfaceAllowed && Locator.chunkContainsSurfaceBiome(engine, chunk, key, shores)) {
             surfaceTargets.add(chunk);
             return true;
         }

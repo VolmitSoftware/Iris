@@ -1,8 +1,8 @@
 package art.arcane.iris.generation.locator;
 
 import art.arcane.iris.generation.biome.IrisBiome;
-import art.arcane.iris.generation.hydrology.IrisRiverPolicy;
-import art.arcane.iris.generation.hydrology.runtime.IrisHydrologyRuntime;
+import art.arcane.iris.generation.hydrology.config.IrisHydrologyPolicy;
+import art.arcane.iris.generation.hydrology.engine.HydrologyRuntime;
 import art.arcane.iris.generation.image.IrisImageMapApplication;
 import art.arcane.iris.generation.image.IrisImageMapRuntime;
 import art.arcane.iris.generation.runtime.DimensionStackContext;
@@ -131,11 +131,12 @@ public class BiomeSearchFilterTest {
     }
 
     @Test
-    public void plannedHydrologyColumnsAreAdmittedForRiverPolicyBiomes() {
+    public void hydrologyColumnsAreAdmittedForShoreBiomesThePolicyPlaces() {
         stubRegions();
         when(complex.getRegionStream()).thenReturn(constantStream(region("host")));
-        when(complex.getHydrologyRuntime()).thenReturn(mock(IrisHydrologyRuntime.class));
-        when(dimension.getRiverPolicy()).thenReturn(new IrisRiverPolicy().setSurfaceBiomes(keys("river_root")));
+        HydrologyRuntime hydrology = enabledHydrology();
+        when(complex.getHydrologyRuntime()).thenReturn(hydrology);
+        when(dimension.getHydrologyPolicy()).thenReturn(new IrisHydrologyPolicy().setShoreBiomes(keys("river_root")));
         IrisBiome river = biome("river_root");
         river.setChildren(keys("target"));
         stubBiome(river);
@@ -148,12 +149,28 @@ public class BiomeSearchFilterTest {
     }
 
     @Test
-    public void hydrologyIsNotConsultedForBiomesNoRiverPolicyPlaces() {
+    public void hydrologyIsNotConsultedForBiomesNoHydrologyPolicyPlaces() {
         stubRegions();
         when(complex.getRegionStream()).thenReturn(constantStream(region("host")));
-        when(complex.getHydrologyRuntime()).thenReturn(mock(IrisHydrologyRuntime.class));
-        when(dimension.getRiverPolicy()).thenReturn(new IrisRiverPolicy().setSurfaceBiomes(keys("river_root")));
+        HydrologyRuntime hydrology = enabledHydrology();
+        when(complex.getHydrologyRuntime()).thenReturn(hydrology);
+        when(dimension.getHydrologyPolicy()).thenReturn(new IrisHydrologyPolicy().setShoreBiomes(keys("river_root")));
         stubBiome(biome("river_root"));
+        when(engine.answersFromNaturalTerrain(anyInt(), anyInt())).thenReturn(false);
+
+        BiomeSearchFilter filter = BiomeSearchFilter.of(engine, Set.of("target"));
+
+        assertFalse(filter.column(32, 32).admits(SURFACE_Y));
+        verify(engine, never()).answersFromNaturalTerrain(anyInt(), anyInt());
+    }
+
+    @Test
+    public void disabledHydrologyIsNeverConsultedForPolicyShoreBiomes() {
+        stubRegions();
+        when(complex.getRegionStream()).thenReturn(constantStream(region("host")));
+        when(complex.getHydrologyRuntime()).thenReturn(mock(HydrologyRuntime.class));
+        when(dimension.getHydrologyPolicy()).thenReturn(new IrisHydrologyPolicy().setShoreBiomes(keys("target")));
+        stubBiome(biome("target"));
         when(engine.answersFromNaturalTerrain(anyInt(), anyInt())).thenReturn(false);
 
         BiomeSearchFilter filter = BiomeSearchFilter.of(engine, Set.of("target"));
@@ -223,6 +240,12 @@ public class BiomeSearchFilterTest {
         assertTrue(filter.column(0, 0).admits(CAVE_Y));
         assertFalse(filter.column(0, 0).admits(SURFACE_Y));
         assertFalse(unrelated.column(0, 0).admits(CAVE_Y));
+    }
+
+    private static HydrologyRuntime enabledHydrology() {
+        HydrologyRuntime runtime = mock(HydrologyRuntime.class);
+        when(runtime.enabled()).thenReturn(true);
+        return runtime;
     }
 
     private static IrisBiome biome(String key) {

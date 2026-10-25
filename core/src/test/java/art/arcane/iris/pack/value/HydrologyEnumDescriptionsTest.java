@@ -1,10 +1,7 @@
 package art.arcane.iris.pack.value;
 
-import art.arcane.iris.generation.hydrology.IrisGrottoPoolLevel;
-import art.arcane.iris.generation.hydrology.IrisRiverBedProfile;
-import art.arcane.iris.generation.hydrology.IrisRiverBlendStyle;
-import art.arcane.iris.generation.hydrology.IrisRiverPlacementMode;
-import art.arcane.iris.generation.hydrology.IrisRiverRoutingMode;
+import art.arcane.iris.generation.hydrology.config.IrisBankStyle;
+import art.arcane.iris.generation.hydrology.config.IrisHydrologyPermission;
 
 import art.arcane.volmlib.util.documentation.Description;
 import org.junit.Test;
@@ -17,11 +14,8 @@ import static org.junit.Assert.assertNotNull;
 
 public class HydrologyEnumDescriptionsTest {
     private static final List<Class<? extends Enum<?>>> HYDROLOGY_ENUMS = List.of(
-            IrisRiverPlacementMode.class,
-            IrisRiverRoutingMode.class,
-            IrisGrottoPoolLevel.class,
-            IrisRiverBlendStyle.class,
-            IrisRiverBedProfile.class
+            IrisBankStyle.class,
+            IrisHydrologyPermission.class
     );
 
     @Test

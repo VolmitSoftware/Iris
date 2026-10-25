@@ -5,22 +5,28 @@ import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.locator.SubterrainLocator;
 import art.arcane.iris.generation.subterrain.SubterrainPlanner;
 import art.arcane.iris.structure.placement.IrisStructureLocator;
-import art.arcane.iris.generation.hydrology.HydrologyFeatureQuery;
-import art.arcane.iris.generation.hydrology.HydrologyFeatureRef;
-import art.arcane.iris.generation.hydrology.HydrologyFeatureType;
-import art.arcane.iris.generation.hydrology.runtime.IrisHydrologyRuntime;
+import art.arcane.iris.generation.hydrology.engine.HydrologyRuntime;
+import art.arcane.iris.generation.hydrology.query.HydrologyFeatureQuery;
+import art.arcane.iris.generation.hydrology.query.HydrologyFeatureRef;
+import art.arcane.iris.generation.hydrology.query.HydrologyFeatureType;
 
 import java.math.BigInteger;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalLong;
-import java.util.function.IntConsumer;
+import java.util.Set;
 import java.util.function.Predicate;
 import java.util.function.BooleanSupplier;
 
 public final class GenerationSemanticQueries {
+    public static final int RIVER_SEARCH_DISTANCE = 7168;
+
     private GenerationSemanticQueries() {
     }
 
@@ -149,34 +155,31 @@ public final class GenerationSemanticQueries {
 
     public static Optional<RiverResult> nearestRiver(
             Engine engine,
-            HydrologyFeatureQuery query,
+            HydrologyFeatureType type,
             int blockX,
             int blockZ,
-            int maximumDistance,
-            IntConsumer progress
+            int maximumDistance
     ) {
         Engine requiredEngine = Objects.requireNonNull(engine, "engine");
-        HydrologyFeatureQuery requiredQuery = Objects.requireNonNull(query, "query");
-        IntConsumer requiredProgress = Objects.requireNonNull(progress, "progress");
+        HydrologyFeatureType requiredType = Objects.requireNonNull(type, "type");
         if (maximumDistance < 0) {
             throw new IllegalArgumentException("Maximum river search distance cannot be negative.");
         }
         GenerationHistory history = history(requiredEngine).orElse(null);
         RiverResult recorded = recordedRiver(
                 history,
-                requiredQuery,
+                requiredType,
                 blockX,
                 blockZ,
                 maximumDistance
         );
-        RiverResult active = activeRiver(
+        RiverResult active = recordedOnly(requiredType) ? null : activeRiver(
                 requiredEngine,
                 history,
-                requiredQuery,
+                requiredType,
                 blockX,
                 blockZ,
-                maximumDistance,
-                requiredProgress
+                maximumDistance
         );
         if (recorded == null) {
             return Optional.ofNullable(active);
@@ -187,6 +190,53 @@ public final class GenerationSemanticQueries {
         int comparison = horizontalDistanceSquared(blockX, blockZ, recorded.x(), recorded.z())
                 .compareTo(horizontalDistanceSquared(blockX, blockZ, active.x(), active.z()));
         return Optional.of(comparison <= 0 ? recorded : active);
+    }
+
+    private static boolean recordedOnly(HydrologyFeatureType type) {
+        return type == HydrologyFeatureType.CAVE_POOL;
+    }
+
+    public static String riverSearchMessage(HydrologyFeatureType type, int maximumDistance) {
+        String label = type.key().replace('_', ' ');
+        return recordedOnly(type)
+                ? "Searching generated chunks for the nearest " + label + " within " + maximumDistance + " blocks..."
+                : "Searching for the nearest " + label + " within " + maximumDistance + " blocks...";
+    }
+
+    public static String riverNotFoundMessage(HydrologyFeatureType type, int maximumDistance) {
+        String label = type.key().replace('_', ' ');
+        return recordedOnly(type)
+                ? "No " + label + " found in generated chunks within " + maximumDistance + " blocks. Cave pools form in carved caves, so "
+                + "only chunks that have already generated can hold one."
+                : "No " + label + " found within " + maximumDistance + " blocks.";
+    }
+
+    public static List<ChunkGenerationSemantics.BlockPosition> recordedCavePools(
+            Engine engine,
+            int minimumChunkX,
+            int minimumChunkZ,
+            int maximumChunkX,
+            int maximumChunkZ
+    ) {
+        GenerationHistory history = history(Objects.requireNonNull(engine, "engine")).orElse(null);
+        List<ChunkGenerationSemantics.BlockPosition> pools = new ArrayList<>();
+        if (history == null) {
+            return pools;
+        }
+        for (int chunkZ = minimumChunkZ; chunkZ <= maximumChunkZ; chunkZ++) {
+            for (int chunkX = minimumChunkX; chunkX <= maximumChunkX; chunkX++) {
+                ChunkGenerationSemantics semantics = history.semantics(chunkX, chunkZ).orElse(null);
+                if (semantics == null) {
+                    continue;
+                }
+                for (ChunkGenerationSemantics.RiverFeatureOccurrence occurrence : semantics.riverFeatures()) {
+                    if (occurrence.type() == HydrologyFeatureType.CAVE_POOL) {
+                        pools.add(occurrence.position());
+                    }
+                }
+            }
+        }
+        return pools;
     }
 
     public static boolean allowsActivePrediction(Engine engine, int chunkX, int chunkZ) {
@@ -206,7 +256,7 @@ public final class GenerationSemanticQueries {
 
     private static RiverResult recordedRiver(
             GenerationHistory history,
-            HydrologyFeatureQuery query,
+            HydrologyFeatureType type,
             int blockX,
             int blockZ,
             int maximumDistance
@@ -217,8 +267,7 @@ public final class GenerationSemanticQueries {
         int maxChunkRadius = Math.addExact(Math.floorDiv(maximumDistance, 16), 1);
         GenerationSemanticIndex.RiverMatch match = history.findRecordedRiver(
                 GenerationSemanticIndex.RiverQuery.acrossActivations(
-                        query.types(),
-                        query.profileKey(),
+                        Set.of(type),
                         new ChunkGenerationSemantics.BlockPosition(blockX, 0, blockZ),
                         maxChunkRadius
                 )
@@ -237,7 +286,6 @@ public final class GenerationSemanticQueries {
         return new RiverResult(
                 RiverSource.RECORDED,
                 occurrence.type(),
-                Optional.of(occurrence.profileKey()),
                 occurrence.featureId(),
                 position.x(),
                 position.y(),
@@ -249,29 +297,27 @@ public final class GenerationSemanticQueries {
     private static RiverResult activeRiver(
             Engine engine,
             GenerationHistory history,
-            HydrologyFeatureQuery query,
+            HydrologyFeatureType type,
             int blockX,
             int blockZ,
-            int maximumDistance,
-            IntConsumer progress
+            int maximumDistance
     ) {
-        IrisHydrologyRuntime runtime = engine.getComplex().getHydrologyRuntime();
-        if (runtime == null) {
+        HydrologyRuntime runtime = engine.getComplex().getHydrologyRuntime();
+        if (runtime == null || !runtime.enabled()) {
             return null;
         }
-        Predicate<HydrologyFeatureRef> eligibility = feature -> allowsActiveHydrologyPrediction(
-                engine,
-                feature.x(),
-                feature.z()
-        );
+        Map<Long, Boolean> eligibleChunks = new HashMap<>();
+        TransitionDisplacementField displacement = engine.getComplex().getTransitionDisplacement();
+        Predicate<HydrologyFeatureRef> eligibility = feature -> (displacement == null
+                || displacement.seamWeight(feature.x(), feature.z()) == 1D)
+                && eligibleChunks.computeIfAbsent(packChunk(Math.floorDiv(feature.x(), 16), Math.floorDiv(feature.z(), 16)),
+                chunk -> allowsActivePrediction(engine, Math.floorDiv(feature.x(), 16), Math.floorDiv(feature.z(), 16)));
         HydrologyFeatureRef feature = runtime.nearestFeature(
-                query.types(),
-                query.profileKey(),
                 blockX,
                 blockZ,
+                HydrologyFeatureQuery.of(type),
                 maximumDistance,
-                eligibility,
-                progress
+                eligibility
         ).orElse(null);
         if (feature == null) {
             return null;
@@ -282,7 +328,6 @@ public final class GenerationSemanticQueries {
         return new RiverResult(
                 RiverSource.ACTIVE_PREDICTION,
                 feature.type(),
-                Optional.ofNullable(query.profileKey()),
                 feature.id(),
                 feature.x(),
                 Math.addExact(feature.y(), engine.getDimension().getMinHeight()),
@@ -291,16 +336,8 @@ public final class GenerationSemanticQueries {
         );
     }
 
-    private static boolean allowsActiveHydrologyPrediction(Engine engine, int blockX, int blockZ) {
-        TransitionDisplacementField displacement = engine.getComplex().getTransitionDisplacement();
-        if (displacement != null && displacement.seamWeight(blockX, blockZ) != 1D) {
-            return false;
-        }
-        return allowsActivePrediction(
-                engine,
-                Math.floorDiv(blockX, 16),
-                Math.floorDiv(blockZ, 16)
-        );
+    private static long packChunk(int chunkX, int chunkZ) {
+        return ((long) chunkX << 32) | (chunkZ & 0xFFFFFFFFL);
     }
 
     private static Optional<GenerationHistory> history(Engine engine) {
@@ -330,7 +367,6 @@ public final class GenerationSemanticQueries {
     public record RiverResult(
             RiverSource source,
             HydrologyFeatureType type,
-            Optional<String> profileKey,
             long featureId,
             int x,
             int y,
@@ -340,7 +376,6 @@ public final class GenerationSemanticQueries {
         public RiverResult {
             source = Objects.requireNonNull(source, "source");
             type = Objects.requireNonNull(type, "type");
-            profileKey = Objects.requireNonNull(profileKey, "profileKey");
             activationId = Objects.requireNonNull(activationId, "activationId");
         }
     }

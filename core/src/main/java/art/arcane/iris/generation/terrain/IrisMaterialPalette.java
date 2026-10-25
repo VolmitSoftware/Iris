@@ -67,6 +67,9 @@ public class IrisMaterialPalette implements StructurePalette {
     @Getter(AccessLevel.NONE)
     @Setter(AccessLevel.NONE)
     private final transient AtomicReference<CachedLayerGenerator> recentLayerGenerator = new AtomicReference<>();
+    @Getter(AccessLevel.NONE)
+    @Setter(AccessLevel.NONE)
+    private final transient IrisBlockData fallback = new IrisBlockData("STONE");
     @Description("The style of noise")
     private IrisGeneratorStyle style = NoiseStyle.STATIC.style();
     @MinNumber(0.0001)
@@ -75,7 +78,11 @@ public class IrisMaterialPalette implements StructurePalette {
     @Required
     @ArrayType(min = 1, type = IrisBlockData.class)
     @Description("The palette of blocks to be used in this layer")
-    private KList<IrisBlockData> palette = new KList<IrisBlockData>().qadd(new IrisBlockData("STONE"));
+    private KList<IrisBlockData> palette = new KList<IrisBlockData>().qadd(fallback);
+
+    public boolean isFallbackPalette() {
+        return palette != null && palette.size() == 1 && palette.get(0) == fallback;
+    }
 
     public NativeBlockState get(RNG rng, double x, double y, double z, IrisData rdata) {
         KList<NativeBlockState> localBlockData = getBlockData(rdata);

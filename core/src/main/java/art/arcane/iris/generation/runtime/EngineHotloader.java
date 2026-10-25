@@ -108,6 +108,7 @@ final class EngineHotloader {
                 }
                 engine.runtime = next;
                 published = true;
+                next.generation().complex().openHydrologyPlanStore();
                 engine.getGenerationSessions().activateNextSession();
                 engine.lifecycleState = LifecycleState.RUNNING;
                 engine.getClosing().set(false);

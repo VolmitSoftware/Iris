@@ -193,6 +193,7 @@ public interface EngineMode extends Staged {
 
     @BlockCoordinates
     default void generate(int x, int z, Hunk<NativeBlockState> blocks, Hunk<NativeBiome> biomes, boolean multicore, long generationSessionId) {
+        getComplex().prepareGenerationWater(x >> 4, z >> 4);
         boolean cacheContext = !getEngine().getPlatformHooks().shouldDisableChunkContextCache(getEngine());
         ChunkContext.PrefillPlan prefillPlan = cacheContext ? ChunkContext.PrefillPlan.NO_CAVE : ChunkContext.PrefillPlan.NONE;
         ChunkContext ctx = new ChunkContext(

@@ -167,9 +167,11 @@ public class MantleCarvingComponent extends IrisMantleComponent {
                 BLEND_RADIUS,
                 surfaceFluidBoundaries
         );
+        int[] caveCeilings = CaveCeilingMask.fill(x, z, complex.getHydrologyRuntime()::raster,
+                blendScratch.caveCeilingField, blendScratch.caveCeilings) ? blendScratch.caveCeilings : null;
         CaveFluidSupportPlan fluidSupportPlan = new CaveFluidSupportPlan();
         for (WeightedProfile weightedProfile : weightedProfiles) {
-            carveProfile(weightedProfile, writer, x, z, chunkSurfaceHeights, surfaceFluidBoundaries, fluidSupportPlan);
+            carveProfile(weightedProfile, writer, x, z, chunkSurfaceHeights, surfaceFluidBoundaries, caveCeilings, fluidSupportPlan);
         }
 
         UpperDimensionContext upperCtx = getEngineMantle().getEngine().getUpperContext();
@@ -184,13 +186,14 @@ public class MantleCarvingComponent extends IrisMantleComponent {
                     chunkSurfaceHeights,
                     maxSurfaceBreakDepth(weightedProfiles),
                     writer.getMantle().getWorldHeight() - 1,
-                    surfaceFluidBoundaries
+                    surfaceFluidBoundaries,
+                    caveCeilings
             );
         }
-        rasterizeSubterrain(writer, x, z, complex);
+        rasterizeSubterrain(writer, x, z, complex, caveCeilings);
     }
 
-    private void rasterizeSubterrain(MantleWriter writer, int chunkX, int chunkZ, IrisComplex complex) {
+    private void rasterizeSubterrain(MantleWriter writer, int chunkX, int chunkZ, IrisComplex complex, int[] caveCeilings) {
         SubterrainPlanner planner = complex.getSubterrainPlanner();
         if (planner == null || planner.isEmpty()) {
             return;
@@ -202,6 +205,9 @@ public class MantleCarvingComponent extends IrisMantleComponent {
                 return;
             }
             if (cell.solid() && !cell.room().reservedSolid()) {
+                return;
+            }
+            if (!cell.solid() && caveCeilings != null && y > caveCeilings[PowerOfTwoCoordinates.packLocal16(x & 15, z & 15)]) {
                 return;
             }
             if (cell.solid()) {
@@ -227,11 +233,11 @@ public class MantleCarvingComponent extends IrisMantleComponent {
 
     @ChunkCoordinates
     private void carveProfile(WeightedProfile weightedProfile, MantleWriter writer, int cx, int cz,
-                              int[] chunkSurfaceHeights, long[] surfaceFluidBoundaries,
+                              int[] chunkSurfaceHeights, long[] surfaceFluidBoundaries, int[] caveCeilings,
                               CaveFluidSupportPlan fluidSupportPlan) {
         IrisCaveCarver3D carver = getCarver(weightedProfile.profile);
         carver.carve(writer, cx, cz, weightedProfile.columnWeights, MIN_WEIGHT, THRESHOLD_PENALTY,
-                weightedProfile.worldYRange, chunkSurfaceHeights, surfaceFluidBoundaries, null, fluidSupportPlan);
+                weightedProfile.worldYRange, chunkSurfaceHeights, surfaceFluidBoundaries, caveCeilings, null, fluidSupportPlan);
     }
 
     private void carveUpperTerrain(UpperDimensionContext upperCtx, List<WeightedProfile> normalProfiles,
@@ -281,7 +287,7 @@ public class MantleCarvingComponent extends IrisMantleComponent {
             }
             IrisCaveCarver3D carver = getCarver(weightedProfile.profile);
             carver.carve(writer, cx, cz, weightedProfile.columnWeights, MIN_WEIGHT, THRESHOLD_PENALTY,
-                    constrainedRange, ceilingSurfaceHeights, null, fullVerticalRange, fluidSupportPlan);
+                    constrainedRange, ceilingSurfaceHeights, null, null, fullVerticalRange, fluidSupportPlan);
         }
     }
 
@@ -661,6 +667,11 @@ public class MantleCarvingComponent extends IrisMantleComponent {
         return 1;
     }
 
+    @Override
+    public int getWriteRadius() {
+        return 0;
+    }
+
     static int[] prepareChunkSurfaceHeights(int chunkX, int chunkZ, ChunkContext context, int[] scratch) {
         int[] surfaceHeights = scratch;
         int baseX = PowerOfTwoCoordinates.chunkToBlock(chunkX);
@@ -750,6 +761,8 @@ public class MantleCarvingComponent extends IrisMantleComponent {
         private final IrisBiome[] fieldCaveBiomes = new IrisBiome[FIELD_SIZE * FIELD_SIZE];
         private final int[] chunkSurfaceHeights = new int[CHUNK_AREA];
         private final double[] chunkSurfaceHeightSamples = new double[CHUNK_AREA];
+        private final int[] caveCeilingField = new int[CaveCeilingMask.FIELD * CaveCeilingMask.FIELD];
+        private final int[] caveCeilings = new int[CHUNK_AREA];
         private final double[][] neighbourHeights = new double[NEIGHBOURS][CHUNK_AREA];
         private final Object[][] neighbourObjects = new Object[NEIGHBOURS][CHUNK_AREA];
         private final long[][] neighbourSubmerged = new long[NEIGHBOURS][4];

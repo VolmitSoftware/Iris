@@ -74,8 +74,7 @@ public class IrisPostModifierSlabSupportTest {
         ProceduralStream<Double> zeroStream = mock(ProceduralStream.class);
         doReturn(0D).when(zeroStream).get(anyDouble(), anyDouble());
         IrisComplex complex = mock(IrisComplex.class);
-        doReturn(zeroStream).when(complex).getRiverCarveWeightStream();
-        doReturn(zeroStream).when(complex).getRiverWaterSurfaceStream();
+        doReturn(zeroStream).when(complex).getWaterHeadStream();
         doReturn(zeroStream).when(complex).getSlopeStream();
         Engine engine = mock(Engine.class);
         doReturn(complex).when(engine).getComplex();

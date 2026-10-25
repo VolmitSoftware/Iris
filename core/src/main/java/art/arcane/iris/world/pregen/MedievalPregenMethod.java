@@ -36,6 +36,7 @@ import org.bukkit.Chunk;
 import org.bukkit.World;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -62,6 +63,8 @@ public class MedievalPregenMethod implements PregeneratorMethod {
     private final PregenSerialWorker chunkFlush;
     private volatile Engine cachedEngine;
     private volatile boolean engineResolutionAttempted;
+    private final AtomicBoolean closing = new AtomicBoolean();
+    private final PregenHydrology hydrology = new PregenHydrology(this::resolveEngine);
 
     public MedievalPregenMethod(World world) {
         this.world = world;
@@ -187,6 +190,8 @@ public class MedievalPregenMethod implements PregeneratorMethod {
 
     @Override
     public void close() {
+        closing.set(true);
+        hydrology.close();
         // A stop request interrupts the pregen worker; shield the drain and save so chunks still hit disk.
         boolean interrupted = Thread.interrupted();
         try {
@@ -212,6 +217,13 @@ public class MedievalPregenMethod implements PregeneratorMethod {
     @Override
     public boolean supportsRegions(int x, int z, PregenListener listener) {
         return false;
+    }
+
+    @Override
+    public void onRegionsAhead(List<long[]> regions) {
+        if (!closing.get()) {
+            hydrology.prepare(regions);
+        }
     }
 
     @Override
@@ -309,7 +321,7 @@ public class MedievalPregenMethod implements PregeneratorMethod {
             return;
         }
 
-        ChunkContext context = new ChunkContext(chunkX, chunkZ, engine.getComplex());
+        ChunkContext context = new ChunkContext(chunkX << 4, chunkZ << 4, engine.getComplex());
         engine.generateMatter(chunkX, chunkZ, true, context);
     }
 

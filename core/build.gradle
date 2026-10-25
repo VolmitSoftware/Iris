@@ -163,11 +163,11 @@ dependencies {
     slim(libs.jaxen)
 
     testFixturesImplementation('junit:junit:4.13.2')
-    testFixturesImplementation('org.mockito:mockito-core:5.23.0')
+    testFixturesImplementation(libs.mockito.core)
     testFixturesCompileOnly(libs.paper.api)
 
     testImplementation('junit:junit:4.13.2')
-    testImplementation('org.mockito:mockito-core:5.23.0')
+    testImplementation(libs.mockito.core)
     testImplementation(libs.paper.api)
     testImplementation(libs.log4j.core)
     testRuntimeOnly(libs.paper.api)
@@ -177,7 +177,8 @@ dependencies {
 }
 
 tasks.named('test').configure {
-    maxHeapSize = '1g'
+    timeout = java.time.Duration.ofMinutes(60)
+    maxHeapSize = '2g'
     jvmArgs('-XX:+ExitOnOutOfMemoryError')
     systemProperty('iris.generation.counters', 'true')
 }

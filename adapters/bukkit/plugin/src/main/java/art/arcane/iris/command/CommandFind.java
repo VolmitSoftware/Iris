@@ -31,8 +31,7 @@ import art.arcane.iris.structure.placement.IrisStructureLocator;
 import art.arcane.iris.structure.nativegen.NativeStructureGenerationPolicy;
 import art.arcane.iris.structure.placement.StructureReachability;
 import art.arcane.iris.world.history.GenerationSemanticQueries;
-import art.arcane.iris.generation.hydrology.HydrologyFeatureQuery;
-import art.arcane.iris.generation.hydrology.runtime.IrisHydrologyRuntime;
+import art.arcane.iris.generation.hydrology.query.HydrologyFeatureType;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.structure.nativegen.IrisNativeStructureDecision;
 import art.arcane.iris.generation.terrain.IrisRegion;
@@ -196,9 +195,9 @@ public class CommandFind implements DirectorExecutor {
         EngineBukkitOps.gotoPOI(e, type, player(), teleport);
     }
 
-    @Director(description = "Find an accepted hydrology feature", sync = true)
+    @Director(description = "Find a hydrology water feature", sync = true)
     public void river(
-            @Param(description = "Feature type: surface, waterfall, underground, grotto, mouth, or a deep-fluid id", customHandler = HydrologyTypeHandler.class)
+            @Param(description = "Feature type: stream, river, major_river, cascade, waterfall, mouth, pond, lake, dam, sea_inlet or cave_pool", customHandler = HydrologyTypeHandler.class)
             String type,
             @Param(description = "Should you be teleported", defaultValue = "true")
             boolean teleport
@@ -212,42 +211,32 @@ public class CommandFind implements DirectorExecutor {
             }
             return;
         }
-        IrisHydrologyRuntime runtime = activeEngine.getComplex().getHydrologyRuntime();
-        HydrologyFeatureQuery query;
+        HydrologyFeatureType featureType;
         try {
-            query = HydrologyFeatureQuery.parse(type);
+            featureType = HydrologyFeatureType.parse(type);
         } catch (IllegalArgumentException error) {
             commandSender.sendMessage(C.RED + error.getMessage());
             return;
         }
+        String label = featureType.key().replace('_', ' ');
         Location origin = target.getLocation();
         World originWorld = origin.getWorld();
-        int requestedDistance = runtime == null
-                ? 8192
-                : Math.min(8192, runtime.settings().routing().tileSize() * 15);
-        int maximumDistance = runtime == null
-                ? requestedDistance
-                : runtime.maximumFeatureSearchDistance(
-                        origin.getBlockX(), origin.getBlockZ(), requestedDistance);
-        commandSender.sendMessage(C.GRAY + "Searching accepted hydrology plans for " + type + "...");
+        int maximumDistance = GenerationSemanticQueries.RIVER_SEARCH_DISTANCE;
+        commandSender.sendMessage(C.GRAY + GenerationSemanticQueries.riverSearchMessage(featureType, maximumDistance));
         J.a(() -> {
             try {
                 GenerationSemanticQueries.RiverResult feature = GenerationSemanticQueries.nearestRiver(
                         activeEngine,
-                        query,
+                        featureType,
                         origin.getBlockX(),
                         origin.getBlockZ(),
-                        maximumDistance,
-                        (int visited) -> sendStructureMessage(target, commandSender,
-                                C.GRAY + "Searched " + visited + " hydrology tiles for " + type + "...")
+                        maximumDistance
                 ).orElse(null);
                 if (feature == null) {
                     sendStructureMessage(target, commandSender,
-                            C.YELLOW + "No accepted " + type + " hydrology feature found within "
-                                    + maximumDistance + " blocks.");
+                            C.YELLOW + GenerationSemanticQueries.riverNotFoundMessage(featureType, maximumDistance));
                     return;
                 }
-                String label = type + " hydrology feature";
                 if (!teleport) {
                     sendStructureMessage(target, commandSender,
                             C.GREEN + "Found " + label + " at " + feature.x() + ", " + feature.y() + ", " + feature.z() + ".");
@@ -259,8 +248,9 @@ public class CommandFind implements DirectorExecutor {
                         target, originWorld, commandSender, label, destination, true);
             } catch (Throwable error) {
                 sendStructureMessage(target, commandSender,
-                        C.RED + "Could not locate " + type + " hydrology: " + error.getClass().getSimpleName());
-                Iris.reportError("Could not locate accepted hydrology feature '" + type + "'.", error);
+                        C.RED + "Could not search for " + label + ": " + error.getClass().getSimpleName()
+                                + (error.getMessage() == null ? "" : " - " + error.getMessage()));
+                Iris.reportError("Could not locate hydrology feature '" + featureType.key() + "'.", error);
             }
         });
     }

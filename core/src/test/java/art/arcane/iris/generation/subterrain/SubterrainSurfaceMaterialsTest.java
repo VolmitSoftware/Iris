@@ -6,9 +6,12 @@ import art.arcane.iris.generation.decoration.IrisDecorationPart;
 import art.arcane.iris.generation.decoration.IrisDecorator;
 import art.arcane.iris.generation.block.B;
 import art.arcane.iris.generation.block.IrisBlockData;
+import art.arcane.iris.generation.hydrology.engine.HydrologyRuntime;
+import art.arcane.iris.generation.mantle.EngineMantle;
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.stage.IrisCarveModifier;
+import art.arcane.iris.testsupport.FakeHydrology;
 import art.arcane.iris.world.IrisWorld;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.pack.loading.IrisData;
@@ -18,11 +21,15 @@ import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
 import art.arcane.volmlib.util.hunk.Hunk;
+import art.arcane.volmlib.util.mantle.runtime.Mantle;
+import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
+import art.arcane.volmlib.util.matter.Matter;
 import org.junit.Test;
 import org.mockito.MockedStatic;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -88,6 +95,7 @@ public class SubterrainSurfaceMaterialsTest {
             when(engine.getData()).thenReturn(fixture.data);
             when(engine.getDimension()).thenReturn(fixture.dimension);
             when(engine.getWorld()).thenReturn(IrisWorld.builder().minHeight(-64).maxHeight(128).build());
+            emptyMantle(engine);
             when(fixture.complex.getSubterrainPlanner()).thenReturn(fixture.planner);
             IrisCarveModifier modifier = mock(IrisCarveModifier.class, CALLS_REAL_METHODS);
             doReturn(engine).when(modifier).getEngine();
@@ -127,13 +135,17 @@ public class SubterrainSurfaceMaterialsTest {
             when(engine.getData()).thenReturn(fixture.data);
             when(engine.getDimension()).thenReturn(fixture.dimension);
             when(engine.getWorld()).thenReturn(IrisWorld.builder().minHeight(-64).maxHeight(128).build());
+            emptyMantle(engine);
             when(fixture.complex.getSubterrainPlanner()).thenReturn(fixture.planner);
             IrisCarveModifier modifier = mock(IrisCarveModifier.class, CALLS_REAL_METHODS);
             doReturn(engine).when(modifier).getEngine();
             Field random = IrisCarveModifier.class.getDeclaredField("rng");
             random.setAccessible(true);
             random.set(modifier, fixture.random);
-            Method restore = IrisCarveModifier.class.getDeclaredMethod("restoreSubterrainSolids", Hunk.class, int.class, int.class, boolean.class);
+            Class<?> cells = Class.forName(IrisCarveModifier.class.getName() + "$HydrologyCells");
+            Object noHydrology = Proxy.newProxyInstance(cells.getClassLoader(), new Class<?>[]{cells}, (proxy, method, arguments) -> null);
+            Method restore = IrisCarveModifier.class.getDeclaredMethod("restoreSubterrainSolids", Hunk.class, int.class, int.class, boolean.class,
+                    cells);
             restore.setAccessible(true);
             SubterrainPosition position = fixture.surfaces().get(SubterrainSurfaceMaterials.Surface.FLOOR);
             int chunkX = position.x() >> 4;
@@ -150,7 +162,7 @@ public class SubterrainSurfaceMaterialsTest {
                         .thenReturn(new IrisDecorator[]{new IrisDecorator().setForceBlock(forceBlock)});
                 output.setRaw(x, y, z, support);
 
-                restore.invoke(modifier, output, chunkX, chunkZ, true);
+                restore.invoke(modifier, output, chunkX, chunkZ, true, noHydrology);
                 assertSame(support, output.getRaw(x, y, z));
                 modifier.preserveSubterrain(chunkX << 4, chunkZ << 4, output);
                 assertSame(support, output.getRaw(x, y, z));
@@ -241,6 +253,8 @@ public class SubterrainSurfaceMaterialsTest {
             plan = planner.plansForBounds(-512, -512, 512, 512).getFirst();
             plans = planner.plansForBounds(plan.bounds().minX() - 1, plan.bounds().minZ() - 1,
                     plan.bounds().maxX() + 1, plan.bounds().maxZ() + 1);
+            HydrologyRuntime hydrology = FakeHydrology.disabled();
+            when(complex.getHydrologyRuntime()).thenReturn(hydrology);
             ResourceLoader<IrisBiome> loader = mock(ResourceLoader.class);
             when(data.getBiomeLoader()).thenReturn(loader);
             when(loader.load("room-biome")).thenReturn(biome);
@@ -276,6 +290,7 @@ public class SubterrainSurfaceMaterialsTest {
             when(engine.getData()).thenReturn(data);
             when(engine.getDimension()).thenReturn(dimension);
             when(engine.getWorld()).thenReturn(IrisWorld.builder().minHeight(-64).maxHeight(128).build());
+            emptyMantle(engine);
             when(complex.getSubterrainPlanner()).thenReturn(planner);
             IrisCarveModifier modifier = mock(IrisCarveModifier.class, CALLS_REAL_METHODS);
             doReturn(engine).when(modifier).getEngine();
@@ -356,5 +371,14 @@ public class SubterrainSurfaceMaterialsTest {
         public void close() {
             blocks.close();
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    private static void emptyMantle(Engine engine) {
+        EngineMantle engineMantle = mock(EngineMantle.class);
+        Mantle<Matter> mantle = mock(Mantle.class);
+        when(engine.getMantle()).thenReturn(engineMantle);
+        when(engineMantle.getMantle()).thenReturn(mantle);
+        when(mantle.useChunk(anyInt(), anyInt())).thenReturn(mock(MantleChunk.class));
     }
 }

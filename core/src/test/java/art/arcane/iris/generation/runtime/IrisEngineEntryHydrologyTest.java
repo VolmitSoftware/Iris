@@ -1,11 +1,7 @@
 package art.arcane.iris.generation.runtime;
 
-import art.arcane.iris.generation.hydrology.HydrologyPlanner;
-import art.arcane.iris.generation.hydrology.HydrologyPlannerSettings;
-import art.arcane.iris.generation.hydrology.HydrologyTile;
-import art.arcane.iris.generation.hydrology.HydrologyTileCache;
-import art.arcane.iris.generation.hydrology.HydrologyTileKey;
-import art.arcane.iris.generation.hydrology.runtime.IrisHydrologyRuntime;
+import art.arcane.iris.generation.hydrology.engine.HydrologyRuntime;
+import art.arcane.iris.generation.hydrology.raster.ChunkWaterRaster;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.world.task.J;
 import art.arcane.iris.generation.context.IrisContext;
@@ -13,11 +9,8 @@ import org.junit.Test;
 import org.mockito.MockedStatic;
 
 import java.lang.reflect.Field;
-import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -55,7 +48,7 @@ public class IrisEngineEntryHydrologyTest {
         IrisEngine engine = engine(tasks);
         IrisEngine.GenerationRuntimeBinding binding = mock(IrisEngine.GenerationRuntimeBinding.class);
         GenerationSessionLease lease = mock(GenerationSessionLease.class);
-        IrisHydrologyRuntime hydrology = hydrology(engine);
+        HydrologyRuntime hydrology = hydrology(engine);
         when(engine.getActiveGenerationRuntimeBinding()).thenReturn(binding);
         when(engine.acquireGenerationLease("initial_entry_hydrology")).thenReturn(lease);
         when(lease.sessionId()).thenReturn(93L);
@@ -63,8 +56,8 @@ public class IrisEngineEntryHydrologyTest {
             assertSame(engine, IrisContext.require().getEngine());
             assertEquals(93L, IrisContext.require().getGenerationSessionId());
             assertSame(binding, engine.threadState.binding());
-            return null;
-        }).when(hydrology).prepareChunkColumns(0, 0);
+            return ChunkWaterRaster.EMPTY;
+        }).when(hydrology).rasterAt(0, 0);
         AtomicReference<Callable<Void>> queued = new AtomicReference<>();
         try (MockedStatic<J> scheduler = scheduler(queued)) {
             engine.startEntryHydrology(0, 0);
@@ -72,7 +65,7 @@ public class IrisEngineEntryHydrologyTest {
             verifyNoInteractions(hydrology, lease);
             verify(engine, never()).acquireGenerationLease(any());
             queued.get().call();
-            verify(hydrology).prepareChunkColumns(0, 0);
+            verify(hydrology).rasterAt(0, 0);
             verify(lease).close();
             assertNull(IrisContext.get());
             assertNull(engine.threadState.binding());
@@ -87,12 +80,12 @@ public class IrisEngineEntryHydrologyTest {
         IrisEngine engine = engine(tasks);
         GenerationSessionLease lease = mock(GenerationSessionLease.class);
         when(engine.acquireGenerationLease("initial_entry_hydrology")).thenReturn(lease);
-        IrisHydrologyRuntime hydrology = hydrology(engine);
+        HydrologyRuntime hydrology = hydrology(engine);
         IllegalStateException cause = new IllegalStateException("planning failed");
         doAnswer(invocation -> {
             closing(engine).set(true);
             throw cause;
-        }).when(hydrology).prepareChunkColumns(0, 0);
+        }).when(hydrology).rasterAt(0, 0);
         AtomicReference<Callable<Void>> queued = new AtomicReference<>();
         try (MockedStatic<J> scheduler = scheduler(queued);
              MockedStatic<IrisLogging> logging = mockStatic(IrisLogging.class)) {
@@ -203,7 +196,7 @@ public class IrisEngineEntryHydrologyTest {
         EngineBackgroundTasks tasks = new EngineBackgroundTasks();
         tasks.openBackgroundTaskAdmission();
         IrisEngine engine = engine(tasks);
-        IrisHydrologyRuntime hydrology = hydrology(engine);
+        HydrologyRuntime hydrology = hydrology(engine);
         GenerationSessionManager sessions = new GenerationSessionManager();
         CountDownLatch admitted = new CountDownLatch(1);
         CountDownLatch proceed = new CountDownLatch(1);
@@ -236,7 +229,7 @@ public class IrisEngineEntryHydrologyTest {
             }
             worker.get(5, TimeUnit.SECONDS);
             drain.get(5, TimeUnit.SECONDS);
-            verify(hydrology).prepareChunkColumns(0, 0);
+            verify(hydrology).rasterAt(0, 0);
             assertEquals(0, sessions.activeLeases());
         }
     }
@@ -263,9 +256,9 @@ public class IrisEngineEntryHydrologyTest {
         return scheduler;
     }
 
-    private IrisHydrologyRuntime hydrology(IrisEngine engine) {
+    private HydrologyRuntime hydrology(IrisEngine engine) {
         IrisComplex complex = mock(IrisComplex.class);
-        IrisHydrologyRuntime hydrology = mock(IrisHydrologyRuntime.class);
+        HydrologyRuntime hydrology = mock(HydrologyRuntime.class);
         when(engine.getComplex()).thenReturn(complex);
         when(complex.getHydrologyRuntime()).thenReturn(hydrology);
         return hydrology;
@@ -275,46 +268,6 @@ public class IrisEngineEntryHydrologyTest {
         Field field = IrisEngine.class.getDeclaredField("closing");
         field.setAccessible(true);
         return (AtomicBoolean) field.get(engine);
-    }
-
-    @Test
-    public void exactOriginChunkDemandsAllFourTilesWithinTheRootBudget() throws Exception {
-        HydrologyPlanner planner = mock(HydrologyPlanner.class);
-        HydrologyPlannerSettings settings = mock(HydrologyPlannerSettings.class);
-        when(settings.routing()).thenReturn(HydrologyPlannerSettings.defaults().routing());
-        when(settings.publicationRadius()).thenReturn(64);
-        when(planner.settings()).thenReturn(settings);
-        int admitted = (int) Math.max(1L, Math.min(4L, Math.min(Runtime.getRuntime().availableProcessors(),
-                Runtime.getRuntime().maxMemory() / (2L * 1024L * 1024L * 1024L))));
-        CountDownLatch started = new CountDownLatch(admitted);
-        CountDownLatch release = new CountDownLatch(1);
-        Set<HydrologyTileKey> keys = ConcurrentHashMap.newKeySet();
-        when(planner.plan(any())).thenAnswer(invocation -> {
-            assertTrue(keys.add(invocation.getArgument(0)));
-            started.countDown();
-            assertTrue(release.await(5, TimeUnit.SECONDS));
-            HydrologyTile tile = mock(HydrologyTile.class);
-            when(tile.columnAt(anyInt(), anyInt())).thenReturn(Optional.empty());
-            return tile;
-        });
-        try (ExecutorService planning = Executors.newFixedThreadPool(4);
-             ExecutorService caller = Executors.newSingleThreadExecutor()) {
-            HydrologyTileCache cache = new HydrologyTileCache(planner, 16, planning);
-            cache.setNeighbourPrefetchEnabled(false);
-            Future<?> preparation = caller.submit(() -> cache.prepareChunkColumns(0, 0));
-            try {
-                assertTrue(started.await(5, TimeUnit.SECONDS));
-                assertEquals(admitted, keys.size());
-            } finally {
-                release.countDown();
-            }
-            preparation.get(5, TimeUnit.SECONDS);
-            assertEquals(Set.of(new HydrologyTileKey(-1, -1), new HydrologyTileKey(0, -1),
-                    new HydrologyTileKey(-1, 0), new HydrologyTileKey(0, 0)), keys);
-            cache.prepareChunkColumns(0, 0);
-            assertEquals(4, keys.size());
-            cache.close();
-        }
     }
 
     private IrisEngine engine(EngineBackgroundTasks tasks) throws Exception {

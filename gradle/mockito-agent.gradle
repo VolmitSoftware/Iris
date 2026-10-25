@@ -1,0 +1,8 @@
+Configuration mockitoAgent = configurations.create('mockitoAgent')
+mockitoAgent.transitive = false
+dependencies.add('mockitoAgent', rootProject.extensions.getByType(VersionCatalogsExtension).named('libs').findLibrary('mockito-core').get())
+
+tasks.withType(Test).configureEach {
+    jvmArgs('-Xshare:off')
+    jvmArgumentProviders.add({ ["-javaagent:${mockitoAgent.singleFile.absolutePath}".toString()] } as org.gradle.process.CommandLineArgumentProvider)
+}

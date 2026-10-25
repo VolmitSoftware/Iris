@@ -20,26 +20,26 @@ import static org.mockito.Mockito.when;
 
 public class CommandObjectFluidHeightTest {
     @Test
-    public void absoluteObjectPlacementShiftsTheColumnRiverHeadFromNegativeMinY() {
+    public void absoluteObjectPlacementShiftsTheColumnWaterHeadFromNegativeMinY() {
         World world = mock(World.class);
         Engine engine = mock(Engine.class);
         IrisDimension dimension = mock(IrisDimension.class);
         IrisComplex complex = mock(IrisComplex.class);
         @SuppressWarnings("unchecked")
-        ProceduralStream<Double> riverHead = mock(ProceduralStream.class);
+        ProceduralStream<Double> waterHead = mock(ProceduralStream.class);
         Map<Block, BlockData> future = new HashMap<>();
 
         when(engine.getMinHeight()).thenReturn(-64);
         when(engine.getDimension()).thenReturn(dimension);
         when(engine.getComplex()).thenReturn(complex);
         when(dimension.getFluidHeight()).thenReturn(127);
-        when(complex.getRiverWaterSurfaceStream()).thenReturn(riverHead);
-        when(riverHead.get(12, -7)).thenReturn(131D);
+        when(complex.getWaterHeadStream()).thenReturn(waterHead);
+        when(waterHead.get(12, -7)).thenReturn(131D);
 
         IObjectPlacer placer = CommandObject.createPlacer(world, future, engine);
 
         assertEquals(63, placer.getFluidHeight());
         assertEquals(67, placer.getFluidHeight(12, -7));
-        verify(riverHead).get(12, -7);
+        verify(waterHead).get(12, -7);
     }
 }

@@ -22,6 +22,8 @@ import art.arcane.iris.generation.context.ChunkContext;
 import art.arcane.iris.generation.context.ChunkedDataCache;
 import art.arcane.volmlib.util.hunk.Hunk;
 import art.arcane.volmlib.util.stream.ProceduralStream;
+import art.arcane.iris.generation.hydrology.raster.WaterRole;
+import art.arcane.volmlib.util.stream.interpolation.Interpolated;
 import art.arcane.volmlib.util.noise.CNG;
 import art.arcane.volmlib.util.collection.KList;
 import org.junit.After;
@@ -335,7 +337,9 @@ public class DimensionTerrain3DCompositionTest {
         when(engine.getUpperContext()).thenReturn(upper);
         IrisComplex complex = mock(IrisComplex.class);
         when(engine.getComplex()).thenReturn(complex);
-        when(complex.getRiverWaterSurfaceStream()).thenReturn(ProceduralStream.ofDouble((x, z) -> 8D));
+        when(complex.getWaterHeadStream()).thenReturn(ProceduralStream.ofDouble((x, z) -> 8D));
+        when(complex.getWaterRoleStream()).thenReturn(ProceduralStream.of((x, z) -> WaterRole.NONE,
+                Interpolated.of(value -> 0D, value -> WaterRole.NONE)));
         when(complex.getImageMapRuntime()).thenReturn(mock(IrisImageMapRuntime.class));
         IrisBiome biome = rootBiome == null ? mock(IrisBiome.class) : rootBiome;
         if (rootBiome == null) {

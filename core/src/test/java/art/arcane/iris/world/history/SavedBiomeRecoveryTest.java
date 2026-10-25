@@ -7,7 +7,7 @@ import art.arcane.iris.generation.terrain.IrisDimensionCarvingEntry;
 import art.arcane.iris.generation.terrain.IrisDimensionStack;
 import art.arcane.iris.generation.biome.IrisFloatingChildBiomes;
 import art.arcane.iris.generation.terrain.IrisRegion;
-import art.arcane.iris.generation.hydrology.IrisRiverPolicy;
+import art.arcane.iris.generation.hydrology.config.IrisHydrologyPolicy;
 import art.arcane.volmlib.util.collection.KList;
 import org.junit.Before;
 import org.junit.Test;
@@ -151,16 +151,24 @@ public class SavedBiomeRecoveryTest {
     }
 
     @Test
-    public void rejectsDifferingRiverOverridesAtEachScope() throws IOException {
-        IrisRiverPolicy policy = new IrisRiverPolicy().setFloodedCaveBiomes(new KList<String>().qadd("other"));
-        dimension.setRiverPolicy(policy);
+    public void rejectsDifferingHydrologyShoreBiomesAtEachScope() throws IOException {
+        IrisHydrologyPolicy policy = new IrisHydrologyPolicy().setShoreBiomes(new KList<String>().qadd("other"));
+        dimension.setHydrologyPolicy(policy);
         assertTrue(SavedBiomeRecovery.recover(input).isEmpty());
-        dimension.setRiverPolicy(null);
-        region.setRiverPolicy(policy);
+        dimension.setHydrologyPolicy(null);
+        region.setHydrologyPolicy(policy);
         assertTrue(SavedBiomeRecovery.recover(input).isEmpty());
-        region.setRiverPolicy(null);
-        biome.setRiverPolicy(policy);
+        region.setHydrologyPolicy(null);
+        biome.setHydrologyPolicy(policy);
         assertTrue(SavedBiomeRecovery.recover(input).isEmpty());
+    }
+
+    @Test
+    public void acceptsHydrologyPoliciesThatPlaceOnlyTheRecordedBiome() throws IOException {
+        dimension.setHydrologyPolicy(new IrisHydrologyPolicy().setShoreBiomes(new KList<String>().qadd(BIOME)).setRainfall(2D));
+        region.setHydrologyPolicy(new IrisHydrologyPolicy().setFluid("water"));
+
+        assertTrue(SavedBiomeRecovery.recover(input).isPresent());
     }
 
     @Test

@@ -1,7 +1,7 @@
 package art.arcane.iris.generation.locator;
 
 import art.arcane.iris.generation.biome.IrisBiome;
-import art.arcane.iris.generation.hydrology.IrisRiverPolicy;
+import art.arcane.iris.generation.hydrology.engine.HydrologyRuntime;
 import art.arcane.iris.generation.image.IrisImageMapApplication;
 import art.arcane.iris.generation.image.IrisImageMapRuntime;
 import art.arcane.iris.generation.runtime.Engine;
@@ -43,7 +43,8 @@ public final class BiomeSearchFilter {
         unfiltered = engine.getDimensionStackContext() != null || complex.getFocusBiome() != null
                 || complex.getFocusRegion() != null
                 || complex.getBiomeBuffet() != null && !complex.getBiomeBuffet().cells().isEmpty();
-        hydrology = complex.getHydrologyRuntime() != null && hostsRiverBiome(dimension);
+        HydrologyRuntime runtime = complex.getHydrologyRuntime();
+        hydrology = runtime != null && runtime.enabled() && HydrologyShoreTargets.placesAny(engine, this.biomes);
         surface = this.biomes.isEmpty() ? null : HintedLocator.surfaceCoarse(engine, this.biomes);
         IrisImageMapRuntime maps = complex.getImageMapRuntime();
         imageMaps = maps != null && maps.has(IrisImageMapApplication.BIOME) ? maps : null;
@@ -107,35 +108,6 @@ public final class BiomeSearchFilter {
 
     private boolean target(String key) {
         return key != null && biomes.contains(key.trim());
-    }
-
-    private boolean hostsRiverBiome(IrisDimension dimension) {
-        if (placesTarget(dimension.getRiverPolicy())) {
-            return true;
-        }
-        for (IrisRegion region : dimension.getAllRegions(engine)) {
-            if (region != null && placesTarget(region.getRiverPolicy())) {
-                return true;
-            }
-        }
-        for (IrisBiome biome : dimension.getReachableBiomes(engine)) {
-            if (biome != null && placesTarget(biome.getRiverPolicy())) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private boolean placesTarget(IrisRiverPolicy policy) {
-        if (policy == null) {
-            return false;
-        }
-        for (String key : policy.getAllBiomeIds()) {
-            if (HintedLocator.closureContains(engine, key, biomes)) {
-                return true;
-            }
-        }
-        return false;
     }
 
     private boolean hostsCaveBiome(IrisDimension dimension) {

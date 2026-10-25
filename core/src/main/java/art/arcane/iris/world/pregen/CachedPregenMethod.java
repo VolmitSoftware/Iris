@@ -2,6 +2,8 @@ package art.arcane.iris.world.pregen;
 
 import art.arcane.volmlib.util.mantle.runtime.Mantle;
 
+import java.util.List;
+
 public class CachedPregenMethod implements PregeneratorMethod {
     private final PregeneratorMethod method;
     private final PregenCache cache;
@@ -195,8 +197,8 @@ public class CachedPregenMethod implements PregeneratorMethod {
     }
 
     @Override
-    public void onPregenStart(int centerBlockX, int centerBlockZ) {
-        method.onPregenStart(centerBlockX, centerBlockZ);
+    public void onRegionsAhead(List<long[]> regions) {
+        method.onRegionsAhead(regions);
     }
 
     @Override

@@ -20,9 +20,19 @@ package art.arcane.iris.generation.runtime;
 
 import art.arcane.volmlib.util.documentation.Description;
 import art.arcane.volmlib.util.stream.ProceduralStream;
+import com.google.gson.JsonParseException;
+import com.google.gson.TypeAdapter;
+import com.google.gson.annotations.JsonAdapter;
+import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonToken;
+import com.google.gson.stream.JsonWriter;
+
+import java.io.IOException;
+import java.util.Arrays;
 import java.util.function.Function;
 
 @Description("Represents a stream from the engine")
+@JsonAdapter(IrisEngineStreamType.Adapter.class)
 public enum IrisEngineStreamType {
     @Description("Represents the given slope at the x, z coordinates")
     SLOPE((f) -> f.getComplex().getSlopeStream()),
@@ -45,17 +55,11 @@ public enum IrisEngineStreamType {
     @Description("Represents the identity of regions. Each region has a unique number (very large numbers)")
     REGION_IDENTITY((f) -> f.getComplex().getRegionIdentityStream()),
 
-    @Description("Represents block distance from the nearest active river centerline.")
-    RIVER_DISTANCE((f) -> f.getComplex().getRiverDistanceStream()),
+    @Description("Represents the height of the water surface: the river, stream or pond surface where water stands, otherwise the dimension fluid height.")
+    WATER_HEAD((f) -> f.getComplex().getWaterHeadStream()),
 
-    @Description("Represents the merged upstream flow carried by the active river reach.")
-    RIVER_FLOW((f) -> f.getComplex().getRiverFlowStream()),
-
-    @Description("Represents the normalized river terrain-incision weight.")
-    RIVER_CARVE_WEIGHT((f) -> f.getComplex().getRiverCarveWeightStream()),
-
-    @Description("Represents the solved river water-surface height.")
-    RIVER_WATER_SURFACE((f) -> f.getComplex().getRiverWaterSurfaceStream());
+    @Description("Represents what hydrology made of the column, as a number: 0 dry, 1 channel, 2 bank, 3 shore, 4 pond, 5 pond shore, 6 dam, 7 river mouth, 8 cascade, 9 waterfall, 10 sea inlet.")
+    WATER_ROLE((f) -> f.getComplex().getWaterRoleStream().convert((role) -> (double) role.code()));
 
     private final Function<Engine, ProceduralStream<Double>> getter;
 
@@ -65,5 +69,41 @@ public enum IrisEngineStreamType {
 
     public ProceduralStream<Double> get(Engine engine) {
         return getter.apply(engine);
+    }
+
+    private static IrisEngineStreamType parse(String name) {
+        for (IrisEngineStreamType type : values()) {
+            if (type.name().equals(name)) {
+                return type;
+            }
+        }
+        throw new UnknownStreamException("Unknown engine stream '" + name + "'. Known engine streams: "
+                + Arrays.toString(values()) + ".");
+    }
+
+    public static final class UnknownStreamException extends JsonParseException {
+        private UnknownStreamException(String message) {
+            super(message);
+        }
+    }
+
+    public static final class Adapter extends TypeAdapter<IrisEngineStreamType> {
+        @Override
+        public void write(JsonWriter writer, IrisEngineStreamType type) throws IOException {
+            if (type == null) {
+                writer.nullValue();
+                return;
+            }
+            writer.value(type.name());
+        }
+
+        @Override
+        public IrisEngineStreamType read(JsonReader reader) throws IOException {
+            if (reader.peek() == JsonToken.NULL) {
+                reader.nextNull();
+                return null;
+            }
+            return parse(reader.nextString());
+        }
     }
 }

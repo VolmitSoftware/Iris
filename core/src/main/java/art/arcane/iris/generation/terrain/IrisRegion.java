@@ -25,7 +25,7 @@ import art.arcane.iris.generation.decoration.IrisDepositVariant;
 import art.arcane.iris.generation.decoration.IrisOreGenerator;
 import art.arcane.iris.generation.decoration.IrisOreBands;
 import art.arcane.iris.generation.decoration.IrisProceduralObjects;
-import art.arcane.iris.generation.hydrology.IrisRiverPolicy;
+import art.arcane.iris.generation.hydrology.config.IrisHydrologyPolicy;
 import art.arcane.iris.pack.validation.CompatPools;
 import art.arcane.iris.structure.object.IrisObjectPlacement;
 import art.arcane.iris.structure.placement.IrisStructurePlacement;
@@ -145,8 +145,8 @@ public class IrisRegion extends IrisRegistrant implements Rarity {
     private double caveBiomeZoom = 1;
     @Description("Profile-driven 3D cave configuration")
     private IrisCaveProfile caveProfile = new IrisCaveProfile();
-    @Description("Region-level river placement, routing, profile, biome, and geometry policy. Omit to inherit dimension settings.")
-    private IrisRiverPolicy riverPolicy = null;
+    @Description("Water settings for this region: rainfall, pond density, where streams and ponds may form, and the fluid that fills them. A value left unset comes from the dimension.")
+    private IrisHydrologyPolicy hydrologyPolicy = null;
     @RegistryListResource(IrisBiome.class)
     @Required
     @ArrayType(min = 1, type = String.class)
@@ -299,8 +299,8 @@ public class IrisRegion extends IrisRegistrant implements Rarity {
 
     public KSet<String> getAllBiomeIds() {
         KSet<String> names = getNaturalBiomeIds();
-        if (riverPolicy != null) {
-            names.addAll(riverPolicy.getAllBiomeIds());
+        if (hydrologyPolicy != null && hydrologyPolicy.getShoreBiomes() != null) {
+            names.addAll(hydrologyPolicy.getShoreBiomes());
         }
         return names;
     }
@@ -322,7 +322,7 @@ public class IrisRegion extends IrisRegistrant implements Rarity {
         return resolveBiomes(g, getNaturalBiomeIds(), false);
     }
 
-    private KList<IrisBiome> resolveBiomes(DataProvider g, KSet<String> biomeIds, boolean includeRiverBiomes) {
+    private KList<IrisBiome> resolveBiomes(DataProvider g, KSet<String> biomeIds, boolean includeShoreBiomes) {
         KMap<String, IrisBiome> b = new KMap<>();
         KSet<String> names = biomeIds.copy();
 
@@ -348,8 +348,8 @@ public class IrisRegion extends IrisRegistrant implements Rarity {
                 names.add(biome.getCarvingBiome());
                 b.put(biome.getLoadKey(), biome);
                 names.addAll(biome.getChildren());
-                if (includeRiverBiomes && biome.getRiverPolicy() != null) {
-                    names.addAll(biome.getRiverPolicy().getAllBiomeIds());
+                if (includeShoreBiomes && biome.getHydrologyPolicy() != null && biome.getHydrologyPolicy().getShoreBiomes() != null) {
+                    names.addAll(biome.getHydrologyPolicy().getShoreBiomes());
                 }
             }
         }

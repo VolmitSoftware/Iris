@@ -1,14 +1,9 @@
 package art.arcane.iris.platform.bukkit.terrain;
 
 import art.arcane.iris.api.terrain.IrisSurfaceKind;
-import art.arcane.iris.generation.hydrology.HydrologyColumnLayer;
-import art.arcane.iris.generation.hydrology.HydrologyColumnSample;
-import art.arcane.iris.generation.hydrology.HydrologyFeatureRef;
-import art.arcane.iris.generation.hydrology.HydrologyFeatureType;
+import art.arcane.iris.generation.hydrology.raster.WaterRole;
 import art.arcane.iris.generation.terrain.InferredType;
 import org.junit.Test;
-
-import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -69,98 +64,28 @@ public class IrisSurfaceClassifierTest {
     }
 
     @Test
-    public void acceptedSurfaceRolesOverrideGenericOceanAndLandKinds() {
-        assertEquals(IrisSurfaceKind.RIVER, IrisSurfaceClassifier.classify(
-                60,
-                63,
-                InferredType.SEA,
-                hydrology(HydrologyFeatureType.SURFACE_POOL, true, false, true)
-        ));
-        assertEquals(IrisSurfaceKind.RIVER, IrisSurfaceClassifier.classify(
-                60,
-                63,
-                InferredType.SEA,
-                hydrology(HydrologyFeatureType.MOUTH, true, false, true)
-        ));
-        assertEquals(IrisSurfaceKind.RIVER_SHORE, IrisSurfaceClassifier.classify(
-                64,
-                63,
-                InferredType.SHORE,
-                hydrology(HydrologyFeatureType.SURFACE_POOL, false, true, false)
-        ));
-        assertEquals(IrisSurfaceKind.DRY_CHANNEL, IrisSurfaceClassifier.classify(
-                60,
-                60,
-                InferredType.LAND,
-                hydrology(HydrologyFeatureType.SURFACE_POOL, true, false, false)
-        ));
-        assertEquals(IrisSurfaceKind.LAND, IrisSurfaceClassifier.classify(
-                60,
-                60,
-                InferredType.LAND,
-                hydrology(HydrologyFeatureType.SURFACE_POOL, false, false, false)
-        ));
+    public void waterRolesOverrideGenericOceanAndLandKinds() {
+        for (WaterRole role : WaterRole.values()) {
+            IrisSurfaceKind expected = switch (role) {
+                case NONE -> IrisSurfaceKind.OCEAN;
+                case SHORE, POND_SHORE -> IrisSurfaceKind.RIVER_SHORE;
+                case BANK, DAM -> IrisSurfaceKind.LAND;
+                case CHANNEL, POND, MOUTH, CASCADE, WATERFALL, INLET -> IrisSurfaceKind.RIVER;
+            };
+            assertEquals(role.name(), expected, IrisSurfaceClassifier.classify(60, 63, InferredType.SEA, role));
+        }
     }
 
     @Test
-    public void voidClassificationWinsOverAcceptedRiverGeometry() {
-        assertEquals(IrisSurfaceKind.VOID, IrisSurfaceClassifier.classify(
-                0,
-                63,
-                InferredType.LAND,
-                hydrology(HydrologyFeatureType.SURFACE_POOL, true, false, true)
-        ));
+    public void voidClassificationWinsOverWaterRoles() {
+        for (WaterRole role : WaterRole.values()) {
+            assertEquals(role.name(), IrisSurfaceKind.VOID, IrisSurfaceClassifier.classify(0, 63, InferredType.LAND, role));
+        }
     }
 
     @Test
-    public void absentRejectedCandidatesDoNotCreatePublicRiverKinds() {
-        assertEquals(IrisSurfaceKind.LAND, IrisSurfaceClassifier.classify(
-                64,
-                63,
-                InferredType.LAND,
-                null
-        ));
-    }
-
-    private static HydrologyColumnSample hydrology(
-            HydrologyFeatureType type,
-            boolean channel,
-            boolean shore,
-            boolean connectedFluid
-    ) {
-        HydrologyFeatureRef feature = new HydrologyFeatureRef(
-                1L,
-                type,
-                2L,
-                3L,
-                0,
-                63,
-                0,
-                1,
-                0,
-                false
-        );
-        HydrologyColumnLayer layer = new HydrologyColumnLayer(
-                feature,
-                60,
-                63,
-                63,
-                channel,
-                shore,
-                !channel && !shore,
-                connectedFluid,
-                false,
-                false,
-                true,
-                connectedFluid && channel,
-                false,
-                "water",
-                "river",
-                "mouth",
-                "shore",
-                "dry",
-                "cave"
-        );
-        return new HydrologyColumnSample(0, 0, 70, 63, false, "parent", List.of(layer));
+    public void columnsWithoutAWaterRoleKeepTheGenericKinds() {
+        assertEquals(IrisSurfaceKind.LAND, IrisSurfaceClassifier.classify(64, 63, InferredType.LAND, WaterRole.NONE));
+        assertEquals(IrisSurfaceKind.SHORE, IrisSurfaceClassifier.classify(64, 63, InferredType.SHORE, WaterRole.NONE));
     }
 }

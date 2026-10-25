@@ -1,87 +1,114 @@
 package art.arcane.iris.generation.stage;
 
-import art.arcane.iris.generation.hydrology.HydrologyColumnLayer;
-import art.arcane.iris.generation.hydrology.HydrologyColumnSample;
-import art.arcane.iris.generation.hydrology.HydrologyFeatureRef;
-import art.arcane.iris.generation.hydrology.HydrologyFeatureType;
+import art.arcane.iris.generation.biome.IrisBiome;
+import art.arcane.iris.generation.context.ChunkContext;
+import art.arcane.iris.generation.context.ChunkedDataCache;
+import art.arcane.iris.generation.decoration.HydrologyVegetation;
+import art.arcane.iris.generation.decoration.IrisCeilingDecorator;
+import art.arcane.iris.generation.decoration.IrisDecorator;
+import art.arcane.iris.generation.decoration.IrisShoreLineDecorator;
+import art.arcane.iris.generation.decoration.IrisSurfaceDecorator;
+import art.arcane.iris.generation.hydrology.raster.WaterRole;
+import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.runtime.EngineDecorator;
+import art.arcane.iris.generation.runtime.EngineMetrics;
+import art.arcane.iris.generation.runtime.IrisComplex;
+import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
+import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.hunk.Hunk;
+import art.arcane.volmlib.util.stream.ProceduralStream;
+import art.arcane.volmlib.util.stream.interpolation.Interpolated;
 import org.junit.Test;
-
-import java.util.List;
+import org.mockito.InOrder;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Answers.CALLS_REAL_METHODS;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public class IrisDecorantActuatorRiverTest {
     @Test
-    public void acceptedSurfaceRoleControlsShorelineDecoration() {
-        HydrologyColumnSample shore = surfaceRole(false, true, true);
-        HydrologyColumnSample channel = surfaceRole(true, false, false);
-        HydrologyColumnSample grading = surfaceRole(false, false, true);
-        HydrologyColumnSample underground = sample(HydrologyFeatureType.UNDERGROUND_POOL, true, true);
-        HydrologyColumnSample overlap = new HydrologyColumnSample(
-                0,
-                0,
-                70,
-                63,
-                false,
-                "parent",
-                List.of(
-                        layer(1L, true, false, false, HydrologyFeatureType.SURFACE_POOL, true, true),
-                        layer(2L, false, true, true, HydrologyFeatureType.SURFACE_POOL, false, false)
-                )
-        );
-
-        assertEquals(
-                IrisDecorantActuator.ShorelineDecorationMode.ACCEPTED,
-                IrisDecorantActuator.shorelineDecorationMode(shore, 62, 65)
-        );
-        assertEquals(
-                IrisDecorantActuator.ShorelineDecorationMode.NONE,
-                IrisDecorantActuator.shorelineDecorationMode(channel, 65, 65)
-        );
-        assertEquals(
-                IrisDecorantActuator.ShorelineDecorationMode.NONE,
-                IrisDecorantActuator.shorelineDecorationMode(grading, 65, 65)
-        );
-        assertEquals(
-                IrisDecorantActuator.ShorelineDecorationMode.NONE,
-                IrisDecorantActuator.shorelineDecorationMode(overlap, 65, 65)
-        );
-        assertEquals(
-                IrisDecorantActuator.ShorelineDecorationMode.LEGACY,
-                IrisDecorantActuator.shorelineDecorationMode(underground, 65, 65)
-        );
-        assertEquals(
-                IrisDecorantActuator.ShorelineDecorationMode.LEGACY,
-                IrisDecorantActuator.shorelineDecorationMode(null, 65, 65)
-        );
-        assertEquals(
-                IrisDecorantActuator.ShorelineDecorationMode.NONE,
-                IrisDecorantActuator.shorelineDecorationMode(null, 64, 65)
-        );
+    public void waterRoleControlsShorelineDecoration() {
+        for (WaterRole role : WaterRole.values()) {
+            IrisDecorantActuator.ShorelineDecorationMode expected = switch (role) {
+                case NONE -> IrisDecorantActuator.ShorelineDecorationMode.LEGACY;
+                case SHORE, POND_SHORE -> IrisDecorantActuator.ShorelineDecorationMode.ACCEPTED;
+                case CHANNEL, BANK, POND, DAM, MOUTH, CASCADE, WATERFALL, INLET -> IrisDecorantActuator.ShorelineDecorationMode.NONE;
+            };
+            assertEquals(role.name(), expected, IrisDecorantActuator.shorelineDecorationMode(role, 65, 65));
+        }
+        assertEquals(IrisDecorantActuator.ShorelineDecorationMode.NONE, IrisDecorantActuator.shorelineDecorationMode(WaterRole.NONE, 64, 65));
+        assertEquals(IrisDecorantActuator.ShorelineDecorationMode.ACCEPTED, IrisDecorantActuator.shorelineDecorationMode(WaterRole.SHORE, 62, 65));
     }
 
     @Test
-    public void onlyAcceptedFallingWaterfallThroatsRejectSurfaceDecoration() {
-        assertTrue(IrisDecorantActuator.isFallingWaterfallThroat(
-                sample(HydrologyFeatureType.WATERFALL, true, true, true, true)
-        ));
-        assertTrue(IrisDecorantActuator.isFallingWaterfallThroat(
-                sample(HydrologyFeatureType.SINKHOLE, true, true, true, true)
-        ));
-        assertFalse(IrisDecorantActuator.isFallingWaterfallThroat(
-                sample(HydrologyFeatureType.WATERFALL, false, false, false, false)
-        ));
-        assertFalse(IrisDecorantActuator.isFallingWaterfallThroat(
-                sample(HydrologyFeatureType.UNDERGROUND_DROP, true, true)
-        ));
-        assertFalse(IrisDecorantActuator.isFallingWaterfallThroat(null));
+    public void channelPondAndFallColumnsAreNeverDecorated() {
+        for (WaterRole role : WaterRole.values()) {
+            boolean skipped = role == WaterRole.CHANNEL || role == WaterRole.POND || role == WaterRole.CASCADE || role == WaterRole.WATERFALL;
+            assertEquals(role.name(), skipped, IrisDecorantActuator.skipsDecoration(role));
+            Decorant decorant = new Decorant(role);
+
+            decorant.actuate();
+
+            verify(decorant.surface, times(skipped ? 0 : 1)).decorate(eq(0), eq(0), eq(11), eq(-4), same(decorant.output),
+                    same(decorant.biome), eq(60), anyInt());
+        }
+    }
+
+    @Test
+    public void waterPlantsGrowOnEveryHydrologyColumnBeforeTheBiomeDecorates() {
+        for (WaterRole role : WaterRole.values()) {
+            for (boolean biomeDecorated : new boolean[]{true, false}) {
+                Decorant decorant = new Decorant(role);
+                if (!biomeDecorated) {
+                    when(decorant.biome.getDecorators()).thenReturn(new KList<>());
+                }
+
+                decorant.actuate();
+
+                verify(decorant.vegetation, times(role == WaterRole.NONE ? 0 : 1)).decorate(same(decorant.output), eq(0), eq(0), eq(11), eq(-4),
+                        eq(role), any(HydrologyVegetation.Water.class), any());
+                if (role != WaterRole.NONE && biomeDecorated && !IrisDecorantActuator.skipsDecoration(role)) {
+                    InOrder order = inOrder(decorant.vegetation, decorant.surface);
+                    order.verify(decorant.vegetation).decorate(same(decorant.output), eq(0), eq(0), eq(11), eq(-4), eq(role), any(), any());
+                    order.verify(decorant.surface).decorate(eq(0), eq(0), eq(11), eq(-4), same(decorant.output), same(decorant.biome), eq(60),
+                            anyInt());
+                }
+            }
+        }
+        Decorant hydrologyOff = new Decorant(WaterRole.NONE);
+        hydrologyOff.actuate();
+        verify(hydrologyOff.vegetation, never()).decorate(any(), anyInt(), anyInt(), anyInt(), anyInt(), any(), any(), any());
+    }
+
+    @Test
+    public void cavesBelowWaterColumnsKeepTheirCaveDecoration() {
+        Decorant decorant = new Decorant(WaterRole.CHANNEL);
+        NativeBlockState floor = state("minecraft:stone");
+        when(floor.isSolid()).thenReturn(true);
+        decorant.output.set(0, 30, 0, floor);
+        for (int y = 61; y <= 64; y++) {
+            decorant.output.set(0, y, 0, waterState());
+        }
+        IrisBiome cave = mock(IrisBiome.class);
+
+        decorant.actuator.decorateCaveColumn(decorant.output, cave, 0, 0, 11, -4, 60);
+
+        verify(decorant.surface).decorate(eq(0), eq(0), eq(11), eq(-4), same(decorant.output), same(cave), eq(30), eq(60));
+        verify(decorant.ceiling).decorate(eq(0), eq(0), eq(11), eq(-4), same(decorant.output), same(cave), eq(59), eq(29));
     }
 
     @Test
@@ -129,114 +156,6 @@ public class IrisDecorantActuatorRiverTest {
         assertSame(air, output.get(1, 1, 0));
     }
 
-    private static HydrologyColumnSample sample(
-            HydrologyFeatureType type,
-            boolean connectedFluid,
-            boolean fluidOwned
-    ) {
-        return sample(
-                type,
-                connectedFluid,
-                fluidOwned,
-                true,
-                type == HydrologyFeatureType.WATERFALL || type == HydrologyFeatureType.SINKHOLE
-        );
-    }
-
-    private static HydrologyColumnSample sample(
-            HydrologyFeatureType type,
-            boolean connectedFluid,
-            boolean fluidOwned,
-            boolean channel,
-            boolean fallingFluid
-    ) {
-        HydrologyColumnLayer layer = layer(
-                1L,
-                channel,
-                false,
-                !channel,
-                type,
-                connectedFluid,
-                fluidOwned,
-                fallingFluid
-        );
-        return new HydrologyColumnSample(0, 0, 70, 63, false, "parent", List.of(layer));
-    }
-
-    private static HydrologyColumnSample surfaceRole(
-            boolean channel,
-            boolean shore,
-            boolean grading
-    ) {
-        HydrologyColumnLayer layer = layer(
-                1L,
-                channel,
-                shore,
-                grading,
-                HydrologyFeatureType.SURFACE_POOL,
-                channel,
-                channel
-        );
-        return new HydrologyColumnSample(0, 0, 70, 63, false, "parent", List.of(layer));
-    }
-
-    private static HydrologyColumnLayer layer(
-            long id,
-            boolean channel,
-            boolean shore,
-            boolean grading,
-            HydrologyFeatureType type,
-            boolean connectedFluid,
-            boolean fluidOwned
-    ) {
-        return layer(id, channel, shore, grading, type, connectedFluid, fluidOwned, false);
-    }
-
-    private static HydrologyColumnLayer layer(
-            long id,
-            boolean channel,
-            boolean shore,
-            boolean grading,
-            HydrologyFeatureType type,
-            boolean connectedFluid,
-            boolean fluidOwned,
-            boolean fallingFluid
-    ) {
-        HydrologyFeatureRef feature = new HydrologyFeatureRef(
-                id,
-                type,
-                2L,
-                3L,
-                0,
-                65,
-                0,
-                1,
-                0,
-                false
-        );
-        return new HydrologyColumnLayer(
-                feature,
-                63,
-                65,
-                type.isUnderground() ? 72 : 65,
-                channel,
-                shore,
-                grading,
-                connectedFluid,
-                fallingFluid,
-                fallingFluid,
-                true,
-                fluidOwned,
-                false,
-                "water",
-                "river",
-                "mouth",
-                "shore",
-                "dry",
-                "cave"
-        );
-    }
-
     private static NativeBlockState waterState() {
         NativeBlockState water = state("minecraft:water");
         doReturn(true).when(water).isWater();
@@ -247,5 +166,45 @@ public class IrisDecorantActuatorRiverTest {
         NativeBlockState state = mock(NativeBlockState.class);
         doReturn(key).when(state).key();
         return state;
+    }
+
+    private static final class Decorant {
+        private final Engine engine = mock(Engine.class);
+        private final IrisComplex complex = mock(IrisComplex.class);
+        private final ChunkContext context = mock(ChunkContext.class);
+        private final IrisBiome biome = mock(IrisBiome.class);
+        private final IrisSurfaceDecorator surface = mock(IrisSurfaceDecorator.class);
+        private final IrisCeilingDecorator ceiling = mock(IrisCeilingDecorator.class);
+        private final HydrologyVegetation vegetation = mock(HydrologyVegetation.class);
+        private final IrisDecorantActuator actuator = mock(IrisDecorantActuator.class, CALLS_REAL_METHODS);
+        private final Hunk<NativeBlockState> output = Hunk.newArrayHunk(1, 96, 1);
+
+        private Decorant(WaterRole role) {
+            NativeBlockState stone = state("minecraft:stone");
+            when(stone.isSolid()).thenReturn(true);
+            output.set(0, 60, 0, stone);
+            when(engine.getDimension()).thenReturn(new IrisDimension());
+            when(engine.getComplex()).thenReturn(complex);
+            when(engine.getHeight()).thenReturn(96);
+            when(engine.getMetrics()).thenReturn(new EngineMetrics(8));
+            when(complex.allowsNewDiscreteContentAt(11, -4)).thenReturn(true);
+            when(complex.getWaterRoleStream()).thenReturn(ProceduralStream.of((x, z) -> role, Interpolated.of(value -> 0D, value -> role)));
+            when(complex.getWaterHeadStream()).thenReturn(ProceduralStream.ofDouble((x, z) -> 40D));
+            when(biome.getDecorators()).thenReturn(new KList<>(mock(IrisDecorator.class)));
+            when(context.getRoundedHeight(0, 0)).thenReturn(60);
+            when(context.getBiome()).thenReturn(new ChunkedDataCache<>(
+                    ProceduralStream.of((x, z) -> biome, Interpolated.of(value -> 0D, value -> biome)), 11, -4, false));
+            doReturn(engine).when(actuator).getEngine();
+            doReturn(surface).when(actuator).getSurfaceDecorator();
+            doReturn(ceiling).when(actuator).getCeilingDecorator();
+            doReturn(vegetation).when(actuator).getHydrologyVegetation();
+            doReturn(mock(IrisShoreLineDecorator.class)).when(actuator).getShoreLineDecorator();
+            doReturn(mock(EngineDecorator.class)).when(actuator).getSeaSurfaceDecorator();
+            doReturn(mock(EngineDecorator.class)).when(actuator).getSeaFloorDecorator();
+        }
+
+        private void actuate() {
+            actuator.onActuate(11, -4, output, false, context);
+        }
     }
 }

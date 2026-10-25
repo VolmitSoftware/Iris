@@ -1,7 +1,6 @@
 package art.arcane.iris.probe;
 
-import art.arcane.iris.generation.hydrology.HydrologyTileCache;
-import art.arcane.iris.generation.hydrology.HydrologyTileKey;
+import art.arcane.iris.generation.hydrology.plan.WindowKey;
 import art.arcane.iris.generation.runtime.EngineMetrics;
 import org.junit.Test;
 
@@ -101,16 +100,27 @@ public final class GenerationProbeTest {
     }
 
     @Test
-    public void pregenerationAreaCoversEveryScheduledChunk() {
+    public void hydrologyRegionsCoverEveryScheduledChunkCentreFirst() {
         GenerationProbe.ProbeConfiguration configuration = new GenerationProbe.ProbeConfiguration(
-                new File("/tmp/pack"), "overworld", 64, 256, 2048, 2048, true, false, 1337L);
-        HydrologyTileCache.PregenerationArea area = GenerationProbe.pregenerationArea(configuration);
+                new File("/tmp/pack"), "overworld", 64, 2048, 2048, 2048, true, false, 1337L);
+        List<long[]> regions = GenerationProbe.hydrologyRegions(configuration);
+        Set<Long> keys = new HashSet<>();
+        for (long[] region : regions) {
+            assertTrue(keys.add(region[0] << 32 | (region[1] & 0xFFFFFFFFL)));
+        }
 
-        for (GenerationProbe.ChunkCoordinate coordinate : GenerationProbe.scheduleCoordinates(320, 2048, 2048)) {
-            assertTrue(((long) coordinate.x() << 4) >= area.minimumBlockX());
-            assertTrue((((long) coordinate.x() << 4) + 15L) <= area.maximumBlockX());
-            assertTrue(((long) coordinate.z() << 4) >= area.minimumBlockZ());
-            assertTrue((((long) coordinate.z() << 4) + 15L) <= area.maximumBlockZ());
+        for (GenerationProbe.ChunkCoordinate coordinate : GenerationProbe.scheduleCoordinates(2112, 2048, 2048)) {
+            long regionX = Math.floorDiv(coordinate.x(), WindowKey.SIZE >> 4);
+            long regionZ = Math.floorDiv(coordinate.z(), WindowKey.SIZE >> 4);
+            assertTrue(keys.contains(regionX << 32 | (regionZ & 0xFFFFFFFFL)));
+        }
+        assertEquals(64L, regions.getFirst()[0]);
+        assertEquals(64L, regions.getFirst()[1]);
+        long previousRing = 0L;
+        for (long[] region : regions) {
+            long ring = Math.max(Math.abs(region[0] - 64L), Math.abs(region[1] - 64L));
+            assertTrue(ring >= previousRing);
+            previousRing = ring;
         }
     }
 
@@ -194,35 +204,21 @@ public final class GenerationProbeTest {
     }
 
     @Test
-    public void hydrologyPreplanCoversEveryTileAScheduledChunkComposesFromPlusTheNeighbourRing() {
+    public void hydrologyPreplanCountsTheScheduleWindowsPlusTheirNeighbourRing() {
         GenerationProbe.ProbeConfiguration configuration = new GenerationProbe.ProbeConfiguration(
                 new File("/tmp/pack"), "overworld", 256, 1024, 2048, 2048, false, false, 1337L);
-        int tileSize = 512;
-        int publicationRadius = 96;
-        int reachChunks = 13;
-        List<HydrologyTileKey> keys = ProbeHydrologyPreplan.tiles(configuration, tileSize, publicationRadius, reachChunks);
-        Set<HydrologyTileKey> planned = new HashSet<>(keys);
+        int[] bounds = GenerationProbe.scheduledChunkBounds(configuration);
 
-        assertEquals(keys.size(), planned.size());
         for (GenerationProbe.ChunkCoordinate chunk : GenerationProbe.scheduleCoordinates(1280, 2048, 2048)) {
-            for (int offsetX = -reachChunks; offsetX <= reachChunks; offsetX++) {
-                for (int offsetZ = -reachChunks; offsetZ <= reachChunks; offsetZ++) {
-                    long minimumX = (long) (chunk.x() + offsetX) * 16L;
-                    long minimumZ = (long) (chunk.z() + offsetZ) * 16L;
-                    int firstX = Math.floorDiv(Math.toIntExact(minimumX - publicationRadius), tileSize) - 1;
-                    int lastX = Math.floorDiv(Math.toIntExact(minimumX + 15L + publicationRadius), tileSize) + 1;
-                    int firstZ = Math.floorDiv(Math.toIntExact(minimumZ - publicationRadius), tileSize) - 1;
-                    int lastZ = Math.floorDiv(Math.toIntExact(minimumZ + 15L + publicationRadius), tileSize) + 1;
-                    for (int tileX = firstX; tileX <= lastX; tileX++) {
-                        for (int tileZ = firstZ; tileZ <= lastZ; tileZ++) {
-                            assertTrue(planned.contains(new HydrologyTileKey(tileX, tileZ)));
-                        }
-                    }
-                }
-            }
+            assertTrue(chunk.x() >= bounds[0] && chunk.x() <= bounds[2]);
+            assertTrue(chunk.z() >= bounds[1] && chunk.z() <= bounds[3]);
         }
-        HydrologyTileKey first = keys.getFirst();
-        assertEquals(new HydrologyTileKey(Math.floorDiv(2048 * 16 + 8, tileSize), Math.floorDiv(2048 * 16 + 8, tileSize)), first);
+        int chunks = WindowKey.SIZE >> 4;
+        int width = Math.floorDiv(bounds[2], chunks) - Math.floorDiv(bounds[0], chunks) + 3;
+        int depth = Math.floorDiv(bounds[3], chunks) - Math.floorDiv(bounds[1], chunks) + 3;
+        assertEquals(width * depth, ProbeHydrologyPreplan.windows(bounds));
+        assertEquals("IRIS_GENPROBE_HYDROLOGY_PREPLAN version=2 windows=16 planned_ms=1.500",
+                new ProbeHydrologyPreplan(16, 1_500_000L).machineLine());
     }
 
     @Test

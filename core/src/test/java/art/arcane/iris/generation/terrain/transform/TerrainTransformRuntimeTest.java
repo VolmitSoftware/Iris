@@ -7,6 +7,8 @@ import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.EngineMode;
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.terrain.Terrain3DColumn;
+import art.arcane.iris.generation.hydrology.engine.HydrologyRuntime;
+import art.arcane.iris.testsupport.FakeHydrology;
 import art.arcane.iris.world.history.FloatingBiomeOverlay;
 import art.arcane.volmlib.nativelib.terrain.NativeBiome;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
@@ -250,6 +252,7 @@ public class TerrainTransformRuntimeTest {
         private final NativeBiome biome = mock(NativeBiome.class);
         private final AtomicInteger generations = new AtomicInteger();
         private final MockedStatic<B> states = mockStatic(B.class);
+        private final HydrologyRuntime hydrology = FakeHydrology.disabled();
 
         private Fixture() {
             states.when(() -> B.getState("AIR")).thenReturn(air);
@@ -266,6 +269,7 @@ public class TerrainTransformRuntimeTest {
             when(complex.getFluidStream()).thenReturn(mock(ProceduralStream.class));
             when(complex.getRegionStream()).thenReturn(mock(ProceduralStream.class));
             when(complex.allowsMantleWrite(anyInt(), anyInt())).thenReturn(true);
+            when(complex.getHydrologyRuntime()).thenReturn(hydrology);
             doAnswer(invocation -> {
                 generations.incrementAndGet();
                 Hunk<NativeBlockState> blocks = invocation.getArgument(2);

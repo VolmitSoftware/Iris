@@ -259,7 +259,7 @@ public class IrisComplexTerrainTransformTest {
         Files.createDirectories(pack.resolve("generators"));
         Files.writeString(pack.resolve("dimensions/main.json"), """
                 {"focus":"plain","regions":["plain"],"landChance":1,
-                 "carvingEnabled":false,"hydrology":{"rivers":{"enabled":false}}}
+                 "carvingEnabled":false}
                 """);
         Files.writeString(pack.resolve("regions/plain.json"), "{\"landBiomes\":[\"plain\"]}");
         Files.writeString(pack.resolve("generators/flat.json"), "{\"composite\":[]}");

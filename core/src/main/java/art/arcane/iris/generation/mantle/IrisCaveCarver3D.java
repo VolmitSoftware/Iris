@@ -246,7 +246,7 @@ public class IrisCaveCarver3D {
     ) {
         CaveFluidSupportPlan fluidSupportPlan = new CaveFluidSupportPlan();
         int carved = carve(writer, chunkX, chunkZ, columnWeights, minWeight, thresholdPenalty,
-                worldYRange, precomputedSurfaceHeights, null, overrideVerticalRange, fluidSupportPlan);
+                worldYRange, precomputedSurfaceHeights, null, null, overrideVerticalRange, fluidSupportPlan);
         fluidSupportPlan.resolve(writer.acquireChunk(chunkX, chunkZ));
         return carved;
     }
@@ -261,6 +261,7 @@ public class IrisCaveCarver3D {
             IrisRange worldYRange,
             int[] precomputedSurfaceHeights,
             long[] surfaceFluidBoundaries,
+            int[] columnCeilings,
             IrisRange overrideVerticalRange,
             CaveFluidSupportPlan fluidSupportPlan
     ) {
@@ -367,14 +368,15 @@ public class IrisCaveCarver3D {
                     int columnTopY = breakColumn
                             ? Math.min(maxY, Math.max(minY, columnSurfaceY))
                             : clearanceTopY;
+                    boolean masked = columnCeilings != null && columnCeilings[index] < columnTopY;
 
-                    columnMaxY[index] = columnTopY;
+                    columnMaxY[index] = masked ? columnCeilings[index] : columnTopY;
                     fluidMaxY[index] = allowFluid
                             ? Math.min(fluidHeight, columnSurfaceY - fluidMinDepthBelowSurface)
                             : Integer.MIN_VALUE;
                     surfaceBreakFloorY[index] = Math.max(minY, columnSurfaceY - surfaceBreakDepth);
-                    surfaceBreakColumn[index] = breakColumn;
-                    surfaceCeilingColumn[index] = !breakColumn && unclampedClearanceTopY <= maxY;
+                    surfaceBreakColumn[index] = breakColumn && !masked;
+                    surfaceCeilingColumn[index] = masked || !breakColumn && unclampedClearanceTopY <= maxY;
                     columnThreshold[index] = (thresholdDensity == null
                             ? constantThreshold
                             : thresholdDensity.fitDouble(thresholdMin, thresholdMax, x, z)) - thresholdBias;

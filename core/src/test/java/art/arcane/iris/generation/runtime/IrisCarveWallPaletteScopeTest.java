@@ -11,6 +11,7 @@ import art.arcane.iris.world.IrisWorld;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.block.B;
 import art.arcane.iris.generation.context.ChunkContext;
+import art.arcane.iris.generation.hydrology.raster.ChunkWaterRaster;
 import art.arcane.iris.generation.context.IrisContext;
 import art.arcane.volmlib.util.hunk.Hunk;
 import art.arcane.volmlib.util.collection.KMap;
@@ -208,6 +209,7 @@ public class IrisCarveWallPaletteScopeTest {
             doReturn(mock(EnginePlatformHooks.class)).when(engine).getPlatformHooks();
             doReturn(mock(EngineMetrics.class, RETURNS_DEEP_STUBS)).when(engine).getMetrics();
             doReturn(48).when(context).getRoundedHeight(anyInt(), anyInt());
+            doReturn(ChunkWaterRaster.EMPTY).when(context).waterRaster();
             IrisComplex activeComplex = active.complex();
             IrisComplex detachedComplex = detached.complex();
             doCallRealMethod().when(activeComplex).isNaturalTerrainContext();

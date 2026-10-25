@@ -36,6 +36,7 @@ import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.pack.PackDirectoryResolver;
 import art.arcane.volmlib.util.cache.AtomicCache;
 import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.runtime.IrisEngineStreamType;
 import art.arcane.iris.generation.decoration.IrisProceduralBlocks;
 import art.arcane.iris.world.loot.IrisBlockDrops;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
@@ -954,6 +955,8 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
                     if (f.exists()) {
                         try (JsonReader snippetReader = new JsonReader(new FileReader(f))){
                             return adapter.read(snippetReader);
+                        } catch (IrisEngineStreamType.UnknownStreamException unknownStream) {
+                            throw unknownStream;
                         } catch (Throwable e) {
                             IrisLogging.error("Couldn't read snippet " + r + " in " + reader.getPath() + " (" + e.getMessage() + ")");
                         }
@@ -966,6 +969,8 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
 
                 try {
                     return adapter.read(reader);
+                } catch (IrisEngineStreamType.UnknownStreamException unknownStream) {
+                    throw unknownStream;
                 } catch (Throwable e) {
                     IrisLogging.error("Failed to read " + typeToken.getRawType().getCanonicalName() + "... faking objects a little to load the file at least.");
                     IrisLogging.reportError(e);

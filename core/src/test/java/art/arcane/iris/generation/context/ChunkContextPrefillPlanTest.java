@@ -1,10 +1,12 @@
 package art.arcane.iris.generation.context;
 
 import art.arcane.iris.generation.runtime.IrisComplex;
-import art.arcane.iris.generation.hydrology.runtime.IrisHydrologyRuntime;
+import art.arcane.iris.generation.hydrology.engine.HydrologyRuntime;
+import art.arcane.iris.generation.hydrology.raster.ChunkWaterRaster;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.terrain.IrisRegion;
 import art.arcane.iris.spi.IrisPlatforms;
+import art.arcane.iris.testsupport.FakeHydrology;
 import art.arcane.iris.testsupport.PlatformLeakGuard;
 import art.arcane.volmlib.util.stream.ProceduralStream;
 import org.bukkit.block.data.BlockData;
@@ -12,7 +14,6 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.mockito.MockedStatic;
 
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -21,14 +22,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
 
 public class ChunkContextPrefillPlanTest {
     @ClassRule
@@ -126,7 +127,7 @@ public class ChunkContextPrefillPlanTest {
         try (MockedStatic<IrisPlatforms> platforms = mockStatic(IrisPlatforms.class)) {
             platforms.when(IrisPlatforms::isBound).thenReturn(true);
             createContext(ChunkContext.PrefillPlan.NO_CAVE, caveCalls, heightCalls, biomeCalls, rockCalls,
-                    fluidCalls, regionCalls, null, () -> heightsSeenByFirstBiome.compareAndSet(-1, heightCalls.get()));
+                    fluidCalls, regionCalls, FakeHydrology.disabled(), () -> heightsSeenByFirstBiome.compareAndSet(-1, heightCalls.get()));
         }
 
         assertEquals(256, heightsSeenByFirstBiome.get());
@@ -164,71 +165,83 @@ public class ChunkContextPrefillPlanTest {
         }
     }
 
-    @Test
-    public void hydrologyPreparationCompletesBeforeDependentPrefills() throws Exception {
-        AtomicInteger caveCalls = new AtomicInteger();
+    @Test(timeout = 120_000L)
+    public void waterRasterResolvesOnceBeforeDependentPrefills() throws Exception {
         AtomicInteger heightCalls = new AtomicInteger();
         AtomicInteger biomeCalls = new AtomicInteger();
-        AtomicInteger rockCalls = new AtomicInteger();
-        AtomicInteger fluidCalls = new AtomicInteger();
-        AtomicInteger regionCalls = new AtomicInteger();
-        CountDownLatch preparationStarted = new CountDownLatch(1);
-        CountDownLatch preparationRelease = new CountDownLatch(1);
-        IrisHydrologyRuntime runtime = mock(IrisHydrologyRuntime.class);
-        doAnswer(invocation -> {
-            preparationStarted.countDown();
-            assertTrue(preparationRelease.await(10L, TimeUnit.SECONDS));
-            return null;
-        }).when(runtime).prepareChunkColumns(32, 48);
-        ExecutorService executor = Executors.newSingleThreadExecutor();
-        try {
-            Future<ChunkContext> future = executor.submit(() -> createContext(
-                    ChunkContext.PrefillPlan.NO_CAVE,
-                    caveCalls,
-                    heightCalls,
-                    biomeCalls,
-                    rockCalls,
-                    fluidCalls,
-                    regionCalls,
-                    runtime
-            ));
-            assertTrue(preparationStarted.await(10L, TimeUnit.SECONDS));
-            assertEquals(0, heightCalls.get());
-            assertEquals(0, biomeCalls.get());
-            preparationRelease.countDown();
-            future.get(10L, TimeUnit.SECONDS);
-        } finally {
-            preparationRelease.countDown();
-            executor.shutdownNow();
-            assertTrue(executor.awaitTermination(10L, TimeUnit.SECONDS));
+        try (FakeHydrology hydrology = new FakeHydrology(() -> false, (x, z) -> 64, 40, 70)) {
+            hydrology.hold();
+            ExecutorService executor = Executors.newSingleThreadExecutor();
+            try {
+                Future<ChunkContext> future = executor.submit(() -> createContext(ChunkContext.PrefillPlan.NO_CAVE, new AtomicInteger(),
+                        heightCalls, biomeCalls, new AtomicInteger(), new AtomicInteger(), new AtomicInteger(), hydrology.runtime));
+                long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(30L);
+                while (hydrology.windowCalls.get() == 0) {
+                    assertTrue("the water raster was never requested", System.nanoTime() < deadline);
+                    Thread.sleep(10L);
+                }
+                assertEquals(0, heightCalls.get());
+                assertEquals(0, biomeCalls.get());
+                hydrology.release();
+                ChunkContext context = future.get(30L, TimeUnit.SECONDS);
+                ChunkWaterRaster raster = context.waterRaster();
+                assertFalse(raster.provisional());
+                assertSame(hydrology.runtime.raster(2, 3), raster);
+                assertSame(raster, context.waterRaster());
+            } finally {
+                executor.shutdownNow();
+                assertTrue(executor.awaitTermination(10L, TimeUnit.SECONDS));
+            }
         }
         assertEquals(256, heightCalls.get());
         assertEquals(256, biomeCalls.get());
-        verify(runtime).prepareChunkColumns(32, 48);
     }
 
-    @Test
-    public void hydrologyPreparationIsSkippedWithoutDependentPrefills() {
-        AtomicInteger caveCalls = new AtomicInteger();
-        AtomicInteger heightCalls = new AtomicInteger();
-        AtomicInteger biomeCalls = new AtomicInteger();
-        AtomicInteger rockCalls = new AtomicInteger();
-        AtomicInteger fluidCalls = new AtomicInteger();
-        AtomicInteger regionCalls = new AtomicInteger();
-        IrisHydrologyRuntime runtime = mock(IrisHydrologyRuntime.class);
+    @Test(timeout = 120_000L)
+    public void waterRasterWaitsForFirstUseWithoutDependentPrefills() {
+        try (FakeHydrology hydrology = new FakeHydrology(() -> false, (x, z) -> 64, 40, 70)) {
+            ChunkContext context = createContext(ChunkContext.PrefillPlan.NONE, new AtomicInteger(), new AtomicInteger(),
+                    new AtomicInteger(), new AtomicInteger(), new AtomicInteger(), new AtomicInteger(), hydrology.runtime);
+            assertEquals(0, hydrology.windowCalls.get());
+            ChunkWaterRaster raster = context.waterRaster();
+            assertFalse(raster.provisional());
+            assertSame(raster, context.waterRaster());
+        }
+    }
 
-        createContext(
-                ChunkContext.PrefillPlan.NONE,
-                caveCalls,
-                heightCalls,
-                biomeCalls,
-                rockCalls,
-                fluidCalls,
-                regionCalls,
-                runtime
-        );
+    @Test(timeout = 120_000L)
+    public void provisionalWaterRasterIsNeverKept() throws Exception {
+        try (FakeHydrology hydrology = new FakeHydrology(() -> true, (x, z) -> 64, 40, 70)) {
+            hydrology.hold();
+            AtomicInteger heightCalls = new AtomicInteger();
+            ChunkContext context = createContext(ChunkContext.PrefillPlan.NO_CAVE, new AtomicInteger(), heightCalls,
+                    new AtomicInteger(), new AtomicInteger(), new AtomicInteger(), new AtomicInteger(), hydrology.runtime);
+            assertEquals(256, heightCalls.get());
+            assertSame(ChunkWaterRaster.PROVISIONAL, context.waterRaster());
+            hydrology.release();
+            ChunkWaterRaster landed = hydrology.awaitSnapshot(2, 3);
+            assertSame(landed, context.waterRaster());
+            hydrology.runtime.close();
+            assertSame(ChunkWaterRaster.PROVISIONAL, hydrology.runtime.raster(2, 3));
+            assertSame(landed, context.waterRaster());
+        }
+    }
 
-        verify(runtime, never()).prepareChunkColumns(32, 48);
+    @Test(timeout = 120_000L)
+    public void failedWaterRasterFailsTheChunkInsteadOfDryingIt() {
+        try (FakeHydrology hydrology = new FakeHydrology(() -> false, (x, z) -> 64, 40, 70)) {
+            hydrology.failing.set(true);
+            AtomicInteger heightCalls = new AtomicInteger();
+            IllegalStateException failure = assertThrows(IllegalStateException.class, () -> createContext(ChunkContext.PrefillPlan.NO_CAVE,
+                    new AtomicInteger(), heightCalls, new AtomicInteger(), new AtomicInteger(), new AtomicInteger(), new AtomicInteger(),
+                    hydrology.runtime));
+            StringBuilder causes = new StringBuilder();
+            for (Throwable cause = failure; cause != null; cause = cause.getCause()) {
+                causes.append(cause.getMessage()).append(" | ");
+            }
+            assertTrue(causes.toString(), causes.toString().contains(FakeHydrology.FAILURE));
+            assertEquals(0, heightCalls.get());
+        }
     }
 
     private ChunkContext createContext(
@@ -248,7 +261,7 @@ public class ChunkContextPrefillPlanTest {
                 rockCalls,
                 fluidCalls,
                 regionCalls,
-                null
+                FakeHydrology.disabled()
         );
     }
 
@@ -260,7 +273,7 @@ public class ChunkContextPrefillPlanTest {
             AtomicInteger rockCalls,
             AtomicInteger fluidCalls,
             AtomicInteger regionCalls,
-            IrisHydrologyRuntime runtime
+            HydrologyRuntime runtime
     ) {
         return createContext(prefillPlan, caveCalls, heightCalls, biomeCalls, rockCalls, fluidCalls, regionCalls,
                 runtime, () -> {
@@ -275,7 +288,7 @@ public class ChunkContextPrefillPlanTest {
             AtomicInteger rockCalls,
             AtomicInteger fluidCalls,
             AtomicInteger regionCalls,
-            IrisHydrologyRuntime runtime,
+            HydrologyRuntime runtime,
             Runnable biomeObserver
     ) {
         IrisComplex complex = mock(IrisComplex.class);

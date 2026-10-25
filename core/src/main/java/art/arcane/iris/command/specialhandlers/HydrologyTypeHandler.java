@@ -1,25 +1,14 @@
 package art.arcane.iris.command.specialhandlers;
 
-import art.arcane.iris.generation.runtime.Engine;
-import art.arcane.iris.generation.hydrology.HydrologyFeatureQuery;
-import art.arcane.iris.generation.hydrology.runtime.IrisHydrologyRuntime;
 import art.arcane.iris.command.DirectorParameterHandler;
+import art.arcane.iris.generation.hydrology.query.HydrologyFeatureType;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.director.exceptions.DirectorParsingException;
-
-import java.util.List;
 
 public final class HydrologyTypeHandler implements DirectorParameterHandler<String> {
     @Override
     public KList<String> getPossibilities() {
-        Engine activeEngine = engine();
-        if (activeEngine == null) {
-            return new KList<>(HydrologyFeatureQuery.suggestions(List.of()));
-        }
-        IrisHydrologyRuntime runtime = activeEngine.getComplex().getHydrologyRuntime();
-        return new KList<>(runtime == null
-                ? HydrologyFeatureQuery.suggestions(List.of())
-                : runtime.featureQueryKeys());
+        return new KList<>(HydrologyFeatureType.keys());
     }
 
     @Override
@@ -29,16 +18,11 @@ public final class HydrologyTypeHandler implements DirectorParameterHandler<Stri
 
     @Override
     public String parse(String input, boolean force) throws DirectorParsingException {
-        String normalized = input == null ? "" : input.trim();
-        if (normalized.isEmpty()) {
-            throw new DirectorParsingException("Hydrology feature type must not be blank.");
+        try {
+            return HydrologyFeatureType.parse(input).key();
+        } catch (IllegalArgumentException error) {
+            throw new DirectorParsingException(error.getMessage());
         }
-        for (String possibility : getPossibilities(normalized)) {
-            if (possibility.equalsIgnoreCase(normalized)) {
-                return possibility;
-            }
-        }
-        return normalized;
     }
 
     @Override
@@ -48,6 +32,6 @@ public final class HydrologyTypeHandler implements DirectorParameterHandler<Stri
 
     @Override
     public String getRandomDefault() {
-        return "surface";
+        return HydrologyFeatureType.RIVER.key();
     }
 }

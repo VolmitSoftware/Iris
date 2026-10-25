@@ -388,7 +388,7 @@ public class IrisEngine implements Engine {
         try (lease;
              GenerationRuntimeScope runtimeScope = threadState.open(binding);
              IrisContext.Scope context = IrisContext.open(this, lease.sessionId(), null)) {
-            getComplex().getHydrologyRuntime().prepareChunkColumns(blockX, blockZ);
+            getComplex().getHydrologyRuntime().rasterAt(blockX, blockZ);
         } catch (Exception failure) {
             throw new IllegalStateException("World entry hydrology preparation failed at "
                     + blockX + "," + blockZ + ".", failure);
@@ -511,6 +511,7 @@ public class IrisEngine implements Engine {
                 throw new IllegalStateException("Matter generation context belongs to Iris session "
                         + context.getGenerationSessionId() + " instead of " + lease.sessionId() + ".");
             }
+            activeComplex.prepareGenerationWater(x, z);
             getMantle().generateMatter(x, z, multicore, context);
         } catch (GenerationSessionException | IOException e) {
             throw new IllegalStateException("Matter generation was rejected by the Iris lifecycle.", e);
@@ -1193,6 +1194,32 @@ public class IrisEngine implements Engine {
         }
     }
 
+    public GenerationRuntimeScope openOwningGenerationRuntimeScope(IrisComplex complex) {
+        Objects.requireNonNull(complex, "complex");
+        synchronized (lifecycleLock) {
+            GenerationRuntime owner = owningGenerationRuntime(complex);
+            if (owner == null || retiringGenerationRuntimes.contains(owner)) {
+                return null;
+            }
+            return threadState.open(new GenerationRuntimeBinding(this, owner));
+        }
+    }
+
+    private GenerationRuntime owningGenerationRuntime(IrisComplex complex) {
+        EngineRuntime current = runtime;
+        if (current != null && current.generation().complex() == complex) {
+            return current.generation();
+        }
+        synchronized (detachedGenerationRuntimes) {
+            for (GenerationRuntime detached : detachedGenerationRuntimes) {
+                if (detached.complex() == complex) {
+                    return detached;
+                }
+            }
+        }
+        return null;
+    }
+
     public GenerationRuntimeBinding buildDetachedGenerationRuntime(EngineTarget runtimeTarget) {
         return buildDetachedGenerationRuntime(
                 runtimeTarget,
@@ -1360,6 +1387,8 @@ public class IrisEngine implements Engine {
             runtime = current.withGeneration(required.runtime);
             publishedTarget = required.runtime.target();
             nativeStructureVolumeMemo.clear();
+            previous.complex().closeHydrologyPlanStore();
+            required.runtime.complex().openHydrologyPlanStore();
         }
     }
 

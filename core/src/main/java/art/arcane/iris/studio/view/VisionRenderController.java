@@ -19,6 +19,7 @@
 package art.arcane.iris.studio.view;
 
 import art.arcane.iris.generation.runtime.PreservationRegistry;
+import art.arcane.iris.generation.stream.ProvisionalSampling;
 import art.arcane.iris.studio.render.IrisRenderer;
 import art.arcane.iris.studio.render.RenderType;
 import art.arcane.iris.spi.IrisLogging;
@@ -48,6 +49,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
+import java.util.function.LongSupplier;
 
 final class VisionRenderController implements AutoCloseable {
     static final int TILE_PIXELS = 64;
@@ -59,9 +61,12 @@ final class VisionRenderController implements AutoCloseable {
     private static final int RENDER_QUEUE_CAPACITY = 12;
     private static final int PROBE_QUEUE_CAPACITY = 1;
     private static final long CACHE_BYTES = 64L * 1024L * 1024L;
+    static final long FIRST_RETRY_NANOS = TimeUnit.MILLISECONDS.toNanos(500L);
+    static final long LAST_RETRY_NANOS = TimeUnit.SECONDS.toNanos(8L);
 
     private final Runnable listener;
     private final int renderWorkerCount;
+    private final LongSupplier clock;
     private final ThreadPoolExecutor renderExecutor;
     private final ThreadPoolExecutor probeExecutor;
     private final WeightedTileCache cache;
@@ -84,6 +89,7 @@ final class VisionRenderController implements AutoCloseable {
         Objects.requireNonNull(options, "options");
         AtomicInteger threadSequence = new AtomicInteger();
         this.renderWorkerCount = options.workers();
+        this.clock = options.clock();
         this.renderExecutor = new ThreadPoolExecutor(
                 options.workers(),
                 options.workers(),
@@ -150,6 +156,19 @@ final class VisionRenderController implements AutoCloseable {
 
     Frame currentFrame() {
         return currentFrame;
+    }
+
+    void retryProvisional(Frame frame) {
+        WorkState work = currentWork;
+        if (frame == null || work == null || work.frame() != frame) {
+            return;
+        }
+        synchronized (work) {
+            if (!isCurrent(work) || !work.restartProvisional(clock.getAsLong())) {
+                return;
+            }
+        }
+        schedule(work);
     }
 
     BufferedImage image(Frame frame, VisibleTile tile) {
@@ -277,7 +296,7 @@ final class VisionRenderController implements AutoCloseable {
             }
             int admissionLimit = work.refining() || work.frame().spec().type() == RenderType.RIVER ? 1 : renderWorkerCount;
             while (work.inFlight() < admissionLimit) {
-                VisibleTile tile = work.nextMissing();
+                VisibleTile tile = work.nextMissing(clock.getAsLong());
                 if (tile == null) {
                     if (work.inFlight() == 0 && work.beginRefinement()) {
                         admissionLimit = 1;
@@ -311,6 +330,7 @@ final class VisionRenderController implements AutoCloseable {
             double startX = tile.tileX() * tileSpan;
             double startZ = tile.tileZ() * tileSpan;
             IrisRenderer renderer = frame.spec().renderer();
+            long revision = ProvisionalSampling.revision();
             BufferedImage image;
             if (refining) {
                 image = renderer.refineStudioBiome(startX, startZ, tileSpan, tile.image(),
@@ -323,6 +343,11 @@ final class VisionRenderController implements AutoCloseable {
                         () -> !isCurrent(frame, token));
             }
             if (!isCurrent(frame, token)) {
+                return;
+            }
+            if (ProvisionalSampling.revision() != revision) {
+                tile.markProvisional(refining ? null : new TileResult(image, false), clock.getAsLong());
+                publish(frame, token);
                 return;
             }
             TileResult result = new TileResult(image, refining || frame.spec().type() != RenderType.BIOME);
@@ -459,6 +484,9 @@ final class VisionRenderController implements AutoCloseable {
         private final int screenY;
         private final double distanceSquared;
         private volatile TileResult result;
+        private volatile boolean provisional;
+        private volatile long retryDelay;
+        private volatile long retryAt;
 
         private VisibleTile(long tileX, long tileZ, int screenX, int screenY, double distanceSquared) {
             this.tileX = tileX;
@@ -500,6 +528,26 @@ final class VisionRenderController implements AutoCloseable {
 
         void setResult(TileResult result) {
             this.result = result;
+            this.provisional = false;
+            this.retryDelay = 0L;
+        }
+
+        boolean provisional() {
+            return provisional;
+        }
+
+        boolean due(long now) {
+            return !provisional || now - retryAt >= 0L;
+        }
+
+        void markProvisional(TileResult shown, long now) {
+            if (shown != null) {
+                result = shown;
+            }
+            long delay = retryDelay == 0L ? FIRST_RETRY_NANOS : Math.min(LAST_RETRY_NANOS, retryDelay * 2L);
+            retryDelay = delay;
+            retryAt = now + delay;
+            provisional = true;
         }
     }
 
@@ -521,17 +569,18 @@ final class VisionRenderController implements AutoCloseable {
         }
     }
 
-    record RuntimeOptions(int workers, int renderQueueCapacity, boolean registerPreservation) {
+    record RuntimeOptions(int workers, int renderQueueCapacity, boolean registerPreservation, LongSupplier clock) {
         RuntimeOptions {
             if (workers < 1 || renderQueueCapacity < 1) {
                 throw new IllegalArgumentException("Vision render runtime options are invalid");
             }
+            Objects.requireNonNull(clock, "clock");
         }
 
         static RuntimeOptions production() {
             int processors = Math.max(1, Runtime.getRuntime().availableProcessors());
             int workers = Math.max(1, Math.min(MAXIMUM_WORKERS, processors));
-            return new RuntimeOptions(workers, RENDER_QUEUE_CAPACITY, true);
+            return new RuntimeOptions(workers, RENDER_QUEUE_CAPACITY, true, System::nanoTime);
         }
     }
 
@@ -581,14 +630,30 @@ final class VisionRenderController implements AutoCloseable {
             return token;
         }
 
-        VisibleTile nextMissing() {
+        VisibleTile nextMissing(long now) {
             while (index < frame.tiles().size()) {
                 VisibleTile tile = frame.tiles().get(index++);
-                if (refining ? tile.image() != null && !tile.complete() : tile.image() == null) {
+                if (!tile.due(now)) {
+                    continue;
+                }
+                if (refining ? tile.image() != null && !tile.complete() : tile.image() == null || tile.provisional()) {
                     return tile;
                 }
             }
             return null;
+        }
+
+        boolean restartProvisional(long now) {
+            if (inFlight > 0 || index < frame.tiles().size()) {
+                return false;
+            }
+            for (VisibleTile tile : frame.tiles()) {
+                if (tile.provisional() && tile.due(now)) {
+                    index = 0;
+                    return true;
+                }
+            }
+            return false;
         }
 
         boolean refining() {

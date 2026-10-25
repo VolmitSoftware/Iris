@@ -1,7 +1,6 @@
 package art.arcane.iris.probe;
 
 import art.arcane.iris.structure.nativegen.NativeStructureVolumeIndex;
-import art.arcane.iris.generation.hydrology.HydrologyTileCache;
 import art.arcane.volmlib.nativelib.terrain.structure.NativeStructureVolume;
 import art.arcane.volmlib.util.collection.KList;
 import net.minecraft.nbt.CompoundTag;
@@ -68,11 +67,10 @@ public final class HeadlessRegionTerrainTest {
                 OfflineRegionGenerator.Configuration export = new OfflineRegionGenerator.Configuration(
                         workspace.pack(), "main", 69420L, -3, 2, 1, 2, 3, 4, configuration,
                         "probe", Level.OVERWORLD, NoiseGeneratorSettings.OVERWORLD, root.resolve("export"));
-                HydrologyTileCache.PregenerationArea bounds = export.hydrologyArea();
-                assertEquals(-80L, bounds.minimumBlockX());
-                assertEquals(0L, bounds.minimumBlockZ());
-                assertEquals(15L, bounds.maximumBlockX());
-                assertEquals(111L, bounds.maximumBlockZ());
+                List<long[]> regions = export.hydrologyRegions();
+                assertEquals(2, regions.size());
+                assertArrayEquals(new long[]{-1L, 0L}, regions.get(0));
+                assertArrayEquals(new long[]{0L, 0L}, regions.get(1));
                 assertEquals(1, result.targetChunks());
                 assertEquals(529, result.chunks().size());
                 long terrain = result.chunks().stream().filter(chunk -> chunk.getPersistedStatus() == ChunkStatus.TERRAIN).count();
@@ -189,7 +187,7 @@ public final class HeadlessRegionTerrainTest {
         }
         Files.writeString(pack.resolve("dimensions/main.json"), """
                 {"name":"Native region","focus":"swamp","regions":["owned"],"fluidHeight":40,"logicalHeight":256,
-                 "landChance":1,"carvingEnabled":false,"hydrology":{"rivers":{"enabled":false}}}
+                 "landChance":1,"carvingEnabled":false}
                 """);
         Files.writeString(pack.resolve("regions/owned.json"), "{\"landBiomes\":[\"swamp\"]}");
         Files.writeString(pack.resolve("generators/flat.json"), "{\"composite\":[]}");

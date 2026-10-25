@@ -22,6 +22,7 @@ import static org.junit.Assert.assertNull;
 import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
 import art.arcane.volmlib.util.matter.Matter;
 import art.arcane.volmlib.util.matter.MatterSlice;
+import art.arcane.volmlib.util.matter.MatterUpdate;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -30,6 +31,7 @@ import org.junit.Test;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -88,6 +90,23 @@ public class IrisDimensionStackActuatorMetadataTest {
         IrisDimensionStackActuator.MetadataCleaner cleaner =
                 new IrisDimensionStackActuator.MetadataCleaner(null, 64);
         cleaner.clear(3, 20, 7);
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void overwrittenStackCellsClearHostFallUpdateFlags() {
+        MantleChunk<Matter> chunk = mock(MantleChunk.class);
+        Matter section = mock(Matter.class);
+        MatterSlice<MatterUpdate> updates = mock(MatterSlice.class);
+        MatterSlice<NativeBlockState> blocks = mock(MatterSlice.class);
+        when(chunk.get(5)).thenReturn(section);
+        doReturn(updates).when(section).getSlice(MatterUpdate.class);
+        doReturn(blocks).when(section).getSlice(NativeBlockState.class);
+
+        new IrisDimensionStackActuator.MetadataCleaner(chunk, 128).clear(6, 85, 9);
+
+        verify(updates).set(6, 5, 9, null);
+        verify(blocks, never()).set(6, 5, 9, null);
     }
 
     @Test

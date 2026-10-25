@@ -61,7 +61,7 @@ public class IrisGeneratorStyle {
     @Getter(AccessLevel.NONE)
     @Setter(AccessLevel.NONE)
     private transient volatile CachedGenerator recentGenerator;
-    @Description("The base noise style. Used when neither expression nor imageMap is set; a failed expression also falls back to this style.")
+    @Description("The base noise style. Used when neither expression nor imageMap is set; a failed expression also falls back to this style, except one that names an unknown engine stream, which fails the pack load.")
     private NoiseStyle style = NoiseStyle.FLAT;
 
     @Description("If set above 0, this style will be cellularized")

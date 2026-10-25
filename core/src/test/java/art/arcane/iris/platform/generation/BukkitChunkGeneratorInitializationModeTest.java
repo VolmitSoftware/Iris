@@ -3,8 +3,7 @@ package art.arcane.iris.platform.generation;
 import art.arcane.iris.generation.runtime.IrisEngine;
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.runtime.Engine;
-import art.arcane.iris.generation.hydrology.HydrologyPlannerSettings;
-import art.arcane.iris.generation.hydrology.runtime.IrisHydrologyRuntime;
+import art.arcane.iris.generation.hydrology.engine.HydrologyRuntime;
 import org.bukkit.Chunk;
 import org.bukkit.World;
 import art.arcane.iris.studio.StudioMode;
@@ -20,13 +19,13 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
-import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static org.mockito.ArgumentMatchers.anyInt;
 
@@ -51,10 +50,8 @@ public class BukkitChunkGeneratorInitializationModeTest {
         when(engine.getDimension()).thenReturn(dimension);
         when(dimension.getStudioMode()).thenReturn(StudioMode.NORMAL);
         IrisComplex complex = mock(IrisComplex.class);
-        IrisHydrologyRuntime hydrology = mock(IrisHydrologyRuntime.class);
-        HydrologyPlannerSettings settings = mock(HydrologyPlannerSettings.class, RETURNS_DEEP_STUBS);
-        when(settings.routing().tileSize()).thenReturn(512);
-        when(hydrology.settings()).thenReturn(settings);
+        HydrologyRuntime hydrology = mock(HydrologyRuntime.class);
+        when(hydrology.enabled()).thenReturn(true);
         when(engine.getComplex()).thenReturn(complex);
         when(complex.getHydrologyRuntime()).thenReturn(hydrology);
         Method prefetch = BukkitChunkGenerator.class.getDeclaredMethod(
@@ -64,7 +61,8 @@ public class BukkitChunkGeneratorInitializationModeTest {
         ((CompletableFuture<?>) prefetch.invoke(generator, engine, world)).get(5L, TimeUnit.SECONDS);
 
         verify(engine).startEntryHydrology(0, 0);
-        verifyNoInteractions(hydrology);
+        verify(hydrology).enabled();
+        verifyNoMoreInteractions(hydrology);
         assertEquals(0.5D, generator.getInitialSpawnLocation(world).getX(), 0D);
         assertEquals(96D, generator.getInitialSpawnLocation(world).getY(), 0D);
         assertEquals(0.5D, generator.getInitialSpawnLocation(world).getZ(), 0D);
@@ -72,7 +70,7 @@ public class BukkitChunkGeneratorInitializationModeTest {
         when(dimension.getStudioMode()).thenReturn(StudioMode.BIOME_BUFFET_1x1);
         ((CompletableFuture<?>) prefetch.invoke(generator, engine, world)).get(5L, TimeUnit.SECONDS);
         verify(engine, times(1)).startEntryHydrology(0, 0);
-        verify(hydrology).prefetchArea(anyInt(), anyInt(), anyInt(), anyInt(), anyInt(), anyInt());
+        verify(hydrology).prepareWindowsAround(-16, -16, 15, 15, 1);
         when(dimension.getStudioMode()).thenReturn(StudioMode.NORMAL);
 
         IrisEngine authoring = mock(IrisEngine.class);

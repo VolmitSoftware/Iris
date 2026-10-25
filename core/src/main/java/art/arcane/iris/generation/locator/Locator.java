@@ -26,7 +26,7 @@ import art.arcane.iris.generation.runtime.GenerationSessionLease;
 import art.arcane.iris.generation.runtime.WrongEngineBroException;
 import art.arcane.iris.structure.placement.IrisStructureLocator;
 
-import art.arcane.iris.generation.hydrology.runtime.IrisHydrologyRuntime;
+import art.arcane.iris.generation.hydrology.raster.ChunkWaterRaster;
 import art.arcane.iris.world.history.GenerationSemanticIndex;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.structure.object.IrisObject;
@@ -82,24 +82,45 @@ public interface Locator<T> {
     }
 
     static Locator<IrisBiome> surfaceBiome(String loadKey) {
+        HydrologyShoreTargets shores = new HydrologyShoreTargets(Set.of(loadKey));
         Locator<IrisBiome> exact = new HistoryAwareLocator<>(
                 GenerationSemanticIndex.SemanticKind.SURFACE_BIOME,
                 loadKey,
-                (e, c) -> chunkContainsSurfaceBiome(e, c, loadKey)
+                (e, c) -> chunkContainsSurfaceBiome(e, c, loadKey, shores)
         );
         return new HintedLocator<>(exact, (engine) -> HintedLocator.biomePlan(engine, loadKey));
     }
 
-    static boolean chunkContainsSurfaceBiome(Engine engine, Position2 chunk, String loadKey) {
+    static boolean chunkContainsSurfaceBiome(Engine engine, Position2 chunk, String loadKey, HydrologyShoreTargets shores) {
         int minimumX = chunk.getX() << 4;
         int minimumZ = chunk.getZ() << 4;
         IrisBiome center = engine.getSurfaceBiome(minimumX + 8, minimumZ + 8);
         if (center != null && loadKey.equals(center.getLoadKey())) {
             return true;
         }
-        IrisHydrologyRuntime hydrology = engine.getComplex().getHydrologyRuntime();
-        return hydrology != null
-                && hydrology.hasAcceptedSurfaceBiomeInChunk(loadKey, chunk.getX(), chunk.getZ());
+        return shores.placedBy(engine) && shoreContainsSurfaceBiome(engine, chunk, loadKey);
+    }
+
+    private static boolean shoreContainsSurfaceBiome(Engine engine, Position2 chunk, String loadKey) {
+        ChunkWaterRaster raster = engine.getComplex().getHydrologyRuntime().raster(chunk.getX(), chunk.getZ());
+        if (raster.empty() || raster.provisional()) {
+            return false;
+        }
+        int minimumX = chunk.getX() << 4;
+        int minimumZ = chunk.getZ() << 4;
+        for (int localZ = 0; localZ < 16; localZ++) {
+            for (int localX = 0; localX < 16; localX++) {
+                int distance = raster.shoreDistance(localX, localZ);
+                if (distance == 0 || distance >= ChunkWaterRaster.MAX_SHORE_DISTANCE) {
+                    continue;
+                }
+                IrisBiome biome = engine.getSurfaceBiome(minimumX + localX, minimumZ + localZ);
+                if (biome != null && loadKey.equals(biome.getLoadKey())) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     static Locator<art.arcane.iris.structure.placement.IrisStructure> structure(String key) {

@@ -22,6 +22,8 @@ import art.arcane.volmlib.util.mantle.runtime.Mantle;
 import io.papermc.lib.PaperLib;
 import org.bukkit.World;
 
+import java.util.List;
+
 public class AsyncOrMedievalPregenMethod implements PregeneratorMethod {
     private final PregeneratorMethod method;
 
@@ -91,8 +93,8 @@ public class AsyncOrMedievalPregenMethod implements PregeneratorMethod {
     }
 
     @Override
-    public void onPregenStart(int centerBlockX, int centerBlockZ) {
-        method.onPregenStart(centerBlockX, centerBlockZ);
+    public void onRegionsAhead(List<long[]> regions) {
+        method.onRegionsAhead(regions);
     }
 
     @Override

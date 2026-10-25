@@ -4,7 +4,7 @@ import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.generation.terrain.IrisRegion;
-import art.arcane.iris.generation.hydrology.IrisRiverPolicy;
+import art.arcane.iris.generation.hydrology.config.IrisHydrologyPolicy;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -59,9 +59,9 @@ public final class SavedBiomeRecovery {
                 || !singleChoice(region.getCaveBiomes(), biomeKey)
                 || !biome.getChildren().isEmpty() || !biome.getFloatingChildBiomes().isEmpty()
                 || !optionalKey(biome.getCarvingBiome(), biomeKey)
-                || !sameRiverBiomes(dimension.getRiverPolicy(), biomeKey)
-                || !sameRiverBiomes(region.getRiverPolicy(), biomeKey)
-                || !sameRiverBiomes(biome.getRiverPolicy(), biomeKey)
+                || !sameShoreBiomes(dimension.getHydrologyPolicy(), biomeKey)
+                || !sameShoreBiomes(region.getHydrologyPolicy(), biomeKey)
+                || !sameShoreBiomes(biome.getHydrologyPolicy(), biomeKey)
                 || hasHistoricalColumns(input, activation)) {
             return Optional.empty();
         }
@@ -114,8 +114,8 @@ public final class SavedBiomeRecovery {
         return key != null && (key.isEmpty() || expected.equals(key));
     }
 
-    private static boolean sameRiverBiomes(IrisRiverPolicy policy, String biomeKey) {
-        return policy == null || onlyKey(policy.getAllBiomeIds(), biomeKey);
+    private static boolean sameShoreBiomes(IrisHydrologyPolicy policy, String biomeKey) {
+        return policy == null || policy.getShoreBiomes() == null || onlyKey(policy.getShoreBiomes(), biomeKey);
     }
 
     public record Input(GenerationHistory history, int chunkX, int chunkZ, IrisData data, IrisDimension dimension) {

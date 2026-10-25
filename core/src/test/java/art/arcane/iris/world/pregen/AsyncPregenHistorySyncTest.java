@@ -1,6 +1,9 @@
 package art.arcane.iris.world.pregen;
 
+import art.arcane.iris.generation.hydrology.engine.HydrologyPregeneration;
+import art.arcane.iris.generation.hydrology.engine.HydrologyRuntime;
 import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.world.IrisToolbelt;
 import org.bukkit.World;
@@ -10,11 +13,13 @@ import org.mockito.MockedStatic;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.same;
@@ -23,6 +28,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -56,6 +62,37 @@ public class AsyncPregenHistorySyncTest {
         verify(engine).syncGenerationHistory();
     }
 
+    @Test
+    public void closeWithdrawsQueuedHydrologyPrefetchAndRefusesLaterAnnouncements() throws Exception {
+        Engine engine = mock(Engine.class);
+        HydrologyPregeneration epoch = hydrologyEpoch(engine);
+        AsyncPregenMethod method = closable(engine, mock(PregenAdmissionGate.class));
+        List<long[]> ahead = List.of(new long[]{0L, 0L}, new long[]{1L, 0L});
+
+        method.onRegionsAhead(ahead);
+        try (MockedStatic<IrisToolbelt> toolbelt = mockStatic(IrisToolbelt.class)) {
+            toolbelt.when(IrisToolbelt::isServerStopping).thenReturn(true);
+            method.close();
+        }
+        method.onRegionsAhead(ahead);
+
+        InOrder order = inOrder(epoch, engine);
+        order.verify(epoch).prepare(ahead);
+        order.verify(epoch).close();
+        order.verify(engine).syncGenerationHistory();
+        verify(epoch, times(1)).prepare(anyList());
+    }
+
+    private static HydrologyPregeneration hydrologyEpoch(Engine engine) {
+        IrisComplex complex = mock(IrisComplex.class);
+        HydrologyRuntime runtime = mock(HydrologyRuntime.class);
+        HydrologyPregeneration epoch = mock(HydrologyPregeneration.class);
+        when(engine.getComplex()).thenReturn(complex);
+        when(complex.getHydrologyRuntime()).thenReturn(runtime);
+        when(runtime.openPregeneration()).thenReturn(epoch);
+        return epoch;
+    }
+
     private static AsyncPregenMethod closable(Engine engine, PregenAdmissionGate admission) throws Exception {
         AsyncPregenMethod method = mock(AsyncPregenMethod.class, CALLS_REAL_METHODS);
         World world = mock(World.class);
@@ -71,6 +108,7 @@ public class AsyncPregenHistorySyncTest {
         set(method, "regionChunks", new ConcurrentHashMap<>());
         set(method, "pendingEvictions", new ConcurrentLinkedQueue<>());
         set(method, "metricsEngine", engine);
+        set(method, "hydrology", new PregenHydrology(() -> engine));
         Class<?> ticketExecutor = Class.forName(AsyncPregenMethod.class.getName() + "$TicketExecutor");
         Constructor<?> constructor = ticketExecutor.getDeclaredConstructor(AsyncPregenMethod.class);
         constructor.setAccessible(true);

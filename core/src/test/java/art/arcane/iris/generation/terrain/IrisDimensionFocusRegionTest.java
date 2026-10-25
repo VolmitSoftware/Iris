@@ -1,7 +1,7 @@
 package art.arcane.iris.generation.terrain;
 
 import art.arcane.iris.generation.biome.IrisBiome;
-import art.arcane.iris.generation.hydrology.IrisRiverPolicy;
+import art.arcane.iris.generation.hydrology.config.IrisHydrologyPolicy;
 
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.pack.loading.ResourceLoader;
@@ -46,18 +46,18 @@ public class IrisDimensionFocusRegionTest {
     }
 
     @Test(timeout = 2000L)
-    public void resolvesNestedChildrenCarvingAndFloodedCavesThroughCycles() {
+    public void resolvesNestedChildrenCarvingAndShoreBiomesThroughCycles() {
         IrisRegion tropical = region("tropical").setLandBiomes(new KList<>("wilds"));
         biome("wilds").setChildren(new KList<>("highlands"));
         IrisBiome highlands = biome("highlands").setChildren(new KList<>("wilds"))
                 .setCarvingBiome("chalk-gardens")
-                .setRiverPolicy(new IrisRiverPolicy().setFloodedCaveBiomes(new KList<>("flooded")));
+                .setHydrologyPolicy(new IrisHydrologyPolicy().setShoreBiomes(new KList<>("shore")));
         IrisBiome chalk = biome("chalk-gardens").setChildren(new KList<>("chalk-child"));
         IrisBiome chalkChild = biome("chalk-child");
-        IrisBiome flooded = biome("flooded").setChildren(new KList<>("flooded-child"));
-        IrisBiome floodedChild = biome("flooded-child").setCarvingBiome("wilds");
+        IrisBiome shore = biome("shore").setChildren(new KList<>("shore-child"));
+        IrisBiome shoreChild = biome("shore-child").setCarvingBiome("wilds");
 
-        for (IrisBiome focus : List.of(highlands, chalk, chalkChild, flooded, floodedChild)) {
+        for (IrisBiome focus : List.of(highlands, chalk, chalkChild, shore, shoreChild)) {
             assertSame(tropical, dimension.resolveFocusRegion(focus, () -> data));
         }
         Set<String> natural = tropical.getNaturalBiomes(() -> data).stream()
@@ -66,12 +66,24 @@ public class IrisDimensionFocusRegionTest {
     }
 
     @Test
-    public void directCaveAndRegionFloodedReferencesKeepTheirOwner() {
-        IrisRegion tropical = region("tropical").setCaveBiomes(new KList<>("cave"))
-                .setRiverPolicy(new IrisRiverPolicy().setFloodedCaveBiomes(new KList<>("flooded")));
+    public void directCaveReferencesKeepTheirOwner() {
+        IrisRegion tropical = region("tropical").setCaveBiomes(new KList<>("cave"));
 
         assertSame(tropical, dimension.resolveFocusRegion(biome("cave"), () -> data));
-        assertSame(tropical, dimension.resolveFocusRegion(biome("flooded"), () -> data));
+    }
+
+    @Test
+    public void hydrologyPolicyShoreBiomesBelongToTheirRegion() {
+        IrisRegion tropical = region("tropical").setLandBiomes(new KList<>("wilds"))
+                .setHydrologyPolicy(new IrisHydrologyPolicy().setShoreBiomes(new KList<>("beach")));
+        biome("wilds").setHydrologyPolicy(new IrisHydrologyPolicy().setShoreBiomes(new KList<>("reef")));
+        IrisBiome beach = biome("beach");
+        IrisBiome reef = biome("reef");
+
+        assertSame(tropical, dimension.resolveFocusRegion(beach, () -> data));
+        assertSame(tropical, dimension.resolveFocusRegion(reef, () -> data));
+        assertEquals(Set.of("wilds"), tropical.getNaturalBiomes(() -> data).stream()
+                .map(IrisBiome::getLoadKey).collect(Collectors.toSet()));
     }
 
     @Test

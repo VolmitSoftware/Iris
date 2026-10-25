@@ -25,8 +25,7 @@ import art.arcane.iris.localization.IrisLanguage;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.studio.render.IrisRenderer;
 import art.arcane.iris.studio.render.RenderType;
-import art.arcane.iris.generation.hydrology.HydrologyCandidateKind;
-import art.arcane.iris.generation.hydrology.HydrologyFeatureType;
+import art.arcane.iris.generation.hydrology.query.HydrologyFeatureType;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.generation.terrain.IrisRegion;
@@ -73,7 +72,6 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
@@ -106,6 +104,7 @@ public final class VisionGUI extends JPanel implements MouseWheelListener, KeyLi
     private static final int PROGRESS_HEIGHT = 3;
     private static final int CARD_RADIUS = 10;
     private static final int CARD_PADDING = 12;
+    private static final int PROVISIONAL_RETRY_MS = 500;
     private static final double DEFAULT_BLOCKS_PER_PIXEL = 4D;
     private static final double WHEEL_ZOOM_EXPONENT = 0.08D;
     private static final double KEYBOARD_ZOOM_FACTOR = 1.189207115002721D;
@@ -120,6 +119,7 @@ public final class VisionGUI extends JPanel implements MouseWheelListener, KeyLi
     private final Timer hoverTimer;
     private final Timer markerTimer;
     private final Timer notificationTimer;
+    private final Timer provisionalTimer;
     private final Map<String, Long> notifications;
 
     private Engine engine;
@@ -186,6 +186,8 @@ public final class VisionGUI extends JPanel implements MouseWheelListener, KeyLi
         this.markerTimer.setCoalesce(true);
         this.notificationTimer = new Timer(200, event -> expireNotifications());
         this.notificationTimer.setCoalesce(true);
+        this.provisionalTimer = new Timer(PROVISIONAL_RETRY_MS, event -> controller.retryProvisional(renderFrame));
+        this.provisionalTimer.setCoalesce(true);
 
         addComponentListener(new ComponentAdapter() {
             @Override
@@ -208,6 +210,7 @@ public final class VisionGUI extends JPanel implements MouseWheelListener, KeyLi
         GuiHost.get().registerHotloadHook(hotloadHook);
         markerTimer.start();
         notificationTimer.start();
+        provisionalTimer.start();
     }
 
     public static void launch(Engine engine, UUID openerId) {
@@ -503,41 +506,21 @@ public final class VisionGUI extends JPanel implements MouseWheelListener, KeyLi
     }
 
     private void renderRiverLegend(Graphics2D canvas) {
-        HydrologyFeatureType[] types = HydrologyFeatureType.values();
-        HydrologyCandidateKind[] candidateKinds = HydrologyCandidateKind.values();
+        List<HydrologyFeatureType> types = IrisRenderer.mapWaterTypes();
         int lineHeight = 18;
         int width = 188;
-        int height = (types.length + candidateKinds.length + 1) * lineHeight + CARD_PADDING * 2;
+        int height = types.size() * lineHeight + CARD_PADDING * 2;
         int x = getWidth() - width - CARD_PADDING;
         int y = getHeight() - STATUS_HEIGHT - PROGRESS_HEIGHT - height - CARD_PADDING;
         drawCardBackground(canvas, x, y, width, height);
         canvas.setFont(BODY_FONT);
-        int headwaterY = y + CARD_PADDING;
-        canvas.setColor(new Color(IrisRenderer.headwaterColor()));
-        canvas.fillRoundRect(x + CARD_PADDING, headwaterY + 2, 12, 12, 4, 4);
-        canvas.setColor(new Color(IrisRenderer.headwaterDirectionColor()));
-        canvas.drawLine(x + CARD_PADDING + 3, headwaterY + 8, x + CARD_PADDING + 9, headwaterY + 8);
-        canvas.drawLine(x + CARD_PADDING + 9, headwaterY + 8, x + CARD_PADDING + 6, headwaterY + 5);
-        canvas.drawLine(x + CARD_PADDING + 9, headwaterY + 8, x + CARD_PADDING + 6, headwaterY + 11);
-        canvas.setColor(TEXT_SECONDARY);
-        canvas.drawString("headwater / source flow", x + CARD_PADDING + 20, headwaterY + 13);
-        for (int index = 0; index < types.length; index++) {
-            HydrologyFeatureType type = types[index];
-            int rowY = y + CARD_PADDING + (index + 1) * lineHeight;
+        for (int index = 0; index < types.size(); index++) {
+            HydrologyFeatureType type = types.get(index);
+            int rowY = y + CARD_PADDING + index * lineHeight;
             canvas.setColor(new Color(IrisRenderer.hydrologyFeatureColor(type)));
             canvas.fillRoundRect(x + CARD_PADDING, rowY + 2, 12, 12, 4, 4);
             canvas.setColor(TEXT_SECONDARY);
-            String label = type.name().toLowerCase(Locale.ROOT).replace('_', ' ');
-            canvas.drawString(label, x + CARD_PADDING + 20, rowY + 13);
-        }
-        for (int index = 0; index < candidateKinds.length; index++) {
-            HydrologyCandidateKind kind = candidateKinds[index];
-            int rowY = y + CARD_PADDING + (types.length + index + 1) * lineHeight;
-            canvas.setColor(new Color(IrisRenderer.hydrologyDiagnosticColor(kind)));
-            canvas.fillRoundRect(x + CARD_PADDING, rowY + 2, 12, 12, 4, 4);
-            canvas.setColor(TEXT_SECONDARY);
-            String label = "projected " + kind.name().toLowerCase(Locale.ROOT).replace('_', ' ');
-            canvas.drawString(label, x + CARD_PADDING + 20, rowY + 13);
+            canvas.drawString(type.key().replace('_', ' '), x + CARD_PADDING + 20, rowY + 13);
         }
     }
 
@@ -1069,6 +1052,7 @@ public final class VisionGUI extends JPanel implements MouseWheelListener, KeyLi
         hoverTimer.stop();
         markerTimer.stop();
         notificationTimer.stop();
+        provisionalTimer.stop();
         GuiHost.get().unregisterHotloadHook(hotloadHook);
         hostFrame.removeKeyListener(this);
         controller.close();

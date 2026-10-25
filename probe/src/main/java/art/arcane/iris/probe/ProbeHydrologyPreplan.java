@@ -18,83 +18,28 @@
 
 package art.arcane.iris.probe;
 
-import art.arcane.iris.generation.hydrology.HydrologyPlannerSettings;
-import art.arcane.iris.generation.hydrology.HydrologyTileCache;
-import art.arcane.iris.generation.hydrology.HydrologyTileKey;
-import art.arcane.iris.generation.hydrology.runtime.IrisHydrologyRuntime;
+import art.arcane.iris.generation.hydrology.engine.HydrologyRuntime;
+import art.arcane.iris.generation.hydrology.plan.WindowKey;
 import art.arcane.iris.generation.runtime.Engine;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 
-record ProbeHydrologyPreplan(int tiles, int tileSize, int publicationRadius, int reachChunks, long elapsedNanos) {
-    private static final int PLANNING_THREADS = 4;
+record ProbeHydrologyPreplan(int windows, long elapsedNanos) {
+    static final int RINGS = 1;
+    private static final int CHUNKS_PER_WINDOW = WindowKey.SIZE >> 4;
 
     static Optional<ProbeHydrologyPreplan> run(Engine engine, GenerationProbe.ProbeConfiguration configuration)
             throws Exception {
-        IrisHydrologyRuntime hydrology = engine.getComplex().getHydrologyRuntime();
-        if (hydrology == null) {
+        HydrologyRuntime hydrology = engine.getComplex().getHydrologyRuntime();
+        if (hydrology == null || !hydrology.enabled()) {
             return Optional.empty();
         }
-        HydrologyPlannerSettings settings = hydrology.settings();
-        int tileSize = settings.routing().tileSize();
-        int publicationRadius = settings.publicationRadius();
-        int reachChunks = Math.max(engine.getMantle().getRadius(), engine.getMantle().getRealRadius());
-        List<HydrologyTileKey> keys = tiles(configuration, tileSize, publicationRadius, reachChunks);
+        int[] bounds = GenerationProbe.scheduledChunkBounds(configuration);
         long started = System.nanoTime();
-        ExecutorService executor = Executors.newFixedThreadPool(Math.min(keys.size(), PLANNING_THREADS));
         try {
-            List<Future<?>> plans = new ArrayList<>(keys.size());
-            for (HydrologyTileKey key : keys) {
-                plans.add(executor.submit(() -> hydrology.tile(key)));
-            }
-            for (Future<?> plan : plans) {
-                await(plan);
-            }
-        } finally {
-            executor.shutdown();
-        }
-        return Optional.of(new ProbeHydrologyPreplan(keys.size(), tileSize, publicationRadius, reachChunks,
-                System.nanoTime() - started));
-    }
-
-    static List<HydrologyTileKey> tiles(GenerationProbe.ProbeConfiguration configuration, int tileSize,
-                                        int publicationRadius, int reachChunks) {
-        HydrologyTileCache.PregenerationArea area = GenerationProbe.pregenerationArea(configuration);
-        long reach = (long) reachChunks * 16L + publicationRadius;
-        int minimumX = Math.toIntExact(Math.floorDiv(area.minimumBlockX() - reach, tileSize)) - 1;
-        int minimumZ = Math.toIntExact(Math.floorDiv(area.minimumBlockZ() - reach, tileSize)) - 1;
-        int maximumX = Math.toIntExact(Math.floorDiv(area.maximumBlockX() + reach, tileSize)) + 1;
-        int maximumZ = Math.toIntExact(Math.floorDiv(area.maximumBlockZ() + reach, tileSize)) + 1;
-        int centerX = Math.floorDiv(area.centerBlockX(), tileSize);
-        int centerZ = Math.floorDiv(area.centerBlockZ(), tileSize);
-        List<HydrologyTileKey> keys = new ArrayList<>((maximumX - minimumX + 1) * (maximumZ - minimumZ + 1));
-        for (int tileZ = minimumZ; tileZ <= maximumZ; tileZ++) {
-            for (int tileX = minimumX; tileX <= maximumX; tileX++) {
-                keys.add(new HydrologyTileKey(tileX, tileZ));
-            }
-        }
-        keys.sort(Comparator.comparingInt((HydrologyTileKey key) ->
-                Math.max(Math.abs(key.tileX() - centerX), Math.abs(key.tileZ() - centerZ))));
-        return keys;
-    }
-
-    String machineLine() {
-        return String.format(Locale.ROOT,
-                "IRIS_GENPROBE_HYDROLOGY_PREPLAN version=1 tiles=%d tile_size=%d publication_radius=%d reach_chunks=%d planned_ms=%.3f",
-                tiles, tileSize, publicationRadius, reachChunks, elapsedNanos / 1_000_000D);
-    }
-
-    private static void await(Future<?> plan) throws Exception {
-        try {
-            plan.get();
+            hydrology.prepareWindowsAround(bounds[0], bounds[1], bounds[2], bounds[3], RINGS).get();
         } catch (ExecutionException failure) {
             Throwable cause = failure.getCause();
             if (cause instanceof Error error) {
@@ -105,5 +50,17 @@ record ProbeHydrologyPreplan(int tiles, int tileSize, int publicationRadius, int
             }
             throw new IllegalStateException(cause);
         }
+        return Optional.of(new ProbeHydrologyPreplan(windows(bounds), System.nanoTime() - started));
+    }
+
+    static int windows(int[] chunkBounds) {
+        int width = Math.floorDiv(chunkBounds[2], CHUNKS_PER_WINDOW) - Math.floorDiv(chunkBounds[0], CHUNKS_PER_WINDOW) + 1 + 2 * RINGS;
+        int depth = Math.floorDiv(chunkBounds[3], CHUNKS_PER_WINDOW) - Math.floorDiv(chunkBounds[1], CHUNKS_PER_WINDOW) + 1 + 2 * RINGS;
+        return width * depth;
+    }
+
+    String machineLine() {
+        return String.format(Locale.ROOT, "IRIS_GENPROBE_HYDROLOGY_PREPLAN version=2 windows=%d planned_ms=%.3f", windows,
+                elapsedNanos / 1_000_000D);
     }
 }

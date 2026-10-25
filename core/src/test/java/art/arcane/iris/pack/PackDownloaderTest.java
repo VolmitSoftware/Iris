@@ -698,15 +698,15 @@ public class PackDownloaderTest {
     }
 
     @Test
-    public void invalidBuiltInRiverSchemaPreservesExistingTarget() throws Exception {
+    public void invalidBuiltInHydrologySchemaPreservesExistingTarget() throws Exception {
         File packsFolder = temp.newFolder("invalid-river-packs");
         File target = writePack(packsFolder.toPath().resolve("overworld"), "overworld", "old");
         File extracted = writePack(temp.newFolder("invalid-river-source").toPath(), "overworld", "new");
         Files.writeString(
                 extracted.toPath().resolve("dimensions/overworld.json"),
                 "{\"name\":\"Overworld\",\"regions\":[\"local\"],\"logicalHeight\":256,"
-                        + "\"dimensionHeight\":{\"min\":-64,\"max\":320},\"hydrology\":{\"rivers\":{"
-                        + "\"enabled\":true,\"routing\":{\"tileSize\":255}}}}",
+                        + "\"dimensionHeight\":{\"min\":-64,\"max\":320},\"hydrology\":{"
+                        + "\"enabled\":true,\"ponds\":{\"freeboard\":[3,1]}}}",
                 StandardCharsets.UTF_8
         );
 

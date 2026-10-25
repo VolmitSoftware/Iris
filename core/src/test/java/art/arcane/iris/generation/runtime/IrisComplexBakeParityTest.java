@@ -20,6 +20,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -113,7 +114,7 @@ public class IrisComplexBakeParityTest {
         Files.createDirectories(pack.resolve("generators"));
         Files.writeString(pack.resolve("dimensions/main.json"), """
                 {"regions":["alpha","beta"],"landChance":0.55,"regionZoom":0.2,"biomeZoom":0.15,
-                 "carvingEnabled":false,"hydrology":{"rivers":{"enabled":false}}}
+                 "carvingEnabled":false}
                 """);
         Files.writeString(pack.resolve("regions/alpha.json"),
                 "{\"landBiomes\":[\"peaks\",\"meadow\",\"dunes\"],\"seaBiomes\":[\"sea\"],\"rarity\":1}");
@@ -204,6 +205,7 @@ public class IrisComplexBakeParityTest {
         public void close() {
             complex.close();
             data.close();
+            Mockito.framework().clearInlineMock(engine);
         }
     }
 }

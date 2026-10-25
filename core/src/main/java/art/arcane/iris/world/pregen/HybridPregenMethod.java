@@ -21,6 +21,8 @@ package art.arcane.iris.world.pregen;
 import art.arcane.volmlib.util.mantle.runtime.Mantle;
 import org.bukkit.World;
 
+import java.util.List;
+
 public class HybridPregenMethod implements PregeneratorMethod {
     private final PregeneratorMethod inWorld;
     private final World world;
@@ -84,8 +86,8 @@ public class HybridPregenMethod implements PregeneratorMethod {
     }
 
     @Override
-    public void onPregenStart(int centerBlockX, int centerBlockZ) {
-        inWorld.onPregenStart(centerBlockX, centerBlockZ);
+    public void onRegionsAhead(List<long[]> regions) {
+        inWorld.onRegionsAhead(regions);
     }
 
     @Override

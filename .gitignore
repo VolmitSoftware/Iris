@@ -81,3 +81,5 @@ BUILDS/
 /docs/
 /.perf/
 /.codegraph/
+
+.superpowers/

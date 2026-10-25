@@ -145,13 +145,13 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
     }
 
     /**
-     * A writer over one already loaded chunk, for generating that chunk's terrain components without a
-     * prefetch.
+     * A writer around one already loaded chunk, for generating that chunk's terrain components without a
+     * prefetch. Chunks within the radius are acquired on first access.
      */
-    static MantleWriter forChunk(EngineMantle engineMantle, Mantle<Matter> mantle, MantleChunk<Matter> chunk,
-                                 int chunkX, int chunkZ) {
-        MantleWriter writer = new MantleWriter(engineMantle, mantle, chunkX, chunkZ, 0);
-        writer.window.set(0, chunk.use());
+    static MantleWriter around(EngineMantle engineMantle, Mantle<Matter> mantle, MantleChunk<Matter> chunk,
+                               int chunkX, int chunkZ, int radius) {
+        MantleWriter writer = new MantleWriter(engineMantle, mantle, chunkX, chunkZ, radius);
+        writer.window.set(writer.windowIndex(chunkX, chunkZ), chunk.use());
         return writer;
     }
 
@@ -950,12 +950,14 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
 
     private final class TerrainAccess {
         private final MantleComponent[] components;
+        private final int[] reaches;
         private final ChunkContext context;
         private final IrisComplex complex;
         private final boolean[] ready = new boolean[window.length()];
 
         private TerrainAccess(MantleComponent[] components, ChunkContext context, IrisComplex complex) {
             this.components = components;
+            this.reaches = terrainReaches(components);
             this.context = context;
             this.complex = complex;
         }
@@ -964,17 +966,46 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
             if (chunk.isFlagged(MantleFlag.PLANNED) || complex != null && !complex.allowsMantleChunkWrite(chunkX, chunkZ)) {
                 return;
             }
-            for (MantleComponent component : components) {
-                if (chunk.isFlagged(component.getFlag()) || !hasPrerequisites(chunk, component)) {
-                    continue;
-                }
-                chunk.raiseFlagSuspend(component.getFlag(), () -> {
-                    try (MantleWriter terrainWriter = forChunk(engineMantle, mantle, chunk, chunkX, chunkZ)) {
-                        terrainWriter.withComponentPriority(component.getPriority(),
-                                () -> component.generateLayer(terrainWriter, chunkX, chunkZ, context));
+            for (int index = 0; index < components.length; index++) {
+                MantleComponent component = components[index];
+                int reach = reaches[index];
+                for (int offsetX = -reach; offsetX <= reach; offsetX++) {
+                    for (int offsetZ = -reach; offsetZ <= reach; offsetZ++) {
+                        if (offsetX == 0 && offsetZ == 0) {
+                            run(chunk, component, chunkX, chunkZ);
+                        } else {
+                            runAround(component, chunkX + offsetX, chunkZ + offsetZ);
+                        }
                     }
-                });
+                }
             }
+        }
+
+        private void runAround(MantleComponent component, int chunkX, int chunkZ) {
+            if (complex != null && !complex.allowsMantleChunkWrite(chunkX, chunkZ)) {
+                return;
+            }
+            MantleChunk<Matter> chunk = mantle.useChunk(chunkX, chunkZ);
+            try {
+                if (!chunk.isFlagged(MantleFlag.PLANNED)) {
+                    run(chunk, component, chunkX, chunkZ);
+                }
+            } finally {
+                chunk.release();
+            }
+        }
+
+        private void run(MantleChunk<Matter> chunk, MantleComponent component, int chunkX, int chunkZ) {
+            if (chunk.isFlagged(component.getFlag()) || !hasPrerequisites(chunk, component)) {
+                return;
+            }
+            int radius = chunkReach(Math.max(component.getWriteRadius(), component.getInputRadius()));
+            chunk.raiseFlagSuspend(component.getFlag(), () -> {
+                try (MantleWriter terrainWriter = around(engineMantle, mantle, chunk, chunkX, chunkZ, radius)) {
+                    terrainWriter.withComponentPriority(component.getPriority(),
+                            () -> component.generateLayer(terrainWriter, chunkX, chunkZ, context));
+                }
+            });
         }
 
         private static boolean hasPrerequisites(MantleChunk<Matter> chunk, MantleComponent component) {
@@ -985,6 +1016,21 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
             }
             return true;
         }
+    }
+
+    static int[] terrainReaches(MantleComponent[] components) {
+        int[] reaches = new int[components.length];
+        int downstream = 0;
+        for (int index = components.length - 1; index >= 0; index--) {
+            MantleComponent component = components[index];
+            reaches[index] = chunkReach(downstream + component.getWriteRadius());
+            downstream += component.getWriteRadius() + component.getInputRadius();
+        }
+        return reaches;
+    }
+
+    private static int chunkReach(int blocks) {
+        return blocks > 0 ? Math.ceilDiv(blocks, 16) : 0;
     }
 
     private static byte[] carvedColumn(Terrain3DColumn terrain, int height) {

@@ -19,6 +19,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
@@ -125,14 +126,12 @@ public class CachedPregenMethodCompletionTest {
         CachedPregenMethod wrapped = new CachedPregenMethod(new CachedPregenMethod.Configuration(hybrid, cache, task,
                 new PregenSavedChunkStatus((x, z) -> false)));
 
-        wrapped.onPregenStart(123, -456);
+        List<long[]> regions = List.of(new long[]{3L, -4L}, new long[]{4L, -4L});
+        wrapped.onRegionsAhead(regions);
         wrapped.reclaimMemory();
 
         assertEquals(1, underlying.reclaimCalls.get());
-
-        assertEquals(1, underlying.pregenStartCalls.get());
-        assertEquals(123, underlying.centerBlockX.get());
-        assertEquals(-456, underlying.centerBlockZ.get());
+        assertSame(regions, underlying.regionsAhead.get());
     }
 
     @Test
@@ -188,10 +187,8 @@ public class CachedPregenMethodCompletionTest {
         private boolean regionSupport;
         private final AtomicInteger generateChunkCalls = new AtomicInteger();
         private final AtomicInteger generateRegionCalls = new AtomicInteger();
-        private final AtomicInteger pregenStartCalls = new AtomicInteger();
+        private final AtomicReference<List<long[]>> regionsAhead = new AtomicReference<>();
         private final AtomicInteger reclaimCalls = new AtomicInteger();
-        private final AtomicInteger centerBlockX = new AtomicInteger();
-        private final AtomicInteger centerBlockZ = new AtomicInteger();
         private final AtomicReference<PregenListener> capturedListener = new AtomicReference<>();
         private final AtomicInteger inFlight = new AtomicInteger();
 
@@ -235,10 +232,8 @@ public class CachedPregenMethodCompletionTest {
         }
 
         @Override
-        public void onPregenStart(int centerBlockX, int centerBlockZ) {
-            pregenStartCalls.incrementAndGet();
-            this.centerBlockX.set(centerBlockX);
-            this.centerBlockZ.set(centerBlockZ);
+        public void onRegionsAhead(List<long[]> regions) {
+            regionsAhead.set(regions);
         }
 
         @Override

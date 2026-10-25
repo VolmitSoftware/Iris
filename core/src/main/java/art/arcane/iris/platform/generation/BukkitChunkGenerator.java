@@ -57,7 +57,7 @@ import art.arcane.iris.world.history.GenerationAdmission;
 import art.arcane.iris.world.history.GenerationHistoryRuntimeRouter;
 import art.arcane.iris.world.history.IrisBoundarySignatureSampler;
 import art.arcane.iris.world.history.TransitionGenerationPlan;
-import art.arcane.iris.generation.hydrology.runtime.IrisHydrologyRuntime;
+import art.arcane.iris.generation.hydrology.engine.HydrologyRuntime;
 import art.arcane.iris.generation.terrain.IrisDimensionContractException;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.generation.terrain.IrisDimensionRuntimeContract;
@@ -131,6 +131,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     private static final long HOTLOAD_LOOP_DELAY_MS = 250L;
     private static final long HOTLOAD_MAINTENANCE_DELAY_MS = 4000L;
     private static final int PLAYER_ENTRY_MOVE_PADDING = 3;
+    private static final int SPAWN_HYDROLOGY_REACH = 256;
     private final GenerationStageGate loadLock;
     private final IrisWorld world;
     private final File dataLocation;
@@ -357,8 +358,8 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
             return CompletableFuture.completedFuture(null);
         }
         IrisComplex complex = engine.getComplex();
-        IrisHydrologyRuntime hydrology = complex == null ? null : complex.getHydrologyRuntime();
-        if (hydrology == null) {
+        HydrologyRuntime hydrology = complex == null ? null : complex.getHydrologyRuntime();
+        if (hydrology == null || !hydrology.enabled()) {
             return CompletableFuture.completedFuture(null);
         }
         Location spawn = getInitialSpawnLocation(world);
@@ -381,7 +382,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
                 });
     }
 
-    private void startSpawnHydrology(Engine expectedEngine, IrisHydrologyRuntime hydrology, Location spawn) {
+    private void startSpawnHydrology(Engine expectedEngine, HydrologyRuntime hydrology, Location spawn) {
         if (closing) {
             return;
         }
@@ -409,14 +410,12 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
                 irisEngine.startEntryHydrology(spawnX, spawnZ);
                 return;
             }
-            int reach = Math.max(16, hydrology.settings().routing().tileSize() / 2);
-            hydrology.prefetchArea(
-                    spawnX - reach,
-                    spawnZ - reach,
-                    spawnX + reach - 1,
-                    spawnZ + reach - 1,
-                    spawnX,
-                    spawnZ
+            hydrology.prepareWindowsAround(
+                    (spawnX - SPAWN_HYDROLOGY_REACH) >> 4,
+                    (spawnZ - SPAWN_HYDROLOGY_REACH) >> 4,
+                    (spawnX + SPAWN_HYDROLOGY_REACH - 1) >> 4,
+                    (spawnZ + SPAWN_HYDROLOGY_REACH - 1) >> 4,
+                    1
             );
         }
     }
@@ -633,9 +632,6 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     }
 
     synchronized void publishInitializedEngine(IrisEngine initializedEngine) {
-        if (initialEntryPending) {
-            setInitialEntryNeighbourPrefetch(initializedEngine, false);
-        }
         engine = initializedEngine;
     }
 
@@ -1034,18 +1030,6 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
         }
         initialEntryPending = false;
         initialPlayerEntryPending = false;
-        setInitialEntryNeighbourPrefetch(engine, true);
-    }
-
-    private void setInitialEntryNeighbourPrefetch(Engine activeEngine, boolean enabled) {
-        if (activeEngine == null || activeEngine.isClosed()) {
-            return;
-        }
-        IrisComplex complex = activeEngine.getComplex();
-        IrisHydrologyRuntime hydrology = complex == null ? null : complex.getHydrologyRuntime();
-        if (hydrology != null) {
-            hydrology.setNeighbourPrefetchEnabled(enabled);
-        }
     }
 
     public void endStudioEntryBootstrap() {

@@ -44,6 +44,7 @@ public final class HydrologyCaveMatter extends RawMatter<HydrologyCaveCell> {
             case FALLING_FLUID -> 2;
             case DRY_AIR -> 3;
             case SEAL_GUARD -> 4;
+            case POOL_SOURCE -> 5;
         };
     }
 
@@ -53,6 +54,7 @@ public final class HydrologyCaveMatter extends RawMatter<HydrologyCaveCell> {
             case 2 -> HydrologyCaveAction.FALLING_FLUID;
             case 3 -> HydrologyCaveAction.DRY_AIR;
             case 4 -> HydrologyCaveAction.SEAL_GUARD;
+            case 5 -> HydrologyCaveAction.POOL_SOURCE;
             default -> throw new IOException("Unknown hydrology cave action code " + code);
         };
     }

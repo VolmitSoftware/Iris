@@ -30,11 +30,9 @@ import art.arcane.iris.generation.decoration.IrisDepositVariant;
 import art.arcane.iris.generation.decoration.IrisOreGenerator;
 import art.arcane.iris.generation.decoration.IrisOreBands;
 import art.arcane.iris.generation.decoration.tree.IrisTreeSettings;
-import art.arcane.iris.generation.hydrology.IrisDeepFluidConfig;
 import art.arcane.iris.generation.subterrain.IrisSubterrainFeature;
-import art.arcane.iris.generation.hydrology.IrisHydrology;
-import art.arcane.iris.generation.hydrology.IrisRiverHydrology;
-import art.arcane.iris.generation.hydrology.IrisRiverPolicy;
+import art.arcane.iris.generation.hydrology.config.IrisHydrology;
+import art.arcane.iris.generation.hydrology.config.IrisHydrologyPolicy;
 import art.arcane.iris.generation.image.IrisImageMap;
 import art.arcane.iris.generation.image.IrisImageMapApplication;
 import art.arcane.iris.generation.image.IrisImageMapBinding;
@@ -232,10 +230,10 @@ public class IrisDimension extends IrisRegistrant {
     private KList<IrisSubterrainFeature> subterrainFeatures = new KList<>();
     @Description("Profile-driven 3D cave configuration")
     private IrisCaveProfile caveProfile = new IrisCaveProfile();
-    @Description("Dimension-owned surface, underground, grotto, and deep-fluid hydrology configuration.")
-    private IrisHydrology hydrology = new IrisHydrology();
-    @Description("Dimension-level river placement, routing, profile, biome, and geometry policy.")
-    private IrisRiverPolicy riverPolicy = new IrisRiverPolicy();
+    @Description("Water that follows how rain drains across the terrain: rivers and streams that step through every elevation, and ponds and lakes at any height.")
+    private IrisHydrology hydrology = null;
+    @Description("Water settings for this dimension: rainfall, pond density, where streams and ponds may form, and the fluid that fills them. Regions and biomes inherit every value they leave unset.")
+    private IrisHydrologyPolicy hydrologyPolicy = null;
     @Description("Optional external terrain transformation with an exact provider version and pack-owned settings.")
     private IrisTerrainTransform terrainTransform;
     @Description("Refuse to place surface objects and trees over carved surface openings.")
@@ -699,20 +697,9 @@ public class IrisDimension extends IrisRegistrant {
 
         Deque<String> pending = new ArrayDeque<>();
         addReachableBiomeKey(pending, getFocus());
-        IrisHydrology configuredHydrology = getHydrology();
-        IrisRiverHydrology configuredRivers = configuredHydrology == null ? null : configuredHydrology.getRivers();
-        boolean hydrologyPoliciesActive = configuredRivers != null && configuredRivers.isEnabled();
-        if (!hydrologyPoliciesActive && configuredHydrology != null) {
-            for (IrisDeepFluidConfig deepFluid : configuredHydrology.getDeepFluids()) {
-                if (deepFluid != null && deepFluid.getDensity() > 0D
-                        && (deepFluid.isContainedPools() || deepFluid.isShortChannels())) {
-                    hydrologyPoliciesActive = true;
-                    break;
-                }
-            }
-        }
-        if (hydrologyPoliciesActive && getRiverPolicy() != null) {
-            addReachableBiomeKeys(pending, getRiverPolicy().getAllBiomeIds());
+        boolean hydrologyPoliciesActive = hydrology != null && hydrology.isEnabled();
+        if (hydrologyPoliciesActive && hydrologyPolicy != null) {
+            addReachableBiomeKeys(pending, hydrologyPolicy.getShoreBiomes());
         }
         for (IrisRegion region : getAllRegions(g)) {
             if (region == null) {
@@ -776,8 +763,8 @@ public class IrisDimension extends IrisRegistrant {
             biomes.put(loadKey, biome);
             addReachableBiomeKeys(pending, biome.getChildren());
             addReachableBiomeKey(pending, biome.getCarvingBiome());
-            if (hydrologyPoliciesActive && biome.getRiverPolicy() != null) {
-                addReachableBiomeKeys(pending, biome.getRiverPolicy().getAllBiomeIds());
+            if (hydrologyPoliciesActive && biome.getHydrologyPolicy() != null) {
+                addReachableBiomeKeys(pending, biome.getHydrologyPolicy().getShoreBiomes());
             }
 
             KList<IrisFloatingChildBiomes> floatingChildren = biome.getFloatingChildBiomes();

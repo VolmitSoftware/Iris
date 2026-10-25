@@ -6,6 +6,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
 public final class TransitionDisplacementField {
+    public static final int SEAM_BLEND_WIDTH = 16;
     private static final int MAXIMUM_CACHED_CHUNKS = 256;
     private static final int LOCAL_SUPPORT = 8;
     private static final Sample NONE = new Sample(0D, Double.MAX_VALUE, 1D, 0D, 0D, 0D, null);
@@ -44,7 +45,7 @@ public final class TransitionDisplacementField {
     public double seamWeight(int x, int z) {
         Sample sample = sample(x, z);
         return sample.newTerrainWeight() == 1D ? 1D
-                : GenerationBlend.newEpochWeight(Math.max(0D, sample.distance() - 1D), 16);
+                : GenerationBlend.newEpochWeight(Math.max(0D, sample.distance() - 1D), SEAM_BLEND_WIDTH);
     }
 
     public Sample sample(int x, int z) {

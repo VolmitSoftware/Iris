@@ -30,7 +30,7 @@ import art.arcane.iris.generation.subterrain.IrisSubterrainFluid;
 import art.arcane.iris.world.entity.IrisEntity;
 import art.arcane.iris.generation.noise.IrisExpression;
 import art.arcane.iris.generation.noise.IrisGenerator;
-import art.arcane.iris.generation.hydrology.IrisHydrology;
+import art.arcane.iris.generation.hydrology.config.IrisHydrology;
 import art.arcane.iris.generation.image.IrisImageMap;
 import art.arcane.iris.structure.jigsaw.IrisJigsawPiece;
 import art.arcane.iris.world.loot.IrisLootTable;
@@ -83,7 +83,7 @@ public class SchemaBuilderIdentityTest {
     @ClassRule
     public static final PlatformLeakGuard PLATFORM_GUARD = PlatformLeakGuard.clean();
 
-    private static final String EXPECTED_SCHEMA_DIGEST = "f0be31c11f7b03061a88387c66578058f447e5803cabe536a34721066d2bc636";
+    private static final String EXPECTED_SCHEMA_DIGEST = "dd1ea7f0361dfad24c4800e75f1e26e951b4f775aa1b541328724a8635afeeca";
 
     private static final List<Class<?>> SCHEMA_ROOTS = List.of(
             IrisDimension.class,

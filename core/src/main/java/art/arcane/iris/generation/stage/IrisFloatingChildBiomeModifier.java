@@ -42,11 +42,13 @@ import art.arcane.iris.generation.terrain.IrisSlopeClip;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.generation.block.B;
 import art.arcane.iris.generation.context.ChunkContext;
+import art.arcane.iris.generation.hydrology.raster.WaterRole;
 import art.arcane.volmlib.util.hunk.Hunk;
 import art.arcane.volmlib.util.noise.CNG;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
 import art.arcane.volmlib.util.scheduling.PrecisionStopwatch;
+import art.arcane.volmlib.util.stream.ProceduralStream;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.nativelib.terrain.NativeBiome;
@@ -249,6 +251,7 @@ public class IrisFloatingChildBiomeModifier extends EngineAssignedModifier<Nativ
                     continue;
                 }
 
+                int waterTop = hydrologyWaterTop(complex.getWaterRoleStream(), complex.getWaterHeadStream(), wx, wz);
                 int paletteDepth = Math.max(4, sample.solidCount + 4);
                 IdentityHashMap<IrisFloatingChildBiomes, PaletteContext> paletteContexts = new IdentityHashMap<>();
                 IdentityHashMap<IrisFloatingChildBiomes, Integer> topDepthByEntry = new IdentityHashMap<>();
@@ -258,7 +261,7 @@ public class IrisFloatingChildBiomeModifier extends EngineAssignedModifier<Nativ
                         continue;
                     }
                     int y = sample.islandBaseY + k;
-                    if (y < 0 || y >= chunkHeight || featureOwns(wx, y, wz)) {
+                    if (y < 0 || y >= chunkHeight || y <= waterTop || featureOwns(wx, y, wz)) {
                         continue;
                     }
                     IrisFloatingChildBiomes entry = sample.entryAt(k);
@@ -289,7 +292,7 @@ public class IrisFloatingChildBiomeModifier extends EngineAssignedModifier<Nativ
                             continue;
                         }
                         int y = sample.islandBaseY + k;
-                        if (y < 0 || y >= chunkHeight || featureOwns(wx, y, wz)) {
+                        if (y < 0 || y >= chunkHeight || y <= waterTop || featureOwns(wx, y, wz)) {
                             continue;
                         }
                         boolean hasSolidBelow = false;
@@ -403,6 +406,10 @@ public class IrisFloatingChildBiomeModifier extends EngineAssignedModifier<Nativ
                 }
             }
         }
+    }
+
+    static int hydrologyWaterTop(ProceduralStream<WaterRole> roles, ProceduralStream<Double> heads, int x, int z) {
+        return roles.get(x, z).wet() ? (int) Math.round(heads.getDouble(x, z)) : Integer.MIN_VALUE;
     }
 
     private boolean featureOwns(int x, int y, int z) {

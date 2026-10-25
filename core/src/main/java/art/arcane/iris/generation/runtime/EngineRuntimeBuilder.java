@@ -264,6 +264,7 @@ final class EngineRuntimeBuilder {
             }
             throw new IllegalStateException("Failed to start the Iris world manager.", e);
         }
+        next.generation().complex().openHydrologyPlanStore();
         scheduleRuntimeTasks(next);
         IrisLogging.debug("Engine Setup Complete " + next.generation().cacheId());
     }

@@ -159,7 +159,7 @@ public interface EngineMantle extends MatterGenerator {
         if (transformed != Integer.MIN_VALUE) {
             return transformed;
         }
-        return (int) Math.round(getComplex().getRiverWaterSurfaceStream().get(x, z));
+        return (int) Math.round(getComplex().getWaterHeadStream().getDouble(x, z));
     }
 
     default boolean isDebugSmartBore() {

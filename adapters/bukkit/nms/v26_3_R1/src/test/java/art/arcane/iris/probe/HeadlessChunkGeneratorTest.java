@@ -137,7 +137,7 @@ public class HeadlessChunkGeneratorTest {
         }
         Files.writeString(pack.resolve("dimensions/main.json"), """
                 {"name":"Native columns","focus":"swamp","regions":["owned"],"fluidHeight":40,"logicalHeight":256,
-                 "landChance":1,"carvingEnabled":false,"hydrology":{"rivers":{"enabled":false}}}
+                 "landChance":1,"carvingEnabled":false}
                 """);
         Files.writeString(pack.resolve("regions/owned.json"), "{\"landBiomes\":[\"swamp\"]}");
         Files.writeString(pack.resolve("generators/flat.json"), "{\"composite\":[]}");

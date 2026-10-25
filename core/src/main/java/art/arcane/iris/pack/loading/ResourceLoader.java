@@ -28,6 +28,7 @@ import art.arcane.iris.pack.PackValidator;
 import art.arcane.iris.generation.runtime.PreservationRegistry;
 import art.arcane.volmlib.util.cache.AtomicCache;
 import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.runtime.IrisEngineStreamType;
 import art.arcane.iris.generation.runtime.MeteredCache;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.volmlib.util.collection.KList;
@@ -432,6 +433,9 @@ public class ResourceLoader<T extends IrisRegistrant> implements MeteredCache {
         } catch (Throwable e) {
             IrisLogging.reportError(e);
             failLoad(j, rawText, e);
+            if (e instanceof IrisEngineStreamType.UnknownStreamException unknownStream) {
+                throw unknownStream;
+            }
             return null;
         }
     }

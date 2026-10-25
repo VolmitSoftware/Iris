@@ -1,130 +1,107 @@
 package art.arcane.iris.probe;
 
-import art.arcane.iris.generation.hydrology.RiverFootprint;
-import art.arcane.iris.generation.hydrology.HydrologyPoint;
-import art.arcane.iris.generation.hydrology.HydrologyPlannerSettings;
-import art.arcane.iris.generation.hydrology.surface.SurfaceCenterline;
+import art.arcane.iris.generation.hydrology.config.IrisHydrology;
+import art.arcane.iris.generation.hydrology.plan.HydrologySettings;
+import art.arcane.iris.generation.hydrology.plan.WindowKey;
+import art.arcane.iris.generation.hydrology.plan.WindowPlan;
+import art.arcane.iris.generation.hydrology.raster.WaterRole;
+import art.arcane.iris.generation.hydrology.water.Reach;
+import art.arcane.iris.generation.hydrology.water.ReachStyle;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
-import java.util.HashMap;
-import java.util.Map;
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.nio.file.Files;
+import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 public class RiverTransectProbeTest {
+    @Rule
+    public TemporaryFolder folder = new TemporaryFolder();
+
     @Test
-    public void sectionStationsSitAtTenThirtyFiftySeventyAndNinetyPercent() {
-        assertArrayEquals(new int[] {2, 6, 10, 14, 18}, RiverTransectProbe.sectionStations(20));
-        assertArrayEquals(new int[] {0, 0, 0, 0, 0}, RiverTransectProbe.sectionStations(1));
-        assertArrayEquals(new int[] {0, 0, 1, 2, 2}, RiverTransectProbe.sectionStations(3));
+    public void stationsSitAtTenThirtyFiftySeventyAndNinetyPercentOfTheLength() {
+        assertArrayEquals(new int[]{2, 6, 10, 14, 18}, RiverTransectProbe.stations(straight(21, 0f, 100f, 4f)));
+        assertArrayEquals(new int[]{1, 1, 1, 1, 1}, RiverTransectProbe.stations(straight(2, 0f, 100f, 4f)));
     }
 
     @Test
-    public void summaryCountsCutsBankStepsOceanWritesAndSpillingChannels() {
-        Map<Long, RiverTransectProbe.ColumnView> columns = new HashMap<>();
-        put(columns, 0, 0, 72, 68, 70, RiverTransectProbe.Role.CHANNEL);
-        put(columns, 1, 0, 72, 71, RiverTransectProbe.NO_WATER, RiverTransectProbe.Role.BANK);
-        put(columns, -1, 0, 72, 69, RiverTransectProbe.NO_WATER, RiverTransectProbe.Role.BANK);
-        put(columns, 0, 1, 72, 70, RiverTransectProbe.NO_WATER, RiverTransectProbe.Role.SHORE);
-        put(columns, 0, -1, 72, 72, RiverTransectProbe.NO_WATER, RiverTransectProbe.Role.NONE);
-        put(columns, 2, 0, 72, 72, RiverTransectProbe.NO_WATER, RiverTransectProbe.Role.NONE);
-        put(columns, 5, 5, 60, 58, RiverTransectProbe.NO_WATER, RiverTransectProbe.Role.NONE);
-        put(columns, 6, 6, 60, 60, 63, RiverTransectProbe.Role.APRON);
-
-        RiverTransectProbe.CourseSummary summary = RiverTransectProbe.summarize(options(7L, 12), columns);
-
-        assertEquals(7L, summary.id());
-        assertEquals(12, summary.stations());
-        assertEquals(4, summary.ownedColumns());
-        assertEquals(1, summary.minimumCut());
-        assertEquals(4, summary.maximumCut());
-        assertEquals(1, summary.maximumBankStep());
-        assertEquals(1, summary.oceanWrites());
-        assertEquals(1, summary.uncontainedWetCells());
-        assertFalse(summary.passes());
-        assertEquals(3, summary.details().size());
-        assertTrue(summary.details().get(0).startsWith("uncontained 0,0"));
-        assertTrue(summary.details().get(1).startsWith("oceanWrite 5,5"));
-        assertTrue(summary.details().get(2).startsWith("bankStep 1"));
+    public void sectionReadsColumnsAcrossTheFlow() {
+        Reach reach = straight(11, 0f, 100f, 4f);
+        RiverTransectProbe.Section section = RiverTransectProbe.section(reach, 5, (x, z) -> Math.abs(z - 100) <= 2
+                ? new RiverTransectProbe.Column(70, 66, 68, WaterRole.CHANNEL)
+                : z > 140 ? null : new RiverTransectProbe.Column(70, 70, RiverTransectProbe.NO_WATER, WaterRole.BANK));
+        RiverTransectProbe.Column[] columns = section.columns();
+        assertEquals(2 * RiverTransectProbe.SECTION_HALF + 1, columns.length);
+        assertEquals(0.5D, section.station(), 1e-6D);
+        assertEquals(68, columns[RiverTransectProbe.SECTION_HALF].head());
+        assertEquals(68, columns[RiverTransectProbe.SECTION_HALF + 2].head());
+        assertEquals(RiverTransectProbe.NO_WATER, columns[RiverTransectProbe.SECTION_HALF + 3].head());
+        assertEquals(RiverTransectProbe.NO_WATER, columns[RiverTransectProbe.SECTION_HALF - 3].head());
+        assertNull(columns[2 * RiverTransectProbe.SECTION_HALF]);
+        assertEquals(WaterRole.BANK, columns[0].role());
     }
 
     @Test
-    public void containedCourseAwayFromTheOceanPasses() {
-        Map<Long, RiverTransectProbe.ColumnView> columns = new HashMap<>();
-        put(columns, 0, 0, 72, 68, 70, RiverTransectProbe.Role.CHANNEL);
-        put(columns, 1, 0, 72, 71, RiverTransectProbe.NO_WATER, RiverTransectProbe.Role.BANK);
-        put(columns, -1, 0, 72, 71, RiverTransectProbe.NO_WATER, RiverTransectProbe.Role.BANK);
-        put(columns, 0, 1, 72, 70, RiverTransectProbe.NO_WATER, RiverTransectProbe.Role.SHORE);
-        put(columns, 0, -1, 72, 71, RiverTransectProbe.NO_WATER, RiverTransectProbe.Role.SHORE);
-
-        RiverTransectProbe.CourseSummary summary = RiverTransectProbe.summarize(options(1L, 3), columns);
-
-        assertTrue(summary.passes());
-        assertEquals(0, summary.oceanWrites());
-        assertEquals(0, summary.uncontainedWetCells());
+    public void summaryListsReachesPondsAndSections() {
+        HydrologySettings settings = HydrologySettings.compile(new IrisHydrology().setEnabled(true), 1L, 40, 0, 320);
+        Reach reach = straight(11, 0f, 100f, 4f);
+        RiverTransectProbe.Section section = RiverTransectProbe.section(reach, 5,
+                (x, z) -> new RiverTransectProbe.Column(70, 66, Math.abs(z - 100) <= 2 ? 68 : RiverTransectProbe.NO_WATER, WaterRole.CHANNEL));
+        List<String> summary = RiverTransectProbe.summary(new WindowKey(0, 0),
+                new WindowPlan(new WindowKey(0, 0), List.of(reach), List.of(), List.of()), List.of(),
+                List.of(section), settings);
+        assertEquals("window 0,0 reaches=1 ponds=0 lakes=0 sections=1", summary.get(0));
+        assertTrue(summary.get(1), summary.get(1).startsWith("reach 7 tier=stream length=40 from=0,100@70 to=40,100@60"));
+        assertEquals("section reach=7 station=50% at=20,100 wetColumns=5 deepest=2", summary.get(2));
     }
 
     @Test
-    public void drySillMouthCutsConnectToUntouchedOceanWithoutCountingAsOceanBedWrites() {
-        Map<Long, RiverTransectProbe.ColumnView> columns = new HashMap<>();
-        columns.put(RiverFootprint.pack(0, 0), new RiverTransectProbe.ColumnView(
-                0, 0, 63, 60, 63, RiverTransectProbe.Role.CHANNEL,
-                new RiverTransectProbe.ColumnPlan(false, true, true, true, 60, 1L)));
-        put(columns, 1, 0, 60, 60, 63, RiverTransectProbe.Role.APRON);
-        RiverTransectProbe.CourseSummary connected = RiverTransectProbe.summarize(options(1L, 2), columns);
-        assertEquals(1, connected.drySillCuts());
-        assertEquals(0, connected.oceanWrites());
-        assertEquals(1, connected.connectedMouthColumns());
-        assertTrue(connected.passes());
-        columns.remove(RiverFootprint.pack(1, 0));
-        assertEquals(1, RiverTransectProbe.summarize(options(1L, 2), columns).disconnectedMouthColumns());
-    }
-
-    @Test
-    public void bankCutBudgetUsesPublishedLowerFloorEvenWhenUpperTerrainSpanIsRetained() {
-        Map<Long, RiverTransectProbe.ColumnView> columns = new HashMap<>();
-        columns.put(RiverFootprint.pack(0, 0), new RiverTransectProbe.ColumnView(
-                0, 0, 80, 80, RiverTransectProbe.NO_WATER, RiverTransectProbe.Role.BANK,
-                new RiverTransectProbe.ColumnPlan(false, true, false, false, 70, 1L)));
-        RiverTransectProbe.CourseSummary summary = RiverTransectProbe.summarize(options(1L, 2), columns);
-        assertEquals(10, summary.maximumBankCut());
-        assertEquals(10, summary.bankExcavation());
-        assertEquals(1, summary.bankBudgetViolations());
-        assertFalse(summary.passes());
-    }
-
-    @Test
-    public void reconstructedReachVolumesUseTheSharedSixteenBlockMetric() {
-        Map<Long, RiverTransectProbe.ColumnView> columns = new HashMap<>();
-        for (int x = 0; x <= 32; x++) {
-            put(columns, x, 2, 80, 72, RiverTransectProbe.NO_WATER, RiverTransectProbe.Role.BANK);
+    public void rendersPlanSectionsAndSummaryForASyntheticWindow() throws Exception {
+        try (SyntheticHydrology fixture = new SyntheticHydrology()) {
+            HydrologyProbe.Inputs inputs = fixture.inputs();
+            HydrologyWindows.WindowRange range = new HydrologyWindows.WindowRange(4, 4, 4, 4);
+            HydrologyPlanHarness.Plans plans = new HydrologyPlanHarness.Plans(inputs.settings(), inputs.terrain(), inputs.naturalHeight(), range);
+            File output = folder.newFolder("transect");
+            RiverTransectProbe.Rendered rendered = RiverTransectProbe.render(plans, new WindowKey(4, 4), inputs.naturalHeight(), range, output);
+            assertEquals(plans.window(new WindowKey(4, 4)).plan().reaches().size(), rendered.reaches());
+            assertEquals(plans.window(new WindowKey(4, 4)).plan().ponds().size(), rendered.ponds());
+            assertTrue("reaches " + rendered.reaches(), rendered.reaches() > 0);
+            assertTrue("sections " + rendered.sections(), rendered.sections() > 0);
+            BufferedImage plan = ImageIO.read(new File(rendered.directory(), "plan.png"));
+            assertEquals(WindowKey.SIZE, plan.getWidth());
+            assertEquals(WindowKey.SIZE, plan.getHeight());
+            assertTrue(new File(rendered.directory(), "sections.png").isFile());
+            List<String> summary = Files.readAllLines(new File(rendered.directory(), "summary.txt").toPath());
+            assertTrue(summary.get(0), summary.get(0).startsWith("window 4,4 reaches=" + rendered.reaches() + " ponds=" + rendered.ponds()));
+            assertTrue(rendered.line(), rendered.line().startsWith("IRIS_RIVER_TRANSECT version=2 wx=4 wz=4 "));
         }
-        assertEquals(9, RiverTransectProbe.estimatedBankVolumePerBlock(options(1L, 33), columns));
-        assertEquals(0, RiverTransectProbe.estimatedBankVolumePerBlock(options(2L, 33), columns));
     }
 
-    private static RiverTransectProbe.SummaryOptions options(long id, int stations) {
-        SurfaceCenterline centerline = SurfaceCenterline.densify(List.of(
-                new HydrologyPoint(0, 70, 0), new HydrologyPoint(stations - 1, 70, 0)));
-        return new RiverTransectProbe.SummaryOptions(id, centerline, 63,
-                new HydrologyPlannerSettings.Excavation(8, 16, 128));
-    }
-
-    private static void put(
-            Map<Long, RiverTransectProbe.ColumnView> columns,
-            int x,
-            int z,
-            int natural,
-            int terrain,
-            int water,
-            RiverTransectProbe.Role role
-    ) {
-        columns.put(RiverFootprint.pack(x, z), new RiverTransectProbe.ColumnView(x, z, natural, terrain, water, role,
-                new RiverTransectProbe.ColumnPlan(role == RiverTransectProbe.Role.APRON,
-                        role.owned(), role == RiverTransectProbe.Role.CHANNEL, false, terrain, 1L)));
+    private static Reach straight(int points, float x0, float z, float spacing) {
+        HydrologySettings settings = HydrologySettings.compile(new IrisHydrology().setEnabled(true), 1L, 40, 0, 320);
+        float[] xs = new float[points];
+        float[] zs = new float[points];
+        int[] grade = new int[points];
+        float[] halfWidth = new float[points];
+        float[] depth = new float[points];
+        ReachStyle[] style = new ReachStyle[points];
+        for (int point = 0; point < points; point++) {
+            xs[point] = x0 + point * spacing;
+            zs[point] = z;
+            grade[point] = 70 - point;
+            halfWidth[point] = 2f;
+            depth[point] = 1f;
+        }
+        Arrays.fill(style, ReachStyle.RUN);
+        return new Reach(7L, settings.tiers().get(0), 0L, xs, zs, grade, halfWidth, depth, style, 1000f);
     }
 }

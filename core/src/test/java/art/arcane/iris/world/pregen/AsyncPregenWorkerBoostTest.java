@@ -118,6 +118,7 @@ public class AsyncPregenWorkerBoostTest {
             set(method, "closing", new AtomicBoolean());
             set(method, "holdsWorkerBoost", new AtomicBoolean(true));
             set(method, "admission", admission);
+            set(method, "hydrology", new PregenHydrology(() -> null));
             Thread.currentThread().interrupt();
             try {
                 assertSame(failure, assertThrows(IllegalStateException.class, method::close));

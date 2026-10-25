@@ -1,281 +1,347 @@
 package art.arcane.iris.studio.render;
 
-import art.arcane.iris.generation.runtime.IrisComplex;
-import art.arcane.iris.generation.runtime.Engine;
-import art.arcane.iris.generation.hydrology.HydrologyCandidateKind;
-import art.arcane.iris.generation.hydrology.HydrologyCandidateRejection;
-import art.arcane.iris.generation.hydrology.HydrologyDiagnosticCandidate;
-import art.arcane.iris.generation.hydrology.HydrologyDiagnosticRenderSample;
-import art.arcane.iris.generation.hydrology.HydrologyFeatureRef;
-import art.arcane.iris.generation.hydrology.HydrologyFeatureType;
-import art.arcane.iris.generation.hydrology.HydrologyPoint;
-import art.arcane.iris.generation.hydrology.HydrologyRenderSample;
-import art.arcane.iris.generation.hydrology.runtime.IrisHydrologyRuntime;
 import art.arcane.iris.generation.biome.IrisBiome;
+import art.arcane.iris.generation.hydrology.engine.HydrologyRuntime;
+import art.arcane.iris.generation.hydrology.plan.HydrologySettings;
+import art.arcane.iris.generation.hydrology.query.HydrologyFeatureType;
+import art.arcane.iris.generation.hydrology.water.Pond;
+import art.arcane.iris.generation.hydrology.water.Reach;
+import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.runtime.IrisComplex;
+import art.arcane.iris.generation.runtime.IrisEngine;
+import art.arcane.iris.world.history.ChunkGenerationSemantics;
+import art.arcane.iris.world.history.GenerationHistory;
+import art.arcane.iris.world.history.GenerationHistoryRuntimeRouter;
+import art.arcane.iris.generation.stream.ProvisionalSampling;
+import art.arcane.iris.generation.hydrology.underground.SeaInlet;
+import art.arcane.iris.testsupport.FakeHydrology;
+import art.arcane.iris.testsupport.WaterScene;
 import art.arcane.volmlib.util.stream.ProceduralStream;
 import org.junit.Test;
 
 import java.awt.Color;
 import java.awt.image.BufferedImage;
-import java.util.EnumMap;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.anyDouble;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class IrisRendererRiverTest {
-    @Test
-    public void everyAcceptedHydrologyFeatureHasItsDiagnosticColor() {
-        Map<HydrologyFeatureType, Integer> expected = new EnumMap<>(HydrologyFeatureType.class);
-        expected.put(HydrologyFeatureType.SURFACE_POOL, new Color(48, 112, 190).getRGB());
-        expected.put(HydrologyFeatureType.RIFFLE, new Color(96, 166, 214).getRGB());
-        expected.put(HydrologyFeatureType.CASCADE, new Color(135, 204, 232).getRGB());
-        expected.put(HydrologyFeatureType.WATERFALL, new Color(190, 236, 255).getRGB());
-        expected.put(HydrologyFeatureType.SINKHOLE, new Color(176, 146, 232).getRGB());
-        expected.put(HydrologyFeatureType.RIDGE_BORE, new Color(120, 99, 174).getRGB());
-        expected.put(HydrologyFeatureType.UNDERGROUND_POOL, new Color(102, 86, 196).getRGB());
-        expected.put(HydrologyFeatureType.UNDERGROUND_DROP, new Color(102, 86, 196).getRGB());
-        expected.put(HydrologyFeatureType.COASTAL_GROTTO, new Color(51, 174, 174).getRGB());
-        expected.put(HydrologyFeatureType.INLAND_GROTTO, new Color(116, 76, 150).getRGB());
-        expected.put(HydrologyFeatureType.MOUTH, new Color(54, 164, 205).getRGB());
-        expected.put(HydrologyFeatureType.DEEP_POOL, new Color(194, 50, 22).getRGB());
-        expected.put(HydrologyFeatureType.DEEP_CHANNEL, new Color(194, 50, 22).getRGB());
-        expected.put(HydrologyFeatureType.STANDING_POOL, new Color(232, 120, 40).getRGB());
+    private static final int SEA_LEVEL = 40;
+    private static final int NO_RIVER = new Color(28, 31, 38).getRGB();
+    private static final int PIXELS = 64;
+    private static final long SETTLE_SECONDS = 10L;
+    private static final int POND_X = 30;
+    private static final int POND_Z = 30;
+    private static final int LAKE_X = 90;
+    private static final int LAKE_Z = 30;
+    private static final int STREAM_X = 40;
+    private static final int STREAM_Z = 100;
+    private static final int DRY = 120;
 
-        assertEquals(HydrologyFeatureType.values().length, expected.size());
+    @Test
+    public void everyFeatureTypeHasItsOwnColor() {
+        Set<Integer> colors = new HashSet<>();
         for (HydrologyFeatureType type : HydrologyFeatureType.values()) {
-            assertEquals(type.name(), expected.get(type).intValue(), IrisRenderer.hydrologyFeatureColor(type));
+            assertTrue(type.name(), colors.add(IrisRenderer.hydrologyFeatureColor(type)));
+        }
+        assertFalse(colors.contains(NO_RIVER));
+    }
+
+    @Test
+    public void legendListsTheWaterTheMapDrawsStrongestFirst() {
+        List<HydrologyFeatureType> drawn = IrisRenderer.mapWaterTypes();
+
+        assertEquals(HydrologyFeatureType.WATERFALL, drawn.getFirst());
+        assertEquals("cave pools sit under everything else", HydrologyFeatureType.CAVE_POOL, drawn.getLast());
+        assertTrue(drawn.containsAll(List.of(HydrologyFeatureType.STREAM, HydrologyFeatureType.RIVER, HydrologyFeatureType.MAJOR_RIVER,
+                HydrologyFeatureType.LAKE, HydrologyFeatureType.POND, HydrologyFeatureType.DAM, HydrologyFeatureType.SEA_INLET)));
+        assertTrue(drawn.indexOf(HydrologyFeatureType.LAKE) < drawn.indexOf(HydrologyFeatureType.POND));
+    }
+
+    @Test
+    public void provisionalRastersRenderDryAndMarkTheTileUntilTheyLand() throws Exception {
+        try (FakeHydrology hydrology = new FakeHydrology(() -> false, (x, z) -> 60, SEA_LEVEL, 63)) {
+            Engine engine = engine(hydrology.runtime);
+            hydrology.hold();
+            long before = ProvisionalSampling.revision();
+
+            BufferedImage provisional = new IrisRenderer(engine).renderStudio(0D, 0D, 64D, 64, RenderType.RIVER, () -> false);
+
+            assertNotEquals(before, ProvisionalSampling.revision());
+            assertEquals(NO_RIVER, provisional.getRGB(16, 16));
+            hydrology.release();
+
+            BufferedImage planned = settled(engine, 64D, 64, RenderType.RIVER);
+
+            assertEquals(IrisRenderer.hydrologyFeatureColor(HydrologyFeatureType.POND), planned.getRGB(16, 16));
+            assertEquals(NO_RIVER, planned.getRGB(48, 48));
         }
     }
 
     @Test
-    public void headwatersAndWaterfallsRemainDistinct() {
-        HydrologyRenderSample headwater = sample(HydrologyFeatureType.SURFACE_POOL, true);
-        HydrologyRenderSample waterfall = sample(HydrologyFeatureType.WATERFALL, false);
+    public void channelPixelsShowTheirTier() throws Exception {
+        HydrologySettings settings = FakeHydrology.settings(SEA_LEVEL);
+        Reach brook = WaterScene.line(11L, settings.tiers().getFirst(), 2, 40, 29, 40, (x, z) -> 62);
+        try (FakeHydrology hydrology = new FakeHydrology(() -> false, (x, z) -> 60, SEA_LEVEL, List.of(brook), List.of())) {
+            Engine engine = engine(hydrology.runtime);
 
-        assertEquals(IrisRenderer.headwaterColor(), IrisRenderer.hydrologyColor(headwater));
-        assertEquals(IrisRenderer.waterfallColor(), IrisRenderer.hydrologyColor(waterfall));
-        assertNotEquals(IrisRenderer.headwaterColor(), IrisRenderer.waterfallColor());
+            BufferedImage image = settled(engine, 32D, 32D, 32, RenderType.RIVER);
+
+            assertEquals(IrisRenderer.hydrologyFeatureColor(HydrologyFeatureType.STREAM), image.getRGB(16, 8));
+            assertEquals(NO_RIVER, image.getRGB(16, 0));
+        }
     }
 
     @Test
-    public void acceptedHeadwaterArrowsFollowOppositePlanVectors() {
-        BufferedImage east = renderHeadwater(1, 0);
-        BufferedImage west = renderHeadwater(-1, 0);
-        int direction = IrisRenderer.headwaterDirectionColor();
+    public void closeZoomDrawsWaterFromRasters() throws Exception {
+        try (FakeHydrology hydrology = scene()) {
+            HydrologyRuntime runtime = spy(hydrology.runtime);
 
-        assertEquals(direction, east.getRGB(4, 2));
-        assertNotEquals(direction, west.getRGB(4, 2));
-        assertEquals(direction, west.getRGB(2, 2));
-        assertNotEquals(direction, east.getRGB(2, 2));
+            assertScene(settled(engine(runtime), 2D * PIXELS, PIXELS, RenderType.RIVER), 2);
+            verify(runtime, atLeastOnce()).rasterPreview(anyInt(), anyInt());
+            verify(runtime, never()).rasterSnapshot(anyInt(), anyInt());
+        }
     }
 
     @Test
-    public void projectedCandidatesUseASeparateDiagnosticPalette() {
-        assertNotEquals(
-                IrisRenderer.hydrologyFeatureColor(HydrologyFeatureType.SURFACE_POOL),
-                IrisRenderer.hydrologyDiagnosticColor(HydrologyCandidateKind.SOURCE)
-        );
-        assertNotEquals(
-                IrisRenderer.hydrologyFeatureColor(HydrologyFeatureType.MOUTH),
-                IrisRenderer.hydrologyDiagnosticColor(HydrologyCandidateKind.OUTLET)
-        );
-        assertNotEquals(
-                IrisRenderer.hydrologyFeatureColor(HydrologyFeatureType.DEEP_POOL),
-                IrisRenderer.hydrologyDiagnosticColor(HydrologyCandidateKind.DEEP_FLUID)
-        );
+    public void fourBlocksPerPixelDrawsResidentPlansWithoutRasters() throws Exception {
+        try (FakeHydrology hydrology = scene()) {
+            HydrologyRuntime runtime = spy(hydrology.runtime);
+
+            assertScene(settled(engine(runtime), 4D * PIXELS, PIXELS, RenderType.RIVER), 4);
+            assertNoRasters(runtime);
+        }
     }
 
     @Test
-    public void acceptedWaterfallTakesPrecedenceOverAnOverlappingPool() {
-        HydrologyFeatureRef pool = feature(1L, HydrologyFeatureType.SURFACE_POOL, false);
-        HydrologyFeatureRef waterfall = feature(2L, HydrologyFeatureType.WATERFALL, false);
-        HydrologyRenderSample sample = new HydrologyRenderSample(0, 0, List.of(pool, waterfall));
+    public void sixteenBlocksPerPixelDrawsResidentPlansWithoutRasters() throws Exception {
+        try (FakeHydrology hydrology = scene()) {
+            HydrologyRuntime runtime = spy(hydrology.runtime);
 
-        assertEquals(IrisRenderer.waterfallColor(), IrisRenderer.hydrologyColor(sample));
+            assertScene(settled(engine(runtime), 16D * PIXELS, PIXELS, RenderType.RIVER), 16);
+            assertNoRasters(runtime);
+        }
     }
 
     @Test
-    public void acceptedSinkholeTakesPrecedenceOverItsReceivingGrotto() {
-        HydrologyFeatureRef grotto = feature(1L, HydrologyFeatureType.INLAND_GROTTO, false);
-        HydrologyFeatureRef sinkhole = feature(2L, HydrologyFeatureType.SINKHOLE, false);
-        HydrologyRenderSample sample = new HydrologyRenderSample(0, 0, List.of(grotto, sinkhole));
-
-        assertEquals(IrisRenderer.hydrologyFeatureColor(HydrologyFeatureType.SINKHOLE),
-                IrisRenderer.hydrologyColor(sample));
+    public void planModeDrawsSeaInletPathsUnderground() throws Exception {
+        int stations = 26;
+        float[] xs = new float[stations];
+        float[] zs = new float[stations];
+        float[] halfWidth = new float[stations];
+        int[] floor = new int[stations];
+        int[] ceiling = new int[stations];
+        for (int station = 0; station < stations; station++) {
+            xs[station] = 100f + station * 8f;
+            zs[station] = 200f;
+            halfWidth[station] = 4f;
+            floor[station] = SEA_LEVEL - 3;
+            ceiling[station] = SEA_LEVEL + 5;
+        }
+        SeaInlet inlet = new SeaInlet(51L, xs, zs, halfWidth, SEA_LEVEL, floor, ceiling, 300, 200, 8);
+        try (FakeHydrology hydrology = new FakeHydrology(() -> false, (x, z) -> 90, SEA_LEVEL, List.of(), List.of(), List.of(),
+                List.of(inlet))) {
+            HydrologyRuntime runtime = spy(hydrology.runtime);
+            BufferedImage plan = settled(engine(runtime), 16D * PIXELS, PIXELS, RenderType.RIVER);
+            assertEquals(IrisRenderer.hydrologyFeatureColor(HydrologyFeatureType.SEA_INLET), plan.getRGB(200 / 16, 200 / 16));
+            assertEquals(NO_RIVER, plan.getRGB(200 / 16, 400 / 16));
+            assertNoRasters(runtime);
+        }
     }
 
     @Test
-    public void riverRenderTypeSamplesOneAcceptedWorldFootprintPerRenderedPixel() {
-        Engine engine = mock(Engine.class);
-        IrisComplex complex = mock(IrisComplex.class);
-        IrisHydrologyRuntime runtime = mock(IrisHydrologyRuntime.class);
-        when(engine.getComplex()).thenReturn(complex);
-        when(complex.getHydrologyRuntime()).thenReturn(runtime);
-        when(runtime.sampleRenderFootprint(12D, -7D, 20D, 1D))
-                .thenReturn(sample(HydrologyFeatureType.SURFACE_POOL, false));
+    public void standingWaterCoversChannelsInBothDrawModes() throws Exception {
+        HydrologySettings settings = FakeHydrology.settings(SEA_LEVEL);
+        Reach through = WaterScene.line(31L, settings.tiers().getFirst(), 4, POND_Z, 60, POND_Z, (x, z) -> 62);
+        Pond pond = WaterScene.pond(32L, 62, POND_X, POND_Z, 10);
+        try (FakeHydrology hydrology = new FakeHydrology(() -> false, (x, z) -> 60, SEA_LEVEL, List.of(through), List.of(pond))) {
+            Engine engine = engine(hydrology.runtime);
 
-        BufferedImage image = new IrisRenderer(engine).renderStudio(
-                12D,
-                -7D,
-                8D,
-                1,
-                RenderType.RIVER,
-                () -> false
-        );
+            for (int step : new int[]{2, 4}) {
+                BufferedImage image = settled(engine, (double) step * PIXELS, PIXELS, RenderType.RIVER);
 
-        assertEquals(new Color(48, 112, 190).getRGB(), image.getRGB(0, 0));
-        verify(runtime).sampleRenderFootprint(12D, -7D, 20D, 1D);
+                assertEquals("pond over the channel at " + step + " b/px", IrisRenderer.hydrologyFeatureColor(HydrologyFeatureType.POND),
+                        image.getRGB(POND_X / step, POND_Z / step));
+                assertEquals("channel outside the pond at " + step + " b/px",
+                        IrisRenderer.hydrologyFeatureColor(HydrologyFeatureType.STREAM), image.getRGB(8 / step, POND_Z / step));
+            }
+        }
     }
 
     @Test
-    public void biomeRefinementCopiesTheBaseAndRetainsTheFullRiverOverlay() {
-        Engine engine = mock(Engine.class);
-        IrisComplex complex = mock(IrisComplex.class);
-        IrisHydrologyRuntime runtime = mock(IrisHydrologyRuntime.class);
+    public void zoomedOutPixelsKeepTheStrongestWaterInTheirFootprint() throws Exception {
+        try (FakeHydrology hydrology = new FakeHydrology(() -> false, (x, z) -> 60, SEA_LEVEL, 63)) {
+            Engine engine = engine(hydrology.runtime);
+
+            BufferedImage image = settled(engine, 32D, 2, RenderType.RIVER);
+
+            assertEquals(IrisRenderer.hydrologyFeatureColor(HydrologyFeatureType.POND), image.getRGB(0, 0));
+            assertEquals(IrisRenderer.hydrologyFeatureColor(HydrologyFeatureType.POND), image.getRGB(1, 1));
+        }
+    }
+
+    @Test
+    public void cavePoolsAppearOnlyWhereHistoryRecordedThem() throws Exception {
+        try (FakeHydrology hydrology = new FakeHydrology(() -> false, (x, z) -> 60, SEA_LEVEL, List.of(), List.of())) {
+            IrisEngine engine = mock(IrisEngine.class);
+            IrisComplex complex = mock(IrisComplex.class);
+            when(engine.getComplex()).thenReturn(complex);
+            when(complex.getHydrologyRuntime()).thenReturn(hydrology.runtime);
+            GenerationHistory history = mock(GenerationHistory.class);
+            GenerationHistoryRuntimeRouter router = mock(GenerationHistoryRuntimeRouter.class);
+            when(engine.getGenerationHistoryRuntimeRouter()).thenReturn(Optional.of(router));
+            when(router.history()).thenReturn(history);
+            when(history.semantics(anyInt(), anyInt())).thenReturn(Optional.empty());
+            when(history.semantics(1, 1)).thenReturn(Optional.of(ChunkGenerationSemantics.builder(1, 1, 1L)
+                    .addRiverFeature("water", HydrologyFeatureType.CAVE_POOL, 7L, 20, 12, 24).build()));
+
+            BufferedImage image = settled(engine, 64D, 32, RenderType.RIVER);
+
+            assertEquals(IrisRenderer.hydrologyFeatureColor(HydrologyFeatureType.CAVE_POOL), image.getRGB(10, 12));
+            assertEquals(NO_RIVER, image.getRGB(20, 20));
+            assertEquals(NO_RIVER, image.getRGB(10, 13));
+        }
+    }
+
+    @Test
+    public void riverMapsBeyondTheMaximumZoomDoNotQueueRasters() {
+        HydrologyRuntime runtime = mock(HydrologyRuntime.class);
+        when(runtime.enabled()).thenReturn(true);
+        long before = ProvisionalSampling.revision();
+
+        BufferedImage image = new IrisRenderer(engine(runtime)).renderStudio(0D, 0D, 2048D, 64, RenderType.RIVER, () -> false);
+
+        assertEquals(NO_RIVER, image.getRGB(0, 0));
+        assertEquals(before, ProvisionalSampling.revision());
+        verify(runtime, never()).planPreview(anyInt(), anyInt(), anyInt(), anyInt());
+        assertNoRasters(runtime);
+    }
+
+    @Test
+    public void disabledHydrologyLeavesTheRiverMapEmpty() {
+        long before = ProvisionalSampling.revision();
+
+        BufferedImage image = new IrisRenderer(engine(FakeHydrology.disabled())).renderStudio(0D, 0D, 32D, 32, RenderType.RIVER,
+                () -> false);
+
+        assertEquals(NO_RIVER, image.getRGB(16, 16));
+        assertEquals(before, ProvisionalSampling.revision());
+    }
+
+    @Test
+    public void biomeRefinementCompositesThePlannedWaterOverTheBase() throws Exception {
+        try (FakeHydrology hydrology = new FakeHydrology(() -> false, (x, z) -> 60, SEA_LEVEL, 63)) {
+            Engine engine = engine(hydrology.runtime);
+            greenBiomes(engine);
+            settled(engine, 64D, 64, RenderType.RIVER);
+            IrisRenderer renderer = new IrisRenderer(engine);
+            BufferedImage preview = renderer.renderStudioBase(0D, 0D, 64D, 64, RenderType.BIOME, () -> false);
+
+            BufferedImage refined = renderer.refineStudioBiome(0D, 0D, 64D, preview, () -> false);
+            BufferedImage complete = renderer.renderStudio(0D, 0D, 64D, 64, RenderType.BIOME, () -> false);
+
+            assertEquals(Color.GREEN.getRGB(), preview.getRGB(16, 16));
+            assertNotEquals(preview.getRGB(16, 16), refined.getRGB(16, 16));
+            assertEquals(Color.GREEN.getRGB(), refined.getRGB(48, 48));
+            assertEquals(complete.getRGB(16, 16), refined.getRGB(16, 16));
+        }
+    }
+
+    @Test
+    public void studioBiomeViewShowsWaterAtItsDefaultZoomWithoutRasters() throws Exception {
+        try (FakeHydrology hydrology = scene()) {
+            HydrologyRuntime runtime = spy(hydrology.runtime);
+            Engine engine = engine(runtime);
+            greenBiomes(engine);
+            IrisRenderer renderer = new IrisRenderer(engine);
+            BufferedImage preview = renderer.renderStudioBase(0D, 0D, 4D * PIXELS, PIXELS, RenderType.BIOME, () -> false);
+            long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(SETTLE_SECONDS);
+            BufferedImage refined;
+            long revision;
+            do {
+                assertTrue("The studio water never settled", System.nanoTime() < deadline);
+                Thread.sleep(10L);
+                revision = ProvisionalSampling.revision();
+                refined = renderer.refineStudioBiome(0D, 0D, 4D * PIXELS, preview, () -> false);
+            } while (ProvisionalSampling.revision() != revision);
+
+            assertNotEquals(Color.GREEN.getRGB(), refined.getRGB(POND_X / 4, POND_Z / 4));
+            assertNotEquals(Color.GREEN.getRGB(), refined.getRGB(LAKE_X / 4, LAKE_Z / 4));
+            assertNotEquals(Color.GREEN.getRGB(), refined.getRGB(STREAM_X / 4, STREAM_Z / 4));
+            assertEquals(Color.GREEN.getRGB(), refined.getRGB(DRY / 4, DRY / 4));
+            assertNoRasters(runtime);
+        }
+    }
+
+    private static FakeHydrology scene() {
+        HydrologySettings settings = FakeHydrology.settings(SEA_LEVEL);
+        Reach brook = WaterScene.line(21L, settings.tiers().getFirst(), 4, STREAM_Z, 60, STREAM_Z, (x, z) -> 62);
+        Pond pond = WaterScene.pond(22L, 62, POND_X, POND_Z, 10);
+        Pond lake = WaterScene.pond(23L, 62, LAKE_X, LAKE_Z, 12);
+        return new FakeHydrology(() -> false, (x, z) -> 60, SEA_LEVEL, List.of(brook), List.of(pond), List.of(lake));
+    }
+
+    private static void assertScene(BufferedImage image, int step) {
+        assertEquals(IrisRenderer.hydrologyFeatureColor(HydrologyFeatureType.POND), image.getRGB(POND_X / step, POND_Z / step));
+        assertEquals(IrisRenderer.hydrologyFeatureColor(HydrologyFeatureType.LAKE), image.getRGB(LAKE_X / step, LAKE_Z / step));
+        assertEquals(IrisRenderer.hydrologyFeatureColor(HydrologyFeatureType.STREAM), image.getRGB(STREAM_X / step, STREAM_Z / step));
+        assertEquals(NO_RIVER, image.getRGB(DRY / step, DRY / step));
+    }
+
+    private static void assertNoRasters(HydrologyRuntime runtime) {
+        verify(runtime, never()).rasterPreview(anyInt(), anyInt());
+        verify(runtime, never()).rasterSnapshot(anyInt(), anyInt());
+        verify(runtime, never()).raster(anyInt(), anyInt());
+    }
+
+    private static void greenBiomes(Engine engine) {
         IrisBiome biome = mock(IrisBiome.class);
         @SuppressWarnings("unchecked")
         ProceduralStream<IrisBiome> base = mock(ProceduralStream.class);
-        when(engine.getComplex()).thenReturn(complex);
-        when(complex.getHydrologyRuntime()).thenReturn(runtime);
-        when(complex.getBaseBiomeStream()).thenReturn(base);
-        when(base.get(12D, -7D)).thenReturn(biome);
+        when(engine.getComplex().getBaseBiomeStream()).thenReturn(base);
+        when(base.get(anyDouble(), anyDouble())).thenReturn(biome);
         when(biome.getColor(engine, RenderType.BIOME)).thenReturn(Color.GREEN);
-        when(runtime.sampleRenderFootprint(12D, -7D, 20D, 1D))
-                .thenReturn(sample(HydrologyFeatureType.SURFACE_POOL, false));
+    }
+
+    private static BufferedImage settled(Engine engine, double span, int pixels, RenderType type) throws InterruptedException {
+        return settled(engine, 0D, span, pixels, type);
+    }
+
+    private static BufferedImage settled(Engine engine, double startZ, double span, int pixels, RenderType type)
+            throws InterruptedException {
         IrisRenderer renderer = new IrisRenderer(engine);
-        BufferedImage preview = renderer.renderStudioBase(12D, -7D, 8D, 1, RenderType.BIOME, () -> false);
-
-        BufferedImage refined = renderer.refineStudioBiome(12D, -7D, 8D, preview, () -> false);
-        BufferedImage complete = renderer.renderStudio(12D, -7D, 8D, 1, RenderType.BIOME, () -> false);
-
-        assertEquals(Color.GREEN.getRGB(), preview.getRGB(0, 0));
-        assertNotEquals(preview.getRGB(0, 0), refined.getRGB(0, 0));
-        assertEquals(complete.getRGB(0, 0), refined.getRGB(0, 0));
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(SETTLE_SECONDS);
+        while (true) {
+            long revision = ProvisionalSampling.revision();
+            BufferedImage image = renderer.renderStudio(0D, startZ, span, pixels, type, () -> false);
+            if (ProvisionalSampling.revision() == revision) {
+                return image;
+            }
+            assertTrue("The water map never settled", System.nanoTime() < deadline);
+            Thread.sleep(10L);
+        }
     }
 
-    @Test
-    public void riverVisionShowsAProjectedCandidateWithoutTreatingItAsAccepted() {
+    private static Engine engine(HydrologyRuntime runtime) {
         Engine engine = mock(Engine.class);
         IrisComplex complex = mock(IrisComplex.class);
-        IrisHydrologyRuntime runtime = mock(IrisHydrologyRuntime.class);
-        HydrologyDiagnosticCandidate candidate = new HydrologyDiagnosticCandidate(
-                44L,
-                HydrologyCandidateKind.SOURCE,
-                HydrologyFeatureType.SURFACE_POOL,
-                new HydrologyPoint(0, 80, 0),
-                HydrologyCandidateRejection.NO_LEGAL_OUTLET, 0
-        );
         when(engine.getComplex()).thenReturn(complex);
         when(complex.getHydrologyRuntime()).thenReturn(runtime);
-        when(runtime.sampleRenderFootprint(0D, 0D, 4D, 4D))
-                .thenReturn(new HydrologyRenderSample(0, 0, List.of()));
-        when(runtime.sampleDiagnosticFootprint(0D, 0D, 4D, 4D))
-                .thenReturn(new HydrologyDiagnosticRenderSample(0, 0, List.of(candidate)));
-
-        BufferedImage image = new IrisRenderer(engine).renderStudio(
-                0D,
-                0D,
-                4D,
-                1,
-                RenderType.RIVER,
-                () -> false
-        );
-
-        assertEquals(
-                IrisRenderer.hydrologyDiagnosticColor(HydrologyCandidateKind.SOURCE),
-                image.getRGB(0, 0)
-        );
-        assertNotEquals(IrisRenderer.headwaterDirectionColor(), image.getRGB(0, 0));
-        verify(runtime).sampleRenderFootprint(0D, 0D, 4D, 4D);
-        verify(runtime).sampleDiagnosticFootprint(0D, 0D, 4D, 4D);
-    }
-
-    @Test
-    public void biomeAtlasCompositesTheSameAcceptedFootprint() {
-        Engine engine = mock(Engine.class);
-        IrisComplex complex = mock(IrisComplex.class);
-        IrisHydrologyRuntime runtime = mock(IrisHydrologyRuntime.class);
-        IrisBiome biome = mock(IrisBiome.class);
-        @SuppressWarnings("unchecked")
-        ProceduralStream<IrisBiome> base = mock(ProceduralStream.class);
-        when(engine.getComplex()).thenReturn(complex);
-        when(complex.getBaseBiomeStream()).thenReturn(base);
-        when(complex.getHydrologyRuntime()).thenReturn(runtime);
-        when(base.get(0D, 0D)).thenReturn(biome);
-        when(biome.getColor(engine, RenderType.BIOME)).thenReturn(Color.GREEN);
-        when(runtime.sampleRenderFootprint(0D, 0D, 4D, 4D))
-                .thenReturn(sample(HydrologyFeatureType.WATERFALL, false));
-
-        BufferedImage image = new IrisRenderer(engine).renderStudio(
-                0D,
-                0D,
-                4D,
-                1,
-                RenderType.BIOME,
-                () -> false
-        );
-
-        assertNotEquals(Color.GREEN.getRGB(), image.getRGB(0, 0));
-        verify(base).get(0D, 0D);
-        verify(runtime).sampleRenderFootprint(0D, 0D, 4D, 4D);
-        verify(runtime, never()).sampleDiagnosticFootprint(anyDouble(), anyDouble(), anyDouble(), anyDouble());
-    }
-
-    private static HydrologyRenderSample sample(HydrologyFeatureType type, boolean source) {
-        return new HydrologyRenderSample(0, 0, List.of(feature(1L, type, source)));
-    }
-
-    private static BufferedImage renderHeadwater(int flowX, int flowZ) {
-        Engine engine = mock(Engine.class);
-        IrisComplex complex = mock(IrisComplex.class);
-        IrisHydrologyRuntime runtime = mock(IrisHydrologyRuntime.class);
-        HydrologyFeatureRef headwater = new HydrologyFeatureRef(
-                71L,
-                HydrologyFeatureType.SURFACE_POOL,
-                10L,
-                20L,
-                3,
-                64,
-                3,
-                flowX,
-                flowZ,
-                true
-        );
-        when(engine.getComplex()).thenReturn(complex);
-        when(complex.getHydrologyRuntime()).thenReturn(runtime);
-        when(runtime.sampleRenderFootprint(anyDouble(), anyDouble(), anyDouble(), anyDouble()))
-                .thenAnswer(invocation -> {
-                    double minimumX = invocation.getArgument(0, Double.class);
-                    double minimumZ = invocation.getArgument(1, Double.class);
-                    double maximumX = invocation.getArgument(2, Double.class);
-                    double maximumZ = invocation.getArgument(3, Double.class);
-                    boolean contains = minimumX <= headwater.x() && maximumX > headwater.x()
-                            && minimumZ <= headwater.z() && maximumZ > headwater.z();
-                    return new HydrologyRenderSample(
-                            (int) StrictMath.floor(minimumX),
-                            (int) StrictMath.floor(minimumZ),
-                            contains ? List.of(headwater) : List.of()
-                    );
-                });
-
-        return new IrisRenderer(engine).renderStudio(
-                0D,
-                0D,
-                7D,
-                7,
-                RenderType.RIVER,
-                () -> false
-        );
-    }
-
-    private static HydrologyFeatureRef feature(long id, HydrologyFeatureType type, boolean source) {
-        return new HydrologyFeatureRef(id, type, 10L, 20L, 0, 64, 0, 1, 0, source);
+        return engine;
     }
 }

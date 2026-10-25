@@ -14,7 +14,7 @@ dependencies {
     // log4j-core Filter interface, so its constructor reference needs the type resolvable.
     compileOnly(libs.log4j.core)
     testImplementation('junit:junit:4.13.2')
-    testImplementation('org.mockito:mockito-core:5.23.0')
+    testImplementation(libs.mockito.core)
     testImplementation(libs.paper.api)
     testImplementation(libs.bstats)
     testImplementation(project(':core'))

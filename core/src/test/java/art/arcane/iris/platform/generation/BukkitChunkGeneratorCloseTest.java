@@ -3,7 +3,6 @@ package art.arcane.iris.platform.generation;
 import art.arcane.iris.generation.runtime.IrisEngine;
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.runtime.IrisWorldManager;
-import art.arcane.iris.generation.hydrology.runtime.IrisHydrologyRuntime;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.io.ReactiveFolder;
 import art.arcane.volmlib.util.scheduling.Looper;
@@ -88,13 +87,11 @@ public class BukkitChunkGeneratorCloseTest {
         CompletableFuture<Void> operation = fixture.queueOperation();
         CompletableFuture<Void> closed = fixture.generator.closeAsync();
 
+        verify(fixture.generator, never()).completeInitialEntry();
         operation.completeExceptionally(assertThrows(IllegalStateException.class, fixture.operation.get()::run));
 
         assertTrue(closed.isCompletedExceptionally());
-        verify(fixture.hydrology).setNeighbourPrefetchEnabled(false);
-        verify(fixture.hydrology).setNeighbourPrefetchEnabled(true);
-        fixture.generator.completeInitialEntry();
-        verify(fixture.hydrology, times(1)).setNeighbourPrefetchEnabled(true);
+        verify(fixture.generator, times(1)).completeInitialEntry();
     }
 
     @Test
@@ -107,7 +104,7 @@ public class BukkitChunkGeneratorCloseTest {
         assertTrue(fixture.generator.closeAsync().isCompletedExceptionally());
 
         assertFalse(fixture.generator.isClosing());
-        verify(fixture.hydrology).setNeighbourPrefetchEnabled(true);
+        verify(fixture.generator, times(1)).completeInitialEntry();
     }
 
     @Test
@@ -232,14 +229,12 @@ public class BukkitChunkGeneratorCloseTest {
         private final BukkitChunkGenerator generator = mock(BukkitChunkGenerator.class, CALLS_REAL_METHODS);
         private final IrisEngine engine = mock(IrisEngine.class);
         private final IrisComplex complex = mock(IrisComplex.class);
-        private final IrisHydrologyRuntime hydrology = mock(IrisHydrologyRuntime.class);
         private final AtomicReference<Runnable> operation = new AtomicReference<>();
         private final AtomicReference<CompletableFuture<Void>> watcherHotload = new AtomicReference<>();
         private final ConcurrentLinkedQueue<CompletableFuture<Void>> operations = new ConcurrentLinkedQueue<>();
 
         private CloseFixture() throws Exception {
             when(engine.getComplex()).thenReturn(complex);
-            when(complex.getHydrologyRuntime()).thenReturn(hydrology);
             setField(generator, "closeFuture", new AtomicReference<CompletableFuture<Void>>());
             setField(generator, "watcherHotload", watcherHotload);
             setField(generator, "startupReady", CompletableFuture.completedFuture(null));

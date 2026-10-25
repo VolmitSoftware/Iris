@@ -109,10 +109,10 @@ public final class DimensionTerrainContext implements DataProvider {
         double fluidHeight = engine.getDimension().getFluidHeight();
         ProceduralStream<Double> fluidHeightStream = natural
                 ? ProceduralStream.ofDouble((x, z) -> fluidHeight)
-                : complex.getRiverWaterSurfaceStream();
+                : complex.getWaterHeadStream();
         FluidBlockSampler fluidBlockSampler = natural
                 ? (x, z) -> complex.getFluidStream().get(x, z)
-                : complex::resolveSurfaceFluid;
+                : complex::resolveSeaFluid;
         SelfFallback selfFallback = natural
                 ? null
                 : new SelfFallback(

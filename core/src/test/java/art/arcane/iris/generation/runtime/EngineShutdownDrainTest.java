@@ -770,6 +770,35 @@ public class EngineShutdownDrainTest {
     }
 
     @Test
+    public void complexHotloadClosesThePreviousPlanStoreBeforeTheReplacementOpensOne() throws Exception {
+        ShutdownFixture fixture = new ShutdownFixture();
+        IrisComplex replacement = mock(IrisComplex.class);
+        fixture.prepareComplexHotload(replacement);
+
+        new EngineHotloader(fixture.engine).hotloadComplex();
+
+        InOrder order = inOrder(fixture.complex, replacement);
+        order.verify(fixture.complex).close();
+        order.verify(replacement).openHydrologyPlanStore();
+        verify(fixture.complex, never()).openHydrologyPlanStore();
+    }
+
+    @Test
+    public void publishedRuntimeOpensItsPlanStoreOnlyAfterThePreviousRuntimeCloses() throws Exception {
+        ShutdownFixture fixture = new ShutdownFixture();
+        GenerationRuntime nextGeneration = generation(target(), fixture.mantle);
+        EngineRuntime next = new EngineRuntime(nextGeneration, new ChangingEffects(fixture.engine), mock(EngineWorldManager.class));
+        IrisComplex nextComplex = nextGeneration.complex();
+
+        new EngineRuntimeBuilder(fixture.engine).publishRuntime(next, fixture.runtime);
+
+        InOrder order = inOrder(fixture.complex, nextComplex);
+        order.verify(fixture.complex).close();
+        order.verify(nextComplex).openHydrologyPlanStore();
+        assertSame(next, fixture.engine.runtime);
+    }
+
+    @Test
     public void failedComplexActivationKeepsPublishedReplacementOwnedForShutdown() throws Exception {
         ShutdownFixture fixture = new ShutdownFixture();
         IrisComplex replacement = mock(IrisComplex.class);

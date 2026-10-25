@@ -61,14 +61,15 @@ public final class CarveOrphanSweep {
             int[] surfaceHeights,
             int maxSurfaceBreakDepth,
             int worldCeilingY,
-            long[] surfaceFluidBoundaries
+            long[] surfaceFluidBoundaries,
+            int[] columnCeilings
     ) {
         if (chunk == null) {
             return 0;
         }
 
         return sweep(surfaceHeights, maxSurfaceBreakDepth, 0, worldCeilingY,
-                new MantleCarveAccess(chunk, surfaceFluidBoundaries));
+                new MantleCarveAccess(chunk, surfaceFluidBoundaries, columnCeilings));
     }
 
     public static int sweep(int[] surfaceHeights, int maxSurfaceBreakDepth, int worldFloorY, int worldCeilingY, CarveAccess access) {
@@ -229,12 +230,14 @@ public final class CarveOrphanSweep {
     private static final class MantleCarveAccess implements CarveAccess {
         private final MantleChunk<Matter> chunk;
         private final long[] surfaceFluidBoundaries;
+        private final int[] columnCeilings;
         private MatterSlice<MatterCavern> cachedSlice;
         private int cachedSectionIndex = -1;
 
-        private MantleCarveAccess(MantleChunk<Matter> chunk, long[] surfaceFluidBoundaries) {
+        private MantleCarveAccess(MantleChunk<Matter> chunk, long[] surfaceFluidBoundaries, int[] columnCeilings) {
             this.chunk = chunk;
             this.surfaceFluidBoundaries = surfaceFluidBoundaries;
+            this.columnCeilings = columnCeilings;
         }
 
         @Override
@@ -258,7 +261,8 @@ public final class CarveOrphanSweep {
         @Override
         public boolean isProtected(int localX, int y, int localZ) {
             int columnIndex = PowerOfTwoCoordinates.packLocal16(localX, localZ);
-            return SurfaceFluidBoundaryPlan.protects(surfaceFluidBoundaries, columnIndex, y);
+            return columnCeilings != null && y > columnCeilings[columnIndex]
+                    || SurfaceFluidBoundaryPlan.protects(surfaceFluidBoundaries, columnIndex, y);
         }
 
         @Override

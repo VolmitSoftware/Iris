@@ -1,31 +1,27 @@
 package art.arcane.iris.generation.stage;
 
-import art.arcane.iris.pack.loading.IrisData;
-import art.arcane.iris.generation.runtime.IrisComplex;
-import art.arcane.iris.generation.runtime.Engine;
-import art.arcane.iris.generation.runtime.SeedManager;
-import art.arcane.iris.generation.image.IrisImageMapRuntime;
-import art.arcane.iris.generation.hydrology.HydrologyColumnLayer;
-import art.arcane.iris.generation.hydrology.HydrologyColumnSample;
-import art.arcane.iris.generation.hydrology.HydrologyFeatureRef;
-import art.arcane.iris.generation.hydrology.HydrologyFeatureType;
-import art.arcane.iris.generation.decoration.IrisDecorationStep;
 import art.arcane.iris.generation.biome.IrisBiome;
-import art.arcane.iris.generation.terrain.IrisDimension;
-import art.arcane.iris.generation.hydrology.IrisHydrology;
-import art.arcane.iris.generation.terrain.IrisRegion;
-import art.arcane.iris.generation.terrain.IrisMaterialPalette;
-import art.arcane.iris.generation.hydrology.IrisRiverMaterialConfig;
-import art.arcane.iris.generation.terrain.Terrain3DColumn;
-import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
-import art.arcane.iris.testsupport.PlatformBinding;
 import art.arcane.iris.generation.context.ChunkContext;
 import art.arcane.iris.generation.context.ChunkedDataCache;
+import art.arcane.iris.generation.decoration.IrisDecorationStep;
+import art.arcane.iris.generation.hydrology.config.IrisHydrologyMaterials;
+import art.arcane.iris.generation.hydrology.raster.WaterRole;
+import art.arcane.iris.generation.image.IrisImageMapRuntime;
+import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.runtime.IrisComplex;
+import art.arcane.iris.generation.runtime.SeedManager;
+import art.arcane.iris.generation.terrain.IrisDimension;
+import art.arcane.iris.generation.terrain.IrisMaterialPalette;
+import art.arcane.iris.generation.terrain.IrisRegion;
+import art.arcane.iris.generation.terrain.Terrain3DColumn;
+import art.arcane.iris.pack.loading.IrisData;
+import art.arcane.iris.testsupport.PlatformBinding;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
+import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.hunk.Hunk;
+import art.arcane.volmlib.util.math.RNG;
 import art.arcane.volmlib.util.stream.ProceduralStream;
 import art.arcane.volmlib.util.stream.interpolation.Interpolated;
-import art.arcane.volmlib.util.collection.KList;
-import art.arcane.volmlib.util.math.RNG;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -34,23 +30,27 @@ import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class IrisTerrainNormalActuatorHydrologyTest {
+    private static final List<WaterRole> WET = List.of(WaterRole.CHANNEL, WaterRole.POND, WaterRole.MOUTH, WaterRole.CASCADE,
+            WaterRole.WATERFALL);
+    private static final int GROUND = 60;
+    private static final int HEAD = 64;
+
     @Rule
     public final PlatformBinding platform = PlatformBinding.mockPlatform();
-
 
     @Test
     public void hydrologyOwnedFluidBypassesBiomeSeaLayers() {
@@ -66,70 +66,19 @@ public class IrisTerrainNormalActuatorHydrologyTest {
 
     @Test
     public void frozenTerrainPublishesSourceWaterBeforeStandardTopLayerFreezing() {
-        NativeBlockState water = mock(NativeBlockState.class);
-        NativeBlockState ice = mock(NativeBlockState.class);
-        when(water.key()).thenReturn("minecraft:water");
+        NativeBlockState water = state("minecraft:water");
+        NativeBlockState ice = state("minecraft:ice");
         when(water.isWater()).thenReturn(true);
-        when(ice.key()).thenReturn("minecraft:ice");
         KList<NativeBlockState> frozenSeaLayers = new KList<>();
         frozenSeaLayers.add(ice);
-        HydrologyFeatureRef feature = new HydrologyFeatureRef(
-                11L,
-                HydrologyFeatureType.SURFACE_POOL,
-                12L,
-                13L,
-                4,
-                70,
-                6,
-                1,
-                0,
-                true
-        );
-        HydrologyColumnLayer acceptedLayer = new HydrologyColumnLayer(
-                feature,
-                67,
-                70,
-                70,
-                true,
-                false,
-                false,
-                true,
-                false,
-                false,
-                true,
-                true,
-                false,
-                "default",
-                "frozen_river",
-                "frozen_mouth",
-                "frozen_shore",
-                "frozen_dry",
-                "frozen_cave"
-        );
-        HydrologyColumnSample acceptedColumn = new HydrologyColumnSample(
-                4,
-                6,
-                76,
-                63,
-                false,
-                "frozen_parent",
-                List.of(acceptedLayer)
-        );
-        boolean hydrologyOwned = acceptedColumn.primarySurfaceFluidLayer().isPresent();
+        boolean hydrologyOwned = WaterRole.POND.wet();
         ArrayList<String> stages = new ArrayList<>();
 
-        NativeBlockState state = HydrologyFluidLayerSelector.select(
-                frozenSeaLayers,
-                0,
-                water,
-                hydrologyOwned
-        );
+        NativeBlockState state = HydrologyFluidLayerSelector.select(frozenSeaLayers, 0, water, hydrologyOwned);
         stages.add("hydrology");
         assertTrue(hydrologyOwned);
         assertSame(water, state);
-        assertEquals("minecraft:water", state.key());
         assertTrue(state.isWater());
-        assertFalse(acceptedLayer.fallingFluid());
 
         for (IrisDecorationStep step : IrisDecorationStep.values()) {
             if (step == IrisDecorationStep.TOP_LAYER_MODIFICATION) {
@@ -141,118 +90,200 @@ public class IrisTerrainNormalActuatorHydrologyTest {
 
         assertEquals(List.of("hydrology", "top_layer_modification"), stages);
         assertSame(ice, state);
-        assertEquals("minecraft:ice", state.key());
         assertFalse(state.isWater());
     }
 
     @Test
-    public void bedMaterialPaintsTheChannelBedToItsDepth() {
-        Fixture fixture = new Fixture();
-        IrisRiverMaterialConfig bedMaterial = fixture.enabled(2);
-        IrisRiverMaterialConfig shoreMaterial = fixture.disabled();
-        IrisRiverMaterialConfig bankMaterial = fixture.disabled();
-        HydrologyColumnLayer channel = channelLayer();
+    public void wetColumnsFillFromAboveTheGroundToTheHeadWithTheirOwnFluid() {
+        for (WaterRole role : WET) {
+            Painter painter = new Painter(role, HEAD);
 
-        IrisRiverMaterialConfig role = IrisTerrainNormalActuator.hydrologyRoleMaterial(
-                channel, bedMaterial, shoreMaterial, bankMaterial);
+            Hunk<NativeBlockState> output = painter.paint();
 
-        assertSame(bedMaterial, role);
-        assertSame(fixture.painted, fixture.paint(role, 0));
-        assertSame(fixture.painted, fixture.paint(role, 1));
-        assertSame(fixture.biomeLayer, fixture.paint(role, 2));
-        assertNull(IrisTerrainNormalActuator.hydrologyRoleMaterial(
-                apronLayer(), bedMaterial, shoreMaterial, bankMaterial));
-        assertNull(IrisTerrainNormalActuator.hydrologyRoleMaterial(
-                null, bedMaterial, shoreMaterial, bankMaterial));
-    }
-
-    @Test
-    public void shoreMaterialPaintsOnlyShoreColumns() {
-        Fixture fixture = new Fixture();
-        IrisRiverMaterialConfig bedMaterial = fixture.disabled();
-        IrisRiverMaterialConfig shoreMaterial = fixture.enabled(1);
-        IrisRiverMaterialConfig bankMaterial = fixture.disabled();
-
-        assertSame(shoreMaterial, IrisTerrainNormalActuator.hydrologyRoleMaterial(
-                shoreLayer(), bedMaterial, shoreMaterial, bankMaterial));
-        assertNull(IrisTerrainNormalActuator.hydrologyRoleMaterial(
-                channelLayer(), bedMaterial, shoreMaterial, bankMaterial));
-        assertNull(IrisTerrainNormalActuator.hydrologyRoleMaterial(
-                bankLayer(), bedMaterial, shoreMaterial, bankMaterial));
-        assertSame(fixture.painted, fixture.paint(shoreMaterial, 0));
-        assertSame(fixture.biomeLayer, fixture.paint(shoreMaterial, 1));
-    }
-
-    @Test
-    public void bankMaterialPaintsOnlyBankColumns() {
-        Fixture fixture = new Fixture();
-        IrisRiverMaterialConfig bedMaterial = fixture.disabled();
-        IrisRiverMaterialConfig shoreMaterial = fixture.disabled();
-        IrisRiverMaterialConfig bankMaterial = fixture.enabled(3);
-
-        assertSame(bankMaterial, IrisTerrainNormalActuator.hydrologyRoleMaterial(
-                bankLayer(), bedMaterial, shoreMaterial, bankMaterial));
-        assertNull(IrisTerrainNormalActuator.hydrologyRoleMaterial(
-                shoreLayer(), bedMaterial, shoreMaterial, bankMaterial));
-        assertNull(IrisTerrainNormalActuator.hydrologyRoleMaterial(
-                channelLayer(), bedMaterial, shoreMaterial, bankMaterial));
-        assertSame(fixture.painted, fixture.paint(bankMaterial, 2));
-        assertSame(fixture.biomeLayer, fixture.paint(bankMaterial, 3));
-    }
-
-    @Test
-    public void disabledMaterialsKeepTheBiomeLayers() {
-        Fixture fixture = new Fixture();
-        IrisRiverMaterialConfig bedMaterial = fixture.disabled();
-        IrisRiverMaterialConfig shoreMaterial = fixture.disabled();
-        IrisRiverMaterialConfig bankMaterial = fixture.disabled();
-
-        for (HydrologyColumnLayer layer : List.of(channelLayer(), shoreLayer(), bankLayer())) {
-            IrisRiverMaterialConfig disabledRole = IrisTerrainNormalActuator.hydrologyRoleMaterial(
-                    layer, bedMaterial, shoreMaterial, bankMaterial);
-            IrisRiverMaterialConfig absentRole = IrisTerrainNormalActuator.hydrologyRoleMaterial(
-                    layer, null, null, null);
-            assertNull(disabledRole);
-            assertNull(absentRole);
-            for (int depth = 0; depth < 4; depth++) {
-                assertSame(fixture.biomeLayer, fixture.paint(disabledRole, depth));
-                assertSame(fixture.biomeLayer, fixture.paint(absentRole, depth));
+            assertSame(role.name(), painter.grass, output.get(0, GROUND, 0));
+            for (int y = GROUND + 1; y <= HEAD; y++) {
+                assertSame(role + " y " + y, painter.channelFluid, output.get(0, y, 0));
             }
+            assertNull(role.name(), output.get(0, HEAD + 1, 0));
+            verify(painter.biome, never()).generateSeaLayers(anyDouble(), anyDouble(), any(RNG.class), anyInt(), any());
+        }
+    }
+
+    @Test
+    public void openInletSlotColumnsKeepTheSeaFloorAndTheSeaLayers() {
+        Painter ocean = new Painter(WaterRole.INLET, HEAD);
+        ocean.materials(true);
+        when(ocean.complex.naturalTrueHeight(11, -4)).thenReturn(GROUND);
+
+        Hunk<NativeBlockState> sea = ocean.paint();
+
+        assertSame("the sea floor keeps the biome's own top", ocean.grass, sea.get(0, GROUND, 0));
+        assertSame(ocean.dirt, sea.get(0, GROUND - 1, 0));
+        assertSame("the slot takes the sea layers", ocean.ice, sea.get(0, HEAD, 0));
+        for (int y = GROUND + 1; y < HEAD; y++) {
+            assertSame("y " + y, ocean.channelFluid, sea.get(0, y, 0));
+        }
+        verify(ocean.complex, never()).resolveWaterMaterials(anyInt(), anyInt());
+
+        Painter cliff = new Painter(WaterRole.INLET, HEAD);
+        when(cliff.complex.naturalTrueHeight(11, -4)).thenReturn(GROUND + 20);
+        assertSame("a slot cut through the cliff shows the strata below the old surface", cliff.dirt, cliff.paint().get(0, GROUND, 0));
+    }
+
+    @Test
+    public void openInletSlotsKeepLiquidWaterUnderOnlyTheTopSeaLayer() {
+        Painter slot = new Painter(WaterRole.INLET, HEAD);
+        when(slot.complex.naturalTrueHeight(11, -4)).thenReturn(GROUND);
+        slot.thickSeaLayers();
+
+        Hunk<NativeBlockState> frozen = slot.paint();
+
+        assertSame("the frozen sea still caps the slot", slot.ice, frozen.get(0, HEAD, 0));
+        for (int y = GROUND + 1; y < HEAD; y++) {
+            assertSame("the slot stays open water under its ice at y " + y, slot.channelFluid, frozen.get(0, y, 0));
         }
 
-        verify(fixture.palette, never()).get(any(RNG.class), anyDouble(), anyDouble(), anyDouble(), any());
+        Painter sea = new Painter(WaterRole.NONE, HEAD);
+        sea.thickSeaLayers();
+        Hunk<NativeBlockState> ocean = sea.paint();
+        for (int y = GROUND + 1; y <= HEAD; y++) {
+            assertSame("the open sea keeps its own thick ice at y " + y, sea.ice, ocean.get(0, y, 0));
+        }
     }
 
     @Test
-    public void deepBankAndShoreCutsStillReceiveTheirSurfaceMaterial() {
-        for (HydrologyColumnLayer layer : List.of(shoreLayer(), bankLayer())) {
-            Engine engine = mock(Engine.class);
-            IrisComplex complex = mock(IrisComplex.class);
-            IrisData data = mock(IrisData.class);
-            IrisBiome biome = mock(IrisBiome.class);
-            IrisRegion region = new IrisRegion();
-            ChunkContext context = mock(ChunkContext.class);
-            NativeBlockState rock = mock(NativeBlockState.class);
-            NativeBlockState grass = mock(NativeBlockState.class);
-            NativeBlockState painted = mock(NativeBlockState.class);
-            when(rock.key()).thenReturn("minecraft:stone");
-            when(grass.key()).thenReturn("minecraft:grass_block");
-            when(painted.key()).thenReturn("minecraft:dirt");
-            IrisMaterialPalette palette = mock(IrisMaterialPalette.class);
-            when(palette.get(any(RNG.class), anyDouble(), anyDouble(), anyDouble(), eq(data))).thenReturn(painted);
-            IrisRiverMaterialConfig material = new IrisRiverMaterialConfig().setEnabled(true).setDepth(2).setPalette(palette);
-            IrisHydrology hydrology = new IrisHydrology();
-            hydrology.getRivers().getSurface().getBanks().setShoreMaterial(material).setBankMaterial(material);
-            IrisDimension dimension = new IrisDimension().setHydrology(hydrology).setBedrock(false).setHideOresForHiddenOre(true);
+    public void dryColumnsBelowTheSeaKeepTheSeaFillAndItsLayers() {
+        for (WaterRole role : List.of(WaterRole.NONE, WaterRole.BANK, WaterRole.SHORE)) {
+            Painter painter = new Painter(role, HEAD);
+
+            Hunk<NativeBlockState> output = painter.paint();
+
+            assertSame(role.name(), painter.ice, output.get(0, HEAD, 0));
+            for (int y = GROUND + 1; y < HEAD; y++) {
+                assertSame(role + " y " + y, painter.sea, output.get(0, y, 0));
+            }
+            assertNull(role.name(), output.get(0, HEAD + 1, 0));
+            verify(painter.complex, never()).resolveWaterFluid(anyInt(), anyInt());
+        }
+    }
+
+    @Test
+    public void bedShoreAndBankPalettesPaintTheirRoleLayers() {
+        for (WaterRole role : WaterRole.values()) {
+            Painter painter = new Painter(role, role.wet() ? HEAD : 40);
+            IrisHydrologyMaterials materials = painter.materials(true);
+
+            Hunk<NativeBlockState> output = painter.paint();
+
+            NativeBlockState expectedTop = switch (role) {
+                case NONE -> painter.grass;
+                case CHANNEL, POND, MOUTH, CASCADE, WATERFALL -> painter.bed;
+                case INLET -> painter.grass;
+                case SHORE, POND_SHORE, DAM -> painter.shore;
+                case BANK -> painter.bank;
+            };
+            NativeBlockState expectedSecond = role == WaterRole.SHORE || role == WaterRole.POND_SHORE || role == WaterRole.DAM
+                    ? painter.shore : painter.dirt;
+            assertSame(role.name(), expectedTop, output.get(0, GROUND, 0));
+            assertSame(role.name(), expectedSecond, output.get(0, GROUND - 1, 0));
+            assertSame(role.name(), painter.rock, output.get(0, GROUND - 2, 0));
+            if (role == WaterRole.NONE || role == WaterRole.INLET) {
+                verify(painter.complex, never()).resolveWaterMaterials(anyInt(), anyInt());
+            }
+            materials.setBank(null).setShore(null).setBed(null);
+            output = painter.paint();
+            assertSame(role.name(), painter.grass, output.get(0, GROUND, 0));
+            assertSame(role.name(), painter.dirt, output.get(0, GROUND - 1, 0));
+        }
+    }
+
+    @Test
+    public void sandSurvivesUnlessTheMaterialsKeepFallingBlocksAwayFromTheWater() {
+        for (WaterRole role : List.of(WaterRole.CHANNEL, WaterRole.POND, WaterRole.SHORE, WaterRole.BANK)) {
+            Painter painter = new Painter(role, role.wet() ? HEAD : 40);
+            NativeBlockState sand = state("minecraft:sand");
+            painter.layers(sand, sand);
+            IrisHydrologyMaterials materials = painter.materials(false);
+            assertTrue(materials.isAllowGravityBlocks());
+
+            Hunk<NativeBlockState> output = painter.paint();
+            assertSame(role.name(), sand, output.get(0, GROUND, 0));
+            assertSame(role.name(), sand, output.get(0, GROUND - 1, 0));
+
+            materials.setAllowGravityBlocks(false);
+            output = painter.paint();
+            assertSame(role.name(), painter.rock, output.get(0, GROUND, 0));
+            assertSame(role.name(), painter.rock, output.get(0, GROUND - 1, 0));
+        }
+        Painter natural = new Painter(WaterRole.NONE, 40);
+        NativeBlockState sand = state("minecraft:sand");
+        natural.layers(sand, sand);
+        natural.materials(false).setAllowGravityBlocks(false);
+        assertSame(sand, natural.paint().get(0, GROUND, 0));
+    }
+
+    @Test
+    public void everySpanOfATerrain3DColumnTakesItsRoleMaterial() {
+        for (WaterRole role : List.of(WaterRole.SHORE, WaterRole.BANK)) {
+            Painter painter = new Painter(role, 40);
+            IrisHydrologyMaterials materials = painter.materials(true);
+            painter.carved();
+            NativeBlockState painted = role == WaterRole.SHORE ? painter.shore : painter.bank;
+            NativeBlockState second = role == WaterRole.SHORE ? painter.shore : painter.dirt;
+
+            Hunk<NativeBlockState> output = painter.paint();
+
+            assertSame(role.name(), painted, output.get(0, 60, 0));
+            assertSame(role.name(), second, output.get(0, 59, 0));
+            assertSame(role.name(), painter.rock, output.get(0, 58, 0));
+            assertNotSame(role.name(), painted, output.get(0, 45, 0));
+            assertNotSame(role.name(), painter.rock, output.get(0, 45, 0));
+            assertSame(role.name(), painted, output.get(0, 40, 0));
+            assertSame(role.name(), second, output.get(0, 39, 0));
+            assertSame(role.name(), painter.rock, output.get(0, 38, 0));
+
+            materials.setShore(null).setBank(null);
+            output = painter.paint();
+            assertSame(role.name(), painter.grass, output.get(0, 60, 0));
+            assertSame(role.name(), painter.dirt, output.get(0, 40, 0));
+            assertSame(role.name(), painter.rock, output.get(0, 38, 0));
+        }
+    }
+
+    private static NativeBlockState state(String key) {
+        NativeBlockState state = mock(NativeBlockState.class);
+        when(state.key()).thenReturn(key);
+        return state;
+    }
+
+    private static final class Painter {
+        private final Engine engine = mock(Engine.class);
+        private final IrisComplex complex = mock(IrisComplex.class);
+        private final IrisData data = mock(IrisData.class);
+        private final IrisBiome biome = mock(IrisBiome.class);
+        private final IrisRegion region = new IrisRegion();
+        private final ChunkContext context = mock(ChunkContext.class);
+        private final IrisDimension dimension = new IrisDimension().setBedrock(false).setHideOresForHiddenOre(true);
+        private final NativeBlockState rock = state("minecraft:stone");
+        private final NativeBlockState grass = state("minecraft:grass_block");
+        private final NativeBlockState dirt = state("minecraft:dirt");
+        private final NativeBlockState sea = state("minecraft:water");
+        private final NativeBlockState ice = state("minecraft:ice");
+        private final NativeBlockState channelFluid = state("minecraft:water[level=0]");
+        private final NativeBlockState bed = state("minecraft:gravel_bed");
+        private final NativeBlockState shore = state("minecraft:clay");
+        private final NativeBlockState bank = state("minecraft:coarse_dirt");
+
+        private Painter(WaterRole role, int head) {
             when(engine.getDimension()).thenReturn(dimension);
             when(engine.getComplex()).thenReturn(complex);
             when(engine.getData()).thenReturn(data);
             when(engine.getSeedManager()).thenReturn(mock(SeedManager.class));
             when(complex.getImageMapRuntime()).thenReturn(mock(IrisImageMapRuntime.class));
-            when(complex.getRiverWaterSurfaceStream()).thenReturn(ProceduralStream.ofDouble((x, z) -> 0D));
-            when(complex.sampleHydrologyColumn(11, -4)).thenReturn(new HydrologyColumnSample(
-                    11, -4, 80, 0, false, "parent", List.of(layer)));
-            when(context.getRoundedHeight(0, 0)).thenReturn(60);
+            when(complex.getWaterHeadStream()).thenReturn(ProceduralStream.ofDouble((x, z) -> (double) head));
+            when(complex.getWaterRoleStream()).thenReturn(ProceduralStream.of((x, z) -> role, Interpolated.of(value -> 0D, value -> role)));
+            when(complex.resolveWaterFluid(11, -4)).thenReturn(channelFluid);
+            when(context.getRoundedHeight(0, 0)).thenReturn(GROUND);
             when(context.getBiome()).thenReturn(new ChunkedDataCache<>(
                     ProceduralStream.of((x, z) -> biome, Interpolated.of(value -> 0D, value -> biome)), 11, -4, false));
             when(context.getRegion()).thenReturn(new ChunkedDataCache<>(
@@ -260,20 +291,23 @@ public class IrisTerrainNormalActuatorHydrologyTest {
             when(context.getRock()).thenReturn(new ChunkedDataCache<>(
                     ProceduralStream.of((x, z) -> rock, Interpolated.of(value -> 0D, value -> rock)), 11, -4, false));
             when(context.getFluid()).thenReturn(new ChunkedDataCache<>(
-                    ProceduralStream.of((x, z) -> null, Interpolated.of(value -> 0D, value -> null)), 11, -4, false));
-            when(biome.generateLayers(eq(dimension), anyDouble(), anyDouble(), any(RNG.class),
-                    anyInt(), anyInt(), eq(data), eq(complex))).thenReturn(new KList<>(List.of(grass)));
-            Hunk<NativeBlockState> output = Hunk.newArrayHunk(1, 64, 1);
+                    ProceduralStream.of((x, z) -> sea, Interpolated.of(value -> 0D, value -> sea)), 11, -4, false));
+            when(biome.generateSeaLayers(anyDouble(), anyDouble(), any(RNG.class), anyInt(), eq(data)))
+                    .thenAnswer(invocation -> new KList<>(List.of(ice)));
+            layers(grass, dirt);
+        }
 
-            new IrisTerrainNormalActuator(engine).paint(11, -4, output, context);
+        private void thickSeaLayers() {
+            when(biome.generateSeaLayers(anyDouble(), anyDouble(), any(RNG.class), anyInt(), eq(data))).thenAnswer(invocation -> {
+                KList<NativeBlockState> layers = new KList<>();
+                for (int layer = 0; layer < (int) invocation.getArgument(3); layer++) {
+                    layers.add(ice);
+                }
+                return layers;
+            });
+        }
 
-            assertSame(painted, output.get(0, 60, 0));
-            assertSame(painted, output.get(0, 59, 0));
-            assertSame(rock, output.get(0, 58, 0));
-            material.setEnabled(false);
-            new IrisTerrainNormalActuator(engine).paint(11, -4, output, context);
-            assertSame(grass, output.get(0, 60, 0));
-
+        private void carved() {
             Terrain3DColumn carved = mock(Terrain3DColumn.class);
             when(carved.spanCount()).thenReturn(2);
             when(carved.floor(1)).thenReturn(60);
@@ -283,107 +317,36 @@ public class IrisTerrainNormalActuatorHydrologyTest {
             Terrain3DColumn natural = mock(Terrain3DColumn.class);
             when(natural.surfaceY(60)).thenReturn(60);
             when(natural.surfaceY(40)).thenReturn(44);
-            when(complex.terrainColumn(eq(11), eq(-4), any(HydrologyColumnSample.class))).thenReturn(carved);
+            when(complex.terrainColumn(11, -4)).thenReturn(carved);
             when(complex.naturalTerrainColumn(11, -4)).thenReturn(natural);
             when(biome.generateCeilingLayers(eq(dimension), anyDouble(), anyDouble(), any(RNG.class),
                     anyInt(), anyInt(), eq(data), eq(complex))).thenReturn(new KList<>());
+        }
+
+        private void layers(NativeBlockState top, NativeBlockState second) {
+            when(biome.generateLayers(eq(dimension), anyDouble(), anyDouble(), any(RNG.class),
+                    anyInt(), anyInt(), eq(data), eq(complex))).thenAnswer(invocation -> new KList<>(List.of(top, second)));
+        }
+
+        private IrisHydrologyMaterials materials(boolean palettes) {
+            IrisHydrologyMaterials materials = new IrisHydrologyMaterials().setShoreDepth(2);
+            if (palettes) {
+                materials.setBed(palette(bed)).setShore(palette(shore)).setBank(palette(bank));
+            }
+            when(complex.resolveWaterMaterials(11, -4)).thenReturn(materials);
+            return materials;
+        }
+
+        private IrisMaterialPalette palette(NativeBlockState block) {
+            IrisMaterialPalette palette = mock(IrisMaterialPalette.class);
+            when(palette.get(any(RNG.class), anyDouble(), anyDouble(), anyDouble(), eq(data))).thenReturn(block);
+            return palette;
+        }
+
+        private Hunk<NativeBlockState> paint() {
+            Hunk<NativeBlockState> output = Hunk.newArrayHunk(1, 96, 1);
             new IrisTerrainNormalActuator(engine).paint(11, -4, output, context);
-            assertSame(grass, output.get(0, 60, 0));
-            assertSame(grass, output.get(0, 40, 0));
-            material.setEnabled(true);
-            new IrisTerrainNormalActuator(engine).paint(11, -4, output, context);
-            assertSame(painted, output.get(0, 60, 0));
-            assertSame(painted, output.get(0, 40, 0));
-            assertSame(rock, output.get(0, 38, 0));
-        }
-    }
-
-    private static HydrologyColumnLayer channelLayer() {
-        return surfaceLayer(true, false);
-    }
-
-    private static HydrologyColumnLayer shoreLayer() {
-        return surfaceLayer(false, true);
-    }
-
-    private static HydrologyColumnLayer bankLayer() {
-        return surfaceLayer(false, false);
-    }
-
-    private static HydrologyColumnLayer surfaceLayer(boolean channel, boolean shore) {
-        return new HydrologyColumnLayer(
-                surfaceFeature(),
-                60,
-                63,
-                63,
-                channel,
-                shore,
-                !channel,
-                channel,
-                false,
-                false,
-                true,
-                channel,
-                false,
-                "default",
-                "river",
-                "mouth",
-                "shore",
-                "bank",
-                "cave"
-        );
-    }
-
-    private static HydrologyColumnLayer apronLayer() {
-        return new HydrologyColumnLayer(
-                surfaceFeature(),
-                63,
-                63,
-                63,
-                true,
-                false,
-                false,
-                true,
-                false,
-                false,
-                false,
-                false,
-                true,
-                "default",
-                "river",
-                "mouth",
-                "shore",
-                "bank",
-                "cave"
-        );
-    }
-
-    private static HydrologyFeatureRef surfaceFeature() {
-        return new HydrologyFeatureRef(21L, HydrologyFeatureType.RIFFLE, 22L, 23L, 11, 63, -4, 1, 0, false);
-    }
-
-    private static final class Fixture {
-        private final NativeBlockState biomeLayer = mock(NativeBlockState.class);
-        private final NativeBlockState painted = mock(NativeBlockState.class);
-        private final IrisMaterialPalette palette = mock(IrisMaterialPalette.class);
-        private final IrisData data = mock(IrisData.class);
-        private final RNG rng = new RNG(7L);
-
-        private Fixture() {
-            when(palette.get(same(rng), eq(11.0), eq(63.0), eq(-4.0), same(data))).thenReturn(painted);
-        }
-
-        private IrisRiverMaterialConfig enabled(int depth) {
-            return new IrisRiverMaterialConfig().setEnabled(true).setPalette(palette).setDepth(depth);
-        }
-
-        private IrisRiverMaterialConfig disabled() {
-            return new IrisRiverMaterialConfig().setPalette(palette).setDepth(4);
-        }
-
-        private NativeBlockState paint(IrisRiverMaterialConfig material, int depth) {
-            return IrisTerrainNormalActuator.paintHydrologyMaterial(
-                    biomeLayer, material, depth, rng, 11, 63, -4, data);
+            return output;
         }
     }
 }

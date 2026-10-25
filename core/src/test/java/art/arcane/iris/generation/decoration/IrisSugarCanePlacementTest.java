@@ -2,14 +2,13 @@ package art.arcane.iris.generation.decoration;
 
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.runtime.Engine;
-import art.arcane.iris.generation.hydrology.HydrologyColumnLayer;
-import art.arcane.iris.generation.hydrology.HydrologyColumnSample;
-import art.arcane.iris.generation.hydrology.HydrologyFeatureRef;
-import art.arcane.iris.generation.hydrology.HydrologyFeatureType;
+import art.arcane.iris.generation.hydrology.raster.WaterRole;
 import art.arcane.iris.generation.mantle.EngineMantle;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.hunk.Hunk;
 import art.arcane.volmlib.util.math.RNG;
+import art.arcane.volmlib.util.stream.ProceduralStream;
+import art.arcane.volmlib.util.stream.interpolation.Interpolated;
 import org.junit.Test;
 
 import java.util.List;
@@ -42,20 +41,17 @@ public class IrisSugarCanePlacementTest {
     }
 
     @Test
-    public void floatingCaneUsesAcceptedWaterAcrossTheChunkBoundary() {
+    public void floatingCaneUsesWaterRoleColumnsAcrossTheChunkBoundary() {
         for (Placement placement : List.of(Placement.FLOATING_SINGLE, Placement.FLOATING_STACK)) {
             Fixture fixture = new Fixture(1);
             fixture.output.set(0, 3, 0, fixture.soil);
             IrisComplex complex = mock(IrisComplex.class);
             when(fixture.engine.getComplex()).thenReturn(complex);
-            HydrologyFeatureRef feature = new HydrologyFeatureRef(
-                    11L, HydrologyFeatureType.RIFFLE, 12L, 13L, -17, 3, -16, 1, 0, false);
-            HydrologyColumnLayer layer = new HydrologyColumnLayer(feature, 1, 3, 3,
-                    true, false, false, true, false, false, true, true, false,
-                    "water", "river", "mouth", "shore", "bank", "cave");
-            when(complex.sampleHydrologyColumn(-17, -16)).thenReturn(new HydrologyColumnSample(
-                    -17, -16, 6, 0, false, "parent", List.of(layer)));
-            when(complex.resolveHydrologyFluid("water", -17, -16)).thenReturn(fixture.water);
+            when(complex.getHeightStream()).thenReturn(ProceduralStream.ofDouble((x, z) -> 1D));
+            when(complex.getWaterHeadStream()).thenReturn(ProceduralStream.ofDouble((x, z) -> 3D));
+            when(complex.getWaterRoleStream()).thenReturn(ProceduralStream.of((x, z) -> WaterRole.POND,
+                    Interpolated.of(value -> 0D, value -> WaterRole.POND)));
+            when(complex.resolveWaterFluid(-17, -16)).thenReturn(fixture.water);
 
             fixture.place(placement);
 

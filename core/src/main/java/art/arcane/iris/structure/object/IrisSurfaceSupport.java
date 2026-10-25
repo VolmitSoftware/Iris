@@ -220,7 +220,7 @@ public final class IrisSurfaceSupport {
                     }
                     int columnX = x + minX + stencilX;
                     int columnZ = z + minZ + stencilZ;
-                    if (complex.hasHydrologyChannelOrShore(columnX, columnZ)) {
+                    if (complex.hasWaterOrShore(columnX, columnZ)) {
                         return true;
                     }
                 }

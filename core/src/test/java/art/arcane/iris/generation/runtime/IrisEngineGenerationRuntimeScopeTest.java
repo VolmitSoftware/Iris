@@ -1,9 +1,11 @@
 package art.arcane.iris.generation.runtime;
 
 import art.arcane.iris.pack.loading.IrisData;
-import art.arcane.iris.generation.hydrology.runtime.IrisHydrologyRuntime;
-import art.arcane.iris.generation.hydrology.runtime.IrisHydrologyRuntimeContext;
-import art.arcane.volmlib.nativelib.terrain.NativeGenerationScope;
+import art.arcane.iris.generation.hydrology.config.IrisHydrology;
+import art.arcane.iris.generation.hydrology.engine.HydrologyRuntime;
+import art.arcane.iris.generation.hydrology.raster.ChunkWaterRaster;
+import art.arcane.iris.generation.terrain.InferredType;
+import art.arcane.volmlib.util.stream.interpolation.Interpolated;
 import art.arcane.iris.generation.runtime.GenerationRuntime.BiomeMaxes;
 import art.arcane.iris.world.history.SavedBiomeRuntime;
 import art.arcane.iris.world.history.SavedBiomeUnavailableException;
@@ -30,11 +32,11 @@ import art.arcane.volmlib.util.noise.CNG;
 import art.arcane.volmlib.util.stream.ProceduralStream;
 import art.arcane.volmlib.util.collection.KList;
 import org.junit.ClassRule;
+import org.mockito.InOrder;
 import org.junit.Test;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.IdentityHashMap;
@@ -49,25 +51,29 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.IntConsumer;
-import java.util.function.Supplier;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doCallRealMethod;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.withSettings;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
@@ -75,49 +81,91 @@ public class IrisEngineGenerationRuntimeScopeTest {
     @ClassRule
     public static final PlatformBinding PLATFORM = PlatformBinding.mockPlatform();
 
-    @Test
-    @SuppressWarnings("unchecked")
-    public void hydrologyBasisWorkersRetainHistoricalBindingAndRestoreAmbientContext() throws Exception {
+    @Test(timeout = 180_000L)
+    public void hydrologyWorkersPlanAHistoricalComplexFromItsOwnPack() throws Exception {
         RuntimeFixture active = runtime(1, 1D, 1D, 1D);
-        RuntimeFixture historical = runtime(2, 2D, 2D, 2D);
+        IrisComplex historicalComplex = mock(IrisComplex.class, withSettings().stubOnly());
+        RuntimeFixture historical = runtime(2, 2D, 2D, 2D, runtimeKernel(GenerationKernelRegistry.standard().current()), historicalComplex);
         IrisEngine engine = engine(active.runtime, mock(EngineEffects.class), mock(EngineWorldManager.class));
         setField(engine, "runtimeBuilder", new EngineRuntimeBuilder(engine));
-        IrisHydrologyRuntime hydrology = mock(IrisHydrologyRuntime.class, CALLS_REAL_METHODS);
-        when(historical.data.getEngine()).thenReturn(engine);
-        when(historical.complex.getHydrologyRuntime()).thenReturn(hydrology);
-        IrisHydrologyRuntimeContext context = new IrisHydrologyRuntimeContext(17L, 384, historical.dimension,
-                historical.data, (x, z, height) -> null, (x, z) -> 80D, (x, z) -> "constant",
-                (x, z) -> false, footprint -> null, () -> false);
-        Field runtimeContext = IrisHydrologyRuntime.class.getDeclaredField("context");
-        runtimeContext.setAccessible(true);
-        runtimeContext.set(hydrology, context);
-        Method capture = IrisHydrologyRuntime.class.getDeclaredMethod("captureBasisScope");
-        capture.setAccessible(true);
-        assertNull(capture.invoke(hydrology));
-        Supplier<NativeGenerationScope> workerScope;
-        try (IrisEngine.GenerationRuntimeScope ignored = engine.openGenerationRuntimeScope(detachedBinding(engine, historical.runtime));
-             IrisContext.Scope execution = IrisContext.open(engine, 73L, mock(ChunkContext.class))) {
-            workerScope = (Supplier<NativeGenerationScope>) capture.invoke(hydrology);
+        AtomicBoolean main = new AtomicBoolean();
+        EnginePlatformHooks hooks = mock(EnginePlatformHooks.class);
+        when(hooks.isMainThread()).thenAnswer(ignored -> main.get());
+        doReturn(hooks).when(engine).getPlatformHooks();
+        when(historical.dimension.getHydrology()).thenReturn(new IrisHydrology().setEnabled(true).setPersist(false).setPrefetchRings(0));
+        when(historical.dimension.getFluidHeight()).thenReturn(40);
+        when(historical.dimension.getLoadKey()).thenReturn("historical");
+        when(historical.dimension.getReachableBiomes(any())).thenReturn(new KList<>());
+        when(historical.target.getWorld().getHeight()).thenReturn(384);
+        IrisBiome biome = new IrisBiome();
+        IrisRegion region = new IrisRegion();
+        when(historicalComplex.getBaseBiomeStream()).thenReturn(ProceduralStream.of((x, z) -> biome, Interpolated.of(value -> 0D, value -> biome)));
+        when(historicalComplex.getRegionStream()).thenReturn(ProceduralStream.of((x, z) -> region, Interpolated.of(value -> 0D, value -> region)));
+        when(historicalComplex.getBridgeStream()).thenReturn(ProceduralStream.of((x, z) -> InferredType.LAND,
+                Interpolated.of(value -> 0D, value -> InferredType.LAND)));
+        Thread caller = Thread.currentThread();
+        AtomicInteger samples = new AtomicInteger();
+        AtomicInteger workerSamples = new AtomicInteger();
+        AtomicInteger foreign = new AtomicInteger();
+        doAnswer(invocation -> {
+            observe(engine, historical, caller, samples, workerSamples, foreign);
+            int[] xs = invocation.getArgument(0);
+            int[] zs = invocation.getArgument(1);
+            int from = invocation.getArgument(2);
+            int to = invocation.getArgument(3);
+            double[] heights = invocation.getArgument(5);
+            for (int index = from; index < to; index++) {
+                heights[index - from] = bowl(xs[index], zs[index]);
+            }
+            return null;
+        }).when(historicalComplex).sampleHydrologyHeights(any(), any(), anyInt(), anyInt(), anyBoolean(), any());
+        AtomicInteger naturals = new AtomicInteger();
+        AtomicInteger workerNaturals = new AtomicInteger();
+        doAnswer(invocation -> {
+            observe(engine, historical, caller, naturals, workerNaturals, foreign);
+            return (int) Math.round(bowl(invocation.getArgument(0), invocation.getArgument(1)));
+        }).when(historicalComplex).naturalTrueHeight(anyInt(), anyInt());
+        IrisEngine.GenerationRuntimeBinding binding = detachedBinding(engine, historical.runtime);
+        HydrologyRuntime hydrology;
+        try (IrisEngine.GenerationRuntimeScope ignored = engine.openGenerationRuntimeScope(binding)) {
+            hydrology = HydrologyRuntime.create(engine, historicalComplex);
         }
-        ExecutorService worker = Executors.newSingleThreadExecutor();
         try {
-            worker.submit(() -> {
-                assertSame(active.complex, engine.getComplex());
-                try (IrisContext.Scope ambient = IrisContext.open(engine, 99L, null)) {
-                    try (NativeGenerationScope selected = workerScope.get()) {
-                        assertSame(historical.complex, engine.getComplex());
-                        assertSame(historical.data, IrisContext.require().getData());
-                        assertEquals(73L, IrisContext.require().getGenerationSessionId());
-                        assertNull(IrisContext.require().getChunkContext());
-                    }
-                    assertSame(active.complex, engine.getComplex());
-                    assertEquals(99L, IrisContext.require().getGenerationSessionId());
-                }
-                assertNull(IrisContext.get());
-            }).get(5, TimeUnit.SECONDS);
+            assertSame(active.complex, engine.getComplex());
+            assertFalse(hydrology.raster(0, 0).provisional());
+            main.set(true);
+            assertSame(ChunkWaterRaster.PROVISIONAL, hydrology.raster(1, 0));
+            main.set(false);
+            long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(60L);
+            while (hydrology.rasterSnapshot(1, 0).provisional()) {
+                assertTrue("the queued raster never landed", System.nanoTime() < deadline);
+                Thread.sleep(10L);
+            }
         } finally {
-            worker.shutdownNow();
-            assertTrue(worker.awaitTermination(5, TimeUnit.SECONDS));
+            hydrology.close();
+        }
+        assertEquals(0, foreign.get());
+        assertTrue(samples.get() > 0);
+        assertTrue(workerSamples.get() > 0);
+        assertTrue(workerNaturals.get() > 0);
+        assertSame(active.complex, engine.getComplex());
+        assertSame(active.dimension, engine.getDimension());
+        assertNull(IrisContext.get());
+    }
+
+    private static double bowl(int x, int z) {
+        return 64D + Math.min(Math.hypot(x - 8D, z - 8D), 40D) * 0.3D;
+    }
+
+    private static void observe(IrisEngine engine, RuntimeFixture historical, Thread caller, AtomicInteger calls, AtomicInteger workerCalls,
+                                AtomicInteger foreign) {
+        calls.incrementAndGet();
+        if (Thread.currentThread() != caller) {
+            workerCalls.incrementAndGet();
+        }
+        if (engine.getDimension() != historical.dimension || engine.getComplex() != historical.complex
+                || engine.getSeedManager() != historical.runtime.seedManager()) {
+            foreign.incrementAndGet();
         }
     }
 
@@ -569,6 +617,25 @@ public class IrisEngineGenerationRuntimeScopeTest {
             assertSame(active.target, engine.getTarget());
             assertSame(active.mantle, engine.getMantle());
         }
+    }
+
+    @Test
+    public void defaultRuntimeSelectionMovesPlanPersistenceWithTheRole() throws Exception {
+        RuntimeFixture active = runtime(1, 1D, 1D, 1D);
+        RuntimeFixture detached = runtime(2, 2D, 2D, 2D);
+        IrisEngine engine = engine(active.runtime, mock(EngineEffects.class), mock(EngineWorldManager.class));
+        IrisEngine.GenerationRuntimeBinding activeBinding = new IrisEngine.GenerationRuntimeBinding(engine, active.runtime);
+        IrisEngine.GenerationRuntimeBinding detachedRuntimeBinding = detachedBinding(engine, detached.runtime);
+
+        engine.setDefaultGenerationRuntime(detachedRuntimeBinding);
+        engine.setDefaultGenerationRuntime(activeBinding);
+
+        InOrder order = inOrder(active.complex, detached.complex);
+        order.verify(active.complex).closeHydrologyPlanStore();
+        order.verify(detached.complex).openHydrologyPlanStore();
+        order.verify(detached.complex).closeHydrologyPlanStore();
+        order.verify(active.complex).openHydrologyPlanStore();
+        engine.closeDetachedGenerationRuntime(detachedRuntimeBinding);
     }
 
     @Test

@@ -23,6 +23,7 @@ import art.arcane.volmlib.nativelib.terrain.NativePregenRuntime;
 import art.arcane.volmlib.nativelib.terrain.NativePregenRuntime.ChunkLoad;
 import art.arcane.iris.configuration.IrisSettings;
 import art.arcane.iris.world.pregen.MantleHeapPressure;
+import art.arcane.iris.world.pregen.PregenHydrology;
 import art.arcane.iris.world.pregen.PregenListener;
 import art.arcane.iris.world.pregen.PregenMantleBackpressure;
 import art.arcane.iris.world.pregen.PregeneratorMethod;
@@ -30,6 +31,7 @@ import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.modded.ModdedGenPool;
 import art.arcane.volmlib.util.mantle.runtime.Mantle;
 
+import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -71,6 +73,8 @@ public final class ModdedPregenMethod implements PregeneratorMethod {
     private final PregenMantleBackpressure backpressure;
     private final PauseWhenEmptyGuard pauseGuard;
     private final LongSupplier clock;
+    private final AtomicBoolean closing = new AtomicBoolean();
+    private final PregenHydrology hydrology;
 
     public ModdedPregenMethod(Configuration configuration) {
         this(configuration, System::nanoTime);
@@ -80,6 +84,7 @@ public final class ModdedPregenMethod implements PregeneratorMethod {
         this.clock = Objects.requireNonNull(clock);
         runtime = configuration.runtime();
         engine = configuration.engine();
+        hydrology = new PregenHydrology(() -> engine);
         sync = configuration.sync();
         pauseGuard = new PauseWhenEmptyGuard(runtime);
         IrisSettings.IrisSettingsPregen pregen = IrisSettings.get().getPregen();
@@ -121,6 +126,8 @@ public final class ModdedPregenMethod implements PregeneratorMethod {
 
     @Override
     public void close() {
+        closing.set(true);
+        hydrology.close();
         try {
             awaitPendingChunks();
             ModdedIrisLog.info("Iris modded pregen closing: dim={} completed={} pending={} peakInFlight={} finalLimit={}",
@@ -339,6 +346,13 @@ public final class ModdedPregenMethod implements PregeneratorMethod {
     @Override
     public boolean supportsRegions(int x, int z, PregenListener listener) {
         return false;
+    }
+
+    @Override
+    public void onRegionsAhead(List<long[]> regions) {
+        if (!closing.get()) {
+            hydrology.prepare(regions);
+        }
     }
 
     @Override

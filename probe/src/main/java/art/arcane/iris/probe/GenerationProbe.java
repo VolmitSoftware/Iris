@@ -38,13 +38,14 @@ import art.arcane.iris.generation.runtime.MeteredCache;
 import art.arcane.iris.generation.runtime.PreservationRegistry;
 import art.arcane.iris.configuration.IrisSettings;
 import art.arcane.iris.generation.concurrent.MultiBurst;
-import art.arcane.iris.generation.hydrology.HydrologyTileCache;
-import art.arcane.iris.generation.hydrology.runtime.IrisHydrologyRuntime;
+import art.arcane.iris.generation.hydrology.engine.HydrologyPregeneration;
+import art.arcane.iris.generation.hydrology.plan.WindowKey;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.world.IrisWorld;
 import art.arcane.iris.world.history.GenerationHistory;
 import art.arcane.iris.world.history.GenerationHistoryRuntimeRouter;
 import art.arcane.iris.world.history.IrisBoundarySignatureSampler;
+import art.arcane.iris.world.pregen.PregenHydrology;
 import art.arcane.iris.world.pregen.PregenPerformanceProfile;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.IrisServices;
@@ -540,9 +541,8 @@ public final class GenerationProbe {
             return generate(generator, configuration, options);
         }
         PregenPerformanceProfile.apply(engine);
-        IrisHydrologyRuntime hydrology = engine.getComplex().getHydrologyRuntime();
-        try (HydrologyTileCache.PregenerationScope ignored = hydrology == null ? null
-                : hydrology.preparePregeneration(pregenerationArea(configuration))) {
+        try (HydrologyPregeneration pregeneration = PregenHydrology.open(engine)) {
+            PregenHydrology.prepareAll(pregeneration, hydrologyRegions(configuration));
             preplanHydrology(engine, configuration, options);
             return generate(generator, configuration, options);
         } finally {
@@ -558,10 +558,10 @@ public final class GenerationProbe {
         Optional<ProbeHydrologyPreplan> preplan = ProbeHydrologyPreplan.run(engine, configuration);
         printDistinctCauses("hydrology preplan reported errors", drainReported());
         System.out.println(preplan.map(ProbeHydrologyPreplan::machineLine)
-                .orElse("IRIS_GENPROBE_HYDROLOGY_PREPLAN version=1 tiles=0 skipped=no-hydrology"));
+                .orElse("IRIS_GENPROBE_HYDROLOGY_PREPLAN version=2 windows=0 skipped=no-hydrology"));
     }
 
-    static HydrologyTileCache.PregenerationArea pregenerationArea(ProbeConfiguration configuration) {
+    static int[] scheduledChunkBounds(ProbeConfiguration configuration) {
         List<ChunkCoordinate> coordinates = scheduleCoordinates(
                 configuration.warmupChunks() + configuration.measuredChunks(),
                 configuration.centerChunkX(), configuration.centerChunkZ());
@@ -575,13 +575,26 @@ public final class GenerationProbe {
             maximumX = Math.max(maximumX, coordinate.x());
             maximumZ = Math.max(maximumZ, coordinate.z());
         }
-        int centerBlockX = Math.toIntExact(Math.clamp(((long) configuration.centerChunkX() << 4) + 8L,
-                (long) minimumX << 4, (((long) maximumX + 1L) << 4) - 1L));
-        int centerBlockZ = Math.toIntExact(Math.clamp(((long) configuration.centerChunkZ() << 4) + 8L,
-                (long) minimumZ << 4, (((long) maximumZ + 1L) << 4) - 1L));
-        return new HydrologyTileCache.PregenerationArea(centerBlockX, centerBlockZ,
-                (long) minimumX << 4, (long) minimumZ << 4,
-                (((long) maximumX + 1L) << 4) - 1L, (((long) maximumZ + 1L) << 4) - 1L);
+        return new int[]{minimumX, minimumZ, maximumX, maximumZ};
+    }
+
+    static List<long[]> hydrologyRegions(ProbeConfiguration configuration) {
+        int[] bounds = scheduledChunkBounds(configuration);
+        int chunks = WindowKey.SIZE >> 4;
+        int minimumX = Math.floorDiv(bounds[0], chunks);
+        int minimumZ = Math.floorDiv(bounds[1], chunks);
+        int maximumX = Math.floorDiv(bounds[2], chunks);
+        int maximumZ = Math.floorDiv(bounds[3], chunks);
+        int centerX = Math.floorDiv(configuration.centerChunkX(), chunks);
+        int centerZ = Math.floorDiv(configuration.centerChunkZ(), chunks);
+        List<long[]> regions = new ArrayList<>();
+        for (int regionZ = minimumZ; regionZ <= maximumZ; regionZ++) {
+            for (int regionX = minimumX; regionX <= maximumX; regionX++) {
+                regions.add(new long[]{regionX, regionZ});
+            }
+        }
+        regions.sort(Comparator.comparingLong((long[] region) -> Math.max(Math.abs(region[0] - centerX), Math.abs(region[1] - centerZ))));
+        return regions;
     }
 
     static List<Integer> spiralOrder(List<ChunkCoordinate> coordinates, int fromIndex, int centerChunkX,

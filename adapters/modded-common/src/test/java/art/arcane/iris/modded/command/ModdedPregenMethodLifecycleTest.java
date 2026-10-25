@@ -1,6 +1,7 @@
 package art.arcane.iris.modded.command;
 
 import art.arcane.iris.configuration.IrisSettings;
+import art.arcane.iris.generation.hydrology.engine.HydrologyPregeneration;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.modded.ModdedGenPool;
 import art.arcane.iris.world.pregen.MantleHeapPressure;
@@ -11,8 +12,10 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.MockedStatic;
 
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -31,9 +34,11 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
@@ -87,6 +92,25 @@ public class ModdedPregenMethodLifecycleTest {
         assertFalse(method.hasPendingFinalSave());
         verify(runtime, times(1)).save();
         verify(runtime, never()).execute(any());
+    }
+
+    @Test
+    public void closeWithdrawsQueuedHydrologyPrefetchAndRefusesLaterAnnouncements() {
+        HydrologyPregeneration epoch = mock(HydrologyPregeneration.class);
+        when(engine.getComplex().getHydrologyRuntime().openPregeneration()).thenReturn(epoch);
+        when(runtime.isServerThread()).thenReturn(true);
+        assertTrue(method.deferFinalSaveToServerThread());
+        List<long[]> ahead = List.of(new long[]{0L, 0L}, new long[]{1L, 0L});
+
+        method.onRegionsAhead(ahead);
+        method.close();
+        method.onRegionsAhead(ahead);
+
+        InOrder order = inOrder(epoch);
+        order.verify(epoch).prepare(ahead);
+        order.verify(epoch).close();
+        verify(epoch, times(1)).prepare(anyList());
+        method.completeDeferredFinalSave();
     }
 
     @Test

@@ -9,16 +9,18 @@ import art.arcane.iris.configuration.IrisSettings;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.runtime.BiomeEnvironment;
 import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.runtime.IrisComplex;
+import art.arcane.iris.generation.terrain.InferredType;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.generation.terrain.IrisRegion;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.platform.generation.PlatformChunkGenerator;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.world.history.SavedBiomeUnavailableException;
-import art.arcane.iris.generation.hydrology.HydrologyColumnLayer;
-import art.arcane.iris.generation.hydrology.HydrologyColumnSample;
-import art.arcane.iris.generation.hydrology.HydrologyFeatureRef;
-import art.arcane.iris.generation.hydrology.HydrologyFeatureType;
+import art.arcane.volmlib.util.stream.ProceduralStream;
+import art.arcane.volmlib.util.stream.interpolation.Interpolated;
+import art.arcane.iris.api.terrain.IrisColumnSample;
+import art.arcane.iris.generation.hydrology.raster.WaterRole;
 import art.arcane.iris.platform.bukkit.plugin.IrisService;
 import org.bukkit.World;
 import org.bukkit.generator.ChunkGenerator;
@@ -26,6 +28,7 @@ import org.junit.Test;
 import org.mockito.MockedStatic;
 
 import java.lang.reflect.Field;
+import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
@@ -112,10 +115,32 @@ public class IrisTerrainSVCTest {
     }
 
     @Test
-    public void acceptedHydrologyMapsToThePublicDiagnosticStates() {
-        assertEquals(IrisRiverState.NONE, IrisTerrainSVC.riverState(null));
-        assertEquals(IrisRiverState.WET, IrisTerrainSVC.riverState(river(true)));
-        assertEquals(IrisRiverState.DRY, IrisTerrainSVC.riverState(river(false)));
+    public void waterRolesMapToThePublicRiverFields() {
+        for (WaterRole role : WaterRole.values()) {
+            assertEquals(role.name(), role.wet() ? IrisRiverState.WET : IrisRiverState.NONE, IrisTerrainSVC.riverState(role));
+            double distance = switch (role) {
+                case NONE -> IrisColumnSample.UNAVAILABLE_RIVER_DISTANCE;
+                case CHANNEL, POND, MOUTH, CASCADE, WATERFALL, INLET -> 0D;
+                case SHORE, POND_SHORE -> 1D;
+                case BANK, DAM -> 2D;
+            };
+            assertEquals(role.name(), distance, IrisTerrainSVC.riverDistance(role), 0D);
+            int flow = switch (role) {
+                case NONE, SHORE, POND_SHORE, BANK, DAM -> IrisColumnSample.UNAVAILABLE_RIVER_FLOW;
+                case CHANNEL, MOUTH, CASCADE, WATERFALL -> 1;
+                case POND, INLET -> 0;
+            };
+            assertEquals(role.name(), flow, IrisTerrainSVC.riverFlow(role));
+        }
+    }
+
+    @Test
+    public void columnSamplesReportTheWaterRoleOfEachColumn() throws Exception {
+        assertEquals(List.of("RIVER", "WET", "0.0", "1", "6"), sampled(WaterRole.CHANNEL, 70));
+        assertEquals(List.of("RIVER", "WET", "0.0", "0", "6"), sampled(WaterRole.POND, 70));
+        assertEquals(List.of("RIVER_SHORE", "NONE", "1.0", "-1", "unavailable"), sampled(WaterRole.SHORE, 50));
+        assertEquals(List.of("LAND", "NONE", "2.0", "-1", "unavailable"), sampled(WaterRole.BANK, 50));
+        assertEquals(List.of("LAND", "NONE", "NaN", "-1", "unavailable"), sampled(WaterRole.NONE, 50));
     }
 
     @Test
@@ -219,6 +244,33 @@ public class IrisTerrainSVCTest {
         }
     }
 
+    private static List<String> sampled(WaterRole role, int head) throws Exception {
+        Engine engine = mock(Engine.class);
+        IrisComplex complex = mock(IrisComplex.class);
+        IrisBiome biome = mock(IrisBiome.class);
+        when(biome.getInferredType()).thenReturn(InferredType.LAND);
+        when(engine.getComplex()).thenReturn(complex);
+        when(engine.getDimension()).thenReturn(mock(IrisDimension.class));
+        when(engine.getHeight(0, 0)).thenReturn(60);
+        when(engine.getMinHeight()).thenReturn(-64);
+        when(engine.getSurfaceBiome(0, 0)).thenReturn(biome);
+        when(complex.getWaterRoleStream()).thenReturn(ProceduralStream.of((x, z) -> role, Interpolated.of(value -> 0D, value -> role)));
+        when(complex.getWaterHeadStream()).thenReturn(ProceduralStream.ofDouble((x, z) -> (double) head));
+        IrisColumnQuery query = IrisColumnQuery.rect(0, 0, 0, 0, 1, EnumSet.of(IrisColumnField.SURFACE_KIND,
+                IrisColumnField.RIVER_STATE, IrisColumnField.RIVER_DISTANCE, IrisColumnField.RIVER_FLOW,
+                IrisColumnField.RIVER_WATER_SURFACE_Y));
+        List<IrisColumnSample> samples = new ArrayList<>();
+        try (MockedStatic<IrisSettings> settings = mockStatic(IrisSettings.class)) {
+            settings.when(IrisSettings::get).thenReturn(new IrisSettings());
+            assertTrue(enabledService().sampleColumns(world(engine), query, samples::add));
+        }
+        assertEquals(1, samples.size());
+        IrisColumnSample sample = samples.get(0);
+        return List.of(sample.surfaceKind().name(), sample.riverState().name(), String.valueOf(sample.riverDistance()),
+                String.valueOf(sample.riverFlow()),
+                sample.riverWaterSurfaceY() == IrisColumnSample.UNAVAILABLE_HEIGHT ? "unavailable" : String.valueOf(sample.riverWaterSurfaceY()));
+    }
+
     private static World world(Engine engine) {
         World world = mock(World.class);
         ChunkGenerator generator = mock(ChunkGenerator.class, withSettings().extraInterfaces(PlatformChunkGenerator.class));
@@ -234,42 +286,5 @@ public class IrisTerrainSVCTest {
         enabled.setAccessible(true);
         ((AtomicBoolean) enabled.get(service)).set(true);
         return service;
-    }
-
-    private static HydrologyColumnSample river(boolean connectedFluid) {
-        HydrologyFeatureRef feature = new HydrologyFeatureRef(
-                1L,
-                HydrologyFeatureType.SURFACE_POOL,
-                2L,
-                3L,
-                0,
-                63,
-                0,
-                1,
-                0,
-                false
-        );
-        HydrologyColumnLayer layer = new HydrologyColumnLayer(
-                feature,
-                60,
-                63,
-                63,
-                true,
-                false,
-                false,
-                connectedFluid,
-                false,
-                false,
-                true,
-                connectedFluid,
-                false,
-                "water",
-                "river",
-                "mouth",
-                "shore",
-                "dry",
-                "cave"
-        );
-        return new HydrologyColumnSample(0, 0, 70, 63, false, "parent", List.of(layer));
     }
 }

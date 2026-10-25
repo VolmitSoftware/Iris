@@ -9,6 +9,8 @@ import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.terrain.IrisDimensionCarvingResolver;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveAction;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveCell;
+import art.arcane.iris.generation.hydrology.raster.ChunkWaterRaster;
+import art.arcane.iris.generation.terrain.Terrain3DColumn;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.hunk.Hunk;
 import art.arcane.volmlib.util.stream.ProceduralStream;
@@ -17,6 +19,7 @@ import art.arcane.iris.world.storage.matter.IrisMatterSupport;
 import art.arcane.volmlib.util.matter.IrisMatter;
 import art.arcane.volmlib.util.matter.Matter;
 import art.arcane.volmlib.util.matter.MatterCavern;
+import art.arcane.volmlib.util.math.PowerOfTwoCoordinates;
 import art.arcane.volmlib.util.math.RNG;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import org.junit.Test;
@@ -26,6 +29,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -34,6 +38,8 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 
 public class IrisCarveModifierBoundarySupportTest {
     @Test
@@ -133,6 +139,52 @@ public class IrisCarveModifierBoundarySupportTest {
     }
 
     @Test
+    public void naturalOpeningsComeFromTheNaturalColumnUnlessHydrologyOwnsIt() {
+        IrisComplex complex = mock(IrisComplex.class);
+        Terrain3DColumn natural = Terrain3DColumn.fromOccupancy(31, 32, y -> y < 4 || y > 8);
+        doReturn(natural).when(complex).naturalTerrainColumn(anyInt(), anyInt());
+        doReturn(true).when(complex).hydrologyOwnsTerrain(40, 44);
+
+        assertNull(IrisCarveModifier.naturalOpeningColumn(complex, 40, 44));
+        assertSame(natural, IrisCarveModifier.naturalOpeningColumn(complex, 41, 44));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void unsupportedSurfaceOresOverWaterColumnsStayInPlace() {
+        Hunk<NativeBlockState> output = mock(Hunk.class);
+        NativeBlockState ore = mock(NativeBlockState.class);
+        NativeBlockState air = state("minecraft:cave_air", false);
+        NativeBlockState caveAir = state("minecraft:cave_air", false);
+        doReturn(true).when(ore).isOre();
+        doReturn(true).when(ore).isSolid();
+        doReturn(128).when(output).getHeight();
+        doReturn(ore).when(output).getRaw(anyInt(), eq(60), anyInt());
+        doReturn(air).when(output).getRaw(anyInt(), eq(59), anyInt());
+        int[] surfaceHeights = new int[256];
+        CarveColumnMask[] columnMasks = new CarveColumnMask[256];
+        CarveColumnMask[] boundaryMasks = new CarveColumnMask[256];
+        for (int index = 0; index < 256; index++) {
+            columnMasks[index] = new CarveColumnMask();
+            boundaryMasks[index] = new CarveColumnMask();
+        }
+        int wet = PowerOfTwoCoordinates.packLocal16(0, 0);
+        int dry = PowerOfTwoCoordinates.packLocal16(1, 0);
+        surfaceHeights[wet] = 60;
+        surfaceHeights[dry] = 60;
+        columnMasks[wet].add(59);
+        columnMasks[dry].add(59);
+        ChunkWaterRaster water = mock(ChunkWaterRaster.class);
+        doReturn(Integer.MAX_VALUE).when(water).caveCeiling(anyInt(), anyInt());
+        doReturn(59).when(water).caveCeiling(0, 0);
+
+        IrisCarveModifier.clearUnsupportedSurfaceOres(output, surfaceHeights, columnMasks, boundaryMasks, water, caveAir);
+
+        verify(output).setRaw(1, 60, 0, caveAir);
+        verify(output, never()).setRaw(0, 60, 0, caveAir);
+    }
+
+    @Test
     @SuppressWarnings("unchecked")
     public void gravityFloorLayerRequiresSolidSupportBelowItsTarget() {
         Hunk<NativeBlockState> output = mock(Hunk.class);
@@ -172,11 +224,10 @@ public class IrisCarveModifierBoundarySupportTest {
         NativeBlockState sand = state("minecraft:sand", true);
         NativeBlockState water = state("minecraft:water", false, true);
 
-        assertTrue(IrisCarveModifier.canReplaceHydrologyGuard(guard, stone, false));
-        assertTrue(IrisCarveModifier.canReplaceHydrologyGuard(guard, stone, true));
-        assertTrue(IrisCarveModifier.canReplaceHydrologyGuard(guard, sand, false));
-        assertFalse(IrisCarveModifier.canReplaceHydrologyGuard(guard, sand, true));
-        assertFalse(IrisCarveModifier.canReplaceHydrologyGuard(guard, water, false));
+        assertTrue(IrisCarveModifier.canReplaceHydrologyGuard(guard, stone));
+        assertFalse(IrisCarveModifier.canReplaceHydrologyGuard(guard, sand));
+        assertFalse(IrisCarveModifier.canReplaceHydrologyGuard(guard, water));
+        assertTrue(IrisCarveModifier.canReplaceHydrologyGuard(null, sand));
     }
 
     @Test

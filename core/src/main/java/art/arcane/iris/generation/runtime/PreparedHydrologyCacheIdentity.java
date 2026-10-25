@@ -15,7 +15,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 
-record PreparedHydrologyCacheIdentity(String fingerprint) {
+public record PreparedHydrologyCacheIdentity(String fingerprint) {
     static PreparedHydrologyCacheIdentity capture(
             EngineTarget target,
             GenerationKernelRegistry.RuntimeKernel kernel,
@@ -86,14 +86,25 @@ record PreparedHydrologyCacheIdentity(String fingerprint) {
         }
     }
 
+    public String planScope(long seed, long settingsFingerprint) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            update(digest, fingerprint);
+            update(digest, Long.toString(seed));
+            update(digest, Long.toString(settingsFingerprint));
+            return HexFormat.of().formatHex(digest.digest());
+        } catch (NoSuchAlgorithmException failure) {
+            throw new IllegalStateException("SHA-256 is unavailable.", failure);
+        }
+    }
+
     void enableIfUnchanged(EngineTarget target, GenerationKernelRegistry.RuntimeKernel kernel,
                            TransitionGenerationPlan transition, IrisComplex complex, boolean studio) {
         if (!equals(capture(target, kernel, transition, studio))) {
             IrisLogging.warn("Generation inputs changed during compilation; prepared hydrology caching is disabled.");
             return;
         }
-        complex.enablePreparedHydrologyCache(fingerprint,
-                IrisPlatforms.get().dataFolderNoCreate("cache", "hydrology-plans").toPath());
+        complex.enablePreparedHydrologyCache(this);
     }
 
     private static void update(MessageDigest digest, String value) {

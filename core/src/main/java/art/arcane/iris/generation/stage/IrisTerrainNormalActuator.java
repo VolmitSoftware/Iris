@@ -24,16 +24,14 @@ import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.volmlib.util.stream.ProceduralStream;
 import art.arcane.iris.generation.runtime.UpperDimensionContext;
-import art.arcane.iris.generation.hydrology.HydrologyColumnLayer;
-import art.arcane.iris.generation.hydrology.HydrologyColumnSample;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.decoration.IrisProceduralBlocks;
-import art.arcane.iris.generation.hydrology.IrisSurfaceRiverBedConfig;
+import art.arcane.iris.generation.hydrology.config.IrisHydrologyMaterials;
+import art.arcane.iris.generation.hydrology.raster.WaterRole;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.generation.decoration.IrisOreBands;
+import art.arcane.iris.generation.terrain.IrisMaterialPalette;
 import art.arcane.iris.generation.terrain.IrisRegion;
-import art.arcane.iris.generation.hydrology.IrisRiverMaterialConfig;
-import art.arcane.iris.generation.hydrology.IrisSurfaceRiverBankConfig;
 import art.arcane.iris.generation.terrain.Terrain3DColumn;
 import art.arcane.iris.generation.block.BoundBlockState;
 import art.arcane.iris.generation.chunk.ColumnRunHunk;
@@ -50,6 +48,7 @@ import lombok.Getter;
 public class IrisTerrainNormalActuator extends EngineAssignedActuator<NativeBlockState> {
     private static final BoundBlockState BEDROCK = BoundBlockState.of("BEDROCK");
     private static final BoundBlockState AIR = BoundBlockState.of("AIR");
+    private static final int SLOT_SEA_LAYERS = 1;
     @Getter
     private final RNG rng;
 
@@ -95,41 +94,29 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<NativeBloc
         return depth + Math.min(cut, Math.max(0, paletteSize - 1 - depth));
     }
 
-    /**
-     * The river material that owns this column's top layers, or null when the biome layers stand.
-     * Roles are exclusive: a channel bed, then the shore strip, then the eroded bank.
-     */
-    static IrisRiverMaterialConfig hydrologyRoleMaterial(
-            HydrologyColumnLayer terrainLayer,
-            IrisRiverMaterialConfig bedMaterial,
-            IrisRiverMaterialConfig shoreMaterial,
-            IrisRiverMaterialConfig bankMaterial
-    ) {
-        if (terrainLayer == null || !terrainLayer.terrainOwned()) {
+    private static IrisMaterialPalette rolePalette(WaterRole role, IrisHydrologyMaterials materials) {
+        if (materials == null) {
             return null;
         }
-
-        IrisRiverMaterialConfig material;
-        if (terrainLayer.channel()) {
-            material = bedMaterial;
-        } else if (terrainLayer.shore()) {
-            material = shoreMaterial;
-        } else if (terrainLayer.grading()) {
-            material = bankMaterial;
-        } else {
-            material = null;
-        }
-
-        return material != null && material.isEnabled() ? material : null;
+        return switch (role) {
+            case NONE -> null;
+            case CHANNEL, POND, MOUTH, CASCADE, WATERFALL, INLET -> materials.getBed();
+            case SHORE, POND_SHORE, DAM -> materials.getShore();
+            case BANK -> materials.getBank();
+        };
     }
 
-    /**
-     * Replaces a biome layer with the river material for the top {@code depth} blocks. A painted
-     * gravity block still goes through the bed padding swap after this.
-     */
-    static NativeBlockState paintHydrologyMaterial(
+    private static int roleDepth(WaterRole role, IrisHydrologyMaterials materials) {
+        return switch (role) {
+            case SHORE, POND_SHORE, DAM -> materials.getShoreDepth();
+            case NONE, BANK, CHANNEL, POND, MOUTH, CASCADE, WATERFALL, INLET -> 1;
+        };
+    }
+
+    private static NativeBlockState paintWaterMaterial(
             NativeBlockState layerBlock,
-            IrisRiverMaterialConfig material,
+            IrisMaterialPalette palette,
+            int paintDepth,
             int depth,
             RNG rng,
             int x,
@@ -137,11 +124,11 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<NativeBloc
             int z,
             IrisData data
     ) {
-        if (material == null || !material.isEnabled() || depth >= material.getDepth()) {
+        if (palette == null || depth >= paintDepth) {
             return layerBlock;
         }
 
-        NativeBlockState painted = material.getPalette().get(rng, x, y, z, data);
+        NativeBlockState painted = palette.get(rng, x, y, z, data);
         return painted == null ? layerBlock : painted;
     }
 
@@ -155,7 +142,8 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<NativeBloc
         private final IrisData data;
         private final Engine oreEngine;
         private final IrisComplex complex;
-        private final ProceduralStream<Double> riverWaterSurfaceStream;
+        private final ProceduralStream<Double> waterHeadStream;
+        private final ProceduralStream<WaterRole> waterRoleStream;
         private final boolean bedrockEnabled;
         private final boolean hideOres;
         private final boolean transitionDisplaced;
@@ -166,12 +154,6 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<NativeBloc
         private final UpperDimensionContext upperContext;
         private final IrisOreBands dimensionSurfaceOres;
         private final IrisOreBands dimensionUndergroundOres;
-        private final boolean exposeCutStrata;
-        private final IrisSurfaceRiverBedConfig riverBed;
-        private final boolean padRiverBed;
-        private final IrisRiverMaterialConfig bedMaterial;
-        private final IrisRiverMaterialConfig shoreMaterial;
-        private final IrisRiverMaterialConfig bankMaterial;
         private final NativeBlockState air;
         private final NativeBlockState bedrock;
         private IrisOreBands biomeSurfaceOres;
@@ -198,7 +180,8 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<NativeBloc
             data = getData();
             oreEngine = data == null ? null : data.getEngine();
             complex = getComplex();
-            riverWaterSurfaceStream = complex.getRiverWaterSurfaceStream();
+            waterHeadStream = complex.getWaterHeadStream();
+            waterRoleStream = complex.getWaterRoleStream();
             bedrockEnabled = dimension.isBedrock();
             hideOres = dimension.isHideOresForHiddenOre();
             transitionDisplaced = complex.getTransitionDisplacement() != null;
@@ -209,17 +192,6 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<NativeBloc
             upperContext = getEngine().getUpperContext();
             dimensionSurfaceOres = hideOres ? IrisOreBands.EMPTY : dimension.getSurfaceOreBands();
             dimensionUndergroundOres = hideOres ? IrisOreBands.EMPTY : dimension.getUndergroundOreBands();
-            IrisSurfaceRiverBankConfig riverBanks = dimension.getHydrology() == null
-                    ? null
-                    : dimension.getHydrology().getRivers().getSurface().getBanks();
-            exposeCutStrata = riverBanks != null && riverBanks.isExposeCutStrata();
-            riverBed = dimension.getHydrology() == null
-                    ? null
-                    : dimension.getHydrology().getRivers().getSurface().getBed();
-            padRiverBed = riverBed != null && !riverBed.isAllowGravityBlocks();
-            bedMaterial = riverBed == null ? null : riverBed.getMaterial();
-            shoreMaterial = riverBanks == null ? null : riverBanks.getShoreMaterial();
-            bankMaterial = riverBanks == null ? null : riverBanks.getBankMaterial();
             air = AIR.get();
             bedrock = BEDROCK.get();
         }
@@ -232,7 +204,7 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<NativeBloc
             int he = Math.min(chunkHeight, context.getRoundedHeight(xf, zf));
             int surfaceFluidHeight = Math.min(
                     chunkHeight,
-                    (int) Math.round(riverWaterSurfaceStream.getDouble(realX, realZ))
+                    (int) Math.round(waterHeadStream.getDouble(realX, realZ))
             );
             int hf = Math.max(surfaceFluidHeight, he);
             if (hf < 0) {
@@ -240,32 +212,26 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<NativeBloc
             }
 
             int topY = Math.min(hf, chunkHeight - 1);
-            HydrologyColumnSample hydrology = complex.sampleHydrologyColumn(realX, realZ);
-            HydrologyColumnLayer hydrologyFluid = hydrology == null
-                    ? null
-                    : hydrology.primarySurfaceFluidLayerOrNull();
-            HydrologyColumnLayer hydrologyTerrain = hydrology == null
-                    ? null
-                    : hydrology.primarySurfaceLayerOrNull();
-            Terrain3DColumn terrainColumn = complex.terrainColumn(realX, realZ, hydrology);
+            WaterRole role = waterRoleStream.get(realX, realZ);
+            boolean wet = role.wet();
+            boolean seaFloor = !wet || role == WaterRole.INLET;
+            IrisHydrologyMaterials materials = role == WaterRole.NONE || role == WaterRole.INLET ? null
+                    : complex.resolveWaterMaterials(realX, realZ);
+            Terrain3DColumn terrainColumn = complex.terrainColumn(realX, realZ);
             int terrainSpan = terrainColumn == null ? -1 : terrainColumn.spanCount() - 1;
             int layerSurfaceY = he;
             int layerCeilingY = 0;
-            boolean exposeRiverStrata = exposeCutStrata
-                    && hydrologyTerrain != null
-                    && hydrologyTerrain.terrainOwned()
-                    && !hydrologyTerrain.channel();
-            Terrain3DColumn naturalColumn = exposeRiverStrata ? complex.naturalTerrainColumn(realX, realZ) : null;
+            boolean exposeStrata = role != WaterRole.NONE && seaFloor;
+            Terrain3DColumn naturalColumn = exposeStrata ? complex.naturalTerrainColumn(realX, realZ) : null;
             int cut = 0;
-            boolean riverOwned = padRiverBed && hydrologyTerrain != null && hydrologyTerrain.terrainOwned();
-            IrisRiverMaterialConfig roleMaterial = hydrologyRoleMaterial(
-                    hydrologyTerrain, bedMaterial, shoreMaterial, bankMaterial);
-            int paintDepth = roleMaterial == null ? 0 : roleMaterial.getDepth();
-            NativeBlockState fluid = transitionDisplaced
-                    ? complex.resolveSurfaceFluid(realX, realZ)
-                    : hydrologyFluid == null
-                    ? fluidCache.get(xf, zf)
-                    : complex.resolveHydrologyFluid(hydrologyFluid.profileKey(), realX, realZ);
+            boolean keepGravityAway = materials != null && !materials.isAllowGravityBlocks();
+            IrisMaterialPalette rolePalette = rolePalette(role, materials);
+            int paintDepth = rolePalette == null ? 0 : roleDepth(role, materials);
+            NativeBlockState fluid = wet
+                    ? complex.resolveWaterFluid(realX, realZ)
+                    : transitionDisplaced
+                    ? complex.resolveSeaFluid(realX, realZ)
+                    : fluidCache.get(xf, zf);
             NativeBlockState rock = rockCache.get(xf, zf);
             NativeBlockState mappedSurfaceBlock = complex.getImageMapRuntime().sampleSurfaceBlock(realX, realZ);
             biomeSurfaceOres = hideOres ? IrisOreBands.EMPTY : biome.getSurfaceOreBands();
@@ -311,14 +277,14 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<NativeBloc
 
                 if (i > he && i <= hf) {
                     int fdepth = hf - i;
-                    if (hydrologyFluid == null && fblocks == null) {
-                        fblocks = biome.generateSeaLayers(realX, realZ, rng, hf - he, data);
+                    if (seaFloor && fblocks == null) {
+                        fblocks = biome.generateSeaLayers(realX, realZ, rng, role == WaterRole.INLET ? SLOT_SEA_LAYERS : hf - he, data);
                     }
                     put(i, HydrologyFluidLayerSelector.select(
                             fblocks,
                             fdepth,
                             fluid,
-                            hydrologyFluid != null
+                            !seaFloor
                     ));
                     continue;
                 }
@@ -330,8 +296,9 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<NativeBloc
                         continue;
                     }
                     if (blocks == null) {
-                        if (exposeRiverStrata) {
-                            int naturalSurfaceY = naturalColumn == null ? hydrology.naturalHeight() : naturalColumn.surfaceY(layerSurfaceY);
+                        if (exposeStrata) {
+                            int naturalSurfaceY = naturalColumn == null
+                                    ? complex.naturalTrueHeight(realX, realZ) : naturalColumn.surfaceY(layerSurfaceY);
                             cut = Math.max(0, naturalSurfaceY - layerSurfaceY);
                         }
                         blocks = biome.generateLayers(dimension, realX, realZ, rng,
@@ -357,12 +324,12 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<NativeBloc
                     }
 
                     int strataIndex = strataIndex(depth, cut, blocks.size());
-                    NativeBlockState layerBlock = paintHydrologyMaterial(
+                    NativeBlockState layerBlock = paintWaterMaterial(
                             blocks.hasIndex(strataIndex) ? blocks.get(strataIndex) : null,
-                            roleMaterial, depth, rng, realX, i, realZ, data);
+                            rolePalette, paintDepth, depth, rng, realX, i, realZ, data);
                     if (layerBlock != null) {
-                        if (riverOwned && depth <= riverBed.getPadding() && IrisProceduralBlocks.isGravityAffected(layerBlock)) {
-                            layerBlock = riverBed.getPaddingPalette().get(rng, realX, i, realZ, data);
+                        if (keepGravityAway && IrisProceduralBlocks.isGravityAffected(layerBlock)) {
+                            layerBlock = rock;
                         }
                         put(i, layerBlock);
                         continue;

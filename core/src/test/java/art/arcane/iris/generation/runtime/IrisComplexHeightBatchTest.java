@@ -27,15 +27,15 @@ public class IrisComplexHeightBatchTest {
                 .setComposite(new KList<>(new IrisNoiseGenerator().setStyle(NoiseStyle.FRACTAL_SMOKE.style())
                         .setFracture(new KList<>(new IrisNoiseGenerator().setStyle(NoiseStyle.IRIS.style())))));
         IrisComplex complex = complex(dimension, generator);
-        assertTrue(eligible(complex));
+        assertTrue(eligible(complex, dimension));
         for (int step : new int[]{2, 4, 8}) {
             dimension.setTerrainSamplingStep(step);
-            assertFalse(eligible(complex));
+            assertFalse(eligible(complex, dimension));
         }
         dimension.setTerrainSamplingStep(1);
-        assertTrue(eligible(complex));
+        assertTrue(eligible(complex, dimension));
         generator.getComposite().getFirst().setStyle(new IrisGeneratorStyle().setExpression("height"));
-        assertFalse(eligible(complex));
+        assertFalse(eligible(complex, dimension));
     }
 
     @Test
@@ -44,13 +44,13 @@ public class IrisComplexHeightBatchTest {
         IrisComplex complex = complex(dimension, new IrisGenerator()
                 .setComposite(new KList<>(new IrisNoiseGenerator().setStyle(NoiseStyle.SIMPLEX.style()))));
         set(complex, "reuseNaturalBaseBiome", false);
-        assertFalse(eligible(complex));
+        assertFalse(eligible(complex, dimension));
         set(complex, "reuseNaturalBaseBiome", true);
         dimension.setOverlayNoise(new KList<>(new IrisShapedGeneratorStyle()
                 .setGenerator(new IrisGeneratorStyle() {})));
-        assertFalse(eligible(complex));
+        assertFalse(eligible(complex, dimension));
         dimension.getOverlayNoise().getFirst().setGenerator(NoiseStyle.SIMPLEX.style());
-        assertTrue(eligible(complex));
+        assertTrue(eligible(complex, dimension));
     }
 
     private static IrisComplex complex(IrisDimension dimension, IrisGenerator generator) throws Exception {
@@ -64,10 +64,10 @@ public class IrisComplexHeightBatchTest {
         return complex;
     }
 
-    private static boolean eligible(IrisComplex complex) throws Exception {
-        Method method = IrisComplex.class.getDeclaredMethod("supportsHeightBatch");
+    private static boolean eligible(IrisComplex complex, IrisDimension dimension) throws Exception {
+        Method method = IrisComplex.class.getDeclaredMethod("heightBatchSupported", IrisDimension.class);
         method.setAccessible(true);
-        return (boolean) method.invoke(complex);
+        return (boolean) method.invoke(complex, dimension);
     }
 
     private static void set(IrisComplex complex, String name, Object value) throws Exception {

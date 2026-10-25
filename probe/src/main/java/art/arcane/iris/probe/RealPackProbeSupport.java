@@ -16,8 +16,6 @@ import art.arcane.iris.generation.runtime.EngineWorldManager;
 import art.arcane.iris.generation.runtime.EngineWorldManagerProvider;
 import art.arcane.iris.generation.runtime.MeteredCache;
 import art.arcane.iris.generation.runtime.PreservationRegistry;
-import art.arcane.iris.generation.mantle.MantleComponent;
-import art.arcane.iris.generation.mantle.MantleObjectComponent;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.world.IrisWorld;
 import art.arcane.iris.world.history.GenerationHistory;
@@ -84,34 +82,9 @@ final class RealPackProbeSupport {
         File workRoot = Files.createTempDirectory(options.parent(), "iris-real-pack-probe-").toFile();
         try {
             File pack = clonePack(packSource, workRoot);
-            configureRuntime(new File(workRoot, "platform-validation"), false, bindings);
+            configureRuntime(new File(workRoot, "platform-validation"), bindings);
             validatePack(pack, logPrefix);
-            return new Workspace(workRoot, pack, dimensionKey, logPrefix, false, bindings);
-        } catch (Throwable failure) {
-            clearRuntime();
-            Throwable cleanupFailure = deleteWorkRoot(workRoot);
-            if (cleanupFailure != null) {
-                failure.addSuppressed(cleanupFailure);
-            }
-            throwAsException(failure);
-            throw new IllegalStateException("Unreachable");
-        }
-    }
-
-    static Workspace openPreparedWorkspace(
-            File pack,
-            String dimensionKey,
-            String logPrefix,
-            boolean hydrologyGeneratedVerification
-    ) throws Exception {
-        if (pack == null || !pack.isDirectory()) {
-            throw new IllegalArgumentException("Prepared pack folder not found: "
-                    + (pack == null ? "null" : pack.getAbsolutePath()));
-        }
-        File workRoot = Files.createTempDirectory("iris-generated-chunk-probe-").toFile();
-        try {
-            configureRuntime(new File(workRoot, "platform-validation"), hydrologyGeneratedVerification, null);
-            return new Workspace(workRoot, pack, dimensionKey, logPrefix, hydrologyGeneratedVerification, null);
+            return new Workspace(workRoot, pack, dimensionKey, logPrefix, bindings);
         } catch (Throwable failure) {
             clearRuntime();
             Throwable cleanupFailure = deleteWorkRoot(workRoot);
@@ -292,7 +265,6 @@ final class RealPackProbeSupport {
         private final File pack;
         private final String dimensionKey;
         private final String logPrefix;
-        private final boolean hydrologyGeneratedVerification;
         private final RuntimeBindings bindings;
         private int sessionSequence;
         private boolean sessionOpen;
@@ -303,14 +275,12 @@ final class RealPackProbeSupport {
                 File pack,
                 String dimensionKey,
                 String logPrefix,
-                boolean hydrologyGeneratedVerification,
                 RuntimeBindings bindings
         ) {
             this.workRoot = workRoot;
             this.pack = pack;
             this.dimensionKey = dimensionKey;
             this.logPrefix = logPrefix;
-            this.hydrologyGeneratedVerification = hydrologyGeneratedVerification;
             this.bindings = bindings;
         }
 
@@ -328,7 +298,7 @@ final class RealPackProbeSupport {
             IrisData data = null;
             Engine engine = null;
             try {
-                configureRuntime(platformRoot, hydrologyGeneratedVerification, bindings);
+                configureRuntime(platformRoot, bindings);
                 data = IrisData.openRuntime(pack);
                 IrisDimension dimension = data.getDimensionLoader().load(dimensionKey);
                 if (dimension == null) {
@@ -551,16 +521,6 @@ final class RealPackProbeSupport {
     }
 
     private static final class InertPlatformHooks implements EnginePlatformHooks {
-        private final boolean hydrologyGeneratedVerification;
-
-        private InertPlatformHooks(boolean hydrologyGeneratedVerification) {
-            this.hydrologyGeneratedVerification = hydrologyGeneratedVerification;
-        }
-
-        @Override
-        public boolean shouldGenerateMantleComponent(Engine engine, MantleComponent component) {
-            return !hydrologyGeneratedVerification || !(component instanceof MantleObjectComponent);
-        }
     }
 
     private static void clearRuntime() {
@@ -572,7 +532,7 @@ final class RealPackProbeSupport {
         StubPlatform.errorSink(null);
     }
 
-    private static void configureRuntime(File platformRoot, boolean hydrologyGeneratedVerification, RuntimeBindings bindings) {
+    private static void configureRuntime(File platformRoot, RuntimeBindings bindings) {
         REPORTED.clear();
         StubPlatform.bindGenerationStateHandlers();
         StubPlatform.verbose(false);
@@ -582,7 +542,7 @@ final class RealPackProbeSupport {
                 (EngineWorldManagerProvider) (Engine engine) -> new InertWorldManager());
         IrisServices.register(EngineEffectsProvider.class, (EngineEffectsProvider) InertEffects::new);
         IrisServices.register(EnginePlatformHooks.class, bindings == null
-                ? new InertPlatformHooks(hydrologyGeneratedVerification) : bindings);
+                ? new InertPlatformHooks() : bindings);
         IrisPlatforms.unbind();
         IrisPlatforms.bind(bindings == null ? new StubPlatform(platformRoot) : bindings.create(platformRoot));
     }

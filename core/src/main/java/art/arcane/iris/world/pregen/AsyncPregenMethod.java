@@ -30,7 +30,6 @@ import art.arcane.iris.world.IrisToolbelt;
 import art.arcane.iris.platform.bukkit.nms.INMS;
 import art.arcane.iris.platform.bukkit.nms.INMSBinding;
 import art.arcane.iris.generation.runtime.Engine;
-import art.arcane.iris.generation.hydrology.HydrologyTileCache;
 import art.arcane.iris.platform.bukkit.BukkitPlatform;
 import art.arcane.volmlib.util.mantle.runtime.Mantle;
 import art.arcane.volmlib.util.math.M;
@@ -99,10 +98,6 @@ public class AsyncPregenMethod implements PregeneratorMethod {
     private final ConcurrentHashMap<Long, AtomicInteger> regionPending;
     private final ConcurrentHashMap<Long, Queue<Chunk>> regionChunks;
     private final Queue<CompletableFuture<Void>> pendingEvictions;
-    private volatile int boundsMinRegionX;
-    private volatile int boundsMinRegionZ;
-    private volatile int boundsMaxRegionX;
-    private volatile int boundsMaxRegionZ;
     private final AtomicInteger adaptiveInFlightLimit;
     private final int adaptiveMinInFlightLimit;
     private final AtomicInteger slowRequestStreak = new AtomicInteger();
@@ -116,12 +111,12 @@ public class AsyncPregenMethod implements PregeneratorMethod {
     private final AtomicLong failed = new AtomicLong();
     private final AtomicLong lastProgressAt = new AtomicLong(M.ms());
     private final AtomicBoolean closing = new AtomicBoolean();
+    private final PregenHydrology hydrology = new PregenHydrology(this::resolveMetricsEngine);
     private final PregenInFlightRequests inFlightRequests = new PregenInFlightRequests();
     private final AtomicReference<GenerationFailure> generationFailure = new AtomicReference<>();
     private final AtomicBoolean holdsWorkerBoost = new AtomicBoolean();
     private volatile Engine metricsEngine;
     private volatile Mantle cachedMantle;
-    private volatile HydrologyTileCache.PregenerationScope hydrologyPrefetchScope;
     private volatile PregenChunkRetention retention;
     private final PregenMantleBackpressure backpressure;
 
@@ -186,10 +181,6 @@ public class AsyncPregenMethod implements PregeneratorMethod {
         this.regionPending = new ConcurrentHashMap<>();
         this.regionChunks = new ConcurrentHashMap<>();
         this.pendingEvictions = new ConcurrentLinkedQueue<>();
-        this.boundsMinRegionX = Integer.MIN_VALUE;
-        this.boundsMinRegionZ = Integer.MIN_VALUE;
-        this.boundsMaxRegionX = Integer.MAX_VALUE;
-        this.boundsMaxRegionZ = Integer.MAX_VALUE;
         this.adaptiveInFlightLimit = new AtomicInteger(computeInitialInFlightLimit(
                 this.threads,
                 this.effectiveWorkerThreads));
@@ -276,10 +267,6 @@ public class AsyncPregenMethod implements PregeneratorMethod {
 
     @Override
     public void onRegionBounds(int minRegionX, int minRegionZ, int maxRegionX, int maxRegionZ) {
-        boundsMinRegionX = minRegionX;
-        boundsMinRegionZ = minRegionZ;
-        boundsMaxRegionX = maxRegionX;
-        boundsMaxRegionZ = maxRegionZ;
         retention = createRetention(minRegionX, minRegionZ, maxRegionX, maxRegionZ);
     }
 
@@ -343,22 +330,9 @@ public class AsyncPregenMethod implements PregeneratorMethod {
     }
 
     @Override
-    public void onPregenStart(int centerBlockX, int centerBlockZ) {
-        Engine engine = resolveMetricsEngine();
-        if (engine == null || engine.getComplex() == null || engine.getComplex().getHydrologyRuntime() == null) {
-            return;
-        }
-        HydrologyTileCache.PregenerationArea area = new HydrologyTileCache.PregenerationArea(
-                centerBlockX, centerBlockZ,
-                (long) boundsMinRegionX * 512L,
-                (long) boundsMinRegionZ * 512L,
-                ((long) boundsMaxRegionX + 1L) * 512L - 1L,
-                ((long) boundsMaxRegionZ + 1L) * 512L - 1L);
-        HydrologyTileCache.PregenerationScope scope = engine.getComplex().getHydrologyRuntime().preparePregeneration(area);
-        hydrologyPrefetchScope = scope;
-        if (closing.get()) {
-            scope.close();
-            hydrologyPrefetchScope = null;
+    public void onRegionsAhead(List<long[]> regions) {
+        if (!closing.get()) {
+            hydrology.prepare(regions);
         }
     }
 
@@ -895,6 +869,7 @@ public class AsyncPregenMethod implements PregeneratorMethod {
     @Override
     public void close() {
         closing.set(true);
+        hydrology.close();
         admission.wake();
 
         // A stop request interrupts the pregen worker; shield the drain and flush so chunks still hit disk.
@@ -920,22 +895,14 @@ public class AsyncPregenMethod implements PregeneratorMethod {
             executor.shutdown();
         } finally {
             try {
-                HydrologyTileCache.PregenerationScope scope = hydrologyPrefetchScope;
-                if (scope != null) {
-                    scope.close();
-                    hydrologyPrefetchScope = null;
+                synchronized (this) {
+                    if (holdsWorkerBoost.compareAndSet(true, false)) {
+                        releaseWorkerThreadBoost();
+                    }
                 }
             } finally {
-                try {
-                    synchronized (this) {
-                        if (holdsWorkerBoost.compareAndSet(true, false)) {
-                            releaseWorkerThreadBoost();
-                        }
-                    }
-                } finally {
-                    if (interrupted) {
-                        Thread.currentThread().interrupt();
-                    }
+                if (interrupted) {
+                    Thread.currentThread().interrupt();
                 }
             }
         }

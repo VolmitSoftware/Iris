@@ -30,9 +30,11 @@ import art.arcane.iris.world.pregen.PregenApiSink;
 import art.arcane.iris.world.pregen.PregenListener;
 import art.arcane.iris.world.pregen.PregenPhaseTracker;
 import art.arcane.iris.world.pregen.PregenRates;
+import art.arcane.iris.world.pregen.PregenSavedChunkStatus;
 import art.arcane.iris.world.pregen.PregenTask;
 import art.arcane.iris.world.pregen.PregeneratorMethod;
 import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.world.IrisWorld;
 import art.arcane.iris.world.history.SavedBiomeUnavailableException;
 import art.arcane.volmlib.util.format.MemoryMonitor;
 import art.arcane.volmlib.util.mantle.runtime.Mantle;
@@ -40,6 +42,7 @@ import art.arcane.iris.world.task.J;
 
 import java.awt.Color;
 import java.awt.EventQueue;
+import java.io.File;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -96,7 +99,7 @@ public class PregeneratorJob implements PregenListener, PregenRenderSource {
         saving = new AtomicBoolean(false);
         stopRequested = new AtomicBoolean(false);
         this.task = task;
-        this.pregenerator = new IrisPregenerator(task, method, this);
+        this.pregenerator = new IrisPregenerator(task, method, this, savedChunks(engine));
         int[] chunkBounds = task.chunkBounds();
         bounds = new PregenRenderSnapshot.Bounds(chunkBounds[0], chunkBounds[1], chunkBounds[2], chunkBounds[3]);
         mapState = new PregenMapState(bounds);
@@ -626,6 +629,12 @@ public class PregeneratorJob implements PregenListener, PregenRenderSource {
         } catch (RuntimeException failure) {
             IrisLogging.reportError("Unable to draw the pregeneration preview for chunk " + x + "," + z + ".", failure);
         }
+    }
+
+    private static PregenSavedChunkStatus savedChunks(Engine engine) {
+        IrisWorld world = engine == null ? null : engine.getWorld();
+        File folder = world == null ? null : world.worldFolder();
+        return folder == null ? null : PregenSavedChunkStatus.fromWorld(folder.toPath());
     }
 
     public record Configuration(

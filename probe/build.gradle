@@ -17,7 +17,7 @@ dependencies {
     implementation(project(':core'))
     compileOnly(libs.spigot)
     testImplementation('junit:junit:4.13.2')
-    testImplementation('org.mockito:mockito-core:5.23.0')
+    testImplementation(libs.mockito.core)
     testImplementation(libs.gson)
     testImplementation(testFixtures(project(':core')))
     testImplementation('com.github.VolmitSoftware.VolmLib:volmlib-shared:master-SNAPSHOT') {
@@ -55,15 +55,6 @@ tasks.named('test').configure {
     dependsOn(':core:compileJava')
 }
 
-tasks.register('hydrologyProbe', JavaExec) {
-    group = 'verification'
-    description = 'Scans deterministic hydrology seeds and reports accepted feature coordinates plus cold and warm planner timings.'
-    mainClass = 'art.arcane.iris.probe.HydrologyPlannerProbe'
-    classpath = sourceSets.main.runtimeClasspath
-    jvmArgs('--add-modules', 'jdk.incubator.vector')
-    dependsOn(':core:compileJava')
-}
-
 Provider<String> probePack = providers.gradleProperty('probePack')
 Provider<String> probeDimension = providers.gradleProperty('probeDimension')
 Provider<String> probeWarmupChunks = providers.gradleProperty('probeWarmupChunks').orElse('256')
@@ -74,11 +65,6 @@ Provider<String> probeMulticore = providers.gradleProperty('probeMulticore').orE
 Provider<String> probeStudio = providers.gradleProperty('probeStudio').orElse('false')
 Provider<String> explicitProbeMulticore = providers.gradleProperty('probeMulticore')
 Provider<String> explicitProbeStudio = providers.gradleProperty('probeStudio')
-Provider<String> probeSeeds = providers.gradleProperty('probeSeeds')
-Provider<String> probeMinimumTileX = providers.gradleProperty('probeMinimumTileX')
-Provider<String> probeMaximumTileX = providers.gradleProperty('probeMaximumTileX')
-Provider<String> probeMinimumTileZ = providers.gradleProperty('probeMinimumTileZ')
-Provider<String> probeMaximumTileZ = providers.gradleProperty('probeMaximumTileZ')
 Provider<String> probeRequiredCoverage = providers.gradleProperty('probeRequiredCoverage')
 Provider<String> probeSeed = providers.gradleProperty('probeSeed')
 Provider<String> probeMinimumChunkX = providers.gradleProperty('probeMinimumChunkX')
@@ -88,17 +74,71 @@ Provider<String> probeMaximumChunkZ = providers.gradleProperty('probeMaximumChun
 Provider<String> probeParallelism = providers.gradleProperty('probeParallelism')
 Provider<String> probeShuffleSeed = providers.gradleProperty('probeShuffleSeed')
 Provider<String> probeJfr = providers.gradleProperty('probeJfr')
-Provider<String> probeTileX = providers.gradleProperty('probeTileX')
-Provider<String> probeTileZ = providers.gradleProperty('probeTileZ')
 Provider<String> probeOutput = providers.gradleProperty('probeOutput')
 Provider<String> probeStrictGeometry = providers.gradleProperty('probeStrictGeometry').orElse('false')
+Provider<String> probeWindows = providers.gradleProperty('probeWindows')
+
+tasks.register('hydrologyProbe', JavaExec) {
+    group = 'verification'
+    description = 'Plans hydrology over a window range of a real pack and reports cold first-chunk latency, plan cost, yield, containment, rising water, seams and fluid-tick checks per window.'
+    mainClass = 'art.arcane.iris.probe.HydrologyProbe'
+    classpath = sourceSets.main.runtimeClasspath
+    jvmArgs('--add-modules', 'jdk.incubator.vector')
+    minHeapSize = '2g'
+    maxHeapSize = '6g'
+    dependsOn(':core:compileJava')
+    doFirst {
+        Map<String, Provider<String>> required = [
+            probePack: probePack,
+            probeSeed: probeSeed,
+            probeWindows: probeWindows
+        ]
+        required.each { String name, Provider<String> value ->
+            if (!value.isPresent() || value.get().isBlank()) {
+                throw new GradleException("hydrologyProbe requires -P${name}=<value>")
+            }
+        }
+        args(probePack.get(), probeDimension.getOrElse('-'), probeSeed.get(), probeWindows.get(),
+            providers.gradleProperty('probeThreads').getOrElse('8'), probeStudio.get())
+    }
+}
+
+tasks.register('riverTransectProbe', JavaExec) {
+    group = 'verification'
+    description = 'Plans hydrology over a window range of a real pack and renders each window as a plan, river cross-sections and pond outlines.'
+    mainClass = 'art.arcane.iris.probe.RiverTransectProbe'
+    classpath = sourceSets.main.runtimeClasspath
+    jvmArgs('--add-modules', 'jdk.incubator.vector', '-Djava.awt.headless=true')
+    minHeapSize = '2g'
+    maxHeapSize = '6g'
+    dependsOn(':core:compileJava')
+    doFirst {
+        Map<String, Provider<String>> required = [
+            probePack: probePack,
+            probeSeed: probeSeed,
+            probeWindows: probeWindows,
+            probeOutput: probeOutput
+        ]
+        required.each { String name, Provider<String> value ->
+            if (!value.isPresent() || value.get().isBlank()) {
+                throw new GradleException("riverTransectProbe requires -P${name}=<value>")
+            }
+        }
+        java.nio.file.Path output = new File(probeOutput.get()).canonicalFile.toPath()
+        if (output.startsWith(rootProject.projectDir.canonicalFile.toPath())) {
+            throw new GradleException('probeOutput must point outside the repository')
+        }
+        args(probePack.get(), probeDimension.getOrElse('-'), probeSeed.get(), probeWindows.get(), output.toString(), probeStudio.get())
+    }
+}
 
 tasks.register('hydrologyBlockProbe', JavaExec) {
     group = 'verification'
-    description = 'Generates up to 64 real pack chunks and checks final cane support, channel fluid and mouth ocean connectivity, with block category images.'
+    description = 'Generates up to 64 real pack chunks and checks the planned water surface, containment, fluid-tick stability and cane support, with block images.'
     mainClass = 'art.arcane.iris.probe.HydrologyBlockProbe'
     classpath = sourceSets.main.runtimeClasspath
     jvmArgs('--add-modules', 'jdk.incubator.vector', '-Djava.awt.headless=true')
+    maxHeapSize = '4g'
     dependsOn(':core:compileJava')
     doFirst {
         Map<String, Provider<String>> required = [
@@ -109,7 +149,6 @@ tasks.register('hydrologyBlockProbe', JavaExec) {
             probeMaximumChunkX: probeMaximumChunkX,
             probeMinimumChunkZ: probeMinimumChunkZ,
             probeMaximumChunkZ: probeMaximumChunkZ,
-            probeRequiredCoverage: probeRequiredCoverage,
             probeOutput: probeOutput
         ]
         required.each { String name, Provider<String> value ->
@@ -117,9 +156,12 @@ tasks.register('hydrologyBlockProbe', JavaExec) {
                 throw new GradleException("hydrologyBlockProbe requires -P${name}=<value>")
             }
         }
-        args(probePack.get(), probeDimension.get(), probeSeed.get(), probeMinimumChunkX.get(),
-            probeMaximumChunkX.get(), probeMinimumChunkZ.get(), probeMaximumChunkZ.get(),
-            probeRequiredCoverage.get(), probeOutput.get(), probeStudio.get())
+        java.nio.file.Path output = new File(probeOutput.get()).canonicalFile.toPath()
+        if (output.startsWith(rootProject.projectDir.canonicalFile.toPath())) {
+            throw new GradleException('probeOutput must point outside the repository')
+        }
+        args(probePack.get(), probeDimension.get(), probeSeed.get(), probeMinimumChunkX.get(), probeMaximumChunkX.get(),
+            probeMinimumChunkZ.get(), probeMaximumChunkZ.get(), probeRequiredCoverage.getOrElse('-'), output.toString(), probeStudio.get())
     }
 }
 
@@ -237,43 +279,6 @@ tasks.register('genDiff', JavaExec) {
     }
 }
 
-tasks.register('hydrologyPackProbe', JavaExec) {
-    group = 'verification'
-    description = 'Scans explicitly bounded real-pack hydrology tiles across multiple engine seeds and enforces accepted feature/profile coverage.'
-    mainClass = 'art.arcane.iris.probe.HydrologyPackProbe'
-    classpath = sourceSets.main.runtimeClasspath
-    jvmArgs('--add-modules', 'jdk.incubator.vector')
-    dependsOn(':core:compileJava')
-    doFirst {
-        Map<String, Provider<String>> required = [
-            probePack: probePack,
-            probeDimension: probeDimension,
-            probeSeeds: probeSeeds,
-            probeMinimumTileX: probeMinimumTileX,
-            probeMaximumTileX: probeMaximumTileX,
-            probeMinimumTileZ: probeMinimumTileZ,
-            probeMaximumTileZ: probeMaximumTileZ,
-            probeRequiredCoverage: probeRequiredCoverage,
-            probeStudio: explicitProbeStudio
-        ]
-        required.each { String name, Provider<String> value ->
-            if (!value.isPresent() || value.get().isBlank()) {
-                throw new GradleException("hydrologyPackProbe requires -P${name}=<value>")
-            }
-        }
-        args(
-            probePack.get(),
-            probeDimension.get(),
-            probeSeeds.get(),
-            probeMinimumTileX.get(),
-            probeMaximumTileX.get(),
-            probeMinimumTileZ.get(),
-            probeMaximumTileZ.get(),
-            probeRequiredCoverage.get(),
-            explicitProbeStudio.get())
-    }
-}
-
 tasks.register('generationOrderProbe', JavaExec) {
     group = 'verification'
     description = 'Compares complete real-pack chunk block and biome hashes across forward, reverse, shuffled and bounded-parallel generation orders.'
@@ -315,35 +320,58 @@ tasks.register('generationOrderProbe', JavaExec) {
     }
 }
 
-tasks.register('riverTransectProbe', JavaExec) {
+tasks.register('cavePoolProbe', JavaExec) {
     group = 'verification'
-    description = 'Plans one hydrology tile over a real pack and renders every surface river as a plan, cross-sections and a summary with ocean-write and containment gates.'
-    mainClass = 'art.arcane.iris.probe.RiverTransectProbe'
+    description = 'Generates real pack chunks with cave pools and reports containment, pool sizes and generation-order hashes.'
+    mainClass = 'art.arcane.iris.probe.CavePoolProbe'
     classpath = sourceSets.main.runtimeClasspath
-    jvmArgs('--add-modules', 'jdk.incubator.vector', '-Djava.awt.headless=true')
+    jvmArgs('--add-modules', 'jdk.incubator.vector')
+    minHeapSize = '2g'
+    maxHeapSize = '8g'
     dependsOn(':core:compileJava')
     doFirst {
+        Provider<String> threads = providers.gradleProperty('probeThreads').orElse('8')
+        Provider<String> work = providers.gradleProperty('probeWork').orElse(System.getProperty('java.io.tmpdir'))
         Map<String, Provider<String>> required = [
             probePack: probePack,
             probeDimension: probeDimension,
             probeSeed: probeSeed,
-            probeTileX: probeTileX,
-            probeTileZ: probeTileZ,
-            probeOutput: probeOutput
+            probeMinimumChunkX: probeMinimumChunkX,
+            probeMaximumChunkX: probeMaximumChunkX,
+            probeMinimumChunkZ: probeMinimumChunkZ,
+            probeMaximumChunkZ: probeMaximumChunkZ
         ]
         required.each { String name, Provider<String> value ->
             if (!value.isPresent() || value.get().isBlank()) {
-                throw new GradleException("riverTransectProbe requires -P${name}=<value>")
+                throw new GradleException("cavePoolProbe requires -P${name}=<value>")
             }
         }
-        args(
-            probePack.get(),
-            probeDimension.get(),
-            probeSeed.get(),
-            probeTileX.get(),
-            probeTileZ.get(),
-            probeOutput.get(),
-            probeStudio.get())
+        args(probePack.get(), probeDimension.get(), probeSeed.get(), probeMinimumChunkX.get(), probeMaximumChunkX.get(),
+            probeMinimumChunkZ.get(), probeMaximumChunkZ.get(), threads.get(), work.get())
+    }
+}
+
+tasks.register('seaInletProbe', JavaExec) {
+    group = 'verification'
+    description = 'Plans and generates real pack chunks with and without sea inlets and reports containment, seal, roof, sea level, ocean connection and order determinism.'
+    mainClass = 'art.arcane.iris.probe.SeaInletProbe'
+    classpath = sourceSets.main.runtimeClasspath
+    jvmArgs('--add-modules', 'jdk.incubator.vector', '-Djava.awt.headless=true')
+    minHeapSize = '2g'
+    maxHeapSize = '8g'
+    dependsOn(':core:compileJava')
+    doFirst {
+        Provider<String> packOff = providers.gradleProperty('probePackOff')
+        Provider<String> windows = providers.gradleProperty('probeWindows')
+        Provider<String> mode = providers.gradleProperty('probeMode').orElse('gate')
+        if (!probePack.isPresent() || !packOff.isPresent() || !probeDimension.isPresent() || !windows.isPresent() || !probeOutput.isPresent()) {
+            throw new GradleException('seaInletProbe requires probePack, probePackOff, probeDimension, probeWindows=x0..x1,z0..z1 and probeOutput')
+        }
+        String[] axes = windows.get().split(',')
+        String[] xs = axes[0].split('\\.\\.')
+        String[] zs = axes[1].split('\\.\\.')
+        args(probePack.get(), packOff.get(), probeDimension.get(), probeSeed.orElse('1337').get(), xs[0], xs[1], zs[0], zs[1], mode.get(),
+            probeOutput.get(), providers.gradleProperty('probeThreads').orElse('6').get())
     }
 }
 
@@ -371,7 +399,8 @@ tasks.register('transitionProbe', JavaExec) {
     }
 }
 
-['transitionProbe', 'hydrologyProbe', 'genProbe', 'hydrologyPackProbe', 'generationOrderProbe', 'riverTransectProbe', 'terrain3DProbe', 'hydrologyBlockProbe'].each { String taskName ->
+['transitionProbe', 'hydrologyProbe', 'genProbe', 'generationOrderProbe', 'riverTransectProbe', 'terrain3DProbe',
+ 'hydrologyBlockProbe', 'cavePoolProbe', 'seaInletProbe'].each { String taskName ->
     tasks.named(taskName, JavaExec).configure { JavaExec task ->
         classpath += configurations.studioProbeApi
         doFirst {

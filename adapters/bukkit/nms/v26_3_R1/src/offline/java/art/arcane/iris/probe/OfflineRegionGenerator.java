@@ -2,8 +2,9 @@ package art.arcane.iris.probe;
 
 import art.arcane.iris.configuration.IrisSettings;
 import art.arcane.iris.generation.concurrent.MultiBurst;
-import art.arcane.iris.generation.hydrology.HydrologyTileCache;
-import art.arcane.iris.generation.hydrology.runtime.IrisHydrologyRuntime;
+import art.arcane.iris.generation.hydrology.engine.HydrologyPregeneration;
+import art.arcane.iris.generation.hydrology.plan.WindowKey;
+import art.arcane.iris.world.pregen.PregenHydrology;
 import art.arcane.iris.world.pregen.PregenPerformanceProfile;
 
 import net.minecraft.core.registries.Registries;
@@ -31,11 +32,16 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.security.MessageDigest;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 public final class OfflineRegionGenerator {
+    private static final int CHUNKS_PER_HYDROLOGY_REGION = WindowKey.SIZE >> 4;
+
     private OfflineRegionGenerator() {
     }
 
@@ -97,14 +103,13 @@ public final class OfflineRegionGenerator {
             PregenPerformanceProfile.apply(session.engine());
             System.out.println("generationProfile=pregen noiseCacheSize=" + IrisSettings.get().getPerformance().getNoiseCacheSize()
                     + " burstParallelism=" + MultiBurst.burst.parallelism() + " multicore=true");
-            IrisHydrologyRuntime hydrology = session.engine().getComplex().getHydrologyRuntime();
-            try (HydrologyTileCache.PregenerationScope hydrologyScope = hydrology == null ? null
-                    : hydrology.preparePregeneration(configuration.hydrologyArea());
+            try (HydrologyPregeneration pregeneration = PregenHydrology.open(session.engine());
                  HeadlessTerrainContext context = HeadlessTerrainContext.create(new HeadlessTerrainContext.Options(
                     session.engine(), runtime, staged.resolve("templates"), configuration.levelKey(),
                     configuration.noiseSettings(), spigot));
                  RegionGenerationWindow workers = new RegionGenerationWindow(configuration.parallelism(),
                          RegionGenerationWindow.Policy.STANDALONE)) {
+                PregenHydrology.prepareAll(pregeneration, configuration.hydrologyRegions());
                 HeadlessRegionTerrain.Session rolling = new HeadlessRegionTerrain.Session(workers);
                 Path regionDirectory = session.engine().getTarget().getWorld().worldFolder().toPath().resolve("region");
                 Files.createDirectory(regionDirectory);
@@ -239,14 +244,27 @@ public final class OfflineRegionGenerator {
             }
         }
 
-        HydrologyTileCache.PregenerationArea hydrologyArea() {
+        List<long[]> hydrologyRegions() {
             int halo = NativeRegionPlan.terrainHalo();
-            long minimumX = ((long) chunkX - halo) * 16L;
-            long minimumZ = ((long) chunkZ - halo) * 16L;
-            long maximumX = ((long) chunkX + (long) width * regionsX + halo) * 16L - 1L;
-            long maximumZ = ((long) chunkZ + (long) width * regionsZ + halo) * 16L - 1L;
-            return new HydrologyTileCache.PregenerationArea(Math.toIntExact((minimumX + maximumX) / 2L),
-                    Math.toIntExact((minimumZ + maximumZ) / 2L), minimumX, minimumZ, maximumX, maximumZ);
+            Set<Long> seen = new HashSet<>();
+            List<long[]> regions = new ArrayList<>();
+            for (int row = 0; row < regionsZ; row++) {
+                for (int column = 0; column < regionsX; column++) {
+                    int regionX = row % 2 == 0 ? column : regionsX - column - 1;
+                    int minimumX = Math.floorDiv(chunkX + regionX * width - halo, CHUNKS_PER_HYDROLOGY_REGION);
+                    int maximumX = Math.floorDiv(chunkX + (regionX + 1) * width - 1 + halo, CHUNKS_PER_HYDROLOGY_REGION);
+                    int minimumZ = Math.floorDiv(chunkZ + row * width - halo, CHUNKS_PER_HYDROLOGY_REGION);
+                    int maximumZ = Math.floorDiv(chunkZ + (row + 1) * width - 1 + halo, CHUNKS_PER_HYDROLOGY_REGION);
+                    for (int hydrologyZ = minimumZ; hydrologyZ <= maximumZ; hydrologyZ++) {
+                        for (int hydrologyX = minimumX; hydrologyX <= maximumX; hydrologyX++) {
+                            if (seen.add(((long) hydrologyX << 32) | (hydrologyZ & 0xFFFFFFFFL))) {
+                                regions.add(new long[]{hydrologyX, hydrologyZ});
+                            }
+                        }
+                    }
+                }
+            }
+            return regions;
         }
 
         static Configuration parse(String[] arguments) throws IOException {

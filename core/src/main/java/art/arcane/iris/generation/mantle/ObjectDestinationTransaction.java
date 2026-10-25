@@ -3,9 +3,12 @@ package art.arcane.iris.generation.mantle;
 import art.arcane.iris.integration.Identifier;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.runtime.Engine;
-import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.decoration.tree.TreeBlockMaterial;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveCell;
+import art.arcane.iris.generation.hydrology.engine.HydrologyRuntime;
+import art.arcane.iris.generation.hydrology.raster.ChunkWaterRaster;
+import art.arcane.iris.generation.hydrology.raster.WaterRole;
+import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.subterrain.SubterrainRasterizer;
 import art.arcane.iris.generation.block.TileData;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
@@ -27,6 +30,7 @@ import java.util.Map;
 
 final class ObjectDestinationTransaction implements ObjectPassPlacer {
     private static final Object CLEARED = new Object();
+    private static final int[][] SIDES = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
 
     private final MantleWriter writer;
     private final int destinationChunkX;
@@ -36,15 +40,13 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
     private final List<PlacementRange> placements = new ArrayList<>();
     private final Long2ObjectOpenHashMap<Int2ObjectOpenHashMap<OverlayCell>> overlay;
     private BlockPosition canopyPosition;
-    private boolean hydrologyGateKnown;
-    private int hydrologyGateChunkX;
-    private int hydrologyGateChunkZ;
-    private boolean hydrologyGateOpen;
     private boolean subterrainKnown;
     private int subterrainX;
     private int subterrainY;
     private int subterrainZ;
     private boolean subterrainProtects;
+    private boolean hydrologyKnown;
+    private HydrologyRuntime hydrology;
 
     ObjectDestinationTransaction(MantleWriter writer, int destinationChunkX, int destinationChunkZ) {
         this.writer = writer;
@@ -189,7 +191,7 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
         String placementKey = state.deferredPlacementKey();
         NativeBlockState baseState = state.placementBaseState();
         if (state.isCustom() && placementKey != null && baseState != null) {
-            if (!canSetBlock(x, y, z)) {
+            if (!canSetBlock(x, y, z) || hydrologyKeeps(x, y, z, baseState.isSolid())) {
                 return;
             }
             Identifier identifier = Identifier.fromString(placementKey);
@@ -299,10 +301,10 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
                 || protectsSubterrain(x, y, z)) {
             return;
         }
-        if (data instanceof NativeBlockState && !canSetBlock(x, y, z)) {
+        if (data instanceof NativeBlockState state && (!canSetBlock(x, y, z) || hydrologyKeeps(x, y, z, state.isSolid()))) {
             return;
         }
-        if (data instanceof MatterCavern && hasProtectedHydrology(x, y, z)) {
+        if (data instanceof MatterCavern && (hasProtectedHydrology(x, y, z) || hydrologyKeeps(x, y, z, false))) {
             return;
         }
         Class<?> type = data instanceof NativeBlockState ? NativeBlockState.class : data.getClass();
@@ -411,6 +413,69 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
                 && !protectsSubterrain(x, y, z);
     }
 
+    private boolean hydrologyKeeps(int x, int y, int z, boolean holdsWater) {
+        HydrologyRuntime runtime = hydrology();
+        if (runtime == null) {
+            return false;
+        }
+        ChunkWaterRaster raster = runtime.raster(x >> 4, z >> 4);
+        if (raster.empty()) {
+            return false;
+        }
+        WaterRole role = raster.role(x & 15, z & 15);
+        if (role == WaterRole.INLET && y >= raster.waterHead(x & 15, z & 15) && y <= getEngine().getComplex().naturalTrueHeight(x, z)) {
+            return true;
+        }
+        if (role.wet()) {
+            int surface = raster.waterHead(x & 15, z & 15);
+            int fallTop = highestHead(runtime, raster, x, z);
+            if (fallTop > surface && y >= surface && y <= fallTop) {
+                return true;
+            }
+            return !holdsWater && y >= raster.terrainHeight(x & 15, z & 15) && y <= surface;
+        }
+        if (holdsWater || role == WaterRole.NONE) {
+            return false;
+        }
+        int head = Integer.MIN_VALUE;
+        int bed = Integer.MAX_VALUE;
+        for (int[] side : SIDES) {
+            int nx = x + side[0];
+            int nz = z + side[1];
+            ChunkWaterRaster neighbour = neighbour(runtime, raster, x, z, nx, nz);
+            if (neighbour.role(nx & 15, nz & 15).wet()) {
+                head = Math.max(head, neighbour.waterHead(nx & 15, nz & 15));
+                bed = Math.min(bed, neighbour.terrainHeight(nx & 15, nz & 15));
+            }
+        }
+        return y > bed && y <= head;
+    }
+
+    private static int highestHead(HydrologyRuntime runtime, ChunkWaterRaster raster, int x, int z) {
+        int top = Integer.MIN_VALUE;
+        for (int[] side : SIDES) {
+            int nx = x + side[0];
+            int nz = z + side[1];
+            top = Math.max(top, neighbour(runtime, raster, x, z, nx, nz).waterHead(nx & 15, nz & 15));
+        }
+        return top;
+    }
+
+    private static ChunkWaterRaster neighbour(HydrologyRuntime runtime, ChunkWaterRaster raster, int x, int z, int nx, int nz) {
+        return (nx >> 4) == (x >> 4) && (nz >> 4) == (z >> 4) ? raster : runtime.raster(nx >> 4, nz >> 4);
+    }
+
+    private HydrologyRuntime hydrology() {
+        if (!hydrologyKnown) {
+            Engine engine = getEngine();
+            IrisComplex complex = engine == null ? null : engine.getComplex();
+            HydrologyRuntime runtime = complex == null ? null : complex.getHydrologyRuntime();
+            hydrology = runtime != null && runtime.enabled() ? runtime : null;
+            hydrologyKnown = true;
+        }
+        return hydrology;
+    }
+
     private boolean protectsSubterrain(int x, int y, int z) {
         if (subterrainKnown && x == subterrainX && y == subterrainY && z == subterrainZ) {
             return subterrainProtects;
@@ -426,22 +491,8 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
     }
 
     private boolean hasProtectedHydrology(int x, int y, int z) {
-        if (!mayHoldHydrologyCells(x >> 4, z >> 4)) {
-            return false;
-        }
         HydrologyCaveCell hydrology = getDataIfPresent(x, y, z, HydrologyCaveCell.class);
         return hydrology != null && hydrology.protectsPlacement();
-    }
-
-    private boolean mayHoldHydrologyCells(int chunkX, int chunkZ) {
-        if (!hydrologyGateKnown || hydrologyGateChunkX != chunkX || hydrologyGateChunkZ != chunkZ) {
-            IrisComplex complex = writer.getEngine().getComplex();
-            hydrologyGateOpen = complex == null || complex.mayHoldHydrologyCells(chunkX, chunkZ);
-            hydrologyGateChunkX = chunkX;
-            hydrologyGateChunkZ = chunkZ;
-            hydrologyGateKnown = true;
-        }
-        return hydrologyGateOpen;
     }
 
     private final class CommitJournal {

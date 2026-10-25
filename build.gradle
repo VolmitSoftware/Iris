@@ -127,7 +127,7 @@ nmsBindings.each { String key ->
             compileOnly(rootProject.libs.annotations)
             compileOnly(rootProject.libs.byteBuddy.core)
             testImplementation('junit:junit:4.13.2')
-            testImplementation('org.mockito:mockito-core:5.23.0')
+            testImplementation(rootProject.libs.mockito.core)
             if (key == 'v26_3_R1') {
                 testImplementation(project(':probe'))
             }
@@ -586,11 +586,14 @@ allprojects {
         layout.buildDirectory.set(layout.projectDirectory.dir("build/${runtimeOutputVariant}"))
     }
 
+    apply from: rootProject.file('gradle/mockito-agent.gradle')
+
     tasks.withType(Test).configureEach {
         int moduleForks = project.path.startsWith(':adapters:bukkit:') ? Math.min(2, testForks)
             : project.path == ':probe' ? Math.min(4, testForks) : testForks
         maxParallelForks = Math.min(gradle.startParameter.maxWorkerCount, moduleForks)
         jvmArgs('-XX:ParallelGCThreads=2', '-XX:ConcGCThreads=1', '-XX:CICompilerCount=2')
+        timeout = java.time.Duration.ofMinutes(60)
     }
 
     java {

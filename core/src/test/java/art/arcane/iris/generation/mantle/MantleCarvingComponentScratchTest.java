@@ -1,6 +1,8 @@
 package art.arcane.iris.generation.mantle;
 
+import art.arcane.iris.generation.hydrology.engine.HydrologyRuntime;
 import art.arcane.iris.generation.runtime.IrisComplex;
+import art.arcane.iris.testsupport.FakeHydrology;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.EngineMetrics;
 import art.arcane.iris.generation.biome.IrisBiome;
@@ -52,8 +54,10 @@ public class MantleCarvingComponentScratchTest {
         when(engine.getDimension()).thenReturn(dimension);
         when(engine.getWorld()).thenReturn(mock(IrisWorld.class));
         when(engine.getMetrics()).thenReturn(new EngineMetrics(16));
+        HydrologyRuntime hydrology = FakeHydrology.disabled();
         IrisComplex complex = mock(IrisComplex.class);
         when(complex.allowsMantleChunkWrite(anyInt(), anyInt())).thenReturn(true);
+        when(complex.getHydrologyRuntime()).thenReturn(hydrology);
         ProceduralStream<Double> heights = mock(ProceduralStream.class);
         when(heights.getDouble(anyDouble(), anyDouble())).thenAnswer(invocation -> {
             double x = invocation.getArgument(0);
@@ -96,7 +100,7 @@ public class MantleCarvingComponentScratchTest {
             }
             return 0;
         }).when(carver).carve(any(), anyInt(), anyInt(), any(), anyDouble(), anyDouble(),
-                any(), any(), any(), any(), any());
+                any(), any(), any(), any(), any(), any());
 
         component.generateLayer(writer, 2, 2, context);
 
@@ -110,7 +114,7 @@ public class MantleCarvingComponentScratchTest {
         doAnswer(invocation -> {
             throw new IllegalStateException("Carving failed");
         }).when(carver).carve(any(), anyInt(), anyInt(), any(), anyDouble(), anyDouble(),
-                any(), any(), any(), any(), any());
+                any(), any(), any(), any(), any(), any());
         assertThrows(IllegalStateException.class, () -> component.generateLayer(writer, 2, 2, context));
         assertReleased();
     }

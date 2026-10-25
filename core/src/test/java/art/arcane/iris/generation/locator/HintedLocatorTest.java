@@ -16,20 +16,23 @@ import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.structure.object.IrisObjectPlacement;
 import art.arcane.iris.generation.terrain.IrisRegion;
-import art.arcane.iris.generation.hydrology.runtime.IrisHydrologyRuntime;
+import art.arcane.iris.generation.hydrology.config.IrisHydrologyPolicy;
 import art.arcane.iris.world.history.GenerationSemanticIndex;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
+import art.arcane.iris.testsupport.FakeHydrology;
 import art.arcane.iris.testsupport.PlatformLeakGuard;
 import art.arcane.volmlib.util.stream.ProceduralStream;
 import art.arcane.volmlib.util.stream.interpolation.Interpolated;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.Position2;
+import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import java.io.File;
 import java.nio.file.Files;
@@ -112,6 +115,13 @@ public class HintedLocatorTest {
         when(complex.allowsNewGenerationChunk(anyInt(), anyInt())).thenReturn(true);
         when(data.getBiomeLoader()).thenReturn(biomeLoader);
         when(dimension.getReachableBiomes(engine)).thenReturn(new KList<>());
+    }
+
+    @After
+    public void releaseMocks() {
+        for (Object mock : List.of(engine, dimension, complex, data, biomeLoader)) {
+            Mockito.framework().clearInlineMock(mock);
+        }
     }
 
     private static IrisBiome biome(String key) {
@@ -263,24 +273,25 @@ public class HintedLocatorTest {
     }
 
     @Test
-    public void surfaceBiomeLocatorFindsNarrowAcceptedBiomeAwayFromChunkCenter() {
+    public void surfaceBiomeLocatorFindsANarrowShoreBiomeAwayFromTheChunkCentre() {
         IrisBiome riverShore = biome("river_shore");
         IrisBiome plains = biome("plains");
-        IrisHydrologyRuntime hydrology = mock(IrisHydrologyRuntime.class);
-        when(engine.getSurfaceBiome(anyInt(), anyInt())).thenReturn(plains);
-        when(complex.getHydrologyRuntime()).thenReturn(hydrology);
-        when(hydrology.hasAcceptedSurfaceBiomeInChunk("river_shore", 0, 0)).thenReturn(true);
+        when(engine.getSurfaceBiome(anyInt(), anyInt())).thenAnswer(invocation ->
+                invocation.<Integer>getArgument(0) == 33 && invocation.<Integer>getArgument(1) == 5 ? riverShore : plains);
+        try (FakeHydrology hydrology = new FakeHydrology(() -> false, (x, z) -> 60, 40, 63)) {
+            when(complex.getHydrologyRuntime()).thenReturn(hydrology.runtime);
 
-        assertTrue(Locator.chunkContainsSurfaceBiome(
-                engine,
-                new Position2(0, 0),
-                riverShore.getLoadKey()
-        ));
-        assertFalse(Locator.chunkContainsSurfaceBiome(
-                engine,
-                new Position2(1, 0),
-                riverShore.getLoadKey()
-        ));
+            HydrologyShoreTargets placed = new HydrologyShoreTargets(Set.of(riverShore.getLoadKey()));
+            HydrologyShoreTargets unplaced = new HydrologyShoreTargets(Set.of(riverShore.getLoadKey()));
+            when(dimension.getHydrologyPolicy()).thenReturn(new IrisHydrologyPolicy().setShoreBiomes(keys(riverShore.getLoadKey())));
+            stubRegions();
+            stubBiome(riverShore);
+
+            assertTrue(Locator.chunkContainsSurfaceBiome(engine, new Position2(2, 0), riverShore.getLoadKey(), placed));
+            assertFalse(Locator.chunkContainsSurfaceBiome(engine, new Position2(8, 0), riverShore.getLoadKey(), placed));
+            when(dimension.getHydrologyPolicy()).thenReturn(null);
+            assertFalse(Locator.chunkContainsSurfaceBiome(engine, new Position2(2, 0), riverShore.getLoadKey(), unplaced));
+        }
     }
 
     @Test

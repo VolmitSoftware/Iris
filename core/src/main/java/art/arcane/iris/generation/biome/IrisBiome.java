@@ -26,7 +26,7 @@ import art.arcane.iris.generation.decoration.IrisDepositVariant;
 import art.arcane.iris.generation.decoration.IrisOreGenerator;
 import art.arcane.iris.generation.decoration.IrisOreBands;
 import art.arcane.iris.generation.decoration.IrisProceduralObjects;
-import art.arcane.iris.generation.hydrology.IrisRiverPolicy;
+import art.arcane.iris.generation.hydrology.config.IrisHydrologyPolicy;
 import art.arcane.iris.generation.noise.IrisGeneratorStyle;
 import art.arcane.iris.generation.noise.NoiseStyle;
 import art.arcane.iris.generation.terrain.InferredType;
@@ -161,8 +161,8 @@ public class IrisBiome extends IrisRegistrant implements Rarity {
     private int lockLayersMax = 7;
     @Description("Profile-driven 3D cave configuration")
     private IrisCaveProfile caveProfile = new IrisCaveProfile();
-    @Description("Biome-level river placement, routing, profile, biome, and geometry policy. Omit to inherit region and dimension settings.")
-    private IrisRiverPolicy riverPolicy = null;
+    @Description("Water settings for this biome: rainfall, pond density, where streams and ponds may form, and the fluid that fills them. A value left unset comes from the region, then from the dimension.")
+    private IrisHydrologyPolicy hydrologyPolicy = null;
     @MinNumber(1)
     @MaxNumber(512)
     @Description("The rarity of this biome (integer)")

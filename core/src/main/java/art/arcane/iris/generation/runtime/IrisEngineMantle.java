@@ -222,8 +222,7 @@ public class IrisEngineMantle implements EngineMantle {
             if (!getDimension().isCarvingEnabled()) {
                 disabled.addIfMissing(ReservedFlag.CARVED);
             }
-            if (disabled.contains(ReservedFlag.CARVED)
-                    || !isHydrologyEnabled(getDimension())) {
+            if (!isHydrologyEnabled(getDimension())) {
                 disabled.addIfMissing(ReservedFlag.RIVER_HYDROLOGY);
             }
             return Set.copyOf(disabled);

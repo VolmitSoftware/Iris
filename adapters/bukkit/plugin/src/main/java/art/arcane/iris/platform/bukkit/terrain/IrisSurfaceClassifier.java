@@ -1,8 +1,7 @@
 package art.arcane.iris.platform.bukkit.terrain;
 
 import art.arcane.iris.api.terrain.IrisSurfaceKind;
-import art.arcane.iris.generation.hydrology.HydrologyColumnLayer;
-import art.arcane.iris.generation.hydrology.HydrologyColumnSample;
+import art.arcane.iris.generation.hydrology.raster.WaterRole;
 import art.arcane.iris.generation.terrain.InferredType;
 
 public final class IrisSurfaceClassifier {
@@ -29,25 +28,16 @@ public final class IrisSurfaceClassifier {
             int engineSurfaceHeight,
             int engineFluidHeight,
             InferredType inferredType,
-            HydrologyColumnSample hydrology
+            WaterRole role
     ) {
         if (engineSurfaceHeight <= 0) {
             return IrisSurfaceKind.VOID;
         }
-        HydrologyColumnLayer layer = hydrology == null
-                ? null
-                : hydrology.primarySurfaceLayer().orElse(null);
-        if (layer != null) {
-            if (layer.shore()) {
-                return IrisSurfaceKind.RIVER_SHORE;
-            }
-            if (layer.channel()) {
-                return layer.connectedFluid() ? IrisSurfaceKind.RIVER : IrisSurfaceKind.DRY_CHANNEL;
-            }
-            if (layer.grading()) {
-                return IrisSurfaceKind.LAND;
-            }
-        }
-        return classify(engineSurfaceHeight, engineFluidHeight, inferredType);
+        return switch (role) {
+            case NONE -> classify(engineSurfaceHeight, engineFluidHeight, inferredType);
+            case SHORE, POND_SHORE -> IrisSurfaceKind.RIVER_SHORE;
+            case BANK, DAM -> IrisSurfaceKind.LAND;
+            case CHANNEL, POND, MOUTH, CASCADE, WATERFALL, INLET -> IrisSurfaceKind.RIVER;
+        };
     }
 }

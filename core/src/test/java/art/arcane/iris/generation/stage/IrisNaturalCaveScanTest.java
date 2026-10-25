@@ -242,7 +242,7 @@ public class IrisNaturalCaveScanTest {
         fixture.transform();
         doReturn(true).when(fixture.complex).hasTerrain3D();
         Terrain3DColumn natural = Terrain3DColumn.fromOccupancy(31, 32, y -> y < 4 || y > 8);
-        doReturn(natural).when(fixture.complex).terrainColumn(anyInt(), anyInt(), any());
+        doReturn(natural).when(fixture.complex).naturalTerrainColumn(anyInt(), anyInt());
         fixture.modifier.decorateNaturalCaves(-32, 48, fixture.cavity(), null);
         assertTrue(fixture.calls.isEmpty());
         assertTrue(fixture.markers.isEmpty());
@@ -253,7 +253,7 @@ public class IrisNaturalCaveScanTest {
         Fixture fixture = new Fixture();
         Terrain3DColumn natural = Terrain3DColumn.fromOccupancy(31, 32, y -> y <= 5 || y >= 12);
         Terrain3DColumn blended = Terrain3DColumn.fromOccupancy(31, 32, y -> y < 4 || y > 8);
-        doReturn(natural).when(fixture.complex).terrainColumn(anyInt(), anyInt(), any());
+        doReturn(natural).when(fixture.complex).naturalTerrainColumn(anyInt(), anyInt());
         ChunkContext context = mock(ChunkContext.class);
         doReturn(new ChunkContext.TransitionTerrainColumn(blended, 31))
                 .when(context).getTransitionTerrain(0, 0);
@@ -269,7 +269,7 @@ public class IrisNaturalCaveScanTest {
         Fixture fixture = new Fixture();
         Terrain3DColumn natural = Terrain3DColumn.fromOccupancy(31, 32, y -> y <= 18 || y >= 25);
         Terrain3DColumn blended = Terrain3DColumn.fromOccupancy(31, 32, y -> y < 4 || y > 8);
-        doReturn(natural).when(fixture.complex).terrainColumn(anyInt(), anyInt(), any());
+        doReturn(natural).when(fixture.complex).naturalTerrainColumn(anyInt(), anyInt());
         ChunkContext context = mock(ChunkContext.class);
         doReturn(new ChunkContext.TransitionTerrainColumn(blended, 31))
                 .when(context).getTransitionTerrain(0, 0);

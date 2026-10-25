@@ -138,7 +138,7 @@ public class IrisCaveCarver3DCellKernelTest {
                 for (int index = 0; index < carvers.length; index++) {
                     carved += carvers[index].carve(writer, chunkX, chunkZ, scenario.weights(index, chunkX, chunkZ),
                             0.08D, 0.24D, scenario.worldYRange(), scenario.surfaceHeights(chunkX, chunkZ),
-                            scenario.boundaries(chunkX, chunkZ), null, supportPlan);
+                            scenario.boundaries(chunkX, chunkZ), null, null, supportPlan);
                 }
                 capture.resolving = true;
                 supportPlan.resolve(writer.acquireChunk(chunkX, chunkZ));

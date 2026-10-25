@@ -3,11 +3,8 @@ package art.arcane.iris.generation.stage;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.context.ChunkContext;
 import art.arcane.iris.generation.context.ChunkedDataCache;
-import art.arcane.iris.generation.hydrology.HydrologyColumnLayer;
-import art.arcane.iris.generation.hydrology.HydrologyColumnSample;
-import art.arcane.iris.generation.hydrology.HydrologyFeatureRef;
-import art.arcane.iris.generation.hydrology.HydrologyFeatureType;
-import art.arcane.iris.generation.hydrology.IrisHydrology;
+import art.arcane.iris.generation.hydrology.config.IrisHydrologyMaterials;
+import art.arcane.iris.generation.hydrology.raster.WaterRole;
 import art.arcane.iris.generation.image.IrisImageMapRuntime;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.IrisComplex;
@@ -43,7 +40,7 @@ public class IrisTerrainNormalActuatorStrataCutTest {
 
     @Test
     public void exposedBankCutDeeperThanThePaletteShowsTheDeepestAuthoredLayer() {
-        Fixture fixture = new Fixture();
+        Fixture fixture = new Fixture(WaterRole.BANK);
 
         Hunk<NativeBlockState> output = fixture.actuate();
 
@@ -53,7 +50,7 @@ public class IrisTerrainNormalActuatorStrataCutTest {
 
     @Test
     public void exposedBankBelowTheAuthoredSoilStillFallsThroughToRock() {
-        Fixture fixture = new Fixture();
+        Fixture fixture = new Fixture(WaterRole.BANK);
 
         Hunk<NativeBlockState> output = fixture.actuate();
 
@@ -62,11 +59,51 @@ public class IrisTerrainNormalActuatorStrataCutTest {
 
     @Test
     public void uncutColumnsKeepTheirExactPaletteDepths() {
-        Fixture fixture = new Fixture();
+        Fixture fixture = new Fixture(WaterRole.BANK);
 
         Hunk<NativeBlockState> output = fixture.actuate();
 
         assertBlock(fixture.grass, output.get(0, 60, 0));
+        assertBlock(fixture.dirt, output.get(0, 59, 0));
+        assertBlock(fixture.rock, output.get(0, 58, 0));
+    }
+
+    @Test
+    public void everyDryWaterRoleExposesItsCutStrata() {
+        for (WaterRole role : List.of(WaterRole.BANK, WaterRole.SHORE, WaterRole.POND_SHORE, WaterRole.DAM)) {
+            Fixture fixture = new Fixture(role);
+
+            Hunk<NativeBlockState> output = fixture.actuate();
+
+            assertBlock(fixture.dirt, output.get(0, 40, 0));
+            assertBlock(fixture.dirt, output.get(0, 39, 0));
+            assertBlock(fixture.rock, output.get(0, 38, 0));
+        }
+    }
+
+    @Test
+    public void wetAndNaturalColumnsKeepTheirPaletteAtTheCut() {
+        for (WaterRole role : List.of(WaterRole.NONE, WaterRole.CHANNEL, WaterRole.POND)) {
+            Fixture fixture = new Fixture(role);
+
+            Hunk<NativeBlockState> output = fixture.actuate();
+
+            assertBlock(fixture.grass, output.get(0, 40, 0));
+            assertBlock(fixture.dirt, output.get(0, 39, 0));
+            assertBlock(fixture.rock, output.get(0, 38, 0));
+        }
+    }
+
+    @Test
+    public void aSolidCutBankMeasuresItsCutFromTheNaturalHeight() {
+        Fixture fixture = new Fixture(WaterRole.BANK);
+        when(fixture.complex.terrainColumn(11, -4)).thenReturn(null);
+        when(fixture.complex.naturalTerrainColumn(11, -4)).thenReturn(null);
+        when(fixture.complex.naturalTrueHeight(11, -4)).thenReturn(62);
+
+        Hunk<NativeBlockState> output = fixture.actuate();
+
+        assertBlock(fixture.dirt, output.get(0, 60, 0));
         assertBlock(fixture.dirt, output.get(0, 59, 0));
         assertBlock(fixture.rock, output.get(0, 58, 0));
     }
@@ -104,27 +141,22 @@ public class IrisTerrainNormalActuatorStrataCutTest {
     }
 
     /**
-     * A bank column whose upper span is untouched (cut 0) and whose lower span lost four blocks to
+     * A column whose upper span is untouched (cut 0) and whose lower span lost four blocks to
      * erosion, over a two block soil palette.
      */
     private static final class Fixture {
-        private final NativeBlockState rock = mock(NativeBlockState.class);
-        private final NativeBlockState grass = mock(NativeBlockState.class);
-        private final NativeBlockState dirt = mock(NativeBlockState.class);
+        private final NativeBlockState rock = state("minecraft:stone");
+        private final NativeBlockState grass = state("minecraft:grass_block");
+        private final NativeBlockState dirt = state("minecraft:dirt");
         private final Engine engine = mock(Engine.class);
         private final ChunkContext context = mock(ChunkContext.class);
+        private final IrisComplex complex = mock(IrisComplex.class);
 
-        private Fixture() {
-            when(rock.key()).thenReturn("minecraft:stone");
-            when(grass.key()).thenReturn("minecraft:grass_block");
-            when(dirt.key()).thenReturn("minecraft:dirt");
-
-            IrisComplex complex = mock(IrisComplex.class);
+        private Fixture(WaterRole role) {
             IrisData data = mock(IrisData.class);
             IrisBiome biome = mock(IrisBiome.class);
             IrisRegion region = new IrisRegion();
             IrisDimension dimension = new IrisDimension()
-                    .setHydrology(new IrisHydrology())
                     .setBedrock(false)
                     .setHideOresForHiddenOre(true);
             when(engine.getDimension()).thenReturn(dimension);
@@ -132,9 +164,9 @@ public class IrisTerrainNormalActuatorStrataCutTest {
             when(engine.getData()).thenReturn(data);
             when(engine.getSeedManager()).thenReturn(mock(SeedManager.class));
             when(complex.getImageMapRuntime()).thenReturn(mock(IrisImageMapRuntime.class));
-            when(complex.getRiverWaterSurfaceStream()).thenReturn(ProceduralStream.ofDouble((x, z) -> 0D));
-            when(complex.sampleHydrologyColumn(11, -4)).thenReturn(new HydrologyColumnSample(
-                    11, -4, 80, 0, false, "parent", List.of(bankLayer())));
+            when(complex.getWaterHeadStream()).thenReturn(ProceduralStream.ofDouble((x, z) -> 0D));
+            when(complex.getWaterRoleStream()).thenReturn(ProceduralStream.of((x, z) -> role, Interpolated.of(value -> 0D, value -> role)));
+            when(complex.resolveWaterMaterials(11, -4)).thenReturn(new IrisHydrologyMaterials());
 
             Terrain3DColumn carved = mock(Terrain3DColumn.class);
             when(carved.spanCount()).thenReturn(2);
@@ -145,7 +177,7 @@ public class IrisTerrainNormalActuatorStrataCutTest {
             Terrain3DColumn natural = mock(Terrain3DColumn.class);
             when(natural.surfaceY(60)).thenReturn(60);
             when(natural.surfaceY(40)).thenReturn(44);
-            when(complex.terrainColumn(eq(11), eq(-4), any(HydrologyColumnSample.class))).thenReturn(carved);
+            when(complex.terrainColumn(11, -4)).thenReturn(carved);
             when(complex.naturalTerrainColumn(11, -4)).thenReturn(natural);
 
             when(context.getRoundedHeight(0, 0)).thenReturn(60);
@@ -170,27 +202,9 @@ public class IrisTerrainNormalActuatorStrataCutTest {
         }
     }
 
-    private static HydrologyColumnLayer bankLayer() {
-        return new HydrologyColumnLayer(
-                new HydrologyFeatureRef(21L, HydrologyFeatureType.RIFFLE, 22L, 23L, 11, 63, -4, 1, 0, false),
-                60,
-                63,
-                63,
-                false,
-                false,
-                true,
-                false,
-                false,
-                false,
-                true,
-                false,
-                false,
-                "default",
-                "river",
-                "mouth",
-                "shore",
-                "bank",
-                "cave"
-        );
+    private static NativeBlockState state(String key) {
+        NativeBlockState state = mock(NativeBlockState.class);
+        when(state.key()).thenReturn(key);
+        return state;
     }
 }

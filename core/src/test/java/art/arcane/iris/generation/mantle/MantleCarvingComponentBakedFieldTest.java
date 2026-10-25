@@ -8,7 +8,9 @@ import art.arcane.iris.generation.cave.IrisCaveProfile;
 import art.arcane.iris.generation.context.ChunkContext;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.EngineMetrics;
+import art.arcane.iris.generation.hydrology.engine.HydrologyRuntime;
 import art.arcane.iris.generation.runtime.IrisComplex;
+import art.arcane.iris.testsupport.FakeHydrology;
 import art.arcane.iris.generation.stream.BakedDoubleStream;
 import art.arcane.iris.generation.stream.BakedStream;
 import art.arcane.iris.generation.terrain.IrisDimension;
@@ -109,8 +111,10 @@ public class MantleCarvingComponentBakedFieldTest {
         when(engine.getDimension()).thenReturn(dimension);
         when(engine.getWorld()).thenReturn(IrisWorld.builder().minHeight(0).maxHeight(128).build());
         when(engine.getMetrics()).thenReturn(new EngineMetrics(16));
+        HydrologyRuntime hydrology = FakeHydrology.disabled();
         IrisComplex complex = mock(IrisComplex.class);
         when(complex.allowsMantleChunkWrite(anyInt(), anyInt())).thenReturn(true);
+        when(complex.getHydrologyRuntime()).thenReturn(hydrology);
         when(complex.getFluidHeight()).thenReturn(FLUID_HEIGHT);
 
         ProceduralStream<Double> heights = mock(ProceduralStream.class);
@@ -158,7 +162,7 @@ public class MantleCarvingComponentBakedFieldTest {
                         + " boundaries=" + Arrays.toString((long[]) call.getArgument(8)));
                 return 0;
             }).when(carver).carve(any(), anyInt(), anyInt(), any(), anyDouble(), anyDouble(),
-                    any(), any(), any(), any(), any());
+                    any(), any(), any(), any(), any(), any());
             carvers.put(profiles[index], carver);
         }
         Field profileCarvers = MantleCarvingComponent.class.getDeclaredField("profileCarvers");

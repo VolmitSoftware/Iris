@@ -24,6 +24,9 @@ import art.arcane.iris.generation.mantle.EngineMantle;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.generation.decoration.IrisProceduralBlocks;
+import art.arcane.iris.generation.hydrology.cave.HydrologyCaveCell;
+import art.arcane.iris.generation.hydrology.cave.HydrologyCaveStorage;
+import art.arcane.iris.generation.hydrology.raster.WaterRole;
 import art.arcane.iris.generation.terrain.IrisSlopeClip;
 import art.arcane.iris.generation.block.BoundBlockState;
 import art.arcane.iris.generation.context.ChunkContext;
@@ -54,7 +57,7 @@ public class IrisPostModifier extends EngineAssignedModifier<NativeBlockState> {
         int depth = output.getDepth();
         int planeWidth = width + 2;
         int[] heights = heightPlane(x, z, width, depth, planeWidth);
-        boolean[] rivers = riverPlane(getComplex().getRiverCarveWeightStream(), x, z, width, depth);
+        boolean[] rivers = waterPlane(getComplex().getWaterRoleStream(), x, z, width, depth);
         IrisDimension dimension = getDimension();
         boolean walls = dimension.isPostProcessingWalls();
         boolean slabs = dimension.isPostProcessingSlabs();
@@ -67,7 +70,7 @@ public class IrisPostModifier extends EngineAssignedModifier<NativeBlockState> {
         getEngine().getMetrics().getPost().put(p.getMilliseconds());
     }
 
-    static boolean[] riverPlane(ProceduralStream<Double> carveWeights, int x, int z, int width, int depth) {
+    static boolean[] waterPlane(ProceduralStream<WaterRole> roles, int x, int z, int width, int depth) {
         int planeWidth = width + 2;
         boolean[] rivers = new boolean[planeWidth * (depth + 2)];
         for (int j = -1; j <= depth; j++) {
@@ -76,7 +79,7 @@ public class IrisPostModifier extends EngineAssignedModifier<NativeBlockState> {
             int to = edge ? width - 1 : width;
             int row = (j + 1) * planeWidth;
             for (int i = from; i <= to; i++) {
-                rivers[row + i + 1] = carveWeights.get(x + i, z + j) > 0D;
+                rivers[row + i + 1] = roles.get(x + i, z + j) != WaterRole.NONE;
             }
         }
         return rivers;
@@ -120,7 +123,7 @@ public class IrisPostModifier extends EngineAssignedModifier<NativeBlockState> {
         int hb = heights[center + planeWidth];
         int hc = heights[center - 1];
         int hd = heights[center - planeWidth];
-        int fluidHeight = (int) Math.round(getComplex().getRiverWaterSurfaceStream().get(x, z));
+        int fluidHeight = (int) Math.round(getComplex().getWaterHeadStream().get(x, z));
         boolean river = skipsHydrologyColumn(rivers, center, planeWidth);
 
         // Floating Nibs
@@ -349,11 +352,22 @@ public class IrisPostModifier extends EngineAssignedModifier<NativeBlockState> {
         return IrisProceduralBlocks.hasProperty(getPostBlock(x, y, z, originX, originZ, currentData), "level");
     }
 
+    private boolean protectedHydrology(int x, int y, int z) {
+        Engine engine = getEngine();
+        EngineMantle mantle = engine == null ? null : engine.getMantle();
+        if (mantle == null) {
+            return false;
+        }
+        HydrologyCaveCell cell = HydrologyCaveStorage.getIfPresent(mantle.getMantle(), x, y, z);
+        return cell != null && cell.protectsPlacement();
+    }
+
     public void setPostBlock(int x, int y, int z, NativeBlockState d, int originX, int originZ, Hunk<NativeBlockState> currentData) {
         int lx = x - originX;
         int lz = z - originZ;
 
-        if (lx < 0 || lz < 0 || lx >= currentData.getWidth() || lz >= currentData.getDepth() || y < 0 || y >= currentData.getHeight()) {
+        if (lx < 0 || lz < 0 || lx >= currentData.getWidth() || lz >= currentData.getDepth() || y < 0 || y >= currentData.getHeight()
+                || protectedHydrology(x, y, z)) {
             return;
         }
 

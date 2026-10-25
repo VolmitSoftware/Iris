@@ -68,7 +68,7 @@ public class TerrainPlacementQueryTest {
         ProceduralStream<Integer> heights = mock(ProceduralStream.class);
         when(heights.get(anyDouble(), anyDouble())).thenReturn(2);
         when(complex.getRoundedHeighteightStream()).thenReturn(heights);
-        when(complex.getRiverWaterSurfaceStream()).thenReturn(ProceduralStream.ofDouble((x, z) -> 5D));
+        when(complex.getWaterHeadStream()).thenReturn(ProceduralStream.ofDouble((x, z) -> 5D));
         Engine engine = mock(Engine.class);
         when(engine.getMinHeight()).thenReturn(-64);
         when(engine.getComplex()).thenReturn(complex);

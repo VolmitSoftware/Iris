@@ -35,6 +35,8 @@ import art.arcane.iris.world.task.J;
 import art.arcane.volmlib.util.scheduling.Looper;
 import art.arcane.volmlib.util.scheduling.PrecisionStopwatch;
 
+import java.io.UncheckedIOException;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
@@ -69,6 +71,7 @@ public class IrisPregenerator {
     private final AtomicLong startTime;
     private final AtomicReference<String> currentGeneratorMethod;
     private final KSet<Position2> generatedRegions;
+    private final PregenSavedChunkStatus savedChunks;
     private final KSet<Position2> retry;
     private final KSet<Position2> net;
     private final ChronoLatch cl;
@@ -79,7 +82,7 @@ public class IrisPregenerator {
     private volatile PregenRates rates;
     private boolean progressClosed;
 
-    public IrisPregenerator(PregenTask task, PregeneratorMethod generator, PregenListener listener) {
+    public IrisPregenerator(PregenTask task, PregeneratorMethod generator, PregenListener listener, PregenSavedChunkStatus savedChunks) {
         this.jobId = JOB_SEQUENCE.incrementAndGet();
         benchmarking = IrisPackBenchmarking.getInstance();
         this.listener = listenify(listener);
@@ -92,6 +95,7 @@ public class IrisPregenerator {
         this.paused = new AtomicBoolean(false);
         this.task = task;
         this.generator = generator;
+        this.savedChunks = savedChunks;
         retry = new KSet<>();
         net = new KSet<>();
         currentGeneratorMethod = new AtomicReference<>("Void");
@@ -237,9 +241,20 @@ public class IrisPregenerator {
             ticker.start();
             int[] regionBounds = task.regionBounds();
             generator.onRegionBounds(regionBounds[0], regionBounds[1], regionBounds[2], regionBounds[3]);
-            generator.onPregenStart(task.getCenter().getX(), task.getCenter().getZ());
-            task.iterateRegions((x, z) -> visitRegion(x, z, true));
-            task.iterateRegions((x, z) -> visitRegion(x, z, false));
+            task.iterateRegions((x, z) -> visitRegion(x, z, true, () -> {
+            }));
+            PregenRegionsAhead regionsAhead = new PregenRegionsAhead(task.regionOrder(), this::regionDone);
+            for (long[] region = regionsAhead.next(); region != null; region = regionsAhead.next()) {
+                announce(regionsAhead.starting());
+                AtomicBoolean lookedAhead = new AtomicBoolean();
+                Runnable lookAhead = () -> {
+                    if (lookedAhead.compareAndSet(false, true) && !shutdown.get()) {
+                        announce(regionsAhead.following());
+                    }
+                };
+                visitRegion((int) region[0], (int) region[1], false, lookAhead);
+                lookAhead.run();
+            }
             completed = true;
         } catch (Throwable e) {
             IrisLogging.reportError(e);
@@ -372,7 +387,38 @@ public class IrisPregenerator {
         }
     }
 
-    private void visitRegion(int x, int z, boolean regions) {
+    private void announce(List<long[]> regions) {
+        if (!regions.isEmpty() && !shutdown.get()) {
+            generator.onRegionsAhead(regions);
+        }
+    }
+
+    private boolean regionDone(long[] region) {
+        int x = (int) region[0];
+        int z = (int) region[1];
+        return generatedRegions.contains(new Position2(x, z)) || savedOnDisk(x, z);
+    }
+
+    private boolean savedOnDisk(int x, int z) {
+        if (savedChunks == null) {
+            return false;
+        }
+        AtomicBoolean full = new AtomicBoolean(true);
+        try {
+            task.iterateChunks(x, z, (chunkX, chunkZ) -> {
+                if (full.get() && !savedChunks.isFull(chunkX, chunkZ)) {
+                    full.set(false);
+                }
+            });
+        } catch (UncheckedIOException failure) {
+            IrisLogging.reportError("Pregen could not read the saved chunks of region " + x + "," + z
+                    + "; hydrology prepares it as new terrain.", failure);
+            return false;
+        }
+        return full.get();
+    }
+
+    private void visitRegion(int x, int z, boolean regions, Runnable started) {
         while (paused.get() && !shutdown.get()) {
             awaitStateChange(GATE_WAIT_MS);
         }
@@ -410,6 +456,7 @@ public class IrisPregenerator {
                 }
 
                 generator.generateChunk(xx, zz, listener);
+                started.run();
             });
         }
 

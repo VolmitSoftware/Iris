@@ -34,14 +34,7 @@ public final class TransitionGeometryBlender {
             return currentGeometry;
         }
         ColumnProfile current = new ColumnProfile(currentGeometry);
-        ArrayList<WeightedProfile> historical = new ArrayList<>(influence.contributions().size());
-        for (BoundaryGeometryInfluence.Contribution contribution : influence.contributions()) {
-            BoundaryColumnGeometry geometry = contribution.geometry();
-            if (geometry.minimumY() != currentGeometry.minimumY() || geometry.height() != currentGeometry.height()) {
-                throw new IllegalArgumentException("Boundary geometry does not match the current vertical layout");
-            }
-            historical.add(new WeightedProfile(new ColumnProfile(geometry), contribution.weight()));
-        }
+        List<WeightedProfile> historical = historicalProfiles(influence, currentGeometry);
         ArrayList<BoundaryColumnGeometry.Voxel> result = new ArrayList<>(currentGeometry.height());
         boolean changed = false;
         for (int offset = 0; offset < currentGeometry.height(); offset++) {
@@ -51,6 +44,41 @@ public final class TransitionGeometryBlender {
             changed |= !value.equals(current.voxelAt(offset));
         }
         return changed ? BoundaryColumnGeometry.fromVoxels(currentGeometry.minimumY(), result) : currentGeometry;
+    }
+
+    public static boolean anyBlendedVoxel(
+            BoundaryGeometryInfluence influence,
+            BoundaryColumnGeometry currentGeometry,
+            int fromOffset,
+            int toOffset,
+            BlendedVoxelTest test
+    ) {
+        Objects.requireNonNull(influence, "Boundary influence");
+        Objects.requireNonNull(currentGeometry, "Current geometry");
+        Objects.requireNonNull(test, "Voxel test");
+        boolean blends = influence.newTerrainWeight() != 1D && !influence.contributions().isEmpty() && currentGeometry.height() != 0;
+        ColumnProfile current = new ColumnProfile(currentGeometry);
+        List<WeightedProfile> historical = blends ? historicalProfiles(influence, currentGeometry) : List.of();
+        for (int offset = fromOffset; offset <= toOffset; offset++) {
+            BoundaryColumnGeometry.Voxel voxel = offset < 0 || offset >= currentGeometry.height() ? AIR
+                    : blends ? blendVoxel(current, historical, offset, influence.newTerrainWeight()) : current.voxelAt(offset);
+            if (test.test(offset, voxel)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static List<WeightedProfile> historicalProfiles(BoundaryGeometryInfluence influence, BoundaryColumnGeometry currentGeometry) {
+        ArrayList<WeightedProfile> historical = new ArrayList<>(influence.contributions().size());
+        for (BoundaryGeometryInfluence.Contribution contribution : influence.contributions()) {
+            BoundaryColumnGeometry geometry = contribution.geometry();
+            if (geometry.minimumY() != currentGeometry.minimumY() || geometry.height() != currentGeometry.height()) {
+                throw new IllegalArgumentException("Boundary geometry does not match the current vertical layout");
+            }
+            historical.add(new WeightedProfile(new ColumnProfile(geometry), contribution.weight()));
+        }
+        return historical;
     }
 
     private static BoundaryColumnGeometry.Voxel blendVoxel(
@@ -178,5 +206,10 @@ public final class TransitionGeometryBlender {
     }
 
     private record WeightedProfile(ColumnProfile profile, double weight) {
+    }
+
+    @FunctionalInterface
+    public interface BlendedVoxelTest {
+        boolean test(int offset, BoundaryColumnGeometry.Voxel voxel);
     }
 }

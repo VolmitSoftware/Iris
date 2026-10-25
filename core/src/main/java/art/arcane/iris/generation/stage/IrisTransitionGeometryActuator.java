@@ -3,6 +3,7 @@ package art.arcane.iris.generation.stage;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.EngineAssignedComponent;
 import art.arcane.iris.generation.runtime.EngineStage;
+import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.terrain.Terrain3DColumn;
 import art.arcane.iris.world.history.BoundaryColumnGeometry;
 import art.arcane.iris.world.history.BoundaryGeometryInfluence;
@@ -58,10 +59,12 @@ public final class IrisTransitionGeometryActuator extends EngineAssignedComponen
                                GeometrySource source, TransitionGenerationPlan plan) {
         PlatformRegistries registries = IrisPlatforms.get().registries();
         Map<String, NativeBlockState> resolved = new HashMap<>();
+        IrisComplex complex = context.getComplex();
         for (int localX = 0; localX < blocks.getWidth(); localX++) {
             for (int localZ = 0; localZ < blocks.getDepth(); localZ++) {
                 BoundaryGeometryInfluence influence = plan.geometryAt(x + localX, z + localZ);
-                if (influence.newTerrainWeight() == 1D || influence.contributions().isEmpty()) {
+                if (influence.newTerrainWeight() == 1D || influence.contributions().isEmpty()
+                        || complex.hydrologyOwnsTerrain(x + localX, z + localZ)) {
                     continue;
                 }
                 BoundaryColumnGeometry current = source.column(localX, localZ);

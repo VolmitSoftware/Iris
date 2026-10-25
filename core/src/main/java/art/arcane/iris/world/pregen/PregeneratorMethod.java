@@ -20,6 +20,8 @@ package art.arcane.iris.world.pregen;
 
 import art.arcane.volmlib.util.mantle.runtime.Mantle;
 
+import java.util.List;
+
 /**
  * Represents something that is capable of generating in chunks or regions, or both
  */
@@ -86,7 +88,7 @@ public interface PregeneratorMethod {
     default void onChunkGenerationFailed(int chunkX, int chunkZ, Throwable failure) {
     }
 
-    default void onPregenStart(int centerBlockX, int centerBlockZ) {
+    default void onRegionsAhead(List<long[]> regions) {
     }
 
     default void onRegionSubmitted(int regionX, int regionZ) {

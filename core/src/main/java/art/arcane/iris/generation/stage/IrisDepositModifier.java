@@ -42,6 +42,7 @@ import art.arcane.volmlib.util.hunk.Hunk;
 import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
 import art.arcane.volmlib.util.math.RNG;
 import art.arcane.volmlib.util.matter.MatterCavern;
+import art.arcane.iris.generation.hydrology.cave.HydrologyCaveCell;
 import art.arcane.iris.generation.concurrent.BurstExecutor;
 import art.arcane.iris.generation.geometry.IrisBlockVector;
 import art.arcane.volmlib.util.scheduling.PrecisionStopwatch;
@@ -437,6 +438,11 @@ public class IrisDepositModifier extends EngineAssignedModifier<NativeBlockState
 
     static int absoluteWorldY(int minHeight, int localY) {
         return minHeight + localY;
+    }
+
+    private static boolean protectedHydrology(MantleChunk chunk, int x, int y, int z) {
+        Object cell = chunk.get(x, y, z, HydrologyCaveCell.class);
+        return cell instanceof HydrologyCaveCell hydrology && hydrology.protectsPlacement();
     }
 
     static boolean canReplaceDepositTarget(NativeBlockState state) {
@@ -870,7 +876,7 @@ public class IrisDepositModifier extends EngineAssignedModifier<NativeBlockState
                 }
             }
 
-            if (chunk.get(nx, ny, nz, MatterCavern.class) == null) {
+            if (chunk.get(nx, ny, nz, MatterCavern.class) == null && !protectedHydrology(chunk, nx, ny, nz)) {
                 NativeBlockState remapped = variants ? resolveDepositVariant(
                         chunkX, chunkZ, nx, ny, nz, block, dimension, context, carvingState()) : null;
                 data.set(nx, ny, nz, remapped != null ? remapped : B.toDeepSlateOre(current, block));

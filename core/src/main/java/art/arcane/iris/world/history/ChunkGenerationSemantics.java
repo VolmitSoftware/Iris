@@ -1,6 +1,6 @@
 package art.arcane.iris.world.history;
 
-import art.arcane.iris.generation.hydrology.HydrologyFeatureType;
+import art.arcane.iris.generation.hydrology.query.HydrologyFeatureType;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;

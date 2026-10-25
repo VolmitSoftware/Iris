@@ -25,7 +25,7 @@ import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.structure.placement.IrisStructureLocator;
 import art.arcane.iris.structure.nativegen.NativeStructureGenerationPolicy;
 import art.arcane.iris.structure.placement.StructureReachability;
-import art.arcane.iris.generation.hydrology.HydrologyFeatureQuery;
+import art.arcane.iris.generation.hydrology.query.HydrologyFeatureType;
 import art.arcane.iris.world.history.GenerationFindCatalog;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.structure.nativegen.IrisNativeStructureDecision;
@@ -61,7 +61,7 @@ final class ModdedCommandSuggestions {
     static final SuggestionProvider<NativeCommandSource> OBJECT_KEYS = (CommandContext<NativeCommandSource> context, SuggestionsBuilder builder) -> suggestObjectKeys(context, builder);
     static final SuggestionProvider<NativeCommandSource> STRUCTURE_KEYS = (CommandContext<NativeCommandSource> context, SuggestionsBuilder builder) -> suggestStructureKeys(context, builder);
     static final SuggestionProvider<NativeCommandSource> POI_TYPES = (CommandContext<NativeCommandSource> context, SuggestionsBuilder builder) -> NativeCommandRegistration.suggest(List.of("buried_treasure"), builder);
-    static final SuggestionProvider<NativeCommandSource> HYDROLOGY_TYPES = (CommandContext<NativeCommandSource> context, SuggestionsBuilder builder) -> suggestHydrologyTypes(context, builder);
+    static final SuggestionProvider<NativeCommandSource> HYDROLOGY_TYPES = (CommandContext<NativeCommandSource> context, SuggestionsBuilder builder) -> NativeCommandRegistration.suggest(HydrologyFeatureType.keys(), builder);
     static final SuggestionProvider<NativeCommandSource> PACK_NAMES = (CommandContext<NativeCommandSource> context, SuggestionsBuilder builder) -> suggestPackNames(context, builder);
     static final SuggestionProvider<NativeCommandSource> DIMENSION_NAMES = (CommandContext<NativeCommandSource> context, SuggestionsBuilder builder) -> suggestDimensionNames(context, builder);
 
@@ -85,24 +85,6 @@ final class ModdedCommandSuggestions {
             warnTabFailure("biome keys", context.getSource(), e);
         }
         return builder.buildFuture();
-    }
-
-    private static CompletableFuture<Suggestions> suggestHydrologyTypes(
-            CommandContext<NativeCommandSource> context,
-            SuggestionsBuilder builder
-    ) {
-        ModdedCommandFeedback.tab(context.getSource());
-        try {
-            Engine engine = IrisModdedCommands.engineFor(context.getSource().world());
-            if (engine != null && engine.getComplex().getHydrologyRuntime() != null) {
-                return NativeCommandRegistration.suggest(
-                        engine.getComplex().getHydrologyRuntime().featureQueryKeys(), builder);
-            }
-        } catch (Throwable error) {
-            warnTabFailure("hydrology types", context.getSource(), error);
-        }
-        return NativeCommandRegistration.suggest(
-                HydrologyFeatureQuery.suggestions(List.of()), builder);
     }
 
     static Set<String> reachableBiomeKeys(Engine engine) {

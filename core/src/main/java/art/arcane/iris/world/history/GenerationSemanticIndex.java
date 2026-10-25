@@ -1,6 +1,6 @@
 package art.arcane.iris.world.history;
 
-import art.arcane.iris.generation.hydrology.HydrologyFeatureType;
+import art.arcane.iris.generation.hydrology.query.HydrologyFeatureType;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.world.storage.DeferredDurability;
 import art.arcane.iris.world.storage.Durability;
@@ -57,7 +57,8 @@ public final class GenerationSemanticIndex {
     private static final String JOURNAL_SUFFIX = ".iswal";
     private static final String CATALOG_FILE_NAME = "index.isix";
     private static final int MAGIC = 0x4953454D;
-    private static final int FORMAT_VERSION = 6;
+    private static final int FORMAT_VERSION = 7;
+    private static final int LEGACY_HYDROLOGY_FORMAT_VERSION = 6;
     private static final int CATALOG_MAGIC = 0x49534958;
     private static final int CATALOG_FORMAT_VERSION = 1;
     private static final int CATALOG_FIXED_BODY_BYTES = 12;
@@ -616,8 +617,6 @@ public final class GenerationSemanticIndex {
                 }
                 RegionSummary summary = loadSummaryLocked(candidateRegion.regionKey());
                 if (!summary.hasAnyRiverType(requiredQuery.types())
-                        || requiredQuery.profileKey() != null
-                        && !summary.keys(SemanticKind.RIVER_PROFILE).contains(requiredQuery.profileKey())
                         || !summary.mayContainActivation(requiredQuery.activationFilter())) {
                     continue;
                 }
@@ -632,9 +631,7 @@ public final class GenerationSemanticIndex {
                         continue;
                     }
                     for (ChunkGenerationSemantics.RiverFeatureOccurrence occurrence : semantics.riverFeatures()) {
-                        if (!requiredQuery.types().contains(occurrence.type())
-                                || requiredQuery.profileKey() != null
-                                && !requiredQuery.profileKey().equals(occurrence.profileKey())) {
+                        if (!requiredQuery.types().contains(occurrence.type())) {
                             continue;
                         }
                         ChunkGenerationSemantics.BlockPosition position = occurrence.position();
@@ -1595,7 +1592,6 @@ public final class GenerationSemanticIndex {
 
     public record RiverQuery(
             Set<HydrologyFeatureType> types,
-            String profileKey,
             ChunkGenerationSemantics.BlockPosition origin,
             int maxChunkRadius,
             OptionalLong activationFilter
@@ -1605,9 +1601,6 @@ public final class GenerationSemanticIndex {
             if (types.isEmpty()) {
                 throw new IllegalArgumentException("River semantic queries require a feature type.");
             }
-            profileKey = profileKey == null || profileKey.isBlank()
-                    ? null
-                    : ChunkGenerationSemantics.requireResourceKey(profileKey);
             origin = Objects.requireNonNull(origin, "origin");
             if (maxChunkRadius < 0) {
                 throw new IllegalArgumentException("Maximum chunk radius must not be negative.");
@@ -1617,13 +1610,11 @@ public final class GenerationSemanticIndex {
 
         public static RiverQuery acrossActivations(
                 Set<HydrologyFeatureType> types,
-                String profileKey,
                 ChunkGenerationSemantics.BlockPosition origin,
                 int maxChunkRadius
         ) {
             return new RiverQuery(
                     types,
-                    profileKey,
                     origin,
                     maxChunkRadius,
                     OptionalLong.empty()
@@ -1724,7 +1715,7 @@ public final class GenerationSemanticIndex {
             return new RegionSummary(keys, riverTypes, activations, sealedActivations);
         }
 
-        private static RegionSummary decode(Path source, byte[] encoded) throws IOException {
+        private static RegionSummary decode(Path source, byte[] encoded, boolean legacyHydrology) throws IOException {
             try (DataInputStream input = new DataInputStream(new ByteArrayInputStream(encoded))) {
                 EnumMap<SemanticKind, TreeSet<String>> keys = emptyKeySets();
                 for (SemanticKind kind : SemanticKind.values()) {
@@ -1752,10 +1743,13 @@ public final class GenerationSemanticIndex {
                     }
                 }
                 int riverTypeCount = input.readUnsignedByte();
-                if (riverTypeCount > HydrologyFeatureType.values().length) {
+                EnumSet<HydrologyFeatureType> riverTypes = EnumSet.noneOf(HydrologyFeatureType.class);
+                if (legacyHydrology) {
+                    input.skipNBytes(riverTypeCount);
+                    riverTypeCount = 0;
+                } else if (riverTypeCount > HydrologyFeatureType.values().length) {
                     throw invalid(source, "invalid summary river type count " + riverTypeCount);
                 }
-                EnumSet<HydrologyFeatureType> riverTypes = EnumSet.noneOf(HydrologyFeatureType.class);
                 int previousOrdinal = -1;
                 for (int index = 0; index < riverTypeCount; index++) {
                     int ordinal = input.readUnsignedByte();
@@ -2374,10 +2368,7 @@ public final class GenerationSemanticIndex {
                 if (magic != MAGIC) {
                     throw invalid(file, "invalid magic");
                 }
-                int version = input.readUnsignedShort();
-                if (version != FORMAT_VERSION) {
-                    throw invalid(file, "unsupported format version " + version);
-                }
+                legacyHydrology(file, input.readUnsignedShort());
                 int flags = input.readUnsignedShort();
                 if (flags != 0) {
                     throw invalid(file, "unsupported format flags " + flags);
@@ -2417,10 +2408,7 @@ public final class GenerationSemanticIndex {
                 if (magic != MAGIC) {
                     throw invalid(file, "invalid magic");
                 }
-                int version = input.readUnsignedShort();
-                if (version != FORMAT_VERSION) {
-                    throw invalid(file, "unsupported format version " + version);
-                }
+                boolean legacy = legacyHydrology(file, input.readUnsignedShort());
                 int flags = input.readUnsignedShort();
                 if (flags != 0) {
                     throw invalid(file, "unsupported format flags " + flags);
@@ -2447,7 +2435,7 @@ public final class GenerationSemanticIndex {
                         regionX,
                         regionZ,
                         recordCount,
-                        RegionSummary.decode(file, summaryBytes)
+                        RegionSummary.decode(file, summaryBytes, legacy)
                 );
             } catch (EOFException error) {
                 throw invalid(file, "truncated data", error);
@@ -2470,10 +2458,7 @@ public final class GenerationSemanticIndex {
                 if (magic != MAGIC) {
                     throw invalid(source, "invalid magic");
                 }
-                int version = input.readUnsignedShort();
-                if (version != FORMAT_VERSION) {
-                    throw invalid(source, "unsupported format version " + version);
-                }
+                boolean legacy = legacyHydrology(source, input.readUnsignedShort());
                 int flags = input.readUnsignedShort();
                 if (flags != 0) {
                     throw invalid(source, "unsupported format flags " + flags);
@@ -2496,7 +2481,7 @@ public final class GenerationSemanticIndex {
                 }
                 byte[] summaryBytes = new byte[summaryLength];
                 input.readFully(summaryBytes);
-                RegionSummary storedSummary = RegionSummary.decode(source, summaryBytes);
+                RegionSummary storedSummary = RegionSummary.decode(source, summaryBytes, legacy);
                 String[] palette = readPalette(source, input, paletteSize);
                 boolean[] paletteUsed = new boolean[paletteSize];
                 RegionShard region = new RegionShard(regionX, regionZ);
@@ -2527,7 +2512,7 @@ public final class GenerationSemanticIndex {
                     readKeys(source, input, palette, paletteUsed, builder, SemanticKind.REGION);
                     readKeys(source, input, palette, paletteUsed, builder, SemanticKind.RIVER_PROFILE);
                     readKeys(source, input, palette, paletteUsed, builder, SemanticKind.OBJECT);
-                    readRiverFeatures(source, input, palette, paletteUsed, builder);
+                    readRiverFeatures(source, input, palette, paletteUsed, builder, legacy);
                     readStructures(source, input, palette, paletteUsed, builder);
                     readPointsOfInterest(source, input, palette, paletteUsed, builder);
                     if ((recordFlags & 1) != 0) {
@@ -2761,6 +2746,16 @@ public final class GenerationSemanticIndex {
         private record Metadata(int regionX, int regionZ, int recordCount) {
         }
 
+        private static boolean legacyHydrology(Path file, int version) throws IOException {
+            if (version == FORMAT_VERSION) {
+                return false;
+            }
+            if (version == LEGACY_HYDROLOGY_FORMAT_VERSION) {
+                return true;
+            }
+            throw invalid(file, "unsupported format version " + version);
+        }
+
         private static byte[] readEncoded(Path file) throws IOException {
             long size = Files.size(file);
             if (size < FIXED_BODY_BYTES + CHECKSUM_BYTES) {
@@ -2909,11 +2904,16 @@ public final class GenerationSemanticIndex {
                 DataInputStream input,
                 String[] palette,
                 boolean[] paletteUsed,
-                ChunkGenerationSemantics.Builder builder
+                ChunkGenerationSemantics.Builder builder,
+                boolean legacy
         ) throws IOException {
             int count = input.readUnsignedShort();
             if (count > ChunkGenerationSemantics.MAX_RIVER_FEATURES) {
                 throw invalid(file, "too many river feature occurrences");
+            }
+            if (legacy) {
+                skipLegacyRiverFeatures(file, input, palette, paletteUsed, count);
+                return;
             }
             ChunkGenerationSemantics.RiverFeatureOccurrence previous = null;
             HydrologyFeatureType[] types = HydrologyFeatureType.values();
@@ -2945,6 +2945,23 @@ public final class GenerationSemanticIndex {
                 }
                 builder.addRiverFeature(occurrence);
                 previous = occurrence;
+            }
+        }
+
+        private static void skipLegacyRiverFeatures(
+                Path file,
+                DataInputStream input,
+                String[] palette,
+                boolean[] paletteUsed,
+                int count
+        ) throws IOException {
+            for (int index = 0; index < count; index++) {
+                int paletteIndex = input.readUnsignedShort();
+                if (paletteIndex >= palette.length) {
+                    throw invalid(file, "river profile key palette index is out of range");
+                }
+                paletteUsed[paletteIndex] = true;
+                input.skipNBytes(Byte.BYTES + Long.BYTES + 3L * Integer.BYTES);
             }
         }
 

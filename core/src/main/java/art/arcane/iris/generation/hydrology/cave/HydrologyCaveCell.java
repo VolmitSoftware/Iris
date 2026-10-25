@@ -5,6 +5,7 @@ import art.arcane.volmlib.util.matter.MatterCavern;
 import java.util.Objects;
 
 public final class HydrologyCaveCell {
+    public static final String SEA_FLUID = "@sea";
     private static final String DEFAULT_FLUID_PROFILE_KEY = "default";
     private static final byte LIQUID_FLUID = 1;
     private static final byte LIQUID_FORCED_AIR = 3;
@@ -26,7 +27,7 @@ public final class HydrologyCaveCell {
         this.fluidProfileKey = fluidProfileKey.trim();
         this.floodedBiomeKey = floodedBiomeKey == null ? "" : floodedBiomeKey.trim();
         this.cavern = switch (action) {
-            case WET_SOURCE, FALLING_FLUID -> new MatterCavern(true, this.floodedBiomeKey, LIQUID_FLUID);
+            case WET_SOURCE, FALLING_FLUID, POOL_SOURCE -> new MatterCavern(true, this.floodedBiomeKey, LIQUID_FLUID);
             case DRY_AIR -> new MatterCavern(true, this.floodedBiomeKey, LIQUID_FORCED_AIR);
             case SEAL_GUARD -> null;
         };
@@ -45,7 +46,8 @@ public final class HydrologyCaveCell {
     }
 
     public boolean isWet() {
-        return action == HydrologyCaveAction.WET_SOURCE || action == HydrologyCaveAction.FALLING_FLUID;
+        return action == HydrologyCaveAction.WET_SOURCE || action == HydrologyCaveAction.FALLING_FLUID
+                || action == HydrologyCaveAction.POOL_SOURCE;
     }
 
     public boolean isFalling() {

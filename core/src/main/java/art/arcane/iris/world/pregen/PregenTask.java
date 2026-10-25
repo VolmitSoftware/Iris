@@ -28,9 +28,11 @@ import lombok.Data;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 
 @Builder
 @Data
@@ -195,16 +197,20 @@ public class PregenTask {
     }
 
     public void iterateRegions(Spiraled s) {
+        Iterator<long[]> order = regionOrder();
+        while (order.hasNext()) {
+            long[] region = order.next();
+            s.on((int) region[0], (int) region[1]);
+        }
+    }
+
+    public Iterator<long[]> regionOrder() {
         Bound bound = bounds.region();
         int centerRegionX = PowerOfTwoCoordinates.blockToRegionFloor(center.getX());
         int centerRegionZ = PowerOfTwoCoordinates.blockToRegionFloor(center.getZ());
         int width = Math.max(centerRegionX - bound.minX(), bound.maxX() - centerRegionX) * 2 + 1;
         int depth = Math.max(centerRegionZ - bound.minZ(), bound.maxZ() - centerRegionZ) * 2 + 1;
-        new Spiraler(width, depth, ((x, z) -> {
-            if (bound.check(x, z)) {
-                s.on(x, z);
-            }
-        })).setOffset(centerRegionX, centerRegionZ).drain();
+        return new RegionOrder(bound, width, depth, centerRegionX, centerRegionZ);
     }
 
     public void iterateChunks(int rX, int rZ, Spiraled s) {
@@ -334,6 +340,41 @@ public class PregenTask {
             return MAX_BLOCK;
         }
         return block < MIN_BLOCK ? MIN_BLOCK : (int) block;
+    }
+
+    private static final class RegionOrder implements Iterator<long[]> {
+        private final Bound bound;
+        private final Spiraler spiraler;
+        private long[] pending;
+
+        private RegionOrder(Bound bound, int width, int depth, int offsetX, int offsetZ) {
+            this.bound = bound;
+            this.spiraler = new Spiraler(width, depth, this::visit).setOffset(offsetX, offsetZ);
+        }
+
+        @Override
+        public boolean hasNext() {
+            while (pending == null && spiraler.hasNext()) {
+                spiraler.next();
+            }
+            return pending != null;
+        }
+
+        @Override
+        public long[] next() {
+            if (!hasNext()) {
+                throw new NoSuchElementException("The pregen region order is exhausted");
+            }
+            long[] region = pending;
+            pending = null;
+            return region;
+        }
+
+        private void visit(int x, int z) {
+            if (bound.check(x, z)) {
+                pending = new long[]{x, z};
+            }
+        }
     }
 
     private record Bound(int minX, int minZ, int maxX, int maxZ, int sizeX, int sizeZ) {

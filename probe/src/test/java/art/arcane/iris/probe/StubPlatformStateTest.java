@@ -86,6 +86,28 @@ public final class StubPlatformStateTest {
     }
 
     @Test
+    public void vanillaSolidityLeavesPlantsVinesAndCaneOpenAndTheDefaultUnchanged() {
+        String[] open = {"minecraft:vine[east=false,north=true,south=false,up=false,west=false]", "minecraft:short_grass",
+                "minecraft:sugar_cane[age=0]", "minecraft:seagrass", "minecraft:oak_sapling[stage=0]"};
+        String[] solid = {"minecraft:oak_log[axis=y]", "minecraft:oak_leaves[distance=1,persistent=false,waterlogged=false]",
+                "minecraft:oak_stairs[facing=north,half=bottom,shape=straight,waterlogged=true]"};
+        for (String key : open) {
+            assertTrue(key, state(key).isSolid());
+        }
+        StubPlatform.vanillaSolidity(true);
+        try {
+            for (String key : open) {
+                assertFalse(key, state(key).isSolid());
+            }
+            for (String key : solid) {
+                assertTrue(key, state(key).isSolid());
+            }
+        } finally {
+            StubPlatform.vanillaSolidity(false);
+        }
+    }
+
+    @Test
     public void classifiesCanonicalWaterloggedProperty() {
         assertTrue(state("minecraft:brain_coral_fan[waterlogged=true]").isWaterLogged());
         assertFalse(state("minecraft:brain_coral_fan[waterlogged=false]").isWaterLogged());

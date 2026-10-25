@@ -9,6 +9,9 @@ import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveAction;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveCell;
+import art.arcane.iris.generation.hydrology.engine.HydrologyRuntime;
+import art.arcane.iris.generation.hydrology.raster.ChunkWaterRaster;
+import art.arcane.iris.generation.hydrology.raster.WaterRole;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.generation.terrain.Terrain3DColumnFixtures;
 import art.arcane.iris.spi.IrisPlatform;
@@ -48,7 +51,6 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -134,6 +136,95 @@ public class ObjectDestinationTransactionTest {
         ObjectDestinationTransaction source = new ObjectDestinationTransaction(writer, 0, 0);
         assertFalse(source.beginTreeCanopy(new BlockPosition(4, 7, 1)));
         assertEquals(0, source.mutationCheckpoint());
+    }
+
+    @Test
+    public void solidObjectBlocksMayDisplaceWaterButNothingOpenOrCarvedBreaksContainment() {
+        MantleWriter writer = writer();
+        IrisComplex complex = mock(IrisComplex.class);
+        HydrologyRuntime runtime = mock(HydrologyRuntime.class);
+        ChunkWaterRaster raster = mock(ChunkWaterRaster.class);
+        when(writer.getEngine().getComplex()).thenReturn(complex);
+        when(complex.getHydrologyRuntime()).thenReturn(runtime);
+        when(runtime.enabled()).thenReturn(true);
+        when(runtime.raster(anyInt(), anyInt())).thenReturn(raster);
+        when(raster.role(anyInt(), anyInt())).thenReturn(WaterRole.NONE);
+        when(raster.waterHead(anyInt(), anyInt())).thenReturn(Integer.MIN_VALUE);
+        when(raster.role(3, 3)).thenReturn(WaterRole.CHANNEL);
+        when(raster.waterHead(3, 3)).thenReturn(12);
+        when(raster.terrainHeight(3, 3)).thenReturn(9);
+        when(raster.role(4, 3)).thenReturn(WaterRole.CHANNEL);
+        when(raster.waterHead(4, 3)).thenReturn(15);
+        when(raster.terrainHeight(4, 3)).thenReturn(14);
+        when(raster.role(5, 6)).thenReturn(WaterRole.CHANNEL);
+        when(raster.waterHead(5, 6)).thenReturn(18);
+        when(raster.terrainHeight(5, 6)).thenReturn(15);
+        when(raster.role(6, 6)).thenReturn(WaterRole.SHORE);
+        when(raster.terrainHeight(6, 6)).thenReturn(20);
+        when(raster.role(9, 9)).thenReturn(WaterRole.SHORE);
+        when(raster.terrainHeight(9, 9)).thenReturn(20);
+        NativeBlockState pier = mock(NativeBlockState.class);
+        when(pier.isSolid()).thenReturn(true);
+        NativeBlockState vine = mock(NativeBlockState.class);
+        ObjectDestinationTransaction transaction = new ObjectDestinationTransaction(writer, 0, 0);
+        int start = transaction.mutationCheckpoint();
+        transaction.set(3, 10, 3, vine);
+        transaction.set(3, 9, 3, vine);
+        transaction.set(3, 15, 3, vine);
+        transaction.setData(3, 11, 3, new MatterCavern(true, "", (byte) 0));
+        transaction.set(6, 18, 6, vine);
+        transaction.setData(6, 16, 6, new MatterCavern(true, "", (byte) 0));
+        transaction.set(3, 15, 3, pier);
+        transaction.set(3, 12, 3, pier);
+        assertEquals("open blocks and carves stay out of water, its bed and the bank below the head, and nothing enters a fall", start,
+                transaction.mutationCheckpoint());
+        transaction.set(3, 10, 3, pier);
+        transaction.set(3, 9, 3, pier);
+        transaction.set(6, 18, 6, pier);
+        transaction.set(4, 15, 3, pier);
+        assertEquals("a pier into the river keeps its blocks", start + 4, transaction.mutationCheckpoint());
+        transaction.set(3, 16, 3, vine);
+        transaction.set(3, 8, 3, vine);
+        transaction.set(6, 19, 6, vine);
+        transaction.setData(6, 10, 6, new MatterCavern(true, "", (byte) 0));
+        transaction.set(9, 15, 9, vine);
+        transaction.set(8, 5, 8, vine);
+        assertEquals(start + 10, transaction.mutationCheckpoint());
+    }
+
+    @Test
+    public void openSeaInletSlotsTakeNoObjectBlockFromTheirWaterUpToTheCliffTop() {
+        MantleWriter writer = writer();
+        IrisComplex complex = mock(IrisComplex.class);
+        HydrologyRuntime runtime = mock(HydrologyRuntime.class);
+        ChunkWaterRaster raster = mock(ChunkWaterRaster.class);
+        when(writer.getEngine().getComplex()).thenReturn(complex);
+        when(complex.getHydrologyRuntime()).thenReturn(runtime);
+        when(complex.naturalTrueHeight(3, 3)).thenReturn(30);
+        when(runtime.enabled()).thenReturn(true);
+        when(runtime.raster(anyInt(), anyInt())).thenReturn(raster);
+        when(raster.role(anyInt(), anyInt())).thenReturn(WaterRole.NONE);
+        when(raster.waterHead(anyInt(), anyInt())).thenReturn(Integer.MIN_VALUE);
+        when(raster.role(3, 3)).thenReturn(WaterRole.INLET);
+        when(raster.waterHead(3, 3)).thenReturn(12);
+        when(raster.terrainHeight(3, 3)).thenReturn(9);
+        NativeBlockState boulder = mock(NativeBlockState.class);
+        when(boulder.isSolid()).thenReturn(true);
+        NativeBlockState leaves = mock(NativeBlockState.class);
+        ObjectDestinationTransaction transaction = new ObjectDestinationTransaction(writer, 0, 0);
+        int start = transaction.mutationCheckpoint();
+        transaction.set(3, 12, 3, boulder);
+        transaction.set(3, 13, 3, boulder);
+        transaction.set(3, 30, 3, boulder);
+        transaction.set(3, 14, 3, leaves);
+        assertEquals("nothing an object places roofs or fills the slot between its water and the cliff top", start,
+                transaction.mutationCheckpoint());
+        transaction.set(3, 10, 3, boulder);
+        assertEquals("a solid block below the water may still sit on the slot bed", start + 1, transaction.mutationCheckpoint());
+        transaction.set(3, 31, 3, leaves);
+        transaction.set(3, 36, 3, leaves);
+        transaction.set(3, 33, 3, boulder);
+        assertEquals("a tree canopy above the cliff top keeps its leaves and wood", start + 4, transaction.mutationCheckpoint());
     }
 
     @Test
@@ -757,31 +848,5 @@ public class ObjectDestinationTransactionTest {
     }
 
     private record Marker(String value) {
-    }
-
-    @Test
-    public void chunksThatCannotHoldHydrologyCellsSkipTheCellLookup() {
-        MantleWriter writer = writer();
-        IrisComplex complex = mock(IrisComplex.class);
-        when(writer.getEngine().getComplex()).thenReturn(complex);
-        when(complex.mayHoldHydrologyCells(1, 0)).thenReturn(true);
-        when(writer.getPrerequisiteDataIfPresent(anyInt(), anyInt(), anyInt(), any()))
-                .thenReturn(HydrologyCaveCell.of(HydrologyCaveAction.SEAL_GUARD));
-        NativeBlockState block = mock(NativeBlockState.class);
-        ObjectDestinationTransaction transaction = new ObjectDestinationTransaction(writer, 0, 0);
-
-        for (int x = 0; x < 16; x++) {
-            transaction.setData(x, 4, 0, block);
-        }
-        transaction.setData(16, 4, 0, block);
-
-        for (int x = 0; x < 16; x++) {
-            assertSame(block, transaction.get(x, 4, 0));
-        }
-        assertEquals(16, transaction.sourcePlanSince(0).mutationsFor(0, 0).size());
-        assertTrue(transaction.sourcePlanSince(0).mutationsFor(1, 0).isEmpty());
-        verify(complex, times(1)).mayHoldHydrologyCells(0, 0);
-        verify(writer, never()).getPrerequisiteDataIfPresent(0, 4, 0, HydrologyCaveCell.class);
-        verify(writer).getPrerequisiteDataIfPresent(16, 4, 0, HydrologyCaveCell.class);
     }
 }

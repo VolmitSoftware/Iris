@@ -98,7 +98,7 @@ public class PlacementLifecycleTest {
     }
 
     @Test
-    public void everyModeResolvesAndRuntimePlansAreIndependent() {
+    public void everyModeResolvesToIndependentPlans() {
         PlacementLifecycles first = PlacementLifecycles.resolve();
         PlacementLifecycles second = PlacementLifecycles.resolve();
         for (ObjectPlaceMode mode : ObjectPlaceMode.values()) {

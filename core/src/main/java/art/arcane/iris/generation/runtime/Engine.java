@@ -87,10 +87,6 @@ import java.util.stream.Collectors;
 public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, Hotloadable {
     IrisComplex getComplex();
 
-    default art.arcane.iris.structure.object.PlacementLifecycles getPlacementLifecycles() {
-        return art.arcane.iris.structure.object.PlacementLifecycles.defaults();
-    }
-
     default BiomeEnvironment getBiomeEnvironment(int x, int y, int z) {
         return new BiomeEnvironment(0L, getBiome(x, y, z), getRegion(x, y, z), getDimension(), getData());
     }

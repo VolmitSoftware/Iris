@@ -27,7 +27,7 @@ import art.arcane.volmlib.util.math.RNG;
 
 import java.util.function.BiConsumer;
 
-/** Entry point for executing an engine's resolved placement plan. */
+/** Entry point for executing the resolved placement plan of a mode. */
 final class IrisObjectPlacementRunner {
     private final IrisObject self;
     private final IrisObjectPlacementAlignment alignment;
@@ -40,6 +40,6 @@ final class IrisObjectPlacementRunner {
     int place(int x, int yv, int z, IObjectPlacer placer, IrisObjectPlacement config, RNG rng,
               BiConsumer<BlockPosition, NativeBlockState> listener, CarveResult cave, IrisData data) {
         PlacementContext context = new PlacementContext(config, data, placer, cave, rng, self, alignment, x, z, yv, listener);
-        return PlacementLifecycles.forPlacer(placer).get(config.getMode()).execute(context).heightOrRejected();
+        return PlacementLifecycles.defaults().get(config.getMode()).execute(context).heightOrRejected();
     }
 }

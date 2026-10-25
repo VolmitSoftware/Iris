@@ -858,7 +858,7 @@ public class EngineShutdownDrainTest {
             when(generation.runtimeKernel()).thenReturn(kernel);
             GenerationRuntime nextGeneration = generation(target, mantle);
             when(nextGeneration.complex()).thenReturn(replacement);
-            when(generation.withComplex(anyInt(), same(replacement), isNull(), isNull(), any(), any()))
+            when(generation.withComplex(anyInt(), same(replacement), isNull(), isNull(), any()))
                     .thenReturn(nextGeneration);
             EngineRuntimeBuilder builder = spy(new EngineRuntimeBuilder(engine));
             doReturn(new GenerationRuntime.BiomeMaxes(0D, 0D, 0D)).when(builder).computeBiomeMaxes();

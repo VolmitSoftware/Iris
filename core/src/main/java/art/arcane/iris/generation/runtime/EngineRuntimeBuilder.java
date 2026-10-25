@@ -18,8 +18,6 @@
 
 package art.arcane.iris.generation.runtime;
 
-import art.arcane.iris.structure.object.PlacementLifecycles;
-
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.pack.loading.ResourceLoader;
 import art.arcane.iris.generation.runtime.GenerationRuntime.BiomeMaxes;
@@ -422,7 +420,6 @@ final class EngineRuntimeBuilder {
         final GenerationKernelRegistry.RuntimeKernel runtimeKernel;
         final SeedManager seedManager;
         final TransitionGenerationPlan transitionPlan;
-        final PlacementLifecycles placementLifecycles;
 
         static int nextRuntimeId() {
             return RUNTIME_IDS.incrementAndGet();
@@ -471,7 +468,6 @@ final class EngineRuntimeBuilder {
             this.seedManager = this.runtimeKernel.createSeedManager(target.getWorld().getRawWorldSeed());
             this.kernelVersion = this.runtimeKernel.version();
             this.transitionPlan = transitionPlan;
-            this.placementLifecycles = PlacementLifecycles.resolve();
         }
 
         GenerationRuntime freezeGeneration(BiomeMaxes biomeMaxes) {
@@ -494,8 +490,7 @@ final class EngineRuntimeBuilder {
                     mantle,
                     mantleStorageDirectory,
                     hash32,
-                    biomeMaxes,
-                    placementLifecycles);
+                    biomeMaxes);
         }
 
         EngineRuntime freezeRuntime(BiomeMaxes biomeMaxes) {

@@ -271,7 +271,7 @@ public class IrisObjectPlacementLifecycleRegressionTest {
     }
 
     @Test
-    public void runnerUsesTheEnginePlanAndCompletesTheBlockPassBeforeAfterBlocks() {
+    public void customPlanCompletesTheBlockPassBeforeAfterBlocks() {
         RecordingPlacer placer = new RecordingPlacer(engine);
         PlacementLifecycleBuilder builder = new PlacementLifecycleBuilder();
         ObjectPlaceMode.CENTER_HEIGHT.install(builder);
@@ -280,11 +280,10 @@ public class IrisObjectPlacementLifecycleRegressionTest {
         List<Integer> finishedSizes = new ArrayList<>();
         builder.add(new PlacementLifecycleDependency("test.finished"), PlacementStage.AFTER_BLOCKS,
                 (context, state, ignored) -> finishedSizes.add(placer.writes().size()));
-        PlacementLifecycles plans = mock(PlacementLifecycles.class);
-        when(plans.get(ObjectPlaceMode.CENTER_HEIGHT)).thenReturn(builder.build());
-        when(engine.getPlacementLifecycles()).thenReturn(plans);
+        PlacementContext context = new PlacementContext(placement(), data, placer, null, new RNG(2L), lineObject(3),
+                0, 0, ANCHOR_Y, null);
 
-        assertEquals(ANCHOR_Y + 5, lineObject(3).place(0, ANCHOR_Y, 0, placer, placement(), new RNG(2L), data));
+        assertEquals(ANCHOR_Y + 5, builder.build().execute(context).heightOrRejected());
         assertEquals(List.of(3), finishedSizes);
         assertTrue(placer.writes().stream().allMatch(write -> write.y() == ANCHOR_Y + 5));
     }

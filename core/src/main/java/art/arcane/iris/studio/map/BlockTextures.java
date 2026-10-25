@@ -51,6 +51,7 @@ final class BlockTextures {
     private final Map<String, Optional<ResolvedTexture>> resolvedTextures = new ConcurrentHashMap<>();
     private final Map<String, Optional<BlockModel>> resolvedModels = new ConcurrentHashMap<>();
     private final Map<String, Optional<BlockTexture>> faceTextures = new ConcurrentHashMap<>();
+    private final Map<String, Optional<BlockTexture>> icons = new ConcurrentHashMap<>();
     private final BlockModelBuilder modelBuilder = new BlockModelBuilder(this);
 
     private BlockTextures(ZipFile clientJar, MinecraftBiomeColors biomeColors) {
@@ -89,10 +90,40 @@ final class BlockTextures {
 
     /**
      * Like {@link #topTexture}, but plants keep their sprite, so single decorations on the ground stay recognisable.
+     * Small shapes standing on their spot, like sea pickles and candles, are drawn from the front for the same reason.
      * Two block tall plants give their bottom half, the part standing on the ground.
      */
     Optional<BlockTexture> iconTexture(NativeBlockState block) {
-        return resolve(withHalf(block, BlockHalf.LOWER).orElse(block)).map(ResolvedTexture::texture);
+        NativeBlockState standing = withHalf(block, BlockHalf.LOWER).orElse(block);
+        return icons.computeIfAbsent(standing.key(),
+                state -> frontViewIcon(state).or(() -> resolve(standing).map(ResolvedTexture::texture)));
+    }
+
+    // A small shape keeps all its parts side by side on one texture, so its top face's whole texture shows them all.
+    private Optional<BlockTexture> frontViewIcon(String blockState) {
+        try {
+            BlockStateId state = BlockStateId.parse(blockState);
+            JsonObject variant = variantOf(state);
+            if (variant == null || !variant.has("model")) {
+                return Optional.empty();
+            }
+            ModelDefinition model = readModel(variant.get("model").getAsString());
+            if (model.elements() == null || model.sideFace("up") == null || ModelFrontView.fillsMostOfItsSpotFromAbove(model.elements())) {
+                return Optional.empty();
+            }
+            ModelFrontView front = ModelFrontView.draw(model.elements(), model.textures(),
+                    texture -> readImage(assetPath(texture, "textures", ".png")));
+            if (front == null) {
+                return Optional.empty();
+            }
+            return Optional.of(BlockTexture.fromImage(
+                    front.image(),
+                    MinecraftBlockTints.fixedTint(state.name(), state.properties(), front.tintIndex()),
+                    MinecraftBlockTints.biomeTint(state.name(), front.tintIndex()).orElse(null)
+            ));
+        } catch (IOException | RuntimeException error) {
+            return Optional.empty();
+        }
     }
 
     /**

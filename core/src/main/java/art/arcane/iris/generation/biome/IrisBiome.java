@@ -580,6 +580,10 @@ public class IrisBiome extends IrisRegistrant implements Rarity {
         return IrisBiomeLayerGenerator.getLayerSeaHeightGenerators(this, rng, data);
     }
 
+    public KList<CNG> getCaveCeilingLayerHeightGenerators(RNG rng, IrisData data) {
+        return IrisBiomeLayerGenerator.getCaveCeilingLayerHeightGenerators(this, rng, data);
+    }
+
     public NativeBlockState getSurfaceBlock(int x, int z, RNG rng, IrisData idm) {
         return IrisBiomeLayerGenerator.getSurfaceBlock(this, x, z, rng, idm);
     }

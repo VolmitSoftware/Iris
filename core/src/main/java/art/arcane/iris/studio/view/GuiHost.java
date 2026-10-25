@@ -33,10 +33,14 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public final class GuiHost {
     private static final AtomicBoolean DESKTOP_QUIT_GUARD_INSTALLED = new AtomicBoolean(false);
+    private static final long WINDOW_CLOSE_WAIT_SECONDS = 5L;
+    private static final Set<Runnable> SHUTDOWN_TASKS = ConcurrentHashMap.newKeySet();
     private static final Set<JFrame> MANAGED_FRAMES = ConcurrentHashMap.newKeySet();
     private static volatile Provider provider = new Provider() {
     };
@@ -55,6 +59,10 @@ public final class GuiHost {
 
     public interface Provider {
         default Engine findActiveEngine() {
+            return null;
+        }
+
+        default Engine findEngine(UUID worldId) {
             return null;
         }
 
@@ -114,6 +122,52 @@ public final class GuiHost {
         } catch (Throwable error) {
             IrisLogging.reportError(error);
             IrisLogging.info("Unable to install the Iris desktop quit guard; use the server stop command instead of macOS Quit");
+        }
+    }
+
+    /**
+     * Runs {@code task} once the windows are closed at shutdown, for resources the windows share, such as the
+     * graphics card.
+     */
+    public static void runAtShutdown(Runnable task) {
+        SHUTDOWN_TASKS.add(task);
+    }
+
+    /**
+     * Closes every Iris window before the plugin stops, since windows would otherwise keep drawing with
+     * threads and engines the shutdown takes away, then runs the shutdown tasks.
+     */
+    public static void shutdown() {
+        closeWindows();
+        for (Runnable task : SHUTDOWN_TASKS) {
+            try {
+                task.run();
+            } catch (Throwable error) {
+                IrisLogging.reportError(error);
+            }
+        }
+        SHUTDOWN_TASKS.clear();
+    }
+
+    // Waits only so long, in case the AWT event thread is itself waiting on the server.
+    private static void closeWindows() {
+        if (MANAGED_FRAMES.isEmpty()) {
+            return;
+        }
+        CountDownLatch closed = new CountDownLatch(1);
+        EventQueue.invokeLater(() -> {
+            try {
+                for (JFrame frame : MANAGED_FRAMES) {
+                    frame.dispose();
+                }
+            } finally {
+                closed.countDown();
+            }
+        });
+        try {
+            closed.await(WINDOW_CLOSE_WAIT_SECONDS, TimeUnit.SECONDS);
+        } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
         }
     }
 

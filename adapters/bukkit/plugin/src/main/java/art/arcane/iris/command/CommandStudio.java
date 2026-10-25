@@ -21,10 +21,9 @@ package art.arcane.iris.command;
 import art.arcane.iris.Iris;
 import art.arcane.iris.platform.bukkit.BukkitPlatform;
 import art.arcane.iris.configuration.IrisSettings;
+import art.arcane.iris.studio.map.MapWindow;
+import art.arcane.iris.studio.map.PaletteExplorerStart;
 import art.arcane.iris.studio.view.GuiHost;
-import art.arcane.iris.studio.view.ImageMapStudioGUI;
-import art.arcane.iris.studio.view.NoiseExplorerGUI;
-import art.arcane.iris.studio.view.VisionGUI;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.studio.workspace.IrisProject;
 import art.arcane.iris.studio.workspace.IrisCodeWorkspace;
@@ -98,7 +97,9 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 
 import art.arcane.iris.localization.IrisLanguage;
 import art.arcane.iris.localization.BukkitCommandMessages;
@@ -255,15 +256,10 @@ public class CommandStudio implements DirectorExecutor {
             long seed
     ) {
         if (noGUI()) return;
-        sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_STUDIO_OPENING_NOISE_EXPLORER));
-
-        if (generator == null) {
-            NoiseExplorerGUI.launch();
-            return;
-        }
-
-        String generatorKey = generator.getLoadKey();
-        NoiseExplorerGUI.launchGeneratorKey(generatorKey, generator, seed);
+        VolmitSender commandSender = sender();
+        UUID openerId = commandSender.isPlayer() ? commandSender.player().getUniqueId() : null;
+        MapWindow.NoiseSelection selection = new MapWindow.NoiseSelection(generator == null ? null : generator.getLoadKey(), generator, seed);
+        withPlayerContext(opener -> openNoiseAtPlayer(commandSender, openerId, opener, selection));
     }
 
     @Director(description = "Open the image-map studio (External GUI)", descriptionKey = "iris.director.commandstudio.director.open_image_map_studio_external_gui", aliases = {"imap"})
@@ -279,8 +275,7 @@ public class CommandStudio implements DirectorExecutor {
             return;
         }
 
-        Engine activeEngine = IrisToolbelt.access(world).getEngine();
-        ImageMapStudioGUI.launch(activeEngine);
+        requestMapStart(world, MapWindow::openImageMaps);
         sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_STUDIO_OPENING_IMAGE_MAP_STUDIO));
     }
 
@@ -420,9 +415,59 @@ public class CommandStudio implements DirectorExecutor {
             return;
         }
 
-        UUID openerId = sender().isPlayer() ? player().getUniqueId() : null;
-        VisionGUI.launch(IrisToolbelt.access(world).getEngine(), openerId);
+        requestMapStart(world, MapWindow::openMap);
         sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_STUDIO_OPENING_MAP));
+    }
+
+    // The map opens where the player stands when they are in that world, otherwise at the world origin.
+    private PaletteExplorerStart mapStartIn(World world, Player opener, UUID openerId) {
+        Location center = opener != null && opener.getWorld().equals(world) ? opener.getLocation() : null;
+        return new PaletteExplorerStart(
+                IrisToolbelt.access(world).getEngine(),
+                world.getUID(),
+                openerId,
+                null,
+                center == null ? 0D : center.getX(),
+                center == null ? 0D : center.getZ()
+        );
+    }
+
+    private void requestMapStart(World world, Consumer<PaletteExplorerStart> launch) {
+        UUID openerId = sender().isPlayer() ? player().getUniqueId() : null;
+        withPlayerContext(opener -> launch.accept(mapStartIn(world, opener, openerId)));
+    }
+
+    private void openNoiseAtPlayer(VolmitSender commandSender, UUID openerId, Player opener, MapWindow.NoiseSelection selection) {
+        World world = opener == null ? null : opener.getWorld();
+        PlatformChunkGenerator worldGenerator = world == null ? null : IrisToolbelt.access(world);
+        Engine engine = worldGenerator == null ? GuiHost.get().findActiveEngine() : worldGenerator.getEngine();
+        if (engine == null) {
+            commandSender.sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_STUDIO_YOU_NEED_BE_SPECIFY_IRIS_GENERATED_WORLD));
+            return;
+        }
+        PaletteExplorerStart start = worldGenerator == null
+                ? new PaletteExplorerStart(engine, null, openerId, null, 0D, 0D)
+                : mapStartIn(world, opener, openerId);
+        MapWindow.openNoise(start, selection);
+        commandSender.sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_STUDIO_OPENING_NOISE_EXPLORER));
+    }
+
+    private void withPlayerContext(Consumer<Player> action) {
+        Player opener = sender().isPlayer() ? player() : null;
+        if (opener == null) {
+            action.accept(null);
+            return;
+        }
+        AtomicBoolean completed = new AtomicBoolean();
+        Consumer<Player> complete = player -> {
+            if (completed.compareAndSet(false, true)) {
+                action.accept(player);
+            }
+        };
+        Runnable retired = () -> complete.accept(null);
+        if (!J.runEntity(opener, () -> complete.accept(opener.isOnline() ? opener : null), 0, retired)) {
+            retired.run();
+        }
     }
 
     @Director(description = "Profiles the performance of a dimension", descriptionKey = "iris.director.commandstudio.director.profiles_performance_dimension", origin = DirectorOrigin.PLAYER)

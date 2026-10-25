@@ -1112,31 +1112,116 @@ public class IrisComplex implements DataProvider {
             InferredType inferredType,
             IrisBiome emptyBiome
     ) {
+        ProceduralStream<IrisBiome> picked = new RarityStream<>(biomePickNoiseStream(engine.getDimension(), region, inferredType),
+                loadInferredBiomes(biomeKeys(region, inferredType), inferredType));
+        return inferredType == InferredType.CAVE ? picked.onNull(emptyBiome) : picked;
+    }
+
+    private ProceduralStream<Double> biomePickNoiseStream(IrisDimension dimension, IrisRegion region, InferredType inferredType) {
         return switch (inferredType) {
-            case CAVE -> new RarityStream<>(engine.getDimension().getCaveBiomeStyle()
+            case CAVE -> dimension.getCaveBiomeStyle()
                     .create(rng.nextParallelRNG(InferredType.CAVE.ordinal()), getData()).stream()
-                    .zoom(engine.getDimension().getBiomeZoom())
-                    .zoom(region.getCaveBiomeZoom()),
-                    loadInferredBiomes(region.getCaveBiomes(), InferredType.CAVE))
-                    .onNull(emptyBiome);
-            case LAND -> new RarityStream<>(engine.getDimension().getLandBiomeStyle()
+                    .zoom(dimension.getBiomeZoom())
+                    .zoom(region.getCaveBiomeZoom());
+            case LAND -> dimension.getLandBiomeStyle()
                     .create(rng.nextParallelRNG(InferredType.LAND.ordinal()), getData()).stream()
-                    .zoom(engine.getDimension().getBiomeZoom())
-                    .zoom(engine.getDimension().getLandZoom())
-                    .zoom(region.getLandBiomeZoom()),
-                    loadInferredBiomes(region.getLandBiomes(), InferredType.LAND));
-            case SEA -> new RarityStream<>(engine.getDimension().getSeaBiomeStyle()
+                    .zoom(dimension.getBiomeZoom())
+                    .zoom(dimension.getLandZoom())
+                    .zoom(region.getLandBiomeZoom());
+            case SEA -> dimension.getSeaBiomeStyle()
                     .create(rng.nextParallelRNG(InferredType.SEA.ordinal()), getData()).stream()
-                    .zoom(engine.getDimension().getBiomeZoom())
-                    .zoom(engine.getDimension().getSeaZoom())
-                    .zoom(region.getSeaBiomeZoom()),
-                    loadInferredBiomes(region.getSeaBiomes(), InferredType.SEA));
-            case SHORE -> new RarityStream<>(engine.getDimension().getShoreBiomeStyle()
+                    .zoom(dimension.getBiomeZoom())
+                    .zoom(dimension.getSeaZoom())
+                    .zoom(region.getSeaBiomeZoom());
+            case SHORE -> dimension.getShoreBiomeStyle()
                     .create(rng.nextParallelRNG(InferredType.SHORE.ordinal()), getData()).stream()
-                    .zoom(engine.getDimension().getBiomeZoom())
-                    .zoom(region.getShoreBiomeZoom()),
-                    loadInferredBiomes(region.getShoreBiomes(), InferredType.SHORE));
+                    .zoom(dimension.getBiomeZoom())
+                    .zoom(region.getShoreBiomeZoom());
         };
+    }
+
+    private static KList<String> biomeKeys(IrisRegion region, InferredType inferredType) {
+        return switch (inferredType) {
+            case CAVE -> region.getCaveBiomes();
+            case LAND -> region.getLandBiomes();
+            case SEA -> region.getSeaBiomes();
+            case SHORE -> region.getShoreBiomes();
+        };
+    }
+
+    /**
+     * The noise that picks one of the region's biomes of this type, before rarity splits it. Image maps and the
+     * studio biome buffet bypass it.
+     */
+    public ProceduralStream<Double> biomePickNoiseStream(IrisRegion region, InferredType inferredType) {
+        return biomePickNoiseStream(terrainEngine.getDimension(), region, inferredType);
+    }
+
+    public double biomePickNoise(IrisRegion region, InferredType inferredType, double x, double z) {
+        return biomePickNoiseStream(region, inferredType).getDouble(x, z);
+    }
+
+    /**
+     * The region's biomes of this type in the order their rarities split the picking noise.
+     */
+    public KList<IrisBiome> noisePickedBiomes(IrisRegion region, InferredType inferredType) {
+        return loadInferredBiomes(biomeKeys(region, inferredType), inferredType);
+    }
+
+    /**
+     * The biome the noise picks from the region's biomes of this type, before child biomes or the coast replace it.
+     */
+    public IrisBiome biomePickedByNoise(IrisRegion region, InferredType inferredType, double x, double z) {
+        return createInferredBiomeStream(region, inferredType).get(x, z);
+    }
+
+    /**
+     * The dimension's regions in the order their rarities split the region noise.
+     */
+    public KList<IrisRegion> noisePickedRegions() {
+        KList<IrisRegion> regions = new KList<>();
+        for (IrisRegion region : data.getRegionLoader().loadAll(terrainEngine.getDimension().getRegions())) {
+            if (!region.isCompatExcluded()) {
+                regions.add(region);
+            }
+        }
+        return regions;
+    }
+
+    /**
+     * The base biome a spot gets in the given region, before the terrain height can move it to another biome list,
+     * and the list it was picked from.
+     */
+    public BiomePick basePickIn(IrisRegion region, double x, double z) {
+        if (focusBiome != null) {
+            return new BiomePick(focusBiome, focusBiome.getInferredType());
+        }
+        InferredType type = bridgeStream.get(x, z);
+        return new BiomePick(implode(createInferredBiomeStream(region, type).get(x, z), x, z), type);
+    }
+
+    /**
+     * The surface biome a spot would get if it belonged to the given region, and the biome list it came from, for
+     * previewing one region across the map.
+     */
+    public BiomePick surfacePickAsIfIn(IrisRegion region, double x, double z) {
+        BiomePick base = basePickIn(region, x, z);
+        if (focusBiome != null) {
+            return base;
+        }
+        IrisBiome surface = resolveSurfaceBiome(heightStream.getDouble(x, z), base.biome(), region, x, z, fluidHeight,
+                createInferredBiomeStream(region, InferredType.LAND),
+                createInferredBiomeStream(region, InferredType.SEA),
+                createInferredBiomeStream(region, InferredType.SHORE),
+                shoreSlopeStream);
+        return surface == base.biome() ? base : new BiomePick(implode(surface, x, z), surface.getInferredType());
+    }
+
+    public IrisBiome surfaceBiomeAsIfIn(IrisRegion region, double x, double z) {
+        return surfacePickAsIfIn(region, x, z).biome();
+    }
+
+    public record BiomePick(IrisBiome biome, InferredType type) {
     }
 
     private Map<String, ProceduralStream<NativeBlockState>> createWaterFluidStreams(Map<String, IrisMaterialPalette> fluids) {

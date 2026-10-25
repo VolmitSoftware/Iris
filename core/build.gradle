@@ -136,6 +136,13 @@ dependencies {
     implementation('com.moandjiezana.toml:toml4j:0.7.2') {
         transitive = false
     }
+    // Shaded: the runtime downloader can neither fetch the natives classifiers nor relocate lwjgl's own jar.
+    implementation(libs.lwjgl)
+    implementation(libs.lwjgl.opengl)
+    implementation(libs.lwjgl.egl)
+    implementation(libs.lwjgl.jawt)
+    runtimeOnly(variantOf(libs.lwjgl) { classifier('natives-linux') })
+    runtimeOnly(variantOf(libs.lwjgl.opengl) { classifier('natives-linux') })
     // Dynamically Loaded
     slim(libs.gson)
     slim(libs.lru)
@@ -161,6 +168,8 @@ dependencies {
     slim(libs.byteBuddy.agent)
     slim(libs.dom4j)
     slim(libs.jaxen)
+    slim(libs.flatlaf)
+    slim(libs.flatlaf.extras)
 
     testFixturesImplementation('junit:junit:4.13.2')
     testFixturesImplementation(libs.mockito.core)

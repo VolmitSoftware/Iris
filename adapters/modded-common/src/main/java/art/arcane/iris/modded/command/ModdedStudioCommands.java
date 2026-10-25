@@ -23,10 +23,9 @@ import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeWorldView;
 
 import art.arcane.iris.modded.ModdedIrisLog;
 import art.arcane.iris.configuration.IrisSettings;
+import art.arcane.iris.studio.map.MapWindow;
+import art.arcane.iris.studio.map.PaletteExplorerStart;
 import art.arcane.iris.studio.view.GuiHost;
-import art.arcane.iris.studio.view.ImageMapStudioGUI;
-import art.arcane.iris.studio.view.NoiseExplorerGUI;
-import art.arcane.iris.studio.view.VisionGUI;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.pack.StructurePackageClosure;
 import art.arcane.iris.pack.ImageMapPackageClosure;
@@ -38,6 +37,7 @@ import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.biome.IrisBiomeGeneratorLink;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.world.entity.IrisEntitySpawn;
+import art.arcane.iris.world.IrisWorld;
 import art.arcane.iris.generation.noise.IrisGenerator;
 import art.arcane.iris.pack.PackExportClosure;
 import art.arcane.iris.world.entity.IrisEntity;
@@ -247,8 +247,9 @@ public final class ModdedStudioCommands {
             NativeProtocolPlayer player = source.player();
             ModdedGuiHost.bindContext(worldView(source.server(), level), engine, player == null ? null : player.id());
         }
-        if (generatorKey == null || generatorKey.isBlank()) {
-            NoiseExplorerGUI.launch();
+        Engine mapEngine = engine != null ? engine : GuiHost.get().findActiveEngine();
+        if ((generatorKey == null || generatorKey.isBlank()) && mapEngine != null) {
+            MapWindow.openNoise(mapStart(mapEngine, source.player()), new MapWindow.NoiseSelection(null, null, seed));
             IrisModdedCommands.ok(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_STUDIO_COMMANDS_OPENING_NOISE_EXPLORER_ON_SERVER_DISPLAY));
             return 1;
         }
@@ -262,7 +263,7 @@ public final class ModdedStudioCommands {
             return 0;
         }
         String selectedGeneratorKey = generatorKey.trim();
-        NoiseExplorerGUI.launchGeneratorKey(selectedGeneratorKey, generator, seed);
+        MapWindow.openNoise(mapStart(engine, source.player()), new MapWindow.NoiseSelection(selectedGeneratorKey, generator, seed));
         IrisModdedCommands.ok(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_STUDIO_COMMANDS_OPENING_NOISE_EXPLORER_GENERATOR_SEED, MessageArgument.untrusted("value", generatorKey.trim()), MessageArgument.untrusted("seed", seed)));
         return 1;
     }
@@ -280,9 +281,18 @@ public final class ModdedStudioCommands {
         }
         NativeProtocolPlayer player = source.player();
         ModdedGuiHost.bindContext(worldView(source.server(), level), engine, player == null ? null : player.id());
-        VisionGUI.launch(engine, player == null ? null : player.id());
+        MapWindow.openMap(mapStart(engine, player));
         IrisModdedCommands.ok(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_STUDIO_COMMANDS_OPENING_VISION_MAP_ON_SERVER_DISPLAY, MessageArgument.untrusted("value", level.name())));
         return 1;
+    }
+
+    // Modded worlds have no Bukkit world id; the map finds the engine again through the bound GUI context.
+    private static PaletteExplorerStart mapStart(Engine engine, NativeProtocolPlayer player) {
+        IrisWorld world = engine.getWorld();
+        NativeWorld level = world == null ? null : world.platformWorld();
+        boolean inWorld = player != null && player.connected() && level != null && player.inWorld(level);
+        return new PaletteExplorerStart(engine, null, player == null ? null : player.id(), null,
+                inWorld ? player.x() : 0D, inWorld ? player.z() : 0D);
     }
 
     private static int imageMap(NativeCommandSource source) {
@@ -294,13 +304,13 @@ public final class ModdedStudioCommands {
             ));
             return 0;
         }
-        if (!ImageMapStudioGUI.isAvailable()) {
+        if (!GuiHost.isAvailable() || !IrisSettings.get().getGui().isUseServerLaunchedGuis()) {
             IrisModdedCommands.fail(source, guiUnavailableMessage());
             return 0;
         }
         NativeProtocolPlayer player = source.player();
         ModdedGuiHost.bindContext(worldView(source.server(), level), engine, player == null ? null : player.id());
-        ImageMapStudioGUI.launch(engine);
+        MapWindow.openImageMaps(mapStart(engine, player));
         IrisModdedCommands.ok(source, IrisLanguage.plain(
                 ModdedCommandMessages.MODDED_STUDIO_COMMANDS_OPENING_IMAGE_MAP_STUDIO_ON_SERVER_DISPLAY,
                 MessageArgument.untrusted("value", level.name())

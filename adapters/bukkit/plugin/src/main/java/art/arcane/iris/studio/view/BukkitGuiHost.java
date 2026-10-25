@@ -23,6 +23,8 @@ import art.arcane.iris.world.event.IrisEngineHotloadEvent;
 import art.arcane.iris.world.IrisToolbelt;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.platform.generation.PlatformChunkGenerator;
+import art.arcane.iris.studio.StudioSVC;
+import art.arcane.iris.studio.workspace.IrisProject;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.event.EventHandler;
@@ -40,17 +42,51 @@ public final class BukkitGuiHost implements GuiHost.Provider {
         GuiHost.set(new BukkitGuiHost());
     }
 
+    /**
+     * The engine of the open studio project, which reads the pack folder being edited, or else the first
+     * Iris world. A normal Iris world runs on its own copy of the pack, made when the world was created.
+     */
     @Override
     public Engine findActiveEngine() {
+        Engine studioEngine = findStudioEngine();
+        if (studioEngine != null) {
+            return studioEngine;
+        }
         try {
             for (World world : new ArrayList<>(Bukkit.getWorlds())) {
-                try {
-                    PlatformChunkGenerator access = IrisToolbelt.access(world);
-                    if (access != null && access.getEngine() != null && !access.getEngine().isClosed()) {
-                        return access.getEngine();
-                    }
-                } catch (Throwable ignored) {
+                Engine engine = engineOf(world);
+                if (engine != null) {
+                    return engine;
                 }
+            }
+        } catch (Throwable ignored) {
+        }
+        return null;
+    }
+
+    @Override
+    public Engine findEngine(UUID worldId) {
+        World world = worldId == null ? null : Bukkit.getWorld(worldId);
+        return world == null ? null : engineOf(world);
+    }
+
+    private static Engine findStudioEngine() {
+        try {
+            StudioSVC studio = Iris.service(StudioSVC.class);
+            IrisProject project = studio == null || !studio.isProjectOpen() ? null : studio.getActiveProject();
+            PlatformChunkGenerator provider = project == null ? null : project.getActiveProvider();
+            Engine engine = provider == null ? null : provider.getEngine();
+            return engine == null || engine.isClosed() ? null : engine;
+        } catch (Throwable ignored) {
+            return null;
+        }
+    }
+
+    private static Engine engineOf(World world) {
+        try {
+            PlatformChunkGenerator access = IrisToolbelt.access(world);
+            if (access != null && access.getEngine() != null && !access.getEngine().isClosed()) {
+                return access.getEngine();
             }
         } catch (Throwable ignored) {
         }

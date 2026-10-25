@@ -373,6 +373,7 @@ public class IrisSettings {
         public boolean useServerLaunchedGuis = true;
         public boolean maximumPregenGuiFPS = false;
         public boolean colorMode = true;
+        public String theme = "auto";
     }
 
     @Data

@@ -50,14 +50,15 @@ abstract class BiomePalettePlacement {
         RNG postRandom = new RNG(engine.getSeedManager().getPost());
         int seaLevel = seaLevel(engine.getDimension());
         int index = palette.index();
-        IrisBiomePaletteLayer layer = palette.layerIn(biome);
         return switch (palette.kind()) {
-            case LAYER -> new StackedLayer(layer, index, biome.getLayerHeightGenerators(terrainRandom, data), terrainRandom, data);
-            case SEA_LAYER -> new StackedLayer(layer, index, biome.getLayerSeaHeightGenerators(terrainRandom, data), terrainRandom, data);
-            case CAVE_CEILING_LAYER -> new StackedLayer(layer, index, biome.getCaveCeilingLayerHeightGenerators(carveRandom, data),
-                    carveRandom, data);
-            case WALL -> new SingleBlocks(layer, data, carveRandom, seaLevel);
-            case SLAB -> new SingleBlocks(layer, data, postRandom, seaLevel);
+            case LAYER -> new StackedLayer(palette.layerIn(biome), index, biome.getLayerHeightGenerators(terrainRandom, data),
+                    terrainRandom, data);
+            case SEA_LAYER -> new StackedLayer(palette.layerIn(biome), index, biome.getLayerSeaHeightGenerators(terrainRandom, data),
+                    terrainRandom, data);
+            case CAVE_CEILING_LAYER -> new StackedLayer(palette.layerIn(biome), index,
+                    biome.getCaveCeilingLayerHeightGenerators(carveRandom, data), carveRandom, data);
+            case WALL -> new SingleBlocks(palette.layerIn(biome), data, carveRandom, seaLevel);
+            case SLAB -> new SingleBlocks(palette.layerIn(biome), data, postRandom, seaLevel);
             case DECORATOR -> new Decorations(palette.decoratorIn(biome), engine.getSeedManager().getComponent(), seaLevel, data);
         };
     }

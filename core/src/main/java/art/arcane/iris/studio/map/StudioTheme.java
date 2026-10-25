@@ -26,6 +26,8 @@ import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.configuration.IrisSettings;
 
 import javax.swing.BorderFactory;
+import javax.swing.JComponent;
+import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.border.Border;
 import java.awt.Color;
@@ -64,6 +66,7 @@ final class StudioTheme {
     static final int OVERLAY_ARC = 10;
 
     private static final boolean DARK_WITHOUT_SYSTEM_PREFERENCE = true;
+    private static final String MATCHED_DARK_PROPERTY = "iris.studio.matchedDark";
     private static final AtomicBoolean INSTALLED = new AtomicBoolean();
     private static final ExecutorService SYSTEM_CHECK = Executors.newSingleThreadExecutor(runnable -> {
         Thread thread = new Thread(runnable, "Iris Theme Check");
@@ -186,6 +189,19 @@ final class StudioTheme {
             case DARK -> true;
             case AUTO -> SystemAppearance.prefersDark().orElse(DARK_WITHOUT_SYSTEM_PREFERENCE);
         };
+    }
+
+    /**
+     * A theme switch only reaches components inside a window, so a panel swapped out at the time keeps the old theme until
+     * this brings it up to date. Call it when putting a panel back on screen.
+     */
+    static <T extends JComponent> T matchTheme(T component) {
+        if (Boolean.valueOf(dark).equals(component.getClientProperty(MATCHED_DARK_PROPERTY))) {
+            return component;
+        }
+        SwingUtilities.updateComponentTreeUI(component);
+        component.putClientProperty(MATCHED_DARK_PROPERTY, dark);
+        return component;
     }
 
     private static void switchTo(boolean nextDark) {

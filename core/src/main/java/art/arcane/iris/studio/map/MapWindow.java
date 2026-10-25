@@ -260,14 +260,13 @@ public final class MapWindow implements MapCanvas.Listener {
         canvas.showView(view);
         canvas.setActive(true);
         showControls(mapControls);
-        inspectorSlot.removeAll();
         if (view == MapView.REGIONS) {
             showRegionExplorer(previousView);
         } else if (view == MapView.BIOMES) {
             showBiomeExplorer();
         } else {
             useSidebar(viewListScroll);
-            inspectorSlot.add(legendPanel, BorderLayout.CENTER);
+            useInspector(legendPanel);
         }
         showCard(MAP_CARD);
         canvas.requestFocusInWindow();
@@ -293,9 +292,9 @@ public final class MapWindow implements MapCanvas.Listener {
     // The region and biome views share how the map draws its picks, so their switches show the same choice.
     private void showPickInspector(PickInspectorPanel inspector) {
         inspector.selectDisplay(canvas.pickDisplay());
-        pickInspectorSplit.setTopComponent(inspector);
-        pickInspectorSplit.setBottomComponent(legendPanel);
-        inspectorSlot.add(pickInspectorSplit, BorderLayout.CENTER);
+        pickInspectorSplit.setTopComponent(StudioTheme.matchTheme(inspector));
+        pickInspectorSplit.setBottomComponent(StudioTheme.matchTheme(legendPanel));
+        useInspector(pickInspectorSplit);
     }
 
     private void stylePickInspectorSplit() {
@@ -316,8 +315,7 @@ public final class MapWindow implements MapCanvas.Listener {
         canvas.setActive(false);
         showControls(explorerControls);
         useSidebar(viewListAbove(paletteExplorer.paletteSidebar()));
-        inspectorSlot.removeAll();
-        inspectorSlot.add(paletteExplorer.paletteInspector(), BorderLayout.CENTER);
+        useInspector(paletteExplorer.paletteInspector());
         showCard(PALETTES_CARD);
         EventQueue.invokeLater(() -> viewList.select(currentView));
         if (firstOpen) {
@@ -331,8 +329,7 @@ public final class MapWindow implements MapCanvas.Listener {
         canvas.setActive(false);
         showControls(explorerControls);
         useSidebar(viewListAbove(explorer.browser()));
-        inspectorSlot.removeAll();
-        inspectorSlot.add(explorer.overview(), BorderLayout.CENTER);
+        useInspector(explorer.overview());
         showCard(view.name());
         EventQueue.invokeLater(() -> viewList.select(currentView));
         if (firstOpen) {
@@ -352,8 +349,7 @@ public final class MapWindow implements MapCanvas.Listener {
         canvas.setActive(false);
         showControls(worldControls, explorerControls);
         useSidebar(viewListScroll);
-        inspectorSlot.removeAll();
-        inspectorSlot.add(worldExplorer.legend(), BorderLayout.CENTER);
+        useInspector(worldExplorer.legend());
         showCard(WORLD_CARD);
         worldExplorer.show(worldCenterX, worldCenterZ, firstOpen || mapMoved);
     }
@@ -430,7 +426,7 @@ public final class MapWindow implements MapCanvas.Listener {
     private JSplitPane viewListAbove(JComponent explorerSidebar) {
         boolean firstUse = explorerSplit.getBottomComponent() == null;
         explorerSplit.setTopComponent(viewListScroll);
-        explorerSplit.setBottomComponent(explorerSidebar);
+        explorerSplit.setBottomComponent(StudioTheme.matchTheme(explorerSidebar));
         if (firstUse) {
             EventQueue.invokeLater(this::fitViewListAboveExplorer);
         }
@@ -549,7 +545,12 @@ public final class MapWindow implements MapCanvas.Listener {
 
     private void useSidebar(JComponent component) {
         sidebar.removeAll();
-        sidebar.add(component, BorderLayout.CENTER);
+        sidebar.add(StudioTheme.matchTheme(component), BorderLayout.CENTER);
+    }
+
+    private void useInspector(JComponent component) {
+        inspectorSlot.removeAll();
+        inspectorSlot.add(StudioTheme.matchTheme(component), BorderLayout.CENTER);
     }
 
     private void showCard(String card) {

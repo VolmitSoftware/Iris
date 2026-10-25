@@ -354,8 +354,9 @@ final class OrbitViewport extends JComponent {
     }
 
     /**
-     * Frames go straight into the window when the scene can be drawn that way, Swing has nothing to paint over the
-     * whole view, and the screen's pixels are the view's own. The window is shown before the frame is drawn into it.
+     * Frames go straight into the window when the view is on screen, the scene can be drawn that way, Swing has nothing
+     * to paint over the whole view, and the screen's pixels are the view's own. The window is shown before the frame is
+     * drawn into it. Showing it maps it even while its card is hidden, where it would cover the card that is open.
      *
      * @return the window, or nothing to draw a picture for Swing instead
      */
@@ -370,8 +371,8 @@ final class OrbitViewport extends JComponent {
     }
 
     private boolean drawsOnScreen() {
-        return canvas != null && canvas.window() != 0L && scene != null && !scene.isEmpty() && scene.canRenderOnScreen()
-                && !isLoadingShown() && hasUnscaledPixels();
+        return canvas != null && isShowing() && canvas.window() != 0L && scene != null && !scene.isEmpty()
+                && scene.canRenderOnScreen() && !isLoadingShown() && hasUnscaledPixels();
     }
 
     private boolean hasUnscaledPixels() {

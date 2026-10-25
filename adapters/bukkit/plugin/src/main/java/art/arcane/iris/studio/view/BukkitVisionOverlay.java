@@ -18,23 +18,19 @@
 
 package art.arcane.iris.studio.view;
 
-import art.arcane.volmlib.nativelib.view.WorldMarker;
-
-import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.runtime.Engine;
-import art.arcane.iris.studio.render.RenderType;
 import art.arcane.iris.world.IrisWorld;
 import art.arcane.iris.platform.bukkit.BukkitPlatform;
 import art.arcane.iris.platform.bukkit.BukkitWorldBinding;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.world.task.J;
 import art.arcane.volmlib.util.format.Form;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -56,7 +52,7 @@ public final class BukkitVisionOverlay implements GuiOverlay {
     private final AtomicBoolean playerRefreshQueued = new AtomicBoolean();
     private final AtomicLong teleportSequence = new AtomicLong();
     private final AtomicReference<VisionTeleportRequest> latestTeleport = new AtomicReference<>();
-    private volatile List<WorldMarker> playerMarkers = List.of();
+    private volatile List<GuiMarker> playerMarkers = List.of();
 
     public BukkitVisionOverlay(Engine engine, UUID openerId) {
         this.engine = engine;
@@ -68,7 +64,7 @@ public final class BukkitVisionOverlay implements GuiOverlay {
      * built by a server thread.
      */
     @Override
-    public List<WorldMarker> players() {
+    public List<GuiMarker> players() {
         queuePlayerRefresh();
         return playerMarkers;
     }
@@ -80,10 +76,10 @@ public final class BukkitVisionOverlay implements GuiOverlay {
 
         boolean scheduled = J.runGlobal(() -> {
             try {
-                List<WorldMarker> markers = new ArrayList<>();
+                List<GuiMarker> markers = new ArrayList<>();
                 for (Player player : BukkitWorldBinding.players(engine.getWorld())) {
                     Location at = player.getLocation();
-                    markers.add(WorldMarker.player(player.getName(), at.getX(), at.getZ()));
+                    markers.add(GuiMarker.player(player.getName(), at.getX(), at.getZ(), at.getYaw()));
                 }
                 playerMarkers = List.copyOf(markers);
             } finally {
@@ -97,7 +93,7 @@ public final class BukkitVisionOverlay implements GuiOverlay {
     }
 
     @Override
-    public void requestEntities(Consumer<List<WorldMarker>> sink) {
+    public void requestEntities(Consumer<List<GuiMarker>> sink) {
         J.runGlobal(() -> {
             IrisWorld target = engine.getWorld();
             World world = BukkitWorldBinding.world(target);
@@ -118,7 +114,7 @@ public final class BukkitVisionOverlay implements GuiOverlay {
                 return;
             }
 
-            List<WorldMarker> collected = Collections.synchronizedList(new ArrayList<>(living.size()));
+            List<GuiMarker> collected = Collections.synchronizedList(new ArrayList<>(living.size()));
             AtomicInteger pending = new AtomicInteger(living.size());
             Runnable complete = () -> {
                 if (pending.decrementAndGet() == 0) {
@@ -144,22 +140,22 @@ public final class BukkitVisionOverlay implements GuiOverlay {
         });
     }
 
-    private WorldMarker marker(LivingEntity entity, Location at) {
+    private GuiMarker marker(LivingEntity entity, Location at) {
         String label = Form.capitalizeWords(entity.getType().name().toLowerCase(Locale.ROOT).replaceAll("\\Q_\\E", " "));
         double maxHealth = 0;
         try {
             maxHealth = entity.getAttribute(MAX_HEALTH).getValue();
         } catch (Throwable ignored) {
         }
-        return WorldMarker.entity(label, at.getX(), at.getY(), at.getZ(), entity.getHealth(), maxHealth);
+        return GuiMarker.entity(label, at.getX(), at.getY(), at.getZ(), entity.getHealth(), maxHealth);
     }
 
     @Override
     public void teleport(double worldX, double worldZ) {
         VisionTeleportRequest request = new VisionTeleportRequest(
                 teleportSequence.incrementAndGet(),
-                VisionGUI.floorWorldCoordinate(worldX),
-                VisionGUI.floorWorldCoordinate(worldZ));
+                (int) StrictMath.floor(worldX),
+                (int) StrictMath.floor(worldZ));
         latestTeleport.set(request);
         startTeleport(request);
     }
@@ -210,6 +206,36 @@ public final class BukkitVisionOverlay implements GuiOverlay {
         if (!scheduled) {
             finish(request);
         }
+    }
+
+    @Override
+    public void requestOpenerPosition(Consumer<OpenerPosition> sink) {
+        if (openerId == null) {
+            sink.accept(OpenerPosition.OFFLINE);
+            return;
+        }
+        boolean scheduled = J.runGlobal(() -> {
+            Player player = Bukkit.getPlayer(openerId);
+            if (player == null) {
+                sink.accept(OpenerPosition.OFFLINE);
+                return;
+            }
+            World world = BukkitWorldBinding.world(engine.getWorld());
+            if (!J.runEntity(player, () -> sink.accept(positionOf(player, world)))) {
+                sink.accept(OpenerPosition.OFFLINE);
+            }
+        });
+        if (!scheduled) {
+            sink.accept(OpenerPosition.OFFLINE);
+        }
+    }
+
+    private static OpenerPosition positionOf(Player player, World world) {
+        if (world == null || player.getWorld() != world) {
+            return OpenerPosition.IN_OTHER_WORLD;
+        }
+        Location at = player.getLocation();
+        return OpenerPosition.inWorld(at.getX(), at.getY(), at.getZ());
     }
 
     private Player selectPlayer(List<Player> players) {
@@ -314,21 +340,6 @@ public final class BukkitVisionOverlay implements GuiOverlay {
     private void reportTeleportFailure(World world, int blockX, int blockZ, Throwable failure) {
         IrisLogging.reportError("Vision could not teleport to " + world.getName() + "@"
                 + blockX + "," + blockZ + ".", failure);
-    }
-
-    @Override
-    public String openInEditor(double worldX, double worldZ, RenderType type) {
-        IrisComplex complex = engine.getComplex();
-        File file = switch (type) {
-            case BIOME, LAYER_LOAD, DECORATOR_LOAD, OBJECT_LOAD, HEIGHT, RIVER ->
-                    complex.getTrueBiomeStream().get(worldX, worldZ).openInVSCode();
-            case BIOME_LAND -> complex.getLandBiomeStream().get(worldX, worldZ).openInVSCode();
-            case BIOME_SEA -> complex.getSeaBiomeStream().get(worldX, worldZ).openInVSCode();
-            case REGION -> complex.getRegionStream().get(worldX, worldZ).openInVSCode();
-            case CAVE_LAND -> complex.getCaveBiomeStream().get(worldX, worldZ).openInVSCode();
-            default -> null;
-        };
-        return file == null ? null : file.getName();
     }
 
     private static final class VisionTeleportRequest {

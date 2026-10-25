@@ -1,0 +1,4 @@
+The icons in this folder and its subfolders come from the IntelliJ Platform (https://github.com/JetBrains/intellij-community),
+platform/icons/src/expui, Copyright 2000-2023 JetBrains s.r.o. and contributors,
+used under the Apache License 2.0 (LICENSE-APACHE-2.0.txt).
+memory.svg is profileMemory.svg with its profiling badge removed.

@@ -18,19 +18,25 @@
 
 package art.arcane.iris.studio.view;
 
-import art.arcane.volmlib.nativelib.view.WorldMarker;
-
-import art.arcane.iris.studio.render.RenderType;
-
 import java.util.List;
 import java.util.function.Consumer;
 
+/**
+ * What a desktop window may ask of the live server world. Called from the AWT event thread, so every
+ * method hands work to the server's own threads and never blocks.
+ */
 public interface GuiOverlay {
-    List<WorldMarker> players();
+    List<GuiMarker> players();
 
-    void requestEntities(Consumer<List<WorldMarker>> sink);
+    void requestEntities(Consumer<List<GuiMarker>> sink);
 
     void teleport(double worldX, double worldZ);
 
-    String openInEditor(double worldX, double worldZ, RenderType type);
+    /**
+     * Hands the opener's position to the sink, from a server thread. Platforms that can't tell which
+     * player opened the window report them as offline.
+     */
+    default void requestOpenerPosition(Consumer<OpenerPosition> sink) {
+        sink.accept(OpenerPosition.OFFLINE);
+    }
 }

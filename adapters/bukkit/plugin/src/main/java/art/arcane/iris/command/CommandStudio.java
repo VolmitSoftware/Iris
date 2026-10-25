@@ -21,10 +21,10 @@ package art.arcane.iris.command;
 import art.arcane.iris.Iris;
 import art.arcane.iris.platform.bukkit.BukkitPlatform;
 import art.arcane.iris.configuration.IrisSettings;
+import art.arcane.iris.studio.map.MapWindow;
+import art.arcane.iris.studio.map.NoiseExplorerGUI;
+import art.arcane.iris.studio.map.PaletteExplorerStart;
 import art.arcane.iris.studio.view.GuiHost;
-import art.arcane.iris.studio.view.ImageMapStudioGUI;
-import art.arcane.iris.studio.view.NoiseExplorerGUI;
-import art.arcane.iris.studio.view.VisionGUI;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.studio.workspace.IrisProject;
 import art.arcane.iris.studio.workspace.IrisCodeWorkspace;
@@ -255,15 +255,19 @@ public class CommandStudio implements DirectorExecutor {
             long seed
     ) {
         if (noGUI()) return;
-        sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_STUDIO_OPENING_NOISE_EXPLORER));
-
-        if (generator == null) {
-            NoiseExplorerGUI.launch();
+        Engine playerEngine = engine();
+        Engine engine = playerEngine != null ? playerEngine : GuiHost.get().findActiveEngine();
+        if (generator != null) {
+            sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_STUDIO_OPENING_NOISE_EXPLORER));
+            NoiseExplorerGUI.launchGeneratorKey(engine, generator.getLoadKey(), generator, seed);
             return;
         }
-
-        String generatorKey = generator.getLoadKey();
-        NoiseExplorerGUI.launchGeneratorKey(generatorKey, generator, seed);
+        if (engine == null) {
+            sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_STUDIO_YOU_NEED_BE_SPECIFY_IRIS_GENERATED_WORLD));
+            return;
+        }
+        sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_STUDIO_OPENING_NOISE_EXPLORER));
+        MapWindow.openNoise(playerEngine != null ? mapStartIn(player().getWorld()) : mapStartWithoutWorld(engine));
     }
 
     @Director(description = "Open the image-map studio (External GUI)", descriptionKey = "iris.director.commandstudio.director.open_image_map_studio_external_gui", aliases = {"imap"})
@@ -279,8 +283,7 @@ public class CommandStudio implements DirectorExecutor {
             return;
         }
 
-        Engine activeEngine = IrisToolbelt.access(world).getEngine();
-        ImageMapStudioGUI.launch(activeEngine);
+        MapWindow.openImageMaps(mapStartIn(world));
         sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_STUDIO_OPENING_IMAGE_MAP_STUDIO));
     }
 
@@ -420,9 +423,25 @@ public class CommandStudio implements DirectorExecutor {
             return;
         }
 
-        UUID openerId = sender().isPlayer() ? player().getUniqueId() : null;
-        VisionGUI.launch(IrisToolbelt.access(world).getEngine(), openerId);
+        MapWindow.openMap(mapStartIn(world));
         sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_STUDIO_OPENING_MAP));
+    }
+
+    // The map opens where the player stands when they are in that world, otherwise at the world origin.
+    private PaletteExplorerStart mapStartIn(World world) {
+        Location center = sender().isPlayer() && player().getWorld().equals(world) ? player().getLocation() : null;
+        return new PaletteExplorerStart(
+                IrisToolbelt.access(world).getEngine(),
+                world.getUID(),
+                sender().isPlayer() ? player().getUniqueId() : null,
+                null,
+                center == null ? 0D : center.getX(),
+                center == null ? 0D : center.getZ()
+        );
+    }
+
+    private PaletteExplorerStart mapStartWithoutWorld(Engine engine) {
+        return new PaletteExplorerStart(engine, null, sender().isPlayer() ? player().getUniqueId() : null, null, 0D, 0D);
     }
 
     @Director(description = "Profiles the performance of a dimension", descriptionKey = "iris.director.commandstudio.director.profiles_performance_dimension", origin = DirectorOrigin.PLAYER)

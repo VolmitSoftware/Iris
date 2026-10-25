@@ -152,12 +152,16 @@ configurations.named('bundle').configure {
     exclude(group: 'de.crazydev22.slimjar.helper')
     exclude(group: 'de.crazydev22.slimjar')
     exclude(group: 'io.github.slimjar')
+    // The game ships its own LWJGL; without the modules it leaves out, the map's 3D views draw in software.
+    exclude(group: 'org.lwjgl')
 }
 
 configurations.named('runBundle').configure {
     exclude(group: 'de.crazydev22.slimjar.helper')
     exclude(group: 'de.crazydev22.slimjar')
     exclude(group: 'io.github.slimjar')
+    // The game ships its own LWJGL; without the modules it leaves out, the map's 3D views draw in software.
+    exclude(group: 'org.lwjgl')
 }
 
 configurations.compileClasspath.extendsFrom(configurations.devBundle)
@@ -215,7 +219,9 @@ dependencies {
         libs.caffeine,
         'com.fulcrumgenomics:jlibdeflate:0.2.0',
         libs.dom4j,
-        libs.jaxen
+        libs.jaxen,
+        libs.flatlaf,
+        libs.flatlaf.extras
     ]
     shared.each { Object notation ->
         ['bundle', 'devBundle', 'runBundle'].each { String configuration ->

@@ -148,8 +148,7 @@ final class IrisBiomeLayerGenerator {
             return data;
         }
 
-        KList<CNG> heightGenerators = getHeightGenerators(
-                biome.getLayerCeilingHeightGenerators(), ceilingLayers, 7235, random, rdata);
+        KList<CNG> heightGenerators = getCaveCeilingLayerHeightGenerators(biome, random, rdata);
 
         for (int i = 0; i < layerCount; i++) {
             IrisBiomePaletteLayer layer = ceilingLayers.get(i);
@@ -315,6 +314,10 @@ final class IrisBiomeLayerGenerator {
 
     static KList<CNG> getLayerSeaHeightGenerators(IrisBiome biome, RNG rng, IrisData data) {
         return getHeightGenerators(biome.getLayerSeaHeightGenerators(), biome.getSeaLayers(), 7735, rng, data);
+    }
+
+    static KList<CNG> getCaveCeilingLayerHeightGenerators(IrisBiome biome, RNG rng, IrisData data) {
+        return getHeightGenerators(biome.getLayerCeilingHeightGenerators(), biome.getCaveCeilingLayers(), 7235, rng, data);
     }
 
     private static KList<CNG> getHeightGenerators(IrisBiomeLayerHeightCache cache,

@@ -18,17 +18,12 @@
 
 package art.arcane.iris.modded.command;
 
-import art.arcane.iris.studio.view.GuiHost;
-import art.arcane.volmlib.nativelib.view.WorldMarker;
+import art.arcane.iris.studio.view.GuiMarker;
 import art.arcane.iris.studio.view.GuiOverlay;
-import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.runtime.Engine;
-import art.arcane.iris.studio.render.RenderType;
 import art.arcane.iris.modded.ModdedIrisLog;
 import art.arcane.iris.modded.ModdedTeleportDeadline;
 
-import java.awt.Desktop;
-import java.io.File;
 import java.util.List;
 import java.util.Optional;
 import art.arcane.volmlib.nativelib.view.WorldView;
@@ -46,14 +41,20 @@ public final class ModdedVisionOverlay implements GuiOverlay {
         opener = context.opener();
     }
 
+    // WorldView doesn't report which way a player faces, so their markers all face south.
     @Override
-    public List<WorldMarker> players() {
-        return world.players();
+    public List<GuiMarker> players() {
+        return world.players().stream()
+                .map(player -> GuiMarker.player(player.label(), player.worldX(), player.worldZ(), 0F))
+                .toList();
     }
 
     @Override
-    public void requestEntities(Consumer<List<WorldMarker>> sink) {
-        world.requestEntities(sink);
+    public void requestEntities(Consumer<List<GuiMarker>> sink) {
+        world.requestEntities(entities -> sink.accept(entities.stream()
+                .map(entity -> GuiMarker.entity(entity.label(), entity.worldX(), entity.worldY(), entity.worldZ(),
+                        entity.health(), entity.maxHealth()))
+                .toList()));
     }
 
     @Override
@@ -80,23 +81,6 @@ public final class ModdedVisionOverlay implements GuiOverlay {
         });
     }
 
-    @Override
-    public String openInEditor(double worldX, double worldZ, RenderType type) {
-        if (!GuiHost.isAvailable() || !Desktop.isDesktopSupported()) {
-            return null;
-        }
-        IrisComplex complex = engine.getComplex();
-        File file = switch (type) {
-            case BIOME, LAYER_LOAD, DECORATOR_LOAD, OBJECT_LOAD, HEIGHT, RIVER ->
-                    complex.getTrueBiomeStream().get(worldX, worldZ).openInVSCode();
-            case BIOME_LAND -> complex.getLandBiomeStream().get(worldX, worldZ).openInVSCode();
-            case BIOME_SEA -> complex.getSeaBiomeStream().get(worldX, worldZ).openInVSCode();
-            case REGION -> complex.getRegionStream().get(worldX, worldZ).openInVSCode();
-            case CAVE_LAND -> complex.getCaveBiomeStream().get(worldX, worldZ).openInVSCode();
-            default -> null;
-        };
-        return file == null ? null : file.getName();
-    }
     public record Context(WorldView world, Engine engine, UUID opener) {
     }
 

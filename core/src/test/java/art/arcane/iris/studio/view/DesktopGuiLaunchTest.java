@@ -1,6 +1,8 @@
 package art.arcane.iris.studio.view;
 
 import art.arcane.iris.configuration.IrisSettings;
+import art.arcane.iris.studio.map.MapWindow;
+import art.arcane.iris.studio.map.NoiseExplorerGUI;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -38,28 +40,28 @@ public class DesktopGuiLaunchTest {
 
     @Test
     public void mapLaunchDoesNotCreateAWindowWithoutDesktop() throws Exception {
-        VisionGUI.launch(null, null);
+        MapWindow.openMap(null);
 
         assertNoDesktopFailure();
     }
 
     @Test
     public void noiseLaunchDoesNotCreateAWindowWithoutDesktop() throws Exception {
-        NoiseExplorerGUI.launch();
+        MapWindow.openNoise(null);
 
         assertNoDesktopFailure();
     }
 
     @Test
     public void generatorLaunchDoesNotCreateAWindowWithoutDesktop() throws Exception {
-        NoiseExplorerGUI.launchGeneratorKey("test", null, 12345L);
+        NoiseExplorerGUI.launchGeneratorKey(null, "test", null, 12345L);
 
         assertNoDesktopFailure();
     }
 
     @Test
     public void imageMapLaunchDoesNotReadEngineWithoutDesktop() throws Exception {
-        ImageMapStudioGUI.launch(null);
+        MapWindow.openImageMaps(null);
 
         assertNoDesktopFailure();
     }

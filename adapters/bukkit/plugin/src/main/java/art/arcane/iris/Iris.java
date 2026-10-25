@@ -60,6 +60,7 @@ import art.arcane.iris.integration.MultiverseCoreLink;
 import art.arcane.iris.platform.bukkit.nms.INMS;
 import art.arcane.volmlib.nativelib.terrain.ServerShutdownBoundary;
 import art.arcane.iris.studio.view.BukkitGuiHost;
+import art.arcane.iris.studio.view.GuiHost;
 import art.arcane.iris.studio.view.PregeneratorJob;
 import art.arcane.iris.platform.bukkit.BoardSVC;
 import art.arcane.iris.command.CommandSVC;
@@ -988,6 +989,7 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
     }
 
     public void onDisable() {
+        GuiHost.shutdown();
         preservePendingBlockDrops();
         papiLifecycleActive = false;
         if (updateNotifier != null) {

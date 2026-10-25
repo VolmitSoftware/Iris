@@ -8,20 +8,20 @@ import static org.junit.Assert.assertTrue;
 public class IrisObjectStructurePieceAirTest {
     @Test
     public void explicitAirPlacesOnlyForRawStructurePieces() {
-        assertTrue(IrisObjectPlacementRunner.shouldPlaceObjectBlock(true, true, false));
-        assertFalse(IrisObjectPlacementRunner.shouldPlaceObjectBlock(false, true, false));
+        assertTrue(ObjectBlockPass.shouldPlaceObjectBlock(true, true, false));
+        assertFalse(ObjectBlockPass.shouldPlaceObjectBlock(false, true, false));
     }
 
     @Test
     public void ordinaryObjectAirRemainsNondestructive() {
-        assertFalse(IrisObjectPlacementRunner.shouldPlaceObjectBlock(false, true, false));
-        assertTrue(IrisObjectPlacementRunner.shouldPlaceObjectBlock(false, false, false));
+        assertFalse(ObjectBlockPass.shouldPlaceObjectBlock(false, true, false));
+        assertTrue(ObjectBlockPass.shouldPlaceObjectBlock(false, false, false));
     }
 
     @Test
     public void vineReplacementRemainsRejectedForEveryPlacementMode() {
-        assertFalse(IrisObjectPlacementRunner.shouldPlaceObjectBlock(false, false, true));
-        assertFalse(IrisObjectPlacementRunner.shouldPlaceObjectBlock(true, false, true));
-        assertFalse(IrisObjectPlacementRunner.shouldPlaceObjectBlock(true, true, true));
+        assertFalse(ObjectBlockPass.shouldPlaceObjectBlock(false, false, true));
+        assertFalse(ObjectBlockPass.shouldPlaceObjectBlock(true, false, true));
+        assertFalse(ObjectBlockPass.shouldPlaceObjectBlock(true, true, true));
     }
 }

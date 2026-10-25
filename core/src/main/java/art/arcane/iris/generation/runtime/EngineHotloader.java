@@ -96,7 +96,8 @@ final class EngineHotloader {
                             assembly.complex,
                             assembly.upperContext,
                             assembly.dimensionStackContext,
-                            biomeMaxes);
+                            biomeMaxes,
+                            assembly.placementLifecycles);
                     next = previous.withGeneration(nextGeneration);
                 } finally {
                     engine.threadState.setAssembly(null);

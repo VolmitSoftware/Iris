@@ -335,6 +335,7 @@ public class IrisEngineGenerationRuntimeScopeTest {
             assertSame(detached.dimension, engine.getDimension());
             assertSame(detached.runtime.seedManager(), engine.getSeedManager());
             assertSame(detached.complex, engine.getComplex());
+            assertSame(detached.runtime.placementLifecycles(), engine.getPlacementLifecycles());
             assertSame(detached.upperContext, engine.getUpperContext());
             assertSame(detached.dimensionStackContext, engine.getDimensionStackContext());
             assertSame(detached.mode, engine.getMode());
@@ -351,6 +352,7 @@ public class IrisEngineGenerationRuntimeScopeTest {
         assertSame(active.target, engine.getTarget());
         assertSame(active.data, engine.getData());
         assertSame(active.runtime.seedManager(), engine.getSeedManager());
+        assertSame(active.runtime.placementLifecycles(), engine.getPlacementLifecycles());
         assertSame(active.mantle, engine.getMantle());
         assertEquals(1, engine.getCacheID());
     }
@@ -1009,7 +1011,8 @@ public class IrisEngineGenerationRuntimeScopeTest {
                 mantle,
                 mantleStorageDirectory,
                 hash32,
-                new BiomeMaxes(objectDensity, layerDensity, decoratorDensity));
+                new BiomeMaxes(objectDensity, layerDensity, decoratorDensity),
+                art.arcane.iris.structure.object.PlacementLifecycles.resolve());
         return new RuntimeFixture(
                 runtime,
                 target,

@@ -18,6 +18,8 @@
 
 package art.arcane.iris.generation.runtime;
 
+import art.arcane.iris.structure.object.PlacementLifecycles;
+
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.world.history.TransitionGenerationPlan;
 import art.arcane.iris.world.history.GenerationKernelRegistry;
@@ -44,7 +46,8 @@ record GenerationRuntime(
         EngineMantle mantle,
         Path mantleStorageDirectory,
         CompletableFuture<Long> hash32,
-        BiomeMaxes biomeMaxes
+        BiomeMaxes biomeMaxes,
+        PlacementLifecycles placementLifecycles
 ) {
     GenerationRuntime {
         Objects.requireNonNull(target, "generation target");
@@ -61,6 +64,7 @@ record GenerationRuntime(
         Objects.requireNonNull(mantle, "generation mantle");
         mantleStorageDirectory = IrisEngineMantle.normalizeStorageDirectory(mantleStorageDirectory);
         Objects.requireNonNull(hash32, "generation pack hash");
+        Objects.requireNonNull(placementLifecycles, "placement lifecycles");
         Objects.requireNonNull(biomeMaxes, "generation biome maximums");
         if (target.getData() != data || target.getDimension() != dimension) {
             throw new IllegalArgumentException("Generation target, data, and dimension must describe one runtime.");
@@ -72,7 +76,8 @@ record GenerationRuntime(
             IrisComplex nextComplex,
             UpperDimensionContext nextUpperContext,
             DimensionStackContext nextDimensionStackContext,
-            BiomeMaxes nextBiomeMaxes
+            BiomeMaxes nextBiomeMaxes,
+            PlacementLifecycles nextPlacementLifecycles
     ) {
         return new GenerationRuntime(
                 nextCacheId,
@@ -90,7 +95,8 @@ record GenerationRuntime(
                 mantle,
                 mantleStorageDirectory,
                 hash32,
-                nextBiomeMaxes);
+                nextBiomeMaxes,
+                nextPlacementLifecycles);
     }
 
     record BiomeMaxes(double objectDensity, double layerDensity, double decoratorDensity) {

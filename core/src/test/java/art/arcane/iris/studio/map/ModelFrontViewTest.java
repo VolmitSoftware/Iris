@@ -41,15 +41,22 @@ public final class ModelFrontViewTest {
     public void bodyShowsItsOwnPartOfTheTexture() throws Exception {
         ModelFrontView front = draw(SEA_PICKLE);
 
-        assertEquals(texture.getRGB(0, 5), front.image().getRGB(6, 10));
-        assertEquals(texture.getRGB(3, 10), front.image().getRGB(9, 15));
+        assertEquals(litAsFront(0, 5), front.image().getRGB(6, 7));
+        assertEquals(litAsFront(3, 10), front.image().getRGB(9, 12));
+    }
+
+    @Test
+    public void topShowsAboveTheFrontOverThePlaneJustUnderIt() throws Exception {
+        ModelFrontView front = draw(SEA_PICKLE);
+
+        assertEquals(texture.getRGB(5, 2), front.image().getRGB(7, 5));
     }
 
     @Test
     public void crossedPlaneIsMirroredWhereItsUvRunsBackwards() throws Exception {
         ModelFrontView front = draw(SEA_PICKLE);
 
-        assertEquals(texture.getRGB(1, 3), front.image().getRGB(8, 9));
+        assertEquals(litAsFront(1, 1), front.image().getRGB(8, 4));
     }
 
     @Test
@@ -68,6 +75,10 @@ public final class ModelFrontViewTest {
     @Test
     public void flatShapeFillsMostOfItsSpot() {
         assertTrue(ModelFrontView.fillsMostOfItsSpotFromAbove(elements(PRESSURE_PLATE)));
+    }
+
+    private int litAsFront(int textureX, int textureY) {
+        return 0xFF000000 | BlockPreviewColors.shade(texture.getRGB(textureX, textureY), CubeFace.SOUTH.shade());
     }
 
     private ModelFrontView draw(String elements) throws Exception {

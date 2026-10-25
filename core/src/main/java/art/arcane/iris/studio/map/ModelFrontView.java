@@ -31,14 +31,18 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * A block model drawn flat as seen from the south, each box's south face with its own part of the texture. Small
- * shapes like sea pickles and candles keep all their parts on one texture, which only makes sense mapped onto the
- * boxes. Tilted boxes are drawn untilted, which is close for the thin crossed planes such shapes use.
+ * A block model drawn flat as seen from the south and a little above, each box's south and top faces with their own
+ * part of the texture. Small shapes like sea pickles and candles keep all their parts on one texture, which only makes
+ * sense mapped onto the boxes. A top face shows half as tall as the box is deep, and boxes further back sit higher, as
+ * in a three-quarter view, each face lit as Minecraft lights its side. Tilted boxes are drawn untilted, which is close
+ * for the thin crossed planes such shapes use.
  */
 final class ModelFrontView {
     private static final double MODEL_UNITS = 16D;
-    private static final String FRONT = "south";
-    private static final String TOP = "up";
+    private static final double TOP_FORESHORTENING = 0.5D;
+    private static final CubeFace FRONT = CubeFace.SOUTH;
+    private static final CubeFace TOP = CubeFace.UP;
+    private static final int ALPHA_MASK = 0xFF000000;
     private static final double MOSTLY_COVERED_SHARE = 0.5D;
     private static final int X = 0;
     private static final int Y = 1;
@@ -61,15 +65,15 @@ final class ModelFrontView {
     }
 
     /**
-     * @return the front view, or null when the model has no front faces with a texture
+     * @return the view, or null when the model has no front or top faces with a texture
      */
     static ModelFrontView draw(JsonArray elements, Map<String, String> textures, TextureImages images) throws IOException {
-        List<FrontFace> faces = frontFacesNearestLast(elements, textures);
+        List<ViewedFace> faces = viewedFacesNearestLast(elements, textures);
         if (faces.isEmpty()) {
             return null;
         }
         Map<String, BufferedImage> loaded = new HashMap<>();
-        for (FrontFace face : faces) {
+        for (ViewedFace face : faces) {
             BufferedImage texture = images.read(face.texture());
             if (texture != null) {
                 loaded.put(face.texture(), texture);
@@ -79,16 +83,16 @@ final class ModelFrontView {
             return null;
         }
         int size = loaded.values().iterator().next().getWidth();
-        BufferedImage front = new BufferedImage(size, size, BufferedImage.TYPE_INT_ARGB);
+        BufferedImage view = new BufferedImage(size, size, BufferedImage.TYPE_INT_ARGB);
         int tintIndex = BlockTextures.NO_TINT_INDEX;
-        for (FrontFace face : faces) {
+        for (ViewedFace face : faces) {
             BufferedImage texture = loaded.get(face.texture());
             if (texture != null) {
-                paint(face, texture, front);
+                paint(face, texture, view);
                 tintIndex = tintIndex == BlockTextures.NO_TINT_INDEX ? face.tintIndex() : tintIndex;
             }
         }
-        return hasVisiblePixel(front) ? new ModelFrontView(front, tintIndex) : null;
+        return hasVisiblePixel(view) ? new ModelFrontView(view, tintIndex) : null;
     }
 
     /**
@@ -105,7 +109,7 @@ final class ModelFrontView {
         for (JsonElement element : elements) {
             JsonObject box = element.getAsJsonObject();
             JsonObject faces = box.getAsJsonObject("faces");
-            if (faces == null || !faces.has(TOP)) {
+            if (faces == null || !faces.has(TOP.modelName())) {
                 continue;
             }
             JsonArray from = box.getAsJsonArray("from");
@@ -127,28 +131,36 @@ final class ModelFrontView {
         return tintIndex;
     }
 
-    // Faces further south are nearer the viewer, so they are painted over the ones behind them.
-    private static List<FrontFace> frontFacesNearestLast(JsonArray elements, Map<String, String> textures) {
-        List<FrontFace> faces = new ArrayList<>();
+    // Boxes further south are nearer the viewer, and of two at the same depth the higher one hides the lower.
+    private static List<ViewedFace> viewedFacesNearestLast(JsonArray elements, Map<String, String> textures) {
+        List<ViewedFace> faces = new ArrayList<>();
         for (JsonElement element : elements) {
             JsonObject box = element.getAsJsonObject();
             JsonObject boxFaces = box.getAsJsonObject("faces");
-            if (boxFaces == null || !boxFaces.has(FRONT)) {
+            if (boxFaces == null) {
                 continue;
             }
-            JsonObject face = boxFaces.getAsJsonObject(FRONT);
-            String texture = BlockTextures.dereference(face.get("texture").getAsString(), textures);
-            if (texture != null) {
-                faces.add(FrontFace.of(box, face, texture));
-            }
+            addFace(faces, box, boxFaces, TOP, textures);
+            addFace(faces, box, boxFaces, FRONT, textures);
         }
-        faces.sort(Comparator.comparingDouble(FrontFace::depth));
+        faces.sort(Comparator.comparingDouble(ViewedFace::depth).thenComparingDouble(ViewedFace::height));
         return faces;
     }
 
+    private static void addFace(List<ViewedFace> faces, JsonObject box, JsonObject boxFaces, CubeFace side, Map<String, String> textures) {
+        if (!boxFaces.has(side.modelName())) {
+            return;
+        }
+        JsonObject face = boxFaces.getAsJsonObject(side.modelName());
+        String texture = BlockTextures.dereference(face.get("texture").getAsString(), textures);
+        if (texture != null) {
+            faces.add(side == TOP ? ViewedFace.top(box, face, texture) : ViewedFace.front(box, face, texture));
+        }
+    }
+
     // Each pixel samples the texture at its centre, along the face's UVs, which run backwards on mirrored faces.
-    private static void paint(FrontFace face, BufferedImage texture, BufferedImage front) {
-        int size = front.getWidth();
+    private static void paint(ViewedFace face, BufferedImage texture, BufferedImage view) {
+        int size = view.getWidth();
         double scale = size / MODEL_UNITS;
         double left = face.left() * scale;
         double right = face.right() * scale;
@@ -163,7 +175,7 @@ final class ModelFrontView {
                 int textureX = texel(face.u1() + alongU * (face.u2() - face.u1()), textureSize);
                 int argb = texture.getRGB(textureX, textureY);
                 if (argb >>> 24 != 0 && x >= 0 && y >= 0 && x < size && y < size) {
-                    front.setRGB(x, y, argb);
+                    view.setRGB(x, y, argb & ALPHA_MASK | BlockPreviewColors.shade(argb, face.side().shade()));
                 }
             }
         }
@@ -174,10 +186,10 @@ final class ModelFrontView {
         return Math.clamp((int) Math.floor(modelUnits / MODEL_UNITS * textureSize), 0, textureSize - 1);
     }
 
-    private static boolean hasVisiblePixel(BufferedImage front) {
-        for (int y = 0; y < front.getHeight(); y++) {
-            for (int x = 0; x < front.getWidth(); x++) {
-                if (front.getRGB(x, y) >>> 24 != 0) {
+    private static boolean hasVisiblePixel(BufferedImage view) {
+        for (int y = 0; y < view.getHeight(); y++) {
+            for (int x = 0; x < view.getWidth(); x++) {
+                if (view.getRGB(x, y) >>> 24 != 0) {
                     return true;
                 }
             }
@@ -198,24 +210,50 @@ final class ModelFrontView {
     }
 
     /**
-     * A south face in model units, with the image's y running down from the model's top.
+     * A face as it shows in the view, in model units with y running down from the top of the view. The texture's v
+     * runs from the face's top edge in the view to its bottom edge.
      */
-    private record FrontFace(String texture, int tintIndex, double left, double right, double top, double bottom, double depth,
-                             double u1, double v1, double u2, double v2) {
-        static FrontFace of(JsonObject box, JsonObject face, String texture) {
-            JsonArray from = box.getAsJsonArray("from");
-            JsonArray to = box.getAsJsonArray("to");
-            double left = from.get(X).getAsDouble();
-            double right = to.get(X).getAsDouble();
-            double top = MODEL_UNITS - to.get(Y).getAsDouble();
-            double bottom = MODEL_UNITS - from.get(Y).getAsDouble();
-            double[] uv = face.has("uv") ? uvOf(face.getAsJsonArray("uv")) : new double[]{left, top, right, bottom};
-            return new FrontFace(texture, BlockTextures.tintIndexOf(face), left, right, top, bottom, to.get(Z).getAsDouble(),
-                    uv[0], uv[1], uv[2], uv[3]);
+    private record ViewedFace(CubeFace side, String texture, int tintIndex, double left, double right, double top, double bottom,
+                              double depth, double height, double u1, double v1, double u2, double v2) {
+        static ViewedFace front(JsonObject box, JsonObject face, String texture) {
+            Box bounds = Box.of(box);
+            double top = bounds.viewY(bounds.toY(), bounds.toZ());
+            double bottom = bounds.viewY(bounds.fromY(), bounds.toZ());
+            double[] uv = face.has("uv")
+                    ? uvOf(face.getAsJsonArray("uv"))
+                    : new double[]{bounds.fromX(), MODEL_UNITS - bounds.toY(), bounds.toX(), MODEL_UNITS - bounds.fromY()};
+            return new ViewedFace(FRONT, texture, BlockTextures.tintIndexOf(face), bounds.fromX(), bounds.toX(), top, bottom,
+                    bounds.toZ(), bounds.toY(), uv[0], uv[1], uv[2], uv[3]);
+        }
+
+        // The top's back edge is its north side, which the texture's v starts at.
+        static ViewedFace top(JsonObject box, JsonObject face, String texture) {
+            Box bounds = Box.of(box);
+            double top = bounds.viewY(bounds.toY(), bounds.fromZ());
+            double bottom = bounds.viewY(bounds.toY(), bounds.toZ());
+            double[] uv = face.has("uv")
+                    ? uvOf(face.getAsJsonArray("uv"))
+                    : new double[]{bounds.fromX(), bounds.fromZ(), bounds.toX(), bounds.toZ()};
+            return new ViewedFace(TOP, texture, BlockTextures.tintIndexOf(face), bounds.fromX(), bounds.toX(), top, bottom,
+                    bounds.toZ(), bounds.toY(), uv[0], uv[1], uv[2], uv[3]);
         }
 
         private static double[] uvOf(JsonArray uv) {
             return new double[]{uv.get(0).getAsDouble(), uv.get(1).getAsDouble(), uv.get(2).getAsDouble(), uv.get(3).getAsDouble()};
+        }
+    }
+
+    private record Box(double fromX, double fromY, double fromZ, double toX, double toY, double toZ) {
+        static Box of(JsonObject box) {
+            JsonArray from = box.getAsJsonArray("from");
+            JsonArray to = box.getAsJsonArray("to");
+            return new Box(from.get(X).getAsDouble(), from.get(Y).getAsDouble(), from.get(Z).getAsDouble(),
+                    to.get(X).getAsDouble(), to.get(Y).getAsDouble(), to.get(Z).getAsDouble());
+        }
+
+        // The front edge of the block stays put; everything further back rises with its distance from it.
+        double viewY(double modelY, double modelZ) {
+            return MODEL_UNITS - modelY - (MODEL_UNITS - modelZ) * TOP_FORESHORTENING;
         }
     }
 }

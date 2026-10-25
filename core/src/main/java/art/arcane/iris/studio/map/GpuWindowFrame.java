@@ -28,13 +28,12 @@ import static org.lwjgl.opengl.GL30.*;
 
 /**
  * A frame drawn straight into a view's window. Of what was drawn, only the patches Swing paints where panels float
- * over the window are read back. Only for the GPU thread.
+ * over the window are read back. The frame waits in the window's back buffer until {@link GpuFrames#showOnScreen},
+ * so it can go on screen together with its patches. Only for the GPU thread.
  */
 final class GpuWindowFrame implements GpuFrameTarget {
     private static final int WINDOW_FRAMEBUFFER = 0;
 
-    private final GlxDisplay windows;
-    private final long window;
     private final List<Rectangle> seeThrough;
     private int width;
     private int height;
@@ -42,9 +41,7 @@ final class GpuWindowFrame implements GpuFrameTarget {
     /**
      * @param seeThrough the parts of the view panels float over, which Swing paints instead of the window
      */
-    GpuWindowFrame(GlxDisplay windows, long window, List<Rectangle> seeThrough) {
-        this.windows = windows;
-        this.window = window;
+    GpuWindowFrame(List<Rectangle> seeThrough) {
         this.seeThrough = seeThrough;
     }
 
@@ -62,12 +59,7 @@ final class GpuWindowFrame implements GpuFrameTarget {
 
     @Override
     public OrbitPicture finish(OrbitProjection projection, double depthRange) {
-        OrbitPicture picture = OrbitPicture.onScreen(width, height, readPatches(),
-                GpuFrameTarget.depthInMiddle(projection, depthRange, width, height));
-        if (!windows.show(window)) {
-            throw new IllegalStateException("The window didn't take the frame");
-        }
-        return picture;
+        return OrbitPicture.onScreen(width, height, readPatches(), GpuFrameTarget.depthInMiddle(projection, depthRange, width, height));
     }
 
     private List<PicturePatch> readPatches() {

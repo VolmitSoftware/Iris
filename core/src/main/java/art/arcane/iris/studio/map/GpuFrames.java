@@ -77,12 +77,37 @@ final class GpuFrames {
                 if (!windows.get().drawInto(window)) {
                     throw new IllegalStateException("GLX can't draw into the view's window");
                 }
-                return drawing.drawInto(new GpuWindowFrame(windows.get(), window, screen.seeThrough()));
+                return drawing.drawInto(new GpuWindowFrame(screen.seeThrough()));
             } catch (RuntimeException failure) {
                 gpu.stopDrawingIntoWindows(failure);
                 return Optional.empty();
             }
         });
+    }
+
+    /**
+     * Puts the last frame drawn into the view's window on screen. Another view may have drawn into its own window
+     * since, so the view's window is made current again first.
+     *
+     * @return false when the window didn't take it, and the caller should draw a picture instead
+     */
+    static boolean showOnScreen(ScreenTarget screen) {
+        return onCard(gpu -> {
+            Optional<GlxDisplay> windows = gpu.windows();
+            long window = screen.canvas().window();
+            if (windows.isEmpty() || window == 0L) {
+                return Optional.<Boolean>empty();
+            }
+            try {
+                if (!windows.get().drawInto(window) || !windows.get().show(window)) {
+                    throw new IllegalStateException("The window didn't take the frame");
+                }
+                return Optional.of(true);
+            } catch (RuntimeException failure) {
+                gpu.stopDrawingIntoWindows(failure);
+                return Optional.<Boolean>empty();
+            }
+        }).isPresent();
     }
 
     static void failOnError() {
@@ -119,7 +144,7 @@ final class GpuFrames {
         return offScreen;
     }
 
-    private static Optional<OrbitPicture> onCard(CardWork work) {
+    private static <T> Optional<T> onCard(CardWork<T> work) {
         if (failed) {
             return Optional.empty();
         }
@@ -145,7 +170,7 @@ final class GpuFrames {
     }
 
     @FunctionalInterface
-    private interface CardWork {
-        Optional<OrbitPicture> drawOn(GpuContext gpu);
+    private interface CardWork<T> {
+        Optional<T> drawOn(GpuContext gpu);
     }
 }

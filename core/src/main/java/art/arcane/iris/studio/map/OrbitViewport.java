@@ -31,6 +31,7 @@ import java.awt.Graphics2D;
 import java.awt.GraphicsConfiguration;
 import java.awt.Point;
 import java.awt.RenderingHints;
+import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ComponentAdapter;
@@ -338,7 +339,7 @@ final class OrbitViewport extends JComponent {
         renderThread.execute(() -> {
             OrbitPicture drawn = draw(frameScene, screen, frameCamera, width, height, covered);
             boolean missedScreen = screen != null && !drawn.onScreen();
-            EventQueue.invokeLater(() -> finishFrame(frameScene, frameCamera, drawn, missedScreen, requestedAtNanos));
+            EventQueue.invokeLater(() -> finishFrame(frameScene, frameCamera, screen, drawn, missedScreen, requestedAtNanos));
         });
     }
 
@@ -380,25 +381,40 @@ final class OrbitViewport extends JComponent {
 
     /**
      * Until the card is opened, nothing knows whether frames can go into the window; the first picture opens it. A
-     * frame that should have gone into the window but couldn't isn't tried again right away. The next frame is asked
-     * for before this one's patches are painted, so the card draws while Swing paints.
+     * frame that should have gone into the window but couldn't isn't tried again right away. A frame for a scene
+     * replaced meanwhile is never shown.
      */
-    private void finishFrame(OrbitScene frameScene, OrbitCamera frameCamera, OrbitPicture drawn, boolean missedScreen,
-                             long requestedAtNanos) {
+    private void finishFrame(OrbitScene frameScene, OrbitCamera frameCamera, ScreenTarget screen, OrbitPicture drawn,
+                             boolean missedScreen, long requestedAtNanos) {
         rendering = false;
         measureFrameTime(System.nanoTime() - requestedAtNanos);
-        boolean shown = frameScene == scene;
-        if (shown) {
+        if (frameScene == scene) {
             takePicture(drawn, frameCamera);
+            paintPicture(drawn);
+            showInWindow(screen, drawn);
         }
         boolean canGoOnScreen = !missedScreen && canvas != null && !canvas.isVisible() && drawsOnScreen();
         if (renderAgain || drawn.catchingUp() || canGoOnScreen) {
             renderAgain = false;
             requestFrame();
         }
-        if (shown) {
-            paintPicture(drawn);
+    }
+
+    /**
+     * A frame in the window only goes on screen once Swing has painted its patches, or the panels floating over the
+     * window would show the frame before. Swing and the card reach the screen through separate connections, so
+     * Swing's is flushed first. The render thread shows the frame before it draws the next one into the window.
+     */
+    private void showInWindow(ScreenTarget screen, OrbitPicture drawn) {
+        if (!drawn.onScreen()) {
+            return;
         }
+        Toolkit.getDefaultToolkit().sync();
+        renderThread.execute(() -> {
+            if (!GpuFrames.showOnScreen(screen)) {
+                EventQueue.invokeLater(this::requestFrame);
+            }
+        });
     }
 
     // A whole picture replaces the window until frames go into it again.

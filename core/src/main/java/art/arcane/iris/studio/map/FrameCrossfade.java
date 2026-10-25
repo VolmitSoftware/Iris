@@ -26,7 +26,7 @@ import java.util.concurrent.TimeUnit;
  * the first frame of the new one, so switching never shows an empty view in between.
  */
 final class FrameCrossfade {
-    private static final long FADE_NANOS = TimeUnit.MILLISECONDS.toNanos(150L);
+    private static final long FADE_NANOS = TimeUnit.MILLISECONDS.toNanos(70L);
     private static final int REPAINT_INTERVAL_MILLIS = 16;
 
     private final Timer repaintTimer;

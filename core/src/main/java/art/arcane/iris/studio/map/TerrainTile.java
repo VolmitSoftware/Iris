@@ -67,6 +67,14 @@ record TerrainTile(int level, int tileX, int tileZ) {
     }
 
     /**
+     * The tile of a coarser level that this one lies inside.
+     */
+    TerrainTile ancestorAt(int coarserLevel) {
+        int levelsUp = coarserLevel - level;
+        return new TerrainTile(coarserLevel, tileX >> levelsUp, tileZ >> levelsUp);
+    }
+
+    /**
      * This tile's columns that a finer tile inside it covers.
      */
     ColumnArea columnsUnder(TerrainTile finer) {

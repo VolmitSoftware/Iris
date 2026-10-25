@@ -21,7 +21,11 @@ package art.arcane.iris.studio.map;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -30,7 +34,7 @@ import java.util.Set;
  * whole view and more right away. Preview tiles one level coarser than detail come between them: a quarter of the
  * columns, so the whole view looks nearly finished long before the detail is in. Until it is, coarser tiles stand in
  * for it, with holes where finer tiles are ready; detail left over from before zooming out stands in too, as does
- * ground from before the noise changed.
+ * ground from before the noise changed, and backdrop left over from before zooming in.
  */
 final class TerrainCover {
     private static final double MOST_COLUMN_PIXELS = 1D;
@@ -96,9 +100,57 @@ final class TerrainCover {
     }
 
     private void coverSight() {
+        Map<TerrainTile, List<TerrainTile>> coveredByBackdrop = new LinkedHashMap<>();
         for (TerrainTile backdrop : sight.tilesInSight(backdropLevel, BACKDROP_MARGIN_SHARE)) {
-            cover(backdrop, true);
+            coveredByBackdrop.put(backdrop, cover(backdrop, true));
         }
+        coverMissingBackdrop(coveredByBackdrop);
+    }
+
+    /**
+     * Backdrop that isn't sampled yet, as right after zooming in, borrows the nearest coarser tile that is, with holes
+     * where the backdrop and finer ground around it are ready. Only as far up as holes can still be cut.
+     */
+    private void coverMissingBackdrop(Map<TerrainTile, List<TerrainTile>> coveredByBackdrop) {
+        Set<TerrainTile> standIns = new LinkedHashSet<>();
+        coveredByBackdrop.forEach((backdrop, covered) -> {
+            if (!covered.equals(List.of(backdrop))) {
+                nearestSampledAncestor(backdrop).ifPresent(standIns::add);
+            }
+        });
+        for (TerrainTile standIn : standIns) {
+            TerrainLayer layer = tiles.layerOf(standIn);
+            if (layer != null) {
+                draw(standIn, layer, fillersOf(standIn, coveredByBackdrop, standIns));
+            }
+        }
+    }
+
+    private Optional<TerrainTile> nearestSampledAncestor(TerrainTile backdrop) {
+        for (int levelsUp = 1; levelsUp <= TerrainHole.MOST_LEVELS_FINER; levelsUp++) {
+            TerrainTile ancestor = backdrop.ancestorAt(backdrop.level() + levelsUp);
+            if (tiles.isSampled(ancestor)) {
+                return Optional.of(ancestor);
+            }
+        }
+        return Optional.empty();
+    }
+
+    // Everything drawn inside the stand-in: the backdrop's ready ground, and finer stand-ins.
+    private static List<TerrainTile> fillersOf(TerrainTile standIn, Map<TerrainTile, List<TerrainTile>> coveredByBackdrop,
+                                               Set<TerrainTile> standIns) {
+        List<TerrainTile> fillers = new ArrayList<>();
+        coveredByBackdrop.forEach((backdrop, covered) -> {
+            if (backdrop.ancestorAt(standIn.level()).equals(standIn)) {
+                fillers.addAll(covered);
+            }
+        });
+        for (TerrainTile finer : standIns) {
+            if (finer.level() < standIn.level() && finer.ancestorAt(standIn.level()).equals(standIn)) {
+                fillers.add(finer);
+            }
+        }
+        return fillers;
     }
 
     /**

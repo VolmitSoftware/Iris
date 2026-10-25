@@ -37,7 +37,7 @@ enum MapView {
             Group.BIOME_STREAMS, TileType.BIOME_LAND, KeyEvent.VK_6),
     SEA_BIOMES("Sea biomes", "The sea biome each spot would get, also where the land is",
             Group.BIOME_STREAMS, TileType.BIOME_SEA, KeyEvent.VK_7),
-    CAVE_BIOMES("Cave biomes", "The cave biome under each spot", Group.BIOME_STREAMS, TileType.CAVE_LAND, KeyEvent.VK_8),
+    CAVE_BIOMES("Cave land","The cave biome under each spot", Group.BIOME_STREAMS, TileType.CAVE_LAND, KeyEvent.VK_8),
     PALETTES("Palettes", "The blocks each biome's palette layers place, with their textures",
             Group.BLOCKS, null, KeyEvent.VK_P),
     OBJECTS("Objects", "Every object in the pack in 3D, with the blocks it is made of",

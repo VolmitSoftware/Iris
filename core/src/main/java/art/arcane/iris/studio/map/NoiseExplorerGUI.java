@@ -61,6 +61,8 @@ import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.EventQueue;
 import java.awt.Graphics;
+import java.awt.AlphaComposite;
+import java.awt.Composite;
 import java.awt.Graphics2D;
 import java.awt.Point;
 import java.awt.RenderingHints;
@@ -143,6 +145,7 @@ public final class NoiseExplorerGUI extends JPanel {
     private final NoiseRenderCoordinator renderCoordinator;
     private final Timer refinementTimer;
     private final Timer resizeTimer;
+    private final FrameCrossfade crossfade;
     private final AtomicLong sourceLoadRevision = new AtomicLong();
     private final AtomicLong catalogLoadRevision = new AtomicLong();
     private final Runnable hotloadHook = this::handleHotload;
@@ -227,6 +230,7 @@ public final class NoiseExplorerGUI extends JPanel {
         this.refinementTimer.setRepeats(false);
         this.resizeTimer = new Timer(RESIZE_SETTLE_MILLIS, event -> requestPreview());
         this.resizeTimer.setRepeats(false);
+        this.crossfade = new FrameCrossfade(this::repaint);
         this.fixedSources = buildFixedSources();
         setBackground(StudioTheme.EDITOR_BACKGROUND);
         setFocusable(true);
@@ -826,6 +830,7 @@ public final class NoiseExplorerGUI extends JPanel {
         selectedSource = null;
         clearSampler();
         renderResult = null;
+        crossfade.clear();
         sourceLoading = false;
         rendering = false;
         errorMessage = "Pack source removed during hotload: " + removedSource.text();
@@ -918,6 +923,7 @@ public final class NoiseExplorerGUI extends JPanel {
         viewRevision++;
         renderCoordinator.cancel(viewRevision);
         sampler = null;
+        crossfade.hold(renderResult);
         renderResult = null;
         sourceLoading = true;
         rendering = false;
@@ -963,6 +969,7 @@ public final class NoiseExplorerGUI extends JPanel {
             return;
         }
         clearSampler();
+        crossfade.clear();
         sourceLoading = false;
         rendering = false;
         errorMessage = readableError(error);
@@ -1292,6 +1299,7 @@ public final class NoiseExplorerGUI extends JPanel {
         }
         refinementTimer.stop();
         resizeTimer.stop();
+        crossfade.clear();
         MapHost.unregisterHotloadHook(hotloadHook);
         sourceLoadRevision.incrementAndGet();
         catalogLoadRevision.incrementAndGet();
@@ -1316,6 +1324,7 @@ public final class NoiseExplorerGUI extends JPanel {
             if (renderResult != null) {
                 drawLatestFrame(canvas, renderResult, getWidth(), renderHeight);
             }
+            drawOutgoingFrame(canvas, getWidth(), renderHeight);
             drawCrosshair(canvas, getWidth(), renderHeight);
             drawLegend(canvas, getWidth());
         } finally {
@@ -1335,6 +1344,17 @@ public final class NoiseExplorerGUI extends JPanel {
         interactiveFramePending = false;
         requestPreview();
         return true;
+    }
+
+    private void drawOutgoingFrame(Graphics2D canvas, int width, int renderHeight) {
+        NoiseRenderCoordinator.Result outgoing = crossfade.outgoing();
+        if (outgoing == null) {
+            return;
+        }
+        Composite opaque = canvas.getComposite();
+        canvas.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, crossfade.outgoingOpacity()));
+        drawLatestFrame(canvas, outgoing, width, renderHeight);
+        canvas.setComposite(opaque);
     }
 
     // Moves and scales the last finished frame to the current view, so the map follows the mouse before the next frame lands.
@@ -1689,6 +1709,7 @@ public final class NoiseExplorerGUI extends JPanel {
                 errorMessage = null;
                 renderResult = result;
                 lastTimedFrame = result;
+                crossfade.reveal();
                 repaint();
                 refreshStatus();
                 if (finishInteractiveFrame(result.request())) {

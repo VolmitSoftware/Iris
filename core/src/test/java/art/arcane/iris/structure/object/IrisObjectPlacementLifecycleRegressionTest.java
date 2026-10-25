@@ -250,6 +250,15 @@ public class IrisObjectPlacementLifecycleRegressionTest {
     }
 
     @Test
+    public void erodeStiltResolvesItsOwnSampledAnchor() {
+        RecordingPlacer placer = new RecordingPlacer(null);
+        IrisObjectPlacement config = placement();
+        config.setMode(ObjectPlaceMode.ERODE_STILT);
+        assertEquals(ANCHOR_Y, lineObject(1).place(0, -1, 0, placer, config, new RNG(2L), data));
+        assertFalse(placer.writes().isEmpty());
+    }
+
+    @Test
     public void explicitMinimumHeightAndFloatingDoNotNeedTerrainSampling() {
         for (ObjectPlaceMode mode : List.of(ObjectPlaceMode.MIN_HEIGHT, ObjectPlaceMode.FAST_MIN_HEIGHT,
                 ObjectPlaceMode.FLOATING, ObjectPlaceMode.STRUCTURE_PIECE)) {

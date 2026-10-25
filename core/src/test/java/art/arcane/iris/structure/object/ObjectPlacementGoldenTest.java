@@ -63,7 +63,7 @@ public class ObjectPlacementGoldenTest {
 
     private static final int OBJECTS = 200;
     private static final int SEEDS = 5;
-    private static final long GOLDEN = 0x408f9d4113015897L;
+    private static final long GOLDEN = 0x07dedb3d00b420c0L;
     private static final long MARKER_GOLDEN = 0x60b4bbf1144b239cL;
     private static final long HIGH_VARIANT_GOLDEN = 0xf017622340ecac42L;
 

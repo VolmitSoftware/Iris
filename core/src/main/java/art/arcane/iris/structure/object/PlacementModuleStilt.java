@@ -36,18 +36,11 @@ public final class PlacementModuleStilt implements PlacementModule {
         PlacementModule height = switch (mode) {
             case CENTER, ORGANIC, CEILING -> new PlacementModuleCenterHeight();
             case MIN -> new PlacementModuleHeight(PlacementModuleHeight.Mode.MIN, fast);
-            case DEFAULT -> new PlacementModuleHeight(PlacementModuleHeight.Mode.MAX, fast);
-            case ERODE -> PlacementModuleStilt::installUnsampledHeight;
+            case DEFAULT, ERODE -> new PlacementModuleHeight(PlacementModuleHeight.Mode.MAX, fast);
         };
         height.install(lifecycle);
         lifecycle.add(FILL, PlacementStage.AFTER_BLOCKS, this::fill, PlacementModuleAnchor.HEIGHT,
                 PlacementModuleBlocks.COMPLETE, PlacementModuleTreeGrounding.ROOTS);
-    }
-
-    /** The legacy runner never sampled terrain for ERODE_STILT, so surface placements keep the unset height. */
-    private static void installUnsampledHeight(PlacementLifecycleBuilder lifecycle) {
-        PlacementModuleAnchor.install(lifecycle, (context, state, ignored) -> {
-        });
     }
 
     private static StiltLayers stiltLayers(ObjectPlacementBake bake, PlacementPalette palette) {

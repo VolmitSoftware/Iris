@@ -382,17 +382,18 @@ final class OrbitViewport extends JComponent {
     /**
      * Until the card is opened, nothing knows whether frames can go into the window; the first picture opens it. A
      * frame that should have gone into the window but couldn't isn't tried again right away. A frame for a scene
-     * replaced meanwhile is never shown.
+     * replaced meanwhile is never shown. The frame counts as rendering until it is on its way to the screen, so a
+     * frame asked for while it is taken, like when it ends a load, can't be drawn over it first.
      */
     private void finishFrame(OrbitScene frameScene, OrbitCamera frameCamera, ScreenTarget screen, OrbitPicture drawn,
                              boolean missedScreen, long requestedAtNanos) {
-        rendering = false;
         measureFrameTime(System.nanoTime() - requestedAtNanos);
         if (frameScene == scene) {
             takePicture(drawn, frameCamera);
             paintPicture(drawn);
             showInWindow(screen, drawn);
         }
+        rendering = false;
         boolean canGoOnScreen = !missedScreen && canvas != null && !canvas.isVisible() && drawsOnScreen();
         if (renderAgain || drawn.catchingUp() || canGoOnScreen) {
             renderAgain = false;

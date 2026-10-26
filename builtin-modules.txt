@@ -94,4 +94,5 @@ include art/arcane/iris/engine/mantle/components/FloatingObjectPlacing*.class
 include art/arcane/iris/engine/mantle/components/FloatingIslandSampleResolver*.class
 include art/arcane/iris/engine/mantle/components/IslandFace*.class
 include art/arcane/iris/engine/mantle/components/UndersideTurn*.class
-module art.arcane.iris.engine.mantle.components.StructureModule
+# iris:structure (art.arcane.iris.engine.mantle.components.StructureModule) is not here: Iris registers it with its own
+# modules, because its jigsaw studio reads the structure resources the module registers.

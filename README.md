@@ -30,14 +30,16 @@ service or hook, `setup.log()` during setup), which labels each line with the mo
 use `IrisLogging`. Classes of the host's object model (the host-classes list) and code that only has an engine or pack
 data still log as Iris itself.
 
-Modules also own pack resources and checks of their own. Iris's own module `iris:structure-model` (core
-`StructureModelModule`) reads structures, jigsaw pools and jigsaw pieces as resource kinds (`StructureResources`,
-`iris:structure-model/structure`, `/pool`, `/piece`), from the folders and files packs have always used, and checks
-them with its validator (`StructureValidator`: assembly samples and vanilla structure replacement) wherever Iris
-validates a pack. The structure model, assembler, locator, fitting and placing are host: the jigsaw studio, the
-structure importers and exporters read them too. `iris:structure` in the built-ins jar declares the structure
-placement settings and the mantle stage, and places through the `StructureHost` facade
-(`art.arcane.iris.builtin.structure`).
+Modules also own pack resources and checks of their own. `iris:structure` (`StructureModule`) reads structures, jigsaw
+pools and jigsaw pieces as resource kinds (`StructureResources`, `iris:structure/structure`, `/pool`, `/piece`), from the
+folders and files packs have always used, and declares the structure placement settings and the mantle stage. Its
+definitions (`IrisStructure`, `IrisJigsawPiece`, `IrisJigsawPool` and their parts in `engine/object/structure`) live
+here and build against the API. It is not in the built-ins jar: Iris registers it with its own modules, because Iris's
+jigsaw studio, importers and exporters read the structures it registers as the same classes, which a jar's own copy of
+a class is not. Iris's own module `iris:structure-model` (core `StructureModelModule`) checks them with its validator
+(`StructureValidator`: assembly samples and vanilla structure replacement) wherever Iris validates a pack. The
+assembler, locator, fitting and placing are still Iris's, and `iris:structure` places through the `StructureHost`
+facade (`art.arcane.iris.builtin.structure`).
 
 Built-in modules answer Iris through IrisApi services instead of Iris reading their features: `iris:objects`
 provides `ObjectsAt` (the objects a chunk would get, for the object search and studio tools) and `iris:structure-model`
@@ -163,8 +165,10 @@ compiled these sources itself.
 Iris includes this build (`includeBuild('../IrisModule')` in its `settings.gradle`) and depends on its classes: Iris
 core and its adapters still name many of them (the cut-over that ends this comes later). Classes that need Iris itself
 are Iris's and live in Iris core: the layout model (`IrisBiome`, `IrisRegion`, `IrisDimension`, generators, noise
-styles, expressions, images), the pack's objects and blocks, the structure model with its assembler, locator, fitting
-and placer (behind `StructureHost`), and the object placers behind `ObjectHost` and `FloatingHost`.
+styles, expressions, images), the pack's objects and blocks, the structure assembler, locator, fitting and placer
+(behind `StructureHost`), and the object placers behind `ObjectHost` and `FloatingHost`. A module this build holds
+but the jar does not, such as `iris:structure`, is one Iris registers with its own modules (`IrisModuleHost`): its
+classes are then the ones Iris's own code sees.
 
 `./gradlew check` compiles every source and builds the built-ins jar below, which runs the pack class checks.
 

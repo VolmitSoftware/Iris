@@ -8,6 +8,8 @@ String volmLibCoordinate = providers.gradleProperty('volmLibCoordinate')
 
 dependencies {
     compileOnly(project(':core'))
+    // The structure commands look up structures through the module's PackResources lookups; core shades the API.
+    compileOnly('com.volmit:iris-api')
     compileOnly(libs.lombok)
     annotationProcessor(libs.lombok)
     compileOnly(volmLibCoordinate) {

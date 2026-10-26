@@ -301,7 +301,7 @@ public class CommandStructure implements DirectorExecutor {
             sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_STRUCTURE_COULD_NOT_RESOLVE_PACK_DIMENSION_4, MessageArgument.untrusted("value", dimension.getLoadKey())));
             return;
         }
-        IrisStructure s = StructureResources.structure(data, structure);
+        IrisStructure s = StructureResources.structure(data.getPackResources(), structure);
         if (s == null) {
             sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_STRUCTURE_NO_IRIS_STRUCTURE_THIS_PACK, MessageArgument.untrusted("structure", structure)));
             return;
@@ -339,7 +339,7 @@ public class CommandStructure implements DirectorExecutor {
             sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_STRUCTURE_COULD_NOT_RESOLVE_PACK_DIMENSION_5, MessageArgument.untrusted("value", dimension.getLoadKey())));
             return;
         }
-        IrisStructure s = StructureResources.structure(data, structure);
+        IrisStructure s = StructureResources.structure(data.getPackResources(), structure);
         if (s == null) {
             sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_STRUCTURE_NO_IRIS_STRUCTURE_THIS_PACK_2, MessageArgument.untrusted("structure", structure)));
             return;

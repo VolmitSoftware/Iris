@@ -45,8 +45,8 @@ public class StructureResourcesTest {
             var catalog = data.getModules().pack().catalog();
 
             var kinds = catalog.resourceKinds().stream().map(ResourceKindRegistration::kind)
-                    .filter(kind -> kind.id().toString().startsWith("iris:structure-model/")).toList();
-            assertEquals(List.of("iris:structure-model/piece", "iris:structure-model/pool", "iris:structure-model/structure"),
+                    .filter(kind -> kind.id().toString().startsWith("iris:structure/")).toList();
+            assertEquals(List.of("iris:structure/piece", "iris:structure/pool", "iris:structure/structure"),
                     kinds.stream().map(kind -> kind.id().toString()).toList());
             assertEquals(List.of("jigsaw-pieces", "jigsaw-pools", "structures"), kinds.stream().map(kind -> kind.folder()).toList());
             assertTrue(catalog.validators().stream().map(ValidatorRegistration::validator).anyMatch(StructureValidator.class::isInstance));
@@ -74,20 +74,18 @@ public class StructureResourcesTest {
         Path pack = castlePack("castles");
         IrisData data = IrisData.openValidation(pack.toFile());
         try {
-            IrisStructure castle = StructureResources.structure(data, "castle");
+            IrisStructure castle = StructureResources.structure(data.getPackResources(),"castle");
 
             assertEquals("castle/start", castle.getStartPool());
             assertEquals(5, castle.getMaxDepth());
             assertEquals("castle", castle.getLoadKey());
-            assertEquals(pack.resolve("structures/castle.json").toFile(), castle.getLoadFile());
-            assertSame(data, castle.getLoader());
             assertSame(castle, data.getPackResources().find(StructureResources.STRUCTURES, new ResourceId("castles", "castle")).orElseThrow());
-            assertEquals("castle/start", StructureResources.pool(data, "castle/start").getPieces().getFirst().getPiece());
-            assertEquals("castle/start", StructureResources.piece(data, "castle/start").getObject());
-            assertEquals(List.of("castle"), StructureResources.structureKeys(data));
-            assertEquals(List.of("castle/start"), StructureResources.pieceKeys(data));
-            assertNull(StructureResources.structure(data, "missing"));
-            assertNull(StructureResources.structure(data, " "));
+            assertEquals("castle/start", StructureResources.pool(data.getPackResources(), "castle/start").getPieces().getFirst().getPiece());
+            assertEquals("castle/start", StructureResources.piece(data.getPackResources(), "castle/start").getObject());
+            assertEquals(List.of("castle"), StructureResources.structureKeys(data.getPackResources()));
+            assertEquals(List.of("castle/start"), StructureResources.pieceKeys(data.getPackResources()));
+            assertNull(StructureResources.structure(data.getPackResources(),"missing"));
+            assertNull(StructureResources.structure(data.getPackResources()," "));
         } finally {
             data.close();
         }
@@ -99,7 +97,7 @@ public class StructureResourcesTest {
         write(pack, "structures/ruin.json", "{\"maxDepth\":");
         IrisData data = IrisData.openValidation(pack.toFile());
         try {
-            assertNull(StructureResources.structure(data, "ruin"));
+            assertNull(StructureResources.structure(data.getPackResources(),"ruin"));
             assertThrows(IllegalStateException.class,
                     () -> data.getPackResources().find(StructureResources.STRUCTURES, new ResourceId("broken", "ruin")));
         } finally {
@@ -112,28 +110,28 @@ public class StructureResourcesTest {
         Path pack = castlePack("reloaded");
         IrisData data = IrisData.openValidation(pack.toFile());
         try {
-            assertEquals(5, StructureResources.structure(data, "castle").getMaxDepth());
+            assertEquals(5, StructureResources.structure(data.getPackResources(),"castle").getMaxDepth());
             write(pack, "structures/castle.json", "{\"startPool\":\"castle/start\",\"maxDepth\":9}");
             write(pack, "structures/tower.json", "{\"startPool\":\"castle/start\"}");
-            assertEquals("a snapshot keeps what it read", 5, StructureResources.structure(data, "castle").getMaxDepth());
+            assertEquals("a snapshot keeps what it read", 5, StructureResources.structure(data.getPackResources(),"castle").getMaxDepth());
 
             data.invalidateStructureResources();
-            assertEquals(9, StructureResources.structure(data, "castle").getMaxDepth());
-            assertEquals(List.of("castle", "tower"), StructureResources.structureKeys(data));
+            assertEquals(9, StructureResources.structure(data.getPackResources(),"castle").getMaxDepth());
+            assertEquals(List.of("castle", "tower"), StructureResources.structureKeys(data.getPackResources()));
 
             write(pack, "structures/castle.json", "{\"startPool\":\"castle/start\",\"maxDepth\":3}");
             data.dump();
-            assertEquals(3, StructureResources.structure(data, "castle").getMaxDepth());
+            assertEquals(3, StructureResources.structure(data.getPackResources(),"castle").getMaxDepth());
         } finally {
             data.close();
         }
 
         IrisData runtime = IrisData.openRuntime(pack.toFile());
         try {
-            assertEquals(3, StructureResources.structure(runtime, "castle").getMaxDepth());
+            assertEquals(3, StructureResources.structure(runtime.getPackResources(),"castle").getMaxDepth());
             write(pack, "structures/castle.json", "{\"startPool\":\"castle/start\",\"maxDepth\":2}");
             runtime.hotloaded();
-            assertEquals(2, StructureResources.structure(runtime, "castle").getMaxDepth());
+            assertEquals(2, StructureResources.structure(runtime.getPackResources(),"castle").getMaxDepth());
         } finally {
             runtime.close();
         }

@@ -84,6 +84,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Stream;
 
 public class SchemaBuilder {
     private static final String SYMBOL_LIMIT__N = "*";
@@ -490,7 +491,7 @@ public class SchemaBuilder {
      * the module resource kind read into it; null when the pack has neither.
      */
     private PackResourceList putPackResourceRef(JSONObject property, Class<?> type) {
-        ResourceLoader<?> loader = data.getLoaders().get(type);
+        ResourceLoader<?> loader = data.getLoaders().get(irisTypeOf(type));
         if (loader != null) {
             return putResourceKeys(property, new PackResourceList(loader.getFolderName(), loader.getResourceTypeName()),
                     Arrays.asList(loader.getPossibleKeys()));
@@ -500,6 +501,16 @@ public class SchemaBuilder {
                 .findFirst()
                 .map(kind -> putModuleResourceRef(property, kind))
                 .orElse(null);
+    }
+
+    /** The Iris class a host kind reads into, for the API type the kind serves (IrisObject for GeneratedObject); else {@code type}. */
+    private static Class<?> irisTypeOf(Class<?> type) {
+        return Stream.of(PackResources.BIOMES, PackResources.REGIONS, PackResources.OBJECTS, PackResources.EXPRESSIONS,
+                        PackResources.IMAGE_MAPS)
+                .filter(kind -> kind.type() == type)
+                .findFirst()
+                .<Class<?>>map(kind -> IRIS_TYPES_OF_HOST_KINDS.get(kind.id()))
+                .orElse(type);
     }
 
     /** Completion for a module option naming a resource of the host or module resource kind {@code kindId}. */

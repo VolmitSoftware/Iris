@@ -425,7 +425,7 @@ public final class JigsawStudioGenerator extends EnginedStudioGenerator {
     }
 
     private RenderedBay buildRenderedBay(JigsawStudioBay workcell, JigsawStudioVariant variant) {
-        IrisJigsawPiece piece = StructureResources.piece(request.source(), variant.pieceKey());
+        IrisJigsawPiece piece = StructureResources.piece(request.source().getPackResources(), variant.pieceKey());
         if (piece == null) {
             return RenderedBay.invalid(
                     workcell.bounds().dimensions(),

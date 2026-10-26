@@ -51,7 +51,7 @@ public final class IrisStructureHandler implements DirectorParameterHandler<Stri
     /** A pack whose modules fail to load has no structures to offer; its failure was reported when it loaded. */
     private static void addStructureKeys(Set<String> keys, IrisData data) {
         try {
-            keys.addAll(StructureResources.structureKeys(data));
+            keys.addAll(StructureResources.structureKeys(data.getPackResources()));
         } catch (PackModulesException ignored) {
         }
     }

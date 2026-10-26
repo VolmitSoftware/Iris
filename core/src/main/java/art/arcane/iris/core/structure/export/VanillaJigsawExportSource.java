@@ -53,7 +53,7 @@ public final class VanillaJigsawExportSource {
         if (structure != null) {
             return structure;
         }
-        return StructureResources.structure(data, structureKey);
+        return StructureResources.structure(data.getPackResources(), structureKey);
     }
 
     public StructureGraphResolver resolver() {

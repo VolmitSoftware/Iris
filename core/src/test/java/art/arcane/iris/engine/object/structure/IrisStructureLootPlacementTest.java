@@ -1,5 +1,6 @@
 package art.arcane.iris.engine.object.structure;
 
+import art.arcane.iris.engine.mantle.components.StructurePlacing;
 import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import art.arcane.iris.engine.object.structure.IrisStructure;
 import org.junit.Test;
@@ -15,7 +16,7 @@ public class IrisStructureLootPlacementTest {
         structure.getLoot().add("village_common");
         structure.getLoot().add("village_rare");
 
-        IrisObjectPlacement placement = structure.createLootPlacement("pieces/village_house");
+        IrisObjectPlacement placement = StructurePlacing.lootPlacement(structure, "pieces/village_house");
 
         assertEquals(1, placement.getPlace().size());
         assertEquals("pieces/village_house", placement.getPlace().get(0));
@@ -31,7 +32,7 @@ public class IrisStructureLootPlacementTest {
 
     @Test
     public void createsEmptyLootPlacementWhenStructureHasNoLoot() {
-        IrisObjectPlacement placement = new IrisStructure().createLootPlacement("pieces/empty_house");
+        IrisObjectPlacement placement = StructurePlacing.lootPlacement(new IrisStructure(), "pieces/empty_house");
 
         assertEquals("pieces/empty_house", placement.getPlace().get(0));
         assertTrue(placement.getLoot().isEmpty());

@@ -30,6 +30,7 @@ import art.arcane.iris.engine.framework.StructurePlacementScope;
 import art.arcane.iris.builtin.structure.StructurePlacementMarker;
 import art.arcane.iris.engine.framework.TreeBlockMaterial;
 import art.arcane.iris.engine.framework.Engine;
+import art.arcane.iris.builtin.loot.ObjectLoot;
 import art.arcane.iris.engine.mantle.MantleWriter;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
@@ -536,12 +537,28 @@ public class StructurePlacing {
         return new int[]{minX, minY, minZ, maxX, maxY, maxZ};
     }
 
+    /** A placement of the piece object {@code objectKey} whose containers draw from the structure's loot tables. */
+    public static IrisObjectPlacement lootPlacement(IrisStructure structure, String objectKey) {
+        IrisObjectPlacement placement = new IrisObjectPlacement();
+        placement.getPlace().add(objectKey);
+        placement.setOverrideGlobalLoot(false);
+        if (structure.getLoot() == null) {
+            return placement;
+        }
+        for (String lootTable : structure.getLoot()) {
+            if (lootTable != null && !lootTable.isBlank()) {
+                placement.getLoot().add(new ObjectLoot(lootTable, 1));
+            }
+        }
+        return placement;
+    }
+
     private int placeObject(MantleWriter writer, IrisStructure structure, PlacedStructurePiece p,
                             ObjectPlaceMode mode, int y, RNG rng, Long2IntOpenHashMap foundationColumns,
                             boolean supportNonOccluding) {
         IrisObject object = p.getObject();
         String objectKey = object.getLoadKey();
-        IrisObjectPlacement config = structure.createLootPlacement(objectKey);
+        IrisObjectPlacement config = lootPlacement(structure, objectKey);
         config.setMode(mode);
         config.setRotation(p.getRotation());
         if (!structure.getEdit().isEmpty()) {
@@ -612,7 +629,7 @@ public class StructurePlacing {
                     || terrain.resolvedMode() == StructureTerrainMode.BORE
                     ? Math.max(0, terrain.horizontalPadding()) : 0;
             for (String key : placement.structures()) {
-                IrisStructure structure = StructureResources.structure(engine.getData(), key);
+                IrisStructure structure = StructureResources.structure(engine.getData().getPackResources(), key);
                 if (structure != null) {
                     max = Math.max(max, Math.max(1, structure.getMaxSizeChunks()) * 16 + carvePadding);
                 }

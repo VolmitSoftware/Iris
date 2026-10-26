@@ -263,7 +263,7 @@ public class CommandJigsaw implements DirectorExecutor {
         if (data == null) {
             return;
         }
-        IrisStructure irisStructure = StructureResources.structure(data, structure);
+        IrisStructure irisStructure = StructureResources.structure(data.getPackResources(), structure);
         if (irisStructure == null) {
             sendError(commandSender, "No Iris jigsaw structure '" + structure + "' exists in this pack.");
             return;
@@ -1216,7 +1216,7 @@ public class CommandJigsaw implements DirectorExecutor {
     static JigsawStudioLayout loadPersistedLayout(ActiveContext context) throws IOException {
         IrisData source = context.request().source();
         source.invalidateStructureResources();
-        IrisStructure structure = StructureResources.structure(source, context.request().structureKey());
+        IrisStructure structure = StructureResources.structure(source.getPackResources(), context.request().structureKey());
         if (structure == null) {
             throw new IOException("The structure could not be reloaded after the graph transaction");
         }
@@ -1276,7 +1276,7 @@ public class CommandJigsaw implements DirectorExecutor {
 
     static String nextThemeKey(ActiveContext context) throws IOException {
         IrisStructure structure = StructureResources.structure(
-                context.request().source(),
+                context.request().source().getPackResources(),
                 context.request().structureKey());
         if (structure == null) {
             throw new IOException("The active jigsaw structure could not be loaded");
@@ -1749,7 +1749,7 @@ public class CommandJigsaw implements DirectorExecutor {
                 sendError(this, "Open a Jigsaw Studio project first.");
                 return;
             }
-            IrisJigsawPiece piece = StructureResources.piece(context.request().source(), pieceKey);
+            IrisJigsawPiece piece = StructureResources.piece(context.request().source().getPackResources(), pieceKey);
             if (piece == null) {
                 sendError(this, "No jigsaw piece '" + pieceKey + "' exists in this pack.");
                 return;

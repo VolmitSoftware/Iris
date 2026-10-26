@@ -20,6 +20,7 @@ package art.arcane.iris.core.modules;
 
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.loader.IrisRegistrant;
+import art.arcane.iris.engine.object.KeyedResource;
 import art.arcane.iris.core.loader.JsonSchemaValidator;
 import art.arcane.volmlib.util.json.JSONObject;
 import com.volmit.resource.ResourceKind;
@@ -117,21 +118,22 @@ public final class ModuleResourceFiles<T> {
     }
 
     private void describeOrigin(T resource, String key, File file) {
-        if (!(resource instanceof IrisRegistrant registrant)) {
-            return;
+        if (resource instanceof KeyedResource keyed) {
+            keyed.setLoadKey(key);
         }
-        registrant.setLoadKey(key);
-        registrant.setLoadFile(file);
-        registrant.setLoader(data);
+        if (resource instanceof IrisRegistrant registrant) {
+            registrant.setLoadFile(file);
+            registrant.setLoader(data);
+        }
     }
 
-    /** What load reports and studio call a resource of {@code kind}: an Iris registrant's own type name, such as Structure, or else the kind's id. */
+    /** What load reports and studio call a resource of {@code kind}: the type name of one of Iris's own resource classes, such as Structure, or else the kind's id. */
     public static String typeName(ResourceKind<?> kind) {
-        if (!IrisRegistrant.class.isAssignableFrom(kind.type())) {
+        if (!KeyedResource.class.isAssignableFrom(kind.type())) {
             return kind.id().toString();
         }
         try {
-            return ((IrisRegistrant) kind.type().getConstructor().newInstance()).getTypeName();
+            return ((KeyedResource) kind.type().getConstructor().newInstance()).getTypeName();
         } catch (ReflectiveOperationException failure) {
             return kind.id().toString();
         }

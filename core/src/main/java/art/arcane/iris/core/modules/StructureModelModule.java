@@ -29,12 +29,11 @@ import com.volmit.service.StructureLocator;
 import com.volmit.service.VanillaStructures;
 
 /**
- * Module {@code iris:structure-model}: Iris's jigsaw structure model, which the structure placements of
- * {@code iris:structure} build from and the jigsaw studio, importers and exporters edit.
+ * Module {@code iris:structure-model}: the parts of Iris's jigsaw structures that still need Iris itself. The structures,
+ * jigsaw pools and jigsaw pieces are resource kinds of {@code iris:structure} ({@link StructureResources}).
  * <p>
- * It owns the pack's structures, jigsaw pools and jigsaw pieces as resource kinds ({@link StructureResources}), read
- * from the folders packs have always used, and checks them with {@link StructureValidator} wherever Iris validates a
- * pack. It lets Iris find its structures through {@link StructureLocating}; a world's structure index lives in the
+ * It checks them with {@link StructureValidator} wherever Iris validates a pack. It lets Iris find its structures
+ * through {@link StructureLocating}; a world's structure index lives in the
  * world's state, so a reload of the pack's structure files, which starts a new world, builds it again.
  * <p>
  * It decides over the platform's own structures through its {@link VanillaStructures} provider
@@ -53,7 +52,6 @@ public final class StructureModelModule implements IrisModule {
     @Override
     public void setup(ModuleSetup setup) {
         var registry = setup.registry();
-        StructureResources.kinds().forEach(registry::registerResourceKind);
         registry.registerValidator(new StructureValidator());
         registry.registerService(StructureLocator.class, new StructureLocating());
         registry.registerService(VanillaStructures.class, new StructureVanillaStructures());

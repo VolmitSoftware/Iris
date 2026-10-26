@@ -516,7 +516,7 @@ public final class IrisStructureLocator {
         if (selectedKey == null || selectedKey.isBlank()) {
             throw new IllegalStateException("Iris structure placement selected a blank structure key");
         }
-        IrisStructure structure = StructureResources.structure(engine.getData(), selectedKey);
+        IrisStructure structure = StructureResources.structure(engine.getData().getPackResources(), selectedKey);
         if (structure == null) {
             throw new IllegalStateException("Iris structure placement references missing structure '"
                     + selectedKey + "'");
@@ -1030,7 +1030,7 @@ public final class IrisStructureLocator {
             if (structureKey == null || structureKey.isBlank()) {
                 continue;
             }
-            IrisStructure structure = StructureResources.structure(data, structureKey);
+            IrisStructure structure = StructureResources.structure(data.getPackResources(), structureKey);
             if (structure == null) {
                 continue;
             }
@@ -1091,7 +1091,7 @@ public final class IrisStructureLocator {
                 continue;
             }
             for (String structureKey : placement.structures()) {
-                IrisStructure structure = StructureResources.structure(data, structureKey);
+                IrisStructure structure = StructureResources.structure(data.getPackResources(), structureKey);
                 if (structure == null) {
                     throw new IllegalStateException(
                             "Iris structure placement references missing structure '" + structureKey + "'");
@@ -1209,7 +1209,7 @@ public final class IrisStructureLocator {
                             ? "REPLACE_SOURCE contains a blank Iris structure reference"
                             : "Iris structure placement contains a blank structure reference");
                 }
-                IrisStructure structure = StructureResources.structure(data, structureKey);
+                IrisStructure structure = StructureResources.structure(data.getPackResources(), structureKey);
                 if (structure == null) {
                     throw new IllegalStateException((replacesNative
                             ? "REPLACE_SOURCE references missing Iris structure '"

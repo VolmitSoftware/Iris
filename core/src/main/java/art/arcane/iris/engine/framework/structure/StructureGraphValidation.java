@@ -82,7 +82,7 @@ public final class StructureGraphValidation {
             if (structureKey.equals(LEGACY_INDEX_KEY) || (activeStructureKeys != null && !activeStructureKeys.contains(structureKey))) {
                 continue;
             }
-            IrisStructure structure = StructureResources.structure(data, structureKey);
+            IrisStructure structure = StructureResources.structure(data.getPackResources(), structureKey);
             if (structure == null) {
                 continue;
             }
@@ -270,12 +270,12 @@ public final class StructureGraphValidation {
 
         @Override
         public IrisJigsawPool loadPool(String key) {
-            return StructureResources.pool(data, key);
+            return StructureResources.pool(data.getPackResources(), key);
         }
 
         @Override
         public IrisJigsawPiece loadPiece(String key) {
-            return StructureResources.piece(data, key);
+            return StructureResources.piece(data.getPackResources(), key);
         }
 
         @Override

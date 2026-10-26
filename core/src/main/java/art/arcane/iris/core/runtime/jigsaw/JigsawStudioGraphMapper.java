@@ -166,7 +166,7 @@ public final class JigsawStudioGraphMapper {
             if (!visitedPools.add(poolKey)) {
                 continue;
             }
-            IrisJigsawPool pool = StructureResources.pool(data, poolKey);
+            IrisJigsawPool pool = StructureResources.pool(data.getPackResources(), poolKey);
             if (pool == null) {
                 continue;
             }
@@ -180,7 +180,7 @@ public final class JigsawStudioGraphMapper {
                     continue;
                 }
                 String pieceKey = entry.getPiece();
-                IrisJigsawPiece piece = StructureResources.piece(data, pieceKey);
+                IrisJigsawPiece piece = StructureResources.piece(data.getPackResources(), pieceKey);
                 if (piece == null || piece.getObject() == null || piece.getObject().isBlank()) {
                     continue;
                 }
@@ -211,7 +211,7 @@ public final class JigsawStudioGraphMapper {
         if (variants.containsKey(pieceKey)) {
             return;
         }
-        IrisJigsawPiece piece = StructureResources.piece(data, pieceKey);
+        IrisJigsawPiece piece = StructureResources.piece(data.getPackResources(), pieceKey);
         if (piece == null || piece.getObject() == null || piece.getObject().isBlank()) {
             return;
         }

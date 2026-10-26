@@ -47,7 +47,7 @@ public final class StructureLocating implements StructureLocator {
 
     @Override
     public Set<ResourceId> structures(PackResources pack) {
-        return idsOf(pack, StructureResources.structureKeysOf(pack));
+        return idsOf(pack, StructureResources.structureKeys(pack));
     }
 
     @Override

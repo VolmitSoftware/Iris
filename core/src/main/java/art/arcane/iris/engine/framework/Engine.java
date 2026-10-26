@@ -37,6 +37,7 @@ import art.arcane.iris.engine.IrisComplex;
 import art.arcane.iris.engine.UpperDimensionContext;
 import art.arcane.iris.engine.data.chunk.TerrainChunk;
 import art.arcane.iris.engine.mantle.EngineMantle;
+import art.arcane.iris.engine.mantle.components.StructurePlacing;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.value.IrisColor;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
@@ -459,10 +460,10 @@ public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, 
 
         if (marker.structureAware()) {
             IrisObject placedObject = getData().getObjectLoader().load(object);
-            IrisStructure structure = StructureResources.structure(getData(), marker.structureKey());
+            IrisStructure structure = StructureResources.structure(getData().getPackResources(), marker.structureKey());
             IrisObjectPlacement placement = placedObject == null || structure == null
                     ? null
-                    : structure.createLootPlacement(object);
+                    : StructurePlacing.lootPlacement(structure, object);
             return new PlacedObject(placement, placedObject, id, x, z);
         }
 

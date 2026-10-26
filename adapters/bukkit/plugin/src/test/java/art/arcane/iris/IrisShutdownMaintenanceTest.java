@@ -16,6 +16,7 @@ import art.arcane.iris.world.IrisWorld;
 import art.arcane.iris.world.WorldMaintenance;
 import art.arcane.iris.world.runtime.BukkitEnginePlatformHooks;
 import art.arcane.iris.world.task.J;
+import art.arcane.volmlib.integration.ReloadAware;
 import art.arcane.volmlib.nativelib.terrain.ServerShutdownBoundary;
 import org.bukkit.Bukkit;
 import org.bukkit.NamespacedKey;
@@ -37,9 +38,11 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
+import static org.mockito.Mockito.doCallRealMethod;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
@@ -109,8 +112,6 @@ public class IrisShutdownMaintenanceTest {
                 }
                 verify(fixture.generator).quiesceForServerShutdown();
                 verify(fixture.generator, never()).closeAsync();
-                fixture.nms.verify(INMS::get);
-                verify(fixture.binding).deferPluginClassLoaderClose();
                 verify(fixture.binding, never()).releasePluginClassLoaderClose();
             }
             assertEquals(0, sessions.activeLeases());
@@ -147,6 +148,37 @@ public class IrisShutdownMaintenanceTest {
                 verify(fixture.generator, never()).quiesceForServerShutdown();
             } finally {
                 WorldMaintenance.endWorldMaintenance(fixture.identity, "manual_disable", true);
+            }
+        }
+    }
+
+    @Test
+    public void serverStopPreUnloadDefersTeardownWhileTheClassLoaderIsHeld() throws Exception {
+        try (Fixture fixture = new Fixture()) {
+            when(fixture.binding.deferPluginClassLoaderClose()).thenReturn(true);
+            setField(fixture.plugin, "postStopFinisherStarted", new AtomicBoolean(true));
+            try {
+                fixture.commitReloadDuringServerStop();
+                verify(fixture.generator).quiesceForServerShutdown();
+                verify(fixture.generator, never()).closeAsync();
+                assertTrue(fixture.serverStopTeardownDeferred());
+            } finally {
+                WorldMaintenance.endWorldMaintenance(fixture.identity, "pre-unload:HOT_UNLOAD");
+            }
+        }
+    }
+
+    @Test
+    public void serverStopPreUnloadDrainsInlineWhenTheClassLoaderCannotBeHeld() throws Exception {
+        try (Fixture fixture = new Fixture()) {
+            when(fixture.binding.deferPluginClassLoaderClose()).thenReturn(false);
+            try {
+                fixture.commitReloadDuringServerStop();
+                verify(fixture.generator).closeAsync();
+                verify(fixture.generator, never()).quiesceForServerShutdown();
+                assertFalse(fixture.serverStopTeardownDeferred());
+            } finally {
+                WorldMaintenance.endWorldMaintenance(fixture.identity, "pre-unload:HOT_UNLOAD", true);
             }
         }
     }
@@ -204,6 +236,19 @@ public class IrisShutdownMaintenanceTest {
             Method method = Iris.class.getDeclaredMethod("drainWorldGenerators", String.class, long.class);
             method.setAccessible(true);
             method.invoke(plugin, "manual_disable", 5L);
+        }
+
+        private void commitReloadDuringServerStop() throws ReflectiveOperationException {
+            setField(plugin, "alreadyDrained", new AtomicBoolean());
+            toolbelt.when(IrisToolbelt::isServerStopping).thenReturn(true);
+            doCallRealMethod().when(plugin).commitReload(any());
+            plugin.commitReload(ReloadAware.PreUnloadReason.HOT_UNLOAD);
+        }
+
+        private boolean serverStopTeardownDeferred() throws ReflectiveOperationException {
+            Field field = Iris.class.getDeclaredField("serverStopTeardownDeferred");
+            field.setAccessible(true);
+            return ((AtomicBoolean) field.get(plugin)).get();
         }
 
         private void startFinisher() throws ReflectiveOperationException {

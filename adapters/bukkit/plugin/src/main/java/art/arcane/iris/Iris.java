@@ -989,6 +989,7 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
     }
 
     public void onDisable() {
+        pendingWorldReplacements.awaitStagingForShutdown();
         GuiHost.shutdown();
         preservePendingBlockDrops();
         papiLifecycleActive = false;
@@ -1006,7 +1007,8 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
         }
         IrisLanguage.shutdown();
         teardownPapi();
-        boolean deferToServerStop = FailedEnableLock.defersTeardownToServerStop(enableFailed, IrisToolbelt.isServerStopping());
+        boolean deferToServerStop = FailedEnableLock.defersTeardownToServerStop(enableFailed, IrisToolbelt.isServerStopping())
+                && INMS.get().deferPluginClassLoaderClose();
         boolean restartingAtStartupBoundary = startupBoundaryRestart.get();
         if (restartingAtStartupBoundary) {
             teardownRuntime("startup-boundary-restart", 30L);
@@ -1038,7 +1040,7 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
         preservePendingBlockDrops();
         papiLifecycleActive = false;
         teardownPapi();
-        if (IrisToolbelt.isServerStopping()) {
+        if (IrisToolbelt.isServerStopping() && INMS.get().deferPluginClassLoaderClose()) {
             quiesceRuntimeForServerShutdown("pre-unload:" + reason);
             startPostStopFinisher();
             Iris.debug("Pre-unload hook deferred generator teardown until Paper closes its chunk schedulers.");
@@ -1130,7 +1132,6 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
 
     private void quiesceRuntimeForServerShutdown(String reason) {
         serverStopTeardownDeferred.set(true);
-        INMS.get().deferPluginClassLoaderClose();
         JigsawStudioService jigsawStudioService = IrisServices.getOrNull(JigsawStudioService.class);
         if (jigsawStudioService != null) {
             try {

@@ -301,7 +301,8 @@ public interface INMSBinding extends NativeTerrainAccess {
     default void uninjectBukkit() {
     }
 
-    default void deferPluginClassLoaderClose() {
+    default boolean deferPluginClassLoaderClose() {
+        return false;
     }
 
     default void releasePluginClassLoaderClose() {

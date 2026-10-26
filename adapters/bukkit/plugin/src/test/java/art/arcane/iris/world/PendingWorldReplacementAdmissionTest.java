@@ -11,12 +11,16 @@ import art.arcane.iris.platform.bukkit.plugin.VolmitSender;
 import org.bukkit.NamespacedKey;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
 
@@ -40,6 +44,57 @@ public class PendingWorldReplacementAdmissionTest {
         } finally {
             executor.shutdownNow();
             executor.awaitTermination(5L, TimeUnit.SECONDS);
+        }
+    }
+
+    @Test
+    public void shutdownRejectsReplacementsThatStartAfterIt() {
+        PendingWorldReplacementManager manager = new PendingWorldReplacementManager(mock(Iris.class));
+        manager.awaitStagingForShutdown();
+
+        IOException rejected = assertThrows(IOException.class, () -> manager.stageReplacement(
+                mock(VolmitSender.class), NamespacedKey.minecraft("overworld"), mock(IrisDimension.class), null));
+
+        assertTrue(rejected.getMessage().contains("shutting down"));
+        assertTrue(LifecycleOperationCoordinator.get().isIdle());
+    }
+
+    @Test
+    public void shutdownWaitsForTheReplacementBeingStaged() throws Exception {
+        PendingWorldReplacementManager manager = new PendingWorldReplacementManager(mock(Iris.class));
+        AtomicReference<Throwable> stagingFailure = new AtomicReference<>();
+        Thread staging = new Thread(() -> {
+            try {
+                manager.stageReplacement(mock(VolmitSender.class), NamespacedKey.minecraft("overworld"),
+                        mock(IrisDimension.class), null);
+            } catch (Throwable failure) {
+                stagingFailure.set(failure);
+            }
+        });
+        Thread shutdown = new Thread(manager::awaitStagingForShutdown);
+        synchronized (manager) {
+            staging.start();
+            awaitState(staging, Thread.State.BLOCKED);
+            shutdown.start();
+            awaitState(shutdown, Thread.State.WAITING);
+            assertTrue(staging.isAlive());
+        }
+        shutdown.join(TimeUnit.SECONDS.toMillis(10L));
+        staging.join(TimeUnit.SECONDS.toMillis(10L));
+
+        assertFalse(shutdown.isAlive());
+        assertFalse(staging.isAlive());
+        assertTrue(stagingFailure.get() instanceof Exception);
+        assertTrue(LifecycleOperationCoordinator.get().isIdle());
+    }
+
+    private static void awaitState(Thread thread, Thread.State state) throws InterruptedException {
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5L);
+        while (thread.getState() != state) {
+            if (System.nanoTime() > deadline) {
+                throw new AssertionError(thread.getName() + " never reached " + state + "; it is " + thread.getState());
+            }
+            Thread.sleep(5L);
         }
     }
 }

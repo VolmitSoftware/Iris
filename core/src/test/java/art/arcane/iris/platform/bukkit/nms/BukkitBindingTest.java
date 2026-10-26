@@ -30,7 +30,8 @@ public class BukkitBindingTest {
         Fixture fixture = new Fixture();
         when(fixture.lifecycle.isServerStopping()).thenReturn(true);
         assertTrue(fixture.binding.isServerStopping());
-        fixture.binding.deferPluginClassLoaderClose();
+        when(fixture.lifecycle.deferPluginClassLoaderClose()).thenReturn(true);
+        assertTrue(fixture.binding.deferPluginClassLoaderClose());
         fixture.binding.releasePluginClassLoaderClose();
         verify(fixture.lifecycle).deferPluginClassLoaderClose();
         verify(fixture.lifecycle).releasePluginClassLoaderClose();

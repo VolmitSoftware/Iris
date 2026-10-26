@@ -126,8 +126,10 @@ public final class PondPlanner {
     public Pond reflood(DemGrid raw, HeightLattice fine, CupSet cups, Pond pond) {
         PondMask mask = pond.mask();
         int step = mask.step();
-        Box box = box(raw, fine, mask.originX() - step, mask.originZ() - step, mask.originX() + mask.width() * step,
-                mask.originZ() + mask.depth() * step, cups, Math.max(1, step / fine.cell()));
+        int margin = Math.max(step, fine.cell());
+        Box box = box(raw, fine, mask.originX() - margin, mask.originZ() - margin,
+                mask.originX() + (mask.width() - 1) * step + margin, mask.originZ() + (mask.depth() - 1) * step + margin,
+                cups, Math.max(1, step / fine.cell()));
         if (box == null) {
             return null;
         }
@@ -669,6 +671,9 @@ public final class PondPlanner {
             }
             int i = node % box.width();
             int j = node / box.width();
+            if (i == 0 || j == 0 || i == box.width() - 1 || j == box.depth() - 1) {
+                return false;
+            }
             for (int axis = 0; axis < AXIS_X.length; axis++) {
                 int neighbour = (j + AXIS_Z[axis]) * box.width() + i + AXIS_X[axis];
                 if (!wet[neighbour] && ground[neighbour] < level) {

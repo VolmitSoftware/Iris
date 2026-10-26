@@ -35,6 +35,7 @@ import java.util.function.DoubleBinaryOperator;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
@@ -175,6 +176,51 @@ public class PondPlannerTest {
         Pond drained = new Pond(pond.id(), pond.kind(), pond.floor(), pond.floor(), pond.spillX(), pond.spillZ(), pond.spillHeight(),
                 pond.mask(), 0L, pond.damRaise(), pond.fluid(), pond.floorX(), pond.floorZ());
         assertNull(planner.reflood(sampled.grid(), fine, cups, drained));
+    }
+
+    @Test
+    public void refloodingBlockMasksKeepsADryFineLatticeMargin() {
+        HydrologySettings settings = settings(config -> config.getPonds().getShore().setRoundness(0D), MIN_Y, MAX_Y);
+        int[][] origins = {{0, 0}, {-533, -303}, {529, -301}};
+        for (int[] origin : origins) {
+            int x = origin[0];
+            int z = origin[1];
+            DoubleBinaryOperator height = (px, pz) -> 100D + 2D * Math.max(Math.abs(px - x - 4), Math.abs(pz - z - 4));
+            Terrain terrain = new Terrain(height, 1f, ALLOW_ALL, null, MIN_Y, MAX_Y);
+            HeightLattice fine = new HeightLattice(terrain, 4, false, 4096);
+            BitSet wet = new BitSet(81);
+            wet.set(0, 81);
+            PondMask mask = new PondMask(x, z, 1, 9, 9, wet.toLongArray());
+            Pond pond = new Pond(1L, PondKind.NATURAL, 109, 100, x + 12, z + 4, 112f, mask, 7L, 0, "water", x + 4, z + 4);
+            DemGrid raw = new DemGrid((Math.floorDiv(x, 8) - 1) * 8, (Math.floorDiv(z, 8) - 1) * 8, 8, 6, 6);
+
+            Pond reflooded = new PondPlanner(settings).reflood(raw, fine, CupSet.EMPTY, pond);
+
+            assertNotNull("reflooded pond at " + x + "," + z, reflooded);
+            assertEquals(pond.level(), reflooded.level());
+            assertEquals(pond.outletReachId(), reflooded.outletReachId());
+            assertTrue(reflooded.mask().contains(x + 4, z + 4));
+            for (int[] node : wetNodes(reflooded.mask())) {
+                assertTrue("reflood remains within its previous mask", mask.contains(node[0], node[1]));
+            }
+            assertContained(reflooded, height);
+        }
+    }
+
+    @Test
+    public void refloodingRejectsWetRimsClippedByThePlanningGrid() {
+        HydrologySettings settings = settings(config -> config.getPonds().getShore().setRoundness(0D), MIN_Y, MAX_Y);
+        Terrain terrain = new Terrain((x, z) -> x >= 0 && x <= 8 && z >= 0 && z <= 8 ? 100D : 112D,
+                1f, ALLOW_ALL, null, MIN_Y, MAX_Y);
+        BitSet wet = new BitSet(81);
+        wet.set(0, 81);
+        Pond pond = new Pond(1L, PondKind.NATURAL, 109, 100, 12, 4, 112f, new PondMask(0, 0, 1, 9, 9, wet.toLongArray()),
+                0L, 0, "water", 4, 4);
+
+        Pond reflooded = new PondPlanner(settings).reflood(new DemGrid(0, 0, 8, 2, 2),
+                new HeightLattice(terrain, 4, false, 4096), CupSet.EMPTY, pond);
+
+        assertNull(reflooded);
     }
 
     @Test

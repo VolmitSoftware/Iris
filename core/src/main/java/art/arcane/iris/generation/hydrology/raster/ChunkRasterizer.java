@@ -28,7 +28,9 @@ public final class ChunkRasterizer {
     }
 
     public static List<RegionKey> lakeRegions(int chunkX, int chunkZ) {
-        return RegionKey.lakeOwners(chunkX * CHUNK, chunkZ * CHUNK, chunkX * CHUNK + CHUNK - 1, chunkZ * CHUNK + CHUNK - 1);
+        int halo = RiffleProfile.RADIUS + 1;
+        return RegionKey.lakeOwners(chunkX * CHUNK - halo, chunkZ * CHUNK - halo,
+                chunkX * CHUNK + CHUNK - 1 + halo, chunkZ * CHUNK + CHUNK - 1 + halo);
     }
 
     public ChunkWaterRaster rasterize(int chunkX, int chunkZ, IntBinaryOperator naturalHeight, List<IndexedWindow> windows,

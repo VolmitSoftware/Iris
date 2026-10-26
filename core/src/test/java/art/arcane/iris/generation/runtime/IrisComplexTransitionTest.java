@@ -165,7 +165,7 @@ public class IrisComplexTransitionTest {
                         if (terrain > 150) {
                             berms++;
                             assertEquals(terrain, ground, 0D);
-                            assertTrue(ground >= 156);
+                            assertTrue(ground >= 155);
                         }
                         assertContained(complex, x, z, ground);
                     }
@@ -195,13 +195,13 @@ public class IrisComplexTransitionTest {
                     double ground = complex.resolveHydrologyTerrainHeight(x, z);
                     assertTrue(raster.terrainHeight(x, z) < 150);
                     assertContained(complex, x, z, ground);
-                    if (ground >= 148) {
+                    if (ground >= 147) {
                         dried++;
                         assertEquals(127D, complex.resolveWaterHead(x, z), 0D);
                         assertSame(WaterRole.NONE, complex.resolveWaterRole(x, z));
                     } else {
                         wet++;
-                        assertEquals(148D, complex.resolveWaterHead(x, z), 0D);
+                        assertEquals(147D, complex.resolveWaterHead(x, z), 0D);
                         assertSame(WaterRole.POND, complex.resolveWaterRole(x, z));
                     }
                 }
@@ -220,7 +220,7 @@ public class IrisComplexTransitionTest {
             FakeHydrology hydrology = seam.hydrology;
             IrisComplex complex = seam.natural((x, z) -> 150D).complex();
             for (int z = 7; z <= 9; z++) {
-                assertEquals(148, hydrology.runtime.raster(1, 0).waterHead(0, z));
+                assertEquals(147, hydrology.runtime.raster(1, 0).waterHead(0, z));
                 assertSame(WaterRole.NONE, complex.resolveWaterRole(16, z));
                 assertEquals(150D, complex.resolveHydrologyTerrainHeight(16, z), 0D);
             }
@@ -308,9 +308,9 @@ public class IrisComplexTransitionTest {
                     }
                     if (stage.raster(1).waterHead(lx, lz) != Integer.MIN_VALUE && oldChunkWeight(x, lz) > 0D && oldChunkWeight(x - 1, lz) == 0D) {
                         dams++;
-                        assertTrue(x + "," + lz + " dam lost its crest", blended.getRaw(lx, 157, lz) == stage.stone);
+                        assertTrue(x + "," + lz + " dam lost its crest", blended.getRaw(lx, 156, lz) == stage.stone);
                     }
-                    if (blended.getRaw(lx, 156, lz) != stage.water) {
+                    if (blended.getRaw(lx, 155, lz) != stage.water) {
                         continue;
                     }
                     wet++;
@@ -318,7 +318,7 @@ public class IrisComplexTransitionTest {
                         int nx = lx + side[0];
                         int nz = lz + side[1];
                         if (nx >= 0 && nx < 16 && nz >= 0 && nz < 16) {
-                            assertFalse(x + "," + lz + " leaks toward " + (16 + nx) + "," + nz, stage.open(blended.getRaw(nx, 156, nz)));
+                            assertFalse(x + "," + lz + " leaks toward " + (16 + nx) + "," + nz, stage.open(blended.getRaw(nx, 155, nz)));
                         }
                     }
                 }
@@ -339,13 +339,13 @@ public class IrisComplexTransitionTest {
             int dams = 0;
             int water = 0;
             for (int lz = 0; lz < 16; lz++) {
-                assertTrue(stage.complex.naturalTrueHeight(16, lz) >= 156);
+                assertTrue(stage.complex.naturalTrueHeight(16, lz) >= 155);
                 if (raster.waterHead(1, lz) != Integer.MIN_VALUE) {
                     dams++;
                     assertSame(WaterRole.NONE, stage.complex.resolveWaterRole(17, lz));
                     assertTrue(17 + "," + lz + " dam at " + stage.complex.resolveHydrologyTerrainHeight(17, lz),
-                            stage.complex.resolveHydrologyTerrainHeight(17, lz) >= 157D);
-                    assertSame(stage.stone, blended.getRaw(1, 157, lz));
+                            stage.complex.resolveHydrologyTerrainHeight(17, lz) >= 156D);
+                    assertSame(stage.stone, blended.getRaw(1, 156, lz));
                 }
                 for (int lx = 0; lx < 16; lx++) {
                     for (int y = 0; y < TransitionStage.HEIGHT; y++) {
@@ -373,7 +373,7 @@ public class IrisComplexTransitionTest {
     public void seamDamHoldsNewWaterBesideAnOpenOldRiverOrLakeEdge() throws Exception {
         try (TransitionStage stage = new TransitionStage(IrisComplexTransitionTest::oldChunkWeight, true, (x, z) -> 150.3D,
                 TransitionStage.savedColumn(140, 160, -1))) {
-            assertTrue(stage.complex.resolveWaterHead(16, 4) < 156D);
+            assertTrue(stage.complex.resolveWaterHead(16, 4) < 155D);
             Hunk<NativeBlockState> blended = stage.blend(1, stage.paint(1));
             assertTrue(stage.dams(blended) > 0);
             stage.assertNoWaterTouchesAir(blended);
@@ -421,9 +421,9 @@ public class IrisComplexTransitionTest {
                 if (stage.raster(1).waterHead(1, lz) != Integer.MIN_VALUE) {
                     wet++;
                     assertSame(WaterRole.POND, stage.complex.resolveWaterRole(17, lz));
-                    assertEquals(156D, stage.complex.resolveWaterHead(17, lz), 0D);
-                    assertSame(stage.water, blended.getRaw(1, 156, lz));
-                    assertSame(stage.stone, blended.getRaw(0, 156, lz));
+                    assertEquals(155D, stage.complex.resolveWaterHead(17, lz), 0D);
+                    assertSame(stage.water, blended.getRaw(1, 155, lz));
+                    assertSame(stage.stone, blended.getRaw(0, 155, lz));
                 }
             }
             assertTrue(wet > 0);
@@ -455,7 +455,7 @@ public class IrisComplexTransitionTest {
                     boolean beside = oldChunkWeight(x + 1, z) == 0D || oldChunkWeight(x - 1, z) == 0D
                             || oldChunkWeight(x, z + 1) == 0D || oldChunkWeight(x, z - 1) == 0D;
                     if (raster.waterHead(index & 15, index >> 4) != Integer.MIN_VALUE && oldChunkWeight(x, z) > 0D && beside
-                            && stage.complex.resolveHydrologyTerrainHeight(x, z) < 156D + 1D) {
+                            && stage.complex.resolveHydrologyTerrainHeight(x, z) < 155D + 1D) {
                         fail(x + "," + z + " stays wet beside a saved column that opens below its head");
                     }
                     if (role == WaterRole.NONE && raster.waterHead(index & 15, index >> 4) != Integer.MIN_VALUE && beside
@@ -663,8 +663,8 @@ public class IrisComplexTransitionTest {
             for (int lz = 0; lz < 16; lz++) {
                 if (raster(1).waterHead(1, lz) != Integer.MIN_VALUE && complex.resolveWaterRole(17, lz) == WaterRole.NONE) {
                     dams++;
-                    assertTrue(17 + "," + lz + " dam below the crest", complex.resolveHydrologyTerrainHeight(17, lz) >= 157D);
-                    assertSame(stone, blended.getRaw(1, 157, lz));
+                    assertTrue(17 + "," + lz + " dam below the crest", complex.resolveHydrologyTerrainHeight(17, lz) >= 156D);
+                    assertSame(stone, blended.getRaw(1, 156, lz));
                 }
             }
             return dams;
@@ -821,7 +821,7 @@ public class IrisComplexTransitionTest {
                         dams++;
                         assertEquals(127D, head, 0D);
                         assertSame(WaterRole.NONE, role);
-                        assertTrue(x + "," + z + " dam at " + ground, ground >= 157D);
+                        assertTrue(x + "," + z + " dam at " + ground, ground >= 156D);
                     }
                 }
             }

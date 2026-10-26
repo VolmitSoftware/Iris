@@ -29,11 +29,7 @@ final class EffectiveWater {
         if (head == DRY) {
             return highest == DRY ? column : column(Math.max(ground, highest + 1), DRY);
         }
-        int oneAbove = oneAbove(head, east) + oneAbove(head, west) + oneAbove(head, south) + oneAbove(head, north);
-        if (oneAbove >= 2) {
-            return column(Math.max(ground, highest), DRY);
-        }
-        return dropsBelow(head, east, west, south, north) ? column(Math.max(ground, head - 1), head) : column;
+        return column;
     }
 
     static void settleGrid(int originX, int originZ, int width, int depth, Columns columns, long[] settled) {
@@ -59,18 +55,6 @@ final class EffectiveWater {
                         : pre[index];
             }
         }
-    }
-
-    private static int oneAbove(int head, long neighbour) {
-        return head(neighbour) != DRY && head(neighbour) == head + 1 ? 1 : 0;
-    }
-
-    private static boolean dropsBelow(int head, long east, long west, long south, long north) {
-        return dropsBelow(head, east) || dropsBelow(head, west) || dropsBelow(head, south) || dropsBelow(head, north);
-    }
-
-    private static boolean dropsBelow(int head, long neighbour) {
-        return head(neighbour) != DRY && head(neighbour) <= head - 2;
     }
 
     interface Columns {

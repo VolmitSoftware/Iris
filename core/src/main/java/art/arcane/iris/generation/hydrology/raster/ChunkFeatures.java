@@ -50,7 +50,10 @@ final class ChunkFeatures {
         List<SeaInlet> inlets = new ArrayList<>();
         for (IndexedWindow window : windows) {
             for (SeaInlet inlet : window.plan().inlets()) {
-                if (SeaInletRasterizer.touches(inlet, chunkX, chunkZ)) {
+                int[] bounds = SeaInletRasterizer.bounds(inlet);
+                int padding = RiffleProfile.RADIUS + 1;
+                if (bounds[0] <= chunkX * CHUNK + CHUNK - 1 + padding && bounds[2] >= chunkX * CHUNK - padding
+                        && bounds[1] <= chunkZ * CHUNK + CHUNK - 1 + padding && bounds[3] >= chunkZ * CHUNK - padding) {
                     inlets.add(inlet);
                 }
             }
@@ -81,6 +84,25 @@ final class ChunkFeatures {
 
     ReachSegments segments() {
         return segments;
+    }
+
+    boolean hasOnlyLevel(int head, int seaLevel) {
+        for (Pond pond : ponds) {
+            if (pond.level() - Math.floorMod(pond.level() - seaLevel, 2) != head) {
+                return false;
+            }
+        }
+        for (Pond lake : lakes) {
+            if (lake.level() - Math.floorMod(lake.level() - seaLevel, 2) != head) {
+                return false;
+            }
+        }
+        for (SeaInlet inlet : inlets) {
+            if (inlet.waterLevel() - Math.floorMod(inlet.waterLevel() - seaLevel, 2) != head) {
+                return false;
+            }
+        }
+        return segments.hasOnlyLevel(head, seaLevel);
     }
 
     int ponds() {

@@ -4,6 +4,7 @@ import art.arcane.iris.generation.hydrology.config.IrisHydrology;
 import art.arcane.iris.generation.hydrology.grid.HeightLattice;
 import art.arcane.iris.generation.hydrology.underground.SeaInlet;
 import art.arcane.iris.generation.hydrology.water.HydrologyTier;
+import art.arcane.iris.generation.hydrology.water.CupSet;
 import art.arcane.iris.generation.hydrology.water.Pond;
 import art.arcane.iris.generation.hydrology.water.PondKind;
 import art.arcane.iris.generation.hydrology.water.PondMask;
@@ -24,6 +25,7 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -32,6 +34,8 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 
 public class WindowPlannerTest {
@@ -47,6 +51,51 @@ public class WindowPlannerTest {
         WindowPlan plan = planner(settings, SyntheticTerrain.trunkValley()).plan(LAND, noRegions(LAND));
         assertTrue(plan.reaches().isEmpty());
         assertTrue(plan.ponds().isEmpty());
+    }
+
+    @Test
+    public void shrinkingPondReplansUntilItsChangedOutletStopsLowering() {
+        HydrologySettings settings = settings(new IrisHydrology());
+        SyntheticTerrain terrain = SyntheticTerrain.flat(100D).withPit(64D, 64D, 20D, 20D);
+        int width = 41;
+        long[] bits = new long[(width * width + 63) >>> 6];
+        for (int z = -20; z <= 20; z++) {
+            for (int x = -20; x <= 20; x++) {
+                if (x * x + z * z < 400) {
+                    int cell = (z + 20) * width + x + 20;
+                    bits[cell >>> 6] |= 1L << cell;
+                }
+            }
+        }
+        Pond initial = new Pond(19L, PondKind.NATURAL, 100, 80, 84, 64, 100f,
+                new PondMask(44, 44, 1, width, width, bits), 0L, 0, "water", 64, 64);
+        PondPlanner ponds = spy(new PondPlanner(settings));
+        doReturn(CupSet.EMPTY).when(ponds).subtractCups(any(), any(), any(), any());
+        doReturn(List.of(initial)).when(ponds).ponds(any(), any(), any(), any(), any(), any());
+        ReachShaper shaper = mock(ReachShaper.class);
+        AtomicInteger passes = new AtomicInteger();
+        doAnswer(call -> {
+            List<Pond> water = call.getArgument(4);
+            Pond pond = single(water);
+            passes.incrementAndGet();
+            int head = pond.level() > 96 ? 96 : 94;
+            Reach outlet = new Reach(20L, settings.tiers().get(0), 0L, new float[]{64f, 64f}, new float[]{32f, 96f},
+                    new int[]{head, head}, new float[]{2f, 2f}, new float[]{2f, 2f}, new ReachStyle[]{ReachStyle.RUN, ReachStyle.RUN}, 1000f);
+            return new ShapedNetwork(List.of(outlet), List.of(pond.withOutletReachId(outlet.id())));
+        }).when(shaper).shape(any(), any(), any(), any(), any(), any(), anyLong());
+        WindowPlanner planner = new WindowPlanner(settings, new HeightLattice(terrain, WindowPlanner.CELL, false, 1 << 18),
+                new HeightLattice(terrain, WindowPlanner.FINE_CELL, false, 1 << 18), ponds, shaper);
+
+        WindowComputation settled = planner.compute(ORIGIN, noRegions(ORIGIN));
+
+        Pond pond = single(settled.allPonds());
+        assertEquals(3, passes.get());
+        assertEquals(94, pond.level());
+        assertEquals(20L, pond.outletReachId());
+        assertTrue(initial.mask().contains(83, 64));
+        assertFalse(pond.mask().contains(83, 64));
+        assertTrue(pond.mask().contains(64, 64));
+        assertEquals(94, settled.allReaches().get(0).grade()[0]);
     }
 
     @Test

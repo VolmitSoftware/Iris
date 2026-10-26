@@ -48,6 +48,41 @@ public class ChunkWaterRasterTest {
     private static final int GENTLE_STEP = 3;
 
     @Test
+    public void flatLakesSkipExtraTerrainSamplingForRiffles() {
+        AtomicInteger samples = new AtomicInteger();
+        Scene scene = new Scene(settings(new IrisHydrology()), (x, z) -> {
+            samples.incrementAndGet();
+            return 70;
+        }).lake(pond(8L, PondKind.LAKE, 80, circle(8, 8, 100, 1), 8, 8, 0));
+
+        assertEquals(80, scene.raster(0, 0).waterHead(8, 8));
+        assertEquals(320, samples.get());
+    }
+
+    @Test
+    public void shallowStandingWaterRetainsItsFootprintWhenItsHeadLowersOneBlock() {
+        int desiredLevel = 75;
+        Pond water = pond(9L, PondKind.NATURAL, desiredLevel, circle(-16, -16, 12, 1), -16, -16, 0);
+        HydrologySettings settings = settings(new IrisHydrology());
+        for (Scene scene : List.of(new Scene(settings, (x, z) -> desiredLevel - 1).pond(water),
+                new Scene(settings, (x, z) -> desiredLevel - 1).lake(water))) {
+            int wet = 0;
+            for (int x = -32; x <= 0; x++) {
+                for (int z = -32; z <= 0; z++) {
+                    if (!water.mask().contains(x, z)) {
+                        continue;
+                    }
+                    wet++;
+                    assertEquals("head at " + x + "," + z, desiredLevel - 1, scene.head(x, z));
+                    assertTrue("bed at " + x + "," + z, scene.terrain(x, z) < scene.head(x, z));
+                }
+            }
+            assertTrue("wet footprint " + wet, wet > 400);
+            assertEquals(0, scene.leaks(-32, -32, 0, 0));
+        }
+    }
+
+    @Test
     public void channelBedBelowWaterHead() {
         IntBinaryOperator natural = (x, z) -> x >= 40 && x < 50 ? 82 : 90 + (int) Math.round(2D * Math.sin(x / 9D));
         HydrologyTier river = tier("river", 5f, 0.5f, 8, IrisBankStyle.SMOOTH);
@@ -62,15 +97,15 @@ public class ChunkWaterRasterTest {
                 channel++;
                 int bed = scene.terrain(x, z);
                 int ground = natural.applyAsInt(x, z);
-                assertEquals(87, scene.head(x, z));
-                assertTrue("bed " + bed + " below the water head at " + x + "," + z, bed < 87);
+                assertEquals(86, scene.head(x, z));
+                assertTrue("bed " + bed + " below the water head at " + x + "," + z, bed < 86);
                 assertTrue("bed never above natural at " + x + "," + z, bed <= ground);
                 if (ground < 84) {
                     pooled++;
                     assertEquals("a depression under the channel keeps its natural floor at " + x + "," + z, ground, bed);
                 }
             }
-            assertTrue("full depth on the centre line at x=" + x, 87 - scene.terrain(x, 8) >= 3);
+            assertTrue("the centre line keeps a submerged bed at x=" + x, 86 - scene.terrain(x, 8) >= 2);
         }
         assertTrue("channel columns " + channel, channel > 900);
         assertTrue("pooled columns " + pooled, pooled > 50);
@@ -97,6 +132,69 @@ public class ChunkWaterRasterTest {
         }
         assertTrue(measured > 5000);
         assertEquals("far columns sit at the cap", ChunkWaterRaster.MAX_SHORE_DISTANCE, scene.shore(0, -40));
+    }
+
+    @Test
+    public void channelBedsAndBanksVaryAlongConstantWidthReaches() {
+        IrisHydrology config = new IrisHydrology();
+        config.getDeformation().setBankNoise(0D);
+        HydrologySettings settings = settings(config);
+        HydrologyTier river = tier("river", 8f, 0.75f, 24, IrisBankStyle.SMOOTH);
+        Reach reach = line(15L, river, 0L, -112f, 0f, 112f, 0f, (x, z) -> 100);
+        Scene scene = new Scene(settings, (x, z) -> 120).reach(reach);
+        Set<Integer> bedHeights = new HashSet<>();
+        Set<Integer> bankHeights = new HashSet<>();
+        int previousBed = scene.terrain(-80, 4);
+        int previousBank = scene.terrain(-80, 20);
+        for (int x = -80; x <= 80; x++) {
+            int bed = scene.terrain(x, 4);
+            int bank = scene.terrain(x, 20);
+            bedHeights.add(bed);
+            bankHeights.add(bank);
+            assertEquals(100, scene.head(x, 4));
+            assertEquals(Integer.MIN_VALUE, scene.head(x, 20));
+            assertTrue("depth stays within the tier limit", bed >= 94 && bed < 100);
+            assertTrue("bank stays between the water and terrain", bank >= 100 && bank <= 120);
+            assertTrue("bed variation remains coherent across chunk boundaries", Math.abs(bed - previousBed) <= 1);
+            assertTrue("bank variation remains coherent across chunk boundaries", Math.abs(bank - previousBank) <= 1);
+            previousBed = bed;
+            previousBank = bank;
+        }
+        assertTrue("constant-width bed has varying contours", bedHeights.size() >= 3);
+        assertTrue("constant-distance bank has varying contours", bankHeights.size() >= 3);
+    }
+
+    @Test
+    public void pondShelvesAndTapersVaryWithoutChangingWaterCoverage() {
+        HydrologySettings settings = settings(new IrisHydrology());
+        long[] bits = new long[192 * 64 / 64];
+        Arrays.fill(bits, -1L);
+        Pond water = pond(16L, PondKind.NATURAL, 100, new PondMask(-96, -32, 1, 192, 64, bits), 0, 0, 0);
+        Scene scene = new Scene(settings, (x, z) -> 110).pond(water);
+        Set<Integer> shelfHeights = new HashSet<>();
+        Set<Integer> deepHeights = new HashSet<>();
+        Set<Integer> taperHeights = new HashSet<>();
+        for (int x = -64; x <= 64; x++) {
+            shelfHeights.add(scene.terrain(x, -28));
+            deepHeights.add(scene.terrain(x, 0));
+            taperHeights.add(scene.terrain(x, -40));
+            for (int z = -48; z <= 47; z++) {
+                assertEquals("the shoreline remains fixed", water.mask().contains(x, z), scene.water(x, z));
+                if (scene.water(x, z)) {
+                    assertEquals(100, scene.head(x, z));
+                    assertTrue("pond depth remains bounded", scene.terrain(x, z) >= 92 && scene.terrain(x, z) < 100);
+                } else {
+                    assertTrue("dry taper stays above water", scene.terrain(x, z) >= 100);
+                }
+            }
+        }
+        assertTrue("shelf contours vary along a straight shore", shelfHeights.size() >= 3);
+        assertTrue("deep floor has relief", deepHeights.size() >= 2);
+        assertTrue("dry taper varies along a straight shore", taperHeights.size() >= 2);
+        Scene reverse = new Scene(settings, (x, z) -> 110).pond(water);
+        for (int x = 64; x >= -64; x--) {
+            assertEquals("generation order leaves the floor unchanged", scene.terrain(x, -28), reverse.terrain(x, -28));
+        }
     }
 
     @Test
@@ -189,14 +287,14 @@ public class ChunkWaterRasterTest {
                 wet++;
                 chunks.add(pack(Math.floorDiv(x, 16), Math.floorDiv(z, 16)));
                 assertEquals(pond.id(), scene.feature(x, z));
-                assertEquals("pond level at " + x + "," + z, 75, scene.head(x, z));
-                assertTrue("pond floor below the level at " + x + "," + z, scene.terrain(x, z) < 75);
+                assertEquals("pond level at " + x + "," + z, 74, scene.head(x, z));
+                assertTrue("pond floor below the level at " + x + "," + z, scene.terrain(x, z) < 74);
                 assertEquals("water", scene.fluid(x, z));
             }
         }
         assertTrue("pond columns " + wet, wet > 400);
         assertEquals("the pond spans four chunks", 4, chunks.size());
-        assertEquals("open water reaches full depth", 75 - 8, scene.terrain(16, 16));
+        assertTrue("open water stays within the maximum depth", scene.terrain(16, 16) >= 74 - 8 && scene.terrain(16, 16) < 74);
         assertEquals(WaterRole.POND_SHORE, scene.role(16, 30));
     }
 
@@ -206,7 +304,7 @@ public class ChunkWaterRasterTest {
         float startZ = -20f;
         float endX = 80f;
         float endZ = 60f;
-        IntBinaryOperator natural = (x, z) -> 80 + (int) Math.floor(0.35D * perpendicular(x, z, startX, startZ, endX, endZ));
+        IntBinaryOperator natural = (x, z) -> 79 + (int) Math.floor(0.35D * perpendicular(x, z, startX, startZ, endX, endZ));
         HydrologyTier river = tier("river", 3f, 0.5f, 12, IrisBankStyle.SMOOTH);
         Scene scene = new Scene(settings(new IrisHydrology()), natural).reach(line(31L, river, 0L, startX, startZ, endX, endZ, (x, z) -> 79));
         int interior = 0;
@@ -253,12 +351,12 @@ public class ChunkWaterRasterTest {
                 .reach(line(44L, stream, 0L, 8f, 8f, 56f, 8f, (x, z) -> Math.clamp(eastSlope.applyAsInt((int) x, (int) z) - 1, 94, 99)));
         assertContained("chained ponds", chained, -16, -8, 80, 24, true);
 
-        IntBinaryOperator cliff = (x, z) -> (x < 24 ? 100 : 80) - Math.max(0, z - 8);
+        IntBinaryOperator cliff = (x, z) -> (x < 24 ? 99 : 79) - Math.max(0, z - 8);
         Scene waterfall = new Scene(settings, cliff).reach(line(45L, stream, 0L, -24f, 8f, 72f, 8f, (x, z) -> x < 24 ? 99 : 79));
         assertContained("waterfall", waterfall, -16, -8, 64, 24, true);
         assertEquals(WaterRole.WATERFALL, waterfall.role(24, 8));
-        assertEquals(99, waterfall.head(22, 8));
-        assertEquals(79, waterfall.head(24, 8));
+        assertEquals(98, waterfall.head(22, 8));
+        assertEquals(78, waterfall.head(24, 8));
     }
 
     @Test
@@ -455,7 +553,7 @@ public class ChunkWaterRasterTest {
         IrisHydrology config = new IrisHydrology();
         config.getDeformation().setBankSlope(0D).setBankSteepFactor(0D).setBankNoise(0D);
         HydrologySettings settings = settings(config);
-        IntBinaryOperator natural = (x, z) -> z >= 8 ? 70 + (z - 8) : 68 - (8 - z) / 4;
+        IntBinaryOperator natural = (x, z) -> z >= 8 ? 69 + (z - 8) : 67 - (8 - z) / 4;
         Map<IrisBankStyle, int[]> cuts = new EnumMap<>(IrisBankStyle.class);
         for (IrisBankStyle style : IrisBankStyle.values()) {
             Scene scene = new Scene(settings, natural).reach(line(90L + style.ordinal(), tier("river", 2f, 0.5f, 16, style), 0L, -48f, 8f, 64f, 8f,
@@ -466,7 +564,7 @@ public class ChunkWaterRasterTest {
                 int height = scene.terrain(8, z);
                 assertFalse(style + " bank is dry at z=" + z, scene.water(8, z));
                 assertTrue(style + " bank role at z=" + z, scene.role(8, z) == WaterRole.BANK || scene.role(8, z) == WaterRole.SHORE);
-                assertTrue(style + " bank between water and natural at z=" + z + ": " + height, height >= 69 && height <= natural.applyAsInt(8, z));
+                assertTrue(style + " bank between water and natural at z=" + z + ": " + height, height >= 68 && height <= natural.applyAsInt(8, z));
                 assertTrue(style + " bank never falls toward the ground at z=" + z, outward == 1 || height >= cut[outward - 2]);
                 cut[outward - 1] = height;
                 int levee = scene.terrain(8, 6 - outward);
@@ -475,7 +573,7 @@ public class ChunkWaterRasterTest {
                         levee >= ground && levee <= ground + settings.deformation().maxFill());
             }
             assertEquals(style + " meets natural at the band edge", natural.applyAsInt(8, 26), cut[15]);
-            assertTrue(style + " levee holds the water", scene.terrain(8, 5) >= 70);
+            assertTrue(style + " levee holds the water", scene.terrain(8, 5) >= 69);
             assertEquals(style + " levee meets natural at the band edge", natural.applyAsInt(8, -10), scene.terrain(8, -10));
             assertEquals(style + " leaks", 0, scene.leaks(-16, -16, 32, 32));
             cuts.put(style, cut);
@@ -494,16 +592,16 @@ public class ChunkWaterRasterTest {
         assertTrue(ordered);
         int[] cliff = cuts.get(IrisBankStyle.CLIFF);
         for (int index = 0; index < 8; index++) {
-            assertEquals("cliff bench at outward " + (index + 1), 69, cliff[index]);
+            assertEquals("cliff bench at outward " + (index + 1), 68, cliff[index]);
         }
         assertEquals("cliff wall reaches natural", natural.applyAsInt(8, 22), cliff[11]);
         int[] terraced = cuts.get(IrisBankStyle.TERRACED);
         boolean level = false;
         for (int index = 0; index < 15; index++) {
             if (terraced[index] < natural.applyAsInt(8, 11 + index)) {
-                assertEquals("terrace step height at outward " + (index + 1), 0, (terraced[index] - 69) % 3);
+                assertEquals("terrace step height at outward " + (index + 1), 0, (terraced[index] - 68) % 3);
             }
-            level |= terraced[index] > 69 && terraced[index] == terraced[index + 1];
+            level |= terraced[index] > 68 && terraced[index] == terraced[index + 1];
         }
         assertTrue("terraces hold level steps", level);
         List<IrisBankStyle> styles = List.of(IrisBankStyle.values());
@@ -521,13 +619,13 @@ public class ChunkWaterRasterTest {
         int maxFill = settings.deformation().maxFill();
         HydrologyTier stream = tier("stream", 1.5f, 0.5f, 0, IrisBankStyle.SMOOTH);
         Reach perchedReach = line(101L, stream, 0L, -32f, 8f, 48f, 8f, (x, z) -> 79);
-        IntBinaryOperator slope = (x, z) -> 80 - Math.max(0, z - 8);
+        IntBinaryOperator slope = (x, z) -> 79 - Math.max(0, z - 8);
         Scene scene = new Scene(settings, slope).reach(perchedReach);
         for (int x = -24; x < 40; x++) {
             assertTrue("channel water at x=" + x, scene.water(x, 9));
             assertFalse("dry downhill column at x=" + x, scene.water(x, 10));
-            assertEquals("natural sits below the water at x=" + x, 78, slope.applyAsInt(x, 10));
-            assertEquals("berm one block above the water at x=" + x, 80, scene.terrain(x, 10));
+            assertEquals("natural sits below the water at x=" + x, 77, slope.applyAsInt(x, 10));
+            assertEquals("berm one block above the water at x=" + x, 79, scene.terrain(x, 10));
             assertEquals(WaterRole.SHORE, scene.role(x, 10));
             assertEquals(perchedReach.id(), scene.feature(x, 10));
             assertEquals(stream, scene.tier(x, 10));
@@ -536,11 +634,11 @@ public class ChunkWaterRasterTest {
         assertEquals(0, scene.leaks(-24, -8, 40, 24));
 
         Scene steep = new Scene(settings, (x, z) -> z > 9 ? 60 : 80).reach(perchedReach);
-        assertEquals("past the fill limit the guard berms to the water itself", 79, steep.terrain(0, 10));
+        assertEquals("past the fill limit the guard berms to the water itself", 78, steep.terrain(0, 10));
         assertTrue("the guard rises past the fill limit", steep.terrain(0, 10) > 60 + maxFill);
         assertEquals(0, steep.leaks(-24, -8, 40, 24));
         Scene below = new Scene(settings, (x, z) -> z > 9 ? 30 : 80).reach(perchedReach);
-        assertEquals("a column under the sea surface is bermed when the water stands above it", 79, below.terrain(0, 10));
+        assertEquals("a column under the sea surface is bermed when the water stands above it", 78, below.terrain(0, 10));
     }
 
     @Test
@@ -559,7 +657,7 @@ public class ChunkWaterRasterTest {
                 }
                 dams++;
                 assertEquals(dammed.id(), scene.feature(x, z));
-                assertEquals("dam crest one block above the level at " + x + "," + z, 96, scene.terrain(x, z));
+                assertEquals("dam crest one block above the level at " + x + "," + z, 95, scene.terrain(x, z));
                 if (scene.terrain(x, z) - slope.applyAsInt(x, z) > maxFill) {
                     tall++;
                 }
@@ -596,7 +694,7 @@ public class ChunkWaterRasterTest {
                 drawn.catchment());
         Scene scene = new Scene(settings(new IrisHydrology()), coast).reach(coastal);
         assertEquals("the lip carries the fall", WaterRole.WATERFALL, scene.role(38, 8));
-        assertEquals(59, scene.head(38, 8));
+        assertEquals(58, scene.head(38, 8));
         int mouths = 0;
         for (int x = -20; x <= 56; x++) {
             for (int z = 0; z <= 16; z++) {

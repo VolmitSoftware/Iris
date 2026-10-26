@@ -66,6 +66,14 @@ public final class HydrologyBlockProbe {
 
     static final class Evidence {
         long plannedWetColumns;
+        long effectiveWetColumns;
+        long lostWetColumns;
+        long raisedWetBedColumns;
+        long raisedWetBedBlocks;
+        int maximumWetBedRaise;
+        long solidRaisedBedBlocks;
+        long dropAdjacentRaisedWetBedColumns;
+        long censoredRaisedWetBedColumns;
         long channelColumns;
         long pondColumns;
         long bankColumns;
@@ -88,7 +96,16 @@ public final class HydrologyBlockProbe {
                   List<String> artifacts) {
     }
 
-    record PlannedColumn(WaterRole role, int terrain, int natural, int head) {
+    record PlannedColumn(WaterRole role, int terrain, int natural, int rawHead, int effectiveTerrain, int head) {
+        int wetBedRaise() {
+            return rawHead == HydrologyVoxels.NO_WATER || head == HydrologyVoxels.NO_WATER ? 0 : Math.max(0, effectiveTerrain - terrain);
+        }
+    }
+
+    record BedNeighbours(int lowestHead, int known) {
+        boolean dropBelow(int head) {
+            return lowestHead != HydrologyVoxels.NO_WATER && lowestHead <= head - 2;
+        }
     }
 
     public static void main(String[] args) {
@@ -96,8 +113,10 @@ public final class HydrologyBlockProbe {
         try {
             Result result = run(Configuration.parse(args));
             Evidence evidence = result.evidence();
-            System.out.println("IRIS_HYDROLOGY_BLOCK_RESULT version=2 status=" + result.status() + " seed=" + result.configuration().seed()
+            System.out.println("IRIS_HYDROLOGY_BLOCK_RESULT version=4 status=" + result.status() + " seed=" + result.configuration().seed()
                     + " plannedWetColumns=" + evidence.plannedWetColumns + " missingSurfaceColumns=" + evidence.scan.missingSurfaces
+                    + " effectiveWetColumns=" + evidence.effectiveWetColumns + " lostWetColumns=" + evidence.lostWetColumns
+                    + " raisedWetBedColumns=" + evidence.raisedWetBedColumns + " raisedWetBedBlocks=" + evidence.raisedWetBedBlocks
                     + " containmentLeaks=" + evidence.scan.containmentLeaks + " tickConversionCells=" + evidence.scan.tickConversionCells
                     + " cane=" + evidence.validCaneRoots + " failures=" + result.failures().size()
                     + " output=" + result.configuration().output().getAbsolutePath());
@@ -135,7 +154,8 @@ public final class HydrologyBlockProbe {
                 failures.add("The engine reported " + reports.size() + " generation errors.");
             }
             Files.createDirectories(configuration.output().toPath());
-            List<String> artifacts = writeImages(configuration, volume, engine);
+            List<String> artifacts = new ArrayList<>(writeImages(configuration, volume, engine));
+            artifacts.addAll(HydrologyBlockMaps.write(configuration, planned, volume, engine.getHeight()));
             Result result = new Result(failures.isEmpty() ? "PASS" : "FAIL", configuration, seaLevel, evidence, List.copyOf(failures), artifacts);
             Files.writeString(new File(configuration.output(), "hydrology-blocks.json").toPath(), json(result), StandardCharsets.UTF_8);
             return result;
@@ -155,7 +175,9 @@ public final class HydrologyBlockProbe {
                         int head = heads[(lz << 4) | lx];
                         int natural = complex.naturalTrueHeight(x, z);
                         int terrain = own.empty() ? natural : own.terrainHeight(lx, lz);
-                        planned.put(HydrologyVoxels.columnKey(x, z), new PlannedColumn(own.role(lx, lz), terrain, natural, head));
+                        int effectiveTerrain = (int) Math.round(complex.getRawHeightStream().getDouble(x, z));
+                        planned.put(HydrologyVoxels.columnKey(x, z), new PlannedColumn(own.role(lx, lz), terrain, natural,
+                                own.waterHead(lx, lz), effectiveTerrain, head));
                     }
                 }
             }
@@ -203,8 +225,15 @@ public final class HydrologyBlockProbe {
                     default -> {
                     }
                 }
-                if (column.head() != HydrologyVoxels.NO_WATER) {
-                    evidence.plannedWetColumns++;
+                inspectWater(column, x, z, evidence);
+                if (column.wetBedRaise() > 0) {
+                    evidence.solidRaisedBedBlocks += raisedBedSolids(column, volume, x, z);
+                    BedNeighbours neighbours = bedNeighbours(planned, x, z);
+                    if (neighbours.dropBelow(column.head())) {
+                        evidence.dropAdjacentRaisedWetBedColumns++;
+                    } else if (neighbours.known() < CARDINALS.length) {
+                        evidence.censoredRaisedWetBedColumns++;
+                    }
                 }
                 if (HydrologyBlockMetrics.scanned(columns, x, z)) {
                     evidence.scan.column(volume, x, z, HydrologyBlockMetrics.scanFloor(columns, seaLevel, x, z), height - 1);
@@ -212,6 +241,58 @@ public final class HydrologyBlockProbe {
             }
         }
         return evidence;
+    }
+
+    static void inspectWater(PlannedColumn column, int x, int z, Evidence evidence) {
+        if (column.head() != HydrologyVoxels.NO_WATER) {
+            evidence.effectiveWetColumns++;
+        }
+        if (column.rawHead() == HydrologyVoxels.NO_WATER) {
+            return;
+        }
+        evidence.plannedWetColumns++;
+        if (column.head() == HydrologyVoxels.NO_WATER) {
+            evidence.lostWetColumns++;
+            evidence.example("lost planned water at " + x + "," + column.rawHead() + "," + z + " role=" + column.role()
+                    + " bed=" + column.terrain() + " effectiveGround=" + column.effectiveTerrain());
+        } else if (column.wetBedRaise() > 0) {
+            int raised = column.wetBedRaise();
+            evidence.raisedWetBedColumns++;
+            evidence.raisedWetBedBlocks += raised;
+            evidence.maximumWetBedRaise = Math.max(evidence.maximumWetBedRaise, raised);
+            evidence.example("raised wet bed at " + x + "," + z + " role=" + column.role() + " rasterGround=" + column.terrain()
+                    + " effectiveGround=" + column.effectiveTerrain() + " fill=" + raised + " remainingDepth="
+                    + (column.head() - column.effectiveTerrain()));
+        }
+    }
+
+    static int raisedBedSolids(PlannedColumn column, HydrologyVoxels.Volume volume, int x, int z) {
+        if (column.wetBedRaise() == 0) {
+            return 0;
+        }
+        int solids = 0;
+        for (int y = column.terrain() + 1; y <= column.effectiveTerrain(); y++) {
+            if (volume.at(x, y, z) == HydrologyVoxels.SOLID) {
+                solids++;
+            }
+        }
+        return solids;
+    }
+
+    static BedNeighbours bedNeighbours(Map<Long, PlannedColumn> columns, int x, int z) {
+        int lowest = Integer.MAX_VALUE;
+        int known = 0;
+        for (int[] side : CARDINALS) {
+            PlannedColumn neighbour = columns.get(HydrologyVoxels.columnKey(x + side[0], z + side[1]));
+            if (neighbour == null) {
+                continue;
+            }
+            known++;
+            if (neighbour.head() != HydrologyVoxels.NO_WATER) {
+                lowest = Math.min(lowest, neighbour.head());
+            }
+        }
+        return new BedNeighbours(lowest == Integer.MAX_VALUE ? HydrologyVoxels.NO_WATER : lowest, known);
     }
 
     private static void inspectCane(HydrologyVoxels.Volume volume, int x, int z, int height, Evidence evidence) {
@@ -248,6 +329,13 @@ public final class HydrologyBlockProbe {
         List<String> failures = new ArrayList<>();
         if (evidence.invalidCaneSubstrates > 0 || evidence.dryCaneRoots > 0) {
             failures.add("Generated sugar cane has invalid substrate or no adjacent water.");
+        }
+        if (evidence.lostWetColumns > 0) {
+            failures.add("Water settling removes planned water from " + evidence.lostWetColumns + " columns in fresh generation.");
+        }
+        if (evidence.raisedWetBedColumns > 0) {
+            failures.add("Water settling fills " + evidence.raisedWetBedBlocks + " blocks above the raster bed in "
+                    + evidence.raisedWetBedColumns + " wet columns in fresh generation.");
         }
         if (evidence.scan.missingSurfaces > 0) {
             failures.add("Generated blocks miss the planned water surface in " + evidence.scan.missingSurfaces + " columns.");
@@ -288,6 +376,14 @@ public final class HydrologyBlockProbe {
         Evidence evidence = result.evidence();
         Map<String, Object> counts = new LinkedHashMap<>();
         counts.put("plannedWetColumns", evidence.plannedWetColumns);
+        counts.put("effectiveWetColumns", evidence.effectiveWetColumns);
+        counts.put("lostWetColumns", evidence.lostWetColumns);
+        counts.put("raisedWetBedColumns", evidence.raisedWetBedColumns);
+        counts.put("raisedWetBedBlocks", evidence.raisedWetBedBlocks);
+        counts.put("maximumWetBedRaise", evidence.maximumWetBedRaise);
+        counts.put("solidRaisedBedBlocks", evidence.solidRaisedBedBlocks);
+        counts.put("dropAdjacentRaisedWetBedColumns", evidence.dropAdjacentRaisedWetBedColumns);
+        counts.put("censoredRaisedWetBedColumns", evidence.censoredRaisedWetBedColumns);
         counts.put("missingSurfaceColumns", evidence.scan.missingSurfaces);
         counts.put("channelColumns", evidence.channelColumns);
         counts.put("pondColumns", evidence.pondColumns);
@@ -313,6 +409,9 @@ public final class HydrologyBlockProbe {
         report.put("artifacts", result.artifacts());
         report.put("coordinateConvention", "Block X/Z are world coordinates; Y is relative to the world minimum height.");
         report.put("imageLegend", "open=light blue,water=blue,lava=orange,cane=lime,solid=gray");
+        report.put("bedMapLegend", "raster-bed and effective-bed show elevation, slope shading and four-block contours on the same world-height scale; water-loss: red=planned wet made dry, blue=retained water, gray=dry");
+        report.put("bedFillLegend", "bed-fill: yellow to red=one to eight or more blocks of wet bed fill, blue=wet bed retained, gray=dry; dry bank and dam fill is excluded");
+        report.put("columnData", "columns.csv is ordered by Z then X; blank water heads mean dry; heights are relative to the world minimum height");
         return new GsonBuilder().setPrettyPrinting().create().toJson(report) + "\n";
     }
 

@@ -48,6 +48,8 @@ import lombok.Getter;
 public class IrisTerrainNormalActuator extends EngineAssignedActuator<NativeBlockState> {
     private static final BoundBlockState BEDROCK = BoundBlockState.of("BEDROCK");
     private static final BoundBlockState AIR = BoundBlockState.of("AIR");
+    private static final BoundBlockState DIRT = BoundBlockState.of("minecraft:dirt");
+    private static final BoundBlockState NETHERRACK = BoundBlockState.of("minecraft:netherrack");
     private static final int SLOT_SEA_LAYERS = 1;
     @Getter
     private final RNG rng;
@@ -132,6 +134,17 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<NativeBloc
         return painted == null ? layerBlock : painted;
     }
 
+    private static NativeBlockState submergedSoil(NativeBlockState block) {
+        if (block == null) {
+            return null;
+        }
+        return switch (IrisProceduralBlocks.materialKey(block)) {
+            case "minecraft:grass_block", "minecraft:mycelium", "minecraft:dirt_path", "minecraft:farmland" -> DIRT.get();
+            case "minecraft:crimson_nylium", "minecraft:warped_nylium" -> NETHERRACK.get();
+            default -> block;
+        };
+    }
+
     private final class ColumnPainter {
         private final int x;
         private final int z;
@@ -214,6 +227,7 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<NativeBloc
             int topY = Math.min(hf, chunkHeight - 1);
             WaterRole role = waterRoleStream.get(realX, realZ);
             boolean wet = role.wet();
+            boolean submerged = wet && he < surfaceFluidHeight;
             boolean seaFloor = !wet || role == WaterRole.INLET;
             IrisHydrologyMaterials materials = role == WaterRole.NONE || role == WaterRole.INLET ? null
                     : complex.resolveWaterMaterials(realX, realZ);
@@ -292,7 +306,7 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<NativeBloc
                 if (i <= he) {
                     int depth = layerSurfaceY - i;
                     if (depth == 0 && mappedSurfaceBlock != null) {
-                        put(i, mappedSurfaceBlock);
+                        put(i, submerged && layerSurfaceY == he ? submergedSoil(mappedSurfaceBlock) : mappedSurfaceBlock);
                         continue;
                     }
                     if (blocks == null) {
@@ -327,6 +341,9 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<NativeBloc
                     NativeBlockState layerBlock = paintWaterMaterial(
                             blocks.hasIndex(strataIndex) ? blocks.get(strataIndex) : null,
                             rolePalette, paintDepth, depth, rng, realX, i, realZ, data);
+                    if (submerged && layerSurfaceY == he) {
+                        layerBlock = submergedSoil(layerBlock);
+                    }
                     if (layerBlock != null) {
                         if (keepGravityAway && IrisProceduralBlocks.isGravityAffected(layerBlock)) {
                             layerBlock = rock;

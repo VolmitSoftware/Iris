@@ -11,6 +11,7 @@ import art.arcane.iris.generation.hydrology.grid.FlowAccumulator;
 import art.arcane.iris.generation.hydrology.grid.HeightLattice;
 import art.arcane.iris.generation.hydrology.grid.HydrologySampleBuffer;
 import art.arcane.iris.generation.hydrology.grid.PriorityFlood;
+import art.arcane.iris.generation.hydrology.raster.PondChannelSettlement;
 import art.arcane.iris.generation.hydrology.underground.SeaInlet;
 import art.arcane.iris.generation.hydrology.underground.SeaInletPlanner;
 import art.arcane.iris.generation.hydrology.water.CupSet;
@@ -108,16 +109,16 @@ public final class WindowPlanner {
         }
         List<Pond> water = new ArrayList<>(ponds.ponds(raw, drainage.filled(), drainage.basins(), lakes, fine, cups));
         water.addAll(lakes);
-        ShapedNetwork network = shaper.shape(drainage.surface(), drainage.receivers(), drainage.accumulation(), drainage.channels(), water,
-                fine, settings.seed());
-        int passes = water.size() + 1;
-        for (int pass = 1; lowered(water, network.ponds()); pass++) {
+        ShapedNetwork network = PondChannelSettlement.settle(shaper.shape(drainage.surface(), drainage.receivers(), drainage.accumulation(),
+                drainage.channels(), water, fine, settings.seed()), settings.seaLevel());
+        long passes = settlementPasses(water);
+        for (long pass = 1; lowered(water, network.ponds()); pass++) {
             if (pass >= passes) {
                 throw new IllegalStateException("Window " + key + " ponds did not settle within " + passes + " shaping passes");
             }
             water = replanned(settled(raw, cups, water, network.ponds()));
-            network = shaper.shape(drainage.surface(), drainage.receivers(), drainage.accumulation(), drainage.channels(), water, fine,
-                    settings.seed());
+            network = PondChannelSettlement.settle(shaper.shape(drainage.surface(), drainage.receivers(), drainage.accumulation(),
+                    drainage.channels(), water, fine, settings.seed()), settings.seaLevel());
         }
         List<Reach> reaches = network.reaches();
         List<Pond> windowPonds = windowPonds(network.ponds());
@@ -261,6 +262,16 @@ public final class WindowPlanner {
             settled.add(pond.level() < planned.get(index).level() ? ponds.reflood(raw, fine, cups, pond) : pond);
         }
         return settled;
+    }
+
+    private long settlementPasses(List<Pond> water) {
+        long passes = 1L;
+        for (Pond pond : water) {
+            if (pond.kind() != PondKind.LAKE) {
+                passes += Math.max(0L, (long) pond.level() - settings.seaLevel()) + 1L;
+            }
+        }
+        return passes;
     }
 
     private static boolean lowered(List<Pond> planned, List<Pond> shaped) {

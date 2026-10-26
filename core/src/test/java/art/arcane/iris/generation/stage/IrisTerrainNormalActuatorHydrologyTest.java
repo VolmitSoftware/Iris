@@ -24,6 +24,7 @@ import art.arcane.volmlib.util.stream.ProceduralStream;
 import art.arcane.volmlib.util.stream.interpolation.Interpolated;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.Before;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -51,6 +52,14 @@ public class IrisTerrainNormalActuatorHydrologyTest {
 
     @Rule
     public final PlatformBinding platform = PlatformBinding.mockPlatform();
+    private final NativeBlockState submergedDirt = state("minecraft:dirt");
+    private final NativeBlockState submergedNetherrack = state("minecraft:netherrack");
+
+    @Before
+    public void bindSubmergedSoils() {
+        when(platform.registries().block("minecraft:dirt")).thenReturn(submergedDirt);
+        when(platform.registries().block("minecraft:netherrack")).thenReturn(submergedNetherrack);
+    }
 
     @Test
     public void hydrologyOwnedFluidBypassesBiomeSeaLayers() {
@@ -100,7 +109,7 @@ public class IrisTerrainNormalActuatorHydrologyTest {
 
             Hunk<NativeBlockState> output = painter.paint();
 
-            assertSame(role.name(), painter.grass, output.get(0, GROUND, 0));
+            assertSame(role.name(), submergedDirt, output.get(0, GROUND, 0));
             for (int y = GROUND + 1; y <= HEAD; y++) {
                 assertSame(role + " y " + y, painter.channelFluid, output.get(0, y, 0));
             }
@@ -117,7 +126,7 @@ public class IrisTerrainNormalActuatorHydrologyTest {
 
         Hunk<NativeBlockState> sea = ocean.paint();
 
-        assertSame("the sea floor keeps the biome's own top", ocean.grass, sea.get(0, GROUND, 0));
+        assertSame("the sea floor keeps a submerged soil top", submergedDirt, sea.get(0, GROUND, 0));
         assertSame(ocean.dirt, sea.get(0, GROUND - 1, 0));
         assertSame("the slot takes the sea layers", ocean.ice, sea.get(0, HEAD, 0));
         for (int y = GROUND + 1; y < HEAD; y++) {
@@ -178,7 +187,7 @@ public class IrisTerrainNormalActuatorHydrologyTest {
             NativeBlockState expectedTop = switch (role) {
                 case NONE -> painter.grass;
                 case CHANNEL, POND, MOUTH, CASCADE, WATERFALL -> painter.bed;
-                case INLET -> painter.grass;
+                case INLET -> submergedDirt;
                 case SHORE, POND_SHORE, DAM -> painter.shore;
                 case BANK -> painter.bank;
             };
@@ -192,9 +201,66 @@ public class IrisTerrainNormalActuatorHydrologyTest {
             }
             materials.setBank(null).setShore(null).setBed(null);
             output = painter.paint();
-            assertSame(role.name(), painter.grass, output.get(0, GROUND, 0));
+            assertSame(role.name(), role.wet() ? submergedDirt : painter.grass, output.get(0, GROUND, 0));
             assertSame(role.name(), painter.dirt, output.get(0, GROUND - 1, 0));
         }
+    }
+
+    @Test
+    public void submergedSoilLayersAndExplicitPalettesUseStableSubstrates() {
+        for (String key : List.of("grass_block[snowy=false]", "mycelium", "dirt_path", "farmland[moisture=7]",
+                "crimson_nylium", "warped_nylium")) {
+            NativeBlockState livingSoil = state("minecraft:" + key);
+            NativeBlockState expected = key.endsWith("nylium") ? submergedNetherrack : submergedDirt;
+            for (WaterRole role : WET) {
+                Painter painter = new Painter(role, HEAD);
+                painter.layers(livingSoil, livingSoil);
+                painter.materials(true).setBed(painter.palette(livingSoil));
+
+                Hunk<NativeBlockState> output = painter.paint();
+
+                assertSame(role + " " + key, expected, output.get(0, GROUND, 0));
+                assertSame(role + " submerged side " + key, expected, output.get(0, GROUND - 1, 0));
+                assertSame(painter.channelFluid, output.get(0, GROUND + 1, 0));
+            }
+            for (WaterRole role : List.of(WaterRole.NONE, WaterRole.BANK, WaterRole.SHORE, WaterRole.POND_SHORE)) {
+                Painter painter = new Painter(role, GROUND);
+                painter.layers(livingSoil, livingSoil);
+                assertSame(role + " " + key, livingSoil, painter.paint().get(0, GROUND, 0));
+            }
+        }
+    }
+
+    @Test
+    public void submergedImageMapSoilUsesStableSubstrate() {
+        Painter painter = new Painter(WaterRole.CHANNEL, HEAD);
+        when(painter.complex.getImageMapRuntime().sampleSurfaceBlock(11, -4)).thenReturn(painter.grass);
+
+        assertSame(submergedDirt, painter.paint().get(0, GROUND, 0));
+    }
+
+    @Test
+    public void submergedPodzolAndMossKeepTheirAuthoredMaterials() {
+        for (String key : List.of("podzol[snowy=false]", "moss_block", "mud", "clay")) {
+            Painter painter = new Painter(WaterRole.POND, HEAD);
+            NativeBlockState stable = state("minecraft:" + key);
+            painter.layers(stable, stable);
+            Hunk<NativeBlockState> output = painter.paint();
+            assertSame(key, stable, output.get(0, GROUND, 0));
+            assertSame(key, stable, output.get(0, GROUND - 1, 0));
+        }
+    }
+
+    @Test
+    public void dryLowerTerrainSpansKeepTheirLivingSoilsBelowAWetBed() {
+        Painter painter = new Painter(WaterRole.POND, HEAD);
+        painter.carved();
+
+        Hunk<NativeBlockState> output = painter.paint();
+
+        assertSame(submergedDirt, output.get(0, GROUND, 0));
+        assertSame(painter.grass, output.get(0, 40, 0));
+        assertSame(painter.dirt, output.get(0, 39, 0));
     }
 
     @Test

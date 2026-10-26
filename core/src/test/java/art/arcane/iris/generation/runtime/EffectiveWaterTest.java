@@ -5,6 +5,7 @@ import art.arcane.iris.generation.hydrology.engine.HydrologyRuntime;
 import art.arcane.iris.generation.hydrology.raster.WaterRole;
 import art.arcane.iris.generation.hydrology.water.Pond;
 import art.arcane.iris.generation.hydrology.water.Reach;
+import art.arcane.iris.generation.hydrology.water.ReachStyle;
 import art.arcane.iris.generation.mantle.EngineMantle;
 import art.arcane.iris.generation.mantle.MantleHydrologyComponent;
 import art.arcane.iris.generation.mantle.MantleWriter;
@@ -84,23 +85,18 @@ public class EffectiveWaterTest {
     }
 
     @Test
-    public void cornerColumnsBelowTwoOneBlockHigherNeighboursBecomeRimsAtTheUpperHead() {
-        long corner = EffectiveWater.settle(EffectiveWater.column(77, 79), wet(80), wet(80), wet(79), NONE);
-        assertEquals(DRY, EffectiveWater.head(corner));
-        assertEquals(80, EffectiveWater.ground(corner));
+    public void lowerCornerColumnsRemainWetBetweenHigherNeighbours() {
+        long corner = EffectiveWater.settle(EffectiveWater.column(77, 79), wet(81), wet(81), wet(79), NONE);
+        assertEquals(EffectiveWater.column(77, 79), corner);
 
-        long mixed = EffectiveWater.settle(EffectiveWater.column(77, 79), wet(80), wet(80), wet(86), NONE);
-        assertEquals(DRY, EffectiveWater.head(mixed));
-        assertEquals(86, EffectiveWater.ground(mixed));
-
-        long edge = EffectiveWater.settle(EffectiveWater.column(77, 79), wet(80), wet(79), NONE, NONE);
-        assertEquals(EffectiveWater.column(77, 79), edge);
+        long mixed = EffectiveWater.settle(EffectiveWater.column(77, 79), wet(81), wet(81), wet(87), NONE);
+        assertEquals(EffectiveWater.column(77, 79), mixed);
     }
 
     @Test
-    public void columnsAboveADropOfTwoOrMoreHoldWaterOnlyInTheirTopBlock() {
-        assertEquals(EffectiveWater.column(98, 99), EffectiveWater.settle(EffectiveWater.column(94, 99), wet(79), wet(99), NONE, NONE));
-        assertEquals(EffectiveWater.column(98, 99), EffectiveWater.settle(EffectiveWater.column(94, 99), NONE, wet(97), NONE, NONE));
+    public void wetColumnsKeepTheirCanonicalBedAcrossDrops() {
+        assertEquals(EffectiveWater.column(94, 99), EffectiveWater.settle(EffectiveWater.column(94, 99), wet(79), wet(99), NONE, NONE));
+        assertEquals(EffectiveWater.column(94, 99), EffectiveWater.settle(EffectiveWater.column(94, 99), NONE, wet(97), NONE, NONE));
         assertEquals(EffectiveWater.column(94, 99), EffectiveWater.settle(EffectiveWater.column(94, 99), wet(98), NONE, NONE, NONE));
         assertEquals(EffectiveWater.column(98, 99), EffectiveWater.settle(EffectiveWater.column(98, 99), wet(70), NONE, NONE, NONE));
     }
@@ -197,33 +193,27 @@ public class EffectiveWaterTest {
     }
 
     @Test(timeout = 180_000L)
-    public void staircaseStepsTurnExactlyTheirCornerColumnsIntoRims() throws Exception {
+    public void diagonalStaircaseStepsPreserveEveryWetColumnWithoutSourceConversion() throws Exception {
         Scene scene = staircase();
         try (HydrologyFixture fixture = fixture(); SceneRun run = scene.install(fixture)) {
             Drops drops = new Drops(run.complex(), 0, 7, 0, 7);
-            int rims = 0;
+            int wet = 0;
             for (int x = 24; x <= 104; x++) {
                 for (int z = 24; z <= 104; z++) {
                     int head = rasterHead(run.hydrology(), x, z);
                     if (head == DRY) {
                         continue;
                     }
-                    int above = 0;
-                    int highest = DRY;
+                    wet++;
+                    assertEquals("water head at " + x + "," + z, head, drops.head(x, z));
+                    assertTrue("submerged bed at " + x + "," + z, drops.ground(x, z) < head);
                     for (int[] side : SIDES) {
                         int neighbour = rasterHead(run.hydrology(), x + side[0], z + side[1]);
-                        above += neighbour == head + 1 ? 1 : 0;
-                        highest = Math.max(highest, neighbour);
-                    }
-                    boolean rim = above >= 2;
-                    assertEquals("rim at " + x + "," + z, rim, drops.head(x, z) == DRY);
-                    if (rim) {
-                        rims++;
-                        assertEquals("rim ground at " + x + "," + z, highest, drops.ground(x, z));
+                        assertFalse("one-block drop at " + x + "," + z, neighbour != DRY && Math.abs(neighbour - head) == 1);
                     }
                 }
             }
-            assertTrue("rims " + rims, rims > 10);
+            assertTrue("wet columns " + wet, wet > 200);
             drops.assertSealed(24, 104, 24, 104);
         }
     }
@@ -234,7 +224,6 @@ public class EffectiveWaterTest {
         try (HydrologyFixture fixture = fixture(); SceneRun run = scene.install(fixture)) {
             Drops drops = new Drops(run.complex(), 0, 7, 0, 5);
             int lips = 0;
-            int raised = 0;
             int falls = 0;
             for (int x = 16; x <= 112; x++) {
                 for (int z = 30; z <= 50; z++) {
@@ -250,17 +239,22 @@ public class EffectiveWaterTest {
                     if (lip) {
                         lips++;
                         assertEquals("lip ground at " + x + "," + z, head - 1, drops.ground(x, z));
-                        raised += rasterGround(run.hydrology(), x, z) < head - 1 ? 1 : 0;
+                        assertEquals("canonical lip at " + x + "," + z, rasterGround(run.hydrology(), x, z), drops.ground(x, z));
                     }
                     if (drops.falling(x, head + 1, z)) {
                         falls++;
-                        assertTrue(drops.falling(x, head + 3, z));
-                        assertFalse(drops.falling(x, head + 4, z));
+                        int highest = head;
+                        for (int[] side : SIDES) {
+                            highest = Math.max(highest, drops.head(x + side[0], z + side[1]));
+                        }
+                        for (int y = head + 1; y <= highest; y++) {
+                            assertTrue("fall column at " + x + "," + y + "," + z, drops.falling(x, y, z));
+                        }
+                        assertFalse(drops.falling(x, highest + 1, z));
                     }
                 }
             }
             assertTrue("lips " + lips, lips > 10);
-            assertTrue("lips raised from deeper beds " + raised, raised > 0);
             assertTrue("falls " + falls, falls > 10);
             drops.assertSealed(16, 112, 30, 50);
         }
@@ -268,11 +262,24 @@ public class EffectiveWaterTest {
 
     @Test(timeout = 180_000L)
     public void noFallAnywhereMeetsTheSourceConversionCondition() throws Exception {
-        for (Scene scene : List.of(staircase(), cascade(), outlet())) {
+        for (Scene scene : List.of(staircase(), cascade(), outlet(), mouth())) {
             try (HydrologyFixture fixture = fixture(); SceneRun run = scene.install(fixture)) {
                 Drops drops = new Drops(run.complex(), 0, 7, 0, 7);
+                int wet = 0;
+                for (int x = 8; x <= 120; x++) {
+                    for (int z = 8; z <= 120; z++) {
+                        int head = rasterHead(run.hydrology(), x, z);
+                        if (head != DRY) {
+                            wet++;
+                            assertEquals(scene.name + " water stays connected at " + x + "," + z, head, drops.head(x, z));
+                            assertTrue(scene.name + " bed stays submerged at " + x + "," + z, drops.ground(x, z) < head);
+                        }
+                    }
+                }
+                assertTrue(scene.name + " wet columns " + wet, wet > 100);
                 assertEquals(scene.name + " conversions", 0, drops.conversions(8, 120, 8, 120));
                 assertEquals(scene.name + " unsupported falls", 0, drops.unsupported(8, 120, 8, 120));
+                drops.assertSealed(8, 120, 8, 120);
             }
         }
     }
@@ -322,6 +329,21 @@ public class EffectiveWaterTest {
         IntBinaryOperator natural = (x, z) -> 193;
         return new Scene("outlet", natural, List.of(WaterScene.line(73L, WaterScene.stream(), 60, 48, 120, 48, (x, z) -> 190)),
                 List.of(WaterScene.pond(74L, 191, 48, 48, 10)));
+    }
+
+    private static Scene mouth() {
+        IntBinaryOperator natural = (x, z) -> x < 64 ? SEA + 12 : SEA - 8;
+        Reach reach = WaterScene.line(75L, WaterScene.stream(), 8, 40, 120, 40,
+                (x, z) -> x < 64 ? SEA + 11 : SEA);
+        ReachStyle[] styles = reach.style().clone();
+        for (int point = 0; point < styles.length; point++) {
+            if (reach.xs()[point] >= 64) {
+                styles[point] = ReachStyle.MOUTH;
+            }
+        }
+        Reach coastal = new Reach(reach.id(), reach.tier(), reach.downstreamId(), reach.xs(), reach.zs(), reach.grade(),
+                reach.halfWidth(), reach.depth(), styles, reach.catchment());
+        return new Scene("mouth", natural, List.of(coastal), List.of());
     }
 
     private HydrologyFixture fixture() throws Exception {
@@ -410,9 +432,11 @@ public class EffectiveWaterTest {
         }
 
         private int[] column(int x, int z) {
-            return columns.computeIfAbsent(((long) x << 32) | (z & 0xFFFFFFFFL), key -> new int[]{
-                    (int) Math.round(complex.resolveHydrologyTerrainHeight(x, z)),
-                    complex.resolveWaterRole(x, z).wet() ? (int) Math.round(complex.resolveWaterHead(x, z)) : DRY});
+            return columns.computeIfAbsent(((long) x << 32) | (z & 0xFFFFFFFFL), key -> {
+                int ground = (int) Math.round(complex.resolveHydrologyTerrainHeight(x, z));
+                int head = (int) Math.round(complex.resolveWaterHead(x, z));
+                return new int[]{ground, head > ground ? head : DRY};
+            });
         }
 
         private boolean still(int x, int y, int z) {

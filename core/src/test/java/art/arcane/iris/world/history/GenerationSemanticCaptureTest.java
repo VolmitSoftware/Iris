@@ -484,7 +484,7 @@ public final class GenerationSemanticCaptureTest {
             ChunkGenerationSemantics pond = GenerationSemanticCapture.capture(fixture.engine, 0, 0, 5L);
             for (ChunkGenerationSemantics.RiverFeatureOccurrence occurrence : pond.riverFeatures()) {
                 assertEquals("water", occurrence.profileKey());
-                assertEquals(63 - 64, occurrence.position().y());
+                assertEquals(62 - 64, occurrence.position().y());
                 assertEquals(WaterRole.POND, hydrology.runtime.raster(0, 0).role(occurrence.position().x() & 15,
                         occurrence.position().z() & 15));
             }

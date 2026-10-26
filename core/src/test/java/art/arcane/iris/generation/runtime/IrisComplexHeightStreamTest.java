@@ -206,7 +206,7 @@ public class IrisComplexHeightStreamTest {
             assertTrue(fixture.complex.isHydrologyPlanned(8, 8));
             bulk.fillChunkDoubles(0, 0, values);
             assertBits(landed.terrainHeight(8, 8), values[8 << 4 | 8]);
-            assertBits(HydrologyFixture.POND_LEVEL, fixture.complex.getHeightFluidStream().getDouble(8, 8));
+            assertBits(HydrologyFixture.POND_LEVEL - 1, fixture.complex.getHeightFluidStream().getDouble(8, 8));
             fixture.mainThread.set(false);
             bulk.fillChunkDoubles(0, 0, values);
             assertBits(landed.terrainHeight(8, 8), values[8 << 4 | 8]);
@@ -247,14 +247,14 @@ public class IrisComplexHeightStreamTest {
     public void waterStreamsFollowTheRaster() throws Exception {
         try (HydrologyFixture fixture = new HydrologyFixture(hydrologyPack())) {
             ChunkWaterRaster raster = fixture.hydrology.runtime.raster(0, 0);
-            assertBits(HydrologyFixture.POND_LEVEL, fixture.complex.getWaterHeadStream().getDouble(8, 8));
+            assertBits(HydrologyFixture.POND_LEVEL - 1, fixture.complex.getWaterHeadStream().getDouble(8, 8));
             assertSame(WaterRole.POND, fixture.complex.getWaterRoleStream().get(8, 8));
             assertSame(raster.role(15, 15), fixture.complex.getWaterRoleStream().get(15.5, 15.5));
             assertBits(HydrologyFixture.SEA_LEVEL, fixture.complex.getWaterHeadStream().getDouble(640, 640));
             assertSame(WaterRole.NONE, fixture.complex.getWaterRoleStream().get(640, 640));
             EngineMantle mantle = mock(EngineMantle.class, CALLS_REAL_METHODS);
             doReturn(fixture.complex).when(mantle).getComplex();
-            assertEquals(HydrologyFixture.POND_LEVEL, mantle.getFluidHeight(8, 8));
+            assertEquals(HydrologyFixture.POND_LEVEL - 1, mantle.getFluidHeight(8, 8));
             assertEquals(HydrologyFixture.SEA_LEVEL, mantle.getFluidHeight(640, 640));
         }
     }
@@ -266,7 +266,7 @@ public class IrisComplexHeightStreamTest {
             doReturn(fixture.engine).when(placer).getEngine();
             doReturn(fixture.engine.getDimension().getFluidHeight()).when(placer).getFluidHeight();
 
-            assertEquals(HydrologyFixture.POND_LEVEL, placer.getFluidHeight(8, 8));
+            assertEquals(HydrologyFixture.POND_LEVEL - 1, placer.getFluidHeight(8, 8));
             assertEquals(HydrologyFixture.SEA_LEVEL, placer.getFluidHeight(640, 640));
         }
     }

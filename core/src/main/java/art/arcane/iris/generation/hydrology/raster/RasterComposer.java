@@ -67,6 +67,7 @@ final class RasterComposer {
                 column(cell);
             }
         }
+        gradeRiffles();
         raiseDams();
         bermEdges();
         measureLakeShores();
@@ -80,8 +81,8 @@ final class RasterComposer {
         int ground = natural[cell];
         SeaInlet inlet = features.openInletAt(x, z, inletColumn);
         if (inlet != null) {
-            head[cell] = inlet.waterLevel();
-            terrain[cell] = Math.min(ground, inletColumn[0]);
+            head[cell] = level(inlet.waterLevel());
+            terrain[cell] = Math.min(Math.min(ground, inletColumn[0]), head[cell] - 1);
             role[cell] = WaterRole.INLET;
             feature[cell] = inlet.id();
             fluid[cell] = HydrologyCaveCell.SEA_FLUID;
@@ -91,72 +92,77 @@ final class RasterComposer {
         int pondIndex = lake >= 0 ? -1 : features.pondAt(x, z);
         boolean shore = interior(cell) && lake < 0 && pondIndex < 0;
         features.segments().nearest(x, z, shore ? ReachSegments.Scope.SHORE : ReachSegments.Scope.CHANNEL, cursor);
+        double variation = BedProfile.variation(settings.seed(), x, z);
         if (lake >= 0) {
             Pond water = features.lake(lake);
-            standing(cell, water, trench(ground, water.level(), ground));
+            standing(cell, water, trench(ground, level(water.level()), ground, variation, BedProfile.detail(settings.seed(), x, z)));
             return;
         }
         if (pondIndex >= 0) {
             Pond water = features.pond(pondIndex);
             pond[cell] = pondIndex;
-            int floor = interior(cell) ? pondFloor(pondIndex, water.level(), x, z, ground) : ground;
-            standing(cell, water, trench(floor, water.level(), ground));
+            double detail = BedProfile.detail(settings.seed(), x, z);
+            int floor = interior(cell) ? pondFloor(pondIndex, level(water.level()), x, z, ground, variation, detail) : ground;
+            standing(cell, water, trench(floor, level(water.level()), ground, variation, detail));
             return;
         }
         if (cursor.channel.reach != null) {
-            channel(cell, ground);
+            channel(cell, ground, variation, BedProfile.detail(settings.seed(), x, z));
         } else if (interior(cell)) {
-            dry(cell, x, z, ground);
+            dry(cell, x, z, ground, variation);
         }
     }
 
     private void standing(int cell, Pond water, int floor) {
-        head[cell] = water.level();
-        terrain[cell] = floor;
+        head[cell] = level(water.level());
+        terrain[cell] = Math.min(floor, head[cell] - 1);
         role[cell] = WaterRole.POND;
         feature[cell] = water.id();
         fluid[cell] = water.fluid();
     }
 
-    private int trench(int floor, int level, int ground) {
+    private int trench(int floor, int level, int ground, double variation, double detail) {
         ReachCursor.Choice hit = cursor.channel;
         if (hit.reach == null) {
             return floor;
         }
-        return Math.min(floor, bed(hit, Math.min(level, hit.reach.grade()[hit.point()]), ground));
+        return Math.min(floor, bed(hit, Math.min(level, level(hit.reach.grade()[hit.point()])), ground, variation, detail));
     }
 
-    private void channel(int cell, int ground) {
+    private void channel(int cell, int ground, double variation, double detail) {
         ReachCursor.Choice hit = cursor.channel;
         Reach reach = hit.reach;
         int point = hit.point();
-        head[cell] = reach.grade()[point];
-        terrain[cell] = bed(hit, head[cell], ground);
+        head[cell] = level(reach.grade()[point]);
+        terrain[cell] = bed(hit, head[cell], ground, variation, detail);
         role[cell] = role(reach.style()[point]);
         feature[cell] = reach.id();
         tier[cell] = reach.tier();
         fluid[cell] = reach.tier().fluid();
     }
 
-    private static int bed(ReachCursor.Choice hit, int surface, int ground) {
+    private static int bed(ReachCursor.Choice hit, int surface, int ground, double variation, double detail) {
         double width = hit.halfWidth();
         double ratio = width > 0D ? hit.distance / width : 0D;
-        long cut = Math.max(1L, Math.round(hit.depth() * (1D - ratio * ratio)));
+        long cut = BedProfile.channelDepth(hit.depth(), ratio, variation, detail);
         return (int) Math.min(ground, surface - cut);
     }
 
-    private void dry(int cell, int x, int z, int ground) {
+    private void dry(int cell, int x, int z, int ground, double variation) {
         int cut = ground;
         int raise = Integer.MIN_VALUE;
         double bankEdge = Double.POSITIVE_INFINITY;
         ReachCursor.Choice bank = cursor.bank;
         if (bank.reach != null) {
             HydrologyTier bankTier = bank.reach.tier();
-            int surface = bank.reach.grade()[bank.point()];
+            int surface = level(bank.reach.grade()[bank.point()]);
             bankEdge = bank.distance - bank.halfWidth();
             double u = bankEdge / bankTier.bankBand();
+            if (bankTier.bankStyle() != IrisBankStyle.CLIFF && bankTier.bankStyle() != IrisBankStyle.TERRACED) {
+                u = BedProfile.position(u, -variation);
+            }
             if (ground >= surface) {
-                cut = BankProfile.cut(bankTier.bankStyle(), surface, ground, u, coneSlope(cell) * bankEdge, noise(x, z));
+                cut = BankProfile.cut(bankTier.bankStyle(), surface, ground, u, coneSlope(cell) * u * bankTier.bankBand(), noise(x, z));
             } else {
                 raise = BankProfile.levee(bankTier.bankStyle(), surface, ground, u, noise(x, z), settings.deformation().maxFill());
             }
@@ -172,8 +178,8 @@ final class RasterComposer {
         }
         int taper = settings.ponds().shore().taper();
         boolean tapered = nearPond >= 0 && pondEdge <= taper;
-        if (tapered && ground > features.pond(nearPond).level()) {
-            cut = Math.min(cut, taperCut(features.pond(nearPond).level(), ground, pondEdge / taper));
+        if (tapered && ground > level(features.pond(nearPond).level())) {
+            cut = Math.min(cut, taperCut(level(features.pond(nearPond).level()), ground, BedProfile.position(pondEdge / taper, -variation)));
         }
         terrain[cell] = raise == Integer.MIN_VALUE ? cut : Math.max(cut, raise);
         if (bank.reach != null && (!tapered || bankEdge <= pondEdge)) {
@@ -215,11 +221,58 @@ final class RasterComposer {
         return (int) Math.clamp((long) Math.floor(level + rise), level, ground);
     }
 
-    private int pondFloor(int index, int level, int x, int z, int ground) {
+    private int level(int planned) {
+        return planned - Math.floorMod(planned - settings.seaLevel(), 2);
+    }
+
+    private void gradeRiffles() {
+        int surface = Integer.MIN_VALUE;
+        for (int cell = 0; cell < CELLS && surface == Integer.MIN_VALUE; cell++) {
+            if (interior(cell)) {
+                surface = head[cell];
+            }
+        }
+        if (surface == Integer.MIN_VALUE || features.hasOnlyLevel(surface, settings.seaLevel())) {
+            return;
+        }
+        RiffleProfile riffles = new RiffleProfile((originX + 1) >> 4, (originZ + 1) >> 4, this::headAt);
+        for (int cell = 0; cell < CELLS; cell++) {
+            if (interior(cell) && head[cell] != Integer.MIN_VALUE) {
+                int x = originX + cell % GRID;
+                int z = originZ + cell / GRID;
+                terrain[cell] = riffles.bed(cell % GRID - 1, cell / GRID - 1, terrain[cell], head[cell],
+                        BedProfile.variation(settings.seed(), x, z));
+            }
+        }
+    }
+
+    private int headAt(int x, int z) {
+        int gx = x - originX;
+        int gz = z - originZ;
+        if (gx >= 0 && gx < GRID && gz >= 0 && gz < GRID && !corner(gz * GRID + gx)) {
+            return head[gz * GRID + gx];
+        }
+        SeaInlet inlet = features.openInletAt(x, z, inletColumn);
+        if (inlet != null) {
+            return level(inlet.waterLevel());
+        }
+        int lake = features.lakeCovers(x, z) ? features.lakeAt(x, z, naturalAt(x, z)) : -1;
+        if (lake >= 0) {
+            return level(features.lake(lake).level());
+        }
+        int pond = features.pondAt(x, z);
+        if (pond >= 0) {
+            return level(features.pond(pond).level());
+        }
+        features.segments().nearest(x, z, ReachSegments.Scope.CHANNEL, cursor);
+        return cursor.channel.reach == null ? Integer.MIN_VALUE : level(cursor.channel.reach.grade()[cursor.channel.point()]);
+    }
+
+    private int pondFloor(int index, int level, int x, int z, int ground, double variation, double detail) {
         HydrologySettings.PondShore shore = settings.ponds().shore();
         double bankDistance = features.pondBankDistance(index, x, z);
         double u = shore.shelf() <= 0 ? 1D : Math.clamp((bankDistance - 1D) / shore.shelf(), 0D, 1D);
-        long bowl = Math.max(1L, Math.round(1D + (shore.maxDepth() - 1D) * BankProfile.shape(IrisBankStyle.SMOOTH, u)));
+        long bowl = BedProfile.pondDepth(shore.maxDepth(), u, variation, detail);
         return (int) Math.min(ground, level - bowl);
     }
 
@@ -236,8 +289,9 @@ final class RasterComposer {
                     continue;
                 }
                 Pond held = features.pond(index);
-                if (held.damRaise() > 0 && terrain[cell] < held.level() && held.level() + 1 > crest) {
-                    crest = held.level() + 1;
+                int level = level(held.level());
+                if (held.damRaise() > 0 && terrain[cell] < level && level + 1 > crest) {
+                    crest = level + 1;
                     dam = held.id();
                 }
             }

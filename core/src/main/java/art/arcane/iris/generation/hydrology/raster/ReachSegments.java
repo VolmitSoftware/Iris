@@ -45,6 +45,18 @@ final class ReachSegments {
         }
     }
 
+    boolean hasOnlyLevel(int head, int seaLevel) {
+        for (int index = 0; index < size; index++) {
+            int[] grade = reaches[index].grade();
+            int start = grade[segments[index]];
+            int end = grade[segments[index] + 1];
+            if (start - Math.floorMod(start - seaLevel, 2) != head || end - Math.floorMod(end - seaLevel, 2) != head) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     void addNear(Reach reach, float minX, float minZ, float maxX, float maxZ, float outward) {
         float[] xs = reach.xs();
         float[] zs = reach.zs();

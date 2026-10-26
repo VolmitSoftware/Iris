@@ -1279,8 +1279,9 @@ API now: `world.running()`, `world.seed(purpose)`, `TerrainSampler`, `FeatureSet
   API noise reproduces value for value, so existing worlds would move. It goes with `ObjectHost`.
 - **`FloatingHost`** (world). Island height comes from Iris's biome generators and island tops are painted by Iris's biome
   palettes, which the API layout does not describe; its object placing goes through `ObjectHost`.
-- **`StructureHost`** (world). Iris's structure placer, behind the structure model Iris owns. Its surface is already API
-  vocabulary; it goes when the API has a structure model.
+- **`StructureHost`** (world). Iris's structure assembler, locator and placer. The structure model (structures, pools,
+  pieces) is `iris:structure`'s own resource kinds, which Iris registers with its own modules because its jigsaw studio
+  reads them. Its surface is already API vocabulary; it goes when the placer can write through the API.
 - **`spawn.SpawnCooldowns`** (world). Spawner cooldowns Iris saves with a world's engine data, so they survive a restart; API
   per-world state is in memory only. It goes when the API can persist per-world state.
 - **Random parameters (`RNG`) in these facades and `loot.LootResolver`**. They are the legacy streams existing worlds were

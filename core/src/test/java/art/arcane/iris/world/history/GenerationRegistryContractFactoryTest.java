@@ -34,6 +34,8 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.attribute.FileTime;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -895,7 +897,7 @@ public class GenerationRegistryContractFactoryTest {
     }
 
     @Test
-    public void rejectsAChangedPackBeforeCapture() throws Exception {
+    public void rejectsAPackChangedBeforeCapture() throws Exception {
         File pack = temporary.newFolder("changed-pack");
         String original = GenerationPackFingerprint.compute(
                 pack.toPath(),
@@ -904,18 +906,56 @@ public class GenerationRegistryContractFactoryTest {
         Files.writeString(pack.toPath().resolve("dimension.json"), "{}", StandardCharsets.UTF_8);
         IrisData data = mock(IrisData.class);
         when(data.getDataFolder()).thenReturn(pack);
+        IrisDimension dimension = spy(new IrisDimension());
+        dimension.setLoadKey("overworld");
+        stubDimensions(data, dimension);
+        doReturn(new KList<>()).when(dimension).getReachableBiomes(any());
+        doReturn(new KList<>()).when(dimension).getAllRegions(any());
+        PlatformRegistries registries = mock(PlatformRegistries.class);
+        when(registries.blockTypeKeys()).thenReturn(new KList<>());
+        when(registries.entityKeys()).thenReturn(new KList<>());
 
         assertThrows(
                 IOException.class,
                 () -> GenerationRegistryContractFactory.create(
                         data,
-                        new IrisDimension(),
+                        dimension,
                         original,
                         DataVersion.getLatest().get(),
-                        mock(PlatformRegistries.class),
+                        registries,
                         new FakeGenerationRegistry("runtime")
                 )
         );
+    }
+
+    @Test
+    public void rejectsSameSizePackMutationDuringCaptureWithPreservedTimestamp() throws Exception {
+        File pack = temporary.newFolder("mutating-pack");
+        Path content = pack.toPath().resolve("content.json");
+        Files.writeString(content, "{\"version\":1}", StandardCharsets.UTF_8);
+        FileTime modified = Files.getLastModifiedTime(content);
+        String original = GenerationPackFingerprint.compute(pack.toPath(), GenerationPackFingerprint.CURRENT_VERSION);
+        IrisData data = mock(IrisData.class);
+        when(data.getDataFolder()).thenReturn(pack);
+        IrisDimension dimension = spy(new IrisDimension());
+        dimension.setLoadKey("overworld");
+        stubDimensions(data, dimension);
+        doReturn(new KList<>()).when(dimension).getReachableBiomes(any());
+        doReturn(new KList<>()).when(dimension).getAllRegions(any());
+        PlatformRegistries registries = mock(PlatformRegistries.class);
+        when(registries.blockTypeKeys()).thenAnswer(ignored -> {
+            Files.writeString(content, "{\"version\":2}", StandardCharsets.UTF_8);
+            Files.setLastModifiedTime(content, modified);
+            return new KList<>();
+        });
+        when(registries.entityKeys()).thenReturn(new KList<>());
+
+        IOException failure = assertThrows(IOException.class, () -> GenerationRegistryContractFactory.create(
+                data, dimension, original, DataVersion.getLatest().get(), registries, new FakeGenerationRegistry("runtime")));
+
+        assertEquals("Iris generation registry capture rejected a changed pack.", failure.getMessage());
+        assertEquals(modified, Files.getLastModifiedTime(content));
+        assertEquals("{\"version\":2}", Files.readString(content));
     }
 
     @Test

@@ -46,7 +46,7 @@ public final class MapHost {
         return GuiHost.isAvailable();
     }
 
-    static JFrame createFrame(String title) {
+    public static JFrame createFrame(String title) {
         XwaylandWindowManagerHint.apply();
         StudioTheme.install();
         JFrame frame = new JFrame(title);
@@ -73,7 +73,7 @@ public final class MapHost {
     }
 
     // A scaled-up default size can be bigger than a small or low resolution screen.
-    static Dimension fitToScreen(Dimension preferred) {
+    public static Dimension fitToScreen(Dimension preferred) {
         Rectangle usable = GraphicsEnvironment.getLocalGraphicsEnvironment().getMaximumWindowBounds();
         return new Dimension(Math.min(preferred.width, usable.width), Math.min(preferred.height, usable.height));
     }

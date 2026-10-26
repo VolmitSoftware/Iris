@@ -32,6 +32,7 @@ public final class SeaInletPlanner {
     private static final long SALT_RADIUS = 0x53454152414449L;
     private static final long SALT_HEADROOM = 0x53454148454144L;
     private static final long SALT_DEPTH = 0x53454144455054L;
+    private static final long SALT_DENSITY = 0x53454144454e53L;
 
     private final HydrologySettings settings;
 
@@ -42,7 +43,7 @@ public final class SeaInletPlanner {
     public List<SeaInlet> plan(DemGrid raw, HydrologySampleBuffer samples, int[] receivers, float[] accumulation, ShapedNetwork network,
                                long seed) {
         HydrologySettings.SeaInlets config = settings.underground().seaInlets();
-        if (!config.enabled()) {
+        if (!config.enabled() || settings.density() == 0f) {
             return List.of();
         }
         int count = raw.values().length;
@@ -101,6 +102,9 @@ public final class SeaInletPlanner {
     private SeaInlet site(Terrain terrain, HydrologySettings.SeaInlets config, long key, List<Integer> candidates) {
         int siteX = (int) (key >> 32);
         int siteZ = (int) key;
+        if (settings.density() < 1f && CellHash.unit(CellHash.mix(terrain.seed, SALT_DENSITY, siteX, siteZ)) >= settings.density()) {
+            return null;
+        }
         double targetX = (siteX + CellHash.unit(CellHash.mix(terrain.seed, SALT_SITE_X, siteX, siteZ))) * config.spacing();
         double targetZ = (siteZ + CellHash.unit(CellHash.mix(terrain.seed, SALT_SITE_Z, siteX, siteZ))) * config.spacing();
         DemGrid grid = terrain.grid;

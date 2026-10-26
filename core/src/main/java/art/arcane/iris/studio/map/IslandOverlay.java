@@ -29,7 +29,7 @@ import java.awt.event.MouseEvent;
  * Lays an island over content that fills the whole area behind it. Dragging the island's right edge resizes it,
  * always leaving the content some room beside it.
  */
-final class IslandOverlay extends JLayeredPane {
+public final class IslandOverlay extends JLayeredPane {
     private static final long serialVersionUID = -4182209135360718342L;
 
     private final IslandPanel island;
@@ -38,7 +38,7 @@ final class IslandOverlay extends JLayeredPane {
     private final int minimumUncoveredWidth;
     private int islandWidth;
 
-    IslandOverlay(IslandPanel island, JComponent background, int islandWidth, int minimumIslandWidth, int minimumUncoveredWidth) {
+    public IslandOverlay(IslandPanel island, JComponent background, int islandWidth, int minimumIslandWidth, int minimumUncoveredWidth) {
         this.island = island;
         this.background = background;
         this.islandWidth = islandWidth;

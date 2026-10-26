@@ -724,10 +724,13 @@ final class MapCanvas extends JPanel {
             int tileHeight = Math.max(1, (int) Math.round(worldToScreenZ(worldZ + frameTileSpan)) - screenY);
             if (tile.tile() != null) {
                 canvas.drawImage(tile.tile().image(style), screenX, screenY, tileWidth, tileHeight, null);
-                continue;
+                if (!tile.provisional()) {
+                    continue;
+                }
+            } else {
+                canvas.setColor(((tile.tileX() ^ tile.tileZ()) & 1L) == 0L ? TILE_EMPTY_A : TILE_EMPTY_B);
+                canvas.fillRect(screenX, screenY, tileWidth, tileHeight);
             }
-            canvas.setColor(((tile.tileX() ^ tile.tileZ()) & 1L) == 0L ? TILE_EMPTY_A : TILE_EMPTY_B);
-            canvas.fillRect(screenX, screenY, tileWidth, tileHeight);
             drawFallback(canvas, controller.fallback(frame, tile), screenX, screenY, tileWidth, tileHeight);
         }
     }

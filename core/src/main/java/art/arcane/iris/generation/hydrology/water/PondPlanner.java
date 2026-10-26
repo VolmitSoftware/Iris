@@ -150,7 +150,7 @@ public final class PondPlanner {
                     }
                 }
                 return new Pond(pond.id(), pond.kind(), level, (int) Math.floor(lowest), pond.spillX(), pond.spillZ(), pond.spillHeight(),
-                        mask(box, wet), pond.outletReachId(), pond.damRaise(), pond.fluid(), pond.floorX(), pond.floorZ());
+                        mask(box, ground, wet, level), pond.outletReachId(), pond.damRaise(), pond.fluid(), pond.floorX(), pond.floorZ());
             }
         }
         return null;
@@ -223,13 +223,16 @@ public final class PondPlanner {
             return null;
         }
         if (kind == PondKind.NATURAL && CellHash.unit(CellHash.mix(settings.seed(), SALT_KEEP, floorX, floorZ))
-                >= settings.ponds().natural().keep() * floor.pondDensity()[0]) {
+                >= Math.clamp(settings.ponds().natural().keep() * floor.pondDensity()[0], 0f, 1f) * settings.density()) {
             return null;
         }
         return new Candidate(basin, kind, floorX, floorZ, floor.rainfall()[0], fluid(floor));
     }
 
     private Pond lake(LakeCandidate candidate, HeightLattice fine) {
+        if (CellHash.unit(CellHash.mix(settings.seed(), SALT_KEEP, candidate.floorX(), candidate.floorZ())) >= settings.density()) {
+            return null;
+        }
         HydrologySampleBuffer floor = sampleAt(fine, candidate.floorX(), candidate.floorZ());
         if ((floor.permission()[0] & HydrologySampleBuffer.ALLOW_PONDS) == 0) {
             return null;
@@ -347,36 +350,31 @@ public final class PondPlanner {
                 level--;
                 continue;
             }
-            int limit = rim == null ? level : Math.min(level, rimGround(rim, box, wet) + settings.deformation().maxFill());
+            PondMask mask = mask(box, ground, wet, level);
+            int limit = rim == null ? level : Math.min(level, rimGround(rim, mask) + settings.deformation().maxFill());
             if (limit >= level) {
-                return pond(site, level, box, ground, wet, spill, damRaise);
+                return pond(site, level, box, ground, wet, spill, damRaise, mask);
             }
             level = limit;
         }
         return null;
     }
 
-    private static int rimGround(HeightLattice lattice, Box box, boolean[] wet) {
-        int half = box.step() >> 1;
+    private static int rimGround(HeightLattice lattice, PondMask mask) {
         Set<Long> columns = new LinkedHashSet<>();
-        for (int node = 0; node < wet.length; node++) {
-            if (!wet[node]) {
-                continue;
-            }
-            int i = node % box.width();
-            int j = node / box.width();
-            int x = box.x(node);
-            int z = box.z(node);
-            for (int axis = 0; axis < AXIS_X.length; axis++) {
-                int ni = i + AXIS_X[axis];
-                int nj = j + AXIS_Z[axis];
-                if (ni >= 0 && nj >= 0 && ni < box.width() && nj < box.depth() && wet[nj * box.width() + ni]) {
+        for (int j = 0; j < mask.depth(); j++) {
+            for (int i = 0; i < mask.width(); i++) {
+                if (!mask.node(i, j)) {
                     continue;
                 }
-                for (int along = -half; along < half; along++) {
-                    int columnX = AXIS_X[axis] == 0 ? x + along : AXIS_X[axis] > 0 ? x + half : x - half - 1;
-                    int columnZ = AXIS_Z[axis] == 0 ? z + along : AXIS_Z[axis] > 0 ? z + half : z - half - 1;
-                    columns.add(((long) columnX << 32) | (columnZ & 0xFFFFFFFFL));
+                for (int axis = 0; axis < AXIS_X.length; axis++) {
+                    int ni = i + AXIS_X[axis];
+                    int nj = j + AXIS_Z[axis];
+                    if (!mask.node(ni, nj)) {
+                        int x = mask.originX() + ni;
+                        int z = mask.originZ() + nj;
+                        columns.add(((long) x << 32) | (z & 0xFFFFFFFFL));
+                    }
                 }
             }
         }
@@ -397,7 +395,7 @@ public final class PondPlanner {
         return xs.length == 0 ? Integer.MAX_VALUE : (int) Math.floor(lowest);
     }
 
-    private Pond pond(Site site, int level, Box box, float[] ground, boolean[] wet, Spill spill, int damRaise) {
+    private Pond pond(Site site, int level, Box box, float[] ground, boolean[] wet, Spill spill, int damRaise, PondMask mask) {
         float lowest = Float.POSITIVE_INFINITY;
         for (int node = 0; node < wet.length; node++) {
             if (wet[node]) {
@@ -406,7 +404,7 @@ public final class PondPlanner {
         }
         long id = CellHash.mix(settings.seed(), salt(site.kind()), site.floorX(), site.floorZ());
         return new Pond(id, site.kind(), level, (int) Math.floor(lowest), spill.x(), spill.z(), spill.height(),
-                mask(box, wet), 0L, damRaise, site.fluid(), site.floorX(), site.floorZ());
+                mask, 0L, damRaise, site.fluid(), site.floorX(), site.floorZ());
     }
 
     private static boolean covered(DemGrid raw, Basin basin, List<Pond> lakes) {
@@ -681,7 +679,7 @@ public final class PondPlanner {
         return true;
     }
 
-    private static PondMask mask(Box box, boolean[] wet) {
+    private static PondMask mask(Box box, float[] ground, boolean[] wet, int level) {
         int minI = Integer.MAX_VALUE;
         int minJ = Integer.MAX_VALUE;
         int maxI = Integer.MIN_VALUE;
@@ -698,6 +696,9 @@ public final class PondPlanner {
         minJ = Math.max(0, minJ - 1);
         maxI = Math.min(box.width() - 1, maxI + 1);
         maxJ = Math.min(box.depth() - 1, maxJ + 1);
+        if (box.step() < LAKE_STEP) {
+            return shorelineMask(box, ground, wet, level, minI, minJ, maxI, maxJ);
+        }
         int width = maxI - minI + 1;
         int depth = maxJ - minJ + 1;
         long[] bits = new long[(width * depth + 63) >>> 6];
@@ -710,6 +711,46 @@ public final class PondPlanner {
             }
         }
         return new PondMask(box.originX() + minI * box.step(), box.originZ() + minJ * box.step(), box.step(), width, depth, bits);
+    }
+
+    private static PondMask shorelineMask(Box box, float[] ground, boolean[] wet, int level, int minI, int minJ, int maxI, int maxJ) {
+        int step = box.step();
+        int half = step >> 1;
+        int width = (maxI - minI + 1) * step;
+        int depth = (maxJ - minJ + 1) * step;
+        long[] bits = new long[(width * depth + 63) >>> 6];
+        for (int z = 0; z < depth; z++) {
+            int sampleZ = minJ * step + z - half;
+            int j = Math.floorDiv(sampleZ, step);
+            if (j < 0 || j + 1 >= box.depth()) {
+                continue;
+            }
+            float v = Math.floorMod(sampleZ, step) / (float) step;
+            for (int x = 0; x < width; x++) {
+                int sampleX = minI * step + x - half;
+                int i = Math.floorDiv(sampleX, step);
+                if (i < 0 || i + 1 >= box.width()) {
+                    continue;
+                }
+                float u = Math.floorMod(sampleX, step) / (float) step;
+                int node = j * box.width() + i;
+                if (!wet[node] && !wet[node + 1] && !wet[node + box.width()] && !wet[node + box.width() + 1]) {
+                    continue;
+                }
+                float first = lifted(box, ground, node) * (1f - u) + lifted(box, ground, node + 1) * u;
+                float second = lifted(box, ground, node + box.width()) * (1f - u)
+                        + lifted(box, ground, node + box.width() + 1) * u;
+                if (first * (1f - v) + second * v < level) {
+                    int index = z * width + x;
+                    bits[index >>> 6] |= 1L << index;
+                }
+            }
+        }
+        return new PondMask(box.originX() + minI * step - half, box.originZ() + minJ * step - half, 1, width, depth, bits);
+    }
+
+    private static float lifted(Box box, float[] ground, int node) {
+        return ground[node] - box.lift()[node];
     }
 
     private int freeboard(Site site) {

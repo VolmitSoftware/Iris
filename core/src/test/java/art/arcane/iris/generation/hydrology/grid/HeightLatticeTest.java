@@ -4,6 +4,7 @@ import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
@@ -31,6 +32,35 @@ public class HeightLatticeTest {
     private static final int WINDOW = 16;
     private static final int AREA = 3 * WINDOW;
     private static final int DISTINCT_ACROSS_NINE = 25 * WINDOW * WINDOW;
+
+    @Test
+    public void neighbouringCellsSpreadAcrossConcurrentMapBuckets() {
+        int[] buckets = new int[65_536];
+        int occupied = 0;
+        int largest = 0;
+        Set<Long> identities = new HashSet<>();
+        for (int z = -96; z < 96; z++) {
+            for (int x = -96; x < 96; x++) {
+                long key = HeightLattice.key(x, z);
+                assertTrue(identities.add(key));
+                int hash = Long.hashCode(key);
+                int bucket = (hash ^ (hash >>> 16)) & (buckets.length - 1);
+                if (buckets[bucket]++ == 0) {
+                    occupied++;
+                }
+                largest = Math.max(largest, buckets[bucket]);
+            }
+        }
+        assertTrue("occupied buckets " + occupied, occupied > 25_000);
+        assertTrue("largest collision chain " + largest, largest < 12);
+        identities.clear();
+        int[] extremes = {Integer.MIN_VALUE, Integer.MIN_VALUE + 1, -1, 0, 1, Integer.MAX_VALUE - 1, Integer.MAX_VALUE};
+        for (int x : extremes) {
+            for (int z : extremes) {
+                assertTrue("distinct coordinate " + x + "," + z, identities.add(HeightLattice.key(x, z)));
+            }
+        }
+    }
 
     @Test
     public void samplesEachCellOnceAcrossNineOverlappingWindows() {

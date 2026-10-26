@@ -28,12 +28,19 @@ final class MaskEdges {
         int firstJ = Math.max(-margin, Math.floorDiv(minZ - mask.originZ() + half, step));
         int lastJ = Math.min(mask.depth() - 1 + margin, Math.floorDiv(maxZ - mask.originZ() + half, step));
         for (int j = firstJ; j <= lastJ; j++) {
+            int start = Integer.MIN_VALUE;
             for (int i = firstI; i <= lastI; i++) {
                 if (edge(mask, i, j)) {
-                    int x = mask.originX() + i * step - half;
-                    int z = mask.originZ() + j * step - half;
-                    append(x, z, x + step - 1, z + step - 1);
+                    if (start == Integer.MIN_VALUE) {
+                        start = i;
+                    }
+                } else if (start != Integer.MIN_VALUE) {
+                    appendRun(mask, start, i, j);
+                    start = Integer.MIN_VALUE;
                 }
+            }
+            if (start != Integer.MIN_VALUE) {
+                appendRun(mask, start, lastI + 1, j);
             }
         }
         slots++;
@@ -75,6 +82,14 @@ final class MaskEdges {
         squares[count++] = minZ;
         squares[count++] = maxX;
         squares[count++] = maxZ;
+    }
+
+    private void appendRun(PondMask mask, int first, int end, int row) {
+        int step = mask.step();
+        int half = step >> 1;
+        int x = mask.originX() + first * step - half;
+        int z = mask.originZ() + row * step - half;
+        append(x, z, mask.originX() + end * step - half - 1, z + step - 1);
     }
 
     enum Kind {

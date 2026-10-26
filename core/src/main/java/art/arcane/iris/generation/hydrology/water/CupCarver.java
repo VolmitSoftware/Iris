@@ -72,7 +72,8 @@ final class CupCarver {
                 }
                 float slope = slope(raw, samples, cell);
                 if (suitable(samples, cell, slope)
-                        && CellHash.unit(CellHash.mix(seed, SALT_SITE, siteX, siteZ)) < chance * samples.pondDensity()[cell]) {
+                        && CellHash.unit(CellHash.mix(seed, SALT_SITE, siteX, siteZ))
+                        < Math.clamp(chance * samples.pondDensity()[cell], 0D, 1D) * settings.density()) {
                     addCup(raw, samples, cell, slope, siteX, siteZ, false, out);
                 }
             }
@@ -89,7 +90,7 @@ final class CupCarver {
             }
             float slope = slope(raw, samples, cell);
             double roll = CellHash.unit(CellHash.mix(settings.seed(), SALT_CHAIN, raw.blockX(cell), raw.blockZ(cell)));
-            if (suitable(samples, cell, slope) && roll < chance * samples.pondDensity()[cell]) {
+            if (suitable(samples, cell, slope) && roll < Math.clamp(chance * samples.pondDensity()[cell], 0D, 1D) * settings.density()) {
                 sites.add(new Site(roll, cell, slope));
             }
         }

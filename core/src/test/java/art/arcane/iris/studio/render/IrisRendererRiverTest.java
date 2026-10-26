@@ -2,8 +2,10 @@ package art.arcane.iris.studio.render;
 
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.hydrology.engine.HydrologyRuntime;
+import art.arcane.iris.generation.hydrology.engine.HydrologyPlanPreview;
 import art.arcane.iris.generation.hydrology.plan.HydrologySettings;
 import art.arcane.iris.generation.hydrology.query.HydrologyFeatureType;
+import art.arcane.iris.generation.hydrology.raster.ChunkWaterRaster;
 import art.arcane.iris.generation.hydrology.water.Pond;
 import art.arcane.iris.generation.hydrology.water.Reach;
 import art.arcane.iris.generation.runtime.Engine;
@@ -91,6 +93,34 @@ public class IrisRendererRiverTest {
             assertEquals(IrisRenderer.hydrologyFeatureColor(HydrologyFeatureType.POND), planned.getRGB(16, 16));
             assertEquals(NO_RIVER, planned.getRGB(48, 48));
         }
+    }
+
+    @Test
+    public void zoomKeepsResidentWaterPlansUntilDetailedRastersAreReady() {
+        HydrologyRuntime runtime = mock(HydrologyRuntime.class);
+        Pond pond = WaterScene.pond(32L, 62, 16, 16, 10);
+        when(runtime.enabled()).thenReturn(true);
+        when(runtime.planPreview(anyInt(), anyInt(), anyInt(), anyInt()))
+                .thenReturn(new HydrologyPlanPreview(List.of(), List.of(pond), List.of(), List.of(), true));
+        when(runtime.rasterPreview(anyInt(), anyInt())).thenReturn(ChunkWaterRaster.PROVISIONAL);
+        IrisRenderer renderer = new IrisRenderer(engine(runtime));
+
+        BufferedImage overview = renderer.renderStudio(0D, 0D, 256D, 64, RenderType.RIVER, () -> false);
+        int water = IrisRenderer.hydrologyFeatureColor(HydrologyFeatureType.POND);
+        assertEquals(water, overview.getRGB(4, 4));
+
+        for (int step : new int[]{2, 1}) {
+            long before = ProvisionalSampling.revision();
+            BufferedImage detailed = renderer.renderStudio(0D, 0D, step * 64D, 64, RenderType.RIVER, () -> false);
+            assertEquals(water, detailed.getRGB(16 / step, 16 / step));
+            assertNotEquals(before, ProvisionalSampling.revision());
+        }
+
+        when(runtime.rasterPreview(anyInt(), anyInt())).thenReturn(ChunkWaterRaster.EMPTY);
+        long before = ProvisionalSampling.revision();
+        BufferedImage settled = renderer.renderStudio(0D, 0D, 64D, 64, RenderType.RIVER, () -> false);
+        assertEquals(NO_RIVER, settled.getRGB(16, 16));
+        assertEquals(before, ProvisionalSampling.revision());
     }
 
     @Test

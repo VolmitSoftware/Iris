@@ -6,8 +6,10 @@ import org.junit.Test;
 
 import javax.swing.SwingUtilities;
 import java.awt.Color;
+import java.awt.Graphics2D;
 import java.awt.Rectangle;
 import java.awt.event.MouseEvent;
+import java.awt.event.MouseWheelEvent;
 import java.awt.image.BufferedImage;
 import java.lang.reflect.Field;
 
@@ -123,6 +125,82 @@ public class PregenMapPanelTest {
         assertEquals("Chunk X 2143289344 · Z -10", tooltip(extreme, 1024, 1));
         assertNull(tooltip(extreme, 1025, 1));
         SwingUtilities.invokeAndWait(extreme::disposeMap);
+    }
+
+    @Test
+    public void wheelZoomPreservesTheChunkUnderThePointerAndRetainedPixels() throws Exception {
+        PregenMapPanel panel = panel(new PregenRenderSnapshot.Bounds(-32, -32, 31, 31));
+        SwingUtilities.invokeAndWait(() -> panel.setSize(802, 602));
+        panel.submit(-7, -19, Color.GREEN);
+        flush(panel);
+        BufferedImage retained = image(panel);
+        String before = tooltip(panel, 337, 123);
+        SwingUtilities.invokeAndWait(() -> panel.dispatchEvent(new MouseWheelEvent(panel,
+                MouseEvent.MOUSE_WHEEL, 1L, 0, 337, 123, 0, false,
+                MouseWheelEvent.WHEEL_UNIT_SCROLL, 3, -4)));
+        assertEquals(before, tooltip(panel, 337, 123));
+        assertTrue(panel.zoom() > 1D);
+        assertTrue(retained == image(panel));
+        assertEquals(Color.GREEN.getRGB(), image(panel).getRGB(25, 13));
+        SwingUtilities.invokeAndWait(panel::disposeMap);
+    }
+
+    @Test
+    public void draggingPansTheMapAndResetFitsBesideTheSidebar() throws Exception {
+        PregenMapPanel panel = panel(new PregenRenderSnapshot.Bounds(-32, -32, 31, 31));
+        SwingUtilities.invokeAndWait(() -> {
+            panel.setSize(1000, 600);
+            panel.setCoveredLeftWidth(300);
+        });
+        String initial = tooltip(panel, 650, 300);
+        assertNull(tooltip(panel, 250, 300));
+        SwingUtilities.invokeAndWait(() -> {
+            panel.dispatchEvent(new MouseEvent(panel, MouseEvent.MOUSE_PRESSED, 1L,
+                    MouseEvent.BUTTON1_DOWN_MASK, 650, 300, 1, false, MouseEvent.BUTTON1));
+            panel.dispatchEvent(new MouseEvent(panel, MouseEvent.MOUSE_DRAGGED, 2L,
+                    MouseEvent.BUTTON1_DOWN_MASK, 710, 350, 0, false, MouseEvent.NOBUTTON));
+            panel.dispatchEvent(new MouseEvent(panel, MouseEvent.MOUSE_RELEASED, 3L,
+                    0, 710, 350, 1, false, MouseEvent.BUTTON1));
+        });
+        assertEquals(initial, tooltip(panel, 710, 350));
+        assertFalse(initial.equals(tooltip(panel, 650, 300)));
+        SwingUtilities.invokeAndWait(() -> {
+            panel.zoomIn();
+            panel.resetView();
+        });
+        assertEquals(1D, panel.zoom(), 0D);
+        assertEquals(initial, tooltip(panel, 650, 300));
+        SwingUtilities.invokeAndWait(panel::disposeMap);
+    }
+
+    @Test
+    public void zoomBoundsAndGridPaintingHandleExtremeMapCoordinates() throws Exception {
+        PregenMapPanel panel = panel(new PregenRenderSnapshot.Bounds(
+                Integer.MIN_VALUE, Integer.MIN_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE));
+        SwingUtilities.invokeAndWait(() -> {
+            panel.setSize(820, 520);
+            panel.toggleGrid();
+            for (int index = 0; index < 100; index++) {
+                panel.zoomIn();
+            }
+            assertEquals(128D, panel.zoom(), 0D);
+            BufferedImage target = new BufferedImage(820, 520, BufferedImage.TYPE_INT_RGB);
+            Graphics2D canvas = target.createGraphics();
+            try {
+                panel.paint(canvas);
+                panel.panBy(1_000_000, -1_000_000);
+                panel.paint(canvas);
+                for (int index = 0; index < 100; index++) {
+                    panel.zoomOut();
+                }
+                assertEquals(0.25D, panel.zoom(), 0D);
+                panel.resetView();
+                panel.paint(canvas);
+            } finally {
+                canvas.dispose();
+                panel.disposeMap();
+            }
+        });
     }
 
     private static String tooltip(PregenMapPanel panel, int x, int y) throws Exception {

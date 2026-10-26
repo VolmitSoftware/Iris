@@ -42,6 +42,14 @@ public class WindowPlannerTest {
     private static final int SEAM_DISTANCE = 256;
 
     @Test
+    public void zeroDensityRemovesLocalChannelsAndPonds() {
+        HydrologySettings settings = settings(new IrisHydrology().setDensity(0D));
+        WindowPlan plan = planner(settings, SyntheticTerrain.trunkValley()).plan(LAND, noRegions(LAND));
+        assertTrue(plan.reaches().isEmpty());
+        assertTrue(plan.ponds().isEmpty());
+    }
+
+    @Test
     public void burnedTrunkCapturesLocalDrainage() {
         HydrologySettings settings = settings(new IrisHydrology());
         SyntheticTerrain terrain = SyntheticTerrain.trunkValley();

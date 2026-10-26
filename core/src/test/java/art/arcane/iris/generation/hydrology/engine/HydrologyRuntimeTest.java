@@ -53,6 +53,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.AbstractExecutorService;
 import java.util.concurrent.CancellationException;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -79,8 +80,10 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -294,6 +297,31 @@ public class HydrologyRuntimeTest {
         } catch (CancellationException expected) {
             assertSame(ChunkWaterRaster.PROVISIONAL, runtime.rasterSnapshot(0, 0));
         }
+    }
+
+    @Test(timeout = 180_000L)
+    public void chunksSharePrefetchAndRetryAfterEvictionOrFailure() {
+        FakePlanners planners = new FakePlanners(settings());
+        HydrologyPlanCache cache = spy(new HydrologyPlanCache(planners.settings, planners::region, planners::window,
+                pool(planners, 2), () -> false));
+        AtomicInteger prefetches = new AtomicInteger();
+        doAnswer(invocation -> prefetches.incrementAndGet() == 2
+                ? CompletableFuture.failedFuture(new IllegalStateException("prefetch failed")) : CompletableFuture.completedFuture(null))
+                .when(cache).prepareWindowsAround(anyInt(), anyInt(), anyInt(), anyInt(), anyInt());
+        AtomicLong evictions = new AtomicLong();
+        doAnswer(invocation -> evictions.get()).when(cache).windowEvictions();
+        HydrologyRuntime runtime = new HydrologyRuntime(planners.settings, cache, planners::natural, () -> false, planners.ticker::get);
+        runtimes.add(runtime);
+        runtime.raster(0, 0);
+        runtime.raster(1, 0);
+        assertEquals(1, prefetches.get());
+        evictions.incrementAndGet();
+        runtime.raster(2, 0);
+        assertEquals(2, prefetches.get());
+        runtime.raster(3, 0);
+        assertEquals(3, prefetches.get());
+        runtime.raster(4, 0);
+        assertEquals(3, prefetches.get());
     }
 
     @Test(timeout = 180_000L)
@@ -700,6 +728,44 @@ public class HydrologyRuntimeTest {
         assertDisabled(disabled);
         verifyNoInteractions(complex);
         verify(engine, never()).getComplex();
+    }
+
+    @Test
+    public void zeroDensitySkipsRuntimePlanningAfterValidatingSettings() {
+        Engine engine = mock(Engine.class);
+        IrisComplex complex = mock(IrisComplex.class);
+        IrisDimension dimension = new IrisDimension();
+        dimension.setHydrology(new IrisHydrology().setEnabled(true).setDensity(0D));
+        when(engine.getDimension()).thenReturn(dimension);
+        when(engine.getSeedManager()).thenReturn(new SeedManager(1337L));
+        when(engine.getHeight()).thenReturn(384);
+
+        assertDisabled(HydrologyRuntime.create(engine, complex));
+        verifyNoInteractions(complex);
+        verify(engine, never()).getPlatformHooks();
+
+        dimension.getHydrology().setDensity(-1D);
+        assertThrows(IllegalArgumentException.class, () -> HydrologyRuntime.create(engine, complex));
+    }
+
+    @Test(timeout = 15_000L)
+    public void nestedPreviewScopesStayNonblockingAndRestoreDemandSampling() throws Exception {
+        try (FakeHydrology water = new FakeHydrology(() -> false, (x, z) -> 60, 40, 63)) {
+            HydrologyRuntime runtime = spy(water.runtime);
+            water.hold();
+            try (HydrologyRuntime.PreviewScope outer = runtime.preview()) {
+                assertTrue(runtime.raster(0, 0).provisional());
+                try (HydrologyRuntime.PreviewScope inner = runtime.preview()) {
+                    assertTrue(runtime.raster(1, 0).provisional());
+                }
+                assertTrue(runtime.raster(0, 1).provisional());
+            }
+            water.release();
+            clearInvocations(runtime);
+
+            assertFalse(runtime.raster(400, 400).provisional());
+            verify(runtime, never()).rasterPreview(anyInt(), anyInt());
+        }
     }
 
     @Test(timeout = 300_000L)

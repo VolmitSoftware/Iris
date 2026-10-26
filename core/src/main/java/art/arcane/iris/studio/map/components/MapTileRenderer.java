@@ -20,6 +20,7 @@ package art.arcane.iris.studio.map.components;
 
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.hydrology.engine.HydrologyRuntime;
 import art.arcane.iris.generation.terrain.InferredType;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.terrain.IrisDimension;
@@ -166,7 +167,15 @@ public final class MapTileRenderer {
     }
 
     private double[] sampleHeights(TileGrid grid) {
-        return new HeightLattice(grid, engine.getComplex().getHeightStream()).interpolatedHeights();
+        IrisComplex complex = engine.getComplex();
+        IrisDimension dimension = engine.getDimension();
+        HydrologyRuntime water = complex.getHydrologyRuntime();
+        if (water == null || !water.enabled() || dimension != null && dimension.getTerrainTransform() != null) {
+            return new HeightLattice(grid, complex.getHeightStream()).interpolatedHeights();
+        }
+        try (HydrologyRuntime.PreviewScope ignored = water.preview()) {
+            return new HeightLattice(grid, complex.getHeightStream()).interpolatedHeights();
+        }
     }
 
     // Large uniform squares are filled after a few samples; squares stay small enough to not skip tiny biomes.

@@ -10,7 +10,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 public final class PregenMapState {
     private static final int MAX_RASTER_SIZE = 1024;
-    static final Color WAITING = new Color(29, 35, 46);
+    static final Color WAITING = new Color(57, 59, 64);
 
     private final PregenRenderSnapshot.Bounds bounds;
     private final int width;

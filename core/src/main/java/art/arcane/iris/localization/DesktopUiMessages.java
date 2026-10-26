@@ -119,6 +119,17 @@ public final class DesktopUiMessages {
     public static final TextKey PREGEN_EXISTING = TextKey.of("iris.desktop.pregen.existing", "Existing");
     public static final TextKey PREGEN_NETWORK = TextKey.of("iris.desktop.pregen.network", "Network");
     public static final TextKey PREGEN_TERRAIN_HINT = TextKey.of("iris.desktop.pregen.terrain_hint", "Finished chunks show terrain colors");
+    public static final TextKey PREGEN_GRID = TextKey.of("iris.desktop.pregen.grid", "Grid");
+    public static final TextKey PREGEN_GRID_HINT = TextKey.of("iris.desktop.pregen.grid_hint", "Show chunk and region borders (G)");
+    public static final TextKey PREGEN_FIT = TextKey.of("iris.desktop.pregen.fit", "Reset view");
+    public static final TextKey PREGEN_FIT_HINT = TextKey.of("iris.desktop.pregen.fit_hint", "Fit the whole generation area (R)");
+    public static final TextKey PREGEN_ZOOM_IN = TextKey.of("iris.desktop.pregen.zoom_in", "Zoom in (+)");
+    public static final TextKey PREGEN_ZOOM_OUT = TextKey.of("iris.desktop.pregen.zoom_out", "Zoom out (-)");
+    public static final TextKey PREGEN_ZOOM = TextKey.of("iris.desktop.pregen.zoom", "Zoom {zoom}");
+    public static final TextKey PREGEN_SHORTCUTS = TextKey.of("iris.desktop.pregen.shortcuts", "Shortcuts");
+    public static final TextKey PREGEN_SHORTCUTS_HINT = TextKey.of("iris.desktop.pregen.shortcuts_hint", "Show mouse and key shortcuts (/)");
+    public static final TextKey PREGEN_NAVIGATION_HINT = TextKey.of("iris.desktop.pregen.navigation_hint", "Drag to pan · Scroll to zoom · Hover to inspect chunks");
+    public static final TextKey PREGEN_SHORTCUT_DETAILS = TextKey.of("iris.desktop.pregen.shortcut_details", "Drag or arrow keys: pan\nScroll or + / -: zoom\nR or \\: fit generation area\nG: chunk and region grid\nP: pause or resume generation\n/ or Escape: close shortcuts");
     public static final TextKey IMAGEMAP_TITLE = TextKey.of("iris.desktop.imagemap.title", "Image Map Studio");
     public static final TextKey IMAGEMAP_PRESET = TextKey.of("iris.desktop.imagemap.preset", "Preset:");
     public static final TextKey IMAGEMAP_LOAD = TextKey.of("iris.desktop.imagemap.load", "Load");
@@ -216,7 +227,9 @@ public final class DesktopUiMessages {
             PREGEN_METHOD, PREGEN_CACHED, PREGEN_FAILED, PREGEN_MAP,
             PREGEN_CHUNK_COORDINATES, PREGEN_WINDOW_HINT,
             PREGEN_BOUNDS, PREGEN_WAITING, PREGEN_READY, PREGEN_EXISTING,
-            PREGEN_NETWORK, PREGEN_TERRAIN_HINT,
+            PREGEN_NETWORK, PREGEN_TERRAIN_HINT, PREGEN_GRID, PREGEN_GRID_HINT,
+            PREGEN_FIT, PREGEN_FIT_HINT, PREGEN_ZOOM_IN, PREGEN_ZOOM_OUT, PREGEN_ZOOM,
+            PREGEN_SHORTCUTS, PREGEN_SHORTCUTS_HINT, PREGEN_NAVIGATION_HINT, PREGEN_SHORTCUT_DETAILS,
             IMAGEMAP_TITLE, IMAGEMAP_PRESET, IMAGEMAP_LOAD, IMAGEMAP_IMPORT_PNG,
             IMAGEMAP_REPLACE_PNG, IMAGEMAP_PREVIEW, IMAGEMAP_EXPORT, IMAGEMAP_METADATA,
             IMAGEMAP_RESOURCE, IMAGEMAP_COORDINATES, IMAGEMAP_BINDING_KEY, IMAGEMAP_MAP_KEY,

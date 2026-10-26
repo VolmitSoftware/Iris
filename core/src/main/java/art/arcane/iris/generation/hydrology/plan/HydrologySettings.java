@@ -50,6 +50,7 @@ public final class HydrologySettings {
     private final int minY;
     private final int maxY;
     private final boolean enabled;
+    private final float density;
     private final Drainage drainage;
     private final List<HydrologyTier> tiers;
     private final Ponds ponds;
@@ -67,6 +68,10 @@ public final class HydrologySettings {
         this.minY = minY;
         this.maxY = maxY;
         this.enabled = config.isEnabled();
+        if (!Double.isFinite(config.getDensity()) || config.getDensity() < 0D || config.getDensity() > 1D) {
+            throw new IllegalArgumentException("Hydrology density must be within 0..1, got " + config.getDensity());
+        }
+        this.density = (float) config.getDensity();
         this.drainage = drainage(config.getDrainage());
         this.tiers = tiers(config.getTiers());
         this.ponds = ponds(config.getPonds());
@@ -124,6 +129,10 @@ public final class HydrologySettings {
 
     public boolean enabled() {
         return enabled;
+    }
+
+    public float density() {
+        return density;
     }
 
     public Drainage drainage() {
@@ -458,7 +467,7 @@ public final class HydrologySettings {
 
     private long computeFingerprint() {
         Fingerprint hash = new Fingerprint().add(seed).add(seaLevel).add(minY).add(maxY).add(enabled)
-                .add(prefetchRings).add(persist);
+                .add(density).add(prefetchRings).add(persist);
         addDrainage(hash);
         addTiers(hash);
         addPonds(hash);

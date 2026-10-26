@@ -45,20 +45,20 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * The colours of IntelliJ's "New UI", light and dark, shared by FlatLaf's controls and everything the studio windows
  * draw themselves. The theme follows the system unless the user picked light or dark.
  */
-final class StudioTheme {
-    static final Color EDITOR_BACKGROUND = new ThemeColor(0xFFFFFF, 0x1E1F22);
-    static final Color PANEL_BACKGROUND = new ThemeColor(0xF7F8FA, 0x2B2D30);
+public final class StudioTheme {
+    public static final Color EDITOR_BACKGROUND = new ThemeColor(0xFFFFFF, 0x1E1F22);
+    public static final Color PANEL_BACKGROUND = new ThemeColor(0xF7F8FA, 0x2B2D30);
     static final Color HOVER_BACKGROUND = new ThemeColor(0xDFE1E5, 0x393B40);
     static final Color INACTIVE_SELECTION = new ThemeColor(0xDFE1E5, 0x43454A);
     static final Color SELECTION = new ThemeColor(0xD4E2FF, 0x2E436E);
-    static final Color CONTROL_BORDER = new ThemeColor(0xC9CCD6, 0x4E5157);
+    public static final Color CONTROL_BORDER = new ThemeColor(0xC9CCD6, 0x4E5157);
     static final Color SEPARATOR = new ThemeColor(0xEBECF0, 0x1E1F22);
-    static final Color TEXT = new ThemeColor(0x000000, 0xDFE1E5);
-    static final ThemeColor SECONDARY_TEXT = new ThemeColor(0x6C707E, 0x9DA0A8);
+    public static final Color TEXT = new ThemeColor(0x000000, 0xDFE1E5);
+    public static final ThemeColor SECONDARY_TEXT = new ThemeColor(0x6C707E, 0x9DA0A8);
     static final Color MUTED_TEXT = new ThemeColor(0x818594, 0x6F737A);
-    static final Color ACCENT = new Color(0x3574F0);
+    public static final Color ACCENT = new Color(0x3574F0);
     static final Color LINK = new ThemeColor(0x315FBD, 0x548AF7);
-    static final Color ERROR = new ThemeColor(0xDB3B4B, 0xF75464);
+    public static final Color ERROR = new ThemeColor(0xDB3B4B, 0xF75464);
     static final Color WARNING = new ThemeColor(0xC27D04, 0xF2C55C);
     static final Color SUCCESS = new ThemeColor(0x208A3C, 0x5FB865);
     static final Color OVERLAY_BACKGROUND = new ThemeColor(new Color(0xFF, 0xFF, 0xFF, 240), new Color(0x2B, 0x2D, 0x30, 236));
@@ -231,7 +231,7 @@ final class StudioTheme {
     /**
      * FlatLaf grows fonts and its own controls to the screen's DPI; every size the studio sets itself has to grow with them.
      */
-    static int scale(int pixels) {
+    public static int scale(int pixels) {
         return Math.round(pixels * pixelScale);
     }
 
@@ -239,27 +239,27 @@ final class StudioTheme {
         return pixels * pixelScale;
     }
 
-    static Dimension scaledSize(int width, int height) {
+    public static Dimension scaledSize(int width, int height) {
         return new Dimension(scale(width), scale(height));
     }
 
-    static Border emptyBorder(int top, int left, int bottom, int right) {
+    public static Border emptyBorder(int top, int left, int bottom, int right) {
         return BorderFactory.createEmptyBorder(scale(top), scale(left), scale(bottom), scale(right));
     }
 
-    static Font font() {
+    public static Font font() {
         return themeFont("defaultFont", Font.PLAIN, 13);
     }
 
-    static Font smallFont() {
+    public static Font smallFont() {
         return themeFont("small.font", Font.PLAIN, 11);
     }
 
-    static Font boldFont() {
+    public static Font boldFont() {
         return font().deriveFont(Font.BOLD);
     }
 
-    static Font titleFont() {
+    public static Font titleFont() {
         return font().deriveFont(Font.BOLD, font().getSize2D() + 1F);
     }
 

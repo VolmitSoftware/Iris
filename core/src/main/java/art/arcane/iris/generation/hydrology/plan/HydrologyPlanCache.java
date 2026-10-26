@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.hydrology.plan;
 
+import art.arcane.iris.generation.concurrent.MultiBurst;
 import art.arcane.iris.generation.hydrology.raster.ReachIndex;
 import art.arcane.iris.spi.IrisLogging;
 
@@ -20,7 +21,9 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
@@ -46,6 +49,7 @@ public final class HydrologyPlanCache {
     private volatile HydrologyPlanStore store;
     private int writing;
     private final ExecutorService pool;
+    private final int speculativeParallelism;
     private final BooleanSupplier mainThread;
     private final Object lock = new Object();
     private final PriorityQueue<Job> queue = new PriorityQueue<>(Comparator.comparingLong((Job job) -> job.priority).thenComparingLong(job -> job.order));
@@ -56,6 +60,7 @@ public final class HydrologyPlanCache {
     private final Shelf<RegionKey, RegionPlan> regions = new Shelf<>(REGION_CAPACITY, this::startRegion);
     private final Shelf<WindowKey, IndexedWindow> windows = new Shelf<>(WINDOW_CAPACITY, this::startWindow);
     private final Map<Object, Set<Slot<?, ?>>> epochSlots = new HashMap<>();
+    private int runningSpeculative;
     private volatile boolean closed;
 
     public HydrologyPlanCache(HydrologySettings settings, Function<RegionKey, RegionPlan> regionPlanner,
@@ -64,6 +69,7 @@ public final class HydrologyPlanCache {
         this.windowPlanner = Objects.requireNonNull(windowPlanner, "windowPlanner");
         this.persist = Objects.requireNonNull(settings, "settings").persist();
         this.pool = Objects.requireNonNull(pool, "pool");
+        this.speculativeParallelism = speculativeParallelism(pool);
         this.mainThread = Objects.requireNonNull(mainThread, "mainThread");
     }
 
@@ -100,6 +106,10 @@ public final class HydrologyPlanCache {
 
     public Optional<IndexedWindow> windowIfReady(WindowKey key) {
         return windows.ready(Objects.requireNonNull(key, "key"));
+    }
+
+    public long windowEvictions() {
+        return windows.evictions.get();
     }
 
     public RegionPlan region(RegionKey key) {
@@ -179,11 +189,7 @@ public final class HydrologyPlanCache {
             dropped.run();
             return;
         }
-        try {
-            pool.execute(this::runNext);
-        } catch (RejectedExecutionException rejected) {
-            abandonQueue(rejected);
-        }
+        dispatch();
     }
 
     private CompletableFuture<Void> prepare(int minChunkX, int minChunkZ, int maxChunkX, int maxChunkZ, int rings, Interest interest) {
@@ -288,7 +294,17 @@ public final class HydrologyPlanCache {
     }
 
     private long speculativePriority() {
-        return -(speculations.incrementAndGet() << SPECULATIVE_SHIFT);
+        return Long.MAX_VALUE - (speculations.incrementAndGet() << SPECULATIVE_SHIFT);
+    }
+
+    private static int speculativeParallelism(ExecutorService pool) {
+        int parallelism = switch (pool) {
+            case MultiBurst burst -> burst.parallelism();
+            case ForkJoinPool forkJoin -> forkJoin.getParallelism();
+            case ThreadPoolExecutor threads -> threads.getCorePoolSize();
+            default -> 1;
+        };
+        return Math.max(1, parallelism / 2);
     }
 
     private static int frontCells(int unit, int cell) {
@@ -457,29 +473,34 @@ public final class HydrologyPlanCache {
             slot.fail(new CancellationException("Hydrology plan cache is closed."));
             return;
         }
-        try {
-            pool.execute(this::runNext);
-        } catch (RejectedExecutionException rejected) {
-            abandonQueue(rejected);
-        }
+        dispatch();
     }
 
     private void runNext() {
         Job job;
+        boolean speculative;
         synchronized (lock) {
-            job = queue.poll();
-            if (job != null && job.slot != null) {
+            job = queue.peek();
+            if (job == null) {
+                return;
+            }
+            speculative = job.priority >= 0;
+            if (speculative && runningSpeculative >= speculativeParallelism) {
+                return;
+            }
+            queue.remove();
+            if (speculative) {
+                runningSpeculative++;
+            }
+            if (job.slot != null) {
                 job.slot.job = null;
             }
         }
-        if (job == null) {
-            return;
-        }
-        if (closed) {
-            job.drop(new CancellationException("Hydrology plan cache is closed."));
-            return;
-        }
         try {
+            if (closed) {
+                job.drop(new CancellationException("Hydrology plan cache is closed."));
+                return;
+            }
             job.body.run();
         } catch (Throwable failure) {
             if (job.slot != null) {
@@ -487,6 +508,25 @@ public final class HydrologyPlanCache {
             } else if (!closed) {
                 IrisLogging.reportError("A speculative hydrology task failed.", failure);
             }
+        } finally {
+            if (speculative) {
+                boolean pending;
+                synchronized (lock) {
+                    runningSpeculative--;
+                    pending = !closed && !queue.isEmpty();
+                }
+                if (pending) {
+                    dispatch();
+                }
+            }
+        }
+    }
+
+    private void dispatch() {
+        try {
+            pool.execute(this::runNext);
+        } catch (RejectedExecutionException rejected) {
+            abandonQueue(rejected);
         }
     }
 
@@ -513,8 +553,12 @@ public final class HydrologyPlanCache {
         slot.priority = priority;
         Job job = slot.job;
         if (job != null && queue.remove(job)) {
+            boolean demanded = job.priority >= 0 && priority < 0;
             job.priority = priority;
             queue.add(job);
+            if (demanded) {
+                dispatch();
+            }
         }
         for (Slot<RegionKey, RegionPlan> need : slot.needs) {
             promoteLocked(need, priority);
@@ -597,6 +641,7 @@ public final class HydrologyPlanCache {
 
     private final class Shelf<K, V> {
         private final ConcurrentHashMap<K, Slot<K, V>> slots = new ConcurrentHashMap<>();
+        private final AtomicLong evictions = new AtomicLong();
         private final int capacity;
         private final BiConsumer<K, Slot<K, V>> start;
 
@@ -658,7 +703,9 @@ public final class HydrologyPlanCache {
                 ready.sort(Comparator.comparingLong(Aged::used));
                 for (int index = 0; index < excess; index++) {
                     Slot<K, V> slot = ready.get(index).slot();
-                    slots.remove(slot.key, slot);
+                    if (slots.remove(slot.key, slot)) {
+                        evictions.incrementAndGet();
+                    }
                 }
             }
         }

@@ -94,11 +94,18 @@ public final class WindowPlanner {
         BitSet seeds = seeds(samples.ocean(), trunks);
         DemGrid preliminary = new DemGrid(raw.originX(), raw.originZ(), CELL, SPAN, SPAN);
         System.arraycopy(raw.values(), 0, preliminary.values(), 0, SPAN * SPAN);
-        BitSet channelHint = drain(preliminary, seeds, samples, trunks, lakes).channels();
+        Drainage initial = drain(preliminary, seeds, samples, trunks, lakes);
+        BitSet channelHint = (BitSet) initial.channels().clone();
         channelHint.andNot(trunks.cells());
         CupSet cups = ponds.subtractCups(raw, key, samples, channelHint);
-        trunks.descend(raw.values());
-        Drainage drainage = drain(raw, seeds, samples, trunks, lakes);
+        Drainage drainage;
+        if (cups.size() == 0) {
+            raw = preliminary;
+            drainage = initial;
+        } else {
+            trunks.descend(raw.values());
+            drainage = drain(raw, seeds, samples, trunks, lakes);
+        }
         List<Pond> water = new ArrayList<>(ponds.ponds(raw, drainage.filled(), drainage.basins(), lakes, fine, cups));
         water.addAll(lakes);
         ShapedNetwork network = shaper.shape(drainage.surface(), drainage.receivers(), drainage.accumulation(), drainage.channels(), water,
@@ -231,10 +238,8 @@ public final class WindowPlanner {
 
     private boolean keepHead(DemGrid surface, int cell, float rainfall) {
         HydrologySettings.Drainage drainage = settings.drainage();
-        if (!drainage.wetnessThinning()) {
-            return true;
-        }
-        float keep = Math.max(drainage.minimumHeadKeep(), rainfall);
+        float keep = drainage.wetnessThinning() ? Math.clamp(Math.max(drainage.minimumHeadKeep(), rainfall), 0f, 1f) : 1f;
+        keep *= settings.density();
         return CellHash.unit(CellHash.mix(settings.seed(), SALT_HEAD, surface.blockX(cell), surface.blockZ(cell))) < keep;
     }
 

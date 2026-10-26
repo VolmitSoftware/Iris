@@ -10,15 +10,24 @@ import art.arcane.iris.generation.hydrology.grid.HydrologySampleBuffer;
 import art.arcane.iris.generation.hydrology.grid.HydrologyTerrainSource;
 import art.arcane.iris.generation.hydrology.grid.PriorityFlood;
 import art.arcane.iris.generation.hydrology.plan.HydrologySettings;
+import art.arcane.iris.generation.hydrology.plan.IndexedWindow;
+import art.arcane.iris.generation.hydrology.plan.RegionKey;
+import art.arcane.iris.generation.hydrology.plan.RegionPlan;
 import art.arcane.iris.generation.hydrology.plan.WindowKey;
+import art.arcane.iris.generation.hydrology.plan.WindowPlan;
+import art.arcane.iris.generation.hydrology.raster.ChunkRasterizer;
+import art.arcane.iris.generation.hydrology.raster.ChunkWaterRaster;
+import art.arcane.iris.generation.hydrology.raster.ReachIndex;
 import art.arcane.volmlib.util.collection.KList;
 import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.DoubleBinaryOperator;
@@ -37,6 +46,77 @@ public class PondPlannerTest {
     private static final byte ALLOW_ALL = HydrologySampleBuffer.ALLOW_STREAMS | HydrologySampleBuffer.ALLOW_PONDS;
     private static final float BOWL_SPILL = 112f;
     private static final WindowKey ORIGIN = new WindowKey(0, 0);
+
+    @Test
+    public void smallSeededPondFollowsItsBowlAtBlockResolution() {
+        HydrologySettings settings = settings(config -> {
+            seededOnly(config);
+            config.getPonds().getSeeded().setDensity(1D).setRadius(new KList<>(8, 8)).setDepth(new KList<>(6, 6))
+                    .setAlongChannels(false);
+            config.getPonds().setFreeboard(new KList<>(1, 1));
+            config.getPonds().getShore().setRoundness(0D);
+        }, MIN_Y, MAX_Y);
+        List<Pond> ponds = plan(settings, new Terrain((x, z) -> 100D, 1f, ALLOW_ALL, null, MIN_Y, MAX_Y),
+                0, 0, 64, 64, new BitSet(), List.of());
+        Pond pond = single(ponds);
+        PondMask mask = pond.mask();
+        assertEquals(1, mask.step());
+        int wet = 0;
+        int minX = Integer.MAX_VALUE;
+        int minZ = Integer.MAX_VALUE;
+        int maxX = Integer.MIN_VALUE;
+        int maxZ = Integer.MIN_VALUE;
+        for (int j = 0; j < mask.depth(); j++) {
+            for (int i = 0; i < mask.width(); i++) {
+                if (mask.node(i, j)) {
+                    wet++;
+                    minX = Math.min(minX, i);
+                    minZ = Math.min(minZ, j);
+                    maxX = Math.max(maxX, i);
+                    maxZ = Math.max(maxZ, j);
+                }
+            }
+        }
+        int rectangle = (maxX - minX + 1) * (maxZ - minZ + 1);
+        assertTrue("rounded bowl occupies " + wet + " of " + rectangle + " bounding blocks", wet < rectangle * 0.9D);
+        assertFalse(mask.node(minX, minZ));
+        assertFalse(mask.node(maxX, maxZ));
+        assertTrue(mask.contains(pond.floorX(), pond.floorZ()));
+    }
+
+    @Test
+    public void globalDensityHalvesSaturatedSeededSiteAcceptance() {
+        HydrologySettings full = settings(config -> {
+            seededOnly(config);
+            config.getPonds().getSeeded().setDensity(16D).setAlongChannels(false);
+        }, MIN_Y, MAX_Y);
+        HydrologySettings half = settings(config -> {
+            seededOnly(config);
+            config.setDensity(0.5D);
+            config.getPonds().getSeeded().setDensity(16D).setAlongChannels(false);
+        }, MIN_Y, MAX_Y);
+        Terrain terrain = new Terrain((x, z) -> 100D, 1f, ALLOW_ALL, null, MIN_Y, MAX_Y);
+        Set<Long> all = seededSites(full, terrain);
+        Set<Long> reduced = seededSites(half, terrain);
+        assertTrue("full candidates " + all.size(), all.size() >= 450);
+        assertTrue(all.containsAll(reduced));
+        double fraction = reduced.size() / (double) all.size();
+        assertTrue("retained fraction " + fraction, fraction > 0.44D && fraction < 0.56D);
+    }
+
+    private static Set<Long> seededSites(HydrologySettings settings, Terrain terrain) {
+        Set<Long> sites = new HashSet<>();
+        for (int window = 0; window < 32; window++) {
+            int x = window * WindowKey.SIZE;
+            Sampled sampled = sample(terrain, 8, x, 0, 64, 64);
+            Arrays.fill(sampled.samples().pondDensity(), 100f);
+            CupSet cups = new PondPlanner(settings).subtractCups(sampled.grid(), new WindowKey(window, 0), sampled.samples(), new BitSet());
+            for (CupSet.Cup cup : cups.within(x, 0, x + WindowKey.SIZE, WindowKey.SIZE)) {
+                sites.add(((long) cup.x() << 32) | (cup.z() & 0xFFFFFFFFL));
+            }
+        }
+        return sites;
+    }
 
     @Test
     public void naturalBasinPondSitsBelowSpill() {
@@ -187,6 +267,7 @@ public class PondPlannerTest {
         assertTrue(pond.mask().contains(200, 256));
         assertTrue(pond.mask().contains(312, 256));
         assertContained(pond, terrain);
+        assertRasterRimContained(settings, pond, terrain);
     }
 
     @Test
@@ -527,6 +608,43 @@ public class PondPlannerTest {
         return new PondMask(x, 208, 16, 1, 7, new long[]{0b1111111L});
     }
 
+    private static void assertRasterRimContained(HydrologySettings settings, Pond pond, DoubleBinaryOperator natural) {
+        Map<Long, ChunkWaterRaster> rasters = new HashMap<>();
+        ChunkRasterizer rasterizer = new ChunkRasterizer(settings);
+        int raised = 0;
+        int[][] sides = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
+        for (int[] wet : wetNodes(pond.mask())) {
+            for (int[] side : sides) {
+                int x = wet[0] + side[0];
+                int z = wet[1] + side[1];
+                if (pond.mask().contains(x, z)) {
+                    continue;
+                }
+                long key = ((long) (x >> 4) << 32) | ((z >> 4) & 0xFFFFFFFFL);
+                ChunkWaterRaster raster = rasters.get(key);
+                if (raster == null) {
+                    WindowPlan window = new WindowPlan(WindowKey.containing(x, z), List.of(), List.of(pond), List.of());
+                    IndexedWindow indexed = new IndexedWindow(window, ReachIndex.build(List.of(), List.of(pond)));
+                    List<RegionPlan> regions = new ArrayList<>();
+                    for (RegionKey region : ChunkRasterizer.lakeRegions(x >> 4, z >> 4)) {
+                        regions.add(new RegionPlan(region, List.of(), List.of()));
+                    }
+                    raster = rasterizer.rasterize(x >> 4, z >> 4, (px, pz) -> (int) Math.round(natural.applyAsDouble(px, pz)),
+                            List.of(indexed), regions);
+                    rasters.put(key, raster);
+                }
+                int ground = (int) Math.round(natural.applyAsDouble(x, z));
+                int actual = raster.terrainHeight(x & 15, z & 15);
+                assertTrue("dry rim contains the water at " + x + "," + z, actual >= pond.level());
+                assertTrue("rim fill remains bounded at " + x + "," + z, actual <= ground + settings.deformation().maxFill());
+                if (actual > ground) {
+                    raised++;
+                }
+            }
+        }
+        assertTrue("sub-lattice rim needs real raster berms", raised > 0);
+    }
+
     private static Pond lake(PondMask mask) {
         return new Pond(42L, PondKind.LAKE, 110, 100, mask.originX(), mask.originZ(), 111f, mask, 0L, 0, "water", mask.originX(), mask.originZ());
     }
@@ -548,6 +666,7 @@ public class PondPlannerTest {
     private static void assertContained(Pond pond, DoubleBinaryOperator natural) {
         PondMask mask = pond.mask();
         int step = mask.step();
+        int maxFill = new IrisHydrology().getDeformation().getMaxFill();
         List<int[]> nodes = wetNodes(mask);
         assertFalse(nodes.isEmpty());
         assertTrue("floor " + pond.floor() + " level " + pond.level(), pond.floor() < pond.level());
@@ -557,8 +676,8 @@ public class PondPlannerTest {
                 int x = node[0] + direction[0];
                 int z = node[1] + direction[1];
                 if (!mask.contains(x, z)) {
-                    float edge = (float) natural.applyAsDouble(x, z);
-                    assertTrue("edge " + x + "," + z + " natural " + edge + " level " + pond.level(), edge >= pond.level());
+                    long edge = Math.round(natural.applyAsDouble(x, z));
+                    assertTrue("edge " + x + "," + z + " natural " + edge + " level " + pond.level(), edge + maxFill >= pond.level());
                 }
             }
         }

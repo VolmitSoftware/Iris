@@ -19,6 +19,7 @@ public final class CavePoolFiller {
     private static final long SALT_COLUMN = 0x434156434f4c00L;
     private static final long SALT_FLOOR = 0x4341564652L << 20;
     private static final long SALT_FREEBOARD = 0x43415646524244L;
+    private static final long SALT_DENSITY = 0x43415644454e53L;
     private static final HydrologyCaveCell GUARD = HydrologyCaveCell.of(HydrologyCaveAction.SEAL_GUARD);
     private static final CaveVoxel[] VOXELS = CaveVoxel.values();
     private static final int[] DX = {1, -1, 0, 0, 0, 0};
@@ -31,18 +32,23 @@ public final class CavePoolFiller {
 
     private final HydrologySettings.CavePools pools;
     private final Set<String> fluids;
+    private final float density;
 
     public CavePoolFiller(HydrologySettings settings) {
         this.pools = settings.underground().cavePools();
         this.fluids = settings.fluids().keySet();
+        this.density = settings.density();
     }
 
     public void fill(int chunkX, int chunkZ, CarvedTerrain carved, MantleWriter writer, long seed) {
-        if (!pools.enabled()) {
+        if (!pools.enabled() || density == 0f) {
             return;
         }
         int attempts = attempts(seed, chunkX, chunkZ);
         for (int attempt = 0; attempt < attempts; attempt++) {
+            if (density < 1f && CellHash.unit(CellHash.mix(seed, SALT_DENSITY + attempt, chunkX, chunkZ)) >= density) {
+                continue;
+            }
             long column = CellHash.mix(seed, SALT_COLUMN + attempt, chunkX, chunkZ);
             int x = (chunkX << 4) + (int) (column & 15);
             int z = (chunkZ << 4) + (int) ((column >>> 4) & 15);

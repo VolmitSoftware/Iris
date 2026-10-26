@@ -30,7 +30,20 @@ public class HydrologySettingsTest {
     private static final int SEA_LEVEL = 62;
     private static final int MIN_Y = -64;
     private static final int MAX_Y = 320;
-    private static final long DEFAULT_FINGERPRINT = 3973071586549334460L;
+    private static final long DEFAULT_FINGERPRINT = 8818472145657699942L;
+
+    @Test
+    public void densityIsBoundedAndChangesThePlanIdentity() {
+        HydrologySettings full = compile(new IrisHydrology());
+        HydrologySettings half = compile(new IrisHydrology().setDensity(0.5D));
+        assertEquals(1f, full.density(), 0f);
+        assertEquals(0.5f, half.density(), 0f);
+        assertTrue(full.fingerprint() != half.fingerprint());
+        assertEquals(full.tiers(), half.tiers());
+        for (double invalid : new double[]{-0.01D, 1.01D, Double.NaN, Double.POSITIVE_INFINITY}) {
+            assertRejected(new IrisHydrology().setDensity(invalid), "density");
+        }
+    }
 
     @Rule
     public final TemporaryFolder temporary = new TemporaryFolder();

@@ -3,6 +3,7 @@ package art.arcane.iris.generation.hydrology.plan;
 import art.arcane.iris.generation.hydrology.grid.Basin;
 import art.arcane.iris.generation.hydrology.grid.BasinExtractor;
 import art.arcane.iris.generation.hydrology.grid.Breacher;
+import art.arcane.iris.generation.hydrology.grid.CellHash;
 import art.arcane.iris.generation.hydrology.grid.ChannelHeads;
 import art.arcane.iris.generation.hydrology.grid.D8Router;
 import art.arcane.iris.generation.hydrology.grid.DemGrid;
@@ -28,6 +29,7 @@ public final class RegionPlanner {
     private static final int SPAN = 3 * REGION_CELLS;
     private static final float BASIN_DEPTH = 0.5f;
     private static final int BREACH_PASSES = 8;
+    private static final long SALT_HEAD = 0x4d414a4f524844L;
 
     private final HydrologySettings settings;
     private final HeightLattice lattice;
@@ -127,7 +129,7 @@ public final class RegionPlanner {
         float[] accumulation = FlowAccumulator.accumulate(receivers, filled, weights, settings.drainage().saturationCatchment());
         BitSet candidates = ChannelHeads.candidates(surface, accumulation, samples.permission(), settings.majorTier().minCatchment(), settings.seaLevel());
         BitSet channels = ChannelHeads.keep(surface, samples.height(), receivers, candidates, settings.drainage().headRelief(), cell -> false,
-                cell -> true);
+                cell -> CellHash.unit(CellHash.mix(settings.seed(), SALT_HEAD, surface.blockX(cell), surface.blockZ(cell))) < settings.density());
         return shaper.coarsePaths(surface, receivers, accumulation, channels, settings.seed());
     }
 

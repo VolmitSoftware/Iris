@@ -35,6 +35,14 @@ public class RegionPlannerTest {
     private static final RegionKey EAST = new RegionKey(1, 0);
 
     @Test
+    public void zeroDensityRemovesMajorChannelsAndLakes() {
+        HydrologySettings settings = HydrologySettings.compile(new IrisHydrology().setDensity(0D), SEED, SEA_LEVEL,
+                SyntheticTerrain.MIN_Y, SyntheticTerrain.MAX_Y);
+        assertTrue(planner(settings, SyntheticTerrain.coneIsland(2048D, 2048D, 1700D, 240D, 6)).plan(ORIGIN).majorReaches().isEmpty());
+        assertTrue(planner(settings, SyntheticTerrain.crater(2048D, 2048D, 150, 700D)).plan(ORIGIN).lakes().isEmpty());
+    }
+
+    @Test
     public void coneIslandMajorReachesEndInOcean() {
         HydrologySettings settings = settings();
         SyntheticTerrain terrain = SyntheticTerrain.coneIsland(2048D, 2048D, 1700D, 240D, 6);

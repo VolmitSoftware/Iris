@@ -158,13 +158,6 @@ public final class GenerationRegistryContractFactory {
         CustomBiomeAliasPolicy requiredAliasPolicy = Objects.requireNonNull(aliasPolicy, "aliasPolicy");
         requireRuntimeIdentity(requiredGenerationRegistry);
         Path packRoot = requiredData.getDataFolder().toPath().toAbsolutePath().normalize();
-        String actualPackFingerprint = GenerationPackFingerprint.compute(
-                packRoot,
-                GenerationPackFingerprint.CURRENT_VERSION
-        );
-        if (!requiredPackFingerprint.equals(actualPackFingerprint)) {
-            throw new IOException("Iris generation registry capture rejected a changed pack.");
-        }
 
         Map<GenerationRegistryContract.PhysicalResourceKey, PlatformGenerationRegistry.Definition> definitions =
                 new LinkedHashMap<>();
@@ -221,7 +214,15 @@ public final class GenerationRegistryContractFactory {
         ReferencedPlatformKeys referenced = referencedPlatformKeys(packRoot, requiredRegistries);
         addPlatformDefinitions(definitions, BLOCK_REGISTRY, referenced.blockKeys(), requiredGenerationRegistry);
         addPlatformDefinitions(definitions, ENTITY_TYPE_REGISTRY, referenced.entityKeys(), requiredGenerationRegistry);
-        return contract(definitions, generatedSources, requiredGenerationRegistry).withBiomeTags(biomeTags);
+        GenerationRegistryContract captured = contract(definitions, generatedSources, requiredGenerationRegistry).withBiomeTags(biomeTags);
+        String actualPackFingerprint = GenerationPackFingerprint.compute(
+                packRoot,
+                GenerationPackFingerprint.CURRENT_VERSION
+        );
+        if (!requiredPackFingerprint.equals(actualPackFingerprint)) {
+            throw new IOException("Iris generation registry capture rejected a changed pack.");
+        }
+        return captured;
     }
 
     public static CustomBiomeDefinition customBiomeDefinition(

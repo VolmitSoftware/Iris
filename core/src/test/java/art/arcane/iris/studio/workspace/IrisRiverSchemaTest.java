@@ -68,6 +68,11 @@ public class IrisRiverSchemaTest {
         JSONObject fluid = referencedProperties(definitions, properties.getJSONObject("fluids").getJSONObject("items"));
 
         assertEquals("boolean", properties.getJSONObject("enabled").getString("type"));
+        JSONObject density = properties.getJSONObject("density");
+        assertEquals("number", density.getString("type"));
+        assertEquals(0D, density.getDouble("minimum"), 0D);
+        assertEquals(1D, density.getDouble("maximum"), 0D);
+        assertTrue(density.getString("description").contains("Default Value is 1.0"));
         assertEquals("boolean", properties.getJSONObject("persist").getString("type"));
         assertEquals(0, properties.getJSONObject("prefetchRings").getInt("minimum"));
         assertEquals(4, properties.getJSONObject("prefetchRings").getInt("maximum"));

@@ -22,6 +22,31 @@ public class SeaInletPlannerTest {
     private static final int SEA = InletTerrain.SEA;
 
     @Test
+    public void globalDensityThinsInletSitesWithoutChangingTheirGeometry() {
+        InletTerrain terrain = InletTerrain.cliff(30D);
+        IrisHydrology full = new IrisHydrology();
+        IrisHydrology half = new IrisHydrology().setDensity(0.5D);
+        full.getUnderground().getSeaInlets().setSpacing(256);
+        half.getUnderground().getSeaInlets().setSpacing(256);
+        int baseline = 0;
+        int retained = 0;
+        for (int offset = 0; offset < 32; offset++) {
+            InletTerrain shifted = terrain.shifted(0, offset * 512);
+            List<SeaInlet> all = shifted.plan(InletTerrain.settings(full));
+            List<SeaInlet> reduced = shifted.plan(InletTerrain.settings(half));
+            baseline += all.size();
+            retained += reduced.size();
+            for (SeaInlet inlet : reduced) {
+                assertTrue("retained inlets keep the same full passage", all.contains(inlet));
+            }
+            assertEquals(reduced, shifted.plan(InletTerrain.settings(half)));
+        }
+        assertTrue("cliff provides enough candidates", baseline >= 32);
+        assertTrue("half density retains approximately half the sites", retained > baseline * 0.3 && retained < baseline * 0.7);
+        assertTrue(terrain.plan(InletTerrain.settings(new IrisHydrology().setDensity(0D))).isEmpty());
+    }
+
+    @Test
     public void inletStartsAtOceanCell() {
         InletTerrain terrain = InletTerrain.cliff(30D);
         List<SeaInlet> inlets = terrain.plan(InletTerrain.settings());

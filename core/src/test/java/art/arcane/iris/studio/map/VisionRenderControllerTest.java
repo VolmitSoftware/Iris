@@ -13,6 +13,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BooleanSupplier;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -99,6 +101,42 @@ public class VisionRenderControllerTest {
             VisionRenderController.Frame second = controller.request(spec(renderer, 2L));
             await(() -> second.tiles().getFirst().tile() != null);
             assertEquals(2, attempts.get());
+        }
+    }
+
+    @Test
+    public void zoomRetainsCompleteWaterTilesWhileDetailedTilesAreProvisional() throws Exception {
+        MapTileRenderer renderer = mock(MapTileRenderer.class);
+        MapTile overview = mock(MapTile.class);
+        MapTile incomplete = mock(MapTile.class);
+        when(renderer.renderTile(anyDouble(), anyDouble(), anyDouble(), anyInt(), any(), anyBoolean(), any()))
+                .thenAnswer(invocation -> {
+                    double scale = invocation.getArgument(2);
+                    if (scale < 4D) {
+                        ProvisionalSampling.mark();
+                        return incomplete;
+                    }
+                    return overview;
+                });
+        try (VisionRenderController controller = new VisionRenderController(() -> { })) {
+            VisionRenderController.Frame coarse = controller.request(new VisionRenderController.RenderSpec(renderer,
+                    MapLayer.of(TileType.RIVER), 1L, 128D, 128D, 4D, 64, 64, false));
+            await(() -> controller.progress(coarse).ready() == 1);
+
+            VisionRenderController.Frame fine = controller.request(spec(renderer, 1L));
+            await(() -> fine.tiles().getFirst().tile() != null);
+            VisionRenderController.VisibleTile visible = fine.tiles().getFirst();
+            assertTrue(visible.provisional());
+            assertEquals(0, controller.progress(fine).ready());
+            VisionRenderController.Fallback retained = controller.fallback(fine, visible);
+            assertNotNull(retained);
+            assertSame(overview, retained.pieces().getFirst().tile());
+            assertEquals(16, retained.pieces().getFirst().sourceSize());
+
+            VisionRenderController.Frame returned = controller.request(new VisionRenderController.RenderSpec(renderer,
+                    MapLayer.of(TileType.RIVER), 1L, 128D, 128D, 4D, 64, 64, false));
+            assertSame(overview, returned.tiles().getFirst().tile());
+            assertFalse(returned.tiles().getFirst().provisional());
         }
     }
 

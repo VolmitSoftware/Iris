@@ -90,6 +90,7 @@ final class WaterMap {
             lakes.add(lake.id());
         }
         Map<Long, ChunkWaterRaster> rasters = new HashMap<>();
+        WaterMap planned = null;
         for (int pixelZ = 0; pixelZ < resolution; pixelZ++) {
             checkCancelled();
             int minimumZ = (int) Math.floor(startZ + pixelZ * step);
@@ -102,6 +103,11 @@ final class WaterMap {
                         ChunkWaterRaster raster = raster(rasters, x >> 4, z >> 4);
                         if (raster.provisional()) {
                             provisional = true;
+                            if (planned == null) {
+                                planned = new WaterMap(runtime, resolution, startX, startZ, step, cancelled);
+                                planned.drawPlans(plans);
+                            }
+                            stamp(pixelX, pixelZ, planned.at(pixelX, pixelZ));
                         } else if (!raster.empty()) {
                             stamp(pixelX, pixelZ, columnType(raster, x & 15, z & 15, lakes));
                         }

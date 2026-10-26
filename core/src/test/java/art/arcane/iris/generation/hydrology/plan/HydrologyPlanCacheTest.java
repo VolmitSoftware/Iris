@@ -318,6 +318,41 @@ public class HydrologyPlanCacheTest {
     }
 
     @Test
+    public void speculativePlanningLeavesWorkersForNewAndPromotedDemand() throws Exception {
+        for (int threads : List.of(2, 4)) {
+            FakePlanners planners = new FakePlanners(unpersisted());
+            Gate gate = new Gate();
+            planners.hook = key -> {
+                if (key instanceof RegionKey region && Math.abs(region.rx()) < 10 && Math.abs(region.rz()) < 10) {
+                    gate.pass();
+                }
+            };
+            ExecutorService workers = pool(threads);
+            HydrologyPlanCache cache = cache(planners, workers, () -> false);
+            CompletableFuture<Void> prepared = cache.prepareWindowsAround(0, 0, 31, 31, 2);
+            try {
+                await(() -> gate.arrivals() >= threads / 2, "speculative planning reaches its concurrency limit");
+                WindowKey demanded = new WindowKey(400, 400);
+                assertEquals(demanded, cache.demandWindow(demanded).get(5L, TimeUnit.SECONDS).plan().key());
+                assertEquals("prefetch leaves workers available for demand", threads / 2, gate.arrivals());
+
+                WindowKey promoted = new WindowKey(800, 800);
+                CompletableFuture<IndexedWindow> prefetched = cache.prefetchWindow(promoted);
+                workers.submit(() -> null).get(5L, TimeUnit.SECONDS);
+                assertFalse("the prefetch waits for speculative capacity", prefetched.isDone());
+                IndexedWindow ready = cache.demandWindow(promoted).get(5L, TimeUnit.SECONDS);
+                assertEquals(promoted, ready.plan().key());
+                assertSame("demand promotes the queued prefetch", ready, prefetched.get(5L, TimeUnit.SECONDS));
+                assertEquals(threads / 2, gate.arrivals());
+            } finally {
+                gate.release();
+            }
+            prepared.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            assertEquals("all prepared windows finish after demand", 27, planners.windowCalls.size());
+        }
+    }
+
+    @Test
     public void plansWithRealPlannersAndReloadsFromStore() throws Exception {
         HydrologySettings settings = settings(new IrisHydrology());
         SyntheticTerrain terrain = SyntheticTerrain.fractal(SEED);
@@ -412,13 +447,14 @@ public class HydrologyPlanCacheTest {
     }
 
     @Test
-    public void leastRecentlyUsedWindowIsEvicted() {
+    public void leastRecentlyUsedWindowIsEvicted() throws Exception {
         FakePlanners planners = new FakePlanners(unpersisted());
         HydrologyPlanCache cache = cache(planners, pool(4), () -> false);
         WindowKey kept = new WindowKey(0, 0);
         WindowKey stale = new WindowKey(1, 0);
         IndexedWindow keptWindow = cache.window(kept);
         cache.window(stale);
+        assertEquals(0L, cache.windowEvictions());
         List<WindowKey> requested = new ArrayList<>(List.of(kept, stale));
         for (int index = 0; index < 300; index++) {
             WindowKey key = new WindowKey(index, 7);
@@ -435,8 +471,13 @@ public class HydrologyPlanCacheTest {
             }
         }
         assertTrue("the cache stays bounded: " + ready, ready < requested.size() / 2);
+        await(() -> cache.windowEvictions() == requested.size() - 128, "all excess windows are evicted");
+        long evictions = cache.windowEvictions();
+        assertSame(keptWindow, cache.window(kept));
+        assertEquals("a resident cache hit does not evict a window", evictions, cache.windowEvictions());
         cache.window(stale);
         assertEquals("an evicted window is planned again on demand", 2, planners.windowCalls(stale));
+        await(() -> cache.windowEvictions() == evictions + 1, "replanning an evicted window advances the eviction count");
     }
 
     @Test

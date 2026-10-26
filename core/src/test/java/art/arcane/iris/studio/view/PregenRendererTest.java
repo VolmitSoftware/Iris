@@ -11,8 +11,12 @@ import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JTextArea;
+import javax.swing.JToggleButton;
+import javax.swing.JViewport;
 import javax.swing.KeyStroke;
 import javax.swing.SwingUtilities;
+import java.awt.Component;
+import java.awt.Container;
 import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
 import java.lang.reflect.Constructor;
@@ -27,6 +31,50 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mockStatic;
 
 public class PregenRendererTest {
+    @Test
+    public void smallWindowOpensAtTheProgressHeaderWithoutScrollingAway() throws Exception {
+        PregenRenderer[] result = new PregenRenderer[1];
+        onEdt(() -> {
+            result[0] = renderer(new Source(), () -> { });
+            result[0].setSize(820, 520);
+            layout(result[0]);
+        });
+        try {
+            onEdt(() -> layout(result[0]));
+            onEdt(() -> assertScrollAtTop(result[0]));
+        } finally {
+            onEdt(result[0]::close);
+        }
+    }
+
+    @Test
+    public void mapShortcutsZoomPanResetAndKeepGridControlSynchronized() throws Exception {
+        onEdt(() -> {
+            PregenRenderer renderer = renderer(new Source(), () -> { });
+            try {
+                PregenMapPanel map = field(renderer, "map", PregenMapPanel.class);
+                map.setSize(1000, 600);
+                map.setCoveredLeftWidth(300);
+                shortcut(renderer, KeyEvent.VK_EQUALS);
+                assertTrue(map.zoom() > 1D);
+                shortcut(renderer, KeyEvent.VK_LEFT);
+                shortcut(renderer, KeyEvent.VK_R);
+                assertEquals(1D, map.zoom(), 0D);
+                shortcut(renderer, KeyEvent.VK_G);
+                assertTrue(map.isGridVisible());
+                JToggleButton grid = field(renderer, "gridToggle", JToggleButton.class);
+                assertTrue(grid.isSelected());
+                grid.doClick(0);
+                assertFalse(map.isGridVisible());
+                assertFalse(grid.isSelected());
+                shortcut(renderer, KeyEvent.VK_SLASH);
+                shortcut(renderer, KeyEvent.VK_ESCAPE);
+            } finally {
+                renderer.close();
+            }
+        });
+    }
+
     @Test
     public void keyboardAndButtonActivationToggleExactlyOnceAndTerminalControlsAreDisabled() throws Exception {
         onEdt(() -> {
@@ -153,6 +201,32 @@ public class PregenRendererTest {
         Method refresh = PregenRenderer.class.getDeclaredMethod("refresh");
         refresh.setAccessible(true);
         refresh.invoke(renderer);
+    }
+
+    private static void shortcut(PregenRenderer renderer, int keyCode) {
+        Object action = renderer.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW)
+                .get(KeyStroke.getKeyStroke(keyCode, 0));
+        renderer.getActionMap().get(action).actionPerformed(new ActionEvent(renderer, 0, "shortcut"));
+    }
+
+    private static void layout(Container container) {
+        container.doLayout();
+        for (Component component : container.getComponents()) {
+            if (component instanceof Container child) {
+                layout(child);
+            }
+        }
+    }
+
+    private static void assertScrollAtTop(Container container) {
+        for (Component component : container.getComponents()) {
+            if (component instanceof JViewport viewport) {
+                assertEquals(0, viewport.getViewPosition().y);
+            }
+            if (component instanceof Container child) {
+                assertScrollAtTop(child);
+            }
+        }
     }
 
     private static <T> T field(PregenRenderer renderer, String name, Class<T> type) throws Exception {

@@ -578,6 +578,10 @@ final class VisionRenderController implements AutoCloseable {
             return tile;
         }
 
+        boolean provisional() {
+            return provisional;
+        }
+
         private void setTile(MapTile tile) {
             this.tile = tile;
             provisional = false;

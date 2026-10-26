@@ -388,10 +388,6 @@ public class StudioSVC implements IrisService {
                     fingerprint,
                     aliasPolicy
             );
-            if (!fingerprint.equals(GenerationPackFingerprint.compute(
-                    packRoot, GenerationPackFingerprint.CURRENT_VERSION))) {
-                throw new IOException("Generation pack changed during validation: " + packRoot);
-            }
             return new GenerationCandidate(fingerprint, dimensionContract, registryContract);
         } finally {
             data.close();

@@ -17,6 +17,11 @@ public class IrisHydrology {
     @Description("Turns rivers, streams, ponds, lakes and underground water on for this dimension.")
     private boolean enabled = false;
 
+    @MinNumber(0)
+    @MaxNumber(1)
+    @Description("Fraction of eligible water features to keep after local placement probabilities. 0.5 keeps half the candidate river sources, ponds, lakes and underground water features without changing their configured sizes.")
+    private double density = 1D;
+
     @Description("How water drains across the terrain before rivers and ponds are placed.")
     private IrisHydrologyDrainage drainage = new IrisHydrologyDrainage();
 

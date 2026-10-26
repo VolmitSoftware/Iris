@@ -28,11 +28,50 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 public class CavePoolFillerTest {
     private static final long SEED = 1337L;
     private static final int FLOOR = 50;
+
+    @Test
+    public void globalDensityThinsCandidateColumnsBeforeSamplingCaves() {
+        IrisHydrology config = new IrisHydrology().setDensity(0.5D);
+        config.getUnderground().getCavePools().setDensity(8D);
+        CavePoolFiller filler = new CavePoolFiller(HydrologySettings.compile(config, SEED, 63, 0, 384));
+        CarvedTerrain carved = mock(CarvedTerrain.class);
+        MantleWriter writer = mock(MantleWriter.class);
+        Set<Long> columns = new HashSet<>();
+        when(carved.surface(anyInt(), anyInt())).thenAnswer(invocation -> {
+            int x = invocation.getArgument(0);
+            int z = invocation.getArgument(1);
+            columns.add(key(x, 0, z));
+            return 0;
+        });
+        for (int chunkX = 0; chunkX < 1024; chunkX++) {
+            filler.fill(chunkX, 0, carved, writer, SEED);
+        }
+        assertTrue("half density samples approximately half the candidate columns", columns.size() > 3600 && columns.size() < 4500);
+        Set<Long> repeated = new HashSet<>(columns);
+        columns.clear();
+        for (int chunkX = 1023; chunkX >= 0; chunkX--) {
+            filler.fill(chunkX, 0, carved, writer, SEED);
+        }
+        assertEquals(repeated, columns);
+        verifyNoInteractions(writer);
+    }
+
+    @Test
+    public void zeroGlobalDensityDoesNotReadCaves() {
+        IrisHydrology config = new IrisHydrology().setDensity(0D);
+        config.getUnderground().getCavePools().setDensity(8D);
+        CavePoolFiller filler = new CavePoolFiller(HydrologySettings.compile(config, SEED, 63, 0, 384));
+        CarvedTerrain carved = mock(CarvedTerrain.class);
+        MantleWriter writer = mock(MantleWriter.class);
+        filler.fill(0, 0, carved, writer, SEED);
+        verifyNoInteractions(carved, writer);
+    }
 
     @Test
     public void poolLevelIsHighestContainedLevelMinusFreeboard() {

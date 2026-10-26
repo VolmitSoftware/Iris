@@ -23,6 +23,10 @@ import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.IrisServices;
+import art.arcane.iris.studio.map.components.MapLayer;
+import art.arcane.iris.studio.map.components.MapTile;
+import art.arcane.iris.studio.map.components.MapTileRenderer;
+import art.arcane.iris.studio.map.components.TileType;
 import art.arcane.iris.structure.object.IObjectPlacer;
 import art.arcane.iris.testsupport.FakeHydrology;
 import art.arcane.iris.testsupport.PlatformLeakGuard;
@@ -44,12 +48,14 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CancellationException;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
@@ -205,6 +211,35 @@ public class IrisComplexHeightStreamTest {
             bulk.fillChunkDoubles(0, 0, values);
             assertBits(landed.terrainHeight(8, 8), values[8 << 4 | 8]);
             assertBits(landed.terrainHeight(8, 8), heights.getDouble(8, 8));
+        }
+    }
+
+    @Test(timeout = 15_000L)
+    public void mapHeightPreviewReturnsWhilePlanningAndRefreshesToFinalTerrain() throws Exception {
+        try (HydrologyFixture fixture = new HydrologyFixture(hydrologyPack())) {
+            fixture.hydrology.hold();
+            MapTileRenderer renderer = new MapTileRenderer(fixture.engine);
+            MapLayer layer = MapLayer.of(TileType.HEIGHT);
+            long before = ProvisionalSampling.revision();
+
+            MapTile preview = renderer.renderTile(0D, 0D, 1D, 16, layer, true, () -> false);
+
+            assertEquals(HydrologyFixture.NATURAL, preview.heightAt(8, 8), 0D);
+            assertNotEquals(before, ProvisionalSampling.revision());
+            fixture.hydrology.release();
+            long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10L);
+            MapTile settled;
+            do {
+                assertTrue("Map height preview never settled", System.nanoTime() < deadline);
+                Thread.sleep(10L);
+                before = ProvisionalSampling.revision();
+                settled = renderer.renderTile(0D, 0D, 1D, 16, layer, true, () -> false);
+            } while (before != ProvisionalSampling.revision());
+
+            double terrain = fixture.complex.getHeightStream().getDouble(8D, 8D);
+            assertNotEquals(HydrologyFixture.NATURAL, terrain, 0D);
+            assertEquals(terrain, settled.heightAt(8, 8), 0D);
+            assertEquals(before, ProvisionalSampling.revision());
         }
     }
 

@@ -60,6 +60,7 @@ public final class HydrologyRuntime {
     private static final int CHUNKS_PER_WINDOW = WindowKey.SIZE >> 4;
     public static final int MAX_PREGENERATION_REGIONS = 4096;
     private static final int MAX_PREVIEW_REQUESTS = 64;
+    private static final int PREFETCH_CAPACITY = 16;
     private static final HydrologyRuntime DISABLED = new HydrologyRuntime();
 
     private final HydrologySettings settings;
@@ -74,6 +75,7 @@ public final class HydrologyRuntime {
     private final RasterFailures windowPreviewFailures;
     private final RasterFailures regionPreviewFailures;
     private final Set<Object> previews;
+    private final LinkedHashMap<WindowKey, WindowPrefetch> prefetches;
     private final HydrologyBinding binding;
     private final Function<PreparedHydrologyCacheIdentity, HydrologyPlanStore> stores;
     private final boolean caveFluidPolicies;
@@ -94,6 +96,7 @@ public final class HydrologyRuntime {
         this.windowPreviewFailures = null;
         this.regionPreviewFailures = null;
         this.previews = null;
+        this.prefetches = null;
         this.binding = HydrologyBinding.UNBOUND;
         this.stores = identity -> null;
         this.caveFluidPolicies = false;
@@ -119,6 +122,7 @@ public final class HydrologyRuntime {
         this.windowPreviewFailures = new RasterFailures(ticker);
         this.regionPreviewFailures = new RasterFailures(ticker);
         this.previews = new HashSet<>();
+        this.prefetches = new LinkedHashMap<>(PREFETCH_CAPACITY * 2, 0.75f, true);
         this.binding = Objects.requireNonNull(binding, "binding");
         this.stores = Objects.requireNonNull(stores, "stores");
         this.caveFluidPolicies = caveFluidPolicies;
@@ -135,6 +139,9 @@ public final class HydrologyRuntime {
                 engine.getHeight());
         boolean caveFluidPolicies = settings.underground().cavePools().enabled()
                 && requireBiomeFluids(dimension.getReachableBiomes(engine), settings);
+        if (settings.density() == 0D) {
+            return DISABLED;
+        }
         HydrologyBinding binding = binding(engine, complex);
         IrisHydrologyTerrainSource source = new IrisHydrologyTerrainSource(complex, dimension, settings, MultiBurst.hydrology,
                 MultiBurst.hydrology.parallelism(), binding);
@@ -203,16 +210,24 @@ public final class HydrologyRuntime {
         return settings;
     }
 
+    public PreviewScope preview() {
+        return new PreviewScope(cache == null ? null : last.get());
+    }
+
     public ChunkWaterRaster raster(int chunkX, int chunkZ) {
         if (cache == null) {
             return ChunkWaterRaster.EMPTY;
+        }
+        LastRaster slot = last.get();
+        if (slot.preview) {
+            return rasterPreview(chunkX, chunkZ);
         }
         if (mainThread.getAsBoolean()) {
             return rasterSnapshot(chunkX, chunkZ);
         }
         requireOpen();
         long key = key(chunkX, chunkZ);
-        ChunkWaterRaster known = remembered(key);
+        ChunkWaterRaster known = remembered(key, slot);
         return known != null ? known : remember(key, planned(chunkX, chunkZ, key));
     }
 
@@ -224,7 +239,7 @@ public final class HydrologyRuntime {
             return ChunkWaterRaster.PROVISIONAL;
         }
         long key = key(chunkX, chunkZ);
-        ChunkWaterRaster known = remembered(key);
+        ChunkWaterRaster known = remembered(key, last.get());
         if (known == null) {
             ChunkWaterRaster landed = queue(chunkX, chunkZ, key, false);
             return landed == null ? ChunkWaterRaster.PROVISIONAL : landed;
@@ -240,7 +255,7 @@ public final class HydrologyRuntime {
             return ChunkWaterRaster.PROVISIONAL;
         }
         long key = key(chunkX, chunkZ);
-        ChunkWaterRaster known = remembered(key);
+        ChunkWaterRaster known = remembered(key, last.get());
         if (known == null) {
             ChunkWaterRaster landed = queue(chunkX, chunkZ, key, true);
             return landed == null ? ChunkWaterRaster.PROVISIONAL : landed;
@@ -426,6 +441,9 @@ public final class HydrologyRuntime {
         synchronized (rasters) {
             rasters.clear();
         }
+        synchronized (prefetches) {
+            prefetches.clear();
+        }
     }
 
     private static HydrologyBinding binding(Engine engine, IrisComplex complex) {
@@ -532,7 +550,7 @@ public final class HydrologyRuntime {
             queued.remove(key);
             return null;
         }
-        ChunkWaterRaster landed = remembered(key);
+        ChunkWaterRaster landed = remembered(key, last.get());
         if (landed != null) {
             finish(key, preview);
             return landed;
@@ -632,8 +650,22 @@ public final class HydrologyRuntime {
     }
 
     private void prefetch(int chunkX, int chunkZ) {
-        if (settings.prefetchRings() > 0) {
-            cache.prepareWindowsAround(chunkX, chunkZ, chunkX, chunkZ, 1 + settings.prefetchRings());
+        if (settings.prefetchRings() <= 0) {
+            return;
+        }
+        WindowKey owner = WindowKey.containing(chunkX << 4, chunkZ << 4);
+        synchronized (prefetches) {
+            long evictions = cache.windowEvictions();
+            WindowPrefetch known = prefetches.get(owner);
+            if (known != null && !known.prepared().isCompletedExceptionally()
+                    && (!known.prepared().isDone() || known.evictions() == evictions)) {
+                return;
+            }
+            CompletableFuture<Void> prepared = cache.prepareWindowsAround(chunkX, chunkZ, chunkX, chunkZ, 1 + settings.prefetchRings());
+            prefetches.put(owner, new WindowPrefetch(prepared, evictions));
+            if (prefetches.size() > PREFETCH_CAPACITY) {
+                prefetches.pollFirstEntry();
+            }
         }
     }
 
@@ -648,8 +680,7 @@ public final class HydrologyRuntime {
         return keys;
     }
 
-    private ChunkWaterRaster remembered(long key) {
-        LastRaster slot = last.get();
+    private ChunkWaterRaster remembered(long key, LastRaster slot) {
         if (slot.raster != null && slot.key == key) {
             return slot.raster;
         }
@@ -712,13 +743,41 @@ public final class HydrologyRuntime {
         }
     }
 
+    private record WindowPrefetch(CompletableFuture<Void> prepared, long evictions) {
+    }
+
     private static final class LastRaster {
         private long key;
         private ChunkWaterRaster raster;
+        private boolean preview;
 
         private void remember(long key, ChunkWaterRaster raster) {
             this.key = key;
             this.raster = raster;
+        }
+    }
+
+    public static final class PreviewScope implements AutoCloseable {
+        private final LastRaster slot;
+        private final boolean previous;
+        private boolean closed;
+
+        private PreviewScope(LastRaster slot) {
+            this.slot = slot;
+            this.previous = slot != null && slot.preview;
+            if (slot != null) {
+                slot.preview = true;
+            }
+        }
+
+        @Override
+        public void close() {
+            if (!closed) {
+                closed = true;
+                if (slot != null) {
+                    slot.preview = previous;
+                }
+            }
         }
     }
 

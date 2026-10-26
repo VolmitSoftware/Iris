@@ -225,8 +225,11 @@ public final class HeightLattice {
         }
     }
 
-    private static Long key(int cellX, int cellZ) {
-        return ((long) cellX << 32) | (cellZ & 0xFFFFFFFFL);
+    static long key(int cellX, int cellZ) {
+        long packed = ((long) cellX << 32) | (cellZ & 0xFFFFFFFFL);
+        long mixed = (packed ^ (packed >>> 30)) * 0xbf58476d1ce4e5b9L;
+        mixed = (mixed ^ (mixed >>> 27)) * 0x94d049bb133111ebL;
+        return mixed ^ (mixed >>> 31);
     }
 
     private record Slot(CompletableFuture<HydrologySampleBuffer> batch, int index) {

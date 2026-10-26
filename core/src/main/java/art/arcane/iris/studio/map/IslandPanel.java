@@ -34,13 +34,13 @@ import java.util.List;
  * islands theme. The gap belongs to the content behind it, except for the strip along the right edge, which grabs the
  * island to resize it.
  */
-final class IslandPanel extends JPanel implements FloatingPanels.PartlySeeThrough {
+public final class IslandPanel extends JPanel implements FloatingPanels.PartlySeeThrough {
     private static final long serialVersionUID = 7313084027614358519L;
     private static final int GAP = 6;
     private static final int CORNER_ARC = 12;
     private static final int INNER_PADDING = 4;
 
-    IslandPanel(JComponent content) {
+    public IslandPanel(JComponent content) {
         super(new BorderLayout());
         setOpaque(false);
         int inset = GAP + INNER_PADDING;

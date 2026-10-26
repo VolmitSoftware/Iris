@@ -40,13 +40,13 @@ import java.awt.Insets;
 /**
  * Builds the IntelliJ style controls the studio windows share: a flat main toolbar, borderless toolbar buttons and search boxes.
  */
-final class StudioToolbar {
+public final class StudioToolbar {
     private static final int TOOLBAR_HEIGHT_PADDING = 5;
 
     private StudioToolbar() {
     }
 
-    static JToolBar create() {
+    public static JToolBar create() {
         JToolBar toolbar = new JToolBar();
         toolbar.setFloatable(false);
         toolbar.setRollover(true);
@@ -65,7 +65,7 @@ final class StudioToolbar {
         return label;
     }
 
-    static JButton button(String text, String tooltip, Runnable action) {
+    public static JButton button(String text, String tooltip, Runnable action) {
         JButton button = toolbarButton(text, tooltip);
         button.addActionListener(event -> action.run());
         return button;
@@ -74,7 +74,7 @@ final class StudioToolbar {
     /**
      * Opens a menu to pick light, dark or the system's theme.
      */
-    static JButton themeButton() {
+    public static JButton themeButton() {
         JButton button = toolbarButton("Theme", "Light, dark, or whatever the system uses");
         button.addActionListener(event -> themeMenu().show(button, 0, button.getHeight()));
         return button;
@@ -102,7 +102,7 @@ final class StudioToolbar {
         return button;
     }
 
-    static JToggleButton toggle(String text, String tooltip) {
+    public static JToggleButton toggle(String text, String tooltip) {
         JToggleButton toggle = new JToggleButton(text);
         toggle.setToolTipText(tooltip);
         toggle.setFocusable(false);
@@ -134,7 +134,7 @@ final class StudioToolbar {
         return panel;
     }
 
-    static JScrollPane scroll(JComponent content) {
+    public static JScrollPane scroll(JComponent content) {
         JScrollPane scrollPane = new JScrollPane(content);
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
         scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);

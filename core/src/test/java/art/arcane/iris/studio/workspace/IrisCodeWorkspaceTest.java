@@ -138,6 +138,22 @@ public class IrisCodeWorkspaceTest {
                 Files.readString(unrelatedWorkspace.toPath(), StandardCharsets.UTF_8));
     }
 
+    @Test
+    public void updateWorkspaceMirrorsSchemasIntoZedSettings() throws Exception {
+        File pack = temporaryFolder.newFolder("zed-pack");
+        IrisCodeWorkspace workspace = new IrisCodeWorkspace(new IrisProject(pack));
+
+        assertTrue(workspace.updateWorkspace());
+        data = IrisData.get(pack);
+
+        JSONArray workspaceSchemas = new JSONObject(Files.readString(workspace.getCodeWorkspaceFile().toPath(), StandardCharsets.UTF_8))
+                .getJSONObject("settings").getJSONArray("json.schemas");
+        JSONArray zedSchemas = new JSONObject(Files.readString(new File(pack, ".zed/settings.json").toPath(), StandardCharsets.UTF_8))
+                .getJSONObject("lsp").getJSONObject("json-language-server").getJSONObject("settings")
+                .getJSONObject("json").getJSONArray("schemas");
+        assertTrue("Zed settings must carry the workspace schemas", zedSchemas.similar(workspaceSchemas));
+    }
+
     private static JSONArray assertWorkspaceSchemasMaterialized(File pack, File canonicalWorkspace) throws Exception {
         JSONObject configuration = new JSONObject(Files.readString(canonicalWorkspace.toPath(), StandardCharsets.UTF_8));
         JSONArray schemas = configuration.getJSONObject("settings").getJSONArray("json.schemas");

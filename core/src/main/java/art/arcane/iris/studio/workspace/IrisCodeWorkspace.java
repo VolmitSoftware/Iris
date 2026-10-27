@@ -228,6 +228,13 @@ public class IrisCodeWorkspace {
             IrisLogging.warn("Could not update IntelliJ schema mappings for " + project.getPath().getAbsolutePath() + "; VSCode workspace generation will continue.");
         }
 
+        try {
+            new ZedProjectSettings(project.getPath()).writeJsonSchemas(schemas);
+        } catch (Throwable e) {
+            IrisLogging.reportError(e);
+            IrisLogging.warn("Could not update Zed schema mappings for " + project.getPath().getAbsolutePath() + "; VSCode workspace generation will continue.");
+        }
+
         return ws;
     }
 

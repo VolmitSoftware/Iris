@@ -9,6 +9,7 @@ import art.arcane.iris.spi.PlatformGenerationRegistry;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.structure.nativegen.IrisImportedStructureControl;
 import art.arcane.iris.structure.nativegen.NativeStructureVolumeIndex;
+import art.arcane.iris.world.IrisEnvironment;
 import art.arcane.iris.world.history.SavedTerrainChunk;
 import art.arcane.volmlib.nativelib.NativeAdapters;
 import art.arcane.volmlib.nativelib.terrain.NativeTerrainAccess;
@@ -104,6 +105,9 @@ public final class BukkitBinding implements INMSBinding {
     public void inject(long seed, Engine engine, World world) throws NoSuchFieldException, IllegalAccessException {
         validateDimension(engine, world, generation.dimension(world));
         generation.inject(world, new BukkitGeneratorContext(new BukkitGeneratorContext.Options(seed, engine, world)));
+        if (engine.getDimension().getEnvironment() == IrisEnvironment.NORMAL) {
+            generation.attachOverworldSpawners(world);
+        }
     }
 
     @Override

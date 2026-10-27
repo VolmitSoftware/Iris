@@ -23,7 +23,7 @@ import art.arcane.iris.builtin.decorant.DecoratorLoad;
 import art.arcane.iris.builtin.terrain.LayerLoad;
 import art.arcane.iris.builtin.terrain.LayersSettings;
 import art.arcane.iris.engine.object.placement.ObjectPlacements;
-import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
+import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.render.RenderType;
 import art.arcane.iris.spi.IrisLogging;
@@ -71,8 +71,8 @@ final class IrisBiomeColorRenderer {
                 return biome.getCacheColorObjectDensity().aquire(() -> {
                     double density = 0;
 
-                    for (IrisObjectPlacement i : ObjectPlacements.all(biome)) {
-                        density += i.getDensity() * i.getChance();
+                    for (ObjectPlacement i : ObjectPlacements.all(biome)) {
+                        density += i.middleDensity() * i.chance();
                     }
 
                     return Color.getHSBColor(0.225f, (float) (density / engine.getMaxBiomeObjectDensity()), 1f);

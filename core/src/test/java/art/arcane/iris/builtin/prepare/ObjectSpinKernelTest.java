@@ -18,7 +18,6 @@
 
 package art.arcane.iris.builtin.prepare;
 
-import art.arcane.iris.engine.object.prefab.IrisObjectRotation;
 import art.arcane.volmlib.util.math.IrisBlockVector;
 import org.junit.Test;
 
@@ -26,7 +25,7 @@ import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 
-/** The spin kernel the placement stages turn blocks with gives exactly what Iris's rotation model gives. */
+/** The spin kernel the placement stages turn blocks with gives exactly what the rotation itself gives. */
 public class ObjectSpinKernelTest {
     private static final int[] SPINS = {0, 1, 4_096, 123_456, 2_147_483};
     private static final List<IrisBlockVector> POINTS = List.of(
@@ -34,15 +33,14 @@ public class ObjectSpinKernelTest {
 
     @Test
     public void everyKindOfAxisTurnsVectorsAsTheRotationModelTurnsThem() {
-        for (IrisObjectRotation model : rotations()) {
-            ObjectRotation rotation = ObjectRotation.of(model.isEnabled(), model.getXAxis(), model.getYAxis(), model.getZAxis());
+        for (ObjectRotation rotation : rotations()) {
             for (int spin : SPINS) {
                 ObjectSpinKernel kernel = new ObjectSpinKernel(rotation, spin, spin / 3, spin / 7);
                 for (IrisBlockVector point : POINTS) {
-                    IrisBlockVector expected = model.rotate(point, spin, spin / 3, spin / 7);
+                    IrisBlockVector expected = rotation.rotate(point, spin, spin / 3, spin / 7);
                     IrisBlockVector actual = point.clone();
                     kernel.rotate(actual);
-                    String where = model + " spin " + spin + " at " + point;
+                    String where = rotation + " spin " + spin + " at " + point;
                     assertEquals(where, expected.getX(), actual.getX(), 0);
                     assertEquals(where, expected.getY(), actual.getY(), 0);
                     assertEquals(where, expected.getZ(), actual.getZ(), 0);
@@ -62,13 +60,11 @@ public class ObjectSpinKernelTest {
         assertEquals(new IrisBlockVector(3, 5, -7), point);
     }
 
-    private static List<IrisObjectRotation> rotations() {
-        IrisObjectRotation free = new IrisObjectRotation();
-        free.setXAxis(AxisRotationClamp.of(true, false, 0, 0, 15));
-        free.setYAxis(AxisRotationClamp.of(true, false, 0, 0, 7));
-        free.setZAxis(AxisRotationClamp.of(true, false, -40, 40, 5));
-        return List.of(new IrisObjectRotation(), IrisObjectRotation.of(0, 90, 0), IrisObjectRotation.of(0, 180, 0),
-                IrisObjectRotation.of(0, -90, 0), IrisObjectRotation.of(90, 270, 180), IrisObjectRotation.of(-270, 0, 90),
-                IrisObjectRotation.xFlip180(), IrisObjectRotation.xFlip180RandomY(), IrisObjectRotation.xFlip180WithY(270), free);
+    private static List<ObjectRotation> rotations() {
+        ObjectRotation free = ObjectRotation.of(true, AxisRotationClamp.of(true, false, 0, 0, 15),
+                AxisRotationClamp.of(true, false, 0, 0, 7), AxisRotationClamp.of(true, false, -40, 40, 5));
+        return List.of(new ObjectRotation(), ObjectRotation.of(0, 90, 0), ObjectRotation.of(0, 180, 0),
+                ObjectRotation.of(0, -90, 0), ObjectRotation.of(90, 270, 180), ObjectRotation.of(-270, 0, 90),
+                ObjectRotation.xFlip180(), ObjectRotation.xFlip180RandomY(), ObjectRotation.xFlip180WithY(270), free);
     }
 }

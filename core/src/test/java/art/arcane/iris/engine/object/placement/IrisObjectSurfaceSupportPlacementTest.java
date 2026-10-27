@@ -5,9 +5,9 @@ import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
 import art.arcane.iris.engine.object.TestSettings;
 import art.arcane.iris.builtin.prepare.SlopeClip;
 import art.arcane.iris.engine.object.placement.IObjectPlacer;
-import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
+import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.engine.object.prefab.IrisObject;
-import art.arcane.iris.engine.object.prefab.IrisObjectTranslate;
+import art.arcane.iris.builtin.prepare.ObjectTranslate;
 import art.arcane.iris.engine.object.prefab.TileData;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.modules.BuiltInPack;
@@ -148,8 +148,8 @@ public class IrisObjectSurfaceSupportPlacementTest {
     public void forcePlaceIgnoresSurfaceSupport() {
         SurfacePlacer placer = new SurfacePlacer();
         placer.carve(0, SURFACE_Y, 0);
-        IrisObjectPlacement placement = placement(ObjectPlaceMode.CENTER_HEIGHT);
-        placement.setForcePlace(true);
+        ObjectPlacement.Builder placement = placement(ObjectPlaceMode.CENTER_HEIGHT);
+        placement.forcePlace(true);
 
         assertTrue(place(placer, placement, -1) >= 0);
     }
@@ -158,8 +158,8 @@ public class IrisObjectSurfaceSupportPlacementTest {
     public void disablingRequireSurfaceSupportIgnoresSurfaceSupport() {
         SurfacePlacer placer = new SurfacePlacer();
         placer.carve(0, SURFACE_Y, 0);
-        IrisObjectPlacement placement = placement(ObjectPlaceMode.CENTER_HEIGHT);
-        placement.setRequireSurfaceSupport(false);
+        ObjectPlacement.Builder placement = placement(ObjectPlaceMode.CENTER_HEIGHT);
+        placement.requireSurfaceSupport(false);
 
         assertTrue(place(placer, placement, -1) >= 0);
     }
@@ -171,8 +171,8 @@ public class IrisObjectSurfaceSupportPlacementTest {
         placer.carve(0, SURFACE_Y - 1, 0);
         placer.carve(0, SURFACE_Y - 2, 0);
         placer.carve(0, SURFACE_Y - 3, 0);
-        IrisObjectPlacement placement = placement(ObjectPlaceMode.CENTER_HEIGHT);
-        placement.setCarvingSupport(CarvingMode.CARVING_ONLY);
+        ObjectPlacement.Builder placement = placement(ObjectPlaceMode.CENTER_HEIGHT);
+        placement.carvingSupport(CarvingMode.CARVING_ONLY);
 
         assertTrue(place(placer, placement, SURFACE_Y) >= 0);
     }
@@ -181,7 +181,7 @@ public class IrisObjectSurfaceSupportPlacementTest {
     public void structurePieceIsNotGuarded() {
         SurfacePlacer placer = new SurfacePlacer();
         placer.carve(0, SURFACE_Y, 0);
-        IrisObjectPlacement placement = placement(ObjectPlaceMode.STRUCTURE_PIECE);
+        ObjectPlacement.Builder placement = placement(ObjectPlaceMode.STRUCTURE_PIECE);
 
         assertTrue(place(placer, placement, SURFACE_Y) >= 0);
     }
@@ -190,7 +190,7 @@ public class IrisObjectSurfaceSupportPlacementTest {
     public void explicitStructurePiecePlacesAfterItsStudioEngineCloses() {
         when(data.getEngine()).thenReturn(null);
         SurfacePlacer placer = new SurfacePlacer();
-        IrisObjectPlacement placement = placement(ObjectPlaceMode.STRUCTURE_PIECE);
+        ObjectPlacement.Builder placement = placement(ObjectPlaceMode.STRUCTURE_PIECE);
 
         assertTrue(place(placer, placement, SURFACE_Y) >= 0);
         assertFalse(placer.written().isEmpty());
@@ -201,8 +201,8 @@ public class IrisObjectSurfaceSupportPlacementTest {
     public void targetWorldEngineSuppliesRequestedSlopeContext() {
         when(data.getEngine()).thenReturn(null);
         SurfacePlacer placer = new SurfacePlacer(engine);
-        IrisObjectPlacement placement = placement(ObjectPlaceMode.STRUCTURE_PIECE);
-        placement.setRotateTowardsSlope(true);
+        ObjectPlacement.Builder placement = placement(ObjectPlaceMode.STRUCTURE_PIECE);
+        placement.rotateTowardsSlope(true);
 
         assertTrue(place(placer, placement, SURFACE_Y) >= 0);
         assertFalse(placer.written().isEmpty());
@@ -213,9 +213,9 @@ public class IrisObjectSurfaceSupportPlacementTest {
     public void forcePlaceBypassesSlopeConditionWithoutAnEngine() {
         when(data.getEngine()).thenReturn(null);
         SurfacePlacer placer = new SurfacePlacer();
-        IrisObjectPlacement placement = placement(ObjectPlaceMode.STRUCTURE_PIECE);
-        placement.setSlopeCondition(TestSettings.of(SlopeClip.class, "{\"minimumSlope\":100,\"maximumSlope\":100}"));
-        placement.setForcePlace(true);
+        ObjectPlacement.Builder placement = placement(ObjectPlaceMode.STRUCTURE_PIECE);
+        placement.slopeCondition(TestSettings.of(SlopeClip.class, "{\"minimumSlope\":100,\"maximumSlope\":100}"));
+        placement.forcePlace(true);
 
         assertTrue(place(placer, placement, SURFACE_Y) >= 0);
         assertFalse(placer.written().isEmpty());
@@ -226,10 +226,10 @@ public class IrisObjectSurfaceSupportPlacementTest {
     public void forcePlaceStillRequiresSlopeRotationContext() {
         when(data.getEngine()).thenReturn(null);
         SurfacePlacer placer = new SurfacePlacer();
-        IrisObjectPlacement placement = placement(ObjectPlaceMode.STRUCTURE_PIECE);
-        placement.setSlopeCondition(TestSettings.of(SlopeClip.class, "{\"minimumSlope\":100,\"maximumSlope\":100}"));
-        placement.setForcePlace(true);
-        placement.setRotateTowardsSlope(true);
+        ObjectPlacement.Builder placement = placement(ObjectPlaceMode.STRUCTURE_PIECE);
+        placement.slopeCondition(TestSettings.of(SlopeClip.class, "{\"minimumSlope\":100,\"maximumSlope\":100}"));
+        placement.forcePlace(true);
+        placement.rotateTowardsSlope(true);
 
         IllegalStateException error = assertThrows(IllegalStateException.class,
                 () -> place(placer, placement, SURFACE_Y));
@@ -243,20 +243,18 @@ public class IrisObjectSurfaceSupportPlacementTest {
     public void floatingIsNotGuarded() {
         SurfacePlacer placer = new SurfacePlacer();
         placer.carve(0, SURFACE_Y, 0);
-        IrisObjectPlacement placement = placement(ObjectPlaceMode.FLOATING);
-        placement.setTranslate(new IrisObjectTranslate().setY(SURFACE_Y + 40));
+        ObjectPlacement.Builder placement = placement(ObjectPlaceMode.FLOATING);
+        placement.translate(ObjectTranslate.of(0, SURFACE_Y + 40, 0, 0));
 
         assertTrue(place(placer, placement, -1) >= 0);
     }
 
-    private int place(SurfacePlacer placer, IrisObjectPlacement placement, int anchorY) {
-        return object().place(0, anchorY, 0, placer, placement, new RNG(1234L), data);
+    private int place(SurfacePlacer placer, ObjectPlacement.Builder placement, int anchorY) {
+        return object().place(0, anchorY, 0, placer, placement.build(), new RNG(1234L), data);
     }
 
-    private IrisObjectPlacement placement(ObjectPlaceMode mode) {
-        IrisObjectPlacement placement = new IrisObjectPlacement();
-        placement.setMode(mode);
-        return placement;
+    private ObjectPlacement.Builder placement(ObjectPlaceMode mode) {
+        return ObjectPlacement.builder().mode(mode);
     }
 
     private IrisObject object() {

@@ -1,6 +1,6 @@
 package art.arcane.iris.core.pack;
 
-import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
+import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.volmlib.util.collection.KList;
 import org.junit.Test;
 
@@ -12,15 +12,13 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 public class PackExportClosureTest {
-    private static IrisObjectPlacement placement(String objectKey) {
-        IrisObjectPlacement placement = new IrisObjectPlacement();
-        placement.setPlace(new KList<>(objectKey));
-        return placement;
+    private static ObjectPlacement placement(String objectKey) {
+        return ObjectPlacement.builder().place(List.of(objectKey)).build();
     }
 
     @Test
     public void collectsObjectKeysFromPlacements() {
-        List<IrisObjectPlacement> placements = List.of(
+        List<ObjectPlacement> placements = List.of(
                 placement("houses/hut"),
                 placement("trees/oak"),
                 placement("houses/hut"));
@@ -31,9 +29,9 @@ public class PackExportClosureTest {
 
     @Test
     public void toleratesNullPlacementsAndBlankKeys() {
-        KList<IrisObjectPlacement> placements = new KList<>();
+        KList<ObjectPlacement> placements = new KList<>();
         placements.add(placement(""));
-        placements.add((IrisObjectPlacement) null);
+        placements.add((ObjectPlacement) null);
 
         assertTrue(PackExportClosure.collectObjectKeys(placements).isEmpty());
     }

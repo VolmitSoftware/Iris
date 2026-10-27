@@ -1,7 +1,7 @@
 package art.arcane.iris.engine.object.structure;
 
 import art.arcane.iris.engine.mantle.components.StructurePlacing;
-import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
+import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.engine.object.structure.IrisStructure;
 import org.junit.Test;
 
@@ -16,26 +16,26 @@ public class IrisStructureLootPlacementTest {
         structure.getLoot().add("village_common");
         structure.getLoot().add("village_rare");
 
-        IrisObjectPlacement placement = StructurePlacing.lootPlacement(structure, "pieces/village_house");
+        ObjectPlacement placement = StructurePlacing.lootPlacement(structure, "pieces/village_house");
 
-        assertEquals(1, placement.getPlace().size());
-        assertEquals("pieces/village_house", placement.getPlace().get(0));
-        assertEquals(2, placement.getLoot().size());
-        assertEquals("village_common", placement.getLoot().get(0).name());
-        assertEquals(1, placement.getLoot().get(0).weight());
-        assertTrue(placement.getLoot().get(0).filter().isEmpty());
-        assertEquals("village_rare", placement.getLoot().get(1).name());
-        assertEquals(1, placement.getLoot().get(1).weight());
-        assertTrue(placement.getLoot().get(1).filter().isEmpty());
-        assertFalse(placement.isOverrideGlobalLoot());
+        assertEquals(1, placement.place().size());
+        assertEquals("pieces/village_house", placement.place().get(0));
+        assertEquals(2, placement.loot().size());
+        assertEquals("village_common", placement.loot().get(0).name());
+        assertEquals(1, placement.loot().get(0).weight());
+        assertTrue(placement.loot().get(0).filter().isEmpty());
+        assertEquals("village_rare", placement.loot().get(1).name());
+        assertEquals(1, placement.loot().get(1).weight());
+        assertTrue(placement.loot().get(1).filter().isEmpty());
+        assertFalse(placement.overrideGlobalLoot());
     }
 
     @Test
     public void createsEmptyLootPlacementWhenStructureHasNoLoot() {
-        IrisObjectPlacement placement = StructurePlacing.lootPlacement(new IrisStructure(), "pieces/empty_house");
+        ObjectPlacement placement = StructurePlacing.lootPlacement(new IrisStructure(), "pieces/empty_house");
 
-        assertEquals("pieces/empty_house", placement.getPlace().get(0));
-        assertTrue(placement.getLoot().isEmpty());
-        assertFalse(placement.isOverrideGlobalLoot());
+        assertEquals("pieces/empty_house", placement.place().get(0));
+        assertTrue(placement.loot().isEmpty());
+        assertFalse(placement.overrideGlobalLoot());
     }
 }

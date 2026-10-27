@@ -18,17 +18,11 @@
 
 package art.arcane.iris.engine.object.prefab;
 
+import art.arcane.iris.builtin.objects.ObjectScale;
+import art.arcane.iris.builtin.objects.ScaleInterpolation;
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.object.annotations.Desc;
-import art.arcane.iris.engine.object.annotations.MaxNumber;
-import art.arcane.iris.engine.object.annotations.MinNumber;
-import art.arcane.iris.engine.object.annotations.Snippet;
 import art.arcane.volmlib.util.math.Vector3i;
 import art.arcane.volmlib.util.math.RNG;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.experimental.Accessors;
 
 import java.lang.ref.ReferenceQueue;
 import java.lang.ref.WeakReference;
@@ -36,71 +30,38 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-@Snippet("object-scale")
-@Accessors(chain = true)
-@NoArgsConstructor
-@AllArgsConstructor
-@Desc("Scale objects")
-@Data
-public class IrisObjectScale {
+/**
+ * The scaled variants of objects a world places: each variant an {@link ObjectScale} picks is built once and kept in
+ * the world's cache, within a memory budget, until its origin object is collected.
+ */
+public final class ScaledObjects {
     private static final long CACHE_MIN_ESTIMATED_BYTES = 16L * 1024L * 1024L;
     private static final long CACHE_MAX_ESTIMATED_BYTES = 64L * 1024L * 1024L;
     private static final long CACHE_ENTRY_ESTIMATED_BYTES = 512L;
     private static final long CACHE_VARIANT_ESTIMATED_BYTES = 256L;
     private static final long CACHE_ESTIMATED_BYTES_PER_VOXEL = 128L;
     private static final int CACHE_LOAD_LOCK_COUNT = 256;
+    private static final int NO_VARIATIONS = 1;
 
-    @MinNumber(0.01)
-    @MaxNumber(50)
-    @Desc("Fixed scale multiplier for this object. 0.5 shrinks to half size, 2.0 doubles the size. When set to anything other than 1, this overrides minimumScale and maximumScale. Leave at 1 to use the minimumScale/maximumScale range.")
-    private double size = 1;
-
-    @MinNumber(1)
-    @MaxNumber(32)
-    @Desc("Iris Objects are scaled and cached to speed up placements. Because of this extra memory is used, so we evenly distribute variations across the defined scale range, then pick one randomly. If the differences is small, use a lower number. For more possibilities on the scale spectrum, increase this at the cost of memory.")
-    private int variations = 7;
-
-    @MinNumber(0.01)
-    @MaxNumber(50)
-    @Desc("The minimum scale. Used when size is 1 to pick a random scale per placement.")
-    private double minimumScale = 1;
-
-    @MinNumber(0.01)
-    @MaxNumber(50)
-    @Desc("The maximum scale. Used when size is 1 to pick a random scale per placement.")
-    private double maximumScale = 1;
-
-    @Desc("If this object is scaled up beyond its origin size, specify a 3D interpolator. NONE keeps blocky scaled output, TRILINEAR (LERP) smooths with linear interpolation, TRICUBIC and TRIHERMITE produce smoother but slower output.")
-    private IrisObjectPlacementScaleInterpolator interpolation = IrisObjectPlacementScaleInterpolator.NONE;
-
-    public boolean shouldScale() {
-        if (size != 1) {
-            return true;
-        }
-        if (variations <= 0) {
-            return false;
-        }
-        return minimumScale != 1 || maximumScale != 1;
+    private ScaledObjects() {
     }
 
-    public int getMaxSizeFor(int indim) {
-        return (int) Math.ceil(getMaxScale() * indim);
+    /** The scaled variant of {@code origin} that {@code scale} picks; {@code origin} itself when it does not scale. */
+    public static IrisObject variant(ObjectScale scale, RNG rng, IrisObject origin, Engine engine) {
+        return variant(new ScaleRequest(scale.size(), scale.minimumScale(), scale.maximumScale(), scale.variations(),
+                scale.interpolation()), rng, origin, engine);
     }
 
-    public double getMaxScale() {
-        if (size != 1) {
-            return size;
-        }
-        return Math.max(minimumScale, maximumScale);
+    /** {@code origin} scaled by exactly {@code factor}, without interpolation. */
+    public static IrisObject resized(IrisObject origin, double factor, RNG rng, Engine engine) {
+        return variant(new ScaleRequest(factor, 1D, 1D, NO_VARIATIONS, ScaleInterpolation.NONE), rng, origin, engine);
     }
 
-    /** The scaled variant of {@code origin} this scale picks, built once per world and kept in the world's cache. */
-    public IrisObject get(RNG rng, IrisObject origin, Engine engine) {
+    static IrisObject variant(ScaleRequest request, RNG rng, IrisObject origin, Engine engine) {
         if (origin == null) {
             return null;
         }
 
-        ScaleRequest request = snapshotRequest();
         if (!request.shouldScale()) {
             return origin;
         }
@@ -127,17 +88,6 @@ public class IrisObjectScale {
 
     static ScaleCache cacheOf(Engine engine) {
         return engine.getGeneration().state(ScaleCache.class, world -> new ScaleCache(resolveCacheMaximumEstimatedBytes()));
-    }
-
-    public boolean canScaleBeyond() {
-        return shouldScale() && getMaxScale() > 1;
-    }
-
-    private ScaleRequest snapshotRequest() {
-        IrisObjectPlacementScaleInterpolator configuredInterpolation = interpolation == null
-                ? IrisObjectPlacementScaleInterpolator.NONE
-                : interpolation;
-        return new ScaleRequest(size, minimumScale, maximumScale, variations, configuredInterpolation);
     }
 
     private static long estimateVariant(IrisObject variant) {
@@ -174,7 +124,7 @@ public class IrisObjectScale {
     }
 
     record ScaleRequest(double size, double minimumScale, double maximumScale, int variations,
-                        IrisObjectPlacementScaleInterpolator interpolation) {
+                        ScaleInterpolation interpolation) {
         boolean shouldScale() {
             if (size != 1D) {
                 return true;

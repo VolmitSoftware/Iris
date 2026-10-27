@@ -1,7 +1,7 @@
 package art.arcane.iris.core.modules;
 
 import art.arcane.iris.engine.UsableBlockPlatform;
-import art.arcane.iris.engine.object.prefab.IrisObjectRotation;
+import art.arcane.iris.engine.object.prefab.BlockStateRotation;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.spi.PlatformRegistries;
@@ -32,7 +32,7 @@ public class IrisObjectTransformerTest {
     private static final ResourceId SPAWN = ResourceId.parse("test:marks/spawn");
 
     private final IrisObjectTransformer transformer = new IrisObjectTransformer();
-    private IrisObjectRotation.StateRotator previousRotator;
+    private BlockStateRotation.StateRotator previousRotator;
 
     /** A trunk and a leaf east of its top, with a marker beside the trunk. */
     private final GeneratedObject tree = new GeneratedObject(new BlockBox(0, 0, 0, 2, 2, 1), new BlockPosition(0, 0, 0),
@@ -42,12 +42,12 @@ public class IrisObjectTransformerTest {
     @Before
     public void bindPlatform() {
         UsableBlockPlatform.bind();
-        previousRotator = IrisObjectRotation.bindPlatformRotator((rotation, state, spinX, spinY, spinZ) -> state);
+        previousRotator = BlockStateRotation.bindPlatformRotator((rotation, state, spinX, spinY, spinZ) -> state);
     }
 
     @After
     public void unbindPlatform() {
-        IrisObjectRotation.restorePlatformRotator(previousRotator);
+        BlockStateRotation.restorePlatformRotator(previousRotator);
         UsableBlockPlatform.unbind();
     }
 

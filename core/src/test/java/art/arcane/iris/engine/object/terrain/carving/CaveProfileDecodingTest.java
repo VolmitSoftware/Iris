@@ -23,7 +23,7 @@ import art.arcane.iris.builtin.carve.CaveAnchorMode;
 import art.arcane.iris.builtin.carve.CaveProfile;
 import art.arcane.iris.builtin.carve.CarvingMode;
 import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
+import art.arcane.iris.builtin.objects.ObjectPlacement;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import org.junit.Before;
@@ -142,13 +142,13 @@ public class CaveProfileDecodingTest {
 
     @Test
     public void placementsReadTheirCarvingSupportAndAnchorMode() {
-        IrisObjectPlacement placement = gson.fromJson(DARK_DEPTHS_OBJECT, IrisObjectPlacement.class);
+        ObjectPlacement placement = gson.fromJson(DARK_DEPTHS_OBJECT, ObjectPlacement.class);
 
-        assertEquals(CarvingMode.CARVING_ONLY, placement.getCarvingSupport());
-        assertTrue(placement.getCarvingSupport().supportsCarving());
-        assertFalse(placement.getCarvingSupport().supportsSurface());
-        assertEquals(CaveAnchorMode.PROFILE_DEFAULT, placement.getCaveAnchorMode());
-        assertEquals(CarvingMode.SURFACE_ONLY, gson.fromJson("{}", IrisObjectPlacement.class).getCarvingSupport());
+        assertEquals(CarvingMode.CARVING_ONLY, placement.carvingSupport());
+        assertTrue(placement.carvingSupport().supportsCarving());
+        assertFalse(placement.carvingSupport().supportsSurface());
+        assertEquals(CaveAnchorMode.PROFILE_DEFAULT, placement.caveAnchorMode());
+        assertEquals(CarvingMode.SURFACE_ONLY, gson.fromJson("{}", ObjectPlacement.class).carvingSupport());
     }
 
     @Test

@@ -2,7 +2,7 @@ package art.arcane.iris.engine.mantle.components;
 
 import art.arcane.iris.engine.framework.PlacedStructurePiece;
 import art.arcane.iris.engine.object.prefab.IrisObject;
-import art.arcane.iris.engine.object.prefab.IrisObjectRotation;
+import art.arcane.iris.builtin.prepare.ObjectRotation;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.volmlib.util.math.IrisBlockVector;
 import art.arcane.volmlib.util.collection.KList;
@@ -20,7 +20,7 @@ import static org.mockito.Mockito.when;
 public class StructureCarvingFootprintTest {
     @Test
     public void preservesIrregularFootprintInsteadOfFillingItsBoundingBox() {
-        PlacedStructurePiece piece = piece(10, 40, 20, IrisObjectRotation.of(0, 0, 0),
+        PlacedStructurePiece piece = piece(10, 40, 20, ObjectRotation.of(0, 0, 0),
                 block(0, 0, 0), block(1, 0, 0), block(2, 0, 0),
                 block(0, 0, 1), block(0, 0, 2));
 
@@ -39,7 +39,7 @@ public class StructureCarvingFootprintTest {
 
     @Test
     public void reportsExactDistanceAndNearestColumnHeights() {
-        PlacedStructurePiece piece = piece(0, 0, 0, IrisObjectRotation.of(0, 0, 0),
+        PlacedStructurePiece piece = piece(0, 0, 0, ObjectRotation.of(0, 0, 0),
                 block(0, 10, 0), block(0, 12, 0),
                 block(4, 30, 0), block(4, 35, 0));
 
@@ -59,9 +59,9 @@ public class StructureCarvingFootprintTest {
 
     @Test
     public void rotatesAndMergesOverlappingColumns() {
-        PlacedStructurePiece rotated = piece(10, 20, 30, IrisObjectRotation.of(0, 90, 0),
+        PlacedStructurePiece rotated = piece(10, 20, 30, ObjectRotation.of(0, 90, 0),
                 block(2, 1, 0));
-        PlacedStructurePiece overlapping = piece(10, 5, 28, IrisObjectRotation.of(0, 0, 0),
+        PlacedStructurePiece overlapping = piece(10, 5, 28, ObjectRotation.of(0, 0, 0),
                 block(0, 3, 0), block(0, 9, 0));
 
         StructureCarvingFootprint footprint = StructureCarvingFootprint.from(
@@ -83,7 +83,7 @@ public class StructureCarvingFootprintTest {
                 block(0, 2, 0), block(3, 4, 1), block(1, 6, 4), block(5, 8, 5)
         };
         PlacedStructurePiece piece = piece(
-                -8, 30, 11, IrisObjectRotation.of(0, 0, 0), sourceBlocks);
+                -8, 30, 11, ObjectRotation.of(0, 0, 0), sourceBlocks);
 
         StructureCarvingFootprint footprint = StructureCarvingFootprint.from(pieces(piece), 3);
 
@@ -112,10 +112,10 @@ public class StructureCarvingFootprintTest {
                 null, null, 0, 0, 0, null, 0, 0, 0, 0, 0, 0));
         assertNull(StructureCarvingFootprint.from(invalidPieces, 0));
 
-        PlacedStructurePiece piece = piece(0, 0, 0, IrisObjectRotation.of(0, 0, 0), block(0, 0, 0));
+        PlacedStructurePiece piece = piece(0, 0, 0, ObjectRotation.of(0, 0, 0), block(0, 0, 0));
         assertNull(StructureCarvingFootprint.from(pieces(piece), 2, 24));
         PlacedStructurePiece overflowing = piece(
-                Integer.MAX_VALUE, 0, 0, IrisObjectRotation.of(0, 0, 0), block(1, 0, 0));
+                Integer.MAX_VALUE, 0, 0, ObjectRotation.of(0, 0, 0), block(1, 0, 0));
         assertNull(StructureCarvingFootprint.from(pieces(overflowing), 0));
 
         try {
@@ -128,7 +128,7 @@ public class StructureCarvingFootprintTest {
 
     @Test
     public void includesTheEntirePaddingBoundary() {
-        PlacedStructurePiece piece = piece(7, 14, -4, IrisObjectRotation.of(0, 0, 0), block(0, 0, 0));
+        PlacedStructurePiece piece = piece(7, 14, -4, ObjectRotation.of(0, 0, 0), block(0, 0, 0));
 
         StructureCarvingFootprint footprint = StructureCarvingFootprint.from(pieces(piece), 2, 25);
 
@@ -155,7 +155,7 @@ public class StructureCarvingFootprintTest {
         object.getBlocks().put(new IrisBlockVector(0, 0, 0), solid);
         object.getBlocks().put(new IrisBlockVector(8, 4, 8), air);
         PlacedStructurePiece piece = new PlacedStructurePiece(
-                null, object, 10, 20, 30, IrisObjectRotation.of(0, 0, 0),
+                null, object, 10, 20, 30, ObjectRotation.of(0, 0, 0),
                 10, 20, 30, 18, 24, 38);
 
         StructureCarvingFootprint footprint = StructureCarvingFootprint.from(pieces(piece), 0);
@@ -167,7 +167,7 @@ public class StructureCarvingFootprintTest {
         assertEquals(30, footprint.maxZ());
     }
 
-    private static PlacedStructurePiece piece(int x, int y, int z, IrisObjectRotation rotation,
+    private static PlacedStructurePiece piece(int x, int y, int z, ObjectRotation rotation,
                                               int[]... blocks) {
         IrisObject object = new IrisObject(1, 1, 1);
         PlatformBlockState state = mock(PlatformBlockState.class);

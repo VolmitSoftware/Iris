@@ -18,7 +18,8 @@
 
 package art.arcane.iris.modded;
 
-import art.arcane.iris.engine.object.prefab.IrisObjectRotation;
+import art.arcane.iris.builtin.prepare.ObjectRotation;
+import art.arcane.iris.engine.object.prefab.BlockStateRotation;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.volmlib.util.math.IrisBlockVector;
@@ -37,7 +38,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-public final class ModdedStateRotator implements IrisObjectRotation.StateRotator {
+public final class ModdedStateRotator implements BlockStateRotation.StateRotator {
     private static final String[] FACE_NAMES = {"north", "east", "south", "west", "up", "down"};
     private static final String[] WALL_FACE_NAMES = {"north", "south", "east", "west"};
     private static final int[][] ROTATION_CYCLE_MODS = {
@@ -46,7 +47,7 @@ public final class ModdedStateRotator implements IrisObjectRotation.StateRotator
     };
 
     @Override
-    public PlatformBlockState rotate(IrisObjectRotation rotation, PlatformBlockState state, int spinxx, int spinyy, int spinzz) {
+    public PlatformBlockState rotate(ObjectRotation rotation, PlatformBlockState state, int spinxx, int spinyy, int spinzz) {
         ModdedBlockState fabric = (ModdedBlockState) state;
         BlockState d = fabric.handle();
         boolean deleted = false;

@@ -20,7 +20,8 @@ package art.arcane.iris.modded.command;
 
 import art.arcane.iris.core.modules.StructureAssemblies;
 import art.arcane.iris.engine.framework.structure.StructureResources;
-import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
+import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
+import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.modded.ModdedIrisLog;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.structure.StructureIndexService;
@@ -202,12 +203,12 @@ public final class ModdedStructureCommands {
         UUID owner = player.getUUID();
         try {
             for (PlacedStructurePiece piece : pieces) {
-                IrisObjectPlacement config = IrisObjectPlacement.stampingStructurePieces();
-                config.setRotation(piece.getRotation());
-                config.getPlace().add(piece.getObject().getLoadKey());
-                if (!structure.getEdit().isEmpty()) {
-                    config.setEdit(structure.getEdit());
-                }
+                ObjectPlacement config = ObjectPlacement.builder()
+                        .mode(ObjectPlaceMode.STRUCTURE_PIECE)
+                        .rotation(piece.getRotation())
+                        .place(List.of(piece.getObject().getLoadKey()))
+                        .edit(structure.getEdit())
+                        .build();
                 piece.getObject().place(piece.getX(), piece.getY(), piece.getZ(), placer, config, rng, null, null, data);
             }
         } catch (Throwable e) {

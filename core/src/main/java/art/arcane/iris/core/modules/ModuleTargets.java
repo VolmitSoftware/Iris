@@ -18,8 +18,8 @@
 
 package art.arcane.iris.core.modules;
 
+import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.core.loader.JsonFieldNames;
-import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
@@ -38,7 +38,7 @@ public final class ModuleTargets {
             Level.DIMENSION, IrisDimension.class,
             Level.REGION, IrisRegion.class,
             Level.BIOME, IrisBiome.class,
-            Level.PLACEMENT, IrisObjectPlacement.class);
+            Level.PLACEMENT, ObjectPlacement.class);
 
     private ModuleTargets() {
     }
@@ -47,6 +47,14 @@ public final class ModuleTargets {
     public static Optional<Level> ofResource(Class<?> resourceType) {
         return HOLDERS.entrySet().stream()
                 .filter(entry -> entry.getValue() == resourceType)
+                .map(Map.Entry::getKey)
+                .findFirst();
+    }
+
+    /** The target whose JSON an object of the class named {@code typeName} is, for module types such as a placement. */
+    public static Optional<Level> ofTypeName(String typeName) {
+        return HOLDERS.entrySet().stream()
+                .filter(entry -> entry.getValue().getName().equals(typeName))
                 .map(Map.Entry::getKey)
                 .findFirst();
     }

@@ -19,9 +19,11 @@
 package art.arcane.iris.engine.object.prefab;
 
 import art.arcane.iris.builtin.objects.PlaceableObject;
+import art.arcane.iris.builtin.objects.ScaleInterpolation;
+import art.arcane.iris.builtin.prepare.ObjectRotation;
 import art.arcane.iris.engine.object.placement.FloatingObjectFootprint;
 import art.arcane.iris.engine.object.placement.IObjectPlacer;
-import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
+import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.engine.object.terrain.carving.CarveResult;
 import art.arcane.iris.engine.object.value.IrisPosition;
 import art.arcane.iris.core.loader.IrisData;
@@ -258,24 +260,24 @@ public class IrisObject extends IrisRegistrant implements PlaceableObject {
         forgetDerivedShapes();
     }
 
-    public int place(int x, int z, IObjectPlacer placer, IrisObjectPlacement config, RNG rng, IrisData rdata) {
+    public int place(int x, int z, IObjectPlacer placer, ObjectPlacement config, RNG rng, IrisData rdata) {
         return place(x, -1, z, placer, config, rng, rdata);
     }
 
-    public int place(int x, int z, IObjectPlacer placer, IrisObjectPlacement config, RNG rng, CarveResult c, IrisData rdata) {
+    public int place(int x, int z, IObjectPlacer placer, ObjectPlacement config, RNG rng, CarveResult c, IrisData rdata) {
         return place(x, -1, z, placer, config, rng, null, c, rdata);
     }
 
-    public int place(int x, int yv, int z, IObjectPlacer placer, IrisObjectPlacement config, RNG rng, IrisData rdata) {
+    public int place(int x, int yv, int z, IObjectPlacer placer, ObjectPlacement config, RNG rng, IrisData rdata) {
         return place(x, yv, z, placer, config, rng, null, null, rdata);
     }
 
-    public int place(Location loc, IObjectPlacer placer, IrisObjectPlacement config, RNG rng, IrisData rdata) {
+    public int place(Location loc, IObjectPlacer placer, ObjectPlacement config, RNG rng, IrisData rdata) {
         return place(loc.getBlockX(), loc.getBlockY(), loc.getBlockZ(), placer, config, rng, rdata);
     }
 
     /** The height the object was placed at, or -1 when the placement rejected it. */
-    public int place(int x, int yv, int z, IObjectPlacer oplacer, IrisObjectPlacement config, RNG rng, BiConsumer<BlockPosition, PlatformBlockState> listener, CarveResult c, IrisData rdata) {
+    public int place(int x, int yv, int z, IObjectPlacer oplacer, ObjectPlacement config, RNG rng, BiConsumer<BlockPosition, PlatformBlockState> listener, CarveResult c, IrisData rdata) {
         return ModuleObjectPlacement.place(this, x, yv, z, oplacer, config, rng, listener, c, rdata).heightOrRejected();
     }
 
@@ -319,11 +321,11 @@ public class IrisObject extends IrisRegistrant implements PlaceableObject {
         });
     }
 
-    public IrisObject rotateCopy(IrisObjectRotation rt) {
+    public IrisObject rotateCopy(ObjectRotation rt) {
         return IrisObjectTransforms.rotateCopy(this, rt);
     }
 
-    public IrisObject scaled(double scale, IrisObjectPlacementScaleInterpolator interpolation) {
+    public IrisObject scaled(double scale, ScaleInterpolation interpolation) {
         return IrisObjectTransforms.scaled(this, scale, interpolation);
     }
 

@@ -31,9 +31,10 @@ import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.loader.IrisRegistrant;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.PlacedObject;
-import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
+import art.arcane.iris.engine.object.placement.IrisPlacementForm;
 import art.arcane.iris.engine.object.placement.ObjectPlacements;
 import art.arcane.iris.engine.object.prefab.IrisObject;
+import art.arcane.iris.engine.object.prefab.ScaledObjects;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
 import art.arcane.iris.util.project.noise.CNG;
@@ -62,7 +63,7 @@ final class IrisObjectHost implements ObjectHost {
     private final Engine engine;
     private final ModuleLog log;
     private volatile PackResourceIds ids;
-    private final Map<ProceduralPlacement, IrisObjectPlacement> proceduralOptions = new ConcurrentHashMap<>();
+    private final Map<ProceduralPlacement, ObjectPlacement> proceduralOptions = new ConcurrentHashMap<>();
 
     IrisObjectHost(Engine engine, ModuleLog log) {
         this.engine = engine;
@@ -103,14 +104,13 @@ final class IrisObjectHost implements ObjectHost {
 
     @Override
     public Optional<PlaceableObject> pickScaled(ObjectPlacement placement, RNG rng) {
-        IrisObjectPlacement host = hostPlacement(placement);
-        IrisObject picked = host.getObject(engine.getComplex(), rng);
-        return Optional.ofNullable(host.getScale().get(rng, picked, engine));
+        IrisObject picked = ObjectPlacements.pickObject(placement, engine.getData(), rng);
+        return Optional.ofNullable(ScaledObjects.variant(placement.scale(), rng, picked, engine));
     }
 
     @Override
     public int density(ObjectPlacement placement, RNG rng, double x, double z) {
-        return hostPlacement(placement).getDensity(rng, x, z, engine.getData());
+        return formOf(placement).density(placement, rng, x, z, engine.getData());
     }
 
     @Override
@@ -129,9 +129,9 @@ final class IrisObjectHost implements ObjectHost {
 
     @Override
     public void warm(ObjectPlacement placement, RNG rng) {
-        IrisObjectPlacement host = hostPlacement(placement);
-        host.getSurfaceWarp(rng, engine.getData(), engine);
-        host.getDensity(rng, 0, 0, engine.getData());
+        IrisPlacementForm form = formOf(placement);
+        form.surfaceWarp(rng, engine.getData(), engine);
+        form.density(placement, rng, 0, 0, engine.getData());
     }
 
     @Override
@@ -139,25 +139,25 @@ final class IrisObjectHost implements ObjectHost {
         return new IrisObjectBuilder(engine.getData());
     }
 
-    /** The options {@code placement} is scattered with, as Iris's own placement, made once per placement. */
-    IrisObjectPlacement options(ProceduralPlacement placement) {
+    /** The options {@code placement} is scattered with, as an object placement, made once per placement. */
+    ObjectPlacement options(ProceduralPlacement placement) {
         return proceduralOptions.computeIfAbsent(placement, ProceduralOptions::of);
     }
 
     @Override
     public int placeInto(PlaceableObject object, int x, int y, int z, ObjectPlacement placement, ObjectSink sink, RNG rng) {
         IrisData data = engine.getData();
-        return ((IrisObject) object).place(x, y, z, new SinkPlacer(engine, sink), hostPlacement(placement), rng, data);
+        return ((IrisObject) object).place(x, y, z, new SinkPlacer(engine, sink), placement, rng, data);
     }
 
     @Override
     public Optional<ObjectLoots> placedLoot(int x, int y, int z) {
         PlacedObject placed = engine.getObjectPlacement(x, y, z);
-        IrisObjectPlacement placement = placed == null ? null : placed.getPlacement();
+        ObjectPlacement placement = placed == null ? null : placed.getPlacement();
         if (placement == null) {
             return Optional.empty();
         }
-        return Optional.of(new ObjectLoots(placement.getLoot(), placement.getVanillaLoot(), placement.isOverrideGlobalLoot()));
+        return Optional.of(new ObjectLoots(placement.loot(), placement.vanillaLoot(), placement.overrideGlobalLoot()));
     }
 
     @Override
@@ -179,7 +179,7 @@ final class IrisObjectHost implements ObjectHost {
         owner.getModuleSettings().find(type).ifPresent(settings -> found.add(new Declaration<>(level, ids().of(owner.getLoadKey()), settings)));
     }
 
-    private IrisObjectPlacement hostPlacement(ObjectPlacement placement) {
-        return ObjectPlacements.host(placement, engine.getData());
+    private IrisPlacementForm formOf(ObjectPlacement placement) {
+        return IrisPlacementForm.of(placement, engine.getData());
     }
 }

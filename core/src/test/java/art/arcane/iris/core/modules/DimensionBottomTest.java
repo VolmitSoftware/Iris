@@ -24,7 +24,6 @@ import art.arcane.iris.engine.IrisComplex;
 import art.arcane.iris.engine.UsableBlockPlatform;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.object.placement.IObjectPlacer;
-import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
@@ -200,7 +199,7 @@ public class DimensionBottomTest {
         IrisObject object = new IrisObject(1, 1, 1);
         object.setUnsigned(0, 0, 0, B.getState("minecraft:stone"));
 
-        ModuleObjectPlacement.place(object, 0, BOTTOM, 0, placer, new IrisObjectPlacement(), new RNG(2L), null, null, data);
+        ModuleObjectPlacement.place(object, 0, BOTTOM, 0, placer, art.arcane.iris.builtin.objects.ObjectPlacement.builder().build(), new RNG(2L), null, null, data);
 
         verify(placer).set(eq(0), eq(BOTTOM), eq(0), any(PlatformBlockState.class));
         assertEquals("bottom", storage.value(MARKS, TEXT, 0, BOTTOM, 0));

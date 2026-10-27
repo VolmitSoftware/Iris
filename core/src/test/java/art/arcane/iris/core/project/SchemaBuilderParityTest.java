@@ -22,7 +22,6 @@ import art.arcane.iris.builtin.structure.StructureSettings;
 import art.arcane.iris.core.modules.StructureModelModule;
 import art.arcane.iris.engine.framework.structure.StructureResources;
 import art.arcane.iris.engine.mantle.components.StructureModule;
-import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.loader.IrisRegistrant;
 import art.arcane.iris.core.loader.ResourceLoader;
@@ -375,8 +374,7 @@ public class SchemaBuilderParityTest {
 
     @Test
     public void objectPlacementSchemaExposesSurfaceSupportSettings() {
-        JSONObject properties = rootProperties(
-                new SchemaBuilder(IrisObjectPlacement.class, structureSchemaData()).construct());
+        JSONObject properties = rootProperties(placementSchema(structureSchemaData()));
         JSONObject buffer = properties.getJSONObject("surfaceSupportBuffer");
         JSONObject depth = properties.getJSONObject("surfaceSupportDepth");
 
@@ -392,7 +390,7 @@ public class SchemaBuilderParityTest {
 
     @Test
     public void objectPlacementSchemaDescribesTheClassesItHoldsFromTheirModules() {
-        JSONObject schema = new SchemaBuilder(IrisObjectPlacement.class, structureSchemaData()).construct();
+        JSONObject schema = placementSchema(structureSchemaData());
         JSONObject definitions = schema.getJSONObject("definitions");
         JSONObject properties = rootProperties(schema);
 
@@ -420,7 +418,7 @@ public class SchemaBuilderParityTest {
 
     @Test
     public void objectPlacementSchemaRendersModuleSettingsUnderTheirKey() throws IOException {
-        JSONObject schema = new SchemaBuilder(IrisObjectPlacement.class, structureSchemaData(glowModuleSchema())).construct();
+        JSONObject schema = placementSchema(structureSchemaData(glowModuleSchema()));
         JSONObject properties = rootProperties(schema);
         String definition = definitionKey(properties.getJSONObject("glow"));
         JSONObject level = schema.getJSONObject("definitions").getJSONObject(definition)
@@ -438,7 +436,7 @@ public class SchemaBuilderParityTest {
 
     @Test
     public void moduleSettingsHoldingApiValueTypesUseIrisDescriptionsOfTheSameJson() throws IOException {
-        JSONObject schema = new SchemaBuilder(IrisObjectPlacement.class, structureSchemaData(tintModuleSchema())).construct();
+        JSONObject schema = placementSchema(structureSchemaData(tintModuleSchema()));
         JSONObject definitions = schema.getJSONObject("definitions");
         JSONObject tint = definitions.getJSONObject(definitionKey(rootProperties(schema).getJSONObject("tint")))
                 .getJSONObject("properties");
@@ -556,6 +554,18 @@ public class SchemaBuilderParityTest {
     }
 
     /** The definition an API value type's reference leads to: the module's, which refers to Iris's own. */
+    /** The schema of one object placement as studio writes it, reached through a biome's {@code objects}, with every definition. */
+    private static JSONObject placementSchema(IrisData data) {
+        JSONObject biome = new SchemaBuilder(IrisBiome.class, data).construct();
+        JSONObject definitions = biome.getJSONObject("definitions");
+        JSONObject objects = rootProperties(biome).getJSONObject("objects");
+        if (objects.has("$ref")) {
+            objects = rootProperties(definitions.getJSONObject(definitionKey(objects))).getJSONObject("objects");
+        }
+        JSONObject placement = definitions.getJSONObject(definitionKey(objects.getJSONObject("items")));
+        return new JSONObject().put("definitions", definitions).put("properties", rootProperties(placement));
+    }
+
     private static String definitionKey(JSONObject reference) {
         return reference.getString("$ref").substring("#/definitions/".length());
     }

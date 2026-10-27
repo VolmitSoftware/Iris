@@ -3,7 +3,8 @@ package art.arcane.iris.core.service;
 import art.arcane.iris.engine.framework.PlacedStructurePiece;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawConnector;
 import art.arcane.iris.engine.object.prefab.IrisObject;
-import art.arcane.iris.engine.object.prefab.IrisObjectRotation;
+import art.arcane.iris.builtin.prepare.ObjectRotation;
+import art.arcane.iris.engine.object.prefab.BlockStateRotation;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.common.data.B;
@@ -192,10 +193,10 @@ public final class JigsawStudioPreviewRenderer {
             PlacedStructurePiece piece
     ) throws IOException {
         IrisObject object = piece.getObject();
-        IrisObjectRotation rotation = piece.getRotation();
+        ObjectRotation rotation = piece.getRotation();
         for (Map.Entry<IrisBlockVector, PlatformBlockState> entry : object.getBlocks()) {
             IrisBlockVector rotated = rotation.rotate(entry.getKey());
-            PlatformBlockState state = rotation.rotate(entry.getValue(), 0, 0, 0);
+            PlatformBlockState state = BlockStateRotation.rotate(rotation, entry.getValue(), 0, 0, 0);
             putState(
                     blocks,
                     new BlockPosition(
@@ -212,7 +213,7 @@ public final class JigsawStudioPreviewRenderer {
             PlacedStructurePiece piece
     ) throws IOException {
         IrisObject object = piece.getObject();
-        IrisObjectRotation rotation = piece.getRotation();
+        ObjectRotation rotation = piece.getRotation();
         if (piece.getPiece().getConnectors() == null) {
             return;
         }
@@ -226,7 +227,7 @@ public final class JigsawStudioPreviewRenderer {
                     connector.getPosition().getZ() - object.getCenter().getBlockZ());
             IrisBlockVector rotated = rotation.rotate(signed);
             PlatformBlockState source = B.getStateOrNull(connector.getFinalState(), false);
-            PlatformBlockState state = source == null ? null : rotation.rotate(source, 0, 0, 0);
+            PlatformBlockState state = source == null ? null : BlockStateRotation.rotate(rotation, source, 0, 0, 0);
             putState(
                     blocks,
                     new BlockPosition(

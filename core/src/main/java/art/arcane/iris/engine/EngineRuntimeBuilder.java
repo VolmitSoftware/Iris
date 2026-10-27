@@ -19,7 +19,7 @@
 package art.arcane.iris.engine;
 
 import art.arcane.iris.engine.object.placement.ObjectPlacements;
-import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
+import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.EngineRuntime.BiomeMaxes;
 import art.arcane.iris.engine.IrisEngine.LifecycleState;
@@ -200,8 +200,8 @@ final class EngineRuntimeBuilder {
         for (IrisBiome i : engine.getDimension().getReachableBiomes(engine)) {
             double density = 0;
 
-            for (IrisObjectPlacement j : ObjectPlacements.all(i)) {
-                density += j.getDensity() * j.getChance();
+            for (ObjectPlacement j : ObjectPlacements.all(i)) {
+                density += j.middleDensity() * j.chance();
             }
 
             objectDensity = Math.max(objectDensity, density);

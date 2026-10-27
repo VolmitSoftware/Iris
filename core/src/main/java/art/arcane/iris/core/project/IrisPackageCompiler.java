@@ -18,8 +18,8 @@
 
 package art.arcane.iris.core.project;
 
+import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.engine.object.placement.ObjectPlacements;
-import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import com.google.gson.Gson;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.loader.IrisRegistrant;
@@ -54,6 +54,7 @@ import org.zeroturnaround.zip.ZipUtil;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 @SuppressWarnings("ALL")
@@ -121,34 +122,32 @@ public class IrisPackageCompiler {
         regions.forEach(moduleResources::followSettingsOf);
         biomes.forEach((i) -> i.getGenerators().forEach((j) -> addIfPresent(generators, j.getCachedGenerator(() -> dm))));
         biomes.forEach(moduleResources::followSettingsOf);
-        KList<IrisObjectPlacement> allPlacements = new KList<>();
+        KList<ObjectPlacement> allPlacements = new KList<>();
         regions.forEach((r) -> allPlacements.addAll(ObjectPlacements.all(r)));
         biomes.forEach((i) -> allPlacements.addAll(ObjectPlacements.all(i)));
         moduleResources.follow(allPlacements);
         List<String> structureKeys = moduleResources.keysOf(IrisStructure.class);
         KMap<String, String> renameObjects = new KMap<>();
+        KList<String> exportedObjectNames = new KList<>();
         String a;
         StringBuilder b = new StringBuilder();
         StringBuilder c = new StringBuilder();
         sender.sendMessage(IrisLanguage.text(BukkitRuntimeMessages.IRIS_PROJECT_SERIALIZING_OBJECTS));
 
-        for (IrisObjectPlacement j : allPlacements) {
-            b.append(j.hashCode());
-            KList<String> newNames = new KList<>();
+        for (ObjectPlacement j : allPlacements) {
+            b.append(Objects.hashCode(j.json()));
 
-            for (String k : j.getPlace()) {
+            for (String k : j.place()) {
                 if (renameObjects.containsKey(k)) {
-                    newNames.add(renameObjects.get(k));
+                    exportedObjectNames.add(renameObjects.get(k));
                     continue;
                 }
 
                 String name = !obfuscate ? k : UUID.randomUUID().toString().replaceAll("-", "");
                 b.append(name);
-                newNames.add(name);
+                exportedObjectNames.add(name);
                 renameObjects.put(k, name);
             }
-
-            j.setPlace(newNames);
         }
 
         KMap<String, KList<String>> lookupObjects = renameObjects.flip();
@@ -158,7 +157,7 @@ public class IrisPackageCompiler {
         ggg.set(0);
         O<Integer> missingObjects = new O<>();
         missingObjects.set(0);
-        allPlacements.forEach((j) -> j.getPlace().forEach((k) ->
+        exportedObjectNames.forEach((k) ->
         {
             try {
                 KList<String> sources = lookupObjects.get(k);
@@ -181,7 +180,7 @@ public class IrisPackageCompiler {
                 missingObjects.set(missingObjects.get() + 1);
                 IrisLogging.reportError(e);
             }
-        }));
+        });
         if (missingObjects.get() > 0) {
             // A package missing objects must fail loudly, not ship as a clean "compiled".
             throw new IllegalStateException(missingObjects.get()

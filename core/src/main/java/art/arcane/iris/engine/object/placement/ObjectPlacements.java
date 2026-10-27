@@ -27,15 +27,18 @@ import art.arcane.iris.builtin.objects.UpperObjectsForceSettings;
 import art.arcane.iris.builtin.objects.UpperObjectsSettings;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.loader.IrisRegistrant;
+import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.volmlib.util.collection.KList;
+import art.arcane.volmlib.util.math.RNG;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
 
 /**
- * The object placements a region or biome declares, as Iris places them: the module settings of
- * {@code iris:objects}, made into Iris's own placements once and kept for as long as the settings live.
+ * The object placements a region or biome declares in the module settings of {@code iris:objects}, sorted by where
+ * they place once and kept for as long as the settings live, and the dimension's object settings.
  */
 public final class ObjectPlacements {
     private static final Map<ObjectSettings, Placements> PLACEMENTS = Collections.synchronizedMap(new WeakHashMap<>());
@@ -44,17 +47,17 @@ public final class ObjectPlacements {
     }
 
     /** Every placement {@code owner} declares. */
-    public static KList<IrisObjectPlacement> all(IrisRegistrant owner) {
+    public static KList<ObjectPlacement> all(IrisRegistrant owner) {
         return placementsOf(owner).all;
     }
 
     /** The placements of {@code owner} that place on the surface. */
-    public static KList<IrisObjectPlacement> surface(IrisRegistrant owner) {
+    public static KList<ObjectPlacement> surface(IrisRegistrant owner) {
         return placementsOf(owner).surface;
     }
 
     /** The placements of {@code owner} that place in carvings. */
-    public static KList<IrisObjectPlacement> carving(IrisRegistrant owner) {
+    public static KList<ObjectPlacement> carving(IrisRegistrant owner) {
         return placementsOf(owner).carving;
     }
 
@@ -85,15 +88,13 @@ public final class ObjectPlacements {
         return dimension.getModuleSettings().find(TreeGrowthSettings.class).orElse(NO_TREE_GROWTH);
     }
 
-    /** Iris's placement for the settings {@code placement}, read from the JSON it was written as. */
-    public static IrisObjectPlacement host(ObjectPlacement placement, IrisData data) {
-        Object kept = placement.hostForm();
-        if (kept instanceof IrisObjectPlacement hostPlacement) {
-            return hostPlacement;
+    /** One of the objects {@code placement} places, picked by {@code rng} and loaded from the pack; null when it names none. */
+    public static IrisObject pickObject(ObjectPlacement placement, IrisData data, RNG rng) {
+        List<String> keys = placement.place();
+        if (keys.isEmpty()) {
+            return null;
         }
-        IrisObjectPlacement made = data.getGson().fromJson(placement.json(), IrisObjectPlacement.class);
-        placement.hostForm(made);
-        return made;
+        return data.getObjectLoader().load(keys.get(rng.nextInt(keys.size())));
     }
 
     private static final RequireSurfaceSupportSettings NO_SURFACE_SUPPORT_REQUIREMENT = new RequireSurfaceSupportSettings();
@@ -107,19 +108,18 @@ public final class ObjectPlacements {
         if (found != null) {
             return found;
         }
-        return PLACEMENTS.computeIfAbsent(settings, declared -> new Placements(declared, owner.getLoader()));
+        return PLACEMENTS.computeIfAbsent(settings, Placements::new);
     }
 
-    private record Placements(KList<IrisObjectPlacement> all, KList<IrisObjectPlacement> surface, KList<IrisObjectPlacement> carving) {
-        Placements(ObjectSettings settings, IrisData data) {
+    private record Placements(KList<ObjectPlacement> all, KList<ObjectPlacement> surface, KList<ObjectPlacement> carving) {
+        Placements(ObjectSettings settings) {
             this(new KList<>(), new KList<>(), new KList<>());
-            for (ObjectPlacement declared : settings.objects()) {
-                IrisObjectPlacement placement = host(declared, data);
+            for (ObjectPlacement placement : settings.objects()) {
                 all.add(placement);
-                if (placement.getCarvingSupport().supportsSurface()) {
+                if (placement.carvingSupport().supportsSurface()) {
                     surface.add(placement);
                 }
-                if (placement.getCarvingSupport().supportsCarving()) {
+                if (placement.carvingSupport().supportsCarving()) {
                     carving.add(placement);
                 }
             }

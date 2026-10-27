@@ -17,43 +17,27 @@
  */
 package art.arcane.iris.core.modules;
 
+import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.builtin.objects.ProceduralPlacement;
-import art.arcane.iris.builtin.prepare.ObjectRotation;
-import art.arcane.iris.builtin.prepare.ObjectTranslate;
-import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
-import art.arcane.iris.engine.object.prefab.IrisObjectRotation;
-import art.arcane.iris.engine.object.prefab.IrisObjectTranslate;
 
-/** The options a procedural object is scattered with, as Iris's own placement. */
+/** The options a procedural object is scattered with, as an object placement. */
 public final class ProceduralOptions {
     private ProceduralOptions() {
     }
 
-    public static IrisObjectPlacement of(ProceduralPlacement procedural) {
-        IrisObjectPlacement placement = new IrisObjectPlacement();
-        placement.setMode(procedural.mode());
-        placement.setRotation(irisRotation(procedural.rotation()));
-        placement.setClamp(procedural.clamp());
-        placement.setCarvingSupport(procedural.carvingSupport());
-        placement.setUnderwater(procedural.underwater());
-        placement.setTranslate(irisTranslate(procedural.translate()));
-        placement.setStiltSettings(procedural.stiltSettings().orElse(null));
-        placement.setVacuumSettings(procedural.vacuumSettings().orElse(null));
-        placement.setChance(procedural.chance());
-        placement.setDensity(procedural.density());
-        placement.setSurfaceSupportBuffer(procedural.surfaceSupportBuffer());
-        return placement;
-    }
-
-    private static IrisObjectRotation irisRotation(ObjectRotation rotation) {
-        return new IrisObjectRotation()
-                .setEnabled(rotation.enabled())
-                .setXAxis(rotation.xAxis())
-                .setYAxis(rotation.yAxis())
-                .setZAxis(rotation.zAxis());
-    }
-
-    private static IrisObjectTranslate irisTranslate(ObjectTranslate translate) {
-        return new IrisObjectTranslate(translate.x(), translate.y(), translate.yRandom(), translate.z());
+    public static ObjectPlacement of(ProceduralPlacement procedural) {
+        return ObjectPlacement.builder()
+                .mode(procedural.mode())
+                .rotation(procedural.rotation())
+                .clamp(procedural.clamp())
+                .carvingSupport(procedural.carvingSupport())
+                .underwater(procedural.underwater())
+                .translate(procedural.translate())
+                .stiltSettings(procedural.stiltSettings().orElse(null))
+                .vacuumSettings(procedural.vacuumSettings().orElse(null))
+                .chance(procedural.chance())
+                .density(procedural.density())
+                .surfaceSupportBuffer(procedural.surfaceSupportBuffer())
+                .build();
     }
 }

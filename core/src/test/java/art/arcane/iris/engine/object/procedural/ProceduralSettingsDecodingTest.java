@@ -34,7 +34,7 @@ import art.arcane.iris.builtin.objects.ruin.Ruin;
 import art.arcane.iris.builtin.objects.tree.TreeLeafMode;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.modules.ProceduralOptions;
-import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
+import art.arcane.iris.builtin.objects.ObjectPlacement;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import org.junit.Before;
@@ -162,12 +162,12 @@ public class ProceduralSettingsDecodingTest {
         ProceduralPlacement iceberg = placements.get(1);
         assertEquals("glacial-iceberg", iceberg.name());
         assertEquals(0.08, iceberg.chance(), 0);
-        IrisObjectPlacement placement = ProceduralOptions.of(iceberg);
-        assertEquals(ObjectPlaceMode.CENTER_HEIGHT, placement.getMode());
-        assertEquals(1, placement.getSurfaceSupportBuffer());
-        assertEquals(-4, placement.getTranslate().getY());
-        assertEquals(45, placement.getRotation().getYAxis().interval(), 0);
-        assertTrue(placement.getRotation().isEnabled());
+        ObjectPlacement placement = ProceduralOptions.of(iceberg);
+        assertEquals(ObjectPlaceMode.CENTER_HEIGHT, placement.mode());
+        assertEquals(1, placement.surfaceSupportBuffer());
+        assertEquals(-4, placement.translate().y());
+        assertEquals(45, placement.rotation().yAxis().interval(), 0);
+        assertTrue(placement.rotation().enabled());
         assertFalse(iceberg.plausible());
     }
 

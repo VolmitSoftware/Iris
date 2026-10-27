@@ -18,8 +18,7 @@
 
 package art.arcane.iris.core.modules;
 
-import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
-import art.arcane.volmlib.util.json.JSONObject;
+import art.arcane.iris.builtin.objects.ObjectPlacement;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.TypeAdapter;
@@ -27,16 +26,15 @@ import com.google.gson.TypeAdapterFactory;
 import com.google.gson.reflect.TypeToken;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
-import com.volmit.config.Level;
 
 import java.io.IOException;
 import java.util.function.Supplier;
 
 /**
- * Decodes the module settings of every object placement Gson reads, wherever pack JSON nests one, into
- * {@link IrisObjectPlacement#getModuleSettings()}. Register it before the factory that resolves snippets:
- * Gson asks later registrations first, so that factory reads a snippet reference and this one decodes the
- * snippet's JSON.
+ * Reads the object placements an Iris resource nests, such as a mod's placement injectors, the way {@code iris:objects}
+ * reads its own: with the modules' Gson, keeping the JSON that declares the placement's module settings. Register it
+ * before the factory that resolves snippets: Gson asks later registrations first, so that factory reads a snippet
+ * reference and this one decodes the snippet's JSON.
  */
 public final class ObjectPlacementSettingsReader implements TypeAdapterFactory {
     private final Supplier<ModuleSettingsDecoder> decoder;
@@ -47,29 +45,29 @@ public final class ObjectPlacementSettingsReader implements TypeAdapterFactory {
     }
 
     @Override
-    @SuppressWarnings("unchecked") // The type is checked to be IrisObjectPlacement.
+    @SuppressWarnings("unchecked") // The type is checked to be ObjectPlacement.
     public <T> TypeAdapter<T> create(Gson gson, TypeToken<T> type) {
-        if (type.getRawType() != IrisObjectPlacement.class) {
+        if (type.getRawType() != ObjectPlacement.class) {
             return null;
         }
-        TypeAdapter<IrisObjectPlacement> placements = gson.getDelegateAdapter(this, (TypeToken<IrisObjectPlacement>) type);
         TypeAdapter<JsonElement> elements = gson.getAdapter(JsonElement.class);
-        return (TypeAdapter<T>) new TypeAdapter<IrisObjectPlacement>() {
+        return (TypeAdapter<T>) new TypeAdapter<ObjectPlacement>() {
             @Override
-            public void write(JsonWriter out, IrisObjectPlacement placement) throws IOException {
-                placements.write(out, placement);
+            public void write(JsonWriter out, ObjectPlacement placement) throws IOException {
+                if (placement == null || placement.json() == null) {
+                    out.nullValue();
+                    return;
+                }
+                out.jsonValue(placement.json());
             }
 
             @Override
-            public IrisObjectPlacement read(JsonReader in) throws IOException {
-                String path = in.getPath();
+            public ObjectPlacement read(JsonReader in) throws IOException {
                 JsonElement json = elements.read(in);
-                IrisObjectPlacement placement = placements.fromJsonTree(json);
-                if (placement != null && json.isJsonObject()) {
-                    placement.setModuleSettings(decoder.get().decode(Level.PLACEMENT,
-                            new JSONObject(json.toString()), "object placement at " + path));
+                if (json == null || json.isJsonNull()) {
+                    return null;
                 }
-                return placement;
+                return decoder.get().decodeResource(ObjectPlacement.class, json.toString());
             }
         };
     }

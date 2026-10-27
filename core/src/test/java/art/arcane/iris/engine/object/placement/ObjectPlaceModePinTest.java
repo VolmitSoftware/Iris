@@ -1,13 +1,14 @@
 package art.arcane.iris.engine.object.placement;
 
 import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
+import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.modules.BuiltInPack;
 import art.arcane.iris.core.modules.ModuleObjectPlacement;
 import art.arcane.iris.core.modules.PlatformBlockStates;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.object.prefab.IrisObject;
-import art.arcane.iris.engine.object.prefab.IrisObjectTranslate;
+import art.arcane.iris.builtin.prepare.ObjectTranslate;
 import art.arcane.iris.engine.object.prefab.TileData;
 import art.arcane.iris.engine.object.terrain.carving.CarveResult;
 import art.arcane.iris.spi.IrisPlatform;
@@ -101,10 +102,11 @@ public class ObjectPlaceModePinTest {
 
     private List<String> place(ObjectPlaceMode mode) {
         TerrainPlacer placer = new TerrainPlacer(engine);
-        IrisObjectPlacement config = new IrisObjectPlacement();
-        config.setMode(mode);
-        config.setRequireSurfaceSupport(false);
-        config.setTranslate(new IrisObjectTranslate().setY(mode == ObjectPlaceMode.FLOATING ? 140 : 2));
+        ObjectPlacement config = ObjectPlacement.builder()
+                .mode(mode)
+                .requireSurfaceSupport(false)
+                .translate(ObjectTranslate.of(0, mode == ObjectPlaceMode.FLOATING ? 140 : 2, 0, 0))
+                .build();
         CarveResult cave = isCaveMode(mode) ? new CarveResult(CAVE_FLOOR_Y, CEILING_Y) : null;
         int requestedY = requestedY(mode);
         ModuleObjectPlacement.place(pinnedObject(), OBJECT_X, requestedY, OBJECT_Z, placer, config,

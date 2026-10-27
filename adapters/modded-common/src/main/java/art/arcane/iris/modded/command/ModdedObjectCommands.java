@@ -18,14 +18,14 @@
 
 package art.arcane.iris.modded.command;
 
-import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
+import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.modded.ModdedIrisLog;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.tools.TreePlausibilizeBatch;
 import art.arcane.iris.core.tools.TreePlausibilizer;
 import art.arcane.iris.engine.framework.Engine;
+import art.arcane.iris.builtin.prepare.ObjectRotation;
 import art.arcane.iris.engine.object.prefab.IrisObject;
-import art.arcane.iris.engine.object.prefab.IrisObjectRotation;
 import art.arcane.iris.engine.object.prefab.TileData;
 import art.arcane.iris.modded.ModdedBlockState;
 import art.arcane.iris.modded.ModdedTileData;
@@ -411,8 +411,7 @@ public final class ModdedObjectCommands {
             target = blockHit.getBlockPos().above();
         }
 
-        IrisObjectPlacement placement = new IrisObjectPlacement();
-        placement.setRotation(IrisObjectRotation.of(0, rotation, 0));
+        ObjectPlacement placement = ObjectPlacement.builder().rotation(ObjectRotation.of(0, rotation, 0)).build();
         ModdedObjectPlacer placer = new ModdedObjectPlacer(level, engine);
         try {
             object.place(target.getX(), target.getY() + object.getCenter().getY(), target.getZ(), placer, placement, new RNG(), null);

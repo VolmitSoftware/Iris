@@ -27,7 +27,7 @@ import art.arcane.iris.engine.framework.EnginePlatformHooks;
 import art.arcane.iris.engine.framework.EngineWorldManagerProvider;
 import art.arcane.iris.engine.framework.PreservationRegistry;
 import art.arcane.iris.engine.object.material.BlockDataMergeSupport;
-import art.arcane.iris.engine.object.prefab.IrisObjectRotation;
+import art.arcane.iris.engine.object.prefab.BlockStateRotation;
 import art.arcane.iris.engine.object.prefab.TileData;
 import art.arcane.iris.modded.api.ModdedCustomContentRegistry;
 import art.arcane.iris.modded.command.IrisModdedCommands;
@@ -355,8 +355,8 @@ public final class ModdedEngineBootstrap {
                         new ModdedServerLevels(boundLoader::invalidateLevelCache));
                 rollback.add(() -> ModdedDimensionManager.restoreAccess(previousServerAccess));
 
-                IrisObjectRotation.StateRotator previousRotator = IrisObjectRotation.bindPlatformRotator(new ModdedStateRotator());
-                rollback.add(() -> IrisObjectRotation.restorePlatformRotator(previousRotator));
+                BlockStateRotation.StateRotator previousRotator = BlockStateRotation.bindPlatformRotator(new ModdedStateRotator());
+                rollback.add(() -> BlockStateRotation.restorePlatformRotator(previousRotator));
 
                 BlockDataMergeSupport.StateMerger previousMerger = BlockDataMergeSupport.bindPlatformMerger(new ModdedStateMerger());
                 rollback.add(() -> BlockDataMergeSupport.restorePlatformMerger(previousMerger));

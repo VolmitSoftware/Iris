@@ -21,7 +21,7 @@ package art.arcane.iris.engine.mantle.components;
 import art.arcane.iris.builtin.anchor.PlaceTrait;
 import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
 import art.arcane.iris.engine.framework.structure.StructureResources;
-import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
+import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.core.IrisSettings;
 import art.arcane.volmlib.util.cache.CacheKey;
 import art.arcane.iris.engine.framework.IrisStructureLocator;
@@ -61,6 +61,7 @@ import art.arcane.volmlib.util.math.RNG;
 import it.unimi.dsi.fastutil.longs.Long2IntMap;
 import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -538,19 +539,22 @@ public class StructurePlacing {
     }
 
     /** A placement of the piece object {@code objectKey} whose containers draw from the structure's loot tables. */
-    public static IrisObjectPlacement lootPlacement(IrisStructure structure, String objectKey) {
-        IrisObjectPlacement placement = new IrisObjectPlacement();
-        placement.getPlace().add(objectKey);
-        placement.setOverrideGlobalLoot(false);
+    public static ObjectPlacement lootPlacement(IrisStructure structure, String objectKey) {
+        return lootPlacementBuilder(structure, objectKey).build();
+    }
+
+    private static ObjectPlacement.Builder lootPlacementBuilder(IrisStructure structure, String objectKey) {
+        ObjectPlacement.Builder placement = ObjectPlacement.builder().place(List.of(objectKey));
         if (structure.getLoot() == null) {
             return placement;
         }
+        List<ObjectLoot> loot = new ArrayList<>();
         for (String lootTable : structure.getLoot()) {
             if (lootTable != null && !lootTable.isBlank()) {
-                placement.getLoot().add(new ObjectLoot(lootTable, 1));
+                loot.add(new ObjectLoot(lootTable, 1));
             }
         }
-        return placement;
+        return placement.loot(loot);
     }
 
     private int placeObject(MantleWriter writer, IrisStructure structure, PlacedStructurePiece p,
@@ -558,15 +562,14 @@ public class StructurePlacing {
                             boolean supportNonOccluding) {
         IrisObject object = p.getObject();
         String objectKey = object.getLoadKey();
-        IrisObjectPlacement config = lootPlacement(structure, objectKey);
-        config.setMode(mode);
-        config.setRotation(p.getRotation());
+        ObjectPlacement.Builder builder = lootPlacementBuilder(structure, objectKey).mode(mode).rotation(p.getRotation());
         if (!structure.getEdit().isEmpty()) {
-            config.setEdit(structure.getEdit());
+            builder.edit(structure.getEdit());
         }
         if (!mode.placeMode().has(PlaceTrait.FREE_HEIGHT)) {
-            config.setForcePlace(true);
+            builder.forcePlace(true);
         }
+        ObjectPlacement config = builder.build();
         int placeY = (y == -1) ? -1 : y - engine.getMinHeight();
         String marker = structurePlacementMarker(structure, p, objectKey);
         return object.place(p.getX(), placeY, p.getZ(), writer, config, rng, (position, state) -> {

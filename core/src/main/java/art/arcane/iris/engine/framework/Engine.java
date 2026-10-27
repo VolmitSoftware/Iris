@@ -23,7 +23,7 @@ import art.arcane.iris.builtin.structure.StructurePlacementMarker;
 
 import art.arcane.iris.engine.object.placement.ObjectPlacements;
 import art.arcane.iris.engine.framework.structure.StructureResources;
-import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
+import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.engine.framework.render.RenderType;
 import art.arcane.iris.engine.framework.render.Renderer;
@@ -461,7 +461,7 @@ public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, 
         if (marker.structureAware()) {
             IrisObject placedObject = getData().getObjectLoader().load(object);
             IrisStructure structure = StructureResources.structure(getData().getPackResources(), marker.structureKey());
-            IrisObjectPlacement placement = placedObject == null || structure == null
+            ObjectPlacement placement = placedObject == null || structure == null
                     ? null
                     : StructurePlacing.lootPlacement(structure, object);
             return new PlacedObject(placement, placedObject, id, x, z);
@@ -470,16 +470,16 @@ public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, 
 
         IrisRegion region = getRegion(x, z);
 
-        for (IrisObjectPlacement i : ObjectPlacements.all(region)) {
-            if (i.getPlace().contains(object)) {
+        for (ObjectPlacement i : ObjectPlacements.all(region)) {
+            if (i.place().contains(object)) {
                 return new PlacedObject(i, getData().getObjectLoader().load(object), id, x, z);
             }
         }
 
         IrisBiome biome = getSurfaceBiome(x, z);
 
-        for (IrisObjectPlacement i : ObjectPlacements.all(biome)) {
-            if (i.getPlace().contains(object)) {
+        for (ObjectPlacement i : ObjectPlacements.all(biome)) {
+            if (i.place().contains(object)) {
                 return new PlacedObject(i, getData().getObjectLoader().load(object), id, x, z);
             }
         }
@@ -507,17 +507,17 @@ public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, 
         return !regionKeys.isEmpty();
     }
 
-    private static boolean containsObjectPlacement(KList<IrisObjectPlacement> placements, String normalizedObjectKey) {
+    private static boolean containsObjectPlacement(KList<ObjectPlacement> placements, String normalizedObjectKey) {
         if (placements == null || placements.isEmpty() || normalizedObjectKey.isBlank()) {
             return false;
         }
 
-        for (IrisObjectPlacement placement : placements) {
-            if (placement == null || placement.getPlace() == null || placement.getPlace().isEmpty()) {
+        for (ObjectPlacement placement : placements) {
+            if (placement == null || placement.place().isEmpty()) {
                 continue;
             }
 
-            for (String placedObject : placement.getPlace()) {
+            for (String placedObject : placement.place()) {
                 String normalizedPlacedObject = normalizeObjectPlacementKey(placedObject);
                 if (!normalizedPlacedObject.isBlank() && normalizedPlacedObject.equals(normalizedObjectKey)) {
                     return true;

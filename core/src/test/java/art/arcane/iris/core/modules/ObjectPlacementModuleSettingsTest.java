@@ -22,7 +22,8 @@ import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
 import art.arcane.iris.builtin.IrisStages;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.object.placement.IObjectPlacer;
-import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
+import art.arcane.iris.builtin.objects.ObjectPlacement;
+import art.arcane.iris.engine.object.placement.IrisPlacementForm;
 import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
@@ -103,7 +104,7 @@ public class ObjectPlacementModuleSettingsTest {
 
     /** Holds placements the way a biome does. */
     private static final class Holder {
-        private List<IrisObjectPlacement> objects;
+        private List<ObjectPlacement> objects;
     }
 
     @Before
@@ -134,15 +135,15 @@ public class ObjectPlacementModuleSettingsTest {
         Holder holder = gson.fromJson("{\"objects\": [{\"place\": [\"tree\"], \"glow\": {\"block\": \"minecraft:sea_lantern\"}},"
                 + " {\"place\": [\"rock\"]}]}", Holder.class);
 
-        assertEquals("minecraft:sea_lantern", holder.objects.get(0).getModuleSettings().find(GlowSettings.class).orElseThrow().block);
-        assertSame(ModuleSettings.NONE, holder.objects.get(1).getModuleSettings());
+        assertEquals("minecraft:sea_lantern", moduleSettings(holder.objects.get(0)).find(GlowSettings.class).orElseThrow().block);
+        assertSame(ModuleSettings.NONE, moduleSettings(holder.objects.get(1)));
     }
 
     @Test
     public void copiesOfAPlacementKeepItsSettings() {
-        IrisObjectPlacement placement = gson.fromJson("{\"place\": [\"tree\"], \"glow\": {}}", IrisObjectPlacement.class);
+        ObjectPlacement placement = gson.fromJson("{\"place\": [\"tree\"], \"glow\": {}}", ObjectPlacement.class);
 
-        assertSame(placement.getModuleSettings(), placement.toPlacement("rock").getModuleSettings());
+        assertSame(moduleSettings(placement), moduleSettings(placement.toBuilder().place(List.of("rock")).build()));
     }
 
     @Test
@@ -150,16 +151,19 @@ public class ObjectPlacementModuleSettingsTest {
         IObjectPlacer declaring = placer();
         IObjectPlacer silent = placer();
 
-        place(gson.fromJson("{\"glow\": {}}", IrisObjectPlacement.class), declaring);
-        place(gson.fromJson("{}", IrisObjectPlacement.class), silent);
+        place(gson.fromJson("{\"glow\": {}}", ObjectPlacement.class), declaring);
+        place(gson.fromJson("{}", ObjectPlacement.class), silent);
 
         verify(declaring).set(eq(0), eq(SURFACE_Y + 1), eq(0), any());
         verify(silent, never()).set(eq(0), eq(SURFACE_Y + 1), eq(0), any());
     }
 
-    private void place(IrisObjectPlacement placement, IObjectPlacer placer) {
-        placement.setMode(ObjectPlaceMode.CENTER_HEIGHT);
-        placement.setRequireSurfaceSupport(false);
+    private ModuleSettings moduleSettings(ObjectPlacement placement) {
+        return IrisPlacementForm.of(placement, data).moduleSettings();
+    }
+
+    private void place(ObjectPlacement declared, IObjectPlacer placer) {
+        ObjectPlacement placement = declared.toBuilder().mode(ObjectPlaceMode.CENTER_HEIGHT).requireSurfaceSupport(false).build();
         IrisObject object = new IrisObject(1, 1, 1);
         object.setUnsigned(0, 0, 0, IrisPlatforms.get().registries().block("minecraft:stone"));
         ModuleObjectPlacement.place(object, 0, SURFACE_Y, 0, placer, placement, new RNG(1), null, null, data);

@@ -18,10 +18,11 @@
 
 package art.arcane.iris.core.modules;
 
+import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.object.placement.IObjectPlacer;
-import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
+import art.arcane.iris.engine.object.placement.IrisPlacementForm;
 import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.object.prefab.IrisObjectShaping;
 import art.arcane.iris.engine.object.terrain.carving.CarveResult;
@@ -64,7 +65,7 @@ public final class ModuleObjectPlacement {
      * @param cave the cave the object is placed in, or null outside caves
      */
     public static ObjectPlacementResult place(IrisObject object, int x, int requestedY, int z, IObjectPlacer placer,
-                                              IrisObjectPlacement config, RNG rng,
+                                              ObjectPlacement config, RNG rng,
                                               BiConsumer<art.arcane.volmlib.util.math.BlockPosition, PlatformBlockState> listener,
                                               CarveResult cave, IrisData data) {
         Objects.requireNonNull(placer, "Object placer is required.");
@@ -73,11 +74,12 @@ public final class ModuleObjectPlacement {
         Objects.requireNonNull(data, "Object placement data is required.");
         LoadedPack pack = data.getModules().pack();
         ResolvedGraph graph = pack.placement();
+        IrisPlacementForm form = IrisPlacementForm.of(config, data);
         GeneratedObject geometry = geometryOf(object, config);
-        BlockBox area = PlacementArea.around(object, geometry, config, x, z, graph.reach().blocks());
+        BlockBox area = PlacementArea.around(object, geometry, config.translate(), form.warp(), x, z, graph.reach().blocks());
         PlatformBlockStates states = new PlatformBlockStates(ModuleObjectPlacement::platformState);
         ObjectPlacerEdit edit = new ObjectPlacerEdit(placer, area, states, listener, () -> mantle(placer.getEngine(), area, pack));
-        IrisPlacement placement = new IrisPlacement(object, config, placer, cave, x, requestedY, z, data, states, edit);
+        IrisPlacement placement = new IrisPlacement(object, config, form, placer, cave, x, requestedY, z, data, states, edit);
         PackResourceIds ids = new PackResourceIds(data.getDataFolder());
         String objectKey = keyOf(object);
         Engine engine = placer.getEngine();
@@ -88,11 +90,11 @@ public final class ModuleObjectPlacement {
         StageMetrics metrics = new StageMetrics(engine != null ? engine.getMetrics() : null);
         try (ToolWorld toolWorld = engine == null ? new ToolWorld(worldSeed, data.getPackResources(), new PackDeclaredSettings(data)) : null) {
             IrisPlacementInputs inputs = new IrisPlacementInputs(terrain(engine, ids, area),
-                    new PlacementModuleSettings(worldSettings(engine, ids), config.getModuleSettings(), source),
+                    new PlacementModuleSettings(worldSettings(engine, ids), form.moduleSettings(), source),
                     new PlacerBlockView(placer, area, states), engine != null ? IrisPlacementInputs.worldOf(engine) : () -> toolWorld,
                     placement);
             PlacementOutcome outcome = new PlacementRunner(graph)
-                    .place(request, edit, inputs, seed, config.getModuleSettings().placement(source), metrics);
+                    .place(request, edit, inputs, seed, form.moduleSettings().placement(source), metrics);
             return outcome.isPlaced()
                     ? ObjectPlacementResult.placed(placement.anchorY())
                     : ObjectPlacementResult.rejected(outcome.rejection().orElseThrow());
@@ -100,8 +102,8 @@ public final class ModuleObjectPlacement {
     }
 
     /** Smart boring adds the object's bored air, so it has to happen before the geometry is read. */
-    private static GeneratedObject geometryOf(IrisObject object, IrisObjectPlacement config) {
-        if (config.isSmartBore()) {
+    private static GeneratedObject geometryOf(IrisObject object, ObjectPlacement config) {
+        if (config.smartBore()) {
             IrisObjectShaping.ensureSmartBored(object);
         }
         return object.getGeometry();

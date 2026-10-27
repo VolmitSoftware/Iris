@@ -30,9 +30,9 @@ import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.placer.HeightmapObjectPlacer;
 import art.arcane.iris.engine.object.material.BlockDataMergeSupport;
 import art.arcane.iris.engine.object.placement.IObjectPlacer;
-import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
+import art.arcane.iris.engine.object.placement.IrisPlacementForm;
 import art.arcane.iris.engine.object.prefab.IrisObject;
-import art.arcane.iris.engine.object.prefab.IrisObjectRotation;
+import art.arcane.iris.engine.object.prefab.BlockStateRotation;
 import art.arcane.iris.engine.object.terrain.carving.CarveResult;
 import art.arcane.iris.util.project.noise.CNG;
 import art.arcane.iris.util.project.noise.SimplexNoise;
@@ -53,7 +53,7 @@ public final class IrisPlacement implements ObjectPlacement {
     private static final int NOT_ANCHORED = Integer.MIN_VALUE;
 
     private final IrisObject object;
-    private final IrisObjectPlacement config;
+    private final IrisPlacementForm form;
     private final IObjectPlacer placer;
     private final CarveResult cave;
     private final int x;
@@ -65,14 +65,13 @@ public final class IrisPlacement implements ObjectPlacement {
     private final IrisObjectShape shape;
     private final IrisPlacementSettings settings;
     private final IrisPlacementTerrain terrain;
-    private ObjectRotation derivedRotation;
-    private IrisObjectRotation derivedIrisRotation;
     private int anchorY = NOT_ANCHORED;
 
-    IrisPlacement(IrisObject object, IrisObjectPlacement config, IObjectPlacer placer, CarveResult cave,
-                  int x, int requestedY, int z, IrisData data, PlatformBlockStates states, ObjectPlacerEdit edit) {
+    IrisPlacement(IrisObject object, art.arcane.iris.builtin.objects.ObjectPlacement config, IrisPlacementForm form,
+                  IObjectPlacer placer, CarveResult cave, int x, int requestedY, int z, IrisData data, PlatformBlockStates states,
+                  ObjectPlacerEdit edit) {
         this.object = object;
-        this.config = config;
+        this.form = form;
         this.placer = placer;
         this.cave = cave;
         this.x = x;
@@ -82,7 +81,7 @@ public final class IrisPlacement implements ObjectPlacement {
         this.states = states;
         this.edit = edit;
         this.shape = new IrisObjectShape(object, data.getPackResources());
-        this.settings = new IrisPlacementSettings(config, data, states);
+        this.settings = new IrisPlacementSettings(config, data);
         this.terrain = new IrisPlacementTerrain(placer, object.getLoader(), data);
     }
 
@@ -125,19 +124,20 @@ public final class IrisPlacement implements ObjectPlacement {
 
     @Override
     public PlacementTerrain terrainFor(RNG rng) {
-        if (config.getHeightmap() == null) {
+        if (form.heightmap() == null) {
             return terrain;
         }
-        return new IrisPlacementTerrain(new HeightmapObjectPlacer(rng, x, requestedY, z, config, placer), object.getLoader(), data);
+        return new IrisPlacementTerrain(new HeightmapObjectPlacer(rng, x, requestedY, z, form.heightmap(), placer), object.getLoader(), data);
     }
 
     @Override
     public Optional<SurfaceWarp> surfaceWarp(RNG rng) {
-        if (config.getWarp().isFlat()) {
+        if (form.warp().isFlat()) {
             return Optional.empty();
         }
-        CNG warp = config.getSurfaceWarp(rng, object.getLoader());
-        double multiplier = config.getWarp().getMultiplier();
+        IrisData loader = object.getLoader();
+        CNG warp = form.surfaceWarp(rng, loader, loader.getEngine());
+        double multiplier = form.warp().getMultiplier();
         return Optional.of(new SurfaceWarp() {
             @Override
             public double multiplier() {
@@ -159,24 +159,7 @@ public final class IrisPlacement implements ObjectPlacement {
 
     @Override
     public BlockState rotate(BlockState state, ObjectRotation rotation, int spinX, int spinY, int spinZ) {
-        return states.toApi(irisRotation(rotation).rotate(states.toPlatform(state), spinX, spinY, spinZ));
-    }
-
-    /** The rotation model that turns blocks for the rotation the stages chose, which is the settings' own or one derived from it. */
-    private IrisObjectRotation irisRotation(ObjectRotation rotation) {
-        if (settings.gaveRotation(rotation)) {
-            return settings.irisRotation();
-        }
-        if (rotation != derivedRotation) {
-            IrisObjectRotation converted = new IrisObjectRotation();
-            converted.setEnabled(rotation.enabled());
-            converted.setXAxis(rotation.xAxis());
-            converted.setYAxis(rotation.yAxis());
-            converted.setZAxis(rotation.zAxis());
-            derivedIrisRotation = converted;
-            derivedRotation = rotation;
-        }
-        return derivedIrisRotation;
+        return states.toApi(BlockStateRotation.rotate(rotation, states.toPlatform(state), spinX, spinY, spinZ));
     }
 
     @Override

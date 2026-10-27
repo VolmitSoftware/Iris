@@ -29,10 +29,10 @@ import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.builtin.spawn.PlacementMarker;
 import art.arcane.iris.engine.UsableBlockPlatform;
 import art.arcane.iris.engine.object.placement.IObjectPlacer;
-import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
+import art.arcane.iris.builtin.objects.ObjectPlacement;
+import art.arcane.iris.engine.object.placement.IrisPlacementForm;
 import art.arcane.iris.engine.object.prefab.IrisObject;
-import art.arcane.iris.engine.object.prefab.IrisObjectRotation;
-import art.arcane.iris.engine.object.prefab.IrisObjectTranslate;
+import art.arcane.iris.engine.object.prefab.BlockStateRotation;
 import art.arcane.iris.engine.object.terrain.carving.CarveResult;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.volmlib.util.collection.KList;
@@ -62,17 +62,18 @@ public class IrisPlacementTest {
     private static final int Z = -4;
 
     private IrisObject object;
-    private IrisObjectPlacement config;
+    private ObjectPlacement.Builder config;
     private IrisData data;
     private IrisPlacement placement;
     private PlatformBlockStates states;
-    private IrisObjectRotation.StateRotator previousRotator;
+    private BlockStateRotation.StateRotator previousRotator;
 
     @Before
     public void bindPlatform() {
         UsableBlockPlatform.bind();
-        config = new IrisObjectPlacement();
+        config = ObjectPlacement.builder();
         data = mock(IrisData.class);
+        when(data.getPackResources()).thenReturn(mock(IrisPackResources.class));
         IrisObject object = new IrisObject(3, 4, 5);
         object.setLoader(data);
         this.object = object;
@@ -81,15 +82,16 @@ public class IrisPlacementTest {
     }
 
     /** The placement settings are read when the placement starts, so a test configures first. */
-    private IrisPlacement placementOf(IrisObjectPlacement settings) {
-        return new IrisPlacement(object, settings, mock(IObjectPlacer.class), new CarveResult(70, 90), X, Y, Z, data, states,
+    private IrisPlacement placementOf(ObjectPlacement.Builder configured) {
+        ObjectPlacement settings = configured.build();
+        return new IrisPlacement(object, settings, IrisPlacementForm.of(settings, data), mock(IObjectPlacer.class), new CarveResult(70, 90), X, Y, Z, data, states,
                 mock(ObjectPlacerEdit.class));
     }
 
     @After
     public void unbindPlatform() {
         if (previousRotator != null) {
-            IrisObjectRotation.restorePlatformRotator(previousRotator);
+            BlockStateRotation.restorePlatformRotator(previousRotator);
         }
         UsableBlockPlatform.unbind();
     }
@@ -107,9 +109,9 @@ public class IrisPlacementTest {
 
     @Test
     public void settingsReadTheIrisPlacementAsItIs() {
-        config.setMode(ObjectPlaceMode.VACUUM).setSnow(0.5).setBore(true).setBoreExtendMaxY(3);
-        config.setTranslate(new IrisObjectTranslate().setX(1).setY(2).setYRandom(3).setZ(4));
-        config.setStiltSettings(null);
+        config.mode(ObjectPlaceMode.VACUUM).snow(0.5).bore(true).boreExtendMaxY(3);
+        config.translate(ObjectTranslate.of(1, 2, 3, 4));
+        config.stiltSettings(null);
         placement = placementOf(config);
 
         assertEquals(ObjectPlaceMode.VACUUM, placement.settings().mode());
@@ -119,19 +121,18 @@ public class IrisPlacementTest {
         ObjectTranslate translate = placement.settings().translate();
         assertEquals(List.of(1, 2, 3, 4), List.of(translate.x(), translate.y(), translate.yRandom(), translate.z()));
         assertTrue(placement.settings().stilt().isEmpty());
-        assertSame(config.getEdit(), placement.settings().edit());
+        assertTrue(placement.settings().edit().isEmpty());
     }
 
     @Test
-    public void settingsHandOutTheRotationAsTheModelWritesIt() {
-        IrisObjectRotation model = IrisObjectRotation.of(0, 90, 0);
-        config.setRotation(model);
+    public void settingsHandOutThePlacementsOwnRotation() {
+        ObjectRotation model = ObjectRotation.of(0, 90, 0);
+        config.rotation(model);
         placement = placementOf(config);
 
         ObjectRotation rotation = placement.settings().rotation();
 
-        assertSame(model.getYAxis(), rotation.yAxis());
-        assertEquals(model.isEnabled(), rotation.enabled());
+        assertSame(model, rotation);
         assertTrue(rotation.canRotateY());
         assertFalse(rotation.canRotateX());
     }
@@ -149,7 +150,7 @@ public class IrisPlacementTest {
         when(data.getPackResources()).thenReturn(resources);
         when(resources.blocks()).thenReturn(blocks);
         when(blocks.resolve(planks)).thenReturn(BlockState.parse("minecraft:oak_planks"));
-        config.setMarkers(new KList<>(List.of(marker)));
+        config.markers(List.of(marker));
         placement = placementOf(config);
 
         MarkerRule rule = placement.settings().markers().getFirst();
@@ -166,9 +167,9 @@ public class IrisPlacementTest {
     }
 
     @Test
-    public void statesAreTurnedWithTheSettingsRotationOrWithOneTheStagesDerived() {
-        List<IrisObjectRotation> turnedWith = new ArrayList<>();
-        previousRotator = IrisObjectRotation.bindPlatformRotator((rotation, state, x, y, z) -> {
+    public void statesAreTurnedWithTheRotationTheStagesChose() {
+        List<ObjectRotation> turnedWith = new ArrayList<>();
+        previousRotator = BlockStateRotation.bindPlatformRotator((rotation, state, x, y, z) -> {
             turnedWith.add(rotation);
             return state;
         });
@@ -180,10 +181,9 @@ public class IrisPlacementTest {
         placement.rotate(stairs, derived, 1, 2, 3);
         placement.rotate(stairs, derived, 1, 2, 3);
 
-        assertSame(config.getRotation(), turnedWith.get(0));
-        assertEquals(90, turnedWith.get(1).getYAxis().max(), 0);
-        assertTrue(turnedWith.get(1).isEnabled());
-        assertSame("the converted rotation is kept for the placement", turnedWith.get(1), turnedWith.get(2));
+        assertSame(placement.settings().rotation(), turnedWith.get(0));
+        assertSame(derived, turnedWith.get(1));
+        assertSame(derived, turnedWith.get(2));
     }
 
     @Test

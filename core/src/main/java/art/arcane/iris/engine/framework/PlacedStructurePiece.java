@@ -20,7 +20,7 @@ package art.arcane.iris.engine.framework;
 
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPiece;
 import art.arcane.iris.engine.object.prefab.IrisObject;
-import art.arcane.iris.engine.object.prefab.IrisObjectRotation;
+import art.arcane.iris.builtin.prepare.ObjectRotation;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
@@ -32,7 +32,7 @@ public class PlacedStructurePiece {
     private final int x;
     private final int y;
     private final int z;
-    private final IrisObjectRotation rotation;
+    private final ObjectRotation rotation;
     private final int minX;
     private final int minY;
     private final int minZ;

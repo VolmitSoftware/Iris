@@ -11,10 +11,10 @@ import art.arcane.iris.builtin.objects.ObjectHost;
 import art.arcane.iris.builtin.objects.formation.Formation;
 import art.arcane.iris.core.modules.ProceduralOptions;
 import art.arcane.iris.engine.object.placement.IObjectPlacer;
-import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
+import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.engine.object.placement.IrisSurfaceSupport;
 import art.arcane.iris.engine.object.prefab.IrisObject;
-import art.arcane.iris.engine.object.prefab.IrisObjectRotation;
+import art.arcane.iris.builtin.prepare.ObjectRotation;
 import art.arcane.iris.engine.object.prefab.TileData;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.Engine;
@@ -131,8 +131,7 @@ public class IrisSurfaceSupportTest {
     public void placementTranslationAndRotationMatchObjectBlocks() {
         SurfacePlacer placer = new SurfacePlacer(80);
         ObjectTranslate translate = ObjectTranslate.of(5, 0, 0, -3);
-        IrisObjectRotation turned = IrisObjectRotation.of(0, 90, 0);
-        ObjectRotation rotation = ObjectRotation.of(turned.isEnabled(), turned.getXAxis(), turned.getYAxis(), turned.getZAxis());
+        ObjectRotation rotation = ObjectRotation.of(0, 90, 0);
         placer.carve(-3, 80, -7);
 
         assertTrue(IrisSurfaceSupport.isUnsupported(new Terrain(placer), 0, 0, translate, rotation, 0, 0, 0,
@@ -177,11 +176,11 @@ public class IrisSurfaceSupportTest {
 
     @Test
     public void formationDefaultsToWiderBufferThanObjectDefault() {
-        assertEquals(2, new IrisObjectPlacement().getSurfaceSupportBuffer());
-        assertEquals(3, ProceduralOptions.of(new ResolvedFormation(new Formation(), mock(ObjectHost.class))).getSurfaceSupportBuffer());
+        assertEquals(2, ObjectPlacement.builder().build().surfaceSupportBuffer());
+        assertEquals(3, ProceduralOptions.of(new ResolvedFormation(new Formation(), mock(ObjectHost.class))).surfaceSupportBuffer());
 
         Formation flush = TestSettings.with(new Formation(), "surfaceSupportBuffer", 0);
-        assertEquals(0, ProceduralOptions.of(new ResolvedFormation(flush, mock(ObjectHost.class))).getSurfaceSupportBuffer());
+        assertEquals(0, ProceduralOptions.of(new ResolvedFormation(flush, mock(ObjectHost.class))).surfaceSupportBuffer());
     }
 
     private static boolean isUnsupported(IObjectPlacer placer, List<IrisBlockVector> footprint,

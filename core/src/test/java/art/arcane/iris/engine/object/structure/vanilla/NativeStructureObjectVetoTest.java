@@ -2,7 +2,7 @@ package art.arcane.iris.engine.object.structure.vanilla;
 
 import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
 import art.arcane.iris.engine.object.placement.IObjectPlacer;
-import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
+import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.object.prefab.TileData;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
@@ -176,8 +176,7 @@ public class NativeStructureObjectVetoTest {
         assertTrue(vetoed.written().isEmpty());
 
         RecordingPlacer exempt = new RecordingPlacer(engine);
-        IrisObjectPlacement structurePiece = placement();
-        structurePiece.setMode(ObjectPlaceMode.STRUCTURE_PIECE);
+        ObjectPlacement structurePiece = placement().toBuilder().mode(ObjectPlaceMode.STRUCTURE_PIECE).build();
 
         assertTrue(tree().place(0, SURFACE_Y, 0, exempt, structurePiece, new RNG(1234L), data) >= 0);
         assertFalse(exempt.written().isEmpty());
@@ -187,8 +186,7 @@ public class NativeStructureObjectVetoTest {
     public void forcePlaceStillObeysTheVeto() {
         RecordingPlacer placer = new RecordingPlacer(engine);
         volumes(volume(-64, -64, -64, 64, 320, 64));
-        IrisObjectPlacement placement = placement();
-        placement.setForcePlace(true);
+        ObjectPlacement placement = placement().toBuilder().forcePlace(true).build();
 
         assertEquals(-1, tree().place(0, -1, 0, placer, placement, new RNG(1234L), data));
         assertTrue(placer.written().isEmpty());
@@ -198,8 +196,7 @@ public class NativeStructureObjectVetoTest {
     public void structurePiecePlacementsBypassTheVeto() {
         RecordingPlacer placer = new RecordingPlacer(engine);
         volumes(volume(-64, -64, -64, 64, 320, 64));
-        IrisObjectPlacement placement = placement();
-        placement.setMode(ObjectPlaceMode.STRUCTURE_PIECE);
+        ObjectPlacement placement = placement().toBuilder().mode(ObjectPlaceMode.STRUCTURE_PIECE).build();
 
         assertTrue(tree().place(0, 100, 0, placer, placement, new RNG(1234L), data) >= 0);
         assertFalse(placer.written().isEmpty());
@@ -233,10 +230,8 @@ public class NativeStructureObjectVetoTest {
         return tree().place(0, -1, 0, placer, placement(), new RNG(1234L), data);
     }
 
-    private IrisObjectPlacement placement() {
-        IrisObjectPlacement placement = new IrisObjectPlacement();
-        placement.setMode(ObjectPlaceMode.CENTER_HEIGHT);
-        return placement;
+    private ObjectPlacement placement() {
+        return ObjectPlacement.builder().mode(ObjectPlaceMode.CENTER_HEIGHT).build();
     }
 
     private IrisObject tree() {

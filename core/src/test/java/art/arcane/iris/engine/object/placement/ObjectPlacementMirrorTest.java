@@ -6,42 +6,16 @@ import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import org.junit.Test;
 
-import java.util.TreeSet;
-
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
-/** The settings of {@code iris:objects} describe the same JSON an Iris object placement reads, and keep it for Iris to read. */
+/** A placement read from pack JSON keeps that JSON, which Iris reads its module settings from. */
 public class ObjectPlacementMirrorTest {
     private static final Gson GSON = new Gson();
-    private static final String WARP_OPTION = "warp";
-    /** Iris's own cache size knob, which IrisApi's NoiseStyle leaves out; a placement's JSON still carries it to Iris. */
-    private static final String IRIS_ONLY_STYLE_OPTION = "cacheSize";
-
-    @Test
-    public void theSettingsDeclareEveryOptionOfIrisObjectPlacementAndNoOther() {
-        JsonObject host = GSON.toJsonTree(new IrisObjectPlacement()).getAsJsonObject();
-        JsonObject settings = GSON.toJsonTree(TestSettings.of(ObjectPlacement.class, "{}")).getAsJsonObject();
-
-        assertEquals(new TreeSet<>(host.keySet()), new TreeSet<>(settings.keySet()));
-    }
-
-    @Test
-    public void theSettingsDefaultToWhatIrisObjectPlacementDefaultsTo() {
-        JsonObject host = GSON.toJsonTree(new IrisObjectPlacement()).getAsJsonObject();
-        JsonObject settings = GSON.toJsonTree(TestSettings.of(ObjectPlacement.class, "{}")).getAsJsonObject();
-
-        host.getAsJsonObject(WARP_OPTION).remove(IRIS_ONLY_STYLE_OPTION);
-        for (String option : host.keySet()) {
-            assertEquals("default of " + option, host.get(option), settings.get(option));
-        }
-    }
 
     @Test
     public void aPlacementKeepsTheJsonItWasReadFrom() {
         String json = "{\"place\":[\"trees/oak\"],\"chance\":0.5,\"snow\":0.25}";
-
         ObjectPlacement placement = TestSettings.of(ObjectPlacement.class, json);
 
         assertEquals(GSON.fromJson(json, JsonObject.class), GSON.fromJson(placement.json(), JsonObject.class));
@@ -50,16 +24,7 @@ public class ObjectPlacementMirrorTest {
     }
 
     @Test
-    public void irisReadsTheKeptJsonAsItsOwnPlacement() {
-        ObjectPlacement placement = TestSettings.of(ObjectPlacement.class,
-                "{\"place\":[\"trees/oak\"],\"force\":true,\"density\":3,\"mode\":\"STILT\"}");
-
-        IrisObjectPlacement host = GSON.fromJson(placement.json(), IrisObjectPlacement.class);
-
-        assertNotNull(host);
-        assertEquals("trees/oak", host.getPlace().get(0));
-        assertEquals(true, host.isForcePlace());
-        assertEquals(3, host.getDensity());
-        assertEquals(placement.mode(), host.getMode());
+    public void aPlacementMadeInCodeHasNoJson() {
+        assertNull(ObjectPlacement.builder().build().json());
     }
 }

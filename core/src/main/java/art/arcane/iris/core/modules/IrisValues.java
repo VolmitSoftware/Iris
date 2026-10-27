@@ -22,7 +22,9 @@ import art.arcane.iris.builtin.terrain.LayerLoad;
 import art.arcane.iris.builtin.terrain.LayersSettings;
 import art.arcane.iris.engine.object.material.IrisBlockData;
 import art.arcane.iris.engine.object.material.IrisMaterialPalette;
+import art.arcane.iris.builtin.objects.HeightmapNoise;
 import art.arcane.iris.engine.object.noise.IrisGeneratorStyle;
+import art.arcane.iris.engine.object.noise.IrisNoiseGenerator;
 import art.arcane.iris.engine.object.noise.IrisStyledRange;
 import art.arcane.iris.engine.object.noise.NoiseStyle;
 import art.arcane.iris.engine.object.value.IrisPosition;
@@ -117,6 +119,27 @@ public final class IrisValues {
     public static List<art.arcane.iris.engine.object.noise.NoiseStyle> layerStyles(art.arcane.iris.engine.object.world.biome.IrisBiome biome) {
         return LayerLoad.layersOf(biome.getModuleSettings().find(LayersSettings.class).orElse(null)).stream()
                 .map(layer -> irisStyle(layer.style().style())).toList();
+    }
+
+    /** {@code noise} as the noise generator Iris reads the same JSON into. */
+    public static IrisNoiseGenerator noiseGenerator(HeightmapNoise noise, IrisPackResources resources) {
+        IrisNoiseGenerator generator = new IrisNoiseGenerator();
+        generator.setZoom(noise.zoom());
+        generator.setNegative(noise.negative());
+        generator.setOpacity(noise.opacity());
+        generator.setOffsetX(noise.offsetX());
+        generator.setOffsetY(noise.offsetY());
+        generator.setOffsetZ(noise.offsetZ());
+        generator.setSeed(noise.seed());
+        generator.setParametric(noise.parametric());
+        generator.setBezier(noise.bezier());
+        generator.setSinCentered(noise.sinCentered());
+        generator.setExponent(noise.exponent());
+        generator.setEnabled(noise.enabled());
+        generator.setStyle(generatorStyle(noise.style(), resources));
+        generator.setOctaves(noise.octaves());
+        generator.setFracture(new KList<>(noise.fracture().stream().map(child -> noiseGenerator(child, resources)).toList()));
+        return generator;
     }
 
     /** {@code range} as the range Iris reads the same JSON into. */

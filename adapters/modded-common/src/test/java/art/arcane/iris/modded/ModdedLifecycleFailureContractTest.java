@@ -1,7 +1,6 @@
 package art.arcane.iris.modded;
 
 import art.arcane.iris.engine.object.material.BlockDataMergeSupport;
-import art.arcane.iris.engine.object.prefab.IrisObjectRotation;
 import art.arcane.iris.engine.object.prefab.TileData;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import org.junit.Test;
@@ -238,7 +237,7 @@ public class ModdedLifecycleFailureContractTest {
         assertTrue(bind.contains("rollback.add(() -> GuiHost.suppressDesktop("));
         assertTrue(bind.contains("rollback.add(() -> restorePlatform("));
         assertTrue(bind.contains("rollback.add(() -> ModdedDimensionManager.restoreAccess("));
-        assertTrue(bind.contains("rollback.add(() -> IrisObjectRotation.restorePlatformRotator("));
+        assertTrue(bind.contains("rollback.add(() -> BlockStateRotation.restorePlatformRotator("));
         assertTrue(bind.contains("rollback.add(() -> BlockDataMergeSupport.restorePlatformMerger("));
         assertTrue(bind.contains("rollback.add(() -> TileData.restorePlatformReader("));
         assertTrue(bind.contains("rollback.add(() -> TileData.restorePlatformFactory("));

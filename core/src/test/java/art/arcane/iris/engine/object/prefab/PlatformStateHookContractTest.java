@@ -1,7 +1,7 @@
 package art.arcane.iris.engine.object.prefab;
 
+import art.arcane.iris.builtin.prepare.ObjectRotation;
 import art.arcane.iris.engine.object.material.BlockDataMergeSupport;
-import art.arcane.iris.engine.object.prefab.IrisObjectRotation;
 import art.arcane.iris.engine.object.prefab.TileData;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.volmlib.util.collection.KMap;
@@ -20,14 +20,14 @@ public class PlatformStateHookContractTest {
     public void boundRotatorWinsWhenBukkitClassesArePresent() {
         PlatformBlockState source = mock(PlatformBlockState.class);
         PlatformBlockState rotated = mock(PlatformBlockState.class);
-        IrisObjectRotation.StateRotator hook = mock(IrisObjectRotation.StateRotator.class);
-        IrisObjectRotation rotation = new IrisObjectRotation();
+        BlockStateRotation.StateRotator hook = mock(BlockStateRotation.StateRotator.class);
+        ObjectRotation rotation = new ObjectRotation();
         when(hook.rotate(rotation, source, 1, 2, 3)).thenReturn(rotated);
-        IrisObjectRotation.StateRotator previous = IrisObjectRotation.bindPlatformRotator(hook);
+        BlockStateRotation.StateRotator previous = BlockStateRotation.bindPlatformRotator(hook);
         try {
-            assertSame(rotated, rotation.rotate(source, 1, 2, 3));
+            assertSame(rotated, BlockStateRotation.rotate(rotation, source, 1, 2, 3));
         } finally {
-            IrisObjectRotation.restorePlatformRotator(previous);
+            BlockStateRotation.restorePlatformRotator(previous);
         }
     }
 

@@ -20,6 +20,7 @@ package art.arcane.iris.engine.object.placement;
 
 import art.arcane.iris.builtin.blocks.ObjectReplace;
 import art.arcane.iris.builtin.loot.ObjectLoot;
+import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.builtin.loot.ObjectVanillaLoot;
 import art.arcane.iris.builtin.spawn.PlacementMarker;
 import art.arcane.iris.builtin.prepare.AxisRotationClamp;
@@ -116,31 +117,31 @@ public class PlacementSettingsDecodingTest {
         gson = new GsonBuilder().registerTypeAdapterFactory(data).create();
     }
 
-    private IrisObjectPlacement placement(String json) {
-        return gson.fromJson(json, IrisObjectPlacement.class);
+    private ObjectPlacement placement(String json) {
+        return gson.fromJson(json, ObjectPlacement.class);
     }
 
     @Test
     public void clampReadsTheHeightsThePackSetAndKeepsIrisDefaultsForTheRest() {
-        ObjectLimit mangrove = placement(MANGROVE).getClamp();
+        ObjectLimit mangrove = placement(MANGROVE).clamp();
         assertEquals(-2048, mangrove.minimumHeight());
         assertEquals(225, mangrove.maximumHeight());
         assertTrue(mangrove.canPlace(225, 100));
         assertFalse(mangrove.canPlace(226, 100));
 
-        ObjectLimit fromGround = placement(CLAMPED_FROM_GROUND).getClamp();
+        ObjectLimit fromGround = placement(CLAMPED_FROM_GROUND).clamp();
         assertEquals(0, fromGround.minimumHeight());
         assertEquals(2048, fromGround.maximumHeight());
         assertFalse(fromGround.canPlace(10, -1));
 
-        ObjectLimit untouched = placement("{}").getClamp();
+        ObjectLimit untouched = placement("{}").clamp();
         assertEquals(-2048, untouched.minimumHeight());
         assertEquals(2048, untouched.maximumHeight());
     }
 
     @Test
     public void slopeConditionReadsItsBoundsAndNoConditionPassesEverySlope() {
-        SlopeClip steep = placement(STEEP_ONLY).getSlopeCondition();
+        SlopeClip steep = placement(STEEP_ONLY).slopeCondition();
         assertEquals(2, steep.minimumSlope(), 0);
         assertEquals(3.5, steep.maximumSlope(), 0);
         assertFalse(steep.isDefault());
@@ -148,14 +149,14 @@ public class PlacementSettingsDecodingTest {
         assertFalse(steep.isValid(1.9));
         assertFalse(steep.isValid(3.6));
 
-        SlopeClip none = placement("{}").getSlopeCondition();
+        SlopeClip none = placement("{}").slopeCondition();
         assertTrue(none.isDefault());
         assertTrue(none.isValid(9999));
     }
 
     @Test
     public void stiltSettingsReadTheirFieldsAndIgnoreWhatTheyNeverHad() {
-        StiltSettings center = placement(CENTER_STILT).getStiltSettings();
+        StiltSettings center = placement(CENTER_STILT).stiltSettings().orElseThrow();
         assertEquals(4, center.yMax());
         assertEquals(1, center.yRand());
         assertEquals(0, center.overStilt());
@@ -164,16 +165,16 @@ public class PlacementSettingsDecodingTest {
         assertEquals(3, center.organicJitter());
         assertEquals(0.55, center.organicScratch(), 0);
 
-        StiltSettings organic = placement(ORGANIC_STILT).getStiltSettings();
+        StiltSettings organic = placement(ORGANIC_STILT).stiltSettings().orElseThrow();
         assertEquals(1, organic.organicScratch(), 0);
         assertEquals(6, organic.organicJitter());
 
-        assertEquals(null, placement("{}").getStiltSettings());
+        assertTrue(placement("{}").stiltSettings().isEmpty());
     }
 
     @Test
     public void stiltPaletteIsAPaletteSpecWithItsStyleZoomAndWeightedBlocks() {
-        StiltSettings stilt = placement(STILT_WITH_PALETTE).getStiltSettings();
+        StiltSettings stilt = placement(STILT_WITH_PALETTE).stiltSettings().orElseThrow();
 
         assertEquals(2, stilt.overStilt());
         assertEquals(12, stilt.organicMaxScan());
@@ -187,7 +188,7 @@ public class PlacementSettingsDecodingTest {
 
     @Test
     public void vacuumSettingsReadEveryField() {
-        VacuumSettings vacuum = placement(VACUUM).getVacuumSettings();
+        VacuumSettings vacuum = placement(VACUUM).vacuumSettings().orElseThrow();
         assertEquals(24, vacuum.radius());
         assertEquals(1.5, vacuum.falloff(), 0);
         assertEquals(2, vacuum.organicJitter());
@@ -204,7 +205,7 @@ public class PlacementSettingsDecodingTest {
 
     @Test
     public void editsReadTheirFindListPaletteExactnessAndChance() {
-        List<ObjectReplace> edits = placement(SPRUCE_LEAVES_TO_PERLIN_LEAVES).getEdit();
+        List<ObjectReplace> edits = placement(SPRUCE_LEAVES_TO_PERLIN_LEAVES).edit();
 
         ObjectReplace fences = edits.get(0);
         assertEquals(List.of("minecraft:dark_oak_fence", "minecraft:dark_oak_fence_gate"), fences.find().stream().map(BlockSpec::block).toList());
@@ -222,59 +223,59 @@ public class PlacementSettingsDecodingTest {
 
     @Test
     public void editsMayBeSnippetsWhoseFieldsMayBeSnippetsToo() {
-        ObjectReplace snippet = placement(SPRUCE_LEAVES_TO_PERLIN_LEAVES).getEdit().get(2);
+        ObjectReplace snippet = placement(SPRUCE_LEAVES_TO_PERLIN_LEAVES).edit().get(2);
 
         assertNotNull(snippet);
         assertEquals("minecraft:oak_leaves", snippet.find().get(0).block());
         assertEquals("minecraft:red_terracotta", snippet.replace().palette().get(0).block());
 
-        ObjectReplace empty = placement(SPRUCE_LEAVES_TO_PERLIN_LEAVES).getEdit().get(3);
+        ObjectReplace empty = placement(SPRUCE_LEAVES_TO_PERLIN_LEAVES).edit().get(3);
         assertTrue(empty.find().isEmpty());
         assertEquals("stone", empty.replace().palette().get(0).block());
     }
 
     @Test
     public void rotationAxesReadTheirAnglesAndStepsAndTheYAxisIsOnByDefault() {
-        AxisRotationClamp yAxis = placement(CENTER_STILT).getRotation().getYAxis();
+        AxisRotationClamp yAxis = placement(CENTER_STILT).rotation().yAxis();
         assertTrue(yAxis.enabled());
         assertEquals(0, yAxis.min(), 0);
         assertEquals(270, yAxis.max(), 0);
         assertEquals(90, yAxis.interval(), 0);
 
-        AxisRotationClamp defaults = placement("{}").getRotation().getYAxis();
+        AxisRotationClamp defaults = placement("{}").rotation().yAxis();
         assertTrue(defaults.enabled());
         assertEquals(90, defaults.interval(), 0);
-        assertFalse(placement("{}").getRotation().getXAxis().enabled());
+        assertFalse(placement("{}").rotation().xAxis().enabled());
     }
 
     @Test
     public void lootAndMarkersReadTheFieldsTheyAlwaysHad() {
-        IrisObjectPlacement placement = placement(LOOT_AND_MARKERS);
+        ObjectPlacement placement = placement(LOOT_AND_MARKERS);
 
-        assertTrue(placement.isOverrideGlobalLoot());
-        ObjectLoot chest = placement.getLoot().get(0);
+        assertTrue(placement.overrideGlobalLoot());
+        ObjectLoot chest = placement.loot().get(0);
         assertEquals("camp/chest", chest.name());
         assertEquals(3, chest.weight());
         assertTrue(chest.exact());
         assertEquals("chest", chest.filter().getFirst().block());
         assertEquals("north", chest.filter().getFirst().data().get("facing"));
-        ObjectLoot barrel = placement.getLoot().get(1);
+        ObjectLoot barrel = placement.loot().get(1);
         assertEquals(1, barrel.weight());
         assertFalse(barrel.exact());
         assertTrue(barrel.filter().isEmpty());
 
-        ObjectVanillaLoot dungeon = placement.getVanillaLoot().getFirst();
+        ObjectVanillaLoot dungeon = placement.vanillaLoot().getFirst();
         assertEquals("chests/simple_dungeon", dungeon.name());
         assertEquals(2, dungeon.weight());
         assertEquals("minecraft:barrel", dungeon.filter().getFirst().block());
 
-        PlacementMarker marker = placement.getMarkers().getFirst();
+        PlacementMarker marker = placement.markers().getFirst();
         assertEquals("camp", marker.marker());
         assertEquals(4, marker.maximumMarkers());
         assertTrue(marker.exact());
         assertEquals("true", marker.mark().getFirst().data().get("lit"));
 
-        assertTrue(placement("{}").getLoot().isEmpty());
+        assertTrue(placement("{}").loot().isEmpty());
         assertEquals(8, new PlacementMarker().maximumMarkers());
     }
 }

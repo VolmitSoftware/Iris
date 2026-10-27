@@ -1,6 +1,6 @@
 package art.arcane.iris.engine.framework;
 
-import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
+import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.engine.object.placement.ObjectDeclarations;
 import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.core.loader.IrisData;
@@ -25,6 +25,7 @@ import org.junit.Test;
 import java.io.File;
 import java.nio.file.Files;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Future;
@@ -112,6 +113,10 @@ public class HintedLocatorTest {
         IrisRegion region = new IrisRegion();
         region.setLoadKey(key);
         return region;
+    }
+
+    private static ObjectPlacement placing(String objectKey) {
+        return ObjectPlacement.builder().place(List.of(objectKey)).build();
     }
 
     private static KList<String> keys(String... values) {
@@ -291,11 +296,7 @@ public class HintedLocatorTest {
         IrisRegion regionA = region("reg_a");
         regionA.setLandBiomes(keys("host_biome"));
         IrisBiome host = biome("host_biome");
-        IrisObjectPlacement placement = new IrisObjectPlacement();
-        placement.setPlace(keys("trees/oak"));
-        KList<IrisObjectPlacement> placements = new KList<>();
-        placements.add(placement);
-        ObjectDeclarations.declare(host, placements);
+        ObjectDeclarations.declare(host, placing("trees/oak"));
         stubBiome(host);
         stubReachableBiomes(host);
         stubRegions(regionA);
@@ -316,11 +317,7 @@ public class HintedLocatorTest {
     @Test
     public void objectPlanAcceptsRegionLevelPlacements() {
         IrisRegion regionA = region("reg_a");
-        IrisObjectPlacement placement = new IrisObjectPlacement();
-        placement.setPlace(keys("ruins/tower"));
-        KList<IrisObjectPlacement> placements = new KList<>();
-        placements.add(placement);
-        ObjectDeclarations.declare(regionA, placements);
+        ObjectDeclarations.declare(regionA, placing("ruins/tower"));
         stubRegions(regionA);
 
         when(complex.getRegionStream()).thenReturn(constantStream(regionA));
@@ -424,11 +421,7 @@ public class HintedLocatorTest {
         IrisRegion regionA = region("reg_a");
         regionA.setLandBiomes(keys("host_biome"));
         IrisBiome host = biome("host_biome");
-        IrisObjectPlacement placement = new IrisObjectPlacement();
-        placement.setPlace(keys("trees/oak"));
-        KList<IrisObjectPlacement> placements = new KList<>();
-        placements.add(placement);
-        ObjectDeclarations.declare(host, placements);
+        ObjectDeclarations.declare(host, placing("trees/oak"));
         stubBiome(host);
         stubReachableBiomes(host);
         stubRegions(regionA);

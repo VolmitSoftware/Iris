@@ -18,7 +18,7 @@
 
 package art.arcane.iris.core.commands;
 
-import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
+import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.engine.object.placement.ObjectPlacements;
 import art.arcane.iris.Iris;
 import art.arcane.iris.platform.bukkit.BukkitPlatform;
@@ -860,11 +860,11 @@ public class CommandStudio implements DirectorExecutor {
         String n1 = bb.getName() + " [" + Form.capitalize(bb.getInferredType().name().toLowerCase()) + "] " + " (" + bb.getLoadFile().getName() + ")";
         int m = 0;
         KSet<String> stop = new KSet<>();
-        for (IrisObjectPlacement f : ObjectPlacements.all(bb)) {
+        for (ObjectPlacement f : ObjectPlacements.all(bb)) {
             m++;
-            String n2 = "Placement #" + m + " (" + f.getPlace().size() + " possible objects)";
+            String n2 = "Placement #" + m + " (" + f.place().size() + " possible objects)";
 
-            for (String i : f.getPlace()) {
+            for (String i : f.place()) {
                 String nn3 = i + ": [ERROR] Failed to find object!";
 
                 try {

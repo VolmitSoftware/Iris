@@ -23,6 +23,8 @@ import art.arcane.iris.builtin.floating.IslandAnchor;
 import art.arcane.iris.builtin.floating.IslandFootprint;
 import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.builtin.objects.PlaceableObject;
+import art.arcane.iris.builtin.prepare.ObjectRotation;
+import art.arcane.iris.builtin.prepare.ObjectTranslate;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.mantle.MantleWriter;
@@ -30,13 +32,9 @@ import art.arcane.iris.engine.mantle.components.FloatingObjectPlacementTransacti
 import art.arcane.iris.engine.mantle.components.IslandAnchorPlacer;
 import art.arcane.iris.engine.object.placement.FloatingObjectFootprint;
 import art.arcane.iris.engine.object.placement.IObjectPlacer;
-import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
-import art.arcane.iris.engine.object.placement.ObjectPlacements;
 import art.arcane.iris.engine.object.prefab.IrisObject;
-import art.arcane.iris.engine.object.prefab.IrisObjectRotation;
-import art.arcane.iris.engine.object.prefab.IrisObjectScale;
+import art.arcane.iris.engine.object.prefab.ScaledObjects;
 import art.arcane.iris.engine.object.prefab.IrisObjectShaping;
-import art.arcane.iris.engine.object.prefab.IrisObjectTranslate;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.biome.custom.IrisBiomeCustom;
 import art.arcane.iris.spi.IrisPlatforms;
@@ -49,21 +47,19 @@ import com.volmit.ModuleLog;
 import com.volmit.generation.InvocationContext;
 import com.volmit.resource.ResourceId;
 
-import java.util.Map;
+import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Iris's answers to {@code iris:floating}: a biome's terrain height by its generators, sky biomes into the engine's
  * mantle, and floating objects placed by Iris's own object placement into the mantle chunk being generated.
  */
 final class IrisFloatingHost implements FloatingHost {
-    private static final IrisObjectRotation NO_ROTATION = IrisObjectRotation.of(0, 0, 0);
+    private static final ObjectRotation NO_ROTATION = ObjectRotation.of(0, 0, 0);
     private static final int FLOATING_OBJECT_Y = -1;
 
     private final Engine engine;
     private final ModuleLog log;
-    private final Map<Double, IrisObjectScale> shrinkScales = new ConcurrentHashMap<>();
 
     IrisFloatingHost(Engine engine, ModuleLog log) {
         this.engine = engine;
@@ -104,14 +100,7 @@ final class IrisFloatingHost implements FloatingHost {
 
     @Override
     public Optional<PlaceableObject> shrink(PlaceableObject object, double factor, RNG random) {
-        IrisObjectScale scale = shrinkScales.computeIfAbsent(factor, IrisFloatingHost::scaleOf);
-        return Optional.ofNullable(scale.get(random, (IrisObject) object, engine));
-    }
-
-    private static IrisObjectScale scaleOf(double factor) {
-        IrisObjectScale scale = new IrisObjectScale();
-        scale.setSize(factor);
-        return scale;
+        return Optional.ofNullable(ScaledObjects.resized((IrisObject) object, factor, random, engine));
     }
 
     @Override
@@ -119,7 +108,7 @@ final class IrisFloatingHost implements FloatingHost {
                               RNG random) {
         IrisObject placed = (IrisObject) object;
         IrisData data = engine.getData();
-        IrisObjectPlacement floating = ObjectPlacements.host(placement, data).toPlacement(placed.getLoadKey());
+        ObjectPlacement floating = placement.toBuilder().place(List.of(placed.getLoadKey())).build();
         MantleWriter writer = writerOf(context);
         int id = random.i(0, Integer.MAX_VALUE);
         try {
@@ -139,7 +128,7 @@ final class IrisFloatingHost implements FloatingHost {
     @Override
     public void placeUnder(InvocationContext context, PlaceableObject object, int worldX, int y, int worldZ, int yRotation,
                            ObjectPlacement placement, IslandAnchor anchor, RNG random) {
-        placeAgainstIsland(writerOf(context), (IrisObject) object, worldX, y, worldZ, placement, IrisObjectRotation.xFlip180WithY(yRotation),
+        placeAgainstIsland(writerOf(context), (IrisObject) object, worldX, y, worldZ, placement, ObjectRotation.xFlip180WithY(yRotation),
                 anchor, random, "inverted");
     }
 
@@ -149,14 +138,16 @@ final class IrisFloatingHost implements FloatingHost {
 
     /** Places the object through a transaction that writes nothing unless every block lands where the anchor allows. */
     private void placeAgainstIsland(MantleWriter writer, IrisObject object, int worldX, int y, int worldZ, ObjectPlacement placement,
-                                    IrisObjectRotation rotation, IslandAnchor anchor, RNG random, String kind) {
+                                    ObjectRotation rotation, IslandAnchor anchor, RNG random, String kind) {
         IrisData data = engine.getData();
-        IrisObjectPlacement anchored = ObjectPlacements.host(placement, data).toPlacement(object.getLoadKey());
-        anchored.setMode(anchored.getMode().onFloatingIsland());
-        anchored.setTranslate(new IrisObjectTranslate());
-        anchored.setRotation(rotation);
-        anchored.setForcePlace(true);
-        anchored.setBottom(false);
+        ObjectPlacement anchored = placement.toBuilder()
+                .place(List.of(object.getLoadKey()))
+                .mode(placement.mode().onFloatingIsland())
+                .translate(new ObjectTranslate())
+                .rotation(rotation)
+                .forcePlace(true)
+                .bottom(false)
+                .build();
 
         FloatingObjectPlacementTransaction transaction = new FloatingObjectPlacementTransaction(
                 new IslandAnchorPlacer(writer, anchor));

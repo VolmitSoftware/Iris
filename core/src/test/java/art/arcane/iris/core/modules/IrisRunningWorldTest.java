@@ -31,7 +31,7 @@ import art.arcane.iris.engine.framework.EngineGeneration;
 import art.arcane.iris.engine.framework.PlacedObject;
 import art.arcane.iris.engine.mantle.EngineMantle;
 import art.arcane.iris.engine.object.TestSettings;
-import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
+import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.engine.object.runtime.IrisEngineData;
 import art.arcane.iris.engine.object.value.IrisPosition;
 import art.arcane.iris.engine.object.world.IrisWorld;
@@ -169,9 +169,7 @@ public class IrisRunningWorldTest {
 
     @Test
     public void anObjectsLootIsWhatItsPlacementDefines() {
-        IrisObjectPlacement placement = new IrisObjectPlacement();
-        placement.getLoot().add(new ObjectLoot("chest", 2));
-        placement.setOverrideGlobalLoot(true);
+        ObjectPlacement placement = ObjectPlacement.builder().loot(List.of(new ObjectLoot("chest", 2))).overrideGlobalLoot(true).build();
         when(engine.getObjectPlacement(X, Y, Z)).thenReturn(new PlacedObject(placement, null, 1, X, Z));
         when(engine.getObjectPlacement(X + 1, Y, Z)).thenReturn(new PlacedObject(null, null, 1, X + 1, Z));
         ObjectHost objects = world.extension(ObjectHost.class).orElseThrow();

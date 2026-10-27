@@ -18,7 +18,7 @@
 
 package art.arcane.iris.core.commands;
 
-import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
+import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.Iris;
 import art.arcane.iris.platform.bukkit.BukkitPlatform;
 import art.arcane.iris.core.link.WorldEditLink;
@@ -35,9 +35,9 @@ import art.arcane.iris.core.tools.TreePlausibilizeBatch;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.object.placement.IObjectPlacer;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
+import art.arcane.iris.builtin.objects.ScaleInterpolation;
+import art.arcane.iris.builtin.prepare.ObjectRotation;
 import art.arcane.iris.engine.object.prefab.IrisObject;
-import art.arcane.iris.engine.object.prefab.IrisObjectPlacementScaleInterpolator;
-import art.arcane.iris.engine.object.prefab.IrisObjectRotation;
 import art.arcane.iris.engine.object.prefab.TileData;
 import art.arcane.iris.platform.bukkit.BukkitBlockState;
 import art.arcane.iris.spi.PlatformBlockState;
@@ -557,7 +557,7 @@ public class CommandObject implements DirectorExecutor {
             double scale
 //            ,
 //            @Param(description = "The scale interpolator to use", descriptionKey = "iris.director.commandobject.param.scale_interpolator_use", defaultValue = "none")
-//            IrisObjectPlacementScaleInterpolator interpolator
+//            ScaleInterpolation interpolator
     ) {
         IrisObject o = IrisData.loadAnyObject(object, data());
         double maxScale = Double.max(10 - o.getBlocks().size() / 10000d, 1);
@@ -566,8 +566,7 @@ public class CommandObject implements DirectorExecutor {
             scale = maxScale;
         }
 
-        IrisObjectPlacement placement = new IrisObjectPlacement();
-        placement.setRotation(IrisObjectRotation.of(0, rotate, 0));
+        ObjectPlacement placement = ObjectPlacement.builder().rotation(ObjectRotation.of(0, rotate, 0)).build();
 
         VolmitSender commandSender = sender();
         Player player = player();
@@ -584,7 +583,7 @@ public class CommandObject implements DirectorExecutor {
         Map<Block, BlockData> futureChanges = new HashMap<>();
 
         if (scale != 1) {
-            o = o.scaled(scale, IrisObjectPlacementScaleInterpolator.TRICUBIC);
+            o = o.scaled(scale, ScaleInterpolation.TRICUBIC);
         }
 
         // Block writes must run on the thread owning the target chunk; the undo log stays global.
@@ -599,7 +598,7 @@ public class CommandObject implements DirectorExecutor {
             }
 
             onPlayerThread(player, () -> {
-                ObjectPasteBounds bounds = ObjectPasteBounds.resolve(placed, placement.getRotation(), block.getBlockX(),
+                ObjectPasteBounds bounds = ObjectPasteBounds.resolve(placed, placement.rotation(), block.getBlockX(),
                         block.getBlockY() + placed.getCenter().getBlockY(), block.getBlockZ());
                 Location minimum = new Location(block.getWorld(), bounds.minX(), bounds.minY(), bounds.minZ());
                 Location maximum = new Location(block.getWorld(), bounds.maxX(), bounds.maxY(), bounds.maxZ());

@@ -52,6 +52,8 @@ import com.volmit.host.ModuleHost;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.IOException;
+import com.google.gson.Gson;
+
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
@@ -112,6 +114,7 @@ public final class BuiltInPack {
                 .copyingJarsTo(folder.newFolder().toPath()));
         PackModuleSet moduleSet = mock(PackModuleSet.class);
         when(moduleSet.pack()).thenReturn(pack);
+        when(moduleSet.settings()).thenReturn(new ModuleSettingsDecoder(pack.catalog(), packFolder, Gson::new));
         when(data.getModules()).thenReturn(moduleSet);
         when(data.getDataFolder()).thenReturn(folder.getRoot());
         IrisPackResources resources = new IrisPackResources(data);

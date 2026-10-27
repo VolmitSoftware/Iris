@@ -1,13 +1,13 @@
 package art.arcane.iris.engine.mantle.components;
 
-import art.arcane.iris.engine.object.prefab.IrisObjectRotation;
+import art.arcane.iris.builtin.prepare.ObjectRotation;
 import art.arcane.volmlib.util.math.IrisBlockVector;
 import com.volmit.geometry.BlockPosition;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 
-/** {@link UndersideTurn} turns positions the way the Iris rotation it stands in for, {@link IrisObjectRotation#xFlip180WithY}, does. */
+/** {@link UndersideTurn} turns positions the way the Iris rotation it stands in for, {@link ObjectRotation#xFlip180WithY}, does. */
 public class UndersideTurnTest {
     private static final int[] Y_ROTATIONS = {0, 90, 180, 270};
     private static final int SPAN = 3;
@@ -16,7 +16,7 @@ public class UndersideTurnTest {
     public void turnsEveryPositionLikeTheFlippedIrisRotation() {
         for (int yRotation : Y_ROTATIONS) {
             UndersideTurn turn = new UndersideTurn(yRotation);
-            IrisObjectRotation rotation = IrisObjectRotation.xFlip180WithY(yRotation);
+            ObjectRotation rotation = ObjectRotation.xFlip180WithY(yRotation);
             for (int x = -SPAN; x <= SPAN; x++) {
                 for (int y = -SPAN; y <= SPAN; y++) {
                     for (int z = -SPAN; z <= SPAN; z++) {

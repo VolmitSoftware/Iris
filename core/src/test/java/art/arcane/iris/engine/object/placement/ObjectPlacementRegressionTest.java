@@ -11,10 +11,10 @@ import art.arcane.iris.builtin.vacuum.VacuumSettings;
 import art.arcane.iris.builtin.IrisStages;
 import art.arcane.iris.engine.object.noise.IrisNoiseGenerator;
 import art.arcane.iris.engine.object.placement.IObjectPlacer;
-import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
+import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.engine.object.prefab.IrisObject;
-import art.arcane.iris.engine.object.prefab.IrisObjectRotation;
-import art.arcane.iris.engine.object.prefab.IrisObjectTranslate;
+import art.arcane.iris.builtin.prepare.ObjectRotation;
+import art.arcane.iris.builtin.prepare.ObjectTranslate;
 import art.arcane.iris.engine.object.prefab.TileData;
 import art.arcane.iris.engine.object.terrain.carving.CarveResult;
 import art.arcane.iris.core.loader.IrisData;
@@ -76,7 +76,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class IrisObjectPlacementRegressionTest {
+public class ObjectPlacementRegressionTest {
     private static final int ANCHOR_Y = 80;
 
     @Rule
@@ -138,7 +138,7 @@ public class IrisObjectPlacementRegressionTest {
         IrisObject object = lineObject(3);
 
         IllegalStateException error = assertThrows(IllegalStateException.class,
-                () -> object.place(0, ANCHOR_Y, 0, placer, placement(), new RNG(2L), data));
+                () -> object.place(0, ANCHOR_Y, 0, placer, placement().build(), new RNG(2L), data));
 
         assertTrue(error.getMessage().contains("write failed"));
         assertEquals(1, placer.writes().size());
@@ -147,13 +147,13 @@ public class IrisObjectPlacementRegressionTest {
     @Test
     public void boreUsesRotatedTranslationAndRandomizedAnchor() {
         RecordingPlacer placer = new RecordingPlacer(null);
-        IrisObjectPlacement placement = placement();
-        placement.setBore(true);
-        placement.setBoreExtendMaxY(1);
-        placement.setRotation(IrisObjectRotation.of(0, 90, 0));
-        placement.setTranslate(new IrisObjectTranslate().setX(4).setYRandom(3));
+        ObjectPlacement.Builder placement = placement();
+        placement.bore(true);
+        placement.boreExtendMaxY(1);
+        placement.rotation(ObjectRotation.of(0, 90, 0));
+        placement.translate(ObjectTranslate.of(4, 0, 3, 0));
 
-        int resultY = lineObject(3).place(0, ANCHOR_Y, 0, placer, placement, new RNG(2L), data);
+        int resultY = lineObject(3).place(0, ANCHOR_Y, 0, placer, placement.build(), new RNG(2L), data);
 
         // The object's own blocks replace the bored air below, so only the extension stays air.
         List<BlockWrite> airWrites = placer.writesOf(keyOf(IrisObject.States.AIR));
@@ -169,7 +169,7 @@ public class IrisObjectPlacementRegressionTest {
         IrisObject object = new IrisObject(5, 1, 5);
         object.setUnsigned(2, 0, 2, solid);
 
-        assertEquals(ANCHOR_Y, object.place(0, ANCHOR_Y, 0, placer, placement().setBore(true), new RNG(2L), data));
+        assertEquals(ANCHOR_Y, object.place(0, ANCHOR_Y, 0, placer, placement().bore(true).build(), new RNG(2L), data));
 
         assertEquals(24, placer.writesOf(keyOf(IrisObject.States.AIR)).size());
     }
@@ -184,12 +184,12 @@ public class IrisObjectPlacementRegressionTest {
             return x == 0 && y == ANCHOR_Y && z == -4 ? forbidden : null;
         });
         RecordingPlacer placer = new RecordingPlacer(engine);
-        IrisObjectPlacement placement = placement();
-        placement.setRotation(IrisObjectRotation.of(0, 90, 0));
-        placement.setTranslate(new IrisObjectTranslate().setX(4));
-        placement.getForbiddenCollisions().add("forbidden");
+        ObjectPlacement.Builder placement = placement();
+        placement.rotation(ObjectRotation.of(0, 90, 0));
+        placement.translate(ObjectTranslate.of(4, 0, 0, 0));
+        placement.forbiddenCollisions(List.of("forbidden"));
 
-        int result = lineObject(3).place(0, ANCHOR_Y, 0, placer, placement, new RNG(2L), data);
+        int result = lineObject(3).place(0, ANCHOR_Y, 0, placer, placement.build(), new RNG(2L), data);
 
         assertEquals(-1, result);
         assertTrue(placer.writes().isEmpty());
@@ -198,11 +198,11 @@ public class IrisObjectPlacementRegressionTest {
     @Test
     public void arbitraryRotationSamplesEveryTransformedFootprintColumn() {
         RecordingPlacer placer = new RecordingPlacer(null);
-        IrisObjectPlacement placement = placement();
-        placement.setMode(ObjectPlaceMode.MAX_HEIGHT);
-        placement.setRotation(IrisObjectRotation.of(0, 45, 0));
+        ObjectPlacement.Builder placement = placement();
+        placement.mode(ObjectPlaceMode.MAX_HEIGHT);
+        placement.rotation(ObjectRotation.of(0, 45, 0));
 
-        boxObject(5, 1, 3).place(0, -1, 0, placer, placement, new RNG(2L), data);
+        boxObject(5, 1, 3).place(0, -1, 0, placer, placement.build(), new RNG(2L), data);
 
         assertTrue(placer.sampledColumns().contains("-2:-2"));
         assertTrue(placer.sampledColumns().contains("2:2"));
@@ -215,10 +215,10 @@ public class IrisObjectPlacementRegressionTest {
         IrisObject object = new IrisObject(1, 3, 1);
         object.setUnsigned(0, 0, 0, solid);
         object.setUnsigned(0, 2, 0, schematicAir);
-        IrisObjectPlacement placement = placement();
-        placement.setSnow(0.1);
+        ObjectPlacement.Builder placement = placement();
+        placement.snow(0.1);
 
-        object.place(0, ANCHOR_Y, 0, placer, placement, new RNG(2L), data);
+        object.place(0, ANCHOR_Y, 0, placer, placement.build(), new RNG(2L), data);
 
         List<BlockWrite> snowWrites = placer.writesOf(keyOf(IrisObject.States.SNOW_LAYERS[0]));
         assertEquals(1, snowWrites.size());
@@ -230,14 +230,14 @@ public class IrisObjectPlacementRegressionTest {
         IrisObject object = new IrisObject(1, 1, 1);
         object.setUnsigned(0, 0, 0, IrisObject.States.VAIR);
         object.setSmartBored(true);
-        IrisObjectPlacement placement = placement();
-        placement.setSmartBore(true);
+        ObjectPlacement.Builder placement = placement();
+        placement.smartBore(true);
         RecordingPlacer debug = new RecordingPlacer(null);
         debug.setDebugSmartBore(true);
         RecordingPlacer normal = new RecordingPlacer(null);
 
-        object.place(0, ANCHOR_Y, 0, debug, placement, new RNG(2L), data);
-        object.place(0, ANCHOR_Y, 0, normal, placement, new RNG(2L), data);
+        object.place(0, ANCHOR_Y, 0, debug, placement.build(), new RNG(2L), data);
+        object.place(0, ANCHOR_Y, 0, normal, placement.build(), new RNG(2L), data);
 
         PlatformBlockState cachedState = object.getBlocks().get(object.getSigned(0, 0, 0));
         assertSame(IrisObject.States.VAIR, cachedState);
@@ -247,27 +247,24 @@ public class IrisObjectPlacementRegressionTest {
     @Test
     public void placementDataIsRequiredAtTheBoundary() {
         NullPointerException error = assertThrows(NullPointerException.class,
-                () -> lineObject(1).place(0, ANCHOR_Y, 0, new RecordingPlacer(null), placement(), new RNG(2L), null));
+                () -> lineObject(1).place(0, ANCHOR_Y, 0, new RecordingPlacer(null), placement().build(), new RNG(2L), null));
 
         assertEquals("Object placement data is required.", error.getMessage());
     }
 
-    private IrisObjectPlacement placement() {
-        IrisObjectPlacement placement = new IrisObjectPlacement();
-        placement.setMode(ObjectPlaceMode.CENTER_HEIGHT);
-        placement.setRequireSurfaceSupport(false);
-        return placement;
+    private ObjectPlacement.Builder placement() {
+        return ObjectPlacement.builder().mode(ObjectPlaceMode.CENTER_HEIGHT).requireSurfaceSupport(false);
     }
 
     @Test
     public void stiltWaitsForTheWholeTransformedFootprint() {
         RecordingPlacer placer = new RecordingPlacer(null);
-        IrisObjectPlacement config = placement();
-        config.setMode(ObjectPlaceMode.STILT);
-        config.setRotation(IrisObjectRotation.of(0, 90, 0));
-        config.setTranslate(new IrisObjectTranslate().setX(4));
+        ObjectPlacement.Builder config = placement();
+        config.mode(ObjectPlaceMode.STILT);
+        config.rotation(ObjectRotation.of(0, 90, 0));
+        config.translate(ObjectTranslate.of(4, 0, 0, 0));
 
-        lineObject(3).place(0, ANCHOR_Y + 4, 0, placer, config, new RNG(2L), data);
+        lineObject(3).place(0, ANCHOR_Y + 4, 0, placer, config.build(), new RNG(2L), data);
 
         // Every bottom column reaches the ground after rotation and translation.
         for (int z = -5; z <= -3; z++) {
@@ -281,12 +278,12 @@ public class IrisObjectPlacementRegressionTest {
     public void ceilingFlipsBeforeTranslationAndFillsUpward() {
         RecordingPlacer placer = new RecordingPlacer(null);
         placer.world.put("0:90:0", solid);
-        IrisObjectPlacement config = placement();
-        config.setMode(ObjectPlaceMode.CEILING_HANG);
-        config.setTranslate(new IrisObjectTranslate().setY(3));
-        config.setStiltSettings(TestSettings.of(StiltSettings.class, "{\"organicJitter\":0,\"organicScratch\":0}"));
+        ObjectPlacement.Builder config = placement();
+        config.mode(ObjectPlaceMode.CEILING_HANG);
+        config.translate(ObjectTranslate.of(0, 3, 0, 0));
+        config.stiltSettings(TestSettings.of(StiltSettings.class, "{\"organicJitter\":0,\"organicScratch\":0}"));
 
-        boxObject(1, 3, 1).place(0, ANCHOR_Y, 0, placer, config, new RNG(2L), data);
+        boxObject(1, 3, 1).place(0, ANCHOR_Y, 0, placer, config.build(), new RNG(2L), data);
 
         assertEquals(solid.key(), placer.get(0, 82, 0).key());
         assertEquals(solid.key(), placer.get(0, 89, 0).key());
@@ -297,11 +294,11 @@ public class IrisObjectPlacementRegressionTest {
     public void organicStiltStopsAtTheFloor() {
         RecordingPlacer placer = new RecordingPlacer(null);
         placer.world.put("0:75:0", solid);
-        IrisObjectPlacement config = placement();
-        config.setMode(ObjectPlaceMode.ORGANIC_STILT);
-        config.setStiltSettings(TestSettings.of(StiltSettings.class, "{\"organicJitter\":0,\"organicScratch\":0}"));
+        ObjectPlacement.Builder config = placement();
+        config.mode(ObjectPlaceMode.ORGANIC_STILT);
+        config.stiltSettings(TestSettings.of(StiltSettings.class, "{\"organicJitter\":0,\"organicScratch\":0}"));
 
-        lineObject(1).place(0, ANCHOR_Y, 0, placer, config, new RNG(2L), data);
+        lineObject(1).place(0, ANCHOR_Y, 0, placer, config.build(), new RNG(2L), data);
 
         for (int y = 76; y <= ANCHOR_Y; y++) {
             assertEquals(solid.key(), placer.get(0, y, 0).key());
@@ -312,9 +309,9 @@ public class IrisObjectPlacementRegressionTest {
     @Test
     public void erodeStiltResolvesItsOwnSampledAnchor() {
         RecordingPlacer placer = new RecordingPlacer(null);
-        IrisObjectPlacement config = placement();
-        config.setMode(ObjectPlaceMode.ERODE_STILT);
-        assertEquals(ANCHOR_Y, lineObject(1).place(0, -1, 0, placer, config, new RNG(2L), data));
+        ObjectPlacement.Builder config = placement();
+        config.mode(ObjectPlaceMode.ERODE_STILT);
+        assertEquals(ANCHOR_Y, lineObject(1).place(0, -1, 0, placer, config.build(), new RNG(2L), data));
         assertFalse(placer.writes().isEmpty());
     }
 
@@ -323,9 +320,9 @@ public class IrisObjectPlacementRegressionTest {
         for (ObjectPlaceMode mode : List.of(ObjectPlaceMode.MIN_HEIGHT, ObjectPlaceMode.FAST_MIN_HEIGHT,
                 ObjectPlaceMode.FLOATING, ObjectPlaceMode.STRUCTURE_PIECE)) {
             RecordingPlacer placer = new RecordingPlacer(null);
-            IrisObjectPlacement config = placement();
-            config.setMode(mode);
-            assertEquals(ANCHOR_Y, lineObject(1).place(0, ANCHOR_Y, 0, placer, config, new RNG(2L), data));
+            ObjectPlacement.Builder config = placement();
+            config.mode(mode);
+            assertEquals(ANCHOR_Y, lineObject(1).place(0, ANCHOR_Y, 0, placer, config.build(), new RNG(2L), data));
             assertTrue(mode.toString(), placer.sampledColumns().isEmpty());
         }
     }
@@ -336,7 +333,7 @@ public class IrisObjectPlacementRegressionTest {
         usePack(List.of(new CapModule(writtenSizes)));
         RecordingPlacer placer = new RecordingPlacer(engine);
 
-        assertEquals(ANCHOR_Y, lineObject(3).place(0, ANCHOR_Y, 0, placer, placement(), new RNG(2L), data));
+        assertEquals(ANCHOR_Y, lineObject(3).place(0, ANCHOR_Y, 0, placer, placement().build(), new RNG(2L), data));
 
         assertEquals(List.of(3), writtenSizes);
         assertEquals(4, placer.writes().size());
@@ -348,7 +345,7 @@ public class IrisObjectPlacementRegressionTest {
         usePack(List.of(new VetoModule()));
         RecordingPlacer placer = new RecordingPlacer(engine);
 
-        ObjectPlacementResult result = place(placement().setBore(true), ANCHOR_Y, placer, null);
+        ObjectPlacementResult result = place(placement().bore(true), ANCHOR_Y, placer, null);
 
         assertEquals(Optional.of("veto"), result.rejection());
         assertEquals(-1, result.heightOrRejected());
@@ -360,22 +357,22 @@ public class IrisObjectPlacementRegressionTest {
         RNG rng = new RNG(91);
         RNG expected = new RNG(91);
         expected.nextLong();
-        IrisObjectPlacement config = placement();
-        config.setTranslate(new IrisObjectTranslate().setYRandom(3));
+        ObjectPlacement.Builder config = placement();
+        config.translate(ObjectTranslate.of(0, 0, 3, 0));
 
-        lineObject(1).place(0, ANCHOR_Y, 0, new RecordingPlacer(null), config, rng, data);
+        lineObject(1).place(0, ANCHOR_Y, 0, new RecordingPlacer(null), config.build(), rng, data);
 
         assertEquals(expected.nextLong(), rng.nextLong());
     }
 
     @Test
     public void withAnEngineTheSamePlacementPlacesTheSameWayWithoutTheCallersRandom() {
-        IrisObjectPlacement config = placement();
-        config.setTranslate(new IrisObjectTranslate().setYRandom(20));
+        ObjectPlacement.Builder config = placement();
+        config.translate(ObjectTranslate.of(0, 0, 20, 0));
         RNG rng = new RNG(91);
 
-        int first = lineObject(1).place(5, ANCHOR_Y, 5, new RecordingPlacer(engine), config, rng, data);
-        int second = lineObject(1).place(5, ANCHOR_Y, 5, new RecordingPlacer(engine), config, new RNG(3), data);
+        int first = lineObject(1).place(5, ANCHOR_Y, 5, new RecordingPlacer(engine), config.build(), rng, data);
+        int second = lineObject(1).place(5, ANCHOR_Y, 5, new RecordingPlacer(engine), config.build(), new RNG(3), data);
 
         assertEquals(first, second);
         assertEquals(new RNG(91).nextLong(), rng.nextLong());
@@ -546,9 +543,9 @@ public class IrisObjectPlacementRegressionTest {
     @Test
     public void fromBottomKeepsItsAnchorWithoutSamplingTerrain() {
         RecordingPlacer placer = new RecordingPlacer(null);
-        IrisObjectPlacement config = placement();
-        config.setFromBottom(true);
-        assertEquals(2, lineObject(1).place(0, -1, 0, placer, config, new RNG(2L), data));
+        ObjectPlacement.Builder config = placement();
+        config.fromBottom(true);
+        assertEquals(2, lineObject(1).place(0, -1, 0, placer, config.build(), new RNG(2L), data));
         assertTrue(placer.sampledColumns().isEmpty());
     }
 
@@ -556,13 +553,13 @@ public class IrisObjectPlacementRegressionTest {
     public void eligibilityGuardsRejectBeforeBoreAndOwnTheirForcePlaceExemptions() {
         for (String reason : List.of("carving-anchor", "underwater-anchor", "cave-clearance", "fluid-height", "height-clamp")) {
             RecordingPlacer placer = new RecordingPlacer(null);
-            IrisObjectPlacement config = placement().setBore(true).setSnow(0.1);
+            ObjectPlacement.Builder config = placement().bore(true).snow(0.1);
             CarveResult cave = null;
             int anchor = ANCHOR_Y;
             switch (reason) {
                 case "carving-anchor" -> {
                     placer.carved = true;
-                    config.setCarvingSupport(CarvingMode.SURFACE_ONLY);
+                    config.carvingSupport(CarvingMode.SURFACE_ONLY);
                 }
                 case "underwater-anchor" -> {
                     placer.underwater = true;
@@ -570,17 +567,17 @@ public class IrisObjectPlacementRegressionTest {
                 }
                 case "cave-clearance" -> cave = new CarveResult(ANCHOR_Y, ANCHOR_Y + 1);
                 case "fluid-height" -> {
-                    config.setUnderwater(true);
+                    config.underwater(true);
                     placer.fluidHeight = ANCHOR_Y;
                 }
-                case "height-clamp" -> config.setClamp(TestSettings.of(ObjectLimit.class, "{\"maximumHeight\":" + (ANCHOR_Y - 1) + "}"));
+                case "height-clamp" -> config.clamp(TestSettings.of(ObjectLimit.class, "{\"maximumHeight\":" + (ANCHOR_Y - 1) + "}"));
             }
             ObjectPlacementResult result = place(config, anchor, placer, cave);
             assertEquals(Optional.of(reason), result.rejection());
             assertEquals(-1, result.heightOrRejected());
             assertTrue(reason, placer.writes().isEmpty());
 
-            config.setForcePlace(true);
+            config.forcePlace(true);
             assertTrue(reason, place(config, anchor, placer, cave).isPlaced());
             assertFalse(reason, placer.writes().isEmpty());
         }
@@ -591,12 +588,12 @@ public class IrisObjectPlacementRegressionTest {
         when(engine.getNativeStructureVolumes(anyInt(), anyInt(), anyInt(), anyInt())).thenReturn(
                 new KList<>(NativeStructureVolume.of("minecraft:village", 0, ANCHOR_Y, 0, 0, ANCHOR_Y, 0)));
         RecordingPlacer placer = new RecordingPlacer(engine);
-        IrisObjectPlacement config = placement().setForcePlace(true).setBore(true).setSnow(0.1);
+        ObjectPlacement.Builder config = placement().forcePlace(true).bore(true).snow(0.1);
 
         assertEquals(Optional.of("native-structure"), place(config, ANCHOR_Y, placer, null).rejection());
         assertTrue(placer.writes().isEmpty());
 
-        config.setMode(ObjectPlaceMode.STRUCTURE_PIECE);
+        config.mode(ObjectPlaceMode.STRUCTURE_PIECE);
         assertEquals(ANCHOR_Y, place(config, ANCHOR_Y, placer, null).heightOrRejected());
         assertFalse(placer.writes().isEmpty());
     }
@@ -606,18 +603,17 @@ public class IrisObjectPlacementRegressionTest {
         PlacedObject forbidden = new PlacedObject(null, object("forbidden"), 1, 0, 0);
         when(engine.getObjectPlacement(anyInt(), anyInt(), anyInt())).thenReturn(forbidden);
         RecordingPlacer placer = new RecordingPlacer(engine);
-        IrisObjectPlacement config = placement().setBore(true);
-        config.getForbiddenCollisions().add("forbidden");
+        ObjectPlacement.Builder config = placement().bore(true).forbiddenCollisions(List.of("forbidden"));
 
         assertEquals(Optional.of("object-collision"), place(config, ANCHOR_Y, placer, null).rejection());
         assertTrue(placer.writes().isEmpty());
 
-        config.getAllowedCollisions().add("forbidden");
+        config.allowedCollisions(List.of("forbidden"));
         assertTrue(place(config, ANCHOR_Y, placer, null).isPlaced());
         assertFalse(placer.writes().isEmpty());
 
-        config.getAllowedCollisions().clear();
-        config.setForcePlace(true);
+        config.allowedCollisions(List.of());
+        config.forcePlace(true);
         assertTrue(place(config, ANCHOR_Y, new RecordingPlacer(engine), null).isPlaced());
     }
 
@@ -625,8 +621,7 @@ public class IrisObjectPlacementRegressionTest {
     public void missingCollisionEngineFailsBeforeWrites() {
         when(data.getEngine()).thenReturn(null);
         RecordingPlacer placer = new RecordingPlacer(null);
-        IrisObjectPlacement config = placement().setBore(true);
-        config.getForbiddenCollisions().add("forbidden");
+        ObjectPlacement.Builder config = placement().bore(true).forbiddenCollisions(List.of("forbidden"));
         assertEquals("Object placement requires active Iris data for collision settings.",
                 assertThrows(IllegalStateException.class,
                         () -> place(config, ANCHOR_Y, placer, null)).getMessage());
@@ -639,11 +634,11 @@ public class IrisObjectPlacementRegressionTest {
         IrisObject object = new IrisObject(1, 3, 1);
         object.setUnsigned(0, 0, 0, solid);
         object.setUnsigned(0, 2, 0, schematicAir);
-        IrisObjectPlacement config = placement().setMode(ObjectPlaceMode.VACUUM).setSnow(0.1);
-        config.setTranslate(new IrisObjectTranslate().setY(3));
-        config.setVacuumSettings(TestSettings.of(VacuumSettings.class, "{\"radius\":1}"));
+        ObjectPlacement.Builder config = placement().mode(ObjectPlaceMode.VACUUM).snow(0.1);
+        config.translate(ObjectTranslate.of(0, 3, 0, 0));
+        config.vacuumSettings(TestSettings.of(VacuumSettings.class, "{\"radius\":1}"));
 
-        object.place(0, ANCHOR_Y, 0, placer, config, new RNG(2L), data);
+        object.place(0, ANCHOR_Y, 0, placer, config.build(), new RNG(2L), data);
 
         List<BlockWrite> center = placer.writes().stream().filter(write -> write.x() == 0 && write.z() == 0).toList();
         assertEquals(List.of(82, 81, 83), center.stream().map(BlockWrite::y).toList());
@@ -659,12 +654,12 @@ public class IrisObjectPlacementRegressionTest {
         when(engine.getComplex()).thenReturn(complex);
         when(complex.getSlopeStream()).thenReturn(slopes);
         when(slopes.get(anyDouble(), anyDouble())).thenReturn(0.5);
-        IrisObjectPlacement config = placement().setBore(true);
-        config.setSlopeCondition(TestSettings.of(SlopeClip.class, "{\"minimumSlope\":1,\"maximumSlope\":2}"));
+        ObjectPlacement.Builder config = placement().bore(true);
+        config.slopeCondition(TestSettings.of(SlopeClip.class, "{\"minimumSlope\":1,\"maximumSlope\":2}"));
         RNG rng = new RNG(91);
         RecordingPlacer placer = new RecordingPlacer(engine);
 
-        assertEquals(-1, lineObject(1).place(0, ANCHOR_Y, 0, placer, config, rng, data));
+        assertEquals(-1, lineObject(1).place(0, ANCHOR_Y, 0, placer, config.build(), rng, data));
         assertEquals(new RNG(91).nextLong(), rng.nextLong());
         assertTrue(placer.writes().isEmpty());
     }
@@ -677,21 +672,22 @@ public class IrisObjectPlacementRegressionTest {
         when(engine.getComplex()).thenReturn(complex);
         when(complex.getHeightStream()).thenReturn(heights);
         when(heights.get(anyDouble(), anyDouble())).thenAnswer(call -> call.<Double>getArgument(0) > 0 ? 70D : 80D);
-        IrisObjectPlacement config = placement().setRotateTowardsSlope(true);
-        IrisObjectRotation original = config.getRotation();
+        ObjectPlacement.Builder config = placement().rotateTowardsSlope(true);
+        ObjectPlacement placement = config.build();
+        ObjectRotation original = placement.rotation();
         RecordingPlacer placer = new RecordingPlacer(engine);
 
-        lineObject(3).place(0, ANCHOR_Y, 0, placer, config, new RNG(2L), data);
+        lineObject(3).place(0, ANCHOR_Y, 0, placer, placement, new RNG(2L), data);
 
-        assertSame(original, config.getRotation());
-        assertEquals(0, original.getYAxis().min(), 0);
+        assertSame(original, placement.rotation());
+        assertEquals(0, original.yAxis().min(), 0);
         assertEquals(3, placer.writes().size());
         assertTrue(placer.writes().stream().allMatch(write -> write.x() == 0));
         assertEquals(List.of(-1, 0, 1), placer.writes().stream().map(BlockWrite::z).sorted().toList());
     }
 
-    private ObjectPlacementResult place(IrisObjectPlacement config, int y, RecordingPlacer placer, CarveResult cave) {
-        return ModuleObjectPlacement.place(lineObject(1), 0, y, 0, placer, config, new RNG(2L), null, cave, data);
+    private ObjectPlacementResult place(ObjectPlacement.Builder config, int y, RecordingPlacer placer, CarveResult cave) {
+        return ModuleObjectPlacement.place(lineObject(1), 0, y, 0, placer, config.build(), new RNG(2L), null, cave, data);
     }
 
     private IrisObject lineObject(int width) {

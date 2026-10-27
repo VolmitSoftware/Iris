@@ -18,7 +18,7 @@
 
 package art.arcane.iris.engine.object.mod;
 
-import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
+import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.annotations.ArrayType;
 import art.arcane.iris.engine.object.annotations.Desc;
@@ -45,6 +45,6 @@ public class IrisModObjectPlacementBiomeInjector {
 
     @Required
     @Desc("Object placements to inject into the biome")
-    @ArrayType(type = IrisObjectPlacement.class, min = 1)
-    private KList<IrisObjectPlacement> place = new KList<>();
+    @ArrayType(type = ObjectPlacement.class, min = 1)
+    private KList<ObjectPlacement> place = new KList<>();
 }

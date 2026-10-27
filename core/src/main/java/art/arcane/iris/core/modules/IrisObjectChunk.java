@@ -30,6 +30,7 @@ import art.arcane.iris.builtin.objects.PlacementSource;
 import art.arcane.iris.builtin.objects.PlacementTags;
 import art.arcane.iris.builtin.objects.ProceduralPlacement;
 import art.arcane.iris.builtin.prepare.AxisRotationClamp;
+import art.arcane.iris.builtin.prepare.ObjectRotation;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.TreeBlockMaterial;
 import art.arcane.iris.engine.mantle.MantleWriter;
@@ -37,10 +38,7 @@ import art.arcane.iris.engine.mantle.components.CaveObjectPlacementTransaction;
 import art.arcane.iris.engine.mantle.components.GoldenDebugObjectPlacer;
 import art.arcane.iris.engine.object.placement.DecayControlPlacer;
 import art.arcane.iris.engine.object.placement.IObjectPlacer;
-import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
-import art.arcane.iris.engine.object.placement.ObjectPlacements;
 import art.arcane.iris.engine.object.prefab.IrisObject;
-import art.arcane.iris.engine.object.prefab.IrisObjectRotation;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.common.data.B;
 import art.arcane.volmlib.util.math.BlockPosition;
@@ -61,9 +59,9 @@ final class IrisObjectChunk implements ObjectChunk {
     private final Engine engine;
     private final MantleWriter writer;
     private final ModuleLog log;
-    private final Function<ProceduralPlacement, IrisObjectPlacement> proceduralOptions;
+    private final Function<ProceduralPlacement, ObjectPlacement> proceduralOptions;
 
-    IrisObjectChunk(Engine engine, MantleWriter writer, ModuleLog log, Function<ProceduralPlacement, IrisObjectPlacement> proceduralOptions) {
+    IrisObjectChunk(Engine engine, MantleWriter writer, ModuleLog log, Function<ProceduralPlacement, ObjectPlacement> proceduralOptions) {
         this.engine = engine;
         this.writer = writer;
         this.log = log;
@@ -102,7 +100,7 @@ final class IrisObjectChunk implements ObjectChunk {
     @Override
     public int placeOnSurface(PlaceableObject object, int x, int z, PlacementSource placement, PlacementChanges changes,
                               PlacementTags tags, RNG rng, String goldenTag) {
-        IrisObjectPlacement effective = effective(placement, changes);
+        ObjectPlacement effective = effective(placement, changes);
         IObjectPlacer base = placement instanceof ProceduralPlacement procedural && procedural.plausible()
                 ? new DecayControlPlacer(writer) : writer;
         IObjectPlacer placer = goldenTag == null ? base : new GoldenDebugObjectPlacer(base, goldenTag, log);
@@ -113,12 +111,12 @@ final class IrisObjectChunk implements ObjectChunk {
     @Override
     public CavePlacement placeInCave(PlaceableObject object, int x, int anchorY, int z, PlacementSource placement, PlacementChanges changes,
                                      int minDepthBelowSurface, PlacementTags tags, RNG rng, String goldenTag) {
-        IrisObjectPlacement effective = effective(placement, changes);
+        ObjectPlacement effective = effective(placement, changes);
         IrisObject irisObject = (IrisObject) object;
         IObjectPlacer placer = caveBase(placement, goldenTag);
         CaveObjectPlacementTransaction transaction = new CaveObjectPlacementTransaction(placer, anchorY, minDepthBelowSurface);
         int placeY = anchorY;
-        if (effective.getMode().placeMode().has(PlaceTrait.UPSIDE_DOWN)) {
+        if (effective.mode().placeMode().has(PlaceTrait.UPSIDE_DOWN)) {
             placeY = Math.max(1, transaction.getCaveCeiling(x, z) - 1 - Math.floorDiv(irisObject.getH(), 2));
         }
         int result = irisObject.place(x, placeY, z, transaction, effective, rng, taggedBlocks(transaction, tags), null, engine.getData());
@@ -132,7 +130,7 @@ final class IrisObjectChunk implements ObjectChunk {
     @Override
     public int placeUpper(PlaceableObject object, int x, int anchorY, int z, ObjectPlacement placement, PlacementChanges changes,
                           PlacementTags tags, RNG rng) {
-        IrisObjectPlacement effective = effective(placement, changes);
+        ObjectPlacement effective = effective(placement, changes);
         return ((IrisObject) object).place(x, anchorY, z, writer, effective, rng, taggedBlocks(writer, tags), null, engine.getData());
     }
 
@@ -167,48 +165,48 @@ final class IrisObjectChunk implements ObjectChunk {
         };
     }
 
-    /** Iris's placement for {@code placement}, with {@code changes} made to a copy of it. */
-    private IrisObjectPlacement effective(PlacementSource placement, PlacementChanges changes) {
-        IrisObjectPlacement base = placement instanceof ObjectPlacement settings
-                ? ObjectPlacements.host(settings, engine.getData())
+    /** The placement {@code placement} places with, with {@code changes} made to a copy of it. */
+    private ObjectPlacement effective(PlacementSource placement, PlacementChanges changes) {
+        ObjectPlacement base = placement instanceof ObjectPlacement settings
+                ? settings
                 : proceduralOptions.apply((ProceduralPlacement) placement);
         return withChanges(base, changes);
     }
 
     /** {@code base} with {@code changes} made to a copy of it; {@code base} itself when there are none. */
-    static IrisObjectPlacement withChanges(IrisObjectPlacement base, PlacementChanges changes) {
+    static ObjectPlacement withChanges(ObjectPlacement base, PlacementChanges changes) {
         if (changes.isNone()) {
             return base;
         }
-        String[] keys = (changes.place() == null ? base.getPlace() : changes.place()).toArray(new String[0]);
-        IrisObjectPlacement changed = base.toPlacement(keys);
+        ObjectPlacement.Builder changed = base.toBuilder();
+        if (changes.place() != null) {
+            changed.place(changes.place());
+        }
         if (changes.mode() != null) {
-            changed.setMode(changes.mode());
+            changed.mode(changes.mode());
         }
         if (changes.upsideDown() != null && changes.upsideDown()) {
-            changed.setRotation(upsideDownRotation());
+            changed.rotation(upsideDownRotation());
         }
         if (changes.carvingSupport() != null) {
-            changed.setCarvingSupport(changes.carvingSupport());
+            changed.carvingSupport(changes.carvingSupport());
         }
         if (changes.requireSurfaceSupport() != null) {
-            changed.setRequireSurfaceSupport(changes.requireSurfaceSupport());
+            changed.requireSurfaceSupport(changes.requireSurfaceSupport());
         }
         if (changes.surfaceSupportBuffer() != null) {
-            changed.setSurfaceSupportBuffer(changes.surfaceSupportBuffer());
+            changed.surfaceSupportBuffer(changes.surfaceSupportBuffer());
         }
         if (changes.forcePlace() != null) {
-            changed.setForcePlace(changes.forcePlace());
+            changed.forcePlace(changes.forcePlace());
         }
-        return changed;
+        return changed.build();
     }
 
-    private static IrisObjectRotation upsideDownRotation() {
-        IrisObjectRotation rotation = new IrisObjectRotation();
-        rotation.setEnabled(true);
-        rotation.setXAxis(AxisRotationClamp.of(true, true, UPSIDE_DOWN_TURN_DEGREES, UPSIDE_DOWN_TURN_DEGREES, QUARTER_TURN_DEGREES));
-        rotation.setYAxis(AxisRotationClamp.of(true, false, 0D, 0D, QUARTER_TURN_DEGREES));
-        rotation.setZAxis(new AxisRotationClamp());
-        return rotation;
+    private static ObjectRotation upsideDownRotation() {
+        return ObjectRotation.of(true,
+                AxisRotationClamp.of(true, true, UPSIDE_DOWN_TURN_DEGREES, UPSIDE_DOWN_TURN_DEGREES, QUARTER_TURN_DEGREES),
+                AxisRotationClamp.of(true, false, 0D, 0D, QUARTER_TURN_DEGREES),
+                new AxisRotationClamp());
     }
 }

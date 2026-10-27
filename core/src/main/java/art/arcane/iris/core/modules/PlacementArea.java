@@ -18,10 +18,9 @@
 
 package art.arcane.iris.core.modules;
 
+import art.arcane.iris.builtin.prepare.ObjectTranslate;
 import art.arcane.iris.engine.object.noise.IrisGeneratorStyle;
-import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
 import art.arcane.iris.engine.object.prefab.IrisObject;
-import art.arcane.iris.engine.object.prefab.IrisObjectTranslate;
 import com.volmit.geometry.BlockBox;
 import com.volmit.object.GeneratedObject;
 
@@ -38,11 +37,11 @@ final class PlacementArea {
     private PlacementArea() {
     }
 
-    static BlockBox around(IrisObject object, GeneratedObject geometry, IrisObjectPlacement config, int x, int z,
-                           int pipelineReachBlocks) {
+    static BlockBox around(IrisObject object, GeneratedObject geometry, ObjectTranslate translate, IrisGeneratorStyle warp,
+                           int x, int z, int pipelineReachBlocks) {
         int objectRadius = Math.max(rotationRadius(geometry.bounds()), rotationRadius(declaredBox(object)));
-        int reach = objectRadius + translationLength(config.getTranslate())
-                + warpMargin(config.getWarp()) + NEIGHBOR_READ_BLOCKS + pipelineReachBlocks;
+        int reach = objectRadius + translationLength(translate)
+                + warpMargin(warp) + NEIGHBOR_READ_BLOCKS + pipelineReachBlocks;
         return new BlockBox(x - reach, Integer.MIN_VALUE, z - reach, x + reach + 1, Integer.MAX_VALUE, z + reach + 1);
     }
 
@@ -67,10 +66,10 @@ final class PlacementArea {
         return Math.max(Math.abs((long) min), Math.abs((long) maxExclusive - 1));
     }
 
-    private static int translationLength(IrisObjectTranslate translate) {
-        long x = translate.getX();
-        long y = translate.getY();
-        long z = translate.getZ();
+    private static int translationLength(ObjectTranslate translate) {
+        long x = translate.x();
+        long y = translate.y();
+        long z = translate.z();
         return (int) Math.ceil(Math.sqrt(x * x + y * y + z * z));
     }
 

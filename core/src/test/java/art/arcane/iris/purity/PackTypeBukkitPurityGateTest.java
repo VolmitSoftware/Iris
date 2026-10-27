@@ -6,7 +6,6 @@ import art.arcane.iris.engine.object.material.IrisBlockData;
 import art.arcane.iris.engine.object.mod.IrisMod;
 import art.arcane.iris.engine.object.noise.expression.IrisExpression;
 import art.arcane.iris.engine.object.prefab.IrisObject;
-import art.arcane.iris.engine.object.prefab.IrisObjectRotation;
 import art.arcane.iris.engine.object.prefab.LegacyTileData;
 import art.arcane.iris.engine.object.prefab.TileData;
 import art.arcane.iris.engine.object.prefab.matter.IrisMatterObject;
@@ -82,7 +81,7 @@ import static org.junit.Assert.fail;
  * deleted) and {@code Particles} (Bukkit registry lookups in a static initializer).
  * <p>
  * <b>Deliberately not asserted:</b> method and constructor descriptors. These classes legitimately
- * expose a Bukkit-typed edge that only the Bukkit adapter calls - {@code IrisObjectRotation.rotate(BlockData,
+ * expose a Bukkit-typed edge that only the Bukkit adapter calls - {@code BlockStateRotation.rotate(ObjectRotation, BlockData,
  * ...)}, {@code TileData.toBukkit(Block)} and ~60 more. Method descriptors are resolved at
  * invocation, never at class load, field walk or equals/hashCode/toString, so they are not a modded
  * boot hazard. Fields and supertypes are, and both are asserted hard below.
@@ -90,8 +89,10 @@ import static org.junit.Assert.fail;
 public class PackTypeBukkitPurityGateTest {
     private static final String SNIPPET_DESCRIPTOR = "Lart/arcane/iris/engine/object/annotations/Snippet;";
     private static final String BUKKIT_INTERNAL_PREFIX = "org/bukkit/";
+    /** Fewer means the scan is broken, not that the pack types moved: the scan finds 38 after batch 7 moved the object settings. */
+    private static final int LEAST_SNIPPET_TYPES = 30;
     /** See {@link #theGateStillCatchesAClassThatNeedsBukkit()}. */
-    private static final String BUKKIT_DEPENDENT_CANARY = "art.arcane.iris.engine.object.prefab.IrisObjectRotation$Faces";
+    private static final String BUKKIT_DEPENDENT_CANARY = "art.arcane.iris.engine.object.prefab.BlockStateRotation$Faces";
     private static final String OBJECT_PACKAGE = "art/arcane/iris/engine/object";
     private static final Path IRIS_DATA_SOURCE =
             Paths.get("src", "main", "java", "art", "arcane", "iris", "core", "loader", "IrisData.java");
@@ -199,7 +200,7 @@ public class PackTypeBukkitPurityGateTest {
         BukkitHidingClassLoader hiding = new BukkitHidingClassLoader(getClass().getClassLoader());
         List<String> gateTypes = gateTypes();
         assertTrue("expected the @Snippet scan to find the pack snippet types, found only "
-                + gateTypes.size(), gateTypes.size() > 40);
+                + gateTypes.size(), gateTypes.size() >= LEAST_SNIPPET_TYPES);
 
         List<String> failures = new ArrayList<>();
         List<String> skipped = new ArrayList<>();
@@ -301,10 +302,10 @@ public class PackTypeBukkitPurityGateTest {
      * fails in exactly that case, by pointing the machinery at a class that provably cannot initialize
      * without Bukkit.
      * <p>
-     * {@code IrisObjectRotation$Faces} is a private lazy holder whose initializer reads
+     * {@code BlockStateRotation$Faces} is a private lazy holder whose initializer reads
      * {@code org.bukkit.block.BlockFace} constants. It is deliberately <em>not</em> in the gate set: the holder
      * exists precisely so that the Bukkit-edge rotation methods can touch BlockFace without dragging it into
-     * the enclosing pack type's own initializer. That makes it the ideal control - a real class, in the pack
+     * the enclosing class's own initializer, which a modded platform runs when it binds its rotator. That makes it the ideal control - a real class, in the pack
      * package, that the gate must be able to catch.
      */
     @Test

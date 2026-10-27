@@ -18,6 +18,8 @@
 
 package art.arcane.iris.engine.object.prefab;
 
+import art.arcane.iris.builtin.objects.ScaleInterpolation;
+import art.arcane.iris.builtin.prepare.ObjectRotation;
 import art.arcane.iris.engine.object.value.IrisPosition;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.common.data.B;
@@ -38,19 +40,19 @@ final class IrisObjectTransforms {
     private IrisObjectTransforms() {
     }
 
-    static IrisObject rotateCopy(IrisObject self, IrisObjectRotation rt) {
+    static IrisObject rotateCopy(IrisObject self, ObjectRotation rt) {
         IrisObject copy = self.copy();
         rotate(copy, rt, 0, 0, 0);
         return copy;
     }
 
-    static void rotate(IrisObject self, IrisObjectRotation r, int spinx, int spiny, int spinz) {
+    static void rotate(IrisObject self, ObjectRotation r, int spinx, int spiny, int spinz) {
         self.writeLock.lock();
         try {
             VectorMap<PlatformBlockState> d = new VectorMap<>();
 
             for (var entry : self.blocks) {
-                d.put(r.rotate(entry.getKey(), spinx, spiny, spinz), r.rotate(entry.getValue(), spinx, spiny, spinz));
+                d.put(r.rotate(entry.getKey(), spinx, spiny, spinz), BlockStateRotation.rotate(r, entry.getValue(), spinx, spiny, spinz));
             }
 
             VectorMap<TileData> dx = new VectorMap<>();
@@ -69,9 +71,9 @@ final class IrisObjectTransforms {
         }
     }
 
-    static IrisObject scaled(IrisObject self, double scale, IrisObjectPlacementScaleInterpolator interpolation) {
+    static IrisObject scaled(IrisObject self, double scale, ScaleInterpolation interpolation) {
         if (interpolation == null) {
-            interpolation = IrisObjectPlacementScaleInterpolator.NONE;
+            interpolation = ScaleInterpolation.NONE;
         }
         IrisVector sm1 = new IrisVector(scale - 1, scale - 1, scale - 1);
         scale = Math.max(0.001, Math.min(50, scale));

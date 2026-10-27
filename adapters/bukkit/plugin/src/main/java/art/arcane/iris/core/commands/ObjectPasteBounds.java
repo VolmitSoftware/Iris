@@ -1,7 +1,7 @@
 package art.arcane.iris.core.commands;
 
+import art.arcane.iris.builtin.prepare.ObjectRotation;
 import art.arcane.iris.engine.object.prefab.IrisObject;
-import art.arcane.iris.engine.object.prefab.IrisObjectRotation;
 import art.arcane.volmlib.util.math.IrisBlockVector;
 
 import java.util.Objects;
@@ -9,13 +9,13 @@ import java.util.Objects;
 record ObjectPasteBounds(int minX, int minY, int minZ, int maxX, int maxY, int maxZ) {
     static ObjectPasteBounds resolve(
             IrisObject object,
-            IrisObjectRotation rotation,
+            ObjectRotation rotation,
             int anchorX,
             int anchorY,
             int anchorZ
     ) {
         IrisObject placedObject = Objects.requireNonNull(object, "object");
-        IrisObjectRotation placementRotation = Objects.requireNonNull(rotation, "rotation");
+        ObjectRotation placementRotation = Objects.requireNonNull(rotation, "rotation");
         int[] xOffsets = {
                 -placedObject.getCenter().getBlockX(),
                 placedObject.getW() - 1 - placedObject.getCenter().getBlockX()

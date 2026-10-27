@@ -43,9 +43,9 @@ public class ObjectPlacementsTest {
                 TestSettings.of(ObjectPlacement.class, "{\"place\":[\"rift\"],\"carvingSupport\":\"ANYWHERE\"}")))));
 
         assertEquals(3, ObjectPlacements.all(biome).size());
-        assertEquals(2, ObjectPlacements.all(biome).get(0).getDensity());
-        assertEquals(List.of("hut", "rift"), ObjectPlacements.surface(biome).stream().map(p -> p.getPlace().get(0)).toList());
-        assertEquals(List.of("cave/crystal", "rift"), ObjectPlacements.carving(biome).stream().map(p -> p.getPlace().get(0)).toList());
+        assertEquals(2, ObjectPlacements.all(biome).get(0).density());
+        assertEquals(List.of("hut", "rift"), ObjectPlacements.surface(biome).stream().map(p -> p.place().get(0)).toList());
+        assertEquals(List.of("cave/crystal", "rift"), ObjectPlacements.carving(biome).stream().map(p -> p.place().get(0)).toList());
         assertSame(ObjectPlacements.all(biome).get(0), ObjectPlacements.all(biome).get(0));
     }
 

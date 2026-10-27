@@ -18,7 +18,7 @@
 
 package art.arcane.iris.core.pack;
 
-import art.arcane.iris.engine.object.placement.IrisObjectPlacement;
+import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.volmlib.util.collection.KSet;
 
 /**
@@ -31,16 +31,16 @@ public final class PackExportClosure {
     private PackExportClosure() {
     }
 
-    public static KSet<String> collectObjectKeys(Iterable<IrisObjectPlacement> placements) {
+    public static KSet<String> collectObjectKeys(Iterable<ObjectPlacement> placements) {
         KSet<String> objectKeys = new KSet<>();
         if (placements == null) {
             return objectKeys;
         }
-        for (IrisObjectPlacement placement : placements) {
-            if (placement == null || placement.getPlace() == null) {
+        for (ObjectPlacement placement : placements) {
+            if (placement == null) {
                 continue;
             }
-            for (String key : placement.getPlace()) {
+            for (String key : placement.place()) {
                 if (key == null || key.isBlank()) {
                     continue;
                 }

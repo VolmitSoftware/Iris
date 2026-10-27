@@ -4,8 +4,6 @@ import com.volmit.config.Level;
 import com.volmit.config.Reference;
 import com.volmit.example.chunk.GrassModule;
 import com.volmit.example.chunk.TerrainModule;
-import com.volmit.example.held.ClampSettings;
-import com.volmit.example.held.HeldModule;
 import com.volmit.example.hosttypes.Palette;
 import com.volmit.example.placement.PlacementModules;
 import com.volmit.example.terrain.LayersModule;
@@ -362,43 +360,6 @@ class PackSchemaTest {
         assertTrue(undeclared.getMessage().startsWith("Field " + Palette.class.getName() + ".anything of settings iris:layers"),
                 undeclared.getMessage());
         assertThrows(IllegalArgumentException.class, () -> NO_BUILT_INS.describingHostTypesIn("not a package"));
-    }
-
-    @Test
-    void builtInModulesDescribeTheClassesTheHostsClassesHold() {
-        var schema = schemaOf(pack("held"), ModuleHost.of(List.<com.volmit.IrisModule>of(new HeldModule())));
-
-        assertEquals(List.of(), schema.features());
-        assertEquals(new ObjectType(ClampSettings.class.getName(), "Limits a placement by height", Optional.of("clamp"),
-                List.of(new SchemaOption("minimumHeight", new IntegerKind(), "The lowest height", false, OptionalDouble.of(-2048),
-                        OptionalDouble.of(2048), OptionalInt.empty(), Optional.of(-2048L)))), schema.type(ClampSettings.class.getName()));
-        assertEquals(List.of(ClampSettings.class.getName()), schema.snippets().stream().map(ObjectType::name).toList());
-    }
-
-    @Test
-    void packModulesCannotRegisterHeldTypes() {
-        var jar = module("pack.flora.FloraModule", FLORA,
-                NO_MEMBERS, "registry.registerHeldType(pack.flora.Clamp.class);")
-                .source("pack.flora.Clamp", "package pack.flora; public final class Clamp { private int minimum; }");
-        var pack = pack("held-by-pack");
-        jar.writeInto(pack, "flora.jar");
-
-        var failure = assertThrows(ModuleLoadException.class, () -> LoadedPack.load(pack, NO_BUILT_INS));
-        assertTrue(failure.getMessage().contains("Held type pack.flora.Clamp") && failure.getMessage().contains("own jar"),
-                failure.getMessage());
-    }
-
-    @Test
-    void packModulesMayDescribeAHostClassOfAnExposedPackage() {
-        var jar = module("pack.flora.FloraModule", FLORA,
-                NO_MEMBERS, "registry.registerHeldType(com.volmit.example.held.ClampSettings.class);")
-                .compileAgainstHostOf(ClampSettings.class);
-        var pack = pack("held-exposed");
-        jar.writeInto(pack, "flora.jar");
-
-        var schema = LoadedPack.load(pack, NO_BUILT_INS.exposing("com.volmit.example.held")).schema();
-
-        assertEquals("Limits a placement by height", schema.type(ClampSettings.class.getName()).description());
     }
 
     @Test

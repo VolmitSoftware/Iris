@@ -33,7 +33,6 @@ import java.util.Set;
  * invalidates the host's whole build. This does not decode JSON, discover modules or instantiate
  * settings.
  */
-@SuppressWarnings("removal") // held types are transitional, until the cut-over
 public final class ModuleRegistry implements FeatureRegistry {
     private final Map<Class<?>, FeatureDescriptor<?>> settings = new HashMap<>();
     private final Map<Class<?>, ObjectRegistration<?>> objects = new HashMap<>();
@@ -43,7 +42,6 @@ public final class ModuleRegistry implements FeatureRegistry {
     private final Set<Class<?>> registeredByOwner = new HashSet<>();
     private final Map<KeyAtTarget, KeyClaimant> keyClaimants = new HashMap<>();
     private final Map<ResourceId, ResourceKindRegistration> resourceKinds = new HashMap<>();
-    private final Map<Class<?>, HeldTypeRegistration> heldTypes = new HashMap<>();
     private final List<ValidatorRegistration> validators = new ArrayList<>();
     private final List<LifecycleRegistration> lifecycles = new ArrayList<>();
     private final List<ServiceRegistration> services = new ArrayList<>();
@@ -120,20 +118,6 @@ public final class ModuleRegistry implements FeatureRegistry {
         registeredByOwner.add(settingsType);
     }
 
-    /** @deprecated Transitional, until the cut-over; see {@link FeatureRegistry#registerHeldType}. */
-    @Override
-    @Deprecated(forRemoval = true)
-    public void registerHeldType(Class<?> type) {
-        checkOpen();
-        Objects.requireNonNull(type, "type");
-        requireRegistering("Held type " + type.getName());
-        if (registering.source() != DiscoveredModule.Source.HOST && type.getClassLoader() == registering.module().getClass().getClassLoader()) {
-            throw new IllegalArgumentException("Held type " + type.getName() + " of module " + registering + " is a class of the pack module's"
-                    + " own jar; only a class the host loads, such as one of an exposed package, can be held by Iris's own classes");
-        }
-        heldTypes.putIfAbsent(type, new HeldTypeRegistration(type, registering));
-    }
-
     @Override
     public <T> void registerResourceKind(ResourceKind<T> kind) {
         checkOpen();
@@ -200,8 +184,7 @@ public final class ModuleRegistry implements FeatureRegistry {
 
     public FeatureCatalog freeze() {
         if (catalog == null) {
-            catalog = new FeatureCatalog(settings, objects, mantle, resourceKinds.values(), heldTypes.values(),
-                    validators, lifecycles, services);
+            catalog = new FeatureCatalog(settings, objects, mantle, resourceKinds.values(), validators, lifecycles, services);
         }
         return catalog;
     }

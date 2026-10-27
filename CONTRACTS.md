@@ -26,7 +26,7 @@ types that carry them and lists what the Iris adapter still owes.
 | Annotated settings | `IrisFeature`, `@Feature` (id, short JSON `key`, optional `root`), config annotations, host `OptionsMetadata`, `LinkedBiomes` (`treeBiomes`, `usedBiomes`: pack biomes the settings bring into the layout) |
 | Host facades for the host's own modules | `PackWorld.extension(type)`, `InvocationContext.extension(type)`, `PackSettings.extension(type)` (each an `Optional`, empty by default) |
 | Area a stage writes | `reach(blocks)`, `reach(PackReach)`, `writesMantle(...)` on stage definitions, `PackSettings`, host `StageReach`, `ResolvedStage.reachBlocks`, `PipelineReach` |
-| Settings described for studio | `@Desc`, `@Required`, `@MinNumber`, `@MaxNumber`, `@MinItems`, `@Snippet`, `@Ref`/`Reference`, `FeatureRegistry.registerSettings`, `FeatureRegistry.registerHeldType`, host `FeatureCatalog.heldTypes()`, host `LoadedPack.schema()` (`PackSchema`, `FeatureSchema`, `ObjectType`, `SchemaOption`, `ValueKind` with `HostKind`), `ModuleHost.describingHostTypesIn` |
+| Settings described for studio | `@Desc`, `@Required`, `@MinNumber`, `@MaxNumber`, `@MinItems`, `@Snippet`, `@Ref`/`Reference`, `FeatureRegistry.registerSettings`, host `LoadedPack.schema()` (`PackSchema`, `FeatureSchema`, `ObjectType`, `SchemaOption`, `ValueKind` with `HostKind`), `ModuleHost.describingHostTypesIn` |
 | Geometry and mantle registration | `FeatureRegistry`, host `ModuleRegistry`, `FeatureCatalog` |
 | Block states and palettes | `BlockState`, `BlockRegistry` (`resolve(BlockSpec)`, `find(key)`, `blockEntity`, `hasTrait`, `oreFor`), `BlockTrait`, `BlockPalette`, `BlockSpec`, `PaletteSpec` and `PaletteSampler` (`BlockRegistry.palette`) |
 | Noise from pack-described styles | `NoiseStyle`, `StyledRange`, `PackResources.noise()`, `NoiseFactory`, `NoiseSampler` |
@@ -108,8 +108,8 @@ running Iris is the pack publisher's responsibility.
   `ConfiguredSettings.placement(...)`; the chunk and mantle runners collect a chunk's settings
   themselves.
 - Name the packages of the classes Iris describes itself with `ModuleHost.describingHostTypesIn(...)`,
-  decode them as Iris does, and render each `HostKind` with Iris's own description of the class. These, and
-  `registerHeldType`, are deprecated for removal: transitional, until the cut-over.
+  decode them as Iris does, and render each `HostKind` with Iris's own description of the class. These are
+  deprecated for removal: transitional, until the cut-over.
 - Back each module's log with the host's own: `ModuleHost.loggingTo(logger)` where `logger` writes `DEBUG` only when the
   host's debug setting is on and writes an `ERROR` with a cause as the host reports its own failures. Implement
   `PackWorld.log()` (the host's own log) and hand services a world scoped to the provider's module

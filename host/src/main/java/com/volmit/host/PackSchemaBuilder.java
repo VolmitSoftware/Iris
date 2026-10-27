@@ -24,7 +24,7 @@ import java.util.stream.Stream;
  * naming a kind nobody has, a class without a usable no-argument constructor, a snippet name used twice, a pack
  * class's snippet name outside its module's path, or a pack module's resource kind read into a host type.
  */
-@SuppressWarnings("removal") // held types and host kinds are transitional, until the cut-over
+@SuppressWarnings("removal") // host kinds are transitional, until the cut-over
 final class PackSchemaBuilder {
     private static final Pattern SNIPPET_NAME = Pattern.compile("[a-z0-9_.-]+(/[a-z0-9_.-]+)*");
     private static final Pattern RELATIVE_SEGMENT = Pattern.compile("(^|/)\\.\\.?(/|$)");
@@ -48,7 +48,6 @@ final class PackSchemaBuilder {
     private PackSchema describe(FeatureCatalog catalog) {
         var features = catalogued(catalog).map(this::draft).toList();
         var resources = catalog.resourceKinds().stream().map(this::describe).toList();
-        catalog.heldTypes().forEach(this::draft);
         requireUniqueSnippets();
         var types = completeTypes();
         return new PackSchema(features.stream().map(feature -> feature.complete(types)).toList(), resources,
@@ -97,10 +96,6 @@ final class PackSchemaBuilder {
         var objects = catalog.objects().stream()
                 .map(registration -> new Catalogued(registration.descriptor(), FeatureRole.OBJECT_GENERATOR));
         return Stream.concat(settings, objects).sorted(Comparator.comparing(catalogued -> catalogued.descriptor().id()));
-    }
-
-    private void draft(HeldTypeRegistration held) {
-        drafts.settings(SchemaSource.heldType(held));
     }
 
     private FeatureDraft draft(Catalogued catalogued) {

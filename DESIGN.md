@@ -718,12 +718,6 @@ core engine is modules as well. The host's own JSON fields are not in it; no key
   inlined copy, so a class used in many places is described once, and a class that contains itself,
   directly or through others, ends the walk at its own name. Two different classes with one name fail
   the load; only a built-in class and a pack class can collide that way.
-- Modules may also register a class that Iris's own classes hold (`registerHeldType`, `FeatureCatalog.heldTypes()`;
-  deprecated for removal, transitional until the cut-over):
-  it is described like any settings class reachable from a feature, but no `FeatureSchema` names it. This is for
-  settings that live in a host class until their feature owns them, such as the clamp of an object placement. The class
-  must be loaded by the host: a built-in module's, or one of a package the host exposes (the built-ins jar's modules
-  register the classes of `art.arcane.iris.builtin`); a class from the registering pack module's own jar fails the load.
 - A `SchemaOption` per field that `OptionsMetadata` selects, which means instance fields that are
   not transient, inherited ones included, in declaration order. Each has its name, `ValueKind`,
   `@Desc`, `@Required`, `@MinNumber`/`@MaxNumber`, `@MinItems` and the default value.
@@ -1274,7 +1268,7 @@ API now: `world.running()`, `world.seed(purpose)`, `TerrainSampler`, `FeatureSet
   through Iris's placers, and the loot of what was placed. Objects are named by the string keys placements hold, and the API
   has no object model. It goes when the API describes a placeable object and its placement.
 - **`ObjectPlacement`** with `ObjectShape`, `PlacementSettings` and `PlacementTerrain` (invocation). The object being placed,
-  read from Iris's `IrisObjectPlacement`, and the terrain questions of Iris's placers (carved, structure volumes, the object
+  read from the module's own `objects.ObjectPlacement` settings, and the terrain questions of Iris's placers (carved, structure volumes, the object
   already at a block). Its surface noise (`PlaneNoise`, `SurfaceWarp`) is Iris's own simplex and warp with a cache, which no
   API noise reproduces value for value, so existing worlds would move. It goes with `ObjectHost`.
 - **`FloatingHost`** (world). Island height comes from Iris's biome generators and island tops are painted by Iris's biome

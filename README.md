@@ -564,11 +564,6 @@ public final class FloraSettings implements IrisFeature {
   that no stage names, such as ones read only through `FeatureSettings.at(...)`, are registered with
   `setup.registry().registerSettings(WindSettings.class, GustSettings.class)` in `setup`. Their feature id follows the module
   id like any other, and once registered, other modules may name them in `when(...)`.
-- A class of a built-in module that Iris's own classes hold, such as the clamp field of an object placement, is
-  registered with `registry.registerHeldType(Clamp.class)`, so studio describes it from the class (as an
-  `ObjectType`, with no feature). Only built-in modules may; a pack module's class can never be a field of an Iris class.
-  `registerHeldType` (with `HeldTypeRegistration` and `FeatureCatalog.heldTypes()`) is deprecated for removal:
-  transitional, until the cut-over.
 
 A load error names the field, the settings and the module:
 

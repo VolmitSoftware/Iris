@@ -20,8 +20,6 @@ package art.arcane.iris.engine.loot;
 
 import art.arcane.iris.modules.loot.BlockDropSettings;
 import art.arcane.iris.builtin.loot.LootSettings;
-import art.arcane.iris.builtin.loot.ObjectLoot;
-import art.arcane.iris.builtin.loot.ObjectVanillaLoot;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
 import com.volmit.ModuleSetup;
@@ -46,8 +44,6 @@ public final class LootModule implements IrisModule {
     public void setup(ModuleSetup setup) {
         var registry = setup.registry();
         registry.registerSettings(LootSettings.class, BlockDropSettings.class);
-        registry.registerHeldType(ObjectLoot.class);
-        registry.registerHeldType(ObjectVanillaLoot.class);
         LootResources.kinds().forEach(registry::registerResourceKind);
         registry.registerValidator(new LootValidator());
         registry.registerService(Loot.class, new LootGiving());

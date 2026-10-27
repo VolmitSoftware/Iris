@@ -62,9 +62,8 @@ stilt, `VacuumProfile`, `PlaceTrait`s) that the placement stages ask; the pack J
 objects are trees) and says which biomes and regions place an object (`ObjectLocating`, for the object search).
 `iris:objects` ships in the built-ins jar. It declares the settings `objects` (region, biome: the list of `ObjectPlacement`s),
 `proceduralObjects` (region, biome), `treeSettings` (dimension), `requireObjectSurfaceSupport`, `objectSurfaceSupportBuffer`,
-`upperDimensionObjects` and `upperObjectsForcePlace` (dimension), all written as they always were. `ObjectPlacement` describes
-the same JSON as Iris's `IrisObjectPlacement` and keeps the JSON it was read from, because Iris's placement stages still read
-a placement as their own class (`ObjectPlacements.host`). What a jar cannot do, Iris does through the facades `ObjectHost` and
+`upperDimensionObjects` and `upperObjectsForcePlace` (dimension), all written as they always were. `ObjectPlacement` is the
+placement itself, read by the module decoder like any settings class, and the one type Iris places with. What a jar cannot do, Iris does through the facades `ObjectHost` and
 `ObjectChunk` in `art.arcane.iris.builtin.objects`: loading and scaling the pack's objects, placing one with the placement
 stages into the chunk's mantle (on the surface, in a cave inside the cave's bounds, or hung from the terrain above), reading the
 carved space the cave carver planned, and the loot an object placed at a block defines; the layout, the settings of a column and
@@ -94,13 +93,13 @@ only: `DepositSettings` (`art.arcane.iris.modules.deposit`) holds `DepositGenera
 palette, ore checks, clump shapes per world seed) lives in the module's own code, `ResolvedDeposit`. The deposits run one generator after the other, each
 with a random of its own; they used to spread over threads on a multicore pregen, which no module can do (stages run on the host's threads).
 
-Settings that live inside a class of Iris's own, such as an object placement's clamp, stilt, vacuum and edit settings, its slope condition
-or a procedural coral, are module-owned classes too (`art.arcane.iris.builtin.validate`,
-`.stilt`, `.vacuum`, `.blocks`, `.prepare`, `.carve`, `.floating`, `.objects.*`). A module registers each with
-`registry.registerHeldType(...)` so studio describes it from the module's own annotations. A module in the built-ins jar may
-too, because the classes are in the exposed package: the placement stages register what Iris's `IrisObjectPlacement` holds
-(`iris:prepare` its slope clip and rotation clamp, `iris:validate` its limit, `iris:stilt`, `iris:vacuum`, `iris:blocks` its
-replace). Packs write the same JSON as before. Behaviour
+An object placement is `iris:objects` settings (`objects.ObjectPlacement`, under a biome's or region's `objects`), and the
+settings inside it, such as its clamp, stilt, vacuum and edit settings, its slope condition or a procedural coral, are
+module-owned classes too (`art.arcane.iris.builtin.validate`, `.stilt`, `.vacuum`, `.blocks`, `.prepare`, `.carve`,
+`.floating`, `.objects.*`), so studio describes them from the module's own annotations. Iris reads a placement's module
+settings (the keys pack modules add at `Level.PLACEMENT`) from the JSON the placement was written as (`json()`), and keeps
+what it makes of the placement in `hostForm()`; a placement made in code uses `ObjectPlacement.builder()` or
+`toBuilder()`. Packs write the same JSON as before. Behaviour
 that needs Iris (noise built from the styles, blocks resolved through the pack, baked object variants) lives in `Resolved*` classes beside the
 worker (`ResolvedReplace`, `ResolvedCaveProfile`, `ResolvedFloatingChild`, `ResolvedProceduralPlacement`).
 
@@ -210,11 +209,10 @@ IrisApi purpose seeds: `world.seed(IrisSeedPurposes.CARVE)` (`iris:seed/carve`),
 had, so existing worlds generate the same; `spawn.SpawnCooldowns` (the spawner cooldowns
 Iris saves with the world's data, so they survive a restart),
 `loot.LootResolver` (the random streams loot is drawn from, shared with the hosts that fill containers) and the loot and
-marker lists of an object placement (`loot.ObjectLoot`, `loot.ObjectVanillaLoot`, `spawn.PlacementMarker`, which the modules
-register as held types, because Iris's `IrisObjectPlacement` holds them). The placement stages need more of the object being
+marker lists of an object placement (`loot.ObjectLoot`, `loot.ObjectVanillaLoot`, `spawn.PlacementMarker`). The placement stages need more of the object being
 placed than IrisApi describes, so `placement.ObjectPlacement` is the facade Iris implements for each placement and offers with
 its invocation (`context.extension(ObjectPlacement.class)`): the object's size (`ObjectShape`), the placement's settings (`PlacementSettings`, read from
-Iris's `IrisObjectPlacement`), the terrain questions of its placer and the world around it (`PlacementTerrain`), the surface warp,
+the `objects.ObjectPlacement` being placed), the terrain questions of its placer and the world around it (`PlacementTerrain`), the surface warp,
 and the block operations only the platform can do (turning a state with the object, merging two states, matching, traits of the
 placement's own states). Its types answer with IrisApi, VolmLib and built-in values only. `prepare.PreparedPlacement`, the output of
 `iris:prepare/transforms`, lives in the exposed package too, because `IrisStages` names it. `iris:post` reads its switches

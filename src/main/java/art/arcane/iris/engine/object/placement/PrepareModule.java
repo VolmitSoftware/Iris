@@ -31,7 +31,6 @@ import art.arcane.iris.builtin.prepare.ObjectRotation;
 import art.arcane.iris.builtin.prepare.ObjectSpinKernel;
 import art.arcane.iris.builtin.prepare.ObjectTranslate;
 import art.arcane.iris.builtin.prepare.PreparedPlacement;
-import art.arcane.iris.builtin.prepare.SlopeClip;
 import art.arcane.iris.builtin.prepare.TransformedBounds;
 import art.arcane.volmlib.util.math.IrisBlockVector;
 import art.arcane.volmlib.util.math.RNG;
@@ -66,9 +65,6 @@ public final class PrepareModule implements IrisModule {
         graph.define(IrisStages.Prepare.TRANSFORMS)
                 .requires(IrisStages.Prepare.SLOPE)
                 .produce(PrepareModule::transforms);
-        var registry = setup.registry();
-        registry.registerHeldType(SlopeClip.class);
-        registry.registerHeldType(AxisRotationClamp.class);
     }
 
     private static ObjectRotation slope(PlacementStageContext context) {

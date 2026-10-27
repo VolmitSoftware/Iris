@@ -19,7 +19,6 @@
 package art.arcane.iris.engine.spawn;
 
 import art.arcane.iris.modules.spawn.EffectSettings;
-import art.arcane.iris.builtin.spawn.PlacementMarker;
 import art.arcane.iris.modules.spawn.SpawnerSettings;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
@@ -46,7 +45,6 @@ public final class SpawnModule implements IrisModule {
     public void setup(ModuleSetup setup) {
         var registry = setup.registry();
         registry.registerSettings(SpawnerSettings.class, EffectSettings.class);
-        registry.registerHeldType(PlacementMarker.class);
         SpawnResources.kinds().forEach(registry::registerResourceKind);
         registry.registerService(EntitySpawns.class, new EntitySpawning());
         registry.registerService(AmbientEffects.class, new AmbientEffecting());

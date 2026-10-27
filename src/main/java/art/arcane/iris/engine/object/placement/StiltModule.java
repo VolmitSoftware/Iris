@@ -79,7 +79,6 @@ public final class StiltModule implements IrisModule {
         graph.define(IrisStages.Stilt.FILL)
                 .requires(IrisStages.Stilt.LAYERS, IrisStages.Anchor.FINAL, IrisStages.Blocks.COMPLETE)
                 .run(StiltModule::fill);
-        setup.registry().registerHeldType(StiltSettings.class);
     }
 
     private static void collectLayer(BlockStageContext context, StiltLayers layers) {

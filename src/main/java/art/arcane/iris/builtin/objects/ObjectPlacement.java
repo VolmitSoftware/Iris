@@ -185,9 +185,93 @@ public final class ObjectPlacement implements PlacementSource {
     public ObjectPlacement() {
     }
 
+    private ObjectPlacement(ObjectPlacement source) {
+        place = source.place;
+        rotation = source.rotation;
+        clamp = source.clamp;
+        snow = source.snow;
+        isDolphinTarget = source.isDolphinTarget;
+        slopeCondition = source.slopeCondition;
+        rotateTowardsSlope = source.rotateTowardsSlope;
+        chance = source.chance;
+        density = source.density;
+        densityStyle = source.densityStyle;
+        stiltSettings = source.stiltSettings;
+        vacuumSettings = source.vacuumSettings;
+        boreExtendMaxY = source.boreExtendMaxY;
+        markers = source.markers;
+        boreExtendMinY = source.boreExtendMinY;
+        underwater = source.underwater;
+        carvingSupport = source.carvingSupport;
+        surfaceSupportBuffer = source.surfaceSupportBuffer;
+        surfaceSupportDepth = source.surfaceSupportDepth;
+        requireSurfaceSupport = source.requireSurfaceSupport;
+        caveAnchorMode = source.caveAnchorMode;
+        heightmap = source.heightmap;
+        smartBore = source.smartBore;
+        waterloggable = source.waterloggable;
+        onwater = source.onwater;
+        meld = source.meld;
+        fromBottom = source.fromBottom;
+        bottom = source.bottom;
+        bore = source.bore;
+        warp = source.warp;
+        mode = source.mode;
+        edit = source.edit;
+        translate = source.translate;
+        scale = source.scale;
+        loot = source.loot;
+        vanillaLoot = source.vanillaLoot;
+        overrideGlobalLoot = source.overrideGlobalLoot;
+        trees = source.trees;
+        allowedCollisions = source.allowedCollisions;
+        forbiddenCollisions = source.forbiddenCollisions;
+        forcePlace = source.forcePlace;
+        json = source.json;
+        hostForm = source.hostForm;
+    }
+
+    /** A builder of a placement made in code, starting from the defaults a pack's placement starts from. */
+    public static Builder builder() {
+        return new Builder(new ObjectPlacement());
+    }
+
+    /**
+     * A builder of a copy of this placement with some options changed. The copy keeps the JSON this placement was
+     * read from, so the module settings it declares, and what Iris made of it, unless a noise option changes.
+     */
+    public Builder toBuilder() {
+        return new Builder(new ObjectPlacement(this));
+    }
+
     /** The objects to pick from, by the keys of the pack's objects. */
     public List<String> place() {
-        return place == null ? List.of() : Collections.unmodifiableList(place);
+        return listOf(place);
+    }
+
+    public ObjectRotation rotation() {
+        return rotation;
+    }
+
+    public ObjectLimit clamp() {
+        return clamp;
+    }
+
+    public double snow() {
+        return snow;
+    }
+
+    @Override
+    public boolean isDolphinTarget() {
+        return isDolphinTarget;
+    }
+
+    public SlopeClip slopeCondition() {
+        return slopeCondition;
+    }
+
+    public boolean rotateTowardsSlope() {
+        return rotateTowardsSlope;
     }
 
     @Override
@@ -212,16 +296,86 @@ public final class ObjectPlacement implements PlacementSource {
         return (int) ((densityStyle.max() + densityStyle.min()) / 2);
     }
 
-    public ObjectRotation rotation() {
-        return rotation;
+    public Optional<StiltSettings> stiltSettings() {
+        return Optional.ofNullable(stiltSettings);
     }
 
-    public ObjectTranslate translate() {
-        return translate;
+    public Optional<VacuumSettings> vacuumSettings() {
+        return Optional.ofNullable(vacuumSettings);
     }
 
-    public ObjectScale scale() {
-        return scale;
+    public int boreExtendMaxY() {
+        return boreExtendMaxY;
+    }
+
+    public List<PlacementMarker> markers() {
+        return listOf(markers);
+    }
+
+    public int boreExtendMinY() {
+        return boreExtendMinY;
+    }
+
+    @Override
+    public boolean underwater() {
+        return underwater;
+    }
+
+    @Override
+    public CarvingMode carvingSupport() {
+        return carvingSupport;
+    }
+
+    @Override
+    public int surfaceSupportBuffer() {
+        return surfaceSupportBuffer;
+    }
+
+    public int surfaceSupportDepth() {
+        return surfaceSupportDepth;
+    }
+
+    @Override
+    public boolean requireSurfaceSupport() {
+        return requireSurfaceSupport;
+    }
+
+    @Override
+    public CaveAnchorMode caveAnchorMode() {
+        return caveAnchorMode;
+    }
+
+    /** The virtual heightmap the objects place on instead of the terrain, if one is set. */
+    public Optional<HeightmapNoise> heightmap() {
+        return Optional.ofNullable(heightmap);
+    }
+
+    public boolean smartBore() {
+        return smartBore;
+    }
+
+    public boolean waterloggable() {
+        return waterloggable;
+    }
+
+    public boolean onwater() {
+        return onwater;
+    }
+
+    public boolean meld() {
+        return meld;
+    }
+
+    public boolean fromBottom() {
+        return fromBottom;
+    }
+
+    public boolean bottom() {
+        return bottom;
+    }
+
+    public boolean bore() {
+        return bore;
     }
 
     public NoiseStyle warp() {
@@ -233,55 +387,58 @@ public final class ObjectPlacement implements PlacementSource {
         return mode;
     }
 
-    public Optional<VacuumSettings> vacuumSettings() {
-        return Optional.ofNullable(vacuumSettings);
+    public List<ObjectReplace> edit() {
+        return listOf(edit);
     }
 
-    @Override
-    public CarvingMode carvingSupport() {
-        return carvingSupport;
+    public ObjectTranslate translate() {
+        return translate;
     }
 
-    @Override
-    public CaveAnchorMode caveAnchorMode() {
-        return caveAnchorMode;
+    public ObjectScale scale() {
+        return scale;
     }
 
-    @Override
-    public boolean underwater() {
-        return underwater;
+    public List<ObjectLoot> loot() {
+        return listOf(loot);
     }
 
-    @Override
-    public boolean isDolphinTarget() {
-        return isDolphinTarget;
+    public List<ObjectVanillaLoot> vanillaLoot() {
+        return listOf(vanillaLoot);
+    }
+
+    public boolean overrideGlobalLoot() {
+        return overrideGlobalLoot;
+    }
+
+    public List<TreeOverride> trees() {
+        return listOf(trees);
+    }
+
+    /** Whether one of the trees this placement overrides is the species {@code species} grown on a sapling area of {@code width} by {@code depth}. */
+    public boolean overridesTree(int width, int depth, String species) {
+        return trees().stream().anyMatch(tree -> tree.matches(width, depth, species));
+    }
+
+    public List<String> allowedCollisions() {
+        return listOf(allowedCollisions);
+    }
+
+    public List<String> forbiddenCollisions() {
+        return listOf(forbiddenCollisions);
     }
 
     public boolean forcePlace() {
         return forcePlace;
     }
 
-    @Override
-    public boolean requireSurfaceSupport() {
-        return requireSurfaceSupport;
-    }
-
-    @Override
-    public int surfaceSupportBuffer() {
-        return surfaceSupportBuffer;
-    }
-
-    public List<TreeOverride> trees() {
-        return trees == null ? List.of() : Collections.unmodifiableList(trees);
-    }
-
-    /** The JSON this placement was read from, which Iris reads again as its own placement; null for one made in code. */
+    /** The JSON this placement was read from, which declares its module settings; null for one made in code. */
     public String json() {
         return json;
     }
 
     /**
-     * What Iris made of {@link #json()} the last time it asked, kept here so it asks once. Only Iris sets or reads it,
+     * What Iris made of this placement the last time it asked, kept here so it asks once. Only Iris sets or reads it,
      * and it is its own type.
      */
     public Object hostForm() {
@@ -290,6 +447,228 @@ public final class ObjectPlacement implements PlacementSource {
 
     public void hostForm(Object form) {
         this.hostForm = form;
+    }
+
+    private static <T> List<T> listOf(List<T> values) {
+        return values == null ? List.of() : Collections.unmodifiableList(values);
+    }
+
+    /** Sets the options of a placement made in code; each setter returns the builder. */
+    public static final class Builder {
+        private final ObjectPlacement placement;
+
+        private Builder(ObjectPlacement placement) {
+            this.placement = placement;
+        }
+
+        public Builder place(List<String> keys) {
+            placement.place = List.copyOf(keys);
+            return this;
+        }
+
+        public Builder rotation(ObjectRotation rotation) {
+            placement.rotation = rotation;
+            return this;
+        }
+
+        public Builder clamp(ObjectLimit clamp) {
+            placement.clamp = clamp;
+            return this;
+        }
+
+        public Builder snow(double snow) {
+            placement.snow = snow;
+            return this;
+        }
+
+        public Builder slopeCondition(SlopeClip slopeCondition) {
+            placement.slopeCondition = slopeCondition;
+            return this;
+        }
+
+        public Builder rotateTowardsSlope(boolean rotateTowardsSlope) {
+            placement.rotateTowardsSlope = rotateTowardsSlope;
+            return this;
+        }
+
+        public Builder chance(double chance) {
+            placement.chance = chance;
+            return this;
+        }
+
+        public Builder density(int density) {
+            placement.density = density;
+            return this;
+        }
+
+        public Builder densityStyle(StyledRange densityStyle) {
+            placement.densityStyle = densityStyle;
+            placement.hostForm = null;
+            return this;
+        }
+
+        public Builder stiltSettings(StiltSettings stiltSettings) {
+            placement.stiltSettings = stiltSettings;
+            return this;
+        }
+
+        public Builder vacuumSettings(VacuumSettings vacuumSettings) {
+            placement.vacuumSettings = vacuumSettings;
+            return this;
+        }
+
+        public Builder boreExtendMaxY(int blocks) {
+            placement.boreExtendMaxY = blocks;
+            return this;
+        }
+
+        public Builder markers(List<PlacementMarker> markers) {
+            placement.markers = List.copyOf(markers);
+            return this;
+        }
+
+        public Builder boreExtendMinY(int blocks) {
+            placement.boreExtendMinY = blocks;
+            return this;
+        }
+
+        public Builder underwater(boolean underwater) {
+            placement.underwater = underwater;
+            return this;
+        }
+
+        public Builder carvingSupport(CarvingMode carvingSupport) {
+            placement.carvingSupport = carvingSupport;
+            return this;
+        }
+
+        public Builder surfaceSupportBuffer(int blocks) {
+            placement.surfaceSupportBuffer = blocks;
+            return this;
+        }
+
+        public Builder surfaceSupportDepth(int blocks) {
+            placement.surfaceSupportDepth = blocks;
+            return this;
+        }
+
+        public Builder requireSurfaceSupport(boolean require) {
+            placement.requireSurfaceSupport = require;
+            return this;
+        }
+
+        public Builder caveAnchorMode(CaveAnchorMode caveAnchorMode) {
+            placement.caveAnchorMode = caveAnchorMode;
+            return this;
+        }
+
+        public Builder heightmap(HeightmapNoise heightmap) {
+            placement.heightmap = heightmap;
+            placement.hostForm = null;
+            return this;
+        }
+
+        public Builder smartBore(boolean smartBore) {
+            placement.smartBore = smartBore;
+            return this;
+        }
+
+        public Builder waterloggable(boolean waterloggable) {
+            placement.waterloggable = waterloggable;
+            return this;
+        }
+
+        public Builder onwater(boolean onwater) {
+            placement.onwater = onwater;
+            return this;
+        }
+
+        public Builder meld(boolean meld) {
+            placement.meld = meld;
+            return this;
+        }
+
+        public Builder fromBottom(boolean fromBottom) {
+            placement.fromBottom = fromBottom;
+            return this;
+        }
+
+        public Builder bottom(boolean bottom) {
+            placement.bottom = bottom;
+            return this;
+        }
+
+        public Builder bore(boolean bore) {
+            placement.bore = bore;
+            return this;
+        }
+
+        public Builder warp(NoiseStyle warp) {
+            placement.warp = warp;
+            placement.hostForm = null;
+            return this;
+        }
+
+        public Builder mode(ObjectPlaceMode mode) {
+            placement.mode = mode;
+            return this;
+        }
+
+        public Builder edit(List<ObjectReplace> edit) {
+            placement.edit = List.copyOf(edit);
+            return this;
+        }
+
+        public Builder translate(ObjectTranslate translate) {
+            placement.translate = translate;
+            return this;
+        }
+
+        public Builder scale(ObjectScale scale) {
+            placement.scale = scale;
+            return this;
+        }
+
+        public Builder loot(List<ObjectLoot> loot) {
+            placement.loot = List.copyOf(loot);
+            return this;
+        }
+
+        public Builder vanillaLoot(List<ObjectVanillaLoot> vanillaLoot) {
+            placement.vanillaLoot = List.copyOf(vanillaLoot);
+            return this;
+        }
+
+        public Builder overrideGlobalLoot(boolean override) {
+            placement.overrideGlobalLoot = override;
+            return this;
+        }
+
+        public Builder trees(List<TreeOverride> trees) {
+            placement.trees = List.copyOf(trees);
+            return this;
+        }
+
+        public Builder allowedCollisions(List<String> keys) {
+            placement.allowedCollisions = List.copyOf(keys);
+            return this;
+        }
+
+        public Builder forbiddenCollisions(List<String> keys) {
+            placement.forbiddenCollisions = List.copyOf(keys);
+            return this;
+        }
+
+        public Builder forcePlace(boolean forcePlace) {
+            placement.forcePlace = forcePlace;
+            return this;
+        }
+
+        /** The placement; the builder must not be used after. */
+        /** The placement as set so far; later changes to the builder do not reach it. */
+        public ObjectPlacement build() {
+            return new ObjectPlacement(placement);
+        }
     }
 
     /** Reads a placement like any settings and keeps the JSON it was read from. */

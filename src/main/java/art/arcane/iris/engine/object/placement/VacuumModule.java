@@ -61,7 +61,6 @@ public final class VacuumModule implements IrisModule {
                 .requires(IrisStages.Blocks.WRITE, IrisStages.Blocks.COMPLETE, IrisStages.Prepare.TRANSFORMS)
                 .reach(IrisObjectVacuum.MAX_RADIUS_BLOCKS)
                 .run(VacuumModule::bendTerrain);
-        setup.registry().registerHeldType(VacuumSettings.class);
     }
 
     private static void bendTerrain(PlacementStageContext context) {

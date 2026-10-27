@@ -21,7 +21,6 @@ package art.arcane.iris.engine.object.placement;
 import art.arcane.iris.builtin.IrisStages;
 import art.arcane.iris.builtin.anchor.PlaceTrait;
 import art.arcane.iris.builtin.blocks.ObjectMarkers;
-import art.arcane.iris.builtin.blocks.ObjectReplace;
 import art.arcane.iris.builtin.blocks.WrittenBlocks;
 import art.arcane.iris.builtin.carve.CarvingMode;
 import art.arcane.iris.builtin.placement.MarkerRule;
@@ -87,7 +86,6 @@ public final class BlocksModule implements IrisModule {
                 .requires(IrisStages.Blocks.WRITE, IrisStages.Blocks.MARKERS)
                 .run(context -> {
                 });
-        setup.registry().registerHeldType(ObjectReplace.class);
     }
 
     private static void write(BlockStageContext context, WrittenBlocks written) {

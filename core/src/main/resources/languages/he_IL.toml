@@ -97,6 +97,7 @@
 #   {dumpPath}  מיקום נתוני הניקוי או השחזור שנשמרו.
 #   {duration}  משך הפעולה בתבנית תצוגה.
 #   {e}  טקסט החריגה מסריקת תבניות מבנים שנכשלה.
+#   {editor}  שם עורך הסטודיו ש-Iris פותח, למשל VSCode או Zed.
 #   {elapsed}  הזמן שחלף מתחילת הפעולה, בתבנית תצוגה.
 #   {engines}  מספר מנועי יצירת Iris או הממדים הפעילים.
 #   {entity}  סוג הישות שבחר ה-spawner הנבדק.
@@ -661,7 +662,7 @@ regions_scan_failed = "§cסריקת האזורים נכשלה: {value}"
 opening_studio_pack_seed = "§aפותח את Studio עבור החבילה \"{value}\" (זרע: {seed})"
 provide_dimension_pack_iris_std_importvanilla_pack_dimension = "§cיש לציין חבילת ממד: /iris std importvanilla pack=<dimension>"
 could_not_resolve_pack_dimension = "§cלא ניתן לזהות את החבילה עבור הממד {value}"
-opening_vscode_pack = "§aפותח את VSCode עבור החבילה \"{value}\""
+opening_editor_pack = "§aפתיחת {editor} עבור החבילה \"{value}\""
 pack_has_version = "§aלחבילה \"{value}\" יש גרסה: {value2}"
 opening_noise_explorer = "§aפותח את Noise Explorer!"
 cannot_add_items_virtual_inventory_because = "§cלא ניתן להוסיף פריטים למלאי הווירטואלי עקב: {value}"
@@ -725,13 +726,13 @@ you_must_be_studio_world = "§cיש להיות בעולם Studio!"
 cannot_open_files_headless_environments = "§cלא ניתן לפתוח קבצים בסביבות ללא ממשק גרפי!"
 desktop_is_not_supported_by_this_environment = "§cשולחן העבודה אינו נתמך על ידי הסביבה הזו!"
 cannot_find_file_perhaps_it_was_not_loaded_directly_from = "§6לא ניתן למצוא את הקובץ; ייתכן שהוא לא נטען ישירות מקובץ?"
-opening_vscode = "§aפותח את {value} {value2} ב-VSCode! "
+opening_in_editor = "§aפתיחת {value} {value2} ב-{editor}!"
+could_not_open_editor = "§cלא ניתן לפתוח את {editor}. בדוק את הקונסולה."
+no_editor_configured = "§cלא הוגדר עורך. הגדר את studio.editor ל-vscode או zed בקובץ iris.json."
 cant_find_file_registrant_does_not_exist = "§cלא ניתן למצוא את הקובץ, או שהרשומה אינה קיימת"
 cannot_find_file_perhaps_it_was_not_loaded_directly_from_2 = "§6לא ניתן למצוא את הקובץ; ייתכן שהוא לא נטען ישירות מקובץ?"
-opening_vscode_2 = "§aפותח את {value} {value2} ב-VSCode! "
 cant_find_file_registrant_does_not_exist_2 = "§cלא ניתן למצוא את הקובץ, או שהרשומה אינה קיימת"
 cannot_find_file_perhaps_it_was_not_loaded_directly_from_3 = "§6לא ניתן למצוא את הקובץ; ייתכן שהוא לא נטען ישירות מקובץ?"
-opening_vscode_3 = "§aפותח את {value} {value2} ב-VSCode! "
 cant_find_file_registrant_does_not_exist_3 = "§cלא ניתן למצוא את הקובץ, או שהרשומה אינה קיימת"
 
 [iris.bukkit.commandpregen]
@@ -1282,8 +1283,8 @@ replace_installed_types = "חבילות מותקנות: {value}"
 "param.dimension_pack_import_vanilla_content_into" = "חבילת הממד שאליה ייובא תוכן vanilla"
 "param.how_many_variants_capture_per_tree_object_feature" = "כמה וריאנטים ללכוד לכל תכונת עץ/אובייקט"
 "param.also_import_vanilla_datapack_structures_jigsaw_into_pack" = "ייבוא גם של structures/jigsaw של vanilla & חבילות נתונים לתוך החבילה"
-"director.open_vscode_dimension" = "פתיחת VSCode עבור ממד"
-"param.dimension_open_vscode" = "הממד שעבורו ייפתח VSCode"
+"director.open_editor_dimension" = "פתח את העורך המוגדר עבור מימד"
+"param.dimension_open_editor" = "המימד שעבורו ייפתח העורך"
 "director.close_open_studio_project" = "סגירת פרויקט Studio פתוח"
 "director.toggle_your_studio_debug_scoreboard" = "החלפת מצב לוח הניקוד לאיתור באגים של Studio"
 "director.create_new_studio_project" = "יצירת פרויקט Studio חדש"

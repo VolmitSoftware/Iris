@@ -777,13 +777,13 @@ public final class DirectorCommandMessages {
             "iris.director.commandstudio.param.also_import_vanilla_datapack_structures_jigsaw_into_pack",
             "Also import vanilla & datapack structures/jigsaw into the pack"
     );
-    public static final TextKey COMMAND_STUDIO_DIRECTOR_OPEN_VSCODE_DIMENSION = TextKey.of(
-            "iris.director.commandstudio.director.open_vscode_dimension",
-            "Open VSCode for a dimension"
+    public static final TextKey COMMAND_STUDIO_DIRECTOR_OPEN_EDITOR_DIMENSION = TextKey.of(
+            "iris.director.commandstudio.director.open_editor_dimension",
+            "Open the configured editor for a dimension"
     );
-    public static final TextKey COMMAND_STUDIO_PARAM_DIMENSION_OPEN_VSCODE = TextKey.of(
-            "iris.director.commandstudio.param.dimension_open_vscode",
-            "The dimension to open VSCode for"
+    public static final TextKey COMMAND_STUDIO_PARAM_DIMENSION_OPEN_EDITOR = TextKey.of(
+            "iris.director.commandstudio.param.dimension_open_editor",
+            "The dimension to open the editor for"
     );
     public static final TextKey COMMAND_STUDIO_DIRECTOR_HOTLOAD_ACTIVE_STUDIO_PACK = TextKey.of(
             "iris.director.commandstudio.director.hotload_active_studio_pack",
@@ -1134,8 +1134,8 @@ public final class DirectorCommandMessages {
             COMMAND_STUDIO_PARAM_DIMENSION_PACK_IMPORT_VANILLA_CONTENT_INTO,
             COMMAND_STUDIO_PARAM_HOW_MANY_VARIANTS_CAPTURE_PER_TREE_OBJECT_FEATURE,
             COMMAND_STUDIO_PARAM_ALSO_IMPORT_VANILLA_DATAPACK_STRUCTURES_JIGSAW_INTO_PACK,
-            COMMAND_STUDIO_DIRECTOR_OPEN_VSCODE_DIMENSION,
-            COMMAND_STUDIO_PARAM_DIMENSION_OPEN_VSCODE,
+            COMMAND_STUDIO_DIRECTOR_OPEN_EDITOR_DIMENSION,
+            COMMAND_STUDIO_PARAM_DIMENSION_OPEN_EDITOR,
             COMMAND_STUDIO_DIRECTOR_CLOSE_OPEN_STUDIO_PROJECT,
             COMMAND_STUDIO_DIRECTOR_HOTLOAD_ACTIVE_STUDIO_PACK,
             COMMAND_STUDIO_DIRECTOR_TOGGLE_YOUR_STUDIO_DEBUG_SCOREBOARD,

@@ -95,6 +95,7 @@
 #   {dumpPath}  저장된 정리 또는 복원 데이터 위치.
 #   {duration}  서식이 적용된 작업 소요 시간.
 #   {e}  구조물 템플릿 검사 실패 시의 예외 텍스트.
+#   {editor}  Iris가 여는 스튜디오 편집기의 이름(예: VSCode, Zed).
 #   {elapsed}  작업 시작 이후의 경과 시간(서식 적용).
 #   {engines}  활성 Iris 생성 엔진 또는 차원 수.
 #   {entity}  조사 중인 생성기에 설정된 개체 종류.
@@ -659,7 +660,7 @@ regions_scan_failed = "§c리전 스캔에 실패했습니다: {value}"
 opening_studio_pack_seed = "§a\"{value}\" 팩의 Studio를 여는 중 (시드: {seed})"
 provide_dimension_pack_iris_std_importvanilla_pack_dimension = "§c차원 팩을 지정하세요: /iris std importvanilla pack=<dimension>"
 could_not_resolve_pack_dimension = "§c차원 {value}의 팩을 확인할 수 없습니다"
-opening_vscode_pack = "§a\"{value}\" 팩을 VSCode에서 여는 중"
+opening_editor_pack = "§a\"{value}\" 팩을 {editor}에서 여는 중"
 pack_has_version = "§a\"{value}\" 팩 버전: {value2}"
 opening_noise_explorer = "§aNoise Explorer를 여는 중!"
 cannot_add_items_virtual_inventory_because = "§c가상 인벤토리에 아이템을 추가할 수 없습니다: {value}"
@@ -723,13 +724,13 @@ you_must_be_studio_world = "§cStudio 월드에 있어야 합니다!"
 cannot_open_files_headless_environments = "§c헤드리스 환경에서 파일을 열 수 없습니다!"
 desktop_is_not_supported_by_this_environment = "§c이 환경에서는 데스크톱을 지원하지 않습니다!"
 cannot_find_file_perhaps_it_was_not_loaded_directly_from = "§6파일을 찾을 수 없습니다. 파일에서 직접 로드되지 않았을 수 있습니다."
-opening_vscode = "§aVSCode에서 {value} {value2} 여는 중! "
+opening_in_editor = "§a{editor}에서 {value} {value2} 여는 중!"
+could_not_open_editor = "§c{editor}을(를) 열 수 없습니다. 콘솔을 확인하세요."
+no_editor_configured = "§c편집기가 설정되지 않았습니다. iris.json에서 studio.editor를 vscode 또는 zed로 설정하세요."
 cant_find_file_registrant_does_not_exist = "§c파일을 찾을 수 없거나 등록 항목이 존재하지 않습니다."
 cannot_find_file_perhaps_it_was_not_loaded_directly_from_2 = "§6파일을 찾을 수 없습니다. 파일에서 직접 로드되지 않았을 수 있습니다."
-opening_vscode_2 = "§aVSCode에서 {value} {value2} 여는 중! "
 cant_find_file_registrant_does_not_exist_2 = "§c파일을 찾을 수 없거나 등록 항목이 존재하지 않습니다."
 cannot_find_file_perhaps_it_was_not_loaded_directly_from_3 = "§6파일을 찾을 수 없습니다. 파일에서 직접 로드되지 않았을 수 있습니다."
-opening_vscode_3 = "§aVSCode에서 {value} {value2} 여는 중! "
 cant_find_file_registrant_does_not_exist_3 = "§c파일을 찾을 수 없거나 등록 항목이 존재하지 않습니다."
 
 [iris.bukkit.commandpregen]
@@ -1280,8 +1281,8 @@ replace_installed_types = "설치된 팩: {value}"
 "param.dimension_pack_import_vanilla_content_into" = "바닐라 콘텐츠를 가져올 차원 팩"
 "param.how_many_variants_capture_per_tree_object_feature" = "나무 또는 오브젝트 기능마다 캡처할 변형 수"
 "param.also_import_vanilla_datapack_structures_jigsaw_into_pack" = "바닐라 및 데이터 팩의 structures/jigsaw도 팩으로 가져옵니다"
-"director.open_vscode_dimension" = "차원을 VSCode로 엽니다"
-"param.dimension_open_vscode" = "VSCode로 열 차원"
+"director.open_editor_dimension" = "설정된 편집기로 차원을 엽니다"
+"param.dimension_open_editor" = "편집기로 열 차원"
 "director.close_open_studio_project" = "열린 Studio 프로젝트를 닫습니다"
 "director.toggle_your_studio_debug_scoreboard" = "Studio 디버그 스코어보드를 전환합니다"
 "director.create_new_studio_project" = "새 Studio 프로젝트를 만듭니다"

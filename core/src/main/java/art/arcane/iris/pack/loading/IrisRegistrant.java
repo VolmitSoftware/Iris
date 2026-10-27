@@ -22,10 +22,10 @@ import art.arcane.iris.pack.validation.CompatStatus;
 import art.arcane.iris.pack.validation.ContentGate;
 import com.google.gson.GsonBuilder;
 import art.arcane.iris.spi.IrisLogging;
+import art.arcane.iris.studio.workspace.StudioEditorLauncher;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
-import java.awt.Desktop;
 import java.io.File;
 
 @Data
@@ -62,9 +62,9 @@ public abstract class IrisRegistrant {
 
     }
 
-    public File openInVSCode() {
+    public File openInEditor() {
         try {
-            Desktop.getDesktop().open(getLoadFile());
+            StudioEditorLauncher.openFile(getLoader().getDataFolder(), getLoadFile());
         } catch (Throwable e) {
             IrisLogging.reportError(e);
         }

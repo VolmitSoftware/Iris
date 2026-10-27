@@ -27,6 +27,8 @@ import art.arcane.iris.studio.view.GuiHost;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.studio.workspace.IrisProject;
 import art.arcane.iris.studio.workspace.IrisCodeWorkspace;
+import art.arcane.iris.studio.workspace.StudioEditor;
+import art.arcane.iris.studio.workspace.StudioEditorLauncher;
 import art.arcane.iris.localization.RuntimeUiMessages;
 import art.arcane.iris.platform.bukkit.BoardSVC;
 import art.arcane.iris.studio.StudioSVC;
@@ -166,13 +168,23 @@ public class CommandStudio implements DirectorExecutor {
         sender.sendMessage(IrisLanguage.text(BukkitCommandMessages.COMMAND_STUDIO_TREES_OBJECTS_ARE_UNDER_OBJECTS_VANILLA_REFERENCE_THEM_FROM_BIOME));
     }
 
-    @Director(description = "Open VSCode for a dimension", descriptionKey = "iris.director.commandstudio.director.open_vscode_dimension", aliases = {"vsc"})
-    public void vscode(
-            @Param(defaultValue = "default", description = "The dimension to open VSCode for", descriptionKey = "iris.director.commandstudio.param.dimension_open_vscode", aliases = "dim", customHandler = DimensionHandler.class)
+    @Director(description = "Open the configured editor for a dimension", descriptionKey = "iris.director.commandstudio.director.open_editor_dimension", aliases = {"vscode", "vsc"})
+    public void editor(
+            @Param(defaultValue = "default", description = "The dimension to open the editor for", descriptionKey = "iris.director.commandstudio.param.dimension_open_editor", aliases = "dim", customHandler = DimensionHandler.class)
             IrisDimension dimension
     ) {
-        sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_STUDIO_OPENING_VSCODE_PACK, MessageArgument.untrusted("value", dimension.getName())));
-        Iris.service(StudioSVC.class).openVSCode(sender(), dimension.getLoadKey());
+        StudioEditor editor = StudioEditorLauncher.configuredEditor();
+        if (editor == StudioEditor.NONE) {
+            sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_EDIT_NO_EDITOR_CONFIGURED));
+            return;
+        }
+        if (!StudioEditorLauncher.canLaunch(editor)) {
+            sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_EDIT_CANNOT_OPEN_FILES_HEADLESS_ENVIRONMENTS));
+            return;
+        }
+        sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_STUDIO_OPENING_EDITOR_PACK,
+                MessageArgument.untrusted("editor", editor.getDisplayName()), MessageArgument.untrusted("value", dimension.getName())));
+        Iris.service(StudioSVC.class).openEditor(sender(), dimension.getLoadKey());
     }
 
     @Director(description = "Close an open studio project", descriptionKey = "iris.director.commandstudio.director.close_open_studio_project", aliases = {"x"}, sync = true)

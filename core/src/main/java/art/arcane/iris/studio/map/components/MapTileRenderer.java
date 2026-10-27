@@ -21,6 +21,7 @@ package art.arcane.iris.studio.map.components;
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.hydrology.engine.HydrologyRuntime;
+import art.arcane.iris.generation.stream.ProvisionalSampling;
 import art.arcane.iris.generation.terrain.InferredType;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.terrain.IrisDimension;
@@ -30,7 +31,6 @@ import art.arcane.iris.studio.render.RenderType;
 import art.arcane.volmlib.util.stream.ProceduralStream;
 
 import java.awt.Color;
-import java.awt.image.BufferedImage;
 import java.util.Arrays;
 import java.util.EnumMap;
 import java.util.IdentityHashMap;
@@ -73,6 +73,11 @@ public final class MapTileRenderer {
         return labels;
     }
 
+    public long previewRevision() {
+        HydrologyRuntime runtime = engine.getComplex().getHydrologyRuntime();
+        return runtime == null ? 0L : runtime.previewRevision();
+    }
+
     /**
      * Renders the square of {@code size} pixels whose top left pixel samples the given world position.
      *
@@ -87,6 +92,13 @@ public final class MapTileRenderer {
             boolean withHeights,
             BooleanSupplier cancelled
     ) {
+        Objects.requireNonNull(cancelled, "cancelled");
+        checkCancelled(cancelled);
+        return prepareTile(startX, startZ, blocksPerPixel, size, layer, withHeights).render(cancelled);
+    }
+
+    public TileRender prepareTile(double startX, double startZ, double blocksPerPixel, int size, MapLayer layer,
+                                  boolean withHeights) {
         if (!Double.isFinite(startX) || !Double.isFinite(startZ) || !Double.isFinite(blocksPerPixel) || blocksPerPixel <= 0D) {
             throw new IllegalArgumentException("Map tile coordinates and scale must be finite");
         }
@@ -94,35 +106,7 @@ public final class MapTileRenderer {
             throw new IllegalArgumentException("Map tile size must be positive");
         }
         Objects.requireNonNull(layer, "layer");
-        Objects.requireNonNull(cancelled, "cancelled");
-        TileType type = layer.type();
-        checkCancelled(cancelled);
-
-        TileGrid grid = new TileGrid(size + 2, startX - blocksPerPixel, startZ - blocksPerPixel, blocksPerPixel, cancelled);
-        int[] identities = sampleIdentities(grid, layer);
-        double[] heights = withHeights || type == TileType.HEIGHT ? sampleHeights(grid) : null;
-        short[] subjects = new short[identities.length];
-        short[] regions = new short[identities.length];
-        for (int index = 0; index < identities.length; index++) {
-            subjects[index] = subjectOf(identities[index]);
-            regions[index] = regionOf(identities[index]);
-        }
-        int[] colors = switch (type) {
-            case HEIGHT -> null;
-            case RIVER -> riverColors(startX, startZ, blocksPerPixel, size, cancelled);
-            default -> tileColors(size, type, subjects);
-        };
-        if (layer.display() != PickDisplay.PICKS) {
-            drawPickNoise(colors, grid, size, layer);
-        }
-        if (layer.waterOverlay()) {
-            BufferedImage base = new BufferedImage(size, size, BufferedImage.TYPE_INT_RGB);
-            base.setRGB(0, 0, size, size, colors, 0, size);
-            BufferedImage water = hydrologyRenderer.refineStudioBiome(startX, startZ, blocksPerPixel * size, base, cancelled);
-            colors = water.getRGB(0, 0, size, size, null, 0, size);
-        }
-        MapLabels.Kind subjectKind = type == TileType.REGION ? MapLabels.Kind.REGION : MapLabels.Kind.BIOME;
-        return new MapTile(size, blocksPerPixel, labels, subjectKind, colors, defaultHeightRange(), subjects, regions, heights);
+        return new TileRender(new TileRequest(startX, startZ, blocksPerPixel, size, layer, withHeights));
     }
 
     /**
@@ -166,15 +150,15 @@ public final class MapTileRenderer {
         return sampler.identities;
     }
 
-    private double[] sampleHeights(TileGrid grid) {
+    private double[] sampleHeights(HeightLattice lattice, BooleanSupplier cancelled) {
         IrisComplex complex = engine.getComplex();
         IrisDimension dimension = engine.getDimension();
         HydrologyRuntime water = complex.getHydrologyRuntime();
         if (water == null || !water.enabled() || dimension != null && dimension.getTerrainTransform() != null) {
-            return new HeightLattice(grid, complex.getHeightStream()).interpolatedHeights();
+            return lattice.interpolatedHeights(cancelled);
         }
         try (HydrologyRuntime.PreviewScope ignored = water.preview()) {
-            return new HeightLattice(grid, complex.getHeightStream()).interpolatedHeights();
+            return lattice.interpolatedHeights(cancelled);
         }
     }
 
@@ -277,17 +261,6 @@ public final class MapTileRenderer {
         };
     }
 
-    // Rivers are drawn by the hydrology renderer the engine ships; the biomes under them stay the tile's subjects.
-    private int[] riverColors(double startX, double startZ, double blocksPerPixel, int size, BooleanSupplier cancelled) {
-        BufferedImage rivers = hydrologyRenderer.renderStudio(startX, startZ, blocksPerPixel * size, size, RenderType.RIVER,
-                cancelled);
-        int[] colors = rivers.getRGB(0, 0, size, size, null, 0, size);
-        for (int index = 0; index < colors.length; index++) {
-            colors[index] &= 0xFFFFFF;
-        }
-        return colors;
-    }
-
     private int[] tileColors(int size, TileType type, short[] subjects) {
         int[] colors = new int[size * size];
         short previousSubject = MapLabels.NONE;
@@ -374,6 +347,124 @@ public final class MapTileRenderer {
         if (cancelled.getAsBoolean() || Thread.currentThread().isInterrupted()) {
             throw new CancellationException("Map tile render cancelled");
         }
+    }
+
+    public final class TileRender {
+        private final TileRequest request;
+        private short[] subjects;
+        private short[] regions;
+        private int[] baseColors;
+        private int[] finalColors;
+        private double[] heights;
+        private HeightLattice heightLattice;
+        private IrisRenderer.WaterTile water;
+        private boolean identitiesComplete;
+        private boolean baseComplete;
+        private boolean heightsComplete;
+        private boolean waterComplete;
+        private volatile boolean complete;
+        private volatile long bytes;
+
+        private TileRender(TileRequest request) {
+            this.request = request;
+            heightsComplete = !request.withHeights() && request.layer().type() != TileType.HEIGHT;
+            waterComplete = request.layer().type() != TileType.RIVER && !request.layer().waterOverlay();
+        }
+
+        public MapTile render(BooleanSupplier cancelled) {
+            Objects.requireNonNull(cancelled, "cancelled");
+            checkCancelled(cancelled);
+            TileGrid grid = new TileGrid(request.size() + 2, request.startX() - request.blocksPerPixel(),
+                    request.startZ() - request.blocksPerPixel(), request.blocksPerPixel(), cancelled);
+            sampleSubjects(grid);
+            sampleBaseColors(grid);
+            sampleTerrain(grid, cancelled);
+            int[] colors = sampleWater(cancelled);
+            checkCancelled(cancelled);
+            complete = baseComplete && heightsComplete && waterComplete;
+            bytes = (heightLattice == null ? 0L : heightLattice.bytes()) + (water == null ? 0L : water.bytes())
+                    + (baseColors == null || colors == baseColors ? 0L : (long) baseColors.length * Integer.BYTES);
+            if (!complete) {
+                ProvisionalSampling.mark();
+            }
+            MapLabels.Kind kind = request.layer().type() == TileType.REGION ? MapLabels.Kind.REGION : MapLabels.Kind.BIOME;
+            return new MapTile(request.size(), request.blocksPerPixel(), labels, kind, colors, defaultHeightRange(), subjects,
+                    regions, heights);
+        }
+
+        public boolean complete() {
+            return complete;
+        }
+
+        public long bytes() {
+            return bytes;
+        }
+
+        private void sampleSubjects(TileGrid grid) {
+            if (identitiesComplete) {
+                return;
+            }
+            long revision = ProvisionalSampling.revision();
+            int[] identities = sampleIdentities(grid, request.layer());
+            subjects = new short[identities.length];
+            regions = new short[identities.length];
+            for (int index = 0; index < identities.length; index++) {
+                subjects[index] = subjectOf(identities[index]);
+                regions[index] = regionOf(identities[index]);
+            }
+            identitiesComplete = revision == ProvisionalSampling.revision();
+        }
+
+        private void sampleBaseColors(TileGrid grid) {
+            if (baseComplete) {
+                return;
+            }
+            long revision = ProvisionalSampling.revision();
+            baseColors = switch (request.layer().type()) {
+                case HEIGHT, RIVER -> null;
+                default -> tileColors(request.size(), request.layer().type(), subjects);
+            };
+            if (request.layer().display() != PickDisplay.PICKS) {
+                drawPickNoise(baseColors, grid, request.size(), request.layer());
+            }
+            baseComplete = identitiesComplete && revision == ProvisionalSampling.revision();
+        }
+
+        private void sampleTerrain(TileGrid grid, BooleanSupplier cancelled) {
+            if (heightsComplete) {
+                return;
+            }
+            if (heightLattice == null) {
+                heightLattice = new HeightLattice(grid, engine.getComplex().getHeightStream());
+            }
+            heights = sampleHeights(heightLattice, cancelled);
+            heightsComplete = heightLattice.complete();
+            if (heightsComplete) {
+                heightLattice = null;
+            }
+        }
+
+        private int[] sampleWater(BooleanSupplier cancelled) {
+            if (waterComplete) {
+                return finalColors == null ? baseColors : finalColors;
+            }
+            if (water == null) {
+                water = hydrologyRenderer.prepareStudioWater(request.startX(), request.startZ(), request.blocksPerPixel(),
+                        request.size());
+            }
+            int[] colors = water.render(baseColors, request.layer().waterOverlay(), cancelled);
+            if (baseComplete && water.complete()) {
+                finalColors = colors;
+                baseColors = null;
+                waterComplete = true;
+                water = null;
+            }
+            return colors;
+        }
+    }
+
+    private record TileRequest(double startX, double startZ, double blocksPerPixel, int size, MapLayer layer,
+                               boolean withHeights) {
     }
 
     @FunctionalInterface
@@ -554,16 +645,20 @@ public final class MapTileRenderer {
         private final ProceduralStream<Double> stream;
         private final int pointsPerSide;
         private final double[] points;
+        private final boolean[] resolved;
+        private int pending;
 
         private HeightLattice(TileGrid grid, ProceduralStream<Double> stream) {
             this.grid = grid;
             this.stream = stream;
             this.pointsPerSide = (grid.size() - 2) / LATTICE_PIXELS + LATTICE_MARGIN * 2 + 1;
             this.points = new double[pointsPerSide * pointsPerSide];
+            this.resolved = new boolean[points.length];
+            this.pending = points.length;
         }
 
-        double[] interpolatedHeights() {
-            samplePoints();
+        double[] interpolatedHeights(BooleanSupplier cancelled) {
+            samplePoints(cancelled);
             int size = grid.size();
             double[] heights = new double[size * size];
             for (int gridZ = 0; gridZ < size; gridZ++) {
@@ -574,16 +669,33 @@ public final class MapTileRenderer {
             return heights;
         }
 
+        boolean complete() {
+            return pending == 0;
+        }
+
+        long bytes() {
+            return (long) points.length * (Double.BYTES + 1L);
+        }
+
         // Lattice point 0 sits on the tile's first pixel; the margin covers the border ring and the curve's reach.
-        private void samplePoints() {
+        private void samplePoints(BooleanSupplier cancelled) {
             double latticeStep = grid.step() * LATTICE_PIXELS;
             double firstX = grid.worldX(1) - LATTICE_MARGIN * latticeStep;
             double firstZ = grid.worldZ(1) - LATTICE_MARGIN * latticeStep;
             for (int pointZ = 0; pointZ < pointsPerSide; pointZ++) {
-                checkCancelled(grid.cancelled());
+                checkCancelled(cancelled);
                 for (int pointX = 0; pointX < pointsPerSide; pointX++) {
-                    points[pointZ * pointsPerSide + pointX] = stream.getDouble(firstX + pointX * latticeStep,
+                    int index = pointZ * pointsPerSide + pointX;
+                    if (resolved[index]) {
+                        continue;
+                    }
+                    long revision = ProvisionalSampling.revision();
+                    points[index] = stream.getDouble(firstX + pointX * latticeStep,
                             firstZ + pointZ * latticeStep);
+                    if (revision == ProvisionalSampling.revision()) {
+                        resolved[index] = true;
+                        pending--;
+                    }
                 }
             }
         }

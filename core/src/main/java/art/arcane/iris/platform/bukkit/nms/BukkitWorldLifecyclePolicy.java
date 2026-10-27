@@ -1,6 +1,7 @@
 package art.arcane.iris.platform.bukkit.nms;
 
 import art.arcane.iris.platform.agent.Agent;
+import art.arcane.iris.platform.bootstrap.SlimJar;
 import art.arcane.iris.platform.generation.PlatformChunkGenerator;
 import art.arcane.iris.generation.runtime.EngineTarget;
 import art.arcane.iris.spi.IrisLogging;
@@ -8,6 +9,7 @@ import art.arcane.iris.world.lifecycle.WorldLifecycleStaging;
 import art.arcane.volmlib.nativelib.terrain.NativeWorldLifecyclePolicy;
 import org.bukkit.generator.ChunkGenerator;
 
+import java.io.IOException;
 import java.lang.instrument.Instrumentation;
 import java.util.Objects;
 
@@ -41,7 +43,23 @@ public enum BukkitWorldLifecyclePolicy implements NativeWorldLifecyclePolicy {
 
     @Override
     public void releaseClassLoader(ClassLoader loader) {
-        Agent.releaseClassLoader(loader);
+        Throwable providerFailure = null;
+        try {
+            SlimJar.closeNativeProviders();
+        } catch (IOException | RuntimeException | Error failure) {
+            providerFailure = failure;
+        }
+        try {
+            Agent.releaseClassLoader(loader);
+        } catch (RuntimeException | Error failure) {
+            if (providerFailure != null) {
+                failure.addSuppressed(providerFailure);
+            }
+            throw failure;
+        }
+        if (providerFailure != null) {
+            throw new IllegalStateException("Failed to close Iris native providers", providerFailure);
+        }
     }
 
     @Override

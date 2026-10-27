@@ -140,6 +140,73 @@ public class HydrologyPlanCacheTest {
     }
 
     @Test
+    public void readyRevisionCountsSuccessfulPlanPublicationsWithoutCountingReads() throws Exception {
+        FakePlanners planners = new FakePlanners(unpersisted());
+        ExecutorService pool = pool(1);
+        HydrologyPlanCache cache = cache(planners, pool, () -> false);
+        RegionKey region = WindowPlanner.lakeRegions(KEY).getFirst();
+        Gate gate = new Gate();
+        planners.hook = key -> gate.pass();
+        CompletableFuture<RegionPlan> pending = cache.previewRegion(region);
+        await(() -> gate.arrivals() == 1, "region planning starts before publication");
+        assertEquals(0L, cache.readyRevision());
+        assertFalse(pending.isDone());
+        gate.release();
+        RegionPlan ready = pending.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        pool.submit(() -> { }).get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        assertEquals(1L, cache.readyRevision());
+        assertSame(ready, cache.regionIfReady(region).orElseThrow());
+        assertSame(ready, cache.previewRegion(region).get(TIMEOUT_SECONDS, TimeUnit.SECONDS));
+        assertSame(ready, cache.region(region));
+        assertEquals(1L, cache.readyRevision());
+
+        cache.previewWindow(KEY).get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        pool.submit(() -> { }).get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        long published = WindowPlanner.lakeRegions(KEY).size() + 1L;
+        assertEquals(published, cache.readyRevision());
+        assertTrue(cache.windowIfReady(KEY).isPresent());
+        cache.window(KEY);
+        assertEquals(published, cache.readyRevision());
+    }
+
+    @Test
+    public void failedPlansDoNotAdvanceReadyRevision() throws Exception {
+        FakePlanners planners = new FakePlanners(unpersisted());
+        ExecutorService pool = pool(1);
+        HydrologyPlanCache cache = cache(planners, pool, () -> false);
+        RegionKey region = new RegionKey(0, 0);
+        planners.hook = key -> {
+            throw new IllegalStateException("region planning failed");
+        };
+
+        CompletableFuture<RegionPlan> failed = cache.previewRegion(region);
+        assertThrows(ExecutionException.class, () -> failed.get(TIMEOUT_SECONDS, TimeUnit.SECONDS));
+        assertEquals(0L, cache.readyRevision());
+        planners.hook = key -> { };
+        cache.previewRegion(region).get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        pool.submit(() -> { }).get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        assertEquals(1L, cache.readyRevision());
+    }
+
+    @Test
+    public void cancelledPlanCompletionDoesNotAdvanceReadyRevision() throws Exception {
+        FakePlanners planners = new FakePlanners(unpersisted());
+        ExecutorService pool = pool(1);
+        HydrologyPlanCache cache = cache(planners, pool, () -> false);
+        Gate gate = new Gate();
+        planners.hook = key -> gate.pass();
+        CompletableFuture<RegionPlan> pending = cache.previewRegion(new RegionKey(0, 0));
+        await(() -> gate.arrivals() == 1, "region planning starts before cancellation");
+
+        cache.close();
+        gate.release();
+        pool.submit(() -> { }).get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+
+        assertTrue(pending.isCompletedExceptionally());
+        assertEquals(0L, cache.readyRevision());
+    }
+
+    @Test
     public void interruptedPlanIsNotCached() throws Exception {
         FakePlanners planners = new FakePlanners(unpersisted());
         WindowKey swallowed = new WindowKey(-5, 1);

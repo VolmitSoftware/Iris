@@ -70,6 +70,7 @@ import java.util.stream.Stream;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
@@ -141,6 +142,95 @@ public class HydrologyRuntimeTest {
         main.set(true);
         assertSame(ready, runtime.raster(0, 0));
         assertTrue(planners.plannerThreads().stream().noneMatch(name -> name.equals(Thread.currentThread().getName())));
+    }
+
+    @Test(timeout = 180_000L)
+    public void previewRevisionAdvancesOnlyWhenPlansOrRastersBecomeAvailable() throws Exception {
+        FakePlanners planners = new FakePlanners(settings(0, false));
+        ExecutorService pool = pool(planners, 1);
+        HydrologyRuntime runtime = runtime(planners, pool, () -> false);
+        CountDownLatch blocker = block(pool);
+        CompletableFuture<Void> plans = runtime.prepareWindowsAround(0, 0, 0, 0, 1);
+
+        assertEquals(0L, runtime.previewRevision());
+        assertFalse(plans.isDone());
+        blocker.countDown();
+        plans.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        pool.submit(() -> { }).get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        long planned = runtime.previewRevision();
+        assertTrue(planned > 0L);
+        assertTrue(runtime.planPreview(0, 0, 15, 15).complete());
+        assertEquals(planned, runtime.previewRevision());
+
+        CountDownLatch rasterBlocker = block(pool);
+        for (int repeat = 0; repeat < 100; repeat++) {
+            assertTrue(runtime.rasterPreview(0, 0).provisional());
+            assertEquals(planned, runtime.previewRevision());
+        }
+        rasterBlocker.countDown();
+        await(() -> runtime.previewRevision() == planned + 1L, "raster publication advances preview readiness");
+        ChunkWaterRaster ready = runtime.rasterPreview(0, 0);
+        assertFalse(ready.provisional());
+        for (int repeat = 0; repeat < 100; repeat++) {
+            assertSame(ready, runtime.rasterPreview(0, 0));
+            assertSame(ready, runtime.raster(0, 0));
+            assertEquals(planned + 1L, runtime.previewRevision());
+        }
+        assertFalse(runtime.raster(1, 0).provisional());
+        assertEquals(planned + 2L, runtime.previewRevision());
+    }
+
+    @Test(timeout = 180_000L)
+    public void concurrentRasterPublicationAdvancesPreviewRevisionOnce() throws Exception {
+        FakePlanners planners = new FakePlanners(settings(0, false));
+        ExecutorService pool = pool(planners, 1);
+        HydrologyRuntime runtime = runtime(planners, pool, () -> false);
+        runtime.prepareWindowsAround(0, 0, 0, 0, 1).get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        pool.submit(() -> { }).get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        long planned = runtime.previewRevision();
+        CountDownLatch gate = new CountDownLatch(1);
+        planners.naturalGate = gate;
+        AtomicReference<Throwable> failure = new AtomicReference<>();
+        Thread demand = new Thread(() -> {
+            try {
+                runtime.raster(0, 0);
+            } catch (Throwable error) {
+                failure.set(error);
+            }
+        });
+        demand.start();
+        try {
+            await(() -> planners.naturalSamples.get() > 0, "demanded raster starts");
+            assertTrue(runtime.rasterPreview(0, 0).provisional());
+            await(() -> planners.naturalSamples.get() >= 2, "preview raster starts beside demand");
+            assertEquals(planned, runtime.previewRevision());
+        } finally {
+            gate.countDown();
+            demand.join(TimeUnit.SECONDS.toMillis(TIMEOUT_SECONDS));
+        }
+        pool.submit(() -> { }).get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        assertFalse(demand.isAlive());
+        assertNull(failure.get());
+        assertFalse(runtime.rasterPreview(0, 0).provisional());
+        assertEquals(planned + 1L, runtime.previewRevision());
+    }
+
+    @Test(timeout = 180_000L)
+    public void failedRasterDoesNotAdvancePreviewRevision() throws Exception {
+        FakePlanners planners = new FakePlanners(settings(0, false));
+        ExecutorService pool = pool(planners, 1);
+        HydrologyPlanCache cache = new HydrologyPlanCache(planners.settings, planners::region, planners::window, pool, () -> false);
+        HydrologyRuntime runtime = new HydrologyRuntime(planners.settings, cache, (x, z) -> {
+            throw new IllegalStateException("terrain sampling failed");
+        }, () -> false, planners.ticker::get);
+        runtimes.add(runtime);
+        runtime.prepareWindowsAround(0, 0, 0, 0, 1).get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        pool.submit(() -> { }).get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        long planned = runtime.previewRevision();
+
+        assertThrows(IllegalStateException.class, () -> runtime.raster(0, 0));
+
+        assertEquals(planned, runtime.previewRevision());
     }
 
     @Test(timeout = 180_000L)
@@ -868,6 +958,7 @@ public class HydrologyRuntimeTest {
 
     private static void assertDisabled(HydrologyRuntime runtime) {
         assertFalse(runtime.enabled());
+        assertEquals(0L, runtime.previewRevision());
         assertSame(ChunkWaterRaster.EMPTY, runtime.raster(0, 0));
         assertSame(ChunkWaterRaster.EMPTY, runtime.rasterSnapshot(0, 0));
         assertSame(ChunkWaterRaster.EMPTY, runtime.rasterAt(0, 0));
@@ -879,6 +970,7 @@ public class HydrologyRuntimeTest {
         assertSame(ChunkWaterRaster.EMPTY, runtime.rasterPreview(0, 0));
         assertEquals(HydrologyPlanPreview.EMPTY, runtime.planPreview(0, 0, 511, 511));
         runtime.close();
+        assertEquals(0L, runtime.previewRevision());
     }
 
     private static void settle(FakePlanners planners, ExecutorService pool, int windows) throws Exception {

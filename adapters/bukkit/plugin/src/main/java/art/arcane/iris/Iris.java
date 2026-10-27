@@ -57,6 +57,7 @@ import art.arcane.iris.localization.IrisLanguage;
 import art.arcane.volmlib.util.director.help.DirectorMiniMenu;
 import art.arcane.volmlib.util.localization.BukkitLanguageSwitcher;
 import art.arcane.iris.integration.MultiverseCoreLink;
+import art.arcane.iris.platform.agent.Agent;
 import art.arcane.iris.platform.bukkit.nms.INMS;
 import art.arcane.volmlib.nativelib.terrain.ServerShutdownBoundary;
 import art.arcane.iris.studio.view.BukkitGuiHost;
@@ -201,10 +202,10 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
     private final AtomicBoolean postStopFinisherStarted = new AtomicBoolean(false);
     private final AtomicBoolean serverStopTeardownDeferred = new AtomicBoolean(false);
     private final AtomicBoolean servicesDisabled = new AtomicBoolean(false);
+    private final AtomicBoolean runtimeTeardownFailed = new AtomicBoolean(false);
     private final AtomicBoolean sharedRuntimeClosed = new AtomicBoolean(false);
     private final AtomicBoolean startupBoundaryRestart = new AtomicBoolean(false);
     private final AtomicBoolean terminalCleanupCompleted = new AtomicBoolean(false);
-    private final AtomicBoolean runtimeTeardownFailed = new AtomicBoolean(false);
     private volatile boolean generatorDrainCompleted;
     private volatile boolean enableFailed;
     private volatile PlaceholderRegistration papiRegistration;
@@ -225,6 +226,7 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
     private BukkitDebugDump debugDump;
     private volatile SettingsHotloadWatch settingsHotloadWatch;
     private volatile ServerShutdownBoundary serverShutdownBoundary;
+    private boolean shutdownProtectionInitialized;
 
     public static VolmitSender getSender() {
         VolmitSender current = sender;
@@ -474,10 +476,16 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
         }
 
         if (debug) {
-            String n = e.getClass().getCanonicalName() + "-" + e.getStackTrace()[0].getClassName() + "-" + e.getStackTrace()[0].getLineNumber();
+            String n = e.getClass().getName();
+            StackTraceElement[] trace = e.getStackTrace();
+            if (trace.length > 0) {
+                n += "-" + trace[0].getClassName() + "-" + trace[0].getLineNumber();
+            }
 
             if (e.getCause() != null) {
-                n += "-" + e.getCause().getStackTrace()[0].getClassName() + "-" + e.getCause().getStackTrace()[0].getLineNumber();
+                StackTraceElement[] causeTrace = e.getCause().getStackTrace();
+                n += "-" + (causeTrace.length == 0 ? e.getCause().getClass().getName()
+                        : causeTrace[0].getClassName() + "-" + causeTrace[0].getLineNumber());
             }
 
             File f = instance.getDataFile("debug", "caught-exceptions", n + ".txt");
@@ -627,10 +635,10 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
         postStopFinisherStarted.set(false);
         serverStopTeardownDeferred.set(false);
         servicesDisabled.set(false);
+        runtimeTeardownFailed.set(false);
         sharedRuntimeClosed.set(false);
         startupBoundaryRestart.set(false);
         terminalCleanupCompleted.set(false);
-        runtimeTeardownFailed.set(false);
         generatorDrainCompleted = false;
         deferredShutdownGenerators.clear();
         MultiBurst.burst.reopen();
@@ -911,6 +919,7 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
 
     public void onEnable() {
         enableFailed = false;
+        shutdownProtectionInitialized = false;
         IrisStartupValidation.begin();
         Bukkit.getPluginManager().registerEvents(new IrisStartupAdmissionListener(), this);
         try {
@@ -922,13 +931,14 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
                 refuseUnsupportedServer();
                 return;
             }
+            initializeShutdownProtection();
             enable();
         } catch (Throwable failure) {
+            enableFailed = true;
             if (!FailedEnableLock.engage(failure, FailedEnableLock.irisWorldsPresent(),
                     generatorResolver.refusals().startupWorldsCreated())) {
                 throw failure;
             }
-            enableFailed = true;
             return;
         }
         BukkitGuiHost.install();
@@ -944,6 +954,17 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
         papiLifecycleActive = true;
         setupPapi();
         reportLockedRuntime();
+    }
+
+    private void initializeShutdownProtection() {
+        if (!INMS.get().supportsIrisWorldGeneration()) {
+            return;
+        }
+        if (!Agent.install()) {
+            throw new IllegalStateException("Iris Java agent is unavailable; shutdown protection cannot be installed.");
+        }
+        INMS.get().initializeLifecycle(getClass().getClassLoader());
+        shutdownProtectionInitialized = true;
     }
 
     private void refuseUnsupportedServer() {
@@ -1008,7 +1029,7 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
         IrisLanguage.shutdown();
         teardownPapi();
         boolean deferToServerStop = FailedEnableLock.defersTeardownToServerStop(enableFailed, IrisToolbelt.isServerStopping())
-                && INMS.get().deferPluginClassLoaderClose();
+                && tryDeferPluginClassLoaderClose();
         boolean restartingAtStartupBoundary = startupBoundaryRestart.get();
         if (restartingAtStartupBoundary) {
             teardownRuntime("startup-boundary-restart", 30L);
@@ -1040,7 +1061,7 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
         preservePendingBlockDrops();
         papiLifecycleActive = false;
         teardownPapi();
-        if (IrisToolbelt.isServerStopping() && INMS.get().deferPluginClassLoaderClose()) {
+        if (IrisToolbelt.isServerStopping() && tryDeferPluginClassLoaderClose()) {
             quiesceRuntimeForServerShutdown("pre-unload:" + reason);
             startPostStopFinisher();
             Iris.debug("Pre-unload hook deferred generator teardown until Paper closes its chunk schedulers.");
@@ -1053,6 +1074,19 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
         Iris.debug("BileTools pre-unload hook fired (" + reason + "). Freezing all Iris worlds.");
         drainOnce("pre-unload:" + reason, 45L);
         return CompletableFuture.completedFuture(null);
+    }
+
+    private boolean tryDeferPluginClassLoaderClose() {
+        if (!shutdownProtectionInitialized) {
+            return false;
+        }
+        try {
+            INMS.get().deferPluginClassLoaderClose();
+            return true;
+        } catch (RuntimeException | LinkageError failure) {
+            Iris.reportError("Failed to retain the Iris plugin class loader; draining shutdown inline.", failure);
+            return false;
+        }
     }
 
     /**
@@ -1101,19 +1135,16 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
             try {
                 MultiBurst.burst.close();
             } catch (Throwable failure) {
-                runtimeTeardownFailed.set(true);
                 Iris.reportError("Failed to close Iris generation workers.", failure);
             }
             try {
                 MultiBurst.hydrology.close();
             } catch (Throwable failure) {
-                runtimeTeardownFailed.set(true);
                 Iris.reportError("Failed to close Iris hydrology workers.", failure);
             }
             try {
                 MultiBurst.ioBurst.close();
             } catch (Throwable failure) {
-                runtimeTeardownFailed.set(true);
                 Iris.reportError("Failed to close Iris I/O workers.", failure);
             }
             clearQueues();
@@ -1229,30 +1260,37 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
         if (!terminalCleanupCompleted.compareAndSet(false, true)) {
             return;
         }
-        J.attempt(() -> INMS.get().uninjectBukkit());
+        try {
+            if (INMS.isBound()) {
+                INMS.get().uninjectBukkit();
+            }
+        } catch (Throwable failure) {
+            Iris.reportError("Failed to remove Iris world-generation hooks.", failure);
+        }
         try {
             runPostShutdown();
         } catch (Throwable e) {
             runtimeTeardownFailed.set(true);
             Iris.reportError("Failed to run Iris post-shutdown cleanup.", e);
         } finally {
-            if (serverStopTeardownDeferred.get() && hasActiveShutdownResources()) {
-                runtimeTeardownFailed.set(true);
-                SHUTDOWN_ERRORS.println("[Iris] Owned background work remains active after cleanup; retaining the plugin class loader until JVM exit.");
-            }
+            boolean activeResources = serverStopTeardownDeferred.get()
+                    && (runtimeTeardownFailed.get() || hasActiveShutdownResources());
             IrisPlatforms.unbind();
-            if (serverStopTeardownDeferred.get() && runtimeTeardownFailed.get()) {
-                SHUTDOWN_ERRORS.println("[Iris] Runtime cleanup failed; retaining the plugin class loader until JVM exit.");
+            BukkitPlatform.releaseHost();
+            if (activeResources) {
+                SHUTDOWN_ERRORS.println("[Iris] Owned background work has not completed cleanup; retaining the plugin class loader until JVM exit.");
             } else {
                 try {
-                    INMS.get().releasePluginClassLoaderClose();
-                    SlimJar.closeNativeProviders();
+                    if (shutdownProtectionInitialized) {
+                        INMS.get().releasePluginClassLoaderClose();
+                    } else {
+                        SlimJar.closeNativeProviders();
+                    }
                 } catch (Throwable failure) {
                     SHUTDOWN_ERRORS.println("[Iris] Failed to release the plugin class loader after runtime cleanup.");
                     failure.printStackTrace(SHUTDOWN_ERRORS);
                 }
             }
-            BukkitPlatform.releaseHost();
         }
     }
 

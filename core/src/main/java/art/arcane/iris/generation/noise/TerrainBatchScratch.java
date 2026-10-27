@@ -78,8 +78,10 @@ public final class TerrainBatchScratch {
     int lattice(double x, double z) {
         long xBits = Double.doubleToRawLongBits(x);
         long zBits = Double.doubleToRawLongBits(z);
-        long mixed = xBits * 0x9E3779B97F4A7C15L ^ Long.rotateLeft(zBits * 0xC2B2AE3D27D4EB4FL, 31);
-        mixed ^= mixed >>> 29;
+        long mixed = xBits ^ Long.rotateLeft(zBits, 32);
+        mixed = (mixed ^ (mixed >>> 33)) * 0xFF51AFD7ED558CCDL;
+        mixed = (mixed ^ (mixed >>> 33)) * 0xC4CEB9FE1A85EC53L;
+        mixed ^= mixed >>> 33;
         int mask = latticeCapacity - 1;
         int slot = (int) mixed & mask;
         while (true) {

@@ -36,33 +36,83 @@ final class WaterMap {
     private final double startX;
     private final double startZ;
     private final double step;
-    private final BooleanSupplier cancelled;
     private final int[] ranks;
+    private final boolean[] resolved;
     private final IdentityHashMap<HydrologyTier, HydrologyFeatureType> channels = new IdentityHashMap<>();
+    private final Set<Long> lakes = new HashSet<>();
+    private BooleanSupplier cancelled;
+    private int[] plannedRanks;
+    private boolean plansComplete;
     private boolean provisional;
 
-    private WaterMap(HydrologyRuntime runtime, int resolution, double startX, double startZ, double step, BooleanSupplier cancelled) {
+    WaterMap(HydrologyRuntime runtime, int resolution, double startX, double startZ, double step) {
         this.runtime = runtime;
         this.resolution = resolution;
         this.startX = startX;
         this.startZ = startZ;
         this.step = step;
-        this.cancelled = cancelled;
         this.ranks = new int[resolution * resolution];
+        this.resolved = step <= RASTER_STEP ? new boolean[ranks.length] : null;
         Arrays.fill(ranks, DRY);
+        provisional = true;
     }
 
     static WaterMap draw(HydrologyRuntime runtime, int resolution, double startX, double startZ, double step, BooleanSupplier cancelled) {
-        WaterMap map = new WaterMap(runtime, resolution, startX, startZ, step, cancelled);
-        HydrologyPlanPreview plans = runtime.planPreview((int) Math.floor(startX), (int) Math.floor(startZ),
-                (int) Math.ceil(startX + resolution * step) - 1, (int) Math.ceil(startZ + resolution * step) - 1);
-        map.provisional = !plans.complete();
-        if (step <= RASTER_STEP) {
-            map.drawRasters(plans);
-        } else {
-            map.drawPlans(plans);
-        }
+        WaterMap map = new WaterMap(runtime, resolution, startX, startZ, step);
+        map.advance(cancelled);
         return map;
+    }
+
+    void advance(BooleanSupplier cancelled) {
+        if (!provisional) {
+            return;
+        }
+        this.cancelled = cancelled;
+        HydrologyPlanPreview plans = null;
+        if (!plansComplete) {
+            plans = preview();
+            plannedRanks = null;
+            lakes.clear();
+            for (Pond lake : plans.lakes()) {
+                lakes.add(lake.id());
+            }
+            if (step > RASTER_STEP) {
+                prepareFallback(plans);
+            }
+            plansComplete = plans.complete();
+        }
+        if (step <= RASTER_STEP) {
+            provisional = drawRasters(plans) || !plansComplete;
+        } else {
+            prepareFallback(plans);
+            System.arraycopy(plannedRanks, 0, ranks, 0, ranks.length);
+            provisional = !plansComplete;
+        }
+        if (!provisional) {
+            plannedRanks = null;
+            lakes.clear();
+        }
+    }
+
+    private HydrologyPlanPreview preview() {
+        return runtime.planPreview((int) Math.floor(startX), (int) Math.floor(startZ),
+                (int) Math.ceil(startX + resolution * step) - 1, (int) Math.ceil(startZ + resolution * step) - 1);
+    }
+
+    private void prepareFallback(HydrologyPlanPreview plans) {
+        if (plannedRanks != null) {
+            return;
+        }
+        WaterMap planned = new WaterMap(runtime, resolution, startX, startZ, step);
+        planned.cancelled = cancelled;
+        planned.drawPlans(plans == null ? preview() : plans);
+        plannedRanks = planned.ranks;
+    }
+
+    long bytes() {
+        return (long) ranks.length * Integer.BYTES + (resolved == null ? 0L : resolved.length)
+                + (plannedRanks == null ? 0L : (long) plannedRanks.length * Integer.BYTES)
+                + (long) lakes.size() * 64L;
     }
 
     HydrologyFeatureType at(int pixelX, int pixelZ) {
@@ -84,37 +134,39 @@ final class WaterMap {
         }
     }
 
-    private void drawRasters(HydrologyPlanPreview plans) {
-        Set<Long> lakes = new HashSet<>();
-        for (Pond lake : plans.lakes()) {
-            lakes.add(lake.id());
-        }
+    private boolean drawRasters(HydrologyPlanPreview plans) {
         Map<Long, ChunkWaterRaster> rasters = new HashMap<>();
-        WaterMap planned = null;
+        boolean pending = false;
         for (int pixelZ = 0; pixelZ < resolution; pixelZ++) {
             checkCancelled();
             int minimumZ = (int) Math.floor(startZ + pixelZ * step);
             int maximumZ = Math.max(minimumZ, (int) Math.ceil(startZ + (pixelZ + 1) * step) - 1);
             for (int pixelX = 0; pixelX < resolution; pixelX++) {
+                int index = pixelZ * resolution + pixelX;
+                if (resolved[index]) {
+                    continue;
+                }
+                ranks[index] = DRY;
+                boolean ready = plansComplete;
                 int minimumX = (int) Math.floor(startX + pixelX * step);
                 int maximumX = Math.max(minimumX, (int) Math.ceil(startX + (pixelX + 1) * step) - 1);
                 for (int z = minimumZ; z <= maximumZ; z++) {
                     for (int x = minimumX; x <= maximumX; x++) {
                         ChunkWaterRaster raster = raster(rasters, x >> 4, z >> 4);
                         if (raster.provisional()) {
-                            provisional = true;
-                            if (planned == null) {
-                                planned = new WaterMap(runtime, resolution, startX, startZ, step, cancelled);
-                                planned.drawPlans(plans);
-                            }
-                            stamp(pixelX, pixelZ, planned.at(pixelX, pixelZ));
+                            pending = true;
+                            ready = false;
+                            prepareFallback(plans);
+                            ranks[index] = Math.min(ranks[index], plannedRanks[index]);
                         } else if (!raster.empty()) {
                             stamp(pixelX, pixelZ, columnType(raster, x & 15, z & 15, lakes));
                         }
                     }
                 }
+                resolved[index] = ready;
             }
         }
+        return pending;
     }
 
     private ChunkWaterRaster raster(Map<Long, ChunkWaterRaster> rasters, int chunkX, int chunkZ) {
@@ -251,7 +303,7 @@ final class WaterMap {
     }
 
     private void checkCancelled() {
-        if (cancelled.getAsBoolean()) {
+        if (cancelled.getAsBoolean() || Thread.currentThread().isInterrupted()) {
             throw new CancellationException("Vision render was cancelled");
         }
     }

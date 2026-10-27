@@ -19,7 +19,6 @@
 package art.arcane.iris.studio.map;
 
 import art.arcane.iris.spi.IrisLogging;
-import art.arcane.iris.generation.stream.ProvisionalSampling;
 import art.arcane.iris.studio.map.components.MapTileRenderer;
 import art.arcane.iris.studio.map.components.MapLabels;
 import art.arcane.iris.studio.map.components.MapLayer;
@@ -39,6 +38,7 @@ import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
+import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadFactory;
@@ -48,6 +48,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
+import java.util.function.LongSupplier;
 
 /**
  * Renders the map as tiles on fixed zoom levels, so zooming within a level and panning reuse tiles that are already drawn.
@@ -67,6 +68,7 @@ final class VisionRenderController implements AutoCloseable {
     private static final long CACHE_BYTES = 256L * 1024L * 1024L;
 
     private final Runnable listener;
+    private final LongSupplier nanoTime;
     private final int workerCount;
     private final ThreadPoolExecutor renderExecutor;
     private final ThreadPoolExecutor probeExecutor;
@@ -79,9 +81,15 @@ final class VisionRenderController implements AutoCloseable {
     private final AtomicBoolean publicationQueued = new AtomicBoolean();
     private final AtomicBoolean publicationDirty = new AtomicBoolean();
     private volatile Frame currentFrame;
+    private Future<?> activeProbe;
 
     VisionRenderController(Runnable listener) {
+        this(listener, System::nanoTime);
+    }
+
+    VisionRenderController(Runnable listener, LongSupplier nanoTime) {
         this.listener = Objects.requireNonNull(listener, "listener");
+        this.nanoTime = Objects.requireNonNull(nanoTime, "nanoTime");
         int processors = Math.max(1, Runtime.getRuntime().availableProcessors());
         this.workerCount = Math.max(1, Math.min(6, processors / 2));
         AtomicInteger threadSequence = new AtomicInteger();
@@ -123,11 +131,10 @@ final class VisionRenderController implements AutoCloseable {
         List<VisibleTile> tiles = visibleTiles(spec, renderScale);
         Frame frame = new Frame(viewSequence.incrementAndGet(), spec, renderScale, tiles);
         for (VisibleTile tile : tiles) {
-            tile.setTile(cachedTileServing(tile.key()));
+            tile.state = cachedTileServing(tile.key());
         }
         currentFrame = frame;
-        probeSequence.incrementAndGet();
-        probeExecutor.getQueue().clear();
+        cancelProbe();
         startWorkers();
         publish();
         return frame;
@@ -141,25 +148,41 @@ final class VisionRenderController implements AutoCloseable {
         startWorkers();
     }
 
+    synchronized void suspend() {
+        currentFrame = null;
+        cancelProbe();
+    }
+
     /**
      * A tile from another zoom level covering the given one, to draw while the real tile renders.
      */
     Fallback fallback(Frame frame, VisibleTile tile) {
-        MapTile withoutHeights = cache.get(tile.key().withHeights(false));
+        Fallback complete = fallback(tile.key(), false);
+        return complete != null || tile.tile() != null ? complete : fallback(tile.key(), true);
+    }
+
+    private Fallback fallback(TileKey key, boolean provisional) {
+        MapTile withoutHeights = fallbackTile(key.withHeights(false), provisional);
         if (withoutHeights != null) {
             return new Fallback(List.of(new FallbackPiece(withoutHeights, 0, 0, TILE_PIXELS, 0D, 0D, 1D)));
         }
-        Fallback coarser = coarserFallback(frame, tile);
-        return coarser != null ? coarser : finerFallback(frame, tile);
+        Fallback coarser = coarserFallback(key, provisional);
+        return coarser != null ? coarser : finerFallback(key, provisional);
     }
 
     // A tile drawn with heights serves just as well where no heights are needed, so turning shading off redraws nothing.
-    private MapTile cachedTileServing(TileKey key) {
-        MapTile exact = cache.get(key);
+    private TileState cachedTileServing(TileKey key) {
+        CacheEntry exact = cache.get(key);
         if (exact != null || key.heights()) {
-            return exact;
+            return exact == null ? null : exact.state();
         }
-        return cache.get(key.withHeights(true));
+        CacheEntry shaded = cache.get(key.withHeights(true));
+        return shaded != null && !shaded.state().provisional() ? shaded.state() : null;
+    }
+
+    private MapTile fallbackTile(TileKey key, boolean provisional) {
+        CacheEntry entry = cache.get(key);
+        return entry != null && entry.state().provisional() == provisional ? entry.state().tile() : null;
     }
 
     Progress progress(Frame frame) {
@@ -168,26 +191,35 @@ final class VisionRenderController implements AutoCloseable {
         }
         int ready = 0;
         for (VisibleTile tile : frame.tiles()) {
-            if (tile.tile() != null && !tile.provisional) {
+            if (tile.tile() != null && !tile.provisional()) {
                 ready++;
             }
         }
         return new Progress(frame.tiles().size(), ready, activeWorkers.get());
     }
 
-    <T> void submitProbe(Frame frame, Callable<T> probe, Consumer<T> consumer) {
+    synchronized <T> void submitProbe(Frame frame, Callable<T> probe, Consumer<T> consumer) {
         Objects.requireNonNull(probe, "probe");
         Objects.requireNonNull(consumer, "consumer");
         if (frame == null || closed.get() || currentFrame != frame) {
             return;
         }
-        long probeRevision = probeSequence.incrementAndGet();
-        probeExecutor.getQueue().clear();
+        cancelProbe();
+        long probeRevision = probeSequence.get();
         try {
-            probeExecutor.execute(() -> runProbe(probeRevision, probe, consumer));
+            activeProbe = probeExecutor.submit(() -> runProbe(probeRevision, probe, consumer));
         } catch (RejectedExecutionException ignored) {
             probeExecutor.getQueue().clear();
         }
+    }
+
+    private void cancelProbe() {
+        probeSequence.incrementAndGet();
+        if (activeProbe != null) {
+            activeProbe.cancel(true);
+            activeProbe = null;
+        }
+        probeExecutor.getQueue().clear();
     }
 
     @Override
@@ -196,6 +228,7 @@ final class VisionRenderController implements AutoCloseable {
             return;
         }
         currentFrame = null;
+        cancelProbe();
         renderExecutor.shutdownNow();
         probeExecutor.shutdownNow();
         cache.clear();
@@ -285,7 +318,7 @@ final class VisionRenderController implements AutoCloseable {
 
     private synchronized boolean hasWork() {
         Frame frame = currentFrame;
-        return frame != null && frame.nextMissing(tilesInFlight, false) != null;
+        return frame != null && frame.nextMissing(tilesInFlight, false, nanoTime.getAsLong()) != null;
     }
 
     private synchronized TileJob claimNextTile() {
@@ -293,51 +326,63 @@ final class VisionRenderController implements AutoCloseable {
         if (frame == null || closed.get()) {
             return null;
         }
-        VisibleTile tile = frame.nextMissing(tilesInFlight, true);
+        VisibleTile tile = frame.nextMissing(tilesInFlight, true, nanoTime.getAsLong());
         if (tile == null) {
             return null;
         }
         tilesInFlight.add(tile.key());
-        return new TileJob(frame.spec().renderer(), tile.key());
+        CacheEntry cached = cache.get(tile.key());
+        return new TileJob(frame.spec().renderer(), tile.key(), cached == null ? null : cached.work(), tile.state);
     }
 
-    private synchronized void release(TileKey key) {
+    private synchronized void release(TileKey key, boolean cancelled) {
         tilesInFlight.remove(key);
+        Frame frame = currentFrame;
+        VisibleTile visible = frame == null ? null : frame.tile(key);
+        if (cancelled && visible != null && visible.needsRender(nanoTime.getAsLong(), frame.spec().renderer().previewRevision())) {
+            frame.nextCandidate = 0;
+        }
     }
 
     private void render(TileJob job) {
         TileKey key = job.key();
+        boolean cancelled = false;
         try {
+            long previewRevision = job.renderer().previewRevision();
             double tileSpan = TILE_PIXELS * key.blocksPerPixel();
-            long revision = ProvisionalSampling.revision();
-            MapTile tile = job.renderer().renderTile(
-                    key.tileX() * tileSpan,
-                    key.tileZ() * tileSpan,
-                    key.blocksPerPixel(),
-                    TILE_PIXELS,
-                    key.layer(),
-                    key.heights(),
-                    () -> !isWanted(key)
-            );
-            boolean provisional = revision != ProvisionalSampling.revision();
+            MapTileRenderer.TileRender work = job.work();
+            if (work == null) {
+                work = job.renderer().prepareTile(key.tileX() * tileSpan, key.tileZ() * tileSpan,
+                        key.blocksPerPixel(), TILE_PIXELS, key.layer(), key.heights());
+            }
+            MapTile tile = work.render(() -> !isWanted(key));
+            boolean provisional = !work.complete();
+            TileState previous = job.previous();
+            long delay = 0L;
+            if (provisional) {
+                delay = previous == null || previous.retryDelay() == 0L
+                        ? FIRST_RETRY_NANOS : Math.min(LAST_RETRY_NANOS, previous.retryDelay() * 2L);
+            }
+            long completedAt = nanoTime.getAsLong();
+            TileState state = new TileState(tile, provisional, delay, completedAt + delay,
+                    completedAt + FIRST_RETRY_NANOS, previewRevision);
             synchronized (this) {
-                if (!isWanted(key)) {
+                if (closed.get()) {
                     return;
                 }
-                VisibleTile visible = currentFrame.tile(key);
-                if (provisional) {
-                    visible.markProvisional(tile, System.nanoTime());
-                } else {
-                    cache.put(key, tile);
-                    visible.setTile(tile);
+                cache.put(key, state, provisional ? work : null);
+                if (isWanted(key)) {
+                    currentFrame.tile(key).state = state;
                 }
             }
             publish();
         } catch (CancellationException ignored) {
+            cancelled = true;
+            cache.discardWork(key);
         } catch (Throwable error) {
             IrisLogging.debug("Vision tile render failed: " + error.getClass().getSimpleName() + ": " + error.getMessage());
         } finally {
-            release(key);
+            release(key, cancelled);
         }
     }
 
@@ -346,8 +391,7 @@ final class VisionRenderController implements AutoCloseable {
         return !closed.get() && frame != null && frame.tile(key) != null;
     }
 
-    private Fallback coarserFallback(Frame frame, VisibleTile tile) {
-        TileKey key = tile.key();
+    private Fallback coarserFallback(TileKey key, boolean provisional) {
         for (int level = 1; level <= COARSER_FALLBACK_LEVELS; level++) {
             long scale = 1L << level;
             int sourceSize = TILE_PIXELS >> level;
@@ -357,8 +401,8 @@ final class VisionRenderController implements AutoCloseable {
             }
             long parentX = Math.floorDiv(key.tileX(), scale);
             long parentZ = Math.floorDiv(key.tileZ(), scale);
-            MapTile parent = cache.get(new TileKey(key.contentRevision(), key.layer(), key.heights(), parentScale, parentX,
-                    parentZ));
+            MapTile parent = fallbackTile(new TileKey(key.contentRevision(), key.layer(), key.heights(), parentScale,
+                    parentX, parentZ), provisional);
             if (parent != null) {
                 int sourceX = (int) (key.tileX() - parentX * scale) * sourceSize;
                 int sourceZ = (int) (key.tileZ() - parentZ * scale) * sourceSize;
@@ -368,8 +412,7 @@ final class VisionRenderController implements AutoCloseable {
         return null;
     }
 
-    private Fallback finerFallback(Frame frame, VisibleTile tile) {
-        TileKey key = tile.key();
+    private Fallback finerFallback(TileKey key, boolean provisional) {
         double childScale = key.blocksPerPixel() / 2D;
         if (childScale < MINIMUM_RENDER_BLOCKS_PER_PIXEL) {
             return null;
@@ -377,8 +420,8 @@ final class VisionRenderController implements AutoCloseable {
         List<FallbackPiece> pieces = new ArrayList<>(4);
         for (int childZ = 0; childZ < 2; childZ++) {
             for (int childX = 0; childX < 2; childX++) {
-                MapTile child = cache.get(new TileKey(key.contentRevision(), key.layer(), key.heights(), childScale,
-                        key.tileX() * 2L + childX, key.tileZ() * 2L + childZ));
+                MapTile child = fallbackTile(new TileKey(key.contentRevision(), key.layer(), key.heights(), childScale,
+                        key.tileX() * 2L + childX, key.tileZ() * 2L + childZ), provisional);
                 if (child != null) {
                     pieces.add(new FallbackPiece(child, 0, 0, TILE_PIXELS, childX * 0.5D, childZ * 0.5D, 0.5D));
                 }
@@ -528,10 +571,11 @@ final class VisionRenderController implements AutoCloseable {
         }
 
         // Tiles are sorted centre first, and everything before the cursor is drawn or claimed, so each search resumes there.
-        private VisibleTile nextMissing(Set<TileKey> inFlight, boolean advance) {
+        private VisibleTile nextMissing(Set<TileKey> inFlight, boolean advance, long now) {
+            long previewRevision = spec.renderer().previewRevision();
             for (int index = nextCandidate; index < tiles.size(); index++) {
                 VisibleTile tile = tiles.get(index);
-                if (tile.needsRender(System.nanoTime()) && !inFlight.contains(tile.key())) {
+                if (tile.needsRender(now, previewRevision) && !inFlight.contains(tile.key())) {
                     if (advance) {
                         nextCandidate = index + 1;
                     }
@@ -548,10 +592,7 @@ final class VisionRenderController implements AutoCloseable {
     static final class VisibleTile {
         private final TileKey key;
         private final double distanceSquared;
-        private volatile MapTile tile;
-        private volatile boolean provisional;
-        private long retryDelay;
-        private long retryAt;
+        private volatile TileState state;
 
         private VisibleTile(TileKey key, double distanceSquared) {
             this.key = key;
@@ -575,28 +616,19 @@ final class VisionRenderController implements AutoCloseable {
         }
 
         MapTile tile() {
-            return tile;
+            TileState current = state;
+            return current == null ? null : current.tile();
         }
 
         boolean provisional() {
-            return provisional;
+            TileState current = state;
+            return current != null && current.provisional();
         }
 
-        private void setTile(MapTile tile) {
-            this.tile = tile;
-            provisional = false;
-            retryDelay = 0L;
-        }
-
-        private void markProvisional(MapTile tile, long now) {
-            this.tile = tile;
-            retryDelay = retryDelay == 0L ? FIRST_RETRY_NANOS : Math.min(LAST_RETRY_NANOS, retryDelay * 2L);
-            retryAt = now + retryDelay;
-            provisional = true;
-        }
-
-        private boolean needsRender(long now) {
-            return tile == null || provisional && now - retryAt >= 0L;
+        private boolean needsRender(long now, long previewRevision) {
+            TileState current = state;
+            return current == null || current.provisional() && (now - current.retryAt() >= 0L
+                    || previewRevision != current.previewRevision() && now - current.earliestRetryAt() >= 0L);
         }
     }
 
@@ -645,7 +677,11 @@ final class VisionRenderController implements AutoCloseable {
         }
     }
 
-    private record TileJob(MapTileRenderer renderer, TileKey key) {
+    private record TileJob(MapTileRenderer renderer, TileKey key, MapTileRenderer.TileRender work, TileState previous) {
+    }
+
+    private record TileState(MapTile tile, boolean provisional, long retryDelay, long retryAt, long earliestRetryAt,
+                             long previewRevision) {
     }
 
     private static final class WeightedTileCache {
@@ -658,14 +694,13 @@ final class VisionRenderController implements AutoCloseable {
             this.entries = new LinkedHashMap<>(128, 0.75F, true);
         }
 
-        synchronized MapTile get(TileKey key) {
-            CacheEntry entry = entries.get(key);
-            return entry == null ? null : entry.tile();
+        synchronized CacheEntry get(TileKey key) {
+            return entries.get(key);
         }
 
-        synchronized void put(TileKey key, MapTile tile) {
-            long tileBytes = tile.bytes();
-            CacheEntry previous = entries.put(key, new CacheEntry(tile, tileBytes));
+        synchronized void put(TileKey key, TileState state, MapTileRenderer.TileRender work) {
+            long tileBytes = state.tile().bytes() + (work == null ? 0L : work.bytes());
+            CacheEntry previous = entries.put(key, new CacheEntry(state, work, tileBytes));
             if (previous != null) {
                 bytes -= previous.bytes();
             }
@@ -682,8 +717,18 @@ final class VisionRenderController implements AutoCloseable {
             entries.clear();
             bytes = 0L;
         }
+
+        synchronized void discardWork(TileKey key) {
+            CacheEntry entry = entries.get(key);
+            if (entry == null || entry.work() == null) {
+                return;
+            }
+            long retainedBytes = entry.state().tile().bytes();
+            entries.put(key, new CacheEntry(entry.state(), null, retainedBytes));
+            bytes -= entry.bytes() - retainedBytes;
+        }
     }
 
-    private record CacheEntry(MapTile tile, long bytes) {
+    private record CacheEntry(TileState state, MapTileRenderer.TileRender work, long bytes) {
     }
 }

@@ -1668,7 +1668,6 @@ public class IrisEngine implements Engine {
         } catch (GenerationSessionException e) {
             throw e;
         } catch (Throwable e) {
-            IrisLogging.reportError(e);
             fail("Failed to generate " + x + ", " + z, e);
             if (e instanceof WrongEngineBroException wrongEngine) {
                 throw wrongEngine;

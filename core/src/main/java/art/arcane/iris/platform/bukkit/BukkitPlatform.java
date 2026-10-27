@@ -365,4 +365,10 @@ public final class BukkitPlatform implements IrisPlatform {
     public void reportError(Throwable error) {
         bridge().errorSink().accept(error);
     }
+
+    @Override
+    public void reportError(String context, Throwable error) {
+        log(LogLevel.ERROR, context == null || context.isBlank() ? "Unhandled Iris failure." : context);
+        reportError(error);
+    }
 }

@@ -40,6 +40,12 @@ dependencies {
     runtimeOnly(libs.oshi)
     runtimeOnly(libs.byteBuddy.core)
     runtimeOnly(libs.byteBuddy.agent)
+    runtimeOnly(libs.lwjgl)
+    runtimeOnly(libs.lwjgl.opengl)
+    runtimeOnly(libs.lwjgl.egl)
+    runtimeOnly(libs.lwjgl.jawt)
+    runtimeOnly(variantOf(libs.lwjgl) { classifier('natives-linux') })
+    runtimeOnly(variantOf(libs.lwjgl.opengl) { classifier('natives-linux') })
     studioProbeApi(libs.spigot) {
         transitive = false
     }

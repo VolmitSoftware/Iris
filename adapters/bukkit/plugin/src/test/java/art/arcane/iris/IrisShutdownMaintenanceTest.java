@@ -1,7 +1,17 @@
 package art.arcane.iris;
 
 import art.arcane.iris.configuration.IrisSettings;
+import art.arcane.iris.generation.concurrent.MultiBurst;
 import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.platform.agent.Agent;
+import art.arcane.iris.platform.bootstrap.SlimJar;
+import art.arcane.iris.platform.bukkit.BukkitPlatform;
+import art.arcane.iris.platform.bukkit.plugin.IrisService;
+import art.arcane.iris.platform.bukkit.plugin.VolmitPlugin;
+import art.arcane.iris.spi.IrisPlatforms;
+import art.arcane.iris.world.lifecycle.IrisRuntimeStatics;
+import art.arcane.volmlib.util.collection.KList;
+import art.arcane.volmlib.util.collection.KMap;
 import art.arcane.iris.generation.runtime.GenerationSessionLease;
 import art.arcane.iris.generation.runtime.GenerationSessionManager;
 import art.arcane.iris.platform.bukkit.BukkitWorldBinding;
@@ -16,8 +26,8 @@ import art.arcane.iris.world.IrisWorld;
 import art.arcane.iris.world.WorldMaintenance;
 import art.arcane.iris.world.runtime.BukkitEnginePlatformHooks;
 import art.arcane.iris.world.task.J;
-import art.arcane.volmlib.integration.ReloadAware;
 import art.arcane.volmlib.nativelib.terrain.ServerShutdownBoundary;
+import art.arcane.volmlib.integration.ReloadAware;
 import org.bukkit.Bukkit;
 import org.bukkit.NamespacedKey;
 import org.bukkit.World;
@@ -27,10 +37,13 @@ import org.mockito.MockedStatic;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -38,12 +51,16 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
-import static org.mockito.Mockito.doCallRealMethod;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doCallRealMethod;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -153,12 +170,180 @@ public class IrisShutdownMaintenanceTest {
     }
 
     @Test
+    public void startupEnsuresAgentReadinessBeforeLifecycleProtectionWithoutWorldInjection() throws Exception {
+        try (Fixture fixture = new Fixture(); MockedStatic<Agent> agent = mockStatic(Agent.class)) {
+            when(fixture.binding.supportsIrisWorldGeneration()).thenReturn(true);
+            agent.when(Agent::install).thenReturn(true);
+            doAnswer(invocation -> {
+                agent.verify(Agent::install);
+                assertSame(fixture.plugin.getClass().getClassLoader(), invocation.getArgument(0));
+                return null;
+            }).when(fixture.binding).initializeLifecycle(fixture.plugin.getClass().getClassLoader());
+            invoke(fixture.plugin, "initializeShutdownProtection");
+            verify(fixture.binding).initializeLifecycle(fixture.plugin.getClass().getClassLoader());
+            verify(fixture.binding, never()).injectBukkit();
+        }
+    }
+
+    @Test
+    public void unavailableAgentStopsLifecycleInitialization() throws Exception {
+        try (Fixture fixture = new Fixture(); MockedStatic<Agent> agent = mockStatic(Agent.class)) {
+            when(fixture.binding.supportsIrisWorldGeneration()).thenReturn(true);
+            InvocationTargetException failure = assertThrows(InvocationTargetException.class,
+                    () -> invoke(fixture.plugin, "initializeShutdownProtection"));
+            assertTrue(failure.getCause() instanceof IllegalStateException);
+            verify(fixture.binding, never()).initializeLifecycle(fixture.plugin.getClass().getClassLoader());
+        }
+    }
+
+    @Test
+    public void worldHookTeardownFailureReleasesProtectionAfterServicesAndWorkersStop() throws Exception {
+        try (Fixture fixture = new Fixture();
+             MockedStatic<Iris> iris = mockStatic(Iris.class);
+             MockedStatic<IrisRuntimeStatics> statics = mockStatic(IrisRuntimeStatics.class);
+             MockedStatic<IrisPlatforms> platforms = mockStatic(IrisPlatforms.class);
+             MockedStatic<BukkitPlatform> bukkitPlatform = mockStatic(BukkitPlatform.class);
+             MockedStatic<SlimJar> providers = mockStatic(SlimJar.class)) {
+            IrisService service = mock(IrisService.class);
+            IllegalStateException failure = new IllegalStateException("world hook teardown failed");
+            fixture.nms.when(INMS::isBound).thenReturn(true);
+            doThrow(failure).when(fixture.binding).uninjectBukkit();
+            setField(fixture.plugin, "services", new KMap<Class<? extends IrisService>, IrisService>());
+            setField(fixture.plugin, "enabledServices", List.of(service));
+            doAnswer(invocation -> {
+                platforms.verify(IrisPlatforms::unbind);
+                bukkitPlatform.verify(BukkitPlatform::releaseHost);
+                assertTrue(MultiBurst.burst.isTerminated());
+                assertTrue(MultiBurst.hydrology.isTerminated());
+                assertTrue(MultiBurst.ioBurst.isTerminated());
+                return null;
+            }).when(fixture.binding).releasePluginClassLoaderClose();
+            fixture.quiesce();
+            try {
+                fixture.finish(5L);
+                fixture.finish(5L);
+                verify(service).onDisable();
+                iris.verify(() -> Iris.reportError("Failed to remove Iris world-generation hooks.", failure));
+                assertTrue(MultiBurst.burst.isTerminated());
+                assertTrue(MultiBurst.hydrology.isTerminated());
+                assertTrue(MultiBurst.ioBurst.isTerminated());
+                verify(fixture.binding).releasePluginClassLoaderClose();
+                platforms.verify(IrisPlatforms::unbind);
+                bukkitPlatform.verify(BukkitPlatform::releaseHost);
+            } finally {
+                MultiBurst.burst.reopen();
+                MultiBurst.hydrology.reopen();
+                MultiBurst.ioBurst.reopen();
+            }
+        }
+    }
+
+    @Test
+    public void failedServiceWithAnOwnedExecutorRetainsTheClassLoader() throws Exception {
+        ExecutorService ownedExecutor = Executors.newSingleThreadExecutor();
+        CountDownLatch started = new CountDownLatch(1);
+        CountDownLatch finish = new CountDownLatch(1);
+        ownedExecutor.submit(() -> {
+            started.countDown();
+            finish.await();
+            return null;
+        });
+        try (Fixture fixture = new Fixture();
+             MockedStatic<Iris> iris = mockStatic(Iris.class);
+             MockedStatic<IrisRuntimeStatics> statics = mockStatic(IrisRuntimeStatics.class);
+             MockedStatic<IrisPlatforms> platforms = mockStatic(IrisPlatforms.class);
+             MockedStatic<BukkitPlatform> bukkitPlatform = mockStatic(BukkitPlatform.class)) {
+            assertTrue(started.await(5, TimeUnit.SECONDS));
+            IrisService service = mock(IrisService.class);
+            IllegalStateException failure = new IllegalStateException("service teardown failed");
+            doThrow(failure).when(service).onDisable();
+            setField(fixture.plugin, "services", new KMap<Class<? extends IrisService>, IrisService>());
+            setField(fixture.plugin, "enabledServices", List.of(service));
+            fixture.quiesce();
+            fixture.finish(5L);
+            verify(service).onDisable();
+            iris.verify(() -> Iris.reportError("Failed to disable " + service.getClass().getSimpleName() + ".", failure));
+            assertFalse(ownedExecutor.isTerminated());
+            verify(fixture.binding, never()).releasePluginClassLoaderClose();
+        } finally {
+            finish.countDown();
+            ownedExecutor.shutdownNow();
+            assertTrue(ownedExecutor.awaitTermination(5, TimeUnit.SECONDS));
+            MultiBurst.burst.reopen();
+            MultiBurst.hydrology.reopen();
+            MultiBurst.ioBurst.reopen();
+        }
+    }
+
+    @Test
+    public void failedPostShutdownCallbackRetainsTheClassLoaderForSkippedCleanup() throws Exception {
+        ExecutorService ownedExecutor = Executors.newSingleThreadExecutor();
+        CountDownLatch started = new CountDownLatch(1);
+        CountDownLatch finish = new CountDownLatch(1);
+        ownedExecutor.submit(() -> {
+            started.countDown();
+            finish.await();
+            return null;
+        });
+        try (Fixture fixture = new Fixture();
+             MockedStatic<Iris> iris = mockStatic(Iris.class);
+             MockedStatic<IrisRuntimeStatics> statics = mockStatic(IrisRuntimeStatics.class);
+             MockedStatic<IrisPlatforms> platforms = mockStatic(IrisPlatforms.class);
+             MockedStatic<BukkitPlatform> bukkitPlatform = mockStatic(BukkitPlatform.class)) {
+            assertTrue(started.await(5, TimeUnit.SECONDS));
+            IllegalStateException failure = new IllegalStateException("post-shutdown callback failed");
+            AtomicBoolean cleanupAttempted = new AtomicBoolean();
+            KList<Runnable> callbacks = new KList<>();
+            callbacks.add(() -> { throw failure; });
+            callbacks.add(() -> {
+                cleanupAttempted.set(true);
+                ownedExecutor.shutdown();
+            });
+            Field callbacksField = VolmitPlugin.class.getDeclaredField("postShutdown");
+            callbacksField.setAccessible(true);
+            callbacksField.set(fixture.plugin, callbacks);
+            Method runCallbacks = VolmitPlugin.class.getDeclaredMethod("runPostShutdown");
+            runCallbacks.setAccessible(true);
+            runCallbacks.invoke(doCallRealMethod().when(fixture.plugin));
+            fixture.quiesce();
+            fixture.finish(5L);
+            iris.verify(() -> Iris.reportError("Failed to run Iris post-shutdown cleanup.", failure));
+            assertFalse(cleanupAttempted.get());
+            assertFalse(ownedExecutor.isShutdown());
+            assertFalse(ownedExecutor.isTerminated());
+            verify(fixture.binding, never()).releasePluginClassLoaderClose();
+        } finally {
+            finish.countDown();
+            ownedExecutor.shutdownNow();
+            assertTrue(ownedExecutor.awaitTermination(5, TimeUnit.SECONDS));
+            MultiBurst.burst.reopen();
+            MultiBurst.hydrology.reopen();
+            MultiBurst.ioBurst.reopen();
+        }
+    }
+
+    @Test
+    public void incompleteDrainRetainsServicesWorkersAndClassLoader() throws Exception {
+        try (Fixture fixture = new Fixture(); MockedStatic<Iris> iris = mockStatic(Iris.class)) {
+            IrisService service = mock(IrisService.class);
+            setField(fixture.plugin, "services", new KMap<Class<? extends IrisService>, IrisService>());
+            setField(fixture.plugin, "enabledServices", List.of(service));
+            when(fixture.generator.closeAsync()).thenReturn(new CompletableFuture<>());
+            fixture.quiesce();
+            fixture.finish(0L);
+            verify(service, never()).onDisable();
+            verify(fixture.binding, never()).releasePluginClassLoaderClose();
+            verify(fixture.binding, never()).uninjectBukkit();
+        }
+    }
+
+    @Test
     public void serverStopPreUnloadDefersTeardownWhileTheClassLoaderIsHeld() throws Exception {
         try (Fixture fixture = new Fixture()) {
-            when(fixture.binding.deferPluginClassLoaderClose()).thenReturn(true);
             setField(fixture.plugin, "postStopFinisherStarted", new AtomicBoolean(true));
             try {
                 fixture.commitReloadDuringServerStop();
+                verify(fixture.binding).deferPluginClassLoaderClose();
                 verify(fixture.generator).quiesceForServerShutdown();
                 verify(fixture.generator, never()).closeAsync();
                 assertTrue(fixture.serverStopTeardownDeferred());
@@ -170,10 +355,28 @@ public class IrisShutdownMaintenanceTest {
 
     @Test
     public void serverStopPreUnloadDrainsInlineWhenTheClassLoaderCannotBeHeld() throws Exception {
-        try (Fixture fixture = new Fixture()) {
-            when(fixture.binding.deferPluginClassLoaderClose()).thenReturn(false);
+        try (Fixture fixture = new Fixture(); MockedStatic<Iris> iris = mockStatic(Iris.class)) {
+            IllegalStateException failure = new IllegalStateException("class loader hold failed");
+            doThrow(failure).when(fixture.binding).deferPluginClassLoaderClose();
             try {
                 fixture.commitReloadDuringServerStop();
+                verify(fixture.generator).closeAsync();
+                verify(fixture.generator, never()).quiesceForServerShutdown();
+                assertFalse(fixture.serverStopTeardownDeferred());
+                iris.verify(() -> Iris.reportError("Failed to retain the Iris plugin class loader; draining shutdown inline.", failure));
+            } finally {
+                WorldMaintenance.endWorldMaintenance(fixture.identity, "pre-unload:HOT_UNLOAD", true);
+            }
+        }
+    }
+
+    @Test
+    public void serverStopPreUnloadDrainsInlineWithoutInitializedProtection() throws Exception {
+        try (Fixture fixture = new Fixture()) {
+            setField(fixture.plugin, "shutdownProtectionInitialized", false);
+            try {
+                fixture.commitReloadDuringServerStop();
+                verify(fixture.binding, never()).deferPluginClassLoaderClose();
                 verify(fixture.generator).closeAsync();
                 verify(fixture.generator, never()).quiesceForServerShutdown();
                 assertFalse(fixture.serverStopTeardownDeferred());
@@ -181,6 +384,12 @@ public class IrisShutdownMaintenanceTest {
                 WorldMaintenance.endWorldMaintenance(fixture.identity, "pre-unload:HOT_UNLOAD", true);
             }
         }
+    }
+
+    private static void invoke(Iris plugin, String name) throws ReflectiveOperationException {
+        Method method = Iris.class.getDeclaredMethod(name);
+        method.setAccessible(true);
+        method.invoke(plugin);
     }
 
     private static void setField(Iris plugin, String name, Object value) throws ReflectiveOperationException {
@@ -210,6 +419,12 @@ public class IrisShutdownMaintenanceTest {
 
         private Fixture() throws ReflectiveOperationException {
             IrisSettings.settings = new IrisSettings();
+            setField(plugin, "shutdownProtectionInitialized", true);
+            setField(plugin, "alreadyDrained", new AtomicBoolean());
+            setField(plugin, "servicesDisabled", new AtomicBoolean());
+            setField(plugin, "runtimeTeardownFailed", new AtomicBoolean());
+            setField(plugin, "sharedRuntimeClosed", new AtomicBoolean());
+            setField(plugin, "terminalCleanupCompleted", new AtomicBoolean());
             setField(plugin, "serverStopTeardownDeferred", new AtomicBoolean());
             setField(plugin, "postStopFinisherStarted", new AtomicBoolean());
             setField(plugin, "deferredShutdownGenerators", new CopyOnWriteArrayList<PlatformChunkGenerator>());
@@ -249,6 +464,13 @@ public class IrisShutdownMaintenanceTest {
             Field field = Iris.class.getDeclaredField("serverStopTeardownDeferred");
             field.setAccessible(true);
             return ((AtomicBoolean) field.get(plugin)).get();
+        }
+
+
+        private void finish(long timeoutSeconds) throws ReflectiveOperationException {
+            Method method = Iris.class.getDeclaredMethod("finishDeferredRuntimeTeardown", String.class, long.class);
+            method.setAccessible(true);
+            method.invoke(plugin, "test_shutdown", timeoutSeconds);
         }
 
         private void startFinisher() throws ReflectiveOperationException {

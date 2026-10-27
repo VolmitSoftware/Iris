@@ -57,6 +57,7 @@ public final class HydrologyPlanCache {
     private final AtomicLong demands = new AtomicLong();
     private final AtomicLong speculations = new AtomicLong();
     private final AtomicLong previewStamps = new AtomicLong(Long.MIN_VALUE);
+    private final AtomicLong readyRevision = new AtomicLong();
     private final Shelf<RegionKey, RegionPlan> regions = new Shelf<>(REGION_CAPACITY, this::startRegion);
     private final Shelf<WindowKey, IndexedWindow> windows = new Shelf<>(WINDOW_CAPACITY, this::startWindow);
     private final Map<Object, Set<Slot<?, ?>>> epochSlots = new HashMap<>();
@@ -110,6 +111,10 @@ public final class HydrologyPlanCache {
 
     public long windowEvictions() {
         return windows.evictions.get();
+    }
+
+    public long readyRevision() {
+        return readyRevision.get();
     }
 
     public RegionPlan region(RegionKey key) {
@@ -759,7 +764,9 @@ public final class HydrologyPlanCache {
 
         private void succeed(V value) {
             release();
-            future.complete(value);
+            if (future.complete(value)) {
+                readyRevision.incrementAndGet();
+            }
             shelf.evict();
         }
 

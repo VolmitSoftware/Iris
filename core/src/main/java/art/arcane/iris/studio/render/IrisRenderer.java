@@ -70,6 +70,13 @@ public final class IrisRenderer {
         this.renderer = Objects.requireNonNull(renderer, "renderer");
     }
 
+    public WaterTile prepareStudioWater(double startX, double startZ, double step, int resolution) {
+        if (!Double.isFinite(startX) || !Double.isFinite(startZ) || !Double.isFinite(step) || step <= 0D || resolution < 1) {
+            throw new IllegalArgumentException("Water tile coordinates, scale and resolution must be valid");
+        }
+        return new WaterTile(startX, startZ, step, resolution);
+    }
+
     public BufferedImage render(double sx, double sz, double size, int resolution, RenderType currentType) {
         return render(sx, sz, size, resolution, currentType, () -> false);
     }
@@ -442,6 +449,71 @@ public final class IrisRenderer {
     private static void checkCancelled(BooleanSupplier cancelled) {
         if (cancelled.getAsBoolean() || Thread.currentThread().isInterrupted()) {
             throw new CancellationException("Vision render cancelled");
+        }
+    }
+
+    public final class WaterTile {
+        private final double startX;
+        private final double startZ;
+        private final double step;
+        private final int resolution;
+        private final WaterMap map;
+        private boolean complete;
+
+        private WaterTile(double startX, double startZ, double step, int resolution) {
+            this.startX = startX;
+            this.startZ = startZ;
+            this.step = step;
+            this.resolution = resolution;
+            HydrologyRuntime runtime = renderer.getComplex().getHydrologyRuntime();
+            this.map = runtime == null || !runtime.enabled() || step > WaterMap.MAX_STEP
+                    ? null : new WaterMap(runtime, resolution, startX, startZ, step);
+            complete = map == null;
+        }
+
+        public int[] render(int[] base, boolean composite, BooleanSupplier cancelled) {
+            Objects.requireNonNull(cancelled, "cancelled");
+            checkCancelled(cancelled);
+            if (composite && (base == null || base.length != resolution * resolution)) {
+                throw new IllegalArgumentException("Water overlay requires matching base pixels");
+            }
+            if (!complete) {
+                map.advance(cancelled);
+                map.drawCavePools(GenerationSemanticQueries.recordedCavePools(renderer,
+                        Math.floorDiv((int) Math.floor(startX), 16), Math.floorDiv((int) Math.floor(startZ), 16),
+                        Math.floorDiv((int) Math.ceil(startX + resolution * step) - 1, 16),
+                        Math.floorDiv((int) Math.ceil(startZ + resolution * step) - 1, 16)));
+                complete = !map.provisional();
+            }
+            int[] colors = composite ? base.clone() : new int[resolution * resolution];
+            if (!composite) {
+                Arrays.fill(colors, NO_RIVER & 0xFFFFFF);
+            }
+            if (map != null) {
+                for (int z = 0; z < resolution; z++) {
+                    checkCancelled(cancelled);
+                    for (int x = 0; x < resolution; x++) {
+                        HydrologyFeatureType type = map.at(x, z);
+                        if (type != null) {
+                            int index = z * resolution + x;
+                            int color = hydrologyFeatureColor(type);
+                            colors[index] = (composite ? blend(colors[index], color, RIVER_OVERLAY) : color) & 0xFFFFFF;
+                        }
+                    }
+                }
+            }
+            if (!complete) {
+                ProvisionalSampling.mark();
+            }
+            return colors;
+        }
+
+        public boolean complete() {
+            return complete;
+        }
+
+        public long bytes() {
+            return map == null ? 0L : map.bytes();
         }
     }
 

@@ -14,7 +14,10 @@ import org.junit.Test;
 
 import java.util.Locale;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -38,11 +41,21 @@ public class BukkitBindingTest {
         Fixture fixture = new Fixture();
         when(fixture.lifecycle.isServerStopping()).thenReturn(true);
         assertTrue(fixture.binding.isServerStopping());
-        when(fixture.lifecycle.deferPluginClassLoaderClose()).thenReturn(true);
-        assertTrue(fixture.binding.deferPluginClassLoaderClose());
+        fixture.binding.initializeLifecycle(getClass().getClassLoader());
+        verify(fixture.lifecycle).initializeLifecycle(getClass().getClassLoader());
+        fixture.binding.deferPluginClassLoaderClose();
         fixture.binding.releasePluginClassLoaderClose();
         verify(fixture.lifecycle).deferPluginClassLoaderClose();
         verify(fixture.lifecycle).releasePluginClassLoaderClose();
+    }
+
+    @Test
+    public void limitedBindingRejectsClassLoaderProtectionAndUsesSynchronousShutdown() {
+        INMSBinding binding = mock(INMSBinding.class, CALLS_REAL_METHODS);
+        assertFalse(binding.isServerStopping());
+        assertThrows(IllegalStateException.class,
+                () -> binding.initializeLifecycle(getClass().getClassLoader()));
+        assertThrows(IllegalStateException.class, binding::deferPluginClassLoaderClose);
     }
 
     @Test
@@ -71,8 +84,8 @@ public class BukkitBindingTest {
     }
 
     private static final class Fixture {
-        private final NativeTerrainAccess terrain = mock(NativeTerrainAccess.class);
         private final NativeWorldGeneration generation = mock(NativeWorldGeneration.class);
+        private final NativeTerrainAccess terrain = mock(NativeTerrainAccess.class);
         private final NativeWorldLifecycleFactory.Controller lifecycle = mock(NativeWorldLifecycleFactory.Controller.class);
         private final BukkitBinding binding;
 

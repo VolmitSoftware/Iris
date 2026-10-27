@@ -13,6 +13,10 @@ Configuration kernelDependencies = configurations.create('generationKernelDepend
     extendsFrom(configurations.implementation, configurations.slim, configurations.annotationProcessor)
 }
 dependencies.add(kernelDependencies.name, libs.guava)
+dependencies.add(kernelDependencies.name, libs.lwjgl)
+dependencies.add(kernelDependencies.name, libs.lwjgl.opengl)
+dependencies.add(kernelDependencies.name, libs.lwjgl.egl)
+dependencies.add(kernelDependencies.name, libs.lwjgl.jawt)
 List<String> nativeRevisionModules = ['native-common', 'native-minecraft26_2-sources']
 for (String adapter : rootProject.extensions.extraProperties.get('nativeDevelopmentAdapters')) {
     nativeRevisionModules.add('native-' + adapter)

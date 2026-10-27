@@ -290,6 +290,10 @@ public interface INMSBinding extends NativeTerrainAccess {
 
     boolean missingDimensionTypes(String... keys);
 
+    default void initializeLifecycle(ClassLoader loader) {
+        throw new IllegalStateException("Plugin class loader shutdown protection is unavailable");
+    }
+
     default boolean injectBukkit() {
         return true;
     }
@@ -301,8 +305,8 @@ public interface INMSBinding extends NativeTerrainAccess {
     default void uninjectBukkit() {
     }
 
-    default boolean deferPluginClassLoaderClose() {
-        return false;
+    default void deferPluginClassLoaderClose() {
+        throw new IllegalStateException("Plugin class loader shutdown protection is unavailable");
     }
 
     default void releasePluginClassLoaderClose() {

@@ -47,6 +47,7 @@ import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BooleanSupplier;
 import java.util.function.Function;
 import java.util.function.IntBinaryOperator;
@@ -79,6 +80,7 @@ public final class HydrologyRuntime {
     private final HydrologyBinding binding;
     private final Function<PreparedHydrologyCacheIdentity, HydrologyPlanStore> stores;
     private final boolean caveFluidPolicies;
+    private final AtomicLong rasterRevision = new AtomicLong();
     private volatile PreparedHydrologyCacheIdentity storeIdentity;
     private boolean storeOpen;
     private volatile boolean closed;
@@ -208,6 +210,10 @@ public final class HydrologyRuntime {
 
     public HydrologySettings settings() {
         return settings;
+    }
+
+    public long previewRevision() {
+        return cache == null ? 0L : cache.readyRevision() + rasterRevision.get();
     }
 
     public PreviewScope preview() {
@@ -696,7 +702,9 @@ public final class HydrologyRuntime {
 
     private ChunkWaterRaster remember(long key, ChunkWaterRaster raster) {
         synchronized (rasters) {
-            rasters.put(key, raster);
+            if (rasters.put(key, raster) == null) {
+                rasterRevision.incrementAndGet();
+            }
         }
         last.get().remember(key, raster);
         return raster;

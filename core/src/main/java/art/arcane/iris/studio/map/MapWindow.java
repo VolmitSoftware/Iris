@@ -112,6 +112,7 @@ public final class MapWindow implements MapCanvas.Listener {
     private double worldCenterX;
     private double worldCenterZ;
     private MapView currentView;
+    private boolean windowVisible = true;
     private double paletteCenterX;
     private double paletteCenterZ;
 
@@ -191,10 +192,54 @@ public final class MapWindow implements MapCanvas.Listener {
         frame.setLocationRelativeTo(null);
         frame.addWindowListener(new WindowAdapter() {
             @Override
+            public void windowIconified(WindowEvent event) {
+                updateWindowVisibility();
+            }
+
+            @Override
+            public void windowDeiconified(WindowEvent event) {
+                updateWindowVisibility();
+            }
+
+            @Override
             public void windowClosed(WindowEvent event) {
                 close();
             }
         });
+        frame.addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentShown(ComponentEvent event) {
+                updateWindowVisibility();
+            }
+
+            @Override
+            public void componentHidden(ComponentEvent event) {
+                updateWindowVisibility();
+            }
+        });
+    }
+
+    private void updateWindowVisibility() {
+        boolean visible = isWindowVisible();
+        boolean wasVisible = windowVisible;
+        windowVisible = visible;
+        canvas.setActive(visible && currentView != null && currentView.isTileMap());
+        if (currentView == MapView.WORLD_3D && worldExplorer != null) {
+            if (visible && !wasVisible) {
+                worldExplorer.show(worldCenterX, worldCenterZ, false);
+            } else if (!visible) {
+                worldExplorer.hide();
+            }
+        }
+        if (visible) {
+            resourceUsage.start();
+        } else {
+            resourceUsage.stop();
+        }
+    }
+
+    private boolean isWindowVisible() {
+        return frame.isShowing() && (frame.getExtendedState() & JFrame.ICONIFIED) == 0;
     }
 
     private JToolBar buildToolbar() {
@@ -265,6 +310,7 @@ public final class MapWindow implements MapCanvas.Listener {
         }
         frame.getRootPane().revalidate();
         frame.getRootPane().repaint();
+        updateWindowVisibility();
     }
 
     private void showMap(MapView previousView, MapView view) {
@@ -272,7 +318,7 @@ public final class MapWindow implements MapCanvas.Listener {
             canvas.centerOn(paletteExplorer.centerX(), paletteExplorer.centerZ());
         }
         canvas.showView(view);
-        canvas.setActive(true);
+        canvas.setActive(isWindowVisible());
         showControls(mapControls);
         waterToggle.setVisible(view == MapView.BIOMES);
         if (view == MapView.REGIONS) {

@@ -276,9 +276,21 @@ final class MapCanvas extends JPanel {
 
     // Tiles keep loading in the background only for the view on screen; a hidden canvas stops asking for new ones.
     void setActive(boolean nextActive) {
+        if (closed || active == nextActive) {
+            return;
+        }
         active = nextActive;
         if (active) {
+            markerTimer.start();
+            provisionalTimer.start();
             requestRender();
+        } else {
+            controller.suspend();
+            hoverTimer.stop();
+            legendTimer.stop();
+            markerTimer.stop();
+            provisionalTimer.stop();
+            clearHover();
         }
     }
 
@@ -1021,6 +1033,9 @@ final class MapCanvas extends JPanel {
     }
 
     private void onTilesChanged() {
+        if (closed || !active) {
+            return;
+        }
         tileLayerStale = true;
         repaint();
         refreshStatus();

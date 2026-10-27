@@ -108,6 +108,10 @@ dependencies {
     compileOnly(libs.log4j.api)
     compileOnly(libs.log4j.core)
     compileOnly(libs.guava)
+    compileOnly(libs.lwjgl)
+    compileOnly(libs.lwjgl.opengl)
+    compileOnly(libs.lwjgl.egl)
+    compileOnly(libs.lwjgl.jawt)
 
     // Third Party Integrations
     compileOnly(libs.nexo)
@@ -136,13 +140,6 @@ dependencies {
     implementation('com.moandjiezana.toml:toml4j:0.7.2') {
         transitive = false
     }
-    // Shaded: the runtime downloader can neither fetch the natives classifiers nor relocate lwjgl's own jar.
-    implementation(libs.lwjgl)
-    implementation(libs.lwjgl.opengl)
-    implementation(libs.lwjgl.egl)
-    implementation(libs.lwjgl.jawt)
-    runtimeOnly(variantOf(libs.lwjgl) { classifier('natives-linux') })
-    runtimeOnly(variantOf(libs.lwjgl.opengl) { classifier('natives-linux') })
     // Dynamically Loaded
     slim(libs.gson)
     slim(libs.lru)
@@ -183,6 +180,12 @@ dependencies {
     testImplementation(libs.multiverseCore)
     testImplementation(libs.annotations)
     testImplementation(libs.mythic)
+    testRuntimeOnly(libs.lwjgl)
+    testRuntimeOnly(libs.lwjgl.opengl)
+    testRuntimeOnly(libs.lwjgl.egl)
+    testRuntimeOnly(libs.lwjgl.jawt)
+    testRuntimeOnly(variantOf(libs.lwjgl) { classifier('natives-linux') })
+    testRuntimeOnly(variantOf(libs.lwjgl.opengl) { classifier('natives-linux') })
 }
 
 tasks.named('test').configure {

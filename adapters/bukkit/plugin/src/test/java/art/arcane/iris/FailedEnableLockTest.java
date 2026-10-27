@@ -148,6 +148,9 @@ public class FailedEnableLockTest {
         try (EnableFixture fixture = new EnableFixture(false)) {
             IllegalStateException failure = assertThrows(IllegalStateException.class, plugin::onEnable);
             assertTrue(failure.getMessage(), failure.getMessage().contains("already bound"));
+            Field failed = Iris.class.getDeclaredField("enableFailed");
+            failed.setAccessible(true);
+            assertTrue(failed.getBoolean(plugin));
         }
     }
 

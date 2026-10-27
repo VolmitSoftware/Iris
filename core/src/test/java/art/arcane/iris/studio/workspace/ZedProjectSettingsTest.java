@@ -27,10 +27,12 @@ public class ZedProjectSettingsTest {
         File pack = temporaryFolder.newFolder("pack");
         ZedProjectSettings zed = new ZedProjectSettings(pack);
 
-        zed.writeJsonSchemas(biomeSchemas());
+        zed.writeIrisSettings(biomeSchemas());
 
         assertTrue("Zed settings must be created", Files.isRegularFile(zed.getSettingsFile()));
-        assertEquals(JsonParser.parseString(biomeSchemas().toString()), schemasIn(readSettings(zed.getSettingsFile())));
+        JsonObject settings = readSettings(zed.getSettingsFile());
+        assertEquals(JsonParser.parseString(biomeSchemas().toString()), schemasIn(settings));
+        assertEquals(JsonParser.parseString("[\"json\"]"), jsoncGlobsIn(settings));
     }
 
     @Test
@@ -41,6 +43,7 @@ public class ZedProjectSettingsTest {
         Files.writeString(zed.getSettingsFile(), """
                 {
                   "tab_size": 2,
+                  "file_types": { "JSONC": ["*.jsonc5"], "Rust": ["rs.in"] },
                   "lsp": {
                     "rust-analyzer": { "initialization_options": { "check": { "command": "clippy" } } },
                     "json-language-server": {
@@ -51,9 +54,11 @@ public class ZedProjectSettingsTest {
                 }
                 """, StandardCharsets.UTF_8);
 
-        zed.writeJsonSchemas(biomeSchemas());
+        zed.writeIrisSettings(biomeSchemas());
 
         JsonObject settings = readSettings(zed.getSettingsFile());
+        assertEquals(JsonParser.parseString("[\"*.jsonc5\", \"json\"]"), jsoncGlobsIn(settings));
+        assertEquals("rs.in", settings.getAsJsonObject("file_types").getAsJsonArray("Rust").get(0).getAsString());
         JsonObject jsonServer = settings.getAsJsonObject("lsp").getAsJsonObject("json-language-server");
         assertEquals(2, settings.get("tab_size").getAsInt());
         assertEquals("clippy", settings.getAsJsonObject("lsp").getAsJsonObject("rust-analyzer")
@@ -76,7 +81,7 @@ public class ZedProjectSettingsTest {
                 """;
         Files.writeString(zed.getSettingsFile(), jsonc, StandardCharsets.UTF_8);
 
-        zed.writeJsonSchemas(biomeSchemas());
+        zed.writeIrisSettings(biomeSchemas());
 
         assertEquals(jsonc, Files.readString(zed.getSettingsFile(), StandardCharsets.UTF_8));
     }
@@ -85,13 +90,13 @@ public class ZedProjectSettingsTest {
     public void unchangedSchemasDoNotRewriteTheFile() throws Exception {
         File pack = temporaryFolder.newFolder("pack");
         ZedProjectSettings zed = new ZedProjectSettings(pack);
-        zed.writeJsonSchemas(biomeSchemas());
+        zed.writeIrisSettings(biomeSchemas());
         Path file = zed.getSettingsFile();
         String first = Files.readString(file, StandardCharsets.UTF_8);
         FileTime stamp = FileTime.fromMillis(Files.getLastModifiedTime(file).toMillis() - 60_000L);
         Files.setLastModifiedTime(file, stamp);
 
-        zed.writeJsonSchemas(biomeSchemas());
+        zed.writeIrisSettings(biomeSchemas());
 
         assertEquals(first, Files.readString(file, StandardCharsets.UTF_8));
         assertEquals("Unchanged Zed settings must not be rewritten", stamp.toMillis(), Files.getLastModifiedTime(file).toMillis());
@@ -108,6 +113,10 @@ public class ZedProjectSettingsTest {
 
     private static JsonObject readSettings(Path file) throws Exception {
         return JsonParser.parseString(Files.readString(file, StandardCharsets.UTF_8)).getAsJsonObject();
+    }
+
+    private static JsonElement jsoncGlobsIn(JsonObject settings) {
+        return settings.getAsJsonObject("file_types").get("JSONC");
     }
 
     private static JsonElement schemasIn(JsonObject settings) {

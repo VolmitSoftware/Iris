@@ -154,6 +154,15 @@ public class IrisCodeWorkspaceTest {
         assertTrue("Zed settings must carry the workspace schemas", zedSchemas.similar(workspaceSchemas));
     }
 
+    @Test
+    public void workspaceOpensPackJsonAsJsoncSoCommentsAreNotFlagged() throws Exception {
+        File pack = temporaryFolder.newFolder("jsonc-pack");
+        JSONObject configuration = new IrisCodeWorkspace(new IrisProject(pack)).createCodeWorkspaceConfig();
+        data = IrisData.get(pack);
+
+        assertEquals("jsonc", configuration.getJSONObject("settings").getJSONObject("files.associations").getString("*.json"));
+    }
+
     private static JSONArray assertWorkspaceSchemasMaterialized(File pack, File canonicalWorkspace) throws Exception {
         JSONObject configuration = new JSONObject(Files.readString(canonicalWorkspace.toPath(), StandardCharsets.UTF_8));
         JSONArray schemas = configuration.getJSONObject("settings").getJSONArray("json.schemas");

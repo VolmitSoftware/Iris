@@ -168,6 +168,9 @@ public class IrisCodeWorkspace {
         jc.put("editor.suggest.insertMode", "replace");
         settings.put("[json]", jc);
         settings.put("json.maxItemsComputed", 30000);
+        JSONObject associations = new JSONObject();
+        associations.put("*.json", "jsonc");
+        settings.put("files.associations", associations);
         JSONArray schemas = new JSONArray();
         List<JSONObject> schemaEntries = new ArrayList<>();
         IrisData dm = IrisData.get(project.getPath());
@@ -229,7 +232,7 @@ public class IrisCodeWorkspace {
         }
 
         try {
-            new ZedProjectSettings(project.getPath()).writeJsonSchemas(schemas);
+            new ZedProjectSettings(project.getPath()).writeIrisSettings(schemas);
         } catch (Throwable e) {
             IrisLogging.reportError(e);
             IrisLogging.warn("Could not update Zed schema mappings for " + project.getPath().getAbsolutePath() + "; VSCode workspace generation will continue.");

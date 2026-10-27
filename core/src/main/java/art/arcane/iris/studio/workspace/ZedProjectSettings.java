@@ -22,10 +22,12 @@ import art.arcane.iris.spi.IrisLogging;
 import art.arcane.volmlib.util.json.JSONArray;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
+import com.google.gson.JsonPrimitive;
 import com.google.gson.Strictness;
 
 import java.io.File;
@@ -37,11 +39,16 @@ import java.util.List;
 
 /**
  * Keeps the JSON schema mappings in a pack's Zed project settings in sync with the VSCode workspace.
- * The file belongs to the user, so only {@code lsp.json-language-server.settings.json.schemas} is replaced.
+ * The file belongs to the user, so Iris only replaces {@code lsp.json-language-server.settings.json.schemas}
+ * and makes sure {@code file_types.JSONC} contains {@code json}.
  */
 final class ZedProjectSettings {
     private static final List<String> SCHEMAS_PARENT_PATH = List.of("lsp", "json-language-server", "settings", "json");
     private static final String SCHEMAS_KEY = "schemas";
+    private static final List<String> FILE_TYPES_PATH = List.of("file_types");
+    // Pack files may contain comments; Zed's JSONC language keeps schema support but stops flagging them.
+    private static final String JSONC_LANGUAGE = "JSONC";
+    private static final String JSON_EXTENSION = "json";
     // Strict parsing rejects JSONC comments and trailing commas instead of silently dropping them on rewrite.
     private static final Gson STRICT_GSON = new GsonBuilder()
             .setStrictness(Strictness.STRICT)
@@ -59,7 +66,7 @@ final class ZedProjectSettings {
         return settingsFile;
     }
 
-    void writeJsonSchemas(JSONArray schemas) throws IOException {
+    void writeIrisSettings(JSONArray schemas) throws IOException {
         String existing = Files.isRegularFile(settingsFile) ? Files.readString(settingsFile, StandardCharsets.UTF_8) : null;
         JsonObject settings = parseOrNull(existing);
         if (settings == null) {
@@ -67,13 +74,12 @@ final class ZedProjectSettings {
             return;
         }
 
-        JsonObject schemasParent = findOrCreateSchemasParent(settings);
-        if (schemasParent == null) {
-            IrisLogging.warn("Could not merge JSON schemas into " + settingsFile + ": an entry on the path " + String.join(".", SCHEMAS_PARENT_PATH) + " is not an object; leaving it untouched.");
+        if (!mergeSchemas(settings, schemas) || !mergeJsoncFileType(settings)) {
+            IrisLogging.warn("Could not merge Iris settings into " + settingsFile + ": " + String.join(".", SCHEMAS_PARENT_PATH)
+                    + " must be an object and " + String.join(".", FILE_TYPES_PATH) + "." + JSONC_LANGUAGE + " a list; leaving it untouched.");
             return;
         }
 
-        schemasParent.add(SCHEMAS_KEY, JsonParser.parseString(schemas.toString()));
         writeIfChanged(STRICT_GSON.toJson(settings) + "\n", existing);
     }
 
@@ -89,9 +95,38 @@ final class ZedProjectSettings {
         }
     }
 
-    private static JsonObject findOrCreateSchemasParent(JsonObject settings) {
+    private static boolean mergeSchemas(JsonObject settings, JSONArray schemas) {
+        JsonObject schemasParent = findOrCreateObject(settings, SCHEMAS_PARENT_PATH);
+        if (schemasParent == null) {
+            return false;
+        }
+        schemasParent.add(SCHEMAS_KEY, JsonParser.parseString(schemas.toString()));
+        return true;
+    }
+
+    private static boolean mergeJsoncFileType(JsonObject settings) {
+        JsonObject fileTypes = findOrCreateObject(settings, FILE_TYPES_PATH);
+        if (fileTypes == null) {
+            return false;
+        }
+        JsonElement jsoncGlobs = fileTypes.get(JSONC_LANGUAGE);
+        if (jsoncGlobs == null || jsoncGlobs.isJsonNull()) {
+            jsoncGlobs = new JsonArray();
+            fileTypes.add(JSONC_LANGUAGE, jsoncGlobs);
+        }
+        if (!jsoncGlobs.isJsonArray()) {
+            return false;
+        }
+        JsonPrimitive jsonExtension = new JsonPrimitive(JSON_EXTENSION);
+        if (!jsoncGlobs.getAsJsonArray().contains(jsonExtension)) {
+            jsoncGlobs.getAsJsonArray().add(jsonExtension);
+        }
+        return true;
+    }
+
+    private static JsonObject findOrCreateObject(JsonObject settings, List<String> path) {
         JsonObject current = settings;
-        for (String key : SCHEMAS_PARENT_PATH) {
+        for (String key : path) {
             JsonElement child = current.get(key);
             if (child == null || child.isJsonNull()) {
                 child = new JsonObject();

@@ -8,6 +8,8 @@ import com.volmit.hunk.Hunk;
 import com.volmit.mantle.Mantle;
 import com.volmit.object.ObjectTransformer;
 import com.volmit.placement.PlacementContext;
+import com.volmit.placement.PlacementTerrain;
+import java.util.Optional;
 import com.volmit.world.TerrainSampler;
 import com.volmit.world.BlockView;
 import com.volmit.world.PackWorld;
@@ -52,6 +54,7 @@ public final class TestContexts {
             public TerrainSampler terrain() { throw new AssertionError("Unused terrain"); }
             public FeatureSettings settings() { return settings; }
             public Mantle mantle() { return mantle; }
+            public PlacementTerrain placementTerrain() { throw new AssertionError("Unused placement terrain"); }
         };
     }
 
@@ -69,6 +72,8 @@ public final class TestContexts {
                 if (blocks == null) throw new AssertionError("Unused blocks");
                 return blocks;
             }
+            public PlacementTerrain placementTerrain() { throw new AssertionError("Unused placement terrain"); }
+            public <T> Optional<T> input(Class<T> type) { return Optional.empty(); }
         };
     }
 

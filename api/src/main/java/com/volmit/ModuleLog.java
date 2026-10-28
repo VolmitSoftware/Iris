@@ -10,9 +10,13 @@ package com.volmit;
  */
 public interface ModuleLog {
     /** Detail for people debugging the module. The host writes it only when its debug setting is on, so building the
-     * message costs time even when nobody reads it: guard a message that is expensive to build, or leave it out.
+     * message costs time even when nobody reads it: guard a message that is expensive to build with {@link #debugging()},
+     * or leave it out.
      */
     void debug(String message);
+
+    /** Whether {@link #debug} lines are written now, so a module can skip building them, or skip work done only to trace. */
+    boolean debugging();
 
     /** Something worth telling the server owner once in a while, such as what the module did at startup. */
     void info(String message);

@@ -18,6 +18,7 @@ import com.volmit.object.GeneratedObject;
 import com.volmit.object.ObjectBlock;
 import com.volmit.placement.PlacedBlock;
 import com.volmit.placement.PlacementEdit;
+import com.volmit.placement.PlacementOutcome;
 import com.volmit.placement.PlacementRequest;
 import com.volmit.resource.ResourceId;
 import com.volmit.stage.BlockStageContext;

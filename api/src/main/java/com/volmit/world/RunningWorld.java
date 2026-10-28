@@ -35,6 +35,12 @@ public interface RunningWorld {
      */
     List<BlockPosition> caveFloors(int chunkX, int chunkZ);
 
+    /** The placement a module recorded at the block when it generated it
+     * ({@link com.volmit.placement.PlacementTerrain#recordPlacement}); empty when none was, or when the block's chunk
+     * keeps no generation data any more. Y is the height above the dimension's bottom.
+     */
+    Optional<String> placementAt(int worldX, int y, int worldZ);
+
     /** The time and weather of the world; empty while the platform has not loaded the world. */
     Optional<Sky> sky();
 

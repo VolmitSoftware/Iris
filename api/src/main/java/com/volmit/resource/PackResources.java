@@ -6,6 +6,7 @@ import com.volmit.noise.NoiseFactory;
 import com.volmit.noise.PackExpression;
 import com.volmit.noise.PackImageMap;
 import com.volmit.object.GeneratedObject;
+import com.volmit.object.PackObjects;
 import com.volmit.world.PackBiome;
 import com.volmit.world.PackRegion;
 import java.util.List;
@@ -46,6 +47,9 @@ public interface PackResources {
 
     /** Builds the noise of the {@link com.volmit.noise.NoiseStyle}s the pack's settings describe. */
     NoiseFactory noise();
+
+    /** The pack's objects ready to place, their scaled variants, and the objects modules build. */
+    PackObjects objects();
 
     /** The resource of {@code kind} the pack has under {@code id}; empty when it has none. */
     <T> Optional<T> find(ResourceKind<T> kind, ResourceId id);

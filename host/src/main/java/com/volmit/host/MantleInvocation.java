@@ -5,6 +5,7 @@ import com.volmit.config.FeatureSettings;
 import com.volmit.config.SettingsStack;
 import com.volmit.generation.MantleGenerationContext;
 import com.volmit.mantle.Mantle;
+import com.volmit.placement.PlacementTerrain;
 import com.volmit.random.WorldRandom;
 import com.volmit.world.PackWorld;
 import com.volmit.stage.MantleStageContext;
@@ -60,6 +61,11 @@ final class MantleInvocation implements MantleStageContext {
     @Override
     public Mantle mantle() {
         return inputs.mantle();
+    }
+
+    @Override
+    public PlacementTerrain placementTerrain() {
+        return inputs.placementTerrain();
     }
 
     @Override

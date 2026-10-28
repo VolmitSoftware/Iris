@@ -1,6 +1,7 @@
 package com.volmit.config;
 
 import com.volmit.IrisFeature;
+import com.volmit.resource.PackResources;
 import java.util.Optional;
 
 /** Every settings declaration of the pack the host is loading, for what depends on the whole pack rather
@@ -15,6 +16,9 @@ public interface PackSettings {
      * empty when nothing declares it.
      */
     <F extends IrisFeature> SettingsStack<F> declared(Class<F> featureType);
+
+    /** The pack snapshot the settings were read from, such as for a reach that depends on the size of the pack's objects. */
+    PackResources resources();
 
     /**
      * What the host offers for the pack it is loading beyond the API, as an object of {@code type}: empty when it offers

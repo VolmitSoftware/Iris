@@ -10,6 +10,7 @@ import com.volmit.config.PackSettings;
 import com.volmit.generation.GenerationContext;
 import com.volmit.hunk.Hunk;
 import com.volmit.mantle.Mantle;
+import com.volmit.placement.Placements;
 import com.volmit.random.WorldRandom;
 import com.volmit.resource.PackResources;
 import com.volmit.resource.ResourceId;
@@ -88,6 +89,7 @@ class ExtensionsTest {
         public PackSettings settings() { throw new AssertionError("Unused settings"); }
         public int minWorldY() { return 0; }
         public Optional<RunningWorld> running() { return Optional.empty(); }
+        public Placements placements() { throw new AssertionError("Unused placements"); }
         public <T> T state(Class<T> type, Function<? super PackWorld, ? extends T> create) { return states.state(type, () -> create.apply(this)); }
         public ModuleLog log() { return ModuleLogs.discarding(); }
 

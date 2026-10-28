@@ -2,6 +2,7 @@ package com.volmit.host;
 
 import com.volmit.ModuleLog;
 import com.volmit.config.PackSettings;
+import com.volmit.placement.Placements;
 import com.volmit.resource.PackResources;
 import com.volmit.resource.ResourceId;
 import com.volmit.world.PackWorld;
@@ -59,6 +60,11 @@ final class ModuleWorld implements PackWorld {
     @Override
     public Optional<RunningWorld> running() {
         return world.running();
+    }
+
+    @Override
+    public Placements placements() {
+        return world.placements();
     }
 
     @Override

@@ -1,9 +1,9 @@
-package com.volmit.host;
+package com.volmit.placement;
 
 import java.util.Objects;
 import java.util.Optional;
 
-/** Result of one placement attempt. A rejected attempt committed nothing. */
+/** Result of one placement attempt ({@link Placements#place}). A rejected attempt committed nothing. */
 public record PlacementOutcome(Status status, Optional<String> rejection) {
     public enum Status { PLACED, REJECTED }
 
@@ -15,11 +15,12 @@ public record PlacementOutcome(Status status, Optional<String> rejection) {
         }
     }
 
-    static PlacementOutcome placed() {
+    public static PlacementOutcome placed() {
         return new PlacementOutcome(Status.PLACED, Optional.empty());
     }
 
-    static PlacementOutcome rejected(String reason) {
+    /** Rejected with the reason the stage gave, such as {@code slope}. */
+    public static PlacementOutcome rejected(String reason) {
         return new PlacementOutcome(Status.REJECTED, Optional.of(reason));
     }
 

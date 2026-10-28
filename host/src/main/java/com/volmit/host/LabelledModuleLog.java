@@ -21,10 +21,15 @@ final class LabelledModuleLog implements ModuleLog {
 
     @Override
     public void debug(String message) {
-        if (!logger.isLoggable(Level.DEBUG)) {
+        if (!debugging()) {
             return;
         }
         logger.log(Level.DEBUG, label + message);
+    }
+
+    @Override
+    public boolean debugging() {
+        return logger.isLoggable(Level.DEBUG);
     }
 
     @Override

@@ -3,6 +3,7 @@ package com.volmit.generation;
 import com.volmit.config.FeatureSettings;
 import com.volmit.geometry.BlockBox;
 import com.volmit.mantle.Mantle;
+import com.volmit.placement.PlacementTerrain;
 import com.volmit.world.PackWorld;
 import com.volmit.world.TerrainSampler;
 import java.lang.reflect.Proxy;
@@ -33,6 +34,7 @@ class ChunkContextTest {
             public TerrainSampler terrain() { return terrain; }
             public FeatureSettings settings() { throw new AssertionError("Unused settings"); }
             public Mantle mantle() { throw new AssertionError("Unused mantle"); }
+            public PlacementTerrain placementTerrain() { throw new AssertionError("Unused placement terrain"); }
         };
     }
 

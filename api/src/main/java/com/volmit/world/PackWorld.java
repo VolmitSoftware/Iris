@@ -2,6 +2,7 @@ package com.volmit.world;
 
 import com.volmit.ModuleLog;
 import com.volmit.config.PackSettings;
+import com.volmit.placement.Placements;
 import com.volmit.resource.PackResources;
 import com.volmit.resource.ResourceId;
 import java.util.Optional;
@@ -64,6 +65,9 @@ public interface PackWorld {
      * stopped, asking for state throws IllegalStateException.
      */
     <T> T state(Class<T> type, Function<? super PackWorld, ? extends T> create);
+
+    /** Runs the pack's placement stages for the objects a module places in this world. */
+    Placements placements();
 
     /** The log of the module this world was handed to: every service call, lifecycle hook and stage body gets a view of
      * the world whose log is that module's own, so a line is labelled with the module that wrote it.

@@ -7,6 +7,7 @@ import com.volmit.config.SettingsStack;
 import com.volmit.host.ModuleLogs;
 import com.volmit.host.WorldStates;
 import com.volmit.random.WorldRandom;
+import com.volmit.placement.Placements;
 import com.volmit.resource.PackResources;
 import com.volmit.resource.ResourceId;
 import com.volmit.world.PackWorld;
@@ -49,6 +50,10 @@ public final class TestWorld implements PackWorld, AutoCloseable {
             public <F extends IrisFeature> SettingsStack<F> declared(Class<F> featureType) {
                 return SettingsStack.empty();
             }
+
+            public PackResources resources() {
+                return TestWorld.this.resources();
+            }
         };
     }
 
@@ -60,6 +65,11 @@ public final class TestWorld implements PackWorld, AutoCloseable {
     @Override
     public Optional<RunningWorld> running() {
         return Optional.empty();
+    }
+
+    @Override
+    public Placements placements() {
+        throw new AssertionError("Unused placements");
     }
 
     @Override

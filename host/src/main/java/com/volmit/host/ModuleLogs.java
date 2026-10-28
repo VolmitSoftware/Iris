@@ -31,6 +31,11 @@ public final class ModuleLogs {
         }
 
         @Override
+        public boolean debugging() {
+            return false;
+        }
+
+        @Override
         public void info(String message) {
         }
 

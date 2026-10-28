@@ -11,6 +11,11 @@ import java.util.Optional;
  * <p>Two ways to get a state: {@link #resolve(BlockSpec)} reads a block the way packs write it (a custom block of the
  * pack, a backup, never failing), {@link #find(String)} asks the platform for exactly one block. Both answer complete
  * states, with every property the platform gives the block, like the states the host hands out; compare against those.
+ *
+ * <p>A content plugin's block ({@link BlockTrait#CUSTOM}) has the key of the block it is drawn as. The host knows it by
+ * the state instance it handed out, from this registry or from a block it read, so pass that instance on as it is, and
+ * change it through {@link #withProperty}, {@link #rotate} and {@link #merge}: a state built from the key is the plain
+ * block.
  */
 public interface BlockRegistry {
     /** The state {@code spec} names, resolved the way packs expect, so it never throws for a block the platform lacks:
@@ -55,4 +60,27 @@ public interface BlockRegistry {
      * decoration, such as a flower on grass but not on stone. Only the kinds of block count, not their properties.
      */
     boolean canPlaceOn(BlockState state, BlockState below);
+
+    /**
+     * {@code state} turned with an object: every direction the block faces (its facing, axis, connections, or the
+     * sixteen directions of a sign) is moved by {@code turn}, as the platform turns stairs, logs, walls and wires. A
+     * block without directions comes back unchanged; air when the block cannot face the way it is turned.
+     */
+    BlockState rotate(BlockState state, BlockTurn turn);
+
+    /** {@code update} laid over {@code base}: the platform's merge of two states of one block, such as the sides of a
+     * fence, wall or pane; {@code update} when the platform does not merge them.
+     */
+    BlockState merge(BlockState base, BlockState update);
+
+    /** {@code state} with the property {@code name} set to {@code value}, as the platform sets it. Unlike
+     * {@link BlockState#withProperty} it keeps a content plugin's block itself ({@link BlockTrait#CUSTOM}): such a block
+     * shares its key with the block it is drawn as, so only the state instance the registry handed out knows it.
+     */
+    BlockState withProperty(BlockState state, String name, String value);
+
+    /** Whether {@code state} matches {@code pattern} as the platform compares them: the same block, and every property
+     * {@code pattern} sets equal.
+     */
+    boolean matches(BlockState state, BlockState pattern);
 }

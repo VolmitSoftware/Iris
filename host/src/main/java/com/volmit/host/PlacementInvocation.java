@@ -8,6 +8,7 @@ import com.volmit.object.ObjectTransformer;
 import com.volmit.placement.PlacementAccess;
 import com.volmit.placement.PlacementContext;
 import com.volmit.placement.PlacementRequest;
+import com.volmit.placement.PlacementTerrain;
 import com.volmit.random.WorldRandom;
 import com.volmit.world.PackWorld;
 import com.volmit.stage.BlockStageContext;
@@ -147,6 +148,16 @@ final class PlacementInvocation implements BlockStageContext {
     @Override
     public BlockView blocks() {
         return inputs.blocks();
+    }
+
+    @Override
+    public PlacementTerrain placementTerrain() {
+        return inputs.placementTerrain();
+    }
+
+    @Override
+    public <T> Optional<T> input(Class<T> type) {
+        return inputs.input(type);
     }
 
     private void requireBlockPass() {

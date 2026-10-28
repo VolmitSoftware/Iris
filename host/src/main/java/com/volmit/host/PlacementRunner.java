@@ -2,6 +2,7 @@ package com.volmit.host;
 
 import com.volmit.placement.PlacementContext;
 import com.volmit.placement.PlacementEdit;
+import com.volmit.placement.PlacementOutcome;
 import com.volmit.placement.PlacementRequest;
 import com.volmit.stage.Pipeline;
 import java.util.Objects;

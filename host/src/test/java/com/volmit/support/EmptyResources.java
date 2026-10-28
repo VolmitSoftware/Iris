@@ -3,6 +3,7 @@ package com.volmit.support;
 import com.volmit.block.BlockRegistry;
 import com.volmit.item.ItemRegistry;
 import com.volmit.noise.NoiseFactory;
+import com.volmit.object.PackObjects;
 import com.volmit.resource.PackResources;
 import com.volmit.resource.ResourceId;
 import com.volmit.resource.ResourceKind;
@@ -37,6 +38,11 @@ public final class EmptyResources implements PackResources {
     @Override
     public NoiseFactory noise() {
         throw new AssertionError("Unused noise");
+    }
+
+    @Override
+    public PackObjects objects() {
+        throw new AssertionError("Unused objects");
     }
 
     @Override

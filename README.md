@@ -260,6 +260,39 @@ PackBiome dunes = resources.require(PackResources.BIOMES, resources.idOf("desert
 Resource kind example:castle/keep of module example:castle from modules/castle.jar reads folder 'biomes', which the host reads itself; give the kind a folder of its own
 ```
 
+## Placing objects
+
+A module that places objects itself, such as the objects of a biome or a growing tree, takes them from the pack's
+objects and places them through the pack's placement stages, so every module's placement stages (anchoring, stilts,
+snow) run for them as they do for any placement:
+
+```java
+PackObjects objects = world.resources().objects();
+PlaceableObject tower = objects.object(world.resources().idOf("towers/north")).orElseThrow();
+PlaceableObject large = objects.scaled(tower, 2, ScaleMethod.TRILINEAR);       // kept per pack snapshot
+
+PlacementTerrain terrain = context.placementTerrain();                          // in a mantle stage
+PlacementRun run = new PlacementRun(new PlacementRequest(large.geometry(), anchor), area, terrain, mySettings, seed);
+PlacementOutcome outcome = world.placements().place(run);
+if (!outcome.isPlaced()) {
+    context.log().debug("tower rejected: " + outcome.rejection().orElseThrow());
+}
+```
+
+- `PackObjects` gives an object of the pack by id, its size without loading it (`sizeOf`, for a reach), a scaled or
+  smart-bored copy, and objects a module builds block by block (`build`). The host keeps them per pack snapshot.
+- `PlacementTerrain` is the world the placement reads and the host writes into once it commits: heights, blocks,
+  carved space, fluid, the structures nearby and the placement recorded at a block (`recordPlacement`, `placementAt`;
+  `RunningWorld.placementAt` reads it back later, such as for the loot of a placed object). A module may wrap it to hold
+  or filter writes; a mantle stage gets one for its invocation from `MantleGenerationContext.placementTerrain()`.
+- `input` is what the module hands its own placement stages (`PlacementContext.input(type)`); other modules' stages do
+  not know its type. The area bounds what the placement may write, widened by the reach of the pack's placement stages.
+- A placement commits whole or not at all: blocks, then markers, and only when no stage rejected and none threw.
+- A rotated object turns its blocks with `BlockRegistry.rotate(state, turn)`: the `BlockTurn` says where the rotation
+  moves a direction, and the platform turns the state's facing, axis or rotation to the nearest it has. `merge`,
+  `withProperty` and `matches` change and compare states the way the platform does, and the `STORAGE` trait tells a
+  container that holds items, such as for loot.
+
 ## Validators
 
 A module checks the pack for problems it cares about with a `Validator`. The host runs every validator of the
@@ -348,7 +381,8 @@ private static void decorate(ChunkStageContext context) {
 
 | Method | Use |
 | --- | --- |
-| `debug(message)` | Detail for people debugging the module. Written only when the host's debug setting is on. Building the message still costs, so keep it cheap or guard it. |
+| `debug(message)` | Detail for people debugging the module. Written only when the host's debug setting is on. Building the message still costs, so keep it cheap or guard it with `debugging()`. |
+| `debugging()` | Whether `debug` writes anything now: the guard for a message that is costly to build. |
 | `info(message)` | What a server owner may want to see once, such as what the module did at startup. |
 | `warn(message)` | Something is wrong or unusual and the module carries on. |
 | `warnOnce(key, message)` | `warn` the first time the key is used on this module's log, `debug` every time after. For a condition met per block or per chunk. Keys belong to the module, so another module's identical key does not hide yours; keep the key space small (a biome name, never a coordinate). |

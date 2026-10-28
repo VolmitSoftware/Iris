@@ -438,6 +438,14 @@ are ordered only by the tie-break, so they are where two modules can silently co
 
 ## Placement attempts
 
+A module places an object through the pack's placement graph with `PackWorld.placements().place(PlacementRun)`; the
+host runs `PlacementRunner` over an edit that buffers into the run's `PlacementTerrain`, and returns the API
+`PlacementOutcome`. One service, one request and one outcome: the run carries the object, the area, the terrain, the
+placing module's own input and the seed, and nothing names a host. The terrain is an interface so a module can hold
+writes (an island that only accepts blocks over itself, a cave that keeps an object inside it) and commit or drop them
+as one; the host's terrain for a mantle invocation is `MantleGenerationContext.placementTerrain()`. Objects come from
+`PackResources.objects()` (`PackObjects`), which loads, scales and builds them per pack snapshot.
+
 `PlacementRunner.place(request, edit, inputs, invocationSeed, settings, timings)` owns the edit. It runs active stages in
 order, stops after the current stage or block once a stage calls `reject(reason)`, commits only
 when nothing rejected or threw, and closes the edit in every case. A producer that rejects may
@@ -1229,11 +1237,11 @@ A module jar sees three things besides the JDK and its own pack's jars, and noth
    question, and none hands out an engine.
 
 **The extension point.** A built-in reaches its facade through one door: `PackWorld.extension(type)` for what belongs to
-a world (the object system, spawner cooldowns Iris persists), `InvocationContext.extension(type)` for what belongs to one invocation (the
-platform chunk Iris generates, the placement being attempted), and `PackSettings.extension(type)` for what is worked out
+a world (Iris's legacy random streams, spawner cooldowns Iris persists), `InvocationContext.extension(type)` for what belongs to one invocation (the
+platform chunk Iris generates), and `PackSettings.extension(type)` for what is worked out
 from a pack's settings before any world exists (how far a feature reaches). Each returns an `Optional`, empty by default,
 so a host offers what it has and a module states what it requires:
-`world.extension(ObjectHost.class).orElseThrow()`. Why one door:
+`world.extension(LegacyStreams.class).orElseThrow()`. Why one door:
 
 - **No thread-locals.** Facades used to be bound to the current thread (`IrisChunk.current()`, `ObjectPlacement.current()`),
   which only worked while the host's own code had bound them and broke silently on another thread. The context a stage
@@ -1252,7 +1260,7 @@ Iris's own built-ins hold to this at compile time: IrisModule is a build of its 
 `com.volmit:iris-api`, VolmLib, Gson and the JDK, never `iris-host` or Iris, and its jar passes `ModuleJarCheck`
 before Iris bundles it. Iris depends on IrisModule, not the reverse. What the built-ins cannot do through the API they
 ask through the facades of item 3, which Iris implements; the classes that need Iris itself (the layout model, the
-structure placer behind `StructureHost`, the object placers behind `ObjectHost`) are Iris's and live there.
+structure placer behind `StructureHost`) are Iris's and live there.
 
 ### Iris extensions, with the reason each is not api yet
 
@@ -1264,18 +1272,20 @@ API now: `world.running()`, `world.seed(purpose)`, `TerrainSampler`, `FeatureSet
 - **`MatterMantle`** (invocation). Carve plans its caves as VolmLib matter slices (`MatterCavern`, markers) that Iris and the
   platform read back as slices. The API mantle has typed layers but no cavern layer; it goes when carve writes a layer the
   API defines and Iris reads that instead.
-- **`ObjectHost`** (world). Iris's object system: loading and scaling a pack's objects, picking one by density, placing it
-  through Iris's placers, and the loot of what was placed. Objects are named by the string keys placements hold, and the API
-  has no object model. It goes when the API describes a placeable object and its placement.
-- **`ObjectPlacement`** with `ObjectShape`, `PlacementSettings` and `PlacementTerrain` (invocation). The object being placed,
-  read from the module's own `objects.ObjectPlacement` settings, and the terrain questions of Iris's placers (carved, structure volumes, the object
-  already at a block). Its surface noise (`PlaneNoise`, `SurfaceWarp`) is Iris's own simplex and warp with a cache, which no
-  API noise reproduces value for value, so existing worlds would move. It goes with `ObjectHost`.
+- **`LegacyStreams`** (world). Iris's object chunk random, and the noise of a placement's density style and virtual
+  heightmap, which decide where existing worlds have their objects and which no API noise reproduces value for value. It
+  goes when a world format change lets object placing draw from stage streams and API noise.
+- **`objects.ObjectRun`** (the input of a placement run, `PlacementRun.input`). The object and the module's own
+  `objects.ObjectPlacement` settings that Iris's built-in placement stages read, and what they report back (the anchor
+  height, which written blocks are the object's). Iris reads it in two places: for the placement-level module settings of
+  the run, and when Iris places an object itself (its studio and commands, the jigsaw placer). It goes when those settings
+  are part of the run the API describes and Iris no longer places objects itself.
 - **`FloatingHost`** (world). Island height comes from Iris's biome generators and island tops are painted by Iris's biome
-  palettes, which the API layout does not describe; its object placing goes through `ObjectHost`.
-- **`StructureHost`** (world). Iris's structure assembler, locator and placer. The structure model (structures, pools,
-  pieces) is `iris:structure`'s own resource kinds, which Iris registers with its own modules because its jigsaw studio
-  reads them. Its surface is already API vocabulary; it goes when the placer can write through the API.
+  palettes, which the API layout does not describe. Its objects are placed through `PackWorld.placements()`.
+- **`StructureHost`** (world). Iris's structure assembler, locator and placer, and the loot tables of a structure for the
+  loot of its pieces. The structure model (structures, pools, pieces) is `iris:structure`'s own resource kinds, which Iris
+  registers with its own modules because its jigsaw studio reads them. Its surface is already API vocabulary; it goes when
+  the placer can write through the API.
 - **`spawn.SpawnCooldowns`** (world). Spawner cooldowns Iris saves with a world's engine data, so they survive a restart; API
   per-world state is in memory only. It goes when the API can persist per-world state.
 - **Random parameters (`RNG`) in these facades and `loot.LootResolver`**. They are the legacy streams existing worlds were

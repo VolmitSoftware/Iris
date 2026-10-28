@@ -345,6 +345,7 @@ success = "Einstellungen und Sprache {locale} wurden neu geladen."
 failed = "Die Einstellungen wurden neu geladen, aber die Sprache {locale} wurde abgelehnt; {activeLocale} bleibt aktiv."
 
 [iris.modded.help]
+"entry.command.hotload_studio" = "Das geöffnete Studio-Pack für neu generiertes Gelände neu laden"
 unknown_section = "Unbekannter Iris-Hilfeabschnitt: {section}"
 back_hover = "Zurück zum {parent}."
 command_parameter = "Befehlsparameter"
@@ -642,6 +643,9 @@ placed_pieces_at_your_location = "§a'{structure}' ({value} Teile) an deiner Pos
 placement_changed_no_blocks = "§cStructure '{structure}' assembled {value} pieces but changed 0 blocks at your location. Check that the selected variants contain non-air blocks and that the placement is above the world's minimum height."
 
 [iris.bukkit.commandstudio]
+hotloading = "§eStudio wird im laufenden Betrieb neu geladen..."
+hotloaded = "§aStudio wurde im laufenden Betrieb neu geladen."
+hotload_failed = "§cFehler beim Neuladen von Studio: {value}"
 importing_vanilla_content_into = "§aInhalte aus vanilla werden in §f{value}§a importiert..."
 importvanilla_complete_objects_structures_written_failed = "§aimportvanilla abgeschlossen: §f{imported}§a objects/structures geschrieben, §f{failed}§a fehlgeschlagen."
 trees_objects_are_under_objects_vanilla_reference_them_from_biome = "§7Bäume und Objekte liegen unter objects/vanilla/...; referenziere sie in den Objektplatzierungen eines Bioms."
@@ -1018,6 +1022,9 @@ place_failed_partial_changes_recorded_undo = "Platzierung fehlgeschlagen: {value
 placed_pieces_write_s_at_your_location_iris_object_undo = "'{key}' an deiner Position platziert ({value} Teile, {value2} Schreibvorgänge{tileNote}). Mit /iris object undo kannst du die Platzierung rückgängig machen."
 
 [iris.modded.moddedstudiocommands]
+studio_hotload_complete = "Studio wurde im laufenden Betrieb neu geladen."
+studio_hotload_busy = "Studio prüft sein Pack bereits oder lädt es neu. Versuche es erneut, sobald der Vorgang abgeschlossen ist."
+studio_hotload_failed = "Fehler beim Neuladen von Studio{errorMessage}"
 provide_dimension_pack_iris_studio_open_pack_seed = "Gib ein Dimensions-Pack an: /iris studio open <pack> [seed]"
 opening_noise_explorer_on_server_display = "Noise Explorer wird auf dem Serverbildschirm geöffnet."
 this_dimension_is_not_generated_by_iris_run_iris_studio = "Diese Dimension wird nicht von Iris generiert. Führe /iris studio noise in einer Iris-Dimension aus, um Generatoren aufzulösen, oder lasse den Generatornamen weg."
@@ -1274,6 +1281,7 @@ replace_installed_types = "Installierte Packs: {value}"
 "param.iris_structure_key_place" = "Der Irisstrukturschlüssel zum Platzieren"
 
 [iris.director.commandstudio]
+"director.hotload_active_studio_pack" = "Aktives Studio-Pack im laufenden Betrieb neu laden"
 "director.studio_commands" = "Studio-Befehle"
 "director.open_new_studio_world" = "Eröffne eine neue Studiowelt"
 "param.dimension_pack_open_studio" = "Dimensions-Pack, für das ein Studio geöffnet werden soll"

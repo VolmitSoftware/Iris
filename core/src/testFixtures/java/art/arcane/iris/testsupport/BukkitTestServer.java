@@ -1,6 +1,7 @@
 package art.arcane.iris.testsupport;
 
 
+import io.papermc.paper.InternalAPIBridge;
 import io.papermc.paper.registry.RegistryAccess;
 import io.papermc.paper.registry.RegistryKey;
 import net.kyori.adventure.key.Key;
@@ -16,6 +17,7 @@ import org.bukkit.plugin.PluginManager;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
+import org.mockito.MockedStatic;
 import org.mockito.invocation.InvocationOnMock;
 
 import java.lang.reflect.Proxy;
@@ -30,6 +32,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.RETURNS_DEFAULTS;
 
 public final class BukkitTestServer {
@@ -37,6 +40,7 @@ public final class BukkitTestServer {
     private static final String DEFAULT_VERSION = "1.0";
     private static final Object LOCK = new Object();
     private static volatile Server installed;
+    private static volatile boolean registriesInitialized;
 
     private BukkitTestServer() {
     }
@@ -79,6 +83,36 @@ public final class BukkitTestServer {
 
             installed = server;
             return server;
+        }
+    }
+
+    public static void initializeRegistries() {
+        if (registriesInitialized) {
+            return;
+        }
+
+        synchronized (LOCK) {
+            if (registriesInitialized) {
+                return;
+            }
+
+            install();
+            RegistryAccess access = registryAccess();
+            InternalAPIBridge bridge = mock(InternalAPIBridge.class, invocation ->
+                    invocation.getMethod().getName().equals("constructLegacyCustomBiome")
+                            ? biome(Key.key("minecraft:custom"))
+                            : RETURNS_DEFAULTS.answer(invocation));
+            try (MockedStatic<RegistryAccess> registries = mockStatic(RegistryAccess.class);
+                 MockedStatic<InternalAPIBridge> internals = mockStatic(InternalAPIBridge.class)) {
+                registries.when(RegistryAccess::registryAccess).thenReturn(access);
+                internals.when(InternalAPIBridge::get).thenReturn(bridge);
+                ClassLoader loader = BukkitTestServer.class.getClassLoader();
+                Class.forName(Registry.class.getName(), true, loader);
+                Class.forName(Biome.class.getName(), true, loader);
+            } catch (ClassNotFoundException e) {
+                throw new IllegalStateException("Bukkit registries are missing from the test classpath", e);
+            }
+            registriesInitialized = true;
         }
     }
 

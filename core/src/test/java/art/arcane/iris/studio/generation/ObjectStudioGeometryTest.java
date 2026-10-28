@@ -14,14 +14,7 @@ import art.arcane.iris.world.IrisWorld;
 import art.arcane.iris.generation.block.TileData;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.geometry.IrisBlockVector;
-import art.arcane.iris.world.storage.matter.PreObjectMatterTest;
 import art.arcane.volmlib.util.collection.KMap;
-import io.papermc.paper.InternalAPIBridge;
-import io.papermc.paper.registry.RegistryAccess;
-import net.kyori.adventure.key.Key;
-import org.bukkit.NamespacedKey;
-import org.bukkit.Registry;
-import org.bukkit.block.Biome;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
@@ -34,7 +27,6 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.lang.reflect.Constructor;
-import java.lang.reflect.Proxy;
 import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.List;
@@ -48,7 +40,6 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.RETURNS_DEFAULTS;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
@@ -60,23 +51,8 @@ public class ObjectStudioGeometryTest {
 
     @BeforeClass
     public static void initializeBukkit() throws Exception {
-        PreObjectMatterTest.setUpBukkit();
-        RegistryAccess access = BukkitTestServer.registryAccess();
-        InternalAPIBridge bridge = mock(InternalAPIBridge.class, invocation -> {
-            if (invocation.getMethod().getName().equals("constructLegacyCustomBiome")) {
-                return biome(Key.key("minecraft:custom"));
-            }
-            return RETURNS_DEFAULTS.answer(invocation);
-        });
-        try (MockedStatic<RegistryAccess> registries = mockStatic(RegistryAccess.class);
-             MockedStatic<InternalAPIBridge> internals = mockStatic(InternalAPIBridge.class)) {
-            registries.when(RegistryAccess::registryAccess).thenReturn(access);
-            internals.when(InternalAPIBridge::get).thenReturn(bridge);
-            ClassLoader loader = ObjectStudioGenerator.class.getClassLoader();
-            Class.forName(Registry.class.getName(), true, loader);
-            Class.forName(Biome.class.getName(), true, loader);
-            Class.forName(ObjectStudioGenerator.class.getName(), true, loader);
-        }
+        BukkitTestServer.initializeRegistries();
+        Class.forName(ObjectStudioGenerator.class.getName(), true, ObjectStudioGenerator.class.getClassLoader());
     }
 
 
@@ -281,18 +257,6 @@ public class ObjectStudioGeometryTest {
             assertEquals(-1, input.read());
             return new SerializedObject(width, height, depth, blocks, tiles);
         }
-    }
-
-    private static Biome biome(Key key) {
-        NamespacedKey namespaced = new NamespacedKey(key.namespace(), key.value());
-        return (Biome) Proxy.newProxyInstance(Biome.class.getClassLoader(), new Class<?>[]{Biome.class},
-                (proxy, method, arguments) -> switch (method.getName()) {
-                    case "getKey" -> namespaced;
-                    case "hashCode" -> namespaced.hashCode();
-                    case "equals" -> proxy == arguments[0];
-                    case "toString", "name" -> key.value();
-                    default -> null;
-                });
     }
 
     private record Position(int x, int y, int z) {

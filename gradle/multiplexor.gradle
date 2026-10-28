@@ -34,8 +34,7 @@ project.ext.multiplexor = [
 ]
 
 gradle.projectsEvaluated {
-    File bukkitSource = tasks.named('jar', Jar).get().archiveFile.get().asFile
-    File bukkitArtifact = new File(bukkitSource.parentFile, bukkitSource.name.replaceFirst(/\.jar$/, '-packed.jar'))
+    File bukkitArtifact = tasks.named('packedJar').get().outputJar.get().asFile
     File apiArtifact = tasks.named('irisApi', GenerateApiTask).get().outputFile.locationOnly.get().asFile
     File spiArtifact = project(':spi').tasks.named('jar', Jar).get().archiveFile.locationOnly.get().asFile
     buildTargets.addAll([

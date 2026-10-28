@@ -44,6 +44,8 @@ public interface PlatformChunkGenerator extends Hotloadable, DataProvider {
 
     void close();
 
+    CompletableFuture<Void> hotloadAsync();
+
     default CompletableFuture<Void> closeAsync() {
         close();
         return CompletableFuture.completedFuture(null);

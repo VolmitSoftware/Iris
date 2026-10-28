@@ -123,6 +123,33 @@ public final class ModdedStudioHotloadService implements ModdedTickableService, 
         watches.clear();
     }
 
+    public CompletableFuture<Boolean> requestHotload(String dimensionId, Engine engine) {
+        if (!dimensionId.startsWith(STUDIO_DIMENSION_PREFIX) || !engine.isStudio()) {
+            return CompletableFuture.failedFuture(new IllegalArgumentException("Only Studio worlds can be hotloaded."));
+        }
+        ExecutorService active = executor;
+        if (active == null || active.isShutdown()) {
+            return CompletableFuture.failedFuture(new IllegalStateException("Iris Studio hotload is unavailable."));
+        }
+        Watch watch = watches.computeIfAbsent(dimensionId, (String key) -> new Watch());
+        if (!watch.busy.compareAndSet(false, true)) {
+            return CompletableFuture.completedFuture(false);
+        }
+        try {
+            return CompletableFuture.supplyAsync(() -> {
+                try {
+                    hotload(dimensionId, engine);
+                    return true;
+                } finally {
+                    watch.busy.set(false);
+                }
+            }, active);
+        } catch (RejectedExecutionException rejected) {
+            watch.busy.set(false);
+            return CompletableFuture.failedFuture(rejected);
+        }
+    }
+
     @Override
     public void refreshWorkspace(Engine engine) {
         writeWorkspace(engine, "workspace refresh");
@@ -254,7 +281,7 @@ public final class ModdedStudioHotloadService implements ModdedTickableService, 
             try {
                 active.execute(() -> {
                     try {
-                        poll(dimensionId, watch, generator, engine);
+                        poll(dimensionId, watch, engine);
                     } finally {
                         watch.busy.set(false);
                     }
@@ -332,14 +359,14 @@ public final class ModdedStudioHotloadService implements ModdedTickableService, 
         return isPregeneratorActive(engine);
     }
 
-    private void poll(String dimensionId, Watch watch, IrisModdedChunkGenerator generator, Engine engine) {
+    private void poll(String dimensionId, Watch watch, Engine engine) {
         try {
             if (watch.engine != engine) {
                 watch.close();
                 watch.engine = engine;
                 watch.folder = new ReactiveFolder(
                         engine.getData().getDataFolder(),
-                        (KList<File> created, KList<File> changed, KList<File> deleted) -> hotload(dimensionId, generator, engine),
+                        (KList<File> created, KList<File> changed, KList<File> deleted) -> hotload(dimensionId, engine),
                         new KList<>(".iob", ".json"),
                         new KList<>(".iris"),
                         new KList<>());
@@ -354,12 +381,12 @@ public final class ModdedStudioHotloadService implements ModdedTickableService, 
         }
     }
 
-    private void hotload(String dimensionId, IrisModdedChunkGenerator generator, Engine engine) {
-        if (engine.isClosed()) {
-            return;
-        }
+    private void hotload(String dimensionId, Engine engine) {
         long start = System.currentTimeMillis();
         try {
+            if (engine.isClosed() || engine.isClosing()) {
+                throw new IllegalStateException("The Studio world is closing or closed.");
+            }
             engine.hotloadSilently();
             ModdedIrisLog.info("Iris studio hotload {} pack={} {}ms", dimensionId, engine.getDimension().getLoadKey(), System.currentTimeMillis() - start);
         } catch (Throwable e) {

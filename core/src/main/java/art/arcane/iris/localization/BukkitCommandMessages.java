@@ -138,6 +138,18 @@ public final class BukkitCommandMessages {
             "iris.bukkit.commandstudio.closing_studio",
             C.YELLOW + "Closing studio..."
     );
+    public static final TextKey COMMAND_STUDIO_HOTLOADING = TextKey.of(
+            "iris.bukkit.commandstudio.hotloading",
+            C.YELLOW + "Hotloading Studio..."
+    );
+    public static final TextKey COMMAND_STUDIO_HOTLOADED = TextKey.of(
+            "iris.bukkit.commandstudio.hotloaded",
+            C.GREEN + "Studio hotloaded."
+    );
+    public static final TextKey COMMAND_STUDIO_HOTLOAD_FAILED = TextKey.of(
+            "iris.bukkit.commandstudio.hotload_failed",
+            C.RED + "Studio hotload failed: {value}"
+    );
     public static final TextKey COMMAND_STUDIO_STUDIO_CLOSE_FAILED = TextKey.of(
             "iris.bukkit.commandstudio.studio_close_failed",
             C.RED + "Studio close failed: " + "{value}"
@@ -317,6 +329,9 @@ public final class BukkitCommandMessages {
             COMMAND_STUDIO_TREES_OBJECTS_ARE_UNDER_OBJECTS_VANILLA_REFERENCE_THEM_FROM_BIOME,
             COMMAND_STUDIO_NO_OPEN_STUDIO_PROJECTS,
             COMMAND_STUDIO_CLOSING_STUDIO,
+            COMMAND_STUDIO_HOTLOADING,
+            COMMAND_STUDIO_HOTLOADED,
+            COMMAND_STUDIO_HOTLOAD_FAILED,
             COMMAND_STUDIO_STUDIO_CLOSE_FAILED,
             COMMAND_STUDIO_STUDIO_CLOSE_FAILED_2,
             COMMAND_STUDIO_STUDIO_CLOSED_REMAINING_WORLD_FAMILY_CLEANUP_WAS_QUEUED_STARTUP_FALLBACK,

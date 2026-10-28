@@ -10,6 +10,7 @@ import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.generation.terrain.IrisRegion;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.pack.loading.ResourceLoader;
+import art.arcane.iris.testsupport.BukkitTestServer;
 import art.arcane.iris.world.IrisWorld;
 import art.arcane.iris.world.history.GenerationHistoryRuntimeRouter;
 import art.arcane.volmlib.nativelib.terrain.NativeBiomeRegistry;
@@ -17,6 +18,7 @@ import art.arcane.volmlib.nativelib.terrain.NativeBiomeSourcePolicy;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.stream.ProceduralStream;
 import art.arcane.volmlib.util.stream.interpolation.Interpolated;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.lang.reflect.Field;
@@ -35,6 +37,11 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class BukkitBiomeLocateTest {
+    @BeforeClass
+    public static void initializeBukkit() {
+        BukkitTestServer.initializeRegistries();
+    }
+
     @Test
     public void locateResolvesVisibleBiomesOnlyInColumnsThatCanHoldTheTarget() throws Exception {
         IrisBiome isles = new IrisBiome().setCustomDerivitives(new KList<>(new IrisBiomeCustom().setId("mirage")));

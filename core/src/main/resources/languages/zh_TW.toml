@@ -348,6 +348,7 @@ success = "設定和語言 {locale} 已重新載入。"
 failed = "設定已重新載入，但語言 {locale} 驗證失敗；繼續使用 {activeLocale}。"
 
 [iris.modded.help]
+"entry.command.hotload_studio" = "重新載入已開啟的 Studio 套件，套用至之後生成的地形"
 unknown_section = "未知的 Iris 說明章節：{section}"
 back_hover = "返回 {parent}。"
 command_parameter = "命令參數"
@@ -645,6 +646,9 @@ placed_pieces_at_your_location = "§a已放置 '{structure}' ({value}在您的�
 placement_changed_no_blocks = "§cStructure '{structure}' assembled {value} pieces but changed 0 blocks at your location. Check that the selected variants contain non-air blocks and that the placement is above the world's minimum height."
 
 [iris.bukkit.commandstudio]
+hotloading = "§e正在熱重載 Studio..."
+hotloaded = "§aStudio 熱重載完成。"
+hotload_failed = "§cStudio 熱重載失敗: {value}"
 importing_vanilla_content_into = "§a正在將原版內容匯入 §f{value}§a..."
 importvanilla_complete_objects_structures_written_failed = "§a原版內容匯入完成：已寫入 §f{imported}§a 個 objects/structures，§f{failed}§a 個失敗。"
 trees_objects_are_under_objects_vanilla_reference_them_from_biome = "§7樹木和物件位於 objects/vanilla/...；請從生態域的物件放置中引用它們。"
@@ -1021,6 +1025,9 @@ place_failed_partial_changes_recorded_undo = "位置失敗 : {value} (部分更�
 placed_pieces_write_s_at_your_location_iris_object_undo = "已放置 '{key}' ({value}塊,{value2}寫入{tileNote}在你的地點。 /iris object undo將返回。"
 
 [iris.modded.moddedstudiocommands]
+studio_hotload_complete = "Studio 熱重載完成。"
+studio_hotload_busy = "Studio 正在檢查或熱重載其套件，請在完成後重試。"
+studio_hotload_failed = "Studio 熱重載失敗{errorMessage}"
 provide_dimension_pack_iris_studio_open_pack_seed = "提供一個維度包: /iris studio open <pack> [seed]"
 opening_noise_explorer_on_server_display = "在伺服器顯示上開啟噪音探索器 。"
 this_dimension_is_not_generated_by_iris_run_iris_studio = "此維度不是由 Iris; 執行 /iris studio noise 從 a Iris 以解析生成器,或省略生成器名稱。"
@@ -1277,6 +1284,7 @@ replace_installed_types = "已安裝的包：{value}"
 "param.iris_structure_key_place" = "要放置的Iris結構鍵"
 
 [iris.director.commandstudio]
+"director.hotload_active_studio_pack" = "熱重載目前啟用的 Studio 套件"
 "director.studio_commands" = "Studio 命令"
 "director.open_new_studio_world" = "開啟新的 Studio 世界"
 "param.dimension_pack_open_studio" = "要在 Studio 中開啟的維度包"

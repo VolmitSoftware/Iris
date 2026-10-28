@@ -725,6 +725,10 @@ public final class DirectorCommandMessages {
             "iris.director.commandstudio.param.dimension_open_vscode",
             "The dimension to open VSCode for"
     );
+    public static final TextKey COMMAND_STUDIO_DIRECTOR_HOTLOAD_ACTIVE_STUDIO_PACK = TextKey.of(
+            "iris.director.commandstudio.director.hotload_active_studio_pack",
+            "Hotload the active Studio pack"
+    );
     public static final TextKey COMMAND_STUDIO_DIRECTOR_CLOSE_OPEN_STUDIO_PROJECT = TextKey.of(
             "iris.director.commandstudio.director.close_open_studio_project",
             "Close an open studio project"
@@ -1058,6 +1062,7 @@ public final class DirectorCommandMessages {
             COMMAND_STUDIO_DIRECTOR_OPEN_VSCODE_DIMENSION,
             COMMAND_STUDIO_PARAM_DIMENSION_OPEN_VSCODE,
             COMMAND_STUDIO_DIRECTOR_CLOSE_OPEN_STUDIO_PROJECT,
+            COMMAND_STUDIO_DIRECTOR_HOTLOAD_ACTIVE_STUDIO_PACK,
             COMMAND_STUDIO_DIRECTOR_TOGGLE_YOUR_STUDIO_DEBUG_SCOREBOARD,
             COMMAND_STUDIO_DIRECTOR_CREATE_NEW_STUDIO_PROJECT,
             COMMAND_STUDIO_PARAM_NAME_THIS_NEW_IRIS_PROJECT,

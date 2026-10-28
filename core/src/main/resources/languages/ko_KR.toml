@@ -348,6 +348,7 @@ success = "설정과 {locale} 언어를 다시 불러왔습니다."
 failed = "설정은 다시 불러왔지만 {locale} 언어가 거부되어 {activeLocale}을 계속 사용합니다."
 
 [iris.modded.help]
+"entry.command.hotload_studio" = "열려 있는 Studio 팩을 다시 불러와 새로 생성되는 지형에 적용"
 unknown_section = "알 수 없는 Iris 도움말 섹션: {section}"
 back_hover = "{parent}(으)로 돌아갑니다."
 command_parameter = "명령어 매개변수"
@@ -645,6 +646,9 @@ placed_pieces_at_your_location = "§a장소 '{structure}' ({value} 당신의 위
 placement_changed_no_blocks = "§cStructure '{structure}' assembled {value} pieces but changed 0 blocks at your location. Check that the selected variants contain non-air blocks and that the placement is above the world's minimum height."
 
 [iris.bukkit.commandstudio]
+hotloading = "§eStudio 핫 리로드 중..."
+hotloaded = "§aStudio 핫 리로드가 완료되었습니다."
+hotload_failed = "§cStudio 핫 리로드 실패: {value}"
 importing_vanilla_content_into = "§avanilla 콘텐츠 가져 오기 §f{value}§a..."
 importvanilla_complete_objects_structures_written_failed = "§aimportvanilla 완전한: §f{imported}§a  objects/structures 작성, §f{failed}§a 실패."
 trees_objects_are_under_objects_vanilla_reference_them_from_biome = "§7나무/부대는 아래에 있습니다 objects/vanilla/...; biome 객체 배치에서 참조."
@@ -1021,6 +1025,9 @@ place_failed_partial_changes_recorded_undo = "장소 실패: {value} (불행의 
 placed_pieces_write_s_at_your_location_iris_object_undo = "장소 '{key}' ({value} 조각, {value2} 쓰기(s){tileNote}) 귀하의 위치에.  /iris object undo 뒤로."
 
 [iris.modded.moddedstudiocommands]
+studio_hotload_complete = "Studio 핫 리로드가 완료되었습니다."
+studio_hotload_busy = "Studio가 이미 팩을 확인하거나 핫 리로드하고 있습니다. 완료된 후 다시 시도하세요."
+studio_hotload_failed = "Studio 핫 리로드 실패{errorMessage}"
 provide_dimension_pack_iris_studio_open_pack_seed = "차원 팩을 제공: /iris studio open <pack> [seed]"
 opening_noise_explorer_on_server_display = "서버 디스플레이에서 소음 탐험 공구를 엽니다."
 this_dimension_is_not_generated_by_iris_run_iris_studio = "이 차원은 Iris가 생성하지 않았습니다. 생성기를 확인하려면 Iris 차원에서 /iris studio noise를 실행하거나 생성기 이름을 생략하세요."
@@ -1277,6 +1284,7 @@ replace_installed_types = "설치된 팩: {value}"
 "param.iris_structure_key_place" = "배치할 Iris 구조물 키"
 
 [iris.director.commandstudio]
+"director.hotload_active_studio_pack" = "활성 Studio 팩 핫 리로드"
 "director.studio_commands" = "Studio 명령어"
 "director.open_new_studio_world" = "새 Studio 월드를 엽니다"
 "param.dimension_pack_open_studio" = "Studio를 열 차원 팩"

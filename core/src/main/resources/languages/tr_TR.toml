@@ -350,6 +350,7 @@ success = "Ayarlar ve {locale} dili yeniden yüklendi."
 failed = "Ayarlar yeniden yüklendi, ancak {locale} dili reddedildi; {activeLocale} kullanılmaya devam ediliyor."
 
 [iris.modded.help]
+"entry.command.hotload_studio" = "Yeni oluşturulacak arazi için açık Studio paketini yeniden yükle"
 unknown_section = "Bilinmeyen Iris Yardım bölümü: {section}"
 back_hover = "Geri dön {parent}."
 command_parameter = "Komut parametresi"
@@ -647,6 +648,9 @@ placed_pieces_at_your_location = "§ayerleştirildi ‘{structure}' ({value} par
 placement_changed_no_blocks = "§cStructure '{structure}' assembled {value} pieces but changed 0 blocks at your location. Check that the selected variants contain non-air blocks and that the placement is above the world's minimum height."
 
 [iris.bukkit.commandstudio]
+hotloading = "§eStudio yeniden yükleniyor..."
+hotloaded = "§aStudio yeniden yüklendi."
+hotload_failed = "§cStudio yeniden yüklenemedi: {value}"
 importing_vanilla_content_into = "§avanilla içeriği ithal etmek §f{value}§a..."
 importvanilla_complete_objects_structures_written_failed = "§aimportvanilla tamamlandı: §f{imported}§a  objects/structures yazılı, §f{failed}§a başarısız oldu."
 trees_objects_are_under_objects_vanilla_reference_them_from_biome = "§7Ağaçlar/objects altında objects/vanilla/...Onlara biyome nesne yerleştirmelerinden atıfta bulun."
@@ -1023,6 +1027,9 @@ place_failed_partial_changes_recorded_undo = "Yer başarısız oldu: {value} (Re
 placed_pieces_write_s_at_your_location_iris_object_undo = "yerleştirildi ‘{key}' ({value} parçalar, {value2} Yaz(s){tileNote}) Senin konumunuzda.  /iris object undo iptal etmek için."
 
 [iris.modded.moddedstudiocommands]
+studio_hotload_complete = "Studio yeniden yüklendi."
+studio_hotload_busy = "Studio paketini zaten denetliyor veya yeniden yüklüyor. İşlem tamamlandıktan sonra tekrar deneyin."
+studio_hotload_failed = "Studio yeniden yüklenemedi{errorMessage}"
 provide_dimension_pack_iris_studio_open_pack_seed = "Bir boyut paketi sağlayın: /iris studio open <pack> [seed]"
 opening_noise_explorer_on_server_display = "Gürültü Explorer'ı sunucu ekranında açın."
 this_dimension_is_not_generated_by_iris_run_iris_studio = "Bu boyut tarafından oluşturulmuyor Iris; koşmak /iris studio noise Birinden Iris Jeneratörleri çözmek için boyut veya jeneratör adını omit."
@@ -1279,6 +1286,7 @@ replace_installed_types = "Yüklü paketler: {value}"
 "param.iris_structure_key_place" = "iris yapı anahtarı yer için"
 
 [iris.director.commandstudio]
+"director.hotload_active_studio_pack" = "Etkin Studio paketini yeniden yükle"
 "director.studio_commands" = "Stüdyo Komutları"
 "director.open_new_studio_world" = "Yeni bir stüdyo dünyası açın"
 "param.dimension_pack_open_studio" = "Bir stüdyo açmak için boyut paketi"

@@ -345,6 +345,7 @@ success = "De instellingen en taal {locale} zijn opnieuw geladen."
 failed = "De instellingen zijn opnieuw geladen, maar taal {locale} is geweigerd; {activeLocale} blijft actief."
 
 [iris.modded.help]
+"entry.command.hotload_studio" = "Het geopende Studio-pakket opnieuw laden voor nieuw gegenereerd terrein"
 unknown_section = "Onbekend Iris help sectie: {section}"
 back_hover = "Terug naar {parent}."
 command_parameter = "Opdrachtparameter"
@@ -642,6 +643,9 @@ placed_pieces_at_your_location = "§aGeplaatst '{structure}' ({value} stukken) o
 placement_changed_no_blocks = "§cStructure '{structure}' assembled {value} pieces but changed 0 blocks at your location. Check that the selected variants contain non-air blocks and that the placement is above the world's minimum height."
 
 [iris.bukkit.commandstudio]
+hotloading = "§eStudio wordt opnieuw geladen..."
+hotloaded = "§aStudio is opnieuw geladen."
+hotload_failed = "§cOpnieuw laden van Studio mislukt: {value}"
 importing_vanilla_content_into = "§aImporteren vanilla-inhoud in §f{value}§a..."
 importvanilla_complete_objects_structures_written_failed = "§aimportvanilla voltooid: §f{imported}§a  objects/structures schriftelijk, §f{failed}§a mislukt."
 trees_objects_are_under_objects_vanilla_reference_them_from_biome = "§7Bomen/objecten onder objects/vanilla/...; referentie van biome object plaatsingen."
@@ -1018,6 +1022,9 @@ place_failed_partial_changes_recorded_undo = "Plaats mislukt: {value} (gedeeltel
 placed_pieces_write_s_at_your_location_iris_object_undo = "Geplaatst '{key}' ({value} stukken, {value2} schrijven(s){tileNote}) op uw locatie.  /iris object undo om terug te keren."
 
 [iris.modded.moddedstudiocommands]
+studio_hotload_complete = "Studio is opnieuw geladen."
+studio_hotload_busy = "Studio controleert of herlaadt het pakket al. Probeer het opnieuw zodra dit klaar is."
+studio_hotload_failed = "Opnieuw laden van Studio mislukt{errorMessage}"
 provide_dimension_pack_iris_studio_open_pack_seed = "Geef een maatpakket: /iris studio open <pack> [seed]"
 opening_noise_explorer_on_server_display = "Het openen van de Noise Explorer op het serverscherm."
 this_dimension_is_not_generated_by_iris_run_iris_studio = "Deze dimensie wordt niet gegenereerd door Iris; rennen /iris studio noise van een Iris dimensie om generatoren op te lossen, of de naam van de generator weg te laten."
@@ -1274,6 +1281,7 @@ replace_installed_types = "Geïnstalleerde packs: {value}"
 "param.iris_structure_key_place" = "De iris structuur sleutel om te plaatsen"
 
 [iris.director.commandstudio]
+"director.hotload_active_studio_pack" = "Het actieve Studio-pakket opnieuw laden"
 "director.studio_commands" = "Studio-opdrachten"
 "director.open_new_studio_world" = "Open een nieuwe studio wereld"
 "param.dimension_pack_open_studio" = "Het dimensiepakket om een studio te openen voor"

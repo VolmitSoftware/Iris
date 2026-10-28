@@ -350,6 +350,7 @@ success = "ההגדרות והשפה {locale} נטענו מחדש."
 failed = "ההגדרות נטענו מחדש, אך השפה {locale} נדחתה; ממשיכים עם {activeLocale}."
 
 [iris.modded.help]
+"entry.command.hotload_studio" = "טעינה מחדש של חבילת Studio הפתוחה עבור שטח שייווצר בהמשך"
 unknown_section = "לא ידוע Iris עזרה סעיף: {section}"
 back_hover = "חזרה {parent}."
 command_parameter = "פרמטר פיקוד"
@@ -647,6 +648,9 @@ placed_pieces_at_your_location = "§aמקום \"{structure}' ({value} חתיכו
 placement_changed_no_blocks = "§cStructure '{structure}' assembled {value} pieces but changed 0 blocks at your location. Check that the selected variants contain non-air blocks and that the placement is above the world's minimum height."
 
 [iris.bukkit.commandstudio]
+hotloading = "§eטוען מחדש את Studio..."
+hotloaded = "§aStudio נטען מחדש."
+hotload_failed = "§cהטעינה מחדש של Studio נכשלה: {value}"
 importing_vanilla_content_into = "§aייבוא תוכן vanilla §f{value}§a..."
 importvanilla_complete_objects_structures_written_failed = "§aייבוא: §f{imported}§a  objects/structures כתוב, §f{failed}§a נכשל."
 trees_objects_are_under_objects_vanilla_reference_them_from_biome = "§7עצים/אובייקטים נמצאים תחת objects/vanilla/...; יש להפנות אליהם ממיקומי אובייקטים של biome."
@@ -1023,6 +1027,9 @@ place_failed_partial_changes_recorded_undo = "המקום נכשל: {value} (שי
 placed_pieces_write_s_at_your_location_iris_object_undo = "מקום \"{key}' ({value} חתיכות, {value2} תגית(s){tileNote}) במיקום שלך.  /iris object undo לחזור."
 
 [iris.modded.moddedstudiocommands]
+studio_hotload_complete = "Studio נטען מחדש."
+studio_hotload_busy = "Studio כבר בודק או טוען מחדש את החבילה שלו. יש לנסות שוב לאחר סיום הפעולה."
+studio_hotload_failed = "הטעינה מחדש של Studio נכשלה{errorMessage}"
 provide_dimension_pack_iris_studio_open_pack_seed = "לספק ערכת מימד: /iris studio open <pack> [seed]"
 opening_noise_explorer_on_server_display = "פתח את כלי חיפוש רעש בתצוגת השרת."
 this_dimension_is_not_generated_by_iris_run_iris_studio = "מימד זה אינו נוצר על ידי Irisלרוץ /iris studio noise מתוך A Iris ממד כדי לפתור גנרטורים, או להמיט את שם הגנרטור."
@@ -1279,6 +1286,7 @@ replace_installed_types = "חבילות מותקנות: {value}"
 "param.iris_structure_key_place" = "מפתח המבנה של iris"
 
 [iris.director.commandstudio]
+"director.hotload_active_studio_pack" = "טעינה מחדש של חבילת Studio הפעילה"
 "director.studio_commands" = "פיקוד סטודיו"
 "director.open_new_studio_world" = "פתח עולם אולפן חדש"
 "param.dimension_pack_open_studio" = "חבילת המימד לפתוח סטודיו"

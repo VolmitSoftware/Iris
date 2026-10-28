@@ -242,6 +242,10 @@ public final class ModdedHelpMessages {
             "iris.modded.help.entry.command.status_studio",
             "Show the open studio dimension and its pack"
     );
+    public static final TextKey COMMAND_HOTLOAD_REFRESH_THE_OPEN_STUDIO = TextKey.of(
+            "iris.modded.help.entry.command.hotload_studio",
+            "Reload the open Studio pack for newly generated terrain"
+    );
     public static final TextKey COMMAND_NOISE_OPEN_THE_NOISE_EXPLORER_GUI_ON_THE_SERVER_DISPLAY = TextKey.of(
             "iris.modded.help.entry.command.noise",
             "Open the Noise Explorer GUI on the server display"
@@ -479,6 +483,7 @@ public final class ModdedHelpMessages {
             COMMAND_CLOSE_CLOSE_THE_OPEN_STUDIO_DIMENSION_AND_DISCARD_ITS_WORLD,
             COMMAND_TPSTUDIO_TELEPORT_INTO_THE_OPEN_STUDIO_DIMENSION,
             COMMAND_STATUS_SHOW_THE_OPEN_STUDIO_DIMENSION_AND_ITS_PACK,
+            COMMAND_HOTLOAD_REFRESH_THE_OPEN_STUDIO,
             COMMAND_NOISE_OPEN_THE_NOISE_EXPLORER_GUI_ON_THE_SERVER_DISPLAY,
             COMMAND_MAP_OPEN_THE_VISION_MAP_GUI_ON_THE_SERVER_DISPLAY,
             COMMAND_VSCODE_REGENERATE_THE_CODE_WORKSPACE_FOR_A_PACK_AND_OPEN_IT_IN_YOUR,

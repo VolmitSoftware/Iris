@@ -350,6 +350,7 @@ success = "Asetukset ja kieli {locale} ladattiin uudelleen."
 failed = "Asetukset ladattiin uudelleen, mutta kieli {locale} hylättiin; jatketaan kielen {activeLocale} käyttöä."
 
 [iris.modded.help]
+"entry.command.hotload_studio" = "Lataa avoin Studio-paketti uudelleen uutta maastoa varten"
 unknown_section = "Tuntematon Iris Tukiosa: {section}"
 back_hover = "Palaa {parent}."
 command_parameter = "Komentoparametri"
@@ -647,6 +648,9 @@ placed_pieces_at_your_location = "§aPaikka{structure}' ({value} Palaset) sijain
 placement_changed_no_blocks = "§cStructure '{structure}' assembled {value} pieces but changed 0 blocks at your location. Check that the selected variants contain non-air blocks and that the placement is above the world's minimum height."
 
 [iris.bukkit.commandstudio]
+hotloading = "§eLadataan Studiota uudelleen..."
+hotloaded = "§aStudio ladattu uudelleen."
+hotload_failed = "§cStudion uudelleenlataus epäonnistui: {value}"
 importing_vanilla_content_into = "§aVanillapitoisuuden tuominen §f{value}§a..."
 importvanilla_complete_objects_structures_written_failed = "§atuontivanilja valmis: §f{imported}§a  objects/structures kirjallinen §f{failed}§a Epäonnistui."
 trees_objects_are_under_objects_vanilla_reference_them_from_biome = "§7Puut/objektit ovat objects/vanilla/...; viite ne biome objektisijoituksista."
@@ -1023,6 +1027,9 @@ place_failed_partial_changes_recorded_undo = "Paikka epäonnistui: {value} (osit
 placed_pieces_write_s_at_your_location_iris_object_undo = "Paikka{key}' ({value} palat, {value2} kirjoita(s){tileNote}) sijaintinne.  /iris object undo Palauttaa."
 
 [iris.modded.moddedstudiocommands]
+studio_hotload_complete = "Studio ladattu uudelleen."
+studio_hotload_busy = "Studio tarkistaa tai lataa pakettiaan jo uudelleen. Yritä uudelleen, kun toiminto on valmis."
+studio_hotload_failed = "Studion uudelleenlataus epäonnistui{errorMessage}"
 provide_dimension_pack_iris_studio_open_pack_seed = "Antakaa mittapaketti: /iris studio open <pack> [seed]"
 opening_noise_explorer_on_server_display = "Avataan Melu Explorer palvelimen näytöllä."
 this_dimension_is_not_generated_by_iris_run_iris_studio = "Tämä ulottuvuus ei synny Iris; juokse /iris studio noise alkaen Iris ulottuvuus ratkaista generaattoreita, tai jättää generaattorin nimi."
@@ -1279,6 +1286,7 @@ replace_installed_types = "Asennetut paketit: {value}"
 "param.iris_structure_key_place" = "Iris rakenne avain sijoittaa"
 
 [iris.director.commandstudio]
+"director.hotload_active_studio_pack" = "Lataa aktiivinen Studio-paketti uudelleen"
 "director.studio_commands" = "Studiokomennot"
 "director.open_new_studio_world" = "Avaa uusi studiomaailma"
 "param.dimension_pack_open_studio" = "Ulottuvuuspaketti studion avaamiseksi"

@@ -345,6 +345,7 @@ success = "Les paramètres et la langue {locale} ont été rechargés."
 failed = "Les paramètres ont été rechargés, mais la langue {locale} a été refusée ; la langue {activeLocale} reste utilisée."
 
 [iris.modded.help]
+"entry.command.hotload_studio" = "Recharger le pack Studio ouvert pour les terrains générés ensuite"
 unknown_section = "Section d'aide Iris inconnue : {section}"
 back_hover = "Revenir à {parent}."
 command_parameter = "Paramètre de commande"
@@ -642,6 +643,9 @@ placed_pieces_at_your_location = "§aLa structure '{structure}' ({value} pièces
 placement_changed_no_blocks = "§cStructure '{structure}' assembled {value} pieces but changed 0 blocks at your location. Check that the selected variants contain non-air blocks and that the placement is above the world's minimum height."
 
 [iris.bukkit.commandstudio]
+hotloading = "§eRechargement à chaud de Studio..."
+hotloaded = "§aStudio rechargé à chaud."
+hotload_failed = "§cÉchec du rechargement à chaud de Studio: {value}"
 importing_vanilla_content_into = "§aImportation du contenu vanilla dans §f{value}§a..."
 importvanilla_complete_objects_structures_written_failed = "§aimportvanilla terminé : §f{imported}§a objects/structures écrits, §f{failed}§a échecs."
 trees_objects_are_under_objects_vanilla_reference_them_from_biome = "§7Les arbres/objets se trouvent dans objects/vanilla/... ; référencez-les depuis les placements d'objets du biome."
@@ -1018,6 +1022,9 @@ place_failed_partial_changes_recorded_undo = "Lieu échoué: {value} (variations
 placed_pieces_write_s_at_your_location_iris_object_undo = "'{key}' placé ({value} pièces, {value2} écriture(s){tileNote}) à votre position. Utilisez /iris object undo pour annuler."
 
 [iris.modded.moddedstudiocommands]
+studio_hotload_complete = "Studio rechargé à chaud."
+studio_hotload_busy = "Studio vérifie ou recharge déjà son pack. Réessayez une fois l’opération terminée."
+studio_hotload_failed = "Échec du rechargement à chaud de Studio{errorMessage}"
 provide_dimension_pack_iris_studio_open_pack_seed = "Indiquez un pack de dimension : /iris studio open <pack> [seed]"
 opening_noise_explorer_on_server_display = "Ouverture de Noise Explorer sur l'écran du serveur."
 this_dimension_is_not_generated_by_iris_run_iris_studio = "Cette dimension n'est pas générée par Iris ; exécutez /iris studio noise depuis une dimension Iris pour résoudre les générateurs, ou omettez le nom du générateur."
@@ -1274,6 +1281,7 @@ replace_installed_types = "Packs installés : {value}"
 "param.iris_structure_key_place" = "La clé de la structure Iris à placer"
 
 [iris.director.commandstudio]
+"director.hotload_active_studio_pack" = "Recharger à chaud le pack Studio actif"
 "director.studio_commands" = "Commandes Studio"
 "director.open_new_studio_world" = "Ouvrir un nouveau monde Studio"
 "param.dimension_pack_open_studio" = "Le pack de dimension pour lequel ouvrir Studio"

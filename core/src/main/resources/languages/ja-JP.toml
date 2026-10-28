@@ -348,6 +348,7 @@ success = "設定と言語 {locale} を再読み込みしました。"
 failed = "設定は再読み込みされましたが、言語 {locale} は拒否されました。引き続き {activeLocale} を使用します。"
 
 [iris.modded.help]
+"entry.command.hotload_studio" = "開いている Studio パックを再読み込みし、これから生成される地形に適用"
 unknown_section = "不明な Iris ヘルプセクション: {section}"
 back_hover = "{parent} に戻ります。"
 command_parameter = "コマンドパラメーター"
@@ -645,6 +646,9 @@ placed_pieces_at_your_location = "§a現在位置に '{structure}'（{value} ピ
 placement_changed_no_blocks = "§cStructure '{structure}' assembled {value} pieces but changed 0 blocks at your location. Check that the selected variants contain non-air blocks and that the placement is above the world's minimum height."
 
 [iris.bukkit.commandstudio]
+hotloading = "§eStudio をホットリロード中..."
+hotloaded = "§aStudio のホットリロードが完了しました。"
+hotload_failed = "§cStudio のホットリロードに失敗しました: {value}"
 importing_vanilla_content_into = "§aバニラコンテンツを §f{value}§a にインポートしています..."
 importvanilla_complete_objects_structures_written_failed = "§aimportvanilla 完了: §f{imported}§a 件を objects/structures に書き込み、§f{failed}§a 件が失敗しました。"
 trees_objects_are_under_objects_vanilla_reference_them_from_biome = "§7木やオブジェクトは objects/vanilla/... にあります。バイオームのオブジェクト配置から参照してください。"
@@ -1021,6 +1025,9 @@ place_failed_partial_changes_recorded_undo = "配置に失敗しました: {valu
 placed_pieces_write_s_at_your_location_iris_object_undo = "現在位置に '{key}' を配置しました（{value} ピース、書き込み {value2}{tileNote}）。元に戻すには /iris object undo を実行してください。"
 
 [iris.modded.moddedstudiocommands]
+studio_hotload_complete = "Studio のホットリロードが完了しました。"
+studio_hotload_busy = "Studio はすでにパックを確認中またはホットリロード中です。完了してから再試行してください。"
+studio_hotload_failed = "Studio のホットリロードに失敗しました{errorMessage}"
 provide_dimension_pack_iris_studio_open_pack_seed = "ディメンションパックを指定してください: /iris studio open <pack> [seed]"
 opening_noise_explorer_on_server_display = "サーバー画面でノイズエクスプローラーを開いています。"
 this_dimension_is_not_generated_by_iris_run_iris_studio = "このディメンションは Iris によって生成されていません。ジェネレーターを解決するには Iris ディメンション内で /iris studio noise を実行するか、ジェネレーター名を省略してください。"
@@ -1277,6 +1284,7 @@ replace_installed_types = "インストール済みのパック: {value}"
 "param.iris_structure_key_place" = "配置する Iris 構造物キー"
 
 [iris.director.commandstudio]
+"director.hotload_active_studio_pack" = "アクティブな Studio パックをホットリロード"
 "director.studio_commands" = "スタジオコマンド"
 "director.open_new_studio_world" = "新しいスタジオワールドを開きます"
 "param.dimension_pack_open_studio" = "スタジオを開くディメンションパック"

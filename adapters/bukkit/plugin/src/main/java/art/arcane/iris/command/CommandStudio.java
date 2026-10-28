@@ -104,6 +104,7 @@ import java.util.function.Consumer;
 import art.arcane.iris.localization.IrisLanguage;
 import art.arcane.iris.localization.BukkitCommandMessages;
 import art.arcane.volmlib.util.localization.MessageArgument;
+import art.arcane.volmlib.util.localization.LanguageAudience;
 import art.arcane.iris.localization.BukkitCommandMessagesExtended;
 @Director(name = "studio", aliases = {"std", "s"}, description = "Studio Commands", descriptionKey = "iris.director.commandstudio.director.studio_commands")
 public class CommandStudio implements DirectorExecutor {
@@ -201,6 +202,22 @@ public class CommandStudio implements DirectorExecutor {
 
             commandSender.sendMessage(IrisLanguage.text(BukkitCommandMessages.COMMAND_STUDIO_STUDIO_CLOSED));
         }));
+    }
+
+    @Director(description = "Hotload the active Studio pack", descriptionKey = "iris.director.commandstudio.director.hotload_active_studio_pack", aliases = {"refresh"}, origin = DirectorOrigin.BOTH)
+    public void hotload() {
+        VolmitSender commandSender = sender();
+        IrisProject project = Iris.service(StudioSVC.class).getActiveProject();
+        PlatformChunkGenerator generator = project == null ? null : project.getActiveProvider();
+        if (generator == null) {
+            commandSender.sendMessage(IrisLanguage.text(BukkitCommandMessages.COMMAND_STUDIO_NO_OPEN_STUDIO_PROJECTS));
+            return;
+        }
+
+        UUID audience = LanguageAudience.current();
+        commandSender.sendMessage(IrisLanguage.text(BukkitCommandMessages.COMMAND_STUDIO_HOTLOADING));
+        generator.hotloadAsync().whenComplete((ignored, failure) ->
+                LanguageAudience.run(audience, () -> sendHotloadResult(commandSender, failure)));
     }
 
     @Director(description = "Toggle your Studio debug scoreboard", descriptionKey = "iris.director.commandstudio.director.toggle_your_studio_debug_scoreboard", aliases = {"board", "sidebar", "sb"}, origin = DirectorOrigin.PLAYER)
@@ -640,6 +657,16 @@ public class CommandStudio implements DirectorExecutor {
         }
 
         sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_STUDIO_DONE, MessageArgument.untrusted("value", report.getPath())));
+    }
+
+    private void sendHotloadResult(VolmitSender commandSender, Throwable failure) {
+        if (failure != null) {
+            Iris.reportError(failure);
+            commandSender.sendMessage(IrisLanguage.text(BukkitCommandMessages.COMMAND_STUDIO_HOTLOAD_FAILED,
+                    MessageArgument.untrusted("value", String.valueOf(failure.getMessage()))));
+            return;
+        }
+        commandSender.sendMessage(IrisLanguage.text(BukkitCommandMessages.COMMAND_STUDIO_HOTLOADED));
     }
 
     private PlatformChunkGenerator resolveProfileGenerator(IrisDimension dimension) {

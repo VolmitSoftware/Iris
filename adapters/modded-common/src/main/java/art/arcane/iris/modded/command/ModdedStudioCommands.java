@@ -49,6 +49,7 @@ import art.arcane.iris.modded.ModdedDimensionManager;
 import art.arcane.iris.modded.ModdedEngineBootstrap;
 import art.arcane.iris.modded.ModdedScheduler;
 import art.arcane.iris.modded.ModdedWorkspaceGenerator;
+import art.arcane.iris.modded.service.ModdedStudioHotloadService;
 import art.arcane.iris.generation.concurrent.BurstExecutor;
 import art.arcane.iris.generation.concurrent.MultiBurst;
 import art.arcane.volmlib.util.collection.KMap;
@@ -85,6 +86,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
@@ -92,6 +94,7 @@ import java.util.stream.Stream;
 
 import art.arcane.iris.localization.IrisLanguage;
 import art.arcane.iris.modded.localization.ModdedCommandMessages;
+import art.arcane.volmlib.util.localization.LanguageAudience;
 import art.arcane.volmlib.util.localization.MessageArgument;
 public final class ModdedStudioCommands {
     private static final Predicate<NativeCommandSource> GATE = NativeCommandRegistration.GAMEMASTERS;
@@ -152,6 +155,10 @@ public final class ModdedStudioCommands {
                 .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> tpStudio(context.getSource()))));
         root.then(NativeCommandRegistration.literal("status")
                 .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> status(context.getSource()))));
+        root.then(NativeCommandRegistration.literal("hotload")
+                .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> hotload(context.getSource()))));
+        root.then(NativeCommandRegistration.literal("refresh")
+                .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> hotload(context.getSource()))));
         root.then(workspaceTree("vscode", true));
         root.then(workspaceTree("vsc", true));
         root.then(workspaceTree("update", false));
@@ -651,6 +658,72 @@ public final class ModdedStudioCommands {
             }
         });
         return transition;
+    }
+
+    private static int hotload(NativeCommandSource source) {
+        NativeProtocolPlayer player = source.player();
+        NativeModdedServer server = source.server();
+        UUID owner = player == null ? CONSOLE_OWNER : player.id();
+        UUID audience = source.playerId();
+        Executor feedback = task -> server.execute(() -> LanguageAudience.run(audience, task));
+        CompletableFuture<Void> transition = TRANSITIONS.submit(owner, () -> hotloadTransition(source, owner, feedback));
+        transition.whenComplete((ignored, failure) -> {
+            if (failure == null) {
+                return;
+            }
+            Throwable cause = unwrapFailure(failure);
+            ModdedIrisLog.error("Iris Studio hotload command failed", cause);
+            feedback.execute(() -> IrisModdedCommands.fail(source, IrisLanguage.plain(
+                    ModdedCommandMessages.MODDED_STUDIO_COMMANDS_STUDIO_HOTLOAD_FAILED,
+                    MessageArgument.trusted("errorMessage", IrisLanguage.errorDetail(cause)))));
+        });
+        return 1;
+    }
+
+    private static CompletableFuture<Void> hotloadTransition(
+            NativeCommandSource source,
+            UUID owner,
+            Executor feedback
+    ) {
+        return CompletableFuture.supplyAsync(() -> hotloadStudio(source, owner, feedback), feedback)
+                .thenCompose(request -> request);
+    }
+
+    private static CompletableFuture<Void> hotloadStudio(
+            NativeCommandSource source,
+            UUID owner,
+            Executor feedback
+    ) {
+        String dimensionId = STUDIOS.get(owner);
+        if (dimensionId == null) {
+            IrisModdedCommands.fail(source, IrisLanguage.plain(
+                    ModdedCommandMessages.MODDED_STUDIO_COMMANDS_YOU_DO_NOT_HAVE_OPEN_STUDIO_USE_IRIS_STUDIO_OPEN));
+            return CompletableFuture.completedFuture(null);
+        }
+        NativeWorld studio = ModdedDimensionManager.level(source.server(), dimensionId);
+        if (studio == null) {
+            STUDIOS.remove(owner, dimensionId);
+            IrisModdedCommands.fail(source, IrisLanguage.plain(
+                    ModdedCommandMessages.MODDED_STUDIO_COMMANDS_YOUR_STUDIO_DIMENSION_IS_NO_LONGER_LOADED_USE_IRIS_STUDIO));
+            return CompletableFuture.completedFuture(null);
+        }
+        Engine engine = IrisModdedCommands.engineFor(studio);
+        ModdedStudioHotloadService service = ModdedEngineBootstrap.services().service(ModdedStudioHotloadService.class);
+        if (engine == null || service == null) {
+            throw new IllegalStateException("The Studio engine or hotload service is unavailable.");
+        }
+        return service.requestHotload(dimensionId, engine)
+                .thenAcceptAsync(completed -> sendHotloadResult(source, completed), feedback);
+    }
+
+    private static void sendHotloadResult(NativeCommandSource source, boolean completed) {
+        if (completed) {
+            IrisModdedCommands.ok(source, IrisLanguage.plain(
+                    ModdedCommandMessages.MODDED_STUDIO_COMMANDS_STUDIO_HOTLOAD_COMPLETE));
+        } else {
+            IrisModdedCommands.fail(source, IrisLanguage.plain(
+                    ModdedCommandMessages.MODDED_STUDIO_COMMANDS_STUDIO_HOTLOAD_BUSY));
+        }
     }
 
     private static int status(NativeCommandSource source) {

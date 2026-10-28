@@ -1091,6 +1091,24 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
         });
     }
 
+    @Override
+    public CompletableFuture<Void> hotloadAsync() {
+        if (!canHotloadStudio()) {
+            return CompletableFuture.failedFuture(new IllegalStateException("Studio is not ready for hotload."));
+        }
+        return withExclusiveControlFuture(() -> {
+            if (!canHotloadStudio()) {
+                throw new IllegalStateException("Studio is not ready for hotload.");
+            }
+            getEngine().hotload();
+        });
+    }
+
+    private boolean canHotloadStudio() {
+        return !initialEntryPending && !studioUpdatesPaused
+                && shouldRunStudioHotload(isStudio(), closing, jigsawStudioActive) && getEngine() != null;
+    }
+
     private void hotloadFromWatcher() {
         if (initialEntryPending || studioUpdatesPaused || !shouldRunStudioHotload(isStudio(), closing, jigsawStudioActive)) {
             return;

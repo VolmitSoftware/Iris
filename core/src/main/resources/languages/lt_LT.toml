@@ -350,6 +350,7 @@ success = "Nustatymai ir kalba {locale} įkelti iš naujo."
 failed = "Nustatymai įkelti iš naujo, tačiau kalba {locale} atmesta; toliau naudojama {activeLocale}."
 
 [iris.modded.help]
+"entry.command.hotload_studio" = "Iš naujo įkelti atidarytą Studio paketą naujai generuojamam reljefui"
 unknown_section = "Nežinoma Iris pagalbos skyrius: {section}"
 back_hover = "Grįžti į {parent}."
 command_parameter = "Komandų parametras"
@@ -647,6 +648,9 @@ placed_pieces_at_your_location = "§aPateikta \"{structure}' ({value} vienetų).
 placement_changed_no_blocks = "§cStructure '{structure}' assembled {value} pieces but changed 0 blocks at your location. Check that the selected variants contain non-air blocks and that the placement is above the world's minimum height."
 
 [iris.bukkit.commandstudio]
+hotloading = "§eStudio įkeliama iš naujo..."
+hotloaded = "§aStudio įkelta iš naujo."
+hotload_failed = "§cNepavyko iš naujo įkelti Studio: {value}"
 importing_vanilla_content_into = "§avanilla kiekio importavimas į §f{value}§a..."
 importvanilla_complete_objects_structures_written_failed = "§aimportvanilės komplektas: §f{imported}§a  objects/structures raštu, §f{failed}§a Nepavyko."
 trees_objects_are_under_objects_vanilla_reference_them_from_biome = "§7Medžiai / objektai yra pagal objects/vanilla/...; nuoroda į juos iš biomo objekto vietas."
@@ -1023,6 +1027,9 @@ place_failed_partial_changes_recorded_undo = "Vieta nepavyko: {value} (daliniai 
 placed_pieces_write_s_at_your_location_iris_object_undo = "Pateikta \"{key}' ({value} vienetai, {value2} rašymas (-ai){tileNote}) jūsų vietoje.  /iris object undo grįžti."
 
 [iris.modded.moddedstudiocommands]
+studio_hotload_complete = "Studio įkelta iš naujo."
+studio_hotload_busy = "Studio jau tikrina arba iš naujo įkelia savo paketą. Bandykite dar kartą, kai veiksmas bus baigtas."
+studio_hotload_failed = "Nepavyko iš naujo įkelti Studio{errorMessage}"
 provide_dimension_pack_iris_studio_open_pack_seed = "Pateikite matmenų paketą: /iris studio open <pack> [seed]"
 opening_noise_explorer_on_server_display = "Atidaryti triukšmo naršyklę serverio ekrane."
 this_dimension_is_not_generated_by_iris_run_iris_studio = "Šis matmuo nėra generuojamas Iris; paleisti /iris studio noise iš Iris dimensija išspręsti generatorius, arba praleisti generatoriaus pavadinimą."
@@ -1279,6 +1286,7 @@ replace_installed_types = "Įdiegti paketai: {value}"
 "param.iris_structure_key_place" = "Raktas į rainelės struktūrą"
 
 [iris.director.commandstudio]
+"director.hotload_active_studio_pack" = "Iš naujo įkelti aktyvų Studio paketą"
 "director.studio_commands" = "Studijos komandos"
 "director.open_new_studio_world" = "Atverti naują studijos pasaulį"
 "param.dimension_pack_open_studio" = "Matmenų paketas, skirtas studijai atidaryti"

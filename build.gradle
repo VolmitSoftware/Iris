@@ -89,7 +89,6 @@ Closure<String> irisArtifactName = { String platform, String targetVersion ->
 String bukkitArtifactName = irisArtifactName('CraftBukkit', bukkitMinecraftRange)
 Map<String, String> runtimeDownloadRelocations = (Map<String, String>) ext.runtimeDownloadRelocations
 List<String> runtimeDownloadedPrefixes = (List<String>) ext.runtimeDownloadedPrefixes
-File bukkitArtifact = layout.buildDirectory.file("libs/${bukkitArtifactName}").get().asFile
 apply plugin: ApiGenerator
 
 List<String> nmsBindings = ['v26_2_R1', 'v26_3_R1']
@@ -542,19 +541,20 @@ List<String> requiredBukkitArtifactEntries = [
 tasks.register('verifyBukkitArtifact') {
     group = 'verification'
     dependsOn('jar')
-    File artifact = bukkitArtifact
+    Provider<RegularFile> artifact = tasks.named('jar', Jar).flatMap { Jar task -> task.archiveFile }
     inputs.file(artifact)
     inputs.files(nativeRuntime)
     inputs.files(commandHandlerSources)
     inputs.files(mantleComponentSources)
     doLast {
+        File archive = artifact.get().asFile
         BukkitArtifactVerifier.verify(
-                artifact,
+                archive,
                 requiredBukkitArtifactEntries,
                 16,
                 runtimeDownloadedPrefixes)
-        NativeRuntimeArtifacts.verify(artifact, nativeRuntimeModules, embeddedNatives())
-        logger.lifecycle("Verified ${artifact.name} packaging and class reference graph")
+        NativeRuntimeArtifacts.verify(archive, nativeRuntimeModules, embeddedNatives())
+        logger.lifecycle("Verified ${archive.name} packaging and class reference graph")
     }
 }
 

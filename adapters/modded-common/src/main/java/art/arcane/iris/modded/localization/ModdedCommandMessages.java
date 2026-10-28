@@ -1016,6 +1016,18 @@ public final class ModdedCommandMessages {
             "iris.modded.moddedstudiocommands.studio_close_failed",
             "Studio close failed: " + "{value}" + "{errorMessage}"
     );
+    public static final TextKey MODDED_STUDIO_COMMANDS_STUDIO_HOTLOAD_COMPLETE = TextKey.of(
+            "iris.modded.moddedstudiocommands.studio_hotload_complete",
+            "Studio hotloaded."
+    );
+    public static final TextKey MODDED_STUDIO_COMMANDS_STUDIO_HOTLOAD_BUSY = TextKey.of(
+            "iris.modded.moddedstudiocommands.studio_hotload_busy",
+            "Studio is already checking or hotloading its pack. Try again after it finishes."
+    );
+    public static final TextKey MODDED_STUDIO_COMMANDS_STUDIO_HOTLOAD_FAILED = TextKey.of(
+            "iris.modded.moddedstudiocommands.studio_hotload_failed",
+            "Studio hotload failed{errorMessage}"
+    );
     public static final TextKey MODDED_STUDIO_COMMANDS_STUDIO_CLOSED_WAS_EVACUATED_UNLOADED_ITS_REGION_DATA_DELETED = TextKey.of(
             "iris.modded.moddedstudiocommands.studio_closed_was_evacuated_unloaded_its_region_data_deleted",
             "Studio closed: " + "{dimensionId}" + " was evacuated, unloaded and its region data deleted."
@@ -1530,6 +1542,9 @@ public final class ModdedCommandMessages {
             MODDED_STUDIO_COMMANDS_STUDIO_OPEN_NOW_RUNS_SEED_USE_IRIS_STUDIO_CLOSE_WHEN,
             MODDED_STUDIO_COMMANDS_YOU_DO_NOT_HAVE_OPEN_STUDIO_USE_IRIS_STUDIO_OPEN,
             MODDED_STUDIO_COMMANDS_STUDIO_CLOSE_FAILED,
+            MODDED_STUDIO_COMMANDS_STUDIO_HOTLOAD_COMPLETE,
+            MODDED_STUDIO_COMMANDS_STUDIO_HOTLOAD_BUSY,
+            MODDED_STUDIO_COMMANDS_STUDIO_HOTLOAD_FAILED,
             MODDED_STUDIO_COMMANDS_STUDIO_CLOSED_WAS_EVACUATED_UNLOADED_ITS_REGION_DATA_DELETED,
             MODDED_STUDIO_COMMANDS_NO_STUDIO_DIMENSIONS_ARE_CURRENTLY_OPEN,
             MODDED_STUDIO_COMMANDS_ACTIVE_STUDIO_DIMENSION_S,

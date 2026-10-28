@@ -348,6 +348,7 @@ success = "Đã tải lại cài đặt và ngôn ngữ {locale}."
 failed = "Đã tải lại cài đặt, nhưng ngôn ngữ {locale} bị từ chối; tiếp tục sử dụng {activeLocale}."
 
 [iris.modded.help]
+"entry.command.hotload_studio" = "Tải lại gói Studio đang mở để áp dụng cho địa hình được tạo tiếp theo"
 unknown_section = "Không rõ Iris Phần trợ giúp: {section}"
 back_hover = "Trở về {parent}."
 command_parameter = "Tham số lệnh"
@@ -645,6 +646,9 @@ placed_pieces_at_your_location = "§aĐã đặt '{structure}' ({value} Các m�
 placement_changed_no_blocks = "§cStructure '{structure}' assembled {value} pieces but changed 0 blocks at your location. Check that the selected variants contain non-air blocks and that the placement is above the world's minimum height."
 
 [iris.bukkit.commandstudio]
+hotloading = "§eĐang tải lại Studio..."
+hotloaded = "§aĐã tải lại Studio."
+hotload_failed = "§cTải lại Studio thất bại: {value}"
 importing_vanilla_content_into = "§aNhập nội dung vanilla vào §f{value}§a..."
 importvanilla_complete_objects_structures_written_failed = "§ađã nhập xong: §f{imported}§a  objects/structures Đã viết, §f{failed}§a bị lỗi."
 trees_objects_are_under_objects_vanilla_reference_them_from_biome = "§7Cây objects/vanilla/...; tham khảo chúng từ vị trí vật thể sinh học."
@@ -1021,6 +1025,9 @@ place_failed_partial_changes_recorded_undo = "Nơi bị lỗi: {value} (các tha
 placed_pieces_write_s_at_your_location_iris_object_undo = "Đã đặt '{key}' ({value} Từng mảnh, {value2} ghi (s){tileNote}) tại địa điểm của bạn.  /iris object undo để trở lại."
 
 [iris.modded.moddedstudiocommands]
+studio_hotload_complete = "Đã tải lại Studio."
+studio_hotload_busy = "Studio đang kiểm tra hoặc tải lại gói của mình. Hãy thử lại sau khi hoàn tất."
+studio_hotload_failed = "Tải lại Studio thất bại{errorMessage}"
 provide_dimension_pack_iris_studio_open_pack_seed = "Cung cấp một gói chiều: /iris studio open <pack> [seed]"
 opening_noise_explorer_on_server_display = "Mở hệ thống nhiễu trên màn hình máy chủ."
 this_dimension_is_not_generated_by_iris_run_iris_studio = "Kích thước này không được tạo ra bởi Iris; chạy /iris studio noise từ một Iris Kích thước để giải quyết trình tạo, hoặc bỏ tên máy phát."
@@ -1277,6 +1284,7 @@ replace_installed_types = "Các gói đã cài đặt: {value}"
 "param.iris_structure_key_place" = "Name"
 
 [iris.director.commandstudio]
+"director.hotload_active_studio_pack" = "Tải lại gói Studio đang hoạt động"
 "director.studio_commands" = "Lệnh phòng thu"
 "director.open_new_studio_world" = "Mở một phòng thu mới"
 "param.dimension_pack_open_studio" = "Name"

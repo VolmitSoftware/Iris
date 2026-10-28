@@ -385,6 +385,17 @@ public class IrisCreator {
                     ServerConfigurator.restart("Multiverse registration timed out for \"" + name + "\".");
                     throw e;
                 }
+                if (!J.isFolia()) {
+                    // Paper writes the world's world_gen_settings.dat only on save. If the server dies before then, the
+                    // next startup imports the world with the main world's seed and Iris refuses the generation history.
+                    try {
+                        J.sfut(() -> {
+                            createdWorld.save();
+                        }).get(30L, TimeUnit.SECONDS);
+                    } catch (TimeoutException | ExecutionException e) {
+                        IrisLogging.reportError("Failed to save new world \"" + name + "\".", e);
+                    }
+                }
             }
             reportCreationProgress(creationReporter, 0.92D, "teleport_player");
             awaitSenderTeleport(world);

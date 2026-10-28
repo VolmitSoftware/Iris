@@ -241,7 +241,7 @@ public class ModuleSettingsDecoderTest {
                 () -> values("{\"mossValues\": {\"jigsaw\": {\"liquidSettings\": \"WET\"}}}"));
 
         assertTrue(failure.getMessage(), failure.getMessage().contains(
-                "\"WET\" is not one of [SOURCE, IGNORE_WATERLOGGING, APPLY_WATERLOGGING]"));
+                "\"WET\" is not one of [IGNORE_WATERLOGGING, APPLY_WATERLOGGING]"));
     }
 
     private ValuesSettings values(String json) {

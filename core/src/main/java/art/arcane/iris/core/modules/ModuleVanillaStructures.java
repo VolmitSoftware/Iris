@@ -230,10 +230,10 @@ public final class ModuleVanillaStructures {
                 boxed(overrides.maxDistanceHorizontal()),
                 boxed(overrides.maxDistanceVertical()),
                 overrides.useExpansionHack().orElse(null),
-                overrides.projectStartToHeightmap().name(),
+                overrides.projectStartToHeightmap().map(Enum::name).orElse(NativeJigsawOverrides.SOURCE),
                 boxed(overrides.dimensionPaddingBottom()),
                 boxed(overrides.dimensionPaddingTop()),
-                overrides.liquidSettings().name());
+                overrides.liquidSettings().map(Enum::name).orElse(NativeJigsawOverrides.SOURCE));
     }
 
     private static Integer boxed(OptionalInt value) {

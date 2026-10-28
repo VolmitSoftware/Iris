@@ -205,7 +205,7 @@ public final class BukkitItemStacks {
             return;
         }
         long combined = (long) source.tableRarity() * source.entryRarity();
-        lore.add(C.GRAY + "From: " + source.table().get() + " (" + Form.pc(1D / source.tableRarity(), CHANCE_DIGITS) + ")");
+        lore.add(C.GRAY + "From: " + source.table().get().path() + " (" + Form.pc(1D / source.tableRarity(), CHANCE_DIGITS) + ")");
         lore.add(C.GRAY + "1 in " + combined + " Chance (" + Form.pc(1D / combined, CHANCE_DIGITS) + ")");
     }
 }

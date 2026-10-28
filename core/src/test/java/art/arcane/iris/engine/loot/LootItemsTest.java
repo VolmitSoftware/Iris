@@ -127,12 +127,14 @@ public class LootItemsTest {
     public void debugItemsSayWhereTheyCameFrom() {
         LootTable table = table("{\"name\": \"dungeon\", \"rarity\": 4, \"minPicked\": 1, \"maxPicked\": 1, \"loot\": [{\"type\": \"diamond\", \"rarity\": 3}]}");
 
-        List<ItemDrop> drops = new LootItems(registry, true, ModuleLogs.discarding()).draw("dungeon", table, LOOT_SEED, 0, 64, 0);
+        ResourceId dungeon = ResourceId.parse("test:dungeon");
+
+        List<ItemDrop> drops = new LootItems(registry, true, ModuleLogs.discarding()).draw(dungeon, table, LOOT_SEED, 0, 64, 0);
 
         for (ItemDrop drop : drops) {
-            assertEquals(Optional.of(new ItemDrop.Source(Optional.of("dungeon"), 4, 3)), drop.source());
+            assertEquals(Optional.of(new ItemDrop.Source(Optional.of(dungeon), 4, 3)), drop.source());
         }
-        assertTrue(new LootItems(registry, false, ModuleLogs.discarding()).draw("dungeon", table, LOOT_SEED, 0, 64, 0).stream().allMatch(drop -> drop.source().isEmpty()));
+        assertTrue(new LootItems(registry, false, ModuleLogs.discarding()).draw(dungeon, table, LOOT_SEED, 0, 64, 0).stream().allMatch(drop -> drop.source().isEmpty()));
     }
 
     @Test

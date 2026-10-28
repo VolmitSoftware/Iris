@@ -22,6 +22,7 @@ import art.arcane.iris.modules.objects.TerrainTransaction;
 import art.arcane.iris.modules.objects.TerrainTransaction.Commit;
 import com.volmit.block.BlockState;
 import com.volmit.object.BlockEntityData;
+import com.volmit.placement.PlacementRecord;
 import com.volmit.placement.PlacementTerrain;
 import com.volmit.resource.ResourceId;
 import org.junit.Test;
@@ -29,7 +30,6 @@ import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -40,6 +40,7 @@ public class TerrainTransactionTest {
     private static final BlockState FIRST = BlockState.parse("minecraft:oak_log");
     private static final BlockState SECOND = BlockState.parse("minecraft:chest");
     private static final BlockEntityData LOOT = new BlockEntityData(ResourceId.parse("test:chest"), 1, new byte[0]);
+    private static final PlacementRecord TREE = PlacementRecord.of(ResourceId.parse("test:tree"), 7);
 
     @Test
     public void unsupportedFinalTerrainRejectsBlocksBlockEntitiesAndRecordsTogether() {
@@ -49,13 +50,13 @@ public class TerrainTransactionTest {
         writeTreeAcrossTheChunkBorder(transaction);
 
         assertEquals(SECOND, transaction.get(16, 101, 8));
-        assertEquals("tree@7", transaction.placementAt(16, 101, 8).orElseThrow());
+        assertEquals(TREE, transaction.placementAt(16, 101, 8).orElseThrow());
         verify(terrain, never()).set(anyInt(), anyInt(), anyInt(), any());
 
         assertEquals(Commit.REJECTED, transaction.commit());
         verify(terrain, never()).set(anyInt(), anyInt(), anyInt(), any());
         verify(terrain, never()).set(anyInt(), anyInt(), anyInt(), any(), any());
-        verify(terrain, never()).recordPlacement(anyInt(), anyInt(), anyInt(), anyString());
+        verify(terrain, never()).recordPlacement(anyInt(), anyInt(), anyInt(), any());
     }
 
     @Test
@@ -68,9 +69,9 @@ public class TerrainTransactionTest {
         assertEquals(Commit.COMMITTED, transaction.commit());
         org.mockito.InOrder order = inOrder(terrain);
         order.verify(terrain).set(15, 101, 8, FIRST);
-        order.verify(terrain).recordPlacement(15, 101, 8, "tree@7");
+        order.verify(terrain).recordPlacement(15, 101, 8, TREE);
         order.verify(terrain).set(16, 101, 8, SECOND, LOOT);
-        order.verify(terrain).recordPlacement(16, 101, 8, "tree@7");
+        order.verify(terrain).recordPlacement(16, 101, 8, TREE);
 
         assertEquals(Commit.EMPTY, transaction.commit());
         verify(terrain).set(16, 101, 8, SECOND, LOOT);
@@ -78,9 +79,9 @@ public class TerrainTransactionTest {
 
     private static void writeTreeAcrossTheChunkBorder(TerrainTransaction transaction) {
         transaction.set(15, 101, 8, FIRST);
-        transaction.recordPlacement(15, 101, 8, "tree@7");
+        transaction.recordPlacement(15, 101, 8, TREE);
         transaction.set(16, 101, 8, SECOND, LOOT);
-        transaction.recordPlacement(16, 101, 8, "tree@7");
+        transaction.recordPlacement(16, 101, 8, TREE);
     }
 
     private static TerrainTransaction islandOver(PlacementTerrain terrain, boolean supportsNeighborChunk) {

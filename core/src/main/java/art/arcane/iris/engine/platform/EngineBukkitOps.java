@@ -28,7 +28,6 @@ import art.arcane.iris.engine.framework.GenerationSessionLease;
 import art.arcane.iris.engine.framework.Locator;
 import art.arcane.iris.core.modules.ModuleServices;
 import art.arcane.iris.core.modules.PlatformBlockStates;
-import art.arcane.iris.builtin.loot.LootResolver;
 import art.arcane.iris.platform.bukkit.BukkitItemStacks;
 import art.arcane.iris.engine.framework.WrongEngineBroException;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
@@ -444,7 +443,7 @@ public final class EngineBukkitOps {
                         inv.addItem(i);
                     }
 
-                    scramble(engine, inv, LootResolver.containerRng(engine.getSeedManager().getLoot(), x, y, z));
+                    scrambleAsModulesSay(engine, inv, x, y, z);
                 };
 
                 LootMutationTask task = new LootMutationTask(world, x >> 4, z >> 4, mutation);
@@ -468,8 +467,14 @@ public final class EngineBukkitOps {
                 inv.addItem(i);
             }
 
-            scramble(engine, inv, LootResolver.containerRng(engine.getSeedManager().getLoot(), x, y, z));
+            scrambleAsModulesSay(engine, inv, x, y, z);
         }
+    }
+
+    /** Shuffles the container's slots with the seed the modules give for the container at the spot; unshuffled when none does. */
+    private static void scrambleAsModulesSay(Engine engine, Inventory inv, int x, int y, int z) {
+        Loot.Site site = new Loot.Site(new BlockPosition(x, y - engine.getMinHeight(), z), Optional.empty(), false, false);
+        ModuleServices.lootShuffleSeed(engine, site).ifPresent(seed -> scramble(engine, inv, new RNG(seed)));
     }
 
     /** The items of {@code tables} at the spot, in the tables' order: the modules' for pack tables, the platform's own for platform tables. */

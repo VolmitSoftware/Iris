@@ -22,6 +22,7 @@ import art.arcane.iris.modules.objects.CaveTransaction;
 import art.arcane.iris.modules.objects.TerrainTransaction.Commit;
 import com.volmit.block.BlockState;
 import com.volmit.object.BlockEntityData;
+import com.volmit.placement.PlacementRecord;
 import com.volmit.placement.PlacementTerrain;
 import com.volmit.resource.ResourceId;
 import org.junit.Test;
@@ -30,7 +31,6 @@ import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
@@ -45,6 +45,7 @@ public class CaveTransactionTest {
     private static final int MIN_DEPTH = 10;
     private static final BlockState STONE = BlockState.parse("minecraft:stone");
     private static final BlockState CHEST = BlockState.parse("minecraft:chest");
+    private static final PlacementRecord OBJECT_ONE = PlacementRecord.of(ResourceId.parse("test:object"), 1);
 
     @Test
     public void validPlacementCommitsBlocksBlockEntitiesAndRecordsTogether() {
@@ -54,18 +55,18 @@ public class CaveTransactionTest {
 
         transaction.set(4, 30, 7, STONE);
         transaction.set(4, 31, 7, CHEST, loot);
-        transaction.recordPlacement(4, 30, 7, "object@1");
+        transaction.recordPlacement(4, 30, 7, OBJECT_ONE);
 
         assertEquals(STONE, transaction.get(4, 30, 7));
-        assertEquals("object@1", transaction.placementAt(4, 30, 7).orElseThrow());
+        assertEquals(OBJECT_ONE, transaction.placementAt(4, 30, 7).orElseThrow());
         verify(terrain, never()).set(anyInt(), anyInt(), anyInt(), any());
-        verify(terrain, never()).recordPlacement(anyInt(), anyInt(), anyInt(), anyString());
+        verify(terrain, never()).recordPlacement(anyInt(), anyInt(), anyInt(), any());
 
         assertEquals(Commit.COMMITTED, transaction.commit());
         org.mockito.InOrder order = inOrder(terrain);
         order.verify(terrain).set(4, 30, 7, STONE);
         order.verify(terrain).set(4, 31, 7, CHEST, loot);
-        order.verify(terrain).recordPlacement(4, 30, 7, "object@1");
+        order.verify(terrain).recordPlacement(4, 30, 7, OBJECT_ONE);
     }
 
     @Test
@@ -77,11 +78,11 @@ public class CaveTransactionTest {
         CaveTransaction transaction = new CaveTransaction(terrain, WORLD_HEIGHT, ANCHOR_Y, MIN_DEPTH);
 
         transaction.set(4, 30, 7, STONE);
-        transaction.recordPlacement(5, 26, 7, "ghost");
+        transaction.recordPlacement(5, 26, 7, PlacementRecord.of(ResourceId.parse("test:ghost"), 1));
 
         assertEquals(Commit.REJECTED, transaction.commit());
         verify(terrain, never()).set(anyInt(), anyInt(), anyInt(), any());
-        verify(terrain, never()).recordPlacement(anyInt(), anyInt(), anyInt(), anyString());
+        verify(terrain, never()).recordPlacement(anyInt(), anyInt(), anyInt(), any());
     }
 
     @Test
@@ -93,11 +94,11 @@ public class CaveTransactionTest {
         CaveTransaction transaction = new CaveTransaction(terrain, WORLD_HEIGHT, ANCHOR_Y, MIN_DEPTH);
 
         transaction.set(4, 30, 7, STONE);
-        transaction.recordPlacement(5, 25, 7, "outside-cave");
+        transaction.recordPlacement(5, 25, 7, PlacementRecord.of(ResourceId.parse("test:outside-cave"), 1));
 
         assertEquals(Commit.REJECTED, transaction.commit());
         verify(terrain, never()).set(anyInt(), anyInt(), anyInt(), any());
-        verify(terrain, never()).recordPlacement(anyInt(), anyInt(), anyInt(), anyString());
+        verify(terrain, never()).recordPlacement(anyInt(), anyInt(), anyInt(), any());
     }
 
     @Test

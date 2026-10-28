@@ -18,8 +18,8 @@
 
 package art.arcane.iris.core.modules;
 
-import art.arcane.iris.builtin.prepare.ObjectRotation;
 import art.arcane.iris.engine.object.prefab.BlockStateRotation;
+import art.arcane.iris.engine.object.prefab.ObjectTurn;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.volmlib.util.math.IrisBlockVector;
@@ -37,7 +37,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Transforms geometry with the rotation Iris places objects with ({@link ObjectRotation}, its axis order
+ * Transforms geometry with the rotation Iris places objects with ({@link ObjectTurn}, its axis order
  * included) about the anchor, turning block states with the object so stairs and logs face the way it does.
  * Mirrors come first, as {@link ObjectTransform} says: an X or Z mirror flips positions about the anchor and
  * mirrors block states through the platform's own mirror, so stairs and doors face the mirrored way. A Y mirror
@@ -48,7 +48,6 @@ import java.util.Map;
  */
 final class IrisObjectTransformer implements ObjectTransformer {
     private static final double NO_SCALE = 1D;
-    private static final int NO_SPIN = 0;
 
     @Override
     public GeneratedObject transform(GeneratedObject object, ObjectTransform transform) {
@@ -101,7 +100,7 @@ final class IrisObjectTransformer implements ObjectTransformer {
         private final boolean mirrorX;
         private final boolean mirrorY;
         private final boolean mirrorZ;
-        private final ObjectRotation rotation;
+        private final ObjectTurn rotation;
         private final PlatformBlockStates states = new PlatformBlockStates(key -> IrisPlatforms.get().registries().block(key));
 
         Turn(BlockPosition anchor, ObjectTransform transform) {
@@ -109,7 +108,7 @@ final class IrisObjectTransformer implements ObjectTransformer {
             this.mirrorX = transform.mirrorX();
             this.mirrorY = transform.mirrorY();
             this.mirrorZ = transform.mirrorZ();
-            this.rotation = ObjectRotation.of(transform.rotationX(), transform.rotationY(), transform.rotationZ());
+            this.rotation = ObjectTurn.of(transform.rotationX(), transform.rotationY(), transform.rotationZ());
         }
 
         BlockPosition position(BlockPosition local) {
@@ -123,13 +122,13 @@ final class IrisObjectTransformer implements ObjectTransformer {
             if (mirrorZ) {
                 offset.setZ(-offset.getZ());
             }
-            IrisBlockVector turned = rotation.rotate(offset, NO_SPIN, NO_SPIN, NO_SPIN);
+            IrisBlockVector turned = rotation.rotate(offset);
             return new BlockPosition(anchor.x() + (int) Math.round(turned.getX()), anchor.y() + (int) Math.round(turned.getY()),
                     anchor.z() + (int) Math.round(turned.getZ()));
         }
 
         com.volmit.block.BlockState state(ObjectBlock block) {
-            return states.toApi(BlockStateRotation.rotate(rotation, mirrored(states.toPlatform(block.state())), NO_SPIN, NO_SPIN, NO_SPIN));
+            return states.toApi(BlockStateRotation.rotate(rotation, mirrored(states.toPlatform(block.state()))));
         }
 
         private PlatformBlockState mirrored(PlatformBlockState state) {

@@ -48,6 +48,9 @@ import static org.mockito.Mockito.when;
  * texts as {@code ""}, other absent values as {@code null}, tables by key) still hashed to the old number, -819231818.
  * It was retaken again when the spec was grouped, its keys became ids and content keys and the Iris-only knobs an
  * extension: the spec printed the old way (flat fields, keys as written, operations by Bukkit name) still hashed to 1441930785.
+ * It was retaken a third time when the five Iris-only knobs left the extension for the spec (the panda genes in the
+ * appearance, the reason and rising out of the ground in the arrival, applying to a provided mob on the spec): the spec
+ * printed the old way (those fields in an {@code IrisEntityExtras} extension, no new fields) still hashed to -847596166.
  */
 public class EntityResolutionPinTest {
     private static final long STREAM_SEED = 4321L;
@@ -84,7 +87,7 @@ public class EntityResolutionPinTest {
         EntitySpec spec = new EntityResolution(resources, new LootItems(registry, false, log), sky, new EffectTimers(), log)
                 .resolve(entity, new RNG(STREAM_SEED)).orElseThrow();
 
-        assertEquals(-847596166, spec.toString().hashCode());
+        assertEquals(383685705, spec.toString().hashCode());
     }
 
     private static ContentKey platformItem(String name) {

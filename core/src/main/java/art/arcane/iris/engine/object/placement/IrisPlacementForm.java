@@ -29,9 +29,7 @@ import art.arcane.iris.engine.object.noise.IrisNoiseGenerator;
 import art.arcane.iris.engine.object.noise.IrisStyledRange;
 import art.arcane.iris.util.project.noise.CNG;
 import art.arcane.volmlib.util.cache.LazyBoundedCache;
-import art.arcane.volmlib.util.json.JSONObject;
 import art.arcane.volmlib.util.math.RNG;
-import com.volmit.config.Level;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -79,7 +77,7 @@ public final class IrisPlacementForm {
         if (placement.json() == null) {
             return ModuleSettings.NONE;
         }
-        return data.getModules().settings().decode(Level.PLACEMENT, new JSONObject(placement.json()), "object placement");
+        return data.getModules().settings().decodePlacement(placement.json());
     }
 
     /** The settings the pack's modules declare on the placement. */

@@ -25,7 +25,6 @@ import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.EngineGeneration;
 import art.arcane.iris.engine.framework.SeedManager;
 import art.arcane.iris.builtin.spawn.EntityDefinition;
-import art.arcane.iris.builtin.spawn.IrisEntityExtras;
 import art.arcane.iris.builtin.spawn.SpawnMarker;
 import art.arcane.iris.builtin.spawn.Spawner;
 import art.arcane.iris.engine.object.TestSettings;
@@ -162,14 +161,14 @@ public class EntitySpawningTest {
     }
 
     @Test
-    public void aMobOfAnotherProviderIsProvidedByNameWithItsIrisExtras() {
+    public void aMobOfAnotherProviderIsProvidedByNameWithItsSpawnReason() {
         fixture.resource(SpawnResources.ENTITIES, "king", TestSettings.of(EntityDefinition.class,
                 "{\"type\": \"minecraft:zombie\", \"specialType\": \"MythicMobs:Skeleton King\", \"reason\": \"CUSTOM\"}"));
 
         EntitySpec spec = new EntitySpawning().entity(world, world.resources().idOf("king")).orElseThrow();
 
         assertEquals(new ContentKey.Provided("MythicMobs", "Skeleton King"), spec.type());
-        assertEquals(Optional.of("CUSTOM"), spec.extension(IrisEntityExtras.class).orElseThrow().reason());
+        assertEquals(Optional.of("CUSTOM"), spec.arrival().reason());
     }
 
     @Test

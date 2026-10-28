@@ -2,7 +2,7 @@ package art.arcane.iris.engine.mantle.components;
 
 import art.arcane.iris.engine.framework.PlacedStructurePiece;
 import art.arcane.iris.engine.object.prefab.IrisObject;
-import art.arcane.iris.builtin.prepare.ObjectRotation;
+import art.arcane.iris.engine.object.prefab.ObjectTurn;
 import art.arcane.iris.util.common.data.B;
 import art.arcane.volmlib.util.math.IrisBlockVector;
 import art.arcane.volmlib.util.collection.KList;
@@ -191,7 +191,7 @@ public final class StructureCarvingFootprint {
                 continue;
             }
             IrisObject object = piece.getObject();
-            ObjectRotation rotation = piece.getRotation();
+            ObjectTurn rotation = piece.getRotation();
             if (object == null || rotation == null || object.getBlocks() == null) {
                 continue;
             }

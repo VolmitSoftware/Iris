@@ -21,7 +21,7 @@ package art.arcane.iris.modded;
 import art.arcane.iris.core.content.ContentLoot;
 import art.arcane.iris.core.content.ContentServices;
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.builtin.loot.LootResolver;
+import art.arcane.iris.core.modules.ModuleServices;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
@@ -45,7 +45,11 @@ import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 import net.minecraft.world.phys.Vec3;
 
+import com.volmit.geometry.BlockPosition;
+import com.volmit.service.Loot;
+
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Predicate;
 
 public final class ModdedLootApplier {
@@ -91,7 +95,14 @@ public final class ModdedLootApplier {
             }
         }
 
-        fillContainer(container, items, LootResolver.containerRng(engine.getSeedManager().getLoot(), pos.getX(), pos.getY(), pos.getZ()));
+        fillContainer(container, items, shuffleRandom(engine, pos));
+    }
+
+    /** The random the container's slots are shuffled with: the modules' seed for the container, else one of the spot alone. */
+    private static RNG shuffleRandom(Engine engine, BlockPos pos) {
+        Loot.Site site = new Loot.Site(new BlockPosition(pos.getX(), pos.getY() - engine.getMinHeight(), pos.getZ()),
+                Optional.empty(), false, false);
+        return new RNG(ModuleServices.lootShuffleSeed(engine, site).orElse(pos.asLong()));
     }
 
     private static LootTable nativeTable(ServerLevel level, String name) {

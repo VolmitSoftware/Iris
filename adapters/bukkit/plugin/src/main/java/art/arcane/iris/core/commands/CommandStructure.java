@@ -22,6 +22,8 @@ import art.arcane.iris.core.modules.StructureAssemblies;
 import art.arcane.iris.engine.framework.structure.StructureResources;
 import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
 import art.arcane.iris.builtin.objects.ObjectPlacement;
+import art.arcane.iris.core.modules.ModuleObjectPlacement;
+import art.arcane.iris.engine.mantle.components.StructurePlacing;
 import art.arcane.iris.Iris;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.structure.BulkStructureImporter;
@@ -363,11 +365,11 @@ public class CommandStructure implements DirectorExecutor {
         for (PlacedStructurePiece p : pieces) {
             ObjectPlacement config = ObjectPlacement.builder()
                     .mode(ObjectPlaceMode.STRUCTURE_PIECE)
-                    .rotation(p.getRotation())
+                    .rotation(StructurePlacing.moduleRotation(p.getRotation()))
                     .place(List.of(p.getObject().getLoadKey()))
                     .edit(s.getEdit())
                     .build();
-            p.getObject().place(p.getX(), p.getY(), p.getZ(), placer, config, rng, null, null, data);
+            ModuleObjectPlacement.place(p.getObject(), p.getX(), p.getY(), p.getZ(), placer, config, rng, null, null, data);
         }
         int blockChanges = 0;
         for (Map.Entry<Block, BlockData> entry : future.entrySet()) {

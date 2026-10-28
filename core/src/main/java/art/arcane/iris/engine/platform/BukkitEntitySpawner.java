@@ -38,7 +38,6 @@ import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.M;
 import art.arcane.volmlib.util.math.RNG;
 import art.arcane.volmlib.util.scheduling.PrecisionStopwatch;
-import art.arcane.iris.builtin.spawn.IrisEntityExtras;
 import com.volmit.entity.EntitySpec;
 import com.volmit.item.ItemAttribute;
 import com.volmit.resource.ContentKey;
@@ -104,18 +103,18 @@ public final class BukkitEntitySpawner {
         if (!Chunks.isSafe(at)) {
             return null;
         }
-        IrisEntityExtras extras = spec.extension(IrisEntityExtras.class).orElse(IrisEntityExtras.NONE);
-        if (extras.riseOutOfGround()) {
+        boolean risesFromGround = spec.arrival().risesFromGround();
+        if (risesFromGround) {
             at = startBelowGroundWhenWatched(at);
         }
 
-        Entity ee = doSpawn(spec, extras, at);
+        Entity ee = doSpawn(spec, at);
 
         if (ee == null && !Chunks.isSafe(at)) {
             return null;
         }
 
-        if (spec.type() instanceof ContentKey.Provided && !extras.applySettingsToProvidedMob()) {
+        if (spec.type() instanceof ContentKey.Provided && !spec.adjustsProvidedMob()) {
             return ee;
         }
 
@@ -146,8 +145,8 @@ public final class BukkitEntitySpawner {
         }
 
         if (e instanceof Panda panda) {
-            panda.setMainGene(resolveGene(extras.pandaMainGene().orElse(null)));
-            panda.setHiddenGene(resolveGene(extras.pandaHiddenGene().orElse(null)));
+            panda.setMainGene(resolveGene(spec.appearance().pandaMainGene().orElse(null)));
+            panda.setHiddenGene(resolveGene(spec.appearance().pandaHiddenGene().orElse(null)));
         }
 
         if (e instanceof Villager villager) {
@@ -165,7 +164,7 @@ public final class BukkitEntitySpawner {
 
         Location riseFrom = at;
         J.runEntity(e, () -> {
-            if (extras.riseOutOfGround() && e instanceof LivingEntity living && Chunks.hasPlayersNearby(riseFrom)) {
+            if (risesFromGround && e instanceof LivingEntity living && Chunks.hasPlayersNearby(riseFrom)) {
                 riseOutOfGround(e, living, riseFrom);
             }
         });
@@ -293,7 +292,7 @@ public final class BukkitEntitySpawner {
         EntityRiseSVC.clearStamp(entity);
     }
 
-    private static Entity doSpawn(EntitySpec spec, IrisEntityExtras extras, Location at) {
+    private static Entity doSpawn(EntitySpec spec, Location at) {
         if (!Chunks.isSafe(at)) {
             return null;
         }
@@ -308,7 +307,7 @@ public final class BukkitEntitySpawner {
             AtomicReference<Entity> ae = new AtomicReference<>();
 
             try {
-                if (!J.runAt(at, () -> ae.set(doSpawn(spec, extras, at)))) {
+                if (!J.runAt(at, () -> ae.set(doSpawn(spec, at)))) {
                     return null;
                 }
             } catch (Throwable e) {
@@ -331,7 +330,7 @@ public final class BukkitEntitySpawner {
             return IrisServices.get(ExternalDataSVC.class).spawnMob(at, new Identifier(mob.provider(), mob.name()));
         }
 
-        return BukkitPlatform.spawnEntity(at, bukkitType(spec), bukkitReason(extras));
+        return BukkitPlatform.spawnEntity(at, bukkitType(spec), bukkitReason(spec));
     }
 
     /** The platform's entity type of the spec, unknown for a provider's mob or a type the platform lacks. */
@@ -343,8 +342,8 @@ public final class BukkitEntitySpawner {
         return entityType == null ? EntityType.UNKNOWN : entityType;
     }
 
-    private static CreatureSpawnEvent.SpawnReason bukkitReason(IrisEntityExtras extras) {
-        String reason = extras.reason().orElse("");
+    private static CreatureSpawnEvent.SpawnReason bukkitReason(EntitySpec spec) {
+        String reason = spec.arrival().reason().orElse("");
         if (reason.isBlank()) {
             return CreatureSpawnEvent.SpawnReason.NATURAL;
         }

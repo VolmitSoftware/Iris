@@ -18,7 +18,6 @@
 
 package art.arcane.iris.core.modules;
 
-import art.arcane.iris.builtin.objects.ScaleInterpolation;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.object.prefab.IrisObject;
@@ -80,7 +79,7 @@ final class IrisPackObjects implements PackObjects {
         if (engine == null) {
             throw new IllegalStateException("Scaling " + object.name() + " needs the world the pack generates, and it has none");
         }
-        return ScaledObjects.scaled(irisObject(object), factor, ScaleInterpolation.valueOf(method.name()), engine);
+        return ScaledObjects.scaled(irisObject(object), factor, method, engine);
     }
 
     @Override

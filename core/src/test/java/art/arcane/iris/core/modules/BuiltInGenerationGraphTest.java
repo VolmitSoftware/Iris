@@ -49,6 +49,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
+import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
@@ -139,7 +140,10 @@ public class BuiltInGenerationGraphTest {
             for (Level target : Level.values()) {
                 List<String> keys = pack.schema().fields(target).stream().map(FeatureSchema::key).toList();
                 assertEquals(target + " " + keys, keys.size(), keys.stream().distinct().count());
-                assertTrue(target + " " + keys, keys.stream().noneMatch(ModuleTargets.reservedFields().get(target)::contains));
+                Set<String> fieldsOfIris = target == Level.PLACEMENT
+                        ? pack.catalog().placementType().orElseThrow().jsonFields()
+                        : ModuleTargets.reservedFields().get(target);
+                assertTrue(target + " " + keys, keys.stream().noneMatch(fieldsOfIris::contains));
             }
         }
     }

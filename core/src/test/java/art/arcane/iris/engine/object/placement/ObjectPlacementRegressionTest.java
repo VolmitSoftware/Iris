@@ -139,7 +139,7 @@ public class ObjectPlacementRegressionTest {
         IrisObject object = lineObject(3);
 
         IllegalStateException error = assertThrows(IllegalStateException.class,
-                () -> object.place(0, ANCHOR_Y, 0, placer, placement().build(), new RNG(2L), data));
+                () -> placed(object, 0, ANCHOR_Y, 0, placer, placement().build(), new RNG(2L), data));
 
         assertTrue(error.getMessage().contains("write failed"));
         assertEquals(1, placer.writes().size());
@@ -154,7 +154,7 @@ public class ObjectPlacementRegressionTest {
         placement.rotation(ObjectRotation.of(0, 90, 0));
         placement.translate(ObjectTranslate.of(4, 0, 3, 0));
 
-        int resultY = lineObject(3).place(0, ANCHOR_Y, 0, placer, placement.build(), new RNG(2L), data);
+        int resultY = placed(lineObject(3), 0, ANCHOR_Y, 0, placer, placement.build(), new RNG(2L), data);
 
         // The object's own blocks replace the bored air below, so only the extension stays air.
         List<BlockWrite> airWrites = placer.writesOf(keyOf(IrisObject.States.AIR));
@@ -170,7 +170,7 @@ public class ObjectPlacementRegressionTest {
         IrisObject object = new IrisObject(5, 1, 5);
         object.setUnsigned(2, 0, 2, solid);
 
-        assertEquals(ANCHOR_Y, object.place(0, ANCHOR_Y, 0, placer, placement().bore(true).build(), new RNG(2L), data));
+        assertEquals(ANCHOR_Y, placed(object, 0, ANCHOR_Y, 0, placer, placement().bore(true).build(), new RNG(2L), data));
 
         assertEquals(24, placer.writesOf(keyOf(IrisObject.States.AIR)).size());
     }
@@ -190,7 +190,7 @@ public class ObjectPlacementRegressionTest {
         placement.translate(ObjectTranslate.of(4, 0, 0, 0));
         placement.forbiddenCollisions(List.of("forbidden"));
 
-        int result = lineObject(3).place(0, ANCHOR_Y, 0, placer, placement.build(), new RNG(2L), data);
+        int result = placed(lineObject(3), 0, ANCHOR_Y, 0, placer, placement.build(), new RNG(2L), data);
 
         assertEquals(-1, result);
         assertTrue(placer.writes().isEmpty());
@@ -203,7 +203,7 @@ public class ObjectPlacementRegressionTest {
         placement.mode(ObjectPlaceMode.MAX_HEIGHT);
         placement.rotation(ObjectRotation.of(0, 45, 0));
 
-        boxObject(5, 1, 3).place(0, -1, 0, placer, placement.build(), new RNG(2L), data);
+        placed(boxObject(5, 1, 3), 0, -1, 0, placer, placement.build(), new RNG(2L), data);
 
         assertTrue(placer.sampledColumns().contains("-2:-2"));
         assertTrue(placer.sampledColumns().contains("2:2"));
@@ -219,7 +219,7 @@ public class ObjectPlacementRegressionTest {
         ObjectPlacement.Builder placement = placement();
         placement.snow(0.1);
 
-        object.place(0, ANCHOR_Y, 0, placer, placement.build(), new RNG(2L), data);
+        placed(object, 0, ANCHOR_Y, 0, placer, placement.build(), new RNG(2L), data);
 
         List<BlockWrite> snowWrites = placer.writesOf(keyOf(IrisObject.States.SNOW_LAYERS[0]));
         assertEquals(1, snowWrites.size());
@@ -238,8 +238,8 @@ public class ObjectPlacementRegressionTest {
         SmartBoreDebugSettings shown = TestSettings.of(SmartBoreDebugSettings.class, "{\"show\":true}");
         when(engine.getDimension().getModuleSettings()).thenReturn(BuiltInPack.settings(shown));
 
-        object.place(0, ANCHOR_Y, 0, debug, placement.build(), new RNG(2L), data);
-        object.place(0, ANCHOR_Y, 0, normal, placement.build(), new RNG(2L), data);
+        placed(object, 0, ANCHOR_Y, 0, debug, placement.build(), new RNG(2L), data);
+        placed(object, 0, ANCHOR_Y, 0, normal, placement.build(), new RNG(2L), data);
 
         PlatformBlockState cachedState = object.getBlocks().get(object.getSigned(0, 0, 0));
         assertSame(IrisObject.States.VAIR, cachedState);
@@ -249,7 +249,7 @@ public class ObjectPlacementRegressionTest {
     @Test
     public void placementDataIsRequiredAtTheBoundary() {
         NullPointerException error = assertThrows(NullPointerException.class,
-                () -> lineObject(1).place(0, ANCHOR_Y, 0, new RecordingPlacer(null), placement().build(), new RNG(2L), null));
+                () -> placed(lineObject(1), 0, ANCHOR_Y, 0, new RecordingPlacer(null), placement().build(), new RNG(2L), null));
 
         assertEquals("Object placement data is required.", error.getMessage());
     }
@@ -266,7 +266,7 @@ public class ObjectPlacementRegressionTest {
         config.rotation(ObjectRotation.of(0, 90, 0));
         config.translate(ObjectTranslate.of(4, 0, 0, 0));
 
-        lineObject(3).place(0, ANCHOR_Y + 4, 0, placer, config.build(), new RNG(2L), data);
+        placed(lineObject(3), 0, ANCHOR_Y + 4, 0, placer, config.build(), new RNG(2L), data);
 
         // Every bottom column reaches the ground after rotation and translation.
         for (int z = -5; z <= -3; z++) {
@@ -285,7 +285,7 @@ public class ObjectPlacementRegressionTest {
         config.translate(ObjectTranslate.of(0, 3, 0, 0));
         config.stiltSettings(TestSettings.of(StiltSettings.class, "{\"organicJitter\":0,\"organicScratch\":0}"));
 
-        boxObject(1, 3, 1).place(0, ANCHOR_Y, 0, placer, config.build(), new RNG(2L), data);
+        placed(boxObject(1, 3, 1), 0, ANCHOR_Y, 0, placer, config.build(), new RNG(2L), data);
 
         assertEquals(solid.key(), placer.get(0, 82, 0).key());
         assertEquals(solid.key(), placer.get(0, 89, 0).key());
@@ -300,7 +300,7 @@ public class ObjectPlacementRegressionTest {
         config.mode(ObjectPlaceMode.ORGANIC_STILT);
         config.stiltSettings(TestSettings.of(StiltSettings.class, "{\"organicJitter\":0,\"organicScratch\":0}"));
 
-        lineObject(1).place(0, ANCHOR_Y, 0, placer, config.build(), new RNG(2L), data);
+        placed(lineObject(1), 0, ANCHOR_Y, 0, placer, config.build(), new RNG(2L), data);
 
         for (int y = 76; y <= ANCHOR_Y; y++) {
             assertEquals(solid.key(), placer.get(0, y, 0).key());
@@ -313,7 +313,7 @@ public class ObjectPlacementRegressionTest {
         RecordingPlacer placer = new RecordingPlacer(null);
         ObjectPlacement.Builder config = placement();
         config.mode(ObjectPlaceMode.ERODE_STILT);
-        assertEquals(ANCHOR_Y, lineObject(1).place(0, -1, 0, placer, config.build(), new RNG(2L), data));
+        assertEquals(ANCHOR_Y, placed(lineObject(1), 0, -1, 0, placer, config.build(), new RNG(2L), data));
         assertFalse(placer.writes().isEmpty());
     }
 
@@ -324,7 +324,7 @@ public class ObjectPlacementRegressionTest {
             RecordingPlacer placer = new RecordingPlacer(null);
             ObjectPlacement.Builder config = placement();
             config.mode(mode);
-            assertEquals(ANCHOR_Y, lineObject(1).place(0, ANCHOR_Y, 0, placer, config.build(), new RNG(2L), data));
+            assertEquals(ANCHOR_Y, placed(lineObject(1), 0, ANCHOR_Y, 0, placer, config.build(), new RNG(2L), data));
             assertTrue(mode.toString(), placer.sampledColumns().isEmpty());
         }
     }
@@ -335,7 +335,7 @@ public class ObjectPlacementRegressionTest {
         usePack(List.of(new CapModule(writtenSizes)));
         RecordingPlacer placer = new RecordingPlacer(engine);
 
-        assertEquals(ANCHOR_Y, lineObject(3).place(0, ANCHOR_Y, 0, placer, placement().build(), new RNG(2L), data));
+        assertEquals(ANCHOR_Y, placed(lineObject(3), 0, ANCHOR_Y, 0, placer, placement().build(), new RNG(2L), data));
 
         assertEquals(List.of(3), writtenSizes);
         assertEquals(4, placer.writes().size());
@@ -362,7 +362,7 @@ public class ObjectPlacementRegressionTest {
         ObjectPlacement.Builder config = placement();
         config.translate(ObjectTranslate.of(0, 0, 3, 0));
 
-        lineObject(1).place(0, ANCHOR_Y, 0, new RecordingPlacer(null), config.build(), rng, data);
+        placed(lineObject(1), 0, ANCHOR_Y, 0, new RecordingPlacer(null), config.build(), rng, data);
 
         assertEquals(expected.nextLong(), rng.nextLong());
     }
@@ -373,8 +373,8 @@ public class ObjectPlacementRegressionTest {
         config.translate(ObjectTranslate.of(0, 0, 20, 0));
         RNG rng = new RNG(91);
 
-        int first = lineObject(1).place(5, ANCHOR_Y, 5, new RecordingPlacer(engine), config.build(), rng, data);
-        int second = lineObject(1).place(5, ANCHOR_Y, 5, new RecordingPlacer(engine), config.build(), new RNG(3), data);
+        int first = placed(lineObject(1), 5, ANCHOR_Y, 5, new RecordingPlacer(engine), config.build(), rng, data);
+        int second = placed(lineObject(1), 5, ANCHOR_Y, 5, new RecordingPlacer(engine), config.build(), new RNG(3), data);
 
         assertEquals(first, second);
         assertEquals(new RNG(91).nextLong(), rng.nextLong());
@@ -547,7 +547,7 @@ public class ObjectPlacementRegressionTest {
         RecordingPlacer placer = new RecordingPlacer(null);
         ObjectPlacement.Builder config = placement();
         config.fromBottom(true);
-        assertEquals(2, lineObject(1).place(0, -1, 0, placer, config.build(), new RNG(2L), data));
+        assertEquals(2, placed(lineObject(1), 0, -1, 0, placer, config.build(), new RNG(2L), data));
         assertTrue(placer.sampledColumns().isEmpty());
     }
 
@@ -640,7 +640,7 @@ public class ObjectPlacementRegressionTest {
         config.translate(ObjectTranslate.of(0, 3, 0, 0));
         config.vacuumSettings(TestSettings.of(VacuumSettings.class, "{\"radius\":1}"));
 
-        object.place(0, ANCHOR_Y, 0, placer, config.build(), new RNG(2L), data);
+        placed(object, 0, ANCHOR_Y, 0, placer, config.build(), new RNG(2L), data);
 
         List<BlockWrite> center = placer.writes().stream().filter(write -> write.x() == 0 && write.z() == 0).toList();
         assertEquals(List.of(82, 81, 83), center.stream().map(BlockWrite::y).toList());
@@ -662,7 +662,7 @@ public class ObjectPlacementRegressionTest {
         RNG rng = new RNG(91);
         RecordingPlacer placer = new RecordingPlacer(engine);
 
-        assertEquals(-1, lineObject(1).place(0, ANCHOR_Y, 0, placer, config.build(), rng, data));
+        assertEquals(-1, placed(lineObject(1), 0, ANCHOR_Y, 0, placer, config.build(), rng, data));
         assertEquals(new RNG(91).nextLong(), rng.nextLong());
         assertTrue(placer.writes().isEmpty());
     }
@@ -680,13 +680,18 @@ public class ObjectPlacementRegressionTest {
         ObjectRotation original = placement.rotation();
         RecordingPlacer placer = new RecordingPlacer(engine);
 
-        lineObject(3).place(0, ANCHOR_Y, 0, placer, placement, new RNG(2L), data);
+        placed(lineObject(3), 0, ANCHOR_Y, 0, placer, placement, new RNG(2L), data);
 
         assertSame(original, placement.rotation());
         assertEquals(0, original.yAxis().min(), 0);
         assertEquals(3, placer.writes().size());
         assertTrue(placer.writes().stream().allMatch(write -> write.x() == 0));
         assertEquals(List.of(-1, 0, 1), placer.writes().stream().map(BlockWrite::z).sorted().toList());
+    }
+
+    /** The height {@code object} was placed at, or -1 when the placement rejected it. */
+    private static int placed(IrisObject object, int x, int y, int z, IObjectPlacer placer, ObjectPlacement config, RNG rng, IrisData data) {
+        return ModuleObjectPlacement.place(object, x, y, z, placer, config, rng, null, null, data).heightOrRejected();
     }
 
     private ObjectPlacementResult place(ObjectPlacement.Builder config, int y, RecordingPlacer placer, CarveResult cave) {

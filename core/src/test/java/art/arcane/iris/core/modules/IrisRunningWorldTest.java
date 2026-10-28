@@ -45,6 +45,7 @@ import art.arcane.volmlib.util.collection.KList;
 import com.volmit.config.Level;
 import com.volmit.config.SettingsStack;
 import com.volmit.geometry.BlockPosition;
+import com.volmit.placement.PlacementRecord;
 import com.volmit.world.BiomeKind;
 import com.volmit.world.PackWorld;
 import com.volmit.world.RunningWorld;
@@ -181,7 +182,8 @@ public class IrisRunningWorldTest {
         when(chunk.get(X & 15, Y, Z & 15, String.class)).thenReturn("trees/oak@7");
         when(chunk.get((X + 1) & 15, Y, Z & 15, String.class)).thenReturn("");
 
-        assertEquals(Optional.of("trees/oak@7"), running.placementAt(X, Y, Z));
+        assertEquals(Optional.of(PlacementRecord.of(engine.getData().getPackResources().idOf("trees/oak"), 7)),
+                running.placementAt(X, Y, Z));
         assertTrue("an empty record is no placement", running.placementAt(X + 1, Y, Z).isEmpty());
         assertTrue(running.placementAt(X + 2, Y, Z).isEmpty());
     }

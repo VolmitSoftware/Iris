@@ -22,12 +22,15 @@ import art.arcane.iris.builtin.anchor.PlaceTrait;
 import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
 import art.arcane.iris.engine.framework.structure.StructureResources;
 import art.arcane.iris.builtin.objects.ObjectPlacement;
+import art.arcane.iris.builtin.prepare.ObjectRotation;
 import art.arcane.iris.core.IrisSettings;
+import art.arcane.iris.core.modules.ModuleObjectPlacement;
+import art.arcane.iris.engine.object.prefab.ObjectTurn;
 import art.arcane.volmlib.util.cache.CacheKey;
 import art.arcane.iris.engine.framework.IrisStructureLocator;
 import art.arcane.iris.engine.framework.PlacedStructurePiece;
 import art.arcane.iris.engine.framework.StructurePlacementScope;
-import art.arcane.iris.builtin.structure.StructurePlacementMarker;
+import art.arcane.iris.core.modules.PlacementMarkers;
 import art.arcane.iris.engine.framework.TreeBlockMaterial;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.builtin.loot.ObjectLoot;
@@ -455,7 +458,7 @@ public class StructurePlacing {
 
     private void clearMarkerOwnedObject(MantleWriter writer, String marker,
                                         ObjectMarkerBounds intersections, int worldHeight) {
-        StructurePlacementMarker.Decoded decoded = StructurePlacementMarker.decode(marker);
+        PlacementMarkers.Decoded decoded = PlacementMarkers.decode(marker);
         if (decoded == null) {
             return;
         }
@@ -498,7 +501,7 @@ public class StructurePlacing {
     }
 
     static boolean isOrdinaryObjectMarker(String marker) {
-        StructurePlacementMarker.Decoded decoded = StructurePlacementMarker.decode(marker);
+        PlacementMarkers.Decoded decoded = PlacementMarkers.decode(marker);
         return decoded != null && !decoded.structureAware();
     }
 
@@ -562,7 +565,7 @@ public class StructurePlacing {
                             boolean supportNonOccluding) {
         IrisObject object = p.getObject();
         String objectKey = object.getLoadKey();
-        ObjectPlacement.Builder builder = lootPlacementBuilder(structure, objectKey).mode(mode).rotation(p.getRotation());
+        ObjectPlacement.Builder builder = lootPlacementBuilder(structure, objectKey).mode(mode).rotation(moduleRotation(p.getRotation()));
         if (!structure.getEdit().isEmpty()) {
             builder.edit(structure.getEdit());
         }
@@ -572,14 +575,19 @@ public class StructurePlacing {
         ObjectPlacement config = builder.build();
         int placeY = (y == -1) ? -1 : y - engine.getMinHeight();
         String marker = structurePlacementMarker(structure, p, objectKey);
-        return object.place(p.getX(), placeY, p.getZ(), writer, config, rng, (position, state) -> {
+        return ModuleObjectPlacement.place(object, p.getX(), placeY, p.getZ(), writer, config, rng, (position, state) -> {
             StructureFoundationPlanner.recordBaseCell(
                     foundationColumns, position.getX(), position.getY(), position.getZ(), state,
                     supportNonOccluding);
             if (marker != null && shouldWriteStructureMarker(state)) {
                 writer.setData(position.getX(), position.getY(), position.getZ(), marker);
             }
-        }, null, engine.getData());
+        }, null, engine.getData()).heightOrRejected();
+    }
+
+    /** The placement rotation that turns a placed piece the way {@code turn} does. */
+    public static ObjectRotation moduleRotation(ObjectTurn turn) {
+        return ObjectRotation.of(turn.xDegrees(), turn.yDegrees(), turn.zDegrees());
     }
 
     static boolean shouldWriteStructureMarker(PlatformBlockState state) {
@@ -602,7 +610,7 @@ public class StructurePlacing {
             return null;
         }
         int placementId = structurePlacementId(structureKey, objectKey, piece.getX(), piece.getY(), piece.getZ());
-        return StructurePlacementMarker.encodeStructure(objectKey, placementId, structureKey);
+        return PlacementMarkers.encodeStructure(objectKey, placementId, structureKey);
     }
 
     /** How far, in blocks along X and Z, placements may write beyond their chunk. */

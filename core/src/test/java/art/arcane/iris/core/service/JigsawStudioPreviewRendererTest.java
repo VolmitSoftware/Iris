@@ -5,7 +5,7 @@ import art.arcane.iris.core.runtime.jigsaw.JigsawStudioMode;
 import art.arcane.iris.engine.framework.PlacedStructurePiece;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPiece;
 import art.arcane.iris.engine.object.prefab.IrisObject;
-import art.arcane.iris.builtin.prepare.ObjectRotation;
+import art.arcane.iris.engine.object.prefab.ObjectTurn;
 import art.arcane.iris.spi.PlatformBlockState;
 import org.bukkit.World;
 import org.junit.Test;
@@ -31,7 +31,7 @@ public class JigsawStudioPreviewRendererTest {
         when(stone.key()).thenReturn("minecraft:stone");
         IrisObject object = new IrisObject(3, 3, 3);
         object.setUnsigned(2, 1, 0, stone);
-        PlacedStructurePiece piece = piece(object, 100, 70, -40, ObjectRotation.of(0, 0, 0));
+        PlacedStructurePiece piece = piece(object, 100, 70, -40, ObjectTurn.of(0, 0, 0));
 
         JigsawStudioPreviewRenderer.PreviewPlan plan = JigsawStudioPreviewRenderer.plan(List.of(piece));
 
@@ -56,7 +56,7 @@ public class JigsawStudioPreviewRendererTest {
         object.setUnsigned(0, 0, 0, structureVoid);
 
         JigsawStudioPreviewRenderer.PreviewPlan plan = JigsawStudioPreviewRenderer.plan(List.of(
-                piece(object, 0, 65, 0, ObjectRotation.of(0, 0, 0))));
+                piece(object, 0, 65, 0, ObjectTurn.of(0, 0, 0))));
 
         assertTrue(plan.blocks().isEmpty());
         assertFalse(plan.bounds().isEmpty());
@@ -77,7 +77,7 @@ public class JigsawStudioPreviewRendererTest {
                 10,
                 10,
                 10,
-                ObjectRotation.of(0, 0, 0));
+                ObjectTurn.of(0, 0, 0));
 
         PlacedStructurePiece planar = JigsawStudioService.alignPreviewPieces(
                 List.of(source),
@@ -137,7 +137,7 @@ public class JigsawStudioPreviewRendererTest {
             int x,
             int y,
             int z,
-            ObjectRotation rotation
+            ObjectTurn rotation
     ) {
         int minimumX = x - object.getW() / 2;
         int minimumY = y - object.getH() / 2;

@@ -1,7 +1,7 @@
 package art.arcane.iris.core.service.tree;
 
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.builtin.structure.StructurePlacementMarker;
+import art.arcane.iris.core.modules.PlacementMarkers;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
@@ -61,7 +61,7 @@ public class TreeDefinitionIndexTest {
         assertTrue(index.isTreeMarker("procedural/tree/towering-oak#1@4"));
         assertFalse(index.isTreeMarker("procedural/towering-oak#0@3"));
         assertFalse(index.isTreeMarker("procedural/tree/towering-oak#2@5"));
-        assertFalse(index.isTreeMarker(StructurePlacementMarker.encodeStructure(
+        assertFalse(index.isTreeMarker(PlacementMarkers.encodeStructure(
                 "trees/oak/giant",
                 1,
                 "village"

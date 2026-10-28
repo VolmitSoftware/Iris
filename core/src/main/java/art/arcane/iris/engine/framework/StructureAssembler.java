@@ -38,7 +38,7 @@ import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPieceEntry;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPool;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawWorkcellArchetype;
 import art.arcane.iris.engine.object.prefab.IrisObject;
-import art.arcane.iris.builtin.prepare.ObjectRotation;
+import art.arcane.iris.engine.object.prefab.ObjectTurn;
 import art.arcane.iris.engine.object.value.IrisPosition;
 import art.arcane.iris.engine.object.structure.IrisStructure;
 import art.arcane.iris.engine.object.structure.jigsaw.JigsawJoint;
@@ -186,7 +186,7 @@ public final class StructureAssembler {
         }
 
         int startRotY = startPiece.isRotatable() ? Y_DEGREES[rng.i(Y_DEGREES.length)] : 0;
-        ObjectRotation startRot = ObjectRotation.of(0, startRotY, 0);
+        ObjectTurn startRot = ObjectTurn.of(0, startRotY, 0);
         PlacedStructurePiece start = build(startPiece, startObject, originX, originY, originZ, startRot);
         placed.add(start);
         registerPlacedPiece(consumedConnectors, start, null);
@@ -407,7 +407,7 @@ public final class StructureAssembler {
                 IrisDirection needed = connector.facing.reverse();
                 int[] rotations = piece.isRotatable() ? rotationCandidates(connector.joint, rng) : NO_ROTATION;
                 for (int yDeg : rotations) {
-                    ObjectRotation rot = ObjectRotation.of(0, yDeg, 0);
+                    ObjectTurn rot = ObjectTurn.of(0, yDeg, 0);
                     IrisDirection rotatedFace = rot.rotate(cb.getDirection());
                     if (rotatedFace != needed) {
                         continue;
@@ -717,7 +717,7 @@ public final class StructureAssembler {
                 }
                 int[] rotations = piece.isRotatable() ? Y_DEGREES : NO_ROTATION;
                 for (int yDegrees : rotations) {
-                    ObjectRotation rotation = ObjectRotation.of(0, yDegrees, 0);
+                    ObjectTurn rotation = ObjectTurn.of(0, yDegrees, 0);
                     if (rotation.rotate(connector.getDirection()) != source.facing().reverse()
                             || source.joint() == JigsawJoint.ALIGNED
                             && rotation.rotate(connector.getTop()) != source.top()) {
@@ -968,7 +968,7 @@ public final class StructureAssembler {
         throw assemblyFailure("piece expansion queue was unexpectedly empty");
     }
 
-    private PlacedStructurePiece build(IrisJigsawPiece piece, IrisObject object, int x, int y, int z, ObjectRotation rot) {
+    private PlacedStructurePiece build(IrisJigsawPiece piece, IrisObject object, int x, int y, int z, ObjectTurn rot) {
         int width = Math.max(1, object.getW());
         int height = Math.max(1, object.getH());
         int depth = Math.max(1, object.getD());
@@ -998,8 +998,8 @@ public final class StructureAssembler {
         int localMaxX = localMinX + width - 1;
         int localMaxY = localMinY + height - 1;
         int localMaxZ = localMinZ + depth - 1;
-        IrisPosition rotatedMin = rot.rotate(new IrisPosition(localMinX, localMinY, localMinZ), 0, 0, 0);
-        IrisPosition rotatedMax = rot.rotate(new IrisPosition(localMaxX, localMaxY, localMaxZ), 0, 0, 0);
+        IrisPosition rotatedMin = rot.rotate(new IrisPosition(localMinX, localMinY, localMinZ));
+        IrisPosition rotatedMax = rot.rotate(new IrisPosition(localMaxX, localMaxY, localMaxZ));
         int minX = Math.min(rotatedMin.getX(), rotatedMax.getX());
         int minY = Math.min(rotatedMin.getY(), rotatedMax.getY());
         int minZ = Math.min(rotatedMin.getZ(), rotatedMax.getZ());
@@ -1048,7 +1048,7 @@ public final class StructureAssembler {
     private IrisPosition connectorOffset(
             IrisObject object,
             IrisJigsawConnector connector,
-            ObjectRotation rotation
+            ObjectTurn rotation
     ) {
         if (structure.resolvedMode() == IrisJigsawMode.PLANAR_JIGSAW) {
             IrisPosition dimensions = rotatedDimensions(object, rotation);
@@ -1065,7 +1065,7 @@ public final class StructureAssembler {
                 connector.getPosition().getX() - center.getX(),
                 connector.getPosition().getY() - center.getY(),
                 connector.getPosition().getZ() - center.getZ());
-        return rotation.rotate(relative, 0, 0, 0);
+        return rotation.rotate(relative);
     }
 
     private IrisPosition logicalCenter(PlacedStructurePiece piece) {
@@ -1079,7 +1079,7 @@ public final class StructureAssembler {
                 piece.getZ() - offset.getZ());
     }
 
-    private IrisPosition rotatedDimensions(IrisObject object, ObjectRotation rotation) {
+    private IrisPosition rotatedDimensions(IrisObject object, ObjectTurn rotation) {
         int width = Math.max(1, object.getW());
         int height = Math.max(1, object.getH());
         int depth = Math.max(1, object.getD());
@@ -1088,7 +1088,7 @@ public final class StructureAssembler {
                 : new IrisPosition(depth, height, width);
     }
 
-    private IrisPosition planarPlacementOffset(IrisObject object, ObjectRotation rotation) {
+    private IrisPosition planarPlacementOffset(IrisObject object, ObjectTurn rotation) {
         int width = Math.max(1, object.getW());
         int depth = Math.max(1, object.getD());
         return switch (quarterTurns(rotation)) {
@@ -1103,7 +1103,7 @@ public final class StructureAssembler {
         };
     }
 
-    private int quarterTurns(ObjectRotation rotation) {
+    private int quarterTurns(ObjectTurn rotation) {
         return switch (rotation.rotate(IrisDirection.NORTH_NEGATIVE_Z)) {
             case NORTH_NEGATIVE_Z -> 0;
             case WEST_NEGATIVE_X -> 1;

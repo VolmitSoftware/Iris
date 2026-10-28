@@ -1,6 +1,6 @@
 package art.arcane.iris.core.commands;
 
-import art.arcane.iris.builtin.prepare.ObjectRotation;
+import art.arcane.iris.engine.object.prefab.ObjectTurn;
 import art.arcane.iris.engine.object.prefab.IrisObject;
 import org.junit.Test;
 
@@ -48,6 +48,6 @@ public class ObjectPasteBoundsTest {
 
     private ObjectPasteBounds resolve(int rotation) {
         IrisObject object = new IrisObject(4, 3, 2);
-        return ObjectPasteBounds.resolve(object, ObjectRotation.of(0, rotation, 0), ANCHOR_X, ANCHOR_Y, ANCHOR_Z);
+        return ObjectPasteBounds.resolve(object, ObjectTurn.of(0, rotation, 0), ANCHOR_X, ANCHOR_Y, ANCHOR_Z);
     }
 }

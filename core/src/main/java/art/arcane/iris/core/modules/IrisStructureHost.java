@@ -25,6 +25,7 @@ import art.arcane.iris.engine.mantle.components.StructurePlacing;
 import art.arcane.iris.engine.object.structure.IrisStructure;
 import com.volmit.ModuleLog;
 import com.volmit.generation.InvocationContext;
+import com.volmit.resource.ResourceId;
 
 import java.util.List;
 import java.util.Optional;
@@ -51,8 +52,9 @@ final class IrisStructureHost implements StructureHost {
     }
 
     @Override
-    public Optional<List<String>> lootTables(String structureKey) {
-        IrisStructure structure = StructureResources.structure(engine.getData().getPackResources(), structureKey);
+    public Optional<List<String>> lootTables(ResourceId structureId) {
+        IrisPackResources resources = engine.getData().getPackResources();
+        IrisStructure structure = StructureResources.structure(resources, resources.keyOf(structureId));
         if (structure == null) {
             return Optional.empty();
         }

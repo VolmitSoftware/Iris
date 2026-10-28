@@ -6,14 +6,29 @@ import art.arcane.iris.builtin.terrain.LayersSettings;
 import art.arcane.iris.modules.terrain.OreSettings;
 import art.arcane.iris.engine.modifier.ApiChunk;
 import art.arcane.iris.engine.object.TestSettings;
+import art.arcane.iris.core.loader.IrisData;
+import art.arcane.iris.core.modules.BuiltInPack;
 import com.volmit.block.BlockState;
+import com.volmit.host.LoadedPack;
+import com.volmit.service.ProtectedFloor;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+
+import java.io.IOException;
+import java.util.List;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
 
 /** Terrain fills a column from bedrock to its height with the biome's layers over rock, and the fluid above it up to the fluid height. */
 public class TerrainModuleTest {
+    @Rule
+    public TemporaryFolder folder = new TemporaryFolder();
+
     private static final int HEIGHT = 20;
     private static final int FLUID_HEIGHT = 25;
     private static final int WORLD_HEIGHT = 64;
@@ -93,6 +108,16 @@ public class TerrainModuleTest {
         assertEquals("rock under the upper surface", STONE, chunk.get(3, 55, 4));
         assertEquals("the upper ground's face is the biome's layer", GRASS, chunk.get(3, 50, 4));
         assertEquals("nothing between the grounds", ApiChunk.AIR, chunk.get(3, 49, 4));
+    }
+
+    @Test
+    public void theTerrainKeepsTheLowestLayerFromOthersWhileTheDimensionHasBedrock() throws IOException {
+        try (LoadedPack pack = BuiltInPack.serve(mock(IrisData.class), folder, List.of())) {
+            ProtectedFloor floor = pack.catalog().service(ProtectedFloor.class).orElseThrow();
+
+            assertTrue("bedrock is the default", floor.protectsFloor(world().world()));
+            assertFalse(floor.protectsFloor(world().dimensionSettings(TestSettings.of(BedrockSettings.class, "{\"bedrock\": false}")).world()));
+        }
     }
 
     private static ApiChunk world() {

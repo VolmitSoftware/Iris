@@ -18,22 +18,30 @@
 
 package art.arcane.iris.core.modules;
 
+import art.arcane.iris.builtin.IrisSeedPurposes;
+import art.arcane.iris.builtin.loot.LootResolver;
 import art.arcane.iris.engine.framework.structure.StructureLocating;
 import art.arcane.iris.engine.loot.LootGiving;
 import art.arcane.iris.engine.mantle.components.StructureModule;
 import com.volmit.IrisModule;
+import com.volmit.geometry.BlockPosition;
 import com.volmit.host.FeatureCatalog;
 import com.volmit.host.LifecycleRegistration;
 import com.volmit.service.BlockDrops;
 import com.volmit.service.Loot;
 import com.volmit.service.ObjectsAt;
+import com.volmit.service.ProtectedFloor;
 import com.volmit.service.StructureLocator;
+import com.volmit.world.PackWorld;
 import org.junit.Test;
 
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /** The services and hooks Iris's built-in modules provide, which Iris core asks instead of their features. */
 public class BuiltInServicesTest {
@@ -49,6 +57,21 @@ public class BuiltInServicesTest {
         assertEquals(1, BUILT_INS.services(Loot.class).size());
         assertEquals(1, BUILT_INS.services(BlockDrops.class).size());
         assertTrue(BUILT_INS.services(Loot.class).getFirst() instanceof LootGiving);
+    }
+
+    @Test
+    public void theLootModuleShufflesAContainerWithTheSeedOfItsSpotAtWorldHeight() {
+        PackWorld world = mock(PackWorld.class);
+        when(world.seed(IrisSeedPurposes.LOOT)).thenReturn(99L);
+        when(world.minWorldY()).thenReturn(-64);
+        Loot.Site site = new Loot.Site(new BlockPosition(5, 70, -9), Optional.empty(), false, false);
+
+        assertEquals(LootResolver.containerSeed(99L, 5, 6, -9), new LootGiving().shuffleSeed(world, site).getAsLong());
+    }
+
+    @Test
+    public void theTerrainModuleProtectsTheFloor() {
+        assertEquals(1, BUILT_INS.services(ProtectedFloor.class).size());
     }
 
     @Test

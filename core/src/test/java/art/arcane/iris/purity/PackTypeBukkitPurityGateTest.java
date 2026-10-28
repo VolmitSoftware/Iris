@@ -80,8 +80,7 @@ import static org.junit.Assert.fail;
  * deleted) and {@code Particles} (Bukkit registry lookups in a static initializer).
  * <p>
  * <b>Deliberately not asserted:</b> method and constructor descriptors. These classes legitimately
- * expose a Bukkit-typed edge that only the Bukkit adapter calls - {@code BlockStateRotation.rotate(ObjectRotation, BlockData,
- * ...)}, {@code TileData.toBukkit(Block)} and ~60 more. Method descriptors are resolved at
+ * expose a Bukkit-typed edge that only the Bukkit adapter calls - {@code BlockStateRotation.rotate(BlockTurn, BlockData)}, {@code TileData.toBukkit(Block)} and ~60 more. Method descriptors are resolved at
  * invocation, never at class load, field walk or equals/hashCode/toString, so they are not a modded
  * boot hazard. Fields and supertypes are, and both are asserted hard below.
  */

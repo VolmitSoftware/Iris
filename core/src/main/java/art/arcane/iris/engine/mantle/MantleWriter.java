@@ -19,7 +19,7 @@
 package art.arcane.iris.engine.mantle;
 
 
-import art.arcane.iris.builtin.terrain.BedrockSettings;
+import art.arcane.iris.core.modules.ModuleServices;
 import art.arcane.iris.engine.object.noise.IrisGeneratorStyle;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.util.project.matter.TileWrapper;
@@ -43,7 +43,10 @@ import art.arcane.volmlib.util.matter.MatterCavern;
 import art.arcane.volmlib.util.matter.MatterSlice;
 import art.arcane.iris.util.project.noise.CNG;
 import art.arcane.iris.util.common.scheduling.J;
+import lombok.AccessLevel;
 import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.common.data.B;
 import org.bukkit.util.Vector;
@@ -64,6 +67,9 @@ public class MantleWriter implements IObjectPlacer, AutoCloseable {
     private final int z;
     private final int windowSide;
     private final AtomicReferenceArray<MantleChunk<Matter>> window;
+    @Getter(AccessLevel.NONE)
+    @Setter(AccessLevel.NONE)
+    private transient volatile Boolean floorProtected;
 
     public MantleWriter(EngineMantle engineMantle, Mantle<Matter> mantle, int x, int z, int radius, boolean multicore) {
         this(engineMantle, mantle, x, z, radius, radius * 2, multicore);
@@ -187,6 +193,16 @@ public class MantleWriter implements IObjectPlacer, AutoCloseable {
                 (int) Math.round(style.warp(rng, data, z, -y, z, x)), t);
     }
 
+    /** Whether the terrain module keeps the lowest layer, asked of the modules the first time a block lands there. */
+    private boolean isFloorProtected() {
+        Boolean known = floorProtected;
+        if (known == null) {
+            known = ModuleServices.protectsFloor(engineMantle.getEngine());
+            floorProtected = known;
+        }
+        return known;
+    }
+
     public <T> void setData(int x, int y, int z, T t) {
         if (t == null) {
             return;
@@ -199,7 +215,7 @@ public class MantleWriter implements IObjectPlacer, AutoCloseable {
             return;
         }
 
-        if (y == 0 && t instanceof PlatformBlockState && engineMantle.getEngine().getDimension().getModuleSettings().find(BedrockSettings.class).map(BedrockSettings::bedrock).orElse(true)) {
+        if (y == 0 && t instanceof PlatformBlockState && isFloorProtected()) {
             return;
         }
 

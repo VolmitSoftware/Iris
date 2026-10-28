@@ -18,7 +18,6 @@
 
 package art.arcane.iris.core.modules;
 
-import art.arcane.iris.builtin.blocks.ObjectMarkers;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.NativeStructureVolume;
@@ -34,6 +33,7 @@ import com.volmit.block.BlockState;
 import com.volmit.geometry.BlockPosition;
 import com.volmit.object.BlockEntityData;
 import com.volmit.placement.PlacedMarker;
+import com.volmit.placement.PlacementRecord;
 import com.volmit.placement.PlacementTerrain;
 import com.volmit.placement.StructureVolumes;
 
@@ -65,8 +65,6 @@ final class PlacerTerrain implements PlacementTerrain {
             return false;
         }
     };
-
-    private static final char PLACEMENT_ID_SEPARATOR = '@';
 
     private final IObjectPlacer placer;
     private final IrisData data;
@@ -148,8 +146,8 @@ final class PlacerTerrain implements PlacementTerrain {
     }
 
     @Override
-    public void recordPlacement(int x, int y, int z, String placement) {
-        placer.setData(x, y, z, placement);
+    public void recordPlacement(int x, int y, int z, PlacementRecord placement) {
+        placer.setData(x, y, z, PlacementMarkers.encode(placement, data.getPackResources()));
     }
 
     /**
@@ -158,7 +156,7 @@ final class PlacerTerrain implements PlacementTerrain {
      * procedural object's, read as no placement, so placements collide with what they collided with before.
      */
     @Override
-    public Optional<String> placementAt(int x, int y, int z) {
+    public Optional<PlacementRecord> placementAt(int x, int y, int z) {
         Engine engine = data.getEngine();
         if (engine == null) {
             throw new IllegalStateException("Object placement requires active Iris data for collision settings.");
@@ -167,7 +165,7 @@ final class PlacerTerrain implements PlacementTerrain {
         if (placed == null || placed.getObject() == null) {
             return Optional.empty();
         }
-        return Optional.of(placed.getObject().getLoadKey() + PLACEMENT_ID_SEPARATOR + placed.getId());
+        return Optional.of(PlacementRecord.of(data.getPackResources().idOf(placed.getObject().getLoadKey()), placed.getId()));
     }
 
     @Override
@@ -189,15 +187,15 @@ final class PlacerTerrain implements PlacementTerrain {
         int x = position.x();
         int y = position.y();
         int z = position.z();
-        if (marker.type().equals(ObjectMarkers.TREE_MATERIAL)) {
+        if (marker.type().equals(MantleMarkerTypes.TREE_MATERIAL)) {
             placer.setData(x, y, z, TreeBlockMaterial.of(placer.get(x, y, z)));
             return;
         }
-        if (marker.type().equals(ObjectMarkers.BURIED_TREASURE)) {
+        if (marker.type().equals(MantleMarkerTypes.BURIED_TREASURE)) {
             placer.setData(x, y, z, MatterStructurePOI.BURIED_TREASURE);
             return;
         }
-        placer.setData(x, y, z, new MatterMarker(ObjectMarkers.markerKey(marker)));
+        placer.setData(x, y, z, new MatterMarker(MantleMarkerTypes.packMarkerName(marker)));
     }
 
     /** Resolved by the platform bound now, so a rebound platform never answers with another's states. */

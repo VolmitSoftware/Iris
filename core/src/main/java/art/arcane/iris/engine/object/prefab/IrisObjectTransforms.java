@@ -18,8 +18,7 @@
 
 package art.arcane.iris.engine.object.prefab;
 
-import art.arcane.iris.builtin.objects.ScaleInterpolation;
-import art.arcane.iris.builtin.prepare.ObjectRotation;
+import com.volmit.object.ScaleMethod;
 import art.arcane.iris.engine.object.value.IrisPosition;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.common.data.B;
@@ -40,25 +39,25 @@ final class IrisObjectTransforms {
     private IrisObjectTransforms() {
     }
 
-    static IrisObject rotateCopy(IrisObject self, ObjectRotation rt) {
+    static IrisObject rotateCopy(IrisObject self, ObjectTurn turn) {
         IrisObject copy = self.copy();
-        rotate(copy, rt, 0, 0, 0);
+        rotate(copy, turn);
         return copy;
     }
 
-    static void rotate(IrisObject self, ObjectRotation r, int spinx, int spiny, int spinz) {
+    static void rotate(IrisObject self, ObjectTurn turn) {
         self.writeLock.lock();
         try {
             VectorMap<PlatformBlockState> d = new VectorMap<>();
 
             for (var entry : self.blocks) {
-                d.put(r.rotate(entry.getKey(), spinx, spiny, spinz), BlockStateRotation.rotate(r, entry.getValue(), spinx, spiny, spinz));
+                d.put(turn.rotate(entry.getKey()), BlockStateRotation.rotate(turn, entry.getValue()));
             }
 
             VectorMap<TileData> dx = new VectorMap<>();
 
             for (var entry : self.states) {
-                dx.put(r.rotate(entry.getKey(), spinx, spiny, spinz), entry.getValue());
+                dx.put(turn.rotate(entry.getKey()), entry.getValue());
             }
 
             self.blocks = d;
@@ -70,9 +69,9 @@ final class IrisObjectTransforms {
         }
     }
 
-    static IrisObject scaled(IrisObject self, double scale, ScaleInterpolation interpolation) {
+    static IrisObject scaled(IrisObject self, double scale, ScaleMethod interpolation) {
         if (interpolation == null) {
-            interpolation = ScaleInterpolation.NONE;
+            interpolation = ScaleMethod.NONE;
         }
         IrisVector sm1 = new IrisVector(scale - 1, scale - 1, scale - 1);
         scale = Math.max(0.001, Math.min(50, scale));

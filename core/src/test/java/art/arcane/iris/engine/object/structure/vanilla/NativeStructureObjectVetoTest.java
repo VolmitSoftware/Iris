@@ -1,6 +1,7 @@
 package art.arcane.iris.engine.object.structure.vanilla;
 
 import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
+import art.arcane.iris.core.modules.ModuleObjectPlacement;
 import art.arcane.iris.engine.object.placement.IObjectPlacer;
 import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.engine.object.prefab.IrisObject;
@@ -173,13 +174,13 @@ public class NativeStructureObjectVetoTest {
         volumes(volume(-64, -64, -64, 64, 320, 64));
 
         RecordingPlacer vetoed = new RecordingPlacer(engine);
-        assertEquals(-1, tree().place(0, SURFACE_Y, 0, vetoed, placement(), new RNG(1234L), data));
+        assertEquals(-1, placed(0, SURFACE_Y, vetoed, placement()));
         assertTrue(vetoed.written().isEmpty());
 
         RecordingPlacer exempt = new RecordingPlacer(engine);
         ObjectPlacement structurePiece = placement().toBuilder().mode(ObjectPlaceMode.STRUCTURE_PIECE).build();
 
-        assertTrue(tree().place(0, SURFACE_Y, 0, exempt, structurePiece, new RNG(1234L), data) >= 0);
+        assertTrue(placed(0, SURFACE_Y, exempt, structurePiece) >= 0);
         assertFalse(exempt.written().isEmpty());
     }
 
@@ -189,7 +190,7 @@ public class NativeStructureObjectVetoTest {
         volumes(volume(-64, -64, -64, 64, 320, 64));
         ObjectPlacement placement = placement().toBuilder().forcePlace(true).build();
 
-        assertEquals(-1, tree().place(0, -1, 0, placer, placement, new RNG(1234L), data));
+        assertEquals(-1, placed(0, -1, placer, placement));
         assertTrue(placer.written().isEmpty());
     }
 
@@ -199,7 +200,7 @@ public class NativeStructureObjectVetoTest {
         volumes(volume(-64, -64, -64, 64, 320, 64));
         ObjectPlacement placement = placement().toBuilder().mode(ObjectPlaceMode.STRUCTURE_PIECE).build();
 
-        assertTrue(tree().place(0, 100, 0, placer, placement, new RNG(1234L), data) >= 0);
+        assertTrue(placed(0, 100, placer, placement) >= 0);
         assertFalse(placer.written().isEmpty());
     }
 
@@ -228,7 +229,11 @@ public class NativeStructureObjectVetoTest {
     }
 
     private int place(RecordingPlacer placer) {
-        return tree().place(0, -1, 0, placer, placement(), new RNG(1234L), data);
+        return placed(0, -1, placer, placement());
+    }
+
+    private int placed(int x, int y, RecordingPlacer placer, ObjectPlacement config) {
+        return ModuleObjectPlacement.place(tree(), x, y, 0, placer, config, new RNG(1234L), null, null, data).heightOrRejected();
     }
 
     private ObjectPlacement placement() {

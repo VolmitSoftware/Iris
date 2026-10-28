@@ -18,10 +18,8 @@
 
 package art.arcane.iris.core.modules;
 
-import art.arcane.iris.builtin.objects.ObjectRun;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.object.placement.IrisPlacementForm;
 import com.volmit.config.FeatureSettings;
 import com.volmit.geometry.BlockBox;
 import com.volmit.host.LoadedPack;
@@ -42,12 +40,11 @@ import java.util.function.Supplier;
  * blocks as the stages' inputs. Without an engine, such as for a studio paste, the stages have no terrain to sample and
  * no mantle.
  * <p>
- * The placement settings the stages read are those of the placed object's placement when the run's input is an
- * {@link ObjectRun}, which Iris's built-in stages and Iris's own placements pass; other inputs place with none.
+ * The placement-level settings the stages read are those the run's {@link PlacementRun#settings()} declares, and the run's
+ * name names their source.
  */
 final class IrisPlacements implements Placements {
     private static final String OBJECT_KIND = "object";
-    private static final String UNNAMED_PLACEMENT = "placement";
 
     private final IrisData data;
     private final Engine engine;
@@ -66,8 +63,10 @@ final class IrisPlacements implements Placements {
         ResolvedGraph graph = pack.placement();
         BlockBox area = widened(run.area(), graph.reach().blocks());
         PackResourceIds ids = new PackResourceIds(data.getDataFolder());
-        ResourceId source = ids.of(OBJECT_KIND, placedName(run));
-        ModuleSettings placementSettings = placementSettingsOf(run);
+        ResourceId source = ids.of(OBJECT_KIND, run.name());
+        ModuleSettings placementSettings = run.settings()
+                .map(json -> data.getModules().settings().decodePlacement(json))
+                .orElse(ModuleSettings.NONE);
         TerrainEdit edit = new TerrainEdit(run.terrain(), area, () -> mantle(area, pack));
         IrisPlacementInputs inputs = new IrisPlacementInputs(terrain(ids, area),
                 new PlacementModuleSettings(worldSettings(ids), placementSettings, source),
@@ -79,17 +78,6 @@ final class IrisPlacements implements Placements {
     private static BlockBox widened(BlockBox area, int blocks) {
         return new BlockBox(area.minX() - blocks, area.minY(), area.minZ() - blocks, area.maxX() + blocks, area.maxY(),
                 area.maxZ() + blocks);
-    }
-
-    private static String placedName(PlacementRun run) {
-        return run.input() instanceof ObjectRun objectRun ? objectRun.object().name() : UNNAMED_PLACEMENT;
-    }
-
-    private ModuleSettings placementSettingsOf(PlacementRun run) {
-        if (!(run.input() instanceof ObjectRun objectRun)) {
-            return ModuleSettings.NONE;
-        }
-        return IrisPlacementForm.of(objectRun.settings(), data).moduleSettings();
     }
 
     private TerrainSampler terrain(PackResourceIds ids, BlockBox area) {

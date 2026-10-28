@@ -25,7 +25,7 @@ import art.arcane.iris.engine.object.value.IrisDirection;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawConnector;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPiece;
 import art.arcane.iris.engine.object.prefab.IrisObject;
-import art.arcane.iris.builtin.prepare.ObjectRotation;
+import art.arcane.iris.engine.object.prefab.ObjectTurn;
 import art.arcane.iris.engine.object.prefab.BlockStateRotation;
 import art.arcane.iris.engine.object.value.IrisPosition;
 import art.arcane.iris.engine.object.structure.jigsaw.JigsawJoint;
@@ -818,8 +818,8 @@ public class JigsawStudioServiceCaptureTest {
         List<JigsawStudioService.ChunkCaptureArea> areas = JigsawStudioService.chunkIntersections(bounds);
         PlatformBlockState sourceState = BukkitBlockState.of(directionalBlockData(BlockFace.NORTH));
         for (int quarterTurns = 1; quarterTurns <= 3; quarterTurns++) {
-            ObjectRotation displayRotation = ObjectRotation.of(0, -90.0D * quarterTurns, 0);
-            PlatformBlockState displayedState = BlockStateRotation.rotate(displayRotation, sourceState, 0, 0, 0);
+            ObjectTurn displayRotation = ObjectTurn.of(0, -90.0D * quarterTurns, 0);
+            PlatformBlockState displayedState = BlockStateRotation.rotate(displayRotation, sourceState);
             IrisDirection displayedDirection = displayRotation.rotate(IrisDirection.NORTH_NEGATIVE_Z);
             JigsawStudioService.CapturedConnector connector = new JigsawStudioService.CapturedConnector(
                     1,
@@ -1059,8 +1059,8 @@ public class JigsawStudioServiceCaptureTest {
                 directionalBlockData(Material.OBSERVER, BlockFace.NORTH));
 
         for (int quarterTurns = 1; quarterTurns <= 3; quarterTurns++) {
-            ObjectRotation displayRotation = ObjectRotation.of(0, -90.0D * quarterTurns, 0);
-            PlatformBlockState displayedState = BlockStateRotation.rotate(displayRotation, sourceState, 0, 0, 0);
+            ObjectTurn displayRotation = ObjectTurn.of(0, -90.0D * quarterTurns, 0);
+            PlatformBlockState displayedState = BlockStateRotation.rotate(displayRotation, sourceState);
             JigsawStudioService.CapturedConnector displayedFirst = displayedConnector(
                     sourceFirst,
                     bounds.dimensions(),
@@ -1492,7 +1492,7 @@ public class JigsawStudioServiceCaptureTest {
             IrisJigsawConnector source,
             JigsawStudioCellDimensions displayDimensions,
             int displayRotationQuarterTurns,
-            ObjectRotation displayRotation,
+            ObjectTurn displayRotation,
             String finalState
     ) {
         IrisPosition displayedPosition = displayedPosition(

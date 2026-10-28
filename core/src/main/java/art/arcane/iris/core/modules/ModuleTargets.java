@@ -18,7 +18,6 @@
 
 package art.arcane.iris.core.modules;
 
-import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.core.loader.JsonFieldNames;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
@@ -31,14 +30,15 @@ import java.util.Optional;
 import java.util.Set;
 
 /**
- * Which Iris class holds the JSON of each attachment target that module settings can appear in.
+ * Which Iris class holds the JSON of each attachment target that module settings can appear in. The JSON of an object
+ * placement is held by the type the module that places objects declares ({@code FeatureRegistry.registerPlacementType}),
+ * not by a class of Iris.
  */
 public final class ModuleTargets {
     private static final Map<Level, Class<?>> HOLDERS = Map.of(
             Level.DIMENSION, IrisDimension.class,
             Level.REGION, IrisRegion.class,
-            Level.BIOME, IrisBiome.class,
-            Level.PLACEMENT, ObjectPlacement.class);
+            Level.BIOME, IrisBiome.class);
 
     private ModuleTargets() {
     }
@@ -47,14 +47,6 @@ public final class ModuleTargets {
     public static Optional<Level> ofResource(Class<?> resourceType) {
         return HOLDERS.entrySet().stream()
                 .filter(entry -> entry.getValue() == resourceType)
-                .map(Map.Entry::getKey)
-                .findFirst();
-    }
-
-    /** The target whose JSON an object of the class named {@code typeName} is, for module types such as a placement. */
-    public static Optional<Level> ofTypeName(String typeName) {
-        return HOLDERS.entrySet().stream()
-                .filter(entry -> entry.getValue().getName().equals(typeName))
                 .map(Map.Entry::getKey)
                 .findFirst();
     }

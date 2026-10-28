@@ -8,7 +8,7 @@ import art.arcane.iris.core.service.tree.TreeDefinitionIndex;
 import art.arcane.iris.core.service.tree.TreeMarkerTraversal;
 import art.arcane.iris.core.tools.IrisToolbelt;
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.builtin.structure.StructurePlacementMarker;
+import art.arcane.iris.core.modules.PlacementMarkers;
 import art.arcane.iris.engine.framework.TreeBlockMaterial;
 import art.arcane.iris.engine.platform.PlatformChunkGenerator;
 import org.bukkit.GameMode;
@@ -67,7 +67,7 @@ final class TreeProvenance {
         int maximumY = world.getMaxHeight();
         int relativeY = block.getY() - minimumY;
         String marker = markerAt(engine, minimumY, block.getX(), block.getY(), block.getZ());
-        StructurePlacementMarker.Decoded decoded = StructurePlacementMarker.decode(marker);
+        PlacementMarkers.Decoded decoded = PlacementMarkers.decode(marker);
         if (decoded == null || decoded.structureAware()) {
             return null;
         }

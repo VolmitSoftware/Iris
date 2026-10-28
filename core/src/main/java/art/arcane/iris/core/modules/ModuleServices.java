@@ -33,6 +33,7 @@ import com.volmit.service.EntitySpawns;
 import com.volmit.service.LocateResult;
 import com.volmit.service.Loot;
 import com.volmit.service.ObjectsAt;
+import com.volmit.service.ProtectedFloor;
 import com.volmit.service.SaplingGrowth;
 import com.volmit.service.StructureLocator;
 import com.volmit.service.VanillaFeatures;
@@ -43,6 +44,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.OptionalLong;
 import java.util.Set;
 import java.util.function.BiFunction;
 
@@ -86,6 +88,19 @@ public final class ModuleServices {
         return engine.getGeneration().state(CaveBiomeAnswers.class, owner -> firstProvider(owner, CaveBiomes.class)
                 .map(provider -> new CaveBiomeAnswers(owner, provider.service(), provider.world()))
                 .orElseGet(() -> new CaveBiomeAnswers(owner, null, owner.getGeneration().world())));
+    }
+
+    /**
+     * Whether the module that shapes the terrain keeps the lowest layer of the engine's world for itself, so the engine
+     * discards the blocks others write there. Asked once for the world and kept; no provider keeps nothing.
+     */
+    public static boolean protectsFloor(Engine engine) {
+        return engine.getGeneration().state(FloorProtection.class, owner -> new FloorProtection(
+                providers(owner, ProtectedFloor.class).stream()
+                        .anyMatch(provider -> provider.service().protectsFloor(provider.world())))).protectsFloor();
+    }
+
+    private record FloorProtection(boolean protectsFloor) {
     }
 
     /** What the modules say about the platform's own placed features in the engine's world, kept for the world. */
@@ -134,6 +149,17 @@ public final class ModuleServices {
             tables.addAll(provider.service().tables(provider.world(), site));
         }
         return tables;
+    }
+
+    /** The seed to shuffle the slots of the container at {@code site} with: the first the modules give; empty when none does. */
+    public static OptionalLong lootShuffleSeed(Engine engine, Loot.Site site) {
+        for (Provider<Loot> provider : providers(engine, Loot.class)) {
+            OptionalLong seed = provider.service().shuffleSeed(provider.world(), site);
+            if (seed.isPresent()) {
+                return seed;
+            }
+        }
+        return OptionalLong.empty();
     }
 
     /** The items loot table {@code table} gives at {@code site}, from the module that knows the table. */

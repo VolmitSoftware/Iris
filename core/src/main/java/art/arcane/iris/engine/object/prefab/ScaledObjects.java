@@ -19,7 +19,7 @@
 package art.arcane.iris.engine.object.prefab;
 
 import art.arcane.iris.builtin.objects.ObjectScale;
-import art.arcane.iris.builtin.objects.ScaleInterpolation;
+import com.volmit.object.ScaleMethod;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.volmlib.util.math.Vector3i;
 import art.arcane.volmlib.util.math.RNG;
@@ -50,7 +50,7 @@ public final class ScaledObjects {
      * {@code origin} scaled by {@code factor} with {@code interpolation}, even by a factor of 1, which interpolation may
      * still change; built once per origin, factor and interpolation.
      */
-    public static IrisObject scaled(IrisObject origin, double factor, ScaleInterpolation interpolation, Engine engine) {
+    public static IrisObject scaled(IrisObject origin, double factor, ScaleMethod interpolation, Engine engine) {
         return cachedVariant(new ScaleRequest(factor, factor, factor, NO_VARIATIONS, interpolation), 0, origin, engine);
     }
 
@@ -124,7 +124,7 @@ public final class ScaledObjects {
     }
 
     record ScaleRequest(double size, double minimumScale, double maximumScale, int variations,
-                        ScaleInterpolation interpolation) {
+                        ScaleMethod interpolation) {
         boolean shouldScale() {
             if (size != 1D) {
                 return true;

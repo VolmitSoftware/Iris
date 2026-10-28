@@ -1,6 +1,6 @@
 package art.arcane.iris.engine.object.prefab;
 
-import art.arcane.iris.builtin.objects.ScaleInterpolation;
+import com.volmit.object.ScaleMethod;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.EngineGeneration;
@@ -33,9 +33,9 @@ public class ScaledObjectsCacheTest {
             1D,
             1D,
             7,
-            ScaleInterpolation.NONE
+            ScaleMethod.NONE
     );
-    private static final ScaledObjects.ScaleRequest RANGED = new ScaledObjects.ScaleRequest(1D, 1D, 2D, 4, ScaleInterpolation.NONE);
+    private static final ScaledObjects.ScaleRequest RANGED = new ScaledObjects.ScaleRequest(1D, 1D, 2D, 4, ScaleMethod.NONE);
 
     private Engine engine;
 
@@ -229,7 +229,7 @@ public class ScaledObjectsCacheTest {
         }
 
         @Override
-        public IrisObject scaled(double scale, ScaleInterpolation interpolation) {
+        public IrisObject scaled(double scale, ScaleMethod interpolation) {
             scaleCalls.incrementAndGet();
             firstScaleEntered.countDown();
             try {
@@ -252,7 +252,7 @@ public class ScaledObjectsCacheTest {
         }
 
         @Override
-        public IrisObject scaled(double scale, ScaleInterpolation interpolation) {
+        public IrisObject scaled(double scale, ScaleMethod interpolation) {
             scaleCalls.incrementAndGet();
             return new IrisObject(1_000, 1_000, 1_000);
         }

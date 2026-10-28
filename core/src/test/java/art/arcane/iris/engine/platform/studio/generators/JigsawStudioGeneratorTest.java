@@ -24,7 +24,7 @@ import art.arcane.iris.engine.object.value.IrisDirection;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawConnector;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPiece;
 import art.arcane.iris.engine.object.prefab.IrisObject;
-import art.arcane.iris.builtin.prepare.ObjectRotation;
+import art.arcane.iris.engine.object.prefab.ObjectTurn;
 import art.arcane.iris.engine.object.value.IrisPosition;
 import art.arcane.iris.engine.object.structure.jigsaw.JigsawJoint;
 import art.arcane.iris.engine.object.prefab.TileData;
@@ -569,7 +569,7 @@ public class JigsawStudioGeneratorTest {
 
     private static String renderFinalState(
             String finalState,
-            ObjectRotation rotation,
+            ObjectTurn rotation,
             int quarterTurns
     ) {
         if (finalState.equals("minecraft:not_a_real_block")) {

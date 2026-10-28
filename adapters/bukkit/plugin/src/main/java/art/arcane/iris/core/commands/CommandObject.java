@@ -18,7 +18,6 @@
 
 package art.arcane.iris.core.commands;
 
-import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.Iris;
 import art.arcane.iris.platform.bukkit.BukkitPlatform;
 import art.arcane.iris.core.link.WorldEditLink;
@@ -35,8 +34,8 @@ import art.arcane.iris.core.tools.TreePlausibilizeBatch;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.object.placement.IObjectPlacer;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
-import art.arcane.iris.builtin.objects.ScaleInterpolation;
-import art.arcane.iris.builtin.prepare.ObjectRotation;
+import art.arcane.iris.engine.object.prefab.ObjectTurn;
+import com.volmit.object.ScaleMethod;
 import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.object.prefab.TileData;
 import art.arcane.iris.platform.bukkit.BukkitBlockState;
@@ -54,7 +53,6 @@ import art.arcane.iris.util.common.director.specialhandlers.ObjectHandler;
 import art.arcane.iris.util.common.director.specialhandlers.ObjectTargetHandler;
 import art.arcane.iris.util.common.format.C;
 import art.arcane.iris.util.common.math.Direction;
-import art.arcane.volmlib.util.math.RNG;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
@@ -561,7 +559,7 @@ public class CommandObject implements DirectorExecutor {
             scale = maxScale;
         }
 
-        ObjectPlacement placement = ObjectPlacement.builder().rotation(ObjectRotation.of(0, rotate, 0)).build();
+        ObjectTurn turn = ObjectTurn.of(0, rotate, 0);
 
         VolmitSender commandSender = sender();
         Player player = player();
@@ -578,13 +576,13 @@ public class CommandObject implements DirectorExecutor {
         Map<Block, BlockData> futureChanges = new HashMap<>();
 
         if (scale != 1) {
-            o = o.scaled(scale, ScaleInterpolation.TRICUBIC);
+            o = o.scaled(scale, ScaleMethod.TRICUBIC);
         }
 
         // Block writes must run on the thread owning the target chunk; the undo log stays global.
         final IrisObject placed = o;
         if (!J.runAt(block, () -> {
-            placed.place(block.getBlockX(), block.getBlockY() + (int) placed.getCenter().getY(), block.getBlockZ(), createPlacer(block.getWorld(), futureChanges, null), placement, new RNG(), null);
+            placed.paste(block.getBlockX(), block.getBlockY() + (int) placed.getCenter().getY(), block.getBlockZ(), createPlacer(block.getWorld(), futureChanges, null), turn);
             J.runGlobal(() -> Iris.service(ObjectSVC.class).addChanges(futureChanges));
 
             if (!edit) {
@@ -593,7 +591,7 @@ public class CommandObject implements DirectorExecutor {
             }
 
             onPlayerThread(player, () -> {
-                ObjectPasteBounds bounds = ObjectPasteBounds.resolve(placed, placement.rotation(), block.getBlockX(),
+                ObjectPasteBounds bounds = ObjectPasteBounds.resolve(placed, turn, block.getBlockX(),
                         block.getBlockY() + placed.getCenter().getBlockY(), block.getBlockZ());
                 Location minimum = new Location(block.getWorld(), bounds.minX(), bounds.minY(), bounds.minZ());
                 Location maximum = new Location(block.getWorld(), bounds.maxX(), bounds.maxY(), bounds.maxZ());

@@ -18,7 +18,6 @@
 
 package art.arcane.iris.core.project;
 
-import art.arcane.iris.core.modules.ModuleTargets;
 import art.arcane.volmlib.util.json.JSONArray;
 import art.arcane.volmlib.util.json.JSONObject;
 import com.volmit.config.Level;
@@ -181,7 +180,9 @@ final class ModuleSchemaRenderer {
                 required.put(option.name());
             }
         }
-        ModuleTargets.ofTypeName(type.name()).ifPresent(target -> addFeatures(target, properties));
+        if (schema.placementType().filter(type.name()::equals).isPresent()) {
+            addFeatures(Level.PLACEMENT, properties);
+        }
         object.put("properties", properties);
         if (required.length() > 0) {
             object.put("required", required);

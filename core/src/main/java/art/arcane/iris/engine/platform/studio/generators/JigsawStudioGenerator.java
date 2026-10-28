@@ -20,7 +20,7 @@ import art.arcane.iris.engine.object.value.IrisDirection;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawConnector;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPiece;
 import art.arcane.iris.engine.object.prefab.IrisObject;
-import art.arcane.iris.builtin.prepare.ObjectRotation;
+import art.arcane.iris.engine.object.prefab.ObjectTurn;
 import art.arcane.iris.engine.object.prefab.BlockStateRotation;
 import art.arcane.iris.engine.object.value.IrisPosition;
 import art.arcane.iris.engine.object.structure.jigsaw.JigsawJoint;
@@ -463,7 +463,7 @@ public final class JigsawStudioGenerator extends EnginedStudioGenerator {
                     "object '" + variant.objectKey() + "' does not fit workcell '" + workcell.stableId() + "'");
         }
 
-        ObjectRotation rotation = ObjectRotation.of(0, -90.0D * quarterTurns, 0);
+        ObjectTurn rotation = ObjectTurn.of(0, -90.0D * quarterTurns, 0);
         List<RenderedBlock> blocks = renderBlocks(object, dimensions, quarterTurns, rotation);
         if (blocks == null) {
             return RenderedBay.invalid(
@@ -482,7 +482,7 @@ public final class JigsawStudioGenerator extends EnginedStudioGenerator {
             IrisObject object,
             JigsawStudioCellDimensions dimensions,
             int quarterTurns,
-            ObjectRotation rotation
+            ObjectTurn rotation
     ) {
         VectorMap<PlatformBlockState> sourceBlocks = object.getBlocks();
         VectorMap<TileData> sourceTiles = object.getStates();
@@ -514,7 +514,7 @@ public final class JigsawStudioGenerator extends EnginedStudioGenerator {
             }
             PlatformBlockState blockState = quarterTurns == 0
                     ? entry.getValue()
-                    : BlockStateRotation.rotate(rotation, entry.getValue(), 0, 0, 0);
+                    : BlockStateRotation.rotate(rotation, entry.getValue());
             if (blockState == null) {
                 return null;
             }
@@ -534,7 +534,7 @@ public final class JigsawStudioGenerator extends EnginedStudioGenerator {
             IrisObject object,
             JigsawStudioCellDimensions dimensions,
             int quarterTurns,
-            ObjectRotation rotation
+            ObjectTurn rotation
     ) {
         KList<IrisJigsawConnector> sourceConnectors = piece.getConnectors();
         if (sourceConnectors == null) {
@@ -603,7 +603,7 @@ public final class JigsawStudioGenerator extends EnginedStudioGenerator {
 
     private static String rotatedFinalState(
             String finalState,
-            ObjectRotation rotation,
+            ObjectTurn rotation,
             int quarterTurns
     ) {
         PlatformBlockState state = B.getStateOrNull(finalState, false);
@@ -613,7 +613,7 @@ public final class JigsawStudioGenerator extends EnginedStudioGenerator {
         if (quarterTurns == 0) {
             return state.key();
         }
-        PlatformBlockState rotated = BlockStateRotation.rotate(rotation, state, 0, 0, 0);
+        PlatformBlockState rotated = BlockStateRotation.rotate(rotation, state);
         return rotated == null ? null : rotated.key();
     }
 
@@ -922,7 +922,7 @@ public final class JigsawStudioGenerator extends EnginedStudioGenerator {
 
     @FunctionalInterface
     interface FinalStateRenderer {
-        String render(String finalState, ObjectRotation rotation, int quarterTurns);
+        String render(String finalState, ObjectTurn rotation, int quarterTurns);
     }
 
     record RotatedPosition(int x, int y, int z) {

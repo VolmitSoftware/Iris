@@ -18,7 +18,6 @@
 
 package art.arcane.iris.core.content;
 
-import art.arcane.iris.builtin.spawn.IrisEntityExtras;
 import art.arcane.iris.core.modules.IrisPackResources;
 import art.arcane.iris.core.modules.ModuleServices;
 import art.arcane.iris.core.modules.PlatformBlockStates;
@@ -161,18 +160,18 @@ public final class ContentServices {
      * {@link #tableItems} for them again.
      */
     private static ContentEntity entityOf(EntitySpec spec) {
-        IrisEntityExtras extras = spec.extension(IrisEntityExtras.class).orElse(IrisEntityExtras.NONE);
         String type = spec.type() instanceof ContentKey.Registered registered ? registered.id().toString() : "";
         String provided = spec.type() instanceof ContentKey.Provided mob ? mob.toString() : "";
-        return new ContentEntity(type, provided, extras.reason().orElse(null),
+        return new ContentEntity(type, provided, spec.arrival().reason().orElse(null),
                 spec.appearance().customName().orElse(""), flagsOf(spec),
                 equipmentOf(spec.equipment()), spec.company().passengers().stream().map(ContentServices::entityOf).toList(),
                 spec.attributes().stream().map(ContentServices::attributeOf).toList(),
                 spec.drops().lootTables().stream().map(ResourceId::path).toList(), spec.drops().shuffleSeed(),
                 spec.company().leashHolder().map(ContentServices::entityOf).orElse(null),
                 spec.arrival().effect().map(ContentServices::spawnEffectOf).orElse(null),
-                extras.riseOutOfGround(), extras.pandaMainGene().orElse(null), extras.pandaHiddenGene().orElse(null),
-                extras.applySettingsToProvidedMob(), spec.arrival().commands().stream().map(ContentServices::commandOf).toList());
+                spec.arrival().risesFromGround(), spec.appearance().pandaMainGene().orElse(null),
+                spec.appearance().pandaHiddenGene().orElse(null),
+                spec.adjustsProvidedMob(), spec.arrival().commands().stream().map(ContentServices::commandOf).toList());
     }
 
     private static ContentEntity.Flags flagsOf(EntitySpec spec) {

@@ -2,7 +2,7 @@ package art.arcane.iris.core.service.tree;
 
 import art.arcane.iris.core.modules.ModuleServices;
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.builtin.structure.StructurePlacementMarker;
+import art.arcane.iris.core.modules.PlacementMarkers;
 import com.volmit.resource.PackResources;
 import com.volmit.resource.ResourceId;
 import com.volmit.service.SaplingGrowth;
@@ -28,7 +28,7 @@ public final class TreeDefinitionIndex {
     }
 
     public boolean isTreeMarker(String marker) {
-        StructurePlacementMarker.Decoded decoded = StructurePlacementMarker.decode(marker);
+        PlacementMarkers.Decoded decoded = PlacementMarkers.decode(marker);
         if (decoded == null || decoded.structureAware()) {
             return false;
         }

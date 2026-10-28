@@ -5,7 +5,7 @@ import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.core.service.tree.TreeDefinitionIndex;
 import art.arcane.iris.core.service.tree.TreeMarkerTraversal;
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.builtin.structure.StructurePlacementMarker;
+import art.arcane.iris.core.modules.PlacementMarkers;
 import art.arcane.iris.engine.framework.TreeBlockMaterial;
 import art.arcane.iris.modded.ModdedBlockBreakHandler;
 import art.arcane.iris.modded.ModdedBlockState;
@@ -110,7 +110,7 @@ public final class ModdedTreeFellerService implements ModdedTickableService {
         }
         int minimumY = level.getMinY();
         String marker = markerAt(engine, minimumY, position);
-        StructurePlacementMarker.Decoded decoded = StructurePlacementMarker.decode(marker);
+        PlacementMarkers.Decoded decoded = PlacementMarkers.decode(marker);
         if (decoded == null || decoded.structureAware()) {
             return null;
         }

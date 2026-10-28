@@ -47,7 +47,7 @@ import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawConnector;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawPiece;
 import art.arcane.iris.engine.object.structure.jigsaw.IrisJigsawThemeSet;
 import art.arcane.iris.engine.object.prefab.IrisObject;
-import art.arcane.iris.builtin.prepare.ObjectRotation;
+import art.arcane.iris.engine.object.prefab.ObjectTurn;
 import art.arcane.iris.engine.object.prefab.BlockStateRotation;
 import art.arcane.iris.engine.object.value.IrisPosition;
 import art.arcane.iris.engine.object.structure.IrisStructure;
@@ -6287,7 +6287,7 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
         int sourceDepth = (quarterTurns & 1) == 0
                 ? displayDimensions.depth()
                 : displayDimensions.width();
-        ObjectRotation rotation = ObjectRotation.of(0, -90.0D * quarterTurns, 0);
+        ObjectTurn rotation = ObjectTurn.of(0, -90.0D * quarterTurns, 0);
         Map<LocalPosition, IrisJigsawConnector> displayed = new HashMap<>(source.getConnectors().size());
         for (IrisJigsawConnector sourceConnector : source.getConnectors()) {
             LocalPosition sourcePosition = connectorPosition(sourceConnector, "source piece");
@@ -6395,7 +6395,7 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
                 sourceWidth,
                 captureBounds.dimensions().height(),
                 sourceDepth);
-        ObjectRotation inverseRotation = ObjectRotation.of(0, 90.0D * quarterTurns, 0);
+        ObjectTurn inverseRotation = ObjectTurn.of(0, 90.0D * quarterTurns, 0);
         List<IrisJigsawConnector> connectors = new ArrayList<>();
         Set<LocalPosition> capturedBlocks = new HashSet<>();
         Set<LocalPosition> capturedConnectors = new HashSet<>();
@@ -6417,7 +6417,7 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
                 }
                 PlatformBlockState sourceState = quarterTurns == 0
                         ? block.state()
-                        : BlockStateRotation.rotate(inverseRotation, block.state(), 0, 0, 0);
+                        : BlockStateRotation.rotate(inverseRotation, block.state());
                 if (sourceState == null) {
                     throw new IOException("Captured block state cannot be inverse-rotated at "
                             + block.x() + "," + block.y() + "," + block.z());
@@ -6459,7 +6459,7 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
                                 + capturedConnector.x() + "," + capturedConnector.y() + ","
                                 + capturedConnector.z());
                     }
-                    PlatformBlockState sourceFinalState = BlockStateRotation.rotate(inverseRotation, finalState, 0, 0, 0);
+                    PlatformBlockState sourceFinalState = BlockStateRotation.rotate(inverseRotation, finalState);
                     if (sourceFinalState == null) {
                         throw new IOException("Captured connector final state cannot be inverse-rotated at "
                                 + capturedConnector.x() + "," + capturedConnector.y() + ","
@@ -6963,7 +6963,7 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuC
                 sourceWidth,
                 sourceDepth,
                 quarterTurns);
-        ObjectRotation inverseRotation = ObjectRotation.of(0, 90.0D * quarterTurns, 0);
+        ObjectTurn inverseRotation = ObjectTurn.of(0, 90.0D * quarterTurns, 0);
         IrisJigsawConnector sourceOriented = CapturedConnector.from(captured).toConnector()
                 .setPosition(new IrisPosition(position.x(), position.y(), position.z()))
                 .setDirection(inverseRotation.rotate(captured.getDirection()))

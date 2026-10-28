@@ -19,14 +19,9 @@
 package art.arcane.iris.engine.object.prefab;
 
 import com.volmit.object.PlaceableObject;
-import art.arcane.iris.builtin.objects.ScaleInterpolation;
-import art.arcane.iris.builtin.prepare.ObjectRotation;
+import com.volmit.object.ScaleMethod;
 import art.arcane.iris.engine.object.placement.IObjectPlacer;
-import art.arcane.iris.builtin.objects.ObjectPlacement;
-import art.arcane.iris.engine.object.terrain.carving.CarveResult;
 import art.arcane.iris.engine.object.value.IrisPosition;
-import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.core.modules.ModuleObjectPlacement;
 import art.arcane.iris.core.modules.ObjectGeometry;
 import art.arcane.iris.core.loader.IrisRegistrant;
 import art.arcane.volmlib.util.cache.AtomicCache;
@@ -41,8 +36,6 @@ import art.arcane.volmlib.util.math.IrisVector;
 import art.arcane.volmlib.util.math.Vector3i;
 import art.arcane.iris.util.common.plugin.VolmitSender;
 import art.arcane.volmlib.util.collection.KList;
-import art.arcane.volmlib.util.math.BlockPosition;
-import art.arcane.volmlib.util.math.RNG;
 import com.volmit.object.GeneratedObject;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -60,7 +53,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.function.BiConsumer;
 
 /**
  * A voxel volume loaded from a .iob file. Instances are loader cached and shared across generation threads, so all
@@ -68,8 +60,8 @@ import java.util.function.BiConsumer;
  * <p>
  * The heavy behaviour lives in package-private collaborators that read this state directly:
  * {@link IrisObjectIO} (binary persistence), {@link IrisObjectShaping} (boring, shrinkwrap, block classification),
- * {@link IrisObjectTransforms} (rotation, scaling, interpolated upscaling) and {@link ModuleObjectPlacement}
- * (world placement).
+ * {@link IrisObjectTransforms} (rotation, scaling, interpolated upscaling). Placing an object in a world with the
+ * pack's placement rules is the placement stages' job, not this class's.
  */
 @Accessors(chain = true)
 @EqualsAndHashCode(callSuper = false)
@@ -260,25 +252,37 @@ public class IrisObject extends IrisRegistrant implements PlaceableObject {
         forgetDerivedShapes();
     }
 
-    public int place(int x, int z, IObjectPlacer placer, ObjectPlacement config, RNG rng, IrisData rdata) {
-        return place(x, -1, z, placer, config, rng, rdata);
-    }
-
-    public int place(int x, int z, IObjectPlacer placer, ObjectPlacement config, RNG rng, CarveResult c, IrisData rdata) {
-        return place(x, -1, z, placer, config, rng, null, c, rdata);
-    }
-
-    public int place(int x, int yv, int z, IObjectPlacer placer, ObjectPlacement config, RNG rng, IrisData rdata) {
-        return place(x, yv, z, placer, config, rng, null, null, rdata);
-    }
-
-    public int place(Location loc, IObjectPlacer placer, ObjectPlacement config, RNG rng, IrisData rdata) {
-        return place(loc.getBlockX(), loc.getBlockY(), loc.getBlockZ(), placer, config, rng, rdata);
-    }
-
-    /** The height the object was placed at, or -1 when the placement rejected it. */
-    public int place(int x, int yv, int z, IObjectPlacer oplacer, ObjectPlacement config, RNG rng, BiConsumer<BlockPosition, PlatformBlockState> listener, CarveResult c, IrisData rdata) {
-        return ModuleObjectPlacement.place(this, x, yv, z, oplacer, config, rng, listener, c, rdata).heightOrRejected();
+    /**
+     * Writes the object's blocks and their block entities around ({@code x}, {@code y}, {@code z}) turned by {@code turn},
+     * with no placement rule: the object's own offsets count from that spot, air is left out, and a block that cannot
+     * face the new way is dropped. This is what a paste does; placement rules belong to the placement stages.
+     *
+     * @return how many blocks were written
+     */
+    public int paste(int x, int y, int z, IObjectPlacer placer, ObjectTurn turn) {
+        int written = 0;
+        readLock.lock();
+        try {
+            for (var entry : blocks) {
+                PlatformBlockState state = BlockStateRotation.rotate(turn, entry.getValue());
+                if (state == null || state.isAir()) {
+                    continue;
+                }
+                IrisBlockVector turned = turn.rotate(entry.getKey());
+                int blockX = x + (int) Math.round(turned.getX());
+                int blockY = y + (int) Math.round(turned.getY());
+                int blockZ = z + (int) Math.round(turned.getZ());
+                placer.set(blockX, blockY, blockZ, state);
+                TileData tile = states.get(entry.getKey());
+                if (tile != null) {
+                    placer.setTile(blockX, blockY, blockZ, tile);
+                }
+                written++;
+            }
+        } finally {
+            readLock.unlock();
+        }
+        return written;
     }
 
     /** This object as IrisApi geometry, read once until its blocks change. */
@@ -320,11 +324,11 @@ public class IrisObject extends IrisRegistrant implements PlaceableObject {
         });
     }
 
-    public IrisObject rotateCopy(ObjectRotation rt) {
-        return IrisObjectTransforms.rotateCopy(this, rt);
+    public IrisObject rotateCopy(ObjectTurn turn) {
+        return IrisObjectTransforms.rotateCopy(this, turn);
     }
 
-    public IrisObject scaled(double scale, ScaleInterpolation interpolation) {
+    public IrisObject scaled(double scale, ScaleMethod interpolation) {
         return IrisObjectTransforms.scaled(this, scale, interpolation);
     }
 

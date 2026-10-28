@@ -18,7 +18,7 @@
 
 package art.arcane.iris.engine.framework;
 
-import art.arcane.iris.builtin.structure.StructurePlacementMarker;
+import art.arcane.iris.core.modules.PlacementMarkers;
 
 
 import art.arcane.iris.core.IrisSettings;
@@ -437,7 +437,7 @@ public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, 
             return null;
         }
 
-        StructurePlacementMarker.Decoded marker = StructurePlacementMarker.decode(objectAt);
+        PlacementMarkers.Decoded marker = PlacementMarkers.decode(objectAt);
         if (marker == null) {
             return null;
         }

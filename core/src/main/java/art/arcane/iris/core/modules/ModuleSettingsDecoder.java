@@ -52,6 +52,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
@@ -73,9 +74,11 @@ public final class ModuleSettingsDecoder {
     private static final String SNIPPET_PREFIX = "snippet/";
     private static final String SNIPPET_FOLDER = "snippet";
     private static final String JSON_EXTENSION = ".json";
+    private static final String PLACEMENT_RESOURCE = "object placement";
 
     private final Map<Level, List<FeatureDescriptor<?>>> settings = new EnumMap<>(Level.class);
     private final Map<Level, Set<String>> keys = new EnumMap<>(Level.class);
+    private final Map<String, ModuleSettings> placementSettings = new ConcurrentHashMap<>();
     private final Path packFolder;
     private final Gson gson;
     private final Supplier<Gson> irisGson;
@@ -121,6 +124,16 @@ public final class ModuleSettingsDecoder {
             }
         }
         return ModuleSettings.of(values);
+    }
+
+    /**
+     * The settings the object placement written as {@code json} declares at {@link Level#PLACEMENT}. A placement is placed
+     * many times and always reads the same, so each text is decoded once for as long as the decoder lives.
+     *
+     * @throws IllegalArgumentException when a value does not decode into its settings type
+     */
+    public ModuleSettings decodePlacement(String json) {
+        return placementSettings.computeIfAbsent(json, text -> decode(Level.PLACEMENT, new JSONObject(text), PLACEMENT_RESOURCE));
     }
 
     /**

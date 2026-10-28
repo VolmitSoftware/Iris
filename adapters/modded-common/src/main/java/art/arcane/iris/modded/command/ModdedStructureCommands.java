@@ -22,6 +22,8 @@ import art.arcane.iris.core.modules.StructureAssemblies;
 import art.arcane.iris.engine.framework.structure.StructureResources;
 import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
 import art.arcane.iris.builtin.objects.ObjectPlacement;
+import art.arcane.iris.core.modules.ModuleObjectPlacement;
+import art.arcane.iris.engine.mantle.components.StructurePlacing;
 import art.arcane.iris.modded.ModdedIrisLog;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.structure.StructureIndexService;
@@ -205,11 +207,11 @@ public final class ModdedStructureCommands {
             for (PlacedStructurePiece piece : pieces) {
                 ObjectPlacement config = ObjectPlacement.builder()
                         .mode(ObjectPlaceMode.STRUCTURE_PIECE)
-                        .rotation(piece.getRotation())
+                        .rotation(StructurePlacing.moduleRotation(piece.getRotation()))
                         .place(List.of(piece.getObject().getLoadKey()))
                         .edit(structure.getEdit())
                         .build();
-                piece.getObject().place(piece.getX(), piece.getY(), piece.getZ(), placer, config, rng, null, null, data);
+                ModuleObjectPlacement.place(piece.getObject(), piece.getX(), piece.getY(), piece.getZ(), placer, config, rng, null, null, data);
             }
         } catch (Throwable e) {
             ModdedIrisLog.error("Iris structure place failed for {}", key, e);

@@ -4,6 +4,7 @@ import art.arcane.iris.builtin.carve.CarvingMode;
 import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
 import art.arcane.iris.engine.object.TestSettings;
 import art.arcane.iris.builtin.prepare.SlopeClip;
+import art.arcane.iris.core.modules.ModuleObjectPlacement;
 import art.arcane.iris.engine.object.placement.IObjectPlacer;
 import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.engine.object.prefab.IrisObject;
@@ -251,7 +252,7 @@ public class IrisObjectSurfaceSupportPlacementTest {
     }
 
     private int place(SurfacePlacer placer, ObjectPlacement.Builder placement, int anchorY) {
-        return object().place(0, anchorY, 0, placer, placement.build(), new RNG(1234L), data);
+        return ModuleObjectPlacement.place(object(), 0, anchorY, 0, placer, placement.build(), new RNG(1234L), null, null, data).heightOrRejected();
     }
 
     private ObjectPlacement.Builder placement(ObjectPlaceMode mode) {

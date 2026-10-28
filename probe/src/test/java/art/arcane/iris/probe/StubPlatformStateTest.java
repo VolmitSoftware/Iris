@@ -1,6 +1,6 @@
 package art.arcane.iris.probe;
 
-import art.arcane.iris.builtin.prepare.ObjectRotation;
+import art.arcane.iris.engine.object.prefab.ObjectTurn;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.spi.PlatformFace;
@@ -23,7 +23,7 @@ public final class StubPlatformStateTest {
 
     @Test
     public void rotatesFacingAxisAndConnectedFaces() {
-        ObjectRotation rotation = ObjectRotation.of(0, 90, 0);
+        ObjectTurn rotation = ObjectTurn.of(0, 90, 0);
 
         assertEquals("minecraft:oak_stairs[facing=west,half=bottom]",
                 StubPlatform.rotateForTest(rotation, state("minecraft:oak_stairs[facing=north,half=bottom]")).key());

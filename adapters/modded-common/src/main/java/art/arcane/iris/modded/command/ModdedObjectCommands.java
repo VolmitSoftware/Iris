@@ -18,20 +18,18 @@
 
 package art.arcane.iris.modded.command;
 
-import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.modded.ModdedIrisLog;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.tools.TreePlausibilizeBatch;
 import art.arcane.iris.core.tools.TreePlausibilizer;
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.builtin.prepare.ObjectRotation;
 import art.arcane.iris.engine.object.prefab.IrisObject;
+import art.arcane.iris.engine.object.prefab.ObjectTurn;
 import art.arcane.iris.engine.object.prefab.TileData;
 import art.arcane.iris.modded.ModdedBlockState;
 import art.arcane.iris.modded.ModdedTileData;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.common.scheduling.J;
-import art.arcane.volmlib.util.math.RNG;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
@@ -411,10 +409,10 @@ public final class ModdedObjectCommands {
             target = blockHit.getBlockPos().above();
         }
 
-        ObjectPlacement placement = ObjectPlacement.builder().rotation(ObjectRotation.of(0, rotation, 0)).build();
+        ObjectTurn turn = ObjectTurn.of(0, rotation, 0);
         ModdedObjectPlacer placer = new ModdedObjectPlacer(level, engine);
         try {
-            object.place(target.getX(), target.getY() + object.getCenter().getY(), target.getZ(), placer, placement, new RNG(), null);
+            object.paste(target.getX(), target.getY() + object.getCenter().getY(), target.getZ(), placer, turn);
         } catch (Throwable e) {
             ModdedIrisLog.error("Iris paste failed for {}", key, e);
             ModdedObjectUndo.record(player == null ? ModdedObjectUndo.CONSOLE : player.getUUID(), level, placer.undoSnapshot());

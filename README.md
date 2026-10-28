@@ -176,6 +176,10 @@ begins (write nothing there). `surfaceY(x, z)` is a column's height alone, cheap
 no slope, and `surfaceHeight(x, z)` the same height rounded to the block a stage places on. `surfaceBiome(x, z)` is the id of a column's surface biome alone and `surfaceKind(x, z)` what it was generated as (`BiomeKind`: land, sea,
 shore); `surfaceBlock(x, z)` is the block an image map gives the ground there, `minWorldY()` the world Y of the dimension's bottom, and
 `upperDimension()` the dimension stacked above (`UpperDimension`: its own settings, resources and image-map blocks), for a stage that fills in its ground.
+`biomeHeight(biome, x, z, seed)` is the height a pack biome's terrain generators would give a column, whatever biome stands there, and
+`skyBiome(biome, x, z)` the platform biome that biome shows as in the sky (a custom biome, or a pick from its sky scatter); a stage that builds
+ground of a biome somewhere else, such as a floating island, shapes and paints it with them. `ctx.mantle().setPlatformBiome(x, y, z, biome)` makes a
+block show that platform biome instead of its column's, inside the stage's own chunk.
 `ctx.settings().declaredBy(biomeId, Type.class)` reads what a biome declares itself, such as a cave biome of a `BiomeSample`, which is no level of
 `at(...)`. A mantle stage's `ctx.terrain()` covers the chunk and the larger of its reach and 16 blocks around it; a chunk stage's `ctx.mantle()` covers the same area as its terrain. `ctx.mantle().blocks()` holds the blocks placements wrote into the mantle for the chunks to
 take over, such as objects and structures; a chunk stage copies them in (Iris's `iris:matter`). `ctx.mantle().isCarved(x, y, z)` says whether the cave planner

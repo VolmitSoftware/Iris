@@ -8,6 +8,7 @@ import com.volmit.mantle.MantleEdit;
 import com.volmit.mantle.MantleKey;
 import com.volmit.mantle.MantleLayer;
 import com.volmit.mantle.MantleVisitor;
+import com.volmit.resource.ResourceId;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -53,6 +54,12 @@ final class ChunkMantle implements Mantle {
     @Override
     public boolean isCarved(int x, int y, int z) {
         return mantle.isCarved(x, y, z);
+    }
+
+    @Override
+    public void setPlatformBiome(int x, int y, int z, ResourceId biome) {
+        requireOwnChunk(x, y, z);
+        mantle.setPlatformBiome(x, y, z, biome);
     }
 
     @Override

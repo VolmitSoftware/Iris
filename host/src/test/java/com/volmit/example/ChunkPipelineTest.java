@@ -276,6 +276,23 @@ class ChunkPipelineTest {
         assertNull(mantle.get(VeinModule.ORE, CHUNK, 0, 0));
     }
 
+    @Test
+    void chunkStagesSetPlatformBiomesInTheirOwnChunkOnly() {
+        var mantle = new MemoryMantle();
+        var aroundTheChunk = new BlockBox(-CHUNK, BOTTOM, -CHUNK, 2 * CHUNK, TOP, 2 * CHUNK);
+        var sky = ResourceId.parse("minecraft:plains");
+        var graph = TestSetups.stages(oreWriter((context, layer) -> {
+            context.mantle().setPlatformBiome(15, 200, 0, sky);
+            context.mantle().setPlatformBiome(CHUNK, 200, 0, sky);
+        })).resolve(Pipeline.CHUNK);
+        var inputs = TestContexts.generation(null, ColumnSettings.NONE, mantle.within(aroundTheChunk));
+
+        assertThrows(UnsupportedOperationException.class,
+                () -> new ChunkRunner(graph).generate(inputs, TestContexts.SEED, StageTimings.NONE));
+        assertEquals(sky, mantle.platformBiome(15, 200, 0));
+        assertNull(mantle.platformBiome(CHUNK, 200, 0));
+    }
+
     private static IrisModule oreWriter(BiConsumer<ChunkStageContext, MantleLayer<Integer>> body) {
         var stage = Stage.chunk("test:writer/work");
         return new IrisModule() {

@@ -8,6 +8,7 @@ import com.volmit.mantle.MantleEdit;
 import com.volmit.mantle.MantleKey;
 import com.volmit.mantle.MantleLayer;
 import com.volmit.mantle.MantleVisitor;
+import com.volmit.resource.ResourceId;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
@@ -24,6 +25,9 @@ public final class MemoryMantle {
     /** Where the carved voids are kept; the host owns them, so no module registers this layer. */
     private static final MantleKey<Boolean> CAVERNS = new MantleKey<>("host:caverns", Boolean.class);
 
+    /** Where the platform biomes stages set are kept; the host owns them, so no module registers this layer. */
+    private static final MantleKey<ResourceId> PLATFORM_BIOMES = new MantleKey<>("host:platform-biomes", ResourceId.class);
+
     private final Map<String, TreeMap<BlockPosition, Object>> layers = new HashMap<>();
 
     /** A view that accepts reads and writes inside {@code bounds} only. */
@@ -33,6 +37,10 @@ public final class MemoryMantle {
             public <T> MantleLayer<T> layer(MantleKey<T> key) { return new Layer<>(key, bounds, true); }
             public MantleLayer<BlockState> blocks() { return new Layer<>(PLANNED_BLOCKS, bounds, false); }
             public boolean isCarved(int x, int y, int z) { return new Layer<>(CAVERNS, bounds, false).get(x, y, z) != null; }
+            public void setPlatformBiome(int x, int y, int z, ResourceId biome) {
+                if (!bounds.contains(x, y, z)) throw new IndexOutOfBoundsException("Outside the mantle view: " + x + "," + y + "," + z);
+                values(PLATFORM_BIOMES).put(new BlockPosition(x, y, z), biome);
+            }
             public MantleEdit edit() { throw new UnsupportedOperationException("Edits are not used in these tests"); }
         };
     }
@@ -45,6 +53,11 @@ public final class MemoryMantle {
     /** Carves a void into the mantle, as the cave planner would; stages only read them. */
     public void carve(int x, int y, int z) {
         values(CAVERNS).put(new BlockPosition(x, y, z), Boolean.TRUE);
+    }
+
+    /** The platform biome a stage set at the block; null where none did. */
+    public ResourceId platformBiome(int x, int y, int z) {
+        return get(PLATFORM_BIOMES, x, y, z);
     }
 
     public <T> T get(MantleKey<T> key, int x, int y, int z) {

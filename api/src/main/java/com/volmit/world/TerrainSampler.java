@@ -69,6 +69,19 @@ public interface TerrainSampler {
      */
     Optional<BlockState> surfaceBlock(int worldX, int worldZ);
 
+    /** The height, above the bottom, that the terrain generators of pack biome {@code biome} give the column when shaped
+     * with {@code seed}, whatever biome the column really has: what a biome's ground would be if it stood there. Throws
+     * IllegalArgumentException when the pack has no such biome. Outside the bounds it throws like {@link #column}.
+     */
+    double biomeHeight(ResourceId biome, int worldX, int worldZ, long seed);
+
+    /** The platform biome pack biome {@code biome} shows as when it floats in the sky at the column, such as
+     * {@code minecraft:plains}: one of its custom biomes, or a pick from its sky scatter. Empty when the biome names
+     * none. Throws IllegalArgumentException when the pack has no such biome. Outside the bounds it throws like
+     * {@link #column}. Write it with {@link com.volmit.mantle.Mantle#setPlatformBiome}.
+     */
+    Optional<ResourceId> skyBiome(ResourceId biome, int worldX, int worldZ);
+
     /** The Y in the world of the dimension's bottom block, such as {@code -64}: what to add to a height above the bottom
      * to get the Y a pack's settings name when they speak of world heights.
      */

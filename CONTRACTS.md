@@ -149,6 +149,11 @@ running Iris is the pack publisher's responsibility.
 - Answer `TerrainSampler.surfaceBiome(x, z)` (the id `biome(x, y, z).surfaceBiome()` gives), `surfaceKind`, `minWorldY()`, `surfaceBlock` (empty
   where no image map gives one) and `upperDimension()` (empty when nothing sits above); `FeatureSettings.declaredBy(biome, type)` answers the
   settings the biome declares itself (empty when it declares none or is unknown); `BlockRegistry.oreFor` answers from the platform.
+- Answer `TerrainSampler.biomeHeight(biome, x, z, seed)` (the height above the bottom the biome's terrain generators give the
+  column when shaped with `seed`) and `skyBiome(biome, x, z)` (the platform biome the biome shows as in the sky; empty when it
+  names none) for any biome of the pack, throwing IllegalArgumentException for one it does not have. Store
+  `Mantle.setPlatformBiome(x, y, z, biome)` where the biome pass that writes the chunk's biomes reads it; a chunk stage's
+  mantle accepts it inside the chunk's own columns only, and a placement's mantle or an edit may refuse it.
 - Answer `TerrainSampler.fluidHeight()` (the height the host fills with fluid below) and `upperDimensionY(x, z)` (where a
   dimension stacked above begins; empty when none does). `surfaceY(x, z)` equals `column(x, z).surfaceY()`; a host
   overrides it when the height costs less than the whole column. `surfaceHeight(x, z)` must equal

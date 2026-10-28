@@ -579,6 +579,11 @@ chunk, and a neighbor may already be generated, so its mantle stays as the pipel
 `Mantle.isCarved(x, y, z)` is the host's answer whether the cave planner carved a block, as `blocks()` is its read-only layer of planned blocks: a
 void the planner marked need not show in the chunk (under a dimension above, the cave stage leaves it solid), and a stage that places something
 solid asks it. A yes-or-no question rather than a layer, because no module writes it and none needs to visit it.
+`Mantle.setPlatformBiome(x, y, z, biome)` is the other way round: modules write it and only the host's biome pass reads it, in the host's own form
+(Iris stores the platform's id for the biome), so it is a write rather than a layer a module could read back. It is general rather than a
+floating-island call: any stage that makes a block belong elsewhere, such as an island floating over another biome, can set the biome it shows.
+`TerrainSampler.biomeHeight` and `skyBiome` answer for a biome that need not stand at the column, because such a stage builds that biome's ground
+away from where the layout puts it. Neither takes a random: Iris picks sky and custom biomes with a generator seeded from the world's biome seed.
 `BlockRegistry.oreFor(rock, ore)` is the platform's answer to which variant of an ore belongs in a rock.
 
 ## Mantle invocations
@@ -1280,8 +1285,6 @@ API now: `world.running()`, `world.seed(purpose)`, `TerrainSampler`, `FeatureSet
   height, which written blocks are the object's). Iris reads it in two places: for the placement-level module settings of
   the run, and when Iris places an object itself (its studio and commands, the jigsaw placer). It goes when those settings
   are part of the run the API describes and Iris no longer places objects itself.
-- **`FloatingHost`** (world). Island height comes from Iris's biome generators and island tops are painted by Iris's biome
-  palettes, which the API layout does not describe. Its objects are placed through `PackWorld.placements()`.
 - **`StructureHost`** (world). Iris's structure assembler, locator and placer, and the loot tables of a structure for the
   loot of its pieces. The structure model (structures, pools, pieces) is `iris:structure`'s own resource kinds, which Iris
   registers with its own modules because its jigsaw studio reads them. Its surface is already API vocabulary; it goes when

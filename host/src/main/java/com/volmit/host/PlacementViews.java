@@ -11,6 +11,7 @@ import com.volmit.placement.PlacedBlock;
 import com.volmit.placement.PlacedMarker;
 import com.volmit.placement.PlacementAccess;
 import com.volmit.placement.PlacementEdit;
+import com.volmit.resource.ResourceId;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -134,6 +135,12 @@ final class PlacementViews {
         public boolean isCarved(int x, int y, int z) {
             checkPosition(bounds(), x, y, z);
             return parent.isCarved(x, y, z);
+        }
+
+        @Override
+        public void setPlatformBiome(int x, int y, int z, ResourceId biome) {
+            checkPosition(bounds(), x, y, z);
+            parent.setPlatformBiome(x, y, z, biome);
         }
     }
 

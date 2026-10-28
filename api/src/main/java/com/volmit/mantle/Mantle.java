@@ -2,6 +2,7 @@ package com.volmit.mantle;
 
 import com.volmit.block.BlockState;
 import com.volmit.geometry.BlockBox;
+import com.volmit.resource.ResourceId;
 
 /**
  * Invocation-scoped access to typed mantle data. X and Z are world block coordinates; Y is
@@ -38,6 +39,13 @@ public interface Mantle {
      * stacked above. The host owns the carving; stages only ask. A dimension that keeps no mantle carves nothing.
      */
     boolean isCarved(int x, int y, int z);
+
+    /** Shows the block as platform biome {@code biome}, such as {@code minecraft:plains} or a pack's custom biome, instead
+     * of the biome its column generates as; the host's biome pass reads it when it writes the chunk's biomes. The host
+     * owns this layer and keeps it in its own form, so it is written only and needs no registration. A chunk stage
+     * sets it inside its own chunk only, like module layers.
+     */
+    void setPlatformBiome(int x, int y, int z, ResourceId biome);
 
     /** Only one edit may be active per view. Parent reads remain allowed, but parent
      * mutations are prohibited until the edit ends (IllegalStateException).

@@ -20,20 +20,21 @@ package art.arcane.iris.engine.mantle.components;
 
 import art.arcane.iris.builtin.anchor.PlaceMode;
 import art.arcane.iris.builtin.objects.ObjectPlacement;
-import art.arcane.iris.builtin.objects.ObjectSize;
 import art.arcane.iris.builtin.objects.ObjectSettings;
 import art.arcane.iris.builtin.objects.ProceduralObjectSettings;
-import art.arcane.iris.builtin.objects.ObjectHost;
-import art.arcane.iris.builtin.objects.PlaceableObject;
-import art.arcane.iris.builtin.objects.ProceduralPlacement;
 import art.arcane.iris.builtin.prepare.AxisRotationClamp;
 import art.arcane.iris.builtin.prepare.ObjectRotation;
 import art.arcane.iris.builtin.prepare.ObjectTranslate;
 import art.arcane.iris.builtin.vacuum.VacuumSettings;
 import art.arcane.iris.engine.object.procedural.ResolvedProceduralObjects;
+import art.arcane.iris.modules.objects.ObjectSize;
+import art.arcane.iris.modules.objects.ProceduralPlacement;
 import com.volmit.ModuleLog;
 import com.volmit.config.FeatureSettings.Entry;
 import com.volmit.config.PackSettings;
+import com.volmit.geometry.BlockBox;
+import com.volmit.object.PlaceableObject;
+import com.volmit.resource.PackResources;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -48,13 +49,13 @@ final class PlacementReach {
     private static final int MAX_VACUUM_RADIUS_BLOCKS = 128;
     private static final double SCALE_PADDING_FACTOR = 2D;
 
-    private final ObjectHost host;
+    private final PackResources resources;
     private final ModuleLog log;
     private final Map<String, Optional<ObjectSize>> sizes = new HashMap<>();
     private final Set<String> warnedLargeObjects = new HashSet<>();
 
-    PlacementReach(ObjectHost host, ModuleLog log) {
-        this.host = host;
+    PlacementReach(PackResources resources, ModuleLog log) {
+        this.resources = resources;
         this.log = log;
     }
 
@@ -85,7 +86,7 @@ final class PlacementReach {
 
     private int ofObject(ObjectPlacement placement, String objectKey) {
         try {
-            Optional<ObjectSize> size = sizes.computeIfAbsent(objectKey, host::sizeOf);
+            Optional<ObjectSize> size = sizes.computeIfAbsent(objectKey, key -> sizeOf(resources, key));
             if (size.isEmpty()) {
                 return 0;
             }
@@ -100,9 +101,18 @@ final class PlacementReach {
         }
     }
 
+    /** The size of the pack object {@code objectKey} names; empty when the pack has none. */
+    static Optional<ObjectSize> sizeOf(PackResources resources, String objectKey) {
+        return resources.objects().sizeOf(resources.idOf(objectKey)).map(PlacementReach::sizeOf);
+    }
+
+    private static ObjectSize sizeOf(BlockBox box) {
+        return new ObjectSize(box.maxX() - box.minX(), box.maxY() - box.minY(), box.maxZ() - box.minZ());
+    }
+
     private int ofProcedural(ProceduralObjectSettings settings) {
         int radius = 0;
-        for (ProceduralPlacement placement : ResolvedProceduralObjects.resolve(settings, host)) {
+        for (ProceduralPlacement placement : ResolvedProceduralObjects.resolve(settings, resources)) {
             for (PlaceableObject variant : placement.variants()) {
                 radius = Math.max(radius, of(new ObjectSize(variant.width(), variant.height(), variant.depth()), placement));
             }

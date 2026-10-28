@@ -18,7 +18,7 @@
 
 package art.arcane.iris.engine.object.procedural;
 
-import art.arcane.iris.builtin.objects.ObjectBuilder;
+import art.arcane.iris.modules.objects.ObjectBuilder;
 import art.arcane.volmlib.util.math.RNG;
 import art.arcane.volmlib.util.math.Vector3i;
 import com.volmit.block.BlockState;

@@ -18,20 +18,20 @@
 
 package art.arcane.iris.engine.object.placement;
 
-import art.arcane.iris.builtin.IrisStages;
 import art.arcane.iris.builtin.anchor.PlaceTrait;
-import art.arcane.iris.builtin.placement.BlockTraits;
-import art.arcane.iris.builtin.placement.ObjectPlacement;
-import art.arcane.iris.builtin.placement.ObjectShape;
-import art.arcane.iris.builtin.placement.PlacementSettings;
-import art.arcane.iris.builtin.placement.PlacementTerrain;
-import art.arcane.iris.builtin.placement.SurfaceWarp;
 import art.arcane.iris.builtin.prepare.AxisRotationClamp;
 import art.arcane.iris.builtin.prepare.ObjectRotation;
 import art.arcane.iris.builtin.prepare.ObjectSpinKernel;
 import art.arcane.iris.builtin.prepare.ObjectTranslate;
-import art.arcane.iris.builtin.prepare.PreparedPlacement;
 import art.arcane.iris.builtin.prepare.TransformedBounds;
+import art.arcane.iris.modules.placement.BlockTraits;
+import art.arcane.iris.modules.placement.ObjectShape;
+import art.arcane.iris.modules.placement.PlacementSettings;
+import art.arcane.iris.modules.placement.PlacementStages;
+import art.arcane.iris.modules.placement.PreparedPlacement;
+import art.arcane.iris.modules.placement.RunningPlacement;
+import art.arcane.iris.modules.placement.StageTerrain;
+import art.arcane.iris.modules.placement.SurfaceWarp;
 import art.arcane.volmlib.util.math.IrisBlockVector;
 import art.arcane.volmlib.util.math.RNG;
 import com.volmit.IrisModule;
@@ -61,14 +61,14 @@ public final class PrepareModule implements IrisModule {
     @Override
     public void setup(ModuleSetup setup) {
         var graph = setup.stages();
-        graph.define(IrisStages.Prepare.SLOPE).produce(PrepareModule::slope);
-        graph.define(IrisStages.Prepare.TRANSFORMS)
-                .requires(IrisStages.Prepare.SLOPE)
+        graph.define(PlacementStages.Prepare.SLOPE).produce(PrepareModule::slope);
+        graph.define(PlacementStages.Prepare.TRANSFORMS)
+                .requires(PlacementStages.Prepare.SLOPE)
                 .produce(PrepareModule::transforms);
     }
 
     private static ObjectRotation slope(PlacementStageContext context) {
-        ObjectPlacement placement = context.extension(ObjectPlacement.class).orElseThrow();
+        RunningPlacement placement = RunningPlacement.of(context);
         PlacementSettings settings = placement.settings();
         ObjectRotation requested = settings.rotation();
         boolean checksSlope = !settings.forcePlace() && !settings.slopeCondition().isDefault();
@@ -86,8 +86,8 @@ public final class PrepareModule implements IrisModule {
     }
 
     /** A copy of {@code requested} whose Y rotation faces the lowest side of the rectangle around the object. */
-    private static ObjectRotation turnedDownhill(ObjectPlacement placement, ObjectRotation requested) {
-        PlacementTerrain terrain = placement.terrain();
+    private static ObjectRotation turnedDownhill(RunningPlacement placement, ObjectRotation requested) {
+        StageTerrain terrain = placement.terrain();
         ObjectShape object = placement.object();
         int x = placement.x();
         int z = placement.z();
@@ -108,12 +108,12 @@ public final class PrepareModule implements IrisModule {
     }
 
     private static PreparedPlacement transforms(PlacementStageContext context) {
-        ObjectPlacement placement = context.extension(ObjectPlacement.class).orElseThrow();
+        RunningPlacement placement = RunningPlacement.of(context);
         PlacementSettings settings = placement.settings();
-        ObjectRotation rotation = context.output(IrisStages.Prepare.SLOPE);
+        ObjectRotation rotation = context.output(PlacementStages.Prepare.SLOPE);
         ObjectShape object = placement.object();
         RNG rng = new RNG(context.random().nextLong());
-        PlacementTerrain terrain = placement.terrainFor(rng);
+        StageTerrain terrain = placement.terrainFor(rng);
         int spinX = rng.imax() / SPIN_DIVISOR;
         int spinY = rng.imax() / SPIN_DIVISOR;
         int spinZ = rng.imax() / SPIN_DIVISOR;
@@ -130,7 +130,7 @@ public final class PrepareModule implements IrisModule {
         Optional<SurfaceWarp> surfaceWarp = placement.surfaceWarp(rng);
         int warpMargin = surfaceWarp.map(warp -> (int) Math.ceil(Math.abs(warp.multiplier()) / 2D)).orElse(0);
         TransformedBounds bounds = transformedBounds(object, spin, translation, settings.mode().placeMode().has(PlaceTrait.UPSIDE_DOWN), warpMargin);
-        return new PreparedPlacement(placement, rotation, new BlockTraits(placement), terrain, spin,
+        return new PreparedPlacement(placement, rotation, new BlockTraits(context.world().resources().blocks()), terrain, spin,
                 spinX, spinY, spinZ, translation, rotatedCenter.getBlockY(), translatedCenter.getBlockY(), randomY,
                 warpMargin, bounds, surfaceWarp.orElse(null));
     }

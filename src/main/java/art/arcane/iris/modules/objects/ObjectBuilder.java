@@ -15,29 +15,49 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package art.arcane.iris.builtin.objects;
 
+package art.arcane.iris.modules.objects;
+
+import com.volmit.block.BlockRegistry;
 import com.volmit.block.BlockState;
 import com.volmit.block.PaletteSpec;
 import com.volmit.object.ObjectBlock;
+import com.volmit.object.PackObjects;
+import com.volmit.object.PlaceableObject;
+import com.volmit.resource.PackResources;
 
 import java.util.List;
 
 /**
- * Builds objects block by block for a module, with blocks as the platform has them: a state the builder handed out
- * keeps what the platform knows about it when a property is set or the object is built, so a content plugin's block
- * stays itself. One builder serves one bake on one thread.
+ * Builds objects block by block for the procedural objects, with blocks as the platform has them: the registry keeps a
+ * content plugin's block itself when a property is set on it or the object is built ({@link BlockRegistry}).
  */
-public interface ObjectBuilder {
+public final class ObjectBuilder {
+    private final BlockRegistry blocks;
+    private final PackObjects objects;
+
+    public ObjectBuilder(PackResources resources) {
+        this.blocks = resources.blocks();
+        this.objects = resources.objects();
+    }
+
     /** The platform's state for {@code key}; null when the platform has no such block. */
-    BlockState block(String key);
+    public BlockState block(String key) {
+        return blocks.find(key).orElse(null);
+    }
 
     /** The block {@code palette} gives at the position when its noise is seeded with {@code seed}. */
-    BlockState pick(PaletteSpec palette, long seed, int x, int y, int z);
+    public BlockState pick(PaletteSpec palette, long seed, int x, int y, int z) {
+        return blocks.palette(palette, seed).at(x, y, z);
+    }
 
     /** {@code state} with the property set, as the platform sets it. */
-    BlockState withProperty(BlockState state, String name, String value);
+    public BlockState withProperty(BlockState state, String name, String value) {
+        return blocks.withProperty(state, name, value);
+    }
 
     /** The object of {@code blocks}, put in their order, {@code width} by {@code height} by {@code depth}, placeable like the pack's objects. */
-    PlaceableObject build(String loadKey, int width, int height, int depth, List<ObjectBlock> blocks);
+    public PlaceableObject build(String name, int width, int height, int depth, List<ObjectBlock> blocks) {
+        return objects.build(name, width, height, depth, blocks);
+    }
 }

@@ -26,7 +26,6 @@ import art.arcane.iris.builtin.floating.FloatingChildBiome;
 import art.arcane.iris.modules.floating.FloatingChildSettings;
 import art.arcane.iris.builtin.floating.FloatingHost;
 import art.arcane.iris.modules.floating.MergeFloatingChildrenSettings;
-import art.arcane.iris.builtin.objects.ObjectHost;
 import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.builtin.objects.ObjectSettings;
 import com.volmit.noise.NoiseFactory;
@@ -50,7 +49,6 @@ public final class FloatingWorld {
     private static final long BASE_SEED_SALT = 0x5EED_F107_00F1B10CL;
 
     private final FloatingHost host;
-    private final ObjectHost objects;
     private final PackResources resources;
     private final RunningWorld running;
     private final long baseSeed;
@@ -59,10 +57,9 @@ public final class FloatingWorld {
     private final List<CarvingEntry> dimensionCarving;
     private final Map<FloatingChildBiome, ResolvedFloatingChild> resolved = new ConcurrentHashMap<>();
 
-    FloatingWorld(FloatingHost host, ObjectHost objects, PackResources resources, RunningWorld running, long terrainSeed,
+    FloatingWorld(FloatingHost host, PackResources resources, RunningWorld running, long terrainSeed,
                   long carveSeed, int minWorldY, List<CarvingEntry> dimensionCarving) {
         this.host = host;
-        this.objects = objects;
         this.resources = resources;
         this.running = running;
         this.baseSeed = terrainSeed ^ BASE_SEED_SALT;
@@ -77,8 +74,7 @@ public final class FloatingWorld {
     }
 
     private static FloatingWorld create(PackWorld world) {
-        return new FloatingWorld(world.extension(FloatingHost.class).orElseThrow(), world.extension(ObjectHost.class).orElseThrow(),
-                world.resources(), world.running().orElseThrow(), world.seed(IrisSeedPurposes.TERRAIN), world.seed(IrisSeedPurposes.CARVE),
+        return new FloatingWorld(world.extension(FloatingHost.class).orElseThrow(), world.resources(), world.running().orElseThrow(), world.seed(IrisSeedPurposes.TERRAIN), world.seed(IrisSeedPurposes.CARVE),
                 world.minWorldY(), dimensionCarvingOf(world));
     }
 
@@ -90,10 +86,6 @@ public final class FloatingWorld {
 
     public FloatingHost host() {
         return host;
-    }
-
-    public ObjectHost objects() {
-        return objects;
     }
 
     public NoiseFactory noise() {

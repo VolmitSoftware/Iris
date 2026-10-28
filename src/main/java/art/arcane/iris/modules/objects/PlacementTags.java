@@ -16,19 +16,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.builtin.objects;
+package art.arcane.iris.modules.objects;
 
-import com.volmit.block.BlockState;
-
-/** Where an object placed through {@link ObjectHost#placeInto} reads the world around it and writes its blocks. */
-public interface ObjectSink {
-    /** The height of the highest block at the column; {@code ignoreFluid} leaves out the fluid above the ground. */
-    int highest(int x, int z, boolean ignoreFluid);
-
-    BlockState get(int x, int y, int z);
-
-    void set(int x, int y, int z, BlockState state);
-
-    /** The height of the dimension's fluid. */
-    int fluidHeight();
+/**
+ * What a placement writes into the mantle besides the blocks, beside each block of the object.
+ *
+ * @param marker the placement marker to write beside every block the object places, or null for none
+ * @param treeMaterial whether the block is also written as the tree material the mantle keeps for felling and growth
+ * @param buriedTreasure whether storage chests among the blocks are marked as buried treasure
+ */
+public record PlacementTags(String marker, boolean treeMaterial, boolean buriedTreasure) {
 }

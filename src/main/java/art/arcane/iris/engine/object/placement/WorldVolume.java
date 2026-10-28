@@ -19,8 +19,8 @@
 package art.arcane.iris.engine.object.placement;
 
 import art.arcane.iris.builtin.anchor.AnchorSampling;
-import art.arcane.iris.builtin.placement.ObjectPlacement;
-import art.arcane.iris.builtin.prepare.PreparedPlacement;
+import art.arcane.iris.modules.placement.PreparedPlacement;
+import art.arcane.iris.modules.placement.RunningPlacement;
 import art.arcane.iris.builtin.prepare.TransformedBounds;
 
 /**
@@ -28,7 +28,7 @@ import art.arcane.iris.builtin.prepare.TransformedBounds;
  * object follows the surface column by column, so its volume spans every surface height under it.
  */
 record WorldVolume(int minX, int maxX, int minY, int maxY, int minZ, int maxZ) {
-    static WorldVolume of(ObjectPlacement placement, PreparedPlacement prepared, int anchorY) {
+    static WorldVolume of(RunningPlacement placement, PreparedPlacement prepared, int anchorY) {
         TransformedBounds bounds = prepared.bounds();
         int minX = placement.x() + bounds.minX();
         int maxX = placement.x() + bounds.maxX();
@@ -52,7 +52,7 @@ record WorldVolume(int minX, int maxX, int minY, int maxY, int minZ, int maxZ) {
     }
 
     /** Whether each block of the placement follows the surface of its own column. */
-    static boolean isPainted(ObjectPlacement placement, PreparedPlacement prepared) {
+    static boolean isPainted(RunningPlacement placement, PreparedPlacement prepared) {
         return placement.requestedY() < 0 && prepared.mode().anchor() == AnchorSampling.SURFACE;
     }
 }

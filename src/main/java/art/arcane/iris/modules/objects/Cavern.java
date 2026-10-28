@@ -16,25 +16,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.builtin.objects;
+package art.arcane.iris.modules.objects;
 
 /**
- * The outcome of placing an object in a cave.
+ * A carved void of the mantle, as the cave carver left it.
  *
- * @param resultY the height the object was placed at, negative when the placement rejected it
- * @param commit what became of the blocks the object wrote
+ * @param air whether the void holds air
+ * @param liquid the carver's liquid code for the void; {@link #FORCED_AIR_LIQUID} means air that stays air
  */
-public record CavePlacement(int resultY, Commit commit) {
-    public enum Commit {
-        /** The blocks were written. */
-        COMMITTED,
-        /** The object wrote no blocks, or the placement was rejected. */
-        EMPTY,
-        /** Some block lay outside the cave, so nothing was written. */
-        REJECTED_BOUNDS
-    }
-
-    public boolean wroteBlocks() {
-        return commit == Commit.COMMITTED;
-    }
+public record Cavern(boolean air, byte liquid) {
+    public static final byte FORCED_AIR_LIQUID = 3;
 }

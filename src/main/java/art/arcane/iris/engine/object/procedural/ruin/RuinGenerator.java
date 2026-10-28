@@ -20,7 +20,7 @@ package art.arcane.iris.engine.object.procedural.ruin;
 
 import art.arcane.iris.builtin.objects.ruin.RuinDecorator;
 import art.arcane.iris.builtin.objects.ruin.Ruin;
-import art.arcane.iris.builtin.objects.ObjectBuilder;
+import art.arcane.iris.modules.objects.ObjectBuilder;
 import art.arcane.iris.engine.object.procedural.ProceduralShape;
 import art.arcane.iris.engine.object.procedural.IrisProceduralBlocks;
 import com.volmit.block.BlockState;

@@ -16,8 +16,17 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.builtin.objects;
+package art.arcane.iris.modules.objects;
 
-/** The size of an object, in blocks. */
-public record ObjectSize(int width, int height, int depth) {
+/**
+ * The outcome of placing an object in a cave.
+ *
+ * @param resultY the height the object was placed at, negative when the placement rejected it
+ * @param commit what became of the blocks the object wrote; {@link TerrainTransaction.Commit#EMPTY} for a rejected
+ *               placement, {@link TerrainTransaction.Commit#REJECTED} when some block lay outside the cave
+ */
+public record CavePlacement(int resultY, TerrainTransaction.Commit commit) {
+    public boolean wroteBlocks() {
+        return commit == TerrainTransaction.Commit.COMMITTED;
+    }
 }

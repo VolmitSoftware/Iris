@@ -21,13 +21,13 @@ package art.arcane.iris.engine.mantle.components;
 import art.arcane.iris.builtin.IrisSeedPurposes;
 import art.arcane.iris.builtin.floating.FloatingChildBiome;
 import art.arcane.iris.modules.floating.FloatingChildSettings;
-import art.arcane.iris.builtin.floating.FloatingHost;
-import art.arcane.iris.builtin.floating.IslandFootprint;
-import art.arcane.iris.builtin.objects.ObjectHost;
+import art.arcane.iris.modules.floating.IslandFootprint;
 import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.builtin.objects.ObjectSettings;
-import art.arcane.iris.builtin.objects.ObjectSize;
-import art.arcane.iris.builtin.objects.PlaceableObject;
+import art.arcane.iris.modules.objects.ObjectPool;
+import art.arcane.iris.modules.objects.ObjectSize;
+import com.volmit.object.PlaceableObject;
+import com.volmit.resource.PackResources;
 import art.arcane.iris.engine.object.terrain.floating.FloatingIslandBoundarySampler;
 import art.arcane.iris.engine.object.terrain.floating.FloatingIslandSample;
 import art.arcane.iris.engine.object.terrain.floating.FloatingWorld;
@@ -72,15 +72,15 @@ public final class FloatingObjectPlacing {
     private static final String BIOME_PATH_PREFIX = "biome/";
 
     private final FloatingWorld world;
-    private final FloatingHost host;
-    private final ObjectHost objects;
+    private final ObjectPool objects;
+    private final FloatingPlacer placer;
     private final long mantleSeed;
     private final ModuleLog log;
 
-    FloatingObjectPlacing(FloatingWorld world, long mantleSeed, ModuleLog log) {
+    FloatingObjectPlacing(FloatingWorld world, ObjectPool objects, FloatingPlacer placer, long mantleSeed, ModuleLog log) {
         this.world = world;
-        this.host = world.host();
-        this.objects = world.objects();
+        this.objects = objects;
+        this.placer = placer;
         this.mantleSeed = mantleSeed;
         this.log = log;
     }
@@ -88,8 +88,8 @@ public final class FloatingObjectPlacing {
     /** The floating object placing of {@code world}. */
     public static FloatingObjectPlacing of(PackWorld world, ModuleLog log) {
         return world.state(FloatingObjectPlacing.class,
-                generating -> new FloatingObjectPlacing(FloatingWorld.of(generating),
-                        generating.seed(IrisSeedPurposes.MANTLE), log));
+                generating -> new FloatingObjectPlacing(FloatingWorld.of(generating), ObjectPool.of(generating),
+                        new FloatingPlacer(generating, log), generating.seed(IrisSeedPurposes.MANTLE), log));
     }
 
     /** Places what originates in the chunk of {@code context} into the mantle. */
@@ -206,7 +206,7 @@ public final class FloatingObjectPlacing {
                 continue;
             }
             int key = columns.get(rng.i(columns.size()));
-            host.placeFloating(chunk.context, picked.get(),chunk.minX + (key & 15), chunk.minZ + (key >> 4), placement, rng);
+            placer.placeFloating(chunk.context, picked.get(), chunk.minX + (key & 15), chunk.minZ + (key >> 4), placement, rng);
         }
     }
 
@@ -220,7 +220,7 @@ public final class FloatingObjectPlacing {
                 continue;
             }
             PlaceableObject object = picked.get();
-            IslandFootprint footprint = host.footprint(object);
+            IslandFootprint footprint = placer.footprint(object);
 
             KList<Integer> pool = interior.isEmpty() ? columns : interior;
             int pickedKey = pool.get(rng.i(pool.size()));
@@ -241,7 +241,7 @@ public final class FloatingObjectPlacing {
             int x = pickedX - footprint.tallestX();
             int z = pickedZ - footprint.tallestZ();
             int y = pickTopY + 1 - footprint.lowestSolidY();
-            host.placeOnTop(chunk.context, object,x, y, z, placement, IslandFace.top(chunk.resolver, entry, pickTopY, chunk.worldHeight), rng);
+            placer.placeOnTop(chunk.context, object, x, y, z, placement, IslandFace.top(chunk.resolver, entry, pickTopY, chunk.worldHeight), rng);
         }
     }
 
@@ -255,7 +255,7 @@ public final class FloatingObjectPlacing {
                 continue;
             }
             PlaceableObject object = picked.get();
-            IslandFootprint footprint = host.footprint(object);
+            IslandFootprint footprint = placer.footprint(object);
             UndersideTurn turn = new UndersideTurn(rng.i(QUARTER_TURNS) * QUARTER_TURN_DEGREES);
 
             Optional<BottomAnchor> anchor = pickBottomAnchor(chunk, footprint, turn, interior.isEmpty() ? columns : interior, entry);
@@ -268,7 +268,7 @@ public final class FloatingObjectPlacing {
             int x = invertedBaseX(chunk.minX, pickedXf, footprint, turn);
             int z = invertedBaseZ(chunk.minZ, pickedZf, footprint, turn);
             int y = invertedBaseY(pickBottomY, footprint, turn);
-            host.placeUnder(chunk.context, object,x, y, z, turn.yRotation(), placement,
+            placer.placeUnder(chunk.context, object, x, y, z, turn.yRotation(), placement,
                     IslandFace.bottom(chunk.resolver, entry, pickBottomY, chunk.worldHeight), rng);
         }
     }
@@ -308,7 +308,7 @@ public final class FloatingObjectPlacing {
         if (scaled.isEmpty() || !entry.hasObjectShrink()) {
             return scaled;
         }
-        return host.shrink(scaled.get(), entry.shrinkFactor(), rng);
+        return Optional.of(objects.resized(scaled.get(), entry.shrinkFactor()));
     }
 
     static boolean isFootprintFlatBottom(IslandFootprint footprint, UndersideTurn turn, int pickedX, int pickedZ, int pickBottomY,
@@ -388,7 +388,7 @@ public final class FloatingObjectPlacing {
 
     /** How far, in blocks along X and Z, the floating objects of the pack {@code settings} describe may write beyond their chunk. */
     public static int reach(PackSettings settings, ModuleLog log) {
-        Reach reach = new Reach(settings.extension(ObjectHost.class).orElseThrow(), biomeObjectsOf(settings), log);
+        Reach reach = new Reach(settings.resources(), biomeObjectsOf(settings), log);
         int maxObjectExtent = MIN_REACH_BLOCKS;
         try {
             for (Entry<FloatingChildSettings> declared : settings.declared(FloatingChildSettings.class)) {
@@ -425,14 +425,14 @@ public final class FloatingObjectPlacing {
 
     /** The reach of floating children's objects, each object sized once. */
     private static final class Reach {
-        private final ObjectHost objects;
+        private final PackResources resources;
         private final Map<ResourceId, ObjectSettings> biomeObjects;
         private final ModuleLog log;
         private final Map<String, Optional<ObjectSize>> sizes = new HashMap<>();
         private final Set<String> warnedLargeObjects = new HashSet<>();
 
-        private Reach(ObjectHost objects, Map<ResourceId, ObjectSettings> biomeObjects, ModuleLog log) {
-            this.objects = objects;
+        private Reach(PackResources resources, Map<ResourceId, ObjectSettings> biomeObjects, ModuleLog log) {
+            this.resources = resources;
             this.biomeObjects = biomeObjects;
             this.log = log;
         }
@@ -479,7 +479,7 @@ public final class FloatingObjectPlacing {
 
         private int objectReach(String objectKey, ObjectPlacement placement) {
             try {
-                Optional<ObjectSize> size = sizes.computeIfAbsent(objectKey, objects::sizeOf);
+                Optional<ObjectSize> size = sizes.computeIfAbsent(objectKey, key -> PlacementReach.sizeOf(resources, key));
                 if (size.isEmpty()) {
                     return 0;
                 }

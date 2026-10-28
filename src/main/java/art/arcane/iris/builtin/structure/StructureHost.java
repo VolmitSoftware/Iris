@@ -19,6 +19,9 @@ package art.arcane.iris.builtin.structure;
 
 import com.volmit.generation.InvocationContext;
 
+import java.util.List;
+import java.util.Optional;
+
 /**
  * What {@code iris:structure} asks of Iris: Iris places its jigsaw structures itself. The structure model (structures,
  * pools, pieces), the assembler that builds a structure from them and the locator that spreads them over the world are
@@ -31,4 +34,7 @@ public interface StructureHost {
 
     /** How far, in blocks along X and Z, a structure may write beyond the chunk it starts in. */
     int reach();
+
+    /** The loot tables the structure gives its pieces' containers; empty when the pack has no such structure. */
+    Optional<List<String>> lootTables(String structureKey);
 }

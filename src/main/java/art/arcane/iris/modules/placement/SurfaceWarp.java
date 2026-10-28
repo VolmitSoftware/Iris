@@ -16,15 +16,18 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.builtin.placement;
+package art.arcane.iris.modules.placement;
 
-/** The world-space bounds of the native structure pieces around a placement, in the world's real Y. */
-public interface StructureVolumes {
-    boolean isEmpty();
+import com.volmit.noise.NoiseSampler;
 
-    /** Whether any piece meets the box, bounds inclusive. */
-    boolean intersects(int minX, int minY, int minZ, int maxX, int maxY, int maxZ);
-
-    /** Whether any piece contains the block or comes within {@code margin} blocks of it. */
-    boolean containsWithin(int x, int y, int z, int margin);
+/**
+ * Noise that moves the columns of a placement sideways, so a square object warps like a flag.
+ *
+ * @param multiplier how far, in blocks, the warp may move a column in total
+ */
+public record SurfaceWarp(NoiseSampler noise, double multiplier) {
+    /** The noise at the position, fitted to the range from {@code min} to {@code max}. */
+    public double fit(double min, double max, double x, double y, double z) {
+        return min + noise.sample(x, y, z) * (max - min);
+    }
 }

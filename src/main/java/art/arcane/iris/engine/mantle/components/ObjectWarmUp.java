@@ -18,14 +18,14 @@
 
 package art.arcane.iris.engine.mantle.components;
 
-import art.arcane.iris.builtin.objects.ObjectHost;
-import art.arcane.iris.builtin.objects.ObjectHost.Declaration;
+import art.arcane.iris.builtin.IrisSeedPurposes;
 import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.builtin.objects.ObjectSettings;
 import art.arcane.iris.builtin.objects.ProceduralObjectSettings;
-import art.arcane.iris.builtin.objects.ProceduralPlacement;
-import art.arcane.iris.builtin.IrisSeedPurposes;
 import art.arcane.iris.engine.object.procedural.ResolvedProceduralObjects;
+import art.arcane.iris.modules.objects.Declaration;
+import art.arcane.iris.modules.objects.ObjectPool;
+import art.arcane.iris.modules.objects.ProceduralPlacement;
 import art.arcane.volmlib.util.math.RNG;
 import com.volmit.config.Level;
 import com.volmit.world.PackWorld;
@@ -35,28 +35,27 @@ import java.util.List;
 
 /**
  * Builds what object placing would build on first use, for every object placement and procedural object the world's
- * biomes and regions declare: the placement's surface warp and density noise, and a procedural object's variants. None
- * of it depends on the random it is warmed with; the warp is seeded from the world, the density noise is cached per seed
- * and the variants are baked whatever picks one.
+ * biomes and regions declare: the placement's density noise, and a procedural object's variants. None of it depends on
+ * the random it is warmed with; the density noise is cached per seed and the variants are baked whatever picks one.
  */
 final class ObjectWarmUp {
     private static final long ROOT_SEED_SALT = 7777L;
     private static final Level[] WARMED_LEVELS = {Level.BIOME, Level.REGION};
 
     private final PackWorld world;
-    private final ObjectHost host;
+    private final ObjectPool objects;
     private final RNG root;
     private int warmed;
 
     ObjectWarmUp(PackWorld world) {
         this.world = world;
-        this.host = world.extension(ObjectHost.class).orElseThrow();
+        this.objects = ObjectPool.of(world);
         this.root = new RNG(world.seed(IrisSeedPurposes.COMPONENT) + ROOT_SEED_SALT);
     }
 
     void warm() {
-        List<Declaration<ObjectSettings>> placements = byKey(host.declarations(ObjectSettings.class));
-        List<Declaration<ProceduralObjectSettings>> procedural = byKey(host.declarations(ProceduralObjectSettings.class));
+        List<Declaration<ObjectSettings>> placements = byKey(Declaration.allOf(world, ObjectSettings.class));
+        List<Declaration<ProceduralObjectSettings>> procedural = byKey(Declaration.allOf(world, ProceduralObjectSettings.class));
         for (Level level : WARMED_LEVELS) {
             for (Declaration<ObjectSettings> declaration : placements) {
                 if (declaration.level() == level) {
@@ -78,7 +77,7 @@ final class ObjectWarmUp {
     private void warmPlacements(List<ObjectPlacement> placements) {
         for (ObjectPlacement placement : placements) {
             if (placement != null) {
-                host.warm(placement, root.nextParallelRNG(warmed++));
+                objects.warm(placement, root.nextParallelRNG(warmed++));
             }
         }
     }

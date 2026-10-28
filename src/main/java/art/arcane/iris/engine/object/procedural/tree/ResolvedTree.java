@@ -18,13 +18,13 @@
 
 package art.arcane.iris.engine.object.procedural.tree;
 
-import art.arcane.iris.builtin.objects.ObjectBuilder;
-import art.arcane.iris.builtin.objects.ObjectHost;
-import art.arcane.iris.builtin.objects.PlaceableObject;
 import art.arcane.iris.builtin.objects.tree.Tree;
 import art.arcane.iris.engine.object.procedural.ProceduralShape;
 import art.arcane.iris.engine.object.procedural.ResolvedProceduralPlacement;
+import art.arcane.iris.modules.objects.ObjectBuilder;
 import art.arcane.volmlib.util.math.RNG;
+import com.volmit.object.PlaceableObject;
+import com.volmit.resource.PackResources;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -37,10 +37,10 @@ public final class ResolvedTree extends ResolvedProceduralPlacement {
 
     private final Tree settings;
 
-    public ResolvedTree(Tree settings, ObjectHost host) {
+    public ResolvedTree(Tree settings, PackResources resources) {
         super(new Shape(settings.name(), settings.chance(), settings.density(), settings.seed(), settings.variants(), settings.mode(),
                 settings.rotation(), settings.clamp(), settings.carvingSupport(), settings.underwater(), settings.translate(),
-                settings.stiltSettings().orElse(null), settings.vacuumSettings().orElse(null)), host);
+                settings.stiltSettings().orElse(null), settings.vacuumSettings().orElse(null)), resources);
         this.settings = settings;
     }
 

@@ -1,6 +1,6 @@
 package art.arcane.iris.engine.object.placement;
 
-import art.arcane.iris.builtin.placement.PlacementTerrain;
+import art.arcane.iris.modules.placement.StageTerrain;
 import art.arcane.iris.builtin.prepare.ObjectRotation;
 import art.arcane.iris.builtin.prepare.ObjectSpinKernel;
 import art.arcane.iris.builtin.prepare.ObjectTranslate;
@@ -21,7 +21,7 @@ public final class IrisSurfaceSupport {
     private IrisSurfaceSupport() {
     }
 
-    public static boolean isUnsupported(PlacementTerrain terrain, int x, int z,
+    public static boolean isUnsupported(StageTerrain terrain, int x, int z,
                                        ObjectTranslate translate, ObjectRotation rotation,
                                        int spinX, int spinY, int spinZ,
                                        List<IrisBlockVector> supportOffsets, int buffer, int minSolidDepth) {
@@ -162,7 +162,7 @@ public final class IrisSurfaceSupport {
         }
 
         /** Centre-outward so the common failure, a hole right under the anchor, costs one column. */
-        private boolean anyColumnUnsupported(PlacementTerrain terrain, int x, int z, int minSolidDepth) {
+        private boolean anyColumnUnsupported(StageTerrain terrain, int x, int z, int minSolidDepth) {
             int maxRing = Math.max(
                     Math.max(centerX, width - 1 - centerX),
                     Math.max(centerZ, depth - 1 - centerZ));
@@ -194,7 +194,7 @@ public final class IrisSurfaceSupport {
             return false;
         }
 
-        private boolean isColumnUnsupported(PlacementTerrain terrain, int x, int z,
+        private boolean isColumnUnsupported(StageTerrain terrain, int x, int z,
                                             int stencilX, int stencilZ, int minSolidDepth) {
             if (stencilX < 0 || stencilX >= width || stencilZ < 0 || stencilZ >= depth
                     || !cells[(stencilX * depth) + stencilZ]) {

@@ -18,7 +18,7 @@
 
 package art.arcane.iris.engine.object.placement;
 
-import art.arcane.iris.builtin.placement.BlockTraits;
+import art.arcane.iris.modules.placement.BlockTraits;
 import com.volmit.block.BlockState;
 import com.volmit.block.BlockTrait;
 import com.volmit.object.BlockEntityData;

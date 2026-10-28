@@ -22,28 +22,29 @@ import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
 import art.arcane.iris.builtin.carve.CarvingMode;
 import art.arcane.iris.builtin.carve.CaveLavaHeightSettings;
 import art.arcane.iris.builtin.carve.CaveProfile;
-import art.arcane.iris.builtin.objects.CavePlacement;
-import art.arcane.iris.builtin.objects.ObjectChunk;
-import art.arcane.iris.builtin.objects.ObjectHost;
 import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.builtin.objects.ObjectSettings;
-import art.arcane.iris.builtin.objects.PlaceableObject;
-import art.arcane.iris.builtin.objects.PlacementChanges;
 import art.arcane.iris.builtin.objects.PlacementSource;
-import art.arcane.iris.builtin.objects.PlacementTags;
 import art.arcane.iris.builtin.objects.ProceduralObjectSettings;
-import art.arcane.iris.builtin.objects.ProceduralPlacement;
 import art.arcane.iris.builtin.objects.RequireSurfaceSupportSettings;
 import art.arcane.iris.builtin.objects.SurfaceSupportBufferSettings;
 import art.arcane.iris.builtin.objects.UpperObjectsForceSettings;
 import art.arcane.iris.builtin.objects.UpperObjectsSettings;
 import art.arcane.iris.engine.object.procedural.ResolvedProceduralObjects;
+import art.arcane.iris.modules.objects.CavePlacement;
+import art.arcane.iris.modules.objects.TerrainTransaction;
+import art.arcane.iris.modules.objects.EffectiveSettings;
+import art.arcane.iris.modules.objects.ObjectPool;
+import art.arcane.iris.modules.objects.PlacementChanges;
+import art.arcane.iris.modules.objects.PlacementTags;
+import art.arcane.iris.modules.objects.ProceduralPlacement;
 import art.arcane.volmlib.util.math.RNG;
 import com.volmit.IrisFeature;
 import com.volmit.ModuleLog;
 import com.volmit.config.FeatureSettings.Entry;
 import com.volmit.config.Level;
 import com.volmit.config.SettingsStack;
+import com.volmit.object.PlaceableObject;
 import com.volmit.resource.ResourceId;
 import com.volmit.stage.MantleStageContext;
 import com.volmit.world.TerrainSampler;
@@ -70,7 +71,7 @@ final class ChunkObjectPlacing {
     private static final String TREE_FOLDER = "trees/";
     private static final String REGEN_THREAD_PREFIX = "Iris-Regen-";
 
-    private final ObjectHost host;
+    private final ObjectPool objects;
     private final ModuleLog log;
     private final MantleStageContext context;
     private final ObjectChunk chunk;
@@ -87,18 +88,18 @@ final class ChunkObjectPlacing {
     private final int worldHeight;
     private final int caveLavaHeight;
 
-    ChunkObjectPlacing(ObjectHost host, ModuleLog log, MantleStageContext context) {
-        this.host = host;
+    ChunkObjectPlacing(ObjectPool objects, EffectiveSettings settings, ModuleLog log, MantleStageContext context) {
+        this.objects = objects;
         this.log = log;
         this.context = context;
-        this.chunk = host.chunk(context);
+        this.chunk = new ObjectChunk(context, settings, log);
         this.terrain = context.terrain();
         this.chunkX = context.chunkX();
         this.chunkZ = context.chunkZ();
         this.centerX = context.originX() + OBJECT_COLUMN_OFFSET_BLOCKS;
         this.centerZ = context.originZ() + OBJECT_COLUMN_OFFSET_BLOCKS;
-        this.rng = host.chunkRandom(chunkX, chunkZ);
-        this.traceRegen = Thread.currentThread().getName().startsWith(REGEN_THREAD_PREFIX) && host.debugging();
+        this.rng = objects.chunkRandom(chunkX, chunkZ);
+        this.traceRegen = Thread.currentThread().getName().startsWith(REGEN_THREAD_PREFIX) && log.debugging();
         this.golden = chunk.goldenDebug(chunkX, chunkZ);
         this.worldHeight = context.mantle().bounds().maxY();
         this.caveLavaHeight = Optional.ofNullable(dimensionLevel(CaveLavaHeightSettings.class)).orElseGet(CaveLavaHeightSettings::new).height();
@@ -109,7 +110,7 @@ final class ChunkObjectPlacing {
     /** Places what originates in this chunk. */
     void place() {
         Column column = readColumn();
-        if (host.debugging() && (chunkX & DIAGNOSTIC_CHUNK_MASK) == 0 && (chunkZ & DIAGNOSTIC_CHUNK_MASK) == 0) {
+        if (log.debugging() && (chunkX & DIAGNOSTIC_CHUNK_MASK) == 0 && (chunkZ & DIAGNOSTIC_CHUNK_MASK) == 0) {
             logCaveDiagnostics(column);
         }
         if (traceRegen) {
@@ -286,10 +287,10 @@ final class ChunkObjectPlacing {
     private void placeObject(Tally tally, ObjectPlacement placement, String scope) {
         int blockX = context.originX();
         int blockZ = context.originZ();
-        int density = host.density(placement, rng, blockX, blockZ);
+        int density = objects.density(placement, rng, blockX, blockZ);
         for (int i = 0; i < density; i++) {
             tally.attempts++;
-            Optional<PlaceableObject> picked = host.pickScaled(placement, rng);
+            Optional<PlaceableObject> picked = objects.pickScaled(placement, rng);
             if (picked.isEmpty()) {
                 tally.nullObjects++;
                 traceNullObject(scope, i, density, placement);
@@ -301,14 +302,14 @@ final class ChunkObjectPlacing {
             PlacementChanges changes = effective.forSurface(placement, object);
             boolean treePlacement = isTreePlacement(object, placement);
             int id = rng.i(0, Integer.MAX_VALUE);
-            String goldenTag = golden ? scope + "/" + object.key() : null;
+            String goldenTag = golden ? scope + "/" + object.name() : null;
             if (golden) {
-                log.debug("Goldendebug object attempt: chunk=" + chunkX + "," + chunkZ + " scope=" + scope + " object=" + object.key()
+                log.debug("Goldendebug object attempt: chunk=" + chunkX + "," + chunkZ + " scope=" + scope + " object=" + object.name()
                         + " densityIndex=" + i + " xx=" + x + " zz=" + z + " mode=" + placement.mode());
             }
             try {
                 PlacementTags tags = tags(object, id, "surface", treePlacement, placement);
-                int result = chunk.placeOnSurface(object, x, z, placement, changes, tags, rng, goldenTag);
+                int result = chunk.placeOnSurface(object, x, z, placement, changes, tags, goldenTag);
                 if (result >= 0) {
                     tally.placed++;
                 } else {
@@ -317,7 +318,7 @@ final class ChunkObjectPlacing {
                 traceObjectResult(scope, object, result, x, z, i, density);
             } catch (Throwable failure) {
                 tally.errors++;
-                log.error("Regen object placement exception: chunk=" + chunkX + "," + chunkZ + " scope=" + scope + " object=" + object.key()
+                log.error("Regen object placement exception: chunk=" + chunkX + "," + chunkZ + " scope=" + scope + " object=" + object.name()
                         + " densityIndex=" + i + " density=" + density + " error=" + failure.getClass().getSimpleName() + ":" + failure.getMessage(), failure);
             }
         }
@@ -327,22 +328,22 @@ final class ChunkObjectPlacing {
                                  ResourceId expectedCaveBiome, CaveAnchors anchors) {
         int minX = context.originX();
         int minZ = context.originZ();
-        int density = host.density(placement, rng, minX, minZ);
+        int density = objects.density(placement, rng, minX, minZ);
         CaveAnchors.Search search = caves.searchFor(placement, profile);
         for (int i = 0; i < density; i++) {
             tally.attempts++;
-            Optional<PlaceableObject> picked = host.pickScaled(placement, rng);
+            Optional<PlaceableObject> picked = objects.pickScaled(placement, rng);
             if (picked.isEmpty()) {
                 tally.nullObjects++;
                 traceNullObject(scope, i, density, placement);
-                CaveRejects.log(host, log, scope, "NULL_OBJECT", chunkX, chunkZ, placement, null, i, density, search, null, null);
+                CaveRejects.log(log,scope, "NULL_OBJECT", chunkX, chunkZ, placement, null, i, density, search, null, null);
                 continue;
             }
             PlaceableObject object = picked.get();
             CaveAnchors.Anchor anchor = anchors.find(rng, minX, minZ, search, expectedCaveBiome, placement.underwater());
             if (anchor == null) {
                 tally.rejected++;
-                CaveRejects.log(host, log, scope, "NO_ANCHOR", chunkX, chunkZ, placement, object, i, density, search, null, null);
+                CaveRejects.log(log,scope, "NO_ANCHOR", chunkX, chunkZ, placement, object, i, density, search, null, null);
                 continue;
             }
             int id = rng.i(0, Integer.MAX_VALUE);
@@ -350,13 +351,13 @@ final class ChunkObjectPlacing {
             try {
                 PlacementTags tags = tags(object, id, "cave", isTreePlacement(object, placement), placement);
                 CavePlacement contained = chunk.placeInCave(object, anchor.x(), anchor.y(), anchor.z(), placement, changes,
-                        search.minDepthBelowSurface(), tags, rng, null);
+                        search.minDepthBelowSurface(), tags, null);
                 tallyCave(tally, contained, scope, object, placement, i, density, search, anchor);
             } catch (Throwable failure) {
                 tally.errors++;
-                log.error("Regen cave object placement exception: chunk=" + chunkX + "," + chunkZ + " scope=" + scope + " object=" + object.key()
+                log.error("Regen cave object placement exception: chunk=" + chunkX + "," + chunkZ + " scope=" + scope + " object=" + object.name()
                         + " densityIndex=" + i + " density=" + density + " error=" + failure.getClass().getSimpleName() + ":" + failure.getMessage(), failure);
-                CaveRejects.log(host, log, scope, "EXCEPTION", chunkX, chunkZ, placement, object, i, density, search, anchor.y(), failure);
+                CaveRejects.log(log,scope, "EXCEPTION", chunkX, chunkZ, placement, object, i, density, search, anchor.y(), failure);
             }
         }
     }
@@ -367,10 +368,10 @@ final class ChunkObjectPlacing {
             tally.placed++;
         } else {
             tally.rejected++;
-            CaveRejects.log(host, log, scope, rejectReason(contained), chunkX, chunkZ, placement, object, index, density, search, anchor.y(), null);
+            CaveRejects.log(log,scope, rejectReason(contained), chunkX, chunkZ, placement, object, index, density, search, anchor.y(), null);
         }
         if (traceRegen) {
-            log.debug("Regen cave object placement result: chunk=" + chunkX + "," + chunkZ + " scope=" + scope + " object=" + object.key()
+            log.debug("Regen cave object placement result: chunk=" + chunkX + "," + chunkZ + " scope=" + scope + " object=" + object.name()
                     + " resultY=" + contained.resultY() + " anchorY=" + anchor.y() + " px=" + anchor.x() + " pz=" + anchor.z()
                     + " wroteBlocks=" + contained.wroteBlocks() + " densityIndex=" + index + " density=" + density);
         }
@@ -380,7 +381,7 @@ final class ChunkObjectPlacing {
         if (contained.resultY() < 0) {
             return "PLACE_NEGATIVE";
         }
-        return contained.commit() == CavePlacement.Commit.REJECTED_BOUNDS ? "CONTAINMENT" : "NO_WRITES";
+        return contained.commit() == TerrainTransaction.Commit.REJECTED ? "CONTAINMENT" : "NO_WRITES";
     }
 
     private void placeProceduralObjects(Column column) {
@@ -463,22 +464,22 @@ final class ChunkObjectPlacing {
         String commit = "n/a";
         if (anchor != null) {
             PlacementChanges changes = effective.forCave(placement, variant, caveProfile);
-            CavePlacement contained = chunk.placeInCave(variant, x, anchor.y(), z, placement, changes, search.minDepthBelowSurface(), tags, rng, goldenTag);
+            CavePlacement contained = chunk.placeInCave(variant, x, anchor.y(), z, placement, changes, search.minDepthBelowSurface(), tags, goldenTag);
             resultY = contained.resultY();
             commit = contained.commit().toString();
         } else {
-            resultY = chunk.placeOnSurface(variant, x, z, placement, PlacementChanges.NONE, tags, rng, goldenTag);
+            resultY = chunk.placeOnSurface(variant, x, z, placement, PlacementChanges.NONE, tags, goldenTag);
         }
         if (golden) {
             log.debug("Goldendebug procedural result: chunk=" + chunkX + "," + chunkZ + " placement=" + placement.name()
-                    + " variant=" + variant.key() + " xx=" + x + " zz=" + z + " resultY=" + resultY + " commit=" + commit);
+                    + " variant=" + variant.name() + " xx=" + x + " zz=" + z + " resultY=" + resultY + " commit=" + commit);
         }
     }
 
     private void logProceduralPick(ProceduralPlacement placement, PlaceableObject variant, int index, int x, int z, boolean carving) {
         List<PlaceableObject> pool = placement.variants();
         log.debug("Goldendebug procedural pick: chunk=" + chunkX + "," + chunkZ + " placement=" + placement.name() + " densityIndex=" + index
-                + " variant=" + variant.key() + " variantIndex=" + pool.indexOf(variant) + "/" + pool.size() + " xx=" + x + " zz=" + z
+                + " variant=" + variant.name() + " variantIndex=" + pool.indexOf(variant) + "/" + pool.size() + " xx=" + x + " zz=" + z
                 + " mode=" + placement.mode() + " carving=" + carving);
     }
 
@@ -528,9 +529,9 @@ final class ChunkObjectPlacing {
     private void placeUpperObject(ObjectPlacement placement, boolean forcePlace, String scope) {
         int minX = context.originX();
         int minZ = context.originZ();
-        int density = host.density(placement, rng, minX, minZ);
+        int density = objects.density(placement, rng, minX, minZ);
         for (int i = 0; i < density; i++) {
-            Optional<PlaceableObject> picked = host.pickScaled(placement, rng);
+            Optional<PlaceableObject> picked = objects.pickScaled(placement, rng);
             if (picked.isEmpty()) {
                 continue;
             }
@@ -546,16 +547,16 @@ final class ChunkObjectPlacing {
                 continue;
             }
             int id = rng.i(0, Integer.MAX_VALUE);
-            PlacementChanges changes = PlacementChanges.NONE.withPlace(List.of(String.valueOf(object.key())))
+            PlacementChanges changes = PlacementChanges.NONE.withPlace(List.of(String.valueOf(object.name())))
                     .withMode(ObjectPlaceMode.CENTER_HEIGHT)
                     .withUpsideDown(true).withCarvingSupport(CarvingMode.ANYWHERE);
             if (forcePlace) {
                 changes = changes.withForcePlace(true);
             }
             PlacementTags tags = tags(object, id, "upper", isTreePlacement(object, placement), placement);
-            int result = chunk.placeUpper(object, x, anchorY, z, placement, changes, tags, rng);
+            int result = chunk.placeUpper(object, x, anchorY, z, placement, changes, tags);
             if (traceRegen) {
-                log.debug("Upper object placement: chunk=" + chunkX + "," + chunkZ + " scope=" + scope + " object=" + object.key() + " anchorY="
+                log.debug("Upper object placement: chunk=" + chunkX + "," + chunkZ + " scope=" + scope + " object=" + object.name() + " anchorY="
                         + anchorY + " upperSurfaceY=" + upperSurface.getAsInt() + " resultY=" + result + " forcePlace=" + forcePlace);
             }
         }
@@ -570,7 +571,7 @@ final class ChunkObjectPlacing {
     }
 
     private String placementMarker(PlaceableObject object, int id, String context) {
-        String key = object == null ? null : object.key();
+        String key = object == null ? null : object.name();
         if (key == null || key.isEmpty() || key.equals("null")) {
             String fingerprint = context + "|" + (object == null ? "<null>" : object.getClass().getSimpleName());
             log.warnOnce(fingerprint, "Skipping placement marker write: the object has no loadKey (context=" + context + "). "
@@ -581,7 +582,7 @@ final class ChunkObjectPlacing {
     }
 
     private static boolean isTreePlacement(PlaceableObject object, ObjectPlacement placement) {
-        String key = object == null ? null : object.key();
+        String key = object == null ? null : object.name();
         return (key != null && key.startsWith(TREE_FOLDER)) || (placement != null && !placement.trees().isEmpty());
     }
 
@@ -603,11 +604,11 @@ final class ChunkObjectPlacing {
 
     private void traceObjectResult(String scope, PlaceableObject object, int result, int x, int z, int index, int density) {
         if (golden) {
-            log.debug("Goldendebug object result: chunk=" + chunkX + "," + chunkZ + " scope=" + scope + " object=" + object.key()
+            log.debug("Goldendebug object result: chunk=" + chunkX + "," + chunkZ + " scope=" + scope + " object=" + object.name()
                     + " resultY=" + result + " fallback=surface");
         }
         if (traceRegen) {
-            log.debug("Regen object placement result: chunk=" + chunkX + "," + chunkZ + " scope=" + scope + " object=" + object.key()
+            log.debug("Regen object placement result: chunk=" + chunkX + "," + chunkZ + " scope=" + scope + " object=" + object.name()
                     + " resultY=" + result + " px=" + x + " pz=" + z + " fallback=surface densityIndex=" + index + " density=" + density);
         }
     }

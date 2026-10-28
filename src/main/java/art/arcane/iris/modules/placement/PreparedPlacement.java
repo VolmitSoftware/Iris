@@ -16,32 +16,30 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.builtin.prepare;
+package art.arcane.iris.modules.placement;
 
 import art.arcane.iris.builtin.anchor.PlaceMode;
 import art.arcane.iris.builtin.anchor.PlaceTrait;
-import art.arcane.iris.builtin.placement.BlockTraits;
-import art.arcane.iris.builtin.placement.ObjectPlacement;
-import art.arcane.iris.builtin.placement.PlacementSettings;
-import art.arcane.iris.builtin.placement.PlacementTerrain;
-import art.arcane.iris.builtin.placement.SurfaceWarp;
+import art.arcane.iris.builtin.prepare.ObjectRotation;
+import art.arcane.iris.builtin.prepare.ObjectSpinKernel;
+import art.arcane.iris.builtin.prepare.TransformedBounds;
 import art.arcane.volmlib.util.math.IrisBlockVector;
 import com.volmit.block.BlockState;
 import com.volmit.geometry.BlockPosition;
 
 /**
- * What one placement chose before it is anchored: the settings it uses, the rotation it ended up with, the terrain
- * that answers its height, water and carving questions, its random spin and height offsets, and the bounds of the
- * transformed object around its anchor. Object blocks are transformed by rotating them, flipping them for a ceiling
- * hang and translating them.
+ * What one placement chose before it is anchored: the placement it belongs to, the settings it uses, the rotation it
+ * ended up with, the terrain that answers its height, water and carving questions, its random spin and height offsets,
+ * and the bounds of the transformed object around its anchor. Object blocks are transformed by rotating them, flipping
+ * them for a ceiling hang and translating them.
  */
 public final class PreparedPlacement {
-    private final ObjectPlacement placement;
+    private final RunningPlacement placement;
     private final PlacementSettings settings;
     private final PlaceMode mode;
     private final ObjectRotation rotation;
     private final BlockTraits traits;
-    private final PlacementTerrain terrain;
+    private final StageTerrain terrain;
     private final ObjectSpinKernel spin;
     private final int spinX;
     private final int spinY;
@@ -55,7 +53,7 @@ public final class PreparedPlacement {
     private final SurfaceWarp surfaceWarp;
 
     /** Everything the preparation worked out; {@code translation} and {@code surfaceWarp} are null when the placement has none. */
-    public PreparedPlacement(ObjectPlacement placement, ObjectRotation rotation, BlockTraits traits, PlacementTerrain terrain,
+    public PreparedPlacement(RunningPlacement placement, ObjectRotation rotation, BlockTraits traits, StageTerrain terrain,
                              ObjectSpinKernel spin, int spinX, int spinY, int spinZ, IrisBlockVector translation, int rotatedCenterY,
                              int translatedCenterY, int randomY, int warpMargin, TransformedBounds bounds, SurfaceWarp surfaceWarp) {
         this.placement = placement;
@@ -77,6 +75,11 @@ public final class PreparedPlacement {
         this.surfaceWarp = surfaceWarp;
     }
 
+    /** The placement being run. */
+    public RunningPlacement placement() {
+        return placement;
+    }
+
     /** The settings the placement was asked for; the rotation may differ, see {@link #rotation()}. */
     public PlacementSettings settings() {
         return settings;
@@ -93,7 +96,7 @@ public final class PreparedPlacement {
     }
 
     /** Answers height, water and carving questions; a heightmap placement answers heights from its noise. */
-    public PlacementTerrain terrain() {
+    public StageTerrain terrain() {
         return terrain;
     }
 

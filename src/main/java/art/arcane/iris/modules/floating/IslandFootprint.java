@@ -16,18 +16,23 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.builtin.objects;
+package art.arcane.iris.modules.floating;
 
-import java.util.Optional;
+/**
+ * Where an object stands, in its own block positions: the columns holding a solid block ({@link #column} packs each), the
+ * tallest of them (most solid blocks, the lowest bottom on a tie) and the lowest solid block of that column.
+ */
+public record IslandFootprint(int tallestX, int tallestZ, int lowestSolidY, long[] columns) {
+    /** The column {@code x}, {@code z} packed as {@link #columns} holds it. */
+    public static long column(int x, int z) {
+        return ((long) x << 32) | (z & 0xFFFFFFFFL);
+    }
 
-/** The voids the cave carver planned in the mantle around the chunk being placed, which cave objects anchor in. */
-public interface CarvedSpace {
-    /** Whether the position is carved. */
-    boolean isCarved(int x, int y, int z);
+    public static int columnX(long column) {
+        return (int) (column >> 32);
+    }
 
-    /** Whether each height from 0 up to {@code height} is carved at the column, 1 for carved and 0 for not. */
-    byte[] column(int x, int z, int height);
-
-    /** The void at the position; empty where nothing was carved. */
-    Optional<Cavern> cavernAt(int x, int y, int z);
+    public static int columnZ(long column) {
+        return (int) (column & 0xFFFFFFFFL);
+    }
 }

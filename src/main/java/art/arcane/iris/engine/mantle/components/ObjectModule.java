@@ -19,7 +19,6 @@
 package art.arcane.iris.engine.mantle.components;
 
 import art.arcane.iris.builtin.IrisStages;
-import art.arcane.iris.builtin.objects.ObjectHost;
 import art.arcane.iris.builtin.objects.ObjectSettings;
 import art.arcane.iris.builtin.objects.ProceduralObjectSettings;
 import art.arcane.iris.builtin.objects.RequireSurfaceSupportSettings;
@@ -79,6 +78,6 @@ public final class ObjectModule implements IrisModule, ModuleLifecycle {
     }
 
     private static int reach(PackSettings settings, ModuleLog log) {
-        return new PlacementReach(settings.extension(ObjectHost.class).orElseThrow(), log).ofPack(settings);
+        return new PlacementReach(settings.resources(), log).ofPack(settings);
     }
 }

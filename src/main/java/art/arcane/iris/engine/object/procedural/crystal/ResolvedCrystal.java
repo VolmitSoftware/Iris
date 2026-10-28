@@ -19,20 +19,20 @@
 package art.arcane.iris.engine.object.procedural.crystal;
 
 import art.arcane.iris.builtin.objects.crystal.Crystal;
-import art.arcane.iris.builtin.objects.ObjectBuilder;
-import art.arcane.iris.builtin.objects.ObjectHost;
 import art.arcane.iris.engine.object.procedural.ProceduralShape;
 import art.arcane.iris.engine.object.procedural.ResolvedProceduralPlacement;
+import art.arcane.iris.modules.objects.ObjectBuilder;
 import art.arcane.volmlib.util.math.RNG;
+import com.volmit.resource.PackResources;
 
 /** A crystal cluster made placeable: its variants are baked by {@link CrystalGenerator}. */
 public final class ResolvedCrystal extends ResolvedProceduralPlacement {
     private final Crystal settings;
 
-    public ResolvedCrystal(Crystal settings, ObjectHost host) {
+    public ResolvedCrystal(Crystal settings, PackResources resources) {
         super(new Shape(settings.name(), settings.chance(), settings.density(), settings.seed(), settings.variants(), settings.mode(),
                 settings.rotation(), settings.clamp(), settings.carvingSupport(), settings.underwater(), settings.translate(),
-                settings.stiltSettings().orElse(null), settings.vacuumSettings().orElse(null)), host);
+                settings.stiltSettings().orElse(null), settings.vacuumSettings().orElse(null)), resources);
         this.settings = settings;
     }
 

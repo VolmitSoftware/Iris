@@ -19,7 +19,7 @@
 package art.arcane.iris.engine.object.procedural.coral;
 
 import art.arcane.iris.builtin.objects.coral.Coral;
-import art.arcane.iris.builtin.objects.ObjectBuilder;
+import art.arcane.iris.modules.objects.ObjectBuilder;
 import art.arcane.iris.engine.object.procedural.ProceduralShape;
 import art.arcane.iris.engine.object.procedural.IrisProceduralBlocks;
 import art.arcane.iris.engine.object.procedural.tree.TreeFunctions;

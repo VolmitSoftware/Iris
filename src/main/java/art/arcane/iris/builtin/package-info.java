@@ -30,13 +30,12 @@
  * <p>
  * Besides those, it holds what Iris and the built-ins jar must share, since each sees its own copy
  * of every other class: narrow facades only Iris's own built-ins use, interfaces Iris's worlds implement
- * ({@link art.arcane.iris.builtin.spawn.SpawnCooldowns}, {@link art.arcane.iris.builtin.objects.ObjectHost}), and the seed purposes Iris
+ * ({@link art.arcane.iris.builtin.spawn.SpawnCooldowns}, {@link art.arcane.iris.builtin.LegacyStreams}), and the seed purposes Iris
  * answers with its legacy seeds ({@link art.arcane.iris.builtin.IrisSeedPurposes}). Keep them few: each is
  * a promise.
  * <p>
- * The placement stages ({@code iris:prepare} to {@code iris:snow}) reach the object being placed through
- * {@link art.arcane.iris.builtin.placement.ObjectPlacement}, a facade Iris implements for each placement. Its types
- * answer with IrisApi, VolmLib and built-in values only, and the stages' outputs ({@link art.arcane.iris.builtin.prepare.PreparedPlacement})
- * are built-in types too, so a pack module can require a placement stage and read what it chose.
+ * The placement stages ({@code iris:prepare} to {@code iris:snow}) run in the pack's placement graph, which
+ * {@code PackWorld.placements()} runs. They read the object and its settings from the run's input,
+ * {@link art.arcane.iris.builtin.objects.ObjectRun}, which Iris also builds when it places an object itself.
  */
 package art.arcane.iris.builtin;

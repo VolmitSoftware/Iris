@@ -16,23 +16,22 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.builtin.floating;
+package art.arcane.iris.modules.placement;
+
+import com.volmit.block.BlockState;
+
+import java.util.List;
 
 /**
- * Where an object stands, in its own block positions: the columns holding a solid block ({@link #column} packs each), the
- * tallest of them (most solid blocks, the lowest bottom on a tie) and the lowest solid block of that column.
+ * One marker of a placement, an entry of its {@code markers}, with its blocks resolved in the pack.
+ *
+ * @param marker  the pack's marker to add
+ * @param targets the blocks to mark
+ * @param exact   whether a block must match a target exactly; otherwise its material is enough
+ * @param maximum how many blocks to mark at most
  */
-public record IslandFootprint(int tallestX, int tallestZ, int lowestSolidY, long[] columns) {
-    /** The column {@code x}, {@code z} packed as {@link #columns} holds it. */
-    public static long column(int x, int z) {
-        return ((long) x << 32) | (z & 0xFFFFFFFFL);
-    }
-
-    public static int columnX(long column) {
-        return (int) (column >> 32);
-    }
-
-    public static int columnZ(long column) {
-        return (int) (column & 0xFFFFFFFFL);
+public record MarkerRule(String marker, List<BlockState> targets, boolean exact, int maximum) {
+    public MarkerRule {
+        targets = List.copyOf(targets);
     }
 }

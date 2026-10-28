@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.builtin.floating;
+package art.arcane.iris.modules.floating;
 
 /**
  * The face of one island an object is placed against, as {@code iris:floating} samples it: how high the face is, which

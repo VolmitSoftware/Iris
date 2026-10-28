@@ -19,20 +19,20 @@
 package art.arcane.iris.engine.object.procedural.coral;
 
 import art.arcane.iris.builtin.objects.coral.Coral;
-import art.arcane.iris.builtin.objects.ObjectBuilder;
-import art.arcane.iris.builtin.objects.ObjectHost;
 import art.arcane.iris.engine.object.procedural.ProceduralShape;
 import art.arcane.iris.engine.object.procedural.ResolvedProceduralPlacement;
+import art.arcane.iris.modules.objects.ObjectBuilder;
 import art.arcane.volmlib.util.math.RNG;
+import com.volmit.resource.PackResources;
 
 /** A coral reef made placeable: its variants are baked by {@link CoralGenerator}. */
 public final class ResolvedCoral extends ResolvedProceduralPlacement {
     private final Coral settings;
 
-    public ResolvedCoral(Coral settings, ObjectHost host) {
+    public ResolvedCoral(Coral settings, PackResources resources) {
         super(new Shape(settings.name(), settings.chance(), settings.density(), settings.seed(), settings.variants(), settings.mode(),
                 settings.rotation(), settings.clamp(), settings.carvingSupport(), settings.underwater(), settings.translate(),
-                settings.stiltSettings().orElse(null), settings.vacuumSettings().orElse(null)), host);
+                settings.stiltSettings().orElse(null), settings.vacuumSettings().orElse(null)), resources);
         this.settings = settings;
     }
 

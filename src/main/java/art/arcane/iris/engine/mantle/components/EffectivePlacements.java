@@ -21,9 +21,9 @@ package art.arcane.iris.engine.mantle.components;
 import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
 import art.arcane.iris.builtin.anchor.PlaceTrait;
 import art.arcane.iris.builtin.carve.CaveProfile;
-import art.arcane.iris.builtin.objects.PlaceableObject;
-import art.arcane.iris.builtin.objects.PlacementChanges;
 import art.arcane.iris.builtin.objects.PlacementSource;
+import art.arcane.iris.modules.objects.PlacementChanges;
+import com.volmit.object.PlaceableObject;
 
 import java.util.List;
 import java.util.Locale;
@@ -56,14 +56,14 @@ final class EffectivePlacements {
         if (profileMode == null) {
             return changes;
         }
-        String key = object.key();
+        String key = object.name();
         List<String> place = key == null || key.isBlank() ? List.of() : List.of(key);
         return changes.withPlace(place).withMode(profileMode);
     }
 
     /** Imported objects are placed with the fast minimal stilt unless their mode finds its own height. */
     private static PlacementChanges withImportedMode(PlacementSource placement, PlaceableObject object, PlacementChanges changes) {
-        String key = object.key();
+        String key = object.name();
         if (key == null || key.isBlank() || !isImported(key)) {
             return changes;
         }

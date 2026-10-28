@@ -19,8 +19,8 @@
 package art.arcane.iris.engine.mantle.components;
 
 import art.arcane.iris.builtin.carve.CaveAnchorMode;
-import art.arcane.iris.builtin.objects.CarvedSpace;
-import art.arcane.iris.builtin.objects.Cavern;
+import art.arcane.iris.modules.objects.CarvedSpace;
+import art.arcane.iris.modules.objects.Cavern;
 import art.arcane.volmlib.util.cache.CacheKey;
 import art.arcane.volmlib.util.math.RNG;
 import com.volmit.resource.ResourceId;

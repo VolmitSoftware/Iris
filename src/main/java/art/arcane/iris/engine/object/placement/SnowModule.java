@@ -18,9 +18,9 @@
 
 package art.arcane.iris.engine.object.placement;
 
-import art.arcane.iris.builtin.IrisStages;
 import art.arcane.iris.builtin.blocks.WrittenBlocks;
-import art.arcane.iris.builtin.prepare.PreparedPlacement;
+import art.arcane.iris.modules.placement.PlacementStages;
+import art.arcane.iris.modules.placement.PreparedPlacement;
 import art.arcane.volmlib.util.math.RNG;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
@@ -50,16 +50,16 @@ public final class SnowModule implements IrisModule {
 
     @Override
     public void setup(ModuleSetup setup) {
-        setup.stages().define(IrisStages.Snow.COVER)
-                .requires(IrisStages.Blocks.WRITE, IrisStages.Blocks.COMPLETE, IrisStages.Prepare.TRANSFORMS)
-                .softAfter(IrisStages.Stilt.FILL, IrisStages.Vacuum.TERRAIN)
+        setup.stages().define(PlacementStages.Snow.COVER)
+                .requires(PlacementStages.Blocks.WRITE, PlacementStages.Blocks.COMPLETE, PlacementStages.Prepare.TRANSFORMS)
+                .softAfter(PlacementStages.Stilt.FILL, PlacementStages.Vacuum.TERRAIN)
                 .run(SnowModule::cover);
     }
 
     private static void cover(PlacementStageContext context) {
-        PreparedPlacement prepared = context.output(IrisStages.Prepare.TRANSFORMS);
+        PreparedPlacement prepared = context.output(PlacementStages.Prepare.TRANSFORMS);
         double snow = prepared.settings().snow();
-        WrittenBlocks written = context.output(IrisStages.Blocks.WRITE);
+        WrittenBlocks written = context.output(PlacementStages.Blocks.WRITE);
         if (!(snow > 0) || written.isEmpty()) {
             return;
         }

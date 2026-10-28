@@ -16,22 +16,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.builtin.placement;
+package art.arcane.iris.modules.objects;
 
-import com.volmit.block.BlockState;
-
-import java.util.List;
-
-/** One marker of a placement, an entry of its {@code markers}: the blocks it marks and how many. */
-public interface MarkerRule {
-    /** The pack's marker to add. */
-    String marker();
-
-    /** The blocks to mark. */
-    List<BlockState> targets();
-
-    /** Whether a block must match a target exactly; otherwise its material is enough. */
-    boolean exact();
-
-    int maximum();
+/** The size of an object, in blocks. */
+public record ObjectSize(int width, int height, int depth) {
 }

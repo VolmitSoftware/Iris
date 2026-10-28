@@ -18,24 +18,30 @@
 
 package art.arcane.iris.engine.mantle.components;
 
-import art.arcane.iris.builtin.objects.ObjectHost;
-import art.arcane.iris.builtin.objects.ObjectHost.Declaration;
 import art.arcane.iris.builtin.objects.ObjectPlacement;
+import art.arcane.iris.builtin.objects.ObjectRun;
 import art.arcane.iris.builtin.objects.ObjectSettings;
-import art.arcane.iris.builtin.objects.ObjectSink;
-import art.arcane.iris.builtin.objects.PlaceableObject;
 import art.arcane.iris.builtin.objects.ProceduralObjectSettings;
 import art.arcane.iris.builtin.objects.TreeGrowthSettings;
 import art.arcane.iris.builtin.objects.TreeMode;
 import art.arcane.iris.builtin.objects.tree.Tree;
 import art.arcane.iris.engine.loot.BlockBiomes;
+import art.arcane.iris.modules.objects.Declaration;
+import art.arcane.iris.modules.objects.ObjectPool;
 import art.arcane.volmlib.util.math.RNG;
+import com.volmit.block.BlockRegistry;
 import com.volmit.block.BlockState;
+import com.volmit.block.BlockTrait;
 import com.volmit.config.Level;
+import com.volmit.geometry.BlockPosition;
+import com.volmit.object.BlockEntityData;
+import com.volmit.object.PlaceableObject;
 import com.volmit.placement.PlacedBlock;
+import com.volmit.placement.PlacedMarker;
+import com.volmit.placement.PlacementTerrain;
+import com.volmit.placement.StructureVolumes;
 import com.volmit.resource.ResourceId;
 import com.volmit.service.SaplingGrowth;
-import com.volmit.geometry.BlockPosition;
 import com.volmit.world.PackWorld;
 import com.volmit.world.RunningWorld;
 
@@ -57,7 +63,6 @@ public final class TreeGrowing implements SaplingGrowth {
 
     @Override
     public Optional<Growth> grow(PackWorld world, Sapling sapling, Surroundings surroundings) {
-        ObjectHost host = world.extension(ObjectHost.class).orElseThrow();
         RunningWorld running = world.running().orElseThrow();
         BlockPosition at = sapling.at();
         TreeGrowthSettings growth = treeGrowth(running, at);
@@ -69,26 +74,26 @@ public final class TreeGrowing implements SaplingGrowth {
             return Optional.empty();
         }
         List<String> keys = placement.get().place();
-        Optional<PlaceableObject> tree = host.object(keys.get(RNG.r.i(keys.size())));
+        Optional<PlaceableObject> tree = ObjectPool.of(world).object(keys.get(RNG.r.i(keys.size())));
         if (tree.isEmpty()) {
             return Optional.empty();
         }
         PlaceableObject object = tree.get();
-        GrowthSink sink = new GrowthSink(surroundings, running.layout().fluidHeight());
+        GrowthTerrain terrain = new GrowthTerrain(surroundings, running.layout().fluidHeight(), world.resources().blocks());
         BlockPosition center = sapling.center();
-        host.placeInto(object, center.x(), center.y() + object.height() / 2, center.z(), placement.get(), sink, RNG.r);
-        return Optional.of(new Growth(world.resources().idOf(object.key()), sink.placed()));
+        ObjectRun run = ObjectRun.of(object, placement.get(), center.x(), center.y() + object.height() / 2, center.z());
+        run.placeIn(world, terrain);
+        return Optional.of(new Growth(world.resources().idOf(object.name()), terrain.placed()));
     }
 
     @Override
     public TreeObjects treeObjects(PackWorld world) {
-        ObjectHost host = world.extension(ObjectHost.class).orElseThrow();
         Set<String> objects = new HashSet<>();
         Set<String> procedural = new HashSet<>();
-        for (Declaration<ObjectSettings> declaration : host.declarations(ObjectSettings.class)) {
+        for (Declaration<ObjectSettings> declaration : Declaration.allOf(world, ObjectSettings.class)) {
             collectPlacements(declaration.settings().objects(), objects);
         }
-        for (Declaration<ProceduralObjectSettings> declaration : host.declarations(ProceduralObjectSettings.class)) {
+        for (Declaration<ProceduralObjectSettings> declaration : Declaration.allOf(world, ProceduralObjectSettings.class)) {
             collectProceduralTrees(declaration.settings().trees(), procedural);
         }
         return new TreeObjects(idsOf(world, objects), idsOf(world, procedural));
@@ -153,15 +158,38 @@ public final class TreeGrowing implements SaplingGrowth {
         }
     }
 
-    /** Places an object into a list of blocks, reading the world around the sapling through the host. */
-    private static final class GrowthSink implements ObjectSink {
+    /**
+     * The world around a sapling, read through the host, collecting what a tree writes into a list of blocks the host
+     * then places. Its leaves never decay; it has no caves, water, structures or placement records, and keeps no block
+     * entities or markers.
+     */
+    private static final class GrowthTerrain implements PlacementTerrain {
+        private static final StructureVolumes NO_STRUCTURES = new StructureVolumes() {
+            @Override
+            public boolean isEmpty() {
+                return true;
+            }
+
+            @Override
+            public boolean intersects(int minX, int minY, int minZ, int maxX, int maxY, int maxZ) {
+                return false;
+            }
+
+            @Override
+            public boolean containsWithin(int x, int y, int z, int margin) {
+                return false;
+            }
+        };
+
         private final Surroundings surroundings;
         private final int fluidHeight;
+        private final BlockRegistry blocks;
         private final List<PlacedBlock> placed = new ArrayList<>();
 
-        private GrowthSink(Surroundings surroundings, int fluidHeight) {
+        private GrowthTerrain(Surroundings surroundings, int fluidHeight, BlockRegistry blocks) {
             this.surroundings = surroundings;
             this.fluidHeight = fluidHeight;
+            this.blocks = blocks;
         }
 
         private List<PlacedBlock> placed() {
@@ -184,8 +212,51 @@ public final class TreeGrowing implements SaplingGrowth {
         }
 
         @Override
+        public void set(int x, int y, int z, BlockState state, BlockEntityData blockEntity) {
+            set(x, y, z, state);
+        }
+
+        @Override
+        public boolean isCarved(int x, int y, int z) {
+            return false;
+        }
+
+        @Override
+        public boolean isSurfaceSolid(int x, int y, int z) {
+            return blocks.hasTrait(get(x, y, z), BlockTrait.SOLID);
+        }
+
+        @Override
+        public boolean isUnderwater(int x, int z) {
+            return false;
+        }
+
+        @Override
         public int fluidHeight() {
             return fluidHeight;
+        }
+
+        @Override
+        public boolean preventsDecay() {
+            return true;
+        }
+
+        @Override
+        public void recordPlacement(int x, int y, int z, String placement) {
+        }
+
+        @Override
+        public Optional<String> placementAt(int x, int y, int z) {
+            return Optional.empty();
+        }
+
+        @Override
+        public StructureVolumes structureVolumes(int minX, int minZ, int maxX, int maxZ) {
+            return NO_STRUCTURES;
+        }
+
+        @Override
+        public void mark(PlacedMarker marker) {
         }
     }
 }

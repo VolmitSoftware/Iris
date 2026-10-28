@@ -19,20 +19,20 @@
 package art.arcane.iris.engine.object.procedural.formation;
 
 import art.arcane.iris.builtin.objects.formation.Formation;
-import art.arcane.iris.builtin.objects.ObjectBuilder;
-import art.arcane.iris.builtin.objects.ObjectHost;
 import art.arcane.iris.engine.object.procedural.ProceduralShape;
 import art.arcane.iris.engine.object.procedural.ResolvedProceduralPlacement;
+import art.arcane.iris.modules.objects.ObjectBuilder;
 import art.arcane.volmlib.util.math.RNG;
+import com.volmit.resource.PackResources;
 
 /** A rock formation made placeable: its variants are baked by {@link FormationGenerator}. */
 public final class ResolvedFormation extends ResolvedProceduralPlacement {
     private final Formation settings;
 
-    public ResolvedFormation(Formation settings, ObjectHost host) {
+    public ResolvedFormation(Formation settings, PackResources resources) {
         super(new Shape(settings.name(), settings.chance(), settings.density(), settings.seed(), settings.variants(), settings.mode(),
                 settings.rotation(), settings.clamp(), settings.carvingSupport(), settings.underwater(), settings.translate(),
-                settings.stiltSettings().orElse(null), settings.vacuumSettings().orElse(null)), host);
+                settings.stiltSettings().orElse(null), settings.vacuumSettings().orElse(null)), resources);
         this.settings = settings;
     }
 

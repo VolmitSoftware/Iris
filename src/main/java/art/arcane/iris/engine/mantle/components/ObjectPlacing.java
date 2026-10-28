@@ -18,15 +18,15 @@
 
 package art.arcane.iris.engine.mantle.components;
 
-import art.arcane.iris.builtin.objects.ObjectHost;
 import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.builtin.objects.ObjectSettings;
-import art.arcane.iris.builtin.objects.PlaceableObject;
+import art.arcane.iris.modules.objects.EffectiveSettings;
+import art.arcane.iris.modules.objects.ObjectPool;
 import art.arcane.volmlib.util.math.RNG;
 import com.volmit.ModuleLog;
 import com.volmit.config.Level;
-import com.volmit.config.PackSettings;
 import com.volmit.config.SettingsStack;
+import com.volmit.object.PlaceableObject;
 import com.volmit.stage.MantleStageContext;
 import com.volmit.world.PackWorld;
 
@@ -36,8 +36,7 @@ import java.util.Set;
 
 /**
  * Places the objects the dimension's regions and biomes declare, one chunk at a time, into the mantle of a world: the worker
- * of {@link ObjectModule}, one per world. It also works out which objects a chunk would get, without placing them, and how far
- * the pack's objects reach.
+ * of {@link ObjectModule}, one per world. It also works out which objects a chunk would get, without placing them.
  */
 public final class ObjectPlacing {
     private static final int CHUNK_CENTER_OFFSET_BLOCKS = 8;
@@ -47,12 +46,13 @@ public final class ObjectPlacing {
     private static final Level[] GUESSED_LEVELS = {Level.BIOME, Level.REGION};
 
     private final PackWorld world;
-    private final ObjectHost host;
+    private final ObjectPool objects;
+    private final EffectiveSettings settings = new EffectiveSettings();
     private final ModuleLog log;
 
     private ObjectPlacing(PackWorld world) {
         this.world = world;
-        this.host = world.extension(ObjectHost.class).orElseThrow();
+        this.objects = ObjectPool.of(world);
         this.log = world.log();
     }
 
@@ -63,12 +63,12 @@ public final class ObjectPlacing {
 
     /** Places what originates in the chunk {@code context} generates. */
     void place(MantleStageContext context) {
-        new ChunkObjectPlacing(host, log, context).place();
+        new ChunkObjectPlacing(objects, settings, log, context).place();
     }
 
     /** The keys of the objects the chunk would get, as far as the chunk's surface objects go. */
     public Set<String> guess(int chunkX, int chunkZ) {
-        RNG rng = host.chunkRandom(chunkX, chunkZ);
+        RNG rng = objects.chunkRandom(chunkX, chunkZ);
         int centerX = (chunkX << CHUNK_SHIFT) + CHUNK_CENTER_OFFSET_BLOCKS;
         int centerZ = (chunkZ << CHUNK_SHIFT) + CHUNK_CENTER_OFFSET_BLOCKS;
         SettingsStack<ObjectSettings> declared = world.running().orElseThrow().settings().at(ObjectSettings.class, centerX, centerZ);
@@ -89,15 +89,10 @@ public final class ObjectPlacing {
 
     private Set<String> guessPlacedKeys(RNG rng, int x, int z, ObjectPlacement placement) {
         Set<String> keys = new HashSet<>();
-        for (int i = 0; i < host.density(placement, rng, x, z); i++) {
-            Optional<PlaceableObject> picked = host.pickScaled(placement, rng);
-            picked.ifPresent(object -> keys.add(object.key()));
+        for (int i = 0; i < objects.density(placement, rng, x, z); i++) {
+            Optional<PlaceableObject> picked = objects.pickScaled(placement, rng);
+            picked.ifPresent(object -> keys.add(object.name()));
         }
         return keys;
-    }
-
-    /** How far, in blocks along X and Z, placements may write beyond their chunk. */
-    public int reach(PackSettings settings) {
-        return new PlacementReach(host, log).ofPack(settings);
     }
 }

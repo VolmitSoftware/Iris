@@ -18,9 +18,7 @@
 
 package art.arcane.iris.engine.object.procedural;
 
-import art.arcane.iris.builtin.objects.ObjectHost;
 import art.arcane.iris.builtin.objects.ProceduralObjectSettings;
-import art.arcane.iris.builtin.objects.ProceduralPlacement;
 import art.arcane.iris.builtin.objects.tree.Tree;
 import art.arcane.iris.engine.object.procedural.coral.ResolvedCoral;
 import art.arcane.iris.engine.object.procedural.crystal.ResolvedCrystal;
@@ -28,7 +26,8 @@ import art.arcane.iris.engine.object.procedural.formation.ResolvedFormation;
 import art.arcane.iris.engine.object.procedural.fungi.ResolvedFungus;
 import art.arcane.iris.engine.object.procedural.ruin.ResolvedRuin;
 import art.arcane.iris.engine.object.procedural.tree.ResolvedTree;
-
+import art.arcane.iris.modules.objects.ProceduralPlacement;
+import com.volmit.resource.PackResources;
 import com.volmit.world.PackWorld;
 
 import java.util.ArrayList;
@@ -44,29 +43,29 @@ public final class ResolvedProceduralObjects {
 
     /** The placements {@code settings} declare in {@code world}, resolved the first time the world asks. */
     public static List<ProceduralPlacement> of(PackWorld world, ProceduralObjectSettings settings) {
-        ObjectHost host = world.extension(ObjectHost.class).orElseThrow();
+        PackResources resources = world.resources();
         return world.state(ResolvedByDeclaration.class, ignored -> new ResolvedByDeclaration()).placements
-                .computeIfAbsent(settings, declared -> resolve(declared, host));
+                .computeIfAbsent(settings, declared -> resolve(declared, resources));
     }
 
     /** The placements {@code settings} declare, resolved anew, for work outside any world such as working out the pack's reach. */
-    public static List<ProceduralPlacement> resolve(ProceduralObjectSettings settings, ObjectHost host) {
+    public static List<ProceduralPlacement> resolve(ProceduralObjectSettings settings, PackResources resources) {
         List<ProceduralPlacement> all = new ArrayList<>();
         for (Tree tree : settings.trees()) {
-            all.add(new ResolvedTree(tree, host));
+            all.add(new ResolvedTree(tree, resources));
         }
-        addAll(all, settings.ruins(), host, ResolvedRuin::new);
-        addAll(all, settings.formations(), host, ResolvedFormation::new);
-        addAll(all, settings.coral(), host, ResolvedCoral::new);
-        addAll(all, settings.fungi(), host, ResolvedFungus::new);
-        addAll(all, settings.crystals(), host, ResolvedCrystal::new);
+        addAll(all, settings.ruins(), resources, ResolvedRuin::new);
+        addAll(all, settings.formations(), resources, ResolvedFormation::new);
+        addAll(all, settings.coral(), resources, ResolvedCoral::new);
+        addAll(all, settings.fungi(), resources, ResolvedFungus::new);
+        addAll(all, settings.crystals(), resources, ResolvedCrystal::new);
         return List.copyOf(all);
     }
 
-    private static <S> void addAll(List<ProceduralPlacement> all, List<S> settings, ObjectHost host,
-                                   BiFunction<S, ObjectHost, ResolvedProceduralPlacement> resolve) {
+    private static <S> void addAll(List<ProceduralPlacement> all, List<S> settings, PackResources resources,
+                                   BiFunction<S, PackResources, ResolvedProceduralPlacement> resolve) {
         for (S entry : settings) {
-            all.add(resolve.apply(entry, host));
+            all.add(resolve.apply(entry, resources));
         }
     }
 

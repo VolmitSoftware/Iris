@@ -21,17 +21,17 @@ package art.arcane.iris.engine.object.procedural;
 import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
 import art.arcane.iris.builtin.carve.CarvingMode;
 import art.arcane.iris.builtin.carve.CaveAnchorMode;
-import art.arcane.iris.builtin.objects.ObjectBuilder;
-import art.arcane.iris.builtin.objects.ObjectHost;
-import art.arcane.iris.builtin.objects.PlaceableObject;
-import art.arcane.iris.builtin.objects.ProceduralPlacement;
 import art.arcane.iris.builtin.prepare.ObjectRotation;
 import art.arcane.iris.builtin.prepare.ObjectTranslate;
 import art.arcane.iris.builtin.stilt.StiltSettings;
 import art.arcane.iris.builtin.vacuum.VacuumSettings;
 import art.arcane.iris.builtin.validate.ObjectLimit;
+import art.arcane.iris.modules.objects.ObjectBuilder;
+import art.arcane.iris.modules.objects.ProceduralPlacement;
 import art.arcane.volmlib.util.cache.AtomicCache;
 import art.arcane.volmlib.util.math.RNG;
+import com.volmit.object.PlaceableObject;
+import com.volmit.resource.PackResources;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -39,7 +39,7 @@ import java.util.Optional;
 
 /**
  * A procedural object's settings made placeable: bakes a deterministic pool of variants from them, once, through the
- * host's object builder, and hands the placement options to {@code iris:objects}.
+ * pack's objects ({@link ObjectBuilder}), and hands the placement options to {@code iris:objects}.
  */
 public abstract class ResolvedProceduralPlacement implements ProceduralPlacement {
     private static final long VARIANT_SEED_STRIDE = 7919L;
@@ -51,12 +51,12 @@ public abstract class ResolvedProceduralPlacement implements ProceduralPlacement
     }
 
     private final Shape shape;
-    private final ObjectHost host;
+    private final PackResources resources;
     private final AtomicCache<List<PlaceableObject>> variantCache = new AtomicCache<>();
 
-    protected ResolvedProceduralPlacement(Shape shape, ObjectHost host) {
+    protected ResolvedProceduralPlacement(Shape shape, PackResources resources) {
         this.shape = shape;
-        this.host = host;
+        this.resources = resources;
     }
 
     /** The shape variant {@code index} is baked as, from its own seeded stream; null when it has no blocks. */
@@ -139,7 +139,7 @@ public abstract class ResolvedProceduralPlacement implements ProceduralPlacement
 
     @Override
     public List<PlaceableObject> variants() {
-        return variantCache.aquire(() -> bake(host.builder()));
+        return variantCache.aquire(() -> bake(new ObjectBuilder(resources)));
     }
 
     @Override

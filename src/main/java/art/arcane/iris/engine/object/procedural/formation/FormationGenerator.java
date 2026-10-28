@@ -19,7 +19,7 @@
 package art.arcane.iris.engine.object.procedural.formation;
 
 import art.arcane.iris.builtin.objects.formation.Formation;
-import art.arcane.iris.builtin.objects.ObjectBuilder;
+import art.arcane.iris.modules.objects.ObjectBuilder;
 import art.arcane.iris.engine.object.procedural.ProceduralShape;
 import art.arcane.iris.engine.object.procedural.IrisProceduralBlocks;
 import com.volmit.block.BlockState;

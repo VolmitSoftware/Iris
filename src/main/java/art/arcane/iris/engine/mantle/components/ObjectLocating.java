@@ -18,8 +18,7 @@
 
 package art.arcane.iris.engine.mantle.components;
 
-import art.arcane.iris.builtin.objects.ObjectHost;
-import art.arcane.iris.builtin.objects.ObjectHost.Declaration;
+import art.arcane.iris.modules.objects.Declaration;
 import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.builtin.objects.ObjectSettings;
 import com.volmit.config.Level;
@@ -50,7 +49,7 @@ public final class ObjectLocating implements ObjectsAt {
         PackResources resources = world.resources();
         Set<ResourceId> biomes = new LinkedHashSet<>();
         Set<ResourceId> regions = new LinkedHashSet<>();
-        for (Declaration<ObjectSettings> declaration : world.extension(ObjectHost.class).orElseThrow().declarations(ObjectSettings.class)) {
+        for (Declaration<ObjectSettings> declaration : Declaration.allOf(world, ObjectSettings.class)) {
             if (!placesObject(declaration.settings().objects(), resources, object)) {
                 continue;
             }

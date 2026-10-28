@@ -18,18 +18,19 @@
 
 package art.arcane.iris.engine.object.placement;
 
-import art.arcane.iris.builtin.IrisStages;
 import art.arcane.iris.builtin.anchor.PlaceTrait;
 import art.arcane.iris.builtin.blocks.ObjectMarkers;
 import art.arcane.iris.builtin.blocks.WrittenBlocks;
 import art.arcane.iris.builtin.carve.CarvingMode;
-import art.arcane.iris.builtin.placement.MarkerRule;
-import art.arcane.iris.builtin.placement.ObjectPlacement;
-import art.arcane.iris.builtin.placement.PlacementSettings;
-import art.arcane.iris.builtin.placement.PlacementTerrain;
-import art.arcane.iris.builtin.prepare.PreparedPlacement;
 import art.arcane.iris.builtin.spawn.SpawnMarker;
 import art.arcane.iris.engine.spawn.SpawnResources;
+import art.arcane.iris.modules.blocks.SmartBoreDebugSettings;
+import art.arcane.iris.modules.placement.MarkerRule;
+import art.arcane.iris.modules.placement.PlacementSettings;
+import art.arcane.iris.modules.placement.PlacementStages;
+import art.arcane.iris.modules.placement.PreparedPlacement;
+import art.arcane.iris.modules.placement.RunningPlacement;
+import art.arcane.iris.modules.placement.StageTerrain;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
 import com.volmit.IrisModule;
@@ -75,27 +76,28 @@ public final class BlocksModule implements IrisModule {
 
     @Override
     public void setup(ModuleSetup setup) {
+        setup.registry().registerSettings(SmartBoreDebugSettings.class);
         var graph = setup.stages();
-        graph.define(IrisStages.Blocks.WRITE)
-                .requires(IrisStages.Prepare.TRANSFORMS, IrisStages.Anchor.FINAL, IrisStages.Bore.CLEAR)
+        graph.define(PlacementStages.Blocks.WRITE)
+                .requires(PlacementStages.Prepare.TRANSFORMS, PlacementStages.Anchor.FINAL, PlacementStages.Bore.CLEAR)
                 .accumulate(WrittenBlocks::new, BlocksModule::write);
-        graph.define(IrisStages.Blocks.MARKERS)
-                .requires(IrisStages.Blocks.WRITE, IrisStages.Prepare.TRANSFORMS)
+        graph.define(PlacementStages.Blocks.MARKERS)
+                .requires(PlacementStages.Blocks.WRITE, PlacementStages.Prepare.TRANSFORMS)
                 .run(BlocksModule::placeMarkers);
-        graph.define(IrisStages.Blocks.COMPLETE)
-                .requires(IrisStages.Blocks.WRITE, IrisStages.Blocks.MARKERS)
+        graph.define(PlacementStages.Blocks.COMPLETE)
+                .requires(PlacementStages.Blocks.WRITE, PlacementStages.Blocks.MARKERS)
                 .run(context -> {
                 });
     }
 
     private static void write(BlockStageContext context, WrittenBlocks written) {
-        ObjectPlacement placement = context.extension(ObjectPlacement.class).orElseThrow();
-        PreparedPlacement prepared = context.output(IrisStages.Prepare.TRANSFORMS);
+        PreparedPlacement prepared = context.output(PlacementStages.Prepare.TRANSFORMS);
+        RunningPlacement placement = prepared.placement();
         PlacementSettings settings = prepared.settings();
         PlacementWorld world = new PlacementWorld(context.access(), prepared.traits());
         ObjectBlock block = context.block();
         BlockPosition offset = prepared.transform(block.position());
-        int anchorY = context.output(IrisStages.Anchor.FINAL).y();
+        int anchorY = context.output(PlacementStages.Anchor.FINAL).y();
         BlockState data = sourceState(block, placement, prepared);
         Optional<BlockEntityData> blockEntity = block.blockEntity();
         if (!settings.edit().isEmpty()) {
@@ -137,10 +139,10 @@ public final class BlocksModule implements IrisModule {
     }
 
     /** The object block as Iris places it: debug air shows where smart boring bored, and leaves never decay where the placer prevents it. */
-    private static BlockState sourceState(ObjectBlock block, ObjectPlacement placement, PreparedPlacement prepared) {
+    private static BlockState sourceState(ObjectBlock block, RunningPlacement placement, PreparedPlacement prepared) {
         BlockState data = block.state();
-        PlacementTerrain terrain = prepared.terrain();
-        if (terrain.debugsSmartBore() && placement.matches(data, VOID_AIR)) {
+        StageTerrain terrain = prepared.terrain();
+        if (placement.matches(data, VOID_AIR) && terrain.debugsSmartBore(placement.x(), placement.z())) {
             data = VOID_AIR_DEBUG;
         }
         if (terrain.preventsDecay() && data.properties().containsKey(DISTANCE)
@@ -196,13 +198,13 @@ public final class BlocksModule implements IrisModule {
      * where the marker either allows anything above or finds two blocks of air.
      */
     private static void placeMarkers(PlacementStageContext context) {
-        ObjectPlacement placement = context.extension(ObjectPlacement.class).orElseThrow();
-        PreparedPlacement prepared = context.output(IrisStages.Prepare.TRANSFORMS);
+        PreparedPlacement prepared = context.output(PlacementStages.Prepare.TRANSFORMS);
+        RunningPlacement placement = prepared.placement();
         PlacementSettings settings = prepared.settings();
         if (settings.markers().isEmpty() || !prepared.terrain().hasWorld()) {
             return;
         }
-        WrittenBlocks written = context.output(IrisStages.Blocks.WRITE);
+        WrittenBlocks written = context.output(PlacementStages.Blocks.WRITE);
         PlacementWorld world = new PlacementWorld(context.access(), prepared.traits());
         RNG markerRandom = new RNG(context.random().nextLong());
         int salt = 0;
@@ -226,7 +228,7 @@ public final class BlocksModule implements IrisModule {
         }
     }
 
-    private static KList<BlockPosition> candidates(WrittenBlocks written, MarkerRule rule, ObjectPlacement placement) {
+    private static KList<BlockPosition> candidates(WrittenBlocks written, MarkerRule rule, RunningPlacement placement) {
         KList<BlockPosition> candidates = new KList<>();
         written.forEach((position, state) -> {
             if (rule.targets().stream().anyMatch(target -> marks(placement, rule, target, state))) {
@@ -236,7 +238,7 @@ public final class BlocksModule implements IrisModule {
         return candidates;
     }
 
-    private static boolean marks(ObjectPlacement placement, MarkerRule rule, BlockState target, BlockState state) {
+    private static boolean marks(RunningPlacement placement, MarkerRule rule, BlockState target, BlockState state) {
         return rule.exact()
                 ? placement.matches(target, state)
                 : target.material().equals(state.material());

@@ -18,13 +18,13 @@
 
 package art.arcane.iris.engine.object.placement;
 
-import art.arcane.iris.builtin.IrisStages;
 import art.arcane.iris.builtin.anchor.StiltShape;
-import art.arcane.iris.builtin.placement.ObjectPlacement;
-import art.arcane.iris.builtin.placement.PlacementSettings;
-import art.arcane.iris.builtin.prepare.PreparedPlacement;
 import art.arcane.iris.builtin.stilt.StiltLayers;
 import art.arcane.iris.builtin.stilt.StiltSettings;
+import art.arcane.iris.modules.placement.PlacementSettings;
+import art.arcane.iris.modules.placement.PlacementStages;
+import art.arcane.iris.modules.placement.PreparedPlacement;
+import art.arcane.iris.modules.placement.RunningPlacement;
 import art.arcane.volmlib.util.math.RNG;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
@@ -71,18 +71,18 @@ public final class StiltModule implements IrisModule {
     @Override
     public void setup(ModuleSetup setup) {
         var graph = setup.stages();
-        graph.define(IrisStages.Stilt.LAYERS)
-                .requires(IrisStages.Prepare.TRANSFORMS)
+        graph.define(PlacementStages.Stilt.LAYERS)
+                .requires(PlacementStages.Prepare.TRANSFORMS)
                 // Ordered after boring only so it shares the block pass that writes the object.
-                .softAfter(IrisStages.Bore.CLEAR)
+                .softAfter(PlacementStages.Bore.CLEAR)
                 .accumulate(StiltLayers::new, StiltModule::collectLayer);
-        graph.define(IrisStages.Stilt.FILL)
-                .requires(IrisStages.Stilt.LAYERS, IrisStages.Anchor.FINAL, IrisStages.Blocks.COMPLETE)
+        graph.define(PlacementStages.Stilt.FILL)
+                .requires(PlacementStages.Stilt.LAYERS, PlacementStages.Anchor.FINAL, PlacementStages.Blocks.COMPLETE)
                 .run(StiltModule::fill);
     }
 
     private static void collectLayer(BlockStageContext context, StiltLayers layers) {
-        PreparedPlacement prepared = context.output(IrisStages.Prepare.TRANSFORMS);
+        PreparedPlacement prepared = context.output(PlacementStages.Prepare.TRANSFORMS);
         if (prepared.mode().stilt() == StiltShape.NONE) {
             return;
         }
@@ -103,9 +103,9 @@ public final class StiltModule implements IrisModule {
     }
 
     private static void fill(PlacementStageContext context) {
-        PreparedPlacement prepared = context.output(IrisStages.Prepare.TRANSFORMS);
+        PreparedPlacement prepared = context.output(PlacementStages.Prepare.TRANSFORMS);
         StiltShape shape = prepared.mode().stilt();
-        StiltLayers layers = context.output(IrisStages.Stilt.LAYERS);
+        StiltLayers layers = context.output(PlacementStages.Stilt.LAYERS);
         if (shape == StiltShape.NONE || layers.isEmpty()) {
             return;
         }
@@ -118,7 +118,7 @@ public final class StiltModule implements IrisModule {
 
     /** One placement's stilt, grown column by column under (or above) the blocks of its repeated layer. */
     private static final class StiltColumns {
-        private final ObjectPlacement placement;
+        private final RunningPlacement placement;
         private final PreparedPlacement prepared;
         private final PlacementSettings config;
         private final StiltSettings settings;
@@ -132,7 +132,7 @@ public final class StiltModule implements IrisModule {
         private final ErodeShape erode;
 
         private StiltColumns(PlacementStageContext context, PreparedPlacement prepared, StiltLayers layers) {
-            this.placement = context.extension(ObjectPlacement.class).orElseThrow();
+            this.placement = context.output(PlacementStages.Prepare.TRANSFORMS).placement();
             this.prepared = prepared;
             this.context = context;
             this.config = prepared.settings();
@@ -140,7 +140,7 @@ public final class StiltModule implements IrisModule {
             this.shape = prepared.mode().stilt();
             this.world = new PlacementWorld(context.access(), prepared.traits());
             this.rng = new RNG(context.random().nextLong());
-            this.anchorY = context.output(IrisStages.Anchor.FINAL).y();
+            this.anchorY = context.output(PlacementStages.Anchor.FINAL).y();
             this.palette = settings == null ? null : paletteBlock(settings);
             this.layerY = shape == StiltShape.CEILING ? layers.topY() : layers.bottomY();
             this.erode = shape == StiltShape.ERODE ? ErodeShape.of(layers.bottom()) : null;

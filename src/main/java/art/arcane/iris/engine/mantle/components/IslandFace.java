@@ -18,7 +18,7 @@
 
 package art.arcane.iris.engine.mantle.components;
 
-import art.arcane.iris.builtin.floating.IslandAnchor;
+import art.arcane.iris.modules.floating.IslandAnchor;
 import art.arcane.iris.engine.object.terrain.floating.FloatingIslandSample;
 import art.arcane.iris.engine.object.terrain.floating.ResolvedFloatingChild;
 

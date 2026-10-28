@@ -19,7 +19,7 @@
 package art.arcane.iris.engine.object.placement;
 
 import art.arcane.iris.builtin.blocks.ObjectReplace;
-import art.arcane.iris.builtin.placement.ObjectPlacement;
+import art.arcane.iris.modules.placement.RunningPlacement;
 import art.arcane.volmlib.util.math.RNG;
 import com.volmit.block.BlockState;
 import com.volmit.block.BlockTrait;
@@ -39,7 +39,7 @@ final class ObjectEdits {
 
     /** The result's block entity is the last replacement's, if it has one. */
     static Edited apply(List<ObjectReplace> edits, BlockState data, Optional<BlockEntityData> blockEntity, RNG rng,
-                        double x, double y, double z, ResolvedReplaces replaces, ObjectPlacement placement) {
+                        double x, double y, double z, ResolvedReplaces replaces, RunningPlacement placement) {
         BlockState edited = data;
         Optional<BlockEntityData> editedEntity = blockEntity;
         for (ObjectReplace settings : edits) {
@@ -61,13 +61,13 @@ final class ObjectEdits {
         return new Edited(edited, editedEntity);
     }
 
-    private static boolean finds(ObjectPlacement placement, ResolvedReplace replace, BlockState find, BlockState data) {
+    private static boolean finds(RunningPlacement placement, ResolvedReplace replace, BlockState find, BlockState data) {
         return replace.exact()
                 ? placement.matches(find, data)
                 : find.material().equals(data.material());
     }
 
-    private static BlockState replaced(ObjectPlacement placement, BlockState data, BlockState replacement) {
+    private static BlockState replaced(RunningPlacement placement, BlockState data, BlockState replacement) {
         boolean sameMaterial = replacement.material().equals(data.material());
         if (sameMaterial && !placement.hasTrait(replacement, BlockTrait.CUSTOM) && !placement.hasTrait(data, BlockTrait.CUSTOM)) {
             return placement.merge(data, replacement);

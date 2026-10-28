@@ -18,9 +18,8 @@
 
 package art.arcane.iris.engine.mantle.components;
 
-import art.arcane.iris.builtin.objects.ObjectHost;
 import art.arcane.iris.builtin.objects.ObjectPlacement;
-import art.arcane.iris.builtin.objects.PlaceableObject;
+import com.volmit.object.PlaceableObject;
 import com.volmit.ModuleLog;
 
 import java.util.Map;
@@ -36,13 +35,13 @@ final class CaveRejects {
     private CaveRejects() {
     }
 
-    static void log(ObjectHost host, ModuleLog log, String scope, String reason, int chunkX, int chunkZ, ObjectPlacement placement,
+    static void log(ModuleLog log, String scope, String reason, int chunkX, int chunkZ, ObjectPlacement placement,
                     PlaceableObject object, int densityIndex, int density, CaveAnchors.Search search, Integer anchorY, Throwable error) {
-        if (!host.debugging()) {
+        if (!log.debugging()) {
             return;
         }
         String placementKeys = placement == null ? "none" : String.join(",", placement.place());
-        String objectKey = object == null ? "null" : object.key();
+        String objectKey = object == null ? "null" : object.name();
         String throttleKey = scope + "|" + reason + "|" + placementKeys + "|" + objectKey;
         State state = STATES.computeIfAbsent(throttleKey, key -> new State());
         long now = System.currentTimeMillis();

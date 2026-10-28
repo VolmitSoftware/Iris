@@ -18,10 +18,10 @@
 
 package art.arcane.iris.engine.object.placement;
 
-import art.arcane.iris.builtin.IrisStages;
-import art.arcane.iris.builtin.placement.ObjectPlacement;
-import art.arcane.iris.builtin.placement.PlacementSettings;
-import art.arcane.iris.builtin.prepare.PreparedPlacement;
+import art.arcane.iris.modules.placement.PlacementSettings;
+import art.arcane.iris.modules.placement.PlacementStages;
+import art.arcane.iris.modules.placement.PreparedPlacement;
+import art.arcane.iris.modules.placement.RunningPlacement;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
 import com.volmit.ModuleSetup;
@@ -39,19 +39,19 @@ public final class BoreModule implements IrisModule {
 
     @Override
     public void setup(ModuleSetup setup) {
-        setup.stages().define(IrisStages.Bore.CLEAR)
-                .requires(IrisStages.Anchor.FINAL, IrisStages.Validate.COLLISIONS)
+        setup.stages().define(PlacementStages.Bore.CLEAR)
+                .requires(PlacementStages.Anchor.FINAL, PlacementStages.Validate.COLLISIONS)
                 .run(BoreModule::clear);
     }
 
     private static void clear(PlacementStageContext context) {
-        PreparedPlacement prepared = context.output(IrisStages.Prepare.TRANSFORMS);
+        PreparedPlacement prepared = context.output(PlacementStages.Prepare.TRANSFORMS);
         PlacementSettings settings = prepared.settings();
         if (!settings.bore()) {
             return;
         }
-        ObjectPlacement placement = context.extension(ObjectPlacement.class).orElseThrow();
-        WorldVolume volume = WorldVolume.of(placement, prepared, context.output(IrisStages.Anchor.FINAL).y());
+        RunningPlacement placement = prepared.placement();
+        WorldVolume volume = WorldVolume.of(placement, prepared, context.output(PlacementStages.Anchor.FINAL).y());
         PlacementWorld world = new PlacementWorld(context.access(), prepared.traits());
         for (int x = volume.minX(); x <= volume.maxX(); x++) {
             for (int y = volume.minY() - settings.boreExtendMinY(); y <= volume.maxY() + settings.boreExtendMaxY(); y++) {

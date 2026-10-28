@@ -18,14 +18,14 @@
 
 package art.arcane.iris.engine.object.placement;
 
-import art.arcane.iris.builtin.IrisStages;
 import art.arcane.iris.builtin.anchor.VacuumProfile;
 import art.arcane.iris.builtin.blocks.WrittenBlocks;
-import art.arcane.iris.builtin.placement.ObjectPlacement;
-import art.arcane.iris.builtin.placement.PlacementTerrain;
-import art.arcane.iris.builtin.placement.PlaneNoise;
-import art.arcane.iris.builtin.prepare.PreparedPlacement;
 import art.arcane.iris.builtin.prepare.TransformedBounds;
+import art.arcane.iris.modules.placement.EdgeSimplex;
+import art.arcane.iris.modules.placement.PlacementStages;
+import art.arcane.iris.modules.placement.PreparedPlacement;
+import art.arcane.iris.modules.placement.RunningPlacement;
+import art.arcane.iris.modules.placement.StageTerrain;
 import art.arcane.iris.modules.terrain.TerrainPalettes;
 import art.arcane.iris.builtin.vacuum.VacuumSettings;
 import com.volmit.IrisModule;
@@ -57,15 +57,15 @@ public final class VacuumModule implements IrisModule {
 
     @Override
     public void setup(ModuleSetup setup) {
-        setup.stages().define(IrisStages.Vacuum.TERRAIN)
-                .requires(IrisStages.Blocks.WRITE, IrisStages.Blocks.COMPLETE, IrisStages.Prepare.TRANSFORMS)
+        setup.stages().define(PlacementStages.Vacuum.TERRAIN)
+                .requires(PlacementStages.Blocks.WRITE, PlacementStages.Blocks.COMPLETE, PlacementStages.Prepare.TRANSFORMS)
                 .reach(IrisObjectVacuum.MAX_RADIUS_BLOCKS)
                 .run(VacuumModule::bendTerrain);
     }
 
     private static void bendTerrain(PlacementStageContext context) {
-        PreparedPlacement prepared = context.output(IrisStages.Prepare.TRANSFORMS);
-        WrittenBlocks written = context.output(IrisStages.Blocks.WRITE);
+        PreparedPlacement prepared = context.output(PlacementStages.Prepare.TRANSFORMS);
+        WrittenBlocks written = context.output(PlacementStages.Blocks.WRITE);
         if (!prepared.mode().bendsTerrain() || written.isEmpty() || !prepared.terrain().hasWorld()) {
             return;
         }
@@ -76,9 +76,9 @@ public final class VacuumModule implements IrisModule {
 
     /** One placement's terrain bend over the columns within its radius of the object's footprint. */
     private static final class Bend {
-        private final ObjectPlacement placement;
+        private final RunningPlacement placement;
         private final PreparedPlacement prepared;
-        private final PlacementTerrain terrain;
+        private final StageTerrain terrain;
         private final PlacementWorld world;
         private final PlacementStageContext context;
         private final int radius;
@@ -87,13 +87,13 @@ public final class VacuumModule implements IrisModule {
         private final int jitter;
         private final double waveAmplitude;
         private final double waveScale;
-        private final PlaneNoise waves;
+        private final EdgeSimplex waves;
         private final int lowestY;
         private final int highestY;
 
         private Bend(PlacementStageContext context, PreparedPlacement prepared) {
             VacuumProfile vacuum = prepared.mode().vacuum();
-            this.placement = context.extension(ObjectPlacement.class).orElseThrow();
+            this.placement = prepared.placement();
             this.prepared = prepared;
             this.terrain = prepared.terrain();
             this.world = new PlacementWorld(context.access(), prepared.traits());
@@ -105,7 +105,7 @@ public final class VacuumModule implements IrisModule {
             this.jitter = settings != null ? Math.max(0, settings.organicJitter()) : DEFAULT_ORGANIC_JITTER;
             this.waveAmplitude = IrisObjectVacuum.resolveWaveAmplitude(settings);
             this.waveScale = IrisObjectVacuum.resolveWaveScale(settings);
-            this.waves = vacuum.edge() == VacuumProfile.Edge.WAVY && waveAmplitude > 0 ? placement.simplex(WAVE_SEED) : null;
+            this.waves = vacuum.edge() == VacuumProfile.Edge.WAVY && waveAmplitude > 0 ? new EdgeSimplex(WAVE_SEED) : null;
             this.lowestY = IrisObjectVacuum.LOWEST_TARGET_Y;
             this.highestY = terrain.worldHeight() - 1;
         }

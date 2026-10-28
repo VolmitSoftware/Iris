@@ -25,14 +25,25 @@ import com.volmit.geometry.BlockPosition;
 import java.util.Map;
 
 /**
- * Iris markers as IrisApi placement markers: type {@code iris:marker}, naming the pack's marker under the
- * {@code marker} attribute. Iris stores markers of this type only.
+ * The placement markers Iris keeps: a pack marker, type {@code iris:marker}, naming the pack's marker under the
+ * {@code marker} attribute; a placed object's block that is a tree's ({@code iris:tree_material}), which Iris keeps
+ * as the block's tree material for felling and growth; and a buried treasure chest ({@code iris:buried_treasure}).
  */
 public final class ObjectMarkers {
     public static final ResourceId TYPE = ResourceId.parse("iris:marker");
+    public static final ResourceId TREE_MATERIAL = ResourceId.parse("iris:tree_material");
+    public static final ResourceId BURIED_TREASURE = ResourceId.parse("iris:buried_treasure");
     public static final String MARKER_ATTRIBUTE = "marker";
 
     private ObjectMarkers() {
+    }
+
+    public static PlacedMarker treeMaterial(BlockPosition position) {
+        return new PlacedMarker(position, TREE_MATERIAL, Map.of());
+    }
+
+    public static PlacedMarker buriedTreasure(BlockPosition position) {
+        return new PlacedMarker(position, BURIED_TREASURE, Map.of());
     }
 
     /** {@code markerKey} is the pack's marker, such as {@code spawn/zombie}. */

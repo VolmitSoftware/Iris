@@ -20,9 +20,8 @@ package art.arcane.iris.engine.loot;
 
 import art.arcane.iris.builtin.IrisSeedPurposes;
 import art.arcane.iris.builtin.loot.LootResolver;
-import art.arcane.iris.builtin.objects.ObjectHost;
-import art.arcane.iris.builtin.objects.ObjectHost.ObjectLoots;
 import art.arcane.iris.builtin.loot.LootTable;
+import art.arcane.iris.engine.loot.PlacedObjectLoot.ObjectLoots;
 import art.arcane.volmlib.util.math.RNG;
 import com.volmit.item.ItemDrop;
 import com.volmit.resource.ResourceId;
@@ -50,7 +49,7 @@ public final class LootGiving implements Loot {
         List<Source> sources = new ArrayList<>();
         boolean objectLootDefined = site.nativeLootDefined();
         Optional<ObjectLoots> objectLoots = site.container().isEmpty() ? Optional.empty()
-                : world.extension(ObjectHost.class).orElseThrow().placedLoot(x, relativeY, z);
+                : PlacedObjectLoot.at(world, x, relativeY, z);
         if (objectLoots.isPresent()) {
             objectLootDefined = objectLootDefined || objectLoots.get().defined();
             Source picked = placementLoot(world).pick(objectLoots.get().platformTables(), objectLoots.get().packTables(),

@@ -36,13 +36,9 @@ import java.util.Objects;
 
 public final class JigsawStudioProjectCreator {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
-    private static final List<IrisDirection> SPATIAL_CONNECTOR_ORDER = List.of(
-            IrisDirection.NORTH_NEGATIVE_Z,
-            IrisDirection.SOUTH_POSITIVE_Z,
-            IrisDirection.EAST_POSITIVE_X,
-            IrisDirection.WEST_NEGATIVE_X,
-            IrisDirection.UP_POSITIVE_Y,
-            IrisDirection.DOWN_NEGATIVE_Y);
+    private static final int DEFAULT_MAX_DEPTH = 7;
+    private static final int SPATIAL_PORTABLE_MAX_DEPTH = 4;
+    private static final int SPATIAL_MAXIMUM_PLACEMENTS = 4;
 
     private JigsawStudioProjectCreator() {
     }
@@ -59,7 +55,7 @@ public final class JigsawStudioProjectCreator {
         StructureKey ownershipKey = new StructureKey("iris", resourceKey);
         IrisStructure structure = new IrisStructure()
                 .setStartPool(resourceKey + "/start")
-                .setMaxDepth(7)
+                .setMaxDepth(maxDepth(options))
                 .setMaxSizeChunks(8)
                 .setMode(toModelMode(options.mode()))
                 .setCompatibility(toModelCompatibility(options.compatibilityTarget()))
@@ -92,6 +88,13 @@ public final class JigsawStudioProjectCreator {
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         object.write(output);
         return output.toByteArray();
+    }
+
+    private static int maxDepth(Options options) {
+        return options.mode() == JigsawStudioMode.SPATIAL_JIGSAW
+                && options.compatibilityTarget() == JigsawStudioCompatibilityTarget.VANILLA_PORTABLE
+                ? SPATIAL_PORTABLE_MAX_DEPTH
+                : DEFAULT_MAX_DEPTH;
     }
 
     private static IrisJigsawMode toModelMode(JigsawStudioMode mode) {
@@ -129,13 +132,10 @@ public final class JigsawStudioProjectCreator {
         IrisJigsawPool piecePool = new IrisJigsawPool().setFallback(capPoolKey);
         IrisJigsawPool capPool = new IrisJigsawPool();
         for (JigsawPlanarArchetype archetype : JigsawPlanarArchetype.values()) {
-            String key = options.structureKey() + "/" + archetype.name().toLowerCase(Locale.ROOT);
+            String key = archetypeKey(options, archetype);
             IrisJigsawPiece piece = planarPiece(key, piecePoolKey, size, archetype);
             if (options.compatibilityTarget() == JigsawStudioCompatibilityTarget.IRIS_EXTENDED) {
                 piece.getThemes().add("variant-1");
-            }
-            if (archetype == JigsawPlanarArchetype.CROSS) {
-                pool.getPieces().add(new IrisJigsawPieceEntry(key, 1));
             }
             if (archetype != JigsawPlanarArchetype.BLANK) {
                 piecePool.getPieces().add(new IrisJigsawPieceEntry(key, 1));
@@ -159,6 +159,8 @@ public final class JigsawStudioProjectCreator {
                     dimensions.depth())));
             bundle.textResource("jigsaw-pieces/" + key + ".json", GSON.toJson(piece) + "\n");
         }
+        pool.getPieces().add(new IrisJigsawPieceEntry(archetypeKey(options, JigsawPlanarArchetype.CROSS), 3));
+        pool.getPieces().add(new IrisJigsawPieceEntry(archetypeKey(options, JigsawPlanarArchetype.BLANK), 1));
         capPool.getPieces().add(new IrisJigsawPieceEntry().setEmpty(true));
         bundle.textResource("jigsaw-pools/" + piecePoolKey + ".json", GSON.toJson(piecePool) + "\n");
         bundle.textResource("jigsaw-pools/" + capPoolKey + ".json", GSON.toJson(capPool) + "\n");
@@ -172,26 +174,25 @@ public final class JigsawStudioProjectCreator {
         JigsawStudioCellDimensions dimensions = options.cellDimensions();
         String piecePoolKey = options.structureKey() + "/pieces";
         IrisJigsawPool piecePool = new IrisJigsawPool();
-        for (int connectorCount = 0; connectorCount <= SPATIAL_CONNECTOR_ORDER.size(); connectorCount++) {
-            String key = options.structureKey() + "/"
-                    + (connectorCount == 0 ? "start" : "connectors-" + connectorCount);
-            IrisJigsawPiece piece = spatialPiece(
-                    key,
-                    piecePoolKey,
-                    dimensions,
-                    connectorCount);
-            if (options.compatibilityTarget() == JigsawStudioCompatibilityTarget.IRIS_EXTENDED) {
-                piece.getThemes().add("variant-1");
+        boolean irisExtended = options.compatibilityTarget() == JigsawStudioCompatibilityTarget.IRIS_EXTENDED;
+        for (SpatialVerticalClass vertical : SpatialVerticalClass.values()) {
+            for (JigsawPlanarArchetype horizontal : JigsawPlanarArchetype.values()) {
+                String key = archetypeKey(options, horizontal) + vertical.keySuffix();
+                IrisJigsawPiece piece = spatialPiece(key, piecePoolKey, dimensions, horizontal, vertical);
+                if (irisExtended) {
+                    piece.getThemes().add("variant-1");
+                    piece.setRules(new IrisJigsawPieceRules().setMaximumPlacements(SPATIAL_MAXIMUM_PLACEMENTS));
+                }
+                pool.getPieces().add(new IrisJigsawPieceEntry(key, 1));
+                if (!piece.getConnectors().isEmpty()) {
+                    piecePool.getPieces().add(new IrisJigsawPieceEntry(key, 1));
+                }
+                bundle.resource("objects/" + key + ".iob", serialize(new IrisObject(
+                        dimensions.width(),
+                        dimensions.height(),
+                        dimensions.depth())));
+                bundle.textResource("jigsaw-pieces/" + key + ".json", GSON.toJson(piece) + "\n");
             }
-            pool.getPieces().add(new IrisJigsawPieceEntry(key, 1));
-            if (connectorCount > 0) {
-                piecePool.getPieces().add(new IrisJigsawPieceEntry(key, 1));
-            }
-            bundle.resource("objects/" + key + ".iob", serialize(new IrisObject(
-                    dimensions.width(),
-                    dimensions.height(),
-                    dimensions.depth())));
-            bundle.textResource("jigsaw-pieces/" + key + ".json", GSON.toJson(piece) + "\n");
         }
         piecePool.getPieces().add(new IrisJigsawPieceEntry().setEmpty(true));
         bundle.textResource("jigsaw-pools/" + piecePoolKey + ".json", GSON.toJson(piecePool) + "\n");
@@ -201,28 +202,38 @@ public final class JigsawStudioProjectCreator {
             String objectKey,
             String poolKey,
             JigsawStudioCellDimensions dimensions,
-            int connectorCount
+            JigsawPlanarArchetype horizontal,
+            SpatialVerticalClass vertical
     ) {
         IrisJigsawPiece piece = new IrisJigsawPiece()
-                .setDisplayName(connectorCount + (connectorCount == 1 ? " Connector" : " Connectors"))
+                .setDisplayName(horizontal.displayName() + vertical.displaySuffix())
                 .setObject(objectKey)
-                .setRotatable(true)
-                .setRules(new IrisJigsawPieceRules().setMaximumPlacements(16));
-        for (int index = 0; index < connectorCount; index++) {
-            IrisDirection direction = SPATIAL_CONNECTOR_ORDER.get(index);
-            piece.getConnectors().add(new IrisJigsawConnector()
-                    .setPosition(spatialConnectorPosition(dimensions, direction))
-                    .setDirection(direction)
-                    .setTop(direction.isVertical()
-                            ? IrisDirection.NORTH_NEGATIVE_Z
-                            : IrisDirection.UP_POSITIVE_Y)
-                    .setPool(poolKey)
-                    .setName("iris:spatial")
-                    .setTargetName("iris:spatial")
-                    .setJoint(JigsawJoint.ROLLABLE)
-                    .setFinalState("minecraft:structure_void"));
+                .setRotatable(true);
+        for (JigsawPlanarDirection planarDirection : horizontal.canonicalTopology().directions()) {
+            piece.getConnectors().add(spatialConnector(dimensions, planarDirection.irisDirection(), poolKey));
+        }
+        for (IrisDirection direction : vertical.directions()) {
+            piece.getConnectors().add(spatialConnector(dimensions, direction, poolKey));
         }
         return piece;
+    }
+
+    private static IrisJigsawConnector spatialConnector(
+            JigsawStudioCellDimensions dimensions,
+            IrisDirection direction,
+            String poolKey
+    ) {
+        return new IrisJigsawConnector()
+                .setPosition(spatialConnectorPosition(dimensions, direction))
+                .setDirection(direction)
+                .setTop(direction.isVertical()
+                        ? IrisDirection.NORTH_NEGATIVE_Z
+                        : IrisDirection.UP_POSITIVE_Y)
+                .setPool(poolKey)
+                .setName("iris:spatial")
+                .setTargetName("iris:spatial")
+                .setJoint(JigsawJoint.ROLLABLE)
+                .setFinalState("minecraft:structure_void");
     }
 
     private static IrisPosition spatialConnectorPosition(
@@ -240,6 +251,10 @@ public final class JigsawStudioProjectCreator {
             case UP_POSITIVE_Y -> new IrisPosition(centerX, dimensions.height() - 1, centerZ);
             case DOWN_NEGATIVE_Y -> new IrisPosition(centerX, 0, centerZ);
         };
+    }
+
+    private static String archetypeKey(Options options, JigsawPlanarArchetype archetype) {
+        return options.structureKey() + "/" + archetype.name().toLowerCase(Locale.ROOT);
     }
 
     private static IrisJigsawPiece planarPiece(
@@ -289,6 +304,35 @@ public final class JigsawStudioProjectCreator {
             StructureResourceBundle.validateRelativePath("structures/" + key + ".json");
             new StructureKey("iris", key);
             return key;
+        }
+    }
+
+    private enum SpatialVerticalClass {
+        NONE("", "", List.of()),
+        UP("-up", " + Up", List.of(IrisDirection.UP_POSITIVE_Y)),
+        DOWN("-down", " + Down", List.of(IrisDirection.DOWN_NEGATIVE_Y)),
+        UP_DOWN("-up-down", " + Up/Down", List.of(IrisDirection.UP_POSITIVE_Y, IrisDirection.DOWN_NEGATIVE_Y));
+
+        private final String keySuffix;
+        private final String displaySuffix;
+        private final List<IrisDirection> directions;
+
+        SpatialVerticalClass(String keySuffix, String displaySuffix, List<IrisDirection> directions) {
+            this.keySuffix = keySuffix;
+            this.displaySuffix = displaySuffix;
+            this.directions = directions;
+        }
+
+        private String keySuffix() {
+            return keySuffix;
+        }
+
+        private String displaySuffix() {
+            return displaySuffix;
+        }
+
+        private List<IrisDirection> directions() {
+            return directions;
         }
     }
 }

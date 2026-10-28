@@ -105,6 +105,7 @@ final class JigsawStudioProtectionListener implements Listener {
         ActiveStudio studio = service.studios.get(event.getWorld().getUID());
         if (studio != null) {
             service.registry.markChunkAvailable(studio, event.getChunk().getX(), event.getChunk().getZ());
+            service.floorPainter.refreshChunk(studio, event.getChunk().getX(), event.getChunk().getZ());
         }
     }
 
@@ -119,6 +120,7 @@ final class JigsawStudioProtectionListener implements Listener {
         service.toolbelt.closeMenu(event.getPlayer());
         service.tileWatcher.finalizeJigsawTileWatchesForPlayer(event.getPlayer().getUniqueId());
         service.tripleSneakTracker.clearPlayer(event.getPlayer().getUniqueId());
+        service.connectorTool.clearPlayer(event.getPlayer().getUniqueId());
         service.visualization.visualizationLoops.remove(event.getPlayer().getUniqueId());
         service.visualization.assemblyPreviews.remove(event.getPlayer().getUniqueId());
         service.playerContext.playerWorkcells.remove(event.getPlayer().getUniqueId());
@@ -133,6 +135,7 @@ final class JigsawStudioProtectionListener implements Listener {
         service.tileWatcher.finalizeJigsawTileWatchesForPlayer(playerId);
         service.tripleSneakTracker.clearPlayer(playerId);
         service.toolbelt.toolConfirmations.remove(playerId);
+        service.connectorTool.clearPlayer(playerId);
         service.visualization.visualizationLoops.remove(playerId);
         service.particlesDisabled.remove(playerId);
         service.visualization.assemblyPreviews.remove(playerId);
@@ -170,13 +173,27 @@ final class JigsawStudioProtectionListener implements Listener {
                 || (event.getClickedBlock() != null && event.useInteractedBlock() == Event.Result.DENY)) {
             return;
         }
-        if (event.getHand() != EquipmentSlot.HAND
-                || (event.getAction() != Action.RIGHT_CLICK_AIR
-                && event.getAction() != Action.RIGHT_CLICK_BLOCK)) {
+        if (event.getHand() != EquipmentSlot.HAND || event.getAction() == Action.PHYSICAL) {
             return;
         }
+        boolean leftClick = event.getAction() == Action.LEFT_CLICK_AIR
+                || event.getAction() == Action.LEFT_CLICK_BLOCK;
         Optional<JigsawStudioToolPayload> decoded = service.toolbelt.toolCodec.decode(event.getItem());
         if (decoded.isEmpty()) {
+            return;
+        }
+        if (decoded.get().action() == JigsawStudioToolAction.CONNECTOR_TOOL) {
+            service.tileWatcher.finalizeJigsawTileWatchesForPlayer(event.getPlayer().getUniqueId());
+            event.setCancelled(true);
+            service.connectorTool.handleClick(
+                    event.getPlayer(),
+                    decoded.get(),
+                    leftClick,
+                    event.getClickedBlock(),
+                    event.getBlockFace());
+            return;
+        }
+        if (leftClick) {
             return;
         }
         service.tileWatcher.finalizeJigsawTileWatchesForPlayer(event.getPlayer().getUniqueId());
@@ -237,6 +254,13 @@ final class JigsawStudioProtectionListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onProtectedBlockBreak(BlockBreakEvent event) {
+        if (service.studios.containsKey(event.getBlock().getWorld().getUID())
+                && service.toolbelt.toolCodec.decode(event.getPlayer().getInventory().getItemInMainHand())
+                .filter(payload -> payload.action() == JigsawStudioToolAction.CONNECTOR_TOOL)
+                .isPresent()) {
+            event.setCancelled(true);
+            return;
+        }
         if (service.protection.isControlChest(event.getBlock())) {
             event.setCancelled(true);
             message(event.getPlayer(), "The Jigsaw Studio control chest cannot be removed.");
@@ -264,9 +288,17 @@ final class JigsawStudioProtectionListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onUnauthorizedInteract(PlayerInteractEvent event) {
-        if (event.getAction() == Action.RIGHT_CLICK_BLOCK
-                && !service.protection.isControlChest(event.getClickedBlock())
-                && service.protection.isUnauthorizedStudioEdit(event.getPlayer(), event.getClickedBlock())) {
+        if (event.getAction() != Action.RIGHT_CLICK_BLOCK
+                || service.protection.isControlChest(event.getClickedBlock())) {
+            return;
+        }
+        if (ProtectionProbe.isProbe(event)) {
+            if (!service.protection.studioEditRefusal(event.getPlayer(), event.getClickedBlock()).isEmpty()) {
+                event.setCancelled(true);
+            }
+            return;
+        }
+        if (service.protection.isUnauthorizedStudioEdit(event.getPlayer(), event.getClickedBlock())) {
             event.setCancelled(true);
         }
     }
@@ -337,7 +369,8 @@ final class JigsawStudioProtectionListener implements Listener {
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onProtectedPistonExtend(BlockPistonExtendEvent event) {
         if (service.protection.materializationInProgress(service.studios.get(event.getBlock().getWorld().getUID()))
-                || service.protection.movesProtectedBlocks(event.getBlocks(), event.getDirection())) {
+                || service.protection.movesProtectedBlocks(event.getBlocks(), event.getDirection())
+                || service.protection.isImmutableStudioBlock(event.getBlock().getRelative(event.getDirection()))) {
             event.setCancelled(true);
         }
     }

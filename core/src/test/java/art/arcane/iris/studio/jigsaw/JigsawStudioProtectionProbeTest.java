@@ -56,6 +56,21 @@ public class JigsawStudioProtectionProbeTest {
         }
     }
 
+    @Test
+    public void protectedWorkcellProbesAreDeniedWithoutChatMessages() throws Exception {
+        JigsawStudioService service = new JigsawStudioService();
+        JigsawStudioProtection protection = mock(JigsawStudioProtection.class);
+        setField(service, "protection", protection);
+        PlayerInteractEvent event = probe();
+        when(protection.studioEditRefusal(event.getPlayer(), event.getClickedBlock()))
+                .thenReturn("This Jigsaw Studio variant is read-only.");
+
+        service.protectionListener.onUnauthorizedInteract(event);
+
+        assertTrue(event.isCancelled());
+        verify(protection, never()).isUnauthorizedStudioEdit(any(Player.class), any(Block.class));
+    }
+
     private static PlayerInteractEvent probe() {
         Player player = mock(Player.class);
         World world = mock(World.class);

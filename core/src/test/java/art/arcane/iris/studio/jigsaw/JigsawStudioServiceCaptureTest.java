@@ -181,11 +181,13 @@ public class JigsawStudioServiceCaptureTest {
         when(state.isCustom()).thenReturn(false);
         when(state.nativeHandle()).thenReturn(blockData);
 
-        JigsawStudioChunkWriter.restoreConnectorChunk(
+        JigsawStudioCapture.LocalPosition position = new JigsawStudioCapture.LocalPosition(1, 2, 3);
+        JigsawStudioChunkWriter.restoreChunkPositions(
                 world,
                 workcell,
-                List.of(renderedConnector),
-                Map.of(new JigsawStudioCapture.LocalPosition(1, 2, 3), renderedBlock),
+                Set.of(position),
+                Map.of(position, renderedConnector),
+                Map.of(position, renderedBlock),
                 false);
 
         verify(world).getBlockAt(11, 22, 33);
@@ -293,7 +295,9 @@ public class JigsawStudioServiceCaptureTest {
         assertFalse(JigsawStudioProtection.blocksMutatingCommand(ownerId, otherId, "/iris jigsaw status"));
         assertFalse(JigsawStudioProtection.blocksMutatingCommand(ownerId, otherId, "/msg owner hello"));
         assertTrue(JigsawStudioProtection.blocksMutatingCommand(ownerId, otherId, "/execute run say bypass"));
-        assertTrue(JigsawStudioProtection.blocksMutatingCommand(ownerId, otherId, "/unknownplugin mutate"));
+        assertTrue(JigsawStudioProtection.blocksMutatingCommand(ownerId, otherId, "/setblock 0 0 0 stone"));
+        assertFalse(JigsawStudioProtection.blocksMutatingCommand(ownerId, otherId, "/unknownplugin status"));
+        assertFalse(JigsawStudioProtection.blocksMutatingCommand(ownerId, otherId, "/spawn"));
         assertTrue(JigsawStudioProtection.blocksNonEditableWorkcellMutation(
                 true, "/fill 0 0 0 1 1 1 stone"));
         assertTrue(JigsawStudioProtection.blocksNonEditableWorkcellMutation(true, "//paste -a"));

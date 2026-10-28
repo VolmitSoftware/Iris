@@ -4,6 +4,7 @@ import java.util.Objects;
 
 public enum JigsawStudioToolAction {
     OPEN_MENU("Open Control Menu", false),
+    CONNECTOR_TOOL("Connector Tool", false),
     SELECT_WORKCELL("Select Workcell", false),
     TOGGLE_WORKCELL("Toggle Workcell", false),
     LOAD_VARIANT("Load Variant", false),

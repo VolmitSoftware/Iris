@@ -73,6 +73,8 @@ public final class JigsawStudioService implements IrisService, JigsawStudioMenuA
     final JigsawStudioAutosaveScheduler autosaveScheduler = new JigsawStudioAutosaveScheduler(this);
     final JigsawStudioTileWatcher tileWatcher = new JigsawStudioTileWatcher(this);
     final JigsawStudioVisualization visualization = new JigsawStudioVisualization(this);
+    final JigsawStudioFloorPainter floorPainter = new JigsawStudioFloorPainter(this);
+    final JigsawStudioConnectorTool connectorTool = new JigsawStudioConnectorTool(this);
     final JigsawStudioPlayerContext playerContext = new JigsawStudioPlayerContext(this);
 
     public static JigsawStudioService get() {

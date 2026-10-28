@@ -174,12 +174,20 @@ final class JigsawStudioVariantProperties {
             return false;
         }
         JigsawStudioSession session = studio.generator().getSession();
+        boolean rotatable = !variant.rotatable();
+        if (variant.dimensions().isPresent()) {
+            String footprintFailure = spatialFootprintFailure(studio, variant,
+                    new JigsawStudioGraphMapper.SpatialChange(variant.pieceKey(), variant.dimensions().get(), rotatable));
+            if (!footprintFailure.isEmpty()) {
+                message(player, footprintFailure);
+                return false;
+            }
+        }
         String reservationFailure = service.graphMutations.beginGraphMutation(studio, session);
         if (!reservationFailure.isEmpty()) {
             message(player, reservationFailure);
             return false;
         }
-        boolean rotatable = !variant.rotatable();
         return service.graphMutations.scheduleGraphMutation(
                 player,
                 studio,
@@ -266,6 +274,12 @@ final class JigsawStudioVariantProperties {
         if (variant.dimensions().filter(dimensions::equals).isPresent()) {
             message(player, "Variant '" + variant.resolvedDisplayName() + "' already uses "
                     + dimensions.width() + "x" + dimensions.height() + "x" + dimensions.depth() + ".");
+            return false;
+        }
+        String footprintFailure = spatialFootprintFailure(studio, variant,
+                new JigsawStudioGraphMapper.SpatialChange(variant.pieceKey(), dimensions, variant.rotatable()));
+        if (!footprintFailure.isEmpty()) {
+            message(player, footprintFailure);
             return false;
         }
         boolean active = session.activeVariant(workcellId)
@@ -535,5 +549,24 @@ final class JigsawStudioVariantProperties {
                 && (canonical.width() < target.width()
                 || canonical.height() < target.height()
                 || canonical.depth() < target.depth());
+    }
+
+    private static String spatialFootprintFailure(
+            ActiveStudio studio,
+            JigsawStudioVariant variant,
+            JigsawStudioGraphMapper.SpatialChange change
+    ) {
+        if (variant.mode() != JigsawStudioMode.SPATIAL_JIGSAW) {
+            return "";
+        }
+        IrisStructure structure = loadStudioStructure(studio);
+        if (structure == null) {
+            return "The structure could not be loaded to check the spatial workcell size.";
+        }
+        return JigsawStudioGraphMapper.spatialFootprintFailure(
+                studio.generator().getRequest().source(),
+                JigsawStudioGraphMapper.configuredCellDimensions(structure),
+                studio.generator().getSession().layout().variantCatalog(),
+                change);
     }
 }

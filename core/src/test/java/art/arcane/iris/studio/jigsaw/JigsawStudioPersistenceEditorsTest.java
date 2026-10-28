@@ -491,7 +491,7 @@ public class JigsawStudioPersistenceEditorsTest {
         JigsawStudioGraphEditor.VariantFamilyCreation creation = JigsawStudioGraphEditor.duplicateActiveFamily(
                 packRoot,
                 "studio/spatial",
-                Map.of(JigsawStudioLayout.SPATIAL_WORKCELL_ID, "studio/spatial/start"),
+                Map.of(JigsawStudioLayout.SPATIAL_WORKCELL_ID, "studio/spatial/blank"),
                 "variant-2");
 
         assertTrue(creation.writeResult().successful());
@@ -499,7 +499,7 @@ public class JigsawStudioPersistenceEditorsTest {
                 "studio/spatial/variants/spatial/variant-2",
                 creation.pieceKeysByWorkcell().get(JigsawStudioLayout.SPATIAL_WORKCELL_ID));
         JsonObject pool = readJson(packRoot.resolve("jigsaw-pools/studio/spatial/start.json"));
-        assertEquals(8, pool.getAsJsonArray("pieces").size());
+        assertEquals(25, pool.getAsJsonArray("pieces").size());
     }
 
     @Test
@@ -507,10 +507,13 @@ public class JigsawStudioPersistenceEditorsTest {
         Path packRoot = createSpatialProject("spatial-theme-row");
 
         Map<String, String> sources = new LinkedHashMap<>();
-        sources.put(JigsawStudioLayout.SPATIAL_WORKCELL_ID, "studio/spatial/start");
-        for (int connectorCount = 1; connectorCount <= 6; connectorCount++) {
-            String pieceKey = "studio/spatial/connectors-" + connectorCount;
-            sources.put(JigsawStudioLayout.SPATIAL_WORKCELL_ID + "/" + pieceKey, pieceKey);
+        for (String vertical : List.of("", "-up", "-down", "-up-down")) {
+            for (String horizontal : List.of("blank", "end", "straight", "corner", "tee", "cross")) {
+                String pieceKey = "studio/spatial/" + horizontal + vertical;
+                sources.put(sources.isEmpty()
+                        ? JigsawStudioLayout.SPATIAL_WORKCELL_ID
+                        : JigsawStudioLayout.SPATIAL_WORKCELL_ID + "/" + pieceKey, pieceKey);
+            }
         }
         JigsawStudioGraphEditor.VariantFamilyCreation creation = JigsawStudioGraphEditor.duplicateActiveFamily(
                 packRoot,
@@ -519,13 +522,13 @@ public class JigsawStudioPersistenceEditorsTest {
                 "variant-2");
 
         assertTrue(creation.writeResult().successful());
-        assertEquals(7, creation.pieceKeysByWorkcell().size());
+        assertEquals(24, creation.pieceKeysByWorkcell().size());
         for (String targetPieceKey : creation.pieceKeysByWorkcell().values()) {
             assertTrue(Files.isRegularFile(packRoot.resolve("jigsaw-pieces/" + targetPieceKey + ".json")));
             assertTrue(Files.isRegularFile(packRoot.resolve("objects/" + targetPieceKey + ".iob")));
         }
         JsonObject pool = readJson(packRoot.resolve("jigsaw-pools/studio/spatial/start.json"));
-        assertEquals(14, pool.getAsJsonArray("pieces").size());
+        assertEquals(48, pool.getAsJsonArray("pieces").size());
     }
 
     @Test
@@ -557,7 +560,7 @@ public class JigsawStudioPersistenceEditorsTest {
                 "END").get("displayName").getAsString());
 
         Path spatialRoot = createSpatialProject("labels-spatial");
-        Path spatialObject = spatialRoot.resolve("objects/studio/spatial/start.iob");
+        Path spatialObject = spatialRoot.resolve("objects/studio/spatial/blank.iob");
         byte[] spatialBefore = Files.readAllBytes(spatialObject);
 
         assertTrue(JigsawStudioStructureEditor.updateSpatialWorkcellDisplayName(

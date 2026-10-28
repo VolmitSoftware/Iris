@@ -158,8 +158,11 @@ final class JigsawStudioDetailsMenu {
         }
         window.setElement(2, 0, size);
 
-        boolean lastVariant = workcell.variants().size() <= 1;
-        boolean deletionAvailable = variant.owned() && !variant.active() && !lastVariant;
+        boolean spatial = state.mode() == JigsawStudioMode.SPATIAL_JIGSAW;
+        boolean lastVariant = spatial
+                ? state.workcells().stream().mapToInt(cell -> cell.variants().size()).sum() <= 1
+                : workcell.variants().size() <= 1;
+        boolean deletionAvailable = state.canDeleteVariant(workcell, variant);
         boolean confirmed = deletionAvailable && controller.isDeleteConfirmed(
                 window.getViewer().getUniqueId(),
                 state.requestId(),
@@ -170,11 +173,11 @@ final class JigsawStudioDetailsMenu {
                 deletionAvailable ? confirmed ? Material.REDSTONE : Material.LAVA_BUCKET : Material.BARRIER,
                 deletionAvailable
                         ? confirmed ? ChatColor.RED + "Confirm Delete Variant" : ChatColor.RED + "Delete Variant"
-                        : variant.active()
-                                ? ChatColor.GRAY + "Loaded Variant Cannot Be Deleted"
+                        : !variant.owned()
+                                ? ChatColor.GRAY + "Deletion is Read-only"
                                 : lastVariant
                                         ? ChatColor.GRAY + "Last Variant Cannot Be Deleted"
-                                        : ChatColor.GRAY + "Deletion is Read-only")
+                                        : ChatColor.GRAY + "Loaded Variant Cannot Be Deleted")
                 .setEnchanted(confirmed);
         if (deletionAvailable) {
             delete.addLore(confirmed
@@ -186,10 +189,10 @@ final class JigsawStudioDetailsMenu {
                     workcell.stableId(),
                     variant.pieceKey(),
                     page));
-        } else if (variant.active()) {
-            delete.addLore(ChatColor.GRAY + "Load another variant in this workcell first.");
-        } else if (lastVariant) {
+        } else if (variant.owned() && lastVariant) {
             delete.addLore(ChatColor.GRAY + "Create another variant before deleting this one.");
+        } else if (variant.owned()) {
+            delete.addLore(ChatColor.GRAY + "Load another variant in this workcell first.");
         }
         window.setElement(4, 0, delete);
     }

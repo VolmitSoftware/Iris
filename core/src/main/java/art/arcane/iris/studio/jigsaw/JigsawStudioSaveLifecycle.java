@@ -286,7 +286,7 @@ final class JigsawStudioSaveLifecycle {
         String selected = session.selectedBayId().orElse(null);
         if (selected == null) {
             Location location = player.getLocation();
-            JigsawStudioBay underPlayer = session.layout().findAt(
+            JigsawStudioBay underPlayer = session.layout().findColumn(
                     location.getBlockX(), location.getBlockY(), location.getBlockZ());
             if (underPlayer != null) {
                 selected = underPlayer.stableId();

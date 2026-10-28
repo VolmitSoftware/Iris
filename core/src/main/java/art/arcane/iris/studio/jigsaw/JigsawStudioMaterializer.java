@@ -6,7 +6,9 @@ import art.arcane.iris.studio.jigsaw.JigsawStudioService.ActiveStudio;
 import art.arcane.iris.studio.generation.JigsawStudioGenerator;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.world.task.J;
+import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 
 import java.io.IOException;
@@ -24,7 +26,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static art.arcane.iris.studio.jigsaw.JigsawStudioCapture.chunkIntersections;
 import static art.arcane.iris.studio.jigsaw.JigsawStudioChunkWriter.hydrateChunk;
-import static art.arcane.iris.studio.jigsaw.JigsawStudioChunkWriter.restoreConnectorChunk;
+import static art.arcane.iris.studio.jigsaw.JigsawStudioChunkWriter.restoreChunkPositions;
 import static art.arcane.iris.studio.jigsaw.JigsawStudioChunkWriter.validateMaterialization;
 import static art.arcane.iris.studio.jigsaw.JigsawStudioChunkWriter.writeMaterializedChunk;
 import static art.arcane.iris.studio.jigsaw.JigsawStudioService.chunkKey;
@@ -139,6 +141,51 @@ final class JigsawStudioMaterializer {
         }
     }
 
+    ConnectorEditReservation beginConnectorEdit(ActiveStudio studio, String workcellId) {
+        UUID requestId = studio.generator().getRequest().requestId();
+        service.tileWatcher.finalizeJigsawTileWatches(requestId);
+        JigsawStudioSession session = studio.generator().getSession();
+        synchronized (service.saveLifecycleLock) {
+            if (!service.isCurrentRequest(studio, requestId)) {
+                return ConnectorEditReservation.blocked("This Jigsaw Studio session is no longer active.");
+            }
+            if (service.saveLifecycle.closingRequests.contains(requestId)) {
+                return ConnectorEditReservation.blocked("This Jigsaw Studio is closing and cannot edit connectors.");
+            }
+            if (service.saveLifecycle.reopenRequiredRequests.contains(requestId)) {
+                return ConnectorEditReservation.blocked("Close and reopen Jigsaw Studio before editing connectors.");
+            }
+            if (session.layout().get(workcellId) == null) {
+                return ConnectorEditReservation.blocked("The targeted workcell no longer exists.");
+            }
+            JigsawStudioSession.WorkcellSnapshot snapshot = session.workcellSnapshot(workcellId);
+            if (snapshot.dirty() || snapshot.saveInProgress()
+                    || service.saveLifecycle.savesInProgress.contains(requestId)) {
+                return ConnectorEditReservation.busy("Saving your latest edits before changing connectors...");
+            }
+            if (service.graphMutations.graphMutationsInProgress.contains(requestId)) {
+                return ConnectorEditReservation.busy("Waiting for the current graph update before changing connectors...");
+            }
+            if (service.saveLifecycle.exportsInProgress.contains(requestId)) {
+                return ConnectorEditReservation.busy("Waiting for the current export before changing connectors...");
+            }
+            if (session.operationInProgress()) {
+                return ConnectorEditReservation.busy("Waiting for the current workcell operation before changing connectors...");
+            }
+            if (service.tileWatcher.hasJigsawTileWatch(requestId)) {
+                return ConnectorEditReservation.busy("Waiting for the vanilla jigsaw-block editor to close...");
+            }
+            if (!materializationsInProgress.add(requestId)) {
+                return ConnectorEditReservation.busy("Waiting for the current variant load or connector edit to finish...");
+            }
+            return ConnectorEditReservation.started();
+        }
+    }
+
+    void finishConnectorEdit(UUID requestId) {
+        finishMaterialization(requestId);
+    }
+
     boolean scheduleConnectorRepair(
             Player player,
             ActiveStudio studio,
@@ -146,39 +193,55 @@ final class JigsawStudioMaterializer {
             JigsawStudioGenerator.RenderedBay rendered,
             boolean connectorsVisible
     ) {
-        Map<Long, List<JigsawStudioGenerator.RenderedConnector>> connectorsByChunk = new HashMap<>();
         JigsawStudioBounds bounds = workcell.bounds();
+        JigsawStudioBounds variantBounds = new JigsawStudioBounds(
+                bounds.originX(),
+                bounds.originY(),
+                bounds.originZ(),
+                rendered.dimensions());
+        Map<LocalPosition, JigsawStudioGenerator.RenderedConnector> renderedConnectors = new HashMap<>();
         for (JigsawStudioGenerator.RenderedConnector connector : rendered.connectors()) {
-            int worldX = bounds.originX() + connector.x();
-            int worldZ = bounds.originZ() + connector.z();
-            connectorsByChunk.computeIfAbsent(
-                    chunkKey(worldX >> 4, worldZ >> 4),
-                    ignored -> new ArrayList<>()).add(connector);
+            renderedConnectors.put(new LocalPosition(connector.x(), connector.y(), connector.z()), connector);
         }
-        AtomicInteger remaining = new AtomicInteger(connectorsByChunk.size());
-        AtomicReference<String> failure = new AtomicReference<>("");
-        AtomicReference<Throwable> cause = new AtomicReference<>();
-        AtomicBoolean scheduledAny = new AtomicBoolean(false);
         Map<LocalPosition, JigsawStudioGenerator.RenderedBlock> renderedBlocks = new HashMap<>();
         for (JigsawStudioGenerator.RenderedBlock block : rendered.blocks()) {
             renderedBlocks.put(new LocalPosition(block.x(), block.y(), block.z()), block);
         }
-        for (Map.Entry<Long, List<JigsawStudioGenerator.RenderedConnector>> entry
-                : connectorsByChunk.entrySet()) {
-            int chunkX = (int) (entry.getKey() >> 32);
-            int chunkZ = (int) entry.getKey().longValue();
+        List<ChunkCaptureArea> areas = chunkIntersections(variantBounds);
+        AtomicInteger remaining = new AtomicInteger(areas.size());
+        AtomicInteger cleared = new AtomicInteger();
+        AtomicReference<String> failure = new AtomicReference<>("");
+        AtomicReference<Throwable> cause = new AtomicReference<>();
+        AtomicBoolean scheduledAny = new AtomicBoolean(false);
+        for (ChunkCaptureArea area : areas) {
+            int chunkX = area.chunkX();
+            int chunkZ = area.chunkZ();
             boolean scheduled = J.runRegion(studio.world(), chunkX, chunkZ, () -> {
                 try {
                     if (!studio.world().isChunkLoaded(chunkX, chunkZ)) {
                         throw new IOException("connector chunk " + chunkX + "," + chunkZ
                                 + " is not loaded");
                     }
-                    restoreConnectorChunk(
+                    Set<LocalPosition> strays = strayMarkerPositions(
+                            studio.world(),
+                            variantBounds,
+                            area,
+                            renderedConnectors.keySet(),
+                            connectorsVisible);
+                    Set<LocalPosition> positions = new HashSet<>(strays);
+                    for (LocalPosition position : renderedConnectors.keySet()) {
+                        if (area.contains(position.x(), position.z())) {
+                            positions.add(position);
+                        }
+                    }
+                    restoreChunkPositions(
                             studio.world(),
                             workcell,
-                            entry.getValue(),
+                            positions,
+                            renderedConnectors,
                             renderedBlocks,
                             connectorsVisible);
+                    cleared.addAndGet(strays.size());
                 } catch (Throwable exception) {
                     failure.compareAndSet("", failureMessage(exception));
                     cause.compareAndSet(null, exception);
@@ -188,6 +251,7 @@ final class JigsawStudioMaterializer {
                             player,
                             studio,
                             rendered.connectors().size(),
+                            cleared.get(),
                             failure.get(),
                             cause.get());
                 }
@@ -202,6 +266,7 @@ final class JigsawStudioMaterializer {
                             player,
                             studio,
                             rendered.connectors().size(),
+                            cleared.get(),
                             failure.get(),
                             cause.get());
                 }
@@ -213,31 +278,61 @@ final class JigsawStudioMaterializer {
         return scheduledAny.get();
     }
 
+    static Set<LocalPosition> strayMarkerPositions(
+            World world,
+            JigsawStudioBounds variantBounds,
+            ChunkCaptureArea area,
+            Set<LocalPosition> savedConnectors,
+            boolean connectorsVisible
+    ) {
+        Set<LocalPosition> strays = new HashSet<>();
+        for (int x = area.minimumX(); x < area.maximumX(); x++) {
+            for (int y = 0; y < variantBounds.dimensions().height(); y++) {
+                for (int z = area.minimumZ(); z < area.maximumZ(); z++) {
+                    Block block = world.getBlockAt(
+                            variantBounds.originX() + x,
+                            variantBounds.originY() + y,
+                            variantBounds.originZ() + z);
+                    if (block.getType() != Material.JIGSAW) {
+                        continue;
+                    }
+                    LocalPosition position = new LocalPosition(x, y, z);
+                    if (!connectorsVisible || !savedConnectors.contains(position)) {
+                        strays.add(position);
+                    }
+                }
+            }
+        }
+        return strays;
+    }
+
     private void completeConnectorRepair(
             Player player,
             ActiveStudio studio,
             int connectorCount,
+            int clearedMarkers,
             String failure,
             Throwable cause
     ) {
         UUID requestId = studio.generator().getRequest().requestId();
-        boolean scheduled = J.runEntity(player, () -> {
+        Runnable release = () -> {
             finishMaterialization(requestId);
             if (cause != null) {
                 IrisLogging.reportError(cause);
             }
+        };
+        boolean scheduled = J.runEntity(player, () -> {
+            release.run();
             if (!failure.isEmpty()) {
                 message(player, "Connector reset was incomplete: " + failure + ". Retry after visiting the workcell.");
                 return;
             }
             message(player, "Restored " + connectorCount
-                    + " connector block(s) from the last saved iteration.");
-        });
+                    + " connector block(s) from the last saved iteration"
+                    + (clearedMarkers == 0 ? "." : " and cleared " + clearedMarkers + " unsaved marker(s)."));
+        }, 0, release);
         if (!scheduled) {
-            finishMaterialization(requestId);
-            if (cause != null) {
-                IrisLogging.reportError(cause);
-            }
+            release.run();
         }
     }
 
@@ -474,6 +569,7 @@ final class JigsawStudioMaterializer {
             try {
                 work.studio().generator().invalidateRender(work.workcell().stableId());
                 work.studio().replacePopulation(work.workcell(), work.target(), "", true);
+                service.floorPainter.refresh(work.studio(), work.workcell().stableId());
                 service.playerContext.refreshWorkcellContext(work.studio().worldId(), work.workcell().stableId());
                 message(work.player(), work.connectorVisibilityChange()
                         ? "Connector blocks are now "
@@ -564,6 +660,7 @@ final class JigsawStudioMaterializer {
                 work.studio().generator().invalidateRender(work.workcell().stableId());
                 if (rollbackFailure.isEmpty() && released) {
                     work.studio().replacePopulation(work.workcell(), work.previous(), "", true);
+                    service.floorPainter.refresh(work.studio(), work.workcell().stableId());
                     service.playerContext.refreshWorkcellContext(work.studio().worldId(), work.workcell().stableId());
                     message(work.player(), candidateFailure + " The previous variant was restored.");
                     return;
@@ -572,6 +669,7 @@ final class JigsawStudioMaterializer {
                         ? "The previous variant could not be restored because the Studio session changed."
                         : rollbackFailure;
                 work.studio().replacePopulation(work.workcell(), work.previous(), failure, false);
+                service.floorPainter.refresh(work.studio(), work.workcell().stableId());
                 service.playerContext.refreshWorkcellContext(work.studio().worldId(), work.workcell().stableId());
                 message(work.player(), candidateFailure + " Automatic rollback also failed: " + failure
                         + " Do not save this workcell until it is reopened.");
@@ -611,6 +709,31 @@ final class JigsawStudioMaterializer {
             Objects.requireNonNull(token, "Jigsaw Studio materialization token");
             Objects.requireNonNull(previous, "Jigsaw Studio previous rendered variant");
             Objects.requireNonNull(target, "Jigsaw Studio target rendered variant");
+        }
+    }
+
+    enum ConnectorEditStatus {
+        STARTED,
+        BUSY,
+        BLOCKED
+    }
+
+    record ConnectorEditReservation(ConnectorEditStatus status, String message) {
+        ConnectorEditReservation {
+            Objects.requireNonNull(status, "Jigsaw Studio connector edit status");
+            message = message == null ? "" : message;
+        }
+
+        static ConnectorEditReservation started() {
+            return new ConnectorEditReservation(ConnectorEditStatus.STARTED, "");
+        }
+
+        static ConnectorEditReservation busy(String message) {
+            return new ConnectorEditReservation(ConnectorEditStatus.BUSY, message);
+        }
+
+        static ConnectorEditReservation blocked(String message) {
+            return new ConnectorEditReservation(ConnectorEditStatus.BLOCKED, message);
         }
     }
 

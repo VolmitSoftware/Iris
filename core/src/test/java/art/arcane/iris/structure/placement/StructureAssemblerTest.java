@@ -38,7 +38,10 @@ import art.arcane.volmlib.util.math.RNG;
 import org.junit.ClassRule;
 import org.junit.Test;
 
+import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -308,6 +311,82 @@ public class StructureAssemblerTest {
         assertEquals(start.getMaxX() + 1, east.getMinX());
         assertEquals(start.getMaxZ() + 1, south.getMinZ());
         assertEquals(west.getMaxX() + 1, start.getMinX());
+    }
+
+    @Test
+    public void rotatableCandidatesAttachThroughEitherCornerConnectorAcrossSeeds() {
+        Fixture fixture = new Fixture();
+        IrisJigsawPiece startPiece = piece("start-object", false,
+                connector(IrisDirection.NORTH_NEGATIVE_Z, "turns", "door", "door")
+                        .setPosition(new IrisPosition(1, 0, 0))
+                        .setJoint(JigsawJoint.ALIGNED));
+        IrisJigsawPiece cornerPiece = piece("corner-object", true,
+                connector(IrisDirection.NORTH_NEGATIVE_Z, "", "door", "door")
+                        .setPosition(new IrisPosition(1, 0, 0))
+                        .setJoint(JigsawJoint.ALIGNED),
+                connector(IrisDirection.EAST_POSITIVE_X, "", "door", "door")
+                        .setPosition(new IrisPosition(2, 0, 1))
+                        .setJoint(JigsawJoint.ALIGNED));
+        fixture.pool("start", pool("", "start-piece"));
+        fixture.pool("turns", pool("", "corner-piece"));
+        fixture.piece("start-piece", startPiece);
+        fixture.piece("corner-piece", cornerPiece);
+        fixture.object("start-object", new IrisObject(3, 1, 3));
+        fixture.object("corner-object", new IrisObject(3, 1, 3));
+        StructureAssembler assembler = fixture.assembler(structure("start", 1), 0, 0, 0);
+
+        Set<Integer> attachedConnectors = new HashSet<>();
+        for (long seed = 0; seed < 64; seed++) {
+            PlacedStructurePiece corner = requirePlacedPiece(completedPieces(assembler, new RNG(seed)), cornerPiece);
+            for (int index = 0; index < cornerPiece.getConnectors().size(); index++) {
+                if (corner.getRotation().rotate(cornerPiece.getConnectors().get(index).getDirection())
+                        == IrisDirection.SOUTH_POSITIVE_Z) {
+                    attachedConnectors.add(index);
+                }
+            }
+        }
+
+        assertEquals(Set.of(0, 1), attachedConnectors);
+    }
+
+    @Test
+    public void planarJunctionPlacesAPieceOpenTowardEveryOccupiedNeighbor() {
+        Fixture fixture = planarJunctionFixture("straight-piece", "corner-piece");
+        IrisJigsawPiece corner = planarPiece(true,
+                IrisDirection.NORTH_NEGATIVE_Z, IrisDirection.EAST_POSITIVE_X);
+        fixture.piece("straight-piece", planarPiece(true,
+                IrisDirection.NORTH_NEGATIVE_Z, IrisDirection.SOUTH_POSITIVE_Z));
+        fixture.piece("corner-piece", corner);
+        StructureAssembler assembler = fixture.assembler(planarJunctionStructure(), 0, 64, 0);
+
+        for (long seed = 0; seed < 32; seed++) {
+            List<PlacedStructurePiece> placed = completedPieces(assembler, new RNG(seed));
+            PlacedStructurePiece junction = placed.get(3);
+
+            assertEquals(4, placed.size());
+            assertSame("seed " + seed, corner, junction.getPiece());
+            assertEquals("seed " + seed,
+                    Set.of(IrisDirection.WEST_NEGATIVE_X, IrisDirection.SOUTH_POSITIVE_Z),
+                    worldFacings(junction));
+        }
+    }
+
+    @Test
+    public void planarJunctionWithoutAFittingPieceKeepsTheAttachmentOnlyPlacementInsteadOfFailing() {
+        Fixture fixture = planarJunctionFixture("straight-piece");
+        IrisJigsawPiece straight = planarPiece(true,
+                IrisDirection.NORTH_NEGATIVE_Z, IrisDirection.SOUTH_POSITIVE_Z);
+        fixture.piece("straight-piece", straight);
+        StructureAssembler assembler = fixture.assembler(planarJunctionStructure(), 0, 64, 0);
+
+        for (long seed = 0; seed < 8; seed++) {
+            List<PlacedStructurePiece> placed = completedPieces(assembler, new RNG(seed));
+
+            assertEquals(4, placed.size());
+            assertSame(straight, placed.get(3).getPiece());
+            assertEquals(Set.of(IrisDirection.WEST_NEGATIVE_X, IrisDirection.EAST_POSITIVE_X),
+                    worldFacings(placed.get(3)));
+        }
     }
 
     @Test
@@ -1113,6 +1192,53 @@ public class StructureAssemblerTest {
         fixture.object("start-object", new IrisObject(3, 3, 3));
         fixture.object("candidate-object", new IrisObject(3, 3, 3));
         return fixture.assembler(structure("start", 1), 0, 0, 0).assemble(new RNG(137L));
+    }
+
+    private static Fixture planarJunctionFixture(String... junctionPieces) {
+        Fixture fixture = new Fixture();
+        fixture.pool("start", pool("", "start-piece"));
+        fixture.pool("north", pool("", "north-elbow"));
+        fixture.pool("east", pool("", "east-elbow"));
+        fixture.pool("junction", pool("", junctionPieces));
+        fixture.piece("start-piece", piece("cell-object", false,
+                planarConnector(IrisDirection.NORTH_NEGATIVE_Z, "north"),
+                planarConnector(IrisDirection.EAST_POSITIVE_X, "east")));
+        fixture.piece("north-elbow", piece("cell-object", false,
+                planarConnector(IrisDirection.SOUTH_POSITIVE_Z, ""),
+                planarConnector(IrisDirection.EAST_POSITIVE_X, "junction")));
+        fixture.piece("east-elbow", piece("cell-object", false,
+                planarConnector(IrisDirection.WEST_NEGATIVE_X, ""),
+                planarConnector(IrisDirection.NORTH_NEGATIVE_Z, "")));
+        fixture.object("cell-object", new IrisObject(3, 1, 3));
+        return fixture;
+    }
+
+    private static IrisJigsawPiece planarPiece(boolean rotatable, IrisDirection... directions) {
+        IrisJigsawPiece piece = new IrisJigsawPiece().setObject("cell-object").setRotatable(rotatable);
+        for (IrisDirection direction : directions) {
+            piece.getConnectors().add(planarConnector(direction, ""));
+        }
+        return piece;
+    }
+
+    private static IrisJigsawConnector planarConnector(IrisDirection direction, String pool) {
+        return connector(direction, pool, "door", "door")
+                .setPosition(IrisJigsawConnector.canonicalPlanarPosition(new IrisPosition(3, 1, 3), direction))
+                .setJoint(JigsawJoint.ALIGNED);
+    }
+
+    private static IrisStructure planarJunctionStructure() {
+        return structure("start", 3)
+                .setMode(IrisJigsawMode.PLANAR_JIGSAW)
+                .setCellSize(new IrisPosition(3, 1, 3));
+    }
+
+    private static Set<IrisDirection> worldFacings(PlacedStructurePiece piece) {
+        Set<IrisDirection> facings = EnumSet.noneOf(IrisDirection.class);
+        for (IrisJigsawConnector connector : piece.getPiece().getConnectors()) {
+            facings.add(piece.getRotation().rotate(connector.getDirection()));
+        }
+        return facings;
     }
 
     private static IrisStructure structure(String startPool, int maxDepth) {

@@ -54,6 +54,20 @@ public record JigsawStudioMenuState(
         }
     }
 
+    public boolean canDeleteVariant(Workcell workcell, Variant variant) {
+        if (workcell == null || variant == null || !variant.owned()) {
+            return false;
+        }
+        if (mode == JigsawStudioMode.SPATIAL_JIGSAW) {
+            int variants = 0;
+            for (Workcell current : workcells) {
+                variants += current.variants().size();
+            }
+            return variants > 1;
+        }
+        return !variant.active() && workcell.variants().size() > 1;
+    }
+
     public Workcell selectedWorkcell() {
         if (selectedWorkcellId.isEmpty()) {
             return null;

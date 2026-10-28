@@ -857,7 +857,7 @@ public final class JigsawStudioMenuController {
         }
         JigsawStudioMenuState.Workcell workcell = current.get().workcell(workcellId);
         JigsawStudioMenuState.Variant target = variant(workcell, pieceKey);
-        if (target == null || !target.owned() || target.active()) {
+        if (!current.get().canDeleteVariant(workcell, target)) {
             stale(player);
             return;
         }

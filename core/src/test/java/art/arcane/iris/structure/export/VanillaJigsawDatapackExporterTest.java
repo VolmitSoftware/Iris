@@ -168,6 +168,33 @@ public class VanillaJigsawDatapackExporterTest {
     }
 
     @Test
+    public void exports1211WithRuntimeDefaultSettingsDerivedFromTheStructure() throws Exception {
+        when(IrisPlatforms.get().minecraftVersion()).thenReturn("1.21.1");
+        try {
+            TestGraph graph = connectorGraph();
+            VanillaJigsawExportResult staticDefaults = new VanillaJigsawDatapackExporter().export(
+                    request(graph, temporaryFolder.getRoot().toPath().resolve("static-defaults-1211"))
+                            .settings(VanillaJigsawExportSettings.defaults()).build());
+            assertTrue(hasCode(staticDefaults, VanillaJigsawExportDiagnostic.Code.INVALID_MAX_DISTANCE));
+
+            Path output = temporaryFolder.getRoot().toPath().resolve("runtime-defaults-1211");
+            VanillaJigsawExportSettings settings = VanillaJigsawExportSettings.runtimeDefaults(graph.structure);
+            VanillaJigsawExportResult result = new VanillaJigsawDatapackExporter().export(
+                    request(graph, output).namespace("studio").resourcePath("village/test").settings(settings).build());
+
+            assertEquals(graph.structure.getMaxSizeChunks() * 16, settings.maxDistanceVertical());
+            assertTrue(result.diagnostics().toString(), result.isSuccess());
+            JsonObject structure = json(output.resolve("data/studio/worldgen/structure/village/test.json"));
+            assertEquals(graph.structure.getMaxSizeChunks() * 16,
+                    structure.get("max_distance_from_center").getAsInt());
+        } finally {
+            when(IrisPlatforms.get().minecraftVersion()).thenReturn("26.2");
+        }
+        assertEquals(VanillaJigsawExportSettings.defaults().maxDistanceVertical(),
+                VanillaJigsawExportSettings.runtimeDefaults(connectorGraph().structure).maxDistanceVertical());
+    }
+
+    @Test
     public void rejects1211VanillaExportWithDifferentVerticalDistance() throws Exception {
         when(IrisPlatforms.get().minecraftVersion()).thenReturn("1.21.1");
         try {

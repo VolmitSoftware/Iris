@@ -140,6 +140,13 @@ public final class JigsawStudioToolCodec {
         if (payload.amount() != 0) {
             lore.add(ChatColor.GRAY + "Amount: " + payload.amount());
         }
+        if (payload.action() == JigsawStudioToolAction.CONNECTOR_TOOL) {
+            lore.add(ChatColor.YELLOW + "Right-click: place, select, or move a connector");
+            lore.add(ChatColor.YELLOW + "Left-click: remove a connector");
+            lore.add(ChatColor.GRAY + "Faces out of the clicked face; sneak to face into it");
+            lore.add(ChatColor.GRAY + "Planar: right-click a side to seat its socket");
+            return List.copyOf(lore);
+        }
         lore.add(payload.action().destructive()
                 ? ChatColor.RED + "Right-click twice to confirm"
                 : ChatColor.YELLOW + "Right-click to use");

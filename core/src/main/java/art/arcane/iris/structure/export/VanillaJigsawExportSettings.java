@@ -1,5 +1,8 @@
 package art.arcane.iris.structure.export;
 
+import art.arcane.iris.pack.datapack.DataVersion;
+import art.arcane.iris.structure.placement.IrisStructure;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -39,6 +42,13 @@ public final class VanillaJigsawExportSettings {
 
     public static VanillaJigsawExportSettings defaults() {
         return builder().build();
+    }
+
+    public static VanillaJigsawExportSettings runtimeDefaults(IrisStructure structure) {
+        if (structure == null || DataVersion.getRuntime() != DataVersion.V1_21_1) {
+            return defaults();
+        }
+        return builder().maxDistanceVertical(structure.getMaxSizeChunks() * 16).build();
     }
 
     public List<String> biomes() {

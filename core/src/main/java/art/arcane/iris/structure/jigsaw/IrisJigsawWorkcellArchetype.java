@@ -4,7 +4,7 @@ import art.arcane.volmlib.util.documentation.Description;
 
 @Description("The orientation-independent connector shape represented by a planar jigsaw workcell.")
 public enum IrisJigsawWorkcellArchetype {
-    @Description("Pieces with no horizontal connectors: sealed filler cells that terminate nothing and are excluded from the default piece pool.")
+    @Description("Pieces with no horizontal connectors. Nothing can attach to them, so they generate only as standalone start pieces; new projects list the default Blank in the start pool and exclude it from the piece pool.")
     BLANK(0),
 
     @Description("One-connector dead-end pieces; the Studio bay seeds a single north connector and new projects mark these as terminal caps.")

@@ -199,6 +199,7 @@ final class JigsawStudioGraphMutations {
         for (JigsawStudioBay workcell : result.layout().bays()) {
             service.playerContext.refreshWorkcellContext(studio.worldId(), workcell.stableId());
         }
+        service.floorPainter.refreshAll(studio);
         service.evaluator.scheduleEvaluation(studio);
         message(player, result.message());
         finishGraphMutation(requestId);
@@ -273,15 +274,20 @@ final class JigsawStudioGraphMutations {
             String failure,
             Throwable cause
     ) {
-        boolean scheduled = J.runEntity(
-                player,
-                () -> completeLiveRelayout(player, studio, requestId, result, failure, cause));
-        if (!scheduled) {
+        Runnable abandon = () -> {
             service.saveLifecycle.reopenRequiredRequests.add(requestId);
             finishGraphMutation(requestId);
             if (cause != null) {
                 IrisLogging.reportError(cause);
             }
+        };
+        boolean scheduled = J.runEntity(
+                player,
+                () -> completeLiveRelayout(player, studio, requestId, result, failure, cause),
+                0,
+                abandon);
+        if (!scheduled) {
+            abandon.run();
         }
     }
 

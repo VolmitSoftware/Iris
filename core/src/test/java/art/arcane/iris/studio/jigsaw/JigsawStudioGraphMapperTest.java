@@ -236,6 +236,60 @@ public class JigsawStudioGraphMapperTest {
 
     @Test
     @SuppressWarnings("unchecked")
+    public void spatialFootprintRejectsChangesThatExceedTheWorkcellVolume() {
+        IrisData data = mock(IrisData.class);
+        ResourceLoader<IrisObject> objectLoader = mock(ResourceLoader.class);
+        when(data.getObjectLoader()).thenReturn(objectLoader);
+        when(objectLoader.load("stronghold/tower")).thenReturn(new IrisObject(16, 192, 16));
+        when(objectLoader.load("stronghold/hall")).thenReturn(new IrisObject(128, 10, 20));
+        JigsawStudioVariantCatalog catalog = new JigsawStudioVariantCatalog(List.of(
+                spatialVariant("stronghold/tower", new JigsawStudioCellDimensions(16, 192, 16), false),
+                spatialVariant("stronghold/hall", new JigsawStudioCellDimensions(128, 10, 20), false)));
+        JigsawStudioCellDimensions configured = new JigsawStudioCellDimensions(16, 16, 16);
+
+        assertEquals("", JigsawStudioGraphMapper.spatialFootprintFailure(
+                data,
+                configured,
+                catalog,
+                new JigsawStudioGraphMapper.SpatialChange("stronghold/hall", new JigsawStudioCellDimensions(128, 10, 20), false)));
+        assertFalse(JigsawStudioGraphMapper.spatialFootprintFailure(
+                data,
+                configured,
+                catalog,
+                new JigsawStudioGraphMapper.SpatialChange("stronghold/hall", new JigsawStudioCellDimensions(128, 10, 20), true)).isEmpty());
+        assertFalse(JigsawStudioGraphMapper.spatialFootprintFailure(
+                data,
+                configured,
+                catalog,
+                new JigsawStudioGraphMapper.SpatialChange("stronghold/hall", new JigsawStudioCellDimensions(128, 10, 128), false)).isEmpty());
+        assertEquals("", JigsawStudioGraphMapper.spatialFootprintFailure(
+                data,
+                configured,
+                catalog,
+                new JigsawStudioGraphMapper.SpatialChange("stronghold/tower", new JigsawStudioCellDimensions(16, 64, 16), false)));
+    }
+
+    private static JigsawStudioVariant spatialVariant(
+            String key,
+            JigsawStudioCellDimensions dimensions,
+            boolean rotatable
+    ) {
+        return new JigsawStudioVariant(
+                key,
+                key,
+                "",
+                Optional.of(dimensions),
+                JigsawStudioMode.SPATIAL_JIGSAW,
+                Optional.empty(),
+                rotatable,
+                true,
+                List.of(),
+                new JigsawStudioPieceRules(0, 30, 0, 0, false),
+                List.of());
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
     public void mapsAuthorLabelsAndCanonicalPerVariantDimensionsIndependently() {
         IrisData data = mock(IrisData.class);
         ResourceLoader<IrisJigsawPool> poolLoader = mock(ResourceLoader.class);

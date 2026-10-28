@@ -89,7 +89,7 @@ public class IrisJigsawConnector {
     @Description("Block state placed where this jigsaw marker was authored after assembly. Used when exporting or capturing Mojang-style jigsaw templates.")
     private String finalState = "minecraft:air";
 
-    @Description("Signed priority for selecting this connector within its piece. Higher values are processed before lower values; equal priorities preserve authored order.")
+    @Description("Signed priority for selecting this connector within its piece. Higher values are processed before lower values; equal priorities preserve authored order. A rotatable candidate piece applies this order within each of its cardinal rotations, which it tries in random order.")
     private int selectionPriority = 0;
 
     @Description("Signed priority assigned to a child piece attached through this connector. Higher-priority child pieces expand first; equal priorities preserve attachment order.")

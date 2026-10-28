@@ -141,6 +141,10 @@ final class JigsawStudioCapture {
                     if (hiddenConnector != null) {
                         hiddenConnector.setFinalState(blockData.getAsString());
                         connectors.add(CapturedConnector.from(hiddenConnector));
+                        if (isAir(blockData.getMaterial())) {
+                            blocks.add(new CapturedBlock(x, y, z, BukkitBlockState.of(blockData), null));
+                            continue;
+                        }
                     }
                     if (hiddenConnector == null && blockData instanceof Jigsaw jigsaw) {
                         KMap<String, Object> nbt = BukkitPlatform.serializeTile(block.getLocation());
@@ -490,7 +494,7 @@ final class JigsawStudioCapture {
         };
     }
 
-    private static LocalPosition forwardPosition(
+    static LocalPosition forwardPosition(
             int x,
             int y,
             int z,

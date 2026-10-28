@@ -218,7 +218,7 @@ public final class StructureAssembler {
                             + "' references missing connector pool '" + connector.pool + "'");
                 }
 
-                AttachmentResult attachment = attachOne(
+                AttachmentResult attachment = attach(
                         pending,
                         placed,
                         placementCounts,
@@ -229,7 +229,9 @@ public final class StructureAssembler {
                         depth,
                         selectedTheme,
                         rng);
-                consume(consumedConnectors, connector.sourcePiece(), connector.sourceConnector());
+                if (attachment.state() != AttachmentState.TERMINATED) {
+                    consume(consumedConnectors, connector.sourcePiece(), connector.sourceConnector());
+                }
                 if (attachment.state() == AttachmentState.FAILED) {
                     return StructureAssemblyResult.failed(
                             StructureAssemblyStatus.FAILED_UNCAPPED,
@@ -250,6 +252,49 @@ public final class StructureAssembler {
         return StructureAssemblyResult.complete(placed, selectedTheme);
     }
 
+    private AttachmentResult attach(
+            Deque<PieceExpansion> pending,
+            KList<PlacedStructurePiece> placed,
+            Map<String, Integer> placementCounts,
+            Map<PlacedStructurePiece, Set<IrisJigsawConnector>> consumedConnectors,
+            Map<PlacedStructurePiece, Map<IrisJigsawConnector, OpenConnector>> openConnectors,
+            IrisJigsawPool pool,
+            OpenConnector connector,
+            int depth,
+            String selectedTheme,
+            RNG rng
+    ) {
+        boolean planarNeighborClosures = structure.resolvedMode() == IrisJigsawMode.PLANAR_JIGSAW
+                && !structure.isRequireCaps();
+        AttachmentResult agreed = attachOne(
+                pending,
+                placed,
+                placementCounts,
+                consumedConnectors,
+                openConnectors,
+                pool,
+                connector,
+                depth,
+                selectedTheme,
+                structure.isRequireCaps() || planarNeighborClosures,
+                rng);
+        if (agreed.state() != AttachmentState.FAILED || !planarNeighborClosures) {
+            return agreed;
+        }
+        return attachOne(
+                pending,
+                placed,
+                placementCounts,
+                consumedConnectors,
+                openConnectors,
+                pool,
+                connector,
+                depth,
+                selectedTheme,
+                false,
+                rng);
+    }
+
     private AttachmentResult attachOne(
             Deque<PieceExpansion> pending,
             KList<PlacedStructurePiece> placed,
@@ -260,6 +305,7 @@ public final class StructureAssembler {
             OpenConnector connector,
             int depth,
             String selectedTheme,
+            boolean neighborClosures,
             RNG rng
     ) {
         if (pool.getPieces() == null) {
@@ -281,6 +327,7 @@ public final class StructureAssembler {
                     selectedTheme,
                     false,
                     !fallbackRequired,
+                    neighborClosures,
                     rng);
             if (primary != AttachmentState.NO_MATCH) {
                 return AttachmentResult.success(primary);
@@ -322,6 +369,7 @@ public final class StructureAssembler {
                 selectedTheme,
                 fallbackRequired,
                 !fallbackRequired,
+                neighborClosures,
                 rng);
         if (fallbackState != AttachmentState.NO_MATCH) {
             return AttachmentResult.success(fallbackState);
@@ -352,9 +400,14 @@ public final class StructureAssembler {
             String selectedTheme,
             boolean terminalOnly,
             boolean allowEmpty,
+            boolean neighborClosures,
             RNG rng
     ) {
         int ruleDepth = Math.min(connector.pieceDepth, structure.getMaxDepth());
+        if (connector.targetName == null) {
+            throw assemblyFailure("open connector from pool '" + connector.pool + "' has no target name");
+        }
+        IrisDirection needed = connector.facing.reverse();
         for (IrisJigsawPieceEntry entry : weightedOrder(
                 pool,
                 selectedTheme,
@@ -391,21 +444,16 @@ public final class StructureAssembler {
                 requireConnector(pieceConnector, pieceName);
             }
             List<IrisJigsawConnector> candidateConnectors = orderedConnectors(piece.getConnectors(), null);
-            for (IrisJigsawConnector cb : candidateConnectors) {
-                if (connector.targetName == null) {
-                    throw assemblyFailure("open connector from pool '" + connector.pool + "' has no target name");
-                }
-                if (!Objects.equals(connector.channel, cb.getChannel())) {
-                    continue;
-                }
-                if (!cb.getName().equals(connector.targetName)) {
-                    continue;
-                }
-
-                IrisDirection needed = connector.facing.reverse();
-                int[] rotations = piece.isRotatable() ? rotationCandidates(connector.joint, rng) : NO_ROTATION;
-                for (int yDeg : rotations) {
-                    IrisObjectRotation rot = IrisObjectRotation.of(0, yDeg, 0);
+            int[] rotations = piece.isRotatable() ? shuffledRotations(rng) : NO_ROTATION;
+            for (int yDeg : rotations) {
+                IrisObjectRotation rot = IrisObjectRotation.of(0, yDeg, 0);
+                for (IrisJigsawConnector cb : candidateConnectors) {
+                    if (!Objects.equals(connector.channel, cb.getChannel())) {
+                        continue;
+                    }
+                    if (!cb.getName().equals(connector.targetName)) {
+                        continue;
+                    }
                     IrisDirection rotatedFace = rot.rotate(cb.getDirection());
                     if (rotatedFace != needed) {
                         continue;
@@ -431,7 +479,8 @@ public final class StructureAssembler {
                             consumedConnectors,
                             connector,
                             candidate,
-                            cb);
+                            cb,
+                            neighborClosures);
                     if (closures == null) {
                         continue;
                     }
@@ -504,9 +553,10 @@ public final class StructureAssembler {
             Map<PlacedStructurePiece, Set<IrisJigsawConnector>> consumedConnectors,
             OpenConnector attachmentSource,
             PlacedStructurePiece candidatePiece,
-            IrisJigsawConnector attachmentConnector
+            IrisJigsawConnector attachmentConnector,
+            boolean neighborClosures
     ) {
-        if (!structure.isRequireCaps()) {
+        if (!neighborClosures) {
             return List.of();
         }
         List<ConnectorClosure> closures = new ArrayList<>();
@@ -1025,10 +1075,7 @@ public final class StructureAssembler {
         return false;
     }
 
-    private int[] rotationCandidates(JigsawJoint joint, RNG rng) {
-        if (joint == JigsawJoint.ALIGNED) {
-            return Y_DEGREES;
-        }
+    private int[] shuffledRotations(RNG rng) {
         int[] shuffled = {0, 90, 180, 270};
         for (int i = shuffled.length - 1; i > 0; i--) {
             int j = rng.i(i + 1);

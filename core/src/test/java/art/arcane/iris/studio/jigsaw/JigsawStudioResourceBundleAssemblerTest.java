@@ -80,20 +80,20 @@ public class JigsawStudioResourceBundleAssemblerTest {
                 JigsawStudioResourceBundleAssembler.assemble(
                         packRoot,
                         "fort",
-                        "fort/start",
+                        "fort/blank",
                         emptyObject(),
                         List.of(connector),
                         false);
 
-        assertEquals(17, assembly.bundle().resources().size());
-        assertEquals("fort/start", assembly.objectKey());
+        assertEquals(51, assembly.bundle().resources().size());
+        assertEquals("fort/blank", assembly.objectKey());
         assertEquals(1, assembly.piece().getConnectors().size());
         StructureWriteResult result = new StructureTransactionWriter(packRoot)
                 .write(assembly.bundle(), StructureWriteMode.OVERWRITE);
         assertTrue(result.successful());
         assertTrue(result.committed());
 
-        Path piecePath = packRoot.resolve("jigsaw-pieces/fort/start.json");
+        Path piecePath = packRoot.resolve("jigsaw-pieces/fort/blank.json");
         IrisJigsawPiece persisted = new Gson().fromJson(
                 Files.readString(piecePath, StandardCharsets.UTF_8), IrisJigsawPiece.class);
         assertEquals(1, persisted.getConnectors().size());
@@ -143,7 +143,7 @@ public class JigsawStudioResourceBundleAssemblerTest {
     @Test
     public void capturePreservesAbsentDefaultsAndUnknownPieceMetadata() throws Exception {
         Path packRoot = createProject();
-        String pieceResource = "jigsaw-pieces/fort/start.json";
+        String pieceResource = "jigsaw-pieces/fort/blank.json";
         Path piecePath = packRoot.resolve(pieceResource);
         JsonObject source = JsonParser.parseString(
                 Files.readString(piecePath, StandardCharsets.UTF_8)).getAsJsonObject();
@@ -158,7 +158,7 @@ public class JigsawStudioResourceBundleAssemblerTest {
                 JigsawStudioResourceBundleAssembler.assemble(
                         packRoot,
                         STRUCTURE_KEY,
-                        "fort/start",
+                        "fort/blank",
                         emptyObject(),
                         List.copyOf(sourcePiece.getConnectors()),
                         false);
@@ -173,7 +173,7 @@ public class JigsawStudioResourceBundleAssemblerTest {
                 JigsawStudioResourceBundleAssembler.assemble(
                         packRoot,
                         STRUCTURE_KEY,
-                        "fort/start",
+                        "fort/blank",
                         emptyObject(),
                         List.of(updated),
                         false);
@@ -202,7 +202,7 @@ public class JigsawStudioResourceBundleAssemblerTest {
                 () -> JigsawStudioResourceBundleAssembler.assemble(
                         packRoot,
                         STRUCTURE_KEY,
-                        "fort/start",
+                        "fort/blank",
                         emptyObject(),
                         List.of(connector()),
                         false));
@@ -213,7 +213,7 @@ public class JigsawStudioResourceBundleAssemblerTest {
     @Test
     public void refusesManagedDatapackOwnershipWithoutAssemblingAStudioSave() throws Exception {
         Path packRoot = createProject();
-        Path objectPath = packRoot.resolve("objects/fort/start.iob");
+        Path objectPath = packRoot.resolve("objects/fort/blank.iob");
         byte[] before = Files.readAllBytes(objectPath);
         markManagedDatapack(packRoot, STRUCTURE_KEY);
 
@@ -221,7 +221,7 @@ public class JigsawStudioResourceBundleAssemblerTest {
                 () -> JigsawStudioResourceBundleAssembler.assemble(
                         packRoot,
                         STRUCTURE_KEY,
-                        "fort/start",
+                        "fort/blank",
                         emptyObject(),
                         List.of(connector()),
                         false));
@@ -234,13 +234,13 @@ public class JigsawStudioResourceBundleAssemblerTest {
     @Test
     public void writerRejectsAResourceModifiedOutsideTheOwnershipTransaction() throws Exception {
         Path packRoot = createProject();
-        Path piecePath = packRoot.resolve("jigsaw-pieces/fort/start.json");
+        Path piecePath = packRoot.resolve("jigsaw-pieces/fort/blank.json");
         Files.writeString(piecePath, Files.readString(piecePath, StandardCharsets.UTF_8) + "\n");
         JigsawStudioResourceBundleAssembler.Assembly assembly =
                 JigsawStudioResourceBundleAssembler.assemble(
                         packRoot,
                         STRUCTURE_KEY,
-                        "fort/start",
+                        "fort/blank",
                         emptyObject(),
                         List.of(connector().setPool("fort/start")),
                         false);

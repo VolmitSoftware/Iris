@@ -15,6 +15,7 @@ public final class JigsawStudioLayout {
     public static final int PLANAR_GAP = 1;
     public static final int MAX_VARIANTS = 512;
     public static final String SPATIAL_WORKCELL_ID = "workcell/spatial";
+    public static final int COLUMN_HEADROOM = 4;
 
     private static final int FIRST_ORIGIN = 16;
     private static final JigsawStudioControlPosition CONTROL_POSITION =
@@ -208,6 +209,18 @@ public final class JigsawStudioLayout {
         return null;
     }
 
+    public JigsawStudioBay findColumn(int worldX, int worldY, int worldZ) {
+        for (JigsawStudioBay bay : bays) {
+            JigsawStudioBounds bounds = bay.bounds();
+            if (worldX >= bounds.originX() && worldX <= bounds.maxX()
+                    && worldZ >= bounds.originZ() && worldZ <= bounds.maxZ()
+                    && worldY >= bounds.originY() - 1 && worldY <= bounds.maxY() + COLUMN_HEADROOM) {
+                return bay;
+            }
+        }
+        return null;
+    }
+
     public List<JigsawStudioVariant> variants(JigsawStudioBay workcell) {
         JigsawStudioBay activeWorkcell = requireWorkcell(workcell);
         if (activeWorkcell.kind() == JigsawStudioBayKind.SPATIAL_WORKCELL) {
@@ -276,7 +289,7 @@ public final class JigsawStudioLayout {
 
     private JigsawStudioBay requireWorkcell(JigsawStudioBay workcell) {
         JigsawStudioBay activeWorkcell = Objects.requireNonNull(workcell, "Jigsaw Studio workcell");
-        if (byStableId.get(activeWorkcell.stableId()) != activeWorkcell) {
+        if (!activeWorkcell.equals(byStableId.get(activeWorkcell.stableId()))) {
             throw new IllegalArgumentException("Workcell does not belong to this Jigsaw Studio layout");
         }
         return activeWorkcell;

@@ -128,7 +128,7 @@ final class JigsawStudioProtection {
 
     static boolean blocksMutatingCommand(UUID ownerId, UUID actorId, String commandLine) {
         return !ownerMatches(ownerId, actorId)
-                && !isSafeNonOwnerCommand(commandLine);
+                && isMutatingCommand(commandLine);
     }
 
     static boolean blocksNonEditableWorkcellMutation(
@@ -231,17 +231,25 @@ final class JigsawStudioProtection {
     }
 
     boolean isUnauthorizedStudioEdit(Player player, Block block) {
-        if (player == null || block == null) {
+        String refusal = studioEditRefusal(player, block);
+        if (refusal.isEmpty()) {
             return false;
+        }
+        message(player, refusal);
+        return true;
+    }
+
+    String studioEditRefusal(Player player, Block block) {
+        if (player == null || block == null) {
+            return "";
         }
         ActiveStudio studio = service.studios.get(block.getWorld().getUID());
         if (studio == null) {
-            return false;
+            return "";
         }
         UUID requestId = studio.generator().getRequest().requestId();
         if (service.previewRenderer.contains(requestId, block.getX(), block.getY(), block.getZ())) {
-            message(player, "The seed-1337 Jigsaw preview is read-only and refreshes automatically.");
-            return true;
+            return "The seed-1337 Jigsaw preview is read-only and refreshes automatically.";
         }
         JigsawStudioSession session = studio.generator().getSession();
         JigsawStudioBay bay = session.layout().findAt(block.getX(), block.getY(), block.getZ());
@@ -249,24 +257,20 @@ final class JigsawStudioProtection {
                 ? null
                 : session.activeVariant(bay.stableId()).orElse(null);
         if (bay != null && (variant == null || !variant.owned())) {
-            message(player, variant == null
+            return variant == null
                     ? "This empty Jigsaw Studio workcell has no loaded editable variant. Load one before editing it."
-                    : "This Jigsaw Studio variant is read-only. Adopt or clone its graph before editing it.");
-            return true;
+                    : "This Jigsaw Studio variant is read-only. Adopt or clone its graph before editing it.";
         }
         if (service.saveLifecycle.reopenRequiredRequests.contains(requestId)) {
-            message(player, "Close and reopen Jigsaw Studio before editing the resized layout.");
-            return true;
+            return "Close and reopen Jigsaw Studio before editing the resized layout.";
         }
         if (materializationInProgress(studio)) {
-            message(player, "Wait for the current Jigsaw Studio variant load or rollback to finish.");
-            return true;
+            return "Wait for the current Jigsaw Studio variant load or rollback to finish.";
         }
         if (!blocksStudioEdit(studio.generator().getRequest().ownerId(), player.getUniqueId())) {
-            return false;
+            return "";
         }
-        message(player, "This Jigsaw Studio is owned by another player session.");
-        return true;
+        return "This Jigsaw Studio is owned by another player session.";
     }
 
     boolean materializationInProgress(ActiveStudio studio) {

@@ -6,6 +6,7 @@ import art.arcane.volmlib.util.inventorygui.UIWindow;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -27,6 +28,9 @@ import static art.arcane.iris.studio.jigsaw.JigsawStudioMenuFormat.workcellStatu
 import static art.arcane.iris.studio.jigsaw.JigsawStudioMenuFormat.yesNo;
 
 final class JigsawStudioMainMenu {
+    static final int WORKCELL_ROW_CAPACITY = 6;
+    static final int WORKCELLS_PER_PAGE = 5;
+
     private final JigsawStudioMenuController controller;
 
     JigsawStudioMainMenu(JigsawStudioMenuController controller) {
@@ -103,51 +107,113 @@ final class JigsawStudioMainMenu {
     }
 
     private void addWorkcells(UIWindow window, JigsawStudioMenuState state, String selectedWorkcellId) {
-        int count = state.workcells().size();
-        int start = count == 1 ? 0 : -(count / 2);
-        for (int index = 0; index < count; index++) {
-            JigsawStudioMenuState.Workcell workcell = state.workcells().get(index);
-            boolean selected = workcell.stableId().equals(selectedWorkcellId);
-            UIElement element = element(
-                    "workcell-" + index,
-                    workcellMaterial(workcell, selected),
-                    (selected ? ChatColor.AQUA : workcell.enabled() ? ChatColor.WHITE : ChatColor.GRAY)
-                            + safe(workcell.displayName()))
-                    .setEnchanted(selected);
-            element.addLore(workcell.enabled()
-                    ? ChatColor.GREEN + "Enabled"
-                    : ChatColor.RED + "Disabled for assembly and export");
-            if (!workcell.canonicalName().equals(workcell.displayName())) {
-                element.addLore(ChatColor.GRAY + "Solver role: " + safe(workcell.canonicalName()));
+        List<JigsawStudioMenuState.Workcell> workcells = state.workcells();
+        int viewedIndex = 0;
+        for (int index = 0; index < workcells.size(); index++) {
+            if (workcells.get(index).stableId().equals(selectedWorkcellId)) {
+                viewedIndex = index;
             }
-            element.addLore(ChatColor.GRAY + "Capacity: " + dimensions(workcell.capacity()));
-            element.addLore(ChatColor.GRAY + "Variants: " + workcell.variants().size());
-            JigsawStudioMenuState.Variant active = workcell.activeVariant();
-            element.addLore(ChatColor.GRAY + "Loaded: "
-                    + (active == null ? "None" : safe(active.displayName())));
-            element.addLore(workcellStatus(workcell));
-            element.addLore(ChatColor.GRAY + "Connector blocks: "
-                    + (workcell.connectorsVisible() ? "Visible" : "Hidden"));
-            element.addLore(ChatColor.YELLOW + "Left-click to select and teleport");
-            element.addLore(ChatColor.YELLOW + "Right-click for workcell settings");
-            if (workcell.dirty() && !workcell.saving()) {
-                element.addLore(ChatColor.GOLD + "Shift-left: Flush Autosave Now");
-                element.onShiftLeftClick(clicked -> controller.flushNow(
-                        window.getViewer(), state.requestId(), workcell.stableId()));
-            }
-            element.onLeftClick(clicked -> controller.selectWorkcell(
-                    window.getViewer(),
-                    state.requestId(),
-                    workcell.stableId()));
-            element.onRightClick(clicked -> J.runEntity(
-                    window.getViewer(),
-                    () -> controller.openWorkcellSettings(
-                            window.getViewer(),
-                            state.requestId(),
-                            workcell.stableId()),
-                    1));
-            window.setElement(start + index, 0, element);
         }
+        WorkcellRow row = workcellRow(workcells.size(), viewedIndex);
+        for (int position = 0; position < row.indices().size(); position++) {
+            int index = row.indices().get(position);
+            JigsawStudioMenuState.Workcell workcell = workcells.get(index);
+            window.setElement(row.slots().get(position), 0, workcellElement(
+                    window,
+                    state,
+                    workcell,
+                    index,
+                    workcell.stableId().equals(selectedWorkcellId)));
+        }
+        if (row.previousTarget() >= 0) {
+            JigsawStudioMenuState.Workcell target = workcells.get(row.previousTarget());
+            UIElement previous = element("workcells-previous", Material.ARROW, ChatColor.YELLOW + "Previous Workcells");
+            previous.addLore(ChatColor.GRAY + "Workcells " + (row.previousTarget() + 1) + "-"
+                    + (row.previousTarget() + WORKCELLS_PER_PAGE) + " of " + workcells.size());
+            previous.onLeftClick(clicked -> controller.refreshMain(
+                    window.getViewer(), state.requestId(), target.stableId(), 0));
+            window.setElement(-4, 0, previous);
+        }
+        if (row.nextTarget() >= 0) {
+            JigsawStudioMenuState.Workcell target = workcells.get(row.nextTarget());
+            UIElement next = element("workcells-next", Material.ARROW, ChatColor.YELLOW + "Next Workcells");
+            next.addLore(ChatColor.GRAY + "Workcells " + (row.nextTarget() + 1) + "-"
+                    + Math.min(workcells.size(), row.nextTarget() + WORKCELLS_PER_PAGE)
+                    + " of " + workcells.size());
+            next.onLeftClick(clicked -> controller.refreshMain(
+                    window.getViewer(), state.requestId(), target.stableId(), 0));
+            window.setElement(2, 0, next);
+        }
+    }
+
+    static WorkcellRow workcellRow(int count, int viewedIndex) {
+        List<Integer> indices = new ArrayList<>(Math.min(count, WORKCELL_ROW_CAPACITY));
+        List<Integer> slots = new ArrayList<>(Math.min(count, WORKCELL_ROW_CAPACITY));
+        if (count <= WORKCELL_ROW_CAPACITY) {
+            int start = count == 1 ? 0 : -(count / 2);
+            for (int index = 0; index < count; index++) {
+                indices.add(index);
+                slots.add(start + index);
+            }
+            return new WorkcellRow(indices, slots, -1, -1);
+        }
+        int page = Math.max(0, Math.min(viewedIndex, count - 1)) / WORKCELLS_PER_PAGE;
+        int first = page * WORKCELLS_PER_PAGE;
+        for (int offset = 0; offset < WORKCELLS_PER_PAGE && first + offset < count; offset++) {
+            indices.add(first + offset);
+            slots.add(-3 + offset);
+        }
+        int previous = page == 0 ? -1 : first - WORKCELLS_PER_PAGE;
+        int next = first + WORKCELLS_PER_PAGE < count ? first + WORKCELLS_PER_PAGE : -1;
+        return new WorkcellRow(indices, slots, previous, next);
+    }
+
+    private UIElement workcellElement(
+            UIWindow window,
+            JigsawStudioMenuState state,
+            JigsawStudioMenuState.Workcell workcell,
+            int index,
+            boolean selected
+    ) {
+        UIElement element = element(
+                "workcell-" + index,
+                workcellMaterial(workcell, selected),
+                (selected ? ChatColor.AQUA : workcell.enabled() ? ChatColor.WHITE : ChatColor.GRAY)
+                        + safe(workcell.displayName()))
+                .setEnchanted(selected);
+        element.addLore(workcell.enabled()
+                ? ChatColor.GREEN + "Enabled"
+                : ChatColor.RED + "Disabled for assembly and export");
+        if (!workcell.canonicalName().equals(workcell.displayName())) {
+            element.addLore(ChatColor.GRAY + "Solver role: " + safe(workcell.canonicalName()));
+        }
+        element.addLore(ChatColor.GRAY + "Capacity: " + dimensions(workcell.capacity()));
+        element.addLore(ChatColor.GRAY + "Variants: " + workcell.variants().size());
+        JigsawStudioMenuState.Variant active = workcell.activeVariant();
+        element.addLore(ChatColor.GRAY + "Loaded: "
+                + (active == null ? "None" : safe(active.displayName())));
+        element.addLore(workcellStatus(workcell));
+        element.addLore(ChatColor.GRAY + "Connector blocks: "
+                + (workcell.connectorsVisible() ? "Visible" : "Hidden"));
+        element.addLore(ChatColor.YELLOW + "Left-click to select and teleport");
+        element.addLore(ChatColor.YELLOW + "Right-click for workcell settings");
+        if (workcell.dirty() && !workcell.saving()) {
+            element.addLore(ChatColor.GOLD + "Shift-left: Flush Autosave Now");
+            element.onShiftLeftClick(clicked -> controller.flushNow(
+                    window.getViewer(), state.requestId(), workcell.stableId()));
+        }
+        element.onLeftClick(clicked -> controller.selectWorkcell(
+                window.getViewer(),
+                state.requestId(),
+                workcell.stableId()));
+        element.onRightClick(clicked -> J.runEntity(
+                window.getViewer(),
+                () -> controller.openWorkcellSettings(
+                        window.getViewer(),
+                        state.requestId(),
+                        workcell.stableId()),
+                1));
+        return element;
     }
 
     private void addVariants(
@@ -282,5 +348,12 @@ final class JigsawStudioMainMenu {
         toolbox.onLeftClick(clicked -> controller.openToolbox(
                 window.getViewer(), state.requestId(), workcell.stableId(), 0));
         window.setElement(4, 5, toolbox);
+    }
+
+    record WorkcellRow(List<Integer> indices, List<Integer> slots, int previousTarget, int nextTarget) {
+        WorkcellRow {
+            indices = List.copyOf(indices);
+            slots = List.copyOf(slots);
+        }
     }
 }

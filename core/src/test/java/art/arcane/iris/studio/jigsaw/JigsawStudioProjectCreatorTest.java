@@ -102,9 +102,15 @@ public class JigsawStudioProjectCreatorTest {
         JsonObject startPool = JsonParser.parseString(Files.readString(
                 temporaryDirectory.resolve("jigsaw-pools/settlement/test/start.json"),
                 StandardCharsets.UTF_8)).getAsJsonObject();
-        assertEquals(1, startPool.getAsJsonArray("pieces").size());
+        assertEquals(2, startPool.getAsJsonArray("pieces").size());
         assertEquals("settlement/test/cross", startPool.getAsJsonArray("pieces").get(0)
                 .getAsJsonObject().get("piece").getAsString());
+        assertEquals(3, startPool.getAsJsonArray("pieces").get(0)
+                .getAsJsonObject().get("weight").getAsInt());
+        assertEquals("settlement/test/blank", startPool.getAsJsonArray("pieces").get(1)
+                .getAsJsonObject().get("piece").getAsString());
+        assertEquals(1, startPool.getAsJsonArray("pieces").get(1)
+                .getAsJsonObject().get("weight").getAsInt());
         JsonObject piecePool = JsonParser.parseString(Files.readString(
                 temporaryDirectory.resolve("jigsaw-pools/settlement/test/pieces.json"),
                 StandardCharsets.UTF_8)).getAsJsonObject();
@@ -229,7 +235,7 @@ public class JigsawStudioProjectCreatorTest {
     }
 
     @Test
-    public void spatialProjectSeedsZeroThroughSixConnectorVariants() throws Exception {
+    public void spatialProjectSeedsEveryYRotationTopologyVariant() throws Exception {
         Path temporaryDirectory = temporaryFolder.getRoot().toPath();
         JigsawStudioProjectCreator.Options options = new JigsawStudioProjectCreator.Options(
                 "stronghold/gallery",
@@ -246,35 +252,48 @@ public class JigsawStudioProjectCreatorTest {
         JsonObject piecePool = JsonParser.parseString(Files.readString(
                 temporaryDirectory.resolve("jigsaw-pools/stronghold/gallery/pieces.json"),
                 StandardCharsets.UTF_8)).getAsJsonObject();
-        assertEquals(7, startPool.getAsJsonArray("pieces").size());
-        assertEquals(7, piecePool.getAsJsonArray("pieces").size());
-        assertEquals("stronghold/gallery/connectors-1", piecePool.getAsJsonArray("pieces").get(0)
+        assertEquals(24, startPool.getAsJsonArray("pieces").size());
+        assertEquals("stronghold/gallery/blank", startPool.getAsJsonArray("pieces").get(0)
                 .getAsJsonObject().get("piece").getAsString());
-        assertTrue(piecePool.getAsJsonArray("pieces").get(6).getAsJsonObject()
+        assertEquals(24, piecePool.getAsJsonArray("pieces").size());
+        assertEquals("stronghold/gallery/end", piecePool.getAsJsonArray("pieces").get(0)
+                .getAsJsonObject().get("piece").getAsString());
+        assertTrue(piecePool.getAsJsonArray("pieces").get(23).getAsJsonObject()
                 .get("empty").getAsBoolean());
-        for (int connectorCount = 0; connectorCount <= 6; connectorCount++) {
-            String pieceName = connectorCount == 0 ? "start" : "connectors-" + connectorCount;
-            JsonObject piece = JsonParser.parseString(Files.readString(
-                    temporaryDirectory.resolve("jigsaw-pieces/stronghold/gallery/"
-                            + pieceName + ".json"),
-                    StandardCharsets.UTF_8)).getAsJsonObject();
-            assertEquals(connectorCount, piece.getAsJsonArray("connectors").size());
-            assertEquals(connectorCount + (connectorCount == 1 ? " Connector" : " Connectors"),
-                    piece.get("displayName").getAsString());
-            assertEquals(16, piece.getAsJsonObject("rules").get("maximumPlacements").getAsInt());
-            assertEquals(new IrisBlockVector(15, 15, 15), IrisObject.sampleSize(
-                    temporaryDirectory.resolve("objects/stronghold/gallery/"
-                            + pieceName + ".iob").toFile()));
+        List<String> horizontalClasses = List.of("blank", "end", "straight", "corner", "tee", "cross");
+        List<String> verticalClasses = List.of("", "-up", "-down", "-up-down");
+        List<Integer> horizontalCounts = List.of(0, 1, 2, 2, 3, 4);
+        for (String vertical : verticalClasses) {
+            for (int index = 0; index < horizontalClasses.size(); index++) {
+                String pieceName = horizontalClasses.get(index) + vertical;
+                JsonObject piece = JsonParser.parseString(Files.readString(
+                        temporaryDirectory.resolve("jigsaw-pieces/stronghold/gallery/" + pieceName + ".json"),
+                        StandardCharsets.UTF_8)).getAsJsonObject();
+                int verticalCount = vertical.isEmpty() ? 0 : vertical.equals("-up-down") ? 2 : 1;
+                assertEquals(pieceName, horizontalCounts.get(index) + verticalCount,
+                        piece.getAsJsonArray("connectors").size());
+                assertEquals(4, piece.getAsJsonObject("rules").get("maximumPlacements").getAsInt());
+                assertEquals(new IrisBlockVector(15, 15, 15), IrisObject.sampleSize(
+                        temporaryDirectory.resolve("objects/stronghold/gallery/"
+                                + pieceName + ".iob").toFile()));
+            }
         }
-        JsonObject six = JsonParser.parseString(Files.readString(
-                temporaryDirectory.resolve("jigsaw-pieces/stronghold/gallery/connectors-6.json"),
+        JsonObject cornerShaft = JsonParser.parseString(Files.readString(
+                temporaryDirectory.resolve("jigsaw-pieces/stronghold/gallery/corner-up-down.json"),
                 StandardCharsets.UTF_8)).getAsJsonObject();
-        assertEquals("NORTH_NEGATIVE_Z", six.getAsJsonArray("connectors").get(0)
+        assertEquals("L Junction + Up/Down", cornerShaft.get("displayName").getAsString());
+        assertEquals("NORTH_NEGATIVE_Z", cornerShaft.getAsJsonArray("connectors").get(0)
                 .getAsJsonObject().get("direction").getAsString());
-        assertEquals("DOWN_NEGATIVE_Y", six.getAsJsonArray("connectors").get(5)
+        assertEquals("EAST_POSITIVE_X", cornerShaft.getAsJsonArray("connectors").get(1)
                 .getAsJsonObject().get("direction").getAsString());
-        assertEquals(0, six.getAsJsonArray("connectors").get(5)
+        assertEquals("UP_POSITIVE_Y", cornerShaft.getAsJsonArray("connectors").get(2)
+                .getAsJsonObject().get("direction").getAsString());
+        assertEquals("DOWN_NEGATIVE_Y", cornerShaft.getAsJsonArray("connectors").get(3)
+                .getAsJsonObject().get("direction").getAsString());
+        assertEquals(0, cornerShaft.getAsJsonArray("connectors").get(3)
                 .getAsJsonObject().getAsJsonObject("position").get("y").getAsInt());
+        assertEquals("NORTH_NEGATIVE_Z", cornerShaft.getAsJsonArray("connectors").get(3)
+                .getAsJsonObject().get("top").getAsString());
 
         StructureGraphCompilation compilation = StructureResourceBundleGraphCompiler.compile(
                 JigsawStudioProjectCreator.bundle(options)).getFirst();
@@ -283,7 +302,7 @@ public class JigsawStudioProjectCreatorTest {
                 new IrisPosition(0, 0, 0)).assemble(new RNG(1337L));
         assertEquals(preview.detail(), StructureAssemblyStatus.COMPLETE, preview.status());
         assertTrue(preview.pieces().size() > 1);
-        assertTrue(preview.pieces().size() <= 96);
+        assertTrue(preview.pieces().size() <= 93);
     }
 
     @Test
@@ -411,10 +430,10 @@ public class JigsawStudioProjectCreatorTest {
         JsonObject pool = JsonParser.parseString(Files.readString(
                 temporaryDirectory.resolve("jigsaw-pools/stronghold/test/start.json"),
                 StandardCharsets.UTF_8)).getAsJsonObject();
-        assertEquals(8, pool.getAsJsonArray("pieces").size());
-        assertEquals("stronghold/test/hall", pool.getAsJsonArray("pieces").get(7)
+        assertEquals(25, pool.getAsJsonArray("pieces").size());
+        assertEquals("stronghold/test/hall", pool.getAsJsonArray("pieces").get(24)
                 .getAsJsonObject().get("piece").getAsString());
-        assertEquals(3, pool.getAsJsonArray("pieces").get(7)
+        assertEquals(3, pool.getAsJsonArray("pieces").get(24)
                 .getAsJsonObject().get("weight").getAsInt());
 
         StructureWriteResult resized = JigsawStudioStructureEditor.updateCellSize(
@@ -435,7 +454,7 @@ public class JigsawStudioProjectCreatorTest {
         IrisBlockVector hallSize = IrisObject.sampleSize(
                 temporaryDirectory.resolve("objects/stronghold/test/hall.iob").toFile());
         IrisBlockVector starterSize = IrisObject.sampleSize(
-                temporaryDirectory.resolve("objects/stronghold/test/start.iob").toFile());
+                temporaryDirectory.resolve("objects/stronghold/test/blank.iob").toFile());
         assertEquals(new IrisBlockVector(16, 12, 18), hallSize);
         assertEquals(new IrisBlockVector(12, 10, 14), starterSize);
 

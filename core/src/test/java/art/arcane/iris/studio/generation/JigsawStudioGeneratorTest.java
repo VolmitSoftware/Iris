@@ -2,8 +2,6 @@ package art.arcane.iris.studio.generation;
 
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.pack.loading.ResourceLoader;
-import art.arcane.iris.studio.jigsaw.JigsawPlanarArchetype;
-import art.arcane.iris.studio.jigsaw.JigsawPlanarDirection;
 import art.arcane.iris.studio.jigsaw.JigsawPlanarTopology;
 import art.arcane.iris.studio.jigsaw.JigsawStudioActivation;
 import art.arcane.iris.studio.jigsaw.JigsawStudioBay;
@@ -52,6 +50,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
@@ -168,57 +167,123 @@ public class JigsawStudioGeneratorTest {
     }
 
     @Test
-    public void paintsCanonicalWoolGlyphsBelowCaptureAndOneControlChest() {
+    @SuppressWarnings("unchecked")
+    public void paintsActiveVariantConnectorLinesBelowCaptureAndOneControlChest() {
+        IrisData source = mock(IrisData.class);
+        ResourceLoader<IrisJigsawPiece> pieceLoader = mock(ResourceLoader.class);
+        ResourceLoader<IrisObject> objectLoader = mock(ResourceLoader.class);
+        when(source.getJigsawPieceLoader()).thenReturn(pieceLoader);
+        when(source.getObjectLoader()).thenReturn(objectLoader);
         JigsawStudioCellDimensions dimensions = new JigsawStudioCellDimensions(7, 5, 7);
+        IrisJigsawPiece piece = new IrisJigsawPiece()
+                .setObject("village/corner")
+                .setConnectors(new KList<>());
+        piece.getConnectors().add(connector(new IrisPosition(3, 2, 0), IrisDirection.NORTH_NEGATIVE_Z));
+        piece.getConnectors().add(connector(new IrisPosition(6, 2, 3), IrisDirection.EAST_POSITIVE_X));
+        when(pieceLoader.load("village/corner", false)).thenReturn(piece);
+        when(objectLoader.load("village/corner", false)).thenReturn(new IrisObject(7, 5, 7));
+        JigsawStudioVariant variant = planarVariant("village/corner", JigsawPlanarTopology.NORTH_EAST_CORNER);
         GeneratorFixture fixture = fixture(
+                source,
                 JigsawStudioMode.PLANAR_JIGSAW,
                 dimensions,
-                JigsawStudioVariantCatalog.empty());
+                new JigsawStudioVariantCatalog(List.of(variant)));
         JigsawStudioBay corner = fixture.layout().get("workcell/corner");
-        int glyphY = corner.bounds().originY() - 1;
+        int floorY = corner.bounds().originY() - 1;
         int centerX = dimensions.width() / 2;
         int centerZ = dimensions.depth() / 2;
 
-        assertSame(fixture.connectorCap(), stateAt(
-                fixture.generator(),
-                corner.bounds().originX() + centerX,
-                glyphY,
-                corner.bounds().originZ()));
-        assertSame(fixture.connectorCap(), stateAt(
-                fixture.generator(),
-                corner.bounds().maxX(),
-                glyphY,
-                corner.bounds().originZ() + centerZ));
-        assertSame(fixture.topologyPath(), stateAt(
-                fixture.generator(),
-                corner.bounds().originX() + centerX,
-                glyphY,
-                corner.bounds().originZ() + 1));
-        assertSame(fixture.topologyPath(), stateAt(
-                fixture.generator(),
-                corner.bounds().originX() + centerX + 1,
-                glyphY,
-                corner.bounds().originZ() + centerZ));
-        assertSame(fixture.topologyBase(), stateAt(
-                fixture.generator(),
-                corner.bounds().originX(),
-                glyphY,
-                corner.bounds().originZ()));
-        assertFalse(fixture.topologyBase() == stateAt(
-                fixture.generator(),
-                corner.bounds().originX() + centerX,
-                corner.bounds().originY(),
-                corner.bounds().originZ() + centerZ));
+        try (MockedStatic<B> ignored = mockStatic(B.class)) {
+            assertSame(fixture.palette().horizontalSocket(), stateAt(
+                    fixture.generator(), corner.bounds().originX() + centerX, floorY, corner.bounds().originZ()));
+            assertSame(fixture.palette().horizontalSocket(), stateAt(
+                    fixture.generator(), corner.bounds().maxX(), floorY, corner.bounds().originZ() + centerZ));
+            assertSame(fixture.palette().line(), stateAt(
+                    fixture.generator(), corner.bounds().originX() + centerX, floorY, corner.bounds().originZ() + 1));
+            assertSame(fixture.palette().line(), stateAt(
+                    fixture.generator(),
+                    corner.bounds().originX() + centerX + 1,
+                    floorY,
+                    corner.bounds().originZ() + centerZ));
+            assertSame(fixture.palette().base(), stateAt(
+                    fixture.generator(), corner.bounds().originX(), floorY, corner.bounds().originZ()));
+            assertFalse(fixture.palette().base() == stateAt(
+                    fixture.generator(),
+                    corner.bounds().originX() + centerX,
+                    corner.bounds().originY(),
+                    corner.bounds().originZ() + centerZ));
 
-        JigsawStudioBay blank = fixture.layout().get("workcell/blank");
-        assertSame(fixture.topologyBase(), stateAt(
-                fixture.generator(),
-                blank.bounds().originX() + centerX,
-                blank.bounds().originY() - 1,
-                blank.bounds().originZ() + centerZ));
-        JigsawStudioControlPosition control = fixture.layout().controlPosition();
-        assertSame(fixture.controlChest(), stateAt(
-                fixture.generator(), control.worldX(), control.worldY(), control.worldZ()));
+            JigsawStudioBay blank = fixture.layout().get("workcell/blank");
+            assertSame(fixture.palette().base(), stateAt(
+                    fixture.generator(),
+                    blank.bounds().originX() + centerX,
+                    blank.bounds().originY() - 1,
+                    blank.bounds().originZ() + centerZ));
+            JigsawStudioBay tee = fixture.layout().get("workcell/tee");
+            assertSame(fixture.palette().base(), stateAt(
+                    fixture.generator(),
+                    tee.bounds().originX() + centerX,
+                    tee.bounds().originY() - 1,
+                    tee.bounds().originZ()));
+            JigsawStudioControlPosition control = fixture.layout().controlPosition();
+            assertSame(fixture.controlChest(), stateAt(
+                    fixture.generator(), control.worldX(), control.worldY(), control.worldZ()));
+        }
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void spatialWorkcellsPaintVerticalSocketsUnderTheirConnectorColumns() {
+        IrisData source = mock(IrisData.class);
+        ResourceLoader<IrisJigsawPiece> pieceLoader = mock(ResourceLoader.class);
+        ResourceLoader<IrisObject> objectLoader = mock(ResourceLoader.class);
+        when(source.getJigsawPieceLoader()).thenReturn(pieceLoader);
+        when(source.getObjectLoader()).thenReturn(objectLoader);
+        IrisJigsawPiece piece = new IrisJigsawPiece()
+                .setObject("stronghold/shaft")
+                .setConnectors(new KList<>());
+        piece.getConnectors().add(connector(new IrisPosition(2, 4, 2), IrisDirection.UP_POSITIVE_Y)
+                .setTop(IrisDirection.NORTH_NEGATIVE_Z));
+        piece.getConnectors().add(connector(new IrisPosition(2, 0, 2), IrisDirection.DOWN_NEGATIVE_Y)
+                .setTop(IrisDirection.NORTH_NEGATIVE_Z));
+        piece.getConnectors().add(connector(new IrisPosition(0, 1, 4), IrisDirection.DOWN_NEGATIVE_Y)
+                .setTop(IrisDirection.NORTH_NEGATIVE_Z));
+        piece.getConnectors().add(connector(new IrisPosition(2, 2, 0), IrisDirection.NORTH_NEGATIVE_Z));
+        when(pieceLoader.load("stronghold/shaft", false)).thenReturn(piece);
+        when(objectLoader.load("stronghold/shaft", false)).thenReturn(new IrisObject(5, 5, 5));
+        JigsawStudioVariant variant = new JigsawStudioVariant(
+                "stronghold/shaft",
+                "stronghold/shaft",
+                "",
+                Optional.of(new JigsawStudioCellDimensions(5, 5, 5)),
+                JigsawStudioMode.SPATIAL_JIGSAW,
+                Optional.empty(),
+                true,
+                true,
+                List.of(),
+                new JigsawStudioPieceRules(0, 30, 0, 0, false),
+                List.of());
+        GeneratorFixture fixture = fixture(
+                source,
+                JigsawStudioMode.SPATIAL_JIGSAW,
+                new JigsawStudioCellDimensions(5, 5, 5),
+                new JigsawStudioVariantCatalog(List.of(variant)));
+        JigsawStudioBay workcell = fixture.layout().bays().getFirst();
+        int originX = workcell.bounds().originX();
+        int originZ = workcell.bounds().originZ();
+        int floorY = workcell.bounds().originY() - 1;
+
+        try (MockedStatic<B> ignored = mockStatic(B.class)) {
+            assertSame(fixture.palette().upAndDownSocket(), stateAt(fixture.generator(), originX + 2, floorY, originZ + 2));
+            assertSame(fixture.palette().downSocket(), stateAt(fixture.generator(), originX, floorY, originZ + 4));
+            assertSame(fixture.palette().horizontalSocket(), stateAt(fixture.generator(), originX + 2, floorY, originZ));
+            assertSame(fixture.palette().line(), stateAt(fixture.generator(), originX + 2, floorY, originZ + 1));
+            assertSame(fixture.palette().line(), stateAt(fixture.generator(), originX + 1, floorY, originZ + 3));
+            assertSame(fixture.palette().base(), stateAt(fixture.generator(), originX + 4, floorY, originZ + 4));
+        }
+        assertSame(
+                fixture.palette().upAndDownSocket(),
+                fixture.generator().floorState(fixture.generator().floorGlyph(workcell).cell(2, 2)));
     }
 
     @Test
@@ -248,77 +313,6 @@ public class JigsawStudioGeneratorTest {
     }
 
     @Test
-    public void glyphMathHandlesAllArchetypesAndSmallEvenAndOddCells() {
-        int[] sizes = {1, 2, 3, 4, 7, 16};
-        for (int size : sizes) {
-            JigsawStudioCellDimensions dimensions = new JigsawStudioCellDimensions(size, 1, size);
-            int center = size / 2;
-            for (JigsawPlanarArchetype archetype : JigsawPlanarArchetype.values()) {
-                JigsawPlanarTopology topology = archetype.canonicalTopology();
-                boolean centerPath = JigsawStudioGenerator.isTopologyPath(
-                        topology, center, center, center, center);
-                assertEquals(archetype != JigsawPlanarArchetype.BLANK, centerPath);
-                if (topology.connects(JigsawPlanarDirection.NORTH)) {
-                    assertTrue(JigsawStudioGenerator.isConnectorCap(
-                            topology, dimensions, center, 0, center, center));
-                }
-                if (topology.connects(JigsawPlanarDirection.EAST)) {
-                    assertTrue(JigsawStudioGenerator.isConnectorCap(
-                            topology, dimensions, size - 1, center, center, center));
-                }
-            }
-        }
-    }
-
-    @Test
-    public void connectorCapsOnlyOccupyConnectedFaceCenters() {
-        int[] sizes = {3, 4, 7, 16};
-        for (int size : sizes) {
-            JigsawStudioCellDimensions dimensions = new JigsawStudioCellDimensions(size, 1, size);
-            int center = size / 2;
-            for (JigsawPlanarArchetype archetype : JigsawPlanarArchetype.values()) {
-                JigsawPlanarTopology topology = archetype.canonicalTopology();
-                for (int z = 0; z < size; z++) {
-                    for (int x = 0; x < size; x++) {
-                        boolean expected = topology.connects(JigsawPlanarDirection.NORTH)
-                                && x == center && z == 0
-                                || topology.connects(JigsawPlanarDirection.EAST)
-                                && x == size - 1 && z == center
-                                || topology.connects(JigsawPlanarDirection.SOUTH)
-                                && x == center && z == size - 1
-                                || topology.connects(JigsawPlanarDirection.WEST)
-                                && x == 0 && z == center;
-                        assertEquals(expected, JigsawStudioGenerator.isConnectorCap(
-                                topology, dimensions, x, z, center, center));
-                    }
-                }
-            }
-        }
-    }
-
-    @Test
-    public void canonicalFiveByFivePathsMatchEveryArchetype() {
-        Map<JigsawPlanarArchetype, List<String>> expected = Map.of(
-                JigsawPlanarArchetype.BLANK, List.of(".....", ".....", ".....", ".....", "....."),
-                JigsawPlanarArchetype.END, List.of("..#..", "..#..", "..#..", ".....", "....."),
-                JigsawPlanarArchetype.STRAIGHT, List.of("..#..", "..#..", "..#..", "..#..", "..#.."),
-                JigsawPlanarArchetype.CORNER, List.of("..#..", "..#..", "..###", ".....", "....."),
-                JigsawPlanarArchetype.TEE, List.of("..#..", "..#..", "#####", ".....", "....."),
-                JigsawPlanarArchetype.CROSS, List.of("..#..", "..#..", "#####", "..#..", "..#.."));
-
-        for (JigsawPlanarArchetype archetype : JigsawPlanarArchetype.values()) {
-            List<String> rows = expected.get(archetype);
-            for (int z = 0; z < 5; z++) {
-                for (int x = 0; x < 5; x++) {
-                    boolean path = JigsawStudioGenerator.isTopologyPath(
-                            archetype.canonicalTopology(), x, z, 2, 2);
-                    assertEquals(rows.get(z).charAt(x) == '#', path);
-                }
-            }
-        }
-    }
-
-    @Test
     public void clipsLargeGlyphPaintingToOneChunkFootprint() {
         GeneratorFixture fixture = fixture(
                 JigsawStudioMode.PLANAR_JIGSAW,
@@ -331,10 +325,7 @@ public class JigsawStudioGeneratorTest {
 
         fixture.generator().paintChunk(chunk, chunkX, chunkZ);
 
-        int glyphBlocks = chunk.countState(fixture.topologyBase())
-                + chunk.countState(fixture.topologyPath())
-                + chunk.countState(fixture.connectorCap());
-        assertEquals(256, glyphBlocks);
+        assertEquals(256, chunk.countState(fixture.palette().base()));
     }
 
     @Test
@@ -468,6 +459,29 @@ public class JigsawStudioGeneratorTest {
     }
 
     @Test
+    public void workcellsFromAnEquivalentReplacedLayoutStillRender() {
+        JigsawStudioCellDimensions dimensions = new JigsawStudioCellDimensions(5, 5, 5);
+        GeneratorFixture fixture = fixture(
+                JigsawStudioMode.PLANAR_JIGSAW,
+                dimensions,
+                JigsawStudioVariantCatalog.empty());
+        JigsawStudioBay stale = fixture.layout().get("workcell/end");
+
+        fixture.generator().getSession().replaceLayout(JigsawStudioLayout.create(
+                JigsawStudioMode.PLANAR_JIGSAW,
+                dimensions,
+                JigsawStudioVariantCatalog.empty()));
+
+        assertNotSame(stale, fixture.generator().getLayout().get("workcell/end"));
+        assertTrue(fixture.generator().renderBay(stale).valid());
+        fixture.generator().getSession().replaceLayout(JigsawStudioLayout.create(
+                JigsawStudioMode.PLANAR_JIGSAW,
+                new JigsawStudioCellDimensions(6, 5, 5),
+                JigsawStudioVariantCatalog.empty()));
+        assertThrows(IllegalArgumentException.class, () -> fixture.generator().renderBay(stale));
+    }
+
+    @Test
     public void mapsAllVanillaJigsawOrientations() {
         assertEquals("north_up", JigsawStudioGenerator.orientation(
                 IrisDirection.NORTH_NEGATIVE_Z, IrisDirection.UP_POSITIVE_Y));
@@ -535,9 +549,13 @@ public class JigsawStudioGeneratorTest {
         NativeBlockState lightFloor = mock(NativeBlockState.class);
         NativeBlockState darkFloor = mock(NativeBlockState.class);
         NativeBlockState frame = mock(NativeBlockState.class);
-        NativeBlockState topologyBase = mock(NativeBlockState.class);
-        NativeBlockState topologyPath = mock(NativeBlockState.class);
-        NativeBlockState connectorCap = mock(NativeBlockState.class);
+        JigsawStudioGenerator.FloorPalette palette = new JigsawStudioGenerator.FloorPalette(
+                mock(NativeBlockState.class),
+                mock(NativeBlockState.class),
+                mock(NativeBlockState.class),
+                mock(NativeBlockState.class),
+                mock(NativeBlockState.class),
+                mock(NativeBlockState.class));
         NativeBlockState invalidMarker = mock(NativeBlockState.class);
         NativeBlockState controlChest = mock(NativeBlockState.class);
         JigsawStudioGenerator generator = new JigsawStudioGenerator(
@@ -547,9 +565,7 @@ public class JigsawStudioGeneratorTest {
                 lightFloor,
                 darkFloor,
                 frame,
-                topologyBase,
-                topologyPath,
-                connectorCap,
+                palette,
                 invalidMarker,
                 controlChest,
                 JigsawStudioGeneratorTest::renderFinalState);
@@ -557,10 +573,20 @@ public class JigsawStudioGeneratorTest {
                 generator,
                 layout,
                 frame,
-                topologyBase,
-                topologyPath,
-                connectorCap,
+                palette,
                 controlChest);
+    }
+
+    private static IrisJigsawConnector connector(IrisPosition position, IrisDirection direction) {
+        return new IrisJigsawConnector()
+                .setPosition(position)
+                .setDirection(direction)
+                .setTop(IrisDirection.UP_POSITIVE_Y)
+                .setPool("test/pieces")
+                .setName("iris:planar")
+                .setTargetName("iris:planar")
+                .setJoint(JigsawJoint.ALIGNED)
+                .setFinalState("minecraft:structure_void");
     }
 
     private static JigsawStudioVariant planarVariant(String key, JigsawPlanarTopology topology) {
@@ -596,9 +622,7 @@ public class JigsawStudioGeneratorTest {
             JigsawStudioGenerator generator,
             JigsawStudioLayout layout,
             NativeBlockState frame,
-            NativeBlockState topologyBase,
-            NativeBlockState topologyPath,
-            NativeBlockState connectorCap,
+            JigsawStudioGenerator.FloorPalette palette,
             NativeBlockState controlChest
     ) {
     }

@@ -23,6 +23,7 @@ import art.arcane.iris.structure.authoring.StructureKey;
 import art.arcane.iris.structure.authoring.StructureWriteResult;
 import art.arcane.iris.structure.export.VanillaJigsawExportFormat;
 import art.arcane.iris.structure.export.VanillaJigsawExportRequest;
+import art.arcane.iris.structure.export.VanillaJigsawExportSettings;
 import art.arcane.iris.structure.export.VanillaJigsawExportSource;
 import art.arcane.iris.structure.graph.PlanarJigsawWorkcellResolver;
 import art.arcane.iris.generation.terrain.IrisDimension;
@@ -437,13 +438,14 @@ public class CommandJigsaw implements DirectorExecutor {
         }
         VanillaJigsawExportRequest request;
         try {
-            request = VanillaJigsawExportRequest.builder(
-                            VanillaJigsawExportSource.forData(
-                                    context.request().source(), context.request().structureKey()), destination)
+            VanillaJigsawExportSource source = VanillaJigsawExportSource.forData(
+                    context.request().source(), context.request().structureKey());
+            request = VanillaJigsawExportRequest.builder(source, destination)
                     .namespace(namespace)
                     .resourcePath(context.request().structureKey())
                     .format(exportFormat)
                     .replaceExisting(replace)
+                    .settings(VanillaJigsawExportSettings.runtimeDefaults(source.loadStructure()))
                     .build();
         } catch (IllegalArgumentException exception) {
             sendError(exception.getMessage());

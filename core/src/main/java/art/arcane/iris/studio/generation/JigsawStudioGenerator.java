@@ -1,12 +1,11 @@
 package art.arcane.iris.studio.generation;
 
-import art.arcane.iris.studio.jigsaw.JigsawPlanarDirection;
-import art.arcane.iris.studio.jigsaw.JigsawPlanarTopology;
 import art.arcane.iris.studio.jigsaw.JigsawStudioActivation;
 import art.arcane.iris.studio.jigsaw.JigsawStudioBay;
 import art.arcane.iris.studio.jigsaw.JigsawStudioBounds;
 import art.arcane.iris.studio.jigsaw.JigsawStudioCellDimensions;
 import art.arcane.iris.studio.jigsaw.JigsawStudioControlPosition;
+import art.arcane.iris.studio.jigsaw.JigsawStudioFloorGlyph;
 import art.arcane.iris.studio.jigsaw.JigsawStudioLayout;
 import art.arcane.iris.studio.jigsaw.JigsawStudioSession;
 import art.arcane.iris.studio.jigsaw.JigsawStudioVariant;
@@ -51,9 +50,7 @@ public final class JigsawStudioGenerator extends EnginedStudioGenerator {
     private final NativeBlockState lightFloor;
     private final NativeBlockState darkFloor;
     private final NativeBlockState frame;
-    private final NativeBlockState topologyBase;
-    private final NativeBlockState topologyPath;
-    private final NativeBlockState connectorCap;
+    private final FloorPalette floorPalette;
     private final NativeBlockState invalidMarker;
     private final NativeBlockState controlChest;
     private final FinalStateRenderer finalStateRenderer;
@@ -79,9 +76,13 @@ public final class JigsawStudioGenerator extends EnginedStudioGenerator {
                 B.getState("minecraft:smooth_stone"),
                 B.getState("minecraft:polished_deepslate"),
                 B.getState("minecraft:white_concrete"),
-                B.getState("minecraft:light_gray_wool"),
-                B.getState("minecraft:red_wool"),
-                B.getState("minecraft:sea_lantern"),
+                new FloorPalette(
+                        B.getState("minecraft:light_gray_wool"),
+                        B.getState("minecraft:red_wool"),
+                        B.getState("minecraft:sea_lantern"),
+                        B.getState("minecraft:verdant_froglight"),
+                        B.getState("minecraft:ochre_froglight"),
+                        B.getState("minecraft:pearlescent_froglight")),
                 B.getState("minecraft:red_stained_glass"),
                 B.getState("minecraft:chest[facing=south,type=single,waterlogged=false]"),
                 JigsawStudioGenerator::rotatedFinalState
@@ -95,9 +96,7 @@ public final class JigsawStudioGenerator extends EnginedStudioGenerator {
             NativeBlockState lightFloor,
             NativeBlockState darkFloor,
             NativeBlockState frame,
-            NativeBlockState topologyBase,
-            NativeBlockState topologyPath,
-            NativeBlockState connectorCap,
+            FloorPalette floorPalette,
             NativeBlockState invalidMarker,
             NativeBlockState controlChest,
             FinalStateRenderer finalStateRenderer
@@ -108,9 +107,7 @@ public final class JigsawStudioGenerator extends EnginedStudioGenerator {
         this.lightFloor = Objects.requireNonNull(lightFloor, "Jigsaw Studio light floor block");
         this.darkFloor = Objects.requireNonNull(darkFloor, "Jigsaw Studio dark floor block");
         this.frame = Objects.requireNonNull(frame, "Jigsaw Studio frame block");
-        this.topologyBase = Objects.requireNonNull(topologyBase, "Jigsaw Studio topology base block");
-        this.topologyPath = Objects.requireNonNull(topologyPath, "Jigsaw Studio topology path block");
-        this.connectorCap = Objects.requireNonNull(connectorCap, "Jigsaw Studio connector cap block");
+        this.floorPalette = Objects.requireNonNull(floorPalette, "Jigsaw Studio floor palette");
         this.invalidMarker = Objects.requireNonNull(invalidMarker, "Jigsaw Studio invalid marker block");
         this.controlChest = Objects.requireNonNull(controlChest, "Jigsaw Studio control chest block");
         this.finalStateRenderer = Objects.requireNonNull(
@@ -165,6 +162,21 @@ public final class JigsawStudioGenerator extends EnginedStudioGenerator {
         return renderedBays.computeIfAbsent(key, ignored -> buildRenderedBay(activeWorkcell, variant));
     }
 
+    public JigsawStudioFloorGlyph floorGlyph(JigsawStudioBay workcell) {
+        return glyphFor(renderBay(workcell));
+    }
+
+    public NativeBlockState floorState(JigsawStudioFloorGlyph.Cell cell) {
+        return switch (Objects.requireNonNull(cell, "Jigsaw Studio floor glyph cell")) {
+            case BASE -> floorPalette.base();
+            case LINE -> floorPalette.line();
+            case HORIZONTAL_SOCKET -> floorPalette.horizontalSocket();
+            case UP_SOCKET -> floorPalette.upSocket();
+            case DOWN_SOCKET -> floorPalette.downSocket();
+            case UP_AND_DOWN_SOCKET -> floorPalette.upAndDownSocket();
+        };
+    }
+
     public void invalidateRender(String workcellId) {
         if (workcellId != null) {
             renderedBays.keySet().removeIf(key -> key.workcellId().equals(workcellId));
@@ -215,10 +227,8 @@ public final class JigsawStudioGenerator extends EnginedStudioGenerator {
                 continue;
             }
             paintCage(terrainChunk, workcell, chunkWorldX, chunkWorldZ);
-            if (workcell.archetype().isPresent()) {
-                paintTopologyGlyph(terrainChunk, workcell, chunkWorldX, chunkWorldZ);
-            }
             RenderedBay renderedBay = renderBay(workcell);
+            paintFloorGlyph(terrainChunk, workcell, glyphFor(renderedBay), chunkWorldX, chunkWorldZ);
             if (!renderedBay.valid()) {
                 paintInvalidBay(terrainChunk, workcell, chunkWorldX, chunkWorldZ);
                 continue;
@@ -345,85 +355,44 @@ public final class JigsawStudioGenerator extends EnginedStudioGenerator {
         }
     }
 
-    private void paintTopologyGlyph(
+    private void paintFloorGlyph(
             TerrainChunk terrainChunk,
             JigsawStudioBay workcell,
+            JigsawStudioFloorGlyph glyph,
             int chunkWorldX,
             int chunkWorldZ
     ) {
-        JigsawPlanarTopology topology = workcell.topology().orElseThrow();
         JigsawStudioBounds bounds = workcell.bounds();
         int minimumX = Math.max(bounds.originX(), chunkWorldX);
         int maximumX = Math.min(bounds.maxX(), chunkWorldX + 15);
         int minimumZ = Math.max(bounds.originZ(), chunkWorldZ);
         int maximumZ = Math.min(bounds.maxZ(), chunkWorldZ + 15);
-        if (minimumX > maximumX || minimumZ > maximumZ) {
-            return;
-        }
-        int glyphY = bounds.originY() - 1;
-        int centerX = bounds.dimensions().width() / 2;
-        int centerZ = bounds.dimensions().depth() / 2;
+        int floorY = bounds.originY() - 1;
         for (int worldX = minimumX; worldX <= maximumX; worldX++) {
-            int localX = worldX - bounds.originX();
             for (int worldZ = minimumZ; worldZ <= maximumZ; worldZ++) {
-                int localZ = worldZ - bounds.originZ();
-                NativeBlockState state = topologyGlyphState(topology, bounds.dimensions(), localX, localZ,
-                        centerX, centerZ);
-                setWorldBlock(terrainChunk, worldX, glyphY, worldZ, state, chunkWorldX, chunkWorldZ);
+                NativeBlockState state = floorState(glyph.cell(
+                        worldX - bounds.originX(),
+                        worldZ - bounds.originZ()));
+                setWorldBlock(terrainChunk, worldX, floorY, worldZ, state, chunkWorldX, chunkWorldZ);
             }
         }
     }
 
-    private NativeBlockState topologyGlyphState(
-            JigsawPlanarTopology topology,
-            JigsawStudioCellDimensions dimensions,
-            int localX,
-            int localZ,
-            int centerX,
-            int centerZ
-    ) {
-        if (isConnectorCap(topology, dimensions, localX, localZ, centerX, centerZ)) {
-            return connectorCap;
+    private static JigsawStudioFloorGlyph glyphFor(RenderedBay renderedBay) {
+        if (!renderedBay.valid() || renderedBay.connectors().isEmpty()) {
+            return JigsawStudioFloorGlyph.empty();
         }
-        if (isTopologyPath(topology, localX, localZ, centerX, centerZ)) {
-            return topologyPath;
+        List<JigsawStudioFloorGlyph.Marker> markers = new ArrayList<>(renderedBay.connectors().size());
+        for (RenderedConnector connector : renderedBay.connectors()) {
+            markers.add(new JigsawStudioFloorGlyph.Marker(
+                    connector.x(),
+                    connector.z(),
+                    connector.connector().getDirection()));
         }
-        return topologyBase;
-    }
-
-    static boolean isConnectorCap(
-            JigsawPlanarTopology topology,
-            JigsawStudioCellDimensions dimensions,
-            int localX,
-            int localZ,
-            int centerX,
-            int centerZ
-    ) {
-        return topology.connects(JigsawPlanarDirection.NORTH) && localX == centerX && localZ == 0
-                || topology.connects(JigsawPlanarDirection.EAST)
-                && localX == dimensions.width() - 1 && localZ == centerZ
-                || topology.connects(JigsawPlanarDirection.SOUTH)
-                && localX == centerX && localZ == dimensions.depth() - 1
-                || topology.connects(JigsawPlanarDirection.WEST) && localX == 0 && localZ == centerZ;
-    }
-
-    static boolean isTopologyPath(
-            JigsawPlanarTopology topology,
-            int localX,
-            int localZ,
-            int centerX,
-            int centerZ
-    ) {
-        if (topology == JigsawPlanarTopology.BLANK) {
-            return false;
-        }
-        boolean vertical = localX == centerX
-                && (topology.connects(JigsawPlanarDirection.NORTH) && localZ <= centerZ
-                || topology.connects(JigsawPlanarDirection.SOUTH) && localZ >= centerZ);
-        boolean horizontal = localZ == centerZ
-                && (topology.connects(JigsawPlanarDirection.WEST) && localX <= centerX
-                || topology.connects(JigsawPlanarDirection.EAST) && localX >= centerX);
-        return vertical || horizontal;
+        return JigsawStudioFloorGlyph.of(
+                renderedBay.dimensions().width(),
+                renderedBay.dimensions().depth(),
+                markers);
     }
 
     private RenderedBay buildRenderedBay(JigsawStudioBay workcell, JigsawStudioVariant variant) {
@@ -720,7 +689,7 @@ public final class JigsawStudioGenerator extends EnginedStudioGenerator {
 
     private JigsawStudioBay requireWorkcell(JigsawStudioBay workcell) {
         JigsawStudioBay activeWorkcell = Objects.requireNonNull(workcell, "Jigsaw Studio workcell");
-        if (getLayout().get(activeWorkcell.stableId()) != activeWorkcell) {
+        if (!activeWorkcell.equals(getLayout().get(activeWorkcell.stableId()))) {
             throw new IllegalArgumentException("Workcell does not belong to this Jigsaw Studio layout");
         }
         return activeWorkcell;
@@ -881,6 +850,24 @@ public final class JigsawStudioGenerator extends EnginedStudioGenerator {
 
         public boolean valid() {
             return failure.isEmpty();
+        }
+    }
+
+    public record FloorPalette(
+            NativeBlockState base,
+            NativeBlockState line,
+            NativeBlockState horizontalSocket,
+            NativeBlockState upSocket,
+            NativeBlockState downSocket,
+            NativeBlockState upAndDownSocket
+    ) {
+        public FloorPalette {
+            Objects.requireNonNull(base, "Jigsaw Studio floor base block");
+            Objects.requireNonNull(line, "Jigsaw Studio floor line block");
+            Objects.requireNonNull(horizontalSocket, "Jigsaw Studio horizontal socket block");
+            Objects.requireNonNull(upSocket, "Jigsaw Studio upward socket block");
+            Objects.requireNonNull(downSocket, "Jigsaw Studio downward socket block");
+            Objects.requireNonNull(upAndDownSocket, "Jigsaw Studio vertical socket block");
         }
     }
 

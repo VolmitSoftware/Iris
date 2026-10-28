@@ -40,58 +40,84 @@ final class JigsawStudioChunkWriter {
     private JigsawStudioChunkWriter() {
     }
 
-    static void restoreConnectorChunk(
+    static void restoreChunkPositions(
             World world,
             JigsawStudioBay workcell,
-            List<JigsawStudioGenerator.RenderedConnector> connectors,
+            Set<LocalPosition> positions,
+            Map<LocalPosition, JigsawStudioGenerator.RenderedConnector> renderedConnectors,
             Map<LocalPosition, JigsawStudioGenerator.RenderedBlock> renderedBlocks,
             boolean connectorsVisible
     ) throws IOException {
         JigsawStudioBounds bounds = workcell.bounds();
-        for (JigsawStudioGenerator.RenderedConnector connector : connectors) {
-            LocalPosition position = new LocalPosition(connector.x(), connector.y(), connector.z());
+        BlockData air = null;
+        for (LocalPosition position : positions) {
             Block target = world.getBlockAt(
-                    bounds.originX() + connector.x(),
-                    bounds.originY() + connector.y(),
-                    bounds.originZ() + connector.z());
-            if (connectorsVisible) {
-                BlockData marker;
-                try {
-                    marker = Bukkit.createBlockData(
-                            "minecraft:jigsaw[orientation=" + connector.orientation() + "]");
-                } catch (IllegalArgumentException exception) {
-                    throw new IOException("Invalid saved connector orientation '"
-                            + connector.orientation() + "'", exception);
-                }
-                target.setBlockData(marker, false);
-                BukkitPlatform.deserializeTile(markerNbt(connector.connector()), target.getLocation());
-                continue;
-            }
+                    bounds.originX() + position.x(),
+                    bounds.originY() + position.y(),
+                    bounds.originZ() + position.z());
+            JigsawStudioGenerator.RenderedConnector connector = renderedConnectors.get(position);
             JigsawStudioGenerator.RenderedBlock renderedBlock = renderedBlocks.get(position);
-            BlockData restored;
-            if (renderedBlock != null) {
-                if (renderedBlock.state().isCustom()
-                        || !(renderedBlock.state().nativeHandle() instanceof BlockData blockData)) {
-                    throw new IOException("Saved connector block '" + renderedBlock.state().key()
-                            + "' cannot be restored directly in Bukkit Studio");
-                }
-                restored = blockData;
+            if (connector != null) {
+                restoreConnector(target, connector, renderedBlock, connectorsVisible);
+            } else if (renderedBlock != null) {
+                restoreRenderedBlock(target, renderedBlock);
             } else {
-                try {
-                    restored = Bukkit.createBlockData(connector.connector().getFinalState());
-                } catch (IllegalArgumentException exception) {
-                    throw new IOException("Invalid saved connector final state '"
-                            + connector.connector().getFinalState() + "'", exception);
+                if (air == null) {
+                    air = Material.AIR.createBlockData();
                 }
+                target.setBlockData(air, false);
             }
-            target.setBlockData(restored, false);
-            if (renderedBlock != null && renderedBlock.tileData() != null) {
-                TileData tileData = renderedBlock.tileData();
-                if (!tileData.isApplicable(target.getBlockData()) || !tileData.toBukkitTry(target)) {
-                    throw new IOException("Saved connector tile data could not be restored at "
-                            + target.getX() + "," + target.getY() + "," + target.getZ());
-                }
+        }
+    }
+
+    private static void restoreConnector(
+            Block target,
+            JigsawStudioGenerator.RenderedConnector connector,
+            JigsawStudioGenerator.RenderedBlock renderedBlock,
+            boolean connectorsVisible
+    ) throws IOException {
+        if (connectorsVisible) {
+            BlockData marker;
+            try {
+                marker = Bukkit.createBlockData(
+                        "minecraft:jigsaw[orientation=" + connector.orientation() + "]");
+            } catch (IllegalArgumentException exception) {
+                throw new IOException("Invalid saved connector orientation '"
+                        + connector.orientation() + "'", exception);
             }
+            target.setBlockData(marker, false);
+            BukkitPlatform.deserializeTile(markerNbt(connector.connector()), target.getLocation());
+            return;
+        }
+        if (renderedBlock != null) {
+            restoreRenderedBlock(target, renderedBlock);
+            return;
+        }
+        BlockData restored;
+        try {
+            restored = Bukkit.createBlockData(connector.connector().getFinalState());
+        } catch (IllegalArgumentException exception) {
+            throw new IOException("Invalid saved connector final state '"
+                    + connector.connector().getFinalState() + "'", exception);
+        }
+        target.setBlockData(restored, false);
+    }
+
+    private static void restoreRenderedBlock(
+            Block target,
+            JigsawStudioGenerator.RenderedBlock renderedBlock
+    ) throws IOException {
+        if (renderedBlock.state().isCustom()
+                || !(renderedBlock.state().nativeHandle() instanceof BlockData blockData)) {
+            throw new IOException("Saved block '" + renderedBlock.state().key()
+                    + "' cannot be restored directly in Bukkit Studio");
+        }
+        target.setBlockData(blockData, false);
+        TileData tileData = renderedBlock.tileData();
+        if (tileData != null
+                && (!tileData.isApplicable(target.getBlockData()) || !tileData.toBukkitTry(target))) {
+            throw new IOException("Saved tile data could not be restored at "
+                    + target.getX() + "," + target.getY() + "," + target.getZ());
         }
     }
 

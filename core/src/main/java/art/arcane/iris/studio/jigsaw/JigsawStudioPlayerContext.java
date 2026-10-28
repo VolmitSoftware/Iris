@@ -59,7 +59,7 @@ final class JigsawStudioPlayerContext {
             return;
         }
         JigsawStudioSession session = studio.generator().getSession();
-        JigsawStudioBay workcell = session.layout().findAt(
+        JigsawStudioBay workcell = session.layout().findColumn(
                 target.getBlockX(), target.getBlockY(), target.getBlockZ());
         boolean owner = ownerMatches(player, studio);
         selectEnteredWorkcell(session, workcell, owner);

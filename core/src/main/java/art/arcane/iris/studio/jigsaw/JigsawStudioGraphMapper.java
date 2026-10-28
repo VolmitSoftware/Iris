@@ -44,13 +44,7 @@ public final class JigsawStudioGraphMapper {
                 ? JigsawStudioMode.PLANAR_JIGSAW
                 : JigsawStudioMode.SPATIAL_JIGSAW;
         JigsawStudioVariantCatalog catalog = catalog(data, structure, mode);
-        IrisPosition configuredCell = structure.getCellSize();
-        JigsawStudioCellDimensions dimensions = configuredCell == null
-                ? new JigsawStudioCellDimensions(15, 15, 15)
-                : new JigsawStudioCellDimensions(
-                        Math.max(1, configuredCell.getX()),
-                        Math.max(1, configuredCell.getY()),
-                        Math.max(1, configuredCell.getZ()));
+        JigsawStudioCellDimensions dimensions = configuredCellDimensions(structure);
         if (mode == JigsawStudioMode.SPATIAL_JIGSAW) {
             dimensions = expandSpatialDimensions(data, catalog, dimensions);
             return JigsawStudioLayout.createSpatial(
@@ -129,26 +123,54 @@ public final class JigsawStudioGraphMapper {
         if (data.getObjectLoader() == null) {
             return configured;
         }
-        int width = configured.width();
-        int height = configured.height();
-        int depth = configured.depth();
+        SpatialExtent extent = SpatialExtent.of(configured);
         for (JigsawStudioVariant variant : catalog.spatialVariants()) {
             IrisObject object = data.getObjectLoader().load(variant.objectKey());
-            if (object == null) {
+            if (object != null) {
+                extent = extent.include(object.getW(), object.getH(), object.getD(), variant.rotatable());
+            }
+        }
+        return new JigsawStudioCellDimensions((int) extent.width(), (int) extent.height(), (int) extent.depth());
+    }
+
+    static JigsawStudioCellDimensions configuredCellDimensions(IrisStructure structure) {
+        IrisPosition configuredCell = structure.getCellSize();
+        return configuredCell == null
+                ? new JigsawStudioCellDimensions(15, 15, 15)
+                : new JigsawStudioCellDimensions(
+                        Math.max(1, configuredCell.getX()),
+                        Math.max(1, configuredCell.getY()),
+                        Math.max(1, configuredCell.getZ()));
+    }
+
+    static String spatialFootprintFailure(
+            IrisData data,
+            JigsawStudioCellDimensions configured,
+            JigsawStudioVariantCatalog catalog,
+            SpatialChange change
+    ) {
+        SpatialExtent extent = SpatialExtent.of(configured);
+        for (JigsawStudioVariant variant : catalog.spatialVariants()) {
+            if (variant.pieceKey().equals(change.pieceKey())) {
                 continue;
             }
-            int objectWidth = object.getW();
-            int objectDepth = object.getD();
-            if (variant.rotatable()) {
-                int horizontalSpan = Math.max(objectWidth, objectDepth);
-                objectWidth = horizontalSpan;
-                objectDepth = horizontalSpan;
+            IrisObject object = data.getObjectLoader() == null ? null : data.getObjectLoader().load(variant.objectKey());
+            if (object != null) {
+                extent = extent.include(object.getW(), object.getH(), object.getD(), variant.rotatable());
             }
-            width = Math.max(width, objectWidth);
-            height = Math.max(height, object.getH());
-            depth = Math.max(depth, objectDepth);
         }
-        return new JigsawStudioCellDimensions(width, height, depth);
+        JigsawStudioCellDimensions changed = change.dimensions();
+        extent = extent.include(changed.width(), changed.height(), changed.depth(), change.rotatable());
+        long volume = extent.width() * extent.height() * extent.depth();
+        if (extent.width() <= JigsawStudioCellDimensions.MAX_HORIZONTAL_AXIS
+                && extent.depth() <= JigsawStudioCellDimensions.MAX_HORIZONTAL_AXIS
+                && extent.height() <= JigsawStudioCellDimensions.MAX_HEIGHT
+                && volume <= JigsawStudioCellDimensions.MAX_VOLUME) {
+            return "";
+        }
+        return "Spatial workcells would grow to " + extent.width() + "x" + extent.height() + "x" + extent.depth()
+                + " (" + volume + " blocks), past the " + JigsawStudioCellDimensions.MAX_VOLUME
+                + "-block workcell limit. Make this variant smaller or keep rotation disabled.";
     }
 
     private static void traversePools(
@@ -376,6 +398,27 @@ public final class JigsawStudioGraphMapper {
 
         private static OwnedResources empty() {
             return new OwnedResources(Set.of(), Set.of(), Set.of(), false);
+        }
+    }
+
+    record SpatialChange(String pieceKey, JigsawStudioCellDimensions dimensions, boolean rotatable) {
+        SpatialChange {
+            Objects.requireNonNull(pieceKey, "Spatial change piece key");
+            Objects.requireNonNull(dimensions, "Spatial change dimensions");
+        }
+    }
+
+    private record SpatialExtent(long width, long height, long depth) {
+        static SpatialExtent of(JigsawStudioCellDimensions dimensions) {
+            return new SpatialExtent(dimensions.width(), dimensions.height(), dimensions.depth());
+        }
+
+        SpatialExtent include(int objectWidth, int objectHeight, int objectDepth, boolean rotatable) {
+            int horizontalSpan = Math.max(objectWidth, objectDepth);
+            return new SpatialExtent(
+                    Math.max(width, rotatable ? horizontalSpan : objectWidth),
+                    Math.max(height, objectHeight),
+                    Math.max(depth, rotatable ? horizontalSpan : objectDepth));
         }
     }
 }

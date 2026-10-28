@@ -106,6 +106,9 @@ final class JigsawStudioToolboxMenu {
         UUID requestId = menu.requestId();
         List<ToolboxTool> tools = new ArrayList<>();
         tools.add(new ToolboxTool(
+                "Connector Tool",
+                JigsawStudioToolPayload.request(JigsawStudioToolAction.CONNECTOR_TOOL, requestId)));
+        tools.add(new ToolboxTool(
                 "Open Control Menu",
                 JigsawStudioToolPayload.request(JigsawStudioToolAction.OPEN_MENU, requestId)));
         tools.add(new ToolboxTool(
@@ -216,6 +219,15 @@ final class JigsawStudioToolboxMenu {
                                 selected.stableId(),
                                 active.pieceKey())));
             }
+            if (menu.mode() == JigsawStudioMode.SPATIAL_JIGSAW && menu.canDeleteVariant(selected, active)) {
+                tools.add(new ToolboxTool(
+                        "Delete " + active.displayName(),
+                        JigsawStudioToolPayload.variant(
+                                JigsawStudioToolAction.DELETE_VARIANT,
+                                requestId,
+                                selected.stableId(),
+                                active.pieceKey())));
+            }
             if (active.owned()) {
                 for (JigsawStudioMenuState.Membership membership : active.memberships()) {
                     addMembershipTools(
@@ -255,7 +267,7 @@ final class JigsawStudioToolboxMenu {
                                 selected.stableId(),
                                 variant.pieceKey())));
             }
-            if (variant.owned() && selected.variants().size() > 1) {
+            if (menu.canDeleteVariant(selected, variant)) {
                 tools.add(new ToolboxTool(
                         "Delete " + variant.displayName(),
                         JigsawStudioToolPayload.variant(

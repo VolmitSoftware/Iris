@@ -114,10 +114,6 @@ final class JigsawStudioWorkcellEditor {
             message(player, "Connector blocks cannot reset: " + validationFailure);
             return false;
         }
-        if (rendered.connectors().isEmpty()) {
-            message(player, "The active variant has no saved connectors to reset.");
-            return false;
-        }
         String reservationFailure = service.materializer.beginConnectorRepair(studio);
         if (!reservationFailure.isEmpty()) {
             message(player, reservationFailure);
@@ -125,7 +121,7 @@ final class JigsawStudioWorkcellEditor {
         }
         boolean connectorsVisible = session.workcellSnapshot(workcellId).connectorsVisible();
         message(player, "Resetting " + rendered.connectors().size()
-                + " connector block(s) from the last saved iteration...");
+                + " connector block(s) from the last saved iteration and clearing unsaved markers...");
         return service.materializer.scheduleConnectorRepair(
                 player,
                 studio,
@@ -382,6 +378,16 @@ final class JigsawStudioWorkcellEditor {
         if (workcell == null) {
             message(player, "Unknown Jigsaw Studio workcell '" + workcellId + "'.");
             return false;
+        }
+        JigsawStudioVariant spatialVariant = workcell.archetype().isPresent()
+                ? null
+                : session.activeVariant(workcellId).orElse(null);
+        if (spatialVariant != null) {
+            return service.variantProperties.updateVariantDisplayName(
+                    player,
+                    workcellId,
+                    spatialVariant.pieceKey(),
+                    displayName);
         }
         String normalizedName;
         try {

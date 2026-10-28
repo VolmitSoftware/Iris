@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -35,6 +36,9 @@ final class JigsawStudioVisualization {
     private static final Color VALID_CONNECTOR_COLOR = Color.LIME;
     private static final Color ASSEMBLY_PREVIEW_COLOR = Color.fromRGB(180, 90, 255);
     private static final Color LIVE_PREVIEW_WARNING_COLOR = Color.fromRGB(255, 180, 55);
+    private static final Color TOOL_SELECTED_COLOR = Color.YELLOW;
+    private static final Color TOOL_PLACE_COLOR = Color.WHITE;
+    private static final Color TOOL_EXISTING_COLOR = Color.ORANGE;
     private static final long ASSEMBLY_PREVIEW_MILLIS = 10_000L;
 
     private final JigsawStudioService service;
@@ -124,7 +128,7 @@ final class JigsawStudioVisualization {
         JigsawStudioSession session = studio.generator().getSession();
         JigsawStudioLayout layout = session.layout();
         Location playerLocation = player.getLocation();
-        JigsawStudioBay focused = layout.findAt(
+        JigsawStudioBay focused = layout.findColumn(
                 playerLocation.getBlockX(),
                 playerLocation.getBlockY(),
                 playerLocation.getBlockZ());
@@ -134,6 +138,7 @@ final class JigsawStudioVisualization {
             drawConnectors(player, playerLocation, studio, focused, budget);
             drawBounds(player, playerLocation, focused.bounds(), focusedColor, 1.15F, 1.0D, budget);
         }
+        drawConnectorToolFeedback(player, playerLocation, studio, budget);
         drawLivePreview(player, playerLocation, studio, budget);
         drawAssemblyPreview(player, playerLocation, budget);
         for (JigsawStudioBay bay : layout.bays()) {
@@ -146,6 +151,57 @@ final class JigsawStudioVisualization {
                 return;
             }
         }
+    }
+
+    private void drawConnectorToolFeedback(
+            Player player,
+            Location playerLocation,
+            ActiveStudio studio,
+            ParticleBudget budget
+    ) {
+        UUID requestId = studio.generator().getRequest().requestId();
+        boolean holdingTool = service.toolbelt.toolCodec.decode(player.getInventory().getItemInMainHand())
+                .filter(payload -> payload.action() == JigsawStudioToolAction.CONNECTOR_TOOL
+                        && payload.requestId().equals(requestId))
+                .isPresent();
+        Optional<JigsawStudioConnectorTool.Feedback> feedback =
+                service.connectorTool.feedback(player, studio, holdingTool);
+        if (feedback.isEmpty()) {
+            return;
+        }
+        feedback.get().selected().ifPresent(cell ->
+                drawCell(player, playerLocation, cell, TOOL_SELECTED_COLOR, budget));
+        feedback.get().hover().ifPresent(hover -> {
+            Color color = hover.existingConnector() ? TOOL_EXISTING_COLOR : TOOL_PLACE_COLOR;
+            drawCell(player, playerLocation, hover.cell(), color, budget);
+            drawConnectorLine(
+                    player,
+                    playerLocation,
+                    hover.cell().x() + 0.5D,
+                    hover.cell().y() + 0.5D,
+                    hover.cell().z() + 0.5D,
+                    hover.facing(),
+                    color,
+                    budget);
+        });
+    }
+
+    private static void drawCell(
+            Player player,
+            Location playerLocation,
+            JigsawStudioConnectorPlacement.Cell cell,
+            Color color,
+            ParticleBudget budget
+    ) {
+        drawBounds(
+                player,
+                playerLocation,
+                new JigsawStudioPreviewRenderer.PreviewBounds(
+                        cell.x(), cell.y(), cell.z(), cell.x(), cell.y(), cell.z()),
+                color,
+                0.75F,
+                0.25D,
+                budget);
     }
 
     private void drawLivePreview(

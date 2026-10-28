@@ -18,6 +18,7 @@ import art.arcane.iris.structure.object.IrisObject;
 import art.arcane.iris.studio.generation.JigsawStudioGenerator;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.world.task.J;
+import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 
@@ -122,7 +123,7 @@ final class JigsawStudioCaptureScheduler {
             }
             coordinator.accept(snapshot);
         } catch (Throwable exception) {
-            coordinator.fail("Jigsaw Studio capture failed in chunk "
+            coordinator.failPersistent("Jigsaw Studio capture failed in chunk "
                     + area.chunkX() + "," + area.chunkZ() + ": " + failureMessage(exception), exception);
         }
     }
@@ -219,7 +220,7 @@ final class JigsawStudioCaptureScheduler {
             if (!result.successful()) {
                 String failure = writeFailure(result);
                 coordinator.recordPersistentFailure(failure, result.failure().orElse(null));
-                message(player, failure);
+                message(coordinator.notifiedPlayer(), failure);
                 return;
             }
             source.invalidateStructureResources();
@@ -234,13 +235,14 @@ final class JigsawStudioCaptureScheduler {
                         + "Close and reopen this project before continuing: "
                         + failureMessage(refreshFailure));
             }
+            service.floorPainter.refresh(studio, bay.stableId());
             String cleanup = result.status() == StructureWriteResult.Status.COMMITTED_CLEANUP_REQUIRED
                     ? " The graph committed, but transaction cleanup requires operator attention in the console."
                     : "";
             String mutationNotice = unchanged ? "" : " Newer edits remain unsaved.";
             message(player, "Saved piece '" + coordinator.saveIdentity().variantKey() + "' and object '"
                     + assembly.objectKey() + "' atomically." + mutationNotice + cleanup);
-            playSaveSound(player);
+            playSaveSound(coordinator.notifiedPlayer());
             if (unchanged) {
                 service.evaluator.scheduleEvaluation(studio);
             }
@@ -250,10 +252,17 @@ final class JigsawStudioCaptureScheduler {
         } catch (Throwable exception) {
             String failure = "Jigsaw Studio save failed: " + failureMessage(exception);
             coordinator.recordPersistentFailure(failure, exception);
-            message(player, failure);
+            message(coordinator.notifiedPlayer(), failure);
         } finally {
             coordinator.complete();
         }
+    }
+
+    static Player notificationTarget(Player player, UUID ownerId) {
+        if (player != null || ownerId == null) {
+            return player;
+        }
+        return Bukkit.getPlayer(ownerId);
     }
 
     static Set<Long> requiredChunks(
@@ -368,6 +377,10 @@ final class JigsawStudioCaptureScheduler {
             return work.player();
         }
 
+        private Player notifiedPlayer() {
+            return notificationTarget(work.player(), work.studio().generator().getRequest().ownerId());
+        }
+
         private UUID requestId() {
             return work.requestId();
         }
@@ -427,7 +440,7 @@ final class JigsawStudioCaptureScheduler {
             }
             recordPersistentFailure(failure, exception);
             complete();
-            message(player(), failure);
+            message(notifiedPlayer(), failure);
         }
 
         private void recordPersistentFailure(String failure, Throwable exception) {

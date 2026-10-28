@@ -129,6 +129,11 @@ final class JigsawStudioResourceBundleAssembler {
         return new Assembly(bundle.build(), objectKey, piece, StructureHash.sha256(manifestContent));
     }
 
+    static byte[] ownedResourceContent(Path packRoot, String relativePath) throws IOException {
+        Path root = Objects.requireNonNull(packRoot, "Jigsaw Studio pack root").toAbsolutePath().normalize();
+        return Files.readAllBytes(resolveOwnedResource(root, relativePath));
+    }
+
     private static Set<String> resourcePaths(StructurePackageClosure closure) {
         Set<String> resources = new LinkedHashSet<>();
         addPaths(resources, "structures", closure.structures(), ".json");

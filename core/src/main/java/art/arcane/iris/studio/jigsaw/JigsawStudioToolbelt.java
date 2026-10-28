@@ -29,6 +29,7 @@ import static art.arcane.iris.studio.jigsaw.JigsawStudioVariantProperties.canRes
 
 final class JigsawStudioToolbelt {
     private static final long TOOL_CONFIRM_NANOS = 10_000_000_000L;
+    private static final long TOOL_CONFIRM_MINIMUM_NANOS = 500_000_000L;
 
     private final JigsawStudioService service;
     final Map<UUID, DeferredDuplication> deferredDuplications = new ConcurrentHashMap<>();
@@ -184,13 +185,27 @@ final class JigsawStudioToolbelt {
             message(player, "This Jigsaw Studio tool is stale or belongs to another session.");
             return false;
         }
-        if (payload.action().destructive() && !confirmTool(player, payload)) {
-            message(player, "Right-click the same tool again within 10 seconds to confirm "
-                    + payload.action().displayName() + ".");
-            return true;
+        if (payload.action().destructive()) {
+            ToolConfirmationState confirmation = confirmTool(player, payload);
+            if (confirmation == ToolConfirmationState.ARMED) {
+                message(player, "Right-click the same tool again within 10 seconds to confirm "
+                        + payload.action().displayName() + ".");
+                return true;
+            }
+            if (confirmation == ToolConfirmationState.HELD) {
+                return true;
+            }
+        }
+        if (requiresBoundVariant(payload) && activeOwnedVariant(
+                player,
+                studio,
+                payload.workcellId(),
+                payload.pieceKey()) == null) {
+            return false;
         }
         return switch (payload.action()) {
             case OPEN_MENU -> openControlMenu(player);
+            case CONNECTOR_TOOL -> service.connectorTool.handleClick(player, payload, false, null, null);
             case SELECT_WORKCELL -> selectWorkcell(player, payload.workcellId());
             case LOAD_VARIANT -> service.variantEditor.switchVariant(
                     player,
@@ -349,19 +364,40 @@ final class JigsawStudioToolbelt {
         return state.isPresent() && service.workcellEditor.setRequireCaps(player, !state.get().requireCaps());
     }
 
-    private boolean confirmTool(Player player, JigsawStudioToolPayload payload) {
+    private ToolConfirmationState confirmTool(Player player, JigsawStudioToolPayload payload) {
         long now = System.nanoTime();
         ToolConfirmation previous = toolConfirmations.get(player.getUniqueId());
-        if (previous != null
-                && previous.expiresAtNanos() >= now
-                && previous.payload().equals(payload)) {
+        ToolConfirmationState state = confirmationState(previous, payload, now);
+        if (state == ToolConfirmationState.CONFIRMED) {
             toolConfirmations.remove(player.getUniqueId(), previous);
-            return true;
+        } else if (state == ToolConfirmationState.ARMED) {
+            toolConfirmations.put(
+                    player.getUniqueId(),
+                    new ToolConfirmation(payload, now, now + TOOL_CONFIRM_NANOS));
         }
-        toolConfirmations.put(
-                player.getUniqueId(),
-                new ToolConfirmation(payload, now + TOOL_CONFIRM_NANOS));
-        return false;
+        return state;
+    }
+
+    static ToolConfirmationState confirmationState(
+            ToolConfirmation previous,
+            JigsawStudioToolPayload payload,
+            long nowNanos
+    ) {
+        if (previous == null
+                || previous.expiresAtNanos() < nowNanos
+                || !previous.payload().equals(payload)) {
+            return ToolConfirmationState.ARMED;
+        }
+        return nowNanos - previous.armedAtNanos() < TOOL_CONFIRM_MINIMUM_NANOS
+                ? ToolConfirmationState.HELD
+                : ToolConfirmationState.CONFIRMED;
+    }
+
+    static boolean requiresBoundVariant(JigsawStudioToolPayload payload) {
+        return !payload.pieceKey().isEmpty() && switch (payload.action()) {
+            case DUPLICATE_VARIANT, TOGGLE_ROTATION, EXPAND_TO_CELL -> true;
+            default -> false;
+        };
     }
 
     JigsawStudioVariant activeOwnedVariant(
@@ -677,7 +713,13 @@ final class JigsawStudioToolbelt {
         }
     }
 
-    record ToolConfirmation(JigsawStudioToolPayload payload, long expiresAtNanos) {
+    enum ToolConfirmationState {
+        ARMED,
+        HELD,
+        CONFIRMED
+    }
+
+    record ToolConfirmation(JigsawStudioToolPayload payload, long armedAtNanos, long expiresAtNanos) {
         ToolConfirmation {
             Objects.requireNonNull(payload, "Jigsaw Studio tool confirmation payload");
         }

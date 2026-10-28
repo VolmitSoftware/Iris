@@ -34,7 +34,7 @@ public class JigsawStudioPersistenceIdentityTest {
     private static final String PIECE_POOL_KEY = "studio/identity/pieces";
     private static final String RECORDED_AT_FIELD = "recordedAtEpochMilli";
     private static final String SCRIPTED_SESSION_DIGEST =
-            "318d9338a63a44063c85e59a9e74f869473d6e0f15c362536172f7723d960faa";
+            "42b5d3bed8d74b2ef7a010a58302544d0d425c83faba0dc86efb0e41e69ba627";
 
     @Rule
     public final TemporaryFolder temporaryFolder = new TemporaryFolder();

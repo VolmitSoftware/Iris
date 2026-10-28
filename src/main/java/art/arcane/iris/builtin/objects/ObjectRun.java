@@ -110,7 +110,8 @@ public final class ObjectRun {
             object = objects.smartBored(object);
         }
         PlacementRequest request = new PlacementRequest(object.geometry(), new BlockPosition(x, requestedY, z));
-        return new PlacementRun(request, area(), terrain, this, placementSeed(worldSeed));
+        return new PlacementRun(request, object.name(), Optional.ofNullable(settings.json()), area(), terrain, this,
+                placementSeed(worldSeed));
     }
 
     public PlaceableObject object() {

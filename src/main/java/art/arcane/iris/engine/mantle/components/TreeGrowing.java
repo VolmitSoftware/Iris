@@ -38,6 +38,7 @@ import com.volmit.object.BlockEntityData;
 import com.volmit.object.PlaceableObject;
 import com.volmit.placement.PlacedBlock;
 import com.volmit.placement.PlacedMarker;
+import com.volmit.placement.PlacementRecord;
 import com.volmit.placement.PlacementTerrain;
 import com.volmit.placement.StructureVolumes;
 import com.volmit.resource.ResourceId;
@@ -242,11 +243,11 @@ public final class TreeGrowing implements SaplingGrowth {
         }
 
         @Override
-        public void recordPlacement(int x, int y, int z, String placement) {
+        public void recordPlacement(int x, int y, int z, PlacementRecord placement) {
         }
 
         @Override
-        public Optional<String> placementAt(int x, int y, int z) {
+        public Optional<PlacementRecord> placementAt(int x, int y, int z) {
             return Optional.empty();
         }
 

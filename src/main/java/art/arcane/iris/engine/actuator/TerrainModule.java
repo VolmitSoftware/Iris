@@ -36,6 +36,7 @@ import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
 import com.volmit.ModuleLifecycle;
 import com.volmit.ModuleSetup;
+import com.volmit.service.ProtectedFloor;
 import com.volmit.stage.ChunkStageContext;
 import com.volmit.world.PackWorld;
 
@@ -63,7 +64,13 @@ public final class TerrainModule implements IrisModule, ModuleLifecycle {
                 WallSettings.class, LockLayersSettings.class, LockLayersMaxSettings.class, RockPaletteSettings.class, FluidPaletteSettings.class,
                 OreSettings.class, HideOresSettings.class, BedrockSettings.class, ExplodeBiomePalettesSettings.class,
                 ExplodeBiomePaletteSizeSettings.class);
+        registry.registerService(ProtectedFloor.class, TerrainModule::protectsFloor);
         registry.registerLifecycle(this);
+    }
+
+    /** The bedrock row belongs to the terrain while the dimension has bedrock, as it does unless the pack says otherwise. */
+    private static boolean protectsFloor(PackWorld world) {
+        return world.settings().declared(BedrockSettings.class).dimension().map(BedrockSettings::bedrock).orElse(true);
     }
 
     @Override

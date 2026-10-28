@@ -31,6 +31,7 @@ import com.volmit.world.PackWorld;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.OptionalLong;
 
 /**
  * How {@code iris:loot} fills containers: the tables of the object placed around a container, then those of the
@@ -76,6 +77,12 @@ public final class LootGiving implements Loot {
         int worldY = site.position().y() + world.minWorldY();
         return new LootItems(world.resources().items(), site.debug(), world.log())
                 .draw(tableId.path(), table, lootSeed(world), site.position().x(), worldY, site.position().z());
+    }
+
+    @Override
+    public OptionalLong shuffleSeed(PackWorld world, Site site) {
+        int worldY = site.position().y() + world.minWorldY();
+        return OptionalLong.of(LootResolver.containerSeed(lootSeed(world), site.position().x(), worldY, site.position().z()));
     }
 
     private static PlacementLoot placementLoot(PackWorld world) {

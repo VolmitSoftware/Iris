@@ -18,9 +18,9 @@
 
 package art.arcane.iris.modules.placement;
 
-import art.arcane.iris.builtin.structure.StructurePlacementMarker;
 import art.arcane.iris.modules.blocks.SmartBoreDebugSettings;
 import com.volmit.placement.PlacementContext;
+import com.volmit.placement.PlacementRecord;
 import com.volmit.placement.PlacementTerrain;
 import com.volmit.placement.StructureVolumes;
 import com.volmit.resource.ResourceId;
@@ -115,15 +115,9 @@ public final class StageTerrain {
 
     /** The pack object placed at the block; empty when none was, or when a procedural object was. */
     public Optional<ResourceId> objectAt(int x, int y, int z) {
-        Optional<String> recorded = terrain.placementAt(x, y, z);
-        if (recorded.isEmpty()) {
-            return Optional.empty();
-        }
-        StructurePlacementMarker.Decoded marker = StructurePlacementMarker.decode(recorded.get());
-        if (marker == null || marker.objectKey().startsWith(PROCEDURAL_PREFIX)) {
-            return Optional.empty();
-        }
-        return Optional.of(context.world().resources().idOf(marker.objectKey()));
+        return terrain.placementAt(x, y, z)
+                .map(PlacementRecord::object)
+                .filter(object -> !object.path().startsWith(PROCEDURAL_PREFIX));
     }
 
     private TerrainSampler sampler() {

@@ -23,10 +23,11 @@ import art.arcane.iris.builtin.loot.ObjectVanillaLoot;
 import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.builtin.objects.ObjectSettings;
 import art.arcane.iris.builtin.structure.StructureHost;
-import art.arcane.iris.builtin.structure.StructurePlacementMarker;
 import com.volmit.config.Level;
 import com.volmit.config.SettingsStack;
+import com.volmit.placement.PlacementRecord;
 import com.volmit.resource.PackResources;
+import com.volmit.resource.ResourceId;
 import com.volmit.world.PackWorld;
 import com.volmit.world.RunningWorld;
 
@@ -68,39 +69,39 @@ final class PlacedObjectLoot {
     /** The loot of the object placed at the block; empty when no object placement covers the block. Y is above the dimension's bottom. */
     static Optional<ObjectLoots> at(PackWorld world, int x, int y, int z) {
         RunningWorld running = world.running().orElseThrow();
-        Optional<StructurePlacementMarker.Decoded> marker = running.placementAt(x, y, z).map(StructurePlacementMarker::decode);
-        if (marker.isEmpty() || marker.get().objectKey().startsWith(PROCEDURAL_PREFIX)) {
+        Optional<PlacementRecord> recorded = running.placementAt(x, y, z);
+        if (recorded.isEmpty() || recorded.get().object().path().startsWith(PROCEDURAL_PREFIX)) {
             return Optional.empty();
         }
-        String objectKey = marker.get().objectKey();
-        Optional<ObjectPlacement> placement = marker.get().structureAware()
-                ? structurePlacement(world, marker.get().structureKey(), objectKey)
-                : columnPlacement(running.settings().at(ObjectSettings.class, x, z), objectKey);
+        ResourceId object = recorded.get().object();
+        Optional<ObjectPlacement> placement = recorded.get().structure().isPresent()
+                ? structurePlacement(world, recorded.get().structure().get(), object)
+                : columnPlacement(world.resources(), running.settings().at(ObjectSettings.class, x, z), object);
         return placement.map(found -> new ObjectLoots(found.loot(), found.vanillaLoot(), found.overrideGlobalLoot()));
     }
 
     /** A structure piece's object gives every table its structure names, each once. */
-    private static Optional<ObjectPlacement> structurePlacement(PackWorld world, String structureKey, String objectKey) {
-        Optional<List<String>> tables = world.extension(StructureHost.class).orElseThrow().lootTables(structureKey);
-        PackResources resources = world.resources();
-        if (tables.isEmpty() || resources.objects().object(resources.idOf(objectKey)).isEmpty()) {
+    private static Optional<ObjectPlacement> structurePlacement(PackWorld world, ResourceId structure, ResourceId object) {
+        Optional<List<String>> tables = world.extension(StructureHost.class).orElseThrow().lootTables(structure);
+        if (tables.isEmpty() || world.resources().objects().object(object).isEmpty()) {
             return Optional.empty();
         }
         List<ObjectLoot> loot = new ArrayList<>();
         for (String table : tables.get()) {
             loot.add(new ObjectLoot(table, STRUCTURE_TABLE_WEIGHT));
         }
-        return Optional.of(ObjectPlacement.builder().place(List.of(objectKey)).loot(loot).build());
+        return Optional.of(ObjectPlacement.builder().place(List.of(object.path())).loot(loot).build());
     }
 
-    private static Optional<ObjectPlacement> columnPlacement(SettingsStack<ObjectSettings> declared, String objectKey) {
-        Optional<ObjectPlacement> fromRegion = declared.level(Level.REGION).flatMap(settings -> placing(settings, objectKey));
-        return fromRegion.isPresent() ? fromRegion : declared.level(Level.BIOME).flatMap(settings -> placing(settings, objectKey));
+    private static Optional<ObjectPlacement> columnPlacement(PackResources resources, SettingsStack<ObjectSettings> declared,
+                                                             ResourceId object) {
+        Optional<ObjectPlacement> fromRegion = declared.level(Level.REGION).flatMap(settings -> placing(resources, settings, object));
+        return fromRegion.isPresent() ? fromRegion : declared.level(Level.BIOME).flatMap(settings -> placing(resources, settings, object));
     }
 
-    private static Optional<ObjectPlacement> placing(ObjectSettings settings, String objectKey) {
+    private static Optional<ObjectPlacement> placing(PackResources resources, ObjectSettings settings, ResourceId object) {
         return settings.objects().stream()
-                .filter(placement -> placement.place().contains(objectKey))
+                .filter(placement -> placement.place().stream().anyMatch(key -> resources.idOf(key).equals(object)))
                 .findFirst();
     }
 }

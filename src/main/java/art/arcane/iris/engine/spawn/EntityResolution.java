@@ -21,7 +21,6 @@ package art.arcane.iris.engine.spawn;
 import art.arcane.iris.builtin.loot.LootEntry;
 import art.arcane.iris.builtin.spawn.AmbientEffect;
 import art.arcane.iris.builtin.spawn.EntityDefinition;
-import art.arcane.iris.builtin.spawn.IrisEntityExtras;
 import art.arcane.iris.builtin.spawn.SpawnCommand;
 import art.arcane.iris.builtin.loot.LootResolver;
 import art.arcane.iris.engine.loot.LootItems;
@@ -88,7 +87,7 @@ final class EntityResolution {
 
         return typeOf(entity).map(type -> new EntitySpec(type, appearanceOf(entity), behaviourOf(entity), equipment, attributes,
                 new EntitySpec.Company(passengers, leashHolder), new EntitySpec.Drops(lootTables, lootShuffleSeed),
-                new EntitySpec.Arrival(spawnEffectOf(entity), commandsOf(entity)), List.of(extrasOf(entity))));
+                arrivalOf(entity), entity.applySettingsToCustomMobAnyways(), List.of()));
     }
 
     /** The provider's mob when the pack names one, otherwise the entity type. */
@@ -106,17 +105,18 @@ final class EntityResolution {
     }
 
     private static EntitySpec.Appearance appearanceOf(EntityDefinition entity) {
-        return new EntitySpec.Appearance(textOf(entity.customName()), entity.customNameVisible(), entity.glowing(), entity.baby());
+        return new EntitySpec.Appearance(textOf(entity.customName()), entity.customNameVisible(), entity.glowing(), entity.baby(),
+                textOf(entity.pandaMainGene()), textOf(entity.pandaHiddenGene()));
+    }
+
+    private EntitySpec.Arrival arrivalOf(EntityDefinition entity) {
+        return new EntitySpec.Arrival(spawnEffectOf(entity), commandsOf(entity), textOf(entity.reason()),
+                entity.spawnEffectRiseOutOfGround());
     }
 
     private static EntitySpec.Behaviour behaviourOf(EntityDefinition entity) {
         return new EntitySpec.Behaviour(entity.aware(), entity.ai(), entity.gravity(), entity.invulnerable(), entity.silent(),
                 entity.pickupItems(), entity.removable(), entity.keepEntity());
-    }
-
-    private static IrisEntityExtras extrasOf(EntityDefinition entity) {
-        return new IrisEntityExtras(textOf(entity.reason()), entity.spawnEffectRiseOutOfGround(), textOf(entity.pandaMainGene()),
-                textOf(entity.pandaHiddenGene()), entity.applySettingsToCustomMobAnyways());
     }
 
     private Optional<ItemDrop> equip(LootEntry piece, RNG rng) {

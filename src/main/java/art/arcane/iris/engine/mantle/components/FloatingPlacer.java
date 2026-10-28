@@ -36,6 +36,7 @@ import com.volmit.object.BlockEntityData;
 import com.volmit.object.ObjectBlock;
 import com.volmit.object.PlaceableObject;
 import com.volmit.placement.PlacedMarker;
+import com.volmit.placement.PlacementRecord;
 import com.volmit.placement.PlacementTerrain;
 import com.volmit.stage.MantleStageContext;
 import com.volmit.world.PackWorld;
@@ -161,10 +162,10 @@ final class FloatingPlacer {
         if (!run.placeIn(world, terrain).isPlaced()) {
             return false;
         }
-        String placementName = object.name() + "@" + id;
+        PlacementRecord placement = PlacementRecord.of(world.resources().idOf(object.name()), id);
         for (BlockPosition position : run.objectBlocks()) {
             if (placesBlock(terrain.get(position.x(), position.y(), position.z()))) {
-                terrain.recordPlacement(position.x(), position.y(), position.z(), placementName);
+                terrain.recordPlacement(position.x(), position.y(), position.z(), placement);
             }
         }
         return true;
@@ -211,7 +212,7 @@ final class FloatingPlacer {
         }
 
         @Override
-        public void recordPlacement(int x, int y, int z, String placement) {
+        public void recordPlacement(int x, int y, int z, PlacementRecord placement) {
             if (anchor.writes(x, y, z)) {
                 delegate().recordPlacement(x, y, z, placement);
             }

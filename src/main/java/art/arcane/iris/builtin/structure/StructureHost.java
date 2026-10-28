@@ -18,6 +18,7 @@
 package art.arcane.iris.builtin.structure;
 
 import com.volmit.generation.InvocationContext;
+import com.volmit.resource.ResourceId;
 
 import java.util.List;
 import java.util.Optional;
@@ -36,5 +37,5 @@ public interface StructureHost {
     int reach();
 
     /** The loot tables the structure gives its pieces' containers; empty when the pack has no such structure. */
-    Optional<List<String>> lootTables(String structureKey);
+    Optional<List<String>> lootTables(ResourceId structure);
 }

@@ -52,9 +52,14 @@ import com.volmit.noise.StyledRange;
 import com.volmit.object.GeneratedObject;
 
 import java.io.IOException;
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.TreeSet;
 
 /**
  * One object placement of a biome or region, an entry of its {@code objects}: which objects, how often, and how they sit
@@ -435,6 +440,29 @@ public final class ObjectPlacement implements PlacementSource {
     /** The JSON this placement was read from, which declares its module settings; null for one made in code. */
     public String json() {
         return json;
+    }
+
+    /**
+     * The names a placement's own options are written under: every field Gson reads, under its {@code @SerializedName} and
+     * alternates. Settings other modules declare on a placement may not take these keys
+     * ({@link com.volmit.FeatureRegistry#registerPlacementType}).
+     */
+    public static Set<String> jsonFields() {
+        Set<String> names = new TreeSet<>();
+        for (Field field : ObjectPlacement.class.getDeclaredFields()) {
+            int modifiers = field.getModifiers();
+            if (Modifier.isStatic(modifiers) || Modifier.isTransient(modifiers) || field.isSynthetic()) {
+                continue;
+            }
+            SerializedName serialized = field.getAnnotation(SerializedName.class);
+            if (serialized == null) {
+                names.add(field.getName());
+                continue;
+            }
+            names.add(serialized.value());
+            names.addAll(Arrays.asList(serialized.alternate()));
+        }
+        return names;
     }
 
     /**

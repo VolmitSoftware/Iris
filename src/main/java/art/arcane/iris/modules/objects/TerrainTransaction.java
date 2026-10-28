@@ -22,6 +22,7 @@ import com.volmit.block.BlockState;
 import com.volmit.geometry.BlockPosition;
 import com.volmit.object.BlockEntityData;
 import com.volmit.placement.PlacedMarker;
+import com.volmit.placement.PlacementRecord;
 import com.volmit.placement.PlacementTerrain;
 
 import java.util.ArrayList;
@@ -97,16 +98,16 @@ public abstract class TerrainTransaction extends ForwardingTerrain {
     }
 
     @Override
-    public void recordPlacement(int x, int y, int z, String placement) {
-        writes.add(new PlacementRecord(new BlockPosition(x, y, z), placement));
+    public void recordPlacement(int x, int y, int z, PlacementRecord placement) {
+        writes.add(new PlacementWrite(new BlockPosition(x, y, z), placement));
     }
 
     @Override
-    public Optional<String> placementAt(int x, int y, int z) {
+    public Optional<PlacementRecord> placementAt(int x, int y, int z) {
         BlockPosition position = new BlockPosition(x, y, z);
         for (int index = writes.size() - 1; index >= 0; index--) {
-            if (writes.get(index) instanceof PlacementRecord record && record.position().equals(position)) {
-                return Optional.of(record.placement());
+            if (writes.get(index) instanceof PlacementWrite write && write.position().equals(position)) {
+                return Optional.of(write.placement());
             }
         }
         return delegate().placementAt(x, y, z);
@@ -123,7 +124,7 @@ public abstract class TerrainTransaction extends ForwardingTerrain {
         blockWrites++;
     }
 
-    private sealed interface Write permits BlockWrite, PlacementRecord, MarkerWrite {
+    private sealed interface Write permits BlockWrite, PlacementWrite, MarkerWrite {
         BlockPosition position();
 
         void applyTo(PlacementTerrain terrain);
@@ -140,7 +141,7 @@ public abstract class TerrainTransaction extends ForwardingTerrain {
         }
     }
 
-    private record PlacementRecord(BlockPosition position, String placement) implements Write {
+    private record PlacementWrite(BlockPosition position, PlacementRecord placement) implements Write {
         @Override
         public void applyTo(PlacementTerrain terrain) {
             terrain.recordPlacement(position.x(), position.y(), position.z(), placement);

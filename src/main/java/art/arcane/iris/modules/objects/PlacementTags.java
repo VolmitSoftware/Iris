@@ -18,12 +18,14 @@
 
 package art.arcane.iris.modules.objects;
 
+import com.volmit.placement.PlacementRecord;
+
 /**
  * What a placement writes into the mantle besides the blocks, beside each block of the object.
  *
- * @param marker the placement marker to write beside every block the object places, or null for none
+ * @param marker the placement to record beside every block the object places, or null for none
  * @param treeMaterial whether the block is also written as the tree material the mantle keeps for felling and growth
  * @param buriedTreasure whether storage chests among the blocks are marked as buried treasure
  */
-public record PlacementTags(String marker, boolean treeMaterial, boolean buriedTreasure) {
+public record PlacementTags(PlacementRecord marker, boolean treeMaterial, boolean buriedTreasure) {
 }

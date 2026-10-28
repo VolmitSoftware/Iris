@@ -47,6 +47,7 @@ import com.volmit.config.SettingsStack;
 import com.volmit.object.PlaceableObject;
 import com.volmit.resource.ResourceId;
 import com.volmit.stage.MantleStageContext;
+import com.volmit.placement.PlacementRecord;
 import com.volmit.world.TerrainSampler;
 
 import java.util.List;
@@ -570,7 +571,7 @@ final class ChunkObjectPlacing {
         return new PlacementTags(placementMarker(object, id, context), treePlacement, buriedTreasure);
     }
 
-    private String placementMarker(PlaceableObject object, int id, String context) {
+    private PlacementRecord placementMarker(PlaceableObject object, int id, String context) {
         String key = object == null ? null : object.name();
         if (key == null || key.isEmpty() || key.equals("null")) {
             String fingerprint = context + "|" + (object == null ? "<null>" : object.getClass().getSimpleName());
@@ -578,7 +579,7 @@ final class ChunkObjectPlacing {
                     + "This would previously produce 'Couldn't find Object: null' warnings on chunk reload.");
             return null;
         }
-        return key + "@" + id;
+        return PlacementRecord.of(this.context.world().resources().idOf(key), id);
     }
 
     private static boolean isTreePlacement(PlaceableObject object, ObjectPlacement placement) {

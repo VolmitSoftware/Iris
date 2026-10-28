@@ -19,6 +19,7 @@
 package art.arcane.iris.engine.mantle.components;
 
 import art.arcane.iris.builtin.IrisStages;
+import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.builtin.objects.ObjectSettings;
 import art.arcane.iris.modules.objects.ProceduralObjectSettings;
 import art.arcane.iris.builtin.objects.RequireSurfaceSupportSettings;
@@ -65,6 +66,7 @@ public final class ObjectModule implements IrisModule, ModuleLifecycle {
         registry.registerSettings(ObjectSettings.class, ProceduralObjectSettings.class, TreeGrowthSettings.class,
                 RequireSurfaceSupportSettings.class, SurfaceSupportBufferSettings.class, UpperObjectsSettings.class,
                 UpperObjectsForceSettings.class);
+        registry.registerPlacementType(ObjectPlacement.class, ObjectPlacement.jsonFields());
         registry.registerLifecycle(this);
     }
 

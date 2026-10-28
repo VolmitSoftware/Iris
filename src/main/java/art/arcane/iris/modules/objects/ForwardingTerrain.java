@@ -21,6 +21,7 @@ package art.arcane.iris.modules.objects;
 import com.volmit.block.BlockState;
 import com.volmit.object.BlockEntityData;
 import com.volmit.placement.PlacedMarker;
+import com.volmit.placement.PlacementRecord;
 import com.volmit.placement.PlacementTerrain;
 import com.volmit.placement.StructureVolumes;
 
@@ -85,12 +86,12 @@ public abstract class ForwardingTerrain implements PlacementTerrain {
     }
 
     @Override
-    public void recordPlacement(int x, int y, int z, String placement) {
+    public void recordPlacement(int x, int y, int z, PlacementRecord placement) {
         delegate.recordPlacement(x, y, z, placement);
     }
 
     @Override
-    public Optional<String> placementAt(int x, int y, int z) {
+    public Optional<PlacementRecord> placementAt(int x, int y, int z) {
         return delegate.placementAt(x, y, z);
     }
 

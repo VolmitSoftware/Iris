@@ -136,10 +136,11 @@ workers: `ResolvedOre`/`ResolvedOres` (blocks and chance noise per world, `Terra
 (`carvingBiome`, a band's biome, a floating child's target and carving) implement `LinkedBiomes`, which is how Iris's biome tree and the biomes a
 dimension reaches learn of them without reading the settings classes; and `iris:carve` provides the `CaveBiomes` service
 (`CaveBiomeBands`), which Iris asks for the dimension's carving band at a position and for a biome's minimum cave depth.
-`iris:floating` ships in the built-ins jar: `FloatingWorld` holds a world's floating children, noise and seeds, and what a jar
-cannot do Iris does through `FloatingHost` (`art.arcane.iris.builtin.floating`): the surface biome of a column, a biome's
-height for the `BIOME` top shape, painting the sky biome, an object's footprint and shrinking, and placing an object
-floating, on an island's top or hung under it, where the jar's `IslandAnchor` says where the island face is.
+`iris:floating` ships in the built-ins jar: `FloatingWorld` holds a world's floating children, noise and seeds. It asks the
+API alone: the running world's layout for a column's surface biome and a biome's height for the `BIOME` top shape
+(`TerrainSampler.biomeHeight`), the chunk's terrain for a child's sky biome (`skyBiome`), which it writes with
+`Mantle.setPlatformBiome`, and `PackWorld.placements()` to place an object floating, on an island's top or hung under it,
+where the jar's `IslandAnchor` says where the island face is.
 
 Packs write each settings feature under the short key it declares: `deposits` (dimension, region, biome; a list), `decorators`
 (biome; a list), `importedStructures` (dimension; an object of `disabled`, `adjustments` and the rest) and `structures`
@@ -165,7 +166,7 @@ Iris includes this build (`includeBuild('../IrisModule')` in its `settings.gradl
 core and its adapters still name many of them (the cut-over that ends this comes later). Classes that need Iris itself
 are Iris's and live in Iris core: the layout model (`IrisBiome`, `IrisRegion`, `IrisDimension`, generators, noise
 styles, expressions, images), the pack's objects and blocks, the structure assembler, locator, fitting and placer
-(behind `StructureHost`), and the object placers behind `ObjectHost` and `FloatingHost`. A module this build holds
+(behind `StructureHost`), and the placement service behind `PackWorld.placements()`. A module this build holds
 but the jar does not, such as `iris:structure`, is one Iris registers with its own modules (`IrisModuleHost`): its
 classes are then the ones Iris's own code sees.
 
@@ -201,9 +202,9 @@ none of the jar's modules (`IrisModuleHost.JAR_MODULE_IDS`, which a test keeps e
 
 `art.arcane.iris.builtin` also holds what the compiled-in built-ins and the jar must share, because each sees its own copy of
 every other class. The facades among them are interfaces Iris implements and offers through IrisApi's extension point, never
-through the thread or a cast: a module asks `world.extension(X.class)` for what belongs to a world (`ObjectHost`,
-`FloatingHost`, `StructureHost`, `spawn.SpawnCooldowns`), `context.extension(X.class)` for what belongs to one invocation (`ObjectPlacement`
-in a placement stage, `MatterMantle` in a chunk or mantle stage) and `settings.extension(X.class)` for a reach worked out
+through the thread or a cast: a module asks `world.extension(X.class)` for what belongs to a world (`LegacyStreams`,
+`StructureHost`, `spawn.SpawnCooldowns`), `context.extension(X.class)` for what belongs to one invocation (`MatterMantle`
+in a chunk or mantle stage) and `settings.extension(X.class)` for a reach worked out
 before any world exists, each with `.orElseThrow()`, since a built-in runs only where Iris offers them. Iris's per-feature world seeds are
 IrisApi purpose seeds: `world.seed(IrisSeedPurposes.CARVE)` (`iris:seed/carve`), which Iris answers with the seeds its worlds always
 had, so existing worlds generate the same; `spawn.SpawnCooldowns` (the spawner cooldowns

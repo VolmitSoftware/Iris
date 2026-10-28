@@ -782,7 +782,7 @@ public final class FloatingIslandSample {
                 if (target == null) {
                     yield maxTopHeight / 2;
                 }
-                double h = world.host().biomeHeight(target, wx, wz, world.baseSeed());
+                double h = world.biomeHeight(target, wx, wz);
                 int rounded = (int) Math.round(h);
                 if (rounded < 0) {
                     yield 0;

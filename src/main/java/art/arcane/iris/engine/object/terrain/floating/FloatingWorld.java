@@ -24,7 +24,6 @@ import art.arcane.iris.modules.carve.CarvingSettings;
 import art.arcane.iris.builtin.carve.CaveProfile;
 import art.arcane.iris.builtin.floating.FloatingChildBiome;
 import art.arcane.iris.modules.floating.FloatingChildSettings;
-import art.arcane.iris.builtin.floating.FloatingHost;
 import art.arcane.iris.modules.floating.MergeFloatingChildrenSettings;
 import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.builtin.objects.ObjectSettings;
@@ -41,14 +40,13 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * What the floating islands of one world are made from: the world's hosts, layout, noise and seeds, the floating children
+ * What the floating islands of one world are made from: the world's layout, noise and seeds, the floating children
  * each biome declares, and the {@link ResolvedFloatingChild} of every child met, one per decoded entry. One per world
  * ({@link #of}).
  */
 public final class FloatingWorld {
     private static final long BASE_SEED_SALT = 0x5EED_F107_00F1B10CL;
 
-    private final FloatingHost host;
     private final PackResources resources;
     private final RunningWorld running;
     private final long baseSeed;
@@ -57,9 +55,8 @@ public final class FloatingWorld {
     private final List<CarvingEntry> dimensionCarving;
     private final Map<FloatingChildBiome, ResolvedFloatingChild> resolved = new ConcurrentHashMap<>();
 
-    FloatingWorld(FloatingHost host, PackResources resources, RunningWorld running, long terrainSeed,
+    FloatingWorld(PackResources resources, RunningWorld running, long terrainSeed,
                   long carveSeed, int minWorldY, List<CarvingEntry> dimensionCarving) {
-        this.host = host;
         this.resources = resources;
         this.running = running;
         this.baseSeed = terrainSeed ^ BASE_SEED_SALT;
@@ -74,8 +71,8 @@ public final class FloatingWorld {
     }
 
     private static FloatingWorld create(PackWorld world) {
-        return new FloatingWorld(world.extension(FloatingHost.class).orElseThrow(), world.resources(), world.running().orElseThrow(), world.seed(IrisSeedPurposes.TERRAIN), world.seed(IrisSeedPurposes.CARVE),
-                world.minWorldY(), dimensionCarvingOf(world));
+        return new FloatingWorld(world.resources(), world.running().orElseThrow(), world.seed(IrisSeedPurposes.TERRAIN),
+                world.seed(IrisSeedPurposes.CARVE), world.minWorldY(), dimensionCarvingOf(world));
     }
 
     private static List<CarvingEntry> dimensionCarvingOf(PackWorld world) {
@@ -84,8 +81,9 @@ public final class FloatingWorld {
                 .orElse(List.of());
     }
 
-    public FloatingHost host() {
-        return host;
+    /** The height the terrain generators of {@code biome} give the column when shaped with {@link #baseSeed}. */
+    public double biomeHeight(ResourceId biome, int worldX, int worldZ) {
+        return running.layout().biomeHeight(biome, worldX, worldZ, baseSeed);
     }
 
     public NoiseFactory noise() {

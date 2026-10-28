@@ -45,6 +45,7 @@ import com.volmit.block.BlockRegistry;
 import com.volmit.block.BlockState;
 import com.volmit.config.FeatureSettings;
 import com.volmit.hunk.Hunk;
+import com.volmit.mantle.Mantle;
 import com.volmit.resource.ResourceId;
 import com.volmit.stage.ChunkStageContext;
 import com.volmit.world.BiomeKind;
@@ -55,6 +56,7 @@ import java.util.ArrayList;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Fills and decorates the floating islands of the dimension's floating child biomes for {@link FloatingModule}:
@@ -141,7 +143,7 @@ final class FloatingIslands {
         }
 
         fillLocalFluid(chunk, sample, xf, zf);
-        paintSkyBiomes(parent, wx, wz, sample, chunk.height);
+        paintSkyBiomes(chunk, parent, wx, wz, sample);
     }
 
     private void fillLocalFluid(Chunk chunk, FloatingIslandSample sample, int xf, int zf) {
@@ -397,7 +399,7 @@ final class FloatingIslands {
     }
 
     /** Paints, for each child the column's island is made of, its biome's sky biome into the child's solid blocks. */
-    private void paintSkyBiomes(ResourceId parent, int wx, int wz, FloatingIslandSample sample, int chunkHeight) {
+    private void paintSkyBiomes(Chunk chunk, ResourceId parent, int wx, int wz, FloatingIslandSample sample) {
         try {
             Map<ResolvedFloatingChild, List<Integer>> solidYsByEntry = new IdentityHashMap<>();
             for (int k = 0; k <= sample.topIdx; k++) {
@@ -405,7 +407,7 @@ final class FloatingIslands {
                     continue;
                 }
                 int y = sample.islandBaseY + k;
-                if (y < 0 || y >= chunkHeight) {
+                if (y < 0 || y >= chunk.height) {
                     continue;
                 }
                 solidYsByEntry.computeIfAbsent(sample.entryAt(k), ignored -> new ArrayList<>()).add(y);
@@ -416,8 +418,13 @@ final class FloatingIslands {
                 if (target == null) {
                     continue;
                 }
-                int[] ys = solid.getValue().stream().mapToInt(Integer::intValue).toArray();
-                world.host().paintSkyBiome(target, wx, wz, ys, rng);
+                Optional<ResourceId> skyBiome = chunk.terrain.skyBiome(target, wx, wz);
+                if (skyBiome.isEmpty()) {
+                    continue;
+                }
+                for (int y : solid.getValue()) {
+                    chunk.mantle.setPlatformBiome(wx, y, wz, skyBiome.get());
+                }
             }
         } catch (Throwable e) {
             log.error("Failed to write the sky biomes of a floating island", e);
@@ -438,6 +445,8 @@ final class FloatingIslands {
         final PaletteExplosion explosion;
         final ColumnSlope slope;
         final FloatingIslandBoundarySampler boundarySampler;
+        final TerrainSampler terrain;
+        final Mantle mantle;
 
         Chunk(ChunkStageContext context) {
             this.originX = context.originX();
@@ -447,7 +456,8 @@ final class FloatingIslands {
             this.blocks = context.world().resources().blocks();
             this.settings = context.settings();
             this.explosion = PaletteExplosion.of(settings, context.centreX(), context.centreZ());
-            TerrainSampler terrain = context.terrain();
+            this.terrain = context.terrain();
+            this.mantle = context.mantle();
             this.slope = (x, z) -> terrain.column((int) x, (int) z).slope();
             this.boundarySampler = new FloatingIslandBoundarySampler(world::surfaceBiome);
         }

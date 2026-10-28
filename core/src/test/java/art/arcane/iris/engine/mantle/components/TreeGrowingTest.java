@@ -20,7 +20,7 @@ package art.arcane.iris.engine.mantle.components;
 
 import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.builtin.objects.ObjectSettings;
-import art.arcane.iris.builtin.objects.TreeGrowthSettings;
+import art.arcane.iris.modules.objects.TreeGrowthSettings;
 import art.arcane.iris.engine.object.TestSettings;
 import com.volmit.config.FeatureSettings;
 import com.volmit.config.FeatureSettings.Entry;

@@ -57,7 +57,6 @@ public class ObjectPlacementsTest {
         assertFalse(ObjectPlacements.upperObjectsForced(dimension));
         assertTrue(ObjectPlacements.requiresSurfaceSupport(dimension));
         assertEquals(2, ObjectPlacements.surfaceSupportBuffer(dimension));
-        assertFalse(ObjectPlacements.treeGrowth(dimension).enabled());
     }
 
     @Test

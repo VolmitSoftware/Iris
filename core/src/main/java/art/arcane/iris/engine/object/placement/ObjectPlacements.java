@@ -22,7 +22,6 @@ import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.builtin.objects.ObjectSettings;
 import art.arcane.iris.builtin.objects.RequireSurfaceSupportSettings;
 import art.arcane.iris.builtin.objects.SurfaceSupportBufferSettings;
-import art.arcane.iris.builtin.objects.TreeGrowthSettings;
 import art.arcane.iris.builtin.objects.UpperObjectsForceSettings;
 import art.arcane.iris.builtin.objects.UpperObjectsSettings;
 import art.arcane.iris.core.loader.IrisData;
@@ -83,11 +82,6 @@ public final class ObjectPlacements {
                 .orElse(NO_SURFACE_SUPPORT_BUFFER.buffer());
     }
 
-    /** The tree growth settings of {@code dimension}. */
-    public static TreeGrowthSettings treeGrowth(IrisRegistrant dimension) {
-        return dimension.getModuleSettings().find(TreeGrowthSettings.class).orElse(NO_TREE_GROWTH);
-    }
-
     /** One of the objects {@code placement} places, picked by {@code rng} and loaded from the pack; null when it names none. */
     public static IrisObject pickObject(ObjectPlacement placement, IrisData data, RNG rng) {
         List<String> keys = placement.place();
@@ -99,7 +93,6 @@ public final class ObjectPlacements {
 
     private static final RequireSurfaceSupportSettings NO_SURFACE_SUPPORT_REQUIREMENT = new RequireSurfaceSupportSettings();
     private static final SurfaceSupportBufferSettings NO_SURFACE_SUPPORT_BUFFER = new SurfaceSupportBufferSettings();
-    private static final TreeGrowthSettings NO_TREE_GROWTH = new TreeGrowthSettings();
     private static final ObjectSettings NO_OBJECTS = new ObjectSettings();
 
     private static Placements placementsOf(IrisRegistrant owner) {

@@ -65,7 +65,8 @@ public final class MantleHeapPressure {
     }
 
     public static double usedFraction() {
-        return pressureFraction(heapUsedFraction(), ContainerMemory.snapshot().pressureFraction());
+        MemoryUsage heap = heapUsage();
+        return pressureFraction(heapUsedFraction(heap), containerPressureFraction(ContainerMemory.snapshot(), heap));
     }
 
     public static long memoryBudgetBytes() {
@@ -74,6 +75,14 @@ public final class MantleHeapPressure {
 
     static long memoryBudgetBytes(long heapBytes, long containerBytes) {
         return Math.min(heapBytes, containerBytes - containerBytes / 4L);
+    }
+
+    static double containerPressureFraction(ContainerMemory.Snapshot container, long heapCommittedBytes, long heapUsedBytes) {
+        if (!container.supported()) {
+            return 0D;
+        }
+        long freeCommittedHeap = Math.max(0L, heapCommittedBytes - heapUsedBytes);
+        return Math.max(0D, container.pressureFraction() - (double) freeCommittedHeap / (double) container.limitBytes());
     }
 
     static double pressureFraction(double heapFraction, double containerFraction) {
@@ -88,14 +97,22 @@ public final class MantleHeapPressure {
 
     public static String describe() {
         ContainerMemory.Snapshot container = ContainerMemory.snapshot();
-        String heap = Math.round(heapUsedFraction() * 100D) + "% heap";
+        MemoryUsage heapUsage = heapUsage();
+        String heap = Math.round(heapUsedFraction(heapUsage) * 100D) + "% heap";
         return container.supported()
-                ? heap + ", " + Math.round(container.pressureFraction() * 100D) + "% container working memory"
+                ? heap + ", " + Math.round(containerPressureFraction(container, heapUsage) * 100D) + "% container working memory"
                 : heap;
     }
 
-    private static double heapUsedFraction() {
-        MemoryUsage heap = ManagementFactory.getMemoryMXBean().getHeapMemoryUsage();
+    private static MemoryUsage heapUsage() {
+        return ManagementFactory.getMemoryMXBean().getHeapMemoryUsage();
+    }
+
+    private static double containerPressureFraction(ContainerMemory.Snapshot container, MemoryUsage heap) {
+        return containerPressureFraction(container, heap.getCommitted(), heap.getUsed());
+    }
+
+    private static double heapUsedFraction(MemoryUsage heap) {
         long max = heap.getMax();
         if (max <= 0L) {
             Runtime runtime = Runtime.getRuntime();
@@ -110,8 +127,9 @@ public final class MantleHeapPressure {
     }
 
     public static boolean overHighWater() {
-        boolean heapPressure = PRESSURE_GATE.update(heapUsedFraction());
-        boolean containerPressure = CONTAINER_PRESSURE_GATE.update(ContainerMemory.snapshot().pressureFraction());
+        MemoryUsage heap = heapUsage();
+        boolean heapPressure = PRESSURE_GATE.update(heapUsedFraction(heap));
+        boolean containerPressure = CONTAINER_PRESSURE_GATE.update(containerPressureFraction(ContainerMemory.snapshot(), heap));
         return heapPressure || containerPressure;
     }
 

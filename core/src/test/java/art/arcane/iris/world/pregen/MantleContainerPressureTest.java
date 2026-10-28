@@ -1,5 +1,6 @@
 package art.arcane.iris.world.pregen;
 
+import art.arcane.volmlib.util.diagnostics.ContainerMemory;
 import org.junit.Test;
 
 import java.util.concurrent.atomic.AtomicLong;
@@ -9,6 +10,8 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class MantleContainerPressureTest {
+    private static final long MIB = 1L << 20;
+
     @Test
     public void containerPressureReclaimsEvenWhenTheHeapHasHeadroom() {
         double pressure = MantleHeapPressure.pressureFraction(0.45D, 0.90D);
@@ -38,5 +41,38 @@ public class MantleContainerPressureTest {
         clock.set(600_000L);
         assertTrue(gate.update(0.85D));
         assertFalse(gate.update(0.80D));
+    }
+
+    @Test
+    public void freeCommittedHeapDoesNotCountAsContainerPressure() {
+        ContainerMemory.Snapshot container = containerAt(8_601L * MIB, 8_240L * MIB);
+        double containerPressure = MantleHeapPressure.containerPressureFraction(container, 7_388L * MIB, 2_355L * MIB);
+        assertEquals((8_240D - 5_033D) / 8_601D, containerPressure, 1E-9D);
+        assertEquals(0D, MantleHeapPressure.reclaimUrgency(MantleHeapPressure.pressureFraction(0.31D, containerPressure)), 0D);
+    }
+
+    @Test
+    public void heapFillingItsCommittedSpaceStillRaisesContainerPressure() {
+        ContainerMemory.Snapshot container = containerAt(8_601L * MIB, 8_240L * MIB);
+        double containerPressure = MantleHeapPressure.containerPressureFraction(container, 7_388L * MIB, 7_200L * MIB);
+        assertTrue(containerPressure >= 0.90D);
+        assertEquals(1D, MantleHeapPressure.reclaimUrgency(MantleHeapPressure.pressureFraction(0.94D, containerPressure)), 0D);
+    }
+
+    @Test
+    public void containerPressureNeverDropsBelowZero() {
+        ContainerMemory.Snapshot container = containerAt(4_096L * MIB, 1_024L * MIB);
+        assertEquals(0D, MantleHeapPressure.containerPressureFraction(container, 3_072L * MIB, 512L * MIB), 0D);
+    }
+
+    @Test
+    public void unlimitedContainersReportNoContainerPressure() {
+        ContainerMemory.Snapshot container = new ContainerMemory.Snapshot(Long.MAX_VALUE, 0L, 0L, 0D, Long.MAX_VALUE);
+        assertEquals(0D, MantleHeapPressure.containerPressureFraction(container, 7_388L * MIB, 2_355L * MIB), 0D);
+    }
+
+    private static ContainerMemory.Snapshot containerAt(long limitBytes, long workingSetBytes) {
+        return new ContainerMemory.Snapshot(limitBytes, workingSetBytes, workingSetBytes,
+                workingSetBytes / (double) limitBytes, limitBytes - workingSetBytes);
     }
 }

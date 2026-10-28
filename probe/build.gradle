@@ -15,7 +15,7 @@ String volmLibCoordinate = providers.gradleProperty('volmLibCoordinate')
 
 dependencies {
     implementation(project(':core'))
-    // Module settings types the deserialization probe reads are IrisApi features.
+    // Module settings types the probes read are IrisApi features.
     compileOnly('com.volmit:iris-api')
     compileOnly(libs.spigot)
     testImplementation('junit:junit:4.13.2')
@@ -83,18 +83,4 @@ tasks.register('genProbe', JavaExec) {
             probeMulticore.get(),
             probeStudio.get())
     }
-}
-
-String deserializationPack = providers.gradleProperty('deserializationPack')
-    .orElse(project.file('src/main/resources/deserialization-pack').absolutePath)
-    .get()
-
-tasks.register('deserializationProbe', JavaExec) {
-    group = 'verification'
-    description = 'Deserializes entity, spawner and loot pack content through the real Iris Gson loaders on a Bukkit-free JVM to keep Bukkit-typed pack-model fields dead.'
-    mainClass = 'art.arcane.iris.probe.DeserializationProbe'
-    classpath = sourceSets.main.runtimeClasspath
-    jvmArgs('--add-modules', 'jdk.incubator.vector')
-    args(deserializationPack)
-    dependsOn(':core:compileJava')
 }

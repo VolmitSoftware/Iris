@@ -102,37 +102,6 @@ final class PackObjectSurfaceValidator {
         return blockingErrors;
     }
 
-    static List<String> validateRemovedWorldgenFields(File packFolder) {
-        List<String> blockingErrors = new ArrayList<>();
-        if (packFolder == null || !packFolder.isDirectory()) {
-            return blockingErrors;
-        }
-
-        for (String folderName : PackValidator.STRUCTURE_HOST_FOLDERS) {
-            File resourceFolder = new File(packFolder, folderName);
-            if (!resourceFolder.isDirectory()) {
-                continue;
-            }
-            List<File> resourceFiles = PackValidationIo.listJsonRecursive(resourceFolder);
-            resourceFiles.sort(Comparator.comparing(File::getPath));
-            String resourceType = PackStructurePlacementValidator.structureHostType(folderName);
-            for (File resourceFile : resourceFiles) {
-                JSONObject resource = PackValidationIo.readJson(resourceFile);
-                if (resource == null) {
-                    continue;
-                }
-                String resourceKey = PackValidationIo.deriveKey(resourceFolder, resourceFile);
-                for (String field : PackValidator.REMOVED_WORLDGEN_FIELDS) {
-                    if (resource.has(field)) {
-                        blockingErrors.add(resourceType + " '" + resourceKey + "' declares removed field '"
-                                + field + "'. Remove it because fluid-body generation is not supported.");
-                    }
-                }
-            }
-        }
-        return blockingErrors;
-    }
-
     static List<String> validateObjectSurfaceSupport(File packFolder) {
         List<String> blockingErrors = new ArrayList<>();
         if (packFolder == null || !packFolder.isDirectory()) {
@@ -176,10 +145,6 @@ final class PackObjectSurfaceValidator {
                 continue;
             }
             String placementPath = path + ".objects[" + i + "]";
-            if (placement.has("surfaceOpeningClearance")) {
-                blockingErrors.add(placementPath + " declares removed field 'surfaceOpeningClearance'. "
-                        + "Use surfaceSupportBuffer instead.");
-            }
             PackJsonFieldChecks.validateOptionalIntegerRange(
                     placementPath, placement, "surfaceSupportBuffer", 0, 16, blockingErrors);
             PackJsonFieldChecks.validateOptionalIntegerRange(

@@ -37,14 +37,12 @@ record EngineRuntime(
         EngineEffects effects,
         EngineGeneration generation,
         EngineWorldManager worldManager,
-        CompletableFuture<Long> hash32,
-        BiomeMaxes biomeMaxes
+        CompletableFuture<Long> hash32
 ) {
     EngineRuntime withComplex(
             int nextCacheId,
             IrisComplex nextComplex,
-            UpperDimensionContext nextUpperContext,
-            BiomeMaxes nextBiomeMaxes
+            UpperDimensionContext nextUpperContext
     ) {
         return new EngineRuntime(
                 nextCacheId,
@@ -54,10 +52,6 @@ record EngineRuntime(
                 effects,
                 generation,
                 worldManager,
-                hash32,
-                nextBiomeMaxes);
-    }
-
-    record BiomeMaxes(double objectDensity) {
+                hash32);
     }
 }

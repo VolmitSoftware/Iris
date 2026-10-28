@@ -26,7 +26,7 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
       - name: Run verification gates
-        run: ./gradlew :core:check :adapters:bukkit:plugin:test :adapters:bukkit:nms:v26_2_R1:test :spi:build :probe:test :probe:run :probe:deserializationProbe -PuseLocalVolmLib=false --console=plain --stacktrace
+        run: ./gradlew :core:check :adapters:bukkit:plugin:test :adapters:bukkit:nms:v26_2_R1:test :spi:build :probe:test :probe:run -PuseLocalVolmLib=false --console=plain --stacktrace
       - name: Run modded shared tests (Fabric)
         run: ./gradlew -p adapters/fabric test -PuseLocalVolmLib=false --console=plain --stacktrace
       - name: Run modded shared tests (Forge)

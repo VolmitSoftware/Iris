@@ -25,21 +25,11 @@ import art.arcane.iris.core.gui.ImageMapStudioGUI;
 import art.arcane.iris.core.gui.NoiseExplorerGUI;
 import art.arcane.iris.core.gui.VisionGUI;
 import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.core.pack.StructurePackageClosure;
-import art.arcane.iris.core.pack.ImageMapPackageClosure;
-import art.arcane.iris.core.pack.PackValidationResult;
-import art.arcane.iris.core.pack.PackValidator;
 import art.arcane.iris.core.project.IrisProjectCopier;
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.object.placement.ObjectPlacements;
-import art.arcane.iris.engine.object.world.biome.IrisBiome;
-import art.arcane.iris.engine.object.world.biome.IrisBiomeGeneratorLink;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.engine.object.terrain.IrisGenerator;
-import art.arcane.iris.core.pack.ModuleResourceClosure;
-import art.arcane.iris.core.pack.PackExportClosure;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
-import art.arcane.iris.engine.object.structure.IrisStructure;
 import art.arcane.iris.modded.ModdedDimensionManager;
 import art.arcane.iris.modded.ModdedEngineBootstrap;
 import art.arcane.iris.modded.ModdedScheduler;
@@ -48,9 +38,6 @@ import art.arcane.iris.util.common.parallel.BurstExecutor;
 import art.arcane.iris.util.common.parallel.MultiBurst;
 import art.arcane.volmlib.util.collection.KMap;
 import art.arcane.volmlib.util.format.Form;
-import art.arcane.volmlib.util.io.IO;
-import art.arcane.volmlib.util.json.JSONObject;
-import art.arcane.volmlib.util.math.M;
 import art.arcane.volmlib.util.math.Spiraler;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.LongArgumentType;
@@ -65,13 +52,11 @@ import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import org.zeroturnaround.zip.ZipUtil;
 
 import java.awt.Desktop;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -120,8 +105,6 @@ public final class ModdedStudioCommands {
         root.then(createTree("create"));
         root.then(createTree("+"));
 
-        root.then(packageTree("package"));
-        root.then(packageTree("pkg"));
 
         root.then(Commands.literal("version")
                 .executes((CommandContext<CommandSourceStack> context) -> version(context.getSource(), null))
@@ -180,15 +163,6 @@ public final class ModdedStudioCommands {
                                         create(context.getSource(),
                                                 StringArgumentType.getString(context, "name"),
                                                 StringArgumentType.getString(context, "template")))));
-    }
-
-    private static LiteralArgumentBuilder<CommandSourceStack> packageTree(String name) {
-        return Commands.literal(name)
-                .executes((CommandContext<CommandSourceStack> context) -> pkg(context.getSource(), null))
-                .then(Commands.argument("pack", StringArgumentType.word())
-                        .suggests(IrisModdedCommands.PACK_NAMES)
-                        .executes((CommandContext<CommandSourceStack> context) ->
-                                pkg(context.getSource(), StringArgumentType.getString(context, "pack"))));
     }
 
     public static void clear() {
@@ -839,146 +813,6 @@ public final class ModdedStudioCommands {
         thread.setDaemon(true);
         thread.start();
         return 1;
-    }
-
-    private static int pkg(CommandSourceStack source, String pack) {
-        File folder = resolvePack(source, pack);
-        if (folder == null) {
-            return 0;
-        }
-        MinecraftServer server = source.getServer();
-        String dimKey = folder.getName();
-        IrisModdedCommands.ok(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_STUDIO_COMMANDS_PACKAGING_DIMENSION, MessageArgument.untrusted("dimKey", dimKey)));
-        Thread thread = new Thread(() -> {
-            try {
-                File result = compilePackage(folder, dimKey);
-                server.execute(() -> IrisModdedCommands.ok(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_STUDIO_COMMANDS_PACKAGE_COMPILED, MessageArgument.untrusted("value", result.getAbsolutePath()))));
-            } catch (Throwable e) {
-                ModdedIrisLog.error("Iris package failed for {}", dimKey, e);
-                server.execute(() -> IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_STUDIO_COMMANDS_PACKAGING_FAILED, MessageArgument.untrusted("value", e.getClass().getSimpleName()), MessageArgument.trusted("errorMessage", IrisLanguage.errorDetail(e)))));
-            }
-        }, "Iris Studio Package");
-        thread.setDaemon(true);
-        thread.start();
-        return 1;
-    }
-
-    private static File compilePackage(File packFolder, String dimKey) throws IOException {
-        PackValidationResult validation = PackValidator.validateForPackaging(packFolder);
-        if (!validation.isLoadable()) {
-            throw new IOException("Pack validation failed before packaging: "
-                    + String.join("; ", validation.getBlockingErrors()));
-        }
-        IrisData dm = IrisData.get(packFolder);
-        IrisDimension dimension = dm.getDimensionLoader().load(dimKey);
-        if (dimension == null) {
-            throw new IOException("Pack '" + dimKey + "' has no dimensions/" + dimKey + ".json");
-        }
-        File exports = ModdedEngineBootstrap.loader().configDir().resolve("irisworldgen").resolve("exports").toFile();
-        File folder = new File(exports, dimension.getLoadKey());
-        IO.delete(folder);
-        folder.mkdirs();
-
-        LinkedHashSet<String> regionKeys = new LinkedHashSet<>();
-        LinkedHashSet<String> biomeKeys = new LinkedHashSet<>();
-        LinkedHashSet<String> generatorKeys = new LinkedHashSet<>();
-        ModuleResourceClosure moduleResources = new ModuleResourceClosure(dm).exportingElsewhere(IrisStructure.class);
-        LinkedHashSet<String> objectKeys = new LinkedHashSet<>();
-
-        dimension.getAllRegions(() -> dm).forEach((IrisRegion region) -> {
-            if (region != null && region.getLoadKey() != null) {
-                regionKeys.add(region.getLoadKey());
-            }
-        });
-        dimension.getReachableBiomes(() -> dm).forEach((IrisBiome biome) -> {
-            if (biome != null && biome.getLoadKey() != null) {
-                biomeKeys.add(biome.getLoadKey());
-            }
-        });
-        moduleResources.followSettingsOf(dimension);
-
-        for (String regionKey : regionKeys) {
-            IrisRegion region = dm.getRegionLoader().load(regionKey);
-            if (region == null) {
-                continue;
-            }
-            region.getAllBiomes(() -> dm).forEach((IrisBiome biome) -> {
-                if (biome != null && biome.getLoadKey() != null) {
-                    biomeKeys.add(biome.getLoadKey());
-                }
-            });
-            moduleResources.followSettingsOf(region);
-            moduleResources.follow(ObjectPlacements.all(region));
-            objectKeys.addAll(PackExportClosure.collectObjectKeys(ObjectPlacements.all(region)));
-        }
-        for (String biomeKey : biomeKeys) {
-            IrisBiome biome = dm.getBiomeLoader().load(biomeKey);
-            if (biome == null) {
-                continue;
-            }
-            biome.getGenerators().forEach((IrisBiomeGeneratorLink link) -> generatorKeys.add(link.getGenerator()));
-            moduleResources.followSettingsOf(biome);
-            moduleResources.follow(ObjectPlacements.all(biome));
-            objectKeys.addAll(PackExportClosure.collectObjectKeys(ObjectPlacements.all(biome)));
-        }
-
-        StringBuilder hashes = new StringBuilder();
-        List<String> structureKeys = moduleResources.keysOf(IrisStructure.class);
-        StructurePackageClosure structureClosure = StructurePackageClosure.collect(packFolder, structureKeys);
-        if (!structureClosure.isValid()) {
-            throw new IOException("Structure package closure is invalid: " + String.join("; ", structureClosure.errors()));
-        }
-        hashes.append(structureClosure.writeTo(folder, true));
-        hashes.append(ImageMapPackageClosure.writeAll(dm, folder, true));
-        for (String objectKey : objectKeys) {
-            try {
-                File objectFile = dm.getObjectLoader().findFile(objectKey);
-                IO.copyFile(objectFile, new File(folder, "objects/" + objectKey + ".iob"));
-                hashes.append(IO.hash(objectFile));
-            } catch (Throwable e) {
-                ModdedIrisLog.error("Iris package failed to copy object {}", objectKey, e);
-            }
-        }
-
-        hashes.append(copyJson(folder, "dimensions", dimension.getLoadKey(), dm.getDimensionLoader().findFile(dimension.getLoadKey())));
-        for (String key : generatorKeys) {
-            hashes.append(copyJson(folder, "generators", key, dm.getGeneratorLoader().findFile(key)));
-        }
-        for (String key : regionKeys) {
-            hashes.append(copyJson(folder, "regions", key, dm.getRegionLoader().findFile(key)));
-        }
-        for (String key : dm.getBlockLoader().getPossibleKeys()) {
-            hashes.append(copyJson(folder, "blocks", key, dm.getBlockLoader().findFile(key)));
-        }
-        for (String key : biomeKeys) {
-            hashes.append(copyJson(folder, "biomes", key, dm.getBiomeLoader().findFile(key)));
-        }
-        hashes.append(moduleResources.writeTo(folder, true));
-
-        JSONObject meta = new JSONObject();
-        meta.put("hash", IO.hash(hashes.toString()));
-        meta.put("time", M.ms());
-        meta.put("version", dimension.getVersion());
-        IO.writeAll(new File(folder, "package.json"), meta.toString(0));
-
-        File output = new File(exports, dimension.getLoadKey() + ".iris");
-        ZipUtil.pack(folder, output, 9);
-        IO.delete(folder);
-        return output;
-    }
-
-    private static String copyJson(File folder, String category, String key, File file) {
-        if (file == null || !file.isFile()) {
-            return "";
-        }
-        try {
-            String json = new JSONObject(IO.readAll(file)).toString(0);
-            IO.writeAll(new File(folder, category + "/" + key + ".json"), json);
-            return IO.hash(json);
-        } catch (Throwable e) {
-            ModdedIrisLog.error("Iris package failed to write {}/{}", category, key, e);
-            return "";
-        }
     }
 
     private static int regions(CommandSourceStack source, int radius) {

@@ -18,12 +18,6 @@
 
 package art.arcane.iris.engine.object.world.biome;
 
-import art.arcane.iris.builtin.decorant.DecorantSettings;
-import art.arcane.iris.builtin.decorant.DecoratorLoad;
-import art.arcane.iris.builtin.terrain.LayerLoad;
-import art.arcane.iris.builtin.terrain.LayersSettings;
-import art.arcane.iris.engine.object.placement.ObjectPlacements;
-import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.render.RenderType;
 import art.arcane.iris.spi.IrisLogging;
@@ -67,45 +61,8 @@ final class IrisBiomeColorRenderer {
                     }
                 });
             }
-            case OBJECT_LOAD -> {
-                return biome.getCacheColorObjectDensity().aquire(() -> {
-                    double density = 0;
-
-                    for (ObjectPlacement i : ObjectPlacements.all(biome)) {
-                        density += i.middleDensity() * i.chance();
-                    }
-
-                    return Color.getHSBColor(0.225f, (float) (density / engine.getMaxBiomeObjectDensity()), 1f);
-                });
-            }
-            case DECORATOR_LOAD -> {
-                return biome.getCacheColorDecoratorLoad().aquire(() -> {
-                    double busiest = 0D;
-                    for (IrisBiome reachable : engine.getDimension().getReachableBiomes(engine)) {
-                        busiest = Math.max(busiest, DecoratorLoad.of(decorantSettingsOf(reachable)));
-                    }
-                    return Color.getHSBColor(0.41f, (float) (DecoratorLoad.colour(decorantSettingsOf(biome)) / busiest), 1f);
-                });
-            }
-            case LAYER_LOAD -> {
-                return biome.getCacheColorLayerLoad().aquire(() -> {
-                    double busiest = 0D;
-                    for (IrisBiome reachable : engine.getDimension().getReachableBiomes(engine)) {
-                        busiest = Math.max(busiest, layerCountOf(reachable));
-                    }
-                    return Color.getHSBColor(0.625f, (float) (layerCountOf(biome) / busiest), 1f);
-                });
-            }
         }
 
         return Color.black;
-    }
-
-    private static int layerCountOf(IrisBiome biome) {
-        return LayerLoad.layersOf(biome.getModuleSettings().find(LayersSettings.class).orElse(null)).size();
-    }
-
-    private static DecorantSettings decorantSettingsOf(IrisBiome biome) {
-        return biome.getModuleSettings().find(DecorantSettings.class).orElse(null);
     }
 }

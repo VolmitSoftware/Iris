@@ -35,7 +35,6 @@ public class DiagnosticSeverityPolicyTest {
         assertLoggedWith("engine/object/compatibility/IrisCompat.java", "Can't find block data for ", "warnOnce");
         assertLoggedWith("engine/data/cache/AtomicCacheFailureReporting.java", "Atomic cache supplier failed: %s: %s", "warnOnce");
         assertLoggedWith("engine/IrisComplex.java", "Failed to sample interpolated biome bounds", "warnOnce");
-        assertLoggedWith("engine/framework/placer/WorldObjectPlacer.java", "Tried to place custom block at", "warnOnce");
     }
 
     /**

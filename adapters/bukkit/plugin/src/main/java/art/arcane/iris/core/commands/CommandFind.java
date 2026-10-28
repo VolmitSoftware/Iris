@@ -644,7 +644,7 @@ public class CommandFind implements DirectorExecutor {
             }
         }
 
-        if (e.hasObjectPlacement(object)) {
+        if (!ModuleServices.objectPlacers(e, object).isEmpty()) {
             EngineBukkitOps.gotoObject(e, object, player(), teleport);
             return;
         }

@@ -20,7 +20,6 @@ package art.arcane.iris.engine;
 
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.protocol.IrisProtocolServer;
-import art.arcane.iris.engine.EngineRuntime.BiomeMaxes;
 import art.arcane.iris.engine.EngineRuntimeBuilder.RuntimeAssembly;
 import art.arcane.iris.engine.IrisEngine.LifecycleState;
 import art.arcane.iris.engine.framework.EngineTarget;
@@ -64,8 +63,7 @@ final class EngineHotloader {
                     assembly.complex = new IrisComplex(engine);
                     nextComplex = assembly.complex;
                     assembly.upperContext = engine.runtimeBuilder.buildUpperContext();
-                    BiomeMaxes biomeMaxes = engine.runtimeBuilder.computeBiomeMaxes();
-                    next = previous.withComplex(assembly.cacheId, assembly.complex, assembly.upperContext, biomeMaxes);
+                    next = previous.withComplex(assembly.cacheId, assembly.complex, assembly.upperContext);
                 } finally {
                     engine.runtimeAssembly.remove();
                 }

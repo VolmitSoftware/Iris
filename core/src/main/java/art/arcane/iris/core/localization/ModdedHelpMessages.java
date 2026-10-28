@@ -214,10 +214,6 @@ public final class ModdedHelpMessages {
             "iris.modded.help.entry.command.create_2",
             "Create a new pack project"
     );
-    public static final TextKey COMMAND_PACKAGE_PACKAGE_A_DIMENSION_INTO_A_COMPRESSED_FORMAT = TextKey.of(
-            "iris.modded.help.entry.command.package",
-            "Package a dimension into a compressed format"
-    );
     public static final TextKey COMMAND_VERSION_PRINT_A_PACK_VERSION = TextKey.of(
             "iris.modded.help.entry.command.version_2",
             "Print a pack version"
@@ -468,7 +464,6 @@ public final class ModdedHelpMessages {
             COMMAND_PLAUSIBILIZE_GROW_BRANCHES_SO_TREE_LEAVES_SURVIVE_VANILLA_DECAY,
             COMMAND_UNDO_UNDO_PASTED_OBJECTS,
             COMMAND_CREATE_CREATE_A_NEW_PACK_PROJECT,
-            COMMAND_PACKAGE_PACKAGE_A_DIMENSION_INTO_A_COMPRESSED_FORMAT,
             COMMAND_VERSION_PRINT_A_PACK_VERSION,
             COMMAND_REGIONS_CALCULATE_NEARBY_REGION_DISTRIBUTION,
             COMMAND_OPEN_OPEN_A_TEMPORARY_STUDIO_DIMENSION_FOR_A_PACK,

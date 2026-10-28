@@ -48,18 +48,6 @@ public class PackValidatorSurfaceSupportTest {
     }
 
     @Test
-    public void rejectsRemovedSurfaceOpeningClearanceField() throws Exception {
-        File pack = temporaryFolder.newFolder("pack");
-        write(pack, "regions/forests.json",
-                "{\"objects\":[{\"place\":[\"a\"],\"surfaceOpeningClearance\":3}]}");
-
-        assertEquals(List.of(
-                "Region 'forests'.objects[0] declares removed field 'surfaceOpeningClearance'. "
-                        + "Use surfaceSupportBuffer instead."
-        ), PackObjectSurfaceValidator.validateObjectSurfaceSupport(pack));
-    }
-
-    @Test
     public void surfaceSupportErrorsBlockFullPackValidation() throws Exception {
         File pack = temporaryFolder.newFolder("pack");
         write(pack, "dimensions/main.json",

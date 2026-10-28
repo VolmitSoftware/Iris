@@ -53,10 +53,7 @@ public final class DesktopUiMessages {
     public static final TextKey VISION_MODE_REGION = TextKey.of("iris.desktop.vision.mode.region", "Region");
     public static final TextKey VISION_MODE_CAVE_LAND = TextKey.of("iris.desktop.vision.mode.cave_land", "Cave land");
     public static final TextKey VISION_MODE_HEIGHT = TextKey.of("iris.desktop.vision.mode.height", "Height");
-    public static final TextKey VISION_MODE_OBJECT_LOAD = TextKey.of("iris.desktop.vision.mode.object_load", "Object load");
-    public static final TextKey VISION_MODE_DECORATOR_LOAD = TextKey.of("iris.desktop.vision.mode.decorator_load", "Decorator load");
     public static final TextKey VISION_MODE_CONTINENT = TextKey.of("iris.desktop.vision.mode.continent", "Continent");
-    public static final TextKey VISION_MODE_LAYER_LOAD = TextKey.of("iris.desktop.vision.mode.layer_load", "Layer load");
     public static final TextKey NOISE_TITLE = TextKey.of("iris.desktop.noise.title", "Noise Explorer");
     public static final TextKey NOISE_TITLE_GENERATOR = TextKey.of("iris.desktop.noise.title_generator", "Noise Explorer: {generator}");
     public static final TextKey NOISE_SEARCH = TextKey.of("iris.desktop.noise.search", "Search...");
@@ -171,8 +168,8 @@ public final class DesktopUiMessages {
             VISION_HELP_RESET_ZOOM, VISION_HELP_CYCLE_MODE, VISION_HELP_FPS,
             VISION_HELP_GRID, VISION_HELP_BIOME, VISION_HELP_TELEPORT, VISION_HELP_EDITOR, VISION_OPENED,
             VISION_TELEPORTING, VISION_MODE_BIOME, VISION_MODE_BIOME_LAND, VISION_MODE_BIOME_SEA,
-            VISION_MODE_REGION, VISION_MODE_CAVE_LAND, VISION_MODE_HEIGHT, VISION_MODE_OBJECT_LOAD,
-            VISION_MODE_DECORATOR_LOAD, VISION_MODE_CONTINENT, VISION_MODE_LAYER_LOAD, NOISE_TITLE,
+            VISION_MODE_REGION, VISION_MODE_CAVE_LAND, VISION_MODE_HEIGHT,
+            VISION_MODE_CONTINENT, NOISE_TITLE,
             NOISE_TITLE_GENERATOR, NOISE_SEARCH, NOISE_STATUS, NOISE_CATEGORY_CUSTOM,
             NOISE_CATEGORY_PACK_GENERATORS, NOISE_CATEGORY_SIMPLEX, NOISE_CATEGORY_PERLIN,
             NOISE_CATEGORY_CELLULAR, NOISE_CATEGORY_IRIS, NOISE_CATEGORY_CLOVER, NOISE_CATEGORY_HEXAGON,

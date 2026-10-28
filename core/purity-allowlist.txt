@@ -95,7 +95,6 @@ art/arcane/iris/engine/data/chunk/TerrainChunk.java
 art/arcane/iris/engine/framework/BukkitEngineWorldManager.java
 art/arcane/iris/engine/framework/EngineAssignedWorldManager.java
 art/arcane/iris/engine/framework/EnginePlayer.java
-art/arcane/iris/engine/framework/placer/WorldObjectPlacer.java
 art/arcane/iris/engine/mantle/MantleWriter.java
 art/arcane/iris/engine/object/material/BlockDataMergeSupport.java
 art/arcane/iris/engine/object/placement/IPostBlockAccess.java

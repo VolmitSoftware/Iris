@@ -52,9 +52,6 @@ public class IrisModdedCommandParityTest {
         child(edit, "b");
         child(edit, "r");
         child(edit, "d");
-        CommandNode<CommandSourceStack> studio = child(iris, "studio");
-        child(studio, "package");
-        child(studio, "pkg");
 
         CommandNode<CommandSourceStack> download = child(iris, "download");
         CommandNode<CommandSourceStack> source = child(download, "source");
@@ -145,7 +142,6 @@ public class IrisModdedCommandParityTest {
         assertTrue(ModdedCommandHelp.documents("", "teleport"));
         assertTrue(ModdedCommandHelp.documents("", "c"));
         assertTrue(ModdedCommandHelp.documents("edit", "b"));
-        assertTrue(ModdedCommandHelp.documents("studio", "pkg"));
         assertTrue(ModdedCommandHelp.documents("object", "we"));
         assertTrue(ModdedCommandHelp.documents("world", "mainworld"));
         assertTrue(ModdedCommandHelp.documents("goto", "unregistered"));

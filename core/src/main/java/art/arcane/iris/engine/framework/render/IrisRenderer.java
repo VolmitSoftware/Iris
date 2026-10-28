@@ -163,7 +163,7 @@ public final class IrisRenderer {
     private PixelShader shader(RenderType currentType, boolean studio) {
         IrisComplex complex = renderer.getComplex();
         return switch (currentType) {
-            case BIOME, DECORATOR_LOAD, OBJECT_LOAD, LAYER_LOAD -> biomeShader(
+            case BIOME -> biomeShader(
                     studio ? complex.getBaseBiomeStream() : complex.getTrueBiomeStream(), currentType);
             case BIOME_LAND -> biomeShader(complex.getLandBiomeStream(), currentType);
             case BIOME_SEA -> biomeShader(complex.getSeaBiomeStream(), currentType);
@@ -178,8 +178,7 @@ public final class IrisRenderer {
 
     private static boolean adaptiveStudioType(RenderType type) {
         return switch (type) {
-            case BIOME, DECORATOR_LOAD, OBJECT_LOAD, LAYER_LOAD, BIOME_LAND, BIOME_SEA, REGION, CAVE_LAND,
-                    CONTINENT -> true;
+            case BIOME, BIOME_LAND, BIOME_SEA, REGION, CAVE_LAND, CONTINENT -> true;
             case HEIGHT -> false;
         };
     }

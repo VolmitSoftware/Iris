@@ -3,7 +3,6 @@ package art.arcane.iris.purity;
 import art.arcane.iris.engine.object.image.IrisImage;
 import art.arcane.iris.engine.object.image.IrisImageMap;
 import art.arcane.iris.engine.object.material.IrisBlockData;
-import art.arcane.iris.engine.object.mod.IrisMod;
 import art.arcane.iris.engine.object.noise.expression.IrisExpression;
 import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.object.prefab.LegacyTileData;
@@ -89,8 +88,8 @@ import static org.junit.Assert.fail;
 public class PackTypeBukkitPurityGateTest {
     private static final String SNIPPET_DESCRIPTOR = "Lart/arcane/iris/engine/object/annotations/Snippet;";
     private static final String BUKKIT_INTERNAL_PREFIX = "org/bukkit/";
-    /** Fewer means the scan is broken, not that the pack types moved: the scan finds 38 after batch 7 moved the object settings. */
-    private static final int LEAST_SNIPPET_TYPES = 30;
+    /** Fewer means the scan is broken, not that the pack types moved: the scan finds 29 after batch 8 cut the mod resources. */
+    private static final int LEAST_SNIPPET_TYPES = 20;
     /** See {@link #theGateStillCatchesAClassThatNeedsBukkit()}. */
     private static final String BUKKIT_DEPENDENT_CANARY = "art.arcane.iris.engine.object.prefab.BlockStateRotation$Faces";
     private static final String OBJECT_PACKAGE = "art/arcane/iris/engine/object";
@@ -105,7 +104,6 @@ public class PackTypeBukkitPurityGateTest {
     private static final List<String> GSON_REGISTERED_ROOTS = List.of(
             "art.arcane.iris.engine.object.world.region.IrisRegion",
             "art.arcane.iris.engine.object.world.biome.IrisBiome",
-            "art.arcane.iris.engine.object.mod.IrisMod",
             "art.arcane.iris.engine.object.world.dimension.IrisDimension",
             "art.arcane.iris.engine.object.terrain.IrisGenerator",
             "art.arcane.iris.engine.object.material.IrisBlockData",

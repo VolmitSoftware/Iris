@@ -1038,10 +1038,7 @@ public final class VisionGUI extends JPanel implements MouseWheelListener, KeyLi
             case REGION -> DesktopUiMessages.VISION_MODE_REGION;
             case CAVE_LAND -> DesktopUiMessages.VISION_MODE_CAVE_LAND;
             case HEIGHT -> DesktopUiMessages.VISION_MODE_HEIGHT;
-            case OBJECT_LOAD -> DesktopUiMessages.VISION_MODE_OBJECT_LOAD;
-            case DECORATOR_LOAD -> DesktopUiMessages.VISION_MODE_DECORATOR_LOAD;
             case CONTINENT -> DesktopUiMessages.VISION_MODE_CONTINENT;
-            case LAYER_LOAD -> DesktopUiMessages.VISION_MODE_LAYER_LOAD;
         };
     }
 

@@ -18,10 +18,8 @@
 
 package art.arcane.iris.util.project.stream.interpolation;
 
-import art.arcane.iris.engine.object.terrain.carving.CaveResult;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
 import art.arcane.iris.util.project.stream.ProceduralStream;
 
@@ -30,7 +28,6 @@ import java.util.function.Function;
 
 public interface Interpolated<T> {
     Interpolated<PlatformBlockState> BLOCK_DATA = of((t) -> 0D, (t) -> null);
-    Interpolated<KList<CaveResult>> CAVE_RESULTS = of((t) -> 0D, (t) -> null);
     Interpolated<RNG> RNG = of((t) -> 0D, (t) -> null);
     Interpolated<Double> DOUBLE = of((t) -> t, (t) -> t);
     Interpolated<Double[]> DOUBLE_ARRAY = of((t) -> 0D, (t) -> new Double[2]);

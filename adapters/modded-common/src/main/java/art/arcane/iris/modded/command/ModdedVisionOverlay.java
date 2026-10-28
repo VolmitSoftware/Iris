@@ -126,7 +126,7 @@ public final class ModdedVisionOverlay implements GuiOverlay {
         }
         IrisComplex complex = engine.getComplex();
         File file = switch (type) {
-            case BIOME, LAYER_LOAD, DECORATOR_LOAD, OBJECT_LOAD, HEIGHT ->
+            case BIOME, HEIGHT ->
                     complex.getTrueBiomeStream().get(worldX, worldZ).openInVSCode();
             case BIOME_LAND -> complex.getLandBiomeStream().get(worldX, worldZ).openInVSCode();
             case BIOME_SEA -> complex.getSeaBiomeStream().get(worldX, worldZ).openInVSCode();

@@ -20,102 +20,36 @@ package art.arcane.iris.engine.object.placement;
 
 import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.builtin.objects.ObjectSettings;
-import art.arcane.iris.builtin.objects.RequireSurfaceSupportSettings;
-import art.arcane.iris.builtin.objects.SurfaceSupportBufferSettings;
-import art.arcane.iris.builtin.objects.UpperObjectsForceSettings;
-import art.arcane.iris.builtin.objects.UpperObjectsSettings;
-import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.loader.IrisRegistrant;
-import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.volmlib.util.collection.KList;
-import art.arcane.volmlib.util.math.RNG;
 
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
 
 /**
- * The object placements a region or biome declares in the module settings of {@code iris:objects}, sorted by where
- * they place once and kept for as long as the settings live, and the dimension's object settings.
+ * The object placements a region or biome declares in the module settings of {@code iris:objects}, listed once and kept
+ * for as long as the settings live. Only the pack exporter reads them.
  */
 public final class ObjectPlacements {
-    private static final Map<ObjectSettings, Placements> PLACEMENTS = Collections.synchronizedMap(new WeakHashMap<>());
+    private static final Map<ObjectSettings, KList<ObjectPlacement>> PLACEMENTS = Collections.synchronizedMap(new WeakHashMap<>());
 
     private ObjectPlacements() {
     }
 
     /** Every placement {@code owner} declares. */
     public static KList<ObjectPlacement> all(IrisRegistrant owner) {
-        return placementsOf(owner).all;
+        return placementsOf(owner);
     }
 
-    /** The placements of {@code owner} that place on the surface. */
-    public static KList<ObjectPlacement> surface(IrisRegistrant owner) {
-        return placementsOf(owner).surface;
-    }
-
-    /** The placements of {@code owner} that place in carvings. */
-    public static KList<ObjectPlacement> carving(IrisRegistrant owner) {
-        return placementsOf(owner).carving;
-    }
-
-    /** Whether {@code dimension} places its objects in the terrain stacked above it too. */
-    public static boolean upperObjects(IrisRegistrant dimension) {
-        return dimension.getModuleSettings().find(UpperObjectsSettings.class).map(UpperObjectsSettings::enabled).orElse(false);
-    }
-
-    /** Whether the objects placed in the terrain stacked above ignore placement restrictions. */
-    public static boolean upperObjectsForced(IrisRegistrant dimension) {
-        return dimension.getModuleSettings().find(UpperObjectsForceSettings.class).map(UpperObjectsForceSettings::force).orElse(false);
-    }
-
-    /** Whether {@code dimension} refuses surface objects over carved openings. */
-    public static boolean requiresSurfaceSupport(IrisRegistrant dimension) {
-        return dimension.getModuleSettings().find(RequireSurfaceSupportSettings.class).map(RequireSurfaceSupportSettings::require)
-                .orElse(NO_SURFACE_SUPPORT_REQUIREMENT.require());
-    }
-
-    /** The least surface-support buffer {@code dimension} gives its surface objects. */
-    public static int surfaceSupportBuffer(IrisRegistrant dimension) {
-        return dimension.getModuleSettings().find(SurfaceSupportBufferSettings.class).map(SurfaceSupportBufferSettings::buffer)
-                .orElse(NO_SURFACE_SUPPORT_BUFFER.buffer());
-    }
-
-    /** One of the objects {@code placement} places, picked by {@code rng} and loaded from the pack; null when it names none. */
-    public static IrisObject pickObject(ObjectPlacement placement, IrisData data, RNG rng) {
-        List<String> keys = placement.place();
-        if (keys.isEmpty()) {
-            return null;
-        }
-        return data.getObjectLoader().load(keys.get(rng.nextInt(keys.size())));
-    }
-
-    private static final RequireSurfaceSupportSettings NO_SURFACE_SUPPORT_REQUIREMENT = new RequireSurfaceSupportSettings();
-    private static final SurfaceSupportBufferSettings NO_SURFACE_SUPPORT_BUFFER = new SurfaceSupportBufferSettings();
     private static final ObjectSettings NO_OBJECTS = new ObjectSettings();
 
-    private static Placements placementsOf(IrisRegistrant owner) {
+    private static KList<ObjectPlacement> placementsOf(IrisRegistrant owner) {
         ObjectSettings settings = owner.getModuleSettings().find(ObjectSettings.class).orElse(NO_OBJECTS);
-        Placements found = PLACEMENTS.get(settings);
+        KList<ObjectPlacement> found = PLACEMENTS.get(settings);
         if (found != null) {
             return found;
         }
-        return PLACEMENTS.computeIfAbsent(settings, Placements::new);
-    }
-
-    private record Placements(KList<ObjectPlacement> all, KList<ObjectPlacement> surface, KList<ObjectPlacement> carving) {
-        Placements(ObjectSettings settings) {
-            this(new KList<>(), new KList<>(), new KList<>());
-            for (ObjectPlacement placement : settings.objects()) {
-                all.add(placement);
-                if (placement.carvingSupport().supportsSurface()) {
-                    surface.add(placement);
-                }
-                if (placement.carvingSupport().supportsCarving()) {
-                    carving.add(placement);
-                }
-            }
-        }
+        return PLACEMENTS.computeIfAbsent(settings, key -> new KList<>(key.objects()));
     }
 }

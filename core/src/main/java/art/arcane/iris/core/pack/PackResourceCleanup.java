@@ -32,8 +32,7 @@ public final class PackResourceCleanup {
             "generators",
             "expressions",
             "markers",
-            "blocks",
-            "mods"
+            "blocks"
     );
     private static final List<String> CORPUS_EXCLUSIONS = List.of(
             TRASH_ROOT,

@@ -37,11 +37,11 @@ public class PackExportClosureTest {
     }
 
     /**
-     * Source guard: both packagers must export the ambient-spawning graph. Spawner and marker
+     * Source guard: the packager must export the ambient-spawning graph. Spawner and marker
      * folders were silently omitted from exports, leaving dangling entitySpawners references.
      */
     @Test
-    public void bothPackagersExportSpawnersMarkersAndTheFullEntityGraph() throws Exception {
+    public void thePackagerExportsSpawnersMarkersAndTheFullEntityGraph() throws Exception {
         String bukkit = Files.readString(Path.of(
                 "src/main/java/art/arcane/iris/core/project/IrisPackageCompiler.java")).replace("\r\n", "\n");
         assertTrue("Bukkit packager must export region objects alongside biome objects",
@@ -54,15 +54,5 @@ public class PackExportClosureTest {
                 bukkitValidation >= 0
                         && bukkitValidation < bukkit.indexOf("IrisData.openRuntime(project.getPath())")
                         && bukkitValidation < bukkit.indexOf("IO.delete(folder)"));
-
-        String modded = Files.readString(Path.of(
-                "../adapters/modded-common/src/main/java/art/arcane/iris/modded/command/ModdedStudioCommands.java")).replace("\r\n", "\n");
-        assertTrue("modded packager must write the spawn and loot resources the settings reference",
-                modded.contains("moduleResources.writeTo(folder, true)"));
-        assertTrue("modded packager must export the placements' references", modded.contains("moduleResources.follow(ObjectPlacements.all(region))"));
-        assertTrue("modded packager must export region objects", modded.contains("ObjectPlacements.all(region)"));
-        int moddedValidation = modded.indexOf("PackValidator.validateForPackaging(packFolder)");
-        assertTrue("modded packager must validate before mutating package state",
-                moddedValidation >= 0 && moddedValidation < modded.indexOf("IO.delete(folder)"));
     }
 }

@@ -48,7 +48,6 @@ art.arcane.iris.engine.WorldEntitySpawner	BUKKIT_API	org.bukkit.entity.Entity
 art.arcane.iris.engine.WorldTeleportWarmup	BUKKIT_API	org.bukkit.command.CommandSender
 art.arcane.iris.engine.framework.EngineAssignedWorldManager	BUKKIT_API	org.bukkit.event.Listener
 art.arcane.iris.engine.framework.EnginePlayer	BUKKIT_API	org.bukkit.entity.Entity
-art.arcane.iris.engine.framework.placer.WorldObjectPlacer	BUKKIT_API	org.bukkit.event.Event
 art.arcane.iris.engine.object.value.IrisDirection$11	BUKKIT_API	org.bukkit.block.BlockFace
 art.arcane.iris.engine.object.entity.IrisEffect$BukkitFx	BUKKIT_API	org.bukkit.entity.Entity
 art.arcane.iris.engine.object.entity.IrisEntity$BukkitOps	BUKKIT_API	org.bukkit.loot.LootTable

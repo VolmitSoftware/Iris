@@ -590,12 +590,6 @@ public class IrisEngine implements Engine {
     }
 
     @Override
-    public double getMaxBiomeObjectDensity() {
-        EngineRuntime current = runtime;
-        return current == null ? 0D : current.biomeMaxes().objectDensity();
-    }
-
-    @Override
     public boolean isClosed() {
         return closed;
     }

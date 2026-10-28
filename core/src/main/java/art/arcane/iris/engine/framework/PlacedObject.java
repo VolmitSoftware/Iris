@@ -18,7 +18,6 @@
 
 package art.arcane.iris.engine.framework;
 
-import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.engine.object.prefab.IrisObject;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -27,8 +26,6 @@ import org.jetbrains.annotations.Nullable;
 @Data
 @AllArgsConstructor
 public class PlacedObject {
-    @Nullable
-    private ObjectPlacement placement;
     @Nullable
     private IrisObject object;
     private int id;

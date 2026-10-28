@@ -18,8 +18,6 @@
 
 package art.arcane.iris.core.commands;
 
-import art.arcane.iris.builtin.objects.ObjectPlacement;
-import art.arcane.iris.engine.object.placement.ObjectPlacements;
 import art.arcane.iris.Iris;
 import art.arcane.iris.platform.bukkit.BukkitPlatform;
 import art.arcane.iris.core.IrisSettings;
@@ -38,20 +36,17 @@ import art.arcane.iris.core.structure.StructureImporter;
 import art.arcane.iris.core.tools.IrisToolbelt;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
-import art.arcane.iris.core.modules.IrisValues;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.engine.platform.BukkitEntitySpawner;
 import art.arcane.iris.engine.object.terrain.IrisGenerator;
 import art.arcane.iris.engine.object.noise.IrisInterpolator;
 import art.arcane.iris.engine.object.noise.IrisNoiseGenerator;
-import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
 import art.arcane.iris.engine.object.noise.NoiseStyle;
 import art.arcane.iris.engine.platform.EngineBukkitOps;
 import art.arcane.iris.engine.platform.PlatformChunkGenerator;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KMap;
-import art.arcane.volmlib.util.collection.KSet;
 import art.arcane.iris.util.common.director.DirectorExecutor;
 import art.arcane.iris.util.common.director.handlers.DimensionHandler;
 import art.arcane.iris.util.common.director.specialhandlers.NullableDimensionHandler;
@@ -423,12 +418,10 @@ public class CommandStudio implements DirectorExecutor {
     public void pkg(
             @Param(name = "dimension", description = "The dimension pack to compress", descriptionKey = "iris.director.commandstudio.param.dimension_pack_compress", contextual = true, contextualOverride = true, defaultValue = "default", customHandler = DimensionHandler.class)
             IrisDimension dimension,
-            @Param(name = "obfuscate", description = "Whether or not to obfuscate the pack", descriptionKey = "iris.director.commandstudio.param.whether_not_obfuscate_pack", defaultValue = "false")
-            boolean obfuscate,
             @Param(name = "minify", description = "Whether or not to minify the pack", descriptionKey = "iris.director.commandstudio.param.whether_not_minify_pack", defaultValue = "true")
             boolean minify
     ) {
-        Iris.service(StudioSVC.class).compilePackage(sender(), dimension.getLoadKey(), obfuscate, minify);
+        Iris.service(StudioSVC.class).compilePackage(sender(), dimension.getLoadKey(), minify);
     }
 
     @Director(description = "Profiles the performance of a dimension", descriptionKey = "iris.director.commandstudio.director.profiles_performance_dimension", origin = DirectorOrigin.PLAYER)
@@ -553,13 +546,6 @@ public class CommandStudio implements DirectorExecutor {
             KList<String> vv = new KList<>();
             IrisBiome b = data.getBiomeLoader().load(i);
             double score = 0;
-
-            int m = 0;
-            for (NoiseStyle layerStyle : IrisValues.layerStyles(b)) {
-                m++;
-                score += styleTimings.get(layerStyle);
-                vv.add("Palette Layer " + m + ": " + styleTimings.get(layerStyle));
-            }
 
             score += styleTimings.get(b.getBiomeStyle().getStyle());
             vv.add("Biome Style: " + styleTimings.get(b.getBiomeStyle().getStyle()));
@@ -796,7 +782,6 @@ public class CommandStudio implements DirectorExecutor {
 
             KList<String> biomes = new KList<>();
             KList<String> caveBiomes = new KList<>();
-            KMap<String, KMap<String, KList<String>>> objects = new KMap<>();
 
             for (Chunk i : chunks) {
                 for (int j = 0; j < 16; j += 3) {
@@ -808,8 +793,6 @@ public class CommandStudio implements DirectorExecutor {
                         IrisBiome bxf = engine().getCaveBiome((i.getX() * 16) + j, (i.getZ() * 16) + k);
                         biomes.addIfMissing(bb.getName() + " [" + Form.capitalize(bb.getInferredType().name().toLowerCase()) + "] " + " (" + bb.getLoadFile().getName() + ")");
                         caveBiomes.addIfMissing(bxf.getName() + " (" + bxf.getLoadFile().getName() + ")");
-                        exportObjects(bb, pw, engine(), objects);
-                        exportObjects(bxf, pw, engine(), objects);
                     }
                 }
             }
@@ -834,56 +817,9 @@ public class CommandStudio implements DirectorExecutor {
             }
             pw.println();
 
-            pw.println("== Object Info ==");
-
-            for (String i : objects.k()) {
-                pw.println("- " + i);
-
-                for (String j : objects.get(i).k()) {
-                    pw.println("  @ " + j);
-
-                    for (String k : objects.get(i).get(j)) {
-                        pw.println("    * " + k);
-                    }
-                }
-            }
-
-            pw.println();
-
             sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_STUDIO_REPORTED, MessageArgument.untrusted("value", ff.getPath())));
         } catch (Throwable e) {
             Iris.reportError(e);
-        }
-    }
-
-    private void exportObjects(IrisBiome bb, PrintWriter pw, Engine g, KMap<String, KMap<String, KList<String>>> objects) {
-        String n1 = bb.getName() + " [" + Form.capitalize(bb.getInferredType().name().toLowerCase()) + "] " + " (" + bb.getLoadFile().getName() + ")";
-        int m = 0;
-        KSet<String> stop = new KSet<>();
-        for (ObjectPlacement f : ObjectPlacements.all(bb)) {
-            m++;
-            String n2 = "Placement #" + m + " (" + f.place().size() + " possible objects)";
-
-            for (String i : f.place()) {
-                String nn3 = i + ": [ERROR] Failed to find object!";
-
-                try {
-                    if (stop.contains(i)) {
-                        continue;
-                    }
-
-                    File ff = g.getData().getObjectLoader().findFile(i);
-                    art.arcane.volmlib.util.math.IrisBlockVector sz = IrisObject.sampleSize(ff);
-                    nn3 = i + ": size=[" + sz.getBlockX() + "," + sz.getBlockY() + "," + sz.getBlockZ() + "] location=[" + ff.getPath() + "]";
-                    stop.add(i);
-                } catch (Throwable e) {
-                    Iris.reportError(e);
-                }
-
-                String n3 = nn3;
-                objects.computeIfAbsent(n1, (k1) -> new KMap<>())
-                        .computeIfAbsent(n2, (k) -> new KList<>()).addIfMissing(n3);
-            }
         }
     }
 

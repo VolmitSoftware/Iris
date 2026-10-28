@@ -1063,18 +1063,6 @@ public final class ModdedCommandMessages {
             "iris.modded.moddedstudiocommands.project_creation_failed",
             "Project creation failed: " + "{value}" + "{errorMessage}"
     );
-    public static final TextKey MODDED_STUDIO_COMMANDS_PACKAGING_DIMENSION = TextKey.of(
-            "iris.modded.moddedstudiocommands.packaging_dimension",
-            "Packaging dimension '" + "{dimKey}" + "'..."
-    );
-    public static final TextKey MODDED_STUDIO_COMMANDS_PACKAGE_COMPILED = TextKey.of(
-            "iris.modded.moddedstudiocommands.package_compiled",
-            "Package compiled: " + "{value}"
-    );
-    public static final TextKey MODDED_STUDIO_COMMANDS_PACKAGING_FAILED = TextKey.of(
-            "iris.modded.moddedstudiocommands.packaging_failed",
-            "Packaging failed: " + "{value}" + "{errorMessage}"
-    );
     public static final TextKey MODDED_STUDIO_COMMANDS_THIS_COMMAND_CAN_ONLY_BE_USED_BY_PLAYERS_SAMPLING_IS = TextKey.of(
             "iris.modded.moddedstudiocommands.this_command_can_only_be_used_by_players_sampling_is",
             "This command can only be used by players (sampling is centered on your position)."
@@ -1505,9 +1493,6 @@ public final class ModdedCommandMessages {
             MODDED_STUDIO_COMMANDS_CREATED_PROJECT_AT,
             MODDED_STUDIO_COMMANDS_EDIT_DIMENSIONS_JSON_REST_PACK_VSCODE_WORKSPACE_WITH_JSON_SCHEMA,
             MODDED_STUDIO_COMMANDS_PROJECT_CREATION_FAILED,
-            MODDED_STUDIO_COMMANDS_PACKAGING_DIMENSION,
-            MODDED_STUDIO_COMMANDS_PACKAGE_COMPILED,
-            MODDED_STUDIO_COMMANDS_PACKAGING_FAILED,
             MODDED_STUDIO_COMMANDS_THIS_COMMAND_CAN_ONLY_BE_USED_BY_PLAYERS_SAMPLING_IS,
             MODDED_STUDIO_COMMANDS_THIS_DIMENSION_IS_NOT_GENERATED_BY_IRIS,
             MODDED_STUDIO_COMMANDS_SAMPLING_REGION_DISTRIBUTION_X_CHUNKS_AROUND_YOU,

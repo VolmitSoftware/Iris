@@ -18,8 +18,6 @@
 
 package art.arcane.iris.core.modules;
 
-import art.arcane.iris.builtin.terrain.LayerLoad;
-import art.arcane.iris.builtin.terrain.LayersSettings;
 import art.arcane.iris.engine.object.material.IrisBlockData;
 import art.arcane.iris.engine.object.material.IrisMaterialPalette;
 import art.arcane.iris.builtin.objects.HeightmapNoise;
@@ -38,7 +36,6 @@ import com.volmit.noise.StyledRange;
 import com.volmit.geometry.BlockPosition;
 import com.volmit.resource.PackResources;
 
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -113,12 +110,6 @@ public final class IrisValues {
         iris.setFracture(style.fracture().map(fracture -> generatorStyle(fracture, resources)).orElse(null));
         iris.setExponent(style.exponent());
         return iris;
-    }
-
-    /** The noise style of each layer of the biome's surface, top first, as Iris's generators know them. */
-    public static List<art.arcane.iris.engine.object.noise.NoiseStyle> layerStyles(art.arcane.iris.engine.object.world.biome.IrisBiome biome) {
-        return LayerLoad.layersOf(biome.getModuleSettings().find(LayersSettings.class).orElse(null)).stream()
-                .map(layer -> irisStyle(layer.style().style())).toList();
     }
 
     /** {@code noise} as the noise generator Iris reads the same JSON into. */

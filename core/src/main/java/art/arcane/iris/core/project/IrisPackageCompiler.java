@@ -40,7 +40,6 @@ import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.util.common.plugin.VolmitSender;
 import art.arcane.volmlib.util.collection.KList;
-import art.arcane.volmlib.util.collection.KMap;
 import art.arcane.volmlib.util.collection.KSet;
 import art.arcane.volmlib.util.io.IO;
 import art.arcane.volmlib.util.json.JSONObject;
@@ -55,7 +54,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
-import java.util.UUID;
 
 @SuppressWarnings("ALL")
 public class IrisPackageCompiler {
@@ -65,7 +63,7 @@ public class IrisPackageCompiler {
         this.project = project;
     }
 
-    public File compilePackage(VolmitSender sender, boolean obfuscate, boolean minify) {
+    public File compilePackage(VolmitSender sender, boolean minify) {
         PackValidationResult validation = PackValidator.validateForPackaging(project.getPath());
         if (!validation.isLoadable()) {
             IllegalStateException error = new IllegalStateException("Pack validation failed before packaging: "
@@ -74,12 +72,9 @@ public class IrisPackageCompiler {
             sender.sendMessage(IrisLanguage.text(BukkitRuntimeMessages.IRIS_PROJECT_FAILED));
             return null;
         }
-        // Detached loader on purpose: obfuscation rewrites the placement 'place' lists on the
-        // loaded resources, which must never leak into the shared cached pack state — a second
-        // export against a mutated cache produced archives with an empty objects/ directory.
         IrisData dm = IrisData.openRuntime(project.getPath());
         try {
-            return compilePackage(dm, sender, obfuscate, minify);
+            return compilePackage(dm, sender, minify);
         } finally {
             dm.close();
         }
@@ -91,7 +86,7 @@ public class IrisPackageCompiler {
         }
     }
 
-    private File compilePackage(IrisData dm, VolmitSender sender, boolean obfuscate, boolean minify) {
+    private File compilePackage(IrisData dm, VolmitSender sender, boolean minify) {
         String dimm = project.getName();
         IrisDimension dimension = dm.getDimensionLoader().load(dimm);
         File folder = new File(IrisPlatforms.get().dataFolder(), "exports/" + dimension.getLoadKey());
@@ -102,7 +97,7 @@ public class IrisPackageCompiler {
         if (!folder.mkdirs() && !folder.isDirectory()) {
             throw new IllegalStateException("Failed to create structure package staging folder " + folder.getAbsolutePath());
         }
-        IrisLogging.info("Packaging Dimension " + dimension.getName() + " " + (obfuscate ? "(Obfuscated)" : ""));
+        IrisLogging.info("Packaging Dimension " + dimension.getName());
         KSet<IrisRegion> regions = new KSet<>();
         KSet<IrisBiome> biomes = new KSet<>();
         KSet<IrisGenerator> generators = new KSet<>();
@@ -127,7 +122,6 @@ public class IrisPackageCompiler {
         biomes.forEach((i) -> allPlacements.addAll(ObjectPlacements.all(i)));
         moduleResources.follow(allPlacements);
         List<String> structureKeys = moduleResources.keysOf(IrisStructure.class);
-        KMap<String, String> renameObjects = new KMap<>();
         KList<String> exportedObjectNames = new KList<>();
         String a;
         StringBuilder b = new StringBuilder();
@@ -138,19 +132,15 @@ public class IrisPackageCompiler {
             b.append(Objects.hashCode(j.json()));
 
             for (String k : j.place()) {
-                if (renameObjects.containsKey(k)) {
-                    exportedObjectNames.add(renameObjects.get(k));
+                if (exportedObjectNames.contains(k)) {
                     continue;
                 }
 
-                String name = !obfuscate ? k : UUID.randomUUID().toString().replaceAll("-", "");
-                b.append(name);
-                exportedObjectNames.add(name);
-                renameObjects.put(k, name);
+                b.append(k);
+                exportedObjectNames.add(k);
             }
         }
 
-        KMap<String, KList<String>> lookupObjects = renameObjects.flip();
         StringBuilder gb = new StringBuilder();
         ChronoLatch cl = new ChronoLatch(1000);
         O<Integer> ggg = new O<>();
@@ -160,8 +150,7 @@ public class IrisPackageCompiler {
         exportedObjectNames.forEach((k) ->
         {
             try {
-                KList<String> sources = lookupObjects.get(k);
-                File f = sources == null || sources.isEmpty() ? null : dm.getObjectLoader().findFile(sources.get(0));
+                File f = dm.getObjectLoader().findFile(k);
                 if (f == null) {
                     missingObjects.set(missingObjects.get() + 1);
                     IrisLogging.error("Missing object for placement key " + k);

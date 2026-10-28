@@ -122,6 +122,9 @@ public final class ModuleServices {
 
     /** The keys of the biomes and regions that place an object. */
     public record ObjectPlacers(Set<String> biomes, Set<String> regions) {
+        public boolean isEmpty() {
+            return biomes.isEmpty() && regions.isEmpty();
+        }
     }
 
     /** The loot tables the modules say the container at {@code site} draws from, in module order. */

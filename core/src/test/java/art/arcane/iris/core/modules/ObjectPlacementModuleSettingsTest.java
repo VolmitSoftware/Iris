@@ -31,7 +31,6 @@ import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.volmlib.util.math.RNG;
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.volmit.config.Level;
 import com.volmit.IrisFeature;
 import com.volmit.IrisModule;
@@ -76,7 +75,7 @@ public class ObjectPlacementModuleSettingsTest {
 
     private IrisData data;
     private LoadedPack pack;
-    private Gson gson;
+    private ModuleSettingsDecoder decoder;
 
     @Feature(id = "example:glow", name = "Glow", key = "glow", targets = Level.PLACEMENT)
     public static final class GlowSettings implements IrisFeature {
@@ -102,11 +101,6 @@ public class ObjectPlacementModuleSettingsTest {
         }
     }
 
-    /** Holds placements the way a biome does. */
-    private static final class Holder {
-        private List<ObjectPlacement> objects;
-    }
-
     @Before
     public void loadPack() throws IOException {
         IrisPlatforms.unbind();
@@ -120,8 +114,7 @@ public class ObjectPlacementModuleSettingsTest {
 
         data = mock(IrisData.class);
         pack = BuiltInPack.serve(data, folder, List.of(new GlowModule()));
-        ModuleSettingsDecoder decoder = new ModuleSettingsDecoder(pack.catalog(), folder.getRoot().toPath(), Gson::new);
-        gson = new GsonBuilder().registerTypeAdapterFactory(new ObjectPlacementSettingsReader(() -> decoder)).create();
+        decoder = new ModuleSettingsDecoder(pack.catalog(), folder.getRoot().toPath(), Gson::new);
     }
 
     @After
@@ -131,17 +124,17 @@ public class ObjectPlacementModuleSettingsTest {
     }
 
     @Test
-    public void decodesTheSettingsOfEveryNestedPlacement() {
-        Holder holder = gson.fromJson("{\"objects\": [{\"place\": [\"tree\"], \"glow\": {\"block\": \"minecraft:sea_lantern\"}},"
-                + " {\"place\": [\"rock\"]}]}", Holder.class);
+    public void decodesTheSettingsOfAPlacement() {
+        ObjectPlacement declaring = decode("{\"place\": [\"tree\"], \"glow\": {\"block\": \"minecraft:sea_lantern\"}}");
+        ObjectPlacement silent = decode("{\"place\": [\"rock\"]}");
 
-        assertEquals("minecraft:sea_lantern", moduleSettings(holder.objects.get(0)).find(GlowSettings.class).orElseThrow().block);
-        assertSame(ModuleSettings.NONE, moduleSettings(holder.objects.get(1)));
+        assertEquals("minecraft:sea_lantern", moduleSettings(declaring).find(GlowSettings.class).orElseThrow().block);
+        assertSame(ModuleSettings.NONE, moduleSettings(silent));
     }
 
     @Test
     public void copiesOfAPlacementKeepItsSettings() {
-        ObjectPlacement placement = gson.fromJson("{\"place\": [\"tree\"], \"glow\": {}}", ObjectPlacement.class);
+        ObjectPlacement placement = decode("{\"place\": [\"tree\"], \"glow\": {}}");
 
         assertSame(moduleSettings(placement), moduleSettings(placement.toBuilder().place(List.of("rock")).build()));
     }
@@ -151,11 +144,15 @@ public class ObjectPlacementModuleSettingsTest {
         IObjectPlacer declaring = placer();
         IObjectPlacer silent = placer();
 
-        place(gson.fromJson("{\"glow\": {}}", ObjectPlacement.class), declaring);
-        place(gson.fromJson("{}", ObjectPlacement.class), silent);
+        place(decode("{\"glow\": {}}"), declaring);
+        place(decode("{}"), silent);
 
         verify(declaring).set(eq(0), eq(SURFACE_Y + 1), eq(0), any());
         verify(silent, never()).set(eq(0), eq(SURFACE_Y + 1), eq(0), any());
+    }
+
+    private ObjectPlacement decode(String json) {
+        return decoder.decodeResource(ObjectPlacement.class, json);
     }
 
     private ModuleSettings moduleSettings(ObjectPlacement placement) {

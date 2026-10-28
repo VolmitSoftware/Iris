@@ -177,7 +177,7 @@ public class ObjectPlacementRegressionTest {
 
     @Test
     public void collisionCheckUsesTheTransformedBounds() {
-        PlacedObject forbidden = new PlacedObject(null, object("forbidden"), 1, 0, 0);
+        PlacedObject forbidden = new PlacedObject(object("forbidden"), 1, 0, 0);
         when(engine.getObjectPlacement(anyInt(), anyInt(), anyInt())).thenAnswer(invocation -> {
             int x = invocation.getArgument(0);
             int y = invocation.getArgument(1);
@@ -602,7 +602,7 @@ public class ObjectPlacementRegressionTest {
 
     @Test
     public void collisionRejectionPrecedesBoreAndAllowedObjectsOverrideForbiddenOnes() {
-        PlacedObject forbidden = new PlacedObject(null, object("forbidden"), 1, 0, 0);
+        PlacedObject forbidden = new PlacedObject(object("forbidden"), 1, 0, 0);
         when(engine.getObjectPlacement(anyInt(), anyInt(), anyInt())).thenReturn(forbidden);
         RecordingPlacer placer = new RecordingPlacer(engine);
         ObjectPlacement.Builder config = placement().bore(true).forbiddenCollisions(List.of("forbidden"));

@@ -21,14 +21,10 @@ package art.arcane.iris.engine.framework;
 import art.arcane.iris.builtin.structure.StructurePlacementMarker;
 
 
-import art.arcane.iris.engine.object.placement.ObjectPlacements;
-import art.arcane.iris.engine.framework.structure.StructureResources;
-import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.engine.framework.render.RenderType;
 import art.arcane.iris.engine.framework.render.Renderer;
 import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.core.loader.IrisRegistrant;
 import art.arcane.iris.core.nms.container.BlockPos;
 import art.arcane.iris.core.nms.container.Pair;
 import art.arcane.iris.core.modules.CaveBiomeAnswers;
@@ -37,15 +33,12 @@ import art.arcane.iris.engine.IrisComplex;
 import art.arcane.iris.engine.UpperDimensionContext;
 import art.arcane.iris.engine.data.chunk.TerrainChunk;
 import art.arcane.iris.engine.mantle.EngineMantle;
-import art.arcane.iris.engine.mantle.components.StructurePlacing;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.value.IrisColor;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.engine.object.runtime.IrisEngineData;
-import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.engine.object.value.IrisPosition;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
-import art.arcane.iris.engine.object.structure.IrisStructure;
 import art.arcane.iris.engine.object.world.IrisWorld;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.PlatformBiome;
@@ -75,7 +68,6 @@ import art.arcane.iris.util.project.stream.ProceduralStream;
 import org.jetbrains.annotations.Nullable;
 
 import java.awt.Color;
-import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -84,7 +76,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, Hotloadable {
     IrisComplex getComplex();
@@ -130,8 +121,6 @@ public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, 
     default boolean isClosing() {
         return isClosed();
     }
-
-    double getMaxBiomeObjectDensity();
 
     boolean isClosed();
 
@@ -456,95 +445,10 @@ public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, 
         if (object.startsWith("procedural/")) {
             return null;
         }
-        int id = marker.placementId();
-
-        if (marker.structureAware()) {
-            IrisObject placedObject = getData().getObjectLoader().load(object);
-            IrisStructure structure = StructureResources.structure(getData().getPackResources(), marker.structureKey());
-            ObjectPlacement placement = placedObject == null || structure == null
-                    ? null
-                    : StructurePlacing.lootPlacement(structure, object);
-            return new PlacedObject(placement, placedObject, id, x, z);
-        }
-
-
-        IrisRegion region = getRegion(x, z);
-
-        for (ObjectPlacement i : ObjectPlacements.all(region)) {
-            if (i.place().contains(object)) {
-                return new PlacedObject(i, getData().getObjectLoader().load(object), id, x, z);
-            }
-        }
-
-        IrisBiome biome = getSurfaceBiome(x, z);
-
-        for (ObjectPlacement i : ObjectPlacements.all(biome)) {
-            if (i.place().contains(object)) {
-                return new PlacedObject(i, getData().getObjectLoader().load(object), id, x, z);
-            }
-        }
-
-        return new PlacedObject(null, getData().getObjectLoader().load(object), id, x, z);
+        return new PlacedObject(getData().getObjectLoader().load(object), marker.placementId(), x, z);
     }
 
     int getCacheID();
-
-    default boolean hasObjectPlacement(String objectKey) {
-        String normalizedObjectKey = normalizeObjectPlacementKey(objectKey);
-        if (normalizedObjectKey.isBlank()) {
-            return false;
-        }
-
-        Set<String> biomeKeys = getDimension().getReachableBiomes(this).stream()
-                .filter((i) -> containsObjectPlacement(ObjectPlacements.all(i), normalizedObjectKey))
-                .map(IrisRegistrant::getLoadKey)
-                .collect(Collectors.toSet());
-        Set<String> regionKeys = getDimension().getAllRegions(this).stream()
-                .filter((i) -> i.getAllBiomeIds().stream().anyMatch(biomeKeys::contains)
-                        || containsObjectPlacement(ObjectPlacements.all(i), normalizedObjectKey))
-                .map(IrisRegistrant::getLoadKey)
-                .collect(Collectors.toSet());
-        return !regionKeys.isEmpty();
-    }
-
-    private static boolean containsObjectPlacement(KList<ObjectPlacement> placements, String normalizedObjectKey) {
-        if (placements == null || placements.isEmpty() || normalizedObjectKey.isBlank()) {
-            return false;
-        }
-
-        for (ObjectPlacement placement : placements) {
-            if (placement == null || placement.place().isEmpty()) {
-                continue;
-            }
-
-            for (String placedObject : placement.place()) {
-                String normalizedPlacedObject = normalizeObjectPlacementKey(placedObject);
-                if (!normalizedPlacedObject.isBlank() && normalizedPlacedObject.equals(normalizedObjectKey)) {
-                    return true;
-                }
-            }
-        }
-
-        return false;
-    }
-
-    private static String normalizeObjectPlacementKey(String objectKey) {
-        if (objectKey == null) {
-            return "";
-        }
-
-        String normalized = objectKey.trim().replace('\\', '/');
-        while (normalized.startsWith("/")) {
-            normalized = normalized.substring(1);
-        }
-        while (normalized.endsWith("/")) {
-            normalized = normalized.substring(0, normalized.length() - 1);
-        }
-        if (normalized.endsWith(".iob")) {
-            normalized = normalized.substring(0, normalized.length() - 4);
-        }
-        return normalized.toLowerCase(Locale.ROOT);
-    }
 
     default void cleanupMantleChunk(int x, int z) {
         if (getPlatformHooks().shouldSkipMantleCleanup(this)) {

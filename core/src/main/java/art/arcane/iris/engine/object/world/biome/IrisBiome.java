@@ -78,9 +78,6 @@ public class IrisBiome extends IrisRegistrant implements IRare {
     private final transient AtomicCache<KMap<String, Integer>> genCacheMax = new AtomicCache<>();
     private final transient AtomicCache<KMap<String, Integer>> genCacheMin = new AtomicCache<>();
     private final transient AtomicCache<Color> cacheColor = new AtomicCache<>();
-    private final transient AtomicCache<Color> cacheColorObjectDensity = new AtomicCache<>();
-    private final transient AtomicCache<Color> cacheColorDecoratorLoad = new AtomicCache<>();
-    private final transient AtomicCache<Color> cacheColorLayerLoad = new AtomicCache<>();
     private final transient AtomicCache<Color> cacheColorDepositLoad = new AtomicCache<>();
     private final transient AtomicCache<CNG> childrenCell = new AtomicCache<>();
     @Getter(AccessLevel.NONE)

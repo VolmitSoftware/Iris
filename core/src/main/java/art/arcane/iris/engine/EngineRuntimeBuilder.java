@@ -18,10 +18,7 @@
 
 package art.arcane.iris.engine;
 
-import art.arcane.iris.engine.object.placement.ObjectPlacements;
-import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.engine.EngineRuntime.BiomeMaxes;
 import art.arcane.iris.engine.IrisEngine.LifecycleState;
 import art.arcane.iris.engine.framework.EngineEffects;
 import art.arcane.iris.engine.framework.EngineEffectsProvider;
@@ -29,7 +26,6 @@ import art.arcane.iris.engine.framework.EngineGeneration;
 import art.arcane.iris.engine.framework.EngineTarget;
 import art.arcane.iris.engine.framework.EngineWorldManager;
 import art.arcane.iris.engine.framework.EngineWorldManagerProvider;
-import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.IrisServices;
@@ -89,8 +85,7 @@ final class EngineRuntimeBuilder {
                 throw new IllegalStateException("Engine world manager provider returned null");
             }
             IrisLogging.debug("[IrisEngine timing] IrisWorldManager=" + (M.ms() - started) + "ms");
-            BiomeMaxes biomeMaxes = computeBiomeMaxes();
-            return assembly.freeze(biomeMaxes);
+            return assembly.freeze();
         } catch (Throwable e) {
             Throwable cleanupFailure = engine.shutdownSequence.closeAssembly(assembly, e);
             if (cleanupFailure != e) {
@@ -195,20 +190,6 @@ final class EngineRuntimeBuilder {
         return null;
     }
 
-    BiomeMaxes computeBiomeMaxes() {
-        double objectDensity = 0D;
-        for (IrisBiome i : engine.getDimension().getReachableBiomes(engine)) {
-            double density = 0;
-
-            for (ObjectPlacement j : ObjectPlacements.all(i)) {
-                density += j.middleDensity() * j.chance();
-            }
-
-            objectDensity = Math.max(objectDensity, density);
-        }
-        return new BiomeMaxes(objectDensity);
-    }
-
     void restoreRuntimeAfterFailedTransition(EngineRuntime previous) {
         engine.runtime = previous;
         if (engine.getGenerationSessions().activeLeases() == 0) {
@@ -251,7 +232,7 @@ final class EngineRuntimeBuilder {
             this.target = target;
         }
 
-        EngineRuntime freeze(BiomeMaxes biomeMaxes) {
+        EngineRuntime freeze() {
             if (complex == null || effects == null || generation == null || worldManager == null || hash32 == null) {
                 throw new IllegalStateException("Cannot publish an incomplete Iris engine runtime.");
             }
@@ -263,8 +244,7 @@ final class EngineRuntimeBuilder {
                     effects,
                     generation,
                     worldManager,
-                    hash32,
-                    biomeMaxes);
+                    hash32);
         }
     }
 }

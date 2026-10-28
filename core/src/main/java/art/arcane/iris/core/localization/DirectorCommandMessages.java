@@ -790,10 +790,6 @@ public final class DirectorCommandMessages {
             "iris.director.commandstudio.param.dimension_pack_compress",
             "The dimension pack to compress"
     );
-    public static final TextKey COMMAND_STUDIO_PARAM_WHETHER_NOT_OBFUSCATE_PACK = TextKey.of(
-            "iris.director.commandstudio.param.whether_not_obfuscate_pack",
-            "Whether or not to obfuscate the pack"
-    );
     public static final TextKey COMMAND_STUDIO_PARAM_WHETHER_NOT_MINIFY_PACK = TextKey.of(
             "iris.director.commandstudio.param.whether_not_minify_pack",
             "Whether or not to minify the pack"
@@ -1060,7 +1056,6 @@ public final class DirectorCommandMessages {
             COMMAND_STUDIO_PARAM_WORLD_OPEN_GENERATOR,
             COMMAND_STUDIO_DIRECTOR_PACKAGE_DIMENSION_INTO_COMPRESSED_FORMAT,
             COMMAND_STUDIO_PARAM_DIMENSION_PACK_COMPRESS,
-            COMMAND_STUDIO_PARAM_WHETHER_NOT_OBFUSCATE_PACK,
             COMMAND_STUDIO_PARAM_WHETHER_NOT_MINIFY_PACK,
             COMMAND_STUDIO_DIRECTOR_PROFILES_PERFORMANCE_DIMENSION,
             COMMAND_STUDIO_PARAM_DIMENSION_PROFILE,

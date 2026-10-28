@@ -277,7 +277,6 @@ List<String> irisClassesLeftOut = [
     'art/arcane/iris/core/jobs/JobCollection',
     'art/arcane/iris/core/jobs/ParallelQueueJob',
     'art/arcane/iris/core/jobs/QueueJob',
-    'art/arcane/iris/engine/framework/placer/WorldObjectPlacer',
     'art/arcane/iris/engine/object/placement/IPostBlockAccess',
     'art/arcane/iris/engine/object/entity/IrisPotionEffect',
     'art/arcane/iris/engine/platform/DummyChunkGenerator',

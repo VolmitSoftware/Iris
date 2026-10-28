@@ -123,7 +123,7 @@ final class ModdedLocateCommands {
             return 0;
         }
         String key = keyRaw.trim();
-        if (!engine.hasObjectPlacement(key)) {
+        if (ModuleServices.objectPlacers(engine, key).isEmpty()) {
             IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_IS_NOT_CONFIGURED_ANY_REGION_BIOME_OBJECT_PLACEMENTS_OBJECT_KEYS, MessageArgument.untrusted("key", key), MessageArgument.untrusted("value", engine.getData().getObjectLoader().getPossibleKeys().length)));
             return 0;
         }

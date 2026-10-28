@@ -1,6 +1,7 @@
 package com.volmit.item;
 
 import com.volmit.resource.ContentKey;
+import com.volmit.resource.ResourceId;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -97,11 +98,11 @@ public record ItemDrop(ContentKey item, int amount, Look look, List<ItemEnchantm
     /**
      * Where a shown item came from: the loot table, when it came from one, and the 1-in-N chances it passed.
      *
-     * @param table       the table's name; empty for an item that came from no table
+     * @param table       the pack table's id; empty for an item that came from no table
      * @param tableRarity the table's rarity, 1 in this many
      * @param entryRarity the entry's rarity within the table
      */
-    public record Source(Optional<String> table, int tableRarity, int entryRarity) {
+    public record Source(Optional<ResourceId> table, int tableRarity, int entryRarity) {
         public Source {
             Objects.requireNonNull(table, "table");
         }

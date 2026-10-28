@@ -12,8 +12,8 @@ import java.util.OptionalInt;
 
 /** Changes to a platform jigsaw structure's definition before the platform assembles one start of it, as packs write
  * them: {@code {"startPool": "minecraft:village/plains/town_centers", "maxDepth": 4}}. Every option left out keeps
- * what the registered definition says. A value the host decodes as every settings class (see DESIGN.md, "Decoding
- * contract").
+ * what the registered definition says, and its getter returns an empty value then; there is no constant that stands for
+ * "the definition's own". A value the host decodes as every settings class (see DESIGN.md, "Decoding contract").
  */
 @Desc("Changes to a platform jigsaw structure's definition before a start of it is assembled. An option left out keeps the definition's value.")
 public final class JigsawOverrides {
@@ -23,8 +23,6 @@ public final class JigsawOverrides {
     /** Whether the start piece follows one of the platform's heightmaps. */
     @Desc("Which heightmap the start piece is placed on.")
     public enum Heightmap {
-        @Desc("The definition's own heightmap.")
-        SOURCE,
         @Desc("Removes heightmap projection: the start piece lands at the structure's literal start height.")
         NONE,
         @Desc("The terrain top counting water as solid.")
@@ -44,8 +42,6 @@ public final class JigsawOverrides {
     /** Whether placed pieces take on the water they are placed into. */
     @Desc("Whether placed pieces take on the water they replace.")
     public enum Liquids {
-        @Desc("The definition's own liquid setting.")
-        SOURCE,
         @Desc("Places pieces dry.")
         IGNORE_WATERLOGGING,
         @Desc("Waterlogs placed pieces from the water they replace.")
@@ -54,10 +50,10 @@ public final class JigsawOverrides {
 
     @Desc("The template pool the start piece comes from. Left out, the definition's pool.")
     @Ref(Reference.TEMPLATE_POOL)
-    private String startPool = "";
+    private String startPool = null;
 
     @Desc("The start piece's connector. Left out, the definition's; NONE removes the definition's constraint.")
-    private String startJigsawName = "";
+    private String startJigsawName = null;
 
     @MinNumber(0)
     @MaxNumber(20)
@@ -77,8 +73,8 @@ public final class JigsawOverrides {
     @Desc("Whether the platform's expansion hack applies. Left out, the definition's setting.")
     private Boolean useExpansionHack = null;
 
-    @Desc("The heightmap the start piece is placed on.")
-    private Heightmap projectStartToHeightmap = Heightmap.SOURCE;
+    @Desc("The heightmap the start piece is placed on. Left out, the definition's heightmap.")
+    private Heightmap projectStartToHeightmap = null;
 
     @MinNumber(0)
     @MaxNumber(Integer.MAX_VALUE)
@@ -90,8 +86,8 @@ public final class JigsawOverrides {
     @Desc("How many blocks pieces stay below the dimension's top. Left out, the definition's padding.")
     private Integer dimensionPaddingTop = null;
 
-    @Desc("Whether placed pieces take on the water they replace.")
-    private Liquids liquidSettings = Liquids.SOURCE;
+    @Desc("Whether placed pieces take on the water they replace. Left out, the definition's setting.")
+    private Liquids liquidSettings = null;
 
     private JigsawOverrides() {
     }
@@ -103,10 +99,10 @@ public final class JigsawOverrides {
         maxDistanceHorizontal = source.maxDistanceHorizontal;
         maxDistanceVertical = source.maxDistanceVertical;
         useExpansionHack = source.useExpansionHack;
-        projectStartToHeightmap = source.projectStartToHeightmap();
+        projectStartToHeightmap = source.projectStartToHeightmap;
         dimensionPaddingBottom = source.dimensionPaddingBottom;
         dimensionPaddingTop = source.dimensionPaddingTop;
-        liquidSettings = source.liquidSettings();
+        liquidSettings = source.liquidSettings;
     }
 
     /** Overrides that change nothing: the registered definition as it is. */
@@ -187,11 +183,11 @@ public final class JigsawOverrides {
 
     /** Whether the start connector constraint is removed, which packs write as {@code NONE}. */
     public boolean removesStartJigsaw() {
-        return NO_START_JIGSAW.equalsIgnoreCase(startJigsawName.trim());
+        return startJigsawName != null && NO_START_JIGSAW.equalsIgnoreCase(written(startJigsawName));
     }
 
     private static Optional<ResourceId> platformKey(String key) {
-        return key.isBlank() ? Optional.empty() : Optional.of(ResourceId.ofPlatformKey(key));
+        return key == null || key.isBlank() ? Optional.empty() : Optional.of(ResourceId.ofPlatformKey(key));
     }
 
     public OptionalInt maxDepth() {
@@ -210,9 +206,9 @@ public final class JigsawOverrides {
         return Optional.ofNullable(useExpansionHack);
     }
 
-    /** The heightmap projection; {@link Heightmap#SOURCE} where the pack wrote none. */
-    public Heightmap projectStartToHeightmap() {
-        return projectStartToHeightmap;
+    /** The heightmap projection; empty keeps the definition's. */
+    public Optional<Heightmap> projectStartToHeightmap() {
+        return Optional.ofNullable(projectStartToHeightmap);
     }
 
     public OptionalInt dimensionPaddingBottom() {
@@ -223,9 +219,9 @@ public final class JigsawOverrides {
         return optional(dimensionPaddingTop);
     }
 
-    /** The waterlogging; {@link Liquids#SOURCE} where the pack wrote none. */
-    public Liquids liquidSettings() {
-        return liquidSettings;
+    /** The waterlogging; empty keeps the definition's. */
+    public Optional<Liquids> liquidSettings() {
+        return Optional.ofNullable(liquidSettings);
     }
 
     private static OptionalInt optional(Integer value) {
@@ -239,25 +235,25 @@ public final class JigsawOverrides {
                 && Objects.equals(maxDistanceHorizontal, that.maxDistanceHorizontal)
                 && Objects.equals(maxDistanceVertical, that.maxDistanceVertical)
                 && Objects.equals(useExpansionHack, that.useExpansionHack)
-                && projectStartToHeightmap() == that.projectStartToHeightmap()
+                && projectStartToHeightmap == that.projectStartToHeightmap
                 && Objects.equals(dimensionPaddingBottom, that.dimensionPaddingBottom)
                 && Objects.equals(dimensionPaddingTop, that.dimensionPaddingTop)
-                && liquidSettings() == that.liquidSettings();
+                && liquidSettings == that.liquidSettings;
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(written(startPool), written(startJigsawName), maxDepth, maxDistanceHorizontal, maxDistanceVertical,
-                useExpansionHack, projectStartToHeightmap(), dimensionPaddingBottom, dimensionPaddingTop, liquidSettings());
+                useExpansionHack, projectStartToHeightmap, dimensionPaddingBottom, dimensionPaddingTop, liquidSettings);
     }
 
     @Override
     public String toString() {
-        return "JigsawOverrides[pool '" + written(startPool) + "', depth " + maxDepth + ", " + projectStartToHeightmap() + "]";
+        return "JigsawOverrides[pool '" + written(startPool) + "', depth " + maxDepth + ", " + projectStartToHeightmap + "]";
     }
 
-    /** A key as the pack wrote it, without surrounding blanks. */
+    /** A key as the pack wrote it, without surrounding blanks; blank for a key left out, so that left out and blank are equal. */
     private static String written(String key) {
-        return key.trim();
+        return key == null ? "" : key.trim();
     }
 }

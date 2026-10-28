@@ -38,7 +38,13 @@ class VanillaStructureValuesTest {
                 "useExpansionHack", "projectStartToHeightmap", "dimensionPaddingBottom", "dimensionPaddingTop",
                 "liquidSettings"), names(JigsawOverrides.class));
         assertEquals(OptionalInt.empty(), JigsawOverrides.none().maxDepth());
-        assertEquals(JigsawOverrides.Heightmap.SOURCE, JigsawOverrides.none().projectStartToHeightmap());
+        assertEquals(Optional.empty(), JigsawOverrides.none().projectStartToHeightmap());
+        assertEquals(Optional.empty(), JigsawOverrides.none().liquidSettings());
+        assertEquals(Optional.empty(), JigsawOverrides.none().startPool());
+        assertEquals(Optional.empty(), JigsawOverrides.none().startJigsawName());
+        assertFalse(JigsawOverrides.none().removesStartJigsaw());
+        assertEquals(Optional.of(JigsawOverrides.Liquids.IGNORE_WATERLOGGING),
+                JigsawOverrides.none().withLiquids(JigsawOverrides.Liquids.IGNORE_WATERLOGGING).liquidSettings());
         var pool = com.volmit.resource.ResourceId.parse("minecraft:village/plains/town_centers");
         var overrides = JigsawOverrides.none().withStartPool(pool).withMaxDepth(4)
                 .withMaxDistance(80, 120).withHeightmap(JigsawOverrides.Heightmap.NONE);

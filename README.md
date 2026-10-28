@@ -765,7 +765,8 @@ public List<VanillaStructureStart> starts(int chunkX, int chunkZ, VanillaStructu
 How a start meets the terrain is the module's: the API has no fit values. A `StartMemo` is one opaque, non-empty
 text the module gives a start it places; the host persists it with the start and hands it back in `reach` and in every chunk's
 `StructureFit`, so every chunk the start reaches fits it the same way, also after a restart. `JigsawOverrides` is a
-value type like `PaletteSpec`: settings may hold it, and packs write it as Iris always read it.
+value type like `PaletteSpec`: settings may hold it, and packs write it as Iris always read it. An option a pack leaves
+out is empty in its getter (`Optional`, `OptionalInt`); no constant stands for "the definition's own".
 
 ## Host side
 

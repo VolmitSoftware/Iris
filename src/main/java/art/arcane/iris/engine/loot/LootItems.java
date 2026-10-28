@@ -70,6 +70,15 @@ public final class LootItems {
      * asks for or runs out of tries.
      */
     public List<ItemDrop> draw(String tableKey, LootTable table, long lootSeed, int x, int y, int z) {
+        return draw(tableKey, Optional.empty(), table, lootSeed, x, y, z);
+    }
+
+    /** As {@link #draw(String, LootTable, long, int, int, int)} for the pack table {@code tableId}, which the items name as their source. */
+    public List<ItemDrop> draw(ResourceId tableId, LootTable table, long lootSeed, int x, int y, int z) {
+        return draw(tableId.path(), Optional.of(tableId), table, lootSeed, x, y, z);
+    }
+
+    private List<ItemDrop> draw(String tableKey, Optional<ResourceId> tableId, LootTable table, long lootSeed, int x, int y, int z) {
         List<ItemDrop> drops = new ArrayList<>();
         List<LootEntry> entries = table.loot();
         if (entries.isEmpty() || table.maxTries() <= 0) {
@@ -86,7 +95,7 @@ public final class LootItems {
             if (entry == null || entry.slotTypes() != LootSlot.STORAGE) {
                 continue;
             }
-            ItemDrop drop = drawEntry(entry, table, identity, rng, lootSeed, index, x, y, z);
+            ItemDrop drop = drawEntry(entry, table, tableId, identity, rng, lootSeed, index, x, y, z);
             if (drop != null) {
                 drops.add(drop);
             }
@@ -96,7 +105,7 @@ public final class LootItems {
 
     /** The item {@code entry} gives when nothing else decides whether it does, such as a block's drop or a mob's equipment; null for no item. */
     public ItemDrop give(LootEntry entry, RNG rng) {
-        return resolve(entry, rng, null);
+        return resolve(entry, rng, null, Optional.empty());
     }
 
     /** The attribute modifiers that pass their chances, with their amounts drawn, as for an item or an entity. */
@@ -117,15 +126,16 @@ public final class LootItems {
         return attributes;
     }
 
-    private ItemDrop drawEntry(LootEntry entry, LootTable table, String identity, RNG rng, long lootSeed, int index, int x, int y, int z) {
+    private ItemDrop drawEntry(LootEntry entry, LootTable table, Optional<ResourceId> tableId, String identity, RNG rng, long lootSeed,
+                               int index, int x, int y, int z) {
         long combinedRarity = LootResolver.combinedRarity(entry.rarity(), table.rarity());
         if (!LootTables.spatialOneIn(lootSeed, identity, index, x, y, z, combinedRarity)) {
             return null;
         }
-        return resolve(entry, rng, table);
+        return resolve(entry, rng, table, tableId);
     }
 
-    private ItemDrop resolve(LootEntry entry, RNG rng, LootTable table) {
+    private ItemDrop resolve(LootEntry entry, RNG rng, LootTable table, Optional<ResourceId> tableId) {
         Optional<ContentKey> item = PlatformKeys.item(entry.type(), log);
         if (item.isEmpty() || item.get().equals(AIR)) {
             return null;
@@ -143,7 +153,7 @@ public final class LootItems {
                 : OptionalDouble.empty();
         return new ItemDrop(item.get(), amount, lookOf(entry), enchantments, attributes, new ItemDrop.Wear(entry.unbreakable(), damage),
                 new ItemDrop.PlatformExtras(entry.itemFlags(), Objects.requireNonNullElse(entry.customNbt(), Map.of())),
-                debug ? Optional.of(sourceOf(entry, table)) : Optional.empty());
+                debug ? Optional.of(sourceOf(entry, table, tableId)) : Optional.empty());
     }
 
     private ItemDrop.Look lookOf(LootEntry entry) {
@@ -166,10 +176,10 @@ public final class LootItems {
         return enchantments;
     }
 
-    private static ItemDrop.Source sourceOf(LootEntry entry, LootTable table) {
+    private static ItemDrop.Source sourceOf(LootEntry entry, LootTable table, Optional<ResourceId> tableId) {
         if (table == null) {
             return new ItemDrop.Source(Optional.empty(), 0, entry.rarity());
         }
-        return new ItemDrop.Source(Optional.ofNullable(table.name()), table.rarity(), entry.rarity());
+        return new ItemDrop.Source(tableId, table.rarity(), entry.rarity());
     }
 }

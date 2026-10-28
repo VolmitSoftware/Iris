@@ -76,7 +76,7 @@ public final class LootGiving implements Loot {
         }
         int worldY = site.position().y() + world.minWorldY();
         return new LootItems(world.resources().items(), site.debug(), world.log())
-                .draw(tableId.path(), table, lootSeed(world), site.position().x(), worldY, site.position().z());
+                .draw(tableId, table, lootSeed(world), site.position().x(), worldY, site.position().z());
     }
 
     @Override

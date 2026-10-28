@@ -21,10 +21,11 @@ package art.arcane.iris.engine.mantle.components;
 import art.arcane.iris.builtin.floating.FloatingChildBiome;
 import art.arcane.iris.modules.floating.FloatingChildSettings;
 import art.arcane.iris.builtin.floating.FloatingHost;
-import art.arcane.iris.builtin.objects.ObjectHost;
 import art.arcane.iris.builtin.objects.ObjectPlacement;
-import art.arcane.iris.builtin.objects.ObjectSize;
 import art.arcane.iris.engine.object.TestSettings;
+import com.volmit.geometry.BlockBox;
+import com.volmit.object.PackObjects;
+import com.volmit.resource.PackResources;
 import com.volmit.config.Level;
 import com.volmit.IrisFeature;
 import com.volmit.config.FeatureSettings.Entry;
@@ -48,13 +49,17 @@ public class FloatingObjectPlacingBoundaryRadiusTest {
     public void transformedFloatingPlacementExpandsOwnerRadius() {
         ObjectPlacement placement = TestSettings.of(ObjectPlacement.class, "{\"place\":[\"test/floating\"],\"translate\":{\"x\":32}}");
         FloatingChildBiome floatingChild = TestSettings.with(new FloatingChildBiome(), "floatingObjects", List.of(placement));
-        ObjectHost objects = mock(ObjectHost.class);
-        when(objects.sizeOf("test/floating")).thenReturn(Optional.of(new ObjectSize(1, 1, 1)));
+        PackResources resources = mock(PackResources.class);
+        PackObjects objects = mock(PackObjects.class);
+        ResourceId floating = ResourceId.parse("test:test/floating");
+        when(resources.objects()).thenReturn(objects);
+        when(resources.idOf("test/floating")).thenReturn(floating);
+        when(objects.sizeOf(floating)).thenReturn(Optional.of(new BlockBox(0, 0, 0, 1, 1, 1)));
 
-        assertEquals(33, FloatingObjectPlacing.reach(pack(new FloatingChildSettings(List.of(floatingChild)), objects), ModuleLogs.discarding()));
+        assertEquals(33, FloatingObjectPlacing.reach(pack(new FloatingChildSettings(List.of(floatingChild)), resources), ModuleLogs.discarding()));
     }
 
-    private static PackSettings pack(FloatingChildSettings declared, ObjectHost objects) {
+    private static PackSettings pack(FloatingChildSettings declared, PackResources resources) {
         FloatingHost floating = mock(FloatingHost.class);
         return new PackSettings() {
             @Override
@@ -66,10 +71,12 @@ public class FloatingObjectPlacingBoundaryRadiusTest {
 
             @Override
             public <T> Optional<T> extension(Class<T> type) {
-                if (type == FloatingHost.class) {
-                    return Optional.of(type.cast(floating));
-                }
-                return type == ObjectHost.class ? Optional.of(type.cast(objects)) : Optional.empty();
+                return type == FloatingHost.class ? Optional.of(type.cast(floating)) : Optional.empty();
+            }
+
+            @Override
+            public PackResources resources() {
+                return resources;
             }
         };
     }

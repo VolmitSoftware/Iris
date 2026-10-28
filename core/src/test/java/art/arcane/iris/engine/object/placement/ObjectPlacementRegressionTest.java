@@ -8,7 +8,8 @@ import art.arcane.iris.engine.object.TestSettings;
 import art.arcane.iris.builtin.stilt.StiltSettings;
 import art.arcane.iris.builtin.prepare.SlopeClip;
 import art.arcane.iris.builtin.vacuum.VacuumSettings;
-import art.arcane.iris.builtin.IrisStages;
+import art.arcane.iris.modules.blocks.SmartBoreDebugSettings;
+import art.arcane.iris.modules.placement.PlacementStages;
 import art.arcane.iris.engine.object.noise.IrisNoiseGenerator;
 import art.arcane.iris.engine.object.placement.IObjectPlacer;
 import art.arcane.iris.builtin.objects.ObjectPlacement;
@@ -232,9 +233,10 @@ public class ObjectPlacementRegressionTest {
         object.setSmartBored(true);
         ObjectPlacement.Builder placement = placement();
         placement.smartBore(true);
-        RecordingPlacer debug = new RecordingPlacer(null);
-        debug.setDebugSmartBore(true);
+        RecordingPlacer debug = new RecordingPlacer(engine);
         RecordingPlacer normal = new RecordingPlacer(null);
+        SmartBoreDebugSettings shown = TestSettings.of(SmartBoreDebugSettings.class, "{\"show\":true}");
+        when(engine.getDimension().getModuleSettings()).thenReturn(BuiltInPack.settings(shown));
 
         object.place(0, ANCHOR_Y, 0, debug, placement.build(), new RNG(2L), data);
         object.place(0, ANCHOR_Y, 0, normal, placement.build(), new RNG(2L), data);
@@ -394,8 +396,8 @@ public class ObjectPlacementRegressionTest {
 
         @Override
         public void setup(ModuleSetup setup) {
-            setup.stages().define(CAP).requires(IrisStages.Blocks.COMPLETE, IrisStages.Blocks.WRITE).run(context -> {
-                WrittenBlocks written = context.output(IrisStages.Blocks.WRITE);
+            setup.stages().define(CAP).requires(PlacementStages.Blocks.COMPLETE, PlacementStages.Blocks.WRITE).run(context -> {
+                WrittenBlocks written = context.output(PlacementStages.Blocks.WRITE);
                 writtenSizes.add(written.positions().size());
                 BlockPosition first = written.positions().getFirst();
                 context.access().set(0, first.y() + 1, 0, written.states().getFirst());
@@ -414,7 +416,7 @@ public class ObjectPlacementRegressionTest {
 
         @Override
         public void setup(ModuleSetup setup) {
-            setup.stages().define(VETO).requires(IrisStages.Bore.CLEAR, IrisStages.Blocks.COMPLETE).run(context -> context.reject("veto"));
+            setup.stages().define(VETO).requires(PlacementStages.Bore.CLEAR, PlacementStages.Blocks.COMPLETE).run(context -> context.reject("veto"));
         }
     }
 
@@ -434,7 +436,7 @@ public class ObjectPlacementRegressionTest {
 
         @Override
         public void setup(ModuleSetup setup) {
-            setup.stages().define(FIND).requires(IrisStages.Blocks.COMPLETE).run(context ->
+            setup.stages().define(FIND).requires(PlacementStages.Blocks.COMPLETE).run(context ->
                     found.add(PackResourceFixture.oak(context.world().resources())));
         }
     }
@@ -469,7 +471,7 @@ public class ObjectPlacementRegressionTest {
 
         @Override
         public void setup(ModuleSetup setup) {
-            setup.stages().define(MARK).requires(IrisStages.Blocks.COMPLETE).run(context -> {
+            setup.stages().define(MARK).requires(PlacementStages.Blocks.COMPLETE).run(context -> {
                 Mantle mantle = context.access().mantle();
                 mantle.layer(MARKS).set(0, ANCHOR_Y, 0, "first");
                 mantle.layer(MARKS).set(1, ANCHOR_Y, 0, "second");
@@ -520,7 +522,7 @@ public class ObjectPlacementRegressionTest {
 
         @Override
         public void setup(ModuleSetup setup) {
-            setup.stages().define(TURN).requires(IrisStages.Blocks.COMPLETE).run(context -> turned.add(context.objects().transform(
+            setup.stages().define(TURN).requires(PlacementStages.Blocks.COMPLETE).run(context -> turned.add(context.objects().transform(
                     PackResourceFixture.oak(context.world().resources()),
                     new ObjectTransform(90, 0, 0, 1, 1, 1, false, false, false))));
         }
@@ -654,6 +656,7 @@ public class ObjectPlacementRegressionTest {
         when(engine.getComplex()).thenReturn(complex);
         when(complex.getSlopeStream()).thenReturn(slopes);
         when(slopes.get(anyDouble(), anyDouble())).thenReturn(0.5);
+        when(complex.getHeightStream()).thenReturn(ProceduralStream.ofDouble((x, z) -> (double) ANCHOR_Y));
         ObjectPlacement.Builder config = placement().bore(true);
         config.slopeCondition(TestSettings.of(SlopeClip.class, "{\"minimumSlope\":1,\"maximumSlope\":2}"));
         RNG rng = new RNG(91);
@@ -739,7 +742,6 @@ public class ObjectPlacementRegressionTest {
         private final List<String> sampledColumns = new ArrayList<>();
         private final Engine engine;
         private int failAfterWrites = Integer.MAX_VALUE;
-        private boolean debugSmartBore;
         private boolean carved;
         private boolean underwater;
         private int fluidHeight;
@@ -750,10 +752,6 @@ public class ObjectPlacementRegressionTest {
 
         private void failAfterWrites(int writes) {
             failAfterWrites = writes;
-        }
-
-        private void setDebugSmartBore(boolean debugSmartBore) {
-            this.debugSmartBore = debugSmartBore;
         }
 
         private List<BlockWrite> writes() {
@@ -818,11 +816,6 @@ public class ObjectPlacementRegressionTest {
         @Override
         public int getFluidHeight() {
             return fluidHeight;
-        }
-
-        @Override
-        public boolean isDebugSmartBore() {
-            return debugSmartBore;
         }
 
         @Override

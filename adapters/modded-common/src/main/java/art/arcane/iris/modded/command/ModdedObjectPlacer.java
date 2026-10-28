@@ -161,11 +161,6 @@ final class ModdedObjectPlacer implements IObjectPlacer {
     }
 
     @Override
-    public boolean isDebugSmartBore() {
-        return false;
-    }
-
-    @Override
     public void setTile(int xx, int yy, int zz, TileData tile) {
         if (!(tile instanceof ModdedTileData moddedTile)) {
             skippedTiles++;

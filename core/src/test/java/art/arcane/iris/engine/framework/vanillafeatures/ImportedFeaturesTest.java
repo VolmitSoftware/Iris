@@ -112,6 +112,11 @@ public class ImportedFeaturesTest {
         PackWorld world = mock(PackWorld.class);
         when(world.settings()).thenReturn(new PackSettings() {
             @Override
+            public com.volmit.resource.PackResources resources() {
+                throw new UnsupportedOperationException();
+            }
+
+            @Override
             @SuppressWarnings("unchecked")
             public <F extends IrisFeature> SettingsStack<F> declared(Class<F> featureType) {
                 if (settings == null || featureType != ImportedFeaturesSettings.class) {

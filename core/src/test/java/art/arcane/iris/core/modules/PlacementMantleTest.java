@@ -2,7 +2,7 @@ package art.arcane.iris.core.modules;
 
 import art.arcane.iris.engine.UsableBlockPlatform;
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.object.placement.IObjectPlacer;
+import com.volmit.placement.PlacementTerrain;
 import com.volmit.host.MantleRegistration;
 import com.volmit.geometry.BlockBox;
 import com.volmit.mantle.MantleCodec;
@@ -59,9 +59,8 @@ public class PlacementMantleTest {
         return engine;
     }
 
-    private ObjectPlacerEdit edit(Engine engine) {
-        return new ObjectPlacerEdit(mock(IObjectPlacer.class), area, new PlatformBlockStates(key -> null), null,
-                () -> new PlacementMantle(engine, area, LAYERS));
+    private TerrainEdit edit(Engine engine) {
+        return new TerrainEdit(mock(PlacementTerrain.class), area, () -> new PlacementMantle(engine, area, LAYERS));
     }
 
     private String stored(int x, int z) {
@@ -70,7 +69,7 @@ public class PlacementMantleTest {
 
     @Test
     public void writesReachTheMantleTogetherWhenThePlacementCommits() {
-        ObjectPlacerEdit placement = edit(engine());
+        TerrainEdit placement = edit(engine());
         placement.mantle().layer(MARKS).set(1, Y, 1, "near");
         placement.mantle().layer(MARKS).set(17, Y, 2, "next chunk");
         placement.mantle().layer(MARKS).set(17, Y, 3, "removed");
@@ -89,7 +88,7 @@ public class PlacementMantleTest {
 
     @Test
     public void aDiscardedPlacementLeavesTheMantleAsItWas() {
-        ObjectPlacerEdit placement = edit(engine());
+        TerrainEdit placement = edit(engine());
         placement.mantle().layer(MARKS).set(1, Y, 1, "written");
 
         placement.close();
@@ -99,14 +98,14 @@ public class PlacementMantleTest {
 
     @Test
     public void aStageCannotOpenAnEditOfItsOwn() {
-        ObjectPlacerEdit placement = edit(engine());
+        TerrainEdit placement = edit(engine());
 
         assertThrows(UnsupportedOperationException.class, () -> placement.mantle().edit());
     }
 
     @Test
     public void visitsAndClearsStayWithinTheHeightsTheMantleStores() {
-        ObjectPlacerEdit placement = edit(engine());
+        TerrainEdit placement = edit(engine());
         placement.mantle().layer(MARKS).set(1, Y, 1, "low");
         placement.mantle().layer(MARKS).set(2, HEIGHT - 1, 1, "high");
         List<String> visited = new ArrayList<>();
@@ -121,7 +120,7 @@ public class PlacementMantleTest {
     @Test
     public void aPlacementWhoseStagesNeverAskForTheMantleNeverTouchesIt() {
         Engine engine = engine();
-        ObjectPlacerEdit placement = edit(engine);
+        TerrainEdit placement = edit(engine);
 
         placement.commit();
 
@@ -130,7 +129,7 @@ public class PlacementMantleTest {
 
     @Test
     public void writesOutsideThePlacementAreaFail() {
-        ObjectPlacerEdit placement = edit(engine());
+        TerrainEdit placement = edit(engine());
 
         assertThrows(IndexOutOfBoundsException.class, () -> placement.mantle().layer(MARKS).set(24, Y, 0, "out"));
         assertThrows("above the heights the mantle stores", IndexOutOfBoundsException.class,
@@ -140,7 +139,7 @@ public class PlacementMantleTest {
 
     @Test
     public void aPlacementWithoutAnEngineHasNoMantle() {
-        ObjectPlacerEdit placement = new ObjectPlacerEdit(mock(IObjectPlacer.class), area, new PlatformBlockStates(key -> null), null, () -> {
+        TerrainEdit placement = new TerrainEdit(mock(PlacementTerrain.class), area, () -> {
             throw new UnsupportedOperationException("This placement runs without an Iris engine, so it has no mantle");
         });
 

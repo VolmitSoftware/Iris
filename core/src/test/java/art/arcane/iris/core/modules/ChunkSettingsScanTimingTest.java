@@ -134,6 +134,7 @@ public class ChunkSettingsScanTimingTest {
             public FeatureSettings settings() { return settings; }
             public Mantle mantle() { throw new UnsupportedOperationException(); }
             public PackWorld world() { throw new UnsupportedOperationException(); }
+            public com.volmit.placement.PlacementTerrain placementTerrain() { throw new UnsupportedOperationException(); }
         };
     }
 }

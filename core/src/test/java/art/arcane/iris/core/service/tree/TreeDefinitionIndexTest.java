@@ -8,6 +8,7 @@ import art.arcane.iris.engine.object.world.region.IrisRegion;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.modules.ModuleResourceFixture;
+import art.arcane.iris.core.modules.ModuleSettings;
 import art.arcane.iris.engine.framework.EngineGeneration;
 import art.arcane.iris.engine.mantle.components.ObjectModule;
 import art.arcane.iris.builtin.objects.ObjectPlacement;
@@ -43,6 +44,7 @@ public class TreeDefinitionIndexTest {
         biome.setModuleSettings(BuiltInPack.settings(TestSettings.with(new ProceduralObjectSettings(), "trees", List.of(proceduralTree))));
 
         when(engine.getDimension()).thenReturn(dimension);
+        when(dimension.getModuleSettings()).thenReturn(ModuleSettings.NONE);
         IrisData data = mock(IrisData.class);
         when(engine.getData()).thenReturn(data);
         ModuleResourceFixture.serve(data);

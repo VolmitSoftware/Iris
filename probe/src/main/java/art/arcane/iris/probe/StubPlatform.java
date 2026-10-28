@@ -36,6 +36,7 @@ import art.arcane.iris.spi.PlatformScheduler;
 import art.arcane.iris.spi.PlatformStructureHooks;
 import art.arcane.iris.spi.PlatformWorld;
 import art.arcane.volmlib.util.math.IrisBlockVector;
+import com.volmit.block.BlockTurn;
 
 import java.io.File;
 import java.util.LinkedHashMap;
@@ -66,7 +67,10 @@ public final class StubPlatform implements IrisPlatform {
     }
 
     static PlatformBlockState rotateForTest(ObjectRotation rotation, PlatformBlockState state) {
-        return rotateState(rotation, state, 0, 0, 0);
+        if (rotation == null || !rotation.canRotate()) {
+            return state;
+        }
+        return rotateState(BlockStateRotation.turnOf(rotation, 0, 0, 0), state);
     }
 
     static PlatformBlockState mergeForTest(PlatformBlockState base, PlatformBlockState update) {
@@ -280,21 +284,20 @@ public final class StubPlatform implements IrisPlatform {
         }
     }
 
-    private static PlatformBlockState rotateState(ObjectRotation rotation, PlatformBlockState state,
-                                                   int spinX, int spinY, int spinZ) {
-        if (state == null || rotation == null || !rotation.canRotate()) {
-            return state;
+    private static PlatformBlockState rotateState(BlockTurn turn, PlatformBlockState state) {
+        if (state == null) {
+            return null;
         }
         ParsedState parsed = ParsedState.parse(state.key());
         Map<String, String> properties = parsed.properties();
         if (properties.containsKey("facing")) {
-            properties.put("facing", rotateFace(rotation, properties.get("facing"), spinX, spinY, spinZ));
+            properties.put("facing", rotateFace(turn, properties.get("facing")));
         } else if (properties.containsKey("rotation")) {
-            properties.put("rotation", rotateSegment(rotation, properties.get("rotation"), spinX, spinY, spinZ));
+            properties.put("rotation", rotateSegment(turn, properties.get("rotation")));
         } else if (properties.containsKey("axis")) {
-            properties.put("axis", rotateAxis(rotation, properties.get("axis"), spinX, spinY, spinZ));
+            properties.put("axis", rotateAxis(turn, properties.get("axis")));
         } else {
-            rotateFaceProperties(rotation, properties, spinX, spinY, spinZ);
+            rotateFaceProperties(turn, properties);
         }
         return StubBlockState.of(parsed.serialize());
     }
@@ -342,17 +345,19 @@ public final class StubPlatform implements IrisPlatform {
         return StubBlockState.of(parsedBase.serialize());
     }
 
-    private static String rotateFace(ObjectRotation rotation, String face,
-                                     int spinX, int spinY, int spinZ) {
+    private static IrisBlockVector turned(BlockTurn turn, IrisBlockVector vector) {
+        return BlockStateRotation.turned(turn, vector.getX(), vector.getY(), vector.getZ());
+    }
+
+    private static String rotateFace(BlockTurn turn, String face) {
         IrisBlockVector vector = faceVector(face);
         if (vector == null) {
             return face;
         }
-        return faceName(rotation.rotate(vector, spinX, spinY, spinZ));
+        return faceName(turned(turn, vector));
     }
 
-    private static String rotateAxis(ObjectRotation rotation, String axis,
-                                     int spinX, int spinY, int spinZ) {
+    private static String rotateAxis(BlockTurn turn, String axis) {
         IrisBlockVector vector = switch (axis) {
             case "x" -> new IrisBlockVector(1, 0, 0);
             case "y" -> new IrisBlockVector(0, 1, 0);
@@ -362,7 +367,7 @@ public final class StubPlatform implements IrisPlatform {
         if (vector == null) {
             return axis;
         }
-        IrisBlockVector rotated = rotation.rotate(vector, spinX, spinY, spinZ);
+        IrisBlockVector rotated = turned(turn, vector);
         double x = Math.abs(rotated.getX());
         double y = Math.abs(rotated.getY());
         double z = Math.abs(rotated.getZ());
@@ -372,8 +377,7 @@ public final class StubPlatform implements IrisPlatform {
         return y >= z ? "y" : "z";
     }
 
-    private static String rotateSegment(ObjectRotation rotation, String value,
-                                        int spinX, int spinY, int spinZ) {
+    private static String rotateSegment(BlockTurn turn, String value) {
         int segment;
         try {
             segment = Math.floorMod(Integer.parseInt(value), 16);
@@ -382,7 +386,7 @@ public final class StubPlatform implements IrisPlatform {
         }
         double angle = segment * Math.PI * 2D / 16D;
         IrisBlockVector vector = new IrisBlockVector(-Math.sin(angle), 0D, Math.cos(angle));
-        IrisBlockVector rotated = rotation.rotate(vector, spinX, spinY, spinZ);
+        IrisBlockVector rotated = turned(turn, vector);
         if (Math.abs(rotated.getY()) > Math.max(Math.abs(rotated.getX()), Math.abs(rotated.getZ()))) {
             return value;
         }
@@ -391,8 +395,7 @@ public final class StubPlatform implements IrisPlatform {
         return Integer.toString(Math.floorMod(rotatedSegment, 16));
     }
 
-    private static void rotateFaceProperties(ObjectRotation rotation, Map<String, String> properties,
-                                             int spinX, int spinY, int spinZ) {
+    private static void rotateFaceProperties(BlockTurn turn, Map<String, String> properties) {
         List<String> faces = List.of("north", "east", "south", "west", "up", "down");
         int present = 0;
         for (String face : faces) {
@@ -407,7 +410,7 @@ public final class StubPlatform implements IrisPlatform {
         for (String face : faces) {
             String value = properties.get(face);
             if (value != null) {
-                rotated.put(rotateFace(rotation, face, spinX, spinY, spinZ), value);
+                rotated.put(rotateFace(turn, face), value);
             }
         }
         for (String face : faces) {

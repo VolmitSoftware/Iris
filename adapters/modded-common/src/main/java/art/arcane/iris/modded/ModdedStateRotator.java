@@ -18,11 +18,11 @@
 
 package art.arcane.iris.modded;
 
-import art.arcane.iris.builtin.prepare.ObjectRotation;
 import art.arcane.iris.engine.object.prefab.BlockStateRotation;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.volmlib.util.math.IrisBlockVector;
+import com.volmit.block.BlockTurn;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BooleanProperty;
@@ -47,20 +47,12 @@ public final class ModdedStateRotator implements BlockStateRotation.StateRotator
     };
 
     @Override
-    public PlatformBlockState rotate(ObjectRotation rotation, PlatformBlockState state, int spinxx, int spinyy, int spinzz) {
+    public PlatformBlockState rotate(BlockTurn turn, PlatformBlockState state) {
         ModdedBlockState fabric = (ModdedBlockState) state;
         BlockState d = fabric.handle();
         boolean deleted = false;
 
         try {
-            int spinx = (int) (90D * (Math.ceil(Math.abs((spinxx % 360D) / 90D))));
-            int spiny = (int) (90D * (Math.ceil(Math.abs((spinyy % 360D) / 90D))));
-            int spinz = (int) (90D * (Math.ceil(Math.abs((spinzz % 360D) / 90D))));
-
-            if (!rotation.canRotate()) {
-                return state;
-            }
-
             Property<?> facing = findFacing(d);
             Property<?> rotationProperty = findRotation(d);
             Property<?> axis = findAxis(d);
@@ -71,7 +63,7 @@ public final class ModdedStateRotator implements BlockStateRotation.StateRotator
             if (facing != null) {
                 Direction f = (Direction) d.getValue(facing);
                 IrisBlockVector bv = new IrisBlockVector(f.getStepX(), f.getStepY(), f.getStepZ());
-                bv = rotation.rotate(bv.clone(), spinx, spiny, spinz);
+                bv = BlockStateRotation.turned(turn, bv.getX(), bv.getY(), bv.getZ());
                 Direction t = faceFor(bv);
 
                 if (facing.getPossibleValues().contains(t)) {
@@ -84,7 +76,7 @@ public final class ModdedStateRotator implements BlockStateRotation.StateRotator
                 int[] mods = ROTATION_CYCLE_MODS[segment];
 
                 IrisBlockVector bv = new IrisBlockVector(mods[0], 0, mods[1]);
-                bv = rotation.rotate(bv.clone(), spinx, spiny, spinz);
+                bv = BlockStateRotation.turned(turn, bv.getX(), bv.getY(), bv.getZ());
                 int[] hex = hexMods(bv);
 
                 if (hex[0] == 0 && hex[1] == 0) {
@@ -96,7 +88,7 @@ public final class ModdedStateRotator implements BlockStateRotation.StateRotator
             } else if (axis != null) {
                 Direction.Axis current = (Direction.Axis) d.getValue(axis);
                 IrisBlockVector bv = axisFaceVector(current);
-                bv = rotation.rotate(bv.clone(), spinx, spiny, spinz);
+                bv = BlockStateRotation.turned(turn, bv.getX(), bv.getY(), bv.getZ());
                 Direction.Axis a = axisOf(bv);
 
                 if (!a.equals(current) && axis.getPossibleValues().contains(a)) {
@@ -113,7 +105,7 @@ public final class ModdedStateRotator implements BlockStateRotation.StateRotator
                 List<String> faces = new ArrayList<>();
                 for (String name : trueFaces) {
                     IrisBlockVector bv = faceVector(name);
-                    bv = rotation.rotate(bv.clone(), spinx, spiny, spinz);
+                    bv = BlockStateRotation.turned(turn, bv.getX(), bv.getY(), bv.getZ());
                     String r = faceName(faceFor(bv));
 
                     if (multipleFacing.containsKey(r)) {
@@ -134,7 +126,7 @@ public final class ModdedStateRotator implements BlockStateRotation.StateRotator
                 for (String name : WALL_FACE_NAMES) {
                     WallSide h = (WallSide) d.getValue(wall.get(name));
                     IrisBlockVector bv = faceVector(name);
-                    bv = rotation.rotate(bv.clone(), spinx, spiny, spinz);
+                    bv = BlockStateRotation.turned(turn, bv.getX(), bv.getY(), bv.getZ());
                     String r = faceName(faceFor(bv));
                     if (wall.containsKey(r)) {
                         heights.put(r, h);
@@ -150,7 +142,7 @@ public final class ModdedStateRotator implements BlockStateRotation.StateRotator
                 for (String name : WALL_FACE_NAMES) {
                     RedstoneSide connection = (RedstoneSide) d.getValue(wire.get(name));
                     IrisBlockVector bv = faceVector(name);
-                    bv = rotation.rotate(bv.clone(), spinx, spiny, spinz);
+                    bv = BlockStateRotation.turned(turn, bv.getX(), bv.getY(), bv.getZ());
                     String r = faceName(faceFor(bv));
                     if (wire.containsKey(r)) {
                         connections.put(r, connection);

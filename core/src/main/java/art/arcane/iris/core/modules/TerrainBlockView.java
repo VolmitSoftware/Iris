@@ -18,24 +18,19 @@
 
 package art.arcane.iris.core.modules;
 
-import art.arcane.iris.engine.object.placement.IObjectPlacer;
 import com.volmit.block.BlockState;
 import com.volmit.geometry.BlockBox;
+import com.volmit.placement.PlacementTerrain;
 import com.volmit.world.BlockView;
 
-/**
- * The blocks an Iris object placer holds before a placement's writes, within the placement area. The placer's
- * heights count from the dimension's bottom, like IrisApi's.
- */
-final class PlacerBlockView implements BlockView {
-    private final IObjectPlacer placer;
+/** The blocks a placement's terrain holds before the placement's writes, within the placement area. */
+final class TerrainBlockView implements BlockView {
+    private final PlacementTerrain terrain;
     private final BlockBox bounds;
-    private final PlatformBlockStates states;
 
-    PlacerBlockView(IObjectPlacer placer, BlockBox bounds, PlatformBlockStates states) {
-        this.placer = placer;
+    TerrainBlockView(PlacementTerrain terrain, BlockBox bounds) {
+        this.terrain = terrain;
         this.bounds = bounds;
-        this.states = states;
     }
 
     @Override
@@ -48,6 +43,6 @@ final class PlacerBlockView implements BlockView {
         if (!bounds.contains(worldX, y, worldZ)) {
             throw new IndexOutOfBoundsException("Block " + worldX + ", " + y + ", " + worldZ + " is outside the placement area " + bounds);
         }
-        return states.toApi(placer.get(worldX, y, worldZ));
+        return terrain.get(worldX, y, worldZ);
     }
 }

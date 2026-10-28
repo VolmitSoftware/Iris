@@ -26,6 +26,7 @@ import com.volmit.generation.MantleGenerationContext;
 import com.volmit.host.MantleRegistration;
 import com.volmit.geometry.BlockBox;
 import com.volmit.mantle.Mantle;
+import com.volmit.placement.PlacementTerrain;
 import com.volmit.world.PackWorld;
 import com.volmit.world.TerrainSampler;
 
@@ -51,6 +52,7 @@ final class IrisMantleGenerationContext implements MantleGenerationContext {
     private final IrisModuleMantle mantle;
     private final IrisMantleChunk irisChunk;
     private PackWorld world;
+    private PlacementTerrain placementTerrain;
 
     /** {@code irisChunk} is what Iris's built-in mantle stages see of the chunk as an extension. */
     IrisMantleGenerationContext(Engine engine, int chunkX, int chunkZ, int reachBlocks, IrisModuleMantle.Chunks chunks,
@@ -105,6 +107,15 @@ final class IrisMantleGenerationContext implements MantleGenerationContext {
         return Optional.empty();
     }
 
+
+    /** The chunk's mantle as Iris's object placer writes it, within the chunk's reach. */
+    @Override
+    public PlacementTerrain placementTerrain() {
+        if (placementTerrain == null) {
+            placementTerrain = PlacerTerrain.of(irisChunk.writer(), engine.getData());
+        }
+        return placementTerrain;
+    }
 
     /** The world this invocation first asked for; it keeps it if the world restarts meanwhile. */
     @Override

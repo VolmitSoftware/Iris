@@ -3,8 +3,8 @@ package art.arcane.iris.engine.mantle.components;
 import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
 import art.arcane.iris.builtin.carve.CaveProfile;
 import art.arcane.iris.builtin.objects.ObjectPlacement;
-import art.arcane.iris.builtin.objects.PlaceableObject;
-import art.arcane.iris.builtin.objects.PlacementChanges;
+import art.arcane.iris.modules.objects.PlacementChanges;
+import com.volmit.object.PlaceableObject;
 import art.arcane.iris.engine.object.TestSettings;
 import org.junit.Test;
 
@@ -68,7 +68,7 @@ public class EffectivePlacementsTest {
 
     private static PlaceableObject object(String key) {
         PlaceableObject object = mock(PlaceableObject.class);
-        when(object.key()).thenReturn(key);
+        when(object.name()).thenReturn(key);
         return object;
     }
 }

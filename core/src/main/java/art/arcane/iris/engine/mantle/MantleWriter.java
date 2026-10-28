@@ -507,11 +507,6 @@ public class MantleWriter implements IObjectPlacer, AutoCloseable {
     }
 
     @Override
-    public boolean isDebugSmartBore() {
-        return getEngineMantle().isDebugSmartBore();
-    }
-
-    @Override
     public void setTile(int xx, int yy, int zz, TileData tile) {
         setData(xx, yy, zz, new TileWrapper(tile));
     }

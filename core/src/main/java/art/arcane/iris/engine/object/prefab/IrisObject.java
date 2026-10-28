@@ -18,10 +18,9 @@
 
 package art.arcane.iris.engine.object.prefab;
 
-import art.arcane.iris.builtin.objects.PlaceableObject;
+import com.volmit.object.PlaceableObject;
 import art.arcane.iris.builtin.objects.ScaleInterpolation;
 import art.arcane.iris.builtin.prepare.ObjectRotation;
-import art.arcane.iris.engine.object.placement.FloatingObjectFootprint;
 import art.arcane.iris.engine.object.placement.IObjectPlacer;
 import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.engine.object.terrain.carving.CarveResult;
@@ -76,6 +75,8 @@ import java.util.function.BiConsumer;
 @EqualsAndHashCode(callSuper = false)
 public class IrisObject extends IrisRegistrant implements PlaceableObject {
     protected static final IrisVector HALF = new IrisVector(0.5, 0.5, 0.5);
+    /** The name of an object made in code without a load key. */
+    public static final String UNNAMED = "unnamed";
     public static final class States {
         public static final PlatformBlockState AIR = B.getState("CAVE_AIR");
         public static final PlatformBlockState STONE = B.getState("STONE");
@@ -91,7 +92,6 @@ public class IrisObject extends IrisRegistrant implements PlaceableObject {
     @Setter
     protected transient AtomicCache<AxisAlignedBB> aabb = new AtomicCache<>();
     transient final AtomicCache<KList<IrisBlockVector>> surfaceSupportOffsets = new AtomicCache<>();
-    public transient final AtomicCache<FloatingObjectFootprint> floatingFootprint = new AtomicCache<>();
     private transient final AtomicCache<GeneratedObject> geometry = new AtomicCache<>();
     @Getter
     public VectorMap<PlatformBlockState> blocks;
@@ -289,7 +289,6 @@ public class IrisObject extends IrisRegistrant implements PlaceableObject {
     /** Drops what is computed from the blocks, after they change. */
     void forgetDerivedShapes() {
         surfaceSupportOffsets.reset();
-        floatingFootprint.reset();
         geometry.reset();
     }
 
@@ -376,8 +375,19 @@ public class IrisObject extends IrisRegistrant implements PlaceableObject {
     }
 
     @Override
-    public String key() {
-        return getLoadKey();
+    public String name() {
+        String key = getLoadKey();
+        return key == null ? UNNAMED : key;
+    }
+
+    @Override
+    public com.volmit.geometry.BlockPosition center() {
+        return new com.volmit.geometry.BlockPosition(center.getX(), center.getY(), center.getZ());
+    }
+
+    @Override
+    public GeneratedObject geometry() {
+        return getGeometry();
     }
 
     @Override

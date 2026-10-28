@@ -1,6 +1,6 @@
 package art.arcane.iris.engine.mantle.components;
 
-import art.arcane.iris.builtin.objects.Cavern;
+import art.arcane.iris.modules.objects.Cavern;
 import com.volmit.resource.ResourceId;
 import org.junit.Test;
 

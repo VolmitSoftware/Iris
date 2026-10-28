@@ -18,8 +18,10 @@
 
 package art.arcane.iris.core.modules;
 
+import art.arcane.iris.builtin.LegacyStreams;
 import com.volmit.ModuleLog;
 import com.volmit.config.PackSettings;
+import com.volmit.placement.Placements;
 import com.volmit.resource.PackResources;
 import com.volmit.world.PackWorld;
 import org.junit.Test;
@@ -47,7 +49,8 @@ public class ToolWorldTest {
     public void theWorldKeepsItsStateUntilItIsClosed() {
         PackResources resources = mock(PackResources.class);
         Tracked tracked;
-        try (ToolWorld world = new ToolWorld(SEED, resources, mock(PackSettings.class))) {
+        try (ToolWorld world = new ToolWorld(SEED, resources, mock(PackSettings.class), ignored -> mock(Placements.class),
+                mock(LegacyStreams.class))) {
             tracked = world.state(Tracked.class, ignored -> new Tracked());
 
             assertSame(tracked, world.state(Tracked.class, ignored -> new Tracked()));

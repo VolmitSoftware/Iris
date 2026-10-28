@@ -87,6 +87,7 @@ public class IrisObjectSurfaceSupportPlacementTest {
         data = mock(IrisData.class);
         when(data.getEngine()).thenReturn(engine);
         when(engine.getData()).thenReturn(data);
+        BuiltInPack.runBareWorld(engine, data);
         pack = BuiltInPack.serve(data, folder, List.of());
     }
 
@@ -332,11 +333,6 @@ public class IrisObjectSurfaceSupportPlacementTest {
         @Override
         public int getFluidHeight() {
             return 0;
-        }
-
-        @Override
-        public boolean isDebugSmartBore() {
-            return false;
         }
 
         @Override

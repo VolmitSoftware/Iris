@@ -20,9 +20,11 @@ package art.arcane.iris.engine.object.procedural;
 
 import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
 import art.arcane.iris.builtin.carve.CarvingMode;
-import art.arcane.iris.builtin.objects.ObjectHost;
+import art.arcane.iris.modules.objects.PlacementChanges;
+import art.arcane.iris.modules.objects.EffectiveSettings;
+import com.volmit.resource.PackResources;
 import art.arcane.iris.builtin.objects.ProceduralObjectSettings;
-import art.arcane.iris.builtin.objects.ProceduralPlacement;
+import art.arcane.iris.modules.objects.ProceduralPlacement;
 import art.arcane.iris.builtin.objects.coral.Coral;
 import art.arcane.iris.builtin.objects.coral.CoralForm;
 import art.arcane.iris.builtin.objects.crystal.Crystal;
@@ -33,7 +35,6 @@ import art.arcane.iris.builtin.objects.fungi.Fungus;
 import art.arcane.iris.builtin.objects.ruin.Ruin;
 import art.arcane.iris.builtin.objects.tree.TreeLeafMode;
 import art.arcane.iris.core.loader.IrisData;
-import art.arcane.iris.core.modules.ProceduralOptions;
 import art.arcane.iris.builtin.objects.ObjectPlacement;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -149,20 +150,20 @@ public class ProceduralSettingsDecodingTest {
         assertEquals(1, objects.formations().size());
         assertEquals(1, objects.crystals().size());
         assertEquals("glacial-iceberg", objects.formations().get(0).name());
-        assertFalse(ResolvedProceduralObjects.resolve(objects, mock(ObjectHost.class)).isEmpty());
+        assertFalse(ResolvedProceduralObjects.resolve(objects, mock(PackResources.class)).isEmpty());
     }
 
     @Test
     public void everyKindPlacesWithItsSettings() {
         List<ProceduralPlacement> placements = ResolvedProceduralObjects.resolve(gson.fromJson("{\"coral\": [{}], \"fungi\": [{}], \"ruins\": [{}], "
-                + "\"formations\": [" + ICEBERG + "], \"crystals\": [" + FROST_BLOOM + "]}", ProceduralObjectSettings.class), mock(ObjectHost.class));
+                + "\"formations\": [" + ICEBERG + "], \"crystals\": [" + FROST_BLOOM + "]}", ProceduralObjectSettings.class), mock(PackResources.class));
 
         assertEquals(5, placements.size());
 
         ProceduralPlacement iceberg = placements.get(1);
         assertEquals("glacial-iceberg", iceberg.name());
         assertEquals(0.08, iceberg.chance(), 0);
-        ObjectPlacement placement = ProceduralOptions.of(iceberg);
+        ObjectPlacement placement = new EffectiveSettings().of(iceberg, PlacementChanges.NONE);
         assertEquals(ObjectPlaceMode.CENTER_HEIGHT, placement.mode());
         assertEquals(1, placement.surfaceSupportBuffer());
         assertEquals(-4, placement.translate().y());

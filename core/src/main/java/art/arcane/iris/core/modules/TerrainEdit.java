@@ -18,10 +18,6 @@
 
 package art.arcane.iris.core.modules;
 
-import art.arcane.iris.builtin.blocks.ObjectMarkers;
-import art.arcane.iris.engine.object.placement.IObjectPlacer;
-import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.volmlib.util.matter.MatterMarker;
 import com.volmit.block.BlockState;
 import com.volmit.geometry.BlockBox;
 import com.volmit.geometry.BlockPosition;
@@ -30,6 +26,7 @@ import com.volmit.object.BlockEntityData;
 import com.volmit.placement.PlacedBlock;
 import com.volmit.placement.PlacedMarker;
 import com.volmit.placement.PlacementEdit;
+import com.volmit.placement.PlacementTerrain;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -37,43 +34,34 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 
 /**
- * One placement's writes, buffered over an Iris object placer until IrisApi commits them. Reads see the
- * buffered writes. Committing writes blocks in the order they were first set, then their tile data and
- * markers, then reports the object's own blocks to the caller's listener. The placer offers no rollback,
- * so a placer that fails part way through a commit keeps the writes before the failure.
+ * One placement's writes, buffered over a placement's terrain until IrisApi commits them. Reads see the buffered
+ * writes. Committing writes the mantle first, then blocks in the order they were first set, each with its block
+ * entity, then the markers. The terrain offers no rollback, so a terrain that fails part way through a commit keeps
+ * the writes before the failure.
  */
-final class ObjectPlacerEdit implements PlacementEdit {
+final class TerrainEdit implements PlacementEdit {
     private enum State { OPEN, COMMITTED, FAILED, CLOSED }
 
-    private final IObjectPlacer placer;
+    private final PlacementTerrain terrain;
     private final BlockBox bounds;
-    private final PlatformBlockStates states;
-    private final BiConsumer<art.arcane.volmlib.util.math.BlockPosition, PlatformBlockState> listener;
     private final Supplier<PlacementMantle> mantleSource;
     private final Map<BlockPosition, BlockState> blocks = new LinkedHashMap<>();
     private final Map<BlockPosition, BlockEntityData> blockEntities = new HashMap<>();
     private final List<PlacedMarker> markers = new ArrayList<>();
-    private final List<BlockPosition> objectBlocks = new ArrayList<>();
     private PlacementMantle mantle;
     private State state = State.OPEN;
 
     /**
-     * {@code listener} hears each object block after the commit, as Iris placements report them; null for none.
      * {@code mantleSource} makes the placement's mantle the first time a stage asks for it, and fails when the
      * placement has none.
      */
-    ObjectPlacerEdit(IObjectPlacer placer, BlockBox bounds, PlatformBlockStates states,
-                     BiConsumer<art.arcane.volmlib.util.math.BlockPosition, PlatformBlockState> listener,
-                     Supplier<PlacementMantle> mantleSource) {
-        this.mantleSource = mantleSource;
-        this.placer = placer;
+    TerrainEdit(PlacementTerrain terrain, BlockBox bounds, Supplier<PlacementMantle> mantleSource) {
+        this.terrain = terrain;
         this.bounds = bounds;
-        this.states = states;
-        this.listener = listener;
+        this.mantleSource = mantleSource;
     }
 
     @Override
@@ -86,7 +74,7 @@ final class ObjectPlacerEdit implements PlacementEdit {
     public BlockState get(int x, int y, int z) {
         requireInside(x, y, z);
         BlockState buffered = blocks.get(new BlockPosition(x, y, z));
-        return buffered != null ? buffered : states.toApi(placer.get(x, y, z));
+        return buffered != null ? buffered : terrain.get(x, y, z);
     }
 
     @Override
@@ -113,7 +101,6 @@ final class ObjectPlacerEdit implements PlacementEdit {
     public void marker(PlacedMarker marker) {
         BlockPosition position = marker.position();
         requireInside(position.x(), position.y(), position.z());
-        ObjectMarkers.requireIrisMarker(marker);
         markers.add(marker);
     }
 
@@ -126,12 +113,6 @@ final class ObjectPlacerEdit implements PlacementEdit {
         return mantle;
     }
 
-    /** Marks a buffered write as one of the object's own blocks, which the listener hears after the commit. */
-    void recordObjectBlock(BlockPosition position) {
-        requireOpen();
-        objectBlocks.add(position);
-    }
-
     @Override
     public void commit() {
         requireOpen();
@@ -139,7 +120,6 @@ final class ObjectPlacerEdit implements PlacementEdit {
         commitMantle();
         writeBlocks();
         writeMarkers();
-        reportObjectBlocks();
         state = State.COMMITTED;
     }
 
@@ -149,7 +129,6 @@ final class ObjectPlacerEdit implements PlacementEdit {
         blocks.clear();
         blockEntities.clear();
         markers.clear();
-        objectBlocks.clear();
         state = State.CLOSED;
     }
 
@@ -168,29 +147,17 @@ final class ObjectPlacerEdit implements PlacementEdit {
 
     private void writeBlocks() {
         blocks.forEach((position, block) -> {
-            placer.set(position.x(), position.y(), position.z(), states.toPlatform(block));
             BlockEntityData entity = blockEntities.get(position);
-            if (entity != null) {
-                placer.setTile(position.x(), position.y(), position.z(), BlockEntities.tileOf(entity));
+            if (entity == null) {
+                terrain.set(position.x(), position.y(), position.z(), block);
+            } else {
+                terrain.set(position.x(), position.y(), position.z(), block, entity);
             }
         });
     }
 
     private void writeMarkers() {
-        for (PlacedMarker marker : markers) {
-            BlockPosition position = marker.position();
-            placer.setData(position.x(), position.y(), position.z(), new MatterMarker(ObjectMarkers.markerKey(marker)));
-        }
-    }
-
-    private void reportObjectBlocks() {
-        if (listener == null) {
-            return;
-        }
-        for (BlockPosition position : objectBlocks) {
-            listener.accept(new art.arcane.volmlib.util.math.BlockPosition(position.x(), position.y(), position.z()),
-                    states.toPlatform(blocks.get(position)));
-        }
+        markers.forEach(terrain::mark);
     }
 
     private void requireInside(int x, int y, int z) {

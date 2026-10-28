@@ -20,9 +20,14 @@ package art.arcane.iris.core.modules;
 
 import art.arcane.iris.builtin.structure.StructureHost;
 import art.arcane.iris.engine.framework.Engine;
+import art.arcane.iris.engine.framework.structure.StructureResources;
 import art.arcane.iris.engine.mantle.components.StructurePlacing;
+import art.arcane.iris.engine.object.structure.IrisStructure;
 import com.volmit.ModuleLog;
 import com.volmit.generation.InvocationContext;
+
+import java.util.List;
+import java.util.Optional;
 
 /** Iris's {@link StructureHost}: the engine's {@link StructurePlacing}, one per engine runtime, places and sizes its structures. */
 final class IrisStructureHost implements StructureHost {
@@ -43,6 +48,18 @@ final class IrisStructureHost implements StructureHost {
     @Override
     public int reach() {
         return placing().reach();
+    }
+
+    @Override
+    public Optional<List<String>> lootTables(String structureKey) {
+        IrisStructure structure = StructureResources.structure(engine.getData().getPackResources(), structureKey);
+        if (structure == null) {
+            return Optional.empty();
+        }
+        if (structure.getLoot() == null) {
+            return Optional.of(List.of());
+        }
+        return Optional.of(structure.getLoot().stream().filter(table -> table != null && !table.isBlank()).toList());
     }
 
     private StructurePlacing placing() {

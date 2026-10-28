@@ -23,6 +23,7 @@ import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import com.volmit.IrisFeature;
 import com.volmit.config.PackSettings;
 import com.volmit.config.SettingsStack;
+import com.volmit.resource.PackResources;
 
 import java.util.List;
 
@@ -40,6 +41,11 @@ final class DimensionSettings implements PackSettings {
         this.data = data;
         this.dimension = dimension;
         this.ids = new PackResourceIds(data.getDataFolder());
+    }
+
+    @Override
+    public PackResources resources() {
+        return data.getPackResources();
     }
 
     @Override

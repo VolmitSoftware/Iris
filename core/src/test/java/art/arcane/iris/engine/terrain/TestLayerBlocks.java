@@ -23,6 +23,7 @@ import art.arcane.iris.modules.terrain.LayerBlocks;
 import com.volmit.ModuleLog;
 import com.volmit.config.PackSettings;
 import com.volmit.host.ModuleLogs;
+import com.volmit.placement.Placements;
 import com.volmit.resource.PackResources;
 import com.volmit.resource.ResourceId;
 import com.volmit.world.PackWorld;
@@ -66,6 +67,11 @@ public final class TestLayerBlocks {
 
         @Override
         public PackSettings settings() {
+            throw new UnsupportedOperationException("Only the pack's resources here");
+        }
+
+        @Override
+        public Placements placements() {
             throw new UnsupportedOperationException("Only the pack's resources here");
         }
 

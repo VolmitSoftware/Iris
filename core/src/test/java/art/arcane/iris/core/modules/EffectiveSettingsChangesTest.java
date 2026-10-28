@@ -3,7 +3,8 @@ package art.arcane.iris.core.modules;
 import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
 import art.arcane.iris.builtin.carve.CarvingMode;
 import art.arcane.iris.builtin.objects.ObjectPlacement;
-import art.arcane.iris.builtin.objects.PlacementChanges;
+import art.arcane.iris.modules.objects.PlacementChanges;
+import art.arcane.iris.modules.objects.EffectiveSettings;
 import org.junit.Test;
 
 import java.util.List;
@@ -14,19 +15,19 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 /** The changes iris:objects asks for are made to a copy of the placement, and the placement it came from is left alone. */
-public class IrisObjectChunkChangesTest {
+public class EffectiveSettingsChangesTest {
     @Test
     public void withoutChangesThePlacementIsUsedAsItIs() {
         ObjectPlacement base = placement("a", "b");
 
-        assertSame(base, IrisObjectChunk.withChanges(base, PlacementChanges.NONE));
+        assertSame(base, EffectiveSettings.withChanges(base, PlacementChanges.NONE));
     }
 
     @Test
     public void changesAreMadeToACopyThatKeepsTheObjectsUnlessTheyAreReplaced() {
         ObjectPlacement base = placement("a", "b");
 
-        ObjectPlacement changed = IrisObjectChunk.withChanges(base, PlacementChanges.NONE
+        ObjectPlacement changed = EffectiveSettings.withChanges(base, PlacementChanges.NONE
                 .withSurfaceSupport(false, 7).withForcePlace(true));
 
         assertNotSame(base, changed);
@@ -42,7 +43,7 @@ public class IrisObjectChunkChangesTest {
     public void objectsModeCarvingAndRotationAreReplaced() {
         ObjectPlacement base = placement("a");
 
-        ObjectPlacement changed = IrisObjectChunk.withChanges(base, PlacementChanges.NONE
+        ObjectPlacement changed = EffectiveSettings.withChanges(base, PlacementChanges.NONE
                 .withPlace(List.of("hut")).withMode(ObjectPlaceMode.FAST_MIN_STILT).withCarvingSupport(CarvingMode.ANYWHERE).withUpsideDown(true));
 
         assertEquals(List.of("hut"), changed.place());

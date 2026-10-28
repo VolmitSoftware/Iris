@@ -18,7 +18,7 @@
 
 package art.arcane.iris.core.modules;
 
-import art.arcane.iris.builtin.placement.ObjectPlacement;
+import art.arcane.iris.builtin.objects.ObjectRun;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.IrisComplex;
 import art.arcane.iris.engine.UsableBlockPlatform;
@@ -123,7 +123,7 @@ public class DimensionBottomTest {
             graph.define(Stage.placement("test:bottom/placement")).run(context -> {
                 record(context.terrain());
                 viewBounds.add(context.access().bounds());
-                context.extension(ObjectPlacement.class).orElseThrow().anchoredAt(BOTTOM);
+                context.input(ObjectRun.class).orElseThrow().anchoredAt(BOTTOM);
                 context.access().set(new PlacedBlock(new BlockPosition(0, BOTTOM, 0), STONE, Optional.empty()));
                 context.access().mantle().layer(MARKS).set(0, BOTTOM, 0, "bottom");
             });

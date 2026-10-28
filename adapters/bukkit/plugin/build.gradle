@@ -26,6 +26,8 @@ dependencies {
     testImplementation(libs.caffeine)
     testImplementation(libs.paralithic)
     testImplementation(project(':core'))
+    // Iris's objects are API placeable objects, so tests that read them compile against the API too.
+    testImplementation('com.volmit:iris-api')
     testImplementation(volmLibCoordinate) {
         transitive = false
     }

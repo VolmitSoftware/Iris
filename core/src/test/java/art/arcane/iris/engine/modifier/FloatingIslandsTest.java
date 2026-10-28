@@ -1,7 +1,7 @@
 package art.arcane.iris.engine.modifier;
 
 import art.arcane.iris.builtin.floating.FloatingHost;
-import art.arcane.iris.builtin.objects.ObjectHost;
+import art.arcane.iris.builtin.LegacyStreams;
 import art.arcane.iris.engine.decorator.BiomeDecorators;
 import com.volmit.block.BlockState;
 import com.volmit.config.FeatureSettings;
@@ -70,7 +70,7 @@ public class FloatingIslandsTest {
         PackWorld world = mock(PackWorld.class);
         when(world.running()).thenReturn(Optional.of(running));
         when(world.extension(FloatingHost.class)).thenReturn(Optional.of(mock(FloatingHost.class)));
-        when(world.extension(ObjectHost.class)).thenReturn(Optional.of(mock(ObjectHost.class)));
+        when(world.extension(LegacyStreams.class)).thenReturn(Optional.of(mock(LegacyStreams.class)));
         when(world.resources()).thenReturn(mock(PackResources.class));
         PackSettings nothingDeclared = mock(PackSettings.class);
         when(nothingDeclared.declared(any())).thenAnswer(invocation -> SettingsStack.empty());

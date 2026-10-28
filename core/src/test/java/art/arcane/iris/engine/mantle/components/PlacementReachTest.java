@@ -1,11 +1,13 @@
 package art.arcane.iris.engine.mantle.components;
 
-import art.arcane.iris.builtin.objects.ObjectHost;
 import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.builtin.objects.ObjectSettings;
-import art.arcane.iris.builtin.objects.ObjectSize;
-import art.arcane.iris.builtin.objects.PlaceableObject;
-import art.arcane.iris.builtin.objects.ProceduralPlacement;
+import art.arcane.iris.modules.objects.ObjectSize;
+import com.volmit.geometry.BlockBox;
+import com.volmit.object.PackObjects;
+import com.volmit.object.PlaceableObject;
+import com.volmit.resource.PackResources;
+import art.arcane.iris.modules.objects.ProceduralPlacement;
 import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
 import art.arcane.iris.builtin.prepare.ObjectRotation;
 import art.arcane.iris.builtin.prepare.ObjectTranslate;
@@ -83,11 +85,15 @@ public class PlacementReachTest {
     @SuppressWarnings("unchecked")
     public void translatedTreeSchedulesDistantOwnerChunks() throws Exception {
         ObjectPlacement placement = TestSettings.of(ObjectPlacement.class, "{\"place\":[\"test/tree\"],\"translate\":{\"x\":32}}");
-        ObjectHost host = mock(ObjectHost.class);
-        when(host.sizeOf("test/tree")).thenReturn(Optional.of(new ObjectSize(1, 1, 1)));
+        PackResources resources = mock(PackResources.class);
+        PackObjects objects = mock(PackObjects.class);
+        ResourceId tree = ResourceId.parse("test:test/tree");
+        when(resources.objects()).thenReturn(objects);
+        when(resources.idOf("test/tree")).thenReturn(tree);
+        when(objects.sizeOf(tree)).thenReturn(Optional.of(new BlockBox(0, 0, 0, 1, 1, 1)));
         ObjectSettings settings = TestSettings.with(new ObjectSettings(), "objects", List.of(placement));
 
-        int reach = new PlacementReach(host, ModuleLogs.discarding()).ofPack(declaring(ObjectSettings.class, settings));
+        int reach = new PlacementReach(resources, ModuleLogs.discarding()).ofPack(declaring(ObjectSettings.class, settings));
         assertEquals(33, reach);
         int chunkRadius = Math.ceilDiv(reach, 16);
         assertEquals(3, chunkRadius);
@@ -132,6 +138,11 @@ public class PlacementReachTest {
             @SuppressWarnings("unchecked")
             public <T extends IrisFeature> SettingsStack<T> declared(Class<T> featureType) {
                 return featureType == type ? SettingsStack.of(List.of(new Entry<>(Level.BIOME, SOURCE, (T) settings))) : SettingsStack.empty();
+            }
+
+            @Override
+            public PackResources resources() {
+                throw new UnsupportedOperationException("the reach is handed the resources itself");
             }
         };
     }

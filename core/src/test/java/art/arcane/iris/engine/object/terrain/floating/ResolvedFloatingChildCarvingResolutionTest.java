@@ -53,6 +53,6 @@ public class ResolvedFloatingChildCarvingResolutionTest {
             ResourceId id = invocation.getArgument(1);
             return biomes.containsValue(id) ? Optional.of(new PackBiome(id, id.path(), id, 1, List.of())) : Optional.empty();
         });
-        return new FloatingWorld(mock(FloatingHost.class), null, resources, null, 0L, 0L, 0, dimensionCarving);
+        return new FloatingWorld(mock(FloatingHost.class), resources, null, 0L, 0L, 0, dimensionCarving);
     }
 }

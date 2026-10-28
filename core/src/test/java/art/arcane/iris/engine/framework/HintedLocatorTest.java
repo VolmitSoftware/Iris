@@ -6,6 +6,7 @@ import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.loader.ResourceLoader;
 import art.arcane.iris.core.modules.ModuleResourceFixture;
+import art.arcane.iris.core.modules.ModuleSettings;
 import art.arcane.iris.engine.mantle.components.ObjectModule;
 import art.arcane.iris.engine.IrisComplex;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
@@ -89,6 +90,7 @@ public class HintedLocatorTest {
         data = mock(IrisData.class);
         biomeLoader = (ResourceLoader<IrisBiome>) mock(ResourceLoader.class);
         when(engine.getDimension()).thenReturn(dimension);
+        when(dimension.getModuleSettings()).thenReturn(ModuleSettings.NONE);
         when(engine.getComplex()).thenReturn(complex);
         when(engine.getData()).thenReturn(data);
         when(engine.getFocus()).thenReturn(null);

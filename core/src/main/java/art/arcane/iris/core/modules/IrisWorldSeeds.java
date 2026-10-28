@@ -13,6 +13,8 @@ import java.util.function.ToLongFunction;
  * get the seeds Iris's worlds always used for those features, every other purpose the API's rule.
  */
 final class IrisWorldSeeds {
+    /** Object placements warped their surface with the component seed moved by this much. */
+    private static final long OBJECT_WARP_OFFSET = 1024L;
     private static final Map<ResourceId, ToLongFunction<SeedManager>> LEGACY_SEEDS = Map.ofEntries(
             Map.entry(IrisSeedPurposes.BIOME, SeedManager::getBiome),
             Map.entry(IrisSeedPurposes.CARVE, SeedManager::getCarve),
@@ -23,6 +25,7 @@ final class IrisWorldSeeds {
             Map.entry(IrisSeedPurposes.ENTITY, SeedManager::getEntity),
             Map.entry(IrisSeedPurposes.LOOT, SeedManager::getLoot),
             Map.entry(IrisSeedPurposes.MANTLE, SeedManager::getMantle),
+            Map.entry(IrisSeedPurposes.OBJECT_WARP, seeds -> seeds.getComponent() + OBJECT_WARP_OFFSET),
             Map.entry(IrisSeedPurposes.POST, SeedManager::getPost),
             Map.entry(IrisSeedPurposes.TERRAIN, SeedManager::getTerrain));
 

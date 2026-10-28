@@ -1,6 +1,6 @@
 package art.arcane.iris.engine.mantle.components;
 
-import art.arcane.iris.builtin.floating.IslandFootprint;
+import art.arcane.iris.modules.floating.IslandFootprint;
 import art.arcane.iris.engine.object.terrain.floating.FloatingIslandSample;
 import art.arcane.iris.engine.object.terrain.floating.FloatingIslandSamples;
 import art.arcane.iris.engine.object.terrain.floating.ResolvedFloatingChild;

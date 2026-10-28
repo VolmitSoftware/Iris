@@ -1,8 +1,8 @@
 package art.arcane.iris.engine.mantle.components;
 
 import art.arcane.iris.builtin.carve.CaveAnchorMode;
-import art.arcane.iris.builtin.objects.CarvedSpace;
-import art.arcane.iris.builtin.objects.Cavern;
+import art.arcane.iris.modules.objects.CarvedSpace;
+import art.arcane.iris.modules.objects.Cavern;
 import art.arcane.volmlib.util.math.RNG;
 import com.volmit.resource.ResourceId;
 import com.volmit.world.BiomeSample;
@@ -82,25 +82,22 @@ public class CaveAnchorsTest {
 
     /** A cave from {@code CAVE_FLOOR} up to, not including, {@code CAVE_CEILING}, in every column. */
     private static CarvedSpace cave() {
-        return new CarvedSpace() {
-            @Override
-            public boolean isCarved(int x, int y, int z) {
-                return y >= CAVE_FLOOR && y < CAVE_CEILING;
+        CarvedSpace cave = mock(CarvedSpace.class);
+        when(cave.isCarved(anyInt(), anyInt(), anyInt())).thenAnswer(call -> isCarved(call.getArgument(1)));
+        when(cave.column(anyInt(), anyInt(), anyInt())).thenAnswer(call -> {
+            int height = call.getArgument(2);
+            byte[] column = new byte[height];
+            for (int y = 0; y < height; y++) {
+                column[y] = (byte) (isCarved(y) ? 1 : 0);
             }
+            return column;
+        });
+        when(cave.cavernAt(anyInt(), anyInt(), anyInt())).thenAnswer(call ->
+                isCarved(call.getArgument(1)) ? Optional.of(new Cavern(true, (byte) 0)) : Optional.empty());
+        return cave;
+    }
 
-            @Override
-            public byte[] column(int x, int z, int height) {
-                byte[] column = new byte[height];
-                for (int y = 0; y < height; y++) {
-                    column[y] = (byte) (isCarved(x, y, z) ? 1 : 0);
-                }
-                return column;
-            }
-
-            @Override
-            public Optional<Cavern> cavernAt(int x, int y, int z) {
-                return isCarved(x, y, z) ? Optional.of(new Cavern(true, (byte) 0)) : Optional.empty();
-            }
-        };
+    private static boolean isCarved(int y) {
+        return y >= CAVE_FLOOR && y < CAVE_CEILING;
     }
 }

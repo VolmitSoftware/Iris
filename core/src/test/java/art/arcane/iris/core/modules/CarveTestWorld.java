@@ -29,7 +29,10 @@ import com.volmit.ModuleLog;
 import com.volmit.block.BlockSpec;
 import com.volmit.block.BlockState;
 import com.volmit.block.BlockTrait;
+import com.volmit.block.BlockTurn;
 import com.volmit.block.BlockRegistry;
+import com.volmit.object.PackObjects;
+import com.volmit.placement.Placements;
 import com.volmit.block.PaletteSampler;
 import com.volmit.block.PaletteSpec;
 import com.volmit.config.FeatureSettings.Entry;
@@ -123,6 +126,11 @@ public final class CarveTestWorld implements PackWorld {
     public PackSettings settings() {
         return new PackSettings() {
             @Override
+            public PackResources resources() {
+                return resources;
+            }
+
+            @Override
             @SuppressWarnings("unchecked")
             public <F extends IrisFeature> SettingsStack<F> declared(Class<F> featureType) {
                 return SettingsStack.of(declared.stream().filter(entry -> featureType.isInstance(entry.value())).map(entry -> (Entry<F>) entry).toList());
@@ -165,6 +173,11 @@ public final class CarveTestWorld implements PackWorld {
         return Optional.empty();
     }
 
+    @Override
+    public Placements placements() {
+        throw new UnsupportedOperationException("No placements here");
+    }
+
     @SuppressWarnings("unchecked")
     private static IrisData packData() {
         IrisData pack = mock(IrisData.class);
@@ -196,6 +209,11 @@ public final class CarveTestWorld implements PackWorld {
         @Override
         public ItemRegistry items() {
             throw new UnsupportedOperationException("No items here");
+        }
+
+        @Override
+        public PackObjects objects() {
+            throw new UnsupportedOperationException("No objects here");
         }
 
         @Override
@@ -278,6 +296,26 @@ public final class CarveTestWorld implements PackWorld {
         @Override
         public boolean canPlaceOn(BlockState state, BlockState below) {
             return hasTrait(below, BlockTrait.SOLID);
+        }
+
+        @Override
+        public BlockState rotate(BlockState state, BlockTurn turn) {
+            return state;
+        }
+
+        @Override
+        public BlockState merge(BlockState base, BlockState update) {
+            return update;
+        }
+
+        @Override
+        public BlockState withProperty(BlockState state, String name, String value) {
+            return state.withProperty(name, value);
+        }
+
+        @Override
+        public boolean matches(BlockState state, BlockState pattern) {
+            return state.equals(pattern);
         }
     }
 }

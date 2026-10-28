@@ -26,6 +26,7 @@ import com.volmit.IrisFeature;
 import com.volmit.config.FeatureSettings.Entry;
 import com.volmit.config.PackSettings;
 import com.volmit.config.SettingsStack;
+import com.volmit.resource.PackResources;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -43,6 +44,11 @@ final class PackDeclaredSettings implements PackSettings {
     PackDeclaredSettings(IrisData data) {
         this.data = data;
         this.ids = new PackResourceIds(data.getDataFolder());
+    }
+
+    @Override
+    public PackResources resources() {
+        return data.getPackResources();
     }
 
     @Override

@@ -133,8 +133,6 @@ public class IrisDimension extends IrisRegistrant {
     private IrisGeneratorStyle seaBiomeStyle = NoiseStyle.CELLULAR_IRIS_DOUBLE.style();
     @Desc("The noise style used to select cave biomes within a region")
     private IrisGeneratorStyle caveBiomeStyle = NoiseStyle.CELLULAR_IRIS_DOUBLE.style();
-    @Desc("Instead of filling objects with air, fills them with cobweb so you can see them")
-    private boolean debugSmartBore = false;
     @Desc("The world environment")
     private IrisEnvironment environment = IrisEnvironment.NORMAL;
     @RegistryListResource(IrisRegion.class)

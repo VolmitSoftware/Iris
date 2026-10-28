@@ -25,6 +25,7 @@ import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KMap;
 import art.arcane.volmlib.util.math.IrisBlockVector;
+import com.volmit.block.BlockTurn;
 import org.bukkit.Axis;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
@@ -43,8 +44,8 @@ import java.util.Set;
 
 /**
  * Turns a platform block state with an object: the facing, axis and connections of stairs, logs, walls and wires follow
- * the {@link ObjectRotation} that turns the object's positions. A platform other than Bukkit binds its own
- * {@link StateRotator}.
+ * the {@link BlockTurn} that turns the object's directions, such as an {@link ObjectRotation}'s. A platform other than
+ * Bukkit binds its own {@link StateRotator}.
  */
 public final class BlockStateRotation {
     private static final double QUARTER_TURN_DEGREES = 90D;
@@ -53,7 +54,8 @@ public final class BlockStateRotation {
 
     /** How a platform turns its own block states. */
     public interface StateRotator {
-        PlatformBlockState rotate(ObjectRotation rotation, PlatformBlockState state, int spinX, int spinY, int spinZ);
+        /** {@code state} turned by {@code turn}; null when a block that cannot face the new way is dropped. */
+        PlatformBlockState rotate(BlockTurn turn, PlatformBlockState state);
     }
 
     /** Holds the Bukkit faces apart so a platform without Bukkit can load this class and bind its own rotator. */
@@ -74,21 +76,49 @@ public final class BlockStateRotation {
         platformRotator = rotator;
     }
 
-    /** {@code state} turned by {@code rotation}; null when a block that cannot face the new way is dropped. */
+    /**
+     * {@code state} turned by {@code rotation}, spun by the given degrees counted in whole quarter turns; null when a
+     * block that cannot face the new way is dropped.
+     */
     public static PlatformBlockState rotate(ObjectRotation rotation, PlatformBlockState state, int spinX, int spinY, int spinZ) {
+        if (!rotation.canRotate()) {
+            return state;
+        }
+        return rotate(turnOf(rotation, spinX, spinY, spinZ), state);
+    }
+
+    /** {@code state} turned by {@code turn}; null when a block that cannot face the new way is dropped. */
+    public static PlatformBlockState rotate(BlockTurn turn, PlatformBlockState state) {
         if (state == null) {
             return null;
         }
         StateRotator rotator = platformRotator;
         if (rotator != null) {
-            return rotator.rotate(rotation, state, spinX, spinY, spinZ);
+            return rotator.rotate(turn, state);
         }
         BlockData original = (BlockData) state.nativeHandle();
-        if (!rotation.canRotate() || !canRotateBlockData(original)) {
+        if (!canRotateBlockData(original)) {
             return state;
         }
-        BlockData rotated = rotate(rotation, original.clone(), spinX, spinY, spinZ);
+        BlockData rotated = rotate(turn, original.clone());
         return rotated == null ? null : BukkitBlockState.of(rotated);
+    }
+
+    /** The directions {@code rotation} turns, spun by the given degrees counted in whole quarter turns. */
+    public static BlockTurn turnOf(ObjectRotation rotation, int spinXDegrees, int spinYDegrees, int spinZDegrees) {
+        int spinX = wholeQuarterTurns(spinXDegrees);
+        int spinY = wholeQuarterTurns(spinYDegrees);
+        int spinZ = wholeQuarterTurns(spinZDegrees);
+        return (x, y, z) -> {
+            IrisBlockVector turned = rotation.rotate(new IrisBlockVector(x, y, z), spinX, spinY, spinZ);
+            return new BlockTurn.Direction(turned.getX(), turned.getY(), turned.getZ());
+        };
+    }
+
+    /** {@code direction} turned by {@code turn}. */
+    public static IrisBlockVector turned(BlockTurn turn, double x, double y, double z) {
+        BlockTurn.Direction direction = turn.turn(x, y, z);
+        return new IrisBlockVector(direction.x(), direction.y(), direction.z());
     }
 
     private static boolean canRotateBlockData(BlockData data) {
@@ -102,19 +132,19 @@ public final class BlockStateRotation {
 
     /** {@code data}, changed in place, turned by {@code rotation} in whole quarter turns; null when it cannot face the new way. */
     public static BlockData rotate(ObjectRotation rotation, BlockData data, int spinXDegrees, int spinYDegrees, int spinZDegrees) {
+        if (!rotation.canRotate()) {
+            return data;
+        }
+        return rotate(turnOf(rotation, spinXDegrees, spinYDegrees, spinZDegrees), data);
+    }
+
+    /** {@code data}, changed in place, turned by {@code turn}; null when it cannot face the new way. */
+    public static BlockData rotate(BlockTurn turn, BlockData data) {
         BlockData d = data;
         try {
-            int spinX = wholeQuarterTurns(spinXDegrees);
-            int spinY = wholeQuarterTurns(spinYDegrees);
-            int spinZ = wholeQuarterTurns(spinZDegrees);
-
-            if (!rotation.canRotate()) {
-                return d;
-            }
-
             if (d instanceof Directional g) {
                 BlockFace f = g.getFacing();
-                IrisBlockVector bv = rotation.rotate(new IrisBlockVector(f.getModX(), f.getModY(), f.getModZ()), spinX, spinY, spinZ);
+                IrisBlockVector bv = turned(turn, f.getModX(), f.getModY(), f.getModZ());
                 BlockFace t = faceOf(bv);
 
                 if (g.getFaces().contains(t)) {
@@ -124,11 +154,11 @@ public final class BlockStateRotation {
                 }
             } else if (d instanceof Rotatable g) {
                 BlockFace f = g.getRotation();
-                IrisBlockVector bv = rotation.rotate(new IrisBlockVector(f.getModX(), 0, f.getModZ()), spinX, spinY, spinZ);
+                IrisBlockVector bv = turned(turn, f.getModX(), 0, f.getModZ());
                 g.setRotation(sixteenWayFaceOf(bv));
             } else if (d instanceof Orientable g) {
                 BlockFace f = faceOf(g.getAxis());
-                IrisBlockVector bv = rotation.rotate(new IrisBlockVector(f.getModX(), f.getModY(), f.getModZ()), spinX, spinY, spinZ);
+                IrisBlockVector bv = turned(turn, f.getModX(), f.getModY(), f.getModZ());
                 Axis a = axisOf(bv);
 
                 if (!a.equals(g.getAxis()) && g.getAxes().contains(a)) {
@@ -138,7 +168,7 @@ public final class BlockStateRotation {
                 List<BlockFace> faces = new KList<>();
 
                 for (BlockFace i : g.getFaces()) {
-                    IrisBlockVector bv = rotation.rotate(new IrisBlockVector(i.getModX(), i.getModY(), i.getModZ()), spinX, spinY, spinZ);
+                    IrisBlockVector bv = turned(turn, i.getModX(), i.getModY(), i.getModZ());
                     BlockFace r = faceOf(bv);
 
                     if (g.getAllowedFaces().contains(r)) {
@@ -158,7 +188,7 @@ public final class BlockStateRotation {
 
                 for (BlockFace i : Faces.WALL_FACES) {
                     Wall.Height h = wall.getHeight(i);
-                    IrisBlockVector bv = rotation.rotate(new IrisBlockVector(i.getModX(), i.getModY(), i.getModZ()), spinX, spinY, spinZ);
+                    IrisBlockVector bv = turned(turn, i.getModX(), i.getModY(), i.getModZ());
                     BlockFace r = faceOf(bv);
                     if (Faces.WALL_FACES.contains(r)) {
                         faces.put(r, h);
@@ -174,7 +204,7 @@ public final class BlockStateRotation {
                 Set<BlockFace> allowed = wire.getAllowedFaces();
                 for (BlockFace i : allowed) {
                     RedstoneWire.Connection connection = wire.getFace(i);
-                    IrisBlockVector bv = rotation.rotate(new IrisBlockVector(i.getModX(), i.getModY(), i.getModZ()), spinX, spinY, spinZ);
+                    IrisBlockVector bv = turned(turn, i.getModX(), i.getModY(), i.getModZ());
                     BlockFace r = faceOf(bv);
                     if (allowed.contains(r)) {
                         faces.put(r, connection);

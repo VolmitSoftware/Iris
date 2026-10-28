@@ -39,6 +39,11 @@ public class OreWarmUpTest {
         declared.add(entry(Level.BIOME, "biome/a", ores, "a0"));
         PackSettings settings = new PackSettings() {
             @Override
+            public com.volmit.resource.PackResources resources() {
+                throw new UnsupportedOperationException();
+            }
+
+            @Override
             @SuppressWarnings("unchecked")
             public <F extends IrisFeature> SettingsStack<F> declared(Class<F> featureType) {
                 return SettingsStack.of((List<Entry<F>>) (List<?>) declared);

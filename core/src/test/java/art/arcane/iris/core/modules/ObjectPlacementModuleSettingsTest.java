@@ -19,7 +19,7 @@
 package art.arcane.iris.core.modules;
 
 import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
-import art.arcane.iris.builtin.IrisStages;
+import art.arcane.iris.modules.placement.PlacementStages;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.object.placement.IObjectPlacer;
 import art.arcane.iris.builtin.objects.ObjectPlacement;
@@ -94,8 +94,8 @@ public class ObjectPlacementModuleSettingsTest {
 
         @Override
         public void setup(ModuleSetup setup) {
-            setup.stages().define(TOP).when(GlowSettings.class).requires(IrisStages.Blocks.COMPLETE, IrisStages.Anchor.FINAL).run(context -> {
-                int y = context.output(IrisStages.Anchor.FINAL).y() + 1;
+            setup.stages().define(TOP).when(GlowSettings.class).requires(PlacementStages.Blocks.COMPLETE, PlacementStages.Anchor.FINAL).run(context -> {
+                int y = context.output(PlacementStages.Anchor.FINAL).y() + 1;
                 String block = context.configured(GlowSettings.class).values().getFirst().block;
                 context.access().set(new PlacedBlock(new BlockPosition(0, y, 0), com.volmit.block.BlockState.parse(block), Optional.empty()));
             });

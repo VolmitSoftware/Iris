@@ -18,16 +18,18 @@
 
 package art.arcane.iris.engine.object.procedural;
 
-import art.arcane.iris.builtin.objects.ObjectHost;
-import art.arcane.iris.builtin.objects.PlaceableObject;
 import art.arcane.iris.builtin.objects.ProceduralObjectSettings;
-import art.arcane.iris.builtin.objects.ProceduralPlacement;
+import art.arcane.iris.modules.objects.PlacementChanges;
+import art.arcane.iris.modules.objects.ProceduralPlacement;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.loader.ResourceLoader;
-import art.arcane.iris.core.modules.IrisObjectBuilder;
 import art.arcane.iris.core.modules.IrisPackResources;
 import art.arcane.iris.core.modules.PlatformBlockStates;
-import art.arcane.iris.core.modules.ProceduralOptions;
+import art.arcane.iris.modules.objects.EffectiveSettings;
+import art.arcane.iris.modules.objects.ObjectBuilder;
+import com.volmit.block.BlockTurn;
+import com.volmit.object.PlaceableObject;
+import com.volmit.resource.PackResources;
 import art.arcane.iris.engine.UsableBlockPlatform;
 import art.arcane.iris.engine.object.prefab.IrisObject;
 import art.arcane.iris.util.common.data.B;
@@ -182,7 +184,11 @@ public class ProceduralObjectsGoldenTest {
         IrisPackResources resources = mock(IrisPackResources.class, withSettings().stubOnly());
         doReturn(folder.getRoot()).when(data).getDataFolder();
         doReturn(resources).when(data).getPackResources();
-        when(resources.blocks()).thenReturn(new HashedPalettes());
+        doReturn(mock(ResourceLoader.class)).when(data).getBlockLoader();
+        doReturn(null).when(data).getEngine();
+        IrisPackResources host = new IrisPackResources(data);
+        when(resources.blocks()).thenReturn(new HashedPalettes(host.blocks()));
+        when(resources.objects()).thenReturn(host.objects());
         Gson gson = new GsonBuilder().registerTypeAdapterFactory(data).create();
         JsonObject sets = JsonParser.parseString(Files.readString(folder.getRoot().toPath().resolve("sets.json"))).getAsJsonObject();
 
@@ -197,10 +203,12 @@ public class ProceduralObjectsGoldenTest {
     private static String bake(ProceduralObjectSettings settings, IrisData data) throws NoSuchAlgorithmException {
         Gson plain = new Gson();
         MessageDigest digest = MessageDigest.getInstance("SHA-256");
-        IrisObjectBuilder builder = new IrisObjectBuilder(data);
-        for (ProceduralPlacement placement : ResolvedProceduralObjects.resolve(settings, mock(ObjectHost.class))) {
+        PackResources resources = data.getPackResources();
+        ObjectBuilder builder = new ObjectBuilder(resources);
+        EffectiveSettings options = new EffectiveSettings();
+        for (ProceduralPlacement placement : ResolvedProceduralObjects.resolve(settings, resources)) {
             update(digest, placement.name() + '|' + placement.chance() + '|' + placement.density() + '|'
-                    + placement.plausible() + '|' + plain.toJson(ProceduralOptions.of(placement)) + '\n');
+                    + placement.plausible() + '|' + plain.toJson(options.of(placement, PlacementChanges.NONE)) + '\n');
             for (PlaceableObject variant : ((ResolvedProceduralPlacement) placement).bake(builder)) {
                 IrisObject object = (IrisObject) variant;
                 update(digest, object.getLoadKey() + ' ' + object.getW() + 'x' + object.getH() + 'x' + object.getD() + ':');
@@ -222,9 +230,35 @@ public class ProceduralObjectsGoldenTest {
      * test does not have; it is the host's, unchanged by the port.
      */
     private static final class HashedPalettes implements BlockRegistry {
+        private final BlockRegistry host;
+
+        private HashedPalettes(BlockRegistry host) {
+            this.host = host;
+        }
+
         @Override
         public Optional<BlockState> find(String key) {
-            return Optional.of(stateOf(key));
+            return host.find(key);
+        }
+
+        @Override
+        public BlockState withProperty(BlockState state, String name, String value) {
+            return host.withProperty(state, name, value);
+        }
+
+        @Override
+        public BlockState rotate(BlockState state, BlockTurn turn) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public BlockState merge(BlockState state, BlockState onto) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public boolean matches(BlockState state, BlockState pattern) {
+            throw new UnsupportedOperationException();
         }
 
         @Override

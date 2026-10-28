@@ -27,6 +27,7 @@ import com.volmit.config.FeatureSettings.Entry;
 import com.volmit.config.PackSettings;
 import com.volmit.config.SettingsStack;
 import com.volmit.host.ModuleLogs;
+import com.volmit.placement.Placements;
 import com.volmit.resource.PackResources;
 import com.volmit.resource.ResourceId;
 import com.volmit.world.PackWorld;
@@ -49,6 +50,11 @@ public final class TestPackWorld implements PackWorld {
 
     public TestPackWorld(PackResources resources, ModuleSettings dimensionSettings, long seed) {
         this(resources, new PackSettings() {
+            @Override
+            public PackResources resources() {
+                return resources;
+            }
+
             @Override
             public <F extends IrisFeature> SettingsStack<F> declared(Class<F> featureType) {
                 return dimensionStack(dimensionSettings, featureType);
@@ -116,6 +122,11 @@ public final class TestPackWorld implements PackWorld {
     @Override
     public long seed(ResourceId purpose) {
         return seed;
+    }
+
+    @Override
+    public Placements placements() {
+        throw new UnsupportedOperationException("No placements here");
     }
 
     @Override

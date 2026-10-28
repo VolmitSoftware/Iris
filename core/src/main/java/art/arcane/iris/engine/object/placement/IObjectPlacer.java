@@ -51,8 +51,6 @@ public interface IObjectPlacer {
 
     int getFluidHeight();
 
-    boolean isDebugSmartBore();
-
     void setTile(int xx, int yy, int zz, TileData tile);
 
     <T> void setData(int xx, int yy, int zz, T data);

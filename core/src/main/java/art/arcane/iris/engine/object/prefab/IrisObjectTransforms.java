@@ -65,7 +65,6 @@ final class IrisObjectTransforms {
             self.states = dx;
             IrisObjectShaping.shrinkwrap(self);
             self.surfaceSupportOffsets.reset();
-            self.floatingFootprint.reset();
         } finally {
             self.writeLock.unlock();
         }
@@ -165,7 +164,6 @@ final class IrisObjectTransforms {
 
             self.blocks = b;
             self.surfaceSupportOffsets.reset();
-            self.floatingFootprint.reset();
         } finally {
             self.writeLock.unlock();
         }
@@ -202,7 +200,6 @@ final class IrisObjectTransforms {
 
             self.blocks = b;
             self.surfaceSupportOffsets.reset();
-            self.floatingFootprint.reset();
         } finally {
             self.writeLock.unlock();
         }
@@ -243,7 +240,6 @@ final class IrisObjectTransforms {
 
             self.blocks = b;
             self.surfaceSupportOffsets.reset();
-            self.floatingFootprint.reset();
         } finally {
             self.writeLock.unlock();
         }

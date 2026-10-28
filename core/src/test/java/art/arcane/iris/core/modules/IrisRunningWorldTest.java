@@ -20,8 +20,9 @@ package art.arcane.iris.core.modules;
 
 import art.arcane.iris.builtin.loot.LootSettings;
 import art.arcane.iris.builtin.loot.ObjectLoot;
-import art.arcane.iris.builtin.objects.ObjectHost;
-import art.arcane.iris.builtin.objects.ObjectHost.ObjectLoots;
+import art.arcane.volmlib.util.mantle.runtime.Mantle;
+import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
+import art.arcane.volmlib.util.matter.Matter;
 import art.arcane.iris.builtin.spawn.SpawnCooldowns;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.loader.IrisRegistrant;
@@ -168,21 +169,21 @@ public class IrisRunningWorldTest {
     }
 
     @Test
-    public void anObjectsLootIsWhatItsPlacementDefines() {
-        ObjectPlacement placement = ObjectPlacement.builder().loot(List.of(new ObjectLoot("chest", 2))).overrideGlobalLoot(true).build();
-        when(engine.getObjectPlacement(X, Y, Z)).thenReturn(new PlacedObject(placement, null, 1, X, Z));
-        when(engine.getObjectPlacement(X + 1, Y, Z)).thenReturn(new PlacedObject(null, null, 1, X + 1, Z));
-        ObjectHost objects = world.extension(ObjectHost.class).orElseThrow();
+    @SuppressWarnings("unchecked")
+    public void thePlacementAtABlockIsWhatTheMantleRecordedThere() {
+        EngineMantle engineMantle = mock(EngineMantle.class);
+        Mantle<Matter> mantle = mock(Mantle.class);
+        MantleChunk<Matter> chunk = mock(MantleChunk.class);
+        when(engine.getMantle()).thenReturn(engineMantle);
+        when(engineMantle.getMantle()).thenReturn(mantle);
+        when(mantle.getChunk(X >> 4, Z >> 4)).thenReturn(chunk);
+        when(chunk.use()).thenReturn(chunk);
+        when(chunk.get(X & 15, Y, Z & 15, String.class)).thenReturn("trees/oak@7");
+        when(chunk.get((X + 1) & 15, Y, Z & 15, String.class)).thenReturn("");
 
-        ObjectLoots loots = objects.placedLoot(X, Y, Z).orElseThrow();
-
-        assertEquals(1, loots.packTables().size());
-        assertEquals("chest", loots.packTables().getFirst().name());
-        assertTrue(loots.platformTables().isEmpty());
-        assertTrue(loots.overridesGlobalLoot());
-        assertTrue(loots.defined());
-        assertTrue(objects.placedLoot(X + 1, Y, Z).isEmpty());
-        assertTrue(objects.placedLoot(X + 2, Y, Z).isEmpty());
+        assertEquals(Optional.of("trees/oak@7"), running.placementAt(X, Y, Z));
+        assertTrue("an empty record is no placement", running.placementAt(X + 1, Y, Z).isEmpty());
+        assertTrue(running.placementAt(X + 2, Y, Z).isEmpty());
     }
 
     @Test

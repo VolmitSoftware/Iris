@@ -26,11 +26,15 @@ import art.arcane.iris.engine.object.prefab.TileData;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.spi.PlatformFace;
+import art.arcane.iris.util.common.data.B;
 import art.arcane.volmlib.util.math.RNG;
 import com.volmit.block.BlockRegistry;
 import com.volmit.block.BlockSpec;
 import com.volmit.block.BlockState;
 import com.volmit.block.BlockTrait;
+import com.volmit.block.BlockTurn;
+import art.arcane.iris.engine.object.material.BlockDataMergeSupport;
+import art.arcane.iris.engine.object.prefab.BlockStateRotation;
 import com.volmit.block.PaletteSampler;
 import com.volmit.block.PaletteSpec;
 import com.volmit.geometry.BlockFace;
@@ -60,8 +64,7 @@ final class IrisBlockRegistry implements BlockRegistry {
     private final IrisPackResources resources;
     private final Map<BlockSpec, IrisBlockData> specs = new ConcurrentHashMap<>();
     /** Stages ask about every block of a chunk; the platform's state of each block is found once per snapshot. */
-    private final Map<BlockState, PlatformBlockState> platformStates = new ConcurrentHashMap<>();
-    private final LazyBoundedCache<SeededPalette, PaletteSampler> palettes = new LazyBoundedCache<>(PALETTE_CACHE_SIZE);
+    private final Map<BlockState, PlatformBlockState> platformStates = new ConcurrentHashMap<>();    private final LazyBoundedCache<SeededPalette, PaletteSampler> palettes = new LazyBoundedCache<>(PALETTE_CACHE_SIZE);
 
     /**
      * @param data the pack whose {@code blocks} folder custom blocks come from
@@ -75,8 +78,9 @@ final class IrisBlockRegistry implements BlockRegistry {
     @Override
     public Optional<BlockState> find(String key) {
         try {
-            return Optional.of(BlockState.parse(PlatformBlockStates.namespaced(platformState(key).key())));
-        } catch (IllegalArgumentException unknownBlockOrProperty) {
+            PlatformBlockState state = strictPlatformState(key);
+            return state == null ? Optional.empty() : Optional.of(BlockState.parse(PlatformBlockStates.namespaced(state.key())));
+        } catch (IllegalArgumentException unparsableKeyOrProperty) {
             return Optional.empty();
         }
     }
@@ -133,11 +137,38 @@ final class IrisBlockRegistry implements BlockRegistry {
             case DECORATION -> platform.isDecorant();
             case VINE -> platform.isVineBlock();
             case ORE -> platform.isOre();
+            case STORAGE -> platform.isStorageChest();
             case CUSTOM -> platform.isCustom();
             case GRAVITY -> platform.hasGravity();
             case LOG -> platform.isLog();
             case LEAVES -> platform.isLeaves();
         };
+    }
+
+    /** A block that cannot face the way it is turned is dropped, as Iris drops it: it becomes air. */
+    @Override
+    public BlockState rotate(BlockState state, BlockTurn turn) {
+        PlatformBlockState rotated = BlockStateRotation.rotate(turn, platformState(state));
+        return rotated == null ? PlatformBlockStates.AIR : apiState(rotated);
+    }
+
+    @Override
+    public BlockState merge(BlockState base, BlockState update) {
+        return apiState(BlockDataMergeSupport.merge(platformState(base), platformState(update)));
+    }
+
+    @Override
+    public BlockState withProperty(BlockState state, String name, String value) {
+        return apiState(platformState(state).withProperty(name, value));
+    }
+
+    @Override
+    public boolean matches(BlockState state, BlockState pattern) {
+        return platformState(state).matches(platformState(pattern));
+    }
+
+    private static BlockState apiState(PlatformBlockState state) {
+        return state == null ? PlatformBlockStates.AIR : BlockState.parse(PlatformBlockStates.namespaced(state.key()));
     }
 
     @Override
@@ -159,12 +190,24 @@ final class IrisBlockRegistry implements BlockRegistry {
         return platformStates.computeIfAbsent(state, known -> platformState(known.key()));
     }
 
+    /**
+     * The platform's state for {@code key}. A key the strict lookup does not know is read as Iris's placers read it
+     * ({@code B.getState}), through custom-content providers and the platform's compatibility layer.
+     */
     private static PlatformBlockState platformState(String key) {
-        PlatformBlockState state = IrisPlatforms.get().registries().blockOrNull(PlatformBlockStates.namespaced(key), false);
+        PlatformBlockState state = strictPlatformState(key);
+        if (state == null) {
+            state = B.getState(key);
+        }
         if (state == null) {
             throw new IllegalArgumentException("Unknown block: " + key);
         }
         return state;
+    }
+
+    /** The platform's state for {@code key}; null when the platform has no such block. */
+    private static PlatformBlockState strictPlatformState(String key) {
+        return IrisPlatforms.get().registries().blockOrNull(PlatformBlockStates.namespaced(key), false);
     }
 
     private record SeededPalette(PaletteSpec spec, long seed) {

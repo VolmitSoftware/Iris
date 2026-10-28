@@ -1,15 +1,13 @@
 package art.arcane.iris.engine.object.placement;
 
-import art.arcane.iris.builtin.placement.PlacementTerrain;
-import art.arcane.iris.builtin.placement.StructureVolumes;
+import art.arcane.iris.modules.placement.StageTerrain;
+import com.volmit.resource.PackResources;
 import art.arcane.iris.builtin.prepare.AxisRotationClamp;
 import art.arcane.iris.builtin.prepare.ObjectRotation;
 import art.arcane.iris.builtin.prepare.ObjectTranslate;
 import art.arcane.iris.engine.object.procedural.formation.ResolvedFormation;
 import art.arcane.iris.engine.object.TestSettings;
-import art.arcane.iris.builtin.objects.ObjectHost;
 import art.arcane.iris.builtin.objects.formation.Formation;
-import art.arcane.iris.core.modules.ProceduralOptions;
 import art.arcane.iris.engine.object.placement.IObjectPlacer;
 import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.engine.object.placement.IrisSurfaceSupport;
@@ -34,6 +32,8 @@ import java.util.Set;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -123,7 +123,7 @@ public class IrisSurfaceSupportTest {
         SurfacePlacer placer = new SurfacePlacer(80);
         placer.carve(5, 80, -3);
 
-        assertTrue(IrisSurfaceSupport.isUnsupported(new Terrain(placer), 0, 0, NO_TRANSLATE, NO_ROTATION, 0, 0, 0,
+        assertTrue(IrisSurfaceSupport.isUnsupported(terrain(placer), 0, 0, NO_TRANSLATE, NO_ROTATION, 0, 0, 0,
                 List.of(new IrisBlockVector(5, 0, -3)), 0, 1));
     }
 
@@ -134,7 +134,7 @@ public class IrisSurfaceSupportTest {
         ObjectRotation rotation = ObjectRotation.of(0, 90, 0);
         placer.carve(-3, 80, -7);
 
-        assertTrue(IrisSurfaceSupport.isUnsupported(new Terrain(placer), 0, 0, translate, rotation, 0, 0, 0,
+        assertTrue(IrisSurfaceSupport.isUnsupported(terrain(placer), 0, 0, translate, rotation, 0, 0, 0,
                 List.of(new IrisBlockVector(2, 0, 0)), 0, 1));
     }
 
@@ -144,7 +144,7 @@ public class IrisSurfaceSupportTest {
         ObjectTranslate translate = ObjectTranslate.of(4, 0, 0, -2);
         placer.carve(4, 80, -2);
 
-        assertTrue(IrisSurfaceSupport.isUnsupported(new Terrain(placer), 0, 0, translate, NO_ROTATION, 0, 0, 0,
+        assertTrue(IrisSurfaceSupport.isUnsupported(terrain(placer), 0, 0, translate, NO_ROTATION, 0, 0, 0,
                 List.of(), 0, 1));
     }
 
@@ -177,89 +177,28 @@ public class IrisSurfaceSupportTest {
     @Test
     public void formationDefaultsToWiderBufferThanObjectDefault() {
         assertEquals(2, ObjectPlacement.builder().build().surfaceSupportBuffer());
-        assertEquals(3, ProceduralOptions.of(new ResolvedFormation(new Formation(), mock(ObjectHost.class))).surfaceSupportBuffer());
+        assertEquals(3, new ResolvedFormation(new Formation(), mock(PackResources.class)).surfaceSupportBuffer());
 
         Formation flush = TestSettings.with(new Formation(), "surfaceSupportBuffer", 0);
-        assertEquals(0, ProceduralOptions.of(new ResolvedFormation(flush, mock(ObjectHost.class))).surfaceSupportBuffer());
+        assertEquals(0, new ResolvedFormation(flush, mock(PackResources.class)).surfaceSupportBuffer());
     }
 
     private static boolean isUnsupported(IObjectPlacer placer, List<IrisBlockVector> footprint,
                                          int buffer, int minSolidDepth) {
-        return IrisSurfaceSupport.isUnsupported(new Terrain(placer), 0, 0, NO_TRANSLATE, NO_ROTATION, 0, 0, 0,
+        return IrisSurfaceSupport.isUnsupported(terrain(placer), 0, 0, NO_TRANSLATE, NO_ROTATION, 0, 0, 0,
                 footprint, buffer, minSolidDepth);
     }
 
     /** The three questions the support check asks, answered by a placer; the rest of a placement's terrain is not asked. */
-    private record Terrain(IObjectPlacer placer) implements PlacementTerrain {
-        @Override
-        public int highest(int x, int z, boolean ignoreFluid) {
-            return placer.getHighest(x, z, null, ignoreFluid);
-        }
-
-        @Override
-        public boolean isCarved(int x, int y, int z) {
-            return placer.isCarved(x, y, z);
-        }
-
-        @Override
-        public boolean isSurfaceSolid(int x, int y, int z) {
-            return placer.isSurfaceSolid(x, y, z);
-        }
-
-        @Override
-        public boolean isUnderwater(int x, int z) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public int fluidHeight() {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public boolean preventsDecay() {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public boolean debugsSmartBore() {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public boolean hasWorld() {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public double slopeAt(int x, int z) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public double heightAt(double x, double z) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public int minWorldY() {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public int worldHeight() {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public StructureVolumes structureVolumes(int minX, int minZ, int maxX, int maxZ) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public Optional<ResourceId> objectAt(int x, int y, int z) {
-            throw new UnsupportedOperationException();
-        }
+    private static StageTerrain terrain(IObjectPlacer placer) {
+        StageTerrain terrain = mock(StageTerrain.class);
+        when(terrain.highest(anyInt(), anyInt(), anyBoolean())).thenAnswer(call ->
+                placer.getHighest(call.getArgument(0), call.getArgument(1), null, call.getArgument(2)));
+        when(terrain.isCarved(anyInt(), anyInt(), anyInt())).thenAnswer(call ->
+                placer.isCarved(call.getArgument(0), call.getArgument(1), call.getArgument(2)));
+        when(terrain.isSurfaceSolid(anyInt(), anyInt(), anyInt())).thenAnswer(call ->
+                placer.isSurfaceSolid(call.getArgument(0), call.getArgument(1), call.getArgument(2)));
+        return terrain;
     }
 
     private static final class SurfacePlacer implements IObjectPlacer {
@@ -343,11 +282,6 @@ public class IrisSurfaceSupportTest {
         @Override
         public int getFluidHeight() {
             return 0;
-        }
-
-        @Override
-        public boolean isDebugSmartBore() {
-            return false;
         }
 
         @Override

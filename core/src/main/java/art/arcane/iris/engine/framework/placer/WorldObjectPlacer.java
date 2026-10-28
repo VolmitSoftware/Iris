@@ -134,11 +134,6 @@ public class WorldObjectPlacer implements IObjectPlacer {
     }
 
     @Override
-    public boolean isDebugSmartBore() {
-        return mantle.isDebugSmartBore();
-    }
-
-    @Override
     public void setTile(int xx, int yy, int zz, TileData tile) {
         int worldY = yy + world.getMinHeight();
         if (worldY < world.getMinHeight() || worldY >= world.getMaxHeight()) return;

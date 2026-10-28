@@ -25,7 +25,10 @@ import com.volmit.noise.NoiseSampler;
 import art.arcane.iris.builtin.IrisStages;
 import art.arcane.iris.builtin.IrisSeedPurposes;
 import art.arcane.iris.builtin.floating.FloatingHost;
-import art.arcane.iris.builtin.objects.ObjectHost;
+import art.arcane.iris.builtin.LegacyStreams;
+import com.volmit.block.BlockTurn;
+import com.volmit.object.PackObjects;
+import com.volmit.placement.Placements;
 import art.arcane.iris.modules.post.PostProcessingSlabsSettings;
 import art.arcane.iris.modules.post.PostProcessingWallsSettings;
 import art.arcane.iris.builtin.prepare.SlopeClip;
@@ -591,7 +594,8 @@ public final class ApiChunk implements GenerationContext {
         private final Resources resources = new Resources();
         private final Map<Class<?>, Object> states = new HashMap<>();
         private final FloatingHost floating = mock(FloatingHost.class);
-        private final ObjectHost objects = mock(ObjectHost.class);
+        private final LegacyStreams streams = mock(LegacyStreams.class);
+        private final Placements placements = mock(Placements.class);
         private final RunningWorld running = mock(RunningWorld.class);
 
         World() {
@@ -603,8 +607,13 @@ public final class ApiChunk implements GenerationContext {
 
         @Override
         public <T> Optional<T> extension(Class<T> type) {
-            Object offered = type == FloatingHost.class ? floating : type == ObjectHost.class ? objects : null;
+            Object offered = type == FloatingHost.class ? floating : type == LegacyStreams.class ? streams : null;
             return Optional.ofNullable(offered).map(type::cast);
+        }
+
+        @Override
+        public Placements placements() {
+            return placements;
         }
 
         @Override
@@ -630,6 +639,11 @@ public final class ApiChunk implements GenerationContext {
         @Override
         public PackSettings settings() {
             return new PackSettings() {
+                @Override
+                public PackResources resources() {
+                    return resources;
+                }
+
                 @Override
                 public <F extends IrisFeature> SettingsStack<F> declared(Class<F> featureType) {
                     return declaredAtEveryLevel(featureType);
@@ -680,6 +694,11 @@ public final class ApiChunk implements GenerationContext {
         @Override
         public ItemRegistry items() {
             throw new UnsupportedOperationException("No items here");
+        }
+
+        @Override
+        public PackObjects objects() {
+            throw new UnsupportedOperationException("No objects here");
         }
 
         @Override
@@ -783,6 +802,26 @@ public final class ApiChunk implements GenerationContext {
             String material = state.material().toString();
             boolean plant = DECORATIONS.contains(material) || FOLIAGE.contains(material);
             return !plant || SOILS.contains(below.material().toString());
+        }
+
+        @Override
+        public BlockState rotate(BlockState state, BlockTurn turn) {
+            return state;
+        }
+
+        @Override
+        public BlockState merge(BlockState base, BlockState update) {
+            return update;
+        }
+
+        @Override
+        public BlockState withProperty(BlockState state, String name, String value) {
+            return state.withProperty(name, value);
+        }
+
+        @Override
+        public boolean matches(BlockState state, BlockState pattern) {
+            return state.equals(pattern);
         }
     }
 

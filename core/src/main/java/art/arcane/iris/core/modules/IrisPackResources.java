@@ -19,6 +19,7 @@
 package art.arcane.iris.core.modules;
 
 import art.arcane.iris.core.loader.IrisData;
+import com.volmit.object.PackObjects;
 import art.arcane.iris.core.loader.IrisRegistrant;
 import art.arcane.iris.core.loader.ResourceLoader;
 import art.arcane.iris.engine.object.image.IrisImageMap;
@@ -75,6 +76,7 @@ public final class IrisPackResources implements PackResources {
     private final UUID snapshotId = UUID.randomUUID();
     private final SettingsStacks settingsStacks = new SettingsStacks();
     private final BlockRegistry blocks;
+    private final PackObjects objects;
     private final ItemRegistry items = new IrisItemRegistry();
     private final NoiseFactory noise;
     private final Map<ResourceId, Kind<?>> irisKinds;
@@ -95,6 +97,7 @@ public final class IrisPackResources implements PackResources {
         this.ids = new PackResourceIds(data.getDataFolder());
         this.moduleKindList = moduleKinds;
         this.blocks = new IrisBlockRegistry(data, this);
+        this.objects = new IrisPackObjects(data, this);
         this.noise = new IrisNoiseFactory(data, this);
         this.irisKinds = Map.of(
                 OBJECTS.id(), Kind.<IrisObject, GeneratedObject>ofLoader(ids, data::getObjectLoader, (id, object) -> object.getGeometry()),
@@ -134,6 +137,11 @@ public final class IrisPackResources implements PackResources {
     @Override
     public BlockRegistry blocks() {
         return blocks;
+    }
+
+    @Override
+    public PackObjects objects() {
+        return objects;
     }
 
     @Override

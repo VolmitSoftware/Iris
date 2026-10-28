@@ -82,13 +82,19 @@ public final class ModuleSettings {
      * @param dimensionKey that dimension's key
      */
     public Set<String> usedBiomes(IrisPackResources resources, ModuleSettings dimension, String dimensionKey) {
-        PackSettings declared = dimension.declaredByDimension(() -> resources.idOf(IrisPackSettings.DIMENSION + "/" + dimensionKey));
+        PackSettings declared = dimension.declaredByDimension(resources,
+                () -> resources.idOf(IrisPackSettings.DIMENSION + "/" + dimensionKey));
         return linkedBiomes(resources, linked -> linked.usedBiomes(resources, declared));
     }
 
     /** These settings as what a dimension declares itself: each type a stack of at most its dimension entry. */
-    private PackSettings declaredByDimension(Supplier<ResourceId> dimension) {
+    private PackSettings declaredByDimension(PackResources resources, Supplier<ResourceId> dimension) {
         return new PackSettings() {
+            @Override
+            public PackResources resources() {
+                return resources;
+            }
+
             @Override
             public <F extends IrisFeature> SettingsStack<F> declared(Class<F> featureType) {
                 return find(featureType)

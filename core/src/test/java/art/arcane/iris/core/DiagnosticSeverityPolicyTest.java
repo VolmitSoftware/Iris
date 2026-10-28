@@ -54,7 +54,7 @@ public class DiagnosticSeverityPolicyTest {
     public void generationTracingStaysAtDebugLevel() {
         assertLoggedWith("engine/mantle/components/ChunkObjectPlacing.java", "Regen object layer start:", "debug");
         assertLoggedWith("engine/mantle/components/ChunkObjectPlacing.java", "Goldendebug object attempt:", "debug");
-        assertLoggedWith("engine/mantle/components/GoldenDebugObjectPlacer.java", "Goldendebug query:", "debug");
+        assertLoggedWith("engine/mantle/components/GoldenDebugTerrain.java", "Goldendebug query:", "debug");
         assertLoggedWith("engine/mantle/components/StructurePlacing.java", "[StructTrace] ORIGIN", "debug");
     }
 

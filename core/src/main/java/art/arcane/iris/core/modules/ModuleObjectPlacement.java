@@ -19,43 +19,28 @@
 package art.arcane.iris.core.modules;
 
 import art.arcane.iris.builtin.objects.ObjectPlacement;
+import art.arcane.iris.builtin.objects.ObjectRun;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.Engine;
+import art.arcane.iris.engine.framework.SeedManager;
 import art.arcane.iris.engine.object.placement.IObjectPlacer;
-import art.arcane.iris.engine.object.placement.IrisPlacementForm;
 import art.arcane.iris.engine.object.prefab.IrisObject;
-import art.arcane.iris.engine.object.prefab.IrisObjectShaping;
 import art.arcane.iris.engine.object.terrain.carving.CarveResult;
 import art.arcane.iris.spi.PlatformBlockState;
-import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.volmlib.util.math.RNG;
-import com.volmit.config.FeatureSettings;
-import com.volmit.host.PlacementOutcome;
-import com.volmit.host.LoadedPack;
-import com.volmit.host.PlacementRunner;
-import com.volmit.host.ResolvedGraph;
-import com.volmit.geometry.BlockBox;
 import com.volmit.geometry.BlockPosition;
-import com.volmit.object.GeneratedObject;
-import com.volmit.placement.PlacementRequest;
-import com.volmit.resource.ResourceId;
-import com.volmit.world.TerrainSampler;
+import com.volmit.placement.PlacementOutcome;
 
 import java.util.Objects;
 import java.util.function.BiConsumer;
 
 /**
- * Places an Iris object by running the pack's placement graph, Iris's built-in placement stages included,
- * with IrisApi's {@link PlacementRunner}. The writes are buffered and reach the placer only when no stage
- * rejects the placement.
- * <p>
- * Each stage draws from its own stream of one seed per placement, from the world seed and the placement's
- * identity: the object and the requested position. Without an engine, such as for a studio paste, the placement
- * runs in a {@link ToolWorld} of its own, whose seed is one draw from the caller's random.
+ * Places an Iris object for Iris's own callers (structures, commands, pastes) through the pack's placement graph, as
+ * {@code PackWorld.placements()} places a module's. The writes reach the placer only when no stage rejects the
+ * placement. Without an engine, such as for a studio paste, the placement runs in a {@link ToolWorld} of its own, whose
+ * seed is one draw from the caller's random.
  */
 public final class ModuleObjectPlacement {
-    private static final String UNNAMED_OBJECT = "unnamed";
-
     private ModuleObjectPlacement() {
     }
 
@@ -72,67 +57,40 @@ public final class ModuleObjectPlacement {
         Objects.requireNonNull(config, "Object placement config is required.");
         Objects.requireNonNull(rng, "Object placement RNG is required.");
         Objects.requireNonNull(data, "Object placement data is required.");
-        LoadedPack pack = data.getModules().pack();
-        ResolvedGraph graph = pack.placement();
-        IrisPlacementForm form = IrisPlacementForm.of(config, data);
-        GeneratedObject geometry = geometryOf(object, config);
-        BlockBox area = PlacementArea.around(object, geometry, config.translate(), form.warp(), x, z, graph.reach().blocks());
-        PlatformBlockStates states = new PlatformBlockStates(ModuleObjectPlacement::platformState);
-        ObjectPlacerEdit edit = new ObjectPlacerEdit(placer, area, states, listener, () -> mantle(placer.getEngine(), area, pack));
-        IrisPlacement placement = new IrisPlacement(object, config, form, placer, cave, x, requestedY, z, data, states, edit);
-        PackResourceIds ids = new PackResourceIds(data.getDataFolder());
-        String objectKey = keyOf(object);
-        Engine engine = placer.getEngine();
-        long worldSeed = engine != null ? engine.getSeedManager().getSeed() : rng.nextLong();
-        ResourceId source = ids.of("object", objectKey);
-        PlacementRequest request = new PlacementRequest(geometry, new BlockPosition(x, requestedY, z));
-        long seed = ModuleSeeds.placement(worldSeed, objectKey, x, requestedY, z);
-        StageMetrics metrics = new StageMetrics(engine != null ? engine.getMetrics() : null);
-        try (ToolWorld toolWorld = engine == null ? new ToolWorld(worldSeed, data.getPackResources(), new PackDeclaredSettings(data)) : null) {
-            IrisPlacementInputs inputs = new IrisPlacementInputs(terrain(engine, ids, area),
-                    new PlacementModuleSettings(worldSettings(engine, ids), form.moduleSettings(), source),
-                    new PlacerBlockView(placer, area, states), engine != null ? IrisPlacementInputs.worldOf(engine) : () -> toolWorld,
-                    placement);
-            PlacementOutcome outcome = new PlacementRunner(graph)
-                    .place(request, edit, inputs, seed, form.moduleSettings().placement(source), metrics);
-            return outcome.isPlaced()
-                    ? ObjectPlacementResult.placed(placement.anchorY())
-                    : ObjectPlacementResult.rejected(outcome.rejection().orElseThrow());
+        PlacerTerrain terrain = listener == null ? PlacerTerrain.of(placer, data) : PlacerTerrain.rememberingWrites(placer, data);
+        ObjectRun run = cave == null
+                ? ObjectRun.of(object, config, x, requestedY, z)
+                : ObjectRun.inCave(object, config, x, requestedY, z, new ObjectRun.Cave(cave.getSurface(), cave.getHeight()));
+        PlacementOutcome outcome = placeIn(run, terrain, placer.getEngine(), rng, data);
+        if (!outcome.isPlaced()) {
+            return ObjectPlacementResult.rejected(outcome.rejection().orElseThrow());
+        }
+        reportObjectBlocks(run, terrain, listener);
+        int anchorY = run.anchorY().orElseThrow(() -> new IllegalStateException(
+                "The placement graph placed " + object.name() + " without anchoring it"));
+        return ObjectPlacementResult.placed(anchorY);
+    }
+
+    private static PlacementOutcome placeIn(ObjectRun run, PlacerTerrain terrain, Engine engine, RNG rng, IrisData data) {
+        if (engine != null) {
+            IrisPlacements placements = new IrisPlacements(data, engine, IrisPlacementInputs.worldOf(engine));
+            return placements.place(run.toRun(terrain, engine.getSeedManager().getSeed(), data.getPackResources().objects()));
+        }
+        long worldSeed = rng.nextLong();
+        try (ToolWorld toolWorld = new ToolWorld(worldSeed, data.getPackResources(), new PackDeclaredSettings(data),
+                world -> new IrisPlacements(data, null, () -> world), new IrisLegacyStreams(data, new SeedManager(worldSeed)))) {
+            return run.placeIn(toolWorld, terrain);
         }
     }
 
-    /** Smart boring adds the object's bored air, so it has to happen before the geometry is read. */
-    private static GeneratedObject geometryOf(IrisObject object, ObjectPlacement config) {
-        if (config.smartBore()) {
-            IrisObjectShaping.ensureSmartBored(object);
+    private static void reportObjectBlocks(ObjectRun run, PlacerTerrain terrain,
+                                           BiConsumer<art.arcane.volmlib.util.math.BlockPosition, PlatformBlockState> listener) {
+        if (listener == null) {
+            return;
         }
-        return object.getGeometry();
-    }
-
-    private static TerrainSampler terrain(Engine engine, PackResourceIds ids, BlockBox area) {
-        if (engine == null) {
-            return IrisPlacementInputs.noTerrain(area);
+        for (BlockPosition position : run.objectBlocks()) {
+            listener.accept(new art.arcane.volmlib.util.math.BlockPosition(position.x(), position.y(), position.z()),
+                    terrain.writtenState(position));
         }
-        return new IrisTerrainSampler(engine, ids, area.minX(), area.minZ(), area.maxX(), area.maxZ());
-    }
-
-    private static PlacementMantle mantle(Engine engine, BlockBox area, LoadedPack pack) {
-        if (engine == null) {
-            throw new UnsupportedOperationException("This placement runs without an Iris engine, so it has no mantle");
-        }
-        return new PlacementMantle(engine, area, pack.catalog().mantle());
-    }
-
-    private static FeatureSettings worldSettings(Engine engine, PackResourceIds ids) {
-        return engine == null ? PlacementModuleSettings.noWorld() : new ChunkModuleSettings(engine, ids);
-    }
-
-    /** Resolved by the platform bound now, so a rebound platform never answers with another's states. */
-    private static PlatformBlockState platformState(String key) {
-        return IrisPlatforms.get().registries().block(key);
-    }
-
-    private static String keyOf(IrisObject object) {
-        return object.getLoadKey() == null ? UNNAMED_OBJECT : object.getLoadKey();
     }
 }

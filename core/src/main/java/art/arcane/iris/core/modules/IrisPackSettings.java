@@ -20,7 +20,6 @@ package art.arcane.iris.core.modules;
 
 import art.arcane.iris.core.loader.IrisRegistrant;
 import art.arcane.iris.builtin.structure.StructureHost;
-import art.arcane.iris.builtin.objects.ObjectHost;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
@@ -31,6 +30,7 @@ import com.volmit.IrisFeature;
 import com.volmit.config.FeatureSettings.Entry;
 import com.volmit.config.PackSettings;
 import com.volmit.config.SettingsStack;
+import com.volmit.resource.PackResources;
 import com.volmit.resource.ResourceId;
 
 import java.util.ArrayList;
@@ -62,6 +62,11 @@ public final class IrisPackSettings implements PackSettings {
     }
 
     @Override
+    public PackResources resources() {
+        return engine.getData().getPackResources();
+    }
+
+    @Override
     public <T> Optional<T> extension(Class<T> type) {
         return HostExtensions.as(type, offered(type));
     }
@@ -70,9 +75,6 @@ public final class IrisPackSettings implements PackSettings {
     private Object offered(Class<?> type) {
         if (type == Engine.class) {
             return engine;
-        }
-        if (type == ObjectHost.class) {
-            return new IrisObjectHost(engine, IrisApiLogger.hostLog());
         }
         if (type == StructureHost.class) {
             return new IrisStructureHost(engine, IrisApiLogger.hostLog());

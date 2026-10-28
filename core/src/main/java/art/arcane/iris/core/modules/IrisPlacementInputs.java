@@ -18,8 +18,8 @@
 
 package art.arcane.iris.core.modules;
 
-import art.arcane.iris.builtin.placement.ObjectPlacement;
 import art.arcane.iris.engine.framework.Engine;
+import com.volmit.placement.PlacementTerrain;
 import com.volmit.block.BlockState;
 import com.volmit.config.FeatureSettings;
 import com.volmit.geometry.BlockBox;
@@ -44,25 +44,37 @@ final class IrisPlacementInputs implements PlacementContext {
     private final FeatureSettings settings;
     private final BlockView blocks;
     private final Supplier<PackWorld> worldSource;
-    private final ObjectPlacement placement;
+    private final PlacementTerrain placementTerrain;
+    private final Object input;
     private PackWorld world;
 
     /**
      * @param worldSource the world the placement generates in, asked for the first time a stage needs it
-     * @param placement   what Iris's built-in placement stages see of the placement as an extension
+     * @param input       what the placing module passed for its stages to read
      */
     IrisPlacementInputs(TerrainSampler terrain, FeatureSettings settings, BlockView blocks, Supplier<PackWorld> worldSource,
-                        ObjectPlacement placement) {
+                        PlacementTerrain placementTerrain, Object input) {
         this.terrain = terrain;
         this.settings = settings;
         this.blocks = blocks;
         this.worldSource = worldSource;
-        this.placement = placement;
+        this.placementTerrain = placementTerrain;
+        this.input = input;
     }
 
     @Override
     public <T> Optional<T> extension(Class<T> type) {
-        return type == ObjectPlacement.class ? HostExtensions.as(type, placement) : Optional.empty();
+        return Optional.empty();
+    }
+
+    @Override
+    public PlacementTerrain placementTerrain() {
+        return placementTerrain;
+    }
+
+    @Override
+    public <T> Optional<T> input(Class<T> type) {
+        return type.isInstance(input) ? Optional.of(type.cast(input)) : Optional.empty();
     }
 
     /** The world of the engine's runtime, as it is when the placement first asks. */

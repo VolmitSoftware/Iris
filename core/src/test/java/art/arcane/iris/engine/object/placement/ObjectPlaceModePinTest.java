@@ -252,11 +252,6 @@ public class ObjectPlaceModePinTest {
         }
 
         @Override
-        public boolean isDebugSmartBore() {
-            return false;
-        }
-
-        @Override
         public void setTile(int x, int y, int z, TileData tile) {
         }
 

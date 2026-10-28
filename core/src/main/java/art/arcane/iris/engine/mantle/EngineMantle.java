@@ -124,10 +124,6 @@ public interface EngineMantle extends MatterGenerator {
         return getEngine().getDimension().getFluidHeight();
     }
 
-    default boolean isDebugSmartBore() {
-        return getEngine().getDimension().isDebugSmartBore();
-    }
-
     default void trim(long duration) {
         getMantle().trim(duration);
     }

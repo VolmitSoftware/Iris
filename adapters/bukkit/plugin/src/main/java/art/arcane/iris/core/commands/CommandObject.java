@@ -262,11 +262,6 @@ public class CommandObject implements DirectorExecutor {
             }
 
             @Override
-            public boolean isDebugSmartBore() {
-                return false;
-            }
-
-            @Override
             public void setTile(int xx, int yy, int zz, TileData tile) {
                 tile.toBukkitTry(world.getBlockAt(xx, yy, zz));
             }

@@ -22,6 +22,8 @@ import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformWorld;
 import art.arcane.iris.util.common.scheduling.J;
+import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
+import art.arcane.volmlib.util.matter.Matter;
 import art.arcane.volmlib.util.matter.slices.MarkerMatter;
 import com.volmit.config.FeatureSettings;
 import com.volmit.geometry.BlockPosition;
@@ -108,6 +110,17 @@ final class IrisRunningWorld implements RunningWorld {
             platformLootTables = known;
         }
         return known;
+    }
+
+    @Override
+    public Optional<String> placementAt(int worldX, int y, int worldZ) {
+        MantleChunk<Matter> chunk = engine.getMantle().getMantle().getChunk(worldX >> 4, worldZ >> 4).use();
+        try {
+            String recorded = chunk.get(worldX & 15, y, worldZ & 15, String.class);
+            return recorded == null || recorded.isEmpty() ? Optional.empty() : Optional.of(recorded);
+        } finally {
+            chunk.release();
+        }
     }
 
     @Override

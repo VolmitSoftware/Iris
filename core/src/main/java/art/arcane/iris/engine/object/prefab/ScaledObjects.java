@@ -46,15 +46,12 @@ public final class ScaledObjects {
     private ScaledObjects() {
     }
 
-    /** The scaled variant of {@code origin} that {@code scale} picks; {@code origin} itself when it does not scale. */
-    public static IrisObject variant(ObjectScale scale, RNG rng, IrisObject origin, Engine engine) {
-        return variant(new ScaleRequest(scale.size(), scale.minimumScale(), scale.maximumScale(), scale.variations(),
-                scale.interpolation()), rng, origin, engine);
-    }
-
-    /** {@code origin} scaled by exactly {@code factor}, without interpolation. */
-    public static IrisObject resized(IrisObject origin, double factor, RNG rng, Engine engine) {
-        return variant(new ScaleRequest(factor, 1D, 1D, NO_VARIATIONS, ScaleInterpolation.NONE), rng, origin, engine);
+    /**
+     * {@code origin} scaled by {@code factor} with {@code interpolation}, even by a factor of 1, which interpolation may
+     * still change; built once per origin, factor and interpolation.
+     */
+    public static IrisObject scaled(IrisObject origin, double factor, ScaleInterpolation interpolation, Engine engine) {
+        return cachedVariant(new ScaleRequest(factor, factor, factor, NO_VARIATIONS, interpolation), 0, origin, engine);
     }
 
     static IrisObject variant(ScaleRequest request, RNG rng, IrisObject origin, Engine engine) {
@@ -66,7 +63,10 @@ public final class ScaledObjects {
             return origin;
         }
 
-        int variantIndex = request.selectVariant(rng);
+        return cachedVariant(request, request.selectVariant(rng), origin, engine);
+    }
+
+    private static IrisObject cachedVariant(ScaleRequest request, int variantIndex, IrisObject origin, Engine engine) {
         ScaleCache cache = cacheOf(engine);
         CacheKey key = cache.key(origin, request, variantIndex);
         IrisObject cached = cache.lookup(key);

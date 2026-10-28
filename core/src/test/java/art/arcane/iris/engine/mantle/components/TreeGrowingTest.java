@@ -18,7 +18,6 @@
 
 package art.arcane.iris.engine.mantle.components;
 
-import art.arcane.iris.builtin.objects.ObjectHost;
 import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.builtin.objects.ObjectSettings;
 import art.arcane.iris.builtin.objects.TreeGrowthSettings;
@@ -70,7 +69,6 @@ public class TreeGrowingTest {
         when(running.settings()).thenReturn(settings);
         when(running.layout()).thenReturn(layout);
         world = mock(PackWorld.class);
-        when(world.extension(ObjectHost.class)).thenReturn(Optional.of(mock(ObjectHost.class)));
         when(world.running()).thenReturn(Optional.of(running));
     }
 

@@ -211,6 +211,11 @@ public class LootValidatorTest {
                     public <F extends IrisFeature> SettingsStack<F> declared(Class<F> featureType) {
                         return featureType == LootSettings.class ? SettingsStack.of((List<Entry<F>>) (List<?>) List.copyOf(references)) : SettingsStack.empty();
                     }
+
+                    @Override
+                    public PackResources resources() {
+                        return resources;
+                    }
                 };
             }
 

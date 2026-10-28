@@ -42,7 +42,7 @@ public class IrisObjectTransformerTest {
     @Before
     public void bindPlatform() {
         UsableBlockPlatform.bind();
-        previousRotator = BlockStateRotation.bindPlatformRotator((rotation, state, spinX, spinY, spinZ) -> state);
+        previousRotator = BlockStateRotation.bindPlatformRotator((turn, state) -> state);
     }
 
     @After

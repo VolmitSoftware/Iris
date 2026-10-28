@@ -19,13 +19,14 @@
 package art.arcane.iris.core.modules;
 
 import art.arcane.iris.builtin.floating.FloatingHost;
-import art.arcane.iris.builtin.objects.ObjectHost;
+import art.arcane.iris.builtin.LegacyStreams;
 import art.arcane.iris.builtin.spawn.SpawnCooldowns;
 import art.arcane.iris.builtin.structure.StructureHost;
 import art.arcane.iris.engine.framework.Engine;
 import com.volmit.ModuleLog;
 import com.volmit.config.PackSettings;
 import com.volmit.host.WorldStates;
+import com.volmit.placement.Placements;
 import com.volmit.resource.ResourceId;
 import com.volmit.world.PackWorld;
 import com.volmit.world.RunningWorld;
@@ -36,8 +37,8 @@ import java.util.function.Function;
  * One Iris world as modules see it: an engine runtime generating with one snapshot of its pack's resources, and the
  * state modules keep for it. {@link ModuleWorlds} makes one when the runtime is built and a new one whenever the
  * pack's resources reload under it. Iris's built-in modules reach what they need of Iris through its
- * {@linkplain #extension extensions}: the spawners' cooldowns Iris saves with the world and the object, floating and
- * structure hosts.
+ * {@linkplain #extension extensions}: the spawners' cooldowns Iris saves with the world, Iris's legacy random streams,
+ * and the floating and structure hosts.
  */
 public final class IrisPackWorld implements PackWorld {
     private final Engine engine;
@@ -46,7 +47,8 @@ public final class IrisPackWorld implements PackWorld {
     private final ModuleLog log;
     private final SpawnCooldowns spawnCooldowns;
     private volatile RunningWorld running;
-    private volatile IrisObjectHost objectHost;
+    private final LegacyStreams legacyStreams;
+    private final Placements placements;
     private volatile IrisFloatingHost floatingHost;
     private volatile IrisStructureHost structureHost;
 
@@ -56,6 +58,13 @@ public final class IrisPackWorld implements PackWorld {
         this.states = new WorldStates();
         this.log = IrisApiLogger.hostLog();
         this.spawnCooldowns = new EngineSpawnCooldowns(engine);
+        this.legacyStreams = new IrisLegacyStreams(engine.getData(), engine.getSeedManager());
+        this.placements = new IrisPlacements(engine.getData(), engine, () -> this);
+    }
+
+    @Override
+    public Placements placements() {
+        return placements;
     }
 
     /** The engine generating this world. */
@@ -121,8 +130,8 @@ public final class IrisPackWorld implements PackWorld {
         if (type == SpawnCooldowns.class) {
             return spawnCooldowns;
         }
-        if (type == ObjectHost.class) {
-            return objects();
+        if (type == LegacyStreams.class) {
+            return legacyStreams;
         }
         if (type == FloatingHost.class) {
             return floating();
@@ -133,19 +142,10 @@ public final class IrisPackWorld implements PackWorld {
         return null;
     }
 
-    private ObjectHost objects() {
-        IrisObjectHost host = objectHost;
-        if (host == null) {
-            host = new IrisObjectHost(engine, log);
-            objectHost = host;
-        }
-        return host;
-    }
-
     private FloatingHost floating() {
         IrisFloatingHost host = floatingHost;
         if (host == null) {
-            host = new IrisFloatingHost(engine, log);
+            host = new IrisFloatingHost(engine);
             floatingHost = host;
         }
         return host;

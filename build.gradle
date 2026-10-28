@@ -55,7 +55,7 @@ apply from: file('gradle/runtime-relocations.gradle')
 apply from: file('gradle/volmlib-stamp.gradle')
 
 group = 'art.arcane'
-version = providers.gradleProperty('irisVersion').getOrElse('4.3.5')
+version = providers.gradleProperty('irisVersion').getOrElse('4.3.6')
 
 project(':core') {
     group = 'art.arcane'

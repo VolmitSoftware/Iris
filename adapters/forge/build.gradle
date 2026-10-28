@@ -61,7 +61,7 @@ apply from: file('../../gradle/java21-runtime-exclusions.gradle')
 
 Properties rootProperties = new Properties()
 file('../../gradle.properties').withInputStream { InputStream stream -> rootProperties.load(stream) }
-String irisVersion = providers.gradleProperty('irisVersion').getOrElse(rootProperties.getProperty('irisVersion', '4.3.5'))
+String irisVersion = providers.gradleProperty('irisVersion').getOrElse(rootProperties.getProperty('irisVersion', '4.3.6'))
 String minecraftVersion = providers.gradleProperty('minecraftVersion').getOrElse(rootProperties.getProperty('minecraftVersion', '26.3'))
 String forgeVersion = providers.gradleProperty('forgeVersion').getOrElse(irisModTarget.forge.toString())
 String buildLane = gradle.extensions.extraProperties.has('irisBuildLane')

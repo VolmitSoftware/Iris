@@ -278,14 +278,20 @@ public class IrisEntity extends IrisRegistrant implements NativeEntityOptions {
         }
         if (isSpawnEffectRiseOutOfGround()) {
             AtomicReference<Location> f = new AtomicReference<>(at);
+            Runnable riseStart = () -> {
+                if (Chunks.hasPlayersNearby(f.get())) {
+                    Location b = f.get().clone();
+                    Location start = new Location(b.getWorld(), b.getX(), b.getY() - 5, b.getZ());
+                    f.set(start);
+                }
+            };
             try {
-                J.sfut(() -> {
-                    if (Chunks.hasPlayersNearby(f.get())) {
-                        Location b = f.get().clone();
-                        Location start = new Location(b.getWorld(), b.getX(), b.getY() - 5, b.getZ());
-                        f.set(start);
-                    }
-                }).get();
+                // J.sfut schedules onto the next main thread tick, so waiting on it from the main thread never returns.
+                if (Bukkit.isPrimaryThread()) {
+                    riseStart.run();
+                } else {
+                    J.sfut(riseStart).get();
+                }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 IrisLogging.reportError("Iris entity spawn preparation was interrupted.", e);

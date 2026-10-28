@@ -191,11 +191,12 @@ public class TerrainSettingsDecodingTest {
 
     @Test
     public void aLayerMayBeASnippet() throws IOException {
-        Path snippets = Files.createDirectories(folder.newFolder("snippet-pack").toPath().resolve("snippet/biome-palette"));
+        Path packFolder = folder.newFolder("snippet-pack").toPath();
+        Path snippets = Files.createDirectories(packFolder.resolve("snippet/iris/terrain/biome-palette"));
         Files.writeString(snippets.resolve("sandy.json"), "{\"minHeight\": 2, \"maxHeight\": 4, \"palette\": [{\"block\": \"sand\"}]}");
-        ModuleSettingsDecoder snippetDecoder = new ModuleSettingsDecoder(pack.catalog(), snippets.getParent().getParent(), Gson::new);
+        ModuleSettingsDecoder snippetDecoder = new ModuleSettingsDecoder(pack.catalog(), packFolder, Gson::new);
 
-        PaletteLayer layer = snippetDecoder.decode(Level.BIOME, new JSONObject("{\"layers\": [\"snippet/biome-palette/sandy\", \"snippet/sandy\"]}"), "biome dunes")
+        PaletteLayer layer = snippetDecoder.decode(Level.BIOME, new JSONObject("{\"layers\": [\"snippet/iris/terrain/biome-palette/sandy\", \"snippet/sandy\"]}"), "biome dunes")
                 .find(LayersSettings.class).orElseThrow().layers().getFirst();
 
         assertEquals(4, layer.maxHeight());

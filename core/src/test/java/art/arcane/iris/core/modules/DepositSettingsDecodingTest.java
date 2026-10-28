@@ -1,11 +1,11 @@
 package art.arcane.iris.core.modules;
 
-import art.arcane.iris.builtin.deposit.DepositBiomeScope;
-import art.arcane.iris.builtin.deposit.DepositGenerator;
-import art.arcane.iris.builtin.deposit.DepositHeightDistribution;
-import art.arcane.iris.builtin.deposit.DepositPlacementScope;
+import art.arcane.iris.modules.deposit.DepositBiomeScope;
+import art.arcane.iris.modules.deposit.DepositGenerator;
+import art.arcane.iris.modules.deposit.DepositHeightDistribution;
+import art.arcane.iris.modules.deposit.DepositPlacementScope;
 import art.arcane.iris.modules.deposit.DepositSettings;
-import art.arcane.iris.builtin.deposit.DepositShape;
+import art.arcane.iris.modules.deposit.DepositShape;
 import art.arcane.volmlib.util.json.JSONObject;
 import com.google.gson.Gson;
 import com.volmit.config.Level;
@@ -45,7 +45,7 @@ public class DepositSettingsDecodingTest {
                "spawnChance": 0.5, "perClumpSpawnChance": 0.25, "discardChanceOnAirExposure": 0.7, "replaceableBlocks": ["stone", "deepslate"],
                "biomeScope": "SURFACE", "includedBiomes": ["plains"], "excludedBiomes": ["desert/dunes"], "replaceBedrock": true,
                "palette": [{"block": "oak_log", "data": {"axis": "y"}, "weight": 2, "backup": {"block": "stone"}}]},
-              "snippet/deposit/diamonds",
+              "snippet/iris/deposit/deposit/diamonds",
               "snippet/diamonds",
               {}
             ]}
@@ -60,7 +60,7 @@ public class DepositSettingsDecodingTest {
     @Before
     public void loadBuiltIns() throws IOException {
         Path packFolder = folder.newFolder("pack").toPath();
-        Path snippets = Files.createDirectories(packFolder.resolve("snippet/deposit"));
+        Path snippets = Files.createDirectories(packFolder.resolve("snippet/iris/deposit/deposit"));
         Files.writeString(snippets.resolve("diamonds.json"), "{\"maxHeight\": 16, \"palette\": [{\"block\": \"minecraft:diamond_ore\"}]}");
         pack = LoadedPack.load(packFolder, ModuleHost.of(BuiltInPack.allBuiltIns())
                 .describingHostTypesIn(IrisModuleHost.HOST_TYPE_PACKAGE).copyingJarsTo(folder.newFolder("copies").toPath()));

@@ -24,7 +24,7 @@ public class PackCaveProfileValidatorTest {
         write(pack, "dimensions/main.json", "{\"caveProfile\":{\"allowWater\":false}}");
         write(pack, "regions/nested/region.json", "{\"caveProfile\":{\"waterMinDepthBelowSurface\":20}}");
         write(pack, "biomes/nested/biome.json", "{\"caveProfile\":{\"waterRequiresFloor\":true}}");
-        write(pack, "snippet/cave-profile/nested/profile.json", "{\"allowWater\":true}");
+        write(pack, "snippet/iris/carve/cave-profile/nested/profile.json", "{\"allowWater\":true}");
 
         assertEquals(List.of(
                 "Dimension 'main' caveProfile.allowWater was removed; use caveProfile.allowFluid. Cave aquifers use the dimension fluidPalette, which defaults to water.",
@@ -39,7 +39,7 @@ public class PackCaveProfileValidatorTest {
         File pack = temporaryFolder.newFolder("pack");
         write(pack, "dimensions/main.json", "{\"caveProfile\":{\"allowFluid\":true,"
                 + "\"fluidMinDepthBelowSurface\":20,\"fluidRequiresFloor\":true}}");
-        write(pack, "snippet/cave-profile/profile.json", "{\"allowFluid\":true,"
+        write(pack, "snippet/iris/carve/cave-profile/profile.json", "{\"allowFluid\":true,"
                 + "\"fluidMinDepthBelowSurface\":20,\"fluidRequiresFloor\":true}");
 
         assertTrue(PackCaveProfileValidator.validateLegacyFields(pack).isEmpty());

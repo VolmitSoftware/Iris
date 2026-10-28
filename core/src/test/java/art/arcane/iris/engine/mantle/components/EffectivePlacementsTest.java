@@ -1,7 +1,7 @@
 package art.arcane.iris.engine.mantle.components;
 
 import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
-import art.arcane.iris.builtin.carve.CaveProfile;
+import art.arcane.iris.modules.carve.CaveProfile;
 import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.modules.objects.PlacementChanges;
 import com.volmit.object.PlaceableObject;

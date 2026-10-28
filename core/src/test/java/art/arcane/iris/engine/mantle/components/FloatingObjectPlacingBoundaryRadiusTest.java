@@ -18,7 +18,7 @@
 
 package art.arcane.iris.engine.mantle.components;
 
-import art.arcane.iris.builtin.floating.FloatingChildBiome;
+import art.arcane.iris.modules.floating.FloatingChildBiome;
 import art.arcane.iris.modules.floating.FloatingChildSettings;
 import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.engine.object.TestSettings;

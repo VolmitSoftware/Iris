@@ -88,7 +88,7 @@ public class PlacementSettingsDecodingTest {
               {"find": [{"block": "minecraft:spruce_leaves"}], "exact": true, "chance": 0.5,
                "replace": {"style": {"style": "PERLIN", "zoom": 0.2},
                            "palette": [{"block": "minecraft:oak_leaves"}, {"block": "minecraft:birch_leaves", "weight": 3}]}},
-              "snippet/object-block-replacer/leaves", {}
+              "snippet/iris/blocks/object-block-replacer/leaves", {}
             ]}
             """;
 
@@ -107,7 +107,7 @@ public class PlacementSettingsDecodingTest {
 
     @Before
     public void decodeLikeIrisDoes() throws IOException {
-        File snippets = folder.newFolder("snippet", "object-block-replacer");
+        File snippets = folder.newFolder("snippet", "iris", "blocks", "object-block-replacer");
         Files.writeString(new File(snippets, "leaves.json").toPath(),
                 "{\"find\": [{\"block\": \"minecraft:oak_leaves\"}], \"replace\": \"snippet/palette/autumn\"}");
         File palettes = folder.newFolder("snippet", "palette");

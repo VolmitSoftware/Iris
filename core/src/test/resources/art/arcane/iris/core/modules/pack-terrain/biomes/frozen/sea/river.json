@@ -1,5 +1,5 @@
 {
-    "proceduralObjects": "snippet/procedural-objects/frozen/magical-ice-spikes-surface",
+    "proceduralObjects": "snippet/iris/objects/procedural-objects/frozen/magical-ice-spikes-surface",
     "name": "Frozen River",
     "color": "#3DB9F5",
     "derivative": "minecraft:frozen_river",

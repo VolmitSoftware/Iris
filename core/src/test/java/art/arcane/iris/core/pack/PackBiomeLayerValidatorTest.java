@@ -81,30 +81,30 @@ public class PackBiomeLayerValidatorTest {
         assertEquals(List.of(
                 "Biome 'bad' decorators[0] must declare a non-empty palette."
         ), PackBiomeLayerValidator.validateDecoratorPalettes(
-                new File(pack, "biomes"), new File(pack, "snippet/decorator")));
+                new File(pack, "biomes"), new File(pack, "snippet/iris/decorant/decorator")));
     }
 
     @Test
     public void rejectsDecoratorSnippetWithoutPalette() throws Exception {
         File pack = temporaryFolder.newFolder("pack");
-        write(pack, "snippet/decorator/bad.json", "{\"chance\":0.5}");
+        write(pack, "snippet/iris/decorant/decorator/bad.json", "{\"chance\":0.5}");
 
         assertEquals(List.of(
                 "Decorator snippet 'bad' must declare a non-empty palette."
         ), PackBiomeLayerValidator.validateDecoratorPalettes(
-                new File(pack, "biomes"), new File(pack, "snippet/decorator")));
+                new File(pack, "biomes"), new File(pack, "snippet/iris/decorant/decorator")));
     }
 
     @Test
     public void acceptsDecoratorPalettesAndSnippetReferences() throws Exception {
         File pack = temporaryFolder.newFolder("pack");
         write(pack, "biomes/ok.json",
-                "{\"decorators\":[{\"palette\":[{\"block\":\"minecraft:magma_block\"}]},\"snippet/decorator/ok\"]}");
-        write(pack, "snippet/decorator/ok.json",
+                "{\"decorators\":[{\"palette\":[{\"block\":\"minecraft:magma_block\"}]},\"snippet/iris/decorant/decorator/ok\"]}");
+        write(pack, "snippet/iris/decorant/decorator/ok.json",
                 "{\"palette\":[{\"block\":\"minecraft:magma_block\"}]}");
 
         assertTrue(PackBiomeLayerValidator.validateDecoratorPalettes(
-                new File(pack, "biomes"), new File(pack, "snippet/decorator")).isEmpty());
+                new File(pack, "biomes"), new File(pack, "snippet/iris/decorant/decorator")).isEmpty());
     }
 
     private void write(File root, String relative, String content) throws Exception {

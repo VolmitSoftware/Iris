@@ -41,7 +41,7 @@ public class DecorantSettingsDecodingTest {
                "heightVariance": {"style": "PERLIN", "zoom": 2}, "forcePlace": true, "forceBlock": {"block": "farmland", "data": {"moisture": "7"}},
                "whitelist": [{"block": "sand"}], "blacklist": [], "slopeCondition": {"minimumSlope": 1, "maximumSlope": 4},
                "palette": [{"block": "sugar_cane"}], "topPalette": [{"block": "bamboo"}], "topThreshold": 0.5},
-              "snippet/decorator/bush",
+              "snippet/iris/decorant/decorator/bush",
               "snippet/bush",
               {}
             ]}
@@ -56,7 +56,7 @@ public class DecorantSettingsDecodingTest {
     @Before
     public void loadBuiltIns() throws IOException {
         Path packFolder = folder.newFolder("pack").toPath();
-        Path snippets = Files.createDirectories(packFolder.resolve("snippet/decorator"));
+        Path snippets = Files.createDirectories(packFolder.resolve("snippet/iris/decorant/decorator"));
         Files.writeString(snippets.resolve("bush.json"), "{\"chance\": 0.2, \"palette\": [{\"block\": \"minecraft:fern\"}]}");
         pack = LoadedPack.load(packFolder, ModuleHost.of(BuiltInPack.allBuiltIns())
                 .describingHostTypesIn(IrisModuleHost.HOST_TYPE_PACKAGE).copyingJarsTo(folder.newFolder("copies").toPath()));

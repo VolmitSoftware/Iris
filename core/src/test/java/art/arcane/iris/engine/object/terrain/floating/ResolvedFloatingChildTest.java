@@ -1,8 +1,8 @@
 package art.arcane.iris.engine.object.terrain.floating;
 
-import art.arcane.iris.builtin.floating.FloatingChildBiome;
+import art.arcane.iris.modules.floating.FloatingChildBiome;
 import art.arcane.iris.engine.object.TestSettings;
-import art.arcane.iris.builtin.floating.OverrideMode;
+import art.arcane.iris.modules.floating.OverrideMode;
 import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.volmlib.util.collection.KList;
 import org.junit.Test;

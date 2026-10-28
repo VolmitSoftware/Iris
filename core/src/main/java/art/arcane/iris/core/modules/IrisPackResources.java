@@ -165,6 +165,14 @@ public final class IrisPackResources implements PackResources {
         return kindOf(kind).ids();
     }
 
+    /**
+     * The ids of the resources of the kind {@code kindId} names, for Iris's own tools that list a module's resources
+     * without the module's class for them, which the plugin's classes cannot reach when the kind ships in a module jar.
+     */
+    public List<ResourceId> ids(ResourceId kindId) {
+        return kindOf(kindId).ids();
+    }
+
     /** The id of the resource the pack names by {@code packKey}, such as {@code overworld:castle/keep} for {@code castle/keep}. */
     @Override
     public ResourceId idOf(String packKey) {
@@ -182,13 +190,17 @@ public final class IrisPackResources implements PackResources {
     }
 
     private Kind<?> kindOf(ResourceKind<?> kind) {
-        Kind<?> iris = irisKinds.get(kind.id());
+        return kindOf(kind.id());
+    }
+
+    private Kind<?> kindOf(ResourceId kindId) {
+        Kind<?> iris = irisKinds.get(kindId);
         if (iris != null) {
             return iris;
         }
-        Kind<?> module = moduleKinds().get(kind.id());
+        Kind<?> module = moduleKinds().get(kindId);
         if (module == null) {
-            throw new IllegalArgumentException("Iris serves pack resources of " + SERVED_TYPES + ", not " + kind.id());
+            throw new IllegalArgumentException("Iris serves pack resources of " + SERVED_TYPES + ", not " + kindId);
         }
         return module;
     }

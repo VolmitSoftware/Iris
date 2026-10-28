@@ -1,7 +1,7 @@
 package art.arcane.iris.engine.object.terrain.floating;
 
 import art.arcane.iris.engine.object.TestSettings;
-import art.arcane.iris.builtin.floating.FloatingChildBiome;
+import art.arcane.iris.modules.floating.FloatingChildBiome;
 import com.volmit.noise.NoiseSampler;
 import org.junit.Test;
 

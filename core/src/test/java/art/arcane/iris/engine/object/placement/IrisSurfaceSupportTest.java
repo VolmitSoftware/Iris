@@ -7,7 +7,7 @@ import art.arcane.iris.builtin.prepare.ObjectRotation;
 import art.arcane.iris.builtin.prepare.ObjectTranslate;
 import art.arcane.iris.engine.object.procedural.formation.ResolvedFormation;
 import art.arcane.iris.engine.object.TestSettings;
-import art.arcane.iris.builtin.objects.formation.Formation;
+import art.arcane.iris.modules.objects.formation.Formation;
 import art.arcane.iris.engine.object.placement.IObjectPlacer;
 import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.engine.object.placement.IrisSurfaceSupport;

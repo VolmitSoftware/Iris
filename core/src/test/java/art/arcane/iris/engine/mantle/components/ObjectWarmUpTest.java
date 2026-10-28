@@ -4,7 +4,7 @@ import art.arcane.iris.builtin.IrisSeedPurposes;
 import art.arcane.iris.builtin.LegacyStreams;
 import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.builtin.objects.ObjectSettings;
-import art.arcane.iris.builtin.objects.ProceduralObjectSettings;
+import art.arcane.iris.modules.objects.ProceduralObjectSettings;
 import art.arcane.iris.engine.object.TestSettings;
 import art.arcane.volmlib.util.math.RNG;
 import com.volmit.IrisFeature;

@@ -18,10 +18,10 @@
 
 package art.arcane.iris.engine.object.terrain.floating;
 
-import art.arcane.iris.builtin.floating.FloatingBottomPaletteMode;
-import art.arcane.iris.builtin.floating.FloatingChildBiome;
-import art.arcane.iris.builtin.floating.OverrideMode;
-import art.arcane.iris.builtin.floating.TopShapeMode;
+import art.arcane.iris.modules.floating.FloatingBottomPaletteMode;
+import art.arcane.iris.modules.floating.FloatingChildBiome;
+import art.arcane.iris.modules.floating.OverrideMode;
+import art.arcane.iris.modules.floating.TopShapeMode;
 import art.arcane.iris.core.loader.IrisData;
 import com.google.gson.Gson;
 import com.volmit.noise.NoiseFactory;

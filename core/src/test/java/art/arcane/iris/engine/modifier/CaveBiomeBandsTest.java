@@ -18,7 +18,7 @@
 
 package art.arcane.iris.engine.modifier;
 
-import art.arcane.iris.builtin.carve.CarvingEntry;
+import art.arcane.iris.modules.carve.CarvingEntry;
 import art.arcane.iris.modules.carve.CarvingSettings;
 import art.arcane.iris.modules.carve.CaveDepthSettings;
 import art.arcane.iris.core.modules.CarveTestWorld;

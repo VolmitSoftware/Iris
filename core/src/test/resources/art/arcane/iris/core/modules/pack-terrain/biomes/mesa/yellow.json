@@ -107,7 +107,7 @@
             "palette": [{"block": "minecraft:dead_bush"}],
             "style": {"style": "STATIC"}
         },
-        "snippet/decorator/dry_grass"
+        "snippet/iris/decorant/decorator/dry_grass"
     ],
     "lockLayers": true
 }

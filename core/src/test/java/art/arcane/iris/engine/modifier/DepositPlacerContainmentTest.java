@@ -18,8 +18,8 @@
 
 package art.arcane.iris.engine.modifier;
 
-import art.arcane.iris.builtin.deposit.DepositHeightDistribution;
-import art.arcane.iris.builtin.deposit.DepositPlacementScope;
+import art.arcane.iris.modules.deposit.DepositHeightDistribution;
+import art.arcane.iris.modules.deposit.DepositPlacementScope;
 import art.arcane.volmlib.util.math.RNG;
 import com.volmit.block.BlockRegistry;
 import com.volmit.block.BlockState;

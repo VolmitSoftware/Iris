@@ -1,20 +1,20 @@
 package art.arcane.iris.engine.object.procedural.tree;
 
 import art.arcane.iris.engine.object.TestSettings;
-import art.arcane.iris.builtin.objects.tree.TreeSubBranches;
-import art.arcane.iris.builtin.objects.tree.TreeBranches;
-import art.arcane.iris.builtin.objects.tree.TreeProfile;
-import art.arcane.iris.builtin.objects.tree.TreeLeafMode;
-import art.arcane.iris.builtin.objects.tree.TreeFunction;
-import art.arcane.iris.builtin.objects.tree.TreeBranchProbability;
-import art.arcane.iris.builtin.objects.tree.TreeAzimuthMode;
+import art.arcane.iris.modules.objects.tree.TreeSubBranches;
+import art.arcane.iris.modules.objects.tree.TreeBranches;
+import art.arcane.iris.modules.objects.tree.TreeProfile;
+import art.arcane.iris.modules.objects.tree.TreeLeafMode;
+import art.arcane.iris.modules.objects.tree.TreeFunction;
+import art.arcane.iris.modules.objects.tree.TreeBranchProbability;
+import art.arcane.iris.modules.objects.tree.TreeAzimuthMode;
 import art.arcane.iris.engine.object.procedural.tree.TreeBlockCanvas;
 import art.arcane.iris.engine.object.procedural.tree.TreeCanopyBuilder;
 import art.arcane.iris.engine.object.procedural.tree.TreePlausibility;
 import art.arcane.iris.engine.object.procedural.tree.TreeRootBuilder;
 import art.arcane.iris.engine.object.procedural.tree.TreeSupport;
 import art.arcane.iris.engine.object.procedural.tree.TreeTrunkBuilder;
-import art.arcane.iris.builtin.objects.tree.Tree;
+import art.arcane.iris.modules.objects.tree.Tree;
 import org.junit.Test;
 
 import java.util.HashSet;
@@ -131,7 +131,7 @@ public class ProceduralTreeGeneratorTest {
         TestSettings.with(branches, "probabilityConstant", 1.0);
         TestSettings.with(branches, "lengthFunction", TreeFunction.CONSTANT);
         TestSettings.with(branches, "lengthConstant", 4);
-        TestSettings.with(branches, "azimuthMode", art.arcane.iris.builtin.objects.tree.TreeAzimuthMode.GOLDEN_ANGLE);
+        TestSettings.with(branches, "azimuthMode", art.arcane.iris.modules.objects.tree.TreeAzimuthMode.GOLDEN_ANGLE);
         TestSettings.with(tree.canopy(), "branches", branches);
 
         TreeBlockCanvas canvas = new TreeBlockCanvas();
@@ -183,7 +183,7 @@ public class ProceduralTreeGeneratorTest {
         TestSettings.with(branches, "lengthFunction", TreeFunction.CONSTANT);
         TestSettings.with(branches, "lengthConstant", 4);
         TestSettings.with(branches, "branchDepth", depth);
-        TestSettings.with(branches, "subBranches", new art.arcane.iris.builtin.objects.tree.TreeSubBranches());
+        TestSettings.with(branches, "subBranches", new art.arcane.iris.modules.objects.tree.TreeSubBranches());
         TestSettings.with(tree.canopy(), "branches", branches);
 
         TreeBlockCanvas canvas = new TreeBlockCanvas();

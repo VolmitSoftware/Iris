@@ -23,17 +23,17 @@ import art.arcane.iris.builtin.carve.CarvingMode;
 import art.arcane.iris.modules.objects.PlacementChanges;
 import art.arcane.iris.modules.objects.EffectiveSettings;
 import com.volmit.resource.PackResources;
-import art.arcane.iris.builtin.objects.ProceduralObjectSettings;
+import art.arcane.iris.modules.objects.ProceduralObjectSettings;
 import art.arcane.iris.modules.objects.ProceduralPlacement;
-import art.arcane.iris.builtin.objects.coral.Coral;
-import art.arcane.iris.builtin.objects.coral.CoralForm;
-import art.arcane.iris.builtin.objects.crystal.Crystal;
-import art.arcane.iris.builtin.objects.crystal.CrystalDistribution;
-import art.arcane.iris.builtin.objects.formation.Formation;
-import art.arcane.iris.builtin.objects.formation.FormationForm;
-import art.arcane.iris.builtin.objects.fungi.Fungus;
-import art.arcane.iris.builtin.objects.ruin.Ruin;
-import art.arcane.iris.builtin.objects.tree.TreeLeafMode;
+import art.arcane.iris.modules.objects.coral.Coral;
+import art.arcane.iris.modules.objects.coral.CoralForm;
+import art.arcane.iris.modules.objects.crystal.Crystal;
+import art.arcane.iris.modules.objects.crystal.CrystalDistribution;
+import art.arcane.iris.modules.objects.formation.Formation;
+import art.arcane.iris.modules.objects.formation.FormationForm;
+import art.arcane.iris.modules.objects.fungi.Fungus;
+import art.arcane.iris.modules.objects.ruin.Ruin;
+import art.arcane.iris.modules.objects.tree.TreeLeafMode;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.builtin.objects.ObjectPlacement;
 import com.google.gson.Gson;
@@ -56,7 +56,7 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 
 /**
- * The procedural objects the overworld pack's biomes write ({@code snippet/procedural-objects/frozen/...}) read into the module settings
+ * The procedural objects the overworld pack's biomes write ({@code snippet/iris/objects/procedural-objects/frozen/...}) read into the module settings
  * classes (IrisApi types only) with the values Iris's own classes read from the same JSON, and made placeable.
  */
 public class ProceduralSettingsDecodingTest {
@@ -77,7 +77,7 @@ public class ProceduralSettingsDecodingTest {
              "shardCountMin": 3, "shardCountMax": 6, "shardLengthMin": 2, "shardLengthMax": 5, "shardBaseRadius": 1.1,
              "shardTaper": 1.0, "spreadAngle": 68, "distribution": "GOLDEN_ANGLE", "jitter": 0.35}
             """;
-    private static final String BIOME_SNIPPET = "\"snippet/procedural-objects/frozen/magical-ice-spikes-biome\"";
+    private static final String BIOME_SNIPPET = "\"snippet/iris/objects/procedural-objects/frozen/magical-ice-spikes-biome\"";
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();
@@ -89,7 +89,7 @@ public class ProceduralSettingsDecodingTest {
         File palettes = folder.newFolder("snippet", "palette", "frozen");
         Files.writeString(new File(palettes, "magical-ice.json").toPath(),
                 "{\"style\": {\"style\": \"SIMPLEX\", \"zoom\": 0.4}, \"palette\": [{\"block\": \"minecraft:packed_ice\"}, {\"block\": \"minecraft:blue_ice\", \"weight\": 2}]}");
-        File objects = folder.newFolder("snippet", "procedural-objects", "frozen");
+        File objects = folder.newFolder("snippet", "iris", "objects", "procedural-objects", "frozen");
         Files.writeString(new File(objects, "magical-ice-spikes-biome.json").toPath(),
                 "{\"formations\": [" + ICEBERG + "], \"crystals\": [" + FROST_BLOOM + "]}");
         IrisData data = mock(IrisData.class, CALLS_REAL_METHODS);

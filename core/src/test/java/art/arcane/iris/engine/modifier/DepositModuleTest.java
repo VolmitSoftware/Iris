@@ -19,7 +19,7 @@
 package art.arcane.iris.engine.modifier;
 
 import art.arcane.iris.modules.deposit.DepositSettings;
-import art.arcane.iris.builtin.deposit.DepositGenerator;
+import art.arcane.iris.modules.deposit.DepositGenerator;
 import art.arcane.iris.engine.object.TestSettings;
 import com.volmit.config.Level;
 import com.volmit.IrisFeature;

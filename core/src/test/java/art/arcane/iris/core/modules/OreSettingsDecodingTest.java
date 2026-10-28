@@ -18,7 +18,7 @@
 
 package art.arcane.iris.core.modules;
 
-import art.arcane.iris.builtin.deposit.DepositVariant;
+import art.arcane.iris.modules.deposit.DepositVariant;
 import art.arcane.iris.modules.deposit.DepositVariantSettings;
 import art.arcane.iris.modules.deposit.OreFrequencySettings;
 import art.arcane.iris.modules.deposit.OreSizeSettings;

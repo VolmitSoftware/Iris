@@ -18,7 +18,7 @@
 
 package art.arcane.iris.engine.loot;
 
-import art.arcane.iris.builtin.loot.BlockDrop;
+import art.arcane.iris.modules.loot.BlockDrop;
 import art.arcane.iris.engine.UsableBlockPlatform;
 import art.arcane.iris.engine.object.TestSettings;
 import com.volmit.block.BlockRegistry;

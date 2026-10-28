@@ -20,7 +20,7 @@ package art.arcane.iris.engine.object.terrain.carving;
 
 import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
 import art.arcane.iris.builtin.carve.CaveAnchorMode;
-import art.arcane.iris.builtin.carve.CaveProfile;
+import art.arcane.iris.modules.carve.CaveProfile;
 import art.arcane.iris.builtin.carve.CarvingMode;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.builtin.objects.ObjectPlacement;
@@ -75,7 +75,7 @@ public class CaveProfileDecodingTest {
 
     @Before
     public void decodeLikeIrisDoes() throws IOException {
-        File snippets = folder.newFolder("snippet", "cave-profile");
+        File snippets = folder.newFolder("snippet", "iris", "carve", "cave-profile");
         Files.writeString(new File(snippets, "lush.json").toPath(), "{\"enabled\": true, \"sampleStep\": 2}");
         IrisData data = mock(IrisData.class, CALLS_REAL_METHODS);
         doReturn(folder.getRoot()).when(data).getDataFolder();
@@ -134,7 +134,7 @@ public class CaveProfileDecodingTest {
 
     @Test
     public void profilesMayBeSnippets() {
-        CaveProfile profile = gson.fromJson("\"snippet/cave-profile/lush\"", CaveProfile.class);
+        CaveProfile profile = gson.fromJson("\"snippet/iris/carve/cave-profile/lush\"", CaveProfile.class);
 
         assertTrue(profile.enabled());
         assertEquals(2, profile.sampleStep());

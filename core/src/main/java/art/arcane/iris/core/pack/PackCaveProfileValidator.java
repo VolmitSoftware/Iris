@@ -26,7 +26,7 @@ import java.util.Comparator;
 import java.util.List;
 
 final class PackCaveProfileValidator {
-    private static final String CAVE_PROFILE_SNIPPET_FOLDER = "snippet/cave-profile";
+    private static final String CAVE_PROFILE_SNIPPET_FOLDER = "snippet/iris/carve/cave-profile";
     private static final List<LegacyField> LEGACY_FIELDS = List.of(
             new LegacyField("allowWater", "allowFluid"),
             new LegacyField("waterMinDepthBelowSurface", "fluidMinDepthBelowSurface"),

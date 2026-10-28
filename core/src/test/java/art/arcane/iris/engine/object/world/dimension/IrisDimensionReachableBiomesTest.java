@@ -1,11 +1,11 @@
 package art.arcane.iris.engine.object.world.dimension;
 
-import art.arcane.iris.builtin.floating.FloatingChildBiome;
+import art.arcane.iris.modules.floating.FloatingChildBiome;
 import art.arcane.iris.engine.object.TestSettings;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.modules.carve.CarvingBiomeSettings;
-import art.arcane.iris.builtin.carve.CarvingEntry;
+import art.arcane.iris.modules.carve.CarvingEntry;
 import art.arcane.iris.modules.carve.CarvingSettings;
 import art.arcane.iris.modules.floating.FloatingChildSettings;
 import art.arcane.iris.core.modules.BuiltInPack;

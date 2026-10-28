@@ -18,7 +18,6 @@
 
 package art.arcane.iris.util.common.director.specialhandlers;
 
-import art.arcane.iris.builtin.spawn.EntityDefinition;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.modules.PackModulesException;
 import art.arcane.iris.core.pack.PackDirectoryResolver;
@@ -26,7 +25,7 @@ import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.util.common.director.DirectorParameterHandler;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.director.exceptions.DirectorParsingException;
-import com.volmit.resource.ResourceKind;
+import com.volmit.resource.ResourceId;
 
 import java.io.File;
 import java.util.LinkedHashSet;
@@ -34,9 +33,9 @@ import java.util.Set;
 
 /** The key of an entity of a pack: the open pack's, then those of the packs in the packs folder. */
 public final class EntityKeyHandler implements DirectorParameterHandler<String> {
-    // iris:spawn's entity kind, named by id: its constant, SpawnResources.ENTITIES, ships only in the built-ins jar, which
-    // the plugin's own classes cannot reach. Packs serve kinds by id.
-    private static final ResourceKind<EntityDefinition> ENTITIES = ResourceKind.of("iris:spawn/entity", "entities", EntityDefinition.class);
+    // iris:spawn's entity kind, named by id: its constant and its class ship only in the built-ins jar, which the
+    // plugin's own classes cannot reach.
+    private static final ResourceId ENTITIES = ResourceId.parse("iris:spawn/entity");
 
     @Override
     public KList<String> getPossibilities() {

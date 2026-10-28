@@ -18,7 +18,7 @@
 
 package art.arcane.iris.engine.object.procedural;
 
-import art.arcane.iris.builtin.objects.ProceduralObjectSettings;
+import art.arcane.iris.modules.objects.ProceduralObjectSettings;
 import art.arcane.iris.modules.objects.PlacementChanges;
 import art.arcane.iris.modules.objects.ProceduralPlacement;
 import art.arcane.iris.core.loader.IrisData;

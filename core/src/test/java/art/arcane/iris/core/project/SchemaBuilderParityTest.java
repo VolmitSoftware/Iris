@@ -230,7 +230,7 @@ public class SchemaBuilderParityTest {
         assertEquals("array", deposits.getString("type"));
         assertEquals("array", decorators.getString("type"));
         assertEquals(1, decorators.getInt("minItems"));
-        assertEquals("module-art-arcane-iris-builtin-deposit-depositgenerator", definitionKey(deposits.getJSONObject("items")));
+        assertEquals("module-art-arcane-iris-modules-deposit-depositgenerator", definitionKey(deposits.getJSONObject("items")));
         assertEquals("module-art-arcane-iris-builtin-decorant-decorator", definitionKey(decorators.getJSONObject("items")));
         for (JSONObject rooted : List.of(deposits, decorators)) {
             assertFalse("one shape, no alternatives", rooted.has("anyOf"));

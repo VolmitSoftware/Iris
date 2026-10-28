@@ -92,7 +92,7 @@
             {"block": "minecraft:allium"},
             {"block": "minecraft:peony"}
         ]},
-        "snippet/decorator/leaf",
-        "snippet/decorator/bush"
+        "snippet/iris/decorant/decorator/leaf",
+        "snippet/iris/decorant/decorator/bush"
     ]
 }

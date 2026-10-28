@@ -21,11 +21,11 @@ package art.arcane.iris.core.modules;
 import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
 import art.arcane.iris.modules.carve.CarvingBiomeSettings;
 import art.arcane.iris.modules.carve.CarvingEnabledSettings;
-import art.arcane.iris.builtin.carve.CarvingEntry;
+import art.arcane.iris.modules.carve.CarvingEntry;
 import art.arcane.iris.modules.carve.CarvingSettings;
 import art.arcane.iris.modules.carve.CaveDepthSettings;
 import art.arcane.iris.builtin.carve.CaveLavaHeightSettings;
-import art.arcane.iris.builtin.carve.CaveProfile;
+import art.arcane.iris.modules.carve.CaveProfile;
 import art.arcane.iris.modules.carve.UpperDimensionCarvingSettings;
 import art.arcane.volmlib.util.json.JSONObject;
 import com.google.gson.Gson;
@@ -144,7 +144,7 @@ public class CarveSettingsDecodingTest {
 
     @Test
     public void aCaveProfileMayBeWrittenAsASnippetReference() {
-        ModuleSettings settings = decoder.decode(Level.BIOME, new JSONObject("{\"caveProfile\": \"snippet/cave-profile/shallow\"}"), "biome test");
+        ModuleSettings settings = decoder.decode(Level.BIOME, new JSONObject("{\"caveProfile\": \"snippet/iris/carve/cave-profile/shallow\"}"), "biome test");
 
         CaveProfile profile = settings.find(CaveProfile.class).orElseThrow();
         assertTrue(profile.enabled());

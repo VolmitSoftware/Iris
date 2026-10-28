@@ -18,9 +18,9 @@
 
 package art.arcane.iris.engine.object.terrain.floating;
 
-import art.arcane.iris.builtin.floating.FloatingChildBiome;
+import art.arcane.iris.modules.floating.FloatingChildBiome;
 import art.arcane.iris.engine.object.TestSettings;
-import art.arcane.iris.builtin.floating.TopShapeMode;
+import art.arcane.iris.modules.floating.TopShapeMode;
 import art.arcane.volmlib.util.collection.KList;
 import com.volmit.host.ModuleLogs;
 import com.volmit.noise.NoiseSampler;

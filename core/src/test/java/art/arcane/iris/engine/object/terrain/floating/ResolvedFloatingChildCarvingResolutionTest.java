@@ -1,7 +1,7 @@
 package art.arcane.iris.engine.object.terrain.floating;
 
-import art.arcane.iris.builtin.carve.CarvingEntry;
-import art.arcane.iris.builtin.floating.FloatingChildBiome;
+import art.arcane.iris.modules.carve.CarvingEntry;
+import art.arcane.iris.modules.floating.FloatingChildBiome;
 import art.arcane.iris.engine.object.TestSettings;
 import com.google.gson.Gson;
 import com.volmit.resource.PackResources;

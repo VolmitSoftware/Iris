@@ -1,5 +1,5 @@
 {
- "biomes-carving-frost-shards": "snippet/procedural-objects/frozen/magical-ice-cave",
+ "biomes-carving-frost-shards": "snippet/iris/objects/procedural-objects/frozen/magical-ice-cave",
  "biomes-estranged-baobab-grove": {
   "trees": [
    {
@@ -2034,11 +2034,11 @@
    }
   ]
  },
- "biomes-frozen-fields-hilly-plains": "snippet/procedural-objects/frozen/magical-ice-surface",
- "biomes-frozen-ice-spikes": "snippet/procedural-objects/frozen/magical-ice-spikes-biome",
- "biomes-frozen-sea-frozen-parent-river": "snippet/procedural-objects/frozen/magical-ice-spikes-surface",
- "biomes-magnetics-glass": "snippet/procedural-objects/magnetics/magical-glass-spikes-surface",
- "biomes-magnetics-glass-shard": "snippet/procedural-objects/magnetics/magical-glass-spikes-dense",
+ "biomes-frozen-fields-hilly-plains": "snippet/iris/objects/procedural-objects/frozen/magical-ice-surface",
+ "biomes-frozen-ice-spikes": "snippet/iris/objects/procedural-objects/frozen/magical-ice-spikes-biome",
+ "biomes-frozen-sea-frozen-parent-river": "snippet/iris/objects/procedural-objects/frozen/magical-ice-spikes-surface",
+ "biomes-magnetics-glass": "snippet/iris/objects/procedural-objects/magnetics/magical-glass-spikes-surface",
+ "biomes-magnetics-glass-shard": "snippet/iris/objects/procedural-objects/magnetics/magical-glass-spikes-dense",
  "biomes-ocean-warm": {
   "coral": [
    {

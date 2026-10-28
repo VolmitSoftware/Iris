@@ -1,6 +1,6 @@
 package art.arcane.iris.engine.modifier;
 
-import art.arcane.iris.builtin.deposit.DepositVariant;
+import art.arcane.iris.modules.deposit.DepositVariant;
 import com.google.gson.Gson;
 import com.volmit.ModuleLog;
 import com.volmit.block.BlockState;

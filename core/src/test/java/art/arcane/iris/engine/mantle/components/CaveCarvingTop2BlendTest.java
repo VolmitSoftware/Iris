@@ -1,6 +1,6 @@
 package art.arcane.iris.engine.mantle.components;
 
-import art.arcane.iris.builtin.carve.CaveProfile;
+import art.arcane.iris.modules.carve.CaveProfile;
 import art.arcane.iris.engine.object.TestSettings;
 import org.junit.BeforeClass;
 import org.junit.Test;

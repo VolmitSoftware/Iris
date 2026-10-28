@@ -243,7 +243,7 @@ public class ObjectPlacementRegressionTest {
 
         PlatformBlockState cachedState = object.getBlocks().get(object.getSigned(0, 0, 0));
         assertSame(IrisObject.States.VAIR, cachedState);
-        assertEquals(BlockState.parse(IrisObject.States.VAIR.key()), object.getGeometry().blocks().getFirst().state());
+        assertEquals(BlockState.parse(keyOf(IrisObject.States.VAIR)), object.getGeometry().blocks().getFirst().state());
     }
 
     @Test

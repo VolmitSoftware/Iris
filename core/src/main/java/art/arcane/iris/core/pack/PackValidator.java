@@ -100,7 +100,7 @@ public final class PackValidator {
                 new File(packFolder, "biomes"), PackSpawnValidator::resolveEntitySpawnCategory));
         blockingErrors.addAll(PackBiomeLayerValidator.validateCeilingLayerCounts(new File(packFolder, "biomes")));
         blockingErrors.addAll(PackBiomeLayerValidator.validateDecoratorPalettes(
-                new File(packFolder, "biomes"), new File(packFolder, "snippet/decorator")));
+                new File(packFolder, "biomes"), new File(packFolder, "snippet/iris/decorant/decorator")));
         PackStyledRangeDefaultValidator.Validation styledRanges = PackStyledRangeDefaultValidator.validate(packFolder);
         addDistinct(blockingErrors, styledRanges.errors());
         addDistinct(warnings, styledRanges.warnings());

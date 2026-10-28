@@ -15,7 +15,7 @@ import java.util.OptionalLong;
  * see and change which tables are used: {@link #tables} names the tables a container draws from, {@link #items} turns
  * one table into items. The host asks every provider and puts the answers together; a provider answers {@link #items}
  * only for the tables it knows. A container is filled with items the host creates on the platform, in the order of the
- * tables.
+ * tables, and its slots are then shuffled with the seed {@link #shuffleSeed} gives.
  */
 @Service(Providers.ALL)
 public interface Loot {

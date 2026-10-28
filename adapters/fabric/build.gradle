@@ -140,6 +140,8 @@ dependencies {
         add('implementation', notation)
     }
     compileOnly('org.slf4j:slf4j-api:2.0.17')
+    compileOnly('com.volmit:iris-api')
+    testImplementation('com.volmit:iris-api')
     compileOnly(libs.spigot) {
         transitive = false
     }

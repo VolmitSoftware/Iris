@@ -61,7 +61,6 @@ import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
 public class NativeStructureReferenceRepairTest {
-    private static final long MONUMENT_PLACEMENT_IDENTITY = 0x4D4F4E554D454E54L;
 
     @BeforeClass
     public static void bootstrapMinecraftRegistries() {
@@ -192,7 +191,7 @@ public class NativeStructureReferenceRepairTest {
 
     private static NativeStructureStartPlan plan(ChunkPos origin, int baseY) {
         return new NativeStructureStartPlan("minecraft:monument", origin.x(), origin.z(), baseY, false, false,
-                MONUMENT_PLACEMENT_IDENTITY, null, null);
+                null, null);
     }
 
     private static ChunkPos outsideLiveBounds(NativeStructureOwnershipRecord ownership,

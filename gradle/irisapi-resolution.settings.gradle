@@ -36,7 +36,8 @@
  * When nothing is found the build fails here, naming where it looked, rather than later with an
  * unresolvable dependency.
  *
- * The modded adapters do not apply this: they compile against core's jar and use no IrisApi type.
+ * The three modded adapter builds apply it too: core's dependencies on IrisApi must resolve in them, and the adapters
+ * read IrisApi types (ResourceId, BlockTurn).
  */
 
 import java.io.File

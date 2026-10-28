@@ -109,6 +109,8 @@ dependencies {
     testRuntimeOnly('org.junit.platform:junit-platform-launcher:6.1.2')
     testRuntimeOnly('org.junit.vintage:junit-vintage-engine:6.1.2')
     compileOnly('org.slf4j:slf4j-api:2.0.17')
+    compileOnly('com.volmit:iris-api')
+    testImplementation('com.volmit:iris-api')
     compileOnly(libs.spigot) {
         transitive = false
     }

@@ -831,10 +831,10 @@ the load fails naming both classes.
 
 A class of a pack module keeps its snippets under the folder of a module of the pack: the name is the
 module's id as a path, `example/moss`, or starts with it and `/`, such as `example/moss/patch`
-(folder `snippet/example/moss/patch/`). Built-in classes keep the short names Iris's snippet folders
-already have. Since built-in modules ship with Iris and pack names always start with a pack module's
-namespace, which no built-in uses, a pack snippet can never collide with Iris's own or another
-module's. A class belongs to the pack when the pack's class loader defined it.
+(folder `snippet/example/moss/patch/`). A class belongs to the pack when the pack's class loader
+defined it. Built-in modules follow the same rule by convention: Iris's own module types name their
+snippets `iris/<module>/<name>`, such as `iris/decorant/decorator`. Since every module snippet starts
+with its module's namespace, a pack snippet can never collide with Iris's or another module's.
 
 ### Stable order
 
@@ -1234,8 +1234,8 @@ A module jar sees three things besides the JDK and its own pack's jars, and noth
    Whatever a second module could want goes here, host-neutral and tested without Iris.
 2. **Packages the host exposes**: libraries it shares (VolmLib, Gson) and the public face of its built-in modules
    (`art.arcane.iris.builtin`: stage constants, settings and output types packs may read). A type only the host's
-   built-in modules read stays in their jar, unexposed, unless packs write it as a snippet: a snippet type the host
-   does not share must live under its module's id in a pack's snippet folders, which would move existing packs' files.
+   built-in modules read stays in their jar, unexposed. Its snippets live under its module's id in a pack's snippet
+   folders (`snippet/iris/objects/...`), as every built-in's do.
 3. **Narrow facades for the host's own built-ins**, in that same exposed package, for what only the host's own
    features need from its internals, such as the legacy random streams Iris's object placement draws from, which
    existing worlds depend on. A pack module never needs one. Every such type is a promise the host keeps, so there are few, each answers one

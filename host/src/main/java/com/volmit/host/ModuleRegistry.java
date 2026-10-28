@@ -47,6 +47,7 @@ public final class ModuleRegistry implements FeatureRegistry {
     private final List<ServiceRegistration> services = new ArrayList<>();
     private final Set<String> reservedFolders;
     private final List<DiscoveredModule> registered = new ArrayList<>();
+    private PlacementTypeRegistration placementType;
     private FeatureCatalog catalog;
     private DiscoveredModule registering;
 
@@ -129,6 +130,36 @@ public final class ModuleRegistry implements FeatureRegistry {
     }
 
     @Override
+    public void registerPlacementType(Class<?> type, Set<String> jsonFields) {
+        checkOpen();
+        Objects.requireNonNull(type, "type");
+        Objects.requireNonNull(jsonFields, "jsonFields");
+        requireRegistering("Placement type " + type.getName());
+        var added = new PlacementTypeRegistration(type, jsonFields, registering);
+        if (placementType != null) {
+            throw new IllegalArgumentException("A pack has one placement type: " + placementType + " declared it already, and "
+                    + added + " declares it too; remove one of them");
+        }
+        added.jsonFields().forEach(FeatureDescriptor::requireFieldName);
+        for (var field : added.jsonFields().stream().sorted().toList()) {
+            requireUnclaimedPlacementField(field, added);
+        }
+        added.jsonFields().forEach(field -> keyClaimants.put(new KeyAtTarget(Level.PLACEMENT, field), KeyClaimant.of(added)));
+        placementType = added;
+    }
+
+    /** A field of the placement type is a JSON key of the placement, which a setting cannot also be. */
+    private void requireUnclaimedPlacementField(String field, PlacementTypeRegistration added) {
+        var earlier = keyClaimants.get(new KeyAtTarget(Level.PLACEMENT, field));
+        if (earlier == null) return;
+        var later = KeyClaimant.of(added);
+        var first = earlier.compareTo(later) <= 0 ? earlier : later;
+        var second = first == earlier ? later : earlier;
+        throw new IllegalArgumentException(targetName(Level.PLACEMENT) + " key \"" + field + "\" is claimed by " + first
+                + " and " + second + "; give the setting another key in its @Feature");
+    }
+
+    @Override
     public void registerValidator(Validator validator) {
         checkOpen();
         Objects.requireNonNull(validator, "validator");
@@ -184,7 +215,8 @@ public final class ModuleRegistry implements FeatureRegistry {
 
     public FeatureCatalog freeze() {
         if (catalog == null) {
-            catalog = new FeatureCatalog(settings, objects, mantle, resourceKinds.values(), validators, lifecycles, services);
+            catalog = new FeatureCatalog(settings, objects, mantle, resourceKinds.values(), validators, lifecycles, services,
+                    placementType);
         }
         return catalog;
     }
@@ -308,8 +340,17 @@ public final class ModuleRegistry implements FeatureRegistry {
         }
 
         static KeyClaimant of(FeatureDescriptor<?> descriptor, DiscoveredModule owner) {
-            var source = owner.source() == DiscoveredModule.Source.HOST ? Source.BUILT_IN : Source.PACK;
-            return new KeyClaimant(source, descriptor.id().toString(), descriptor.id() + " (" + owner.origin() + ")");
+            return new KeyClaimant(sourceOf(owner), descriptor.id().toString(), descriptor.id() + " (" + owner.origin() + ")");
+        }
+
+        static KeyClaimant of(PlacementTypeRegistration placementType) {
+            var owner = placementType.module();
+            return new KeyClaimant(sourceOf(owner), placementType.type().getName(),
+                    "the fields of " + placementType.type().getName() + " (" + owner.origin() + ")");
+        }
+
+        private static Source sourceOf(DiscoveredModule owner) {
+            return owner.source() == DiscoveredModule.Source.HOST ? Source.BUILT_IN : Source.PACK;
         }
 
         @Override

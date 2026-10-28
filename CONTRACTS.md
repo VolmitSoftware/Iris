@@ -30,7 +30,7 @@ types that carry them and lists what the Iris adapter still owes.
 | Geometry and mantle registration | `FeatureRegistry`, host `ModuleRegistry`, `FeatureCatalog` |
 | Block states and palettes | `BlockState`, `BlockRegistry` (`resolve(BlockSpec)`, `find(key)`, `blockEntity`, `hasTrait`, `oreFor`, `rotate(state, BlockTurn)`, `merge`, `withProperty`, `matches`), `BlockTurn`, `BlockTrait` (with `STORAGE`), `BlockPalette`, `BlockSpec`, `PaletteSpec` and `PaletteSampler` (`BlockRegistry.palette`) |
 | A pack's objects | `PlaceableObject` (`name`, size, `center`, `geometry`), `PackObjects` (`object`, `sizeOf`, `scaled` with `ScaleMethod`, `smartBored`, `build`), `PackResources.objects()` |
-| Placing through the pack's placement graph | `Placements.place(PlacementRun)` (`PackWorld.placements()`), `PlacementRun` (request, area, terrain, input, seed), `PlacementTerrain`, `StructureVolumes`, `PlacedMarker`, `PlacementOutcome`; stages read `PlacementContext.placementTerrain()` and `input(type)`; mantle stages get a terrain from `MantleGenerationContext.placementTerrain()`; `RunningWorld.placementAt` reads what a placement recorded |
+| Placing through the pack's placement graph | `Placements.place(PlacementRun)` (`PackWorld.placements()`), `PlacementRun` (request, name, settings JSON, area, terrain, input, seed), `PlacementTerrain` (`recordPlacement` / `placementAt` with a `PlacementRecord`), `StructureVolumes`, `PlacedMarker`, `PlacementOutcome`; stages read `PlacementContext.placementTerrain()` and `input(type)`; mantle stages get a terrain from `MantleGenerationContext.placementTerrain()`; `RunningWorld.placementAt` reads what a placement recorded; `FeatureRegistry.registerPlacementType` names the type packs write placements as (host `FeatureCatalog.placementType()`, `PackSchema.placementType()`) |
 | Noise from pack-described styles | `NoiseStyle`, `StyledRange`, `PackResources.noise()`, `NoiseFactory`, `NoiseSampler` |
 | Values in settings | `BlockSpec`, `PaletteSpec`, `NoiseStyle`, `StyledRange`, `Range`, `BlockPosition`, `JigsawOverrides`, `Object` as `ValueKind.AnyKind` |
 | Decisions over and fit of the platform's own structures | service `VanillaStructures` (`rule`, `starts`, `shift`, `reach`, `beforePieces`, `afterPieces`, `setup`), `VanillaStructureRule`, `VanillaStructureContext`, `VanillaStructureStart`, `VanillaStructureStartContext`, `VanillaStructureSetup`, `PlatformStart`, `StartMemo`, `StartReach`, `StructureFit` (`Start`, `Piece`, `ColumnVisitor`), `DecorationStep`, `TerrainAdaptation`, `PieceKind`, `TemplateCells`, `world.BlockAccess`, host `FeatureCatalog.registrations(service)` |
@@ -39,7 +39,7 @@ types that carry them and lists what the Iris adapter still owes.
 | Module-owned pack checks | `Validator`, `ValidationContext`, `Problem`, `Severity`, `Subject`, `FeatureRegistry.registerValidator`, host `FeatureCatalog.validators()` |
 | Per-world module state | `PackWorld` (`state`), `InvocationContext.world()`, host `WorldStates` |
 | Module lifecycle across loads, hotloads and reloads | `ModuleLifecycle`, `PackContext`, `FeatureRegistry.registerLifecycle`, host `FeatureCatalog.lifecycles()`, `LifecycleRunner` |
-| Host questions answered by modules | `@Service`, `Providers`, `FeatureRegistry.registerService`, host `FeatureCatalog.services(type)` / `service(type)`; services `ObjectsAt`, `StructureLocator` (`LocateResult`, `startedStructures`, `locatableStarts`, `locateStart`, `ChunkFilter`), `SaplingGrowth`, `Loot`, `BlockDrops`, `EntitySpawns`, `CaveBiomes`, `AmbientEffects`, `VanillaFeatures` (`DecorationStep`); values `ItemDrop`, `EntitySpec`, `ItemRegistry` (`PackResources.items()`) |
+| Host questions answered by modules | `@Service`, `Providers`, `FeatureRegistry.registerService`, host `FeatureCatalog.services(type)` / `service(type)`; services `ObjectsAt`, `StructureLocator` (`LocateResult`, `startedStructures`, `locatableStarts`, `locateStart`, `ChunkFilter`), `SaplingGrowth`, `Loot` (with `shuffleSeed`), `BlockDrops`, `EntitySpawns`, `CaveBiomes`, `ProtectedFloor`, `AmbientEffects`, `VanillaFeatures` (`DecorationStep`); values `ItemDrop`, `EntitySpec`, `ItemRegistry` (`PackResources.items()`) |
 | Terrain and settings sampling | `TerrainSampler`, `BiomeSample`, `TerrainSample`, `FeatureSettings` |
 | Dense chunk output | `Hunk<T>`, `GenerationContext.blocks`, reference `ArrayHunk<T>` |
 | Positions, boxes and faces | `com.volmit.geometry`: `BlockPosition`, `BlockBox`, `BlockFace` |
@@ -237,7 +237,14 @@ running Iris is the pack publisher's responsibility.
 - Create what `ItemDrop` and `EntitySpec` describe on the platform, skip what the platform lacks (an unknown enchantment,
   attribute or item flag) with a warning, route a `ContentKey.Provided` (and a `Registered` id of a namespace another
   plugin owns) to that plugin, apply the `EntitySpec.extensions()` of the host's own types and ignore the rest, and run the checks that come with an `EntitySpawns.Attempt` (light, surface,
-  free space) before spawning. Report how many entities appeared with `EntitySpawns.spawned`.
+  free space) before spawning. Report how many entities appeared with `EntitySpawns.spawned`. Apply `Arrival.reason`
+  (the platform's own name for the spawn reason, natural when it is empty or unknown), `Arrival.risesFromGround`, a
+  panda's `Appearance` genes, and `adjustsProvidedMob` (a `ContentKey.Provided` mob is otherwise left as its provider set it up).
+- Shuffle a filled container's slots with `Loot.shuffleSeed` (the first seed in module order; leave the order alone when
+  no module gives one), and discard the blocks written at height 0 when a `ProtectedFloor` provider says the floor is
+  protected (ask once per world).
+- Keep a `PlacementRecord` beside the block a placement recorded it at and return it from `placementAt` (the host chooses
+  the form it stores); read the settings of `PlacementRun.settings` from the JSON at `Level.PLACEMENT`.
 - `AmbientEffects.due`: ask for the player's last sampled position (not every tick's), carry out an `Effect` in the order
   sound, particles, commands, potion, skip a part the platform lacks, and give no potion to a player who already has the
   same one with a higher amplifier.

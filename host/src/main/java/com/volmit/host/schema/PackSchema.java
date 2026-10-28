@@ -6,6 +6,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Objects;
+import java.util.Optional;
 
 /** What the modules of a loaded pack add to the pack's JSON, for the host to render as JSON Schema and
  * studio completion. It holds module-provided entries only: the host describes its own fields.
@@ -17,12 +18,16 @@ import java.util.Objects;
  * @param features every catalogued settings type of the pack's modules, built-in ones included
  * @param resources every resource kind of the pack's modules, built-in ones included
  * @param types every class reachable from those settings and resource kinds, each once
+ * @param placementType the name of the class packs write their object placements as, the JSON holder of
+ *     {@link Level#PLACEMENT}, if a module declared it ({@code FeatureRegistry.registerPlacementType})
  */
-public record PackSchema(List<FeatureSchema> features, List<ResourceKindSchema> resources, List<ObjectType> types) {
+public record PackSchema(List<FeatureSchema> features, List<ResourceKindSchema> resources, List<ObjectType> types,
+                         Optional<String> placementType) {
     public PackSchema {
         features = features.stream().sorted(Comparator.comparing(FeatureSchema::id)).toList();
         resources = resources.stream().sorted(Comparator.comparing(ResourceKindSchema::id)).toList();
         types = types.stream().sorted(Comparator.comparing(ObjectType::name)).toList();
+        Objects.requireNonNull(placementType, "placementType");
     }
 
     /** The resource kind {@code id}, such as the one a {@link ValueKind.ResourceReferenceKind} names. */

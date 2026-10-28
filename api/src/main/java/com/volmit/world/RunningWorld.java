@@ -2,6 +2,7 @@ package com.volmit.world;
 
 import com.volmit.config.FeatureSettings;
 import com.volmit.geometry.BlockPosition;
+import com.volmit.placement.PlacementRecord;
 import com.volmit.resource.ResourceId;
 import java.util.List;
 import java.util.Optional;
@@ -39,7 +40,7 @@ public interface RunningWorld {
      * ({@link com.volmit.placement.PlacementTerrain#recordPlacement}); empty when none was, or when the block's chunk
      * keeps no generation data any more. Y is the height above the dimension's bottom.
      */
-    Optional<String> placementAt(int worldX, int y, int worldZ);
+    Optional<PlacementRecord> placementAt(int worldX, int y, int worldZ);
 
     /** The time and weather of the world; empty while the platform has not loaded the world. */
     Optional<Sky> sky();

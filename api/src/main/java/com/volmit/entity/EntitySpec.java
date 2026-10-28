@@ -21,10 +21,13 @@ import java.util.Optional;
  * @param company    the entities that come with it
  * @param drops      what it drops when it dies
  * @param arrival    what happens where it appears
+ * @param adjustsProvidedMob whether the rest of the spec also applies to a {@link ContentKey.Provided} mob, which is
+ *                   otherwise left as its provider set it up
  * @param extensions values for a particular host, which other hosts ignore; see {@link #extension}
  */
 public record EntitySpec(ContentKey type, Appearance appearance, Behaviour behaviour, Equipment equipment,
-                         List<ItemAttribute> attributes, Company company, Drops drops, Arrival arrival, List<Object> extensions) {
+                         List<ItemAttribute> attributes, Company company, Drops drops, Arrival arrival,
+                         boolean adjustsProvidedMob, List<Object> extensions) {
     public EntitySpec {
         Objects.requireNonNull(type, "type");
         Objects.requireNonNull(appearance, "appearance");
@@ -45,14 +48,20 @@ public record EntitySpec(ContentKey type, Appearance appearance, Behaviour behav
     /**
      * How the entity looks.
      *
-     * @param customName  the name shown above the entity, as authored in the pack with {@code &} colour codes; empty for none
-     * @param nameVisible whether the name shows even when nobody looks at the entity
+     * @param customName      the name shown above the entity, as authored in the pack with {@code &} colour codes; empty for none
+     * @param nameVisible     whether the name shows even when nobody looks at the entity
+     * @param pandaMainGene   for a panda, its main gene by the platform's name for it; empty to leave it to the platform
+     * @param pandaHiddenGene for a panda, its hidden gene by the platform's name for it; empty to leave it to the platform
      */
-    public record Appearance(Optional<String> customName, boolean nameVisible, boolean glowing, boolean baby) {
-        public static final Appearance PLAIN = new Appearance(Optional.empty(), false, false, false);
+    public record Appearance(Optional<String> customName, boolean nameVisible, boolean glowing, boolean baby,
+                             Optional<String> pandaMainGene, Optional<String> pandaHiddenGene) {
+        public static final Appearance PLAIN = new Appearance(Optional.empty(), false, false, false, Optional.empty(),
+                Optional.empty());
 
         public Appearance {
             Objects.requireNonNull(customName, "customName");
+            Objects.requireNonNull(pandaMainGene, "pandaMainGene");
+            Objects.requireNonNull(pandaHiddenGene, "pandaHiddenGene");
         }
     }
 
@@ -117,15 +126,20 @@ public record EntitySpec(ContentKey type, Appearance appearance, Behaviour behav
     /**
      * What happens where the entity appears.
      *
-     * @param effect   an effect to show; empty for none
-     * @param commands console commands to run
+     * @param effect         an effect to show; empty for none
+     * @param commands       console commands to run
+     * @param reason         why the entity appears, by the platform's name for the reason, such as {@code COMMAND}; empty
+     *                       for a natural spawn
+     * @param risesFromGround whether the entity slowly climbs out of the ground when players are near
      */
-    public record Arrival(Optional<SpawnEffect> effect, List<Command> commands) {
-        public static final Arrival QUIET = new Arrival(Optional.empty(), List.of());
+    public record Arrival(Optional<SpawnEffect> effect, List<Command> commands, Optional<String> reason,
+                          boolean risesFromGround) {
+        public static final Arrival QUIET = new Arrival(Optional.empty(), List.of(), Optional.empty(), false);
 
         public Arrival {
             Objects.requireNonNull(effect, "effect");
             commands = List.copyOf(commands);
+            Objects.requireNonNull(reason, "reason");
         }
     }
 

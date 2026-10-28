@@ -440,8 +440,14 @@ are ordered only by the tie-break, so they are where two modules can silently co
 
 A module places an object through the pack's placement graph with `PackWorld.placements().place(PlacementRun)`; the
 host runs `PlacementRunner` over an edit that buffers into the run's `PlacementTerrain`, and returns the API
-`PlacementOutcome`. One service, one request and one outcome: the run carries the object, the area, the terrain, the
-placing module's own input and the seed, and nothing names a host. The terrain is an interface so a module can hold
+`PlacementOutcome`. One service, one request and one outcome: the run carries the object, its display name, the
+placement as the pack wrote it (JSON, from which the host reads the settings other modules declare at `Level.PLACEMENT`),
+the area, the terrain, the placing module's own input and the seed, and nothing names a host. The module that owns the
+placement type declares it with `registerPlacementType(type, jsonFields)`: its option names are reserved at the placement
+level, as the host's own fields are at the others, and studio adds the placement-level settings to the type's schema. The
+host decodes the placement JSON once per text. A placed object is remembered by a `PlacementRecord` (object id, the
+module's placement number, optional structure id) that the terrain keeps beside the blocks and `RunningWorld.placementAt`
+reads back; the host stores it in its own form. The terrain is an interface so a module can hold
 writes (an island that only accepts blocks over itself, a cave that keeps an object inside it) and commit or drop them
 as one; the host's terrain for a mantle invocation is `MantleGenerationContext.placementTerrain()`. Objects come from
 `PackResources.objects()` (`PackObjects`), which loads, scales and builds them per pack snapshot.
@@ -1172,7 +1178,8 @@ from a sapling, which drops a block has. A module answers such questions through
 - **Threading.** The host may call a provider from any thread, several at once. A provider that searches long
   (`StructureLocator.locate`) is called off the server's main thread.
 - **Loot, drops, entities, trees.** `Loot` (`ALL`) asks in two steps, which tables a container draws from and what a
-  table gives, so the host and plugins can change the tables in between. `BlockDrops`, `EntitySpawns` and `SaplingGrowth`
+  table gives, so the host and plugins can change the tables in between; a third answer is the seed to shuffle the
+  container's slots with, so the host does not know how the module seeds its loot. `BlockDrops`, `EntitySpawns` and `SaplingGrowth`
   return values the host carries out: `ItemDrop` and `EntitySpec` carry every decision the module made (the module draws
   from its streams in the order the feature always did, which is why `ItemRegistry` answers whether an item can be
   damaged), and the host reads what only the platform knows (light, the surface below, free space, the blocks around a
@@ -1188,9 +1195,11 @@ from a sapling, which drops a block has. A module answers such questions through
   Choices with a fixed set of answers are enums (`ItemAttribute.Operation`, `DyeColor`), colours are RGB ints.
 - **Groups and extensions.** `ItemDrop` and `EntitySpec` group their components by what a host does with them
   (`Look`, `Wear`, `PlatformExtras`; `Appearance`, `Behaviour`, `Company`, `Drops`, `Arrival`), each with a named
-  default, so a reader sees a dozen meaningful parts instead of seventeen positional ones. What only one host can apply
-  (Iris's spawn reason, panda genes, rising out of the ground) is not an API field: the module puts a value of the host's
-  own type in `EntitySpec.extensions()`, the host finds it with `extension(type)`, and other hosts ignore it.
+  default, so a reader sees a dozen meaningful parts instead of seventeen positional ones. What platforms commonly have
+  (a spawn reason by the platform's name, a panda's genes, rising out of the ground, whether the spec applies to a
+  provider's mob) is a field of the spec, optional where a platform may lack it. What only one host can apply is not: the
+  module puts a value of the host's own type in `EntitySpec.extensions()`, the host finds it with `extension(type)`, and
+  other hosts ignore it.
   `AmbientEffects` follows the same rule: the module decides which effects are due (interval and chance, kept in the world's
   state) and every random value they carry, the host only plays them.
 - **Services now.** `ObjectsAt` (`ALL`): the ids of pack objects a module would place in a chunk, predicted without
@@ -1282,9 +1291,10 @@ API now: `world.running()`, `world.seed(purpose)`, `TerrainSampler`, `FeatureSet
   goes when a world format change lets object placing draw from stage streams and API noise.
 - **`objects.ObjectRun`** (the input of a placement run, `PlacementRun.input`). The object and the module's own
   `objects.ObjectPlacement` settings that Iris's built-in placement stages read, and what they report back (the anchor
-  height, which written blocks are the object's). Iris reads it in two places: for the placement-level module settings of
-  the run, and when Iris places an object itself (its studio and commands, the jigsaw placer). It goes when those settings
-  are part of the run the API describes and Iris no longer places objects itself.
+  height, which written blocks are the object's). The placement-level module settings no longer need it: the run carries
+  the placement's JSON. Iris still reads it when it places an object itself with the pack's rules: the jigsaw placer, the
+  structure place commands and its tests (`ModuleObjectPlacement`). Pasting an object is not one of them: a paste writes
+  the object's blocks turned by a fixed angle (`IrisObject.paste`). It goes when the structures move into their module.
 - **`StructureHost`** (world). Iris's structure assembler, locator and placer, and the loot tables of a structure for the
   loot of its pieces. The structure model (structures, pools, pieces) is `iris:structure`'s own resource kinds, which Iris
   registers with its own modules because its jigsaw studio reads them. Its surface is already API vocabulary; it goes when

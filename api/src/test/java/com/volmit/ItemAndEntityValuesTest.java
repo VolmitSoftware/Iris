@@ -4,12 +4,15 @@ import com.volmit.entity.EntitySpec;
 import com.volmit.geometry.BlockPosition;
 import com.volmit.item.ItemDrop;
 import com.volmit.item.ItemEnchantment;
+import com.volmit.placement.PlacementRecord;
 import com.volmit.resource.ContentKey;
 import com.volmit.resource.ResourceId;
 import com.volmit.service.AmbientEffects;
 import com.volmit.service.BlockDrops;
 import com.volmit.service.EntitySpawns;
+import com.volmit.service.Loot;
 import com.volmit.service.SaplingGrowth;
+import com.volmit.world.PackWorld;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -76,6 +79,50 @@ class ItemAndEntityValuesTest {
     }
 
     @Test
+    void anEntityCarriesWhatOnlyAPlatformHasANameForInsteadOfAnExtension() {
+        EntitySpec.Appearance panda = new EntitySpec.Appearance(Optional.empty(), false, false, false, Optional.of("PLAYFUL"),
+                Optional.of("WEAK"));
+        EntitySpec.Arrival command = new EntitySpec.Arrival(Optional.empty(), List.of(), Optional.of("COMMAND"), true);
+
+        assertEquals(Optional.of("PLAYFUL"), panda.pandaMainGene());
+        assertEquals(Optional.of("COMMAND"), command.reason());
+        assertTrue(command.risesFromGround());
+        assertTrue(EntitySpec.Appearance.PLAIN.pandaHiddenGene().isEmpty());
+        assertTrue(EntitySpec.Arrival.QUIET.reason().isEmpty());
+        assertFalse(EntitySpec.Arrival.QUIET.risesFromGround());
+        assertThrows(NullPointerException.class, () -> new EntitySpec.Arrival(Optional.empty(), List.of(), null, false));
+    }
+
+    @Test
+    void aPlacementRecordNamesItsObjectAndAnOptionalStructure() {
+        ResourceId oak = ResourceId.parse("overworld:trees/oak");
+        ResourceId village = ResourceId.parse("overworld:village");
+
+        assertEquals(Optional.empty(), PlacementRecord.of(oak, 7).structure());
+        assertEquals(Optional.of(village), PlacementRecord.ofPiece(oak, 7, village).structure());
+        assertEquals(PlacementRecord.of(oak, 7), new PlacementRecord(oak, 7, Optional.empty()));
+        assertThrows(NullPointerException.class, () -> new PlacementRecord(null, 7, Optional.empty()));
+    }
+
+    @Test
+    void aLootProviderGivesNoShuffleSeedUnlessItSaysSo() {
+        Loot loot = new Loot() {
+            @Override
+            public List<Source> tables(PackWorld world, Site site) {
+                return List.of();
+            }
+
+            @Override
+            public List<ItemDrop> items(PackWorld world, Site site, ResourceId table) {
+                return List.of();
+            }
+        };
+        Loot.Site site = new Loot.Site(new BlockPosition(1, 2, 3), Optional.empty(), false, false);
+
+        assertTrue(loot.shuffleSeed(null, site).isEmpty());
+    }
+
+    @Test
     void anAttemptSaysWhetherLightMatters() {
         BlockPosition at = new BlockPosition(1, 2, 3);
         EntitySpec zombie = entity(List.of());
@@ -109,6 +156,6 @@ class ItemAndEntityValuesTest {
     private static EntitySpec entity(List<Object> extensions) {
         return new EntitySpec(new ContentKey.Registered(ResourceId.parse("minecraft:zombie")), EntitySpec.Appearance.PLAIN,
                 EntitySpec.Behaviour.NATURAL, EntitySpec.Equipment.NONE, List.of(), EntitySpec.Company.NONE,
-                EntitySpec.Drops.PLATFORM, EntitySpec.Arrival.QUIET, extensions);
+                EntitySpec.Drops.PLATFORM, EntitySpec.Arrival.QUIET, false, extensions);
     }
 }

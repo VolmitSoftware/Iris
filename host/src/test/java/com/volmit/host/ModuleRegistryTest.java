@@ -36,6 +36,10 @@ class ModuleRegistryTest {
     static class Veins implements IrisFeature {}
     @Feature(id = "test:named", name = "Named", key = "name", targets = Level.BIOME)
     static class Named implements IrisFeature {}
+    @Feature(id = "test:seams", name = "Seams", key = "deposits", targets = Level.PLACEMENT)
+    static class Seams implements IrisFeature {}
+    static class Placement {}
+    static class OtherPlacement {}
     static class MissingAnnotation implements IrisFeature {}
     @Feature(id = "test:core/abstract", name = "Abstract", key = "coreAbstract", targets = Level.BIOME)
     abstract static class AbstractFeature implements IrisFeature {}
@@ -222,6 +226,62 @@ class ModuleRegistryTest {
         var stage = assertThrows(ModuleLoadException.class,
                 () -> LoadedModules.load(discovered(settingsModule("test:ores", Ores.class), conditioned), Map.of(), Set.of(), Set.of()));
         assertTrue(stage.getMessage().startsWith("region key \"deposits\" is claimed by test:minerals (host classpath) and test:ores"), stage.getMessage());
+    }
+
+    @Test
+    void aPlacementTypeIsKeptWithItsFieldsAndReservesThemAsKeysOfThePlacementLevel() {
+        var registry = new ModuleRegistry();
+        registerAs(registry, "test:objects", placements -> placements.registerPlacementType(Placement.class, Set.of("place", "chance")));
+
+        var declared = registry.freeze().placementType().orElseThrow();
+
+        assertEquals(Placement.class, declared.type());
+        assertEquals(Set.of("place", "chance"), declared.jsonFields());
+        assertTrue(new ModuleRegistry().freeze().placementType().isEmpty());
+    }
+
+    @Test
+    void theSchemaNamesThePlacementTypeForStudio() {
+        var objects = new IrisModule() {
+            public ModuleInfo info() { return ModuleInfo.of("test:objects", "Objects", "1"); }
+            public void setup(ModuleSetup setup) { setup.registry().registerPlacementType(Placement.class, Set.of("place")); }
+        };
+
+        var loaded = LoadedModules.load(discovered(objects), Map.of(), Set.of(), Set.of());
+
+        assertEquals(Optional.of(Placement.class.getName()), loaded.schema().placementType());
+        assertTrue(LoadedModules.load(discovered(), Map.of(), Set.of(), Set.of()).schema().placementType().isEmpty());
+    }
+
+    @Test
+    void aSettingsKeyThatIsAFieldOfThePlacementTypeIsRefusedInEitherOrder() {
+        var placementFirst = new ModuleRegistry();
+        registerAs(placementFirst, "test:objects", placements -> placements.registerPlacementType(Placement.class, Set.of("deposits")));
+        var late = assertThrows(IllegalArgumentException.class,
+                () -> registerAs(placementFirst, "test:seams", settings -> settings.registerSettings(Seams.class)));
+        assertEquals("placement key \"deposits\" is claimed by the fields of " + Placement.class.getName()
+                + " (host classpath) and test:seams (host classpath); give one of the settings another key in its @Feature", late.getMessage());
+
+        var settingsFirst = new ModuleRegistry();
+        registerAs(settingsFirst, "test:seams", settings -> settings.registerSettings(Seams.class));
+        var early = assertThrows(IllegalArgumentException.class,
+                () -> registerAs(settingsFirst, "test:objects", placements -> placements.registerPlacementType(Placement.class, Set.of("deposits"))));
+        assertEquals("placement key \"deposits\" is claimed by the fields of " + Placement.class.getName()
+                + " (host classpath) and test:seams (host classpath); give the setting another key in its @Feature", early.getMessage());
+        assertTrue(settingsFirst.freeze().placementType().isEmpty(), "a refused placement type is not kept");
+    }
+
+    @Test
+    void aPackHasOnePlacementType() {
+        var registry = new ModuleRegistry();
+        registerAs(registry, "test:objects", placements -> placements.registerPlacementType(Placement.class, Set.of("place")));
+
+        var second = assertThrows(IllegalArgumentException.class,
+                () -> registerAs(registry, "test:other", placements -> placements.registerPlacementType(OtherPlacement.class, Set.of("kind"))));
+
+        assertTrue(second.getMessage().startsWith("A pack has one placement type: placement type " + Placement.class.getName()
+                + " from module test:objects from host classpath declared it already"), second.getMessage());
+        assertEquals(Placement.class, registry.freeze().placementType().orElseThrow().type());
     }
 
     @Test

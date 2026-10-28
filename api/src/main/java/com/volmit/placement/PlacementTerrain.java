@@ -43,13 +43,13 @@ public interface PlacementTerrain {
     boolean preventsDecay();
 
     /**
-     * Records that the block belongs to {@code placement}, the name the placing module gives one placed object, so a
-     * later placement can tell what is already there ({@link #placementAt}). The host keeps the name as it is.
+     * Records that the block belongs to {@code placement}, one placed object, so a later placement can tell what is
+     * already there ({@link #placementAt}). The host keeps the record beside the block in its generation storage.
      */
-    void recordPlacement(int x, int y, int z, String placement);
+    void recordPlacement(int x, int y, int z, PlacementRecord placement);
 
     /** The placement recorded at the block ({@link #recordPlacement}); empty when none is. */
-    Optional<String> placementAt(int x, int y, int z);
+    Optional<PlacementRecord> placementAt(int x, int y, int z);
 
     /** The bounds of the platform's structure pieces planned around the columns, for placements that keep out of them. */
     StructureVolumes structureVolumes(int minX, int minZ, int maxX, int maxZ);

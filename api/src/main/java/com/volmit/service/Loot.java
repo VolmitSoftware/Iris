@@ -8,6 +8,7 @@ import com.volmit.world.PackWorld;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.OptionalLong;
 
 /**
  * The loot a module gives containers and mobs. The host asks in two steps so that it, and plugins listening to it, can
@@ -26,6 +27,16 @@ public interface Loot {
 
     /** The items the pack's table {@code table} gives at {@code site}; empty for a table this module does not know. */
     List<ItemDrop> items(PackWorld world, Site site, ResourceId table);
+
+    /**
+     * The seed the host shuffles the slots of the container at {@code site} with after it filled it, so that the same
+     * container always ends up with its items in the same slots. Empty to leave the order to the host's other providers;
+     * the host uses the first seed it gets, in module id order, and keeps the items in the order of the tables when no
+     * provider gives one.
+     */
+    default OptionalLong shuffleSeed(PackWorld world, Site site) {
+        return OptionalLong.empty();
+    }
 
     /**
      * Where loot is given.

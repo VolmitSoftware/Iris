@@ -51,7 +51,7 @@ final class PackSchemaBuilder {
         requireUniqueSnippets();
         var types = completeTypes();
         return new PackSchema(features.stream().map(feature -> feature.complete(types)).toList(), resources,
-                List.copyOf(types.values()));
+                List.copyOf(types.values()), catalog.placementType().map(placement -> placement.type().getName()));
     }
 
     private static Optional<ResourceId> resourceKindOf(FeatureCatalog catalog, Class<?> type) {

@@ -8,6 +8,7 @@ import com.volmit.resource.ResourceKind;
 import com.volmit.service.Service;
 import com.volmit.stage.StageGraph;
 import com.volmit.validation.Validator;
+import java.util.Set;
 
 /** Host implementation collects non-stage registrations before loading pack configuration.
  * Feature IDs must be unique. JSON keys must be unique per {@link com.volmit.config.Level}, including the
@@ -40,6 +41,15 @@ public interface FeatureRegistry {
      * host reads itself; the error names both owners.
      */
     <T> void registerResourceKind(ResourceKind<T> kind);
+
+    /**
+     * Declares the type packs write their object placements as, the JSON object that holds
+     * {@link com.volmit.config.Level#PLACEMENT}: settings other modules declare on a placement are keys of that same
+     * object, next to the type's own fields. So no settings key at that level may be one of {@code jsonFields}, the
+     * names the type's JSON uses, and studio describes {@code type} with those settings added. A pack has one placement
+     * type; a second declaration, from this module or another, fails the pack load naming both.
+     */
+    void registerPlacementType(Class<?> type, Set<String> jsonFields);
 
     /** Adds a check the host runs over the whole pack wherever it validates packs. */
     void registerValidator(Validator validator);

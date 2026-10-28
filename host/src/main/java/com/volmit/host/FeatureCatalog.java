@@ -40,6 +40,7 @@ public final class FeatureCatalog {
     private final List<LifecycleRegistration> lifecycles;
     private final Map<Class<?>, List<ServiceRegistration>> registrationsByService;
     private final Map<Class<?>, List<?>> providersByService;
+    private final Optional<PlacementTypeRegistration> placementType;
 
     FeatureCatalog(
             Map<Class<?>, FeatureDescriptor<?>> settings,
@@ -48,7 +49,9 @@ public final class FeatureCatalog {
             Collection<ResourceKindRegistration> resourceKinds,
             List<ValidatorRegistration> validators,
             List<LifecycleRegistration> lifecycles,
-            List<ServiceRegistration> services) {
+            List<ServiceRegistration> services,
+            PlacementTypeRegistration placementType) {
+        this.placementType = Optional.ofNullable(placementType);
         this.settings = Map.copyOf(settings);
         this.objects = Map.copyOf(objects);
         this.mantle = Map.copyOf(mantle);
@@ -70,6 +73,11 @@ public final class FeatureCatalog {
 
     public List<MantleRegistration<?>> mantle() {
         return sorted(mantle.values(), registration -> registration.key().id());
+    }
+
+    /** The type packs write their object placements as, if a module declared it ({@code FeatureRegistry.registerPlacementType}). */
+    public Optional<PlacementTypeRegistration> placementType() {
+        return placementType;
     }
 
     /** The pack resource kinds modules read, by kind id. */

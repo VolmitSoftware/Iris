@@ -276,7 +276,8 @@ PlaceableObject tower = objects.object(world.resources().idOf("towers/north")).o
 PlaceableObject large = objects.scaled(tower, 2, ScaleMethod.TRILINEAR);       // kept per pack snapshot
 
 PlacementTerrain terrain = context.placementTerrain();                          // in a mantle stage
-PlacementRun run = new PlacementRun(new PlacementRequest(large.geometry(), anchor), area, terrain, mySettings, seed);
+PlacementRun run = new PlacementRun(new PlacementRequest(large.geometry(), anchor), "towers/north",
+        Optional.of(placementJson), area, terrain, mySettings, seed);
 PlacementOutcome outcome = world.placements().place(run);
 if (!outcome.isPlaced()) {
     context.log().debug("tower rejected: " + outcome.rejection().orElseThrow());
@@ -287,8 +288,15 @@ if (!outcome.isPlaced()) {
   smart-bored copy, and objects a module builds block by block (`build`). The host keeps them per pack snapshot.
 - `PlacementTerrain` is the world the placement reads and the host writes into once it commits: heights, blocks,
   carved space, fluid, the structures nearby and the placement recorded at a block (`recordPlacement`, `placementAt`;
-  `RunningWorld.placementAt` reads it back later, such as for the loot of a placed object). A module may wrap it to hold
-  or filter writes; a mantle stage gets one for its invocation from `MantleGenerationContext.placementTerrain()`.
+  `RunningWorld.placementAt` reads it back later, such as for the loot of a placed object). A recorded placement is a
+  `PlacementRecord`: the object's id, the module's number for this placement of it and, for a piece of a structure, the
+  structure's id. A module may wrap the terrain to hold or filter writes; a mantle stage gets one for its invocation from
+  `MantleGenerationContext.placementTerrain()`.
+- `name` labels the placement (the object's key). `settings` is the placement as the pack wrote it, a JSON object: the
+  host reads from it the settings other modules declare at `Level.PLACEMENT`, so their stages see them like those of any
+  other level. The module that owns the placement type declares it once in `setup`, with the JSON names of its own
+  options, so no settings key can take one: `registry.registerPlacementType(MyPlacement.class, names)`. Studio then adds
+  the placement-level settings to that type's schema.
 - `input` is what the module hands its own placement stages (`PlacementContext.input(type)`); other modules' stages do
   not know its type. The area bounds what the placement may write, widened by the reach of the pack's placement stages.
 - A placement commits whole or not at all: blocks, then markers, and only when no stage rejected and none threw.
@@ -441,10 +449,11 @@ final class RuinsObjects implements ObjectsAt {
 | `ObjectsAt` | `ALL` | The pack objects a module would place in a chunk, predicted without generating it, and the biomes and regions of the layout that place a given object (`PlacedBy`), so the host can narrow an object search to the areas it can appear in. |
 | `StructureLocator` | `FIRST` | Every structure the module knows (the structure index), the ones a world places and can locate (commands complete them), every id under which it finds what a world places (`placed`: its own structures and the platform structures it starts or stands in for), and the nearest start of one, as a `LocateResult`: `Found(position)`, `NotFound` or `SearchLimitReached`. Ids are lower case, so a host matching typed keys matches without regard to case. |
 | `SaplingGrowth` | `ALL` | The tree a growing sapling becomes, as a `Growth` of placed blocks (the first module with one wins; none leaves the growth to the platform), and the objects the module places as trees (`TreeObjects`). The host passes `Surroundings` to read the world around the sapling and places the blocks itself. |
-| `Loot` | `ALL` | The loot tables a container draws from at a `Site` (`Table` of the pack, `PlatformTable` with the seed to draw it with), in the order their items are added, and the `ItemDrop`s one table gives there. The host puts them together, tells listeners, creates the stacks and shuffles the container. |
+| `Loot` | `ALL` | The loot tables a container draws from at a `Site` (`Table` of the pack, `PlatformTable` with the seed to draw it with), in the order their items are added, the `ItemDrop`s one table gives there, and the seed to shuffle the container's slots with (`shuffleSeed`, the first one given wins). The host puts them together, tells listeners, creates the stacks and shuffles the container. |
 | `BlockDrops` | `ALL` | What a module drops for a broken block: `ItemDrop`s, and whether the platform's own drops of the block are replaced. |
 | `EntitySpawns` | `ALL` | A `Plan` of entities to spawn in a chunk or at a marker, each `Attempt` an `EntitySpec` with the block, light range and surface it needs; how many appeared (`spawned`); what a marker means (`MarkerRule`); one entity of the pack on request. The host checks light, surface and free space, spawns, and applies the spec. |
 | `CaveBiomes` | `ONE` | The pack biome a module puts at a position whatever the regions say (a band of the deep dark), and how far below the surface a biome's caves begin. The host places the cave biome of a position itself and asks this where a module overrides it. |
+| `ProtectedFloor` | `ONE` | Whether the lowest layer of the world (height 0) belongs to the module that shapes the terrain, such as a bedrock floor it writes itself. The host then discards the blocks other placements and stages write there. Asked once per world; no provider protects nothing. |
 | `AmbientEffects` | `ALL` | The effects due for a player standing at a position: a `Sound`, `Particles`, `Command`s and a `Potion` per `Effect`, every random choice already made (offsets, scatter, duration). The host asks now and then, carries out the parts the platform has, and keeps a stronger potion effect the player already has. |
 | `VanillaStructures` | `ALL` | Rules, starts, shifts and reaches for the platform's own structures, fitting the terrain to the starts in one chunk through the `BlockAccess` the host hands over, and finding the starts a module makes of them (see Vanilla structures). |
 | `VanillaFeatures` | `ALL` | Whether the platform runs its own placed features (ores, trees, plants, springs) over a world's terrain, and which decoration steps (`DecorationStep`) and features it skips there. Off unless a module turns it on; any module may refuse a step or a feature. Asked once per world, step and feature. |
@@ -625,10 +634,12 @@ another namespace to the plugin that owns it.
 `ItemDrop` is one stack: the item, the amount, its `Look` (name, lore, custom model, leather colour as RGB, `DyeColor`),
 enchantments (`ItemEnchantment`), attribute modifiers (`ItemAttribute` with an `Operation`), its `Wear` (unbreakable,
 damage as a fraction of the item's durability), `PlatformExtras` (item flags and custom NBT, which only some platforms
-apply) and, for debugging, its `Source`. `EntitySpec` is one entity: its type, `Appearance`, `Behaviour`, equipment
-(`ItemDrop`s), attribute modifiers, `Company` (passengers, leash holder), `Drops` (loot table ids and their shuffle seed),
-`Arrival` (spawn effect and console commands) and host extensions, which `extension(type)` finds: what only one host
-knows how to apply travels as a value of that host's type and is ignored by the others. Modules ask the platform about
+apply) and, for debugging, its `Source`. `EntitySpec` is one entity: its type, `Appearance` (name, glow, baby and a
+panda's genes), `Behaviour`, equipment (`ItemDrop`s), attribute modifiers, `Company` (passengers, leash holder), `Drops`
+(loot table ids and their shuffle seed), `Arrival` (spawn effect, console commands, the platform's name for the spawn
+reason and whether the entity climbs out of the ground), whether the spec also applies to a mob of a content provider
+(`adjustsProvidedMob`) and host extensions, which `extension(type)` finds: what only one host knows how to apply travels
+as a value of that host's type and is ignored by the others. Modules ask the platform about
 items through `resources.items()` (`ItemRegistry.maxDurability(item)`, empty for an item the platform lacks): whether
 an item can be damaged decides whether a loot entry draws a damage roll, so a module needs it to keep its random stream.
 

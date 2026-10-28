@@ -18,7 +18,7 @@
 
 package art.arcane.iris.engine.object.procedural.crystal;
 
-import art.arcane.iris.builtin.objects.crystal.CrystalSurface;
+import art.arcane.iris.modules.objects.crystal.CrystalSurface;
 
 
 public final class CrystalGeometry {

@@ -16,9 +16,8 @@ mantle components outside the stage graph any more. Their stage constants, and t
 types packs may read, live in `src/main/java/art/arcane/iris/builtin`, the package Iris exposes to pack
 modules; their stage bodies live beside the features they replace. Settings and helper types that only the jar's modules read,
 which Iris itself never touches, live in `art.arcane.iris.modules` instead, which Iris does not expose: the jar loads its own copy.
-A type a pack writes as a snippet stays in `art.arcane.iris.builtin` even when only the jar reads it, because the snippet folder of
-a type the host does not share must start with its module's id (`snippet/iris/carve/...`), and packs keep theirs where they always
-were (`snippet/cave-profile/...`).
+Every built-in snippet is named under its module's id, `iris/<module>/<name>` (folder `snippet/iris/carve/cave-profile/`), so a
+snippet type may live in either package. A type stays in `art.arcane.iris.builtin` only when Iris reads it or an exposed type holds it.
 
 Two of those modules are not in this project: `iris:biome` (writes the layout's platform biomes into the chunk) and
 `iris:custom` (records the platform's custom blocks of content plugins) are Iris itself, so their classes live in Iris
@@ -88,8 +87,8 @@ regions and biomes. The loot tables, spawners, entities and markers are plain mo
 the `IrisChunk` their invocation offers (`context.extension(IrisChunk.class)`, then `state(...)`) or `engine.getGeneration().state(...)`.
 
 Settings move off Iris's classes one feature at a time. `iris:deposit` is the first whose settings are IrisApi types
-only: `DepositSettings` (`art.arcane.iris.modules.deposit`) holds `DepositGenerator`s (blocks as `BlockSpec`, its enums beside it in
-`art.arcane.iris.builtin.deposit`, since packs write generators as `snippet/deposit/...`), and packs write `"deposits": [...]`, as they always have (`@Feature(key = "deposits", root = "generators")`: the key holds the one option's list). What needs Iris (resolving the
+only: `DepositSettings` (`art.arcane.iris.modules.deposit`) holds `DepositGenerator`s (blocks as `BlockSpec`, its enums beside it; packs write generators as
+`snippet/iris/deposit/deposit/...`), and packs write `"deposits": [...]`, as they always have (`@Feature(key = "deposits", root = "generators")`: the key holds the one option's list). What needs Iris (resolving the
 palette, ore checks, clump shapes per world seed) lives in the module's own code, `ResolvedDeposit`. The deposits run one generator after the other, each
 with a random of its own; they used to spread over threads on a multicore pregen, which no module can do (stages run on the host's threads).
 
@@ -126,7 +125,7 @@ from the random of whoever asks first, as it always was. The slope limit of a la
 object placement is the one `SlopeClip`.
 
 Caves, floating islands and ores are settings of their modules too, written under the keys they always had. `iris:carve` owns
-`caveProfile` (dimension, region, biome; an object, or a `snippet/cave-profile/...` reference), `carving` (dimension; a list of bands) and
+`caveProfile` (dimension, region, biome; an object, or a `snippet/iris/carve/cave-profile/...` reference), `carving` (dimension; a list of bands) and
 `carvingEnabled` (dimension; a boolean), `carvingBiome` (biome; a biome key) and `caveMinDepthBelowSurface` (biome; a number). `iris:floating`
 owns `floatingChildBiomes` (biome; a list) and `mergeFloatingChildBiomes` (biome; a boolean). `iris:terrain` owns `ores` (dimension, region,
 biome; a list of generators) and `hideOresForHiddenOre` (dimension; a boolean); `iris:deposit` owns `depositVariants` (dimension, region, biome; a list)

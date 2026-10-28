@@ -17,9 +17,9 @@
  */
 package art.arcane.iris.engine.modifier;
 
-import art.arcane.iris.builtin.deposit.DepositBiomeScope;
-import art.arcane.iris.builtin.deposit.DepositGenerator;
-import art.arcane.iris.builtin.deposit.DepositShape;
+import art.arcane.iris.modules.deposit.DepositBiomeScope;
+import art.arcane.iris.modules.deposit.DepositGenerator;
+import art.arcane.iris.modules.deposit.DepositShape;
 import art.arcane.volmlib.util.collection.KSet;
 import art.arcane.volmlib.util.math.BlockPosition;
 import art.arcane.volmlib.util.math.RNG;

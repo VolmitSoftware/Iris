@@ -21,7 +21,7 @@ package art.arcane.iris.builtin.spawn;
 import com.volmit.config.Desc;
 import com.volmit.config.Snippet;
 
-@Snippet("rate")
+@Snippet("iris/spawn/rate")
 @Desc("Represents a count of something per time duration")
 public final class SpawnRate {
     @Desc("The amount of things. Leave 0 for infinite (meaning always spawn whenever)")

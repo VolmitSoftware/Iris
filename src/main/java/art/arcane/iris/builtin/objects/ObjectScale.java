@@ -24,7 +24,7 @@ import com.volmit.config.MinNumber;
 import com.volmit.config.Snippet;
 
 /** How an object placement scales its objects, written as the placement's {@code scale}. */
-@Snippet("object-scale")
+@Snippet("iris/objects/object-scale")
 @Desc("Scale Objects")
 public final class ObjectScale {
     private static final double NO_SCALE = 1;

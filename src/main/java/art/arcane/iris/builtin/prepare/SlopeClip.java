@@ -24,7 +24,7 @@ import com.volmit.config.MinNumber;
 import com.volmit.config.Snippet;
 
 /** The terrain slopes an object placement, a decorator or a terrain layer may sit on, written as its {@code slopeCondition}. */
-@Snippet("slope-clip")
+@Snippet("iris/prepare/slope-clip")
 @Desc("Limits placement to a minimum and maximum terrain slope")
 public final class SlopeClip {
     private static final double DEFAULT_MINIMUM_SLOPE = 0;

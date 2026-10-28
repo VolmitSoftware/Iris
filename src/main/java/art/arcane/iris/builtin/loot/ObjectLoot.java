@@ -29,7 +29,7 @@ import com.volmit.config.Snippet;
 import java.util.Collections;
 import java.util.List;
 
-@Snippet("object-loot")
+@Snippet("iris/loot/object-loot")
 @Desc("Represents loot within this object")
 public final class ObjectLoot implements ObjectLootEntry {
     @MinItems(1)

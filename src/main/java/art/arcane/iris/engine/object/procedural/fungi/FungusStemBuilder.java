@@ -18,7 +18,7 @@
 
 package art.arcane.iris.engine.object.procedural.fungi;
 
-import art.arcane.iris.builtin.objects.fungi.Fungus;
+import art.arcane.iris.modules.objects.fungi.Fungus;
 import art.arcane.iris.engine.object.procedural.tree.TreeFunctions;
 import com.volmit.block.BlockState;
 import art.arcane.volmlib.util.math.Vector3i;

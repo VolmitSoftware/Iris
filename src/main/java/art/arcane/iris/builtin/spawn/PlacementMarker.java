@@ -31,7 +31,7 @@ import java.util.Collections;
 import java.util.List;
 
 /** Blocks of an object placement that get a {@link SpawnMarker}, an entry of the placement's {@code markers}. */
-@Snippet("object-marker")
+@Snippet("iris/spawn/object-marker")
 @Desc("Find blocks to mark")
 public final class PlacementMarker {
     @MinItems(1)

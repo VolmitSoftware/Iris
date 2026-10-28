@@ -31,7 +31,7 @@ import java.util.Collections;
 import java.util.List;
 
 /** One find-and-replace of an object placement's blocks, an entry of the placement's {@code edit}. */
-@Snippet("object-block-replacer")
+@Snippet("iris/blocks/object-block-replacer")
 @Desc("Find and replace object materials")
 public final class ObjectReplace {
     @MinItems(1)

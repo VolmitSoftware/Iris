@@ -23,7 +23,7 @@ import com.volmit.config.Required;
 import com.volmit.config.Snippet;
 
 /** The size of a sapling area, in saplings, that a tree override applies to. */
-@Snippet("tree-size")
+@Snippet("iris/objects/tree-size")
 @Desc("Sapling override object picking options")
 public final class TreeSize {
     @Required

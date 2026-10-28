@@ -18,7 +18,6 @@
 
 package art.arcane.iris.modules.deposit;
 
-import art.arcane.iris.builtin.deposit.DepositVariant;
 import com.volmit.config.Level;
 import com.volmit.IrisFeature;
 import com.volmit.config.Desc;

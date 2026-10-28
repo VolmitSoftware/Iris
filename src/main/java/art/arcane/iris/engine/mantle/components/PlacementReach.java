@@ -21,7 +21,7 @@ package art.arcane.iris.engine.mantle.components;
 import art.arcane.iris.builtin.anchor.PlaceMode;
 import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.builtin.objects.ObjectSettings;
-import art.arcane.iris.builtin.objects.ProceduralObjectSettings;
+import art.arcane.iris.modules.objects.ProceduralObjectSettings;
 import art.arcane.iris.builtin.prepare.AxisRotationClamp;
 import art.arcane.iris.builtin.prepare.ObjectRotation;
 import art.arcane.iris.builtin.prepare.ObjectTranslate;

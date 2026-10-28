@@ -23,7 +23,7 @@ import com.volmit.config.Snippet;
 
 import java.util.concurrent.TimeUnit;
 
-@Snippet("duration")
+@Snippet("iris/spawn/duration")
 @Desc("Represents a combined duration. Fill each property to add time into a single duration")
 public final class SpawnDuration {
     private static final long MILLISECONDS_PER_MINECRAFT_TICK = 50L;

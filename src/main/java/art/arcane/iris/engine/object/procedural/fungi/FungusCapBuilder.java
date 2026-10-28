@@ -20,8 +20,8 @@ package art.arcane.iris.engine.object.procedural.fungi;
 
 import com.volmit.block.PaletteSpec;
 import java.util.Optional;
-import art.arcane.iris.builtin.objects.fungi.FungusCapShape;
-import art.arcane.iris.builtin.objects.fungi.Fungus;
+import art.arcane.iris.modules.objects.fungi.FungusCapShape;
+import art.arcane.iris.modules.objects.fungi.Fungus;
 import art.arcane.iris.engine.object.procedural.IrisProceduralBlocks;
 import art.arcane.iris.engine.object.procedural.tree.TreeFunctions;
 import art.arcane.volmlib.util.math.Vector3i;

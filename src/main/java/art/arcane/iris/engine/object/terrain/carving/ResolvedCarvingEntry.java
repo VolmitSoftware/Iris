@@ -18,7 +18,7 @@
 
 package art.arcane.iris.engine.object.terrain.carving;
 
-import art.arcane.iris.builtin.carve.CarvingEntry;
+import art.arcane.iris.modules.carve.CarvingEntry;
 import art.arcane.volmlib.util.cache.AtomicCache;
 import com.volmit.ModuleLog;
 import com.volmit.config.Range;

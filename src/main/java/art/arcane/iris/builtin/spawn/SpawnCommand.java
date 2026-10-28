@@ -26,7 +26,7 @@ import com.volmit.config.Snippet;
 import java.util.Collections;
 import java.util.List;
 
-@Snippet("command")
+@Snippet("iris/spawn/command")
 @Desc("Represents a set of Iris commands")
 public final class SpawnCommand {
     @Required

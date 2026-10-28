@@ -26,7 +26,7 @@ import art.arcane.iris.modules.carve.CarvingEnabledSettings;
 import art.arcane.iris.modules.carve.CarvingSettings;
 import art.arcane.iris.modules.carve.CaveDepthSettings;
 import art.arcane.iris.builtin.carve.CaveLavaHeightSettings;
-import art.arcane.iris.builtin.carve.CaveProfile;
+import art.arcane.iris.modules.carve.CaveProfile;
 import art.arcane.iris.modules.carve.UpperDimensionCarvingSettings;
 import art.arcane.iris.modules.terrain.TerrainPalettes;
 import art.arcane.iris.engine.mantle.components.CarveWorld;

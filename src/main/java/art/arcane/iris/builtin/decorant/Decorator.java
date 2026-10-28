@@ -34,10 +34,10 @@ import java.util.Optional;
 
 /**
  * One decorator of a biome, as packs write it in the {@code "decorators"} list or under
- * {@code snippet/decorator/}: which blocks it places, where, how often and how tall. A value of IrisApi types only; the
+ * {@code snippet/iris/decorant/decorator/}: which blocks it places, where, how often and how tall. A value of IrisApi types only; the
  * decorant module resolves the blocks and builds the noise.
  */
-@Snippet("decorator")
+@Snippet("iris/decorant/decorator")
 @Desc("A biome decorator is used for placing flowers, grass, cacti and so on")
 public final class Decorator {
     private static final String STATIC_NOISE = "STATIC";

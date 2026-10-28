@@ -27,7 +27,7 @@ import java.util.Collections;
 import java.util.List;
 
 /** The trees an object placement overrides when their saplings grow, an entry of the placement's {@code trees}. */
-@Snippet("tree")
+@Snippet("iris/objects/tree")
 @Desc("Tree replace options for this object placer")
 public final class TreeOverride {
     @Required

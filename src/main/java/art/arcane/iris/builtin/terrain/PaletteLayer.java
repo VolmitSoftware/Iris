@@ -32,10 +32,10 @@ import java.util.List;
 
 /**
  * One layer of surface or subsurface material of a biome, as packs write it in the biome's layers, sea layers, cave
- * ceiling layers, slab and wall, in a floating island's bottom palette or under {@code snippet/biome-palette/}. A value of
+ * ceiling layers, slab and wall, in a floating island's bottom palette or under {@code snippet/iris/terrain/biome-palette/}. A value of
  * IrisApi types only; the terrain module resolves the blocks and builds the noise.
  */
-@Snippet("biome-palette")
+@Snippet("iris/terrain/biome-palette")
 @Desc("A layer of surface / subsurface material in biomes")
 public final class PaletteLayer {
     private static final String STATIC_NOISE = "STATIC";

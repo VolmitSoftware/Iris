@@ -30,7 +30,7 @@ import com.volmit.config.Snippet;
  * A sound, particles, potion effect or commands that play now and then around the players in an area. The same
  * settings make the effect an entity shows when it appears ({@link EntityDefinition#spawnEffect()}).
  */
-@Snippet("effect")
+@Snippet("iris/spawn/effect")
 @Desc("An iris effect")
 public final class AmbientEffect {
     @Ref(Reference.POTION_EFFECT)

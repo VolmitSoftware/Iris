@@ -18,7 +18,6 @@
 
 package art.arcane.iris.modules.floating;
 
-import art.arcane.iris.builtin.floating.FloatingChildBiome;
 import art.arcane.iris.modules.carve.CarvingSettings;
 import com.volmit.config.Level;
 import com.volmit.IrisFeature;

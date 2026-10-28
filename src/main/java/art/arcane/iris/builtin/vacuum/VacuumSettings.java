@@ -24,7 +24,7 @@ import com.volmit.config.MinNumber;
 import com.volmit.config.Snippet;
 
 /** How a VACUUM place mode bends terrain to meet an object's base, written as the placement's {@code vacuumSettings}. */
-@Snippet("vacuum-settings")
+@Snippet("iris/vacuum/vacuum-settings")
 @Desc("Defines how a VACUUM place mode bends terrain to meet an object's base.")
 public final class VacuumSettings {
     @MinNumber(0)

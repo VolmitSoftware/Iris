@@ -25,7 +25,7 @@ import com.volmit.config.Required;
 import com.volmit.config.Snippet;
 
 /** How far an object is shifted from where it would be placed, written as a placement's {@code translate}. */
-@Snippet("object-translator")
+@Snippet("iris/prepare/object-translator")
 @Desc("Translate objects")
 public final class ObjectTranslate {
     @MinNumber(-128)

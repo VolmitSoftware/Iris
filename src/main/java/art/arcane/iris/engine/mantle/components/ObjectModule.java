@@ -20,7 +20,7 @@ package art.arcane.iris.engine.mantle.components;
 
 import art.arcane.iris.builtin.IrisStages;
 import art.arcane.iris.builtin.objects.ObjectSettings;
-import art.arcane.iris.builtin.objects.ProceduralObjectSettings;
+import art.arcane.iris.modules.objects.ProceduralObjectSettings;
 import art.arcane.iris.builtin.objects.RequireSurfaceSupportSettings;
 import art.arcane.iris.builtin.objects.SurfaceSupportBufferSettings;
 import art.arcane.iris.builtin.objects.TreeGrowthSettings;

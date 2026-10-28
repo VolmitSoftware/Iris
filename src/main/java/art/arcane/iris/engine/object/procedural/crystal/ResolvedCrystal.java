@@ -18,7 +18,7 @@
 
 package art.arcane.iris.engine.object.procedural.crystal;
 
-import art.arcane.iris.builtin.objects.crystal.Crystal;
+import art.arcane.iris.modules.objects.crystal.Crystal;
 import art.arcane.iris.engine.object.procedural.ProceduralShape;
 import art.arcane.iris.engine.object.procedural.ResolvedProceduralPlacement;
 import art.arcane.iris.modules.objects.ObjectBuilder;

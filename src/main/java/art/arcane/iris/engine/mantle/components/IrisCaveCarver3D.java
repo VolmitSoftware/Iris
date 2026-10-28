@@ -20,7 +20,7 @@ package art.arcane.iris.engine.mantle.components;
 
 import art.arcane.iris.builtin.MatterMantle;
 import art.arcane.iris.builtin.carve.CaveFieldModule;
-import art.arcane.iris.builtin.carve.CaveProfile;
+import art.arcane.iris.modules.carve.CaveProfile;
 import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
 import art.arcane.volmlib.util.math.M;
 import art.arcane.volmlib.util.math.PowerOfTwoCoordinates;

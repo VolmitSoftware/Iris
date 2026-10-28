@@ -18,13 +18,13 @@
 
 package art.arcane.iris.engine.object.procedural.tree;
 
-import art.arcane.iris.builtin.objects.tree.TreeSubBranches;
-import art.arcane.iris.builtin.objects.tree.TreeLayer;
-import art.arcane.iris.builtin.objects.tree.TreeCanopy;
-import art.arcane.iris.builtin.objects.tree.TreeBranches;
-import art.arcane.iris.builtin.objects.tree.TreeProfile;
-import art.arcane.iris.builtin.objects.tree.TreeLeafMode;
-import art.arcane.iris.builtin.objects.tree.Tree;
+import art.arcane.iris.modules.objects.tree.TreeSubBranches;
+import art.arcane.iris.modules.objects.tree.TreeLayer;
+import art.arcane.iris.modules.objects.tree.TreeCanopy;
+import art.arcane.iris.modules.objects.tree.TreeBranches;
+import art.arcane.iris.modules.objects.tree.TreeProfile;
+import art.arcane.iris.modules.objects.tree.TreeLeafMode;
+import art.arcane.iris.modules.objects.tree.Tree;
 import art.arcane.iris.engine.object.procedural.IrisProceduralBlocks;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;

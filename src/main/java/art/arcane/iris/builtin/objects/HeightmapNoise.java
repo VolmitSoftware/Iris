@@ -30,7 +30,7 @@ import java.util.Collections;
 import java.util.List;
 
 /** The virtual heightmap an object placement may sit on instead of the terrain, written as the placement's {@code heightmap}. */
-@Snippet("generator")
+@Snippet("iris/objects/generator")
 @Desc("A noise generator")
 public final class HeightmapNoise {
     @MinNumber(0.0001)

@@ -18,8 +18,8 @@
 
 package art.arcane.iris.engine.object.procedural.tree;
 
-import art.arcane.iris.builtin.objects.tree.TreeRootStyle;
-import art.arcane.iris.builtin.objects.tree.Tree;
+import art.arcane.iris.modules.objects.tree.TreeRootStyle;
+import art.arcane.iris.modules.objects.tree.Tree;
 import art.arcane.volmlib.util.math.RNG;
 
 import java.util.ArrayList;

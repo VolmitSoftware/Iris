@@ -27,7 +27,7 @@ import com.volmit.config.Snippet;
 import java.util.Objects;
 
 /** One axis of an object rotation, with the angles it may turn by and the steps between them. */
-@Snippet("axis-rotation")
+@Snippet("iris/prepare/axis-rotation")
 @Desc("Represents a rotation axis with intervals and maxes. The x and z axis values are defaulted to disabled. The Y axis defaults to on, rotating by 90 degree increments.")
 public final class AxisRotationClamp {
     private static final double FULL_TURN_DEGREES = 360D;

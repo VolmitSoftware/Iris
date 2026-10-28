@@ -24,7 +24,7 @@ import com.volmit.config.Required;
 import com.volmit.config.Ref;
 import com.volmit.config.Snippet;
 
-@Snippet("entity-spawn")
+@Snippet("iris/spawn/entity-spawn")
 @Desc("Represents an entity spawn during initial chunk generation")
 public final class EntitySpawn {
     @Ref(kind = EntityDefinition.class)

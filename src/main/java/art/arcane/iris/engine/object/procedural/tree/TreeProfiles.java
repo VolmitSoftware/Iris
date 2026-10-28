@@ -18,7 +18,7 @@
 
 package art.arcane.iris.engine.object.procedural.tree;
 
-import art.arcane.iris.builtin.objects.tree.TreeProfile;
+import art.arcane.iris.modules.objects.tree.TreeProfile;
 
 
 public final class TreeProfiles {

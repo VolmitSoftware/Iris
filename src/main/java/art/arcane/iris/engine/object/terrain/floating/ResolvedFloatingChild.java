@@ -18,9 +18,9 @@
 
 package art.arcane.iris.engine.object.terrain.floating;
 
-import art.arcane.iris.builtin.carve.CarvingEntry;
-import art.arcane.iris.builtin.carve.CaveProfile;
-import art.arcane.iris.builtin.floating.FloatingChildBiome;
+import art.arcane.iris.modules.carve.CarvingEntry;
+import art.arcane.iris.modules.carve.CaveProfile;
+import art.arcane.iris.modules.floating.FloatingChildBiome;
 import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.engine.object.terrain.carving.CaveProfileSampler;
 import art.arcane.volmlib.util.cache.AtomicCache;

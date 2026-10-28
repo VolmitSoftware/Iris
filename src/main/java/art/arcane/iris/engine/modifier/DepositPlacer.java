@@ -18,10 +18,10 @@
 package art.arcane.iris.engine.modifier;
 
 import art.arcane.iris.builtin.IrisSeedPurposes;
-import art.arcane.iris.builtin.deposit.DepositGenerator;
-import art.arcane.iris.builtin.deposit.DepositHeightDistribution;
-import art.arcane.iris.builtin.deposit.DepositPlacementScope;
-import art.arcane.iris.builtin.deposit.DepositVariant;
+import art.arcane.iris.modules.deposit.DepositGenerator;
+import art.arcane.iris.modules.deposit.DepositHeightDistribution;
+import art.arcane.iris.modules.deposit.DepositPlacementScope;
+import art.arcane.iris.modules.deposit.DepositVariant;
 import art.arcane.iris.modules.deposit.DepositVariantSettings;
 import art.arcane.iris.modules.deposit.OreFrequencySettings;
 import art.arcane.iris.modules.deposit.OreSizeSettings;

@@ -18,7 +18,6 @@
 
 package art.arcane.iris.modules.loot;
 
-import art.arcane.iris.builtin.loot.BlockDrop;
 import com.volmit.config.Level;
 import com.volmit.IrisFeature;
 import com.volmit.config.Desc;

@@ -30,7 +30,7 @@ import com.volmit.config.Snippet;
 import java.util.Collections;
 import java.util.List;
 
-@Snippet("object-vanilla-loot")
+@Snippet("iris/loot/object-vanilla-loot")
 @Desc("Represents vanilla loot within this object")
 public final class ObjectVanillaLoot implements ObjectLootEntry {
     @MinItems(1)

@@ -19,7 +19,7 @@
 package art.arcane.iris.engine.mantle.components;
 
 import art.arcane.iris.builtin.MatterMantle;
-import art.arcane.iris.builtin.carve.CaveProfile;
+import art.arcane.iris.modules.carve.CaveProfile;
 import art.arcane.iris.engine.object.terrain.carving.CarvingResolver;
 import art.arcane.iris.engine.object.terrain.carving.DeclaredCaveProfiles;
 import art.arcane.iris.engine.object.terrain.carving.ResolvedCarvingEntry;

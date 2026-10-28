@@ -18,8 +18,8 @@
 
 package art.arcane.iris.engine.object.procedural.tree;
 
-import art.arcane.iris.builtin.objects.tree.TreeDecorator;
-import art.arcane.iris.builtin.objects.tree.Tree;
+import art.arcane.iris.modules.objects.tree.TreeDecorator;
+import art.arcane.iris.modules.objects.tree.Tree;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KMap;
 import art.arcane.volmlib.util.math.RNG;

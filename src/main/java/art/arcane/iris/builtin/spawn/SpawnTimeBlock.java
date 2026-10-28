@@ -21,7 +21,7 @@ package art.arcane.iris.builtin.spawn;
 import com.volmit.config.Desc;
 import com.volmit.config.Snippet;
 
-@Snippet("time-block")
+@Snippet("iris/spawn/time-block")
 @Desc("Represents a time of day (24h time, not 12h am/pm). Set both to the same number for any time. If they are both set to -1, it will always be not allowed.")
 public final class SpawnTimeBlock {
     private static final double NEVER = -1;

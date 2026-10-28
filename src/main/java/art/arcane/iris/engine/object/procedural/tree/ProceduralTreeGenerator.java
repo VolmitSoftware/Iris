@@ -19,7 +19,7 @@
 package art.arcane.iris.engine.object.procedural.tree;
 
 import art.arcane.iris.modules.objects.ObjectBuilder;
-import art.arcane.iris.builtin.objects.tree.Tree;
+import art.arcane.iris.modules.objects.tree.Tree;
 import art.arcane.iris.engine.object.procedural.ProceduralShape;
 import art.arcane.volmlib.util.math.RNG;
 import com.volmit.block.BlockState;

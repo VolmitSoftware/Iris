@@ -35,7 +35,7 @@ import java.util.List;
  * {@code "loot": {"mode": "ADD", "tables": [...], "multiplier": 1}}. Levels stack, dimension first, then region and
  * biome; {@link LootMode} says what each does with the tables before it. An entity's {@code loot} has the same shape.
  */
-@Snippet("loot-registry")
+@Snippet("iris/loot/loot-registry")
 @Desc("Reference loot tables in this area")
 @Feature(id = "iris:loot", name = "Loot", key = "loot", targets = {Level.DIMENSION, Level.REGION, Level.BIOME})
 public final class LootSettings implements IrisFeature {

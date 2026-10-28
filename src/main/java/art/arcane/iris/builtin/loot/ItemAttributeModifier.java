@@ -24,7 +24,7 @@ import com.volmit.config.MinNumber;
 import com.volmit.config.Required;
 import com.volmit.config.Snippet;
 
-@Snippet("attribute-modifier")
+@Snippet("iris/loot/attribute-modifier")
 @Desc("Represents an attribute modifier for an item or an entity. This allows you to create modifications to basic game attributes such as MAX_HEALTH or ARMOR_VALUE.")
 public final class ItemAttributeModifier {
     @Required

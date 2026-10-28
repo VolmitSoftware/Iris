@@ -21,7 +21,7 @@ package art.arcane.iris.engine.mantle.components;
 import art.arcane.iris.builtin.IrisSeedPurposes;
 import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.builtin.objects.ObjectSettings;
-import art.arcane.iris.builtin.objects.ProceduralObjectSettings;
+import art.arcane.iris.modules.objects.ProceduralObjectSettings;
 import art.arcane.iris.engine.object.procedural.ResolvedProceduralObjects;
 import art.arcane.iris.modules.objects.Declaration;
 import art.arcane.iris.modules.objects.ObjectPool;

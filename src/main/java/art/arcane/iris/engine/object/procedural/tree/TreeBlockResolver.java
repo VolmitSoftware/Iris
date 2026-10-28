@@ -18,12 +18,12 @@
 
 package art.arcane.iris.engine.object.procedural.tree;
 
-import art.arcane.iris.builtin.objects.tree.TreeSecondaryLeaf;
-import art.arcane.iris.builtin.objects.tree.TreeDecorator;
+import art.arcane.iris.modules.objects.tree.TreeSecondaryLeaf;
+import art.arcane.iris.modules.objects.tree.TreeDecorator;
 import art.arcane.iris.modules.objects.ObjectBuilder;
 import com.volmit.block.PaletteSpec;
 import art.arcane.iris.engine.object.procedural.IrisProceduralBlocks;
-import art.arcane.iris.builtin.objects.tree.Tree;
+import art.arcane.iris.modules.objects.tree.Tree;
 import com.volmit.block.BlockState;
 import art.arcane.volmlib.util.math.RNG;
 
@@ -111,7 +111,7 @@ public final class TreeBlockResolver {
 
     private static String pickWeighted(Tree tree, RNG rng) {
         int total = 0;
-        for (art.arcane.iris.builtin.objects.tree.TreeSecondaryLeaf s : tree.weightedSecondaryLeaves()) {
+        for (art.arcane.iris.modules.objects.tree.TreeSecondaryLeaf s : tree.weightedSecondaryLeaves()) {
             total += Math.max(0, s.weight());
         }
         if (total <= 0) {
@@ -119,7 +119,7 @@ public final class TreeBlockResolver {
         }
         double r = rng.nextDouble() * total;
         double cumulative = 0;
-        for (art.arcane.iris.builtin.objects.tree.TreeSecondaryLeaf s : tree.weightedSecondaryLeaves()) {
+        for (art.arcane.iris.modules.objects.tree.TreeSecondaryLeaf s : tree.weightedSecondaryLeaves()) {
             cumulative += Math.max(0, s.weight());
             if (r < cumulative) {
                 return s.block();

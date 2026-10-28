@@ -20,7 +20,7 @@ package art.arcane.iris.engine.mantle.components;
 
 import art.arcane.iris.builtin.anchor.PlaceTrait;
 import art.arcane.iris.builtin.carve.CaveAnchorMode;
-import art.arcane.iris.builtin.carve.CaveProfile;
+import art.arcane.iris.modules.carve.CaveProfile;
 import art.arcane.iris.builtin.objects.PlacementSource;
 
 /** What a cave object placement takes from the cave profile that applies to it. */

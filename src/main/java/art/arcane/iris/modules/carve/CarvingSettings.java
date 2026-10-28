@@ -18,7 +18,6 @@
 
 package art.arcane.iris.modules.carve;
 
-import art.arcane.iris.builtin.carve.CarvingEntry;
 import com.volmit.config.Level;
 import com.volmit.IrisFeature;
 import com.volmit.config.Desc;

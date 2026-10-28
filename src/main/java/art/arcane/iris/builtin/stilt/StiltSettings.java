@@ -27,7 +27,7 @@ import com.volmit.config.Snippet;
 import java.util.Optional;
 
 /** How far and with which blocks an object stilts into the ground, written as the placement's {@code stiltSettings}. */
-@Snippet("stilt-settings")
+@Snippet("iris/stilt/stilt-settings")
 @Desc("Defines stilting behaviour.")
 public final class StiltSettings {
     @MinNumber(0)

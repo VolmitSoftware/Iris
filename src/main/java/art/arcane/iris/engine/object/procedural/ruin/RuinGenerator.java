@@ -18,8 +18,8 @@
 
 package art.arcane.iris.engine.object.procedural.ruin;
 
-import art.arcane.iris.builtin.objects.ruin.RuinDecorator;
-import art.arcane.iris.builtin.objects.ruin.Ruin;
+import art.arcane.iris.modules.objects.ruin.RuinDecorator;
+import art.arcane.iris.modules.objects.ruin.Ruin;
 import art.arcane.iris.modules.objects.ObjectBuilder;
 import art.arcane.iris.engine.object.procedural.ProceduralShape;
 import art.arcane.iris.engine.object.procedural.IrisProceduralBlocks;
@@ -126,7 +126,7 @@ public final class RuinGenerator {
             return;
         }
         int decoratorIndex = 0;
-        for (art.arcane.iris.builtin.objects.ruin.RuinDecorator decorator : ruin.accents()) {
+        for (art.arcane.iris.modules.objects.ruin.RuinDecorator decorator : ruin.accents()) {
             RuinDecoratorApplier.apply(canvas, decorator, blocks, ruin.seed() + decoratorIndex * 911L, rng.nextParallelRNG(decoratorIndex + 1));
             decoratorIndex++;
         }

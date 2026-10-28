@@ -26,7 +26,7 @@ import com.volmit.config.Required;
 import com.volmit.config.Snippet;
 
 /** Whether a dimension's saplings grow the trees of its object placements, written as {@code "treeSettings": {...}}. */
-@Snippet("tree-settings")
+@Snippet("iris/objects/tree-settings")
 @Desc("Tree growth override settings")
 @Feature(id = "iris:objects/trees", name = "Tree growth", key = "treeSettings", targets = Level.DIMENSION)
 public final class TreeGrowthSettings implements IrisFeature {

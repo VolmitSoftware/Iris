@@ -18,7 +18,7 @@
 
 package art.arcane.iris.engine.object.procedural.formation;
 
-import art.arcane.iris.builtin.objects.formation.Formation;
+import art.arcane.iris.modules.objects.formation.Formation;
 
 
 public final class FormationProfiles {

@@ -21,7 +21,7 @@ package art.arcane.iris.engine.modifier;
 import art.arcane.iris.builtin.IrisSeedPurposes;
 import art.arcane.iris.builtin.decorant.DecorantSettings;
 import art.arcane.iris.builtin.decorant.DecorationPart;
-import art.arcane.iris.builtin.floating.FloatingBottomPaletteMode;
+import art.arcane.iris.modules.floating.FloatingBottomPaletteMode;
 import art.arcane.iris.builtin.prepare.SlopeClip;
 import art.arcane.iris.modules.terrain.BiomeLayers;
 import art.arcane.iris.modules.terrain.ColumnSlope;

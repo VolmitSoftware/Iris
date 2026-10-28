@@ -62,7 +62,7 @@ import java.util.Optional;
  * surface support); Iris's placement stages read the rest from the placement itself, so this keeps the JSON the placement
  * was written as ({@link #json()}) for Iris to read it again the way it reads placements everywhere else.
  */
-@Snippet("object-placer")
+@Snippet("iris/objects/object-placer")
 @Desc("Represents an iris object placer. It places objects.")
 @JsonAdapter(ObjectPlacement.KeepingItsJson.class)
 public final class ObjectPlacement implements PlacementSource {

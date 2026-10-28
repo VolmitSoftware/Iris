@@ -18,10 +18,10 @@
 
 package art.arcane.iris.engine.object.procedural.tree;
 
-import art.arcane.iris.builtin.objects.tree.TreeBranches;
-import art.arcane.iris.builtin.objects.tree.TreeFunction;
-import art.arcane.iris.builtin.objects.tree.TreeAzimuthMode;
-import art.arcane.iris.builtin.objects.tree.Tree;
+import art.arcane.iris.modules.objects.tree.TreeBranches;
+import art.arcane.iris.modules.objects.tree.TreeFunction;
+import art.arcane.iris.modules.objects.tree.TreeAzimuthMode;
+import art.arcane.iris.modules.objects.tree.Tree;
 import art.arcane.volmlib.util.math.RNG;
 
 public final class TreeFunctions {

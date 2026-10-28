@@ -18,8 +18,8 @@
 
 package art.arcane.iris.engine.object.procedural;
 
-import art.arcane.iris.builtin.objects.ProceduralObjectSettings;
-import art.arcane.iris.builtin.objects.tree.Tree;
+import art.arcane.iris.modules.objects.ProceduralObjectSettings;
+import art.arcane.iris.modules.objects.tree.Tree;
 import art.arcane.iris.engine.object.procedural.coral.ResolvedCoral;
 import art.arcane.iris.engine.object.procedural.crystal.ResolvedCrystal;
 import art.arcane.iris.engine.object.procedural.formation.ResolvedFormation;

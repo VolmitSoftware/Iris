@@ -28,7 +28,7 @@ import com.volmit.config.Snippet;
 import java.util.Collections;
 import java.util.List;
 
-@Snippet("command-registry")
+@Snippet("iris/spawn/command-registry")
 @Desc("Represents a casting location for a command")
 public final class EffectCommands {
     @Required

@@ -20,7 +20,7 @@ package art.arcane.iris.engine.object.procedural.formation;
 
 import com.volmit.block.PaletteSpec;
 import java.util.Optional;
-import art.arcane.iris.builtin.objects.formation.Formation;
+import art.arcane.iris.modules.objects.formation.Formation;
 import art.arcane.iris.modules.objects.ObjectBuilder;
 import art.arcane.iris.engine.object.procedural.IrisProceduralBlocks;
 import com.volmit.block.BlockState;

@@ -31,7 +31,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-@Snippet("loot")
+@Snippet("iris/loot/loot")
 @Desc("Represents a loot entry")
 public final class LootEntry {
     public static final int MAX_AMOUNT = 64;

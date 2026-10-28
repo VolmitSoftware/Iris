@@ -18,7 +18,7 @@
 
 package art.arcane.iris.engine.object.terrain.floating;
 
-import art.arcane.iris.builtin.floating.FloatingChildBiome;
+import art.arcane.iris.modules.floating.FloatingChildBiome;
 import art.arcane.iris.engine.object.terrain.carving.CaveProfileSampler;
 import art.arcane.volmlib.util.collection.KList;
 import com.volmit.ModuleLog;

@@ -30,7 +30,7 @@ import java.util.Objects;
  * How an object is turned around each axis, written as a placement's {@code rotation}. Positions turn around X, then Z,
  * then Y; an axis locked to a multiple of a quarter turn swaps coordinates exactly instead of turning by an angle.
  */
-@Snippet("object-rotator")
+@Snippet("iris/prepare/object-rotator")
 @Desc("Configures rotation for iris")
 public final class ObjectRotation {
     private static final double QUARTER_TURN_DEGREES = 90;

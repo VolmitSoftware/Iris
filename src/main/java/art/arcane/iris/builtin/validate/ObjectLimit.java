@@ -24,7 +24,7 @@ import com.volmit.config.MinNumber;
 import com.volmit.config.Snippet;
 
 /** The heights an object placement may sit between, written as the placement's {@code clamp}. */
-@Snippet("object-limit")
+@Snippet("iris/validate/object-limit")
 @Desc("Limits object placement by minimum and maximum world height")
 public final class ObjectLimit {
     @MinNumber(-2048)

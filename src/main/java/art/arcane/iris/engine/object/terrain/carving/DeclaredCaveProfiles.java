@@ -18,7 +18,7 @@
 
 package art.arcane.iris.engine.object.terrain.carving;
 
-import art.arcane.iris.builtin.carve.CaveProfile;
+import art.arcane.iris.modules.carve.CaveProfile;
 import com.volmit.resource.ResourceId;
 import com.volmit.world.PackWorld;
 

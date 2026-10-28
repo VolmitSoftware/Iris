@@ -19,7 +19,7 @@
 package art.arcane.iris.engine.object.terrain.carving;
 
 import art.arcane.iris.builtin.carve.CaveFieldModule;
-import art.arcane.iris.builtin.carve.CaveProfile;
+import art.arcane.iris.modules.carve.CaveProfile;
 import art.arcane.volmlib.util.math.M;
 import com.volmit.config.Range;
 import com.volmit.noise.NoiseFactory;

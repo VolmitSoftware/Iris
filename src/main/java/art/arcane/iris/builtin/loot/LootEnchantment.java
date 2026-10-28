@@ -26,7 +26,7 @@ import com.volmit.config.Reference;
 import com.volmit.config.Required;
 import com.volmit.config.Snippet;
 
-@Snippet("enchantment")
+@Snippet("iris/loot/enchantment")
 @Desc("Represents an enchantment & level")
 public final class LootEnchantment {
     @Required

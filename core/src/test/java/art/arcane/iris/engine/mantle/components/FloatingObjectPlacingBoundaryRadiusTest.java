@@ -20,7 +20,6 @@ package art.arcane.iris.engine.mantle.components;
 
 import art.arcane.iris.builtin.floating.FloatingChildBiome;
 import art.arcane.iris.modules.floating.FloatingChildSettings;
-import art.arcane.iris.builtin.floating.FloatingHost;
 import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.engine.object.TestSettings;
 import com.volmit.geometry.BlockBox;
@@ -60,7 +59,6 @@ public class FloatingObjectPlacingBoundaryRadiusTest {
     }
 
     private static PackSettings pack(FloatingChildSettings declared, PackResources resources) {
-        FloatingHost floating = mock(FloatingHost.class);
         return new PackSettings() {
             @Override
             @SuppressWarnings("unchecked")
@@ -71,7 +69,7 @@ public class FloatingObjectPlacingBoundaryRadiusTest {
 
             @Override
             public <T> Optional<T> extension(Class<T> type) {
-                return type == FloatingHost.class ? Optional.of(type.cast(floating)) : Optional.empty();
+                return Optional.empty();
             }
 
             @Override

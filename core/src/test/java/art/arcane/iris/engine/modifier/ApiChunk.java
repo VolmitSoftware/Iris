@@ -24,7 +24,6 @@ import art.arcane.volmlib.util.matter.Matter;
 import com.volmit.noise.NoiseSampler;
 import art.arcane.iris.builtin.IrisStages;
 import art.arcane.iris.builtin.IrisSeedPurposes;
-import art.arcane.iris.builtin.floating.FloatingHost;
 import art.arcane.iris.builtin.LegacyStreams;
 import com.volmit.block.BlockTurn;
 import com.volmit.object.PackObjects;
@@ -498,6 +497,16 @@ public final class ApiChunk implements GenerationContext {
         }
 
         @Override
+        public double biomeHeight(ResourceId biome, int worldX, int worldZ, long seed) {
+            throw new UnsupportedOperationException("This chunk has no floating islands to shape");
+        }
+
+        @Override
+        public Optional<ResourceId> skyBiome(ResourceId biome, int worldX, int worldZ) {
+            throw new UnsupportedOperationException("This chunk has no floating islands to paint sky biomes for");
+        }
+
+        @Override
         public OptionalInt upperDimensionY(int worldX, int worldZ) {
             requireInside(worldX, worldZ);
             return upperDimension == null ? OptionalInt.empty() : OptionalInt.of(upperDimension.applyAsInt(worldX, worldZ));
@@ -548,6 +557,11 @@ public final class ApiChunk implements GenerationContext {
         public MantleEdit edit() {
             throw new UnsupportedOperationException("Chunk stages do not edit the mantle");
         }
+
+        @Override
+        public void setPlatformBiome(int x, int y, int z, ResourceId biome) {
+            throw new UnsupportedOperationException("This chunk has no floating islands to paint sky biomes for");
+        }
     }
 
     private final class PlannedLayer implements MantleLayer<BlockState> {
@@ -593,7 +607,6 @@ public final class ApiChunk implements GenerationContext {
     private final class World implements PackWorld {
         private final Resources resources = new Resources();
         private final Map<Class<?>, Object> states = new HashMap<>();
-        private final FloatingHost floating = mock(FloatingHost.class);
         private final LegacyStreams streams = mock(LegacyStreams.class);
         private final Placements placements = mock(Placements.class);
         private final RunningWorld running = mock(RunningWorld.class);
@@ -607,7 +620,7 @@ public final class ApiChunk implements GenerationContext {
 
         @Override
         public <T> Optional<T> extension(Class<T> type) {
-            Object offered = type == FloatingHost.class ? floating : type == LegacyStreams.class ? streams : null;
+            Object offered = type == LegacyStreams.class ? streams : null;
             return Optional.ofNullable(offered).map(type::cast);
         }
 

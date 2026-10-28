@@ -18,15 +18,25 @@
 
 package art.arcane.iris.core.modules;
 
+import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.IrisComplex;
 import art.arcane.iris.engine.framework.Engine;
+import art.arcane.iris.engine.object.world.biome.IrisBiome;
+import art.arcane.iris.engine.object.world.biome.custom.IrisBiomeCustom;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.util.project.stream.ProceduralStream;
+import art.arcane.volmlib.util.collection.KList;
+import com.volmit.resource.ResourceId;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -62,6 +72,34 @@ public class IrisTerrainSamplerTest {
         IrisTerrainSampler terrain = new IrisTerrainSampler(engine, null, 0, 0, CHUNK_REACH);
 
         assertEquals(64D, terrain.surfaceY(1, 3), 0D);
+    }
+
+    @Test
+    public void aSkyBiomeIsTheBiomesCustomBiomeUnderTheDimensionOrItsSkyScatterPick() {
+        IrisBiome custom = new IrisBiome();
+        custom.setCustomDerivitives(new KList<>(List.of(new IrisBiomeCustom().setId("glow"))));
+        IrisBiome scattered = new IrisBiome();
+        scattered.setBiomeSkyScatter(new KList<>(List.of("cherry_grove")));
+        ResourceId customId = ResourceId.parse("overworld:glowing");
+        ResourceId scatteredId = ResourceId.parse("overworld:orchard");
+        packBiomes(Map.of(customId, custom, scatteredId, scattered));
+        IrisDimension dimension = new IrisDimension();
+        dimension.setLoadKey("overworld");
+        when(engine.getDimension()).thenReturn(dimension);
+        IrisTerrainSampler terrain = new IrisTerrainSampler(engine, null, 0, 0, CHUNK_REACH);
+
+        assertEquals(Optional.of(ResourceId.parse("overworld:glow")), terrain.skyBiome(customId, 3, 4));
+        assertEquals(Optional.of(ResourceId.parse("minecraft:cherry_grove")), terrain.skyBiome(scatteredId, 3, 4));
+        assertThrows(IllegalArgumentException.class, () -> terrain.skyBiome(ResourceId.parse("overworld:missing"), 3, 4));
+        assertThrows(IndexOutOfBoundsException.class, () -> terrain.skyBiome(customId, 32, 0));
+    }
+
+    private void packBiomes(Map<ResourceId, IrisBiome> biomes) {
+        IrisPackResources resources = mock(IrisPackResources.class);
+        when(resources.irisBiome(any())).thenAnswer(invocation -> Optional.ofNullable(biomes.get(invocation.getArgument(0, ResourceId.class))));
+        IrisData data = mock(IrisData.class);
+        when(data.getPackResources()).thenReturn(resources);
+        when(engine.getData()).thenReturn(data);
     }
 
     @Test

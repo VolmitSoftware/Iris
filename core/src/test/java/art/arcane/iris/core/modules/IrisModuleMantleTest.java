@@ -25,6 +25,9 @@ import art.arcane.iris.engine.framework.SeedManager;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
+import art.arcane.iris.spi.IrisPlatform;
+import art.arcane.iris.spi.IrisPlatforms;
+import art.arcane.iris.spi.PlatformBiomeWriter;
 import art.arcane.iris.util.project.matter.IrisMatterSupport;
 import art.arcane.volmlib.util.function.Consumer4;
 import art.arcane.volmlib.util.io.CountingDataInputStream;
@@ -33,7 +36,9 @@ import art.arcane.volmlib.util.mantle.runtime.MantleDataAdapter;
 import art.arcane.volmlib.util.mantle.runtime.MantleHooks;
 import art.arcane.volmlib.util.matter.IrisMatter;
 import art.arcane.volmlib.util.matter.Matter;
+import art.arcane.volmlib.util.matter.MatterBiomeInject;
 import art.arcane.volmlib.util.matter.MatterSlice;
+import com.volmit.resource.ResourceId;
 import com.volmit.block.BlockState;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
@@ -113,6 +118,33 @@ public class IrisModuleMantleTest {
 
     private IrisModuleMantle mantle(BlockBox bounds) {
         return new IrisModuleMantle(bounds, this::chunk, LAYERS, PlannedBlocks.none(bounds));
+    }
+
+    /** The form the floating islands' sky biomes always had: the platform's id for the biome, as a custom inject, at the height above the bottom. */
+    @Test
+    public void aPlatformBiomeIsStoredAsTheBiomePassReadsIt() {
+        PlatformBiomeWriter biomeWriter = mock(PlatformBiomeWriter.class);
+        when(biomeWriter.biomeIdFor("minecraft:cherry_grove")).thenReturn(42);
+        IrisPlatform platform = mock(IrisPlatform.class);
+        when(platform.biomeWriter()).thenReturn(biomeWriter);
+        IrisPlatform previous = IrisPlatforms.isBound() ? IrisPlatforms.get() : null;
+        IrisPlatforms.unbind();
+        IrisPlatforms.bind(platform);
+        try {
+            IrisModuleMantle mantle = mantle(new BlockBox(0, 0, 0, 16, HEIGHT, 16));
+
+            mantle.setPlatformBiome(5, 37, 9, ResourceId.parse("minecraft:cherry_grove"));
+
+            assertEquals(new MatterBiomeInject(true, 42, null), chunk(0, 0).get(5, 37, 9, MatterBiomeInject.class));
+            assertNull(chunk(0, 0).get(5, 36, 9, MatterBiomeInject.class));
+            assertThrows(IndexOutOfBoundsException.class,
+                    () -> mantle.setPlatformBiome(16, 37, 9, ResourceId.parse("minecraft:cherry_grove")));
+        } finally {
+            IrisPlatforms.unbind();
+            if (previous != null) {
+                IrisPlatforms.bind(previous);
+            }
+        }
     }
 
     @Test

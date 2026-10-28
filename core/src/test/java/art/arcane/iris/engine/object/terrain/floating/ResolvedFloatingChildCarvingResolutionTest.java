@@ -2,7 +2,6 @@ package art.arcane.iris.engine.object.terrain.floating;
 
 import art.arcane.iris.builtin.carve.CarvingEntry;
 import art.arcane.iris.builtin.floating.FloatingChildBiome;
-import art.arcane.iris.builtin.floating.FloatingHost;
 import art.arcane.iris.engine.object.TestSettings;
 import com.google.gson.Gson;
 import com.volmit.resource.PackResources;
@@ -53,6 +52,6 @@ public class ResolvedFloatingChildCarvingResolutionTest {
             ResourceId id = invocation.getArgument(1);
             return biomes.containsValue(id) ? Optional.of(new PackBiome(id, id.path(), id, 1, List.of())) : Optional.empty();
         });
-        return new FloatingWorld(mock(FloatingHost.class), resources, null, 0L, 0L, 0, dimensionCarving);
+        return new FloatingWorld(resources, null, 0L, 0L, 0, dimensionCarving);
     }
 }

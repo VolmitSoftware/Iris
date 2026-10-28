@@ -18,7 +18,6 @@
 
 package art.arcane.iris.core.modules;
 
-import art.arcane.iris.builtin.floating.FloatingHost;
 import art.arcane.iris.builtin.LegacyStreams;
 import art.arcane.iris.builtin.spawn.SpawnCooldowns;
 import art.arcane.iris.builtin.structure.StructureHost;
@@ -38,7 +37,7 @@ import java.util.function.Function;
  * state modules keep for it. {@link ModuleWorlds} makes one when the runtime is built and a new one whenever the
  * pack's resources reload under it. Iris's built-in modules reach what they need of Iris through its
  * {@linkplain #extension extensions}: the spawners' cooldowns Iris saves with the world, Iris's legacy random streams,
- * and the floating and structure hosts.
+ * and the structure host.
  */
 public final class IrisPackWorld implements PackWorld {
     private final Engine engine;
@@ -49,7 +48,6 @@ public final class IrisPackWorld implements PackWorld {
     private volatile RunningWorld running;
     private final LegacyStreams legacyStreams;
     private final Placements placements;
-    private volatile IrisFloatingHost floatingHost;
     private volatile IrisStructureHost structureHost;
 
     IrisPackWorld(Engine engine) {
@@ -133,22 +131,10 @@ public final class IrisPackWorld implements PackWorld {
         if (type == LegacyStreams.class) {
             return legacyStreams;
         }
-        if (type == FloatingHost.class) {
-            return floating();
-        }
         if (type == StructureHost.class) {
             return structures();
         }
         return null;
-    }
-
-    private FloatingHost floating() {
-        IrisFloatingHost host = floatingHost;
-        if (host == null) {
-            host = new IrisFloatingHost(engine);
-            floatingHost = host;
-        }
-        return host;
     }
 
     private StructureHost structures() {

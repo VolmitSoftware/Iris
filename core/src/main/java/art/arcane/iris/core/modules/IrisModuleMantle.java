@@ -20,8 +20,12 @@ package art.arcane.iris.core.modules;
 
 import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
 import art.arcane.volmlib.util.matter.Matter;
+import art.arcane.volmlib.util.matter.MatterBiomeInject;
 import art.arcane.volmlib.util.matter.MatterSlice;
+import art.arcane.volmlib.util.matter.slices.BiomeInjectMatter;
+import art.arcane.iris.spi.IrisPlatforms;
 import com.volmit.block.BlockState;
+import com.volmit.resource.ResourceId;
 import com.volmit.host.MantleRegistration;
 import art.arcane.iris.builtin.MatterMantle;
 import com.volmit.geometry.BlockBox;
@@ -114,6 +118,18 @@ final class IrisModuleMantle implements Mantle, MatterMantle {
     @Override
     public boolean isCarved(int x, int y, int z) {
         return new MantleCaverns(bounds, chunks).isCarved(x, y, z);
+    }
+
+    /** Stored as the biome pass reads it: the platform's id for the biome, as a custom biome inject. */
+    @Override
+    public void setPlatformBiome(int x, int y, int z, ResourceId biome) {
+        Objects.requireNonNull(biome, "biome");
+        requireNoOpenEdit();
+        MatterBiomeInject inject = BiomeInjectMatter.get(IrisPlatforms.get().biomeWriter().biomeIdFor(biome.toString()));
+        MantleChunk<Matter> chunk = chunkAt(x, y, z);
+        synchronized (chunk) {
+            chunk.getOrCreate(y >> SECTION_SHIFT).slice(MatterBiomeInject.class).set(x & LOCAL_MASK, y & LOCAL_MASK, z & LOCAL_MASK, inject);
+        }
     }
 
     @Override
@@ -270,6 +286,11 @@ final class IrisModuleMantle implements Mantle, MatterMantle {
         @Override
         public MantleEdit edit() {
             throw new UnsupportedOperationException("Mantle edits cannot be nested; write through this edit");
+        }
+
+        @Override
+        public void setPlatformBiome(int x, int y, int z, ResourceId biome) {
+            throw new UnsupportedOperationException("An edit buffers module layers only; set platform biomes on the mantle itself");
         }
 
         /** Publishes every change, or none when a chunk it touches is missing; the edit then only closes. */

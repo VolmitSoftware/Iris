@@ -126,6 +126,16 @@ public final class CarveTestTerrain implements TerrainSampler {
         return Optional.empty();
     }
 
+    @Override
+    public double biomeHeight(ResourceId biome, int worldX, int worldZ, long seed) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Optional<ResourceId> skyBiome(ResourceId biome, int worldX, int worldZ) {
+        throw new UnsupportedOperationException();
+    }
+
     private void require(int worldX, int y, int worldZ) {
         if (!bounds().contains(worldX, y, worldZ)) {
             throw new IndexOutOfBoundsException(worldX + ", " + y + ", " + worldZ + " is outside " + bounds());

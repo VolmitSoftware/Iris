@@ -24,6 +24,7 @@ import art.arcane.iris.engine.object.world.biome.InferredType;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.util.common.data.B;
+import art.arcane.volmlib.util.math.RNG;
 import com.volmit.block.BlockState;
 import com.volmit.geometry.BlockBox;
 import com.volmit.resource.ResourceId;
@@ -44,6 +45,8 @@ import java.util.OptionalInt;
  */
 final class IrisTerrainSampler implements TerrainSampler {
     private static final int CHUNK_WIDTH_BLOCKS = 16;
+    /** Passed where Iris's biome picks take a random they ignore when given the engine. */
+    private static final RNG UNUSED_RANDOM = new RNG(0L);
 
     private final Engine engine;
     private final PackResourceIds ids;
@@ -158,6 +161,31 @@ final class IrisTerrainSampler implements TerrainSampler {
     public Optional<BlockState> surfaceBlock(int worldX, int worldZ) {
         requireInside(worldX, bounds.minY(), worldZ);
         return Optional.ofNullable(engine.getComplex().getImageMapRuntime().sampleSurfaceBlock(worldX, worldZ)).map(states::toApi);
+    }
+
+    @Override
+    public double biomeHeight(ResourceId biome, int worldX, int worldZ, long seed) {
+        requireInside(worldX, bounds.minY(), worldZ);
+        return irisBiome(biome).getHeight(engine, worldX, worldZ, seed);
+    }
+
+    /**
+     * The biome generator Iris picks custom and sky biomes with is seeded from the world's biome seed whenever there is an
+     * engine, so these picks need no random of their own.
+     */
+    @Override
+    public Optional<ResourceId> skyBiome(ResourceId biome, int worldX, int worldZ) {
+        requireInside(worldX, bounds.minY(), worldZ);
+        IrisBiome target = irisBiome(biome);
+        String key = target.isCustom()
+                ? engine.getDimension().getLoadKey() + ":" + target.getCustomBiome(UNUSED_RANDOM, engine, worldX, 0, worldZ).getId()
+                : target.getSkyBiomeKey(UNUSED_RANDOM, engine, worldX, 0, worldZ);
+        return Optional.ofNullable(key).map(ResourceId::ofPlatformKey);
+    }
+
+    private IrisBiome irisBiome(ResourceId biome) {
+        return ((IrisPackResources) engine.getData().getPackResources()).irisBiome(biome)
+                .orElseThrow(() -> new IllegalArgumentException("The pack has no biome " + biome));
     }
 
     @Override

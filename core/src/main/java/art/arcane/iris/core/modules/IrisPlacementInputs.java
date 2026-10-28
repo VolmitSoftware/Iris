@@ -25,6 +25,7 @@ import com.volmit.config.FeatureSettings;
 import com.volmit.geometry.BlockBox;
 import com.volmit.object.ObjectTransformer;
 import com.volmit.placement.PlacementContext;
+import com.volmit.resource.ResourceId;
 import com.volmit.world.BiomeKind;
 import com.volmit.world.BiomeSample;
 import com.volmit.world.BlockView;
@@ -127,6 +128,16 @@ final class IrisPlacementInputs implements PlacementContext {
 
             @Override
             public Optional<UpperDimension> upperDimension() {
+                throw withoutEngine();
+            }
+
+            @Override
+            public double biomeHeight(ResourceId biome, int worldX, int worldZ, long seed) {
+                throw withoutEngine();
+            }
+
+            @Override
+            public Optional<ResourceId> skyBiome(ResourceId biome, int worldX, int worldZ) {
                 throw withoutEngine();
             }
         };

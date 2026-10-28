@@ -160,5 +160,15 @@ public class CaveApplyingBoundarySupportTest {
         public Optional<UpperDimension> upperDimension() {
             throw new UnsupportedOperationException();
         }
+
+        @Override
+        public double biomeHeight(ResourceId biome, int worldX, int worldZ, long seed) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public Optional<ResourceId> skyBiome(ResourceId biome, int worldX, int worldZ) {
+            throw new UnsupportedOperationException();
+        }
     }
 }

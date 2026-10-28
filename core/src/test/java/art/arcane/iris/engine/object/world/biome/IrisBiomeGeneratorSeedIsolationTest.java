@@ -4,10 +4,15 @@ import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.SeedManager;
+import art.arcane.iris.engine.object.world.biome.custom.IrisBiomeCustom;
 import art.arcane.iris.util.project.noise.CNG;
+import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
 import org.junit.Test;
 
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -18,6 +23,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -95,6 +101,40 @@ public class IrisBiomeGeneratorSeedIsolationTest {
         } finally {
             executor.shutdownNow();
         }
+    }
+
+    /** The floating islands' sky biome painting relies on this: with an engine, the random a caller passes never changes the pick. */
+    @Test
+    public void skyAndCustomBiomePicksIgnoreTheRandomWhenAnEngineIsGiven() {
+        Engine engine = engine(1337L);
+        IrisBiome first = scatteredBiome();
+        IrisBiome second = scatteredBiome();
+        Set<String> skyPicks = new HashSet<>();
+        Set<String> customPicks = new HashSet<>();
+
+        for (int x = -400; x <= 400; x += 40) {
+            for (int z = -400; z <= 400; z += 40) {
+                String sky = first.getSkyBiomeKey(new RNG(8457289L), engine, x, 0, z);
+                assertEquals(sky, second.getSkyBiomeKey(new RNG(-991245L), engine, x, 0, z));
+                String custom = first.getCustomBiome(new RNG(11L), engine, x, 0, z).getId();
+                assertEquals(custom, second.getCustomBiome(new RNG(99L), engine, x, 0, z).getId());
+                skyPicks.add(sky);
+                customPicks.add(custom);
+            }
+        }
+
+        assertTrue("the grid must reach more than one sky pick", skyPicks.size() > 1);
+        assertTrue("the grid must reach more than one custom pick", customPicks.size() > 1);
+    }
+
+    private IrisBiome scatteredBiome() {
+        IrisBiome biome = biome(null);
+        biome.setBiomeSkyScatter(new KList<>(List.of("plains", "desert", "taiga", "jungle")));
+        biome.setCustomDerivitives(new KList<>(List.of(
+                new IrisBiomeCustom().setId("first"),
+                new IrisBiomeCustom().setId("second"),
+                new IrisBiomeCustom().setId("third"))));
+        return biome;
     }
 
     @Test

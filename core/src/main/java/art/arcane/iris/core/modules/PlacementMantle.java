@@ -28,6 +28,7 @@ import com.volmit.mantle.MantleEdit;
 import com.volmit.mantle.MantleKey;
 import com.volmit.mantle.MantleLayer;
 import com.volmit.mantle.MantleVisitor;
+import com.volmit.resource.ResourceId;
 
 import java.util.Collection;
 import java.util.Objects;
@@ -81,6 +82,11 @@ final class PlacementMantle implements Mantle, AutoCloseable {
     @Override
     public MantleEdit edit() {
         throw new UnsupportedOperationException("The placement owns the mantle edit; write through layer()");
+    }
+
+    @Override
+    public void setPlatformBiome(int x, int y, int z, ResourceId biome) {
+        throw new UnsupportedOperationException("A placement writes blocks and module layers; stages set platform biomes");
     }
 
     /** Publishes everything the placement wrote, or nothing when a mantle chunk it touches is missing. */

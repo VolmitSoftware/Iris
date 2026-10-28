@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.builtin.objects;
+package art.arcane.iris.modules.objects;
 
 import com.volmit.config.Desc;
 

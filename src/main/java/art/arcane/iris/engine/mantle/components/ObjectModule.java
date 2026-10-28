@@ -23,7 +23,7 @@ import art.arcane.iris.builtin.objects.ObjectSettings;
 import art.arcane.iris.modules.objects.ProceduralObjectSettings;
 import art.arcane.iris.builtin.objects.RequireSurfaceSupportSettings;
 import art.arcane.iris.builtin.objects.SurfaceSupportBufferSettings;
-import art.arcane.iris.builtin.objects.TreeGrowthSettings;
+import art.arcane.iris.modules.objects.TreeGrowthSettings;
 import art.arcane.iris.builtin.objects.UpperObjectsForceSettings;
 import art.arcane.iris.builtin.objects.UpperObjectsSettings;
 import com.volmit.IrisModule;

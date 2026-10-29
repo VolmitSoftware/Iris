@@ -6,12 +6,22 @@ import io.papermc.paper.plugin.bootstrap.PluginProviderContext;
 import io.papermc.paper.plugin.loader.PluginClasspathBuilder;
 import io.papermc.paper.plugin.loader.PluginLoader;
 import io.papermc.paper.plugin.loader.library.impl.JarLibrary;
+import io.papermc.paper.plugin.loader.library.impl.MavenLibraryResolver;
+import org.bukkit.configuration.file.YamlConfiguration;
+import org.eclipse.aether.artifact.DefaultArtifact;
+import org.eclipse.aether.graph.Dependency;
+import org.eclipse.aether.repository.RemoteRepository;
 
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.stream.Stream;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 
 @SuppressWarnings("UnstableApiUsage")
 public final class IrisPluginLoader implements PluginLoader {
@@ -40,6 +50,21 @@ public final class IrisPluginLoader implements PluginLoader {
                 classpathBuilder.addLibrary(new JarLibrary(library));
             }
         }
+        classpathBuilder.addLibrary(mavenResolver(mavenLibraries(context.getPluginSource())));
+    }
+
+    static List<String> mavenLibraries(Path pluginJar) {
+        try (ZipFile jar = new ZipFile(pluginJar.toFile())) {
+            ZipEntry descriptor = jar.getEntry("plugin.yml");
+            if (descriptor == null) {
+                throw new IllegalStateException("The Iris jar " + pluginJar + " has no plugin.yml library list.");
+            }
+            try (Reader reader = new InputStreamReader(jar.getInputStream(descriptor), StandardCharsets.UTF_8)) {
+                return YamlConfiguration.loadConfiguration(reader).getStringList("libraries");
+            }
+        } catch (IOException failure) {
+            throw new IllegalStateException("Unable to read the Iris library list from " + pluginJar + ".", failure);
+        }
     }
 
     static List<Path> relocatedLibraries(Path libraryRoot) {
@@ -57,6 +82,16 @@ public final class IrisPluginLoader implements PluginLoader {
         } catch (IOException failure) {
             throw new IllegalStateException("Unable to enumerate provisioned Iris runtime libraries.", failure);
         }
+    }
+
+    private static MavenLibraryResolver mavenResolver(List<String> coordinates) {
+        MavenLibraryResolver resolver = new MavenLibraryResolver();
+        resolver.addRepository(new RemoteRepository.Builder("central", "default",
+                MavenLibraryResolver.MAVEN_CENTRAL_DEFAULT_MIRROR).build());
+        for (String coordinate : coordinates) {
+            resolver.addDependency(new Dependency(new DefaultArtifact(coordinate), null));
+        }
+        return resolver;
     }
 
     private static boolean isRelocatedLibrary(Path path) {

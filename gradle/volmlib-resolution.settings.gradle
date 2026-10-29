@@ -120,7 +120,9 @@ if (irisLocalVolmLibDirectory == null) {
         }
     }
 } else {
-    String commit = irisGit(irisLocalVolmLibDirectory, 'rev-parse', 'HEAD')
+    String root = irisGit(irisLocalVolmLibDirectory, 'rev-parse', '--show-toplevel')
+    boolean ownRepository = root != null && new File(root).canonicalPath == irisLocalVolmLibDirectory.canonicalPath
+    String commit = ownRepository ? irisGit(irisLocalVolmLibDirectory, 'rev-parse', 'HEAD') : null
     String status = commit == null ? null : irisGit(irisLocalVolmLibDirectory, '--no-optional-locks', 'status', '--porcelain')
     String dirty = status == null ? 'unknown' : String.valueOf(!status.isEmpty())
     irisVolmLibStamp = [source: 'local', commit: commit ?: 'unknown', dirty: dirty]

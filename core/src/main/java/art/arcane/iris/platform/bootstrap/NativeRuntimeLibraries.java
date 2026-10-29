@@ -65,13 +65,16 @@ public final class NativeRuntimeLibraries {
     public URLClassLoader openProviderLoader(Path downloads) {
         try {
             List<URL> urls = providerUrls(downloads, NativeRuntimeLibraries.class.getClassLoader());
-            URLClassLoader loader = new URLClassLoader("Iris native providers", urls.toArray(URL[]::new),
-                    NativeAdapters.class.getClassLoader());
+            URLClassLoader loader = providerLoader(urls.toArray(URL[]::new), NativeAdapters.class.getClassLoader());
             NativeAdapters.registerProviderLoader(loader);
             return loader;
         } catch (IOException exception) {
             throw new IllegalStateException("Cannot open native provider loader", exception);
         }
+    }
+
+    static URLClassLoader providerLoader(URL[] urls, ClassLoader parent) {
+        return new ProviderClassLoader(urls, parent);
     }
 
     List<URL> providerUrls(Path downloads, ClassLoader resources) throws IOException {
@@ -122,5 +125,29 @@ public final class NativeRuntimeLibraries {
     }
 
     private record Provider(String module, String version, String sha256) {
+    }
+
+    private static final class ProviderClassLoader extends URLClassLoader {
+        private ProviderClassLoader(URL[] urls, ClassLoader parent) {
+            super("Iris native providers", urls, parent);
+        }
+
+        @Override
+        protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
+            synchronized (getClassLoadingLock(name)) {
+                Class<?> loaded = findLoadedClass(name);
+                if (loaded == null) {
+                    try {
+                        loaded = findClass(name);
+                    } catch (ClassNotFoundException absent) {
+                        return super.loadClass(name, resolve);
+                    }
+                }
+                if (resolve) {
+                    resolveClass(loaded);
+                }
+                return loaded;
+            }
+        }
     }
 }

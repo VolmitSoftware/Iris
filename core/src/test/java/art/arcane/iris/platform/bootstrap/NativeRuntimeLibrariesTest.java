@@ -3,6 +3,8 @@ package art.arcane.iris.platform.bootstrap;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.Opcodes;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -25,6 +27,7 @@ import java.util.stream.Stream;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
@@ -39,6 +42,20 @@ public class NativeRuntimeLibrariesTest {
         assertThrows(IllegalStateException.class, () -> NativeRuntimeLibraries.from(fixture.manifest(), "26.2.0"));
         fixture.manifest().remove("storage");
         assertThrows(IllegalStateException.class, () -> NativeRuntimeLibraries.from(fixture.manifest(), "26.2.0"));
+    }
+
+    @Test
+    public void providerClassesLoadFromTheProviderJarBeforeThePluginLoader() throws Exception {
+        String implementation = "art/arcane/volmlib/nativelib/v26_2_R1/Probe";
+        String api = "art/arcane/volmlib/nativelib/Api";
+        Path plugin = classJar("plugin.jar", implementation, api);
+        Path provider = classJar("provider.jar", implementation);
+        try (URLClassLoader parent = new URLClassLoader(new URL[]{plugin.toUri().toURL()}, null);
+             URLClassLoader loader = NativeRuntimeLibraries.providerLoader(new URL[]{provider.toUri().toURL()}, parent)) {
+            assertSame(loader, loader.loadClass(implementation.replace('/', '.')).getClassLoader());
+            assertSame(parent, loader.loadClass(api.replace('/', '.')).getClassLoader());
+            assertSame(String.class, loader.loadClass("java.lang.String"));
+        }
     }
 
     @Test
@@ -154,6 +171,21 @@ public class NativeRuntimeLibrariesTest {
             Files.write(providers.resolve(module + ".jar"), bytes);
         }
         return new EmbeddedFixture(properties, resources);
+    }
+
+    private Path classJar(String name, String... classes) throws IOException {
+        Path jar = temporary.newFolder().toPath().resolve(name);
+        try (JarOutputStream output = new JarOutputStream(Files.newOutputStream(jar))) {
+            for (String type : classes) {
+                ClassWriter writer = new ClassWriter(0);
+                writer.visit(Opcodes.V17, Opcodes.ACC_PUBLIC, type, null, "java/lang/Object", null);
+                writer.visitEnd();
+                output.putNextEntry(new JarEntry(type + ".class"));
+                output.write(writer.toByteArray());
+                output.closeEntry();
+            }
+        }
+        return jar;
     }
 
     private static void assertNoFailedExtract(Path downloads) throws IOException {

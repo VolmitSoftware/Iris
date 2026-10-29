@@ -179,13 +179,6 @@ def jarJar = configurations.create('jarJar')
 dependencies {
     add('included', project(path: ':core', configuration: 'shadow'))
     add('included', project(path: ':adapters:bukkit:plugin', configuration: 'runtimeElements'))
-    // Shaded: the runtime downloader can neither fetch the natives classifiers nor relocate lwjgl's own jar.
-    add('included', libs.lwjgl)
-    add('included', libs.lwjgl.opengl)
-    add('included', libs.lwjgl.egl)
-    add('included', libs.lwjgl.jawt)
-    add('included', variantOf(libs.lwjgl) { classifier('natives-linux') })
-    add('included', variantOf(libs.lwjgl.opengl) { classifier('natives-linux') })
     add('jarJar', project(':core:agent'))
 }
 
@@ -742,7 +735,7 @@ pluginPackaging {
             policyName = 'Iris Bukkit'
             packed = true
             packedJarAccessors = ['art/arcane/iris/platform/bukkit/plugin/VolmitPlugin#getJarFile']
-            packedPayloadOnlyPrefixes = ['linux/x64/org/lwjgl/', 'iris-language-guides/']
+            packedPayloadOnlyPrefixes = ['iris-language-guides/']
             stripDirectories = true
             stripLocalVariables = true
             releaseCompression = providers.gradleProperty('compactRelease')

@@ -28,6 +28,16 @@ dependencies {
     }
 }
 
+String lwjglVersion = libs.versions.lwjgl.get()
+List<String> mavenLibraries = [
+    "org.lwjgl:lwjgl:${lwjglVersion}",
+    "org.lwjgl:lwjgl:jar:natives-linux:${lwjglVersion}",
+    "org.lwjgl:lwjgl-opengl:${lwjglVersion}",
+    "org.lwjgl:lwjgl-opengl:jar:natives-linux:${lwjglVersion}",
+    "org.lwjgl:lwjgl-egl:${lwjglVersion}",
+    "org.lwjgl:lwjgl-jawt:${lwjglVersion}",
+].collect { GString coordinate -> coordinate.toString() }
+
 tasks.named('processResources').configure {
     def pluginProperties = [
         name      : rootProject.name,
@@ -35,6 +45,7 @@ tasks.named('processResources').configure {
         apiVersion: apiVersion,
         main      : mainClass,
         bootstrapper: bootstrapperClass,
+        libraries : mavenLibraries.collect { String coordinate -> "'${coordinate}'" }.join(', '),
     ]
     inputs.properties(pluginProperties)
     filesMatching(['**/paper-plugin.yml', '**/plugin.yml']) {

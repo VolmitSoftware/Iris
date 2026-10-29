@@ -27,3 +27,4 @@ permissions:
     description: Allows survival players to fell Iris-managed trees with an axe.
     default: op
 api-version: '${apiVersion}'
+libraries: [ ${libraries} ]

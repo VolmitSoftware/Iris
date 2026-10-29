@@ -26,7 +26,6 @@ art/arcane/iris/generation/decoration/IrisSpeleothems.java
 art/arcane/iris/generation/decoration/IrisSurface.java
 art/arcane/iris/generation/decoration/tree/IrisTree.java
 art/arcane/iris/generation/geometry/AxisAlignedBB.java
-art/arcane/iris/generation/mantle/MantleWriter.java
 art/arcane/iris/generation/runtime/BukkitEngineWorldManager.java
 art/arcane/iris/generation/runtime/EngineAssignedWorldManager.java
 art/arcane/iris/generation/runtime/EnginePlayer.java
@@ -57,7 +56,6 @@ art/arcane/iris/integration/data/NexoDataProvider.java
 art/arcane/iris/integration/data/OraxenDataProvider.java
 art/arcane/iris/localization/C.java
 art/arcane/iris/pack/IrisConverter.java
-art/arcane/iris/pack/IrisPack.java
 art/arcane/iris/pack/IrisPackBenchmarking.java
 art/arcane/iris/pack/datapack/DatapackIngestService.java
 art/arcane/iris/pack/datapack/ServerConfigurator.java
@@ -126,8 +124,10 @@ art/arcane/iris/studio/jigsaw/JigsawStudioAutosaveScheduler.java
 art/arcane/iris/studio/jigsaw/JigsawStudioCapture.java
 art/arcane/iris/studio/jigsaw/JigsawStudioCaptureScheduler.java
 art/arcane/iris/studio/jigsaw/JigsawStudioChunkWriter.java
+art/arcane/iris/studio/jigsaw/JigsawStudioConnectorTool.java
 art/arcane/iris/studio/jigsaw/JigsawStudioDetailsMenu.java
 art/arcane/iris/studio/jigsaw/JigsawStudioDirtyTracker.java
+art/arcane/iris/studio/jigsaw/JigsawStudioFloorPainter.java
 art/arcane/iris/studio/jigsaw/JigsawStudioGraphMutations.java
 art/arcane/iris/studio/jigsaw/JigsawStudioMainMenu.java
 art/arcane/iris/studio/jigsaw/JigsawStudioMarkerParser.java

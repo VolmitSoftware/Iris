@@ -58,6 +58,7 @@ import art.arcane.volmlib.util.director.help.DirectorMiniMenu;
 import art.arcane.volmlib.util.localization.BukkitLanguageSwitcher;
 import art.arcane.iris.integration.MultiverseCoreLink;
 import art.arcane.iris.platform.agent.Agent;
+import art.arcane.iris.platform.agent.AttachSignal;
 import art.arcane.iris.platform.bukkit.nms.INMS;
 import art.arcane.volmlib.nativelib.terrain.ServerShutdownBoundary;
 import art.arcane.iris.studio.view.BukkitGuiHost;
@@ -579,6 +580,17 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
                 this::getIrisVersion,
                 this::getMCVersion));
         SlimJar.load();
+        restoreAttachSignal();
+    }
+
+    private static void restoreAttachSignal() {
+        try {
+            if (AttachSignal.restoreJvmHandler()) {
+                info("Restored the JVM SIGQUIT handler that the server console replaced");
+            }
+        } catch (RuntimeException failure) {
+            reportError("Could not restore the JVM SIGQUIT handler; the Iris agent may fail to attach.", failure);
+        }
     }
 
     private static void bridgeLog(LogLevel level, String message) {

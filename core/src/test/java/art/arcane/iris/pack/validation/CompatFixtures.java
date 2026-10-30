@@ -15,6 +15,7 @@ import art.arcane.volmlib.nativelib.item.NativeItem;
 import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.iris.spi.PlatformScheduler;
 import art.arcane.iris.spi.PlatformStructureHooks;
+import art.arcane.iris.spi.VanillaDataSource;
 import art.arcane.volmlib.nativelib.terrain.NativeWorld;
 
 import java.io.File;
@@ -355,6 +356,11 @@ final class CompatFixtures {
 
         @Override
         public PlatformBiomeWriter biomeWriter() {
+            return null;
+        }
+
+        @Override
+        public VanillaDataSource vanillaData() {
             return null;
         }
 

@@ -54,7 +54,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.LockSupport;
 
-final class RealPackProbeSupport {
+public final class RealPackProbeSupport {
     private static final long WORKER_DRAIN_TIMEOUT_NANOS = TimeUnit.SECONDS.toNanos(120);
     private static final List<Throwable> REPORTED = Collections.synchronizedList(new ArrayList<>());
 
@@ -208,7 +208,7 @@ final class RealPackProbeSupport {
         throw new IllegalArgumentException(name + " must be true or false.");
     }
 
-    static GeneratedChunk generateChunk(Engine engine, int chunkX, int chunkZ) {
+    public static GeneratedChunk generateChunk(Engine engine, int chunkX, int chunkZ) {
         int height = engine.getTarget().getHeight();
         Hunk<NativeBlockState> blocks = Hunk.newArrayHunk(16, height, 16);
         Hunk<NativeBiome> biomes = Hunk.newArrayHunk(16, height, 16);
@@ -220,14 +220,14 @@ final class RealPackProbeSupport {
         return new GeneratedChunk(chunkX, chunkZ, height, blocks, biomes);
     }
 
-    record GeneratedChunk(
+    public record GeneratedChunk(
             int chunkX,
             int chunkZ,
             int height,
             Hunk<NativeBlockState> blocks,
             Hunk<NativeBiome> biomes
     ) {
-        GeneratedChunk {
+        public GeneratedChunk {
             if (height < 1 || blocks == null || biomes == null) {
                 throw new IllegalArgumentException("Generated chunk requires buffers and a positive height.");
             }

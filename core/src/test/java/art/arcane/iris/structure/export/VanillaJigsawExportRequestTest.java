@@ -1,5 +1,6 @@
 package art.arcane.iris.structure.export;
 
+import art.arcane.iris.pack.datapack.export.DatapackExportFormat;
 import art.arcane.iris.structure.graph.StructureGraphResolver;
 import art.arcane.iris.structure.placement.IrisStructure;
 import org.junit.Test;
@@ -44,7 +45,7 @@ public class VanillaJigsawExportRequestTest {
 
         assertEquals("village", request.resourcePath());
         assertEquals("iris", request.namespace());
-        assertEquals(VanillaJigsawExportFormat.DIRECTORY, request.format());
+        assertEquals(DatapackExportFormat.DIRECTORY, request.format());
         assertFalse(request.replaceExisting());
     }
 
@@ -65,14 +66,14 @@ public class VanillaJigsawExportRequestTest {
                 .namespace("  mypack  ")
                 .resourcePath("  village/plains  ")
                 .description("  a description  ")
-                .format(VanillaJigsawExportFormat.ZIP)
+                .format(DatapackExportFormat.ZIP)
                 .replaceExisting(true)
                 .build();
 
         assertEquals("mypack", request.namespace());
         assertEquals("village/plains", request.resourcePath());
         assertEquals("  a description  ", request.description());
-        assertEquals(VanillaJigsawExportFormat.ZIP, request.format());
+        assertEquals(DatapackExportFormat.ZIP, request.format());
         assertTrue(request.replaceExisting());
     }
 

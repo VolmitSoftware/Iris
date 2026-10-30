@@ -1,5 +1,7 @@
 package art.arcane.iris.structure.export;
 
+import art.arcane.iris.pack.datapack.DataVersion;
+import art.arcane.iris.pack.datapack.export.DatapackExportFormat;
 import art.arcane.iris.structure.graph.StructureGraphResolver;
 import art.arcane.iris.pack.value.IrisDirection;
 import art.arcane.iris.structure.jigsaw.IrisJigsawBranchFailurePolicy;
@@ -34,6 +36,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -168,6 +171,33 @@ public class VanillaJigsawDatapackExporterTest {
     }
 
     @Test
+    public void jigsawExportCommandStillWorks() throws Exception {
+        TestGraph graph = connectorGraph();
+        Path output = temporaryFolder.getRoot().toPath().resolve("command-pack");
+        VanillaJigsawExportRequest request = request(graph, output)
+                .namespace("studio")
+                .resourcePath("village/test")
+                .build();
+
+        VanillaJigsawExportResult result = new VanillaJigsawDatapackExporter().export(request);
+        VanillaJigsawExportCompiler.Compilation explicit = new VanillaJigsawExportCompiler(DataVersion.V26_3).compile(request.unit());
+
+        assertTrue(result.diagnostics().toString(), result.isSuccess());
+        assertTrue(result.resources().contains("pack.mcmeta"));
+        assertEquals(107, json(output.resolve("pack.mcmeta")).getAsJsonObject("pack").get("max_format").getAsInt());
+        CompoundTag runtimeTemplate = (CompoundTag) NBTUtil.read(output.resolve(
+                "data/studio/structure/village/test/piece/pieces/start.nbt").toFile()).getTag();
+        assertEquals(4903, runtimeTemplate.getInt("DataVersion"));
+        assertFalse(explicit.diagnostics().toString(), explicit.hasErrors());
+        assertFalse(explicit.resources().containsKey("pack.mcmeta"));
+        assertTrue(explicit.resources().containsKey(VanillaJigsawExportCompiler.structureSetPath("studio", "village/test")));
+        assertTrue(explicit.resources().containsKey(VanillaJigsawExportCompiler.biomeTagPath("studio", "village/test")));
+        CompoundTag explicitTemplate = (CompoundTag) NBTUtil.read(new ByteArrayInputStream(explicit.resources().get(
+                "data/studio/structure/village/test/piece/pieces/start.nbt")), true).getTag();
+        assertEquals(5023, explicitTemplate.getInt("DataVersion"));
+    }
+
+    @Test
     public void exports1211WithRuntimeDefaultSettingsDerivedFromTheStructure() throws Exception {
         when(IrisPlatforms.get().minecraftVersion()).thenReturn("1.21.1");
         try {
@@ -241,7 +271,7 @@ public class VanillaJigsawDatapackExporterTest {
         VanillaJigsawExportRequest request = request(graph, output)
                 .namespace("studio")
                 .resourcePath("stronghold")
-                .format(VanillaJigsawExportFormat.ZIP)
+                .format(DatapackExportFormat.ZIP)
                 .build();
 
         VanillaJigsawExportResult result = new VanillaJigsawDatapackExporter().export(request);

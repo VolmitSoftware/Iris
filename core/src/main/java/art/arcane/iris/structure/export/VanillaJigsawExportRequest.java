@@ -1,5 +1,7 @@
 package art.arcane.iris.structure.export;
 
+import art.arcane.iris.pack.datapack.export.DatapackExportFormat;
+
 import java.nio.file.Path;
 import java.util.Objects;
 
@@ -9,7 +11,7 @@ public final class VanillaJigsawExportRequest {
     private final String namespace;
     private final String resourcePath;
     private final String description;
-    private final VanillaJigsawExportFormat format;
+    private final DatapackExportFormat format;
     private final VanillaJigsawExportSettings settings;
     private final boolean replaceExisting;
 
@@ -48,7 +50,7 @@ public final class VanillaJigsawExportRequest {
         return description;
     }
 
-    public VanillaJigsawExportFormat format() {
+    public DatapackExportFormat format() {
         return format;
     }
 
@@ -60,13 +62,17 @@ public final class VanillaJigsawExportRequest {
         return replaceExisting;
     }
 
+    public VanillaJigsawExportUnit unit() {
+        return new VanillaJigsawExportUnit(source, namespace, resourcePath, settings);
+    }
+
     public static final class Builder {
         private final VanillaJigsawExportSource source;
         private final Path output;
         private String namespace = "iris";
         private String resourcePath;
         private String description = "Iris vanilla jigsaw export";
-        private VanillaJigsawExportFormat format = VanillaJigsawExportFormat.DIRECTORY;
+        private DatapackExportFormat format = DatapackExportFormat.DIRECTORY;
         private VanillaJigsawExportSettings settings = VanillaJigsawExportSettings.defaults();
         private boolean replaceExisting;
 
@@ -91,7 +97,7 @@ public final class VanillaJigsawExportRequest {
             return this;
         }
 
-        public Builder format(VanillaJigsawExportFormat value) {
+        public Builder format(DatapackExportFormat value) {
             format = Objects.requireNonNull(value);
             return this;
         }

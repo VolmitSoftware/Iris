@@ -33,6 +33,74 @@ public final class DirectorCommandMessages {
             "iris.director.commanddatapack.param.datapack_id_folder_name_shown_by_iris_datapack_list",
             "The datapack id (folder name) shown by /iris datapack list"
     );
+    public static final TextKey COMMAND_DATAPACK_EXPORT_DESCRIPTION = TextKey.of(
+            "iris.director.commanddatapack.director.export_dimension_vanilla_worldgen_datapack",
+            "Export a dimension as a vanilla worldgen datapack"
+    );
+    public static final TextKey COMMAND_DATAPACK_EXPORT_PARAM_DIMENSION = TextKey.of(
+            "iris.director.commanddatapack.param.export_dimension",
+            "The dimension to export"
+    );
+    public static final TextKey COMMAND_DATAPACK_EXPORT_PARAM_VERSION = TextKey.of(
+            "iris.director.commanddatapack.param.export_version",
+            "Target Minecraft version, 26.3 or later (blank uses the latest)"
+    );
+    public static final TextKey COMMAND_DATAPACK_EXPORT_PARAM_MODE = TextKey.of(
+            "iris.director.commanddatapack.param.export_mode",
+            "Output mode: preset, dimension, or overworld"
+    );
+    public static final TextKey COMMAND_DATAPACK_EXPORT_PARAM_NAMESPACE = TextKey.of(
+            "iris.director.commanddatapack.param.export_namespace",
+            "Namespace for the exported resources"
+    );
+    public static final TextKey COMMAND_DATAPACK_EXPORT_PARAM_OUTPUT = TextKey.of(
+            "iris.director.commanddatapack.param.export_output",
+            "Output name in the datapack exports folder (blank uses the dimension and version)"
+    );
+    public static final TextKey COMMAND_DATAPACK_EXPORT_PARAM_FORMAT = TextKey.of(
+            "iris.director.commanddatapack.param.export_format",
+            "zip or directory"
+    );
+    public static final TextKey COMMAND_DATAPACK_EXPORT_PARAM_OBJECTS = TextKey.of(
+            "iris.director.commanddatapack.param.export_objects",
+            "Include objects as structure templates"
+    );
+    public static final TextKey COMMAND_DATAPACK_EXPORT_PARAM_REPLACE = TextKey.of(
+            "iris.director.commanddatapack.param.export_replace",
+            "Replace an existing export with the same name"
+    );
+    public static final TextKey COMMAND_DATAPACK_EXPORT_STARTED = TextKey.of(
+            "iris.director.commanddatapack.export.started",
+            "Exporting {dimension} as a datapack for Minecraft {version}..."
+    );
+    public static final TextKey COMMAND_DATAPACK_EXPORT_STAGE = TextKey.of(
+            "iris.director.commanddatapack.export.stage",
+            "Datapack export: {stage}"
+    );
+    public static final TextKey COMMAND_DATAPACK_EXPORT_RESOURCES = TextKey.of(
+            "iris.director.commanddatapack.export.resources",
+            "Datapack export: {done}/{total} resources"
+    );
+    public static final TextKey COMMAND_DATAPACK_EXPORT_DIAGNOSTIC = TextKey.of(
+            "iris.director.commanddatapack.export.diagnostic",
+            "{key}: {message}"
+    );
+    public static final TextKey COMMAND_DATAPACK_EXPORT_EXPORTED = TextKey.of(
+            "iris.director.commanddatapack.export.exported",
+            "Datapack exported: {path}"
+    );
+    public static final TextKey COMMAND_DATAPACK_EXPORT_REJECTED = TextKey.of(
+            "iris.director.commanddatapack.export.rejected",
+            "Datapack export rejected: {reason}"
+    );
+    public static final TextKey COMMAND_DATAPACK_EXPORT_FAILED = TextKey.of(
+            "iris.director.commanddatapack.export.failed",
+            "Datapack export failed: {reason}"
+    );
+    public static final TextKey COMMAND_DATAPACK_EXPORT_INVALID = TextKey.of(
+            "iris.director.commanddatapack.export.invalid",
+            "Invalid datapack export arguments: {reason}"
+    );
     public static final TextKey COMMAND_DEVELOPER_DIRECTOR_IRIS_WORLD_MANAGER = TextKey.of(
             "iris.director.commanddeveloper.director.iris_world_manager",
             "Iris World Manager"
@@ -888,6 +956,23 @@ public final class DirectorCommandMessages {
             COMMAND_DATAPACK_DIRECTOR_LIST_CONFIGURED_DATAPACK_IMPORTS_THEIR_INSTALLED_VERSIONS,
             COMMAND_DATAPACK_DIRECTOR_REMOVE_INSTALLED_DATAPACK_BY_ID_ALSO_DELETE_ITS_URL_FROM_DATAPACKIMPORTS_KEEP,
             COMMAND_DATAPACK_PARAM_DATAPACK_ID_FOLDER_NAME_SHOWN_BY_IRIS_DATAPACK_LIST,
+            COMMAND_DATAPACK_EXPORT_DESCRIPTION,
+            COMMAND_DATAPACK_EXPORT_PARAM_DIMENSION,
+            COMMAND_DATAPACK_EXPORT_PARAM_VERSION,
+            COMMAND_DATAPACK_EXPORT_PARAM_MODE,
+            COMMAND_DATAPACK_EXPORT_PARAM_NAMESPACE,
+            COMMAND_DATAPACK_EXPORT_PARAM_OUTPUT,
+            COMMAND_DATAPACK_EXPORT_PARAM_FORMAT,
+            COMMAND_DATAPACK_EXPORT_PARAM_OBJECTS,
+            COMMAND_DATAPACK_EXPORT_PARAM_REPLACE,
+            COMMAND_DATAPACK_EXPORT_STARTED,
+            COMMAND_DATAPACK_EXPORT_STAGE,
+            COMMAND_DATAPACK_EXPORT_RESOURCES,
+            COMMAND_DATAPACK_EXPORT_DIAGNOSTIC,
+            COMMAND_DATAPACK_EXPORT_EXPORTED,
+            COMMAND_DATAPACK_EXPORT_REJECTED,
+            COMMAND_DATAPACK_EXPORT_FAILED,
+            COMMAND_DATAPACK_EXPORT_INVALID,
             COMMAND_DEVELOPER_DIRECTOR_IRIS_WORLD_MANAGER,
             COMMAND_DEVELOPER_DIRECTOR_GET_LOADED_TECTONICPLATES_COUNT,
             COMMAND_DEVELOPER_DIRECTOR_HASH_GENERATED_BLOCK_OUTPUT_FIXED_AREA_DETERMINISM_IDENTITY_TESTING,

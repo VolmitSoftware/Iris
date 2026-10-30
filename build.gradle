@@ -821,6 +821,13 @@ project(':adapters:bukkit:nms:v26_3_R1') {
     }
     sourceSets.test.compileClasspath += sourceSets.offline.output
     sourceSets.test.runtimeClasspath += sourceSets.offline.output
+    tasks.named('test').configure {
+        String exportProbePack = providers.gradleProperty('iris.exportProbePack').orNull
+        if (exportProbePack != null) {
+            systemProperty('iris.exportProbePack', exportProbePack)
+            maxHeapSize = '6g'
+        }
+    }
 
     TaskProvider<Jar> offlineJar = tasks.register('offlineJar', Jar) {
         dependsOn(offlineClasses)
@@ -845,6 +852,30 @@ project(':adapters:bukkit:nms:v26_3_R1') {
         into('bin') {
             from(offlineStartScripts)
             filePermissions { unix('rwxr-xr-x') }
+        }
+    }
+
+    tasks.register('datapackCostProbe', JavaExec) {
+        group = 'verification'
+        description = 'Exports an Iris dimension as a 26.3 worldgen datapack and measures its load, chunk and density function cost against vanilla.'
+        dependsOn(offlineClasses)
+        mainClass = 'art.arcane.iris.probe.DatapackCostProbe'
+        classpath = sourceSets.offline.runtimeClasspath
+        maxHeapSize = providers.gradleProperty('probeHeap').getOrElse('24G')
+        jvmArgs('--add-modules', 'jdk.incubator.vector', '-Djava.awt.headless=true')
+        doFirst {
+            String dimension = providers.gradleProperty('probeDimension').getOrElse('overworld')
+            String output = providers.gradleProperty('probeOutput')
+                    .getOrElse(layout.buildDirectory.file("reports/datapack-cost/${dimension}.json").get().asFile.absolutePath)
+            args([rootProject.file(providers.gradleProperty('probePack').get()).absolutePath, dimension,
+                    providers.gradleProperty('probeSeed').getOrElse('1337'),
+                    providers.gradleProperty('probeChunkSide').getOrElse('6'),
+                    providers.gradleProperty('probeRounds').getOrElse('4'),
+                    providers.gradleProperty('probeWarmupSide').getOrElse('6'),
+                    providers.gradleProperty('probeCalls').getOrElse('256'),
+                    providers.gradleProperty('probeCallSeconds').getOrElse('60'),
+                    rootProject.file(output).absolutePath,
+                    layout.buildDirectory.dir('tmp/datapack-cost').get().asFile.absolutePath])
         }
     }
 
@@ -874,6 +905,32 @@ project(':adapters:bukkit:nms:v26_3_R1') {
                     'probeWidth', 'probeRegionsX', 'probeRegionsZ', 'probeParallelism', 'probeSpigot', 'probeWorldName', 'probeLevelKey',
                     'probeNoiseSettings', 'probeOutput']
             args(names.collect { String name -> providers.gradleProperty(name).get() })
+        }
+    }
+
+    tasks.register('datapackFidelityProbe', JavaExec) {
+        group = 'verification'
+        description = 'Exports an Iris dimension as a 26.3 worldgen datapack and compares both generators on the same seed.'
+        dependsOn(offlineClasses)
+        mainClass = 'art.arcane.iris.probe.DatapackFidelityProbe'
+        classpath = sourceSets.offline.runtimeClasspath
+        maxHeapSize = '8G'
+        jvmArgs('--add-modules', 'jdk.incubator.vector', '-Djava.awt.headless=true')
+        doFirst {
+            String dimension = providers.gradleProperty('probeDimension').get()
+            String seed = providers.gradleProperty('probeSeed').get()
+            String mode = providers.gradleProperty('probeMode').getOrElse('full')
+            boolean biomes = mode == 'biomes'
+            String output = providers.gradleProperty('probeOutput')
+                    .getOrElse(layout.buildDirectory.file("reports/datapack-fidelity/${dimension}-${seed}${biomes ? '-biomes' : ''}.json").get().asFile.absolutePath)
+            args([rootProject.file(providers.gradleProperty('probePack').get()).absolutePath, dimension, seed,
+                    biomes ? providers.gradleProperty('probeRadiusChunks').getOrElse('0') : providers.gradleProperty('probeRadiusChunks').get(),
+                    biomes ? providers.gradleProperty('probeStride').getOrElse('1') : providers.gradleProperty('probeStride').get(),
+                    rootProject.file(output).absolutePath,
+                    providers.gradleProperty('probeSurveyBlocks').getOrElse('65536'),
+                    providers.gradleProperty('probeSurveyStride').getOrElse('256'),
+                    providers.gradleProperty('probeSurveySeeds').getOrElse(biomes ? '7' : '1'),
+                    mode])
         }
     }
 

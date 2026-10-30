@@ -13,20 +13,24 @@ import art.arcane.iris.pack.datapack.v263.DataFixerV263;
 //https://minecraft.wiki/w/Pack_format
 @Getter
 public enum DataVersion {
-    UNSUPPORTED("0.0.0", 0, () -> null),
-    V1_21_1("1.21.1", 48, DataFixerV1206::new),
-    V26_1_2("26.1.2", 101, DataFixerV1217::new),
-    V26_2("26.2", 107, DataFixerV1217::new),
-    V26_3("26.3", 121, DataFixerV263::new);
+    UNSUPPORTED("0.0.0", 0, 0, 0, () -> null),
+    V1_21_1("1.21.1", 48, 0, 3955, DataFixerV1206::new),
+    V26_1_2("26.1.2", 101, 1, 4790, DataFixerV1217::new),
+    V26_2("26.2", 107, 1, 4903, DataFixerV1217::new),
+    V26_3("26.3", 121, 0, 5023, DataFixerV263::new);
     private static final KMap<DataVersion, IDataFixer> cache = new KMap<>();
     @Getter(AccessLevel.NONE)
     private final Supplier<IDataFixer> constructor;
     private final String version;
     private final int packFormat;
+    private final int packFormatMinor;
+    private final int worldDataVersion;
 
-    DataVersion(String version, int packFormat, Supplier<IDataFixer> constructor) {
+    DataVersion(String version, int packFormat, int packFormatMinor, int worldDataVersion, Supplier<IDataFixer> constructor) {
         this.constructor = constructor;
         this.packFormat = packFormat;
+        this.packFormatMinor = packFormatMinor;
+        this.worldDataVersion = worldDataVersion;
         this.version = version;
     }
 

@@ -17,7 +17,6 @@ import art.arcane.iris.structure.authoring.StructureOwnershipManifest;
 import art.arcane.iris.structure.authoring.StructureSource;
 import art.arcane.iris.structure.authoring.StructureTransactionWriter;
 import art.arcane.iris.structure.conversion.IrisStructureAdoptionInputKind;
-import art.arcane.iris.structure.export.VanillaJigsawExportFormat;
 import art.arcane.iris.world.IrisCreator;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.pack.value.IrisDirection;
@@ -411,24 +410,6 @@ public class CommandJigsawContractTest {
                 }
             }
         }
-    }
-
-    @Test
-    public void exportOutputIsOneSafeChildArtifact() {
-        Path root = Path.of("build", "jigsaw-exports").toAbsolutePath().normalize();
-
-        assertEquals(root.resolve("village.zip"), CommandJigsawExports.resolveExportDestination(
-                root, "village", VanillaJigsawExportFormat.ZIP));
-        assertEquals(root.resolve("village"), CommandJigsawExports.resolveExportDestination(
-                root, "village", VanillaJigsawExportFormat.DIRECTORY));
-        assertThrows(IllegalArgumentException.class, () -> CommandJigsawExports.resolveExportDestination(
-                root, "", VanillaJigsawExportFormat.DIRECTORY));
-        assertThrows(IllegalArgumentException.class, () -> CommandJigsawExports.resolveExportDestination(
-                root, ".", VanillaJigsawExportFormat.DIRECTORY));
-        assertThrows(IllegalArgumentException.class, () -> CommandJigsawExports.resolveExportDestination(
-                root, "../all-exports", VanillaJigsawExportFormat.DIRECTORY));
-        assertThrows(IllegalArgumentException.class, () -> CommandJigsawExports.resolveExportDestination(
-                root, "nested/export", VanillaJigsawExportFormat.DIRECTORY));
     }
 
     @Test

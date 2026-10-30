@@ -126,13 +126,14 @@ public final class GenerationProbeTest {
 
     @Test
     public void readsThroughputAndDumpOptionsFromSystemProperties() {
+        Path dumpFile = Path.of(System.getProperty("java.io.tmpdir"), "iris-dump.bin").toAbsolutePath();
         System.setProperty("iris.probe.threads", "16");
-        System.setProperty("iris.probe.dumpFile", "/tmp/iris-dump.bin");
+        System.setProperty("iris.probe.dumpFile", dumpFile.toString());
         System.setProperty("iris.probe.pregenProfile", "true");
         try {
             GenerationProbe.ProbeOptions options = GenerationProbe.ProbeOptions.fromSystemProperties();
             assertEquals(16, options.threads());
-            assertEquals(Path.of("/tmp/iris-dump.bin"), options.dumpFile());
+            assertEquals(dumpFile, options.dumpFile());
             assertTrue(options.pregenProfile());
             assertTrue(options.parallel());
         } finally {

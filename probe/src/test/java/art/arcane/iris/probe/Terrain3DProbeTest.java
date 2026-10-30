@@ -2,6 +2,7 @@ package art.arcane.iris.probe;
 
 import org.junit.Test;
 
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Map;
@@ -89,7 +90,9 @@ public final class Terrain3DProbeTest {
 
     @Test
     public void rejectsUnboundedOrMalformedProbeInputs() {
-        String[] inputs = {"/tmp/pack", "overworld", "1337", "-1", "1", "-1", "1", "highlands", "/tmp/output", "false", "true"};
+        String temporary = System.getProperty("java.io.tmpdir");
+        String[] inputs = {Path.of(temporary, "pack").toAbsolutePath().toString(), "overworld", "1337", "-1", "1", "-1", "1",
+                "highlands", Path.of(temporary, "output").toAbsolutePath().toString(), "false", "true"};
         Terrain3DProbe.Configuration configuration = Terrain3DProbe.Configuration.parse(inputs);
         assertEquals(9, configuration.chunkCount());
         assertTrue(configuration.studio());

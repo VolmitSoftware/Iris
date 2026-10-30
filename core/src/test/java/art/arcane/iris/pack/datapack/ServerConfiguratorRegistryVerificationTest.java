@@ -28,6 +28,7 @@ public class ServerConfiguratorRegistryVerificationTest {
     @Test
     public void freshlyCompiledRegistryMissReportsOneRestartWarning() {
         VerificationFixture fixture = missingRegistryFixture();
+        String packPath = new File("packs/overworld").getPath();
 
         try (MockedStatic<IrisLogging> logging = mockStatic(IrisLogging.class);
              MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
@@ -38,7 +39,7 @@ public class ServerConfiguratorRegistryVerificationTest {
 
             assertTrue(ServerConfigurator.verifyDataPacksPost(Stream.of(fixture.data())));
 
-            logging.verify(() -> IrisLogging.debug("Checking Pack: packs/overworld"));
+            logging.verify(() -> IrisLogging.debug("Checking Pack: " + packPath));
             logging.verify(() -> IrisLogging.warn(ServerConfigurator.POST_COMPILE_RESTART_WARNING));
             logging.verifyNoMoreInteractions();
         }
@@ -47,6 +48,7 @@ public class ServerConfiguratorRegistryVerificationTest {
     @Test
     public void worldCreationRegistryMissRetainsFullOperationalError() {
         VerificationFixture fixture = missingRegistryFixture();
+        String dimensionPath = new File("packs/overworld/dimensions/overworld.json").getPath();
 
         try (MockedStatic<IrisLogging> logging = mockStatic(IrisLogging.class);
              MockedStatic<INMS> nms = mockStatic(INMS.class)) {
@@ -58,7 +60,7 @@ public class ServerConfiguratorRegistryVerificationTest {
             logging.verify(() -> IrisLogging.warn(
                     "The Biome overworld:missing is not registered on the server."));
             logging.verify(() -> IrisLogging.warn(
-                    "The Dimension Type for packs/overworld/dimensions/overworld.json is not registered on the server."));
+                    "The Dimension Type for " + dimensionPath + " is not registered on the server."));
             logging.verify(() -> IrisLogging.error(
                     "The Pack overworld is INCAPABLE of generating custom biomes"));
             logging.verify(() -> IrisLogging.error(

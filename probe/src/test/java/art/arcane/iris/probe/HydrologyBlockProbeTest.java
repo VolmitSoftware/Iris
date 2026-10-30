@@ -96,7 +96,7 @@ public class HydrologyBlockProbeTest {
     @Test
     public void columnDataAndBedImagesExposeHeightChangesBeneathOneWaterSurface() throws Exception {
         File output = folder.newFolder("columns");
-        HydrologyBlockProbe.Configuration configuration = new HydrologyBlockProbe.Configuration(new File("/synthetic-pack"), "overworld",
+        HydrologyBlockProbe.Configuration configuration = new HydrologyBlockProbe.Configuration(new File(folder.getRoot(), "synthetic-pack"), "overworld",
                 1337L, -1, -1, -1, -1, Set.of(), output, false);
         Map<Long, HydrologyBlockProbe.PlannedColumn> columns = new HashMap<>();
         for (int z = 0; z < 16; z++) {

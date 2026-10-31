@@ -210,11 +210,14 @@ public final class EngineModeTerrainGenerationTest {
             when(biome.key()).thenReturn("minecraft:plains");
             ProceduralStream<Double> height = mock(ProceduralStream.class);
             when(height.getDouble(anyDouble(), anyDouble())).thenReturn(3D);
+            ProceduralStream<Double> waterHead = mock(ProceduralStream.class);
+            when(waterHead.getDouble(anyDouble(), anyDouble())).thenReturn(0D);
             ProceduralStream<IrisBiome> biomes = mock(ProceduralStream.class);
             ProceduralStream<IrisRegion> regions = mock(ProceduralStream.class);
             ProceduralStream<NativeBlockState> materials = mock(ProceduralStream.class);
             when(materials.get(anyDouble(), anyDouble())).thenReturn(stone);
             when(complex.getRawHeightStream()).thenReturn(height);
+            when(complex.getWaterHeadStream()).thenReturn(waterHead);
             when(complex.getTrueBiomeStream()).thenReturn(biomes);
             when(complex.getCaveBiomeStream()).thenReturn(biomes);
             when(complex.getRegionStream()).thenReturn(regions);

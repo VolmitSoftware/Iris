@@ -43,14 +43,14 @@ public final class IrisTransitionGeometryActuator extends EngineAssignedComponen
         if (plan == null || !plan.hasTransitionAtChunk(x >> 4, z >> 4)) {
             return;
         }
-        GeometrySource source = new GeometrySource(blocks, biomes, getEngine().getMinHeight(), context);
+        GeometrySource source = new GeometrySource(x, z, blocks, biomes, getEngine().getMinHeight(), context);
         blendGeometry(x, z, blocks, context, source, plan);
     }
 
     public static SavedTerrainChunk capture(int x, int z, Hunk<NativeBlockState> blocks,
                                              Hunk<NativeBiome> biomes, int minimumY,
                                              ChunkContext context, boolean boundaryOnly) throws IOException {
-        GeometrySource source = new GeometrySource(blocks, biomes, minimumY, context);
+        GeometrySource source = new GeometrySource(x, z, blocks, biomes, minimumY, context);
         return boundaryOnly
                 ? SavedTerrainChunk.captureBoundary(x >> 4, z >> 4, minimumY, blocks.getHeight(), "minecraft:noise", source)
                 : SavedTerrainChunk.capture(x >> 4, z >> 4, minimumY, blocks.getHeight(), "minecraft:noise", source);
@@ -74,8 +74,10 @@ public final class IrisTransitionGeometryActuator extends EngineAssignedComponen
                 if (blended == current) {
                     continue;
                 }
-                double expectedFloor = context.getRoundedHeight(localX, localZ);
-                int floor = blended.surfaceOffsetNear(expectedFloor);
+                int ground = context.getRoundedHeight(localX, localZ);
+                BoundaryColumnGeometry.WaterCap cap = paintedCap(current, blended, ground,
+                        waterHead(complex, x + localX, z + localZ, current.height()));
+                int floor = blended.surfaceOffsetNear(ground, cap);
                 List<BoundaryColumnGeometry.Voxel> voxels = blended.voxels();
                 for (int offset = 0; offset < voxels.size(); offset++) {
                     BoundaryColumnGeometry.Voxel voxel = voxels.get(offset);
@@ -95,6 +97,9 @@ public final class IrisTransitionGeometryActuator extends EngineAssignedComponen
                         && voxels.get(fluidHeight + 1).phase() == BoundaryColumnGeometry.Phase.FLUID) {
                     fluidHeight++;
                 }
+                if (blended.capsWater(cap, floor)) {
+                    fluidHeight = cap.top();
+                }
                 if (fluidHeight == floor) {
                     fluidHeight = -1;
                 }
@@ -105,7 +110,29 @@ public final class IrisTransitionGeometryActuator extends EngineAssignedComponen
         }
     }
 
+    private static BoundaryColumnGeometry.WaterCap paintedCap(BoundaryColumnGeometry painted, BoundaryColumnGeometry blended,
+                                                              int ground, int waterHead) {
+        BoundaryColumnGeometry.WaterCap cap = painted.waterCap(ground, waterHead);
+        if (!cap.present()) {
+            return cap;
+        }
+        int top = Math.min(cap.top() + 1, painted.height() - 1);
+        for (int offset = cap.bottom(); offset <= top; offset++) {
+            int y = painted.minimumY() + offset;
+            if (!painted.voxelAt(y).equals(blended.voxelAt(y))) {
+                return BoundaryColumnGeometry.WaterCap.none();
+            }
+        }
+        return cap;
+    }
+
+    private static int waterHead(IrisComplex complex, int blockX, int blockZ, int height) {
+        return Math.clamp(Math.round(complex.getWaterHeadStream().getDouble(blockX, blockZ)), -1, height - 1);
+    }
+
     private static final class GeometrySource implements SavedTerrainChunk.VoxelSource {
+        private final int originX;
+        private final int originZ;
         private final Hunk<NativeBlockState> blocks;
         private final Hunk<NativeBiome> biomes;
         private final int minimumY;
@@ -116,7 +143,10 @@ public final class IrisTransitionGeometryActuator extends EngineAssignedComponen
         private NativeBlockState lastState;
         private BoundaryColumnGeometry.Voxel lastVoxel;
 
-        private GeometrySource(Hunk<NativeBlockState> blocks, Hunk<NativeBiome> biomes, int minimumY, ChunkContext context) {
+        private GeometrySource(int originX, int originZ, Hunk<NativeBlockState> blocks, Hunk<NativeBiome> biomes,
+                               int minimumY, ChunkContext context) {
+            this.originX = originX;
+            this.originZ = originZ;
             this.blocks = blocks;
             this.biomes = biomes;
             this.minimumY = minimumY;
@@ -176,6 +206,11 @@ public final class IrisTransitionGeometryActuator extends EngineAssignedComponen
         @Override
         public OptionalInt groundSurface(int localX, int localZ) {
             return OptionalInt.of(Math.max(0, Math.min(blocks.getHeight() - 1, context.getRoundedHeight(localX, localZ))));
+        }
+
+        @Override
+        public OptionalInt waterSurface(int localX, int localZ) {
+            return OptionalInt.of(waterHead(context.getComplex(), originX + localX, originZ + localZ, blocks.getHeight()));
         }
 
         @Override

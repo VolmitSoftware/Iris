@@ -23,6 +23,10 @@ import art.arcane.iris.testsupport.WaterScene;
 import art.arcane.iris.world.history.BoundaryColumnGeometry;
 import art.arcane.iris.world.history.BoundaryGeometryInfluence;
 import art.arcane.iris.world.history.GenerationBlend;
+import art.arcane.iris.world.history.GenerationBoundary;
+import art.arcane.iris.world.history.GenerationTransition;
+import art.arcane.iris.world.history.SavedTerrainChunk;
+import art.arcane.iris.world.history.TerrainBoundarySignatureStore;
 import art.arcane.iris.world.history.TransitionGenerationPlan;
 import art.arcane.iris.world.history.TransitionGeometryBlender;
 import art.arcane.volmlib.nativelib.terrain.NativeBiome;
@@ -43,7 +47,9 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.rules.Timeout;
 
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -533,6 +539,39 @@ public class IrisComplexTransitionTest {
         return oldChunkWeight(x, z) == 0D ? 158.3D : 150.3D;
     }
 
+    @Test
+    public void transitionedChunkPaintsSeaLayersAtTheHeightOfTheOriginalSea() throws Exception {
+        NaturalHeights seabed = (x, z) -> 100D;
+        Hunk<NativeBlockState> original;
+        SavedTerrainChunk receipt;
+        try (TransitionStage stage = new TransitionStage(TransitionStage.seamPlan((x, z) -> 1D,
+                TransitionStage.savedColumn(100, 100, -1)), TransitionStage.seamDisplacement((x, z) -> 1D), false, seabed, 4)) {
+            original = stage.paint(-1);
+            receipt = stage.capture(-1, original);
+            assertSame(stage.ice, original.getRaw(15, 127, 0));
+            assertSame(stage.ice, original.getRaw(15, 124, 0));
+            assertSame(stage.water, original.getRaw(15, 123, 0));
+        }
+        GenerationBoundary boundary = GenerationBoundary.freeze("boundary", List.of(new GenerationBoundary.ChunkCoordinate(-1, 0)));
+        TerrainBoundarySignatureStore.Snapshot snapshot = new TerrainBoundarySignatureStore(temporaryFolder.newFolder().toPath())
+                .publish(2L, boundary, receipt::column);
+        TransitionGenerationPlan plan = new TransitionGenerationPlan(new TransitionGenerationPlan.Specification(2L, "old", "new",
+                GenerationTransition.CURRENT_ALGORITHM_VERSION, 32, boundary.identity(), snapshot.identity()), boundary, snapshot);
+        TransitionDisplacementField displacement = new TransitionDisplacementField(plan,
+                new TransitionDisplacementField.Sources((x, z) -> 100D, TransitionStage.HEIGHT));
+        try (TransitionStage stage = new TransitionStage(plan, displacement, false, seabed, 4)) {
+            Hunk<NativeBlockState> transitioned = stage.blend(0, stage.paint(0));
+            for (int lz = 0; lz < 16; lz++) {
+                for (int lx = 0; lx < 16; lx++) {
+                    for (int y = 0; y < TransitionStage.HEIGHT; y++) {
+                        assertEquals(lx + "," + y + "," + lz, stage.key(original.getRaw(15, y, lz)),
+                                stage.key(transitioned.getRaw(lx, y, lz)));
+                    }
+                }
+            }
+        }
+    }
+
     private static void assertColumn(Hunk<NativeBlockState> painted, Hunk<NativeBlockState> blended, int lx, int lz) {
         for (int y = 0; y < TransitionStage.HEIGHT; y++) {
             assertSame(lx + "," + y + "," + lz + " was re-blended", painted.getRaw(lx, y, lz), blended.getRaw(lx, y, lz));
@@ -547,8 +586,10 @@ public class IrisComplexTransitionTest {
         private final NativeBlockState stone = block("minecraft:stone", false, false);
         private final NativeBlockState water = block("minecraft:water[level=0]", false, true);
         private final NativeBlockState air = block("minecraft:air", true, false);
-        private final TransitionDisplacementField displacement = mock(TransitionDisplacementField.class);
-        private final TransitionGenerationPlan plan = mock(TransitionGenerationPlan.class);
+        private final NativeBlockState ice = block("minecraft:ice", false, false);
+        private final TransitionDisplacementField displacement;
+        private final TransitionGenerationPlan plan;
+        private final int seaLayers;
         private final IrisComplex complex;
         private final FakeHydrology hydrology;
 
@@ -562,13 +603,14 @@ public class IrisComplexTransitionTest {
 
         private TransitionStage(SeamWeights weights, boolean enabled, NaturalHeights natural, BoundaryColumnGeometry oldColumn)
                 throws Exception {
-            when(displacement.seamWeight(anyInt(), anyInt())).thenAnswer(invocation ->
-                    weights.weight(invocation.getArgument(0), invocation.getArgument(1)));
-            when(displacement.fluidHeight(anyInt(), anyInt(), anyDouble())).thenAnswer(invocation -> invocation.getArgument(2));
-            when(plan.hasTransitionAtChunk(anyInt(), anyInt())).thenReturn(true);
-            when(plan.geometryAt(anyInt(), anyInt())).thenAnswer(invocation -> new BoundaryGeometryInfluence(
-                    weights.weight(invocation.getArgument(0), invocation.getArgument(1)), 0D,
-                    List.of(new BoundaryGeometryInfluence.Contribution(oldColumn, 1D))));
+            this(seamPlan(weights, oldColumn), seamDisplacement(weights), enabled, natural, 0);
+        }
+
+        private TransitionStage(TransitionGenerationPlan plan, TransitionDisplacementField displacement, boolean enabled,
+                                NaturalHeights natural, int seaLayers) throws Exception {
+            this.plan = plan;
+            this.displacement = displacement;
+            this.seaLayers = seaLayers;
             AtomicReference<IrisComplex> built = new AtomicReference<>();
             hydrology = enabled ? new FakeHydrology(() -> false, (x, z) -> built.get().naturalTrueHeight(x, z), 127, 156) : null;
             complex = fixture.transitionComplex(enabled ? hydrology.runtime : FakeHydrology.disabled(), plan, displacement);
@@ -581,7 +623,7 @@ public class IrisComplexTransitionTest {
             doReturn(mock(IrisImageMapRuntime.class)).when(complex).getImageMapRuntime();
             doReturn(water).when(complex).resolveWaterFluid(anyInt(), anyInt());
             doReturn(water).when(complex).resolveSeaFluid(anyDouble(), anyDouble());
-            Map<String, NativeBlockState> blocks = Map.of(stone.key(), stone, water.key(), water, air.key(), air);
+            Map<String, NativeBlockState> blocks = Map.of(stone.key(), stone, water.key(), water, air.key(), air, ice.key(), ice);
             PlatformRegistries registries = mock(PlatformRegistries.class);
             when(registries.air()).thenReturn(air);
             when(registries.block("AIR")).thenReturn(air);
@@ -592,6 +634,23 @@ public class IrisComplexTransitionTest {
             previous = IrisPlatforms.isBound() ? IrisPlatforms.get() : null;
             IrisPlatforms.unbind();
             IrisPlatforms.bind(platform);
+        }
+
+        private static TransitionGenerationPlan seamPlan(SeamWeights weights, BoundaryColumnGeometry oldColumn) {
+            TransitionGenerationPlan plan = mock(TransitionGenerationPlan.class);
+            when(plan.hasTransitionAtChunk(anyInt(), anyInt())).thenReturn(true);
+            when(plan.geometryAt(anyInt(), anyInt())).thenAnswer(invocation -> new BoundaryGeometryInfluence(
+                    weights.weight(invocation.getArgument(0), invocation.getArgument(1)), 0D,
+                    List.of(new BoundaryGeometryInfluence.Contribution(oldColumn, 1D))));
+            return plan;
+        }
+
+        private static TransitionDisplacementField seamDisplacement(SeamWeights weights) {
+            TransitionDisplacementField displacement = mock(TransitionDisplacementField.class);
+            when(displacement.seamWeight(anyInt(), anyInt())).thenAnswer(invocation ->
+                    weights.weight(invocation.getArgument(0), invocation.getArgument(1)));
+            when(displacement.fluidHeight(anyInt(), anyInt(), anyDouble())).thenAnswer(invocation -> invocation.getArgument(2));
+            return displacement;
         }
 
         private ChunkWaterRaster raster(int chunkX) {
@@ -622,7 +681,8 @@ public class IrisComplexTransitionTest {
             when(engine.getSeedManager()).thenReturn(mock(SeedManager.class));
             when(biome.generateLayers(eq(dimension), anyDouble(), anyDouble(), any(RNG.class), anyInt(), anyInt(), eq(data), same(complex)))
                     .thenAnswer(invocation -> new KList<>(List.of(stone)));
-            when(biome.generateSeaLayers(anyDouble(), anyDouble(), any(RNG.class), anyInt(), eq(data))).thenAnswer(invocation -> new KList<>());
+            when(biome.generateSeaLayers(anyDouble(), anyDouble(), any(RNG.class), anyInt(), eq(data)))
+                    .thenAnswer(invocation -> new KList<>(Collections.nCopies(seaLayers, ice)));
             int[] grounds = grounds(chunkX);
             ChunkContext context = mock(ChunkContext.class);
             when(context.getRoundedHeight(anyInt(), anyInt())).thenAnswer(invocation ->
@@ -710,6 +770,19 @@ public class IrisComplexTransitionTest {
             new IrisTransitionGeometryActuator(mock(Engine.class)).generate(chunkX << 4, 0, blocks,
                     Hunk.<NativeBiome>newArrayHunk(16, HEIGHT, 16), false, context);
             return blocks;
+        }
+
+        private SavedTerrainChunk capture(int chunkX, Hunk<NativeBlockState> blocks) throws IOException {
+            int[] grounds = grounds(chunkX);
+            ChunkContext context = mock(ChunkContext.class);
+            when(context.getComplex()).thenReturn(complex);
+            when(context.getRoundedHeight(anyInt(), anyInt())).thenAnswer(invocation ->
+                    grounds[invocation.<Integer>getArgument(1) << 4 | invocation.<Integer>getArgument(0)]);
+            NativeBiome biome = mock(NativeBiome.class);
+            when(biome.key()).thenReturn("minecraft:frozen_ocean");
+            Hunk<NativeBiome> biomes = Hunk.newArrayHunk(16, HEIGHT, 16);
+            biomes.fill(biome);
+            return IrisTransitionGeometryActuator.capture(chunkX << 4, 0, blocks, biomes, 0, context, true);
         }
 
         private BoundaryColumnGeometry geometry(Hunk<NativeBlockState> blocks, int lx, int lz) {

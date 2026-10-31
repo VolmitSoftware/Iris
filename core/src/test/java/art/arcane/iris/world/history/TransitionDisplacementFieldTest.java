@@ -4,6 +4,7 @@ import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.OptionalInt;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -22,6 +23,8 @@ public class TransitionDisplacementFieldTest extends GenerationHistorySupport {
             "minecraft:air", BoundaryColumnGeometry.Phase.AIR, "", false);
     private static final BoundaryColumnGeometry.Voxel WATER = new BoundaryColumnGeometry.Voxel(
             "minecraft:water[level=0]", BoundaryColumnGeometry.Phase.FLUID, "minecraft:water[level=0]", false);
+    private static final BoundaryColumnGeometry.Voxel ICE = new BoundaryColumnGeometry.Voxel(
+            "minecraft:ice", BoundaryColumnGeometry.Phase.SOLID, "", false);
 
     @Test
     public void matchesFlatSeamAndReturnsToNativeTerrainInBothDirections() throws Exception {
@@ -108,22 +111,63 @@ public class TransitionDisplacementFieldTest extends GenerationHistorySupport {
         }
     }
 
+    @Test
+    public void seaLayerCapsKeepTheHistoricalSeaSurfaceAboveTheSeabed() throws Exception {
+        for (int capBottom : new int[]{37, 25}) {
+            TransitionDisplacementField field = field(new SavedTerrainChunk.VoxelSource() {
+                @Override
+                public OptionalInt groundSurface(int localX, int localZ) {
+                    return OptionalInt.of(24);
+                }
+
+                @Override
+                public OptionalInt waterSurface(int localX, int localZ) {
+                    return OptionalInt.of(40);
+                }
+
+                @Override
+                public BoundaryColumnGeometry.Voxel voxel(int x, int y, int z) {
+                    return y <= 24 ? STONE : y < capBottom ? WATER : y <= 40 ? ICE : AIR;
+                }
+
+                @Override
+                public String biome(int x, int y, int z) {
+                    return "minecraft:frozen_ocean";
+                }
+            }, (x, z) -> 24D);
+            for (int x = 0; x < 32; x++) {
+                assertEquals(24D, field.height(x, 8, 24D), 0D);
+                assertEquals(40D, field.fluidHeight(x, 8, 40D), 0.0000001D);
+            }
+            assertEquals(40D, field.fluidHeight(0, 8, 48D), 0.0000001D);
+            if (capBottom == 37) {
+                assertEquals("minecraft:water[level=0]", field.fluidStateKey(0, 8));
+            } else {
+                assertNull(field.fluidStateKey(0, 8));
+            }
+        }
+    }
+
     private TransitionDisplacementField field(int ground, int fluid, TransitionDisplacementField.HeightSource source)
+            throws Exception {
+        return field(new SavedTerrainChunk.VoxelSource() {
+            @Override
+            public BoundaryColumnGeometry.Voxel voxel(int x, int y, int z) {
+                return y <= ground ? STONE : y <= fluid ? WATER : AIR;
+            }
+
+            @Override
+            public String biome(int x, int y, int z) {
+                return "minecraft:plains";
+            }
+        }, source);
+    }
+
+    private TransitionDisplacementField field(SavedTerrainChunk.VoxelSource voxels, TransitionDisplacementField.HeightSource source)
             throws Exception {
         GenerationBoundary boundary = GenerationBoundary.freeze("boundary", List.of(
                 new GenerationBoundary.ChunkCoordinate(-1, 0)));
-        SavedTerrainChunk terrain = SavedTerrainChunk.captureBoundary(-1, 0, 0, 128, "minecraft:noise",
-                new SavedTerrainChunk.VoxelSource() {
-                    @Override
-                    public BoundaryColumnGeometry.Voxel voxel(int x, int y, int z) {
-                        return y <= ground ? STONE : y <= fluid ? WATER : AIR;
-                    }
-
-                    @Override
-                    public String biome(int x, int y, int z) {
-                        return "minecraft:plains";
-                    }
-                });
+        SavedTerrainChunk terrain = SavedTerrainChunk.captureBoundary(-1, 0, 0, 128, "minecraft:noise", voxels);
         TerrainBoundarySignatureStore store = new TerrainBoundarySignatureStore(temporaryFolder.newFolder().toPath());
         TerrainBoundarySignatureStore.Snapshot snapshot = store.publish(2L, boundary, terrain::column);
         TransitionGenerationPlan plan = new TransitionGenerationPlan(new TransitionGenerationPlan.Specification(

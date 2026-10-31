@@ -23,6 +23,8 @@ public class BoundaryColumnGeometryTest {
             "minecraft:stone", BoundaryColumnGeometry.Phase.SOLID, "", false);
     private static final BoundaryColumnGeometry.Voxel AIR = new BoundaryColumnGeometry.Voxel(
             "minecraft:air", BoundaryColumnGeometry.Phase.AIR, "", false);
+    private static final BoundaryColumnGeometry.Voxel WATER = new BoundaryColumnGeometry.Voxel(
+            "minecraft:water[level=0]", BoundaryColumnGeometry.Phase.FLUID, "minecraft:water[level=0]", false);
 
     @Test
     public void solidAboveMatchesDenseColumnsWithProtectionAndExtremeWorldCoordinates() {
@@ -92,8 +94,65 @@ public class BoundaryColumnGeometryTest {
         }
         BoundaryColumnGeometry geometry = BoundaryColumnGeometry.fromVoxels(-64, voxels);
 
-        assertEquals(50, geometry.surfaceOffsetNear(50D));
-        assertEquals(50, geometry.surfaceOffsetNear(70D));
+        assertEquals(50, geometry.surfaceOffsetNear(50D, BoundaryColumnGeometry.WaterCap.none()));
+        assertEquals(50, geometry.surfaceOffsetNear(70D, BoundaryColumnGeometry.WaterCap.none()));
+    }
+
+    @Test
+    public void waterCapSpansSolidLayersFromTheWaterSurfaceDownToWaterOrTheSeabed() {
+        BoundaryColumnGeometry.Voxel ice = new BoundaryColumnGeometry.Voxel(
+                "minecraft:ice", BoundaryColumnGeometry.Phase.SOLID, "", false);
+        BoundaryColumnGeometry.Voxel packedIce = new BoundaryColumnGeometry.Voxel(
+                "minecraft:packed_ice", BoundaryColumnGeometry.Phase.SOLID, "", false);
+        BoundaryColumnGeometry iced = column(STONE, STONE, STONE, STONE, WATER, WATER, WATER, WATER, WATER,
+                packedIce, packedIce, ice, ice, AIR, AIR, AIR);
+        BoundaryColumnGeometry.WaterCap cap = iced.waterCap(3, 12);
+
+        assertEquals(new BoundaryColumnGeometry.WaterCap(9, 12), cap);
+        assertEquals(3, iced.surfaceOffsetNear(3D, cap));
+        assertTrue(iced.capsWater(cap, 3));
+        assertEquals(WATER.fluidStateKey(), iced.fluidStateKeyAtOrBelow(12, 3));
+
+        BoundaryColumnGeometry frozen = column(STONE, STONE, STONE, ice, ice, ice, ice, AIR);
+        BoundaryColumnGeometry.WaterCap frozenCap = frozen.waterCap(2, 6);
+
+        assertEquals(new BoundaryColumnGeometry.WaterCap(3, 6), frozenCap);
+        assertEquals(6, frozen.surfaceOffsetNear(2D, BoundaryColumnGeometry.WaterCap.none()));
+        assertEquals(2, frozen.surfaceOffsetNear(2D, frozenCap));
+        assertTrue(frozen.capsWater(frozenCap, 2));
+        assertEquals("", frozen.fluidStateKeyAtOrBelow(6, 2));
+
+        BoundaryColumnGeometry frozenBed = column(STONE, ice, ice, ice, ice, AIR);
+        BoundaryColumnGeometry.WaterCap bedCap = frozenBed.waterCap(1, 4);
+        assertEquals(new BoundaryColumnGeometry.WaterCap(2, 4), bedCap);
+        assertEquals(1, frozenBed.surfaceOffsetNear(1D, bedCap));
+        assertEquals(1, frozenBed.surfaceOffsetNear(4D, bedCap));
+    }
+
+    @Test
+    public void waterCapIgnoresOpenWaterLandAndSolidsThatContinueAboveTheSurface() {
+        BoundaryColumnGeometry.Voxel ice = new BoundaryColumnGeometry.Voxel(
+                "minecraft:ice", BoundaryColumnGeometry.Phase.SOLID, "", false);
+        BoundaryColumnGeometry.Voxel waterlogged = new BoundaryColumnGeometry.Voxel(
+                "minecraft:oak_slab[type=bottom,waterlogged=true]", BoundaryColumnGeometry.Phase.SOLID,
+                WATER.fluidStateKey(), false);
+        BoundaryColumnGeometry.Voxel protectedSolid = new BoundaryColumnGeometry.Voxel(
+                "minecraft:oak_log[axis=y]", BoundaryColumnGeometry.Phase.SOLID, "", true);
+
+        assertFalse(column(STONE, STONE, WATER, WATER, AIR).waterCap(1, 3).present());
+        assertFalse(column(STONE, STONE, STONE, STONE, AIR).waterCap(3, 3).present());
+        assertFalse(column(STONE, STONE, WATER, ice, ice, AIR).waterCap(1, 3).present());
+        assertFalse(column(STONE, STONE, WATER, waterlogged, AIR).waterCap(1, 3).present());
+        assertFalse(column(STONE, STONE, WATER, protectedSolid, AIR).waterCap(1, 3).present());
+        assertFalse(column(STONE, STONE, WATER, ice).waterCap(1, 4).present());
+        assertFalse(column(STONE, STONE, WATER, ice, AIR).waterCap(1, -1).present());
+        assertTrue(column(STONE, STONE, WATER, ice).waterCap(1, 3).present());
+
+        BoundaryColumnGeometry overAir = column(STONE, STONE, WATER, AIR, ice, AIR);
+        BoundaryColumnGeometry.WaterCap cap = overAir.waterCap(1, 4);
+        assertEquals(new BoundaryColumnGeometry.WaterCap(4, 4), cap);
+        assertFalse(overAir.capsWater(cap, 1));
+        assertFalse(overAir.capsWater(BoundaryColumnGeometry.WaterCap.none(), 1));
     }
 
     @Test
@@ -114,24 +173,29 @@ public class BoundaryColumnGeometryTest {
                 }
             }
             BoundaryColumnGeometry geometry = BoundaryColumnGeometry.fromVoxels(-64, voxels);
-            for (double expected : new double[]{-10D, 0D, 1.5D, 3D, 5.5D, 8D, 12D, 100D}) {
-                assertEquals(denseSurface(voxels, expected), geometry.surfaceOffsetNear(expected));
+            for (BoundaryColumnGeometry.WaterCap cap : List.of(BoundaryColumnGeometry.WaterCap.none(),
+                    new BoundaryColumnGeometry.WaterCap(0, 0), new BoundaryColumnGeometry.WaterCap(2, 4),
+                    new BoundaryColumnGeometry.WaterCap(5, 9), new BoundaryColumnGeometry.WaterCap(11, 17))) {
+                for (double expected : new double[]{-10D, 0D, 1.5D, 3D, 5.5D, 8D, 12D, 100D}) {
+                    assertEquals(denseSurface(voxels, expected, cap), geometry.surfaceOffsetNear(expected, cap));
+                }
             }
         }
-        assertThrows(IllegalArgumentException.class, () -> BoundaryColumnGeometry.empty().surfaceOffsetNear(0D));
+        assertThrows(IllegalArgumentException.class, () -> BoundaryColumnGeometry.empty()
+                .surfaceOffsetNear(0D, BoundaryColumnGeometry.WaterCap.none()));
         BoundaryColumnGeometry solid = BoundaryColumnGeometry.fromVoxels(-64, List.of(STONE));
-        assertThrows(IllegalArgumentException.class, () -> solid.surfaceOffsetNear(Double.NaN));
-        assertThrows(IllegalArgumentException.class, () -> solid.surfaceOffsetNear(Double.POSITIVE_INFINITY));
+        assertThrows(IllegalArgumentException.class, () -> solid.surfaceOffsetNear(Double.NaN,
+                BoundaryColumnGeometry.WaterCap.none()));
+        assertThrows(IllegalArgumentException.class, () -> solid.surfaceOffsetNear(Double.POSITIVE_INFINITY,
+                BoundaryColumnGeometry.WaterCap.none()));
     }
 
-    private static int denseSurface(List<BoundaryColumnGeometry.Voxel> voxels, double expected) {
+    private static int denseSurface(List<BoundaryColumnGeometry.Voxel> voxels, double expected,
+                                    BoundaryColumnGeometry.WaterCap cap) {
         int selected = -1;
         double distance = Double.POSITIVE_INFINITY;
         for (int index = 0; index + 1 < voxels.size(); index++) {
-            BoundaryColumnGeometry.Voxel current = voxels.get(index);
-            BoundaryColumnGeometry.Voxel above = voxels.get(index + 1);
-            if (current.phase() == BoundaryColumnGeometry.Phase.SOLID && !current.protectedContent()
-                    && (above.phase() != BoundaryColumnGeometry.Phase.SOLID || above.protectedContent())
+            if (denseTerrain(voxels, index, cap) && !denseTerrain(voxels, index + 1, cap)
                     && Math.abs(index - expected) < distance) {
                 selected = index;
                 distance = Math.abs(index - expected);
@@ -141,12 +205,22 @@ public class BoundaryColumnGeometryTest {
             return selected;
         }
         for (int index = voxels.size() - 1; index >= 0; index--) {
-            BoundaryColumnGeometry.Voxel voxel = voxels.get(index);
-            if (voxel.phase() == BoundaryColumnGeometry.Phase.SOLID && !voxel.protectedContent()) {
+            if (denseTerrain(voxels, index, cap)) {
                 return index;
             }
         }
         return 0;
+    }
+
+    private static boolean denseTerrain(List<BoundaryColumnGeometry.Voxel> voxels, int index,
+                                        BoundaryColumnGeometry.WaterCap cap) {
+        BoundaryColumnGeometry.Voxel voxel = voxels.get(index);
+        return voxel.phase() == BoundaryColumnGeometry.Phase.SOLID && !voxel.protectedContent()
+                && (index < cap.bottom() || index > cap.top());
+    }
+
+    private static BoundaryColumnGeometry column(BoundaryColumnGeometry.Voxel... voxels) {
+        return BoundaryColumnGeometry.fromVoxels(-64, List.of(voxels));
     }
 
     @Test

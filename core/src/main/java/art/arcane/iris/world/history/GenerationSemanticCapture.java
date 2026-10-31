@@ -35,7 +35,7 @@ import art.arcane.volmlib.util.matter.MatterCavern;
 import art.arcane.volmlib.util.matter.MatterStructurePOI;
 
 import java.util.ArrayDeque;
-import java.util.BitSet;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -238,7 +238,7 @@ public final class GenerationSemanticCapture {
         Mantle<Matter> mantle = engine.getMantle().getMantle();
         int minimumX = Math.multiplyExact(chunkX, CHUNK_SIZE);
         int minimumZ = Math.multiplyExact(chunkZ, CHUNK_SIZE);
-        BitSet resolvedCaves = new BitSet();
+        CavePositions resolvedCaves = new CavePositions();
         CaveBiomes caveBiomes = new CaveBiomes(engine, scoped);
         mantle.iterateChunk(chunkX, chunkZ, MatterCavern.class, (localX, y, localZ, cavern) -> {
             if (!caveSpace.test(localX, y, localZ)) {
@@ -370,17 +370,15 @@ public final class GenerationSemanticCapture {
     private static void captureCave(
             CaveBiomes caveBiomes,
             ChunkGenerationSemantics.Builder semantics,
-            BitSet resolvedCaves,
+            CavePositions resolvedCaves,
             int blockX,
             int y,
             int blockZ,
             String explicitBiomeKey
     ) {
-        int position = (y << 8) | ((blockX & 15) << 4) | (blockZ & 15);
-        if (resolvedCaves.get(position)) {
+        if (!resolvedCaves.add((y << 8) | ((blockX & 15) << 4) | (blockZ & 15))) {
             return;
         }
-        resolvedCaves.set(position);
         if (explicitBiomeKey != null && !explicitBiomeKey.isBlank()) {
             caveBiomes.add(semantics, explicitBiomeKey);
             return;
@@ -490,6 +488,25 @@ public final class GenerationSemanticCapture {
                 return null;
             }
             return engine.getSubterrainBiome(x, y, z);
+        }
+    }
+
+    private static final class CavePositions {
+        private static final int INITIAL_WORDS = 1536;
+
+        private long[] words = new long[INITIAL_WORDS];
+
+        private boolean add(int position) {
+            int word = position >>> 6;
+            if (word >= words.length) {
+                words = Arrays.copyOf(words, Math.max(word + 1, words.length << 1));
+            }
+            long bit = 1L << position;
+            if ((words[word] & bit) != 0L) {
+                return false;
+            }
+            words[word] |= bit;
+            return true;
         }
     }
 

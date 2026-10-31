@@ -250,7 +250,7 @@ public class GenerationHistoryAdmissionTest {
                                     .addSurfaceBiome("iris:conflict").seal().build()
                             : claim(stage);
                     results.add(executor.submit(() -> persistCounting(history, stage, update, appends, forces)));
-                    awaitBlockedOnHistory(history, workers, index + 1);
+                    awaitQueuedOnHistory(history, workers, index + 1);
                 }
                 stages.get(5).close();
             }
@@ -340,7 +340,7 @@ public class GenerationHistoryAdmissionTest {
                 for (int index = 0; index < stages.size(); index++) {
                     GenerationHistory.GenerationStage stage = stages.get(index);
                     results.add(executor.submit(() -> persistFailingRegion(history, stage, failure)));
-                    awaitBlockedOnHistory(history, workers, index + 1);
+                    awaitQueuedOnHistory(history, workers, index + 1);
                 }
             }
             assertTrue(results.getFirst().get(5, TimeUnit.SECONDS));
@@ -404,21 +404,27 @@ public class GenerationHistoryAdmissionTest {
         }
     }
 
-    private static void awaitBlockedOnHistory(GenerationHistory history, List<Thread> workers, int count) {
-        Await.until("semantic claim callers to queue behind the History monitor", Duration.ofSeconds(5L),
-                () -> blockedOnHistory(history, workers) == count);
+    private static void awaitQueuedOnHistory(GenerationHistory history, List<Thread> workers, int count) {
+        Await.until("semantic claim callers to queue behind the History writer", Duration.ofSeconds(5L),
+                () -> queuedOnHistory(history, workers) == count);
     }
 
-    private static int blockedOnHistory(GenerationHistory history, List<Thread> workers) {
-        int blocked = 0;
+    private static int queuedOnHistory(GenerationHistory history, List<Thread> workers) {
+        int queued = 0;
         for (Thread worker : workers) {
             ThreadInfo info = ManagementFactory.getThreadMXBean().getThreadInfo(worker.threadId());
-            if (info != null && info.getThreadState() == Thread.State.BLOCKED
-                    && info.getLockInfo().getIdentityHashCode() == System.identityHashCode(history)) {
-                blocked++;
+            if (info == null || info.getLockInfo() == null) {
+                continue;
+            }
+            boolean writer = info.getThreadState() == Thread.State.BLOCKED
+                    && info.getLockInfo().getIdentityHashCode() == System.identityHashCode(history);
+            boolean follower = info.getThreadState() == Thread.State.TIMED_WAITING
+                    && info.getLockInfo().getClassName().endsWith("GenerationHistory$PendingSemanticClaim");
+            if (writer || follower) {
+                queued++;
             }
         }
-        return blocked;
+        return queued;
     }
 
     private static boolean persistPaused(GenerationHistory history, GenerationHistory.GenerationStage stage,

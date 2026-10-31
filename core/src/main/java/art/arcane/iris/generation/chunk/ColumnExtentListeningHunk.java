@@ -20,7 +20,7 @@ package art.arcane.iris.generation.chunk;
 
 import art.arcane.volmlib.util.hunk.Hunk;
 
-public final class ColumnExtentListeningHunk<T> implements Hunk<T>, ColumnExtent, ColumnRunHunk<T> {
+public final class ColumnExtentListeningHunk<T> implements Hunk<T>, ColumnExtent, ColumnRunHunk<T>, ColumnReadHunk<T> {
     private final Hunk<T> source;
     private final Listener<T> listener;
 
@@ -44,6 +44,11 @@ public final class ColumnExtentListeningHunk<T> implements Hunk<T>, ColumnExtent
     @Override
     public T getRaw(int x, int y, int z) {
         return source.getRaw(x, y, z);
+    }
+
+    @Override
+    public void readColumn(int x, int z, int yFromInclusive, int yToInclusive, T[] target, int targetOffset) {
+        ColumnReadHunk.readColumn(source, x, z, yFromInclusive, yToInclusive, target, targetOffset);
     }
 
     @Override

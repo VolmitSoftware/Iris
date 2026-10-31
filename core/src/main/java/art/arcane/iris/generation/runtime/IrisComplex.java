@@ -485,7 +485,7 @@ public class IrisComplex implements DataProvider {
         naturalTrueBiomeStream = new BakedStream<>(bakeCache, BakePlane.NATURAL_TRUE_BIOME, naturalTrueBiomeSource);
         shoreBiomes = new HydrologyShoreBiomes(engine.getDimension(), data, engine.getSeedManager().getBodies());
         hydrologyRuntime = HydrologyRuntime.create(engine, this);
-        waterFluidStreams = hydrologyRuntime.enabled() ? createWaterFluidStreams(hydrologyRuntime.settings().fluids()) : Map.of();
+        waterFluidStreams = hydrologyRuntime.enabled() ? createWaterFluidStreams(hydrologyRuntime.settings().fluids(), hydrologyRuntime.settings().seams().values()) : Map.of();
         pondMaterials = hydrologyRuntime.enabled() ? hydrologyRuntime.settings().ponds().materials() : null;
         waterVegetation = hydrologyRuntime.enabled() ? HydrologyVegetationSource.create(engine.getDimension(), hydrologyRuntime.settings(), data,
                 engine.getDimension().getAllRegions(engine), engine.getDimension().getReachableBiomes(engine)) : HydrologyVegetationSource.NONE;
@@ -1224,12 +1224,14 @@ public class IrisComplex implements DataProvider {
     public record BiomePick(IrisBiome biome, InferredType type) {
     }
 
-    private Map<String, ProceduralStream<NativeBlockState>> createWaterFluidStreams(Map<String, IrisMaterialPalette> fluids) {
+    private Map<String, ProceduralStream<NativeBlockState>> createWaterFluidStreams(Map<String, IrisMaterialPalette> fluids,
+                                                                                   Collection<String> seams) {
         Map<String, ProceduralStream<NativeBlockState>> streams = new HashMap<>();
         int index = 0;
         for (Map.Entry<String, IrisMaterialPalette> fluid : fluids.entrySet()) {
+            // a seam (obsidian where lava meets water) is the solid result of two fluids meeting, not a fluid itself
             streams.put(fluid.getKey(), configuredFluidStream(fluid.getValue(), rng.nextParallelRNG(10900 + index),
-                    "hydrology fluid " + fluid.getKey()));
+                    "hydrology fluid " + fluid.getKey(), !seams.contains(fluid.getKey())));
             index++;
         }
         return Map.copyOf(streams);
@@ -1240,6 +1242,15 @@ public class IrisComplex implements DataProvider {
             RNG fluidRng,
             String configurationName
     ) {
+        return configuredFluidStream(palette, fluidRng, configurationName, true);
+    }
+
+    private ProceduralStream<NativeBlockState> configuredFluidStream(
+            IrisMaterialPalette palette,
+            RNG fluidRng,
+            String configurationName,
+            boolean fluidOnly
+    ) {
         Objects.requireNonNull(palette, configurationName + " fluidPalette must be configured");
         KList<NativeBlockState> blocks = palette.getBlockData(data);
         if (blocks.isEmpty()) {
@@ -1247,7 +1258,7 @@ public class IrisComplex implements DataProvider {
                     configurationName + " fluidPalette must resolve at least one fluid block");
         }
         for (NativeBlockState block : blocks) {
-            if (block == null || !block.isFluid()) {
+            if (block == null || fluidOnly && !block.isFluid()) {
                 throw new IllegalArgumentException(
                         configurationName + " fluidPalette may contain only fluid blocks");
             }
@@ -1721,14 +1732,31 @@ public class IrisComplex implements DataProvider {
         if (mapped != null) {
             return mapped;
         }
+        IrisBiome base = baseBiomeStream.get(x, z);
+        if (base.getInferredType() == InferredType.LAND && inlandWater(x, z)) {
+            // a pond or stream above sea level keeps the land around it, even where its floor dips below sea level
+            return base;
+        }
         return fixBiomeType(
                 terrainHeight,
-                baseBiomeStream.get(x, z),
+                base,
                 regionStream.get(x, z),
                 x,
                 z,
                 transitionFluidHeight(x, z, fluidHeight)
         );
+    }
+
+    private boolean inlandWater(double x, double z) {
+        int blockX = blockCoordinate(x);
+        int blockZ = blockCoordinate(z);
+        ChunkWaterRaster raster = hydrologyRasterAt(blockX, blockZ);
+        if (raster.empty()) {
+            return false;
+        }
+        WaterRole role = raster.role(blockX & 15, blockZ & 15);
+        return role.wet() && role != WaterRole.MOUTH && role != WaterRole.INLET
+                && raster.waterHead(blockX & 15, blockZ & 15) > transitionFluidHeight(x, z, fluidHeight);
     }
 
     private IrisBiome hydrologyShoreBiome(double terrainHeight, double x, double z) {

@@ -11,6 +11,8 @@ import art.arcane.iris.generation.hydrology.water.Reach;
 import art.arcane.iris.generation.hydrology.water.ReachStyle;
 
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.function.IntBinaryOperator;
 
 final class RasterComposer {
@@ -23,6 +25,8 @@ final class RasterComposer {
     private static final double CONE_EXPONENT = 0.8D;
     private static final double ROUNDING = 1e-6D;
     private static final long SALT_BANK = 0x42414e4b4e5aL;
+    private static final long SALT_SEAM = 0x5345414d4c4eL;
+    private static final double SEAM_SPREAD = 0.6D;
 
     private final HydrologySettings settings;
     private final ChunkFeatures features;
@@ -43,8 +47,12 @@ final class RasterComposer {
     private final int[] inletColumn = new int[2];
     private IntBinaryOperator naturalHeight;
 
-    RasterComposer(HydrologySettings settings, ChunkFeatures features, int chunkX, int chunkZ) {
+    private final ChunkRasterizer.AreaFluid areaFluid;
+    private final Map<Long, String> reachFluids = new HashMap<>();
+
+    RasterComposer(HydrologySettings settings, ChunkFeatures features, int chunkX, int chunkZ, ChunkRasterizer.AreaFluid areaFluid) {
         this.settings = settings;
+        this.areaFluid = areaFluid;
         this.features = features;
         this.originX = chunkX * CHUNK - 1;
         this.originZ = chunkZ * CHUNK - 1;
@@ -72,6 +80,7 @@ final class RasterComposer {
         bermEdges();
         measureLakeShores();
         nameShores();
+        sealSeams();
         return pack();
     }
 
@@ -113,6 +122,76 @@ final class RasterComposer {
         }
     }
 
+    /**
+     * Where a fluid with a seam touches a different fluid (or the sea), fill its edge with the seam, e.g. a cooled-lava
+     * crust where lava meets water. Every touching cell seals, and about SEAM_SPREAD of the cells next to those, picked
+     * by a world-position hash, so the crust is a ragged band instead of a one-block line.
+     */
+    private void sealSeams() {
+        Map<String, String> seams = settings.seams();
+        if (seams.isEmpty()) {
+            return;
+        }
+        boolean[] contact = new boolean[CELLS];
+        for (int cell = 0; cell < CELLS; cell++) {
+            if (!sealable(cell, seams)) {
+                continue;
+            }
+            String seam = seams.get(fluid[cell]);
+            for (int dz = -1; dz <= 1 && !contact[cell]; dz++) {
+                for (int dx = -1; dx <= 1 && !contact[cell]; dx++) {
+                    int next = neighbour(cell, dx, dz);
+                    contact[cell] = next >= 0 && meetsOther(cell, next, seam);
+                }
+            }
+        }
+        boolean[] sealed = contact.clone();
+        for (int cell = 0; cell < CELLS; cell++) {
+            if (contact[cell] || !sealable(cell, seams)) {
+                continue;
+            }
+            int x = originX + cell % GRID;
+            int z = originZ + cell / GRID;
+            if (CellHash.unit(CellHash.mix(settings.seed(), SALT_SEAM, x, z)) >= SEAM_SPREAD) {
+                continue;
+            }
+            for (int dz = -1; dz <= 1 && !sealed[cell]; dz++) {
+                for (int dx = -1; dx <= 1 && !sealed[cell]; dx++) {
+                    int next = neighbour(cell, dx, dz);
+                    sealed[cell] = next >= 0 && contact[next];
+                }
+            }
+        }
+        for (int cell = 0; cell < CELLS; cell++) {
+            if (sealed[cell]) {
+                fluid[cell] = seams.get(fluid[cell]);
+            }
+        }
+    }
+
+    private boolean sealable(int cell, Map<String, String> seams) {
+        return !corner(cell) && fluid[cell] != null && role[cell].wet() && seams.containsKey(fluid[cell]);
+    }
+
+    /** Whether the neighbour holds a different fluid: other hydrology water, or the sea (dry here, ground below sea level). */
+    private boolean meetsOther(int cell, int next, String seam) {
+        if (corner(next) || next == cell) {
+            return false;
+        }
+        if (role[next].wet()) {
+            String other = fluid[next];
+            return other != null && !other.equals(fluid[cell]) && !other.equals(seam);
+        }
+        return terrain[next] < settings.seaLevel();
+    }
+
+    /** The grid cell dx,dz away, or -1 outside the grid. */
+    private static int neighbour(int cell, int dx, int dz) {
+        int x = cell % GRID + dx;
+        int z = cell / GRID + dz;
+        return x < 0 || x >= GRID || z < 0 || z >= GRID ? -1 : z * GRID + x;
+    }
+
     private void standing(int cell, Pond water, int floor) {
         head[cell] = level(water.level());
         terrain[cell] = Math.min(floor, head[cell] - 1);
@@ -138,7 +217,19 @@ final class RasterComposer {
         role[cell] = role(reach.style()[point]);
         feature[cell] = reach.id();
         tier[cell] = reach.tier();
-        fluid[cell] = reach.tier().fluid();
+        fluid[cell] = reachFluid(reach);
+    }
+
+    /**
+     * The fluid of a whole reach: the one the hydrology policy names where the reach starts (its upstream end), else the
+     * tier's. Deciding per reach instead of per column keeps a river one fluid from source to confluence, so two fluids
+     * only meet where streams join or flow into a lake, not along every region border the river crosses.
+     */
+    private String reachFluid(Reach reach) {
+        return reachFluids.computeIfAbsent(reach.id(), id -> {
+            String area = areaFluid.at((int) Math.floor(reach.xs()[0]), (int) Math.floor(reach.zs()[0]));
+            return area != null ? area : reach.tier().fluid();
+        });
     }
 
     private static int bed(ReachCursor.Choice hit, int surface, int ground, double variation, double detail) {

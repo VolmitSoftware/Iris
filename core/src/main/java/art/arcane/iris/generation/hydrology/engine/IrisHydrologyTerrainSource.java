@@ -163,6 +163,16 @@ public final class IrisHydrologyTerrainSource implements HydrologyTerrainSource 
         return type == InferredType.SEA;
     }
 
+    /** The fluid this column's hydrology policy names (biome, then region, then dimension), or null if none does. */
+    public String channelFluid(int x, int z) {
+        ChunkBakeCache.enterSparse();
+        try {
+            return policy(biomes.get(x, z), regions.get(x, z)).fluid();
+        } finally {
+            ChunkBakeCache.exitSparse();
+        }
+    }
+
     private Policy policy(IrisBiome biome, IrisRegion region) {
         PolicyKey key = new PolicyKey(biome, region);
         Policy known = policies.get(key);

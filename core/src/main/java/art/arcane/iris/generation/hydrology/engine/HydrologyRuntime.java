@@ -72,6 +72,7 @@ public final class HydrologyRuntime {
     private final RasterLru rasters;
     private final ThreadLocal<LastRaster> last;
     private final Set<Long> queued;
+    private final ConcurrentHashMap<Long, CompletableFuture<ChunkWaterRaster>> building;
     private final RasterFailures failures;
     private final RasterFailures windowPreviewFailures;
     private final RasterFailures regionPreviewFailures;
@@ -94,6 +95,7 @@ public final class HydrologyRuntime {
         this.rasters = null;
         this.last = null;
         this.queued = null;
+        this.building = null;
         this.failures = null;
         this.windowPreviewFailures = null;
         this.regionPreviewFailures = null;
@@ -120,6 +122,7 @@ public final class HydrologyRuntime {
         this.rasters = new RasterLru();
         this.last = ThreadLocal.withInitial(LastRaster::new);
         this.queued = ConcurrentHashMap.newKeySet();
+        this.building = new ConcurrentHashMap<>();
         this.failures = new RasterFailures(ticker);
         this.windowPreviewFailures = new RasterFailures(ticker);
         this.regionPreviewFailures = new RasterFailures(ticker);
@@ -234,7 +237,7 @@ public final class HydrologyRuntime {
         requireOpen();
         long key = key(chunkX, chunkZ);
         ChunkWaterRaster known = remembered(key, slot);
-        return known != null ? known : remember(key, planned(chunkX, chunkZ, key));
+        return known != null ? known : build(chunkX, chunkZ, key, slot);
     }
 
     public ChunkWaterRaster rasterSnapshot(int chunkX, int chunkZ) {
@@ -498,6 +501,41 @@ public final class HydrologyRuntime {
             IrisLogging.reportError("Hydrology plans for world " + name + " (" + dimension + ") cannot be saved in " + root
                     + "; they stay in memory.", failure);
             return null;
+        }
+    }
+
+    private ChunkWaterRaster build(int chunkX, int chunkZ, long key, LastRaster slot) {
+        CompletableFuture<ChunkWaterRaster> claim = new CompletableFuture<>();
+        CompletableFuture<ChunkWaterRaster> running = building.putIfAbsent(key, claim);
+        if (running != null) {
+            ChunkWaterRaster built = built(running);
+            slot.remember(key, built);
+            return built;
+        }
+        try {
+            ChunkWaterRaster known = remembered(key, slot);
+            ChunkWaterRaster raster = known != null ? known : remember(key, planned(chunkX, chunkZ, key));
+            claim.complete(raster);
+            return raster;
+        } catch (RuntimeException | Error failure) {
+            claim.completeExceptionally(failure);
+            throw failure;
+        } finally {
+            building.remove(key, claim);
+        }
+    }
+
+    private static ChunkWaterRaster built(CompletableFuture<ChunkWaterRaster> running) {
+        try {
+            return running.join();
+        } catch (CompletionException failure) {
+            if (failure.getCause() instanceof RuntimeException cause) {
+                throw cause;
+            }
+            if (failure.getCause() instanceof Error cause) {
+                throw cause;
+            }
+            throw failure;
         }
     }
 

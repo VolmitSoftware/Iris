@@ -63,6 +63,9 @@ public class IrisModdedCommandParityTest {
         CommandNode<CommandSourceStack> studio = child(iris, "studio");
         child(studio, "package");
         child(studio, "pkg");
+        CommandNode<CommandSourceStack> datapackExport = child(child(iris, "datapack"), "export");
+        assertNotNull(datapackExport.getCommand());
+        assertNotNull(child(datapackExport, "args").getCommand());
 
         CommandNode<CommandSourceStack> download = child(iris, "download");
         CommandNode<CommandSourceStack> source = child(download, "source");
@@ -211,6 +214,8 @@ public class IrisModdedCommandParityTest {
         assertTrue(root.stream().anyMatch((String line) -> line.startsWith("/iris teleport <dimension> [player] (tp) - ")));
         assertTrue(ModdedCommandHelp.consoleLines("pregen").stream().anyMatch((String line) ->
                 line.startsWith("/iris pregen start <radius> [dimension] [at] [x] [z] [gui] [sync] [nocache] - ")));
+        assertTrue(ModdedCommandHelp.consoleLines("datapack").stream().anyMatch((String line) ->
+                line.startsWith("/iris datapack export <dimension> [version=] [mode=overworld] [namespace=iris_export] [output=] [format=zip] [objects=true] [replace=false] - ")));
     }
 
     private static CommandNode<CommandSourceStack> child(

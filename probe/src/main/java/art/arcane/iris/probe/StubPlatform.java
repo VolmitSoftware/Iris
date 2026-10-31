@@ -34,6 +34,7 @@ import art.arcane.volmlib.nativelib.item.NativeItem;
 import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.iris.spi.PlatformScheduler;
 import art.arcane.iris.spi.PlatformStructureHooks;
+import art.arcane.iris.spi.VanillaDataSource;
 import art.arcane.volmlib.nativelib.terrain.NativeWorld;
 import art.arcane.iris.generation.geometry.IrisBlockVector;
 
@@ -43,6 +44,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
@@ -88,6 +90,7 @@ public final class StubPlatform implements IrisPlatform {
     private final StubScheduler scheduler = new StubScheduler();
     private final StubStructureHooks structureHooks = new StubStructureHooks();
     private final StubBiomeWriter biomeWriter = new StubBiomeWriter();
+    private final StubVanillaDataSource vanillaData = new StubVanillaDataSource();
     private final File dataFolder;
 
     public StubPlatform() {
@@ -620,6 +623,18 @@ public final class StubPlatform implements IrisPlatform {
         }
     }
 
+    private static final class StubVanillaDataSource implements VanillaDataSource {
+        @Override
+        public Optional<byte[]> read(String dataPath) {
+            return Optional.empty();
+        }
+
+        @Override
+        public List<String> list(String prefix) {
+            return List.of();
+        }
+    }
+
     private record StubEntityType(String key) implements NativeEntityType {
         @Override
         public String namespace() {
@@ -781,6 +796,11 @@ public final class StubPlatform implements IrisPlatform {
     @Override
     public PlatformBiomeWriter biomeWriter() {
         return biomeWriter;
+    }
+
+    @Override
+    public VanillaDataSource vanillaData() {
+        return vanillaData;
     }
 
     @Override

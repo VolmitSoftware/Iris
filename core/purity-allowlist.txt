@@ -119,6 +119,8 @@ art/arcane/iris/studio/StudioSVC.java
 art/arcane/iris/studio/edit/BlockSignal.java
 art/arcane/iris/studio/edit/DustRevealer.java
 art/arcane/iris/studio/generation/JigsawStudioGenerator.java
+art/arcane/iris/studio/jigsaw/JigsawStudioConnectorTool.java
+art/arcane/iris/studio/jigsaw/JigsawStudioFloorPainter.java
 art/arcane/iris/studio/generation/ObjectStudioGenerator.java
 art/arcane/iris/studio/jigsaw/JigsawStudioAutosaveScheduler.java
 art/arcane/iris/studio/jigsaw/JigsawStudioCapture.java

@@ -19,6 +19,7 @@
 package art.arcane.iris.platform.bukkit;
 
 import art.arcane.iris.configuration.IrisSettings;
+import art.arcane.iris.platform.ClasspathVanillaDataSource;
 import art.arcane.iris.platform.bukkit.nms.INMS;
 import art.arcane.iris.platform.bukkit.nms.MinecraftVersion;
 import art.arcane.iris.pack.value.IrisPosition;
@@ -29,6 +30,7 @@ import art.arcane.iris.spi.PlatformBiomeWriter;
 import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.iris.spi.PlatformScheduler;
 import art.arcane.iris.spi.PlatformStructureHooks;
+import art.arcane.iris.spi.VanillaDataSource;
 import art.arcane.volmlib.nativelib.terrain.NativeWorld;
 import art.arcane.iris.platform.bukkit.plugin.VolmitPlugin;
 import art.arcane.iris.platform.bukkit.plugin.VolmitSender;
@@ -98,6 +100,7 @@ public final class BukkitPlatform implements IrisPlatform {
     private final BukkitScheduler scheduler = new BukkitScheduler();
     private final BukkitStructureHooks structureHooks = new BukkitStructureHooks();
     private final BukkitBiomeWriter biomeWriter = new BukkitBiomeWriter();
+    private final ClasspathVanillaDataSource vanillaData = new ClasspathVanillaDataSource(() -> Bukkit.class);
 
     public static void hostPlugin(Plugin plugin) {
         PLUGIN = plugin;
@@ -297,6 +300,11 @@ public final class BukkitPlatform implements IrisPlatform {
     @Override
     public PlatformBiomeWriter biomeWriter() {
         return biomeWriter;
+    }
+
+    @Override
+    public VanillaDataSource vanillaData() {
+        return vanillaData;
     }
 
     @Override

@@ -32,6 +32,7 @@ final class HeadlessNativeRuntime implements RealPackProbeSupport.RuntimeBinding
     private final Path stagingRoot;
     private NativeRegionTerrainWriter writer;
     private HeadlessNativeRegistries nativeRegistries;
+    private File preparedPack;
     private HolderLookup.Provider registries;
 
     HeadlessNativeRuntime() {
@@ -60,12 +61,16 @@ final class HeadlessNativeRuntime implements RealPackProbeSupport.RuntimeBinding
     @Override
     public void prepare(IrisData data, IrisDimension dimension) {
         try {
-            if (nativeRegistries != null) {
+            File pack = data.getDataFolder().getCanonicalFile();
+            if (nativeRegistries != null && !pack.equals(preparedPack)) {
                 throw new IllegalStateException("Headless native runtime supports one immutable pack per process");
             }
-            nativeRegistries = HeadlessNativeRegistries.compile(data.getDataFolder());
+            if (nativeRegistries == null) {
+                nativeRegistries = HeadlessNativeRegistries.compile(data.getDataFolder());
+                preparedPack = pack;
+                writer = new NativeRegionTerrainWriter(nativeRegistries.registries());
+            }
             registries = nativeRegistries.registries();
-            writer = new NativeRegionTerrainWriter(nativeRegistries.registries());
         } catch (IOException failure) {
             throw new UncheckedIOException("Cannot load native generation registries", failure);
         }
@@ -92,6 +97,7 @@ final class HeadlessNativeRuntime implements RealPackProbeSupport.RuntimeBinding
         if (nativeRegistries != null) {
             nativeRegistries.close();
             nativeRegistries = null;
+            preparedPack = null;
         }
     }
 

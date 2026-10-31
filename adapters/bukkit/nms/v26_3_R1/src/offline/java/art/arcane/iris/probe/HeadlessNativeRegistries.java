@@ -4,6 +4,7 @@ import art.arcane.iris.pack.datapack.IrisDatapackCompiler;
 import art.arcane.iris.pack.datapack.v263.DataFixerV263;
 import art.arcane.volmlib.util.collection.KList;
 
+import net.minecraft.core.HolderLookup;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
@@ -25,6 +26,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
 final class HeadlessNativeRegistries implements AutoCloseable {
@@ -70,7 +72,7 @@ final class HeadlessNativeRegistries implements AutoCloseable {
         }
     }
 
-    private static HeadlessNativeRegistries load(Path directory) {
+    static HeadlessNativeRegistries load(Path directory) {
         PackLocationInfo location = new PackLocationInfo("iris-headless", Component.literal("Iris"),
                 PackSource.WORLD, Optional.empty());
         MultiPackResourceManager resources = new MultiPackResourceManager(PackType.SERVER_DATA, List.of(
@@ -78,12 +80,17 @@ final class HeadlessNativeRegistries implements AutoCloseable {
         try {
             RegistryAccess.Frozen builtins = RegistryAccess.fromRegistryOfRegistries(BuiltInRegistries.REGISTRY);
             RegistryAccess.Frozen loaded;
+            RegistryAccess.Frozen dimensions;
             try (ExecutorService executor = Executors.newFixedThreadPool(4)) {
                 loaded = RegistryDataLoader.load(resources, builtins.listRegistries().toList(),
                         RegistryDataLoader.WORLD_REGISTRIES, executor).join();
+                List<HolderLookup.RegistryLookup<?>> dimensionContext =
+                        Stream.concat(builtins.listRegistries(), loaded.listRegistries()).toList();
+                dimensions = RegistryDataLoader.load(resources, dimensionContext,
+                        RegistryDataLoader.DIMENSION_REGISTRIES, executor).join();
             }
-            RegistryAccess.Frozen registries = new RegistryAccess.ImmutableRegistryAccess(
-                    Stream.concat(builtins.registries(), loaded.registries())).freeze();
+            RegistryAccess.Frozen registries = new RegistryAccess.ImmutableRegistryAccess(Stream.of(
+                    builtins.registries(), loaded.registries(), dimensions.registries()).flatMap(Function.identity())).freeze();
             HeadlessNativeBootstrap.bindComponents(registries);
             return new HeadlessNativeRegistries(directory, resources, registries);
         } catch (RuntimeException failure) {
@@ -106,7 +113,7 @@ final class HeadlessNativeRegistries implements AutoCloseable {
         delete(directory);
     }
 
-    private static void delete(Path directory) throws IOException {
+    static void delete(Path directory) throws IOException {
         try (Stream<Path> paths = Files.walk(directory)) {
             for (Path path : paths.sorted(Comparator.reverseOrder()).toList()) {
                 Files.delete(path);

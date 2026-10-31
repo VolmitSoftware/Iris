@@ -189,7 +189,8 @@ final class ModdedCommandHelp {
                 Entry.command("install", "", ModdedHelpMessages.COMMAND_INSTALL_INSTALL_DIMENSION_TYPE_OVERRIDES_FOR_LOADED_IRIS_DIMENSIONS),
                 Entry.command("list", "", ModdedHelpMessages.COMMAND_LIST_LIST_CONFIGURED_AND_INSTALLED_DATAPACKS, "ls"),
                 Entry.command("ingest", "", ModdedHelpMessages.COMMAND_INGEST_EXPLAIN_BUKKIT_DATAPACK_INGEST_WORKFLOW, "pull"),
-                Entry.command("remove", "<id>", ModdedHelpMessages.COMMAND_REMOVE_EXPLAIN_DATAPACK_REMOVAL_WORKFLOW, "rm")
+                Entry.command("remove", "<id>", ModdedHelpMessages.COMMAND_REMOVE_EXPLAIN_DATAPACK_REMOVAL_WORKFLOW, "rm"),
+                Entry.command("export", "<dimension> [version=] [mode=overworld] [namespace=iris_export] [output=] [format=zip] [objects=true] [replace=false]", ModdedHelpMessages.COMMAND_EXPORT_EXPORT_A_DIMENSION_AS_A_VANILLA_WORLDGEN_DATAPACK)
         ));
         SECTIONS.put("datapacks", SECTIONS.get("datapack"));
         SECTIONS.put("dp", SECTIONS.get("datapack"));

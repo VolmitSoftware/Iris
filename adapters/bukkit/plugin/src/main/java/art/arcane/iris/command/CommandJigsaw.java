@@ -21,7 +21,8 @@ import art.arcane.iris.structure.StructureImporter;
 import art.arcane.iris.structure.VillageImporter;
 import art.arcane.iris.structure.authoring.StructureKey;
 import art.arcane.iris.structure.authoring.StructureWriteResult;
-import art.arcane.iris.structure.export.VanillaJigsawExportFormat;
+import art.arcane.iris.pack.datapack.export.DatapackExportDestinations;
+import art.arcane.iris.pack.datapack.export.DatapackExportFormat;
 import art.arcane.iris.structure.export.VanillaJigsawExportRequest;
 import art.arcane.iris.structure.export.VanillaJigsawExportSettings;
 import art.arcane.iris.structure.export.VanillaJigsawExportSource;
@@ -420,9 +421,9 @@ public class CommandJigsaw implements DirectorExecutor {
             sendError("Wait for the pending autosave or discard the edits before exporting the on-disk graph.");
             return;
         }
-        VanillaJigsawExportFormat exportFormat;
+        DatapackExportFormat exportFormat;
         try {
-            exportFormat = CommandJigsawExports.parseFormat(format);
+            exportFormat = DatapackExportDestinations.parseFormat(format);
         } catch (IllegalArgumentException exception) {
             sendError(exception.getMessage());
             return;
@@ -431,7 +432,7 @@ public class CommandJigsaw implements DirectorExecutor {
                 .toPath().toAbsolutePath().normalize();
         Path destination;
         try {
-            destination = CommandJigsawExports.resolveExportDestination(exportRoot, output, exportFormat);
+            destination = DatapackExportDestinations.resolve(exportRoot, output, exportFormat);
         } catch (IllegalArgumentException exception) {
             sendError(exception.getMessage());
             return;

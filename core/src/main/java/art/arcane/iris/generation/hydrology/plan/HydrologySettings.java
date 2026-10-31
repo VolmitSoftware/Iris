@@ -58,6 +58,7 @@ public final class HydrologySettings {
     private final Deformation deformation;
     private final Underground underground;
     private final Map<String, IrisMaterialPalette> fluids;
+    private final Map<String, String> seams;
     private final int prefetchRings;
     private final boolean persist;
     private final long fingerprint;
@@ -79,6 +80,7 @@ public final class HydrologySettings {
         this.deformation = deformation(config.getDeformation());
         this.underground = underground(config.getUnderground());
         this.fluids = fluids(config.getFluids());
+        this.seams = seams(config.getFluids());
         this.prefetchRings = config.getPrefetchRings();
         this.persist = config.isPersist();
         requireFluidReferences();
@@ -157,6 +159,11 @@ public final class HydrologySettings {
 
     public Map<String, IrisMaterialPalette> fluids() {
         return fluids;
+    }
+
+    /** Fluid name -> the fluid profile that fills its edge where it touches a different fluid. */
+    public Map<String, String> seams() {
+        return seams;
     }
 
     public int prefetchRings() {
@@ -316,6 +323,16 @@ public final class HydrologySettings {
         return Collections.unmodifiableMap(compiled);
     }
 
+    private static Map<String, String> seams(List<IrisFluidProfile> profiles) {
+        Map<String, String> seams = new LinkedHashMap<>();
+        for (IrisFluidProfile profile : profiles) {
+            if (profile.getSeam() != null && !profile.getSeam().isBlank()) {
+                seams.put(profile.getName(), profile.getSeam());
+            }
+        }
+        return Collections.unmodifiableMap(seams);
+    }
+
     private static IrisMaterialPalette requirePalette(IrisFluidProfile profile, String field) {
         IrisMaterialPalette palette = profile.getPalette();
         if (palette == null || unwritten(palette)) {
@@ -457,6 +474,9 @@ public final class HydrologySettings {
         }
         requireFluid(ponds.fluid(), "ponds.fluid");
         requireFluid(underground.cavePools().fluid(), "underground.cavePools.fluid");
+        for (Map.Entry<String, String> seam : seams.entrySet()) {
+            requireFluid(seam.getValue(), "the seam of fluid '" + seam.getKey() + "'");
+        }
     }
 
     private void requireFluid(String name, String field) {
@@ -526,6 +546,10 @@ public final class HydrologySettings {
         hash.add(fluids.size());
         for (Map.Entry<String, IrisMaterialPalette> fluid : fluids.entrySet()) {
             hash.add(fluid.getKey()).add(fluid.getValue());
+        }
+        hash.add(seams.size());
+        for (Map.Entry<String, String> seam : seams.entrySet()) {
+            hash.add(seam.getKey()).add(seam.getValue());
         }
     }
 

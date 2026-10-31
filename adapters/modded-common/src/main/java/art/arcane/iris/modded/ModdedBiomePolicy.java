@@ -1396,12 +1396,18 @@ final class ModdedBiomePolicy<H, S> implements NativeModdedBiomePolicy<H, S> {
     }
 
     @Override
+    public String structureStateKey() {
+        return Objects.requireNonNull(runtime, "runtime").structureStateKey().get();
+    }
+
+    @Override
     public int horizontalSearchStep(int blockY, int searchRadius) {
         return horizontalBiomeSearchQuartStep(blockY, searchRadius);
     }
 
     record RuntimeCallbacks(Supplier<Engine> currentEngine, Supplier<Engine> awaitEngine,
                             Predicate<Engine> historyBypass, Supplier<Set<String>> configuredStructureKeys,
-                            Function<Engine, Set<String>> retainedBiomeKeys, LongSupplier visibleBiomeSeed) {
+                            Function<Engine, Set<String>> retainedBiomeKeys, LongSupplier visibleBiomeSeed,
+                            Supplier<String> structureStateKey) {
     }
 }

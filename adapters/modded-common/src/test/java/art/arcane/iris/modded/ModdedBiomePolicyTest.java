@@ -103,6 +103,15 @@ public class ModdedBiomePolicyTest {
     }
 
     @Test
+    public void structureStateKeyComesFromTheBoundRuntime() {
+        ModdedBiomePolicy<BiomeToken, Object> policy = new ModdedBiomePolicy<>(new Access(new ArrayList<>()));
+        policy.bind(new ModdedBiomePolicy.RuntimeCallbacks(() -> null, () -> null, engine -> false,
+                Set::of, engine -> Set.of(), () -> 0L, () -> "epoch:example"));
+
+        assertEquals("epoch:example", policy.structureStateKey());
+    }
+
+    @Test
     public void missingRequiredStructureBiomesFailBeforePublishingAPartialSet() {
         AtomicReference<Set<String>> configured = new AtomicReference<>(Set.of("example:missing"));
         ModdedBiomePolicy<BiomeToken, Object> policy = policy(
@@ -130,7 +139,7 @@ public class ModdedBiomePolicyTest {
         ModdedBiomePolicy<BiomeToken, Object> policy = new ModdedBiomePolicy<>(
                 new Access(new ArrayList<>(List.of(forest))));
         policy.bind(new ModdedBiomePolicy.RuntimeCallbacks(() -> engine, () -> engine, bound -> true,
-                () -> Set.of(forest.key()), bound -> Set.of(), () -> 0L));
+                () -> Set.of(forest.key()), bound -> Set.of(), () -> 0L, () -> "transient:test"));
 
         assertSame(forest, policy.requiredStructureBiome(6000, 0, -6000, null));
         assertSame(forest, policy.requiredStructureBiome(6000, -30, -6000, null));
@@ -212,7 +221,7 @@ public class ModdedBiomePolicyTest {
         ModdedBiomePolicy<BiomeToken, Object> policy = new ModdedBiomePolicy<>(
                 new Access(new ArrayList<>(List.of(plains, mirage))));
         policy.bind(new ModdedBiomePolicy.RuntimeCallbacks(() -> engine, () -> engine, bound -> false,
-                () -> Set.of(plains.key(), mirage.key()), bound -> Set.of(), () -> 0L));
+                () -> Set.of(plains.key(), mirage.key()), bound -> Set.of(), () -> 0L, () -> "transient:test"));
         int[] columns = {0, 1024, 2048, 3072, 4096, 5120};
 
         NativeBiomeSourcePolicy.BiomeLocation<BiomeToken> found = policy.findClosestBiome3d(
@@ -241,7 +250,7 @@ public class ModdedBiomePolicyTest {
     private static ModdedBiomePolicy<BiomeToken, Object> boundTo(Engine engine) {
         ModdedBiomePolicy<BiomeToken, Object> policy = new ModdedBiomePolicy<>(new Access(new ArrayList<>()));
         policy.bind(new ModdedBiomePolicy.RuntimeCallbacks(() -> engine, () -> engine, bound -> true,
-                Set::of, bound -> Set.of(), () -> 0L));
+                Set::of, bound -> Set.of(), () -> 0L, () -> "transient:test"));
         return policy;
     }
 
@@ -249,7 +258,7 @@ public class ModdedBiomePolicyTest {
                                                                AtomicReference<Set<String>> configured) {
         ModdedBiomePolicy<BiomeToken, Object> policy = new ModdedBiomePolicy<>(new Access(entries));
         policy.bind(new ModdedBiomePolicy.RuntimeCallbacks(() -> null, () -> null, engine -> false,
-                configured::get, engine -> Set.of(), () -> 0L));
+                configured::get, engine -> Set.of(), () -> 0L, () -> "transient:test"));
         return policy;
     }
 

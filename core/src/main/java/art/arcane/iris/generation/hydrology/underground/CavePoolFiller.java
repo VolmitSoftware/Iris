@@ -10,6 +10,7 @@ import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 
 import java.util.Arrays;
 import java.util.Set;
+import java.util.function.Supplier;
 
 public final class CavePoolFiller {
     public static final int REACH = HydrologySettings.MAX_CAVE_POOL_RADIUS + 1;
@@ -40,14 +41,18 @@ public final class CavePoolFiller {
         this.density = settings.density();
     }
 
-    public void fill(int chunkX, int chunkZ, CarvedTerrain carved, MantleWriter writer, long seed) {
+    public void fill(int chunkX, int chunkZ, Supplier<? extends CarvedTerrain> terrain, MantleWriter writer, long seed) {
         if (!pools.enabled() || density == 0f) {
             return;
         }
         int attempts = attempts(seed, chunkX, chunkZ);
+        CarvedTerrain carved = null;
         for (int attempt = 0; attempt < attempts; attempt++) {
             if (density < 1f && CellHash.unit(CellHash.mix(seed, SALT_DENSITY + attempt, chunkX, chunkZ)) >= density) {
                 continue;
+            }
+            if (carved == null) {
+                carved = terrain.get();
             }
             long column = CellHash.mix(seed, SALT_COLUMN + attempt, chunkX, chunkZ);
             int x = (chunkX << 4) + (int) (column & 15);

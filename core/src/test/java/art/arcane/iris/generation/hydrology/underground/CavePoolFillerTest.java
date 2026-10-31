@@ -15,6 +15,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.IntFunction;
 
@@ -50,15 +51,34 @@ public class CavePoolFillerTest {
             return 0;
         });
         for (int chunkX = 0; chunkX < 1024; chunkX++) {
-            filler.fill(chunkX, 0, carved, writer, SEED);
+            filler.fill(chunkX, 0, () -> carved, writer, SEED);
         }
         assertTrue("half density samples approximately half the candidate columns", columns.size() > 3600 && columns.size() < 4500);
         Set<Long> repeated = new HashSet<>(columns);
         columns.clear();
         for (int chunkX = 1023; chunkX >= 0; chunkX--) {
-            filler.fill(chunkX, 0, carved, writer, SEED);
+            filler.fill(chunkX, 0, () -> carved, writer, SEED);
         }
         assertEquals(repeated, columns);
+        verifyNoInteractions(writer);
+    }
+
+    @Test
+    public void chunksWithoutAPoolSiteNeverOpenTheirCaves() {
+        IrisHydrology config = new IrisHydrology().setDensity(0.5D);
+        config.getUnderground().getCavePools().setDensity(0.05D);
+        CavePoolFiller filler = new CavePoolFiller(HydrologySettings.compile(config, SEED, 63, 0, 384));
+        CarvedTerrain carved = mock(CarvedTerrain.class);
+        MantleWriter writer = mock(MantleWriter.class);
+        AtomicInteger opened = new AtomicInteger();
+        int chunks = 1024;
+        for (int chunkX = 0; chunkX < chunks; chunkX++) {
+            filler.fill(chunkX, 0, () -> {
+                opened.incrementAndGet();
+                return carved;
+            }, writer, SEED);
+        }
+        assertTrue("only chunks drawing a pool site open their caves, opened " + opened.get(), opened.get() > 0 && opened.get() < chunks / 8);
         verifyNoInteractions(writer);
     }
 
@@ -69,7 +89,7 @@ public class CavePoolFillerTest {
         CavePoolFiller filler = new CavePoolFiller(HydrologySettings.compile(config, SEED, 63, 0, 384));
         CarvedTerrain carved = mock(CarvedTerrain.class);
         MantleWriter writer = mock(MantleWriter.class);
-        filler.fill(0, 0, carved, writer, SEED);
+        filler.fill(0, 0, () -> carved, writer, SEED);
         verifyNoInteractions(carved, writer);
     }
 
@@ -143,10 +163,10 @@ public class CavePoolFillerTest {
         MantleWriter forwardWriter = writer(forward);
         MantleWriter reverseWriter = writer(reverse);
         for (int index = 0; index < 9; index++) {
-            new CavePoolFiller(settings).fill(index % 3 - 1, index / 3 - 1, world, forwardWriter, SEED);
+            new CavePoolFiller(settings).fill(index % 3 - 1, index / 3 - 1, () -> world, forwardWriter, SEED);
         }
         for (int index = 8; index >= 0; index--) {
-            new CavePoolFiller(settings).fill(index % 3 - 1, index / 3 - 1, world, reverseWriter, SEED);
+            new CavePoolFiller(settings).fill(index % 3 - 1, index / 3 - 1, () -> world, reverseWriter, SEED);
         }
 
         assertFalse(forward.isEmpty());
@@ -284,7 +304,7 @@ public class CavePoolFillerTest {
 
     private static Map<Long, HydrologyCaveCell> fill(HydrologySettings settings, VoxelWorld world, int chunkX, int chunkZ) {
         Map<Long, HydrologyCaveCell> written = new HashMap<>();
-        new CavePoolFiller(settings).fill(chunkX, chunkZ, world, writer(written), SEED);
+        new CavePoolFiller(settings).fill(chunkX, chunkZ, () -> world, writer(written), SEED);
         return written;
     }
 

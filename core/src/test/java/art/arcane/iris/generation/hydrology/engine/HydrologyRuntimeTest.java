@@ -67,6 +67,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BooleanSupplier;
 import java.util.stream.Stream;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -412,6 +413,35 @@ public class HydrologyRuntimeTest {
         assertEquals(3, prefetches.get());
         runtime.raster(4, 0);
         assertEquals(3, prefetches.get());
+    }
+
+    @Test(timeout = 180_000L)
+    public void boundedPregenerationPrefetchesOnlyWindowsItsChunksNeed() {
+        FakePlanners planners = new FakePlanners(settings());
+        HydrologyPlanCache cache = spy(new HydrologyPlanCache(planners.settings, planners::region, planners::window,
+                pool(planners, 2), () -> false));
+        List<int[]> prepared = Collections.synchronizedList(new ArrayList<>());
+        doAnswer(invocation -> {
+            prepared.add(new int[]{invocation.getArgument(0), invocation.getArgument(1), invocation.getArgument(2), invocation.getArgument(3),
+                    invocation.getArgument(4)});
+            return CompletableFuture.completedFuture(null);
+        }).when(cache).prepareWindowsAround(anyInt(), anyInt(), anyInt(), anyInt(), anyInt());
+        HydrologyRuntime runtime = new HydrologyRuntime(planners.settings, cache, planners::natural, () -> false, planners.ticker::get);
+        runtimes.add(runtime);
+        int chunks = WindowKey.SIZE >> 4;
+        HydrologyPregeneration pregeneration = runtime.openPregeneration();
+        pregeneration.bound(0, 0, 1, 1);
+
+        runtime.raster(0, 0);
+        assertArrayEquals(new int[]{-chunks, -chunks, 3 * chunks - 1, 3 * chunks - 1, 0}, prepared.getLast());
+        runtime.raster(chunks + 5, chunks + 5);
+        assertArrayEquals(new int[]{-chunks, -chunks, 3 * chunks - 1, 3 * chunks - 1, 0}, prepared.getLast());
+        runtime.raster(-3 * chunks, 0);
+        assertArrayEquals(new int[]{-3 * chunks, 0, -3 * chunks, 0, 2}, prepared.getLast());
+
+        pregeneration.close();
+        runtime.raster(1, 1);
+        assertArrayEquals(new int[]{1, 1, 1, 1, 2}, prepared.getLast());
     }
 
     @Test(timeout = 180_000L)

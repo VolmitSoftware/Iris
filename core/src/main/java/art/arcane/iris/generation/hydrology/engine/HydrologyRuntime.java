@@ -36,6 +36,7 @@ import java.io.UncheckedIOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -77,6 +78,7 @@ public final class HydrologyRuntime {
     private final RasterFailures regionPreviewFailures;
     private final Set<Object> previews;
     private final LinkedHashMap<WindowKey, WindowPrefetch> prefetches;
+    private final Map<Object, PregenArea> pregenAreas;
     private final HydrologyBinding binding;
     private final Function<PreparedHydrologyCacheIdentity, HydrologyPlanStore> stores;
     private final boolean caveFluidPolicies;
@@ -99,6 +101,7 @@ public final class HydrologyRuntime {
         this.regionPreviewFailures = null;
         this.previews = null;
         this.prefetches = null;
+        this.pregenAreas = null;
         this.binding = HydrologyBinding.UNBOUND;
         this.stores = identity -> null;
         this.caveFluidPolicies = false;
@@ -125,6 +128,7 @@ public final class HydrologyRuntime {
         this.regionPreviewFailures = new RasterFailures(ticker);
         this.previews = new HashSet<>();
         this.prefetches = new LinkedHashMap<>(PREFETCH_CAPACITY * 2, 0.75f, true);
+        this.pregenAreas = new HashMap<>();
         this.binding = Objects.requireNonNull(binding, "binding");
         this.stores = Objects.requireNonNull(stores, "stores");
         this.caveFluidPolicies = caveFluidPolicies;
@@ -354,8 +358,28 @@ public final class HydrologyRuntime {
         }
     }
 
+    void boundPregeneration(Object epoch, int minRegionX, int minRegionZ, int maxRegionX, int maxRegionZ) {
+        Objects.requireNonNull(epoch, "epoch");
+        if (maxRegionX < minRegionX || maxRegionZ < minRegionZ) {
+            throw new IllegalArgumentException("Invalid pregeneration bounds " + minRegionX + "," + minRegionZ + " to " + maxRegionX + ","
+                    + maxRegionZ);
+        }
+        if (cache == null) {
+            return;
+        }
+        synchronized (prefetches) {
+            pregenAreas.put(epoch, new PregenArea(minRegionX - 1, minRegionZ - 1, maxRegionX + 1, maxRegionZ + 1));
+            prefetches.clear();
+        }
+    }
+
     void cancelPregeneration(Object epoch) {
         if (cache != null) {
+            synchronized (prefetches) {
+                if (pregenAreas.remove(epoch) != null) {
+                    prefetches.clear();
+                }
+            }
             cache.cancel(epoch);
         }
     }
@@ -667,12 +691,30 @@ public final class HydrologyRuntime {
                     && (!known.prepared().isDone() || known.evictions() == evictions)) {
                 return;
             }
-            CompletableFuture<Void> prepared = cache.prepareWindowsAround(chunkX, chunkZ, chunkX, chunkZ, 1 + settings.prefetchRings());
+            CompletableFuture<Void> prepared = prepareAround(chunkX, chunkZ, owner, 1 + settings.prefetchRings());
             prefetches.put(owner, new WindowPrefetch(prepared, evictions));
             if (prefetches.size() > PREFETCH_CAPACITY) {
                 prefetches.pollFirstEntry();
             }
         }
+    }
+
+    private CompletableFuture<Void> prepareAround(int chunkX, int chunkZ, WindowKey owner, int rings) {
+        PregenArea covering = null;
+        for (PregenArea area : pregenAreas.values()) {
+            if (area.contains(owner)) {
+                covering = covering == null ? area : covering.union(area);
+            }
+        }
+        if (covering == null) {
+            return cache.prepareWindowsAround(chunkX, chunkZ, chunkX, chunkZ, rings);
+        }
+        int minX = Math.max(owner.wx() - rings, covering.minX());
+        int minZ = Math.max(owner.wz() - rings, covering.minZ());
+        int maxX = Math.min(owner.wx() + rings, covering.maxX());
+        int maxZ = Math.min(owner.wz() + rings, covering.maxZ());
+        return cache.prepareWindowsAround(minX * CHUNKS_PER_WINDOW, minZ * CHUNKS_PER_WINDOW, (maxX + 1) * CHUNKS_PER_WINDOW - 1,
+                (maxZ + 1) * CHUNKS_PER_WINDOW - 1, 0);
     }
 
     private static List<WindowKey> neighbourhood(int chunkX, int chunkZ) {
@@ -752,6 +794,16 @@ public final class HydrologyRuntime {
     }
 
     private record WindowPrefetch(CompletableFuture<Void> prepared, long evictions) {
+    }
+
+    private record PregenArea(int minX, int minZ, int maxX, int maxZ) {
+        private boolean contains(WindowKey key) {
+            return key.wx() > minX && key.wx() < maxX && key.wz() > minZ && key.wz() < maxZ;
+        }
+
+        private PregenArea union(PregenArea other) {
+            return new PregenArea(Math.min(minX, other.minX), Math.min(minZ, other.minZ), Math.max(maxX, other.maxX), Math.max(maxZ, other.maxZ));
+        }
     }
 
     private static final class LastRaster {

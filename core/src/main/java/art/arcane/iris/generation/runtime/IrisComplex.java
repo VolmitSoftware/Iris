@@ -1721,14 +1721,31 @@ public class IrisComplex implements DataProvider {
         if (mapped != null) {
             return mapped;
         }
+        IrisBiome base = baseBiomeStream.get(x, z);
+        if (base.getInferredType() == InferredType.LAND && inlandWater(x, z)) {
+            // a pond or stream above sea level keeps the land around it, even where its floor dips below sea level
+            return base;
+        }
         return fixBiomeType(
                 terrainHeight,
-                baseBiomeStream.get(x, z),
+                base,
                 regionStream.get(x, z),
                 x,
                 z,
                 transitionFluidHeight(x, z, fluidHeight)
         );
+    }
+
+    private boolean inlandWater(double x, double z) {
+        int blockX = blockCoordinate(x);
+        int blockZ = blockCoordinate(z);
+        ChunkWaterRaster raster = hydrologyRasterAt(blockX, blockZ);
+        if (raster.empty()) {
+            return false;
+        }
+        WaterRole role = raster.role(blockX & 15, blockZ & 15);
+        return role.wet() && role != WaterRole.MOUTH && role != WaterRole.INLET
+                && raster.waterHead(blockX & 15, blockZ & 15) > transitionFluidHeight(x, z, fluidHeight);
     }
 
     private IrisBiome hydrologyShoreBiome(double terrainHeight, double x, double z) {

@@ -85,8 +85,9 @@ public final class MantleHydrologyComponent extends IrisMantleComponent {
         generateFalls(writer, complex, runtime, own, chunkX, chunkZ);
         if (poolsActive()) {
             HydrologySettings settings = runtime.settings();
-            new CavePoolFiller(settings).fill(chunkX, chunkZ,
-                    new MantleCarvedTerrain(writer, complex, getEngineMantle().getEngine(), chunkX, chunkZ), writer, settings.seed());
+            Engine engine = getEngineMantle().getEngine();
+            new CavePoolFiller(settings).fill(chunkX, chunkZ, () -> new MantleCarvedTerrain(writer, complex, engine, chunkX, chunkZ), writer,
+                    settings.seed());
         }
     }
 

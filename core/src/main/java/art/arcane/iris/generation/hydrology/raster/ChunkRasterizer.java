@@ -37,7 +37,7 @@ public final class ChunkRasterizer {
                                       List<RegionPlan> lakeRegionPlans) {
         Objects.requireNonNull(naturalHeight, "naturalHeight");
         ChunkFeatures features = ChunkFeatures.gather(settings, chunkX, chunkZ, halo, windows, lakeRegionPlans, lakeRegions(chunkX, chunkZ));
-        if (features.empty()) {
+        if (features.inert()) {
             return ChunkWaterRaster.EMPTY;
         }
         return new RasterComposer(settings, features, chunkX, chunkZ).compose(naturalHeight);

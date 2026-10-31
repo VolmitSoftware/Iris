@@ -15,6 +15,7 @@ final class RiffleProfile {
     private static final int LIMIT = 10 * RADIUS;
     private static final int DRY = Integer.MIN_VALUE;
     private static final int[] SIDES = {1, -1, GRID, -GRID};
+    private static final int[] REMAINING = remaining();
 
     private final List<Field> fields = new ArrayList<>();
 
@@ -85,6 +86,20 @@ final class RiffleProfile {
         return (int) Math.max(original, Math.min(head - 1L, Math.round(raised)));
     }
 
+    private static int[] remaining() {
+        int[] remaining = new int[GRID * GRID];
+        int low = PADDING - 1;
+        int high = PADDING + CHUNK;
+        for (int z = 0; z < GRID; z++) {
+            for (int x = 0; x < GRID; x++) {
+                int outsideX = Math.max(0, Math.max(low - x, x - high));
+                int outsideZ = Math.max(0, Math.max(low - z, z - high));
+                remaining[z * GRID + x] = 10 * Math.max(outsideX, outsideZ);
+            }
+        }
+        return remaining;
+    }
+
     private record Field(int crest, int[] distances) {
     }
 
@@ -107,6 +122,9 @@ final class RiffleProfile {
         }
 
         private void offer(int cell, int distance) {
+            if (distance + REMAINING[cell] >= LIMIT) {
+                return;
+            }
             if (distances[cell] < LIMIT) {
                 remove(cell);
             }

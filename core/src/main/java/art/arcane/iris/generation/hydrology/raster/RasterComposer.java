@@ -385,34 +385,37 @@ final class RasterComposer {
 
     private ChunkWaterRaster pack() {
         int columns = ChunkWaterRaster.COLUMNS;
+        boolean affected = false;
+        for (int lz = 0; lz < CHUNK && !affected; lz++) {
+            for (int lx = 0; lx < CHUNK && !affected; lx++) {
+                int cell = (lz + 1) * GRID + lx + 1;
+                affected = role[cell] != WaterRole.NONE || terrain[cell] != natural[cell] || shore(cell) < ChunkWaterRaster.MAX_SHORE_DISTANCE;
+            }
+        }
+        if (!affected) {
+            return ChunkWaterRaster.EMPTY;
+        }
         int[] terrainOut = new int[columns];
         int[] headOut = new int[columns];
         byte[] roleOut = new byte[columns];
-        HydrologyTier[] tierOut = new HydrologyTier[columns];
-        long[] featureOut = new long[columns];
-        String[] fluidOut = new String[columns];
-        int[] caveOut = new int[columns];
+        ChunkWaterRaster.Palette<HydrologyTier> tierOut = new ChunkWaterRaster.Palette<>(new HydrologyTier[columns]);
+        ChunkWaterRaster.LongPalette featureOut = new ChunkWaterRaster.LongPalette();
+        ChunkWaterRaster.Palette<String> fluidOut = new ChunkWaterRaster.Palette<>(new String[columns]);
         byte[] shoreOut = new byte[columns];
-        boolean caveMask = settings.deformation().caveMask();
-        boolean affected = false;
         for (int lz = 0; lz < CHUNK; lz++) {
             for (int lx = 0; lx < CHUNK; lx++) {
                 int cell = (lz + 1) * GRID + lx + 1;
                 int index = lz << 4 | lx;
-                int shore = shore(cell);
                 terrainOut[index] = terrain[cell];
                 headOut[index] = head[cell];
                 roleOut[index] = (byte) role[cell].ordinal();
-                tierOut[index] = tier[cell];
-                featureOut[index] = feature[cell];
-                fluidOut[index] = fluid[cell];
-                caveOut[index] = caveMask && head[cell] != Integer.MIN_VALUE ? terrain[cell] - 1 : Integer.MAX_VALUE;
-                shoreOut[index] = (byte) shore;
-                affected |= role[cell] != WaterRole.NONE || terrain[cell] != natural[cell] || shore < ChunkWaterRaster.MAX_SHORE_DISTANCE;
+                tierOut.set(index, tier[cell]);
+                featureOut.set(index, feature[cell]);
+                fluidOut.set(index, fluid[cell]);
+                shoreOut[index] = (byte) shore(cell);
             }
         }
-        return affected ? new ChunkWaterRaster(terrainOut, headOut, roleOut, tierOut, featureOut, fluidOut, caveOut, shoreOut)
-                : ChunkWaterRaster.EMPTY;
+        return new ChunkWaterRaster(terrainOut, headOut, roleOut, tierOut, featureOut, fluidOut, settings.deformation().caveMask(), shoreOut);
     }
 
     private int shore(int cell) {

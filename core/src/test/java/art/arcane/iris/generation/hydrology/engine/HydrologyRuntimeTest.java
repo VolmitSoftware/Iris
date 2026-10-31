@@ -217,6 +217,34 @@ public class HydrologyRuntimeTest {
     }
 
     @Test(timeout = 180_000L)
+    public void concurrentDemandsShareOneRasterBuild() throws Exception {
+        FakePlanners planners = new FakePlanners(settings(0, false));
+        HydrologyRuntime runtime = runtime(planners, () -> false);
+        runtime.prepareWindowsAround(0, 0, 0, 0, 1).get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        CountDownLatch gate = new CountDownLatch(1);
+        planners.naturalGate = gate;
+        AtomicReference<ChunkWaterRaster> first = new AtomicReference<>();
+        AtomicReference<ChunkWaterRaster> second = new AtomicReference<>();
+        Thread leader = new Thread(() -> first.set(runtime.raster(0, 0)));
+        Thread follower = new Thread(() -> second.set(runtime.raster(0, 0)));
+        try {
+            leader.start();
+            await(() -> planners.naturalSamples.get() > 0, "the first demand starts sampling");
+            follower.start();
+            await(() -> follower.getState() == Thread.State.WAITING || follower.getState() == Thread.State.TIMED_WAITING,
+                    "the second demand waits");
+            assertEquals(0, planners.naturalSamplesOn(follower));
+        } finally {
+            gate.countDown();
+            leader.join(TimeUnit.SECONDS.toMillis(TIMEOUT_SECONDS));
+            follower.join(TimeUnit.SECONDS.toMillis(TIMEOUT_SECONDS));
+        }
+        assertFalse(first.get().provisional());
+        assertSame(first.get(), second.get());
+        assertEquals(0, planners.naturalSamplesOn(follower));
+    }
+
+    @Test(timeout = 180_000L)
     public void failedRasterDoesNotAdvancePreviewRevision() throws Exception {
         FakePlanners planners = new FakePlanners(settings(0, false));
         ExecutorService pool = pool(planners, 1);

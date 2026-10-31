@@ -11,10 +11,12 @@ import art.arcane.iris.generation.hydrology.plan.RegionPlan;
 import art.arcane.iris.generation.hydrology.plan.WindowKey;
 import art.arcane.iris.generation.hydrology.plan.WindowPlan;
 import art.arcane.iris.generation.hydrology.plan.WindowPlanner;
+import art.arcane.iris.generation.hydrology.raster.ChannelFluids;
 import art.arcane.iris.generation.hydrology.raster.ChunkRasterizer;
 import art.arcane.iris.generation.hydrology.raster.ChunkWaterRaster;
 import art.arcane.iris.generation.hydrology.raster.ReachIndex;
 import art.arcane.iris.generation.hydrology.water.Pond;
+import art.arcane.iris.generation.hydrology.raster.NaturalHeights;
 import com.sun.management.OperatingSystemMXBean;
 
 import java.lang.management.ManagementFactory;
@@ -32,7 +34,6 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiFunction;
-import java.util.function.IntBinaryOperator;
 
 final class HydrologyPlanHarness {
     private static final double TILE_AREA = 1024D * 1024D;
@@ -43,7 +44,7 @@ final class HydrologyPlanHarness {
 
     static final class Plans {
         private final HydrologySettings settings;
-        private final IntBinaryOperator naturalHeight;
+        private final NaturalHeights naturalHeight;
         private final HydrologyWindows.WindowRange planned;
         private final CountingTerrain counting;
         private final HydrologyPlanners planners;
@@ -54,13 +55,13 @@ final class HydrologyPlanHarness {
         private final Map<WindowKey, Double> windowCpu = new HashMap<>();
         private final List<String> failures = new ArrayList<>();
 
-        Plans(HydrologySettings settings, HydrologyTerrainSource terrain, IntBinaryOperator naturalHeight, HydrologyWindows.WindowRange range) {
+        Plans(HydrologySettings settings, HydrologyTerrainSource terrain, NaturalHeights naturalHeight, HydrologyWindows.WindowRange range) {
             this.settings = settings;
             this.naturalHeight = naturalHeight;
             this.planned = range.grown(1);
             this.counting = new CountingTerrain(terrain);
             this.planners = HydrologyPlanners.create(settings, counting);
-            this.rasterizer = new ChunkRasterizer(settings);
+            this.rasterizer = new ChunkRasterizer(settings, ChannelFluids.TIER);
             Set<RegionKey> regionKeys = new TreeSet<>(REGION_ORDER);
             for (WindowKey key : planned.keys()) {
                 regionKeys.addAll(WindowPlanner.lakeRegions(key));

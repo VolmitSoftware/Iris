@@ -8,17 +8,18 @@ import art.arcane.iris.generation.hydrology.water.HydrologyTier;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.function.IntBinaryOperator;
 
 public final class ChunkRasterizer {
     private static final int CHUNK = 16;
     private static final int CANDIDATE_HALO = 48;
 
     private final HydrologySettings settings;
+    private final ChannelFluids channelFluids;
     private final int halo;
 
-    public ChunkRasterizer(HydrologySettings settings) {
+    public ChunkRasterizer(HydrologySettings settings, ChannelFluids channelFluids) {
         this.settings = Objects.requireNonNull(settings, "settings");
+        this.channelFluids = Objects.requireNonNull(channelFluids, "channelFluids");
         float widest = 0f;
         for (HydrologyTier tier : settings.tiers()) {
             widest = Math.max(widest, tier.maxHalfWidth());
@@ -33,13 +34,13 @@ public final class ChunkRasterizer {
                 chunkX * CHUNK + CHUNK - 1 + halo, chunkZ * CHUNK + CHUNK - 1 + halo);
     }
 
-    public ChunkWaterRaster rasterize(int chunkX, int chunkZ, IntBinaryOperator naturalHeight, List<IndexedWindow> windows,
+    public ChunkWaterRaster rasterize(int chunkX, int chunkZ, NaturalHeights naturalHeight, List<IndexedWindow> windows,
                                       List<RegionPlan> lakeRegionPlans) {
         Objects.requireNonNull(naturalHeight, "naturalHeight");
         ChunkFeatures features = ChunkFeatures.gather(settings, chunkX, chunkZ, halo, windows, lakeRegionPlans, lakeRegions(chunkX, chunkZ));
         if (features.inert()) {
             return ChunkWaterRaster.EMPTY;
         }
-        return new RasterComposer(settings, features, chunkX, chunkZ).compose(naturalHeight);
+        return new RasterComposer(settings, features, channelFluids, chunkX, chunkZ).compose(naturalHeight);
     }
 }

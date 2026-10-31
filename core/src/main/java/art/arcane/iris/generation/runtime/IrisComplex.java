@@ -1680,7 +1680,11 @@ public class IrisComplex implements DataProvider {
 
     /** The natural terrain height of a column, from the natural height stream only: never touches hydrology or its caches. */
     public int naturalTrueHeight(int x, int z) {
-        return (int) Math.round(naturalHeightStream.getDouble(x, z));
+        return (int) Math.round(naturalHeight(x, z));
+    }
+
+    public double naturalHeight(int x, int z) {
+        return naturalHeightStream.getDouble(x, z);
     }
 
     /** The terrain slope of a column from the natural height stream only: never touches hydrology or its caches. */

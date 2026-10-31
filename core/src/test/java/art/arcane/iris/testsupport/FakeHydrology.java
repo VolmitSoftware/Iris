@@ -83,7 +83,7 @@ public final class FakeHydrology implements AutoCloseable {
         });
         HydrologySettings settings = settings(seaLevel);
         HydrologyPlanCache cache = new HydrologyPlanCache(settings, this::region, this::window, pool, mainThread);
-        this.runtime = new HydrologyRuntime(settings, cache, naturalHeight, mainThread, System::nanoTime);
+        this.runtime = new HydrologyRuntime(settings, cache, naturalHeight::applyAsInt, mainThread, System::nanoTime);
     }
 
     public static HydrologySettings settings(int seaLevel) {

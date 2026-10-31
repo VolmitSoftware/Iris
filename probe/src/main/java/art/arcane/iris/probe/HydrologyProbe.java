@@ -11,6 +11,7 @@ import art.arcane.iris.generation.hydrology.plan.WindowPlan;
 import art.arcane.iris.generation.hydrology.raster.ChunkWaterRaster;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.terrain.IrisDimension;
+import art.arcane.iris.generation.hydrology.raster.NaturalHeights;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -27,7 +28,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.ForkJoinTask;
 import java.util.concurrent.Future;
-import java.util.function.IntBinaryOperator;
 
 public final class HydrologyProbe {
     private static final int RASTER_CACHE = 8192;
@@ -56,7 +56,7 @@ public final class HydrologyProbe {
         }
     }
 
-    record Inputs(HydrologySettings settings, HydrologyTerrainSource terrain, IntBinaryOperator naturalHeight, ForkJoinPool planningPool,
+    record Inputs(HydrologySettings settings, HydrologyTerrainSource terrain, NaturalHeights naturalHeight, ForkJoinPool planningPool,
                   ExecutorService workers, HydrologyVoxels.ChunkSource blocks, HydrologyUnderground.Source underground, int worldHeight) {
         Inputs {
             Objects.requireNonNull(settings, "settings");
@@ -98,7 +98,7 @@ public final class HydrologyProbe {
             ForkJoinPool planningPool = MultiBurst.hydrology.submit((Callable<ForkJoinPool>) ForkJoinTask::getPool).get();
             ExecutorService workers = Executors.newFixedThreadPool(configuration.threads());
             try {
-                Inputs inputs = new Inputs(settings, terrain, terrain::naturalHeight, planningPool, workers,
+                Inputs inputs = new Inputs(settings, terrain, terrain::naturalSurface, planningPool, workers,
                         (chunkX, chunkZ) -> HydrologyVoxels.generate(engine, chunkX, chunkZ), HydrologyUnderground.generated(engine, workers),
                         engine.getTarget().getHeight());
                 HydrologyReport.Result measured = measure(inputs, target.windows());

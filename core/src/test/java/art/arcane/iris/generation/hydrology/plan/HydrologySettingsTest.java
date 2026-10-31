@@ -49,6 +49,55 @@ public class HydrologySettingsTest {
     public final TemporaryFolder temporary = new TemporaryFolder();
 
     @Test
+    public void climateIsBoundedAndOnlyEnabledZonesChangeThePlanIdentity() {
+        HydrologySettings plain = compile(new IrisHydrology());
+        IrisHydrology disabled = new IrisHydrology();
+        disabled.getClimate().setDryness(0.8D).setTransition(0.3D);
+        assertEquals(plain.fingerprint(), compile(disabled).fingerprint());
+        IrisHydrology zoned = new IrisHydrology();
+        zoned.getClimate().setEnabled(true);
+        IrisHydrology drier = new IrisHydrology();
+        drier.getClimate().setEnabled(true).setDryness(0.6D);
+        IrisHydrology larger = new IrisHydrology();
+        larger.getClimate().setEnabled(true).getStyle().setZoom(48D);
+        Set<Long> fingerprints = new HashSet<>(List.of(plain.fingerprint(), compile(zoned).fingerprint(), compile(drier).fingerprint(),
+                compile(larger).fingerprint()));
+        assertEquals(4, fingerprints.size());
+        for (double invalid : new double[]{-0.01D, 1.01D, Double.NaN}) {
+            IrisHydrology dryness = new IrisHydrology();
+            dryness.getClimate().setDryness(invalid);
+            assertRejected(dryness, "climate.dryness");
+            IrisHydrology transition = new IrisHydrology();
+            transition.getClimate().setTransition(invalid);
+            assertRejected(transition, "climate.transition");
+            IrisHydrology dryRainfall = new IrisHydrology();
+            dryRainfall.getClimate().setDryRainfall(invalid);
+            assertRejected(dryRainfall, "climate.dryRainfall");
+        }
+    }
+
+    @Test
+    public void climateWetnessFadesFromDryToWetZones() {
+        HydrologySettings.Climate off = compile(new IrisHydrology()).climate();
+        assertEquals(1D, off.wetness(0D), 0D);
+        IrisHydrology sharp = new IrisHydrology();
+        sharp.getClimate().setEnabled(true).setDryness(0.5D).setTransition(0D);
+        HydrologySettings.Climate edge = compile(sharp).climate();
+        assertEquals(0D, edge.wetness(0.49D), 0D);
+        assertEquals(1D, edge.wetness(0.5D), 0D);
+        IrisHydrology soft = new IrisHydrology();
+        soft.getClimate().setEnabled(true).setDryness(0.5D).setTransition(0.2D).setDryRainfall(0.25D);
+        HydrologySettings.Climate faded = compile(soft).climate();
+        assertEquals(0.25D, faded.wetness(0.3D), 1e-9D);
+        assertEquals(0.625D, faded.wetness(0.5D), 1e-9D);
+        assertEquals(1D, faded.wetness(0.7D), 1e-9D);
+        assertTrue(faded.wetness(0.45D) < faded.wetness(0.55D));
+        IrisHydrology wet = new IrisHydrology();
+        wet.getClimate().setEnabled(true).setDryness(0D);
+        assertEquals(1D, compile(wet).climate().wetness(0D), 0D);
+    }
+
+    @Test
     public void tierForPicksHighestTierBelowCatchment() {
         HydrologySettings settings = compile(new IrisHydrology());
         assertEquals("stream", settings.tierFor(1500f).name());

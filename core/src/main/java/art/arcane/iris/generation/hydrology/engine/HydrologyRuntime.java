@@ -14,8 +14,10 @@ import art.arcane.iris.generation.hydrology.plan.WindowKey;
 import art.arcane.iris.generation.hydrology.query.HydrologyFeatureQuery;
 import art.arcane.iris.generation.hydrology.query.HydrologyFeatureRef;
 import art.arcane.iris.generation.hydrology.query.HydrologyFeatureType;
+import art.arcane.iris.generation.hydrology.raster.ChannelFluids;
 import art.arcane.iris.generation.hydrology.raster.ChunkRasterizer;
 import art.arcane.iris.generation.hydrology.raster.ChunkWaterRaster;
+import art.arcane.iris.generation.hydrology.raster.NaturalHeights;
 import art.arcane.iris.generation.hydrology.underground.SeaInlet;
 import art.arcane.iris.generation.hydrology.underground.SeaInletRasterizer;
 import art.arcane.iris.generation.hydrology.water.HydrologyTier;
@@ -51,7 +53,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BooleanSupplier;
 import java.util.function.Function;
-import java.util.function.IntBinaryOperator;
 import java.util.function.LongSupplier;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -68,7 +69,7 @@ public final class HydrologyRuntime {
     private final HydrologySettings settings;
     private final HydrologyPlanCache cache;
     private final ChunkRasterizer rasterizer;
-    private final IntBinaryOperator naturalHeight;
+    private final NaturalHeights naturalHeight;
     private final BooleanSupplier mainThread;
     private final RasterLru rasters;
     private final ThreadLocal<LastRaster> last;
@@ -109,17 +110,17 @@ public final class HydrologyRuntime {
         this.caveFluidPolicies = false;
     }
 
-    public HydrologyRuntime(HydrologySettings settings, HydrologyPlanCache cache, IntBinaryOperator naturalHeight,
+    public HydrologyRuntime(HydrologySettings settings, HydrologyPlanCache cache, NaturalHeights naturalHeight,
                             BooleanSupplier mainThread, LongSupplier ticker) {
-        this(settings, cache, naturalHeight, mainThread, ticker, HydrologyBinding.UNBOUND, identity -> null, false);
+        this(settings, cache, naturalHeight, ChannelFluids.TIER, mainThread, ticker, HydrologyBinding.UNBOUND, identity -> null, false);
     }
 
-    private HydrologyRuntime(HydrologySettings settings, HydrologyPlanCache cache, IntBinaryOperator naturalHeight,
-                             BooleanSupplier mainThread, LongSupplier ticker, HydrologyBinding binding,
+    private HydrologyRuntime(HydrologySettings settings, HydrologyPlanCache cache, NaturalHeights naturalHeight,
+                             ChannelFluids channelFluids, BooleanSupplier mainThread, LongSupplier ticker, HydrologyBinding binding,
                              Function<PreparedHydrologyCacheIdentity, HydrologyPlanStore> stores, boolean caveFluidPolicies) {
         this.settings = Objects.requireNonNull(settings, "settings");
         this.cache = Objects.requireNonNull(cache, "cache");
-        this.rasterizer = new ChunkRasterizer(settings);
+        this.rasterizer = new ChunkRasterizer(settings, channelFluids);
         this.naturalHeight = Objects.requireNonNull(naturalHeight, "naturalHeight");
         this.mainThread = Objects.requireNonNull(mainThread, "mainThread");
         this.rasters = new RasterLru();
@@ -160,7 +161,7 @@ public final class HydrologyRuntime {
         HydrologyPlanCache cache = HydrologyPlanCache.create(settings, planners.regions(), planners.windows(), MultiBurst.hydrology, mainThread);
         String dimensionKey = dimension.getLoadKey();
         IrisWorld world = engine.getWorld();
-        return new HydrologyRuntime(settings, cache, source::naturalHeight, mainThread, System::nanoTime, binding,
+        return new HydrologyRuntime(settings, cache, source::naturalSurface, source, mainThread, System::nanoTime, binding,
                 identity -> store(world, dimensionKey, settings, identity), caveFluidPolicies);
     }
 

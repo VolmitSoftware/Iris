@@ -16,6 +16,7 @@ import art.arcane.iris.generation.hydrology.water.Reach;
 import art.arcane.iris.generation.hydrology.water.ReachStyle;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.terrain.IrisDimension;
+import art.arcane.iris.generation.hydrology.raster.NaturalHeights;
 
 import javax.imageio.ImageIO;
 import java.awt.BasicStroke;
@@ -33,7 +34,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.function.IntBinaryOperator;
 
 public final class RiverTransectProbe {
     static final int NO_WATER = Integer.MIN_VALUE;
@@ -116,16 +116,16 @@ public final class RiverTransectProbe {
                     engine.getHeight());
             IrisHydrologyTerrainSource terrain = new IrisHydrologyTerrainSource(engine.getComplex(), dimension, settings, MultiBurst.hydrology,
                     MultiBurst.hydrology.parallelism(), HydrologyBinding.UNBOUND);
-            HydrologyPlanHarness.Plans plans = new HydrologyPlanHarness.Plans(settings, terrain, terrain::naturalHeight, target.windows());
+            HydrologyPlanHarness.Plans plans = new HydrologyPlanHarness.Plans(settings, terrain, terrain::naturalSurface, target.windows());
             List<Rendered> rendered = new ArrayList<>();
             for (WindowKey key : target.windows().keys()) {
-                rendered.add(render(plans, key, terrain::naturalHeight, target.windows(), configuration.output()));
+                rendered.add(render(plans, key, terrain::naturalSurface, target.windows(), configuration.output()));
             }
             return rendered;
         }
     }
 
-    static Rendered render(HydrologyPlanHarness.Plans plans, WindowKey key, IntBinaryOperator natural, HydrologyWindows.WindowRange range,
+    static Rendered render(HydrologyPlanHarness.Plans plans, WindowKey key, NaturalHeights natural, HydrologyWindows.WindowRange range,
                            File output) throws Exception {
         Map<Long, ChunkWaterRaster> rasters = new HashMap<>();
         Columns columns = (x, z) -> {
@@ -134,7 +134,7 @@ public final class RiverTransectProbe {
             }
             ChunkWaterRaster raster = rasters.computeIfAbsent(HydrologyVoxels.chunkKey(x >> 4, z >> 4),
                     ignored -> plans.rasterize(x >> 4, z >> 4));
-            int ground = natural.applyAsInt(x, z);
+            int ground = (int) Math.round(natural.height(x, z));
             return new Column(ground, raster.empty() ? ground : raster.terrainHeight(x & 15, z & 15), raster.waterHead(x & 15, z & 15),
                     raster.role(x & 15, z & 15));
         };

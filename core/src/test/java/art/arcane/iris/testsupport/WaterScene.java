@@ -9,6 +9,7 @@ import art.arcane.iris.generation.hydrology.plan.RegionKey;
 import art.arcane.iris.generation.hydrology.plan.RegionPlan;
 import art.arcane.iris.generation.hydrology.plan.WindowKey;
 import art.arcane.iris.generation.hydrology.plan.WindowPlan;
+import art.arcane.iris.generation.hydrology.raster.ChannelFluids;
 import art.arcane.iris.generation.hydrology.raster.ChunkRasterizer;
 import art.arcane.iris.generation.hydrology.raster.ChunkWaterRaster;
 import art.arcane.iris.generation.hydrology.raster.ReachIndex;
@@ -40,7 +41,7 @@ public final class WaterScene {
 
     public WaterScene(IrisHydrology config, IntBinaryOperator natural) {
         this.natural = natural;
-        this.rasterizer = new ChunkRasterizer(HydrologySettings.compile(config, SEED, SEA_LEVEL, MIN_Y, MAX_Y));
+        this.rasterizer = new ChunkRasterizer(HydrologySettings.compile(config, SEED, SEA_LEVEL, MIN_Y, MAX_Y), ChannelFluids.TIER);
     }
 
     public WaterScene reach(Reach reach) {
@@ -55,7 +56,7 @@ public final class WaterScene {
 
     public ChunkWaterRaster raster(int chunkX, int chunkZ) {
         return rasters.computeIfAbsent(((long) chunkX << 32) | (chunkZ & 0xFFFFFFFFL),
-                key -> rasterizer.rasterize(chunkX, chunkZ, natural, windows(chunkX, chunkZ), regions(chunkX, chunkZ)));
+                key -> rasterizer.rasterize(chunkX, chunkZ, natural::applyAsInt, windows(chunkX, chunkZ), regions(chunkX, chunkZ)));
     }
 
     public int terrain(int x, int z) {

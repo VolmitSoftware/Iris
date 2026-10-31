@@ -6,6 +6,7 @@ final class BedProfile {
     private static final long SALT_BROAD = 0x42454442524f4144L;
     private static final long SALT_DETAIL = 0x4245444445544149L;
     private static final long SALT_TEXTURE = 0x4245445445585455L;
+    private static final long SALT_ROUGHNESS = 0x42414e4b524f5547L;
 
     private BedProfile() {
     }
@@ -16,6 +17,10 @@ final class BedProfile {
 
     static double detail(long seed, int x, int z) {
         return 0.35D * noise(seed, SALT_TEXTURE, x, z, 2);
+    }
+
+    static double roughness(long seed, int x, int z) {
+        return noise(seed, SALT_ROUGHNESS, x, z, 4) - 0.5D;
     }
 
     static double position(double u, double variation) {

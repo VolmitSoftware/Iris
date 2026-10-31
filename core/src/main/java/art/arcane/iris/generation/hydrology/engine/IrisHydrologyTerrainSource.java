@@ -7,11 +7,13 @@ import art.arcane.iris.generation.hydrology.config.IrisHydrologyPolicy;
 import art.arcane.iris.generation.hydrology.grid.HydrologySampleBuffer;
 import art.arcane.iris.generation.hydrology.grid.HydrologyTerrainSource;
 import art.arcane.iris.generation.hydrology.plan.HydrologySettings;
+import art.arcane.iris.generation.hydrology.raster.ChannelFluids;
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.terrain.InferredType;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.generation.terrain.IrisRegion;
 import art.arcane.iris.studio.generation.BiomeBuffetLayout;
+import art.arcane.volmlib.util.noise.CNG;
 import art.arcane.volmlib.util.stream.ProceduralStream;
 
 import java.util.ArrayList;
@@ -25,9 +27,10 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 
-public final class IrisHydrologyTerrainSource implements HydrologyTerrainSource {
+public final class IrisHydrologyTerrainSource implements HydrologyTerrainSource, ChannelFluids {
     private static final int MINIMUM_SLICE = 256;
     private static final int POLICY_CAPACITY = 4096;
+    private static final long SALT_CLIMATE = 0x434c494d415445L;
 
     private final IrisComplex complex;
     private final IrisDimension dimension;
@@ -40,6 +43,8 @@ public final class IrisHydrologyTerrainSource implements HydrologyTerrainSource 
     private final BiomeBuffetLayout buffet;
     private final IrisBiome focus;
     private final HydrologyBinding binding;
+    private final HydrologySettings.Climate climate;
+    private final CNG wetness;
     private final ConcurrentHashMap<PolicyKey, Policy> policies = new ConcurrentHashMap<>();
 
     public IrisHydrologyTerrainSource(IrisComplex complex, IrisDimension dimension, HydrologySettings settings, ExecutorService pool,
@@ -55,6 +60,8 @@ public final class IrisHydrologyTerrainSource implements HydrologyTerrainSource 
         this.buffet = complex.getBiomeBuffet();
         this.focus = complex.getFocusBiome();
         this.binding = Objects.requireNonNull(binding, "binding");
+        this.climate = settings.climate();
+        this.wetness = climate.enabled() ? climate.style().create(settings.seed() ^ SALT_CLIMATE, complex.getData()) : null;
     }
 
     @Override
@@ -73,8 +80,13 @@ public final class IrisHydrologyTerrainSource implements HydrologyTerrainSource 
         }
     }
 
-    public int naturalHeight(int x, int z) {
-        return complex.naturalTrueHeight(x, z);
+    public double naturalSurface(int x, int z) {
+        return complex.naturalHeight(x, z);
+    }
+
+    @Override
+    public String channelFluid(int x, int z) {
+        return policy(biomes.get(x, z), regions.get(x, z)).fluid();
     }
 
     @Override
@@ -150,10 +162,15 @@ public final class IrisHydrologyTerrainSource implements HydrologyTerrainSource 
         Policy policy = policy(biomes.get(x, z), regions.get(x, z));
         out.height()[index] = (float) height;
         out.ocean()[index] = StrictMath.round(height) < settings.seaLevel() && oceanIntent(x, z);
-        out.rainfall()[index] = policy.rainfall();
-        out.pondDensity()[index] = policy.pondDensity();
+        float wet = policy.climateZones() ? wetness(x, z) : 1f;
+        out.rainfall()[index] = policy.rainfall() * wet;
+        out.pondDensity()[index] = policy.pondDensity() * wet;
         out.permission()[index] = policy.permission();
         out.fluidProfile()[index] = policy.fluid();
+    }
+
+    private float wetness(int x, int z) {
+        return wetness == null ? 1f : (float) climate.wetness(wetness.noise(x, z));
     }
 
     private boolean oceanIntent(int x, int z) {
@@ -183,13 +200,14 @@ public final class IrisHydrologyTerrainSource implements HydrologyTerrainSource 
         IrisHydrologyPermission streams = inherited(biome, region, IrisHydrologyPolicy::getStreams, IrisHydrologyPermission.ALLOW);
         IrisHydrologyPermission ponds = inherited(biome, region, IrisHydrologyPolicy::getPonds, IrisHydrologyPermission.ALLOW);
         String fluid = inherited(biome, region, IrisHydrologyPolicy::getFluid, null);
+        boolean climateZones = inherited(biome, region, IrisHydrologyPolicy::getClimateZones, Boolean.TRUE);
         requireMultiplier("rainfall", rainfall, biome, region);
         requireMultiplier("pondDensity", pondDensity, biome, region);
         if (fluid != null && !settings.fluids().containsKey(fluid)) {
             throw new IllegalArgumentException("Hydrology policy for " + where(biome, region) + " names fluid '" + fluid
                     + "', which is not one of the hydrology fluids " + settings.fluids().keySet());
         }
-        return new Policy((float) rainfall, (float) pondDensity, permission(streams, ponds), fluid);
+        return new Policy((float) rainfall, (float) pondDensity, permission(streams, ponds), fluid, climateZones);
     }
 
     private <T> T inherited(IrisBiome biome, IrisRegion region, Function<IrisHydrologyPolicy, T> field, T fallback) {
@@ -214,7 +232,7 @@ public final class IrisHydrologyTerrainSource implements HydrologyTerrainSource 
         return "biome " + (biome == null ? "none" : biome.getLoadKey()) + " in region " + (region == null ? "none" : region.getLoadKey());
     }
 
-    private record Policy(float rainfall, float pondDensity, byte permission, String fluid) {
+    private record Policy(float rainfall, float pondDensity, byte permission, String fluid, boolean climateZones) {
     }
 
     private record PolicyKey(IrisBiome biome, IrisRegion region) {

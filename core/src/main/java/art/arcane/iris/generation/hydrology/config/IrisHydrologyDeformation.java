@@ -24,12 +24,12 @@ public class IrisHydrologyDeformation {
 
     @MinNumber(0)
     @MaxNumber(16)
-    @Description("How much steeper banks become on steep terrain.")
+    @Description("How much steeper a bank stays where the natural ground between it and the water is steep.")
     private double bankSteepFactor = 3.5D;
 
     @MinNumber(0)
     @MaxNumber(2)
-    @Description("Strength of the noise that roughens bank edges.")
+    @Description("Strength of the smooth noise that roughens bank edges.")
     private double bankNoise = 0.2D;
 
     @Description("Keeps caves from opening under water, so rivers and ponds never drain into them.")

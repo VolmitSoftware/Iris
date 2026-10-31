@@ -146,7 +146,7 @@ public class SharedBoundsBiomesTest {
                     int xi = (int) ((state & Long.MAX_VALUE) % coordinates.length);
                     int zi = (int) ((state >>> 10) % coordinates.length);
                     cache.put(coordinates[xi], coordinates[zi], biomes[xi][zi]);
-                    IrisBiome actual = cache.get(coordinates[xi], coordinates[zi]);
+                    Object actual = cache.get(coordinates[xi], coordinates[zi]);
                     if (actual != null) {
                         hits.incrementAndGet();
                         if (actual != biomes[xi][zi]) {

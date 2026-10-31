@@ -22,11 +22,13 @@ import org.junit.rules.TemporaryFolder;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
+import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.SplittableRandom;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Answers.CALLS_REAL_METHODS;
 import static org.mockito.ArgumentMatchers.any;
@@ -77,6 +79,24 @@ public class IrisComplexBakeParityTest {
                             Double.doubleToRawLongBits(scalar.complex.getBaseTerrainHeightStream().getDouble(x, z)),
                             Double.doubleToRawLongBits(baked[index]));
                 }
+            }
+        }
+    }
+
+    @Test
+    public void regionConstantBoundsEqualFullBiomeBoundsBitForBit() throws Exception {
+        try (Statics ignored = new Statics(); Fixture shortcut = new Fixture(pack()); Fixture full = new Fixture(pack())) {
+            Field regionBounds = IrisComplex.class.getDeclaredField("regionBounds");
+            regionBounds.setAccessible(true);
+            assertNotNull(regionBounds.get(shortcut.complex));
+            regionBounds.set(full.complex, null);
+            SplittableRandom random = new SplittableRandom(0x5EEDL);
+            for (int column = 0; column < 2048; column++) {
+                int x = random.nextInt(-6400, 6400);
+                int z = random.nextInt(-6400, 6400);
+                assertEquals("column " + x + "," + z,
+                        Double.doubleToRawLongBits(full.complex.getBaseTerrainHeightStream().getDouble(x, z)),
+                        Double.doubleToRawLongBits(shortcut.complex.getBaseTerrainHeightStream().getDouble(x, z)));
             }
         }
     }

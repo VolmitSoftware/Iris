@@ -101,6 +101,37 @@ public class HeightLatticeTest {
     }
 
     @Test
+    public void evictionToleratesConcurrentTileUse() throws Exception {
+        HeightLattice lattice = new HeightLattice(new CountingSource(), 1, false, 96 * 1024);
+        int threads = 12;
+        CyclicBarrier start = new CyclicBarrier(threads);
+        ExecutorService pool = Executors.newFixedThreadPool(threads);
+        try {
+            List<Future<Void>> results = new ArrayList<>();
+            for (int thread = 0; thread < threads; thread++) {
+                long seed = 31L * thread + 7L;
+                Callable<Void> task = () -> {
+                    Random random = new Random(seed);
+                    HydrologySampleBuffer out = new HydrologySampleBuffer(4);
+                    start.await();
+                    for (int fill = 0; fill < 40_000; fill++) {
+                        int tileX = random.nextInt(24);
+                        int tileZ = random.nextInt(24);
+                        lattice.fill(tileX * 32 + random.nextInt(31), tileZ * 32 + random.nextInt(31), 2, 2, out);
+                    }
+                    return null;
+                };
+                results.add(pool.submit(task));
+            }
+            for (Future<Void> result : results) {
+                result.get(120, TimeUnit.SECONDS);
+            }
+        } finally {
+            pool.shutdownNow();
+        }
+    }
+
+    @Test
     public void returnsBitIdenticalValues() {
         HeightLattice full = new HeightLattice(new CountingSource(), 8, false, 1 << 16);
         HeightLattice base = new HeightLattice(new CountingSource(), 64, true, 1 << 16);

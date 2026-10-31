@@ -138,19 +138,19 @@ public final class HeightLattice {
             return;
         }
         try {
-            List<Map.Entry<Long, Tile>> idle = new ArrayList<>(tiles.size());
+            List<IdleTile> idle = new ArrayList<>(tiles.size());
             for (Map.Entry<Long, Tile> entry : tiles.entrySet()) {
-                if (entry.getValue().pending.get() == 0) {
-                    idle.add(entry);
-                }
-            }
-            idle.sort(Comparator.comparingLong(entry -> entry.getValue().used));
-            int target = capacityTiles - (capacityTiles >> 3);
-            for (int index = 0; index < idle.size() && tiles.size() > target; index++) {
-                Map.Entry<Long, Tile> entry = idle.get(index);
                 Tile tile = entry.getValue();
                 if (tile.pending.get() == 0) {
-                    tiles.remove(entry.getKey(), tile);
+                    idle.add(new IdleTile(entry.getKey(), tile, tile.used));
+                }
+            }
+            idle.sort(Comparator.comparingLong(IdleTile::used));
+            int target = capacityTiles - (capacityTiles >> 3);
+            for (int index = 0; index < idle.size() && tiles.size() > target; index++) {
+                IdleTile candidate = idle.get(index);
+                if (candidate.tile().pending.get() == 0) {
+                    tiles.remove(candidate.key(), candidate.tile());
                 }
             }
         } finally {
@@ -384,6 +384,9 @@ public final class HeightLattice {
         int cellX(int index);
 
         int cellZ(int index);
+    }
+
+    private record IdleTile(Long key, Tile tile, long used) {
     }
 
     private record Span(int cellX0, int cellZ0, int width, int stride) implements Nodes {

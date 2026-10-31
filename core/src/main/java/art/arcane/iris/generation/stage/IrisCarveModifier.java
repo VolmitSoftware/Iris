@@ -49,6 +49,7 @@ import art.arcane.iris.generation.hydrology.cave.HydrologyCaveCell;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveStorage;
 import art.arcane.iris.generation.hydrology.raster.ChunkWaterRaster;
 import art.arcane.iris.generation.chunk.ColumnExtent;
+import art.arcane.iris.generation.chunk.ColumnReadHunk;
 import art.arcane.iris.generation.context.ChunkContext;
 import art.arcane.iris.generation.context.IrisContext;
 import art.arcane.iris.generation.block.B;
@@ -1086,19 +1087,23 @@ public class IrisCarveModifier extends EngineAssignedModifier<NativeBlockState> 
         int height = output.getHeight();
         ColumnExtent extent = output instanceof ColumnExtent columnExtent ? columnExtent : null;
         SolidMemo solids = new SolidMemo();
+        NativeBlockState[] column = new NativeBlockState[height];
         for (int localX = 0; localX < width; localX++) {
             for (int localZ = 0; localZ < depth; localZ++) {
                 int worldX = blockX + localX;
                 int worldZ = blockZ + localZ;
                 int floor = -1;
                 int top = extent == null ? height - 1 : extent.highestStoredY(localX, localZ);
+                if (top >= 1) {
+                    ColumnReadHunk.readColumn(output, localX, localZ, 0, Math.min(top, height - 1), column, 0);
+                }
                 boolean previousKnown = false;
                 boolean previousSolid = false;
                 for (int y = 1; y < height; y++) {
                     if (y > top) {
                         break;
                     }
-                    boolean solid = solids.test(output.getRaw(localX, y, localZ));
+                    boolean solid = solids.test(column[y]);
                     boolean decorated = false;
                     if (solid) {
                         if (floor >= 0) {
@@ -1122,11 +1127,15 @@ public class IrisCarveModifier extends EngineAssignedModifier<NativeBlockState> 
                                 if (extent != null) {
                                     top = extent.highestStoredY(localX, localZ);
                                 }
+                                int refreshTop = Math.min(top, height - 1);
+                                if (refreshTop >= y) {
+                                    ColumnReadHunk.readColumn(output, localX, localZ, y, refreshTop, column, y);
+                                }
                             }
                             floor = -1;
                         }
                     } else if (floor < 0 && (previousKnown ? previousSolid
-                            : solids.test(output.getRaw(localX, y - 1, localZ)))) {
+                            : solids.test(column[y - 1]))) {
                         floor = y;
                     }
                     previousSolid = solid;

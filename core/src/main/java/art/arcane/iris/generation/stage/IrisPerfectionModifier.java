@@ -19,6 +19,7 @@
 package art.arcane.iris.generation.stage;
 
 import art.arcane.iris.generation.chunk.ColumnExtent;
+import art.arcane.iris.generation.chunk.ColumnReadHunk;
 import art.arcane.iris.generation.decoration.IrisSpeleothems;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.EngineAssignedModifier;
@@ -105,24 +106,28 @@ public class IrisPerfectionModifier extends EngineAssignedModifier<NativeBlockSt
         StateFlags states = new StateFlags();
         NativeBlockState air = AIR.get();
         NativeBlockState water = WATER.get();
+        NativeBlockState[] column = new NativeBlockState[output.getHeight()];
         for (int x = firstSlice; x < lastSlice; x++) {
             for (int z = 0; z < 16; z++) {
-                perfectColumn(output, x, z, surfaces, states, air, water);
+                perfectColumn(output, x, z, surfaces, states, air, water, column);
             }
         }
     }
 
     private static void perfectColumn(Hunk<NativeBlockState> output, int x, int z, IntArrayList surfaces,
-                                      StateFlags states, NativeBlockState air, NativeBlockState water) {
+                                      StateFlags states, NativeBlockState air, NativeBlockState water,
+                                      NativeBlockState[] column) {
         do {
             surfaces.clear();
-            int top = getHeight(output, x, z, states);
+            int highest = Math.min(output.getHeight() - 1, ColumnExtent.highestStoredY(output, x, z));
+            ColumnReadHunk.readColumn(output, x, z, 0, Math.max(0, highest), column, 0);
+            int top = getHeight(column, highest, states);
             boolean inside = true;
             surfaces.add(top);
             NativeBlockState classified = null;
             int classifiedFlags = 0;
             for (int y = top; y >= 0; y--) {
-                NativeBlockState block = output.get(x, y, z);
+                NativeBlockState block = column[y];
                 int flags = 0;
                 if (block != null) {
                     if (block != classified) {
@@ -133,6 +138,9 @@ public class IrisPerfectionModifier extends EngineAssignedModifier<NativeBlockSt
                     if ((flags & SPIKE) != 0) {
                         block = normalizeSpike(block, output, x, z, y, air, water);
                         flags = block == null ? 0 : states.of(block);
+                        if (y > 0) {
+                            ColumnReadHunk.readColumn(output, x, z, 0, y - 1, column, 0);
+                        }
                     }
                 }
                 boolean now = (flags & SOLID) != 0;
@@ -233,11 +241,11 @@ public class IrisPerfectionModifier extends EngineAssignedModifier<NativeBlockSt
         burst.complete();
     }
 
-    private static int getHeight(Hunk<NativeBlockState> output, int x, int z, StateFlags states) {
+    private static int getHeight(NativeBlockState[] column, int highest, StateFlags states) {
         NativeBlockState classified = null;
         int classifiedFlags = 0;
-        for (int i = Math.min(output.getHeight() - 1, ColumnExtent.highestStoredY(output, x, z)); i >= 0; i--) {
-            NativeBlockState state = output.get(x, i, z);
+        for (int i = highest; i >= 0; i--) {
+            NativeBlockState state = column[i];
             if (state == null) {
                 continue;
             }

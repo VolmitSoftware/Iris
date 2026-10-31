@@ -56,7 +56,7 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 public final class HydrologyRuntime {
-    private static final int RASTER_CAPACITY = 1024;
+    private static final int RASTER_CAPACITY = 8192;
     private static final int KEEP_SCOPES = 2;
     private static final int CHUNKS_PER_WINDOW = WindowKey.SIZE >> 4;
     public static final int MAX_PREGENERATION_REGIONS = 4096;

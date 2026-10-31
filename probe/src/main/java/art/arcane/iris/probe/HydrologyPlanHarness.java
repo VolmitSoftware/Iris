@@ -195,7 +195,8 @@ final class HydrologyPlanHarness {
         double landTiles(WindowKey key) {
             int cells = WindowKey.SIZE / WindowPlanner.CELL;
             HydrologySampleBuffer samples = new HydrologySampleBuffer(cells * cells);
-            planners.windowLattice().fill(key.wx() * cells, key.wz() * cells, cells, cells, samples);
+            int stride = WindowPlanner.CELL / WindowPlanner.FINE_CELL;
+            planners.fineLattice().fill(key.wx() * cells * stride, key.wz() * cells * stride, cells, cells, stride, samples);
             int land = 0;
             for (int cell = 0; cell < cells * cells; cell++) {
                 if (!samples.ocean()[cell]) {

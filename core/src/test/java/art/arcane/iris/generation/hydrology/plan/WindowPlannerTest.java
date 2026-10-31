@@ -83,7 +83,7 @@ public class WindowPlannerTest {
                     new int[]{head, head}, new float[]{2f, 2f}, new float[]{2f, 2f}, new ReachStyle[]{ReachStyle.RUN, ReachStyle.RUN}, 1000f);
             return new ShapedNetwork(List.of(outlet), List.of(pond.withOutletReachId(outlet.id())));
         }).when(shaper).shape(any(), any(), any(), any(), any(), any(), anyLong());
-        WindowPlanner planner = new WindowPlanner(settings, new HeightLattice(terrain, WindowPlanner.CELL, false, 1 << 18),
+        WindowPlanner planner = new WindowPlanner(settings,
                 new HeightLattice(terrain, WindowPlanner.FINE_CELL, false, 1 << 18), ponds, shaper);
 
         WindowComputation settled = planner.compute(ORIGIN, noRegions(ORIGIN));
@@ -587,7 +587,7 @@ public class WindowPlannerTest {
             }
             return network;
         }).when(shaper).shape(any(), any(), any(), any(), any(), any(), anyLong());
-        return new WindowPlanner(settings, new HeightLattice(terrain, WindowPlanner.CELL, false, 1 << 18),
+        return new WindowPlanner(settings,
                 new HeightLattice(terrain, WindowPlanner.FINE_CELL, false, 1 << 21), new PondPlanner(settings), shaper);
     }
 
@@ -715,7 +715,7 @@ public class WindowPlannerTest {
     }
 
     private static WindowPlanner planner(HydrologySettings settings, SyntheticTerrain terrain) {
-        return new WindowPlanner(settings, new HeightLattice(terrain, WindowPlanner.CELL, false, 1 << 18),
+        return new WindowPlanner(settings,
                 new HeightLattice(terrain, WindowPlanner.FINE_CELL, false, 1 << 21), new PondPlanner(settings), new ReachShaper(settings));
     }
 

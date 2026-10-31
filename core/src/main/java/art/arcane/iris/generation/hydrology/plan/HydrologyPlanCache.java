@@ -32,10 +32,10 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 public final class HydrologyPlanCache {
-    private static final int FRONT = 3;
-    public static final int WINDOW_LATTICE_CELLS = frontCells(WindowKey.SIZE, WindowPlanner.CELL);
-    public static final int FINE_LATTICE_CELLS = frontCells(WindowKey.SIZE, WindowPlanner.FINE_CELL);
-    public static final int REGION_LATTICE_CELLS = frontCells(RegionKey.SIZE, RegionPlanner.CELL);
+    private static final int FINE_FRONT = 9;
+    private static final int REGION_FRONT = 5;
+    public static final int FINE_LATTICE_CELLS = frontCells(FINE_FRONT, WindowKey.SIZE, WindowPlanner.FINE_CELL);
+    public static final int REGION_LATTICE_CELLS = frontCells(REGION_FRONT, RegionKey.SIZE, RegionPlanner.CELL);
     private static final int WINDOW_CAPACITY = 128;
     private static final int REGION_CAPACITY = 64;
     private static final long DEMAND = Long.MIN_VALUE;
@@ -312,8 +312,8 @@ public final class HydrologyPlanCache {
         return Math.max(1, parallelism / 2);
     }
 
-    private static int frontCells(int unit, int cell) {
-        int cells = (FRONT + 2) * unit / cell;
+    private static int frontCells(int front, int unit, int cell) {
+        int cells = (front + 2) * unit / cell;
         return cells * cells;
     }
 

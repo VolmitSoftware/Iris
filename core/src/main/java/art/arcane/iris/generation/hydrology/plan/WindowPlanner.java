@@ -36,6 +36,7 @@ public final class WindowPlanner {
     public static final int CELL = 8;
     public static final int FINE_CELL = 4;
     private static final int WINDOW_CELLS = WindowKey.SIZE / CELL;
+    private static final int FINE_STRIDE = CELL / FINE_CELL;
     private static final int SPAN = 3 * WINDOW_CELLS;
     private static final int REACH_OVERHANG = 256;
     private static final float BASIN_DEPTH = 0.5f;
@@ -43,22 +44,17 @@ public final class WindowPlanner {
     private static final long SALT_HEAD = 0x5354524541484dL;
 
     private final HydrologySettings settings;
-    private final HeightLattice lattice;
     private final HeightLattice fine;
     private final PondPlanner ponds;
     private final ReachShaper shaper;
     private final SeaInletPlanner inlets;
 
-    public WindowPlanner(HydrologySettings settings, HeightLattice lattice, HeightLattice fine, PondPlanner ponds, ReachShaper shaper) {
+    public WindowPlanner(HydrologySettings settings, HeightLattice fine, PondPlanner ponds, ReachShaper shaper) {
         this.settings = Objects.requireNonNull(settings, "settings");
-        this.lattice = Objects.requireNonNull(lattice, "lattice");
         this.fine = Objects.requireNonNull(fine, "fine");
         this.ponds = Objects.requireNonNull(ponds, "ponds");
         this.shaper = Objects.requireNonNull(shaper, "shaper");
         this.inlets = new SeaInletPlanner(settings);
-        if (lattice.cell() != CELL) {
-            throw new IllegalArgumentException("Window lattice cell " + lattice.cell() + " must be " + CELL);
-        }
         if (fine.cell() != FINE_CELL) {
             throw new IllegalArgumentException("Window fine lattice cell " + fine.cell() + " must be " + FINE_CELL);
         }
@@ -87,7 +83,7 @@ public final class WindowPlanner {
         int cellX = Math.multiplyExact(key.wx() - 1, WINDOW_CELLS);
         int cellZ = Math.multiplyExact(key.wz() - 1, WINDOW_CELLS);
         HydrologySampleBuffer samples = new HydrologySampleBuffer(SPAN * SPAN);
-        lattice.fill(cellX, cellZ, SPAN, SPAN, samples);
+        fine.fill(cellX * FINE_STRIDE, cellZ * FINE_STRIDE, SPAN, SPAN, FINE_STRIDE, samples);
         DemGrid raw = new DemGrid(cellX * CELL, cellZ * CELL, CELL, SPAN, SPAN);
         System.arraycopy(samples.height(), 0, raw.values(), 0, SPAN * SPAN);
         List<Pond> lakes = regionLakes(plans.values());

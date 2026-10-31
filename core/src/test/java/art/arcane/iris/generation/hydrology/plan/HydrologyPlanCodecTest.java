@@ -81,7 +81,7 @@ public class HydrologyPlanCodecTest {
             assertEquals(planned, HydrologyPlanCodec.decodeRegion(settings, HydrologyPlanCodec.encode(settings, planned)).orElseThrow());
             regions.add(planned);
         }
-        WindowPlan planned = new WindowPlanner(settings, new HeightLattice(terrain, WindowPlanner.CELL, false, 1 << 18),
+        WindowPlan planned = new WindowPlanner(settings,
                 new HeightLattice(terrain, WindowPlanner.FINE_CELL, false, 1 << 21), new PondPlanner(settings), new ReachShaper(settings))
                 .plan(LAND, regions);
         assertFalse(planned.reaches().isEmpty());

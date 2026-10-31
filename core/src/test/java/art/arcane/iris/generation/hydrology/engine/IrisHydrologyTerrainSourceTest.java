@@ -154,10 +154,9 @@ public class IrisHydrologyTerrainSourceTest {
         HydrologySampleBuffer rect = new HydrologySampleBuffer(32 * 32);
         fine.fill(-600, 400, 32, 32, rect);
         assertMatchesScalar(reference, "fine rect", rect, nodes(-600, 400, 32, 1, 4), false);
-        HeightLattice window = new HeightLattice(new FineLatticeSource(fine, source), 8, false, 1 << 16);
         HydrologySampleBuffer strided = new HydrologySampleBuffer(16 * 16);
-        window.fill(-150, 300, 16, 16, 3, strided);
-        assertMatchesScalar(reference, "window strided", strided, nodes(-150, 300, 16, 3, 8), false);
+        fine.fill(-300, 600, 16, 16, 6, strided);
+        assertMatchesScalar(reference, "fine strided", strided, nodes(-300, 600, 16, 6, 4), false);
         HeightLattice coarse = new HeightLattice(source, 64, true, 1 << 12);
         HydrologySampleBuffer coarseBase = new HydrologySampleBuffer(16 * 16);
         coarse.fill(-8, -8, 16, 16, coarseBase);

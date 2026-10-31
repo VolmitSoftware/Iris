@@ -6,6 +6,8 @@ import java.util.Arrays;
 
 final class ReachSegments {
     private static final int RUN = 16;
+    private static final int COVER_SHIFT = 2;
+    private static final float COVER_MARGIN = 1f;
 
     private Reach[] reaches;
     private int[] segments;
@@ -24,6 +26,13 @@ final class ReachSegments {
     private int[] runBands = new int[8];
     private int runs;
     private boolean sealed;
+    private boolean covered;
+    private int coverX;
+    private int coverZ;
+    private int coverWidth;
+    private int coverDepth;
+    private int[] coverStarts;
+    private int[] coverEntries;
 
     ReachSegments(int capacity) {
         int initial = Math.max(1, capacity);
@@ -71,6 +80,19 @@ final class ReachSegments {
         }
     }
 
+    boolean isEmpty() {
+        return size == 0;
+    }
+
+    void coverChannels(int minX, int minZ, int maxX, int maxZ) {
+        covered = true;
+        coverX = minX;
+        coverZ = minZ;
+        coverWidth = ((maxX - minX) >> COVER_SHIFT) + 1;
+        coverDepth = ((maxZ - minZ) >> COVER_SHIFT) + 1;
+        sealed = false;
+    }
+
     void nearest(double x, double z, Scope scope, ReachCursor cursor) {
         if (!sealed) {
             seal();
@@ -89,6 +111,16 @@ final class ReachSegments {
         hint(channelHint, x, z, unbounded, cursor);
         hint(bankHint, x, z, unbounded, cursor);
         hint(edgeHint, x, z, unbounded, cursor);
+        int cell = scope == Scope.CHANNEL ? coveredCell(x, z) : -1;
+        if (cell >= 0) {
+            for (int entry = coverStarts[cell]; entry < coverStarts[cell + 1]; entry++) {
+                int index = coverEntries[entry];
+                if (index != channelHint && index != bankHint && index != edgeHint && !beyondSegment(index, x, z, scope, cursor)) {
+                    evaluate(index, x, z, false, cursor);
+                }
+            }
+            return;
+        }
         int first = 0;
         for (int run = 0; run < runs; run++) {
             int end = runEnds[run];
@@ -99,14 +131,29 @@ final class ReachSegments {
                 continue;
             }
             for (int index = first; index < end; index++) {
-                if (!beyond(x, z, Math.min(startX[index], endX[index]), Math.min(startZ[index], endZ[index]), Math.max(startX[index], endX[index]),
-                        Math.max(startZ[index], endZ[index]), limit(radius[index], bands[index], scope, cursor))
-                        && index != channelHint && index != bankHint && index != edgeHint) {
+                if (!beyondSegment(index, x, z, scope, cursor) && index != channelHint && index != bankHint && index != edgeHint) {
                     evaluate(index, x, z, unbounded, cursor);
                 }
             }
             first = end;
         }
+    }
+
+    private int coveredCell(double x, double z) {
+        if (coverStarts == null) {
+            return -1;
+        }
+        int cellX = ((int) Math.floor(x) - coverX) >> COVER_SHIFT;
+        int cellZ = ((int) Math.floor(z) - coverZ) >> COVER_SHIFT;
+        if (cellX < 0 || cellZ < 0 || cellX >= coverWidth || cellZ >= coverDepth) {
+            return -1;
+        }
+        return cellZ * coverWidth + cellX;
+    }
+
+    private boolean beyondSegment(int index, double x, double z, Scope scope, ReachCursor cursor) {
+        return beyond(x, z, Math.min(startX[index], endX[index]), Math.min(startZ[index], endZ[index]), Math.max(startX[index], endX[index]),
+                Math.max(startZ[index], endZ[index]), limit(radius[index], bands[index], scope, cursor));
     }
 
     private void hint(int index, double x, double z, boolean unbounded, ReachCursor cursor) {
@@ -171,7 +218,54 @@ final class ReachSegments {
             addRun(start, end);
             start = end;
         }
+        if (covered) {
+            cover();
+        }
         sealed = true;
+    }
+
+    private void cover() {
+        int cells = coverWidth * coverDepth;
+        int[] starts = new int[cells + 1];
+        int[] range = new int[4];
+        for (int index = 0; index < size; index++) {
+            if (coverRange(index, range)) {
+                for (int cellZ = range[1]; cellZ <= range[3]; cellZ++) {
+                    for (int cellX = range[0]; cellX <= range[2]; cellX++) {
+                        starts[cellZ * coverWidth + cellX + 1]++;
+                    }
+                }
+            }
+        }
+        for (int cell = 0; cell < cells; cell++) {
+            starts[cell + 1] += starts[cell];
+        }
+        int[] entries = new int[starts[cells]];
+        int[] fill = Arrays.copyOf(starts, cells);
+        for (int index = 0; index < size; index++) {
+            if (coverRange(index, range)) {
+                for (int cellZ = range[1]; cellZ <= range[3]; cellZ++) {
+                    for (int cellX = range[0]; cellX <= range[2]; cellX++) {
+                        entries[fill[cellZ * coverWidth + cellX]++] = index;
+                    }
+                }
+            }
+        }
+        coverStarts = starts;
+        coverEntries = entries;
+    }
+
+    private boolean coverRange(int index, int[] range) {
+        float reach = radius[index] + COVER_MARGIN;
+        range[0] = Math.max(0, coverCell(Math.min(startX[index], endX[index]) - reach, coverX));
+        range[1] = Math.max(0, coverCell(Math.min(startZ[index], endZ[index]) - reach, coverZ));
+        range[2] = Math.min(coverWidth - 1, coverCell(Math.max(startX[index], endX[index]) + reach, coverX));
+        range[3] = Math.min(coverDepth - 1, coverCell(Math.max(startZ[index], endZ[index]) + reach, coverZ));
+        return range[0] <= range[2] && range[1] <= range[3];
+    }
+
+    private static int coverCell(float block, int origin) {
+        return ((int) Math.floor(block) - origin) >> COVER_SHIFT;
     }
 
     private void addRun(int start, int end) {

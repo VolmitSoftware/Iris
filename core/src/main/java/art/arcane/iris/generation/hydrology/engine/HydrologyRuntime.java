@@ -36,6 +36,7 @@ import java.io.UncheckedIOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -56,7 +57,7 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 public final class HydrologyRuntime {
-    private static final int RASTER_CAPACITY = 1024;
+    private static final int RASTER_CAPACITY = 8192;
     private static final int KEEP_SCOPES = 2;
     private static final int CHUNKS_PER_WINDOW = WindowKey.SIZE >> 4;
     public static final int MAX_PREGENERATION_REGIONS = 4096;
@@ -72,11 +73,13 @@ public final class HydrologyRuntime {
     private final RasterLru rasters;
     private final ThreadLocal<LastRaster> last;
     private final Set<Long> queued;
+    private final ConcurrentHashMap<Long, CompletableFuture<ChunkWaterRaster>> building;
     private final RasterFailures failures;
     private final RasterFailures windowPreviewFailures;
     private final RasterFailures regionPreviewFailures;
     private final Set<Object> previews;
     private final LinkedHashMap<WindowKey, WindowPrefetch> prefetches;
+    private final Map<Object, PregenArea> pregenAreas;
     private final HydrologyBinding binding;
     private final Function<PreparedHydrologyCacheIdentity, HydrologyPlanStore> stores;
     private final boolean caveFluidPolicies;
@@ -94,11 +97,13 @@ public final class HydrologyRuntime {
         this.rasters = null;
         this.last = null;
         this.queued = null;
+        this.building = null;
         this.failures = null;
         this.windowPreviewFailures = null;
         this.regionPreviewFailures = null;
         this.previews = null;
         this.prefetches = null;
+        this.pregenAreas = null;
         this.binding = HydrologyBinding.UNBOUND;
         this.stores = identity -> null;
         this.caveFluidPolicies = false;
@@ -120,11 +125,13 @@ public final class HydrologyRuntime {
         this.rasters = new RasterLru();
         this.last = ThreadLocal.withInitial(LastRaster::new);
         this.queued = ConcurrentHashMap.newKeySet();
+        this.building = new ConcurrentHashMap<>();
         this.failures = new RasterFailures(ticker);
         this.windowPreviewFailures = new RasterFailures(ticker);
         this.regionPreviewFailures = new RasterFailures(ticker);
         this.previews = new HashSet<>();
         this.prefetches = new LinkedHashMap<>(PREFETCH_CAPACITY * 2, 0.75f, true);
+        this.pregenAreas = new HashMap<>();
         this.binding = Objects.requireNonNull(binding, "binding");
         this.stores = Objects.requireNonNull(stores, "stores");
         this.caveFluidPolicies = caveFluidPolicies;
@@ -234,7 +241,7 @@ public final class HydrologyRuntime {
         requireOpen();
         long key = key(chunkX, chunkZ);
         ChunkWaterRaster known = remembered(key, slot);
-        return known != null ? known : remember(key, planned(chunkX, chunkZ, key));
+        return known != null ? known : build(chunkX, chunkZ, key, slot);
     }
 
     public ChunkWaterRaster rasterSnapshot(int chunkX, int chunkZ) {
@@ -354,8 +361,28 @@ public final class HydrologyRuntime {
         }
     }
 
+    void boundPregeneration(Object epoch, int minRegionX, int minRegionZ, int maxRegionX, int maxRegionZ) {
+        Objects.requireNonNull(epoch, "epoch");
+        if (maxRegionX < minRegionX || maxRegionZ < minRegionZ) {
+            throw new IllegalArgumentException("Invalid pregeneration bounds " + minRegionX + "," + minRegionZ + " to " + maxRegionX + ","
+                    + maxRegionZ);
+        }
+        if (cache == null) {
+            return;
+        }
+        synchronized (prefetches) {
+            pregenAreas.put(epoch, new PregenArea(minRegionX - 1, minRegionZ - 1, maxRegionX + 1, maxRegionZ + 1));
+            prefetches.clear();
+        }
+    }
+
     void cancelPregeneration(Object epoch) {
         if (cache != null) {
+            synchronized (prefetches) {
+                if (pregenAreas.remove(epoch) != null) {
+                    prefetches.clear();
+                }
+            }
             cache.cancel(epoch);
         }
     }
@@ -498,6 +525,41 @@ public final class HydrologyRuntime {
             IrisLogging.reportError("Hydrology plans for world " + name + " (" + dimension + ") cannot be saved in " + root
                     + "; they stay in memory.", failure);
             return null;
+        }
+    }
+
+    private ChunkWaterRaster build(int chunkX, int chunkZ, long key, LastRaster slot) {
+        CompletableFuture<ChunkWaterRaster> claim = new CompletableFuture<>();
+        CompletableFuture<ChunkWaterRaster> running = building.putIfAbsent(key, claim);
+        if (running != null) {
+            ChunkWaterRaster built = built(running);
+            slot.remember(key, built);
+            return built;
+        }
+        try {
+            ChunkWaterRaster known = remembered(key, slot);
+            ChunkWaterRaster raster = known != null ? known : remember(key, planned(chunkX, chunkZ, key));
+            claim.complete(raster);
+            return raster;
+        } catch (RuntimeException | Error failure) {
+            claim.completeExceptionally(failure);
+            throw failure;
+        } finally {
+            building.remove(key, claim);
+        }
+    }
+
+    private static ChunkWaterRaster built(CompletableFuture<ChunkWaterRaster> running) {
+        try {
+            return running.join();
+        } catch (CompletionException failure) {
+            if (failure.getCause() instanceof RuntimeException cause) {
+                throw cause;
+            }
+            if (failure.getCause() instanceof Error cause) {
+                throw cause;
+            }
+            throw failure;
         }
     }
 
@@ -667,12 +729,30 @@ public final class HydrologyRuntime {
                     && (!known.prepared().isDone() || known.evictions() == evictions)) {
                 return;
             }
-            CompletableFuture<Void> prepared = cache.prepareWindowsAround(chunkX, chunkZ, chunkX, chunkZ, 1 + settings.prefetchRings());
+            CompletableFuture<Void> prepared = prepareAround(chunkX, chunkZ, owner, 1 + settings.prefetchRings());
             prefetches.put(owner, new WindowPrefetch(prepared, evictions));
             if (prefetches.size() > PREFETCH_CAPACITY) {
                 prefetches.pollFirstEntry();
             }
         }
+    }
+
+    private CompletableFuture<Void> prepareAround(int chunkX, int chunkZ, WindowKey owner, int rings) {
+        PregenArea covering = null;
+        for (PregenArea area : pregenAreas.values()) {
+            if (area.contains(owner)) {
+                covering = covering == null ? area : covering.union(area);
+            }
+        }
+        if (covering == null) {
+            return cache.prepareWindowsAround(chunkX, chunkZ, chunkX, chunkZ, rings);
+        }
+        int minX = Math.max(owner.wx() - rings, covering.minX());
+        int minZ = Math.max(owner.wz() - rings, covering.minZ());
+        int maxX = Math.min(owner.wx() + rings, covering.maxX());
+        int maxZ = Math.min(owner.wz() + rings, covering.maxZ());
+        return cache.prepareWindowsAround(minX * CHUNKS_PER_WINDOW, minZ * CHUNKS_PER_WINDOW, (maxX + 1) * CHUNKS_PER_WINDOW - 1,
+                (maxZ + 1) * CHUNKS_PER_WINDOW - 1, 0);
     }
 
     private static List<WindowKey> neighbourhood(int chunkX, int chunkZ) {
@@ -752,6 +832,16 @@ public final class HydrologyRuntime {
     }
 
     private record WindowPrefetch(CompletableFuture<Void> prepared, long evictions) {
+    }
+
+    private record PregenArea(int minX, int minZ, int maxX, int maxZ) {
+        private boolean contains(WindowKey key) {
+            return key.wx() > minX && key.wx() < maxX && key.wz() > minZ && key.wz() < maxZ;
+        }
+
+        private PregenArea union(PregenArea other) {
+            return new PregenArea(Math.min(minX, other.minX), Math.min(minZ, other.minZ), Math.max(maxX, other.maxX), Math.max(maxZ, other.maxZ));
+        }
     }
 
     private static final class LastRaster {

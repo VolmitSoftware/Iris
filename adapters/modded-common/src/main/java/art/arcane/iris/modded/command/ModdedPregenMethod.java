@@ -349,6 +349,11 @@ public final class ModdedPregenMethod implements PregeneratorMethod {
     }
 
     @Override
+    public void onRegionBounds(int minRegionX, int minRegionZ, int maxRegionX, int maxRegionZ) {
+        hydrology.bound(minRegionX, minRegionZ, maxRegionX, maxRegionZ);
+    }
+
+    @Override
     public void onRegionsAhead(List<long[]> regions) {
         if (!closing.get()) {
             hydrology.prepare(regions);

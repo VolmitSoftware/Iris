@@ -27,7 +27,8 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.util.Arrays;
 
-public final class SectionBuffer implements Hunk<NativeBlockState>, NativeSectionVolume, ColumnExtent, ColumnRunHunk<NativeBlockState> {
+public final class SectionBuffer implements Hunk<NativeBlockState>, NativeSectionVolume, ColumnExtent, ColumnRunHunk<NativeBlockState>,
+        ColumnReadHunk<NativeBlockState> {
     private static final BoundBlockState AIR = BoundBlockState.of("AIR");
     private static final VarHandle SECTIONS = MethodHandles.arrayElementVarHandle(short[][].class);
     private static final VarHandle COLUMN_TOPS = MethodHandles.arrayElementVarHandle(int[].class);
@@ -43,6 +44,8 @@ public final class SectionBuffer implements Hunk<NativeBlockState>, NativeSectio
     private PaletteEntry[] slots;
     private NativeBlockState[] states;
     private int paletteSize;
+    private NativeBlockState air;
+    private PaletteEntry lastEntry;
 
     public SectionBuffer(int height) {
         if (height <= 0) {
@@ -76,12 +79,17 @@ public final class SectionBuffer implements Hunk<NativeBlockState>, NativeSectio
         if (state == null) {
             return 0;
         }
+        PaletteEntry last = lastEntry;
+        if (last != null && last.state == state) {
+            return last.id;
+        }
         PaletteEntry[] table = slots;
         int mask = table.length - 1;
         int slot = System.identityHashCode(state) & mask;
         PaletteEntry entry;
         while ((entry = table[slot]) != null) {
             if (entry.state == state) {
+                lastEntry = entry;
                 return entry.id;
             }
             slot = (slot + 1) & mask;
@@ -101,7 +109,7 @@ public final class SectionBuffer implements Hunk<NativeBlockState>, NativeSectio
     @Override
     public NativeBlockState getRaw(int x, int y, int z) {
         if (y < 0 || y >= height) {
-            return AIR.get();
+            return air();
         }
         short[] section = sections[y >> 4];
         if (section != null) {
@@ -110,7 +118,7 @@ public final class SectionBuffer implements Hunk<NativeBlockState>, NativeSectio
                 return state(id);
             }
         }
-        return AIR.get();
+        return air();
     }
 
     @Override
@@ -124,6 +132,32 @@ public final class SectionBuffer implements Hunk<NativeBlockState>, NativeSectio
         }
         int id = section[((y & 15) << 8) | (z << 4) | x] & 0xFFFF;
         return id == 0 ? null : state(id);
+    }
+
+    @Override
+    public void readColumn(int x, int z, int yFromInclusive, int yToInclusive, NativeBlockState[] target, int targetOffset) {
+        int column = (z << 4) | x;
+        int shift = targetOffset - yFromInclusive;
+        int y = yFromInclusive;
+        while (y <= yToInclusive) {
+            if (y < 0 || y >= height) {
+                target[shift + y] = air();
+                y++;
+                continue;
+            }
+            int sectionIndex = y >> 4;
+            int last = Math.min(Math.min(yToInclusive, height - 1), (sectionIndex << 4) | 15);
+            short[] section = sections[sectionIndex];
+            if (section == null) {
+                Arrays.fill(target, shift + y, shift + last + 1, air());
+            } else {
+                for (int row = y; row <= last; row++) {
+                    int id = section[((row & 15) << 8) | column] & 0xFFFF;
+                    target[shift + row] = id == 0 ? air() : state(id);
+                }
+            }
+            y = last + 1;
+        }
     }
 
     @Override
@@ -174,6 +208,15 @@ public final class SectionBuffer implements Hunk<NativeBlockState>, NativeSectio
         synchronized (paletteLock) {
             return Arrays.copyOf(states, paletteSize);
         }
+    }
+
+    private NativeBlockState air() {
+        NativeBlockState resolved = air;
+        if (resolved == null) {
+            resolved = AIR.get();
+            air = resolved;
+        }
+        return resolved;
     }
 
     private short[] writableSection(int sectionIndex) {

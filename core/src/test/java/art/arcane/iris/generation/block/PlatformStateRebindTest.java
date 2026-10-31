@@ -44,7 +44,7 @@ public class PlatformStateRebindTest {
     }
 
     @Test
-    public void chunkDataAirIsResolvedAgainstTheCurrentlyBoundPlatform() {
+    public void chunkDataAirIsResolvedAgainstThePlatformBoundWhenTheBufferFirstReadsIt() {
         NativeBlockState first = bindPlatform("first");
         SectionBuffer holder = new SectionBuffer(384);
 
@@ -53,7 +53,8 @@ public class PlatformStateRebindTest {
         IrisPlatforms.unbind();
         NativeBlockState second = bindPlatform("second");
 
-        assertSame(second, holder.getRaw(0, -1, 0));
+        assertSame(first, holder.getRaw(0, -1, 0));
+        assertSame(second, new SectionBuffer(384).getRaw(0, -1, 0));
     }
 
     @Test

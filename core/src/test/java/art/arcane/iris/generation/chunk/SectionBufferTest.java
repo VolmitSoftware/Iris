@@ -264,6 +264,42 @@ public class SectionBufferTest {
         assertEquals(List.of(9, 8, 7), order);
     }
 
+    @Test
+    public void columnReadsMatchSingleReadsAcrossEmptySectionsAndBufferEdges() {
+        SectionBuffer buffer = new SectionBuffer(40);
+        NativeBlockState stone = mock(NativeBlockState.class);
+        NativeBlockState dirt = mock(NativeBlockState.class);
+        buffer.setRaw(3, 2, 9, stone);
+        buffer.setRaw(3, 33, 9, dirt);
+        buffer.setRaw(3, 39, 9, stone);
+        ColumnExtentListeningHunk<NativeBlockState> listening = new ColumnExtentListeningHunk<>(buffer, (x, y, z, state) -> {
+        });
+        NativeBlockState[] column = new NativeBlockState[52];
+
+        ColumnReadHunk.readColumn(listening, 3, 9, -3, 44, column, 4);
+
+        for (int y = -3; y <= 44; y++) {
+            assertSame("y=" + y, buffer.getRaw(3, y, 9), column[4 + y + 3]);
+        }
+        assertNull(column[0]);
+        assertSame(dirt, column[4 + 33 + 3]);
+    }
+
+    @Test
+    public void plainHunksAnswerColumnReadsWithSingleReads() {
+        Hunk<NativeBlockState> array = Hunk.newArrayHunk(16, 32, 16);
+        NativeBlockState stone = mock(NativeBlockState.class);
+        array.setRaw(5, 7, 1, stone);
+        NativeBlockState[] column = new NativeBlockState[10];
+
+        ColumnReadHunk.readColumn(array, 5, 1, 6, 8, column, 2);
+
+        assertNull(column[2]);
+        assertSame(stone, column[3]);
+        assertNull(column[4]);
+        assertNull(column[5]);
+    }
+
     private static void assertSameContents(SectionBuffer expected, SectionBuffer actual) {
         assertEquals(expected.sectionCount(), actual.sectionCount());
         NativeBlockState[] expectedPalette = expected.palette();

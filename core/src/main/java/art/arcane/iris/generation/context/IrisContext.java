@@ -28,9 +28,14 @@ import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.volmlib.util.collection.KMap;
 
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReferenceArray;
 
 public final class IrisContext {
-    private static final ThreadLocal<IrisContext> CONTEXT = new ThreadLocal<>();
+    private static final int SLOTS = 512;
+    private static final AtomicReferenceArray<Binding> BINDINGS = new AtomicReferenceArray<>(SLOTS);
+    private static final ThreadLocal<Binding> OVERFLOW = new ThreadLocal<>();
+    private static final AtomicInteger OVERFLOW_BINDINGS = new AtomicInteger();
     private final Engine engine;
     private final ChunkContext chunkContext;
     private final long generationSessionId;
@@ -42,7 +47,8 @@ public final class IrisContext {
     }
 
     public static IrisContext get() {
-        return CONTEXT.get();
+        Binding binding = binding(Thread.currentThread());
+        return binding == null ? null : binding.context;
     }
 
     public static IrisContext require() {
@@ -55,9 +61,10 @@ public final class IrisContext {
 
     public static Scope open(Engine engine, long generationSessionId, ChunkContext chunkContext) {
         Thread thread = Thread.currentThread();
-        IrisContext previous = CONTEXT.get();
+        Binding binding = bind(thread);
+        IrisContext previous = binding.context;
         IrisContext installed = new IrisContext(engine, generationSessionId, chunkContext);
-        CONTEXT.set(installed);
+        binding.context = installed;
         return new Scope(thread, previous, installed);
     }
 
@@ -99,6 +106,42 @@ public final class IrisContext {
                         .qput("queued", mantle.getUnloadRegionCount()));
     }
 
+    private static Binding binding(Thread thread) {
+        Binding binding = BINDINGS.getPlain(slot(thread));
+        if (binding != null && binding.owner == thread) {
+            return binding;
+        }
+        return OVERFLOW_BINDINGS.get() == 0 ? null : OVERFLOW.get();
+    }
+
+    private static Binding bind(Thread thread) {
+        Binding binding = binding(thread);
+        if (binding != null) {
+            return binding;
+        }
+        binding = new Binding(thread);
+        if (!BINDINGS.compareAndSet(slot(thread), null, binding)) {
+            binding.overflow = true;
+            OVERFLOW.set(binding);
+            OVERFLOW_BINDINGS.incrementAndGet();
+        }
+        return binding;
+    }
+
+    private static void release(Binding binding) {
+        binding.context = null;
+        if (binding.overflow) {
+            OVERFLOW.remove();
+            OVERFLOW_BINDINGS.decrementAndGet();
+            return;
+        }
+        BINDINGS.compareAndSet(slot(binding.owner), binding, null);
+    }
+
+    private static int slot(Thread thread) {
+        return (int) thread.threadId() & (SLOTS - 1);
+    }
+
     public static final class Scope implements NativeGenerationScope {
         private final Thread owner;
         private final IrisContext previous;
@@ -119,16 +162,26 @@ public final class IrisContext {
             if (Thread.currentThread() != owner) {
                 throw new IllegalStateException("Iris execution context scope closed from a different thread.");
             }
-            IrisContext current = CONTEXT.get();
-            if (current != installed) {
+            Binding binding = binding(owner);
+            if (binding == null || binding.context != installed) {
                 throw new IllegalStateException("Iris execution context scopes must close in LIFO order.");
             }
             if (previous == null) {
-                CONTEXT.remove();
+                release(binding);
             } else {
-                CONTEXT.set(previous);
+                binding.context = previous;
             }
             closed = true;
+        }
+    }
+
+    private static final class Binding {
+        private final Thread owner;
+        private boolean overflow;
+        private IrisContext context;
+
+        private Binding(Thread owner) {
+            this.owner = owner;
         }
     }
 }

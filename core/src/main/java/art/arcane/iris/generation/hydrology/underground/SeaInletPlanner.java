@@ -33,6 +33,7 @@ public final class SeaInletPlanner {
     private static final long SALT_HEADROOM = 0x53454148454144L;
     private static final long SALT_DEPTH = 0x53454144455054L;
     private static final long SALT_DENSITY = 0x53454144454e53L;
+    private static final double SQUARED_MARGIN = 1e-9D;
 
     private final HydrologySettings settings;
 
@@ -403,20 +404,34 @@ public final class SeaInletPlanner {
         double dx = bx - ax;
         double dz = bz - az;
         double span = dx * dx + dz * dz;
+        double outside = radius > 0f ? squaredAbove(radius) : Double.POSITIVE_INFINITY;
+        double inside = radius > 0f ? squaredBelow(radius) : Double.NEGATIVE_INFINITY;
+        double wetOutside = wetRadius > 0f ? squaredAbove(wetRadius) : Double.POSITIVE_INFINITY;
+        double wetInside = wetRadius > 0f ? squaredBelow(wetRadius) : Double.NEGATIVE_INFINITY;
         for (int j = minJ; j <= maxJ; j++) {
             double pz = grid.originZ() + (double) j * cell;
             for (int i = minI; i <= maxI; i++) {
                 double px = grid.originX() + (double) i * cell;
                 double t = span <= 0D ? 0D : Math.clamp(((px - ax) * dx + (pz - az) * dz) / span, 0D, 1D);
-                double distance = Math.hypot(px - (ax + t * dx), pz - (az + t * dz));
-                if (distance > radius) {
+                double ex = px - (ax + t * dx);
+                double ez = pz - (az + t * dz);
+                double squared = ex * ex + ez * ez;
+                if (squared > outside || !(squared < inside) && Math.hypot(ex, ez) > radius) {
                     continue;
                 }
                 int index = j * grid.width() + i;
                 cover[index] = Math.min(cover[index], bed);
-                wet[index] |= distance <= wetRadius;
+                wet[index] |= squared < wetInside || !(squared > wetOutside) && Math.hypot(ex, ez) <= wetRadius;
             }
         }
+    }
+
+    private static double squaredAbove(float radius) {
+        return (double) radius * radius * (1D + SQUARED_MARGIN);
+    }
+
+    private static double squaredBelow(float radius) {
+        return (double) radius * radius * (1D - SQUARED_MARGIN);
     }
 
     private static float pathLength(DemGrid grid, List<Integer> path) {

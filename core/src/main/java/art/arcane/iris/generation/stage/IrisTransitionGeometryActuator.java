@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.stage;
 
+import art.arcane.iris.generation.chunk.ColumnReadHunk;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.EngineAssignedComponent;
 import art.arcane.iris.generation.runtime.EngineStage;
@@ -111,6 +112,7 @@ public final class IrisTransitionGeometryActuator extends EngineAssignedComponen
         private final ChunkContext context;
         private final Map<NativeBlockState, BoundaryColumnGeometry.Voxel> voxels = new IdentityHashMap<>();
         private NativeBlockState air;
+        private NativeBlockState[] column = new NativeBlockState[0];
         private NativeBlockState lastState;
         private BoundaryColumnGeometry.Voxel lastVoxel;
 
@@ -132,10 +134,14 @@ public final class IrisTransitionGeometryActuator extends EngineAssignedComponen
                 return;
             }
             int base = minimumY - this.minimumY;
-            NativeBlockState runState = stateAt(localX, base, localZ);
+            if (column.length < height) {
+                column = new NativeBlockState[height];
+            }
+            ColumnReadHunk.readColumn(blocks, localX, localZ, base, base + height - 1, column, 0);
+            NativeBlockState runState = orAir(column[0]);
             int start = 0;
             for (int offset = 1; offset < height; offset++) {
-                NativeBlockState state = stateAt(localX, base + offset, localZ);
+                NativeBlockState state = orAir(column[offset]);
                 if (state != runState) {
                     runs.add(start, offset, voxelOf(runState));
                     start = offset;
@@ -146,7 +152,10 @@ public final class IrisTransitionGeometryActuator extends EngineAssignedComponen
         }
 
         private NativeBlockState stateAt(int localX, int offset, int localZ) {
-            NativeBlockState state = blocks.getRaw(localX, offset, localZ);
+            return orAir(blocks.getRaw(localX, offset, localZ));
+        }
+
+        private NativeBlockState orAir(NativeBlockState state) {
             if (state != null) {
                 return state;
             }

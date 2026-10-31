@@ -3,6 +3,8 @@ package art.arcane.iris.generation.context;
 import art.arcane.iris.generation.runtime.Engine;
 import org.junit.Test;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.TimeUnit;
@@ -48,6 +50,42 @@ public class IrisContextIsolationTest {
         assertSame(rightChunk, rightObserved.get());
         assertNull(leftAfterClose.get());
         assertNull(rightAfterClose.get());
+    }
+
+    @Test
+    public void contextsStayIsolatedWhenThreadsOutnumberTheBindingSlots() throws Exception {
+        Engine engine = mock(Engine.class);
+        int threads = 640;
+        CyclicBarrier allBound = new CyclicBarrier(threads);
+        AtomicReference<Throwable> failure = new AtomicReference<>();
+        List<Thread> workers = new ArrayList<>(threads);
+        for (int index = 0; index < threads; index++) {
+            long session = index + 1L;
+            Thread worker = new Thread(() -> {
+                try (IrisContext.Scope ignored = IrisContext.open(engine, session, null)) {
+                    allBound.await(30L, TimeUnit.SECONDS);
+                    if (IrisContext.get().getGenerationSessionId() != session) {
+                        failure.compareAndSet(null, new AssertionError("Thread observed session "
+                                + IrisContext.get().getGenerationSessionId() + " instead of " + session));
+                    }
+                    allBound.await(30L, TimeUnit.SECONDS);
+                } catch (Throwable thrown) {
+                    failure.compareAndSet(null, thrown);
+                }
+                if (IrisContext.get() != null) {
+                    failure.compareAndSet(null, new AssertionError("Context survived its scope"));
+                }
+            }, "iris-context-crowd-" + index);
+            workers.add(worker);
+            worker.start();
+        }
+        for (Thread worker : workers) {
+            worker.join(60000L);
+            assertFalse("Context worker did not finish.", worker.isAlive());
+        }
+
+        assertNull(failure.get());
+        assertNull(IrisContext.get());
     }
 
     @Test

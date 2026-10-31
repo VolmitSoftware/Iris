@@ -1087,23 +1087,21 @@ public class IrisCarveModifier extends EngineAssignedModifier<NativeBlockState> 
         int height = output.getHeight();
         ColumnExtent extent = output instanceof ColumnExtent columnExtent ? columnExtent : null;
         SolidMemo solids = new SolidMemo();
-        NativeBlockState[] column = new NativeBlockState[height];
+        ColumnWindow column = new ColumnWindow(output, height);
         for (int localX = 0; localX < width; localX++) {
             for (int localZ = 0; localZ < depth; localZ++) {
                 int worldX = blockX + localX;
                 int worldZ = blockZ + localZ;
                 int floor = -1;
                 int top = extent == null ? height - 1 : extent.highestStoredY(localX, localZ);
-                if (top >= 1) {
-                    ColumnReadHunk.readColumn(output, localX, localZ, 0, Math.min(top, height - 1), column, 0);
-                }
+                column.begin(localX, localZ, top);
                 boolean previousKnown = false;
                 boolean previousSolid = false;
                 for (int y = 1; y < height; y++) {
                     if (y > top) {
                         break;
                     }
-                    boolean solid = solids.test(column[y]);
+                    boolean solid = solids.test(column.get(y));
                     boolean decorated = false;
                     if (solid) {
                         if (floor >= 0) {
@@ -1127,15 +1125,12 @@ public class IrisCarveModifier extends EngineAssignedModifier<NativeBlockState> 
                                 if (extent != null) {
                                     top = extent.highestStoredY(localX, localZ);
                                 }
-                                int refreshTop = Math.min(top, height - 1);
-                                if (refreshTop >= y) {
-                                    ColumnReadHunk.readColumn(output, localX, localZ, y, refreshTop, column, y);
-                                }
+                                column.begin(localX, localZ, top);
                             }
                             floor = -1;
                         }
                     } else if (floor < 0 && (previousKnown ? previousSolid
-                            : solids.test(column[y - 1]))) {
+                            : solids.test(column.get(y - 1)))) {
                         floor = y;
                     }
                     previousSolid = solid;
@@ -1479,6 +1474,43 @@ public class IrisCarveModifier extends EngineAssignedModifier<NativeBlockState> 
     }
 
     private record CaveColumn(long key, IrisBiome surface, IrisBiome cave, int surfaceY, int minimumDepth) {
+    }
+
+    private static final class ColumnWindow {
+        private static final int ROWS = 16;
+
+        private final Hunk<NativeBlockState> output;
+        private final NativeBlockState[] states;
+        private int x;
+        private int z;
+        private int limit;
+        private int from;
+        private int to;
+
+        private ColumnWindow(Hunk<NativeBlockState> output, int height) {
+            this.output = output;
+            this.states = new NativeBlockState[height];
+        }
+
+        private void begin(int localX, int localZ, int top) {
+            x = localX;
+            z = localZ;
+            limit = Math.min(top, states.length - 1);
+            from = 0;
+            to = -1;
+        }
+
+        private NativeBlockState get(int y) {
+            if (y < from || y > to) {
+                if (y > limit) {
+                    return output.getRaw(x, y, z);
+                }
+                from = y;
+                to = Math.min(limit, y + ROWS - 1);
+                ColumnReadHunk.readColumn(output, x, z, from, to, states, from);
+            }
+            return states[y];
+        }
     }
 
     private static final class SolidMemo {

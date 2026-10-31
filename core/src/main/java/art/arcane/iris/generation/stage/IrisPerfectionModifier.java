@@ -126,8 +126,9 @@ public class IrisPerfectionModifier extends EngineAssignedModifier<NativeBlockSt
             surfaces.add(top);
             NativeBlockState classified = null;
             int classifiedFlags = 0;
+            boolean columnRead = true;
             for (int y = top; y >= 0; y--) {
-                NativeBlockState block = column[y];
+                NativeBlockState block = columnRead ? column[y] : output.get(x, y, z);
                 int flags = 0;
                 if (block != null) {
                     if (block != classified) {
@@ -138,9 +139,7 @@ public class IrisPerfectionModifier extends EngineAssignedModifier<NativeBlockSt
                     if ((flags & SPIKE) != 0) {
                         block = normalizeSpike(block, output, x, z, y, air, water);
                         flags = block == null ? 0 : states.of(block);
-                        if (y > 0) {
-                            ColumnReadHunk.readColumn(output, x, z, 0, y - 1, column, 0);
-                        }
+                        columnRead = false;
                     }
                 }
                 boolean now = (flags & SOLID) != 0;

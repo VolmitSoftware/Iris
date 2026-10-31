@@ -132,7 +132,7 @@ abstract class BaseWorldgenJsonWriter implements WorldgenJsonWriter {
 
     private JsonObject packMetadata(ExportIr ir) {
         JsonObject pack = new JsonObject();
-        pack.addProperty("description", "Iris worldgen export " + ir.namespace() + ":" + ir.dimension().name());
+        pack.addProperty("description", "Iris worldgen export " + ir.namespace() + ":" + ir.dimension().name() + ". Keep Default selected");
         pack.addProperty("min_format", target.getPackFormat());
         pack.addProperty("max_format", target.getPackFormat());
         JsonObject metadata = new JsonObject();

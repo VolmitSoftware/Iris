@@ -1,9 +1,11 @@
 package art.arcane.iris.pack.datapack.export.compile.decoration;
 
+import art.arcane.iris.generation.noise.IrisGeneratorStyle;
 import art.arcane.iris.pack.datapack.DataVersion;
 import art.arcane.iris.pack.datapack.export.ExportTestPacks;
 import art.arcane.iris.pack.datapack.export.compile.PackCompileContext;
 import art.arcane.iris.pack.datapack.export.compile.StageTestPacks;
+import art.arcane.iris.pack.datapack.export.compile.noise.VanillaNoiseModel;
 import art.arcane.iris.pack.datapack.export.compile.surface.MaterialProgramCompiler;
 import art.arcane.iris.pack.datapack.export.compile.surface.SurfaceStage;
 import art.arcane.iris.pack.datapack.export.ir.BiomeDef;
@@ -13,6 +15,9 @@ import art.arcane.iris.pack.datapack.export.ir.Field;
 import art.arcane.iris.pack.datapack.export.ir.JsonResource;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.testsupport.PlatformLeakGuard;
+import art.arcane.volmlib.util.math.RNG;
+import art.arcane.volmlib.util.noise.CNG;
+import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -27,6 +32,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 
 import static org.junit.Assert.assertArrayEquals;
@@ -133,6 +139,167 @@ public class DecorationStageTest {
     }
 
     @Test
+    public void aquaticDecoratorsPlaceOnlyUnderwater() throws Exception {
+        Map<String, String> biomes = new LinkedHashMap<>();
+        biomes.put("reef", "{\"decorators\":[" + decorator("seagrass", 0.2) + ","
+                + "{\"palette\":[{\"block\":\"kelp_plant\"}],\"chance\":0.02,\"stackMin\":2,\"stackMax\":6},"
+                + "{\"palette\":[{\"block\":\"kelp_plant\"}],\"chance\":0.03,\"stackMin\":2,\"stackMax\":6,\"partOf\":\"SEA_FLOOR\"}]}");
+        Result result = decorate(biomes, DataVersion.V26_3, context -> {
+        });
+
+        List<JsonResource> placed = result.under("worldgen/placed_feature/decorator/");
+        assertEquals(3, placed.size());
+        for (JsonResource resource : placed) {
+            JsonArray placement = resource.json().getAsJsonObject().getAsJsonArray("placement");
+            assertEquals(resource.path(), Placements.OCEAN_FLOOR,
+                    StageTestPacks.ofType(placement, "minecraft:heightmap").getFirst().get("heightmap").getAsString());
+            JsonObject filter = StageTestPacks.ofType(placement, "minecraft:block_predicate_filter").getLast();
+            assertFalse(resource.path(), StageTestPacks.ofType(filter, "minecraft:matching_fluids").isEmpty());
+            assertTrue(resource.path(), StageTestPacks.ofType(filter, "minecraft:matching_block_tag").isEmpty());
+        }
+        for (JsonResource resource : result.under("worldgen/feature/decorator/")) {
+            JsonObject feature = resource.json().getAsJsonObject();
+            if (feature.has("allowed_placement")) {
+                assertEquals(resource.path(), "minecraft:matching_fluids",
+                        feature.getAsJsonObject("allowed_placement").get("type").getAsString());
+            }
+        }
+    }
+
+    @Test
+    public void shoreDecoratorsGrowOnSolidGroundBesideWater() throws Exception {
+        Map<String, String> biomes = new LinkedHashMap<>();
+        biomes.put("beach", "{\"decorators\":[{\"palette\":[{\"block\":\"sugar_cane\"}],\"partOf\":\"SHORE_LINE\",\"chance\":0.5,"
+                + "\"stackMin\":1,\"stackMax\":4}]}");
+        Result result = decorate(biomes, DataVersion.V26_3, context -> {
+        });
+
+        JsonArray placement = result.under("worldgen/placed_feature/decorator/").getFirst().json().getAsJsonObject().getAsJsonArray("placement");
+        JsonObject filter = StageTestPacks.ofType(placement, "minecraft:block_predicate_filter").getLast();
+        List<String> supports = new ArrayList<>();
+        for (JsonObject solid : StageTestPacks.ofType(filter, "minecraft:solid")) {
+            supports.add(solid.get("offset").toString());
+        }
+        assertEquals(List.of("[0,-1,0]"), supports);
+        assertEquals(4, StageTestPacks.ofType(filter, "minecraft:matching_fluids").size());
+    }
+
+    @Test
+    public void tallPlantsPlaceBothHalves() throws Exception {
+        Map<String, String> biomes = new LinkedHashMap<>();
+        biomes.put("reef", "{\"decorators\":[{\"palette\":[{\"block\":\"tall_seagrass\",\"data\":{\"half\":\"lower\"}}],"
+                + "\"topPalette\":[{\"block\":\"tall_seagrass\",\"data\":{\"half\":\"upper\"}}],\"partOf\":\"SEA_FLOOR\",\"chance\":0.2}]}");
+        Result result = decorate(biomes, DataVersion.V26_3, context -> {
+        });
+
+        JsonObject feature = result.under("worldgen/feature/decorator/").getFirst().json().getAsJsonObject();
+        assertEquals(feature.toString(), "minecraft:simple_block", feature.get("type").getAsString());
+        assertEquals("{\"id\":\"minecraft:tall_seagrass\",\"properties\":{\"half\":\"lower\"}}", feature.get("to_place").toString());
+        JsonArray placement = result.under("worldgen/placed_feature/decorator/").getFirst().json().getAsJsonObject().getAsJsonArray("placement");
+        List<String> water = new ArrayList<>();
+        for (JsonObject fluid : StageTestPacks.ofType(placement, "minecraft:matching_fluids")) {
+            water.add(fluid.has("offset") ? fluid.get("offset").toString() : "[0,0,0]");
+        }
+        assertEquals(List.of("[0,0,0]", "[0,1,0]"), water);
+    }
+
+    @Test
+    public void waterlogFollowsWhereTheDecoratorPlaces() throws Exception {
+        Map<String, String> biomes = new LinkedHashMap<>();
+        biomes.put("reef", "{\"decorators\":[" + decorator("sea_pickle[pickles=2,waterlogged=false]", 0.2) + ","
+                + "{\"palette\":[{\"block\":\"oak_stairs[waterlogged=true]\"},{\"block\":\"short_grass\"}],\"chance\":0.1}]}");
+        Result result = decorate(biomes, DataVersion.V26_3, context -> {
+        });
+
+        String pickles = result.resource("data/iris_export/worldgen/feature/decorator/sea_pickle.json").toString();
+        String stairs = result.resource("data/iris_export/worldgen/feature/decorator/oak_stairs.json").toString();
+        assertTrue(pickles, pickles.contains("\"waterlogged\":\"true\""));
+        assertTrue(stairs, stairs.contains("\"waterlogged\":\"false\""));
+    }
+
+    @Test
+    public void paletteEndsCarryHalfWeightLikeIrisRounding() throws Exception {
+        Map<String, String> biomes = new LinkedHashMap<>();
+        biomes.put("meadow", "{\"decorators\":[{\"palette\":[{\"block\":\"bush\"},{\"block\":\"air\",\"weight\":4}],\"chance\":0.5},"
+                + "{\"palette\":[{\"block\":\"fern\",\"weight\":2},{\"block\":\"short_grass\",\"weight\":3}],\"chance\":0.2,\"partOf\":\"SHORE_LINE\"}]}");
+        Result result = decorate(biomes, DataVersion.V26_3, context -> {
+        });
+
+        JsonArray placement = placement(result, "data/iris_export/worldgen/placed_feature/decorator/bush.json");
+        assertEquals(0.5 / 8.0, StageTestPacks.ofType(placement, "minecraft:random_chance").getFirst().get("chance").getAsDouble(), 1.0e-6);
+        JsonArray weighted = result.resource("data/iris_export/worldgen/feature/decorator/fern.json").getAsJsonObject()
+                .getAsJsonObject("to_place").getAsJsonArray("entries");
+        assertEquals(3, weighted.get(0).getAsJsonObject().get("weight").getAsInt());
+        assertEquals(5, weighted.get(1).getAsJsonObject().get("weight").getAsInt());
+    }
+
+    @Test
+    public void styledDecoratorPlacesAtStyleCoverage() throws Exception {
+        String style = "{\"style\":\"SIMPLEX\",\"zoom\":0.2,\"fracture\":{\"style\":\"STATIC\",\"multiplier\":8}}";
+        Map<String, String> biomes = new LinkedHashMap<>();
+        biomes.put("meadow", "{\"decorators\":[{\"palette\":[{\"block\":\"poppy\"}],\"chance\":0.2,\"style\":" + style + "}]}");
+        Result result = decorate(biomes, DataVersion.V26_3, context -> {
+        });
+
+        JsonArray placement = placement(result, "data/iris_export/worldgen/placed_feature/decorator/poppy.json");
+        double exported = StageTestPacks.ofType(placement, "minecraft:random_chance").getFirst().get("chance").getAsDouble();
+        double coverage = irisCoverage(style, 0.2);
+        assertTrue("coverage " + coverage, coverage < 0.1);
+        assertEquals(coverage, exported, coverage * 0.2);
+        assertEquals("{\"type\":\"minecraft:simple_block\",\"to_place\":{\"id\":\"minecraft:poppy\"}}",
+                result.resource("data/iris_export/worldgen/feature/decorator/poppy.json").toString());
+    }
+
+    @Test
+    public void decoratorWhoseStyleNeverPassesIsLeftOut() throws Exception {
+        Map<String, String> biomes = new LinkedHashMap<>();
+        biomes.put("meadow", "{\"decorators\":[{\"palette\":[{\"block\":\"poppy\"}],\"chance\":0.5,\"style\":{\"style\":\"FLAT\"}},"
+                + decorator("short_grass", 0.3) + "]}");
+        Result result = decorate(biomes, DataVersion.V26_3, context -> {
+        });
+
+        assertEquals(List.of("iris_export:decorator/short_grass"), step(result.biomes().getFirst(), GenerationStep.VEGETAL_DECORATION));
+    }
+
+    @Test
+    public void clusteredStyleFollowsFittedNoisePattern() throws Exception {
+        String style = "{\"style\":\"SIMPLEX\",\"zoom\":4}";
+        Map<String, String> biomes = new LinkedHashMap<>();
+        biomes.put("meadow", "{\"decorators\":[{\"palette\":[{\"block\":\"poppy\"},{\"block\":\"dandelion\",\"weight\":2}],\"chance\":0.3,\"style\":"
+                + style + "}]}");
+        Result result = decorate(biomes, DataVersion.V26_3, context -> {
+        });
+
+        JsonObject provider = result.resource("data/iris_export/worldgen/feature/decorator/poppy.json").getAsJsonObject()
+                .getAsJsonObject("to_place");
+        assertEquals("minecraft:noise_threshold", provider.get("type").getAsString());
+        assertEquals("minecraft:air", provider.getAsJsonObject("default_state").get("id").getAsString());
+        assertEquals(0.0, provider.get("high_chance").getAsDouble(), 0.0);
+        List<String> low = new ArrayList<>();
+        for (JsonElement state : provider.getAsJsonArray("low_states")) {
+            low.add(state.getAsJsonObject().get("id").getAsString());
+        }
+        assertEquals(List.of("minecraft:poppy", "minecraft:dandelion", "minecraft:dandelion", "minecraft:dandelion"), low);
+        assertTrue(StageTestPacks.ofType(placement(result, "data/iris_export/worldgen/placed_feature/decorator/poppy.json"),
+                "minecraft:random_chance").isEmpty());
+
+        JsonObject noise = provider.getAsJsonObject("noise");
+        List<Double> amplitudes = new ArrayList<>();
+        for (JsonElement amplitude : noise.getAsJsonArray("amplitude_modifiers")) {
+            amplitudes.add(amplitude.getAsDouble());
+        }
+        VanillaNoiseModel model = VanillaNoiseModel.create("iris_export:test", noise.get("base_octave").getAsInt(), amplitudes, 99L, DataVersion.V26_3);
+        double scale = provider.get("scale").getAsDouble();
+        double threshold = provider.get("threshold").getAsDouble();
+        GatePattern iris = irisPattern(style, 0.3);
+        GatePattern vanilla = pattern((x, z) -> model.sample(x * scale, 70.0 * scale, z * scale) < threshold);
+        assertTrue("iris coverage " + iris.coverage(), iris.coverage() > 0.1 && iris.coverage() < 0.5);
+        assertEquals(iris.coverage(), vanilla.coverage(), 0.03);
+        assertTrue("iris patch " + iris.patch() + " vanilla " + vanilla.patch(),
+                vanilla.patch() > iris.patch() * 0.7 && vanilla.patch() < iris.patch() * 1.4);
+    }
+
+    @Test
     public void columnWinnerSharesFollowIrisReservoirPick() {
         assertArrayEquals(new double[]{0.5, 0.5}, DecoratorCompiler.columnShares(new double[]{1.0, 1.0}), 1.0e-12);
         double[] shares = DecoratorCompiler.columnShares(new double[]{0.5, 0.2});
@@ -163,10 +330,38 @@ public class DecorationStageTest {
         JsonObject ore = result.resource("data/iris_export/worldgen/feature/deposit/coal_ore.json").getAsJsonObject();
         assertEquals("minecraft:ore", ore.get("type").getAsString());
         assertEquals(8, ore.get("size").getAsInt());
-        JsonObject target = ore.getAsJsonArray("targets").get(0).getAsJsonObject();
+        JsonObject target = ore.getAsJsonArray("targets").get(1).getAsJsonObject();
         assertEquals("{\"predicate_type\":\"minecraft:tag_match\",\"tag\":\"iris_export:deposit_host\"}", target.get("target").toString());
         assertEquals("{\"id\":\"minecraft:coal_ore\"}", target.get("state").toString());
         assertNotNull(result.resource("data/iris_export/tags/block/deposit_host.json"));
+    }
+
+    @Test
+    public void depositOresFollowTheirHostStone() throws Exception {
+        String explicit = "{\"palette\":[{\"block\":\"deepslate_redstone_ore[lit=false]\"}],\"minHeight\":0,\"maxHeight\":40,"
+                + "\"minPerChunk\":1,\"maxPerChunk\":2,\"minSize\":4,\"maxSize\":4,\"replaceableBlocks\":[\"stone\",\"deepslate\",\"tuff\"]}";
+        Map<String, String> biomes = new LinkedHashMap<>();
+        biomes.put("hills", "{\"deposits\":[" + COAL + "," + explicit + "]}");
+        Result result = decorate(biomes, DataVersion.V26_3, context -> {
+        });
+
+        JsonArray coal = result.resource("data/iris_export/worldgen/feature/deposit/coal_ore.json").getAsJsonObject().getAsJsonArray("targets");
+        assertEquals(2, coal.size());
+        assertEquals("{\"predicate_type\":\"minecraft:block_match\",\"block\":\"minecraft:deepslate\"}",
+                coal.get(0).getAsJsonObject().get("target").toString());
+        assertEquals("{\"id\":\"minecraft:deepslate_coal_ore\"}", coal.get(0).getAsJsonObject().get("state").toString());
+        assertEquals("{\"id\":\"minecraft:coal_ore\"}", coal.get(1).getAsJsonObject().get("state").toString());
+
+        JsonArray redstone = result.resource("data/iris_export/worldgen/feature/deposit/deepslate_redstone_ore.json").getAsJsonObject()
+                .getAsJsonArray("targets");
+        Map<String, String> byHost = new LinkedHashMap<>();
+        for (JsonElement element : redstone) {
+            JsonObject target = element.getAsJsonObject();
+            byHost.put(target.getAsJsonObject("target").get("block").getAsString(), target.get("state").toString());
+        }
+        assertEquals("{\"id\":\"minecraft:redstone_ore\",\"properties\":{\"lit\":\"false\"}}", byHost.get("minecraft:stone"));
+        assertEquals("{\"id\":\"minecraft:deepslate_redstone_ore\",\"properties\":{\"lit\":\"false\"}}", byHost.get("minecraft:deepslate"));
+        assertEquals("{\"id\":\"minecraft:redstone_ore\",\"properties\":{\"lit\":\"false\"}}", byHost.get("minecraft:tuff"));
     }
 
     @Test
@@ -258,6 +453,56 @@ public class DecorationStageTest {
 
     private static String decorator(String block, double chance) {
         return "{\"palette\":[{\"block\":\"" + block + "\"}],\"chance\":" + chance + "}";
+    }
+
+    private static double irisCoverage(String styleJson, double chance) {
+        return irisPattern(styleJson, chance).coverage();
+    }
+
+    private static GatePattern irisPattern(String styleJson, double chance) {
+        IrisGeneratorStyle style = new Gson().fromJson(styleJson, IrisGeneratorStyle.class);
+        CNG generator = style.create(new RNG(4242L), null);
+        double zoom = style.getZoom();
+        return pattern((x, z) -> generator.fitDouble(0.0, 1.0, x / zoom, z / zoom) <= chance);
+    }
+
+    private static GatePattern pattern(BiPredicate<Double, Double> gate) {
+        int[] lags = {1, 2, 4, 8, 16, 32, 64, 128};
+        int hits = 0;
+        int total = 0;
+        int[] both = new int[lags.length];
+        for (int i = 0; i < 150; i++) {
+            for (int j = 0; j < 150; j++) {
+                double x = i * 197.0 + 3.0;
+                double z = j * 173.0 - 11.0;
+                total++;
+                if (!gate.test(x, z)) {
+                    continue;
+                }
+                hits++;
+                for (int lag = 0; lag < lags.length; lag++) {
+                    both[lag] += gate.test(x + lags[lag], z) ? 1 : 0;
+                    both[lag] += gate.test(x, z + lags[lag]) ? 1 : 0;
+                }
+            }
+        }
+        double coverage = (double) hits / total;
+        double previousLag = 0.0;
+        double previousExcess = 1.0;
+        for (int lag = 0; lag < lags.length; lag++) {
+            double excess = ((double) both[lag] / (2.0 * hits) - coverage) / (1.0 - coverage);
+            if (excess < 0.5) {
+                double low = previousLag == 0.0 ? 0.0 : Math.log(previousLag);
+                double fraction = (previousExcess - 0.5) / (previousExcess - excess);
+                return new GatePattern(coverage, previousLag == 0.0 ? lags[lag] * fraction : Math.exp(low + (Math.log(lags[lag]) - low) * fraction));
+            }
+            previousLag = lags[lag];
+            previousExcess = excess;
+        }
+        return new GatePattern(coverage, lags[lags.length - 1]);
+    }
+
+    private record GatePattern(double coverage, double patch) {
     }
 
     private static List<String> step(BiomeDef biome, GenerationStep step) {

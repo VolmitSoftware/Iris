@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
@@ -33,6 +34,14 @@ public final class DepositCompiler {
     private static final int MAX_ANCHOR = 2031;
     private static final String HOST_TAG = "deposit_host";
     private static final List<String> HOST_TAG_BASE = List.of("#minecraft:base_stone_overworld", "#minecraft:dirt", "#minecraft:sand");
+    private static final String DEEPSLATE = "minecraft:deepslate";
+    private static final String DEEPSLATE_PREFIX = "minecraft:deepslate_";
+    private static final Set<String> DEEPSLATE_ORES = Set.of("coal", "emerald", "diamond", "copper", "gold", "iron", "lapis", "redstone");
+    private static final Set<String> DEEPSLATE_HOSTS = Set.of(DEEPSLATE, "minecraft:deepslate_bricks", "minecraft:deepslate_brick_slab",
+            "minecraft:deepslate_brick_stairs", "minecraft:deepslate_brick_wall", "minecraft:deepslate_tiles", "minecraft:deepslate_tile_slab",
+            "minecraft:deepslate_tile_stairs", "minecraft:deepslate_tile_wall", "minecraft:cracked_deepslate_tiles", "minecraft:deepslate_coal_ore",
+            "minecraft:deepslate_iron_ore", "minecraft:deepslate_copper_ore", "minecraft:deepslate_diamond_ore", "minecraft:deepslate_emerald_ore",
+            "minecraft:deepslate_gold_ore", "minecraft:deepslate_lapis_ore", "minecraft:deepslate_redstone_ore");
 
     private final PackCompileContext context;
     private final ExportedBiomes biomes;
@@ -110,12 +119,17 @@ public final class DepositCompiler {
         List<JsonObject> hosts = hosts(deposit, resource);
         List<String> ores = new ArrayList<>(states.size());
         for (VanillaBlockState state : states) {
-            JsonArray targets = new JsonArray(hosts.size());
+            JsonArray targets = new JsonArray(hosts.size() + 1);
+            VanillaBlockState deepslateOre = stoneVariant(state, true);
+            if (hosts.size() == 1 && "minecraft:tag_match".equals(hosts.getFirst().get("predicate_type").getAsString()) && !deepslateOre.equals(state)) {
+                JsonObject deepslate = new JsonObject();
+                deepslate.addProperty("predicate_type", "minecraft:block_match");
+                deepslate.addProperty("block", DEEPSLATE);
+                targets.add(target(deepslate, deepslateOre));
+            }
             for (JsonObject host : hosts) {
-                JsonObject target = new JsonObject();
-                target.add("target", host.deepCopy());
-                target.add("state", syntax.blockState(state));
-                targets.add(target);
+                boolean deepslateHost = host.has("block") && DEEPSLATE_HOSTS.contains(host.get("block").getAsString());
+                targets.add(target(host, stoneVariant(state, deepslateHost)));
             }
             JsonObject config = new JsonObject();
             config.addProperty("size", Math.max(0, size));
@@ -133,6 +147,23 @@ public final class DepositCompiler {
         JsonObject selector = new JsonObject();
         selector.add("features", features);
         return catalog.feature("deposit/" + path(states.getFirst()) + "_mix", "minecraft:simple_random_selector", selector);
+    }
+
+    private JsonObject target(JsonObject host, VanillaBlockState state) {
+        JsonObject target = new JsonObject();
+        target.add("target", host.deepCopy());
+        target.add("state", syntax.blockState(state));
+        return target;
+    }
+
+    private static VanillaBlockState stoneVariant(VanillaBlockState ore, boolean deepslate) {
+        String name = ore.name();
+        boolean deep = name.startsWith(DEEPSLATE_PREFIX);
+        String base = deep ? name.substring(DEEPSLATE_PREFIX.length()) : name.substring(name.indexOf(':') + 1);
+        if (deep == deepslate || !base.endsWith("_ore") || !DEEPSLATE_ORES.contains(base.substring(0, base.length() - "_ore".length()))) {
+            return ore;
+        }
+        return new VanillaBlockState(deepslate ? DEEPSLATE_PREFIX + base : "minecraft:" + base, ore.properties());
     }
 
     private JsonArray placement(IrisDepositGenerator deposit, List<String> biomeIds, String resource) {

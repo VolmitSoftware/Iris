@@ -34,25 +34,39 @@ public final class StructureTemplateEncoder {
             .thenComparingInt(TemplateBlock::z);
 
     public static TemplateVolume volume(IrisObject object, String resource, List<ExportDiagnostic> diagnostics) {
+        List<TemplateBlock> inside = new ArrayList<>();
+        int outside = 0;
+        String firstOutside = null;
+        for (TemplateBlock block : blocks(object, resource, diagnostics)) {
+            if (block.x() < 0 || block.y() < 0 || block.z() < 0
+                    || block.x() >= object.getW() || block.y() >= object.getH() || block.z() >= object.getD()) {
+                outside++;
+                if (firstOutside == null) {
+                    firstOutside = block.x() + "," + block.y() + "," + block.z();
+                }
+                continue;
+            }
+            inside.add(block);
+        }
+        if (outside > 0) {
+            diagnostics.add(new ExportDiagnostic(ExportDiagnostic.Severity.WARNING, ExportLimit.OBJECT_BOUNDS, resource,
+                    outside + " blocks outside the " + object.getW() + "x" + object.getH() + "x" + object.getD()
+                            + " object size are left out of the template, first at " + firstOutside));
+        }
+        return new TemplateVolume(object.getW(), object.getH(), object.getD(), inside);
+    }
+
+    public static List<TemplateBlock> blocks(IrisObject object, String resource, List<ExportDiagnostic> diagnostics) {
         List<TemplateBlock> blocks = new ArrayList<>();
         Vector3i center = object.getCenter();
         int droppedTiles = 0;
         String firstDropped = null;
-        int outside = 0;
-        String firstOutside = null;
         Set<String> customBlocks = new TreeSet<>();
         for (Map.Entry<IrisBlockVector, NativeBlockState> entry : object.getBlocks()) {
             IrisBlockVector signed = entry.getKey();
             int x = signed.getBlockX() + center.getX();
             int y = signed.getBlockY() + center.getY();
             int z = signed.getBlockZ() + center.getZ();
-            if (x < 0 || y < 0 || z < 0 || x >= object.getW() || y >= object.getH() || z >= object.getD()) {
-                outside++;
-                if (firstOutside == null) {
-                    firstOutside = x + "," + y + "," + z;
-                }
-                continue;
-            }
             VanillaBlockState state;
             try {
                 state = VanillaBlockState.parse(entry.getValue().key());
@@ -79,17 +93,12 @@ public final class StructureTemplateEncoder {
             diagnostics.add(new ExportDiagnostic(ExportDiagnostic.Severity.WARNING, ExportLimit.CUSTOM_BLOCK, resource,
                     "Blocks outside Minecraft are left out of the template: " + String.join(", ", customBlocks)));
         }
-        if (outside > 0) {
-            diagnostics.add(new ExportDiagnostic(ExportDiagnostic.Severity.WARNING, ExportLimit.OBJECT_BOUNDS, resource,
-                    outside + " blocks outside the " + object.getW() + "x" + object.getH() + "x" + object.getD()
-                            + " object size are left out of the template, first at " + firstOutside));
-        }
         if (droppedTiles > 0) {
             diagnostics.add(new ExportDiagnostic(ExportDiagnostic.Severity.WARNING, ExportLimit.TILE_ENTITY, resource,
                     droppedTiles + " tile entities have no vanilla block entity form and export as plain blocks, first "
                             + firstDropped));
         }
-        return new TemplateVolume(object.getW(), object.getH(), object.getD(), blocks);
+        return blocks;
     }
 
     public byte[] encode(IrisObject object, List<TemplateBlock> extraBlocks, DataVersion target) throws IOException {

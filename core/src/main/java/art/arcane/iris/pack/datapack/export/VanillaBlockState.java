@@ -58,6 +58,17 @@ public record VanillaBlockState(String name, Map<String, String> properties) {
         return new VanillaBlockState(name, properties);
     }
 
+    public VanillaBlockState waterlogged(boolean submerged) {
+        String value = Boolean.toString(submerged);
+        String current = properties.get("waterlogged");
+        if (current == null || current.equals(value)) {
+            return this;
+        }
+        Map<String, String> changed = new LinkedHashMap<>(properties);
+        changed.put("waterlogged", value);
+        return new VanillaBlockState(name, changed);
+    }
+
     public String canonical() {
         if (properties.isEmpty()) {
             return name;

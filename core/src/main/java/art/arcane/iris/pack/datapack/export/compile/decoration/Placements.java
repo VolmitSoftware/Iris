@@ -1,10 +1,12 @@
 package art.arcane.iris.pack.datapack.export.compile.decoration;
 
+import art.arcane.iris.generation.terrain.IrisSlopeClip;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
@@ -14,6 +16,7 @@ public final class Placements {
     private static final int CHUNK_EDGE = 15;
     private static final int WEIGHT_SCALE = 1000;
     private static final int[][] CARDINALS = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
+    private static final double SLOPE_CEILING = 10.0;
 
     private Placements() {
     }
@@ -147,17 +150,26 @@ public final class Placements {
     }
 
     public static JsonObject air(int x, int y, int z) {
+        return blockTag("minecraft:air", x, y, z);
+    }
+
+    public static JsonObject blockTag(String tag, int x, int y, int z) {
         JsonObject json = typed("minecraft:matching_block_tag");
-        json.addProperty("tag", "minecraft:air");
+        json.addProperty("tag", tag);
         return offset(json, x, y, z);
     }
 
     public static JsonObject water(int x, int y, int z) {
-        JsonArray fluids = new JsonArray(2);
-        fluids.add("minecraft:water");
-        fluids.add("minecraft:flowing_water");
+        return fluids(List.of("minecraft:water", "minecraft:flowing_water"), x, y, z);
+    }
+
+    public static JsonObject fluids(Collection<String> fluids, int x, int y, int z) {
+        JsonArray list = new JsonArray(fluids.size());
+        for (String fluid : fluids) {
+            list.add(fluid);
+        }
         JsonObject json = typed("minecraft:matching_fluids");
-        json.add("fluids", fluids);
+        json.add("fluids", list);
         return offset(json, x, y, z);
     }
 
@@ -213,6 +225,20 @@ public final class Placements {
             directions[index * 2 + 1] = not(solid(cardinal[0] * 3, groundOffset - rise + 1, cardinal[1] * 3));
         }
         return anyOf(List.of(directions));
+    }
+
+    public static List<JsonObject> slopeLimits(IrisSlopeClip clip) {
+        List<JsonObject> limits = new ArrayList<>(2);
+        if (clip == null || clip.isDefault()) {
+            return limits;
+        }
+        if (clip.getMinimumSlope() > 0) {
+            limits.add(steeperThan(slopeRise(clip.getMinimumSlope()), -1));
+        }
+        if (clip.getMaximumSlope() < SLOPE_CEILING) {
+            limits.add(not(steeperThan(slopeRise(clip.getMaximumSlope()) + 1, -1)));
+        }
+        return limits;
     }
 
     public static JsonObject dropAtLeast(int drop) {
@@ -279,5 +305,9 @@ public final class Placements {
         json.addProperty("data", data);
         json.addProperty("weight", weight);
         return json;
+    }
+
+    private static int slopeRise(double slope) {
+        return Math.max(1, (int) Math.round(slope));
     }
 }

@@ -71,6 +71,12 @@ public class Format26_3WriterTest {
     }
 
     @Test
+    public void packDescriptionTellsPlayersToKeepTheVanillaPack() {
+        String description = json(write(fixture(WorldgenExportMode.OVERWORLD)), "pack.mcmeta").getAsJsonObject("pack").get("description").getAsString();
+        assertTrue(description, description.contains("Keep Default selected"));
+    }
+
+    @Test
     public void noiseFileUsesNormalNoiseParameters() {
         JsonObject noise = json(write(fixture(WorldgenExportMode.PRESET)), "data/iris_export/worldgen/noise/flat/height.json");
         assertEquals(JsonParser.parseString("{\"amplitude_modifiers\":[1.0,1.0,1.0],\"base_amplitude\":1.0,\"base_octave\":-7,\"normalize\":false,\"octave_count\":3}"), noise);

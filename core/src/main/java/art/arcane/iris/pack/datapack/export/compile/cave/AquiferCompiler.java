@@ -18,6 +18,12 @@ public final class AquiferCompiler {
     private static final int FLUID_BAND_CENTER = 20;
     private static final double SPREAD_LEVEL_SCALE = 10.0;
     private static final double LEVEL_ROUNDING_MARGIN = 0.5;
+    private static final int OPEN_WATER_DEPTH = 8;
+    private static final int OPEN_WATER_HEADROOM = 8;
+    private static final int OPEN_WATER_REACH = 32;
+    private static final int OPEN_WATER_SHORE = 8;
+    private static final int OPEN_WATER_ESTIMATE_SLACK = 40;
+    private static final Field OPEN_WATER_LIFT = new Field.Const(2.0);
     private static final Field DRY = new Field.Const(-1.0);
     private static final Field PARTIAL = new Field.Const(0.6);
     private static final Field LOW_BARRIER = new Field.Const(-1.0);
@@ -49,11 +55,21 @@ public final class AquiferCompiler {
         }
         boolean wet = any(selection, IrisCaveProfile::isAllowFluid);
         if (!lavaExported && !wet) {
-            return dry;
+            return new AquiferDef(dry.barrier(), openWater(dry.floodedness()), dry.spread(), dry.lava(), dry.exclusion(), dry.surfaceLevel());
         }
         Field spread = lavaExported ? lavaSpread(wet, dry.spread()) : dry.spread();
         Field lava = lavaExported ? lavaBands() : NO_LAVA;
-        return new AquiferDef(LOW_BARRIER, floodedness(selection, lavaExported), spread, lava, NO_EXCLUSION, inputs.aquiferSurface());
+        return new AquiferDef(LOW_BARRIER, openWater(floodedness(selection, lavaExported)), spread, lava, NO_EXCLUSION, inputs.aquiferSurface());
+    }
+
+    private Field openWater(Field caveFlood) {
+        Field surface = inputs.surface();
+        Field nearFluid = new Field.RangeIf(blockY, inputs.fluidHeight() - OPEN_WATER_REACH, inputs.fluidHeight() + OPEN_WATER_HEADROOM + 1.0, INSIDE_BAND, DRY);
+        Field lowEstimate = new Field.Binary(Field.BinaryOp.SUB, new Field.Const(inputs.fluidHeight() + OPEN_WATER_ESTIMATE_SLACK), inputs.aquiferSurface());
+        Field aboveFloor = new Field.Binary(Field.BinaryOp.ADD, new Field.Binary(Field.BinaryOp.SUB, blockY, surface), new Field.Const(OPEN_WATER_DEPTH));
+        Field lowColumn = new Field.Binary(Field.BinaryOp.SUB, new Field.Const(inputs.fluidHeight() + OPEN_WATER_SHORE + LEVEL_ROUNDING_MARGIN), surface);
+        Field lift = new Field.Gate(aboveFloor, new Field.Gate(lowColumn, OPEN_WATER_LIFT));
+        return new Field.Binary(Field.BinaryOp.ADD, caveFlood, new Field.Gate(nearFluid, new Field.Gate(lowEstimate, lift)));
     }
 
     private Field floodedness(CaveSelection selection, boolean lavaExported) {

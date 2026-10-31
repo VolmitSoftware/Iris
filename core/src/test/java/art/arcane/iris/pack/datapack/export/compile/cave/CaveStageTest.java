@@ -133,7 +133,14 @@ public class CaveStageTest {
             new CaveStage().apply(context);
 
             assertEquals(new Field.Const(1.0e6), context.caves());
-            assertEquals(AquiferDef.dry(SURFACE), context.aquifer());
+            AquiferDef aquifer = context.aquifer();
+            AquiferDef vanilla = AquiferDef.dry(SURFACE);
+            assertEquals(vanilla.barrier(), aquifer.barrier());
+            assertEquals(vanilla.spread(), aquifer.spread());
+            assertEquals(vanilla.lava(), aquifer.lava());
+            assertEquals(vanilla.exclusion(), aquifer.exclusion());
+            assertEquals(vanilla.surfaceLevel(), aquifer.surfaceLevel());
+            assertEquals(-1.0, CaveTestPacks.sample(aquifer.floodedness(), context.noises(), 4, 40, 4), 0.0);
             assertTrue(context.diagnostics().isEmpty());
         } finally {
             data.close();

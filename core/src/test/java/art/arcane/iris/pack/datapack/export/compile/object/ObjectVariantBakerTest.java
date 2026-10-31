@@ -38,8 +38,8 @@ public class ObjectVariantBakerTest {
                 .build();
         String id = ObjectVariantBaker.templateId(NAMESPACE, "trees/oak", spec, DataVersion.V26_3);
 
-        BakedVariant first = new ObjectVariantBaker().bake(id, tree, spec, "trees/oak", new ArrayList<>());
-        BakedVariant second = new ObjectVariantBaker().bake(id, tree, spec, "trees/oak", new ArrayList<>());
+        BakedVariant first = new ObjectVariantBaker().bake(id, new ObjectSource(tree, 0, TreeRoots.NONE), spec);
+        BakedVariant second = new ObjectVariantBaker().bake(id, new ObjectSource(tree, 0, TreeRoots.NONE), spec);
 
         assertEquals(first, second);
         assertEquals(id, ObjectVariantBaker.templateId(NAMESPACE, "trees/oak", spec, DataVersion.V26_3));
@@ -58,12 +58,36 @@ public class ObjectVariantBakerTest {
                 block(0, 1, 0, "minecraft:cave_air")));
 
         BakedVariant variant = new ObjectVariantBaker()
-                .bake("iris_export:object/rock/a", volume, VariantSpec.builder().build(), "rock", new ArrayList<>());
+                .bake("iris_export:object/rock/a", new ObjectSource(volume, 0, TreeRoots.NONE), VariantSpec.builder().build());
 
         assertEquals(List.of("minecraft:stone"), states(variant.volume()));
         assertEquals(2, variant.volume().sizeX());
         assertEquals(2, variant.volume().sizeY());
         assertEquals(0, variant.baseY());
+    }
+
+    @Test
+    public void plantsWithNothingUnderThemAreLeftOut() {
+        TemplateVolume reef = new TemplateVolume(3, 4, 3, List.of(
+                block(1, 0, 1, "minecraft:sea_pickle[pickles=1,waterlogged=false]"),
+                block(0, 0, 0, "minecraft:tube_coral_block"),
+                block(0, 1, 0, "minecraft:tube_coral_block"),
+                block(0, 2, 0, "minecraft:sea_pickle[pickles=2,waterlogged=false]"),
+                block(2, 2, 2, "minecraft:sea_pickle[pickles=3,waterlogged=false]"),
+                block(2, 1, 0, "minecraft:tube_coral_fan[waterlogged=false]"),
+                block(1, 1, 0, "minecraft:tube_coral_wall_fan[facing=east,waterlogged=false]"),
+                block(1, 2, 0, "minecraft:tube_coral_wall_fan[facing=west,waterlogged=false]"),
+                block(2, 3, 2, "minecraft:tube_coral_block")));
+
+        BakedVariant variant = new ObjectVariantBaker()
+                .bake("iris_export:object/reef/a", new ObjectSource(reef, 0, TreeRoots.NONE), VariantSpec.builder().build());
+
+        Set<String> kept = new HashSet<>();
+        for (TemplateBlock block : variant.volume().blocks()) {
+            kept.add(block.x() + "," + block.y() + "," + block.z() + " " + block.state().name());
+        }
+        assertEquals(Set.of("1,0,1 minecraft:sea_pickle", "0,0,0 minecraft:tube_coral_block", "0,1,0 minecraft:tube_coral_block",
+                "0,2,0 minecraft:sea_pickle", "1,1,0 minecraft:tube_coral_wall_fan", "2,3,2 minecraft:tube_coral_block"), kept);
     }
 
     @Test
@@ -73,7 +97,7 @@ public class ObjectVariantBakerTest {
                 block(1, 0, 0, "minecraft:oak_stairs[facing=north,half=bottom,shape=straight,waterlogged=false]")));
         VariantSpec spec = VariantSpec.builder().rotation(new VariantSpec.Rotation(0, 90, 0)).build();
 
-        BakedVariant variant = new ObjectVariantBaker().bake("iris_export:object/s/a", volume, spec, "s", new ArrayList<>());
+        BakedVariant variant = new ObjectVariantBaker().bake("iris_export:object/s/a", new ObjectSource(volume, 0, TreeRoots.NONE), spec);
 
         TemplateBlock stairs = variant.volume().blocks().stream()
                 .filter(block -> block.state().name().equals("minecraft:oak_stairs")).findFirst().orElseThrow();
@@ -89,7 +113,7 @@ public class ObjectVariantBakerTest {
                 block(0, 1, 0, "minecraft:oak_slab[type=bottom,waterlogged=false]")));
         VariantSpec spec = VariantSpec.builder().rotation(new VariantSpec.Rotation(180, 0, 0)).build();
 
-        BakedVariant variant = new ObjectVariantBaker().bake("iris_export:object/f/a", volume, spec, "f", new ArrayList<>());
+        BakedVariant variant = new ObjectVariantBaker().bake("iris_export:object/f/a", new ObjectSource(volume, 0, TreeRoots.NONE), spec);
 
         TemplateBlock slab = variant.volume().blocks().getFirst();
         assertEquals("minecraft:oak_slab", slab.state().name());
@@ -104,7 +128,7 @@ public class ObjectVariantBakerTest {
                 block(1, 1, 1, "minecraft:oak_log[axis=y]")));
         VariantSpec scaled = VariantSpec.builder().scale(2).build();
 
-        BakedVariant big = new ObjectVariantBaker().bake("iris_export:object/l/a", volume, scaled, "l", new ArrayList<>());
+        BakedVariant big = new ObjectVariantBaker().bake("iris_export:object/l/a", new ObjectSource(volume, 0, TreeRoots.NONE), scaled);
 
         assertEquals(16, big.volume().blocks().size());
         assertEquals(4, big.volume().sizeY());
@@ -124,8 +148,8 @@ public class ObjectVariantBakerTest {
         ObjectEdit half = new ObjectEdit(List.of(VanillaBlockState.parse("minecraft:stone_bricks")), false,
                 List.of(new WeightedState(VanillaBlockState.parse("minecraft:mossy_stone_bricks"), 1)), 0.5);
 
-        BakedVariant variant = new ObjectVariantBaker().bake("iris_export:object/floor/a", floor,
-                VariantSpec.builder().edits(List.of(always, half)).build(), "floor", new ArrayList<>());
+        BakedVariant variant = new ObjectVariantBaker().bake("iris_export:object/floor/a", new ObjectSource(floor, 0, TreeRoots.NONE),
+                VariantSpec.builder().edits(List.of(always, half)).build());
 
         Set<String> names = new HashSet<>();
         int mossy = 0;
@@ -141,8 +165,8 @@ public class ObjectVariantBakerTest {
 
     @Test
     public void basesAlignAcrossVariants() {
-        BakedVariant low = new BakedVariant("iris_export:object/a/low", new TemplateVolume(1, 3, 1, List.of(block(0, 0, 0, "minecraft:stone"))), -2);
-        BakedVariant flat = new BakedVariant("iris_export:object/a/flat", new TemplateVolume(1, 1, 1, List.of(block(0, 0, 0, "minecraft:stone"))), 0);
+        BakedVariant low = new BakedVariant("iris_export:object/a/low", new TemplateVolume(1, 3, 1, List.of(block(0, 0, 0, "minecraft:stone"))), -2, TreeRoots.NONE);
+        BakedVariant flat = new BakedVariant("iris_export:object/a/flat", new TemplateVolume(1, 1, 1, List.of(block(0, 0, 0, "minecraft:stone"))), 0, TreeRoots.NONE);
 
         List<BakedVariant> aligned = ObjectVariantBaker.alignBases(List.of(low, flat));
 
@@ -152,6 +176,73 @@ public class ObjectVariantBakerTest {
         assertEquals(2, aligned.get(1).volume().blocks().getFirst().y());
         assertEquals(3, aligned.get(1).volume().sizeY());
         assertFalse(aligned.get(1).volume().blocks().isEmpty());
+    }
+
+    @Test
+    public void rootsSurviveAnUnchangedBake() {
+        TemplateVolume volume = new TemplateVolume(3, 2, 3, List.of(
+                block(1, 0, 1, "minecraft:oak_wood[axis=y]"),
+                block(2, 0, 1, "minecraft:oak_wood[axis=y]"),
+                block(1, 1, 1, "minecraft:oak_log[axis=y]")));
+        TreeRoots roots = new TreeRoots(List.of(block(1, 0, 1, "minecraft:oak_wood[axis=y]"),
+                block(2, 0, 1, "minecraft:oak_wood[axis=y]")), 3);
+
+        BakedVariant variant = new ObjectVariantBaker()
+                .bake("iris_export:object/tree/a", new ObjectSource(volume, 0, roots), VariantSpec.builder().build());
+
+        assertEquals(roots, variant.roots());
+    }
+
+    @Test
+    public void rootsTurnWithTheirBlocks() {
+        TemplateVolume volume = new TemplateVolume(3, 2, 3, List.of(
+                block(1, 0, 1, "minecraft:oak_wood[axis=y]"),
+                block(2, 0, 1, "minecraft:spruce_wood[axis=x]"),
+                block(1, 1, 1, "minecraft:oak_log[axis=y]")));
+        TreeRoots roots = new TreeRoots(List.of(block(2, 0, 1, "minecraft:spruce_wood[axis=x]")), 2);
+        VariantSpec spec = VariantSpec.builder().rotation(new VariantSpec.Rotation(0, 90, 0)).build();
+
+        BakedVariant variant = new ObjectVariantBaker().bake("iris_export:object/tree/b", new ObjectSource(volume, 0, roots), spec);
+
+        TemplateBlock moved = variant.volume().blocks().stream()
+                .filter(block -> block.state().name().equals("minecraft:spruce_wood")).findFirst().orElseThrow();
+        assertEquals(1, variant.roots().cells().size());
+        TemplateBlock root = variant.roots().cells().getFirst();
+        assertEquals(List.of(moved.x(), moved.y(), moved.z()), List.of(root.x(), root.y(), root.z()));
+        assertEquals("z", root.state().properties().get("axis"));
+        assertEquals(2, variant.roots().reach());
+    }
+
+    @Test
+    public void scaledRootsKeepTheLowestCellPerColumnAndStretchTheirReach() {
+        TemplateVolume volume = new TemplateVolume(2, 2, 1, List.of(
+                block(0, 0, 0, "minecraft:oak_wood[axis=y]"),
+                block(0, 1, 0, "minecraft:oak_log[axis=y]"),
+                block(1, 1, 0, "minecraft:oak_log[axis=y]")));
+        TreeRoots roots = new TreeRoots(List.of(block(0, 0, 0, "minecraft:oak_wood[axis=y]")), 3);
+
+        BakedVariant variant = new ObjectVariantBaker().bake("iris_export:object/tree/c", new ObjectSource(volume, 0, roots),
+                VariantSpec.builder().scale(2).build());
+
+        assertEquals(6, variant.roots().reach());
+        assertEquals(4, variant.roots().cells().size());
+        for (TemplateBlock cell : variant.roots().cells()) {
+            assertEquals(0, cell.y());
+            assertEquals("minecraft:oak_wood", cell.state().name());
+        }
+    }
+
+    @Test
+    public void alignedBasesLiftRoots() {
+        TreeRoots roots = new TreeRoots(List.of(block(0, 0, 0, "minecraft:oak_wood[axis=y]")), 2);
+        BakedVariant low = new BakedVariant("iris_export:object/r/low", new TemplateVolume(1, 3, 1, List.of(block(0, 0, 0, "minecraft:stone"))), -2, TreeRoots.NONE);
+        BakedVariant rooted = new BakedVariant("iris_export:object/r/rooted", new TemplateVolume(1, 1, 1,
+                List.of(block(0, 0, 0, "minecraft:oak_wood[axis=y]"))), 0, roots);
+
+        BakedVariant lifted = ObjectVariantBaker.alignBases(List.of(low, rooted)).get(1);
+
+        assertEquals(2, lifted.roots().cells().getFirst().y());
+        assertEquals(2, lifted.roots().reach());
     }
 
     private static TemplateVolume tree() {

@@ -6,11 +6,11 @@ import art.arcane.iris.pack.datapack.export.TemplateVolume;
 import art.arcane.iris.pack.datapack.export.VanillaBlockState;
 import art.arcane.iris.pack.datapack.export.VanillaResourceIdentifier;
 import art.arcane.iris.pack.datapack.export.compile.WeightedState;
-import art.arcane.iris.pack.datapack.export.ir.ExportDiagnostic;
 import art.arcane.volmlib.util.nbt.tag.CompoundTag;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -19,6 +19,11 @@ import java.util.TreeMap;
 
 public final class ObjectVariantBaker {
     private static final Set<String> AIR = Set.of("minecraft:air", "minecraft:cave_air", "minecraft:void_air");
+    private static final String TALL_SEAGRASS = "minecraft:tall_seagrass";
+    private static final Set<String> SEA_PLANTS = Set.of("minecraft:sea_pickle", "minecraft:seagrass", TALL_SEAGRASS);
+    private static final String CORAL = "_coral";
+    private static final String CORAL_FAN = "_coral_fan";
+    private static final String WALL_FAN = "_coral_wall_fan";
     private static final String SNOW = "minecraft:snow";
     private static final int SNOW_LAYER_STEPS = 7;
     private static final int WARP_SPACING_X = 4099;
@@ -36,15 +41,18 @@ public final class ObjectVariantBaker {
         return namespace + ":object/" + objectPath + "/" + ContentIds.hash(spec.descriptor() + ";target=" + target.name());
     }
 
-    public BakedVariant bake(String templateId, TemplateVolume source, VariantSpec spec, String resource, List<ExportDiagnostic> diagnostics) {
+    public BakedVariant bake(String templateId, ObjectSource source, VariantSpec spec) {
         long seed = ContentIds.seed(spec.descriptor());
-        List<Voxel> voxels = prepare(source, spec, seed);
+        TemplateVolume template = source.volume();
+        List<Voxel> voxels = prepare(template, spec, seed, rootCells(source.roots()));
         if (!spec.reshapes()) {
-            return new BakedVariant(templateId, volume(source.sizeX(), source.sizeY(), source.sizeZ(), voxels), 0);
+            List<Voxel> kept = supported(voxels);
+            return new BakedVariant(templateId, volume(template.sizeX(), template.sizeY(), template.sizeZ(), kept), source.baseY(),
+                    roots(kept, source.roots().reach()));
         }
-        int sizeX = source.sizeX();
-        int sizeY = source.sizeY();
-        int sizeZ = source.sizeZ();
+        int sizeX = template.sizeX();
+        int sizeY = template.sizeY();
+        int sizeZ = template.sizeZ();
         if (spec.scale() != 1) {
             sizeX = scaledSize(sizeX, spec.scale());
             sizeY = scaledSize(sizeY, spec.scale());
@@ -58,7 +66,7 @@ public final class ObjectVariantBaker {
         if (spec.snow() > 0) {
             voxels = snow(voxels, spec.snow(), seed);
         }
-        return reshaped(templateId, voxels, resource, diagnostics);
+        return reshaped(templateId, supported(voxels), source.baseY(), (int) Math.ceil(source.roots().reach() * spec.scale()));
     }
 
     public static List<BakedVariant> alignBases(List<BakedVariant> variants) {
@@ -79,12 +87,12 @@ public final class ObjectVariantBaker {
                 blocks.add(new TemplateBlock(block.x(), block.y() + lift, block.z(), block.state(), block.nbt()));
             }
             aligned.add(new BakedVariant(variant.id() + "_lift" + lift,
-                    new TemplateVolume(volume.sizeX(), volume.sizeY() + lift, volume.sizeZ(), blocks), lowest));
+                    new TemplateVolume(volume.sizeX(), volume.sizeY() + lift, volume.sizeZ(), blocks), lowest, variant.roots().lift(lift)));
         }
         return aligned;
     }
 
-    private List<Voxel> prepare(TemplateVolume source, VariantSpec spec, long seed) {
+    private List<Voxel> prepare(TemplateVolume source, VariantSpec spec, long seed, Set<Long> roots) {
         List<Voxel> voxels = new ArrayList<>(source.blocks().size());
         for (TemplateBlock block : source.blocks()) {
             if (AIR.contains(block.state().name())) {
@@ -114,9 +122,27 @@ public final class ObjectVariantBaker {
             if (spec.preventLeafDecay()) {
                 state = persistentLeaves(state);
             }
-            voxels.add(new Voxel(block.x(), block.y(), block.z(), state, nbt));
+            voxels.add(new Voxel(block.x(), block.y(), block.z(), state, nbt, roots.contains(key(block.x(), block.y(), block.z()))));
         }
         return voxels;
+    }
+
+    private static Set<Long> rootCells(TreeRoots roots) {
+        Set<Long> cells = new HashSet<>(roots.cells().size() * 2);
+        for (TemplateBlock cell : roots.cells()) {
+            cells.add(key(cell.x(), cell.y(), cell.z()));
+        }
+        return cells;
+    }
+
+    private static TreeRoots roots(List<Voxel> voxels, int reach) {
+        List<TemplateBlock> cells = new ArrayList<>();
+        for (Voxel voxel : voxels) {
+            if (voxel.root()) {
+                cells.add(new TemplateBlock(voxel.x(), voxel.y(), voxel.z(), voxel.state(), null));
+            }
+        }
+        return cells.isEmpty() ? TreeRoots.NONE : new TreeRoots(cells, reach);
     }
 
     private static VanillaBlockState pick(ObjectEdit edit, double roll) {
@@ -146,6 +172,51 @@ public final class ObjectVariantBaker {
         return new VanillaBlockState(state.name(), persistent);
     }
 
+    private static List<Voxel> supported(List<Voxel> voxels) {
+        Map<Long, Voxel> occupied = new LinkedHashMap<>();
+        int lowest = Integer.MAX_VALUE;
+        for (Voxel voxel : voxels) {
+            occupied.put(key(voxel.x(), voxel.y(), voxel.z()), voxel);
+            lowest = Math.min(lowest, voxel.y());
+        }
+        List<Voxel> kept = new ArrayList<>(voxels.size());
+        for (Voxel voxel : voxels) {
+            if (anchored(voxel, occupied, lowest)) {
+                kept.add(voxel);
+            }
+        }
+        return kept;
+    }
+
+    private static boolean anchored(Voxel voxel, Map<Long, Voxel> occupied, int lowest) {
+        String name = voxel.state().name();
+        if (name.endsWith(WALL_FAN)) {
+            int[] behind = switch (voxel.state().properties().getOrDefault("facing", "north")) {
+                case "south" -> new int[]{0, -1};
+                case "east" -> new int[]{-1, 0};
+                case "west" -> new int[]{1, 0};
+                default -> new int[]{0, 1};
+            };
+            return support(occupied.get(key(voxel.x() + behind[0], voxel.y(), voxel.z() + behind[1])));
+        }
+        if (!SEA_PLANTS.contains(name) && !name.endsWith(CORAL) && !name.endsWith(CORAL_FAN)) {
+            return true;
+        }
+        Voxel below = occupied.get(key(voxel.x(), voxel.y() - 1, voxel.z()));
+        if (name.equals(TALL_SEAGRASS) && "upper".equals(voxel.state().properties().get("half"))) {
+            return below != null && below.state().name().equals(TALL_SEAGRASS);
+        }
+        return voxel.y() == lowest || support(below);
+    }
+
+    private static boolean support(Voxel voxel) {
+        if (voxel == null) {
+            return false;
+        }
+        String name = voxel.state().name();
+        return !SEA_PLANTS.contains(name) && !name.endsWith(CORAL) && !name.endsWith(CORAL_FAN) && !name.endsWith(WALL_FAN);
+    }
+
     private static int scaledSize(int size, double scale) {
         return Math.max(1, (int) Math.ceil(size * scale));
     }
@@ -164,7 +235,7 @@ public final class ObjectVariantBaker {
             for (int y = minY; y <= maxY; y++) {
                 for (int x = minX; x <= maxX; x++) {
                     for (int z = minZ; z <= maxZ; z++) {
-                        scaled.put(key(x, y, z), new Voxel(x, y, z, voxel.state(), voxel.nbt()));
+                        scaled.put(key(x, y, z), new Voxel(x, y, z, voxel.state(), voxel.nbt(), voxel.root()));
                     }
                 }
             }
@@ -184,7 +255,7 @@ public final class ObjectVariantBaker {
             int x = (int) Math.floor(rotated[0]);
             int y = (int) Math.floor(rotated[1]) + rotatedCenterY;
             int z = (int) Math.floor(rotated[2]);
-            anchored.put(key(x, y, z), new Voxel(x, y, z, states.apply(voxel.state()), voxel.nbt()));
+            anchored.put(key(x, y, z), new Voxel(x, y, z, states.apply(voxel.state()), voxel.nbt(), voxel.root()));
         }
         return new ArrayList<>(anchored.values());
     }
@@ -241,7 +312,7 @@ public final class ObjectVariantBaker {
             double worldZ = voxel.z() + originZ;
             int x = (int) (voxel.x() + warp.field().offset(worldX, voxel.y(), worldZ));
             int z = (int) (voxel.z() + warp.field().offset(worldZ, voxel.y(), worldX));
-            warped.put(key(x, voxel.y(), z), new Voxel(x, voxel.y(), z, voxel.state(), voxel.nbt()));
+            warped.put(key(x, voxel.y(), z), new Voxel(x, voxel.y(), z, voxel.state(), voxel.nbt(), voxel.root()));
         }
         return new ArrayList<>(warped.values());
     }
@@ -266,14 +337,14 @@ public final class ObjectVariantBaker {
             int index = steps <= 0 ? 0 : (int) Math.floor(unit(seed, top.x(), top.y(), top.z(), 0, SNOW_SALT) * steps);
             int layers = Math.max(0, Math.min(index, SNOW_LAYER_STEPS)) + 1;
             covered.add(new Voxel(top.x(), top.y() + 1, top.z(),
-                    new VanillaBlockState(SNOW, Map.of("layers", Integer.toString(layers))), null));
+                    new VanillaBlockState(SNOW, Map.of("layers", Integer.toString(layers))), null, false));
         }
         return covered;
     }
 
-    private BakedVariant reshaped(String templateId, List<Voxel> voxels, String resource, List<ExportDiagnostic> diagnostics) {
+    private BakedVariant reshaped(String templateId, List<Voxel> voxels, int baseY, int reach) {
         if (voxels.isEmpty()) {
-            return new BakedVariant(templateId, new TemplateVolume(1, 1, 1, List.of()), 0);
+            return new BakedVariant(templateId, new TemplateVolume(1, 1, 1, List.of()), 0, TreeRoots.NONE);
         }
         int extentX = 0;
         int extentZ = 0;
@@ -287,10 +358,10 @@ public final class ObjectVariantBaker {
         }
         List<Voxel> local = new ArrayList<>(voxels.size());
         for (Voxel voxel : voxels) {
-            local.add(new Voxel(voxel.x() + extentX, voxel.y() - minY, voxel.z() + extentZ, voxel.state(), voxel.nbt()));
+            local.add(new Voxel(voxel.x() + extentX, voxel.y() - minY, voxel.z() + extentZ, voxel.state(), voxel.nbt(), voxel.root()));
         }
         TemplateVolume volume = volume(extentX * 2 + 1, maxY - minY + 1, extentZ * 2 + 1, local);
-        return new BakedVariant(templateId, volume, minY);
+        return new BakedVariant(templateId, volume, minY + baseY, roots(local, reach));
     }
 
     private static TemplateVolume volume(int sizeX, int sizeY, int sizeZ, List<Voxel> voxels) {
@@ -323,6 +394,6 @@ public final class ObjectVariantBaker {
         return mixed ^ (mixed >>> 31);
     }
 
-    private record Voxel(int x, int y, int z, VanillaBlockState state, CompoundTag nbt) {
+    private record Voxel(int x, int y, int z, VanillaBlockState state, CompoundTag nbt, boolean root) {
     }
 }

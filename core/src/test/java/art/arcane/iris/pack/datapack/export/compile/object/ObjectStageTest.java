@@ -130,6 +130,87 @@ public class ObjectStageTest {
     }
 
     @Test
+    public void proceduralTreesExportAsTemplates() throws Exception {
+        File pack = pack();
+        CompatTestPlatform.write(pack, "biomes/plains.json", """
+                {"name":"Plains","proceduralObjects":{"trees":[{"name":"field-oak","chance":0.5,"density":2,"variants":2,"seed":7,
+                 "trunk":"minecraft:oak_log","leaves":"minecraft:oak_leaves","heightMin":5,"heightMax":7}]}}
+                """);
+        IrisData data = IrisData.openRuntime(pack);
+        try {
+            ExportIr ir = compile(data, DataVersion.V26_3, true);
+
+            JsonArray plains = features(ir, "plains");
+            assertEquals(1, plains.get(GenerationStep.VEGETAL_DECORATION.ordinal()).getAsJsonArray().size());
+            long templates = ir.binaryResources().stream()
+                    .filter(template -> template.path().contains("/procedural/") && template.path().contains("field-oak"))
+                    .count();
+            assertTrue("procedural templates: " + templates, templates >= 2);
+        } finally {
+            data.close();
+        }
+    }
+
+    @Test
+    public void proceduralTreeRootsReachDownToTheTerrain() throws Exception {
+        File pack = pack();
+        CompatTestPlatform.write(pack, "biomes/plains.json", """
+                {"name":"Plains","proceduralObjects":{"trees":[{"name":"field-oak","chance":0.5,"density":2,"variants":2,"seed":7,
+                 "trunk":"minecraft:oak_log","leaves":"minecraft:oak_leaves","heightMin":5,"heightMax":7,"rootStyle":"TAPROOT","rootDepth":3}]}}
+                """);
+        IrisData data = IrisData.openRuntime(pack);
+        try {
+            ExportIr ir = compile(data, DataVersion.V26_3, true);
+
+            String placedId = features(ir, "plains").get(GenerationStep.VEGETAL_DECORATION.ordinal()).getAsJsonArray().get(0).getAsString();
+            JsonObject placed = json(ir, "data/iris_export/worldgen/placed_feature/" + placedId.substring(NAMESPACE.length() + 1) + ".json");
+            String featureId = placed.get("feature").getAsString();
+            JsonObject feature = json(ir, "data/iris_export/worldgen/feature/" + featureId.substring(NAMESPACE.length() + 1) + ".json");
+            assertEquals("minecraft:weighted_random_selector", feature.get("type").getAsString());
+            Set<String> pillars = new HashSet<>();
+            for (JsonElement branch : feature.getAsJsonArray("features")) {
+                JsonObject entry = branch.getAsJsonObject().getAsJsonObject("data");
+                JsonArray parts = entry.getAsJsonObject("feature").getAsJsonArray("features");
+                for (int index = 1; index < parts.size(); index++) {
+                    pillars.add(parts.get(index).getAsJsonObject().get("feature").getAsString());
+                }
+            }
+            assertFalse(pillars.isEmpty());
+            for (String pillar : pillars) {
+                assertTrue(pillar, paths(ir).contains("data/iris_export/worldgen/feature/" + pillar.substring(NAMESPACE.length() + 1) + ".json"));
+            }
+        } finally {
+            data.close();
+        }
+    }
+
+    @Test
+    public void proceduralObjectsSharedByBiomesShareTemplates() throws Exception {
+        String procedural = """
+                "proceduralObjects":{"trees":[{"name":"field-oak","chance":0.5,"density":2,"variants":2,"seed":7,
+                 "trunk":"minecraft:oak_log","leaves":"minecraft:oak_leaves","heightMin":5,"heightMax":7}]}""";
+        File pack = pack();
+        CompatTestPlatform.write(pack, "biomes/plains.json", "{\"name\":\"Plains\"," + procedural + "}");
+        CompatTestPlatform.write(pack, "biomes/forest.json", "{\"name\":\"Forest\"," + procedural + "}");
+        IrisData data = IrisData.openRuntime(pack);
+        try {
+            ExportIr ir = compile(data, DataVersion.V26_3, true);
+
+            Set<String> objects = new HashSet<>();
+            for (BinaryResource template : ir.binaryResources()) {
+                if (template.path().contains("field-oak")) {
+                    objects.add(template.path().substring(0, template.path().lastIndexOf('/')));
+                }
+            }
+            assertEquals(objects.toString(), 2, objects.size());
+            assertEquals(1, features(ir, "forest").get(GenerationStep.VEGETAL_DECORATION.ordinal()).getAsJsonArray().size());
+            assertEquals(1, features(ir, "plains").get(GenerationStep.VEGETAL_DECORATION.ordinal()).getAsJsonArray().size());
+        } finally {
+            data.close();
+        }
+    }
+
+    @Test
     public void lootBoundPerBiome() throws Exception {
         File pack = pack();
         IrisData data = IrisData.openRuntime(pack);

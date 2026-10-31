@@ -6,6 +6,7 @@ import art.arcane.iris.pack.datapack.export.TemplateVolume;
 import art.arcane.iris.pack.datapack.export.VanillaBlockState;
 import art.arcane.iris.pack.datapack.export.VanillaResourceIdentifier;
 import art.arcane.iris.pack.datapack.export.compile.WeightedState;
+import art.arcane.iris.structure.object.RotationResampler;
 import art.arcane.volmlib.util.nbt.tag.CompoundTag;
 
 import java.util.ArrayList;
@@ -16,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.function.ToIntFunction;
 
 public final class ObjectVariantBaker {
     private static final Set<String> AIR = Set.of("minecraft:air", "minecraft:cave_air", "minecraft:void_air");
@@ -34,6 +36,10 @@ public final class ObjectVariantBaker {
     private static final Comparator<Voxel> VOXEL_ORDER = Comparator
             .comparingInt(Voxel::y)
             .thenComparingInt(Voxel::x)
+            .thenComparingInt(Voxel::z);
+    private static final Comparator<Voxel> PLACEMENT_ORDER = Comparator
+            .comparingInt(Voxel::x)
+            .thenComparingInt(Voxel::y)
             .thenComparingInt(Voxel::z);
 
     public static String templateId(String namespace, String objectPath, VariantSpec spec, DataVersion target) {
@@ -59,7 +65,7 @@ public final class ObjectVariantBaker {
             sizeZ = scaledSize(sizeZ, spec.scale());
             voxels = scale(voxels, spec.scale(), sizeX, sizeY, sizeZ);
         }
-        voxels = anchor(voxels, spec.rotation(), sizeX / 2, sizeY / 2, sizeZ / 2);
+        voxels = anchor(templateId, voxels, spec.rotation(), sizeX / 2, sizeY / 2, sizeZ / 2);
         if (spec.warp() != null) {
             voxels = warp(voxels, spec.warp());
         }
@@ -243,11 +249,19 @@ public final class ObjectVariantBaker {
         return new ArrayList<>(scaled.values());
     }
 
-    private static List<Voxel> anchor(List<Voxel> voxels, VariantSpec.Rotation rotation, int centerX, int centerY, int centerZ) {
+    private static List<Voxel> anchor(String templateId, List<Voxel> voxels, VariantSpec.Rotation rotation, int centerX,
+                                      int centerY, int centerZ) {
         BlockStateRotation states = BlockStateRotation.of(rotation.x(), rotation.y(), rotation.z());
         double[] lift = rotate(0, centerY, 0, rotation);
         int rotatedCenterY = (int) Math.floor(lift[1]);
         List<Voxel> sorted = new ArrayList<>(voxels);
+        if (!rotation.rightAngles()) {
+            sorted.sort(PLACEMENT_ORDER);
+            RotationResampler.Targets targets = RotationResampler.of(templateId, offsets(sorted, Voxel::x, centerX),
+                            offsets(sorted, Voxel::y, centerY), offsets(sorted, Voxel::z, centerZ))
+                    .resample(rotation.x(), rotation.y(), rotation.z());
+            return resampled(sorted, targets, states, rotatedCenterY);
+        }
         sorted.sort(VOXEL_ORDER);
         Map<Long, Voxel> anchored = new LinkedHashMap<>();
         for (Voxel voxel : sorted) {
@@ -258,6 +272,35 @@ public final class ObjectVariantBaker {
             anchored.put(key(x, y, z), new Voxel(x, y, z, states.apply(voxel.state()), voxel.nbt(), voxel.root()));
         }
         return new ArrayList<>(anchored.values());
+    }
+
+    private static int[] offsets(List<Voxel> voxels, ToIntFunction<Voxel> axis, int center) {
+        int[] offsets = new int[voxels.size()];
+        for (int index = 0; index < offsets.length; index++) {
+            offsets[index] = axis.applyAsInt(voxels.get(index)) - center;
+        }
+        return offsets;
+    }
+
+    private static List<Voxel> resampled(List<Voxel> sources, RotationResampler.Targets targets, BlockStateRotation states,
+                                         int liftY) {
+        int[] x = targets.x();
+        int[] y = targets.y();
+        int[] z = targets.z();
+        int[] origins = targets.sources();
+        VanillaBlockState[] turned = new VanillaBlockState[sources.size()];
+        List<Voxel> anchored = new ArrayList<>(origins.length);
+        for (int index = 0; index < origins.length; index++) {
+            int origin = origins[index];
+            Voxel source = sources.get(origin);
+            VanillaBlockState state = turned[origin];
+            if (state == null) {
+                state = states.apply(source.state());
+                turned[origin] = state;
+            }
+            anchored.add(new Voxel(x[index], y[index] + liftY, z[index], state, source.nbt(), source.root()));
+        }
+        return anchored;
     }
 
     private static double[] rotate(double x, double y, double z, VariantSpec.Rotation rotation) {

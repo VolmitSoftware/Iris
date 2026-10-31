@@ -6,12 +6,15 @@ import art.arcane.iris.pack.datapack.export.TemplateBlock;
 import art.arcane.iris.pack.datapack.export.TemplateVolume;
 import art.arcane.iris.pack.datapack.export.VanillaBlockState;
 import art.arcane.iris.pack.datapack.export.compile.WeightedState;
+import art.arcane.volmlib.util.nbt.tag.CompoundTag;
 import org.junit.Test;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static org.junit.Assert.assertArrayEquals;
@@ -22,6 +25,8 @@ import static org.junit.Assert.assertTrue;
 
 public class ObjectVariantBakerTest {
     private static final String NAMESPACE = "iris_export";
+    private static final String LEAVES = "minecraft:oak_leaves[distance=1,persistent=true,waterlogged=false]";
+    private static final long RIGHT_ANGLE_GOLDEN = 0x5db739a5b940bf1dL;
 
     @Test
     public void variantBakingIsDeterministic() throws IOException {
@@ -245,6 +250,171 @@ public class ObjectVariantBakerTest {
         assertEquals(2, lifted.roots().reach());
     }
 
+    @Test
+    public void diagonalTurnsFillSolidCanopiesWithoutHoles() {
+        for (double degrees : new double[]{45, 135}) {
+            assertSolid(leafDisc(6, 3), degrees, (x, z) -> x * x + z * z <= 25D);
+            assertSolid(leafBox(4, 3), degrees, (x, z) -> Math.abs(x) <= 3.75D && Math.abs(z) <= 3.75D);
+        }
+    }
+
+    @Test
+    public void diagonalTurnsKeepEveryThinTrunkColumn() {
+        int[][] columns = {{2, 0}, {0, 2}, {-2, 0}, {3, 1}};
+        List<TemplateBlock> blocks = new ArrayList<>();
+        for (int[] column : columns) {
+            for (int y = 0; y < 6; y++) {
+                blocks.add(block(column[0] + 3, y, column[1] + 3, "minecraft:oak_log[axis=y]"));
+            }
+        }
+        TemplateVolume trunks = new TemplateVolume(7, 6, 7, blocks);
+        for (double degrees : new double[]{45, 135, 225, 315}) {
+            BakedVariant variant = turned(trunks, new VariantSpec.Rotation(0, degrees, 0));
+            Map<Long, int[]> heights = new HashMap<>();
+            for (TemplateBlock block : variant.volume().blocks()) {
+                int x = anchoredX(variant, block);
+                int z = anchoredZ(variant, block);
+                heights.computeIfAbsent(cell(x, 0, z), ignored -> new int[]{x, z, 0})[2]++;
+            }
+            double cos = Math.cos(Math.toRadians(degrees));
+            double sin = Math.sin(Math.toRadians(degrees));
+            for (int[] column : columns) {
+                long forward = cell((int) Math.round(cos * column[0] + sin * column[1]), 0,
+                        (int) Math.round(-sin * column[0] + cos * column[1]));
+                boolean kept = false;
+                for (Map.Entry<Long, int[]> output : heights.entrySet()) {
+                    int[] value = output.getValue();
+                    assertEquals(degrees + " degrees cut a trunk column short", 6, value[2]);
+                    boolean samples = (int) Math.round(cos * value[0] - sin * value[1]) == column[0]
+                            && (int) Math.round(sin * value[0] + cos * value[1]) == column[1];
+                    kept |= samples || output.getKey() == forward;
+                }
+                assertTrue(degrees + " degrees lost the trunk column at " + column[0] + "," + column[1], kept);
+            }
+        }
+    }
+
+    @Test
+    public void rightAngleTurnsKeepTheirExactLayout() {
+        CompoundTag chest = new CompoundTag();
+        chest.putString("id", "minecraft:chest");
+        TemplateVolume volume = new TemplateVolume(4, 4, 4, List.of(
+                block(0, 0, 0, "minecraft:stone"),
+                block(3, 0, 1, "minecraft:stone"),
+                block(1, 1, 2, "minecraft:oak_log[axis=x]"),
+                block(2, 2, 0, "minecraft:oak_stairs[facing=north,half=bottom,shape=outer_left,waterlogged=false]"),
+                new TemplateBlock(3, 1, 3, VanillaBlockState.parse("minecraft:chest[facing=east,type=single,waterlogged=false]"), chest),
+                block(1, 3, 1, "minecraft:oak_leaves[distance=1,persistent=false,waterlogged=false]"),
+                block(0, 2, 3, "minecraft:oak_slab[type=bottom,waterlogged=false]")));
+        TreeRoots roots = new TreeRoots(List.of(block(0, 0, 0, "minecraft:stone")), 2);
+        StringBuilder layout = new StringBuilder();
+        for (double scale : new double[]{1, 1.5}) {
+            for (int x = 0; x < 360; x += 90) {
+                for (int y = 0; y < 360; y += 90) {
+                    for (int z = 0; z < 360; z += 90) {
+                        VariantSpec spec = VariantSpec.builder().scale(scale).rotation(new VariantSpec.Rotation(x, y, z)).build();
+                        describe(layout, new ObjectVariantBaker().bake("iris_export:object/turn/a", new ObjectSource(volume, -1, roots), spec));
+                    }
+                }
+            }
+        }
+
+        assertEquals(RIGHT_ANGLE_GOLDEN, fnv(layout));
+    }
+
+    private static void assertSolid(TemplateVolume source, double degrees, Interior interior) {
+        BakedVariant variant = turned(source, new VariantSpec.Rotation(0, degrees, 0));
+        Set<Long> covered = new HashSet<>();
+        for (TemplateBlock block : variant.volume().blocks()) {
+            assertTrue(degrees + " degrees wrote a cell twice",
+                    covered.add(cell(anchoredX(variant, block), anchoredY(variant, block), anchoredZ(variant, block))));
+        }
+        double cos = Math.cos(Math.toRadians(degrees));
+        double sin = Math.sin(Math.toRadians(degrees));
+        int reach = Math.max(source.sizeX(), source.sizeZ());
+        for (int y = 0; y < source.sizeY(); y++) {
+            for (int x = -reach; x <= reach; x++) {
+                for (int z = -reach; z <= reach; z++) {
+                    if (interior.contains(cos * x - sin * z, sin * x + cos * z)) {
+                        assertTrue(degrees + " degrees left a hole at " + x + "," + y + "," + z, covered.contains(cell(x, y, z)));
+                    }
+                }
+            }
+        }
+    }
+
+    private static BakedVariant turned(TemplateVolume source, VariantSpec.Rotation rotation) {
+        return new ObjectVariantBaker().bake("iris_export:object/turn/b", new ObjectSource(source, 0, TreeRoots.NONE),
+                VariantSpec.builder().rotation(rotation).build());
+    }
+
+    private static int anchoredX(BakedVariant variant, TemplateBlock block) {
+        return block.x() - (variant.volume().sizeX() - 1) / 2;
+    }
+
+    private static int anchoredY(BakedVariant variant, TemplateBlock block) {
+        return block.y() + variant.baseY();
+    }
+
+    private static int anchoredZ(BakedVariant variant, TemplateBlock block) {
+        return block.z() - (variant.volume().sizeZ() - 1) / 2;
+    }
+
+    private static TemplateVolume leafDisc(int radius, int height) {
+        List<TemplateBlock> blocks = new ArrayList<>();
+        for (int y = 0; y < height; y++) {
+            for (int x = -radius; x <= radius; x++) {
+                for (int z = -radius; z <= radius; z++) {
+                    if (x * x + z * z <= radius * radius) {
+                        blocks.add(block(x + radius, y, z + radius, LEAVES));
+                    }
+                }
+            }
+        }
+        return new TemplateVolume(radius * 2 + 1, height, radius * 2 + 1, blocks);
+    }
+
+    private static TemplateVolume leafBox(int half, int height) {
+        List<TemplateBlock> blocks = new ArrayList<>();
+        for (int y = 0; y < height; y++) {
+            for (int x = -half; x <= half; x++) {
+                for (int z = -half; z <= half; z++) {
+                    blocks.add(block(x + half, y, z + half, LEAVES));
+                }
+            }
+        }
+        return new TemplateVolume(half * 2 + 1, height, half * 2 + 1, blocks);
+    }
+
+    private static void describe(StringBuilder layout, BakedVariant variant) {
+        TemplateVolume volume = variant.volume();
+        layout.append(variant.id()).append(' ').append(volume.sizeX()).append('x').append(volume.sizeY()).append('x')
+                .append(volume.sizeZ()).append(" base=").append(variant.baseY()).append('\n');
+        for (TemplateBlock block : volume.blocks()) {
+            layout.append(block.x()).append(',').append(block.y()).append(',').append(block.z()).append(' ')
+                    .append(block.state().canonical()).append(' ')
+                    .append(block.nbt() == null ? "-" : block.nbt().getString("id")).append('\n');
+        }
+        layout.append("roots reach=").append(variant.roots().reach()).append('\n');
+        for (TemplateBlock cell : variant.roots().cells()) {
+            layout.append(cell.x()).append(',').append(cell.y()).append(',').append(cell.z()).append(' ')
+                    .append(cell.state().canonical()).append('\n');
+        }
+    }
+
+    private static long fnv(CharSequence text) {
+        long hash = 0xcbf29ce484222325L;
+        for (int index = 0; index < text.length(); index++) {
+            hash ^= text.charAt(index);
+            hash *= 0x100000001b3L;
+        }
+        return hash;
+    }
+
+    private static long cell(int x, int y, int z) {
+        return (((long) x & 0x1FFFFFL) << 42) | (((long) y & 0x1FFFFFL) << 21) | ((long) z & 0x1FFFFFL);
+    }
+
     private static TemplateVolume tree() {
         List<TemplateBlock> blocks = new ArrayList<>();
         for (int y = 0; y < 5; y++) {
@@ -270,5 +440,9 @@ public class ObjectVariantBakerTest {
             states.add(block.state().canonical());
         }
         return states;
+    }
+
+    private interface Interior {
+        boolean contains(double x, double z);
     }
 }

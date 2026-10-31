@@ -44,6 +44,10 @@ public record VariantSpec(double scale, Rotation rotation, VariantWarp warp, dou
         public boolean none() {
             return x == 0 && y == 0 && z == 0;
         }
+
+        public boolean rightAngles() {
+            return x % 90 == 0 && y % 90 == 0 && z % 90 == 0;
+        }
     }
 
     public static final class Builder {

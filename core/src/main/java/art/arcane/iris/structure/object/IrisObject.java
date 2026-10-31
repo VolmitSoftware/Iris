@@ -386,10 +386,6 @@ public class IrisObject extends IrisRegistrant {
         });
     }
 
-    public IrisObject rotateCopy(IrisObjectRotation rt) {
-        return IrisObjectTransforms.rotateCopy(this, rt);
-    }
-
     public IrisObject scaled(double scale, IrisObjectPlacementScaleInterpolator interpolation) {
         return IrisObjectTransforms.scaled(this, scale, interpolation);
     }

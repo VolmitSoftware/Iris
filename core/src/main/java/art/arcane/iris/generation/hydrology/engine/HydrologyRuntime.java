@@ -80,6 +80,7 @@ public final class HydrologyRuntime {
     private final HydrologyBinding binding;
     private final Function<PreparedHydrologyCacheIdentity, HydrologyPlanStore> stores;
     private final boolean caveFluidPolicies;
+    private final ChunkRasterizer.AreaFluid areaFluid;
     private final AtomicLong rasterRevision = new AtomicLong();
     private volatile PreparedHydrologyCacheIdentity storeIdentity;
     private boolean storeOpen;
@@ -102,16 +103,19 @@ public final class HydrologyRuntime {
         this.binding = HydrologyBinding.UNBOUND;
         this.stores = identity -> null;
         this.caveFluidPolicies = false;
+        this.areaFluid = ChunkRasterizer.AreaFluid.NONE;
     }
 
     public HydrologyRuntime(HydrologySettings settings, HydrologyPlanCache cache, IntBinaryOperator naturalHeight,
                             BooleanSupplier mainThread, LongSupplier ticker) {
-        this(settings, cache, naturalHeight, mainThread, ticker, HydrologyBinding.UNBOUND, identity -> null, false);
+        this(settings, cache, naturalHeight, mainThread, ticker, HydrologyBinding.UNBOUND, identity -> null, false,
+                ChunkRasterizer.AreaFluid.NONE);
     }
 
     private HydrologyRuntime(HydrologySettings settings, HydrologyPlanCache cache, IntBinaryOperator naturalHeight,
                              BooleanSupplier mainThread, LongSupplier ticker, HydrologyBinding binding,
-                             Function<PreparedHydrologyCacheIdentity, HydrologyPlanStore> stores, boolean caveFluidPolicies) {
+                             Function<PreparedHydrologyCacheIdentity, HydrologyPlanStore> stores, boolean caveFluidPolicies,
+                             ChunkRasterizer.AreaFluid areaFluid) {
         this.settings = Objects.requireNonNull(settings, "settings");
         this.cache = Objects.requireNonNull(cache, "cache");
         this.rasterizer = new ChunkRasterizer(settings);
@@ -128,6 +132,7 @@ public final class HydrologyRuntime {
         this.binding = Objects.requireNonNull(binding, "binding");
         this.stores = Objects.requireNonNull(stores, "stores");
         this.caveFluidPolicies = caveFluidPolicies;
+        this.areaFluid = Objects.requireNonNull(areaFluid, "areaFluid");
     }
 
     public static HydrologyRuntime create(Engine engine, IrisComplex complex) {
@@ -154,7 +159,7 @@ public final class HydrologyRuntime {
         String dimensionKey = dimension.getLoadKey();
         IrisWorld world = engine.getWorld();
         return new HydrologyRuntime(settings, cache, source::naturalHeight, mainThread, System::nanoTime, binding,
-                identity -> store(world, dimensionKey, settings, identity), caveFluidPolicies);
+                identity -> store(world, dimensionKey, settings, identity), caveFluidPolicies, source::channelFluid);
     }
 
     static boolean requireBiomeFluids(Collection<IrisBiome> biomes, HydrologySettings settings) {
@@ -516,7 +521,7 @@ public final class HydrologyRuntime {
             }
             ChunkWaterRaster raster;
             try (HydrologyBinding.Scope ignored = binding.open()) {
-                raster = rasterizer.rasterize(chunkX, chunkZ, naturalHeight, windows, lakes);
+                raster = rasterizer.rasterize(chunkX, chunkZ, naturalHeight, windows, lakes, areaFluid);
             }
             prefetch(chunkX, chunkZ);
             return raster;
@@ -644,7 +649,7 @@ public final class HydrologyRuntime {
         try {
             if (!closed) {
                 try (HydrologyBinding.Scope ignored = binding.open()) {
-                    remember(key, rasterizer.rasterize(chunkX, chunkZ, naturalHeight, plans.windows(), plans.lakes()));
+                    remember(key, rasterizer.rasterize(chunkX, chunkZ, naturalHeight, plans.windows(), plans.lakes(), areaFluid));
                 }
             }
         } catch (RuntimeException failure) {

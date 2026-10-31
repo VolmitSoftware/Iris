@@ -11,6 +11,8 @@ import art.arcane.iris.generation.hydrology.water.Reach;
 import art.arcane.iris.generation.hydrology.water.ReachStyle;
 
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.function.IntBinaryOperator;
 
 final class RasterComposer {
@@ -43,8 +45,12 @@ final class RasterComposer {
     private final int[] inletColumn = new int[2];
     private IntBinaryOperator naturalHeight;
 
-    RasterComposer(HydrologySettings settings, ChunkFeatures features, int chunkX, int chunkZ) {
+    private final ChunkRasterizer.AreaFluid areaFluid;
+    private final Map<Long, String> reachFluids = new HashMap<>();
+
+    RasterComposer(HydrologySettings settings, ChunkFeatures features, int chunkX, int chunkZ, ChunkRasterizer.AreaFluid areaFluid) {
         this.settings = settings;
+        this.areaFluid = areaFluid;
         this.features = features;
         this.originX = chunkX * CHUNK - 1;
         this.originZ = chunkZ * CHUNK - 1;
@@ -138,7 +144,19 @@ final class RasterComposer {
         role[cell] = role(reach.style()[point]);
         feature[cell] = reach.id();
         tier[cell] = reach.tier();
-        fluid[cell] = reach.tier().fluid();
+        fluid[cell] = reachFluid(reach);
+    }
+
+    /**
+     * The fluid of a whole reach: the one the hydrology policy names where the reach starts (its upstream end), else the
+     * tier's. Deciding per reach instead of per column keeps a river one fluid from source to confluence, so two fluids
+     * only meet where streams join or flow into a lake, not along every region border the river crosses.
+     */
+    private String reachFluid(Reach reach) {
+        return reachFluids.computeIfAbsent(reach.id(), id -> {
+            String area = areaFluid.at((int) Math.floor(reach.xs()[0]), (int) Math.floor(reach.zs()[0]));
+            return area != null ? area : reach.tier().fluid();
+        });
     }
 
     private static int bed(ReachCursor.Choice hit, int surface, int ground, double variation, double detail) {

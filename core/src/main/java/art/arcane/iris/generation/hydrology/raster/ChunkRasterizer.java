@@ -33,13 +33,26 @@ public final class ChunkRasterizer {
                 chunkX * CHUNK + CHUNK - 1 + halo, chunkZ * CHUNK + CHUNK - 1 + halo);
     }
 
+    /** The fluid an area's hydrology policy names for the water flowing through it, or null to keep the tier's fluid. */
+    @FunctionalInterface
+    public interface AreaFluid {
+        AreaFluid NONE = (x, z) -> null;
+
+        String at(int x, int z);
+    }
+
     public ChunkWaterRaster rasterize(int chunkX, int chunkZ, IntBinaryOperator naturalHeight, List<IndexedWindow> windows,
                                       List<RegionPlan> lakeRegionPlans) {
+        return rasterize(chunkX, chunkZ, naturalHeight, windows, lakeRegionPlans, AreaFluid.NONE);
+    }
+
+    public ChunkWaterRaster rasterize(int chunkX, int chunkZ, IntBinaryOperator naturalHeight, List<IndexedWindow> windows,
+                                      List<RegionPlan> lakeRegionPlans, AreaFluid areaFluid) {
         Objects.requireNonNull(naturalHeight, "naturalHeight");
         ChunkFeatures features = ChunkFeatures.gather(settings, chunkX, chunkZ, halo, windows, lakeRegionPlans, lakeRegions(chunkX, chunkZ));
         if (features.empty()) {
             return ChunkWaterRaster.EMPTY;
         }
-        return new RasterComposer(settings, features, chunkX, chunkZ).compose(naturalHeight);
+        return new RasterComposer(settings, features, chunkX, chunkZ, areaFluid).compose(naturalHeight);
     }
 }

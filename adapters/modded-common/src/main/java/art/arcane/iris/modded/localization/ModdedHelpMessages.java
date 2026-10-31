@@ -330,6 +330,10 @@ public final class ModdedHelpMessages {
             "iris.modded.help.entry.command.remove",
             "Explain datapack removal workflow"
     );
+    public static final TextKey COMMAND_EXPORT_EXPORT_A_DIMENSION_AS_A_VANILLA_WORLDGEN_DATAPACK = TextKey.of(
+            "iris.modded.help.entry.command.export_datapack",
+            "Export a dimension as a vanilla worldgen datapack"
+    );
     public static final TextKey COMMAND_LIST_REGENERATE_STRUCTURE_INDEX_JSON = TextKey.of(
             "iris.modded.help.entry.command.list_structures",
             "Regenerate structure-index.json"
@@ -505,6 +509,7 @@ public final class ModdedHelpMessages {
             COMMAND_LIST_LIST_CONFIGURED_AND_INSTALLED_DATAPACKS,
             COMMAND_INGEST_EXPLAIN_BUKKIT_DATAPACK_INGEST_WORKFLOW,
             COMMAND_REMOVE_EXPLAIN_DATAPACK_REMOVAL_WORKFLOW,
+            COMMAND_EXPORT_EXPORT_A_DIMENSION_AS_A_VANILLA_WORLDGEN_DATAPACK,
             COMMAND_LIST_REGENERATE_STRUCTURE_INDEX_JSON,
             COMMAND_INFO_RESOLVE_AN_IRIS_STRUCTURE_GRAPH_AND_REPORT_BOUNDS,
             COMMAND_PLACE_ASSEMBLE_AND_PLACE_AN_IRIS_STRUCTURE_AT_YOUR_LOCATION,

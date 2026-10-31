@@ -1,6 +1,7 @@
 package art.arcane.iris.probe;
 
 import art.arcane.iris.configuration.IrisSettings;
+import art.arcane.iris.platform.ClasspathVanillaDataSource;
 import art.arcane.iris.platform.bukkit.nms.BukkitGenerationRegistry;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.PlatformGenerationRegistry;
@@ -9,6 +10,7 @@ import art.arcane.iris.spi.PlatformBiomeWriter;
 import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.iris.spi.PlatformScheduler;
 import art.arcane.iris.spi.PlatformStructureHooks;
+import art.arcane.iris.spi.VanillaDataSource;
 import art.arcane.volmlib.nativelib.entity.NativeEntityType;
 import art.arcane.volmlib.nativelib.item.NativeItem;
 import art.arcane.volmlib.nativelib.minecraft26_2.modded.ModdedBlockState;
@@ -35,6 +37,7 @@ final class HeadlessNativePlatform implements IrisPlatform, PlatformRegistries, 
     private final NativeRegistryAccess nativeAccess;
     private final PlatformBiomeWriter biomeWriter;
     private final PlatformGenerationRegistry generationRegistry;
+    private final ClasspathVanillaDataSource vanillaData = new ClasspathVanillaDataSource(() -> SharedConstants.class);
     private final NativeBlockResolver blocks = new NativeBlockResolver(this);
     private final NativeBlockState air = blocks.getAir();
     private final ConcurrentHashMap<String, NativeBlockState> states = new ConcurrentHashMap<>();
@@ -213,6 +216,11 @@ final class HeadlessNativePlatform implements IrisPlatform, PlatformRegistries, 
     @Override
     public PlatformBiomeWriter biomeWriter() {
         return biomeWriter;
+    }
+
+    @Override
+    public VanillaDataSource vanillaData() {
+        return vanillaData;
     }
 
     @Override

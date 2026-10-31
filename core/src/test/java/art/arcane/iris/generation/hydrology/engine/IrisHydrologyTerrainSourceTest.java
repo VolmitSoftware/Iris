@@ -129,6 +129,52 @@ public class IrisHydrologyTerrainSourceTest {
         }
     }
 
+    @Test
+    public void climateZonesDryOutRainfallAndPondsOutsideOptedOutBiomes() throws Exception {
+        Path pack = EngineFixture.pack(temporaryFolder.newFolder().toPath());
+        int[] xs = new int[COLUMNS];
+        int[] zs = new int[COLUMNS];
+        columns(xs, zs);
+        try (EngineFixture.Environment ignored = EngineFixture.environment(); EngineFixture fixture = new EngineFixture(pack)) {
+            IrisHydrology config = new IrisHydrology().setEnabled(true).setPersist(false);
+            config.getClimate().setEnabled(true).setDryness(0.5D).setTransition(0D).getStyle().setZoom(4D);
+            HydrologySettings settings = HydrologySettings.compile(config, EngineFixture.SEED, fixture.dimension.getFluidHeight(), 0,
+                    EngineFixture.HEIGHT);
+            fixture.data.getBiomeLoader().load("meadow").getHydrologyPolicy().setClimateZones(false);
+            IrisHydrologyTerrainSource source = new IrisHydrologyTerrainSource(fixture.complex, fixture.dimension, settings, null, 1,
+                    HydrologyBinding.UNBOUND);
+            HydrologySampleBuffer samples = new HydrologySampleBuffer(COLUMNS);
+            source.sample(xs, zs, samples, false);
+            int dry = 0;
+            int wet = 0;
+            int kept = 0;
+            for (int index = 0; index < COLUMNS; index++) {
+                int x = xs[index];
+                int z = zs[index];
+                boolean meadow = fixture.complex.getBaseBiomeStream().get(x, z).getLoadKey().equals("meadow");
+                boolean alpha = fixture.complex.getRegionStream().get(x, z).getLoadKey().equals("alpha");
+                String at = x + "," + z;
+                assertEquals(at, alpha ? "water" : null, source.channelFluid(x, z));
+                if (meadow) {
+                    assertEquals(at, 2f, samples.rainfall()[index], 0f);
+                    assertEquals(at, alpha ? 3f : 1f, samples.pondDensity()[index], 0f);
+                    kept++;
+                    continue;
+                }
+                boolean zoneDry = samples.rainfall()[index] == 0f;
+                assertEquals(at, zoneDry ? 0f : 0.5f, samples.rainfall()[index], 0f);
+                assertEquals(at, zoneDry ? 0f : alpha ? 3f : 1f, samples.pondDensity()[index], 0f);
+                if (zoneDry) {
+                    dry++;
+                } else {
+                    wet++;
+                }
+            }
+            assertTrue("dry columns " + dry + ", wet columns " + wet + ", opted-out columns " + kept,
+                    dry > COLUMNS / 20 && wet > COLUMNS / 20 && kept > 0);
+        }
+    }
+
     private static void assertUnknownFluidRejected(EngineFixture fixture, HydrologySettings settings, int[] xs, int[] zs) {
         IrisRegion beta = fixture.data.getRegionLoader().load("beta");
         beta.setHydrologyPolicy(new IrisHydrologyPolicy().setFluid("slime"));
@@ -154,10 +200,9 @@ public class IrisHydrologyTerrainSourceTest {
         HydrologySampleBuffer rect = new HydrologySampleBuffer(32 * 32);
         fine.fill(-600, 400, 32, 32, rect);
         assertMatchesScalar(reference, "fine rect", rect, nodes(-600, 400, 32, 1, 4), false);
-        HeightLattice window = new HeightLattice(new FineLatticeSource(fine, source), 8, false, 1 << 16);
         HydrologySampleBuffer strided = new HydrologySampleBuffer(16 * 16);
-        window.fill(-150, 300, 16, 16, 3, strided);
-        assertMatchesScalar(reference, "window strided", strided, nodes(-150, 300, 16, 3, 8), false);
+        fine.fill(-300, 600, 16, 16, 6, strided);
+        assertMatchesScalar(reference, "fine strided", strided, nodes(-300, 600, 16, 6, 4), false);
         HeightLattice coarse = new HeightLattice(source, 64, true, 1 << 12);
         HydrologySampleBuffer coarseBase = new HydrologySampleBuffer(16 * 16);
         coarse.fill(-8, -8, 16, 16, coarseBase);

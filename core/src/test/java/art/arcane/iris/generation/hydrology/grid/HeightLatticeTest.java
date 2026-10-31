@@ -101,6 +101,37 @@ public class HeightLatticeTest {
     }
 
     @Test
+    public void evictionToleratesConcurrentTileUse() throws Exception {
+        HeightLattice lattice = new HeightLattice(new CountingSource(), 1, false, 96 * 1024);
+        int threads = 12;
+        CyclicBarrier start = new CyclicBarrier(threads);
+        ExecutorService pool = Executors.newFixedThreadPool(threads);
+        try {
+            List<Future<Void>> results = new ArrayList<>();
+            for (int thread = 0; thread < threads; thread++) {
+                long seed = 31L * thread + 7L;
+                Callable<Void> task = () -> {
+                    Random random = new Random(seed);
+                    HydrologySampleBuffer out = new HydrologySampleBuffer(4);
+                    start.await();
+                    for (int fill = 0; fill < 40_000; fill++) {
+                        int tileX = random.nextInt(24);
+                        int tileZ = random.nextInt(24);
+                        lattice.fill(tileX * 32 + random.nextInt(31), tileZ * 32 + random.nextInt(31), 2, 2, out);
+                    }
+                    return null;
+                };
+                results.add(pool.submit(task));
+            }
+            for (Future<Void> result : results) {
+                result.get(120, TimeUnit.SECONDS);
+            }
+        } finally {
+            pool.shutdownNow();
+        }
+    }
+
+    @Test
     public void returnsBitIdenticalValues() {
         HeightLattice full = new HeightLattice(new CountingSource(), 8, false, 1 << 16);
         HeightLattice base = new HeightLattice(new CountingSource(), 64, true, 1 << 16);
@@ -285,6 +316,31 @@ public class HeightLatticeTest {
         assertEquals(4, source.samples());
         assertThrows(IllegalArgumentException.class, () -> lattice.fill(new int[]{1, 2}, new int[]{1}, new HydrologySampleBuffer(2)));
         assertThrows(IllegalArgumentException.class, () -> lattice.fill(cellXs, cellZs, new HydrologySampleBuffer(5)));
+    }
+
+    @Test
+    public void sampledColumnsAreReadOnceAndMatchTheSource() {
+        CountingSource source = new CountingSource();
+        HeightLattice lattice = new HeightLattice(source, 4, false, 1 << 16);
+        int[] xs = {5, -13, 5, 1027, -13, 6};
+        int[] zs = {-2, 77, -2, 3, 77, -2};
+        HydrologySampleBuffer first = new HydrologySampleBuffer(xs.length);
+        lattice.sampleColumns(xs, zs, first);
+        assertEquals(4, source.samples());
+        HydrologySampleBuffer second = new HydrologySampleBuffer(xs.length);
+        lattice.sampleColumns(xs, zs, second);
+        assertEquals(4, source.samples());
+        HydrologySampleBuffer expected = new HydrologySampleBuffer(xs.length);
+        new CountingSource().sample(xs, zs, expected, false);
+        for (int index = 0; index < xs.length; index++) {
+            assertEquals(Float.floatToIntBits(expected.height()[index]), Float.floatToIntBits(first.height()[index]));
+            assertEquals(Float.floatToIntBits(expected.height()[index]), Float.floatToIntBits(second.height()[index]));
+            assertEquals(expected.ocean()[index], second.ocean()[index]);
+            assertEquals(expected.permission()[index], second.permission()[index]);
+            assertEquals(expected.fluidProfile()[index], second.fluidProfile()[index]);
+        }
+        lattice.sampleColumns(new int[0], new int[0], new HydrologySampleBuffer(0));
+        assertEquals(1, source.calls());
     }
 
     private static void fillWindow(HeightLattice lattice, int wx, int wz, int cell, boolean baseOnly) {

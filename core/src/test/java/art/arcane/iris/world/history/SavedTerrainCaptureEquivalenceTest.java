@@ -29,6 +29,7 @@ public class SavedTerrainCaptureEquivalenceTest {
     private static final List<BoundaryColumnGeometry.Voxel> STATES = List.of(
             voxel("minecraft:stone", BoundaryColumnGeometry.Phase.SOLID, "", false),
             voxel("minecraft:deepslate", BoundaryColumnGeometry.Phase.SOLID, "", false),
+            voxel("minecraft:ice", BoundaryColumnGeometry.Phase.SOLID, "", false),
             voxel("minecraft:air", BoundaryColumnGeometry.Phase.AIR, "", false),
             voxel("minecraft:cave_air", BoundaryColumnGeometry.Phase.AIR, "", false),
             voxel("minecraft:water[level=0]", BoundaryColumnGeometry.Phase.FLUID, "minecraft:water[level=0]", false),
@@ -153,7 +154,14 @@ public class SavedTerrainCaptureEquivalenceTest {
                 BoundaryColumnGeometry geometry = referenceGeometry(MINIMUM_Y, voxels);
                 OptionalInt groundSurface = source.groundSurface(x, z);
                 if (groundSurface.isPresent()) {
-                    floor = geometry.surfaceOffsetNear(groundSurface.getAsInt());
+                    int ground = groundSurface.getAsInt();
+                    int waterSurface = source.waterSurface(x, z).orElse(ground);
+                    int capBottom = referenceCapBottom(voxels, ground, waterSurface);
+                    floor = referenceFloor(voxels, ground, capBottom, waterSurface);
+                    if (capBottom <= waterSurface && waterSurface > floor && (capBottom - 1 == floor
+                            || capBottom > 0 && !voxels.get(capBottom - 1).fluidStateKey().isEmpty())) {
+                        fluid = waterSurface;
+                    }
                     surface = Math.max(floor, fluid);
                 }
                 columns.add(new TerrainBoundarySignature(
@@ -166,6 +174,50 @@ public class SavedTerrainCaptureEquivalenceTest {
             }
         }
         return new SavedTerrainChunk(chunkX, chunkZ, "minecraft:noise", columns);
+    }
+
+    private static int referenceCapBottom(List<BoundaryColumnGeometry.Voxel> voxels, int ground, int waterSurface) {
+        if (waterSurface <= ground || waterSurface < 0 || waterSurface >= voxels.size()
+                || waterSurface + 1 < voxels.size() && voxels.get(waterSurface + 1).phase() != BoundaryColumnGeometry.Phase.AIR) {
+            return waterSurface + 1;
+        }
+        int bottom = waterSurface + 1;
+        while (bottom - 1 >= Math.max(0, ground + 1) && capMaterial(voxels.get(bottom - 1))) {
+            bottom--;
+        }
+        return bottom;
+    }
+
+    private static boolean capMaterial(BoundaryColumnGeometry.Voxel voxel) {
+        return voxel.phase() == BoundaryColumnGeometry.Phase.SOLID && !voxel.protectedContent()
+                && voxel.fluidStateKey().isEmpty();
+    }
+
+    private static int referenceFloor(List<BoundaryColumnGeometry.Voxel> voxels, int ground, int capBottom, int capTop) {
+        int selected = -1;
+        int distance = Integer.MAX_VALUE;
+        for (int offset = 0; offset + 1 < voxels.size(); offset++) {
+            if (referenceTerrain(voxels, offset, capBottom, capTop) && !referenceTerrain(voxels, offset + 1, capBottom, capTop)
+                    && Math.abs(offset - ground) < distance) {
+                selected = offset;
+                distance = Math.abs(offset - ground);
+            }
+        }
+        if (selected >= 0) {
+            return selected;
+        }
+        for (int offset = voxels.size() - 1; offset >= 0; offset--) {
+            if (referenceTerrain(voxels, offset, capBottom, capTop)) {
+                return offset;
+            }
+        }
+        return 0;
+    }
+
+    private static boolean referenceTerrain(List<BoundaryColumnGeometry.Voxel> voxels, int offset, int capBottom, int capTop) {
+        BoundaryColumnGeometry.Voxel voxel = voxels.get(offset);
+        return voxel.phase() == BoundaryColumnGeometry.Phase.SOLID && !voxel.protectedContent()
+                && (offset < capBottom || offset > capTop);
     }
 
     private static BoundaryColumnGeometry referenceGeometry(int minimumY, List<BoundaryColumnGeometry.Voxel> voxels) {
@@ -217,6 +269,11 @@ public class SavedTerrainCaptureEquivalenceTest {
         }
 
         @Override
+        public OptionalInt waterSurface(int localX, int localZ) {
+            return source.waterSurface(localX, localZ);
+        }
+
+        @Override
         public BoundaryColumnGeometry.Voxel voxel(int localX, int worldY, int localZ) {
             return source.voxel(localX, worldY, localZ);
         }
@@ -246,6 +303,7 @@ public class SavedTerrainCaptureEquivalenceTest {
         private final BoundaryColumnGeometry.Voxel[][] voxels = new BoundaryColumnGeometry.Voxel[256][HEIGHT];
         private final String[][] biomes = new String[256][HEIGHT];
         private final int[] ground = new int[256];
+        private final int[] water = new int[256];
 
         private RandomSource(Random random, int sample) {
             for (int column = 0; column < 256; column++) {
@@ -270,12 +328,20 @@ public class SavedTerrainCaptureEquivalenceTest {
                     }
                 }
                 ground[column] = sample % 4 == 0 ? -1 : random.nextInt(HEIGHT);
+                water[column] = ground[column] < 0 || random.nextInt(3) == 0 ? -1
+                        : Math.min(HEIGHT - 1, ground[column] + random.nextInt(48));
             }
         }
 
         @Override
         public OptionalInt groundSurface(int localX, int localZ) {
             int value = ground[localX * 16 + localZ];
+            return value < 0 ? OptionalInt.empty() : OptionalInt.of(value);
+        }
+
+        @Override
+        public OptionalInt waterSurface(int localX, int localZ) {
+            int value = water[localX * 16 + localZ];
             return value < 0 ? OptionalInt.empty() : OptionalInt.of(value);
         }
 

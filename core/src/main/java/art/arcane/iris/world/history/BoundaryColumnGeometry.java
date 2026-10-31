@@ -139,33 +139,73 @@ public final class BoundaryColumnGeometry implements NativeBlockColumn {
         return List.copyOf(values);
     }
 
-    public int surfaceOffsetNear(double expectedOffset) {
+    public WaterCap waterCap(int groundOffset, int waterSurfaceOffset) {
+        if (waterSurfaceOffset <= groundOffset || waterSurfaceOffset < 0 || waterSurfaceOffset >= height()
+                || waterSurfaceOffset + 1 < height() && voxelAtOffset(waterSurfaceOffset + 1).phase() != Phase.AIR) {
+            return WaterCap.none();
+        }
+        int lowest = Math.max(0, groundOffset + 1);
+        int bottom = waterSurfaceOffset + 1;
+        for (int run = runAt(waterSurfaceOffset); run >= 0 && bottom > lowest && isCapMaterial(runVoxel(run)); run--) {
+            bottom = Math.max(lowest, run == 0 ? 0 : runEnds[run - 1]);
+        }
+        return bottom > waterSurfaceOffset ? WaterCap.none() : new WaterCap(bottom, waterSurfaceOffset);
+    }
+
+    public boolean capsWater(WaterCap cap, int floorOffset) {
+        if (!cap.present() || cap.top() <= floorOffset) {
+            return false;
+        }
+        int below = cap.bottom() - 1;
+        return below == floorOffset || below >= 0 && !voxelAtOffset(below).fluidStateKey().isEmpty();
+    }
+
+    public String fluidStateKeyAtOrBelow(int surfaceOffset, int floorOffset) {
+        for (int offset = Math.min(surfaceOffset, height() - 1); offset > floorOffset && offset >= 0; offset--) {
+            String fluidStateKey = voxelAtOffset(offset).fluidStateKey();
+            if (!fluidStateKey.isEmpty()) {
+                return fluidStateKey;
+            }
+        }
+        return "";
+    }
+
+    public int surfaceOffsetNear(double expectedOffset, WaterCap cap) {
+        Objects.requireNonNull(cap, "Water cap");
         if (!Double.isFinite(expectedOffset) || height() == 0) {
             throw new IllegalArgumentException("A surface reference requires finite height and nonempty geometry");
         }
         int nearest = -1;
         double nearestDistance = Double.POSITIVE_INFINITY;
         for (int run = 0; run + 1 < runEnds.length; run++) {
-            Voxel current = palette.get(paletteIndices[run]);
-            Voxel above = palette.get(paletteIndices[run + 1]);
-            if (current.phase() != Phase.SOLID || current.protectedContent()
-                    || above.phase() == Phase.SOLID && !above.protectedContent()) {
+            int offset = runEnds[run] - 1;
+            if (!isTerrain(offset, runVoxel(run), cap) || isTerrain(offset + 1, runVoxel(run + 1), cap)) {
                 continue;
             }
-            int offset = runEnds[run] - 1;
             double distance = Math.abs(offset - expectedOffset);
             if (distance < nearestDistance) {
                 nearest = offset;
                 nearestDistance = distance;
             }
         }
+        int belowCap = cap.bottom() - 1;
+        if (cap.present() && belowCap >= 0 && cap.bottom() < height() && isTerrain(belowCap, voxelAtOffset(belowCap), cap)) {
+            double distance = Math.abs(belowCap - expectedOffset);
+            if (distance < nearestDistance || distance == nearestDistance && belowCap < nearest) {
+                nearest = belowCap;
+            }
+        }
         if (nearest >= 0) {
             return nearest;
         }
         for (int run = runEnds.length - 1; run >= 0; run--) {
-            Voxel current = palette.get(paletteIndices[run]);
-            if (current.phase() == Phase.SOLID && !current.protectedContent()) {
-                return runEnds[run] - 1;
+            Voxel current = runVoxel(run);
+            if (current.phase() != Phase.SOLID || current.protectedContent()) {
+                continue;
+            }
+            int top = cap.contains(runEnds[run] - 1) ? belowCap : runEnds[run] - 1;
+            if (top >= (run == 0 ? 0 : runEnds[run - 1])) {
+                return top;
             }
         }
         return 0;
@@ -218,6 +258,18 @@ public final class BoundaryColumnGeometry implements NativeBlockColumn {
     private int runAt(int offset) {
         int index = Arrays.binarySearch(runEnds, offset + 1);
         return index >= 0 ? index : -index - 1;
+    }
+
+    private static boolean isTerrain(int offset, Voxel voxel, WaterCap cap) {
+        return voxel.phase() == Phase.SOLID && !voxel.protectedContent() && !cap.contains(offset);
+    }
+
+    private static boolean isCapMaterial(Voxel voxel) {
+        return voxel.phase() == Phase.SOLID && !voxel.protectedContent() && voxel.fluidStateKey().isEmpty();
+    }
+
+    private Voxel voxelAtOffset(int offset) {
+        return palette.get(paletteIndices[runAt(offset)]);
     }
 
     private void validate() {
@@ -331,6 +383,22 @@ public final class BoundaryColumnGeometry implements NativeBlockColumn {
         AIR,
         SOLID,
         FLUID
+    }
+
+    public record WaterCap(int bottom, int top) {
+        private static final WaterCap NONE = new WaterCap(0, -1);
+
+        public static WaterCap none() {
+            return NONE;
+        }
+
+        public boolean present() {
+            return bottom <= top;
+        }
+
+        public boolean contains(int offset) {
+            return offset >= bottom && offset <= top;
+        }
     }
 
     public record Voxel(String stateKey, Phase phase, String fluidStateKey, boolean protectedContent) {

@@ -268,6 +268,7 @@ public class AsyncPregenMethod implements PregeneratorMethod {
     @Override
     public void onRegionBounds(int minRegionX, int minRegionZ, int maxRegionX, int maxRegionZ) {
         retention = createRetention(minRegionX, minRegionZ, maxRegionX, maxRegionZ);
+        hydrology.bound(minRegionX, minRegionZ, maxRegionX, maxRegionZ);
     }
 
     private PregenChunkRetention createRetention(int minRegionX, int minRegionZ, int maxRegionX, int maxRegionZ) {

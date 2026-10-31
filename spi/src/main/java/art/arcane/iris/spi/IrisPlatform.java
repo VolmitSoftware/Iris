@@ -68,6 +68,8 @@ public interface IrisPlatform {
      */
     PlatformBiomeWriter biomeWriter();
 
+    VanillaDataSource vanillaData();
+
     default Class<?> classifyMantleValue(Object value) {
         return value.getClass();
     }

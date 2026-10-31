@@ -1,34 +1,59 @@
 package art.arcane.iris.generation.hydrology.grid;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReferenceArray;
 
 public final class HeightLattice {
+    private static final int TILE_SHIFT = 5;
+    private static final int COLUMN_TILE_SHIFT = 3;
+    private static final int COLUMN_CELLS = 1 << 20;
+    private static final CompletableFuture<Void> READY = CompletableFuture.completedFuture(null);
+    private static final int[] NO_NODES = new int[0];
+    private static final Tile[] NO_TILES = new Tile[0];
+
     private final HydrologyTerrainSource source;
     private final int cell;
     private final boolean baseOnly;
-    private final int capacityCells;
-    private final ConcurrentHashMap<Long, Slot> cells;
-    private final ConcurrentLinkedQueue<Long> insertionOrder;
+    private final int tileShift;
+    private final int tileMask;
+    private final int tileCells;
+    private final int capacityTiles;
+    private final ConcurrentHashMap<Long, Tile> tiles;
+    private final AtomicLong clock;
     private final AtomicBoolean evicting;
+    private final HeightLattice columns;
 
     public HeightLattice(HydrologyTerrainSource source, int cell, boolean baseOnly, int capacityCells) {
+        this(source, cell, baseOnly, capacityCells, TILE_SHIFT, new HeightLattice(source, 1, baseOnly, COLUMN_CELLS, COLUMN_TILE_SHIFT, null));
+    }
+
+    private HeightLattice(HydrologyTerrainSource source, int cell, boolean baseOnly, int capacityCells, int tileShift, HeightLattice columns) {
         if (cell <= 0 || capacityCells <= 0) {
             throw new IllegalArgumentException("Invalid lattice cell=" + cell + " capacityCells=" + capacityCells);
         }
         this.source = Objects.requireNonNull(source, "source");
         this.cell = cell;
         this.baseOnly = baseOnly;
-        this.capacityCells = capacityCells;
-        this.cells = new ConcurrentHashMap<>();
-        this.insertionOrder = new ConcurrentLinkedQueue<>();
+        this.tileShift = tileShift;
+        this.tileMask = (1 << tileShift) - 1;
+        this.tileCells = 1 << (2 * tileShift);
+        this.capacityTiles = Math.ceilDiv(capacityCells, tileCells);
+        this.tiles = new ConcurrentHashMap<>();
+        this.clock = new AtomicLong();
         this.evicting = new AtomicBoolean();
+        this.columns = columns;
     }
 
     public int cell() {
@@ -67,19 +92,24 @@ public final class HeightLattice {
             throw new IllegalArgumentException("Column sample has " + xs.length + " x and " + zs.length + " z coordinates");
         }
         requireCapacity(out, xs.length);
-        if (xs.length > 0) {
-            source.sample(xs, zs, out, baseOnly);
+        if (xs.length == 0) {
+            return;
         }
+        if (columns == null) {
+            source.sample(xs, zs, out, baseOnly);
+            return;
+        }
+        columns.resolve(new Scatter(xs, zs), xs.length, out);
     }
 
     private void resolve(Nodes nodes, int count, HydrologySampleBuffer out) {
-        Slot[] slots = new Slot[count];
-        int unresolved = count;
-        while (unresolved > 0) {
-            CompletableFuture<HydrologySampleBuffer> batch = claimAndSample(nodes, slots);
-            unresolved = awaitForeign(batch, slots);
+        Pass pass = new Pass(nodes, out, clock.incrementAndGet());
+        int[] open = null;
+        int remaining = count;
+        while (remaining > 0) {
+            open = pass.run(open, remaining);
+            remaining = open == null ? 0 : open.length;
         }
-        copy(slots, out);
         evictOverflow();
     }
 
@@ -94,130 +124,33 @@ public final class HeightLattice {
         Math.multiplyExact(Math.addExact(cell0, Math.multiplyExact(extent - 1, stride)), cell);
     }
 
-    private CompletableFuture<HydrologySampleBuffer> claimAndSample(Nodes nodes, Slot[] slots) {
-        CompletableFuture<HydrologySampleBuffer> batch = new CompletableFuture<>();
-        try {
-            int[] xs = new int[slots.length];
-            int[] zs = new int[slots.length];
-            int claimed = claim(batch, nodes, slots, xs, zs);
-            if (claimed > 0) {
-                HydrologySampleBuffer samples = new HydrologySampleBuffer(claimed);
-                source.sample(Arrays.copyOf(xs, claimed), Arrays.copyOf(zs, claimed), samples, baseOnly);
-                batch.complete(samples);
-            }
-        } catch (Throwable failure) {
-            try {
-                release(batch, nodes, slots);
-            } finally {
-                batch.completeExceptionally(failure);
-            }
-            throw failure;
+    private Tile tile(int tileX, int tileZ) {
+        Long key = key(tileX, tileZ);
+        Tile known = tiles.get(key);
+        if (known != null) {
+            return known;
         }
-        return batch;
-    }
-
-    private int claim(CompletableFuture<HydrologySampleBuffer> batch, Nodes nodes, Slot[] slots, int[] xs, int[] zs) {
-        int claimed = 0;
-        for (int index = 0; index < slots.length; index++) {
-            if (slots[index] != null) {
-                continue;
-            }
-            int cellX = nodes.cellX(index);
-            int cellZ = nodes.cellZ(index);
-            Long key = key(cellX, cellZ);
-            Slot existing = cells.get(key);
-            if (existing == null) {
-                Slot fresh = new Slot(batch, claimed);
-                existing = cells.putIfAbsent(key, fresh);
-                if (existing == null) {
-                    slots[index] = fresh;
-                    insertionOrder.offer(key);
-                    xs[claimed] = cellX * cell;
-                    zs[claimed] = cellZ * cell;
-                    claimed++;
-                    continue;
-                }
-            }
-            slots[index] = existing;
-        }
-        return claimed;
-    }
-
-    private void release(CompletableFuture<HydrologySampleBuffer> batch, Nodes nodes, Slot[] slots) {
-        for (int index = 0; index < slots.length; index++) {
-            Slot slot = slots[index];
-            if (slot != null && slot.batch() == batch) {
-                cells.remove(key(nodes.cellX(index), nodes.cellZ(index)), slot);
-            }
-        }
-    }
-
-    private static int awaitForeign(CompletableFuture<HydrologySampleBuffer> own, Slot[] slots) {
-        int unresolved = 0;
-        for (int index = 0; index < slots.length; index++) {
-            CompletableFuture<HydrologySampleBuffer> batch = slots[index].batch();
-            if (batch != own && !await(batch)) {
-                slots[index] = null;
-                unresolved++;
-            }
-        }
-        return unresolved;
-    }
-
-    private static boolean await(CompletableFuture<HydrologySampleBuffer> batch) {
-        if (!batch.isDone()) {
-            try {
-                batch.get();
-            } catch (ExecutionException | CancellationException failure) {
-                return false;
-            } catch (InterruptedException interruption) {
-                Thread.currentThread().interrupt();
-                throw new CancellationException("Hydrology lattice wait interrupted.");
-            }
-        }
-        return !batch.isCompletedExceptionally();
-    }
-
-    private static void copy(Slot[] slots, HydrologySampleBuffer out) {
-        float[] height = out.height();
-        boolean[] ocean = out.ocean();
-        float[] rainfall = out.rainfall();
-        float[] pondDensity = out.pondDensity();
-        byte[] permission = out.permission();
-        String[] fluidProfile = out.fluidProfile();
-        for (int index = 0; index < slots.length; index++) {
-            Slot slot = slots[index];
-            HydrologySampleBuffer samples = slot.batch().join();
-            int sample = slot.index();
-            height[index] = samples.height()[sample];
-            ocean[index] = samples.ocean()[sample];
-            rainfall[index] = samples.rainfall()[sample];
-            pondDensity[index] = samples.pondDensity()[sample];
-            permission[index] = samples.permission()[sample];
-            fluidProfile[index] = samples.fluidProfile()[sample];
-        }
+        return tiles.computeIfAbsent(key, ignored -> new Tile(tileCells));
     }
 
     private void evictOverflow() {
-        if (cells.size() <= capacityCells || !evicting.compareAndSet(false, true)) {
+        if (tiles.size() <= capacityTiles || !evicting.compareAndSet(false, true)) {
             return;
         }
         try {
-            int excess = cells.size() - capacityCells;
-            while (excess > 0) {
-                Long key = insertionOrder.poll();
-                if (key == null) {
-                    return;
+            List<IdleTile> idle = new ArrayList<>(tiles.size());
+            for (Map.Entry<Long, Tile> entry : tiles.entrySet()) {
+                Tile tile = entry.getValue();
+                if (tile.pending.get() == 0) {
+                    idle.add(new IdleTile(entry.getKey(), tile, tile.used));
                 }
-                Slot slot = cells.get(key);
-                if (slot == null) {
-                    continue;
-                }
-                if (!slot.batch().isDone()) {
-                    insertionOrder.offer(key);
-                    excess--;
-                } else if (cells.remove(key, slot)) {
-                    excess--;
+            }
+            idle.sort(Comparator.comparingLong(IdleTile::used));
+            int target = capacityTiles - (capacityTiles >> 3);
+            for (int index = 0; index < idle.size() && tiles.size() > target; index++) {
+                IdleTile candidate = idle.get(index);
+                if (candidate.tile().pending.get() == 0) {
+                    tiles.remove(candidate.key(), candidate.tile());
                 }
             }
         } finally {
@@ -232,13 +165,228 @@ public final class HeightLattice {
         return mixed ^ (mixed >>> 31);
     }
 
-    private record Slot(CompletableFuture<HydrologySampleBuffer> batch, int index) {
+    private static boolean await(CompletableFuture<Void> batch) {
+        if (!batch.isDone()) {
+            try {
+                batch.get();
+            } catch (ExecutionException | CancellationException failure) {
+                return false;
+            } catch (InterruptedException interruption) {
+                Thread.currentThread().interrupt();
+                throw new CancellationException("Hydrology lattice wait interrupted.");
+            }
+        }
+        return !batch.isCompletedExceptionally();
+    }
+
+    private static void copy(HydrologySampleBuffer samples, int sample, HydrologySampleBuffer out, int index) {
+        out.height()[index] = samples.height()[sample];
+        out.ocean()[index] = samples.ocean()[sample];
+        out.rainfall()[index] = samples.rainfall()[sample];
+        out.pondDensity()[index] = samples.pondDensity()[sample];
+        out.permission()[index] = samples.permission()[sample];
+        out.fluidProfile()[index] = samples.fluidProfile()[sample];
+    }
+
+    private final class Pass {
+        private final Nodes nodes;
+        private final HydrologySampleBuffer out;
+        private final long stamp;
+        private int[] claimedIndex = NO_NODES;
+        private Tile[] claimedTile = NO_TILES;
+        private int[] claimedLocal = NO_NODES;
+        private int claimed;
+        private int[] waitingIndex = NO_NODES;
+        private Tile[] waitingTile = NO_TILES;
+        private int[] waitingLocal = NO_NODES;
+        private int waiting;
+        private Tile current;
+        private int currentX;
+        private int currentZ;
+
+        private Pass(Nodes nodes, HydrologySampleBuffer out, long stamp) {
+            this.nodes = nodes;
+            this.out = out;
+            this.stamp = stamp;
+        }
+
+        private int[] run(int[] open, int remaining) {
+            claimed = 0;
+            waiting = 0;
+            CompletableFuture<Void> batch = new CompletableFuture<>();
+            for (int position = 0; position < remaining; position++) {
+                visit(open == null ? position : open[position], batch);
+            }
+            if (claimed > 0) {
+                sample(batch);
+            }
+            return awaitWaiting();
+        }
+
+        private void visit(int index, CompletableFuture<Void> batch) {
+            int cellX = nodes.cellX(index);
+            int cellZ = nodes.cellZ(index);
+            Tile tile = tileOf(cellX >> tileShift, cellZ >> tileShift);
+            int local = ((cellZ & tileMask) << tileShift) | (cellX & tileMask);
+            while (true) {
+                CompletableFuture<Void> mark = tile.marks.get(local);
+                if (mark == READY) {
+                    tile.copy(local, out, index);
+                    return;
+                }
+                if (mark != null) {
+                    addWaiting(index, tile, local);
+                    return;
+                }
+                if (tile.marks.compareAndSet(local, null, batch)) {
+                    tile.pending.incrementAndGet();
+                    addClaimed(index, tile, local);
+                    return;
+                }
+            }
+        }
+
+        private Tile tileOf(int tileX, int tileZ) {
+            if (current == null || currentX != tileX || currentZ != tileZ) {
+                current = tile(tileX, tileZ);
+                currentX = tileX;
+                currentZ = tileZ;
+                current.used = stamp;
+            }
+            return current;
+        }
+
+        private void sample(CompletableFuture<Void> batch) {
+            try {
+                int[] xs = new int[claimed];
+                int[] zs = new int[claimed];
+                for (int position = 0; position < claimed; position++) {
+                    xs[position] = nodes.cellX(claimedIndex[position]) * cell;
+                    zs[position] = nodes.cellZ(claimedIndex[position]) * cell;
+                }
+                HydrologySampleBuffer samples = new HydrologySampleBuffer(claimed);
+                source.sample(xs, zs, samples, baseOnly);
+                for (int position = 0; position < claimed; position++) {
+                    Tile tile = claimedTile[position];
+                    int local = claimedLocal[position];
+                    tile.store(local, samples, position);
+                    tile.marks.set(local, READY);
+                    tile.pending.decrementAndGet();
+                    copy(samples, position, out, claimedIndex[position]);
+                }
+                batch.complete(null);
+            } catch (Throwable failure) {
+                try {
+                    release(batch);
+                } finally {
+                    batch.completeExceptionally(failure);
+                }
+                throw failure;
+            }
+        }
+
+        private void release(CompletableFuture<Void> batch) {
+            for (int position = 0; position < claimed; position++) {
+                Tile tile = claimedTile[position];
+                if (tile.marks.compareAndSet(claimedLocal[position], batch, null)) {
+                    tile.pending.decrementAndGet();
+                }
+            }
+        }
+
+        private int[] awaitWaiting() {
+            int[] open = null;
+            int unresolved = 0;
+            for (int position = 0; position < waiting; position++) {
+                Tile tile = waitingTile[position];
+                int local = waitingLocal[position];
+                CompletableFuture<Void> mark = tile.marks.get(local);
+                if (mark != READY && (mark == null || !await(mark) || tile.marks.get(local) != READY)) {
+                    if (open == null) {
+                        open = new int[waiting - position];
+                    }
+                    open[unresolved++] = waitingIndex[position];
+                    continue;
+                }
+                tile.copy(local, out, waitingIndex[position]);
+            }
+            return open == null ? null : Arrays.copyOf(open, unresolved);
+        }
+
+        private void addClaimed(int index, Tile tile, int local) {
+            if (claimed == claimedIndex.length) {
+                int grown = Math.max(16, claimed * 2);
+                claimedIndex = Arrays.copyOf(claimedIndex, grown);
+                claimedTile = Arrays.copyOf(claimedTile, grown);
+                claimedLocal = Arrays.copyOf(claimedLocal, grown);
+            }
+            claimedIndex[claimed] = index;
+            claimedTile[claimed] = tile;
+            claimedLocal[claimed] = local;
+            claimed++;
+        }
+
+        private void addWaiting(int index, Tile tile, int local) {
+            if (waiting == waitingIndex.length) {
+                int grown = Math.max(16, waiting * 2);
+                waitingIndex = Arrays.copyOf(waitingIndex, grown);
+                waitingTile = Arrays.copyOf(waitingTile, grown);
+                waitingLocal = Arrays.copyOf(waitingLocal, grown);
+            }
+            waitingIndex[waiting] = index;
+            waitingTile[waiting] = tile;
+            waitingLocal[waiting] = local;
+            waiting++;
+        }
+    }
+
+    private static final class Tile {
+        private final float[] height;
+        private final boolean[] ocean;
+        private final float[] rainfall;
+        private final float[] pondDensity;
+        private final byte[] permission;
+        private final String[] fluidProfile;
+        private final AtomicReferenceArray<CompletableFuture<Void>> marks;
+        private final AtomicInteger pending = new AtomicInteger();
+        private volatile long used;
+
+        private Tile(int cells) {
+            this.height = new float[cells];
+            this.ocean = new boolean[cells];
+            this.rainfall = new float[cells];
+            this.pondDensity = new float[cells];
+            this.permission = new byte[cells];
+            this.fluidProfile = new String[cells];
+            this.marks = new AtomicReferenceArray<>(cells);
+        }
+
+        private void store(int local, HydrologySampleBuffer samples, int sample) {
+            height[local] = samples.height()[sample];
+            ocean[local] = samples.ocean()[sample];
+            rainfall[local] = samples.rainfall()[sample];
+            pondDensity[local] = samples.pondDensity()[sample];
+            permission[local] = samples.permission()[sample];
+            fluidProfile[local] = samples.fluidProfile()[sample];
+        }
+
+        private void copy(int local, HydrologySampleBuffer out, int index) {
+            out.height()[index] = height[local];
+            out.ocean()[index] = ocean[local];
+            out.rainfall()[index] = rainfall[local];
+            out.pondDensity()[index] = pondDensity[local];
+            out.permission()[index] = permission[local];
+            out.fluidProfile()[index] = fluidProfile[local];
+        }
     }
 
     private interface Nodes {
         int cellX(int index);
 
         int cellZ(int index);
+    }
+
+    private record IdleTile(Long key, Tile tile, long used) {
     }
 
     private record Span(int cellX0, int cellZ0, int width, int stride) implements Nodes {

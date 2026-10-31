@@ -153,8 +153,8 @@ public final class TransitionDisplacementField {
                 }
                 residual = signature.oceanFloorHeight() - nativeHeight;
                 if (wet) {
-                    int y = signature.geometry().minimumY() + signature.fluidHeight().getAsInt();
-                    fluidKey = signature.geometry().voxelAt(y).fluidStateKey();
+                    fluidKey = signature.geometry().fluidStateKeyAtOrBelow(signature.fluidHeight().getAsInt(),
+                            signature.oceanFloorHeight());
                 }
             }
             column.total += weight;
@@ -164,7 +164,7 @@ public final class TransitionDisplacementField {
                 column.wetHeight += weight * signature.fluidHeight().getAsInt();
                 column.minimumWetHeight = Math.min(column.minimumWetHeight, signature.fluidHeight().getAsInt());
                 column.maximumWetHeight = Math.max(column.maximumWetHeight, signature.fluidHeight().getAsInt());
-                if (weight > column.fluidKeyWeight) {
+                if (weight > column.fluidKeyWeight && !fluidKey.isEmpty()) {
                     column.fluidKeyWeight = weight;
                     column.fluidKey = fluidKey;
                 }

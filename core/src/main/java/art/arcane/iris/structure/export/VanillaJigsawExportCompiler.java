@@ -2,6 +2,11 @@ package art.arcane.iris.structure.export;
 
 import art.arcane.iris.structure.graph.CompiledStructureGraph;
 import art.arcane.iris.pack.datapack.DataVersion;
+import art.arcane.iris.pack.datapack.export.StructureTemplateEncoder;
+import art.arcane.iris.pack.datapack.export.TemplateBlock;
+import art.arcane.iris.pack.datapack.export.VanillaBlockState;
+import art.arcane.iris.pack.datapack.export.VanillaResourceIdentifier;
+import art.arcane.iris.pack.value.IrisDirection;
 import art.arcane.iris.structure.graph.PlanarJigsawWorkcellResolver;
 import art.arcane.iris.structure.graph.StructureGraphCompilation;
 import art.arcane.iris.structure.graph.StructureGraphCompiler;
@@ -20,6 +25,7 @@ import art.arcane.iris.structure.placement.IrisStructure;
 import art.arcane.iris.structure.object.ObjectPlaceMode;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.geometry.IrisBlockVector;
+import art.arcane.volmlib.util.nbt.tag.CompoundTag;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
@@ -31,10 +37,12 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
-final class VanillaJigsawExportCompiler {
+public final class VanillaJigsawExportCompiler {
     private static final int MAX_DEPTH = 20;
     private static final int MAX_HORIZONTAL_DISTANCE = 128;
     private static final int MAX_VERTICAL_DISTANCE = 4064;
@@ -43,38 +51,56 @@ final class VanillaJigsawExportCompiler {
     private static final int MAX_POOL_WEIGHT = 150;
     private static final Gson GSON = new GsonBuilder().disableHtmlEscaping().setPrettyPrinting().create();
 
-    Compilation compile(VanillaJigsawExportRequest request) {
+    private final DataVersion target;
+
+    public VanillaJigsawExportCompiler(DataVersion target) {
+        this.target = Objects.requireNonNull(target);
+    }
+
+    public static String biomeTagPath(String namespace, String resourcePath) {
+        return "data/" + namespace + "/tags/worldgen/biome/" + resourcePath + ".json";
+    }
+
+    public static String structurePath(String namespace, String resourcePath) {
+        return "data/" + namespace + "/worldgen/structure/" + resourcePath + ".json";
+    }
+
+    public static String structureSetPath(String namespace, String resourcePath) {
+        return "data/" + namespace + "/worldgen/structure_set/" + resourcePath + ".json";
+    }
+
+    public Compilation compile(VanillaJigsawExportUnit unit) {
         List<VanillaJigsawExportDiagnostic> diagnostics = new ArrayList<>();
-        validateIdentity(request, diagnostics);
-        validateSettings(request.settings(), diagnostics);
+        validateIdentity(unit, diagnostics);
+        validateSettings(unit.settings(), diagnostics);
 
         IrisStructure structure;
         try {
-            structure = request.source().loadStructure();
+            structure = unit.source().loadStructure();
         } catch (RuntimeException exception) {
             addError(diagnostics,
                     VanillaJigsawExportDiagnostic.Code.SOURCE_STRUCTURE_MISSING,
-                    request.source().structureKey(),
-                    "Could not load Iris structure '" + request.source().structureKey() + "': "
+                    unit.source().structureKey(),
+                    "Could not load Iris structure '" + unit.source().structureKey() + "': "
                             + exception.getMessage());
             return rejected(diagnostics);
         }
         if (structure == null) {
             addError(diagnostics,
                     VanillaJigsawExportDiagnostic.Code.SOURCE_STRUCTURE_MISSING,
-                    request.source().structureKey(),
-                    "Iris structure '" + request.source().structureKey() + "' does not exist.");
+                    unit.source().structureKey(),
+                    "Iris structure '" + unit.source().structureKey() + "' does not exist.");
             return rejected(diagnostics);
         }
 
-        validateStructure(structure, request.settings(), diagnostics);
+        validateStructure(structure, unit.settings(), diagnostics);
         StructureGraphCompilation graphCompilation;
         try {
-            graphCompilation = StructureGraphCompiler.compile(structure, request.source().resolver());
+            graphCompilation = StructureGraphCompiler.compile(structure, unit.source().resolver());
         } catch (RuntimeException exception) {
             addError(diagnostics,
                     VanillaJigsawExportDiagnostic.Code.GRAPH_VALIDATION,
-                    request.source().structureKey(),
+                    unit.source().structureKey(),
                     "Structure graph compilation failed: " + exception.getMessage());
             return rejected(diagnostics);
         }
@@ -86,31 +112,47 @@ final class VanillaJigsawExportCompiler {
         }
 
         try {
-            Map<String, byte[]> resources = createResources(request, graph);
+            Map<String, byte[]> resources = createResources(unit, graph);
             return new Compilation(resources, List.copyOf(diagnostics));
         } catch (IOException | RuntimeException exception) {
             addError(diagnostics,
                     VanillaJigsawExportDiagnostic.Code.SERIALIZATION_FAILED,
-                    request.source().structureKey(),
+                    unit.source().structureKey(),
                     "Vanilla datapack serialization failed: " + exception.getMessage());
             return rejected(diagnostics);
         }
     }
 
+    static String orientation(IrisDirection front, IrisDirection top) {
+        if (front == IrisDirection.UP_POSITIVE_Y || front == IrisDirection.DOWN_NEGATIVE_Y) {
+            if (top == IrisDirection.NORTH_NEGATIVE_Z
+                    || top == IrisDirection.SOUTH_POSITIVE_Z
+                    || top == IrisDirection.EAST_POSITIVE_X
+                    || top == IrisDirection.WEST_NEGATIVE_X) {
+                return directionName(front) + "_" + directionName(top);
+            }
+            throw new IllegalArgumentException("Vertical jigsaw fronts require a horizontal top direction");
+        }
+        if (top != IrisDirection.UP_POSITIVE_Y) {
+            throw new IllegalArgumentException("Horizontal jigsaw fronts require an upward top direction");
+        }
+        return directionName(front) + "_up";
+    }
+
     private void validateIdentity(
-            VanillaJigsawExportRequest request,
+            VanillaJigsawExportUnit unit,
             List<VanillaJigsawExportDiagnostic> diagnostics
     ) {
-        if (!VanillaResourceIdentifier.validNamespace(request.namespace())) {
+        if (!VanillaResourceIdentifier.validNamespace(unit.namespace())) {
             addError(diagnostics,
                     VanillaJigsawExportDiagnostic.Code.INVALID_NAMESPACE,
-                    request.namespace(),
+                    unit.namespace(),
                     "Datapack namespace must match [a-z0-9_.-]+.");
         }
-        if (!VanillaResourceIdentifier.validPath(request.resourcePath())) {
+        if (!VanillaResourceIdentifier.validPath(unit.resourcePath())) {
             addError(diagnostics,
                     VanillaJigsawExportDiagnostic.Code.INVALID_RESOURCE_PATH,
-                    request.resourcePath(),
+                    unit.resourcePath(),
                     "Datapack resource path must use lowercase resource-path characters without traversal.");
         }
     }
@@ -215,7 +257,7 @@ final class VanillaJigsawExportCompiler {
                     "Minecraft jigsaw size must be within 0..20; Iris export requires 1..20.");
         }
         long horizontalDistance = (long) structure.getMaxSizeChunks() * 16L;
-        if (DataVersion.getRuntime() == DataVersion.V1_21_1 && horizontalDistance != settings.maxDistanceVertical()) {
+        if (target == DataVersion.V1_21_1 && horizontalDistance != settings.maxDistanceVertical()) {
             addError(diagnostics,
                     VanillaJigsawExportDiagnostic.Code.INVALID_MAX_DISTANCE,
                     "max_distance_from_center.vertical",
@@ -472,7 +514,7 @@ final class VanillaJigsawExportCompiler {
                         "Connector pool '" + connector.getPool() + "' cannot be mapped to an exported template pool.");
             }
             try {
-                VanillaStructureTemplateEncoder.orientation(connector.getDirection(), connector.getTop());
+                orientation(connector.getDirection(), connector.getTop());
             } catch (IllegalArgumentException | NullPointerException exception) {
                 addError(diagnostics,
                         VanillaJigsawExportDiagnostic.Code.INVALID_CONNECTOR_ORIENTATION,
@@ -547,23 +589,22 @@ final class VanillaJigsawExportCompiler {
     }
 
     private Map<String, byte[]> createResources(
-            VanillaJigsawExportRequest request,
+            VanillaJigsawExportUnit unit,
             CompiledStructureGraph graph
     ) throws IOException {
         Map<String, byte[]> resources = new LinkedHashMap<>();
-        putJson(resources, "pack.mcmeta", packMetadata(request));
-        putJson(resources, biomeTagPath(request), biomeTag(request));
-        putJson(resources, processorPath(request), processorList());
-        putJson(resources, structurePath(request), structure(request, graph.getStructure()));
-        putJson(resources, structureSetPath(request), structureSet(request));
+        putJson(resources, biomeTagPath(unit.namespace(), unit.resourcePath()), biomeTag(unit));
+        putJson(resources, processorPath(unit), processorList());
+        putJson(resources, structurePath(unit.namespace(), unit.resourcePath()), structure(unit, graph.getStructure()));
+        putJson(resources, structureSetPath(unit.namespace(), unit.resourcePath()), structureSet(unit));
 
         for (Map.Entry<String, IrisJigsawPool> poolEntry : graph.getPools().entrySet()) {
             putJson(resources,
-                    poolPath(request, poolEntry.getKey()),
-                    templatePool(request, graph, poolEntry.getValue()));
+                    poolPath(unit, poolEntry.getKey()),
+                    templatePool(unit, graph, poolEntry.getValue()));
         }
 
-        VanillaStructureTemplateEncoder encoder = new VanillaStructureTemplateEncoder();
+        StructureTemplateEncoder encoder = new StructureTemplateEncoder();
         Map<IrisJigsawWorkcellArchetype, PlanarJigsawWorkcellResolver.ResolvedWorkcell> workcells =
                 resolvedWorkcells(graph.getStructure());
         for (Map.Entry<String, IrisJigsawPiece> pieceEntry : graph.getPieces().entrySet()) {
@@ -571,41 +612,53 @@ final class VanillaJigsawExportCompiler {
                 continue;
             }
             IrisObject object = graph.getObjects().get(trim(pieceEntry.getValue().getObject()));
-            byte[] template = encoder.encode(
-                    object,
-                    pieceEntry.getValue(),
-                    poolKey -> poolIdentifier(request, trim(poolKey)));
-            resources.put(templatePath(request, pieceEntry.getKey()), template);
+            byte[] template = encoder.encode(object, connectorBlocks(unit, pieceEntry.getValue()), target);
+            resources.put(templatePath(unit, pieceEntry.getKey()), template);
         }
         return resources;
     }
 
-    private JsonObject packMetadata(VanillaJigsawExportRequest request) {
-        JsonObject pack = new JsonObject();
-        pack.addProperty("description", request.description());
-        if (DataVersion.getRuntime() == DataVersion.V1_21_1) {
-            pack.addProperty("pack_format", DataVersion.V1_21_1.getPackFormat());
-            JsonObject root = new JsonObject();
-            root.add("pack", pack);
-            return root;
+    private List<TemplateBlock> connectorBlocks(VanillaJigsawExportUnit unit, IrisJigsawPiece piece) {
+        List<TemplateBlock> blocks = new ArrayList<>(piece.getConnectors().size());
+        for (IrisJigsawConnector connector : piece.getConnectors()) {
+            IrisPosition position = connector.getPosition();
+            VanillaBlockState state = VanillaBlockState.parse(
+                    "minecraft:jigsaw[orientation=" + orientation(connector.getDirection(), connector.getTop()) + "]");
+            CompoundTag nbt = connectorNbt(connector, poolIdentifier(unit, trim(connector.getPool())));
+            blocks.add(new TemplateBlock(position.getX(), position.getY(), position.getZ(), state, nbt));
         }
-        JsonArray minimum = new JsonArray();
-        boolean current = VanillaStructureTemplateEncoder.targets263();
-        int packFormat = current ? 121 : 107;
-        minimum.add(packFormat);
-        minimum.add(current ? 0 : 1);
-        pack.add("min_format", minimum);
-        pack.addProperty("max_format", packFormat);
-        JsonObject root = new JsonObject();
-        root.add("pack", pack);
-        return root;
+        return blocks;
     }
 
-    private JsonObject biomeTag(VanillaJigsawExportRequest request) {
+    private CompoundTag connectorNbt(IrisJigsawConnector connector, String poolIdentifier) {
+        CompoundTag nbt = new CompoundTag();
+        nbt.putString("id", "minecraft:jigsaw");
+        nbt.putString("name", VanillaResourceIdentifier.normalizeConnectorIdentifier(connector.getName()));
+        nbt.putString("target", VanillaResourceIdentifier.normalizeConnectorIdentifier(connector.getTargetName()));
+        nbt.putString("pool", poolIdentifier);
+        nbt.putString("final_state", VanillaBlockState.parse(connector.getFinalState()).canonical());
+        nbt.putString("joint", connector.getJoint().name().toLowerCase(Locale.ROOT));
+        nbt.putInt("selection_priority", connector.getSelectionPriority());
+        nbt.putInt("placement_priority", connector.getPlacementPriority());
+        return nbt;
+    }
+
+    private static String directionName(IrisDirection direction) {
+        return switch (direction) {
+            case UP_POSITIVE_Y -> "up";
+            case DOWN_NEGATIVE_Y -> "down";
+            case NORTH_NEGATIVE_Z -> "north";
+            case SOUTH_POSITIVE_Z -> "south";
+            case EAST_POSITIVE_X -> "east";
+            case WEST_NEGATIVE_X -> "west";
+        };
+    }
+
+    private JsonObject biomeTag(VanillaJigsawExportUnit unit) {
         JsonObject root = new JsonObject();
         root.addProperty("replace", false);
         JsonArray values = new JsonArray();
-        for (String biome : request.settings().biomes()) {
+        for (String biome : unit.settings().biomes()) {
             values.add(biome);
         }
         root.add("values", values);
@@ -618,11 +671,11 @@ final class VanillaJigsawExportCompiler {
         return root;
     }
 
-    private JsonObject structure(VanillaJigsawExportRequest request, IrisStructure structure) {
-        VanillaJigsawExportSettings settings = request.settings();
+    private JsonObject structure(VanillaJigsawExportUnit unit, IrisStructure structure) {
+        VanillaJigsawExportSettings settings = unit.settings();
         JsonObject root = new JsonObject();
         root.addProperty("type", "minecraft:jigsaw");
-        root.addProperty("biomes", "#" + request.namespace() + ":" + request.resourcePath());
+        root.addProperty("biomes", "#" + unit.namespace() + ":" + unit.resourcePath());
         int horizontalDistance = structure.getMaxSizeChunks() * 16;
         if (horizontalDistance == settings.maxDistanceVertical()) {
             root.addProperty("max_distance_from_center", horizontalDistance);
@@ -640,21 +693,21 @@ final class VanillaJigsawExportCompiler {
         JsonObject startHeight = new JsonObject();
         startHeight.addProperty("absolute", settings.startHeight());
         root.add("start_height", startHeight);
-        root.addProperty("start_pool", poolIdentifier(request, trim(structure.getStartPool())));
+        root.addProperty("start_pool", poolIdentifier(unit, trim(structure.getStartPool())));
         root.addProperty("step", settings.generationStep().serializedName());
         root.addProperty("terrain_adaptation", settings.terrainAdaptation().serializedName());
         root.addProperty("use_expansion_hack", settings.expansionHack());
         return root;
     }
 
-    private JsonObject structureSet(VanillaJigsawExportRequest request) {
+    private JsonObject structureSet(VanillaJigsawExportUnit unit) {
         JsonObject structureEntry = new JsonObject();
-        structureEntry.addProperty("structure", structureIdentifier(request));
+        structureEntry.addProperty("structure", structureIdentifier(unit));
         structureEntry.addProperty("weight", 1);
         JsonArray structures = new JsonArray();
         structures.add(structureEntry);
 
-        VanillaJigsawExportSettings settings = request.settings();
+        VanillaJigsawExportSettings settings = unit.settings();
         JsonObject placement = new JsonObject();
         placement.addProperty("type", "minecraft:random_spread");
         placement.addProperty("frequency", settings.frequency());
@@ -670,13 +723,13 @@ final class VanillaJigsawExportCompiler {
     }
 
     private JsonObject templatePool(
-            VanillaJigsawExportRequest request,
+            VanillaJigsawExportUnit unit,
             CompiledStructureGraph graph,
             IrisJigsawPool pool
     ) {
         JsonObject root = new JsonObject();
         String fallback = trim(pool.getFallback());
-        root.addProperty("fallback", fallback.isEmpty() ? "minecraft:empty" : poolIdentifier(request, fallback));
+        root.addProperty("fallback", fallback.isEmpty() ? "minecraft:empty" : poolIdentifier(unit, fallback));
         JsonArray elements = new JsonArray();
         Map<IrisJigsawWorkcellArchetype, PlanarJigsawWorkcellResolver.ResolvedWorkcell> workcells =
                 resolvedWorkcells(graph.getStructure());
@@ -692,8 +745,8 @@ final class VanillaJigsawExportCompiler {
                     element.addProperty("element_type", "minecraft:empty_pool_element");
                 } else {
                     element.addProperty("element_type", "minecraft:single_pool_element");
-                    element.addProperty("location", templateIdentifier(request, trim(entry.getPiece())));
-                    element.addProperty("processors", processorIdentifier(request));
+                    element.addProperty("location", templateIdentifier(unit, trim(entry.getPiece())));
+                    element.addProperty("processors", processorIdentifier(unit));
                     element.addProperty("projection", "rigid");
                 }
                 weightedElement.add("element", element);
@@ -725,47 +778,35 @@ final class VanillaJigsawExportCompiler {
         resources.put(path, (GSON.toJson(value) + "\n").getBytes(StandardCharsets.UTF_8));
     }
 
-    private String biomeTagPath(VanillaJigsawExportRequest request) {
-        return "data/" + request.namespace() + "/tags/worldgen/biome/" + request.resourcePath() + ".json";
+    private String processorPath(VanillaJigsawExportUnit unit) {
+        return "data/" + unit.namespace() + "/worldgen/processor_list/"
+                + unit.resourcePath() + "/empty.json";
     }
 
-    private String processorPath(VanillaJigsawExportRequest request) {
-        return "data/" + request.namespace() + "/worldgen/processor_list/"
-                + request.resourcePath() + "/empty.json";
+    private String poolPath(VanillaJigsawExportUnit unit, String poolKey) {
+        return "data/" + unit.namespace() + "/worldgen/template_pool/"
+                + unit.resourcePath() + "/pool/" + poolKey + ".json";
     }
 
-    private String structurePath(VanillaJigsawExportRequest request) {
-        return "data/" + request.namespace() + "/worldgen/structure/" + request.resourcePath() + ".json";
+    private String templatePath(VanillaJigsawExportUnit unit, String pieceKey) {
+        return "data/" + unit.namespace() + "/structure/"
+                + unit.resourcePath() + "/piece/" + pieceKey + ".nbt";
     }
 
-    private String structureSetPath(VanillaJigsawExportRequest request) {
-        return "data/" + request.namespace() + "/worldgen/structure_set/" + request.resourcePath() + ".json";
+    private String structureIdentifier(VanillaJigsawExportUnit unit) {
+        return unit.namespace() + ":" + unit.resourcePath();
     }
 
-    private String poolPath(VanillaJigsawExportRequest request, String poolKey) {
-        return "data/" + request.namespace() + "/worldgen/template_pool/"
-                + request.resourcePath() + "/pool/" + poolKey + ".json";
+    private String processorIdentifier(VanillaJigsawExportUnit unit) {
+        return unit.namespace() + ":" + unit.resourcePath() + "/empty";
     }
 
-    private String templatePath(VanillaJigsawExportRequest request, String pieceKey) {
-        return "data/" + request.namespace() + "/structure/"
-                + request.resourcePath() + "/piece/" + pieceKey + ".nbt";
+    private String poolIdentifier(VanillaJigsawExportUnit unit, String poolKey) {
+        return unit.namespace() + ":" + unit.resourcePath() + "/pool/" + poolKey;
     }
 
-    private String structureIdentifier(VanillaJigsawExportRequest request) {
-        return request.namespace() + ":" + request.resourcePath();
-    }
-
-    private String processorIdentifier(VanillaJigsawExportRequest request) {
-        return request.namespace() + ":" + request.resourcePath() + "/empty";
-    }
-
-    private String poolIdentifier(VanillaJigsawExportRequest request, String poolKey) {
-        return request.namespace() + ":" + request.resourcePath() + "/pool/" + poolKey;
-    }
-
-    private String templateIdentifier(VanillaJigsawExportRequest request, String pieceKey) {
-        return request.namespace() + ":" + request.resourcePath() + "/piece/" + pieceKey;
+    private String templateIdentifier(VanillaJigsawExportUnit unit, String pieceKey) {
+        return unit.namespace() + ":" + unit.resourcePath() + "/piece/" + pieceKey;
     }
 
     private boolean inside(IrisPosition position, IrisObject object) {
@@ -809,16 +850,16 @@ final class VanillaJigsawExportCompiler {
         return value == null ? "" : value.trim();
     }
 
-    record Compilation(
+    public record Compilation(
             Map<String, byte[]> resources,
             List<VanillaJigsawExportDiagnostic> diagnostics
     ) {
-        Compilation {
+        public Compilation {
             resources = Map.copyOf(resources);
             diagnostics = List.copyOf(diagnostics);
         }
 
-        boolean hasErrors() {
+        public boolean hasErrors() {
             for (VanillaJigsawExportDiagnostic diagnostic : diagnostics) {
                 if (diagnostic.isBlocking()) {
                     return true;

@@ -86,7 +86,7 @@ final class HydrologyBlockMetrics {
 
             @Override
             public int natural(int x, int z) {
-                return inputs.naturalHeight().applyAsInt(x, z);
+                return (int) Math.round(inputs.naturalHeight().height(x, z));
             }
         };
         int minX = key.wx() * WindowKey.SIZE;

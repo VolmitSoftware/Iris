@@ -8,15 +8,15 @@ import art.arcane.iris.generation.hydrology.raster.WaterRole;
 import art.arcane.iris.generation.hydrology.water.Pond;
 import art.arcane.iris.generation.hydrology.water.Reach;
 import art.arcane.iris.generation.hydrology.water.ReachStyle;
+import art.arcane.iris.generation.hydrology.raster.NaturalHeights;
 
 import java.util.function.Consumer;
-import java.util.function.IntBinaryOperator;
 
 final class HydrologyRasterMetrics {
     private final HydrologySettings settings;
     private final HydrologyPlanMetrics plans;
     private final Rasters rasters;
-    private final IntBinaryOperator naturalHeight;
+    private final NaturalHeights naturalHeight;
     private final HydrologyWindows.WindowRange range;
     private final Consumer<String> examples;
 
@@ -25,7 +25,7 @@ final class HydrologyRasterMetrics {
         ChunkWaterRaster get(int chunkX, int chunkZ);
     }
 
-    HydrologyRasterMetrics(HydrologySettings settings, HydrologyPlanMetrics plans, Rasters rasters, IntBinaryOperator naturalHeight,
+    HydrologyRasterMetrics(HydrologySettings settings, HydrologyPlanMetrics plans, Rasters rasters, NaturalHeights naturalHeight,
                            HydrologyWindows.WindowRange range, Consumer<String> examples) {
         this.settings = settings;
         this.plans = plans;
@@ -115,7 +115,7 @@ final class HydrologyRasterMetrics {
                     continue;
                 }
                 int terrain = raster.terrainHeight(x & 15, z & 15);
-                int natural = naturalHeight.applyAsInt(x, z);
+                int natural = (int) Math.round(naturalHeight.height(x, z));
                 if (terrain > natural + maxFill) {
                     overCap++;
                     examples.accept("berm raised " + x + "," + z + " from " + natural + " to " + terrain);
@@ -131,7 +131,7 @@ final class HydrologyRasterMetrics {
 
     int terrain(int x, int z) {
         ChunkWaterRaster raster = rasters.get(x >> 4, z >> 4);
-        return raster.empty() ? naturalHeight.applyAsInt(x, z) : raster.terrainHeight(x & 15, z & 15);
+        return raster.empty() ? (int) Math.round(naturalHeight.height(x, z)) : raster.terrainHeight(x & 15, z & 15);
     }
 
     private boolean seamMismatch(int x, int z, int nx, int nz) {

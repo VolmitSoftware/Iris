@@ -1,7 +1,5 @@
 package art.arcane.iris.generation.runtime;
 
-import art.arcane.iris.generation.biome.IrisBiome;
-
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.util.Objects;
@@ -49,7 +47,7 @@ final class SharedBoundsBiomes {
         return (int) ((mixed ^ (mixed >>> 31)) & mask);
     }
 
-    IrisBiome get(int x, int z) {
+    Object get(int x, int z) {
         long key = key(x, z);
         int slot = slot(x, z);
         int before = (int) INTS.getAcquire(stamps, slot);
@@ -63,11 +61,11 @@ final class SharedBoundsBiomes {
         if (before != after || storedKey != key) {
             return null;
         }
-        return (IrisBiome) value;
+        return value;
     }
 
-    void put(int x, int z, IrisBiome biome) {
-        if (biome == null) {
+    void put(int x, int z, Object sample) {
+        if (sample == null) {
             return;
         }
         int slot = slot(x, z);
@@ -76,7 +74,7 @@ final class SharedBoundsBiomes {
             return;
         }
         LONGS.setRelease(keys, slot, key(x, z));
-        OBJECTS.setRelease(values, slot, biome);
+        OBJECTS.setRelease(values, slot, sample);
         INTS.setRelease(stamps, slot, stamp + 2);
     }
 

@@ -25,6 +25,7 @@ import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeEntitySpawns;
 import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeModdedLoader;
 import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeBiomeRegistry;
 import art.arcane.iris.BuildConstants;
+import art.arcane.iris.platform.ClasspathVanillaDataSource;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeCommandExecutor;
 import art.arcane.iris.spi.PlatformGenerationRegistry;
@@ -35,6 +36,7 @@ import art.arcane.volmlib.nativelib.entity.NativeEntityType;
 import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.iris.spi.PlatformScheduler;
 import art.arcane.iris.spi.PlatformStructureHooks;
+import art.arcane.iris.spi.VanillaDataSource;
 import art.arcane.volmlib.nativelib.terrain.NativeWorld;
 
 import java.io.File;
@@ -56,6 +58,7 @@ public final class ModdedPlatform implements IrisPlatform {
     private final ModdedScheduler scheduler;
     private final ModdedStructureHooks structureHooks;
     private final ModdedBiomeWriter biomeWriter;
+    private final ClasspathVanillaDataSource vanillaData;
 
     public ModdedPlatform(NativeModdedLoader loader) {
         this.loader = loader;
@@ -65,6 +68,7 @@ public final class ModdedPlatform implements IrisPlatform {
         this.scheduler = new ModdedScheduler();
         this.structureHooks = new ModdedStructureHooks(ModdedEngineBootstrap::currentServer);
         this.biomeWriter = new ModdedBiomeWriter(new NativeBiomeRegistry(ModdedEngineBootstrap::currentServer, "minecraft:plains"));
+        this.vanillaData = new ClasspathVanillaDataSource(() -> overworldClass(ModdedEngineBootstrap.currentServer()));
     }
 
     public static void errorSink(Consumer<Throwable> sink) {
@@ -108,6 +112,11 @@ public final class ModdedPlatform implements IrisPlatform {
     @Override
     public PlatformBiomeWriter biomeWriter() {
         return biomeWriter;
+    }
+
+    @Override
+    public VanillaDataSource vanillaData() {
+        return vanillaData;
     }
 
     @Override
@@ -363,6 +372,17 @@ public final class ModdedPlatform implements IrisPlatform {
         }
         return new ModdedGenerationRegistry(NativeModdedServer.registryDefinitions(ModdedEngineBootstrap::currentServer, loader),
                 "modded-generation-registry-v1");
+    }
+
+    static Class<?> overworldClass(NativeModdedServer server) {
+        if (server == null) {
+            throw new IllegalStateException("Vanilla data needs a running Minecraft server.");
+        }
+        NativeWorld overworld = server.overworld();
+        if (overworld == null) {
+            throw new IllegalStateException("Vanilla data needs the Minecraft server overworld to be loaded.");
+        }
+        return overworld.nativeHandle().getClass();
     }
 
 }

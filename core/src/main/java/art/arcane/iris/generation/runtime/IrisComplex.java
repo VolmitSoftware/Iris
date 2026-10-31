@@ -91,7 +91,6 @@ import art.arcane.volmlib.util.interpolation.NoiseBoundsProvider;
 import art.arcane.volmlib.util.noise.CNG;
 import art.arcane.volmlib.util.stream.ProceduralStream;
 import art.arcane.volmlib.util.stream.interpolation.Interpolated;
-import it.unimi.dsi.fastutil.longs.Long2DoubleOpenHashMap;
 import lombok.AccessLevel;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -120,10 +119,11 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiFunction;
 
 @Data
-@EqualsAndHashCode(exclude = {"data", "gridBoundsCache", "sharedCornerBounds", "sharedBoundsBiomes", "terrainProgram", "bakeCache", "regionSource", "baseBiomeSource", "caveSource", "rockSource", "fluidSource", "childStyleSeed", "inferredByType", "naturalHeightSource", "naturalTrueBiomeSource", "trueBiomeSource", "frozenInterpolators", "frozenGenerators", "inferredBiomeStreams", "imageMapRuntime", "terrainEngine", "terrain3D", "hydrologyRuntime", "shoreBiomes", "waterVegetation", "effectiveChunks"})
-@ToString(exclude = {"data", "gridBoundsCache", "sharedCornerBounds", "sharedBoundsBiomes", "terrainProgram", "bakeCache", "regionSource", "baseBiomeSource", "caveSource", "rockSource", "fluidSource", "childStyleSeed", "inferredByType", "naturalHeightSource", "naturalTrueBiomeSource", "trueBiomeSource", "frozenInterpolators", "frozenGenerators", "inferredBiomeStreams", "imageMapRuntime", "terrainEngine", "terrain3D", "hydrologyRuntime", "shoreBiomes", "waterVegetation", "effectiveChunks"})
+@EqualsAndHashCode(exclude = {"data", "gridBoundsCache", "sharedCornerBounds", "sharedBaseHeights", "sharedBoundsBiomes", "regionBounds", "contextRegionStream", "terrainProgram", "bakeCache", "regionSource", "baseBiomeSource", "caveSource", "rockSource", "fluidSource", "childStyleSeed", "inferredByType", "naturalHeightSource", "naturalTrueBiomeSource", "trueBiomeSource", "frozenInterpolators", "frozenGenerators", "inferredBiomeStreams", "imageMapRuntime", "terrainEngine", "terrain3D", "hydrologyRuntime", "shoreBiomes", "waterVegetation", "effectiveChunks"})
+@ToString(exclude = {"data", "gridBoundsCache", "sharedCornerBounds", "sharedBaseHeights", "sharedBoundsBiomes", "regionBounds", "contextRegionStream", "terrainProgram", "bakeCache", "regionSource", "baseBiomeSource", "caveSource", "rockSource", "fluidSource", "childStyleSeed", "inferredByType", "naturalHeightSource", "naturalTrueBiomeSource", "trueBiomeSource", "frozenInterpolators", "frozenGenerators", "inferredBiomeStreams", "imageMapRuntime", "terrainEngine", "terrain3D", "hydrologyRuntime", "shoreBiomes", "waterVegetation", "effectiveChunks"})
 public class IrisComplex implements DataProvider {
     private static final NoiseBounds ZERO_NOISE_BOUNDS = new NoiseBounds(0D, 0D);
+    private static final long NEGATIVE_ZERO_BITS = Double.doubleToRawLongBits(-0D);
     private static final AtomicLong lastBoundsFailureLog = new AtomicLong(0L);
     private static final int GRID_BOUNDS_CACHE_SIZE = 8192;
     private static final int STUDIO_NOISE_CACHE_SIZE = 32_768;
@@ -146,7 +146,6 @@ public class IrisComplex implements DataProvider {
             Comparator.nullsFirst(Comparator.naturalOrder())
     );
     private static final ThreadLocal<TerrainBatchScratch> BATCH_SCRATCH = ThreadLocal.withInitial(TerrainBatchScratch::new);
-    private static final ThreadLocal<HydrologyBaseHeights> HYDROLOGY_BASE_HEIGHTS = new ThreadLocal<>();
     private static final InferredType[] INFERRED_BIOME_PREPARATION_ORDER = {
             InferredType.LAND,
             InferredType.CAVE,
@@ -160,6 +159,7 @@ public class IrisComplex implements DataProvider {
     @Getter(AccessLevel.NONE)
     private final int biomeBoundsSamplingStep;
     private transient volatile SharedCornerBounds sharedCornerBounds;
+    private transient volatile SharedBaseHeights sharedBaseHeights;
     private transient volatile SharedBoundsBiomes sharedBoundsBiomes;
     @Getter(AccessLevel.NONE)
     @Setter(AccessLevel.NONE)
@@ -259,6 +259,10 @@ public class IrisComplex implements DataProvider {
     private IrisBiome focusBiome;
     private IrisRegion focusRegion;
     private Map<IrisInterpolator, IdentityHashMap<IrisBiome, GeneratorBounds>> generatorBounds;
+    @Getter(AccessLevel.NONE)
+    private final transient RegionBounds regionBounds;
+    @Getter(AccessLevel.NONE)
+    private final transient ProceduralStream<IrisRegion> contextRegionStream;
     private Set<IrisBiome> generatorBiomes;
     @Setter(AccessLevel.NONE)
     private final transient HydrologyRuntime hydrologyRuntime;
@@ -386,6 +390,9 @@ public class IrisComplex implements DataProvider {
             frozenGenerators[frozenIndex] = generatorGroups[frozenIndex].generators();
         }
         generatorBounds = buildGeneratorBounds(engine);
+        regionBounds = focusedBiomes == null && !imageMapRuntime.has(IrisImageMapApplication.BIOME)
+                ? RegionBounds.compile(preparedRegions, frozenInterpolators.length, new BoundsReach(), this::groupBounds)
+                : null;
         biomeBuffetGenerators = compileBuffetGeneratorGroups();
         chunkHeightBatch = engine.getDimension().getTerrainSamplingStep() == 1 && biomeBuffetGenerators.isEmpty()
                 && (biomeBuffet == null || biomeBuffet.cells().isEmpty());
@@ -417,20 +424,21 @@ public class IrisComplex implements DataProvider {
                 : RegionSelection.select(new RegionSelection.Options(
                         engine.getDimension(), data, regionStyleStream, imageMapRuntime, null));
         regionStream = focusedRegions != null ? focusedRegions : new BakedStream<>(bakeCache, BakePlane.REGION, regionSource);
-        caveSource = GenerationStreams.contextInjecting(regionStream, engine, (c, x, z) -> c.getRegion().get(x, z))
+        contextRegionStream = GenerationStreams.contextInjecting(regionStream, engine, (c, x, z) -> c.getRegion().get(x, z));
+        caveSource = contextRegionStream
                 .convert((r) -> createInferredBiomeStream(r, InferredType.CAVE))
                 .convertAware2D(ProceduralStream::get);
         caveBiomeStream = new BakedStream<>(bakeCache, BakePlane.CAVE_BIOME, caveSource);
         inferredStreams.put(InferredType.CAVE, caveBiomeStream);
-        landBiomeStream = GenerationStreams.contextInjecting(regionStream, engine, (c, x, z) -> c.getRegion().get(x, z))
+        landBiomeStream = contextRegionStream
                 .convert((r) -> createInferredBiomeStream(r, InferredType.LAND))
                 .convertAware2D(ProceduralStream::get);
         inferredStreams.put(InferredType.LAND, landBiomeStream);
-        seaBiomeStream = GenerationStreams.contextInjecting(regionStream, engine, (c, x, z) -> c.getRegion().get(x, z))
+        seaBiomeStream = contextRegionStream
                 .convert((r) -> createInferredBiomeStream(r, InferredType.SEA))
                 .convertAware2D(ProceduralStream::get);
         inferredStreams.put(InferredType.SEA, seaBiomeStream);
-        shoreBiomeStream = GenerationStreams.contextInjecting(regionStream, engine, (c, x, z) -> c.getRegion().get(x, z))
+        shoreBiomeStream = contextRegionStream
                 .convert((r) -> createInferredBiomeStream(r, InferredType.SHORE))
                 .convertAware2D(ProceduralStream::get);
         inferredStreams.put(InferredType.SHORE, shoreBiomeStream);
@@ -812,17 +820,35 @@ public class IrisComplex implements DataProvider {
             }
             return;
         }
+        SharedBaseHeights memo = sharedBaseHeights();
         TerrainBatchScratch scratch = BATCH_SCRATCH.get();
         int mark = scratch.mark();
         int indexMark = scratch.indexMark();
         try {
             double[] batchXs = scratch.buffer(count);
             double[] batchZs = scratch.buffer(count);
+            double[] computed = scratch.buffer(count);
+            int[] slots = scratch.indices(count);
+            int missing = 0;
             for (int index = 0; index < count; index++) {
-                batchXs[index] = xs[from + index];
-                batchZs[index] = zs[from + index];
+                int x = xs[from + index];
+                int z = zs[from + index];
+                double known = memo.get(x, z);
+                if (Double.isNaN(known)) {
+                    batchXs[missing] = x;
+                    batchZs[missing] = z;
+                    slots[missing++] = index;
+                } else {
+                    heights[index] = known;
+                }
             }
-            batchBaseHeights(scratch, batchXs, batchZs, count, heights);
+            if (missing > 0) {
+                batchBaseHeights(scratch, batchXs, batchZs, missing, computed);
+                for (int index = 0; index < missing; index++) {
+                    heights[slots[index]] = computed[index];
+                    memo.put((int) batchXs[index], (int) batchZs[index], computed[index]);
+                }
+            }
         } finally {
             scratch.reset(mark);
             scratch.resetIndices(indexMark);
@@ -830,23 +856,9 @@ public class IrisComplex implements DataProvider {
         if (baseOnly || terrain3D == null && transitionDisplacement == null) {
             return;
         }
-        Long2DoubleOpenHashMap known = new Long2DoubleOpenHashMap(count);
-        known.defaultReturnValue(Double.NaN);
         for (int index = 0; index < count; index++) {
-            known.put(hydrologyColumnKey(xs[from + index], zs[from + index]), heights[index]);
+            heights[index] = naturalHeightStream.getDouble(xs[from + index], zs[from + index]);
         }
-        HYDROLOGY_BASE_HEIGHTS.set(new HydrologyBaseHeights(this, known));
-        try {
-            for (int index = 0; index < count; index++) {
-                heights[index] = naturalHeightStream.getDouble(xs[from + index], zs[from + index]);
-            }
-        } finally {
-            HYDROLOGY_BASE_HEIGHTS.remove();
-        }
-    }
-
-    private static long hydrologyColumnKey(int x, int z) {
-        return ((long) x << 32) | (z & 0xFFFFFFFFL);
     }
 
     private void bakeBaseHeights(int chunkX, int chunkZ, long[] missing, double[] values) {
@@ -1082,15 +1094,21 @@ public class IrisComplex implements DataProvider {
     }
 
     private double sampleUnblendedNaturalTerrainHeight(double x, double z) {
-        HydrologyBaseHeights batched = HYDROLOGY_BASE_HEIGHTS.get();
-        if (batched != null && batched.owner() == this && (int) x == x && (int) z == z) {
-            double known = batched.heights().get(hydrologyColumnKey((int) x, (int) z));
-            if (!Double.isNaN(known)) {
-                return known;
-            }
+        if (!memoColumn(x) || !memoColumn(z)) {
+            return imageMapRuntime.sampleTerrainHeight(x, z, proceduralTerrainHeight.sample(x, z));
         }
-        double proceduralHeight = proceduralTerrainHeight.sample(x, z);
-        return imageMapRuntime.sampleTerrainHeight(x, z, proceduralHeight);
+        SharedBaseHeights memo = sharedBaseHeights();
+        double known = memo.get((int) x, (int) z);
+        if (!Double.isNaN(known)) {
+            return known;
+        }
+        double height = imageMapRuntime.sampleTerrainHeight(x, z, proceduralTerrainHeight.sample(x, z));
+        memo.put((int) x, (int) z, height);
+        return height;
+    }
+
+    private static boolean memoColumn(double coordinate) {
+        return (int) coordinate == coordinate && Double.doubleToRawLongBits(coordinate) != NEGATIVE_ZERO_BITS;
     }
 
     static double calculateNaturalSlope(double naturalHeight, double easternHeight, double southernHeight) {
@@ -1662,7 +1680,11 @@ public class IrisComplex implements DataProvider {
 
     /** The natural terrain height of a column, from the natural height stream only: never touches hydrology or its caches. */
     public int naturalTrueHeight(int x, int z) {
-        return (int) Math.round(naturalHeightStream.getDouble(x, z));
+        return (int) Math.round(naturalHeight(x, z));
+    }
+
+    public double naturalHeight(int x, int z) {
+        return naturalHeightStream.getDouble(x, z);
     }
 
     /** The terrain slope of a column from the natural height stream only: never touches hydrology or its caches. */
@@ -1885,7 +1907,7 @@ public class IrisComplex implements DataProvider {
         int grid = biomeBoundsSamplingStep;
         GridBoundsCache cache = gridBoundsCache.get();
         if (grid <= 1) {
-            return sampleBoundsRaw(cache, engine, interpolator, generators, x, z);
+            return sampleBoundsRaw(cache, engine, interpolator, interpolatorIndex, generators, x, z);
         }
 
         int xi = (int) Math.floor(x);
@@ -1941,7 +1963,7 @@ public class IrisComplex implements DataProvider {
             if (GenerationCounter.ENABLED) {
                 GenerationCounter.CORNER_STARCASTS.increment();
             }
-            packed = computePackedBounds(cache, engine, interpolator, generators, gx, gz);
+            packed = computePackedBounds(cache, engine, interpolator, interpolatorIndex, generators, gx, gz);
             if (!Double.isFinite(boundsLow(packed)) || !Double.isFinite(boundsHigh(packed))) {
                 // A non-finite corner is a transient sampling fault, not a fact about the terrain:
                 // hand it back uncached so the next sample recomputes it instead of pinning it.
@@ -1972,6 +1994,20 @@ public class IrisComplex implements DataProvider {
         return shared;
     }
 
+    private SharedBaseHeights sharedBaseHeights() {
+        SharedBaseHeights shared = sharedBaseHeights;
+        if (shared == null) {
+            synchronized (this) {
+                shared = sharedBaseHeights;
+                if (shared == null) {
+                    shared = new SharedBaseHeights(SharedBaseHeights.capacityFor(Runtime.getRuntime().maxMemory()));
+                    sharedBaseHeights = shared;
+                }
+            }
+        }
+        return shared;
+    }
+
     private SharedBoundsBiomes sharedBoundsBiomes(ProceduralStream<IrisBiome> source) {
         SharedBoundsBiomes shared = sharedBoundsBiomes;
         if (shared != null && shared.source() == source) {
@@ -1987,8 +2023,9 @@ public class IrisComplex implements DataProvider {
         }
     }
 
-    private long computePackedBounds(GridBoundsCache cache, Engine engine, IrisInterpolator interpolator, IrisGenerator[] generators, int gx, int gz) {
-        NoiseBounds bounds = sampleBoundsRaw(cache, engine, interpolator, generators, gx, gz);
+    private long computePackedBounds(GridBoundsCache cache, Engine engine, IrisInterpolator interpolator, int interpolatorIndex,
+                                     IrisGenerator[] generators, int gx, int gz) {
+        NoiseBounds bounds = sampleBoundsRaw(cache, engine, interpolator, interpolatorIndex, generators, gx, gz);
         return (((long) Float.floatToRawIntBits((float) bounds.min())) << 32) | (Float.floatToRawIntBits((float) bounds.max()) & 0xFFFFFFFFL);
     }
 
@@ -2006,10 +2043,11 @@ public class IrisComplex implements DataProvider {
         return a + ((b - a) * fz);
     }
 
-    private NoiseBounds sampleBoundsRaw(GridBoundsCache cache, Engine engine, IrisInterpolator interpolator, IrisGenerator[] generators, double x, double z) {
+    private NoiseBounds sampleBoundsRaw(GridBoundsCache cache, Engine engine, IrisInterpolator interpolator, int interpolatorIndex,
+                                        IrisGenerator[] generators, double x, double z) {
         IdentityHashMap<IrisBiome, GeneratorBounds> cachedBounds = generatorBounds.get(interpolator);
         BoundsSampler sampler = cache.sampler.isInUse() ? new BoundsSampler() : cache.sampler;
-        sampler.bind(this, engine, generators, cachedBounds);
+        sampler.bind(this, engine, interpolatorIndex, generators, cachedBounds);
 
         try {
             return interpolator.interpolateBounds(x, z, sampler);
@@ -2295,6 +2333,11 @@ public class IrisComplex implements DataProvider {
             }
         }
         return reached;
+    }
+
+    private NoiseBounds groupBounds(int group, IrisBiome biome) {
+        GeneratorBounds cached = generatorBounds.get(frozenInterpolators[group]).get(biome);
+        return (cached == null ? computeGeneratorBounds(frozenGenerators[group], biome) : cached).noiseBounds;
     }
 
     static double averageGeneratorHeights(
@@ -2604,6 +2647,32 @@ public class IrisComplex implements DataProvider {
         }
     }
 
+    private final class BoundsReach implements RegionBounds.Reach {
+        @Override
+        public List<IrisBiome> picks(IrisRegion region, InferredType type) {
+            return loadInferredBiomes(biomeKeys(region, type), type);
+        }
+
+        @Override
+        public Collection<IrisBiome> descendants(IrisBiome biome) {
+            Set<IrisBiome> reached = Collections.newSetFromMap(new IdentityHashMap<>());
+            ArrayDeque<IrisBiome> pending = new ArrayDeque<>();
+            pending.add(biome);
+            while (!pending.isEmpty()) {
+                IrisBiome next = pending.poll();
+                if (!reached.add(next)) {
+                    continue;
+                }
+                for (IrisBiome child : next.getRealChildren(IrisComplex.this)) {
+                    if (child != null) {
+                        pending.add(child);
+                    }
+                }
+            }
+            return reached;
+        }
+    }
+
     /**
      * Reusable per-thread bounds provider. Holds the biome memo and the lazily computed generator
      * bounds for one sampleBoundsRaw pass so the pass allocates nothing; {@link #bind}
@@ -2619,9 +2688,12 @@ public class IrisComplex implements DataProvider {
         private final IdentityHashMap<IrisBiome, GeneratorBounds> localBounds = new IdentityHashMap<>(8);
         private IrisComplex complex;
         private Engine engine;
+        private int group;
         private IrisGenerator[] generators;
         private IdentityHashMap<IrisBiome, GeneratorBounds> cachedBounds;
         private SharedBoundsBiomes sharedBiomes;
+        private BakedStream<IrisBiome> bakedBiomes;
+        private RegionBounds regional;
         private boolean integerCoordinates;
         private boolean inUse;
 
@@ -2629,14 +2701,19 @@ public class IrisComplex implements DataProvider {
             return inUse;
         }
 
-        private void bind(IrisComplex complex, Engine engine, IrisGenerator[] generators, IdentityHashMap<IrisBiome, GeneratorBounds> cachedBounds) {
+        private void bind(IrisComplex complex, Engine engine, int group, IrisGenerator[] generators,
+                          IdentityHashMap<IrisBiome, GeneratorBounds> cachedBounds) {
             this.complex = complex;
             this.engine = engine;
+            this.group = group;
             this.generators = generators;
             this.cachedBounds = cachedBounds;
             this.integerCoordinates = complex.baseBiomeStream instanceof BakedStream<?>
                     || complex.baseBiomeStream instanceof CachedStream2D<?>;
             this.sharedBiomes = integerCoordinates ? complex.sharedBoundsBiomes(complex.baseBiomeStream) : null;
+            this.bakedBiomes = complex.regionBounds != null && complex.baseBiomeStream instanceof BakedStream<IrisBiome> baked
+                    ? baked : null;
+            this.regional = bakedBiomes == null ? null : complex.regionBounds;
             this.inUse = true;
             if (sampleSource.get() != complex.baseBiomeStream) {
                 sampleCache.clear();
@@ -2654,6 +2731,8 @@ public class IrisComplex implements DataProvider {
             generators = null;
             cachedBounds = null;
             sharedBiomes = null;
+            bakedBiomes = null;
+            regional = null;
             inUse = false;
         }
 
@@ -2662,25 +2741,23 @@ public class IrisComplex implements DataProvider {
             try {
                 double sampleX = integerCoordinates ? (int) xx : xx;
                 double sampleZ = integerCoordinates ? (int) zz : zz;
-                IrisBiome bx = sampleCache.get(sampleX, sampleZ);
-                if (bx == null) {
-                    bx = sharedBiomes == null ? null : sharedBiomes.get((int) sampleX, (int) sampleZ);
-                    if (bx == null) {
-                        ChunkBakeCache.enterSparse();
-                        try {
-                            bx = complex.baseBiomeStream.get(xx, zz);
-                        } finally {
-                            ChunkBakeCache.exitSparse();
-                        }
-                        if (sharedBiomes != null) {
-                            sharedBiomes.put((int) sampleX, (int) sampleZ, bx);
-                        }
+                Object known = sampleCache.get(sampleX, sampleZ);
+                if (known == null && sharedBiomes != null) {
+                    known = sharedBiomes.get((int) sampleX, (int) sampleZ);
+                    if (known != null) {
+                        sampleCache.put(sampleX, sampleZ, known);
                     }
-                    sampleCache.put(sampleX, sampleZ, bx);
                 }
-
-                GeneratorBounds bounds = complex.resolveGeneratorBounds(engine, generators, bx, cachedBounds, localBounds);
-                return bounds.noiseBounds;
+                if (known instanceof IrisBiome biome) {
+                    return bounds(biome);
+                }
+                ChunkBakeCache.enterSparse();
+                try {
+                    return regional == null ? bounds(remember(sampleX, sampleZ, complex.baseBiomeStream.get(xx, zz)))
+                            : regionalBounds(known, sampleX, sampleZ);
+                } finally {
+                    ChunkBakeCache.exitSparse();
+                }
             } catch (Throwable e) {
                 GenerationFailures.rethrowEngineFailure(e);
                 long now = System.currentTimeMillis();
@@ -2696,6 +2773,49 @@ public class IrisComplex implements DataProvider {
 
             return ZERO_NOISE_BOUNDS;
         }
+
+        private NoiseBounds regionalBounds(Object known, double x, double z) {
+            RegionBounds.Pick pick = known instanceof RegionBounds.Pick picked ? picked : null;
+            IrisRegion region = pick != null ? pick.region() : known instanceof IrisRegion cached ? cached : null;
+            if (region == null) {
+                IrisBiome baked = bakedBiomes.baked((int) x, (int) z);
+                if (baked != null) {
+                    return bounds(remember(x, z, baked));
+                }
+                region = remember(x, z, complex.contextRegionStream.get(x, z));
+            }
+            RegionBounds.Constants constants = regional.of(region);
+            NoiseBounds constant = constants == null ? null : constants.any(group);
+            if (constant != null) {
+                return constant;
+            }
+            InferredType type = pick != null ? pick.type() : complex.bridgeStream.get(x, z);
+            constant = constants == null ? null : constants.typed(type, group);
+            if (constant != null) {
+                return constant;
+            }
+            IrisBiome picked = pick != null ? pick.biome() : complex.createInferredBiomeStream(region, type).get(x, z);
+            constant = regional.pick(picked, group);
+            if (constant != null) {
+                if (pick == null) {
+                    remember(x, z, new RegionBounds.Pick(region, type, picked));
+                }
+                return constant;
+            }
+            return bounds(remember(x, z, complex.implode(picked, x, z)));
+        }
+
+        private NoiseBounds bounds(IrisBiome biome) {
+            return complex.resolveGeneratorBounds(engine, generators, biome, cachedBounds, localBounds).noiseBounds;
+        }
+
+        private <T> T remember(double x, double z, T sample) {
+            if (sharedBiomes != null) {
+                sharedBiomes.put((int) x, (int) z, sample);
+            }
+            sampleCache.put(x, z, sample);
+            return sample;
+        }
     }
 
     /**
@@ -2705,13 +2825,13 @@ public class IrisComplex implements DataProvider {
     private static final class CoordinateBiomeCache {
         private final long[] xBits;
         private final long[] zBits;
-        private final IrisBiome[] values;
+        private final Object[] values;
         private final int mask;
 
         private CoordinateBiomeCache(int capacity) {
             xBits = new long[capacity];
             zBits = new long[capacity];
-            values = new IrisBiome[capacity];
+            values = new Object[capacity];
             mask = capacity - 1;
         }
 
@@ -2719,20 +2839,20 @@ public class IrisComplex implements DataProvider {
             Arrays.fill(values, null);
         }
 
-        private IrisBiome get(double x, double z) {
+        private Object get(double x, double z) {
             long xb = Double.doubleToLongBits(x);
             long zb = Double.doubleToLongBits(z);
             int slot = mix(xb, zb) & mask;
             return xBits[slot] == xb && zBits[slot] == zb ? values[slot] : null;
         }
 
-        private void put(double x, double z, IrisBiome biome) {
+        private void put(double x, double z, Object sample) {
             long xb = Double.doubleToLongBits(x);
             long zb = Double.doubleToLongBits(z);
             int slot = mix(xb, zb) & mask;
             xBits[slot] = xb;
             zBits[slot] = zb;
-            values[slot] = biome;
+            values[slot] = sample;
         }
 
         private int mix(long xb, long zb) {
@@ -2783,8 +2903,5 @@ public class IrisComplex implements DataProvider {
         if (transitionDisplacement != null) {
             transitionDisplacement.clear();
         }
-    }
-
-    private record HydrologyBaseHeights(IrisComplex owner, Long2DoubleOpenHashMap heights) {
     }
 }

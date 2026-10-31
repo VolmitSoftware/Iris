@@ -8,6 +8,7 @@ import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
@@ -21,15 +22,25 @@ final class ObjectPlacementBake {
     private final int[] offsetY;
     private final int[] offsetZ;
     private final int[] layerY;
+    private final short[] paletteIndexes;
+    private final long[] canopy;
+    private final int[] tileBlocks;
+    private final TileData[] tileValues;
+    private final int[] sources;
     private volatile double[] exact;
 
-    private ObjectPlacementBake(Layout layout, Key key, int[] offsetX, int[] offsetY, int[] offsetZ, int[] layerY) {
+    private ObjectPlacementBake(Layout layout, Key key, Cells cells) {
         this.layout = layout;
         this.key = key;
-        this.offsetX = offsetX;
-        this.offsetY = offsetY;
-        this.offsetZ = offsetZ;
-        this.layerY = layerY;
+        this.offsetX = cells.offsetX();
+        this.offsetY = cells.offsetY();
+        this.offsetZ = cells.offsetZ();
+        this.layerY = cells.layerY();
+        this.paletteIndexes = cells.paletteIndexes();
+        this.canopy = cells.canopy();
+        this.tileBlocks = cells.tileBlocks();
+        this.tileValues = cells.tileValues();
+        this.sources = cells.sources();
     }
 
     static ObjectPlacementBake of(IrisObject object, SpinKernel spin, boolean ceilingHang, IrisBlockVector translateOffset) {
@@ -42,7 +53,10 @@ final class ObjectPlacementBake {
             if (cached != null && cached.layout == layout) {
                 return cached;
             }
-            ObjectPlacementBake built = bake(object, layout, key, spin, ceilingHang, translateOffset);
+            Cells cells = spin.axisAligned
+                    ? transformed(object, layout, spin, ceilingHang, translateOffset)
+                    : resampled(object, layout, spin, ceilingHang, translateOffset);
+            ObjectPlacementBake built = new ObjectPlacementBake(layout, key, cells);
             if (cached != null) {
                 variants.replace(key, cached, built);
             } else if (variants.size() < MAXIMUM_VARIANTS_PER_OBJECT) {
@@ -54,8 +68,8 @@ final class ObjectPlacementBake {
         }
     }
 
-    private static ObjectPlacementBake bake(IrisObject object, Layout layout, Key key, SpinKernel spin, boolean ceilingHang,
-                                            IrisBlockVector translateOffset) {
+    private static Cells transformed(IrisObject object, Layout layout, SpinKernel spin, boolean ceilingHang,
+                                     IrisBlockVector translateOffset) {
         int count = layout.count;
         int[] x = new int[count];
         int[] y = new int[count];
@@ -66,7 +80,7 @@ final class ObjectPlacementBake {
         VectorMap<NativeBlockState>.Cursor cursor = object.blocks.cursor();
         int index = 0;
         while (cursor.next() && index < count) {
-            transform(cursor.key(), rotated, spin, ceilingHang, translateOffset);
+            RotationResampler.transform(cursor.key(), rotated, spin, ceilingHang, translateOffset);
             int roundedY = (int) Math.round(rotated.getY());
             int floorY = rotated.getBlockY();
             x[index] = (int) Math.round(rotated.getX());
@@ -79,24 +93,46 @@ final class ObjectPlacementBake {
         if (index != count) {
             throw new IllegalStateException("Object " + object.getLoadKey() + " changed while its placement bake was built");
         }
-        return new ObjectPlacementBake(layout, key, x, y, z, layerDiffers ? layer : null);
+        return new Cells(x, y, z, layerDiffers ? layer : null, layout.paletteIndexes, layout.canopy, layout.tileBlocks,
+                layout.tileValues, null);
     }
 
-    private static void transform(IrisBlockVector source, IrisBlockVector target, SpinKernel spin, boolean ceilingHang,
-                                  IrisBlockVector translateOffset) {
-        target.setX(source.getX());
-        target.setY(source.getY());
-        target.setZ(source.getZ());
-        spin.rotate(target);
-        if (ceilingHang) {
-            target.setY(-target.getBlockY());
+    private static Cells resampled(IrisObject object, Layout layout, SpinKernel spin, boolean ceilingHang,
+                                   IrisBlockVector translateOffset) {
+        RotationResampler.Targets targets = layout.resampler(object).resample(spin, ceilingHang, translateOffset);
+        return gather(layout, targets.x(), targets.y(), targets.z(), targets.sources());
+    }
+
+    private static Cells gather(Layout layout, int[] x, int[] y, int[] z, int[] sources) {
+        int count = sources.length;
+        short[] paletteIndexes = new short[count];
+        long[] canopy = layout.canopy == null ? null : new long[(count + 63) >>> 6];
+        IntArrayList tileBlocks = layout.tileBlocks == null ? null : new IntArrayList();
+        List<TileData> tileValues = layout.tileBlocks == null ? null : new ArrayList<>();
+        for (int index = 0; index < count; index++) {
+            int source = sources[index];
+            paletteIndexes[index] = layout.paletteIndexes[source];
+            if (canopy != null && (layout.canopy[source >>> 6] & (1L << (source & 63))) != 0L) {
+                canopy[index >>> 6] |= 1L << (index & 63);
+            }
+            if (tileBlocks != null) {
+                int slot = Arrays.binarySearch(layout.tileBlocks, source);
+                if (slot >= 0) {
+                    tileBlocks.add(index);
+                    tileValues.add(layout.tileValues[slot]);
+                }
+            }
         }
-        if (translateOffset != null) {
-            target.add(translateOffset);
-        }
+        boolean tiled = tileBlocks != null && !tileBlocks.isEmpty();
+        return new Cells(x, y, z, null, paletteIndexes, canopy, tiled ? tileBlocks.toIntArray() : null,
+                tiled ? tileValues.toArray(new TileData[0]) : null, sources);
     }
 
     int count() {
+        return offsetX.length;
+    }
+
+    int sourceCount() {
         return layout.count;
     }
 
@@ -117,7 +153,7 @@ final class ObjectPlacementBake {
     }
 
     int paletteIndex(int index) {
-        return layout.paletteIndexes[index];
+        return paletteIndexes[index];
     }
 
     NativeBlockState[] palette() {
@@ -125,16 +161,29 @@ final class ObjectPlacementBake {
     }
 
     int[] tileBlocks() {
-        return layout.tileBlocks;
+        return tileBlocks;
     }
 
     TileData[] tileValues() {
-        return layout.tileValues;
+        return tileValues;
     }
 
     boolean canopy(int index) {
-        long[] canopy = layout.canopy;
         return canopy != null && (canopy[index >>> 6] & (1L << (index & 63))) != 0L;
+    }
+
+    String[] markers(String[] sourceMarkers) {
+        if (sources == null) {
+            return sourceMarkers;
+        }
+        String[] unclaimed = sourceMarkers.clone();
+        String[] resolved = new String[sources.length];
+        for (int index = 0; index < sources.length; index++) {
+            int source = sources[index];
+            resolved[index] = unclaimed[source];
+            unclaimed[source] = null;
+        }
+        return resolved;
     }
 
     double[] exact(IrisObject object, SpinKernel spin) {
@@ -142,15 +191,21 @@ final class ObjectPlacementBake {
         if (resolved != null) {
             return resolved;
         }
+        resolved = sources == null ? transformedExact(object, spin) : targetExact();
+        exact = resolved;
+        return resolved;
+    }
+
+    private double[] transformedExact(IrisObject object, SpinKernel spin) {
         int count = layout.count;
         object.readLock.lock();
         try {
-            resolved = new double[count * 3];
+            double[] resolved = new double[count * 3];
             IrisBlockVector rotated = new IrisBlockVector(0, 0, 0);
             VectorMap<NativeBlockState>.Cursor cursor = object.blocks.cursor();
             int index = 0;
             while (cursor.next() && index < count) {
-                transform(cursor.key(), rotated, spin, key.ceilingHang(), key.translateOffset());
+                RotationResampler.transform(cursor.key(), rotated, spin, key.ceilingHang(), key.translateOffset());
                 resolved[index * 3] = rotated.getX();
                 resolved[index * 3 + 1] = rotated.getY();
                 resolved[index * 3 + 2] = rotated.getZ();
@@ -159,10 +214,19 @@ final class ObjectPlacementBake {
             if (index != count) {
                 throw new IllegalStateException("Object " + object.getLoadKey() + " changed while its placement bake was read");
             }
+            return resolved;
         } finally {
             object.readLock.unlock();
         }
-        exact = resolved;
+    }
+
+    private double[] targetExact() {
+        double[] resolved = new double[offsetX.length * 3];
+        for (int index = 0; index < offsetX.length; index++) {
+            resolved[index * 3] = offsetX[index];
+            resolved[index * 3 + 1] = offsetY[index];
+            resolved[index * 3 + 2] = offsetZ[index];
+        }
         return resolved;
     }
 
@@ -176,6 +240,7 @@ final class ObjectPlacementBake {
         private final int[] tileBlocks;
         private final TileData[] tileValues;
         private final long[] canopy;
+        private volatile RotationResampler resampler;
 
         private Layout(long blocksRevision, long statesRevision, TreeGrounding grounding, int count, short[] paletteIndexes,
                        NativeBlockState[] palette, int[] tileBlocks, TileData[] tileValues, long[] canopy) {
@@ -270,6 +335,15 @@ final class ObjectPlacementBake {
                     && object.states.modificationRevision() == statesRevision
                     && object.getTreeGrounding() == grounding;
         }
+
+        private RotationResampler resampler(IrisObject object) {
+            RotationResampler resolved = resampler;
+            if (resolved == null) {
+                resolved = RotationResampler.of(object, count);
+                resampler = resolved;
+            }
+            return resolved;
+        }
     }
 
     record Key(boolean rotates, int xMode, int yMode, int zMode, long xCos, long xSin, long yCos, long ySin,
@@ -290,5 +364,9 @@ final class ObjectPlacementBake {
             return translating ? new IrisBlockVector(Double.longBitsToDouble(translateX),
                     Double.longBitsToDouble(translateY), Double.longBitsToDouble(translateZ)) : null;
         }
+    }
+
+    private record Cells(int[] offsetX, int[] offsetY, int[] offsetZ, int[] layerY, short[] paletteIndexes, long[] canopy,
+                         int[] tileBlocks, TileData[] tileValues, int[] sources) {
     }
 }

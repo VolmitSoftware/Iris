@@ -22,6 +22,9 @@ public class IrisHydrology {
     @Description("Fraction of eligible water features to keep after local placement probabilities. 0.5 keeps half the candidate river sources, ponds, lakes and underground water features without changing their configured sizes.")
     private double density = 1D;
 
+    @Description("Wet and dry zones that decide where streams and ponds gather. Within a wet zone the configured density applies unchanged.")
+    private IrisHydrologyClimate climate = new IrisHydrologyClimate();
+
     @Description("How water drains across the terrain before rivers and ponds are placed.")
     private IrisHydrologyDrainage drainage = new IrisHydrologyDrainage();
 

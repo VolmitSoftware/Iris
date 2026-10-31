@@ -32,6 +32,17 @@ public class DataVersionTest {
     }
 
     @Test
+    public void exportMetadataMatchesServerVersionJson() {
+        assertEquals(0, DataVersion.V26_3.getPackFormatMinor());
+        assertEquals(5023, DataVersion.V26_3.getWorldDataVersion());
+        assertEquals(1, DataVersion.V26_2.getPackFormatMinor());
+        assertEquals(4903, DataVersion.V26_2.getWorldDataVersion());
+        assertEquals(1, DataVersion.V26_1_2.getPackFormatMinor());
+        assertEquals(4790, DataVersion.V26_1_2.getWorldDataVersion());
+        assertEquals(3955, DataVersion.V1_21_1.getWorldDataVersion());
+    }
+
+    @Test
     public void minSupportedPackFormatIsTheOldestSupportedRuntime() {
         assertEquals(48, DataVersion.minSupportedPackFormat());
     }

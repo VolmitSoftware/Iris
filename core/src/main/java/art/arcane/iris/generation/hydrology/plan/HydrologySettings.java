@@ -5,6 +5,7 @@ import art.arcane.iris.generation.decoration.IrisDecorationPart;
 import art.arcane.iris.generation.decoration.IrisDecorator;
 import art.arcane.iris.generation.hydrology.config.IrisCavePools;
 import art.arcane.iris.generation.hydrology.config.IrisFluidProfile;
+import art.arcane.iris.generation.hydrology.config.IrisHydrologyClimate;
 import art.arcane.iris.generation.hydrology.config.IrisHydrology;
 import art.arcane.iris.generation.hydrology.config.IrisHydrologyDeformation;
 import art.arcane.iris.generation.hydrology.config.IrisHydrologyDrainage;
@@ -20,6 +21,7 @@ import art.arcane.iris.generation.hydrology.config.IrisPondShore;
 import art.arcane.iris.generation.hydrology.config.IrisSeaInlets;
 import art.arcane.iris.generation.hydrology.underground.SeaInletRasterizer;
 import art.arcane.iris.generation.hydrology.water.HydrologyTier;
+import art.arcane.iris.generation.noise.IrisGeneratorStyle;
 import art.arcane.iris.generation.terrain.IrisMaterialPalette;
 import com.google.gson.Gson;
 
@@ -51,6 +53,7 @@ public final class HydrologySettings {
     private final int maxY;
     private final boolean enabled;
     private final float density;
+    private final Climate climate;
     private final Drainage drainage;
     private final List<HydrologyTier> tiers;
     private final Ponds ponds;
@@ -72,6 +75,7 @@ public final class HydrologySettings {
             throw new IllegalArgumentException("Hydrology density must be within 0..1, got " + config.getDensity());
         }
         this.density = (float) config.getDensity();
+        this.climate = climate(config.getClimate());
         this.drainage = drainage(config.getDrainage());
         this.tiers = tiers(config.getTiers());
         this.ponds = ponds(config.getPonds());
@@ -135,6 +139,10 @@ public final class HydrologySettings {
         return density;
     }
 
+    public Climate climate() {
+        return climate;
+    }
+
     public Drainage drainage() {
         return drainage;
     }
@@ -165,6 +173,22 @@ public final class HydrologySettings {
 
     public boolean persist() {
         return persist;
+    }
+
+    private static Climate climate(IrisHydrologyClimate config) {
+        Objects.requireNonNull(config, "Hydrology climate is missing");
+        IrisGeneratorStyle style = Objects.requireNonNull(config.getStyle(), "Hydrology climate.style is missing");
+        float dryness = unit(config.getDryness(), "climate.dryness");
+        float transition = unit(config.getTransition(), "climate.transition");
+        float dryRainfall = unit(config.getDryRainfall(), "climate.dryRainfall");
+        return new Climate(config.isEnabled(), style, dryness, transition, dryRainfall);
+    }
+
+    private static float unit(double value, String field) {
+        if (!Double.isFinite(value) || value < 0D || value > 1D) {
+            throw new IllegalArgumentException("Hydrology " + field + " must be within 0..1, got " + value);
+        }
+        return (float) value;
     }
 
     private static Drainage drainage(IrisHydrologyDrainage config) {
@@ -468,6 +492,7 @@ public final class HydrologySettings {
     private long computeFingerprint() {
         Fingerprint hash = new Fingerprint().add(seed).add(seaLevel).add(minY).add(maxY).add(enabled)
                 .add(density).add(prefetchRings).add(persist);
+        addClimate(hash);
         addDrainage(hash);
         addTiers(hash);
         addPonds(hash);
@@ -475,6 +500,12 @@ public final class HydrologySettings {
         addUnderground(hash);
         addFluids(hash);
         return hash.value();
+    }
+
+    private void addClimate(Fingerprint hash) {
+        if (climate.enabled()) {
+            hash.add(true).add(PALETTE_JSON.toJson(climate.style())).add(climate.dryness()).add(climate.transition()).add(climate.dryRainfall());
+        }
     }
 
     private void addDrainage(Fingerprint hash) {
@@ -533,6 +564,23 @@ public final class HydrologySettings {
     }
 
     public record IntRange(int min, int max) {
+    }
+
+    public record Climate(boolean enabled, IrisGeneratorStyle style, float dryness, float transition, float dryRainfall) {
+        public double wetness(double noise) {
+            if (!enabled || dryness <= 0f) {
+                return 1D;
+            }
+            double half = 0.5D * transition;
+            double share;
+            if (half <= 0D) {
+                share = noise < dryness ? 0D : 1D;
+            } else {
+                double t = Math.clamp((noise - dryness + half) / transition, 0D, 1D);
+                share = t * t * (3D - 2D * t);
+            }
+            return dryRainfall + (1D - dryRainfall) * share;
+        }
     }
 
     public record Drainage(float fillEpsilon, int breachDepth, boolean wetnessThinning, float minimumHeadKeep, float headRelief,

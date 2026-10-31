@@ -31,13 +31,16 @@ public class IrisHydrologyPolicy {
     @Description("Multiplier on how many ponds form in this area. With no value set anywhere it is 1.")
     private Double pondDensity = null;
 
+    @Description("Whether the dimension's wet and dry zones apply in this area. false keeps this area's full rainfall and pond density even inside a dry zone. With no value set anywhere they apply.")
+    private Boolean climateZones = null;
+
     @Description("Whether streams and rivers may form in this area. With no value set anywhere they are allowed.")
     private IrisHydrologyPermission streams = null;
 
     @Description("Whether ponds may form in this area. With no value set anywhere they are allowed.")
     private IrisHydrologyPermission ponds = null;
 
-    @Description("Name of a fluid profile that fills ponds and lakes whose floor lies in this area, instead of the ponds' own fluid. Channels always use the fluid of their tier.")
+    @Description("Name of a fluid profile that fills the water in this area instead of its usual fluid: ponds and lakes whose floor lies here, and every stretch of stream or river that flows through here.")
     private String fluid = null;
 
     @RegistryListResource(IrisBiome.class)

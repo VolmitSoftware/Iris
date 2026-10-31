@@ -298,21 +298,6 @@ public class TreeGroundingPlacementTest {
     }
 
     @Test
-    public void rotatedCopiesKeepMetadataOnTheirActualRootBlocks() {
-        IrisObject source = tree(true);
-        Map<Position, NativeBlockState> original = snapshot(source);
-        TreeGrounding grounding = source.getTreeGrounding();
-        for (int angle : new int[]{45, 90, 180, 270}) {
-            IrisObject rotated = source.rotateCopy(IrisObjectRotation.of(0, angle, 0));
-
-            assertGroundingMatchesBlocks(rotated);
-            assertEquals(3, rotated.getTreeGrounding().maxExtension());
-            assertEquals(original, snapshot(source));
-            assertSame(grounding, source.getTreeGrounding());
-        }
-    }
-
-    @Test
     public void shrinkwrapMovesRootMetadataAndInvalidatesItsFootprint() {
         IrisObject source = tree(true);
         Map<Position, NativeBlockState> original = snapshot(source);
@@ -397,7 +382,6 @@ public class TreeGroundingPlacementTest {
         IrisObject shrunk = source.copy();
         shrunk.shrinkwrap();
         for (IrisObject transformed : List.of(source.copy(), shrunk,
-                source.rotateCopy(IrisObjectRotation.of(0, 90, 0)),
                 source.scaled(2, IrisObjectPlacementScaleInterpolator.NONE),
                 source.scaledAroundOrigin(2, IrisObjectPlacementScaleInterpolator.NONE))) {
             assertGroundingMatchesBlocks(transformed);

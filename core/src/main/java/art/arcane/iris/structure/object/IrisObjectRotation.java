@@ -168,14 +168,6 @@ public class IrisObjectRotation {
         return getRotation(spin, zAxis);
     }
 
-    public IrisObject rotateCopy(IrisObject e) {
-        if (e == null) {
-            return null;
-        }
-
-        return e.rotateCopy(this);
-    }
-
     public IrisBlockVector rotate(IrisBlockVector direction) {
         return rotate(direction, 0, 0, 0);
     }

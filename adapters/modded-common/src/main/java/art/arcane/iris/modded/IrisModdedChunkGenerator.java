@@ -105,6 +105,7 @@ import java.util.Objects;
 import java.util.OptionalLong;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.IntConsumer;
@@ -946,6 +947,14 @@ public final class IrisModdedChunkGenerator implements NativeGeneratorOwner, Nat
                         + " requires an attached generation-history runtime router."));
     }
 
+    private String structureStateKey() {
+        Engine current = boundEngineOrNull();
+        if (current == null || allowsGenerationHistoryBypass(current)) {
+            return "transient:" + UUID.randomUUID();
+        }
+        return "epoch:" + requireHistoryRouter(current, "structure state key").history().activeEpoch().epochId();
+    }
+
     boolean allowsGenerationHistoryBypass(Engine current) {
         if (generationMode != ModdedGenerationMode.TRANSIENT_STUDIO) {
             return false;
@@ -985,7 +994,7 @@ public final class IrisModdedChunkGenerator implements NativeGeneratorOwner, Nat
         ModdedBiomePolicy<H, S> policy = new ModdedBiomePolicy<>(source);
         policy.bind(new ModdedBiomePolicy.RuntimeCallbacks(this::boundEngineOrNull, this::awaitStructureEngine,
                 this::allowsGenerationHistoryBypass, this::configuredStructureBiomeKeys,
-                IrisModdedChunkGenerator::retainedBiomeKeys, this::visibleBiomeSeed));
+                IrisModdedChunkGenerator::retainedBiomeKeys, this::visibleBiomeSeed, this::structureStateKey));
         return policy;
     }
 

@@ -17,8 +17,10 @@ final class SpinKernel {
     static final int MODE_QUARTER = 2;
     static final int MODE_THREE_QUARTER = 3;
     static final int MODE_ANGLE = 4;
+    private static final double AXIS_ALIGNED_EPSILON = 1.0E-9D;
 
     final boolean rotates;
+    final boolean axisAligned;
     final int xMode;
     final int yMode;
     final int zMode;
@@ -44,6 +46,9 @@ final class SpinKernel {
         zSin = Math.sin(zAngle);
         yCos = Math.cos(yAngle);
         ySin = Math.sin(yAngle);
+        axisAligned = Math.abs(xCos * xSin) < AXIS_ALIGNED_EPSILON
+                && Math.abs(zCos * zSin) < AXIS_ALIGNED_EPSILON
+                && Math.abs(yCos * ySin) < AXIS_ALIGNED_EPSILON;
     }
 
     private static int modeOf(IrisAxisRotationClamp clamp) {
@@ -143,6 +148,87 @@ final class SpinKernel {
                 double x = yCos * v.getX() + ySin * v.getZ();
                 double z = -ySin * v.getX() + yCos * v.getZ();
                 v.setX(x);
+                v.setZ(z);
+            }
+            default -> {
+            }
+        }
+    }
+
+    void inverseRotate(IrisBlockVector v) {
+        if (!rotates) {
+            return;
+        }
+
+        switch (yMode) {
+            case MODE_FLIP -> {
+                v.setX(-v.getX());
+                v.setZ(-v.getZ());
+            }
+            case MODE_QUARTER -> {
+                double x = v.getX();
+                v.setX(-v.getZ());
+                v.setZ(x);
+            }
+            case MODE_THREE_QUARTER -> {
+                double x = v.getX();
+                v.setX(v.getZ());
+                v.setZ(-x);
+            }
+            case MODE_ANGLE -> {
+                double x = yCos * v.getX() - ySin * v.getZ();
+                double z = ySin * v.getX() + yCos * v.getZ();
+                v.setX(x);
+                v.setZ(z);
+            }
+            default -> {
+            }
+        }
+
+        switch (zMode) {
+            case MODE_FLIP -> {
+                v.setY(-v.getY());
+                v.setX(-v.getX());
+            }
+            case MODE_QUARTER -> {
+                double y = v.getY();
+                v.setY(-v.getX());
+                v.setX(y);
+            }
+            case MODE_THREE_QUARTER -> {
+                double y = v.getY();
+                v.setY(v.getX());
+                v.setX(-y);
+            }
+            case MODE_ANGLE -> {
+                double x = zCos * v.getX() + zSin * v.getY();
+                double y = -zSin * v.getX() + zCos * v.getY();
+                v.setX(x);
+                v.setY(y);
+            }
+            default -> {
+            }
+        }
+
+        switch (xMode) {
+            case MODE_FLIP -> {
+                v.setZ(-v.getZ());
+                v.setY(-v.getY());
+            }
+            case MODE_QUARTER -> {
+                double z = v.getZ();
+                v.setZ(-v.getY());
+                v.setY(z);
+            }
+            case MODE_THREE_QUARTER -> {
+                double z = v.getZ();
+                v.setZ(v.getY());
+                v.setY(-z);
+            }
+            case MODE_ANGLE -> {
+                double y = xCos * v.getY() + xSin * v.getZ();
+                double z = -xSin * v.getY() + xCos * v.getZ();
+                v.setY(y);
                 v.setZ(z);
             }
             default -> {

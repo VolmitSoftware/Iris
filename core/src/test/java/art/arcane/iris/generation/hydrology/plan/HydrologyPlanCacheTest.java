@@ -1045,7 +1045,7 @@ public class HydrologyPlanCacheTest {
     }
 
     private static WindowPlanner windowPlanner(HydrologySettings settings, SyntheticTerrain terrain) {
-        return new WindowPlanner(settings, new HeightLattice(terrain, WindowPlanner.CELL, false, HydrologyPlanCache.WINDOW_LATTICE_CELLS),
+        return new WindowPlanner(settings,
                 new HeightLattice(terrain, WindowPlanner.FINE_CELL, false, HydrologyPlanCache.FINE_LATTICE_CELLS), new PondPlanner(settings),
                 new ReachShaper(settings));
     }

@@ -26,7 +26,6 @@ import art.arcane.iris.spi.IrisLogging;
 import art.arcane.volmlib.nativelib.terrain.NativeBiome;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.math.ChunkSpiral;
-import art.arcane.iris.generation.concurrent.MultiBurst;
 import art.arcane.volmlib.util.localization.MessageArgument;
 import art.arcane.volmlib.util.mantle.runtime.Mantle;
 
@@ -44,8 +43,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public final class GoldenHashEngine {
@@ -210,38 +207,16 @@ public final class GoldenHashEngine {
 
     private Map<Long, String> scan(List<int[]> targets) throws InterruptedException {
         Map<Long, String> lines = new ConcurrentHashMap<>();
-        Semaphore inFlight = new Semaphore(threads);
-        CountDownLatch done = new CountDownLatch(targets.size());
-        AtomicInteger completed = new AtomicInteger();
-        int total = targets.size();
-
-        for (int[] target : targets) {
-            int chunkX = target[0];
-            int chunkZ = target[1];
-
-            inFlight.acquire();
-            MultiBurst.burst.lazy(() -> {
-                boolean ok = false;
-                try {
-                    ChunkSnapshot snapshot = source.generate(chunkX, chunkZ);
-                    lines.put(chunkKey(chunkX, chunkZ), hashChunk(chunkX, chunkZ, snapshot));
-                    if (request.deep()) {
-                        writeDeepDump(chunkX, chunkZ, snapshot);
-                    }
-                    ok = true;
-                } catch (Throwable e) {
-                    IrisLogging.reportError(e);
-                    progress.chunkFailed(chunkX, chunkZ, e);
-                } finally {
-                    progress.chunkDone(chunkX, chunkZ, ok, completed.incrementAndGet(), total);
-                    inFlight.release();
-                    done.countDown();
-                }
-            });
-        }
-
-        done.await();
+        ChunkSpiralScan.scan(targets, threads, (int chunkX, int chunkZ) -> hash(lines, chunkX, chunkZ), new ScanProgress(targets.size()));
         return lines;
+    }
+
+    private void hash(Map<Long, String> lines, int chunkX, int chunkZ) throws Exception {
+        ChunkSnapshot snapshot = source.generate(chunkX, chunkZ);
+        lines.put(chunkKey(chunkX, chunkZ), hashChunk(chunkX, chunkZ, snapshot));
+        if (request.deep()) {
+            writeDeepDump(chunkX, chunkZ, snapshot);
+        }
     }
 
     private String hashChunk(int chunkX, int chunkZ, ChunkSnapshot snapshot) {
@@ -560,6 +535,25 @@ public final class GoldenHashEngine {
             return MessageDigest.getInstance("SHA-256");
         } catch (NoSuchAlgorithmException e) {
             throw new IllegalStateException(e);
+        }
+    }
+
+    private final class ScanProgress implements ChunkSpiralScan.Listener {
+        private final AtomicInteger completed = new AtomicInteger();
+        private final int total;
+
+        private ScanProgress(int total) {
+            this.total = total;
+        }
+
+        @Override
+        public void chunkDone(int chunkX, int chunkZ, boolean ok) {
+            progress.chunkDone(chunkX, chunkZ, ok, completed.incrementAndGet(), total);
+        }
+
+        @Override
+        public void chunkFailed(int chunkX, int chunkZ, Throwable error) {
+            progress.chunkFailed(chunkX, chunkZ, error);
         }
     }
 }

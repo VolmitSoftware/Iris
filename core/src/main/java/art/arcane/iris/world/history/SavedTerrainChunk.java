@@ -91,9 +91,14 @@ public final class SavedTerrainChunk {
                 BoundaryColumnGeometry geometry = scan.runs.build(minimumY);
                 OptionalInt groundSurface = source.groundSurface(x, z);
                 if (groundSurface.isPresent()) {
-                    floor = geometry.surfaceOffsetNear(groundSurface.getAsInt());
+                    int ground = groundSurface.getAsInt();
+                    BoundaryColumnGeometry.WaterCap cap = geometry.waterCap(ground, source.waterSurface(x, z).orElse(ground));
+                    floor = geometry.surfaceOffsetNear(ground, cap);
                     if (floor < 0 || floor >= height) {
                         throw new IOException("Natural terrain ground surface is outside the chunk height");
+                    }
+                    if (geometry.capsWater(cap, floor)) {
+                        fluid = cap.top();
                     }
                     surface = Math.max(floor, fluid);
                 }
@@ -197,6 +202,10 @@ public final class SavedTerrainChunk {
 
     public interface VoxelSource {
         default OptionalInt groundSurface(int localX, int localZ) {
+            return OptionalInt.empty();
+        }
+
+        default OptionalInt waterSurface(int localX, int localZ) {
             return OptionalInt.empty();
         }
 

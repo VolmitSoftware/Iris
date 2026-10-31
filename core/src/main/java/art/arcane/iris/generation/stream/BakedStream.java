@@ -39,6 +39,13 @@ public final class BakedStream<T> extends BasicStream<T> implements ChunkFillabl
         return value;
     }
 
+    @SuppressWarnings("unchecked")
+    public T baked(int blockX, int blockZ) {
+        int index = ((blockZ & 15) << 4) | (blockX & 15);
+        ChunkPlanes.Plane values = cache.planeIfPresent(plane, blockX >> 4, blockZ >> 4);
+        return values != null && values.ready(index) ? (T) values.objectAt(index) : null;
+    }
+
     @Override
     public T get(double x, double y, double z) {
         return scalar.get(x, y, z);

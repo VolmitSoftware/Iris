@@ -29,6 +29,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.LockSupport;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.CRC32;
@@ -49,6 +51,7 @@ public final class SavedBiomeStore {
     private static final int MAXIMUM_CACHED_CHUNKS = 128;
     private static final long MAXIMUM_CACHED_BYTES = 64L * 1024L * 1024L;
     private static final int MAXIMUM_WRITE_BATCH = 64;
+    private static final long WRITE_PARK_NANOS = 10_000_000L;
     private static final ThreadLocal<Deflater> DEFLATERS = ThreadLocal.withInitial(() -> new Deflater(Deflater.BEST_SPEED));
 
     private final Path dimensionRoot;
@@ -132,19 +135,34 @@ public final class SavedBiomeStore {
                 .putInt(body.length).put(body).putInt(checksum(body)).array();
         PendingWrite pending = new PendingWrite(required, record);
         lock.pending.add(pending);
-        synchronized (lock) {
-            while (!pending.completed) {
-                persistPending(lock);
+        while (!pending.settled) {
+            if (!lock.writer.compareAndSet(false, true)) {
+                LockSupport.parkNanos(pending, WRITE_PARK_NANOS);
+                continue;
             }
-            if (pending.failure != null) {
-                throw pending.failure;
+            try {
+                synchronized (lock) {
+                    while (!pending.completed) {
+                        persistPending(lock);
+                    }
+                }
+            } finally {
+                lock.writer.set(false);
+                PendingWrite next = lock.pending.peek();
+                if (next != null) {
+                    LockSupport.unpark(next.owner);
+                }
             }
-            return pending.persisted;
         }
+        if (pending.failure != null) {
+            throw pending.failure;
+        }
+        return pending.persisted;
     }
 
     private void persistPending(WriteStripe stripe) {
         Map<Long, List<PendingWrite>> batches = new LinkedHashMap<>();
+        List<PendingWrite> polled = new ArrayList<>(MAXIMUM_WRITE_BATCH);
         PendingWrite grouping = null;
         try {
             for (int count = 0; count < MAXIMUM_WRITE_BATCH; count++) {
@@ -152,6 +170,7 @@ public final class SavedBiomeStore {
                 if (grouping == null) {
                     break;
                 }
+                polled.add(grouping);
                 long regionKey = key(grouping.chunk.chunkX() >> 5, grouping.chunk.chunkZ() >> 5);
                 batches.computeIfAbsent(regionKey, ignored -> new ArrayList<>()).add(grouping);
                 grouping = null;
@@ -175,6 +194,10 @@ public final class SavedBiomeStore {
                 }
             }
             throw failure;
+        } finally {
+            for (PendingWrite pending : polled) {
+                pending.settle();
+            }
         }
     }
 
@@ -822,18 +845,29 @@ public final class SavedBiomeStore {
 
     private static final class WriteStripe {
         private final ConcurrentLinkedQueue<PendingWrite> pending = new ConcurrentLinkedQueue<>();
+        private final AtomicBoolean writer = new AtomicBoolean();
     }
 
     private static final class PendingWrite {
         private final SavedBiomeChunk chunk;
         private final byte[] record;
+        private final Thread owner = Thread.currentThread();
         private boolean completed;
         private boolean persisted;
         private IOException failure;
+        private volatile boolean settled;
 
         private PendingWrite(SavedBiomeChunk chunk, byte[] record) {
             this.chunk = chunk;
             this.record = record;
+        }
+
+        private void settle() {
+            if (!completed || settled) {
+                return;
+            }
+            settled = true;
+            LockSupport.unpark(owner);
         }
     }
 

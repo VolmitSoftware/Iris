@@ -43,70 +43,10 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Geometric transforms for {@link IrisObject}: rotation, scaling and the interpolated upscalers.
+ * Geometric transforms for {@link IrisObject}: scaling and the interpolated upscalers.
  */
 final class IrisObjectTransforms {
     private IrisObjectTransforms() {
-    }
-
-    static IrisObject rotateCopy(IrisObject self, IrisObjectRotation rt) {
-        IrisObject copy = self.copy();
-        rotate(copy, rt, 0, 0, 0);
-        return copy;
-    }
-
-    static void rotate(IrisObject self, IrisObjectRotation r, int spinx, int spiny, int spinz) {
-        self.writeLock.lock();
-        try {
-            VectorMap<NativeBlockState> d = new VectorMap<>();
-            VectorMap<TileData> dx = new VectorMap<>();
-            TreeGrounding grounding = self.getTreeGrounding();
-            Set<TreeBlockCanvas.Vec> canopy = grounding == null ? null : new HashSet<>();
-
-            for (Map.Entry<IrisBlockVector, NativeBlockState> entry : self.blocks) {
-                NativeBlockState rotated = r.rotate(entry.getValue(), spinx, spiny, spinz);
-                if (rotated == null) {
-                    continue;
-                }
-                IrisBlockVector destination = r.rotate(entry.getKey(), spinx, spiny, spinz);
-                d.put(destination, rotated);
-                if (canopy != null) {
-                    TreeBlockCanvas.Vec cell = new TreeBlockCanvas.Vec(destination.getBlockX(),
-                            destination.getBlockY(), destination.getBlockZ());
-                    IrisBlockVector source = entry.getKey();
-                    if (grounding.isCanopy(source.getBlockX(), source.getBlockY(), source.getBlockZ())) {
-                        canopy.add(cell);
-                    } else {
-                        canopy.remove(cell);
-                    }
-                }
-                TileData tile = self.states.get(entry.getKey());
-                if (tile == null) {
-                    dx.remove(destination);
-                } else {
-                    dx.put(destination, tile);
-                }
-            }
-
-            self.blocks = d;
-            self.states = dx;
-            if (grounding != null) {
-                List<TreeGrounding.Root> roots = new ArrayList<>();
-                for (TreeGrounding.Root root : grounding.roots()) {
-                    IrisBlockVector position = r.rotate(new IrisBlockVector(root.x(), root.y(), root.z()), spinx, spiny, spinz);
-                    NativeBlockState state = d.get(position);
-                    if (state != null) {
-                        roots.add(new TreeGrounding.Root(position.getBlockX(), position.getBlockY(), position.getBlockZ(), state));
-                    }
-                }
-                self.setTreeGrounding(TreeGrounding.create(roots, grounding.maxExtension(), canopy));
-            }
-            IrisObjectShaping.shrinkwrap(self);
-            self.surfaceSupportOffsets.reset();
-            self.floatingFootprint.reset();
-        } finally {
-            self.writeLock.unlock();
-        }
     }
 
     static IrisObject scaled(IrisObject self, double scale, IrisObjectPlacementScaleInterpolator interpolation) {

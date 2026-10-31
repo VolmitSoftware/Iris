@@ -18,6 +18,12 @@ public final class HydrologyPregeneration implements AutoCloseable {
         }
     }
 
+    public synchronized void bound(int minRegionX, int minRegionZ, int maxRegionX, int maxRegionZ) {
+        if (!closed) {
+            runtime.boundPregeneration(epoch, minRegionX, minRegionZ, maxRegionX, maxRegionZ);
+        }
+    }
+
     @Override
     public synchronized void close() {
         if (!closed) {

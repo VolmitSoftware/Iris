@@ -67,7 +67,7 @@ public class TransitionGeometryBlenderTest {
 
         BoundaryColumnGeometry blended = TransitionGeometryBlender.blendColumn(influence, 31, 0, current);
 
-        assertEquals(200, blended.surfaceOffsetNear(200D));
+        assertEquals(200, blended.surfaceOffsetNear(200D, BoundaryColumnGeometry.WaterCap.none()));
         assertEquals(STONE, blended.voxelAt(416));
         assertEquals(STONE, blended.voxelAt(447));
     }

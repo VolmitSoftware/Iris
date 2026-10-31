@@ -67,12 +67,12 @@ final class ObjectMarkerPlacement {
             }
         }
 
-        String[] resolved = new String[bake.count()];
+        String[] bySource = new String[bake.sourceCount()];
         VectorMap<NativeBlockState>.Cursor cursor = blocks.cursor();
         int index = 0;
-        while (index < resolved.length && cursor.next()) {
-            resolved[index++] = markers.get(cursor.key());
+        while (index < bySource.length && cursor.next()) {
+            bySource[index++] = markers.get(cursor.key());
         }
-        return resolved;
+        return bake.markers(bySource);
     }
 }

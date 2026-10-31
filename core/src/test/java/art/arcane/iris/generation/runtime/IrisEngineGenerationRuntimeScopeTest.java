@@ -123,8 +123,8 @@ public class IrisEngineGenerationRuntimeScopeTest {
         AtomicInteger workerNaturals = new AtomicInteger();
         doAnswer(invocation -> {
             observe(engine, historical, caller, naturals, workerNaturals, foreign);
-            return (int) Math.round(bowl(invocation.getArgument(0), invocation.getArgument(1)));
-        }).when(historicalComplex).naturalTrueHeight(anyInt(), anyInt());
+            return bowl(invocation.getArgument(0), invocation.getArgument(1));
+        }).when(historicalComplex).naturalHeight(anyInt(), anyInt());
         IrisEngine.GenerationRuntimeBinding binding = detachedBinding(engine, historical.runtime);
         HydrologyRuntime hydrology;
         try (IrisEngine.GenerationRuntimeScope ignored = engine.openGenerationRuntimeScope(binding)) {

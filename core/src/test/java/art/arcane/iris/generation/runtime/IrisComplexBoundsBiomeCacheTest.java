@@ -243,7 +243,7 @@ public class IrisComplexBoundsBiomeCacheTest {
         constructor.setAccessible(true);
         Object cache = constructor.newInstance(4096);
         Method get = type.getDeclaredMethod("get", double.class, double.class);
-        Method put = type.getDeclaredMethod("put", double.class, double.class, IrisBiome.class);
+        Method put = type.getDeclaredMethod("put", double.class, double.class, Object.class);
         get.setAccessible(true);
         put.setAccessible(true);
         IrisBiome first = new IrisBiome();
@@ -266,7 +266,7 @@ public class IrisComplexBoundsBiomeCacheTest {
         }
         Field values = type.getDeclaredField("values");
         values.setAccessible(true);
-        assertEquals(4096, ((IrisBiome[]) values.get(cache)).length);
+        assertEquals(4096, ((Object[]) values.get(cache)).length);
     }
 
     private static ProceduralStream<IrisBiome> constant(IrisBiome biome) {
@@ -295,7 +295,7 @@ public class IrisComplexBoundsBiomeCacheTest {
             constructor.setAccessible(true);
             cache = constructor.newInstance();
             sample = IrisComplex.class.getDeclaredMethod("sampleBoundsRaw", cacheClass, Engine.class,
-                    IrisInterpolator.class, IrisGenerator[].class, double.class, double.class);
+                    IrisInterpolator.class, int.class, IrisGenerator[].class, double.class, double.class);
             sample.setAccessible(true);
             boundsConstructor = Class.forName("art.arcane.iris.generation.runtime.IrisComplex$GeneratorBounds")
                     .getDeclaredConstructor(double.class, double.class);
@@ -313,7 +313,7 @@ public class IrisComplexBoundsBiomeCacheTest {
 
         private NoiseBounds sample(Object gridCache, IrisInterpolator interpolator, double x, double z)
                 throws ReflectiveOperationException {
-            return (NoiseBounds) sample.invoke(complex, gridCache, null, interpolator, new IrisGenerator[0], x, z);
+            return (NoiseBounds) sample.invoke(complex, gridCache, null, interpolator, 0, new IrisGenerator[0], x, z);
         }
 
         private Object newGridCache() throws ReflectiveOperationException {

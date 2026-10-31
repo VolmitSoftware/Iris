@@ -18,7 +18,14 @@
 
 package art.arcane.iris.modded.command;
 
+import art.arcane.iris.modded.ModdedEngineBootstrap;
 import art.arcane.iris.modded.ModdedIrisLog;
+import art.arcane.iris.pack.datapack.export.WorldgenExportProgress;
+import art.arcane.iris.pack.datapack.export.WorldgenExportRequest;
+import art.arcane.iris.pack.datapack.export.WorldgenExportResult;
+import art.arcane.iris.pack.datapack.export.WorldgenExportService;
+import art.arcane.iris.pack.datapack.export.WorldgenExportServices;
+import art.arcane.iris.pack.datapack.export.ir.ExportDiagnostic;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.pack.datapack.DataVersion;
 import art.arcane.iris.pack.PackDirectoryResolver;
@@ -33,6 +40,7 @@ import com.mojang.brigadier.context.CommandContext;
 import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeCommandSource;
 import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeCommandRegistration;
 import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeModdedServer;
+import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeCommandText;
 import art.arcane.volmlib.nativelib.terrain.NativeWorld;
 import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeWorldDimensions;
 
@@ -40,6 +48,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -47,15 +56,20 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.UUID;
 import java.util.function.Predicate;
 
+import art.arcane.iris.localization.DirectorCommandMessages;
 import art.arcane.iris.localization.IrisLanguage;
 import art.arcane.iris.modded.localization.ModdedCommandMessages;
 import art.arcane.iris.localization.RuntimeUiMessages;
+import art.arcane.volmlib.util.localization.LanguageAudience;
 import art.arcane.volmlib.util.localization.MessageArgument;
+import art.arcane.volmlib.util.localization.TextKey;
 public final class ModdedDatapackCommands {
     private static final Predicate<NativeCommandSource> GATE = NativeCommandRegistration.GAMEMASTERS;
     private static final String WORLD_PACK_NAME = "iris";
+    private static final int RESOURCE_REPORTS = 4;
 
     private ModdedDatapackCommands() {
     }
@@ -78,6 +92,11 @@ public final class ModdedDatapackCommands {
 
         root.then(message("ingest", "Managed Modrinth datapack ingest is Bukkit-only. On modded servers install the datapack folder or zip in world/datapacks, enable it, restart, then use /iris datapack list to confirm it is enabled. Registered structures generate natively in Iris dimensions."));
         root.then(message("pull", "Managed Modrinth datapack ingest is Bukkit-only. On modded servers install the datapack folder or zip in world/datapacks, enable it, restart, then use /iris datapack list to confirm it is enabled. Registered structures generate natively in Iris dimensions."));
+
+        root.then(NativeCommandRegistration.literal("export")
+                .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> export(context.getSource(), "")))
+                .then(NativeCommandRegistration.argument("args", StringArgumentType.greedyString())
+                        .executes(ModdedCommandTree.localized((CommandContext<NativeCommandSource> context) -> export(context.getSource(), StringArgumentType.getString(context, "args"))))));
 
         root.then(message("remove", "Managed datapack removal is Bukkit-only. On modded servers disable the pack, delete its folder or zip from world/datapacks, and restart."));
         root.then(message("rm", "Managed datapack removal is Bukkit-only. On modded servers disable the pack, delete its folder or zip from world/datapacks, and restart."));
@@ -290,5 +309,108 @@ public final class ModdedDatapackCommands {
             }
         }
         return null;
+    }
+
+    private static int export(NativeCommandSource source, String raw) {
+        ModdedDatapackExportArguments arguments;
+        try {
+            arguments = ModdedDatapackExportArguments.parse(raw);
+        } catch (IllegalArgumentException invalid) {
+            IrisModdedCommands.fail(source, IrisLanguage.plain(DirectorCommandMessages.COMMAND_DATAPACK_EXPORT_INVALID, MessageArgument.untrusted("reason", invalid.getMessage())));
+            return 0;
+        }
+        File packsRoot = ModdedPackCommands.packsRoot();
+        File pack = PackDirectoryResolver.resolveExisting(packsRoot, arguments.dimension());
+        if (pack == null) {
+            IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_STUDIO_COMMANDS_PACK_NOT_FOUND_UNDER, MessageArgument.untrusted("name", arguments.dimension()), MessageArgument.untrusted("value", packsRoot.getAbsolutePath())));
+            return 0;
+        }
+        WorldgenExportService service = WorldgenExportServices.get();
+        WorldgenExportRequest request = arguments.toRequest(pack.toPath(), exportRoot());
+        IrisModdedCommands.ok(source, IrisLanguage.plain(DirectorCommandMessages.COMMAND_DATAPACK_EXPORT_STARTED, MessageArgument.untrusted("dimension", request.dimension()), MessageArgument.untrusted("version", arguments.target().getVersion())));
+        ExportFeedback feedback = new ExportFeedback(source);
+        Thread worker = new Thread(() -> runExport(service, request, feedback), "Iris Datapack Export");
+        worker.setDaemon(true);
+        worker.start();
+        return 1;
+    }
+
+    private static Path exportRoot() {
+        return ModdedEngineBootstrap.loader().configDir().resolve("irisworldgen").resolve("exports").resolve("datapacks");
+    }
+
+    private static void runExport(WorldgenExportService service, WorldgenExportRequest request, ExportFeedback feedback) {
+        WorldgenExportResult result;
+        try {
+            result = service.export(request, feedback);
+        } catch (Throwable failure) {
+            ModdedIrisLog.error("Iris datapack export failed for " + request.dimension(), failure);
+            feedback.post(() -> IrisModdedCommands.fail(feedback.source, IrisLanguage.plain(DirectorCommandMessages.COMMAND_DATAPACK_EXPORT_FAILED, MessageArgument.untrusted("reason", IrisLanguage.errorDetail(failure)))));
+            return;
+        }
+        feedback.post(() -> reportExport(feedback.source, result));
+    }
+
+    private static void reportExport(NativeCommandSource source, WorldgenExportResult result) {
+        for (ExportDiagnostic diagnostic : result.diagnostics()) {
+            String line = IrisLanguage.plain(DirectorCommandMessages.COMMAND_DATAPACK_EXPORT_DIAGNOSTIC, MessageArgument.untrusted("key", diagnosticLabel(diagnostic)), MessageArgument.untrusted("message", diagnostic.message()));
+            ModdedCommandFeedback.send(source, NativeCommandText.literal(line).withStyle(diagnosticFormat(diagnostic.severity())));
+        }
+        if (result.isSuccess()) {
+            IrisModdedCommands.ok(source, IrisLanguage.plain(DirectorCommandMessages.COMMAND_DATAPACK_EXPORT_EXPORTED, MessageArgument.untrusted("path", result.output())));
+            return;
+        }
+        TextKey outcome = result.status() == WorldgenExportResult.Status.REJECTED
+                ? DirectorCommandMessages.COMMAND_DATAPACK_EXPORT_REJECTED
+                : DirectorCommandMessages.COMMAND_DATAPACK_EXPORT_FAILED;
+        IrisModdedCommands.fail(source, IrisLanguage.plain(outcome, MessageArgument.untrusted("reason", result.message())));
+    }
+
+    private static NativeCommandText.Format diagnosticFormat(ExportDiagnostic.Severity severity) {
+        return switch (severity) {
+            case ERROR -> NativeCommandText.Format.RED;
+            case WARNING -> NativeCommandText.Format.YELLOW;
+            case INFO -> NativeCommandText.Format.GRAY;
+        };
+    }
+
+    private static String diagnosticLabel(ExportDiagnostic diagnostic) {
+        return diagnostic.resource().isEmpty()
+                ? diagnostic.limit().name()
+                : diagnostic.limit().name() + " " + diagnostic.resource();
+    }
+
+    private static final class ExportFeedback implements WorldgenExportProgress {
+        private final NativeCommandSource source;
+        private final NativeModdedServer server;
+        private final UUID audience;
+
+        private ExportFeedback(NativeCommandSource source) {
+            this.source = source;
+            this.server = source.server();
+            this.audience = source.playerId();
+        }
+
+        @Override
+        public void stage(String stage) {
+            post(() -> progress(IrisLanguage.plain(DirectorCommandMessages.COMMAND_DATAPACK_EXPORT_STAGE, MessageArgument.untrusted("stage", stage))));
+        }
+
+        @Override
+        public void resources(int done, int total) {
+            int stride = Math.max(1, total / RESOURCE_REPORTS);
+            if (done != total && done % stride != 0) {
+                return;
+            }
+            post(() -> progress(IrisLanguage.plain(DirectorCommandMessages.COMMAND_DATAPACK_EXPORT_RESOURCES, MessageArgument.untrusted("done", done), MessageArgument.untrusted("total", total))));
+        }
+
+        private void post(Runnable task) {
+            server.execute(() -> LanguageAudience.run(audience, task));
+        }
+
+        private void progress(String message) {
+            ModdedCommandFeedback.send(source, NativeCommandText.literal(message).withStyle(NativeCommandText.Format.GRAY));
+        }
     }
 }

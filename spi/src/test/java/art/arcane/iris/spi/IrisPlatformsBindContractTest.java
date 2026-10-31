@@ -122,6 +122,11 @@ public class IrisPlatformsBindContractTest {
         }
 
         @Override
+        public VanillaDataSource vanillaData() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
         public File dataFolder() {
             throw new UnsupportedOperationException();
         }

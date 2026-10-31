@@ -324,7 +324,7 @@ public class MantleCarvedTerrainTest {
                 for (SeaInlet inlet : complex.getHydrologyRuntime().inlets(0, chunkZ)) {
                     rasterizer.write(inlet, 0, chunkZ, writer, HydrologyCaveCell.SEA_FLUID, "", SeaInletRasterizer.SubterrainFluid.NOWHERE);
                 }
-                new CavePoolFiller(settings).fill(0, chunkZ, new MantleCarvedTerrain(writer, complex, engine, 0, chunkZ), writer, SEED);
+                new CavePoolFiller(settings).fill(0, chunkZ, () -> new MantleCarvedTerrain(writer, complex, engine, 0, chunkZ), writer, SEED);
             }
             return cells;
         }

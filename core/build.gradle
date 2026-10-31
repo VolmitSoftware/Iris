@@ -193,6 +193,10 @@ tasks.named('test').configure {
     maxHeapSize = '2g'
     jvmArgs('-XX:+ExitOnOutOfMemoryError')
     systemProperty('iris.generation.counters', 'true')
+    String exportProbePack = providers.gradleProperty('iris.exportProbePack').orNull
+    if (exportProbePack != null) {
+        systemProperty('iris.exportProbePack', exportProbePack)
+    }
 }
 
 java {
@@ -360,14 +364,9 @@ List<String> unusedVolmLibPackages = [
 ]
 
 List<String> unusedVolmLibClasses = [
-    'art/arcane/volmlib/util/nbt/io/ParseException',
-    'art/arcane/volmlib/util/nbt/io/SNBTDeserializer',
-    'art/arcane/volmlib/util/nbt/io/SNBTParser',
     'art/arcane/volmlib/util/nbt/io/SNBTSerializer',
     'art/arcane/volmlib/util/nbt/io/SNBTUtil',
     'art/arcane/volmlib/util/nbt/io/SNBTWriter',
-    'art/arcane/volmlib/util/nbt/io/StringPointer',
-    'art/arcane/volmlib/util/io/StringDeserializer',
     'art/arcane/volmlib/util/io/StringSerializer',
     'art/arcane/volmlib/util/json/EnumType',
     'art/arcane/volmlib/util/json/HTTP',

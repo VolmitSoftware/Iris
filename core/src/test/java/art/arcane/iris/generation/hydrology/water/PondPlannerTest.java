@@ -15,6 +15,7 @@ import art.arcane.iris.generation.hydrology.plan.RegionKey;
 import art.arcane.iris.generation.hydrology.plan.RegionPlan;
 import art.arcane.iris.generation.hydrology.plan.WindowKey;
 import art.arcane.iris.generation.hydrology.plan.WindowPlan;
+import art.arcane.iris.generation.hydrology.raster.ChannelFluids;
 import art.arcane.iris.generation.hydrology.raster.ChunkRasterizer;
 import art.arcane.iris.generation.hydrology.raster.ChunkWaterRaster;
 import art.arcane.iris.generation.hydrology.raster.ReachIndex;
@@ -656,7 +657,7 @@ public class PondPlannerTest {
 
     private static void assertRasterRimContained(HydrologySettings settings, Pond pond, DoubleBinaryOperator natural) {
         Map<Long, ChunkWaterRaster> rasters = new HashMap<>();
-        ChunkRasterizer rasterizer = new ChunkRasterizer(settings);
+        ChunkRasterizer rasterizer = new ChunkRasterizer(settings, ChannelFluids.TIER);
         int raised = 0;
         int[][] sides = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
         for (int[] wet : wetNodes(pond.mask())) {

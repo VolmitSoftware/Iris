@@ -261,7 +261,7 @@ public class ChunkWaterRasterTest {
         assertTrue("the chain ends at or below the first end grade", previous <= 60);
         List<IndexedWindow> reversed = new ArrayList<>(scene.windows(31, 34));
         Collections.reverse(reversed);
-        ChunkWaterRaster backward = new ChunkRasterizer(scene.settings).rasterize(31, 34, scene.natural, reversed, scene.regions(31, 34));
+        ChunkWaterRaster backward = new ChunkRasterizer(scene.settings, ChannelFluids.TIER).rasterize(31, 34, scene.natural::applyAsInt, reversed, scene.regions(31, 34));
         for (int lz = 0; lz < 16; lz++) {
             for (int lx = 0; lx < 16; lx++) {
                 assertEquals(scene.raster(31, 34).waterHead(lx, lz), backward.waterHead(lx, lz));
@@ -403,7 +403,7 @@ public class ChunkWaterRasterTest {
         SeaInlet inlet = new SeaInlet(71L, xs, zs, halfWidth, SEA_LEVEL, floor, ceiling, 64, 8, 6);
         WindowKey key = new WindowKey(0, 0);
         IndexedWindow own = new IndexedWindow(new WindowPlan(key, List.of(), List.of(), List.of(inlet)), ReachIndex.build(List.of(), List.of()));
-        ChunkRasterizer rasterizer = new ChunkRasterizer(settings);
+        ChunkRasterizer rasterizer = new ChunkRasterizer(settings, ChannelFluids.TIER);
         ChunkWaterRaster mouth = rasterizer.rasterize(0, 0, (x, z) -> 70, List.of(own), regions(0, 0, List.of()));
         int[] column = new int[2];
         int open = 0;
@@ -440,8 +440,8 @@ public class ChunkWaterRasterTest {
             samples.incrementAndGet();
             return 70;
         };
-        ChunkRasterizer rasterizer = new ChunkRasterizer(settings);
-        ChunkWaterRaster raster = rasterizer.rasterize(0, 0, natural, List.of(own), regions(0, 0, List.of()));
+        ChunkRasterizer rasterizer = new ChunkRasterizer(settings, ChannelFluids.TIER);
+        ChunkWaterRaster raster = rasterizer.rasterize(0, 0, natural::applyAsInt, List.of(own), regions(0, 0, List.of()));
         assertTrue(raster.empty());
         assertFalse(raster.provisional());
         assertEquals("a riverless chunk never samples natural heights", 0, samples.get());
@@ -459,9 +459,94 @@ public class ChunkWaterRasterTest {
         assertThrows(IllegalStateException.class, () -> raster.terrainHeight(0, 0));
         assertTrue(ChunkWaterRaster.PROVISIONAL.provisional());
         assertTrue(ChunkWaterRaster.PROVISIONAL.empty());
-        assertThrows(IllegalArgumentException.class, () -> rasterizer.rasterize(40, 0, natural, List.of(own), regions(40, 0, List.of())));
+        assertThrows(IllegalArgumentException.class, () -> rasterizer.rasterize(40, 0, natural::applyAsInt, List.of(own), regions(40, 0, List.of())));
         assertFalse("a chunk on the reach is not empty",
-                rasterizer.rasterize(27, 25, natural, List.of(own), regions(27, 25, List.of())).empty());
+                rasterizer.rasterize(27, 25, natural::applyAsInt, List.of(own), regions(27, 25, List.of())).empty());
+    }
+
+    @Test
+    public void channelTakesTheAreaFluidWhereOneIsSet() {
+        HydrologySettings settings = settings(new IrisHydrology());
+        Reach reach = line(61L, tier("stream", 1.5f, 0.5f, 0, IrisBankStyle.SMOOTH), 0L, 400f, 400f, 480f, 400f, (x, z) -> 69);
+        WindowKey key = new WindowKey(0, 0);
+        IndexedWindow own = new IndexedWindow(new WindowPlan(key, List.of(reach), List.of(), List.of()), ReachIndex.build(List.of(reach), List.of()));
+        ChannelFluids volcanic = (x, z) -> x < 440 ? "lava" : null;
+        ChunkWaterRaster raster = new ChunkRasterizer(settings, volcanic).rasterize(27, 25, (x, z) -> 70, List.of(own), regions(27, 25, List.of()));
+        int lava = 0;
+        int water = 0;
+        for (int lz = 0; lz < 16; lz++) {
+            for (int lx = 0; lx < 16; lx++) {
+                if (!isChannel(raster.role(lx, lz))) {
+                    continue;
+                }
+                boolean inside = 27 * 16 + lx < 440;
+                assertEquals("column " + lx + "," + lz, inside ? "lava" : "water", raster.fluid(lx, lz));
+                if (inside) {
+                    lava++;
+                } else {
+                    water++;
+                }
+            }
+        }
+        assertTrue("lava columns " + lava + ", water columns " + water, lava > 0 && water > 0);
+    }
+
+    @Test
+    public void banksNeverDipAwayFromTheWater() {
+        HydrologySettings settings = settings(new IrisHydrology());
+        Reach river = line(81L, tier("river", 3f, 0.5f, 32, IrisBankStyle.SMOOTH), 0L, 96f, 256f, 416f, 256f, (x, z) -> 69);
+        WindowKey key = new WindowKey(0, 0);
+        IndexedWindow own = new IndexedWindow(new WindowPlan(key, List.of(river), List.of(), List.of()), ReachIndex.build(List.of(river), List.of()));
+        NaturalHeights natural = (x, z) -> {
+            double away = Math.abs(z - 256);
+            if (x < 256) {
+                return 70D + 8D * Math.min(1D, away / 8D) + 0.15D * Math.max(0D, away - 8D);
+            }
+            return 70D + 8D * (1D - Math.exp(-away / 6D)) + (x < 336 ? 0D : 0.15D * away);
+        };
+        ChunkRasterizer rasterizer = new ChunkRasterizer(settings, ChannelFluids.TIER);
+        Map<Long, Integer> terrain = new HashMap<>();
+        Map<Long, WaterRole> roles = new HashMap<>();
+        for (int chunkZ = 13; chunkZ <= 18; chunkZ++) {
+            for (int chunkX = 12; chunkX <= 25; chunkX++) {
+                ChunkWaterRaster raster = rasterizer.rasterize(chunkX, chunkZ, natural, List.of(own), regions(chunkX, chunkZ, List.of()));
+                for (int lz = 0; lz < 16; lz++) {
+                    for (int lx = 0; lx < 16; lx++) {
+                        int x = chunkX * 16 + lx;
+                        int z = chunkZ * 16 + lz;
+                        terrain.put(column(x, z), raster.empty() ? (int) Math.round(natural.height(x, z)) : raster.terrainHeight(lx, lz));
+                        roles.put(column(x, z), raster.empty() ? WaterRole.NONE : raster.role(lx, lz));
+                    }
+                }
+            }
+        }
+        int cut = 0;
+        List<String> pits = new ArrayList<>();
+        for (int z = 13 * 16 + 1; z < 19 * 16 - 1; z++) {
+            for (int x = 12 * 16 + 1; x < 26 * 16 - 1; x++) {
+                if (roles.get(column(x, z)) != WaterRole.BANK) {
+                    continue;
+                }
+                int height = terrain.get(column(x, z));
+                if (height < (int) Math.round(natural.height(x, z))) {
+                    cut++;
+                }
+                int inward = z > 256 ? z - 1 : z + 1;
+                if (z == 256 || roles.get(column(x, inward)) != WaterRole.BANK) {
+                    continue;
+                }
+                int nearer = terrain.get(column(x, inward));
+                if (height < nearer) {
+                    pits.add(x + "," + z + "@" + height + "<" + nearer);
+                }
+            }
+        }
+        assertTrue("cut bank columns " + cut, cut > 400);
+        assertTrue("bank dips " + pits.size() + " " + pits.subList(0, Math.min(10, pits.size())), pits.isEmpty());
+    }
+
+    private static long column(int x, int z) {
+        return ((long) x << 32) | (z & 0xFFFFFFFFL);
     }
 
     @Test
@@ -525,7 +610,7 @@ public class ChunkWaterRasterTest {
         ChunkWaterRaster forward = scene.raster(31, 12);
         List<IndexedWindow> reversed = new ArrayList<>(scene.windows(31, 12));
         Collections.reverse(reversed);
-        ChunkWaterRaster backward = new ChunkRasterizer(scene.settings).rasterize(31, 12, scene.natural, reversed, scene.regions(31, 12));
+        ChunkWaterRaster backward = new ChunkRasterizer(scene.settings, ChannelFluids.TIER).rasterize(31, 12, scene.natural::applyAsInt, reversed, scene.regions(31, 12));
         for (int lz = 0; lz < 16; lz++) {
             for (int lx = 0; lx < 16; lx++) {
                 assertEquals(forward.waterHead(lx, lz), backward.waterHead(lx, lz));
@@ -837,7 +922,7 @@ public class ChunkWaterRasterTest {
         private Scene(HydrologySettings settings, IntBinaryOperator natural) {
             this.settings = settings;
             this.natural = natural;
-            this.rasterizer = new ChunkRasterizer(settings);
+            this.rasterizer = new ChunkRasterizer(settings, ChannelFluids.TIER);
         }
 
         private Scene reach(Reach reach) {
@@ -862,7 +947,7 @@ public class ChunkWaterRasterTest {
 
         private ChunkWaterRaster raster(int chunkX, int chunkZ) {
             return rasters.computeIfAbsent(pack(chunkX, chunkZ),
-                    key -> rasterizer.rasterize(chunkX, chunkZ, natural, windows(chunkX, chunkZ), regions(chunkX, chunkZ)));
+                    key -> rasterizer.rasterize(chunkX, chunkZ, natural::applyAsInt, windows(chunkX, chunkZ), regions(chunkX, chunkZ)));
         }
 
         private List<IndexedWindow> windows(int chunkX, int chunkZ) {

@@ -2,7 +2,6 @@ package art.arcane.iris.generation.hydrology.raster;
 
 import art.arcane.iris.generation.hydrology.config.IrisBankStyle;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveCell;
-import art.arcane.iris.generation.hydrology.grid.CellHash;
 import art.arcane.iris.generation.hydrology.plan.HydrologySettings;
 import art.arcane.iris.generation.hydrology.underground.SeaInlet;
 import art.arcane.iris.generation.hydrology.water.HydrologyTier;
@@ -11,7 +10,6 @@ import art.arcane.iris.generation.hydrology.water.Reach;
 import art.arcane.iris.generation.hydrology.water.ReachStyle;
 
 import java.util.Arrays;
-import java.util.function.IntBinaryOperator;
 
 final class RasterComposer {
     private static final int CHUNK = 16;
@@ -22,12 +20,15 @@ final class RasterComposer {
     private static final double MAX_CONE_SLOPE = 2D;
     private static final double CONE_EXPONENT = 0.8D;
     private static final double ROUNDING = 1e-6D;
-    private static final long SALT_BANK = 0x42414e4b4e5aL;
+    private static final int SLOPE_REACH = 2;
+    private static final int RAY_STEP = 4;
 
     private final HydrologySettings settings;
     private final ChunkFeatures features;
+    private final ChannelFluids channelFluids;
     private final int originX;
     private final int originZ;
+    private final double[] exact = new double[CELLS];
     private final int[] natural = new int[CELLS];
     private final int[] terrain = new int[CELLS];
     private final int[] head = new int[CELLS];
@@ -41,11 +42,12 @@ final class RasterComposer {
     private final HydrologyTier[] nearTier = new HydrologyTier[CELLS];
     private final ReachCursor cursor = new ReachCursor();
     private final int[] inletColumn = new int[2];
-    private IntBinaryOperator naturalHeight;
+    private NaturalHeights naturalHeight;
 
-    RasterComposer(HydrologySettings settings, ChunkFeatures features, int chunkX, int chunkZ) {
+    RasterComposer(HydrologySettings settings, ChunkFeatures features, ChannelFluids channelFluids, int chunkX, int chunkZ) {
         this.settings = settings;
         this.features = features;
+        this.channelFluids = channelFluids;
         this.originX = chunkX * CHUNK - 1;
         this.originZ = chunkZ * CHUNK - 1;
         Arrays.fill(head, Integer.MIN_VALUE);
@@ -54,11 +56,12 @@ final class RasterComposer {
         Arrays.fill(distance, Double.POSITIVE_INFINITY);
     }
 
-    ChunkWaterRaster compose(IntBinaryOperator naturalHeight) {
+    ChunkWaterRaster compose(NaturalHeights naturalHeight) {
         this.naturalHeight = naturalHeight;
         for (int cell = 0; cell < CELLS; cell++) {
             if (!corner(cell)) {
-                natural[cell] = naturalHeight.applyAsInt(originX + cell % GRID, originZ + cell / GRID);
+                exact[cell] = naturalHeight.height(originX + cell % GRID, originZ + cell / GRID);
+                natural[cell] = (int) Math.round(exact[cell]);
                 terrain[cell] = natural[cell];
             }
         }
@@ -107,7 +110,7 @@ final class RasterComposer {
             return;
         }
         if (cursor.channel.reach != null) {
-            channel(cell, ground, variation, BedProfile.detail(settings.seed(), x, z));
+            channel(cell, x, z, ground, variation);
         } else if (interior(cell)) {
             dry(cell, x, z, ground, variation);
         }
@@ -129,16 +132,17 @@ final class RasterComposer {
         return Math.min(floor, bed(hit, Math.min(level, level(hit.reach.grade()[hit.point()])), ground, variation, detail));
     }
 
-    private void channel(int cell, int ground, double variation, double detail) {
+    private void channel(int cell, int x, int z, int ground, double variation) {
         ReachCursor.Choice hit = cursor.channel;
         Reach reach = hit.reach;
         int point = hit.point();
+        String area = channelFluids.channelFluid(x, z);
         head[cell] = level(reach.grade()[point]);
-        terrain[cell] = bed(hit, head[cell], ground, variation, detail);
+        terrain[cell] = bed(hit, head[cell], ground, variation, BedProfile.detail(settings.seed(), x, z));
         role[cell] = role(reach.style()[point]);
         feature[cell] = reach.id();
         tier[cell] = reach.tier();
-        fluid[cell] = reach.tier().fluid();
+        fluid[cell] = area != null ? area : reach.tier().fluid();
     }
 
     private static int bed(ReachCursor.Choice hit, int surface, int ground, double variation, double detail) {
@@ -162,7 +166,8 @@ final class RasterComposer {
                 u = BedProfile.position(u, -variation);
             }
             if (ground >= surface) {
-                cut = BankProfile.cut(bankTier.bankStyle(), surface, ground, u, coneSlope(cell) * u * bankTier.bankBand(), noise(x, z));
+                double cone = coneSlope(steepestToWater(x, z, bank, bankEdge)) * u * bankTier.bankBand();
+                cut = BankProfile.cut(bankTier.bankStyle(), surface, ground, u, cone, noise(x, z));
             } else {
                 raise = BankProfile.levee(bankTier.bankStyle(), surface, ground, u, noise(x, z), settings.deformation().maxFill());
             }
@@ -205,15 +210,47 @@ final class RasterComposer {
         distance[cell] = best;
     }
 
-    private double coneSlope(int cell) {
-        double slope = Math.max(Math.abs(natural[cell + 1] - natural[cell - 1]), Math.abs(natural[cell + GRID] - natural[cell - GRID])) / 2D;
+    private double coneSlope(double slope) {
         HydrologySettings.Deformation deformation = settings.deformation();
         return Math.min(MAX_CONE_SLOPE, deformation.bankSlope() + deformation.bankSteepFactor() * Math.pow(slope, CONE_EXPONENT));
     }
 
+    private double steepestToWater(int x, int z, ReachCursor.Choice bank, double bankEdge) {
+        Reach reach = bank.reach;
+        int next = Math.min(bank.segment + 1, reach.xs().length - 1);
+        double centreX = reach.xs()[bank.segment] + (reach.xs()[next] - reach.xs()[bank.segment]) * bank.t;
+        double centreZ = reach.zs()[bank.segment] + (reach.zs()[next] - reach.zs()[bank.segment]) * bank.t;
+        double steepest = slopeAt(x, z);
+        double length = Math.hypot(centreX - x, centreZ - z);
+        if (length <= 0D) {
+            return steepest;
+        }
+        double towardX = (centreX - x) / length;
+        double towardZ = (centreZ - z) / length;
+        for (double edge = 0D; edge < bankEdge; edge += RAY_STEP) {
+            double back = bankEdge - edge;
+            steepest = Math.max(steepest, slopeAt((int) Math.floor(x + towardX * back + 0.5D), (int) Math.floor(z + towardZ * back + 0.5D)));
+        }
+        return steepest;
+    }
+
+    private double slopeAt(int x, int z) {
+        return Math.max(Math.abs(exactAt(x + SLOPE_REACH, z) - exactAt(x - SLOPE_REACH, z)),
+                Math.abs(exactAt(x, z + SLOPE_REACH) - exactAt(x, z - SLOPE_REACH))) / (2D * SLOPE_REACH);
+    }
+
+    private double exactAt(int x, int z) {
+        int gx = x - originX;
+        int gz = z - originZ;
+        if (gx >= 0 && gz >= 0 && gx < GRID && gz < GRID && !corner(gz * GRID + gx)) {
+            return exact[gz * GRID + gx];
+        }
+        return naturalHeight.height(x, z);
+    }
+
     private double noise(int x, int z) {
         float strength = settings.deformation().bankNoise();
-        return strength == 0f ? 0D : (CellHash.unit(CellHash.mix(settings.seed(), SALT_BANK, x, z)) - 0.5D) * strength;
+        return strength == 0f ? 0D : BedProfile.roughness(settings.seed(), x, z) * strength;
     }
 
     private static int taperCut(int level, int ground, double u) {
@@ -349,7 +386,7 @@ final class RasterComposer {
         if (gx >= 0 && gz >= 0 && gx < GRID && gz < GRID && !corner(gz * GRID + gx)) {
             return natural[gz * GRID + gx];
         }
-        return naturalHeight.applyAsInt(x, z);
+        return (int) Math.round(naturalHeight.height(x, z));
     }
 
     private void nameShores() {
@@ -385,34 +422,37 @@ final class RasterComposer {
 
     private ChunkWaterRaster pack() {
         int columns = ChunkWaterRaster.COLUMNS;
+        boolean affected = false;
+        for (int lz = 0; lz < CHUNK && !affected; lz++) {
+            for (int lx = 0; lx < CHUNK && !affected; lx++) {
+                int cell = (lz + 1) * GRID + lx + 1;
+                affected = role[cell] != WaterRole.NONE || terrain[cell] != natural[cell] || shore(cell) < ChunkWaterRaster.MAX_SHORE_DISTANCE;
+            }
+        }
+        if (!affected) {
+            return ChunkWaterRaster.EMPTY;
+        }
         int[] terrainOut = new int[columns];
         int[] headOut = new int[columns];
         byte[] roleOut = new byte[columns];
-        HydrologyTier[] tierOut = new HydrologyTier[columns];
-        long[] featureOut = new long[columns];
-        String[] fluidOut = new String[columns];
-        int[] caveOut = new int[columns];
+        ChunkWaterRaster.Palette<HydrologyTier> tierOut = new ChunkWaterRaster.Palette<>(new HydrologyTier[columns]);
+        ChunkWaterRaster.LongPalette featureOut = new ChunkWaterRaster.LongPalette();
+        ChunkWaterRaster.Palette<String> fluidOut = new ChunkWaterRaster.Palette<>(new String[columns]);
         byte[] shoreOut = new byte[columns];
-        boolean caveMask = settings.deformation().caveMask();
-        boolean affected = false;
         for (int lz = 0; lz < CHUNK; lz++) {
             for (int lx = 0; lx < CHUNK; lx++) {
                 int cell = (lz + 1) * GRID + lx + 1;
                 int index = lz << 4 | lx;
-                int shore = shore(cell);
                 terrainOut[index] = terrain[cell];
                 headOut[index] = head[cell];
                 roleOut[index] = (byte) role[cell].ordinal();
-                tierOut[index] = tier[cell];
-                featureOut[index] = feature[cell];
-                fluidOut[index] = fluid[cell];
-                caveOut[index] = caveMask && head[cell] != Integer.MIN_VALUE ? terrain[cell] - 1 : Integer.MAX_VALUE;
-                shoreOut[index] = (byte) shore;
-                affected |= role[cell] != WaterRole.NONE || terrain[cell] != natural[cell] || shore < ChunkWaterRaster.MAX_SHORE_DISTANCE;
+                tierOut.set(index, tier[cell]);
+                featureOut.set(index, feature[cell]);
+                fluidOut.set(index, fluid[cell]);
+                shoreOut[index] = (byte) shore(cell);
             }
         }
-        return affected ? new ChunkWaterRaster(terrainOut, headOut, roleOut, tierOut, featureOut, fluidOut, caveOut, shoreOut)
-                : ChunkWaterRaster.EMPTY;
+        return new ChunkWaterRaster(terrainOut, headOut, roleOut, tierOut, featureOut, fluidOut, settings.deformation().caveMask(), shoreOut);
     }
 
     private int shore(int cell) {

@@ -26,6 +26,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.LockSupport;
 import java.util.function.Predicate;
 
 public final class GenerationHistory {
@@ -34,6 +36,7 @@ public final class GenerationHistory {
     private static final int MAXIMUM_CACHED_TRANSITION_PLANS = 4;
     private static final int MAXIMUM_SEMANTIC_BATCH = 32;
     private static final int MAXIMUM_PENDING_SEMANTIC_CLAIMS = 128;
+    private static final long SEMANTIC_CLAIM_PARK_NANOS = 10_000_000L;
 
     private final GenerationHistoryPaths paths;
     private final GenerationPackRepository packs;
@@ -50,6 +53,7 @@ public final class GenerationHistory {
     private final Map<Long, TransitionGenerationPlan> transitionPlanCache;
     private final ArrayBlockingQueue<PendingSemanticClaim> pendingSemanticClaims =
             new ArrayBlockingQueue<>(MAXIMUM_PENDING_SEMANTIC_CLAIMS);
+    private final AtomicBoolean semanticWriter = new AtomicBoolean();
 
     private GenerationHistory(
             GenerationHistoryPaths paths,
@@ -776,12 +780,26 @@ public final class GenerationHistory {
                 persistPendingSemanticClaims();
             }
         }
-        synchronized (this) {
-            while (!pending.claim.completed) {
-                persistPendingSemanticClaims();
+        while (!pending.settled) {
+            if (!semanticWriter.compareAndSet(false, true)) {
+                LockSupport.parkNanos(pending, SEMANTIC_CLAIM_PARK_NANOS);
+                continue;
             }
-            return pending.claim.result();
+            try {
+                synchronized (this) {
+                    while (!pending.claim.completed) {
+                        persistPendingSemanticClaims();
+                    }
+                }
+            } finally {
+                semanticWriter.set(false);
+                PendingSemanticClaim next = pendingSemanticClaims.peek();
+                if (next != null) {
+                    LockSupport.unpark(next.owner);
+                }
+            }
         }
+        return pending.claim.result();
     }
 
     private void persistPendingSemanticClaims() {
@@ -814,9 +832,14 @@ public final class GenerationHistory {
             }
             while ((current = pendingSemanticClaims.poll()) != null) {
                 reported |= current.claim.fail(failure);
+                current.settle();
             }
             if (!reported) {
                 throw failure;
+            }
+        } finally {
+            for (PendingSemanticClaim pending : batch) {
+                pending.settle();
             }
         }
     }
@@ -1354,10 +1377,20 @@ public final class GenerationHistory {
     private static final class PendingSemanticClaim {
         private final GenerationStage stage;
         private final GenerationSemanticIndex.Claim claim;
+        private final Thread owner = Thread.currentThread();
+        private volatile boolean settled;
 
         private PendingSemanticClaim(GenerationStage stage, ChunkGenerationSemantics update) {
             this.stage = stage;
             this.claim = new GenerationSemanticIndex.Claim(update);
+        }
+
+        private void settle() {
+            if (!claim.completed || settled) {
+                return;
+            }
+            settled = true;
+            LockSupport.unpark(owner);
         }
     }
 

@@ -17,6 +17,7 @@ import java.util.Set;
 import java.util.TreeSet;
 
 final class WaterInvariants {
+    static final int EDGE_MARGIN = 32;
     private static final int[] DX = {1, -1, 0, 0};
     private static final int[] DZ = {0, 0, 1, -1};
     private static final float TONGUE_MARGIN = 2f;
@@ -30,7 +31,10 @@ final class WaterInvariants {
         List<Long> detached = new ArrayList<>();
         for (Pond pond : scene.ponds()) {
             Reach outlet = pond.kind() == PondKind.LAKE ? null : reaches.get(pond.outletReachId());
-            if (outlet != null && !floodsIntoOutlet(scene, pond, outlet, WaterHeads.snap(pond.level(), seaLevel))) {
+            if (outlet == null || nearEdge(scene, outletBox(pond.mask(), outlet))) {
+                continue;
+            }
+            if (!floodsIntoOutlet(scene, pond, outlet, WaterHeads.snap(pond.level(), seaLevel))) {
                 detached.add(outlet.id());
             }
         }
@@ -39,11 +43,17 @@ final class WaterInvariants {
 
     static List<Long> confluenceTongues(PlannedScene scene) {
         Map<Long, Reach> reaches = byId(scene.reaches());
+        Map<Long, List<Reach>> feeders = feeders(scene.reaches(), reaches);
         int seaLevel = scene.settings().seaLevel();
         List<Long> tongues = new ArrayList<>();
         for (Reach feeder : scene.reaches()) {
-            Reach receiving = feeder.downstreamId() == 0L ? null : reaches.get(feeder.downstreamId());
-            if (receiving != null && perchedInside(scene, feeder, receiving, seaLevel)) {
+            Reach downstream = feeder.downstreamId() == 0L ? null : reaches.get(feeder.downstreamId());
+            if (downstream == null) {
+                continue;
+            }
+            List<Reach> receiving = receiving(feeder, downstream, feeders.get(downstream.id()));
+            int[] box = tongueBox(feeder, receiving);
+            if (box != null && !nearEdge(scene, box) && perched(scene, feeder, receiving, box, seaLevel)) {
                 tongues.add(feeder.id());
             }
         }
@@ -52,8 +62,8 @@ final class WaterInvariants {
 
     static List<Long> subSeaAir(PlannedScene scene, int seaLevel) {
         Set<Long> features = new TreeSet<>();
-        for (int z = scene.minZ(); z <= scene.maxZ(); z++) {
-            for (int x = scene.minX(); x <= scene.maxX(); x++) {
+        for (int z = scene.minZ() + EDGE_MARGIN; z <= scene.maxZ() - EDGE_MARGIN; z++) {
+            for (int x = scene.minX() + EDGE_MARGIN; x <= scene.maxX() - EDGE_MARGIN; x++) {
                 int head = scene.head(x, z);
                 if (head != Integer.MIN_VALUE && head < seaLevel && scene.terrain(x, z) < head) {
                     features.add(scene.feature(x, z));
@@ -64,13 +74,11 @@ final class WaterInvariants {
     }
 
     private static boolean floodsIntoOutlet(PlannedScene scene, Pond pond, Reach outlet, int head) {
-        PondMask mask = pond.mask();
+        int[] box = maskBox(pond.mask());
         Set<Long> seen = new HashSet<>();
         ArrayDeque<int[]> queue = new ArrayDeque<>();
-        int maxX = mask.originX() + mask.width() * mask.step();
-        int maxZ = mask.originZ() + mask.depth() * mask.step();
-        for (int z = mask.originZ() - mask.step(); z <= maxZ; z++) {
-            for (int x = mask.originX() - mask.step(); x <= maxX; x++) {
+        for (int z = box[1]; z <= box[3]; z++) {
+            for (int x = box[0]; x <= box[2]; x++) {
                 if (scene.role(x, z) == WaterRole.POND && scene.feature(x, z) == pond.id() && scene.head(x, z) == head) {
                     seen.add(pack(x, z));
                     queue.add(new int[]{x, z});
@@ -95,24 +103,9 @@ final class WaterInvariants {
         return false;
     }
 
-    private static boolean perchedInside(PlannedScene scene, Reach feeder, Reach receiving, int seaLevel) {
-        float[] xs = feeder.xs();
-        float[] zs = feeder.zs();
-        int minX = Integer.MAX_VALUE;
-        int minZ = Integer.MAX_VALUE;
-        int maxX = Integer.MIN_VALUE;
-        int maxZ = Integer.MIN_VALUE;
-        for (int point = 0; point < xs.length; point++) {
-            float extent = feeder.halfWidth()[point] + TONGUE_MARGIN;
-            if (edgeDistance(receiving, xs[point], zs[point]) <= extent) {
-                minX = Math.min(minX, (int) Math.floor(xs[point] - extent));
-                minZ = Math.min(minZ, (int) Math.floor(zs[point] - extent));
-                maxX = Math.max(maxX, (int) Math.ceil(xs[point] + extent));
-                maxZ = Math.max(maxZ, (int) Math.ceil(zs[point] + extent));
-            }
-        }
-        for (int z = minZ; z <= maxZ; z++) {
-            for (int x = minX; x <= maxX; x++) {
+    private static boolean perched(PlannedScene scene, Reach feeder, List<Reach> receiving, int[] box, int seaLevel) {
+        for (int z = box[1]; z <= box[3]; z++) {
+            for (int x = box[0]; x <= box[2]; x++) {
                 if (scene.feature(x, z) != feeder.id()) {
                     continue;
                 }
@@ -125,24 +118,91 @@ final class WaterInvariants {
         return false;
     }
 
-    private static double edgeDistance(Reach reach, double x, double z) {
+    private static Map<Long, List<Reach>> feeders(List<Reach> reaches, Map<Long, Reach> byId) {
+        Map<Long, List<Reach>> feeders = new HashMap<>();
+        for (Reach reach : reaches) {
+            if (byId.containsKey(reach.downstreamId())) {
+                feeders.computeIfAbsent(reach.downstreamId(), ignored -> new ArrayList<>()).add(reach);
+            }
+        }
+        return feeders;
+    }
+
+    private static List<Reach> receiving(Reach feeder, Reach downstream, List<Reach> siblings) {
+        List<Reach> receiving = new ArrayList<>(siblings.size());
+        receiving.add(downstream);
+        for (Reach sibling : siblings) {
+            if (sibling.id() != feeder.id()) {
+                receiving.add(sibling);
+            }
+        }
+        return receiving;
+    }
+
+    private static int[] tongueBox(Reach feeder, List<Reach> receiving) {
+        float[] xs = feeder.xs();
+        float[] zs = feeder.zs();
+        int[] box = null;
+        for (int point = 0; point < xs.length; point++) {
+            float extent = feeder.halfWidth()[point] + TONGUE_MARGIN;
+            if (edgeDistance(receiving, xs[point], zs[point]) > extent) {
+                continue;
+            }
+            int[] around = {(int) Math.floor(xs[point] - extent), (int) Math.floor(zs[point] - extent),
+                    (int) Math.ceil(xs[point] + extent), (int) Math.ceil(zs[point] + extent)};
+            box = box == null ? around : new int[]{Math.min(box[0], around[0]), Math.min(box[1], around[1]),
+                    Math.max(box[2], around[2]), Math.max(box[3], around[3])};
+        }
+        return box;
+    }
+
+    private static int[] outletBox(PondMask mask, Reach outlet) {
+        int[] box = maskBox(mask);
+        float extent = outlet.halfWidth()[0] + 1f;
+        return new int[]{Math.min(box[0], (int) Math.floor(outlet.xs()[0] - extent)), Math.min(box[1], (int) Math.floor(outlet.zs()[0] - extent)),
+                Math.max(box[2], (int) Math.ceil(outlet.xs()[0] + extent)), Math.max(box[3], (int) Math.ceil(outlet.zs()[0] + extent))};
+    }
+
+    private static int[] maskBox(PondMask mask) {
+        return new int[]{mask.originX() - mask.step(), mask.originZ() - mask.step(),
+                mask.originX() + mask.width() * mask.step(), mask.originZ() + mask.depth() * mask.step()};
+    }
+
+    private static boolean nearEdge(PlannedScene scene, int[] box) {
+        return box[0] < scene.minX() + EDGE_MARGIN || box[1] < scene.minZ() + EDGE_MARGIN
+                || box[2] > scene.maxX() - EDGE_MARGIN || box[3] > scene.maxZ() - EDGE_MARGIN;
+    }
+
+    private static double edgeDistance(List<Reach> reaches, double x, double z) {
         double best = Double.POSITIVE_INFINITY;
-        for (int segment = 0; segment + 1 < reach.xs().length; segment++) {
-            double t = along(reach, segment, x, z);
-            best = Math.min(best, offset(reach, segment, t, x, z) - width(reach, segment, t));
+        for (Reach reach : reaches) {
+            for (int segment = 0; segment + 1 < reach.xs().length; segment++) {
+                double t = along(reach, segment, x, z);
+                best = Math.min(best, offset(reach, segment, t, x, z) - width(reach, segment, t));
+            }
         }
         return best;
     }
 
-    private static int coveringGrade(Reach reach, int x, int z) {
+    private static int coveringGrade(List<Reach> reaches, int x, int z) {
         double nearest = Double.POSITIVE_INFINITY;
+        long nearestId = 0L;
+        int nearestSegment = 0;
         int grade = Integer.MIN_VALUE;
-        for (int segment = 0; segment + 1 < reach.xs().length; segment++) {
-            double t = along(reach, segment, x, z);
-            double distance = offset(reach, segment, t, x, z);
-            if (distance <= width(reach, segment, t) && distance < nearest) {
-                nearest = distance;
-                grade = reach.grade()[t < 0.5D ? segment : segment + 1];
+        for (Reach reach : reaches) {
+            for (int segment = 0; segment + 1 < reach.xs().length; segment++) {
+                double t = along(reach, segment, x, z);
+                double distance = offset(reach, segment, t, x, z);
+                if (distance > width(reach, segment, t)) {
+                    continue;
+                }
+                if (grade == Integer.MIN_VALUE || distance < nearest || distance == nearest
+                        && (reach.id() < nearestId || reach.id() == nearestId && segment < nearestSegment)) {
+                    nearest = distance;
+                    nearestId = reach.id();
+                    nearestSegment = segment;
+                    grade = reach.grade()[t < 0.5D ? segment : segment + 1];
+                }
             }
         }
         return grade;

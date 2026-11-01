@@ -119,24 +119,25 @@ final class ReachSegments {
                     evaluate(index, x, z, false, cursor);
                 }
             }
-            return;
-        }
-        int first = 0;
-        for (int run = 0; run < runs; run++) {
-            int end = runEnds[run];
-            int box = 4 * run;
-            if (beyond(x, z, runBoxes[box], runBoxes[box + 1], runBoxes[box + 2], runBoxes[box + 3],
-                    limit(runRadius[run], runBands[run], scope, cursor))) {
-                first = end;
-                continue;
-            }
-            for (int index = first; index < end; index++) {
-                if (!beyondSegment(index, x, z, scope, cursor) && index != channelHint && index != bankHint && index != edgeHint) {
-                    evaluate(index, x, z, unbounded, cursor);
+        } else {
+            int first = 0;
+            for (int run = 0; run < runs; run++) {
+                int end = runEnds[run];
+                int box = 4 * run;
+                if (beyond(x, z, runBoxes[box], runBoxes[box + 1], runBoxes[box + 2], runBoxes[box + 3],
+                        limit(runRadius[run], runBands[run], scope, cursor))) {
+                    first = end;
+                    continue;
                 }
+                for (int index = first; index < end; index++) {
+                    if (!beyondSegment(index, x, z, scope, cursor) && index != channelHint && index != bankHint && index != edgeHint) {
+                        evaluate(index, x, z, unbounded, cursor);
+                    }
+                }
+                first = end;
             }
-            first = end;
         }
+        cursor.waters.resolve(cursor.channel);
     }
 
     private int coveredCell(double x, double z) {
@@ -163,8 +164,8 @@ final class ReachSegments {
     }
 
     private static double limit(double radius, int band, Scope scope, ReachCursor cursor) {
-        if (scope == Scope.CHANNEL || cursor.channel.reach != null) {
-            return Math.min(radius, cursor.channel.distance);
+        if (scope == Scope.CHANNEL || !cursor.waters.isEmpty()) {
+            return radius;
         }
         double limit = Math.max(radius, cursor.bank.reach == null ? radius + band : Math.min(radius + band, cursor.bank.distance));
         return switch (scope) {
@@ -200,7 +201,7 @@ final class ReachSegments {
             cursor.nearest.offer(reach, segment, index, t, distance);
         }
         if (distance <= width) {
-            cursor.channel.offer(reach, segment, index, t, distance);
+            cursor.waters.offer(reach, segment, index, t, distance);
         } else if (distance <= width + bands[index]) {
             cursor.bank.offer(reach, segment, index, t, distance);
         }

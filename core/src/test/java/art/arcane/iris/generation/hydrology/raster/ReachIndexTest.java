@@ -117,10 +117,12 @@ public class ReachIndexTest {
             assertEquals(0.85f, hit.t(), 1e-6f);
             assertEquals(8f, hit.distance(), 1e-5f);
         }
-        ReachHit both = ReachIndex.nearest(List.of(trunk, tributary), 20.5D, 6D);
-        assertSame("inside both channels the nearer covering centre wins", tributary, both.reach());
-        assertEquals(ReachHit.Coverage.CHANNEL, both.coverage());
-        assertEquals(0.5f, both.distance(), 1e-5f);
+        for (List<Reach> candidates : List.of(List.of(tributary, trunk), List.of(trunk, tributary))) {
+            ReachHit both = ReachIndex.nearest(candidates, 20.5D, 6D);
+            assertSame("inside both channels at one level the wider channel owns the column", trunk, both.reach());
+            assertEquals(ReachHit.Coverage.CHANNEL, both.coverage());
+            assertEquals(6f, both.distance(), 1e-5f);
+        }
     }
 
     @Test

@@ -132,7 +132,8 @@ final class RasterComposer {
         if (hit.reach == null) {
             return floor;
         }
-        return Math.min(floor, bed(hit, Math.min(level, WaterHeads.snap(hit.reach.grade()[hit.point()], settings.seaLevel())), ground, variation, detail));
+        int ownerHead = WaterHeads.snap(hit.grade(), settings.seaLevel());
+        return Math.min(floor, deepestBed(ownerHead, Math.min(level, ownerHead), ground, variation, detail));
     }
 
     private void channel(int cell, int x, int z, int ground, double variation) {
@@ -140,7 +141,7 @@ final class RasterComposer {
         Reach reach = hit.reach;
         int point = hit.point();
         head[cell] = WaterHeads.snap(reach.grade()[point], settings.seaLevel());
-        terrain[cell] = bed(hit, head[cell], ground, variation, BedProfile.detail(settings.seed(), x, z));
+        terrain[cell] = deepestBed(head[cell], head[cell], ground, variation, BedProfile.detail(settings.seed(), x, z));
         role[cell] = role(reach.style()[point]);
         feature[cell] = reach.id();
         tier[cell] = reach.tier();
@@ -152,6 +153,18 @@ final class RasterComposer {
             String area = channelFluids.channelFluid((int) Math.floor(reach.xs()[0]), (int) Math.floor(reach.zs()[0]));
             return area != null ? area : reach.tier().fluid();
         });
+    }
+
+    private int deepestBed(int ownerHead, int surface, int ground, double variation, double detail) {
+        ReachCursor.Waters waters = cursor.waters;
+        int deepest = Integer.MAX_VALUE;
+        for (int entry = 0; entry < waters.size(); entry++) {
+            ReachCursor.Choice water = waters.get(entry);
+            if (WaterHeads.snap(water.grade(), settings.seaLevel()) == ownerHead) {
+                deepest = Math.min(deepest, bed(water, surface, ground, variation, detail));
+            }
+        }
+        return deepest;
     }
 
     private static int bed(ReachCursor.Choice hit, int surface, int ground, double variation, double detail) {

@@ -50,19 +50,19 @@ public class PlannedSceneTest {
     }
 
     @Test
-    public void reproducesTodaysConfluenceTongue() {
+    public void confluenceHasNoTongueAtEitherTributaryLevel() {
         HydrologySettings settings = PlannedScene.packSettings(SEED);
         for (int tributaryLevel : new int[]{70, 66}) {
             List<Long> tongues = tongues(settings, new int[]{144, 136}, new int[]{144, 56}, (x, z) -> z >= 136 ? 66 : tributaryLevel, true);
-            assertEquals("tributary at " + tributaryLevel, tributaryLevel == 70 ? List.of(303L) : List.of(), tongues);
+            assertEquals("tributary at " + tributaryLevel, List.of(), tongues);
         }
     }
 
     @Test
-    public void confluenceTonguesCoverSiblingFootprintsOutsideTheDownstreamCap() {
+    public void confluenceHasNoTongueInsideTheSiblingChannel() {
         HydrologySettings settings = PlannedScene.packSettings(SEED);
         IntBinaryOperator perchedUpstream = (x, z) -> x >= 128 ? 66 : 70;
-        assertEquals("perched tributary inside the sibling channel", List.of(303L),
+        assertEquals("perched tributary inside the sibling channel", List.of(),
                 tongues(settings, new int[]{144, 136}, new int[]{48, 112}, perchedUpstream, true));
         assertEquals("without the sibling the perched stretch lies outside the downstream cap", List.of(),
                 tongues(settings, new int[]{144, 136}, new int[]{48, 112}, perchedUpstream, false));

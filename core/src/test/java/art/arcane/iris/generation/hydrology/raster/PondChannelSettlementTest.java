@@ -60,16 +60,17 @@ public class PondChannelSettlementTest {
     }
 
     @Test
-    public void nearerChannelsAndIdentityTiesMatchTheRasterWinner() {
+    public void theLowestCoveringChannelSettlesThePondLikeTheRasterOwner() {
         Pond pond = pond(1L, PondKind.CHAINED, 100, circle(0, 0, 4));
         Reach lower = line(4L, 2, -20, 2, 20, 8f, 94, 94);
         Reach nearer = line(3L, 0, -20, 0, 20, 8f, 100, 100);
         Pond single = pond(2L, PondKind.NATURAL, 100, circle(0, 0, 0));
-        Reach tied = line(3L, 2, -20, 2, 20, 8f, 100, 100);
+        Reach alongside = line(3L, 2, -20, 2, 20, 8f, 100, 100);
 
-        assertEquals(100, settle(List.of(lower, nearer), single));
-        assertEquals(100, settle(List.of(lower, tied), pond));
-        assertEquals(100, settle(List.of(tied, lower), pond));
+        assertEquals(94, settle(List.of(lower, nearer), single));
+        assertEquals(94, settle(List.of(nearer, lower), single));
+        assertEquals(94, settle(List.of(lower, alongside), pond));
+        assertEquals(94, settle(List.of(alongside, lower), pond));
     }
 
     @Test

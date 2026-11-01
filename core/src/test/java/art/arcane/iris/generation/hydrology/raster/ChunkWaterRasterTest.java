@@ -589,6 +589,27 @@ public class ChunkWaterRasterTest {
     }
 
     @Test
+    public void receivingRiverOwnsItsFootprintAtAConfluence() {
+        HydrologyTier river = tier("river", 8f, 1f, 16, IrisBankStyle.SMOOTH);
+        HydrologyTier stream = tier("stream", 2f, 0.5f, 4, IrisBankStyle.SMOOTH);
+        Reach below = line(302L, river, 0L, 16f, 8f, 120f, 8f, (x, z) -> 66);
+        Reach main = line(301L, river, below.id(), -96f, 8f, 16f, 8f, (x, z) -> 66);
+        for (int tributaryLevel : new int[]{70, 66}) {
+            Reach tributary = line(303L, stream, below.id(), 16f, -72f, 16f, 8f, (x, z) -> z >= 8f ? 66 : tributaryLevel);
+            Scene scene = new Scene(settings(new IrisHydrology()), (x, z) -> 75).reach(main).reach(tributary).reach(below);
+            for (int x = -16; x <= 48; x++) {
+                for (int z = 0; z <= 16; z++) {
+                    assertEquals("river head at " + x + "," + z, 66, scene.head(x, z));
+                    if (tributaryLevel == 66 && Math.abs(z - 8) <= 2) {
+                        assertTrue("river bed under the tributary mouth at " + x + "," + z, scene.terrain(x, z) <= 63);
+                    }
+                }
+            }
+            assertEquals("the tributary keeps its own water upstream", tributaryLevel, scene.head(16, -24));
+        }
+    }
+
+    @Test
     public void crossWindowLinkNeverRaisesWaterDownstream() {
         HydrologyTier narrow = tier("river", 2f, 0.5f, 4, IrisBankStyle.SMOOTH);
         HydrologyTier wide = tier("river", 3f, 0.5f, 4, IrisBankStyle.SMOOTH);

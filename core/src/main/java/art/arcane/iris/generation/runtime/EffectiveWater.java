@@ -64,18 +64,20 @@ final class EffectiveWater {
     }
 
     static final class Chunk {
-        static final Chunk EMPTY = new Chunk(null, null, null, null);
+        static final Chunk EMPTY = new Chunk(null, null, null, null, null);
 
         private final long[] columns;
         private final WaterRole[] roles;
         private final boolean[] owned;
         private final ChunkWaterRaster raster;
+        private final String[] seams;
 
-        Chunk(long[] columns, WaterRole[] roles, boolean[] owned, ChunkWaterRaster raster) {
+        Chunk(long[] columns, WaterRole[] roles, boolean[] owned, ChunkWaterRaster raster, String[] seams) {
             this.columns = columns;
             this.roles = roles;
             this.owned = owned;
             this.raster = raster;
+            this.seams = seams;
         }
 
         long column(int lx, int lz) {
@@ -92,6 +94,11 @@ final class EffectiveWater {
 
         ChunkWaterRaster raster() {
             return raster;
+        }
+
+        String fluid(int lx, int lz) {
+            String seam = seams == null ? null : seams[lz << 4 | lx];
+            return seam != null ? seam : raster.fluid(lx, lz);
         }
     }
 

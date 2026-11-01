@@ -37,6 +37,7 @@ final class DecoratorCore {
 
     private static final long SEED_OFFSET = 29356788L;
     private static final long PART_FACTOR = 10439677L;
+    private static final String VINE = "minecraft:vine";
     private static final String WEEPING_VINES = "minecraft:weeping_vines";
     private static final String WEEPING_VINES_PLANT = "minecraft:weeping_vines_plant";
     private static final String TWISTING_VINES = "minecraft:twisting_vines";
@@ -454,43 +455,22 @@ final class DecoratorCore {
         if (fixer != null) {
             return fixer.fixFaces(b, hunk, rX, rZ, x, y, z, mantle);
         }
-        BlockData rawB = (BlockData) b.nativeHandle();
-        BlockData cloned = rawB.clone();
+        BlockData cloned = ((BlockData) b.nativeHandle()).clone();
         MultipleFacing data = (MultipleFacing) cloned;
-        data.getFaces().forEach(f -> data.setFace(f, false));
+        if (keepSupportedSides(data, VINE.equals(IrisProceduralBlocks.materialKey(b)), hunk, rX, rZ, x, y, z, mantle)) {
+            return BukkitBlockState.of(cloned);
+        }
+        for (BlockFace f : Faces.CARTESIAN) {
+            if (data.hasFace(f)) {
+                data.setFace(f, false);
+            }
+        }
 
         boolean found = false;
-        for (BlockFace f : BlockFace.values()) {
-            if (!f.isCartesian()) {
-                continue;
-            }
-            int yy = y + f.getModY();
-
-            NativeBlockState rs = null;
-            if (mantle != null) {
-                rs = mantle.getMantle().get(x + f.getModX(), yy, z + f.getModZ(), NativeBlockState.class);
-            }
-            BlockData r = rs == null ? (BlockData) EngineMantle.AIR.get().nativeHandle() : (BlockData) rs.nativeHandle();
-            if (r.isFaceSturdy(f.getOppositeFace(), BlockSupport.FULL)) {
-                if (data.getAllowedFaces().contains(f)) {
-                    found = true;
-                    data.setFace(f, true);
-                }
-                continue;
-            }
-
-            int xx = rX + f.getModX();
-            int zz = rZ + f.getModZ();
-            if (xx < 0 || xx > 15 || zz < 0 || zz > 15 || yy < 0 || yy >= hunk.getHeight()) {
-                continue;
-            }
-
-            r = (BlockData) hunk.get(xx, yy, zz).nativeHandle();
-            if (r.isFaceSturdy(f.getOppositeFace(), BlockSupport.FULL)) {
-                if (data.getAllowedFaces().contains(f)) {
-                    found = true;
-                    data.setFace(f, true);
-                }
+        for (BlockFace f : Faces.CARTESIAN) {
+            if (data.getAllowedFaces().contains(f) && sturdy(f, hunk, rX, rZ, x, y, z, mantle)) {
+                found = true;
+                data.setFace(f, true);
             }
         }
         if (!found) {
@@ -500,6 +480,61 @@ final class DecoratorCore {
             }
         }
         return BukkitBlockState.of(cloned);
+    }
+
+    private static boolean keepSupportedSides(MultipleFacing data, boolean vine, Hunk<NativeBlockState> hunk,
+                                              int rX, int rZ, int x, int y, int z, EngineMantle mantle) {
+        boolean ceiling = sturdy(BlockFace.UP, hunk, rX, rZ, x, y, z, mantle);
+        boolean side = false;
+        for (BlockFace f : Faces.SIDES) {
+            if (!data.hasFace(f)) {
+                continue;
+            }
+            if (sturdy(f, hunk, rX, rZ, x, y, z, mantle) || vine && (ceiling || vineAboveCarries(f, hunk, rX, rZ, x, y, z, mantle))) {
+                side = true;
+            } else {
+                data.setFace(f, false);
+            }
+        }
+        if (!side) {
+            return false;
+        }
+        if (data.getAllowedFaces().contains(BlockFace.UP)) {
+            data.setFace(BlockFace.UP, ceiling);
+        }
+        if (data.hasFace(BlockFace.DOWN) && !sturdy(BlockFace.DOWN, hunk, rX, rZ, x, y, z, mantle)) {
+            data.setFace(BlockFace.DOWN, false);
+        }
+        return true;
+    }
+
+    private static boolean sturdy(BlockFace f, Hunk<NativeBlockState> hunk, int rX, int rZ, int x, int y, int z, EngineMantle mantle) {
+        int yy = y + f.getModY();
+        BlockFace attached = f.getOppositeFace();
+        if (mantle != null && sturdy(mantle.getMantle().get(x + f.getModX(), yy, z + f.getModZ(), NativeBlockState.class), attached)) {
+            return true;
+        }
+        int xx = rX + f.getModX();
+        int zz = rZ + f.getModZ();
+        return xx >= 0 && xx <= 15 && zz >= 0 && zz <= 15 && yy >= 0 && yy < hunk.getHeight()
+                && sturdy(hunk.get(xx, yy, zz), attached);
+    }
+
+    private static boolean sturdy(NativeBlockState state, BlockFace attached) {
+        return state != null && ((BlockData) state.nativeHandle()).isFaceSturdy(attached, BlockSupport.FULL);
+    }
+
+    private static boolean vineAboveCarries(BlockFace f, Hunk<NativeBlockState> hunk, int rX, int rZ,
+                                            int x, int y, int z, EngineMantle mantle) {
+        if (mantle != null && carries(mantle.getMantle().get(x, y + 1, z, NativeBlockState.class), f)) {
+            return true;
+        }
+        return y + 1 < hunk.getHeight() && carries(hunk.get(rX, y + 1, rZ), f);
+    }
+
+    private static boolean carries(NativeBlockState state, BlockFace f) {
+        return state != null && state.nativeHandle() instanceof MultipleFacing facing
+                && VINE.equals(IrisProceduralBlocks.materialKey(state)) && facing.hasFace(f);
     }
 
     static boolean canGoOn(NativeBlockState decorator, NativeBlockState surface) {
@@ -588,5 +623,11 @@ final class DecoratorCore {
             case TWISTING_VINES_PLANT -> twistingVinesPlant == null ? twistingVinesPlant = B.getState(key) : twistingVinesPlant;
             default -> state;
         };
+    }
+
+    private static final class Faces {
+        private static final BlockFace[] SIDES = {BlockFace.NORTH, BlockFace.EAST, BlockFace.SOUTH, BlockFace.WEST};
+        private static final BlockFace[] CARTESIAN = {BlockFace.NORTH, BlockFace.EAST, BlockFace.SOUTH, BlockFace.WEST,
+                BlockFace.UP, BlockFace.DOWN};
     }
 }

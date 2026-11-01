@@ -86,7 +86,12 @@ public final class IrisHydrologyTerrainSource implements HydrologyTerrainSource,
 
     @Override
     public String channelFluid(int x, int z) {
-        return policy(biomes.get(x, z), regions.get(x, z)).fluid();
+        ChunkBakeCache.enterSparse();
+        try {
+            return policy(biomes.get(x, z), regions.get(x, z)).fluid();
+        } finally {
+            ChunkBakeCache.exitSparse();
+        }
     }
 
     @Override
@@ -203,9 +208,8 @@ public final class IrisHydrologyTerrainSource implements HydrologyTerrainSource,
         boolean climateZones = inherited(biome, region, IrisHydrologyPolicy::getClimateZones, Boolean.TRUE);
         requireMultiplier("rainfall", rainfall, biome, region);
         requireMultiplier("pondDensity", pondDensity, biome, region);
-        if (fluid != null && !settings.fluids().containsKey(fluid)) {
-            throw new IllegalArgumentException("Hydrology policy for " + where(biome, region) + " names fluid '" + fluid
-                    + "', which is not one of the hydrology fluids " + settings.fluids().keySet());
+        if (fluid != null) {
+            settings.requireFillingFluid(fluid, "the hydrology policy for " + where(biome, region));
         }
         return new Policy((float) rainfall, (float) pondDensity, permission(streams, ponds), fluid, climateZones);
     }

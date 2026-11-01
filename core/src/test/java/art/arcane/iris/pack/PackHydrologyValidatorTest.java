@@ -94,6 +94,31 @@ public class PackHydrologyValidatorTest {
     }
 
     @Test
+    public void rejectsPoliciesThatFillWaterWithASeamProfile() throws Exception {
+        File pack = pack(dimension("""
+                {
+                  "enabled": true,
+                  "fluids": [
+                    {"name": "water"},
+                    {"name": "lava", "palette": {"palette": [{"block": "minecraft:lava"}]}, "seam": "crust"},
+                    {"name": "crust", "palette": {"palette": [{"block": "minecraft:obsidian"}]}}
+                  ]
+                }
+                """, ""));
+        write(pack, "regions/region.json", """
+                {"landBiomes": ["biome"], "hydrologyPolicy": {"fluid": "lava"}}
+                """);
+        write(pack, "biomes/biome.json", """
+                {"name": "Biome", "hydrologyPolicy": {"fluid": "crust"}}
+                """);
+
+        List<String> errors = validate(pack).errors();
+
+        assertContains(errors, "Biome 'biome'.hydrologyPolicy.fluid names fluid 'crust', which is a seam profile");
+        assertEquals(errors.toString(), 1, errors.size());
+    }
+
+    @Test
     public void rejectsFluidReferencesTheFluidProfilesDoNotDefine() throws Exception {
         File pack = pack(dimension("""
                 {

@@ -21,7 +21,6 @@ public final class CavePoolFiller {
     private static final long SALT_FLOOR = 0x4341564652L << 20;
     private static final long SALT_FREEBOARD = 0x43415646524244L;
     private static final long SALT_DENSITY = 0x43415644454e53L;
-    private static final HydrologyCaveCell GUARD = HydrologyCaveCell.of(HydrologyCaveAction.SEAL_GUARD);
     private static final CaveVoxel[] VOXELS = CaveVoxel.values();
     private static final int[] DX = {1, -1, 0, 0, 0, 0};
     private static final int[] DY = {0, 0, 0, 0, 1, -1};
@@ -144,6 +143,7 @@ public final class CavePoolFiller {
 
     private static void write(int chunkX, int chunkZ, Pool pool, MantleWriter writer) {
         HydrologyCaveCell wet = new HydrologyCaveCell(HydrologyCaveAction.POOL_SOURCE, pool.fluid(), "");
+        HydrologyCaveCell wall = new HydrologyCaveCell(HydrologyCaveAction.SEAL_GUARD, pool.fluid(), "");
         for (int offsetX = -1; offsetX <= 1; offsetX++) {
             for (int offsetZ = -1; offsetZ <= 1; offsetZ++) {
                 int targetX = chunkX + offsetX;
@@ -151,7 +151,7 @@ public final class CavePoolFiller {
                 if (pool.touches(targetX, targetZ)) {
                     writer.withChunkFence(targetX, targetZ, () -> {
                         writeCells(targetX, targetZ, pool.cells(), wet, writer);
-                        writeCells(targetX, targetZ, pool.walls(), GUARD, writer);
+                        writeCells(targetX, targetZ, pool.walls(), wall, writer);
                     });
                 }
             }
@@ -166,10 +166,16 @@ public final class CavePoolFiller {
                 continue;
             }
             int y = unpackY(cell);
-            if (writer.getDataIfPresent(x, y, z, HydrologyCaveCell.class) == null) {
+            HydrologyCaveCell existing = writer.getDataIfPresent(x, y, z, HydrologyCaveCell.class);
+            if (existing == null || replacesSharedWall(existing, value)) {
                 writer.setData(x, y, z, value);
             }
         }
+    }
+
+    private static boolean replacesSharedWall(HydrologyCaveCell existing, HydrologyCaveCell value) {
+        return existing.action() == HydrologyCaveAction.SEAL_GUARD && value.action() == HydrologyCaveAction.SEAL_GUARD
+                && value.fluidProfileKey().compareTo(existing.fluidProfileKey()) < 0;
     }
 
     private String fluid(CarvedTerrain carved, int x, int y, int z) {

@@ -1184,11 +1184,9 @@ public class IrisCarveModifier extends EngineAssignedModifier<NativeBlockState> 
             }
             MatterCavern baseline = terrain.cavern(localX, y, localZ);
             NativeBlockState current = output.getRaw(localX, y, localZ);
-            NativeBlockState columnFluid = getComplex().resolveCaveCellFluid(
-                    hydrology.fluidProfileKey(),
-                    worldX,
-                    worldZ
-            );
+            NativeBlockState columnFluid = hydrology.isWet()
+                    ? getComplex().resolveCaveCellFluid(hydrology.fluidProfileKey(), worldX, worldZ)
+                    : null;
             NativeBlockState normalized = normalizeHydrologyWaterlogging(
                     current,
                     baseline,

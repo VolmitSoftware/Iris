@@ -457,40 +457,21 @@ final class DecoratorCore {
         BlockData rawB = (BlockData) b.nativeHandle();
         BlockData cloned = rawB.clone();
         MultipleFacing data = (MultipleFacing) cloned;
+        if (data.getFaces().stream().anyMatch(f -> f != BlockFace.UP && f != BlockFace.DOWN)) {
+            // The pack chose which side a hanging strand faces: keep it (the vine above holds it up), and tie the
+            // block under a solid ceiling to it, so ceiling decorators hang curtains instead of flat ceiling sheets.
+            if (data.getAllowedFaces().contains(BlockFace.UP) && sturdy(BlockFace.UP, hunk, rX, rZ, x, y, z, mantle)) {
+                data.setFace(BlockFace.UP, true);
+            }
+            return BukkitBlockState.of(cloned);
+        }
         data.getFaces().forEach(f -> data.setFace(f, false));
 
         boolean found = false;
         for (BlockFace f : BlockFace.values()) {
-            if (!f.isCartesian()) {
-                continue;
-            }
-            int yy = y + f.getModY();
-
-            NativeBlockState rs = null;
-            if (mantle != null) {
-                rs = mantle.getMantle().get(x + f.getModX(), yy, z + f.getModZ(), NativeBlockState.class);
-            }
-            BlockData r = rs == null ? (BlockData) EngineMantle.AIR.get().nativeHandle() : (BlockData) rs.nativeHandle();
-            if (r.isFaceSturdy(f.getOppositeFace(), BlockSupport.FULL)) {
-                if (data.getAllowedFaces().contains(f)) {
-                    found = true;
-                    data.setFace(f, true);
-                }
-                continue;
-            }
-
-            int xx = rX + f.getModX();
-            int zz = rZ + f.getModZ();
-            if (xx < 0 || xx > 15 || zz < 0 || zz > 15 || yy < 0 || yy >= hunk.getHeight()) {
-                continue;
-            }
-
-            r = (BlockData) hunk.get(xx, yy, zz).nativeHandle();
-            if (r.isFaceSturdy(f.getOppositeFace(), BlockSupport.FULL)) {
-                if (data.getAllowedFaces().contains(f)) {
-                    found = true;
-                    data.setFace(f, true);
-                }
+            if (f.isCartesian() && sturdy(f, hunk, rX, rZ, x, y, z, mantle) && data.getAllowedFaces().contains(f)) {
+                found = true;
+                data.setFace(f, true);
             }
         }
         if (!found) {
@@ -500,6 +481,22 @@ final class DecoratorCore {
             }
         }
         return BukkitBlockState.of(cloned);
+    }
+
+    /** Whether the neighbour on that face (mantle first, then this chunk's hunk) offers a full sturdy face to attach to. */
+    private static boolean sturdy(BlockFace f, Hunk<NativeBlockState> hunk, int rX, int rZ, int x, int y, int z, EngineMantle mantle) {
+        int yy = y + f.getModY();
+        NativeBlockState rs = mantle == null ? null : mantle.getMantle().get(x + f.getModX(), yy, z + f.getModZ(), NativeBlockState.class);
+        BlockData r = rs == null ? (BlockData) EngineMantle.AIR.get().nativeHandle() : (BlockData) rs.nativeHandle();
+        if (r.isFaceSturdy(f.getOppositeFace(), BlockSupport.FULL)) {
+            return true;
+        }
+        int xx = rX + f.getModX();
+        int zz = rZ + f.getModZ();
+        if (xx < 0 || xx > 15 || zz < 0 || zz > 15 || yy < 0 || yy >= hunk.getHeight()) {
+            return false;
+        }
+        return ((BlockData) hunk.get(xx, yy, zz).nativeHandle()).isFaceSturdy(f.getOppositeFace(), BlockSupport.FULL);
     }
 
     static boolean canGoOn(NativeBlockState decorator, NativeBlockState surface) {

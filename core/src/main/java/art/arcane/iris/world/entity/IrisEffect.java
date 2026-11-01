@@ -44,6 +44,7 @@ import org.bukkit.World;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
+import org.bukkit.SoundCategory;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.potion.PotionEffect;
@@ -117,6 +118,9 @@ public class IrisEffect {
     @MaxNumber(512)
     @Description("The sound volume.")
     private double volume = 1.5D;
+    @DependsOn({"sound"})
+    @Description("The sound category the sound plays in, which picks the client volume slider that controls it (for example MUSIC, AMBIENT or HOSTILE).")
+    private SoundCategory soundCategory = SoundCategory.MASTER;
     @DependsOn({"particleEffect"})
     @MinNumber(0)
     @MaxNumber(512)
@@ -240,7 +244,7 @@ public class IrisEffect {
             Particle particleType = getParticleEffect();
             if (soundType != null) {
                 Location part = p.getLocation().clone().add(RNG.r.i(-soundDistance, soundDistance), RNG.r.i(-soundDistance, soundDistance), RNG.r.i(-soundDistance, soundDistance));
-                p.playSound(part, soundType, (float) volume, (float) RNG.r.d(minPitch, maxPitch));
+                p.playSound(part, soundType, soundCategory, (float) volume, (float) RNG.r.d(minPitch, maxPitch));
             }
 
             if (particleType != null) {
@@ -317,7 +321,7 @@ public class IrisEffect {
             Particle particleType = getParticleEffect();
             if (soundType != null) {
                 Location part = p.getLocation().clone().add(RNG.r.i(-soundDistance, soundDistance), RNG.r.i(-soundDistance, soundDistance), RNG.r.i(-soundDistance, soundDistance));
-                p.getWorld().playSound(part, soundType, (float) volume, (float) RNG.r.d(minPitch, maxPitch));
+                p.getWorld().playSound(part, soundType, soundCategory, (float) volume, (float) RNG.r.d(minPitch, maxPitch));
             }
 
             if (particleType != null) {

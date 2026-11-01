@@ -86,7 +86,12 @@ public final class IrisHydrologyTerrainSource implements HydrologyTerrainSource,
 
     @Override
     public String channelFluid(int x, int z) {
-        return policy(biomes.get(x, z), regions.get(x, z)).fluid();
+        ChunkBakeCache.enterSparse();
+        try {
+            return policy(biomes.get(x, z), regions.get(x, z)).fluid();
+        } finally {
+            ChunkBakeCache.exitSparse();
+        }
     }
 
     @Override

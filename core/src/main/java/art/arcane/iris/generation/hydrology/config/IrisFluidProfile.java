@@ -19,4 +19,6 @@ public class IrisFluidProfile {
     @Required
     @Description("Blocks that fill the water feature.")
     private IrisMaterialPalette palette = new IrisMaterialPalette().qclear().qadd("minecraft:water");
+    @Description("Name of another fluid profile that fills this fluid's edge where it touches a different fluid, such as obsidian where lava meets water. Worldgen places fluids without updates, so unset leaves the two fluids side by side.")
+    private String seam = null;
 }

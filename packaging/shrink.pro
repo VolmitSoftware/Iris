@@ -1,6 +1,8 @@
 -keep class art.arcane.iris.api.** { *; }
 -keep class art.arcane.iris.world.event.** { *; }
 -keep class art.arcane.iris.spi.** { *; }
+-keep interface art.arcane.iris.generation.runtime.Engine { public *; }
+-keep interface art.arcane.iris.generation.mantle.EngineMantle { public *; }
 -keep class art.arcane.iris.command.handlers.** { *; }
 -keep class art.arcane.iris.command.context.** { *; }
 -keep class art.arcane.iris.command.specialhandlers.** { *; }

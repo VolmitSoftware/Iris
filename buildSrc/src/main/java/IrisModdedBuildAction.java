@@ -49,17 +49,22 @@ public abstract class IrisModdedBuildAction implements WorkAction<IrisModdedBuil
             LOGGER.lifecycle("{} succeeded in {} ms", label,
                     TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started));
         } catch (Exception failure) {
-            appendFailure(log, failure);
-            String details;
-            try {
-                details = logTail(log);
-            } catch (IOException unreadable) {
-                failure.addSuppressed(unreadable);
-                details = "Log could not be read.";
-            }
+            String details = failureSummary(log, failure);
             LOGGER.error(label + " failed; log: " + log + System.lineSeparator() + details, failure);
             throw new GradleException(label + " failed; log: " + log, failure);
         }
+    }
+
+    static String failureSummary(Path log, Exception failure) {
+        String details;
+        try {
+            details = logTail(log);
+        } catch (IOException unreadable) {
+            failure.addSuppressed(unreadable);
+            details = "Log could not be read.";
+        }
+        appendFailure(log, failure);
+        return details;
     }
 
     static String logTail(Path log) throws IOException {

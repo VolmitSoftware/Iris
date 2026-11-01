@@ -67,6 +67,29 @@ public class IrisModdedBuildTest {
     }
 
     @Test
+    public void failureSummaryReportsTheNestedBuildOutputBeforeTheRecordedStackTrace() throws Exception {
+        Path log = temporary.newFile().toPath();
+        Files.writeString(log, "> Task :compileJava FAILED\n\n* What went wrong:\nExecution failed for task ':compileJava'.\n\nBUILD FAILED in 20s\n");
+        Exception failure = new IllegalStateException("nested build exited 1");
+
+        String summary = IrisModdedBuildAction.failureSummary(log, failure);
+
+        assertTrue(summary.contains("* What went wrong:"));
+        assertTrue(summary.endsWith("BUILD FAILED in 20s"));
+        assertFalse(summary.contains("nested build exited 1"));
+        assertTrue(Files.readString(log).contains("java.lang.IllegalStateException: nested build exited 1"));
+    }
+
+    @Test
+    public void failureSummaryReportsAnUnreadableLog() throws Exception {
+        Path log = temporary.getRoot().toPath().resolve("missing/forge.log");
+        Exception failure = new IllegalStateException("log directory could not be created");
+
+        assertEquals("Log could not be read.", IrisModdedBuildAction.failureSummary(log, failure));
+        assertEquals(2, failure.getSuppressed().length);
+    }
+
+    @Test
     public void failureSummaryBoundsAnUnbrokenFailureLine() throws Exception {
         Path log = temporary.newFile().toPath();
         Files.writeString(log, "x".repeat(100_000) + "final failure");

@@ -55,6 +55,7 @@ public final class ModdedEngineEffects extends EngineAssignedComponent implement
     private static final double PLAYER_REFRESH_CHANCE = 0.02D;
     private static final Set<String> UNKNOWN_POTIONS = ConcurrentHashMap.newKeySet();
     private static final Set<String> UNKNOWN_SOUNDS = ConcurrentHashMap.newKeySet();
+    private static final Set<String> UNKNOWN_SOUND_CATEGORIES = ConcurrentHashMap.newKeySet();
     private static final Set<String> UNKNOWN_PARTICLES = ConcurrentHashMap.newKeySet();
     private static final Set<String> UNSUPPORTED_PARTICLES = ConcurrentHashMap.newKeySet();
 
@@ -252,6 +253,14 @@ public final class ModdedEngineEffects extends EngineAssignedComponent implement
             warnUnknown(UNKNOWN_SOUNDS, "sound", key);
             return;
         }
+        String categoryKey = effect.getSoundCategoryKey();
+        NativePlayerEffects.SoundCategory category = NativePlayerEffects.soundCategory(categoryKey);
+        if (category == null) {
+            if (UNKNOWN_SOUND_CATEGORIES.add(categoryKey)) {
+                IrisLogging.warn("Unknown sound category: \"" + categoryKey + "\".");
+            }
+            return;
+        }
 
         int distance = effect.getSoundDistance();
         double x = player.x() + RNG.r.i(-distance, distance);
@@ -260,7 +269,7 @@ public final class ModdedEngineEffects extends EngineAssignedComponent implement
         float volume = (float) effect.getVolume();
         float pitch = (float) RNG.r.d(effect.getMinPitch(), effect.getMaxPitch());
         NativePlayerEffects.sound(player, sound, new NativePlayerEffects.SoundEmission(
-                x, y, z, volume, pitch, ThreadLocalRandom.current().nextLong()));
+                category, x, y, z, volume, pitch, ThreadLocalRandom.current().nextLong()));
     }
 
     private void applyParticles(NativeWorld level, NativeProtocolPlayer player, IrisEffect effect) {

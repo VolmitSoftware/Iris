@@ -29,6 +29,7 @@ import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.runtime.PreparedHydrologyCacheIdentity;
 import art.arcane.iris.generation.runtime.SeedManager;
 import art.arcane.iris.generation.terrain.IrisDimension;
+import art.arcane.iris.generation.terrain.IrisRegion;
 import art.arcane.iris.spi.LogLevel;
 import art.arcane.iris.testsupport.FakeHydrology;
 import art.arcane.iris.testsupport.PlatformLeakGuard;
@@ -848,17 +849,27 @@ public class HydrologyRuntimeTest {
     }
 
     @Test
-    public void biomeFluidPoliciesAreCheckedWhenTheEngineLoads() {
+    public void caveFluidPoliciesAreCheckedWhenTheEngineLoads() {
+        IrisDimension dimension = new IrisDimension();
+        IrisRegion region = new IrisRegion();
         IrisBiome plain = new IrisBiome();
-        IrisBiome flooded = new IrisBiome();
-        flooded.setHydrologyPolicy(new IrisHydrologyPolicy().setFluid("water"));
-        IrisBiome magma = new IrisBiome();
-        magma.setHydrologyPolicy(new IrisHydrologyPolicy().setFluid("magma"));
+        IrisBiome flooded = new IrisBiome().setHydrologyPolicy(new IrisHydrologyPolicy().setFluid("water"));
+        IrisBiome magma = new IrisBiome().setHydrologyPolicy(new IrisHydrologyPolicy().setFluid("magma"));
 
-        assertFalse(HydrologyRuntime.requireBiomeFluids(List.of(plain), settings()));
-        assertTrue(HydrologyRuntime.requireBiomeFluids(List.of(plain, flooded), settings()));
+        assertFalse(HydrologyRuntime.requireCaveFluids(dimension, List.of(region), List.of(plain), settings()));
+        assertTrue(HydrologyRuntime.requireCaveFluids(dimension, List.of(region), List.of(plain, flooded), settings()));
         IllegalArgumentException failure = assertThrows(IllegalArgumentException.class,
-                () -> HydrologyRuntime.requireBiomeFluids(List.of(plain, magma), settings()));
+                () -> HydrologyRuntime.requireCaveFluids(dimension, List.of(region), List.of(plain, magma), settings()));
+        assertTrue(failure.getMessage(), failure.getMessage().contains("'magma'"));
+
+        region.setHydrologyPolicy(new IrisHydrologyPolicy().setFluid("water"));
+        assertTrue(HydrologyRuntime.requireCaveFluids(dimension, List.of(region), List.of(plain), settings()));
+        region.setHydrologyPolicy(null);
+        dimension.setHydrologyPolicy(new IrisHydrologyPolicy().setFluid("water"));
+        assertTrue(HydrologyRuntime.requireCaveFluids(dimension, List.of(region), List.of(plain), settings()));
+        dimension.setHydrologyPolicy(new IrisHydrologyPolicy().setFluid("magma"));
+        failure = assertThrows(IllegalArgumentException.class,
+                () -> HydrologyRuntime.requireCaveFluids(dimension, List.of(region), List.of(plain), settings()));
         assertTrue(failure.getMessage(), failure.getMessage().contains("'magma'"));
     }
 

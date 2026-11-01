@@ -113,6 +113,7 @@ import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
@@ -783,6 +784,29 @@ public class IrisDimension extends IrisRegistrant {
         }
 
         return biomes.v();
+    }
+
+    public KList<IrisBiome> getReachableCaveBiomes(DataProvider g) {
+        IrisData data = g == null ? null : g.getData();
+        if (data == null || data.getBiomeLoader() == null) {
+            return new KList<>();
+        }
+        Map<String, IrisBiome> biomes = new LinkedHashMap<>();
+        for (IrisRegion region : getAllRegions(g)) {
+            for (IrisBiome biome : region.getRealCaveBiomes(g)) {
+                biomes.putIfAbsent(biome.getLoadKey(), biome);
+            }
+        }
+        KList<IrisDimensionCarvingEntry> carvingEntries = getCarving();
+        if (carvingEntries != null) {
+            for (IrisDimensionCarvingEntry entry : carvingEntries) {
+                IrisBiome biome = entry == null || !entry.isEnabled() ? null : entry.getRealBiome(data);
+                if (biome != null) {
+                    biomes.putIfAbsent(biome.getLoadKey(), biome);
+                }
+            }
+        }
+        return new KList<>(biomes.values());
     }
 
     private Set<String> imageMapTargets(IrisImageMap map) {

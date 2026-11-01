@@ -95,7 +95,8 @@ public class IrisEngineGenerationRuntimeScopeTest {
         when(historical.dimension.getHydrology()).thenReturn(new IrisHydrology().setEnabled(true).setPersist(false).setPrefetchRings(0));
         when(historical.dimension.getFluidHeight()).thenReturn(40);
         when(historical.dimension.getLoadKey()).thenReturn("historical");
-        when(historical.dimension.getReachableBiomes(any())).thenReturn(new KList<>());
+        when(historical.dimension.getAllRegions(any())).thenReturn(new KList<>());
+        when(historical.dimension.getReachableCaveBiomes(any())).thenReturn(new KList<>());
         when(historical.target.getWorld().getHeight()).thenReturn(384);
         IrisBiome biome = new IrisBiome();
         IrisRegion region = new IrisRegion();

@@ -30,6 +30,7 @@ import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.runtime.IrisEngine;
 import art.arcane.iris.generation.runtime.PreparedHydrologyCacheIdentity;
 import art.arcane.iris.generation.terrain.IrisDimension;
+import art.arcane.iris.generation.terrain.IrisRegion;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.world.IrisWorld;
 
@@ -148,7 +149,7 @@ public final class HydrologyRuntime {
         HydrologySettings settings = HydrologySettings.compile(config, engine.getSeedManager().getBodies(), dimension.getFluidHeight(), 0,
                 engine.getHeight());
         boolean caveFluidPolicies = settings.underground().cavePools().enabled()
-                && requireBiomeFluids(dimension.getReachableBiomes(engine), settings);
+                && requireCaveFluids(dimension, dimension.getAllRegions(engine), dimension.getReachableCaveBiomes(engine), settings);
         if (settings.density() == 0D) {
             return DISABLED;
         }
@@ -165,18 +166,25 @@ public final class HydrologyRuntime {
                 identity -> store(world, dimensionKey, settings, identity), caveFluidPolicies);
     }
 
-    static boolean requireBiomeFluids(Collection<IrisBiome> biomes, HydrologySettings settings) {
-        boolean named = false;
-        for (IrisBiome biome : biomes) {
-            IrisHydrologyPolicy policy = biome == null ? null : biome.getHydrologyPolicy();
-            String fluid = policy == null ? null : policy.getFluid();
-            if (fluid == null) {
-                continue;
-            }
-            settings.requireFillingFluid(fluid, "biome '" + biome.getLoadKey() + "' hydrologyPolicy.fluid");
-            named = true;
+    static boolean requireCaveFluids(IrisDimension dimension, Collection<IrisRegion> regions, Collection<IrisBiome> caveBiomes,
+                                     HydrologySettings settings) {
+        boolean named = requireFluid(dimension.getHydrologyPolicy(), "dimension '" + dimension.getLoadKey() + "'", settings);
+        for (IrisRegion region : regions) {
+            named |= requireFluid(region.getHydrologyPolicy(), "region '" + region.getLoadKey() + "'", settings);
+        }
+        for (IrisBiome biome : caveBiomes) {
+            named |= requireFluid(biome.getHydrologyPolicy(), "biome '" + biome.getLoadKey() + "'", settings);
         }
         return named;
+    }
+
+    private static boolean requireFluid(IrisHydrologyPolicy policy, String owner, HydrologySettings settings) {
+        String fluid = policy == null ? null : policy.getFluid();
+        if (fluid == null) {
+            return false;
+        }
+        settings.requireFillingFluid(fluid, owner + " hydrologyPolicy.fluid");
+        return true;
     }
 
     public boolean caveFluidPolicies() {

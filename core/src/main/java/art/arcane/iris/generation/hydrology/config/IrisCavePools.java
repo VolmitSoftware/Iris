@@ -48,6 +48,6 @@ public class IrisCavePools {
     private KList<Integer> freeboard = new KList<>(0, 1);
 
     @Required
-    @Description("Name of the fluid profile that fills cave pools. A cave biome's hydrology policy fluid replaces it.")
+    @Description("Name of the fluid profile that fills cave pools. The hydrology policy fluid of the cave biome at the pool replaces it, then that of its region, then that of the dimension. A surface biome's policy never fills cave pools.")
     private String fluid = "water";
 }

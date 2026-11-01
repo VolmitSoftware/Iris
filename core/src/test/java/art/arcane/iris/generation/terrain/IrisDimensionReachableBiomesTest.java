@@ -233,6 +233,40 @@ public class IrisDimensionReachableBiomesTest {
         assertEquals(Set.of("root", "dimension-shore", "region-shore", "shore-child", "biome-shore"), reachableKeys(dimension, data));
     }
 
+    @Test
+    @SuppressWarnings("unchecked")
+    public void caveBiomesAreTheRegionCaveBiomesAndTheEnabledCarvingBands() {
+        IrisDimension dimension = new IrisDimension().setRegions(new KList<>("tropical"));
+        dimension.setCarving(new KList<>(
+                new IrisDimensionCarvingEntry().setId("deep").setBiome("deep-dark"),
+                new IrisDimensionCarvingEntry().setId("off").setEnabled(false).setBiome("disabled-band")));
+        IrisRegion tropical = new IrisRegion()
+                .setLandBiomes(new KList<>("volcanoes"))
+                .setShoreBiomes(new KList<>("beach"))
+                .setCaveBiomes(new KList<>("hollow", "magma", "missing"));
+        tropical.setLoadKey("tropical");
+        IrisBiome volcanoes = biome("volcanoes").setCarvingBiome("magma").setChildren(new KList<>("ash"));
+
+        IrisData data = mock(IrisData.class);
+        ResourceLoader<IrisRegion> regionLoader = mock(ResourceLoader.class);
+        ResourceLoader<IrisBiome> biomeLoader = mock(ResourceLoader.class);
+        when(data.getRegionLoader()).thenReturn(regionLoader);
+        when(data.getBiomeLoader()).thenReturn(biomeLoader);
+        when(regionLoader.load("tropical")).thenReturn(tropical);
+        when(biomeLoader.load("volcanoes")).thenReturn(volcanoes);
+        when(biomeLoader.load("ash")).thenReturn(biome("ash"));
+        when(biomeLoader.load("beach")).thenReturn(biome("beach"));
+        when(biomeLoader.load("hollow")).thenReturn(biome("hollow"));
+        when(biomeLoader.load("magma")).thenReturn(biome("magma"));
+        when(biomeLoader.load("deep-dark")).thenReturn(biome("deep-dark"));
+        when(biomeLoader.load("disabled-band")).thenReturn(biome("disabled-band"));
+
+        KList<IrisBiome> caves = dimension.getReachableCaveBiomes(() -> data);
+
+        assertEquals(Set.of("hollow", "magma", "deep-dark"), caves.stream().map(IrisBiome::getLoadKey).collect(Collectors.toSet()));
+        assertEquals(3, caves.size());
+    }
+
     private static Set<String> reachableKeys(IrisDimension dimension, IrisData data) {
         return dimension.getReachableBiomes(() -> data).stream()
                 .map(IrisBiome::getLoadKey)

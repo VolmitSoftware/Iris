@@ -478,8 +478,8 @@ public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, 
 
     @BlockCoordinates
     default IrisBiome getCaveBiome(int x, int z) {
-        IrisBiome biome = getComplex().getCaveBiomeStream().get(x, z);
-        return biome == null || biome.getLoadKey() == null ? getSurfaceBiome(x, z) : biome;
+        IrisBiome biome = regionCaveBiome(x, z);
+        return biome == null ? getSurfaceBiome(x, z) : biome;
     }
 
     @BlockCoordinates
@@ -489,18 +489,34 @@ public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, 
 
     @BlockCoordinates
     default IrisBiome getCaveBiome(int x, int y, int z, IrisDimensionCarvingResolver.State state) {
-        IrisBiome featureBiome = getSubterrainBiome(x, y, z);
-        if (featureBiome != null) {
-            return featureBiome;
-        }
-        IrisBiome configuredBiome = resolveConfiguredCaveBiome(x, y, z, state);
-        if (configuredBiome != null) {
-            return configuredBiome;
+        IrisBiome placedBiome = placedCaveBiome(x, y, z, state);
+        if (placedBiome != null) {
+            return placedBiome;
         }
         boolean naturalFallback = answersFromNaturalTerrain(x, z);
         IrisBiome surfaceBiome = caveDepthSurfaceBiome(x, z, naturalFallback);
         int surfaceY = caveDepthSurfaceY(x, z, naturalFallback);
         return resolveDepthCaveBiome(x, y, z, surfaceBiome, surfaceY);
+    }
+
+    @BlockCoordinates
+    default IrisBiome getCaveBiomeBelowSurface(int x, int y, int z) {
+        IrisBiome placedBiome = placedCaveBiome(x, y, z, null);
+        if (placedBiome != null) {
+            return placedBiome;
+        }
+        IrisBiome caveBiome = regionCaveBiome(x, z);
+        return caveBiome == null ? null : depthCaveBiome(caveBiome, y, null, caveDepthSurfaceY(x, z, answersFromNaturalTerrain(x, z)));
+    }
+
+    private IrisBiome regionCaveBiome(int x, int z) {
+        IrisBiome biome = getComplex().getCaveBiomeStream().get(x, z);
+        return biome == null || biome.getLoadKey() == null ? null : biome;
+    }
+
+    private IrisBiome placedCaveBiome(int x, int y, int z, IrisDimensionCarvingResolver.State state) {
+        IrisBiome featureBiome = getSubterrainBiome(x, y, z);
+        return featureBiome != null ? featureBiome : resolveConfiguredCaveBiome(x, y, z, state);
     }
 
     private IrisBiome caveDepthSurfaceBiome(int x, int z, boolean naturalFallback) {
@@ -525,15 +541,8 @@ public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, 
             IrisBiome surfaceBiome,
             int surfaceY
     ) {
-        IrisBiome featureBiome = getSubterrainBiome(x, y, z);
-        if (featureBiome != null) {
-            return featureBiome;
-        }
-        IrisBiome configuredBiome = resolveConfiguredCaveBiome(x, y, z, state);
-        if (configuredBiome != null) {
-            return configuredBiome;
-        }
-        return resolveDepthCaveBiome(x, y, z, surfaceBiome, surfaceY);
+        IrisBiome placedBiome = placedCaveBiome(x, y, z, state);
+        return placedBiome != null ? placedBiome : resolveDepthCaveBiome(x, y, z, surfaceBiome, surfaceY);
     }
 
     private IrisBiome resolveConfiguredCaveBiome(

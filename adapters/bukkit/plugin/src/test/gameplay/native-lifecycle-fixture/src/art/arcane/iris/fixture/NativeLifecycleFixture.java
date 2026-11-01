@@ -1,6 +1,6 @@
 package art.arcane.iris.fixture;
 
-import art.arcane.iris.Iris;
+import art.arcane.iris.IrisRuntime;
 import art.arcane.volmlib.nativelib.NativeAdapters;
 import art.arcane.iris.world.runtime.RuntimeInjection;
 import art.arcane.iris.generation.runtime.Engine;
@@ -138,7 +138,7 @@ public final class NativeLifecycleFixture extends JavaPlugin implements WorldRun
             return CompletableFuture.completedFuture(null);
         }
         if (WorldCreatorCompat.persistentLevelRoot(TREASURE_KEY).exists()) {
-            return Iris.instance.worldReconciler().loadWorld(ServerProperties.BUKKIT_YML, TREASURE_KEY.toString());
+            return IrisRuntime.require().worldReconciler().loadWorld(ServerProperties.BUKKIT_YML, TREASURE_KEY.toString());
         }
         return runAsync(() -> {
             try {

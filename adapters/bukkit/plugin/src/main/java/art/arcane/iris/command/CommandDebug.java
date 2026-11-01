@@ -1,6 +1,7 @@
 package art.arcane.iris.command;
 
 import art.arcane.iris.Iris;
+import art.arcane.iris.IrisRuntime;
 import art.arcane.iris.configuration.IrisSettings;
 import art.arcane.iris.localization.BukkitCommandMessagesExtended;
 import art.arcane.iris.localization.IrisLanguage;
@@ -19,7 +20,7 @@ public final class CommandDebug implements DirectorExecutor {
             @Param(name = "upload", defaultValue = "true", description = "Upload the report to mclo.gs", descriptionKey = "iris.director.commandiris.param.debugdump_upload") boolean upload,
             @Param(name = "sender", contextual = true) CommandSender sender
     ) {
-        Iris.instance.debugDump().request(sender, upload);
+        IrisRuntime.require().debugDump().request(sender, upload);
     }
 
     @Director(sync = true, description = "Print version information", descriptionKey = "iris.director.commandiris.director.print_version_information")

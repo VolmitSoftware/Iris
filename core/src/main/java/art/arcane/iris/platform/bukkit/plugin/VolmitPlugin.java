@@ -19,8 +19,6 @@
 package art.arcane.iris.platform.bukkit.plugin;
 
 import art.arcane.iris.spi.IrisLogging;
-import art.arcane.volmlib.util.collection.KList;
-import art.arcane.volmlib.util.io.IO;
 import art.arcane.iris.world.task.J;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -31,11 +29,14 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 @SuppressWarnings("EmptyMethod")
 public abstract class VolmitPlugin extends JavaPlugin implements Listener {
     public static final boolean bad = false;
-    private final KList<Runnable> postShutdown = new KList<>();
+    private final List<Runnable> postShutdown = new ArrayList<>();
 
     public File getJarFile() {
         return getFile();
@@ -45,7 +46,7 @@ public abstract class VolmitPlugin extends JavaPlugin implements Listener {
         postShutdown.add(r);
     }
 
-    protected void runPostShutdown() {
+    public void runPostShutdown() {
         postShutdown.forEach(Runnable::run);
     }
 
@@ -77,8 +78,6 @@ public abstract class VolmitPlugin extends JavaPlugin implements Listener {
 
     private void outputInfo() {
         try {
-            IO.delete(getDataFolder("info"));
-            getDataFolder("info").mkdirs();
             outputPluginInfo();
         } catch (Throwable e) {
             IrisLogging.reportError(e);
@@ -126,15 +125,13 @@ public abstract class VolmitPlugin extends JavaPlugin implements Listener {
     }
 
     public File getDataFile(String... strings) {
-        File f = new File(getDataFolder(), new KList<>(strings).toString(File.separator));
+        File f = new File(getDataFolder(), String.join(File.separator, strings));
         f.getParentFile().mkdirs();
         return f;
     }
 
     public File getDataFileList(String pre, String[] strings) {
-        KList<String> v = new KList<>(strings);
-        v.add(0, pre);
-        File f = new File(getDataFolder(), v.toString(File.separator));
+        File f = new File(getDataFolder(), String.join(File.separator, prefixed(pre, strings)));
         f.getParentFile().mkdirs();
         return f;
     }
@@ -144,7 +141,7 @@ public abstract class VolmitPlugin extends JavaPlugin implements Listener {
             return super.getDataFolder();
         }
 
-        File f = new File(getDataFolder(), new KList<>(strings).toString(File.separator));
+        File f = new File(getDataFolder(), String.join(File.separator, strings));
         f.mkdirs();
 
         return f;
@@ -155,21 +152,23 @@ public abstract class VolmitPlugin extends JavaPlugin implements Listener {
             return super.getDataFolder();
         }
 
-        File f = new File(getDataFolder(), new KList<>(strings).toString(File.separator));
+        File f = new File(getDataFolder(), String.join(File.separator, strings));
 
         return f;
     }
 
     public File getDataFolderList(String pre, String[] strings) {
-        KList<String> v = new KList<>(strings);
-        v.add(0, pre);
-        if (v.size() == 0) {
-            return super.getDataFolder();
-        }
-        File f = new File(getDataFolder(), v.toString(File.separator));
+        File f = new File(getDataFolder(), String.join(File.separator, prefixed(pre, strings)));
         f.mkdirs();
 
         return f;
+    }
+
+    private static List<String> prefixed(String pre, String[] strings) {
+        List<String> path = new ArrayList<>(strings.length + 1);
+        path.add(pre);
+        path.addAll(Arrays.asList(strings));
+        return path;
     }
 
     public abstract void start();

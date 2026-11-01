@@ -1,6 +1,7 @@
 package art.arcane.iris.command;
 
 import art.arcane.iris.Iris;
+import art.arcane.iris.IrisRuntime;
 import art.arcane.iris.command.CommandSVC;
 import art.arcane.iris.world.task.J;
 import art.arcane.volmlib.util.diagnostics.BukkitDebugDump;
@@ -30,18 +31,18 @@ import static org.mockito.Mockito.when;
 public class CommandDebugTest {
     @Test
     public void nestedDumpPreservesUploadDefaultAndLocalOnlyOption() {
-        Iris previousPlugin = Iris.instance;
-        Iris plugin = mock(Iris.class);
-        Iris.instance = plugin;
+        IrisRuntime runtime = mock(IrisRuntime.class);
         BukkitDebugDump dump = mock(BukkitDebugDump.class);
         CommandSender sender = mock(CommandSender.class);
         DirectorSender invocationSender = mock(DirectorSender.class);
-        when(plugin.debugDump()).thenReturn(dump);
+        when(runtime.debugDump()).thenReturn(dump);
         when(invocationSender.getName()).thenReturn("Console");
         DirectorContextRegistry contexts = new DirectorContextRegistry();
         contexts.register(CommandSender.class, (invocation, arguments) -> sender);
 
-        try (MockedStatic<Iris> iris = mockStatic(Iris.class)) {
+        try (MockedStatic<Iris> iris = mockStatic(Iris.class);
+             MockedStatic<IrisRuntime> runtimes = mockStatic(IrisRuntime.class)) {
+            runtimes.when(IrisRuntime::require).thenReturn(runtime);
             DirectorRuntimeEngine engine = DirectorEngineFactory.create(new CommandIris(),
                     DirectorEngineOptions.builder().contexts(contexts).build());
 
@@ -52,8 +53,6 @@ public class CommandDebugTest {
             assertEquals(List.of("dump", "toggle", "version"),
                     DirectorMiniMenu.resolveHelp(engine, List.of("debug")).orElseThrow().entries().stream()
                             .map(entry -> entry.getDescriptor().getName()).sorted().toList());
-        } finally {
-            Iris.instance = previousPlugin;
         }
     }
 

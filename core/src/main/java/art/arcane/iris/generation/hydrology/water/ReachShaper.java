@@ -16,6 +16,9 @@ public final class ReachShaper {
     private static final float TAPER_LENGTH = 24f;
     private static final float WAIST = 0.5f;
     private static final float OUTLET_LENGTH = 8f;
+    private static final float LIP_MARGIN = 4f;
+    private static final int LEAD_IN_REACH = 16;
+    private static final float LIP_HALF_WIDTH = 1f;
     private static final long SALT_START = 0x52454143485354L;
     private static final long SALT_END = 0x524541434845L;
     private static final long SALT_COARSE_START = 0x434f4152534553L;
@@ -58,11 +61,21 @@ public final class ReachShaper {
                 drafts.get(outlet).outlet = true;
             }
         }
+        for (int pond = 0; pond < outletDrafts.length; pond++) {
+            if (leavesThroughALip(ponds.get(pond), outletDrafts[pond])) {
+                hold(drafts.get(outletDrafts[pond]), ponds.get(pond).mask());
+            }
+        }
         ReachGrader.PondChain chain = pondChain(drafts, ponds, outletDrafts);
         int[] order = upstreamFirst(drafts, chain);
         int[] levels = ReachGrader.grade(drafts, order, settings.seaLevel(), settings.deformation().maxFill(), chain);
         for (int index : order) {
             finish(drafts, drafts.get(index));
+        }
+        for (int pond = 0; pond < outletDrafts.length; pond++) {
+            if (leavesThroughALip(ponds.get(pond), outletDrafts[pond])) {
+                leadIn(drafts.get(outletDrafts[pond]), ponds.get(pond).mask());
+            }
         }
         List<Pond> linked = new ArrayList<>(ponds.size());
         for (int pond = 0; pond < ponds.size(); pond++) {
@@ -260,6 +273,79 @@ public final class ReachShaper {
         throw new IllegalStateException("Reach and pond links loop through " + (count - size) + " of " + count + " reaches");
     }
 
+    private static boolean leavesThroughALip(Pond pond, int outletDraft) {
+        return outletDraft >= 0 && pond.kind() != PondKind.LAKE;
+    }
+
+    private static void hold(ReachDraft draft, PondMask mask) {
+        draft.held = new boolean[draft.xs.length];
+        draft.held[0] = true;
+        for (int point = 1; point < draft.xs.length; point++) {
+            float radius = draft.tier.halfWidth(draft.catchments[point]) + 1f + LIP_MARGIN;
+            if (mask.nearest(draft.xs[point], draft.zs[point], radius) == null) {
+                return;
+            }
+            draft.held[point] = true;
+        }
+    }
+
+    private static void leadIn(ReachDraft draft, PondMask mask) {
+        if (mask.contains(Math.round(draft.xs[0]), Math.round(draft.zs[0]))) {
+            return;
+        }
+        PondMask.Cell anchor = mask.nearest(draft.xs[0], draft.zs[0], LEAD_IN_REACH);
+        if (anchor == null || foldsBack(draft, anchor)) {
+            return;
+        }
+        draft.xs = prepend(draft.xs, anchor.x());
+        draft.zs = prepend(draft.zs, anchor.z());
+        draft.catchments = prepend(draft.catchments, draft.catchments[0]);
+        draft.halfWidth = prepend(draft.halfWidth, draft.halfWidth[0]);
+        draft.depth = prepend(draft.depth, draft.depth[0]);
+        draft.grade = prepend(draft.grade, draft.grade[0]);
+        draft.ocean = prepend(draft.ocean, false);
+        draft.outletZone = prepend(draft.outletZone, true);
+        draft.held = prepend(draft.held, true);
+        ReachStyle[] style = new ReachStyle[draft.style.length + 1];
+        style[0] = draft.style[0];
+        System.arraycopy(draft.style, 0, style, 1, draft.style.length);
+        draft.style = style;
+    }
+
+    private static boolean foldsBack(ReachDraft draft, PondMask.Cell anchor) {
+        float along = (float) Math.hypot(draft.xs[0] - anchor.x(), draft.zs[0] - anchor.z());
+        for (int point = 1; point < draft.xs.length; point++) {
+            along += (float) Math.hypot(draft.xs[point] - draft.xs[point - 1], draft.zs[point] - draft.zs[point - 1]);
+            float gap = 2f * (draft.halfWidth[point] + 1f);
+            float apart = (float) Math.hypot(draft.xs[point] - anchor.x(), draft.zs[point] - anchor.z());
+            if (apart < gap && along >= apart + gap) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static float[] prepend(float[] values, float first) {
+        float[] result = new float[values.length + 1];
+        result[0] = first;
+        System.arraycopy(values, 0, result, 1, values.length);
+        return result;
+    }
+
+    private static int[] prepend(int[] values, int first) {
+        int[] result = new int[values.length + 1];
+        result[0] = first;
+        System.arraycopy(values, 0, result, 1, values.length);
+        return result;
+    }
+
+    private static boolean[] prepend(boolean[] values, boolean first) {
+        boolean[] result = new boolean[values.length + 1];
+        result[0] = first;
+        System.arraycopy(values, 0, result, 1, values.length);
+        return result;
+    }
+
     private static void finish(List<ReachDraft> drafts, ReachDraft draft) {
         draft.outletZone = new boolean[draft.xs.length];
         float[] distance = distances(draft.xs, draft.zs);
@@ -287,6 +373,7 @@ public final class ReachShaper {
         int[] grade = new int[size];
         boolean[] ocean = new boolean[size];
         boolean[] outletZone = new boolean[size];
+        boolean[] held = draft.held == null ? null : new boolean[size];
         for (int segment = 0; segment < count - 1; segment++) {
             int near = 1 + 2 * segment;
             int far = near + 1;
@@ -296,23 +383,24 @@ public final class ReachShaper {
             zs[far] = 0.25f * draft.zs[segment] + 0.75f * draft.zs[segment + 1];
             catchments[near] = 0.75f * draft.catchments[segment] + 0.25f * draft.catchments[segment + 1];
             catchments[far] = 0.25f * draft.catchments[segment] + 0.75f * draft.catchments[segment + 1];
-            carryStep(draft, segment, near, grade, ocean, outletZone);
-            carryStep(draft, segment + 1, far, grade, ocean, outletZone);
+            carryStep(draft, segment, near, grade, ocean, outletZone, held);
+            carryStep(draft, segment + 1, far, grade, ocean, outletZone, held);
         }
         xs[0] = draft.xs[0];
         zs[0] = draft.zs[0];
         catchments[0] = draft.catchments[0];
-        carryStep(draft, 0, 0, grade, ocean, outletZone);
+        carryStep(draft, 0, 0, grade, ocean, outletZone, held);
         xs[size - 1] = draft.xs[count - 1];
         zs[size - 1] = draft.zs[count - 1];
         catchments[size - 1] = draft.catchments[count - 1];
-        carryStep(draft, count - 1, size - 1, grade, ocean, outletZone);
+        carryStep(draft, count - 1, size - 1, grade, ocean, outletZone, held);
         draft.xs = xs;
         draft.zs = zs;
         draft.catchments = catchments;
         draft.grade = grade;
         draft.ocean = ocean;
         draft.outletZone = outletZone;
+        draft.held = held;
     }
 
     private static void unfold(ReachDraft draft) {
@@ -355,14 +443,12 @@ public final class ReachShaper {
         int[] grade = new int[size];
         boolean[] ocean = new boolean[size];
         boolean[] outletZone = new boolean[size];
+        boolean[] held = draft.held == null ? null : new boolean[size];
         for (int index = 0; index < size; index++) {
-            int point = kept[index];
-            xs[index] = draft.xs[point];
-            zs[index] = draft.zs[point];
-            catchments[index] = draft.catchments[point];
-            grade[index] = draft.grade[point];
-            ocean[index] = draft.ocean[point];
-            outletZone[index] = draft.outletZone[point];
+            carryStep(draft, kept[index], index, grade, ocean, outletZone, held);
+            xs[index] = draft.xs[kept[index]];
+            zs[index] = draft.zs[kept[index]];
+            catchments[index] = draft.catchments[kept[index]];
         }
         draft.xs = xs;
         draft.zs = zs;
@@ -370,12 +456,16 @@ public final class ReachShaper {
         draft.grade = grade;
         draft.ocean = ocean;
         draft.outletZone = outletZone;
+        draft.held = held;
     }
 
-    private static void carryStep(ReachDraft draft, int from, int to, int[] grade, boolean[] ocean, boolean[] outletZone) {
+    private static void carryStep(ReachDraft draft, int from, int to, int[] grade, boolean[] ocean, boolean[] outletZone, boolean[] held) {
         grade[to] = draft.grade[from];
         ocean[to] = draft.ocean[from];
         outletZone[to] = draft.outletZone[from];
+        if (held != null) {
+            held[to] = draft.held[from];
+        }
     }
 
     private static void widths(ReachDraft draft, float upstream) {
@@ -390,7 +480,8 @@ public final class ReachShaper {
             if (taper) {
                 law *= Math.min(1f, distance[point] / TAPER_LENGTH);
             }
-            draft.halfWidth[point] = Math.max(law, WAIST * running);
+            float lip = draft.held != null && draft.held[point] ? LIP_HALF_WIDTH : 0f;
+            draft.halfWidth[point] = Math.max(Math.max(law, WAIST * running), lip);
             running = Math.max(running, draft.halfWidth[point]);
             draft.depth[point] = draft.tier.depth(draft.halfWidth[point]);
         }

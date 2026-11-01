@@ -14,6 +14,7 @@ import art.arcane.iris.generation.hydrology.grid.HydrologySampleBuffer;
 import art.arcane.iris.generation.hydrology.grid.HydrologyTerrainSource;
 import art.arcane.iris.generation.hydrology.grid.PriorityFlood;
 import art.arcane.iris.generation.hydrology.plan.HydrologySettings;
+import art.arcane.iris.generation.hydrology.raster.PondChannelSettlement;
 import art.arcane.volmlib.util.collection.KList;
 import org.junit.Test;
 
@@ -295,8 +296,10 @@ public class ReachShaperTest {
         assertNotNull(outlet);
         assertTrue(outlet.grade()[0] <= upper.level());
         assertEquals(ReachStyle.POND_OUTLET, outlet.style()[0]);
-        assertTrue("outlet starts " + outlet.xs()[0] + "," + outlet.zs()[0] + " spill " + upper.spillX() + "," + upper.spillZ(),
-                Math.hypot(outlet.xs()[0] - upper.spillX(), outlet.zs()[0] - upper.spillZ()) <= 1.5D * CELL);
+        assertTrue("outlet leads in from " + outlet.xs()[0] + "," + outlet.zs()[0],
+                upper.mask().contains(Math.round(outlet.xs()[0]), Math.round(outlet.zs()[0])));
+        assertTrue("outlet exits " + outlet.xs()[1] + "," + outlet.zs()[1] + " spill " + upper.spillX() + "," + upper.spillZ(),
+                Math.hypot(outlet.xs()[1] - upper.spillX(), outlet.zs()[1] - upper.spillZ()) <= 1.5D * CELL);
         Reach reach = outlet;
         for (int hops = 0; reach.downstreamId() != 0L && hops < 64; hops++) {
             reach = byId.get(reach.downstreamId());
@@ -306,6 +309,109 @@ public class ReachShaperTest {
         assertEquals(lower.level(), reach.grade()[reach.grade().length - 1]);
         Pond original = network.ponds().get(0).id() == upper.id() ? network.ponds().get(0) : network.ponds().get(1);
         assertEquals(original.withOutletReachId(upper.outletReachId()), upper);
+    }
+
+    @Test
+    public void pondOutletWaterReachesItsPondAtThePondLevel() {
+        HydrologySettings settings = settings(config -> {
+        });
+        DemGrid flat = outletGrid();
+        int[] receivers = new int[flat.values().length];
+        float[] accumulation = new float[receivers.length];
+        BitSet channels = new BitSet(receivers.length);
+        outletRow(flat, receivers, accumulation, channels);
+        Pond pond = new Pond(31L, PondKind.NATURAL, 99, 94, 104, 64, 100f, disk(96, 64, 5), 0L, 0, "water", 96, 64);
+        HeightLattice fine = new HeightLattice(new Terrain((x, z) -> Math.hypot(x - 96D, z - 64D) <= 5D ? 94D
+                : x <= 104D ? 100D : 100D - 0.5D * (x - 104D)), FINE, false, 1 << 16);
+        ShapedNetwork shaped = new ReachShaper(settings).shape(flat, receivers, accumulation, channels, List.of(pond), fine, SEED);
+        Pond shapedPond = shaped.ponds().get(0);
+        assertEquals(99, shapedPond.level());
+        assertOutletLeavesAtThePondLevel("lip outlet", shapedPond, byId(shaped.reaches()).get(shapedPond.outletReachId()));
+        assertEquals(99, PondChannelSettlement.settle(shaped, SEA_LEVEL).ponds().get(0).level());
+    }
+
+    @Test
+    public void pondOutletAtAJunctionLowersOnceAndStaysConnected() {
+        HydrologySettings settings = settings(config -> {
+        });
+        DemGrid flat = outletGrid();
+        int[] receivers = new int[flat.values().length];
+        float[] accumulation = new float[receivers.length];
+        BitSet channels = new BitSet(receivers.length);
+        outletRow(flat, receivers, accumulation, channels);
+        for (int j = flat.depth() - 1; j > 8; j--) {
+            flow(flat, receivers, accumulation, channels, 13, j, 13, j - 1, 1500f + 10f * (flat.depth() - j));
+        }
+        HeightLattice fine = new HeightLattice(new Terrain((x, z) -> {
+            double radius = Math.hypot(x - 96D, z - 64D);
+            if (radius <= 8D) {
+                return 93D + radius;
+            }
+            if (Math.abs(x - 104D) <= 3D && z >= 68D) {
+                return 95D;
+            }
+            return x <= 104D ? 100D : 100D - 0.5D * (x - 104D);
+        }), FINE, false, 1 << 16);
+        PondPlanner planner = new PondPlanner(settings);
+        ReachShaper shaper = new ReachShaper(settings);
+        List<Pond> water = List.of(new Pond(41L, PondKind.NATURAL, 99, 93, 104, 64, 100f, disk(96, 64, 5), 0L, 0, "water", 96, 64));
+        ShapedNetwork network = PondChannelSettlement.settle(shaper.shape(flat, receivers, accumulation, channels, water, fine, SEED), SEA_LEVEL);
+        int lowerings = 0;
+        while (network.ponds().get(0).level() < water.get(0).level()) {
+            lowerings++;
+            assertTrue("pond still lowering after " + lowerings + " passes", lowerings <= 2);
+            Pond reflooded = planner.reflood(flat, fine, CupSet.EMPTY, network.ponds().get(0));
+            assertNotNull("reflooded pond at " + network.ponds().get(0).level(), reflooded);
+            water = List.of(reflooded.withOutletReachId(0L));
+            network = PondChannelSettlement.settle(shaper.shape(flat, receivers, accumulation, channels, water, fine, SEED), SEA_LEVEL);
+        }
+        Pond settled = network.ponds().get(0);
+        Map<Long, Reach> byId = byId(network.reaches());
+        Reach outlet = byId.get(settled.outletReachId());
+        assertOutletLeavesAtThePondLevel("junction outlet", settled, outlet);
+        Reach tributary = null;
+        for (Reach reach : network.reaches()) {
+            if (reach.downstreamId() == outlet.id()) {
+                tributary = reach;
+            }
+        }
+        assertNotNull("tributary joining the outlet", tributary);
+        assertEquals("settlements down to the tributary", 1, lowerings);
+        assertEquals(tributary.grade()[tributary.grade().length - 1], settled.level());
+    }
+
+    @Test
+    public void fallbackOutletRunningTowardItsPondKeepsItsStartAndHoldsThePondLevel() {
+        HydrologySettings settings = settings(config -> {
+        });
+        DemGrid flat = outletGrid();
+        int[] receivers = new int[flat.values().length];
+        Arrays.fill(receivers, -1);
+        float[] accumulation = new float[receivers.length];
+        BitSet channels = new BitSet(receivers.length);
+        flow(flat, receivers, accumulation, channels, 4, 4, 4, 5, 1600f);
+        for (int i = 0; i < 4; i++) {
+            flow(flat, receivers, accumulation, channels, i, 5, i + 1, 5, 1500f + 10f * i);
+        }
+        for (int i = 4; i < flat.width(); i++) {
+            flow(flat, receivers, accumulation, channels, i, 5, i + 1 < flat.width() ? i + 1 : -1, 5, 3200f + 10f * i);
+        }
+        PondMask mask = disk(32, 43, 2);
+        assertFalse("no DEM node inside the pond", mask.contains(32, 40) || mask.contains(32, 48));
+        Pond pond = new Pond(51L, PondKind.NATURAL, 99, 94, 32, 34, 100f, mask, 0L, 0, "water", 32, 43);
+        HeightLattice fine = new HeightLattice(new Terrain((x, z) -> 100D), FINE, false, 1 << 16);
+        ShapedNetwork shaped = new ReachShaper(settings).shape(flat, receivers, accumulation, channels, List.of(pond), fine, SEED);
+        Pond shapedPond = shaped.ponds().get(0);
+        Reach outlet = byId(shaped.reaches()).get(shapedPond.outletReachId());
+        assertNotNull(outlet);
+        assertNoFold("fallback outlet", outlet);
+        assertEquals("the outlet keeps the fallback exit as its start", 32f, outlet.xs()[0], 0f);
+        assertEquals(32f, outlet.zs()[0], 0f);
+        for (int point = 0; point < outlet.grade().length; point++) {
+            assertEquals("held grade at " + point, shapedPond.level(), outlet.grade()[point]);
+        }
+        assertOutletTouchesAtThePondLevel("fallback outlet", shapedPond, outlet);
+        assertEquals(99, PondChannelSettlement.settle(shaped, SEA_LEVEL).ponds().get(0).level());
     }
 
     @Test
@@ -554,8 +660,9 @@ public class ReachShaperTest {
         ShapedNetwork shaped = new ReachShaper(settings).shape(flat, receivers, accumulation, channels, List.of(pond), fine, SEED);
         Reach outlet = byId(shaped.reaches()).get(shaped.ponds().get(0).outletReachId());
         assertNotNull(outlet);
-        assertEquals(120f, outlet.xs()[0], 0f);
-        assertEquals(64f, outlet.zs()[0], 0f);
+        assertTrue(pond.mask().contains(Math.round(outlet.xs()[0]), Math.round(outlet.zs()[0])));
+        assertEquals(120f, outlet.xs()[1], 0f);
+        assertEquals(64f, outlet.zs()[1], 0f);
     }
 
     @Test
@@ -728,8 +835,9 @@ public class ReachShaperTest {
         Map<Long, Reach> byId = byId(shaped.reaches());
         Reach outlet = byId.get(shaped.ponds().get(0).outletReachId());
         assertNotNull(outlet);
-        assertEquals(344f, outlet.xs()[0], 0f);
-        assertEquals((float) VALLEY_Z, outlet.zs()[0], 0f);
+        assertTrue(drained.mask().contains(Math.round(outlet.xs()[0]), Math.round(outlet.zs()[0])));
+        assertEquals(344f, outlet.xs()[1], 0f);
+        assertEquals((float) VALLEY_Z, outlet.zs()[1], 0f);
         assertEquals(ReachStyle.POND_OUTLET, outlet.style()[0]);
         assertFalse(endsIn(outlet, drained));
         for (Reach reach : shaped.reaches()) {
@@ -737,8 +845,9 @@ public class ReachShaperTest {
         }
         Reach fallback = byId.get(shaped.ponds().get(1).outletReachId());
         assertNotNull(fallback);
-        assertEquals(424f, fallback.xs()[0], 0f);
-        assertEquals((float) VALLEY_Z, fallback.zs()[0], 0f);
+        assertTrue(beside.mask().contains(Math.round(fallback.xs()[0]), Math.round(fallback.zs()[0])));
+        assertEquals(424f, fallback.xs()[1], 0f);
+        assertEquals((float) VALLEY_Z, fallback.zs()[1], 0f);
     }
 
     @Test
@@ -1096,6 +1205,85 @@ public class ReachShaperTest {
         receivers[cell] = toI < 0 ? -1 : grid.index(toI, toJ);
         accumulation[cell] = catchment;
         channels.set(cell);
+    }
+
+    private static DemGrid outletGrid() {
+        DemGrid flat = new DemGrid(0, 0, CELL, 32, 16);
+        Arrays.fill(flat.values(), 100f);
+        return flat;
+    }
+
+    private static void outletRow(DemGrid grid, int[] receivers, float[] accumulation, BitSet channels) {
+        Arrays.fill(receivers, -1);
+        for (int i = 0; i < grid.width(); i++) {
+            flow(grid, receivers, accumulation, channels, i, 8, i + 1 < grid.width() ? i + 1 : -1, 8, 1600f + 10f * i);
+        }
+    }
+
+    private static void assertOutletLeavesAtThePondLevel(String label, Pond pond, Reach outlet) {
+        assertNotNull(label, outlet);
+        assertTrue(label + " starts off the shore at " + outlet.xs()[0] + "," + outlet.zs()[0],
+                pond.mask().contains(Math.round(outlet.xs()[0]), Math.round(outlet.zs()[0])));
+        assertOutletTouchesAtThePondLevel(label, pond, outlet);
+    }
+
+    private static void assertOutletTouchesAtThePondLevel(String label, Pond pond, Reach outlet) {
+        PondMask mask = pond.mask();
+        int touched = 0;
+        for (int j = 0; j < mask.depth(); j++) {
+            for (int i = 0; i < mask.width(); i++) {
+                if (!mask.node(i, j)) {
+                    continue;
+                }
+                int x = mask.originX() + i * mask.step();
+                int z = mask.originZ() + j * mask.step();
+                int[][] cells = {{x, z}, {x + 1, z}, {x - 1, z}, {x, z + 1}, {x, z - 1}};
+                for (int[] cell : cells) {
+                    int point = coveringPoint(outlet, cell[0], cell[1]);
+                    if (point >= 0) {
+                        touched++;
+                        assertEquals(label + " water at " + cell[0] + "," + cell[1], pond.level(), outlet.grade()[point]);
+                    }
+                }
+            }
+        }
+        assertTrue(label + " water touches the pond", touched > 0);
+    }
+
+    private static int coveringPoint(Reach reach, int x, int z) {
+        double nearest = Double.POSITIVE_INFINITY;
+        int point = -1;
+        for (int segment = 0; segment + 1 < reach.xs().length; segment++) {
+            double ax = reach.xs()[segment];
+            double az = reach.zs()[segment];
+            double dx = reach.xs()[segment + 1] - ax;
+            double dz = reach.zs()[segment + 1] - az;
+            double length = dx * dx + dz * dz;
+            double t = length == 0D ? 0D : Math.clamp(((x - ax) * dx + (z - az) * dz) / length, 0D, 1D);
+            double distance = Math.hypot(x - (ax + t * dx), z - (az + t * dz));
+            double width = reach.halfWidth()[segment] + t * (reach.halfWidth()[segment + 1] - reach.halfWidth()[segment]);
+            if (distance <= width && distance < nearest) {
+                nearest = distance;
+                point = t < 0.5D ? segment : segment + 1;
+            }
+        }
+        return point;
+    }
+
+    private static PondMask disk(int centreX, int centreZ, int radius) {
+        int originX = centreX - radius - 1;
+        int originZ = centreZ - radius - 1;
+        int size = 2 * radius + 3;
+        long[] bits = new long[(size * size + 63) >>> 6];
+        for (int j = 0; j < size; j++) {
+            for (int i = 0; i < size; i++) {
+                if (Math.hypot(originX + i - centreX, originZ + j - centreZ) <= radius) {
+                    int index = j * size + i;
+                    bits[index >>> 6] |= 1L << index;
+                }
+            }
+        }
+        return new PondMask(originX, originZ, 1, size, size, bits);
     }
 
     private static PondMask rectangle(int originX, int originZ, int width, int depth) {

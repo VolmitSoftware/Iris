@@ -13,7 +13,6 @@ import java.util.List;
 import java.util.function.IntBinaryOperator;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 
 public class PlannedSceneTest {
     private static final long SEED = 1337L;
@@ -28,9 +27,9 @@ public class PlannedSceneTest {
     }
 
     @Test
-    public void reproducesTodaysOutletGap() {
-        assertFalse("detached outlets on openFractal(1) with rainfall " + RAINFALL + " over 2x2 windows",
-                WaterInvariants.detachedOutlets(openFractal()).isEmpty());
+    public void outletsAreConnected() {
+        assertEquals("detached outlets on openFractal(1) with rainfall " + RAINFALL + " over 2x2 windows", List.of(),
+                WaterInvariants.detachedOutlets(openFractal()));
     }
 
     @Test
@@ -45,6 +44,26 @@ public class PlannedSceneTest {
             Pond pond = pond(21L, 100, disk(128, 128, 8), outlet.id());
             PlannedScene scene = PlannedScene.of(SyntheticTerrain.flat(104D), settings, List.of(outlet), List.of(pond));
             assertEquals("outlet starting at x " + starts[index] + " with grade " + level, index == 0 ? List.of() : List.of(outlet.id()),
+                    WaterInvariants.detachedOutlets(scene));
+        }
+    }
+
+    @Test
+    public void outletOwnedByAWiderReceivingReachAtThePondLevelIsConnected() {
+        HydrologySettings settings = PlannedScene.packSettings(SEED);
+        for (int receivingGrade : new int[]{100, 98}) {
+            Reach receiving = straight(52L, settings.tiers().get(2), 0L, 18f, new int[]{150, 128}, new int[]{300, 128}, (x, z) -> receivingGrade);
+            Reach outlet = straight(51L, settings.tiers().get(0), receiving.id(), 2f, new int[]{133, 128}, new int[]{150, 128}, (x, z) -> 100);
+            Pond pond = pond(21L, 100, disk(128, 128, 8), outlet.id());
+            PlannedScene scene = PlannedScene.of(SyntheticTerrain.flat(104D), settings, List.of(outlet, receiving), List.of(pond));
+            int outletColumns = 0;
+            for (int z = 120; z <= 136; z++) {
+                for (int x = 120; x <= 160; x++) {
+                    outletColumns += scene.feature(x, z) == outlet.id() ? 1 : 0;
+                }
+            }
+            assertEquals("outlet columns owned by the receiving reach at " + receivingGrade, 0, outletColumns);
+            assertEquals("receiving reach at " + receivingGrade, receivingGrade == 100 ? List.of() : List.of(outlet.id()),
                     WaterInvariants.detachedOutlets(scene));
         }
     }

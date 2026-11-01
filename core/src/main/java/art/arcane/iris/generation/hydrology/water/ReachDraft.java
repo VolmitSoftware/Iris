@@ -12,6 +12,7 @@ final class ReachDraft {
     float[] catchments;
     boolean[] ocean;
     boolean[] outletZone;
+    boolean[] held;
     int[] target;
     int[] grade;
     float[] halfWidth;

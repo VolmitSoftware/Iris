@@ -91,10 +91,11 @@ final class WaterInvariants {
                 int x = cell[0] + DX[side];
                 int z = cell[1] + DZ[side];
                 long feature = scene.feature(x, z);
-                if ((feature != pond.id() && feature != outlet.id()) || scene.head(x, z) != head || !seen.add(pack(x, z))) {
+                boolean outletWater = feature == outlet.id() || feature != pond.id() && covers(outlet, x, z);
+                if ((feature != pond.id() && !outletWater) || scene.head(x, z) != head || !seen.add(pack(x, z))) {
                     continue;
                 }
-                if (feature == outlet.id()) {
+                if (outletWater) {
                     return true;
                 }
                 queue.add(new int[]{x, z});
@@ -206,6 +207,16 @@ final class WaterInvariants {
             }
         }
         return grade;
+    }
+
+    private static boolean covers(Reach reach, int x, int z) {
+        for (int segment = 0; segment + 1 < reach.xs().length; segment++) {
+            double t = along(reach, segment, x, z);
+            if (offset(reach, segment, t, x, z) <= width(reach, segment, t)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static double along(Reach reach, int segment, double x, double z) {

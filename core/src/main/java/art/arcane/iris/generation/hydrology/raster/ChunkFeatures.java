@@ -330,9 +330,13 @@ final class ChunkFeatures {
         }
 
         private Reach feederLink(Reach downstream, WindowKey owner) {
-            WindowKey link = WindowKey.containing((int) Math.floor(downstream.xs()[0]), (int) Math.floor(downstream.zs()[0]));
-            IndexedWindow upstream = windows.get(link);
-            List<Reach> owned = upstream == null ? List.of() : upstream.index().feeders(downstream.id());
+            int junction = junction(downstream);
+            WindowKey link = windowAt(downstream, junction);
+            List<Reach> owned = feeders(link, downstream.id());
+            if (owned.isEmpty() && junction > 0) {
+                link = windowAt(downstream, 0);
+                owned = feeders(link, downstream.id());
+            }
             if (owned.isEmpty()) {
                 return downstream;
             }
@@ -344,11 +348,25 @@ final class ChunkFeatures {
             return link.equals(owner) ? LinkBlend.clamp(downstream, feeders) : LinkBlend.blend(downstream, feeders);
         }
 
-        private static long cornerBlock(Reach reach) {
+        private List<Reach> feeders(WindowKey key, long downstreamId) {
+            IndexedWindow window = windows.get(key);
+            return window == null ? List.of() : window.index().feeders(downstreamId);
+        }
+
+        private int junction(Reach reach) {
+            return reach.xs().length > 1 && outletLevels.containsKey(reach.id()) ? 1 : 0;
+        }
+
+        private long cornerBlock(Reach reach) {
+            int junction = junction(reach);
             int half = WindowKey.SIZE >> 1;
-            long cornerX = Math.floorDiv((int) Math.floor(reach.xs()[0]) + half, WindowKey.SIZE);
-            long cornerZ = Math.floorDiv((int) Math.floor(reach.zs()[0]) + half, WindowKey.SIZE);
+            long cornerX = Math.floorDiv((int) Math.floor(reach.xs()[junction]) + half, WindowKey.SIZE);
+            long cornerZ = Math.floorDiv((int) Math.floor(reach.zs()[junction]) + half, WindowKey.SIZE);
             return (cornerX << 32) | (cornerZ & 0xffffffffL);
+        }
+
+        private static WindowKey windowAt(Reach reach, int point) {
+            return WindowKey.containing((int) Math.floor(reach.xs()[point]), (int) Math.floor(reach.zs()[point]));
         }
     }
 }

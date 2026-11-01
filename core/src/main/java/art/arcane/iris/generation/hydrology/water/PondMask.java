@@ -40,6 +40,32 @@ public record PondMask(int originX, int originZ, int step, int width, int depth,
         return grownNode(Math.floorDiv(x - originX + (step >> 1), step), Math.floorDiv(z - originZ + (step >> 1), step));
     }
 
+    public Cell nearest(float x, float z, float radius) {
+        int minI = Math.max(0, (int) Math.floor((x - radius - originX) / step));
+        int maxI = Math.min(width - 1, (int) Math.ceil((x + radius - originX) / step));
+        int minJ = Math.max(0, (int) Math.floor((z - radius - originZ) / step));
+        int maxJ = Math.min(depth - 1, (int) Math.ceil((z + radius - originZ) / step));
+        double best = (double) radius * radius;
+        int bestI = -1;
+        int bestJ = -1;
+        for (int j = minJ; j <= maxJ; j++) {
+            for (int i = minI; i <= maxI; i++) {
+                if (!node(i, j)) {
+                    continue;
+                }
+                double dx = originX + i * step - x;
+                double dz = originZ + j * step - z;
+                double distance = dx * dx + dz * dz;
+                if (distance < best || bestI < 0 && distance == best) {
+                    best = distance;
+                    bestI = i;
+                    bestJ = j;
+                }
+            }
+        }
+        return bestI < 0 ? null : new Cell(originX + bestI * step, originZ + bestJ * step);
+    }
+
     public boolean overlaps(PondMask other) {
         int half = step >> 1;
         int otherHalf = other.step >> 1;
@@ -68,5 +94,8 @@ public record PondMask(int originX, int originZ, int step, int width, int depth,
     @Override
     public int hashCode() {
         return 31 * (31 * (31 * (31 * (31 * originX + originZ) + step) + width) + depth) + Arrays.hashCode(bits);
+    }
+
+    public record Cell(int x, int z) {
     }
 }

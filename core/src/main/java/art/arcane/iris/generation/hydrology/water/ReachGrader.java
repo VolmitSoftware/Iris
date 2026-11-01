@@ -58,6 +58,10 @@ final class ReachGrader {
             }
             int[] grade = profile(drafts, draft);
             for (int point = 0; point < grade.length; point++) {
+                if (draft.held != null && draft.held[point]) {
+                    grade[point] = level;
+                    continue;
+                }
                 int cap = draft.ocean[point] ? seaLevel : draft.target[point] + MAX_POOL;
                 int floor = lakeFloor[index] ? draft.floor : Math.max(seaLevel, Math.min(draft.floor, (int) Math.floor(draft.bank[point]) + maxFill));
                 level = Math.min(level, Math.max(floor, Math.min(grade[point], cap)));
@@ -73,7 +77,7 @@ final class ReachGrader {
         for (int position = upstreamFirst.length - 1; position >= 0; position--) {
             ReachDraft draft = drafts.get(upstreamFirst[position]);
             if (!draft.tier.cascades()) {
-                spread(draft.grade, draft.tier.waterfallMinimumDrop(), startLimit(drafts, draft));
+                spread(draft.grade, draft.tier.waterfallMinimumDrop(), startLimit(drafts, draft), draft.held);
             }
             lowerIncomingEnds(drafts, draft);
         }
@@ -183,10 +187,10 @@ final class ReachGrader {
         return sorted[Math.max(0, (int) Math.ceil(POOL_QUANTILE * sorted.length) - 1)];
     }
 
-    private static void spread(int[] grade, int waterfallMinimumDrop, int startLimit) {
+    private static void spread(int[] grade, int waterfallMinimumDrop, int startLimit, boolean[] held) {
         for (int point = grade.length - 2; point >= 0; point--) {
             int drop = grade[point] - grade[point + 1];
-            if (drop >= 2 && drop < waterfallMinimumDrop) {
+            if (drop >= 2 && drop < waterfallMinimumDrop && (held == null || !held[point])) {
                 int limit = point == 0 ? startLimit : carryLimit(grade, point, waterfallMinimumDrop);
                 grade[point] = Math.max(grade[point + 1] + 1, limit);
             }

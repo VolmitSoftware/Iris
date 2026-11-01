@@ -658,6 +658,25 @@ public class ChunkWaterRasterTest {
     }
 
     @Test
+    public void ledInOutletMeetsItsFeedersAcrossAWindowLine() {
+        HydrologyTier river = tier("river", 2f, 0.5f, 4, IrisBankStyle.SMOOTH);
+        Reach outlet = ledIn(line(191L, river, 0L, 516f, 200f, 600f, 200f, (x, z) -> Math.max(60, 68 - (int) ((x - 516f) / 10f))), 503f, 200f);
+        Reach feeder = line(192L, river, outlet.id(), 516f, 120f, 516f, 200f, (x, z) -> z < 160f ? 70 : 66);
+        Pond pond = new Pond(190L, PondKind.NATURAL, 68, 60, 504, 200, 69.5f, circle(488, 200, 16, 1), outlet.id(), 0, "water", 488, 200);
+        assertTrue("the lead-in starts in the pond", pond.mask().contains(503, 200));
+        assertEquals(new WindowKey(0, 0), WindowKey.containing(503, 200));
+        assertEquals(new WindowKey(1, 0), WindowKey.containing(516, 200));
+        int feederEnd = feeder.grade()[feeder.grade().length - 1];
+        assertTrue("the outlet owner starts above its feeder's end", outlet.grade()[1] > feederEnd);
+        Scene scene = new Scene(settings(new IrisHydrology()), (x, z) -> 75).reach(outlet).reach(feeder).pond(pond);
+        for (int x = 516; x <= 600; x++) {
+            int head = scene.head(x, 200);
+            assertNotEquals("centre line is water at x=" + x, Integer.MIN_VALUE, head);
+            assertTrue("outlet water at " + head + " above its feeder's end " + feederEnd + " at x=" + x, head <= feederEnd);
+        }
+    }
+
+    @Test
     public void everyBankStyleRasterizes() {
         IrisHydrology config = new IrisHydrology();
         config.getDeformation().setBankSlope(0D).setBankSteepFactor(0D).setBankNoise(0D);
@@ -873,6 +892,29 @@ public class ChunkWaterRasterTest {
                     : drop >= 2 ? ReachStyle.CASCADE : drop == 1 ? ReachStyle.RIFFLE : ReachStyle.RUN;
         }
         return new Reach(id, tier, downstreamId, xs, zs, grades, halfWidth, depth, style, 1000f);
+    }
+
+    private static Reach ledIn(Reach reach, float x, float z) {
+        int count = reach.xs().length + 1;
+        float[] xs = new float[count];
+        float[] zs = new float[count];
+        int[] grade = new int[count];
+        float[] halfWidth = new float[count];
+        float[] depth = new float[count];
+        ReachStyle[] style = new ReachStyle[count];
+        System.arraycopy(reach.xs(), 0, xs, 1, count - 1);
+        System.arraycopy(reach.zs(), 0, zs, 1, count - 1);
+        System.arraycopy(reach.grade(), 0, grade, 1, count - 1);
+        System.arraycopy(reach.halfWidth(), 0, halfWidth, 1, count - 1);
+        System.arraycopy(reach.depth(), 0, depth, 1, count - 1);
+        System.arraycopy(reach.style(), 0, style, 1, count - 1);
+        xs[0] = x;
+        zs[0] = z;
+        grade[0] = grade[1];
+        halfWidth[0] = halfWidth[1];
+        depth[0] = depth[1];
+        style[0] = style[1];
+        return new Reach(reach.id(), reach.tier(), reach.downstreamId(), xs, zs, grade, halfWidth, depth, style, reach.catchment());
     }
 
     private static Pond pond(long id, PondKind kind, int level, PondMask mask, int floorX, int floorZ, int damRaise) {

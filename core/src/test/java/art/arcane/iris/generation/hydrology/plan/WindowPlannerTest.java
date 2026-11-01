@@ -2,6 +2,7 @@ package art.arcane.iris.generation.hydrology.plan;
 
 import art.arcane.iris.generation.hydrology.config.IrisHydrology;
 import art.arcane.iris.generation.hydrology.grid.HeightLattice;
+import art.arcane.iris.generation.hydrology.raster.WaterHeads;
 import art.arcane.iris.generation.hydrology.underground.SeaInlet;
 import art.arcane.iris.generation.hydrology.water.HydrologyTier;
 import art.arcane.iris.generation.hydrology.water.CupSet;
@@ -13,6 +14,7 @@ import art.arcane.iris.generation.hydrology.water.Reach;
 import art.arcane.iris.generation.hydrology.water.ReachShaper;
 import art.arcane.iris.generation.hydrology.water.ReachStyle;
 import art.arcane.iris.generation.hydrology.water.ShapedNetwork;
+import org.junit.AfterClass;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -44,6 +46,12 @@ public class WindowPlannerTest {
     private static final WindowKey ORIGIN = new WindowKey(0, 0);
     private static final WindowKey LAND = new WindowKey(4, 4);
     private static final int SEAM_DISTANCE = 256;
+    private static final Map<Long, PlannedScene> OPEN_SCENES = new HashMap<>();
+
+    @AfterClass
+    public static void dropScenes() {
+        OPEN_SCENES.clear();
+    }
 
     @Test
     public void zeroDensityRemovesLocalChannelsAndPonds() {
@@ -558,8 +566,7 @@ public class WindowPlannerTest {
                             continue;
                         }
                         outlets++;
-                        assertTrue(pond + " outlet starts off its shore at " + outlet.xs()[0] + "," + outlet.zs()[0],
-                                nearMask(pond.mask(), outlet.xs()[0], outlet.zs()[0], WindowPlanner.CELL));
+                        assertOutletLeavesAtThePondHead(pond, outlet);
                         assertTrue(pond + " outlet " + outlet + " starts above it", outlet.grade()[0] <= pond.level());
                     }
                 }
@@ -618,6 +625,109 @@ public class WindowPlannerTest {
     private static boolean nearWindowEdge(float coordinate) {
         int offset = Math.floorMod((int) Math.floor(coordinate), WindowKey.SIZE);
         return offset < WindowPlanner.CELL || offset >= WindowKey.SIZE - WindowPlanner.CELL;
+    }
+
+    @Test
+    public void everyPondOutletLeavesThroughConnectedWater() {
+        int outlets = 0;
+        for (long seed = 1L; seed <= 7L; seed++) {
+            PlannedScene scene = openScene(seed);
+            assertEquals("detached outlets on openFractal(" + seed + ")", List.of(), WaterInvariants.detachedOutlets(scene));
+            Map<Long, Reach> byId = byId(scene.reaches());
+            for (Pond pond : scene.ponds()) {
+                outlets += pond.kind() != PondKind.LAKE && byId.containsKey(pond.outletReachId()) ? 1 : 0;
+            }
+        }
+        assertTrue("pond outlets checked " + outlets, outlets >= 50);
+    }
+
+    private static synchronized PlannedScene openScene(long seed) {
+        return OPEN_SCENES.computeIfAbsent(seed, key -> PlannedScene.plan(SyntheticTerrain.openFractal(key), PlannedScene.packSettings(SEED), 1, 1));
+    }
+
+    private static void assertOutletLeavesAtThePondHead(Pond pond, Reach outlet) {
+        PondMask mask = pond.mask();
+        int leading = 0;
+        while (leading + 1 < outlet.xs().length && touchesShore(mask, outlet, leading)) {
+            leading++;
+        }
+        assertTrue(pond + " outlet " + outlet.id() + " starts off its shore at " + outlet.xs()[0] + "," + outlet.zs()[0], leading > 0);
+        int head = WaterHeads.snap(pond.level(), SEA_LEVEL);
+        for (int segment = 0; segment < leading; segment++) {
+            int[] box = segmentBox(outlet, segment);
+            for (int z = box[1]; z <= box[3]; z++) {
+                for (int x = box[0]; x <= box[2]; x++) {
+                    int[] covering = nearestCovering(outlet, x, z);
+                    if (covering[0] == segment && onShore(mask, x, z)) {
+                        assertEquals(pond + " outlet " + outlet.id() + " water at " + x + "," + z, head,
+                                WaterHeads.snap(outlet.grade()[covering[1]], SEA_LEVEL));
+                    }
+                }
+            }
+        }
+    }
+
+    private static boolean touchesShore(PondMask mask, Reach outlet, int segment) {
+        int[] box = segmentBox(outlet, segment);
+        for (int z = box[1]; z <= box[3]; z++) {
+            for (int x = box[0]; x <= box[2]; x++) {
+                if (onShore(mask, x, z) && covers(outlet, segment, x, z)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private static boolean onShore(PondMask mask, int x, int z) {
+        return mask.contains(x, z) || mask.contains(x + 1, z) || mask.contains(x - 1, z) || mask.contains(x, z + 1) || mask.contains(x, z - 1);
+    }
+
+    private static int[] segmentBox(Reach reach, int segment) {
+        float radius = Math.max(reach.halfWidth()[segment], reach.halfWidth()[segment + 1]);
+        return new int[]{(int) Math.floor(Math.min(reach.xs()[segment], reach.xs()[segment + 1]) - radius),
+                (int) Math.floor(Math.min(reach.zs()[segment], reach.zs()[segment + 1]) - radius),
+                (int) Math.ceil(Math.max(reach.xs()[segment], reach.xs()[segment + 1]) + radius),
+                (int) Math.ceil(Math.max(reach.zs()[segment], reach.zs()[segment + 1]) + radius)};
+    }
+
+    private static int[] nearestCovering(Reach reach, int x, int z) {
+        double nearest = Double.POSITIVE_INFINITY;
+        int[] found = {-1, -1};
+        for (int segment = 0; segment + 1 < reach.xs().length; segment++) {
+            double t = along(reach, segment, x, z);
+            double distance = offset(reach, segment, t, x, z);
+            if (distance <= width(reach, segment, t) && distance < nearest) {
+                nearest = distance;
+                found[0] = segment;
+                found[1] = t < 0.5D ? segment : segment + 1;
+            }
+        }
+        return found;
+    }
+
+    private static boolean covers(Reach reach, int segment, int x, int z) {
+        double t = along(reach, segment, x, z);
+        return offset(reach, segment, t, x, z) <= width(reach, segment, t);
+    }
+
+    private static double along(Reach reach, int segment, double x, double z) {
+        double ax = reach.xs()[segment];
+        double az = reach.zs()[segment];
+        double dx = reach.xs()[segment + 1] - ax;
+        double dz = reach.zs()[segment + 1] - az;
+        double length = dx * dx + dz * dz;
+        return length == 0D ? 0D : Math.clamp(((x - ax) * dx + (z - az) * dz) / length, 0D, 1D);
+    }
+
+    private static double offset(Reach reach, int segment, double t, double x, double z) {
+        double px = reach.xs()[segment] + t * (reach.xs()[segment + 1] - reach.xs()[segment]);
+        double pz = reach.zs()[segment] + t * (reach.zs()[segment + 1] - reach.zs()[segment]);
+        return Math.hypot(x - px, z - pz);
+    }
+
+    private static double width(Reach reach, int segment, double t) {
+        return reach.halfWidth()[segment] + t * (reach.halfWidth()[segment + 1] - reach.halfWidth()[segment]);
     }
 
     private static boolean nearMask(PondMask mask, float x, float z, int distance) {

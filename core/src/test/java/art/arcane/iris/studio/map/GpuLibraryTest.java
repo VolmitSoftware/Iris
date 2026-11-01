@@ -19,7 +19,7 @@ public class GpuLibraryTest {
     public void missingNativeLibrariesUseSoftwareEvenWhenBindingClassesExist() throws Exception {
         List<URL> classpath = new ArrayList<>();
         for (String entry : System.getProperty("java.class.path").split(Pattern.quote(File.pathSeparator))) {
-            if (!entry.contains("natives-")) {
+            if (!new File(entry).getName().contains("-natives-")) {
                 classpath.add(new File(entry).toURI().toURL());
             }
         }
@@ -27,7 +27,7 @@ public class GpuLibraryTest {
         while (loader != null) {
             if (loader instanceof URLClassLoader urls) {
                 for (URL url : urls.getURLs()) {
-                    if (!url.getPath().contains("natives-")) {
+                    if (!new File(url.getPath()).getName().contains("-natives-")) {
                         classpath.add(url);
                     }
                 }

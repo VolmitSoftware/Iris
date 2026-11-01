@@ -59,7 +59,7 @@ final class ReachSegments {
             int[] grade = reaches[index].grade();
             int start = grade[segments[index]];
             int end = grade[segments[index] + 1];
-            if (start - Math.floorMod(start - seaLevel, 2) != head || end - Math.floorMod(end - seaLevel, 2) != head) {
+            if (WaterHeads.snap(start, seaLevel) != head || WaterHeads.snap(end, seaLevel) != head) {
                 return false;
             }
         }

@@ -100,17 +100,17 @@ final class ChunkFeatures {
 
     boolean hasOnlyLevel(int head, int seaLevel) {
         for (Pond pond : ponds) {
-            if (pond.level() - Math.floorMod(pond.level() - seaLevel, 2) != head) {
+            if (WaterHeads.snap(pond.level(), seaLevel) != head) {
                 return false;
             }
         }
         for (Pond lake : lakes) {
-            if (lake.level() - Math.floorMod(lake.level() - seaLevel, 2) != head) {
+            if (WaterHeads.snap(lake.level(), seaLevel) != head) {
                 return false;
             }
         }
         for (SeaInlet inlet : inlets) {
-            if (inlet.waterLevel() - Math.floorMod(inlet.waterLevel() - seaLevel, 2) != head) {
+            if (WaterHeads.snap(inlet.waterLevel(), seaLevel) != head) {
                 return false;
             }
         }

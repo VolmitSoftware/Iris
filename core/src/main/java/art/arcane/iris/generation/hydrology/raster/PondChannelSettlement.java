@@ -75,7 +75,7 @@ public final class PondChannelSettlement {
         BitSet visited = new BitSet(width * (bounds.maxZ() - bounds.minZ() + 1));
         for (Reach reach : reaches) {
             for (int segment = 0; segment + 1 < reach.xs().length; segment++) {
-                if (Math.min(head(reach.grade()[segment], seaLevel), head(reach.grade()[segment + 1], seaLevel)) >= head(level, seaLevel)) {
+                if (Math.min(WaterHeads.snap(reach.grade()[segment], seaLevel), WaterHeads.snap(reach.grade()[segment + 1], seaLevel)) >= WaterHeads.snap(level, seaLevel)) {
                     continue;
                 }
                 float radius = Math.max(reach.halfWidth()[segment], reach.halfWidth()[segment + 1]) + 1f;
@@ -111,12 +111,8 @@ public final class PondChannelSettlement {
         if (channel.reach == null) {
             return level;
         }
-        int head = head(channel.reach.grade()[channel.point()], seaLevel);
-        return head < head(level, seaLevel) ? head : level;
-    }
-
-    private static int head(int level, int seaLevel) {
-        return level - Math.floorMod(level - seaLevel, 2);
+        int head = WaterHeads.snap(channel.reach.grade()[channel.point()], seaLevel);
+        return head < WaterHeads.snap(level, seaLevel) ? head : level;
     }
 
     private record Bounds(int minX, int minZ, int maxX, int maxZ) {

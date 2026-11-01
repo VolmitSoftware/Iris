@@ -62,13 +62,20 @@ def languageGuidesTask = tasks.register('generateLanguageGuides') {
     doLast {
         File output = guideDirectory.get().asFile
         output.mkdirs()
+        // index.properties lets jars that leave the guide text out accept an upstream guide only when it is
+        // byte-identical to the one this build would have bundled.
+        Properties index = new Properties()
         for (File source : languageSourceFiles) {
             List<String> header = source.readLines('UTF-8').takeWhile { String line ->
                 line.isBlank() || line.stripLeading().startsWith('#')
             }
             String locale = source.name.substring(0, source.name.length() - '.toml'.length())
-            new File(output, locale + '.txt').setText(header.join('\n').stripTrailing() + '\n', 'UTF-8')
+            String guide = header.join('\n').stripTrailing() + '\n'
+            new File(output, locale + '.txt').setText(guide, 'UTF-8')
+            index.setProperty(locale, java.security.MessageDigest.getInstance('SHA-256')
+                .digest(guide.getBytes('UTF-8')).encodeHex().toString())
         }
+        new File(output, 'index.properties').withWriter('UTF-8') { Writer writer -> index.store(writer, null) }
     }
 }
 tasks.named('processResources').configure {

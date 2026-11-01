@@ -7,20 +7,28 @@ import art.arcane.volmlib.util.localization.TomlLanguageWriter;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.regex.Pattern;
 
 final class IrisLanguageGuide {
     private static final String START = "# === Iris language guide ===";
     private static final String END = "# === End Iris language guide ===";
+    private static final String ENGLISH_LOCALE = "en_US";
+    private static final String GUIDE_DIRECTORY = "iris-language-guides/";
+    private static final String GUIDE_INDEX = "index.properties";
+    private static final String GUIDE_CACHE = ".guides";
     private static final Pattern UNDESCRIBED_VARIABLES = Pattern.compile("#\\s+(?:\\{[A-Za-z][A-Za-z0-9_]*}\\s*)+");
     private static final Map<String, String> UNMARKED_GUIDE_FINGERPRINTS = Map.ofEntries(
             Map.entry("de_DE", "c32159c55e437c3e0e638a48618d2c4ea3bcefebacd3883e94095c986fb9a7e6"),
@@ -318,12 +326,91 @@ final class IrisLanguageGuide {
     }
 
     static String header(String locale) throws IOException {
-        try (InputStream input = IrisLanguageGuide.class.getResourceAsStream("/iris-language-guides/" + locale + ".txt")) {
+        return header(locale, null, IrisLanguageGuide.class.getClassLoader());
+    }
+
+    /**
+     * The guide this build ships for {@code locale}: the bundled copy, the English template, or a copy cached from
+     * the upstream locale file whose digest matches the build's guide index. Null when none is available yet, so
+     * a translated guide is never replaced with English or with a different revision's text.
+     */
+    static String header(String locale, Path guideCache, ClassLoader resources) throws IOException {
+        try (InputStream input = resources.getResourceAsStream(GUIDE_DIRECTORY + locale + ".txt")) {
             if (input != null) {
                 return new String(input.readAllBytes(), StandardCharsets.UTF_8).stripTrailing() + "\n";
             }
         }
-        return englishHeader(locale);
+        if (ENGLISH_LOCALE.equals(locale)) {
+            return englishHeader(locale);
+        }
+        String expected = expectedDigest(locale, resources);
+        if (expected == null || guideCache == null) {
+            return null;
+        }
+        Path cached = guideCache.resolve(expected + ".txt");
+        if (!Files.isRegularFile(cached, LinkOption.NOFOLLOW_LINKS)) {
+            return null;
+        }
+        String text = Files.readString(cached, StandardCharsets.UTF_8);
+        return expected.equals(sha256(text)) ? text : null;
+    }
+
+    static Path guideCache(File languageFile) {
+        return languageFile.toPath().toAbsolutePath().resolveSibling(GUIDE_CACHE);
+    }
+
+    static boolean fetchable(String locale, ClassLoader resources) throws IOException {
+        return !ENGLISH_LOCALE.equals(locale) && expectedDigest(locale, resources) != null;
+    }
+
+    /** Stores the guide from an upstream locale file when it is exactly the guide this build expects. */
+    static boolean cacheUpstream(Path guideCache, String locale, String upstream, ClassLoader resources) throws IOException {
+        String expected = expectedDigest(locale, resources);
+        String guide = extractHeader(upstream);
+        if (expected == null || !expected.equals(sha256(guide))) {
+            return false;
+        }
+        Files.createDirectories(guideCache);
+        Path temporary = Files.createTempFile(guideCache, locale + "-", ".tmp");
+        try {
+            Files.writeString(temporary, guide, StandardCharsets.UTF_8);
+            Files.move(temporary, guideCache.resolve(expected + ".txt"), StandardCopyOption.REPLACE_EXISTING,
+                    StandardCopyOption.ATOMIC_MOVE);
+        } finally {
+            Files.deleteIfExists(temporary);
+        }
+        return true;
+    }
+
+    /** Same rule as core/build.gradle generateLanguageGuides: the leading blank and comment lines. */
+    static String extractHeader(String toml) {
+        List<String> lines = new ArrayList<>();
+        for (String line : toml.split("\\R", -1)) {
+            if (!line.isBlank() && !line.stripLeading().startsWith("#")) {
+                break;
+            }
+            lines.add(line);
+        }
+        return String.join("\n", lines).stripTrailing() + "\n";
+    }
+
+    private static String expectedDigest(String locale, ClassLoader resources) throws IOException {
+        try (InputStream input = resources.getResourceAsStream(GUIDE_DIRECTORY + GUIDE_INDEX)) {
+            if (input == null) {
+                return null;
+            }
+            Properties index = new Properties();
+            index.load(new InputStreamReader(input, StandardCharsets.UTF_8));
+            return index.getProperty(locale);
+        }
+    }
+
+    private static String sha256(String text) {
+        try {
+            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(text.getBytes(StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException missing) {
+            throw new IllegalStateException(missing);
+        }
     }
 
     static String englishHeader(String locale) {
@@ -339,14 +426,23 @@ final class IrisLanguageGuide {
     }
 
     static void refresh(File file, String locale) throws IOException {
+        refresh(file, locale, IrisLanguageGuide.class.getClassLoader());
+    }
+
+    /** Returns false when this build's guide for the locale is not available yet. */
+    static boolean refresh(File file, String locale, ClassLoader resources) throws IOException {
         if (!Files.isRegularFile(file.toPath(), LinkOption.NOFOLLOW_LINKS)
                 || Files.size(file.toPath()) > 2L * 1024L * 1024L) {
-            return;
+            return true;
+        }
+        String guide = header(locale, guideCache(file), resources);
+        if (guide == null) {
+            return false;
         }
         String original = Files.readString(file.toPath(), StandardCharsets.UTF_8);
-        String updated = replaceHeader(original, header(locale), locale);
+        String updated = replaceHeader(original, guide, locale);
         if (original.equals(updated)) {
-            return;
+            return true;
         }
         LanguageFileEditor.update(file.toPath(), current -> {
             if (!current.equals(original)) {
@@ -354,6 +450,7 @@ final class IrisLanguageGuide {
             }
             return new LanguageFileEditor.Prepared<>(updated, null);
         });
+        return true;
     }
 
     static String replaceHeader(String content, String header, String locale) {

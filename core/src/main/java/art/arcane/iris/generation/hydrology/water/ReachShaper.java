@@ -4,6 +4,7 @@ import art.arcane.iris.generation.hydrology.grid.CellHash;
 import art.arcane.iris.generation.hydrology.grid.DemGrid;
 import art.arcane.iris.generation.hydrology.grid.HeightLattice;
 import art.arcane.iris.generation.hydrology.plan.HydrologySettings;
+import art.arcane.iris.generation.hydrology.raster.LinkBlend;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -364,10 +365,13 @@ public final class ReachShaper {
         }
         unfold(draft);
         float upstream = 0f;
+        float feederEnd = 0f;
         for (int index : draft.incoming) {
-            upstream = Math.max(upstream, drafts.get(index).maxHalfWidth);
+            ReachDraft feeder = drafts.get(index);
+            upstream = Math.max(upstream, feeder.maxHalfWidth);
+            feederEnd = Math.max(feederEnd, feeder.halfWidth[feeder.halfWidth.length - 1]);
         }
-        widths(draft, upstream);
+        widths(draft, upstream, feederEnd);
         restyle(draft);
     }
 
@@ -479,16 +483,19 @@ public final class ReachShaper {
         }
     }
 
-    private static void widths(ReachDraft draft, float upstream) {
+    private static void widths(ReachDraft draft, float upstream, float feederEnd) {
         int count = draft.xs.length;
-        boolean taper = draft.incoming.length == 0 && !draft.outlet;
+        boolean flare = draft.incoming.length > 0;
+        boolean taper = !flare && !draft.outlet;
         float[] distance = distances(draft.xs, draft.zs);
         float running = upstream;
         draft.halfWidth = new float[count];
         draft.depth = new float[count];
         for (int point = 0; point < count; point++) {
             float law = draft.tier.halfWidth(draft.catchments[point]);
-            if (taper) {
+            if (flare) {
+                law = LinkBlend.blend(feederEnd, law, distance[point]);
+            } else if (taper) {
                 law *= Math.min(1f, distance[point] / TAPER_LENGTH);
             }
             float lip = draft.held != null && draft.held[point] ? LIP_HALF_WIDTH : 0f;

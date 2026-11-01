@@ -677,6 +677,23 @@ public class ChunkWaterRasterTest {
     }
 
     @Test
+    public void ledInOutletWidthBlendsFromItsJunctionAcrossAWindowLine() {
+        HydrologyTier narrow = tier("river", 1f, 0.5f, 4, IrisBankStyle.SMOOTH);
+        HydrologyTier wide = tier("river", 8f, 0.5f, 4, IrisBankStyle.SMOOTH);
+        Reach outlet = ledIn(line(211L, narrow, 0L, 508f, 200f, 600f, 200f, (x, z) -> 66), 494f, 200f);
+        Reach feeder = line(212L, wide, outlet.id(), 508f, 120f, 508f, 200f, (x, z) -> 66);
+        Pond pond = new Pond(210L, PondKind.NATURAL, 66, 58, 496, 200, 67.5f, circle(478, 200, 17, 1), outlet.id(), 0, "water", 478, 200);
+        assertTrue("the lead-in starts in the pond", pond.mask().contains(494, 200));
+        assertFalse("the junction lies off the pond", pond.mask().contains(508, 200));
+        assertEquals(new WindowKey(0, 0), WindowKey.containing(508, 200));
+        assertEquals(new WindowKey(1, 0), WindowKey.containing(600, 200));
+        Scene scene = new Scene(settings(new IrisHydrology()), (x, z) -> 75).reach(outlet).reach(feeder).pond(pond);
+        assertTrue("the outlet is half the feeder's width 8 blocks below the junction", scene.water(516, 204));
+        assertTrue("the outlet is still blending 10 blocks below the junction", scene.water(518, 202));
+        assertFalse("the narrow outlet width returns past the blend", scene.water(530, 202));
+    }
+
+    @Test
     public void skippedLeadInKeepsTheOutletJunctionAtItsFirstVertex() {
         HydrologyTier river = tier("river", 2f, 0.5f, 4, IrisBankStyle.SMOOTH);
         Reach outlet = line(201L, river, 0L, 255f, 200f, 335f, 200f, (x, z) -> 68);

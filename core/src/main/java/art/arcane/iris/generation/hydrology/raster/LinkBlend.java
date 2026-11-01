@@ -4,13 +4,21 @@ import art.arcane.iris.generation.hydrology.water.Reach;
 
 import java.util.List;
 
-final class LinkBlend {
+public final class LinkBlend {
     private static final float LENGTH = 16f;
 
     private LinkBlend() {
     }
 
-    static Reach blend(Reach downstream, List<Reach> feeders) {
+    public static float blend(float from, float to, float along) {
+        if (along >= LENGTH) {
+            return to;
+        }
+        float share = Math.max(0f, along) / LENGTH;
+        return from + (to - from) * share;
+    }
+
+    static Reach blend(Reach downstream, List<Reach> feeders, int junction) {
         int end = lowestEnd(feeders);
         float width = 0f;
         float depth = 0f;
@@ -24,16 +32,14 @@ final class LinkBlend {
         int[] grade = clamped(downstream.grade(), end);
         float[] halfWidth = downstream.halfWidth().clone();
         float[] depths = downstream.depth().clone();
-        float along = 0f;
+        float[] along = new float[xs.length];
+        for (int point = 1; point < xs.length; point++) {
+            along[point] = along[point - 1] + (float) Math.hypot(xs[point] - xs[point - 1], zs[point] - zs[point - 1]);
+        }
         for (int point = 0; point < xs.length; point++) {
-            if (point > 0) {
-                along += (float) Math.hypot(xs[point] - xs[point - 1], zs[point] - zs[point - 1]);
-            }
-            if (along <= LENGTH) {
-                float share = along / LENGTH;
-                halfWidth[point] = width + (halfWidth[point] - width) * share;
-                depths[point] = depth + (depths[point] - depth) * share;
-            }
+            float fromJunction = along[point] - along[junction];
+            halfWidth[point] = blend(width, halfWidth[point], fromJunction);
+            depths[point] = blend(depth, depths[point], fromJunction);
         }
         return new Reach(downstream.id(), downstream.tier(), downstream.downstreamId(), xs, zs, grade, halfWidth, depths,
                 downstream.style(), downstream.catchment());

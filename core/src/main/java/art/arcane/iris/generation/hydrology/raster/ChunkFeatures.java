@@ -347,7 +347,7 @@ final class ChunkFeatures {
             for (Reach reach : owned) {
                 feeders.add(cornerBlock(reach) == block ? resolve(reach, link) : reach);
             }
-            return link.equals(owner) ? LinkBlend.clamp(downstream, feeders) : LinkBlend.blend(downstream, feeders);
+            return link.equals(owner) ? LinkBlend.clamp(downstream, feeders) : LinkBlend.blend(downstream, feeders, junction);
         }
 
         private List<Reach> feeders(WindowKey key, long downstreamId) {

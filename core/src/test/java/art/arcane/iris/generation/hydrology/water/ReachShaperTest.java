@@ -300,7 +300,7 @@ public class ReachShaperTest {
                 assertEquals(tier.depth(reach.halfWidth()[index]), reach.depth()[index], 0f);
             }
             boolean head = !incoming.containsKey(reach.id());
-            if (head && firstBeyond(reach, 24f) < 0) {
+            if (firstBeyond(reach, head ? 24f : 16f) < 0) {
                 continue;
             }
             float expected = tier.minHalfWidth() + tier.widthFactor() * (float) Math.sqrt(reach.catchment() / 2500f);
@@ -1100,6 +1100,58 @@ public class ReachShaperTest {
             }
         }
         assertTrue("points widened past their tier by the waist rule " + widened, widened > 0);
+    }
+
+    @Test
+    public void junctionWidthBlendsOverSixteenBlocks() {
+        HydrologySettings settings = settings(config -> config.setTiers(new KList<>(
+                new IrisHydrologyTier().setHalfWidth(new KList<>(1D, 3D)),
+                new IrisHydrologyTier().setName("river").setMinCatchment(6000D).setHalfWidth(new KList<>(8D, 12D)))));
+        DemGrid flat = outletGrid();
+        int[] receivers = new int[flat.values().length];
+        Arrays.fill(receivers, -1);
+        float[] accumulation = new float[receivers.length];
+        BitSet channels = new BitSet(receivers.length);
+        for (int i = 0; i < 12; i++) {
+            flow(flat, receivers, accumulation, channels, i, 8, i + 1, 8, 2000f + 10f * i);
+        }
+        for (int j = 0; j < 8; j++) {
+            flow(flat, receivers, accumulation, channels, 12, j, 12, j + 1, 3500f + 10f * j);
+        }
+        for (int i = 12; i < flat.width(); i++) {
+            flow(flat, receivers, accumulation, channels, i, 8, i + 1 < flat.width() ? i + 1 : -1, 8, 6400f);
+        }
+        HeightLattice fine = new HeightLattice(new Terrain((x, z) -> 100D), FINE, false, 1 << 16);
+        ShapedNetwork shaped = new ReachShaper(settings).shape(flat, receivers, accumulation, channels, List.of(), fine, SEED);
+        Map<Long, List<Reach>> feeders = feeders(shaped.reaches());
+        assertEquals("one confluence " + feeders.keySet(), 1, feeders.size());
+        Map.Entry<Long, List<Reach>> confluence = feeders.entrySet().iterator().next();
+        assertEquals("two feeders", 2, confluence.getValue().size());
+        Reach downstream = byId(shaped.reaches()).get(confluence.getKey());
+        float widest = 0f;
+        for (Reach feeder : confluence.getValue()) {
+            assertEquals("feeders are streams", "stream", feeder.tier().name());
+            widest = Math.max(widest, feeder.halfWidth()[feeder.halfWidth().length - 1]);
+        }
+        assertEquals("the merged catchment is a river", "river", downstream.tier().name());
+        float law = downstream.tier().halfWidth(downstream.catchment());
+        assertTrue("streams " + widest + " join a river " + law, widest < 0.5f * law);
+        float along = 0f;
+        float previous = widest;
+        int blended = 0;
+        for (int point = 0; point < downstream.xs().length; point++) {
+            if (point > 0) {
+                along += (float) Math.hypot(downstream.xs()[point] - downstream.xs()[point - 1], downstream.zs()[point] - downstream.zs()[point - 1]);
+            }
+            float halfWidth = downstream.halfWidth()[point];
+            float expected = along >= 16f ? law : widest + (law - widest) * (along / 16f);
+            assertEquals("half-width " + along + " blocks below the junction", expected, halfWidth, 1e-3f);
+            assertTrue("half-width narrows from " + previous + " to " + halfWidth + " at " + along, halfWidth >= previous - 1e-6f);
+            assertEquals(downstream.tier().depth(halfWidth), downstream.depth()[point], 0f);
+            blended += along > 0f && along < 16f ? 1 : 0;
+            previous = halfWidth;
+        }
+        assertTrue("vertices inside the blend " + blended, blended >= 2);
     }
 
     @Test

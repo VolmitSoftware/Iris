@@ -735,7 +735,8 @@ pluginPackaging {
             policyName = 'Iris Bukkit'
             packed = true
             packedJarAccessors = ['art/arcane/iris/platform/bukkit/plugin/VolmitPlugin#getJarFile']
-            packedPayloadOnlyPrefixes = ['iris-language-guides/']
+            packedPayloadOnlyPrefixes = ['iris-language-guides/', 'META-INF/iris/generation-kernels/abi-', 'iris/icons/views/', 'iris/datapack/']
+            packedMaximumBootstrapClasses = 90
             stripDirectories = true
             stripLocalVariables = true
             releaseCompression = providers.gradleProperty('compactRelease')

@@ -68,8 +68,8 @@ public final class BukkitWorldReconciler {
     private final Backend backend;
     private final LifecycleOperationCoordinator coordinator;
 
-    public BukkitWorldReconciler(Iris plugin) {
-        this(new BukkitBackend(plugin), LifecycleOperationCoordinator.get());
+    public BukkitWorldReconciler(IrisWorldGeneratorResolver generatorResolver) {
+        this(new BukkitBackend(generatorResolver), LifecycleOperationCoordinator.get());
     }
 
     BukkitWorldReconciler(Backend backend, LifecycleOperationCoordinator coordinator) {
@@ -688,10 +688,10 @@ public final class BukkitWorldReconciler {
     }
 
     private static final class BukkitBackend implements Backend {
-        private final Iris plugin;
+        private final IrisWorldGeneratorResolver generatorResolver;
 
-        private BukkitBackend(Iris plugin) {
-            this.plugin = Objects.requireNonNull(plugin, "plugin");
+        private BukkitBackend(IrisWorldGeneratorResolver generatorResolver) {
+            this.generatorResolver = Objects.requireNonNull(generatorResolver, "generatorResolver");
         }
 
         @Override
@@ -734,13 +734,13 @@ public final class BukkitWorldReconciler {
             try {
                 configuredWorldName = configuredWorldName(worldKey);
                 Iris.info("Loading World: %s | Generator: %s", IrisWorldStorage.logicalName(worldKey), dimension);
-                generator = plugin.requireWorldGenerator(configuredWorldName, dimension);
+                generator = generatorResolver.requireWorldGenerator(configuredWorldName, dimension);
                 irisDimension = IrisWorldGeneratorResolver.loadDimension(configuredWorldName, dimension);
                 if (generator == null || irisDimension == null) {
                     throw new IllegalStateException("Could not resolve the Iris generator or dimension \"" + dimension + "\".");
                 }
             } catch (Throwable refusal) {
-                plugin.worldRefusals().report(configuredWorldName, worldKey, refusal);
+                generatorResolver.refusals().report(configuredWorldName, worldKey, refusal);
                 return CompletableFuture.failedFuture(refusal);
             }
             try {

@@ -11,8 +11,8 @@ import static org.junit.Assert.assertTrue;
 public class IrisApiServiceDiscoveryTest {
     @Test
     public void bothApiServicesSatisfyTheServiceLoaderRule() {
-        assertTrue(Iris.isConcreteImplementation(IrisTerrainSVC.class, IrisService.class));
-        assertTrue(Iris.isConcreteImplementation(IrisApiEventSVC.class, IrisService.class));
+        assertTrue(IrisRuntime.isConcreteImplementation(IrisTerrainSVC.class, IrisService.class));
+        assertTrue(IrisRuntime.isConcreteImplementation(IrisApiEventSVC.class, IrisService.class));
     }
 
     @Test

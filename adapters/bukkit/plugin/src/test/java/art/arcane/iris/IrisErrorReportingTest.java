@@ -9,10 +9,8 @@ import org.mockito.MockedStatic;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.PrintStream;
-import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -53,9 +51,6 @@ public class IrisErrorReportingTest {
         IrisSettings previousSettings = IrisSettings.settings;
         PrintStream previousError = System.err;
         Iris plugin = mock(Iris.class);
-        Field deferred = Iris.class.getDeclaredField("serverStopTeardownDeferred");
-        deferred.setAccessible(true);
-        deferred.set(plugin, new AtomicBoolean());
         File report = new File(temporaryFolder.getRoot(), "failure.txt");
         when(plugin.getDataFile(any(String[].class))).thenReturn(report);
         ByteArrayOutputStream output = new ByteArrayOutputStream();

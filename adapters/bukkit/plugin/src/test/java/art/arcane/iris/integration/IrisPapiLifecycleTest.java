@@ -1,6 +1,7 @@
 package art.arcane.iris.integration;
 
 import art.arcane.iris.Iris;
+import art.arcane.iris.IrisRuntime;
 import art.arcane.volmlib.util.bukkit.papi.PlaceholderRegistration;
 import org.bukkit.Bukkit;
 import org.bukkit.event.HandlerList;
@@ -89,10 +90,19 @@ public class IrisPapiLifecycleTest {
         when(iris.getLogger()).thenReturn(Logger.getAnonymousLogger());
         doCallRealMethod().when(iris).onPlaceholderApiEnable(any());
         doCallRealMethod().when(iris).onPlaceholderApiDisable(any());
-        Field lifecycle = Iris.class.getDeclaredField("papiLifecycleActive");
-        lifecycle.setAccessible(true);
-        lifecycle.setBoolean(iris, active);
+        IrisRuntime runtime = mock(IrisRuntime.class);
+        doCallRealMethod().when(runtime).onPlaceholderApiEnable(any());
+        doCallRealMethod().when(runtime).onPlaceholderApiDisable(any());
+        set(IrisRuntime.class, runtime, "plugin", iris);
+        set(IrisRuntime.class, runtime, "papiLifecycleActive", active);
+        set(Iris.class, iris, "runtime", runtime);
         return iris;
+    }
+
+    private static void set(Class<?> owner, Object target, String name, Object value) throws ReflectiveOperationException {
+        Field field = owner.getDeclaredField(name);
+        field.setAccessible(true);
+        field.set(target, value);
     }
 
     private static Plugin namedPlugin(String name) {

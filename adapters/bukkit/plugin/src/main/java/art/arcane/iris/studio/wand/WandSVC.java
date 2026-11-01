@@ -27,6 +27,8 @@ import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.World;
 import art.arcane.iris.Iris;
+import art.arcane.iris.IrisRuntime;
+import art.arcane.iris.platform.bukkit.chunk.TicketHolder;
 import art.arcane.iris.localization.IrisLanguage;
 import art.arcane.iris.localization.RuntimeUiMessages;
 import art.arcane.iris.studio.edit.DustRevealer;
@@ -109,7 +111,7 @@ public class WandSVC implements IrisService {
 
             int total = c.getSizeX() * c.getSizeY() * c.getSizeZ();
             var latch = new CountDownLatch(1);
-            var holder = Iris.tickets.getHolder(p.getWorld());
+            TicketHolder holder = IrisRuntime.require().tickets().getHolder(p.getWorld());
             new Job() {
                 private volatile int i;
                 private Chunk chunk;

@@ -23,8 +23,8 @@ public class IrisDiagnosticsTest {
     public void serviceInitializationSkipsPackageHelperClasses() throws Exception {
         Class<?> registrar = Class.forName("art.arcane.iris.command.PaperCommandRegistrar");
 
-        assertFalse(Iris.isConcreteImplementation(registrar, IrisService.class));
-        assertTrue(Iris.isConcreteImplementation(CommandSVC.class, IrisService.class));
+        assertFalse(IrisRuntime.isConcreteImplementation(registrar, IrisService.class));
+        assertTrue(IrisRuntime.isConcreteImplementation(CommandSVC.class, IrisService.class));
         // The service package is eagerly Class.forName-scanned by JarScanner at enable; a class
         // referencing Paper-only types there prints an NCDFE stack trace on plain Spigot.
         assertFalse(

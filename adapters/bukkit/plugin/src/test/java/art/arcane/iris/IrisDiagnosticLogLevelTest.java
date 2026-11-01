@@ -15,18 +15,18 @@ import static org.junit.Assert.assertNull;
 public class IrisDiagnosticLogLevelTest {
     @Test
     public void coreDiagnosticsKeepTheirSeverity() {
-        assertEquals(Level.WARNING, Iris.diagnosticLevel(LogLevel.WARN));
-        assertEquals(Level.SEVERE, Iris.diagnosticLevel(LogLevel.ERROR));
+        assertEquals(Level.WARNING, IrisRuntime.diagnosticLevel(LogLevel.WARN));
+        assertEquals(Level.SEVERE, IrisRuntime.diagnosticLevel(LogLevel.ERROR));
     }
 
     @Test
     public void informationalAndDebugMessagesStayOnTheInformationalPath() {
-        assertNull(Iris.diagnosticLevel(LogLevel.INFO));
-        assertNull(Iris.diagnosticLevel(LogLevel.DEBUG));
+        assertNull(IrisRuntime.diagnosticLevel(LogLevel.INFO));
+        assertNull(IrisRuntime.diagnosticLevel(LogLevel.DEBUG));
     }
 
     @Test
     public void lifecycleNoticesReachThePluginLoggerAtInfo() {
-        assertEquals(Level.INFO, Iris.diagnosticLevel(LogLevel.NOTICE));
+        assertEquals(Level.INFO, IrisRuntime.diagnosticLevel(LogLevel.NOTICE));
     }
 }

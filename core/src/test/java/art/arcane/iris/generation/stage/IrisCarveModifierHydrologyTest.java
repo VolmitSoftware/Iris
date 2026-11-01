@@ -7,6 +7,7 @@ import art.arcane.iris.generation.hydrology.plan.HydrologySettings;
 import art.arcane.iris.generation.hydrology.underground.CavePoolFiller;
 import art.arcane.iris.generation.hydrology.underground.CaveVoxel;
 import art.arcane.iris.generation.hydrology.underground.CarvedTerrain;
+import art.arcane.iris.generation.mantle.CarveOwnership;
 import art.arcane.iris.generation.mantle.CaveTerrainSnapshot;
 import art.arcane.iris.generation.mantle.MantleWriter;
 import art.arcane.iris.generation.runtime.IrisComplex;
@@ -203,16 +204,19 @@ public class IrisCarveModifierHydrologyTest {
                 SubterrainCell.Kind.AIR);
         SubterrainCell open = new SubterrainCell(SubterrainCell.Kind.AIR, "", room);
 
-        assertTrue(IrisCarveModifier.subterrainOwns(open, null));
-        assertFalse(IrisCarveModifier.subterrainOwns(open, HydrologyCaveCell.of(HydrologyCaveAction.DRY_AIR)));
-        assertFalse(IrisCarveModifier.subterrainOwns(open, HydrologyCaveCell.of(HydrologyCaveAction.WET_SOURCE)));
-        assertFalse(IrisCarveModifier.subterrainOwns(open, HydrologyCaveCell.of(HydrologyCaveAction.SEAL_GUARD)));
-        assertFalse(IrisCarveModifier.subterrainOwns(SubterrainCell.OUTSIDE, null));
+        assertEquals(CarveOwnership.Owner.SUBTERRAIN, IrisCarveModifier.carveOwner(null, open, null, 0));
+        assertEquals(CarveOwnership.Owner.HYDROLOGY,
+                IrisCarveModifier.carveOwner(HydrologyCaveCell.of(HydrologyCaveAction.DRY_AIR), open, null, 0));
+        assertEquals(CarveOwnership.Owner.HYDROLOGY,
+                IrisCarveModifier.carveOwner(HydrologyCaveCell.of(HydrologyCaveAction.WET_SOURCE), open, null, 0));
+        assertEquals(CarveOwnership.Owner.HYDROLOGY,
+                IrisCarveModifier.carveOwner(HydrologyCaveCell.of(HydrologyCaveAction.SEAL_GUARD), open, null, 0));
+        assertEquals(CarveOwnership.Owner.NATURAL, IrisCarveModifier.carveOwner(null, SubterrainCell.OUTSIDE, null, 0));
         for (SubterrainCell.Kind kind : new SubterrainCell.Kind[]{SubterrainCell.Kind.WATER, SubterrainCell.Kind.LAVA}) {
             SubterrainCell fluid = new SubterrainCell(kind, "", room);
-            assertTrue(IrisCarveModifier.subterrainOwns(fluid, null));
-            assertFalse("subterrain " + kind + " yields the inlet seal", IrisCarveModifier.subterrainOwns(fluid,
-                    HydrologyCaveCell.of(HydrologyCaveAction.SEAL_GUARD)));
+            assertEquals(CarveOwnership.Owner.SUBTERRAIN, IrisCarveModifier.carveOwner(null, fluid, null, 0));
+            assertEquals("subterrain " + kind + " yields the inlet seal", CarveOwnership.Owner.HYDROLOGY,
+                    IrisCarveModifier.carveOwner(HydrologyCaveCell.of(HydrologyCaveAction.SEAL_GUARD), fluid, null, 0));
         }
     }
 

@@ -34,6 +34,7 @@ import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.volmlib.util.stream.ProceduralStream;
 import art.arcane.iris.generation.runtime.EngineAssignedModifier;
+import art.arcane.iris.generation.mantle.CarveOwnership;
 import art.arcane.iris.generation.mantle.CaveCeilingMask;
 import art.arcane.iris.generation.mantle.CaveTerrainSnapshot;
 import art.arcane.iris.generation.mantle.TerrainMatterView;
@@ -379,8 +380,12 @@ public class IrisCarveModifier extends EngineAssignedModifier<NativeBlockState> 
         return cavern.getLiquid() == 3 ? air : null;
     }
 
-    static boolean subterrainOwns(SubterrainCell feature, HydrologyCaveCell hydrology) {
-        return hydrology == null && feature.owned() && (!feature.solid() || feature.room().reservedSolid());
+    public static CarveOwnership.Owner carveOwner(HydrologyCaveCell hydrology, SubterrainCell feature, Terrain3DColumn terrain, int y) {
+        return CarveOwnership.resolve(
+                hydrology != null,
+                feature.owned() && (!feature.solid() || feature.room().reservedSolid()),
+                terrain != null && y >= terrain.minY() && y < terrain.topY() && !terrain.isSolid(y)
+        );
     }
 
     static NativeBlockState sealGuardState(NativeBlockState current, NativeBlockState rock) {
@@ -473,7 +478,9 @@ public class IrisCarveModifier extends EngineAssignedModifier<NativeBlockState> 
             SubterrainCell feature = context.subterrainSampler() == null ? SubterrainCell.OUTSIDE
                     : context.subterrainSampler().sampleCandidates(context.chunkBlockX() + localX, y + context.minimumY(),
                     context.chunkBlockZ() + localZ);
-            if (subterrainOwns(feature, hydrology)) {
+            CarveOwnership.Owner owner = carveOwner(hydrology, feature,
+                    context.terrainColumns() == null ? null : context.terrainColumns()[columnIndex], y);
+            if (owner == CarveOwnership.Owner.SUBTERRAIN) {
                 if (!feature.solid() && context.caveCeilings() != null && y > context.caveCeilings()[columnIndex]) {
                     return;
                 }
@@ -495,13 +502,10 @@ public class IrisCarveModifier extends EngineAssignedModifier<NativeBlockState> 
                 return;
             }
 
-            NativeBlockState current = context.output().getRaw(localX, y, localZ);
-            if (hydrology == null && context.terrainColumns() != null) {
-                Terrain3DColumn column = context.terrainColumns()[columnIndex];
-                if (column != null && y >= column.minY() && y < column.topY() && !column.isSolid(y)) {
-                    return;
-                }
+            if (owner == CarveOwnership.Owner.TRANSFORMED) {
+                return;
             }
+            NativeBlockState current = context.output().getRaw(localX, y, localZ);
             if (hydrology != null && hydrology.action() == HydrologyCaveAction.SEAL_GUARD) {
                 NativeBlockState sealed = sealGuardState(current, context.chunkContext().getRock().get(localX, localZ));
                 if (sealed != current) {

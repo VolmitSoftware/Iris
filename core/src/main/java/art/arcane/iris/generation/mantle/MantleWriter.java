@@ -460,20 +460,16 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
     }
 
     public boolean isPrerequisiteCarved(int x, int y, int z) {
-        SubterrainCell feature = getEngine().getSubterrainCell(x, y, z);
-        if (feature != null && feature.owned()) {
-            return feature.carve();
-        }
-        Terrain3DColumn transformed = engineMantle.getComplex().transformedColumn(x, z);
-        if (transformed != null) {
-            return y >= 0 && y < transformed.topY() && !transformed.isSolid(y);
-        }
         HydrologyCaveCell hydrology = getPrerequisiteDataIfPresent(x, y, z, HydrologyCaveCell.class);
-        if (hydrology != null) {
-            return hydrology.carves();
-        }
-        return getPrerequisiteDataIfPresent(x, y, z, MatterCavern.class) != null
-                || engineMantle.getComplex().isTerrain3DOpening(x, y, z);
+        SubterrainCell feature = getEngine().getSubterrainCell(x, y, z);
+        Terrain3DColumn transformed = engineMantle.getComplex().transformedColumn(x, z);
+        return switch (CarveOwnership.resolve(hydrology != null, feature != null && feature.owned(), transformed != null)) {
+            case HYDROLOGY -> hydrology.carves();
+            case SUBTERRAIN -> feature.carve();
+            case TRANSFORMED -> y >= 0 && y < transformed.topY() && !transformed.isSolid(y);
+            case NATURAL -> getPrerequisiteDataIfPresent(x, y, z, MatterCavern.class) != null
+                    || engineMantle.getComplex().isTerrain3DOpening(x, y, z);
+        };
     }
 
     public byte[] getPrerequisiteCarvedColumn(int x, int z, int height) {
@@ -820,20 +816,16 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
 
     @Override
     public boolean isCarved(int x, int y, int z) {
-        SubterrainCell feature = getEngine().getSubterrainCell(x, y, z);
-        if (feature != null && feature.owned()) {
-            return feature.carve();
-        }
-        Terrain3DColumn transformed = engineMantle.getComplex().transformedColumn(x, z);
-        if (transformed != null) {
-            return y >= 0 && y < transformed.topY() && !transformed.isSolid(y);
-        }
         HydrologyCaveCell hydrology = getDataIfPresent(x, y, z, HydrologyCaveCell.class);
-        if (hydrology != null) {
-            return hydrology.carves();
-        }
-        return getDataIfPresent(x, y, z, MatterCavern.class) != null
-                || engineMantle.getComplex().isTerrain3DOpening(x, y, z);
+        SubterrainCell feature = getEngine().getSubterrainCell(x, y, z);
+        Terrain3DColumn transformed = engineMantle.getComplex().transformedColumn(x, z);
+        return switch (CarveOwnership.resolve(hydrology != null, feature != null && feature.owned(), transformed != null)) {
+            case HYDROLOGY -> hydrology.carves();
+            case SUBTERRAIN -> feature.carve();
+            case TRANSFORMED -> y >= 0 && y < transformed.topY() && !transformed.isSolid(y);
+            case NATURAL -> getDataIfPresent(x, y, z, MatterCavern.class) != null
+                    || engineMantle.getComplex().isTerrain3DOpening(x, y, z);
+        };
     }
 
 

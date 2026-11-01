@@ -630,6 +630,20 @@ public class WindowPlannerTest {
         assertTrue("pond outlets checked " + outlets, outlets >= 50);
     }
 
+    @Test
+    public void confluencesLeaveNoPerchedTongue() {
+        int feeders = 0;
+        for (long seed = 1L; seed <= 3L; seed++) {
+            PlannedScene scene = PlannedScene.plan(SyntheticTerrain.openFractal(seed), PlannedScene.packSettings(SEED), 1, 1);
+            assertEquals("confluence tongues on openFractal(" + seed + ")", List.of(), WaterInvariants.confluenceTongues(scene));
+            Map<Long, Reach> reaches = byId(scene.reaches());
+            for (Reach reach : scene.reaches()) {
+                feeders += reaches.containsKey(reach.downstreamId()) ? 1 : 0;
+            }
+        }
+        assertTrue("feeders checked " + feeders, feeders >= 100);
+    }
+
     private static void assertOutletLeavesAtThePondHead(Pond pond, Reach outlet) {
         PondMask mask = pond.mask();
         int leading = 0;

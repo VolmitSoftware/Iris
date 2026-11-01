@@ -42,6 +42,7 @@ public class ReachShaperTest {
     private static final int CELL = 8;
     private static final int FINE = 4;
     private static final int VALLEY_Z = 256;
+    private static final int HANGING_X = 256;
     private static final float VALLEY_THRESHOLD = 5000f;
     private static final int STEP_X = 196;
     private static final int WINDOW_MIN_X = 140;
@@ -57,6 +58,8 @@ public class ReachShaperTest {
         int[] totals = new int[6];
         int cascadingSteps = 0;
         int spreadSteps = 0;
+        int cascadingFalls = 0;
+        int spreadFalls = 0;
         for (int trial = 0; trial < 200; trial++) {
             Network network = network(cascading, randomTerrain(random), 40, 40, 2000f, trial % 4 == 0);
             ShapedNetwork stepped = shape(cascading, network);
@@ -67,9 +70,11 @@ public class ReachShaperTest {
             for (Reach reach : spread.reaches()) {
                 Reach twin = steppedById.get(reach.id());
                 assertNotNull(twin);
-                assertTrue("trial " + trial + " " + reach + " gained a waterfall", count(reach, ReachStyle.WATERFALL) <= count(twin, ReachStyle.WATERFALL));
-                spreadSteps += count(reach, ReachStyle.CASCADE);
-                cascadingSteps += count(twin, ReachStyle.CASCADE);
+                int fall = reach.tier().waterfallMinimumDrop();
+                spreadSteps += dropsBetween(reach, 2, fall);
+                cascadingSteps += dropsBetween(twin, 2, fall);
+                spreadFalls += dropsBetween(reach, fall, Integer.MAX_VALUE);
+                cascadingFalls += dropsBetween(twin, fall, Integer.MAX_VALUE);
             }
         }
         assertTrue("reaches " + totals[0], totals[0] > 4000);
@@ -77,7 +82,8 @@ public class ReachShaperTest {
         assertTrue("links " + totals[2], totals[2] > 1000);
         assertTrue("mouth points " + totals[3], totals[3] > 100);
         assertTrue("pond outlets " + totals[4], totals[4] > 40);
-        assertTrue("cascade steps spread " + spreadSteps + " kept " + cascadingSteps, 2 * spreadSteps < cascadingSteps);
+        assertTrue("waterfall drops spread " + spreadFalls + " kept " + cascadingFalls, spreadFalls <= cascadingFalls);
+        assertTrue("cascade drops spread " + spreadSteps + " kept " + cascadingSteps, 2 * spreadSteps < cascadingSteps);
     }
 
     @Test
@@ -109,6 +115,76 @@ public class ReachShaperTest {
         }
         assertTrue("links " + incoming.size(), incoming.size() >= 10);
         assertTrue("confluences " + confluences, confluences >= 3);
+    }
+
+    @Test
+    public void feedersMeetTheConfluenceLevelWhereverTheyTouchTheReceivingWater() {
+        HydrologySettings settings = settings(config -> {
+        });
+        int confluences = 0;
+        int pooled = 0;
+        for (long seed : new long[]{SEED, SEED + 5L, SEED + 9L}) {
+            ShapedNetwork shaped = shape(settings, network(settings, fractal(seed), 64, 64, 2000f, false));
+            Map<Long, Reach> byId = byId(shaped.reaches());
+            int joins = 0;
+            for (Map.Entry<Long, List<Reach>> entry : feeders(shaped.reaches()).entrySet()) {
+                Reach downstream = byId.get(entry.getKey());
+                List<Reach> siblings = entry.getValue();
+                joins += siblings.size() >= 2 ? 1 : 0;
+                for (Reach feeder : siblings) {
+                    List<ConfluenceGrader.Footprint> receiving = receiving(downstream, siblings, feeder);
+                    for (int point = feeder.xs().length - 1; point >= 0; point--) {
+                        double clearance = clearance(receiving, feeder.xs()[point], feeder.zs()[point]);
+                        if (clearance > feeder.halfWidth()[point] + 1f) {
+                            break;
+                        }
+                        assertEquals("seed " + seed + " " + feeder + " into " + downstream + " at point " + point + " with clearance " + clearance,
+                                downstream.grade()[0], feeder.grade()[point]);
+                        pooled++;
+                    }
+                }
+            }
+            assertTrue("seed " + seed + " confluences " + joins, joins >= 3);
+            confluences += joins;
+        }
+        assertTrue("pooled points " + pooled + " at " + confluences + " confluences", pooled > 3 * confluences);
+    }
+
+    @Test
+    public void hangingTributaryFallsAtTheReceivingBank() {
+        HydrologySettings settings = settings(config -> {
+        });
+        ShapedNetwork shaped = shape(settings, network(settings, hangingValley(), 64, 64, 2000f, false));
+        Map<Long, Reach> byId = byId(shaped.reaches());
+        List<Reach> hanging = new ArrayList<>();
+        for (Reach reach : shaped.reaches()) {
+            if (reach.downstreamId() != 0L && Math.abs(reach.xs()[0] - HANGING_X) <= 32f && reach.zs()[0] < VALLEY_Z - 64f) {
+                hanging.add(reach);
+            }
+        }
+        assertEquals("tributaries draining the plateau " + hanging, 1, hanging.size());
+        Reach tributary = hanging.get(0);
+        Reach downstream = byId.get(tributary.downstreamId());
+        assertEquals(tributary.toString(), settings.tiers().get(0), tributary.tier());
+        assertEquals(downstream.toString(), settings.tiers().get(1), downstream.tier());
+        ConfluenceGrader.Footprint receiving = footprint(downstream);
+        int waterfalls = 0;
+        for (int point = 0; point < tributary.xs().length; point++) {
+            if (tributary.style()[point] == ReachStyle.WATERFALL) {
+                waterfalls++;
+                double edge = ConfluenceGrader.edgeDistance(receiving, tributary.xs()[point], tributary.zs()[point]);
+                assertTrue(tributary + " falls at point " + point + " inside the receiving channel, " + edge + " from its edge", edge > 0D);
+            }
+        }
+        assertEquals(tributary + " waterfalls", 1, waterfalls);
+        int inside = 0;
+        for (int point = 0; point < tributary.xs().length; point++) {
+            if (ConfluenceGrader.edgeDistance(receiving, tributary.xs()[point], tributary.zs()[point]) <= 0D) {
+                inside++;
+                assertEquals(tributary + " water inside the receiving channel at point " + point, downstream.grade()[0], tributary.grade()[point]);
+            }
+        }
+        assertTrue(tributary + " points inside the receiving channel " + inside, inside > 0);
     }
 
     @Test
@@ -1217,10 +1293,11 @@ public class ReachShaperTest {
         }
     }
 
-    private static int count(Reach reach, ReachStyle style) {
+    private static int dropsBetween(Reach reach, int minimum, int limit) {
         int count = 0;
-        for (ReachStyle point : reach.style()) {
-            count += point == style ? 1 : 0;
+        for (int index = 1; index < reach.grade().length; index++) {
+            int drop = reach.grade()[index - 1] - reach.grade()[index];
+            count += drop >= minimum && drop < limit ? 1 : 0;
         }
         return count;
     }
@@ -1415,6 +1492,14 @@ public class ReachShaperTest {
         };
     }
 
+    private static DoubleBinaryOperator hangingValley() {
+        return (x, z) -> {
+            double ground = 150D - 0.05D * x + 0.1D * Math.abs(z - VALLEY_Z);
+            double across = Math.abs(x - HANGING_X);
+            return z < VALLEY_Z - 2 && across <= 32D ? ground + 20D + 0.25D * across : ground;
+        };
+    }
+
     private static DoubleBinaryOperator bowlValley(int[] centres) {
         return (x, z) -> {
             double height = 150D - 0.05D * x + 0.1D * Math.abs(z - VALLEY_Z);
@@ -1574,6 +1659,39 @@ public class ReachShaperTest {
             }
         }
         return incoming;
+    }
+
+    private static Map<Long, List<Reach>> feeders(List<Reach> reaches) {
+        Map<Long, List<Reach>> feeders = new HashMap<>();
+        for (Reach reach : reaches) {
+            if (reach.downstreamId() != 0L) {
+                feeders.computeIfAbsent(reach.downstreamId(), id -> new ArrayList<>()).add(reach);
+            }
+        }
+        return feeders;
+    }
+
+    private static List<ConfluenceGrader.Footprint> receiving(Reach downstream, List<Reach> siblings, Reach feeder) {
+        List<ConfluenceGrader.Footprint> receiving = new ArrayList<>(siblings.size());
+        receiving.add(footprint(downstream));
+        for (Reach sibling : siblings) {
+            if (sibling != feeder) {
+                receiving.add(footprint(sibling));
+            }
+        }
+        return receiving;
+    }
+
+    private static ConfluenceGrader.Footprint footprint(Reach reach) {
+        return new ConfluenceGrader.Footprint(reach.xs(), reach.zs(), reach.halfWidth());
+    }
+
+    private static double clearance(List<ConfluenceGrader.Footprint> receiving, float x, float z) {
+        double clearance = Double.POSITIVE_INFINITY;
+        for (ConfluenceGrader.Footprint channel : receiving) {
+            clearance = Math.min(clearance, ConfluenceGrader.edgeDistance(channel, x, z));
+        }
+        return clearance;
     }
 
     private static void noCascades(IrisHydrology config) {

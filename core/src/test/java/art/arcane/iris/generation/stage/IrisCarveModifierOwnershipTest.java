@@ -20,25 +20,27 @@ public class IrisCarveModifierOwnershipTest {
 
     @Test
     public void carveOwnerAgreesOnTheNaturalLayer() {
-        SubterrainCell openRoom = new SubterrainCell(SubterrainCell.Kind.AIR, "", room(false));
-        SubterrainCell reservedSolid = new SubterrainCell(SubterrainCell.Kind.SOLID, "", room(true));
-        SubterrainCell shell = new SubterrainCell(SubterrainCell.Kind.SOLID, "", room(false));
+        SubterrainCell openRoom = new SubterrainCell(SubterrainCell.Kind.AIR, "", room(false, false));
+        SubterrainCell reservedSolid = new SubterrainCell(SubterrainCell.Kind.SOLID, "", room(false, true));
+        SubterrainCell reservedPassage = new SubterrainCell(SubterrainCell.Kind.AIR, "", room(true, false));
+        SubterrainCell shell = new SubterrainCell(SubterrainCell.Kind.SOLID, "", room(false, false));
         Terrain3DColumn openTerrain = column(true);
         HydrologyCaveCell[] hydrologyCells = {
                 null, HydrologyCaveCell.of(HydrologyCaveAction.DRY_AIR), HydrologyCaveCell.of(HydrologyCaveAction.SEAL_GUARD)};
-        SubterrainCell[] subterrainCells = {SubterrainCell.OUTSIDE, openRoom, reservedSolid, shell};
+        SubterrainCell[] subterrainCells = {SubterrainCell.OUTSIDE, openRoom, reservedSolid, reservedPassage, shell};
         Terrain3DColumn[] terrainColumns = {null, column(false), openTerrain};
         List<String> disagreements = new ArrayList<>();
         for (HydrologyCaveCell hydrology : hydrologyCells) {
             for (SubterrainCell subterrain : subterrainCells) {
                 for (Terrain3DColumn terrain : terrainColumns) {
-                    boolean claims = subterrain == openRoom || subterrain == reservedSolid;
+                    boolean claims = subterrain == openRoom || subterrain == reservedSolid || subterrain == reservedPassage;
                     CarveOwnership.Owner expected = CarveOwnership.resolve(hydrology != null, claims, terrain == openTerrain);
                     CarveOwnership.Owner actual = IrisCarveModifier.carveOwner(hydrology, subterrain, terrain, Y);
                     if (actual != expected) {
                         disagreements.add("hydrology=" + (hydrology == null ? "none" : hydrology.action())
                                 + " subterrain=" + subterrain.kind() + " reservedSolid="
                                 + (subterrain.room() != null && subterrain.room().reservedSolid())
+                                + " reservedPassage=" + (subterrain.room() != null && subterrain.room().reservedPassage())
                                 + " terrain=" + (terrain == null ? "none" : terrain == openTerrain ? "open" : "solid")
                                 + ": carveOwner gives " + actual + ", the rule gives " + expected);
                     }
@@ -48,9 +50,9 @@ public class IrisCarveModifierOwnershipTest {
         assertTrue(String.join("\n", disagreements), disagreements.isEmpty());
     }
 
-    private static SubterrainRoom room(boolean reservedSolid) {
+    private static SubterrainRoom room(boolean reservedPassage, boolean reservedSolid) {
         return new SubterrainRoom("room", "", IrisSubterrainFamily.CENOTE,
-                0, 0, 0, 0, 0, 0, -10, 10, 1D, 0, false, reservedSolid, SubterrainCell.Kind.AIR);
+                0, 0, 0, 0, 0, 0, -10, 10, 1D, 0, reservedPassage, reservedSolid, SubterrainCell.Kind.AIR);
     }
 
     private static Terrain3DColumn column(boolean openAtY) {

@@ -37,12 +37,13 @@ public class CarveOwnershipTest {
     private static final int Y = 2;
     private static final int Z = 3;
     private static final int HEIGHT = 64;
-    private static final SubterrainCell OPEN_ROOM = new SubterrainCell(SubterrainCell.Kind.AIR, "", room(false));
-    private static final SubterrainCell RESERVED_SOLID = new SubterrainCell(SubterrainCell.Kind.SOLID, "", room(true));
-    private static final SubterrainCell SHELL = new SubterrainCell(SubterrainCell.Kind.SOLID, "", room(false));
+    private static final SubterrainCell OPEN_ROOM = new SubterrainCell(SubterrainCell.Kind.AIR, "", room(false, false));
+    private static final SubterrainCell RESERVED_SOLID = new SubterrainCell(SubterrainCell.Kind.SOLID, "", room(false, true));
+    private static final SubterrainCell RESERVED_PASSAGE = new SubterrainCell(SubterrainCell.Kind.AIR, "", room(true, false));
+    private static final SubterrainCell SHELL = new SubterrainCell(SubterrainCell.Kind.SOLID, "", room(false, false));
     private static final HydrologyCaveCell[] HYDROLOGY = {
             null, HydrologyCaveCell.of(HydrologyCaveAction.DRY_AIR), HydrologyCaveCell.of(HydrologyCaveAction.SEAL_GUARD)};
-    private static final SubterrainCell[] SUBTERRAIN = {SubterrainCell.OUTSIDE, OPEN_ROOM, RESERVED_SOLID, SHELL};
+    private static final SubterrainCell[] SUBTERRAIN = {SubterrainCell.OUTSIDE, OPEN_ROOM, RESERVED_SOLID, RESERVED_PASSAGE, SHELL};
 
     @Rule
     public final PlatformBinding platform = PlatformBinding.mockPlatform();
@@ -64,8 +65,9 @@ public class CarveOwnershipTest {
         assertFalse(CarveOwnership.subterrainClaims(null));
         assertFalse(CarveOwnership.subterrainClaims(SubterrainCell.OUTSIDE));
         assertTrue(CarveOwnership.subterrainClaims(OPEN_ROOM));
-        assertTrue(CarveOwnership.subterrainClaims(new SubterrainCell(SubterrainCell.Kind.WATER, "", room(false))));
+        assertTrue(CarveOwnership.subterrainClaims(new SubterrainCell(SubterrainCell.Kind.WATER, "", room(false, false))));
         assertTrue(CarveOwnership.subterrainClaims(RESERVED_SOLID));
+        assertTrue(CarveOwnership.subterrainClaims(RESERVED_PASSAGE));
         assertFalse(CarveOwnership.subterrainClaims(SHELL));
     }
 
@@ -76,7 +78,8 @@ public class CarveOwnershipTest {
             for (SubterrainCell subterrain : SUBTERRAIN) {
                 for (boolean naturalOpening : new boolean[]{false, true}) {
                     for (boolean cavern : new boolean[]{false, true}) {
-                        boolean claims = subterrain == OPEN_ROOM || subterrain == RESERVED_SOLID;
+                        boolean claims = subterrain == OPEN_ROOM || subterrain == RESERVED_SOLID
+                                || subterrain == RESERVED_PASSAGE;
                         boolean expected = switch (CarveOwnership.resolve(hydrology != null, claims, naturalOpening)) {
                             case HYDROLOGY -> hydrology.carves();
                             case SUBTERRAIN -> subterrain.carve();
@@ -96,17 +99,19 @@ public class CarveOwnershipTest {
     }
 
     @Test
-    public void transformedColumnsOverrideEveryPostTransformReader() {
+    public void transformedColumnsYieldOnlyToReservedSubterrainOutsideHydrology() {
         List<String> disagreements = new ArrayList<>();
         for (boolean transformedOpen : new boolean[]{false, true}) {
             for (HydrologyCaveCell hydrology : HYDROLOGY) {
                 for (SubterrainCell subterrain : SUBTERRAIN) {
                     for (boolean cavern : new boolean[]{false, true}) {
+                        boolean reserved = subterrain == RESERVED_SOLID || subterrain == RESERVED_PASSAGE;
+                        boolean expected = hydrology == null && reserved ? subterrain.carve() : transformedOpen;
                         Sources sources = Sources.mocked(hydrology, subterrain, false, cavern, column(transformedOpen));
                         String state = "transformedOpen=" + transformedOpen
                                 + " hydrology=" + (hydrology == null ? "none" : hydrology.action())
                                 + " subterrain=" + describe(subterrain) + " cavern=" + cavern;
-                        compare(disagreements, state, transformedOpen, readers(sources));
+                        compare(disagreements, state, expected, readers(sources));
                     }
                 }
             }
@@ -119,6 +124,15 @@ public class CarveOwnershipTest {
             if (reader.getValue() != expected) {
                 disagreements.add(state + ": " + reader.getKey() + " gives " + reader.getValue() + ", the rule gives " + expected);
             }
+        }
+        agree(disagreements, state, readers, "MantleWriter.isCarved", "MantleWriter.getCarvedColumn");
+        agree(disagreements, state, readers, "MantleWriter.isPrerequisiteCarved", "MantleWriter.getPrerequisiteCarvedColumn");
+    }
+
+    private static void agree(List<String> disagreements, String state, Map<String, Boolean> readers, String point, String column) {
+        if (!readers.get(point).equals(readers.get(column))) {
+            disagreements.add(state + ": " + point + " gives " + readers.get(point) + " but " + column + " gives "
+                    + readers.get(column));
         }
     }
 
@@ -140,12 +154,15 @@ public class CarveOwnershipTest {
         if (subterrain == RESERVED_SOLID) {
             return "reserved-solid";
         }
+        if (subterrain == RESERVED_PASSAGE) {
+            return "reserved-passage";
+        }
         return subterrain == SHELL ? "shell" : "outside";
     }
 
-    private static SubterrainRoom room(boolean reservedSolid) {
+    private static SubterrainRoom room(boolean reservedPassage, boolean reservedSolid) {
         return new SubterrainRoom("room", "", IrisSubterrainFamily.CENOTE,
-                0, 0, 0, 0, 0, 0, -10, 10, 1D, 0, false, reservedSolid, SubterrainCell.Kind.AIR);
+                0, 0, 0, 0, 0, 0, -10, 10, 1D, 0, reservedPassage, reservedSolid, SubterrainCell.Kind.AIR);
     }
 
     private static Terrain3DColumn column(boolean openAtY) {

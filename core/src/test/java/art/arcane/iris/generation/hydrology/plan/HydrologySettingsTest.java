@@ -3,6 +3,7 @@ package art.arcane.iris.generation.hydrology.plan;
 import art.arcane.iris.generation.block.IrisBlockData;
 import art.arcane.iris.generation.decoration.IrisDecorationPart;
 import art.arcane.iris.generation.decoration.IrisDecorator;
+import art.arcane.iris.generation.hydrology.config.IrisFluidProfile;
 import art.arcane.iris.generation.hydrology.config.IrisHydrology;
 import art.arcane.iris.generation.hydrology.config.IrisHydrologyMaterials;
 import art.arcane.iris.generation.hydrology.water.HydrologyTier;
@@ -17,6 +18,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
@@ -248,6 +250,33 @@ public class HydrologySettingsTest {
         IrisHydrology config = new IrisHydrology();
         config.getTiers().get(2).setFluid("lava");
         assertRejected(config, "lava");
+    }
+
+    @Test
+    public void seamsLeaveTheFingerprintAlone() {
+        assertEquals(compile(lavaAndCrust(null)).fingerprint(), compile(lavaAndCrust("crust")).fingerprint());
+        assertEquals(Map.of("lava", "crust"), compile(lavaAndCrust("crust")).seams());
+        assertTrue(compile(lavaAndCrust(null)).seams().isEmpty());
+    }
+
+    @Test
+    public void compileRejectsAnUnknownSeam() {
+        assertRejected(lavaAndCrust("ash"), "ash");
+    }
+
+    @Test
+    public void compileRejectsASeamThatAlsoFillsWater() {
+        IrisHydrology tier = lavaAndCrust("crust");
+        tier.getTiers().get(2).setFluid("crust");
+        assertRejected(tier, "crust");
+
+        IrisHydrology ponds = lavaAndCrust("crust");
+        ponds.getPonds().setFluid("crust");
+        assertRejected(ponds, "crust");
+
+        IrisHydrology chained = lavaAndCrust("crust");
+        chained.getFluids().get(2).setSeam("lava");
+        assertRejected(chained, "crust");
     }
 
     @Test
@@ -552,6 +581,15 @@ public class HydrologySettingsTest {
         IllegalArgumentException failure = assertThrows(IllegalArgumentException.class, () -> compile(config));
         assertTrue(failure.getMessage(), failure.getMessage().contains(field));
         assertTrue(failure.getMessage(), failure.getMessage().contains("\"palette\" list is missing, misspelt or empty"));
+    }
+
+    private static IrisHydrology lavaAndCrust(String seam) {
+        IrisHydrology config = new IrisHydrology();
+        config.getFluids().add(new IrisFluidProfile().setName("lava").setSeam(seam)
+                .setPalette(new IrisMaterialPalette().qclear().qadd("minecraft:lava")));
+        config.getFluids().add(new IrisFluidProfile().setName("crust")
+                .setPalette(new IrisMaterialPalette().qclear().qadd("minecraft:obsidian")));
+        return config;
     }
 
     private static HydrologySettings compile(IrisHydrology config) {

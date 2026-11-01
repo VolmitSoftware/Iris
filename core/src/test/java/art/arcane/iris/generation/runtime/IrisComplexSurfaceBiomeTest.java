@@ -24,6 +24,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.Set;
@@ -39,6 +40,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class IrisComplexSurfaceBiomeTest {
+    private static final int INLAND_SEA_LEVEL = 85;
+
     @ClassRule
     public static final PlatformLeakGuard PLATFORM_GUARD = PlatformLeakGuard.clean();
     @Rule
@@ -205,6 +208,25 @@ public class IrisComplexSurfaceBiomeTest {
             biome.setLoadKey(key);
             biome.setLoader(data);
             return biome;
+        }
+    }
+
+    @Test(timeout = 120_000L)
+    public void pondAboveSeaLevelKeepsTheLandBiomeOverAFloorBelowIt() throws Exception {
+        Path pack = HydrologyFixture.pack(temporaryFolder.newFolder().toPath(), null, null);
+        Files.writeString(pack.resolve("dimensions/main.json"), """
+                {"regions":["plain"],"landChance":1,"fluidHeight":%d,"carvingEnabled":false}
+                """.formatted(INLAND_SEA_LEVEL));
+        Files.writeString(pack.resolve("regions/plain.json"), "{\"landBiomes\":[\"plain\"],\"seaBiomes\":[\"ocean\"]}");
+        Files.writeString(pack.resolve("biomes/ocean.json"), "{\"generators\":[{\"generator\":\"flat\",\"min\":10,\"max\":10}]}");
+        try (HydrologyFixture fixture = new HydrologyFixture(pack)) {
+            ChunkWaterRaster raster = fixture.hydrology.runtime.raster(0, 0);
+            int sea = fixture.engine.getDimension().getFluidHeight();
+            assertEquals(WaterRole.POND, raster.role(8, 8));
+            assertTrue("the pond floor sits below sea level", raster.terrainHeight(8, 8) < sea);
+            assertTrue("the pond surface sits above sea level", raster.waterHead(8, 8) > sea);
+            assertTrue("the land around the pond sits above sea level", HydrologyFixture.NATURAL > sea);
+            assertEquals("plain", fixture.complex.getTrueBiomeStream().get(8, 8).getLoadKey());
         }
     }
 

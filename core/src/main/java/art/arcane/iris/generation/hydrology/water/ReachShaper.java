@@ -61,9 +61,10 @@ public final class ReachShaper {
                 drafts.get(outlet).outlet = true;
             }
         }
-        for (int pond = 0; pond < outletDrafts.length; pond++) {
-            if (leavesThroughALip(ponds.get(pond), outletDrafts[pond])) {
-                hold(drafts.get(outletDrafts[pond]), ponds.get(pond).mask());
+        int[] sources = ReachGrader.outletPonds(outletDrafts, drafts.size());
+        for (int index = 0; index < sources.length; index++) {
+            if (leavesThroughALip(ponds, sources[index])) {
+                hold(drafts.get(index), ponds.get(sources[index]).mask());
             }
         }
         ReachGrader.PondChain chain = pondChain(drafts, ponds, outletDrafts);
@@ -72,9 +73,9 @@ public final class ReachShaper {
         for (int index : order) {
             finish(drafts, drafts.get(index));
         }
-        for (int pond = 0; pond < outletDrafts.length; pond++) {
-            if (leavesThroughALip(ponds.get(pond), outletDrafts[pond])) {
-                leadIn(drafts.get(outletDrafts[pond]), ponds.get(pond).mask());
+        for (int index = 0; index < sources.length; index++) {
+            if (leavesThroughALip(ponds, sources[index])) {
+                leadIn(drafts.get(index), ponds.get(sources[index]).mask());
             }
         }
         List<Pond> linked = new ArrayList<>(ponds.size());
@@ -273,8 +274,8 @@ public final class ReachShaper {
         throw new IllegalStateException("Reach and pond links loop through " + (count - size) + " of " + count + " reaches");
     }
 
-    private static boolean leavesThroughALip(Pond pond, int outletDraft) {
-        return outletDraft >= 0 && pond.kind() != PondKind.LAKE;
+    private static boolean leavesThroughALip(List<Pond> ponds, int source) {
+        return source >= 0 && ponds.get(source).kind() != PondKind.LAKE;
     }
 
     private static void hold(ReachDraft draft, PondMask mask) {

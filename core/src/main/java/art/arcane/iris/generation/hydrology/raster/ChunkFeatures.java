@@ -295,6 +295,7 @@ final class ChunkFeatures {
     private static final class Links {
         private final Map<WindowKey, IndexedWindow> windows;
         private final Map<Long, Integer> outletLevels = new HashMap<>();
+        private final Map<Long, List<PondMask>> outletMasks = new HashMap<>();
         private final Map<Long, Reach> resolved = new HashMap<>();
         private final Set<Long> resolving = new HashSet<>();
 
@@ -304,6 +305,7 @@ final class ChunkFeatures {
                 for (Pond pond : window.plan().ponds()) {
                     if (pond.outletReachId() != 0L) {
                         outletLevels.merge(pond.outletReachId(), pond.level(), Math::min);
+                        outletMasks.computeIfAbsent(pond.outletReachId(), ignored -> new ArrayList<>()).add(pond.mask());
                     }
                 }
             }
@@ -354,7 +356,18 @@ final class ChunkFeatures {
         }
 
         private int junction(Reach reach) {
-            return reach.xs().length > 1 && outletLevels.containsKey(reach.id()) ? 1 : 0;
+            List<PondMask> masks = outletMasks.get(reach.id());
+            if (masks == null || reach.xs().length < 2) {
+                return 0;
+            }
+            int x = Math.round(reach.xs()[0]);
+            int z = Math.round(reach.zs()[0]);
+            for (PondMask mask : masks) {
+                if (mask.contains(x, z)) {
+                    return 1;
+                }
+            }
+            return 0;
         }
 
         private long cornerBlock(Reach reach) {

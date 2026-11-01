@@ -14,7 +14,6 @@ import art.arcane.iris.generation.hydrology.water.Reach;
 import art.arcane.iris.generation.hydrology.water.ReachShaper;
 import art.arcane.iris.generation.hydrology.water.ReachStyle;
 import art.arcane.iris.generation.hydrology.water.ShapedNetwork;
-import org.junit.AfterClass;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -46,13 +45,6 @@ public class WindowPlannerTest {
     private static final WindowKey ORIGIN = new WindowKey(0, 0);
     private static final WindowKey LAND = new WindowKey(4, 4);
     private static final int SEAM_DISTANCE = 256;
-    private static final Map<Long, PlannedScene> OPEN_SCENES = new HashMap<>();
-
-    @AfterClass
-    public static void dropScenes() {
-        OPEN_SCENES.clear();
-    }
-
     @Test
     public void zeroDensityRemovesLocalChannelsAndPonds() {
         HydrologySettings settings = settings(new IrisHydrology().setDensity(0D));
@@ -631,18 +623,11 @@ public class WindowPlannerTest {
     public void everyPondOutletLeavesThroughConnectedWater() {
         int outlets = 0;
         for (long seed = 1L; seed <= 7L; seed++) {
-            PlannedScene scene = openScene(seed);
+            PlannedScene scene = PlannedScene.plan(SyntheticTerrain.openFractal(seed), PlannedScene.packSettings(SEED), 1, 1);
             assertEquals("detached outlets on openFractal(" + seed + ")", List.of(), WaterInvariants.detachedOutlets(scene));
-            Map<Long, Reach> byId = byId(scene.reaches());
-            for (Pond pond : scene.ponds()) {
-                outlets += pond.kind() != PondKind.LAKE && byId.containsKey(pond.outletReachId()) ? 1 : 0;
-            }
+            outlets += WaterInvariants.checkedPonds(scene).size();
         }
         assertTrue("pond outlets checked " + outlets, outlets >= 50);
-    }
-
-    private static synchronized PlannedScene openScene(long seed) {
-        return OPEN_SCENES.computeIfAbsent(seed, key -> PlannedScene.plan(SyntheticTerrain.openFractal(key), PlannedScene.packSettings(SEED), 1, 1));
     }
 
     private static void assertOutletLeavesAtThePondHead(Pond pond, Reach outlet) {
@@ -695,9 +680,9 @@ public class WindowPlannerTest {
         double nearest = Double.POSITIVE_INFINITY;
         int[] found = {-1, -1};
         for (int segment = 0; segment + 1 < reach.xs().length; segment++) {
-            double t = along(reach, segment, x, z);
-            double distance = offset(reach, segment, t, x, z);
-            if (distance <= width(reach, segment, t) && distance < nearest) {
+            double t = WaterInvariants.along(reach, segment, x, z);
+            double distance = WaterInvariants.offset(reach, segment, t, x, z);
+            if (distance <= WaterInvariants.width(reach, segment, t) && distance < nearest) {
                 nearest = distance;
                 found[0] = segment;
                 found[1] = t < 0.5D ? segment : segment + 1;
@@ -707,27 +692,8 @@ public class WindowPlannerTest {
     }
 
     private static boolean covers(Reach reach, int segment, int x, int z) {
-        double t = along(reach, segment, x, z);
-        return offset(reach, segment, t, x, z) <= width(reach, segment, t);
-    }
-
-    private static double along(Reach reach, int segment, double x, double z) {
-        double ax = reach.xs()[segment];
-        double az = reach.zs()[segment];
-        double dx = reach.xs()[segment + 1] - ax;
-        double dz = reach.zs()[segment + 1] - az;
-        double length = dx * dx + dz * dz;
-        return length == 0D ? 0D : Math.clamp(((x - ax) * dx + (z - az) * dz) / length, 0D, 1D);
-    }
-
-    private static double offset(Reach reach, int segment, double t, double x, double z) {
-        double px = reach.xs()[segment] + t * (reach.xs()[segment + 1] - reach.xs()[segment]);
-        double pz = reach.zs()[segment] + t * (reach.zs()[segment + 1] - reach.zs()[segment]);
-        return Math.hypot(x - px, z - pz);
-    }
-
-    private static double width(Reach reach, int segment, double t) {
-        return reach.halfWidth()[segment] + t * (reach.halfWidth()[segment + 1] - reach.halfWidth()[segment]);
+        double t = WaterInvariants.along(reach, segment, x, z);
+        return WaterInvariants.offset(reach, segment, t, x, z) <= WaterInvariants.width(reach, segment, t);
     }
 
     private static boolean nearMask(PondMask mask, float x, float z, int distance) {

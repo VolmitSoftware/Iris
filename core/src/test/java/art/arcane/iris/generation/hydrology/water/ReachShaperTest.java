@@ -415,6 +415,65 @@ public class ReachShaperTest {
     }
 
     @Test
+    public void pondsSharingAnExitLeadInOnceFromTheirGradingPond() {
+        HydrologySettings settings = settings(config -> {
+        });
+        DemGrid flat = outletGrid();
+        int[] receivers = new int[flat.values().length];
+        float[] accumulation = new float[receivers.length];
+        BitSet channels = new BitSet(receivers.length);
+        outletRow(flat, receivers, accumulation, channels);
+        receivers[flat.index(13, 7)] = flat.index(13, 8);
+        accumulation[flat.index(13, 7)] = 100f;
+        Pond fed = new Pond(61L, PondKind.NATURAL, 99, 94, 104, 64, 100f, disk(96, 64, 5), 0L, 0, "water", 96, 64);
+        Pond side = new Pond(62L, PondKind.NATURAL, 99, 94, 104, 60, 100f, disk(104, 56, 3), 0L, 0, "water", 104, 56);
+        HeightLattice fine = new HeightLattice(new Terrain((x, z) -> fed.mask().contains((int) x, (int) z)
+                || side.mask().contains((int) x, (int) z) ? 94D : 100D), FINE, false, 1 << 16);
+        ShapedNetwork shaped = new ReachShaper(settings).shape(flat, receivers, accumulation, channels, List.of(fed, side), fine, SEED);
+        assertEquals("both ponds drain through the same exit", shaped.ponds().get(0).outletReachId(), shaped.ponds().get(1).outletReachId());
+        Reach outlet = byId(shaped.reaches()).get(shaped.ponds().get(1).outletReachId());
+        assertNotNull(outlet);
+        assertEquals("the exit stays the junction vertex", 104f, outlet.xs()[1], 0f);
+        assertEquals(64f, outlet.zs()[1], 0f);
+        assertTrue("one lead-in from the grading pond " + outlet.xs()[0] + "," + outlet.zs()[0],
+                side.mask().contains(Math.round(outlet.xs()[0]), Math.round(outlet.zs()[0])));
+        assertEquals(99, outlet.grade()[0]);
+    }
+
+    @Test
+    public void heldOutletPointsOverTheSeaStayAtTheSeaSurface() {
+        HydrologySettings settings = settings(config -> {
+        });
+        int width = 24;
+        DemGrid surface = new DemGrid(0, 0, CELL, width, 3);
+        Arrays.fill(surface.values(), 60f);
+        int[] receivers = new int[width * 3];
+        Arrays.fill(receivers, -1);
+        float[] accumulation = new float[width * 3];
+        BitSet channels = new BitSet(width * 3);
+        for (int i = 0; i < 19; i++) {
+            flow(surface, receivers, accumulation, channels, i, 1, i + 1, 1, 1600f + 10f * i);
+        }
+        surface.set(19, 1, 30f);
+        Pond pond = new Pond(71L, PondKind.NATURAL, 59, 54, 136, 8, 60f, disk(128, 8, 7), 0L, 0, "water", 128, 8);
+        HeightLattice fine = new HeightLattice(new Terrain((x, z) -> x < 138D ? 60D : 35D), FINE, false, 1 << 16);
+        ShapedNetwork shaped = new ReachShaper(settings).shape(surface, receivers, accumulation, channels, List.of(pond), fine, SEED);
+        Pond shapedPond = shaped.ponds().get(0);
+        Reach outlet = byId(shaped.reaches()).get(shapedPond.outletReachId());
+        assertNotNull(outlet);
+        assertTrue(shapedPond.mask().contains(Math.round(outlet.xs()[0]), Math.round(outlet.zs()[0])));
+        assertEquals("the lip holds the pond level", shapedPond.level(), outlet.grade()[0]);
+        int mouths = 0;
+        for (int point = 0; point < outlet.grade().length; point++) {
+            if (outlet.style()[point] == ReachStyle.MOUTH) {
+                mouths++;
+                assertEquals("ocean point " + point + " at " + outlet.xs()[point], SEA_LEVEL, outlet.grade()[point]);
+            }
+        }
+        assertTrue("ocean points " + mouths, mouths > 1);
+    }
+
+    @Test
     public void gorgeCutWhenRidgeMissedByGrid() {
         HydrologySettings settings = settings(config -> {
         });

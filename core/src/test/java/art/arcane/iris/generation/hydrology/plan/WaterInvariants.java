@@ -29,16 +29,25 @@ final class WaterInvariants {
         Map<Long, Reach> reaches = byId(scene.reaches());
         int seaLevel = scene.settings().seaLevel();
         List<Long> detached = new ArrayList<>();
-        for (Pond pond : scene.ponds()) {
-            Reach outlet = pond.kind() == PondKind.LAKE ? null : reaches.get(pond.outletReachId());
-            if (outlet == null || nearEdge(scene, outletBox(pond.mask(), outlet))) {
-                continue;
-            }
+        for (Pond pond : checkedPonds(scene)) {
+            Reach outlet = reaches.get(pond.outletReachId());
             if (!floodsIntoOutlet(scene, pond, outlet, WaterHeads.snap(pond.level(), seaLevel))) {
                 detached.add(outlet.id());
             }
         }
         return detached;
+    }
+
+    static List<Pond> checkedPonds(PlannedScene scene) {
+        Map<Long, Reach> reaches = byId(scene.reaches());
+        List<Pond> checked = new ArrayList<>();
+        for (Pond pond : scene.ponds()) {
+            Reach outlet = pond.kind() == PondKind.LAKE ? null : reaches.get(pond.outletReachId());
+            if (outlet != null && !nearEdge(scene, outletBox(pond.mask(), outlet))) {
+                checked.add(pond);
+            }
+        }
+        return checked;
     }
 
     static List<Long> confluenceTongues(PlannedScene scene) {
@@ -71,6 +80,25 @@ final class WaterInvariants {
             }
         }
         return List.copyOf(features);
+    }
+
+    static double along(Reach reach, int segment, double x, double z) {
+        double ax = reach.xs()[segment];
+        double az = reach.zs()[segment];
+        double dx = reach.xs()[segment + 1] - ax;
+        double dz = reach.zs()[segment + 1] - az;
+        double length = dx * dx + dz * dz;
+        return length == 0D ? 0D : Math.clamp(((x - ax) * dx + (z - az) * dz) / length, 0D, 1D);
+    }
+
+    static double offset(Reach reach, int segment, double t, double x, double z) {
+        double px = reach.xs()[segment] + t * (reach.xs()[segment + 1] - reach.xs()[segment]);
+        double pz = reach.zs()[segment] + t * (reach.zs()[segment + 1] - reach.zs()[segment]);
+        return Math.hypot(x - px, z - pz);
+    }
+
+    static double width(Reach reach, int segment, double t) {
+        return reach.halfWidth()[segment] + t * (reach.halfWidth()[segment + 1] - reach.halfWidth()[segment]);
     }
 
     private static boolean floodsIntoOutlet(PlannedScene scene, Pond pond, Reach outlet, int head) {
@@ -217,25 +245,6 @@ final class WaterInvariants {
             }
         }
         return false;
-    }
-
-    private static double along(Reach reach, int segment, double x, double z) {
-        double ax = reach.xs()[segment];
-        double az = reach.zs()[segment];
-        double dx = reach.xs()[segment + 1] - ax;
-        double dz = reach.zs()[segment + 1] - az;
-        double length = dx * dx + dz * dz;
-        return length == 0D ? 0D : Math.clamp(((x - ax) * dx + (z - az) * dz) / length, 0D, 1D);
-    }
-
-    private static double offset(Reach reach, int segment, double t, double x, double z) {
-        double px = reach.xs()[segment] + t * (reach.xs()[segment + 1] - reach.xs()[segment]);
-        double pz = reach.zs()[segment] + t * (reach.zs()[segment + 1] - reach.zs()[segment]);
-        return Math.hypot(x - px, z - pz);
-    }
-
-    private static double width(Reach reach, int segment, double t) {
-        return reach.halfWidth()[segment] + t * (reach.halfWidth()[segment + 1] - reach.halfWidth()[segment]);
     }
 
     private static Map<Long, Reach> byId(List<Reach> reaches) {

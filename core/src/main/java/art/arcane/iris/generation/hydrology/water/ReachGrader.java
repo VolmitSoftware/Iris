@@ -29,13 +29,7 @@ final class ReachGrader {
                     || draft.downstream >= 0 && lakeFloor[draft.downstream] && downstreamFloor >= draft.endLevel;
         }
         int[] levels = ponds.levels().clone();
-        int[] outletPond = new int[drafts.size()];
-        Arrays.fill(outletPond, -1);
-        for (int pond = 0; pond < levels.length; pond++) {
-            if (ponds.outletDrafts()[pond] >= 0) {
-                outletPond[ponds.outletDrafts()[pond]] = pond;
-            }
-        }
+        int[] outletPond = outletPonds(ponds.outletDrafts(), drafts.size());
         int[][] inflows = inflows(ponds, levels.length);
         int[] fed = new int[drafts.size()];
         Arrays.fill(fed, Integer.MAX_VALUE);
@@ -58,7 +52,7 @@ final class ReachGrader {
             }
             int[] grade = profile(drafts, draft);
             for (int point = 0; point < grade.length; point++) {
-                if (draft.held != null && draft.held[point]) {
+                if (draft.held != null && draft.held[point] && !draft.ocean[point]) {
                     grade[point] = level;
                     continue;
                 }
@@ -82,6 +76,17 @@ final class ReachGrader {
             lowerIncomingEnds(drafts, draft);
         }
         return levels;
+    }
+
+    static int[] outletPonds(int[] outletDrafts, int drafts) {
+        int[] outletPond = new int[drafts];
+        Arrays.fill(outletPond, -1);
+        for (int pond = 0; pond < outletDrafts.length; pond++) {
+            if (outletDrafts[pond] >= 0) {
+                outletPond[outletDrafts[pond]] = pond;
+            }
+        }
+        return outletPond;
     }
 
     private static int[][] inflows(PondChain ponds, int count) {

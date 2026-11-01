@@ -677,6 +677,25 @@ public class ChunkWaterRasterTest {
     }
 
     @Test
+    public void skippedLeadInKeepsTheOutletJunctionAtItsFirstVertex() {
+        HydrologyTier river = tier("river", 2f, 0.5f, 4, IrisBankStyle.SMOOTH);
+        Reach outlet = line(201L, river, 0L, 255f, 200f, 335f, 200f, (x, z) -> 68);
+        Reach feeder = line(202L, river, outlet.id(), 255f, 140f, 255f, 200f, (x, z) -> 66);
+        Reach upstream = line(203L, river, feeder.id(), 255f, 60f, 255f, 140f, (x, z) -> z < 100f ? 70 : 62);
+        Pond pond = new Pond(200L, PondKind.NATURAL, 68, 60, 235, 200, 69.5f, circle(235, 200, 8, 1), outlet.id(), 0, "water", 235, 200);
+        assertFalse("the outlet starts off the pond", pond.mask().contains(255, 200));
+        assertNotEquals("the first two outlet vertices straddle a corner-block line",
+                Math.floorDiv((int) Math.floor(outlet.xs()[0]) + WindowKey.SIZE / 2, WindowKey.SIZE),
+                Math.floorDiv((int) Math.floor(outlet.xs()[1]) + WindowKey.SIZE / 2, WindowKey.SIZE));
+        Scene scene = new Scene(settings(new IrisHydrology()), (x, z) -> 75).reach(outlet).reach(feeder).reach(upstream).pond(pond);
+        for (int x = 260; x <= 335; x++) {
+            int head = scene.head(x, 200);
+            assertNotEquals("centre line is water at x=" + x, Integer.MIN_VALUE, head);
+            assertTrue("outlet water at " + head + " above the resolved feeder end 62 at x=" + x, head <= 62);
+        }
+    }
+
+    @Test
     public void everyBankStyleRasterizes() {
         IrisHydrology config = new IrisHydrology();
         config.getDeformation().setBankSlope(0D).setBankSteepFactor(0D).setBankNoise(0D);

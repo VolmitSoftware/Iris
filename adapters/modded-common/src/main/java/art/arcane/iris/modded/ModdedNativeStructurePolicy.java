@@ -21,6 +21,7 @@ import art.arcane.volmlib.nativelib.terrain.structure.StructureLocateSearchAcces
 import art.arcane.volmlib.nativelib.terrain.structure.StructurePalette;
 import art.arcane.volmlib.nativelib.terrain.structure.StructurePlacementDecision;
 import art.arcane.volmlib.nativelib.terrain.structure.StructureReferencePolicy;
+import art.arcane.volmlib.nativelib.terrain.structure.StructureSeaSurface;
 import art.arcane.volmlib.nativelib.terrain.structure.StructureVolumePolicy;
 import art.arcane.volmlib.util.math.RNG;
 
@@ -122,6 +123,11 @@ final class ModdedNativeStructurePolicy implements NativeModdedStructureStage.Po
     @Override
     public IntBinaryOperator surfaceHeight(Engine context) {
         return (x, z) -> Engine.hostHeight(context, x, z, true) + context.getMinHeight();
+    }
+
+    @Override
+    public StructureSeaSurface seaSurface(Engine context) {
+        return GenerationWritePolicy.seaSurface(context);
     }
 
     @Override

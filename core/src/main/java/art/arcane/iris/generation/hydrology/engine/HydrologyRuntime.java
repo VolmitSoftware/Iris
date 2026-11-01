@@ -148,8 +148,11 @@ public final class HydrologyRuntime {
         Objects.requireNonNull(complex, "Hydrology needs the engine's terrain complex");
         HydrologySettings settings = HydrologySettings.compile(config, engine.getSeedManager().getBodies(), dimension.getFluidHeight(), 0,
                 engine.getHeight());
-        boolean caveFluidPolicies = settings.underground().cavePools().enabled()
-                && requireCaveFluids(dimension, dimension.getAllRegions(engine), dimension.getReachableCaveBiomes(engine), settings);
+        boolean caveFluidPolicies = false;
+        if (settings.underground().cavePools().enabled()) {
+            requireBiomeFluids(dimension.getReachableBiomes(engine), settings);
+            caveFluidPolicies = requireCaveFluids(dimension, dimension.getAllRegions(engine), dimension.getReachableCaveBiomes(engine), settings);
+        }
         if (settings.density() == 0D) {
             return DISABLED;
         }
@@ -164,6 +167,12 @@ public final class HydrologyRuntime {
         IrisWorld world = engine.getWorld();
         return new HydrologyRuntime(settings, cache, source::naturalSurface, source, mainThread, System::nanoTime, binding,
                 identity -> store(world, dimensionKey, settings, identity), caveFluidPolicies);
+    }
+
+    private static void requireBiomeFluids(Collection<IrisBiome> biomes, HydrologySettings settings) {
+        for (IrisBiome biome : biomes) {
+            requireFluid(biome.getHydrologyPolicy(), "biome '" + biome.getLoadKey() + "'", settings);
+        }
     }
 
     static boolean requireCaveFluids(IrisDimension dimension, Collection<IrisRegion> regions, Collection<IrisBiome> caveBiomes,

@@ -30,10 +30,13 @@ import art.arcane.iris.generation.runtime.PreparedHydrologyCacheIdentity;
 import art.arcane.iris.generation.runtime.SeedManager;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.generation.terrain.IrisRegion;
+import art.arcane.iris.pack.loading.IrisData;
+import art.arcane.iris.pack.loading.ResourceLoader;
 import art.arcane.iris.spi.LogLevel;
 import art.arcane.iris.testsupport.FakeHydrology;
 import art.arcane.iris.testsupport.PlatformLeakGuard;
 import art.arcane.iris.world.IrisWorld;
+import art.arcane.volmlib.util.collection.KList;
 import org.junit.After;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -887,6 +890,36 @@ public class HydrologyRuntimeTest {
         assertDisabled(disabled);
         verifyNoInteractions(complex);
         verify(engine, never()).getComplex();
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void createChecksEveryReachableBiomeFluidWhileCavePoolsAreEnabled() {
+        IrisDimension dimension = new IrisDimension().setRegions(new KList<>("tropical"));
+        dimension.setHydrology(new IrisHydrology().setEnabled(true).setDensity(0D));
+        IrisRegion tropical = new IrisRegion().setLandBiomes(new KList<>("volcanoes"));
+        tropical.setLoadKey("tropical");
+        IrisBiome volcanoes = new IrisBiome().setHydrologyPolicy(new IrisHydrologyPolicy().setFluid("magma"));
+        volcanoes.setLoadKey("volcanoes");
+        IrisData data = mock(IrisData.class);
+        ResourceLoader<IrisRegion> regions = mock(ResourceLoader.class);
+        ResourceLoader<IrisBiome> biomes = mock(ResourceLoader.class);
+        when(data.getRegionLoader()).thenReturn(regions);
+        when(data.getBiomeLoader()).thenReturn(biomes);
+        when(regions.load("tropical")).thenReturn(tropical);
+        when(biomes.load("volcanoes")).thenReturn(volcanoes);
+        Engine engine = mock(Engine.class);
+        when(engine.getDimension()).thenReturn(dimension);
+        when(engine.getData()).thenReturn(data);
+        when(engine.getSeedManager()).thenReturn(new SeedManager(1337L));
+        when(engine.getHeight()).thenReturn(384);
+        IrisComplex complex = mock(IrisComplex.class);
+
+        IllegalArgumentException failure = assertThrows(IllegalArgumentException.class, () -> HydrologyRuntime.create(engine, complex));
+        assertTrue(failure.getMessage(), failure.getMessage().contains("'magma'") && failure.getMessage().contains("volcanoes"));
+
+        dimension.getHydrology().getUnderground().getCavePools().setEnabled(false);
+        assertDisabled(HydrologyRuntime.create(engine, complex));
     }
 
     @Test

@@ -465,11 +465,14 @@ public class ChunkWaterRasterTest {
     }
 
     @Test
-    public void channelTakesTheAreaFluidWhereOneIsSet() {
+    public void reachKeepsThePolicyFluidOfItsUpstreamEnd() {
         HydrologySettings settings = settings(new IrisHydrology());
-        Reach reach = line(61L, tier("stream", 1.5f, 0.5f, 0, IrisBankStyle.SMOOTH), 0L, 400f, 400f, 480f, 400f, (x, z) -> 69);
+        HydrologyTier stream = tier("stream", 1.5f, 0.5f, 0, IrisBankStyle.SMOOTH);
+        Reach outflow = line(61L, stream, 0L, 400f, 403f, 480f, 403f, (x, z) -> 69);
+        Reach inflow = line(62L, stream, 0L, 480f, 412f, 400f, 412f, (x, z) -> 69);
         WindowKey key = new WindowKey(0, 0);
-        IndexedWindow own = new IndexedWindow(new WindowPlan(key, List.of(reach), List.of(), List.of()), ReachIndex.build(List.of(reach), List.of()));
+        IndexedWindow own = new IndexedWindow(new WindowPlan(key, List.of(outflow, inflow), List.of(), List.of()),
+                ReachIndex.build(List.of(outflow, inflow), List.of()));
         ChannelFluids volcanic = (x, z) -> x < 440 ? "lava" : null;
         ChunkWaterRaster raster = new ChunkRasterizer(settings, volcanic).rasterize(27, 25, (x, z) -> 70, List.of(own), regions(27, 25, List.of()));
         int lava = 0;
@@ -479,9 +482,9 @@ public class ChunkWaterRasterTest {
                 if (!isChannel(raster.role(lx, lz))) {
                     continue;
                 }
-                boolean inside = 27 * 16 + lx < 440;
-                assertEquals("column " + lx + "," + lz, inside ? "lava" : "water", raster.fluid(lx, lz));
-                if (inside) {
+                boolean startsVolcanic = raster.featureId(lx, lz) == 61L;
+                assertEquals("column " + lx + "," + lz, startsVolcanic ? "lava" : "water", raster.fluid(lx, lz));
+                if (startsVolcanic) {
                     lava++;
                 } else {
                     water++;

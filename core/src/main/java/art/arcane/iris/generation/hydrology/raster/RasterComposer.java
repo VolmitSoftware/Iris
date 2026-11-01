@@ -10,6 +10,8 @@ import art.arcane.iris.generation.hydrology.water.Reach;
 import art.arcane.iris.generation.hydrology.water.ReachStyle;
 
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
 final class RasterComposer {
     private static final int CHUNK = 16;
@@ -42,6 +44,7 @@ final class RasterComposer {
     private final HydrologyTier[] nearTier = new HydrologyTier[CELLS];
     private final ReachCursor cursor = new ReachCursor();
     private final int[] inletColumn = new int[2];
+    private final Map<Long, String> reachFluids = new HashMap<>();
     private NaturalHeights naturalHeight;
 
     RasterComposer(HydrologySettings settings, ChunkFeatures features, ChannelFluids channelFluids, int chunkX, int chunkZ) {
@@ -136,13 +139,19 @@ final class RasterComposer {
         ReachCursor.Choice hit = cursor.channel;
         Reach reach = hit.reach;
         int point = hit.point();
-        String area = channelFluids.channelFluid(x, z);
         head[cell] = level(reach.grade()[point]);
         terrain[cell] = bed(hit, head[cell], ground, variation, BedProfile.detail(settings.seed(), x, z));
         role[cell] = role(reach.style()[point]);
         feature[cell] = reach.id();
         tier[cell] = reach.tier();
-        fluid[cell] = area != null ? area : reach.tier().fluid();
+        fluid[cell] = reachFluid(reach);
+    }
+
+    private String reachFluid(Reach reach) {
+        return reachFluids.computeIfAbsent(reach.id(), id -> {
+            String area = channelFluids.channelFluid((int) Math.floor(reach.xs()[0]), (int) Math.floor(reach.zs()[0]));
+            return area != null ? area : reach.tier().fluid();
+        });
     }
 
     private static int bed(ReachCursor.Choice hit, int surface, int ground, double variation, double detail) {

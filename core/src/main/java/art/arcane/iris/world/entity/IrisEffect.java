@@ -44,11 +44,16 @@ import org.bukkit.World;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
+import org.bukkit.SoundCategory;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.util.Vector;
+
+import java.util.Locale;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Snippet("effect")
 @Accessors(chain = true)
@@ -57,6 +62,9 @@ import org.bukkit.util.Vector;
 @Description("An iris effect")
 @Data
 public class IrisEffect {
+    private static final String MASTER_SOUND_CATEGORY = "master";
+    private static final Set<String> UNKNOWN_SOUND_CATEGORIES = ConcurrentHashMap.newKeySet();
+
     private final transient AtomicCache<PotionEffectType> pt = new AtomicCache<>();
     private final transient AtomicCache<ChronoLatch> latch = new AtomicCache<>();
     private final transient AtomicCache<Particle> particleEffectResolved = new AtomicCache<>();
@@ -117,6 +125,9 @@ public class IrisEffect {
     @MaxNumber(512)
     @Description("The sound volume.")
     private double volume = 1.5D;
+    @DependsOn({"sound"})
+    @Description("The sound category the sound plays in, which picks the client volume slider that controls it: master, music, record, weather, block, hostile, neutral, player, ambient, voice or ui.")
+    private String soundCategory = MASTER_SOUND_CATEGORY;
     @DependsOn({"particleEffect"})
     @MinNumber(0)
     @MaxNumber(512)
@@ -181,6 +192,10 @@ public class IrisEffect {
         return sound;
     }
 
+    public String getSoundCategoryKey() {
+        return soundCategory == null || soundCategory.isBlank() ? MASTER_SOUND_CATEGORY : soundCategory.trim().toLowerCase(Locale.ROOT);
+    }
+
     public Particle getParticleEffect() {
         if (particleEffect == null) {
             return null;
@@ -193,6 +208,32 @@ public class IrisEffect {
             return null;
         }
         return soundResolved.aquire(() -> resolveKeyed(Sound.class, sound));
+    }
+
+    static SoundCategory bukkitSoundCategory(String key) {
+        return switch (key) {
+            case "master" -> SoundCategory.MASTER;
+            case "music" -> SoundCategory.MUSIC;
+            case "record" -> SoundCategory.RECORDS;
+            case "weather" -> SoundCategory.WEATHER;
+            case "block" -> SoundCategory.BLOCKS;
+            case "hostile" -> SoundCategory.HOSTILE;
+            case "neutral" -> SoundCategory.NEUTRAL;
+            case "player" -> SoundCategory.PLAYERS;
+            case "ambient" -> SoundCategory.AMBIENT;
+            case "voice" -> SoundCategory.VOICE;
+            case "ui" -> SoundCategory.UI;
+            default -> null;
+        };
+    }
+
+    private SoundCategory resolveSoundCategory() {
+        String key = getSoundCategoryKey();
+        SoundCategory category = bukkitSoundCategory(key);
+        if (category == null && UNKNOWN_SOUND_CATEGORIES.add(key)) {
+            IrisLogging.warn("Unknown sound category: \"" + key + "\".");
+        }
+        return category;
     }
 
     private static <T> T resolveKeyed(Class<T> type, String key) {
@@ -238,9 +279,10 @@ public class IrisEffect {
         BukkitFx.run(p, () -> {
             Sound soundType = getSound();
             Particle particleType = getParticleEffect();
-            if (soundType != null) {
+            SoundCategory category = soundType == null ? null : resolveSoundCategory();
+            if (category != null) {
                 Location part = p.getLocation().clone().add(RNG.r.i(-soundDistance, soundDistance), RNG.r.i(-soundDistance, soundDistance), RNG.r.i(-soundDistance, soundDistance));
-                p.playSound(part, soundType, (float) volume, (float) RNG.r.d(minPitch, maxPitch));
+                p.playSound(part, soundType, category, (float) volume, (float) RNG.r.d(minPitch, maxPitch));
             }
 
             if (particleType != null) {
@@ -315,9 +357,10 @@ public class IrisEffect {
         J.runEntity(p, () -> {
             Sound soundType = getSound();
             Particle particleType = getParticleEffect();
-            if (soundType != null) {
+            SoundCategory category = soundType == null ? null : resolveSoundCategory();
+            if (category != null) {
                 Location part = p.getLocation().clone().add(RNG.r.i(-soundDistance, soundDistance), RNG.r.i(-soundDistance, soundDistance), RNG.r.i(-soundDistance, soundDistance));
-                p.getWorld().playSound(part, soundType, (float) volume, (float) RNG.r.d(minPitch, maxPitch));
+                p.getWorld().playSound(part, soundType, category, (float) volume, (float) RNG.r.d(minPitch, maxPitch));
             }
 
             if (particleType != null) {

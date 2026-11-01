@@ -11,11 +11,15 @@ import art.arcane.volmlib.util.math.RNG;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.BlockSupport;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.block.data.MultipleFacing;
 import org.junit.Test;
 import org.mockito.MockedStatic;
 
+import java.util.EnumSet;
 import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -25,15 +29,23 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
 public class DecoratorCoreTest {
+    private static final String VINE = "minecraft:vine";
+    private static final String GLOW_LICHEN = "minecraft:glow_lichen";
+    private static final Set<BlockFace> VINE_FACES = EnumSet.of(BlockFace.NORTH, BlockFace.EAST, BlockFace.SOUTH,
+            BlockFace.WEST, BlockFace.UP);
+    private static final Set<BlockFace> LICHEN_FACES = EnumSet.of(BlockFace.NORTH, BlockFace.EAST, BlockFace.SOUTH,
+            BlockFace.WEST, BlockFace.UP, BlockFace.DOWN);
 
     @Test
     public void partSeed_differsByPartOrdinal() {
@@ -739,6 +751,141 @@ public class DecoratorCoreTest {
         } finally {
             DecoratorPlatformHooks.restore(previous);
         }
+    }
+
+    @Test
+    public void stackedVineCurtainHangsFromTheWallItsTopStrandFaces() {
+        IrisDecorator decorator = mock(IrisDecorator.class);
+        IrisData data = mock(IrisData.class);
+        NativeBlockState vine = facingState(VINE, VINE_FACES, EnumSet.of(BlockFace.NORTH));
+        when(decorator.getHeight(any(RNG.class), anyDouble(), anyDouble(), eq(data))).thenReturn(3);
+        when(decorator.getTopThreshold()).thenReturn(1.0);
+        when(decorator.pickBlockData(any(RNG.class), eq(data), anyDouble(), anyDouble())).thenReturn(vine);
+        when(decorator.pickBlockDataTop(any(RNG.class), eq(data), anyDouble(), anyDouble())).thenReturn(vine);
+        Hunk<NativeBlockState> output = Hunk.newArrayHunk(16, 8, 16);
+        output.set(8, 6, 8, sturdyState());
+        output.set(8, 5, 7, sturdyState());
+        output.set(9, 4, 8, sturdyState());
+
+        DecoratorCore.placeStackDown(decorator, 8, 8, 8, 8, 5, 0, output, new RNG(1L), data, 3,
+                new DecoratorCore.PlaceOpts(), null);
+
+        assertEquals(EnumSet.of(BlockFace.NORTH, BlockFace.UP), faces(output.get(8, 5, 8)));
+        assertEquals(EnumSet.of(BlockFace.NORTH), faces(output.get(8, 4, 8)));
+        assertEquals(EnumSet.of(BlockFace.NORTH), faces(output.get(8, 3, 8)));
+    }
+
+    @Test
+    public void stackedVineCurtainHangsUnderAnOpenCeiling() {
+        IrisDecorator decorator = mock(IrisDecorator.class);
+        IrisData data = mock(IrisData.class);
+        NativeBlockState vine = facingState(VINE, VINE_FACES, EnumSet.of(BlockFace.NORTH));
+        when(decorator.getHeight(any(RNG.class), anyDouble(), anyDouble(), eq(data))).thenReturn(3);
+        when(decorator.getTopThreshold()).thenReturn(1.0);
+        when(decorator.pickBlockData(any(RNG.class), eq(data), anyDouble(), anyDouble())).thenReturn(vine);
+        when(decorator.pickBlockDataTop(any(RNG.class), eq(data), anyDouble(), anyDouble())).thenReturn(vine);
+        Hunk<NativeBlockState> output = Hunk.newArrayHunk(16, 8, 16);
+        output.set(8, 6, 8, sturdyState());
+
+        DecoratorCore.placeStackDown(decorator, 8, 8, 8, 8, 5, 0, output, new RNG(1L), data, 3,
+                new DecoratorCore.PlaceOpts(), null);
+
+        assertEquals(EnumSet.of(BlockFace.NORTH, BlockFace.UP), faces(output.get(8, 5, 8)));
+        assertEquals(EnumSet.of(BlockFace.NORTH), faces(output.get(8, 4, 8)));
+        assertEquals(EnumSet.of(BlockFace.NORTH), faces(output.get(8, 3, 8)));
+    }
+
+    @Test
+    public void unsupportedAuthoredSideFaceOnALoneVineIsDroppedAndReattached() {
+        NativeBlockState vine = facingState(VINE, VINE_FACES, EnumSet.of(BlockFace.NORTH));
+        Hunk<NativeBlockState> walled = Hunk.newArrayHunk(16, 8, 16);
+        walled.set(9, 3, 8, sturdyState());
+
+        assertEquals(EnumSet.of(BlockFace.EAST), faces(DecoratorCore.fixFacesForHunk(vine, walled, 8, 8, 8, 3, 8, null)));
+        assertEquals(EnumSet.of(BlockFace.UP),
+                faces(DecoratorCore.fixFacesForHunk(vine, Hunk.newArrayHunk(16, 8, 16), 8, 8, 8, 3, 8, null)));
+    }
+
+    @Test
+    public void glowLichenSideFaceIsNotHeldByTheLichenAboveIt() {
+        NativeBlockState lichen = facingState(GLOW_LICHEN, LICHEN_FACES, EnumSet.of(BlockFace.NORTH));
+        Hunk<NativeBlockState> output = Hunk.newArrayHunk(16, 8, 16);
+        output.set(8, 2, 8, sturdyState());
+        output.set(8, 4, 8, facingState(GLOW_LICHEN, LICHEN_FACES, EnumSet.of(BlockFace.NORTH)));
+
+        assertEquals(EnumSet.of(BlockFace.DOWN), faces(DecoratorCore.fixFacesForHunk(lichen, output, 8, 8, 8, 3, 8, null)));
+    }
+
+    @Test
+    public void supportedAuthoredSideFaceKeepsItsDirection() {
+        NativeBlockState vine = facingState(VINE, VINE_FACES, EnumSet.of(BlockFace.NORTH));
+        Hunk<NativeBlockState> output = Hunk.newArrayHunk(16, 8, 16);
+        output.set(8, 3, 7, sturdyState());
+        output.set(9, 3, 8, sturdyState());
+
+        assertEquals(EnumSet.of(BlockFace.NORTH), faces(DecoratorCore.fixFacesForHunk(vine, output, 8, 8, 8, 3, 8, null)));
+    }
+
+    @Test
+    public void vineWithoutAuthoredSideFaceReattachesToEverySturdyNeighbour() {
+        NativeBlockState vine = facingState(VINE, VINE_FACES, EnumSet.of(BlockFace.UP));
+        Hunk<NativeBlockState> output = Hunk.newArrayHunk(16, 8, 16);
+        output.set(7, 3, 8, sturdyState());
+        output.set(8, 3, 9, sturdyState());
+        output.set(8, 4, 8, sturdyState());
+
+        assertEquals(EnumSet.of(BlockFace.SOUTH, BlockFace.WEST, BlockFace.UP),
+                faces(DecoratorCore.fixFacesForHunk(vine, output, 8, 8, 8, 3, 8, null)));
+    }
+
+    private NativeBlockState facingState(String material, Set<BlockFace> allowed, Set<BlockFace> faces) {
+        MultipleFacing handle = facing(material, allowed, faces);
+        String key = handle.getAsString();
+        NativeBlockState state = mock(NativeBlockState.class);
+        when(state.isVineBlock()).thenReturn(true);
+        when(state.materialKey()).thenReturn(material);
+        when(state.key()).thenReturn(key);
+        when(state.nativeHandle()).thenReturn(handle);
+        return state;
+    }
+
+    private static MultipleFacing facing(String material, Set<BlockFace> allowed, Set<BlockFace> faces) {
+        EnumSet<BlockFace> current = EnumSet.noneOf(BlockFace.class);
+        current.addAll(faces);
+        MultipleFacing data = mock(MultipleFacing.class);
+        when(data.getAllowedFaces()).thenReturn(allowed);
+        when(data.getFaces()).thenAnswer(invocation -> EnumSet.copyOf(current));
+        when(data.hasFace(any(BlockFace.class))).thenAnswer(invocation -> current.contains(invocation.<BlockFace>getArgument(0)));
+        doAnswer(invocation -> {
+            BlockFace face = invocation.getArgument(0);
+            if (!allowed.contains(face)) {
+                throw new IllegalArgumentException(face + " is not allowed on " + material);
+            }
+            if (invocation.<Boolean>getArgument(1)) {
+                current.add(face);
+            } else {
+                current.remove(face);
+            }
+            return null;
+        }).when(data).setFace(any(BlockFace.class), anyBoolean());
+        when(data.clone()).thenAnswer(invocation -> facing(material, allowed, current));
+        when(data.getAsString()).thenAnswer(invocation -> {
+            StringBuilder key = new StringBuilder(material).append('[');
+            for (BlockFace face : allowed) {
+                if (key.charAt(key.length() - 1) != '[') {
+                    key.append(',');
+                }
+                key.append(face.name().toLowerCase(Locale.ROOT)).append('=').append(current.contains(face));
+            }
+            return key.append(']').toString();
+        });
+        return data;
+    }
+
+    private static Set<BlockFace> faces(NativeBlockState state) {
+        EnumSet<BlockFace> faces = EnumSet.noneOf(BlockFace.class);
+        faces.addAll(((MultipleFacing) state.nativeHandle()).getFaces());
+        return faces;
     }
 
     private NativeBlockState airState() {

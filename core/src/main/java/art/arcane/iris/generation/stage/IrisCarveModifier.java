@@ -380,11 +380,11 @@ public class IrisCarveModifier extends EngineAssignedModifier<NativeBlockState> 
         return cavern.getLiquid() == 3 ? air : null;
     }
 
-    public static CarveOwnership.Owner carveOwner(HydrologyCaveCell hydrology, SubterrainCell feature, Terrain3DColumn terrain, int y) {
+    static CarveOwnership.Owner carveOwner(HydrologyCaveCell hydrology, SubterrainCell feature, Terrain3DColumn naturalTerrain, int y) {
         return CarveOwnership.resolve(
                 hydrology != null,
-                feature.owned() && (!feature.solid() || feature.room().reservedSolid()),
-                terrain != null && y >= terrain.minY() && y < terrain.topY() && !terrain.isSolid(y)
+                CarveOwnership.subterrainClaims(feature),
+                naturalTerrain != null && y >= naturalTerrain.minY() && y < naturalTerrain.topY() && !naturalTerrain.isSolid(y)
         );
     }
 
@@ -502,7 +502,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<NativeBlockState> 
                 return;
             }
 
-            if (owner == CarveOwnership.Owner.TRANSFORMED) {
+            if (owner == CarveOwnership.Owner.NATURAL_OPENING) {
                 return;
             }
             NativeBlockState current = context.output().getRaw(localX, y, localZ);

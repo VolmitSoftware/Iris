@@ -31,7 +31,6 @@ import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.generation.terrain.Terrain3DColumn;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveCell;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveStorage;
-import art.arcane.iris.generation.subterrain.SubterrainCell;
 import art.arcane.iris.pack.value.IrisPosition;
 import art.arcane.iris.generation.block.BoundBlockState;
 import art.arcane.iris.world.storage.matter.PreObjectMatterCell;
@@ -124,16 +123,16 @@ public interface EngineMantle extends MatterGenerator {
     }
 
     default boolean isCarved(int x, int h, int z) {
-        HydrologyCaveCell hydrology = HydrologyCaveStorage.getIfPresent(getMantle(), x, h, z);
-        SubterrainCell feature = getEngine().getSubterrainCell(x, h, z);
         Terrain3DColumn transformed = getComplex().transformedColumn(x, z);
-        return switch (CarveOwnership.resolve(hydrology != null, feature != null && feature.owned(), transformed != null)) {
-            case HYDROLOGY -> hydrology.carves();
-            case SUBTERRAIN -> feature.carve();
-            case TRANSFORMED -> h >= 0 && h < transformed.topY() && !transformed.isSolid(h);
-            case NATURAL -> getMantle().get(x, h, z, MatterCavern.class) != null
-                    || getComplex().isTerrain3DOpening(x, h, z);
-        };
+        if (transformed != null) {
+            return h >= 0 && h < transformed.topY() && !transformed.isSolid(h);
+        }
+        return CarveOwnership.carved(
+                HydrologyCaveStorage.getIfPresent(getMantle(), x, h, z),
+                getEngine().getSubterrainCell(x, h, z),
+                getComplex().isTerrain3DOpening(x, h, z),
+                getMantle().get(x, h, z, MatterCavern.class) != null
+        );
     }
 
     default NativeBlockState get(int x, int y, int z) {

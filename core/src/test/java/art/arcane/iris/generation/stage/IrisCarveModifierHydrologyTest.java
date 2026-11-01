@@ -211,7 +211,7 @@ public class IrisCarveModifierHydrologyTest {
                 IrisCarveModifier.carveOwner(HydrologyCaveCell.of(HydrologyCaveAction.WET_SOURCE), open, null, 0));
         assertEquals(CarveOwnership.Owner.HYDROLOGY,
                 IrisCarveModifier.carveOwner(HydrologyCaveCell.of(HydrologyCaveAction.SEAL_GUARD), open, null, 0));
-        assertEquals(CarveOwnership.Owner.NATURAL, IrisCarveModifier.carveOwner(null, SubterrainCell.OUTSIDE, null, 0));
+        assertEquals(CarveOwnership.Owner.CAVERN, IrisCarveModifier.carveOwner(null, SubterrainCell.OUTSIDE, null, 0));
         for (SubterrainCell.Kind kind : new SubterrainCell.Kind[]{SubterrainCell.Kind.WATER, SubterrainCell.Kind.LAVA}) {
             SubterrainCell fluid = new SubterrainCell(kind, "", room);
             assertEquals(CarveOwnership.Owner.SUBTERRAIN, IrisCarveModifier.carveOwner(null, fluid, null, 0));

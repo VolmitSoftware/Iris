@@ -460,16 +460,16 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
     }
 
     public boolean isPrerequisiteCarved(int x, int y, int z) {
-        HydrologyCaveCell hydrology = getPrerequisiteDataIfPresent(x, y, z, HydrologyCaveCell.class);
-        SubterrainCell feature = getEngine().getSubterrainCell(x, y, z);
         Terrain3DColumn transformed = engineMantle.getComplex().transformedColumn(x, z);
-        return switch (CarveOwnership.resolve(hydrology != null, feature != null && feature.owned(), transformed != null)) {
-            case HYDROLOGY -> hydrology.carves();
-            case SUBTERRAIN -> feature.carve();
-            case TRANSFORMED -> y >= 0 && y < transformed.topY() && !transformed.isSolid(y);
-            case NATURAL -> getPrerequisiteDataIfPresent(x, y, z, MatterCavern.class) != null
-                    || engineMantle.getComplex().isTerrain3DOpening(x, y, z);
-        };
+        if (transformed != null) {
+            return y >= 0 && y < transformed.topY() && !transformed.isSolid(y);
+        }
+        return CarveOwnership.carved(
+                getPrerequisiteDataIfPresent(x, y, z, HydrologyCaveCell.class),
+                getEngine().getSubterrainCell(x, y, z),
+                engineMantle.getComplex().isTerrain3DOpening(x, y, z),
+                getPrerequisiteDataIfPresent(x, y, z, MatterCavern.class) != null
+        );
     }
 
     public byte[] getPrerequisiteCarvedColumn(int x, int z, int height) {
@@ -495,46 +495,38 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
         }
 
         MantleChunk<Matter> chunk = acquireChunk(x >> 4, z >> 4);
+        SubterrainCell[] subterrain = subterrainColumn(x, z, cappedHeight);
         if (chunk == null) {
+            for (int y = 0; y < cappedHeight; y++) {
+                carvedColumn[y] = carvedByte(null, subterrain, y, carvedColumn[y] != 0, false);
+            }
             return carvedColumn;
         }
 
         synchronized (chunk) {
-            int lastSection = (cappedHeight - 1) >> 4;
-            for (int section = 0; section <= lastSection; section++) {
-                if (!chunk.exists(section)) {
-                    continue;
+            MatterSlice<PreObjectMatterCell> journalSlice = null;
+            MatterSlice<MatterCavern> cavernSlice = null;
+            MatterSlice<HydrologyCaveCell> hydrologySlice = null;
+            for (int y = 0; y < cappedHeight; y++) {
+                int localY = y & 15;
+                if (localY == 0) {
+                    Matter matter = chunk.exists(y >> 4) ? chunk.get(y >> 4) : null;
+                    journalSlice = matter == null ? null : matter.getSlice(PreObjectMatterCell.class);
+                    cavernSlice = matter == null ? null : matter.getSlice(MatterCavern.class);
+                    hydrologySlice = matter == null ? null : matter.getSlice(HydrologyCaveCell.class);
                 }
-                Matter matter = chunk.get(section);
-                if (matter == null) {
-                    continue;
-                }
-                MatterSlice<PreObjectMatterCell> journalSlice = matter.getSlice(PreObjectMatterCell.class);
-                MatterSlice<MatterCavern> cavernSlice = matter.getSlice(MatterCavern.class);
-                MatterSlice<HydrologyCaveCell> hydrologySlice = matter.getSlice(HydrologyCaveCell.class);
-                int sectionBaseY = section << 4;
-                int sectionMaxY = Math.min(cappedHeight, sectionBaseY + 16);
-                for (int y = sectionBaseY; y < sectionMaxY; y++) {
-                    int localY = y & 15;
-                    PreObjectMatterCell cell = journalSlice == null
-                            ? null
-                            : journalSlice.get(x & 15, localY, z & 15);
-                    HydrologyCaveCell hydrology = cell != null && cell.hydrologyCaptured()
-                            ? cell.hydrology()
-                            : hydrologySlice == null
-                            ? null
-                            : hydrologySlice.get(x & 15, localY, z & 15);
-                    if (hydrology != null) {
-                        carvedColumn[y] = hydrology.carves() ? (byte) 1 : 0;
-                        continue;
-                    }
-                    MatterCavern cavern = cell != null && cell.cavernCaptured()
-                            ? cell.cavern()
-                            : cavernSlice == null ? null : cavernSlice.get(x & 15, localY, z & 15);
-                    if (cavern != null) {
-                        carvedColumn[y] = 1;
-                    }
-                }
+                PreObjectMatterCell cell = journalSlice == null
+                        ? null
+                        : journalSlice.get(x & 15, localY, z & 15);
+                HydrologyCaveCell hydrology = cell != null && cell.hydrologyCaptured()
+                        ? cell.hydrology()
+                        : hydrologySlice == null
+                        ? null
+                        : hydrologySlice.get(x & 15, localY, z & 15);
+                MatterCavern cavern = cell != null && cell.cavernCaptured()
+                        ? cell.cavern()
+                        : cavernSlice == null ? null : cavernSlice.get(x & 15, localY, z & 15);
+                carvedColumn[y] = carvedByte(hydrology, subterrain, y, carvedColumn[y] != 0, cavern != null);
             }
         }
         return carvedColumn;
@@ -816,16 +808,16 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
 
     @Override
     public boolean isCarved(int x, int y, int z) {
-        HydrologyCaveCell hydrology = getDataIfPresent(x, y, z, HydrologyCaveCell.class);
-        SubterrainCell feature = getEngine().getSubterrainCell(x, y, z);
         Terrain3DColumn transformed = engineMantle.getComplex().transformedColumn(x, z);
-        return switch (CarveOwnership.resolve(hydrology != null, feature != null && feature.owned(), transformed != null)) {
-            case HYDROLOGY -> hydrology.carves();
-            case SUBTERRAIN -> feature.carve();
-            case TRANSFORMED -> y >= 0 && y < transformed.topY() && !transformed.isSolid(y);
-            case NATURAL -> getDataIfPresent(x, y, z, MatterCavern.class) != null
-                    || engineMantle.getComplex().isTerrain3DOpening(x, y, z);
-        };
+        if (transformed != null) {
+            return y >= 0 && y < transformed.topY() && !transformed.isSolid(y);
+        }
+        return CarveOwnership.carved(
+                getDataIfPresent(x, y, z, HydrologyCaveCell.class),
+                getEngine().getSubterrainCell(x, y, z),
+                engineMantle.getComplex().isTerrain3DOpening(x, y, z),
+                getDataIfPresent(x, y, z, MatterCavern.class) != null
+        );
     }
 
 
@@ -851,44 +843,24 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
         }
 
         MantleChunk<Matter> chunk = acquireChunk(x >> 4, z >> 4);
-        if (chunk == null) {
-            return carvedColumn;
-        }
-
+        SubterrainCell[] subterrain = subterrainColumn(x, z, cappedHeight);
         int localX = x & 15;
         int localZ = z & 15;
-        int lastSection = (cappedHeight - 1) >> 4;
-        for (int section = 0; section <= lastSection; section++) {
-            if (!chunk.exists(section)) {
-                continue;
-            }
-
-            Matter matter = chunk.get(section);
-            if (matter == null) {
-                continue;
-            }
-
-            MatterSlice<MatterCavern> cavernSlice = matter.getSlice(MatterCavern.class);
-            MatterSlice<HydrologyCaveCell> hydrologySlice = matter.hasSlice(HydrologyCaveCell.class)
-                    ? matter.getSlice(HydrologyCaveCell.class)
-                    : null;
-            if (cavernSlice == null && hydrologySlice == null) {
-                continue;
-            }
-            int sectionBaseY = section << 4;
-            int sectionMaxY = Math.min(cappedHeight, sectionBaseY + 16);
-            for (int y = sectionBaseY; y < sectionMaxY; y++) {
-                HydrologyCaveCell hydrology = hydrologySlice == null
+        MatterSlice<MatterCavern> cavernSlice = null;
+        MatterSlice<HydrologyCaveCell> hydrologySlice = null;
+        for (int y = 0; y < cappedHeight; y++) {
+            int localY = y & 15;
+            if (localY == 0) {
+                Matter matter = chunk == null || !chunk.exists(y >> 4) ? null : chunk.get(y >> 4);
+                cavernSlice = matter == null ? null : matter.getSlice(MatterCavern.class);
+                hydrologySlice = matter == null || !matter.hasSlice(HydrologyCaveCell.class)
                         ? null
-                        : hydrologySlice.get(localX, y & 15, localZ);
-                if (hydrology != null) {
-                    carvedColumn[y] = hydrology.carves() ? (byte) 1 : 0;
-                } else if (cavernSlice != null && cavernSlice.get(localX, y & 15, localZ) != null) {
-                    carvedColumn[y] = 1;
-                }
+                        : matter.getSlice(HydrologyCaveCell.class);
             }
+            HydrologyCaveCell hydrology = hydrologySlice == null ? null : hydrologySlice.get(localX, localY, localZ);
+            boolean cavern = cavernSlice != null && cavernSlice.get(localX, localY, localZ) != null;
+            carvedColumn[y] = carvedByte(hydrology, subterrain, y, carvedColumn[y] != 0, cavern);
         }
-
         return carvedColumn;
     }
 
@@ -1023,6 +995,24 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
 
     private static int chunkReach(int blocks) {
         return blocks > 0 ? Math.ceilDiv(blocks, 16) : 0;
+    }
+
+    private SubterrainCell[] subterrainColumn(int x, int z, int height) {
+        Engine engine = getEngine();
+        if (engine.subterrainAbsentInChunk(x >> 4, z >> 4)) {
+            return null;
+        }
+        SubterrainCell[] cells = new SubterrainCell[height];
+        for (int y = 0; y < height; y++) {
+            cells[y] = engine.getSubterrainCell(x, y, z);
+        }
+        return cells;
+    }
+
+    private static byte carvedByte(HydrologyCaveCell hydrology, SubterrainCell[] subterrain, int y, boolean naturalOpening,
+                                   boolean cavern) {
+        return CarveOwnership.carved(hydrology, subterrain == null ? null : subterrain[y], naturalOpening, cavern)
+                ? (byte) 1 : 0;
     }
 
     private static byte[] carvedColumn(Terrain3DColumn terrain, int height) {

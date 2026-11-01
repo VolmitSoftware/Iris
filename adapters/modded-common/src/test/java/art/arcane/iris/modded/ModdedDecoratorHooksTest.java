@@ -84,6 +84,21 @@ public class ModdedDecoratorHooksTest {
     }
 
     @Test
+    public void stackedVineCurtainHangsUnderAnOpenCeiling() {
+        Hunk<NativeBlockState> hunk = Hunk.newArrayHunk(16, 8, 16);
+        hunk.set(8, 6, 8, stone());
+        NativeBlockState vine = state(Blocks.VINE, Direction.NORTH);
+
+        for (int y = 5; y >= 3; y--) {
+            hunk.set(8, y, 8, fix(vine, hunk, y));
+        }
+
+        assertEquals(EnumSet.of(Direction.NORTH, Direction.UP), faces(hunk.get(8, 5, 8)));
+        assertEquals(EnumSet.of(Direction.NORTH), faces(hunk.get(8, 4, 8)));
+        assertEquals(EnumSet.of(Direction.NORTH), faces(hunk.get(8, 3, 8)));
+    }
+
+    @Test
     public void unsupportedAuthoredSideFaceOnALoneVineIsDroppedAndReattached() {
         NativeBlockState vine = state(Blocks.VINE, Direction.NORTH);
         Hunk<NativeBlockState> walled = Hunk.newArrayHunk(16, 8, 16);

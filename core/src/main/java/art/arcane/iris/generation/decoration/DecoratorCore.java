@@ -484,12 +484,13 @@ final class DecoratorCore {
 
     private static boolean keepSupportedSides(MultipleFacing data, boolean vine, Hunk<NativeBlockState> hunk,
                                               int rX, int rZ, int x, int y, int z, EngineMantle mantle) {
+        boolean ceiling = sturdy(BlockFace.UP, hunk, rX, rZ, x, y, z, mantle);
         boolean side = false;
         for (BlockFace f : Faces.SIDES) {
             if (!data.hasFace(f)) {
                 continue;
             }
-            if (sturdy(f, hunk, rX, rZ, x, y, z, mantle) || vine && vineAboveCarries(f, hunk, rX, rZ, x, y, z, mantle)) {
+            if (sturdy(f, hunk, rX, rZ, x, y, z, mantle) || vine && (ceiling || vineAboveCarries(f, hunk, rX, rZ, x, y, z, mantle))) {
                 side = true;
             } else {
                 data.setFace(f, false);
@@ -499,7 +500,7 @@ final class DecoratorCore {
             return false;
         }
         if (data.getAllowedFaces().contains(BlockFace.UP)) {
-            data.setFace(BlockFace.UP, sturdy(BlockFace.UP, hunk, rX, rZ, x, y, z, mantle));
+            data.setFace(BlockFace.UP, ceiling);
         }
         if (data.hasFace(BlockFace.DOWN) && !sturdy(BlockFace.DOWN, hunk, rX, rZ, x, y, z, mantle)) {
             data.setFace(BlockFace.DOWN, false);
@@ -532,8 +533,8 @@ final class DecoratorCore {
     }
 
     private static boolean carries(NativeBlockState state, BlockFace f) {
-        return state != null && VINE.equals(IrisProceduralBlocks.materialKey(state))
-                && state.nativeHandle() instanceof MultipleFacing facing && facing.hasFace(f);
+        return state != null && state.nativeHandle() instanceof MultipleFacing facing
+                && VINE.equals(IrisProceduralBlocks.materialKey(state)) && facing.hasFace(f);
     }
 
     static boolean canGoOn(NativeBlockState decorator, NativeBlockState surface) {

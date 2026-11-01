@@ -776,6 +776,26 @@ public class DecoratorCoreTest {
     }
 
     @Test
+    public void stackedVineCurtainHangsUnderAnOpenCeiling() {
+        IrisDecorator decorator = mock(IrisDecorator.class);
+        IrisData data = mock(IrisData.class);
+        NativeBlockState vine = facingState(VINE, VINE_FACES, EnumSet.of(BlockFace.NORTH));
+        when(decorator.getHeight(any(RNG.class), anyDouble(), anyDouble(), eq(data))).thenReturn(3);
+        when(decorator.getTopThreshold()).thenReturn(1.0);
+        when(decorator.pickBlockData(any(RNG.class), eq(data), anyDouble(), anyDouble())).thenReturn(vine);
+        when(decorator.pickBlockDataTop(any(RNG.class), eq(data), anyDouble(), anyDouble())).thenReturn(vine);
+        Hunk<NativeBlockState> output = Hunk.newArrayHunk(16, 8, 16);
+        output.set(8, 6, 8, sturdyState());
+
+        DecoratorCore.placeStackDown(decorator, 8, 8, 8, 8, 5, 0, output, new RNG(1L), data, 3,
+                new DecoratorCore.PlaceOpts(), null);
+
+        assertEquals(EnumSet.of(BlockFace.NORTH, BlockFace.UP), faces(output.get(8, 5, 8)));
+        assertEquals(EnumSet.of(BlockFace.NORTH), faces(output.get(8, 4, 8)));
+        assertEquals(EnumSet.of(BlockFace.NORTH), faces(output.get(8, 3, 8)));
+    }
+
+    @Test
     public void unsupportedAuthoredSideFaceOnALoneVineIsDroppedAndReattached() {
         NativeBlockState vine = facingState(VINE, VINE_FACES, EnumSet.of(BlockFace.NORTH));
         Hunk<NativeBlockState> walled = Hunk.newArrayHunk(16, 8, 16);

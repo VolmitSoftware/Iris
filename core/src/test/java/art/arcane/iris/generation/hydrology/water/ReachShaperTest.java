@@ -58,8 +58,6 @@ public class ReachShaperTest {
         int[] totals = new int[6];
         int cascadingSteps = 0;
         int spreadSteps = 0;
-        int cascadingFalls = 0;
-        int spreadFalls = 0;
         for (int trial = 0; trial < 200; trial++) {
             Network network = network(cascading, randomTerrain(random), 40, 40, 2000f, trial % 4 == 0);
             ShapedNetwork stepped = shape(cascading, network);
@@ -71,10 +69,11 @@ public class ReachShaperTest {
                 Reach twin = steppedById.get(reach.id());
                 assertNotNull(twin);
                 int fall = reach.tier().waterfallMinimumDrop();
-                spreadSteps += dropsBetween(reach, 2, fall);
-                cascadingSteps += dropsBetween(twin, 2, fall);
-                spreadFalls += dropsBetween(reach, fall, Integer.MAX_VALUE);
-                cascadingFalls += dropsBetween(twin, fall, Integer.MAX_VALUE);
+                int junction = twin.downstreamId() == 0L ? Integer.MIN_VALUE : twin.grade()[twin.grade().length - 1];
+                assertTrue("trial " + trial + " " + reach + " gained a waterfall",
+                        dropsAbove(reach, junction, fall, Integer.MAX_VALUE) <= dropsAbove(twin, junction, fall, Integer.MAX_VALUE));
+                spreadSteps += dropsAbove(reach, junction, 2, fall);
+                cascadingSteps += dropsAbove(twin, junction, 2, fall);
             }
         }
         assertTrue("reaches " + totals[0], totals[0] > 4000);
@@ -82,7 +81,6 @@ public class ReachShaperTest {
         assertTrue("links " + totals[2], totals[2] > 1000);
         assertTrue("mouth points " + totals[3], totals[3] > 100);
         assertTrue("pond outlets " + totals[4], totals[4] > 40);
-        assertTrue("waterfall drops spread " + spreadFalls + " kept " + cascadingFalls, spreadFalls <= cascadingFalls);
         assertTrue("cascade drops spread " + spreadSteps + " kept " + cascadingSteps, 2 * spreadSteps < cascadingSteps);
     }
 
@@ -1293,11 +1291,12 @@ public class ReachShaperTest {
         }
     }
 
-    private static int dropsBetween(Reach reach, int minimum, int limit) {
+    private static int dropsAbove(Reach reach, int floor, int minimum, int limit) {
+        int[] grade = reach.grade();
         int count = 0;
-        for (int index = 1; index < reach.grade().length; index++) {
-            int drop = reach.grade()[index - 1] - reach.grade()[index];
-            count += drop >= minimum && drop < limit ? 1 : 0;
+        for (int index = 1; index < grade.length; index++) {
+            int drop = grade[index - 1] - grade[index];
+            count += drop >= minimum && drop < limit && grade[index] > floor ? 1 : 0;
         }
         return count;
     }

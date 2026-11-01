@@ -136,7 +136,7 @@ final class ReachGrader {
         levels[pond] = level;
     }
 
-    private static int startLimit(List<ReachDraft> drafts, ReachDraft draft) {
+    static int startLimit(List<ReachDraft> drafts, ReachDraft draft) {
         int limit = Integer.MIN_VALUE;
         for (int upstream : draft.incoming) {
             ReachDraft feeder = drafts.get(upstream);
@@ -194,12 +194,20 @@ final class ReachGrader {
 
     private static void spread(int[] grade, int waterfallMinimumDrop, int startLimit, boolean[] held) {
         for (int point = grade.length - 2; point >= 0; point--) {
-            int drop = grade[point] - grade[point + 1];
-            if (drop >= 2 && drop < waterfallMinimumDrop && (held == null || !held[point])) {
-                int limit = point == 0 ? startLimit : carryLimit(grade, point, waterfallMinimumDrop);
-                grade[point] = Math.max(grade[point + 1] + 1, limit);
-            }
+            spreadPoint(grade, point, waterfallMinimumDrop, startLimit, held);
         }
+    }
+
+    static boolean spreadPoint(int[] grade, int point, int waterfallMinimumDrop, int startLimit, boolean[] held) {
+        int drop = grade[point] - grade[point + 1];
+        if (drop < 2 || drop >= waterfallMinimumDrop || held != null && held[point]) {
+            return false;
+        }
+        int limit = point == 0 ? startLimit : carryLimit(grade, point, waterfallMinimumDrop);
+        int spread = Math.min(grade[point], Math.max(grade[point + 1] + 1, limit));
+        boolean lowered = spread < grade[point];
+        grade[point] = spread;
+        return lowered;
     }
 
     private static void lowerIncomingEnds(List<ReachDraft> drafts, ReachDraft draft) {

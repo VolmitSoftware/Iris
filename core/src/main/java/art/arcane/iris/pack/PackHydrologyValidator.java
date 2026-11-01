@@ -79,13 +79,14 @@ final class PackHydrologyValidator {
         int reported = errors.size();
         validateRanges(path, hydrology, errors);
         Set<String> fluids = fluidNames(hydrology);
+        Set<String> seams = seamNames(hydrology);
         validateFluidReferences(path, hydrology, fluids, errors);
         IrisData loaded = data == null ? IrisData.openDatapackCompiler(packFolder) : data;
         IrisDimension loadedDimension = loaded.getDimensionLoader().load(dimensionKey, false);
         if (loadedDimension == null) {
             return loaded;
         }
-        validatePolicies(path, dimensionKey, loaded, loadedDimension, fluids, errors);
+        validatePolicies(path, dimensionKey, loaded, loadedDimension, new PolicyFluids(fluids, seams), errors);
         if (errors.size() == reported && validateCompile(path, loadedDimension, errors)) {
             validateDecoratorBlocks(path, loaded, loadedDimension.getHydrology(), errors);
         }
@@ -190,6 +191,22 @@ final class PackHydrologyValidator {
         return names;
     }
 
+    private static Set<String> seamNames(JSONObject hydrology) {
+        JSONArray profiles = hydrology.optJSONArray("fluids");
+        if (profiles == null) {
+            return Set.of();
+        }
+        Set<String> seams = new LinkedHashSet<>();
+        for (int index = 0; index < profiles.length(); index++) {
+            JSONObject profile = profiles.optJSONObject(index);
+            String seam = profile == null ? null : profile.optString("seam", null);
+            if (seam != null && !seam.isBlank()) {
+                seams.add(seam);
+            }
+        }
+        return seams;
+    }
+
     private static void validateFluidReferences(String path, JSONObject hydrology, Set<String> fluids, List<String> errors) {
         JSONArray tiers = hydrology.optJSONArray("tiers");
         if (tiers == null) {
@@ -208,7 +225,7 @@ final class PackHydrologyValidator {
         }
     }
 
-    private static void validatePolicies(String path, String dimensionKey, IrisData data, IrisDimension dimension, Set<String> fluids,
+    private static void validatePolicies(String path, String dimensionKey, IrisData data, IrisDimension dimension, PolicyFluids fluids,
                                          List<String> errors) {
         validatePolicy("Dimension '" + dimensionKey + "'." + POLICY, dimension.getHydrologyPolicy(), data, fluids, path, errors);
         List<IrisRegion> regions = new ArrayList<>(dimension.getAllRegions(() -> data));
@@ -227,13 +244,17 @@ final class PackHydrologyValidator {
         }
     }
 
-    private static void validatePolicy(String field, IrisHydrologyPolicy policy, IrisData data, Set<String> fluids, String configPath,
+    private static void validatePolicy(String field, IrisHydrologyPolicy policy, IrisData data, PolicyFluids fluids, String configPath,
                                        List<String> errors) {
         if (policy == null) {
             return;
         }
-        if (policy.getFluid() != null) {
-            requireFluid(field + ".fluid", policy.getFluid(), fluids, configPath, errors);
+        String fluid = policy.getFluid();
+        if (fluid != null) {
+            requireFluid(field + ".fluid", fluid, fluids.defined(), configPath, errors);
+            if (fluids.seams().contains(fluid)) {
+                errors.add(field + ".fluid names fluid '" + fluid + "', which is a seam profile; seams only line the edges of other fluids.");
+            }
         }
         if (policy.getDecorators() != null) {
             validateDecorators(field + ".decorators", policy.getDecorators(), data, errors);
@@ -282,5 +303,8 @@ final class PackHydrologyValidator {
             errors = List.copyOf(errors);
             warnings = List.copyOf(warnings);
         }
+    }
+
+    private record PolicyFluids(Set<String> defined, Set<String> seams) {
     }
 }

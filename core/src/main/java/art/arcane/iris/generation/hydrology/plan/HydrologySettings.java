@@ -169,7 +169,6 @@ public final class HydrologySettings {
         return fluids;
     }
 
-    /** Fluid name -> the fluid profile that fills its edge where it touches a different fluid. */
     public Map<String, String> seams() {
         return seams;
     }
@@ -493,13 +492,25 @@ public final class HydrologySettings {
     }
 
     private void requireFluidReferences() {
-        for (HydrologyTier tier : tiers) {
-            requireFluid(tier.fluid(), "the fluid of tier '" + tier.name() + "'");
-        }
-        requireFluid(ponds.fluid(), "ponds.fluid");
-        requireFluid(underground.cavePools().fluid(), "underground.cavePools.fluid");
         for (Map.Entry<String, String> seam : seams.entrySet()) {
             requireFluid(seam.getValue(), "the seam of fluid '" + seam.getKey() + "'");
+            if (seams.containsKey(seam.getValue())) {
+                throw new IllegalArgumentException("Hydrology fluid '" + seam.getValue() + "' is the seam of fluid '" + seam.getKey()
+                        + "' and cannot name a seam of its own");
+            }
+        }
+        for (HydrologyTier tier : tiers) {
+            requireFillingFluid(tier.fluid(), "the fluid of tier '" + tier.name() + "'");
+        }
+        requireFillingFluid(ponds.fluid(), "ponds.fluid");
+        requireFillingFluid(underground.cavePools().fluid(), "underground.cavePools.fluid");
+    }
+
+    public void requireFillingFluid(String name, String field) {
+        requireFluid(name, field);
+        if (seams.containsValue(name)) {
+            throw new IllegalArgumentException("Hydrology fluid '" + name + "' in " + field
+                    + " is a seam profile; seams only line the edges of other fluids");
         }
     }
 
@@ -577,10 +588,6 @@ public final class HydrologySettings {
         hash.add(fluids.size());
         for (Map.Entry<String, IrisMaterialPalette> fluid : fluids.entrySet()) {
             hash.add(fluid.getKey()).add(fluid.getValue());
-        }
-        hash.add(seams.size());
-        for (Map.Entry<String, String> seam : seams.entrySet()) {
-            hash.add(seam.getKey()).add(seam.getValue());
         }
     }
 

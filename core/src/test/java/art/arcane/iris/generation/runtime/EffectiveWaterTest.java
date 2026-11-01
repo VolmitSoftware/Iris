@@ -2,6 +2,7 @@ package art.arcane.iris.generation.runtime;
 
 import art.arcane.iris.generation.context.ChunkContext;
 import art.arcane.iris.generation.hydrology.engine.HydrologyRuntime;
+import art.arcane.iris.generation.hydrology.raster.ChunkWaterRaster;
 import art.arcane.iris.generation.hydrology.raster.WaterRole;
 import art.arcane.iris.generation.hydrology.water.Pond;
 import art.arcane.iris.generation.hydrology.water.Reach;
@@ -160,10 +161,24 @@ public class EffectiveWaterTest {
     }
 
     @Test
+    public void sealedColumnsTakeTheirSeamAndTheRestKeepTheRasterFluid() {
+        ChunkWaterRaster raster = mock(ChunkWaterRaster.class);
+        when(raster.fluid(anyInt(), anyInt())).thenReturn("lava");
+        String[] seams = new String[256];
+        seams[3 << 4 | 2] = "crust";
+        EffectiveWater.Chunk sealed = new EffectiveWater.Chunk(new long[256], new WaterRole[256], new boolean[256], raster, seams);
+        EffectiveWater.Chunk open = new EffectiveWater.Chunk(new long[256], new WaterRole[256], new boolean[256], raster, null);
+
+        assertEquals("crust", sealed.fluid(2, 3));
+        assertEquals("lava", sealed.fluid(3, 2));
+        assertEquals("lava", open.fluid(2, 3));
+    }
+
+    @Test
     public void chunksSharingACacheSlotNeverAnswerForEachOther() {
         EffectiveWater.Chunks chunks = new EffectiveWater.Chunks();
-        EffectiveWater.Chunk first = new EffectiveWater.Chunk(new long[256], new WaterRole[256], new boolean[256], null);
-        EffectiveWater.Chunk second = new EffectiveWater.Chunk(new long[256], new WaterRole[256], new boolean[256], null);
+        EffectiveWater.Chunk first = new EffectiveWater.Chunk(new long[256], new WaterRole[256], new boolean[256], null, null);
+        EffectiveWater.Chunk second = new EffectiveWater.Chunk(new long[256], new WaterRole[256], new boolean[256], null, null);
 
         chunks.put(0, 0, first);
         assertSame(first, chunks.get(0, 0));

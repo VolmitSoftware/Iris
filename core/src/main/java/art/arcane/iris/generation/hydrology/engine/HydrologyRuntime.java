@@ -173,10 +173,7 @@ public final class HydrologyRuntime {
             if (fluid == null) {
                 continue;
             }
-            if (!settings.fluids().containsKey(fluid)) {
-                throw new IllegalArgumentException("Biome '" + biome.getLoadKey() + "' hydrologyPolicy.fluid names '" + fluid
-                        + "', which is not one of the hydrology fluids " + settings.fluids().keySet());
-            }
+            settings.requireFillingFluid(fluid, "biome '" + biome.getLoadKey() + "' hydrologyPolicy.fluid");
             named = true;
         }
         return named;

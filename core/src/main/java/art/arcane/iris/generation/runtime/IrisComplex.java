@@ -50,7 +50,9 @@ import art.arcane.iris.generation.decoration.HydrologyVegetation;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveCell;
 import art.arcane.iris.generation.hydrology.config.IrisHydrologyMaterials;
 import art.arcane.iris.generation.hydrology.engine.HydrologyRuntime;
+import art.arcane.iris.generation.hydrology.plan.HydrologySettings;
 import art.arcane.iris.generation.hydrology.raster.ChunkWaterRaster;
+import art.arcane.iris.generation.hydrology.raster.FluidSeams;
 import art.arcane.iris.generation.hydrology.raster.WaterRole;
 import art.arcane.iris.generation.hydrology.water.HydrologyTier;
 import art.arcane.iris.generation.image.IrisImageMapApplication;
@@ -710,7 +712,31 @@ public class IrisComplex implements DataProvider {
             roles[index] = effectiveRole(own, x, z, columns[index]);
             owned[index] = owns(own, x, z, columns[index]);
         }
-        return new EffectiveWater.Chunk(columns, roles, owned, own);
+        return new EffectiveWater.Chunk(columns, roles, owned, own, sealedFluids(chunkX, chunkZ, around));
+    }
+
+    private String[] sealedFluids(int chunkX, int chunkZ, ChunkWaterRaster[] around) {
+        HydrologySettings settings = hydrologyRuntime.settings();
+        if (settings.seams().isEmpty()) {
+            return null;
+        }
+        return FluidSeams.seal(settings.seams(), settings.seed(), chunkX, chunkZ, new FluidSeams.Columns() {
+            @Override
+            public String fluid(int x, int z) {
+                ChunkWaterRaster raster = around[aroundSlot(chunkX, chunkZ, x, z)];
+                if (raster.empty() || seamWeight(x, z) == 0D || !raster.role(x & 15, z & 15).wet()) {
+                    return null;
+                }
+                return raster.fluid(x & 15, z & 15);
+            }
+
+            @Override
+            public boolean sea(int x, int z) {
+                ChunkWaterRaster raster = around[aroundSlot(chunkX, chunkZ, x, z)];
+                int ground = raster.empty() || seamWeight(x, z) == 0D ? naturalTrueHeight(x, z) : raster.terrainHeight(x & 15, z & 15);
+                return ground < transitionFluidHeight(x, z, fluidHeight);
+            }
+        });
     }
 
     private long waterColumn(int blockX, int blockZ) {
@@ -1247,9 +1273,8 @@ public class IrisComplex implements DataProvider {
         Map<String, ProceduralStream<NativeBlockState>> streams = new HashMap<>();
         int index = 0;
         for (Map.Entry<String, IrisMaterialPalette> fluid : fluids.entrySet()) {
-            // a seam (obsidian where lava meets water) is the solid result of two fluids meeting, not a fluid itself
             streams.put(fluid.getKey(), configuredFluidStream(fluid.getValue(), rng.nextParallelRNG(10900 + index),
-                    "hydrology fluid " + fluid.getKey(), !seams.contains(fluid.getKey())));
+                    "hydrology fluid " + fluid.getKey(), seams.contains(fluid.getKey())));
             index++;
         }
         return Map.copyOf(streams);
@@ -1258,16 +1283,8 @@ public class IrisComplex implements DataProvider {
     private ProceduralStream<NativeBlockState> configuredFluidStream(
             IrisMaterialPalette palette,
             RNG fluidRng,
-            String configurationName
-    ) {
-        return configuredFluidStream(palette, fluidRng, configurationName, true);
-    }
-
-    private ProceduralStream<NativeBlockState> configuredFluidStream(
-            IrisMaterialPalette palette,
-            RNG fluidRng,
             String configurationName,
-            boolean fluidOnly
+            boolean allowSolids
     ) {
         Objects.requireNonNull(palette, configurationName + " fluidPalette must be configured");
         KList<NativeBlockState> blocks = palette.getBlockData(data);
@@ -1276,7 +1293,7 @@ public class IrisComplex implements DataProvider {
                     configurationName + " fluidPalette must resolve at least one fluid block");
         }
         for (NativeBlockState block : blocks) {
-            if (block == null || fluidOnly && !block.isFluid()) {
+            if (block == null || !allowSolids && !block.isFluid()) {
                 throw new IllegalArgumentException(
                         configurationName + " fluidPalette may contain only fluid blocks");
             }
@@ -1305,7 +1322,8 @@ public class IrisComplex implements DataProvider {
     }
 
     public NativeBlockState resolveWaterFluid(int x, int z) {
-        String profile = chunkRasterAt(x, z).fluid(x & 15, z & 15);
+        EffectiveWater.Chunk chunk = effectiveChunk(x >> 4, z >> 4);
+        String profile = chunk != null && chunk.raster() != null ? chunk.fluid(x & 15, z & 15) : hydrologyRasterAt(x, z).fluid(x & 15, z & 15);
         if (profile == null) {
             throw new IllegalStateException("Column " + x + "," + z + " has no water fluid in its hydrology raster");
         }
@@ -1756,7 +1774,6 @@ public class IrisComplex implements DataProvider {
         }
         IrisBiome base = baseBiomeStream.get(x, z);
         if (base.getInferredType() == InferredType.LAND && inlandWater(x, z)) {
-            // a pond or stream above sea level keeps the land around it, even where its floor dips below sea level
             return base;
         }
         return fixBiomeType(
@@ -1777,7 +1794,7 @@ public class IrisComplex implements DataProvider {
             return false;
         }
         WaterRole role = raster.role(blockX & 15, blockZ & 15);
-        return role.wet() && role != WaterRole.MOUTH && role != WaterRole.INLET
+        return role.wet() && role != WaterRole.MOUTH && role != WaterRole.INLET && seamWeight(blockX, blockZ) != 0D
                 && raster.waterHead(blockX & 15, blockZ & 15) > transitionFluidHeight(x, z, fluidHeight);
     }
 

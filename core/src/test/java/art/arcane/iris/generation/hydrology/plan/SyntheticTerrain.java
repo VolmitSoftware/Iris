@@ -255,7 +255,7 @@ final class SyntheticTerrain implements HydrologyTerrainSource {
         return new SyntheticTerrain((x, z) -> x < coastX ? OCEAN_FLOOR : SEA_LEVEL + 30D + 0.05D * (x - coastX) + 3D * Math.sin(z / 40D));
     }
 
-    static SyntheticTerrain fractal(long seed) {
+    static SyntheticTerrain openFractal(long seed) {
         return new SyntheticTerrain((x, z) -> fractalHeight(seed, x, z));
     }
 

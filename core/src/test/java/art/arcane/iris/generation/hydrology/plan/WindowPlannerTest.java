@@ -235,7 +235,7 @@ public class WindowPlannerTest {
 
     @Test
     public void wetnessThinningDropsHeadsNotTrunkAccumulation() {
-        SyntheticTerrain terrain = SyntheticTerrain.fractal(SEED).withRainfall((x, z) -> 0.3D);
+        SyntheticTerrain terrain = SyntheticTerrain.openFractal(SEED).withRainfall((x, z) -> 0.3D);
         IrisHydrology thinning = new IrisHydrology();
         thinning.getPonds().getSeeded().setAlongChannels(false);
         IrisHydrology full = new IrisHydrology();
@@ -328,7 +328,7 @@ public class WindowPlannerTest {
     public void windowSeesEveryLakeInItsComputeArea() {
         Map<Pond, RegionKey> owners = new HashMap<>();
         HydrologySettings fractal = HydrologySettings.compile(new IrisHydrology(), 2L, SEA_LEVEL, SyntheticTerrain.MIN_Y, SyntheticTerrain.MAX_Y);
-        RegionPlanner fractalPlanner = regionPlanner(fractal, SyntheticTerrain.fractal(2L));
+        RegionPlanner fractalPlanner = regionPlanner(fractal, SyntheticTerrain.openFractal(2L));
         for (int rz = -2; rz <= 0; rz++) {
             for (int rx = 0; rx <= 2; rx++) {
                 RegionKey key = new RegionKey(rx, rz);
@@ -391,12 +391,12 @@ public class WindowPlannerTest {
     @Test
     public void chainedCupsFollowPreliminaryChannels() {
         HydrologySettings settings = settings(new IrisHydrology());
-        List<RegionPlan> regions = regionPlans(settings, SyntheticTerrain.fractal(SEED), LAND, new HashMap<>());
-        assertTrue("chained cups", count(planner(settings, SyntheticTerrain.fractal(SEED)).compute(LAND, regions).allPonds(), PondKind.CHAINED) > 0);
+        List<RegionPlan> regions = regionPlans(settings, SyntheticTerrain.openFractal(SEED), LAND, new HashMap<>());
+        assertTrue("chained cups", count(planner(settings, SyntheticTerrain.openFractal(SEED)).compute(LAND, regions).allPonds(), PondKind.CHAINED) > 0);
         IrisHydrology unchained = new IrisHydrology();
         unchained.getPonds().getSeeded().setAlongChannels(false);
         HydrologySettings plain = settings(unchained);
-        assertEquals(0, count(planner(plain, SyntheticTerrain.fractal(SEED)).compute(LAND, regions).allPonds(), PondKind.CHAINED));
+        assertEquals(0, count(planner(plain, SyntheticTerrain.openFractal(SEED)).compute(LAND, regions).allPonds(), PondKind.CHAINED));
     }
 
     @Test
@@ -594,16 +594,16 @@ public class WindowPlannerTest {
     @Test
     public void planIsDeterministic() throws Exception {
         HydrologySettings settings = settings(new IrisHydrology());
-        List<RegionPlan> regions = regionPlans(settings, SyntheticTerrain.fractal(SEED), LAND, new HashMap<>());
-        WindowPlanner planner = planner(settings, SyntheticTerrain.fractal(SEED));
+        List<RegionPlan> regions = regionPlans(settings, SyntheticTerrain.openFractal(SEED), LAND, new HashMap<>());
+        WindowPlanner planner = planner(settings, SyntheticTerrain.openFractal(SEED));
         WindowPlan first = planner.plan(LAND, regions);
         assertFalse(first.reaches().isEmpty());
         assertFalse(first.ponds().isEmpty());
         WindowKey east = new WindowKey(LAND.wx() + 1, LAND.wz());
-        planner.compute(east, regionPlans(settings, SyntheticTerrain.fractal(SEED), east, new HashMap<>()));
+        planner.compute(east, regionPlans(settings, SyntheticTerrain.openFractal(SEED), east, new HashMap<>()));
         assertEquals(first, planner.plan(LAND, regions));
         assertEquals(first, planner.plan(LAND, reversed(regions)));
-        WindowPlanner fresh = planner(settings, SyntheticTerrain.fractal(SEED));
+        WindowPlanner fresh = planner(settings, SyntheticTerrain.openFractal(SEED));
         ExecutorService pool = Executors.newFixedThreadPool(2);
         try {
             Future<WindowPlan> left = pool.submit(() -> fresh.plan(LAND, regions));

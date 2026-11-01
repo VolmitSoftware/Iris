@@ -422,7 +422,7 @@ public class HydrologyPlanCacheTest {
     @Test
     public void plansWithRealPlannersAndReloadsFromStore() throws Exception {
         HydrologySettings settings = settings(new IrisHydrology());
-        SyntheticTerrain terrain = SyntheticTerrain.fractal(SEED);
+        SyntheticTerrain terrain = SyntheticTerrain.openFractal(SEED);
         HydrologyPlanStore store = new HydrologyPlanStore(folder.getRoot().toPath(), "scope", 2, settings);
         HydrologyPlanCache cache = HydrologyPlanCache.create(settings, regionPlanner(settings, terrain), windowPlanner(settings, terrain),
                 pool(4), () -> false);
@@ -430,7 +430,7 @@ public class HydrologyPlanCacheTest {
         caches.add(cache);
         IndexedWindow window = cache.window(LAND);
 
-        SyntheticTerrain direct = SyntheticTerrain.fractal(SEED);
+        SyntheticTerrain direct = SyntheticTerrain.openFractal(SEED);
         RegionPlanner regionPlanner = regionPlanner(settings, direct);
         List<RegionPlan> regions = new ArrayList<>();
         for (RegionKey region : WindowPlanner.lakeRegions(LAND)) {
@@ -451,7 +451,7 @@ public class HydrologyPlanCacheTest {
         assertTrue("the index finds an owned reach at its end", candidates.contains(owned));
         cache.close();
 
-        SyntheticTerrain cold = SyntheticTerrain.fractal(SEED);
+        SyntheticTerrain cold = SyntheticTerrain.openFractal(SEED);
         HydrologyPlanCache reopened = HydrologyPlanCache.create(settings, regionPlanner(settings, cold), windowPlanner(settings, cold),
                 pool(4), () -> false);
         reopened.attachStore(new HydrologyPlanStore(folder.getRoot().toPath(), "scope", 2, settings));

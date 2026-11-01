@@ -168,7 +168,7 @@ public class RegionPlannerTest {
         int lakes = 0;
         for (long[] sample : spreading) {
             HydrologySettings settings = HydrologySettings.compile(new IrisHydrology(), sample[0], SEA_LEVEL, SyntheticTerrain.MIN_Y, SyntheticTerrain.MAX_Y);
-            RegionComputation computation = planner(settings, SyntheticTerrain.fractal(sample[0])).compute(new RegionKey((int) sample[1], (int) sample[2]));
+            RegionComputation computation = planner(settings, SyntheticTerrain.openFractal(sample[0])).compute(new RegionKey((int) sample[1], (int) sample[2]));
             for (Pond lake : computation.owned().lakes()) {
                 LakeCandidate candidate = candidateAt(computation.allLakes(), lake.floorX(), lake.floorZ());
                 PondMask mask = lake.mask();
@@ -191,7 +191,7 @@ public class RegionPlannerTest {
     @Test
     public void seamOverlappingLakesResolveToOne() {
         HydrologySettings settings = HydrologySettings.compile(new IrisHydrology(), 2L, SEA_LEVEL, SyntheticTerrain.MIN_Y, SyntheticTerrain.MAX_Y);
-        RegionPlanner planner = planner(settings, SyntheticTerrain.fractal(2L));
+        RegionPlanner planner = planner(settings, SyntheticTerrain.openFractal(2L));
         List<Pond> lakes = new ArrayList<>();
         lakes.addAll(planner.plan(new RegionKey(1, -1)).lakes());
         lakes.addAll(planner.plan(new RegionKey(1, -2)).lakes());
@@ -279,7 +279,7 @@ public class RegionPlannerTest {
 
     @Test
     public void regionComputeSampleBudget() {
-        SyntheticTerrain terrain = SyntheticTerrain.fractal(SEED);
+        SyntheticTerrain terrain = SyntheticTerrain.openFractal(SEED);
         RegionComputation computation = planner(settings(), terrain).compute(ORIGIN);
         List<LakeCandidate> owned = candidatesAnchoredIn(ORIGIN, computation.allLakes());
         List<LakeCandidate> measured = RegionPlanner.measuredCandidates(ORIGIN, computation.allLakes());
@@ -302,13 +302,13 @@ public class RegionPlannerTest {
     @Test
     public void planIsDeterministic() throws Exception {
         HydrologySettings settings = settings();
-        RegionPlanner planner = planner(settings, SyntheticTerrain.fractal(SEED));
+        RegionPlanner planner = planner(settings, SyntheticTerrain.openFractal(SEED));
         RegionPlan first = planner.plan(ORIGIN);
         assertFalse(first.majorReaches().isEmpty());
         assertFalse(first.lakes().isEmpty());
         planner.compute(EAST);
         assertEquals(first, planner.plan(ORIGIN));
-        RegionPlanner fresh = planner(settings, SyntheticTerrain.fractal(SEED));
+        RegionPlanner fresh = planner(settings, SyntheticTerrain.openFractal(SEED));
         ExecutorService pool = Executors.newFixedThreadPool(2);
         try {
             Future<RegionPlan> left = pool.submit(() -> fresh.plan(ORIGIN));

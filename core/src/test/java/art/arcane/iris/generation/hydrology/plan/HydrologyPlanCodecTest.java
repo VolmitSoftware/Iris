@@ -72,7 +72,7 @@ public class HydrologyPlanCodecTest {
         WindowPlan empty = new WindowPlan(new WindowKey(Integer.MIN_VALUE, Integer.MAX_VALUE), List.of(), List.of(), List.of());
         assertEquals(empty, HydrologyPlanCodec.decodeWindow(settings, HydrologyPlanCodec.encode(settings, empty)).orElseThrow());
 
-        SyntheticTerrain terrain = SyntheticTerrain.fractal(SEED);
+        SyntheticTerrain terrain = SyntheticTerrain.openFractal(SEED);
         List<RegionPlan> regions = new ArrayList<>();
         RegionPlanner regionPlanner = new RegionPlanner(settings, new HeightLattice(terrain, RegionPlanner.CELL, true, 1 << 18),
                 new HeightLattice(terrain, RegionPlanner.FINE_CELL, false, 1 << 20), new PondPlanner(settings), new ReachShaper(settings));

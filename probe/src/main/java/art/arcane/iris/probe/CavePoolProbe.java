@@ -80,19 +80,30 @@ public final class CavePoolProbe {
         }
     }
 
+    record Gate(Counts counts, int orderMismatches) {
+        long failures() {
+            return counts.failures() + orderMismatches;
+        }
+
+        String line() {
+            return String.format(Locale.ROOT, "CAVE_POOL_GATE status=%s failures=%d containment_failures=%d order_mismatches=%d",
+                    failures() == 0L ? "PASS" : "FAIL", failures(), counts.failures(), orderMismatches);
+        }
+    }
+
     static Counts check(Engine engine, Area area, ExecutorService workers) throws Exception {
         return count(survey(engine, area, workers), area);
     }
 
     public static void main(String[] arguments) {
+        int exitCode = 1;
         try {
-            scan(Configuration.parse(arguments));
-            System.exit(0);
+            exitCode = scan(Configuration.parse(arguments)).failures() == 0L ? 0 : 1;
         } catch (Throwable failure) {
             System.out.println(LOG_PREFIX + " FAIL");
             failure.printStackTrace(System.out);
-            System.exit(1);
         }
+        System.exit(exitCode);
     }
 
     private static RealPackProbeSupport.Workspace workspace(Configuration configuration) throws Exception {
@@ -100,7 +111,7 @@ public final class CavePoolProbe {
                 LOG_PREFIX, null, configuration.work()));
     }
 
-    private static void scan(Configuration configuration) throws Exception {
+    private static Gate scan(Configuration configuration) throws Exception {
         try (RealPackProbeSupport.Workspace workspace = workspace(configuration)) {
             Survey forward;
             try (RealPackProbeSupport.EngineSession session = workspace.openEngine(configuration.seed(), false, "forward")) {
@@ -109,7 +120,8 @@ public final class CavePoolProbe {
                 forward = survey(engine, configuration.area(), null);
                 requireQuiet(engine, "forward");
             }
-            report(count(forward, configuration.area()));
+            Counts counts = count(forward, configuration.area());
+            report(counts);
             Map<Long, Long> shuffled;
             try (RealPackProbeSupport.EngineSession session = workspace.openEngine(configuration.seed(), false, "shuffled")) {
                 Engine engine = session.engine();
@@ -117,7 +129,9 @@ public final class CavePoolProbe {
                 shuffled = hashes(engine, configuration);
                 requireQuiet(engine, "shuffled");
             }
-            compare(forward.hashes(), shuffled);
+            Gate gate = new Gate(counts, compare(forward.hashes(), shuffled));
+            System.out.println(gate.line());
+            return gate;
         }
     }
 
@@ -338,7 +352,7 @@ public final class CavePoolProbe {
         }
     }
 
-    private static void compare(Map<Long, Long> forward, Map<Long, Long> shuffled) {
+    static int compare(Map<Long, Long> forward, Map<Long, Long> shuffled) {
         int mismatches = 0;
         List<String> examples = new ArrayList<>();
         for (Map.Entry<Long, Long> entry : forward.entrySet()) {
@@ -355,6 +369,7 @@ public final class CavePoolProbe {
         }
         System.out.printf(Locale.ROOT, "CAVE_POOL_ORDER chunks=%d mismatches=%d signature=%016x examples=%s%n", forward.size(), mismatches,
                 signature, examples);
+        return mismatches;
     }
 
     static Counts count(Survey survey, Area area) {

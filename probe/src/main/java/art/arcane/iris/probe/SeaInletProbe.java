@@ -61,21 +61,23 @@ public final class SeaInletProbe {
     }
 
     public static void main(String[] arguments) {
+        int exitCode = 1;
         try {
             Configuration configuration = Configuration.parse(arguments);
+            long failures = 0L;
             if (configuration.mode().equals("inventory")) {
-                inventory(configuration);
+                failures = inventory(configuration);
             } else if (configuration.mode().equals("dump")) {
                 dump(configuration);
             } else {
-                gate(configuration);
+                failures = gate(configuration).failures();
             }
-            System.exit(0);
+            exitCode = failures == 0L ? 0 : 1;
         } catch (Throwable failure) {
             System.out.println(LOG + " FAIL");
             failure.printStackTrace(System.out);
-            System.exit(1);
         }
+        System.exit(exitCode);
     }
 
     private static void dump(Configuration configuration) throws Exception {
@@ -101,7 +103,8 @@ public final class SeaInletProbe {
         }
     }
 
-    private static void inventory(Configuration configuration) throws Exception {
+    private static int inventory(Configuration configuration) throws Exception {
+        int failedWindows = 0;
         try (RealPackProbeSupport.Workspace workspace = workspace(configuration, configuration.packOn());
              RealPackProbeSupport.EngineSession session = workspace.openEngine(configuration.seed(), false, "inventory")) {
             HydrologyRuntime runtime = session.engine().getComplex().getHydrologyRuntime();
@@ -113,6 +116,7 @@ public final class SeaInletProbe {
                         owned = coast[1] == 0 ? Map.of() : owned(runtime, wx, wx, wz, wz);
                     } catch (RuntimeException failure) {
                         System.out.println("SEA_INLET_WINDOW_FAILED wx=" + wx + " wz=" + wz + " " + rootMessage(failure));
+                        failedWindows++;
                         continue;
                     }
                     double length = 0D;
@@ -124,6 +128,7 @@ public final class SeaInletProbe {
                 }
             }
         }
+        return failedWindows;
     }
 
     private static String rootMessage(Throwable failure) {
@@ -164,7 +169,7 @@ public final class SeaInletProbe {
         return new int[]{below, cliff};
     }
 
-    private static void gate(Configuration configuration) throws Exception {
+    private static Gate gate(Configuration configuration) throws Exception {
         List<long[]> tiles = tileChunks(configuration);
         Run forward = run(configuration, configuration.packOn(), tiles, null, false, true, 1, "on-forward");
         List<long[]> all = new ArrayList<>(forward.order);
@@ -175,7 +180,7 @@ public final class SeaInletProbe {
         System.out.println(LOG + " scan chunks " + forward.scanChunks.size() + ", generated chunks " + all.size());
         Run reverse = run(configuration, configuration.packOn(), all, null, true, false, configuration.threads(), "on-reverse");
         Run baseline = run(configuration, configuration.packOff(), scanned, forward.scanChunks, false, false, configuration.threads(), "off");
-        report(configuration, forward.inlets, forward, reverse, baseline);
+        return report(configuration, forward.inlets, forward, reverse, baseline);
     }
 
     private static Run run(Configuration configuration, File pack, List<long[]> chunks, Set<Long> scanChunks, boolean reverse, boolean inventory,
@@ -256,7 +261,23 @@ public final class SeaInletProbe {
         static final Checks NONE = new Checks(0, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L, List.of());
 
         long failures() {
-            return leaks + missingWater + waterAbove + roofViolations + openRoofViolations + disconnected + shellOpen + shellLoose;
+            return leaks + missingWater + waterAbove + roofViolations + roofBreaches + openRoofViolations + disconnected + shellOpen + shellLoose;
+        }
+    }
+
+    record Gate(Checks checks, int orderMismatches, int inletsWithOtherLevel, int waterLeaksOn, int waterLeaksOff) {
+        long addedLeaks() {
+            return Math.max(0, waterLeaksOn - waterLeaksOff);
+        }
+
+        long failures() {
+            return checks.failures() + orderMismatches + inletsWithOtherLevel + addedLeaks();
+        }
+
+        String line() {
+            return String.format(Locale.ROOT, "SEA_INLET_GATE status=%s failures=%d checkFailures=%d orderMismatches=%d inletsWithOtherLevel=%d"
+                            + " addedLeaks=%d", failures() == 0L ? "PASS" : "FAIL", failures(), checks.failures(), orderMismatches,
+                    inletsWithOtherLevel, addedLeaks());
         }
     }
 
@@ -295,8 +316,12 @@ public final class SeaInletProbe {
         }
         Scan scan = new Scan(run, run.sea, run.roofClearance, inlets);
         scan.run();
+        return checks(scan);
+    }
+
+    private static Checks checks(Scan scan) {
         Scan.InletStats total = scan.total;
-        return new Checks(inlets.size(), total.leaks, total.missingWater, total.waterAbove, total.roofViolations, total.roofBreaches,
+        return new Checks(scan.inlets.size(), total.leaks, total.missingWater, total.waterAbove, total.roofViolations, total.roofBreaches,
                 total.openRoofViolations, total.disconnected, scan.shellOpen, scan.shellLoose, total.looseBeds, List.copyOf(scan.examples));
     }
 
@@ -363,7 +388,7 @@ public final class SeaInletProbe {
         return chunks;
     }
 
-    private static void report(Configuration configuration, Map<Long, SeaInlet> touching, Run on, Run reverse, Run off) {
+    private static Gate report(Configuration configuration, Map<Long, SeaInlet> touching, Run on, Run reverse, Run off) {
         int sea = on.sea;
         int clearance = on.roofClearance;
         List<SeaInlet> owned = new ArrayList<>();
@@ -413,6 +438,9 @@ public final class SeaInletProbe {
                 scan.shellOpen, scan.shellLoose, maxOpenLandStations(owned), scan.total.looseBeds);
         System.out.printf(Locale.ROOT, "SEA_INLET_DETERMINISM chunks=%d reverseChunks=%d mismatches=%d crossChunkInlets=%d crossWindowInlets=%d%n",
                 on.hashes.size(), reverse.hashes.size(), mismatches, scan.crossChunk(), scan.crossWindow());
+        Gate gate = new Gate(checks(scan), mismatches, offLevel, onLeaks, offLeaks);
+        System.out.println(gate.line());
+        return gate;
     }
 
     private static int openStations(SeaInlet inlet) {

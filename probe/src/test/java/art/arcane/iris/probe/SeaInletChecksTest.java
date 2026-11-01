@@ -7,16 +7,39 @@ import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class SeaInletChecksTest {
     @Test
-    public void roofBreachesAndLooseBedsAreReportedButOnlyContainmentAndSealChecksFail() {
-        SeaInletProbe.Checks reported = new SeaInletProbe.Checks(3, 0L, 0L, 0L, 0L, 1939L, 0L, 0L, 0L, 0L, 952L, List.of());
+    public void roofBreachesFailWithTheContainmentSealAndRoofChecks() {
+        SeaInletProbe.Checks breached = new SeaInletProbe.Checks(3, 0L, 0L, 0L, 0L, 1939L, 0L, 0L, 0L, 0L, 0L, List.of());
+        assertEquals(1939L, breached.failures());
+        SeaInletProbe.Checks failing = new SeaInletProbe.Checks(3, 1L, 2L, 3L, 4L, 9L, 5L, 6L, 7L, 8L, 0L, List.of());
+        assertEquals(45L, failing.failures());
+    }
+
+    @Test
+    public void looseBedsAreReportedButDoNotFail() {
+        SeaInletProbe.Checks reported = new SeaInletProbe.Checks(3, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 952L, List.of());
         assertEquals(0L, reported.failures());
-        SeaInletProbe.Checks failing = new SeaInletProbe.Checks(3, 1L, 2L, 3L, 4L, 0L, 5L, 6L, 7L, 8L, 0L, List.of());
-        assertEquals(36L, failing.failures());
+    }
+
+    @Test
+    public void theGateFailsOnEveryCheckIncludingOrderSeaLevelAndAddedLeaks() {
+        SeaInletProbe.Checks clean = new SeaInletProbe.Checks(3, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 952L, List.of());
+        SeaInletProbe.Gate passing = new SeaInletProbe.Gate(clean, 0, 0, 7, 7);
+        assertEquals(0L, passing.failures());
+        assertTrue(passing.line(), passing.line().startsWith("SEA_INLET_GATE status=PASS failures=0 "));
+        assertEquals("inlets that remove natural leaks do not fail", 0L, new SeaInletProbe.Gate(clean, 0, 0, 5, 7).failures());
+        assertEquals(2L, new SeaInletProbe.Gate(clean, 0, 0, 9, 7).failures());
+        assertEquals(1L, new SeaInletProbe.Gate(clean, 1, 0, 7, 7).failures());
+        assertEquals(1L, new SeaInletProbe.Gate(clean, 0, 1, 7, 7).failures());
+        SeaInletProbe.Checks breached = new SeaInletProbe.Checks(3, 0L, 0L, 0L, 0L, 4L, 0L, 0L, 0L, 0L, 0L, List.of());
+        SeaInletProbe.Gate failing = new SeaInletProbe.Gate(breached, 0, 0, 0, 0);
+        assertEquals(4L, failing.failures());
+        assertTrue(failing.line(), failing.line().startsWith("SEA_INLET_GATE status=FAIL failures=4 "));
     }
 
     @Test

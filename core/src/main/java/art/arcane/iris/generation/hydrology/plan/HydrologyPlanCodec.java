@@ -28,8 +28,6 @@ public final class HydrologyPlanCodec {
     private static final int POND_BYTES = 2 * Long.BYTES + 1 + 15 * Integer.BYTES;
     private static final int STATION_BYTES = 5 * Integer.BYTES;
     private static final int INLET_BYTES = Long.BYTES + 5 * Integer.BYTES + 2 * STATION_BYTES;
-    private static final ReachStyle[] STYLES = ReachStyle.values();
-    private static final PondKind[] KINDS = PondKind.values();
 
     private HydrologyPlanCodec() {
     }
@@ -102,13 +100,13 @@ public final class HydrologyPlanCodec {
         writeFloats(out, reach.halfWidth());
         writeFloats(out, reach.depth());
         for (ReachStyle style : reach.style()) {
-            out.writeByte(style.ordinal());
+            out.writeByte(style.code());
         }
     }
 
     private static void writePond(DataOutputStream out, Pond pond) throws IOException {
         out.writeLong(pond.id());
-        out.writeByte(pond.kind().ordinal());
+        out.writeByte(pond.kind().code());
         out.writeInt(pond.level());
         out.writeInt(pond.floor());
         out.writeInt(pond.spillX());
@@ -190,7 +188,7 @@ public final class HydrologyPlanCodec {
                 return Optional.empty();
             }
             return Optional.of(new Body(x, z, reaches, ponds, inlets));
-        } catch (BufferUnderflowException | IllegalArgumentException malformed) {
+        } catch (BufferUnderflowException | IllegalArgumentException | IllegalStateException malformed) {
             return Optional.empty();
         }
     }
@@ -211,14 +209,14 @@ public final class HydrologyPlanCodec {
         float[] depth = readFloats(in, points);
         ReachStyle[] style = new ReachStyle[points];
         for (int point = 0; point < points; point++) {
-            style[point] = STYLES[index(in.get(), STYLES.length)];
+            style[point] = ReachStyle.fromCode(Byte.toUnsignedInt(in.get()));
         }
         return new Reach(id, tier, downstreamId, xs, zs, grade, halfWidth, depth, style, catchment);
     }
 
     private static Pond readPond(ByteBuffer in) {
         long id = in.getLong();
-        PondKind kind = KINDS[index(in.get(), KINDS.length)];
+        PondKind kind = PondKind.fromCode(Byte.toUnsignedInt(in.get()));
         int level = in.getInt();
         int floor = in.getInt();
         int spillX = in.getInt();

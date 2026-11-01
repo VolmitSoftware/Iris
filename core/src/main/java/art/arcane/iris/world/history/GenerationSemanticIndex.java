@@ -1750,14 +1750,14 @@ public final class GenerationSemanticIndex {
                 } else if (riverTypeCount > HydrologyFeatureType.values().length) {
                     throw invalid(source, "invalid summary river type count " + riverTypeCount);
                 }
-                int previousOrdinal = -1;
+                int previousCode = -1;
                 for (int index = 0; index < riverTypeCount; index++) {
-                    int ordinal = input.readUnsignedByte();
-                    if (ordinal <= previousOrdinal || ordinal >= HydrologyFeatureType.values().length) {
-                        throw invalid(source, "invalid summary river type ordinal " + ordinal);
+                    int code = input.readUnsignedByte();
+                    if (code <= previousCode) {
+                        throw invalid(source, "summary river type codes are not in canonical order");
                     }
-                    riverTypes.add(HydrologyFeatureType.values()[ordinal]);
-                    previousOrdinal = ordinal;
+                    riverTypes.add(RegionShard.riverFeatureType(source, code));
+                    previousCode = code;
                 }
                 LongOpenHashSet activations = readActivations(source, input, "summary activation");
                 LongOpenHashSet sealedActivations = readActivations(source, input, "sealed summary activation");
@@ -1791,8 +1791,8 @@ public final class GenerationSemanticIndex {
                     }
                 }
                 output.writeByte(riverTypes.size());
-                for (HydrologyFeatureType type : riverTypes) {
-                    output.writeByte(type.ordinal());
+                for (int code : riverTypes.stream().mapToInt(HydrologyFeatureType::code).sorted().toArray()) {
+                    output.writeByte(code);
                 }
                 writeActivations(output, activations);
                 writeActivations(output, sealedActivations);
@@ -2707,7 +2707,7 @@ public final class GenerationSemanticIndex {
                     output.writeShort(semantics.riverFeatures().size());
                     for (ChunkGenerationSemantics.RiverFeatureOccurrence occurrence : semantics.riverFeatures()) {
                         output.writeShort(paletteIndexes.get(occurrence.profileKey()));
-                        output.writeByte(occurrence.type().ordinal());
+                        output.writeByte(occurrence.type().code());
                         output.writeLong(occurrence.featureId());
                         output.writeInt(occurrence.position().x());
                         output.writeInt(occurrence.position().y());
@@ -2916,21 +2916,17 @@ public final class GenerationSemanticIndex {
                 return;
             }
             ChunkGenerationSemantics.RiverFeatureOccurrence previous = null;
-            HydrologyFeatureType[] types = HydrologyFeatureType.values();
             for (int index = 0; index < count; index++) {
                 int paletteIndex = input.readUnsignedShort();
                 if (paletteIndex >= palette.length) {
                     throw invalid(file, "river profile key palette index is out of range");
                 }
-                int typeOrdinal = input.readUnsignedByte();
-                if (typeOrdinal >= types.length) {
-                    throw invalid(file, "river feature type ordinal is out of range");
-                }
+                HydrologyFeatureType type = riverFeatureType(file, input.readUnsignedByte());
                 paletteUsed[paletteIndex] = true;
                 ChunkGenerationSemantics.RiverFeatureOccurrence occurrence =
                         new ChunkGenerationSemantics.RiverFeatureOccurrence(
                                 palette[paletteIndex],
-                                types[typeOrdinal],
+                                type,
                                 input.readLong(),
                                 new ChunkGenerationSemantics.BlockPosition(
                                         input.readInt(),
@@ -2945,6 +2941,14 @@ public final class GenerationSemanticIndex {
                 }
                 builder.addRiverFeature(occurrence);
                 previous = occurrence;
+            }
+        }
+
+        private static HydrologyFeatureType riverFeatureType(Path file, int code) throws IOException {
+            try {
+                return HydrologyFeatureType.fromCode(code);
+            } catch (IllegalStateException unknown) {
+                throw invalid(file, unknown.getMessage(), unknown);
             }
         }
 

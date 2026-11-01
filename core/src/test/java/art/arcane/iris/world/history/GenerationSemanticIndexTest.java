@@ -569,6 +569,31 @@ public final class GenerationSemanticIndexTest {
     }
 
     @Test
+    public void unknownRiverFeatureCodesFailClosed() throws Exception {
+        Path recordRoot = temporaryFolder.newFolder("unknown-record-river-code").toPath();
+        Path recordShard = streamShard(recordRoot);
+        byte[] record = Files.readAllBytes(recordShard);
+        record[firstRiverTypeOffset(record)] = (byte) 200;
+        rewriteChecksum(record);
+        replaceReferencedShard(recordRoot, recordShard, record);
+        GenerationSemanticIndex recordIndex = GenerationSemanticIndex.load(recordRoot);
+        IllegalStateException recordError = assertThrows(IllegalStateException.class, () -> recordIndex.get(0, 0));
+        assertTrue(recordError.getCause().getMessage(),
+                recordError.getCause().getMessage().contains("Unknown HydrologyFeatureType code 200"));
+
+        Path summaryRoot = temporaryFolder.newFolder("unknown-summary-river-code").toPath();
+        Path summaryShard = streamShard(summaryRoot);
+        byte[] summary = Files.readAllBytes(summaryShard);
+        summary[summaryRiverTypeOffset(summary)] = (byte) 200;
+        rewriteChecksum(summary);
+        replaceReferencedShard(summaryRoot, summaryShard, summary);
+        GenerationSemanticIndex summaryIndex = GenerationSemanticIndex.load(summaryRoot);
+        IllegalStateException summaryError = assertThrows(IllegalStateException.class, () -> summaryIndex.get(0, 0));
+        assertTrue(summaryError.getCause().getMessage(),
+                summaryError.getCause().getMessage().contains("Unknown HydrologyFeatureType code 200"));
+    }
+
+    @Test
     public void currentShardKeepsEveryHydrologyFeatureType() throws Exception {
         Path dimensionRoot = temporaryFolder.newFolder("current-hydrology").toPath();
         GenerationSemanticIndex index = GenerationSemanticIndex.load(dimensionRoot);
@@ -877,6 +902,16 @@ public final class GenerationSemanticIndexTest {
                 .addRegion(regionKey)
                 .seal()
                 .build();
+    }
+
+    private static Path streamShard(Path dimensionRoot) throws Exception {
+        GenerationSemanticIndex index = GenerationSemanticIndex.load(dimensionRoot);
+        index.recordAndPersist(ChunkGenerationSemantics.builder(0, 0, 1L)
+                .addRegion("temperate")
+                .addRiverFeature("water", HydrologyFeatureType.STREAM, 9L, 3, 70, 4)
+                .seal()
+                .build());
+        return onlyShard(index.storageDirectory());
     }
 
     private static Path onlyShard(Path directory) throws Exception {

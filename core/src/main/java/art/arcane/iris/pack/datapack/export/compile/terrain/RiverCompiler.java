@@ -1,10 +1,12 @@
 package art.arcane.iris.pack.datapack.export.compile.terrain;
 
+import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.hydrology.config.IrisBankStyle;
 import art.arcane.iris.generation.hydrology.config.IrisHydrology;
 import art.arcane.iris.generation.hydrology.plan.HydrologySettings;
 import art.arcane.iris.generation.hydrology.water.HydrologyTier;
 import art.arcane.iris.generation.terrain.IrisDimension;
+import art.arcane.iris.generation.terrain.IrisRegion;
 import art.arcane.iris.pack.datapack.export.compile.noise.NoiseRegistry;
 import art.arcane.iris.pack.datapack.export.ir.CostClass;
 import art.arcane.iris.pack.datapack.export.ir.ExportDiagnostic;
@@ -59,8 +61,9 @@ public final class RiverCompiler {
         this.diagnostics = Objects.requireNonNull(diagnostics, "diagnostics");
     }
 
-    public Field compile(Field height, IrisDimension dimension, NoiseRegistry registry, ExportCapabilities capabilities) {
+    public Field compile(Field height, IrisDimension dimension, List<Area> areas, NoiseRegistry registry, ExportCapabilities capabilities) {
         Objects.requireNonNull(height, "height");
+        Objects.requireNonNull(areas, "areas");
         IrisHydrology hydrology = dimension.getHydrology();
         if (hydrology == null || !hydrology.isEnabled()) {
             return height;
@@ -73,6 +76,7 @@ public final class RiverCompiler {
             return height;
         }
         report(ExportLimit.RIVER_DRAINAGE, resource, "Rivers follow seeded noise channels instead of drainage: tributaries cross instead of joining and widths follow elevation");
+        diagnostics.addAll(RiverLimits.diagnostics(dimension, settings, areas, resource));
         Field elevation = FieldMacros.sum(List.of(height, new Field.Const(-fluidHeight)));
         Carving carving = new Carving(elevation, variation(registry), bankNoise(settings.deformation(), registry), settings.deformation(), registry, capabilities);
         List<HydrologyTier> tiers = settings.tiers();
@@ -285,6 +289,13 @@ public final class RiverCompiler {
             return new Field.Const(Math.max(left.value(), right.value()));
         }
         return new Field.Binary(Field.BinaryOp.MAX, first, second);
+    }
+
+    public record Area(IrisRegion region, IrisBiome biome) {
+        public Area {
+            Objects.requireNonNull(region, "region");
+            Objects.requireNonNull(biome, "biome");
+        }
     }
 
     private record Carving(Field elevation, Field variation, Field bankNoise, HydrologySettings.Deformation deformation,

@@ -66,6 +66,28 @@ public class RiverStageTest {
     }
 
     @Test
+    public void stageReportsTheHydrologyPoliciesOfExportedBiomes() throws Exception {
+        File pack = pack(false);
+        String fluids = "\"fluids\":[{\"name\":\"water\"},{\"name\":\"lava\",\"palette\":{\"palette\":[{\"block\":\"minecraft:lava\"}]}}]";
+        CompatTestPlatform.write(pack, "dimensions/" + TerrainTestPacks.DIMENSION + ".json",
+                "{\"regions\":[\"region\"],\"hydrology\":{\"enabled\":true,\"density\":0.5," + fluids + "}}");
+        CompatTestPlatform.write(pack, "regions/region.json", "{\"landBiomes\":[\"a\",\"b\"],\"hydrologyPolicy\":{\"rainfall\":1.5}}");
+        TerrainTestPacks.biome(pack, "a", "{\"name\":\"A\",\"generators\":[" + TerrainTestPacks.link("hills", 0, 40) + "],"
+                + "\"hydrologyPolicy\":{\"fluid\":\"lava\"}}");
+        IrisData data = IrisData.openRuntime(pack);
+        try {
+            PackCompileContext context = terrainContext(data, DataVersion.V26_3);
+
+            new RiverStage().apply(context);
+
+            assertEquals(List.of("biomes/a"), resources(context.diagnostics(), ExportLimit.RIVER_FLUID));
+            assertEquals(List.of("regions/region"), resources(context.diagnostics(), ExportLimit.RIVER_POLICY));
+        } finally {
+            data.close();
+        }
+    }
+
+    @Test
     public void aquiferSurfaceCarvesTheClimateHeight() throws Exception {
         IrisData data = IrisData.openRuntime(pack(true));
         try {
@@ -147,6 +169,10 @@ public class RiverStageTest {
         String water = hydrology ? ",\"hydrology\":{\"enabled\":true,\"density\":0.5}" : "";
         CompatTestPlatform.write(pack, "dimensions/" + TerrainTestPacks.DIMENSION + ".json", "{\"regions\":[\"region\"]" + water + "}");
         return pack;
+    }
+
+    private static List<String> resources(List<ExportDiagnostic> diagnostics, ExportLimit limit) {
+        return diagnostics.stream().filter(diagnostic -> diagnostic.limit() == limit).map(ExportDiagnostic::resource).toList();
     }
 
     private static PackCompileContext terrainContext(IrisData data, DataVersion target) {

@@ -1,10 +1,21 @@
 package art.arcane.iris.pack.datapack.export.compile.terrain;
 
+import art.arcane.iris.generation.biome.IrisBiome;
+import art.arcane.iris.generation.block.IrisBlockData;
+import art.arcane.iris.generation.decoration.IrisDecorationPart;
+import art.arcane.iris.generation.decoration.IrisDecorator;
 import art.arcane.iris.generation.hydrology.config.IrisBankStyle;
+import art.arcane.iris.generation.hydrology.config.IrisFluidProfile;
 import art.arcane.iris.generation.hydrology.config.IrisHydrology;
+import art.arcane.iris.generation.hydrology.config.IrisHydrologyClimate;
 import art.arcane.iris.generation.hydrology.config.IrisHydrologyDeformation;
+import art.arcane.iris.generation.hydrology.config.IrisHydrologyPermission;
+import art.arcane.iris.generation.hydrology.config.IrisHydrologyPolicy;
 import art.arcane.iris.generation.hydrology.config.IrisHydrologyTier;
+import art.arcane.iris.generation.hydrology.config.IrisHydrologyUnderground;
 import art.arcane.iris.generation.terrain.IrisDimension;
+import art.arcane.iris.generation.terrain.IrisMaterialPalette;
+import art.arcane.iris.generation.terrain.IrisRegion;
 import art.arcane.iris.pack.datapack.DataVersion;
 import art.arcane.iris.pack.datapack.export.compile.noise.NoiseRegistry;
 import art.arcane.iris.pack.datapack.export.ir.Axis;
@@ -20,6 +31,7 @@ import art.arcane.volmlib.util.collection.KList;
 import org.junit.Test;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
@@ -163,8 +175,208 @@ public class RiverCompilerTest {
 
         compile(new Field.Const(SEA_LEVEL + 2.0), overworldHydrology(), registry(), DataVersion.V26_3, diagnostics);
 
-        assertEquals(List.of(ExportLimit.ELEVATED_WATER, ExportLimit.RIVER_DRAINAGE), diagnostics.stream().map(ExportDiagnostic::limit).toList());
+        assertEquals(List.of(ExportLimit.ELEVATED_WATER, ExportLimit.RIVER_DRAINAGE, ExportLimit.SEA_INLET, ExportLimit.CAVE_POOL),
+                diagnostics.stream().map(ExportDiagnostic::limit).toList());
         assertEquals("dimensions/rivers/hydrology", diagnostics.getFirst().resource());
+    }
+
+    @Test
+    public void lavaRiversReportADiagnostic() {
+        List<ExportDiagnostic> diagnostics = new ArrayList<>();
+        IrisBiome volcano = biome("tropical/volcanoes", new IrisHydrologyPolicy().setFluid("lava"));
+        List<RiverCompiler.Area> areas = List.of(
+                new RiverCompiler.Area(region("tropical", null), volcano),
+                new RiverCompiler.Area(region("hot", null), volcano),
+                new RiverCompiler.Area(region("hot", null), biome("plains", null)));
+
+        compile(new Field.Const(SEA_LEVEL + 2.0), withLava(overworldHydrology()), areas, diagnostics);
+
+        List<ExportDiagnostic> fluids = limited(diagnostics, ExportLimit.RIVER_FLUID);
+        assertEquals(diagnostics.toString(), 1, fluids.size());
+        assertEquals("biomes/tropical/volcanoes", fluids.getFirst().resource());
+        assertEquals(ExportDiagnostic.Severity.WARNING, fluids.getFirst().severity());
+        assertTrue(fluids.getFirst().message(), fluids.getFirst().message().contains("'lava'"));
+        assertTrue(fluids.getFirst().message(), fluids.getFirst().message().contains("minecraft:water"));
+    }
+
+    @Test
+    public void lavaTiersReportTheirFluidAndSeamOnTheHydrology() {
+        List<ExportDiagnostic> diagnostics = new ArrayList<>();
+        IrisHydrology hydrology = withLava(overworldHydrology());
+        hydrology.getFluids().getLast().setSeam("obsidian");
+        hydrology.getFluids().add(new IrisFluidProfile().setName("obsidian").setPalette(new IrisMaterialPalette().qclear().qadd("minecraft:obsidian")));
+        for (IrisHydrologyTier tier : hydrology.getTiers()) {
+            tier.setFluid("lava");
+        }
+
+        compile(new Field.Const(SEA_LEVEL + 2.0), hydrology, List.of(new RiverCompiler.Area(region("region", null), biome("plains", null))), diagnostics);
+
+        List<ExportDiagnostic> fluids = limited(diagnostics, ExportLimit.RIVER_FLUID);
+        assertEquals(diagnostics.toString(), 1, fluids.size());
+        assertEquals("dimensions/rivers/hydrology", fluids.getFirst().resource());
+        assertTrue(fluids.getFirst().message(), fluids.getFirst().message().contains("'obsidian'"));
+    }
+
+    @Test
+    public void fluidsMatchingTheExportedFluidReportNothing() {
+        List<ExportDiagnostic> water = new ArrayList<>();
+        IrisBiome wet = biome("plains", new IrisHydrologyPolicy().setFluid("water"));
+        compile(new Field.Const(SEA_LEVEL + 2.0), withLava(overworldHydrology()), List.of(new RiverCompiler.Area(region("region", null), wet)), water);
+
+        List<ExportDiagnostic> lava = new ArrayList<>();
+        IrisHydrology molten = withLava(overworldHydrology());
+        for (IrisHydrologyTier tier : molten.getTiers()) {
+            tier.setFluid("lava");
+        }
+        IrisDimension nether = dimension(molten, new IrisHydrologyPolicy().setFluid("lava"));
+        nether.setFluidPalette(new IrisMaterialPalette().qclear().qadd("lava"));
+        compile(new Field.Const(SEA_LEVEL + 2.0), nether, List.of(new RiverCompiler.Area(region("region", null), biome("plains", null))),
+                registry(), DataVersion.V26_3, lava);
+
+        assertTrue(water.toString(), limited(water, ExportLimit.RIVER_FLUID).isEmpty());
+        assertTrue(lava.toString(), limited(lava, ExportLimit.RIVER_FLUID).isEmpty());
+    }
+
+    @Test
+    public void rainfallAndBlockedStreamsReportPolicyDiagnostics() {
+        List<ExportDiagnostic> diagnostics = new ArrayList<>();
+        IrisRegion hot = region("hot", new IrisHydrologyPolicy().setRainfall(1.4));
+        IrisBiome deep = biome("ocean/deep", new IrisHydrologyPolicy().setStreams(IrisHydrologyPermission.BLOCK));
+        IrisBiome neutral = biome("plains", new IrisHydrologyPolicy().setRainfall(1.0));
+        IrisDimension dimension = dimension(overworldHydrology(), new IrisHydrologyPolicy().setRainfall(1.2));
+
+        compile(new Field.Const(SEA_LEVEL + 2.0), dimension, List.of(new RiverCompiler.Area(hot, deep), new RiverCompiler.Area(hot, neutral)),
+                registry(), DataVersion.V26_3, diagnostics);
+
+        List<ExportDiagnostic> policies = limited(diagnostics, ExportLimit.RIVER_POLICY);
+        assertEquals(List.of("regions/hot", "biomes/ocean/deep"), policies.stream().map(ExportDiagnostic::resource).toList());
+        assertTrue(policies.getFirst().message(), policies.getFirst().message().contains("rainfall"));
+        assertTrue(policies.getLast().message(), policies.getLast().message().contains("BLOCK"));
+    }
+
+    @Test
+    public void wetAndDryZonesReportAClimateDiagnostic() {
+        List<ExportDiagnostic> zoned = new ArrayList<>();
+        IrisHydrology hydrology = overworldHydrology().setClimate(new IrisHydrologyClimate().setEnabled(true));
+        compile(new Field.Const(SEA_LEVEL + 2.0), hydrology, List.of(new RiverCompiler.Area(region("region", null), biome("plains", null))), zoned);
+
+        List<ExportDiagnostic> exempt = new ArrayList<>();
+        IrisRegion everywhere = region("region", new IrisHydrologyPolicy().setClimateZones(false));
+        compile(new Field.Const(SEA_LEVEL + 2.0), hydrology, List.of(new RiverCompiler.Area(everywhere, biome("plains", null))), exempt);
+
+        List<ExportDiagnostic> climate = limited(zoned, ExportLimit.RIVER_CLIMATE);
+        assertEquals(zoned.toString(), 1, climate.size());
+        assertEquals("dimensions/rivers/hydrology", climate.getFirst().resource());
+        assertTrue(exempt.toString(), limited(exempt, ExportLimit.RIVER_CLIMATE).isEmpty());
+    }
+
+    @Test
+    public void shoreBiomesWithAWidthReportADiagnostic() {
+        List<ExportDiagnostic> diagnostics = new ArrayList<>();
+        IrisDimension dimension = dimension(overworldHydrology(), new IrisHydrologyPolicy().setShoreBiomes(new KList<>("shore/beach")));
+        List<RiverCompiler.Area> areas = List.of(
+                new RiverCompiler.Area(region("banked", new IrisHydrologyPolicy().setShoreBiomeWidth(4)), biome("plains", null)),
+                new RiverCompiler.Area(region("bare", null), biome("plains", null)));
+
+        compile(new Field.Const(SEA_LEVEL + 2.0), dimension, areas, registry(), DataVersion.V26_3, diagnostics);
+
+        List<ExportDiagnostic> widthless = new ArrayList<>();
+        compile(new Field.Const(SEA_LEVEL + 2.0), dimension, List.of(areas.getLast()), registry(), DataVersion.V26_3, widthless);
+
+        assertEquals(List.of("dimensions/rivers"), limited(diagnostics, ExportLimit.RIVER_SHORE_BIOME).stream().map(ExportDiagnostic::resource).toList());
+        assertTrue(widthless.toString(), limited(widthless, ExportLimit.RIVER_SHORE_BIOME).isEmpty());
+    }
+
+    @Test
+    public void waterDecoratorsReportADiagnostic() {
+        List<ExportDiagnostic> diagnostics = new ArrayList<>();
+        IrisHydrology hydrology = overworldHydrology();
+        hydrology.getTiers().getFirst().setDecorators(new KList<>(seagrass()));
+        IrisBiome reeds = biome("swamp", new IrisHydrologyPolicy().setDecorators(new KList<>(seagrass())));
+        IrisBiome barren = biome("desert", new IrisHydrologyPolicy().setDecorators(new KList<>()));
+        IrisRegion region = region("region", null);
+
+        compile(new Field.Const(SEA_LEVEL + 2.0), hydrology, List.of(new RiverCompiler.Area(region, reeds), new RiverCompiler.Area(region, barren)), diagnostics);
+
+        List<ExportDiagnostic> plain = new ArrayList<>();
+        compile(new Field.Const(SEA_LEVEL + 2.0), hydrology, List.of(new RiverCompiler.Area(region, biome("plains", null))), plain);
+
+        assertEquals(List.of("biomes/swamp"), limited(diagnostics, ExportLimit.RIVER_DECORATOR).stream().map(ExportDiagnostic::resource).toList());
+        assertEquals(List.of("dimensions/rivers/hydrology"), limited(plain, ExportLimit.RIVER_DECORATOR).stream().map(ExportDiagnostic::resource).toList());
+    }
+
+    @Test
+    public void seaInletsReportADiagnostic() {
+        List<ExportDiagnostic> diagnostics = new ArrayList<>();
+        IrisHydrology hydrology = overworldHydrology();
+        hydrology.getUnderground().getCavePools().setEnabled(false);
+
+        compile(new Field.Const(SEA_LEVEL + 2.0), hydrology, registry(), DataVersion.V26_3, diagnostics);
+
+        assertEquals(1, limited(diagnostics, ExportLimit.SEA_INLET).size());
+        assertEquals("dimensions/rivers/hydrology", limited(diagnostics, ExportLimit.SEA_INLET).getFirst().resource());
+        assertTrue(diagnostics.toString(), limited(diagnostics, ExportLimit.CAVE_POOL).isEmpty());
+    }
+
+    @Test
+    public void cavePoolsReportADiagnostic() {
+        List<ExportDiagnostic> diagnostics = new ArrayList<>();
+        IrisHydrology hydrology = overworldHydrology();
+        hydrology.getUnderground().getSeaInlets().setEnabled(false);
+
+        compile(new Field.Const(SEA_LEVEL + 2.0), hydrology, registry(), DataVersion.V26_3, diagnostics);
+
+        assertEquals(1, limited(diagnostics, ExportLimit.CAVE_POOL).size());
+        assertEquals("dimensions/rivers/hydrology", limited(diagnostics, ExportLimit.CAVE_POOL).getFirst().resource());
+        assertTrue(diagnostics.toString(), limited(diagnostics, ExportLimit.SEA_INLET).isEmpty());
+    }
+
+    @Test
+    public void unusedHydrologyFeaturesReportNoLimits() {
+        List<ExportDiagnostic> plain = new ArrayList<>();
+        IrisHydrology hydrology = withLava(overworldHydrology()).setUnderground(underground(false));
+        compile(new Field.Const(SEA_LEVEL + 2.0), hydrology, registry(), DataVersion.V26_3, plain);
+
+        List<ExportDiagnostic> dry = new ArrayList<>();
+        IrisHydrology still = overworldHydrology().setDensity(0.0).setClimate(new IrisHydrologyClimate().setEnabled(true));
+        still.getTiers().getFirst().setDecorators(new KList<>(seagrass()));
+        compile(new Field.Const(SEA_LEVEL + 2.0), still, registry(), DataVersion.V26_3, dry);
+
+        assertEquals(List.of(ExportLimit.ELEVATED_WATER, ExportLimit.RIVER_DRAINAGE), plain.stream().map(ExportDiagnostic::limit).toList());
+        assertEquals(List.of(ExportLimit.ELEVATED_WATER), dry.stream().map(ExportDiagnostic::limit).toList());
+    }
+
+    @Test
+    public void limitOrderIgnoresAreaOrder() {
+        IrisHydrology hydrology = withLava(overworldHydrology()).setClimate(new IrisHydrologyClimate().setEnabled(true));
+        hydrology.getTiers().getFirst().setDecorators(new KList<>(seagrass()));
+        IrisRegion hot = region("hot", new IrisHydrologyPolicy().setRainfall(0.5).setShoreBiomes(new KList<>("hot/beach")).setShoreBiomeWidth(3));
+        IrisRegion wet = region("wet", new IrisHydrologyPolicy().setRainfall(2.0));
+        List<RiverCompiler.Area> areas = List.of(
+                new RiverCompiler.Area(hot, biome("volcano", new IrisHydrologyPolicy().setFluid("lava"))),
+                new RiverCompiler.Area(hot, biome("deep", new IrisHydrologyPolicy().setStreams(IrisHydrologyPermission.BLOCK))),
+                new RiverCompiler.Area(wet, biome("marsh", new IrisHydrologyPolicy().setDecorators(new KList<>(seagrass())))),
+                new RiverCompiler.Area(wet, biome("plains", null)));
+        List<RiverCompiler.Area> reversed = new ArrayList<>(areas);
+        Collections.reverse(reversed);
+        List<ExportDiagnostic> forward = new ArrayList<>();
+        List<ExportDiagnostic> backward = new ArrayList<>();
+
+        compile(new Field.Const(SEA_LEVEL + 2.0), hydrology, areas, forward);
+        compile(new Field.Const(SEA_LEVEL + 2.0), hydrology, reversed, backward);
+
+        assertEquals(forward, backward);
+        assertEquals(List.of(ExportLimit.ELEVATED_WATER, ExportLimit.RIVER_DRAINAGE,
+                ExportLimit.RIVER_FLUID,
+                ExportLimit.RIVER_POLICY, ExportLimit.RIVER_POLICY, ExportLimit.RIVER_POLICY,
+                ExportLimit.RIVER_CLIMATE,
+                ExportLimit.RIVER_SHORE_BIOME,
+                ExportLimit.RIVER_DECORATOR, ExportLimit.RIVER_DECORATOR,
+                ExportLimit.SEA_INLET, ExportLimit.CAVE_POOL), forward.stream().map(ExportDiagnostic::limit).toList());
+        assertEquals(List.of("regions/hot", "regions/wet", "biomes/deep"),
+                limited(forward, ExportLimit.RIVER_POLICY).stream().map(ExportDiagnostic::resource).toList());
+        assertEquals(List.of("dimensions/rivers/hydrology", "biomes/marsh"),
+                limited(forward, ExportLimit.RIVER_DECORATOR).stream().map(ExportDiagnostic::resource).toList());
     }
 
     @Test
@@ -206,11 +418,60 @@ public class RiverCompilerTest {
     }
 
     private static Field compile(Field natural, IrisHydrology hydrology, NoiseRegistry registry, DataVersion target, List<ExportDiagnostic> diagnostics) {
+        return compile(natural, dimension(hydrology, null), List.of(new RiverCompiler.Area(region("region", null), biome("plains", null))),
+                registry, target, diagnostics);
+    }
+
+    private static Field compile(Field natural, IrisHydrology hydrology, List<RiverCompiler.Area> areas, List<ExportDiagnostic> diagnostics) {
+        return compile(natural, dimension(hydrology, null), areas, registry(), DataVersion.V26_3, diagnostics);
+    }
+
+    private static Field compile(Field natural, IrisDimension dimension, List<RiverCompiler.Area> areas, NoiseRegistry registry, DataVersion target,
+                                 List<ExportDiagnostic> diagnostics) {
+        return new RiverCompiler(diagnostics).compile(natural, dimension, areas, registry, ExportCapabilities.forTarget(target));
+    }
+
+    private static IrisDimension dimension(IrisHydrology hydrology, IrisHydrologyPolicy policy) {
         IrisDimension dimension = new IrisDimension();
         dimension.setLoadKey("rivers");
         dimension.setFluidHeight(SEA_LEVEL);
         dimension.setHydrology(hydrology);
-        return new RiverCompiler(diagnostics).compile(natural, dimension, registry, ExportCapabilities.forTarget(target));
+        dimension.setHydrologyPolicy(policy);
+        return dimension;
+    }
+
+    private static IrisRegion region(String key, IrisHydrologyPolicy policy) {
+        IrisRegion region = new IrisRegion();
+        region.setLoadKey(key);
+        region.setHydrologyPolicy(policy);
+        return region;
+    }
+
+    private static IrisBiome biome(String key, IrisHydrologyPolicy policy) {
+        IrisBiome biome = new IrisBiome();
+        biome.setLoadKey(key);
+        biome.setHydrologyPolicy(policy);
+        return biome;
+    }
+
+    private static List<ExportDiagnostic> limited(List<ExportDiagnostic> diagnostics, ExportLimit limit) {
+        return diagnostics.stream().filter(diagnostic -> diagnostic.limit() == limit).toList();
+    }
+
+    private static IrisDecorator seagrass() {
+        return new IrisDecorator().setPartOf(IrisDecorationPart.SEA_FLOOR).setPalette(new KList<>(new IrisBlockData("minecraft:seagrass")));
+    }
+
+    private static IrisHydrologyUnderground underground(boolean enabled) {
+        IrisHydrologyUnderground underground = new IrisHydrologyUnderground();
+        underground.getSeaInlets().setEnabled(enabled);
+        underground.getCavePools().setEnabled(enabled);
+        return underground;
+    }
+
+    private static IrisHydrology withLava(IrisHydrology hydrology) {
+        IrisFluidProfile lava = new IrisFluidProfile().setName("lava").setPalette(new IrisMaterialPalette().qclear().qadd("minecraft:lava"));
+        return hydrology.setFluids(new KList<>(new IrisFluidProfile(), lava));
     }
 
     private static double sample(Field field, Map<String, NoiseDef> noises, DataVersion target, int x, int z) {

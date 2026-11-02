@@ -33,7 +33,6 @@ import art.arcane.iris.studio.wand.WandSVC;
 import art.arcane.iris.pack.IrisConverter;
 import art.arcane.iris.studio.tree.TreePlausibilizeBatch;
 import art.arcane.iris.generation.runtime.Engine;
-import art.arcane.iris.generation.stream.ProvisionalAnswerException;
 import art.arcane.iris.structure.object.IObjectPlacer;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.structure.object.IrisObject;
@@ -607,14 +606,7 @@ public class CommandObject implements DirectorExecutor {
         // Block writes must run on the thread owning the target chunk; the undo log stays global.
         final IrisObject placed = o;
         if (!J.runAt(block, () -> {
-            try {
-                placed.place(block.getBlockX(), block.getBlockY() + (int) placed.getCenter().getY(), block.getBlockZ(), createPlacer(block.getWorld(), futureChanges, null), placement, new RNG(), placed.getLoader());
-            } catch (ProvisionalAnswerException provisional) {
-                commandSender.sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_OBJECT_PASTE_WAITS_FOR_TERRAIN_PLAN,
-                        MessageArgument.untrusted("x", block.getBlockX()), MessageArgument.untrusted("y", block.getBlockY()),
-                        MessageArgument.untrusted("z", block.getBlockZ())));
-                return;
-            }
+            placed.place(block.getBlockX(), block.getBlockY() + (int) placed.getCenter().getY(), block.getBlockZ(), createPlacer(block.getWorld(), futureChanges, null), placement, new RNG(), placed.getLoader());
             J.runGlobal(() -> Iris.service(ObjectSVC.class).addChanges(futureChanges));
 
             if (!edit) {

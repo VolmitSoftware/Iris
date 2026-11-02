@@ -7,14 +7,12 @@ import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.EngineTarget;
 import art.arcane.iris.generation.runtime.GenerationSessionManager;
 import art.arcane.iris.generation.runtime.IrisComplex;
-import art.arcane.iris.generation.stream.ProvisionalAnswerException;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.pack.validation.PackCompatReport;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.pack.loading.ResourceLoader;
 import art.arcane.iris.platform.generation.PlatformChunkGenerator;
 import art.arcane.iris.spi.IrisLogging;
-import art.arcane.iris.structure.object.IObjectPlacer;
 import art.arcane.iris.structure.object.IrisObject;
 import art.arcane.iris.structure.object.IrisObjectPlacement;
 import art.arcane.iris.testsupport.PlatformBinding;
@@ -24,7 +22,6 @@ import art.arcane.iris.world.task.J;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.data.Cuboid;
-import art.arcane.volmlib.util.math.RNG;
 import org.bukkit.Location;
 import org.bukkit.TreeType;
 import org.bukkit.World;
@@ -43,7 +40,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
@@ -73,19 +69,6 @@ public class TreeSVCSaplingTest {
     }
 
     @Test
-    public void provisionalTerrainCancelsGrowthAndKeepsTheSapling() {
-        Fixture fixture = new Fixture(SAPLING_Y);
-        fixture.waitForTerrainPlan();
-        StructureGrowEvent event = fixture.event();
-
-        fixture.grow(event);
-
-        assertTrue(event.isCancelled());
-        verify(fixture.saplings, never()).forEach(any());
-        verify(fixture.block, never()).getState();
-    }
-
-    @Test
     public void rejectedTreeKeepsTheSapling() {
         Fixture fixture = new Fixture(0);
         StructureGrowEvent event = fixture.event();
@@ -104,7 +87,6 @@ public class TreeSVCSaplingTest {
         private final TreeSVC service = spy(new TreeSVC());
         private final Cuboid saplings = mock(Cuboid.class);
         private final Block block = mock(Block.class);
-        private final IrisObject tree = spy(tree());
 
         private Fixture(int lowestTreeY) {
             IrisDimension dimension = new IrisDimension();
@@ -119,6 +101,7 @@ public class TreeSVCSaplingTest {
             when(target.getWorld()).thenReturn(mock(IrisWorld.class));
             @SuppressWarnings("unchecked")
             ResourceLoader<IrisObject> objects = mock(ResourceLoader.class);
+            IrisObject tree = tree();
             when(objects.load(anyString())).thenReturn(tree);
             IrisData data = mock(IrisData.class);
             when(data.getObjectLoader()).thenReturn(objects);
@@ -135,11 +118,6 @@ public class TreeSVCSaplingTest {
             when(blockData.clone()).thenReturn(blockData);
             when(saplings.getCenter()).thenReturn(new Location(world, 8, SAPLING_Y, 8));
             doReturn(saplings).when(service).getSaplings(any(), any(), any());
-        }
-
-        private void waitForTerrainPlan() {
-            doThrow(new ProvisionalAnswerException("terrain plan pending")).when(tree).place(anyInt(), anyInt(), anyInt(),
-                    any(IObjectPlacer.class), any(IrisObjectPlacement.class), any(RNG.class), any(IrisData.class));
         }
 
         private static IrisObject tree() {

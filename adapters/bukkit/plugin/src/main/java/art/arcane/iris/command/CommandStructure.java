@@ -26,7 +26,6 @@ import art.arcane.iris.structure.StructureImporter;
 import art.arcane.iris.structure.StructureIndexService;
 import art.arcane.iris.studio.object.ObjectSVC;
 import art.arcane.iris.generation.runtime.Engine;
-import art.arcane.iris.generation.stream.ProvisionalAnswerException;
 import art.arcane.iris.structure.placement.IrisStructureLocator;
 import art.arcane.iris.structure.nativegen.NativeStructureGenerationPolicy;
 import art.arcane.iris.structure.placement.PlacedStructurePiece;
@@ -360,24 +359,17 @@ public class CommandStructure implements DirectorExecutor {
         PlatformChunkGenerator targetGenerator = IrisToolbelt.access(targetWorld);
         Engine targetEngine = targetGenerator == null ? null : targetGenerator.getEngine();
         IObjectPlacer placer = CommandObject.createPlacer(targetWorld, future, targetEngine);
-        try {
-            for (PlacedStructurePiece p : pieces) {
-                IrisObjectPlacement config = new IrisObjectPlacement();
-                config.setMode(ObjectPlaceMode.STRUCTURE_PIECE);
-                config.setRotation(p.getRotation());
-                config.getPlace().add(p.getObject().getLoadKey());
-                if (!s.getEdit().isEmpty()) {
-                    config.setEdit(s.getEdit());
-                }
-                p.getObject().place(p.getX(), p.getY(), p.getZ(), placer, config, rng, null, null, data);
+        for (PlacedStructurePiece p : pieces) {
+            IrisObjectPlacement config = new IrisObjectPlacement();
+            config.setMode(ObjectPlaceMode.STRUCTURE_PIECE);
+            config.setRotation(p.getRotation());
+            config.getPlace().add(p.getObject().getLoadKey());
+            if (!s.getEdit().isEmpty()) {
+                config.setEdit(s.getEdit());
             }
-        } catch (ProvisionalAnswerException provisional) {
-            J.runGlobal(() -> Iris.service(ObjectSVC.class).addChanges(future));
-            sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_STRUCTURE_PLACE_WAITS_FOR_TERRAIN_PLAN,
-                    MessageArgument.untrusted("x", loc.getBlockX()), MessageArgument.untrusted("y", loc.getBlockY()),
-                    MessageArgument.untrusted("z", loc.getBlockZ())));
-            return;
+            p.getObject().place(p.getX(), p.getY(), p.getZ(), placer, config, rng, null, null, data);
         }
+        J.runGlobal(() -> Iris.service(ObjectSVC.class).addChanges(future));
         int blockChanges = 0;
         for (Map.Entry<Block, BlockData> entry : future.entrySet()) {
             if (!entry.getKey().getBlockData().equals(entry.getValue())) {

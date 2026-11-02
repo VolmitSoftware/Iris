@@ -27,7 +27,6 @@ import art.arcane.iris.world.IrisToolbelt;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.EngineLifecycleTasks;
 import art.arcane.iris.generation.decoration.tree.TreeBlockMaterial;
-import art.arcane.iris.generation.stream.ProvisionalAnswerException;
 import art.arcane.iris.structure.object.IObjectPlacer;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.terrain.IrisDimension;
@@ -257,21 +256,15 @@ public class TreeSVC implements IrisService {
             }
         };
 
-        try {
-            object.place(
-                    saplingPlane.getCenter().getBlockX(),
-                    (saplingPlane.getCenter().getBlockY() + object.getH() / 2),
-                    saplingPlane.getCenter().getBlockZ(),
-                    placer,
-                    placement,
-                    RNG.r,
-                    Objects.requireNonNull(worldAccess).getData()
-            );
-        } catch (ProvisionalAnswerException provisional) {
-            IrisLogging.debug("Sapling growth at " + event.getLocation() + " waits for the terrain plan: " + provisional.getMessage());
-            event.setCancelled(true);
-            return;
-        }
+        object.place(
+                saplingPlane.getCenter().getBlockX(),
+                (saplingPlane.getCenter().getBlockY() + object.getH() / 2),
+                saplingPlane.getCenter().getBlockZ(),
+                placer,
+                placement,
+                RNG.r,
+                Objects.requireNonNull(worldAccess).getData()
+        );
 
         event.setCancelled(true);
         if (blockStateList.isEmpty()) {

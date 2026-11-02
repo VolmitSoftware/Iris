@@ -382,10 +382,6 @@ public final class BukkitCommandMessagesExtended {
             "iris.bukkit.commandobject.placed",
             C.IRIS + "Placed " + "{object}"
     );
-    public static final TextKey COMMAND_OBJECT_PASTE_WAITS_FOR_TERRAIN_PLAN = TextKey.of(
-            "iris.bukkit.commandobject.paste_waits_for_terrain_plan",
-            C.YELLOW + "The terrain at " + "{x}" + " " + "{y}" + " " + "{z}" + " is still being planned. Nothing was pasted; run the paste again in a moment."
-    );
     public static final TextKey COMMAND_OBJECT_YOU_NEED_HOLD_YOUR_WAND = TextKey.of(
             "iris.bukkit.commandobject.you_need_hold_your_wand",
             C.YELLOW + "You need to hold your wand!"
@@ -580,10 +576,6 @@ public final class BukkitCommandMessagesExtended {
             "iris.bukkit.commandstructure.placed_pieces_at_your_location",
             C.GREEN + "Placed '" + "{structure}" + "' (" + "{value}" + " pieces, "
                     + "{value2}" + " block changes) at your location."
-    );
-    public static final TextKey COMMAND_STRUCTURE_PLACE_WAITS_FOR_TERRAIN_PLAN = TextKey.of(
-            "iris.bukkit.commandstructure.place_waits_for_terrain_plan",
-            C.YELLOW + "The terrain at " + "{x}" + " " + "{y}" + " " + "{z}" + " is still being planned. Pieces placed so far can be removed with /iris object undo; run the placement again in a moment."
     );
     public static final TextKey COMMAND_STRUCTURE_PLACEMENT_CHANGED_NO_BLOCKS = TextKey.of(
             "iris.bukkit.commandstructure.placement_changed_no_blocks",
@@ -907,7 +899,6 @@ public final class BukkitCommandMessagesExtended {
             COMMAND_OBJECT_GIVEN_NEW_WAND_OBJECTS_IOB,
             COMMAND_OBJECT_UPDATED_WAND_OBJECTS_IOB_2,
             COMMAND_OBJECT_PLACED,
-            COMMAND_OBJECT_PASTE_WAITS_FOR_TERRAIN_PLAN,
             COMMAND_OBJECT_YOU_NEED_HOLD_YOUR_WAND,
             COMMAND_OBJECT_FILE_ALREADY_EXISTS_SET_OVERWRITE_TRUE_OVERWRITE_IT,
             COMMAND_OBJECT_FAILED_SAVE_OBJECT_BECAUSE_IOEXCEPTION,
@@ -956,7 +947,6 @@ public final class BukkitCommandMessagesExtended {
             COMMAND_STRUCTURE_NO_IRIS_STRUCTURE_THIS_PACK_2,
             COMMAND_STRUCTURE_STRUCTURE_ASSEMBLED_0_PIECES,
             COMMAND_STRUCTURE_PLACED_PIECES_AT_YOUR_LOCATION,
-            COMMAND_STRUCTURE_PLACE_WAITS_FOR_TERRAIN_PLAN,
             COMMAND_STRUCTURE_PLACEMENT_CHANGED_NO_BLOCKS,
             COMMAND_STUDIO_OPENING_STUDIO_PACK_SEED,
             COMMAND_STUDIO_PROVIDE_DIMENSION_PACK_IRIS_STD_IMPORTVANILLA_PACK_DIMENSION,

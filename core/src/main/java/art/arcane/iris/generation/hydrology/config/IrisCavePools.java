@@ -24,12 +24,12 @@ public class IrisCavePools {
     private double density = 0.15D;
 
     @MinNumber(1)
-    @MaxNumber(4096)
+    @MaxNumber(961)
     @Description("Smallest pool surface in square blocks.")
     private int minArea = 6;
 
     @MinNumber(1)
-    @MaxNumber(65536)
+    @MaxNumber(961)
     @Description("Largest pool surface in square blocks.")
     private int maxArea = 400;
 
@@ -40,7 +40,7 @@ public class IrisCavePools {
 
     @MinNumber(1)
     @MaxNumber(15)
-    @Description("Distance in blocks a pool may spread from its site, at most 15.")
+    @Description("Half-size in blocks of the square box, centered on the site column, inside which a pool settles and spreads, at most 15, so a pool stays within one chunk of the chunk that holds its site.")
     private int radius = 15;
 
     @ArrayType(type = Integer.class, min = 2)
@@ -48,6 +48,6 @@ public class IrisCavePools {
     private KList<Integer> freeboard = new KList<>(0, 1);
 
     @Required
-    @Description("Name of the fluid profile that fills cave pools. A cave biome's hydrology policy fluid replaces it.")
+    @Description("Name of the fluid profile that fills cave pools. The hydrology policy fluid of the cave biome at the pool replaces it, then that of its region, then that of the dimension. A surface biome's policy never fills cave pools.")
     private String fluid = "water";
 }

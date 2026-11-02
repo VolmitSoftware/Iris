@@ -115,7 +115,6 @@ public final class GenerationSemanticCaptureTest {
             return null;
         }).when(fixture.mantle).iterateChunk(eq(-2), eq(3), eq(MatterCavern.class), any());
         HydrologyCaveCell duplicate = mock(HydrologyCaveCell.class);
-        when(duplicate.floodedBiomeKey()).thenReturn("iris:duplicate");
         when(duplicate.fluidProfileKey()).thenReturn("iris:river");
         when(duplicate.isWet()).thenReturn(true);
         doAnswer(invocation -> {
@@ -355,10 +354,10 @@ public final class GenerationSemanticCaptureTest {
         IrisDimension dimension = mock(IrisDimension.class);
         when(dimension.getMinHeight()).thenReturn(-64);
         when(fixture.engine.getDimension()).thenReturn(dimension);
-        HydrologyCaveCell water = new HydrologyCaveCell(HydrologyCaveAction.POOL_SOURCE, "water", "");
-        HydrologyCaveCell lava = new HydrologyCaveCell(HydrologyCaveAction.POOL_SOURCE, "lava", "");
-        HydrologyCaveCell guard = HydrologyCaveCell.of(HydrologyCaveAction.SEAL_GUARD);
-        HydrologyCaveCell inlet = new HydrologyCaveCell(HydrologyCaveAction.WET_SOURCE, "water", "");
+        HydrologyCaveCell water = new HydrologyCaveCell(HydrologyCaveAction.POOL_SOURCE, "water");
+        HydrologyCaveCell lava = new HydrologyCaveCell(HydrologyCaveAction.POOL_SOURCE, "lava");
+        HydrologyCaveCell guard = new HydrologyCaveCell(HydrologyCaveAction.SEAL_GUARD, "water");
+        HydrologyCaveCell inlet = new HydrologyCaveCell(HydrologyCaveAction.WET_SOURCE, "water");
         TransitionDisplacementField seam = mock(TransitionDisplacementField.class);
         when(seam.seamWeight(anyInt(), anyInt())).thenReturn(0.5D);
         when(fixture.complex.getTransitionDisplacement()).thenReturn(seam);
@@ -419,7 +418,6 @@ public final class GenerationSemanticCaptureTest {
             return null;
         }).when(fixture.mantle).iterateChunk(eq(-2), eq(3), eq(MatterCavern.class), any());
         HydrologyCaveCell duplicate = mock(HydrologyCaveCell.class);
-        when(duplicate.floodedBiomeKey()).thenReturn("iris:duplicate");
         when(duplicate.fluidProfileKey()).thenReturn("iris:river");
         when(duplicate.isWet()).thenReturn(true);
         doAnswer(invocation -> {
@@ -560,8 +558,8 @@ public final class GenerationSemanticCaptureTest {
         when(fixture.engine.getWorld()).thenReturn(IrisWorld.builder().minHeight(-64).maxHeight(320).build());
         doAnswer(invocation -> {
             Consumer4<Integer, Integer, Integer, HydrologyCaveCell> consumer = invocation.getArgument(3);
-            consumer.accept(1, 4, 2, new HydrologyCaveCell(HydrologyCaveAction.WET_SOURCE, HydrologyCaveCell.SEA_FLUID, ""));
-            consumer.accept(1, 5, 2, new HydrologyCaveCell(HydrologyCaveAction.WET_SOURCE, "iris:river", ""));
+            consumer.accept(1, 4, 2, new HydrologyCaveCell(HydrologyCaveAction.WET_SOURCE, HydrologyCaveCell.SEA_FLUID));
+            consumer.accept(1, 5, 2, new HydrologyCaveCell(HydrologyCaveAction.WET_SOURCE, "iris:river"));
             return null;
         }).when(fixture.mantle).iterateChunk(eq(-2), eq(3), eq(HydrologyCaveCell.class), any());
         GenerationHistory.GenerationStage stage = mock(GenerationHistory.GenerationStage.class);

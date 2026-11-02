@@ -58,7 +58,7 @@ public class IrisVanillaStructureAdjustment {
     @Description("Optional foundation columns placed beneath the native structure piece bases after placement.")
     private IrisStructureStiltSettings stilt = null;
 
-    @Description("Optional terrain integration override. FLATTEN cuts and fills exposed surface foundations within flattenRange, blending across horizontalPadding blocks while preserving buried and submerged structures. VACUUM raises processed rigid-template foundations with a fixed 12-block falloff without lowering ground. BORE and FORCE_CARVE clear every intersecting chunk before native placement, while ENCASE fills it. Left unset, SOURCE replays the registered structure's authored terrain adaptation.")
+    @Description("Optional terrain integration override. FLATTEN cuts and fills exposed surface foundations within flattenRange, blending across horizontalPadding blocks while preserving buried and submerged structures. It never lowers dry ground outside a structure footprint below the dimension fluidHeight. A cut beneath water or lava, such as a riverbed, fills with that fluid, and other cuts at or below fluidHeight fill with the dimension sea fluid instead of air. VACUUM raises processed rigid-template foundations with a fixed 12-block falloff without lowering ground. BORE and FORCE_CARVE clear every intersecting chunk before native placement, while ENCASE fills it. Left unset, SOURCE replays the registered structure's authored terrain adaptation.")
     private IrisStructureTerrain terrain = null;
 
     public boolean matches(String key) {

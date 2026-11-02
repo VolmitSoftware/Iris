@@ -15,8 +15,10 @@ import art.arcane.iris.generation.hydrology.water.ReachShaper;
 import art.arcane.iris.generation.hydrology.water.ReachStyle;
 import org.junit.Test;
 
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Optional;
 import java.util.SplittableRandom;
@@ -33,6 +35,20 @@ public class HydrologyPlanCodecTest {
     private static final float NAN_PAYLOAD = Float.intBitsToFloat(0x7fc00123);
     private static final float NEGATIVE_NAN = Float.intBitsToFloat(0xffa00001);
     private static final WindowKey LAND = new WindowKey(4, 4);
+    private static final int FINGERPRINT_OFFSET = Integer.BYTES + 1;
+    private static final String PINNED_WINDOW = """
+            4948595057000000000000000000000002fffffffd000000010000000000000029000000000000006100000000444b20
+            0000000006000000004080000041000000414000004180000041a00000c1000000c0c00000c0800000c0000000000000
+            0040000000000000480000004700000046000000420000003f0000003e3f8000003fa000003fc000003fe00000400000
+            00402000003f8000003f8000003fc0000040000000400000003f80000000010203040500000004000000000000000500
+            00000046000000420000000cfffffffc428d0000fffffffc000000080000000400000000000000000000000000000000
+            0000002900000000ffffffff0000000afffffffa0000000000000006010000004a000000470000001e00000008429480
+            0000000003fffffffd000000010000004000000001000000018000000000000001ffffffffffffffff00000001000000
+            0577617465720000001c000000060000000000000007020000004400000040ffffffec0000001042898000fffffffc00
+            00000800000004000000000000000000000000000000000000002900000002000000046c617661ffffffea0000000e00
+            0000000000000803000000500000003c00000040ffffffc042a10000fffffffc00000008000000040000000000000000
+            00000000ffffffffffffffff00000000ffffffff0000003cffffffc400000000
+            """;
 
     @Test
     public void codecRoundTripsBitExact() {
@@ -136,6 +152,29 @@ public class HydrologyPlanCodecTest {
         } catch (IllegalArgumentException expected) {
             assertTrue(expected.getMessage(), expected.getMessage().contains("foreign"));
         }
+    }
+
+    @Test
+    public void decodesPinnedBytes() {
+        HydrologySettings settings = settings(new IrisHydrology());
+        WindowPlan expected = pinnedWindow(settings.tiers().get(0));
+        byte[] fixture = HexFormat.of().parseHex(PINNED_WINDOW.replaceAll("\\s", ""));
+        ByteBuffer.wrap(fixture).putLong(FINGERPRINT_OFFSET, settings.fingerprint());
+        assertBitExact(expected, HydrologyPlanCodec.decodeWindow(settings, fixture).orElseThrow(), settings.tiers());
+        assertArrayEquals(fixture, HydrologyPlanCodec.encode(settings, expected));
+    }
+
+    private static WindowPlan pinnedWindow(HydrologyTier tier) {
+        Reach reach = new Reach(41L, tier, 97L, new float[]{0f, 4f, 8f, 12f, 16f, 20f}, new float[]{-8f, -6f, -4f, -2f, 0f, 2f},
+                new int[]{72, 71, 70, 66, 63, 62}, new float[]{1f, 1.25f, 1.5f, 1.75f, 2f, 2.5f}, new float[]{1f, 1f, 1.5f, 2f, 2f, 1f},
+                new ReachStyle[]{ReachStyle.RUN, ReachStyle.RIFFLE, ReachStyle.CASCADE, ReachStyle.WATERFALL, ReachStyle.POND_OUTLET,
+                        ReachStyle.MOUTH}, 812.5f);
+        List<Pond> ponds = List.of(
+                new Pond(5L, PondKind.NATURAL, 70, 66, 12, -4, 70.5f, mask(0), 41L, 0, null, 10, -6),
+                new Pond(6L, PondKind.SEEDED, 74, 71, 30, 8, 74.25f, mask(2), -1L, 1, "water", 28, 6),
+                new Pond(7L, PondKind.CHAINED, 68, 64, -20, 16, 68.75f, mask(0), 41L, 2, "lava", -22, 14),
+                new Pond(8L, PondKind.LAKE, 80, 60, 64, -64, 80.5f, mask(0), -1L, 0, null, 60, -60));
+        return new WindowPlan(new WindowKey(2, -3), List.of(reach), ponds, List.of());
     }
 
     private static void assertBitExact(WindowPlan expected, WindowPlan actual, List<HydrologyTier> tiers) {

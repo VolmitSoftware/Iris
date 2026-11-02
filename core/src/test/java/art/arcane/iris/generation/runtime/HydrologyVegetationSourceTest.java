@@ -75,23 +75,26 @@ public class HydrologyVegetationSourceTest {
         HydrologyVegetationSource source = HydrologyVegetationSource.create(dimension, settings, data, List.of(plain, marsh),
                 List.of(meadow, bog, desert));
 
-        assertEquals("minecraft:fern", grown(source.decorators(river, meadow, plain)));
-        assertEquals("minecraft:air", grown(source.decorators(stream, meadow, plain)));
-        assertEquals("minecraft:short_grass", grown(source.decorators(null, meadow, plain)));
-        assertEquals("minecraft:poppy", grown(source.decorators(river, meadow, marsh)));
-        assertEquals("minecraft:poppy", grown(source.decorators(null, meadow, marsh)));
-        assertEquals("minecraft:dandelion", grown(source.decorators(river, bog, marsh)));
-        assertEquals("minecraft:dandelion", grown(source.decorators(null, bog, plain)));
-        assertSame(HydrologyVegetation.Decorators.EMPTY, source.decorators(river, desert, marsh));
+        assertEquals("minecraft:fern", grown(source.decorators(river, List.of(meadow), plain)));
+        assertEquals("minecraft:air", grown(source.decorators(stream, List.of(meadow), plain)));
+        assertEquals("minecraft:short_grass", grown(source.decorators(null, List.of(meadow), plain)));
+        assertEquals("minecraft:poppy", grown(source.decorators(river, List.of(meadow), marsh)));
+        assertEquals("minecraft:poppy", grown(source.decorators(null, List.of(meadow), marsh)));
+        assertEquals("minecraft:dandelion", grown(source.decorators(river, List.of(bog), marsh)));
+        assertEquals("minecraft:dandelion", grown(source.decorators(null, List.of(bog), plain)));
+        assertSame(HydrologyVegetation.Decorators.EMPTY, source.decorators(river, List.of(desert), marsh));
+        assertEquals("a child biome takes its parent's list", "minecraft:dandelion", grown(source.decorators(river, List.of(meadow, bog), plain)));
+        assertSame("a child's own empty list wins over its parent", HydrologyVegetation.Decorators.EMPTY,
+                source.decorators(river, List.of(desert, bog), plain));
 
         dimension.setHydrologyPolicy(policy(shore("minecraft:dead_bush")));
         HydrologyVegetationSource dimensional = HydrologyVegetationSource.create(dimension, settings, data, List.of(plain, marsh),
                 List.of(meadow, bog, desert));
-        assertEquals("minecraft:dead_bush", grown(dimensional.decorators(river, meadow, plain)));
-        assertEquals("minecraft:dead_bush", grown(dimensional.decorators(null, meadow, plain)));
-        assertEquals("minecraft:poppy", grown(dimensional.decorators(river, meadow, marsh)));
-        assertEquals("minecraft:dandelion", grown(dimensional.decorators(river, bog, marsh)));
-        assertSame(HydrologyVegetation.Decorators.EMPTY, HydrologyVegetationSource.NONE.decorators(river, bog, marsh));
+        assertEquals("minecraft:dead_bush", grown(dimensional.decorators(river, List.of(meadow), plain)));
+        assertEquals("minecraft:dead_bush", grown(dimensional.decorators(null, List.of(meadow), plain)));
+        assertEquals("minecraft:poppy", grown(dimensional.decorators(river, List.of(meadow), marsh)));
+        assertEquals("minecraft:dandelion", grown(dimensional.decorators(river, List.of(bog), marsh)));
+        assertSame(HydrologyVegetation.Decorators.EMPTY, HydrologyVegetationSource.NONE.decorators(river, List.of(bog), marsh));
     }
 
     @Test
@@ -140,6 +143,7 @@ public class HydrologyVegetationSourceTest {
         HydrologyVegetationSource source = HydrologyVegetationSource.create(new IrisDimension(), settings, data, List.of(plain), List.of());
         IrisBiome unseen = new IrisBiome();
         unseen.setHydrologyPolicy(policy(shore("minecraft:dandelion")));
+        List<IrisBiome> lineage = List.of(unseen);
         int threads = 8;
         CyclicBarrier start = new CyclicBarrier(threads);
         ExecutorService pool = Executors.newFixedThreadPool(threads);
@@ -148,7 +152,7 @@ public class HydrologyVegetationSourceTest {
             for (int thread = 0; thread < threads; thread++) {
                 results.add(pool.submit(() -> {
                     start.await();
-                    return source.decorators(settings.tiers().get(1), unseen, plain);
+                    return source.decorators(settings.tiers().get(1), lineage, plain);
                 }));
             }
             HydrologyVegetation.Decorators first = results.get(0).get(30, TimeUnit.SECONDS);
@@ -156,7 +160,7 @@ public class HydrologyVegetationSourceTest {
                 assertSame(first, result.get(30, TimeUnit.SECONDS));
             }
             assertEquals("minecraft:dandelion", grown(first));
-            assertSame(first, source.decorators(null, unseen, plain));
+            assertSame(first, source.decorators(null, lineage, plain));
         } finally {
             pool.shutdownNow();
         }

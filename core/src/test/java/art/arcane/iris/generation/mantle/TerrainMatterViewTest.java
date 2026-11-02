@@ -128,8 +128,8 @@ public class TerrainMatterViewTest {
                 new MatterCavern(true, "iris:object", (byte) 0), PreObjectMatterCell::cavern);
         assertJournalIteration(String.class, "iris:natural", "iris:object", PreObjectMatterCell::string);
         assertJournalIteration(HydrologyCaveCell.class,
-                HydrologyCaveCell.of(HydrologyCaveAction.DRY_AIR),
-                HydrologyCaveCell.of(HydrologyCaveAction.WET_SOURCE), PreObjectMatterCell::hydrology);
+                new HydrologyCaveCell(HydrologyCaveAction.DRY_AIR, "water"),
+                new HydrologyCaveCell(HydrologyCaveAction.WET_SOURCE, "water"), PreObjectMatterCell::hydrology);
         assertJournalIteration(NativeBlockState.class,
                 mock(NativeBlockState.class), mock(NativeBlockState.class), PreObjectMatterCell::block);
     }

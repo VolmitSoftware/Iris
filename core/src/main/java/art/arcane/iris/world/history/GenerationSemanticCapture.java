@@ -277,7 +277,7 @@ public final class GenerationSemanticCapture {
                     blockX,
                     y,
                     blockZ,
-                    cell == null ? null : cell.floodedBiomeKey()
+                    null
             );
             if (cell != null && cell.isWet() && cell.fluidProfileKey() != null && !cell.fluidProfileKey().isBlank()
                     && !HydrologyCaveCell.SEA_FLUID.equals(cell.fluidProfileKey())) {

@@ -364,7 +364,7 @@ final class ObjectSourcePlan {
             case Identifier identifier -> 24L + stringBytes(identifier.namespace()) + stringBytes(identifier.key());
             case NativeBlockState ignored -> 0L;
             case MatterCavern cavern -> 24L + stringBytes(cavern.getCustomBiome());
-            case HydrologyCaveCell cell -> 48L + stringBytes(cell.fluidProfileKey()) + stringBytes(cell.floodedBiomeKey());
+            case HydrologyCaveCell cell -> 48L + stringBytes(cell.fluidProfileKey());
             case MatterMarker marker -> 16L + stringBytes(marker.getTag());
             case TileWrapper ignored -> 4L * UNKNOWN_PAYLOAD_BYTES;
             case Enum<?> ignored -> 0L;

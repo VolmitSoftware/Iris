@@ -10,6 +10,7 @@ import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.runtime.BiomeEnvironment;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.IrisComplex;
+import art.arcane.iris.generation.stream.ProvisionalSampling;
 import art.arcane.iris.generation.terrain.InferredType;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.generation.terrain.IrisRegion;
@@ -26,6 +27,7 @@ import org.bukkit.World;
 import org.bukkit.generator.ChunkGenerator;
 import org.junit.Test;
 import org.mockito.MockedStatic;
+import org.mockito.stubbing.Answer;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -35,10 +37,12 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.IntPredicate;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.mock;
@@ -141,6 +145,90 @@ public class IrisTerrainSVCTest {
         assertEquals(List.of("RIVER_SHORE", "NONE", "1.0", "-1", "unavailable"), sampled(WaterRole.SHORE, 50));
         assertEquals(List.of("LAND", "NONE", "2.0", "-1", "unavailable"), sampled(WaterRole.BANK, 50));
         assertEquals(List.of("LAND", "NONE", "NaN", "-1", "unavailable"), sampled(WaterRole.NONE, 50));
+    }
+
+    @Test
+    public void serverThreadUnplannedColumnsAreProvisional() throws Exception {
+        List<IrisColumnSample> samples = sampledRow(blockX -> blockX < 16, () -> {
+        });
+
+        assertEquals(32, samples.size());
+        for (IrisColumnSample sample : samples) {
+            assertEquals("column " + sample.blockX(), sample.blockX() < 16, sample.provisional());
+        }
+    }
+
+    @Test
+    public void plannedColumnsAreFinal() throws Exception {
+        ProvisionalSampling.mark();
+        List<IrisColumnSample> samples = sampledRow(blockX -> false, () -> {
+        });
+
+        assertEquals(32, samples.size());
+        for (IrisColumnSample sample : samples) {
+            assertFalse("column " + sample.blockX(), sample.provisional());
+        }
+    }
+
+    @Test
+    public void aSinkThatReadsProvisionallyDoesNotMarkLaterColumns() throws Exception {
+        List<IrisColumnSample> samples = sampledRow(blockX -> false, ProvisionalSampling::mark);
+
+        assertEquals(32, samples.size());
+        for (IrisColumnSample sample : samples) {
+            assertFalse("column " + sample.blockX(), sample.provisional());
+        }
+    }
+
+    @Test
+    public void surfaceHeightIsUnavailableUntilTheColumnIsPlanned() throws Exception {
+        World world = world(engine(blockX -> blockX >= 16));
+        IrisTerrainSVC service = enabledService();
+
+        assertEquals(OptionalInt.empty(), service.surfaceHeight(world, 16, 0));
+        assertEquals(OptionalInt.of(-4), service.surfaceHeight(world, 0, 0));
+    }
+
+    @Test
+    public void surfaceKindIsUnknownUntilTheColumnIsPlanned() throws Exception {
+        World world = world(engine(blockX -> blockX >= 16));
+        IrisTerrainSVC service = enabledService();
+
+        assertEquals(IrisSurfaceKind.UNKNOWN, service.surfaceKind(world, 16, 0));
+        assertEquals(IrisSurfaceKind.LAND, service.surfaceKind(world, 0, 0));
+    }
+
+    @Test
+    public void surfaceBiomeReadsAreEmptyUntilTheColumnIsPlanned() throws Exception {
+        World world = world(engine(blockX -> blockX >= 16));
+        IrisTerrainSVC service = enabledService();
+
+        assertTrue(service.surfaceBiomeKey(world, 16, 0).isEmpty());
+        assertTrue(service.surfaceBiomeName(world, 16, 0).isEmpty());
+        assertTrue(service.surfaceBiomeInfo(world, 16, 0).isEmpty());
+        assertEquals(Optional.of("plains"), service.surfaceBiomeKey(world, 0, 0));
+        assertEquals(Optional.of("Plains"), service.surfaceBiomeName(world, 0, 0));
+        assertEquals("plains", service.surfaceBiomeInfo(world, 0, 0).orElseThrow().key());
+    }
+
+    @Test
+    public void biomeKeyIsEmptyUntilTheColumnIsPlanned() throws Exception {
+        World world = world(engine(blockX -> blockX >= 16));
+        IrisTerrainSVC service = enabledService();
+
+        assertTrue(service.biomeKey(world, 16, 64, 0).isEmpty());
+        assertEquals(Optional.of("plains"), service.biomeKey(world, 0, 64, 0));
+    }
+
+    @Test
+    public void regionReadsAreEmptyUntilTheColumnIsPlanned() throws Exception {
+        World world = world(engine(blockX -> blockX >= 16));
+        IrisTerrainSVC service = enabledService();
+
+        assertTrue(service.regionKey(world, 16, 0).isEmpty());
+        assertTrue(service.regionName(world, 16, 0).isEmpty());
+        assertEquals(Optional.of("temperate"), service.regionKey(world, 0, 0));
+        assertEquals(Optional.of("Temperate"), service.regionName(world, 0, 0));
     }
 
     @Test
@@ -269,6 +357,64 @@ public class IrisTerrainSVCTest {
         return List.of(sample.surfaceKind().name(), sample.riverState().name(), String.valueOf(sample.riverDistance()),
                 String.valueOf(sample.riverFlow()),
                 sample.riverWaterSurfaceY() == IrisColumnSample.UNAVAILABLE_HEIGHT ? "unavailable" : String.valueOf(sample.riverWaterSurfaceY()));
+    }
+
+    private static List<IrisColumnSample> sampledRow(IntPredicate unplanned, Runnable afterAccept) throws Exception {
+        Engine engine = engine(unplanned);
+        IrisColumnQuery query = IrisColumnQuery.rect(0, 0, 31, 0, 1, EnumSet.of(IrisColumnField.SURFACE_HEIGHT,
+                IrisColumnField.SURFACE_KIND, IrisColumnField.BIOME_KEY, IrisColumnField.RIVER_STATE));
+        List<IrisColumnSample> samples = new ArrayList<>();
+        try (MockedStatic<IrisSettings> settings = mockStatic(IrisSettings.class)) {
+            settings.when(IrisSettings::get).thenReturn(new IrisSettings());
+            assertTrue(enabledService().sampleColumns(world(engine), query, sample -> {
+                samples.add(sample);
+                afterAccept.run();
+            }));
+        }
+        return samples;
+    }
+
+    private static Engine engine(IntPredicate unplanned) {
+        Engine engine = mock(Engine.class);
+        IrisComplex complex = mock(IrisComplex.class);
+        IrisBiome biome = mock(IrisBiome.class);
+        IrisRegion region = mock(IrisRegion.class);
+        when(biome.getInferredType()).thenReturn(InferredType.LAND);
+        when(biome.getLoadKey()).thenReturn("plains");
+        when(biome.getName()).thenReturn("Plains");
+        when(region.getLoadKey()).thenReturn("temperate");
+        when(region.getName()).thenReturn("Temperate");
+        BiomeEnvironment environment = new BiomeEnvironment(1L, biome, region, mock(IrisDimension.class), mock(IrisData.class));
+        when(engine.getComplex()).thenReturn(complex);
+        when(engine.getDimension()).thenReturn(mock(IrisDimension.class));
+        when(engine.getMinHeight()).thenReturn(-64);
+        when(engine.getHeight(anyInt(), anyInt())).thenAnswer(serverThreadAnswer(unplanned, 60));
+        when(engine.getSurfaceBiome(anyInt(), anyInt())).thenAnswer(serverThreadAnswer(unplanned, biome));
+        when(engine.getSurfaceBiomeEnvironment(anyInt(), anyInt())).thenAnswer(serverThreadAnswer(unplanned, environment));
+        when(engine.getBiome(anyInt(), anyInt(), anyInt())).thenAnswer(serverThreadAnswer(unplanned, biome));
+        when(engine.getRegion(anyInt(), anyInt())).thenAnswer(serverThreadAnswer(unplanned, region));
+        when(complex.getWaterRoleStream()).thenReturn(ProceduralStream.of((Double x, Double z) -> {
+            serverThreadRead(unplanned, x.intValue());
+            return WaterRole.NONE;
+        }, Interpolated.of(value -> 0D, value -> WaterRole.NONE)));
+        when(complex.getWaterHeadStream()).thenReturn(ProceduralStream.ofDouble((double x, double z) -> {
+            serverThreadRead(unplanned, (int) x);
+            return 50D;
+        }));
+        return engine;
+    }
+
+    private static <T> Answer<T> serverThreadAnswer(IntPredicate unplanned, T value) {
+        return invocation -> {
+            serverThreadRead(unplanned, (int) invocation.getArgument(0));
+            return value;
+        };
+    }
+
+    private static void serverThreadRead(IntPredicate unplanned, int blockX) {
+        if (unplanned.test(blockX)) {
+            ProvisionalSampling.mark();
+        }
     }
 
     private static World world(Engine engine) {

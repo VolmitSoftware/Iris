@@ -110,6 +110,11 @@ public class IrisRiverSchemaTest {
         assertEquals(List.of("ALLOW", "BLOCK"), enumValues(definitions, properties.getJSONObject("streams")));
         assertEquals(List.of("ALLOW", "BLOCK"), enumValues(definitions, properties.getJSONObject("ponds")));
         assertEquals("string", properties.getJSONObject("fluid").getString("type"));
+        JSONObject wetness = referencedProperties(definitions, properties.getJSONObject("wetness"));
+        for (String bound : List.of("min", "max")) {
+            assertEquals(bound, 0D, wetness.getJSONObject(bound).getDouble("minimum"), 0D);
+            assertEquals(bound, 1D, wetness.getJSONObject(bound).getDouble("maximum"), 0D);
+        }
         assertEquals("array", properties.getJSONObject("shoreBiomes").getString("type"));
         assertEquals("#/definitions/erzbiomes",
                 properties.getJSONObject("shoreBiomes").getJSONObject("items").getString("$ref"));

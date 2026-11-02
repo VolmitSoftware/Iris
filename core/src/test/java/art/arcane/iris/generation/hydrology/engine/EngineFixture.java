@@ -108,9 +108,15 @@ final class EngineFixture implements AutoCloseable {
                 + ",\"seed\":" + Math.abs(key.hashCode()) + ",\"composite\":" + composite.strip() + "}");
     }
 
-    private static void biome(Path pack, String key, String generators, String extra) throws IOException {
+    static void biome(Path pack, String key, String generators, String extra) throws IOException {
         Files.writeString(pack.resolve("biomes/" + key + ".json"), "{\"layers\":[{\"palette\":[{\"block\":\"minecraft:stone\"}]}],\"generators\":"
                 + generators + extra.strip() + "}");
+    }
+
+    static void extend(Path pack, String key, String extra) throws IOException {
+        Path file = pack.resolve("biomes/" + key + ".json");
+        String json = Files.readString(file).strip();
+        Files.writeString(file, json.substring(0, json.length() - 1) + extra.strip() + "}");
     }
 
     @Override

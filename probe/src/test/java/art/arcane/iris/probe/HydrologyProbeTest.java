@@ -8,9 +8,11 @@ import org.junit.Test;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.UnaryOperator;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -186,6 +188,24 @@ public class HydrologyProbeTest {
                     && total.get("missedTargets").contains("cavePoolFailures"));
             assertTrue(result.lines().toString(), result.lines().contains("IRIS_HYDROLOGY_EXAMPLE inlet leak at 1,2,3"));
         }
+    }
+
+    @Test
+    public void bermOverCapFailsTheProbe() {
+        HydrologyReport.Result clean = result(0L);
+        assertTrue(clean.lines().toString(), clean.passes());
+        HydrologyReport.Result raised = result(3L);
+        assertFalse(raised.passes());
+        Map<String, String> total = fields(line(raised.lines(), "IRIS_HYDROLOGY_TOTAL"));
+        assertEquals("3", total.get("bermOverCap"));
+        assertEquals("FAIL", total.get("status"));
+        assertTrue(total.get("missedTargets"), total.get("missedTargets").contains("bermOverCap"));
+    }
+
+    private static HydrologyReport.Result result(long bermOverCap) {
+        HydrologyReport.WindowMetrics window = new HydrologyReport.WindowMetrics(new WindowKey(4, 4), 1D, 0L, 0L, 1D, 1D, 0, 1D, 1, 1D, 1,
+                Set.of(64), 0, 0L, 0L, 0L, 0L, 0L, bermOverCap, 0, 0L, 0, 0L, 1L, "digest");
+        return new HydrologyReport.Result(List.of(window), 1D, 1, 1, 0L, 0L, 1D, 0L, "digest", List.of(), List.of());
     }
 
     private static int[] bankBesideWater(SyntheticHydrology fixture) {

@@ -12,6 +12,8 @@ import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.stream.ProvisionalSampling;
 import art.arcane.iris.generation.subterrain.SubterrainPlan;
 import art.arcane.iris.generation.subterrain.SubterrainPlanner;
+import art.arcane.iris.generation.terrain.IrisDimension;
+import art.arcane.iris.generation.terrain.IrisRegion;
 import art.arcane.iris.generation.terrain.Terrain3DColumn;
 import art.arcane.volmlib.util.mantle.flag.MantleFlag;
 import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
@@ -31,6 +33,7 @@ final class MantleCarvedTerrain implements CarvedTerrain {
     private final MantleWriter writer;
     private final IrisComplex complex;
     private final Engine engine;
+    private final IrisDimension dimension;
     private final int chunkX;
     private final int chunkZ;
     private final int originX;
@@ -54,12 +57,13 @@ final class MantleCarvedTerrain implements CarvedTerrain {
         this.writer = writer;
         this.complex = complex;
         this.engine = engine;
+        this.dimension = engine.getDimension();
         this.chunkX = chunkX;
         this.chunkZ = chunkZ;
         this.originX = (chunkX - 1) << 4;
         this.originZ = (chunkZ - 1) << 4;
         this.height = writer.getMantle().getWorldHeight();
-        this.caveLavaHeight = engine.getDimension().getCaveLavaHeight();
+        this.caveLavaHeight = dimension.getCaveLavaHeight();
         this.minimumY = engine.getWorld().minHeight();
         HydrologyRuntime runtime = complex.getHydrologyRuntime();
         this.caveFluids = runtime.caveFluidPolicies();
@@ -110,10 +114,10 @@ final class MantleCarvedTerrain implements CarvedTerrain {
             return null;
         }
         long revision = ProvisionalSampling.revision();
-        IrisBiome biome = engine.getCaveBiome(x, y, z);
+        IrisBiome biome = engine.getCaveBiomeBelowSurface(x, y, z);
+        IrisRegion region = complex.getRegionStream().get(x, z);
         requireFinal(revision, x, z);
-        IrisHydrologyPolicy policy = biome == null ? null : biome.getHydrologyPolicy();
-        return policy == null ? null : policy.getFluid();
+        return IrisHydrologyPolicy.inherited(biome == null ? List.of() : List.of(biome), region, dimension, IrisHydrologyPolicy::getFluid);
     }
 
     private static Collection<SeaInlet> inlets(HydrologyRuntime runtime, int chunkX, int chunkZ) {

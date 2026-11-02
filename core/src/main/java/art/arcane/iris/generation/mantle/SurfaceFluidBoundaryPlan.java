@@ -73,6 +73,17 @@ final class SurfaceFluidBoundaryPlan {
         }
     }
 
+    static void join(long[] boundaries, long[] bands) {
+        for (int columnIndex = 0; columnIndex < CHUNK_AREA; columnIndex++) {
+            long band = bands[columnIndex];
+            if (startY(band) > endY(band)) {
+                continue;
+            }
+            long boundary = boundaries[columnIndex];
+            boundaries[columnIndex] = boundary(Math.min(startY(boundary), startY(band)), Math.max(endY(boundary), endY(band)));
+        }
+    }
+
     static boolean protects(long[] boundaries, int columnIndex, int y) {
         if (boundaries == null || columnIndex < 0 || columnIndex >= boundaries.length) {
             return false;

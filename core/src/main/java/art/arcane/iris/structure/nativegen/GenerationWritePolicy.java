@@ -4,9 +4,12 @@ import art.arcane.iris.generation.runtime.DimensionStackContext;
 import art.arcane.iris.generation.runtime.DimensionStackLayout;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.IrisEngine;
+import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.world.history.GenerationHistoryRuntimeRouter;
 import art.arcane.iris.structure.object.IrisStaticObjectLayer;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockPositionPredicate;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
+import art.arcane.volmlib.nativelib.terrain.structure.StructureSeaSurface;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -21,6 +24,20 @@ public final class GenerationWritePolicy {
         }
         GenerationHistoryRuntimeRouter router = irisEngine.getGenerationHistoryRuntimeRouter().orElse(null);
         return router != null && activation < router.history().activeActivation().activationId();
+    }
+
+    public static StructureSeaSurface seaSurface(Engine engine) {
+        IrisDimension dimension = engine.getDimension();
+        int fluidHeight = dimension.getFluidHeight();
+        if (fluidHeight <= 0) {
+            return StructureSeaSurface.NONE;
+        }
+        for (NativeBlockState fluid : dimension.getFluidPalette().getBlockData(engine.getData())) {
+            if (fluid.isFluid()) {
+                return new StructureSeaSurface(engine.getMinHeight() + fluidHeight, fluid);
+            }
+        }
+        return StructureSeaSurface.NONE;
     }
 
     public static NativeBlockPositionPredicate protectedPositions(

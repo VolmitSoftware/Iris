@@ -47,8 +47,6 @@ import art.arcane.iris.pack.value.IrisPosition;
 import art.arcane.iris.generation.terrain.IrisRegion;
 import art.arcane.iris.structure.placement.IrisStructure;
 import art.arcane.iris.world.IrisWorld;
-import art.arcane.iris.generation.hydrology.cave.HydrologyCaveCell;
-import art.arcane.iris.generation.hydrology.cave.HydrologyCaveStorage;
 import art.arcane.volmlib.nativelib.terrain.NativeBiome;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.collection.KList;
@@ -367,22 +365,8 @@ public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, 
         if (featureBiome != null) {
             return featureBiome;
         }
-        IrisBiome mantleBiome = mantleCaveBiome(x, y, z);
+        IrisBiome mantleBiome = customCaveBiome(getMantle().getMantle().get(x, y, z, MatterCavern.class));
         return mantleBiome != null ? mantleBiome : getCaveBiome(x, y, z);
-    }
-
-    private IrisBiome mantleCaveBiome(int x, int y, int z) {
-        IrisBiome flooded = floodedCaveBiome(x, y, z);
-        return flooded != null ? flooded : customCaveBiome(getMantle().getMantle().get(x, y, z, MatterCavern.class));
-    }
-
-    private IrisBiome floodedCaveBiome(int x, int y, int z) {
-        HydrologyCaveCell hydrology = HydrologyCaveStorage.getIfPresent(
-                getMantle().getMantle(), x, y, z);
-        if (hydrology != null && !hydrology.floodedBiomeKey().isEmpty()) {
-            return getData().getBiomeLoader().load(hydrology.floodedBiomeKey());
-        }
-        return null;
     }
 
     private IrisBiome customCaveBiome(MatterCavern cavern) {
@@ -439,15 +423,12 @@ public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, 
                     biomes[index] = surface;
                     continue;
                 }
-                IrisBiome biome = floodedCaveBiome(x, y, z);
-                if (biome == null) {
-                    if (!cavernChunkResolved) {
-                        cavernChunk = useCavernChunk(x, z);
-                        cavernChunkResolved = true;
-                    }
-                    biome = cavernChunk == null || y < 0 || y >= getMantle().getMantle().getWorldHeight()
-                            ? null : customCaveBiome(cavernChunk.get(x & 15, y, z & 15, MatterCavern.class));
+                if (!cavernChunkResolved) {
+                    cavernChunk = useCavernChunk(x, z);
+                    cavernChunkResolved = true;
                 }
+                IrisBiome biome = cavernChunk == null || y < 0 || y >= getMantle().getMantle().getWorldHeight()
+                        ? null : customCaveBiome(cavernChunk.get(x & 15, y, z & 15, MatterCavern.class));
                 if (biome == null) {
                     biome = resolveConfiguredCaveBiome(x, y, z, null);
                 }
@@ -478,8 +459,8 @@ public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, 
 
     @BlockCoordinates
     default IrisBiome getCaveBiome(int x, int z) {
-        IrisBiome biome = getComplex().getCaveBiomeStream().get(x, z);
-        return biome == null || biome.getLoadKey() == null ? getSurfaceBiome(x, z) : biome;
+        IrisBiome biome = regionCaveBiome(x, z);
+        return biome == null ? getSurfaceBiome(x, z) : biome;
     }
 
     @BlockCoordinates
@@ -489,18 +470,34 @@ public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, 
 
     @BlockCoordinates
     default IrisBiome getCaveBiome(int x, int y, int z, IrisDimensionCarvingResolver.State state) {
-        IrisBiome featureBiome = getSubterrainBiome(x, y, z);
-        if (featureBiome != null) {
-            return featureBiome;
-        }
-        IrisBiome configuredBiome = resolveConfiguredCaveBiome(x, y, z, state);
-        if (configuredBiome != null) {
-            return configuredBiome;
+        IrisBiome placedBiome = placedCaveBiome(x, y, z, state);
+        if (placedBiome != null) {
+            return placedBiome;
         }
         boolean naturalFallback = answersFromNaturalTerrain(x, z);
         IrisBiome surfaceBiome = caveDepthSurfaceBiome(x, z, naturalFallback);
         int surfaceY = caveDepthSurfaceY(x, z, naturalFallback);
         return resolveDepthCaveBiome(x, y, z, surfaceBiome, surfaceY);
+    }
+
+    @BlockCoordinates
+    default IrisBiome getCaveBiomeBelowSurface(int x, int y, int z) {
+        IrisBiome placedBiome = placedCaveBiome(x, y, z, null);
+        if (placedBiome != null) {
+            return placedBiome;
+        }
+        IrisBiome caveBiome = regionCaveBiome(x, z);
+        return caveBiome == null ? null : depthCaveBiome(caveBiome, y, null, caveDepthSurfaceY(x, z, answersFromNaturalTerrain(x, z)));
+    }
+
+    private IrisBiome regionCaveBiome(int x, int z) {
+        IrisBiome biome = getComplex().getCaveBiomeStream().get(x, z);
+        return biome == null || biome.getLoadKey() == null ? null : biome;
+    }
+
+    private IrisBiome placedCaveBiome(int x, int y, int z, IrisDimensionCarvingResolver.State state) {
+        IrisBiome featureBiome = getSubterrainBiome(x, y, z);
+        return featureBiome != null ? featureBiome : resolveConfiguredCaveBiome(x, y, z, state);
     }
 
     private IrisBiome caveDepthSurfaceBiome(int x, int z, boolean naturalFallback) {
@@ -525,15 +522,8 @@ public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, 
             IrisBiome surfaceBiome,
             int surfaceY
     ) {
-        IrisBiome featureBiome = getSubterrainBiome(x, y, z);
-        if (featureBiome != null) {
-            return featureBiome;
-        }
-        IrisBiome configuredBiome = resolveConfiguredCaveBiome(x, y, z, state);
-        if (configuredBiome != null) {
-            return configuredBiome;
-        }
-        return resolveDepthCaveBiome(x, y, z, surfaceBiome, surfaceY);
+        IrisBiome placedBiome = placedCaveBiome(x, y, z, state);
+        return placedBiome != null ? placedBiome : resolveDepthCaveBiome(x, y, z, surfaceBiome, surfaceY);
     }
 
     private IrisBiome resolveConfiguredCaveBiome(
@@ -907,7 +897,7 @@ public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, 
                 .map(IrisRegistrant::getLoadKey)
                 .collect(Collectors.toSet());
         Set<String> regionKeys = getDimension().getAllRegions(this).stream()
-                .filter((i) -> i.getAllBiomeIds().stream().anyMatch(biomeKeys::contains)
+                .filter((i) -> i.getAllBiomeIds(getDimension(), this).stream().anyMatch(biomeKeys::contains)
                         || containsObjectPlacement(i.getObjects(), normalizedObjectKey, data))
                 .map(IrisRegistrant::getLoadKey)
                 .collect(Collectors.toSet());

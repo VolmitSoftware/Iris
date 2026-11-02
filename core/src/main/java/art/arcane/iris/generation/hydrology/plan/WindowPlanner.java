@@ -130,7 +130,7 @@ public final class WindowPlanner {
         }
         List<Reach> reaches = network.reaches();
         List<Pond> windowPonds = windowPonds(network.ponds());
-        List<SeaInlet> planned = inlets.plan(raw, samples, drainage.receivers(), drainage.accumulation(), network, settings.seed());
+        List<SeaInlet> planned = inlets.plan(key, raw, samples, drainage.receivers(), drainage.accumulation(), network, settings.seed());
         WindowPlan owned = new WindowPlan(key, ownedReaches(key, reaches), ownedPonds(key, windowPonds), ownedInlets(key, planned));
         requireSeaConnectedHeads(owned, settings.seaLevel());
         return new WindowComputation(owned, reaches, windowPonds);

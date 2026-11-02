@@ -34,7 +34,7 @@ public final class DimensionStage implements CompileStage {
                 dimension.getLogicalHeight(),
                 dimension.getFluidHeight() + minY,
                 paletteBlock(dimension.getRockPalette(), DEFAULT_ROCK, "rock"),
-                paletteBlock(dimension.getFluidPalette(), DEFAULT_FLUID, "fluid"),
+                fluidBlock(dimension),
                 new JsonObject(),
                 context.diagnostics());
         IrisDimensionType type = new IrisDimensionType(
@@ -55,6 +55,17 @@ public final class DimensionStage implements CompileStage {
                 typeJson));
     }
 
+    public static String fluidBlock(IrisDimension dimension) {
+        return paletteBlock(dimension.getFluidPalette(), DEFAULT_FLUID, "fluid");
+    }
+
+    public static String blockId(String raw) {
+        String block = raw == null ? "" : raw.trim().toLowerCase(Locale.ROOT);
+        int properties = block.indexOf('[');
+        String id = properties < 0 ? block : block.substring(0, properties);
+        return id.indexOf(':') < 0 ? "minecraft:" + id : id;
+    }
+
     private static IrisDimensionTypeOptions typeOptions(IrisDimension dimension) {
         IrisDimensionTypeOptions options = dimension.getDimensionOptions();
         return dimension.isFullbright() ? options.copy().ambientLight(FULLBRIGHT_AMBIENT_LIGHT) : options;
@@ -65,11 +76,6 @@ public final class DimensionStage implements CompileStage {
         if (entries == null || entries.isEmpty() || entries.getFirst() == null) {
             return fallback;
         }
-        String raw = entries.getFirst().getBlock();
-        String block = raw == null ? "" : raw.trim().toLowerCase(Locale.ROOT);
-        int properties = block.indexOf('[');
-        String id = properties < 0 ? block : block.substring(0, properties);
-        String namespaced = id.indexOf(':') < 0 ? "minecraft:" + id : id;
-        return VanillaResourceIdentifier.requireIdentifier(namespaced, "dimension " + role + " block");
+        return VanillaResourceIdentifier.requireIdentifier(blockId(entries.getFirst().getBlock()), "dimension " + role + " block");
     }
 }

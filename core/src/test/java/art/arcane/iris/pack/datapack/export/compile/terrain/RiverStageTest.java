@@ -8,6 +8,7 @@ import art.arcane.iris.pack.datapack.export.WorldgenExportRequest;
 import art.arcane.iris.pack.datapack.export.compile.DimensionStage;
 import art.arcane.iris.pack.datapack.export.compile.PackCompileContext;
 import art.arcane.iris.pack.datapack.export.compile.PackCompiler;
+import art.arcane.iris.pack.datapack.export.compile.biome.BiomeCodes;
 import art.arcane.iris.pack.datapack.export.ir.Axis;
 import art.arcane.iris.pack.datapack.export.ir.ExportDiagnostic;
 import art.arcane.iris.pack.datapack.export.ir.ExportLimit;
@@ -24,6 +25,7 @@ import org.junit.rules.TemporaryFolder;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -60,6 +62,51 @@ public class RiverStageTest {
             List<ExportLimit> limits = context.diagnostics().stream().map(ExportDiagnostic::limit).toList();
             assertTrue(limits.toString(), limits.contains(ExportLimit.RIVER_DRAINAGE));
             assertTrue(limits.toString(), limits.contains(ExportLimit.ELEVATED_WATER));
+        } finally {
+            data.close();
+        }
+    }
+
+    @Test
+    public void stageReportsTheHydrologyPoliciesOfExportedBiomes() throws Exception {
+        File pack = pack(false);
+        String fluids = "\"fluids\":[{\"name\":\"water\"},{\"name\":\"lava\",\"palette\":{\"palette\":[{\"block\":\"minecraft:lava\"}]}}]";
+        CompatTestPlatform.write(pack, "dimensions/" + TerrainTestPacks.DIMENSION + ".json",
+                "{\"regions\":[\"region\"],\"hydrology\":{\"enabled\":true,\"density\":0.5," + fluids + "}}");
+        CompatTestPlatform.write(pack, "regions/region.json", "{\"landBiomes\":[\"a\",\"b\"],\"hydrologyPolicy\":{\"rainfall\":1.5}}");
+        TerrainTestPacks.biome(pack, "a", "{\"name\":\"A\",\"generators\":[" + TerrainTestPacks.link("hills", 0, 40) + "],"
+                + "\"hydrologyPolicy\":{\"fluid\":\"lava\"}}");
+        IrisData data = IrisData.openRuntime(pack);
+        try {
+            PackCompileContext context = terrainContext(data, DataVersion.V26_3);
+
+            new RiverStage().apply(context);
+
+            assertEquals(List.of("biomes/a"), resources(context.diagnostics(), ExportLimit.RIVER_FLUID));
+            assertEquals(List.of("regions/region"), resources(context.diagnostics(), ExportLimit.RIVER_POLICY));
+        } finally {
+            data.close();
+        }
+    }
+
+    @Test
+    public void stageReadsExportedSurfaceBiomesAndTheirChildren() throws Exception {
+        File pack = pack(true);
+        CompatTestPlatform.write(pack, "regions/region.json", "{\"landBiomes\":[\"a\",\"b\"],\"caveBiomes\":[\"e\"]}");
+        TerrainTestPacks.biome(pack, "a", "{\"name\":\"A\",\"generators\":[" + TerrainTestPacks.link("hills", 0, 40) + "],\"children\":[\"c\",\"d\"]}");
+        TerrainTestPacks.biome(pack, "c", "{\"name\":\"C\",\"hydrologyPolicy\":{\"rainfall\":1.5}}");
+        TerrainTestPacks.biome(pack, "d", "{\"name\":\"D\",\"hydrologyPolicy\":{\"streams\":\"BLOCK\"}}");
+        TerrainTestPacks.biome(pack, "e", "{\"name\":\"E\",\"hydrologyPolicy\":{\"rainfall\":2.0}}");
+        IrisData data = IrisData.openRuntime(pack);
+        try {
+            PackCompileContext context = terrainContext(data, DataVersion.V26_3);
+            BiomeCodes codes = context.baseBiomeCodes();
+            context.setBiomeCodes(new BiomeCodes(codes.surfaceCode(), codes.caveCode(), codes.class3d(), codes.layout(), Map.of(
+                    TerrainTestSupport.NAMESPACE + ":a", "a", TerrainTestSupport.NAMESPACE + ":b", "b", TerrainTestSupport.NAMESPACE + ":c", "c")));
+
+            new RiverStage().apply(context);
+
+            assertEquals(List.of("biomes/c"), resources(context.diagnostics(), ExportLimit.RIVER_POLICY));
         } finally {
             data.close();
         }
@@ -147,6 +194,10 @@ public class RiverStageTest {
         String water = hydrology ? ",\"hydrology\":{\"enabled\":true,\"density\":0.5}" : "";
         CompatTestPlatform.write(pack, "dimensions/" + TerrainTestPacks.DIMENSION + ".json", "{\"regions\":[\"region\"]" + water + "}");
         return pack;
+    }
+
+    private static List<String> resources(List<ExportDiagnostic> diagnostics, ExportLimit limit) {
+        return diagnostics.stream().filter(diagnostic -> diagnostic.limit() == limit).map(ExportDiagnostic::resource).toList();
     }
 
     private static PackCompileContext terrainContext(IrisData data, DataVersion target) {

@@ -3,6 +3,7 @@ package art.arcane.iris.generation.mantle;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveAction;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveCell;
+import art.arcane.iris.generation.hydrology.config.IrisFluidProfile;
 import art.arcane.iris.generation.hydrology.config.IrisHydrology;
 import art.arcane.iris.generation.hydrology.config.IrisHydrologyPolicy;
 import art.arcane.iris.generation.hydrology.engine.HydrologyRuntime;
@@ -12,12 +13,15 @@ import art.arcane.iris.generation.hydrology.underground.CaveVoxel;
 import art.arcane.iris.generation.hydrology.underground.SeaInlet;
 import art.arcane.iris.generation.hydrology.underground.SeaInletRasterizer;
 import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.runtime.EnginePlatformHooks;
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.stream.ProvisionalSampling;
 import art.arcane.iris.generation.subterrain.SubterrainCell;
 import art.arcane.iris.generation.subterrain.SubterrainPlan;
 import art.arcane.iris.generation.subterrain.SubterrainPlanner;
 import art.arcane.iris.generation.terrain.IrisDimension;
+import art.arcane.iris.generation.terrain.IrisMaterialPalette;
+import art.arcane.iris.generation.terrain.IrisRegion;
 import art.arcane.iris.generation.terrain.Terrain3DColumn;
 import art.arcane.iris.world.IrisWorld;
 import art.arcane.iris.world.storage.matter.IrisMatterSupport;
@@ -31,13 +35,18 @@ import art.arcane.volmlib.util.matter.IrisMatter;
 import art.arcane.volmlib.util.matter.Matter;
 import art.arcane.volmlib.util.matter.MatterCavern;
 import art.arcane.volmlib.util.stream.ProceduralStream;
+import art.arcane.volmlib.util.stream.interpolation.Interpolated;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -78,8 +87,8 @@ public class MantleCarvedTerrainTest {
         sections[1].<PreObjectMatterCell>slice(PreObjectMatterCell.class).set(9, 4, 9, PreObjectMatterCell.cavern(null));
         IrisBiome flooded = new IrisBiome();
         flooded.setHydrologyPolicy(new IrisHydrologyPolicy().setFluid("lava"));
-        when(scene.engine.getCaveBiome(1, 20, 1)).thenReturn(flooded);
-        when(scene.engine.getCaveBiome(5, 20, 5)).thenReturn(new IrisBiome());
+        when(scene.engine.getCaveBiomeBelowSurface(1, 20, 1)).thenReturn(flooded);
+        when(scene.engine.getCaveBiomeBelowSurface(5, 20, 5)).thenReturn(new IrisBiome());
 
         MantleCarvedTerrain carved = scene.carved();
 
@@ -214,6 +223,92 @@ public class MantleCarvedTerrainTest {
         }
     }
 
+    @Test
+    public void shallowPoolsUnderVolcanicSurfacesStayWater() {
+        IrisBiome volcanoes = biome("tropical/volcanoes", 0, "lava");
+        IrisRegion tropical = region("tropical", null);
+        Scene shallow = poolRoom(new Underground(volcanoes, biome("carving/hollow", 24, null), tropical, new IrisDimension()));
+        Scene uncovered = poolRoom(new Underground(volcanoes, new IrisBiome(), tropical, new IrisDimension()));
+
+        assertNull("above the cave biome's depth", shallow.carved().caveFluid(7, 23, 7));
+        assertNull("in a region without cave biomes", uncovered.carved().caveFluid(7, 23, 7));
+        assertEquals(Set.of("water"), poolFluids(shallow.generate(0)));
+        assertEquals(Set.of("water"), poolFluids(uncovered.generate(0)));
+    }
+
+    @Test
+    public void caveBiomeFluidSwitchesPools() {
+        IrisBiome plains = biome("temperate/plains", 0, null);
+        IrisBiome hollow = biome("carving/hollow", 0, null);
+        IrisRegion temperate = region("temperate", null);
+        IrisRegion volcanic = region("volcanic", "lava");
+        IrisDimension molten = new IrisDimension().setHydrologyPolicy(new IrisHydrologyPolicy().setFluid("lava"));
+
+        assertEquals("the cave biome's own fluid", Set.of("lava"),
+                poolFluids(poolRoom(new Underground(plains, biome("carving/magma", 0, "lava"), temperate, new IrisDimension())).generate(0)));
+        assertEquals("the region's fluid under a cave biome without one", Set.of("lava"),
+                poolFluids(poolRoom(new Underground(plains, hollow, volcanic, new IrisDimension())).generate(0)));
+        assertEquals("the dimension's fluid under a region without one", Set.of("lava"),
+                poolFluids(poolRoom(new Underground(plains, hollow, temperate, molten)).generate(0)));
+        assertEquals("the cave biome's fluid before the region and the dimension", Set.of("water"),
+                poolFluids(poolRoom(new Underground(plains, biome("carving/spring", 0, "water"), volcanic, molten)).generate(0)));
+        assertEquals("a cave biome's fluid only where the cave biome reaches", Set.of("water"),
+                poolFluids(poolRoom(new Underground(plains, biome("carving/deep-magma", 24, "lava"), temperate, new IrisDimension())).generate(0)));
+    }
+
+    @Test
+    public void caveBiomesTakeNoFluidFromBiomesThatListThemAsChildren() {
+        IrisBiome volcanic = biome("tropical/volcanic-plains", 0, "lava").setChildren(new KList<>("carving/hollow"));
+        IrisBiome magma = biome("carving/magma", 0, "lava").setChildren(new KList<>("carving/hollow"));
+        IrisBiome hollow = biome("carving/hollow", 0, null);
+
+        assertEquals("a cave biome under a surface parent that names lava", Set.of("water"),
+                poolFluids(poolRoom(new Underground(volcanic, hollow, region("temperate", null), new IrisDimension())).generate(0)));
+        assertEquals("the parent itself still fills its own pools", Set.of("lava"),
+                poolFluids(poolRoom(new Underground(volcanic, magma, region("temperate", null), new IrisDimension())).generate(0)));
+    }
+
+    private static Scene poolRoom(Underground underground) {
+        Scene scene = new Scene(underground);
+        Matter[] room = scene.chunk(0, 0);
+        for (int x = 1; x <= 14; x++) {
+            for (int z = 1; z <= 14; z++) {
+                for (int y = 22; y <= 30; y++) {
+                    cavern(room, x, y, z, (byte) 0);
+                }
+            }
+        }
+        return scene;
+    }
+
+    private static Set<String> poolFluids(Map<Long, HydrologyCaveCell> written) {
+        Set<String> fluids = new HashSet<>();
+        for (HydrologyCaveCell cell : written.values()) {
+            if (cell.action() == HydrologyCaveAction.POOL_SOURCE) {
+                fluids.add(cell.fluidProfileKey());
+            }
+        }
+        return fluids;
+    }
+
+    private static IrisBiome biome(String key, int caveMinDepth, String fluid) {
+        IrisBiome biome = new IrisBiome().setCaveMinDepthBelowSurface(caveMinDepth);
+        biome.setLoadKey(key);
+        if (fluid != null) {
+            biome.setHydrologyPolicy(new IrisHydrologyPolicy().setFluid(fluid));
+        }
+        return biome;
+    }
+
+    private static IrisRegion region(String key, String fluid) {
+        IrisRegion region = new IrisRegion();
+        region.setLoadKey(key);
+        if (fluid != null) {
+            region.setHydrologyPolicy(new IrisHydrologyPolicy().setFluid(fluid));
+        }
+        return region;
+    }
+
     private static Scene inletScene() {
         Scene scene = new Scene();
         Matter[] room = scene.chunk(0, 0);
@@ -263,24 +358,62 @@ public class MantleCarvedTerrainTest {
         sections[y >> 4].<MatterCavern>slice(MatterCavern.class).set(x & 15, y & 15, z & 15, new MatterCavern(true, "", liquid));
     }
 
+    private record Underground(IrisBiome surface, IrisBiome cave, IrisRegion region, IrisDimension dimension) {
+        private Engine engine(IrisComplex complex) {
+            IrisWorld world = mock(IrisWorld.class);
+            EnginePlatformHooks hooks = new EnginePlatformHooks() {
+            };
+            return (Engine) Proxy.newProxyInstance(Engine.class.getClassLoader(), new Class<?>[]{Engine.class},
+                    (proxy, method, arguments) -> switch (method.getName()) {
+                        case "getComplex" -> complex;
+                        case "getDimension" -> dimension;
+                        case "getWorld" -> world;
+                        case "getPlatformHooks" -> hooks;
+                        case "getData" -> null;
+                        default -> InvocationHandler.invokeDefault(proxy, method, arguments);
+                    });
+        }
+    }
+
     private static final class Scene {
         private final Map<Long, MantleChunk<Matter>> chunks = new HashMap<>();
         private final Map<Long, Matter[]> sections = new HashMap<>();
         private final MantleWriter writer = mock(MantleWriter.class);
         private final IrisComplex complex = mock(IrisComplex.class);
-        private final Engine engine = mock(Engine.class);
+        private final Engine engine;
         private final List<SeaInlet> inlets = new ArrayList<>();
         private final Map<Long, HydrologyCaveCell> cells = new HashMap<>();
 
-        @SuppressWarnings("unchecked")
         private Scene() {
+            this.engine = mock(Engine.class);
+            when(engine.getDimension()).thenReturn(new IrisDimension());
+            when(engine.getWorld()).thenReturn(mock(IrisWorld.class));
+            wire();
+        }
+
+        private Scene(Underground underground) {
+            this.engine = underground.engine(complex);
+            wire();
+            when(complex.getTrueBiomeStream()).thenReturn(constant(underground.surface()));
+            when(complex.getCaveBiomeStream()).thenReturn(constant(underground.cave()));
+            when(complex.getRegionStream()).thenReturn(constant(underground.region()));
+        }
+
+        private static <T> ProceduralStream<T> constant(T value) {
+            return ProceduralStream.of((x, z) -> value, Interpolated.of(ignored -> 0D, ignored -> value));
+        }
+
+        @SuppressWarnings("unchecked")
+        private void wire() {
             Mantle<Matter> mantle = mock(Mantle.class);
             when(mantle.getWorldHeight()).thenReturn(HEIGHT);
             when(writer.getMantle()).thenReturn(mantle);
             when(writer.acquireChunk(anyInt(), anyInt())).thenAnswer(invocation -> mantleChunk(invocation.getArgument(0), invocation.getArgument(1)));
             ProceduralStream<Double> heights = mock(ProceduralStream.class);
             when(heights.getDouble(anyDouble(), anyDouble())).thenReturn(40.4D);
+            when(heights.get(anyDouble(), anyDouble())).thenReturn(40.4D);
             when(complex.getHeightStream()).thenReturn(heights);
+            when(complex.getRegionStream()).thenReturn(constant(new IrisRegion()));
             when(complex.allowsMantleChunkWrite(anyInt(), anyInt())).thenReturn(true);
             HydrologyRuntime runtime = mock(HydrologyRuntime.class);
             when(runtime.caveFluidPolicies()).thenReturn(true);
@@ -296,9 +429,6 @@ public class MantleCarvedTerrainTest {
                 return null;
             }).when(writer).withChunkFence(anyInt(), anyInt(), any(Runnable.class));
             when(complex.getHydrologyRuntime()).thenReturn(runtime);
-            when(engine.getDimension()).thenReturn(new IrisDimension());
-            when(engine.getWorld()).thenReturn(mock(IrisWorld.class));
-            when(engine.getCaveBiome(anyInt(), anyInt(), anyInt())).thenReturn(null);
         }
 
         private MantleCarvedTerrain carved() {
@@ -317,12 +447,14 @@ public class MantleCarvedTerrainTest {
 
         private Map<Long, HydrologyCaveCell> generate(int... chunkZs) {
             IrisHydrology config = new IrisHydrology().setEnabled(true);
+            config.getFluids().add(new IrisFluidProfile().setName("lava").setPalette(new IrisMaterialPalette().qclear().qadd("minecraft:lava")));
             config.getUnderground().getCavePools().setDensity(8D).setFreeboard(new KList<>(0, 0));
             HydrologySettings settings = HydrologySettings.compile(config, SEED, 63, 0, 384);
             SeaInletRasterizer rasterizer = new SeaInletRasterizer();
             for (int chunkZ : chunkZs) {
                 for (SeaInlet inlet : complex.getHydrologyRuntime().inlets(0, chunkZ)) {
-                    rasterizer.write(inlet, 0, chunkZ, writer, HydrologyCaveCell.SEA_FLUID, "", SeaInletRasterizer.SubterrainFluid.NOWHERE);
+                    rasterizer.write(inlet, 0, chunkZ, writer, HydrologyCaveCell.SEA_FLUID, SeaInletRasterizer.SubterrainFluid.NOWHERE,
+                            SeaInletRasterizer.HistoricalChunks.NONE);
                 }
                 new CavePoolFiller(settings).fill(0, chunkZ, () -> new MantleCarvedTerrain(writer, complex, engine, 0, chunkZ), writer, SEED);
             }

@@ -89,7 +89,6 @@ public class TransitionGenerationPlanTest {
 
         assertEquals(0D, plan.newEpochWeightAt(15, 8), 0D);
         assertEquals(1D, plan.newEpochWeightAt(16, 8), 0D);
-        assertEquals(1D, plan.hydrologyWeightAt(16, 8), 0D);
         assertFalse(plan.terrainSampleAt(16, 8).hasHistoricalSignature());
         assertFalse(plan.hasTransitionAtChunk(1, 0));
         assertEquals(BoundaryGeometryInfluence.none(), plan.geometryAt(16, 8));
@@ -123,7 +122,7 @@ public class TransitionGenerationPlanTest {
     }
 
     @Test
-    public void samplesTerrainAndHydrologyWithinTheSameFiniteWidth() throws Exception {
+    public void samplesTerrainWithinTheFiniteWidth() throws Exception {
         GenerationBoundary boundary = GenerationBoundary.freeze("terrain", List.of(
                 new GenerationBoundary.ChunkCoordinate(0, 0)
         ));
@@ -138,14 +137,12 @@ public class TransitionGenerationPlanTest {
         assertNotNull(edge.nearestSignature());
         assertEquals(1D, edge.distanceToHistoricalTerrain(), 0D);
         assertEquals(64D, edge.historicalSurfaceHeight(), 0D);
-        assertEquals(edge.newEpochWeight(), edge.hydrologyWeight(), 0D);
         assertTrue(edge.newEpochWeight() > 0D);
         assertTrue(edge.newEpochWeight() < 0.001D);
 
         assertEquals(1D, plan.newEpochWeightAt(47, 8), 0D);
-        assertEquals(1D, plan.hydrologyWeightAt(47, 8), 0D);
-        assertEquals(1D, plan.hydrologyWeightAt(63, 8), 0D);
-        assertEquals(1D, plan.hydrologyWeightAt(79, 8), 0D);
+        assertEquals(1D, plan.newEpochWeightAt(63, 8), 0D);
+        assertEquals(1D, plan.newEpochWeightAt(79, 8), 0D);
         assertTrue(plan.allowsNewFootprint(31, 8, 48, 8));
         assertTrue(plan.allowsNewFootprint(47, 8, 63, 8));
     }
@@ -247,7 +244,6 @@ public class TransitionGenerationPlanTest {
         TransitionGenerationPlan.TerrainSample sample = plan.terrainSampleAt(-120, 240);
         assertFalse(sample.hasHistoricalSignature());
         assertEquals(1D, sample.newEpochWeight(), 0D);
-        assertEquals(1D, sample.hydrologyWeight(), 0D);
         assertTrue(plan.allowsNewDiscreteContentAt(-120, 240));
     }
 

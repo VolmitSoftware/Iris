@@ -204,12 +204,12 @@ public class IrisDimensionReachableBiomesTest {
 
     @Test
     @SuppressWarnings("unchecked")
-    public void includesHydrologyPolicyShoreBiomesOnlyWhileHydrologyIsEnabled() {
+    public void includesHydrologyShoreBiomesOnlyWhereAWidthPlacesThem() {
         IrisDimension dimension = new IrisDimension()
                 .setRegions(new KList<>("reachable"))
                 .setHydrologyPolicy(new IrisHydrologyPolicy().setShoreBiomes(new KList<>("dimension-shore")));
         IrisRegion reachable = new IrisRegion()
-                .setLandBiomes(new KList<>("root"))
+                .setLandBiomes(new KList<>("root", "plain"))
                 .setHydrologyPolicy(new IrisHydrologyPolicy().setShoreBiomes(new KList<>("region-shore")));
         IrisBiome root = biome("root").setHydrologyPolicy(new IrisHydrologyPolicy().setShoreBiomes(new KList<>("biome-shore")));
         IrisBiome regionShore = biome("region-shore").setChildren(new KList<>("shore-child"));
@@ -221,16 +221,83 @@ public class IrisDimensionReachableBiomesTest {
         when(data.getBiomeLoader()).thenReturn(biomeLoader);
         when(regionLoader.load("reachable")).thenReturn(reachable);
         when(biomeLoader.load("root")).thenReturn(root);
+        when(biomeLoader.load("plain")).thenReturn(biome("plain"));
         when(biomeLoader.load("dimension-shore")).thenReturn(biome("dimension-shore"));
         when(biomeLoader.load("region-shore")).thenReturn(regionShore);
         when(biomeLoader.load("shore-child")).thenReturn(biome("shore-child"));
         when(biomeLoader.load("biome-shore")).thenReturn(biome("biome-shore"));
 
-        assertEquals(Set.of("root"), reachableKeys(dimension, data));
-        dimension.setHydrology(new IrisHydrology().setEnabled(false));
-        assertEquals(Set.of("root"), reachableKeys(dimension, data));
+        assertEquals(Set.of("root", "plain"), reachableKeys(dimension, data));
         dimension.setHydrology(new IrisHydrology().setEnabled(true));
-        assertEquals(Set.of("root", "dimension-shore", "region-shore", "shore-child", "biome-shore"), reachableKeys(dimension, data));
+        assertEquals(Set.of("root", "plain"), reachableKeys(dimension, data));
+        dimension.getHydrologyPolicy().setShoreBiomeWidth(3);
+        assertEquals(Set.of("root", "plain", "region-shore", "shore-child", "biome-shore"), reachableKeys(dimension, data));
+        dimension.setHydrology(new IrisHydrology().setEnabled(false));
+        assertEquals(Set.of("root", "plain"), reachableKeys(dimension, data));
+        dimension.setHydrology(new IrisHydrology().setEnabled(true));
+        reachable.getHydrologyPolicy().setShoreBiomeWidth(0);
+        assertEquals(Set.of("root", "plain"), reachableKeys(dimension, data));
+        root.getHydrologyPolicy().setShoreBiomeWidth(2);
+        assertEquals(Set.of("root", "plain", "biome-shore"), reachableKeys(dimension, data));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void aParentWidthReachesTheShoreListOfItsChildren() {
+        IrisDimension dimension = new IrisDimension()
+                .setRegions(new KList<>("reachable"))
+                .setHydrology(new IrisHydrology().setEnabled(true));
+        IrisRegion reachable = new IrisRegion().setLandBiomes(new KList<>("parent"));
+        IrisBiome parent = biome("parent").setChildren(new KList<>("child"));
+        IrisBiome child = biome("child").setHydrologyPolicy(new IrisHydrologyPolicy().setShoreBiomes(new KList<>("child-shore")));
+
+        IrisData data = mock(IrisData.class);
+        ResourceLoader<IrisRegion> regionLoader = mock(ResourceLoader.class);
+        ResourceLoader<IrisBiome> biomeLoader = mock(ResourceLoader.class);
+        when(data.getRegionLoader()).thenReturn(regionLoader);
+        when(data.getBiomeLoader()).thenReturn(biomeLoader);
+        when(regionLoader.load("reachable")).thenReturn(reachable);
+        when(biomeLoader.load("parent")).thenReturn(parent);
+        when(biomeLoader.load("child")).thenReturn(child);
+        when(biomeLoader.load("child-shore")).thenReturn(biome("child-shore"));
+
+        assertEquals(Set.of("parent", "child"), reachableKeys(dimension, data));
+        parent.setHydrologyPolicy(new IrisHydrologyPolicy().setShoreBiomeWidth(5));
+        assertEquals(Set.of("parent", "child", "child-shore"), reachableKeys(dimension, data));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void caveBiomesAreTheRegionCaveBiomesAndTheEnabledCarvingBands() {
+        IrisDimension dimension = new IrisDimension().setRegions(new KList<>("tropical"));
+        dimension.setCarving(new KList<>(
+                new IrisDimensionCarvingEntry().setId("deep").setBiome("deep-dark"),
+                new IrisDimensionCarvingEntry().setId("off").setEnabled(false).setBiome("disabled-band")));
+        IrisRegion tropical = new IrisRegion()
+                .setLandBiomes(new KList<>("volcanoes"))
+                .setShoreBiomes(new KList<>("beach"))
+                .setCaveBiomes(new KList<>("hollow", "magma", "missing"));
+        tropical.setLoadKey("tropical");
+        IrisBiome volcanoes = biome("volcanoes").setCarvingBiome("magma").setChildren(new KList<>("ash"));
+
+        IrisData data = mock(IrisData.class);
+        ResourceLoader<IrisRegion> regionLoader = mock(ResourceLoader.class);
+        ResourceLoader<IrisBiome> biomeLoader = mock(ResourceLoader.class);
+        when(data.getRegionLoader()).thenReturn(regionLoader);
+        when(data.getBiomeLoader()).thenReturn(biomeLoader);
+        when(regionLoader.load("tropical")).thenReturn(tropical);
+        when(biomeLoader.load("volcanoes")).thenReturn(volcanoes);
+        when(biomeLoader.load("ash")).thenReturn(biome("ash"));
+        when(biomeLoader.load("beach")).thenReturn(biome("beach"));
+        when(biomeLoader.load("hollow")).thenReturn(biome("hollow"));
+        when(biomeLoader.load("magma")).thenReturn(biome("magma"));
+        when(biomeLoader.load("deep-dark")).thenReturn(biome("deep-dark"));
+        when(biomeLoader.load("disabled-band")).thenReturn(biome("disabled-band"));
+
+        KList<IrisBiome> caves = dimension.getReachableCaveBiomes(() -> data);
+
+        assertEquals(Set.of("hollow", "magma", "deep-dark"), caves.stream().map(IrisBiome::getLoadKey).collect(Collectors.toSet()));
+        assertEquals(3, caves.size());
     }
 
     private static Set<String> reachableKeys(IrisDimension dimension, IrisData data) {

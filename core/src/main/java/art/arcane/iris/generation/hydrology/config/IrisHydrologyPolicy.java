@@ -14,25 +14,31 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
+import java.util.List;
 import java.util.function.Function;
 
 @Accessors(chain = true)
 @NoArgsConstructor
-@Description("Hydrology settings for a dimension, region or biome. A value left unset is inherited from the region, then from the dimension.")
+@Description("Hydrology settings for a dimension, region or biome. A value a biome leaves unset is inherited from the biome it grows inside as a child, up through that biome's own parents, then from the region, then from the dimension, and a value a region leaves unset is inherited from the dimension. wetness is inherited whole: a bound it leaves out is 0 for min and 1 for max. Cave pools take fluid from the cave biome at the pool, then its region, then the dimension, and never from the surface biome above.")
 @Data
 public class IrisHydrologyPolicy {
+    public static final double MAX_MULTIPLIER = 16D;
+
     @MinNumber(0)
-    @MaxNumber(16)
-    @Description("Multiplier on the water that falls in this area. Higher values grow more and larger streams and keep ponds fuller. With no value set anywhere it is 1.")
+    @MaxNumber(MAX_MULTIPLIER)
+    @Description("Multiplier on the water that falls in this area. Higher values grow more and larger streams. Where the wet and dry zones do not apply, values below 1 also lower pond and lake surfaces. With no value set anywhere it is 1.")
     private Double rainfall = null;
 
     @MinNumber(0)
-    @MaxNumber(16)
+    @MaxNumber(MAX_MULTIPLIER)
     @Description("Multiplier on how many ponds form in this area. With no value set anywhere it is 1.")
     private Double pondDensity = null;
 
     @Description("Whether the dimension's wet and dry zones apply in this area. false keeps this area's full rainfall and pond density even inside a dry zone. With no value set anywhere they apply.")
     private Boolean climateZones = null;
+
+    @Description("Bounds on the wetness of the dimension's wet and dry zones in this area: min keeps a swamp wet inside a dry zone, max keeps a desert mostly dry inside a wet zone. The bounded wetness scales the area's rainfall and pond density and sets how far ponds and lakes whose floor lies here drop below their freeboard. It has no effect where the wet and dry zones are off or climateZones is false. A scope that sets it replaces both bounds, and a bound it leaves out is 0 for min and 1 for max. With no value set anywhere the zone wetness applies unchanged.")
+    private IrisHydrologyWetness wetness = null;
 
     @Description("Whether streams and rivers may form in this area. With no value set anywhere they are allowed.")
     private IrisHydrologyPermission streams = null;
@@ -40,12 +46,12 @@ public class IrisHydrologyPolicy {
     @Description("Whether ponds may form in this area. With no value set anywhere they are allowed.")
     private IrisHydrologyPermission ponds = null;
 
-    @Description("Name of a fluid profile that fills the water in this area instead of its usual fluid: ponds and lakes whose floor lies here, and every stretch of stream or river that flows through here.")
+    @Description("Name of a fluid profile that fills the water in this area instead of its usual fluid: ponds and lakes whose floor lies here, and every stretch of stream or river whose upstream end lies here, for the whole stretch. A stretch that starts elsewhere keeps its own fluid while it crosses this area. Set on a cave biome, a region or the dimension, it also fills the cave pools there. It cannot name a seam profile.")
     private String fluid = null;
 
     @RegistryListResource(IrisBiome.class)
     @ArrayType(type = String.class)
-    @Description("Biomes placed along the water's edge in this area. An empty list clears the inherited biomes.")
+    @Description("Biomes placed along the water's edge in this area, in a band as wide as shoreBiomeWidth. Without a shoreBiomeWidth above 0 the list places nothing. An empty list clears the inherited biomes.")
     private KList<String> shoreBiomes = null;
 
     @MinNumber(0)
@@ -57,15 +63,31 @@ public class IrisHydrologyPolicy {
     @Description("Plants for the rivers, streams, ponds and lakes in this area, replacing the decorators of the tiers and ponds there. Written like the tier and pond decorators: partOf SEA_FLOOR, SEA_SURFACE or SHORE_LINE. An empty list grows no plants here. With no value set anywhere, the tiers and ponds use their own decorators.")
     private KList<IrisDecorator> decorators = null;
 
-    public static <T> T inherited(IrisBiome biome, IrisRegion region, IrisDimension dimension, Function<IrisHydrologyPolicy, T> field) {
-        T value = value(biome == null ? null : biome.getHydrologyPolicy(), field);
-        if (value == null) {
-            value = value(region == null ? null : region.getHydrologyPolicy(), field);
+    public static boolean validMultiplier(double value) {
+        return value >= 0D && value <= MAX_MULTIPLIER;
+    }
+
+    public static ShoreBand shoreBand(List<IrisBiome> biomes, IrisRegion region, IrisDimension dimension) {
+        Integer width = inherited(biomes, region, dimension, IrisHydrologyPolicy::getShoreBiomeWidth);
+        KList<String> keys = inherited(biomes, region, dimension, IrisHydrologyPolicy::getShoreBiomes);
+        return width == null || width <= 0 || keys == null || keys.isEmpty() ? null : new ShoreBand(width, keys);
+    }
+
+    public static <T> T inherited(List<IrisBiome> biomes, IrisRegion region, IrisDimension dimension, Function<IrisHydrologyPolicy, T> field) {
+        for (int index = 0; index < biomes.size(); index++) {
+            T value = value(biomes.get(index).getHydrologyPolicy(), field);
+            if (value != null) {
+                return value;
+            }
         }
+        T value = value(region == null ? null : region.getHydrologyPolicy(), field);
         return value != null ? value : value(dimension == null ? null : dimension.getHydrologyPolicy(), field);
     }
 
     private static <T> T value(IrisHydrologyPolicy policy, Function<IrisHydrologyPolicy, T> field) {
         return policy == null ? null : field.apply(policy);
+    }
+
+    public record ShoreBand(int width, List<String> biomes) {
     }
 }

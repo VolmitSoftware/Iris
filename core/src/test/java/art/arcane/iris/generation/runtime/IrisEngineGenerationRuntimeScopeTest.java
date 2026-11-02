@@ -40,6 +40,7 @@ import java.lang.reflect.Field;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.IdentityHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -96,10 +97,12 @@ public class IrisEngineGenerationRuntimeScopeTest {
         when(historical.dimension.getFluidHeight()).thenReturn(40);
         when(historical.dimension.getLoadKey()).thenReturn("historical");
         when(historical.dimension.getReachableBiomes(any())).thenReturn(new KList<>());
+        when(historical.dimension.getAllRegions(any())).thenReturn(new KList<>());
+        when(historical.dimension.getReachableCaveBiomes(any())).thenReturn(new KList<>());
         when(historical.target.getWorld().getHeight()).thenReturn(384);
         IrisBiome biome = new IrisBiome();
         IrisRegion region = new IrisRegion();
-        when(historicalComplex.getBaseBiomeStream()).thenReturn(ProceduralStream.of((x, z) -> biome, Interpolated.of(value -> 0D, value -> biome)));
+        when(historicalComplex.baseBiomeLineage(anyInt(), anyInt())).thenReturn(List.of(biome));
         when(historicalComplex.getRegionStream()).thenReturn(ProceduralStream.of((x, z) -> region, Interpolated.of(value -> 0D, value -> region)));
         when(historicalComplex.getBridgeStream()).thenReturn(ProceduralStream.of((x, z) -> InferredType.LAND,
                 Interpolated.of(value -> 0D, value -> InferredType.LAND)));

@@ -28,7 +28,7 @@ public final class ChunkGenerationSemantics {
             .thenComparingInt(point -> point.position().y());
     private static final Comparator<RiverFeatureOccurrence> RIVER_FEATURE_COMPARATOR = Comparator
             .comparing(RiverFeatureOccurrence::profileKey)
-            .thenComparing(RiverFeatureOccurrence::type)
+            .thenComparingInt(occurrence -> occurrence.type().code())
             .thenComparingInt(occurrence -> occurrence.position().x())
             .thenComparingInt(occurrence -> occurrence.position().z())
             .thenComparingInt(occurrence -> occurrence.position().y())

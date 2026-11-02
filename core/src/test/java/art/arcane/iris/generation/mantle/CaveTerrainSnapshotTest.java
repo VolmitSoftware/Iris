@@ -143,7 +143,7 @@ public class CaveTerrainSnapshotTest {
         }
         HydrologyCaveCell[] hydrology = new HydrologyCaveCell[HydrologyCaveAction.values().length];
         for (int index = 0; index < hydrology.length; index++) {
-            hydrology[index] = new HydrologyCaveCell(HydrologyCaveAction.values()[index], "river", "flooded-" + index);
+            hydrology[index] = new HydrologyCaveCell(HydrologyCaveAction.values()[index], "river");
         }
         Matter[] sections = new Matter[SECTIONS];
         for (int section = 0; section < SECTIONS; section++) {

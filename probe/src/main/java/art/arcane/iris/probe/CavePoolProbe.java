@@ -76,7 +76,23 @@ public final class CavePoolProbe {
                   Map<Integer, Integer> chunkSpans, int airLeaks, int openLeaks, int skyLeaks, int foreignFluid, int waterloggableWalls,
                   int unsupportedGravity, int fluidAbove, int gravityCeilings, Map<String, Integer> replaced, List<String> examples) {
         long failures() {
-            return (long) airLeaks + openLeaks + skyLeaks + foreignFluid + waterloggableWalls + unsupportedGravity + fluidAbove + gravityCeilings;
+            long replacedCells = 0L;
+            for (int cells : replaced.values()) {
+                replacedCells += cells;
+            }
+            return (long) airLeaks + openLeaks + skyLeaks + foreignFluid + waterloggableWalls + unsupportedGravity + fluidAbove + gravityCeilings
+                    + replacedCells;
+        }
+    }
+
+    record Gate(Counts counts, int orderMismatches) {
+        long failures() {
+            return counts.failures() + orderMismatches;
+        }
+
+        String line() {
+            return String.format(Locale.ROOT, "CAVE_POOL_GATE status=%s failures=%d containment_failures=%d order_mismatches=%d",
+                    failures() == 0L ? "PASS" : "FAIL", failures(), counts.failures(), orderMismatches);
         }
     }
 
@@ -85,14 +101,14 @@ public final class CavePoolProbe {
     }
 
     public static void main(String[] arguments) {
+        int exitCode = 1;
         try {
-            scan(Configuration.parse(arguments));
-            System.exit(0);
+            exitCode = scan(Configuration.parse(arguments)).failures() == 0L ? 0 : 1;
         } catch (Throwable failure) {
             System.out.println(LOG_PREFIX + " FAIL");
             failure.printStackTrace(System.out);
-            System.exit(1);
         }
+        System.exit(exitCode);
     }
 
     private static RealPackProbeSupport.Workspace workspace(Configuration configuration) throws Exception {
@@ -100,7 +116,7 @@ public final class CavePoolProbe {
                 LOG_PREFIX, null, configuration.work()));
     }
 
-    private static void scan(Configuration configuration) throws Exception {
+    private static Gate scan(Configuration configuration) throws Exception {
         try (RealPackProbeSupport.Workspace workspace = workspace(configuration)) {
             Survey forward;
             try (RealPackProbeSupport.EngineSession session = workspace.openEngine(configuration.seed(), false, "forward")) {
@@ -109,7 +125,8 @@ public final class CavePoolProbe {
                 forward = survey(engine, configuration.area(), null);
                 requireQuiet(engine, "forward");
             }
-            report(count(forward, configuration.area()));
+            Counts counts = count(forward, configuration.area());
+            report(counts);
             Map<Long, Long> shuffled;
             try (RealPackProbeSupport.EngineSession session = workspace.openEngine(configuration.seed(), false, "shuffled")) {
                 Engine engine = session.engine();
@@ -117,7 +134,9 @@ public final class CavePoolProbe {
                 shuffled = hashes(engine, configuration);
                 requireQuiet(engine, "shuffled");
             }
-            compare(forward.hashes(), shuffled);
+            Gate gate = new Gate(counts, compare(forward.hashes(), shuffled));
+            System.out.println(gate.line());
+            return gate;
         }
     }
 
@@ -238,7 +257,8 @@ public final class CavePoolProbe {
                 }
                 pool.add(new Cell(pack((chunkX << 4) + x, y, (chunkZ << 4) + z), cell.fluidProfileKey()));
                 NativeBlockState state = blocks.get(x, y, z);
-                if (!source(state, cell.fluidProfileKey())) {
+                NativeBlockState expected = engine.getComplex().resolveCaveCellFluid(cell.fluidProfileKey(), (chunkX << 4) + x, (chunkZ << 4) + z);
+                if (!source(state, expected)) {
                     replaced.merge(cell.fluidProfileKey() + "->" + (state == null ? "null" : state.key()), 1, Integer::sum);
                 }
             });
@@ -248,14 +268,13 @@ public final class CavePoolProbe {
         return guards[0];
     }
 
-    private static boolean source(NativeBlockState state, String fluid) {
+    static boolean source(NativeBlockState state, NativeBlockState expected) {
         if (state == null || !state.isFluid()) {
             return false;
         }
         String level = IrisProceduralBlocks.propertyValue(state, "level");
         boolean still = level == null || "0".equals(level);
-        boolean matches = "lava".equals(fluid) ? state.key().startsWith("minecraft:lava") : state.isWater();
-        return still && matches;
+        return still && IrisProceduralBlocks.materialKey(state).equals(IrisProceduralBlocks.materialKey(expected));
     }
 
     private static ChunkRecord record(Hunk<NativeBlockState> blocks, int height) {
@@ -338,7 +357,7 @@ public final class CavePoolProbe {
         }
     }
 
-    private static void compare(Map<Long, Long> forward, Map<Long, Long> shuffled) {
+    static int compare(Map<Long, Long> forward, Map<Long, Long> shuffled) {
         int mismatches = 0;
         List<String> examples = new ArrayList<>();
         for (Map.Entry<Long, Long> entry : forward.entrySet()) {
@@ -355,6 +374,7 @@ public final class CavePoolProbe {
         }
         System.out.printf(Locale.ROOT, "CAVE_POOL_ORDER chunks=%d mismatches=%d signature=%016x examples=%s%n", forward.size(), mismatches,
                 signature, examples);
+        return mismatches;
     }
 
     static Counts count(Survey survey, Area area) {

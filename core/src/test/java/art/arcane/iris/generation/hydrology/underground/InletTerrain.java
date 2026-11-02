@@ -7,6 +7,7 @@ import art.arcane.iris.generation.hydrology.grid.FlowAccumulator;
 import art.arcane.iris.generation.hydrology.grid.HydrologySampleBuffer;
 import art.arcane.iris.generation.hydrology.grid.PriorityFlood;
 import art.arcane.iris.generation.hydrology.plan.HydrologySettings;
+import art.arcane.iris.generation.hydrology.plan.WindowKey;
 import art.arcane.iris.generation.hydrology.water.Reach;
 import art.arcane.iris.generation.hydrology.water.ReachStyle;
 import art.arcane.iris.generation.hydrology.water.ShapedNetwork;
@@ -24,21 +25,28 @@ final class InletTerrain {
     static final int CELL = 8;
     static final int WIDTH = 96;
     static final int DEPTH = 64;
+    static final int SPAN = 3 * WindowKey.SIZE / CELL;
 
     final DoubleBinaryOperator natural;
+    final WindowKey window;
     final DemGrid grid;
     final HydrologySampleBuffer samples;
     final int[] receivers;
     final float[] accumulation;
 
     private InletTerrain(DoubleBinaryOperator natural) {
-        this(natural, 0, 0);
+        this(natural, new WindowKey(0, 0));
     }
 
-    private InletTerrain(DoubleBinaryOperator natural, int originX, int originZ) {
+    private InletTerrain(DoubleBinaryOperator natural, WindowKey window) {
+        this(natural, window, (window.wx() - 1) * WindowKey.SIZE, (window.wz() - 1) * WindowKey.SIZE, SPAN, SPAN);
+    }
+
+    private InletTerrain(DoubleBinaryOperator natural, WindowKey window, int originX, int originZ, int width, int depth) {
         this.natural = natural;
-        this.grid = new DemGrid(originX, originZ, CELL, WIDTH, DEPTH);
-        int count = WIDTH * DEPTH;
+        this.window = window;
+        this.grid = new DemGrid(originX, originZ, CELL, width, depth);
+        int count = width * depth;
         this.samples = new HydrologySampleBuffer(count);
         BitSet seeds = new BitSet(count);
         for (int cell = 0; cell < count; cell++) {
@@ -48,14 +56,14 @@ final class InletTerrain {
             grid.values()[cell] = height;
             samples.height()[cell] = height;
             samples.ocean()[cell] = Math.round(height) < SEA;
-            int i = cell % WIDTH;
-            int j = cell / WIDTH;
-            if (samples.ocean()[cell] || i == 0 || j == 0 || i == WIDTH - 1 || j == DEPTH - 1) {
+            int i = cell % width;
+            int j = cell / width;
+            if (samples.ocean()[cell] || i == 0 || j == 0 || i == width - 1 || j == depth - 1) {
                 seeds.set(cell);
             }
         }
         float[] filled = PriorityFlood.fill(grid, seeds, 0.001f);
-        DemGrid surface = new DemGrid(originX, originZ, CELL, WIDTH, DEPTH);
+        DemGrid surface = new DemGrid(originX, originZ, CELL, width, depth);
         System.arraycopy(filled, 0, surface.values(), 0, count);
         this.receivers = D8Router.receivers(surface, filled);
         float[] weights = new float[count];
@@ -70,6 +78,34 @@ final class InletTerrain {
 
     static InletTerrain cliff(double cliffHeight) {
         return new InletTerrain((x, z) -> x < COAST_X ? SEA - 20D : SEA + cliffHeight + 0.08D * (x - COAST_X));
+    }
+
+    InletTerrain wide(WindowKey window, int windows) {
+        int cells = (2 * windows + 1) * WindowKey.SIZE / CELL;
+        int originX = (window.wx() - windows) * WindowKey.SIZE;
+        int originZ = (window.wz() - windows) * WindowKey.SIZE;
+        return new InletTerrain(natural, window, originX, originZ, cells, cells);
+    }
+
+    static InletTerrain bay(int westX, int eastX, int bayZ) {
+        return new InletTerrain((x, z) -> {
+            if (z > bayZ - CELL / 2D) {
+                return Math.abs(z - bayZ) < CELL / 2D && x > westX - CELL / 2D && x < eastX + CELL / 2D ? SEA - 20D : SEA + 5D;
+            }
+            return SEA + 30D + 0.08D * (bayZ - z);
+        });
+    }
+
+    static InletTerrain eastEdgeCoast() {
+        double coast = WindowKey.SIZE - CELL;
+        return new InletTerrain((x, z) -> x < coast - CELL / 2D ? SEA - 20D : SEA + 30D + 0.08D * (x - coast));
+    }
+
+    static InletTerrain openCoast() {
+        return new InletTerrain((x, z) -> {
+            double coast = 768D + 120D * Math.sin(z / 180D) + 40D * Math.sin(z / 53D);
+            return x < coast ? SEA - 20D : SEA + 30D + 0.08D * (x - coast);
+        });
     }
 
     static InletTerrain cliffWithTrough(double cliffHeight, double troughFrom, double troughTo, double troughHeight) {
@@ -123,12 +159,16 @@ final class InletTerrain {
         return HydrologySettings.compile(config, SEED, SEA, MIN_Y, MAX_Y);
     }
 
-    InletTerrain shifted(int originX, int originZ) {
-        return new InletTerrain(natural, originX, originZ);
+    InletTerrain span(WindowKey window) {
+        return new InletTerrain(natural, window);
+    }
+
+    InletTerrain narrow(int originX, int originZ) {
+        return new InletTerrain(natural, WindowKey.containing(originX, originZ), originX, originZ, WIDTH, DEPTH);
     }
 
     List<SeaInlet> plan(HydrologySettings settings, ShapedNetwork network) {
-        return new SeaInletPlanner(settings).plan(grid, samples, receivers, accumulation, network, SEED);
+        return new SeaInletPlanner(settings).plan(window, grid, samples, receivers, accumulation, network, SEED);
     }
 
     List<SeaInlet> plan(HydrologySettings settings) {
@@ -136,7 +176,7 @@ final class InletTerrain {
     }
 
     boolean ocean(float x, float z) {
-        int cell = grid.index(Math.round(x / CELL), Math.round(z / CELL));
+        int cell = grid.index(Math.round((x - grid.originX()) / CELL), Math.round((z - grid.originZ()) / CELL));
         return samples.ocean()[cell];
     }
 
@@ -164,7 +204,7 @@ final class InletTerrain {
     }
 
     static Reach northSouthReach(HydrologySettings settings, float x, int grade, float halfWidth, float depth) {
-        int points = 9;
+        int points = 25;
         float[] xs = new float[points];
         float[] zs = new float[points];
         int[] grades = new int[points];
@@ -173,7 +213,7 @@ final class InletTerrain {
         ReachStyle[] styles = new ReachStyle[points];
         for (int point = 0; point < points; point++) {
             xs[point] = x;
-            zs[point] = point * 64f;
+            zs[point] = point * 64f - WindowKey.SIZE;
             grades[point] = grade;
             widths[point] = halfWidth;
             depths[point] = depth;

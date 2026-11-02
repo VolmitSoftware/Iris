@@ -14,6 +14,7 @@ import art.arcane.iris.generation.hydrology.plan.WindowKey;
 import art.arcane.iris.generation.hydrology.query.HydrologyFeatureQuery;
 import art.arcane.iris.generation.hydrology.query.HydrologyFeatureRef;
 import art.arcane.iris.generation.hydrology.query.HydrologyFeatureType;
+import art.arcane.iris.generation.hydrology.query.HydrologySearchTimeoutException;
 import art.arcane.iris.generation.hydrology.raster.ChannelFluids;
 import art.arcane.iris.generation.hydrology.raster.ChunkRasterizer;
 import art.arcane.iris.generation.hydrology.raster.ChunkWaterRaster;
@@ -30,12 +31,14 @@ import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.runtime.IrisEngine;
 import art.arcane.iris.generation.runtime.PreparedHydrologyCacheIdentity;
 import art.arcane.iris.generation.terrain.IrisDimension;
+import art.arcane.iris.generation.terrain.IrisRegion;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.world.IrisWorld;
 
 import java.io.File;
 import java.io.UncheckedIOException;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -64,6 +67,7 @@ public final class HydrologyRuntime {
     public static final int MAX_PREGENERATION_REGIONS = 4096;
     private static final int MAX_PREVIEW_REQUESTS = 64;
     private static final int PREFETCH_CAPACITY = 16;
+    public static final Duration FEATURE_SEARCH_TIMEOUT = Duration.ofSeconds(30L);
     private static final HydrologyRuntime DISABLED = new HydrologyRuntime();
 
     private final HydrologySettings settings;
@@ -150,8 +154,9 @@ public final class HydrologyRuntime {
         Objects.requireNonNull(complex, "Hydrology needs the engine's terrain complex");
         HydrologySettings settings = HydrologySettings.compile(config, engine.getSeedManager().getBodies(), dimension.getFluidHeight(), 0,
                 engine.getHeight());
-        boolean caveFluidPolicies = settings.underground().cavePools().enabled()
-                && requireBiomeFluids(dimension.getReachableBiomes(engine), settings);
+        requireBiomeFluids(dimension.getReachableBiomes(engine), settings);
+        boolean caveFluidPolicies = requireCaveFluids(dimension, dimension.getAllRegions(engine), dimension.getReachableCaveBiomes(engine), settings)
+                && settings.underground().cavePools().enabled();
         if (settings.density() == 0D) {
             return DISABLED;
         }
@@ -168,18 +173,31 @@ public final class HydrologyRuntime {
                 identity -> store(world, dimensionKey, settings, identity), caveFluidPolicies);
     }
 
-    static boolean requireBiomeFluids(Collection<IrisBiome> biomes, HydrologySettings settings) {
-        boolean named = false;
+    private static void requireBiomeFluids(Collection<IrisBiome> biomes, HydrologySettings settings) {
         for (IrisBiome biome : biomes) {
-            IrisHydrologyPolicy policy = biome == null ? null : biome.getHydrologyPolicy();
-            String fluid = policy == null ? null : policy.getFluid();
-            if (fluid == null) {
-                continue;
-            }
-            settings.requireFillingFluid(fluid, "biome '" + biome.getLoadKey() + "' hydrologyPolicy.fluid");
-            named = true;
+            requireFluid(biome.getHydrologyPolicy(), "biome '" + biome.getLoadKey() + "'", settings);
+        }
+    }
+
+    static boolean requireCaveFluids(IrisDimension dimension, Collection<IrisRegion> regions, Collection<IrisBiome> caveBiomes,
+                                     HydrologySettings settings) {
+        boolean named = requireFluid(dimension.getHydrologyPolicy(), "dimension '" + dimension.getLoadKey() + "'", settings);
+        for (IrisRegion region : regions) {
+            named |= requireFluid(region.getHydrologyPolicy(), "region '" + region.getLoadKey() + "'", settings);
+        }
+        for (IrisBiome biome : caveBiomes) {
+            named |= requireFluid(biome.getHydrologyPolicy(), "biome '" + biome.getLoadKey() + "'", settings);
         }
         return named;
+    }
+
+    private static boolean requireFluid(IrisHydrologyPolicy policy, String owner, HydrologySettings settings) {
+        String fluid = policy == null ? null : policy.getFluid();
+        if (fluid == null) {
+            return false;
+        }
+        settings.requireFillingFluid(fluid, owner + " hydrologyPolicy.fluid");
+        return true;
     }
 
     public boolean caveFluidPolicies() {
@@ -388,14 +406,12 @@ public final class HydrologyRuntime {
         }
     }
 
-    public Optional<HydrologyFeatureRef> nearestFeature(int blockX, int blockZ, HydrologyFeatureQuery query, int radius) {
-        return nearestFeature(blockX, blockZ, query, radius, feature -> true);
-    }
-
     public Optional<HydrologyFeatureRef> nearestFeature(int blockX, int blockZ, HydrologyFeatureQuery query, int radius,
-                                                        Predicate<HydrologyFeatureRef> eligible) {
+                                                        Predicate<HydrologyFeatureRef> eligible, BooleanSupplier running)
+            throws HydrologySearchTimeoutException {
         Objects.requireNonNull(query, "query");
         Objects.requireNonNull(eligible, "eligible");
+        Objects.requireNonNull(running, "running");
         if (radius < 0) {
             throw new IllegalArgumentException("Hydrology feature search radius must not be negative, got " + radius);
         }
@@ -406,7 +422,15 @@ public final class HydrologyRuntime {
             throw new IllegalStateException("Hydrology feature search was requested on the main thread.");
         }
         requireOpen();
-        return new HydrologyFeatureSearch(settings, cache, blockX, blockZ, query, eligible, radius).nearest();
+        return new HydrologyFeatureSearch(settings, cache, blockX, blockZ, query, eligible, radius).nearest(FEATURE_SEARCH_TIMEOUT, running);
+    }
+
+    public Optional<String> unavailable(HydrologyFeatureType type) {
+        Objects.requireNonNull(type, "type");
+        if (settings == null) {
+            return Optional.of(HydrologyFeatureSearch.OFF);
+        }
+        return HydrologyFeatureSearch.disabledReason(settings, type);
     }
 
     public HydrologyFeatureType channelType(HydrologyTier tier) {

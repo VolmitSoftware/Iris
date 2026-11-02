@@ -998,11 +998,6 @@ public final class ModdedStudioCommands {
             if (region == null) {
                 continue;
             }
-            region.getAllBiomes(() -> dm).forEach((IrisBiome biome) -> {
-                if (biome != null && biome.getLoadKey() != null) {
-                    biomeKeys.add(biome.getLoadKey());
-                }
-            });
             lootKeys.addAll(region.getLoot().getTables());
             spawnerKeys.addAll(region.getEntitySpawners());
             collectStructureKeys(structureKeys, region.getStructures());

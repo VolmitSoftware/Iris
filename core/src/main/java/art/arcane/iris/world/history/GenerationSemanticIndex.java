@@ -45,6 +45,7 @@ import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Predicate;
@@ -96,6 +97,7 @@ public final class GenerationSemanticIndex {
     private final CatalogPublisher catalogPublisher;
     private final boolean unpublished;
     private final DeferredDurability durability;
+    private final AtomicLong riverRevision = new AtomicLong();
     private long regionDecodeCount;
     private volatile IOException journalFailure;
     private long appendingRegionKey;
@@ -245,6 +247,7 @@ public final class GenerationSemanticIndex {
             RegionShard baseRegion = loadRegionLocked(regionKey, regionX, regionZ);
             RegionShard nextRegion = baseRegion;
             List<ChunkGenerationSemantics> updates = new ArrayList<>(claims.size());
+            boolean water = false;
             for (Claim pending : claims) {
                 ChunkGenerationSemantics update = pending.update;
                 ChunkGenerationSemantics existing = nextRegion.get(update.chunkX(), update.chunkZ());
@@ -261,6 +264,7 @@ public final class GenerationSemanticIndex {
                 }
                 nextRegion = nextRegion.withRecord(merged);
                 updates.add(merged);
+                water |= waterChanged(existing, merged);
                 pending.persisted = true;
             }
             if (updates.isEmpty()) {
@@ -286,6 +290,9 @@ public final class GenerationSemanticIndex {
             cacheRegion(regionKey, nextRegion);
             regionRecordCounts.put(regionKey, nextRegion.recordCount());
             journalEntries.addTo(regionKey, updates.size());
+            if (water) {
+                riverRevision.incrementAndGet();
+            }
             for (Claim pending : claims) {
                 pending.completed = true;
             }
@@ -452,6 +459,9 @@ public final class GenerationSemanticIndex {
             if (existing == null) {
                 regionRecordCounts.addTo(regionKey, 1);
             }
+            if (waterChanged(existing, merged)) {
+                riverRevision.incrementAndGet();
+            }
             shardHashes.put(regionKey, shardHash);
             deleteUnreferencedShard(regionX, regionZ, previousHash, shardHash);
             return true;
@@ -471,6 +481,10 @@ public final class GenerationSemanticIndex {
         } finally {
             publicationLock.unlock();
         }
+    }
+
+    public long riverRevision() {
+        return riverRevision.get();
     }
 
     public int recordCount() {
@@ -1153,6 +1167,10 @@ public final class GenerationSemanticIndex {
         }
     }
 
+    private static boolean waterChanged(ChunkGenerationSemantics existing, ChunkGenerationSemantics merged) {
+        return existing == null ? !merged.riverFeatures().isEmpty() : !existing.riverFeatures().equals(merged.riverFeatures());
+    }
+
     private static Set<String> keys(ChunkGenerationSemantics semantics, SemanticKind kind) {
         return switch (kind) {
             case SURFACE_BIOME -> semantics.surfaceBiomeKeys();
@@ -1750,14 +1768,14 @@ public final class GenerationSemanticIndex {
                 } else if (riverTypeCount > HydrologyFeatureType.values().length) {
                     throw invalid(source, "invalid summary river type count " + riverTypeCount);
                 }
-                int previousOrdinal = -1;
+                int previousCode = -1;
                 for (int index = 0; index < riverTypeCount; index++) {
-                    int ordinal = input.readUnsignedByte();
-                    if (ordinal <= previousOrdinal || ordinal >= HydrologyFeatureType.values().length) {
-                        throw invalid(source, "invalid summary river type ordinal " + ordinal);
+                    int code = input.readUnsignedByte();
+                    if (code <= previousCode) {
+                        throw invalid(source, "summary river type codes are not in canonical order");
                     }
-                    riverTypes.add(HydrologyFeatureType.values()[ordinal]);
-                    previousOrdinal = ordinal;
+                    riverTypes.add(RegionShard.riverFeatureType(source, code));
+                    previousCode = code;
                 }
                 LongOpenHashSet activations = readActivations(source, input, "summary activation");
                 LongOpenHashSet sealedActivations = readActivations(source, input, "sealed summary activation");
@@ -1791,8 +1809,8 @@ public final class GenerationSemanticIndex {
                     }
                 }
                 output.writeByte(riverTypes.size());
-                for (HydrologyFeatureType type : riverTypes) {
-                    output.writeByte(type.ordinal());
+                for (int code : riverTypes.stream().mapToInt(HydrologyFeatureType::code).sorted().toArray()) {
+                    output.writeByte(code);
                 }
                 writeActivations(output, activations);
                 writeActivations(output, sealedActivations);
@@ -2707,7 +2725,7 @@ public final class GenerationSemanticIndex {
                     output.writeShort(semantics.riverFeatures().size());
                     for (ChunkGenerationSemantics.RiverFeatureOccurrence occurrence : semantics.riverFeatures()) {
                         output.writeShort(paletteIndexes.get(occurrence.profileKey()));
-                        output.writeByte(occurrence.type().ordinal());
+                        output.writeByte(occurrence.type().code());
                         output.writeLong(occurrence.featureId());
                         output.writeInt(occurrence.position().x());
                         output.writeInt(occurrence.position().y());
@@ -2916,21 +2934,17 @@ public final class GenerationSemanticIndex {
                 return;
             }
             ChunkGenerationSemantics.RiverFeatureOccurrence previous = null;
-            HydrologyFeatureType[] types = HydrologyFeatureType.values();
             for (int index = 0; index < count; index++) {
                 int paletteIndex = input.readUnsignedShort();
                 if (paletteIndex >= palette.length) {
                     throw invalid(file, "river profile key palette index is out of range");
                 }
-                int typeOrdinal = input.readUnsignedByte();
-                if (typeOrdinal >= types.length) {
-                    throw invalid(file, "river feature type ordinal is out of range");
-                }
+                HydrologyFeatureType type = riverFeatureType(file, input.readUnsignedByte());
                 paletteUsed[paletteIndex] = true;
                 ChunkGenerationSemantics.RiverFeatureOccurrence occurrence =
                         new ChunkGenerationSemantics.RiverFeatureOccurrence(
                                 palette[paletteIndex],
-                                types[typeOrdinal],
+                                type,
                                 input.readLong(),
                                 new ChunkGenerationSemantics.BlockPosition(
                                         input.readInt(),
@@ -2945,6 +2959,14 @@ public final class GenerationSemanticIndex {
                 }
                 builder.addRiverFeature(occurrence);
                 previous = occurrence;
+            }
+        }
+
+        private static HydrologyFeatureType riverFeatureType(Path file, int code) throws IOException {
+            try {
+                return HydrologyFeatureType.fromCode(code);
+            } catch (IllegalStateException unknown) {
+                throw invalid(file, unknown.getMessage(), unknown);
             }
         }
 

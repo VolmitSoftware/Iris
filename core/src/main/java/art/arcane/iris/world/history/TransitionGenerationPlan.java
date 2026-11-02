@@ -88,10 +88,6 @@ public final class TransitionGenerationPlan {
         return terrainSampleAt(blockX, blockZ).newEpochWeight();
     }
 
-    public double hydrologyWeightAt(int blockX, int blockZ) {
-        return terrainSampleAt(blockX, blockZ).hydrologyWeight();
-    }
-
     public boolean allowsNewDiscreteContentAt(int blockX, int blockZ) {
         return !boundary.isHistoricalBlock(blockX, blockZ);
     }
@@ -191,7 +187,6 @@ public final class TransitionGenerationPlan {
     public record TerrainSample(
             double distanceToHistoricalTerrain,
             double newEpochWeight,
-            double hydrologyWeight,
             TerrainBoundarySignature nearestSignature,
             double historicalSurfaceHeight,
             double historicalOceanFloorHeight,
@@ -204,9 +199,6 @@ public final class TransitionGenerationPlan {
             if (!Double.isFinite(newEpochWeight) || newEpochWeight < 0D || newEpochWeight > 1D) {
                 throw new IllegalArgumentException("New epoch weight must be between zero and one");
             }
-            if (!Double.isFinite(hydrologyWeight) || hydrologyWeight < 0D || hydrologyWeight > 1D) {
-                throw new IllegalArgumentException("Hydrology weight must be between zero and one");
-            }
             if (nearestSignature != null
                     && (!Double.isFinite(historicalSurfaceHeight)
                     || !Double.isFinite(historicalOceanFloorHeight)
@@ -217,11 +209,11 @@ public final class TransitionGenerationPlan {
         }
 
         static TerrainSample newTerrain(double distance) {
-            return new TerrainSample(distance, 1D, 1D, null, 0D, 0D, 0D);
+            return new TerrainSample(distance, 1D, null, 0D, 0D, 0D);
         }
 
         static TerrainSample historicalTerrain() {
-            return new TerrainSample(0D, 0D, 0D, null, 0D, 0D, 0D);
+            return new TerrainSample(0D, 0D, null, 0D, 0D, 0D);
         }
 
         public boolean hasHistoricalSignature() {

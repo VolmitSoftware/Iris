@@ -85,7 +85,7 @@ public final class CaveTerrainSnapshot {
                 bytes += 16L + (long) section.length * 8L;
                 for (HydrologyCaveCell cell : section) {
                     if (cell != null) {
-                        bytes += 208L + ((long) cell.fluidProfileKey().length() + cell.floodedBiomeKey().length()) * 2L;
+                        bytes += 208L + (long) cell.fluidProfileKey().length() * 2L;
                     }
                 }
             }

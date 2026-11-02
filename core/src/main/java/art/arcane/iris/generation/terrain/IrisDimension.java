@@ -113,6 +113,7 @@ import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
@@ -581,12 +582,12 @@ public class IrisDimension extends IrisRegistrant {
         String biomeKey = Objects.requireNonNull(biome, "focus biome").getLoadKey();
         KList<IrisRegion> available = getAllRegions(provider);
         for (IrisRegion region : available) {
-            if (region.getAllBiomeIds().contains(biomeKey)) {
+            if (region.getAllBiomeIds(this, provider).contains(biomeKey)) {
                 return region;
             }
         }
         for (IrisRegion region : available) {
-            for (IrisBiome member : region.getAllBiomes(provider)) {
+            for (IrisBiome member : region.getAllBiomes(this, provider)) {
                 if (biomeKey.equals(member.getLoadKey())) {
                     return region;
                 }
@@ -697,29 +698,15 @@ public class IrisDimension extends IrisRegistrant {
 
         Deque<String> pending = new ArrayDeque<>();
         addReachableBiomeKey(pending, getFocus());
-        boolean hydrologyPoliciesActive = hydrology != null && hydrology.isEnabled();
-        if (hydrologyPoliciesActive && hydrologyPolicy != null) {
-            addReachableBiomeKeys(pending, hydrologyPolicy.getShoreBiomes());
-        }
-        for (IrisRegion region : getAllRegions(g)) {
+        KList<IrisRegion> regions = getAllRegions(g);
+        for (IrisRegion region : regions) {
             if (region == null) {
                 continue;
             }
-            addReachableBiomeKeys(pending,
-                    hydrologyPoliciesActive ? region.getAllBiomeIds() : region.getNaturalBiomeIds());
+            addReachableBiomeKeys(pending, region.getNaturalBiomeIds());
         }
-        for (IrisImageMapBinding binding : getImageMaps()) {
-            if (binding == null || binding.getApplication() != IrisImageMapApplication.BIOME) {
-                continue;
-            }
-            IrisImageMap map = data.getImageMapLoader().load(binding.getMap());
-            if (map == null) {
-                continue;
-            }
-            for (String target : imageMapTargets(map)) {
-                addReachableBiomeKey(pending, localImageMapTarget(target));
-            }
-        }
+        addReachableBiomeKeys(pending, ShoreBiomeLineages.placed(this, regions, g));
+        addReachableBiomeKeys(pending, getImageMapBiomeKeys(g));
 
         KList<IrisDimensionCarvingEntry> carvingEntries = getCarving();
         if (carvingEntries != null) {
@@ -763,9 +750,6 @@ public class IrisDimension extends IrisRegistrant {
             biomes.put(loadKey, biome);
             addReachableBiomeKeys(pending, biome.getChildren());
             addReachableBiomeKey(pending, biome.getCarvingBiome());
-            if (hydrologyPoliciesActive && biome.getHydrologyPolicy() != null) {
-                addReachableBiomeKeys(pending, biome.getHydrologyPolicy().getShoreBiomes());
-            }
 
             KList<IrisFloatingChildBiomes> floatingChildren = biome.getFloatingChildBiomes();
             if (floatingChildren == null) {
@@ -783,6 +767,50 @@ public class IrisDimension extends IrisRegistrant {
         }
 
         return biomes.v();
+    }
+
+    public KList<IrisBiome> getReachableCaveBiomes(DataProvider g) {
+        IrisData data = g == null ? null : g.getData();
+        if (data == null || data.getBiomeLoader() == null) {
+            return new KList<>();
+        }
+        Map<String, IrisBiome> biomes = new LinkedHashMap<>();
+        for (IrisRegion region : getAllRegions(g)) {
+            for (IrisBiome biome : region.getRealCaveBiomes(g)) {
+                biomes.putIfAbsent(biome.getLoadKey(), biome);
+            }
+        }
+        KList<IrisDimensionCarvingEntry> carvingEntries = getCarving();
+        if (carvingEntries != null) {
+            for (IrisDimensionCarvingEntry entry : carvingEntries) {
+                IrisBiome biome = entry == null || !entry.isEnabled() ? null : entry.getRealBiome(data);
+                if (biome != null) {
+                    biomes.putIfAbsent(biome.getLoadKey(), biome);
+                }
+            }
+        }
+        return new KList<>(biomes.values());
+    }
+
+    public Set<String> getImageMapBiomeKeys(DataProvider g) {
+        Set<String> keys = new LinkedHashSet<>();
+        IrisData data = g == null ? null : g.getData();
+        if (data == null) {
+            return keys;
+        }
+        for (IrisImageMapBinding binding : getImageMaps()) {
+            if (binding == null || binding.getApplication() != IrisImageMapApplication.BIOME) {
+                continue;
+            }
+            IrisImageMap map = data.getImageMapLoader().load(binding.getMap());
+            if (map == null) {
+                continue;
+            }
+            for (String target : imageMapTargets(map)) {
+                keys.add(localImageMapTarget(target));
+            }
+        }
+        return keys;
     }
 
     private Set<String> imageMapTargets(IrisImageMap map) {

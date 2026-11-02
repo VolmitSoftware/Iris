@@ -26,7 +26,7 @@ final class HydrologyVegetationSource {
     private final Object lock = new Object();
     private boolean planted;
     private volatile IdentityHashMap<List<IrisDecorator>, HydrologyVegetation.Decorators> compiled = new IdentityHashMap<>();
-    private volatile IdentityHashMap<IrisBiome, IdentityHashMap<IrisRegion, Resolved>> overrides = new IdentityHashMap<>();
+    private volatile IdentityHashMap<List<IrisBiome>, IdentityHashMap<IrisRegion, Resolved>> overrides = new IdentityHashMap<>();
 
     private HydrologyVegetationSource(IrisData data, IrisDimension dimension, Map<HydrologyTier, HydrologyVegetation.Decorators> tiers,
                                       HydrologyVegetation.Decorators ponds) {
@@ -62,11 +62,11 @@ final class HydrologyVegetationSource {
         return planted;
     }
 
-    HydrologyVegetation.Decorators decorators(HydrologyTier tier, IrisBiome biome, IrisRegion region) {
+    HydrologyVegetation.Decorators decorators(HydrologyTier tier, List<IrisBiome> lineage, IrisRegion region) {
         if (data == null) {
             return HydrologyVegetation.Decorators.EMPTY;
         }
-        Resolved override = override(biome, region);
+        Resolved override = override(lineage, region);
         if (override.decorators() != null) {
             return override.decorators();
         }
@@ -80,28 +80,28 @@ final class HydrologyVegetationSource {
         return known;
     }
 
-    private Resolved override(IrisBiome biome, IrisRegion region) {
-        IdentityHashMap<IrisRegion, Resolved> regions = overrides.get(biome);
+    private Resolved override(List<IrisBiome> lineage, IrisRegion region) {
+        IdentityHashMap<IrisRegion, Resolved> regions = overrides.get(lineage);
         Resolved known = regions == null ? null : regions.get(region);
-        return known != null ? known : remember(biome, region, resolve(biome, region));
+        return known != null ? known : remember(lineage, region, resolve(lineage, region));
     }
 
-    private Resolved resolve(IrisBiome biome, IrisRegion region) {
-        List<IrisDecorator> decorators = IrisHydrologyPolicy.inherited(biome, region, dimension, IrisHydrologyPolicy::getDecorators);
+    private Resolved resolve(List<IrisBiome> lineage, IrisRegion region) {
+        List<IrisDecorator> decorators = IrisHydrologyPolicy.inherited(lineage, region, dimension, IrisHydrologyPolicy::getDecorators);
         return decorators == null ? Resolved.INHERIT : new Resolved(compiled(decorators, LAZY_POLICY));
     }
 
-    private Resolved remember(IrisBiome biome, IrisRegion region, Resolved resolved) {
+    private Resolved remember(List<IrisBiome> lineage, IrisRegion region, Resolved resolved) {
         synchronized (lock) {
-            IdentityHashMap<IrisRegion, Resolved> current = overrides.get(biome);
+            IdentityHashMap<IrisRegion, Resolved> current = overrides.get(lineage);
             Resolved raced = current == null ? null : current.get(region);
             if (raced != null) {
                 return raced;
             }
-            IdentityHashMap<IrisBiome, IdentityHashMap<IrisRegion, Resolved>> next = new IdentityHashMap<>(overrides);
+            IdentityHashMap<List<IrisBiome>, IdentityHashMap<IrisRegion, Resolved>> next = new IdentityHashMap<>(overrides);
             IdentityHashMap<IrisRegion, Resolved> regions = current == null ? new IdentityHashMap<>() : new IdentityHashMap<>(current);
             regions.put(region, resolved);
-            next.put(biome, regions);
+            next.put(lineage, regions);
             overrides = next;
             return resolved;
         }

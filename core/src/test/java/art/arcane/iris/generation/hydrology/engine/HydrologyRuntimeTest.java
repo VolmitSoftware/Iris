@@ -29,10 +29,14 @@ import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.runtime.PreparedHydrologyCacheIdentity;
 import art.arcane.iris.generation.runtime.SeedManager;
 import art.arcane.iris.generation.terrain.IrisDimension;
+import art.arcane.iris.generation.terrain.IrisRegion;
+import art.arcane.iris.pack.loading.IrisData;
+import art.arcane.iris.pack.loading.ResourceLoader;
 import art.arcane.iris.spi.LogLevel;
 import art.arcane.iris.testsupport.FakeHydrology;
 import art.arcane.iris.testsupport.PlatformLeakGuard;
 import art.arcane.iris.world.IrisWorld;
+import art.arcane.volmlib.util.collection.KList;
 import org.junit.After;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -58,13 +62,16 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.FutureTask;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BooleanSupplier;
+import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 import static org.junit.Assert.assertArrayEquals;
@@ -101,6 +108,8 @@ public class HydrologyRuntimeTest {
     private static final long LAKE = 0x4c414b45L;
     private static final long RIVER = 0x52495645L;
     private static final long INLET = 0x494e4c4554L;
+    private static final Predicate<HydrologyFeatureRef> ANY = feature -> true;
+    private static final BooleanSupplier RUNNING = () -> true;
 
     @ClassRule
     public static final PlatformLeakGuard PLATFORM_GUARD = PlatformLeakGuard.clean();
@@ -295,24 +304,29 @@ public class HydrologyRuntimeTest {
         FakePlanners planners = new FakePlanners(settings());
         HydrologyRuntime runtime = runtime(planners, () -> false);
 
-        HydrologyFeatureRef pond = runtime.nearestFeature(0, 0, HydrologyFeatureQuery.of(HydrologyFeatureType.POND), 2048).orElseThrow();
+        HydrologyFeatureRef pond = runtime.nearestFeature(0, 0, HydrologyFeatureQuery.of(HydrologyFeatureType.POND), 2048, ANY, RUNNING)
+                .orElseThrow();
         assertEquals(new HydrologyFeatureRef(POND, HydrologyFeatureType.POND, 2, 70, 2), pond);
         assertEquals(0, planners.windowCalls(new WindowKey(3, 3)));
         assertEquals(new HydrologyFeatureRef(POND + 1, HydrologyFeatureType.POND, 300, 70, 300),
-                runtime.nearestFeature(301, 299, HydrologyFeatureQuery.of(HydrologyFeatureType.POND), 64).orElseThrow());
-        HydrologyFeatureRef river = runtime.nearestFeature(0, 0, HydrologyFeatureQuery.of(HydrologyFeatureType.RIVER), 2048).orElseThrow();
+                runtime.nearestFeature(301, 299, HydrologyFeatureQuery.of(HydrologyFeatureType.POND), 64, ANY, RUNNING).orElseThrow());
+        HydrologyFeatureRef river = runtime.nearestFeature(0, 0, HydrologyFeatureQuery.of(HydrologyFeatureType.RIVER), 2048, ANY, RUNNING)
+                .orElseThrow();
         assertEquals(new HydrologyFeatureRef(RIVER, HydrologyFeatureType.RIVER, 1000, 80, 200), river);
-        HydrologyFeatureRef fall = runtime.nearestFeature(0, 0, HydrologyFeatureQuery.of(HydrologyFeatureType.WATERFALL), 2048).orElseThrow();
+        HydrologyFeatureRef fall = runtime.nearestFeature(0, 0, HydrologyFeatureQuery.of(HydrologyFeatureType.WATERFALL), 2048, ANY,
+                RUNNING).orElseThrow();
         assertEquals(new HydrologyFeatureRef(RIVER, HydrologyFeatureType.WATERFALL, 1050, 75, 200), fall);
         HydrologyFeatureQuery water = HydrologyFeatureQuery.of(HydrologyFeatureType.RIVER, HydrologyFeatureType.POND);
-        assertEquals(pond, runtime.nearestFeature(0, 0, water, 2048).orElseThrow());
-        assertEquals(new HydrologyFeatureRef(RIVER, HydrologyFeatureType.RIVER, 1100, 70, 200), runtime.nearestFeature(1100, 100, water, 2048)
-                .orElseThrow());
-        assertEquals(Optional.empty(), runtime.nearestFeature(0, 0, HydrologyFeatureQuery.of(HydrologyFeatureType.POND), 2));
+        assertEquals(pond, runtime.nearestFeature(0, 0, water, 2048, ANY, RUNNING).orElseThrow());
+        assertEquals(new HydrologyFeatureRef(RIVER, HydrologyFeatureType.RIVER, 1100, 70, 200),
+                runtime.nearestFeature(1100, 100, water, 2048, ANY, RUNNING).orElseThrow());
+        assertEquals(Optional.empty(), runtime.nearestFeature(0, 0, HydrologyFeatureQuery.of(HydrologyFeatureType.POND), 2, ANY, RUNNING));
         assertEquals(Optional.empty(), runtime.nearestFeature(0, 0,
-                HydrologyFeatureQuery.of(HydrologyFeatureType.STREAM, HydrologyFeatureType.MAJOR_RIVER), 2048));
-        assertEquals(FAR_POND, runtime.nearestFeature(1700, 150, HydrologyFeatureQuery.of(HydrologyFeatureType.POND), 512).orElseThrow().id());
-        HydrologyFeatureRef lake = runtime.nearestFeature(0, 0, HydrologyFeatureQuery.of(HydrologyFeatureType.LAKE), 4096).orElseThrow();
+                HydrologyFeatureQuery.of(HydrologyFeatureType.STREAM, HydrologyFeatureType.MAJOR_RIVER), 2048, ANY, RUNNING));
+        assertEquals(FAR_POND, runtime.nearestFeature(1700, 150, HydrologyFeatureQuery.of(HydrologyFeatureType.POND), 512, ANY, RUNNING)
+                .orElseThrow().id());
+        HydrologyFeatureRef lake = runtime.nearestFeature(0, 0, HydrologyFeatureQuery.of(HydrologyFeatureType.LAKE), 4096, ANY, RUNNING)
+                .orElseThrow();
         assertEquals(new HydrologyFeatureRef(LAKE, HydrologyFeatureType.LAKE, 2500, 90, 2500), lake);
     }
 
@@ -347,13 +361,16 @@ public class HydrologyRuntimeTest {
             written.put(((long) x << 40) ^ ((long) (int) call.getArgument(2) << 20) ^ (int) call.getArgument(1), cell);
             return null;
         }).when(writer).setData(anyInt(), anyInt(), anyInt(), any(HydrologyCaveCell.class));
-        new SeaInletRasterizer().write(tail.getFirst(), 68, 25, writer, HydrologyCaveCell.SEA_FLUID, "", SeaInletRasterizer.SubterrainFluid.NOWHERE);
+        new SeaInletRasterizer().write(tail.getFirst(), 68, 25, writer, HydrologyCaveCell.SEA_FLUID, SeaInletRasterizer.SubterrainFluid.NOWHERE,
+                SeaInletRasterizer.HistoricalChunks.NONE);
         assertTrue("the chunk past the owner window writes inlet water",
                 written.values().stream().anyMatch(cell -> cell.action() == HydrologyCaveAction.WET_SOURCE));
 
-        HydrologyFeatureRef nearest = runtime.nearestFeature(1050, 405, HydrologyFeatureQuery.of(HydrologyFeatureType.SEA_INLET), 512).orElseThrow();
+        HydrologyFeatureRef nearest = runtime.nearestFeature(1050, 405, HydrologyFeatureQuery.of(HydrologyFeatureType.SEA_INLET), 512, ANY,
+                RUNNING).orElseThrow();
         assertEquals(new HydrologyFeatureRef(INLET, HydrologyFeatureType.SEA_INLET, 1048, 40, 400), nearest);
-        assertEquals(Optional.empty(), runtime.nearestFeature(0, 0, HydrologyFeatureQuery.of(HydrologyFeatureType.SEA_INLET), 64));
+        assertEquals(Optional.empty(),
+                runtime.nearestFeature(0, 0, HydrologyFeatureQuery.of(HydrologyFeatureType.SEA_INLET), 64, ANY, RUNNING));
         assertEquals(List.of(FakePlanners.inlet()), runtime.planPreview(900, 300, 1100, 500).inlets());
         assertEquals(List.of(), FakeHydrology.disabled().inlets(0, 0));
     }
@@ -364,11 +381,11 @@ public class HydrologyRuntimeTest {
         HydrologyRuntime runtime = runtime(planners, () -> false);
 
         HydrologyFeatureRef seeded = runtime.nearestFeature(0, 0, HydrologyFeatureQuery.of(HydrologyFeatureType.POND), 2048,
-                feature -> feature.id() != POND).orElseThrow();
+                feature -> feature.id() != POND, RUNNING).orElseThrow();
 
         assertEquals(POND + 1, seeded.id());
         assertEquals(Optional.empty(), runtime.nearestFeature(0, 0, HydrologyFeatureQuery.of(HydrologyFeatureType.POND), 2048,
-                feature -> false));
+                feature -> false, RUNNING));
     }
 
     @Test(timeout = 180_000L)
@@ -801,7 +818,7 @@ public class HydrologyRuntimeTest {
         AtomicBoolean main = new AtomicBoolean(true);
         HydrologyRuntime runtime = runtime(planners, pool, main::get);
         try {
-            runtime.nearestFeature(0, 0, HydrologyFeatureQuery.of(HydrologyFeatureType.POND), 64);
+            runtime.nearestFeature(0, 0, HydrologyFeatureQuery.of(HydrologyFeatureType.POND), 64, ANY, RUNNING);
             fail("A feature search on the main thread must refuse");
         } catch (IllegalStateException expected) {
             assertTrue(expected.getMessage(), expected.getMessage().contains("main thread"));
@@ -811,20 +828,20 @@ public class HydrologyRuntimeTest {
         assertEquals(0, planners.windowOrder().size());
         assertEquals(0, planners.regionArrivals.get());
 
-        assertEquals(Optional.empty(), runtime.nearestFeature(10_000, 10_000, HydrologyFeatureQuery.of(HydrologyFeatureType.POND), 64));
+        assertEquals(Optional.empty(),
+                runtime.nearestFeature(10_000, 10_000, HydrologyFeatureQuery.of(HydrologyFeatureType.POND), 64, ANY, RUNNING));
         assertEquals(25, planners.windowOrder().size());
 
         CountDownLatch regions = new CountDownLatch(1);
         planners.regionGate = regions;
         int before = planners.regionArrivals.get();
-        AtomicReference<Optional<HydrologyFeatureRef>> lake = new AtomicReference<>();
-        Thread search = new Thread(() -> lake.set(runtime.nearestFeature(-20_000, -20_000,
-                HydrologyFeatureQuery.of(HydrologyFeatureType.LAKE), 64)));
+        FutureTask<Optional<HydrologyFeatureRef>> lake = new FutureTask<>(() -> runtime.nearestFeature(-20_000, -20_000,
+                HydrologyFeatureQuery.of(HydrologyFeatureType.LAKE), 64, ANY, RUNNING));
+        Thread search = new Thread(lake);
         search.start();
         await(() -> planners.regionArrivals.get() - before >= 4, "every lake region to plan at once");
         regions.countDown();
-        search.join(TimeUnit.SECONDS.toMillis(TIMEOUT_SECONDS));
-        assertEquals(Optional.empty(), lake.get());
+        assertEquals(Optional.empty(), lake.get(TIMEOUT_SECONDS, TimeUnit.SECONDS));
     }
 
     @Test(timeout = 180_000L)
@@ -848,22 +865,32 @@ public class HydrologyRuntimeTest {
     }
 
     @Test
-    public void biomeFluidPoliciesAreCheckedWhenTheEngineLoads() {
+    public void caveFluidPoliciesAreCheckedWhenTheEngineLoads() {
+        IrisDimension dimension = new IrisDimension();
+        IrisRegion region = new IrisRegion();
         IrisBiome plain = new IrisBiome();
-        IrisBiome flooded = new IrisBiome();
-        flooded.setHydrologyPolicy(new IrisHydrologyPolicy().setFluid("water"));
-        IrisBiome magma = new IrisBiome();
-        magma.setHydrologyPolicy(new IrisHydrologyPolicy().setFluid("magma"));
+        IrisBiome flooded = new IrisBiome().setHydrologyPolicy(new IrisHydrologyPolicy().setFluid("water"));
+        IrisBiome magma = new IrisBiome().setHydrologyPolicy(new IrisHydrologyPolicy().setFluid("magma"));
 
-        assertFalse(HydrologyRuntime.requireBiomeFluids(List.of(plain), settings()));
-        assertTrue(HydrologyRuntime.requireBiomeFluids(List.of(plain, flooded), settings()));
+        assertFalse(HydrologyRuntime.requireCaveFluids(dimension, List.of(region), List.of(plain), settings()));
+        assertTrue(HydrologyRuntime.requireCaveFluids(dimension, List.of(region), List.of(plain, flooded), settings()));
         IllegalArgumentException failure = assertThrows(IllegalArgumentException.class,
-                () -> HydrologyRuntime.requireBiomeFluids(List.of(plain, magma), settings()));
+                () -> HydrologyRuntime.requireCaveFluids(dimension, List.of(region), List.of(plain, magma), settings()));
+        assertTrue(failure.getMessage(), failure.getMessage().contains("'magma'"));
+
+        region.setHydrologyPolicy(new IrisHydrologyPolicy().setFluid("water"));
+        assertTrue(HydrologyRuntime.requireCaveFluids(dimension, List.of(region), List.of(plain), settings()));
+        region.setHydrologyPolicy(null);
+        dimension.setHydrologyPolicy(new IrisHydrologyPolicy().setFluid("water"));
+        assertTrue(HydrologyRuntime.requireCaveFluids(dimension, List.of(region), List.of(plain), settings()));
+        dimension.setHydrologyPolicy(new IrisHydrologyPolicy().setFluid("magma"));
+        failure = assertThrows(IllegalArgumentException.class,
+                () -> HydrologyRuntime.requireCaveFluids(dimension, List.of(region), List.of(plain), settings()));
         assertTrue(failure.getMessage(), failure.getMessage().contains("'magma'"));
     }
 
     @Test
-    public void createStaysDisabledWithoutHydrology() {
+    public void createStaysDisabledWithoutHydrology() throws Exception {
         Engine engine = mock(Engine.class);
         IrisComplex complex = mock(IrisComplex.class);
         IrisDimension dimension = new IrisDimension();
@@ -879,7 +906,52 @@ public class HydrologyRuntimeTest {
     }
 
     @Test
-    public void zeroDensitySkipsRuntimePlanningAfterValidatingSettings() {
+    @SuppressWarnings("unchecked")
+    public void createChecksEveryPolicyFluidWhetherCavePoolsAreOnOrOff() throws Exception {
+        IrisDimension dimension = new IrisDimension().setRegions(new KList<>("tropical"));
+        dimension.setLoadKey("main");
+        dimension.setHydrology(new IrisHydrology().setEnabled(true).setDensity(0D));
+        IrisRegion tropical = new IrisRegion().setLandBiomes(new KList<>("volcanoes"));
+        tropical.setLoadKey("tropical");
+        IrisBiome volcanoes = new IrisBiome().setHydrologyPolicy(new IrisHydrologyPolicy().setFluid("magma"));
+        volcanoes.setLoadKey("volcanoes");
+        IrisData data = mock(IrisData.class);
+        ResourceLoader<IrisRegion> regions = mock(ResourceLoader.class);
+        ResourceLoader<IrisBiome> biomes = mock(ResourceLoader.class);
+        when(data.getRegionLoader()).thenReturn(regions);
+        when(data.getBiomeLoader()).thenReturn(biomes);
+        when(regions.load("tropical")).thenReturn(tropical);
+        when(biomes.load("volcanoes")).thenReturn(volcanoes);
+        Engine engine = mock(Engine.class);
+        when(engine.getDimension()).thenReturn(dimension);
+        when(engine.getData()).thenReturn(data);
+        when(engine.getSeedManager()).thenReturn(new SeedManager(1337L));
+        when(engine.getHeight()).thenReturn(384);
+        IrisComplex complex = mock(IrisComplex.class);
+
+        IllegalArgumentException failure = assertThrows(IllegalArgumentException.class, () -> HydrologyRuntime.create(engine, complex));
+        assertTrue(failure.getMessage(), failure.getMessage().contains("'magma'") && failure.getMessage().contains("volcanoes"));
+
+        dimension.getHydrology().getUnderground().getCavePools().setEnabled(false);
+        assertEquals("Unknown hydrology fluid profile 'magma' in biome 'volcanoes' hydrologyPolicy.fluid; fluids defines [water]",
+                assertThrows(IllegalArgumentException.class, () -> HydrologyRuntime.create(engine, complex)).getMessage());
+
+        volcanoes.setHydrologyPolicy(null);
+        tropical.setHydrologyPolicy(new IrisHydrologyPolicy().setFluid("magma"));
+        assertEquals("Unknown hydrology fluid profile 'magma' in region 'tropical' hydrologyPolicy.fluid; fluids defines [water]",
+                assertThrows(IllegalArgumentException.class, () -> HydrologyRuntime.create(engine, complex)).getMessage());
+
+        tropical.setHydrologyPolicy(null);
+        dimension.setHydrologyPolicy(new IrisHydrologyPolicy().setFluid("magma"));
+        assertEquals("Unknown hydrology fluid profile 'magma' in dimension 'main' hydrologyPolicy.fluid; fluids defines [water]",
+                assertThrows(IllegalArgumentException.class, () -> HydrologyRuntime.create(engine, complex)).getMessage());
+
+        dimension.setHydrologyPolicy(new IrisHydrologyPolicy().setFluid("water"));
+        assertDisabled(HydrologyRuntime.create(engine, complex));
+    }
+
+    @Test
+    public void zeroDensitySkipsRuntimePlanningAfterValidatingSettings() throws Exception {
         Engine engine = mock(Engine.class);
         IrisComplex complex = mock(IrisComplex.class);
         IrisDimension dimension = new IrisDimension();
@@ -1014,13 +1086,14 @@ public class HydrologyRuntimeTest {
         }
     }
 
-    private static void assertDisabled(HydrologyRuntime runtime) {
+    private static void assertDisabled(HydrologyRuntime runtime) throws TimeoutException {
         assertFalse(runtime.enabled());
+        assertEquals(Optional.of("hydrology is off"), runtime.unavailable(HydrologyFeatureType.RIVER));
         assertEquals(0L, runtime.previewRevision());
         assertSame(ChunkWaterRaster.EMPTY, runtime.raster(0, 0));
         assertSame(ChunkWaterRaster.EMPTY, runtime.rasterSnapshot(0, 0));
         assertSame(ChunkWaterRaster.EMPTY, runtime.rasterAt(0, 0));
-        assertEquals(Optional.empty(), runtime.nearestFeature(0, 0, HydrologyFeatureQuery.of(HydrologyFeatureType.POND), 64));
+        assertEquals(Optional.empty(), runtime.nearestFeature(0, 0, HydrologyFeatureQuery.of(HydrologyFeatureType.POND), 64, ANY, RUNNING));
         assertTrue(runtime.prepareWindowsAround(0, 0, 0, 0, 1).isDone());
         try (HydrologyPregeneration pregeneration = runtime.openPregeneration()) {
             pregeneration.prepare(List.of(new long[]{0L, 0L}));

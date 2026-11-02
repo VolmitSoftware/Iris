@@ -62,7 +62,6 @@ public class MedievalPregenMethod implements PregeneratorMethod {
     private final Executor chunkIoExecutor;
     private final PregenSerialWorker chunkFlush;
     private volatile Engine cachedEngine;
-    private volatile boolean engineResolutionAttempted;
     private final AtomicBoolean closing = new AtomicBoolean();
     private final PregenHydrology hydrology = new PregenHydrology(this::resolveEngine);
 
@@ -99,10 +98,6 @@ public class MedievalPregenMethod implements PregeneratorMethod {
         if (cached != null) {
             return cached;
         }
-        if (engineResolutionAttempted) {
-            return null;
-        }
-        engineResolutionAttempted = true;
         try {
             if (!IrisToolbelt.isIrisWorld(world)) {
                 return null;

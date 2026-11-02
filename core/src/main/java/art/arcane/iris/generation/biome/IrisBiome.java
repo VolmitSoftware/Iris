@@ -92,6 +92,7 @@ import java.util.Objects;
 @Data
 @EqualsAndHashCode(callSuper = false)
 public class IrisBiome extends IrisRegistrant implements Rarity {
+    public static final int CHILD_HOPS = 4;
     private static final int BIOME_GENERATOR_CACHE_SIZE = 8;
     private static final int CHILDREN_SEED_SALT = 2137;
 

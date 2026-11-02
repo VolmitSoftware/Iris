@@ -64,13 +64,13 @@ public class MantleObjectComponentCaveAnchorTest {
         MatterCavern forcedAir = new MatterCavern(true, "", (byte) 3);
 
         assertFalse(MantleObjectComponent.acceptsCaveAnchorFluid(
-                true, water, HydrologyCaveCell.of(HydrologyCaveAction.WET_SOURCE), 20, 8));
+                true, water, new HydrologyCaveCell(HydrologyCaveAction.WET_SOURCE, "water"), 20, 8));
         assertFalse(MantleObjectComponent.acceptsCaveAnchorFluid(
-                true, water, HydrologyCaveCell.of(HydrologyCaveAction.FALLING_FLUID), 20, 8));
+                true, water, new HydrologyCaveCell(HydrologyCaveAction.POOL_SOURCE, "water"), 20, 8));
         assertFalse(MantleObjectComponent.acceptsCaveAnchorFluid(
-                true, null, HydrologyCaveCell.of(HydrologyCaveAction.SEAL_GUARD), 20, 8));
+                true, null, new HydrologyCaveCell(HydrologyCaveAction.SEAL_GUARD, "water"), 20, 8));
         assertFalse(MantleObjectComponent.acceptsCaveAnchorFluid(
-                false, forcedAir, HydrologyCaveCell.of(HydrologyCaveAction.DRY_AIR), 20, 8));
+                false, forcedAir, new HydrologyCaveCell(HydrologyCaveAction.DRY_AIR, "water"), 20, 8));
     }
 
     @Test

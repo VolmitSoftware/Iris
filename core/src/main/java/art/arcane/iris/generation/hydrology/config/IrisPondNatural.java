@@ -32,6 +32,6 @@ public class IrisPondNatural {
 
     @MinNumber(0.5)
     @MaxNumber(64)
-    @Description("Smallest hollow depth in blocks that holds a pond.")
+    @Description("Smallest hollow depth in blocks that holds a pond or a lake.")
     private double minDepth = 2D;
 }

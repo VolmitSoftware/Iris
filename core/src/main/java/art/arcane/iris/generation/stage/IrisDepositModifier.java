@@ -441,8 +441,7 @@ public class IrisDepositModifier extends EngineAssignedModifier<NativeBlockState
     }
 
     private static boolean protectedHydrology(MantleChunk chunk, int x, int y, int z) {
-        Object cell = chunk.get(x, y, z, HydrologyCaveCell.class);
-        return cell instanceof HydrologyCaveCell hydrology && hydrology.protectsPlacement();
+        return chunk.get(x, y, z, HydrologyCaveCell.class) instanceof HydrologyCaveCell;
     }
 
     static boolean canReplaceDepositTarget(NativeBlockState state) {

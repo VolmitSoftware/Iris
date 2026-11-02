@@ -3,8 +3,12 @@ package art.arcane.iris.generation.stage;
 import art.arcane.iris.generation.block.B;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveAction;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveCell;
+import art.arcane.iris.generation.hydrology.config.IrisHydrology;
 import art.arcane.iris.generation.hydrology.engine.HydrologyRuntime;
+import art.arcane.iris.generation.hydrology.plan.HydrologySettings;
 import art.arcane.iris.generation.hydrology.raster.ChunkWaterRaster;
+import art.arcane.iris.generation.hydrology.underground.SeaInlet;
+import art.arcane.iris.generation.hydrology.underground.SeaInletRasterizer;
 import art.arcane.iris.generation.mantle.EngineMantle;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.IrisComplex;
@@ -32,6 +36,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
@@ -48,6 +53,7 @@ import static org.mockito.Mockito.when;
 public class IrisCarveModifierSubterrainMaskTest {
     private static final int MINIMUM_Y = -64;
     private static final int ROOF = 2;
+    private static final int ROOF_CLEARANCE = 6;
 
     @Test
     public void preservedSubterrainNeverReopensACellAboveTheCaveCeiling() {
@@ -81,6 +87,74 @@ public class IrisCarveModifierSubterrainMaskTest {
     }
 
     @Test
+    public void preservedSubterrainStaysOutOfInletHeadroom() {
+        IrisSubterrainFeature feature = new IrisSubterrainFeature().setId("room").setFamily(IrisSubterrainFamily.CENOTE)
+                .setProbability(1).setLength(64).setRadius(12).setHeight(24).setPillarSpacing(0).setFormationFraction(0)
+                .setWorldYRange(new IrisRange(-48, 60));
+        SubterrainPlanner planner = new SubterrainPlanner(new SubterrainPlanner.Options(List.of(feature), 83L, MINIMUM_Y, 128, (x, z) -> "region"));
+        SubterrainPlan plan = planner.plansForBounds(-512, -512, 512, 512).getFirst();
+        int blockX = plan.centerX() >> 4 << 4;
+        int blockZ = plan.centerZ() >> 4 << 4;
+        HydrologyRuntime hydrology = mock(HydrologyRuntime.class);
+        when(hydrology.raster(anyInt(), anyInt())).thenReturn(ChunkWaterRaster.EMPTY);
+        IrisCarveModifier modifier = modifier(planner, hydrology);
+        try (MockedStatic<B> blocks = mockStatic(B.class)) {
+            blocks.when(() -> B.getState(anyString())).thenReturn(mock(NativeBlockState.class));
+            List<int[]> open = reopenedCells(modifier, planner, blockX, blockZ);
+            int[] heights = open.stream().mapToInt(cell -> cell[1]).sorted().toArray();
+            int water = heights[heights.length / 4];
+            SeaInlet inlet = coveredInlet(blockX, blockZ + 8, water);
+            assertTrue("subterrain cells in the headroom before the inlet " + inHeadroom(inlet, open).size(), inHeadroom(inlet, open).size() > 20);
+
+            when(hydrology.inlets(anyInt(), anyInt())).thenAnswer(call -> SeaInletRasterizer.touches(inlet, call.getArgument(0),
+                    call.getArgument(1)) ? List.of(inlet) : List.of());
+            when(hydrology.settings()).thenReturn(HydrologySettings.compile(new IrisHydrology().setEnabled(true), 1L, 63, 0, 128));
+            List<int[]> sealed = reopenedCells(modifier, planner, blockX, blockZ);
+            assertTrue(sealed.size() > 0);
+            assertEquals("subterrain reopened cells in the inlet headroom", List.of(), inHeadroom(inlet, sealed));
+        }
+    }
+
+    private static List<String> inHeadroom(SeaInlet inlet, List<int[]> cells) {
+        List<String> inside = new ArrayList<>();
+        int[] column = new int[2];
+        for (int[] cell : cells) {
+            if (SeaInletRasterizer.column(inlet, cell[0], cell[2], column) && cell[1] > inlet.waterLevel()
+                    && cell[1] <= column[1] + ROOF_CLEARANCE) {
+                inside.add(cell[0] + "," + cell[1] + "," + cell[2]);
+            }
+        }
+        return inside;
+    }
+
+    private static SeaInlet coveredInlet(int startX, int z, int water) {
+        float[] xs = {startX - 4f, startX + 4f, startX + 12f, startX + 20f};
+        float[] zs = {z, z, z, z};
+        float[] halfWidth = {4f, 4f, 3.5f, 3f};
+        int[] floor = {water - 3, water - 3, water - 3, water - 3};
+        int[] ceiling = {water + 5, water + 5, water + 4, water + 4};
+        return new SeaInlet(5L, xs, zs, halfWidth, water, floor, ceiling, startX + 20, z, 3);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static List<int[]> reopenedCells(IrisCarveModifier modifier, SubterrainPlanner planner, int blockX, int blockZ) {
+        List<int[]> open = new ArrayList<>();
+        Hunk<NativeBlockState> output = mock(Hunk.class);
+        when(output.getHeight()).thenReturn(128);
+        doAnswer(call -> {
+            int x = blockX + (int) call.getArgument(0);
+            int y = call.getArgument(1);
+            int z = blockZ + (int) call.getArgument(2);
+            if (!planner.sample(x, y + MINIMUM_Y, z).solid()) {
+                open.add(new int[]{x, y, z});
+            }
+            return null;
+        }).when(output).setRaw(anyInt(), anyInt(), anyInt(), any());
+        modifier.preserveSubterrain(blockX, blockZ, output);
+        return open;
+    }
+
+    @Test
     public void preservedSubterrainLeavesEveryInletCellAlone() {
         IrisSubterrainFeature feature = new IrisSubterrainFeature().setId("room").setFamily(IrisSubterrainFamily.CENOTE)
                 .setProbability(1).setLength(64).setRadius(12).setHeight(24).setPillarSpacing(0).setFormationFraction(0)
@@ -104,7 +178,7 @@ public class IrisCarveModifierSubterrainMaskTest {
                 if (y <= water + 2 && y >= water - 3) {
                     HydrologyCaveAction action = y > water ? HydrologyCaveAction.DRY_AIR
                             : y == water - 3 ? HydrologyCaveAction.SEAL_GUARD : HydrologyCaveAction.WET_SOURCE;
-                    inlet.put(cell, new HydrologyCaveCell(action, HydrologyCaveCell.SEA_FLUID, ""));
+                    inlet.put(cell, new HydrologyCaveCell(action, HydrologyCaveCell.SEA_FLUID));
                 }
             }
             assertTrue("inlet cells crossing the room " + inlet.size(), inlet.size() > 20);

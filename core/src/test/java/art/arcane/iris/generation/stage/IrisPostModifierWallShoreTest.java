@@ -155,7 +155,7 @@ public class IrisPostModifierWallShoreTest {
     @SuppressWarnings("unchecked")
     private static EngineMantle sealedMantle() {
         MatterSlice<HydrologyCaveCell> cells = mock(MatterSlice.class);
-        doReturn(HydrologyCaveCell.of(HydrologyCaveAction.SEAL_GUARD)).when(cells).get(0, SURFACE & 15, 0);
+        doReturn(new HydrologyCaveCell(HydrologyCaveAction.SEAL_GUARD, "water")).when(cells).get(0, SURFACE & 15, 0);
         Matter section = mock(Matter.class);
         doReturn(true).when(section).hasSlice(HydrologyCaveCell.class);
         doReturn(cells).when(section).getSlice(HydrologyCaveCell.class);

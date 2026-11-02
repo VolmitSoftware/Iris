@@ -328,7 +328,7 @@ public class ObjectDestinationTransactionTest {
         when(destinationWriter.getEngine().getDimension().isBedrock()).thenReturn(true);
         for (int x = 0; x < 3; x++) {
             when(destinationWriter.getPrerequisiteDataIfPresent(x, 4, 0, HydrologyCaveCell.class))
-                    .thenReturn(HydrologyCaveCell.of(HydrologyCaveAction.SEAL_GUARD));
+                    .thenReturn(new HydrologyCaveCell(HydrologyCaveAction.SEAL_GUARD, "water"));
         }
         ObjectDestinationTransaction destination = new ObjectDestinationTransaction(destinationWriter, 0, 0);
 
@@ -391,8 +391,8 @@ public class ObjectDestinationTransactionTest {
         when(fluid.isFluid()).thenReturn(true);
         MatterCavern cavern = new MatterCavern(true, "", (byte) 0);
         Object[] values = {solid, air, fluid, cavern,
-                HydrologyCaveCell.of(HydrologyCaveAction.SEAL_GUARD),
-                HydrologyCaveCell.of(HydrologyCaveAction.DRY_AIR)};
+                new HydrologyCaveCell(HydrologyCaveAction.SEAL_GUARD, "water"),
+                new HydrologyCaveCell(HydrologyCaveAction.DRY_AIR, "water")};
         Map<ObjectDestinationTransaction.DataKey, Object> expected = new HashMap<>();
         Random random = new Random(918241L);
         for (int pass = 0; pass < 12; pass++) {
@@ -401,10 +401,8 @@ public class ObjectDestinationTransactionTest {
                 int y = random.nextInt(64);
                 Object value = values[random.nextInt(values.length)];
                 transaction.setData(column[0], y, column[1], value);
-                HydrologyCaveCell hydrology = (HydrologyCaveCell) expected.get(
-                        new ObjectDestinationTransaction.DataKey(column[0], y, column[1], HydrologyCaveCell.class));
-                if (!(value instanceof HydrologyCaveCell)
-                        && hydrology != null && hydrology.protectsPlacement()) {
+                if (!(value instanceof HydrologyCaveCell) && expected.containsKey(
+                        new ObjectDestinationTransaction.DataKey(column[0], y, column[1], HydrologyCaveCell.class))) {
                     continue;
                 }
                 Class<?> type = value instanceof NativeBlockState ? NativeBlockState.class : value.getClass();
@@ -583,7 +581,7 @@ public class ObjectDestinationTransactionTest {
         when(writer.getPrerequisiteCarvedColumn(0, 0, 8)).thenReturn(prerequisite);
         when(writer.isPrerequisiteCarved(0, 4, 0)).thenReturn(true);
         ObjectDestinationTransaction transaction = new ObjectDestinationTransaction(writer, 0, 0);
-        HydrologyCaveCell sealed = HydrologyCaveCell.of(HydrologyCaveAction.SEAL_GUARD);
+        HydrologyCaveCell sealed = new HydrologyCaveCell(HydrologyCaveAction.SEAL_GUARD, "water");
         MatterCavern cavern = new MatterCavern(true, "", (byte) 0);
 
         transaction.setData(0, 4, 0, sealed);
@@ -623,9 +621,9 @@ public class ObjectDestinationTransactionTest {
                 fixture.writer.setData(0, 4, 0, cavern);
             });
             fixture.matter.<HydrologyCaveCell>slice(HydrologyCaveCell.class)
-                    .set(0, 6, 0, HydrologyCaveCell.of(HydrologyCaveAction.SEAL_GUARD));
+                    .set(0, 6, 0, new HydrologyCaveCell(HydrologyCaveAction.SEAL_GUARD, "water"));
             fixture.matter.<HydrologyCaveCell>slice(HydrologyCaveCell.class)
-                    .set(0, 12, 0, HydrologyCaveCell.of(HydrologyCaveAction.DRY_AIR));
+                    .set(0, 12, 0, new HydrologyCaveCell(HydrologyCaveAction.DRY_AIR, "water"));
             ObjectDestinationTransaction transaction = new ObjectDestinationTransaction(fixture.writer, 0, 0);
 
             assertArrayEquals(new byte[]{0, 0, 0, 1, 0, 1, 0, 1, 1, 1, 0, 0, 1, 0, 0, 0},
@@ -687,7 +685,7 @@ public class ObjectDestinationTransactionTest {
         when(writer.getPrerequisiteBlock(0, 0, 0)).thenReturn(prerequisite);
         when(writer.getEngine().getDimension().isBedrock()).thenReturn(true);
         when(writer.getPrerequisiteDataIfPresent(1, 4, 0, HydrologyCaveCell.class))
-                .thenReturn(HydrologyCaveCell.of(HydrologyCaveAction.SEAL_GUARD));
+                .thenReturn(new HydrologyCaveCell(HydrologyCaveAction.SEAL_GUARD, "water"));
         ObjectDestinationTransaction transaction = new ObjectDestinationTransaction(writer, 0, 0);
 
         transaction.setData(0, 0, 0, rejected);
@@ -731,7 +729,7 @@ public class ObjectDestinationTransactionTest {
         when(custom.placementBaseState()).thenReturn(base);
         when(writer.getEngine().getDimension().isBedrock()).thenReturn(true);
         when(writer.getPrerequisiteDataIfPresent(1, 4, 0, HydrologyCaveCell.class))
-                .thenReturn(HydrologyCaveCell.of(HydrologyCaveAction.SEAL_GUARD));
+                .thenReturn(new HydrologyCaveCell(HydrologyCaveAction.SEAL_GUARD, "water"));
         ObjectDestinationTransaction transaction = new ObjectDestinationTransaction(writer, 0, 0);
 
         transaction.set(0, 0, 0, custom);

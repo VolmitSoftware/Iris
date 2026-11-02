@@ -230,7 +230,7 @@ public final class PondPlanner {
                 >= Math.clamp(settings.ponds().natural().keep() * floor.pondDensity()[0], 0f, 1f) * settings.density()) {
             return null;
         }
-        return new Candidate(basin, kind, floorX, floorZ, floor.rainfall()[0], fluid(floor));
+        return new Candidate(basin, kind, floorX, floorZ, dryness(floor), fluid(floor));
     }
 
     private Pond lake(LakeCandidate candidate, HeightLattice fine) {
@@ -241,11 +241,16 @@ public final class PondPlanner {
         if ((floor.permission()[0] & HydrologySampleBuffer.ALLOW_PONDS) == 0) {
             return null;
         }
-        return measureLake(fine, new LakeSite(candidate, floor.rainfall()[0], fluid(floor)));
+        return measureLake(fine, new LakeSite(candidate, dryness(floor), fluid(floor)));
     }
 
     private String fluid(HydrologySampleBuffer floor) {
         return floor.fluidProfile()[0] == null ? settings.ponds().fluid() : floor.fluidProfile()[0];
+    }
+
+    private static float dryness(HydrologySampleBuffer floor) {
+        float wetness = floor.climateZoned()[0] ? floor.wetness()[0] : floor.rainfall()[0];
+        return Math.clamp(1f - wetness, 0f, 1f);
     }
 
     private boolean qualifies(DemGrid raw, Basin basin, PondKind kind) {
@@ -339,7 +344,7 @@ public final class PondPlanner {
             return null;
         }
         int lowest = Math.max(settings.minY() + 1, settings.seaLevel());
-        int level = Math.min(Math.min(Math.max(lowest, (int) Math.floor(spill.height()) - freeboard(site) - drawdown(site.rainfall())),
+        int level = Math.min(Math.min(Math.max(lowest, (int) Math.floor(spill.height()) - freeboard(site) - drawdown(site.dryness())),
                 settings.maxY() - 1), levelCap);
         int failures = 0;
         for (int round = 0; round < LEVEL_ROUNDS && level >= lowest; round++) {
@@ -770,8 +775,8 @@ public final class PondPlanner {
                 CellHash.mix(settings.seed(), SALT_FREEBOARD, site.floorX(), site.floorZ()));
     }
 
-    private int drawdown(float rainfall) {
-        return Math.round(settings.ponds().climateDrawdown() * Math.clamp(1f - rainfall, 0f, 1f));
+    private int drawdown(float dryness) {
+        return Math.round(settings.ponds().climateDrawdown() * dryness);
     }
 
     private static int radius(DemGrid raw, Basin basin) {
@@ -807,15 +812,15 @@ public final class PondPlanner {
 
         int floorZ();
 
-        float rainfall();
+        float dryness();
 
         String fluid();
     }
 
-    private record Candidate(Basin basin, PondKind kind, int floorX, int floorZ, float rainfall, String fluid) implements Site {
+    private record Candidate(Basin basin, PondKind kind, int floorX, int floorZ, float dryness, String fluid) implements Site {
     }
 
-    private record LakeSite(LakeCandidate lake, float rainfall, String fluid) implements Site {
+    private record LakeSite(LakeCandidate lake, float dryness, String fluid) implements Site {
         @Override
         public PondKind kind() {
             return PondKind.LAKE;

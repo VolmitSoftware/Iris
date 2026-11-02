@@ -12,7 +12,8 @@ public record IrisColumnSample(
         IrisRiverState riverState,
         double riverDistance,
         int riverFlow,
-        int riverWaterSurfaceY
+        int riverWaterSurfaceY,
+        boolean provisional
 ) {
     public static final int UNAVAILABLE_HEIGHT = Integer.MIN_VALUE;
     public static final double UNAVAILABLE_RIVER_DISTANCE = Double.NaN;

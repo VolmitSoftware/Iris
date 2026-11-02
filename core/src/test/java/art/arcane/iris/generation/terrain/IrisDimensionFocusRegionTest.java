@@ -1,6 +1,7 @@
 package art.arcane.iris.generation.terrain;
 
 import art.arcane.iris.generation.biome.IrisBiome;
+import art.arcane.iris.generation.hydrology.config.IrisHydrology;
 import art.arcane.iris.generation.hydrology.config.IrisHydrologyPolicy;
 
 import art.arcane.iris.pack.loading.IrisData;
@@ -18,6 +19,7 @@ import java.util.stream.Collectors;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -51,11 +53,12 @@ public class IrisDimensionFocusRegionTest {
         biome("wilds").setChildren(new KList<>("highlands"));
         IrisBiome highlands = biome("highlands").setChildren(new KList<>("wilds"))
                 .setCarvingBiome("chalk-gardens")
-                .setHydrologyPolicy(new IrisHydrologyPolicy().setShoreBiomes(new KList<>("shore")));
+                .setHydrologyPolicy(new IrisHydrologyPolicy().setShoreBiomes(new KList<>("shore")).setShoreBiomeWidth(4));
         IrisBiome chalk = biome("chalk-gardens").setChildren(new KList<>("chalk-child"));
         IrisBiome chalkChild = biome("chalk-child");
         IrisBiome shore = biome("shore").setChildren(new KList<>("shore-child"));
         IrisBiome shoreChild = biome("shore-child").setCarvingBiome("wilds");
+        dimension.setHydrology(new IrisHydrology().setEnabled(true));
 
         for (IrisBiome focus : List.of(highlands, chalk, chalkChild, shore, shoreChild)) {
             assertSame(tropical, dimension.resolveFocusRegion(focus, () -> data));
@@ -73,16 +76,21 @@ public class IrisDimensionFocusRegionTest {
     }
 
     @Test
-    public void hydrologyPolicyShoreBiomesBelongToTheirRegion() {
-        IrisRegion tropical = region("tropical").setLandBiomes(new KList<>("wilds"))
+    public void placedHydrologyShoreBiomesBelongToTheirRegion() {
+        IrisRegion tropical = region("tropical").setLandBiomes(new KList<>("wilds", "dunes"))
                 .setHydrologyPolicy(new IrisHydrologyPolicy().setShoreBiomes(new KList<>("beach")));
         biome("wilds").setHydrologyPolicy(new IrisHydrologyPolicy().setShoreBiomes(new KList<>("reef")));
+        biome("dunes");
         IrisBiome beach = biome("beach");
         IrisBiome reef = biome("reef");
+        dimension.setHydrology(new IrisHydrology().setEnabled(true));
 
+        assertNotSame(tropical, dimension.resolveFocusRegion(beach, () -> data));
+        assertNotSame(tropical, dimension.resolveFocusRegion(reef, () -> data));
+        tropical.getHydrologyPolicy().setShoreBiomeWidth(3);
         assertSame(tropical, dimension.resolveFocusRegion(beach, () -> data));
         assertSame(tropical, dimension.resolveFocusRegion(reef, () -> data));
-        assertEquals(Set.of("wilds"), tropical.getNaturalBiomes(() -> data).stream()
+        assertEquals(Set.of("wilds", "dunes"), tropical.getNaturalBiomes(() -> data).stream()
                 .map(IrisBiome::getLoadKey).collect(Collectors.toSet()));
     }
 

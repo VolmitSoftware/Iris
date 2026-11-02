@@ -259,6 +259,84 @@ public class SeaInletRasterizerTest {
     }
 
     @Test
+    public void passageEndingAtAnOldChunkIsSealed() {
+        SeaInlet inlet = inlet(1L, 15f);
+        SeaInletRasterizer.HistoricalChunks old = (chunkX, chunkZ) -> chunkX == 2;
+        Map<Long, HydrologyCaveCell> open = rasterize(List.of(inlet), order(false), SeaInletRasterizer.SubterrainFluid.NOWHERE,
+                SeaInletRasterizer.HistoricalChunks.NONE);
+        Map<Long, HydrologyCaveCell> cells = rasterize(List.of(inlet), newChunks(order(false), old), SeaInletRasterizer.SubterrainFluid.NOWHERE,
+                old);
+        int[] column = new int[2];
+        int seamColumns = 0;
+        for (int z = -16; z <= 63; z++) {
+            for (int x = -32; x <= 79; x++) {
+                if (old.at(x >> 4, z >> 4) || !nearOldChunk(old, x, z)) {
+                    continue;
+                }
+                if (!SeaInletRasterizer.column(inlet, x, z, column) || column[1] == SeaInlet.OPEN) {
+                    continue;
+                }
+                assertEquals("without old chunks the seam column " + x + "," + z + " holds water", HydrologyCaveAction.WET_SOURCE,
+                        open.get(key(x, inlet.waterLevel(), z)).action());
+                for (int y = column[0] - SeaInletRasterizer.SHELL; y <= column[1]; y++) {
+                    HydrologyCaveCell sealed = cells.get(key(x, y, z));
+                    assertNotNull("no seal at " + x + "," + y + "," + z + " beside the old chunk", sealed);
+                    assertEquals("seal at " + x + "," + y + "," + z + " beside the old chunk", HydrologyCaveAction.SEAL_GUARD, sealed.action());
+                }
+                seamColumns++;
+            }
+        }
+        int wet = 0;
+        for (Map.Entry<Long, HydrologyCaveCell> entry : cells.entrySet()) {
+            int x = x(entry.getKey());
+            int y = y(entry.getKey());
+            int z = z(entry.getKey());
+            assertFalse("old chunk " + (x >> 4) + "," + (z >> 4) + " was written", old.at(x >> 4, z >> 4));
+            HydrologyCaveAction action = entry.getValue().action();
+            if (action == HydrologyCaveAction.SEAL_GUARD) {
+                continue;
+            }
+            assertFalse(action + " at " + x + "," + y + "," + z + " lies within two blocks of an old chunk", nearOldChunk(old, x, z));
+            if (action != HydrologyCaveAction.WET_SOURCE) {
+                continue;
+            }
+            for (int[] side : new int[][]{{1, 0, 0}, {-1, 0, 0}, {0, 0, 1}, {0, 0, -1}, {0, -1, 0}}) {
+                if (paintedSlot(List.of(inlet), x + side[0], y + side[1], z + side[2])) {
+                    continue;
+                }
+                HydrologyCaveCell neighbour = cells.get(key(x + side[0], y + side[1], z + side[2]));
+                assertNotNull("water at " + x + "," + y + "," + z + " has an open side " + side[0] + "," + side[1] + "," + side[2], neighbour);
+                assertTrue(neighbour.action() == HydrologyCaveAction.WET_SOURCE || neighbour.action() == HydrologyCaveAction.SEAL_GUARD);
+            }
+            wet++;
+        }
+        assertTrue("covered seam columns " + seamColumns, seamColumns > 10);
+        assertTrue("water cells away from the old chunks " + wet, wet > 300);
+        assertEquals(cells, rasterize(List.of(inlet), newChunks(order(true), old), SeaInletRasterizer.SubterrainFluid.NOWHERE, old));
+    }
+
+    private static boolean nearOldChunk(SeaInletRasterizer.HistoricalChunks old, int x, int z) {
+        for (int dz = -SeaInletRasterizer.SHELL; dz <= SeaInletRasterizer.SHELL; dz++) {
+            for (int dx = -SeaInletRasterizer.SHELL; dx <= SeaInletRasterizer.SHELL; dx++) {
+                if (old.at((x + dx) >> 4, (z + dz) >> 4)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private static List<int[]> newChunks(List<int[]> chunks, SeaInletRasterizer.HistoricalChunks old) {
+        List<int[]> fresh = new ArrayList<>();
+        for (int[] chunk : chunks) {
+            if (!old.at(chunk[0], chunk[1])) {
+                fresh.add(chunk);
+            }
+        }
+        return fresh;
+    }
+
+    @Test
     public void chunkOrderAndInletOrderDoNotChangeTheCells() {
         List<SeaInlet> inlets = List.of(inlet(1L, 15f), inlet(2L, 22f));
         Map<Long, HydrologyCaveCell> forward = rasterize(inlets, order(false));
@@ -272,14 +350,16 @@ public class SeaInletRasterizerTest {
         SeaInlet inlet = inlet(1L, 15f);
         Map<Long, HydrologyCaveCell> cells = new TreeMap<>();
         MantleWriter writer = writer(cells, 1, 0);
-        new SeaInletRasterizer().write(inlet, 1, 0, writer, FLUID, "", SeaInletRasterizer.SubterrainFluid.NOWHERE);
+        new SeaInletRasterizer().write(inlet, 1, 0, writer, FLUID, SeaInletRasterizer.SubterrainFluid.NOWHERE,
+                SeaInletRasterizer.HistoricalChunks.NONE);
         assertFalse(cells.isEmpty());
         for (long key : cells.keySet()) {
             assertEquals(1, x(key) >> 4);
             assertEquals(0, z(key) >> 4);
         }
         Map<Long, HydrologyCaveCell> far = new TreeMap<>();
-        new SeaInletRasterizer().write(inlet, 20, 20, writer(far, 20, 20), FLUID, "", SeaInletRasterizer.SubterrainFluid.NOWHERE);
+        new SeaInletRasterizer().write(inlet, 20, 20, writer(far, 20, 20), FLUID, SeaInletRasterizer.SubterrainFluid.NOWHERE,
+                SeaInletRasterizer.HistoricalChunks.NONE);
         assertTrue(far.isEmpty());
         assertFalse(SeaInletRasterizer.touches(inlet, 20, 20));
     }
@@ -317,12 +397,17 @@ public class SeaInletRasterizerTest {
     }
 
     private static Map<Long, HydrologyCaveCell> rasterize(List<SeaInlet> inlets, List<int[]> chunks, SeaInletRasterizer.SubterrainFluid subterrain) {
+        return rasterize(inlets, chunks, subterrain, SeaInletRasterizer.HistoricalChunks.NONE);
+    }
+
+    private static Map<Long, HydrologyCaveCell> rasterize(List<SeaInlet> inlets, List<int[]> chunks, SeaInletRasterizer.SubterrainFluid subterrain,
+                                                          SeaInletRasterizer.HistoricalChunks old) {
         Map<Long, HydrologyCaveCell> cells = new TreeMap<>();
         SeaInletRasterizer rasterizer = new SeaInletRasterizer();
         for (int[] chunk : chunks) {
             MantleWriter writer = writer(cells, chunk[0], chunk[1]);
             for (SeaInlet inlet : inlets) {
-                rasterizer.write(inlet, chunk[0], chunk[1], writer, FLUID, "", subterrain);
+                rasterizer.write(inlet, chunk[0], chunk[1], writer, FLUID, subterrain, old);
             }
         }
         return cells;

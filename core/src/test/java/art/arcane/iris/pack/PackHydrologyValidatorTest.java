@@ -34,8 +34,8 @@ public class PackHydrologyValidatorTest {
                 {
                   "enabled": true,
                   "tiers": [
-                    {"name": "stream", "minCatchment": 1500, "halfWidth": [0.5, 2], "fluid": "water"},
-                    {"name": "river", "minCatchment": 20000, "halfWidth": [2, 64], "fluid": "lava"}
+                    {"name": "stream", "minCatchment": 1500, "halfWidth": [0.5, 2], "bankBand": 0, "fluid": "water"},
+                    {"name": "river", "minCatchment": 20000, "halfWidth": [2, 64], "bankBand": 32, "fluid": "lava"}
                   ],
                   "ponds": {"freeboard": [0, 2], "fluid": "lava",
                             "seeded": {"radius": [4, 12], "depth": [2, 8], "channelSpacing": [48, 160]}},
@@ -118,6 +118,41 @@ public class PackHydrologyValidatorTest {
 
         assertContains(errors, "Biome 'biome'.hydrologyPolicy.fluid names fluid 'crust', which is a seam profile");
         assertEquals(errors.toString(), 1, errors.size());
+    }
+
+    @Test
+    public void rejectsPolicyWetnessOutsideItsOrderedBounds() throws Exception {
+        File pack = pack(dimension(WATER_ONLY, "\"hydrologyPolicy\": {\"wetness\": {\"min\": 0.2, \"max\": 0.6}},"));
+        write(pack, "regions/region.json", """
+                {"landBiomes": ["biome"], "hydrologyPolicy": {"wetness": {"max": 1.5}}}
+                """);
+        write(pack, "biomes/biome.json", """
+                {"name": "Biome", "hydrologyPolicy": {"wetness": {"min": 0.8, "max": 0.3}}}
+                """);
+
+        List<String> errors = validate(pack).errors();
+
+        assertContains(errors, "Region 'region'.hydrologyPolicy.wetness must have 0 <= min <= max <= 1, got min 0.0 and max 1.5.");
+        assertContains(errors, "Biome 'biome'.hydrologyPolicy.wetness must have 0 <= min <= max <= 1, got min 0.8 and max 0.3.");
+        assertEquals(errors.toString(), 2, errors.size());
+    }
+
+    @Test
+    public void rejectsPolicyMultipliersOutsideZeroToSixteen() throws Exception {
+        File pack = pack(dimension(WATER_ONLY, "\"hydrologyPolicy\": {\"rainfall\": 16, \"pondDensity\": 0},"));
+        write(pack, "regions/region.json", """
+                {"landBiomes": ["biome"], "hydrologyPolicy": {"pondDensity": 17}}
+                """);
+        write(pack, "biomes/biome.json", """
+                {"name": "Biome", "hydrologyPolicy": {"rainfall": -0.5, "pondDensity": 16.5}}
+                """);
+
+        List<String> errors = validate(pack).errors();
+
+        assertContains(errors, "Region 'region'.hydrologyPolicy.pondDensity must be a finite value from 0 to 16, got 17.0.");
+        assertContains(errors, "Biome 'biome'.hydrologyPolicy.rainfall must be a finite value from 0 to 16, got -0.5.");
+        assertContains(errors, "Biome 'biome'.hydrologyPolicy.pondDensity must be a finite value from 0 to 16, got 16.5.");
+        assertEquals(errors.toString(), 3, errors.size());
     }
 
     @Test
@@ -427,6 +462,218 @@ public class PackHydrologyValidatorTest {
         } finally {
             data.close();
         }
+    }
+
+    @Test
+    public void rejectsSeaInletSpacingBelowOne() throws Exception {
+        File pack = pack(dimension("{\"enabled\": true, \"underground\": {\"seaInlets\": {\"spacing\": 0}}}", ""));
+        write(pack, "dimensions/edge.json", dimension("{\"enabled\": true, \"underground\": {\"seaInlets\": {\"spacing\": 1}}}", ""));
+
+        assertEquals(List.of("Dimension 'main'.hydrology does not compile: Hydrology underground.seaInlets.spacing must be at least 1, got 0"),
+                validate(pack).errors());
+    }
+
+    @Test
+    public void rejectsPrefetchRingsOutsideZeroToFour() throws Exception {
+        File pack = pack(dimension("{\"enabled\": true, \"prefetchRings\": 5}", ""));
+        write(pack, "dimensions/low.json", dimension("{\"enabled\": true, \"prefetchRings\": -1}", ""));
+        write(pack, "dimensions/edge.json", dimension("{\"enabled\": true, \"prefetchRings\": 4}", ""));
+
+        assertEquals(List.of(
+                "Dimension 'low'.hydrology does not compile: Hydrology prefetchRings must stay within 0..4, got -1",
+                "Dimension 'main'.hydrology does not compile: Hydrology prefetchRings must stay within 0..4, got 5"), validate(pack).errors());
+    }
+
+    @Test
+    public void rejectsSeededPondDensityOutsideZeroToSixtyFour() throws Exception {
+        File pack = pack(dimension("{\"enabled\": true, \"ponds\": {\"seeded\": {\"density\": 64.5}}}", ""));
+        write(pack, "dimensions/low.json", dimension("{\"enabled\": true, \"ponds\": {\"seeded\": {\"density\": -1}}}", ""));
+        write(pack, "dimensions/edge.json", dimension("{\"enabled\": true, \"ponds\": {\"seeded\": {\"density\": 64}}}", ""));
+
+        assertEquals(List.of(
+                "Dimension 'low'.hydrology does not compile: Hydrology ponds.seeded.density must stay within 0..64, got -1.0",
+                "Dimension 'main'.hydrology does not compile: Hydrology ponds.seeded.density must stay within 0..64, got 64.5"),
+                validate(pack).errors());
+    }
+
+    @Test
+    public void rejectsFillEpsilonAtOrBelowZero() throws Exception {
+        File pack = pack(dimension("{\"enabled\": true, \"drainage\": {\"fillEpsilon\": 0}}", ""));
+        write(pack, "dimensions/low.json", dimension("{\"enabled\": true, \"drainage\": {\"fillEpsilon\": -0.001}}", ""));
+        write(pack, "dimensions/edge.json", dimension("{\"enabled\": true, \"drainage\": {\"fillEpsilon\": 0.00001}}", ""));
+
+        assertEquals(List.of(
+                "Dimension 'low'.hydrology does not compile: Hydrology drainage.fillEpsilon must be a finite value above 0, got -0.001",
+                "Dimension 'main'.hydrology does not compile: Hydrology drainage.fillEpsilon must be a finite value above 0, got 0.0"),
+                validate(pack).errors());
+    }
+
+    @Test
+    public void rejectsWaterfallMinimumDropBelowTwo() throws Exception {
+        File pack = pack(dimension("""
+                {"enabled": true, "tiers": [{"name": "stream", "halfWidth": [0.5, 2], "bankBand": 0},
+                  {"name": "river", "minCatchment": 20000, "halfWidth": [2, 8], "bankBand": 32, "waterfallMinimumDrop": 1}]}
+                """, ""));
+        write(pack, "dimensions/edge.json", dimension("""
+                {"enabled": true, "tiers": [{"name": "stream", "halfWidth": [0.5, 2], "bankBand": 0, "waterfallMinimumDrop": 2}]}
+                """, ""));
+
+        assertEquals(List.of("Dimension 'main'.hydrology does not compile: Hydrology tiers[1].waterfallMinimumDrop must be at least 2, got 1"),
+                validate(pack).errors());
+    }
+
+    @Test
+    public void rejectsShoreDepthBelowOne() throws Exception {
+        File pack = pack(dimension("""
+                {"enabled": true, "tiers": [{"name": "stream", "halfWidth": [0.5, 2], "bankBand": 0, "materials": {"shoreDepth": 0}}]}
+                """, ""));
+        write(pack, "dimensions/ponds.json", dimension("{\"enabled\": true, \"ponds\": {\"materials\": {\"shoreDepth\": 0}}}", ""));
+        write(pack, "dimensions/edge.json", dimension("""
+                {"enabled": true, "tiers": [{"name": "stream", "halfWidth": [0.5, 2], "bankBand": 0, "materials": {"shoreDepth": 1}}],
+                 "ponds": {"materials": {"shoreDepth": 1}}}
+                """, ""));
+
+        assertEquals(List.of(
+                "Dimension 'main'.hydrology does not compile: Hydrology tiers[0].materials.shoreDepth must be at least 1, got 0",
+                "Dimension 'ponds'.hydrology does not compile: Hydrology ponds.materials.shoreDepth must be at least 1, got 0"),
+                validate(pack).errors());
+    }
+
+    @Test
+    public void rejectsNegativeWidthFactorDepthRatioAndMaxFill() throws Exception {
+        File pack = pack(dimension("""
+                {"enabled": true, "tiers": [{"name": "stream", "halfWidth": [0.5, 2], "bankBand": 0, "widthFactor": -1}]}
+                """, ""));
+        write(pack, "dimensions/ratio.json", dimension("""
+                {"enabled": true, "tiers": [{"name": "stream", "halfWidth": [0.5, 2], "bankBand": 0, "depthRatio": -0.1}]}
+                """, ""));
+        write(pack, "dimensions/fill.json", dimension("{\"enabled\": true, \"deformation\": {\"maxFill\": -1}}", ""));
+        write(pack, "dimensions/edge.json", dimension("""
+                {"enabled": true, "tiers": [{"name": "stream", "halfWidth": [0.5, 2], "bankBand": 0, "widthFactor": 0, "depthRatio": 0}],
+                 "deformation": {"maxFill": 0}}
+                """, ""));
+
+        assertEquals(List.of(
+                "Dimension 'fill'.hydrology does not compile: Hydrology deformation.maxFill must be at least 0, got -1",
+                "Dimension 'main'.hydrology does not compile: Hydrology tiers[0].widthFactor must be a finite value of at least 0, got -1.0",
+                "Dimension 'ratio'.hydrology does not compile: Hydrology tiers[0].depthRatio must be a finite value of at least 0, got -0.1"),
+                validate(pack).errors());
+    }
+
+    @Test
+    public void rejectsCavePoolFreeboardThatReachesMaxDepth() throws Exception {
+        File pack = pack(dimension("{\"enabled\": true, \"underground\": {\"cavePools\": {\"maxDepth\": 2, \"freeboard\": [0, 2]}}}", ""));
+        write(pack, "dimensions/edge.json", dimension("""
+                {"enabled": true, "underground": {"cavePools": {"maxDepth": 3, "freeboard": [0, 2]}}}
+                """, ""));
+        write(pack, "dimensions/off.json", dimension("""
+                {"enabled": true, "underground": {"cavePools": {"enabled": false, "maxDepth": 2, "freeboard": [0, 2]}}}
+                """, ""));
+
+        assertEquals(List.of(
+                "Dimension 'main'.hydrology does not compile: Hydrology underground.cavePools.freeboard max 2 must stay below maxDepth 2"),
+                validate(pack).errors());
+    }
+
+    @Test
+    public void rejectsLakesWiderThanTheLakeExtent() throws Exception {
+        File pack = pack(dimension("{\"enabled\": true, \"lakes\": {\"maxArea\": 4194305}}", ""));
+        write(pack, "dimensions/edge.json", dimension("{\"enabled\": true, \"lakes\": {\"maxArea\": 4194304}}", ""));
+
+        assertEquals(List.of("Dimension 'main'.hydrology does not compile: Hydrology lakes.maxArea must not go above 4194304"
+                + " (2048 by 2048 blocks, the widest a lake can span), got 4194305"), validate(pack).errors());
+    }
+
+    @Test
+    public void rejectsCavePoolsWiderThanTheirReach() throws Exception {
+        File pack = pack(dimension("{\"enabled\": true, \"underground\": {\"cavePools\": {\"maxArea\": 962}}}", ""));
+        write(pack, "dimensions/edge.json", dimension("{\"enabled\": true, \"underground\": {\"cavePools\": {\"maxArea\": 961}}}", ""));
+        write(pack, "dimensions/off.json", dimension("""
+                {"enabled": true, "underground": {"cavePools": {"enabled": false, "maxArea": 962}}}
+                """, ""));
+
+        assertEquals(List.of("Dimension 'main'.hydrology does not compile: Hydrology underground.cavePools.maxArea must not go above 961"
+                + " (31 by 31 blocks, the widest a pool can spread), got 962"), validate(pack).errors());
+    }
+
+    @Test
+    public void rejectsRegionAndDimensionPolicyFluidsWhileCavePoolsAreOff() throws Exception {
+        File pack = pack(dimension("""
+                {"enabled": true, "underground": {"cavePools": {"enabled": false}}, "fluids": [{"name": "water"}]}
+                """, "\"hydrologyPolicy\": {\"fluid\": \"brine\"},"));
+        write(pack, "regions/region.json", """
+                {"landBiomes": ["biome"], "hydrologyPolicy": {"fluid": "tar"}}
+                """);
+
+        assertEquals(List.of(
+                "Dimension 'main'.hydrologyPolicy.fluid names fluid 'brine', which Dimension 'main'.hydrology.fluids does not define [water].",
+                "Region 'region'.hydrologyPolicy.fluid names fluid 'tar', which Dimension 'main'.hydrology.fluids does not define [water]."),
+                validate(pack).errors());
+    }
+
+    @Test
+    public void warnsWhenAWrittenTierLeavesHalfWidthOrBankBandUnset() throws Exception {
+        PackHydrologyValidator.Validation validation = validate(pack(dimension("""
+                {"enabled": true, "tiers": [
+                  {"name": "stream", "halfWidth": [0.5, 2], "bankBand": 4},
+                  {"name": "river", "minCatchment": 20000, "bankBand": 32},
+                  {"name": "major", "minCatchment": 320000, "halfWidth": [8, 16]}]}
+                """, "")));
+
+        assertTrue(validation.errors().toString(), validation.errors().isEmpty());
+        assertEquals(List.of(
+                "Dimension 'main'.hydrology.tiers[1] ('river') does not set halfWidth, so it takes the default [0.5, 2.0].",
+                "Dimension 'main'.hydrology.tiers[2] ('major') does not set bankBand, so it takes the default 0"
+                        + " and leaves the ground beside its channels as it is."), validation.warnings());
+        assertTrue(validate(pack(dimension("{\"enabled\": true}", ""))).warnings().isEmpty());
+    }
+
+    @Test
+    public void warnsWhenTheMantleCannotWriteHydrology() throws Exception {
+        File pack = pack(dimension("{\"enabled\": true}", "\"useMantle\": false,"));
+        write(pack, "dimensions/other.json", dimension("{\"enabled\": true}", "\"disabledComponents\": [\"RIVER_HYDROLOGY\"],"));
+        write(pack, "dimensions/off.json", dimension("{\"enabled\": false}", "\"useMantle\": false,"));
+
+        PackHydrologyValidator.Validation validation = validate(pack);
+
+        assertTrue(validation.errors().toString(), validation.errors().isEmpty());
+        assertEquals(List.of(
+                "Dimension 'main' sets useMantle to false while hydrology is enabled, so the falling water at waterfalls and cascades,"
+                        + " sea inlets and cave pools are not generated.",
+                "Dimension 'other' disables the RIVER_HYDROLOGY component while hydrology is enabled, so the falling water at waterfalls"
+                        + " and cascades, sea inlets and cave pools are not generated."), validation.warnings());
+    }
+
+    @Test
+    public void shoreBiomesWithoutWidthWarn() throws Exception {
+        PackHydrologyValidator.Validation unset = validate(shorePack(""));
+        PackHydrologyValidator.Validation widened = validate(shorePack(", \"shoreBiomeWidth\": 3"));
+
+        assertTrue(unset.errors().toString(), unset.errors().isEmpty());
+        assertEquals(List.of(
+                "Dimension 'main'.hydrologyPolicy.shoreBiomes lists shore biomes, but no shoreBiomeWidth above 0 applies to them,"
+                        + " so none are placed.",
+                "Region 'region'.hydrologyPolicy.shoreBiomes lists shore biomes, but no shoreBiomeWidth above 0 applies to them,"
+                        + " so none are placed.",
+                "Biome 'dune'.hydrologyPolicy.shoreBiomes lists shore biomes, but no shoreBiomeWidth above 0 applies to them,"
+                        + " so none are placed."), unset.warnings());
+        assertTrue(widened.errors().toString(), widened.errors().isEmpty());
+        assertTrue(widened.warnings().toString(), widened.warnings().isEmpty());
+    }
+
+    private File shorePack(String dimensionWidth) throws Exception {
+        File pack = pack(dimension(WATER_ONLY, "\"hydrologyPolicy\": {\"shoreBiomes\": [\"beach\"]" + dimensionWidth + "},"));
+        write(pack, "regions/region.json", """
+                {"landBiomes": ["biome", "dune", "bare"], "hydrologyPolicy": {"shoreBiomes": ["beach"]}}
+                """);
+        write(pack, "biomes/dune.json", """
+                {"name": "Dune", "hydrologyPolicy": {"shoreBiomes": ["beach"]}}
+                """);
+        write(pack, "biomes/bare.json", """
+                {"name": "Bare", "hydrologyPolicy": {"shoreBiomes": []}}
+                """);
+        write(pack, "biomes/beach.json", "{\"name\": \"Beach\"}");
+        return pack;
     }
 
     private PackHydrologyValidator.Validation validate(File pack) {

@@ -24,7 +24,6 @@ import art.arcane.iris.generation.mantle.EngineMantle;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.generation.decoration.IrisProceduralBlocks;
-import art.arcane.iris.generation.hydrology.cave.HydrologyCaveCell;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveStorage;
 import art.arcane.iris.generation.hydrology.raster.WaterRole;
 import art.arcane.iris.generation.terrain.IrisSlopeClip;
@@ -358,8 +357,7 @@ public class IrisPostModifier extends EngineAssignedModifier<NativeBlockState> {
         if (mantle == null) {
             return false;
         }
-        HydrologyCaveCell cell = HydrologyCaveStorage.getIfPresent(mantle.getMantle(), x, y, z);
-        return cell != null && cell.protectsPlacement();
+        return HydrologyCaveStorage.getIfPresent(mantle.getMantle(), x, y, z) != null;
     }
 
     public void setPostBlock(int x, int y, int z, NativeBlockState d, int originX, int originZ, Hunk<NativeBlockState> currentData) {

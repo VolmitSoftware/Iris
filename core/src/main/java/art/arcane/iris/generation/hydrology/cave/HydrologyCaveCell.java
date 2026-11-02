@@ -6,39 +6,24 @@ import java.util.Objects;
 
 public final class HydrologyCaveCell {
     public static final String SEA_FLUID = "@sea";
-    private static final String DEFAULT_FLUID_PROFILE_KEY = "default";
     private static final byte LIQUID_FLUID = 1;
     private static final byte LIQUID_FORCED_AIR = 3;
 
     private final HydrologyCaveAction action;
     private final String fluidProfileKey;
-    private final String floodedBiomeKey;
     private final MatterCavern cavern;
 
-    public HydrologyCaveCell(
-            HydrologyCaveAction action,
-            String fluidProfileKey,
-            String floodedBiomeKey
-    ) {
+    public HydrologyCaveCell(HydrologyCaveAction action, String fluidProfileKey) {
         this.action = Objects.requireNonNull(action);
         if (fluidProfileKey == null || fluidProfileKey.isBlank()) {
             throw new IllegalArgumentException("fluidProfileKey must not be blank");
         }
         this.fluidProfileKey = fluidProfileKey.trim();
-        this.floodedBiomeKey = floodedBiomeKey == null ? "" : floodedBiomeKey.trim();
         this.cavern = switch (action) {
-            case WET_SOURCE, FALLING_FLUID, POOL_SOURCE -> new MatterCavern(true, this.floodedBiomeKey, LIQUID_FLUID);
-            case DRY_AIR -> new MatterCavern(true, this.floodedBiomeKey, LIQUID_FORCED_AIR);
+            case WET_SOURCE, POOL_SOURCE -> new MatterCavern(true, "", LIQUID_FLUID);
+            case DRY_AIR -> new MatterCavern(true, "", LIQUID_FORCED_AIR);
             case SEAL_GUARD -> null;
         };
-    }
-
-    public static HydrologyCaveCell of(HydrologyCaveAction action) {
-        return new HydrologyCaveCell(action, DEFAULT_FLUID_PROFILE_KEY, "");
-    }
-
-    public static HydrologyCaveCell of(HydrologyCaveAction action, String fluidProfileKey) {
-        return new HydrologyCaveCell(action, fluidProfileKey, "");
     }
 
     public boolean carves() {
@@ -46,16 +31,7 @@ public final class HydrologyCaveCell {
     }
 
     public boolean isWet() {
-        return action == HydrologyCaveAction.WET_SOURCE || action == HydrologyCaveAction.FALLING_FLUID
-                || action == HydrologyCaveAction.POOL_SOURCE;
-    }
-
-    public boolean isFalling() {
-        return action == HydrologyCaveAction.FALLING_FLUID;
-    }
-
-    public boolean protectsPlacement() {
-        return true;
+        return action == HydrologyCaveAction.WET_SOURCE || action == HydrologyCaveAction.POOL_SOURCE;
     }
 
     public MatterCavern asCavern() {
@@ -64,10 +40,6 @@ public final class HydrologyCaveCell {
 
     public HydrologyCaveAction action() {
         return action;
-    }
-
-    public String floodedBiomeKey() {
-        return floodedBiomeKey;
     }
 
     public String fluidProfileKey() {
@@ -82,19 +54,16 @@ public final class HydrologyCaveCell {
         if (!(object instanceof HydrologyCaveCell hydrology)) {
             return false;
         }
-        return action == hydrology.action
-                && fluidProfileKey.equals(hydrology.fluidProfileKey)
-                && floodedBiomeKey.equals(hydrology.floodedBiomeKey);
+        return action == hydrology.action && fluidProfileKey.equals(hydrology.fluidProfileKey);
     }
 
     @Override
     public int hashCode() {
-        return (31 * ((31 * action.hashCode()) + fluidProfileKey.hashCode())) + floodedBiomeKey.hashCode();
+        return (31 * action.hashCode()) + fluidProfileKey.hashCode();
     }
 
     @Override
     public String toString() {
-        return "HydrologyCaveCell[action=" + action + ", fluidProfileKey=" + fluidProfileKey
-                + ", floodedBiomeKey=" + floodedBiomeKey + "]";
+        return "HydrologyCaveCell[action=" + action + ", fluidProfileKey=" + fluidProfileKey + "]";
     }
 }

@@ -138,7 +138,7 @@ public class MantleWriterOverlayTest {
         NativeBlockState custom = customState(base);
         when(matter.hasSlice(HydrologyCaveCell.class)).thenReturn(true);
         when(hydrologySlice.get(X, Y, Z))
-                .thenReturn(HydrologyCaveCell.of(HydrologyCaveAction.SEAL_GUARD));
+                .thenReturn(new HydrologyCaveCell(HydrologyCaveAction.SEAL_GUARD, "water"));
 
         writer.set(X, Y, Z, custom);
 
@@ -176,7 +176,7 @@ public class MantleWriterOverlayTest {
         MatterCavern cavern = new MatterCavern(true, "", (byte) 3);
         when(matter.hasSlice(HydrologyCaveCell.class)).thenReturn(true);
         when(hydrologySlice.get(X, Y, Z))
-                .thenReturn(HydrologyCaveCell.of(HydrologyCaveAction.SEAL_GUARD));
+                .thenReturn(new HydrologyCaveCell(HydrologyCaveAction.SEAL_GUARD, "water"));
 
         writer.setData(X, Y, Z, replacement);
         assertFalse(writer.carveDataIfAbsent(X, Y, Z, cavern));
@@ -217,9 +217,9 @@ public class MantleWriterOverlayTest {
         when(matter.hasSlice(HydrologyCaveCell.class)).thenReturn(true);
         when(cavernSlice.get(X, Y, Z)).thenReturn(baseline);
         when(hydrologySlice.get(X, Y, Z))
-                .thenReturn(HydrologyCaveCell.of(HydrologyCaveAction.SEAL_GUARD));
+                .thenReturn(new HydrologyCaveCell(HydrologyCaveAction.SEAL_GUARD, "water"));
         when(hydrologySlice.get(X, Y + 1, Z))
-                .thenReturn(HydrologyCaveCell.of(HydrologyCaveAction.DRY_AIR));
+                .thenReturn(new HydrologyCaveCell(HydrologyCaveAction.DRY_AIR, "water"));
 
         assertFalse(writer.isCarved(X, Y, Z));
         assertTrue(writer.isCarved(X, Y + 1, Z));

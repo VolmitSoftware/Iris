@@ -9,6 +9,7 @@ import art.arcane.iris.generation.hydrology.engine.HydrologyRuntime;
 import art.arcane.iris.generation.hydrology.query.HydrologyFeatureQuery;
 import art.arcane.iris.generation.hydrology.query.HydrologyFeatureRef;
 import art.arcane.iris.generation.hydrology.query.HydrologyFeatureType;
+import art.arcane.iris.generation.hydrology.query.HydrologySearchTimeoutException;
 
 import java.math.BigInteger;
 import java.io.IOException;
@@ -21,11 +22,18 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executor;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.function.Predicate;
 import java.util.function.BooleanSupplier;
 
 public final class GenerationSemanticQueries {
     public static final int RIVER_SEARCH_DISTANCE = 7168;
+    private static final ConcurrentHashMap<UUID, CompletableFuture<RiverSearch>> RIVER_SEARCHES = new ConcurrentHashMap<>();
 
     private GenerationSemanticQueries() {
     }
@@ -153,15 +161,41 @@ public final class GenerationSemanticQueries {
                 IrisStructureLocator.LocateStatus.FOUND, position.x(), position.y(), position.z());
     }
 
-    public static Optional<RiverResult> nearestRiver(
+    public static CompletableFuture<RiverSearch> startRiverSearch(
+            UUID searcher,
+            Executor executor,
+            Engine engine,
+            HydrologyFeatureType type,
+            int blockX,
+            int blockZ
+    ) {
+        UUID requiredSearcher = Objects.requireNonNull(searcher, "searcher");
+        Executor requiredExecutor = Objects.requireNonNull(executor, "executor");
+        CompletableFuture<RiverSearch> search = new CompletableFuture<>();
+        CompletableFuture<RiverSearch> previous = RIVER_SEARCHES.put(requiredSearcher, search);
+        if (previous != null) {
+            previous.cancel(false);
+        }
+        search.whenComplete((result, failure) -> RIVER_SEARCHES.remove(requiredSearcher, search));
+        try {
+            requiredExecutor.execute(() -> runRiverSearch(search, engine, type, blockX, blockZ));
+        } catch (RejectedExecutionException rejected) {
+            search.completeExceptionally(rejected);
+        }
+        return search;
+    }
+
+    public static RiverSearch nearestRiver(
             Engine engine,
             HydrologyFeatureType type,
             int blockX,
             int blockZ,
-            int maximumDistance
+            int maximumDistance,
+            BooleanSupplier running
     ) {
         Engine requiredEngine = Objects.requireNonNull(engine, "engine");
         HydrologyFeatureType requiredType = Objects.requireNonNull(type, "type");
+        Objects.requireNonNull(running, "running");
         if (maximumDistance < 0) {
             throw new IllegalArgumentException("Maximum river search distance cannot be negative.");
         }
@@ -173,23 +207,63 @@ public final class GenerationSemanticQueries {
                 blockZ,
                 maximumDistance
         );
-        RiverResult active = recordedOnly(requiredType) ? null : activeRiver(
-                requiredEngine,
-                history,
-                requiredType,
-                blockX,
-                blockZ,
-                maximumDistance
-        );
+        Optional<String> unavailable = requiredEngine.getComplex().getHydrologyRuntime().unavailable(requiredType);
+        if (recordedOnly(requiredType) || unavailable.isPresent()) {
+            if (recorded != null) {
+                return new RiverSearch.Found(recorded);
+            }
+            return new RiverSearch.Missing(unavailable.map(reason -> riverUnavailableMessage(requiredType, reason))
+                    .orElseGet(() -> riverNotFoundMessage(requiredType, maximumDistance)));
+        }
+        int activeDistance = recorded == null ? maximumDistance : Math.min(maximumDistance, distanceCeiling(blockX, blockZ, recorded));
+        RiverResult active;
+        try {
+            active = activeRiver(requiredEngine, history, requiredType, blockX, blockZ, activeDistance, running);
+        } catch (HydrologySearchTimeoutException timedOut) {
+            RiverResult planned = timedOut.nearestSoFar().map(feature -> activeResult(requiredEngine, history, feature)).orElse(null);
+            return stoppedSearch(requiredType, nearer(blockX, blockZ, recorded, planned));
+        }
+        RiverResult nearest = nearer(blockX, blockZ, recorded, active);
+        return nearest == null
+                ? new RiverSearch.Missing(riverNotFoundMessage(requiredType, maximumDistance))
+                : new RiverSearch.Found(nearest);
+    }
+
+    private static void runRiverSearch(
+            CompletableFuture<RiverSearch> search,
+            Engine engine,
+            HydrologyFeatureType type,
+            int blockX,
+            int blockZ
+    ) {
+        if (search.isDone()) {
+            return;
+        }
+        try {
+            search.complete(nearestRiver(engine, type, blockX, blockZ, RIVER_SEARCH_DISTANCE, () -> !search.isDone()));
+        } catch (CancellationException stopped) {
+            search.completeExceptionally(new IllegalStateException(stopped.getMessage(), stopped));
+        } catch (Throwable failure) {
+            search.completeExceptionally(failure);
+        }
+    }
+
+    private static int distanceCeiling(int blockX, int blockZ, RiverResult feature) {
+        BigInteger squared = horizontalDistanceSquared(blockX, blockZ, feature.x(), feature.z());
+        BigInteger root = squared.sqrt();
+        return (root.multiply(root).equals(squared) ? root : root.add(BigInteger.ONE)).intValueExact();
+    }
+
+    private static RiverResult nearer(int blockX, int blockZ, RiverResult recorded, RiverResult active) {
         if (recorded == null) {
-            return Optional.ofNullable(active);
+            return active;
         }
         if (active == null) {
-            return Optional.of(recorded);
+            return recorded;
         }
         int comparison = horizontalDistanceSquared(blockX, blockZ, recorded.x(), recorded.z())
                 .compareTo(horizontalDistanceSquared(blockX, blockZ, active.x(), active.z()));
-        return Optional.of(comparison <= 0 ? recorded : active);
+        return comparison <= 0 ? recorded : active;
     }
 
     private static boolean recordedOnly(HydrologyFeatureType type) {
@@ -197,14 +271,32 @@ public final class GenerationSemanticQueries {
     }
 
     public static String riverSearchMessage(HydrologyFeatureType type, int maximumDistance) {
-        String label = type.key().replace('_', ' ');
+        String label = label(type);
         return recordedOnly(type)
                 ? "Searching generated chunks for the nearest " + label + " within " + maximumDistance + " blocks..."
                 : "Searching for the nearest " + label + " within " + maximumDistance + " blocks...";
     }
 
-    public static String riverNotFoundMessage(HydrologyFeatureType type, int maximumDistance) {
-        String label = type.key().replace('_', ' ');
+    private static String riverUnavailableMessage(HydrologyFeatureType type, String reason) {
+        return "No " + label(type) + " forms in this dimension: " + reason + ".";
+    }
+
+    private static RiverSearch stoppedSearch(HydrologyFeatureType type, RiverResult nearestSoFar) {
+        String stopped = "Stopped searching for the nearest " + label(type) + " after "
+                + HydrologyRuntime.FEATURE_SEARCH_TIMEOUT.toSeconds() + " seconds";
+        if (nearestSoFar == null) {
+            return new RiverSearch.Stopped(Optional.empty(), stopped + " without finding one.");
+        }
+        return new RiverSearch.Stopped(Optional.of(nearestSoFar), stopped + ". The nearest " + label(type) + " found so far is at "
+                + nearestSoFar.x() + ", " + nearestSoFar.y() + ", " + nearestSoFar.z() + "; a nearer one may exist.");
+    }
+
+    private static String label(HydrologyFeatureType type) {
+        return type.key().replace('_', ' ');
+    }
+
+    private static String riverNotFoundMessage(HydrologyFeatureType type, int maximumDistance) {
+        String label = label(type);
         return recordedOnly(type)
                 ? "No " + label + " found in generated chunks within " + maximumDistance + " blocks. Cave pools form in carved caves, so "
                 + "only chunks that have already generated can hold one."
@@ -237,6 +329,11 @@ public final class GenerationSemanticQueries {
             }
         }
         return pools;
+    }
+
+    public static long recordedRiverRevision(Engine engine) {
+        GenerationHistory history = history(Objects.requireNonNull(engine, "engine")).orElse(null);
+        return history == null ? 0L : history.riverRevision();
     }
 
     public static boolean allowsActivePrediction(Engine engine, int chunkX, int chunkZ) {
@@ -300,12 +397,10 @@ public final class GenerationSemanticQueries {
             HydrologyFeatureType type,
             int blockX,
             int blockZ,
-            int maximumDistance
-    ) {
+            int maximumDistance,
+            BooleanSupplier running
+    ) throws HydrologySearchTimeoutException {
         HydrologyRuntime runtime = engine.getComplex().getHydrologyRuntime();
-        if (runtime == null || !runtime.enabled()) {
-            return null;
-        }
         Map<Long, Boolean> eligibleChunks = new HashMap<>();
         TransitionDisplacementField displacement = engine.getComplex().getTransitionDisplacement();
         Predicate<HydrologyFeatureRef> eligibility = feature -> (displacement == null
@@ -317,11 +412,13 @@ public final class GenerationSemanticQueries {
                 blockZ,
                 HydrologyFeatureQuery.of(type),
                 maximumDistance,
-                eligibility
+                eligibility,
+                running
         ).orElse(null);
-        if (feature == null) {
-            return null;
-        }
+        return feature == null ? null : activeResult(engine, history, feature);
+    }
+
+    private static RiverResult activeResult(Engine engine, GenerationHistory history, HydrologyFeatureRef feature) {
         OptionalLong activationId = history == null
                 ? OptionalLong.empty()
                 : OptionalLong.of(history.activeActivation().activationId());
@@ -377,6 +474,27 @@ public final class GenerationSemanticQueries {
             source = Objects.requireNonNull(source, "source");
             type = Objects.requireNonNull(type, "type");
             activationId = Objects.requireNonNull(activationId, "activationId");
+        }
+    }
+
+    public sealed interface RiverSearch {
+        record Found(RiverResult feature) implements RiverSearch {
+            public Found {
+                Objects.requireNonNull(feature, "feature");
+            }
+        }
+
+        record Missing(String message) implements RiverSearch {
+            public Missing {
+                Objects.requireNonNull(message, "message");
+            }
+        }
+
+        record Stopped(Optional<RiverResult> nearestSoFar, String message) implements RiverSearch {
+            public Stopped {
+                Objects.requireNonNull(nearestSoFar, "nearestSoFar");
+                Objects.requireNonNull(message, "message");
+            }
         }
     }
 }

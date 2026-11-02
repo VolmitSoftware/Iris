@@ -297,11 +297,9 @@ public class IrisRegion extends IrisRegistrant implements Rarity {
         return getShoreHeightGenerator().fitDouble(shoreHeightMin, shoreHeightMax, x / shoreHeightZoom, z / shoreHeightZoom);
     }
 
-    public KSet<String> getAllBiomeIds() {
+    public KSet<String> getAllBiomeIds(IrisDimension dimension, DataProvider g) {
         KSet<String> names = getNaturalBiomeIds();
-        if (hydrologyPolicy != null && hydrologyPolicy.getShoreBiomes() != null) {
-            names.addAll(hydrologyPolicy.getShoreBiomes());
-        }
+        names.addAll(ShoreBiomeLineages.placedIn(dimension, this, g));
         return names;
     }
 
@@ -314,15 +312,15 @@ public class IrisRegion extends IrisRegistrant implements Rarity {
         return names;
     }
 
-    public KList<IrisBiome> getAllBiomes(DataProvider g) {
-        return resolveBiomes(g, getAllBiomeIds(), true);
+    public KList<IrisBiome> getAllBiomes(IrisDimension dimension, DataProvider g) {
+        return resolveBiomes(g, getAllBiomeIds(dimension, g));
     }
 
     public KList<IrisBiome> getNaturalBiomes(DataProvider g) {
-        return resolveBiomes(g, getNaturalBiomeIds(), false);
+        return resolveBiomes(g, getNaturalBiomeIds());
     }
 
-    private KList<IrisBiome> resolveBiomes(DataProvider g, KSet<String> biomeIds, boolean includeShoreBiomes) {
+    private KList<IrisBiome> resolveBiomes(DataProvider g, KSet<String> biomeIds) {
         KMap<String, IrisBiome> b = new KMap<>();
         KSet<String> names = biomeIds.copy();
 
@@ -348,9 +346,6 @@ public class IrisRegion extends IrisRegistrant implements Rarity {
                 names.add(biome.getCarvingBiome());
                 b.put(biome.getLoadKey(), biome);
                 names.addAll(biome.getChildren());
-                if (includeShoreBiomes && biome.getHydrologyPolicy() != null && biome.getHydrologyPolicy().getShoreBiomes() != null) {
-                    names.addAll(biome.getHydrologyPolicy().getShoreBiomes());
-                }
             }
         }
 
@@ -428,7 +423,7 @@ public class IrisRegion extends IrisRegistrant implements Rarity {
     public Color getColor(DataProvider dataProvider, RenderType type) {
         return this.cacheColor.aquire(() -> {
             if (this.color == null) {
-                Random rand = new Random(getName().hashCode() + getAllBiomeIds().hashCode());
+                Random rand = new Random(getName().hashCode() + getNaturalBiomeIds().hashCode());
                 RandomColor randomColor = new RandomColor(rand);
 
                 KList<IrisBiome> biomes = getRealLandBiomes(dataProvider);

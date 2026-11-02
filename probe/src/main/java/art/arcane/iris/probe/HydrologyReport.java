@@ -43,7 +43,7 @@ final class HydrologyReport {
         boolean passes() {
             return maxDependencyDepth() == 0 && sum(WindowMetrics::containmentLeaks) == 0 && sum(WindowMetrics::risingWaterSegments) == 0
                     && sum(WindowMetrics::seamMismatches) == 0 && sum(WindowMetrics::tickConversionCells) == 0
-                    && sum(WindowMetrics::missingSurface) == 0
+                    && sum(WindowMetrics::missingSurface) == 0 && sum(WindowMetrics::bermOverCap) == 0
                     && sum(WindowMetrics::inletFailures) == 0 && sum(WindowMetrics::cavePoolFailures) == 0 && generationErrors == 0
                     && failures.isEmpty();
         }

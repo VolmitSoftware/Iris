@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
@@ -32,7 +33,7 @@ public class HydrologySettingsTest {
     private static final int SEA_LEVEL = 62;
     private static final int MIN_Y = -64;
     private static final int MAX_Y = 320;
-    private static final long DEFAULT_FINGERPRINT = -5309117903859653038L;
+    private static final long DEFAULT_FINGERPRINT = 7576271788988330967L;
 
     @Test
     public void densityIsBoundedAndChangesThePlanIdentity() {
@@ -266,6 +267,18 @@ public class HydrologySettingsTest {
     }
 
     @Test
+    public void schedulingKnobsDoNotChangeTheFingerprint() {
+        HydrologySettings eager = compile(new IrisHydrology().setPrefetchRings(4));
+        HydrologySettings inMemory = compile(new IrisHydrology().setPersist(false));
+        HydrologySettings both = compile(new IrisHydrology().setPrefetchRings(0).setPersist(false));
+        assertEquals(4, eager.prefetchRings());
+        assertFalse(inMemory.persist());
+        assertEquals(DEFAULT_FINGERPRINT, eager.fingerprint());
+        assertEquals(DEFAULT_FINGERPRINT, inMemory.fingerprint());
+        assertEquals(DEFAULT_FINGERPRINT, both.fingerprint());
+    }
+
+    @Test
     public void compileRejectsUnknownFluidProfile() {
         IrisHydrology config = new IrisHydrology();
         config.getTiers().get(2).setFluid("lava");
@@ -343,6 +356,30 @@ public class HydrologySettingsTest {
         IrisHydrology cavePools = new IrisHydrology();
         cavePools.getUnderground().getCavePools().setMinArea(500);
         assertRejected(cavePools, "underground.cavePools.minArea");
+    }
+
+    @Test
+    public void compileBoundsTheSeededCupDensity() {
+        for (double invalid : new double[]{-0.5D, 64.5D, Double.NaN, Double.POSITIVE_INFINITY}) {
+            IrisHydrology config = new IrisHydrology();
+            config.getPonds().getSeeded().setDensity(invalid);
+            assertRejected(config, "ponds.seeded.density must stay within 0..64, got " + invalid);
+        }
+        IrisHydrology densest = new IrisHydrology();
+        densest.getPonds().getSeeded().setDensity(64D);
+        assertEquals(64f, compile(densest).ponds().seeded().density(), 0f);
+    }
+
+    @Test
+    public void compileRejectsAFillEpsilonThatIsNotPositiveAsAFloat() {
+        for (double invalid : new double[]{0D, -0.001D, 1e-50D, Double.MIN_VALUE, 1e300D, Double.NaN, Double.POSITIVE_INFINITY}) {
+            IrisHydrology config = new IrisHydrology();
+            config.getDrainage().setFillEpsilon(invalid);
+            assertRejected(config, "drainage.fillEpsilon must be a finite value above 0");
+        }
+        IrisHydrology finest = new IrisHydrology();
+        finest.getDrainage().setFillEpsilon(0.00001D);
+        assertEquals(0.00001f, compile(finest).drainage().fillEpsilon(), 0f);
     }
 
     @Test

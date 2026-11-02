@@ -189,6 +189,26 @@ public class CavePoolFillerTest {
     }
 
     @Test
+    public void wallsSharedByTwoFluidsKeepOneKeyWhateverTheChunkOrder() {
+        VoxelWorld world = room(0, 14, 0, 15, FLOOR, 52);
+        world.carve(16, 30, 0, 15, FLOOR, 52);
+        world.policyFluid(x -> x >= 16 ? "lava" : null);
+        HydrologySettings settings = settings(pools -> pools.setDensity(8D).setFreeboard(new KList<>(0, 0)));
+
+        Map<Long, HydrologyCaveCell> forward = new HashMap<>();
+        Map<Long, HydrologyCaveCell> reverse = new HashMap<>();
+        new CavePoolFiller(settings).fill(0, 0, () -> world, writer(forward), SEED);
+        new CavePoolFiller(settings).fill(1, 0, () -> world, writer(forward), SEED);
+        new CavePoolFiller(settings).fill(1, 0, () -> world, writer(reverse), SEED);
+        new CavePoolFiller(settings).fill(0, 0, () -> world, writer(reverse), SEED);
+
+        assertFalse(wetCells(forward, "water").isEmpty());
+        assertFalse(wetCells(forward, "lava").isEmpty());
+        assertGuard(forward, 15, 51, 8);
+        assertEquals(forward, reverse);
+    }
+
+    @Test
     public void depressionsSpanningTwoCaveFluidsGetNoPool() {
         VoxelWorld mixed = roomWithSill();
         mixed.policyFluid(x -> x >= 8 ? "lava" : null);

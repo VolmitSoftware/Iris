@@ -68,7 +68,7 @@ public class IrisDimensionStackActuatorMetadataTest {
         IrisMatterSupport.ensureRegistered();
         Matter section = new IrisMatter(16, 16, 16);
         MatterCavern cavern = new MatterCavern(true, "cave", (byte) 0);
-        HydrologyCaveCell hydrology = new HydrologyCaveCell(HydrologyCaveAction.WET_SOURCE, "river", "flooded");
+        HydrologyCaveCell hydrology = new HydrologyCaveCell(HydrologyCaveAction.WET_SOURCE, "river");
         section.<MatterCavern>slice(MatterCavern.class).set(3, 4, 7, cavern);
         section.<HydrologyCaveCell>slice(HydrologyCaveCell.class).set(3, 4, 7, hydrology);
         MantleChunk<Matter> chunk = mock(MantleChunk.class);

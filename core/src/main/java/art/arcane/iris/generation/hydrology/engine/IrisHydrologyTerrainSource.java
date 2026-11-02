@@ -4,6 +4,7 @@ import art.arcane.iris.generation.bake.ChunkBakeCache;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.hydrology.config.IrisHydrologyPermission;
 import art.arcane.iris.generation.hydrology.config.IrisHydrologyPolicy;
+import art.arcane.iris.generation.hydrology.config.IrisHydrologyWetness;
 import art.arcane.iris.generation.hydrology.grid.HydrologySampleBuffer;
 import art.arcane.iris.generation.hydrology.grid.HydrologyTerrainSource;
 import art.arcane.iris.generation.hydrology.plan.HydrologySettings;
@@ -38,7 +39,6 @@ public final class IrisHydrologyTerrainSource implements HydrologyTerrainSource,
     private final ExecutorService pool;
     private final int parallelism;
     private final ProceduralStream<IrisRegion> regions;
-    private final ProceduralStream<IrisBiome> biomes;
     private final ProceduralStream<InferredType> continents;
     private final BiomeBuffetLayout buffet;
     private final IrisBiome focus;
@@ -55,7 +55,6 @@ public final class IrisHydrologyTerrainSource implements HydrologyTerrainSource,
         this.pool = pool;
         this.parallelism = Math.max(1, parallelism);
         this.regions = Objects.requireNonNull(complex.getRegionStream(), "region stream");
-        this.biomes = Objects.requireNonNull(complex.getBaseBiomeStream(), "base biome stream");
         this.continents = Objects.requireNonNull(complex.getBridgeStream(), "continent stream");
         this.buffet = complex.getBiomeBuffet();
         this.focus = complex.getFocusBiome();
@@ -88,7 +87,7 @@ public final class IrisHydrologyTerrainSource implements HydrologyTerrainSource,
     public String channelFluid(int x, int z) {
         ChunkBakeCache.enterSparse();
         try {
-            return policy(biomes.get(x, z), regions.get(x, z)).fluid();
+            return policy(complex.baseBiomeLineage(x, z), regions.get(x, z)).fluid();
         } finally {
             ChunkBakeCache.exitSparse();
         }
@@ -164,18 +163,17 @@ public final class IrisHydrologyTerrainSource implements HydrologyTerrainSource,
         if (!Double.isFinite(height)) {
             throw new IllegalStateException("Hydrology " + (baseOnly ? "base" : "natural") + " height at " + x + "," + z + " is " + height);
         }
-        Policy policy = policy(biomes.get(x, z), regions.get(x, z));
+        Policy policy = policy(complex.baseBiomeLineage(x, z), regions.get(x, z));
         out.height()[index] = (float) height;
         out.ocean()[index] = StrictMath.round(height) < settings.seaLevel() && oceanIntent(x, z);
-        float wet = policy.climateZones() ? wetness(x, z) : 1f;
+        boolean zoned = wetness != null && policy.climateZones();
+        float wet = zoned ? (float) Math.clamp(climate.wetness(wetness.noise(x, z)), policy.minWetness(), policy.maxWetness()) : 1f;
         out.rainfall()[index] = policy.rainfall() * wet;
         out.pondDensity()[index] = policy.pondDensity() * wet;
+        out.wetness()[index] = wet;
+        out.climateZoned()[index] = zoned;
         out.permission()[index] = policy.permission();
         out.fluidProfile()[index] = policy.fluid();
-    }
-
-    private float wetness(int x, int z) {
-        return wetness == null ? 1f : (float) climate.wetness(wetness.noise(x, z));
     }
 
     private boolean oceanIntent(int x, int z) {
@@ -185,13 +183,13 @@ public final class IrisHydrologyTerrainSource implements HydrologyTerrainSource,
         return type == InferredType.SEA;
     }
 
-    private Policy policy(IrisBiome biome, IrisRegion region) {
-        PolicyKey key = new PolicyKey(biome, region);
+    private Policy policy(List<IrisBiome> biomes, IrisRegion region) {
+        PolicyKey key = new PolicyKey(biomes, region);
         Policy known = policies.get(key);
         if (known != null) {
             return known;
         }
-        Policy resolved = resolve(biome, region);
+        Policy resolved = resolve(biomes, region);
         if (policies.size() >= POLICY_CAPACITY) {
             policies.clear();
         }
@@ -199,23 +197,28 @@ public final class IrisHydrologyTerrainSource implements HydrologyTerrainSource,
         return raced == null ? resolved : raced;
     }
 
-    private Policy resolve(IrisBiome biome, IrisRegion region) {
-        double rainfall = inherited(biome, region, IrisHydrologyPolicy::getRainfall, 1D);
-        double pondDensity = inherited(biome, region, IrisHydrologyPolicy::getPondDensity, 1D);
-        IrisHydrologyPermission streams = inherited(biome, region, IrisHydrologyPolicy::getStreams, IrisHydrologyPermission.ALLOW);
-        IrisHydrologyPermission ponds = inherited(biome, region, IrisHydrologyPolicy::getPonds, IrisHydrologyPermission.ALLOW);
-        String fluid = inherited(biome, region, IrisHydrologyPolicy::getFluid, null);
-        boolean climateZones = inherited(biome, region, IrisHydrologyPolicy::getClimateZones, Boolean.TRUE);
-        requireMultiplier("rainfall", rainfall, biome, region);
-        requireMultiplier("pondDensity", pondDensity, biome, region);
+    private Policy resolve(List<IrisBiome> biomes, IrisRegion region) {
+        double rainfall = inherited(biomes, region, IrisHydrologyPolicy::getRainfall, 1D);
+        double pondDensity = inherited(biomes, region, IrisHydrologyPolicy::getPondDensity, 1D);
+        IrisHydrologyPermission streams = inherited(biomes, region, IrisHydrologyPolicy::getStreams, IrisHydrologyPermission.ALLOW);
+        IrisHydrologyPermission ponds = inherited(biomes, region, IrisHydrologyPolicy::getPonds, IrisHydrologyPermission.ALLOW);
+        String fluid = inherited(biomes, region, IrisHydrologyPolicy::getFluid, null);
+        boolean climateZones = inherited(biomes, region, IrisHydrologyPolicy::getClimateZones, Boolean.TRUE);
+        IrisHydrologyWetness wetness = inherited(biomes, region, IrisHydrologyPolicy::getWetness, null);
+        requireMultiplier("rainfall", rainfall, biomes, region);
+        requireMultiplier("pondDensity", pondDensity, biomes, region);
         if (fluid != null) {
-            settings.requireFillingFluid(fluid, "the hydrology policy for " + where(biome, region));
+            settings.requireFillingFluid(fluid, "the hydrology policy for " + where(biomes, region));
         }
-        return new Policy((float) rainfall, (float) pondDensity, permission(streams, ponds), fluid, climateZones);
+        double minWetness = wetness == null ? 0D : wetness.getMin();
+        double maxWetness = wetness == null ? 1D : wetness.getMax();
+        requireWetness(minWetness, maxWetness, biomes, region);
+        return new Policy((float) rainfall, (float) pondDensity, permission(streams, ponds), fluid, climateZones, (float) minWetness,
+                (float) maxWetness);
     }
 
-    private <T> T inherited(IrisBiome biome, IrisRegion region, Function<IrisHydrologyPolicy, T> field, T fallback) {
-        T value = IrisHydrologyPolicy.inherited(biome, region, dimension, field);
+    private <T> T inherited(List<IrisBiome> biomes, IrisRegion region, Function<IrisHydrologyPolicy, T> field, T fallback) {
+        T value = IrisHydrologyPolicy.inherited(biomes, region, dimension, field);
         return value == null ? fallback : value;
     }
 
@@ -225,29 +228,41 @@ public final class IrisHydrologyTerrainSource implements HydrologyTerrainSource,
         return (byte) bits;
     }
 
-    private static void requireMultiplier(String field, double value, IrisBiome biome, IrisRegion region) {
-        if (!Double.isFinite(value) || value < 0D) {
-            throw new IllegalArgumentException("Hydrology policy " + field + " for " + where(biome, region) + " must be a finite value of 0 or more, got "
-                    + value);
+    private static void requireMultiplier(String field, double value, List<IrisBiome> biomes, IrisRegion region) {
+        if (!IrisHydrologyPolicy.validMultiplier(value)) {
+            throw new IllegalArgumentException("Hydrology policy " + field + " for " + where(biomes, region) + " must be a finite value from 0 to "
+                    + (int) IrisHydrologyPolicy.MAX_MULTIPLIER + ", got " + value);
         }
     }
 
-    private static String where(IrisBiome biome, IrisRegion region) {
-        return "biome " + (biome == null ? "none" : biome.getLoadKey()) + " in region " + (region == null ? "none" : region.getLoadKey());
+    private static void requireWetness(double min, double max, List<IrisBiome> biomes, IrisRegion region) {
+        if (!(min >= 0D && min <= max && max <= 1D)) {
+            throw new IllegalArgumentException("Hydrology policy wetness for " + where(biomes, region) + " must have 0 <= min <= max <= 1, got min "
+                    + min + " and max " + max);
+        }
     }
 
-    private record Policy(float rainfall, float pondDensity, byte permission, String fluid, boolean climateZones) {
+    private static String where(List<IrisBiome> biomes, IrisRegion region) {
+        StringBuilder where = new StringBuilder("biome ").append(biomes.isEmpty() ? "none" : biomes.getFirst().getLoadKey());
+        for (int index = 1; index < biomes.size(); index++) {
+            where.append(" inside ").append(biomes.get(index).getLoadKey());
+        }
+        return where.append(" in region ").append(region == null ? "none" : region.getLoadKey()).toString();
     }
 
-    private record PolicyKey(IrisBiome biome, IrisRegion region) {
+    private record Policy(float rainfall, float pondDensity, byte permission, String fluid, boolean climateZones, float minWetness,
+                          float maxWetness) {
+    }
+
+    private record PolicyKey(List<IrisBiome> biomes, IrisRegion region) {
         @Override
         public boolean equals(Object other) {
-            return other instanceof PolicyKey key && key.biome == biome && key.region == region;
+            return other instanceof PolicyKey key && key.biomes == biomes && key.region == region;
         }
 
         @Override
         public int hashCode() {
-            return 31 * System.identityHashCode(biome) + System.identityHashCode(region);
+            return 31 * System.identityHashCode(biomes) + System.identityHashCode(region);
         }
     }
 

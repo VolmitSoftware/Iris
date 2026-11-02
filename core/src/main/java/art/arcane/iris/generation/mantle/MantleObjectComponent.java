@@ -897,7 +897,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
             int y,
             int lavaHeight
     ) {
-        if (hydrology != null && hydrology.protectsPlacement()) {
+        if (hydrology != null) {
             return false;
         }
         if (cavern == null || !cavern.isCavern()) {

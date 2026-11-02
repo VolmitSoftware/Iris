@@ -39,7 +39,7 @@ final class IrisBiomeColorRenderer {
 
     static Color getColor(IrisBiome biome, Engine engine, RenderType type) {
         switch (type) {
-            case BIOME, HEIGHT, CAVE_LAND, REGION, BIOME_SEA, BIOME_LAND, RIVER -> {
+            case BIOME, HEIGHT, CAVE_LAND, REGION, BIOME_SEA, BIOME_LAND -> {
                 return biome.getCacheColor().aquire(() -> {
                     if (biome.getColor() == null) {
                         RandomColor randomColor = new RandomColor(biome.getName().hashCode());

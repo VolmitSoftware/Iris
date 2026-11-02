@@ -66,7 +66,7 @@ public class PreObjectMatterTest {
         PreObjectMatterCell expected = PreObjectMatterCell.block(null)
                 .captureString("object-owner")
                 .captureCavern(cavern)
-                .captureHydrology(new HydrologyCaveCell(HydrologyCaveAction.WET_SOURCE, "river", "flooded"));
+                .captureHydrology(new HydrologyCaveCell(HydrologyCaveAction.WET_SOURCE, "river"));
         Matter matter = new IrisMatter(16, 16, 16);
         matter.<PreObjectMatterCell>slice(PreObjectMatterCell.class).set(2, 3, 4, expected);
 

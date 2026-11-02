@@ -365,6 +365,8 @@ public class HeightLatticeTest {
             assertEquals(Float.floatToIntBits(expected.height()[index]), Float.floatToIntBits(actual.height()[index]));
             assertEquals(Float.floatToIntBits(expected.rainfall()[index]), Float.floatToIntBits(actual.rainfall()[index]));
             assertEquals(Float.floatToIntBits(expected.pondDensity()[index]), Float.floatToIntBits(actual.pondDensity()[index]));
+            assertEquals(Float.floatToIntBits(expected.wetness()[index]), Float.floatToIntBits(actual.wetness()[index]));
+            assertEquals(expected.climateZoned()[index], actual.climateZoned()[index]);
             assertEquals(expected.ocean()[index], actual.ocean()[index]);
             assertEquals(expected.permission()[index], actual.permission()[index]);
             assertEquals(expected.fluidProfile()[index], actual.fluidProfile()[index]);
@@ -410,6 +412,8 @@ public class HeightLatticeTest {
                 out.height()[index] = Float.intBitsToFloat(((int) hash & 0x807FFFFF) | 0x42000000);
                 out.rainfall()[index] = Float.intBitsToFloat(((int) (hash >>> 23) & 0x007FFFFF) | 0x3F000000);
                 out.pondDensity()[index] = Float.intBitsToFloat(((int) (hash >>> 37) & 0x007FFFFF) | 0x3F800000);
+                out.wetness()[index] = Float.intBitsToFloat(((int) (hash >>> 11) & 0x007FFFFF) | 0x3F000000);
+                out.climateZoned()[index] = ((hash >>> 58) & 1L) != 0L;
                 out.ocean()[index] = ((hash >>> 62) & 1L) != 0L;
                 out.permission()[index] = (byte) ((hash >>> 60) & (HydrologySampleBuffer.ALLOW_STREAMS | HydrologySampleBuffer.ALLOW_PONDS));
                 out.fluidProfile()[index] = ((hash >>> 59) & 1L) == 0L ? "water" : "lava";

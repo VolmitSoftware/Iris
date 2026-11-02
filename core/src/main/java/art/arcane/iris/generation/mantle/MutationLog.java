@@ -9,7 +9,7 @@ import java.util.Objects;
 final class MutationLog {
     private static final byte CUSTOM = 1;
     private static final byte CANOPY = 2;
-    private static final byte UNDERWATER = 4;
+    private static final byte ENTERS_WATER = 4;
 
     private int size;
     private int[] x = new int[32];
@@ -39,7 +39,7 @@ final class MutationLog {
         return log;
     }
 
-    void add(int blockX, int blockY, int blockZ, Object value, boolean custom, boolean canopy, boolean underwater) {
+    void add(int blockX, int blockY, int blockZ, Object value, boolean custom, boolean canopy, boolean entersWater) {
         if (size == values.length) {
             int capacity = size * 2;
             x = Arrays.copyOf(x, capacity);
@@ -52,7 +52,7 @@ final class MutationLog {
         y[size] = blockY;
         z[size] = blockZ;
         values[size] = value;
-        flags[size] = (byte) ((custom ? CUSTOM : 0) | (canopy ? CANOPY : 0) | (underwater ? UNDERWATER : 0));
+        flags[size] = (byte) ((custom ? CUSTOM : 0) | (canopy ? CANOPY : 0) | (entersWater ? ENTERS_WATER : 0));
         size++;
     }
 
@@ -84,8 +84,8 @@ final class MutationLog {
         return (flags[index] & CANOPY) != 0;
     }
 
-    boolean underwater(int index) {
-        return (flags[index] & UNDERWATER) != 0;
+    boolean entersWater(int index) {
+        return (flags[index] & ENTERS_WATER) != 0;
     }
 
     Class<?> type(int index) {

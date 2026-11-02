@@ -19,6 +19,12 @@ import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.math.BlockPosition;
 import art.arcane.iris.structure.object.DecayControlPlacer;
+import art.arcane.iris.structure.object.IrisObject;
+import art.arcane.iris.structure.object.IrisObjectPlacement;
+import art.arcane.iris.structure.object.IrisObjectRotation;
+import art.arcane.iris.structure.object.ObjectPlaceMode;
+import art.arcane.iris.structure.placement.IrisStructure;
+import art.arcane.iris.structure.placement.PlacedStructurePiece;
 import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.iris.testsupport.BukkitTestServer;
 import art.arcane.iris.world.storage.matter.IrisMatterSupport;
@@ -294,6 +300,50 @@ public class ObjectDestinationTransactionTest {
         assertEquals("the destination replay keeps the underwater blocks", 6, destination.mutationCheckpoint());
         assertSame(leaves, destination.get(3, 12, 3));
         assertSame(leaves, destination.get(4, 9, 3));
+    }
+
+    @Test
+    public void onwaterRaftsAndOwnForcedObjectsKeepTheirLayerOnRiversButForcedStructurePiecesDoNot() {
+        MantleWriter writer = writer();
+        IrisComplex complex = mock(IrisComplex.class);
+        HydrologyRuntime runtime = mock(HydrologyRuntime.class);
+        ChunkWaterRaster raster = mock(ChunkWaterRaster.class);
+        when(writer.getEngine().getComplex()).thenReturn(complex);
+        when(complex.getHydrologyRuntime()).thenReturn(runtime);
+        when(runtime.enabled()).thenReturn(true);
+        when(runtime.raster(anyInt(), anyInt())).thenReturn(raster);
+        when(raster.role(anyInt(), anyInt())).thenReturn(WaterRole.NONE);
+        when(raster.waterHead(anyInt(), anyInt())).thenReturn(Integer.MIN_VALUE);
+        for (int x = 3; x <= 5; x++) {
+            when(raster.role(x, 3)).thenReturn(WaterRole.CHANNEL);
+            when(raster.waterHead(x, 3)).thenReturn(14);
+            when(raster.terrainHeight(x, 3)).thenReturn(10);
+        }
+        followRasterStreams(complex, raster);
+        NativeBlockState plank = mock(NativeBlockState.class);
+        when(plank.isSolid()).thenReturn(true);
+        IrisObjectPlacement raft = new IrisObjectPlacement().setOnwater(true);
+        IrisObjectPlacement forced = new IrisObjectPlacement().setForcePlace(true);
+        IrisObjectPlacement piece = IrisStructureComponent.piecePlacement(new IrisStructure(), new PlacedStructurePiece(null,
+                new IrisObject(1, 1, 1), 4, 14, 3, IrisObjectRotation.of(0, 0, 0), 4, 14, 3, 4, 14, 3), ObjectPlaceMode.CENTER_HEIGHT);
+        assertTrue(piece.isForcePlace());
+        ObjectDestinationTransaction transaction = new ObjectDestinationTransaction(writer, 0, 0);
+
+        int raftStart = transaction.beginObjectPlacement(raft.entersWater());
+        for (int x = 3; x <= 5; x++) {
+            transaction.set(x, 14, 3, plank);
+        }
+        assertEquals("a one-block onwater raft keeps its layer on the river surface", raftStart + 3, transaction.mutationCheckpoint());
+        int forcedStart = transaction.beginObjectPlacement(forced.entersWater());
+        transaction.set(3, 13, 3, plank);
+        assertEquals("an object's own forcePlace keeps its solid blocks in the river", forcedStart + 1, transaction.mutationCheckpoint());
+        int pieceStart = transaction.beginObjectPlacement(piece.entersWater());
+        transaction.set(4, 13, 3, plank);
+        transaction.set(5, 11, 3, plank);
+        assertEquals("a forced structure piece still keeps its solid blocks out of the river", pieceStart, transaction.mutationCheckpoint());
+        ObjectDestinationTransaction destination = new ObjectDestinationTransaction(writer, 0, 0);
+        destination.apply(transaction.sourcePlanSince(raftStart));
+        assertEquals("the destination replay keeps the raft and the forced block", 4, destination.mutationCheckpoint());
     }
 
     @Test

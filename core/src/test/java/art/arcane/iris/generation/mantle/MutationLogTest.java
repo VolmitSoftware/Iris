@@ -41,9 +41,9 @@ public class MutationLogTest {
         assertFalse(log.custom(101));
         assertTrue(log.canopy(98));
         assertFalse(log.canopy(100));
-        assertFalse(log.underwater(0));
-        assertTrue(log.underwater(98));
-        assertFalse(log.underwater(6));
+        assertFalse(log.entersWater(0));
+        assertTrue(log.entersWater(98));
+        assertFalse(log.entersWater(6));
     }
 
     @Test

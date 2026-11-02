@@ -307,6 +307,10 @@ public class IrisObjectPlacement {
         return place.size() == 1 ? place.getFirst() : place.toString(", ");
     }
 
+    public boolean entersWater() {
+        return underwater || onwater || forcePlace && !forcedByStructure;
+    }
+
     public IrisObjectPlacement toPlacement(String... place) {
         IrisObjectPlacement p = new IrisObjectPlacement();
         p.setPlace(new KList<>(place));

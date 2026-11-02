@@ -61,7 +61,7 @@ final class PlacementModuleSurfaceSupport implements PlacementModule {
             return null;
         }
         boolean painted = state.paintProjection != null;
-        if (entersWater(config)) {
+        if (config.entersWater()) {
             return (painted
                     ? IrisSurfaceSupport.intersectsUnevenWater(context.placer, context.x, context.z, null, null, 0, 0, 0, state.paintSupport)
                     : IrisSurfaceSupport.intersectsUnevenWater(context.placer, context.x, context.z, config.getTranslate(),
@@ -73,10 +73,6 @@ final class PlacementModuleSurfaceSupport implements PlacementModule {
                 : IrisSurfaceSupport.intersectsHydrology(context.placer, context.x, context.z, config.getTranslate(),
                 config.getRotation(), state.spinX, state.spinY, state.spinZ, context.self.getSurfaceSupportOffsets()))
                 ? "hydrology-support" : null;
-    }
-
-    private static boolean entersWater(IrisObjectPlacement config) {
-        return config.isUnderwater() || config.isOnwater() || config.isForcePlace() && !config.isForcedByStructure();
     }
 
     private static void warnImplausibleBedrockPlacement(IrisObject self, IObjectPlacer placer, IrisObjectPlacement config, int x, int y, int z) {

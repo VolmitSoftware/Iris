@@ -508,7 +508,7 @@ public final class HydrologySettings {
 
     private void requireBounds(IrisHydrology config) {
         requireWithin(prefetchRings, 0, MAX_PREFETCH_RINGS, "prefetchRings");
-        requirePositive(config.getDrainage().getFillEpsilon(), "drainage.fillEpsilon");
+        requirePositive(drainage.fillEpsilon(), "drainage.fillEpsilon");
         for (int index = 0; index < config.getTiers().size(); index++) {
             requireTierBounds(config.getTiers().get(index), "tiers[" + index + "]");
         }
@@ -571,8 +571,8 @@ public final class HydrologySettings {
         }
     }
 
-    private static void requirePositive(double value, String field) {
-        if (!(Double.isFinite(value) && value > 0D)) {
+    private static void requirePositive(float value, String field) {
+        if (!(Float.isFinite(value) && value > 0f)) {
             throw new IllegalArgumentException("Hydrology " + field + " must be a finite value above 0, got " + value);
         }
     }
@@ -607,8 +607,7 @@ public final class HydrologySettings {
     }
 
     private long computeFingerprint() {
-        Fingerprint hash = new Fingerprint().add(seed).add(seaLevel).add(minY).add(maxY).add(enabled)
-                .add(density).add(prefetchRings).add(persist);
+        Fingerprint hash = new Fingerprint().add(seed).add(seaLevel).add(minY).add(maxY).add(enabled).add(density);
         addClimate(hash);
         addDrainage(hash);
         addTiers(hash);

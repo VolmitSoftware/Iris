@@ -698,6 +698,28 @@ public class ChunkWaterRasterTest {
     }
 
     @Test
+    public void lakeOutletKeepsItsOwnWidthBelowATributaryAcrossAWindowLine() {
+        HydrologyTier narrow = tier("river", 1f, 0.5f, 4, IrisBankStyle.SMOOTH);
+        HydrologyTier medium = tier("river", 4f, 0.5f, 4, IrisBankStyle.SMOOTH);
+        Reach plain = line(231L, medium, 0L, 508f, 200f, 600f, 200f, (x, z) -> 66);
+        ReachStyle[] style = plain.style().clone();
+        for (int point = 0; point < style.length; point++) {
+            style[point] = plain.xs()[point] - plain.xs()[0] <= 8f ? ReachStyle.POND_OUTLET : style[point];
+        }
+        Reach outlet = new Reach(plain.id(), plain.tier(), plain.downstreamId(), plain.xs(), plain.zs(), plain.grade(), plain.halfWidth(),
+                plain.depth(), style, plain.catchment());
+        Reach tributary = line(232L, narrow, outlet.id(), 508f, 120f, 508f, 200f, (x, z) -> 66);
+        Pond lake = pond(230L, PondKind.LAKE, 66, circle(480, 200, 24, 4), 480, 200, 0).withOutletReachId(outlet.id());
+        assertEquals(new WindowKey(0, 0), WindowKey.containing(508, 200));
+        assertEquals(new WindowKey(1, 0), WindowKey.containing(600, 200));
+        Scene scene = new Scene(settings(new IrisHydrology()), (x, z) -> 75).lake(lake).reach(outlet).reach(tributary);
+        for (int x = 510; x <= 530; x++) {
+            assertTrue("the lake outlet keeps its half-width 4 below a narrow tributary at x=" + x, scene.water(x, 203) && scene.water(x, 197));
+            assertFalse("the lake outlet is no wider than its half-width 4 at x=" + x, scene.water(x, 205));
+        }
+    }
+
+    @Test
     public void skippedLeadInKeepsTheOutletJunctionAtItsFirstVertex() {
         HydrologyTier river = tier("river", 2f, 0.5f, 4, IrisBankStyle.SMOOTH);
         Reach outlet = line(201L, river, 0L, 255f, 200f, 335f, 200f, (x, z) -> 68);

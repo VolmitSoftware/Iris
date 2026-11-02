@@ -11,6 +11,7 @@ import art.arcane.iris.generation.hydrology.water.ConfluenceGrader;
 import art.arcane.iris.generation.hydrology.water.Pond;
 import art.arcane.iris.generation.hydrology.water.PondMask;
 import art.arcane.iris.generation.hydrology.water.Reach;
+import art.arcane.iris.generation.hydrology.water.ReachStyle;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -318,7 +319,7 @@ final class ChunkFeatures {
 
         private Reach link(Reach reach, WindowKey owner) {
             Integer pondLevel = outletLevel(reach, owner);
-            Reach linked = feederLink(reach, owner, pondLevel != null);
+            Reach linked = feederLink(reach, owner, pondLevel != null || reach.style()[0] == ReachStyle.POND_OUTLET);
             return settle(reach, pondLevel == null ? linked : LinkBlend.clamp(linked, pondLevel), owner);
         }
 

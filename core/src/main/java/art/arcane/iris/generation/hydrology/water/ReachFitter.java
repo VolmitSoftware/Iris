@@ -14,6 +14,7 @@ final class ReachFitter {
     private static final float VALLEY_SNAP = 8f;
     private static final float MOVE_PENALTY = 0.25f * SPACING;
     private static final float MIN_ADVANCE = 0.25f * SPACING;
+    private static final float COVER_AHEAD = 2.5f;
     private static final int[] MOVES = {0, -1, 1};
     private static final long SALT_MEANDER = 0x4d45414e444552L;
 
@@ -34,7 +35,7 @@ final class ReachFitter {
         Reads reads = read(line, tangents, reach);
         Fitted fitted = place(line, tangents, reads, viterbi(reads, line.xs().length, reach), tier);
         seaEnd(fitted.ocean(), drainsToTheSea);
-        lowestNearbyGround(fitted);
+        lowestCoveredGround(fitted, tier);
         return fitted;
     }
 
@@ -129,7 +130,7 @@ final class ReachFitter {
         return new Reads(span, ground, samples.ocean(), blocked);
     }
 
-    private void lowestNearbyGround(Fitted fitted) {
+    private void lowestCoveredGround(Fitted fitted, HydrologyTier tier) {
         int points = fitted.xs().length;
         int step = fine.cell();
         int[] firstX = new int[points];
@@ -154,19 +155,75 @@ final class ReachFitter {
         }
         HydrologySampleBuffer samples = new HydrologySampleBuffer(nodeX.length);
         fine.fill(nodeX, nodeZ, samples);
+        Tangents tangents = tangents(fitted.xs(), fitted.zs());
+        float[] covered = new float[points];
+        Arrays.fill(covered, Float.POSITIVE_INFINITY);
+        float drop = tier.waterfallMinimumDrop();
         for (int point = 0; point < points; point++) {
             float lowest = Float.POSITIVE_INFINITY;
             float lowestLand = Float.POSITIVE_INFINITY;
+            float coveredLand = Float.POSITIVE_INFINITY;
             for (int node = offsets[point]; node < offsets[point + 1]; node++) {
                 int pond = ponds.at(nodeX[node] * step, nodeZ[node] * step);
                 float height = pond < 0 ? samples.height()[node] : Math.max(samples.height()[node], ponds.pond(pond).level());
                 lowest = Math.min(lowest, height);
                 if (!samples.ocean()[node]) {
                     lowestLand = Math.min(lowestLand, height);
+                    float ahead = (nodeX[node] * step - fitted.xs()[point]) * tangents.x()[point]
+                            + (nodeZ[node] * step - fitted.zs()[point]) * tangents.z()[point];
+                    if (ahead <= COVER_AHEAD) {
+                        coveredLand = Math.min(coveredLand, height);
+                    }
                 }
             }
-            fitted.ground()[point] = fitted.ocean()[point] || lowestLand == Float.POSITIVE_INFINITY ? lowest : lowestLand;
+            boolean sea = fitted.ocean()[point] || lowestLand == Float.POSITIVE_INFINITY;
+            fitted.ground()[point] = sea ? lowest : lowestLand;
+            if (!sea && coveredLand != Float.POSITIVE_INFINITY && coveredLand - lowestLand >= drop) {
+                covered[point] = coveredLand;
+            }
         }
+        standAtCliffEdges(fitted, covered, drop);
+    }
+
+    private void standAtCliffEdges(Fitted fitted, float[] covered, float drop) {
+        int points = fitted.xs().length;
+        int[] offsets = new int[points + 1];
+        for (int point = 0; point < points; point++) {
+            offsets[point + 1] = offsets[point] + (covered[point] == Float.POSITIVE_INFINITY ? 0 : columnsToNext(fitted, point));
+        }
+        if (offsets[points] == 0) {
+            return;
+        }
+        int[] columnX = new int[offsets[points]];
+        int[] columnZ = new int[offsets[points]];
+        for (int point = 0; point < points; point++) {
+            int columns = offsets[point + 1] - offsets[point];
+            int next = Math.min(points - 1, point + 1);
+            for (int column = 0; column < columns; column++) {
+                float share = columns == 1 ? 0f : 0.5f * column / (columns - 1);
+                columnX[offsets[point] + column] = (int) Math.floor(lerp(fitted.xs()[point], fitted.xs()[next], share));
+                columnZ[offsets[point] + column] = (int) Math.floor(lerp(fitted.zs()[point], fitted.zs()[next], share));
+            }
+        }
+        HydrologySampleBuffer samples = new HydrologySampleBuffer(columnX.length);
+        fine.sampleColumns(columnX, columnZ, samples);
+        for (int point = 0; point < points; point++) {
+            float lowest = covered[point];
+            for (int column = offsets[point]; column < offsets[point + 1]; column++) {
+                if (!samples.ocean()[column]) {
+                    int pond = ponds.at(columnX[column], columnZ[column]);
+                    lowest = Math.min(lowest, pond < 0 ? samples.height()[column] : Math.max(samples.height()[column], ponds.pond(pond).level()));
+                }
+            }
+            if (offsets[point + 1] > offsets[point] && lowest - fitted.ground()[point] >= drop) {
+                fitted.ground()[point] = lowest;
+            }
+        }
+    }
+
+    private static int columnsToNext(Fitted fitted, int point) {
+        int next = Math.min(fitted.xs().length - 1, point + 1);
+        return 2 + (int) Math.ceil(0.5D * Math.hypot(fitted.xs()[next] - fitted.xs()[point], fitted.zs()[next] - fitted.zs()[point]));
     }
 
     private static void seaEnd(boolean[] ocean, boolean drainsToTheSea) {

@@ -368,6 +368,62 @@ public class ReachShaperTest {
             end++;
         }
         assertTrue(label + " level below the fall from " + foot + " to " + end, STATION * (end - foot) >= StepPools.PLUNGE_MIN);
+
+        HydrologySettings settings = settings(config -> {
+        });
+        DoubleBinaryOperator cliff = steppedValley(12);
+        float brink = brinkMidpoint(shape(settings, network(settings, cliff, 64, 64, VALLEY_THRESHOLD, false)));
+        assertTrue("brink midpoint " + brink, brink >= STEP_X - 3);
+        assertTrue("brink midpoint " + brink, brink <= STEP_X);
+    }
+
+    @Test
+    public void cliffBetweenLatticeNodesKeepsWaterBelowTheGround() {
+        HydrologySettings settings = settings(config -> {
+        });
+        for (int edge = STEP_X - 3; edge <= STEP_X + 3; edge++) {
+            int cliffX = edge;
+            DoubleBinaryOperator cliff = (x, z) -> (x < 2 * CELL ? 140D : x < cliffX ? 120D : 108D) + 0.1D * Math.abs(z - VALLEY_Z);
+            ShapedNetwork shaped = shape(settings, network(settings, cliff, 64, 64, VALLEY_THRESHOLD, false));
+            for (Reach reach : shaped.reaches()) {
+                for (int index = 0; index < reach.xs().length; index++) {
+                    double natural = cliff.applyAsDouble(reach.xs()[index], reach.zs()[index]);
+                    assertTrue("cliff " + cliffX + " " + reach + " at " + index + " x " + reach.xs()[index] + " grade " + reach.grade()[index]
+                            + " natural " + natural, reach.grade()[index] <= natural);
+                }
+            }
+            float brink = brinkMidpoint(shaped);
+            assertTrue("cliff " + cliffX + " brink midpoint " + brink, brink >= cliffX - 5 && brink <= cliffX);
+        }
+    }
+
+    @Test
+    public void stepsBelowTheWaterfallMinimumKeepTheFullGroundRead() {
+        HydrologySettings settings = settings(config -> {
+        });
+        DoubleBinaryOperator forward = steppedValley(5);
+        DoubleBinaryOperator mirrored = (x, z) -> forward.applyAsDouble(504D - x, z);
+        float before = STEP_X - firstAtOrBelow(shape(settings, network(settings, forward, 64, 64, VALLEY_THRESHOLD, false)), 113, true);
+        float mirroredBefore = firstAtOrBelow(shape(settings, network(settings, mirrored, 64, 64, VALLEY_THRESHOLD, false)), 113, false) - (504 - STEP_X);
+        assertEquals("a step below the waterfall minimum reads the same both ways", before, mirroredBefore, 1e-3f);
+    }
+
+    private static float brinkMidpoint(ShapedNetwork shaped) {
+        int falls = 0;
+        float midpoint = Float.NaN;
+        for (Reach reach : shaped.reaches()) {
+            for (int index = 1; index < reach.xs().length; index++) {
+                if (reach.xs()[index] < WINDOW_MIN_X || reach.xs()[index] > WINDOW_MAX_X) {
+                    continue;
+                }
+                if (reach.grade()[index - 1] - reach.grade()[index] >= reach.tier().waterfallMinimumDrop()) {
+                    falls++;
+                    midpoint = (reach.xs()[index - 1] + reach.xs()[index]) / 2f;
+                }
+            }
+        }
+        assertEquals("falls in the step window", 1, falls);
+        return midpoint;
     }
 
     @Test

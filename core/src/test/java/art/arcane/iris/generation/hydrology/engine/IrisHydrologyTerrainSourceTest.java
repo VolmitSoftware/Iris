@@ -224,6 +224,50 @@ public class IrisHydrologyTerrainSourceTest {
         }
     }
 
+    @Test
+    public void policyMultipliersOutsideZeroToSixteenAreRejected() throws Exception {
+        Path pack = EngineFixture.pack(temporaryFolder.newFolder().toPath());
+        int[] xs = new int[COLUMNS];
+        int[] zs = new int[COLUMNS];
+        columns(xs, zs);
+        try (EngineFixture.Environment ignored = EngineFixture.environment(); EngineFixture fixture = new EngineFixture(pack)) {
+            HydrologySettings settings = settings(fixture);
+            int[] column = spiresColumn(fixture, xs, zs);
+            IrisBiome spires = fixture.data.getBiomeLoader().load("spires");
+            spires.setHydrologyPolicy(new IrisHydrologyPolicy().setPondDensity(17D));
+            assertPolicyRejected(fixture, settings, column,
+                    "Hydrology policy pondDensity for biome spires in region beta must be a finite value from 0 to 16, got 17.0");
+            spires.setHydrologyPolicy(new IrisHydrologyPolicy().setRainfall(16.5D).setPondDensity(16D));
+            assertPolicyRejected(fixture, settings, column,
+                    "Hydrology policy rainfall for biome spires in region beta must be a finite value from 0 to 16, got 16.5");
+            spires.setHydrologyPolicy(new IrisHydrologyPolicy().setRainfall(16D).setPondDensity(16D));
+            HydrologySampleBuffer bounds = new HydrologySampleBuffer(1);
+            new IrisHydrologyTerrainSource(fixture.complex, fixture.dimension, settings, null, 1, HydrologyBinding.UNBOUND)
+                    .sample(new int[]{column[0]}, new int[]{column[1]}, bounds, false);
+            assertEquals(16f, bounds.rainfall()[0], 0f);
+            assertEquals(16f, bounds.pondDensity()[0], 0f);
+        }
+    }
+
+    private static int[] spiresColumn(EngineFixture fixture, int[] xs, int[] zs) {
+        for (int index = 0; index < xs.length; index++) {
+            if (fixture.complex.getBaseBiomeStream().get(xs[index], zs[index]).getLoadKey().equals("spires")) {
+                return new int[]{xs[index], zs[index]};
+            }
+        }
+        throw new AssertionError("No sampled column is spires");
+    }
+
+    private static void assertPolicyRejected(EngineFixture fixture, HydrologySettings settings, int[] column, String message) {
+        try {
+            new IrisHydrologyTerrainSource(fixture.complex, fixture.dimension, settings, null, 1, HydrologyBinding.UNBOUND)
+                    .sample(new int[]{column[0]}, new int[]{column[1]}, new HydrologySampleBuffer(1), false);
+            fail("Expected rejection: " + message);
+        } catch (IllegalArgumentException expected) {
+            assertEquals(message, expected.getMessage());
+        }
+    }
+
     private static void assertInvertedWetnessRejected(EngineFixture fixture, HydrologySettings settings, int[] xs, int[] zs) {
         fixture.data.getBiomeLoader().load("meadow").getHydrologyPolicy().setWetness(new IrisHydrologyWetness().setMin(0.8D).setMax(0.3D));
         for (int index = 0; index < xs.length; index++) {

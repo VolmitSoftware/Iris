@@ -54,7 +54,7 @@ final class CupCarver {
 
     private void windowCups(DemGrid raw, int wx, int wz, HydrologySampleBuffer samples, List<CupSet.Cup> out) {
         float density = settings.ponds().seeded().density();
-        double expected = density * peakPondDensity(raw, wx, wz, samples);
+        double expected = (double) density * peakPondDensity(raw, wx, wz, samples);
         if (!(expected > 0D)) {
             return;
         }

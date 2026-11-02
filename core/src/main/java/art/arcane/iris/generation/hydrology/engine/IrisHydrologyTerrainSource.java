@@ -230,9 +230,9 @@ public final class IrisHydrologyTerrainSource implements HydrologyTerrainSource,
     }
 
     private static void requireMultiplier(String field, double value, List<IrisBiome> biomes, IrisRegion region) {
-        if (!Double.isFinite(value) || value < 0D) {
-            throw new IllegalArgumentException("Hydrology policy " + field + " for " + where(biomes, region) + " must be a finite value of 0 or more, got "
-                    + value);
+        if (!IrisHydrologyPolicy.validMultiplier(value)) {
+            throw new IllegalArgumentException("Hydrology policy " + field + " for " + where(biomes, region) + " must be a finite value from 0 to "
+                    + (int) IrisHydrologyPolicy.MAX_MULTIPLIER + ", got " + value);
         }
     }
 

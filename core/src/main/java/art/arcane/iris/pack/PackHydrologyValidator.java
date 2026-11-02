@@ -260,9 +260,17 @@ final class PackHydrologyValidator {
         if (policy.getDecorators() != null) {
             validateDecorators(field + ".decorators", policy.getDecorators(), data, errors);
         }
+        requireMultiplier(field + ".rainfall", policy.getRainfall(), errors);
+        requireMultiplier(field + ".pondDensity", policy.getPondDensity(), errors);
         IrisHydrologyWetness wetness = policy.getWetness();
         if (wetness != null && !(wetness.getMin() >= 0D && wetness.getMin() <= wetness.getMax() && wetness.getMax() <= 1D)) {
             errors.add(field + ".wetness must have 0 <= min <= max <= 1, got min " + wetness.getMin() + " and max " + wetness.getMax() + ".");
+        }
+    }
+
+    private static void requireMultiplier(String field, Double value, List<String> errors) {
+        if (value != null && !IrisHydrologyPolicy.validMultiplier(value)) {
+            errors.add(field + " must be a finite value from 0 to " + (int) IrisHydrologyPolicy.MAX_MULTIPLIER + ", got " + value + ".");
         }
     }
 

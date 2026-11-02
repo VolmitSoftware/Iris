@@ -22,13 +22,15 @@ import java.util.function.Function;
 @Description("Hydrology settings for a dimension, region or biome. A value a biome leaves unset is inherited from the biome it grows inside as a child, up through that biome's own parents, then from the region, then from the dimension.")
 @Data
 public class IrisHydrologyPolicy {
+    public static final double MAX_MULTIPLIER = 16D;
+
     @MinNumber(0)
-    @MaxNumber(16)
+    @MaxNumber(MAX_MULTIPLIER)
     @Description("Multiplier on the water that falls in this area. Higher values grow more and larger streams and keep ponds fuller. With no value set anywhere it is 1.")
     private Double rainfall = null;
 
     @MinNumber(0)
-    @MaxNumber(16)
+    @MaxNumber(MAX_MULTIPLIER)
     @Description("Multiplier on how many ponds form in this area. With no value set anywhere it is 1.")
     private Double pondDensity = null;
 
@@ -60,6 +62,10 @@ public class IrisHydrologyPolicy {
     @ArrayType(type = IrisDecorator.class)
     @Description("Plants for the rivers, streams, ponds and lakes in this area, replacing the decorators of the tiers and ponds there. Written like the tier and pond decorators: partOf SEA_FLOOR, SEA_SURFACE or SHORE_LINE. An empty list grows no plants here. With no value set anywhere, the tiers and ponds use their own decorators.")
     private KList<IrisDecorator> decorators = null;
+
+    public static boolean validMultiplier(double value) {
+        return value >= 0D && value <= MAX_MULTIPLIER;
+    }
 
     public static <T> T inherited(List<IrisBiome> biomes, IrisRegion region, IrisDimension dimension, Function<IrisHydrologyPolicy, T> field) {
         for (int index = 0; index < biomes.size(); index++) {

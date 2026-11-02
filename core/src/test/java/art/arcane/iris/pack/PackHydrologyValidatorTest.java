@@ -136,6 +136,24 @@ public class PackHydrologyValidatorTest {
     }
 
     @Test
+    public void rejectsPolicyMultipliersOutsideZeroToSixteen() throws Exception {
+        File pack = pack(dimension(WATER_ONLY, "\"hydrologyPolicy\": {\"rainfall\": 16, \"pondDensity\": 0},"));
+        write(pack, "regions/region.json", """
+                {"landBiomes": ["biome"], "hydrologyPolicy": {"pondDensity": 17}}
+                """);
+        write(pack, "biomes/biome.json", """
+                {"name": "Biome", "hydrologyPolicy": {"rainfall": -0.5, "pondDensity": 16.5}}
+                """);
+
+        List<String> errors = validate(pack).errors();
+
+        assertContains(errors, "Region 'region'.hydrologyPolicy.pondDensity must be a finite value from 0 to 16, got 17.0.");
+        assertContains(errors, "Biome 'biome'.hydrologyPolicy.rainfall must be a finite value from 0 to 16, got -0.5.");
+        assertContains(errors, "Biome 'biome'.hydrologyPolicy.pondDensity must be a finite value from 0 to 16, got 16.5.");
+        assertEquals(errors.toString(), 3, errors.size());
+    }
+
+    @Test
     public void rejectsFluidReferencesTheFluidProfilesDoNotDefine() throws Exception {
         File pack = pack(dimension("""
                 {

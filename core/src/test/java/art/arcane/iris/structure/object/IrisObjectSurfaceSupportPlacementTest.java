@@ -106,17 +106,6 @@ public class IrisObjectSurfaceSupportPlacementTest {
     }
 
     @Test
-    public void automaticForcePlacementCannotOverlapRiverWater() {
-        when(complex.hasWaterOrShore(0, 0)).thenReturn(true);
-        SurfacePlacer placer = new SurfacePlacer(engine);
-        IrisObjectPlacement placement = placement(ObjectPlaceMode.CENTER_HEIGHT);
-        placement.setForcePlace(true);
-
-        assertEquals(-1, place(placer, placement, -1));
-        assertTrue(placer.written().isEmpty());
-    }
-
-    @Test
     public void explicitObjectPlacementRemainsAllowedInsideRiverWater() {
         when(complex.hasWaterOrShore(0, 0)).thenReturn(true);
         SurfacePlacer placer = new SurfacePlacer(engine);

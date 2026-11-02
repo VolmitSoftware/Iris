@@ -15,7 +15,8 @@ final class PlacementModuleSurfaceSupport implements PlacementModule {
     public void install(PlacementLifecycleBuilder lifecycle) {
         lifecycle.add(CHECK, PlacementStage.VALIDATE, (context, state, ignored) -> {
             IrisObjectPlacement config = state.config;
-            if (context.yv < 0 && config.getCarvingSupport().supportsSurface()
+            if (context.yv < 0 && !config.isForcePlace() && !config.isUnderwater() && !config.isOnwater()
+                    && config.getCarvingSupport().supportsSurface()
                     && config.getMode() != ObjectPlaceMode.FLOATING && config.getMode() != ObjectPlaceMode.STRUCTURE_PIECE
                     && (state.paintProjection != null
                     ? IrisSurfaceSupport.intersectsHydrology(context.placer, context.x, context.z, null, null, 0, 0, 0, state.paintSupport)

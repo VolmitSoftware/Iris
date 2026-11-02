@@ -3,11 +3,18 @@ package art.arcane.iris.generation.hydrology.raster;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.TreeSet;
-import java.util.function.IntBinaryOperator;
+import java.util.Map;
+import java.util.TreeMap;
 
 final class RiffleProfile {
     static final int RADIUS = 16;
+    static final int PLUNGE_MIN_DROP = 6;
+    static final double PLUNGE_RATIO = 0.5D;
+    static final int PLUNGE_MAX_DEPTH = 8;
+    private static final int PLUNGE_MIN_DEPTH = 2;
+    private static final double PLUNGE_RADIUS_RATIO = 0.75D;
+    private static final double PLUNGE_MIN_RADIUS = 3D;
+    private static final double PLUNGE_MAX_RADIUS = 12D;
     private static final int CHUNK = 16;
     private static final int PADDING = RADIUS + 1;
     private static final int GRID = CHUNK + 2 * PADDING;
@@ -17,48 +24,44 @@ final class RiffleProfile {
     private static final int[] SIDES = {1, -1, GRID, -GRID};
     private static final int[] REMAINING = remaining();
 
+    private final int[] heads = new int[GRID * GRID];
+    private final long[] features = new long[GRID * GRID];
+    private final boolean[] flowing = new boolean[GRID * GRID];
     private final List<Field> fields = new ArrayList<>();
+    private final List<Plunge> plunges = new ArrayList<>();
 
-    RiffleProfile(int chunkX, int chunkZ, IntBinaryOperator headAt) {
-        int[] heads = new int[GRID * GRID];
-        int[] crests = new int[GRID * GRID];
+    RiffleProfile(int chunkX, int chunkZ, Water water) {
         int originX = (chunkX << 4) - PADDING;
         int originZ = (chunkZ << 4) - PADDING;
-        Arrays.fill(crests, DRY);
+        Sample sample = new Sample();
         for (int cell = 0; cell < heads.length; cell++) {
-            heads[cell] = headAt.applyAsInt(originX + cell % GRID, originZ + cell / GRID);
+            sample.set(DRY, 0L, WaterRole.NONE);
+            water.sample(originX + cell % GRID, originZ + cell / GRID, sample);
+            heads[cell] = sample.head;
+            features[cell] = sample.feature;
+            flowing[cell] = sample.role.flowing();
         }
-        TreeSet<Integer> levels = new TreeSet<>();
+        TreeMap<Crest, Seeds> crests = new TreeMap<>();
+        TreeMap<Fall, Seeds> feet = new TreeMap<>();
         for (int z = 1; z < GRID - 1; z++) {
             for (int x = 1; x < GRID - 1; x++) {
-                int cell = z * GRID + x;
-                if (heads[cell] == DRY) {
-                    continue;
-                }
-                for (int side : SIDES) {
-                    if (heads[cell + side] != DRY && heads[cell + side] <= heads[cell] - 2) {
-                        crests[cell] = heads[cell] - 1;
-                        levels.add(crests[cell]);
-                        break;
-                    }
-                }
+                collect(z * GRID + x, crests, feet);
             }
         }
-        if (levels.isEmpty()) {
+        if (crests.isEmpty() && feet.isEmpty()) {
             return;
         }
         DistanceField distances = new DistanceField(heads);
-        for (int crest : levels) {
-            distances.reset();
-            for (int cell = 0; cell < crests.length; cell++) {
-                if (crests[cell] == crest) {
-                    distances.offer(cell, 0);
-                }
-            }
-            distances.spread();
-            int[] output = distances.output();
+        for (Map.Entry<Crest, Seeds> crest : crests.entrySet()) {
+            int[] output = distances.measure(crest.getValue(), DistanceField.ANY_LEVEL, LIMIT);
             if (output != null) {
-                fields.add(new Field(crest, output));
+                fields.add(new Field(crest.getKey(), output));
+            }
+        }
+        for (Map.Entry<Fall, Seeds> fall : feet.entrySet()) {
+            int[] output = distances.measure(fall.getValue(), fall.getKey().foot(), fall.getKey().reach());
+            if (output != null) {
+                plunges.add(new Plunge(fall.getKey(), output));
             }
         }
     }
@@ -68,9 +71,13 @@ final class RiffleProfile {
             return original;
         }
         int cell = (localZ + 1) * OUTPUT + localX + 1;
+        int grid = (localZ + PADDING) * GRID + localX + PADDING;
         double raised = original;
         for (Field field : fields) {
-            int crest = Math.min(head - 1, field.crest());
+            if (skips(field.crest(), grid, head)) {
+                continue;
+            }
+            int crest = Math.min(head - 1, field.crest().level());
             if (crest <= original) {
                 continue;
             }
@@ -83,7 +90,52 @@ final class RiffleProfile {
             double blend = 1D - u * u * (3D - 2D * u);
             raised = Math.max(raised, original + (crest - (double) original) * blend);
         }
-        return (int) Math.max(original, Math.min(head - 1L, Math.round(raised)));
+        int riffled = (int) Math.max(original, Math.min(head - 1L, Math.round(raised)));
+        return flowing[grid] ? plunge(cell, riffled, head, variation) : riffled;
+    }
+
+    private void collect(int cell, TreeMap<Crest, Seeds> crests, TreeMap<Fall, Seeds> feet) {
+        int head = heads[cell];
+        if (head == DRY) {
+            return;
+        }
+        boolean crest = false;
+        for (int side : SIDES) {
+            int neighbour = heads[cell + side];
+            if (neighbour == DRY) {
+                continue;
+            }
+            crest |= neighbour <= head - 2;
+            if (flowing[cell] && neighbour - head >= PLUNGE_MIN_DROP) {
+                feet.computeIfAbsent(new Fall(head, neighbour), ignored -> new Seeds()).add(cell);
+            }
+        }
+        if (crest) {
+            crests.computeIfAbsent(new Crest(head - 1, features[cell], flowing[cell]), ignored -> new Seeds()).add(cell);
+        }
+    }
+
+    private boolean skips(Crest crest, int grid, int head) {
+        if (crest.level() - (head - 1) >= PLUNGE_MIN_DROP - 1) {
+            return true;
+        }
+        return crest.level() > head - 1 && crest.flowing() && flowing[grid] && crest.feature() != features[grid];
+    }
+
+    private int plunge(int cell, int bed, int head, double variation) {
+        int carved = bed;
+        for (Plunge plunge : plunges) {
+            Fall fall = plunge.fall();
+            int distance = plunge.distances()[cell];
+            if (fall.foot() != head || distance >= 10D * fall.radius()) {
+                continue;
+            }
+            long depth = Math.clamp(Math.round(PLUNGE_RATIO * fall.drop() * (0.85D + 0.15D * variation)), PLUNGE_MIN_DEPTH, PLUNGE_MAX_DEPTH);
+            double u = distance / (10D * fall.radius());
+            double bowl = 1D - u * u * (3D - 2D * u);
+            carved = (int) Math.min(carved, head - 1L - Math.round((depth - 1L) * bowl));
+        }
+        return carved;
     }
 
     private static int[] remaining() {
@@ -100,29 +152,108 @@ final class RiffleProfile {
         return remaining;
     }
 
-    private record Field(int crest, int[] distances) {
+    @FunctionalInterface
+    interface Water {
+        void sample(int x, int z, Sample sample);
+    }
+
+    static final class Sample {
+        private int head;
+        private long feature;
+        private WaterRole role;
+
+        void set(int head, long feature, WaterRole role) {
+            this.head = head;
+            this.feature = feature;
+            this.role = role;
+        }
+    }
+
+    private record Crest(int level, long feature, boolean flowing) implements Comparable<Crest> {
+        @Override
+        public int compareTo(Crest other) {
+            if (level != other.level) {
+                return Integer.compare(level, other.level);
+            }
+            if (feature != other.feature) {
+                return Long.compare(feature, other.feature);
+            }
+            return Boolean.compare(flowing, other.flowing);
+        }
+    }
+
+    private record Fall(int foot, int top) implements Comparable<Fall> {
+        int drop() {
+            return top - foot;
+        }
+
+        double radius() {
+            return Math.clamp(PLUNGE_RADIUS_RATIO * drop(), PLUNGE_MIN_RADIUS, PLUNGE_MAX_RADIUS);
+        }
+
+        int reach() {
+            return (int) Math.ceil(10D * radius());
+        }
+
+        @Override
+        public int compareTo(Fall other) {
+            return foot != other.foot ? Integer.compare(foot, other.foot) : Integer.compare(top, other.top);
+        }
+    }
+
+    private record Field(Crest crest, int[] distances) {
+    }
+
+    private static final class Seeds {
+        private int[] cells = new int[16];
+        private int size;
+
+        private void add(int cell) {
+            if (size == cells.length) {
+                cells = Arrays.copyOf(cells, 2 * size);
+            }
+            cells[size++] = cell;
+        }
+    }
+
+    private record Plunge(Fall fall, int[] distances) {
     }
 
     private static final class DistanceField {
+        private static final int ANY_LEVEL = Integer.MAX_VALUE;
+
         private final int[] heads;
         private final int[] distances = new int[GRID * GRID];
         private final int[] next = new int[GRID * GRID];
         private final int[] previous = new int[GRID * GRID];
         private final int[] first = new int[LIMIT];
+        private int level;
+        private int limit;
 
         private DistanceField(int[] heads) {
             this.heads = heads;
         }
 
-        private void reset() {
+        private int[] measure(Seeds seeds, int passable, int reach) {
+            level = passable;
+            limit = reach;
             Arrays.fill(distances, LIMIT);
             Arrays.fill(next, -1);
             Arrays.fill(previous, -1);
             Arrays.fill(first, -1);
+            for (int seed = 0; seed < seeds.size; seed++) {
+                offer(seeds.cells[seed], 0);
+            }
+            spread();
+            return output();
+        }
+
+        private boolean blocked(int cell) {
+            return heads[cell] == DRY || level != ANY_LEVEL && heads[cell] != level;
         }
 
         private void offer(int cell, int distance) {
-            if (distance + REMAINING[cell] >= LIMIT) {
+            if (distance + REMAINING[cell] >= limit) {
                 return;
             }
             if (distances[cell] < LIMIT) {
@@ -151,7 +282,7 @@ final class RiffleProfile {
         }
 
         private void spread() {
-            for (int distance = 0; distance < LIMIT; distance++) {
+            for (int distance = 0; distance < limit; distance++) {
                 while (first[distance] >= 0) {
                     int cell = first[distance];
                     remove(cell);
@@ -166,10 +297,10 @@ final class RiffleProfile {
                             }
                             int neighbour = nz * GRID + nx;
                             int candidate = distance + (dx != 0 && dz != 0 ? 14 : 10);
-                            if (heads[neighbour] == DRY || candidate >= distances[neighbour]) {
+                            if (blocked(neighbour) || candidate >= distances[neighbour]) {
                                 continue;
                             }
-                            if (dx != 0 && dz != 0 && (heads[z * GRID + nx] == DRY || heads[nz * GRID + x] == DRY)) {
+                            if (dx != 0 && dz != 0 && (blocked(z * GRID + nx) || blocked(nz * GRID + x))) {
                                 continue;
                             }
                             offer(neighbour, candidate);

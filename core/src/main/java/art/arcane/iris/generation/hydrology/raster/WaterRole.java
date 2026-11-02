@@ -29,4 +29,11 @@ public enum WaterRole {
             case NONE, BANK, SHORE, POND_SHORE, DAM -> false;
         };
     }
+
+    public boolean flowing() {
+        return switch (this) {
+            case CHANNEL, CASCADE, WATERFALL -> true;
+            case NONE, BANK, SHORE, POND, POND_SHORE, DAM, MOUTH, INLET -> false;
+        };
+    }
 }

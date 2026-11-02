@@ -73,6 +73,7 @@ final class RasterComposer {
                 column(cell);
             }
         }
+        styleSeams();
         gradeRiffles();
         raiseDams();
         bermEdges();
@@ -277,6 +278,30 @@ final class RasterComposer {
         return (int) Math.clamp((long) Math.floor(level + rise), level, ground);
     }
 
+    private void styleSeams() {
+        for (int cell = 0; cell < CELLS; cell++) {
+            if (!interior(cell) || role[cell] != WaterRole.CHANNEL) {
+                continue;
+            }
+            int drop = 0;
+            int waterfallMinimumDrop = Integer.MAX_VALUE;
+            for (int side : SIDES) {
+                int upper = cell + side;
+                if (!role[upper].flowing() || feature[upper] == feature[cell]) {
+                    continue;
+                }
+                int step = head[upper] - head[cell];
+                if (step >= 2 && step > drop) {
+                    drop = step;
+                    waterfallMinimumDrop = tier[upper].waterfallMinimumDrop();
+                }
+            }
+            if (drop > 0) {
+                role[cell] = drop >= waterfallMinimumDrop ? WaterRole.WATERFALL : WaterRole.CASCADE;
+            }
+        }
+    }
+
     private void gradeRiffles() {
         int surface = Integer.MIN_VALUE;
         for (int cell = 0; cell < CELLS && surface == Integer.MIN_VALUE; cell++) {
@@ -287,7 +312,7 @@ final class RasterComposer {
         if (surface == Integer.MIN_VALUE || features.hasOnlyLevel(surface, settings.seaLevel())) {
             return;
         }
-        RiffleProfile riffles = new RiffleProfile((originX + 1) >> 4, (originZ + 1) >> 4, this::headAt);
+        RiffleProfile riffles = new RiffleProfile((originX + 1) >> 4, (originZ + 1) >> 4, this::sample);
         for (int cell = 0; cell < CELLS; cell++) {
             if (interior(cell) && head[cell] != Integer.MIN_VALUE) {
                 int x = originX + cell % GRID;
@@ -298,26 +323,34 @@ final class RasterComposer {
         }
     }
 
-    private int headAt(int x, int z) {
+    private void sample(int x, int z, RiffleProfile.Sample sample) {
         int gx = x - originX;
         int gz = z - originZ;
         if (gx >= 0 && gx < GRID && gz >= 0 && gz < GRID && !corner(gz * GRID + gx)) {
-            return head[gz * GRID + gx];
+            int cell = gz * GRID + gx;
+            sample.set(head[cell], feature[cell], role[cell]);
+            return;
         }
         SeaInlet inlet = features.openInletAt(x, z, inletColumn);
         if (inlet != null) {
-            return WaterHeads.snap(inlet.waterLevel(), settings.seaLevel());
+            sample.set(WaterHeads.snap(inlet.waterLevel(), settings.seaLevel()), inlet.id(), WaterRole.INLET);
+            return;
         }
         int lake = features.lakeCovers(x, z) ? features.lakeAt(x, z, naturalAt(x, z)) : -1;
         if (lake >= 0) {
-            return WaterHeads.snap(features.lake(lake).level(), settings.seaLevel());
+            sample.set(WaterHeads.snap(features.lake(lake).level(), settings.seaLevel()), features.lake(lake).id(), WaterRole.POND);
+            return;
         }
         int pond = features.pondAt(x, z);
         if (pond >= 0) {
-            return WaterHeads.snap(features.pond(pond).level(), settings.seaLevel());
+            sample.set(WaterHeads.snap(features.pond(pond).level(), settings.seaLevel()), features.pond(pond).id(), WaterRole.POND);
+            return;
         }
         features.segments().nearest(x, z, ReachSegments.Scope.CHANNEL, cursor);
-        return cursor.channel.reach == null ? Integer.MIN_VALUE : WaterHeads.snap(cursor.channel.reach.grade()[cursor.channel.point()], settings.seaLevel());
+        ReachCursor.Choice hit = cursor.channel;
+        if (hit.reach != null) {
+            sample.set(WaterHeads.snap(hit.grade(), settings.seaLevel()), hit.reach.id(), role(hit.reach.style()[hit.point()]));
+        }
     }
 
     private int pondFloor(int index, int level, int x, int z, int ground, double variation, double detail) {

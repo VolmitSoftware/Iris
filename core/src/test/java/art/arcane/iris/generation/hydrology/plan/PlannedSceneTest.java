@@ -41,6 +41,12 @@ public class PlannedSceneTest {
     }
 
     @Test
+    public void confluencesHaveNoTongues() {
+        assertEquals("confluence tongues on openFractal(1) with rainfall " + RAINFALL + " over 2x2 windows", List.of(),
+                WaterInvariants.confluenceTongues(openFractal()));
+    }
+
+    @Test
     public void feedersAtALedInOutletsExitPoolBesideTheLeadIn() {
         PlannedScene scene = openFractal();
         Map<Long, Reach> byId = new HashMap<>();

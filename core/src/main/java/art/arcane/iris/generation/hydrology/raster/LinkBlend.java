@@ -22,7 +22,7 @@ public final class LinkBlend {
         return from + (to - from) * share;
     }
 
-    static Reach blend(Reach downstream, List<Reach> feeders) {
+    static Reach blend(Reach downstream, List<Reach> feeders, int seaLevel) {
         float width = 0f;
         float depth = 0f;
         for (Reach feeder : feeders) {
@@ -44,21 +44,22 @@ public final class LinkBlend {
             halfWidth[point] += blend(widthShift, 0f, along);
             depths[point] += blend(depthShift, 0f, along);
         }
-        return regraded(downstream, clamped(downstream.grade(), lowestEnd(feeders)), halfWidth, depths);
+        return regraded(downstream, clamped(downstream.grade(), lowestEnd(feeders)), halfWidth, depths, seaLevel);
     }
 
-    static Reach clamp(Reach downstream, List<Reach> feeders) {
-        return clamp(downstream, lowestEnd(feeders));
+    static Reach clamp(Reach downstream, List<Reach> feeders, int seaLevel) {
+        return clamp(downstream, lowestEnd(feeders), seaLevel);
     }
 
-    static Reach clamp(Reach downstream, int end) {
+    static Reach clamp(Reach downstream, int end, int seaLevel) {
         int[] grade = clamped(downstream.grade(), end);
-        return grade == downstream.grade() ? downstream : regraded(downstream, grade, downstream.halfWidth(), downstream.depth());
+        return grade == downstream.grade() ? downstream : regraded(downstream, grade, downstream.halfWidth(), downstream.depth(), seaLevel);
     }
 
-    static Reach settleInto(Reach feeder, int level, List<ConfluenceGrader.Footprint> receiving, List<PondMask> lips) {
+    static Reach settleInto(Reach feeder, Junction junction, List<ConfluenceGrader.Footprint> receiving, List<PondMask> lips, int seaLevel) {
         int[] grade = feeder.grade();
-        boolean[] fixed = fixed(feeder, lips);
+        int level = junction.level();
+        boolean[] fixed = fixed(feeder, lips, junction.fed() && grade[0] - level > ConfluenceGrader.MAX_START_LOWERING);
         int waterfallMinimumDrop = feeder.tier().waterfallMinimumDrop();
         int[] settled = ConfluenceGrader.settle(footprint(feeder), grade, fixed, receiving, level, waterfallMinimumDrop);
         if (settled == grade) {
@@ -67,23 +68,27 @@ public final class LinkBlend {
         if (!feeder.tier().cascades()) {
             ConfluenceGrader.spreadJunction(settled, grade, fixed, waterfallMinimumDrop, Integer.MIN_VALUE);
         }
-        return regraded(feeder, settled, feeder.halfWidth(), feeder.depth());
+        return regraded(feeder, settled, feeder.halfWidth(), feeder.depth(), seaLevel);
     }
 
     static ConfluenceGrader.Footprint footprint(Reach reach) {
         return new ConfluenceGrader.Footprint(reach.xs(), reach.zs(), reach.halfWidth());
     }
 
-    private static boolean[] fixed(Reach feeder, List<PondMask> lips) {
+    private static boolean[] fixed(Reach feeder, List<PondMask> lips, boolean heldStart) {
         ReachStyle[] style = feeder.style();
         boolean[] fixed = new boolean[style.length];
         boolean held = !lips.isEmpty();
-        fixed[0] = true;
+        fixed[0] = held || heldStart || style[0] == ReachStyle.POND_OUTLET;
         for (int point = 1; point < style.length; point++) {
             held = held && nearLip(lips, feeder.xs()[point], feeder.zs()[point], feeder.halfWidth()[point]);
-            fixed[point] = held || style[point] == ReachStyle.POND_OUTLET;
+            fixed[point] = held || style[point] == ReachStyle.POND_OUTLET || zoneStep(feeder, fixed, point);
         }
         return fixed;
+    }
+
+    private static boolean zoneStep(Reach feeder, boolean[] fixed, int point) {
+        return fixed[point - 1] && feeder.style()[point] == ReachStyle.CASCADE && feeder.grade()[point - 1] - feeder.grade()[point] == 1;
     }
 
     private static boolean nearLip(List<PondMask> lips, float x, float z, float halfWidth) {
@@ -95,20 +100,20 @@ public final class LinkBlend {
         return false;
     }
 
-    private static Reach regraded(Reach reach, int[] grade, float[] halfWidth, float[] depth) {
-        ReachStyle[] style = grade == reach.grade() ? reach.style() : restyled(reach.style(), grade, reach.tier().waterfallMinimumDrop());
+    private static Reach regraded(Reach reach, int[] grade, float[] halfWidth, float[] depth, int seaLevel) {
+        ReachStyle[] style = grade == reach.grade() ? reach.style() : restyled(reach.style(), grade, reach.tier().waterfallMinimumDrop(), seaLevel);
         return new Reach(reach.id(), reach.tier(), reach.downstreamId(), reach.xs(), reach.zs(), grade, halfWidth, depth, style,
                 reach.catchment());
     }
 
-    private static ReachStyle[] restyled(ReachStyle[] style, int[] grade, int waterfallMinimumDrop) {
+    private static ReachStyle[] restyled(ReachStyle[] style, int[] grade, int waterfallMinimumDrop, int seaLevel) {
         boolean[] mouth = new boolean[style.length];
         boolean[] outlet = new boolean[style.length];
         for (int point = 0; point < style.length; point++) {
             mouth[point] = style[point] == ReachStyle.MOUTH;
             outlet[point] = style[point] == ReachStyle.POND_OUTLET;
         }
-        return ReachShaper.styles(grade, mouth, outlet, waterfallMinimumDrop);
+        return ReachShaper.styles(grade, mouth, outlet, waterfallMinimumDrop, seaLevel);
     }
 
     private static int lowestEnd(List<Reach> feeders) {
@@ -130,5 +135,8 @@ public final class LinkBlend {
             }
         }
         return result;
+    }
+
+    record Junction(int level, boolean fed) {
     }
 }

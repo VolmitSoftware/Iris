@@ -21,7 +21,7 @@ final class PlacementModuleSurfaceSupport implements PlacementModule {
                 return;
             }
             boolean rawStructurePiece = config.getMode() == ObjectPlaceMode.STRUCTURE_PIECE;
-            if (context.yv < 0 && !config.isForcePlace() && !config.isFromBottom()
+            if (context.automatic && !config.isForcePlace() && !config.isFromBottom()
                     && config.getMode() != ObjectPlaceMode.FLOATING && !rawStructurePiece
                     && config.getCarvingSupport().supportsSurface() && state.placer.getEngine() != null
                     && state.placer.getEngine().getDimension().isBedrock() && state.y <= 1) {
@@ -29,7 +29,7 @@ final class PlacementModuleSurfaceSupport implements PlacementModule {
                 state.reject("bedrock-anchor");
                 return;
             }
-            boolean surfaceAnchored = context.yv < 0 ? config.getCarvingSupport().supportsSurface()
+            boolean surfaceAnchored = context.automatic ? config.getCarvingSupport().supportsSurface()
                     : config.getCarvingSupport() == CarvingMode.SURFACE_ONLY;
             if (surfaceAnchored && !config.isForcePlace() && !config.isFromBottom()
                     && config.getMode() != ObjectPlaceMode.FLOATING && !rawStructurePiece
@@ -56,7 +56,7 @@ final class PlacementModuleSurfaceSupport implements PlacementModule {
 
     private static String hydrologyRejection(PlacementContext context, PlacementState state) {
         IrisObjectPlacement config = state.config;
-        if (context.yv >= 0 || !config.getCarvingSupport().supportsSurface()
+        if (!context.automatic || !config.getCarvingSupport().supportsSurface()
                 || config.getMode() == ObjectPlaceMode.FLOATING || config.getMode() == ObjectPlaceMode.STRUCTURE_PIECE) {
             return null;
         }

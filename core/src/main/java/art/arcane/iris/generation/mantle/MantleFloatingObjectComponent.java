@@ -219,7 +219,7 @@ public class MantleFloatingObjectComponent extends IrisMantleComponent {
             FloatingObjectPlacementTransaction transaction = new FloatingObjectPlacementTransaction(
                     writer, placements.next(minX >> 4, minZ >> 4));
             try {
-                int resultY = obj.place(xx, -1, zz, transaction, floatingPlacement, rng, (b, bd) -> {
+                int resultY = obj.place(xx, zz, transaction, floatingPlacement, rng, (b, bd) -> {
                     String marker = placementMarker(obj, id);
                     if (marker != null && shouldWritePlacementMarker(transaction, bd, b.getX(), b.getY(), b.getZ())) {
                         transaction.setData(b.getX(), b.getY(), b.getZ(), marker);

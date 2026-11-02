@@ -48,6 +48,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiConsumer;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -158,16 +159,15 @@ public class ObjectPlacementGoldenTest {
                     List<String> listened = new ArrayList<>();
                     int x = 400 + index * 3 + seed;
                     int z = -900 + rotationIndex * 5 - seed;
-                    int y = explicitY ? 90 + seed : -1;
+                    BiConsumer<BlockPosition, NativeBlockState> listener =
+                            (position, state) -> listened.add(position.getX() + "," + position.getY() + "," + position.getZ() + "=" + state.key());
                     int result;
                     if (placement.getMode() == ObjectPlaceMode.ORGANIC_STILT && explicitY && seed % 2 == 0) {
-                        result = object.placeOnFloor(x, 70, z, placer, placement, rng,
-                                (position, state) -> listened.add(position.getX() + "," + position.getY() + "," + position.getZ() + "=" + state.key()),
-                                data);
+                        result = object.placeOnFloor(x, 70, z, placer, placement, rng, listener, data);
+                    } else if (explicitY) {
+                        result = object.place(x, 90 + seed, z, placer, placement, rng, listener, null, data);
                     } else {
-                        result = object.place(x, y, z, placer, placement, rng,
-                                (position, state) -> listened.add(position.getX() + "," + position.getY() + "," + position.getZ() + "=" + state.key()),
-                                null, data);
+                        result = object.place(x, z, placer, placement, rng, listener, null, data);
                     }
                     long hash = placer.hash;
                     hash = mix(hash, result);
@@ -249,8 +249,9 @@ public class ObjectPlacementGoldenTest {
             for (int seed = 0; seed < 150; seed++) {
                 RNG rng = new RNG(index * 104_729L + seed);
                 GoldenPlacer placer = new GoldenPlacer(engine, (seed & 1) == 0);
-                int y = seed % 3 == 0 ? 90 + (seed & 7) : -1;
-                int result = object.place(300 + seed, y, -400 + index * 7, placer, placement, rng, null, null, data);
+                int result = seed % 3 == 0
+                        ? object.place(300 + seed, 90 + (seed & 7), -400 + index * 7, placer, placement, rng, null, null, data)
+                        : object.place(300 + seed, -400 + index * 7, placer, placement, rng, null, null, data);
                 long hash = mix(placer.hash, result);
                 hash = mix(hash, rng.nextLong());
                 combined = mix(combined, hash);

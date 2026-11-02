@@ -49,7 +49,7 @@ public final class PlacementLifecycle {
     }
 
     private static void requireFinalAnswers(PlacementContext context, long revision) {
-        if (context.yv >= 0 || ProvisionalSampling.revision() == revision) {
+        if (!context.automatic || ProvisionalSampling.revision() == revision) {
             return;
         }
         String key = context.self.getLoadKey();

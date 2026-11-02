@@ -17,6 +17,8 @@ import org.junit.ClassRule;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.stream.ProvisionalAnswerException;
+import art.arcane.iris.generation.stream.ProvisionalSampling;
 import art.arcane.volmlib.nativelib.terrain.structure.NativeStructureVolume;
 import art.arcane.iris.structure.placement.PlacedObject;
 import art.arcane.iris.spi.IrisPlatform;
@@ -140,7 +142,7 @@ public class IrisObjectPlacementLifecycleRegressionTest {
         placement.setMode(ObjectPlaceMode.MAX_HEIGHT);
         placement.setRotation(IrisObjectRotation.of(0, 45, 0));
 
-        boxObject(5, 1, 3).place(0, -1, 0, placer, placement, new RNG(2L), data);
+        boxObject(5, 1, 3).place(0, 0, placer, placement, new RNG(2L), data);
 
         assertTrue(placer.sampledColumns().contains("-2:-2"));
         assertTrue(placer.sampledColumns().contains("2:2"));
@@ -254,7 +256,7 @@ public class IrisObjectPlacementLifecycleRegressionTest {
         RecordingPlacer placer = new RecordingPlacer(null);
         IrisObjectPlacement config = placement();
         config.setMode(ObjectPlaceMode.ERODE_STILT);
-        assertEquals(ANCHOR_Y, lineObject(1).place(0, -1, 0, placer, config, new RNG(2L), data));
+        assertEquals(ANCHOR_Y, lineObject(1).place(0, 0, placer, config, new RNG(2L), data));
         assertFalse(placer.writes().isEmpty());
     }
 
@@ -293,8 +295,33 @@ public class IrisObjectPlacementLifecycleRegressionTest {
         RecordingPlacer placer = new RecordingPlacer(null);
         IrisObjectPlacement config = placement();
         config.setFromBottom(true);
-        assertEquals(2, lineObject(1).place(0, -1, 0, placer, config, new RNG(2L), data));
+        assertEquals(2, lineObject(1).place(0, 0, placer, config, new RNG(2L), data));
         assertTrue(placer.sampledColumns().isEmpty());
+    }
+
+    @Test
+    public void explicitNegativeWorldYPlacesAtThatYWithoutSamplingTerrain() {
+        RecordingPlacer placer = new RecordingPlacer(null);
+
+        assertEquals(-20, lineObject(3).place(0, -20, 0, placer, placement(), new RNG(2L), data));
+        assertTrue(placer.sampledColumns().isEmpty());
+        assertEquals(3, placer.writes().size());
+        assertTrue(placer.writes().stream().allMatch(write -> write.y() == -20));
+    }
+
+    @Test
+    public void explicitNegativeWorldYIsNotGuardedAgainstProvisionalAnswers() {
+        RecordingPlacer placer = new RecordingPlacer(null);
+        placer.provisional = true;
+
+        assertEquals(-1, lineObject(3).place(0, -1, 0, placer, placement(), new RNG(2L), data));
+        assertEquals(3, placer.writes().size());
+        assertTrue(placer.writes().stream().allMatch(write -> write.y() == -1));
+        RecordingPlacer automatic = new RecordingPlacer(null);
+        automatic.provisional = true;
+        assertThrows(ProvisionalAnswerException.class,
+                () -> lineObject(3).place(0, 0, automatic, placement(), new RNG(2L), data));
+        assertTrue(automatic.writes().isEmpty());
     }
 
     @Test
@@ -303,7 +330,7 @@ public class IrisObjectPlacementLifecycleRegressionTest {
             RecordingPlacer placer = new RecordingPlacer(null);
             IrisObjectPlacement config = placement().setBore(true).setSnow(0.1);
             CarveResult cave = null;
-            int anchor = ANCHOR_Y;
+            boolean automatic = false;
             switch (reason) {
                 case "carving-anchor" -> {
                     placer.carved = true;
@@ -311,11 +338,11 @@ public class IrisObjectPlacementLifecycleRegressionTest {
                 }
                 case "underwater-anchor" -> {
                     placer.underwater = true;
-                    anchor = -1;
+                    automatic = true;
                 }
                 case "onwater-anchor" -> {
                     config.setOnwater(true);
-                    anchor = -1;
+                    automatic = true;
                 }
                 case "cave-clearance" -> cave = new CarveResult(ANCHOR_Y, ANCHOR_Y + 1);
                 case "fluid-height" -> {
@@ -324,13 +351,13 @@ public class IrisObjectPlacementLifecycleRegressionTest {
                 }
                 case "height-clamp" -> config.getClamp().setMaximumHeight(ANCHOR_Y - 1);
             }
-            PlacementState result = execute(config, anchor, placer, cave);
+            PlacementState result = automatic ? executeAutomatic(config, placer, cave) : execute(config, ANCHOR_Y, placer, cave);
             assertEquals(reason, result.getRejection());
             assertEquals(-1, result.heightOrRejected());
             assertTrue(reason, placer.writes().isEmpty());
 
             config.setForcePlace(true);
-            assertFalse(reason, execute(config, anchor, placer, cave).isRejected());
+            assertFalse(reason, (automatic ? executeAutomatic(config, placer, cave) : execute(config, ANCHOR_Y, placer, cave)).isRejected());
             assertFalse(reason, placer.writes().isEmpty());
         }
     }
@@ -429,7 +456,7 @@ public class IrisObjectPlacementLifecycleRegressionTest {
         IrisObjectPlacement config = placement();
         config.setHeightmap(new IrisNoiseGenerator(false).setOffsetY(93));
 
-        assertEquals(93, lineObject(1).place(0, -1, 0, placer, config, rng, data));
+        assertEquals(93, lineObject(1).place(0, 0, placer, config, rng, data));
         assertTrue(placer.sampledColumns().isEmpty());
         assertEquals(expected.nextLong(), rng.nextLong());
     }
@@ -478,6 +505,11 @@ public class IrisObjectPlacementLifecycleRegressionTest {
                 new PlacementContext(config, data, placer, cave, new RNG(2L), lineObject(1), 0, 0, y, null));
     }
 
+    private PlacementState executeAutomatic(IrisObjectPlacement config, RecordingPlacer placer, CarveResult cave) {
+        return PlacementLifecycles.defaults().get(config.getMode()).execute(PlacementContext.automatic(
+                config, data, placer, cave, new RNG(2L), lineObject(1), IrisObjectPlacementAlignment.CENTER, 0, 0, null));
+    }
+
     private IrisObject lineObject(int width) {
         IrisObject object = new IrisObject(width, 1, 1);
         for (int x = 0; x < width; x++) {
@@ -522,6 +554,7 @@ public class IrisObjectPlacementLifecycleRegressionTest {
         private boolean debugSmartBore;
         private boolean carved;
         private boolean underwater;
+        private boolean provisional;
         private int fluidHeight;
 
         private RecordingPlacer(Engine engine) {
@@ -550,13 +583,13 @@ public class IrisObjectPlacementLifecycleRegressionTest {
 
         @Override
         public int getHighest(int x, int z, IrisData data) {
-            sampledColumns.add(x + ":" + z);
-            return ANCHOR_Y;
+            return getHighest(x, z, data, false);
         }
 
         @Override
         public int getHighest(int x, int z, IrisData data, boolean ignoreFluid) {
             sampledColumns.add(x + ":" + z);
+            markProvisional();
             return ANCHOR_Y;
         }
 
@@ -581,7 +614,14 @@ public class IrisObjectPlacementLifecycleRegressionTest {
 
         @Override
         public boolean isCarved(int x, int y, int z) {
+            markProvisional();
             return carved;
+        }
+
+        private void markProvisional() {
+            if (provisional) {
+                ProvisionalSampling.mark();
+            }
         }
 
         @Override

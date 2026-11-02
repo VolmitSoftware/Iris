@@ -328,11 +328,16 @@ public class IrisObject extends IrisRegistrant {
     }
 
     public int place(int x, int z, IObjectPlacer placer, IrisObjectPlacement config, RNG rng, IrisData rdata) {
-        return place(x, -1, z, placer, config, rng, rdata);
+        return place(x, z, placer, config, rng, null, null, rdata);
     }
 
     public int place(int x, int z, IObjectPlacer placer, IrisObjectPlacement config, RNG rng, CarveResult c, IrisData rdata) {
-        return place(x, -1, z, placer, config, rng, null, c, rdata);
+        return place(x, z, placer, config, rng, null, c, rdata);
+    }
+
+    public int place(int x, int z, IObjectPlacer oplacer, IrisObjectPlacement config, RNG rng, BiConsumer<BlockPosition, NativeBlockState> listener, CarveResult c, IrisData rdata) {
+        IrisObject placedObject = config.isSmartBore() ? IrisObjectShaping.smartBoredVariant(this) : this;
+        return new IrisObjectPlacementRunner(placedObject, IrisObjectPlacementAlignment.CENTER).placeAutomatic(x, z, oplacer, config, rng, listener, c, rdata);
     }
 
     public int place(int x, int yv, int z, IObjectPlacer placer, IrisObjectPlacement config, RNG rng, IrisData rdata) {

@@ -784,7 +784,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
                             continue;
                         }
                         String marker = placementMarker(variant, id, "procedural");
-                        placeResult = variant.place(xx, -1, zz, placer, placement, rng, (b, data) -> {
+                        placeResult = variant.place(xx, zz, placer, placement, rng, (b, data) -> {
                             if (marker != null) {
                                 placer.setData(b.getX(), b.getY(), b.getZ(), marker);
                             }
@@ -1014,7 +1014,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
             try {
                 String marker = placementMarker(v, id, "surface");
                 int continuation = writer.beginObjectPlacement(effectivePlacement.isUnderwater());
-                int result = v.place(xx, -1, zz, placePlacer, effectivePlacement, rng, (b, data) -> {
+                int result = v.place(xx, zz, placePlacer, effectivePlacement, rng, (b, data) -> {
                     if (marker != null) {
                         writer.setData(b.getX(), b.getY(), b.getZ(), marker);
                     }

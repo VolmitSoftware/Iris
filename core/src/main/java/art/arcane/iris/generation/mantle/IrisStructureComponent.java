@@ -58,6 +58,7 @@ import art.arcane.volmlib.util.matter.Matter;
 import art.arcane.volmlib.util.matter.MatterCavern;
 import art.arcane.volmlib.util.matter.MatterStructurePOI;
 import art.arcane.volmlib.util.mantle.flag.ReservedFlag;
+import art.arcane.volmlib.util.math.BlockPosition;
 import art.arcane.volmlib.util.math.RNG;
 import it.unimi.dsi.fastutil.longs.Long2IntMap;
 import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
@@ -65,6 +66,7 @@ import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.BiConsumer;
 
 @ComponentFlag(ReservedFlag.JIGSAW)
 public class IrisStructureComponent extends IrisMantleComponent {
@@ -155,26 +157,26 @@ public class IrisStructureComponent extends IrisMantleComponent {
                 ObjectPlaceMode undergroundMode = (mode == ObjectPlaceMode.ORGANIC_STILT || mode == ObjectPlaceMode.CEILING_HANG)
                         ? mode : ObjectPlaceMode.STRUCTURE_PIECE;
                 for (PlacedStructurePiece p : pieces) {
-                    if (placeObject(writer, structure, p, undergroundMode, p.getY(), rng,
+                    if (placeObject(writer, structure, p, undergroundMode, false, rng,
                             foundationColumns, supportNonOccluding) == -1) {
                         failedPieces++;
                     }
                 }
             } else if (mode == ObjectPlaceMode.STRUCTURE_PIECE || mode == ObjectPlaceMode.FLOATING) {
                 for (PlacedStructurePiece p : pieces) {
-                    if (placeObject(writer, structure, p, ObjectPlaceMode.STRUCTURE_PIECE, p.getY(), rng,
+                    if (placeObject(writer, structure, p, ObjectPlaceMode.STRUCTURE_PIECE, false, rng,
                             foundationColumns, supportNonOccluding) == -1) {
                         failedPieces++;
                     }
                 }
             } else if (pieces.size() == 1) {
-                if (placeObject(writer, structure, pieces.getFirst(), mode, -1, rng,
+                if (placeObject(writer, structure, pieces.getFirst(), mode, true, rng,
                         foundationColumns, supportNonOccluding) == -1) {
                     failedPieces++;
                 }
             } else {
                 for (PlacedStructurePiece p : pieces) {
-                    if (placeObject(writer, structure, p, ObjectPlaceMode.STRUCTURE_PIECE, p.getY(), rng,
+                    if (placeObject(writer, structure, p, ObjectPlaceMode.STRUCTURE_PIECE, false, rng,
                             foundationColumns, supportNonOccluding) == -1) {
                         failedPieces++;
                     }
@@ -558,21 +560,23 @@ public class IrisStructureComponent extends IrisMantleComponent {
     }
 
     private int placeObject(MantleWriter writer, IrisStructure structure, PlacedStructurePiece p,
-                            ObjectPlaceMode mode, int y, RNG rng, Long2IntOpenHashMap foundationColumns,
+                            ObjectPlaceMode mode, boolean sampledHeight, RNG rng, Long2IntOpenHashMap foundationColumns,
                             boolean supportNonOccluding) {
         IrisObject object = p.getObject();
         String objectKey = object.getLoadKey();
         IrisObjectPlacement config = piecePlacement(structure, p, mode);
-        int placeY = (y == -1) ? -1 : y - getEngineMantle().getEngine().getMinHeight();
         String marker = structurePlacementMarker(structure, p, objectKey);
-        return object.place(p.getX(), placeY, p.getZ(), writer, config, rng, (position, state) -> {
+        BiConsumer<BlockPosition, NativeBlockState> listener = (position, state) -> {
             StructureFoundationPlanner.recordBaseCell(
                     foundationColumns, position.getX(), position.getY(), position.getZ(), state,
                     supportNonOccluding);
             if (marker != null && shouldWriteStructureMarker(state)) {
                 writer.setData(position.getX(), position.getY(), position.getZ(), marker);
             }
-        }, null, getData());
+        };
+        return sampledHeight
+                ? object.place(p.getX(), p.getZ(), writer, config, rng, listener, null, getData())
+                : object.place(p.getX(), p.getY() - getEngineMantle().getEngine().getMinHeight(), p.getZ(), writer, config, rng, listener, null, getData());
     }
 
     static IrisObjectPlacement piecePlacement(IrisStructure structure, PlacedStructurePiece piece, ObjectPlaceMode mode) {

@@ -35,7 +35,7 @@ public class IrisStructureComponentWaterTest {
         IrisObjectPlacement config = IrisStructureComponent.piecePlacement(new IrisStructure(), piece(object), ObjectPlaceMode.CENTER_HEIGHT);
 
         assertTrue(config.isForcePlace());
-        assertEquals(-1, object.place(0, -1, 0, placer, config, new RNG(7L), world.data()));
+        assertEquals(-1, object.place(0, 0, placer, config, new RNG(7L), world.data()));
         assertTrue(placer.writes().isEmpty());
     }
 
@@ -52,7 +52,7 @@ public class IrisStructureComponentWaterTest {
         IrisObjectPlacement config = IrisStructureComponent.piecePlacement(new IrisStructure(), piece(object), ObjectPlaceMode.CENTER_HEIGHT);
         config.setRotateTowardsSlope(true);
 
-        assertEquals(-1, object.place(0, -1, 0, placer, config, new RNG(7L), world.data()));
+        assertEquals(-1, object.place(0, 0, placer, config, new RNG(7L), world.data()));
         assertTrue(placer.writes().isEmpty());
     }
 
@@ -62,7 +62,7 @@ public class IrisStructureComponentWaterTest {
         IrisObject object = HydrologyWaterFixture.raft();
         IrisObjectPlacement config = IrisStructureComponent.piecePlacement(new IrisStructure(), piece(object), ObjectPlaceMode.CENTER_HEIGHT);
 
-        assertTrue(object.place(0, -1, 0, placer, config, new RNG(7L), world.data()) >= 0);
+        assertTrue(object.place(0, 0, placer, config, new RNG(7L), world.data()) >= 0);
         assertFalse(placer.writes().isEmpty());
     }
 

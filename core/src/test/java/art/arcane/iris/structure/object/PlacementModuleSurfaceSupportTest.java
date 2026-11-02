@@ -186,7 +186,7 @@ public class PlacementModuleSurfaceSupportTest {
     }
 
     private int place(IrisObject object, HydrologyWaterFixture.Placer placer, IrisObjectPlacement placement) {
-        return object.place(0, -1, 0, placer, placement, new RNG(1234L), world.data());
+        return object.place(0, 0, placer, placement, new RNG(1234L), world.data());
     }
 
     private static IrisObjectPlacement placement() {

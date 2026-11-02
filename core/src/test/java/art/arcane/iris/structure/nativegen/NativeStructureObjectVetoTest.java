@@ -270,7 +270,7 @@ public class NativeStructureObjectVetoTest {
         IrisObjectPlacement placement = placement();
         placement.setForcePlace(true);
 
-        assertEquals(-1, tree().place(0, -1, 0, placer, placement, new RNG(1234L), data));
+        assertEquals(-1, tree().place(0, 0, placer, placement, new RNG(1234L), data));
         assertTrue(placer.written().isEmpty());
     }
 
@@ -310,7 +310,7 @@ public class NativeStructureObjectVetoTest {
     }
 
     private int place(RecordingPlacer placer) {
-        return tree().place(0, -1, 0, placer, placement(), new RNG(1234L), data);
+        return tree().place(0, 0, placer, placement(), new RNG(1234L), data);
     }
 
     private IrisObjectPlacement placement() {

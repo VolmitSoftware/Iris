@@ -149,8 +149,8 @@ public class PlacementLifecycleTest {
         when(object.getW()).thenReturn(3);
         when(object.getH()).thenReturn(1);
         when(object.getD()).thenReturn(1);
-        PlacementContext context = new PlacementContext(config, mock(IrisData.class), placer, null,
-                new RNG(1), object, x, 0, -1, null);
+        PlacementContext context = PlacementContext.automatic(config, mock(IrisData.class), placer, null,
+                new RNG(1), object, IrisObjectPlacementAlignment.CENTER, x, 0, null);
         PlacementState state = new PlacementState(context);
         plan.run(PlacementStage.PREPARE, context, state, null);
         plan.run(PlacementStage.HEIGHT, context, state, null);
@@ -168,8 +168,8 @@ public class PlacementLifecycleTest {
         builder.add(id("dependent"), PlacementStage.HEIGHT, (c, s, v) -> s.y = 99, id("guard"));
         PlacementLifecycle plan = builder.build();
         IrisObjectPlacement config = new IrisObjectPlacement();
-        PlacementContext context = new PlacementContext(config, mock(IrisData.class), mock(IObjectPlacer.class),
-                null, new RNG(1), mock(IrisObject.class), 0, 0, -1, null);
+        PlacementContext context = PlacementContext.automatic(config, mock(IrisData.class), mock(IObjectPlacer.class),
+                null, new RNG(1), mock(IrisObject.class), IrisObjectPlacementAlignment.CENTER, 0, 0, null);
         PlacementState rejected = new PlacementState(context);
         plan.run(PlacementStage.HEIGHT, context, rejected, null);
         assertEquals(-1, rejected.heightOrRejected());

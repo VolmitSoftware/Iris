@@ -144,11 +144,11 @@ public class IrisObjectPlacementRunnerRegressionTest {
         IrisObjectPlacement placement = placement();
         placement.setOnwater(true);
         RecordingPlacer dry = new RecordingPlacer(null);
-        assertEquals(-1, lineObject(3).place(0, -1, 0, dry, placement, new RNG(2L), data));
+        assertEquals(-1, lineObject(3).place(0, 0, dry, placement, new RNG(2L), data));
         assertTrue(dry.writes().isEmpty());
         RecordingPlacer wet = new RecordingPlacer(null);
         wet.setUnderwater(true);
-        assertNotEquals(-1, lineObject(3).place(0, -1, 0, wet, placement, new RNG(2L), data));
+        assertNotEquals(-1, lineObject(3).place(0, 0, wet, placement, new RNG(2L), data));
         assertFalse(wet.writes().isEmpty());
     }
 
@@ -212,7 +212,7 @@ public class IrisObjectPlacementRunnerRegressionTest {
         placement.setMode(ObjectPlaceMode.MAX_HEIGHT);
         placement.setRotation(IrisObjectRotation.of(0, 45, 0));
 
-        boxObject(5, 1, 3).place(0, -1, 0, placer, placement, new RNG(2L), data);
+        boxObject(5, 1, 3).place(0, 0, placer, placement, new RNG(2L), data);
 
         assertTrue(placer.sampledColumns().contains("-2:-2"));
         assertTrue(placer.sampledColumns().contains("2:2"));
@@ -375,7 +375,7 @@ public class IrisObjectPlacementRunnerRegressionTest {
         IrisObjectPlacement placement = placement().setMode(ObjectPlaceMode.PAINT)
                 .setRequireSurfaceSupport(true).setSurfaceSupportBuffer(0);
 
-        assertEquals(80, lineObject(5).place(0, -1, 0, placer, placement, new RNG(2L), data));
+        assertEquals(80, lineObject(5).place(0, 0, placer, placement, new RNG(2L), data));
 
         assertEquals(5, placer.writes().size());
         assertTrue(placer.writes().stream().allMatch(write -> write.y() == 80));
@@ -387,7 +387,7 @@ public class IrisObjectPlacementRunnerRegressionTest {
         placer.terrain(1, 0, 0, 20);
         IrisObjectPlacement placement = placement().setMode(ObjectPlaceMode.PAINT);
 
-        lineObject(5).place(0, -1, 0, placer, placement, new RNG(2L), data);
+        lineObject(5).place(0, 0, placer, placement, new RNG(2L), data);
 
         assertEquals(3, placer.writes().size());
         assertTrue(placer.writes().stream().allMatch(write -> write.x() <= 0 && write.y() == 80));
@@ -400,7 +400,7 @@ public class IrisObjectPlacementRunnerRegressionTest {
             placer.terrain(x, 0, 0, 80 + x * 3);
         }
 
-        lineObject(13).place(0, -1, 0, placer, placement().setMode(ObjectPlaceMode.PAINT), new RNG(2L), data);
+        lineObject(13).place(0, 0, placer, placement().setMode(ObjectPlaceMode.PAINT), new RNG(2L), data);
 
         assertEquals(13, placer.writes().size());
         assertTrue(placer.writes().stream().allMatch(write -> write.y() == 80 + write.x() * 3));
@@ -412,7 +412,7 @@ public class IrisObjectPlacementRunnerRegressionTest {
         placer.highestFollowsWrites = true;
         IrisObjectPlacement placement = placement().setMode(ObjectPlaceMode.PAINT).setBore(true);
 
-        boxObject(1, 3, 1).place(0, -1, 0, placer, placement, new RNG(2L), data);
+        boxObject(1, 3, 1).place(0, 0, placer, placement, new RNG(2L), data);
 
         assertEquals(3, placer.writesOf(solid).size());
         assertTrue(placer.writes().stream().allMatch(write -> write.y() >= 80 && write.y() <= 82));
@@ -430,7 +430,7 @@ public class IrisObjectPlacementRunnerRegressionTest {
         RNG rng = mock(RNG.class);
         when(rng.i(0, 3)).thenReturn(3);
 
-        assertEquals(113, lineObject(3).place(0, -1, 0, placer, placement, rng, data));
+        assertEquals(113, lineObject(3).place(0, 0, placer, placement, rng, data));
 
         assertEquals(3, placer.writesOf(solid).size());
         assertEquals(3, placer.writesOf(IrisObject.States.air()).size());
@@ -450,12 +450,12 @@ public class IrisObjectPlacementRunnerRegressionTest {
         RNG rng = mock(RNG.class);
         when(rng.i(0, 3)).thenReturn(3);
 
-        assertEquals(-1, lineObject(3).place(0, -1, 0, placer, placement, rng, data));
+        assertEquals(-1, lineObject(3).place(0, 0, placer, placement, rng, data));
         assertTrue(placer.writes().isEmpty());
 
         when(engine.getNativeStructureVolumes(anyInt(), anyInt(), anyInt(), anyInt())).thenReturn(
                 new KList<>(NativeStructureVolume.of("test", 1, 101, 0, 1, 101, 0)));
-        assertEquals(83, lineObject(3).place(0, -1, 0, placer, placement, rng, data));
+        assertEquals(83, lineObject(3).place(0, 0, placer, placement, rng, data));
         assertTrue(placer.writes().stream().allMatch(write -> write.y() == 85));
     }
 
@@ -473,11 +473,11 @@ public class IrisObjectPlacementRunnerRegressionTest {
         when(engine.getNativeStructureVolumes(anyInt(), anyInt(), anyInt(), anyInt())).thenReturn(
                 new KList<>(NativeStructureVolume.of("test", 3, 80, 2, 3, 80, 2)));
 
-        assertEquals(-1, lineObject(3).place(0, -1, 0, placer, placement, new RNG(2L), data));
+        assertEquals(-1, lineObject(3).place(0, 0, placer, placement, new RNG(2L), data));
         assertTrue(placer.writes().isEmpty());
 
         when(engine.getNativeStructureVolumes(anyInt(), anyInt(), anyInt(), anyInt())).thenReturn(NativeStructureVolume.NONE);
-        lineObject(3).place(0, -1, 0, placer, placement, new RNG(2L), data);
+        lineObject(3).place(0, 0, placer, placement, new RNG(2L), data);
         assertEquals(3, placer.writes().size());
         assertTrue(placer.writes().stream().allMatch(write -> write.x() >= 1 && write.x() <= 3
                 && write.z() == 2 && write.y() == 80));
@@ -490,7 +490,7 @@ public class IrisObjectPlacementRunnerRegressionTest {
         IrisObjectPlacement placement = placement().setMode(ObjectPlaceMode.PAINT)
                 .setRequireSurfaceSupport(true).setSurfaceSupportBuffer(0).setSurfaceSupportDepth(2);
 
-        assertEquals(-1, lineObject(3).place(0, -1, 0, placer, placement, new RNG(2L), data));
+        assertEquals(-1, lineObject(3).place(0, 0, placer, placement, new RNG(2L), data));
         assertTrue(placer.writes().isEmpty());
     }
 
@@ -711,7 +711,7 @@ public class IrisObjectPlacementRunnerRegressionTest {
         IrisObjectPlacement placement = new IrisObjectPlacement()
                 .setRotation(IrisObjectRotation.of(0, 0, 0));
 
-        assertTrue(tree.place(0, -1, 0, placer, placement, new RNG(2L), data) >= 0);
+        assertTrue(tree.place(0, 0, placer, placement, new RNG(2L), data) >= 0);
 
         assertSame(wood, placer.get(1, 167, 0));
         assertNull(placer.get(1, 166, 0));

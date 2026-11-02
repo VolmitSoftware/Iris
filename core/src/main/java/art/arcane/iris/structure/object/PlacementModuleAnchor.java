@@ -14,7 +14,7 @@ final class PlacementModuleAnchor implements PlacementModule {
     @Override
     public void install(PlacementLifecycleBuilder lifecycle) {
         lifecycle.add(POSITIONED, PlacementStage.HEIGHT, (context, state, ignored) -> {
-            if (context.yv >= 0 && state.config.isBottom()
+            if (!context.automatic && state.config.isBottom()
                     && state.config.getMode() != ObjectPlaceMode.STRUCTURE_PIECE
                     && context.alignment != IrisObjectPlacementAlignment.FLOOR) {
                 state.y += Math.floorDiv(context.self.h, 2);
@@ -36,7 +36,7 @@ final class PlacementModuleAnchor implements PlacementModule {
             }
             if (state.config.isFromBottom()) {
                 state.y = context.self.getH() + 1 + state.rty;
-            } else if (context.yv < 0) {
+            } else if (context.automatic) {
                 sampledHeight.execute(context, state, null);
                 return;
             } else {
@@ -52,7 +52,7 @@ final class PlacementModuleAnchor implements PlacementModule {
 
     /** Seats the lowest occupied block on the caller's first air Y. */
     private static void alignToFloor(PlacementContext context, PlacementState state) {
-        if (context.yv < 0 || state.ceilingHang || state.config.getMode() == ObjectPlaceMode.STRUCTURE_PIECE) {
+        if (context.automatic || state.ceilingHang || state.config.getMode() == ObjectPlaceMode.STRUCTURE_PIECE) {
             throw new IllegalArgumentException("Floor alignment requires an explicit floor Y and a floor placement mode.");
         }
         int minimumY = minimumOccupiedY(context.self, state.spin);

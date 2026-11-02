@@ -26,7 +26,7 @@ public final class PlacementModulePaint implements PlacementModule {
     }
     static void installProjection(PlacementLifecycleBuilder lifecycle) {
         lifecycle.add(PROJECT, PlacementStage.VALIDATE, (context, state, ignored) -> {
-            if (context.yv >= 0 || state.config.getMode() != ObjectPlaceMode.PAINT) {
+            if (!context.automatic || state.config.getMode() != ObjectPlaceMode.PAINT) {
                 return;
             }
             int buffer = state.config.isRequireSurfaceSupport() ? Math.max(0, state.config.getSurfaceSupportBuffer()) : 0;

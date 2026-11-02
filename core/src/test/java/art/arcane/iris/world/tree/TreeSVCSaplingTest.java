@@ -7,25 +7,29 @@ import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.EngineTarget;
 import art.arcane.iris.generation.runtime.GenerationSessionManager;
 import art.arcane.iris.generation.runtime.IrisComplex;
-import art.arcane.iris.generation.stream.ProvisionalSampling;
+import art.arcane.iris.generation.stream.ProvisionalAnswerException;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.pack.validation.PackCompatReport;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.pack.loading.ResourceLoader;
 import art.arcane.iris.platform.generation.PlatformChunkGenerator;
 import art.arcane.iris.spi.IrisLogging;
-import art.arcane.iris.structure.object.HydrologyWaterFixture;
+import art.arcane.iris.structure.object.IObjectPlacer;
 import art.arcane.iris.structure.object.IrisObject;
 import art.arcane.iris.structure.object.IrisObjectPlacement;
 import art.arcane.iris.testsupport.PlatformBinding;
 import art.arcane.iris.world.IrisToolbelt;
 import art.arcane.iris.world.IrisWorld;
+import art.arcane.iris.world.task.J;
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.data.Cuboid;
+import art.arcane.volmlib.util.math.RNG;
 import org.bukkit.Location;
 import org.bukkit.TreeType;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockState;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.event.world.StructureGrowEvent;
 import org.junit.Rule;
@@ -39,10 +43,12 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -53,25 +59,42 @@ public class TreeSVCSaplingTest {
     public final PlatformBinding platform = PlatformBinding.mockPlatform();
 
     @Test
+    public void saplingBelowZeroGrowsAtItsOwnHeight() {
+        Fixture fixture = new Fixture(SAPLING_Y);
+        StructureGrowEvent event = fixture.event();
+
+        fixture.grow(event);
+
+        assertTrue(event.isCancelled());
+        verify(fixture.saplings).forEach(any());
+        verify(fixture.world).getBlockAt(8, SAPLING_Y, 8);
+        verify(fixture.world).getBlockAt(8, SAPLING_Y + 1, 8);
+        verify(fixture.block, times(2)).getState();
+    }
+
+    @Test
     public void provisionalTerrainCancelsGrowthAndKeepsTheSapling() {
-        Fixture fixture = new Fixture(true);
+        Fixture fixture = new Fixture(SAPLING_Y);
+        fixture.waitForTerrainPlan();
         StructureGrowEvent event = fixture.event();
 
         fixture.grow(event);
 
         assertTrue(event.isCancelled());
         verify(fixture.saplings, never()).forEach(any());
+        verify(fixture.block, never()).getState();
     }
 
     @Test
     public void rejectedTreeKeepsTheSapling() {
-        Fixture fixture = new Fixture(false);
+        Fixture fixture = new Fixture(0);
         StructureGrowEvent event = fixture.event();
 
         fixture.grow(event);
 
         assertTrue(event.isCancelled());
         verify(fixture.saplings, never()).forEach(any());
+        verify(fixture.block, never()).getState();
     }
 
     private static final class Fixture {
@@ -80,27 +103,22 @@ public class TreeSVCSaplingTest {
         private final PlatformChunkGenerator generator = mock(PlatformChunkGenerator.class);
         private final TreeSVC service = spy(new TreeSVC());
         private final Cuboid saplings = mock(Cuboid.class);
+        private final Block block = mock(Block.class);
+        private final IrisObject tree = spy(tree());
 
-        private Fixture(boolean provisionalWater) {
+        private Fixture(int lowestTreeY) {
             IrisDimension dimension = new IrisDimension();
             dimension.getTreeSettings().setEnabled(true);
             IrisComplex complex = mock(IrisComplex.class);
-            when(complex.hasWaterOrShore(anyInt(), anyInt())).thenAnswer(invocation -> {
-                if (provisionalWater) {
-                    ProvisionalSampling.mark();
-                }
-                return false;
-            });
             when(engine.getGenerationSessions()).thenReturn(new GenerationSessionManager(true));
             when(engine.getDimension()).thenReturn(dimension);
             when(engine.getComplex()).thenReturn(complex);
-            when(engine.getBiome(8, SAPLING_Y, 8)).thenReturn(biome());
+            when(engine.getBiome(8, SAPLING_Y, 8)).thenReturn(biome(lowestTreeY));
 
             EngineTarget target = mock(EngineTarget.class);
             when(target.getWorld()).thenReturn(mock(IrisWorld.class));
             @SuppressWarnings("unchecked")
             ResourceLoader<IrisObject> objects = mock(ResourceLoader.class);
-            IrisObject tree = HydrologyWaterFixture.pillar();
             when(objects.load(anyString())).thenReturn(tree);
             IrisData data = mock(IrisData.class);
             when(data.getObjectLoader()).thenReturn(objects);
@@ -109,23 +127,42 @@ public class TreeSVCSaplingTest {
             when(generator.getTarget()).thenReturn(target);
             when(generator.getData()).thenReturn(data);
 
-            Block block = mock(Block.class);
             BlockData blockData = mock(BlockData.class);
             when(world.getBlockAt(anyInt(), anyInt(), anyInt())).thenReturn(block);
             when(world.getBlockAt(any(Location.class))).thenReturn(block);
             when(block.getBlockData()).thenReturn(blockData);
+            when(block.getState()).thenReturn(mock(BlockState.class));
             when(blockData.clone()).thenReturn(blockData);
             when(saplings.getCenter()).thenReturn(new Location(world, 8, SAPLING_Y, 8));
             doReturn(saplings).when(service).getSaplings(any(), any(), any());
         }
 
-        private static IrisBiome biome() {
+        private void waitForTerrainPlan() {
+            doThrow(new ProvisionalAnswerException("terrain plan pending")).when(tree).place(anyInt(), anyInt(), anyInt(),
+                    any(IObjectPlacer.class), any(IrisObjectPlacement.class), any(RNG.class), any(IrisData.class));
+        }
+
+        private static IrisObject tree() {
+            NativeBlockState log = mock(NativeBlockState.class);
+            when(log.isSolid()).thenReturn(true);
+            when(log.key()).thenReturn("minecraft:oak_log");
+            when(log.materialKey()).thenReturn("minecraft:oak_log");
+            when(log.nativeHandle()).thenReturn(mock(BlockData.class));
+            IrisObject object = new IrisObject(3, 3, 3);
+            object.setUnsigned(1, 0, 1, log);
+            object.setUnsigned(1, 1, 1, log);
+            return object;
+        }
+
+        private static IrisBiome biome(int lowestTreeY) {
             IrisTree tree = new IrisTree();
             tree.getTreeTypes().add(TreeType.TREE.name());
             tree.getSizes().add(new IrisTreeSize());
             IrisObjectPlacement placement = new IrisObjectPlacement();
             placement.getPlace().add("trees/oak");
             placement.getTrees().add(tree);
+            placement.setRequireSurfaceSupport(false);
+            placement.getClamp().setMinimumHeight(lowestTreeY);
             IrisBiome biome = new IrisBiome();
             biome.getObjects().add(placement);
             return biome;
@@ -137,7 +174,8 @@ public class TreeSVCSaplingTest {
 
         private void grow(StructureGrowEvent event) {
             try (MockedStatic<IrisToolbelt> toolbelt = mockStatic(IrisToolbelt.class);
-                 MockedStatic<IrisLogging> logging = mockStatic(IrisLogging.class)) {
+                 MockedStatic<IrisLogging> logging = mockStatic(IrisLogging.class);
+                 MockedStatic<J> tasks = mockStatic(J.class)) {
                 toolbelt.when(() -> IrisToolbelt.isIrisWorld(world)).thenReturn(true);
                 toolbelt.when(() -> IrisToolbelt.access(world)).thenReturn(generator);
                 service.on(event);

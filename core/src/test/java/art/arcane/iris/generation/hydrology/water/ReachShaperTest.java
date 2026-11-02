@@ -16,6 +16,7 @@ import art.arcane.iris.generation.hydrology.grid.PriorityFlood;
 import art.arcane.iris.generation.hydrology.plan.HydrologySettings;
 import art.arcane.iris.generation.hydrology.plan.WindowKey;
 import art.arcane.iris.generation.hydrology.raster.PondChannelSettlement;
+import art.arcane.iris.testsupport.DeltaCoast;
 import art.arcane.volmlib.util.collection.KList;
 import org.junit.Test;
 
@@ -50,11 +51,6 @@ public class ReachShaperTest {
     private static final int WINDOW_MIN_X = 140;
     private static final int WINDOW_MAX_X = 250;
     private static final int OUTLET_POND_LEVEL = SEA_LEVEL + 3;
-    private static final int DELTA_ROW = 128;
-    private static final int DELTA_SEA_X = 240;
-    private static final double DELTA_COAST_X = 236D;
-    private static final double DELTA_RISE = 0.1D;
-    private static final int DELTA_HILL_Z = DELTA_ROW + 12;
     private static final byte ALLOW_ALL = HydrologySampleBuffer.ALLOW_STREAMS | HydrologySampleBuffer.ALLOW_PONDS;
 
     @Test
@@ -1036,9 +1032,9 @@ public class ReachShaperTest {
     @Test
     public void majorMouthSplitsIntoSeededDistributaries() {
         for (int channels = 2; channels <= 4; channels++) {
-            HydrologySettings settings = deltaSettings(channels);
-            ShapedNetwork shaped = deltaCoast(settings, 0, 0, List.of(), Integer.MIN_VALUE, SEED);
-            Reach parent = deltaParent(shaped, DELTA_ROW);
+            HydrologySettings settings = DeltaCoast.settings(channels);
+            ShapedNetwork shaped = cleanDelta(settings, SEED);
+            Reach parent = DeltaCoast.river(shaped, DeltaCoast.ROW);
             List<Reach> fan = distributaries(shaped, parent);
             assertEquals(channels + " delta channels", channels, fan.size());
             assertEquals("only the river and its delta", channels + 1, shaped.reaches().size());
@@ -1054,51 +1050,67 @@ public class ReachShaperTest {
                     assertEquals(channel + " half-width at " + point, halfWidth, channel.halfWidth()[point], 1e-6f);
                 }
                 assertTrue(channel + " branches below the estuary start", channel.xs()[0] > parent.xs()[estuary]);
-                assertTrue(channel + " ends where the sea begins", deltaGround(fineNode(channel.xs()[last]), fineNode(channel.zs()[last])) <= SEA_LEVEL);
-                assertTrue(channel + " crosses land first", deltaGround(fineNode(channel.xs()[1]), fineNode(channel.zs()[1])) > SEA_LEVEL);
+                assertTrue(channel + " ends where the sea begins",
+                        DeltaCoast.ground(fineNode(channel.xs()[last]), fineNode(channel.zs()[last])) <= SEA_LEVEL);
+                assertTrue(channel + " crosses land first", DeltaCoast.ground(fineNode(channel.xs()[1]), fineNode(channel.zs()[1])) > SEA_LEVEL);
                 double angle = Math.toDegrees(Math.atan2(Math.abs(channel.zs()[last] - channel.zs()[0]), channel.xs()[last] - channel.xs()[0]));
                 assertTrue(channel + " fans out within the spread: " + angle, angle > 3D && angle < 37D);
                 assertEquals(channel + " depth meets the seabed", HydrologyTier.MINIMUM_DEPTH, channel.depth()[last], 1e-6f);
             }
             assertDeltaClear(shaped, List.of());
-            assertEquals("deterministic", byId(shaped.reaches()), byId(deltaCoast(settings, 0, 0, List.of(), Integer.MIN_VALUE, SEED).reaches()));
+            assertEquals("deterministic", byId(shaped.reaches()), byId(cleanDelta(settings, SEED).reaches()));
             assertEquals("independent of the grid origin", byId(shaped.reaches()),
-                    byId(deltaCoast(settings, -64, -40, List.of(), Integer.MIN_VALUE, SEED).reaches()));
-            List<Reach> reseeded = distributaries(deltaCoast(settings, 0, 0, List.of(), Integer.MIN_VALUE, SEED + 1L), null);
+                    byId(DeltaCoast.shape(settings, -64, -40, List.of(), DeltaCoast.NO_NEIGHBOUR, SEED).reaches()));
+            List<Reach> reseeded = DeltaCoast.deltaChannels(cleanDelta(settings, SEED + 1L));
             assertEquals(channels, reseeded.size());
             assertNotEquals("the seed chooses the channels", ends(fan), ends(reseeded));
         }
+    }
 
-        HydrologySettings settings = deltaSettings(2);
-        List<Reach> clean = distributaries(deltaCoast(settings, 0, 0, List.of(), Integer.MIN_VALUE, SEED), null);
-        Reach north = clean.get(0).zs()[clean.get(0).xs().length - 1] > DELTA_ROW ? clean.get(0) : clean.get(1);
-        Reach south = north == clean.get(0) ? clean.get(1) : clean.get(0);
-        int far = north.xs().length - 3;
-        Pond pond = new Pond(91L, PondKind.NATURAL, SEA_LEVEL + 1, SEA_LEVEL - 1, 0, 0, SEA_LEVEL + 1.5f,
-                disk(Math.round(north.xs()[far]), Math.round(north.zs()[far]), 2), 0L, 0, "water", Math.round(north.xs()[far]),
-                Math.round(north.zs()[far]));
-        assertTrue("the pond lies on the northern channel", coversMask(north, pond.mask()));
-        ShapedNetwork ponded = deltaCoast(settings, 0, 0, List.of(pond), Integer.MIN_VALUE, SEED);
-        assertFalse("the pond lies clear of the river", coversMask(deltaParent(ponded, DELTA_ROW), pond.mask()));
-        assertEquals("a channel that would cross a pond is left out", List.of(south), distributaries(ponded, null));
+    @Test
+    public void deltaChannelAcrossAPondIsLeftOut() {
+        HydrologySettings settings = DeltaCoast.settings(2);
+        CleanFan fan = cleanFan(settings);
+        int far = fan.north().xs().length - 3;
+        int pondX = Math.round(fan.north().xs()[far]);
+        int pondZ = Math.round(fan.north().zs()[far]);
+        Pond pond = new Pond(91L, PondKind.NATURAL, SEA_LEVEL + 1, SEA_LEVEL - 1, 0, 0, SEA_LEVEL + 1.5f, disk(pondX, pondZ, 2), 0L, 0, "water",
+                pondX, pondZ);
+        assertTrue("the pond lies on the northern channel", coversMask(fan.north(), pond.mask()));
+        ShapedNetwork ponded = DeltaCoast.shape(settings, 0, 0, List.of(pond), DeltaCoast.NO_NEIGHBOUR, SEED);
+        assertFalse("the pond lies clear of the river", coversMask(DeltaCoast.river(ponded, DeltaCoast.ROW), pond.mask()));
+        assertEquals("a channel that would cross a pond is left out", List.of(fan.south()), DeltaCoast.deltaChannels(ponded));
         assertDeltaClear(ponded, List.of(pond));
+    }
 
+    @Test
+    public void deltaChannelOverHighGroundIsLeftOut() {
+        HydrologySettings settings = DeltaCoast.settings(2);
+        CleanFan fan = cleanFan(settings);
         boolean climbs = false;
-        for (int point = 0; point < north.xs().length; point++) {
-            climbs |= north.zs()[point] > DELTA_HILL_Z + 2 && north.xs()[point] < DELTA_COAST_X - 4D;
+        for (int point = 0; point < fan.north().xs().length; point++) {
+            climbs |= fan.north().zs()[point] > DeltaCoast.HILL_Z + 2 && fan.north().xs()[point] < DeltaCoast.COAST_X - 4D;
         }
         assertTrue("the northern channel would climb the hill", climbs);
-        ShapedNetwork hill = deltaCoast(settings, 0, 0, List.of(), Integer.MIN_VALUE, SEED, ReachShaperTest::northHill);
-        assertEquals("a channel that would cut through ground above the fill limit is left out", List.of(south), distributaries(hill, null));
+        ShapedNetwork hill = DeltaCoast.shape(settings, 0, 0, List.of(), DeltaCoast.NO_NEIGHBOUR, SEED, DeltaCoast::northHill);
+        assertEquals("a channel that would cut through ground above the fill limit is left out", List.of(fan.south()),
+                DeltaCoast.deltaChannels(hill));
+        assertDeltaClear(hill, List.of());
+    }
 
-        ShapedNetwork twin = deltaCoast(settings, 0, 0, List.of(), DELTA_ROW + 32, SEED);
-        Reach neighbour = deltaParent(twin, DELTA_ROW + 32);
-        assertTrue("the northern channel would cross the neighbouring river", crossesWater(north, neighbour));
-        List<Reach> kept = distributaries(twin, deltaParent(twin, DELTA_ROW));
-        assertEquals("a channel that would cross another river is left out", List.of(south), kept);
-        for (Reach channel : distributaries(twin, neighbour)) {
-            assertTrue(channel + " turns away from the other river", channel.zs()[channel.xs().length - 1] > DELTA_ROW + 32);
-        }
+    @Test
+    public void deltaChannelsTowardAnotherRiverAreLeftOut() {
+        HydrologySettings settings = DeltaCoast.settings(2);
+        CleanFan fan = cleanFan(settings);
+        int neighbourRow = DeltaCoast.ROW + 32;
+        ShapedNetwork twin = DeltaCoast.shape(settings, 0, 0, List.of(), neighbourRow, SEED);
+        Reach neighbour = DeltaCoast.river(twin, neighbourRow);
+        assertTrue("the northern channel would cross the neighbouring river", crossesWater(fan.north(), neighbour));
+        assertEquals("a channel that would cross another river is left out", List.of(fan.south()),
+                distributaries(twin, DeltaCoast.river(twin, DeltaCoast.ROW)));
+        List<Reach> outward = distributaries(twin, neighbour);
+        assertEquals("the other river keeps its outward channel", 1, outward.size());
+        assertTrue(outward.get(0) + " turns away from the first river", outward.get(0).zs()[outward.get(0).xs().length - 1] > neighbourRow);
         assertDeltaClear(twin, List.of());
     }
 
@@ -2028,26 +2040,22 @@ public class ReachShaperTest {
         return shaped.reaches().get(0);
     }
 
-    private static HydrologySettings deltaSettings(int channels) {
-        return settings(config -> {
-            config.getTiers().get(2).setHalfWidth(new KList<>(3D, 5D));
-            config.getTiers().get(2).getDelta().setChannels(channels);
-        });
+    private static ShapedNetwork cleanDelta(HydrologySettings settings, long seed) {
+        return DeltaCoast.shape(settings, 0, 0, List.of(), DeltaCoast.NO_NEIGHBOUR, seed);
     }
 
-    private static Reach deltaParent(ShapedNetwork shaped, int row) {
-        for (Reach reach : shaped.reaches()) {
-            if (reach.style()[0] != ReachStyle.MOUTH && Math.abs(reach.zs()[0] - row) < 1f) {
-                return reach;
-            }
-        }
-        throw new AssertionError("no river along z=" + row + " in " + shaped.reaches());
+    private static CleanFan cleanFan(HydrologySettings settings) {
+        List<Reach> clean = DeltaCoast.deltaChannels(cleanDelta(settings, SEED));
+        assertEquals("two delta channels on the clean coast", 2, clean.size());
+        Reach first = clean.get(0);
+        boolean firstNorth = first.zs()[first.xs().length - 1] > DeltaCoast.ROW;
+        return firstNorth ? new CleanFan(first, clean.get(1)) : new CleanFan(clean.get(1), first);
     }
 
     private static List<Reach> distributaries(ShapedNetwork shaped, Reach parent) {
         List<Reach> fan = new ArrayList<>();
-        for (Reach reach : shaped.reaches()) {
-            if (reach.style()[0] == ReachStyle.MOUTH && (parent == null || branchesFrom(reach, parent))) {
+        for (Reach reach : DeltaCoast.deltaChannels(shaped)) {
+            if (branchesFrom(reach, parent)) {
                 fan.add(reach);
             }
         }
@@ -2060,7 +2068,7 @@ public class ReachShaperTest {
     }
 
     private static void assertDeltaClear(ShapedNetwork shaped, List<Pond> ponds) {
-        List<Reach> fan = distributaries(shaped, null);
+        List<Reach> fan = DeltaCoast.deltaChannels(shaped);
         for (Reach channel : fan) {
             Reach parent = null;
             for (Reach reach : shaped.reaches()) {
@@ -2152,48 +2160,6 @@ public class ReachShaperTest {
 
     private static double fineNode(float coordinate) {
         return Math.floor(coordinate / FINE + 0.5D) * FINE;
-    }
-
-    private static ShapedNetwork deltaCoast(HydrologySettings settings, int originX, int originZ, List<Pond> ponds, int neighbourZ, long seed) {
-        return deltaCoast(settings, originX, originZ, ponds, neighbourZ, seed, ReachShaperTest::deltaGround);
-    }
-
-    private static ShapedNetwork deltaCoast(HydrologySettings settings, int originX, int originZ, List<Pond> ponds, int neighbourZ, long seed,
-                                            DoubleBinaryOperator ground) {
-        int width = (DELTA_SEA_X + 32 - originX) / CELL + 1;
-        int depth = (DELTA_ROW + 96 - originZ) / CELL + 1;
-        DemGrid surface = new DemGrid(originX, originZ, CELL, width, depth);
-        for (int j = 0; j < depth; j++) {
-            for (int i = 0; i < width; i++) {
-                surface.set(i, j, originX + i * CELL >= DELTA_SEA_X ? 30f : 60f);
-            }
-        }
-        int[] receivers = new int[width * depth];
-        Arrays.fill(receivers, -1);
-        float[] accumulation = new float[width * depth];
-        BitSet channels = new BitSet(width * depth);
-        deltaRow(surface, receivers, accumulation, channels, 0, DELTA_ROW, 20000f);
-        if (neighbourZ != Integer.MIN_VALUE) {
-            deltaRow(surface, receivers, accumulation, channels, 0, neighbourZ, 20000f);
-        }
-        HeightLattice fine = new HeightLattice(new Terrain(ground), FINE, false, 1 << 16);
-        return new ReachShaper(settings).shape(WINDOW, surface, receivers, accumulation, channels, ponds, fine, seed);
-    }
-
-    private static void deltaRow(DemGrid grid, int[] receivers, float[] accumulation, BitSet channels, int fromX, int z, float perCell) {
-        int j = (z - grid.originZ()) / CELL;
-        for (int x = fromX; x < DELTA_SEA_X; x += CELL) {
-            int i = (x - grid.originX()) / CELL;
-            flow(grid, receivers, accumulation, channels, i, j, i + 1, j, perCell * ((x - fromX) / CELL + 1));
-        }
-    }
-
-    private static double deltaGround(double x, double z) {
-        return x < DELTA_COAST_X ? SEA_LEVEL + 0.5D + DELTA_RISE * (DELTA_COAST_X - x) : SEA_LEVEL - 4D;
-    }
-
-    private static double northHill(double x, double z) {
-        return z > DELTA_HILL_Z && x < DELTA_COAST_X ? SEA_LEVEL + 10D : deltaGround(x, z);
     }
 
     private static int trailingMouth(Reach reach) {
@@ -2331,6 +2297,9 @@ public class ReachShaperTest {
             }
         }
         return new Network(surface, receivers, accumulation, channels, ponds, fine);
+    }
+
+    private record CleanFan(Reach north, Reach south) {
     }
 
     private record Network(DemGrid grid, int[] receivers, float[] accumulation, BitSet channels, List<Pond> ponds, HeightLattice fine) {

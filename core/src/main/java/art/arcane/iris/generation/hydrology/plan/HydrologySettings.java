@@ -23,7 +23,6 @@ import art.arcane.iris.generation.hydrology.config.IrisPondShore;
 import art.arcane.iris.generation.hydrology.config.IrisSeaInlets;
 import art.arcane.iris.generation.hydrology.underground.SeaInletRasterizer;
 import art.arcane.iris.generation.hydrology.water.HydrologyTier;
-import art.arcane.iris.generation.hydrology.water.ReachShaper;
 import art.arcane.iris.generation.noise.IrisGeneratorStyle;
 import art.arcane.iris.generation.terrain.IrisMaterialPalette;
 import com.google.gson.Gson;
@@ -48,6 +47,7 @@ public final class HydrologySettings {
     private static final int MIN_DELTA_LENGTH = 8;
     private static final int MAX_DELTA_LENGTH = 384;
     public static final float MAX_HALF_WIDTH = 64f;
+    public static final int DELTA_STEP = 2;
     private static final double MIN_INLET_HALF_WIDTH = 1D;
     private static final double MAX_INLET_HALF_WIDTH = 16D;
     private static final int MIN_INLET_DEPTH = 2;
@@ -272,10 +272,10 @@ public final class HydrologySettings {
             throw new IllegalArgumentException(named + " has length " + config.getLength() + "; it must stay within "
                     + MIN_DELTA_LENGTH + ".." + MAX_DELTA_LENGTH);
         }
-        long extent = (long) config.getLength() + ReachShaper.DELTA_STEP + (long) Math.ceil(maxHalfWidth) + tier.getBankBand() + 1L;
+        long extent = (long) config.getLength() + DELTA_STEP + (long) Math.ceil(maxHalfWidth) + tier.getBankBand() + 1L;
         if (config.getChannels() > 0 && extent > WindowKey.SIZE) {
             throw new IllegalArgumentException(named + " reaches " + extent + " blocks from its sea end (length " + config.getLength()
-                    + " + " + ReachShaper.DELTA_STEP + " for the last step + halfWidth max " + maxHalfWidth + " + bankBand " + tier.getBankBand()
+                    + " + " + DELTA_STEP + " for the last step + halfWidth max " + maxHalfWidth + " + bankBand " + tier.getBankBand()
                     + " + 1); a delta channel and its banks must stay within " + WindowKey.SIZE + " blocks");
         }
         return new HydrologyTier.Delta(config.getChannels(), (float) config.getSpreadDegrees(), config.getLength());

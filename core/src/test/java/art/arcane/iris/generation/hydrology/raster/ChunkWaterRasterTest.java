@@ -20,7 +20,9 @@ import art.arcane.iris.generation.hydrology.water.PondKind;
 import art.arcane.iris.generation.hydrology.water.PondMask;
 import art.arcane.iris.generation.hydrology.water.Reach;
 import art.arcane.iris.generation.hydrology.water.ReachStyle;
+import art.arcane.iris.generation.hydrology.water.ShapedNetwork;
 import art.arcane.iris.generation.terrain.IrisMaterialPalette;
+import art.arcane.iris.testsupport.DeltaCoast;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -33,6 +35,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.DoubleBinaryOperator;
 import java.util.function.IntBinaryOperator;
 
 import static org.junit.Assert.assertEquals;
@@ -1150,6 +1153,101 @@ public class ChunkWaterRasterTest {
             }
         }
         assertTrue("mouth columns " + mouths + ", channel columns " + channels, mouths > 20 && channels > 20);
+    }
+
+    @Test
+    public void deltaChannelsRenderAsSeaLevelMouthWaterWithoutAGapAtTheBranch() {
+        assertDeltaRendersAtSeaLevel(DeltaCoast::ground, false);
+        assertDeltaRendersAtSeaLevel(DeltaCoast::cliffBacked, true);
+    }
+
+    private static void assertDeltaRendersAtSeaLevel(DoubleBinaryOperator ground, boolean raisedAboveTheEstuary) {
+        HydrologySettings settings = DeltaCoast.settings(2);
+        ShapedNetwork shaped = DeltaCoast.shape(settings, 0, 0, List.of(), DeltaCoast.NO_NEIGHBOUR, DeltaCoast.SEED, ground);
+        Reach river = DeltaCoast.river(shaped, DeltaCoast.ROW);
+        List<Reach> fan = DeltaCoast.deltaChannels(shaped);
+        assertEquals("two delta channels", 2, fan.size());
+        IntBinaryOperator natural = (x, z) -> (int) Math.round(ground.applyAsDouble(x, z));
+        Scene plain = new Scene(settings, natural).reach(river);
+        Scene delta = new Scene(settings, natural).reach(river);
+        for (Reach channel : fan) {
+            delta.reach(channel);
+        }
+        int estuary = river.style().length - 1;
+        while (estuary > 0 && river.style()[estuary - 1] == ReachStyle.MOUTH) {
+            estuary--;
+        }
+        int minX = (int) Math.floor(river.xs()[estuary]) - 24;
+        int maxX = DeltaCoast.SEA_X + 8;
+        int minZ = DeltaCoast.ROW - 40;
+        int maxZ = DeltaCoast.ROW + 40;
+        int added = 0;
+        int raised = 0;
+        for (int z = minZ; z <= maxZ; z++) {
+            for (int x = minX; x <= maxX; x++) {
+                if (inDelta(fan, x, z)) {
+                    assertEquals("delta water at " + x + "," + z, WaterRole.MOUTH, delta.role(x, z));
+                    assertEquals("delta head at " + x + "," + z, SEA_LEVEL, delta.head(x, z));
+                    assertEquals("delta fluid at " + x + "," + z, HydrologyCaveCell.SEA_FLUID, delta.fluid(x, z));
+                    added += plain.water(x, z) ? 0 : 1;
+                }
+                if (plain.water(x, z)) {
+                    assertTrue("the river stays wet at " + x + "," + z, delta.water(x, z));
+                    if (plain.head(x, z) > SEA_LEVEL) {
+                        assertEquals("the river above its estuary keeps its head at " + x + "," + z, plain.head(x, z), delta.head(x, z));
+                        raised += Math.hypot(x - fan.get(0).xs()[0], z - fan.get(0).zs()[0]) <= 2D * fan.get(0).halfWidth()[0] + 8D ? 1 : 0;
+                    }
+                }
+            }
+        }
+        assertTrue("delta water beyond the estuary " + added, added > 100);
+        assertTrue("river water above the sea next to the branch " + raised, !raisedAboveTheEstuary || raised > 0);
+        assertEquals("delta leaks", 0, delta.leaks(minX, minZ, maxX, maxZ));
+        Set<Long> reached = wetFrom(delta, Math.round(river.xs()[estuary]) - 16, Math.round(river.zs()[estuary]), minX, minZ, maxX, maxZ);
+        for (Reach channel : fan) {
+            for (int point = 0; point < channel.xs().length; point++) {
+                int x = Math.round(channel.xs()[point]);
+                int z = Math.round(channel.zs()[point]);
+                assertTrue(channel + " point " + point + " joins the river's water", reached.contains(pack(x, z)));
+            }
+        }
+    }
+
+    private static boolean inDelta(List<Reach> fan, int x, int z) {
+        for (Reach channel : fan) {
+            for (int segment = 0; segment + 1 < channel.xs().length; segment++) {
+                double ax = channel.xs()[segment];
+                double az = channel.zs()[segment];
+                double dx = channel.xs()[segment + 1] - ax;
+                double dz = channel.zs()[segment + 1] - az;
+                double length = dx * dx + dz * dz;
+                double t = length == 0D ? 0D : Math.clamp(((x - ax) * dx + (z - az) * dz) / length, 0D, 1D);
+                if (Math.hypot(x - (ax + t * dx), z - (az + t * dz)) <= channel.halfWidth()[segment]) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private static Set<Long> wetFrom(Scene scene, int startX, int startZ, int minX, int minZ, int maxX, int maxZ) {
+        Set<Long> reached = new HashSet<>();
+        List<int[]> frontier = new ArrayList<>();
+        assertTrue("the river is wet at " + startX + "," + startZ, scene.water(startX, startZ));
+        reached.add(pack(startX, startZ));
+        frontier.add(new int[]{startX, startZ});
+        int[][] sides = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
+        for (int index = 0; index < frontier.size(); index++) {
+            int[] column = frontier.get(index);
+            for (int[] side : sides) {
+                int x = column[0] + side[0];
+                int z = column[1] + side[1];
+                if (x >= minX && x <= maxX && z >= minZ && z <= maxZ && scene.water(x, z) && reached.add(pack(x, z))) {
+                    frontier.add(new int[]{x, z});
+                }
+            }
+        }
+        return reached;
     }
 
     @Test

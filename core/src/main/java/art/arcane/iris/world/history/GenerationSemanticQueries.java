@@ -215,9 +215,10 @@ public final class GenerationSemanticQueries {
             return new RiverSearch.Missing(unavailable.map(reason -> riverUnavailableMessage(requiredType, reason))
                     .orElseGet(() -> riverNotFoundMessage(requiredType, maximumDistance)));
         }
+        int activeDistance = recorded == null ? maximumDistance : Math.min(maximumDistance, distanceCeiling(blockX, blockZ, recorded));
         RiverResult active;
         try {
-            active = activeRiver(requiredEngine, history, requiredType, blockX, blockZ, maximumDistance, running);
+            active = activeRiver(requiredEngine, history, requiredType, blockX, blockZ, activeDistance, running);
         } catch (HydrologySearchTimeoutException timedOut) {
             RiverResult planned = timedOut.nearestSoFar().map(feature -> activeResult(requiredEngine, history, feature)).orElse(null);
             return stoppedSearch(requiredType, nearer(blockX, blockZ, recorded, planned));
@@ -245,6 +246,12 @@ public final class GenerationSemanticQueries {
         } catch (Throwable failure) {
             search.completeExceptionally(failure);
         }
+    }
+
+    private static int distanceCeiling(int blockX, int blockZ, RiverResult feature) {
+        BigInteger squared = horizontalDistanceSquared(blockX, blockZ, feature.x(), feature.z());
+        BigInteger root = squared.sqrt();
+        return (root.multiply(root).equals(squared) ? root : root.add(BigInteger.ONE)).intValueExact();
     }
 
     private static RiverResult nearer(int blockX, int blockZ, RiverResult recorded, RiverResult active) {

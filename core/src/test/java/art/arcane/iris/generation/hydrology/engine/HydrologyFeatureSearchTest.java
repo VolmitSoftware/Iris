@@ -123,6 +123,22 @@ public class HydrologyFeatureSearchTest {
     }
 
     @Test(timeout = 20_000L)
+    public void boundedRadiusFinishesWhenNothingNearIsEligible() throws Exception {
+        HydrologySettings settings = settings(config -> {
+        });
+        Planners planners = new Planners(gate);
+        planners.channelTier = settings.tiers().getFirst();
+        planners.openRing = 2;
+        HydrologyPlanCache cache = cache(settings, planners);
+        Duration timeout = Duration.ofSeconds(2L);
+
+        assertEquals(Optional.empty(), new HydrologyFeatureSearch(settings, cache, 0, 0, HydrologyFeatureQuery.of(HydrologyFeatureType.STREAM),
+                feature -> false, 50).nearest(timeout, () -> true));
+        assertThrows(HydrologySearchTimeoutException.class, () -> new HydrologyFeatureSearch(settings, cache, 0, 0,
+                HydrologyFeatureQuery.of(HydrologyFeatureType.STREAM), feature -> false, 7168).nearest(timeout, () -> true));
+    }
+
+    @Test(timeout = 20_000L)
     public void cancelledSearchStopsWaitingForPlans() {
         HydrologySettings settings = settings(config -> {
         });
@@ -192,6 +208,7 @@ public class HydrologyFeatureSearchTest {
         private final CountDownLatch gate;
         private final AtomicInteger calls = new AtomicInteger();
         private volatile HydrologyTier channelTier;
+        private volatile int openRing = -1;
 
         private Planners(CountDownLatch gate) {
             this.gate = gate;
@@ -207,7 +224,9 @@ public class HydrologyFeatureSearchTest {
             if (channelTier != null && key.equals(new WindowKey(0, 0))) {
                 return new WindowPlan(key, List.of(channel(channelTier)), List.of(), List.of());
             }
-            hold();
+            if (Math.max(Math.abs(key.wx()), Math.abs(key.wz())) > openRing) {
+                hold();
+            }
             return new WindowPlan(key, List.of(), List.of(), List.of());
         }
 

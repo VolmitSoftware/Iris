@@ -190,7 +190,7 @@ public final class GenerationSemanticQueriesTest {
         when(history.semantics(anyInt(), anyInt())).thenReturn(Optional.empty());
         when(history.activeActivation()).thenReturn(activation);
         when(activation.activationId()).thenReturn(2L);
-        when(runtime.nearestFeature(eq(0), eq(0), eq(HydrologyFeatureQuery.of(HydrologyFeatureType.RIVER)), eq(200), any(), any()))
+        when(runtime.nearestFeature(eq(0), eq(0), eq(HydrologyFeatureQuery.of(HydrologyFeatureType.RIVER)), eq(100), any(), any()))
                 .thenAnswer(invocation -> firstEligible(List.of(tapered, eligible), invocation.getArgument(4)));
 
         GenerationSemanticQueries.RiverResult active = found(GenerationSemanticQueries.nearestRiver(engine, HydrologyFeatureType.RIVER, 0, 0, 200, () -> true));
@@ -370,6 +370,45 @@ public final class GenerationSemanticQueriesTest {
         assertEquals(4L, nearer.featureId());
         assertEquals(-44, nearer.y());
         assertTrue(planned.message(), planned.message().contains("at 20, -44, 0;"));
+    }
+
+    @Test
+    public void recordedWaterBoundsThePlannedSearchSoExploredAreasFinishEarly() throws Exception {
+        IrisEngine engine = mock(IrisEngine.class);
+        IrisComplex complex = mock(IrisComplex.class);
+        HydrologyRuntime runtime = mock(HydrologyRuntime.class);
+        IrisDimension dimension = mock(IrisDimension.class);
+        GenerationHistory history = mock(GenerationHistory.class);
+        GenerationHistoryRuntimeRouter router = mock(GenerationHistoryRuntimeRouter.class);
+        GenerationActivation activation = mock(GenerationActivation.class);
+        ChunkGenerationSemantics.RiverFeatureOccurrence occurrence = new ChunkGenerationSemantics.RiverFeatureOccurrence(
+                "water", HydrologyFeatureType.RIVER, 7L, new ChunkGenerationSemantics.BlockPosition(30, 70, 40));
+        when(engine.getComplex()).thenReturn(complex);
+        when(engine.getDimension()).thenReturn(dimension);
+        when(dimension.getMinHeight()).thenReturn(-64);
+        when(complex.getHydrologyRuntime()).thenReturn(runtime);
+        when(engine.getGenerationHistoryRuntimeRouter()).thenReturn(Optional.of(router));
+        when(router.history()).thenReturn(history);
+        when(history.activeActivation()).thenReturn(activation);
+        when(activation.activationId()).thenReturn(2L);
+        when(history.findRecordedRiver(any())).thenReturn(Optional.of(
+                new GenerationSemanticIndex.RiverMatch(occurrence, new GenerationSemanticIndex.ChunkReference(1, 2, 1L))));
+        when(runtime.nearestFeature(eq(0), eq(0), any(), eq(7168), any(), any()))
+                .thenThrow(new HydrologySearchTimeoutException(Duration.ofSeconds(30L), null));
+        when(runtime.nearestFeature(eq(0), eq(0), any(), eq(50), any(), any())).thenReturn(Optional.empty());
+
+        GenerationSemanticQueries.RiverResult recorded = found(
+                GenerationSemanticQueries.nearestRiver(engine, HydrologyFeatureType.RIVER, 0, 0, 7168, () -> true));
+
+        assertEquals(GenerationSemanticQueries.RiverSource.RECORDED, recorded.source());
+        assertEquals(7L, recorded.featureId());
+
+        when(runtime.nearestFeature(eq(0), eq(0), any(), eq(50), any(), any())).thenReturn(Optional.of(feature(6L, 20, 100, 30)));
+        GenerationSemanticQueries.RiverResult planned = found(
+                GenerationSemanticQueries.nearestRiver(engine, HydrologyFeatureType.RIVER, 0, 0, 7168, () -> true));
+
+        assertEquals(GenerationSemanticQueries.RiverSource.ACTIVE_PREDICTION, planned.source());
+        assertEquals(6L, planned.featureId());
     }
 
     @Test

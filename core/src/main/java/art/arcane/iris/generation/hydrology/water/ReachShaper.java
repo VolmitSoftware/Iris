@@ -380,7 +380,7 @@ public final class ReachShaper {
     }
 
     private static void restyle(ReachDraft draft) {
-        draft.style = styles(draft.grade, draft.ocean, draft.outletZone, draft.tier.waterfallMinimumDrop());
+        draft.style = styles(draft.grade, draft.ocean, draft.fixed(), draft.tier.waterfallMinimumDrop());
     }
 
     private static void chaikin(ReachDraft draft) {

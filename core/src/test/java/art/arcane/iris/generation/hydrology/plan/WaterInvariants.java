@@ -7,6 +7,7 @@ import art.arcane.iris.generation.hydrology.water.Pond;
 import art.arcane.iris.generation.hydrology.water.PondKind;
 import art.arcane.iris.generation.hydrology.water.PondMask;
 import art.arcane.iris.generation.hydrology.water.Reach;
+import art.arcane.iris.generation.hydrology.water.ReachShaper;
 import art.arcane.iris.generation.hydrology.water.ReachStyle;
 
 import java.util.ArrayDeque;
@@ -136,6 +137,7 @@ final class WaterInvariants {
     private static List<Junction> junctions(PlannedScene scene) {
         Map<Long, Reach> reaches = byId(scene.reaches());
         Map<Long, List<Reach>> feeders = feeders(scene.reaches(), reaches);
+        Map<Long, List<PondMask>> lips = lips(scene.ponds());
         int seaLevel = scene.settings().seaLevel();
         List<Junction> junctions = new ArrayList<>();
         for (Reach feeder : scene.reaches()) {
@@ -147,7 +149,8 @@ final class WaterInvariants {
             int[] box = interior(scene, poolBox(feeder, pool));
             if (box != null) {
                 int level = Math.min(feeder.grade()[feeder.grade().length - 1], downstream.grade()[0]);
-                junctions.add(new Junction(feeder, WaterHeads.snap(level, seaLevel), pool, box));
+                boolean[] held = held(feeder, lips.getOrDefault(feeder.id(), List.of()));
+                junctions.add(new Junction(feeder, WaterHeads.snap(level, seaLevel), pool, held, box));
             }
         }
         return junctions;
@@ -155,7 +158,7 @@ final class WaterInvariants {
 
     private static boolean perched(PlannedScene scene, Junction junction, int seaLevel) {
         Reach feeder = junction.feeder();
-        boolean outlet = feeder.style()[0] == ReachStyle.POND_OUTLET;
+        boolean endsAtTheJunction = WaterHeads.snap(feeder.grade()[feeder.grade().length - 1], seaLevel) <= junction.head();
         int[] box = junction.box();
         for (int z = box[1]; z <= box[3]; z++) {
             for (int x = box[0]; x <= box[2]; x++) {
@@ -163,7 +166,10 @@ final class WaterInvariants {
                     continue;
                 }
                 int point = coveringPoint(feeder, x, z);
-                if (point >= 0 && junction.pool()[point] && !(outlet && fallsToTheJunction(feeder, point, seaLevel))) {
+                if (point < 0 || !junction.pool()[point]) {
+                    continue;
+                }
+                if (!endsAtTheJunction || !junction.held()[point] || !fallsToTheJunction(feeder, point, seaLevel)) {
                     return true;
                 }
             }
@@ -185,6 +191,35 @@ final class WaterInvariants {
             pool[point] = true;
         }
         return pool;
+    }
+
+    private static Map<Long, List<PondMask>> lips(List<Pond> ponds) {
+        Map<Long, List<PondMask>> lips = new HashMap<>();
+        for (Pond pond : ponds) {
+            if (pond.kind() != PondKind.LAKE && pond.outletReachId() != 0L) {
+                lips.computeIfAbsent(pond.outletReachId(), ignored -> new ArrayList<>()).add(pond.mask());
+            }
+        }
+        return lips;
+    }
+
+    private static boolean[] held(Reach outlet, List<PondMask> lips) {
+        boolean[] held = new boolean[outlet.xs().length];
+        boolean lip = !lips.isEmpty();
+        for (int point = 0; point < held.length; point++) {
+            lip = lip && (point == 0 || nearLip(lips, outlet.xs()[point], outlet.zs()[point], outlet.halfWidth()[point]));
+            held[point] = lip || outlet.style()[point] == ReachStyle.POND_OUTLET;
+        }
+        return held;
+    }
+
+    private static boolean nearLip(List<PondMask> lips, float x, float z, float halfWidth) {
+        for (PondMask lip : lips) {
+            if (ReachShaper.nearLip(lip, x, z, halfWidth)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static boolean fallsToTheJunction(Reach feeder, int point, int seaLevel) {
@@ -311,6 +346,6 @@ final class WaterInvariants {
         return ((long) x << 32) | (z & 0xFFFFFFFFL);
     }
 
-    private record Junction(Reach feeder, int head, boolean[] pool, int[] box) {
+    private record Junction(Reach feeder, int head, boolean[] pool, boolean[] held, int[] box) {
     }
 }

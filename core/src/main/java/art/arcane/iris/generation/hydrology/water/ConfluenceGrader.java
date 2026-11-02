@@ -51,7 +51,7 @@ public final class ConfluenceGrader {
             for (int feeder : downstream.incoming) {
                 ReachDraft draft = drafts.get(feeder);
                 requireJunction(window, draft, downstream);
-                boolean[] fixed = fixed(draft);
+                boolean[] fixed = draft.fixed();
                 int waterfallMinimumDrop = draft.tier.waterfallMinimumDrop();
                 int[] settled = settle(footprint(draft), draft.grade, fixed, receiving(drafts, downstream, feeder), downstream.grade[0],
                         waterfallMinimumDrop);
@@ -148,16 +148,6 @@ public final class ConfluenceGrader {
 
     private static Footprint footprint(ReachDraft draft) {
         return new Footprint(draft.xs, draft.zs, draft.halfWidth);
-    }
-
-    private static boolean[] fixed(ReachDraft draft) {
-        boolean[] fixed = draft.outletZone.clone();
-        if (draft.held != null) {
-            for (int point = 0; point < fixed.length; point++) {
-                fixed[point] |= draft.held[point];
-            }
-        }
-        return fixed;
     }
 
     private static List<Footprint> receiving(List<ReachDraft> drafts, ReachDraft downstream, int feeder) {

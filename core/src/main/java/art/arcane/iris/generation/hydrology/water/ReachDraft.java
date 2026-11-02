@@ -46,4 +46,14 @@ final class ReachDraft {
     int last() {
         return grade[grade.length - 1];
     }
+
+    boolean[] fixed() {
+        boolean[] fixed = outletZone.clone();
+        if (held != null) {
+            for (int point = 0; point < fixed.length; point++) {
+                fixed[point] |= held[point];
+            }
+        }
+        return fixed;
+    }
 }

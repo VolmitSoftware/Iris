@@ -491,6 +491,37 @@ public class ReachShaperTest {
     }
 
     @Test
+    public void outletHeldAlongItsPondsShoreIsStyledAsThePondOutlet() {
+        HydrologySettings settings = settings(config -> {
+        });
+        DemGrid flat = outletGrid();
+        int[] receivers = new int[flat.values().length];
+        Arrays.fill(receivers, -1);
+        float[] accumulation = new float[receivers.length];
+        BitSet channels = new BitSet(receivers.length);
+        for (int i = 9; i < flat.width(); i++) {
+            flow(flat, receivers, accumulation, channels, i, 8, i + 1 < flat.width() ? i + 1 : -1, 8, 1600f + 10f * i);
+        }
+        PondMask shore = rectangle(72, 52, 18, 3);
+        Pond pond = new Pond(81L, PondKind.NATURAL, 99, 94, 72, 64, 100f, shore, 0L, 0, "water", 104, 56);
+        HeightLattice fine = new HeightLattice(new Terrain((x, z) -> shore.contains((int) x, (int) z) ? 94D : 100D), FINE, false, 1 << 16);
+        ShapedNetwork shaped = new ReachShaper(settings).shape(WINDOW, flat, receivers, accumulation, channels, List.of(pond), fine, SEED);
+        Reach outlet = byId(shaped.reaches()).get(shaped.ponds().get(0).outletReachId());
+        assertNotNull("the pond drains through an outlet along its shore", outlet);
+        float farthestHeld = 0f;
+        for (int point = 0; point < outlet.xs().length; point++) {
+            float along = outlet.xs()[point] - outlet.xs()[0];
+            if (outlet.xs()[point] <= 136f) {
+                assertEquals("outlet point " + point + " beside the shore at x=" + outlet.xs()[point], ReachStyle.POND_OUTLET, outlet.style()[point]);
+                farthestHeld = Math.max(farthestHeld, along);
+            } else if (outlet.xs()[point] >= 160f) {
+                assertEquals("outlet point " + point + " past the shore at x=" + outlet.xs()[point], ReachStyle.RUN, outlet.style()[point]);
+            }
+        }
+        assertTrue("the held shore runs " + farthestHeld + " blocks, past the 8-block outlet zone", farthestHeld > 40f);
+    }
+
+    @Test
     public void pondsSharingAnExitLeadInOnceFromTheirGradingPond() {
         HydrologySettings settings = settings(config -> {
         });

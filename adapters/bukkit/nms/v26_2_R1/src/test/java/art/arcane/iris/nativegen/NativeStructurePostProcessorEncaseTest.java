@@ -1,5 +1,7 @@
 package art.arcane.iris.nativegen;
 
+import art.arcane.volmlib.nativelib.terrain.structure.StructureWater;
+
 import art.arcane.volmlib.nativelib.terrain.structure.StructurePalette;
 
 import art.arcane.volmlib.nativelib.terrain.structure.StructureTerrainSettings;
@@ -90,7 +92,7 @@ public class NativeStructurePostProcessorEncaseTest {
                         .setHorizontalPadding(1)
                         .setCeilingPadding(1)
                         .setFloorPadding(1),
-                null);
+                null, StructureWater.DRY);
 
         assertEquals(Blocks.DIRT.defaultBlockState(),
                 state(blocks, bounds.minX(), bounds.minY(), bounds.minZ()));
@@ -111,7 +113,7 @@ public class NativeStructurePostProcessorEncaseTest {
         NativeStructureTerrainIntegrator.integrateTerrain(
                 world(blocks), bounds, "minecraft:stronghold", start,
                 new IrisStructureTerrain().setMode(StructureTerrainMode.ENCASE),
-                null);
+                null, StructureWater.DRY);
 
         assertEquals(-1, bounds.minY());
         assertEquals(Blocks.DEEPSLATE.defaultBlockState(),
@@ -222,7 +224,7 @@ public class NativeStructurePostProcessorEncaseTest {
                 new IrisStructureTerrain()
                         .setMode(StructureTerrainMode.ENCASE)
                         .setEncasePalette(palette),
-                NativeStructurePostProcessorEncaseTest::tuffBlock);
+                NativeStructurePostProcessorEncaseTest::tuffBlock, StructureWater.DRY);
 
         assertEquals(Blocks.TUFF.defaultBlockState(),
                 state(blocks, bounds.minX(), bounds.minY(), bounds.minZ()));
@@ -250,7 +252,7 @@ public class NativeStructurePostProcessorEncaseTest {
 
         NativeStructureTerrainIntegrator.integrateTerrain(
                 world(blocks), area, "test:bury", start,
-                new IrisStructureTerrain().setMode(StructureTerrainMode.SOURCE), null);
+                new IrisStructureTerrain().setMode(StructureTerrainMode.SOURCE), null, StructureWater.DRY);
 
         assertEquals(Blocks.STONE.defaultBlockState(),
                 state(blocks, bounds.minX() - 5, groundY, bounds.minZ()));
@@ -277,7 +279,7 @@ public class NativeStructurePostProcessorEncaseTest {
 
         NativeStructureTerrainIntegrator.integrateTerrain(
                 world(blocks), area, "test:encapsulate", start,
-                new IrisStructureTerrain().setMode(StructureTerrainMode.SOURCE), null);
+                new IrisStructureTerrain().setMode(StructureTerrainMode.SOURCE), null, StructureWater.DRY);
 
         assertEquals(Blocks.STONE.defaultBlockState(),
                 state(blocks, bounds.minX() - 11, bounds.minY(), bounds.minZ()));

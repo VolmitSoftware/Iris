@@ -1,5 +1,7 @@
 package art.arcane.iris.platform.bukkit.nms.v26_3_R1;
 
+import art.arcane.volmlib.nativelib.terrain.structure.StructureWater;
+
 import art.arcane.volmlib.nativelib.v26_3_R1.terrain.NativeStructureWorldgenAccess;
 
 import art.arcane.iris.structure.placement.IrisStructureTerrain;
@@ -94,13 +96,13 @@ public class NativeStructureWorldgenAccessTest {
         unbounded.rejectDistantTerrainReads = true;
 
         assertThrows(IllegalStateException.class, () -> NativeStructurePostProcessor.prepareTerrain(
-                unbounded.world(), area, targets, (palette, rng, x, y, z) -> Blocks.STONE.defaultBlockState()));
+                unbounded.world(), area, targets, (palette, rng, x, y, z) -> Blocks.STONE.defaultBlockState(), StructureWater.DRY));
 
         RecordingDelegate recording = new RecordingDelegate();
         recording.rejectDistantTerrainReads = true;
         NativeStructureWorldgenAccess access = access(recording);
         NativeStructurePostProcessor.prepareTerrain(
-                access, area, targets, (palette, rng, x, y, z) -> Blocks.STONE.defaultBlockState());
+                access, area, targets, (palette, rng, x, y, z) -> Blocks.STONE.defaultBlockState(), StructureWater.DRY);
 
         assertEquals(0, recording.heightReads);
         assertEquals(0, recording.chunkReads);

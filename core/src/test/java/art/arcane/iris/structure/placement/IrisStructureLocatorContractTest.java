@@ -469,6 +469,11 @@ public class IrisStructureLocatorContractTest {
         when(roles.get(anyDouble(), anyDouble())).thenAnswer(call -> river.contains(columnKey(
                 (int) Math.floor(call.<Double>getArgument(0)), (int) Math.floor(call.<Double>getArgument(1))))
                 ? WaterRole.CHANNEL : WaterRole.NONE);
+        @SuppressWarnings("unchecked")
+        ProceduralStream<Integer> beds = mock(ProceduralStream.class);
+        when(beds.get(anyDouble(), anyDouble())).thenReturn(120);
+        when(complex.getRoundedHeighteightStream()).thenReturn(beds);
+        when(waterHead.getDouble(anyDouble(), anyDouble())).thenReturn(124D);
         when(engine.getHeight(anyInt(), anyInt(), eq(true))).thenReturn(128);
         when(engine.getDimension().getFluidHeight()).thenReturn(63);
         IrisStructurePlacement placement = engine.getDimension().getStructures().get(0);

@@ -1,5 +1,7 @@
 package art.arcane.iris.probe;
 
+import art.arcane.volmlib.nativelib.terrain.structure.StructureWater;
+
 import art.arcane.iris.structure.nativegen.IrisNativeStructure;
 import art.arcane.iris.structure.nativegen.IrisNativeStructureDecision;
 import art.arcane.iris.structure.nativegen.NativeStructureGenerationStatus;
@@ -215,7 +217,7 @@ public class HeadlessStructurePlannerTest {
                 new IrisNativeStructure().setStructure("probe:hut"), -1, 0, 30);
         TestPolicy policy = new TestPolicy(plan);
         HeadlessStructurePlanner.Policies<NativeStructureStartPlan, NativeStructureOwnershipRecord> policies =
-                new HeadlessStructurePlanner.Policies<>(policy, policy, footprint -> true);
+                new HeadlessStructurePlanner.Policies<>(policy, policy, footprint -> true, StructureWater.DRY);
         try (MultiPackResourceManager resources = resources();
              LevelStorageSource.LevelStorageAccess storage = LevelStorageSource.createDefault(temporary.newFolder().toPath()).createAccess("world")) {
             StructureTemplateManager templates = new StructureTemplateManager(resources, storage,
@@ -249,7 +251,7 @@ public class HeadlessStructurePlannerTest {
             assertTrue(target.chunk().getAllReferences().get(hut.value()).contains(new ChunkPos(-1, 0).pack()));
             assertEquals(ChunkStatus.STRUCTURE_REFERENCES, target.chunk().getPersistedStatus());
             HeadlessStructurePlanner.Policies<NativeStructureStartPlan, NativeStructureOwnershipRecord> excluded =
-                    new HeadlessStructurePlanner.Policies<>(policy, policy, footprint -> false);
+                    new HeadlessStructurePlanner.Policies<>(policy, policy, footprint -> false, StructureWater.DRY);
             HeadlessStructurePlanner.PlannedChunk<NativeStructureOwnershipRecord> rejected = HeadlessStructurePlanner.plan(
                     context, excluded, new ChunkPos(-1, 0));
             assertFalse(rejected.chunk().getStartForStructure(hut.value()).isValid());

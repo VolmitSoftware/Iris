@@ -3,7 +3,6 @@ package art.arcane.iris.structure.nativegen;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.structure.placement.StructurePlacementGrid;
 import art.arcane.iris.structure.placement.StructurePlacementScope;
-import art.arcane.iris.structure.placement.StructureWaterFootprint;
 
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.structure.placement.IrisStructureAnchorMode;
@@ -63,10 +62,6 @@ public final class NativeStructurePlacementPlanner {
         IrisNativeStructure source = selectSource(placement.getNativeStructures(), placementRng);
         Integer baseY = resolveBaseY(activeEngine, placement, chunkX, chunkZ, placementRng);
         if (baseY == null) {
-            return null;
-        }
-        if (!placement.isUnderground()
-                && !StructureWaterFootprint.admitsChunk(activeEngine, placement, source.getStructure(), chunkX, chunkZ)) {
             return null;
         }
         return new NativeStructureStartPlan(placement, source, chunkX, chunkZ, baseY);

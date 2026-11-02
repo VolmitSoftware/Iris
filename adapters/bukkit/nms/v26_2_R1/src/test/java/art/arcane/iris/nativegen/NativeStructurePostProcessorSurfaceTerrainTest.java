@@ -1,5 +1,7 @@
 package art.arcane.iris.nativegen;
 
+import art.arcane.volmlib.nativelib.terrain.structure.StructureWater;
+
 import art.arcane.volmlib.nativelib.minecraft26_2.terrain.NativeStructureVerticalPlacer;
 
 import art.arcane.volmlib.nativelib.minecraft26_2.terrain.NativeStructureReferenceEnvelope;
@@ -2185,7 +2187,7 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
 
         NativeStructureTerrainIntegrator.integrateTerrain(
                 world(blocks), bounds, "minecraft:desert_pyramid", start,
-                new IrisStructureTerrain().setMode(StructureTerrainMode.VACUUM), null);
+                new IrisStructureTerrain().setMode(StructureTerrainMode.VACUUM), null, StructureWater.DRY);
 
         assertEquals(Blocks.STONE.defaultBlockState(),
                 state(blocks, bounds.minX(), bounds.minY(), bounds.minZ()));
@@ -2209,7 +2211,7 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
                 new IrisStructureTerrain()
                         .setMode(StructureTerrainMode.FORCE_CARVE)
                         .setHorizontalPadding(1)
-                        .setCeilingPadding(1), null);
+                        .setCeilingPadding(1), null, StructureWater.DRY);
 
         assertEquals(Blocks.AIR.defaultBlockState(),
                 state(blocks, bounds.maxX() + 1, bounds.minY(), bounds.maxZ()));
@@ -2241,7 +2243,7 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
 
         NativeStructureTerrainIntegrator.integrateTerrain(
                 world(blocks), area, "minecraft:ancient_city", start,
-                new IrisStructureTerrain().setMode(StructureTerrainMode.FORCE_CARVE), null);
+                new IrisStructureTerrain().setMode(StructureTerrainMode.FORCE_CARVE), null, StructureWater.DRY);
 
         assertEquals(Blocks.AIR.defaultBlockState(),
                 state(blocks, firstBounds.minX(), y, z));
@@ -2382,7 +2384,7 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
                 bounds.maxX() + 6, bounds.maxY() + 12, bounds.maxZ() + 6);
         Map<BlockPos, BlockState> blocks = fill(area);
 
-        NativeStructureTerrainIntegrator.carveOrganicColumns(world(blocks), area, carve);
+        NativeStructureTerrainIntegrator.carveOrganicColumns(world(blocks), area, StructureWater.DRY, carve);
 
         int centerX = bounds.minX() + bounds.getXSpan() / 2;
         int centerZ = bounds.minZ() + bounds.getZSpan() / 2;
@@ -2407,9 +2409,9 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
         Map<BlockPos, BlockState> lobedBlocks = fill(area);
 
         NativeStructureTerrainIntegrator.carveOrganicColumns(
-                world(uniformBlocks), area, organicCarve(start, 10, 0D));
+                world(uniformBlocks), area, StructureWater.DRY, organicCarve(start, 10, 0D));
         NativeStructureTerrainIntegrator.carveOrganicColumns(
-                world(lobedBlocks), area, organicCarve(start, 10, 0.85D));
+                world(lobedBlocks), area, StructureWater.DRY, organicCarve(start, 10, 0.85D));
 
         int uniform = 0;
         int lobed = 0;
@@ -2457,9 +2459,9 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
 
         // Each chunk context rebuilds its own noise channels from the shared start identity.
         NativeStructureTerrainIntegrator.carveOrganicColumns(
-                world(wideBlocks), wide, organicCarve(start, 6));
+                world(wideBlocks), wide, StructureWater.DRY, organicCarve(start, 6));
         NativeStructureTerrainIntegrator.carveOrganicColumns(
-                world(narrowBlocks), narrow, organicCarve(start, 6));
+                world(narrowBlocks), narrow, StructureWater.DRY, organicCarve(start, 6));
 
         int carved = 0;
         for (int x = narrow.minX(); x <= narrow.maxX(); x++) {
@@ -2496,7 +2498,7 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
                         .setCeilingPadding(8)
                         .setFloorPadding(0)
                         .setErosionStrength(1D)
-                        .setErosionFrequency(0.05D), null);
+                        .setErosionFrequency(0.05D), null, StructureWater.DRY);
 
         assertEquals(Blocks.AIR.defaultBlockState(), state(blocks, centerX, bounds.minY(), centerZ));
         assertEquals(Blocks.STONE.defaultBlockState(),
@@ -2814,7 +2816,7 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
                 SLAB_WIDTH - 1 + SLAB_PADDING, transectY, SLAB_DEPTH - 1);
         Map<BlockPos, BlockState> blocks = fill(area);
 
-        NativeStructureTerrainIntegrator.carveOrganicColumns(world(blocks), area,
+        NativeStructureTerrainIntegrator.carveOrganicColumns(world(blocks), area, StructureWater.DRY,
                 NativeStructureTerrainIntegrator.organicCarve(
                         footprint, terrain, StructureCarveShape.ERODED, TEST_SEED));
 

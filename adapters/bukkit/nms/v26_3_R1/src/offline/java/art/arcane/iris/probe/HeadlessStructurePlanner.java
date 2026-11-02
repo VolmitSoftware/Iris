@@ -1,6 +1,8 @@
 package art.arcane.iris.probe;
 
 import art.arcane.volmlib.nativelib.terrain.NativeGenerationScope;
+import art.arcane.volmlib.nativelib.terrain.structure.StructureWater;
+import art.arcane.volmlib.nativelib.terrain.structure.StructureWaterRules;
 import art.arcane.volmlib.nativelib.terrain.structure.StructureInjectionPolicy;
 import art.arcane.volmlib.nativelib.terrain.structure.StructureOwnershipRecordView;
 import art.arcane.volmlib.nativelib.terrain.structure.StructurePlacementDecision;
@@ -156,6 +158,11 @@ final class HeadlessStructurePlanner {
                 if (replace) {
                     chunk.setStartForStructure(structure, StructureStart.INVALID_START);
                 }
+                policies.injection().discard(plan.structureKey(), chunk.getPos().x(), chunk.getPos().z());
+                continue;
+            }
+            if (!StructureWaterRules.admitsStart(plan, policies.water(), NativeStructureTerrainIntegrator.pieceFootprints(generated))) {
+                chunk.setStartForStructure(structure, StructureStart.INVALID_START);
                 policies.injection().discard(plan.structureKey(), chunk.getPos().x(), chunk.getPos().z());
                 continue;
             }
@@ -319,11 +326,12 @@ final class HeadlessStructurePlanner {
 
     record Policies<P extends StructureStartPlan, O extends StructureOwnershipRecordView<O>>(
             StructureInjectionPolicy<P> injection, StructureReferencePolicy<P, O> references,
-            Predicate<BoundingBox> allowsFootprint) {
+            Predicate<BoundingBox> allowsFootprint, StructureWater water) {
         Policies {
             Objects.requireNonNull(injection, "injection");
             Objects.requireNonNull(references, "references");
             Objects.requireNonNull(allowsFootprint, "allowsFootprint");
+            Objects.requireNonNull(water, "water");
         }
     }
 

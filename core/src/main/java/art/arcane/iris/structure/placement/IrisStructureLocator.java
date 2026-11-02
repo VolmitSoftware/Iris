@@ -19,6 +19,8 @@
 package art.arcane.iris.structure.placement;
 
 import art.arcane.volmlib.nativelib.terrain.structure.StructureLocateCandidate;
+import art.arcane.volmlib.nativelib.terrain.structure.StructureStagePolicy;
+import art.arcane.volmlib.nativelib.terrain.structure.StructureWaterRules;
 
 import art.arcane.volmlib.nativelib.terrain.StructureLocateLimitException;
 
@@ -590,8 +592,8 @@ public final class IrisStructureLocator {
                 "assembled pieces exceed the configured structure or world bounds")) {
             return null;
         }
-        if (!placement.isAnchoredUnderground()
-                && !StructureWaterFootprint.admitsPieces(engine, placement, selectedKey, pieces, cx, cz)) {
+        if (!placement.isAnchoredUnderground() && !placement.isAllowWater()
+                && !StructureWaterRules.admitsFootprint(IrisStructureWater.mantle(engine.getComplex()), pieceFootprints(pieces))) {
             return null;
         }
         if (!allowsResolvedFootprint(engine, placement, structure, pieces)) {
@@ -937,6 +939,14 @@ public final class IrisStructureLocator {
                 saturatedOffset(bounds[3], padding),
                 saturatedOffset(bounds[5], padding)
         );
+    }
+
+    private static List<StructureStagePolicy.Footprint> pieceFootprints(KList<PlacedStructurePiece> pieces) {
+        List<StructureStagePolicy.Footprint> footprints = new ArrayList<>(pieces.size());
+        for (PlacedStructurePiece piece : pieces) {
+            footprints.add(new StructureStagePolicy.Footprint(piece.getMinX(), piece.getMinZ(), piece.getMaxX(), piece.getMaxZ()));
+        }
+        return footprints;
     }
 
     private static int saturatedOffset(int coordinate, int offset) {

@@ -1,5 +1,6 @@
 package art.arcane.iris.probe;
 
+import art.arcane.iris.structure.placement.IrisStructureWater;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.platform.bukkit.nms.BukkitBiomePolicy;
 import art.arcane.iris.structure.nativegen.IrisStructurePolicy;
@@ -63,7 +64,8 @@ final class HeadlessTerrainContext implements AutoCloseable {
         IrisStructurePolicy policy = new IrisStructurePolicy(engine);
         policies = new HeadlessStructurePlanner.Policies<>(policy, policy,
                 bounds -> engine.getComplex().allowsNewGenerationFootprint(
-                        bounds.minX(), bounds.minZ(), bounds.maxX(), bounds.maxZ()));
+                        bounds.minX(), bounds.minZ(), bounds.maxX(), bounds.maxZ()),
+                IrisStructureWater.world(engine));
         NativeBiomeRegistryImpl registry = new NativeBiomeRegistryImpl(runtime.registries().lookupOrThrow(Registries.BIOME));
         biomes = new BukkitBiomePolicy<>(new BukkitBiomePolicy.RuntimeOptions<>(seed, engine, null, () -> registry), registry);
         serialization = new HeadlessChunkSerialization.Context(new StructurePieceSerializationContext(

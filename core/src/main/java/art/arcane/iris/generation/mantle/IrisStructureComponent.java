@@ -22,11 +22,14 @@ import art.arcane.volmlib.util.structure.StructureCarvingFootprint;
 
 import art.arcane.volmlib.util.structure.StructureCarveEnvelope;
 
+import art.arcane.volmlib.nativelib.terrain.structure.StructureWaterRules;
+
 import art.arcane.iris.configuration.IrisSettings;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.cache.Cache;
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.structure.placement.IrisStructureLocator;
+import art.arcane.iris.structure.placement.IrisStructureWater;
 import art.arcane.iris.structure.placement.PlacedStructurePiece;
 import art.arcane.iris.structure.placement.StructurePlacementScope;
 import art.arcane.iris.structure.placement.StructurePlacementMarker;
@@ -338,7 +341,7 @@ public class IrisStructureComponent extends IrisMantleComponent {
                     + " margin=" + margin + " head=" + head + " floorCut=" + floorCut + " work=" + work);
         }
 
-        StructureCarveWater water = StructureCarveWater.of(getEngineMantle().getComplex(),
+        StructureWaterRules.Carve water = StructureWaterRules.carve(IrisStructureWater.mantle(getEngineMantle().getComplex()),
                 footprint.minX(), footprint.minZ(), footprint.maxX(), footprint.maxZ());
         double sideReachSquared = (double) margin * margin;
         double downReach = Math.max(1D, floorCut);
@@ -397,7 +400,8 @@ public class IrisStructureComponent extends IrisMantleComponent {
     }
 
     private void carveBox(MantleWriter writer, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, int mantleOffset) {
-        StructureCarveWater water = StructureCarveWater.of(getEngineMantle().getComplex(), minX, minZ, maxX, maxZ);
+        StructureWaterRules.Carve water = StructureWaterRules.carve(IrisStructureWater.mantle(getEngineMantle().getComplex()),
+                minX, minZ, maxX, maxZ);
         for (int bx = minX; bx <= maxX; bx++) {
             for (int bz = minZ; bz <= maxZ; bz++) {
                 for (int by = minY; by <= maxY; by++) {

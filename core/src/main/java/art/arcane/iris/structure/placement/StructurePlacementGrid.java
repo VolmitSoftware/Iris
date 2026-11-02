@@ -159,6 +159,9 @@ public final class StructurePlacementGrid {
             signature = appendLong(signature, placement.isUnderwater() ? 1L : 0L);
             signature = appendSources(signature, placement);
             signature = appendAnchor(signature, placement);
+            if (placement.isAllowWater()) {
+                signature = appendLong(signature, 1L);
+            }
         }
         return signature;
     }

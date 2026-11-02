@@ -74,7 +74,7 @@ public class ReachShaperTest {
             for (Reach reach : spread.reaches()) {
                 Reach twin = steppedById.get(reach.id());
                 assertNotNull(twin);
-                int fall = reach.tier().waterfallMinimumDrop();
+                int fall = reach.tier().waterfallMinDrop();
                 int junction = twin.downstreamId() == 0L ? Integer.MIN_VALUE : twin.grade()[twin.grade().length - 1];
                 assertTrue("trial " + trial + " " + reach + " gained a waterfall",
                         dropsAbove(reach, junction, fall, Integer.MAX_VALUE) <= dropsAbove(twin, junction, fall, Integer.MAX_VALUE));
@@ -230,7 +230,7 @@ public class ReachShaperTest {
     public void dropAtWaterfallMinimumBecomesWaterfall() {
         HydrologySettings cascading = settings(config -> {
         });
-        int minimum = cascading.tiers().get(1).waterfallMinimumDrop();
+        int minimum = cascading.tiers().get(1).waterfallMinDrop();
         List<Drop> waterfall = drops(cascading, steppedValley(minimum));
         assertEquals("drops " + waterfall, 1, waterfall.size());
         assertEquals(minimum, waterfall.get(0).size());
@@ -293,9 +293,9 @@ public class ReachShaperTest {
         int[] grade = steep.grade;
         for (int index = 1; index < grade.length; index++) {
             int drop = grade[index - 1] - grade[index];
-            assertTrue(Arrays.toString(grade), drop >= 0 && drop < tier.waterfallMinimumDrop());
+            assertTrue(Arrays.toString(grade), drop >= 0 && drop < tier.waterfallMinDrop());
         }
-        assertTrue(Arrays.toString(grade), grade[0] > (int) ground[0] - tier.inset() - tier.waterfallMinimumDrop());
+        assertTrue(Arrays.toString(grade), grade[0] > (int) ground[0] - tier.inset() - tier.waterfallMinDrop());
         assertEquals((int) ground[ground.length - 1] - tier.inset(), grade[grade.length - 1]);
     }
 
@@ -1570,7 +1570,7 @@ public class ReachShaperTest {
             for (int index = 1; index <= entry && fall < 0; index++) {
                 fall = reach.grade()[index] == SEA_LEVEL ? index : -1;
             }
-            if (reach.grade()[fall - 1] - SEA_LEVEL >= reach.tier().waterfallMinimumDrop()) {
+            if (reach.grade()[fall - 1] - SEA_LEVEL >= reach.tier().waterfallMinDrop()) {
                 falls++;
                 int lip = fall == entry ? entry - 1 : fall;
                 assertEquals(reach.toString(), ReachStyle.WATERFALL, reach.style()[lip]);

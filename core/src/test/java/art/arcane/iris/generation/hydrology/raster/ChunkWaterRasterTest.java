@@ -817,7 +817,7 @@ public class ChunkWaterRasterTest {
     public void clampedSeamDropsAreStyledAsFalls() {
         HydrologyTier narrow = tier("river", 2f, 0.5f, 4, IrisBankStyle.SMOOTH);
         HydrologyTier wide = tier("river", 3f, 0.5f, 4, IrisBankStyle.SMOOTH);
-        assertEquals(6, narrow.waterfallMinimumDrop());
+        assertEquals(6, narrow.waterfallMinDrop());
         Reach low = line(232L, wide, 0L, 504f, 200f, 600f, 200f, (x, z) -> 62);
         Reach hanging = line(231L, narrow, low.id(), 440f, 200f, 504f, 200f, (x, z) -> 70);
         Scene falls = new Scene(settings(new IrisHydrology()), (x, z) -> 90).reach(hanging).reach(low);
@@ -922,7 +922,7 @@ public class ChunkWaterRasterTest {
         for (int point = 0; point < zone.length; point++) {
             zone[point] = drawn.xs()[point] - drawn.xs()[0] <= 8f;
         }
-        ReachStyle[] style = ReachShaper.styles(drawn.grade(), new boolean[zone.length], zone, narrow.waterfallMinimumDrop(), SEA_LEVEL);
+        ReachStyle[] style = ReachShaper.styles(drawn.grade(), new boolean[zone.length], zone, narrow.waterfallMinDrop(), SEA_LEVEL);
         assertEquals("the last outlet zone point steps down one block, shown as two", ReachStyle.CASCADE, style[4]);
         assertTrue("the step lies at the end of the outlet zone", zone[4] && !zone[5]);
         Reach outlet = new Reach(drawn.id(), narrow, drawn.downstreamId(), drawn.xs(), drawn.zs(), drawn.grade(), drawn.halfWidth(), drawn.depth(),
@@ -1523,7 +1523,7 @@ public class ChunkWaterRasterTest {
             halfWidth[point] = tier.minHalfWidth();
             depth[point] = tier.depth(tier.minHalfWidth());
             int drop = point == 0 ? 0 : grades[point - 1] - grades[point];
-            style[point] = drop >= tier.waterfallMinimumDrop() ? ReachStyle.WATERFALL
+            style[point] = drop >= tier.waterfallMinDrop() ? ReachStyle.WATERFALL
                     : drop >= 2 ? ReachStyle.CASCADE : drop == 1 ? ReachStyle.RIFFLE : ReachStyle.RUN;
         }
         return new Reach(id, tier, downstreamId, xs, zs, grades, halfWidth, depth, style, 1000f);

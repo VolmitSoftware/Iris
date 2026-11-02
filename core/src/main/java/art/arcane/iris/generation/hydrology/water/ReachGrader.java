@@ -74,7 +74,7 @@ final class ReachGrader {
         for (int position = upstreamFirst.length - 1; position >= 0; position--) {
             ReachDraft draft = drafts.get(upstreamFirst[position]);
             if (!draft.tier.cascades()) {
-                spread(draft.grade, draft.tier.waterfallMinimumDrop(), startLimit(drafts, draft), draft.held);
+                spread(draft.grade, draft.tier.waterfallMinDrop(), startLimit(drafts, draft), draft.held);
             }
             lowerIncomingEnds(drafts, draft);
         }
@@ -158,16 +158,16 @@ final class ReachGrader {
         int limit = Integer.MIN_VALUE;
         for (int upstream : draft.incoming) {
             ReachDraft feeder = drafts.get(upstream);
-            limit = Math.max(limit, carryLimit(feeder.grade, feeder.grade.length - 1, feeder.tier.waterfallMinimumDrop()));
+            limit = Math.max(limit, carryLimit(feeder.grade, feeder.grade.length - 1, feeder.tier.waterfallMinDrop()));
         }
         return limit;
     }
 
-    private static int carryLimit(int[] grade, int point, int waterfallMinimumDrop) {
-        if (point == 0 || grade[point - 1] - grade[point] >= waterfallMinimumDrop) {
+    private static int carryLimit(int[] grade, int point, int waterfallMinDrop) {
+        if (point == 0 || grade[point - 1] - grade[point] >= waterfallMinDrop) {
             return Integer.MIN_VALUE;
         }
-        return grade[point - 1] - (waterfallMinimumDrop - 1);
+        return grade[point - 1] - (waterfallMinDrop - 1);
     }
 
     private static int[] profile(List<ReachDraft> drafts, ReachDraft draft) {
@@ -210,18 +210,18 @@ final class ReachGrader {
         return sorted[Math.max(0, (int) Math.ceil(POOL_QUANTILE * sorted.length) - 1)];
     }
 
-    private static void spread(int[] grade, int waterfallMinimumDrop, int startLimit, boolean[] held) {
+    private static void spread(int[] grade, int waterfallMinDrop, int startLimit, boolean[] held) {
         for (int point = grade.length - 2; point >= 0; point--) {
-            spreadPoint(grade, point, waterfallMinimumDrop, startLimit, held);
+            spreadPoint(grade, point, waterfallMinDrop, startLimit, held);
         }
     }
 
-    static boolean spreadPoint(int[] grade, int point, int waterfallMinimumDrop, int startLimit, boolean[] held) {
+    static boolean spreadPoint(int[] grade, int point, int waterfallMinDrop, int startLimit, boolean[] held) {
         int drop = grade[point] - grade[point + 1];
-        if (drop < 2 || drop >= waterfallMinimumDrop || held != null && held[point]) {
+        if (drop < 2 || drop >= waterfallMinDrop || held != null && held[point]) {
             return false;
         }
-        int limit = point == 0 ? startLimit : carryLimit(grade, point, waterfallMinimumDrop);
+        int limit = point == 0 ? startLimit : carryLimit(grade, point, waterfallMinDrop);
         int spread = Math.min(grade[point], Math.max(grade[point + 1] + 1, limit));
         boolean lowered = spread < grade[point];
         grade[point] = spread;

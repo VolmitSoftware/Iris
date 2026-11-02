@@ -100,7 +100,7 @@ public final class SeaInletPlanner {
     private Map<Long, List<Integer>> sites(Terrain terrain, HydrologySettings.SeaInlets config) {
         Map<Long, List<Integer>> sites = new TreeMap<>();
         DemGrid grid = terrain.grid;
-        float cliff = settings.seaLevel() + config.minimumCliffHeight();
+        float cliff = settings.seaLevel() + config.minCliffHeight();
         for (int j = 1; j < grid.depth() - 1; j++) {
             for (int i = 1; i < grid.width() - 1; i++) {
                 int cell = grid.index(i, j);
@@ -467,7 +467,7 @@ public final class SeaInletPlanner {
         if (columns.first() < 0L || rows.first() < 0L || columns.last() > lastColumn || rows.last() > lastRow) {
             return true;
         }
-        float cliff = settings.seaLevel() + config.minimumCliffHeight();
+        float cliff = settings.seaLevel() + config.minCliffHeight();
         for (int i = (int) columns.first(); i <= columns.last(); i++) {
             if (rows.first() == 0L && cliffLand(terrain, i, 0, cliff) || rows.last() == lastRow && cliffLand(terrain, i, lastRow, cliff)) {
                 return true;

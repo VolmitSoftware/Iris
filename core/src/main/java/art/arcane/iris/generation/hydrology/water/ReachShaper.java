@@ -385,7 +385,7 @@ public final class ReachShaper {
     }
 
     private static void restyle(ReachDraft draft, int seaLevel) {
-        draft.style = styles(draft.grade, draft.ocean, draft.fixed(), draft.tier.waterfallMinimumDrop(), seaLevel);
+        draft.style = styles(draft.grade, draft.ocean, draft.fixed(), draft.tier.waterfallMinDrop(), seaLevel);
     }
 
     private static void chaikin(ReachDraft draft) {
@@ -548,11 +548,11 @@ public final class ReachShaper {
         return Math.clamp(1f - remaining / length, 0f, 1f);
     }
 
-    public static ReachStyle[] styles(int[] grade, boolean[] ocean, boolean[] outletZone, int waterfallMinimumDrop, int seaLevel) {
+    public static ReachStyle[] styles(int[] grade, boolean[] ocean, boolean[] outletZone, int waterfallMinDrop, int seaLevel) {
         ReachStyle[] styles = new ReachStyle[grade.length];
         for (int point = 0; point < grade.length; point++) {
             int drop = point == 0 ? 0 : grade[point - 1] - grade[point];
-            styles[point] = style(drop, waterfallMinimumDrop, ocean[point], outletZone[point]);
+            styles[point] = style(drop, waterfallMinDrop, ocean[point], outletZone[point]);
             if (drop == 1 && !ocean[point] && outletZone[point - 1]
                     && WaterHeads.snap(grade[point - 1], seaLevel) - WaterHeads.snap(grade[point], seaLevel) >= 2) {
                 styles[point] = ReachStyle.CASCADE;
@@ -560,18 +560,18 @@ public final class ReachShaper {
         }
         for (int point = 1; point < grade.length; point++) {
             if (styles[point] == ReachStyle.MOUTH && styles[point - 1] != ReachStyle.MOUTH
-                    && grade[point - 1] - grade[point] >= waterfallMinimumDrop) {
+                    && grade[point - 1] - grade[point] >= waterfallMinDrop) {
                 styles[point - 1] = ReachStyle.WATERFALL;
             }
         }
         return styles;
     }
 
-    private static ReachStyle style(int drop, int waterfallMinimumDrop, boolean mouth, boolean outlet) {
+    private static ReachStyle style(int drop, int waterfallMinDrop, boolean mouth, boolean outlet) {
         if (mouth) {
             return ReachStyle.MOUTH;
         }
-        if (drop >= waterfallMinimumDrop) {
+        if (drop >= waterfallMinDrop) {
             return ReachStyle.WATERFALL;
         }
         if (drop >= 2) {

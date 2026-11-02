@@ -50,7 +50,7 @@ public class IrisHydrologyTier {
     @MinNumber(2)
     @MaxNumber(64)
     @Description("Smallest drop in blocks that becomes a waterfall.")
-    private int waterfallMinimumDrop = 6;
+    private int waterfallMinDrop = 6;
 
     @MinNumber(0)
     @MaxNumber(64)

@@ -16,24 +16,24 @@ public class IrisHydrologyDefaultsTest {
     private static final String PLAN_JSON = """
             {
               "enabled": false,
-              "drainage": { "fillEpsilon": 0.001, "breachDepth": 24, "wetnessThinning": true, "minimumHeadKeep": 0.25, "saturationCatchment": 4194304 },
+              "drainage": { "fillEpsilon": 0.001, "breachDepth": 24, "wetnessThinning": true, "minHeadKeep": 0.25, "saturationCatchment": 4194304 },
               "tiers": [
-                { "name": "stream", "minCatchment": 1500,   "halfWidth": [0.5, 2],  "widthFactor": 1.0, "depthRatio": 0.4,  "inset": 1, "cascades": true, "waterfallMinimumDrop": 6, "bankBand": 0,  "bankStyle": "SMOOTH", "estuary": { "length": 48, "flare": 2.5 }, "delta": { "channels": 0, "spreadDegrees": 35, "length": 64 }, "materials": {}, "fluid": "water" },
-                { "name": "river",  "minCatchment": 20000,  "halfWidth": [2, 8],    "widthFactor": 1.0, "depthRatio": 0.45, "inset": 2, "cascades": true, "waterfallMinimumDrop": 6, "bankBand": 32, "bankStyle": "SMOOTH", "estuary": { "length": 48, "flare": 2.5 }, "delta": { "channels": 0, "spreadDegrees": 35, "length": 64 }, "materials": {}, "fluid": "water" },
-                { "name": "major",  "minCatchment": 320000, "halfWidth": [8, 16],   "widthFactor": 1.0, "depthRatio": 0.5,  "inset": 3, "cascades": true, "waterfallMinimumDrop": 6, "bankBand": 48, "bankStyle": "SMOOTH", "estuary": { "length": 48, "flare": 2.5 }, "delta": { "channels": 0, "spreadDegrees": 35, "length": 64 }, "materials": {}, "fluid": "water" }
+                { "name": "stream", "minCatchment": 1500,   "halfWidth": [0.5, 2],  "widthFactor": 1.0, "depthRatio": 0.4,  "inset": 1, "cascades": true, "waterfallMinDrop": 6, "bankBand": 0,  "bankStyle": "SMOOTH", "estuary": { "length": 48, "flare": 2.5 }, "delta": { "channels": 0, "spreadDegrees": 35, "length": 64 }, "materials": {}, "fluid": "water" },
+                { "name": "river",  "minCatchment": 20000,  "halfWidth": [2, 8],    "widthFactor": 1.0, "depthRatio": 0.45, "inset": 2, "cascades": true, "waterfallMinDrop": 6, "bankBand": 32, "bankStyle": "SMOOTH", "estuary": { "length": 48, "flare": 2.5 }, "delta": { "channels": 0, "spreadDegrees": 35, "length": 64 }, "materials": {}, "fluid": "water" },
+                { "name": "major",  "minCatchment": 320000, "halfWidth": [8, 16],   "widthFactor": 1.0, "depthRatio": 0.5,  "inset": 3, "cascades": true, "waterfallMinDrop": 6, "bankBand": 48, "bankStyle": "SMOOTH", "estuary": { "length": 48, "flare": 2.5 }, "delta": { "channels": 0, "spreadDegrees": 35, "length": 64 }, "materials": {}, "fluid": "water" }
               ],
               "ponds": {
                 "natural": { "enabled": true, "keep": 1.0, "minArea": 256, "maxArea": 65536, "minDepth": 2 },
                 "seeded":  { "enabled": true, "density": 4.0, "radius": [6, 24], "depth": [3, 8], "maxSlope": 0.6, "alongChannels": true, "channelSpacing": [96, 256] },
                 "dams":    { "enabled": false, "maxRaise": 4 },
-                "freeboard": [1, 3], "climateDrawdown": 6,
+                "freeboard": [1, 3], "dryDrawdown": 6,
                 "shore":   { "roundness": 0.5, "shelf": 6, "taper": 14, "maxDepth": 8 },
                 "materials": {}, "fluid": "water"
               },
               "lakes": { "enabled": true, "minArea": 65536, "maxArea": 4194304 },
               "deformation": { "maxFill": 6, "bankSlope": 0.2, "bankSteepFactor": 3.5, "bankNoise": 0.2, "caveMask": true },
               "underground": {
-                "seaInlets": { "enabled": true, "spacing": 192, "minimumCliffHeight": 8, "length": [64, 256], "halfWidth": [2, 5], "depth": [2, 5], "headroom": [4, 10], "roofClearance": 6, "chamberRadius": [6, 12] },
+                "seaInlets": { "enabled": true, "spacing": 192, "minCliffHeight": 8, "length": [64, 256], "halfWidth": [2, 5], "depth": [2, 5], "headroom": [4, 10], "roofClearance": 6, "chamberRadius": [6, 12] },
                 "cavePools": { "enabled": true, "density": 0.15, "minArea": 6, "maxArea": 400, "maxDepth": 4, "radius": 15, "freeboard": [0, 1], "fluid": "water" }
               },
               "fluids": [ { "name": "water", "palette": { "palette": [ { "block": "minecraft:water" } ] } } ],

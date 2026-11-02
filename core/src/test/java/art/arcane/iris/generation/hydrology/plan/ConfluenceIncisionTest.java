@@ -88,7 +88,7 @@ public class ConfluenceIncisionTest {
             }
         }
         assertTrue(major + " is cut " + cut + " into the wall", cut <= MAX_WALL_CUT);
-        double tallestFall = WALL_HEIGHT / 2D + major.tier().waterfallMinimumDrop();
+        double tallestFall = WALL_HEIGHT / 2D + major.tier().waterfallMinDrop();
         assertTrue(major + " falls " + largest + " blocks at once down a " + WALL_HEIGHT + "-block wall", largest <= tallestFall);
     }
 

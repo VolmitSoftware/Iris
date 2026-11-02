@@ -25,7 +25,7 @@ public class IrisSeaInlets {
     @MinNumber(1)
     @MaxNumber(128)
     @Description("Height in blocks the coastal land must rise above sea level to be a site. The passage also needs ground at least headroom min + roofClearance + 2 blocks above sea level within about 16 blocks of the coast, so gentle coasts hold no inlets.")
-    private int minimumCliffHeight = 8;
+    private int minCliffHeight = 8;
 
     @ArrayType(type = Integer.class, min = 2)
     @Description("Length of an inlet in blocks, written as [min, max]. The max plus 12, plus the larger of halfWidth max and chamberRadius max, plus 3 must not exceed 512.")

@@ -776,7 +776,7 @@ public final class PondPlanner {
     }
 
     private int drawdown(float dryness) {
-        return Math.round(settings.ponds().climateDrawdown() * dryness);
+        return Math.round(settings.ponds().dryDrawdown() * dryness);
     }
 
     private static int radius(DemGrid raw, Basin basin) {

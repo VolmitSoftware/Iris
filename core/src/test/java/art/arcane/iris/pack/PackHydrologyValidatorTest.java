@@ -514,16 +514,16 @@ public class PackHydrologyValidatorTest {
     }
 
     @Test
-    public void rejectsWaterfallMinimumDropBelowTwo() throws Exception {
+    public void rejectsWaterfallMinDropBelowTwo() throws Exception {
         File pack = pack(dimension("""
                 {"enabled": true, "tiers": [{"name": "stream", "halfWidth": [0.5, 2], "bankBand": 0},
-                  {"name": "river", "minCatchment": 20000, "halfWidth": [2, 8], "bankBand": 32, "waterfallMinimumDrop": 1}]}
+                  {"name": "river", "minCatchment": 20000, "halfWidth": [2, 8], "bankBand": 32, "waterfallMinDrop": 1}]}
                 """, ""));
         write(pack, "dimensions/edge.json", dimension("""
-                {"enabled": true, "tiers": [{"name": "stream", "halfWidth": [0.5, 2], "bankBand": 0, "waterfallMinimumDrop": 2}]}
+                {"enabled": true, "tiers": [{"name": "stream", "halfWidth": [0.5, 2], "bankBand": 0, "waterfallMinDrop": 2}]}
                 """, ""));
 
-        assertEquals(List.of("Dimension 'main'.hydrology does not compile: Hydrology tiers[1].waterfallMinimumDrop must be at least 2, got 1"),
+        assertEquals(List.of("Dimension 'main'.hydrology does not compile: Hydrology tiers[1].waterfallMinDrop must be at least 2, got 1"),
                 validate(pack).errors());
     }
 

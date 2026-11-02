@@ -26,7 +26,7 @@ public class ReachIndexTest {
     private static final WindowKey WINDOW = new WindowKey(0, 0);
     private static final int BANK_BAND = 4;
     private static final HydrologyTier TIER = new HydrologyTier("test", 0f, 1f, 4f, 1f, 0.4f, 1, true, 6, BANK_BAND, IrisBankStyle.SMOOTH,
-            new HydrologyTier.Estuary(48, 2.5f), new IrisHydrologyMaterials(), "water", List.of());
+            new HydrologyTier.Estuary(48, 2.5f), new HydrologyTier.Delta(0, 35f, 64), new IrisHydrologyMaterials(), "water", List.of());
 
     @Test
     public void aReachIdTwiceInOnePlanFailsClosedNamingTheWindow() {
@@ -187,7 +187,7 @@ public class ReachIndexTest {
 
     private static HydrologyTier tier(String name, int bankBand) {
         return new HydrologyTier(name, 0f, 0.5f, 4f, 1f, 0.4f, 1, true, 6, bankBand, IrisBankStyle.SMOOTH,
-                new HydrologyTier.Estuary(48, 2.5f), new IrisHydrologyMaterials(),
+                new HydrologyTier.Estuary(48, 2.5f), new HydrologyTier.Delta(0, 35f, 64), new IrisHydrologyMaterials(),
                 "water", List.of());
     }
 

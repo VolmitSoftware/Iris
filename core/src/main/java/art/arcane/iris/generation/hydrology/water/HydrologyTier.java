@@ -19,6 +19,7 @@ public record HydrologyTier(
         int bankBand,
         IrisBankStyle bankStyle,
         Estuary estuary,
+        Delta delta,
         IrisHydrologyMaterials materials,
         String fluid,
         List<IrisDecorator> decorators
@@ -36,5 +37,8 @@ public record HydrologyTier(
     }
 
     public record Estuary(int length, float flare) {
+    }
+
+    public record Delta(int channels, float spreadDegrees, int length) {
     }
 }

@@ -63,6 +63,9 @@ public class IrisHydrologyTier {
     @Description("How the channel widens into an estuary where it reaches the sea.")
     private IrisHydrologyEstuary estuary = new IrisHydrologyEstuary();
 
+    @Description("How the estuary splits into delta channels across low coastal ground.")
+    private IrisHydrologyDelta delta = new IrisHydrologyDelta();
+
     @Description("Blocks painted on the bed, shore and banks of this tier.")
     private IrisHydrologyMaterials materials = new IrisHydrologyMaterials();
 

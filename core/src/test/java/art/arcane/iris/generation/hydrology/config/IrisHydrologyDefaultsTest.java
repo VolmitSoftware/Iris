@@ -18,9 +18,9 @@ public class IrisHydrologyDefaultsTest {
               "enabled": false,
               "drainage": { "fillEpsilon": 0.001, "breachDepth": 24, "wetnessThinning": true, "minimumHeadKeep": 0.25, "saturationCatchment": 4194304 },
               "tiers": [
-                { "name": "stream", "minCatchment": 1500,   "halfWidth": [0.5, 2],  "widthFactor": 1.0, "depthRatio": 0.4,  "inset": 1, "cascades": true, "waterfallMinimumDrop": 6, "bankBand": 0,  "bankStyle": "SMOOTH", "estuary": { "length": 48, "flare": 2.5 }, "materials": {}, "fluid": "water" },
-                { "name": "river",  "minCatchment": 20000,  "halfWidth": [2, 8],    "widthFactor": 1.0, "depthRatio": 0.45, "inset": 2, "cascades": true, "waterfallMinimumDrop": 6, "bankBand": 32, "bankStyle": "SMOOTH", "estuary": { "length": 48, "flare": 2.5 }, "materials": {}, "fluid": "water" },
-                { "name": "major",  "minCatchment": 320000, "halfWidth": [8, 16],   "widthFactor": 1.0, "depthRatio": 0.5,  "inset": 3, "cascades": true, "waterfallMinimumDrop": 6, "bankBand": 48, "bankStyle": "SMOOTH", "estuary": { "length": 48, "flare": 2.5 }, "materials": {}, "fluid": "water" }
+                { "name": "stream", "minCatchment": 1500,   "halfWidth": [0.5, 2],  "widthFactor": 1.0, "depthRatio": 0.4,  "inset": 1, "cascades": true, "waterfallMinimumDrop": 6, "bankBand": 0,  "bankStyle": "SMOOTH", "estuary": { "length": 48, "flare": 2.5 }, "delta": { "channels": 0, "spreadDegrees": 35, "length": 64 }, "materials": {}, "fluid": "water" },
+                { "name": "river",  "minCatchment": 20000,  "halfWidth": [2, 8],    "widthFactor": 1.0, "depthRatio": 0.45, "inset": 2, "cascades": true, "waterfallMinimumDrop": 6, "bankBand": 32, "bankStyle": "SMOOTH", "estuary": { "length": 48, "flare": 2.5 }, "delta": { "channels": 0, "spreadDegrees": 35, "length": 64 }, "materials": {}, "fluid": "water" },
+                { "name": "major",  "minCatchment": 320000, "halfWidth": [8, 16],   "widthFactor": 1.0, "depthRatio": 0.5,  "inset": 3, "cascades": true, "waterfallMinimumDrop": 6, "bankBand": 48, "bankStyle": "SMOOTH", "estuary": { "length": 48, "flare": 2.5 }, "delta": { "channels": 0, "spreadDegrees": 35, "length": 64 }, "materials": {}, "fluid": "water" }
               ],
               "ponds": {
                 "natural": { "enabled": true, "keep": 1.0, "minArea": 256, "maxArea": 65536, "minDepth": 2 },

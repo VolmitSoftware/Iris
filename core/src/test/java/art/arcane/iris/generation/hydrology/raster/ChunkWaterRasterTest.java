@@ -906,7 +906,7 @@ public class ChunkWaterRasterTest {
     @Test
     public void crossWindowJunctionDropsSpreadOnTiersWithoutCascades() {
         HydrologyTier gentle = new HydrologyTier("stream", 0f, 2f, 2f, 0f, 0.5f, 1, false, 6, 4, IrisBankStyle.SMOOTH,
-                new HydrologyTier.Estuary(48, 2.5f), new IrisHydrologyMaterials(), "water", List.of());
+                new HydrologyTier.Estuary(48, 2.5f), new HydrologyTier.Delta(0, 35f, 64), new IrisHydrologyMaterials(), "water", List.of());
         HydrologyTier wide = tier("river", 3f, 0.5f, 4, IrisBankStyle.SMOOTH);
         Reach low = line(262L, wide, 0L, 504f, 200f, 600f, 200f, (x, z) -> 62);
         Reach steep = line(261L, gentle, low.id(), 440f, 200f, 504f, 200f, (x, z) -> x >= 496f ? 66 : Math.min(80, 66 + (int) ((496f - x) / 2f)));
@@ -1208,7 +1208,7 @@ public class ChunkWaterRasterTest {
 
     private static HydrologyTier lavaTier() {
         return new HydrologyTier("lava", 0f, 1.5f, 1.5f, 0f, 0.5f, 1, true, 6, 8, IrisBankStyle.SMOOTH,
-                new HydrologyTier.Estuary(48, 2.5f), new IrisHydrologyMaterials(), "lava", List.of());
+                new HydrologyTier.Estuary(48, 2.5f), new HydrologyTier.Delta(0, 35f, 64), new IrisHydrologyMaterials(), "lava", List.of());
     }
 
     private static void assertLavaSealedFromTheSea(Scene scene, HydrologySettings settings, IntBinaryOperator coast) {
@@ -1308,7 +1308,7 @@ public class ChunkWaterRasterTest {
 
     private static HydrologyTier tier(String name, float halfWidth, float depthRatio, int bankBand, IrisBankStyle style) {
         return new HydrologyTier(name, 0f, halfWidth, halfWidth, 0f, depthRatio, 1, true, 6, bankBand, style,
-                new HydrologyTier.Estuary(48, 2.5f), new IrisHydrologyMaterials(), "water", List.of());
+                new HydrologyTier.Estuary(48, 2.5f), new HydrologyTier.Delta(0, 35f, 64), new IrisHydrologyMaterials(), "water", List.of());
     }
 
     private static Reach line(long id, HydrologyTier tier, long downstreamId, float startX, float startZ, float endX, float endZ, Grade grade) {

@@ -121,7 +121,7 @@ public class PondChannelSettlementTest {
 
     private static Reach line(long id, int x0, int z0, int x1, int z1, float width, int first, int last) {
         HydrologyTier tier = new HydrologyTier("river", 0f, width, width, 0f, 0.5f, 2, true, 6, 0, IrisBankStyle.SMOOTH,
-                new HydrologyTier.Estuary(48, 2.5f), null, "water", List.of());
+                new HydrologyTier.Estuary(48, 2.5f), new HydrologyTier.Delta(0, 35f, 64), null, "water", List.of());
         float[] widths = new float[]{width, width};
         float[] depth = new float[]{2f, 2f};
         ReachStyle[] styles = new ReachStyle[2];

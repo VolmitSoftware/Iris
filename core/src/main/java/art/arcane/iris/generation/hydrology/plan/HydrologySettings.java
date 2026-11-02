@@ -8,6 +8,7 @@ import art.arcane.iris.generation.hydrology.config.IrisFluidProfile;
 import art.arcane.iris.generation.hydrology.config.IrisHydrologyClimate;
 import art.arcane.iris.generation.hydrology.config.IrisHydrology;
 import art.arcane.iris.generation.hydrology.config.IrisHydrologyDeformation;
+import art.arcane.iris.generation.hydrology.config.IrisHydrologyDelta;
 import art.arcane.iris.generation.hydrology.config.IrisHydrologyDrainage;
 import art.arcane.iris.generation.hydrology.config.IrisHydrologyEstuary;
 import art.arcane.iris.generation.hydrology.config.IrisHydrologyLakes;
@@ -22,6 +23,7 @@ import art.arcane.iris.generation.hydrology.config.IrisPondShore;
 import art.arcane.iris.generation.hydrology.config.IrisSeaInlets;
 import art.arcane.iris.generation.hydrology.underground.SeaInletRasterizer;
 import art.arcane.iris.generation.hydrology.water.HydrologyTier;
+import art.arcane.iris.generation.hydrology.water.ReachShaper;
 import art.arcane.iris.generation.noise.IrisGeneratorStyle;
 import art.arcane.iris.generation.terrain.IrisMaterialPalette;
 import com.google.gson.Gson;
@@ -39,6 +41,12 @@ public final class HydrologySettings {
     private static final int MAX_BANK_BAND = 64;
     private static final int MAX_ESTUARY_LENGTH = 256;
     private static final double MAX_ESTUARY_FLARE = 4D;
+    private static final int MIN_DELTA_CHANNELS = 2;
+    private static final int MAX_DELTA_CHANNELS = 4;
+    private static final double MIN_DELTA_SPREAD = 10D;
+    private static final double MAX_DELTA_SPREAD = 80D;
+    private static final int MIN_DELTA_LENGTH = 8;
+    private static final int MAX_DELTA_LENGTH = 384;
     public static final float MAX_HALF_WIDTH = 64f;
     private static final double MIN_INLET_HALF_WIDTH = 1D;
     private static final double MAX_INLET_HALF_WIDTH = 16D;
@@ -242,8 +250,35 @@ public final class HydrologySettings {
         return new HydrologyTier(config.getName(), (float) config.getMinCatchment(), halfWidth.min(), halfWidth.max(),
                 (float) config.getWidthFactor(), (float) config.getDepthRatio(), config.getInset(), config.isCascades(),
                 config.getWaterfallMinimumDrop(), config.getBankBand(), config.getBankStyle(),
-                estuary(config.getEstuary(), field + ".estuary"), materials(config.getMaterials(), field + ".materials"), config.getFluid(),
-                decorators(config.getDecorators(), field + ".decorators"));
+                estuary(config.getEstuary(), field + ".estuary"), delta(config, halfWidth.max(), field + ".delta"),
+                materials(config.getMaterials(), field + ".materials"), config.getFluid(), decorators(config.getDecorators(), field + ".decorators"));
+    }
+
+    private static HydrologyTier.Delta delta(IrisHydrologyTier tier, float maxHalfWidth, String field) {
+        IrisHydrologyDelta config = tier.getDelta();
+        String named = "Hydrology " + field + " of tier '" + tier.getName() + "'";
+        if (config == null) {
+            throw new IllegalArgumentException(named + " must be an object");
+        }
+        if (config.getChannels() != 0 && (config.getChannels() < MIN_DELTA_CHANNELS || config.getChannels() > MAX_DELTA_CHANNELS)) {
+            throw new IllegalArgumentException(named + " has channels " + config.getChannels() + "; a delta has 0 channels (none) or "
+                    + MIN_DELTA_CHANNELS + " to " + MAX_DELTA_CHANNELS);
+        }
+        if (!(config.getSpreadDegrees() >= MIN_DELTA_SPREAD && config.getSpreadDegrees() <= MAX_DELTA_SPREAD)) {
+            throw new IllegalArgumentException(named + " has spreadDegrees " + config.getSpreadDegrees() + "; it must stay within "
+                    + MIN_DELTA_SPREAD + ".." + MAX_DELTA_SPREAD);
+        }
+        if (config.getLength() < MIN_DELTA_LENGTH || config.getLength() > MAX_DELTA_LENGTH) {
+            throw new IllegalArgumentException(named + " has length " + config.getLength() + "; it must stay within "
+                    + MIN_DELTA_LENGTH + ".." + MAX_DELTA_LENGTH);
+        }
+        long extent = (long) config.getLength() + ReachShaper.DELTA_STEP + (long) Math.ceil(maxHalfWidth) + tier.getBankBand() + 1L;
+        if (config.getChannels() > 0 && extent > WindowKey.SIZE) {
+            throw new IllegalArgumentException(named + " reaches " + extent + " blocks from its sea end (length " + config.getLength()
+                    + " + " + ReachShaper.DELTA_STEP + " for the last step + halfWidth max " + maxHalfWidth + " + bankBand " + tier.getBankBand()
+                    + " + 1); a delta channel and its banks must stay within " + WindowKey.SIZE + " blocks");
+        }
+        return new HydrologyTier.Delta(config.getChannels(), (float) config.getSpreadDegrees(), config.getLength());
     }
 
     private static HydrologyTier.Estuary estuary(IrisHydrologyEstuary config, String field) {
@@ -569,6 +604,7 @@ public final class HydrologySettings {
                     .add(tier.widthFactor()).add(tier.depthRatio()).add(tier.inset()).add(tier.cascades())
                     .add(tier.waterfallMinimumDrop()).add(tier.bankBand()).add(tier.bankStyle())
                     .add(tier.estuary().length()).add(tier.estuary().flare())
+                    .add(tier.delta().channels()).add(tier.delta().spreadDegrees()).add(tier.delta().length())
                     .add(tier.materials()).add(tier.fluid());
         }
     }

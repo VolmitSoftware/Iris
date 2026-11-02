@@ -32,7 +32,7 @@ public class HydrologySettingsTest {
     private static final int SEA_LEVEL = 62;
     private static final int MIN_Y = -64;
     private static final int MAX_Y = 320;
-    private static final long DEFAULT_FINGERPRINT = 4889114733390836736L;
+    private static final long DEFAULT_FINGERPRINT = -5309117903859653038L;
 
     @Test
     public void densityIsBoundedAndChangesThePlanIdentity() {
@@ -238,6 +238,18 @@ public class HydrologySettingsTest {
         estuaryFlare.getTiers().get(2).getEstuary().setFlare(3D);
         fingerprints.add(compile(estuaryFlare).fingerprint());
 
+        IrisHydrology deltaChannels = new IrisHydrology();
+        deltaChannels.getTiers().get(2).getDelta().setChannels(3);
+        fingerprints.add(compile(deltaChannels).fingerprint());
+
+        IrisHydrology deltaSpread = new IrisHydrology();
+        deltaSpread.getTiers().get(2).getDelta().setSpreadDegrees(50D);
+        fingerprints.add(compile(deltaSpread).fingerprint());
+
+        IrisHydrology deltaLength = new IrisHydrology();
+        deltaLength.getTiers().get(2).getDelta().setLength(96);
+        fingerprints.add(compile(deltaLength).fingerprint());
+
         fingerprints.add(HydrologySettings.compile(new IrisHydrology(), SEED + 1L, SEA_LEVEL, MIN_Y, MAX_Y).fingerprint());
         fingerprints.add(HydrologySettings.compile(new IrisHydrology(), SEED, SEA_LEVEL + 1, MIN_Y, MAX_Y).fingerprint());
 
@@ -393,6 +405,42 @@ public class HydrologySettingsTest {
         assertEquals(new HydrologyTier.Estuary(0, 1f), compiled.tiers().get(0).estuary());
         assertEquals(new HydrologyTier.Estuary(256, 4f), compiled.tiers().get(1).estuary());
         assertEquals(new HydrologyTier.Estuary(48, 2.5f), compiled.tiers().get(2).estuary());
+    }
+
+    @Test
+    public void compileRejectsADeltaOutsideItsBounds() {
+        for (int channels : new int[]{-1, 1, 5}) {
+            IrisHydrology config = new IrisHydrology();
+            config.getTiers().get(2).getDelta().setChannels(channels);
+            assertRejected(config, "tiers[2].delta of tier 'major' has channels " + channels);
+        }
+        for (double spread : new double[]{9.99D, 80.01D, Double.NaN}) {
+            IrisHydrology config = new IrisHydrology();
+            config.getTiers().get(1).getDelta().setSpreadDegrees(spread);
+            assertRejected(config, "tiers[1].delta of tier 'river' has spreadDegrees");
+        }
+        for (int length : new int[]{7, 385}) {
+            IrisHydrology config = new IrisHydrology();
+            config.getTiers().get(0).getDelta().setLength(length);
+            assertRejected(config, "tiers[0].delta of tier 'stream' has length " + length);
+        }
+        IrisHydrology missing = new IrisHydrology();
+        missing.getTiers().get(0).setDelta(null);
+        assertRejected(missing, "tiers[0].delta of tier 'stream' must be an object");
+
+        IrisHydrology wide = new IrisHydrology();
+        wide.getTiers().get(2).setHalfWidth(new KList<>(8D, 64D)).setBankBand(64).getDelta().setLength(384).setChannels(2);
+        assertRejected(wide, "tiers[2].delta of tier 'major' reaches 515 blocks");
+        wide.getTiers().get(2).getDelta().setChannels(0);
+        assertEquals(new HydrologyTier.Delta(0, 35f, 384), compile(wide).tiers().get(2).delta());
+
+        IrisHydrology bounds = new IrisHydrology();
+        bounds.getTiers().get(0).getDelta().setChannels(2).setSpreadDegrees(10D).setLength(8);
+        bounds.getTiers().get(1).getDelta().setChannels(4).setSpreadDegrees(80D).setLength(384);
+        HydrologySettings compiled = compile(bounds);
+        assertEquals(new HydrologyTier.Delta(2, 10f, 8), compiled.tiers().get(0).delta());
+        assertEquals(new HydrologyTier.Delta(4, 80f, 384), compiled.tiers().get(1).delta());
+        assertEquals(new HydrologyTier.Delta(0, 35f, 64), compiled.tiers().get(2).delta());
     }
 
     @Test

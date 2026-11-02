@@ -4,6 +4,7 @@ import art.arcane.iris.generation.hydrology.config.IrisHydrology;
 import art.arcane.iris.generation.hydrology.plan.HydrologySettings;
 import art.arcane.iris.generation.hydrology.plan.WindowKey;
 import art.arcane.iris.generation.hydrology.water.Reach;
+import art.arcane.iris.generation.hydrology.water.ReachStyle;
 import art.arcane.iris.generation.hydrology.water.ShapedNetwork;
 import art.arcane.volmlib.util.collection.KList;
 import org.junit.Test;
@@ -275,6 +276,68 @@ public class SeaInletPlannerTest {
             int[] bounds = SeaInletRasterizer.bounds(inlet);
             assertTrue(inlet + " stops before the low river at x=232", bounds[2] < 232 - settings.tiers().get(0).bankBand());
         }
+    }
+
+    @Test
+    public void inletsKeepClearOfSeaLevelDeltaChannels() {
+        HydrologySettings settings = InletTerrain.settings();
+        InletTerrain terrain = InletTerrain.cliff(30D);
+        List<SeaInlet> open = terrain.plan(settings);
+        assertFalse(open.isEmpty());
+        SeaInlet first = open.get(0);
+        Reach channel = deltaChannel(settings, first.xs()[1] + 16f, first.zs()[1], InletTerrain.COAST_X - 12f, first.zs()[0]);
+        assertTrue("the channel runs through the inlet's opening", crosses(first, channel));
+        List<SeaInlet> planned = terrain.plan(settings, new ShapedNetwork(List.of(channel), List.of()));
+        for (SeaInlet inlet : planned) {
+            assertFalse(inlet + " crosses the delta channel", crosses(inlet, channel));
+        }
+    }
+
+    private static Reach deltaChannel(HydrologySettings settings, float fromX, float fromZ, float toX, float toZ) {
+        int points = Math.max(2, (int) Math.ceil(Math.hypot(toX - fromX, toZ - fromZ) / 2D) + 1);
+        float[] xs = new float[points];
+        float[] zs = new float[points];
+        int[] grades = new int[points];
+        float[] widths = new float[points];
+        float[] depths = new float[points];
+        ReachStyle[] styles = new ReachStyle[points];
+        for (int point = 0; point < points; point++) {
+            xs[point] = fromX + (toX - fromX) * point / (points - 1);
+            zs[point] = fromZ + (toZ - fromZ) * point / (points - 1);
+            grades[point] = SEA;
+            widths[point] = 3.5f;
+            depths[point] = 1.5f;
+            styles[point] = ReachStyle.MOUTH;
+        }
+        return new Reach(79L, settings.tiers().get(2), 0L, xs, zs, grades, widths, depths, styles, 150000f);
+    }
+
+    private static boolean crosses(SeaInlet inlet, Reach channel) {
+        int[] bounds = SeaInletRasterizer.bounds(inlet);
+        int[] column = new int[2];
+        for (int z = bounds[1]; z <= bounds[3]; z++) {
+            for (int x = bounds[0]; x <= bounds[2]; x++) {
+                if (SeaInletRasterizer.column(inlet, x, z, column) && inWater(channel, x, z)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private static boolean inWater(Reach reach, int x, int z) {
+        for (int segment = 0; segment + 1 < reach.xs().length; segment++) {
+            double ax = reach.xs()[segment];
+            double az = reach.zs()[segment];
+            double dx = reach.xs()[segment + 1] - ax;
+            double dz = reach.zs()[segment + 1] - az;
+            double length = dx * dx + dz * dz;
+            double t = length == 0D ? 0D : Math.clamp(((x - ax) * dx + (z - az) * dz) / length, 0D, 1D);
+            if (Math.hypot(x - (ax + t * dx), z - (az + t * dz)) <= reach.halfWidth()[segment]) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Test

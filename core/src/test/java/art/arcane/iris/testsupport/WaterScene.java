@@ -82,7 +82,7 @@ public final class WaterScene {
 
     public static HydrologyTier tier(String name, float halfWidth, float depthRatio) {
         return new HydrologyTier(name, 0f, halfWidth, halfWidth, 0f, depthRatio, 1, true, 6, 0, IrisBankStyle.SMOOTH,
-                new HydrologyTier.Estuary(48, 2.5f), new IrisHydrologyMaterials(), "water", List.of());
+                new HydrologyTier.Estuary(48, 2.5f), new HydrologyTier.Delta(0, 35f, 64), new IrisHydrologyMaterials(), "water", List.of());
     }
 
     public static Reach line(long id, HydrologyTier tier, int startX, int startZ, int endX, int endZ, IntBinaryOperator grade) {

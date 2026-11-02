@@ -5,6 +5,7 @@ import art.arcane.iris.generation.hydrology.grid.DemGrid;
 import art.arcane.iris.generation.hydrology.grid.HydrologySampleBuffer;
 import art.arcane.iris.generation.hydrology.plan.HydrologySettings;
 import art.arcane.iris.generation.hydrology.plan.WindowKey;
+import art.arcane.iris.generation.hydrology.plan.WindowPlanner;
 import art.arcane.iris.generation.hydrology.water.Pond;
 import art.arcane.iris.generation.hydrology.water.PondMask;
 import art.arcane.iris.generation.hydrology.water.Reach;
@@ -20,6 +21,7 @@ import java.util.TreeMap;
 public final class SeaInletPlanner {
     private static final int ROOF_MARGIN = 2;
     private static final int OPEN_LAND_STATIONS = 2;
+    private static final int STEP_LOOKUP_CELLS = 2;
     private static final float NOISE_STEP = 32f;
     private static final int CONTAINMENT = 2;
     private static final float WET_SLACK = CONTAINMENT + 1 + 6f;
@@ -41,6 +43,12 @@ public final class SeaInletPlanner {
         this.settings = Objects.requireNonNull(settings, "settings");
     }
 
+    public static long lookupReach(int lengthMax, int chamberRadiusMax) {
+        int cell = WindowPlanner.CELL;
+        long farthestStation = cell * (long) Math.floor((lengthMax + cell * Math.sqrt(2D) - cell) / cell);
+        return farthestStation + (long) cell * Math.max(STEP_LOOKUP_CELLS, chamberRing(chamberRadiusMax, cell));
+    }
+
     public List<SeaInlet> plan(WindowKey window, DemGrid raw, HydrologySampleBuffer samples, int[] receivers, float[] accumulation,
                                ShapedNetwork network, long seed) {
         Objects.requireNonNull(window, "window");
@@ -53,32 +61,37 @@ public final class SeaInletPlanner {
             throw new IllegalArgumentException("Sea inlet planning needs " + count + " cells, got samples=" + samples.height().length
                     + " receivers=" + receivers.length + " accumulation=" + accumulation.length);
         }
-        Terrain terrain = new Terrain(raw, samples, receivers, accumulation, cover(window, raw, samples.height(), network), seed);
-        List<SeaInlet> inlets = new ArrayList<>();
+        Terrain terrain = new Terrain(raw, samples, receivers, accumulation, cover(raw, samples.height(), network), seed);
+        List<Traced> traced = new ArrayList<>();
         for (Map.Entry<Long, List<Integer>> site : sites(terrain, config).entrySet()) {
             SeaInlet inlet = site(terrain, config, site.getKey(), site.getValue());
-            if (inlet != null && (!terrain.clipped || window.equals(owner(inlet)))) {
-                inlets.add(inlet);
+            if (inlet == null) {
+                continue;
             }
+            if (terrain.clipped && window.equals(owner(inlet))) {
+                throw new IllegalStateException("Sea inlet " + inlet.id() + " of window " + window
+                        + " reaches the edge of the window's planning span");
+            }
+            traced.add(new Traced(inlet, !terrain.clipped));
         }
-        inlets.sort(Comparator.comparingLong(SeaInlet::id).thenComparingDouble(inlet -> inlet.xs()[0])
-                .thenComparingDouble(inlet -> inlet.zs()[0]));
-        return separated(inlets);
+        traced.sort(Comparator.comparingLong((Traced entry) -> entry.inlet().id()).thenComparingDouble(entry -> entry.inlet().xs()[0])
+                .thenComparingDouble(entry -> entry.inlet().zs()[0]));
+        return separated(traced);
     }
 
-    private static List<SeaInlet> separated(List<SeaInlet> inlets) {
-        List<SeaInletFootprint> footprints = new ArrayList<>(inlets.size());
-        for (SeaInlet inlet : inlets) {
-            footprints.add(SeaInletFootprint.of(inlet));
+    private static List<SeaInlet> separated(List<Traced> traced) {
+        List<SeaInletFootprint> footprints = new ArrayList<>(traced.size());
+        for (Traced entry : traced) {
+            footprints.add(SeaInletFootprint.of(entry.inlet()));
         }
-        List<SeaInlet> kept = new ArrayList<>(inlets.size());
-        for (int index = 0; index < inlets.size(); index++) {
+        List<SeaInlet> kept = new ArrayList<>(traced.size());
+        for (int index = 0; index < traced.size(); index++) {
             boolean yields = false;
             for (int earlier = 0; earlier < index && !yields; earlier++) {
                 yields = footprints.get(earlier).conflicts(footprints.get(index));
             }
-            if (!yields) {
-                kept.add(inlets.get(index));
+            if (!yields && traced.get(index).whole()) {
+                kept.add(traced.get(index).inlet());
             }
         }
         return List.copyOf(kept);
@@ -111,7 +124,7 @@ public final class SeaInletPlanner {
         double targetZ = (siteZ + CellHash.unit(CellHash.mix(terrain.seed, SALT_SITE_Z, siteX, siteZ))) * config.spacing();
         DemGrid grid = terrain.grid;
         WindowKey owner = WindowKey.containing((int) Math.floor(targetX), (int) Math.floor(targetZ));
-        terrain.clipped = reachesEdge(terrain, config, siteX, siteZ, owner);
+        terrain.clipped = siteTouchesBorder(terrain, config, siteX, siteZ, owner);
         List<Integer> ordered = new ArrayList<>(candidates.size());
         for (int candidate : candidates) {
             if (owner.equals(WindowKey.containing(grid.blockX(candidate), grid.blockZ(candidate)))) {
@@ -182,7 +195,7 @@ public final class SeaInletPlanner {
         int radius = 0;
         int preferred = Math.round(lerp(config.chamberRadius().min(), config.chamberRadius().max(), unit(terrain, SALT_RADIUS, end)));
         for (int candidate : new int[]{preferred, config.chamberRadius().min()}) {
-            float capacity = capacity(terrain, config, end, (candidate + grid.cell() - 1) / grid.cell() + 1);
+            float capacity = capacity(terrain, config, end, chamberRing(candidate, grid.cell()));
             if (capacity - water >= config.headroom().min()) {
                 radius = candidate;
                 chamberCapacity = capacity;
@@ -362,15 +375,12 @@ public final class SeaInletPlanner {
         return best;
     }
 
-    private Cover cover(WindowKey window, DemGrid grid, float[] natural, ShapedNetwork network) {
+    private Cover cover(DemGrid grid, float[] natural, ShapedNetwork network) {
         int count = grid.values().length;
         float[] cover = new float[count];
         System.arraycopy(natural, 0, cover, 0, count);
         boolean[] wet = new boolean[count];
         for (Reach reach : network.reaches()) {
-            if (!nearby(window, owner(reach))) {
-                continue;
-            }
             int band = reach.tier().bankBand() + CONTAINMENT + grid.cell();
             for (int point = 0; point + 1 < reach.xs().length; point++) {
                 float bed = Math.min(reach.grade()[point] - reach.depth()[point], reach.grade()[point + 1] - reach.depth()[point + 1]) - 1f;
@@ -448,33 +458,34 @@ public final class SeaInletPlanner {
         return neighbour;
     }
 
-    private boolean reachesEdge(Terrain terrain, HydrologySettings.SeaInlets config, int siteX, int siteZ, WindowKey owner) {
+    private boolean siteTouchesBorder(Terrain terrain, HydrologySettings.SeaInlets config, int siteX, int siteZ, WindowKey owner) {
         DemGrid grid = terrain.grid;
-        long[] columns = siteCells(siteX, config.spacing(), owner.wx(), grid.originX(), grid.cell());
-        long[] rows = siteCells(siteZ, config.spacing(), owner.wz(), grid.originZ(), grid.cell());
-        if (columns[0] < 0L || rows[0] < 0L || columns[1] >= grid.width() || rows[1] >= grid.depth()) {
+        CellRange columns = siteCells(siteX, config.spacing(), owner.wx(), grid.originX(), grid.cell());
+        CellRange rows = siteCells(siteZ, config.spacing(), owner.wz(), grid.originZ(), grid.cell());
+        int lastColumn = grid.width() - 1;
+        int lastRow = grid.depth() - 1;
+        if (columns.first() < 0L || rows.first() < 0L || columns.last() > lastColumn || rows.last() > lastRow) {
             return true;
         }
         float cliff = settings.seaLevel() + config.minimumCliffHeight();
-        int lastColumn = grid.width() - 1;
-        int lastRow = grid.depth() - 1;
-        for (int i = (int) columns[0]; i <= columns[1]; i++) {
-            if (rows[0] == 0L && cliffLand(terrain, i, 0, cliff) || rows[1] == lastRow && cliffLand(terrain, i, lastRow, cliff)) {
+        for (int i = (int) columns.first(); i <= columns.last(); i++) {
+            if (rows.first() == 0L && cliffLand(terrain, i, 0, cliff) || rows.last() == lastRow && cliffLand(terrain, i, lastRow, cliff)) {
                 return true;
             }
         }
-        for (int j = (int) rows[0]; j <= rows[1]; j++) {
-            if (columns[0] == 0L && cliffLand(terrain, 0, j, cliff) || columns[1] == lastColumn && cliffLand(terrain, lastColumn, j, cliff)) {
+        for (int j = (int) rows.first(); j <= rows.last(); j++) {
+            if (columns.first() == 0L && cliffLand(terrain, 0, j, cliff)
+                    || columns.last() == lastColumn && cliffLand(terrain, lastColumn, j, cliff)) {
                 return true;
             }
         }
         return false;
     }
 
-    private static long[] siteCells(int site, int spacing, int window, int origin, int cell) {
+    private static CellRange siteCells(int site, int spacing, int window, int origin, int cell) {
         long from = Math.max((long) site * spacing, (long) window * WindowKey.SIZE);
         long to = Math.min(((long) site + 1L) * spacing, ((long) window + 1L) * WindowKey.SIZE);
-        return new long[]{Math.ceilDiv(from - origin, cell), Math.ceilDiv(to - origin, cell) - 1L};
+        return new CellRange(Math.ceilDiv(from - origin, cell), Math.ceilDiv(to - origin, cell) - 1L);
     }
 
     private static boolean cliffLand(Terrain terrain, int i, int j, float cliff) {
@@ -482,17 +493,12 @@ public final class SeaInletPlanner {
         return !terrain.ocean(cell) && terrain.natural(cell) >= cliff;
     }
 
+    private static int chamberRing(int radius, int cell) {
+        return (radius + cell - 1) / cell + 1;
+    }
+
     private static WindowKey owner(SeaInlet inlet) {
         return WindowKey.containing((int) Math.floor(inlet.xs()[1]), (int) Math.floor(inlet.zs()[1]));
-    }
-
-    private static WindowKey owner(Reach reach) {
-        int last = reach.xs().length - 1;
-        return WindowKey.containing((int) Math.floor(reach.xs()[last]), (int) Math.floor(reach.zs()[last]));
-    }
-
-    private static boolean nearby(WindowKey window, WindowKey other) {
-        return Math.abs(other.wx() - window.wx()) <= 1 && Math.abs(other.wz() - window.wz()) <= 1;
     }
 
     private static double squaredAbove(float radius) {
@@ -534,6 +540,12 @@ public final class SeaInletPlanner {
     }
 
     private record Cover(float[] cover, boolean[] wet) {
+    }
+
+    private record Traced(SeaInlet inlet, boolean whole) {
+    }
+
+    private record CellRange(long first, long last) {
     }
 
     private static final class Terrain {

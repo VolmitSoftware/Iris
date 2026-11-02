@@ -19,6 +19,7 @@ import art.arcane.iris.generation.hydrology.config.IrisPondNatural;
 import art.arcane.iris.generation.hydrology.config.IrisPondSeeded;
 import art.arcane.iris.generation.hydrology.config.IrisPondShore;
 import art.arcane.iris.generation.hydrology.config.IrisSeaInlets;
+import art.arcane.iris.generation.hydrology.underground.SeaInletPlanner;
 import art.arcane.iris.generation.hydrology.underground.SeaInletRasterizer;
 import art.arcane.iris.generation.hydrology.water.HydrologyTier;
 import art.arcane.iris.generation.noise.IrisGeneratorStyle;
@@ -308,6 +309,12 @@ public final class HydrologySettings {
             throw new IllegalArgumentException("Hydrology underground.seaInlets reach " + extent + " blocks from the coast (length max "
                     + inlets.length().max() + " + " + INLET_LAST_STEP + " for the last step + the wider of halfWidth max and chamberRadius max"
                     + " + " + (1 + INLET_SHELL) + " for the seal); an inlet must stay within " + WindowKey.SIZE + " blocks");
+        }
+        long lookups = SeaInletPlanner.lookupReach(inlets.length().max(), inlets.chamberRadius().max());
+        if (lookups > WindowKey.SIZE) {
+            throw new IllegalArgumentException("Hydrology underground.seaInlets planning looks " + lookups
+                    + " blocks from the coast (length max " + inlets.length().max() + ", chamberRadius max " + inlets.chamberRadius().max()
+                    + "); it must stay within " + WindowKey.SIZE + " blocks");
         }
         return inlets;
     }

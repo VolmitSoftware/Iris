@@ -35,12 +35,16 @@ final class InletTerrain {
     final float[] accumulation;
 
     private InletTerrain(DoubleBinaryOperator natural) {
-        this(natural, 0, 0, WIDTH, DEPTH);
+        this(natural, new WindowKey(0, 0));
     }
 
-    private InletTerrain(DoubleBinaryOperator natural, int originX, int originZ, int width, int depth) {
+    private InletTerrain(DoubleBinaryOperator natural, WindowKey window) {
+        this(natural, window, (window.wx() - 1) * WindowKey.SIZE, (window.wz() - 1) * WindowKey.SIZE, SPAN, SPAN);
+    }
+
+    private InletTerrain(DoubleBinaryOperator natural, WindowKey window, int originX, int originZ, int width, int depth) {
         this.natural = natural;
-        this.window = WindowKey.containing(originX + width * CELL / 2, originZ + depth * CELL / 2);
+        this.window = window;
         this.grid = new DemGrid(originX, originZ, CELL, width, depth);
         int count = width * depth;
         this.samples = new HydrologySampleBuffer(count);
@@ -74,6 +78,27 @@ final class InletTerrain {
 
     static InletTerrain cliff(double cliffHeight) {
         return new InletTerrain((x, z) -> x < COAST_X ? SEA - 20D : SEA + cliffHeight + 0.08D * (x - COAST_X));
+    }
+
+    InletTerrain wide(WindowKey window, int windows) {
+        int cells = (2 * windows + 1) * WindowKey.SIZE / CELL;
+        int originX = (window.wx() - windows) * WindowKey.SIZE;
+        int originZ = (window.wz() - windows) * WindowKey.SIZE;
+        return new InletTerrain(natural, window, originX, originZ, cells, cells);
+    }
+
+    static InletTerrain bay(int westX, int eastX, int bayZ) {
+        return new InletTerrain((x, z) -> {
+            if (z > bayZ - CELL / 2D) {
+                return Math.abs(z - bayZ) < CELL / 2D && x > westX - CELL / 2D && x < eastX + CELL / 2D ? SEA - 20D : SEA + 5D;
+            }
+            return SEA + 30D + 0.08D * (bayZ - z);
+        });
+    }
+
+    static InletTerrain eastEdgeCoast() {
+        double coast = WindowKey.SIZE - CELL;
+        return new InletTerrain((x, z) -> x < coast - CELL / 2D ? SEA - 20D : SEA + 30D + 0.08D * (x - coast));
     }
 
     static InletTerrain openCoast() {
@@ -134,12 +159,12 @@ final class InletTerrain {
         return HydrologySettings.compile(config, SEED, SEA, MIN_Y, MAX_Y);
     }
 
-    InletTerrain shifted(int originX, int originZ) {
-        return new InletTerrain(natural, originX, originZ, WIDTH, DEPTH);
+    InletTerrain span(WindowKey window) {
+        return new InletTerrain(natural, window);
     }
 
-    InletTerrain span(WindowKey window) {
-        return new InletTerrain(natural, (window.wx() - 1) * WindowKey.SIZE, (window.wz() - 1) * WindowKey.SIZE, SPAN, SPAN);
+    InletTerrain narrow(int originX, int originZ) {
+        return new InletTerrain(natural, WindowKey.containing(originX, originZ), originX, originZ, WIDTH, DEPTH);
     }
 
     List<SeaInlet> plan(HydrologySettings settings, ShapedNetwork network) {
@@ -151,7 +176,7 @@ final class InletTerrain {
     }
 
     boolean ocean(float x, float z) {
-        int cell = grid.index(Math.round(x / CELL), Math.round(z / CELL));
+        int cell = grid.index(Math.round((x - grid.originX()) / CELL), Math.round((z - grid.originZ()) / CELL));
         return samples.ocean()[cell];
     }
 
@@ -179,7 +204,7 @@ final class InletTerrain {
     }
 
     static Reach northSouthReach(HydrologySettings settings, float x, int grade, float halfWidth, float depth) {
-        int points = 9;
+        int points = 25;
         float[] xs = new float[points];
         float[] zs = new float[points];
         int[] grades = new int[points];
@@ -188,7 +213,7 @@ final class InletTerrain {
         ReachStyle[] styles = new ReachStyle[points];
         for (int point = 0; point < points; point++) {
             xs[point] = x;
-            zs[point] = point * 64f;
+            zs[point] = point * 64f - WindowKey.SIZE;
             grades[point] = grade;
             widths[point] = halfWidth;
             depths[point] = depth;

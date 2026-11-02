@@ -34,15 +34,15 @@ public class SeaInletPlannerTest {
         int baseline = 0;
         int retained = 0;
         for (int offset = 0; offset < 32; offset++) {
-            InletTerrain shifted = terrain.shifted(0, offset * 512);
-            List<SeaInlet> all = shifted.plan(InletTerrain.settings(full));
-            List<SeaInlet> reduced = shifted.plan(InletTerrain.settings(half));
+            InletTerrain view = terrain.span(new WindowKey(0, offset));
+            List<SeaInlet> all = view.plan(InletTerrain.settings(full));
+            List<SeaInlet> reduced = view.plan(InletTerrain.settings(half));
             baseline += all.size();
             retained += reduced.size();
             for (SeaInlet inlet : reduced) {
                 assertTrue("retained inlets keep the same full passage", all.contains(inlet));
             }
-            assertEquals(reduced, shifted.plan(InletTerrain.settings(half)));
+            assertEquals(reduced, view.plan(InletTerrain.settings(half)));
         }
         assertTrue("cliff provides enough candidates", baseline >= 32);
         assertTrue("half density retains approximately half the sites", retained > baseline * 0.3 && retained < baseline * 0.7);
@@ -190,11 +190,11 @@ public class SeaInletPlannerTest {
         IrisHydrology dense = new IrisHydrology();
         dense.getUnderground().getSeaInlets().setSpacing(32);
         HydrologySettings settings = InletTerrain.settings(dense);
-        InletTerrain pocket = InletTerrain.pocket(152, 256);
-        List<SeaInlet> here = fromPocket(pocket.shifted(-232, 0).plan(settings));
+        InletTerrain pocket = InletTerrain.pocket(512, 256);
+        List<SeaInlet> here = fromPocket(pocket.span(new WindowKey(0, 0)).plan(settings), 512, 256);
         assertTrue("inlets opening from the pocket " + here, here.size() >= 2);
         assertEquals("another grid holding every competitor well inside decides the same", here,
-                fromPocket(pocket.shifted(-200, -24).plan(settings)));
+                fromPocket(pocket.span(new WindowKey(1, 0)).plan(settings), 512, 256));
         for (int first = 0; first < here.size(); first++) {
             for (int second = first + 1; second < here.size(); second++) {
                 assertFalse(here.get(first) + " and " + here.get(second) + " cross a covered passage with an open slot",
@@ -203,8 +203,8 @@ public class SeaInletPlannerTest {
         }
     }
 
-    private static List<SeaInlet> fromPocket(List<SeaInlet> inlets) {
-        return inlets.stream().filter(inlet -> inlet.xs()[0] == 152f && inlet.zs()[0] == 256f).toList();
+    private static List<SeaInlet> fromPocket(List<SeaInlet> inlets, float pocketX, float pocketZ) {
+        return inlets.stream().filter(inlet -> inlet.xs()[0] == pocketX && inlet.zs()[0] == pocketZ).toList();
     }
 
     private static boolean coveredMeetsOpen(SeaInlet covered, SeaInlet open) {
@@ -406,6 +406,84 @@ public class SeaInletPlannerTest {
     private static boolean leavesWindow(SeaInlet inlet, WindowKey owner) {
         int[] bounds = SeaInletRasterizer.bounds(inlet);
         return !WindowKey.containing(bounds[0], bounds[1]).equals(owner) || !WindowKey.containing(bounds[2], bounds[3]).equals(owner);
+    }
+
+    @Test
+    public void ownedInletsNeverConflictAcrossAWindowLine() {
+        IrisHydrology config = new IrisHydrology();
+        config.getUnderground().getSeaInlets().setSpacing(WindowKey.SIZE);
+        config.getUnderground().getSeaInlets().setLength(new KList<>(256, 400));
+        config.getUnderground().getSeaInlets().setHalfWidth(new KList<>(12D, 12D));
+        HydrologySettings settings = InletTerrain.settings(config);
+        int bayZ = 904;
+        WindowKey west = new WindowKey(1, 1);
+        WindowKey east = new WindowKey(2, 1);
+        single(InletTerrain.bay(1008, 1008, bayZ).wide(west, 3).plan(settings), west);
+        single(InletTerrain.bay(1032, 1032, bayZ).wide(east, 3).plan(settings), east);
+        InletTerrain bay = InletTerrain.bay(1016, 1024, bayZ);
+        List<SeaInlet> reference = bay.wide(west, 3).plan(settings);
+        List<SeaInlet> union = new ArrayList<>();
+        for (int wz = 0; wz <= 2; wz++) {
+            for (int wx = 0; wx <= 2; wx++) {
+                WindowKey window = new WindowKey(wx, wz);
+                List<SeaInlet> own = bay.span(window).plan(settings).stream().filter(inlet -> owner(inlet).equals(window)).toList();
+                assertEquals(window + " owns what the full-context plan gives it", reference.stream()
+                        .filter(inlet -> owner(inlet).equals(window)).toList(), own);
+                union.addAll(own);
+            }
+        }
+        assertEquals("the two windows beside the bay keep one inlet between them: " + union, 1, union.size());
+        for (int first = 0; first < union.size(); first++) {
+            for (int second = first + 1; second < union.size(); second++) {
+                assertFalse(union.get(first) + " and " + union.get(second) + " cross a covered passage with an open slot",
+                        coveredMeetsOpen(union.get(first), union.get(second)) || coveredMeetsOpen(union.get(second), union.get(first)));
+            }
+        }
+    }
+
+    private static SeaInlet single(List<SeaInlet> inlets, WindowKey window) {
+        List<SeaInlet> own = inlets.stream().filter(inlet -> owner(inlet).equals(window)).toList();
+        assertEquals(window + " owns one bay inlet: " + own, 1, own.size());
+        return own.getFirst();
+    }
+
+    @Test
+    public void extentGuardKeepsEveryPlannerLookupInsideTheOwnersSpan() {
+        for (double halfWidth : new double[]{1D, 16D}) {
+            for (int chamber = 1; chamber <= 32; chamber++) {
+                int length = WindowKey.SIZE - 12 - Math.max((int) Math.ceil(halfWidth), chamber) - 3;
+                IrisHydrology config = new IrisHydrology();
+                config.getUnderground().getSeaInlets().setLength(new KList<>(64, length));
+                config.getUnderground().getSeaInlets().setHalfWidth(new KList<>(1D, halfWidth));
+                config.getUnderground().getSeaInlets().setChamberRadius(new KList<>(1, chamber));
+                InletTerrain.settings(config);
+                long reach = SeaInletPlanner.lookupReach(length, chamber);
+                assertTrue("length " + length + " chamber " + chamber + " looks " + reach + " blocks out", reach <= WindowKey.SIZE);
+            }
+        }
+    }
+
+    @Test
+    public void longestInletAtTheFarEdgeOfItsWindowStaysInsideItsSpan() {
+        IrisHydrology config = new IrisHydrology();
+        config.getUnderground().getSeaInlets().setLength(new KList<>(465, 465));
+        config.getUnderground().getSeaInlets().setChamberRadius(new KList<>(32, 32));
+        HydrologySettings settings = InletTerrain.settings(config);
+        WindowKey window = new WindowKey(0, 0);
+        List<SeaInlet> owned = InletTerrain.eastEdgeCoast().plan(settings).stream().filter(inlet -> owner(inlet).equals(window)).toList();
+        assertFalse("inlets start on the window's last column", owned.isEmpty());
+        for (SeaInlet inlet : owned) {
+            assertEquals(inlet + " starts on the window's last column", WindowKey.SIZE - InletTerrain.CELL, inlet.xs()[1], 0f);
+            assertTrue(inlet + " runs the full length toward the span edge", inlet.chamberX() >= WindowKey.SIZE + 448);
+        }
+    }
+
+    @Test
+    public void ownInletCutOffByTheGridEdgeFailsClosed() {
+        InletTerrain narrow = InletTerrain.cliff(30D).narrow(0, 0);
+        IllegalStateException failure = assertThrows(IllegalStateException.class, () -> narrow.plan(InletTerrain.settings()));
+        assertTrue(failure.getMessage(),
+                failure.getMessage().matches("Sea inlet -?\\d+ of window WindowKey\\[wx=0, wz=0\\] reaches the edge of .*"));
     }
 
     @Test

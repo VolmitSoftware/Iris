@@ -19,6 +19,7 @@ import art.arcane.iris.pack.datapack.export.lower.ExportCapabilities;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Supplier;
 
 public final class RiverCompiler {
     public static final String CARVED_HEIGHT = "height/carved";
@@ -61,7 +62,7 @@ public final class RiverCompiler {
         this.diagnostics = Objects.requireNonNull(diagnostics, "diagnostics");
     }
 
-    public Field compile(Field height, IrisDimension dimension, List<Area> areas, NoiseRegistry registry, ExportCapabilities capabilities) {
+    public Field compile(Field height, IrisDimension dimension, Supplier<List<Area>> areas, NoiseRegistry registry, ExportCapabilities capabilities) {
         Objects.requireNonNull(height, "height");
         Objects.requireNonNull(areas, "areas");
         IrisHydrology hydrology = dimension.getHydrology();
@@ -76,7 +77,7 @@ public final class RiverCompiler {
             return height;
         }
         report(ExportLimit.RIVER_DRAINAGE, resource, "Rivers follow seeded noise channels instead of drainage: tributaries cross instead of joining and widths follow elevation");
-        diagnostics.addAll(RiverLimits.diagnostics(dimension, settings, areas, resource));
+        diagnostics.addAll(RiverLimits.diagnostics(dimension, settings, areas.get(), resource));
         Field elevation = FieldMacros.sum(List.of(height, new Field.Const(-fluidHeight)));
         Carving carving = new Carving(elevation, variation(registry), bankNoise(settings.deformation(), registry), settings.deformation(), registry, capabilities);
         List<HydrologyTier> tiers = settings.tiers();

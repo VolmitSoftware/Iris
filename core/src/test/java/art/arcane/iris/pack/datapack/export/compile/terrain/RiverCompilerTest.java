@@ -35,9 +35,11 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 public class RiverCompilerTest {
@@ -215,6 +217,47 @@ public class RiverCompilerTest {
         assertEquals(diagnostics.toString(), 1, fluids.size());
         assertEquals("dimensions/rivers/hydrology", fluids.getFirst().resource());
         assertTrue(fluids.getFirst().message(), fluids.getFirst().message().contains("'obsidian'"));
+    }
+
+    @Test
+    public void waterSeamsReportADiagnostic() {
+        List<ExportDiagnostic> diagnostics = new ArrayList<>();
+        IrisHydrology hydrology = overworldHydrology().setFluids(new KList<>(
+                new IrisFluidProfile().setSeam("mud"),
+                new IrisFluidProfile().setName("mud").setPalette(new IrisMaterialPalette().qclear().qadd("minecraft:mud"))));
+
+        compile(new Field.Const(SEA_LEVEL + 2.0), hydrology, List.of(new RiverCompiler.Area(region("region", null), biome("plains", null))), diagnostics);
+
+        List<ExportDiagnostic> fluids = limited(diagnostics, ExportLimit.RIVER_FLUID);
+        assertEquals(diagnostics.toString(), 1, fluids.size());
+        assertEquals("dimensions/rivers/hydrology", fluids.getFirst().resource());
+        assertTrue(fluids.getFirst().message(), fluids.getFirst().message().contains("Seam 'mud' of fluid 'water'"));
+    }
+
+    @Test
+    public void unknownPolicyFluidFailsTheExport() {
+        IrisBiome acid = biome("acid-lake", new IrisHydrologyPolicy().setFluid("acid"));
+        List<RiverCompiler.Area> areas = List.of(new RiverCompiler.Area(region("region", null), acid));
+
+        IllegalArgumentException failure = assertThrows(IllegalArgumentException.class,
+                () -> compile(new Field.Const(SEA_LEVEL + 2.0), overworldHydrology(), areas, new ArrayList<>()));
+
+        assertTrue(failure.getMessage(), failure.getMessage().contains("'acid'"));
+        assertTrue(failure.getMessage(), failure.getMessage().contains("biomes/acid-lake"));
+    }
+
+    @Test
+    public void areasAreBuiltOnlyWhenRiversExport() {
+        Supplier<List<RiverCompiler.Area>> refused = () -> {
+            throw new AssertionError("areas built without exported rivers");
+        };
+        for (IrisHydrology hydrology : new IrisHydrology[]{null, overworldHydrology().setEnabled(false), overworldHydrology().setDensity(0.0)}) {
+            List<ExportDiagnostic> diagnostics = new ArrayList<>();
+
+            compile(new Field.Const(SEA_LEVEL + 2.0), dimension(hydrology, null), refused, registry(), DataVersion.V26_3, diagnostics);
+
+            assertTrue(diagnostics.toString(), limited(diagnostics, ExportLimit.RIVER_DRAINAGE).isEmpty());
+        }
     }
 
     @Test
@@ -428,6 +471,11 @@ public class RiverCompilerTest {
 
     private static Field compile(Field natural, IrisDimension dimension, List<RiverCompiler.Area> areas, NoiseRegistry registry, DataVersion target,
                                  List<ExportDiagnostic> diagnostics) {
+        return compile(natural, dimension, () -> areas, registry, target, diagnostics);
+    }
+
+    private static Field compile(Field natural, IrisDimension dimension, Supplier<List<RiverCompiler.Area>> areas, NoiseRegistry registry,
+                                 DataVersion target, List<ExportDiagnostic> diagnostics) {
         return new RiverCompiler(diagnostics).compile(natural, dimension, areas, registry, ExportCapabilities.forTarget(target));
     }
 

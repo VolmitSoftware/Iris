@@ -140,12 +140,15 @@ final class RiverLimits {
     }
 
     private void fluid(Owner owner, String name) {
-        if (exported(settings.fluids().get(name))) {
+        String seam = settings.seams().get(name);
+        if (!exported(settings.fluids().get(name))) {
+            String subject = seam == null ? "Fluid '" + name + "' is" : "Fluid '" + name + "' and its seam '" + seam + "' are";
+            add(ExportLimit.RIVER_FLUID, owner, name, subject + " not exported: rivers fill with " + exportFluid + " up to fluidHeight");
             return;
         }
-        String seam = settings.seams().get(name);
-        String subject = seam == null ? "Fluid '" + name + "' is" : "Fluid '" + name + "' and its seam '" + seam + "' are";
-        add(ExportLimit.RIVER_FLUID, owner, name, subject + " not exported: rivers fill with " + exportFluid + " up to fluidHeight");
+        if (seam != null) {
+            add(ExportLimit.RIVER_FLUID, owner, name, "Seam '" + seam + "' of fluid '" + name + "' is not exported: rivers have no seam band at their edges");
+        }
     }
 
     private boolean exported(IrisMaterialPalette palette) {

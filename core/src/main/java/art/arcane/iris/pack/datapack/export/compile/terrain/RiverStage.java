@@ -29,7 +29,7 @@ public final class RiverStage implements CompileStage {
     @Override
     public void apply(PackCompileContext context) {
         Field natural = context.naturalHeight();
-        Field carved = new RiverCompiler(context.diagnostics()).compile(natural, context.dimension(), areas(context), context.noises(), context.capabilities());
+        Field carved = new RiverCompiler(context.diagnostics()).compile(natural, context.dimension(), () -> areas(context), context.noises(), context.capabilities());
         context.setCarvedHeight(carved);
         context.setSurfaceEstimate(FieldMacros.substitute(carved, natural, context.climateHeight(), ESTIMATE_TAG));
     }

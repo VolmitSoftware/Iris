@@ -43,9 +43,10 @@ final class RiffleProfile {
         }
         TreeMap<Crest, Seeds> crests = new TreeMap<>();
         TreeMap<Fall, Seeds> feet = new TreeMap<>();
+        TreeMap<Integer, Seeds> brinks = new TreeMap<>();
         for (int z = 1; z < GRID - 1; z++) {
             for (int x = 1; x < GRID - 1; x++) {
-                collect(z * GRID + x, crests, feet);
+                collect(z * GRID + x, crests, feet, brinks);
             }
         }
         if (crests.isEmpty() && feet.isEmpty()) {
@@ -59,9 +60,11 @@ final class RiffleProfile {
             }
         }
         for (Map.Entry<Fall, Seeds> fall : feet.entrySet()) {
-            int[] output = distances.measure(fall.getValue(), fall.getKey().foot(), fall.getKey().reach());
+            Fall key = fall.getKey();
+            int[] output = distances.measure(fall.getValue(), key.foot(), key.reach());
             if (output != null) {
-                plunges.add(new Plunge(fall.getKey(), output));
+                Seeds tail = brinks.get(key.foot());
+                plunges.add(new Plunge(key, output, tail == null ? null : distances.measure(tail, key.foot(), key.reach())));
             }
         }
     }
@@ -94,7 +97,7 @@ final class RiffleProfile {
         return flowing[grid] ? plunge(cell, riffled, head, variation) : riffled;
     }
 
-    private void collect(int cell, TreeMap<Crest, Seeds> crests, TreeMap<Fall, Seeds> feet) {
+    private void collect(int cell, TreeMap<Crest, Seeds> crests, TreeMap<Fall, Seeds> feet, TreeMap<Integer, Seeds> brinks) {
         int head = heads[cell];
         if (head == DRY) {
             return;
@@ -112,6 +115,7 @@ final class RiffleProfile {
         }
         if (crest) {
             crests.computeIfAbsent(new Crest(head - 1, features[cell], flowing[cell]), ignored -> new Seeds()).add(cell);
+            brinks.computeIfAbsent(head, ignored -> new Seeds()).add(cell);
         }
     }
 
@@ -127,11 +131,12 @@ final class RiffleProfile {
         for (Plunge plunge : plunges) {
             Fall fall = plunge.fall();
             int distance = plunge.distances()[cell];
-            if (fall.foot() != head || distance >= 10D * fall.radius()) {
+            double span = plunge.span(cell);
+            if (fall.foot() != head || distance >= span) {
                 continue;
             }
             long depth = Math.clamp(Math.round(PLUNGE_RATIO * fall.drop() * (0.85D + 0.15D * variation)), PLUNGE_MIN_DEPTH, PLUNGE_MAX_DEPTH);
-            double u = distance / (10D * fall.radius());
+            double u = distance / span;
             double bowl = 1D - u * u * (3D - 2D * u);
             carved = (int) Math.min(carved, head - 1L - Math.round((depth - 1L) * bowl));
         }
@@ -216,7 +221,11 @@ final class RiffleProfile {
         }
     }
 
-    private record Plunge(Fall fall, int[] distances) {
+    private record Plunge(Fall fall, int[] distances, int[] brinks) {
+        double span(int cell) {
+            double radius = 10D * fall.radius();
+            return brinks == null ? radius : Math.min(radius, distances[cell] + (double) brinks[cell]);
+        }
     }
 
     private static final class DistanceField {

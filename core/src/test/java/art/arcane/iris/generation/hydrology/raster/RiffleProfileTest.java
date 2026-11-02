@@ -88,6 +88,38 @@ public class RiffleProfileTest {
     }
 
     @Test
+    public void plungePoolsTailOutBeforeTheNextStep() {
+        Surface pool = new Surface((x, z) -> x < 0 ? 110 : 98);
+        for (int brink : new int[]{5, 2, 1}) {
+            int next = brink + 1;
+            Surface stepped = new Surface((x, z) -> x < 0 ? 110 : x < next ? 98 : 96);
+            for (int z = -8; z <= 8; z++) {
+                for (int original : new int[]{92, 96}) {
+                    String bed = original + " bed at z " + z + " with the next step's brink at x " + brink;
+                    assertEquals("lip sill for the " + bed, 109, stepped.bed(-1, z, original));
+                    if (original == 96) {
+                        assertEquals("plunge floor under the fall for the " + bed, pool.bed(0, z, original), stepped.bed(0, z, original));
+                    }
+                    assertTrue("plunge pool at the foot for the " + bed, stepped.bed(0, z, original) <= 95);
+                    assertEquals("1-block water over the brink for the " + bed, 97, stepped.bed(brink, z, original));
+                    for (int x = 0; x < brink; x++) {
+                        int here = stepped.bed(x, z, original);
+                        assertTrue("deepest at the foot, at " + x + " for the " + bed, stepped.bed(0, z, original) <= here);
+                        assertTrue("tailout rises toward the brink at " + x + " for the " + bed, here <= stepped.bed(x + 1, z, original));
+                        if (brink >= 5) {
+                            assertTrue("tailout face at " + x + " for the " + bed, stepped.bed(x + 1, z, original) - here <= 2);
+                        }
+                    }
+                }
+            }
+        }
+        Surface wedged = new Surface((x, z) -> x < 0 ? 110 : x < 1 ? 98 : 96);
+        for (int z = -8; z <= 8; z++) {
+            assertEquals("a foot that is also the next step's brink keeps the sill at z " + z, 97, wedged.bed(0, z, 92));
+        }
+    }
+
+    @Test
     public void plungeFieldsMatchAcrossChunkBorders() {
         IntBinaryOperator heads = (x, z) -> x + z < -7 ? 110 : 98;
         Surface surface = new Surface(heads);

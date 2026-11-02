@@ -147,49 +147,49 @@ public class IrisStructureComponent extends IrisMantleComponent {
                         + " is not implemented for structure '" + key + "'");
             }
 
-            ObjectPlaceMode mode = structure.getPlaceMode();
-            int failedPieces = 0;
-            IrisStructureStiltSettings stilt = placement.getStilt();
-            Long2IntOpenHashMap foundationColumns = stilt == null
-                    ? null : new Long2IntOpenHashMap();
-            boolean supportNonOccluding = stilt != null && stilt.isSupportNonOccluding();
-            if (placement.isAnchoredUnderground()) {
-                ObjectPlaceMode undergroundMode = (mode == ObjectPlaceMode.ORGANIC_STILT || mode == ObjectPlaceMode.CEILING_HANG)
-                        ? mode : ObjectPlaceMode.STRUCTURE_PIECE;
-                for (PlacedStructurePiece p : pieces) {
-                    if (placeObject(writer, structure, p, undergroundMode, false, rng,
-                            foundationColumns, supportNonOccluding) == -1) {
-                        failedPieces++;
-                    }
-                }
-            } else if (mode == ObjectPlaceMode.STRUCTURE_PIECE || mode == ObjectPlaceMode.FLOATING) {
-                for (PlacedStructurePiece p : pieces) {
-                    if (placeObject(writer, structure, p, ObjectPlaceMode.STRUCTURE_PIECE, false, rng,
-                            foundationColumns, supportNonOccluding) == -1) {
-                        failedPieces++;
-                    }
-                }
-            } else if (pieces.size() == 1) {
-                if (placeObject(writer, structure, pieces.getFirst(), mode, true, rng,
-                        foundationColumns, supportNonOccluding) == -1) {
-                    failedPieces++;
-                }
-            } else {
-                for (PlacedStructurePiece p : pieces) {
-                    if (placeObject(writer, structure, p, ObjectPlaceMode.STRUCTURE_PIECE, false, rng,
-                            foundationColumns, supportNonOccluding) == -1) {
-                        failedPieces++;
-                    }
-                }
-            }
+            int failedPieces = placePieces(writer, placement, structure, pieces, rng);
             requireAppliedPieces(resolved, cx, cz, failedPieces);
-            if (failedPieces == 0 && stilt != null) {
-                placeFoundation(writer, foundationColumns, stilt, rng, !placement.isAnchoredUnderground());
-            }
             if (failedPieces == 0) {
                 capture.commit();
             }
         }
+    }
+
+    int placePieces(MantleWriter writer, IrisStructurePlacement placement, IrisStructure structure,
+                    KList<PlacedStructurePiece> pieces, RNG rng) {
+        IrisStructureStiltSettings stilt = placement.getStilt();
+        PieceRun run = new PieceRun(structure, rng, stilt == null ? null : new Long2IntOpenHashMap(),
+                stilt != null && stilt.isSupportNonOccluding(), placement.isAllowWater());
+        ObjectPlaceMode mode = structure.getPlaceMode();
+        int failedPieces = 0;
+        int water = writer.beginObjectPlacement(run.allowWater());
+        try {
+            if (placement.isAnchoredUnderground()) {
+                ObjectPlaceMode undergroundMode = (mode == ObjectPlaceMode.ORGANIC_STILT || mode == ObjectPlaceMode.CEILING_HANG)
+                        ? mode : ObjectPlaceMode.STRUCTURE_PIECE;
+                for (PlacedStructurePiece p : pieces) {
+                    if (placeObject(writer, run, p, undergroundMode, false) == -1) {
+                        failedPieces++;
+                    }
+                }
+            } else if (pieces.size() == 1 && mode != ObjectPlaceMode.STRUCTURE_PIECE && mode != ObjectPlaceMode.FLOATING) {
+                if (placeObject(writer, run, pieces.getFirst(), mode, true) == -1) {
+                    failedPieces++;
+                }
+            } else {
+                for (PlacedStructurePiece p : pieces) {
+                    if (placeObject(writer, run, p, ObjectPlaceMode.STRUCTURE_PIECE, false) == -1) {
+                        failedPieces++;
+                    }
+                }
+            }
+            if (failedPieces == 0 && stilt != null) {
+                placeFoundation(writer, run.foundationColumns(), stilt, rng, !placement.isAnchoredUnderground());
+            }
+        } finally {
+            writer.endObjectPlacement(water);
+        }
+        return failedPieces;
     }
 
     private void placeFoundation(MantleWriter writer, Long2IntOpenHashMap columns,
@@ -270,8 +270,8 @@ public class IrisStructureComponent extends IrisMantleComponent {
                         + " assembled piece(s)");
     }
 
-    private void boreStructure(MantleWriter writer, KList<PlacedStructurePiece> pieces,
-                               IrisStructureTerrain terrain) {
+    void boreStructure(MantleWriter writer, KList<PlacedStructurePiece> pieces,
+                       IrisStructureTerrain terrain) {
         int[] bounds = computePieceBounds(pieces);
         if (bounds == null) {
             return;
@@ -291,17 +291,11 @@ public class IrisStructureComponent extends IrisMantleComponent {
             return;
         }
         int mantleOffset = getEngineMantle().getEngine().getMinHeight();
-        for (int bx = minX; bx <= maxX; bx++) {
-            for (int by = minY; by <= maxY; by++) {
-                for (int bz = minZ; bz <= maxZ; bz++) {
-                    writer.setForcedCarve(bx, by - mantleOffset, bz, CARVE_CAVERN);
-                }
-            }
-        }
+        carveBox(writer, minX, minY, minZ, maxX, maxY, maxZ, mantleOffset);
     }
 
-    private void forceCarveStructure(MantleWriter writer, KList<PlacedStructurePiece> pieces,
-                                     IrisStructureTerrain terrain) {
+    void forceCarveStructure(MantleWriter writer, KList<PlacedStructurePiece> pieces,
+                             IrisStructureTerrain terrain) {
         int[] bounds = computePieceBounds(pieces);
         if (bounds == null) {
             return;
@@ -344,6 +338,8 @@ public class IrisStructureComponent extends IrisMantleComponent {
                     + " margin=" + margin + " head=" + head + " floorCut=" + floorCut + " work=" + work);
         }
 
+        StructureCarveWater water = StructureCarveWater.of(getEngineMantle().getComplex(),
+                footprint.minX(), footprint.minZ(), footprint.maxX(), footprint.maxZ());
         double sideReachSquared = (double) margin * margin;
         double downReach = Math.max(1D, floorCut);
         for (int bz = footprint.minZ(); bz <= footprint.maxZ(); bz++) {
@@ -365,6 +361,9 @@ public class IrisStructureComponent extends IrisMantleComponent {
                 int minY = Math.max(worldMin, sourceMinY - floorCut);
                 int maxY = Math.min(worldMax, sourceMaxY + columnUpExtension);
                 for (int by = minY; by <= maxY; by++) {
+                    if (water.keeps(bx, by - mantleOffset, bz)) {
+                        continue;
+                    }
                     double normalizedY = StructureCarveEnvelope.normalizedVerticalDistance(
                             by, sourceMinY, sourceMaxY, upReach, downReach);
                     double distanceSquared = normalizedHorizontalDistanceSquared
@@ -393,16 +392,19 @@ public class IrisStructureComponent extends IrisMantleComponent {
 
     private void carveOverboreBox(MantleWriter writer, int[] bounds, int margin, int head, int floorCut,
                                   int mantleOffset, int worldMin, int worldMax) {
-        int minX = bounds[0] - margin;
-        int minY = Math.max(worldMin, bounds[1] - floorCut);
-        int minZ = bounds[2] - margin;
-        int maxX = bounds[3] + margin;
-        int maxY = Math.min(worldMax, bounds[4] + head);
-        int maxZ = bounds[5] + margin;
+        carveBox(writer, bounds[0] - margin, Math.max(worldMin, bounds[1] - floorCut), bounds[2] - margin,
+                bounds[3] + margin, Math.min(worldMax, bounds[4] + head), bounds[5] + margin, mantleOffset);
+    }
+
+    private void carveBox(MantleWriter writer, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, int mantleOffset) {
+        StructureCarveWater water = StructureCarveWater.of(getEngineMantle().getComplex(), minX, minZ, maxX, maxZ);
         for (int bx = minX; bx <= maxX; bx++) {
-            for (int by = minY; by <= maxY; by++) {
-                for (int bz = minZ; bz <= maxZ; bz++) {
-                    writer.setForcedCarve(bx, by - mantleOffset, bz, CARVE_CAVERN);
+            for (int bz = minZ; bz <= maxZ; bz++) {
+                for (int by = minY; by <= maxY; by++) {
+                    int mantleY = by - mantleOffset;
+                    if (!water.keeps(bx, mantleY, bz)) {
+                        writer.setForcedCarve(bx, mantleY, bz, CARVE_CAVERN);
+                    }
                 }
             }
         }
@@ -559,27 +561,27 @@ public class IrisStructureComponent extends IrisMantleComponent {
         return new int[]{minX, minY, minZ, maxX, maxY, maxZ};
     }
 
-    private int placeObject(MantleWriter writer, IrisStructure structure, PlacedStructurePiece p,
-                            ObjectPlaceMode mode, boolean sampledHeight, RNG rng, Long2IntOpenHashMap foundationColumns,
-                            boolean supportNonOccluding) {
+    private int placeObject(MantleWriter writer, PieceRun run, PlacedStructurePiece p, ObjectPlaceMode mode,
+                            boolean sampledHeight) {
         IrisObject object = p.getObject();
         String objectKey = object.getLoadKey();
-        IrisObjectPlacement config = piecePlacement(structure, p, mode);
-        String marker = structurePlacementMarker(structure, p, objectKey);
+        IrisObjectPlacement config = piecePlacement(run.structure(), p, mode, run.allowWater());
+        String marker = structurePlacementMarker(run.structure(), p, objectKey);
         BiConsumer<BlockPosition, NativeBlockState> listener = (position, state) -> {
             StructureFoundationPlanner.recordBaseCell(
-                    foundationColumns, position.getX(), position.getY(), position.getZ(), state,
-                    supportNonOccluding);
+                    run.foundationColumns(), position.getX(), position.getY(), position.getZ(), state,
+                    run.supportNonOccluding());
             if (marker != null && shouldWriteStructureMarker(state)) {
                 writer.setData(position.getX(), position.getY(), position.getZ(), marker);
             }
         };
         return sampledHeight
-                ? object.place(p.getX(), p.getZ(), writer, config, rng, listener, null, getData())
-                : object.place(p.getX(), p.getY() - getEngineMantle().getEngine().getMinHeight(), p.getZ(), writer, config, rng, listener, null, getData());
+                ? object.place(p.getX(), p.getZ(), writer, config, run.rng(), listener, null, getData())
+                : object.place(p.getX(), p.getY() - getEngineMantle().getEngine().getMinHeight(), p.getZ(), writer, config, run.rng(), listener, null, getData());
     }
 
-    static IrisObjectPlacement piecePlacement(IrisStructure structure, PlacedStructurePiece piece, ObjectPlaceMode mode) {
+    static IrisObjectPlacement piecePlacement(IrisStructure structure, PlacedStructurePiece piece, ObjectPlaceMode mode,
+                                              boolean allowWater) {
         IrisObjectPlacement config = structure.createLootPlacement(piece.getObject().getLoadKey());
         config.setMode(mode);
         config.setRotation(piece.getRotation());
@@ -588,7 +590,7 @@ public class IrisStructureComponent extends IrisMantleComponent {
         }
         if (mode != ObjectPlaceMode.STRUCTURE_PIECE && mode != ObjectPlaceMode.FLOATING) {
             config.setForcePlace(true);
-            config.setForcedByStructure(true);
+            config.setForcedByStructure(!allowWater);
         }
         return config;
     }
@@ -712,5 +714,9 @@ public class IrisStructureComponent extends IrisMantleComponent {
     }
 
     private record ObjectBlockPosition(int x, int y, int z) {
+    }
+
+    private record PieceRun(IrisStructure structure, RNG rng, Long2IntOpenHashMap foundationColumns,
+                            boolean supportNonOccluding, boolean allowWater) {
     }
 }

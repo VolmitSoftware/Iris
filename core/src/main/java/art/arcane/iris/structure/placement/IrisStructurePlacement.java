@@ -130,6 +130,9 @@ public class IrisStructurePlacement {
     @Description("If false, the placement is skipped when its selected surface or cave column is submerged.")
     private boolean underwater = false;
 
+    @Description("If true, a surface structure may cover river, stream, pond and lake water, and its pieces and stilts may fill it. If false, a surface placement is skipped when more than 10% of its footprint columns are channel, pond, cascade or waterfall water, and its pieces keep their solid blocks out of the water they touch.")
+    private boolean allowWater = false;
+
     public IrisStructureTerrain resolvedTerrain() {
         return terrain == null ? new IrisStructureTerrain() : terrain;
     }

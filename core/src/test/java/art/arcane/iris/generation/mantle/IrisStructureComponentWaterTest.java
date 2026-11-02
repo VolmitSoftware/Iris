@@ -32,7 +32,7 @@ public class IrisStructureComponentWaterTest {
         world.water(WaterRole.CHANNEL, 9, 13);
         HydrologyWaterFixture.Placer placer = world.placer();
         IrisObject object = HydrologyWaterFixture.raft();
-        IrisObjectPlacement config = IrisStructureComponent.piecePlacement(new IrisStructure(), piece(object), ObjectPlaceMode.CENTER_HEIGHT);
+        IrisObjectPlacement config = IrisStructureComponent.piecePlacement(new IrisStructure(), piece(object), ObjectPlaceMode.CENTER_HEIGHT, false);
 
         assertTrue(config.isForcePlace());
         assertEquals(-1, object.place(0, 0, placer, config, new RNG(7L), world.data()));
@@ -49,7 +49,7 @@ public class IrisStructureComponentWaterTest {
         when(world.complex().getHeightStream()).thenReturn(heights);
         HydrologyWaterFixture.Placer placer = world.placer();
         IrisObject object = HydrologyWaterFixture.raft();
-        IrisObjectPlacement config = IrisStructureComponent.piecePlacement(new IrisStructure(), piece(object), ObjectPlaceMode.CENTER_HEIGHT);
+        IrisObjectPlacement config = IrisStructureComponent.piecePlacement(new IrisStructure(), piece(object), ObjectPlaceMode.CENTER_HEIGHT, false);
         config.setRotateTowardsSlope(true);
 
         assertEquals(-1, object.place(0, 0, placer, config, new RNG(7L), world.data()));
@@ -57,10 +57,22 @@ public class IrisStructureComponentWaterTest {
     }
 
     @Test
+    public void forcedSinglePieceStructureThatAllowsWaterPlacesOnFlatRiverWater() {
+        world.water(WaterRole.CHANNEL, 9, 13);
+        HydrologyWaterFixture.Placer placer = world.placer();
+        IrisObject object = HydrologyWaterFixture.raft();
+        IrisObjectPlacement config = IrisStructureComponent.piecePlacement(new IrisStructure(), piece(object), ObjectPlaceMode.CENTER_HEIGHT, true);
+
+        assertTrue(config.entersWater());
+        assertTrue(object.place(0, 0, placer, config, new RNG(7L), world.data()) >= 0);
+        assertEquals(world.headAt(0, 0), placer.lowestWrite());
+    }
+
+    @Test
     public void forcedSinglePieceStructureStillPlacesOnDryLand() {
         HydrologyWaterFixture.Placer placer = world.placer();
         IrisObject object = HydrologyWaterFixture.raft();
-        IrisObjectPlacement config = IrisStructureComponent.piecePlacement(new IrisStructure(), piece(object), ObjectPlaceMode.CENTER_HEIGHT);
+        IrisObjectPlacement config = IrisStructureComponent.piecePlacement(new IrisStructure(), piece(object), ObjectPlaceMode.CENTER_HEIGHT, false);
 
         assertTrue(object.place(0, 0, placer, config, new RNG(7L), world.data()) >= 0);
         assertFalse(placer.writes().isEmpty());

@@ -590,6 +590,10 @@ public final class IrisStructureLocator {
                 "assembled pieces exceed the configured structure or world bounds")) {
             return null;
         }
+        if (!placement.isAnchoredUnderground()
+                && !StructureWaterFootprint.admitsPieces(engine, placement, selectedKey, pieces, cx, cz)) {
+            return null;
+        }
         if (!allowsResolvedFootprint(engine, placement, structure, pieces)) {
             return null;
         }

@@ -97,8 +97,8 @@ public class IrisDepositModifierPoolGuardTest {
             IrisDepositGenerator gravelDeposit = gravelDeposit();
             when(engine.getDimension().getDeposits()).thenReturn(new KList<>(gravelDeposit));
             MantleChunk<Matter> chunk = mock(MantleChunk.class);
-            when(chunk.get(5, 4, 5, HydrologyCaveCell.class)).thenReturn(HydrologyCaveCell.of(HydrologyCaveAction.SEAL_GUARD));
-            when(chunk.get(6, 4, 6, HydrologyCaveCell.class)).thenReturn(new HydrologyCaveCell(HydrologyCaveAction.POOL_SOURCE, "water", ""));
+            when(chunk.get(5, 4, 5, HydrologyCaveCell.class)).thenReturn(new HydrologyCaveCell(HydrologyCaveAction.SEAL_GUARD, "water"));
+            when(chunk.get(6, 4, 6, HydrologyCaveCell.class)).thenReturn(new HydrologyCaveCell(HydrologyCaveAction.POOL_SOURCE, "water"));
             Mantle<Matter> mantle = engine.getMantle().getMantle();
             doReturn(chunk).when(mantle).useChunk(0, 0);
             MultiBurst pool = mock(MultiBurst.class, withSettings().stubOnly());

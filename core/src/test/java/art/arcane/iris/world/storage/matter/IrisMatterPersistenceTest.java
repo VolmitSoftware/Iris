@@ -59,8 +59,7 @@ public class IrisMatterPersistenceTest {
         spawner.setLoadKey("test-spawner");
         KMap<String, Object> tileProperties = new KMap<>();
         tileProperties.put("CustomName", "stored chest");
-        HydrologyCaveCell hydrology = new HydrologyCaveCell(
-                HydrologyCaveAction.WET_SOURCE, "river", "iris:flooded");
+        HydrologyCaveCell hydrology = new HydrologyCaveCell(HydrologyCaveAction.WET_SOURCE, "river");
         NativeStructureOwnershipRecord ownership = new NativeStructureOwnershipRecord(
                 NativeStructureOwnershipRecord.CURRENT_SCHEMA, "minecraft:village_plains",
                 0, 0, 42L, 64, 0, 64, 0, 15, 80, 15, 70,

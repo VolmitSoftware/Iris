@@ -44,7 +44,7 @@ public class TerrainComposedCavernTest {
         List<HydrologyCaveCell> hydrology = new ArrayList<>();
         hydrology.add(null);
         for (HydrologyCaveAction action : HydrologyCaveAction.values()) {
-            hydrology.add(new HydrologyCaveCell(action, "river", "iris:flooded"));
+            hydrology.add(new HydrologyCaveCell(action, "river"));
         }
         List<PreObjectMatterCell> journals = new ArrayList<>();
         journals.add(null);
@@ -94,7 +94,7 @@ public class TerrainComposedCavernTest {
     public void composedReadUsesOneLockedSectionAndJournalLookup() {
         Matter matter = spy(new IrisMatter(16, 16, 16));
         MatterCavern natural = new MatterCavern(true, "iris:natural", (byte) 0);
-        HydrologyCaveCell seal = HydrologyCaveCell.of(HydrologyCaveAction.SEAL_GUARD);
+        HydrologyCaveCell seal = new HydrologyCaveCell(HydrologyCaveAction.SEAL_GUARD, "water");
         matter.<MatterCavern>slice(MatterCavern.class).set(15, 3, 2, natural);
         matter.<HydrologyCaveCell>slice(HydrologyCaveCell.class).set(15, 3, 2, seal);
         matter.<PreObjectMatterCell>slice(PreObjectMatterCell.class).set(15, 3, 2,

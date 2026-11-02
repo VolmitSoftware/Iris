@@ -48,7 +48,7 @@ public class TerrainComposedFaceTest {
         MatterCavern original = new MatterCavern(false, "original", (byte) 2);
         HydrologyCaveCell[] hydrology = new HydrologyCaveCell[HydrologyCaveAction.values().length + 1];
         for (int index = 1; index < hydrology.length; index++) {
-            hydrology[index] = new HydrologyCaveCell(HydrologyCaveAction.values()[index - 1], "river", "flooded");
+            hydrology[index] = new HydrologyCaveCell(HydrologyCaveAction.values()[index - 1], "river");
         }
         PreObjectMatterCell[] journal = {null, PreObjectMatterCell.string(null),
                 PreObjectMatterCell.cavern(null), PreObjectMatterCell.cavern(original),

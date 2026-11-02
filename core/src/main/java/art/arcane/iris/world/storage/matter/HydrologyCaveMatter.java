@@ -29,19 +29,20 @@ public final class HydrologyCaveMatter extends RawMatter<HydrologyCaveCell> {
     public void writeNode(HydrologyCaveCell hydrology, DataOutputStream output) throws IOException {
         output.writeByte(actionCode(hydrology.action()));
         output.writeUTF(hydrology.fluidProfileKey());
-        output.writeUTF(hydrology.floodedBiomeKey());
+        output.writeUTF("");
     }
 
     @Override
     public HydrologyCaveCell readNode(DataInputStream input) throws IOException {
         HydrologyCaveAction action = actionFromCode(input.readUnsignedByte());
-        return new HydrologyCaveCell(action, input.readUTF(), input.readUTF());
+        String fluidProfileKey = input.readUTF();
+        input.readUTF();
+        return new HydrologyCaveCell(action, fluidProfileKey);
     }
 
     private int actionCode(HydrologyCaveAction action) {
         return switch (action) {
             case WET_SOURCE -> 1;
-            case FALLING_FLUID -> 2;
             case DRY_AIR -> 3;
             case SEAL_GUARD -> 4;
             case POOL_SOURCE -> 5;
@@ -50,8 +51,7 @@ public final class HydrologyCaveMatter extends RawMatter<HydrologyCaveCell> {
 
     private HydrologyCaveAction actionFromCode(int code) throws IOException {
         return switch (code) {
-            case 1 -> HydrologyCaveAction.WET_SOURCE;
-            case 2 -> HydrologyCaveAction.FALLING_FLUID;
+            case 1, 2 -> HydrologyCaveAction.WET_SOURCE;
             case 3 -> HydrologyCaveAction.DRY_AIR;
             case 4 -> HydrologyCaveAction.SEAL_GUARD;
             case 5 -> HydrologyCaveAction.POOL_SOURCE;

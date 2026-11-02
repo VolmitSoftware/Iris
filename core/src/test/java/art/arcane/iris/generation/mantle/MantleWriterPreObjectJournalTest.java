@@ -369,8 +369,8 @@ public class MantleWriterPreObjectJournalTest {
 
     @Test
     public void hydrologyPrerequisitesHonorCapturedOriginalsAndNulls() {
-        HydrologyCaveCell original = HydrologyCaveCell.of(HydrologyCaveAction.DRY_AIR);
-        HydrologyCaveCell live = HydrologyCaveCell.of(HydrologyCaveAction.SEAL_GUARD);
+        HydrologyCaveCell original = new HydrologyCaveCell(HydrologyCaveAction.DRY_AIR, "water");
+        HydrologyCaveCell live = new HydrologyCaveCell(HydrologyCaveAction.SEAL_GUARD, "water");
         matter.<HydrologyCaveCell>slice(HydrologyCaveCell.class).set(X, Y, Z, live);
         matter.<HydrologyCaveCell>slice(HydrologyCaveCell.class).set(X, Y + 1, Z, live);
         matter.<PreObjectMatterCell>slice(PreObjectMatterCell.class)
@@ -386,8 +386,8 @@ public class MantleWriterPreObjectJournalTest {
 
     @Test
     public void carvedColumnsHonorCapturedHydrologyBeforeLiveCells() {
-        HydrologyCaveCell original = HydrologyCaveCell.of(HydrologyCaveAction.DRY_AIR);
-        HydrologyCaveCell live = HydrologyCaveCell.of(HydrologyCaveAction.SEAL_GUARD);
+        HydrologyCaveCell original = new HydrologyCaveCell(HydrologyCaveAction.DRY_AIR, "water");
+        HydrologyCaveCell live = new HydrologyCaveCell(HydrologyCaveAction.SEAL_GUARD, "water");
         MatterSlice<HydrologyCaveCell> hydrology = matter.slice(HydrologyCaveCell.class);
         MatterSlice<PreObjectMatterCell> journal = matter.slice(PreObjectMatterCell.class);
         hydrology.set(X, Y, Z, live);
@@ -488,10 +488,10 @@ public class MantleWriterPreObjectJournalTest {
             writer.clearData(X, Y + 1, Z, MatterCavern.class);
         });
         matter.<HydrologyCaveCell>slice(HydrologyCaveCell.class)
-                .set(X, Y + 2, Z, HydrologyCaveCell.of(HydrologyCaveAction.SEAL_GUARD));
+                .set(X, Y + 2, Z, new HydrologyCaveCell(HydrologyCaveAction.SEAL_GUARD, "water"));
         matter.<MatterCavern>slice(MatterCavern.class).set(X, Y + 2, Z, original);
         matter.<HydrologyCaveCell>slice(HydrologyCaveCell.class)
-                .set(X, Y + 3, Z, HydrologyCaveCell.of(HydrologyCaveAction.DRY_AIR));
+                .set(X, Y + 3, Z, new HydrologyCaveCell(HydrologyCaveAction.DRY_AIR, "water"));
 
         byte[] column = writer.getPrerequisiteCarvedColumn(X, Z, Y + 4);
 

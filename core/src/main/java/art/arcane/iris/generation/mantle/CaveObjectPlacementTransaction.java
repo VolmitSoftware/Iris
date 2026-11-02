@@ -112,8 +112,7 @@ final class CaveObjectPlacementTransaction implements IObjectPlacer {
                 discard();
                 return CommitResult.REJECTED_SUBTERRAIN;
             }
-            HydrologyCaveCell hydrology = delegate.getData(x, y, z, HydrologyCaveCell.class);
-            if (hydrology != null && hydrology.protectsPlacement()) {
+            if (delegate.getData(x, y, z, HydrologyCaveCell.class) != null) {
                 discard();
                 return CommitResult.REJECTED_HYDROLOGY;
             }

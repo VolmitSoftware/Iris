@@ -219,7 +219,7 @@ public class IrisCarveModifierBoundarySupportTest {
 
     @Test
     public void hydrologyGuardOnlyAcceptsStableSolidBoundaryLayers() {
-        HydrologyCaveCell guard = HydrologyCaveCell.of(HydrologyCaveAction.SEAL_GUARD);
+        HydrologyCaveCell guard = new HydrologyCaveCell(HydrologyCaveAction.SEAL_GUARD, "water");
         NativeBlockState stone = state("minecraft:stone", true);
         NativeBlockState sand = state("minecraft:sand", true);
         NativeBlockState water = state("minecraft:water", false, true);
@@ -237,7 +237,7 @@ public class IrisCarveModifierBoundarySupportTest {
         NativeBlockState grass = state("minecraft:grass_block", true);
         NativeBlockState dirt = state("minecraft:dirt", true);
         NativeBlockState moss = state("minecraft:moss_block", true);
-        HydrologyCaveCell wet = HydrologyCaveCell.of(HydrologyCaveAction.WET_SOURCE);
+        HydrologyCaveCell wet = new HydrologyCaveCell(HydrologyCaveAction.WET_SOURCE, "water");
 
         doReturn(dirt).when(output).getRaw(0, 4, 0);
 
@@ -246,7 +246,7 @@ public class IrisCarveModifierBoundarySupportTest {
         assertSame(dirt, IrisCarveModifier.resolveSubmergedCaveFloorLayer(
                 output, 0, 5, 0, moss, wet));
         assertSame(grass, IrisCarveModifier.resolveSubmergedCaveFloorLayer(
-                output, 0, 5, 0, grass, HydrologyCaveCell.of(HydrologyCaveAction.DRY_AIR)));
+                output, 0, 5, 0, grass, new HydrologyCaveCell(HydrologyCaveAction.DRY_AIR, "water")));
     }
 
     private NativeBlockState state(String key, boolean solid) {

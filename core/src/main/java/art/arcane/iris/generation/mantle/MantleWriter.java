@@ -585,8 +585,7 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
         if (slice == null) {
             return false;
         }
-        HydrologyCaveCell hydrology = slice.get(x & 15, y & 15, z & 15);
-        return hydrology != null && hydrology.protectsPlacement();
+        return slice.get(x & 15, y & 15, z & 15) != null;
     }
 
     private static void clearTile(Matter matter, int x, int y, int z) {

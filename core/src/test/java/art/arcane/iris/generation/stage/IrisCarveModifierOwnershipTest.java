@@ -26,7 +26,7 @@ public class IrisCarveModifierOwnershipTest {
         SubterrainCell shell = new SubterrainCell(SubterrainCell.Kind.SOLID, "", room(false, false));
         Terrain3DColumn openTerrain = column(true);
         HydrologyCaveCell[] hydrologyCells = {
-                null, HydrologyCaveCell.of(HydrologyCaveAction.DRY_AIR), HydrologyCaveCell.of(HydrologyCaveAction.SEAL_GUARD)};
+                null, new HydrologyCaveCell(HydrologyCaveAction.DRY_AIR, "water"), new HydrologyCaveCell(HydrologyCaveAction.SEAL_GUARD, "water")};
         SubterrainCell[] subterrainCells = {SubterrainCell.OUTSIDE, openRoom, reservedSolid, reservedPassage, shell};
         Terrain3DColumn[] terrainColumns = {null, column(false), openTerrain};
         List<String> disagreements = new ArrayList<>();

@@ -142,8 +142,8 @@ public final class CavePoolFiller {
     }
 
     private static void write(int chunkX, int chunkZ, Pool pool, MantleWriter writer) {
-        HydrologyCaveCell wet = new HydrologyCaveCell(HydrologyCaveAction.POOL_SOURCE, pool.fluid(), "");
-        HydrologyCaveCell wall = new HydrologyCaveCell(HydrologyCaveAction.SEAL_GUARD, pool.fluid(), "");
+        HydrologyCaveCell wet = new HydrologyCaveCell(HydrologyCaveAction.POOL_SOURCE, pool.fluid());
+        HydrologyCaveCell wall = new HydrologyCaveCell(HydrologyCaveAction.SEAL_GUARD, pool.fluid());
         for (int offsetX = -1; offsetX <= 1; offsetX++) {
             for (int offsetZ = -1; offsetZ <= 1; offsetZ++) {
                 int targetX = chunkX + offsetX;

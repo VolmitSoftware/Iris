@@ -19,7 +19,7 @@ public class HydrologyCaveStorageTest {
         MantleChunk<Matter> chunk = mock(MantleChunk.class);
         Matter matter = mock(Matter.class);
         MatterSlice<HydrologyCaveCell> slice = mock(MatterSlice.class);
-        HydrologyCaveCell expected = HydrologyCaveCell.of(HydrologyCaveAction.WET_SOURCE);
+        HydrologyCaveCell expected = new HydrologyCaveCell(HydrologyCaveAction.WET_SOURCE, "water");
         when(chunk.exists(2)).thenReturn(true);
         when(chunk.get(2)).thenReturn(matter);
         when(matter.hasSlice(HydrologyCaveCell.class)).thenReturn(true);

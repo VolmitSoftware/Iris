@@ -92,19 +92,15 @@ public class IrisCarveModifierHydrologyTest {
 
         assertSame(baseline, IrisCarveModifier.composeCavern(baseline, null));
         assertNull(IrisCarveModifier.composeCavern(
-                baseline, HydrologyCaveCell.of(HydrologyCaveAction.SEAL_GUARD)));
+                baseline, new HydrologyCaveCell(HydrologyCaveAction.SEAL_GUARD, "water")));
 
         MatterCavern wet = IrisCarveModifier.composeCavern(
-                baseline, new HydrologyCaveCell(
-                        HydrologyCaveAction.WET_SOURCE,
-                        "deep_lava",
-                        "iris:flooded"
-                ));
+                baseline, new HydrologyCaveCell(HydrologyCaveAction.WET_SOURCE, "deep_lava"));
         MatterCavern dry = IrisCarveModifier.composeCavern(
-                baseline, HydrologyCaveCell.of(HydrologyCaveAction.DRY_AIR));
+                baseline, new HydrologyCaveCell(HydrologyCaveAction.DRY_AIR, "water"));
 
         assertEquals(1, wet.getLiquid());
-        assertEquals("iris:flooded", wet.getCustomBiome());
+        assertEquals("", wet.getCustomBiome());
         assertEquals(3, dry.getLiquid());
         assertEquals(2, baseline.getLiquid());
         assertEquals("baseline", baseline.getCustomBiome());
@@ -114,17 +110,14 @@ public class IrisCarveModifierHydrologyTest {
     public void hydrologyActionsResolveDistinctFluidStates() {
         NativeBlockState current = mock(NativeBlockState.class);
         NativeBlockState source = mock(NativeBlockState.class);
-        NativeBlockState falling = mock(NativeBlockState.class);
         NativeBlockState air = mock(NativeBlockState.class);
-        when(source.key()).thenReturn("minecraft:water[level=0]");
-        when(source.withProperty("level", "8")).thenReturn(falling);
 
         assertSame(source, IrisCarveModifier.resolveHydrologyState(
-                HydrologyCaveCell.of(HydrologyCaveAction.WET_SOURCE), current, source, air));
-        assertSame(falling, IrisCarveModifier.resolveHydrologyState(
-                HydrologyCaveCell.of(HydrologyCaveAction.FALLING_FLUID), current, source, air));
+                new HydrologyCaveCell(HydrologyCaveAction.WET_SOURCE, "water"), current, source, air));
+        assertSame(source, IrisCarveModifier.resolveHydrologyState(
+                new HydrologyCaveCell(HydrologyCaveAction.POOL_SOURCE, "water"), current, source, air));
         assertSame(air, IrisCarveModifier.resolveHydrologyState(
-                HydrologyCaveCell.of(HydrologyCaveAction.DRY_AIR), current, source, air));
+                new HydrologyCaveCell(HydrologyCaveAction.DRY_AIR, "water"), current, source, air));
     }
 
     @Test
@@ -141,7 +134,7 @@ public class IrisCarveModifierHydrologyTest {
         assertSame(dry, IrisCarveModifier.normalizeWaterlogging(waterlogged, null));
         assertSame(dry, IrisCarveModifier.normalizeWaterlogging(waterlogged, lava));
         assertSame(dry, IrisCarveModifier.resolveHydrologyState(
-                HydrologyCaveCell.of(HydrologyCaveAction.SEAL_GUARD), waterlogged, water, null));
+                new HydrologyCaveCell(HydrologyCaveAction.SEAL_GUARD, "water"), waterlogged, water, null));
     }
 
     @Test
@@ -172,13 +165,13 @@ public class IrisCarveModifierHydrologyTest {
         assertSame(waterlogged, IrisCarveModifier.normalizeHydrologyWaterlogging(
                 waterlogged,
                 flooded,
-                HydrologyCaveCell.of(HydrologyCaveAction.WET_SOURCE),
+                new HydrologyCaveCell(HydrologyCaveAction.WET_SOURCE, "water"),
                 water
         ));
         assertSame(dry, IrisCarveModifier.normalizeHydrologyWaterlogging(
                 waterlogged,
                 flooded,
-                HydrologyCaveCell.of(HydrologyCaveAction.DRY_AIR),
+                new HydrologyCaveCell(HydrologyCaveAction.DRY_AIR, "water"),
                 water
         ));
     }
@@ -228,8 +221,8 @@ public class IrisCarveModifierHydrologyTest {
             }
             CarveCall apply = resolver(output, rock, caveAir, upper ? upperSurface : null, upper ? null : stack);
             for (int y : new int[]{PROTECTED_FROM - 2, PROTECTED_FROM + 2}) {
-                apply.at(3, y, 4, null, HydrologyCaveCell.of(HydrologyCaveAction.SEAL_GUARD));
-                apply.at(3, y + 1, 4, null, HydrologyCaveCell.of(HydrologyCaveAction.DRY_AIR));
+                apply.at(3, y, 4, null, new HydrologyCaveCell(HydrologyCaveAction.SEAL_GUARD, "water"));
+                apply.at(3, y + 1, 4, null, new HydrologyCaveCell(HydrologyCaveAction.DRY_AIR, "water"));
                 apply.at(3, y + 2, 4, new MatterCavern(true, "", (byte) 0), null);
             }
             assertSame("a seal guard below the " + range + " seals", rock, output.getRaw(3, PROTECTED_FROM - 2, 4));
@@ -294,17 +287,17 @@ public class IrisCarveModifierHydrologyTest {
 
         assertEquals(CarveOwnership.Owner.SUBTERRAIN, IrisCarveModifier.carveOwner(null, open, null, 0));
         assertEquals(CarveOwnership.Owner.HYDROLOGY,
-                IrisCarveModifier.carveOwner(HydrologyCaveCell.of(HydrologyCaveAction.DRY_AIR), open, null, 0));
+                IrisCarveModifier.carveOwner(new HydrologyCaveCell(HydrologyCaveAction.DRY_AIR, "water"), open, null, 0));
         assertEquals(CarveOwnership.Owner.HYDROLOGY,
-                IrisCarveModifier.carveOwner(HydrologyCaveCell.of(HydrologyCaveAction.WET_SOURCE), open, null, 0));
+                IrisCarveModifier.carveOwner(new HydrologyCaveCell(HydrologyCaveAction.WET_SOURCE, "water"), open, null, 0));
         assertEquals(CarveOwnership.Owner.HYDROLOGY,
-                IrisCarveModifier.carveOwner(HydrologyCaveCell.of(HydrologyCaveAction.SEAL_GUARD), open, null, 0));
+                IrisCarveModifier.carveOwner(new HydrologyCaveCell(HydrologyCaveAction.SEAL_GUARD, "water"), open, null, 0));
         assertEquals(CarveOwnership.Owner.CAVERN, IrisCarveModifier.carveOwner(null, SubterrainCell.OUTSIDE, null, 0));
         for (SubterrainCell.Kind kind : new SubterrainCell.Kind[]{SubterrainCell.Kind.WATER, SubterrainCell.Kind.LAVA}) {
             SubterrainCell fluid = new SubterrainCell(kind, "", room);
             assertEquals(CarveOwnership.Owner.SUBTERRAIN, IrisCarveModifier.carveOwner(null, fluid, null, 0));
             assertEquals("subterrain " + kind + " yields the inlet seal", CarveOwnership.Owner.HYDROLOGY,
-                    IrisCarveModifier.carveOwner(HydrologyCaveCell.of(HydrologyCaveAction.SEAL_GUARD), fluid, null, 0));
+                    IrisCarveModifier.carveOwner(new HydrologyCaveCell(HydrologyCaveAction.SEAL_GUARD, "water"), fluid, null, 0));
         }
     }
 
@@ -330,7 +323,7 @@ public class IrisCarveModifierHydrologyTest {
             }
         }
         section(sections, POOL_TOP + 1).slice(HydrologyCaveCell.class)
-                .set(0, (POOL_TOP + 1) & 15, 0, HydrologyCaveCell.of(HydrologyCaveAction.SEAL_GUARD));
+                .set(0, (POOL_TOP + 1) & 15, 0, new HydrologyCaveCell(HydrologyCaveAction.SEAL_GUARD, "water"));
         CaveTerrainSnapshot terrain = CaveTerrainSnapshot.capture(chunk(sections), 0, 0);
         IrisCarveModifier.CaveZone zone = new IrisCarveModifier.CaveZone();
         zone.setFloor(POOL_FLOOR);

@@ -491,8 +491,7 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
     }
 
     private boolean hasProtectedHydrology(int x, int y, int z) {
-        HydrologyCaveCell hydrology = getDataIfPresent(x, y, z, HydrologyCaveCell.class);
-        return hydrology != null && hydrology.protectsPlacement();
+        return getDataIfPresent(x, y, z, HydrologyCaveCell.class) != null;
     }
 
     private final class CommitJournal {

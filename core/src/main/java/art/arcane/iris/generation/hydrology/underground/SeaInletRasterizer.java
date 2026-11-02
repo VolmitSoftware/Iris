@@ -13,7 +13,7 @@ public final class SeaInletRasterizer {
     private static final int GRID = CHUNK + 2 * SHELL;
     static final int NONE = Integer.MIN_VALUE;
 
-    public void write(SeaInlet inlet, int chunkX, int chunkZ, MantleWriter writer, String fluid, String floodedBiome, SubterrainFluid subterrain,
+    public void write(SeaInlet inlet, int chunkX, int chunkZ, MantleWriter writer, String fluid, SubterrainFluid subterrain,
                       HistoricalChunks historical) {
         if (!touches(inlet, chunkX, chunkZ)) {
             return;
@@ -23,9 +23,9 @@ public final class SeaInletRasterizer {
         if (!shape(inlet, (chunkX << 4) - SHELL, (chunkZ << 4) - SHELL, GRID, floors, ceilings)) {
             return;
         }
-        HydrologyCaveCell wet = new HydrologyCaveCell(HydrologyCaveAction.WET_SOURCE, fluid, floodedBiome);
-        HydrologyCaveCell dry = new HydrologyCaveCell(HydrologyCaveAction.DRY_AIR, fluid, floodedBiome);
-        HydrologyCaveCell guard = new HydrologyCaveCell(HydrologyCaveAction.SEAL_GUARD, fluid, floodedBiome);
+        HydrologyCaveCell wet = new HydrologyCaveCell(HydrologyCaveAction.WET_SOURCE, fluid);
+        HydrologyCaveCell dry = new HydrologyCaveCell(HydrologyCaveAction.DRY_AIR, fluid);
+        HydrologyCaveCell guard = new HydrologyCaveCell(HydrologyCaveAction.SEAL_GUARD, fluid);
         int water = inlet.waterLevel();
         boolean[] historicalAround = historicalAround(chunkX, chunkZ, historical);
         for (int lz = 0; lz < CHUNK; lz++) {

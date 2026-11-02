@@ -183,7 +183,7 @@ public class StructureCaveAnchorResolverTest {
     @Test
     public void protectedHydrologyRejectsBeforeReadingAnchorCavernAgain() {
         Engine engine = engineWithFloorAnchor(new MatterCavern(true, "", (byte) 0), 0);
-        HydrologyCaveCell protectedCell = HydrologyCaveCell.of(HydrologyCaveAction.DRY_AIR);
+        HydrologyCaveCell protectedCell = new HydrologyCaveCell(HydrologyCaveAction.DRY_AIR, "water");
         AtomicInteger overlayReads = new AtomicInteger();
         try (MockedStatic<HydrologyCaveStorage> storage = mockStatic(HydrologyCaveStorage.class)) {
             storage.when(() -> HydrologyCaveStorage.getIfPresent(any(Mantle.class), anyInt(), anyInt(), anyInt()))
@@ -223,13 +223,13 @@ public class StructureCaveAnchorResolverTest {
         MatterCavern forcedAir = new MatterCavern(true, "", (byte) 3);
 
         assertFalse(StructureCaveAnchorResolver.acceptsAnchorFluid(
-                true, fluid, HydrologyCaveCell.of(HydrologyCaveAction.WET_SOURCE), 20, 8));
+                true, fluid, new HydrologyCaveCell(HydrologyCaveAction.WET_SOURCE, "water"), 20, 8));
         assertFalse(StructureCaveAnchorResolver.acceptsAnchorFluid(
-                true, fluid, HydrologyCaveCell.of(HydrologyCaveAction.FALLING_FLUID), 20, 8));
+                true, fluid, new HydrologyCaveCell(HydrologyCaveAction.POOL_SOURCE, "water"), 20, 8));
         assertFalse(StructureCaveAnchorResolver.acceptsAnchorFluid(
-                true, null, HydrologyCaveCell.of(HydrologyCaveAction.SEAL_GUARD), 20, 8));
+                true, null, new HydrologyCaveCell(HydrologyCaveAction.SEAL_GUARD, "water"), 20, 8));
         assertFalse(StructureCaveAnchorResolver.acceptsAnchorFluid(
-                false, forcedAir, HydrologyCaveCell.of(HydrologyCaveAction.DRY_AIR), 0, 8));
+                false, forcedAir, new HydrologyCaveCell(HydrologyCaveAction.DRY_AIR, "water"), 0, 8));
     }
 
     private static Engine engineWithFloorAnchor(MatterCavern anchorCavern, int surfaceHeight) {

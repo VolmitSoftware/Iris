@@ -231,7 +231,7 @@ public class CaveObjectPlacementTransactionTest {
     public void dryHydrologyHeadroomRejectsTheWholePlacement() {
         IObjectPlacer delegate = createPlacer(128, 80, 20, 90);
         when(delegate.getData(4, 30, 7, HydrologyCaveCell.class))
-                .thenReturn(HydrologyCaveCell.of(HydrologyCaveAction.DRY_AIR));
+                .thenReturn(new HydrologyCaveCell(HydrologyCaveAction.DRY_AIR, "water"));
         CaveObjectPlacementTransaction transaction = new CaveObjectPlacementTransaction(delegate, 20, 10);
 
         transaction.set(4, 30, 7, mock(NativeBlockState.class));

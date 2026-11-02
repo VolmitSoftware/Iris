@@ -361,7 +361,7 @@ public class HydrologyRuntimeTest {
             written.put(((long) x << 40) ^ ((long) (int) call.getArgument(2) << 20) ^ (int) call.getArgument(1), cell);
             return null;
         }).when(writer).setData(anyInt(), anyInt(), anyInt(), any(HydrologyCaveCell.class));
-        new SeaInletRasterizer().write(tail.getFirst(), 68, 25, writer, HydrologyCaveCell.SEA_FLUID, "", SeaInletRasterizer.SubterrainFluid.NOWHERE,
+        new SeaInletRasterizer().write(tail.getFirst(), 68, 25, writer, HydrologyCaveCell.SEA_FLUID, SeaInletRasterizer.SubterrainFluid.NOWHERE,
                 SeaInletRasterizer.HistoricalChunks.NONE);
         assertTrue("the chunk past the owner window writes inlet water",
                 written.values().stream().anyMatch(cell -> cell.action() == HydrologyCaveAction.WET_SOURCE));

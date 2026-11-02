@@ -178,7 +178,7 @@ public class IrisCarveModifierSubterrainMaskTest {
                 if (y <= water + 2 && y >= water - 3) {
                     HydrologyCaveAction action = y > water ? HydrologyCaveAction.DRY_AIR
                             : y == water - 3 ? HydrologyCaveAction.SEAL_GUARD : HydrologyCaveAction.WET_SOURCE;
-                    inlet.put(cell, new HydrologyCaveCell(action, HydrologyCaveCell.SEA_FLUID, ""));
+                    inlet.put(cell, new HydrologyCaveCell(action, HydrologyCaveCell.SEA_FLUID));
                 }
             }
             assertTrue("inlet cells crossing the room " + inlet.size(), inlet.size() > 20);

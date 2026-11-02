@@ -44,9 +44,9 @@ public class StructureCaveAnchorColumnScanTest {
                 baseline[y] = new MatterCavern(true, "", (byte) (y % 31 == 0 ? 1 : 0));
             }
         }
-        hydrology[55] = HydrologyCaveCell.of(HydrologyCaveAction.WET_SOURCE);
-        hydrology[56] = HydrologyCaveCell.of(HydrologyCaveAction.SEAL_GUARD);
-        hydrology[200] = HydrologyCaveCell.of(HydrologyCaveAction.DRY_AIR);
+        hydrology[55] = new HydrologyCaveCell(HydrologyCaveAction.WET_SOURCE, "water");
+        hydrology[56] = new HydrologyCaveCell(HydrologyCaveAction.SEAL_GUARD, "water");
+        hydrology[200] = new HydrologyCaveCell(HydrologyCaveAction.DRY_AIR, "water");
         Engine engine = fixture(baseline);
         try (MockedStatic<HydrologyCaveStorage> storage = mockStatic(HydrologyCaveStorage.class)) {
             storage.when(() -> HydrologyCaveStorage.getIfPresent(any(Mantle.class), anyInt(), anyInt(), anyInt()))

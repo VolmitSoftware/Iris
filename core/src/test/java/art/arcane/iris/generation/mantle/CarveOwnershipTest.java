@@ -42,7 +42,7 @@ public class CarveOwnershipTest {
     private static final SubterrainCell RESERVED_PASSAGE = new SubterrainCell(SubterrainCell.Kind.AIR, "", room(true, false));
     private static final SubterrainCell SHELL = new SubterrainCell(SubterrainCell.Kind.SOLID, "", room(false, false));
     private static final HydrologyCaveCell[] HYDROLOGY = {
-            null, HydrologyCaveCell.of(HydrologyCaveAction.DRY_AIR), HydrologyCaveCell.of(HydrologyCaveAction.SEAL_GUARD)};
+            null, new HydrologyCaveCell(HydrologyCaveAction.DRY_AIR, "water"), new HydrologyCaveCell(HydrologyCaveAction.SEAL_GUARD, "water")};
     private static final SubterrainCell[] SUBTERRAIN = {SubterrainCell.OUTSIDE, OPEN_ROOM, RESERVED_SOLID, RESERVED_PASSAGE, SHELL};
 
     @Rule

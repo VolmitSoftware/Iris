@@ -47,8 +47,6 @@ import art.arcane.iris.pack.value.IrisPosition;
 import art.arcane.iris.generation.terrain.IrisRegion;
 import art.arcane.iris.structure.placement.IrisStructure;
 import art.arcane.iris.world.IrisWorld;
-import art.arcane.iris.generation.hydrology.cave.HydrologyCaveCell;
-import art.arcane.iris.generation.hydrology.cave.HydrologyCaveStorage;
 import art.arcane.volmlib.nativelib.terrain.NativeBiome;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.collection.KList;
@@ -367,22 +365,8 @@ public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, 
         if (featureBiome != null) {
             return featureBiome;
         }
-        IrisBiome mantleBiome = mantleCaveBiome(x, y, z);
+        IrisBiome mantleBiome = customCaveBiome(getMantle().getMantle().get(x, y, z, MatterCavern.class));
         return mantleBiome != null ? mantleBiome : getCaveBiome(x, y, z);
-    }
-
-    private IrisBiome mantleCaveBiome(int x, int y, int z) {
-        IrisBiome flooded = floodedCaveBiome(x, y, z);
-        return flooded != null ? flooded : customCaveBiome(getMantle().getMantle().get(x, y, z, MatterCavern.class));
-    }
-
-    private IrisBiome floodedCaveBiome(int x, int y, int z) {
-        HydrologyCaveCell hydrology = HydrologyCaveStorage.getIfPresent(
-                getMantle().getMantle(), x, y, z);
-        if (hydrology != null && !hydrology.floodedBiomeKey().isEmpty()) {
-            return getData().getBiomeLoader().load(hydrology.floodedBiomeKey());
-        }
-        return null;
     }
 
     private IrisBiome customCaveBiome(MatterCavern cavern) {
@@ -439,15 +423,12 @@ public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, 
                     biomes[index] = surface;
                     continue;
                 }
-                IrisBiome biome = floodedCaveBiome(x, y, z);
-                if (biome == null) {
-                    if (!cavernChunkResolved) {
-                        cavernChunk = useCavernChunk(x, z);
-                        cavernChunkResolved = true;
-                    }
-                    biome = cavernChunk == null || y < 0 || y >= getMantle().getMantle().getWorldHeight()
-                            ? null : customCaveBiome(cavernChunk.get(x & 15, y, z & 15, MatterCavern.class));
+                if (!cavernChunkResolved) {
+                    cavernChunk = useCavernChunk(x, z);
+                    cavernChunkResolved = true;
                 }
+                IrisBiome biome = cavernChunk == null || y < 0 || y >= getMantle().getMantle().getWorldHeight()
+                        ? null : customCaveBiome(cavernChunk.get(x & 15, y, z & 15, MatterCavern.class));
                 if (biome == null) {
                     biome = resolveConfiguredCaveBiome(x, y, z, null);
                 }

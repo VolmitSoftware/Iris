@@ -350,7 +350,7 @@ public class SeaInletRasterizerTest {
         SeaInlet inlet = inlet(1L, 15f);
         Map<Long, HydrologyCaveCell> cells = new TreeMap<>();
         MantleWriter writer = writer(cells, 1, 0);
-        new SeaInletRasterizer().write(inlet, 1, 0, writer, FLUID, "", SeaInletRasterizer.SubterrainFluid.NOWHERE,
+        new SeaInletRasterizer().write(inlet, 1, 0, writer, FLUID, SeaInletRasterizer.SubterrainFluid.NOWHERE,
                 SeaInletRasterizer.HistoricalChunks.NONE);
         assertFalse(cells.isEmpty());
         for (long key : cells.keySet()) {
@@ -358,7 +358,7 @@ public class SeaInletRasterizerTest {
             assertEquals(0, z(key) >> 4);
         }
         Map<Long, HydrologyCaveCell> far = new TreeMap<>();
-        new SeaInletRasterizer().write(inlet, 20, 20, writer(far, 20, 20), FLUID, "", SeaInletRasterizer.SubterrainFluid.NOWHERE,
+        new SeaInletRasterizer().write(inlet, 20, 20, writer(far, 20, 20), FLUID, SeaInletRasterizer.SubterrainFluid.NOWHERE,
                 SeaInletRasterizer.HistoricalChunks.NONE);
         assertTrue(far.isEmpty());
         assertFalse(SeaInletRasterizer.touches(inlet, 20, 20));
@@ -407,7 +407,7 @@ public class SeaInletRasterizerTest {
         for (int[] chunk : chunks) {
             MantleWriter writer = writer(cells, chunk[0], chunk[1]);
             for (SeaInlet inlet : inlets) {
-                rasterizer.write(inlet, chunk[0], chunk[1], writer, FLUID, "", subterrain, old);
+                rasterizer.write(inlet, chunk[0], chunk[1], writer, FLUID, subterrain, old);
             }
         }
         return cells;

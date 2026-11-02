@@ -419,7 +419,6 @@ public class IrisCarveModifier extends EngineAssignedModifier<NativeBlockState> 
         }
         return switch (hydrology.action()) {
             case WET_SOURCE, POOL_SOURCE -> fluid;
-            case FALLING_FLUID -> fallingFluidState(fluid);
             case DRY_AIR -> air;
             case SEAL_GUARD -> normalizeWaterlogging(current, null);
         };
@@ -448,16 +447,6 @@ public class IrisCarveModifier extends EngineAssignedModifier<NativeBlockState> 
         MatterCavern composed = composeCavern(baseline, hydrology);
         NativeBlockState resultingFluid = isFluidIntent(composed) ? columnFluid : null;
         return normalizeWaterlogging(state, resultingFluid);
-    }
-
-    private static NativeBlockState fallingFluidState(NativeBlockState fluid) {
-        if (fluid == null || !IrisProceduralBlocks.hasProperty(fluid, "level")) {
-            return fluid;
-        }
-        if ("8".equals(IrisProceduralBlocks.propertyValue(fluid, "level"))) {
-            return fluid;
-        }
-        return fluid.withProperty("level", "8");
     }
 
     private final class CarveResolver {
@@ -643,7 +632,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<NativeBlockState> 
             HydrologyCaveCell hydrology = terrain.hydrology(rx, yy, rz);
             int worldX = rx + chunkBlockX;
             int worldZ = rz + chunkBlockZ;
-            if (hydrology != null && hydrology.protectsPlacement() || inputs.cells.cell(worldX, yy, worldZ).owned()
+            if (hydrology != null || inputs.cells.cell(worldX, yy, worldZ).owned()
                     || yy >= surfaceHeights[PowerOfTwoCoordinates.packLocal16(rx, rz)] || !B.isSolid(output.getRaw(rx, yy, rz))) {
                 return;
             }
@@ -892,9 +881,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<NativeBlockState> 
                     break;
                 }
                 HydrologyCaveCell hydrology = terrain.hydrology(rx, floorY, rz);
-                if (hydrology != null
-                        && hydrology.protectsPlacement()
-                        && hydrology.action() != HydrologyCaveAction.SEAL_GUARD) {
+                if (hydrology != null && hydrology.action() != HydrologyCaveAction.SEAL_GUARD) {
                     continue;
                 }
                 NativeBlockState existing = output.getRaw(rx, floorY, rz);
@@ -922,9 +909,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<NativeBlockState> 
                     break;
                 }
                 HydrologyCaveCell hydrology = terrain.hydrology(rx, ceilingY, rz);
-                if (hydrology != null
-                        && hydrology.protectsPlacement()
-                        && hydrology.action() != HydrologyCaveAction.SEAL_GUARD) {
+                if (hydrology != null && hydrology.action() != HydrologyCaveAction.SEAL_GUARD) {
                     continue;
                 }
                 NativeBlockState existing = output.getRaw(rx, ceilingY, rz);
@@ -988,9 +973,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<NativeBlockState> 
                 }
                 int y = zone.floor - i - 1;
                 HydrologyCaveCell hydrology = terrain.hydrology(rx, y, rz);
-                if (hydrology != null
-                        && hydrology.protectsPlacement()
-                        && hydrology.action() != HydrologyCaveAction.SEAL_GUARD) {
+                if (hydrology != null && hydrology.action() != HydrologyCaveAction.SEAL_GUARD) {
                     continue;
                 }
                 NativeBlockState block = resolveSubmergedCaveFloorLayer(
@@ -1017,9 +1000,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<NativeBlockState> 
                     break;
                 }
                 HydrologyCaveCell hydrology = terrain.hydrology(rx, cy, rz);
-                if (hydrology != null
-                        && hydrology.protectsPlacement()
-                        && hydrology.action() != HydrologyCaveAction.SEAL_GUARD) {
+                if (hydrology != null && hydrology.action() != HydrologyCaveAction.SEAL_GUARD) {
                     continue;
                 }
                 NativeBlockState block = ceilingBlocks.get(i);

@@ -274,7 +274,7 @@ public final class StructureCaveAnchorResolver {
             int blockZ
     ) {
         HydrologyCaveCell hydrology = hydrologyAt(engine, blockX, mantleY, blockZ);
-        if (hydrology != null && hydrology.protectsPlacement()) {
+        if (hydrology != null) {
             return false;
         }
         MatterCavern cavern = engine.getMantle().getMantle()
@@ -303,7 +303,7 @@ public final class StructureCaveAnchorResolver {
             int mantleY,
             int defaultLavaHeight
     ) {
-        if (hydrology != null && hydrology.protectsPlacement()) {
+        if (hydrology != null) {
             return false;
         }
         if (cavern == null || !cavern.isCavern()) {

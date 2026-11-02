@@ -92,7 +92,9 @@ public class IrisTerrainSVC implements IrisService, IrisTerrainService {
         }
 
         try {
-            return OptionalInt.of(engine.getHeight(blockX, blockZ) + engine.getMinHeight());
+            long revision = ProvisionalSampling.revision();
+            int height = engine.getHeight(blockX, blockZ) + engine.getMinHeight();
+            return provisionalSince(revision) ? OptionalInt.empty() : OptionalInt.of(height);
         } catch (Throwable error) {
             reportQueryFault("surfaceHeight", world, error);
             return OptionalInt.empty();
@@ -107,6 +109,7 @@ public class IrisTerrainSVC implements IrisService, IrisTerrainService {
         }
 
         try {
+            long revision = ProvisionalSampling.revision();
             int surface = engine.getHeight(blockX, blockZ);
             WaterRole role = engine.getComplex().getWaterRoleStream().get(blockX, blockZ);
             int fluid = (int) Math.round(
@@ -116,7 +119,8 @@ public class IrisTerrainSVC implements IrisService, IrisTerrainService {
                 IrisBiome biome = engine.getSurfaceBiome(blockX, blockZ);
                 inferredType = biome == null ? null : biome.getInferredType();
             }
-            return IrisSurfaceClassifier.classify(surface, fluid, inferredType, role);
+            IrisSurfaceKind kind = IrisSurfaceClassifier.classify(surface, fluid, inferredType, role);
+            return provisionalSince(revision) ? IrisSurfaceKind.UNKNOWN : kind;
         } catch (Throwable error) {
             reportQueryFault("surfaceKind", world, error);
             return IrisSurfaceKind.UNKNOWN;
@@ -131,7 +135,9 @@ public class IrisTerrainSVC implements IrisService, IrisTerrainService {
         }
 
         try {
-            return key(engine.getSurfaceBiome(blockX, blockZ));
+            long revision = ProvisionalSampling.revision();
+            Optional<String> key = key(engine.getSurfaceBiome(blockX, blockZ));
+            return provisionalSince(revision) ? Optional.empty() : key;
         } catch (Throwable error) {
             reportQueryFault("surfaceBiomeKey", world, error);
             return Optional.empty();
@@ -146,7 +152,9 @@ public class IrisTerrainSVC implements IrisService, IrisTerrainService {
         }
 
         try {
-            return name(engine.getSurfaceBiome(blockX, blockZ));
+            long revision = ProvisionalSampling.revision();
+            Optional<String> name = name(engine.getSurfaceBiome(blockX, blockZ));
+            return provisionalSince(revision) ? Optional.empty() : name;
         } catch (Throwable error) {
             reportQueryFault("surfaceBiomeName", world, error);
             return Optional.empty();
@@ -161,8 +169,10 @@ public class IrisTerrainSVC implements IrisService, IrisTerrainService {
         }
 
         try {
-            return Optional.of(IrisBiomeInfoFactory.surface(engine, blockX, blockZ,
-                    error -> reportQueryFault("surfaceBiomeInfo", world, error)));
+            long revision = ProvisionalSampling.revision();
+            IrisBiomeInfo info = IrisBiomeInfoFactory.surface(engine, blockX, blockZ,
+                    error -> reportQueryFault("surfaceBiomeInfo", world, error));
+            return provisionalSince(revision) ? Optional.empty() : Optional.of(info);
         } catch (Throwable error) {
             reportQueryFault("surfaceBiomeInfo", world, error);
             return Optional.empty();
@@ -177,7 +187,9 @@ public class IrisTerrainSVC implements IrisService, IrisTerrainService {
         }
 
         try {
-            return key(engine.getBiome(blockX, blockY - engine.getMinHeight(), blockZ));
+            long revision = ProvisionalSampling.revision();
+            Optional<String> key = key(engine.getBiome(blockX, blockY - engine.getMinHeight(), blockZ));
+            return provisionalSince(revision) ? Optional.empty() : key;
         } catch (Throwable error) {
             reportQueryFault("biomeKey", world, error);
             return Optional.empty();
@@ -192,9 +204,10 @@ public class IrisTerrainSVC implements IrisService, IrisTerrainService {
         }
 
         try {
+            long revision = ProvisionalSampling.revision();
             IrisRegion region = engine.getRegion(blockX, blockZ);
             String loadKey = region == null ? null : region.getLoadKey();
-            return loadKey == null || loadKey.isEmpty() ? Optional.empty() : Optional.of(loadKey);
+            return provisionalSince(revision) || loadKey == null || loadKey.isEmpty() ? Optional.empty() : Optional.of(loadKey);
         } catch (Throwable error) {
             reportQueryFault("regionKey", world, error);
             return Optional.empty();
@@ -209,9 +222,10 @@ public class IrisTerrainSVC implements IrisService, IrisTerrainService {
         }
 
         try {
+            long revision = ProvisionalSampling.revision();
             IrisRegion region = engine.getRegion(blockX, blockZ);
             String name = region == null ? null : region.getName();
-            return name == null || name.isEmpty() ? Optional.empty() : Optional.of(name);
+            return provisionalSince(revision) || name == null || name.isEmpty() ? Optional.empty() : Optional.of(name);
         } catch (Throwable error) {
             reportQueryFault("regionName", world, error);
             return Optional.empty();
@@ -312,7 +326,7 @@ public class IrisTerrainSVC implements IrisService, IrisTerrainService {
                         riverDistance,
                         riverFlow,
                         riverWaterSurfaceY,
-                        ProvisionalSampling.revision() != revision
+                        provisionalSince(revision)
                 ));
                 return true;
             });
@@ -352,6 +366,10 @@ public class IrisTerrainSVC implements IrisService, IrisTerrainService {
     private static Optional<String> name(IrisBiome biome) {
         String name = biome == null ? null : biome.getName();
         return name == null || name.isEmpty() ? Optional.empty() : Optional.of(name);
+    }
+
+    private static boolean provisionalSince(long revision) {
+        return ProvisionalSampling.revision() != revision;
     }
 
     private static int noiseCacheChunks() {

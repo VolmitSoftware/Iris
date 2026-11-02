@@ -907,8 +907,9 @@ public class HydrologyRuntimeTest {
 
     @Test
     @SuppressWarnings("unchecked")
-    public void createChecksEveryReachableBiomeFluidWhileCavePoolsAreEnabled() throws Exception {
+    public void createChecksEveryPolicyFluidWhetherCavePoolsAreOnOrOff() throws Exception {
         IrisDimension dimension = new IrisDimension().setRegions(new KList<>("tropical"));
+        dimension.setLoadKey("main");
         dimension.setHydrology(new IrisHydrology().setEnabled(true).setDensity(0D));
         IrisRegion tropical = new IrisRegion().setLandBiomes(new KList<>("volcanoes"));
         tropical.setLoadKey("tropical");
@@ -932,6 +933,20 @@ public class HydrologyRuntimeTest {
         assertTrue(failure.getMessage(), failure.getMessage().contains("'magma'") && failure.getMessage().contains("volcanoes"));
 
         dimension.getHydrology().getUnderground().getCavePools().setEnabled(false);
+        assertEquals("Unknown hydrology fluid profile 'magma' in biome 'volcanoes' hydrologyPolicy.fluid; fluids defines [water]",
+                assertThrows(IllegalArgumentException.class, () -> HydrologyRuntime.create(engine, complex)).getMessage());
+
+        volcanoes.setHydrologyPolicy(null);
+        tropical.setHydrologyPolicy(new IrisHydrologyPolicy().setFluid("magma"));
+        assertEquals("Unknown hydrology fluid profile 'magma' in region 'tropical' hydrologyPolicy.fluid; fluids defines [water]",
+                assertThrows(IllegalArgumentException.class, () -> HydrologyRuntime.create(engine, complex)).getMessage());
+
+        tropical.setHydrologyPolicy(null);
+        dimension.setHydrologyPolicy(new IrisHydrologyPolicy().setFluid("magma"));
+        assertEquals("Unknown hydrology fluid profile 'magma' in dimension 'main' hydrologyPolicy.fluid; fluids defines [water]",
+                assertThrows(IllegalArgumentException.class, () -> HydrologyRuntime.create(engine, complex)).getMessage());
+
+        dimension.setHydrologyPolicy(new IrisHydrologyPolicy().setFluid("water"));
         assertDisabled(HydrologyRuntime.create(engine, complex));
     }
 

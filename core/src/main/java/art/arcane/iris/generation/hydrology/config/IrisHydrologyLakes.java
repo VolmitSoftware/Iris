@@ -16,12 +16,12 @@ public class IrisHydrologyLakes {
     private boolean enabled = true;
 
     @MinNumber(1024)
-    @MaxNumber(134217728)
+    @MaxNumber(4194304)
     @Description("Smallest lake surface in square blocks.")
     private int minArea = 65536;
 
     @MinNumber(1024)
-    @MaxNumber(134217728)
+    @MaxNumber(4194304)
     @Description("Largest lake surface in square blocks. Larger hollows are drained by a cut through their rim.")
     private int maxArea = 4194304;
 }

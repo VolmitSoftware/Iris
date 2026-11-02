@@ -24,12 +24,12 @@ public class IrisCavePools {
     private double density = 0.15D;
 
     @MinNumber(1)
-    @MaxNumber(4096)
+    @MaxNumber(961)
     @Description("Smallest pool surface in square blocks.")
     private int minArea = 6;
 
     @MinNumber(1)
-    @MaxNumber(65536)
+    @MaxNumber(961)
     @Description("Largest pool surface in square blocks.")
     private int maxArea = 400;
 

@@ -22,6 +22,7 @@ import art.arcane.iris.generation.hydrology.config.IrisSeaInlets;
 import art.arcane.iris.generation.hydrology.underground.SeaInletPlanner;
 import art.arcane.iris.generation.hydrology.underground.SeaInletRasterizer;
 import art.arcane.iris.generation.hydrology.water.HydrologyTier;
+import art.arcane.iris.generation.hydrology.water.LakeCandidate;
 import art.arcane.iris.generation.noise.IrisGeneratorStyle;
 import art.arcane.iris.generation.terrain.IrisMaterialPalette;
 import com.google.gson.Gson;
@@ -47,6 +48,12 @@ public final class HydrologySettings {
     private static final int INLET_LAST_STEP = (int) Math.ceil(WindowPlanner.CELL * Math.sqrt(2D));
     private static final int INLET_SHELL = SeaInletRasterizer.SHELL;
     public static final int MAX_CAVE_POOL_RADIUS = 15;
+    private static final int CAVE_POOL_SPAN = 2 * MAX_CAVE_POOL_RADIUS + 1;
+    private static final int MAX_CAVE_POOL_AREA = CAVE_POOL_SPAN * CAVE_POOL_SPAN;
+    private static final int MAX_LAKE_AREA = LakeCandidate.MAX_EXTENT * LakeCandidate.MAX_EXTENT;
+    private static final int MAX_PREFETCH_RINGS = 4;
+    private static final int MAX_SEEDED_DENSITY = 64;
+    private static final int MIN_WATERFALL_DROP = 2;
 
     private final long seed;
     private final int seaLevel;
@@ -88,6 +95,7 @@ public final class HydrologySettings {
         this.seams = seams(config.getFluids());
         this.prefetchRings = config.getPrefetchRings();
         this.persist = config.isPersist();
+        requireBounds(config);
         requireFluidReferences();
         this.fingerprint = computeFingerprint();
     }
@@ -495,6 +503,77 @@ public final class HydrologySettings {
         };
         if (belowFloor) {
             throw new IllegalArgumentException("Hydrology range " + field + " must " + floor.requirement + ", got " + values);
+        }
+    }
+
+    private void requireBounds(IrisHydrology config) {
+        requireWithin(prefetchRings, 0, MAX_PREFETCH_RINGS, "prefetchRings");
+        requirePositive(config.getDrainage().getFillEpsilon(), "drainage.fillEpsilon");
+        for (int index = 0; index < config.getTiers().size(); index++) {
+            requireTierBounds(config.getTiers().get(index), "tiers[" + index + "]");
+        }
+        double seeded = config.getPonds().getSeeded().getDensity();
+        if (!(seeded >= 0D && seeded <= MAX_SEEDED_DENSITY)) {
+            throw new IllegalArgumentException("Hydrology ponds.seeded.density must stay within 0.." + MAX_SEEDED_DENSITY + ", got " + seeded);
+        }
+        requireShoreDepth(ponds.materials(), "ponds.materials");
+        requireAtLeast(deformation.maxFill(), 0, "deformation.maxFill");
+        if (lakes.maxArea() > MAX_LAKE_AREA) {
+            throw new IllegalArgumentException("Hydrology lakes.maxArea must not go above " + MAX_LAKE_AREA + " (" + LakeCandidate.MAX_EXTENT
+                    + " by " + LakeCandidate.MAX_EXTENT + " blocks, the widest a lake can span), got " + lakes.maxArea());
+        }
+        requireAtLeast(underground.seaInlets().spacing(), 1, "underground.seaInlets.spacing");
+        requireCavePoolBounds(underground.cavePools());
+    }
+
+    private static void requireTierBounds(IrisHydrologyTier config, String field) {
+        requireNonNegative(config.getWidthFactor(), field + ".widthFactor");
+        requireNonNegative(config.getDepthRatio(), field + ".depthRatio");
+        requireAtLeast(config.getWaterfallMinimumDrop(), MIN_WATERFALL_DROP, field + ".waterfallMinimumDrop");
+        requireShoreDepth(config.getMaterials(), field + ".materials");
+    }
+
+    private static void requireShoreDepth(IrisHydrologyMaterials materials, String field) {
+        if (materials != null) {
+            requireAtLeast(materials.getShoreDepth(), 1, field + ".shoreDepth");
+        }
+    }
+
+    private static void requireCavePoolBounds(CavePools pools) {
+        if (!pools.enabled()) {
+            return;
+        }
+        if (pools.freeboard().max() >= pools.maxDepth()) {
+            throw new IllegalArgumentException("Hydrology underground.cavePools.freeboard max " + pools.freeboard().max()
+                    + " must stay below maxDepth " + pools.maxDepth());
+        }
+        if (pools.maxArea() > MAX_CAVE_POOL_AREA) {
+            throw new IllegalArgumentException("Hydrology underground.cavePools.maxArea must not go above " + MAX_CAVE_POOL_AREA + " ("
+                    + CAVE_POOL_SPAN + " by " + CAVE_POOL_SPAN + " blocks, the widest a pool can spread), got " + pools.maxArea());
+        }
+    }
+
+    private static void requireWithin(int value, int min, int max, String field) {
+        if (value < min || value > max) {
+            throw new IllegalArgumentException("Hydrology " + field + " must stay within " + min + ".." + max + ", got " + value);
+        }
+    }
+
+    private static void requireAtLeast(int value, int min, String field) {
+        if (value < min) {
+            throw new IllegalArgumentException("Hydrology " + field + " must be at least " + min + ", got " + value);
+        }
+    }
+
+    private static void requireNonNegative(double value, String field) {
+        if (!(Double.isFinite(value) && value >= 0D)) {
+            throw new IllegalArgumentException("Hydrology " + field + " must be a finite value of at least 0, got " + value);
+        }
+    }
+
+    private static void requirePositive(double value, String field) {
+        if (!(Double.isFinite(value) && value > 0D)) {
+            throw new IllegalArgumentException("Hydrology " + field + " must be a finite value above 0, got " + value);
         }
     }
 

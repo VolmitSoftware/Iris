@@ -151,11 +151,9 @@ public final class HydrologyRuntime {
         Objects.requireNonNull(complex, "Hydrology needs the engine's terrain complex");
         HydrologySettings settings = HydrologySettings.compile(config, engine.getSeedManager().getBodies(), dimension.getFluidHeight(), 0,
                 engine.getHeight());
-        boolean caveFluidPolicies = false;
-        if (settings.underground().cavePools().enabled()) {
-            requireBiomeFluids(dimension.getReachableBiomes(engine), settings);
-            caveFluidPolicies = requireCaveFluids(dimension, dimension.getAllRegions(engine), dimension.getReachableCaveBiomes(engine), settings);
-        }
+        requireBiomeFluids(dimension.getReachableBiomes(engine), settings);
+        boolean caveFluidPolicies = requireCaveFluids(dimension, dimension.getAllRegions(engine), dimension.getReachableCaveBiomes(engine), settings)
+                && settings.underground().cavePools().enabled();
         if (settings.density() == 0D) {
             return DISABLED;
         }

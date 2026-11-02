@@ -326,6 +326,18 @@ public class HydrologySettingsTest {
     }
 
     @Test
+    public void compileBoundsTheSeededCupDensity() {
+        for (double invalid : new double[]{-0.5D, 64.5D, Double.NaN, Double.POSITIVE_INFINITY}) {
+            IrisHydrology config = new IrisHydrology();
+            config.getPonds().getSeeded().setDensity(invalid);
+            assertRejected(config, "ponds.seeded.density must stay within 0..64, got " + invalid);
+        }
+        IrisHydrology densest = new IrisHydrology();
+        densest.getPonds().getSeeded().setDensity(64D);
+        assertEquals(64f, compile(densest).ponds().seeded().density(), 0f);
+    }
+
+    @Test
     public void compileRejectsCavePoolsThatReachPastTheNeighbouringChunks() {
         IrisHydrology wide = new IrisHydrology();
         wide.getUnderground().getCavePools().setRadius(HydrologySettings.MAX_CAVE_POOL_RADIUS + 1);

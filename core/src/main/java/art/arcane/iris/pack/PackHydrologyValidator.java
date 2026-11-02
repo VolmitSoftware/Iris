@@ -5,6 +5,7 @@ import art.arcane.iris.generation.decoration.HydrologyVegetation;
 import art.arcane.iris.generation.decoration.IrisDecorator;
 import art.arcane.iris.generation.hydrology.config.IrisHydrology;
 import art.arcane.iris.generation.hydrology.config.IrisHydrologyPolicy;
+import art.arcane.iris.generation.hydrology.config.IrisHydrologyTier;
 import art.arcane.iris.generation.hydrology.config.IrisHydrologyWetness;
 import art.arcane.iris.generation.hydrology.plan.HydrologySettings;
 import art.arcane.iris.generation.terrain.IrisDimension;
@@ -14,6 +15,7 @@ import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.volmlib.util.json.JSONArray;
 import art.arcane.volmlib.util.json.JSONObject;
+import art.arcane.volmlib.util.mantle.flag.ReservedFlag;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -39,31 +41,36 @@ final class PackHydrologyValidator {
             new RangeField("underground.cavePools.freeboard", Floor.NON_NEGATIVE, true)
     );
     private static final List<String> FLUID_REFERENCES = List.of("ponds.fluid", "underground.cavePools.fluid");
+    private static final IrisHydrologyTier DEFAULT_TIER = new IrisHydrologyTier();
+    private static final String MANTLE_WATER = "the falling water at waterfalls and cascades, sea inlets and cave pools";
 
     private PackHydrologyValidator() {
     }
 
     static Validation validate(File packFolder, File[] dimensionFiles) {
         List<String> errors = new ArrayList<>();
+        List<String> warnings = new ArrayList<>();
         if (packFolder == null || !packFolder.isDirectory() || dimensionFiles == null) {
-            return new Validation(errors, List.of());
+            return new Validation(errors, warnings);
         }
         List<File> sortedDimensions = new ArrayList<>(List.of(dimensionFiles));
         sortedDimensions.sort(Comparator.comparing(File::getPath));
         File dimensionsFolder = new File(packFolder, PackValidator.DIMENSIONS_FOLDER);
+        Findings findings = new Findings(errors, warnings);
         IrisData data = null;
         try {
             for (File dimensionFile : sortedDimensions) {
-                data = validateDimension(packFolder, dimensionsFolder, dimensionFile, data, errors);
+                data = validateDimension(packFolder, dimensionsFolder, dimensionFile, data, findings);
             }
         } finally {
             close(packFolder, data, errors);
         }
-        return new Validation(errors, List.of());
+        return new Validation(errors, warnings);
     }
 
     private static IrisData validateDimension(File packFolder, File dimensionsFolder, File dimensionFile, IrisData data,
-                                              List<String> errors) {
+                                              Findings findings) {
+        List<String> errors = findings.errors();
         JSONObject dimension = PackValidationIo.readJson(dimensionFile);
         if (dimension == null || !dimension.has(CONFIG)) {
             return data;
@@ -79,6 +86,7 @@ final class PackHydrologyValidator {
         }
         int reported = errors.size();
         validateRanges(path, hydrology, errors);
+        warnPartialTiers(path, hydrology, findings.warnings());
         Set<String> fluids = fluidNames(hydrology);
         Set<String> seams = seamNames(hydrology);
         validateFluidReferences(path, hydrology, fluids, errors);
@@ -87,6 +95,7 @@ final class PackHydrologyValidator {
         if (loadedDimension == null) {
             return loaded;
         }
+        warnMantleOff("Dimension '" + dimensionKey + "'", loadedDimension, findings.warnings());
         validatePolicies(path, dimensionKey, loaded, loadedDimension, new PolicyFluids(fluids, seams), errors);
         if (errors.size() == reported && validateCompile(path, loadedDimension, errors)) {
             validateDecoratorBlocks(path, loaded, loadedDimension.getHydrology(), errors);
@@ -147,6 +156,37 @@ final class PackHydrologyValidator {
             if (value != null) {
                 range(path + "." + range.path(), value, range.floor(), range.whole(), errors);
             }
+        }
+    }
+
+    private static void warnPartialTiers(String path, JSONObject hydrology, List<String> warnings) {
+        JSONArray tiers = hydrology.optJSONArray("tiers");
+        if (tiers == null) {
+            return;
+        }
+        for (int index = 0; index < tiers.length(); index++) {
+            JSONObject tier = tiers.optJSONObject(index);
+            if (tier == null) {
+                continue;
+            }
+            String field = path + ".tiers[" + index + "] ('" + tier.optString("name", DEFAULT_TIER.getName()) + "')";
+            if (!tier.has("halfWidth")) {
+                warnings.add(field + " does not set halfWidth, so it takes the default " + DEFAULT_TIER.getHalfWidth() + ".");
+            }
+            if (!tier.has("bankBand")) {
+                warnings.add(field + " does not set bankBand, so it takes the default " + DEFAULT_TIER.getBankBand()
+                        + " and leaves the ground beside its channels as it is.");
+            }
+        }
+    }
+
+    private static void warnMantleOff(String path, IrisDimension dimension, List<String> warnings) {
+        if (!dimension.isUseMantle()) {
+            warnings.add(path + " sets useMantle to false while hydrology is enabled, so " + MANTLE_WATER + " are not generated.");
+        }
+        if (dimension.getDisabledComponents() != null && dimension.getDisabledComponents().contains(ReservedFlag.RIVER_HYDROLOGY)) {
+            warnings.add(path + " disables the " + ReservedFlag.RIVER_HYDROLOGY + " component while hydrology is enabled, so " + MANTLE_WATER
+                    + " are not generated.");
         }
     }
 
@@ -319,5 +359,8 @@ final class PackHydrologyValidator {
     }
 
     private record PolicyFluids(Set<String> defined, Set<String> seams) {
+    }
+
+    private record Findings(List<String> errors, List<String> warnings) {
     }
 }

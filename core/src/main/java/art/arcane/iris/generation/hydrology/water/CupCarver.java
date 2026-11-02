@@ -13,6 +13,7 @@ import java.util.List;
 
 final class CupCarver {
     private static final long SALT_SITE = 0x43555053495445L;
+    private static final long SALT_SPLIT = 0x43555053504c54L;
     private static final long SALT_SITE_X = 0x43555053495858L;
     private static final long SALT_SITE_Z = 0x4355505349545aL;
     private static final long SALT_RADIUS = 0x43555052414449L;
@@ -53,13 +54,14 @@ final class CupCarver {
 
     private void windowCups(DemGrid raw, int wx, int wz, HydrologySampleBuffer samples, List<CupSet.Cup> out) {
         float density = settings.ponds().seeded().density();
-        if (!(density > 0f)) {
+        double expected = density * peakPondDensity(raw, wx, wz, samples);
+        if (!(expected > 0D)) {
             return;
         }
-        int split = (int) Math.ceil(Math.sqrt(density));
+        int split = (int) Math.ceil(Math.sqrt(expected));
         double size = (double) WindowKey.SIZE / split;
         double chance = density / ((double) split * split);
-        long seed = settings.seed();
+        long seed = CellHash.mix(settings.seed(), SALT_SPLIT, split, split);
         for (int sz = 0; sz < split; sz++) {
             for (int sx = 0; sx < split; sx++) {
                 int siteX = wx * split + sx;
@@ -74,10 +76,26 @@ final class CupCarver {
                 if (suitable(samples, cell, slope)
                         && CellHash.unit(CellHash.mix(seed, SALT_SITE, siteX, siteZ))
                         < Math.clamp(chance * samples.pondDensity()[cell], 0D, 1D) * settings.density()) {
-                    addCup(raw, samples, cell, slope, siteX, siteZ, false, out);
+                    addCup(raw, samples, cell, slope, x, z, false, out);
                 }
             }
         }
+    }
+
+    private static float peakPondDensity(DemGrid raw, int wx, int wz, HydrologySampleBuffer samples) {
+        int cell = raw.cell();
+        int i0 = Math.max(0, Math.ceilDiv(wx * WindowKey.SIZE - raw.originX(), cell));
+        int i1 = Math.min(raw.width(), Math.ceilDiv((wx + 1) * WindowKey.SIZE - raw.originX(), cell));
+        int j0 = Math.max(0, Math.ceilDiv(wz * WindowKey.SIZE - raw.originZ(), cell));
+        int j1 = Math.min(raw.depth(), Math.ceilDiv((wz + 1) * WindowKey.SIZE - raw.originZ(), cell));
+        float[] pondDensity = samples.pondDensity();
+        float peak = 0f;
+        for (int j = j0; j < j1; j++) {
+            for (int i = i0; i < i1; i++) {
+                peak = Math.max(peak, pondDensity[raw.index(i, j)]);
+            }
+        }
+        return peak;
     }
 
     private void chainedCups(DemGrid raw, HydrologySampleBuffer samples, BitSet channels, List<CupSet.Cup> out) {

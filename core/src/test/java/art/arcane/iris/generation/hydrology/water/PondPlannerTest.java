@@ -106,12 +106,61 @@ public class PondPlannerTest {
         assertTrue("retained fraction " + fraction, fraction > 0.44D && fraction < 0.56D);
     }
 
+    @Test
+    public void pondDensityAboveOneAddsPonds() {
+        HydrologySettings settings = settings(config -> {
+            seededOnly(config);
+            config.getPonds().getSeeded().setDensity(10D).setRadius(new KList<>(6, 6)).setDepth(new KList<>(4, 4)).setAlongChannels(false);
+            config.getPonds().setFreeboard(new KList<>(1, 1));
+        }, MIN_Y, MAX_Y);
+        Terrain flat = new Terrain((x, z) -> 100D, 1f, ALLOW_ALL, null, MIN_Y, MAX_Y);
+        int moderate = seededPonds(settings, flat.pondDensity((x, z) -> 1.6D));
+        int dense = seededPonds(settings, flat.pondDensity((x, z) -> 3D));
+        assertTrue("seeded ponds at pondDensity 1.6: " + moderate, moderate >= 10);
+        assertTrue("seeded ponds at pondDensity 3: " + dense + ", at 1.6: " + moderate, dense > moderate * 1.4D);
+    }
+
+    @Test
+    public void seededCupsAgreeAcrossWindowsWherePondDensityVaries() {
+        HydrologySettings settings = settings(config -> {
+            seededOnly(config);
+            config.getPonds().getSeeded().setDensity(10D).setAlongChannels(false);
+        }, MIN_Y, MAX_Y);
+        Terrain terrain = new Terrain((x, z) -> 120D + 6D * Math.sin(x / 97D) * Math.cos(z / 131D), 1f, ALLOW_ALL, null, MIN_Y, MAX_Y)
+                .pondDensity((x, z) -> (0.25D + 0.003D * (x + 512D)) * (1D + 0.3D * Math.sin(z / 150D)));
+        Set<CupSet.Cup> west = sharedCups(settings, terrain, new WindowKey(0, 0));
+        Set<CupSet.Cup> east = sharedCups(settings, terrain, new WindowKey(1, 0));
+        assertTrue("shared cups " + west.size(), west.size() >= 40);
+        assertEquals(west, east);
+    }
+
+    private static int seededPonds(HydrologySettings settings, Terrain terrain) {
+        int seeded = 0;
+        for (Pond pond : plan(settings, terrain, 0, 0, 64, 64, new BitSet(), List.of())) {
+            assertEquals(PondKind.SEEDED, pond.kind());
+            seeded++;
+        }
+        return seeded;
+    }
+
+    private static Set<CupSet.Cup> sharedCups(HydrologySettings settings, Terrain terrain, WindowKey key) {
+        int span = 3 * WindowKey.SIZE / 8;
+        Sampled sampled = sample(terrain, 8, (key.wx() - 1) * WindowKey.SIZE, (key.wz() - 1) * WindowKey.SIZE, span, span);
+        CupSet cups = new PondPlanner(settings).subtractCups(sampled.grid(), key, sampled.samples(), new BitSet());
+        Set<CupSet.Cup> shared = new HashSet<>();
+        for (CupSet.Cup cup : cups.within(-WindowKey.SIZE, -WindowKey.SIZE, 2 * WindowKey.SIZE, 2 * WindowKey.SIZE)) {
+            if (cup.x() >= 16 && cup.x() < 2 * WindowKey.SIZE - 16 && cup.z() >= 16 - WindowKey.SIZE && cup.z() < 2 * WindowKey.SIZE - 16) {
+                shared.add(cup);
+            }
+        }
+        return shared;
+    }
+
     private static Set<Long> seededSites(HydrologySettings settings, Terrain terrain) {
         Set<Long> sites = new HashSet<>();
         for (int window = 0; window < 32; window++) {
             int x = window * WindowKey.SIZE;
             Sampled sampled = sample(terrain, 8, x, 0, 64, 64);
-            Arrays.fill(sampled.samples().pondDensity(), 100f);
             CupSet cups = new PondPlanner(settings).subtractCups(sampled.grid(), new WindowKey(window, 0), sampled.samples(), new BitSet());
             for (CupSet.Cup cup : cups.within(x, 0, x + WindowKey.SIZE, WindowKey.SIZE)) {
                 sites.add(((long) cup.x() << 32) | (cup.z() & 0xFFFFFFFFL));
@@ -232,7 +281,12 @@ public class PondPlannerTest {
             config.getPonds().setFreeboard(new KList<>(1, 2));
         }, MIN_Y, MAX_Y);
         DoubleBinaryOperator terrain = (x, z) -> 250D - 0.4D * x;
-        List<Pond> ponds = plan(settings, new Terrain(terrain, 1f, ALLOW_ALL, null, MIN_Y, MAX_Y), 0, 0, 64, 64, new BitSet(), List.of());
+        List<Pond> ponds = new ArrayList<>();
+        for (Pond pond : plan(settings, new Terrain(terrain, 1f, ALLOW_ALL, null, MIN_Y, MAX_Y), -64, -64, 80, 80, new BitSet(), List.of())) {
+            if (pond.floorX() >= 0 && pond.floorX() < WindowKey.SIZE && pond.floorZ() >= 0 && pond.floorZ() < WindowKey.SIZE) {
+                ponds.add(pond);
+            }
+        }
         assertTrue("seeded ponds " + ponds.size(), ponds.size() >= 3);
         for (Pond pond : ponds) {
             assertEquals(PondKind.SEEDED, pond.kind());
@@ -780,12 +834,14 @@ public class PondPlannerTest {
         private final int minY;
         private final int maxY;
         private final boolean inland;
+        private final DoubleBinaryOperator pondDensity;
 
         private Terrain(DoubleBinaryOperator height, float rainfall, byte permission, String fluid, int minY, int maxY) {
-            this(height, rainfall, permission, fluid, minY, maxY, false);
+            this(height, rainfall, permission, fluid, minY, maxY, false, (x, z) -> 1D);
         }
 
-        private Terrain(DoubleBinaryOperator height, float rainfall, byte permission, String fluid, int minY, int maxY, boolean inland) {
+        private Terrain(DoubleBinaryOperator height, float rainfall, byte permission, String fluid, int minY, int maxY, boolean inland,
+                        DoubleBinaryOperator pondDensity) {
             this.height = height;
             this.rainfall = rainfall;
             this.permission = permission;
@@ -793,10 +849,15 @@ public class PondPlannerTest {
             this.minY = minY;
             this.maxY = maxY;
             this.inland = inland;
+            this.pondDensity = pondDensity;
         }
 
         private Terrain inland() {
-            return new Terrain(height, rainfall, permission, fluid, minY, maxY, true);
+            return new Terrain(height, rainfall, permission, fluid, minY, maxY, true, pondDensity);
+        }
+
+        private Terrain pondDensity(DoubleBinaryOperator density) {
+            return new Terrain(height, rainfall, permission, fluid, minY, maxY, inland, density);
         }
 
         @Override
@@ -806,7 +867,7 @@ public class PondPlannerTest {
                 out.height()[index] = value;
                 out.ocean()[index] = !inland && value <= SEA_LEVEL;
                 out.rainfall()[index] = rainfall;
-                out.pondDensity()[index] = 1f;
+                out.pondDensity()[index] = (float) pondDensity.applyAsDouble(xs[index], zs[index]);
                 out.permission()[index] = permission;
                 out.fluidProfile()[index] = fluid;
             }

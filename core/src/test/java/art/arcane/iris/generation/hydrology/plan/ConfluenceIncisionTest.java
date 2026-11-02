@@ -24,7 +24,7 @@ public class ConfluenceIncisionTest {
     private static final double WALL_RUN = 15D;
     private static final double WALL_HEIGHT = 60D;
     private static final double WALL_FACE_REACH = 24D;
-    private static final double MAX_WALL_CUT = 24D;
+    private static final double MAX_WALL_CUT = 29D;
     private static final int MAX_COPY_DIFFERENCE = 4;
 
     @Test

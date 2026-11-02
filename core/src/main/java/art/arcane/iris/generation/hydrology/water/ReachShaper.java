@@ -506,7 +506,7 @@ public final class ReachShaper {
         draft.maxHalfWidth = running;
     }
 
-    static ReachStyle[] styles(int[] grade, boolean[] ocean, boolean[] outletZone, int waterfallMinimumDrop) {
+    public static ReachStyle[] styles(int[] grade, boolean[] ocean, boolean[] outletZone, int waterfallMinimumDrop) {
         ReachStyle[] styles = new ReachStyle[grade.length];
         for (int point = 0; point < grade.length; point++) {
             int drop = point == 0 ? 0 : grade[point - 1] - grade[point];

@@ -30,6 +30,18 @@ public final class ConfluenceGrader {
         return settled;
     }
 
+    public static void spreadJunction(int[] settled, int[] grade, boolean[] fixed, int waterfallMinimumDrop, int startLimit) {
+        int lowered = 0;
+        while (settled[lowered] == grade[lowered]) {
+            lowered++;
+        }
+        for (int point = settled.length - 2; point >= 0; point--) {
+            if (!ReachGrader.spreadPoint(settled, point, waterfallMinimumDrop, startLimit, fixed) && point < lowered) {
+                return;
+            }
+        }
+    }
+
     static boolean[] level(List<ReachDraft> drafts, int[] upstreamFirst) {
         boolean[] touched = new boolean[drafts.size()];
         for (int position = upstreamFirst.length - 1; position >= 0; position--) {
@@ -81,18 +93,6 @@ public final class ConfluenceGrader {
         int end = feeder.xs.length - 1;
         throw new IllegalStateException("Reach " + downstream.id + " starts at " + downstream.grade[0] + ", above the end " + feeder.last()
                 + " of its feeder reach " + feeder.id + " at junction " + feeder.xs[end] + "," + feeder.zs[end]);
-    }
-
-    private static void spreadJunction(int[] settled, int[] grade, boolean[] fixed, int waterfallMinimumDrop, int startLimit) {
-        int lowered = 0;
-        while (settled[lowered] == grade[lowered]) {
-            lowered++;
-        }
-        for (int point = settled.length - 2; point >= 0; point--) {
-            if (!ReachGrader.spreadPoint(settled, point, waterfallMinimumDrop, startLimit, fixed) && point < lowered) {
-                return;
-            }
-        }
     }
 
     private static boolean pooled(Footprint feeder, boolean[] fixed, List<Footprint> receiving, double[] arc, int point) {

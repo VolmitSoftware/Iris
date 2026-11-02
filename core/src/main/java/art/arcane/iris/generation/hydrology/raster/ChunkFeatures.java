@@ -7,6 +7,7 @@ import art.arcane.iris.generation.hydrology.plan.RegionPlan;
 import art.arcane.iris.generation.hydrology.plan.WindowKey;
 import art.arcane.iris.generation.hydrology.underground.SeaInlet;
 import art.arcane.iris.generation.hydrology.underground.SeaInletRasterizer;
+import art.arcane.iris.generation.hydrology.water.ConfluenceGrader;
 import art.arcane.iris.generation.hydrology.water.Pond;
 import art.arcane.iris.generation.hydrology.water.PondMask;
 import art.arcane.iris.generation.hydrology.water.Reach;
@@ -294,18 +295,24 @@ final class ChunkFeatures {
 
     private static final class Links {
         private final Map<WindowKey, IndexedWindow> windows;
-        private final Map<Long, Integer> outletLevels = new HashMap<>();
-        private final Map<Long, List<PondMask>> outletMasks = new HashMap<>();
+        private final Map<Long, Reach> owned = new HashMap<>();
+        private final Map<Long, List<Pond>> outletPonds = new HashMap<>();
         private final Map<Long, Reach> resolved = new HashMap<>();
         private final Set<Long> resolving = new HashSet<>();
 
         private Links(Map<WindowKey, IndexedWindow> windows) {
             this.windows = windows;
             for (IndexedWindow window : windows.values()) {
+                for (Reach reach : window.plan().reaches()) {
+                    Reach other = owned.putIfAbsent(reach.id(), reach);
+                    if (other != null) {
+                        throw new IllegalStateException("Reach " + reach.id() + " is owned by window " + window.plan().key()
+                                + " and by window " + windowAt(other, other.xs().length - 1));
+                    }
+                }
                 for (Pond pond : window.plan().ponds()) {
                     if (pond.outletReachId() != 0L) {
-                        outletLevels.merge(pond.outletReachId(), pond.level(), Math::min);
-                        outletMasks.computeIfAbsent(pond.outletReachId(), ignored -> new ArrayList<>()).add(pond.mask());
+                        outletPonds.computeIfAbsent(pond.outletReachId(), ignored -> new ArrayList<>()).add(pond);
                     }
                 }
             }
@@ -325,10 +332,31 @@ final class ChunkFeatures {
             return linked;
         }
 
-        private Reach link(Reach downstream, WindowKey owner) {
-            Reach linked = feederLink(downstream, owner);
-            Integer pondLevel = outletLevels.get(linked.id());
-            return pondLevel == null ? linked : LinkBlend.clamp(linked, pondLevel);
+        private Reach link(Reach reach, WindowKey owner) {
+            Reach linked = feederLink(reach, owner);
+            Integer pondLevel = outletLevel(reach);
+            return settle(reach, pondLevel == null ? linked : LinkBlend.clamp(linked, pondLevel), owner);
+        }
+
+        private Reach settle(Reach feeder, Reach linked, WindowKey owner) {
+            Reach downstream = owned.get(feeder.downstreamId());
+            if (downstream == null || owner.equals(windowAt(downstream, downstream.xs().length - 1))) {
+                return linked;
+            }
+            int level = downstream.grade()[0];
+            Integer pondLevel = outletLevel(downstream);
+            if (pondLevel != null) {
+                level = Math.min(level, pondLevel);
+            }
+            List<ConfluenceGrader.Footprint> receiving = new ArrayList<>();
+            receiving.add(LinkBlend.footprint(downstream));
+            for (Reach sibling : feeders(owner, downstream.id())) {
+                level = Math.min(level, sibling.grade()[sibling.grade().length - 1]);
+                if (sibling.id() != feeder.id()) {
+                    receiving.add(LinkBlend.footprint(sibling));
+                }
+            }
+            return LinkBlend.settleInto(linked, level, receiving);
         }
 
         private Reach feederLink(Reach downstream, WindowKey owner) {
@@ -356,18 +384,39 @@ final class ChunkFeatures {
         }
 
         private int junction(Reach reach) {
-            List<PondMask> masks = outletMasks.get(reach.id());
-            if (masks == null || reach.xs().length < 2) {
-                return 0;
+            return source(reach) == null ? 0 : 1;
+        }
+
+        private Integer outletLevel(Reach reach) {
+            List<Pond> ponds = outletPonds.get(reach.id());
+            if (ponds == null) {
+                return null;
+            }
+            Pond source = source(reach);
+            if (source != null) {
+                return source.level();
+            }
+            int level = Integer.MAX_VALUE;
+            for (Pond pond : ponds) {
+                level = Math.min(level, pond.level());
+            }
+            return level;
+        }
+
+        private Pond source(Reach reach) {
+            List<Pond> ponds = outletPonds.get(reach.id());
+            if (ponds == null) {
+                return null;
             }
             int x = Math.round(reach.xs()[0]);
             int z = Math.round(reach.zs()[0]);
-            for (PondMask mask : masks) {
-                if (mask.contains(x, z)) {
-                    return 1;
+            Pond source = null;
+            for (Pond pond : ponds) {
+                if (pond.mask().contains(x, z) && (source == null || lower(pond, source))) {
+                    source = pond;
                 }
             }
-            return 0;
+            return source;
         }
 
         private long cornerBlock(Reach reach) {

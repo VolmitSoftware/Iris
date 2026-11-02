@@ -24,12 +24,8 @@ import java.util.function.BooleanSupplier;
 final class WaterMap {
     static final double RASTER_STEP = 2D;
     static final double MAX_STEP = 16D;
-    static final List<HydrologyFeatureType> DRAWN = List.of(HydrologyFeatureType.WATERFALL, HydrologyFeatureType.CASCADE,
-            HydrologyFeatureType.MOUTH, HydrologyFeatureType.MAJOR_RIVER, HydrologyFeatureType.RIVER, HydrologyFeatureType.STREAM,
-            HydrologyFeatureType.SEA_INLET, HydrologyFeatureType.LAKE, HydrologyFeatureType.POND, HydrologyFeatureType.DAM,
-            HydrologyFeatureType.CAVE_POOL);
+    static final List<HydrologyFeatureType> DRAWN = drawn();
     private static final int DRY = Integer.MAX_VALUE;
-    private static final int[] RANK = ranks();
 
     private final HydrologyRuntime runtime;
     private final int resolution;
@@ -280,7 +276,7 @@ final class WaterMap {
                 int lastX = Math.min(resolution - 1, (int) Math.floor((centreX + half - 1 - startX) / step));
                 for (int pixelZ = firstZ; pixelZ <= lastZ; pixelZ++) {
                     for (int pixelX = firstX; pixelX <= lastX; pixelX++) {
-                        ranks[pixelZ * resolution + pixelX] = RANK[type.ordinal()];
+                        stamp(pixelX, pixelZ, type);
                     }
                 }
             }
@@ -296,7 +292,7 @@ final class WaterMap {
             return;
         }
         int index = pixelZ * resolution + pixelX;
-        int rank = RANK[type.ordinal()];
+        int rank = rank(type);
         if (rank < ranks[index]) {
             ranks[index] = rank;
         }
@@ -308,12 +304,31 @@ final class WaterMap {
         }
     }
 
-    private static int[] ranks() {
-        int[] ranks = new int[HydrologyFeatureType.values().length];
-        Arrays.fill(ranks, DRY);
-        for (int index = 0; index < DRAWN.size(); index++) {
-            ranks[DRAWN.get(index).ordinal()] = index;
+    private static int rank(HydrologyFeatureType type) {
+        return switch (type) {
+            case WATERFALL -> 0;
+            case CASCADE -> 1;
+            case MOUTH -> 2;
+            case MAJOR_RIVER -> 3;
+            case RIVER -> 4;
+            case STREAM -> 5;
+            case SEA_INLET -> 6;
+            case POND -> 7;
+            case LAKE -> 8;
+            case DAM -> 9;
+            case CAVE_POOL -> 10;
+        };
+    }
+
+    private static List<HydrologyFeatureType> drawn() {
+        HydrologyFeatureType[] drawn = new HydrologyFeatureType[HydrologyFeatureType.values().length];
+        for (HydrologyFeatureType type : HydrologyFeatureType.values()) {
+            int rank = rank(type);
+            if (drawn[rank] != null) {
+                throw new IllegalStateException("Water map ranks " + drawn[rank] + " and " + type + " equally");
+            }
+            drawn[rank] = type;
         }
-        return ranks;
+        return List.of(drawn);
     }
 }

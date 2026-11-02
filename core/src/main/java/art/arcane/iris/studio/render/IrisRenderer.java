@@ -457,15 +457,17 @@ public final class IrisRenderer {
         private final double startZ;
         private final double step;
         private final int resolution;
+        private final HydrologyRuntime runtime;
         private final WaterMap map;
         private boolean complete;
+        private long poolRevision;
 
         private WaterTile(double startX, double startZ, double step, int resolution) {
             this.startX = startX;
             this.startZ = startZ;
             this.step = step;
             this.resolution = resolution;
-            HydrologyRuntime runtime = renderer.getComplex().getHydrologyRuntime();
+            this.runtime = renderer.getComplex().getHydrologyRuntime();
             this.map = runtime == null || !runtime.enabled() || step > WaterMap.MAX_STEP
                     ? null : new WaterMap(runtime, resolution, startX, startZ, step);
             complete = map == null;
@@ -477,13 +479,8 @@ public final class IrisRenderer {
             if (composite && (base == null || base.length != resolution * resolution)) {
                 throw new IllegalArgumentException("Water overlay requires matching base pixels");
             }
-            if (!complete) {
-                map.advance(cancelled);
-                map.drawCavePools(GenerationSemanticQueries.recordedCavePools(renderer,
-                        Math.floorDiv((int) Math.floor(startX), 16), Math.floorDiv((int) Math.floor(startZ), 16),
-                        Math.floorDiv((int) Math.ceil(startX + resolution * step) - 1, 16),
-                        Math.floorDiv((int) Math.ceil(startZ + resolution * step) - 1, 16)));
-                complete = !map.provisional();
+            if (map != null) {
+                draw(cancelled);
             }
             int[] colors = composite ? base.clone() : new int[resolution * resolution];
             if (!composite) {
@@ -514,6 +511,23 @@ public final class IrisRenderer {
 
         public long bytes() {
             return map == null ? 0L : map.bytes();
+        }
+
+        private void draw(BooleanSupplier cancelled) {
+            long revision = runtime.previewRevision();
+            boolean advanced = !complete;
+            if (advanced) {
+                map.advance(cancelled);
+                complete = !map.provisional();
+            }
+            if (!advanced && revision == poolRevision) {
+                return;
+            }
+            map.drawCavePools(GenerationSemanticQueries.recordedCavePools(renderer,
+                    Math.floorDiv((int) Math.floor(startX), 16), Math.floorDiv((int) Math.floor(startZ), 16),
+                    Math.floorDiv((int) Math.ceil(startX + resolution * step) - 1, 16),
+                    Math.floorDiv((int) Math.ceil(startZ + resolution * step) - 1, 16)));
+            poolRevision = revision;
         }
     }
 

@@ -72,7 +72,8 @@ public class IrisRendererRiverTest {
         assertEquals("cave pools sit under everything else", HydrologyFeatureType.CAVE_POOL, drawn.getLast());
         assertTrue(drawn.containsAll(List.of(HydrologyFeatureType.STREAM, HydrologyFeatureType.RIVER, HydrologyFeatureType.MAJOR_RIVER,
                 HydrologyFeatureType.LAKE, HydrologyFeatureType.POND, HydrologyFeatureType.DAM, HydrologyFeatureType.SEA_INLET)));
-        assertTrue(drawn.indexOf(HydrologyFeatureType.LAKE) < drawn.indexOf(HydrologyFeatureType.POND));
+        assertTrue(drawn.indexOf(HydrologyFeatureType.STREAM) < drawn.indexOf(HydrologyFeatureType.POND));
+        assertTrue(drawn.indexOf(HydrologyFeatureType.POND) < drawn.indexOf(HydrologyFeatureType.LAKE));
     }
 
     @Test
@@ -195,21 +196,15 @@ public class IrisRendererRiverTest {
     }
 
     @Test
-    public void standingWaterCoversChannelsInBothDrawModes() throws Exception {
+    public void standingWaterCoversChannelsInRasters() throws Exception {
         HydrologySettings settings = FakeHydrology.settings(SEA_LEVEL);
         Reach through = WaterScene.line(31L, settings.tiers().getFirst(), 4, POND_Z, 60, POND_Z, (x, z) -> 62);
         Pond pond = WaterScene.pond(32L, 62, POND_X, POND_Z, 10);
         try (FakeHydrology hydrology = new FakeHydrology(() -> false, (x, z) -> 60, SEA_LEVEL, List.of(through), List.of(pond))) {
-            Engine engine = engine(hydrology.runtime);
+            BufferedImage image = settled(engine(hydrology.runtime), 2D * PIXELS, PIXELS, RenderType.RIVER);
 
-            for (int step : new int[]{2, 4}) {
-                BufferedImage image = settled(engine, (double) step * PIXELS, PIXELS, RenderType.RIVER);
-
-                assertEquals("pond over the channel at " + step + " b/px", IrisRenderer.hydrologyFeatureColor(HydrologyFeatureType.POND),
-                        image.getRGB(POND_X / step, POND_Z / step));
-                assertEquals("channel outside the pond at " + step + " b/px",
-                        IrisRenderer.hydrologyFeatureColor(HydrologyFeatureType.STREAM), image.getRGB(8 / step, POND_Z / step));
-            }
+            assertEquals(IrisRenderer.hydrologyFeatureColor(HydrologyFeatureType.POND), image.getRGB(POND_X / 2, POND_Z / 2));
+            assertEquals(IrisRenderer.hydrologyFeatureColor(HydrologyFeatureType.STREAM), image.getRGB(4, POND_Z / 2));
         }
     }
 

@@ -215,10 +215,8 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<NativeBloc
             IrisBiome biome = biomeCache.get(xf, zf);
             IrisRegion region = regionCache.get(xf, zf);
             int he = Math.min(chunkHeight, context.getRoundedHeight(xf, zf));
-            int surfaceFluidHeight = Math.min(
-                    chunkHeight,
-                    (int) Math.round(waterHeadStream.getDouble(realX, realZ))
-            );
+            int waterHead = (int) Math.round(waterHeadStream.getDouble(realX, realZ));
+            int surfaceFluidHeight = Math.min(chunkHeight, waterHead);
             int hf = Math.max(surfaceFluidHeight, he);
             if (hf < 0) {
                 return;
@@ -229,6 +227,7 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<NativeBloc
             boolean wet = role.wet();
             boolean submerged = wet && he < surfaceFluidHeight;
             boolean seaFloor = !wet || role == WaterRole.INLET || role == WaterRole.MOUTH;
+            boolean openUnderFall = wet && seaFloor && receivesFall(realX, realZ, waterHead);
             IrisHydrologyMaterials materials = role == WaterRole.NONE || role == WaterRole.INLET ? null
                     : complex.resolveWaterMaterials(realX, realZ);
             Terrain3DColumn terrainColumn = complex.terrainColumn(realX, realZ);
@@ -298,7 +297,7 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<NativeBloc
                             fblocks,
                             fdepth,
                             fluid,
-                            !seaFloor
+                            !seaFloor || openUnderFall
                     ));
                     continue;
                 }
@@ -362,6 +361,15 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<NativeBloc
                 paintUpper(realX, realZ);
                 flush();
             }
+        }
+
+        private boolean receivesFall(int realX, int realZ, int head) {
+            return fallsFrom(realX + 1, realZ, head) || fallsFrom(realX - 1, realZ, head)
+                    || fallsFrom(realX, realZ + 1, head) || fallsFrom(realX, realZ - 1, head);
+        }
+
+        private boolean fallsFrom(int realX, int realZ, int head) {
+            return waterRoleStream.get(realX, realZ).wet() && Math.round(waterHeadStream.getDouble(realX, realZ)) > head;
         }
 
         /**

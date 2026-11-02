@@ -190,6 +190,32 @@ public class IrisTerrainNormalActuatorHydrologyTest {
     }
 
     @Test
+    public void aFallIntoAFrozenMouthLandsInOpenWater() {
+        Painter fall = frozenMouth();
+        fall.neighbour(12, -4, WaterRole.CHANNEL, HEAD + 1);
+        Hunk<NativeBlockState> plunge = fall.paint();
+        for (int y = GROUND + 1; y <= HEAD; y++) {
+            assertSame("the fall lands in open sea water at y " + y, fall.sea, plunge.get(0, y, 0));
+        }
+
+        Painter level = frozenMouth();
+        level.neighbour(11, -3, WaterRole.CHANNEL, HEAD);
+        assertSame("water beside the mouth at its own level is no fall", level.ice, level.paint().get(0, HEAD, 0));
+
+        Painter dry = frozenMouth();
+        dry.neighbour(10, -4, WaterRole.BANK, HEAD + 4);
+        assertSame("a higher dry bank is no fall", dry.ice, dry.paint().get(0, HEAD, 0));
+    }
+
+    private static Painter frozenMouth() {
+        Painter painter = new Painter(WaterRole.MOUTH, HEAD);
+        when(painter.complex.resolveWaterFluid(11, -4)).thenReturn(painter.sea);
+        when(painter.complex.naturalTrueHeight(11, -4)).thenReturn(GROUND);
+        painter.thickSeaLayers();
+        return painter;
+    }
+
+    @Test
     public void dryColumnsBelowTheSeaKeepTheSeaFillAndItsLayers() {
         for (WaterRole role : List.of(WaterRole.NONE, WaterRole.BANK, WaterRole.SHORE)) {
             Painter painter = new Painter(role, HEAD);
@@ -368,8 +394,12 @@ public class IrisTerrainNormalActuatorHydrologyTest {
         private final NativeBlockState bed = state("minecraft:gravel_bed");
         private final NativeBlockState shore = state("minecraft:clay");
         private final NativeBlockState bank = state("minecraft:coarse_dirt");
+        private final WaterRole role;
+        private final int head;
 
         private Painter(WaterRole role, int head) {
+            this.role = role;
+            this.head = head;
             when(engine.getDimension()).thenReturn(dimension);
             when(engine.getComplex()).thenReturn(complex);
             when(engine.getData()).thenReturn(data);
@@ -390,6 +420,14 @@ public class IrisTerrainNormalActuatorHydrologyTest {
             when(biome.generateSeaLayers(anyDouble(), anyDouble(), any(RNG.class), anyInt(), eq(data)))
                     .thenAnswer(invocation -> new KList<>(List.of(ice)));
             layers(grass, dirt);
+        }
+
+        private void neighbour(int neighbourX, int neighbourZ, WaterRole neighbourRole, int neighbourHead) {
+            when(complex.getWaterHeadStream()).thenReturn(ProceduralStream.ofDouble((x, z) ->
+                    (int) Math.floor(x) == neighbourX && (int) Math.floor(z) == neighbourZ ? neighbourHead : (double) head));
+            when(complex.getWaterRoleStream()).thenReturn(ProceduralStream.of((x, z) ->
+                            (int) Math.floor(x) == neighbourX && (int) Math.floor(z) == neighbourZ ? neighbourRole : role,
+                    Interpolated.of(value -> 0D, value -> role)));
         }
 
         private void thickSeaLayers() {

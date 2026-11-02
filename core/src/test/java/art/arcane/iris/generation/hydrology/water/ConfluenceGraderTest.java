@@ -3,6 +3,7 @@ package art.arcane.iris.generation.hydrology.water;
 import art.arcane.iris.generation.hydrology.config.IrisHydrology;
 import art.arcane.iris.generation.hydrology.config.IrisHydrologyTier;
 import art.arcane.iris.generation.hydrology.plan.HydrologySettings;
+import art.arcane.iris.generation.hydrology.plan.WindowKey;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -15,6 +16,7 @@ import static org.junit.Assert.assertTrue;
 
 public class ConfluenceGraderTest {
     private static final long SEED = 1337L;
+    private static final WindowKey WINDOW = new WindowKey(5, -3);
     private static final int SEA_LEVEL = 40;
     private static final int JUNCTION = 100;
     private static final int POOL_EDGE_Z = -12;
@@ -48,8 +50,9 @@ public class ConfluenceGraderTest {
         feeder.downstream = 1;
         river.incoming = new int[]{0};
         IllegalStateException failure = assertThrows(IllegalStateException.class,
-                () -> ConfluenceGrader.level(List.of(feeder, river), new int[]{0, 1}));
-        assertTrue(failure.getMessage(), failure.getMessage().contains("11") && failure.getMessage().contains("12"));
+                () -> ConfluenceGrader.level(WINDOW, List.of(feeder, river), new int[]{0, 1}));
+        assertTrue(failure.getMessage(), failure.getMessage().contains("11") && failure.getMessage().contains("12")
+                && failure.getMessage().contains(WINDOW.toString()));
     }
 
     private static int[] graded(HydrologyTier tier, boolean fixedApproach) {
@@ -60,7 +63,7 @@ public class ConfluenceGraderTest {
         }
         feeder.downstream = 1;
         river.incoming = new int[]{0};
-        ConfluenceGrader.level(List.of(feeder, river), new int[]{0, 1});
+        ConfluenceGrader.level(WINDOW, List.of(feeder, river), new int[]{0, 1});
         return feeder.grade;
     }
 

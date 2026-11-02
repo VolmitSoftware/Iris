@@ -1,5 +1,7 @@
 package art.arcane.iris.generation.hydrology.water;
 
+import art.arcane.iris.generation.hydrology.plan.WindowKey;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -42,13 +44,13 @@ public final class ConfluenceGrader {
         }
     }
 
-    static boolean[] level(List<ReachDraft> drafts, int[] upstreamFirst) {
+    static boolean[] level(WindowKey window, List<ReachDraft> drafts, int[] upstreamFirst) {
         boolean[] touched = new boolean[drafts.size()];
         for (int position = upstreamFirst.length - 1; position >= 0; position--) {
             ReachDraft downstream = drafts.get(upstreamFirst[position]);
             for (int feeder : downstream.incoming) {
                 ReachDraft draft = drafts.get(feeder);
-                requireJunction(draft, downstream);
+                requireJunction(window, draft, downstream);
                 boolean[] fixed = fixed(draft);
                 int waterfallMinimumDrop = draft.tier.waterfallMinimumDrop();
                 int[] settled = settle(footprint(draft), draft.grade, fixed, receiving(drafts, downstream, feeder), downstream.grade[0],
@@ -86,13 +88,13 @@ public final class ConfluenceGrader {
         return nearest;
     }
 
-    private static void requireJunction(ReachDraft feeder, ReachDraft downstream) {
+    private static void requireJunction(WindowKey window, ReachDraft feeder, ReachDraft downstream) {
         if (downstream.grade[0] <= feeder.last()) {
             return;
         }
         int end = feeder.xs.length - 1;
-        throw new IllegalStateException("Reach " + downstream.id + " starts at " + downstream.grade[0] + ", above the end " + feeder.last()
-                + " of its feeder reach " + feeder.id + " at junction " + feeder.xs[end] + "," + feeder.zs[end]);
+        throw new IllegalStateException("Window " + window + " reach " + downstream.id + " starts at " + downstream.grade[0] + ", above the end "
+                + feeder.last() + " of its feeder reach " + feeder.id + " at junction " + feeder.xs[end] + "," + feeder.zs[end]);
     }
 
     private static boolean pooled(Footprint feeder, boolean[] fixed, List<Footprint> receiving, double[] arc, int point) {

@@ -106,16 +106,16 @@ public final class WindowPlanner {
         }
         List<Pond> water = new ArrayList<>(ponds.ponds(raw, drainage.filled(), drainage.basins(), lakes, fine, cups));
         water.addAll(lakes);
-        ShapedNetwork network = PondChannelSettlement.settle(shaper.shape(drainage.surface(), drainage.receivers(), drainage.accumulation(),
-                drainage.channels(), water, fine, settings.seed()), settings.seaLevel());
+        ShapedNetwork network = PondChannelSettlement.settle(key, shaper.shape(key, drainage.surface(), drainage.receivers(),
+                drainage.accumulation(), drainage.channels(), water, fine, settings.seed()), settings.seaLevel());
         long passes = settlementPasses(water);
         for (long pass = 1; lowered(water, network.ponds()); pass++) {
             if (pass >= passes) {
                 throw new IllegalStateException("Window " + key + " ponds did not settle within " + passes + " shaping passes");
             }
             water = replanned(settled(raw, cups, water, network.ponds()));
-            network = PondChannelSettlement.settle(shaper.shape(drainage.surface(), drainage.receivers(), drainage.accumulation(),
-                    drainage.channels(), water, fine, settings.seed()), settings.seaLevel());
+            network = PondChannelSettlement.settle(key, shaper.shape(key, drainage.surface(), drainage.receivers(),
+                    drainage.accumulation(), drainage.channels(), water, fine, settings.seed()), settings.seaLevel());
         }
         List<Reach> reaches = network.reaches();
         List<Pond> windowPonds = windowPonds(network.ponds());

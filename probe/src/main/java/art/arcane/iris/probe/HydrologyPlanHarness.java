@@ -87,7 +87,7 @@ final class HydrologyPlanHarness {
                 double started = cpuMillis();
                 try {
                     WindowPlan plan = planners.windows().plan(key, needed);
-                    windows.put(key, new IndexedWindow(plan, ReachIndex.build(plan.reaches(), plan.ponds())));
+                    windows.put(key, new IndexedWindow(plan, ReachIndex.build(plan.key(), plan.reaches(), plan.ponds())));
                 } catch (RuntimeException failure) {
                     failures.add("window " + key.wx() + "," + key.wz() + " plan: " + cause(failure));
                 }

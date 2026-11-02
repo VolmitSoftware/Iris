@@ -156,7 +156,7 @@ public final class WaterScene {
                     ownedPonds.add(pond);
                 }
             }
-            return new IndexedWindow(new WindowPlan(key, owned, ownedPonds, List.of()), ReachIndex.build(owned, ownedPonds));
+            return new IndexedWindow(new WindowPlan(key, owned, ownedPonds, List.of()), ReachIndex.build(key, owned, ownedPonds));
         });
     }
 

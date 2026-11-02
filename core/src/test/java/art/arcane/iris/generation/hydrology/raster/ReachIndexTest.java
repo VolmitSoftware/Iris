@@ -2,6 +2,7 @@ package art.arcane.iris.generation.hydrology.raster;
 
 import art.arcane.iris.generation.hydrology.config.IrisBankStyle;
 import art.arcane.iris.generation.hydrology.config.IrisHydrologyMaterials;
+import art.arcane.iris.generation.hydrology.plan.WindowKey;
 import art.arcane.iris.generation.hydrology.water.HydrologyTier;
 import art.arcane.iris.generation.hydrology.water.Pond;
 import art.arcane.iris.generation.hydrology.water.PondKind;
@@ -18,12 +19,22 @@ import java.util.SplittableRandom;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 public class ReachIndexTest {
+    private static final WindowKey WINDOW = new WindowKey(0, 0);
     private static final int BANK_BAND = 4;
     private static final HydrologyTier TIER = new HydrologyTier("test", 0f, 1f, 4f, 1f, 0.4f, 1, true, 6, BANK_BAND, IrisBankStyle.SMOOTH,
             false, new IrisHydrologyMaterials(), "water", List.of());
+
+    @Test
+    public void aReachIdTwiceInOnePlanFailsClosedNamingTheWindow() {
+        WindowKey window = new WindowKey(5, -3);
+        Reach reach = reach(7L, new float[]{0f, 16f}, new float[]{0f, 0f}, 1f);
+        IllegalStateException failure = assertThrows(IllegalStateException.class, () -> ReachIndex.build(window, List.of(reach, reach), List.of()));
+        assertTrue(failure.getMessage(), failure.getMessage().contains("Reach id 7") && failure.getMessage().contains(window.toString()));
+    }
 
     @Test
     public void reachIndexReturnsReachesWithinHalo() {
@@ -33,7 +44,7 @@ public class ReachIndexTest {
         Reach diagonal = reach(4L, new float[]{-200f, 200f}, new float[]{-200f, 200f}, 1f);
         Pond pond = pond(10L, new PondMask(100, 100, 4, 3, 3, new long[]{0x1FFL}));
         Pond distant = pond(11L, new PondMask(-900, 400, 4, 2, 2, new long[]{0xFL}));
-        ReachIndex index = ReachIndex.build(List.of(inside, east, far, diagonal), List.of(pond, distant));
+        ReachIndex index = ReachIndex.build(WINDOW, List.of(inside, east, far, diagonal), List.of(pond, distant));
 
         assertEquals(List.of(inside, diagonal), reaches(index, 0, 0, 0));
         assertEquals("corridor edge at x=36 is 20 blocks east of the chunk", List.of(inside, diagonal), reaches(index, 0, 0, 19));
@@ -53,7 +64,7 @@ public class ReachIndexTest {
 
         List<Reach> none = new ArrayList<>();
         List<Pond> noPonds = new ArrayList<>();
-        ReachIndex.build(List.of(), List.of()).candidates(0, 0, 48, none, noPonds);
+        ReachIndex.build(WINDOW, List.of(), List.of()).candidates(0, 0, 48, none, noPonds);
         assertTrue(none.isEmpty() && noPonds.isEmpty());
 
         SplittableRandom random = new SplittableRandom(1337L);
@@ -69,7 +80,7 @@ public class ReachIndexTest {
             scattered.add(pond(500L + count, new PondMask(random.nextInt(-700, 700), random.nextInt(-700, 700), step, width, depth,
                     new long[(width * depth + 63) >>> 6])));
         }
-        ReachIndex randomIndex = ReachIndex.build(walks, scattered);
+        ReachIndex randomIndex = ReachIndex.build(WINDOW, walks, scattered);
         int matched = 0;
         for (int query = 0; query < 400; query++) {
             int chunkX = random.nextInt(-50, 50);
@@ -163,7 +174,7 @@ public class ReachIndexTest {
         Reach west = linked(21L, 30L, -20f);
         Reach east = linked(22L, 30L, 20f);
         Reach other = linked(23L, 31L, 60f);
-        ReachIndex index = ReachIndex.build(List.of(west, east, other), List.of());
+        ReachIndex index = ReachIndex.build(WINDOW, List.of(west, east, other), List.of());
         assertEquals(List.of(west, east), index.feeders(30L));
         assertEquals(List.of(other), index.feeders(31L));
         assertTrue(index.feeders(99L).isEmpty());

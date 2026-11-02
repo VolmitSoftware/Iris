@@ -1,6 +1,7 @@
 package art.arcane.iris.generation.hydrology.raster;
 
 import art.arcane.iris.generation.hydrology.config.IrisBankStyle;
+import art.arcane.iris.generation.hydrology.plan.WindowKey;
 import art.arcane.iris.generation.hydrology.water.HydrologyTier;
 import art.arcane.iris.generation.hydrology.water.Pond;
 import art.arcane.iris.generation.hydrology.water.PondKind;
@@ -16,6 +17,7 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 
 public class PondChannelSettlementTest {
+    private static final WindowKey WINDOW = new WindowKey(0, 0);
     private static final int SEA_LEVEL = 40;
 
     @Test
@@ -88,14 +90,14 @@ public class PondChannelSettlementTest {
         Reach across = line(3L, -20, 0, 40, 0, 4f, 96, 96);
         Reach lower = line(4L, 17, -20, 17, 20, 4f, 94, 94);
 
-        assertArrayEquals(new int[]{96, 94}, PondChannelSettlement.levels(List.of(across, lower), List.of(first, second),
+        assertArrayEquals(new int[]{96, 94}, PondChannelSettlement.levels(WINDOW, List.of(across, lower), List.of(first, second),
                 new int[]{104, 102}, SEA_LEVEL));
-        assertArrayEquals(new int[]{94, 96}, PondChannelSettlement.levels(List.of(lower, across), List.of(second, first),
+        assertArrayEquals(new int[]{94, 96}, PondChannelSettlement.levels(WINDOW, List.of(lower, across), List.of(second, first),
                 new int[]{102, 104}, SEA_LEVEL));
     }
 
     private static int settle(List<Reach> reaches, Pond pond) {
-        return PondChannelSettlement.levels(reaches, List.of(pond), new int[]{pond.level()}, SEA_LEVEL)[0];
+        return PondChannelSettlement.levels(WINDOW, reaches, List.of(pond), new int[]{pond.level()}, SEA_LEVEL)[0];
     }
 
     private static Pond pond(long id, PondKind kind, int level, PondMask mask) {

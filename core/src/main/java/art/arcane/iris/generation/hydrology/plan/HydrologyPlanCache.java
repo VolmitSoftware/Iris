@@ -434,7 +434,7 @@ public final class HydrologyPlanCache {
     }
 
     private static IndexedWindow indexed(WindowPlan plan) {
-        return new IndexedWindow(plan, ReachIndex.build(plan.reaches(), plan.ponds()));
+        return new IndexedWindow(plan, ReachIndex.build(plan.key(), plan.reaches(), plan.ponds()));
     }
 
     private void persist(Consumer<HydrologyPlanStore> write, Object key) {

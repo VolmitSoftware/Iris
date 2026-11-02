@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.hydrology.raster;
 
+import art.arcane.iris.generation.hydrology.plan.WindowKey;
 import art.arcane.iris.generation.hydrology.water.Pond;
 import art.arcane.iris.generation.hydrology.water.PondMask;
 import art.arcane.iris.generation.hydrology.water.Reach;
@@ -10,6 +11,7 @@ import java.util.BitSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 public final class ReachIndex {
     private static final int BUCKET = 16;
@@ -29,7 +31,7 @@ public final class ReachIndex {
     private final Map<Long, Reach> byId;
     private final Map<Long, List<Pond>> outlets;
 
-    private ReachIndex(List<Reach> reaches, List<Pond> ponds) {
+    private ReachIndex(WindowKey window, List<Reach> reaches, List<Pond> ponds) {
         this.reaches = List.copyOf(reaches);
         this.ponds = List.copyOf(ponds);
         this.corridors = new float[this.reaches.size()][];
@@ -55,12 +57,12 @@ public final class ReachIndex {
         this.reachBuckets = buckets(corridors.length, this::visitReach);
         this.pondBuckets = buckets(footprints.length, this::visitPond);
         this.feeders = feeders(this.reaches);
-        this.byId = byId(this.reaches);
+        this.byId = byId(window, this.reaches);
         this.outlets = outlets(this.ponds);
     }
 
-    public static ReachIndex build(List<Reach> reaches, List<Pond> ponds) {
-        return new ReachIndex(reaches, ponds);
+    public static ReachIndex build(WindowKey window, List<Reach> reaches, List<Pond> ponds) {
+        return new ReachIndex(Objects.requireNonNull(window, "window"), reaches, ponds);
     }
 
     public void candidates(int chunkX, int chunkZ, int halo, List<Reach> outReaches, List<Pond> outPonds) {
@@ -128,11 +130,11 @@ public final class ReachIndex {
         return Map.copyOf(frozen);
     }
 
-    private static Map<Long, Reach> byId(List<Reach> reaches) {
+    private static Map<Long, Reach> byId(WindowKey window, List<Reach> reaches) {
         Map<Long, Reach> byId = new HashMap<>();
         for (Reach reach : reaches) {
             if (byId.putIfAbsent(reach.id(), reach) != null) {
-                throw new IllegalStateException("Reach id " + reach.id() + " appears twice in one plan");
+                throw new IllegalStateException("Reach id " + reach.id() + " appears twice in the plan of window " + window);
             }
         }
         return Map.copyOf(byId);

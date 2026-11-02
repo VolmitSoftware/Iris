@@ -80,14 +80,14 @@ public class WindowPlannerTest {
         ReachShaper shaper = mock(ReachShaper.class);
         AtomicInteger passes = new AtomicInteger();
         doAnswer(call -> {
-            List<Pond> water = call.getArgument(4);
+            List<Pond> water = call.getArgument(5);
             Pond pond = single(water);
             passes.incrementAndGet();
             int head = pond.level() > 96 ? 96 : 94;
             Reach outlet = new Reach(20L, settings.tiers().get(0), 0L, new float[]{64f, 64f}, new float[]{32f, 96f},
                     new int[]{head, head}, new float[]{2f, 2f}, new float[]{2f, 2f}, new ReachStyle[]{ReachStyle.RUN, ReachStyle.RUN}, 1000f);
             return new ShapedNetwork(List.of(outlet), List.of(pond.withOutletReachId(outlet.id())));
-        }).when(shaper).shape(any(), any(), any(), any(), any(), any(), anyLong());
+        }).when(shaper).shape(any(), any(), any(), any(), any(), any(), any(), anyLong());
         WindowPlanner planner = new WindowPlanner(settings,
                 new HeightLattice(terrain, WindowPlanner.FINE_CELL, false, 1 << 18), ponds, shaper);
 
@@ -577,7 +577,7 @@ public class WindowPlannerTest {
     private static WindowPlanner loweringWatched(HydrologySettings settings, SyntheticTerrain terrain, Set<Long> lowered) {
         ReachShaper shaper = spy(new ReachShaper(settings));
         doAnswer(call -> {
-            List<Pond> planned = call.getArgument(4);
+            List<Pond> planned = call.getArgument(5);
             ShapedNetwork network = (ShapedNetwork) call.callRealMethod();
             Map<Long, Integer> levels = new HashMap<>();
             for (Pond pond : planned) {
@@ -590,7 +590,7 @@ public class WindowPlannerTest {
                 }
             }
             return network;
-        }).when(shaper).shape(any(), any(), any(), any(), any(), any(), anyLong());
+        }).when(shaper).shape(any(), any(), any(), any(), any(), any(), any(), anyLong());
         return new WindowPlanner(settings,
                 new HeightLattice(terrain, WindowPlanner.FINE_CELL, false, 1 << 21), new PondPlanner(settings), shaper);
     }
@@ -874,7 +874,7 @@ public class WindowPlannerTest {
         doReturn(CupSet.EMPTY).when(ponds).subtractCups(any(), any(), any(), any());
         doReturn(water).when(ponds).ponds(any(), any(), any(), any(), any(), any());
         ReachShaper shaper = mock(ReachShaper.class);
-        doReturn(new ShapedNetwork(reaches, water)).when(shaper).shape(any(), any(), any(), any(), any(), any(), anyLong());
+        doReturn(new ShapedNetwork(reaches, water)).when(shaper).shape(any(), any(), any(), any(), any(), any(), any(), anyLong());
         return new WindowPlanner(settings, new HeightLattice(SyntheticTerrain.flat(100D), WindowPlanner.FINE_CELL, false, 1 << 18), ponds, shaper);
     }
 

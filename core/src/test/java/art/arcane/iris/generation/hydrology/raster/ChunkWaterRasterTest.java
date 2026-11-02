@@ -403,7 +403,7 @@ public class ChunkWaterRasterTest {
         }
         SeaInlet inlet = new SeaInlet(71L, xs, zs, halfWidth, SEA_LEVEL, floor, ceiling, 64, 8, 6);
         WindowKey key = new WindowKey(0, 0);
-        IndexedWindow own = new IndexedWindow(new WindowPlan(key, List.of(), List.of(), List.of(inlet)), ReachIndex.build(List.of(), List.of()));
+        IndexedWindow own = new IndexedWindow(new WindowPlan(key, List.of(), List.of(), List.of(inlet)), ReachIndex.build(key, List.of(), List.of()));
         ChunkRasterizer rasterizer = new ChunkRasterizer(settings, ChannelFluids.TIER);
         ChunkWaterRaster mouth = rasterizer.rasterize(0, 0, (x, z) -> 70, List.of(own), regions(0, 0, List.of()));
         int[] column = new int[2];
@@ -435,7 +435,7 @@ public class ChunkWaterRasterTest {
         HydrologySettings settings = settings(new IrisHydrology());
         Reach far = line(61L, tier("stream", 1.5f, 0.5f, 0, IrisBankStyle.SMOOTH), 0L, 400f, 400f, 480f, 400f, (x, z) -> 69);
         WindowKey key = new WindowKey(0, 0);
-        IndexedWindow own = new IndexedWindow(new WindowPlan(key, List.of(far), List.of(), List.of()), ReachIndex.build(List.of(far), List.of()));
+        IndexedWindow own = new IndexedWindow(new WindowPlan(key, List.of(far), List.of(), List.of()), ReachIndex.build(key, List.of(far), List.of()));
         AtomicInteger samples = new AtomicInteger();
         IntBinaryOperator natural = (x, z) -> {
             samples.incrementAndGet();
@@ -473,7 +473,7 @@ public class ChunkWaterRasterTest {
         Reach inflow = line(62L, stream, 0L, 480f, 412f, 400f, 412f, (x, z) -> 69);
         WindowKey key = new WindowKey(0, 0);
         IndexedWindow own = new IndexedWindow(new WindowPlan(key, List.of(outflow, inflow), List.of(), List.of()),
-                ReachIndex.build(List.of(outflow, inflow), List.of()));
+                ReachIndex.build(key, List.of(outflow, inflow), List.of()));
         ChannelFluids volcanic = (x, z) -> x < 440 ? "lava" : null;
         ChunkWaterRaster raster = new ChunkRasterizer(settings, volcanic).rasterize(27, 25, (x, z) -> 70, List.of(own), regions(27, 25, List.of()));
         int lava = 0;
@@ -500,7 +500,7 @@ public class ChunkWaterRasterTest {
         HydrologySettings settings = settings(new IrisHydrology());
         Reach river = line(81L, tier("river", 3f, 0.5f, 32, IrisBankStyle.SMOOTH), 0L, 96f, 256f, 416f, 256f, (x, z) -> 69);
         WindowKey key = new WindowKey(0, 0);
-        IndexedWindow own = new IndexedWindow(new WindowPlan(key, List.of(river), List.of(), List.of()), ReachIndex.build(List.of(river), List.of()));
+        IndexedWindow own = new IndexedWindow(new WindowPlan(key, List.of(river), List.of(), List.of()), ReachIndex.build(key, List.of(river), List.of()));
         NaturalHeights natural = (x, z) -> {
             double away = Math.abs(z - 256);
             if (x < 256) {
@@ -870,7 +870,7 @@ public class ChunkWaterRasterTest {
                 WindowKey key = new WindowKey(dx, dz);
                 List<Reach> owned = key.equals(new WindowKey(0, 0)) ? List.of(feeder)
                         : key.equals(new WindowKey(1, 0)) || key.equals(new WindowKey(1, -1)) ? List.of(downstream) : List.of();
-                windows.add(new IndexedWindow(new WindowPlan(key, owned, List.of(), List.of()), ReachIndex.build(owned, List.of())));
+                windows.add(new IndexedWindow(new WindowPlan(key, owned, List.of(), List.of()), ReachIndex.build(key, owned, List.of())));
             }
         }
         ChunkRasterizer rasterizer = new ChunkRasterizer(settings(new IrisHydrology()), ChannelFluids.TIER);
@@ -1353,7 +1353,7 @@ public class ChunkWaterRasterTest {
                         ownedPonds.add(pond);
                     }
                 }
-                return new IndexedWindow(new WindowPlan(key, owned, ownedPonds, List.of()), ReachIndex.build(owned, ownedPonds));
+                return new IndexedWindow(new WindowPlan(key, owned, ownedPonds, List.of()), ReachIndex.build(key, owned, ownedPonds));
             });
         }
 

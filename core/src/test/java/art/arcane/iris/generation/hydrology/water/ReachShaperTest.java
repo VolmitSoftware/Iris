@@ -14,6 +14,7 @@ import art.arcane.iris.generation.hydrology.grid.HydrologySampleBuffer;
 import art.arcane.iris.generation.hydrology.grid.HydrologyTerrainSource;
 import art.arcane.iris.generation.hydrology.grid.PriorityFlood;
 import art.arcane.iris.generation.hydrology.plan.HydrologySettings;
+import art.arcane.iris.generation.hydrology.plan.WindowKey;
 import art.arcane.iris.generation.hydrology.raster.PondChannelSettlement;
 import art.arcane.volmlib.util.collection.KList;
 import org.junit.Test;
@@ -36,6 +37,7 @@ import static org.junit.Assert.assertTrue;
 
 public class ReachShaperTest {
     private static final long SEED = 1337L;
+    private static final WindowKey WINDOW = new WindowKey(0, 0);
     private static final int SEA_LEVEL = 40;
     private static final int MIN_Y = -64;
     private static final int MAX_Y = 320;
@@ -288,7 +290,7 @@ public class ReachShaperTest {
         for (int cell = 0; cell < quadrupled.length; cell++) {
             quadrupled[cell] *= 4f;
         }
-        ShapedNetwork wider = new ReachShaper(settings).shape(network.grid(), network.receivers(), quadrupled, network.channels(),
+        ShapedNetwork wider = new ReachShaper(settings).shape(WINDOW, network.grid(), network.receivers(), quadrupled, network.channels(),
                 network.ponds(), network.fine(), SEED);
         Map<Long, Reach> widerById = byId(wider.reaches());
         Map<Long, Integer> incoming = incoming(shaped.reaches());
@@ -397,11 +399,11 @@ public class ReachShaperTest {
         Pond pond = new Pond(31L, PondKind.NATURAL, 99, 94, 104, 64, 100f, disk(96, 64, 5), 0L, 0, "water", 96, 64);
         HeightLattice fine = new HeightLattice(new Terrain((x, z) -> Math.hypot(x - 96D, z - 64D) <= 5D ? 94D
                 : x <= 104D ? 100D : 100D - 0.5D * (x - 104D)), FINE, false, 1 << 16);
-        ShapedNetwork shaped = new ReachShaper(settings).shape(flat, receivers, accumulation, channels, List.of(pond), fine, SEED);
+        ShapedNetwork shaped = new ReachShaper(settings).shape(WINDOW, flat, receivers, accumulation, channels, List.of(pond), fine, SEED);
         Pond shapedPond = shaped.ponds().get(0);
         assertEquals(99, shapedPond.level());
         assertOutletLeavesAtThePondLevel("lip outlet", shapedPond, byId(shaped.reaches()).get(shapedPond.outletReachId()));
-        assertEquals(99, PondChannelSettlement.settle(shaped, SEA_LEVEL).ponds().get(0).level());
+        assertEquals(99, PondChannelSettlement.settle(WINDOW, shaped, SEA_LEVEL).ponds().get(0).level());
     }
 
     @Test
@@ -429,7 +431,7 @@ public class ReachShaperTest {
         PondPlanner planner = new PondPlanner(settings);
         ReachShaper shaper = new ReachShaper(settings);
         List<Pond> water = List.of(new Pond(41L, PondKind.NATURAL, 99, 93, 104, 64, 100f, disk(96, 64, 5), 0L, 0, "water", 96, 64));
-        ShapedNetwork network = PondChannelSettlement.settle(shaper.shape(flat, receivers, accumulation, channels, water, fine, SEED), SEA_LEVEL);
+        ShapedNetwork network = PondChannelSettlement.settle(WINDOW, shaper.shape(WINDOW, flat, receivers, accumulation, channels, water, fine, SEED), SEA_LEVEL);
         int lowerings = 0;
         while (network.ponds().get(0).level() < water.get(0).level()) {
             lowerings++;
@@ -437,7 +439,7 @@ public class ReachShaperTest {
             Pond reflooded = planner.reflood(flat, fine, CupSet.EMPTY, network.ponds().get(0));
             assertNotNull("reflooded pond at " + network.ponds().get(0).level(), reflooded);
             water = List.of(reflooded.withOutletReachId(0L));
-            network = PondChannelSettlement.settle(shaper.shape(flat, receivers, accumulation, channels, water, fine, SEED), SEA_LEVEL);
+            network = PondChannelSettlement.settle(WINDOW, shaper.shape(WINDOW, flat, receivers, accumulation, channels, water, fine, SEED), SEA_LEVEL);
         }
         Pond settled = network.ponds().get(0);
         Map<Long, Reach> byId = byId(network.reaches());
@@ -474,7 +476,7 @@ public class ReachShaperTest {
         assertFalse("no DEM node inside the pond", mask.contains(32, 40) || mask.contains(32, 48));
         Pond pond = new Pond(51L, PondKind.NATURAL, 99, 94, 32, 34, 100f, mask, 0L, 0, "water", 32, 43);
         HeightLattice fine = new HeightLattice(new Terrain((x, z) -> 100D), FINE, false, 1 << 16);
-        ShapedNetwork shaped = new ReachShaper(settings).shape(flat, receivers, accumulation, channels, List.of(pond), fine, SEED);
+        ShapedNetwork shaped = new ReachShaper(settings).shape(WINDOW, flat, receivers, accumulation, channels, List.of(pond), fine, SEED);
         Pond shapedPond = shaped.ponds().get(0);
         Reach outlet = byId(shaped.reaches()).get(shapedPond.outletReachId());
         assertNotNull(outlet);
@@ -485,7 +487,7 @@ public class ReachShaperTest {
             assertEquals("held grade at " + point, shapedPond.level(), outlet.grade()[point]);
         }
         assertOutletTouchesAtThePondLevel("fallback outlet", shapedPond, outlet);
-        assertEquals(99, PondChannelSettlement.settle(shaped, SEA_LEVEL).ponds().get(0).level());
+        assertEquals(99, PondChannelSettlement.settle(WINDOW, shaped, SEA_LEVEL).ponds().get(0).level());
     }
 
     @Test
@@ -503,7 +505,7 @@ public class ReachShaperTest {
         Pond side = new Pond(62L, PondKind.NATURAL, 99, 94, 104, 60, 100f, disk(104, 56, 3), 0L, 0, "water", 104, 56);
         HeightLattice fine = new HeightLattice(new Terrain((x, z) -> fed.mask().contains((int) x, (int) z)
                 || side.mask().contains((int) x, (int) z) ? 94D : 100D), FINE, false, 1 << 16);
-        ShapedNetwork shaped = new ReachShaper(settings).shape(flat, receivers, accumulation, channels, List.of(fed, side), fine, SEED);
+        ShapedNetwork shaped = new ReachShaper(settings).shape(WINDOW, flat, receivers, accumulation, channels, List.of(fed, side), fine, SEED);
         assertEquals("both ponds drain through the same exit", shaped.ponds().get(0).outletReachId(), shaped.ponds().get(1).outletReachId());
         Reach outlet = byId(shaped.reaches()).get(shaped.ponds().get(1).outletReachId());
         assertNotNull(outlet);
@@ -531,7 +533,7 @@ public class ReachShaperTest {
         surface.set(19, 1, 30f);
         Pond pond = new Pond(71L, PondKind.NATURAL, 59, 54, 136, 8, 60f, disk(128, 8, 7), 0L, 0, "water", 128, 8);
         HeightLattice fine = new HeightLattice(new Terrain((x, z) -> x < 138D ? 60D : 35D), FINE, false, 1 << 16);
-        ShapedNetwork shaped = new ReachShaper(settings).shape(surface, receivers, accumulation, channels, List.of(pond), fine, SEED);
+        ShapedNetwork shaped = new ReachShaper(settings).shape(WINDOW, surface, receivers, accumulation, channels, List.of(pond), fine, SEED);
         Pond shapedPond = shaped.ponds().get(0);
         Reach outlet = byId(shaped.reaches()).get(shapedPond.outletReachId());
         assertNotNull(outlet);
@@ -790,7 +792,7 @@ public class ReachShaperTest {
         accumulation[flat.index(12, 10)] = 300f;
         Pond pond = new Pond(21L, PondKind.NATURAL, 101, 98, 0, 0, 102f, rectangle(80, 48, 9, 9), 0L, 0, "water", 96, 64);
         HeightLattice fine = new HeightLattice(new Terrain((x, z) -> 100D), FINE, false, 1 << 16);
-        ShapedNetwork shaped = new ReachShaper(settings).shape(flat, receivers, accumulation, channels, List.of(pond), fine, SEED);
+        ShapedNetwork shaped = new ReachShaper(settings).shape(WINDOW, flat, receivers, accumulation, channels, List.of(pond), fine, SEED);
         Reach outlet = byId(shaped.reaches()).get(shaped.ponds().get(0).outletReachId());
         assertNotNull(outlet);
         assertTrue(pond.mask().contains(Math.round(outlet.xs()[0]), Math.round(outlet.zs()[0])));
@@ -819,7 +821,7 @@ public class ReachShaperTest {
         }
         surface.set(width - 1, 1, 30f);
         HeightLattice fine = new HeightLattice(new Terrain((x, z) -> 45D), FINE, false, 1 << 16);
-        ShapedNetwork shaped = new ReachShaper(settings).shape(surface, receivers, accumulation, channels, List.of(), fine, SEED);
+        ShapedNetwork shaped = new ReachShaper(settings).shape(WINDOW, surface, receivers, accumulation, channels, List.of(), fine, SEED);
         int mouths = 0;
         for (Reach reach : shaped.reaches()) {
             int last = reach.xs().length - 1;
@@ -856,7 +858,7 @@ public class ReachShaperTest {
         Pond sunken = new Pond(77L, PondKind.NATURAL, SEA_LEVEL - 1, SEA_LEVEL - 6, CELL, CELL, SEA_LEVEL + 0.5f,
                 new PondMask(0, CELL, CELL, 2, 1, new long[]{0b11L}), 0L, 0, "water", 0, CELL);
         HeightLattice fine = new HeightLattice(new Terrain((x, z) -> 45D), FINE, false, 1 << 16);
-        ShapedNetwork shaped = new ReachShaper(settings).shape(surface, receivers, accumulation, channels, List.of(sunken), fine, SEED);
+        ShapedNetwork shaped = new ReachShaper(settings).shape(WINDOW, surface, receivers, accumulation, channels, List.of(sunken), fine, SEED);
         int mouths = 0;
         for (Reach reach : shaped.reaches()) {
             for (int grade : reach.grade()) {
@@ -938,7 +940,7 @@ public class ReachShaperTest {
         Pond fed = new Pond(32L, PondKind.NATURAL, 100 + maxFill + 4, 98, 192, 128, 100 + maxFill + 5f, rectangle(160, 112, 9, 9), 0L, 0,
                 "water", 176, 128);
         HeightLattice fine = new HeightLattice(new Terrain((x, z) -> 100D), FINE, false, 1 << 16);
-        ShapedNetwork shaped = new ReachShaper(settings).shape(flat, receivers, accumulation, channels, List.of(looped, fed), fine, SEED);
+        ShapedNetwork shaped = new ReachShaper(settings).shape(WINDOW, flat, receivers, accumulation, channels, List.of(looped, fed), fine, SEED);
         int inflows = 0;
         for (Reach reach : shaped.reaches()) {
             if (reach.downstreamId() == 0L && endsIn(reach, fed)) {
@@ -1010,7 +1012,7 @@ public class ReachShaperTest {
             channels.set(cell);
         }
         HeightLattice fine = new HeightLattice(new Terrain((x, z) -> 100D), FINE, false, 1 << 16);
-        ShapedNetwork shaped = new ReachShaper(settings).shape(flat, receivers, accumulation, channels, List.of(), fine, SEED);
+        ShapedNetwork shaped = new ReachShaper(settings).shape(WINDOW, flat, receivers, accumulation, channels, List.of(), fine, SEED);
         Map<Long, Reach> byId = byId(shaped.reaches());
         int links = 0;
         for (Reach reach : shaped.reaches()) {
@@ -1122,7 +1124,7 @@ public class ReachShaperTest {
             flow(flat, receivers, accumulation, channels, i, 8, i + 1 < flat.width() ? i + 1 : -1, 8, 6400f);
         }
         HeightLattice fine = new HeightLattice(new Terrain((x, z) -> 100D), FINE, false, 1 << 16);
-        ShapedNetwork shaped = new ReachShaper(settings).shape(flat, receivers, accumulation, channels, List.of(), fine, SEED);
+        ShapedNetwork shaped = new ReachShaper(settings).shape(WINDOW, flat, receivers, accumulation, channels, List.of(), fine, SEED);
         Map<Long, List<Reach>> feeders = feeders(shaped.reaches());
         assertEquals("one confluence " + feeders.keySet(), 1, feeders.size());
         Map.Entry<Long, List<Reach>> confluence = feeders.entrySet().iterator().next();
@@ -1173,7 +1175,7 @@ public class ReachShaperTest {
         Pond pond = new Pond(71L, PondKind.NATURAL, 99, 94, 104, 64, 100f, disk(96, 64, 5), 0L, 0, "water", 96, 64);
         HeightLattice fine = new HeightLattice(new Terrain((x, z) -> Math.hypot(x - 96D, z - 64D) <= 5D ? 94D
                 : x <= 104D ? 100D : 100D - 0.5D * (x - 104D)), FINE, false, 1 << 16);
-        ShapedNetwork shaped = new ReachShaper(settings).shape(flat, receivers, accumulation, channels, List.of(pond), fine, SEED);
+        ShapedNetwork shaped = new ReachShaper(settings).shape(WINDOW, flat, receivers, accumulation, channels, List.of(pond), fine, SEED);
         Reach outlet = byId(shaped.reaches()).get(shaped.ponds().get(0).outletReachId());
         assertNotNull("the pond drains through an outlet", outlet);
         assertEquals("the outlet is a river", "river", outlet.tier().name());
@@ -1797,7 +1799,7 @@ public class ReachShaperTest {
     }
 
     private static ShapedNetwork shape(HydrologySettings settings, Network network) {
-        return new ReachShaper(settings).shape(network.grid(), network.receivers(), network.accumulation(), network.channels(),
+        return new ReachShaper(settings).shape(WINDOW, network.grid(), network.receivers(), network.accumulation(), network.channels(),
                 network.ponds(), network.fine(), SEED);
     }
 

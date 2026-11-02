@@ -312,6 +312,19 @@ public class HydrologyPlanCacheTest {
     }
 
     @Test
+    public void aWindowPlanWithADuplicateReachIdFailsClosedNamingTheWindow() {
+        FakePlanners planners = new FakePlanners(unpersisted());
+        WindowKey key = new WindowKey(5, -3);
+        HydrologyPlanCache cache = new HydrologyPlanCache(planners.settings, planners::region, (window, regions) -> {
+            Reach reach = planners.window(window, regions).reaches().get(0);
+            return new WindowPlan(window, List.of(reach, reach), List.of(), List.of());
+        }, pool(1), () -> false);
+        caches.add(cache);
+        Throwable failure = failureOf(() -> cache.window(key));
+        assertTrue("" + failure, failure instanceof IllegalStateException && failure.getMessage().contains(key.toString()));
+    }
+
+    @Test
     public void plannerFailurePropagatesAndIsRetriedOnNextRequest() throws Exception {
         FakePlanners planners = new FakePlanners(unpersisted());
         WindowKey regionFailure = new WindowKey(30, -30);

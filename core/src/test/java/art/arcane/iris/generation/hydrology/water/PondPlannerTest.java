@@ -701,7 +701,7 @@ public class PondPlannerTest {
                 ChunkWaterRaster raster = rasters.get(key);
                 if (raster == null) {
                     WindowPlan window = new WindowPlan(WindowKey.containing(x, z), List.of(), List.of(pond), List.of());
-                    IndexedWindow indexed = new IndexedWindow(window, ReachIndex.build(List.of(), List.of(pond)));
+                    IndexedWindow indexed = new IndexedWindow(window, ReachIndex.build(window.key(), List.of(), List.of(pond)));
                     List<RegionPlan> regions = new ArrayList<>();
                     for (RegionKey region : ChunkRasterizer.lakeRegions(x >> 4, z >> 4)) {
                         regions.add(new RegionPlan(region, List.of(), List.of()));

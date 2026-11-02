@@ -4,6 +4,7 @@ import art.arcane.iris.generation.hydrology.grid.CellHash;
 import art.arcane.iris.generation.hydrology.grid.DemGrid;
 import art.arcane.iris.generation.hydrology.grid.HeightLattice;
 import art.arcane.iris.generation.hydrology.plan.HydrologySettings;
+import art.arcane.iris.generation.hydrology.plan.WindowKey;
 import art.arcane.iris.generation.hydrology.raster.LinkBlend;
 
 import java.util.ArrayList;
@@ -32,7 +33,7 @@ public final class ReachShaper {
         this.settings = Objects.requireNonNull(settings, "settings");
     }
 
-    public ShapedNetwork shape(DemGrid filled, int[] receivers, float[] accumulation, BitSet channels, List<Pond> ponds,
+    public ShapedNetwork shape(WindowKey window, DemGrid filled, int[] receivers, float[] accumulation, BitSet channels, List<Pond> ponds,
                                HeightLattice fine, long seed) {
         requireNetwork(filled, receivers, accumulation, channels);
         PondLookup lookup = new PondLookup(ponds);
@@ -74,7 +75,7 @@ public final class ReachShaper {
         for (int index : order) {
             finish(drafts, drafts.get(index));
         }
-        boolean[] touched = ConfluenceGrader.level(drafts, order);
+        boolean[] touched = ConfluenceGrader.level(window, drafts, order);
         for (int index = 0; index < touched.length; index++) {
             if (touched[index]) {
                 restyle(drafts.get(index));

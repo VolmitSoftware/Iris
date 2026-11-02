@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.hydrology.raster;
 
+import art.arcane.iris.generation.hydrology.plan.WindowKey;
 import art.arcane.iris.generation.hydrology.water.Pond;
 import art.arcane.iris.generation.hydrology.water.PondKind;
 import art.arcane.iris.generation.hydrology.water.PondMask;
@@ -16,12 +17,12 @@ public final class PondChannelSettlement {
     private PondChannelSettlement() {
     }
 
-    public static ShapedNetwork settle(ShapedNetwork network, int seaLevel) {
+    public static ShapedNetwork settle(WindowKey window, ShapedNetwork network, int seaLevel) {
         int[] initial = new int[network.ponds().size()];
         for (int index = 0; index < initial.length; index++) {
             initial[index] = network.ponds().get(index).level();
         }
-        int[] levels = levels(network.reaches(), network.ponds(), initial, seaLevel);
+        int[] levels = levels(window, network.reaches(), network.ponds(), initial, seaLevel);
         List<Pond> water = new ArrayList<>(initial.length);
         for (int index = 0; index < initial.length; index++) {
             Pond pond = network.ponds().get(index);
@@ -31,7 +32,7 @@ public final class PondChannelSettlement {
         return new ShapedNetwork(network.reaches(), water);
     }
 
-    static int[] levels(List<Reach> reaches, List<Pond> ponds, int[] initial, int seaLevel) {
+    static int[] levels(WindowKey window, List<Reach> reaches, List<Pond> ponds, int[] initial, int seaLevel) {
         int[] levels = initial.clone();
         if (reaches.isEmpty() || ponds.isEmpty()) {
             return levels;
@@ -43,7 +44,7 @@ public final class PondChannelSettlement {
         if (!eligible) {
             return levels;
         }
-        ReachIndex index = ReachIndex.build(reaches, List.of());
+        ReachIndex index = ReachIndex.build(window, reaches, List.of());
         List<Reach> nearby = new ArrayList<>();
         List<Pond> unused = new ArrayList<>();
         for (int pond = 0; pond < ponds.size(); pond++) {

@@ -177,7 +177,7 @@ final class PlannedScene {
     private IndexedWindow window(WindowKey key) {
         return windows.computeIfAbsent(key, ignored -> {
             WindowPlan plan = plans.getOrDefault(key, new WindowPlan(key, List.of(), List.of(), List.of()));
-            return new IndexedWindow(plan, ReachIndex.build(plan.reaches(), plan.ponds()));
+            return new IndexedWindow(plan, ReachIndex.build(key, plan.reaches(), plan.ponds()));
         });
     }
 

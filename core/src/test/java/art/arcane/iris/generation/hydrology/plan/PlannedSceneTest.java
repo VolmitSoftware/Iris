@@ -6,6 +6,7 @@ import art.arcane.iris.generation.hydrology.water.Pond;
 import art.arcane.iris.generation.hydrology.water.PondKind;
 import art.arcane.iris.generation.hydrology.water.PondMask;
 import art.arcane.iris.generation.hydrology.water.Reach;
+import art.arcane.iris.generation.hydrology.water.ReachShaper;
 import art.arcane.iris.generation.hydrology.water.ReachStyle;
 import org.junit.AfterClass;
 import org.junit.Test;
@@ -185,6 +186,21 @@ public class PlannedSceneTest {
     }
 
     @Test
+    public void outletZoneStepThatShowsAsTwoBlocksStaysHeld() {
+        HydrologySettings settings = PlannedScene.packSettings(SEED);
+        int[] lip = {144, 120};
+        int[] junction = {144, 136};
+        IntBinaryOperator grade = (x, z) -> z >= 130 ? 66 : z >= 126 ? 69 : 70;
+        Reach styled = zoneStyled(tributary(settings, lip, junction, 2f, grade), settings.seaLevel());
+        assertEquals("the 1-block drop inside the outlet zone shows as 2 blocks", ReachStyle.CASCADE, styled.style()[3]);
+        assertEquals("outlet zone stepping 1 block inside the zone, then cascading into the junction", List.of(),
+                tongues(settings, styled, 66, true, List.of(pond(21L, 70, disk(144, 106, 8), styled.id()))));
+        Reach unstyled = outlet(tributary(settings, lip, junction, 2f, grade));
+        assertEquals("the same outlet zone with the step left unstyled", List.of(unstyled.id()),
+                tongues(settings, unstyled, 66, true, List.of(pond(21L, 70, disk(144, 106, 8), unstyled.id()))));
+    }
+
+    @Test
     public void pondOutletWithAPerchedUnheldTailIsATongue() {
         HydrologySettings settings = PlannedScene.packSettings(SEED);
         Reach outlet = outlet(tributary(settings, new int[]{144, 56}, new int[]{144, 136}, 2f, (x, z) -> z >= 136 ? 66 : 70));
@@ -279,6 +295,20 @@ public class PlannedSceneTest {
                 style[point] = ReachStyle.POND_OUTLET;
             }
         }
+        return new Reach(reach.id(), reach.tier(), reach.downstreamId(), reach.xs(), reach.zs(), reach.grade(), reach.halfWidth(), reach.depth(),
+                style, reach.catchment());
+    }
+
+    private static Reach zoneStyled(Reach reach, int seaLevel) {
+        boolean[] zone = new boolean[reach.xs().length];
+        float along = 0f;
+        for (int point = 0; point < zone.length; point++) {
+            if (point > 0) {
+                along += (float) Math.hypot(reach.xs()[point] - reach.xs()[point - 1], reach.zs()[point] - reach.zs()[point - 1]);
+            }
+            zone[point] = along <= OUTLET_LENGTH;
+        }
+        ReachStyle[] style = ReachShaper.styles(reach.grade(), new boolean[zone.length], zone, reach.tier().waterfallMinimumDrop(), seaLevel);
         return new Reach(reach.id(), reach.tier(), reach.downstreamId(), reach.xs(), reach.zs(), reach.grade(), reach.halfWidth(), reach.depth(),
                 style, reach.catchment());
     }

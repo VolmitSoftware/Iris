@@ -149,8 +149,7 @@ final class WaterInvariants {
             boolean[] pool = pool(feeder, receiving(feeder, downstream, feeders.get(downstream.id())), level);
             int[] box = interior(scene, poolBox(feeder, pool));
             if (box != null) {
-                boolean[] held = held(feeder, lips.getOrDefault(feeder.id(), List.of()));
-                held[0] |= feeders.containsKey(feeder.id());
+                boolean[] held = held(feeder, lips.getOrDefault(feeder.id(), List.of()), feeders.containsKey(feeder.id()));
                 junctions.add(new Junction(feeder, WaterHeads.snap(level, seaLevel), pool, held, box));
             }
         }
@@ -205,14 +204,19 @@ final class WaterInvariants {
         return lips;
     }
 
-    private static boolean[] held(Reach outlet, List<PondMask> lips) {
+    private static boolean[] held(Reach outlet, List<PondMask> lips, boolean fed) {
         boolean[] held = new boolean[outlet.xs().length];
         boolean lip = !lips.isEmpty();
-        for (int point = 0; point < held.length; point++) {
-            lip = lip && (point == 0 || nearLip(lips, outlet.xs()[point], outlet.zs()[point], outlet.halfWidth()[point]));
-            held[point] = lip || outlet.style()[point] == ReachStyle.POND_OUTLET;
+        held[0] = lip || fed || outlet.style()[0] == ReachStyle.POND_OUTLET;
+        for (int point = 1; point < held.length; point++) {
+            lip = lip && nearLip(lips, outlet.xs()[point], outlet.zs()[point], outlet.halfWidth()[point]);
+            held[point] = lip || outlet.style()[point] == ReachStyle.POND_OUTLET || zoneStep(outlet, held, point);
         }
         return held;
+    }
+
+    private static boolean zoneStep(Reach outlet, boolean[] held, int point) {
+        return held[point - 1] && outlet.style()[point] == ReachStyle.CASCADE && outlet.grade()[point - 1] - outlet.grade()[point] == 1;
     }
 
     private static boolean nearLip(List<PondMask> lips, float x, float z, float halfWidth) {

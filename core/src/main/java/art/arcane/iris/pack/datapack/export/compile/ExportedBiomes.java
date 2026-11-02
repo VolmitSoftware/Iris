@@ -104,7 +104,7 @@ public final class ExportedBiomes {
             if (region == null) {
                 continue;
             }
-            for (IrisBiome biome : region.getAllBiomes(() -> context.data())) {
+            for (IrisBiome biome : region.getAllBiomes(context.dimension(), () -> context.data())) {
                 if (biome != null && biome.getLoadKey() != null) {
                     regions.putIfAbsent(biome.getLoadKey(), region);
                 }

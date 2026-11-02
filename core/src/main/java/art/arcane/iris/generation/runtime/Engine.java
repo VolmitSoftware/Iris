@@ -897,7 +897,7 @@ public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, 
                 .map(IrisRegistrant::getLoadKey)
                 .collect(Collectors.toSet());
         Set<String> regionKeys = getDimension().getAllRegions(this).stream()
-                .filter((i) -> i.getAllBiomeIds().stream().anyMatch(biomeKeys::contains)
+                .filter((i) -> i.getAllBiomeIds(getDimension(), this).stream().anyMatch(biomeKeys::contains)
                         || containsObjectPlacement(i.getObjects(), normalizedObjectKey, data))
                 .map(IrisRegistrant::getLoadKey)
                 .collect(Collectors.toSet());

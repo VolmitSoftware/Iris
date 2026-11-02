@@ -10,6 +10,7 @@ import art.arcane.iris.generation.hydrology.config.IrisHydrologyWetness;
 import art.arcane.iris.generation.hydrology.plan.HydrologySettings;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.generation.terrain.IrisRegion;
+import art.arcane.iris.generation.terrain.ShoreBiomeLineages;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.IrisPlatforms;
@@ -19,10 +20,14 @@ import art.arcane.volmlib.util.mantle.flag.ReservedFlag;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 
 final class PackHydrologyValidator {
     private static final String CONFIG = "hydrology";
@@ -97,6 +102,7 @@ final class PackHydrologyValidator {
         }
         warnMantleOff("Dimension '" + dimensionKey + "'", loadedDimension, findings.warnings());
         validatePolicies(path, dimensionKey, loaded, loadedDimension, new PolicyFluids(fluids, seams), errors);
+        warnShoreBiomesWithoutWidth(dimensionKey, loaded, loadedDimension, findings.warnings());
         if (errors.size() == reported && validateCompile(path, loadedDimension, errors)) {
             validateDecoratorBlocks(path, loaded, loadedDimension.getHydrology(), errors);
         }
@@ -305,6 +311,46 @@ final class PackHydrologyValidator {
         IrisHydrologyWetness wetness = policy.getWetness();
         if (wetness != null && !(wetness.getMin() >= 0D && wetness.getMin() <= wetness.getMax() && wetness.getMax() <= 1D)) {
             errors.add(field + ".wetness must have 0 <= min <= max <= 1, got min " + wetness.getMin() + " and max " + wetness.getMax() + ".");
+        }
+    }
+
+    private static void warnShoreBiomesWithoutWidth(String dimensionKey, IrisData data, IrisDimension dimension, List<String> warnings) {
+        List<IrisRegion> regions = new ArrayList<>(dimension.getAllRegions(() -> data));
+        regions.sort(Comparator.comparing(IrisRegion::getLoadKey, Comparator.nullsFirst(Comparator.naturalOrder())));
+        Set<IrisHydrologyPolicy> widened = Collections.newSetFromMap(new IdentityHashMap<>());
+        Map<String, IrisBiome> lineageBiomes = new TreeMap<>();
+        ShoreBiomeLineages.visit(dimension, regions, () -> data, (lineage, region) -> {
+            Integer width = IrisHydrologyPolicy.inherited(lineage, region, dimension, IrisHydrologyPolicy::getShoreBiomeWidth);
+            boolean wide = width != null && width > 0;
+            for (IrisBiome biome : lineage) {
+                if (biome.getLoadKey() != null) {
+                    lineageBiomes.putIfAbsent(biome.getLoadKey(), biome);
+                }
+                if (wide && biome.getHydrologyPolicy() != null) {
+                    widened.add(biome.getHydrologyPolicy());
+                }
+            }
+            if (wide && region != null && region.getHydrologyPolicy() != null) {
+                widened.add(region.getHydrologyPolicy());
+            }
+            if (wide && dimension.getHydrologyPolicy() != null) {
+                widened.add(dimension.getHydrologyPolicy());
+            }
+        });
+        warnShoreBiomesWithoutWidth("Dimension '" + dimensionKey + "'", dimension.getHydrologyPolicy(), widened, warnings);
+        for (IrisRegion region : regions) {
+            warnShoreBiomesWithoutWidth("Region '" + region.getLoadKey() + "'", region.getHydrologyPolicy(), widened, warnings);
+        }
+        for (IrisBiome biome : lineageBiomes.values()) {
+            warnShoreBiomesWithoutWidth("Biome '" + biome.getLoadKey() + "'", biome.getHydrologyPolicy(), widened, warnings);
+        }
+    }
+
+    private static void warnShoreBiomesWithoutWidth(String scope, IrisHydrologyPolicy policy, Set<IrisHydrologyPolicy> widened,
+                                                    List<String> warnings) {
+        if (policy != null && policy.getShoreBiomes() != null && !policy.getShoreBiomes().isEmpty() && !widened.contains(policy)) {
+            warnings.add(scope + "." + POLICY + ".shoreBiomes lists shore biomes, but no shoreBiomeWidth above 0 applies to them,"
+                    + " so none are placed.");
         }
     }
 

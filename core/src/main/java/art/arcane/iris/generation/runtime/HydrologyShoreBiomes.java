@@ -87,16 +87,16 @@ final class HydrologyShoreBiomes {
     }
 
     private Policy resolve(List<IrisBiome> lineage, IrisRegion region) {
-        Integer width = IrisHydrologyPolicy.inherited(lineage, region, dimension, IrisHydrologyPolicy::getShoreBiomeWidth);
-        List<String> keys = IrisHydrologyPolicy.inherited(lineage, region, dimension, IrisHydrologyPolicy::getShoreBiomes);
-        if (width == null || width <= 0 || keys == null || keys.isEmpty()) {
+        IrisHydrologyPolicy.ShoreBand band = IrisHydrologyPolicy.shoreBand(lineage, region, dimension);
+        if (band == null) {
             return NONE;
         }
+        List<String> keys = band.biomes();
         IrisBiome[] biomes = new IrisBiome[keys.size()];
         for (int index = 0; index < biomes.length; index++) {
             biomes[index] = load(keys.get(index), lineage, region).withInferredType(InferredType.SHORE);
         }
-        return new Policy(biomes, width);
+        return new Policy(biomes, band.width());
     }
 
     private IrisBiome load(String key, List<IrisBiome> lineage, IrisRegion region) {

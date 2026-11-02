@@ -606,6 +606,38 @@ public class PackHydrologyValidatorTest {
                         + " and cascades, sea inlets and cave pools are not generated."), validation.warnings());
     }
 
+    @Test
+    public void shoreBiomesWithoutWidthWarn() throws Exception {
+        PackHydrologyValidator.Validation unset = validate(shorePack(""));
+        PackHydrologyValidator.Validation widened = validate(shorePack(", \"shoreBiomeWidth\": 3"));
+
+        assertTrue(unset.errors().toString(), unset.errors().isEmpty());
+        assertEquals(List.of(
+                "Dimension 'main'.hydrologyPolicy.shoreBiomes lists shore biomes, but no shoreBiomeWidth above 0 applies to them,"
+                        + " so none are placed.",
+                "Region 'region'.hydrologyPolicy.shoreBiomes lists shore biomes, but no shoreBiomeWidth above 0 applies to them,"
+                        + " so none are placed.",
+                "Biome 'dune'.hydrologyPolicy.shoreBiomes lists shore biomes, but no shoreBiomeWidth above 0 applies to them,"
+                        + " so none are placed."), unset.warnings());
+        assertTrue(widened.errors().toString(), widened.errors().isEmpty());
+        assertTrue(widened.warnings().toString(), widened.warnings().isEmpty());
+    }
+
+    private File shorePack(String dimensionWidth) throws Exception {
+        File pack = pack(dimension(WATER_ONLY, "\"hydrologyPolicy\": {\"shoreBiomes\": [\"beach\"]" + dimensionWidth + "},"));
+        write(pack, "regions/region.json", """
+                {"landBiomes": ["biome", "dune", "bare"], "hydrologyPolicy": {"shoreBiomes": ["beach"]}}
+                """);
+        write(pack, "biomes/dune.json", """
+                {"name": "Dune", "hydrologyPolicy": {"shoreBiomes": ["beach"]}}
+                """);
+        write(pack, "biomes/bare.json", """
+                {"name": "Bare", "hydrologyPolicy": {"shoreBiomes": []}}
+                """);
+        write(pack, "biomes/beach.json", "{\"name\": \"Beach\"}");
+        return pack;
+    }
+
     private PackHydrologyValidator.Validation validate(File pack) {
         File[] dimensions = new File(pack, "dimensions").listFiles(
                 file -> file.isFile() && file.getName().endsWith(".json"));

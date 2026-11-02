@@ -16,6 +16,7 @@ import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.structure.object.IrisObjectPlacement;
 import art.arcane.iris.generation.terrain.IrisRegion;
+import art.arcane.iris.generation.hydrology.config.IrisHydrology;
 import art.arcane.iris.generation.hydrology.config.IrisHydrologyPolicy;
 import art.arcane.iris.world.history.GenerationSemanticIndex;
 import art.arcane.iris.spi.IrisPlatform;
@@ -283,9 +284,14 @@ public class HintedLocatorTest {
 
             HydrologyShoreTargets placed = new HydrologyShoreTargets(Set.of(riverShore.getLoadKey()));
             HydrologyShoreTargets unplaced = new HydrologyShoreTargets(Set.of(riverShore.getLoadKey()));
-            when(dimension.getHydrologyPolicy()).thenReturn(new IrisHydrologyPolicy().setShoreBiomes(keys(riverShore.getLoadKey())));
-            stubRegions();
+            IrisRegion host = region("host");
+            host.setLandBiomes(keys(plains.getLoadKey()));
+            when(dimension.getHydrology()).thenReturn(new IrisHydrology().setEnabled(true));
+            when(dimension.getHydrologyPolicy()).thenReturn(new IrisHydrologyPolicy()
+                    .setShoreBiomes(keys(riverShore.getLoadKey())).setShoreBiomeWidth(4));
+            stubRegions(host);
             stubBiome(riverShore);
+            stubBiome(plains);
 
             assertTrue(Locator.chunkContainsSurfaceBiome(engine, new Position2(2, 0), riverShore.getLoadKey(), placed));
             assertFalse(Locator.chunkContainsSurfaceBiome(engine, new Position2(8, 0), riverShore.getLoadKey(), placed));

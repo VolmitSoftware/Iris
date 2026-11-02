@@ -51,7 +51,7 @@ public class IrisHydrologyPolicy {
 
     @RegistryListResource(IrisBiome.class)
     @ArrayType(type = String.class)
-    @Description("Biomes placed along the water's edge in this area. An empty list clears the inherited biomes.")
+    @Description("Biomes placed along the water's edge in this area, in a band as wide as shoreBiomeWidth. Without a shoreBiomeWidth above 0 the list places nothing. An empty list clears the inherited biomes.")
     private KList<String> shoreBiomes = null;
 
     @MinNumber(0)
@@ -67,6 +67,12 @@ public class IrisHydrologyPolicy {
         return value >= 0D && value <= MAX_MULTIPLIER;
     }
 
+    public static ShoreBand shoreBand(List<IrisBiome> biomes, IrisRegion region, IrisDimension dimension) {
+        Integer width = inherited(biomes, region, dimension, IrisHydrologyPolicy::getShoreBiomeWidth);
+        KList<String> keys = inherited(biomes, region, dimension, IrisHydrologyPolicy::getShoreBiomes);
+        return width == null || width <= 0 || keys == null || keys.isEmpty() ? null : new ShoreBand(width, keys);
+    }
+
     public static <T> T inherited(List<IrisBiome> biomes, IrisRegion region, IrisDimension dimension, Function<IrisHydrologyPolicy, T> field) {
         for (int index = 0; index < biomes.size(); index++) {
             T value = value(biomes.get(index).getHydrologyPolicy(), field);
@@ -80,5 +86,8 @@ public class IrisHydrologyPolicy {
 
     private static <T> T value(IrisHydrologyPolicy policy, Function<IrisHydrologyPolicy, T> field) {
         return policy == null ? null : field.apply(policy);
+    }
+
+    public record ShoreBand(int width, List<String> biomes) {
     }
 }

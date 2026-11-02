@@ -139,7 +139,6 @@ public class IrisPackageCompiler {
             exportedDimension.getEntitySpawners().forEach((sp) ->
                     addIfPresent(spawners, dm.getSpawnerLoader().load(sp)));
         }
-        regions.forEach((i) -> biomes.addAll(i.getAllBiomes(() -> dm)));
         regions.forEach((r) -> r.getLoot().getTables().forEach((i) -> addIfPresent(loot, dm.getLootLoader().load(i))));
         regions.forEach((r) -> r.getEntitySpawners().forEach((sp) -> addIfPresent(spawners, dm.getSpawnerLoader().load(sp))));
         biomes.forEach((i) -> i.getGenerators().forEach((j) -> addIfPresent(generators, j.getCachedGenerator(() -> dm))));

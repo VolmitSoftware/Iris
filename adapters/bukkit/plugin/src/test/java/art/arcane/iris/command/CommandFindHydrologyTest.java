@@ -2,6 +2,9 @@ package art.arcane.iris.command;
 
 import art.arcane.iris.Iris;
 import art.arcane.iris.generation.hydrology.engine.HydrologyRuntime;
+import art.arcane.iris.generation.hydrology.query.HydrologyFeatureRef;
+import art.arcane.iris.generation.hydrology.query.HydrologySearchTimeoutException;
+import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.generation.hydrology.query.HydrologyFeatureType;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.IrisComplex;
@@ -18,6 +21,7 @@ import org.bukkit.entity.Player;
 import org.junit.Test;
 import org.mockito.MockedStatic;
 
+import java.time.Duration;
 import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.UUID;
@@ -31,6 +35,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
@@ -176,6 +181,38 @@ public class CommandFindHydrologyTest {
 
             verify(fixture.sender).sendMessage(contains("No lake forms in this dimension: hydrology.lakes is disabled."));
             verify(fixture.runtime, never()).nearestFeature(anyInt(), anyInt(), any(), anyInt(), any(), any());
+        }
+    }
+
+    @Test
+    public void stoppedSearchReportsTheNearestWaterWithoutTeleporting() throws Exception {
+        try (Fixture fixture = new Fixture()) {
+            fixture.searchForReal();
+            IrisDimension dimension = mock(IrisDimension.class);
+            when(fixture.engine.getDimension()).thenReturn(dimension);
+            when(dimension.getMinHeight()).thenReturn(-64);
+            when(fixture.runtime.nearestFeature(anyInt(), anyInt(), any(), anyInt(), any(), any())).thenThrow(
+                    new HydrologySearchTimeoutException(Duration.ofSeconds(30L), new HydrologyFeatureRef(1L, HydrologyFeatureType.RIVER, 32, 127, 32)));
+            fixture.command.river("river", true);
+            fixture.search.get().run();
+
+            verify(fixture.sender).sendMessage(contains("Stopped searching for the nearest river after 30 seconds. The nearest river found so "
+                    + "far is at 32, 63, 32; a nearer one may exist."));
+            fixture.platform.verify(() -> BukkitPlatform.chunkAtAsync(any(World.class), anyInt(), anyInt(), eq(true)), never());
+            fixture.platform.verify(() -> BukkitPlatform.teleportAsync(any(Player.class), any(Location.class)), never());
+        }
+    }
+
+    @Test
+    public void deliveryFailureIsReportedInsteadOfLost() {
+        try (Fixture fixture = new Fixture()) {
+            LinkageError failure = new LinkageError("sender gone");
+            doThrow(failure).when(fixture.sender).sendMessage(contains("Found river"));
+            fixture.command.river("river", false);
+            fixture.search.get().run();
+
+            fixture.logging.verify(() -> Iris.reportError(any(String.class), eq(failure)));
+            verify(fixture.sender).sendMessage(contains("Could not search for river: LinkageError - sender gone"));
         }
     }
 

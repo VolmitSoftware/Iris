@@ -4,6 +4,7 @@ import art.arcane.iris.generation.hydrology.engine.HydrologyRuntime;
 import art.arcane.iris.generation.hydrology.query.HydrologyFeatureQuery;
 import art.arcane.iris.generation.hydrology.query.HydrologyFeatureRef;
 import art.arcane.iris.generation.hydrology.query.HydrologyFeatureType;
+import art.arcane.iris.generation.hydrology.query.HydrologySearchTimeoutException;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.terrain.IrisDimension;
@@ -18,6 +19,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.MockedConstruction;
 import org.mockito.MockedStatic;
 
+import java.time.Duration;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -78,6 +80,35 @@ public class ModdedLocateRiverTest {
             commands.verify(() -> IrisModdedCommands.fail(fixture.source, "No dam forms in this dimension: hydrology.ponds.dams is disabled."));
             verify(fixture.runtime, never()).nearestFeature(anyInt(), anyInt(), any(), anyInt(), any(), any());
             verify(fixture.player, never()).teleport(any(), anyDouble(), anyDouble(), anyDouble());
+        }
+    }
+
+    @Test
+    public void stoppedSearchReportsTheNearestWaterWithoutTeleporting() throws Exception {
+        Fixture fixture = new Fixture();
+        when(fixture.runtime.nearestFeature(anyInt(), anyInt(), any(), anyInt(), any(), any())).thenThrow(new HydrologySearchTimeoutException(
+                Duration.ofSeconds(30L), new HydrologyFeatureRef(9L, HydrologyFeatureType.WATERFALL, 400, 130, -250)));
+        try (MockedStatic<IrisModdedCommands> commands = fixture.commands()) {
+            assertEquals(1, ModdedLocateCommands.gotoRiver(fixture.source, "waterfall"));
+            fixture.finishOnServerThread();
+
+            commands.verify(() -> IrisModdedCommands.fail(fixture.source, "Stopped searching for the nearest waterfall after 30 seconds. "
+                    + "The nearest waterfall found so far is at 400, 66, -250; a nearer one may exist."));
+            verify(fixture.player, never()).teleport(any(), anyDouble(), anyDouble(), anyDouble());
+        }
+    }
+
+    @Test
+    public void deliveryFailureIsReportedInsteadOfLost() throws Exception {
+        Fixture fixture = new Fixture();
+        when(fixture.runtime.nearestFeature(anyInt(), anyInt(), any(), anyInt(), any(), any())).thenReturn(Optional.empty());
+        try (MockedStatic<IrisModdedCommands> commands = fixture.commands()) {
+            commands.when(() -> IrisModdedCommands.fail(fixture.source, "No river found within " + DISTANCE + " blocks."))
+                    .thenThrow(new LinkageError("source gone"));
+            assertEquals(1, ModdedLocateCommands.gotoRiver(fixture.source, "river"));
+            fixture.finishOnServerThread();
+
+            commands.verify(() -> IrisModdedCommands.fail(fixture.source, "Could not search for river: LinkageError - source gone"));
         }
     }
 

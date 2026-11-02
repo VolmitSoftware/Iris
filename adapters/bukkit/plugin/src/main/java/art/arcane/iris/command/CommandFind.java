@@ -240,9 +240,11 @@ public class CommandFind implements DirectorExecutor {
             switch (search) {
                 case GenerationSemanticQueries.RiverSearch.Missing missing ->
                         sendStructureMessage(request.target(), request.sender(), C.YELLOW + missing.message());
+                case GenerationSemanticQueries.RiverSearch.Stopped stopped ->
+                        sendStructureMessage(request.target(), request.sender(), C.YELLOW + stopped.message());
                 case GenerationSemanticQueries.RiverSearch.Found found -> arriveAtRiver(request, found.feature());
             }
-        } catch (RuntimeException error) {
+        } catch (Throwable error) {
             reportRiverFailure(request, error);
         }
     }
@@ -258,10 +260,10 @@ public class CommandFind implements DirectorExecutor {
     }
 
     private void reportRiverFailure(RiverRequest request, Throwable failure) {
+        Iris.reportError("Could not locate hydrology feature '" + request.type().key() + "'.", failure);
         sendStructureMessage(request.target(), request.sender(),
                 C.RED + "Could not search for " + request.label() + ": " + failure.getClass().getSimpleName()
                         + (failure.getMessage() == null ? "" : " - " + failure.getMessage()));
-        Iris.reportError("Could not locate hydrology feature '" + request.type().key() + "'.", failure);
     }
 
     @Director(description = "Find a structure (a vanilla key like minecraft:village_plains or minecraft:stronghold, or an imported iris structure key)", descriptionKey = "iris.director.commandfind.director.find_structure_vanilla_key_like_minecraft_village_plains_minecraft_stronghold_imported_iris", sync = true)

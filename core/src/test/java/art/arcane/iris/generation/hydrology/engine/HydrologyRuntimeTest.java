@@ -71,6 +71,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BooleanSupplier;
+import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 import static org.junit.Assert.assertArrayEquals;
@@ -107,6 +108,8 @@ public class HydrologyRuntimeTest {
     private static final long LAKE = 0x4c414b45L;
     private static final long RIVER = 0x52495645L;
     private static final long INLET = 0x494e4c4554L;
+    private static final Predicate<HydrologyFeatureRef> ANY = feature -> true;
+    private static final BooleanSupplier RUNNING = () -> true;
 
     @ClassRule
     public static final PlatformLeakGuard PLATFORM_GUARD = PlatformLeakGuard.clean();
@@ -301,24 +304,29 @@ public class HydrologyRuntimeTest {
         FakePlanners planners = new FakePlanners(settings());
         HydrologyRuntime runtime = runtime(planners, () -> false);
 
-        HydrologyFeatureRef pond = runtime.nearestFeature(0, 0, HydrologyFeatureQuery.of(HydrologyFeatureType.POND), 2048).orElseThrow();
+        HydrologyFeatureRef pond = runtime.nearestFeature(0, 0, HydrologyFeatureQuery.of(HydrologyFeatureType.POND), 2048, ANY, RUNNING)
+                .orElseThrow();
         assertEquals(new HydrologyFeatureRef(POND, HydrologyFeatureType.POND, 2, 70, 2), pond);
         assertEquals(0, planners.windowCalls(new WindowKey(3, 3)));
         assertEquals(new HydrologyFeatureRef(POND + 1, HydrologyFeatureType.POND, 300, 70, 300),
-                runtime.nearestFeature(301, 299, HydrologyFeatureQuery.of(HydrologyFeatureType.POND), 64).orElseThrow());
-        HydrologyFeatureRef river = runtime.nearestFeature(0, 0, HydrologyFeatureQuery.of(HydrologyFeatureType.RIVER), 2048).orElseThrow();
+                runtime.nearestFeature(301, 299, HydrologyFeatureQuery.of(HydrologyFeatureType.POND), 64, ANY, RUNNING).orElseThrow());
+        HydrologyFeatureRef river = runtime.nearestFeature(0, 0, HydrologyFeatureQuery.of(HydrologyFeatureType.RIVER), 2048, ANY, RUNNING)
+                .orElseThrow();
         assertEquals(new HydrologyFeatureRef(RIVER, HydrologyFeatureType.RIVER, 1000, 80, 200), river);
-        HydrologyFeatureRef fall = runtime.nearestFeature(0, 0, HydrologyFeatureQuery.of(HydrologyFeatureType.WATERFALL), 2048).orElseThrow();
+        HydrologyFeatureRef fall = runtime.nearestFeature(0, 0, HydrologyFeatureQuery.of(HydrologyFeatureType.WATERFALL), 2048, ANY,
+                RUNNING).orElseThrow();
         assertEquals(new HydrologyFeatureRef(RIVER, HydrologyFeatureType.WATERFALL, 1050, 75, 200), fall);
         HydrologyFeatureQuery water = HydrologyFeatureQuery.of(HydrologyFeatureType.RIVER, HydrologyFeatureType.POND);
-        assertEquals(pond, runtime.nearestFeature(0, 0, water, 2048).orElseThrow());
-        assertEquals(new HydrologyFeatureRef(RIVER, HydrologyFeatureType.RIVER, 1100, 70, 200), runtime.nearestFeature(1100, 100, water, 2048)
-                .orElseThrow());
-        assertEquals(Optional.empty(), runtime.nearestFeature(0, 0, HydrologyFeatureQuery.of(HydrologyFeatureType.POND), 2));
+        assertEquals(pond, runtime.nearestFeature(0, 0, water, 2048, ANY, RUNNING).orElseThrow());
+        assertEquals(new HydrologyFeatureRef(RIVER, HydrologyFeatureType.RIVER, 1100, 70, 200),
+                runtime.nearestFeature(1100, 100, water, 2048, ANY, RUNNING).orElseThrow());
+        assertEquals(Optional.empty(), runtime.nearestFeature(0, 0, HydrologyFeatureQuery.of(HydrologyFeatureType.POND), 2, ANY, RUNNING));
         assertEquals(Optional.empty(), runtime.nearestFeature(0, 0,
-                HydrologyFeatureQuery.of(HydrologyFeatureType.STREAM, HydrologyFeatureType.MAJOR_RIVER), 2048));
-        assertEquals(FAR_POND, runtime.nearestFeature(1700, 150, HydrologyFeatureQuery.of(HydrologyFeatureType.POND), 512).orElseThrow().id());
-        HydrologyFeatureRef lake = runtime.nearestFeature(0, 0, HydrologyFeatureQuery.of(HydrologyFeatureType.LAKE), 4096).orElseThrow();
+                HydrologyFeatureQuery.of(HydrologyFeatureType.STREAM, HydrologyFeatureType.MAJOR_RIVER), 2048, ANY, RUNNING));
+        assertEquals(FAR_POND, runtime.nearestFeature(1700, 150, HydrologyFeatureQuery.of(HydrologyFeatureType.POND), 512, ANY, RUNNING)
+                .orElseThrow().id());
+        HydrologyFeatureRef lake = runtime.nearestFeature(0, 0, HydrologyFeatureQuery.of(HydrologyFeatureType.LAKE), 4096, ANY, RUNNING)
+                .orElseThrow();
         assertEquals(new HydrologyFeatureRef(LAKE, HydrologyFeatureType.LAKE, 2500, 90, 2500), lake);
     }
 
@@ -358,9 +366,11 @@ public class HydrologyRuntimeTest {
         assertTrue("the chunk past the owner window writes inlet water",
                 written.values().stream().anyMatch(cell -> cell.action() == HydrologyCaveAction.WET_SOURCE));
 
-        HydrologyFeatureRef nearest = runtime.nearestFeature(1050, 405, HydrologyFeatureQuery.of(HydrologyFeatureType.SEA_INLET), 512).orElseThrow();
+        HydrologyFeatureRef nearest = runtime.nearestFeature(1050, 405, HydrologyFeatureQuery.of(HydrologyFeatureType.SEA_INLET), 512, ANY,
+                RUNNING).orElseThrow();
         assertEquals(new HydrologyFeatureRef(INLET, HydrologyFeatureType.SEA_INLET, 1048, 40, 400), nearest);
-        assertEquals(Optional.empty(), runtime.nearestFeature(0, 0, HydrologyFeatureQuery.of(HydrologyFeatureType.SEA_INLET), 64));
+        assertEquals(Optional.empty(),
+                runtime.nearestFeature(0, 0, HydrologyFeatureQuery.of(HydrologyFeatureType.SEA_INLET), 64, ANY, RUNNING));
         assertEquals(List.of(FakePlanners.inlet()), runtime.planPreview(900, 300, 1100, 500).inlets());
         assertEquals(List.of(), FakeHydrology.disabled().inlets(0, 0));
     }
@@ -371,11 +381,11 @@ public class HydrologyRuntimeTest {
         HydrologyRuntime runtime = runtime(planners, () -> false);
 
         HydrologyFeatureRef seeded = runtime.nearestFeature(0, 0, HydrologyFeatureQuery.of(HydrologyFeatureType.POND), 2048,
-                feature -> feature.id() != POND, () -> true).orElseThrow();
+                feature -> feature.id() != POND, RUNNING).orElseThrow();
 
         assertEquals(POND + 1, seeded.id());
         assertEquals(Optional.empty(), runtime.nearestFeature(0, 0, HydrologyFeatureQuery.of(HydrologyFeatureType.POND), 2048,
-                feature -> false, () -> true));
+                feature -> false, RUNNING));
     }
 
     @Test(timeout = 180_000L)
@@ -808,7 +818,7 @@ public class HydrologyRuntimeTest {
         AtomicBoolean main = new AtomicBoolean(true);
         HydrologyRuntime runtime = runtime(planners, pool, main::get);
         try {
-            runtime.nearestFeature(0, 0, HydrologyFeatureQuery.of(HydrologyFeatureType.POND), 64);
+            runtime.nearestFeature(0, 0, HydrologyFeatureQuery.of(HydrologyFeatureType.POND), 64, ANY, RUNNING);
             fail("A feature search on the main thread must refuse");
         } catch (IllegalStateException expected) {
             assertTrue(expected.getMessage(), expected.getMessage().contains("main thread"));
@@ -818,14 +828,15 @@ public class HydrologyRuntimeTest {
         assertEquals(0, planners.windowOrder().size());
         assertEquals(0, planners.regionArrivals.get());
 
-        assertEquals(Optional.empty(), runtime.nearestFeature(10_000, 10_000, HydrologyFeatureQuery.of(HydrologyFeatureType.POND), 64));
+        assertEquals(Optional.empty(),
+                runtime.nearestFeature(10_000, 10_000, HydrologyFeatureQuery.of(HydrologyFeatureType.POND), 64, ANY, RUNNING));
         assertEquals(25, planners.windowOrder().size());
 
         CountDownLatch regions = new CountDownLatch(1);
         planners.regionGate = regions;
         int before = planners.regionArrivals.get();
         FutureTask<Optional<HydrologyFeatureRef>> lake = new FutureTask<>(() -> runtime.nearestFeature(-20_000, -20_000,
-                HydrologyFeatureQuery.of(HydrologyFeatureType.LAKE), 64));
+                HydrologyFeatureQuery.of(HydrologyFeatureType.LAKE), 64, ANY, RUNNING));
         Thread search = new Thread(lake);
         search.start();
         await(() -> planners.regionArrivals.get() - before >= 4, "every lake region to plan at once");
@@ -1067,7 +1078,7 @@ public class HydrologyRuntimeTest {
         assertSame(ChunkWaterRaster.EMPTY, runtime.raster(0, 0));
         assertSame(ChunkWaterRaster.EMPTY, runtime.rasterSnapshot(0, 0));
         assertSame(ChunkWaterRaster.EMPTY, runtime.rasterAt(0, 0));
-        assertEquals(Optional.empty(), runtime.nearestFeature(0, 0, HydrologyFeatureQuery.of(HydrologyFeatureType.POND), 64));
+        assertEquals(Optional.empty(), runtime.nearestFeature(0, 0, HydrologyFeatureQuery.of(HydrologyFeatureType.POND), 64, ANY, RUNNING));
         assertTrue(runtime.prepareWindowsAround(0, 0, 0, 0, 1).isDone());
         try (HydrologyPregeneration pregeneration = runtime.openPregeneration()) {
             pregeneration.prepare(List.of(new long[]{0L, 0L}));

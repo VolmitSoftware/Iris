@@ -153,26 +153,44 @@ final class ModdedLocateCommands {
         RiverRequest request = new RiverRequest(source, level, player, featureType);
         IrisModdedCommands.ok(source, GenerationSemanticQueries.riverSearchMessage(featureType, GenerationSemanticQueries.RIVER_SEARCH_DISTANCE));
         GenerationSemanticQueries.startRiverSearch(player.id(), MultiBurst.burst, engine, featureType, player.blockX(), player.blockZ())
-                .whenComplete((GenerationSemanticQueries.RiverSearch search, Throwable error) -> {
-                    if (!(error instanceof CancellationException)) {
-                        server.execute(() -> finishRiverSearch(request, search, error));
-                    }
-                });
+                .whenComplete((GenerationSemanticQueries.RiverSearch search, Throwable error) ->
+                        deliverRiverSearch(server, request, search, error));
         return 1;
+    }
+
+    private static void deliverRiverSearch(NativeModdedServer server, RiverRequest request, GenerationSemanticQueries.RiverSearch search,
+                                           Throwable error) {
+        if (error instanceof CancellationException) {
+            return;
+        }
+        try {
+            server.execute(() -> finishRiverSearch(request, search, error));
+        } catch (Throwable rejected) {
+            ModdedIrisLog.error("Hydrology locate result for {} could not reach the server thread", request.type().key(), rejected);
+        }
     }
 
     private static void finishRiverSearch(RiverRequest request, GenerationSemanticQueries.RiverSearch search, Throwable error) {
         if (error != null) {
-            ModdedIrisLog.error("Hydrology locate failed for {}", request.type().key(), error);
-            IrisModdedCommands.fail(request.source(), "Could not search for " + request.label() + ": " + error.getClass().getSimpleName()
-                    + (error.getMessage() == null ? "" : " - " + error.getMessage()));
+            reportRiverFailure(request, error);
             return;
         }
-        switch (search) {
-            case GenerationSemanticQueries.RiverSearch.Missing missing -> IrisModdedCommands.fail(request.source(), missing.message());
-            case GenerationSemanticQueries.RiverSearch.Found found -> teleportToStructure(request.source(), request.level(),
-                    request.player(), found.feature().x(), found.feature().y() + 2, found.feature().z(), request.label());
+        try {
+            switch (search) {
+                case GenerationSemanticQueries.RiverSearch.Missing missing -> IrisModdedCommands.fail(request.source(), missing.message());
+                case GenerationSemanticQueries.RiverSearch.Stopped stopped -> IrisModdedCommands.fail(request.source(), stopped.message());
+                case GenerationSemanticQueries.RiverSearch.Found found -> teleportToStructure(request.source(), request.level(),
+                        request.player(), found.feature().x(), found.feature().y() + 2, found.feature().z(), request.label());
+            }
+        } catch (Throwable failure) {
+            reportRiverFailure(request, failure);
         }
+    }
+
+    private static void reportRiverFailure(RiverRequest request, Throwable error) {
+        ModdedIrisLog.error("Hydrology locate failed for {}", request.type().key(), error);
+        IrisModdedCommands.fail(request.source(), "Could not search for " + request.label() + ": " + error.getClass().getSimpleName()
+                + (error.getMessage() == null ? "" : " - " + error.getMessage()));
     }
 
     static int gotoStructure(NativeCommandSource source, String keyRaw) {

@@ -14,6 +14,7 @@ import art.arcane.iris.generation.hydrology.plan.WindowKey;
 import art.arcane.iris.generation.hydrology.query.HydrologyFeatureQuery;
 import art.arcane.iris.generation.hydrology.query.HydrologyFeatureRef;
 import art.arcane.iris.generation.hydrology.query.HydrologyFeatureType;
+import art.arcane.iris.generation.hydrology.query.HydrologySearchTimeoutException;
 import art.arcane.iris.generation.hydrology.raster.ChannelFluids;
 import art.arcane.iris.generation.hydrology.raster.ChunkRasterizer;
 import art.arcane.iris.generation.hydrology.raster.ChunkWaterRaster;
@@ -52,7 +53,6 @@ import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BooleanSupplier;
 import java.util.function.Function;
@@ -405,14 +405,9 @@ public final class HydrologyRuntime {
         }
     }
 
-    public Optional<HydrologyFeatureRef> nearestFeature(int blockX, int blockZ, HydrologyFeatureQuery query, int radius)
-            throws TimeoutException {
-        return nearestFeature(blockX, blockZ, query, radius, feature -> true, () -> true);
-    }
-
     public Optional<HydrologyFeatureRef> nearestFeature(int blockX, int blockZ, HydrologyFeatureQuery query, int radius,
                                                         Predicate<HydrologyFeatureRef> eligible, BooleanSupplier running)
-            throws TimeoutException {
+            throws HydrologySearchTimeoutException {
         Objects.requireNonNull(query, "query");
         Objects.requireNonNull(eligible, "eligible");
         Objects.requireNonNull(running, "running");

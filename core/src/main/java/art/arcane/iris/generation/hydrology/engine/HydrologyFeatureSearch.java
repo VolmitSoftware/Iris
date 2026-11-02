@@ -10,6 +10,7 @@ import art.arcane.iris.generation.hydrology.plan.WindowPlan;
 import art.arcane.iris.generation.hydrology.query.HydrologyFeatureQuery;
 import art.arcane.iris.generation.hydrology.query.HydrologyFeatureRef;
 import art.arcane.iris.generation.hydrology.query.HydrologyFeatureType;
+import art.arcane.iris.generation.hydrology.query.HydrologySearchTimeoutException;
 import art.arcane.iris.generation.hydrology.underground.SeaInlet;
 import art.arcane.iris.generation.hydrology.water.HydrologyTier;
 import art.arcane.iris.generation.hydrology.water.Pond;
@@ -32,7 +33,6 @@ import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.function.BooleanSupplier;
 import java.util.function.Predicate;
 
@@ -68,7 +68,7 @@ final class HydrologyFeatureSearch {
         this.radiusSquared = (long) radius * radius;
     }
 
-    Optional<HydrologyFeatureRef> nearest(Duration timeout, BooleanSupplier running) throws TimeoutException {
+    Optional<HydrologyFeatureRef> nearest(Duration timeout, BooleanSupplier running) throws HydrologySearchTimeoutException {
         Objects.requireNonNull(timeout, "timeout");
         Objects.requireNonNull(running, "running");
         int rings = Math.ceilDiv(radius, WindowKey.SIZE) + 1;
@@ -125,7 +125,7 @@ final class HydrologyFeatureSearch {
         return false;
     }
 
-    private void searchLakes(Budget budget) throws TimeoutException {
+    private void searchLakes(Budget budget) throws HydrologySearchTimeoutException {
         long minX = (long) originX - radius;
         long minZ = (long) originZ - radius;
         long maxX = (long) originX + radius;
@@ -145,7 +145,7 @@ final class HydrologyFeatureSearch {
         }
     }
 
-    private void searchWindows(int rings, Budget budget) throws TimeoutException {
+    private void searchWindows(int rings, Budget budget) throws HydrologySearchTimeoutException {
         WindowKey origin = WindowKey.containing(originX, originZ);
         for (int ring = 0; ring <= rings; ring++) {
             long bound = Math.max(0L, (long) (ring - 2) * WindowKey.SIZE);
@@ -162,14 +162,25 @@ final class HydrologyFeatureSearch {
         }
     }
 
-    private <T> T await(CompletableFuture<T> plan, Budget budget) throws TimeoutException {
+    private <T> T await(CompletableFuture<T> plan, Budget budget) throws HydrologySearchTimeoutException {
         CountDownLatch settled = new CountDownLatch(1);
         plan.whenComplete((value, failure) -> settled.countDown());
         boolean ready = false;
         while (!ready) {
-            ready = settle(settled, budget.slice());
+            ready = settle(settled, slice(budget));
         }
         return cache.awaitPlan(plan);
+    }
+
+    private long slice(Budget budget) throws HydrologySearchTimeoutException {
+        if (!budget.running().getAsBoolean()) {
+            throw new CancellationException("The hydrology feature search was cancelled.");
+        }
+        long remaining = budget.deadline() - System.nanoTime();
+        if (remaining <= 0L) {
+            throw new HydrologySearchTimeoutException(budget.timeout(), best);
+        }
+        return Math.min(remaining, POLL_NANOS);
     }
 
     private static boolean settle(CountDownLatch settled, long nanos) {
@@ -328,15 +339,5 @@ final class HydrologyFeatureSearch {
     }
 
     private record Budget(long deadline, Duration timeout, BooleanSupplier running) {
-        private long slice() throws TimeoutException {
-            if (!running.getAsBoolean()) {
-                throw new CancellationException("The hydrology feature search was cancelled.");
-            }
-            long remaining = deadline - System.nanoTime();
-            if (remaining <= 0L) {
-                throw new TimeoutException("The hydrology feature search ran past its " + timeout.toMillis() + " ms limit.");
-            }
-            return Math.min(remaining, POLL_NANOS);
-        }
     }
 }

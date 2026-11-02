@@ -9,6 +9,7 @@ import art.arcane.iris.generation.hydrology.engine.HydrologyRuntime;
 import art.arcane.iris.generation.hydrology.query.HydrologyFeatureQuery;
 import art.arcane.iris.generation.hydrology.query.HydrologyFeatureRef;
 import art.arcane.iris.generation.hydrology.query.HydrologyFeatureType;
+import art.arcane.iris.generation.hydrology.query.HydrologySearchTimeoutException;
 
 import java.math.BigInteger;
 import java.io.IOException;
@@ -27,7 +28,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.TimeoutException;
 import java.util.function.Predicate;
 import java.util.function.BooleanSupplier;
 
@@ -218,8 +218,9 @@ public final class GenerationSemanticQueries {
         RiverResult active;
         try {
             active = activeRiver(requiredEngine, history, requiredType, blockX, blockZ, maximumDistance, running);
-        } catch (TimeoutException timedOut) {
-            return recorded != null ? new RiverSearch.Found(recorded) : new RiverSearch.Missing(riverTimeoutMessage(requiredType));
+        } catch (HydrologySearchTimeoutException timedOut) {
+            RiverResult planned = timedOut.nearestSoFar().map(feature -> activeResult(requiredEngine, history, feature)).orElse(null);
+            return stoppedSearch(requiredType, nearer(blockX, blockZ, recorded, planned));
         }
         RiverResult nearest = nearer(blockX, blockZ, recorded, active);
         return nearest == null
@@ -273,9 +274,14 @@ public final class GenerationSemanticQueries {
         return "No " + label(type) + " forms in this dimension: " + reason + ".";
     }
 
-    private static String riverTimeoutMessage(HydrologyFeatureType type) {
-        return "Stopped searching for the nearest " + label(type) + " after "
-                + HydrologyRuntime.FEATURE_SEARCH_TIMEOUT.toSeconds() + " seconds.";
+    private static RiverSearch stoppedSearch(HydrologyFeatureType type, RiverResult nearestSoFar) {
+        String stopped = "Stopped searching for the nearest " + label(type) + " after "
+                + HydrologyRuntime.FEATURE_SEARCH_TIMEOUT.toSeconds() + " seconds";
+        if (nearestSoFar == null) {
+            return new RiverSearch.Stopped(Optional.empty(), stopped + " without finding one.");
+        }
+        return new RiverSearch.Stopped(Optional.of(nearestSoFar), stopped + ". The nearest " + label(type) + " found so far is at "
+                + nearestSoFar.x() + ", " + nearestSoFar.y() + ", " + nearestSoFar.z() + "; a nearer one may exist.");
     }
 
     private static String label(HydrologyFeatureType type) {
@@ -381,7 +387,7 @@ public final class GenerationSemanticQueries {
             int blockZ,
             int maximumDistance,
             BooleanSupplier running
-    ) throws TimeoutException {
+    ) throws HydrologySearchTimeoutException {
         HydrologyRuntime runtime = engine.getComplex().getHydrologyRuntime();
         Map<Long, Boolean> eligibleChunks = new HashMap<>();
         TransitionDisplacementField displacement = engine.getComplex().getTransitionDisplacement();
@@ -397,9 +403,10 @@ public final class GenerationSemanticQueries {
                 eligibility,
                 running
         ).orElse(null);
-        if (feature == null) {
-            return null;
-        }
+        return feature == null ? null : activeResult(engine, history, feature);
+    }
+
+    private static RiverResult activeResult(Engine engine, GenerationHistory history, HydrologyFeatureRef feature) {
         OptionalLong activationId = history == null
                 ? OptionalLong.empty()
                 : OptionalLong.of(history.activeActivation().activationId());
@@ -467,6 +474,13 @@ public final class GenerationSemanticQueries {
 
         record Missing(String message) implements RiverSearch {
             public Missing {
+                Objects.requireNonNull(message, "message");
+            }
+        }
+
+        record Stopped(Optional<RiverResult> nearestSoFar, String message) implements RiverSearch {
+            public Stopped {
+                Objects.requireNonNull(nearestSoFar, "nearestSoFar");
                 Objects.requireNonNull(message, "message");
             }
         }

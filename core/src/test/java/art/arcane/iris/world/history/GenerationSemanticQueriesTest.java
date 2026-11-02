@@ -8,10 +8,12 @@ import art.arcane.iris.generation.hydrology.engine.HydrologyRuntime;
 import art.arcane.iris.generation.hydrology.query.HydrologyFeatureQuery;
 import art.arcane.iris.generation.hydrology.query.HydrologyFeatureRef;
 import art.arcane.iris.generation.hydrology.query.HydrologyFeatureType;
+import art.arcane.iris.generation.hydrology.query.HydrologySearchTimeoutException;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import org.junit.Test;
 import org.mockito.MockedStatic;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -19,7 +21,6 @@ import java.util.UUID;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BooleanSupplier;
@@ -323,31 +324,52 @@ public final class GenerationSemanticQueriesTest {
     }
 
     @Test
-    public void timedOutSearchUsesRecordedWaterOrSaysItStopped() throws Exception {
+    public void stoppedSearchReportsTheNearestWaterFoundSoFar() throws Exception {
         IrisEngine engine = mock(IrisEngine.class);
         IrisComplex complex = mock(IrisComplex.class);
         HydrologyRuntime runtime = mock(HydrologyRuntime.class);
+        IrisDimension dimension = mock(IrisDimension.class);
         GenerationHistory history = mock(GenerationHistory.class);
         GenerationHistoryRuntimeRouter router = mock(GenerationHistoryRuntimeRouter.class);
+        GenerationActivation activation = mock(GenerationActivation.class);
         when(engine.getComplex()).thenReturn(complex);
+        when(engine.getDimension()).thenReturn(dimension);
+        when(dimension.getMinHeight()).thenReturn(-64);
         when(complex.getHydrologyRuntime()).thenReturn(runtime);
         when(runtime.enabled()).thenReturn(true);
         when(runtime.nearestFeature(anyInt(), anyInt(), any(), anyInt(), any(), any()))
-                .thenThrow(new TimeoutException("The hydrology feature search ran past its 30000 ms limit."));
+                .thenThrow(new HydrologySearchTimeoutException(Duration.ofSeconds(30L), null));
         when(engine.getGenerationHistoryRuntimeRouter()).thenReturn(Optional.empty());
 
-        assertEquals(new GenerationSemanticQueries.RiverSearch.Missing("Stopped searching for the nearest river after 30 seconds."),
+        assertEquals(new GenerationSemanticQueries.RiverSearch.Stopped(Optional.empty(),
+                        "Stopped searching for the nearest river after 30 seconds without finding one."),
                 GenerationSemanticQueries.nearestRiver(engine, HydrologyFeatureType.RIVER, 0, 0, 100, () -> true));
 
         ChunkGenerationSemantics.RiverFeatureOccurrence occurrence = new ChunkGenerationSemantics.RiverFeatureOccurrence(
                 "water", HydrologyFeatureType.RIVER, 8L, new ChunkGenerationSemantics.BlockPosition(60, 70, 0));
         when(engine.getGenerationHistoryRuntimeRouter()).thenReturn(Optional.of(router));
         when(router.history()).thenReturn(history);
+        when(history.activeActivation()).thenReturn(activation);
+        when(activation.activationId()).thenReturn(2L);
         when(history.findRecordedRiver(any())).thenReturn(Optional.of(
                 new GenerationSemanticIndex.RiverMatch(occurrence, new GenerationSemanticIndex.ChunkReference(3, 0, 1L))));
+        GenerationSemanticQueries.RiverSearch.Stopped recorded = stopped(
+                GenerationSemanticQueries.nearestRiver(engine, HydrologyFeatureType.RIVER, 0, 0, 100, () -> true));
 
-        assertEquals(8L, found(GenerationSemanticQueries.nearestRiver(engine, HydrologyFeatureType.RIVER, 0, 0, 100, () -> true))
-                .featureId());
+        assertEquals(8L, recorded.nearestSoFar().orElseThrow().featureId());
+        assertEquals("Stopped searching for the nearest river after 30 seconds. The nearest river found so far is at 60, 70, 0; "
+                + "a nearer one may exist.", recorded.message());
+
+        doThrow(new HydrologySearchTimeoutException(Duration.ofSeconds(30L), feature(4L, 20, 20, 0)))
+                .when(runtime).nearestFeature(anyInt(), anyInt(), any(), anyInt(), any(), any());
+        GenerationSemanticQueries.RiverSearch.Stopped planned = stopped(
+                GenerationSemanticQueries.nearestRiver(engine, HydrologyFeatureType.RIVER, 0, 0, 100, () -> true));
+
+        GenerationSemanticQueries.RiverResult nearer = planned.nearestSoFar().orElseThrow();
+        assertEquals(GenerationSemanticQueries.RiverSource.ACTIVE_PREDICTION, nearer.source());
+        assertEquals(4L, nearer.featureId());
+        assertEquals(-44, nearer.y());
+        assertTrue(planned.message(), planned.message().contains("at 20, -44, 0;"));
     }
 
     @Test
@@ -507,6 +529,13 @@ public final class GenerationSemanticQueriesTest {
             return found.feature();
         }
         throw new AssertionError("Expected a river, the search said: " + search);
+    }
+
+    private static GenerationSemanticQueries.RiverSearch.Stopped stopped(GenerationSemanticQueries.RiverSearch search) {
+        if (search instanceof GenerationSemanticQueries.RiverSearch.Stopped stopped) {
+            return stopped;
+        }
+        throw new AssertionError("Expected a stopped search, the search said: " + search);
     }
 
     private static HydrologyFeatureRef feature(long id, int x, int y, int z) {

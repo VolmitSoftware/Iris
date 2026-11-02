@@ -11,6 +11,7 @@ import art.arcane.iris.generation.hydrology.plan.WindowPlan;
 import art.arcane.iris.generation.hydrology.query.HydrologyFeatureQuery;
 import art.arcane.iris.generation.hydrology.query.HydrologyFeatureRef;
 import art.arcane.iris.generation.hydrology.query.HydrologyFeatureType;
+import art.arcane.iris.generation.hydrology.query.HydrologySearchTimeoutException;
 import art.arcane.iris.generation.hydrology.water.HydrologyTier;
 import art.arcane.iris.generation.hydrology.water.Reach;
 import art.arcane.iris.generation.hydrology.water.ReachStyle;
@@ -28,7 +29,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
@@ -100,10 +100,26 @@ public class HydrologyFeatureSearchTest {
         HydrologyFeatureSearch search = search(settings, cache, HydrologyFeatureQuery.of(HydrologyFeatureType.POND));
 
         long started = System.nanoTime();
-        assertThrows(TimeoutException.class, () -> search.nearest(timeout, () -> true));
+        HydrologySearchTimeoutException stopped = assertThrows(HydrologySearchTimeoutException.class,
+                () -> search.nearest(timeout, () -> true));
 
         assertTrue(System.nanoTime() - started >= timeout.toNanos());
         assertTrue(planners.calls.get() > 0);
+        assertEquals(Optional.empty(), stopped.nearestSoFar());
+    }
+
+    @Test(timeout = 20_000L)
+    public void timedOutSearchKeepsTheNearestFeatureFoundSoFar() {
+        HydrologySettings settings = settings(config -> {
+        });
+        Planners planners = new Planners(gate);
+        planners.channelTier = settings.tiers().getFirst();
+        HydrologyPlanCache cache = cache(settings, planners);
+
+        HydrologySearchTimeoutException stopped = assertThrows(HydrologySearchTimeoutException.class,
+                () -> search(settings, cache, HydrologyFeatureQuery.of(HydrologyFeatureType.STREAM)).nearest(Duration.ofMillis(200L), () -> true));
+
+        assertEquals(Optional.of(new HydrologyFeatureRef(CHANNEL, HydrologyFeatureType.STREAM, 100, 70, 100)), stopped.nearestSoFar());
     }
 
     @Test(timeout = 20_000L)
@@ -183,16 +199,15 @@ public class HydrologyFeatureSearchTest {
 
         RegionPlan region(RegionKey key) {
             calls.incrementAndGet();
-            hold();
             return new RegionPlan(key, List.of(), List.of());
         }
 
         WindowPlan window(WindowKey key, List<RegionPlan> plans) {
             calls.incrementAndGet();
-            hold();
             if (channelTier != null && key.equals(new WindowKey(0, 0))) {
                 return new WindowPlan(key, List.of(channel(channelTier)), List.of(), List.of());
             }
+            hold();
             return new WindowPlan(key, List.of(), List.of(), List.of());
         }
 

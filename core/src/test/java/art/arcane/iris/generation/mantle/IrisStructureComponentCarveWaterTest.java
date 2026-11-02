@@ -26,11 +26,16 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.InOrder;
 
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.intThat;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.calls;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -118,10 +123,36 @@ public class IrisStructureComponentCarveWaterTest {
         InOrder order = inOrder(writer);
         order.verify(writer).beginObjectPlacement(false);
         order.verify(writer, calls(1)).set(anyInt(), anyInt(), anyInt(), any(NativeBlockState.class));
-        order.verify(writer).endObjectPlacement(anyInt());
+        order.verify(writer).endObjectPlacement();
         order.verify(writer).beginObjectPlacement(true);
         order.verify(writer, calls(1)).set(anyInt(), anyInt(), anyInt(), any(NativeBlockState.class));
-        order.verify(writer).endObjectPlacement(anyInt());
+        order.verify(writer).endObjectPlacement();
+    }
+
+    @Test
+    public void aPieceAtWorldYMinusOneKeepsItsExplicitHeight() {
+        KList<PlacedStructurePiece> pieces = slabAt(-1);
+        IrisStructure structure = new IrisStructure().setPlaceMode(ObjectPlaceMode.STRUCTURE_PIECE);
+
+        component.placePieces(writer, new IrisStructurePlacement(), structure, pieces, new RNG(3L));
+
+        verify(writer, atLeastOnce()).set(anyInt(), eq(63), anyInt(), any(NativeBlockState.class));
+        verify(writer, never()).set(anyInt(), intThat(y -> y != 63), anyInt(), any(NativeBlockState.class));
+    }
+
+    @Test
+    public void aFailureInsidePlacePiecesStillEndsTheObjectPlacement() {
+        IllegalStateException failure = new IllegalStateException("piece failed");
+        doThrow(failure).when(writer).set(anyInt(), anyInt(), anyInt(), any(NativeBlockState.class));
+        IrisStructure structure = new IrisStructure().setPlaceMode(ObjectPlaceMode.STRUCTURE_PIECE);
+
+        IllegalStateException thrown = assertThrows(IllegalStateException.class,
+                () -> component.placePieces(writer, new IrisStructurePlacement(), structure, slab(), new RNG(3L)));
+
+        assertSame(failure, thrown);
+        InOrder order = inOrder(writer);
+        order.verify(writer).beginObjectPlacement(false);
+        order.verify(writer).endObjectPlacement();
     }
 
     private void assertRiverKept() {
@@ -154,6 +185,10 @@ public class IrisStructureComponentCarveWaterTest {
     }
 
     private static KList<PlacedStructurePiece> slab() {
+        return slabAt(-4);
+    }
+
+    private static KList<PlacedStructurePiece> slabAt(int y) {
         NativeBlockState stone = mock(NativeBlockState.class);
         when(stone.isSolid()).thenReturn(true);
         when(stone.key()).thenReturn("minecraft:stone");
@@ -164,7 +199,7 @@ public class IrisStructureComponentCarveWaterTest {
                 object.setUnsigned(x, 0, z, stone);
             }
         }
-        return new KList<>(new PlacedStructurePiece(null, object, 4, -4, 1, IrisObjectRotation.of(0, 0, 0),
-                0, -4, 0, 8, -4, 2));
+        return new KList<>(new PlacedStructurePiece(null, object, 4, y, 1, IrisObjectRotation.of(0, 0, 0),
+                0, y, 0, 8, y, 2));
     }
 }

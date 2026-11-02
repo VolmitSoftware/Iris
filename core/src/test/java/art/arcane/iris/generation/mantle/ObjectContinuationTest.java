@@ -60,15 +60,18 @@ public class ObjectContinuationTest {
         ObjectDestinationTransaction source = new ObjectDestinationTransaction(fixture.writer, 0, 0);
         int checkpoint = source.beginObjectPlacement(false);
         source.setData(1, 5, 1, "inside");
-        source.endObjectPlacement(checkpoint);
+        source.recordObjectPlacement(checkpoint);
+        source.endObjectPlacement();
         checkpoint = source.beginObjectPlacement(false);
         source.setData(15, 5, 1, "crossing");
         source.setData(16, 5, 1, "crossing");
-        source.endObjectPlacement(checkpoint);
+        source.recordObjectPlacement(checkpoint);
+        source.endObjectPlacement();
         checkpoint = source.beginObjectPlacement(false);
         source.setData(32, 5, 1, "unrelated");
         source.setData(48, 5, 1, "unrelated");
-        source.endObjectPlacement(checkpoint);
+        source.recordObjectPlacement(checkpoint);
+        source.endObjectPlacement();
         source.setData(17, 5, 1, "rejected");
         ObjectSourcePlan plan = source.sourcePlanSince(0);
 

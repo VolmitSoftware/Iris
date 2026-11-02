@@ -79,11 +79,15 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
     }
 
     @Override
-    public void endObjectPlacement(int checkpoint) {
-        waterPlacement = false;
+    public void recordObjectPlacement(int checkpoint) {
         if (checkpoint >= 0 && checkpoint < log.size()) {
             placements.add(new PlacementRange(checkpoint, log.size()));
         }
+    }
+
+    @Override
+    public void endObjectPlacement() {
+        waterPlacement = false;
     }
 
     void apply(ObjectSourcePlan plan) {

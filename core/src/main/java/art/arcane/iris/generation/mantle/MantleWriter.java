@@ -227,7 +227,7 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
     }
 
     @Override
-    public void endObjectPlacement(int checkpoint) {
+    public void endObjectPlacement() {
         objectWater.remove();
     }
 

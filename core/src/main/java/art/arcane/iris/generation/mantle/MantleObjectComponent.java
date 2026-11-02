@@ -794,7 +794,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
                         }, null, getData());
                     }
                     if (placeResult >= 0 && (!carving || commitResult == CaveObjectPlacementTransaction.CommitResult.COMMITTED)) {
-                        writer.endObjectPlacement(continuation);
+                        writer.recordObjectPlacement(continuation);
                     }
                     if (golden) {
                         IrisLogging.debug("Goldendebug procedural result: chunk=" + x + "," + z
@@ -809,6 +809,8 @@ public class MantleObjectComponent extends IrisMantleComponent {
                     GenerationFailures.rethrowEngineFailure(e);
                     IrisLogging.reportError(e);
                     IrisLogging.error("Failed to place procedural object '" + p.getName() + "' in " + scope);
+                } finally {
+                    writer.endObjectPlacement();
                 }
             }
         }
@@ -1027,7 +1029,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
                 }, null, getData());
 
                 if (result >= 0) {
-                    writer.endObjectPlacement(continuation);
+                    writer.recordObjectPlacement(continuation);
                     placed++;
                 } else {
                     rejected++;
@@ -1062,6 +1064,8 @@ public class MantleObjectComponent extends IrisMantleComponent {
                         + " densityIndex=" + i
                         + " density=" + density
                         + " error=" + e.getClass().getSimpleName() + ":" + e.getMessage());
+            } finally {
+                writer.endObjectPlacement();
             }
         }
 
@@ -1216,7 +1220,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
                 int result = contained.resultY();
                 boolean wroteBlocks = contained.commitResult() == CaveObjectPlacementTransaction.CommitResult.COMMITTED;
                 if (wroteBlocks) {
-                    writer.endObjectPlacement(continuation);
+                    writer.recordObjectPlacement(continuation);
                     placed++;
                 } else {
                     rejected++;
@@ -1284,6 +1288,8 @@ public class MantleObjectComponent extends IrisMantleComponent {
                         y,
                         e
                 );
+            } finally {
+                writer.endObjectPlacement();
             }
         }
 
@@ -1395,20 +1401,24 @@ public class MantleObjectComponent extends IrisMantleComponent {
             boolean treePlacement = isTreePlacement(v, objectPlacement);
             String marker = placementMarker(v, id, "upper");
             int continuation = writer.beginObjectPlacement(placement.entersWater());
-            int result = v.place(xx, anchorY, zz, writer, placement, rng, (b, data) -> {
-                if (marker != null) {
-                    writer.setData(b.getX(), b.getY(), b.getZ(), marker);
+            int result;
+            try {
+                result = v.place(xx, anchorY, zz, writer, placement, rng, (b, data) -> {
+                    if (marker != null) {
+                        writer.setData(b.getX(), b.getY(), b.getZ(), marker);
+                    }
+                    if (treePlacement && marker != null) {
+                        writeTreeMaterial(writer, b.getX(), b.getY(), b.getZ(), data);
+                    }
+                    if (placement.isDolphinTarget() && placement.isUnderwater() && B.isStorageChest(data)) {
+                        writer.setData(b.getX(), b.getY(), b.getZ(), MatterStructurePOI.BURIED_TREASURE);
+                    }
+                }, null, getData());
+                if (result >= 0) {
+                    writer.recordObjectPlacement(continuation);
                 }
-                if (treePlacement && marker != null) {
-                    writeTreeMaterial(writer, b.getX(), b.getY(), b.getZ(), data);
-                }
-                if (placement.isDolphinTarget() && placement.isUnderwater() && B.isStorageChest(data)) {
-                    writer.setData(b.getX(), b.getY(), b.getZ(), MatterStructurePOI.BURIED_TREASURE);
-                }
-            }, null, getData());
-
-            if (result >= 0) {
-                writer.endObjectPlacement(continuation);
+            } finally {
+                writer.endObjectPlacement();
             }
             if (traceRegen) {
                 IrisLogging.debug("Upper object placement: chunk=" + chunkX + "," + chunkZ

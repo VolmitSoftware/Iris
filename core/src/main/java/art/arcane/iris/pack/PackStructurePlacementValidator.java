@@ -223,6 +223,7 @@ final class PackStructurePlacementValidator {
                 path, placement, "maxHeight", Integer.MIN_VALUE, Integer.MAX_VALUE, blockingErrors);
         PackJsonFieldChecks.validateOptionalBoolean(path, placement, "underground", blockingErrors);
         PackJsonFieldChecks.validateOptionalBoolean(path, placement, "underwater", blockingErrors);
+        PackJsonFieldChecks.validateOptionalBoolean(path, placement, "allowWater", blockingErrors);
         PackJsonFieldChecks.validateOptionalEnum(path, placement, "nativeSuppression",
                 Set.of("NONE", "REPLACE_SOURCE"), blockingErrors);
 
@@ -299,6 +300,9 @@ final class PackStructurePlacementValidator {
         appendIdentity(identity, integerValue(placement, "maxHeight", 2032));
         appendIdentity(identity, placement.opt("underground") instanceof Boolean underground && underground);
         appendIdentity(identity, placement.opt("underwater") instanceof Boolean underwater && underwater);
+        if (placement.opt("allowWater") instanceof Boolean allowWater && allowWater) {
+            appendIdentity(identity, "allowWater");
+        }
         JSONArray structures = placement.optJSONArray("structures");
         JSONArray nativeStructures = placement.optJSONArray("nativeStructures");
         if (structures != null && structures.length() > 0) {

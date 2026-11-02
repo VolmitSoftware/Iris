@@ -100,7 +100,7 @@ public class MantleWriterObjectWaterTest {
         writer.set(3, 5, 3, stone);
         writer.set(3, 10, 3, stone);
         writer.set(8, 7, 8, stone);
-        writer.endObjectPlacement(land);
+        writer.endObjectPlacement();
 
         verify(blocks, never()).set(3, 7, 3, stone);
         verify(blocks, never()).set(3, 8, 3, air);
@@ -112,7 +112,7 @@ public class MantleWriterObjectWaterTest {
         int water = writer.beginObjectPlacement(true);
         writer.set(3, 6, 3, stone);
         writer.set(3, 9, 3, air);
-        writer.endObjectPlacement(water);
+        writer.endObjectPlacement();
 
         verify(blocks).set(3, 6, 3, stone);
         verify(blocks, never()).set(3, 9, 3, air);
@@ -121,7 +121,7 @@ public class MantleWriterObjectWaterTest {
     @Test
     public void writesOutsideAnObjectPlacementAreNotVetoed() {
         int land = writer.beginObjectPlacement(false);
-        writer.endObjectPlacement(land);
+        writer.endObjectPlacement();
 
         writer.set(3, 7, 3, stone);
         writer.set(3, 8, 3, air);

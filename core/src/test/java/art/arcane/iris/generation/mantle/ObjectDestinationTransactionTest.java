@@ -294,7 +294,8 @@ public class ObjectDestinationTransactionTest {
         transaction.set(4, 9, 3, leaves);
         assertEquals("an underwater object keeps its solid blocks in the water", underwater + 2,
                 transaction.mutationCheckpoint());
-        transaction.endObjectPlacement(underwater);
+        transaction.recordObjectPlacement(underwater);
+        transaction.endObjectPlacement();
         ObjectDestinationTransaction destination = new ObjectDestinationTransaction(writer, 0, 0);
         destination.apply(transaction.sourcePlanSince(start));
         assertEquals("the destination replay keeps the underwater blocks", 6, destination.mutationCheckpoint());
@@ -325,7 +326,7 @@ public class ObjectDestinationTransactionTest {
         IrisObjectPlacement raft = new IrisObjectPlacement().setOnwater(true);
         IrisObjectPlacement forced = new IrisObjectPlacement().setForcePlace(true);
         IrisObjectPlacement piece = IrisStructureComponent.piecePlacement(new IrisStructure(), new PlacedStructurePiece(null,
-                new IrisObject(1, 1, 1), 4, 14, 3, IrisObjectRotation.of(0, 0, 0), 4, 14, 3, 4, 14, 3), ObjectPlaceMode.CENTER_HEIGHT, false);
+                new IrisObject(1, 1, 1), 4, 14, 3, IrisObjectRotation.of(0, 0, 0), 4, 14, 3, 4, 14, 3), ObjectPlaceMode.CENTER_HEIGHT);
         assertTrue(piece.isForcePlace());
         ObjectDestinationTransaction transaction = new ObjectDestinationTransaction(writer, 0, 0);
 
@@ -368,11 +369,45 @@ public class ObjectDestinationTransactionTest {
 
         int raft = transaction.beginObjectPlacement(true);
         transaction.set(3, 12, 3, pier);
-        transaction.endObjectPlacement(raft);
+        transaction.recordObjectPlacement(raft);
+        transaction.endObjectPlacement();
         int afterRaft = transaction.mutationCheckpoint();
         transaction.set(3, 13, 3, pier);
 
         assertEquals("a write after the water placement ends follows land rules", afterRaft, transaction.mutationCheckpoint());
+    }
+
+    @Test
+    public void aRejectedWaterPlacementReturnsToLandRules() {
+        MantleWriter writer = writer();
+        waterAtColumnThree(writer);
+        NativeBlockState pier = mock(NativeBlockState.class);
+        when(pier.isSolid()).thenReturn(true);
+        ObjectDestinationTransaction transaction = new ObjectDestinationTransaction(writer, 0, 0);
+
+        transaction.beginObjectPlacement(true);
+        transaction.set(3, 12, 3, pier);
+        transaction.endObjectPlacement();
+        int afterRaft = transaction.mutationCheckpoint();
+        transaction.set(3, 13, 3, pier);
+
+        assertEquals("a write after a rejected water placement follows land rules", afterRaft, transaction.mutationCheckpoint());
+    }
+
+    private static void waterAtColumnThree(MantleWriter writer) {
+        IrisComplex complex = mock(IrisComplex.class);
+        HydrologyRuntime runtime = mock(HydrologyRuntime.class);
+        ChunkWaterRaster raster = mock(ChunkWaterRaster.class);
+        when(writer.getEngine().getComplex()).thenReturn(complex);
+        when(complex.getHydrologyRuntime()).thenReturn(runtime);
+        when(runtime.enabled()).thenReturn(true);
+        when(runtime.raster(anyInt(), anyInt())).thenReturn(raster);
+        when(raster.role(anyInt(), anyInt())).thenReturn(WaterRole.NONE);
+        when(raster.waterHead(anyInt(), anyInt())).thenReturn(Integer.MIN_VALUE);
+        when(raster.role(3, 3)).thenReturn(WaterRole.CHANNEL);
+        when(raster.waterHead(3, 3)).thenReturn(14);
+        when(raster.terrainHeight(3, 3)).thenReturn(10);
+        followRasterStreams(complex, raster);
     }
 
     @Test

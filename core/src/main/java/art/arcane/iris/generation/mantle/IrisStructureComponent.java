@@ -165,7 +165,7 @@ public class IrisStructureComponent extends IrisMantleComponent {
                 stilt != null && stilt.isSupportNonOccluding(), placement.isAllowWater());
         ObjectPlaceMode mode = structure.getPlaceMode();
         int failedPieces = 0;
-        int water = writer.beginObjectPlacement(run.allowWater());
+        writer.beginObjectPlacement(run.allowWater());
         try {
             if (placement.isAnchoredUnderground()) {
                 ObjectPlaceMode undergroundMode = (mode == ObjectPlaceMode.ORGANIC_STILT || mode == ObjectPlaceMode.CEILING_HANG)
@@ -190,7 +190,7 @@ public class IrisStructureComponent extends IrisMantleComponent {
                 placeFoundation(writer, run.foundationColumns(), stilt, rng, !placement.isAnchoredUnderground());
             }
         } finally {
-            writer.endObjectPlacement(water);
+            writer.endObjectPlacement();
         }
         return failedPieces;
     }
@@ -569,7 +569,7 @@ public class IrisStructureComponent extends IrisMantleComponent {
                             boolean sampledHeight) {
         IrisObject object = p.getObject();
         String objectKey = object.getLoadKey();
-        IrisObjectPlacement config = piecePlacement(run.structure(), p, mode, run.allowWater());
+        IrisObjectPlacement config = piecePlacement(run.structure(), p, mode);
         String marker = structurePlacementMarker(run.structure(), p, objectKey);
         BiConsumer<BlockPosition, NativeBlockState> listener = (position, state) -> {
             StructureFoundationPlanner.recordBaseCell(
@@ -584,8 +584,7 @@ public class IrisStructureComponent extends IrisMantleComponent {
                 : object.place(p.getX(), p.getY() - getEngineMantle().getEngine().getMinHeight(), p.getZ(), writer, config, run.rng(), listener, null, getData());
     }
 
-    static IrisObjectPlacement piecePlacement(IrisStructure structure, PlacedStructurePiece piece, ObjectPlaceMode mode,
-                                              boolean allowWater) {
+    static IrisObjectPlacement piecePlacement(IrisStructure structure, PlacedStructurePiece piece, ObjectPlaceMode mode) {
         IrisObjectPlacement config = structure.createLootPlacement(piece.getObject().getLoadKey());
         config.setMode(mode);
         config.setRotation(piece.getRotation());
@@ -594,7 +593,7 @@ public class IrisStructureComponent extends IrisMantleComponent {
         }
         if (mode != ObjectPlaceMode.STRUCTURE_PIECE && mode != ObjectPlaceMode.FLOATING) {
             config.setForcePlace(true);
-            config.setForcedByStructure(!allowWater);
+            config.setForcedByStructure(true);
         }
         return config;
     }

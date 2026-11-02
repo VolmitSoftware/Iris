@@ -1,6 +1,11 @@
 package art.arcane.iris.modded;
 
+import art.arcane.iris.generation.hydrology.raster.WaterRole;
+import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.volmlib.nativelib.terrain.structure.StructureWater;
+import art.arcane.volmlib.nativelib.terrain.structure.StructureWaterColumn;
+import art.arcane.volmlib.util.stream.ProceduralStream;
 
 import art.arcane.volmlib.nativelib.minecraft26_2.modded.ModdedNativeStructureWorldgenAccess;
 
@@ -63,6 +68,9 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.anyDouble;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class ModdedNativeStructureWorldgenAccessTest {
     private static final int GENERATION_CENTER_X = 60;
@@ -74,6 +82,33 @@ public class ModdedNativeStructureWorldgenAccessTest {
     public static void bootstrapMinecraftRegistries() {
         SharedConstants.tryDetectVersion();
         Bootstrap.bootStrap();
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void policyGivesTheStageRealWaterInWorldHeights() {
+        Engine engine = mock(Engine.class);
+        IrisComplex complex = mock(IrisComplex.class);
+        ProceduralStream<WaterRole> roles = mock(ProceduralStream.class);
+        ProceduralStream<Integer> floors = mock(ProceduralStream.class);
+        ProceduralStream<Double> heads = mock(ProceduralStream.class);
+        when(engine.getComplex()).thenReturn(complex);
+        when(engine.getMinHeight()).thenReturn(-64);
+        when(complex.getWaterRoleStream()).thenReturn(roles);
+        when(complex.getRoundedHeighteightStream()).thenReturn(floors);
+        when(complex.getWaterHeadStream()).thenReturn(heads);
+        when(roles.get(anyDouble(), anyDouble())).thenAnswer(call -> {
+            int x = (int) Math.floor(call.<Number>getArgument(0).doubleValue());
+            return x == 5 ? WaterRole.CHANNEL : x == 6 ? WaterRole.MOUTH : WaterRole.NONE;
+        });
+        when(floors.get(anyDouble(), anyDouble())).thenReturn(120);
+        when(heads.getDouble(anyDouble(), anyDouble())).thenReturn(126D);
+
+        StructureWater water = new ModdedNativeStructurePolicy(mock(IrisModdedChunkGenerator.class)).water(engine);
+
+        assertEquals(new StructureWaterColumn(true, true, 56, 62), water.column(5, 0));
+        assertEquals(new StructureWaterColumn(true, false, 56, 62), water.column(6, 0));
+        assertEquals(StructureWaterColumn.DRY, water.column(7, 0));
     }
 
     @Test

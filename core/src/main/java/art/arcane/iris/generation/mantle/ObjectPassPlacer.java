@@ -12,7 +12,10 @@ public interface ObjectPassPlacer extends IObjectPlacer {
         return -1;
     }
 
-    default void endObjectPlacement(int checkpoint) {
+    default void recordObjectPlacement(int checkpoint) {
+    }
+
+    default void endObjectPlacement() {
     }
 
     @Override

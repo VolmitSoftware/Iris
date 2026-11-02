@@ -56,7 +56,7 @@ final class PlacementModuleSurfaceSupport implements PlacementModule {
 
     private static String hydrologyRejection(PlacementContext context, PlacementState state) {
         IrisObjectPlacement config = state.config;
-        if (!context.automatic || !config.getCarvingSupport().supportsSurface()
+        if (!context.automatic || config.isForcedByStructure() || !config.getCarvingSupport().supportsSurface()
                 || config.getMode() == ObjectPlaceMode.FLOATING || config.getMode() == ObjectPlaceMode.STRUCTURE_PIECE) {
             return null;
         }

@@ -18,7 +18,7 @@ public final class ReachShaper {
     private static final int SMOOTHING_PASSES = 2;
     private static final float TAPER_LENGTH = 24f;
     private static final float WAIST = 0.5f;
-    private static final float OUTLET_LENGTH = 8f;
+    static final float OUTLET_LENGTH = 8f;
     private static final float LIP_MARGIN = 4f;
     private static final int LEAD_IN_REACH = 16;
     private static final float LIP_HALF_WIDTH = 1f;
@@ -74,7 +74,7 @@ public final class ReachShaper {
         }
         ReachGrader.PondChain chain = pondChain(drafts, ponds, outletDrafts);
         int[] order = upstreamFirst(drafts, chain);
-        int[] levels = ReachGrader.grade(drafts, order, settings.seaLevel(), settings.deformation().maxFill(), chain);
+        int[] levels = ReachGrader.grade(drafts, order, settings.seaLevel(), settings.deformation().maxFill(), chain, seed);
         for (int index : order) {
             finish(drafts, drafts.get(index), settings.seaLevel());
         }

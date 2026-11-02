@@ -17,7 +17,7 @@ final class ReachGrader {
         }
     }
 
-    static int[] grade(List<ReachDraft> drafts, int[] upstreamFirst, int seaLevel, int maxFill, PondChain ponds) {
+    static int[] grade(List<ReachDraft> drafts, int[] upstreamFirst, int seaLevel, int maxFill, PondChain ponds, long seed) {
         boolean[] lakeFloor = new boolean[drafts.size()];
         for (int position = upstreamFirst.length - 1; position >= 0; position--) {
             int index = upstreamFirst[position];
@@ -54,17 +54,23 @@ final class ReachGrader {
                 estuary(draft, seaLevel + maxFill);
             }
             int[] grade = profile(drafts, draft);
+            int[] floors = new int[grade.length];
             for (int point = 0; point < grade.length; point++) {
                 if (draft.held != null && draft.held[point] && !draft.ocean[point]) {
                     grade[point] = level;
+                    floors[point] = level;
                     continue;
                 }
                 int cap = draft.ocean[point] ? seaLevel : draft.target[point] + MAX_POOL;
                 int floor = lakeFloor[index] ? draft.floor : Math.max(seaLevel, Math.min(draft.floor, (int) Math.floor(draft.bank[point]) + maxFill));
+                floors[point] = draft.ocean[point] ? floor : Math.max(floor, seaLevel + 1);
                 level = Math.min(level, Math.max(floor, Math.min(grade[point], cap)));
                 grade[point] = level;
             }
             draft.grade = grade;
+            if (draft.tier.cascades()) {
+                StepPools.group(grade, floors, draft.xs, draft.zs, draft.catchments, draft.tier, protectedStart(draft), seed);
+            }
             graded[index] = true;
             lowerIncomingEnds(drafts, draft);
         }
@@ -79,6 +85,24 @@ final class ReachGrader {
             lowerIncomingEnds(drafts, draft);
         }
         return levels;
+    }
+
+    private static float protectedStart(ReachDraft draft) {
+        if (!draft.outlet) {
+            return 0f;
+        }
+        float start = Math.max(ReachShaper.OUTLET_LENGTH, 2f * (draft.tier.halfWidth(draft.catchments[0]) + 1f));
+        if (draft.held == null) {
+            return start;
+        }
+        float along = 0f;
+        for (int point = 1; point < draft.xs.length; point++) {
+            along += (float) Math.hypot(draft.xs[point] - draft.xs[point - 1], draft.zs[point] - draft.zs[point - 1]);
+            if (draft.held[point]) {
+                start = Math.max(start, along);
+            }
+        }
+        return start;
     }
 
     private static void estuary(ReachDraft draft, int highestBank) {

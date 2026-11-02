@@ -1,6 +1,7 @@
 package art.arcane.iris.testsupport;
 
 import art.arcane.iris.generation.hydrology.config.IrisHydrology;
+import art.arcane.iris.generation.hydrology.config.IrisHydrologyTier;
 import art.arcane.iris.generation.hydrology.grid.DemGrid;
 import art.arcane.iris.generation.hydrology.grid.HeightLattice;
 import art.arcane.iris.generation.hydrology.grid.HydrologySampleBuffer;
@@ -43,10 +44,23 @@ public final class DeltaCoast {
     }
 
     public static HydrologySettings settings(int channels) {
+        return HydrologySettings.compile(config(channels), SEED, SEA_LEVEL, MIN_Y, MAX_Y);
+    }
+
+    public static HydrologySettings ungroupedSettings(int channels) {
+        IrisHydrology config = config(channels);
+        for (IrisHydrologyTier tier : config.getTiers()) {
+            tier.setCascades(false);
+            tier.setWaterfallMinimumDrop(2);
+        }
+        return HydrologySettings.compile(config, SEED, SEA_LEVEL, MIN_Y, MAX_Y);
+    }
+
+    private static IrisHydrology config(int channels) {
         IrisHydrology config = new IrisHydrology();
         config.getTiers().get(2).setHalfWidth(new KList<>(3D, 5D));
         config.getTiers().get(2).getDelta().setChannels(channels);
-        return HydrologySettings.compile(config, SEED, SEA_LEVEL, MIN_Y, MAX_Y);
+        return config;
     }
 
     public static ShapedNetwork shape(HydrologySettings settings, int originX, int originZ, List<Pond> ponds, int neighbourZ, long seed) {

@@ -45,6 +45,7 @@ public class ReachShaperTest {
     private static final int MAX_Y = 320;
     private static final int CELL = 8;
     private static final int FINE = 4;
+    private static final int STATION = 4;
     private static final int VALLEY_Z = 256;
     private static final int HANGING_X = 256;
     private static final float VALLEY_THRESHOLD = 5000f;
@@ -76,10 +77,10 @@ public class ReachShaperTest {
                 assertNotNull(twin);
                 int fall = reach.tier().waterfallMinimumDrop();
                 int junction = twin.downstreamId() == 0L ? Integer.MIN_VALUE : twin.grade()[twin.grade().length - 1];
-                assertTrue("trial " + trial + " " + reach + " gained a waterfall",
-                        dropsAbove(reach, junction, fall, Integer.MAX_VALUE) <= dropsAbove(twin, junction, fall, Integer.MAX_VALUE));
-                spreadSteps += dropsAbove(reach, junction, 2, fall);
-                cascadingSteps += dropsAbove(twin, junction, 2, fall);
+                assertTrue("trial " + trial + " " + reach + " gained a waterfall against " + Arrays.toString(twin.grade()),
+                        dropsAbove(reach, junction, fall, Integer.MAX_VALUE) <= dropsAbove(twin, Integer.MIN_VALUE, fall, Integer.MAX_VALUE));
+                spreadSteps += dropsAbove(reach, junction, 2, Integer.MAX_VALUE);
+                cascadingSteps += dropsAbove(twin, junction, 2, Integer.MAX_VALUE);
             }
         }
         assertTrue("reaches " + totals[0], totals[0] > 4000);
@@ -87,7 +88,7 @@ public class ReachShaperTest {
         assertTrue("links " + totals[2], totals[2] > 1000);
         assertTrue("mouth points " + totals[3], totals[3] > 100);
         assertTrue("pond outlets " + totals[4], totals[4] > 40);
-        assertTrue("cascade drops spread " + spreadSteps + " kept " + cascadingSteps, 2 * spreadSteps < cascadingSteps);
+        assertTrue("visible drops spread " + spreadSteps + " kept " + cascadingSteps, 11 * spreadSteps < 10 * cascadingSteps);
     }
 
     @Test
@@ -256,7 +257,7 @@ public class ReachShaperTest {
         left.downstream = 2;
         right.downstream = 2;
         trunk.incoming = new int[]{0, 1};
-        ReachGrader.grade(List.of(left, right, trunk), new int[]{0, 1, 2}, 0, 6, noPonds(3));
+        ReachGrader.grade(List.of(left, right, trunk), new int[]{0, 1, 2}, 0, 6, noPonds(3), SEED);
         for (ReachDraft draft : List.of(left, right, trunk)) {
             for (int index = 1; index < draft.grade.length; index++) {
                 int drop = draft.grade[index - 1] - draft.grade[index];
@@ -275,7 +276,7 @@ public class ReachShaperTest {
         for (int upper : new int[]{SEA_LEVEL, SEA_LEVEL + 10}) {
             ReachDraft link = draft(tier, upper + 3f, upper + 3f, upper + 3f);
             int[] levels = ReachGrader.grade(List.of(link), new int[]{0}, SEA_LEVEL, 6,
-                    new ReachGrader.PondChain(new int[]{upper, upper}, new boolean[2], new int[]{1}, new int[]{0, -1}));
+                    new ReachGrader.PondChain(new int[]{upper, upper}, new boolean[2], new int[]{1}, new int[]{0, -1}), SEED);
             assertEquals(upper, levels[0]);
             assertEquals("pond fed by a pond at " + upper, upper == SEA_LEVEL ? SEA_LEVEL : upper - 1, levels[1]);
         }
@@ -289,7 +290,7 @@ public class ReachShaperTest {
             ground[index] = 100f - 2f * index;
         }
         ReachDraft steep = draft(tier, ground);
-        ReachGrader.grade(List.of(steep), new int[]{0}, 0, 6, noPonds(1));
+        ReachGrader.grade(List.of(steep), new int[]{0}, 0, 6, noPonds(1), SEED);
         int[] grade = steep.grade;
         for (int index = 1; index < grade.length; index++) {
             int drop = grade[index - 1] - grade[index];
@@ -297,6 +298,140 @@ public class ReachShaperTest {
         }
         assertTrue(Arrays.toString(grade), grade[0] > (int) ground[0] - tier.inset() - tier.waterfallMinimumDrop());
         assertEquals((int) ground[ground.length - 1] - tier.inset(), grade[grade.length - 1]);
+    }
+
+    @Test
+    public void steepRunsGroupIntoStepPools() {
+        HydrologyTier tier = settings(config -> {
+        }).tiers().get(0);
+        float[] ground = new float[32];
+        for (int index = 0; index < ground.length; index++) {
+            ground[index] = 200f - 4f * index;
+        }
+        int[] baseline = graded(withSteps(tier, false, 2), ground);
+        for (int index = 1; index < baseline.length; index++) {
+            assertEquals("ungrouped " + Arrays.toString(baseline), 4, baseline[index - 1] - baseline[index]);
+        }
+        int[] grade = graded(tier, ground);
+        String label = Arrays.toString(grade);
+        int last = grade.length - 1;
+        assertEquals(label, baseline[0], grade[0]);
+        assertEquals(label, baseline[last], grade[last]);
+        int drops = 0;
+        int pools = 0;
+        int level = 1;
+        for (int index = 1; index < grade.length; index++) {
+            int drop = grade[index - 1] - grade[index];
+            assertTrue(label + " at " + index, drop >= 0 && drop <= StepPools.stepMaxDrop(tier));
+            assertTrue(label + " above the ungrouped grade at " + index, grade[index] <= baseline[index]);
+            if (drop > 0) {
+                drops++;
+                pools += STATION * level >= 8 ? 1 : 0;
+                level = 1;
+            } else {
+                level++;
+            }
+        }
+        pools += STATION * level >= 8 ? 1 : 0;
+        assertTrue(label + " pools " + pools, pools >= 3);
+        assertTrue(label + " drops " + drops, drops <= Math.ceil(STATION * last / StepPools.POOL_MIN));
+
+        int[] spread = graded(withSteps(tier, false, tier.waterfallMinimumDrop()), ground);
+        for (int index = 1; index < spread.length; index++) {
+            assertTrue("spread " + Arrays.toString(spread), spread[index - 1] - spread[index] < tier.waterfallMinimumDrop());
+        }
+    }
+
+    @Test
+    public void cliffKeepsOneFallWithAFlatPlungeReach() {
+        HydrologyTier tier = settings(config -> {
+        }).tiers().get(0);
+        float[] ground = new float[32];
+        for (int index = 0; index < ground.length; index++) {
+            ground[index] = index < 12 ? 160f : 140f - (index - 12);
+        }
+        int[] grade = graded(tier, ground);
+        String label = Arrays.toString(grade);
+        int falls = 0;
+        int foot = -1;
+        for (int index = 1; index < grade.length; index++) {
+            int drop = grade[index - 1] - grade[index];
+            assertTrue(label, drop >= 0);
+            if (drop >= tier.waterfallMinimumDrop()) {
+                falls++;
+                foot = index;
+            }
+        }
+        assertEquals(label, 1, falls);
+        int end = foot;
+        while (end + 1 < grade.length && grade[end + 1] == grade[foot]) {
+            end++;
+        }
+        assertTrue(label + " level below the fall from " + foot + " to " + end, STATION * (end - foot) >= StepPools.PLUNGE_MIN);
+    }
+
+    @Test
+    public void tallFallsRollOverAtTheBrinkAndKeepEveryFall() {
+        HydrologyTier tier = settings(config -> {
+        }).tiers().get(0);
+        float[] ground = new float[32];
+        for (int index = 0; index < ground.length; index++) {
+            ground[index] = index < 10 ? 160f : index < 20 ? 140f : 133f;
+        }
+        int[] baseline = graded(withSteps(tier, false, 2), ground);
+        int[] grade = graded(tier, ground);
+        String label = Arrays.toString(baseline) + " grouped " + Arrays.toString(grade);
+        assertEquals(label, baseline[9] - StepPools.ROLLOVER_DROP, grade[9]);
+        assertEquals(label, baseline[0], grade[0]);
+        assertEquals(label, baseline[10], grade[10]);
+        assertEquals(label, baseline[20], grade[20]);
+        assertEquals(label, baseline[19], grade[19]);
+    }
+
+    @Test
+    public void stepPoolsNeverMoveDropsIntoPondOutletZones() {
+        DoubleBinaryOperator terrain = (x, z) -> (x <= 344D ? 150D - 0.05D * x : 150D - 0.05D * 344D - 0.5D * (x - 344D))
+                + 0.1D * Math.abs(z - VALLEY_Z);
+        HydrologySettings grouping = settings(config -> {
+        });
+        HydrologySettings ungrouped = settings(ReachShaperTest::ungrouped);
+        Network open = network(grouping, terrain, 64, 64, VALLEY_THRESHOLD, false);
+        int level = (int) Math.floor(terrain.applyAsDouble(340, VALLEY_Z)) + 1;
+        Pond drained = new Pond(11L, PondKind.NATURAL, level, level - 3, 288, VALLEY_Z, level + 1f, rectangle(300, VALLEY_Z - 12, 11, 7),
+                0L, 0, "water", 320, VALLEY_Z);
+        Network network = new Network(open.grid(), open.receivers(), open.accumulation(), open.channels(), List.of(drained), open.fine());
+        ShapedNetwork grouped = shape(grouping, network);
+        ShapedNetwork plain = shape(ungrouped, network);
+        Reach outlet = byId(grouped.reaches()).get(grouped.ponds().get(0).outletReachId());
+        Reach baseline = byId(plain.reaches()).get(plain.ponds().get(0).outletReachId());
+        assertNotNull(outlet);
+        assertNotNull(baseline);
+        assertTrue(Arrays.equals(baseline.xs(), outlet.xs()) && Arrays.equals(baseline.zs(), outlet.zs()));
+        String label = Arrays.toString(baseline.grade()) + " grouped " + Arrays.toString(outlet.grade());
+        float protectedStart = Math.max(ReachShaper.OUTLET_LENGTH, 2f * (outlet.halfWidth()[0] + 1f));
+        float along = 0f;
+        boolean zone = true;
+        int lowered = 0;
+        for (int point = 0; point < outlet.grade().length; point++) {
+            if (point > 0) {
+                along += (float) Math.hypot(outlet.xs()[point] - outlet.xs()[point - 1], outlet.zs()[point] - outlet.zs()[point - 1]);
+            }
+            zone = zone && (along <= protectedStart || baseline.style()[point] == ReachStyle.POND_OUTLET);
+            if (zone) {
+                assertEquals(label + " inside the outlet zone at " + point, baseline.grade()[point], outlet.grade()[point]);
+            } else {
+                assertTrue(label + " above the ungrouped grade at " + point, outlet.grade()[point] <= baseline.grade()[point]);
+                lowered += outlet.grade()[point] < baseline.grade()[point] ? 1 : 0;
+            }
+        }
+        assertTrue(label + " grouped below the outlet zone", lowered > 0);
+        List<Pond> groupedPonds = PondChannelSettlement.settle(WINDOW, grouped, SEA_LEVEL).ponds();
+        List<Pond> plainPonds = PondChannelSettlement.settle(WINDOW, plain, SEA_LEVEL).ponds();
+        assertEquals(plainPonds.size(), groupedPonds.size());
+        for (int pond = 0; pond < plainPonds.size(); pond++) {
+            assertEquals("pond " + pond, plainPonds.get(pond).level(), groupedPonds.get(pond).level());
+        }
+        assertEquals(level, groupedPonds.get(0).level());
     }
 
     @Test
@@ -695,17 +830,28 @@ public class ReachShaperTest {
         });
         int pitX = 204;
         DoubleBinaryOperator shallow = pittedValley(pitX, 4D);
-        ShapedNetwork shaped = shape(settings, network(settings, shallow, 64, 64, VALLEY_THRESHOLD, false));
+        HydrologySettings plain = settings(ReachShaperTest::ungrouped);
+        Network shallowNetwork = network(settings, shallow, 64, 64, VALLEY_THRESHOLD, false);
+        ShapedNetwork shaped = shape(settings, shallowNetwork);
+        for (Reach reach : shape(plain, shallowNetwork).reaches()) {
+            for (int index = 0; index < reach.xs().length; index++) {
+                float x = reach.xs()[index];
+                if (x >= pitX + 48 && x <= pitX + 200 && Math.abs(reach.zs()[index] - VALLEY_Z) <= 12f) {
+                    int natural = (int) Math.floor(shallow.applyAsDouble(x, reach.zs()[index])) - reach.tier().inset();
+                    assertTrue("ungrouped " + reach + " at " + x + " grade " + reach.grade()[index] + " natural " + natural, reach.grade()[index] >= natural - 1);
+                }
+            }
+        }
         int checked = 0;
         int pooled = 0;
         for (Reach reach : shaped.reaches()) {
             for (int index = 0; index < reach.xs().length; index++) {
                 float x = reach.xs()[index];
                 float z = reach.zs()[index];
-                int natural = (int) Math.floor(shallow.applyAsDouble(x, z)) - reach.tier().inset();
+                int poolEnd = (int) Math.floor(shallow.applyAsDouble(x + StepPools.POOL_MAX, z)) - reach.tier().inset();
                 if (x >= pitX + 48 && x <= pitX + 200 && Math.abs(z - VALLEY_Z) <= 12f) {
                     checked++;
-                    assertTrue(reach + " at " + x + " grade " + reach.grade()[index] + " natural " + natural, reach.grade()[index] >= natural - 1);
+                    assertTrue(reach + " at " + x + " grade " + reach.grade()[index] + " pool end " + poolEnd, reach.grade()[index] >= poolEnd - 1);
                 }
                 if (overPit(x, z, pitX)) {
                     pooled += reach.grade()[index] > (int) Math.floor(shallow.applyAsDouble(pitX, VALLEY_Z)) ? 1 : 0;
@@ -1898,7 +2044,11 @@ public class ReachShaperTest {
 
     private static ReachDraft draft(HydrologyTier tier, float... ground) {
         int points = ground.length;
-        ReachFitter.Fitted fitted = new ReachFitter.Fitted(new float[points], new float[points], new float[points], ground.clone(),
+        float[] xs = new float[points];
+        for (int point = 0; point < points; point++) {
+            xs[point] = STATION * point;
+        }
+        ReachFitter.Fitted fitted = new ReachFitter.Fitted(xs, new float[points], new float[points], ground.clone(),
                 new boolean[points], ground.clone());
         return new ReachDraft(new ReachTracer.Chain(new int[]{0, 1}, ReachTracer.End.EDGE, -1), 1L, tier, 0f, Integer.MIN_VALUE, fitted);
     }
@@ -2345,6 +2495,25 @@ public class ReachShaperTest {
         for (IrisHydrologyTier tier : config.getTiers()) {
             tier.setCascades(false);
         }
+    }
+
+    private static void ungrouped(IrisHydrology config) {
+        for (IrisHydrologyTier tier : config.getTiers()) {
+            tier.setCascades(false);
+            tier.setWaterfallMinimumDrop(2);
+        }
+    }
+
+    private static HydrologyTier withSteps(HydrologyTier tier, boolean cascades, int waterfallMinimumDrop) {
+        return new HydrologyTier(tier.name(), tier.minCatchment(), tier.minHalfWidth(), tier.maxHalfWidth(), tier.widthFactor(), tier.depthRatio(),
+                tier.inset(), cascades, waterfallMinimumDrop, tier.bankBand(), tier.bankStyle(), tier.estuary(), tier.delta(), tier.materials(),
+                tier.fluid(), tier.decorators());
+    }
+
+    private static int[] graded(HydrologyTier tier, float[] ground) {
+        ReachDraft draft = draft(tier, ground);
+        ReachGrader.grade(List.of(draft), new int[]{0}, 0, 6, noPonds(1), SEED);
+        return draft.grade;
     }
 
     private static HydrologySettings settings(Consumer<IrisHydrology> edit) {

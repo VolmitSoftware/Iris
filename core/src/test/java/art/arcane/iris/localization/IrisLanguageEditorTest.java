@@ -2,18 +2,16 @@ package art.arcane.iris.localization;
 
 import art.arcane.iris.testsupport.ProjectPaths;
 import art.arcane.volmlib.util.config.TomlCodec;
+import art.arcane.volmlib.util.localization.LanguageMeta;
 import art.arcane.volmlib.util.localization.LocalizationCandidate;
 import art.arcane.volmlib.util.localization.LocalizationSnapshot;
 import art.arcane.volmlib.util.localization.PluginLanguageEditor;
 import art.arcane.volmlib.util.localization.PluginLanguageService;
 import art.arcane.volmlib.util.localization.PluralSelector;
-import art.arcane.volmlib.util.localization.RemoteLanguageCatalog;
 import art.arcane.volmlib.util.localization.TextValue;
 import art.arcane.volmlib.util.localization.TomlLanguageEditor;
 import art.arcane.volmlib.util.localization.VolmitLocales;
 import com.google.gson.JsonElement;
-import com.sun.net.httpserver.HttpExchange;
-import com.sun.net.httpserver.HttpServer;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -21,16 +19,11 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
-import java.io.IOException;
-import java.lang.reflect.Field;
-import java.net.InetSocketAddress;
-import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 
 import static org.junit.Assert.assertArrayEquals;
@@ -111,29 +104,16 @@ public class IrisLanguageEditorTest {
 
     @Test
     public void missingLocaleDownloadsAndCanBeEditedWithoutBeingSelected() throws Exception {
-        byte[] complete = Files.readAllBytes(ProjectPaths.moduleFile("src/main/resources/languages/fr_FR.toml"));
-        AtomicInteger requests = new AtomicInteger();
-        Field remoteField = IrisLanguage.class.getDeclaredField("remote");
-        remoteField.setAccessible(true);
-        RemoteLanguageCatalog previous = IrisLanguage.remote(directory);
-        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
-        try (RemoteLanguageCatalog catalog = RemoteLanguageCatalog.load(new RemoteLanguageCatalog.Options(
-                "Iris",
-                URI.create("http://127.0.0.1:" + server.getAddress().getPort() + "/"),
-                "languages",
-                ".toml",
-                "iris-language-source.properties",
-                IrisLanguage.class.getClassLoader()
-        ))) {
-            server.createContext(catalog.sourceUri("fr_FR").getPath(),
-                    exchange -> respond(exchange, complete, requests));
-            server.start();
-            remoteField.set(null, catalog);
+        String complete = Files.readString(ProjectPaths.moduleFile("src/main/resources/languages/fr_FR.toml"));
+        try (LoopbackLanguageRepository repository = new LoopbackLanguageRepository()) {
+            repository.publish(LoopbackLanguageRepository.REVISION_ONE, "fr_FR", complete);
             Path language = directory.toPath().resolve("languages/fr_FR.toml");
             Files.delete(language);
 
             PluginLanguageEditor.Document original = editor.load("fr_FR").get(5, TimeUnit.SECONDS);
-            assertArrayEquals(complete, Files.readAllBytes(language));
+            assertTrue(Files.isRegularFile(language));
+            assertEquals(IrisLanguage.parseOverlay("source", "fr_FR", complete).values(),
+                    IrisLanguage.parseOverlay("installed", "fr_FR", Files.readString(language)).values());
             TextValue value = new TextValue("Langue {locale}");
             PluginLanguageEditor.Document saved = editor.save(new PluginLanguageEditor.Edit("fr_FR", IrisMessages.COMMAND_RELOAD_SUCCESS.id(),
                     original.snapshot().value(IrisMessages.COMMAND_RELOAD_SUCCESS), value)).get(5, TimeUnit.SECONDS);
@@ -142,11 +122,20 @@ public class IrisLanguageEditorTest {
             assertEquals("en_US", languages.defaultLocale());
             assertEquals("en_US", IrisLanguage.activeLocale());
             assertEquals(value, IrisLanguage.editorOptions().loader().load("fr_FR").value(IrisMessages.COMMAND_RELOAD_SUCCESS));
-            assertEquals(1, requests.get());
-        } finally {
-            remoteField.set(null, previous);
-            server.stop(0);
+            assertEquals(1, repository.rawRequests());
         }
+    }
+
+    @Test
+    public void editingAnUnknownLocaleCreatesACustomLanguageWithMeta() throws Exception {
+        IrisLanguage.editorOptions().loader().load("pirate");
+
+        Path file = directory.toPath().resolve("languages/pirate.toml");
+        LanguageMeta meta = LanguageMeta.parse(Files.readString(file));
+        assertEquals("pirate", meta.name().orElseThrow());
+        assertEquals("en_US", meta.base().orElseThrow());
+        assertTrue(IrisLanguage.availableLocales().contains("pirate"));
+        assertEquals("pirate", IrisLanguage.displayName("pirate"));
     }
 
     @Test
@@ -196,15 +185,5 @@ public class IrisLanguageEditorTest {
         assertEquals("en_US", IrisLanguage.activeLocale());
         assertEquals("en_US", languages.defaultLocale());
         assertEquals(value, IrisLanguage.editorOptions().loader().load("en_US").value(IrisMessages.COMMAND_UNKNOWN));
-    }
-
-    private static void respond(HttpExchange exchange, byte[] response, AtomicInteger requests) throws IOException {
-        requests.incrementAndGet();
-        try {
-            exchange.sendResponseHeaders(200, response.length);
-            exchange.getResponseBody().write(response);
-        } finally {
-            exchange.close();
-        }
     }
 }

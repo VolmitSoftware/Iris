@@ -67,7 +67,6 @@ public final class ClientUiMessages {
     );
     public static final TextKey TOAST_RELOAD_FAILED = TextKey.of("iris.client.toast.reload_failed", "reload failed");
     public static final TextKey TOAST_RELOADED = TextKey.of("iris.client.toast.reloaded", "reloaded");
-    public static final TextKey TOAST_PACK_FAILED = TextKey.of("iris.client.toast.pack_failed", "{pack} failed");
     public static final TextKey WHAT_TITLE = TextKey.of("iris.client.what.title", "Iris What");
     public static final TextKey WHAT_QUERYING = TextKey.of("iris.client.what.querying", "Querying {x}, {z}...");
     public static final TextKey WHAT_BIOME = TextKey.of("iris.client.what.biome", "Biome: {biome}");
@@ -100,7 +99,6 @@ public final class ClientUiMessages {
             TOAST_CHANGED_FILES,
             TOAST_RELOAD_FAILED,
             TOAST_RELOADED,
-            TOAST_PACK_FAILED,
             WHAT_TITLE,
             WHAT_QUERYING,
             WHAT_BIOME,

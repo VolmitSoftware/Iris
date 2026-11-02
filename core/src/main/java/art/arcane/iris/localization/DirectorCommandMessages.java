@@ -369,14 +369,6 @@ public final class DirectorCommandMessages {
             "iris.director.commandiris.director.print_version_information",
             "Print version information"
     );
-    public static final TextKey COMMAND_IRIS_DIRECTOR_BENCHMARK_PACK = TextKey.of(
-            "iris.director.commandiris.director.benchmark_pack",
-            "Benchmark a pack"
-    );
-    public static final TextKey COMMAND_IRIS_PARAM_DIMENSION_BENCHMARK = TextKey.of(
-            "iris.director.commandiris.param.dimension_benchmark",
-            "Dimension to benchmark"
-    );
     public static final TextKey COMMAND_IRIS_DIRECTOR_PRINT_WORLD_HEIGHT_INFORMATION = TextKey.of(
             "iris.director.commandiris.director.print_world_height_information",
             "Print world height information"
@@ -1040,8 +1032,6 @@ public final class DirectorCommandMessages {
             COMMAND_IRIS_PARAM_WORLD_TELEPORT,
             COMMAND_IRIS_PARAM_PLAYER_TELEPORT,
             COMMAND_IRIS_DIRECTOR_PRINT_VERSION_INFORMATION,
-            COMMAND_IRIS_DIRECTOR_BENCHMARK_PACK,
-            COMMAND_IRIS_PARAM_DIMENSION_BENCHMARK,
             COMMAND_IRIS_DIRECTOR_PRINT_WORLD_HEIGHT_INFORMATION,
             COMMAND_IRIS_DIRECTOR_CHECK_ACCESS_ALL_WORLDS,
             COMMAND_IRIS_DIRECTOR_REMOVE_IRIS_WORLD,

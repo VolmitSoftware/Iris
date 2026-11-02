@@ -7,6 +7,8 @@ import java.util.Collection;
 import java.util.Enumeration;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.jar.JarEntry;
@@ -26,6 +28,7 @@ public final class BukkitArtifactVerifier {
     );
     private static final String MATTER_SLICE_PACKAGE = "art/arcane/volmlib/util/matter/slices/";
     private static final String LANGUAGE_DIRECTORY = "languages/";
+    private static final String LANGUAGE_SOURCE_MANIFEST = "iris-language-source.properties";
 
     private BukkitArtifactVerifier() {
     }
@@ -38,7 +41,8 @@ public final class BukkitArtifactVerifier {
      *                                  absent from the jar.
      */
     public static void verify(File artifact, List<String> requiredEntries,
-                              int minimumMatterSlices, Collection<String> runtimeDownloadedPrefixes) {
+                              int minimumMatterSlices, Collection<String> runtimeDownloadedPrefixes,
+                              Map<String, String> languageSource) {
         if (!artifact.isFile()) {
             throw new GradleException("Missing Bukkit Iris artifact: " + artifact.getAbsolutePath());
         }
@@ -64,7 +68,7 @@ public final class BukkitArtifactVerifier {
                 }
 
                 String name = entry.getName();
-                if (name.startsWith(LANGUAGE_DIRECTORY) && name.endsWith(".json")) {
+                if (name.startsWith(LANGUAGE_DIRECTORY) && (name.endsWith(".toml") || name.endsWith(".json"))) {
                     locales++;
                 }
                 if (!name.endsWith(".class")) {
@@ -81,6 +85,7 @@ public final class BukkitArtifactVerifier {
             if (locales != 0) {
                 throw new GradleException(artifact.getName() + " ships " + locales + " locale files; translations must download on demand");
             }
+            verifyLanguageSource(artifact, jar, languageSource);
             // Matter.read() resolves slice types from the canonical name stored in the payload.
             if (matterSlices < minimumMatterSlices) {
                 throw new GradleException(artifact.getName() + " ships " + matterSlices
@@ -122,6 +127,33 @@ public final class BukkitArtifactVerifier {
             }
         } catch (IOException e) {
             throw new GradleException("Unable to verify Bukkit Iris artifact " + artifact.getAbsolutePath(), e);
+        }
+    }
+
+    private static void verifyLanguageSource(File artifact, JarFile jar, Map<String, String> expected) throws IOException {
+        JarEntry entry = jar.getJarEntry(LANGUAGE_SOURCE_MANIFEST);
+        if (entry == null) {
+            throw new GradleException(artifact.getName() + " is missing " + LANGUAGE_SOURCE_MANIFEST);
+        }
+        Properties manifest = new Properties();
+        try (InputStream input = jar.getInputStream(entry)) {
+            manifest.load(input);
+        }
+        for (String key : manifest.stringPropertyNames()) {
+            if (key.equals("revision") || key.equals("mode") || key.startsWith("sha256.")) {
+                throw new GradleException(artifact.getName() + " pins its language source with " + key
+                        + "; the manifest must track the repository branch");
+            }
+        }
+        for (Map.Entry<String, String> required : expected.entrySet()) {
+            if (!required.getValue().equals(manifest.getProperty(required.getKey()))) {
+                throw new GradleException(artifact.getName() + " language source " + required.getKey() + " is "
+                        + manifest.getProperty(required.getKey()) + "; the build expects " + required.getValue());
+            }
+        }
+        if (!manifest.stringPropertyNames().equals(expected.keySet())) {
+            throw new GradleException(artifact.getName() + " language source keys " + manifest.stringPropertyNames()
+                    + " do not match " + expected.keySet());
         }
     }
 

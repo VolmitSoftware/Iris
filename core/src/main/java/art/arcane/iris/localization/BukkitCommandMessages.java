@@ -70,18 +70,6 @@ public final class BukkitCommandMessages {
             "iris.bukkit.commandfind.teleported",
             C.GREEN + "Teleported to " + "{structure}" + " @ " + "{value}" + ", " + "{y}" + ", " + "{value2}"
     );
-    public static final TextKey COMMAND_IRIS_SUCCESSFULLY_REMOVED_WORLD_FOLDER = TextKey.of(
-            "iris.bukkit.commandiris.successfully_removed_world_folder",
-            C.GREEN + "Successfully removed world folder"
-    );
-    public static final TextKey COMMAND_IRIS_SUCCESSFULLY_REMOVED_WORLD_FOLDER_2 = TextKey.of(
-            "iris.bukkit.commandiris.successfully_removed_world_folder_2",
-            C.GREEN + "Successfully removed world folder"
-    );
-    public static final TextKey COMMAND_IRIS_FAILED_REMOVE_WORLD_FOLDER = TextKey.of(
-            "iris.bukkit.commandiris.failed_remove_world_folder",
-            C.RED + "Failed to remove world folder"
-    );
     public static final TextKey COMMAND_OBJECT_NO_PACKS_WITH_OBJECTS_WERE_FOUND_ON_THIS_SERVER = TextKey.of(
             "iris.bukkit.commandobject.no_packs_with_objects_were_found_on_this_server",
             C.RED + "No packs with objects were found on this server."
@@ -193,10 +181,6 @@ public final class BukkitCommandMessages {
     public static final TextKey COMMAND_STUDIO_MESSAGE = TextKey.of(
             "iris.bukkit.commandstudio.message",
             C.GREEN + "{k}" + ": " + "{value}" + " / " + "{value2}" + "%"
-    );
-    public static final TextKey COMMAND_S_V_C_YOU_LACK_PERMISSION = TextKey.of(
-            "iris.bukkit.commandsvc.you_lack_permission",
-            "You lack the Permission '" + "{ROOTPERMISSION}" + "'"
     );
     public static final TextKey IRIS_ENGINE_STATUS_MESSAGE = TextKey.of(
             "iris.bukkit.irisenginestatus.message",
@@ -312,9 +296,6 @@ public final class BukkitCommandMessages {
             COMMAND_FIND_RUN_THIS_GAME_TELEPORT_STRUCTURE_2,
             COMMAND_FIND_LOCATING_2,
             COMMAND_FIND_TELEPORTED,
-            COMMAND_IRIS_SUCCESSFULLY_REMOVED_WORLD_FOLDER,
-            COMMAND_IRIS_SUCCESSFULLY_REMOVED_WORLD_FOLDER_2,
-            COMMAND_IRIS_FAILED_REMOVE_WORLD_FOLDER,
             COMMAND_OBJECT_NO_PACKS_WITH_OBJECTS_WERE_FOUND_ON_THIS_SERVER,
             COMMAND_OBJECT_NO_OBJECTS_PLACE_ACROSS_SELECTED_PACK_S,
             COMMAND_OBJECT_OPENING_OBJECT_STUDIO_OBJECTS,
@@ -343,7 +324,6 @@ public final class BukkitCommandMessages {
             COMMAND_STUDIO_GENERATING_DATA,
             COMMAND_STUDIO_DONE,
             COMMAND_STUDIO_MESSAGE,
-            COMMAND_S_V_C_YOU_LACK_PERMISSION,
             IRIS_ENGINE_STATUS_MESSAGE,
             IRIS_ENGINE_STATUS_STATUS,
             IRIS_ENGINE_STATUS_SERVICE,

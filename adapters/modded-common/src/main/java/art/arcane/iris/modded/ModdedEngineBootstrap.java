@@ -189,6 +189,7 @@ public final class ModdedEngineBootstrap {
         }
         ModdedWorldCheck.serverStarted(server);
         ModdedWorldgenCatalogs.capture(server);
+        IrisLanguage.checkUpstream();
     }
 
     public static void levelLoaded(NativeWorld world) {

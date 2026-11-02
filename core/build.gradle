@@ -43,17 +43,11 @@ apply from: rootProject.file('gradle/java21-runtime-exclusions.gradle')
 
 def lib = 'art.arcane.iris.util'
 
-String languageSourceReference = providers.gradleProperty('languageRevision').orElse('master').get()
-List<File> languageSourceFiles = fileTree('src/main/resources/languages') {
-    include('*.toml')
-}.files.toList().sort { File left, File right -> left.name <=> right.name }
-List<String> languageSourceLocales = languageSourceFiles.collect { File source ->
-    source.name.substring(0, source.name.length() - '.toml'.length())
-}
+Map<String, String> languageSourceManifest = (Map<String, String>) rootProject.ext.languageSourceManifest
+List<File> languageSourceFiles = (List<File>) rootProject.ext.languageSourceFiles
 def languageSourceManifestTask = tasks.register('generateLanguageSourceManifest', WriteProperties) {
     destinationFile.set(layout.buildDirectory.file('generated/language-source/iris-language-source.properties'))
-    property('revision', languageSourceReference)
-    property('locales', languageSourceLocales.join(','))
+    properties(languageSourceManifest)
 }
 def languageGuidesTask = tasks.register('generateLanguageGuides') {
     inputs.files(languageSourceFiles)

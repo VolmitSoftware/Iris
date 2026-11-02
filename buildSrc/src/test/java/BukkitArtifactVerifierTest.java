@@ -30,6 +30,14 @@ public class BukkitArtifactVerifierTest {
             NMS_BINDING + ".class"
     );
     private static final int MATTER_SLICES = 1;
+    private static final String LANGUAGE_MANIFEST = "iris-language-source.properties";
+    private static final Map<String, String> LANGUAGE_SOURCE = Map.of(
+            "repository", "VolmitSoftware/Iris",
+            "branch", "master",
+            "path", "core/src/main/resources/languages",
+            "extension", ".toml",
+            "locales", "de_DE,ja-JP"
+    );
     private static final List<String> RUNTIME_DOWNLOADED_PREFIXES = List.of(
             "art/arcane/iris/util/kyori/",
             "art/arcane/iris/util/gson/",
@@ -45,7 +53,7 @@ public class BukkitArtifactVerifierTest {
     public void acceptsCompleteArtifact() throws Exception {
         File artifact = createArtifact(validEntries());
 
-        BukkitArtifactVerifier.verify(artifact, REQUIRED_ENTRIES, MATTER_SLICES, RUNTIME_DOWNLOADED_PREFIXES);
+        BukkitArtifactVerifier.verify(artifact, REQUIRED_ENTRIES, MATTER_SLICES, RUNTIME_DOWNLOADED_PREFIXES, LANGUAGE_SOURCE);
     }
 
     @Test
@@ -55,7 +63,7 @@ public class BukkitArtifactVerifierTest {
         File artifact = createArtifact(entries);
 
         GradleException failure = assertThrows(GradleException.class,
-                () -> BukkitArtifactVerifier.verify(artifact, REQUIRED_ENTRIES, MATTER_SLICES, RUNTIME_DOWNLOADED_PREFIXES));
+                () -> BukkitArtifactVerifier.verify(artifact, REQUIRED_ENTRIES, MATTER_SLICES, RUNTIME_DOWNLOADED_PREFIXES, LANGUAGE_SOURCE));
         assertTrue(failure.getMessage().contains(PLUGIN_DESCRIPTOR));
     }
 
@@ -66,7 +74,7 @@ public class BukkitArtifactVerifierTest {
         File artifact = createArtifact(entries);
 
         GradleException failure = assertThrows(GradleException.class,
-                () -> BukkitArtifactVerifier.verify(artifact, REQUIRED_ENTRIES, MATTER_SLICES, RUNTIME_DOWNLOADED_PREFIXES));
+                () -> BukkitArtifactVerifier.verify(artifact, REQUIRED_ENTRIES, MATTER_SLICES, RUNTIME_DOWNLOADED_PREFIXES, LANGUAGE_SOURCE));
         assertTrue(failure.getMessage().contains(SLIMJAR_DEPENDENCIES));
     }
 
@@ -77,7 +85,7 @@ public class BukkitArtifactVerifierTest {
         File artifact = createArtifact(entries);
 
         GradleException failure = assertThrows(GradleException.class,
-                () -> BukkitArtifactVerifier.verify(artifact, REQUIRED_ENTRIES, MATTER_SLICES, RUNTIME_DOWNLOADED_PREFIXES));
+                () -> BukkitArtifactVerifier.verify(artifact, REQUIRED_ENTRIES, MATTER_SLICES, RUNTIME_DOWNLOADED_PREFIXES, LANGUAGE_SOURCE));
         assertTrue(failure.getMessage().contains(SLIMJAR_RESOLUTIONS));
     }
 
@@ -88,7 +96,7 @@ public class BukkitArtifactVerifierTest {
         File artifact = createArtifact(entries);
 
         GradleException failure = assertThrows(GradleException.class,
-                () -> BukkitArtifactVerifier.verify(artifact, REQUIRED_ENTRIES, MATTER_SLICES, RUNTIME_DOWNLOADED_PREFIXES));
+                () -> BukkitArtifactVerifier.verify(artifact, REQUIRED_ENTRIES, MATTER_SLICES, RUNTIME_DOWNLOADED_PREFIXES, LANGUAGE_SOURCE));
         assertTrue(failure.getMessage().contains("art/arcane/volmlib/util/noise/CNG"));
     }
 
@@ -107,7 +115,7 @@ public class BukkitArtifactVerifierTest {
                 classReferencing("art/arcane/iris/ParalithicConsumer", "art/arcane/iris/util/paralithic/functions/Function"));
         File artifact = createArtifact(entries);
 
-        BukkitArtifactVerifier.verify(artifact, REQUIRED_ENTRIES, MATTER_SLICES, RUNTIME_DOWNLOADED_PREFIXES);
+        BukkitArtifactVerifier.verify(artifact, REQUIRED_ENTRIES, MATTER_SLICES, RUNTIME_DOWNLOADED_PREFIXES, LANGUAGE_SOURCE);
     }
 
     @Test
@@ -119,19 +127,55 @@ public class BukkitArtifactVerifierTest {
 
         GradleException failure = assertThrows(GradleException.class,
                 () -> BukkitArtifactVerifier.verify(artifact, REQUIRED_ENTRIES, MATTER_SLICES,
-                        RUNTIME_DOWNLOADED_PREFIXES));
+                        RUNTIME_DOWNLOADED_PREFIXES, LANGUAGE_SOURCE));
         assertTrue(failure.getMessage().contains("art/arcane/iris/util/paper/PaperLib"));
     }
 
     @Test
     public void rejectsEmbeddedLocale() throws Exception {
         Map<String, byte[]> entries = validEntries();
-        entries.put("languages/de_DE.json", "{}".getBytes(StandardCharsets.UTF_8));
+        entries.put("languages/de_DE.toml", "".getBytes(StandardCharsets.UTF_8));
         File artifact = createArtifact(entries);
 
         GradleException failure = assertThrows(GradleException.class,
-                () -> BukkitArtifactVerifier.verify(artifact, REQUIRED_ENTRIES, MATTER_SLICES, RUNTIME_DOWNLOADED_PREFIXES));
+                () -> BukkitArtifactVerifier.verify(artifact, REQUIRED_ENTRIES, MATTER_SLICES, RUNTIME_DOWNLOADED_PREFIXES, LANGUAGE_SOURCE));
         assertTrue(failure.getMessage().contains("locale files"));
+    }
+
+    @Test
+    public void rejectsMissingLanguageSourceManifest() throws Exception {
+        Map<String, byte[]> entries = validEntries();
+        entries.remove(LANGUAGE_MANIFEST);
+        File artifact = createArtifact(entries);
+
+        GradleException failure = assertThrows(GradleException.class,
+                () -> BukkitArtifactVerifier.verify(artifact, REQUIRED_ENTRIES, MATTER_SLICES, RUNTIME_DOWNLOADED_PREFIXES, LANGUAGE_SOURCE));
+        assertTrue(failure.getMessage().contains(LANGUAGE_MANIFEST));
+    }
+
+    @Test
+    public void rejectsPinnedLanguageSourceKeys() throws Exception {
+        for (String pinned : List.of("revision=master", "mode=pinned", "sha256.de_DE=00")) {
+            Map<String, byte[]> entries = validEntries();
+            entries.put(LANGUAGE_MANIFEST, (languageManifest() + pinned + "\n").getBytes(StandardCharsets.UTF_8));
+            File artifact = createArtifact(entries);
+
+            GradleException failure = assertThrows(GradleException.class,
+                    () -> BukkitArtifactVerifier.verify(artifact, REQUIRED_ENTRIES, MATTER_SLICES, RUNTIME_DOWNLOADED_PREFIXES, LANGUAGE_SOURCE));
+            assertTrue(pinned, failure.getMessage().contains("track the repository branch"));
+        }
+    }
+
+    @Test
+    public void rejectsLanguageSourceFromAnotherBranch() throws Exception {
+        Map<String, byte[]> entries = validEntries();
+        entries.put(LANGUAGE_MANIFEST, languageManifest().replace("branch=master", "branch=dev")
+                .getBytes(StandardCharsets.UTF_8));
+        File artifact = createArtifact(entries);
+
+        GradleException failure = assertThrows(GradleException.class,
+                () -> BukkitArtifactVerifier.verify(artifact, REQUIRED_ENTRIES, MATTER_SLICES, RUNTIME_DOWNLOADED_PREFIXES, LANGUAGE_SOURCE));
+        assertTrue(failure.getMessage().contains("branch"));
     }
 
     @Test
@@ -141,7 +185,7 @@ public class BukkitArtifactVerifierTest {
         File artifact = createArtifact(entries);
 
         GradleException failure = assertThrows(GradleException.class,
-                () -> BukkitArtifactVerifier.verify(artifact, REQUIRED_ENTRIES, MATTER_SLICES, RUNTIME_DOWNLOADED_PREFIXES));
+                () -> BukkitArtifactVerifier.verify(artifact, REQUIRED_ENTRIES, MATTER_SLICES, RUNTIME_DOWNLOADED_PREFIXES, LANGUAGE_SOURCE));
         assertTrue(failure.getMessage().contains("Matter slice types"));
     }
 
@@ -152,7 +196,7 @@ public class BukkitArtifactVerifierTest {
                 classAnnotatedWith("art/arcane/iris/Annotated", "com/google/errorprone/annotations/CanIgnoreReturnValue"));
         File artifact = createArtifact(entries);
 
-        BukkitArtifactVerifier.verify(artifact, REQUIRED_ENTRIES, MATTER_SLICES, RUNTIME_DOWNLOADED_PREFIXES);
+        BukkitArtifactVerifier.verify(artifact, REQUIRED_ENTRIES, MATTER_SLICES, RUNTIME_DOWNLOADED_PREFIXES, LANGUAGE_SOURCE);
     }
 
     private Map<String, byte[]> validEntries() {
@@ -160,6 +204,7 @@ public class BukkitArtifactVerifierTest {
         entries.put(PLUGIN_DESCRIPTOR, "name: Iris\n".getBytes(StandardCharsets.UTF_8));
         entries.put(SLIMJAR_DEPENDENCIES, new byte[]{1});
         entries.put(SLIMJAR_RESOLUTIONS, new byte[]{1});
+        entries.put(LANGUAGE_MANIFEST, languageManifest().getBytes(StandardCharsets.UTF_8));
 
         entries.put(NMS_BINDING + ".class",
                 classReferencing(NMS_BINDING, "art/arcane/volmlib/util/noise/CNG"));
@@ -167,6 +212,14 @@ public class BukkitArtifactVerifierTest {
         entries.put("art/arcane/volmlib/util/matter/slices/BlockMatter.class",
                 emptyClass("art/arcane/volmlib/util/matter/slices/BlockMatter"));
         return entries;
+    }
+
+    private static String languageManifest() {
+        StringBuilder manifest = new StringBuilder();
+        for (Map.Entry<String, String> entry : LANGUAGE_SOURCE.entrySet()) {
+            manifest.append(entry.getKey()).append('=').append(entry.getValue()).append('\n');
+        }
+        return manifest.toString();
     }
 
     private static byte[] emptyClass(String internalName) {

@@ -218,34 +218,6 @@ public final class BukkitCommandMessagesExtended {
             "iris.bukkit.commandiris.message_2",
             C.GRAY + "- " + "{value}"
     );
-    public static final TextKey COMMAND_IRIS_THIS_IS_NOT_IRIS_WORLD_IRIS_WORLDS = TextKey.of(
-            "iris.bukkit.commandiris.this_is_not_iris_world_iris_worlds",
-            C.RED + "This is not an Iris world. Iris worlds: " + "{value}"
-    );
-    public static final TextKey COMMAND_IRIS_REMOVING_WORLD = TextKey.of(
-            "iris.bukkit.commandiris.removing_world",
-            C.GREEN + "Removing world: " + "{value}"
-    );
-    public static final TextKey COMMAND_IRIS_FAILED_EVACUATE_WORLD = TextKey.of(
-            "iris.bukkit.commandiris.failed_evacuate_world",
-            C.RED + "Failed to evacuate world: " + "{value}"
-    );
-    public static final TextKey COMMAND_IRIS_FAILED_UNLOAD_WORLD = TextKey.of(
-            "iris.bukkit.commandiris.failed_unload_world",
-            C.RED + "Failed to unload world: " + "{value}"
-    );
-    public static final TextKey COMMAND_IRIS_SUCCESSFULLY_REMOVED_FROM_BUKKIT_YML = TextKey.of(
-            "iris.bukkit.commandiris.successfully_removed_from_bukkit_yml",
-            C.GREEN + "Successfully removed " + "{value}" + " from bukkit.yml"
-    );
-    public static final TextKey COMMAND_IRIS_LOOKS_LIKE_WORLD_WAS_ALREADY_REMOVED_FROM_BUKKIT_YML = TextKey.of(
-            "iris.bukkit.commandiris.looks_like_world_was_already_removed_from_bukkit_yml",
-            C.YELLOW + "Looks like the world was already removed from bukkit.yml"
-    );
-    public static final TextKey COMMAND_IRIS_FAILED_SAVE_BUKKIT_YML_BECAUSE = TextKey.of(
-            "iris.bukkit.commandiris.failed_save_bukkit_yml_because",
-            C.RED + "Failed to save bukkit.yml because of " + "{value}"
-    );
     public static final TextKey COMMAND_IRIS_SET_DEBUG = TextKey.of(
             "iris.bukkit.commandiris.set_debug",
             C.GREEN + "Set debug to: " + "{to}"
@@ -281,18 +253,6 @@ public final class BukkitCommandMessagesExtended {
     public static final TextKey COMMAND_IRIS_DOESNT_EXIST_ON_SERVER = TextKey.of(
             "iris.bukkit.commandiris.doesnt_exist_on_server",
             C.YELLOW + "{logicalWorldName}" + " Doesnt exist on the server."
-    );
-    public static final TextKey COMMAND_IRIS_GENERATOR = TextKey.of(
-            "iris.bukkit.commandiris.generator",
-            C.BLUE + "Generator: " + "{dimension}"
-    );
-    public static final TextKey COMMAND_IRIS_IS_NOT_IRIS_WORLD = TextKey.of(
-            "iris.bukkit.commandiris.is_not_iris_world",
-            C.GOLD + "{logicalWorldName}" + " is not an iris world."
-    );
-    public static final TextKey COMMAND_IRIS_COULD_NOT_DETERMINE_IRIS_DIMENSION = TextKey.of(
-            "iris.bukkit.commandiris.could_not_determine_iris_dimension",
-            C.RED + "Could not determine Iris dimension for " + "{logicalWorldName}" + "."
     );
     public static final TextKey COMMAND_IRIS_LOADING_WORLD = TextKey.of(
             "iris.bukkit.commandiris.loading_world",
@@ -858,13 +818,6 @@ public final class BukkitCommandMessagesExtended {
             COMMAND_IRIS_MESSAGE,
             COMMAND_IRIS_BUKKIT_WORLDS,
             COMMAND_IRIS_MESSAGE_2,
-            COMMAND_IRIS_THIS_IS_NOT_IRIS_WORLD_IRIS_WORLDS,
-            COMMAND_IRIS_REMOVING_WORLD,
-            COMMAND_IRIS_FAILED_EVACUATE_WORLD,
-            COMMAND_IRIS_FAILED_UNLOAD_WORLD,
-            COMMAND_IRIS_SUCCESSFULLY_REMOVED_FROM_BUKKIT_YML,
-            COMMAND_IRIS_LOOKS_LIKE_WORLD_WAS_ALREADY_REMOVED_FROM_BUKKIT_YML,
-            COMMAND_IRIS_FAILED_SAVE_BUKKIT_YML_BECAUSE,
             COMMAND_IRIS_SET_DEBUG,
             COMMAND_IRIS_YOU_MUST_BE_IRIS_WORLD,
             COMMAND_IRIS_SENDING_METRICS,
@@ -874,9 +827,6 @@ public final class BukkitCommandMessagesExtended {
             COMMAND_IRIS_FAILED_UNLOAD_WORLD_2,
             COMMAND_IRIS_FAILED_UNLOAD_WORLD_3,
             COMMAND_IRIS_DOESNT_EXIST_ON_SERVER,
-            COMMAND_IRIS_GENERATOR,
-            COMMAND_IRIS_IS_NOT_IRIS_WORLD,
-            COMMAND_IRIS_COULD_NOT_DETERMINE_IRIS_DIMENSION,
             COMMAND_IRIS_LOADING_WORLD,
             COMMAND_IRIS_LOADED_SUCCESSFULLY,
             COMMAND_IRIS_THIS_IS_NOT_IRIS_WORLD_IRIS_WORLDS_3,

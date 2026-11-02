@@ -5,12 +5,20 @@ import art.arcane.iris.spi.CapabilityProbe;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.volmlib.util.director.DirectorTextResolver;
+import art.arcane.volmlib.util.io.AtomicFileIO;
+import art.arcane.volmlib.util.localization.GitHubLanguageSource;
+import art.arcane.volmlib.util.localization.LanguageCatalogMerge;
+import art.arcane.volmlib.util.localization.LanguageDirectory;
+import art.arcane.volmlib.util.localization.LanguageMeta;
+import art.arcane.volmlib.util.localization.LanguageReferenceRenderer;
+import art.arcane.volmlib.util.localization.LanguageSourceManifest;
+import art.arcane.volmlib.util.localization.LanguageUpstreamStore;
+import art.arcane.volmlib.util.localization.LanguageUpstreamSync;
 import art.arcane.volmlib.util.localization.LinesKey;
 import art.arcane.volmlib.util.localization.LanguageAudience;
 import art.arcane.volmlib.util.localization.LanguageFileEditor;
 import art.arcane.volmlib.util.localization.PluginLanguageEditor;
 import art.arcane.volmlib.util.localization.PluginLanguageService;
-import art.arcane.volmlib.util.localization.RemoteLanguageCatalog;
 import art.arcane.volmlib.util.localization.LocalizationValidator;
 import art.arcane.volmlib.util.localization.LocaleOverlay;
 import art.arcane.volmlib.util.localization.LocalizationCandidate;
@@ -32,6 +40,7 @@ import art.arcane.volmlib.util.localization.TextKey;
 import art.arcane.volmlib.util.localization.TomlLanguageEditor;
 import art.arcane.volmlib.util.localization.TomlLanguageParser;
 import art.arcane.volmlib.util.localization.TomlLanguageWriter;
+import art.arcane.volmlib.util.localization.VolmitLocales;
 import com.google.gson.JsonObject;
 
 import java.io.File;
@@ -39,12 +48,17 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.nio.file.Path;
-import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.LinkOption;
 import java.nio.file.StandardCopyOption;
+import java.nio.file.attribute.FileTime;
+import java.time.Instant;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
+import java.util.Locale;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
 import com.google.gson.Gson;
 import java.nio.ByteBuffer;
@@ -68,10 +82,13 @@ import java.util.function.BiConsumer;
 import java.util.regex.Pattern;
 
 public final class IrisLanguage {
+    public static final String MANIFEST_RESOURCE = "iris-language-source.properties";
     private static final Object SNAPSHOT_LOCK = new Object();
-    private static final long MAX_LOCALE_BYTES = 2L * 1024L * 1024L;
+    private static final Object UPSTREAM_LOCK = new Object();
+    private static final long MAX_LOCALE_BYTES = LanguageDirectory.MAXIMUM_BYTES;
     private static final int MAX_REPORTED_ISSUES = 12;
-    private static final Pattern LOCALE_NAME = Pattern.compile("[A-Za-z0-9_-]+");
+    private static final int MAXIMUM_BASE_DEPTH = 4;
+    private static final Pattern LOCALE_NAME = LanguageDirectory.LOCALE_PATTERN;
     private static final Pattern LEGACY_COLOR = Pattern.compile("(?i)\\u00a7[0-9A-FK-ORX]");
     private static final MessageCatalog CATALOG = IrisMessages.catalog();
     private static final LocalizationManager MANAGER = new LocalizationManager(
@@ -86,11 +103,15 @@ public final class IrisLanguage {
     private static final AtomicReference<PlainMemo> PLAIN_MEMO = new AtomicReference<>(null);
     private static final CopyOnWriteArrayList<BiConsumer<File, String>> MANUAL_RELOAD_LISTENERS =
             new CopyOnWriteArrayList<>();
+    private static final Map<String, CachedMeta> METAS = new ConcurrentHashMap<>();
+    private static final Set<String> PENDING_INSTALLS = ConcurrentHashMap.newKeySet();
     private static volatile File dataFolder;
     private static volatile String activeLocale = CATALOG.englishLocale();
     private static final Set<String> GUIDE_FETCHES = ConcurrentHashMap.newKeySet();
-    private static volatile RemoteLanguageCatalog remote;
-    private static volatile Path remoteRoot;
+    private static volatile LanguageUpstream upstream;
+    private static volatile URI sourceApiRoot = GitHubLanguageSource.API_ROOT;
+    private static volatile URI sourceRawRoot = GitHubLanguageSource.RAW_ROOT;
+    private static volatile String englishReference;
     private static volatile PluginLanguageService selections;
 
     private IrisLanguage() {
@@ -158,9 +179,9 @@ public final class IrisLanguage {
         }
 
         try {
-            createEnglishLanguageIfMissing(resolvedRoot);
+            ensureEnglish(resolvedRoot);
         } catch (IOException failure) {
-            IrisLogging.error("Could not create the editable Iris English language file.");
+            IrisLogging.error("Could not create or refresh the editable Iris English language file.");
             IrisLogging.reportError(failure);
         }
         File override = overrideFile(resolvedRoot, requestedLocale);
@@ -179,7 +200,7 @@ public final class IrisLanguage {
             requestConfiguredLocale();
         }
         if (applied && notifyManualReload) {
-            notifyManualReload(capture.snapshot());
+            notifyManualReload(capture.snapshot().file(), capture.snapshot().content());
         }
         return applied;
     }
@@ -316,10 +337,10 @@ public final class IrisLanguage {
         return result;
     }
 
-    private static void notifyManualReload(LocaleHotloadSnapshot snapshot) {
+    private static void notifyManualReload(File file, String content) {
         for (BiConsumer<File, String> listener : MANUAL_RELOAD_LISTENERS) {
             try {
-                listener.accept(snapshot.file(), snapshot.content());
+                listener.accept(file, content);
             } catch (RuntimeException failure) {
                 IrisLogging.error("Failed to acknowledge a manual locale reload: "
                         + failure.getClass().getSimpleName()
@@ -434,36 +455,205 @@ public final class IrisLanguage {
             String locale,
             LocaleHotloadSnapshot snapshot
     ) throws Exception {
-        List<LocaleOverlay> overlays = new ArrayList<>(1);
+        List<LocaleOverlay> overlays = new ArrayList<>(2);
         if (!snapshot.missing()) {
             overlays.add(parseOverlay(snapshot.file().getPath(), locale, snapshot.content()));
+            overlays.addAll(baseOverlays(root, locale, snapshot.content()));
         }
         return new LocalizationCandidate(CATALOG, overlays, PluralSelector.oneOther());
     }
 
-    static RemoteLanguageCatalog remote(File root) {
+    private static List<LocaleOverlay> baseOverlays(File root, String locale, String content) throws IOException {
+        List<LocaleOverlay> overlays = new ArrayList<>(1);
+        Set<String> visited = new HashSet<>();
+        visited.add(comparableLocale(locale));
+        LanguageMeta meta = metaFromContent(locale, content);
+        int depth = 0;
+        while (meta.base().isPresent() && depth < MAXIMUM_BASE_DEPTH) {
+            String base = meta.base().get();
+            if (!LOCALE_NAME.matcher(base).matches() || !visited.add(comparableLocale(base))
+                    || LanguageDirectory.sameLocale(base, CATALOG.englishLocale())) {
+                break;
+            }
+            File baseFile = overrideFile(root, base);
+            if (!Files.isRegularFile(baseFile.toPath(), LinkOption.NOFOLLOW_LINKS)) {
+                break;
+            }
+            String baseContent = LanguageDirectory.readContent(baseFile.toPath());
+            overlays.add(parseOverlay(baseFile.getPath(), base, baseContent));
+            meta = metaFromContent(base, baseContent);
+            depth++;
+        }
+        return overlays;
+    }
+
+    private static LanguageMeta metaFromContent(String locale, String content) {
+        try {
+            return LanguageMeta.parse(content).withoutSelfBase(locale);
+        } catch (IOException invalid) {
+            return LanguageMeta.empty();
+        }
+    }
+
+    private static String comparableLocale(String locale) {
+        return locale.replace('-', '_').toLowerCase(Locale.ROOT);
+    }
+
+    static LanguageUpstream upstream(File root) {
         Path path = root.toPath().toAbsolutePath().normalize();
-        RemoteLanguageCatalog current = remote;
-        if (current != null && path.equals(remoteRoot)) {
+        LanguageUpstream current = upstream;
+        if (current != null && path.equals(current.root())) {
             return current;
         }
-        synchronized (IrisLanguage.class) {
-            if (remote != null && path.equals(remoteRoot)) {
-                return remote;
+        synchronized (UPSTREAM_LOCK) {
+            current = upstream;
+            if (current != null && path.equals(current.root())) {
+                return current;
             }
-            if (remote != null) {
-                remote.close();
+            if (current != null) {
+                current.close();
             }
-            remote = RemoteLanguageCatalog.load(new RemoteLanguageCatalog.Options(
+            LanguageUpstream created = createUpstream(path);
+            upstream = created;
+            return created;
+        }
+    }
+
+    static void useLanguageSource(URI apiRoot, URI rawRoot) {
+        LanguageUpstream current;
+        synchronized (UPSTREAM_LOCK) {
+            sourceApiRoot = Objects.requireNonNull(apiRoot, "apiRoot");
+            sourceRawRoot = Objects.requireNonNull(rawRoot, "rawRoot");
+            current = upstream;
+            upstream = null;
+        }
+        if (current != null) {
+            current.close();
+        }
+    }
+
+    private static LanguageUpstream createUpstream(Path root) {
+        LanguageDirectory directory = new LanguageDirectory(root.resolve("languages"));
+        try {
+            LanguageSourceManifest manifest = LanguageSourceManifest.load(IrisLanguage.class.getClassLoader(), MANIFEST_RESOURCE);
+            GitHubLanguageSource source = new GitHubLanguageSource(manifest, "Iris", sourceApiRoot, sourceRawRoot);
+            LanguageUpstreamSync sync = new LanguageUpstreamSync(new LanguageUpstreamSync.Options(
                     "Iris",
-                    URI.create("https://raw.githubusercontent.com/VolmitSoftware/Iris/"),
-                    "core/src/main/resources/languages",
-                    ".toml",
-                    "iris-language-source.properties",
-                    IrisLanguage.class.getClassLoader()
+                    CATALOG,
+                    directory,
+                    manifest,
+                    source,
+                    new LanguageUpstreamStore(directory, manifest),
+                    IrisLanguage::englishReference,
+                    IrisLanguage::validateDownload,
+                    IrisLanguage::commitUpstream,
+                    IrisLanguage::noteUpstreamWrite,
+                    IrisLanguage::applyUpstream,
+                    Logger.getLogger("Iris")
             ));
-            remoteRoot = path;
-            return remote;
+            return new LanguageUpstream(root, directory, manifest, sync);
+        } catch (RuntimeException failure) {
+            IrisLogging.error("Iris language source is unavailable; English and installed language files remain active.");
+            IrisLogging.reportError(failure);
+            return new LanguageUpstream(root, directory, null, null);
+        }
+    }
+
+    public static CompletableFuture<LanguageUpstreamSync.SyncReport> checkUpstream() {
+        File root = dataFolder;
+        LanguageUpstream source = root == null ? null : upstream(root);
+        if (source == null || source.sync() == null) {
+            return CompletableFuture.completedFuture(LanguageUpstreamSync.SyncReport.failed(
+                    "The Iris language source is unavailable", System.currentTimeMillis()));
+        }
+        return source.sync().checkAsync().thenApply(IrisLanguage::logUpstreamReport);
+    }
+
+    public static String sourceDescription() {
+        File root = dataFolder;
+        LanguageUpstream source = root == null ? null : upstream(root);
+        if (source == null || source.manifest() == null) {
+            return "unavailable";
+        }
+        return source.manifest().repository() + "@" + source.manifest().branch();
+    }
+
+    public static Optional<LanguageUpstreamSync.Status> upstreamStatus() {
+        File root = dataFolder;
+        LanguageUpstream source = root == null ? null : upstream(root);
+        return source == null || source.sync() == null ? Optional.empty() : Optional.of(source.sync().status());
+    }
+
+    public static String debugReport() {
+        StringBuilder report = new StringBuilder("Language: ").append(activeLocale)
+                .append(" (source ").append(sourceDescription()).append(')');
+        Optional<LanguageUpstreamSync.Status> status = upstreamStatus();
+        if (status.isEmpty()) {
+            return report.append("\n  Upstream sync: unavailable").toString();
+        }
+        LanguageUpstreamSync.Status current = status.get();
+        report.append("\n  Revision: ").append(current.revision().orElse("none"));
+        report.append("\n  Last check: ").append(timestamp(current.lastCheckMillis()));
+        report.append("\n  Last stored check: ").append(timestamp(current.checkedMillis()));
+        report.append("\n  Last error: ").append(current.lastError().orElse("none"));
+        if (current.checking()) {
+            report.append("\n  Check in progress");
+        }
+        return report.toString();
+    }
+
+    private static String timestamp(long millis) {
+        return millis == 0L ? "never" : Instant.ofEpochMilli(millis).toString();
+    }
+
+    private static LanguageUpstreamSync.SyncReport logUpstreamReport(LanguageUpstreamSync.SyncReport report) {
+        String revision = report.revision().map(sha -> sha.substring(0, Math.min(7, sha.length()))).orElse("unknown");
+        for (String locale : report.changedLocales()) {
+            LanguageCatalogMerge.MergeResult result = report.merged().get(locale);
+            String source = locale.equals(CATALOG.englishLocale())
+                    ? "the built-in catalog" : sourceDescription() + " (" + revision + ")";
+            IrisLogging.info("Updated Iris language " + locale + " from " + source + ": " + result.summary() + ".");
+        }
+        if (report.coolingDown()) {
+            IrisLogging.info("Iris language source " + sourceDescription() + " was checked recently; the next check is allowed in "
+                    + report.cooldownRemaining() + ".");
+        } else if (report.failure().isEmpty() && report.changedLocales().isEmpty() && report.failures().isEmpty()
+                && report.revision().isPresent()) {
+            IrisLogging.info("Iris languages match " + sourceDescription() + " (" + revision + ").");
+        }
+        return report;
+    }
+
+    private static <T> T commitUpstream(LanguageUpstreamSync.CommitAction<T> action) throws IOException {
+        PluginLanguageService current = selections;
+        if (current == null) {
+            return action.apply();
+        }
+        return current.commitUpdate(action::apply);
+    }
+
+    private static void noteUpstreamWrite(Path file, String content) {
+        notifyManualReload(file.toFile().getAbsoluteFile(), content);
+    }
+
+    private static void applyUpstream(String locale, String content, LanguageCatalogMerge.MergeResult result)
+            throws Exception {
+        File root = dataFolder;
+        if (root == null) {
+            return;
+        }
+        File file = overrideFile(root, locale);
+        LocaleHotloadSnapshot source = LocaleHotloadSnapshot.present(
+                file, locale, content, sha256(content.getBytes(StandardCharsets.UTF_8)));
+        LocalizationSnapshot prepared = LocalizationSnapshot.create(loadCandidate(root, locale, source));
+        synchronized (SNAPSHOT_LOCK) {
+            if (root.equals(dataFolder) && locale.equals(activeLocale)) {
+                MANAGER.install(prepared);
+            }
+        }
+        PluginLanguageService current = selections;
+        if (current != null && root.equals(dataFolder)) {
+            current.cache(locale, prepared);
         }
     }
 
@@ -491,11 +681,15 @@ public final class IrisLanguage {
         if (current != null) {
             current.close();
         }
-        RemoteLanguageCatalog currentRemote = remote;
-        remote = null;
-        remoteRoot = null;
-        if (currentRemote != null) {
-            currentRemote.close();
+        METAS.clear();
+        PENDING_INSTALLS.clear();
+        LanguageUpstream currentUpstream;
+        synchronized (UPSTREAM_LOCK) {
+            currentUpstream = upstream;
+            upstream = null;
+        }
+        if (currentUpstream != null) {
+            currentUpstream.close();
         }
     }
 
@@ -508,17 +702,58 @@ public final class IrisLanguage {
         locales.add(CATALOG.englishLocale());
         File root = dataFolder;
         if (root != null) {
-            locales.addAll(remote(root).availableLocales());
-            File[] files = new File(root, "languages").listFiles();
-            if (files != null) {
-                for (File file : files) {
-                    if (file.isFile() && isLanguageFile(file)) {
-                        locales.add(file.getName().substring(0, file.getName().length() - 5));
-                    }
-                }
+            LanguageUpstream source = upstream(root);
+            if (source.manifest() != null) {
+                locales.addAll(source.manifest().locales());
+            }
+            try {
+                locales.addAll(source.directory().scan());
+            } catch (IOException failure) {
+                IrisLogging.error("Could not list the Iris language files in " + source.directory().root() + ".");
+                IrisLogging.reportError(failure);
             }
         }
         return Set.copyOf(locales);
+    }
+
+    public static String displayName(String locale) {
+        String normalized = locale == null ? "" : locale.trim();
+        return meta(normalized).name().or(() -> VolmitLocales.displayName(normalized)).orElse(normalized);
+    }
+
+    public static String metaName(String locale) {
+        return meta(locale).name().orElse(null);
+    }
+
+    public static LanguageMeta meta(String locale) {
+        File folder = overrideFolder();
+        String normalized = locale == null ? "" : locale.trim();
+        if (folder == null || !LOCALE_NAME.matcher(normalized).matches()) {
+            return LanguageMeta.empty();
+        }
+        Path file = folder.toPath().resolve(normalized + ".toml").toAbsolutePath().normalize();
+        BasicFileAttributes attributes;
+        try {
+            attributes = Files.readAttributes(file, BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
+        } catch (IOException missing) {
+            METAS.remove(normalized);
+            return LanguageMeta.empty();
+        }
+        CachedMeta cached = METAS.get(normalized);
+        if (cached != null && cached.file().equals(file) && cached.modified().equals(attributes.lastModifiedTime())
+                && cached.size() == attributes.size()) {
+            return cached.meta();
+        }
+        LanguageMeta meta = LanguageMeta.empty();
+        if (attributes.isRegularFile() && attributes.size() <= MAX_LOCALE_BYTES) {
+            try {
+                meta = LanguageMeta.parse(LanguageDirectory.readContent(file)).withoutSelfBase(normalized);
+            } catch (IOException invalid) {
+                IrisLogging.debug("Ignoring unreadable [meta] in " + file + ": " + invalid.getMessage());
+            }
+        }
+        METAS.put(normalized, new CachedMeta(file, attributes.lastModifiedTime(), attributes.size(), meta));
+        return meta;
     }
 
     public static String text(UUID player, MessageKey key, MessageArgs arguments) {
@@ -536,15 +771,10 @@ public final class IrisLanguage {
 
     private static LocalizationSnapshot prepareLocale(String locale) throws Exception {
         File root = dataFolder;
-        createEnglishLanguageIfMissing(root);
+        ensureEnglish(root);
         File file = overrideFile(root, locale);
         if (!CATALOG.englishLocale().equals(locale) && !Files.exists(file.toPath(), LinkOption.NOFOLLOW_LINKS)) {
-            try {
-                remote(root).readOrInstall(locale, file.toPath(), IrisLanguage::validateDownload);
-            } catch (Exception failure) {
-                IrisLogging.error("Could not install Iris language " + locale + "; using English.");
-                IrisLogging.reportError(failure);
-            }
+            installMissingLocale(root, locale, file);
         }
         if (!CATALOG.englishLocale().equals(locale)) {
             refreshLanguageGuide(file, locale);
@@ -618,27 +848,59 @@ public final class IrisLanguage {
         }
     }
 
+    private static void installMissingLocale(File root, String locale, File file) throws IOException {
+        LanguageUpstream source = upstream(root);
+        if (source.manifest() == null || !source.manifest().contains(locale)) {
+            createCustomLanguage(file, locale);
+            return;
+        }
+        if (source.sync() == null) {
+            throw new IOException("Iris language " + locale + " is not installed and the language source is unavailable");
+        }
+        IrisLogging.info("Installing Iris language " + locale + " from " + sourceDescription() + "...");
+        source.sync().install(locale);
+        IrisLogging.info("Installed Iris language " + locale + " to " + file.toPath().toAbsolutePath().normalize() + ".");
+    }
+
+    private static void createCustomLanguage(File file, String locale) throws IOException {
+        if (Files.exists(file.toPath(), LinkOption.NOFOLLOW_LINKS)) {
+            return;
+        }
+        String rendered = IrisLanguageGuide.englishHeader(locale) + "\n" + LanguageReferenceRenderer.render(
+                CATALOG, List.of(), LanguageMeta.of(locale, CATALOG.englishLocale()));
+        Files.createDirectories(file.toPath().getParent());
+        AtomicFileIO.writeString(file.toPath(), rendered);
+        notifyManualReload(file.getAbsoluteFile(), rendered);
+    }
+
     private static void requestConfiguredLocale() {
         String locale = activeLocale;
-        if (CATALOG.englishLocale().equals(locale)) {
-            return;
-        }
         File root = dataFolder;
-        if (root == null) {
+        if (root == null || CATALOG.englishLocale().equals(locale)) {
             return;
         }
-        remote(root).requestInstallIfMissing(locale, overrideFile(root, locale).toPath(), IrisLanguage::validateDownload, result -> {
-            if (!result.successful()) {
-                IrisLogging.error("Failed to download Iris locale " + locale + ".");
-                IrisLogging.reportError(result.failure());
+        LanguageUpstream source = upstream(root);
+        if (source.sync() == null || !source.manifest().contains(locale)
+                || Files.exists(overrideFile(root, locale).toPath(), LinkOption.NOFOLLOW_LINKS)
+                || !PENDING_INSTALLS.add(locale)) {
+            return;
+        }
+        source.sync().installAsync(locale).whenComplete((content, failure) -> {
+            PENDING_INSTALLS.remove(locale);
+            if (failure != null) {
+                IrisLogging.error("Failed to download Iris locale " + locale + " from " + sourceDescription() + ".");
+                IrisLogging.reportError(failure);
                 return;
             }
-            synchronized (IrisLanguage.class) {
-                if (root.equals(dataFolder) && locale.equals(activeLocale)) {
-                    reloadResolved(root, locale, false);
-                }
-            }
+            IrisLogging.info("Installed Iris language " + locale + " from " + sourceDescription() + ".");
+            reloadInstalledLocale(root, locale);
         });
+    }
+
+    private static synchronized void reloadInstalledLocale(File root, String locale) {
+        if (root.equals(dataFolder) && locale.equals(activeLocale)) {
+            reloadResolved(root, locale, false);
+        }
     }
 
     static void validateDownload(String locale, String raw) {
@@ -659,12 +921,18 @@ public final class IrisLanguage {
     }
 
     static String englishReference() {
+        String reference = englishReference;
+        if (reference != null) {
+            return reference;
+        }
         Map<String, MessageValue> values = new LinkedHashMap<>();
         for (MessageKey key : CATALOG.keys()) {
             values.put(key.id(), key.englishValue());
         }
-        return IrisLanguageGuide.englishHeader(CATALOG.englishLocale()) + "\n"
+        String rendered = IrisLanguageGuide.englishHeader(CATALOG.englishLocale()) + "\n"
                 + TomlLanguageWriter.render(values, List.of());
+        englishReference = rendered;
+        return rendered;
     }
 
     private static void refreshLanguageGuide(File file, String locale) {
@@ -686,52 +954,51 @@ public final class IrisLanguage {
         if (root == null || !GUIDE_FETCHES.add(locale)) {
             return;
         }
-        Path cache = IrisLanguageGuide.guideCache(file);
-        Path source = cache.resolve(locale + ".source.toml");
-        try {
-            Files.deleteIfExists(source);
-        } catch (IOException failure) {
-            IrisLogging.debug("Language guide source " + source + " could not be cleared: " + failure.getMessage());
+        LanguageSourceManifest manifest = upstream(root).manifest();
+        if (manifest == null) {
+            IrisLogging.debug("Language guide for " + locale + " has no language source");
             return;
         }
-        remote(root).requestInstallIfMissing(locale, source, IrisLanguage::validateDownload, result -> {
+        GitHubLanguageSource source = new GitHubLanguageSource(manifest, "Iris", sourceApiRoot, sourceRawRoot);
+        Path cache = IrisLanguageGuide.guideCache(file);
+        CompletableFuture.runAsync(() -> {
             try {
-                if (result.successful()
-                        && IrisLanguageGuide.cacheUpstream(cache, locale, Files.readString(source, StandardCharsets.UTF_8), resources)) {
+                String revision = source.latestRevision(null).revision().orElseThrow(() ->
+                        new IOException("GitHub reported no language revision"));
+                String content = LanguageDirectory.decode(source.fetch(manifest.canonical(locale), revision));
+                if (IrisLanguageGuide.cacheUpstream(cache, locale, content, resources)) {
                     IrisLanguageGuide.refresh(file, locale, resources);
                 } else {
                     IrisLogging.debug("Language guide for " + locale + " is not available upstream for this build");
                 }
             } catch (IOException failure) {
                 IrisLogging.debug("Language guide for " + locale + " could not be cached: " + failure.getMessage());
-            } finally {
-                try {
-                    Files.deleteIfExists(source);
-                } catch (IOException ignored) {
-                    IrisLogging.debug("Language guide source " + source + " could not be removed");
-                }
             }
         });
     }
 
-    private static void createEnglishLanguageIfMissing(File root) throws IOException {
-        Path target = overrideFile(Objects.requireNonNull(root, "Language data folder"), CATALOG.englishLocale()).toPath();
-        if (Files.exists(target, LinkOption.NOFOLLOW_LINKS)) {
-            refreshLanguageGuide(target.toFile(), CATALOG.englishLocale());
-            return;
-        }
-        Files.createDirectories(target.getParent());
-        Path temporary = Files.createTempFile(target.getParent(), "en_US-", ".toml.tmp");
-        try {
-            Files.writeString(temporary, englishReference(), StandardCharsets.UTF_8);
-            try {
-                Files.move(temporary, target);
-            } catch (FileAlreadyExistsException existing) {
+    private static void ensureEnglish(File root) throws IOException {
+        File english = overrideFile(Objects.requireNonNull(root, "Language data folder"), CATALOG.englishLocale());
+        LanguageUpstream source = upstream(root);
+        if (source.sync() == null) {
+            if (!Files.exists(english.toPath(), LinkOption.NOFOLLOW_LINKS)) {
+                Files.createDirectories(english.toPath().getParent());
+                AtomicFileIO.writeString(english.toPath(), englishReference());
+                notifyManualReload(english, englishReference());
                 return;
             }
-        } finally {
-            Files.deleteIfExists(temporary);
+        } else {
+            try {
+                source.sync().mergeEnglish().filter(LanguageCatalogMerge.MergeResult::changed)
+                        .ifPresent(result -> IrisLogging.info("Updated Iris language " + CATALOG.englishLocale()
+                                + " from the built-in catalog: " + result.summary() + "."));
+            } catch (IOException failure) {
+                throw failure;
+            } catch (Exception failure) {
+                throw new IOException("Could not refresh the Iris English language file", failure);
+            }
         }
+        refreshLanguageGuide(english, CATALOG.englishLocale());
     }
 
     private static String render(ResolvedText resolved) {
@@ -1007,5 +1274,17 @@ public final class IrisLanguage {
     }
 
     private record SnapshotCapture(LocaleHotloadSnapshot snapshot, Exception failure) {
+    }
+
+    private record CachedMeta(Path file, FileTime modified, long size, LanguageMeta meta) {
+    }
+
+    record LanguageUpstream(Path root, LanguageDirectory directory, LanguageSourceManifest manifest,
+                            LanguageUpstreamSync sync) {
+        void close() {
+            if (sync != null) {
+                sync.close();
+            }
+        }
     }
 }

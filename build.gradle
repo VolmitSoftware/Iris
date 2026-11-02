@@ -53,6 +53,7 @@ plugins {
 apply plugin: 'art.arcane.volmit-packaging'
 apply from: file('gradle/runtime-relocations.gradle')
 apply from: file('gradle/volmlib-stamp.gradle')
+apply from: file('gradle/language-source.gradle')
 
 group = 'art.arcane'
 version = providers.gradleProperty('irisVersion').getOrElse('4.3.7')
@@ -89,6 +90,7 @@ Closure<String> irisArtifactName = { String platform, String targetVersion ->
 String bukkitArtifactName = irisArtifactName('CraftBukkit', bukkitMinecraftRange)
 Map<String, String> runtimeDownloadRelocations = (Map<String, String>) ext.runtimeDownloadRelocations
 List<String> runtimeDownloadedPrefixes = (List<String>) ext.runtimeDownloadedPrefixes
+Map<String, String> languageSourceManifest = (Map<String, String>) ext.languageSourceManifest
 apply plugin: ApiGenerator
 
 List<String> nmsBindings = ['v26_2_R1', 'v26_3_R1']
@@ -556,13 +558,15 @@ tasks.register('verifyBukkitArtifact') {
     inputs.files(nativeRuntime)
     inputs.files(commandHandlerSources)
     inputs.files(mantleComponentSources)
+    inputs.property('languageSourceManifest', languageSourceManifest)
     doLast {
         File archive = artifact.get().asFile
         BukkitArtifactVerifier.verify(
                 archive,
                 requiredBukkitArtifactEntries,
                 16,
-                runtimeDownloadedPrefixes)
+                runtimeDownloadedPrefixes,
+                languageSourceManifest)
         NativeRuntimeArtifacts.verify(archive, nativeRuntimeModules, embeddedNatives())
         NoiseNativeArtifacts.verify(archive)
         logger.lifecycle("Verified ${archive.name} packaging and class reference graph")
@@ -1008,6 +1012,16 @@ tasks.withType(PackedJar).configureEach {
     doLast { PackedJar task ->
         NativeRuntimeArtifacts.verifyPacked(task.outputJar.get().asFile, nativeRuntimeModules, embeddedNatives())
     }
+}
+
+tasks.register('buildSwiftSwamp', Copy) {
+    group = 'development'
+    description = 'Builds, verifies, and stages Iris in the workspace BUILDS directory.'
+    dependsOn('buildBukkit')
+    outputs.upToDateWhen { false }
+    from(tasks.named('packedJar', PackedJar).flatMap { PackedJar archive -> archive.outputJar })
+    into(providers.gradleProperty('buildsDirectory').orElse('../BUILDS'))
+    rename { String ignored -> 'Iris.jar' }
 }
 
 apply from: file('gradle/multiplexor.gradle')

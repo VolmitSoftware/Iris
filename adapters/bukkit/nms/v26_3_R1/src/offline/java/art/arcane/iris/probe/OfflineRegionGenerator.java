@@ -219,7 +219,11 @@ public final class OfflineRegionGenerator {
     }
 
     private static void force(Path path) throws IOException {
-        try (FileChannel channel = FileChannel.open(path, Files.isDirectory(path)
+        boolean directory = Files.isDirectory(path);
+        if (directory && File.separatorChar == '\\') {
+            return;
+        }
+        try (FileChannel channel = FileChannel.open(path, directory
                 ? StandardOpenOption.READ : StandardOpenOption.WRITE)) {
             channel.force(true);
         }

@@ -16,6 +16,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.Arrays;
+import java.util.Locale;
 import java.util.Random;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.GZIPOutputStream;
@@ -23,6 +24,7 @@ import java.util.zip.GZIPOutputStream;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeFalse;
 
 public final class SavedTerrainStatusReaderTest {
     @Rule
@@ -47,6 +49,7 @@ public final class SavedTerrainStatusReaderTest {
 
     @Test
     public void observesAtomicReplacementOfAnOpenRegion() throws Exception {
+        assumeFalse(System.getProperty("os.name").toLowerCase(Locale.ROOT).contains("win"));
         Path world = temporaryFolder.newFolder().toPath();
         Path replacement = temporaryFolder.newFolder().toPath();
         writeChunk(world, -1, -2, orderedRoot(), 2, false);

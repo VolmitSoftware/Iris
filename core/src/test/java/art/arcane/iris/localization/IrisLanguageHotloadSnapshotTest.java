@@ -1,5 +1,6 @@
 package art.arcane.iris.localization;
 
+import art.arcane.volmlib.util.localization.LanguageDirectory;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -56,9 +57,9 @@ public class IrisLanguageHotloadSnapshotTest {
     }
 
     @Test
-    public void snapshotsRejectFilesLargerThanTwoMebibytes() throws Exception {
+    public void snapshotsRejectFilesOverTheLanguageSizeLimit() throws Exception {
         File language = temporaryFolder.newFile("en_US.toml");
-        Files.write(language.toPath(), new byte[2 * 1024 * 1024 + 1]);
+        Files.write(language.toPath(), new byte[(int) LanguageDirectory.MAXIMUM_BYTES + 1]);
 
         assertThrows(IllegalArgumentException.class, () -> IrisLanguage.captureHotloadSnapshot(language, "en_US"));
     }

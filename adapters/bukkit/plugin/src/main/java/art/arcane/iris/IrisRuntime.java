@@ -101,6 +101,7 @@ import art.arcane.iris.world.safeguard.RuntimeLockNotice;
 import art.arcane.iris.world.task.J;
 import art.arcane.iris.world.tree.TreeFellerSVC;
 import art.arcane.iris.world.tree.TreeSVC;
+import art.arcane.volmlib.util.diagnostics.DebugDumpContributor;
 import art.arcane.volmlib.integration.ReloadAware;
 import art.arcane.volmlib.nativelib.terrain.ServerShutdownBoundary;
 import art.arcane.volmlib.util.bukkit.papi.PlaceholderRegistration;
@@ -661,10 +662,11 @@ public final class IrisRuntime implements IrisPluginRuntime {
         IrisLanguage.initialize();
         debugDump = BukkitDebugDump.create(plugin, new BukkitDebugDump.Options(
                 () -> true,
-                () -> IrisSafeguard::debugReport));
+                IrisRuntime::captureDebugReport));
         languageSwitcher = BukkitLanguageSwitcher.register(plugin, IrisLanguage.selections(),
                 new BukkitLanguageSwitcher.Options("iris", "iris.all",
-                        DirectorMiniMenu.Theme.irisGreen(), IrisLanguage.directorResolver(), IrisLanguage.editorOptions()));
+                        DirectorMiniMenu.Theme.irisGreen(), IrisLanguage.directorResolver(), IrisLanguage.editorOptions(),
+                        null, IrisLanguage::checkUpstream, IrisLanguage::metaName));
         updateNotifier = new IrisUpdateNotifier(plugin);
         PaperLibBootstrap.install();
         SimdSupport.install();
@@ -803,7 +805,13 @@ public final class IrisRuntime implements IrisPluginRuntime {
             IrisToolbelt.retainMantleDataForSlice(TreeBlockMaterial.class.getCanonicalName());
         });
         timings.mark("startupTasks");
+        IrisLanguage.checkUpstream();
         timings.report();
+    }
+
+    private static DebugDumpContributor.Report captureDebugReport() {
+        String language = IrisLanguage.debugReport();
+        return () -> IrisSafeguard.debugReport() + "\n" + language;
     }
 
     private static final class EnableTimings {

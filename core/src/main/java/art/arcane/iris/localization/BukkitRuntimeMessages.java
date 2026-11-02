@@ -129,10 +129,6 @@ public final class BukkitRuntimeMessages {
             "iris.bukkit.runtime.commandpack.no_validation_result_run_iris_pack_validate",
             C.YELLOW + "No validation result for '" + "{pack}" + "'. Run /iris pack validate " + "{pack2}" + "."
     );
-    public static final TextKey COMMAND_PACK_VALIDATION_FAILED = TextKey.of(
-            "iris.bukkit.runtime.commandpack.validation_failed",
-            C.RED + "Validation of '" + "{name}" + "' failed: " + "{error}"
-    );
     public static final TextKey COMMAND_PACK_PACK_IS_LOADABLE_WARNINGS = TextKey.of(
             "iris.bukkit.runtime.commandpack.pack_is_loadable_warnings",
             C.GREEN + "Pack '" + "{packName}" + "' is loadable." + C.GRAY + " (warnings=" + "{size}" + ")"
@@ -440,26 +436,6 @@ public final class BukkitRuntimeMessages {
             "iris.bukkit.runtime.studiosvc.looking_package",
             "Looking for Package: " + "{type}"
     );
-    public static final TextKey STUDIO_S_V_C_FOUND_IRIS_FOLDER = TextKey.of(
-            "iris.bukkit.runtime.studiosvc.found_iris_folder",
-            "Found " + "{type}" + ".iris in " + "{WORKSPACENAME}" + " folder"
-    );
-    public static final TextKey STUDIO_S_V_C_FOUND_DIMENSION_FOLDER_REPACKAGING = TextKey.of(
-            "iris.bukkit.runtime.studiosvc.found_dimension_folder_repackaging",
-            "Found " + "{type}" + " dimension in " + "{WORKSPACENAME}" + " folder. Repackaging"
-    );
-    public static final TextKey STUDIO_S_V_C_CAN_T_FIND_DIMENSIONS_FOLDER_THIS_PACK_FAILED = TextKey.of(
-            "iris.bukkit.runtime.studiosvc.can_t_find_dimensions_folder_this_pack_failed",
-            "Can't find the " + "{name}" + " in the dimensions folder of this pack! Failed!"
-    );
-    public static final TextKey STUDIO_S_V_C_CAN_T_LOAD_DIMENSION_FAILED = TextKey.of(
-            "iris.bukkit.runtime.studiosvc.can_t_load_dimension_failed",
-            "Can't load the dimension! Failed!"
-    );
-    public static final TextKey STUDIO_S_V_C_TYPE_INSTALLED = TextKey.of(
-            "iris.bukkit.runtime.studiosvc.type_installed",
-            "{name}" + " type installed. "
-    );
     public static final TextKey STUDIO_S_V_C_FAILED_OPEN_STUDIO_WORLD = TextKey.of(
             "iris.bukkit.runtime.studiosvc.failed_open_studio_world",
             "Failed to open studio world: " + "{error}"
@@ -528,14 +504,6 @@ public final class BukkitRuntimeMessages {
             "iris.bukkit.runtime.objectstudiosaveservice.object_studio_save_failed",
             C.RED + "Object Studio: save failed for " + "{pack}" + "/" + "{key}" + " (" + "{error}" + ")"
     );
-    public static final TextKey IRIS_PROJECT_COULD_NOT_LOAD_DIMENSION = TextKey.of(
-            "iris.bukkit.runtime.irisproject.could_not_load_dimension",
-            "Could not load dimension \"" + "{value}" + "\""
-    );
-    public static final TextKey IRIS_PROJECT_COULD_NOT_GET_DIMENSION_LOADER = TextKey.of(
-            "iris.bukkit.runtime.irisproject.could_not_get_dimension_loader",
-            "Could not get dimension loader"
-    );
     public static final TextKey IRIS_PROJECT_STUDIO_OPEN_FAILED = TextKey.of(
             "iris.bukkit.runtime.irisproject.studio_open_failed",
             C.RED + "Studio open failed: " + "{error}"
@@ -547,10 +515,6 @@ public final class BukkitRuntimeMessages {
     public static final TextKey IRIS_PROJECT_STUDIO_READY = TextKey.of(
             "iris.bukkit.runtime.irisproject.studio_ready",
             C.GREEN + "Studio ready " + C.GRAY + "(" + "{value}" + ")"
-    );
-    public static final TextKey IRIS_PROJECT_STUDIO = TextKey.of(
-            "iris.bukkit.runtime.irisproject.studio",
-            C.GOLD + "Studio " + C.AQUA + "{bar}" + " " + C.YELLOW + "{percent}" + "%" + C.GRAY + " " + "{currentStage}" + C.DARK_GRAY + " (" + "{value}" + ")"
     );
     public static final TextKey IRIS_PROJECT_SERIALIZING_OBJECTS = TextKey.of(
             "iris.bukkit.runtime.irisproject.serializing_objects",
@@ -616,18 +580,6 @@ public final class BukkitRuntimeMessages {
             "iris.bukkit.runtime.serverconfigurator.you_need_restart_your_server_use_these_packs",
             "You need to restart your server to use these packs."
     );
-    public static final TextKey VIRTUAL_COMMAND_MESSAGE = TextKey.of(
-            "iris.bukkit.runtime.virtualcommand.message",
-            "- " + C.WHITE + "{i}"
-    );
-    public static final TextKey VIRTUAL_COMMAND_INSUFFICIENT_PERMISSIONS = TextKey.of(
-            "iris.bukkit.runtime.virtualcommand.insufficient_permissions",
-            "Insufficient Permissions"
-    );
-    public static final TextKey MORTAR_COMMAND_PARAMETERS_IGNORED = TextKey.of(
-            "iris.bukkit.runtime.mortarcommand.parameters_ignored",
-            "Parameters Ignored: " + "{m}"
-    );
 
     private static final List<MessageKey> KEYS = List.of(
             COMMAND_PACK_PACKS_FOLDER_NOT_FOUND,
@@ -660,7 +612,6 @@ public final class BukkitRuntimeMessages {
             COMMAND_PACK_PATH_RESTORED,
             COMMAND_PACK_PATH_FILE,
             COMMAND_PACK_NO_VALIDATION_RESULT_RUN_IRIS_PACK_VALIDATE,
-            COMMAND_PACK_VALIDATION_FAILED,
             COMMAND_PACK_PACK_IS_LOADABLE_WARNINGS,
             COMMAND_PACK_PACK_IS_BROKEN,
             COMMAND_PACK_MESSAGE,
@@ -735,11 +686,6 @@ public final class BukkitRuntimeMessages {
             STUDIO_S_V_C_PACK_COPY_REQUIRES_ASYNC_THREAD,
             STUDIO_S_V_C_PACK_INSTALL_FAILED,
             STUDIO_S_V_C_LOOKING_PACKAGE,
-            STUDIO_S_V_C_FOUND_IRIS_FOLDER,
-            STUDIO_S_V_C_FOUND_DIMENSION_FOLDER_REPACKAGING,
-            STUDIO_S_V_C_CAN_T_FIND_DIMENSIONS_FOLDER_THIS_PACK_FAILED,
-            STUDIO_S_V_C_CAN_T_LOAD_DIMENSION_FAILED,
-            STUDIO_S_V_C_TYPE_INSTALLED,
             STUDIO_S_V_C_FAILED_OPEN_STUDIO_WORLD,
             STUDIO_S_V_C_CANNOT_OPEN_STUDIO_PACK_HAS_BLOCKING_ERRORS,
             STUDIO_S_V_C_MESSAGE,
@@ -757,12 +703,9 @@ public final class BukkitRuntimeMessages {
             OBJECT_STUDIO_SAVE_SERVICE_OBJECT_STUDIO_NO_TARGET_FILE,
             OBJECT_STUDIO_SAVE_SERVICE_OBJECT_STUDIO_SAVED,
             OBJECT_STUDIO_SAVE_SERVICE_OBJECT_STUDIO_SAVE_FAILED,
-            IRIS_PROJECT_COULD_NOT_LOAD_DIMENSION,
-            IRIS_PROJECT_COULD_NOT_GET_DIMENSION_LOADER,
             IRIS_PROJECT_STUDIO_OPEN_FAILED,
             IRIS_PROJECT_STUDIO_OPEN_FAILED_2,
             IRIS_PROJECT_STUDIO_READY,
-            IRIS_PROJECT_STUDIO,
             IRIS_PROJECT_SERIALIZING_OBJECTS,
             IRIS_PROJECT_WROTE_ANOTHER_OBJECTS,
             IRIS_PROJECT_PACKAGE_COMPILED,
@@ -778,10 +721,7 @@ public final class BukkitRuntimeMessages {
             IRIS_TOOLBELT_YOU_HAVE_BEEN_EVACUATED_FROM_THIS_WORLD,
             IRIS_TOOLBELT_YOU_HAVE_BEEN_EVACUATED_FROM_THIS_WORLD_2,
             SERVER_CONFIGURATOR_THERE_ARE_SOME_IRIS_PACKS_THAT_HAVE_CUSTOM_BIOMES_THEM,
-            SERVER_CONFIGURATOR_YOU_NEED_RESTART_YOUR_SERVER_USE_THESE_PACKS,
-            VIRTUAL_COMMAND_MESSAGE,
-            VIRTUAL_COMMAND_INSUFFICIENT_PERMISSIONS,
-            MORTAR_COMMAND_PARAMETERS_IGNORED
+            SERVER_CONFIGURATOR_YOU_NEED_RESTART_YOUR_SERVER_USE_THESE_PACKS
     );
 
     private BukkitRuntimeMessages() {

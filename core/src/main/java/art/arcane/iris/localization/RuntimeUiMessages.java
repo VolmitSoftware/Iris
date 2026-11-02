@@ -31,22 +31,10 @@ public final class RuntimeUiMessages {
     public static final TextKey ENGINE_HOTLOADED = TextKey.of("iris.runtime.engine.hotloaded", "Engine Hotloaded");
     public static final TextKey JOB_COMPLETED = TextKey.of("iris.runtime.job.completed", "Completed {job} in {duration}");
     public static final TextKey JOB_SCANNING_SELECTION = TextKey.of("iris.runtime.job.scanning_selection", "Scanning Selection");
-    public static final TextKey JOB_LOADING_CHUNKS = TextKey.of("iris.runtime.job.loading_chunks", "Loading Chunks");
     public static final TextKey JOB_SEARCHED_CHUNKS = TextKey.of("iris.runtime.job.searched_chunks", "Searched {chunks} Chunks");
-    public static final TextKey JOB_COMPILE = TextKey.of("iris.runtime.job.compile", "Compile");
     public static final TextKey JOB_SAVING_OBJECT = TextKey.of("iris.runtime.job.saving_object", "Saving Object");
     public static final TextKey JOB_DOWNLOADING = TextKey.of("iris.runtime.job.downloading", "Downloading");
-    public static final TextKey JOB_EXTRACTING = TextKey.of("iris.runtime.job.extracting", "Extracting");
-    public static final TextKey JOB_INSTALLING = TextKey.of("iris.runtime.job.installing", "Installing");
-    public static final TextKey COMPILE_IOB_EMPTY = TextKey.of("iris.runtime.compile.iob_empty", "- IOB {file} has 0 blocks!");
-    public static final TextKey COMPILE_IOB_EMPTY_HOVER = TextKey.of("iris.runtime.compile.iob_empty_hover", "Error:\n{path}");
-    public static final TextKey COMPILE_IOB_NOT_3D = TextKey.of("iris.runtime.compile.iob_not_3d", "- IOB {file} is not 3D!");
-    public static final TextKey COMPILE_IOB_NOT_3D_HOVER = TextKey.of("iris.runtime.compile.iob_not_3d_hover", "Error:\n{path}\nThe width, height, or depth is zero (bad format)");
-    public static final TextKey COMPILE_JSON_ERROR = TextKey.of("iris.runtime.compile.json_error", "- JSON Error {file}");
-    public static final TextKey COMPILE_JSON_ERROR_HOVER = TextKey.of("iris.runtime.compile.json_error_hover", "Error:\n{path}\n{error}");
-    public static final TextKey COMPILE_LOADER_NOT_FOUND = TextKey.of("iris.runtime.compile.loader_not_found", "Can't find loader for {path}");
     public static final TextKey FORCED_DATAPACK_NAME = TextKey.of("iris.runtime.datapack.name", "Iris World Generation");
-    public static final TextKey PACK_ALREADY_EXISTS = TextKey.of("iris.runtime.pack.already_exists", "Pack already exists!");
     public static final TextKey TREE_DRY_SUFFIX = TextKey.of("iris.runtime.tree_plausibilize.dry_suffix", ", DRY");
     public static final TextKey TREE_SKIP_LOAD = TextKey.of("iris.runtime.tree_plausibilize.skip_load", "skip {object}: failed to load");
     public static final TextKey TREE_RESULT = TextKey.of("iris.runtime.tree_plausibilize.result", "{object}: +{wood} wood ({branches} branches), {converted} leaves->wood, ~{distances} distances");
@@ -82,7 +70,6 @@ public final class RuntimeUiMessages {
     public static final TextKey DUST_COLUMN_NONE = TextKey.of("iris.runtime.dust.column_none", "none within 64 (decorator or terrain, NOT an object stilt)");
     public static final TextKey DUST_COLUMN_ABOVE = TextKey.of("iris.runtime.dust.column.above", "{object} @Y={y} (above)");
     public static final TextKey DUST_COLUMN_BELOW = TextKey.of("iris.runtime.dust.column.below", "{object} @Y={y} (below)");
-    public static final TextKey DUST_SURFACE_BIOME = TextKey.of("iris.runtime.dust.surface_biome", "Surface biome: {biome}");
     public static final TextKey DUST_SURFACE_BIOME_DETAIL = TextKey.of("iris.runtime.dust.surface_biome_detail", "Surface biome: {biome} ({derivative})");
     public static final TextKey DUST_BIOME_AT_Y = TextKey.of("iris.runtime.dust.biome_at_y", "Biome @Y: {biome}");
     public static final TextKey DUST_CAVE_BIOME = TextKey.of("iris.runtime.dust.cave_biome", "Cave/Mantle biome: {biome}");
@@ -162,22 +149,10 @@ public final class RuntimeUiMessages {
             ENGINE_HOTLOADED,
             JOB_COMPLETED,
             JOB_SCANNING_SELECTION,
-            JOB_LOADING_CHUNKS,
             JOB_SEARCHED_CHUNKS,
-            JOB_COMPILE,
             JOB_SAVING_OBJECT,
             JOB_DOWNLOADING,
-            JOB_EXTRACTING,
-            JOB_INSTALLING,
-            COMPILE_IOB_EMPTY,
-            COMPILE_IOB_EMPTY_HOVER,
-            COMPILE_IOB_NOT_3D,
-            COMPILE_IOB_NOT_3D_HOVER,
-            COMPILE_JSON_ERROR,
-            COMPILE_JSON_ERROR_HOVER,
-            COMPILE_LOADER_NOT_FOUND,
             FORCED_DATAPACK_NAME,
-            PACK_ALREADY_EXISTS,
             TREE_DRY_SUFFIX,
             TREE_SKIP_LOAD,
             TREE_RESULT,
@@ -213,7 +188,6 @@ public final class RuntimeUiMessages {
             DUST_COLUMN_NONE,
             DUST_COLUMN_ABOVE,
             DUST_COLUMN_BELOW,
-            DUST_SURFACE_BIOME,
             DUST_SURFACE_BIOME_DETAIL,
             DUST_BIOME_AT_Y,
             DUST_CAVE_BIOME,

@@ -65,6 +65,7 @@ public class ModdedLanguageCommandsTest {
         try (MockedStatic<IrisLanguage> language = mockStatic(IrisLanguage.class)) {
             language.when(IrisLanguage::activeLocale).thenReturn("en_US");
             language.when(IrisLanguage::availableLocales).thenReturn(Set.of("de_DE"));
+            language.when(() -> IrisLanguage.displayName("de_DE")).thenReturn("German (Germany)");
             language.when(() -> IrisLanguage.plain(DirectorHelpMessages.BACK)).thenReturn("Back");
             CommandDispatcher<CommandSourceStack> dispatcher = new CommandDispatcher<>();
             new NativeCommandRegistration(dispatcher).register(NativeCommandRegistration.literal("iris").then(ModdedLanguageCommands.tree()));

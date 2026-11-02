@@ -128,10 +128,6 @@ public final class PackDownloadMessages {
             "iris.runtime.pack_download.no_extracted_files",
             "No files were extracted from the zip file."
     );
-    public static final TextKey HOME_DIRECTORY_ERROR = TextKey.of(
-            "iris.runtime.pack_download.home_directory_error",
-            "Error when finding home directory. Are there any non-text characters in the file name?"
-    );
     public static final TextKey INVALID_ARCHIVE_FORMAT = TextKey.of(
             "iris.runtime.pack_download.invalid_archive_format",
             "Invalid format. Missing root folder or too many folders!"
@@ -221,7 +217,6 @@ public final class PackDownloadMessages {
             UNPACKING,
             UNPACK_FAILED,
             NO_EXTRACTED_FILES,
-            HOME_DIRECTORY_ERROR,
             INVALID_ARCHIVE_FORMAT,
             NO_DIMENSION_FILE,
             CHECK_GITHUB,

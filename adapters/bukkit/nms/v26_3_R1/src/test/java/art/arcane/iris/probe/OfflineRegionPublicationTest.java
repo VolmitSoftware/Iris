@@ -6,6 +6,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.mockito.MockedStatic;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.channels.FileChannel;
 import java.nio.file.Files;
@@ -78,7 +79,7 @@ public final class OfflineRegionPublicationTest {
                     assertFalse(Files.exists(target));
                 } else {
                     OfflineRegionGenerator.publish(staged, target);
-                    assertEquals(List.of(data, nested, staged, output), forced);
+                    assertEquals(File.separatorChar == '\\' ? List.of(data) : List.of(data, nested, staged, output), forced);
                     assertEquals("checkpoint", Files.readString(target.resolve("world/data")));
                 }
             }

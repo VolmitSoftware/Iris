@@ -286,7 +286,8 @@ public class IrisLanguageTest {
     public void everyTranslatedGuideDescribesItsVariablesAndMatchesThePackagedGuide() throws Exception {
         Pattern definition = Pattern.compile("(?m)^#   \\{([A-Za-z][A-Za-z0-9_]*)}  (\\S[^\\r\\n]*)$");
         for (String locale : VolmitLocales.nonEnglish()) {
-            String source = Files.readString(ProjectPaths.moduleFile("src/main/resources/languages/" + locale + ".toml"));
+            String source = Files.readString(ProjectPaths.moduleFile("src/main/resources/languages/" + locale + ".toml"))
+                    .replace("\r\n", "\n");
             int bodyStart = source.indexOf("\n[") + 1;
             assertTrue(locale, bodyStart > 0);
             String header = source.substring(0, bodyStart);

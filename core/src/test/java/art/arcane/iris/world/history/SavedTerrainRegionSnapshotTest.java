@@ -10,6 +10,7 @@ import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileTime;
 import java.util.Arrays;
 
@@ -19,6 +20,8 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeFalse;
+import static org.junit.Assume.assumeTrue;
 
 public final class SavedTerrainRegionSnapshotTest {
     private static final int SECTOR_BYTES = 4_096;
@@ -29,6 +32,7 @@ public final class SavedTerrainRegionSnapshotTest {
 
     @Test
     public void extractsInternalAndExternalPayloadDescriptors() throws Exception {
+        assumeTrue(hasFileIdentity());
         byte[] bytes = new byte[4 * SECTOR_BYTES];
         ByteBuffer buffer = ByteBuffer.wrap(bytes);
         buffer.putInt(0, 2 << 8 | 1);
@@ -67,6 +71,7 @@ public final class SavedTerrainRegionSnapshotTest {
 
     @Test
     public void acceptsAnExactUnpaddedPayload() throws Exception {
+        assumeTrue(hasFileIdentity());
         byte[] bytes = region(2 << 8 | 1, 3, 3, HEADER_BYTES + 7);
         bytes[HEADER_BYTES + 5] = 10;
         bytes[HEADER_BYTES + 6] = 0;
@@ -78,6 +83,7 @@ public final class SavedTerrainRegionSnapshotTest {
 
     @Test
     public void reusesLargerBuffersWithoutAcceptingStalePayloadBytes() throws Exception {
+        assumeTrue(hasFileIdentity());
         byte[] larger = region(2 << 8 | 1, 5, 2, 4 * SECTOR_BYTES);
         ByteBuffer.wrap(larger).putInt(3 * SECTOR_BYTES, 1);
         larger[3 * SECTOR_BYTES + Integer.BYTES] = 2;
@@ -110,6 +116,7 @@ public final class SavedTerrainRegionSnapshotTest {
 
     @Test
     public void rejectsAtomicReplacementWithMatchingSizeAndTimestamp() throws Exception {
+        assumeTrue(hasFileIdentity());
         byte[] bytes = region(2 << 8 | 1, 1, 2, 3 * SECTOR_BYTES);
         Path file = writeRegion(bytes);
         SavedTerrainRegionSnapshot snapshot = SavedTerrainRegionSnapshot.read(file, bytes.length, new byte[0]).orElseThrow();
@@ -122,6 +129,7 @@ public final class SavedTerrainRegionSnapshotTest {
 
     @Test
     public void rejectsSameFilePayloadModificationAndTruncation() throws Exception {
+        assumeTrue(hasFileIdentity());
         byte[] bytes = region(2 << 8 | 1, 2, 2, 3 * SECTOR_BYTES);
         Path file = writeRegion(bytes);
         SavedTerrainRegionSnapshot snapshot = SavedTerrainRegionSnapshot.read(file, bytes.length, new byte[0]).orElseThrow();
@@ -142,6 +150,7 @@ public final class SavedTerrainRegionSnapshotTest {
 
     @Test
     public void validatesBothHeaderSectorsEvenWhenTimestampIsRestored() throws Exception {
+        assumeTrue(hasFileIdentity());
         for (int offset : new int[]{0, SECTOR_BYTES}) {
             byte[] bytes = region(2 << 8 | 1, 1, 2, 3 * SECTOR_BYTES);
             Path file = writeRegion(bytes);
@@ -158,6 +167,7 @@ public final class SavedTerrainRegionSnapshotTest {
 
     @Test
     public void rejectsInvalidAllocationsAndPayloadLengths() throws Exception {
+        assumeTrue(hasFileIdentity());
         int[][] cases = {
                 {0, 1, 2, 3 * SECTOR_BYTES},
                 {1 << 8 | 1, 1, 2, 3 * SECTOR_BYTES},
@@ -191,6 +201,17 @@ public final class SavedTerrainRegionSnapshotTest {
         Path link = directory.resolve("region-link");
         Files.createSymbolicLink(link, file);
         assertThrows(IOException.class, () -> SavedTerrainRegionSnapshot.read(link, HEADER_BYTES, new byte[0]));
+    }
+
+    @Test
+    public void readsNoSnapshotWithoutFileIdentity() throws Exception {
+        assumeFalse(hasFileIdentity());
+        byte[] bytes = region(2 << 8 | 1, 1, 2, 3 * SECTOR_BYTES);
+        assertTrue(SavedTerrainRegionSnapshot.read(writeRegion(bytes), bytes.length, new byte[0]).isEmpty());
+    }
+
+    private boolean hasFileIdentity() throws IOException {
+        return Files.readAttributes(temporaryFolder.getRoot().toPath(), BasicFileAttributes.class).fileKey() != null;
     }
 
     private Path writeRegion(byte[] bytes) throws IOException {

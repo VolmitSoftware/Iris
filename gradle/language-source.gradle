@@ -1,0 +1,39 @@
+String languageSourceRepository = providers.gradleProperty('languageSourceRepository').orElse('VolmitSoftware/Iris').get()
+String languageSourceBranch = providers.gradleProperty('languageSourceBranch').orElse(providers.provider {
+    try {
+        Process process = new ProcessBuilder('git', 'symbolic-ref', '--short', 'refs/remotes/origin/HEAD')
+                .directory(rootDir)
+                .redirectErrorStream(true)
+                .start()
+        String output = process.inputStream.text.trim()
+        if (process.waitFor() == 0 && output.startsWith('origin/')) {
+            return output.substring('origin/'.length())
+        }
+    } catch (IOException | InterruptedException ignored) {
+    }
+    return 'master'
+}).get()
+if (!(languageSourceRepository ==~ /[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+/)) {
+    throw new GradleException('languageSourceRepository must be a GitHub owner/repository')
+}
+if (!(languageSourceBranch ==~ /[A-Za-z0-9][A-Za-z0-9._\/-]{0,127}/) || languageSourceBranch.contains('..')) {
+    throw new GradleException('languageSourceBranch must be a Git branch name')
+}
+String languageSourcePath = 'core/src/main/resources/languages'
+List<File> languageSourceFiles = new ArrayList<>(new File(rootDir, languageSourcePath).listFiles({ File file ->
+    file.isFile() && file.name.endsWith('.toml')
+} as FileFilter) as List<File>)
+languageSourceFiles.sort { File left, File right -> left.name <=> right.name }
+List<String> languageSourceLocales = new ArrayList<>(languageSourceFiles.size())
+for (File languageSourceFile : languageSourceFiles) {
+    languageSourceLocales.add(languageSourceFile.name.substring(0, languageSourceFile.name.length() - '.toml'.length()))
+}
+
+ext.languageSourceFiles = languageSourceFiles
+ext.languageSourceManifest = [
+    'repository': languageSourceRepository,
+    'branch'    : languageSourceBranch,
+    'path'      : languageSourcePath,
+    'extension' : '.toml',
+    'locales'   : languageSourceLocales.join(',')
+] as LinkedHashMap<String, String>

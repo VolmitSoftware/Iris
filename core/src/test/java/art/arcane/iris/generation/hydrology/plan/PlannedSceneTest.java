@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.hydrology.plan;
 
+import art.arcane.iris.generation.hydrology.water.ConfluenceGrader;
 import art.arcane.iris.generation.hydrology.water.HydrologyTier;
 import art.arcane.iris.generation.hydrology.water.Pond;
 import art.arcane.iris.generation.hydrology.water.PondKind;
@@ -9,10 +10,13 @@ import art.arcane.iris.generation.hydrology.water.ReachStyle;
 import org.junit.AfterClass;
 import org.junit.Test;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.IntBinaryOperator;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class PlannedSceneTest {
     private static final long SEED = 1337L;
@@ -31,6 +35,38 @@ public class PlannedSceneTest {
     public void outletsAreConnected() {
         assertEquals("detached outlets on openFractal(1) with rainfall " + RAINFALL + " over 2x2 windows", List.of(),
                 WaterInvariants.detachedOutlets(openFractal()));
+    }
+
+    @Test
+    public void feedersAtALedInOutletsExitPoolBesideTheLeadIn() {
+        PlannedScene scene = openFractal();
+        Map<Long, Reach> byId = new HashMap<>();
+        for (Reach reach : scene.reaches()) {
+            byId.put(reach.id(), reach);
+        }
+        int junctions = 0;
+        int besideTheLeadIn = 0;
+        for (Reach feeder : scene.reaches()) {
+            Reach outlet = byId.get(feeder.downstreamId());
+            int last = feeder.xs().length - 1;
+            if (outlet == null || outlet.xs().length < 2 || outlet.xs()[1] != feeder.xs()[last] || outlet.zs()[1] != feeder.zs()[last]
+                    || !owner(feeder).equals(owner(outlet))) {
+                continue;
+            }
+            junctions++;
+            double arc = 0D;
+            for (int point = last - 1; point >= 0 && feeder.style()[point] != ReachStyle.POND_OUTLET; point--) {
+                arc += Math.hypot(feeder.xs()[point + 1] - feeder.xs()[point], feeder.zs()[point + 1] - feeder.zs()[point]);
+                float reach = feeder.halfWidth()[point] + ConfluenceGrader.POOL_MARGIN;
+                if (arc > ConfluenceGrader.POOL_CAP || edgeDistance(outlet, 0, feeder.xs()[point], feeder.zs()[point]) > reach) {
+                    break;
+                }
+                assertEquals(feeder + " point " + point + " in the pool of led-in outlet " + outlet, outlet.grade()[0], feeder.grade()[point]);
+                besideTheLeadIn += edgeDistance(outlet, 1, feeder.xs()[point], feeder.zs()[point]) > reach ? 1 : 0;
+            }
+        }
+        assertTrue("feeders joining a led-in outlet at its exit " + junctions, junctions > 0);
+        assertTrue("feeder points pooled only through an outlet's lead-in " + besideTheLeadIn, besideTheLeadIn > 0);
     }
 
     @Test
@@ -149,6 +185,20 @@ public class PlannedSceneTest {
             openFractal = PlannedScene.plan(SyntheticTerrain.openFractal(1L).withRainfall((x, z) -> RAINFALL), PlannedScene.packSettings(SEED), 2, 2);
         }
         return openFractal;
+    }
+
+    private static WindowKey owner(Reach reach) {
+        int last = reach.xs().length - 1;
+        return WindowKey.containing((int) Math.floor(reach.xs()[last]), (int) Math.floor(reach.zs()[last]));
+    }
+
+    private static double edgeDistance(Reach channel, int from, double x, double z) {
+        double nearest = Double.POSITIVE_INFINITY;
+        for (int segment = from; segment + 1 < channel.xs().length; segment++) {
+            double t = WaterInvariants.along(channel, segment, x, z);
+            nearest = Math.min(nearest, WaterInvariants.offset(channel, segment, t, x, z) - WaterInvariants.width(channel, segment, t));
+        }
+        return nearest;
     }
 
     private static Reach tributary(HydrologySettings settings, int[] from, int[] junction, float halfWidth, IntBinaryOperator grade) {

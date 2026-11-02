@@ -75,15 +75,15 @@ public final class ReachShaper {
         for (int index : order) {
             finish(drafts, drafts.get(index));
         }
+        for (int index = 0; index < sources.length; index++) {
+            if (leavesThroughALip(ponds, sources[index])) {
+                leadIn(drafts.get(index), ponds.get(sources[index]).mask());
+            }
+        }
         boolean[] touched = ConfluenceGrader.level(window, drafts, order);
         for (int index = 0; index < touched.length; index++) {
             if (touched[index]) {
                 restyle(drafts.get(index));
-            }
-        }
-        for (int index = 0; index < sources.length; index++) {
-            if (leavesThroughALip(ponds, sources[index])) {
-                leadIn(drafts.get(index), ponds.get(sources[index]).mask());
             }
         }
         List<Pond> linked = new ArrayList<>(ponds.size());

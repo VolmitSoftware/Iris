@@ -995,4 +995,14 @@ tasks.withType(PackedJar).configureEach {
     }
 }
 
+tasks.register('buildSwiftSwamp', Copy) {
+    group = 'development'
+    description = 'Builds, verifies, and stages Iris in the workspace BUILDS directory.'
+    dependsOn('buildBukkit')
+    outputs.upToDateWhen { false }
+    from(tasks.named('packedJar', PackedJar).flatMap { PackedJar archive -> archive.outputJar })
+    into(providers.gradleProperty('buildsDirectory').orElse('../BUILDS'))
+    rename { String ignored -> 'Iris.jar' }
+}
+
 apply from: file('gradle/multiplexor.gradle')

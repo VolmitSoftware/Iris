@@ -1,5 +1,6 @@
 package art.arcane.iris.platform.agent;
 
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.lang.foreign.Arena;
@@ -20,21 +21,26 @@ public class AttachSignalTest {
     private static final int SIGQUIT = 3;
     private static final int SIGTERM = 15;
     private static final long ACTION_BYTES = 256;
-    private static final MethodHandle SIGACTION = Linker.nativeLinker().downcallHandle(
-            Linker.nativeLinker().defaultLookup().find("sigaction").orElseThrow(),
-            FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.JAVA_INT, ValueLayout.ADDRESS, ValueLayout.ADDRESS));
+    private static MethodHandle sigaction;
+
+    @BeforeClass
+    public static void linkSigaction() {
+        assumeFalse(System.getProperty("os.name").toLowerCase(Locale.ROOT).contains("win"));
+        sigaction = Linker.nativeLinker().downcallHandle(
+                Linker.nativeLinker().defaultLookup().find("sigaction").orElseThrow(),
+                FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.JAVA_INT, ValueLayout.ADDRESS, ValueLayout.ADDRESS));
+    }
 
     @Test
     public void aConsoleThatResetsQuitGetsTheJvmHandlerBack() throws Throwable {
-        assumeFalse(System.getProperty("os.name").toLowerCase(Locale.ROOT).contains("win"));
         long jvmHandler = handler(SIGTERM);
         assertNotEquals(0L, jvmHandler);
         try (Arena arena = Arena.ofConfined()) {
             MemorySegment original = arena.allocate(ACTION_BYTES);
-            assertEquals(0, (int) SIGACTION.invokeExact(SIGQUIT, MemorySegment.NULL, original));
+            assertEquals(0, (int) sigaction.invokeExact(SIGQUIT, MemorySegment.NULL, original));
             try {
                 MemorySegment reset = arena.allocate(ACTION_BYTES);
-                assertEquals(0, (int) SIGACTION.invokeExact(SIGQUIT, reset, MemorySegment.NULL));
+                assertEquals(0, (int) sigaction.invokeExact(SIGQUIT, reset, MemorySegment.NULL));
                 assertEquals(0L, handler(SIGQUIT));
 
                 assertTrue(AttachSignal.restoreJvmHandler());
@@ -42,7 +48,7 @@ public class AttachSignalTest {
                 assertEquals(jvmHandler, handler(SIGQUIT));
                 assertFalse(AttachSignal.restoreJvmHandler());
             } finally {
-                assertEquals(0, (int) SIGACTION.invokeExact(SIGQUIT, original, MemorySegment.NULL));
+                assertEquals(0, (int) sigaction.invokeExact(SIGQUIT, original, MemorySegment.NULL));
             }
         }
     }
@@ -50,7 +56,7 @@ public class AttachSignalTest {
     private static long handler(int signal) throws Throwable {
         try (Arena arena = Arena.ofConfined()) {
             MemorySegment action = arena.allocate(ACTION_BYTES);
-            assertEquals(0, (int) SIGACTION.invokeExact(signal, MemorySegment.NULL, action));
+            assertEquals(0, (int) sigaction.invokeExact(signal, MemorySegment.NULL, action));
             return action.get(ValueLayout.JAVA_LONG, 0);
         }
     }

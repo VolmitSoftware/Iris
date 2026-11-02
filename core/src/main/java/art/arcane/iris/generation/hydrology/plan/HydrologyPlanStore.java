@@ -20,6 +20,9 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
@@ -32,6 +35,7 @@ public final class HydrologyPlanStore {
     private static final int MAX_PLAN_BYTES = 256 << 20;
     private static final int BUFFER = 1 << 16;
     private static final String RUN = UUID.randomUUID().toString().replace("-", "");
+    private static final ReadWriteLock[] FILE_LOCKS = fileLocks(64);
 
     private final HydrologySettings settings;
     private final Path directory;
@@ -82,6 +86,8 @@ public final class HydrologyPlanStore {
     }
 
     private static Optional<byte[]> read(Path file) {
+        Lock lock = fileLock(file).readLock();
+        lock.lock();
         try {
             if (!Files.isRegularFile(file, LinkOption.NOFOLLOW_LINKS) || Files.size(file) > MAX_FILE_BYTES) {
                 return Optional.empty();
@@ -92,6 +98,8 @@ public final class HydrologyPlanStore {
             }
         } catch (IOException failure) {
             return Optional.empty();
+        } finally {
+            lock.unlock();
         }
     }
 
@@ -113,11 +121,27 @@ public final class HydrologyPlanStore {
     }
 
     private static void move(Path staged, Path target) throws IOException {
+        Lock lock = fileLock(target).writeLock();
+        lock.lock();
         try {
             Files.move(staged, target, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
         } catch (AtomicMoveNotSupportedException unsupported) {
             Files.move(staged, target, StandardCopyOption.REPLACE_EXISTING);
+        } finally {
+            lock.unlock();
         }
+    }
+
+    private static ReadWriteLock fileLock(Path file) {
+        return FILE_LOCKS[Math.floorMod(file.hashCode(), FILE_LOCKS.length)];
+    }
+
+    private static ReadWriteLock[] fileLocks(int stripes) {
+        ReadWriteLock[] locks = new ReadWriteLock[stripes];
+        for (int index = 0; index < stripes; index++) {
+            locks[index] = new ReentrantReadWriteLock();
+        }
+        return locks;
     }
 
     private static void sweepStaged(Path directory) {

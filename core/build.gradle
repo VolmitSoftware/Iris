@@ -569,7 +569,7 @@ Closure<Void> registerPurityRatchet = { String taskName, String label, String fo
                     return
                 }
                 if (f.text.contains(forbiddenPackage)) {
-                    String rel = sourceRoot.toPath().relativize(f.toPath()).toString()
+                    String rel = sourceRoot.toPath().relativize(f.toPath()).toString().replace(File.separatorChar, (char) '/')
                     coupled.add(rel)
                     if (!allowed.contains(rel)) {
                         offenders.add(rel)

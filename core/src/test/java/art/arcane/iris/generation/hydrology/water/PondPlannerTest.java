@@ -414,7 +414,7 @@ public class PondPlannerTest {
     }
 
     @Test
-    public void dryClimateDrawsDownLevel() {
+    public void lowRainfallDrawsDownPondsOutsideClimateZones() {
         HydrologySettings settings = settings(PondPlannerTest::naturalOnly, MIN_Y, MAX_Y);
         DoubleBinaryOperator terrain = bowl(256, 256, 60, 100, 12, 0.1);
         Pond wet = single(plan(settings, new Terrain(terrain, 1f, ALLOW_ALL, null, MIN_Y, MAX_Y), 0, 0, 64, 64, null, List.of()));
@@ -424,6 +424,31 @@ public class PondPlannerTest {
         assertEquals(settings.ponds().climateDrawdown(), wet.level() - dry.level());
         assertTrue(damp.level() < wet.level() && damp.level() > dry.level());
         assertContained(dry, terrain);
+    }
+
+    @Test
+    public void drawdownFollowsClimateDryness() {
+        HydrologySettings settings = settings(PondPlannerTest::naturalOnly, MIN_Y, MAX_Y);
+        DoubleBinaryOperator terrain = bowl(256, 256, 60, 100, 12, 0.1);
+        int drawdown = settings.ponds().climateDrawdown();
+        Pond full = single(plan(settings, new Terrain(terrain, 1f, ALLOW_ALL, null, MIN_Y, MAX_Y), 0, 0, 64, 64, null, List.of()));
+        Pond wetZone = single(plan(settings, new Terrain(terrain, 0.5f, ALLOW_ALL, null, MIN_Y, MAX_Y).climateZoned((x, z) -> 1D),
+                0, 0, 64, 64, null, List.of()));
+        Pond dryZone = single(plan(settings, new Terrain(terrain, 1.2f, ALLOW_ALL, null, MIN_Y, MAX_Y).climateZoned((x, z) -> 0.15D),
+                0, 0, 64, 64, null, List.of()));
+        DoubleBinaryOperator band = (x, z) -> Math.clamp(0.5D + (x - 256D) / 512D, 0D, 1D);
+        Terrain transition = new Terrain(terrain, 1f, ALLOW_ALL, null, MIN_Y, MAX_Y).climateZoned(band);
+        Pond west = single(plan(settings, transition, 0, 0, 64, 64, null, List.of()));
+        Pond east = single(plan(settings, transition, 128, 64, 64, 64, null, List.of()));
+        Pond outsideZones = single(plan(settings, new Terrain(terrain, 0.5f, ALLOW_ALL, null, MIN_Y, MAX_Y), 0, 0, 64, 64, null, List.of()));
+        assertEquals(full.id(), dryZone.id());
+        assertEquals(full.level(), wetZone.level());
+        assertEquals(full.level() - Math.round(drawdown * 0.85f), dryZone.level());
+        assertEquals(full.level() - Math.round(drawdown * 0.5f), west.level());
+        assertEquals(west.id(), east.id());
+        assertEquals(west.level(), east.level());
+        assertEquals(full.level() - Math.round(drawdown * 0.5f), outsideZones.level());
+        assertContained(dryZone, terrain);
     }
 
     @Test
@@ -835,13 +860,14 @@ public class PondPlannerTest {
         private final int maxY;
         private final boolean inland;
         private final DoubleBinaryOperator pondDensity;
+        private final DoubleBinaryOperator wetness;
 
         private Terrain(DoubleBinaryOperator height, float rainfall, byte permission, String fluid, int minY, int maxY) {
-            this(height, rainfall, permission, fluid, minY, maxY, false, (x, z) -> 1D);
+            this(height, rainfall, permission, fluid, minY, maxY, false, (x, z) -> 1D, null);
         }
 
         private Terrain(DoubleBinaryOperator height, float rainfall, byte permission, String fluid, int minY, int maxY, boolean inland,
-                        DoubleBinaryOperator pondDensity) {
+                        DoubleBinaryOperator pondDensity, DoubleBinaryOperator wetness) {
             this.height = height;
             this.rainfall = rainfall;
             this.permission = permission;
@@ -850,14 +876,19 @@ public class PondPlannerTest {
             this.maxY = maxY;
             this.inland = inland;
             this.pondDensity = pondDensity;
+            this.wetness = wetness;
         }
 
         private Terrain inland() {
-            return new Terrain(height, rainfall, permission, fluid, minY, maxY, true, pondDensity);
+            return new Terrain(height, rainfall, permission, fluid, minY, maxY, true, pondDensity, wetness);
         }
 
         private Terrain pondDensity(DoubleBinaryOperator density) {
-            return new Terrain(height, rainfall, permission, fluid, minY, maxY, inland, density);
+            return new Terrain(height, rainfall, permission, fluid, minY, maxY, inland, density, wetness);
+        }
+
+        private Terrain climateZoned(DoubleBinaryOperator zoneWetness) {
+            return new Terrain(height, rainfall, permission, fluid, minY, maxY, inland, pondDensity, zoneWetness);
         }
 
         @Override
@@ -868,6 +899,8 @@ public class PondPlannerTest {
                 out.ocean()[index] = !inland && value <= SEA_LEVEL;
                 out.rainfall()[index] = rainfall;
                 out.pondDensity()[index] = (float) pondDensity.applyAsDouble(xs[index], zs[index]);
+                out.wetness()[index] = wetness == null ? 1f : (float) wetness.applyAsDouble(xs[index], zs[index]);
+                out.climateZoned()[index] = wetness != null;
                 out.permission()[index] = permission;
                 out.fluidProfile()[index] = fluid;
             }

@@ -166,15 +166,14 @@ public final class IrisHydrologyTerrainSource implements HydrologyTerrainSource,
         Policy policy = policy(complex.baseBiomeLineage(x, z), regions.get(x, z));
         out.height()[index] = (float) height;
         out.ocean()[index] = StrictMath.round(height) < settings.seaLevel() && oceanIntent(x, z);
-        float wet = policy.climateZones() ? wetness(x, z, policy) : 1f;
+        boolean zoned = wetness != null && policy.climateZones();
+        float wet = zoned ? (float) Math.clamp(climate.wetness(wetness.noise(x, z)), policy.minWetness(), policy.maxWetness()) : 1f;
         out.rainfall()[index] = policy.rainfall() * wet;
         out.pondDensity()[index] = policy.pondDensity() * wet;
+        out.wetness()[index] = wet;
+        out.climateZoned()[index] = zoned;
         out.permission()[index] = policy.permission();
         out.fluidProfile()[index] = policy.fluid();
-    }
-
-    private float wetness(int x, int z, Policy policy) {
-        return wetness == null ? 1f : (float) Math.clamp(climate.wetness(wetness.noise(x, z)), policy.minWetness(), policy.maxWetness());
     }
 
     private boolean oceanIntent(int x, int z) {

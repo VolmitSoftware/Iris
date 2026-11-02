@@ -26,7 +26,7 @@ public class IrisHydrologyPolicy {
 
     @MinNumber(0)
     @MaxNumber(MAX_MULTIPLIER)
-    @Description("Multiplier on the water that falls in this area. Higher values grow more and larger streams and keep ponds fuller. With no value set anywhere it is 1.")
+    @Description("Multiplier on the water that falls in this area. Higher values grow more and larger streams. Where the wet and dry zones do not apply, values below 1 also lower pond and lake surfaces. With no value set anywhere it is 1.")
     private Double rainfall = null;
 
     @MinNumber(0)

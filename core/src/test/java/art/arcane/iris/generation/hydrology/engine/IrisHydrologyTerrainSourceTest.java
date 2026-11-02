@@ -8,14 +8,24 @@ import art.arcane.iris.generation.hydrology.config.IrisFluidProfile;
 import art.arcane.iris.generation.hydrology.config.IrisHydrology;
 import art.arcane.iris.generation.hydrology.config.IrisHydrologyPolicy;
 import art.arcane.iris.generation.hydrology.config.IrisHydrologyWetness;
+import art.arcane.iris.generation.hydrology.grid.Basin;
+import art.arcane.iris.generation.hydrology.grid.BasinExtractor;
+import art.arcane.iris.generation.hydrology.grid.DemGrid;
 import art.arcane.iris.generation.hydrology.grid.HeightLattice;
 import art.arcane.iris.generation.hydrology.grid.HydrologySampleBuffer;
+import art.arcane.iris.generation.hydrology.grid.HydrologyTerrainSource;
+import art.arcane.iris.generation.hydrology.grid.PriorityFlood;
 import art.arcane.iris.generation.hydrology.plan.HydrologySettings;
+import art.arcane.iris.generation.hydrology.plan.WindowKey;
+import art.arcane.iris.generation.hydrology.water.CupSet;
+import art.arcane.iris.generation.hydrology.water.Pond;
+import art.arcane.iris.generation.hydrology.water.PondPlanner;
 import art.arcane.iris.generation.stream.ChunkFillableDoubleStream2D;
 import art.arcane.iris.generation.terrain.InferredType;
 import art.arcane.iris.generation.terrain.IrisMaterialPalette;
 import art.arcane.iris.generation.terrain.IrisRegion;
 import art.arcane.iris.testsupport.PlatformLeakGuard;
+import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.stream.ProceduralStream;
 import org.junit.After;
 import org.junit.ClassRule;
@@ -24,6 +34,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import java.nio.file.Path;
+import java.util.BitSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -33,6 +44,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -161,15 +173,18 @@ public class IrisHydrologyTerrainSourceTest {
                 boolean alpha = fixture.complex.getRegionStream().get(x, z).getLoadKey().equals("alpha");
                 String at = x + "," + z;
                 assertEquals(at, alpha ? "water" : null, source.channelFluid(x, z));
+                assertEquals(at, !meadow, samples.climateZoned()[index]);
                 if (meadow) {
                     assertEquals(at, 2f, samples.rainfall()[index], 0f);
                     assertEquals(at, alpha ? 3f : 1f, samples.pondDensity()[index], 0f);
+                    assertEquals(at, 1f, samples.wetness()[index], 0f);
                     kept++;
                     continue;
                 }
                 boolean zoneDry = samples.rainfall()[index] == 0f;
                 assertEquals(at, zoneDry ? 0f : 0.5f, samples.rainfall()[index], 0f);
                 assertEquals(at, zoneDry ? 0f : alpha ? 3f : 1f, samples.pondDensity()[index], 0f);
+                assertEquals(at, zoneDry ? 0f : 1f, samples.wetness()[index], 0f);
                 if (zoneDry) {
                     dry++;
                 } else {
@@ -214,14 +229,84 @@ public class IrisHydrologyTerrainSourceTest {
                 float wet = Math.clamp(zoneDry ? 0f : 1f, swamp ? 0.7f : 0f, swamp || alpha ? 1f : 0.35f);
                 assertEquals(at, rainfall * wet, clamped.rainfall()[index], 0f);
                 assertEquals(at, ponds * wet, clamped.pondDensity()[index], 0f);
+                assertEquals(at, wet, clamped.wetness()[index], 0f);
+                assertTrue(at, clamped.climateZoned()[index]);
                 assertEquals(at, rainfall, unzoned.rainfall()[index], 0f);
                 assertEquals(at, ponds, unzoned.pondDensity()[index], 0f);
+                assertEquals(at, 1f, unzoned.wetness()[index], 0f);
+                assertFalse(at, unzoned.climateZoned()[index]);
                 seen.add(leaf + "@" + (alpha ? "alpha" : "beta") + (zoneDry ? " dry" : " wet"));
             }
             assertTrue("sampled " + seen, seen.containsAll(List.of("meadow@alpha dry", "glade@beta dry", "meadow@beta wet", "spires@beta wet",
                     "spires@beta dry", "peaks@alpha wet", "peaks@alpha dry")));
             assertInvertedWetnessRejected(fixture, settings, xs, zs);
         }
+    }
+
+    @Test
+    public void wetnessMinKeepsADryZonePondFromDrawingDown() throws Exception {
+        Path pack = childPack("");
+        int[][] grid = childGrid();
+        try (EngineFixture.Environment ignored = EngineFixture.environment(); EngineFixture fixture = new EngineFixture(pack)) {
+            IrisHydrology config = new IrisHydrology().setEnabled(true).setPersist(false);
+            config.getFluids().add(new IrisFluidProfile().setName("lava").setPalette(new IrisMaterialPalette().qclear().qadd("minecraft:lava")));
+            config.getClimate().setEnabled(true).setDryness(0.5D).setTransition(0D).setDryRainfall(0.15D).getStyle().setZoom(4D);
+            config.getPonds().setFreeboard(new KList<>(1, 1));
+            config.getPonds().getSeeded().setEnabled(false);
+            HydrologySettings settings = HydrologySettings.compile(config, EngineFixture.SEED, fixture.dimension.getFluidHeight(), 0,
+                    EngineFixture.HEIGHT);
+            IrisBiome spires = fixture.data.getBiomeLoader().load("spires");
+            spires.setHydrologyPolicy(new IrisHydrologyPolicy().setPondDensity(16D));
+            int[] column = dryZoneColumn(fixture, settings, grid, "spires");
+            Pond dry = floorPond(fixture, settings, column);
+            spires.setHydrologyPolicy(new IrisHydrologyPolicy().setPondDensity(16D).setWetness(new IrisHydrologyWetness().setMin(0.7D)));
+            Pond swamp = floorPond(fixture, settings, column);
+            spires.setHydrologyPolicy(new IrisHydrologyPolicy().setPondDensity(16D).setWetness(new IrisHydrologyWetness().setMin(1D)));
+            Pond kept = floorPond(fixture, settings, column);
+            int drawdown = settings.ponds().climateDrawdown();
+            assertEquals((int) Math.floor(kept.spillHeight()) - 1, kept.level());
+            assertEquals(kept.level() - Math.round(drawdown * 0.3f), swamp.level());
+            assertEquals(kept.level() - Math.round(drawdown * 0.85f), dry.level());
+        }
+    }
+
+    private static int[] dryZoneColumn(EngineFixture fixture, HydrologySettings settings, int[][] grid, String biome) {
+        HydrologySampleBuffer samples = new HydrologySampleBuffer(grid[0].length);
+        new IrisHydrologyTerrainSource(fixture.complex, fixture.dimension, settings, null, 1, HydrologyBinding.UNBOUND)
+                .sample(grid[0], grid[1], samples, false);
+        for (int index = 0; index < grid[0].length; index++) {
+            if (samples.rainfall()[index] < 0.1f && fixture.complex.getBaseBiomeStream().get(grid[0][index], grid[1][index]).getLoadKey().equals(biome)) {
+                return new int[]{grid[0][index], grid[1][index]};
+            }
+        }
+        throw new AssertionError("No sampled " + biome + " column lies in a dry zone");
+    }
+
+    private static Pond floorPond(EngineFixture fixture, HydrologySettings settings, int[] column) {
+        HydrologySampleBuffer floor = new HydrologySampleBuffer(1);
+        new IrisHydrologyTerrainSource(fixture.complex, fixture.dimension, settings, null, 1, HydrologyBinding.UNBOUND)
+                .sample(new int[]{column[0]}, new int[]{column[1]}, floor, false);
+        FloorBowl bowl = new FloorBowl(settings, floor);
+        int span = 64;
+        HydrologySampleBuffer samples = new HydrologySampleBuffer(span * span);
+        new HeightLattice(bowl, 8, false, 1 << 16).fill(0, 0, span, span, samples);
+        DemGrid grid = new DemGrid(0, 0, 8, span, span);
+        System.arraycopy(samples.height(), 0, grid.values(), 0, span * span);
+        PondPlanner planner = new PondPlanner(settings);
+        CupSet cups = planner.subtractCups(grid, new WindowKey(0, 0), samples, new BitSet());
+        BitSet seeds = new BitSet(span * span);
+        for (int j = 0; j < span; j++) {
+            for (int i = 0; i < span; i++) {
+                if (i == 0 || j == 0 || i == span - 1 || j == span - 1) {
+                    seeds.set(grid.index(i, j));
+                }
+            }
+        }
+        float[] filled = PriorityFlood.fill(grid, seeds, settings.drainage().fillEpsilon());
+        List<Basin> basins = BasinExtractor.basins(grid, filled, 0.5f, settings.seaLevel());
+        List<Pond> ponds = planner.ponds(grid, filled, basins, List.of(), new HeightLattice(bowl, 4, false, 1 << 18), cups);
+        assertEquals("ponds " + ponds, 1, ponds.size());
+        return ponds.getFirst();
     }
 
     @Test
@@ -525,6 +610,8 @@ public class IrisHydrologyTerrainSourceTest {
             assertEquals(at, expected.ocean()[index], actual.ocean()[index]);
             assertEquals(at, Float.floatToRawIntBits(expected.rainfall()[index]), Float.floatToRawIntBits(actual.rainfall()[index]));
             assertEquals(at, Float.floatToRawIntBits(expected.pondDensity()[index]), Float.floatToRawIntBits(actual.pondDensity()[index]));
+            assertEquals(at, Float.floatToRawIntBits(expected.wetness()[index]), Float.floatToRawIntBits(actual.wetness()[index]));
+            assertEquals(at, expected.climateZoned()[index], actual.climateZoned()[index]);
             assertEquals(at, expected.permission()[index], actual.permission()[index]);
             assertEquals(at, expected.fluidProfile()[index], actual.fluidProfile()[index]);
         }
@@ -545,6 +632,46 @@ public class IrisHydrologyTerrainSourceTest {
                 zs[index] = originZ + (column >> 4);
                 index++;
             }
+        }
+    }
+
+    private static final class FloorBowl implements HydrologyTerrainSource {
+        private final HydrologySettings settings;
+        private final HydrologySampleBuffer floor;
+
+        private FloorBowl(HydrologySettings settings, HydrologySampleBuffer floor) {
+            this.settings = settings;
+            this.floor = floor;
+        }
+
+        @Override
+        public void sample(int[] xs, int[] zs, HydrologySampleBuffer out, boolean baseOnly) {
+            for (int index = 0; index < xs.length; index++) {
+                double ratio = Math.hypot(xs[index] - 256D, zs[index] - 256D) / 60D;
+                out.height()[index] = (float) (ratio < 1D ? 200D + 12D * ratio * ratio : 212D - 6D * (ratio - 1D));
+                out.ocean()[index] = false;
+                out.rainfall()[index] = floor.rainfall()[0];
+                out.pondDensity()[index] = floor.pondDensity()[0];
+                out.wetness()[index] = floor.wetness()[0];
+                out.climateZoned()[index] = floor.climateZoned()[0];
+                out.permission()[index] = floor.permission()[0];
+                out.fluidProfile()[index] = floor.fluidProfile()[0];
+            }
+        }
+
+        @Override
+        public int seaLevel() {
+            return settings.seaLevel();
+        }
+
+        @Override
+        public int minY() {
+            return settings.minY();
+        }
+
+        @Override
+        public int maxY() {
+            return settings.maxY();
         }
     }
 

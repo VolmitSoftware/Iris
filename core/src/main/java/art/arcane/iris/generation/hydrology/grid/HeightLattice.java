@@ -184,6 +184,8 @@ public final class HeightLattice {
         out.ocean()[index] = samples.ocean()[sample];
         out.rainfall()[index] = samples.rainfall()[sample];
         out.pondDensity()[index] = samples.pondDensity()[sample];
+        out.wetness()[index] = samples.wetness()[sample];
+        out.climateZoned()[index] = samples.climateZoned()[sample];
         out.permission()[index] = samples.permission()[sample];
         out.fluidProfile()[index] = samples.fluidProfile()[sample];
     }
@@ -345,6 +347,8 @@ public final class HeightLattice {
         private final boolean[] ocean;
         private final float[] rainfall;
         private final float[] pondDensity;
+        private final float[] wetness;
+        private final boolean[] climateZoned;
         private final byte[] permission;
         private final String[] fluidProfile;
         private final AtomicReferenceArray<CompletableFuture<Void>> marks;
@@ -356,6 +360,8 @@ public final class HeightLattice {
             this.ocean = new boolean[cells];
             this.rainfall = new float[cells];
             this.pondDensity = new float[cells];
+            this.wetness = new float[cells];
+            this.climateZoned = new boolean[cells];
             this.permission = new byte[cells];
             this.fluidProfile = new String[cells];
             this.marks = new AtomicReferenceArray<>(cells);
@@ -366,6 +372,8 @@ public final class HeightLattice {
             ocean[local] = samples.ocean()[sample];
             rainfall[local] = samples.rainfall()[sample];
             pondDensity[local] = samples.pondDensity()[sample];
+            wetness[local] = samples.wetness()[sample];
+            climateZoned[local] = samples.climateZoned()[sample];
             permission[local] = samples.permission()[sample];
             fluidProfile[local] = samples.fluidProfile()[sample];
         }
@@ -375,6 +383,8 @@ public final class HeightLattice {
             out.ocean()[index] = ocean[local];
             out.rainfall()[index] = rainfall[local];
             out.pondDensity()[index] = pondDensity[local];
+            out.wetness()[index] = wetness[local];
+            out.climateZoned()[index] = climateZoned[local];
             out.permission()[index] = permission[local];
             out.fluidProfile()[index] = fluidProfile[local];
         }

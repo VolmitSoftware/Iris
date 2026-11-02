@@ -3,6 +3,7 @@ package art.arcane.iris.generation.hydrology.plan;
 import art.arcane.iris.generation.hydrology.config.IrisHydrology;
 import art.arcane.iris.generation.hydrology.grid.HeightLattice;
 import art.arcane.iris.generation.hydrology.raster.WaterHeads;
+import art.arcane.iris.generation.hydrology.raster.WaterRole;
 import art.arcane.iris.generation.hydrology.underground.SeaInlet;
 import art.arcane.iris.generation.hydrology.water.HydrologyTier;
 import art.arcane.iris.generation.hydrology.water.CupSet;
@@ -31,6 +32,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -45,6 +47,9 @@ public class WindowPlannerTest {
     private static final WindowKey ORIGIN = new WindowKey(0, 0);
     private static final WindowKey LAND = new WindowKey(4, 4);
     private static final int SEAM_DISTANCE = 256;
+    private static final double COAST_DROP = 20D;
+    private static final double CLIFF_COAST_X = 300D;
+
     @Test
     public void zeroDensityRemovesLocalChannelsAndPonds() {
         HydrologySettings settings = settings(new IrisHydrology().setDensity(0D));
@@ -800,6 +805,95 @@ public class WindowPlannerTest {
         }
     }
 
+    @Test
+    public void seaConnectedHeadsSitAtSeaLevel() {
+        HydrologySettings settings = PlannedScene.packSettings(SEED);
+        PlannedScene fractal = PlannedScene.plan(SyntheticTerrain.openFractal(1L).lowered(COAST_DROP), settings, 2, 2);
+        PlannedScene cliff = PlannedScene.plan(SyntheticTerrain.cliffCoast(CLIFF_COAST_X), settings, 2, 2);
+        SeaColumns fractalColumns = assertSeaConnectedHeads("openFractal(1) lowered " + COAST_DROP, fractal);
+        SeaColumns cliffColumns = assertSeaConnectedHeads("cliffCoast(" + CLIFF_COAST_X + ")", cliff);
+        assertTrue("mouth vertices on the coastal fractal " + fractalColumns.vertices(), fractalColumns.vertices() >= 100);
+        assertTrue("mouth columns on the coastal fractal " + fractalColumns.mouths(), fractalColumns.mouths() >= 1000);
+        assertTrue("mouth columns on the cliff coast " + cliffColumns.mouths(), cliffColumns.mouths() >= 1000);
+        assertTrue("sea inlets on the cliff coast " + cliff.inlets().size(), cliff.inlets().size() >= 2);
+        assertTrue("inlet columns on the cliff coast " + cliffColumns.inlets(), cliffColumns.inlets() >= 500);
+    }
+
+    @Test
+    public void planWithAMouthBelowSeaFailsClosed() {
+        HydrologySettings settings = settings(new IrisHydrology());
+        Reach mouth = coastal(4711L, settings.tiers().get(0), SEA_LEVEL - 1, ReachStyle.MOUTH);
+        assertFailsClosed(settings, List.of(mouth), List.of(), "reach 4711");
+    }
+
+    @Test
+    public void planWithWaterOffTheSeaSurfaceFailsClosed() {
+        HydrologySettings settings = settings(new IrisHydrology());
+        HydrologyTier stream = settings.tiers().get(0);
+        assertFailsClosed(settings, List.of(coastal(4712L, stream, SEA_LEVEL + 1, ReachStyle.MOUTH)), List.of(), "reach 4712");
+        assertFailsClosed(settings, List.of(coastal(4713L, stream, SEA_LEVEL - 1, ReachStyle.RUN)), List.of(), "reach 4713");
+        int width = 9;
+        long[] bits = new long[(width * width + 63) >>> 6];
+        for (int cell = 0; cell < width * width; cell++) {
+            bits[cell >>> 6] |= 1L << cell;
+        }
+        Pond sunken = new Pond(4714L, PondKind.NATURAL, SEA_LEVEL - 1, SEA_LEVEL - 4, 132, 128, SEA_LEVEL,
+                new PondMask(124, 124, 1, width, width, bits), 0L, 0, "water", 128, 128);
+        assertFailsClosed(settings, List.of(), List.of(sunken), "pond 4714");
+    }
+
+    private static Reach coastal(long id, HydrologyTier tier, int mouthGrade, ReachStyle mouthStyle) {
+        return new Reach(id, tier, 0L, new float[]{64f, 80f, 96f}, new float[]{64f, 64f, 64f},
+                new int[]{mouthGrade + 2, mouthGrade + 2, mouthGrade}, new float[]{2f, 2f, 2f}, new float[]{1f, 1f, 1f},
+                new ReachStyle[]{ReachStyle.RUN, ReachStyle.RUN, mouthStyle}, 1000f);
+    }
+
+    private static void assertFailsClosed(HydrologySettings settings, List<Reach> reaches, List<Pond> water, String feature) {
+        PondPlanner ponds = spy(new PondPlanner(settings));
+        doReturn(CupSet.EMPTY).when(ponds).subtractCups(any(), any(), any(), any());
+        doReturn(water).when(ponds).ponds(any(), any(), any(), any(), any(), any());
+        ReachShaper shaper = mock(ReachShaper.class);
+        doReturn(new ShapedNetwork(reaches, water)).when(shaper).shape(any(), any(), any(), any(), any(), any(), anyLong());
+        WindowPlanner planner = new WindowPlanner(settings,
+                new HeightLattice(SyntheticTerrain.flat(100D), WindowPlanner.FINE_CELL, false, 1 << 18), ponds, shaper);
+        IllegalStateException failure = assertThrows(feature + " off the sea surface", IllegalStateException.class,
+                () -> planner.compute(ORIGIN, noRegions(ORIGIN)));
+        assertTrue(failure.getMessage(), failure.getMessage().contains(feature) && failure.getMessage().contains("Window " + ORIGIN));
+    }
+
+    private static SeaColumns assertSeaConnectedHeads(String name, PlannedScene scene) {
+        for (SeaInlet inlet : scene.inlets()) {
+            assertEquals(name + " " + inlet, SEA_LEVEL, inlet.waterLevel());
+        }
+        int vertices = 0;
+        for (Reach reach : scene.reaches()) {
+            for (int point = 0; point < reach.grade().length; point++) {
+                assertTrue(name + " " + reach + " point " + point + " grade " + reach.grade()[point], reach.grade()[point] >= SEA_LEVEL);
+                if (reach.style()[point] == ReachStyle.MOUTH) {
+                    vertices++;
+                    assertEquals(name + " " + reach + " mouth point " + point, SEA_LEVEL, reach.grade()[point]);
+                }
+            }
+        }
+        for (Pond pond : scene.ponds()) {
+            assertTrue(name + " " + pond, pond.level() >= SEA_LEVEL);
+        }
+        int mouths = 0;
+        int inlets = 0;
+        for (int z = scene.minZ() + WaterInvariants.EDGE_MARGIN; z <= scene.maxZ() - WaterInvariants.EDGE_MARGIN; z++) {
+            for (int x = scene.minX() + WaterInvariants.EDGE_MARGIN; x <= scene.maxX() - WaterInvariants.EDGE_MARGIN; x++) {
+                WaterRole role = scene.role(x, z);
+                if (role == WaterRole.MOUTH || role == WaterRole.INLET) {
+                    assertEquals(name + " " + role + " head at " + x + "," + z, SEA_LEVEL, scene.head(x, z));
+                    mouths += role == WaterRole.MOUTH ? 1 : 0;
+                    inlets += role == WaterRole.INLET ? 1 : 0;
+                }
+            }
+        }
+        assertEquals(name + " water below the sea surface", List.of(), WaterInvariants.subSeaAir(scene, SEA_LEVEL));
+        return new SeaColumns(vertices, mouths, inlets);
+    }
+
     private static HydrologySettings settings(IrisHydrology config) {
         return HydrologySettings.compile(config, SEED, SEA_LEVEL, SyntheticTerrain.MIN_Y, SyntheticTerrain.MAX_Y);
     }
@@ -998,5 +1092,8 @@ public class WindowPlannerTest {
         }
         float seam = Math.max(owner.wz(), other.wz()) * WindowKey.SIZE;
         return Math.abs(z - seam) <= SEAM_DISTANCE;
+    }
+
+    private record SeaColumns(int vertices, int mouths, int inlets) {
     }
 }

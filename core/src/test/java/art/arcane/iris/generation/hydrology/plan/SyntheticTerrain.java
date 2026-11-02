@@ -44,6 +44,11 @@ final class SyntheticTerrain implements HydrologyTerrainSource {
         return new SyntheticTerrain(natural, rainfall, area);
     }
 
+    SyntheticTerrain lowered(double depth) {
+        DoubleBinaryOperator inner = natural;
+        return new SyntheticTerrain((x, z) -> inner.applyAsDouble(x, z) - depth, rainfall, streamsBlocked);
+    }
+
     SyntheticTerrain withPit(double centreX, double centreZ, double radius, double depth) {
         DoubleBinaryOperator inner = natural;
         return new SyntheticTerrain((x, z) -> {

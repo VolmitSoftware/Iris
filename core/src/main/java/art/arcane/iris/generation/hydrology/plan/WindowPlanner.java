@@ -20,6 +20,7 @@ import art.arcane.iris.generation.hydrology.water.PondKind;
 import art.arcane.iris.generation.hydrology.water.PondPlanner;
 import art.arcane.iris.generation.hydrology.water.Reach;
 import art.arcane.iris.generation.hydrology.water.ReachShaper;
+import art.arcane.iris.generation.hydrology.water.ReachStyle;
 import art.arcane.iris.generation.hydrology.water.ShapedNetwork;
 
 import java.util.ArrayList;
@@ -120,6 +121,7 @@ public final class WindowPlanner {
         List<Pond> windowPonds = windowPonds(network.ponds());
         List<SeaInlet> planned = inlets.plan(raw, samples, drainage.receivers(), drainage.accumulation(), network, settings.seed());
         WindowPlan owned = new WindowPlan(key, ownedReaches(key, reaches), ownedPonds(key, windowPonds), ownedInlets(key, planned));
+        requireSeaConnectedHeads(owned, settings.seaLevel());
         return new WindowComputation(owned, reaches, windowPonds);
     }
 
@@ -317,6 +319,32 @@ public final class WindowPlanner {
             }
         }
         return owned;
+    }
+
+    private static void requireSeaConnectedHeads(WindowPlan plan, int seaLevel) {
+        for (SeaInlet inlet : plan.inlets()) {
+            if (inlet.waterLevel() != seaLevel) {
+                throw new IllegalStateException("Window " + plan.key() + " sea inlet " + inlet.id() + " holds water at " + inlet.waterLevel()
+                        + ", not at sea level " + seaLevel);
+            }
+        }
+        for (Reach reach : plan.reaches()) {
+            for (int point = 0; point < reach.grade().length; point++) {
+                int grade = reach.grade()[point];
+                boolean mouth = reach.style()[point] == ReachStyle.MOUTH;
+                if (grade < seaLevel || mouth && grade != seaLevel) {
+                    throw new IllegalStateException("Window " + plan.key() + " reach " + reach.id() + " " + reach.style()[point] + " point "
+                            + point + " at " + reach.xs()[point] + "," + reach.zs()[point] + " is graded " + grade
+                            + (mouth ? ", not at sea level " : ", below sea level ") + seaLevel);
+                }
+            }
+        }
+        for (Pond pond : plan.ponds()) {
+            if (pond.level() < seaLevel) {
+                throw new IllegalStateException("Window " + plan.key() + " pond " + pond.id() + " at " + pond.floorX() + "," + pond.floorZ()
+                        + " stands at " + pond.level() + ", below sea level " + seaLevel);
+            }
+        }
     }
 
     private record Drainage(float[] filled, List<Basin> basins, DemGrid surface, int[] receivers, float[] accumulation, BitSet channels) {

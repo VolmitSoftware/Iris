@@ -1057,8 +1057,15 @@ public class ChunkWaterRasterTest {
 
     @Test
     public void coastalFallMarksLipAndMouthSitsAtSeaLevel() {
+        for (int bankBand : new int[]{0, 32}) {
+            assertCoastalFall(bankBand);
+        }
+    }
+
+    private static void assertCoastalFall(int bankBand) {
+        String banks = "bankBand " + bankBand + ": ";
         IntBinaryOperator coast = (x, z) -> x < 40 ? 60 : SEA_LEVEL - 10;
-        HydrologyTier stream = tier("stream", 1.5f, 0.5f, 0, IrisBankStyle.SMOOTH);
+        HydrologyTier stream = tier("stream", 1.5f, 0.5f, bankBand, IrisBankStyle.SMOOTH);
         Reach drawn = line(121L, stream, 0L, -20f, 8f, 50f, 8f, (x, z) -> x < 40f ? 59 : SEA_LEVEL);
         ReachStyle[] style = drawn.style().clone();
         for (int point = 0; point < style.length; point++) {
@@ -1069,22 +1076,33 @@ public class ChunkWaterRasterTest {
         Reach coastal = new Reach(drawn.id(), stream, 0L, drawn.xs(), drawn.zs(), drawn.grade(), drawn.halfWidth(), drawn.depth(), style,
                 drawn.catchment());
         Scene scene = new Scene(settings(new IrisHydrology()), coast).reach(coastal);
-        assertEquals("the lip carries the fall", WaterRole.WATERFALL, scene.role(38, 8));
-        assertEquals(58, scene.head(38, 8));
+        assertEquals(banks + "the lip carries the fall", WaterRole.WATERFALL, scene.role(38, 8));
+        assertEquals(banks + "lip head", 58, scene.head(38, 8));
+        int minZ = -bankBand;
+        int maxZ = 16 + bankBand;
         int mouths = 0;
         for (int x = -20; x <= 56; x++) {
-            for (int z = 0; z <= 16; z++) {
+            for (int z = minZ; z <= maxZ; z++) {
                 if (scene.role(x, z) == WaterRole.MOUTH) {
                     mouths++;
-                    assertEquals("mouth at sea level at " + x + "," + z, SEA_LEVEL, scene.head(x, z));
+                    assertEquals(banks + "mouth at sea level at " + x + "," + z, SEA_LEVEL, scene.head(x, z));
                 }
-                if (x >= 40 && !scene.water(x, z)) {
-                    assertEquals("no berm is built in the sea at " + x + "," + z, coast.applyAsInt(x, z), scene.terrain(x, z));
+                if (scene.water(x, z)) {
+                    continue;
+                }
+                int ground = scene.terrain(x, z);
+                if (x < 40) {
+                    assertTrue(banks + "dry shore at " + x + "," + z + " is cut to " + ground + ", below the sea surface", ground >= SEA_LEVEL);
+                } else if (bankBand == 0) {
+                    assertEquals(banks + "no berm is built in the sea at " + x + "," + z, coast.applyAsInt(x, z), ground);
+                } else {
+                    assertTrue(banks + "the sea floor at " + x + "," + z + " is " + ground + ", cut or raised out of the sea",
+                            ground >= coast.applyAsInt(x, z) && ground < SEA_LEVEL);
                 }
             }
         }
-        assertTrue("mouth columns " + mouths, mouths > 20);
-        assertEquals(0, scene.leaks(-20, 0, 56, 16));
+        assertTrue(banks + "mouth columns " + mouths, mouths > 20);
+        assertEquals(banks + "leaks", 0, scene.leaks(-20, minZ, 56, maxZ));
     }
 
     private static void assertContained(String name, Scene scene, int minX, int minZ, int maxX, int maxZ, boolean bermed) {

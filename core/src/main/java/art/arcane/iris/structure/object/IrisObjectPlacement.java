@@ -350,6 +350,7 @@ public class IrisObjectPlacement {
         p.setAllowedCollisions(allowedCollisions);
         p.setForbiddenCollisions(forbiddenCollisions);
         p.setForcePlace(forcePlace);
+        p.setForcedByStructure(forcedByStructure);
         return p;
     }
 

@@ -88,6 +88,7 @@ public class IrisObjectPlacementToPlacementTest {
         source.setAllowedCollisions(allowedCollisions);
         source.setForbiddenCollisions(forbiddenCollisions);
         source.setForcePlace(true);
+        source.setForcedByStructure(true);
 
         IrisObjectPlacement copy = source.toPlacement("objects/replaced");
 
@@ -132,5 +133,6 @@ public class IrisObjectPlacementToPlacementTest {
         assertSame(allowedCollisions, copy.getAllowedCollisions());
         assertSame(forbiddenCollisions, copy.getForbiddenCollisions());
         assertTrue(copy.isForcePlace());
+        assertTrue(copy.isForcedByStructure());
     }
 }

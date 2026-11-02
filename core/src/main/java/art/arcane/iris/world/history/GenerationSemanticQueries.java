@@ -331,6 +331,11 @@ public final class GenerationSemanticQueries {
         return pools;
     }
 
+    public static long recordedRiverRevision(Engine engine) {
+        GenerationHistory history = history(Objects.requireNonNull(engine, "engine")).orElse(null);
+        return history == null ? 0L : history.riverRevision();
+    }
+
     public static boolean allowsActivePrediction(Engine engine, int chunkX, int chunkZ) {
         Engine requiredEngine = Objects.requireNonNull(engine, "engine");
         if (!requiredEngine.getComplex().allowsNewGenerationChunk(chunkX, chunkZ)) {

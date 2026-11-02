@@ -339,7 +339,8 @@ final class VisionRenderController implements AutoCloseable {
         tilesInFlight.remove(key);
         Frame frame = currentFrame;
         VisibleTile visible = frame == null ? null : frame.tile(key);
-        if (cancelled && visible != null && visible.needsRender(nanoTime.getAsLong(), frame.spec().renderer().previewRevision())) {
+        if (cancelled && visible != null && visible.needsRender(nanoTime.getAsLong(), frame.spec().renderer().previewRevision(),
+                frame.spec().renderer().riverRevision())) {
             frame.nextCandidate = 0;
         }
     }
@@ -349,6 +350,7 @@ final class VisionRenderController implements AutoCloseable {
         boolean cancelled = false;
         try {
             long previewRevision = job.renderer().previewRevision();
+            long riverRevision = job.renderer().riverRevision();
             double tileSpan = TILE_PIXELS * key.blocksPerPixel();
             MapTileRenderer.TileRender work = job.work();
             if (work == null) {
@@ -364,13 +366,14 @@ final class VisionRenderController implements AutoCloseable {
                         ? FIRST_RETRY_NANOS : Math.min(LAST_RETRY_NANOS, previous.retryDelay() * 2L);
             }
             long completedAt = nanoTime.getAsLong();
+            boolean retained = work.retainsWater();
             TileState state = new TileState(tile, provisional, delay, completedAt + delay,
-                    completedAt + FIRST_RETRY_NANOS, previewRevision);
+                    completedAt + FIRST_RETRY_NANOS, previewRevision, riverRevision, retained);
             synchronized (this) {
                 if (closed.get()) {
                     return;
                 }
-                cache.put(key, state, provisional ? work : null);
+                cache.put(key, state, provisional || retained ? work : null);
                 if (isWanted(key)) {
                     currentFrame.tile(key).state = state;
                 }
@@ -573,9 +576,10 @@ final class VisionRenderController implements AutoCloseable {
         // Tiles are sorted centre first, and everything before the cursor is drawn or claimed, so each search resumes there.
         private VisibleTile nextMissing(Set<TileKey> inFlight, boolean advance, long now) {
             long previewRevision = spec.renderer().previewRevision();
+            long riverRevision = spec.renderer().riverRevision();
             for (int index = nextCandidate; index < tiles.size(); index++) {
                 VisibleTile tile = tiles.get(index);
-                if (tile.needsRender(now, previewRevision) && !inFlight.contains(tile.key())) {
+                if (tile.needsRender(now, previewRevision, riverRevision) && !inFlight.contains(tile.key())) {
                     if (advance) {
                         nextCandidate = index + 1;
                     }
@@ -625,10 +629,16 @@ final class VisionRenderController implements AutoCloseable {
             return current != null && current.provisional();
         }
 
-        private boolean needsRender(long now, long previewRevision) {
+        private boolean needsRender(long now, long previewRevision, long riverRevision) {
             TileState current = state;
-            return current == null || current.provisional() && (now - current.retryAt() >= 0L
-                    || previewRevision != current.previewRevision() && now - current.earliestRetryAt() >= 0L);
+            if (current == null) {
+                return true;
+            }
+            if (current.provisional()) {
+                return now - current.retryAt() >= 0L
+                        || previewRevision != current.previewRevision() && now - current.earliestRetryAt() >= 0L;
+            }
+            return current.retained() && riverRevision != current.riverRevision() && now - current.earliestRetryAt() >= 0L;
         }
     }
 
@@ -681,7 +691,7 @@ final class VisionRenderController implements AutoCloseable {
     }
 
     private record TileState(MapTile tile, boolean provisional, long retryDelay, long retryAt, long earliestRetryAt,
-                             long previewRevision) {
+                             long previewRevision, long riverRevision, boolean retained) {
     }
 
     private static final class WeightedTileCache {

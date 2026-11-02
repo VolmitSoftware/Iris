@@ -866,6 +866,10 @@ public final class GenerationHistory {
         return semantics.get(chunkX, chunkZ);
     }
 
+    public long riverRevision() {
+        return semantics.riverRevision();
+    }
+
     public synchronized Optional<GenerationSemanticIndex.Match> findRecorded(
             GenerationSemanticIndex.Query query
     ) {

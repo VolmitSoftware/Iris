@@ -67,6 +67,30 @@ public final class GenerationSemanticIndexTest {
     }
 
     @Test
+    public void riverRevisionMovesOnlyWhenRecordedWaterChanges() throws Exception {
+        Path root = temporaryFolder.newFolder("river-revision").toPath();
+        GenerationSemanticIndex index = GenerationSemanticIndex.initialize(root);
+        long start = index.riverRevision();
+
+        index.claimAndPersist(ChunkGenerationSemantics.builder(0, 0, 1L).addObject("iris:oak").seal().build());
+        assertEquals(start, index.riverRevision());
+
+        ChunkGenerationSemantics pool = ChunkGenerationSemantics.builder(1, 1, 1L)
+                .addRiverFeature("water", HydrologyFeatureType.CAVE_POOL, 7L, 20, 12, 24).seal().build();
+        index.claimAndPersist(pool);
+        long claimed = index.riverRevision();
+        assertTrue(claimed > start);
+        assertEquals(Optional.of(pool), index.get(1, 1));
+
+        index.claimAndPersist(pool);
+        assertEquals(claimed, index.riverRevision());
+
+        index.recordAndPersist(ChunkGenerationSemantics.builder(2, 2, 1L)
+                .addRiverFeature("water", HydrologyFeatureType.STREAM, 9L, 40, 62, 40).build());
+        assertTrue(index.riverRevision() > claimed);
+    }
+
+    @Test
     public void packFilenameKeysSurviveJournalCompactionAndExactQueries() throws Exception {
         Path root = temporaryFolder.newFolder("pack-filename-keys").toPath();
         GenerationSemanticIndex index = GenerationSemanticIndex.initialize(root);

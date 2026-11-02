@@ -111,7 +111,8 @@ public class MapTileProgressTest {
         pending.set(false);
         MapTile complete = progress.render(() -> false);
         assertTrue(progress.complete());
-        assertEquals(0L, progress.bytes());
+        assertTrue(progress.retainsWater());
+        assertTrue(progress.bytes() > 0L);
         assertArrayEquals(pixels(first.image(MapStyle.PLAIN)), pixels(complete.image(MapStyle.PLAIN)));
     }
 
@@ -159,7 +160,8 @@ public class MapTileProgressTest {
         pending.set(false);
         MapTile actual = progress.render(() -> false);
         assertTrue(progress.complete());
-        assertEquals(0L, progress.bytes());
+        assertTrue(progress.retainsWater());
+        assertTrue(progress.bytes() > 0L);
         BufferedImage colors = actual.image(MapStyle.PLAIN);
         assertEquals(0xFF738249, colors.getRGB(14, 14));
         assertNotEquals(0xFF738249, colors.getRGB(8, 8));

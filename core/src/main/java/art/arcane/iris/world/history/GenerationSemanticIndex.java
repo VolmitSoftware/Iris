@@ -45,6 +45,7 @@ import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Predicate;
@@ -96,6 +97,7 @@ public final class GenerationSemanticIndex {
     private final CatalogPublisher catalogPublisher;
     private final boolean unpublished;
     private final DeferredDurability durability;
+    private final AtomicLong riverRevision = new AtomicLong();
     private long regionDecodeCount;
     private volatile IOException journalFailure;
     private long appendingRegionKey;
@@ -245,6 +247,7 @@ public final class GenerationSemanticIndex {
             RegionShard baseRegion = loadRegionLocked(regionKey, regionX, regionZ);
             RegionShard nextRegion = baseRegion;
             List<ChunkGenerationSemantics> updates = new ArrayList<>(claims.size());
+            boolean water = false;
             for (Claim pending : claims) {
                 ChunkGenerationSemantics update = pending.update;
                 ChunkGenerationSemantics existing = nextRegion.get(update.chunkX(), update.chunkZ());
@@ -261,6 +264,7 @@ public final class GenerationSemanticIndex {
                 }
                 nextRegion = nextRegion.withRecord(merged);
                 updates.add(merged);
+                water |= waterChanged(existing, merged);
                 pending.persisted = true;
             }
             if (updates.isEmpty()) {
@@ -286,6 +290,9 @@ public final class GenerationSemanticIndex {
             cacheRegion(regionKey, nextRegion);
             regionRecordCounts.put(regionKey, nextRegion.recordCount());
             journalEntries.addTo(regionKey, updates.size());
+            if (water) {
+                riverRevision.incrementAndGet();
+            }
             for (Claim pending : claims) {
                 pending.completed = true;
             }
@@ -452,6 +459,9 @@ public final class GenerationSemanticIndex {
             if (existing == null) {
                 regionRecordCounts.addTo(regionKey, 1);
             }
+            if (waterChanged(existing, merged)) {
+                riverRevision.incrementAndGet();
+            }
             shardHashes.put(regionKey, shardHash);
             deleteUnreferencedShard(regionX, regionZ, previousHash, shardHash);
             return true;
@@ -471,6 +481,10 @@ public final class GenerationSemanticIndex {
         } finally {
             publicationLock.unlock();
         }
+    }
+
+    public long riverRevision() {
+        return riverRevision.get();
     }
 
     public int recordCount() {
@@ -1151,6 +1165,10 @@ public final class GenerationSemanticIndex {
         } catch (NumberFormatException error) {
             throw new IOException("Generation semantic shard pointer has a noncanonical file name: " + file, error);
         }
+    }
+
+    private static boolean waterChanged(ChunkGenerationSemantics existing, ChunkGenerationSemantics merged) {
+        return existing == null ? !merged.riverFeatures().isEmpty() : !existing.riverFeatures().equals(merged.riverFeatures());
     }
 
     private static Set<String> keys(ChunkGenerationSemantics semantics, SemanticKind kind) {

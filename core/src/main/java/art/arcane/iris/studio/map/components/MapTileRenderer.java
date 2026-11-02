@@ -28,6 +28,7 @@ import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.generation.terrain.IrisRegion;
 import art.arcane.iris.studio.render.IrisRenderer;
 import art.arcane.iris.studio.render.RenderType;
+import art.arcane.iris.world.history.GenerationSemanticQueries;
 import art.arcane.volmlib.util.stream.ProceduralStream;
 
 import java.awt.Color;
@@ -58,6 +59,7 @@ public final class MapTileRenderer {
     private static final int NOISE_LOW = rgb(5, 5, 5);
     private static final int NOISE_HIGH = rgb(255, 255, 255);
     private static final double DARKEST_PICK_SHADE = 0.3D;
+    private static final double POOL_REFRESH_BLOCKS_PER_PIXEL = 4D;
 
     private final Engine engine;
     private final IrisRenderer hydrologyRenderer;
@@ -76,6 +78,10 @@ public final class MapTileRenderer {
     public long previewRevision() {
         HydrologyRuntime runtime = engine.getComplex().getHydrologyRuntime();
         return runtime == null ? 0L : runtime.previewRevision();
+    }
+
+    public long riverRevision() {
+        return GenerationSemanticQueries.recordedRiverRevision(engine);
     }
 
     /**
@@ -351,6 +357,7 @@ public final class MapTileRenderer {
 
     public final class TileRender {
         private final TileRequest request;
+        private final boolean retainsWater;
         private short[] subjects;
         private short[] regions;
         private int[] baseColors;
@@ -367,18 +374,22 @@ public final class MapTileRenderer {
 
         private TileRender(TileRequest request) {
             this.request = request;
+            boolean drawsWater = request.layer().type() == TileType.RIVER || request.layer().waterOverlay();
+            this.retainsWater = drawsWater && request.blocksPerPixel() <= POOL_REFRESH_BLOCKS_PER_PIXEL;
             heightsComplete = !request.withHeights() && request.layer().type() != TileType.HEIGHT;
-            waterComplete = request.layer().type() != TileType.RIVER && !request.layer().waterOverlay();
+            waterComplete = !drawsWater;
         }
 
         public MapTile render(BooleanSupplier cancelled) {
             Objects.requireNonNull(cancelled, "cancelled");
             checkCancelled(cancelled);
-            TileGrid grid = new TileGrid(request.size() + 2, request.startX() - request.blocksPerPixel(),
-                    request.startZ() - request.blocksPerPixel(), request.blocksPerPixel(), cancelled);
-            sampleSubjects(grid);
-            sampleBaseColors(grid);
-            sampleTerrain(grid, cancelled);
+            if (!identitiesComplete || !baseComplete || !heightsComplete) {
+                TileGrid grid = new TileGrid(request.size() + 2, request.startX() - request.blocksPerPixel(),
+                        request.startZ() - request.blocksPerPixel(), request.blocksPerPixel(), cancelled);
+                sampleSubjects(grid);
+                sampleBaseColors(grid);
+                sampleTerrain(grid, cancelled);
+            }
             int[] colors = sampleWater(cancelled);
             checkCancelled(cancelled);
             complete = baseComplete && heightsComplete && waterComplete;
@@ -394,6 +405,10 @@ public final class MapTileRenderer {
 
         public boolean complete() {
             return complete;
+        }
+
+        public boolean retainsWater() {
+            return retainsWater;
         }
 
         public long bytes() {
@@ -445,19 +460,21 @@ public final class MapTileRenderer {
         }
 
         private int[] sampleWater(BooleanSupplier cancelled) {
-            if (waterComplete) {
-                return finalColors == null ? baseColors : finalColors;
-            }
             if (water == null) {
+                if (waterComplete) {
+                    return finalColors == null ? baseColors : finalColors;
+                }
                 water = hydrologyRenderer.prepareStudioWater(request.startX(), request.startZ(), request.blocksPerPixel(),
                         request.size());
             }
             int[] colors = water.render(baseColors, request.layer().waterOverlay(), cancelled);
             if (baseComplete && water.complete()) {
-                finalColors = colors;
-                baseColors = null;
                 waterComplete = true;
-                water = null;
+                if (!retainsWater) {
+                    finalColors = colors;
+                    baseColors = null;
+                    water = null;
+                }
             }
             return colors;
         }

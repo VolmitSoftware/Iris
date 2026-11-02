@@ -457,7 +457,6 @@ public final class IrisRenderer {
         private final double startZ;
         private final double step;
         private final int resolution;
-        private final HydrologyRuntime runtime;
         private final WaterMap map;
         private boolean complete;
         private long poolRevision;
@@ -467,7 +466,7 @@ public final class IrisRenderer {
             this.startZ = startZ;
             this.step = step;
             this.resolution = resolution;
-            this.runtime = renderer.getComplex().getHydrologyRuntime();
+            HydrologyRuntime runtime = renderer.getComplex().getHydrologyRuntime();
             this.map = runtime == null || !runtime.enabled() || step > WaterMap.MAX_STEP
                     ? null : new WaterMap(runtime, resolution, startX, startZ, step);
             complete = map == null;
@@ -514,7 +513,7 @@ public final class IrisRenderer {
         }
 
         private void draw(BooleanSupplier cancelled) {
-            long revision = runtime.previewRevision();
+            long revision = GenerationSemanticQueries.recordedRiverRevision(renderer);
             boolean advanced = !complete;
             if (advanced) {
                 map.advance(cancelled);

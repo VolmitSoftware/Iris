@@ -28,12 +28,13 @@ public class IrisRendererTest {
     @Test
     public void cavePoolsRefreshOnRevision() {
         HydrologyRuntime runtime = mock(HydrologyRuntime.class);
-        AtomicLong revision = new AtomicLong(7L);
+        AtomicLong preview = new AtomicLong(7L);
         when(runtime.enabled()).thenReturn(true);
         when(runtime.planPreview(anyInt(), anyInt(), anyInt(), anyInt())).thenReturn(HydrologyPlanPreview.EMPTY);
-        when(runtime.previewRevision()).thenAnswer(invocation -> revision.get());
+        when(runtime.previewRevision()).thenAnswer(invocation -> preview.get());
         AtomicBoolean recorded = new AtomicBoolean();
-        IrisEngine engine = engine(runtime, recorded);
+        AtomicLong water = new AtomicLong(3L);
+        IrisEngine engine = engine(runtime, recorded, water);
         IrisRenderer.WaterTile tile = new IrisRenderer(engine).prepareStudioWater(0D, 0D, STEP, PIXELS);
         int pool = IrisRenderer.hydrologyFeatureColor(HydrologyFeatureType.CAVE_POOL) & 0xFFFFFF;
         int index = (24 / (int) STEP) * PIXELS + 20 / (int) STEP;
@@ -42,16 +43,20 @@ public class IrisRendererTest {
         assertTrue(tile.complete());
         assertNotEquals(pool, before[index]);
 
-        recorded.set(true);
-        int[] sameRevision = tile.render(null, false, () -> false);
-        assertNotEquals("a completed tile keeps its pools until the plan revision moves", pool, sameRevision[index]);
+        preview.incrementAndGet();
+        int[] rasterLanded = tile.render(null, false, () -> false);
+        assertNotEquals("the chunk's semantics are not recorded yet", pool, rasterLanded[index]);
 
-        revision.incrementAndGet();
+        recorded.set(true);
+        int[] unannounced = tile.render(null, false, () -> false);
+        assertNotEquals("pools refresh only when the recorded water revision moves", pool, unannounced[index]);
+
+        water.incrementAndGet();
         int[] refreshed = tile.render(null, false, () -> false);
         assertEquals(pool, refreshed[index]);
     }
 
-    private static IrisEngine engine(HydrologyRuntime runtime, AtomicBoolean recorded) {
+    private static IrisEngine engine(HydrologyRuntime runtime, AtomicBoolean recorded, AtomicLong water) {
         IrisEngine engine = mock(IrisEngine.class);
         IrisComplex complex = mock(IrisComplex.class);
         when(engine.getComplex()).thenReturn(complex);
@@ -60,6 +65,7 @@ public class IrisRendererTest {
         GenerationHistoryRuntimeRouter router = mock(GenerationHistoryRuntimeRouter.class);
         when(engine.getGenerationHistoryRuntimeRouter()).thenReturn(Optional.of(router));
         when(router.history()).thenReturn(history);
+        when(history.riverRevision()).thenAnswer(invocation -> water.get());
         ChunkGenerationSemantics pool = ChunkGenerationSemantics.builder(1, 1, 1L)
                 .addRiverFeature("water", HydrologyFeatureType.CAVE_POOL, 7L, 20, 12, 24).build();
         when(history.semantics(anyInt(), anyInt())).thenReturn(Optional.empty());

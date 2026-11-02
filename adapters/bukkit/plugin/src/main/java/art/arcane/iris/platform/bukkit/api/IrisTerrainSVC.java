@@ -18,6 +18,7 @@ import art.arcane.iris.platform.bukkit.terrain.IrisSurfaceClassifier;
 import art.arcane.iris.platform.bukkit.terrain.IrisWorldInfoFactory;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.hydrology.raster.WaterRole;
+import art.arcane.iris.generation.stream.ProvisionalSampling;
 import art.arcane.iris.generation.terrain.InferredType;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.terrain.IrisRegion;
@@ -265,6 +266,7 @@ public class IrisTerrainSVC implements IrisService, IrisTerrainService {
                     return false;
                 }
 
+                long revision = ProvisionalSampling.revision();
                 WaterRole role = wantRiver
                         ? engine.getComplex().getWaterRoleStream().get(blockX, blockZ)
                         : WaterRole.NONE;
@@ -309,7 +311,8 @@ public class IrisTerrainSVC implements IrisService, IrisTerrainService {
                         riverState,
                         riverDistance,
                         riverFlow,
-                        riverWaterSurfaceY
+                        riverWaterSurfaceY,
+                        ProvisionalSampling.revision() != revision
                 ));
                 return true;
             });

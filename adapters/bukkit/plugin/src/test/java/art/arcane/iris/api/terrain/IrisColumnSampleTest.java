@@ -139,7 +139,8 @@ public class IrisColumnSampleTest {
                 riverState,
                 riverDistance,
                 riverFlow,
-                riverWaterSurfaceY
+                riverWaterSurfaceY,
+                false
         );
     }
 }

@@ -114,11 +114,9 @@ final class TransitionBoundarySampler {
                 Math.min(distance, terrainWidth),
                 terrainWidth
         );
-        double hydrologyWeight = newEpochWeight;
         return new TransitionGenerationPlan.TerrainSample(
                 Math.min(distance, searchWidth),
                 newEpochWeight,
-                hydrologyWeight,
                 nearest.signatures[0],
                 weightedHeight(nearest, true),
                 weightedHeight(nearest, false),

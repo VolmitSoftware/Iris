@@ -2,10 +2,12 @@ package art.arcane.iris.generation.hydrology.plan;
 
 import art.arcane.iris.generation.hydrology.raster.WaterHeads;
 import art.arcane.iris.generation.hydrology.raster.WaterRole;
+import art.arcane.iris.generation.hydrology.water.ConfluenceGrader;
 import art.arcane.iris.generation.hydrology.water.Pond;
 import art.arcane.iris.generation.hydrology.water.PondKind;
 import art.arcane.iris.generation.hydrology.water.PondMask;
 import art.arcane.iris.generation.hydrology.water.Reach;
+import art.arcane.iris.generation.hydrology.water.ReachStyle;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -20,7 +22,6 @@ final class WaterInvariants {
     static final int EDGE_MARGIN = 32;
     private static final int[] DX = {1, -1, 0, 0};
     private static final int[] DZ = {0, 0, 1, -1};
-    private static final float TONGUE_MARGIN = 2f;
 
     private WaterInvariants() {
     }
@@ -51,22 +52,22 @@ final class WaterInvariants {
     }
 
     static List<Long> confluenceTongues(PlannedScene scene) {
-        Map<Long, Reach> reaches = byId(scene.reaches());
-        Map<Long, List<Reach>> feeders = feeders(scene.reaches(), reaches);
         int seaLevel = scene.settings().seaLevel();
         List<Long> tongues = new ArrayList<>();
-        for (Reach feeder : scene.reaches()) {
-            Reach downstream = feeder.downstreamId() == 0L ? null : reaches.get(feeder.downstreamId());
-            if (downstream == null) {
-                continue;
-            }
-            List<Reach> receiving = receiving(feeder, downstream, feeders.get(downstream.id()));
-            int[] box = tongueBox(feeder, receiving);
-            if (box != null && !nearEdge(scene, box) && perched(scene, feeder, receiving, box, seaLevel)) {
-                tongues.add(feeder.id());
+        for (Junction junction : junctions(scene)) {
+            if (perched(scene, junction, seaLevel)) {
+                tongues.add(junction.feeder().id());
             }
         }
         return tongues;
+    }
+
+    static List<Reach> checkedFeeders(PlannedScene scene) {
+        List<Reach> checked = new ArrayList<>();
+        for (Junction junction : junctions(scene)) {
+            checked.add(junction.feeder());
+        }
+        return checked;
     }
 
     static List<Long> subSeaAir(PlannedScene scene, int seaLevel) {
@@ -132,19 +133,69 @@ final class WaterInvariants {
         return false;
     }
 
-    private static boolean perched(PlannedScene scene, Reach feeder, List<Reach> receiving, int[] box, int seaLevel) {
+    private static List<Junction> junctions(PlannedScene scene) {
+        Map<Long, Reach> reaches = byId(scene.reaches());
+        Map<Long, List<Reach>> feeders = feeders(scene.reaches(), reaches);
+        int seaLevel = scene.settings().seaLevel();
+        List<Junction> junctions = new ArrayList<>();
+        for (Reach feeder : scene.reaches()) {
+            Reach downstream = feeder.downstreamId() == 0L ? null : reaches.get(feeder.downstreamId());
+            if (downstream == null) {
+                continue;
+            }
+            boolean[] pool = pool(feeder, receiving(feeder, downstream, feeders.get(downstream.id())));
+            int[] box = interior(scene, poolBox(feeder, pool));
+            if (box != null) {
+                int level = Math.min(feeder.grade()[feeder.grade().length - 1], downstream.grade()[0]);
+                junctions.add(new Junction(feeder, WaterHeads.snap(level, seaLevel), pool, box));
+            }
+        }
+        return junctions;
+    }
+
+    private static boolean perched(PlannedScene scene, Junction junction, int seaLevel) {
+        Reach feeder = junction.feeder();
+        boolean outlet = feeder.style()[0] == ReachStyle.POND_OUTLET;
+        int[] box = junction.box();
         for (int z = box[1]; z <= box[3]; z++) {
             for (int x = box[0]; x <= box[2]; x++) {
-                if (scene.feature(x, z) != feeder.id()) {
+                if (scene.feature(x, z) != feeder.id() || scene.head(x, z) <= junction.head()) {
                     continue;
                 }
-                int receivingGrade = coveringGrade(receiving, x, z);
-                if (receivingGrade != Integer.MIN_VALUE && scene.head(x, z) > WaterHeads.snap(receivingGrade, seaLevel)) {
+                int point = coveringPoint(feeder, x, z);
+                if (point >= 0 && junction.pool()[point] && !(outlet && fallsToTheJunction(feeder, point, seaLevel))) {
                     return true;
                 }
             }
         }
         return false;
+    }
+
+    private static boolean[] pool(Reach feeder, List<Reach> receiving) {
+        int last = feeder.xs().length - 1;
+        boolean[] pool = new boolean[last + 1];
+        pool[last] = true;
+        double arc = 0D;
+        for (int point = last - 1; point >= 0; point--) {
+            arc += Math.hypot(feeder.xs()[point + 1] - feeder.xs()[point], feeder.zs()[point + 1] - feeder.zs()[point]);
+            if (arc > ConfluenceGrader.POOL_CAP
+                    || edgeDistance(receiving, feeder.xs()[point], feeder.zs()[point]) > feeder.halfWidth()[point] + ConfluenceGrader.POOL_MARGIN) {
+                return pool;
+            }
+            pool[point] = true;
+        }
+        return pool;
+    }
+
+    private static boolean fallsToTheJunction(Reach feeder, int point, int seaLevel) {
+        for (int next = point + 1; next < feeder.grade().length; next++) {
+            boolean step = WaterHeads.snap(feeder.grade()[next], seaLevel) < WaterHeads.snap(feeder.grade()[next - 1], seaLevel);
+            ReachStyle style = feeder.style()[next];
+            if (step && style != ReachStyle.CASCADE && style != ReachStyle.WATERFALL) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private static Map<Long, List<Reach>> feeders(List<Reach> reaches, Map<Long, Reach> byId) {
@@ -168,21 +219,32 @@ final class WaterInvariants {
         return receiving;
     }
 
-    private static int[] tongueBox(Reach feeder, List<Reach> receiving) {
-        float[] xs = feeder.xs();
-        float[] zs = feeder.zs();
+    private static int[] poolBox(Reach feeder, boolean[] pool) {
         int[] box = null;
-        for (int point = 0; point < xs.length; point++) {
-            float extent = feeder.halfWidth()[point] + TONGUE_MARGIN;
-            if (edgeDistance(receiving, xs[point], zs[point]) > extent) {
+        for (int point = 0; point < pool.length; point++) {
+            if (!pool[point]) {
                 continue;
             }
-            int[] around = {(int) Math.floor(xs[point] - extent), (int) Math.floor(zs[point] - extent),
-                    (int) Math.ceil(xs[point] + extent), (int) Math.ceil(zs[point] + extent)};
-            box = box == null ? around : new int[]{Math.min(box[0], around[0]), Math.min(box[1], around[1]),
-                    Math.max(box[2], around[2]), Math.max(box[3], around[3])};
+            int from = Math.max(0, point - 1);
+            int to = Math.min(pool.length - 1, point + 1);
+            float extent = 0f;
+            for (int near = from; near <= to; near++) {
+                extent = Math.max(extent, feeder.halfWidth()[near] + 1f);
+            }
+            for (int near = from; near <= to; near++) {
+                int[] around = {(int) Math.floor(feeder.xs()[near] - extent), (int) Math.floor(feeder.zs()[near] - extent),
+                        (int) Math.ceil(feeder.xs()[near] + extent), (int) Math.ceil(feeder.zs()[near] + extent)};
+                box = box == null ? around : new int[]{Math.min(box[0], around[0]), Math.min(box[1], around[1]),
+                        Math.max(box[2], around[2]), Math.max(box[3], around[3])};
+            }
         }
         return box;
+    }
+
+    private static int[] interior(PlannedScene scene, int[] box) {
+        int[] clipped = {Math.max(box[0], scene.minX() + EDGE_MARGIN), Math.max(box[1], scene.minZ() + EDGE_MARGIN),
+                Math.min(box[2], scene.maxX() - EDGE_MARGIN), Math.min(box[3], scene.maxZ() - EDGE_MARGIN)};
+        return clipped[0] > clipped[2] || clipped[1] > clipped[3] ? null : clipped;
     }
 
     private static int[] outletBox(PondMask mask, Reach outlet) {
@@ -213,28 +275,18 @@ final class WaterInvariants {
         return best;
     }
 
-    private static int coveringGrade(List<Reach> reaches, int x, int z) {
+    private static int coveringPoint(Reach reach, int x, int z) {
         double nearest = Double.POSITIVE_INFINITY;
-        long nearestId = 0L;
-        int nearestSegment = 0;
-        int grade = Integer.MIN_VALUE;
-        for (Reach reach : reaches) {
-            for (int segment = 0; segment + 1 < reach.xs().length; segment++) {
-                double t = along(reach, segment, x, z);
-                double distance = offset(reach, segment, t, x, z);
-                if (distance > width(reach, segment, t)) {
-                    continue;
-                }
-                if (grade == Integer.MIN_VALUE || distance < nearest || distance == nearest
-                        && (reach.id() < nearestId || reach.id() == nearestId && segment < nearestSegment)) {
-                    nearest = distance;
-                    nearestId = reach.id();
-                    nearestSegment = segment;
-                    grade = reach.grade()[t < 0.5D ? segment : segment + 1];
-                }
+        int point = -1;
+        for (int segment = 0; segment + 1 < reach.xs().length; segment++) {
+            double t = along(reach, segment, x, z);
+            double distance = offset(reach, segment, t, x, z);
+            if (distance <= width(reach, segment, t) && distance < nearest) {
+                nearest = distance;
+                point = t < 0.5D ? segment : segment + 1;
             }
         }
-        return grade;
+        return point;
     }
 
     private static boolean covers(Reach reach, int x, int z) {
@@ -257,5 +309,8 @@ final class WaterInvariants {
 
     private static long pack(int x, int z) {
         return ((long) x << 32) | (z & 0xFFFFFFFFL);
+    }
+
+    private record Junction(Reach feeder, int head, boolean[] pool, int[] box) {
     }
 }

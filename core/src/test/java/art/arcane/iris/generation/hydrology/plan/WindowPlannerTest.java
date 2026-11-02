@@ -625,28 +625,18 @@ public class WindowPlannerTest {
     }
 
     @Test
-    public void everyPondOutletLeavesThroughConnectedWater() {
+    public void pondOutletsAndConfluencesMeetConnectedWater() {
         int outlets = 0;
+        int feeders = 0;
         for (long seed = 1L; seed <= 7L; seed++) {
             PlannedScene scene = PlannedScene.plan(SyntheticTerrain.openFractal(seed), PlannedScene.packSettings(SEED), 1, 1);
             assertEquals("detached outlets on openFractal(" + seed + ")", List.of(), WaterInvariants.detachedOutlets(scene));
+            assertEquals("confluence tongues on openFractal(" + seed + ")", List.of(), WaterInvariants.confluenceTongues(scene));
             outlets += WaterInvariants.checkedPonds(scene).size();
+            feeders += WaterInvariants.checkedFeeders(scene).size();
         }
         assertTrue("pond outlets checked " + outlets, outlets >= 50);
-    }
-
-    @Test
-    public void confluencesLeaveNoPerchedTongue() {
-        int feeders = 0;
-        for (long seed = 1L; seed <= 3L; seed++) {
-            PlannedScene scene = PlannedScene.plan(SyntheticTerrain.openFractal(seed), PlannedScene.packSettings(SEED), 1, 1);
-            assertEquals("confluence tongues on openFractal(" + seed + ")", List.of(), WaterInvariants.confluenceTongues(scene));
-            Map<Long, Reach> reaches = byId(scene.reaches());
-            for (Reach reach : scene.reaches()) {
-                feeders += reaches.containsKey(reach.downstreamId()) ? 1 : 0;
-            }
-        }
-        assertTrue("feeders checked " + feeders, feeders >= 100);
+        assertTrue("confluence feeders checked " + feeders, feeders >= 300);
     }
 
     private static void assertOutletLeavesAtThePondHead(Pond pond, Reach outlet) {

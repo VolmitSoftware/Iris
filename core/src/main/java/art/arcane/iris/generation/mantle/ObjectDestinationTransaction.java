@@ -47,6 +47,7 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
     private boolean subterrainProtects;
     private boolean hydrologyKnown;
     private HydrologyRuntime hydrology;
+    private boolean underwaterPlacement;
 
     ObjectDestinationTransaction(MantleWriter writer, int destinationChunkX, int destinationChunkZ) {
         this.writer = writer;
@@ -78,7 +79,8 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
     }
 
     @Override
-    public int beginObjectPlacement() {
+    public int beginObjectPlacement(boolean underwater) {
+        underwaterPlacement = underwater;
         return log.size();
     }
 
@@ -106,6 +108,7 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
             Object value = plan.valueAt(index);
             boolean custom = ObjectSourcePlan.isCustom(cell);
             boolean canopy = ObjectSourcePlan.isCanopy(cell);
+            boolean underwater = ObjectSourcePlan.isUnderwater(cell);
             if (custom || value instanceof NativeBlockState) {
                 NativeBlockState existing = canopy ? get(x, y, z) : null;
                 skipCanopy = existing != null && existing.isSolid();
@@ -114,9 +117,9 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
                 continue;
             }
             if (custom) {
-                set(x, y, z, (NativeBlockState) value, true, canopy);
+                set(x, y, z, (NativeBlockState) value, canopy, underwater);
             } else {
-                setData(x, y, z, value, true, canopy);
+                setData(x, y, z, value, canopy, underwater);
             }
         }
     }
@@ -181,17 +184,17 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
 
     @Override
     public void set(int x, int y, int z, NativeBlockState state) {
-        set(x, y, z, state, false, false);
+        set(x, y, z, state, isCanopy(x, y, z), underwaterPlacement);
     }
 
-    private void set(int x, int y, int z, NativeBlockState state, boolean replayed, boolean replayedCanopy) {
+    private void set(int x, int y, int z, NativeBlockState state, boolean canopy, boolean underwater) {
         if (state == null) {
             return;
         }
         String placementKey = state.deferredPlacementKey();
         NativeBlockState baseState = state.placementBaseState();
         if (state.isCustom() && placementKey != null && baseState != null) {
-            if (!canSetBlock(x, y, z) || hydrologyKeeps(x, y, z, baseState.isSolid())) {
+            if (!canSetBlock(x, y, z) || hydrologyKeeps(x, y, z, baseState.isSolid(), underwater)) {
                 return;
             }
             Identifier identifier = Identifier.fromString(placementKey);
@@ -199,10 +202,10 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
             cell.block = baseState;
             cell.tile = CLEARED;
             cell.identifier = identifier;
-            log.add(x, y, z, state, true, replayed ? replayedCanopy : isCanopy(x, y, z));
+            log.add(x, y, z, state, true, canopy, underwater);
             return;
         }
-        setData(x, y, z, state);
+        setData(x, y, z, state, canopy, underwater);
     }
 
     @Override
@@ -293,18 +296,18 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
 
     @Override
     public <T> void setData(int x, int y, int z, T data) {
-        setData(x, y, z, data, false, false);
+        setData(x, y, z, data, isCanopy(x, y, z), underwaterPlacement);
     }
 
-    private void setData(int x, int y, int z, Object data, boolean replayed, boolean replayedCanopy) {
+    private void setData(int x, int y, int z, Object data, boolean canopy, boolean underwater) {
         if (data == null || y < 0 || y >= worldHeight
                 || protectsSubterrain(x, y, z)) {
             return;
         }
-        if (data instanceof NativeBlockState state && (!canSetBlock(x, y, z) || hydrologyKeeps(x, y, z, state.isSolid()))) {
+        if (data instanceof NativeBlockState state && (!canSetBlock(x, y, z) || hydrologyKeeps(x, y, z, state.isSolid(), underwater))) {
             return;
         }
-        if (data instanceof MatterCavern && (hasProtectedHydrology(x, y, z) || hydrologyKeeps(x, y, z, false))) {
+        if (data instanceof MatterCavern && (hasProtectedHydrology(x, y, z) || hydrologyKeeps(x, y, z, false, underwater))) {
             return;
         }
         Class<?> type = data instanceof NativeBlockState ? NativeBlockState.class : data.getClass();
@@ -316,7 +319,7 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
         } else {
             cell.put(type, data);
         }
-        log.add(x, y, z, data, false, replayed ? replayedCanopy : isCanopy(x, y, z));
+        log.add(x, y, z, data, false, canopy, underwater);
     }
 
     @Override
@@ -413,7 +416,7 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
                 && !protectsSubterrain(x, y, z);
     }
 
-    private boolean hydrologyKeeps(int x, int y, int z, boolean holdsWater) {
+    private boolean hydrologyKeeps(int x, int y, int z, boolean solid, boolean underwater) {
         HydrologyRuntime runtime = hydrology();
         if (runtime == null) {
             return false;
@@ -426,15 +429,18 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
         if (role == WaterRole.INLET && y >= raster.waterHead(x & 15, z & 15) && y <= getEngine().getComplex().naturalTrueHeight(x, z)) {
             return true;
         }
+        if (solid && !underwater && fillsWater(x, y, z)) {
+            return true;
+        }
         if (role.wet()) {
             int surface = raster.waterHead(x & 15, z & 15);
             int fallTop = highestHead(runtime, raster, x, z);
             if (fallTop > surface && y >= surface && y <= fallTop) {
                 return true;
             }
-            return !holdsWater && y >= raster.terrainHeight(x & 15, z & 15) && y <= surface;
+            return !solid && y >= raster.terrainHeight(x & 15, z & 15) && y <= surface;
         }
-        if (holdsWater || role == WaterRole.NONE) {
+        if (solid || role == WaterRole.NONE) {
             return false;
         }
         int head = Integer.MIN_VALUE;
@@ -449,6 +455,15 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
             }
         }
         return y > bed && y <= head;
+    }
+
+    private boolean fillsWater(int x, int y, int z) {
+        IrisComplex complex = getEngine().getComplex();
+        if (!complex.getWaterRoleStream().get(x, z).wet()) {
+            return false;
+        }
+        return y > complex.getRoundedHeighteightStream().get(x, z)
+                && y <= (int) Math.round(complex.getWaterHeadStream().getDouble(x, z));
     }
 
     private static int highestHead(HydrologyRuntime runtime, ChunkWaterRaster raster, int x, int z) {

@@ -8,7 +8,7 @@ public interface ObjectPassPlacer extends IObjectPlacer {
 
     byte[] getCarvedColumn(int x, int z, int height);
 
-    default int beginObjectPlacement() {
+    default int beginObjectPlacement(boolean underwater) {
         return -1;
     }
 

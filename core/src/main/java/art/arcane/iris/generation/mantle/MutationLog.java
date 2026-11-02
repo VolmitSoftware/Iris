@@ -9,6 +9,7 @@ import java.util.Objects;
 final class MutationLog {
     private static final byte CUSTOM = 1;
     private static final byte CANOPY = 2;
+    private static final byte UNDERWATER = 4;
 
     private int size;
     private int[] x = new int[32];
@@ -29,16 +30,16 @@ final class MutationLog {
                         throw new IllegalArgumentException("Object mutation type " + key.type().getName()
                                 + " does not match its value " + value.getClass().getName());
                     }
-                    log.add(key.x(), key.y(), key.z(), value, false, set.canopy());
+                    log.add(key.x(), key.y(), key.z(), value, false, set.canopy(), false);
                 }
                 case ObjectDestinationTransaction.CustomBlockMutation block -> log.add(key.x(), key.y(), key.z(),
-                        Objects.requireNonNull(block.state(), "custom block state"), true, block.canopy());
+                        Objects.requireNonNull(block.state(), "custom block state"), true, block.canopy(), false);
             }
         }
         return log;
     }
 
-    void add(int blockX, int blockY, int blockZ, Object value, boolean custom, boolean canopy) {
+    void add(int blockX, int blockY, int blockZ, Object value, boolean custom, boolean canopy, boolean underwater) {
         if (size == values.length) {
             int capacity = size * 2;
             x = Arrays.copyOf(x, capacity);
@@ -51,7 +52,7 @@ final class MutationLog {
         y[size] = blockY;
         z[size] = blockZ;
         values[size] = value;
-        flags[size] = (byte) ((custom ? CUSTOM : 0) | (canopy ? CANOPY : 0));
+        flags[size] = (byte) ((custom ? CUSTOM : 0) | (canopy ? CANOPY : 0) | (underwater ? UNDERWATER : 0));
         size++;
     }
 
@@ -81,6 +82,10 @@ final class MutationLog {
 
     boolean canopy(int index) {
         return (flags[index] & CANOPY) != 0;
+    }
+
+    boolean underwater(int index) {
+        return (flags[index] & UNDERWATER) != 0;
     }
 
     Class<?> type(int index) {

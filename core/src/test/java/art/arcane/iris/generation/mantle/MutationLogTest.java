@@ -21,7 +21,7 @@ public class MutationLogTest {
                 new ObjectDestinationTransaction.SetMutation(new ObjectDestinationTransaction.DataKey(3, 70, -2, String.class), "marker", true),
                 new ObjectDestinationTransaction.CustomBlockMutation(new ObjectDestinationTransaction.DataKey(-17, 4, 40, NativeBlockState.class), state, false)));
         for (int index = 0; index < 100; index++) {
-            log.add(index, index + 1, -index, "grow" + index, (index & 1) == 0, (index & 2) == 0);
+            log.add(index, index + 1, -index, "grow" + index, (index & 1) == 0, (index & 2) == 0, (index & 4) == 0);
         }
 
         assertEquals(102, log.size());
@@ -41,6 +41,9 @@ public class MutationLogTest {
         assertFalse(log.custom(101));
         assertTrue(log.canopy(98));
         assertFalse(log.canopy(100));
+        assertFalse(log.underwater(0));
+        assertTrue(log.underwater(98));
+        assertFalse(log.underwater(6));
     }
 
     @Test
@@ -59,7 +62,7 @@ public class MutationLogTest {
             int z = (index * 5) - 20;
             String value = "value" + (index % 9);
             boolean canopy = index % 4 == 0;
-            log.add(x, y, z, value, false, canopy);
+            log.add(x, y, z, value, false, canopy, false);
             if (index >= 10) {
                 tail.add(new ObjectDestinationTransaction.SetMutation(new ObjectDestinationTransaction.DataKey(x, y, z, String.class), value, canopy));
             }

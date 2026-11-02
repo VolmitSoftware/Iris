@@ -19,6 +19,9 @@ public class BurnedTrunksTest {
     private static final int CELL = 8;
     private static final int SIZE = 32;
     private static final int TRENCH_ROW = 10;
+    private static final float SEA = 40f;
+    private static final int HIGH_GROUND = 6;
+    private static final float DEEP_BURN = 10f;
     private static final int HOLLOW_FROM = 8;
     private static final int HOLLOW_TO = 12;
 
@@ -32,7 +35,7 @@ public class BurnedTrunksTest {
         HydrologyTier major = HydrologySettings.compile(new IrisHydrology(), 1337L, 40, -64, 320).majorTier();
         Reach feeder = reach(1L, 2L, major, 2, 20);
         Reach backtrack = reach(2L, 0L, major, 20, 12);
-        BurnedTrunks trunks = BurnedTrunks.burn(raw, List.of(feeder, backtrack), 3f, 0.001f, new BitSet());
+        BurnedTrunks trunks = BurnedTrunks.burn(raw, List.of(feeder, backtrack), 3f, 0.001f, land(raw, new BitSet()));
         int[] receivers = new int[SIZE * SIZE];
         Arrays.fill(receivers, -1);
         trunks.route(receivers);
@@ -61,7 +64,7 @@ public class BurnedTrunksTest {
             }
         }
         HydrologyTier major = HydrologySettings.compile(new IrisHydrology(), 1337L, 40, -64, 320).majorTier();
-        BurnedTrunks trunks = BurnedTrunks.burn(raw, List.of(reach(1L, 0L, major, 2, 24)), 3f, 0.001f, basin);
+        BurnedTrunks trunks = BurnedTrunks.burn(raw, List.of(reach(1L, 0L, major, 2, 24)), 3f, 0.001f, land(raw, basin));
         int[] receivers = new int[SIZE * SIZE];
         Arrays.fill(receivers, -1);
         trunks.route(receivers);
@@ -84,6 +87,39 @@ public class BurnedTrunksTest {
         float[] weights = new float[SIZE * SIZE];
         trunks.inject(weights);
         assertTrue("the trunk beyond the hollow restarts with the river's catchment", weights[raw.index(HOLLOW_TO + 1, TRENCH_ROW)] > 0f);
+    }
+
+    @Test
+    public void burnedTrunkNeverDigsBelowTheSeaOnDryLand() {
+        DemGrid raw = new DemGrid(0, 0, CELL, SIZE, SIZE);
+        Arrays.fill(raw.values(), 200f);
+        for (int i = 0; i < SIZE; i++) {
+            raw.set(i, TRENCH_ROW, i < HOLLOW_FROM ? SEA + HIGH_GROUND + 2f : i <= HOLLOW_TO ? SEA - 10f : 60f);
+        }
+        HydrologyTier major = HydrologySettings.compile(new IrisHydrology(), 1337L, 40, -64, 320).majorTier();
+        BurnedTrunks trunks = BurnedTrunks.burn(raw, List.of(reach(1L, 0L, major, 2, 24)), DEEP_BURN, 0.001f, land(raw, new BitSet()));
+        for (int i = 2; i < HOLLOW_FROM; i++) {
+            float height = raw.values()[raw.index(i, TRENCH_ROW)];
+            assertTrue("a deep burn on high ground stays above the sea at " + i + ": " + height, height > SEA && height <= SEA + 1f);
+        }
+        int restart = raw.index(HOLLOW_TO + 1, TRENCH_ROW);
+        assertEquals("the trunk is not dragged below the sea where it climbs out of low ground", 60f - DEEP_BURN, raw.values()[restart], 0f);
+        int[] receivers = new int[SIZE * SIZE];
+        Arrays.fill(receivers, -1);
+        trunks.route(receivers);
+        assertEquals("the trunk link up out of low ground is cut", -1, receivers[raw.index(HOLLOW_TO, TRENCH_ROW)]);
+        float[] weights = new float[SIZE * SIZE];
+        trunks.inject(weights);
+        assertTrue("the trunk restarts with the river's catchment", weights[restart] > 0f);
+        for (int i = HOLLOW_TO + 1; i < 24; i++) {
+            assertTrue("the trunk beyond descends from its own height at " + i,
+                    raw.values()[raw.index(i + 1, TRENCH_ROW)] < raw.values()[raw.index(i, TRENCH_ROW)]);
+            assertTrue("the trunk beyond stays above the sea at " + i, raw.values()[raw.index(i, TRENCH_ROW)] > 45f);
+        }
+    }
+
+    private static BurnedTrunks.Land land(DemGrid raw, BitSet hollows) {
+        return new BurnedTrunks.Land(raw.values().clone(), new boolean[raw.values().length], (int) SEA, (int) SEA + HIGH_GROUND, hollows);
     }
 
     private static Reach reach(long id, long downstreamId, HydrologyTier tier, int fromI, int toI) {

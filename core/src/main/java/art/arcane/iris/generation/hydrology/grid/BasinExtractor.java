@@ -69,46 +69,6 @@ public final class BasinExtractor {
         return basins;
     }
 
-    public static BitSet inland(DemGrid natural, boolean[] ocean, int seaLevel) {
-        float[] heights = natural.values();
-        int count = heights.length;
-        if (ocean.length < count) {
-            throw new IllegalArgumentException("Ocean flags cover " + ocean.length + " cells, grid has " + count);
-        }
-        BitSet inland = new BitSet(count);
-        boolean[] visited = new boolean[count];
-        int[] queue = new int[count];
-        for (int start = 0; start < count; start++) {
-            if (visited[start] || !belowSea(heights, ocean, start, seaLevel)) {
-                continue;
-            }
-            int tail = component(natural, cell -> belowSea(heights, ocean, cell, seaLevel), visited, queue, start);
-            if (enclosed(natural, ocean, queue, tail)) {
-                for (int index = 0; index < tail; index++) {
-                    inland.set(queue[index]);
-                }
-            }
-        }
-        return inland;
-    }
-
-    public static BitSet draining(DemGrid natural, float[] filled, BitSet inland, float minDepth) {
-        float[] heights = natural.values();
-        BitSet basins = new BitSet(heights.length);
-        boolean[] visited = new boolean[heights.length];
-        int[] queue = new int[heights.length];
-        for (int start = inland.nextSetBit(0); start >= 0; start = inland.nextSetBit(start + 1)) {
-            if (visited[start]) {
-                continue;
-            }
-            int tail = component(natural, cell -> inland.get(cell) || filled[cell] - heights[cell] > minDepth, visited, queue, start);
-            for (int index = 0; index < tail; index++) {
-                basins.set(queue[index]);
-            }
-        }
-        return basins;
-    }
-
     public static BitSet hollow(DemGrid natural, BitSet inland, int cell) {
         BitSet hollow = new BitSet(natural.values().length);
         if (!inland.get(cell)) {
@@ -152,31 +112,6 @@ public final class BasinExtractor {
         for (int index = 0; index < count; index++) {
             if (filled[cells[index]] > seaLevel) {
                 return false;
-            }
-        }
-        return true;
-    }
-
-    private static boolean belowSea(float[] heights, boolean[] ocean, int cell, int seaLevel) {
-        return !ocean[cell] && Math.round(heights[cell]) < seaLevel;
-    }
-
-    private static boolean enclosed(DemGrid grid, boolean[] ocean, int[] cells, int count) {
-        int width = grid.width();
-        int depth = grid.depth();
-        for (int index = 0; index < count; index++) {
-            int cell = cells[index];
-            int i = cell % width;
-            int j = cell / width;
-            if (i == 0 || j == 0 || i == width - 1 || j == depth - 1) {
-                return false;
-            }
-            for (int dz = -1; dz <= 1; dz++) {
-                for (int dx = -1; dx <= 1; dx++) {
-                    if (ocean[(j + dz) * width + i + dx]) {
-                        return false;
-                    }
-                }
             }
         }
         return true;

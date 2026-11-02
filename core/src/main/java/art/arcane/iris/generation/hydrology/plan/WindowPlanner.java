@@ -89,15 +89,15 @@ public final class WindowPlanner {
         System.arraycopy(samples.height(), 0, natural.values(), 0, SPAN * SPAN);
         DemGrid raw = new DemGrid(natural.originX(), natural.originZ(), CELL, SPAN, SPAN);
         System.arraycopy(natural.values(), 0, raw.values(), 0, SPAN * SPAN);
-        BitSet inland = BasinExtractor.inland(natural, samples.ocean(), settings.seaLevel());
-        BitSet open = open(samples.ocean());
-        BitSet hollowBasins = inland.isEmpty() ? inland
-                : BasinExtractor.draining(natural, PriorityFlood.fill(natural, open, settings.drainage().fillEpsilon()), inland, BASIN_DEPTH);
         List<Pond> lakes = regionLakes(plans.values());
+        InlandHollows.Hollows hollows = InlandHollows.classify(fine, natural, samples.ocean(), settings.seaLevel(), BASIN_DEPTH,
+                settings.drainage().fillEpsilon(), lakes);
+        BitSet inland = hollows.inland();
         BurnedTrunks trunks = BurnedTrunks.burn(raw, majorReaches(key, plans), settings.majorTier().inset(), settings.drainage().fillEpsilon(),
-                hollowBasins);
+                new BurnedTrunks.Land(natural.values(), samples.ocean(), settings.seaLevel(), settings.seaLevel() + settings.deformation().maxFill(),
+                        hollows.basins()));
         BitSet seeds = trunks.cells();
-        seeds.or(open);
+        seeds.or(open(samples.ocean()));
         DemGrid preliminary = new DemGrid(raw.originX(), raw.originZ(), CELL, SPAN, SPAN);
         System.arraycopy(raw.values(), 0, preliminary.values(), 0, SPAN * SPAN);
         DrainContext context = new DrainContext(samples, trunks, inland);

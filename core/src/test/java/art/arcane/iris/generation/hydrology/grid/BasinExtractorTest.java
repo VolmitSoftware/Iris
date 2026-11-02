@@ -7,7 +7,6 @@ import java.util.BitSet;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class BasinExtractorTest {
@@ -55,32 +54,24 @@ public class BasinExtractorTest {
     }
 
     @Test
-    public void inlandHollowsAreBelowTheSeaAndRingedByLand() {
+    public void inlandHollowsBecomeBelowSeaBasinsOnceDrained() {
         DemGrid natural = new DemGrid(0, 0, 8, 17, 17);
         Arrays.fill(natural.values(), 60f);
-        boolean[] ocean = new boolean[natural.values().length];
+        BitSet inland = new BitSet(natural.values().length);
         for (int j = 6; j <= 8; j++) {
             for (int i = 6; i <= 8; i++) {
                 natural.set(i, j, i == 7 && j == 7 ? 20f : 30f);
+                inland.set(natural.index(i, j));
             }
         }
-        natural.set(0, 12, 30f);
-        natural.set(1, 12, 30f);
         natural.set(12, 12, 30f);
-        natural.set(13, 12, 10f);
-        ocean[natural.index(13, 12)] = true;
-        natural.set(12, 2, SEA + 0.4f);
-        BitSet inland = BasinExtractor.inland(natural, ocean, (int) SEA);
-        assertEquals("only the ringed hollow is inland " + inland, 9, inland.cardinality());
-        assertTrue(inland.get(natural.index(7, 7)));
-        assertFalse("a lowland open to the window edge is not inland", inland.get(natural.index(1, 12)));
-        assertFalse("a lowland beside the sea is not inland", inland.get(natural.index(12, 12)));
-        assertFalse("ground that rounds to the sea surface is not below it", inland.get(natural.index(12, 2)));
-        assertEquals(inland, BasinExtractor.hollow(natural, inland, natural.index(6, 8)));
+        inland.set(natural.index(12, 12));
+        BitSet first = BasinExtractor.hollow(natural, inland, natural.index(6, 8));
+        assertEquals("one hollow is the 3 by 3 pit " + first, 9, first.cardinality());
         assertTrue(BasinExtractor.hollow(natural, inland, natural.index(3, 3)).isEmpty());
         float[] filled = natural.values().clone();
         List<Basin> hollows = BasinExtractor.hollows(natural, inland, filled, (int) SEA, 5);
-        assertEquals(1, hollows.size());
+        assertEquals(2, hollows.size());
         Basin hollow = hollows.get(0);
         assertTrue(hollow.belowSea());
         assertEquals(5, hollow.id());
@@ -89,8 +80,8 @@ public class BasinExtractorTest {
         assertEquals(SEA - 20f, hollow.maxDepth(), 0f);
         assertEquals(9, hollow.cells().length);
         filled[natural.index(6, 6)] = SEA + 1f;
-        assertTrue("a hollow that still fills above the sea is an ordinary basin",
-                BasinExtractor.hollows(natural, inland, filled, (int) SEA, 0).isEmpty());
+        assertEquals("a hollow that still fills above the sea is an ordinary basin", 1,
+                BasinExtractor.hollows(natural, inland, filled, (int) SEA, 0).size());
     }
 
     private static DemGrid bowl() {

@@ -275,6 +275,15 @@ final class SyntheticTerrain implements HydrologyTerrainSource {
         return new SyntheticTerrain((x, z) -> x >= stripMinX && x < stripMinX + stripWidth ? SEA_LEVEL - 2D : valleySlope(x, z));
     }
 
+    static SyntheticTerrain walledValley(double axisZ, double halfWidth, double seaX) {
+        double wallTop = 300D;
+        double wallSlope = 2D;
+        return new SyntheticTerrain((x, z) -> {
+            double valley = x >= seaX ? OCEAN_FLOOR : SEA_LEVEL + 0.07D * (seaX - x) + 0.1D * Math.abs(z - axisZ);
+            return Math.max(valley, wallTop - wallSlope * Math.abs(halfWidth - Math.abs(z - axisZ)));
+        });
+    }
+
     static SyntheticTerrain valleySlope() {
         return new SyntheticTerrain(SyntheticTerrain::valleySlope);
     }

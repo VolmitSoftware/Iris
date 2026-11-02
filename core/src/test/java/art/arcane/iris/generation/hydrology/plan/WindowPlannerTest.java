@@ -63,6 +63,11 @@ public class WindowPlannerTest {
     private static final int DEEP_CUT = 12;
     private static final int SLIVER_REACH = 32;
     private static final int RIM_CUT = 24;
+    private static final double VALLEY_HALF_WIDTH = 200D;
+    private static final double VALLEY_SEA_INSET = 320D;
+    private static final double LINE_STREAM_CATCHMENT = 10000D;
+    private static final double LINE_HOLLOW_RADIUS = 240D;
+    private static final double LINE_HOLLOW_DEPTH = 90D;
     private static final double HOLLOW_EDGE = 8D;
     private static final double CRATER_X = 512D;
     private static final double CRATER_Z = 512D;
@@ -1067,11 +1072,24 @@ public class WindowPlannerTest {
         assertNoSeaLevelCanyon(scene, hollow);
     }
 
+    private static boolean inSquare(WindowKey key, float[] point) {
+        return inSquare(key, point[0], point[1]);
+    }
+
+    private static float[] lastPoint(Reach reach) {
+        int last = reach.xs().length - 1;
+        return new float[]{reach.xs()[last], reach.zs()[last]};
+    }
+
     private static void assertNoSeaLevelCanyon(PlannedScene scene, SyntheticTerrain terrain) {
-        for (Reach reach : scene.reaches()) {
+        assertNoSeaLevelCanyon(scene.reaches(), scene.ponds(), terrain);
+    }
+
+    private static void assertNoSeaLevelCanyon(List<Reach> reaches, List<Pond> ponds, SyntheticTerrain terrain) {
+        for (Reach reach : reaches) {
             for (int point = 0; point < reach.grade().length; point++) {
                 double ground = terrain.natural(reach.xs()[point], reach.zs()[point]);
-                if (pondAt(scene.ponds(), reach.xs()[point], reach.zs()[point]) == null) {
+                if (pondAt(ponds, reach.xs()[point], reach.zs()[point]) == null) {
                     assertTrue(reach + " point " + point + " is held at the sea under ground at " + ground,
                             reach.grade()[point] > SEA_LEVEL + 2 || ground < SEA_LEVEL + RIM_CUT);
                 }
@@ -1091,6 +1109,56 @@ public class WindowPlannerTest {
             }
         }
         return deep;
+    }
+
+    @Test
+    public void hollowOnAWindowLineIsPlannedAlikeByBothNeighbours() {
+        IrisHydrology config = new IrisHydrology();
+        config.getLakes().setEnabled(false);
+        config.getPonds().getSeeded().setAlongChannels(false);
+        config.getTiers().get(0).setMinCatchment(LINE_STREAM_CATCHMENT);
+        HydrologySettings settings = settings(config);
+        int line = LAND.wx() * WindowKey.SIZE;
+        double axis = LAND.wz() * WindowKey.SIZE + SEAM_DISTANCE;
+        SyntheticTerrain terrain = SyntheticTerrain.walledValley(axis, VALLEY_HALF_WIDTH, line + 2 * WindowKey.SIZE - VALLEY_SEA_INSET)
+                .withPit(line, axis, LINE_HOLLOW_RADIUS, LINE_HOLLOW_DEPTH)
+                .withLand((x, z) -> Math.hypot(x - line, z - axis) < LINE_HOLLOW_RADIUS + 2D * WindowPlanner.CELL);
+        assertTrue("the hollow floor lies far below the sea", terrain.natural(line, axis) < SEA_LEVEL - 20D);
+        WindowKey west = LAND;
+        WindowKey east = new WindowKey(LAND.wx() + 1, LAND.wz());
+        assertEquals("the east window's planning area starts on the hollow's centre line", line, (east.wx() - 1) * WindowKey.SIZE);
+        Map<RegionKey, RegionPlan> cache = new HashMap<>();
+        WindowComputation westView = planner(settings, terrain).compute(west, regionPlans(settings, terrain, west, cache));
+        WindowComputation eastView = planner(settings, terrain).compute(east, regionPlans(settings, terrain, east, cache));
+        Set<Reach> westOwned = nearSeamReaches(west, east, westView.owned().reaches());
+        Set<Reach> eastOwned = nearSeamReaches(east, west, eastView.owned().reaches());
+        assertEquals(west + " reaches seen from " + east, westOwned, nearSeamReaches(west, east, eastView.allReaches()));
+        assertEquals(east + " reaches seen from " + west, eastOwned, nearSeamReaches(east, west, westView.allReaches()));
+        List<Reach> owned = new ArrayList<>(westView.owned().reaches());
+        owned.addAll(eastView.owned().reaches());
+        List<Pond> water = new ArrayList<>(westView.allPonds());
+        water.addAll(eastView.allPonds());
+        for (RegionPlan region : cache.values()) {
+            water.addAll(region.lakes());
+        }
+        assertNoSeaLevelCanyon(owned, water, terrain);
+        Map<Long, Reach> byId = byId(owned);
+        int links = 0;
+        for (Reach feeder : owned) {
+            Reach downstream = byId.get(feeder.downstreamId());
+            if (downstream == null || inSquare(west, lastPoint(feeder)) == inSquare(west, lastPoint(downstream))) {
+                continue;
+            }
+            links++;
+            int last = feeder.xs().length - 1;
+            int drop = feeder.grade()[last] - downstream.grade()[0];
+            assertTrue(feeder + " meets " + downstream + " across the window line with a drop of " + drop,
+                    drop >= 0 && drop < downstream.tier().waterfallMinimumDrop());
+        }
+        assertTrue("reaches near the window line " + westOwned.size() + " + " + eastOwned.size(), westOwned.size() + eastOwned.size() >= 3);
+        assertTrue("reach links between the two windows' plans " + links, links >= 1);
+        assertTrue("a major river crosses the window line", tier(new ArrayList<>(eastOwned), settings.majorTier()).size()
+                + tier(new ArrayList<>(westOwned), settings.majorTier()).size() >= 1);
     }
 
     @Test

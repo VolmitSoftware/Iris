@@ -13,22 +13,24 @@ import java.util.Map;
 
 final class BurnedTrunks {
     private final BitSet cells;
+    private final Land land;
     private final int[] next;
     private final float[] catchment;
     private final float epsilon;
     private int[] order;
     private BitSet entries;
 
-    private BurnedTrunks(int count, float epsilon) {
+    private BurnedTrunks(int count, float epsilon, Land land) {
         this.cells = new BitSet(count);
+        this.land = land;
         this.next = new int[count];
         this.catchment = new float[count];
         this.epsilon = epsilon;
         Arrays.fill(next, -1);
     }
 
-    static BurnedTrunks burn(DemGrid raw, List<Reach> reaches, float depth, float epsilon, BitSet hollows) {
-        BurnedTrunks trunks = new BurnedTrunks(raw.values().length, epsilon);
+    static BurnedTrunks burn(DemGrid raw, List<Reach> reaches, float depth, float epsilon, Land land) {
+        BurnedTrunks trunks = new BurnedTrunks(raw.values().length, epsilon, land);
         Map<Long, Reach> byId = new HashMap<>();
         for (Reach reach : reaches) {
             byId.putIfAbsent(reach.id(), reach);
@@ -36,13 +38,14 @@ final class BurnedTrunks {
         List<int[]> paths = new ArrayList<>();
         for (Reach reach : reaches) {
             for (int[] route : TrunkRouter.route(raw, reach, byId.get(reach.downstreamId()))) {
-                for (int[] path : outside(route, hollows)) {
+                for (int[] path : outside(route, land.hollows())) {
                     trunks.claim(path, reach.catchment());
                     paths.add(path);
                 }
             }
         }
         StreamBurner.burn(raw, paths, depth);
+        trunks.keepAboveTheSea(raw.values());
         trunks.sort();
         trunks.descend(raw.values());
         return trunks;
@@ -59,9 +62,18 @@ final class BurnedTrunks {
     void descend(float[] heights) {
         for (int cell : order) {
             int successor = next[cell];
-            if (successor >= 0) {
-                heights[successor] = Math.min(heights[successor], Math.min(heights[cell] - epsilon, Math.nextDown(heights[cell])));
+            if (successor < 0) {
+                continue;
             }
+            float lowered = Math.min(heights[successor], Math.min(heights[cell] - epsilon, Math.nextDown(heights[cell])));
+            if (lowered < heights[successor] && land.high(successor) && lowered <= land.seaLevel()) {
+                next[cell] = -1;
+                if (!linked(successor)) {
+                    entries.set(successor);
+                }
+                continue;
+            }
+            heights[successor] = lowered;
         }
     }
 
@@ -82,6 +94,23 @@ final class BurnedTrunks {
     void pin(float[] accumulation) {
         for (int cell = cells.nextSetBit(0); cell >= 0; cell = cells.nextSetBit(cell + 1)) {
             accumulation[cell] = catchment[cell];
+        }
+    }
+
+    private boolean linked(int target) {
+        for (int cell = cells.nextSetBit(0); cell >= 0; cell = cells.nextSetBit(cell + 1)) {
+            if (next[cell] == target) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void keepAboveTheSea(float[] heights) {
+        for (int cell = cells.nextSetBit(0); cell >= 0; cell = cells.nextSetBit(cell + 1)) {
+            if (land.high(cell)) {
+                heights[cell] = Math.max(heights[cell], land.seaLevel() + 1f);
+            }
         }
     }
 
@@ -152,5 +181,11 @@ final class BurnedTrunks {
             }
         }
         return Arrays.copyOf(sorted, tail);
+    }
+
+    record Land(float[] natural, boolean[] ocean, int seaLevel, int highGround, BitSet hollows) {
+        boolean high(int cell) {
+            return !ocean[cell] && natural[cell] > highGround;
+        }
     }
 }

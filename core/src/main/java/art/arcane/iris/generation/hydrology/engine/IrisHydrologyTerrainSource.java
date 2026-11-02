@@ -4,6 +4,7 @@ import art.arcane.iris.generation.bake.ChunkBakeCache;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.hydrology.config.IrisHydrologyPermission;
 import art.arcane.iris.generation.hydrology.config.IrisHydrologyPolicy;
+import art.arcane.iris.generation.hydrology.config.IrisHydrologyWetness;
 import art.arcane.iris.generation.hydrology.grid.HydrologySampleBuffer;
 import art.arcane.iris.generation.hydrology.grid.HydrologyTerrainSource;
 import art.arcane.iris.generation.hydrology.plan.HydrologySettings;
@@ -165,15 +166,15 @@ public final class IrisHydrologyTerrainSource implements HydrologyTerrainSource,
         Policy policy = policy(complex.baseBiomeLineage(x, z), regions.get(x, z));
         out.height()[index] = (float) height;
         out.ocean()[index] = StrictMath.round(height) < settings.seaLevel() && oceanIntent(x, z);
-        float wet = policy.climateZones() ? wetness(x, z) : 1f;
+        float wet = policy.climateZones() ? wetness(x, z, policy) : 1f;
         out.rainfall()[index] = policy.rainfall() * wet;
         out.pondDensity()[index] = policy.pondDensity() * wet;
         out.permission()[index] = policy.permission();
         out.fluidProfile()[index] = policy.fluid();
     }
 
-    private float wetness(int x, int z) {
-        return wetness == null ? 1f : (float) climate.wetness(wetness.noise(x, z));
+    private float wetness(int x, int z, Policy policy) {
+        return wetness == null ? 1f : (float) Math.clamp(climate.wetness(wetness.noise(x, z)), policy.minWetness(), policy.maxWetness());
     }
 
     private boolean oceanIntent(int x, int z) {
@@ -204,12 +205,17 @@ public final class IrisHydrologyTerrainSource implements HydrologyTerrainSource,
         IrisHydrologyPermission ponds = inherited(biomes, region, IrisHydrologyPolicy::getPonds, IrisHydrologyPermission.ALLOW);
         String fluid = inherited(biomes, region, IrisHydrologyPolicy::getFluid, null);
         boolean climateZones = inherited(biomes, region, IrisHydrologyPolicy::getClimateZones, Boolean.TRUE);
+        IrisHydrologyWetness wetness = inherited(biomes, region, IrisHydrologyPolicy::getWetness, null);
         requireMultiplier("rainfall", rainfall, biomes, region);
         requireMultiplier("pondDensity", pondDensity, biomes, region);
         if (fluid != null) {
             settings.requireFillingFluid(fluid, "the hydrology policy for " + where(biomes, region));
         }
-        return new Policy((float) rainfall, (float) pondDensity, permission(streams, ponds), fluid, climateZones);
+        double minWetness = wetness == null ? 0D : wetness.getMin();
+        double maxWetness = wetness == null ? 1D : wetness.getMax();
+        requireWetness(minWetness, maxWetness, biomes, region);
+        return new Policy((float) rainfall, (float) pondDensity, permission(streams, ponds), fluid, climateZones, (float) minWetness,
+                (float) maxWetness);
     }
 
     private <T> T inherited(List<IrisBiome> biomes, IrisRegion region, Function<IrisHydrologyPolicy, T> field, T fallback) {
@@ -230,6 +236,13 @@ public final class IrisHydrologyTerrainSource implements HydrologyTerrainSource,
         }
     }
 
+    private static void requireWetness(double min, double max, List<IrisBiome> biomes, IrisRegion region) {
+        if (!(min >= 0D && min <= max && max <= 1D)) {
+            throw new IllegalArgumentException("Hydrology policy wetness for " + where(biomes, region) + " must have 0 <= min <= max <= 1, got min "
+                    + min + " and max " + max);
+        }
+    }
+
     private static String where(List<IrisBiome> biomes, IrisRegion region) {
         StringBuilder where = new StringBuilder("biome ").append(biomes.isEmpty() ? "none" : biomes.getFirst().getLoadKey());
         for (int index = 1; index < biomes.size(); index++) {
@@ -238,7 +251,8 @@ public final class IrisHydrologyTerrainSource implements HydrologyTerrainSource,
         return where.append(" in region ").append(region == null ? "none" : region.getLoadKey()).toString();
     }
 
-    private record Policy(float rainfall, float pondDensity, byte permission, String fluid, boolean climateZones) {
+    private record Policy(float rainfall, float pondDensity, byte permission, String fluid, boolean climateZones, float minWetness,
+                          float maxWetness) {
     }
 
     private record PolicyKey(List<IrisBiome> biomes, IrisRegion region) {

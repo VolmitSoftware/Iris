@@ -119,6 +119,23 @@ public class PackHydrologyValidatorTest {
     }
 
     @Test
+    public void rejectsPolicyWetnessOutsideItsOrderedBounds() throws Exception {
+        File pack = pack(dimension(WATER_ONLY, "\"hydrologyPolicy\": {\"wetness\": {\"min\": 0.2, \"max\": 0.6}},"));
+        write(pack, "regions/region.json", """
+                {"landBiomes": ["biome"], "hydrologyPolicy": {"wetness": {"max": 1.5}}}
+                """);
+        write(pack, "biomes/biome.json", """
+                {"name": "Biome", "hydrologyPolicy": {"wetness": {"min": 0.8, "max": 0.3}}}
+                """);
+
+        List<String> errors = validate(pack).errors();
+
+        assertContains(errors, "Region 'region'.hydrologyPolicy.wetness must have 0 <= min <= max <= 1, got min 0.0 and max 1.5.");
+        assertContains(errors, "Biome 'biome'.hydrologyPolicy.wetness must have 0 <= min <= max <= 1, got min 0.8 and max 0.3.");
+        assertEquals(errors.toString(), 2, errors.size());
+    }
+
+    @Test
     public void rejectsFluidReferencesTheFluidProfilesDoNotDefine() throws Exception {
         File pack = pack(dimension("""
                 {

@@ -5,6 +5,7 @@ import art.arcane.iris.generation.block.IrisBlockData;
 import art.arcane.iris.generation.decoration.IrisDecorator;
 import art.arcane.iris.generation.hydrology.config.IrisHydrologyPermission;
 import art.arcane.iris.generation.hydrology.config.IrisHydrologyPolicy;
+import art.arcane.iris.generation.hydrology.config.IrisHydrologyWetness;
 import art.arcane.iris.generation.hydrology.plan.HydrologySettings;
 import art.arcane.iris.generation.hydrology.water.HydrologyTier;
 import art.arcane.iris.generation.terrain.IrisDimension;
@@ -101,12 +102,19 @@ final class RiverLimits {
 
     private void inspectClimate(RiverCompiler.Area area) {
         HydrologySettings.Climate climate = settings.climate();
-        if (!climate.enabled() || climate.dryness() <= 0.0F || climate.dryRainfall() >= 1.0F) {
+        Sourced<Boolean> zones = sourced(area, IrisHydrologyPolicy::getClimateZones);
+        if (!climate.enabled() || zones != null && !zones.value()) {
             return;
         }
-        Sourced<Boolean> zones = sourced(area, IrisHydrologyPolicy::getClimateZones);
-        if (zones == null || zones.value()) {
+        boolean zoned = climate.dryness() > 0.0F && climate.dryRainfall() < 1.0F;
+        if (zoned) {
             add(ExportLimit.RIVER_CLIMATE, hydrology, "", "Wet and dry zones are not exported: rivers start in dry zones as they do in wet ones");
+        }
+        Sourced<IrisHydrologyWetness> wetness = sourced(area, IrisHydrologyPolicy::getWetness);
+        double driest = zoned ? climate.dryRainfall() : 1.0;
+        if (wetness != null && (wetness.value().getMin() > driest || wetness.value().getMax() < 1.0)) {
+            add(ExportLimit.RIVER_CLIMATE, wetness.owner(), "wetness",
+                    "Hydrology policy wetness is not exported: rivers form at the dimension density here");
         }
     }
 

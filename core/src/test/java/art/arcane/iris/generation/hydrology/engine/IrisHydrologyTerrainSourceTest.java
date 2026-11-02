@@ -7,6 +7,7 @@ import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.hydrology.config.IrisFluidProfile;
 import art.arcane.iris.generation.hydrology.config.IrisHydrology;
 import art.arcane.iris.generation.hydrology.config.IrisHydrologyPolicy;
+import art.arcane.iris.generation.hydrology.config.IrisHydrologyWetness;
 import art.arcane.iris.generation.hydrology.grid.HeightLattice;
 import art.arcane.iris.generation.hydrology.grid.HydrologySampleBuffer;
 import art.arcane.iris.generation.hydrology.plan.HydrologySettings;
@@ -181,6 +182,67 @@ public class IrisHydrologyTerrainSourceTest {
     }
 
     @Test
+    public void wetnessClampKeepsSwampsWet() throws Exception {
+        Path pack = childPack("");
+        int[][] grid = childGrid();
+        int[] xs = grid[0];
+        int[] zs = grid[1];
+        try (EngineFixture.Environment ignored = EngineFixture.environment(); EngineFixture fixture = new EngineFixture(pack)) {
+            HydrologySettings settings = climateSettings(fixture);
+            HydrologySampleBuffer zoned = new HydrologySampleBuffer(xs.length);
+            new IrisHydrologyTerrainSource(fixture.complex, fixture.dimension, settings, null, 1, HydrologyBinding.UNBOUND).sample(xs, zs, zoned, false);
+            fixture.data.getBiomeLoader().load("meadow").getHydrologyPolicy().setWetness(new IrisHydrologyWetness().setMin(0.7D));
+            fixture.data.getRegionLoader().load("beta").setHydrologyPolicy(new IrisHydrologyPolicy().setWetness(new IrisHydrologyWetness().setMax(0.35D)));
+            HydrologySampleBuffer clamped = new HydrologySampleBuffer(xs.length);
+            new IrisHydrologyTerrainSource(fixture.complex, fixture.dimension, settings, null, 1, HydrologyBinding.UNBOUND).sample(xs, zs, clamped, false);
+            HydrologySampleBuffer unzoned = new HydrologySampleBuffer(xs.length);
+            new IrisHydrologyTerrainSource(fixture.complex, fixture.dimension, lavaSettings(fixture), null, 1, HydrologyBinding.UNBOUND)
+                    .sample(xs, zs, unzoned, false);
+            Set<String> seen = new HashSet<>();
+            for (int index = 0; index < xs.length; index++) {
+                int x = xs[index];
+                int z = zs[index];
+                String chain = chain(fixture, x, z);
+                String leaf = chain.split("<")[0];
+                boolean alpha = fixture.complex.getRegionStream().get(x, z).getLoadKey().equals("alpha");
+                boolean swamp = leaf.equals("meadow") || leaf.equals("glade");
+                boolean zoneDry = zoned.rainfall()[index] == 0f;
+                float rainfall = swamp ? 2f : 0.5f;
+                float ponds = chain.contains("peaks") ? 5f : alpha ? 3f : 1f;
+                String at = chain + "@" + (alpha ? "alpha" : "beta") + " " + x + "," + z;
+                assertEquals(at, zoneDry ? 0f : rainfall, zoned.rainfall()[index], 0f);
+                float wet = Math.clamp(zoneDry ? 0f : 1f, swamp ? 0.7f : 0f, swamp || alpha ? 1f : 0.35f);
+                assertEquals(at, rainfall * wet, clamped.rainfall()[index], 0f);
+                assertEquals(at, ponds * wet, clamped.pondDensity()[index], 0f);
+                assertEquals(at, rainfall, unzoned.rainfall()[index], 0f);
+                assertEquals(at, ponds, unzoned.pondDensity()[index], 0f);
+                seen.add(leaf + "@" + (alpha ? "alpha" : "beta") + (zoneDry ? " dry" : " wet"));
+            }
+            assertTrue("sampled " + seen, seen.containsAll(List.of("meadow@alpha dry", "glade@beta dry", "meadow@beta wet", "spires@beta wet",
+                    "spires@beta dry", "peaks@alpha wet", "peaks@alpha dry")));
+            assertInvertedWetnessRejected(fixture, settings, xs, zs);
+        }
+    }
+
+    private static void assertInvertedWetnessRejected(EngineFixture fixture, HydrologySettings settings, int[] xs, int[] zs) {
+        fixture.data.getBiomeLoader().load("meadow").getHydrologyPolicy().setWetness(new IrisHydrologyWetness().setMin(0.8D).setMax(0.3D));
+        for (int index = 0; index < xs.length; index++) {
+            if (!fixture.complex.getBaseBiomeStream().get(xs[index], zs[index]).getLoadKey().equals("meadow")) {
+                continue;
+            }
+            try {
+                new IrisHydrologyTerrainSource(fixture.complex, fixture.dimension, settings, null, 1, HydrologyBinding.UNBOUND)
+                        .sample(new int[]{xs[index]}, new int[]{zs[index]}, new HydrologySampleBuffer(1), false);
+                fail("A wetness min above its max must be rejected");
+            } catch (IllegalArgumentException expected) {
+                assertTrue(expected.getMessage(), expected.getMessage().contains("wetness") && expected.getMessage().contains("biome meadow"));
+            }
+            return;
+        }
+        fail("No sampled column is meadow");
+    }
+
+    @Test
     public void childBiomesInheritTheParentPolicy() throws Exception {
         Path pack = childPack("");
         int[][] grid = childGrid();
@@ -292,6 +354,13 @@ public class IrisHydrologyTerrainSourceTest {
     private static HydrologySettings lavaSettings(EngineFixture fixture) {
         IrisHydrology config = new IrisHydrology().setEnabled(true).setPersist(false);
         config.getFluids().add(new IrisFluidProfile().setName("lava").setPalette(new IrisMaterialPalette().qclear().qadd("minecraft:lava")));
+        return HydrologySettings.compile(config, EngineFixture.SEED, fixture.dimension.getFluidHeight(), 0, EngineFixture.HEIGHT);
+    }
+
+    private static HydrologySettings climateSettings(EngineFixture fixture) {
+        IrisHydrology config = new IrisHydrology().setEnabled(true).setPersist(false);
+        config.getFluids().add(new IrisFluidProfile().setName("lava").setPalette(new IrisMaterialPalette().qclear().qadd("minecraft:lava")));
+        config.getClimate().setEnabled(true).setDryness(0.5D).setTransition(0D).getStyle().setZoom(4D);
         return HydrologySettings.compile(config, EngineFixture.SEED, fixture.dimension.getFluidHeight(), 0, EngineFixture.HEIGHT);
     }
 

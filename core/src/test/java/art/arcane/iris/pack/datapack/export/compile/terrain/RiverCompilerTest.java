@@ -13,6 +13,7 @@ import art.arcane.iris.generation.hydrology.config.IrisHydrologyPermission;
 import art.arcane.iris.generation.hydrology.config.IrisHydrologyPolicy;
 import art.arcane.iris.generation.hydrology.config.IrisHydrologyTier;
 import art.arcane.iris.generation.hydrology.config.IrisHydrologyUnderground;
+import art.arcane.iris.generation.hydrology.config.IrisHydrologyWetness;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.generation.terrain.IrisMaterialPalette;
 import art.arcane.iris.generation.terrain.IrisRegion;
@@ -327,6 +328,31 @@ public class RiverCompilerTest {
         List<ExportDiagnostic> climate = limited(zoned, ExportLimit.RIVER_CLIMATE);
         assertEquals(zoned.toString(), 1, climate.size());
         assertEquals("dimensions/rivers/hydrology", climate.getFirst().resource());
+        assertTrue(exempt.toString(), limited(exempt, ExportLimit.RIVER_CLIMATE).isEmpty());
+    }
+
+    @Test
+    public void wetnessBoundsReportAClimateDiagnostic() {
+        IrisHydrology hydrology = overworldHydrology().setClimate(new IrisHydrologyClimate().setEnabled(true));
+        IrisRegion hot = region("hot", new IrisHydrologyPolicy().setWetness(new IrisHydrologyWetness().setMax(0.35)));
+        List<RiverCompiler.Area> areas = List.of(
+                new RiverCompiler.Area(hot, List.of(biome("swamp", new IrisHydrologyPolicy().setWetness(new IrisHydrologyWetness().setMin(0.7))))),
+                new RiverCompiler.Area(hot, List.of(biome("desert", null))),
+                new RiverCompiler.Area(region("plain", null), List.of(biome("plains", new IrisHydrologyPolicy().setWetness(new IrisHydrologyWetness())))));
+        List<ExportDiagnostic> zoned = new ArrayList<>();
+        compile(new Field.Const(SEA_LEVEL + 2.0), hydrology, areas, zoned);
+
+        List<ExportDiagnostic> unzoned = new ArrayList<>();
+        compile(new Field.Const(SEA_LEVEL + 2.0), overworldHydrology(), areas, unzoned);
+
+        List<ExportDiagnostic> exempt = new ArrayList<>();
+        IrisRegion everywhere = region("hot", new IrisHydrologyPolicy().setClimateZones(false).setWetness(new IrisHydrologyWetness().setMax(0.35)));
+        compile(new Field.Const(SEA_LEVEL + 2.0), hydrology, List.of(new RiverCompiler.Area(everywhere, List.of(biome("desert", null)))), exempt);
+
+        List<ExportDiagnostic> climate = limited(zoned, ExportLimit.RIVER_CLIMATE);
+        assertEquals(List.of("dimensions/rivers/hydrology", "regions/hot", "biomes/swamp"), climate.stream().map(ExportDiagnostic::resource).toList());
+        assertTrue(climate.getLast().message(), climate.getLast().message().contains("wetness"));
+        assertTrue(unzoned.toString(), limited(unzoned, ExportLimit.RIVER_CLIMATE).isEmpty());
         assertTrue(exempt.toString(), limited(exempt, ExportLimit.RIVER_CLIMATE).isEmpty());
     }
 

@@ -83,6 +83,7 @@ public class IrisHydrologyDefaultsTest {
         assertNull(policy.getDecorators());
         assertNull(policy.getShoreBiomes());
         assertNull(policy.getShoreBiomeWidth());
+        assertNull(policy.getWetness());
     }
 
     @Test

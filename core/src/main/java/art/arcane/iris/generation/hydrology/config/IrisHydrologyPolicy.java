@@ -35,6 +35,9 @@ public class IrisHydrologyPolicy {
     @Description("Whether the dimension's wet and dry zones apply in this area. false keeps this area's full rainfall and pond density even inside a dry zone. With no value set anywhere they apply.")
     private Boolean climateZones = null;
 
+    @Description("Bounds on the wetness of the dimension's wet and dry zones in this area: min keeps a swamp wet inside a dry zone, max keeps a desert mostly dry inside a wet zone. It has no effect where the wet and dry zones are off or climateZones is false. With no value set anywhere the zone wetness applies unchanged.")
+    private IrisHydrologyWetness wetness = null;
+
     @Description("Whether streams and rivers may form in this area. With no value set anywhere they are allowed.")
     private IrisHydrologyPermission streams = null;
 

@@ -5,6 +5,7 @@ import art.arcane.iris.generation.decoration.HydrologyVegetation;
 import art.arcane.iris.generation.decoration.IrisDecorator;
 import art.arcane.iris.generation.hydrology.config.IrisHydrology;
 import art.arcane.iris.generation.hydrology.config.IrisHydrologyPolicy;
+import art.arcane.iris.generation.hydrology.config.IrisHydrologyWetness;
 import art.arcane.iris.generation.hydrology.plan.HydrologySettings;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.generation.terrain.IrisRegion;
@@ -258,6 +259,10 @@ final class PackHydrologyValidator {
         }
         if (policy.getDecorators() != null) {
             validateDecorators(field + ".decorators", policy.getDecorators(), data, errors);
+        }
+        IrisHydrologyWetness wetness = policy.getWetness();
+        if (wetness != null && !(wetness.getMin() >= 0D && wetness.getMin() <= wetness.getMax() && wetness.getMax() <= 1D)) {
+            errors.add(field + ".wetness must have 0 <= min <= max <= 1, got min " + wetness.getMin() + " and max " + wetness.getMax() + ".");
         }
     }
 

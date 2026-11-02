@@ -260,6 +260,11 @@ final class SyntheticTerrain implements HydrologyTerrainSource {
         return new SyntheticTerrain((x, z) -> x < coastX ? OCEAN_FLOOR : SEA_LEVEL + 30D + 0.05D * (x - coastX) + 3D * Math.sin(z / 40D));
     }
 
+    static SyntheticTerrain seaStrip(double stripMinX, double stripWidth) {
+        return new SyntheticTerrain((x, z) -> x >= stripMinX && x < stripMinX + stripWidth ? SEA_LEVEL - 2D
+                : 100D - 0.03D * x + 0.05D * Math.abs(z - 512D));
+    }
+
     static SyntheticTerrain openFractal(long seed) {
         return new SyntheticTerrain((x, z) -> fractalHeight(seed, x, z));
     }

@@ -827,6 +827,30 @@ public class WindowPlannerTest {
     }
 
     @Test
+    public void oceanFlagsInsideAReachDoNotFailClosed() {
+        HydrologySettings settings = settings(new IrisHydrology());
+        for (double stripX : new double[]{817D, 841D}) {
+            SyntheticTerrain terrain = SyntheticTerrain.seaStrip(stripX, 4D).withPit(900D, 512D, 50D, 30D);
+            PlannedScene scene = PlannedScene.plan(terrain, settings, 2, 2);
+            int inner = 0;
+            for (Reach reach : scene.reaches()) {
+                int trailing = reach.grade().length;
+                while (trailing > 0 && reach.style()[trailing - 1] == ReachStyle.MOUTH) {
+                    trailing--;
+                }
+                for (int point = 0; point < trailing; point++) {
+                    inner += reach.style()[point] == ReachStyle.MOUTH && reach.grade()[point] > SEA_LEVEL ? 1 : 0;
+                }
+            }
+            assertTrue("mouth points above sea inside reaches crossing the sea strip at x " + stripX + ": " + inner, inner > 0);
+        }
+        Reach crossing = new Reach(4715L, settings.tiers().get(0), 0L, new float[]{64f, 80f, 96f}, new float[]{64f, 64f, 64f},
+                new int[]{SEA_LEVEL + 6, SEA_LEVEL + 4, SEA_LEVEL + 2}, new float[]{2f, 2f, 2f}, new float[]{1f, 1f, 1f},
+                new ReachStyle[]{ReachStyle.RUN, ReachStyle.MOUTH, ReachStyle.RUN}, 1000f);
+        assertEquals(List.of(crossing), plannerReturning(settings, List.of(crossing), List.of()).plan(ORIGIN, noRegions(ORIGIN)).reaches());
+    }
+
+    @Test
     public void planWithWaterOffTheSeaSurfaceFailsClosed() {
         HydrologySettings settings = settings(new IrisHydrology());
         HydrologyTier stream = settings.tiers().get(0);
@@ -849,16 +873,19 @@ public class WindowPlannerTest {
     }
 
     private static void assertFailsClosed(HydrologySettings settings, List<Reach> reaches, List<Pond> water, String feature) {
+        WindowPlanner planner = plannerReturning(settings, reaches, water);
+        IllegalStateException failure = assertThrows(feature + " off the sea surface", IllegalStateException.class,
+                () -> planner.compute(ORIGIN, noRegions(ORIGIN)));
+        assertTrue(failure.getMessage(), failure.getMessage().contains(feature) && failure.getMessage().contains("Window " + ORIGIN));
+    }
+
+    private static WindowPlanner plannerReturning(HydrologySettings settings, List<Reach> reaches, List<Pond> water) {
         PondPlanner ponds = spy(new PondPlanner(settings));
         doReturn(CupSet.EMPTY).when(ponds).subtractCups(any(), any(), any(), any());
         doReturn(water).when(ponds).ponds(any(), any(), any(), any(), any(), any());
         ReachShaper shaper = mock(ReachShaper.class);
         doReturn(new ShapedNetwork(reaches, water)).when(shaper).shape(any(), any(), any(), any(), any(), any(), anyLong());
-        WindowPlanner planner = new WindowPlanner(settings,
-                new HeightLattice(SyntheticTerrain.flat(100D), WindowPlanner.FINE_CELL, false, 1 << 18), ponds, shaper);
-        IllegalStateException failure = assertThrows(feature + " off the sea surface", IllegalStateException.class,
-                () -> planner.compute(ORIGIN, noRegions(ORIGIN)));
-        assertTrue(failure.getMessage(), failure.getMessage().contains(feature) && failure.getMessage().contains("Window " + ORIGIN));
+        return new WindowPlanner(settings, new HeightLattice(SyntheticTerrain.flat(100D), WindowPlanner.FINE_CELL, false, 1 << 18), ponds, shaper);
     }
 
     private static SeaColumns assertSeaConnectedHeads(String name, PlannedScene scene) {

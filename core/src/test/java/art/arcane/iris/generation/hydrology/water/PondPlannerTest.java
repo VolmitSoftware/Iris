@@ -209,6 +209,36 @@ public class PondPlannerTest {
     }
 
     @Test
+    public void refloodingNeverDropsAPondBelowTheSeaSurface() {
+        HydrologySettings settings = settings(config -> config.getPonds().getShore().setRoundness(0D), MIN_Y, MAX_Y);
+        BitSet wet = new BitSet(81);
+        wet.set(0, 81);
+        PondMask mask = new PondMask(0, 0, 4, 9, 9, wet.toLongArray());
+        for (int rise : new int[]{0, 4}) {
+            DoubleBinaryOperator pit = (x, z) -> {
+                if (x >= 0 && x <= 32 && z >= 0 && z <= 32) {
+                    return SEA_LEVEL - 10D + rise + 0.5D * Math.max(Math.abs(x - 16D), Math.abs(z - 16D));
+                }
+                return x == 36D && z == 16D ? SEA_LEVEL - 3D + rise : 112D;
+            };
+            Terrain terrain = new Terrain(pit, 1f, ALLOW_ALL, null, MIN_Y, MAX_Y);
+            Pond pond = new Pond(1L, PondKind.NATURAL, SEA_LEVEL + 1 + rise, SEA_LEVEL - 10 + rise, 36, 16, SEA_LEVEL - 3f + rise, mask,
+                    7L, 0, "water", 16, 16);
+
+            Pond reflooded = new PondPlanner(settings).reflood(new DemGrid(-8, -8, 8, 7, 7), new HeightLattice(terrain, 4, false, 4096),
+                    CupSet.EMPTY, pond);
+
+            if (rise == 0) {
+                assertNull("a pond that holds only below the sea surface is dropped", reflooded);
+            } else {
+                assertNotNull("a pond that holds above the sea surface is kept", reflooded);
+                assertEquals(SEA_LEVEL - 2 + rise, reflooded.level());
+                assertContained(reflooded, pit);
+            }
+        }
+    }
+
+    @Test
     public void refloodingRejectsWetRimsClippedByThePlanningGrid() {
         HydrologySettings settings = settings(config -> config.getPonds().getShore().setRoundness(0D), MIN_Y, MAX_Y);
         Terrain terrain = new Terrain((x, z) -> x >= 0 && x <= 8 && z >= 0 && z <= 8 ? 100D : 112D,

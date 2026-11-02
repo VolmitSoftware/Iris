@@ -330,12 +330,16 @@ public final class WindowPlanner {
         }
         for (Reach reach : plan.reaches()) {
             for (int point = 0; point < reach.grade().length; point++) {
-                int grade = reach.grade()[point];
-                boolean mouth = reach.style()[point] == ReachStyle.MOUTH;
-                if (grade < seaLevel || mouth && grade != seaLevel) {
-                    throw new IllegalStateException("Window " + plan.key() + " reach " + reach.id() + " " + reach.style()[point] + " point "
-                            + point + " at " + reach.xs()[point] + "," + reach.zs()[point] + " is graded " + grade
-                            + (mouth ? ", not at sea level " : ", below sea level ") + seaLevel);
+                if (reach.grade()[point] < seaLevel) {
+                    throw offSea(plan.key(), reach, point, ", below sea level " + seaLevel);
+                }
+            }
+            if (reach.downstreamId() != 0L) {
+                continue;
+            }
+            for (int point = reach.grade().length - 1; point >= 0 && reach.style()[point] == ReachStyle.MOUTH; point--) {
+                if (reach.grade()[point] != seaLevel) {
+                    throw offSea(plan.key(), reach, point, ", but the mouth must meet the sea at sea level " + seaLevel);
                 }
             }
         }
@@ -345,6 +349,11 @@ public final class WindowPlanner {
                         + " stands at " + pond.level() + ", below sea level " + seaLevel);
             }
         }
+    }
+
+    private static IllegalStateException offSea(WindowKey key, Reach reach, int point, String rule) {
+        return new IllegalStateException("Window " + key + " reach " + reach.id() + " " + reach.style()[point] + " point " + point + " at "
+                + reach.xs()[point] + "," + reach.zs()[point] + " is graded " + reach.grade()[point] + rule);
     }
 
     private record Drainage(float[] filled, List<Basin> basins, DemGrid surface, int[] receivers, float[] accumulation, BitSet channels) {

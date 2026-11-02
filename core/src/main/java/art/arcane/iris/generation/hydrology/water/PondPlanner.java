@@ -142,7 +142,8 @@ public final class PondPlanner {
                 floor = node;
             }
         }
-        for (int level = pond.level(); floor >= 0 && ground[floor] < level; level--) {
+        int seaFloor = Math.max(settings.minY() + 1, settings.seaLevel());
+        for (int level = pond.level(); level >= seaFloor && floor >= 0 && ground[floor] < level; level--) {
             boolean[] wet = floodWithin(box, ground, inside, floor, level);
             if (pond.damRaise() > 0 || contained(box, ground, wet, level)) {
                 float lowest = Float.POSITIVE_INFINITY;

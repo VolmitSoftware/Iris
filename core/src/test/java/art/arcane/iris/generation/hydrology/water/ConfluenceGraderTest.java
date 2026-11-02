@@ -21,6 +21,9 @@ public class ConfluenceGraderTest {
     private static final int JUNCTION = 100;
     private static final int POOL_EDGE_Z = -12;
     private static final int FEEDER_Z = -48;
+    private static final int STUB_Z = -8;
+    private static final int BANK_Z = -8;
+    private static final int MARGIN_Z = -12;
 
     @Test
     public void spreadFeederMeetsALowerRiverWithoutAStepAtThePoolEdge() {
@@ -53,6 +56,65 @@ public class ConfluenceGraderTest {
                 () -> ConfluenceGrader.level(WINDOW, List.of(feeder, river), new int[]{0, 1}));
         assertTrue(failure.getMessage(), failure.getMessage().contains("11") && failure.getMessage().contains("12")
                 && failure.getMessage().contains(WINDOW.toString()));
+    }
+
+    @Test
+    public void aFeederWithItsOwnFeedersKeepsItsStartAtTheirJunction() {
+        HydrologyTier tier = tier(true);
+        ReachDraft upstream = line(tier, 31L, 0f, FEEDER_Z, 0f, STUB_Z, 2f, z -> JUNCTION + 3);
+        ReachDraft stub = line(tier, 32L, 0f, STUB_Z, 0f, 0f, 2f, z -> z == STUB_Z ? JUNCTION + 3 : z == 0 ? JUNCTION : JUNCTION + 2);
+        ReachDraft river = line(tier, 33L, 0f, 0f, 64f, 0f, 8f, z -> JUNCTION);
+        upstream.downstream = 1;
+        stub.incoming = new int[]{0};
+        stub.downstream = 2;
+        river.incoming = new int[]{1};
+        ConfluenceGrader.level(WINDOW, List.of(upstream, stub, river), new int[]{0, 1, 2});
+        assertEquals("the stub keeps its start for the reach that feeds it " + Arrays.toString(stub.grade), JUNCTION + 3, stub.grade[0]);
+        for (int point = 1; point < stub.grade.length; point++) {
+            assertEquals("stub point " + point + " pooled " + Arrays.toString(stub.grade), JUNCTION, stub.grade[point]);
+        }
+        for (int point = 0; point < upstream.grade.length; point++) {
+            assertEquals("upstream point " + point + " " + Arrays.toString(upstream.grade), JUNCTION + 3, upstream.grade[point]);
+        }
+    }
+
+    @Test
+    public void feederBesideTheReceivingBankPoolsOnlyWhenItIsNearTheJunctionLevel() {
+        int[] near = besideTheBank(ConfluenceGrader.MARGIN_LOWERING);
+        for (int point = 0; point < near.length; point++) {
+            int z = FEEDER_Z + point;
+            if (z >= MARGIN_Z) {
+                assertEquals("point " + point + " at z " + z + " " + Arrays.toString(near), JUNCTION, near[point]);
+            }
+        }
+        int[] high = besideTheBank(ConfluenceGrader.MARGIN_LOWERING + 1);
+        for (int point = 0; point < high.length; point++) {
+            int z = FEEDER_Z + point;
+            if (z >= BANK_Z) {
+                assertEquals("point " + point + " inside the receiving channel at z " + z + " " + Arrays.toString(high), JUNCTION, high[point]);
+            } else if (z >= MARGIN_Z) {
+                assertEquals("point " + point + " beside the bank at z " + z + " " + Arrays.toString(high), JUNCTION + ConfluenceGrader.MARGIN_LOWERING + 1,
+                        high[point]);
+            }
+        }
+    }
+
+    private static int[] besideTheBank(int marginHeight) {
+        HydrologyTier tier = tier(true);
+        ReachDraft feeder = line(tier, 41L, 0f, FEEDER_Z, 0f, 0f, 2f, z -> {
+            if (z == 0) {
+                return JUNCTION;
+            }
+            if (z >= BANK_Z) {
+                return JUNCTION + 1;
+            }
+            return JUNCTION + marginHeight + Math.max(0, Math.floorDiv(MARGIN_Z - z, 2));
+        });
+        ReachDraft river = line(tier, 42L, 0f, 0f, 64f, 0f, 8f, z -> JUNCTION);
+        feeder.downstream = 1;
+        river.incoming = new int[]{0};
+        ConfluenceGrader.level(WINDOW, List.of(feeder, river), new int[]{0, 1});
+        return feeder.grade;
     }
 
     private static int[] graded(HydrologyTier tier, boolean fixedApproach) {

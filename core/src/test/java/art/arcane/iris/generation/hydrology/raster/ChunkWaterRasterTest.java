@@ -778,9 +778,12 @@ public class ChunkWaterRasterTest {
         Reach low = line(232L, wide, 0L, 504f, 200f, 600f, 200f, (x, z) -> 62);
         Reach hanging = line(231L, narrow, low.id(), 440f, 200f, 504f, 200f, (x, z) -> 70);
         Scene falls = new Scene(settings(new IrisHydrology()), (x, z) -> 90).reach(hanging).reach(low);
-        assertEquals(70, falls.head(496, 200));
-        assertEquals(62, falls.head(497, 200));
-        assertEquals("an 8-block settled drop is a waterfall", WaterRole.WATERFALL, falls.role(497, 200));
+        int bank = (int) Math.ceil(low.xs()[0] - low.halfWidth()[0]);
+        assertTrue("the feeder stands more than the margin lowering above the downstream start",
+                70 - 62 > ConfluenceGrader.MARGIN_LOWERING);
+        assertEquals("the feeder keeps its level beside the receiving bank", 70, falls.head(bank - 1, 200));
+        assertEquals(62, falls.head(bank, 200));
+        assertEquals("an 8-block drop is a waterfall at the receiving bank", WaterRole.WATERFALL, falls.role(bank, 200));
         Reach steep = line(233L, narrow, low.id(), 440f, 200f, 504f, 200f, (x, z) -> x >= 496f ? 66 : Math.min(80, 66 + (int) ((496f - x) / 2f)));
         Scene cascade = new Scene(settings(new IrisHydrology()), (x, z) -> 90).reach(steep).reach(low);
         assertEquals(66, cascade.head(496, 200));

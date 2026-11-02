@@ -127,24 +127,38 @@ public class ReachShaperTest {
         });
         int confluences = 0;
         int pooled = 0;
+        int inside = 0;
+        int falls = 0;
         for (long seed : new long[]{SEED, SEED + 5L, SEED + 9L}) {
             ShapedNetwork shaped = shape(settings, network(settings, fractal(seed), 64, 64, 2000f, false));
             Map<Long, Reach> byId = byId(shaped.reaches());
+            Map<Long, List<Reach>> feeders = feeders(shaped.reaches());
             int joins = 0;
-            for (Map.Entry<Long, List<Reach>> entry : feeders(shaped.reaches()).entrySet()) {
+            for (Map.Entry<Long, List<Reach>> entry : feeders.entrySet()) {
                 Reach downstream = byId.get(entry.getKey());
                 List<Reach> siblings = entry.getValue();
                 joins += siblings.size() >= 2 ? 1 : 0;
                 for (Reach feeder : siblings) {
                     List<ConfluenceGrader.Footprint> receiving = receiving(downstream, siblings, feeder);
+                    int level = downstream.grade()[0];
                     for (int point = feeder.xs().length - 1; point >= 0; point--) {
                         double clearance = clearance(receiving, feeder.xs()[point], feeder.zs()[point]);
-                        if (clearance > feeder.halfWidth()[point] + 1f) {
+                        if (clearance > feeder.halfWidth()[point] + 1f || point == 0 && feeders.containsKey(feeder.id())) {
                             break;
                         }
-                        assertEquals("seed " + seed + " " + feeder + " into " + downstream + " at point " + point + " with clearance " + clearance,
-                                downstream.grade()[0], feeder.grade()[point]);
-                        pooled++;
+                        String at = "seed " + seed + " " + feeder + " into " + downstream + " at point " + point + " with clearance " + clearance;
+                        int grade = feeder.grade()[point];
+                        if (clearance <= 0D || grade == level) {
+                            assertEquals(at, level, grade);
+                            pooled++;
+                            inside += clearance <= 0D ? 1 : 0;
+                            continue;
+                        }
+                        assertTrue(at + " stands " + (grade - level) + " above the junction beside the bank", grade - level > ConfluenceGrader.MARGIN_LOWERING);
+                        ReachStyle style = feeder.style()[point + 1];
+                        assertTrue(at + " drops into the junction as " + style, style == ReachStyle.CASCADE || style == ReachStyle.WATERFALL);
+                        falls++;
+                        break;
                     }
                 }
             }
@@ -152,6 +166,8 @@ public class ReachShaperTest {
             confluences += joins;
         }
         assertTrue("pooled points " + pooled + " at " + confluences + " confluences", pooled > 3 * confluences);
+        assertTrue("pooled points inside the receiving channel " + inside + " at " + confluences + " confluences", inside > 3 * confluences);
+        assertTrue("falls at the receiving bank " + falls, falls > 0);
     }
 
     @Test

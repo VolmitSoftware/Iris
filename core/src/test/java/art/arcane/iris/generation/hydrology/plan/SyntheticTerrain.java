@@ -11,7 +11,10 @@ final class SyntheticTerrain implements HydrologyTerrainSource {
     static final int SEA_LEVEL = 40;
     static final int MIN_Y = -64;
     static final int MAX_Y = 320;
+    static final double VALLEY_AXIS = 512D;
     private static final double OCEAN_FLOOR = SEA_LEVEL - 30D;
+    private static final double WALL_MIN_X = 256D;
+    private static final double WALL_MAX_X = 768D;
     private static final double BASE_OFFSET = 3D;
     private static final double BASE_WAVELENGTH = 1000D;
     private static final long SALT_BASE = 0x42415345L;
@@ -288,8 +291,20 @@ final class SyntheticTerrain implements HydrologyTerrainSource {
         return new SyntheticTerrain(SyntheticTerrain::valleySlope);
     }
 
+    static SyntheticTerrain valleyBelowAWall(double foot, double run, double height) {
+        return new SyntheticTerrain((x, z) -> {
+            double valley = valleySlope(x, z);
+            double beyond = VALLEY_AXIS - foot - z;
+            if (x < WALL_MIN_X || x > WALL_MAX_X || beyond <= 0D) {
+                return valley;
+            }
+            double ramp = Math.min(1D, beyond / run);
+            return valley + height * ramp + 0.1D * Math.abs(x - VALLEY_AXIS) * ramp;
+        });
+    }
+
     private static double valleySlope(double x, double z) {
-        return 100D - 0.03D * x + 0.05D * Math.abs(z - 512D);
+        return 100D - 0.03D * x + 0.05D * Math.abs(z - VALLEY_AXIS);
     }
 
     static SyntheticTerrain openFractal(long seed) {

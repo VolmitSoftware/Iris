@@ -10,9 +10,12 @@ import art.arcane.iris.generation.hydrology.water.ReachStyle;
 import org.junit.AfterClass;
 import org.junit.Test;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.IntBinaryOperator;
 
 import static org.junit.Assert.assertEquals;
@@ -41,8 +44,10 @@ public class PlannedSceneTest {
     public void feedersAtALedInOutletsExitPoolBesideTheLeadIn() {
         PlannedScene scene = openFractal();
         Map<Long, Reach> byId = new HashMap<>();
+        Set<Long> fed = new HashSet<>();
         for (Reach reach : scene.reaches()) {
             byId.put(reach.id(), reach);
+            fed.add(reach.downstreamId());
         }
         int junctions = 0;
         int besideTheLeadIn = 0;
@@ -58,7 +63,8 @@ public class PlannedSceneTest {
             for (int point = last - 1; point >= 0 && feeder.style()[point] != ReachStyle.POND_OUTLET; point--) {
                 arc += Math.hypot(feeder.xs()[point + 1] - feeder.xs()[point], feeder.zs()[point + 1] - feeder.zs()[point]);
                 float reach = feeder.halfWidth()[point] + ConfluenceGrader.POOL_MARGIN;
-                if (arc > ConfluenceGrader.POOL_CAP || edgeDistance(outlet, 0, feeder.xs()[point], feeder.zs()[point]) > reach) {
+                if (arc > ConfluenceGrader.POOL_CAP || edgeDistance(outlet, 0, feeder.xs()[point], feeder.zs()[point]) > reach
+                        || point == 0 && fed.contains(feeder.id())) {
                     break;
                 }
                 assertEquals(feeder + " point " + point + " in the pool of led-in outlet " + outlet, outlet.grade()[0], feeder.grade()[point]);
@@ -116,6 +122,27 @@ public class PlannedSceneTest {
     }
 
     @Test
+    public void tributaryFallingFarIntoTheJunctionAtTheBankIsNoTongue() {
+        HydrologySettings settings = PlannedScene.packSettings(SEED);
+        for (int beside : new int[]{70, 74}) {
+            Reach tributary = tributary(settings, new int[]{144, 56}, new int[]{144, 136}, 2f, (x, z) -> z >= 128 ? 66 : beside);
+            boolean falls = beside - 66 > ConfluenceGrader.MARGIN_LOWERING;
+            assertEquals("tributary " + (beside - 66) + " blocks above the junction beside the receiving bank", falls ? List.of() : List.of(tributary.id()),
+                    tongues(settings, tributary, 66, true, List.of()));
+        }
+    }
+
+    @Test
+    public void startHeldForItsOwnFeederIsNoTongue() {
+        HydrologySettings settings = PlannedScene.packSettings(SEED);
+        Reach stub = tributary(settings, new int[]{144, 124}, new int[]{144, 136}, 2f, (x, z) -> z <= 124 ? 70 : 66);
+        Reach upstream = straight(304L, settings.tiers().get(0), stub.id(), 1f, new int[]{144, 56}, new int[]{144, 124}, (x, z) -> 70);
+        assertEquals("a stub perched at its start", List.of(stub.id()), tongues(settings, stub, 66, true, List.of()));
+        assertEquals("a stub holding its start for the reach that feeds it", List.of(),
+                WaterInvariants.confluenceTongues(scene(settings, List.of(stub, upstream), 66, true, List.of())));
+    }
+
+    @Test
     public void tonguesCountTheSiblingChannelAsReceivingWater() {
         HydrologySettings settings = PlannedScene.packSettings(SEED);
         Reach tributary = tributary(settings, new int[]{48, 112}, new int[]{144, 136}, 2f, (x, z) -> x >= 128 ? 66 : 70);
@@ -132,11 +159,14 @@ public class PlannedSceneTest {
         assertEquals("outlet held on its pond's lip 4 blocks above the junction, cascading into it", List.of(),
                 tongues(settings, falling, 66, true, List.of(source(70, falling))));
         Reach stepping = outlet(tributary(settings, lip, junction, 2f, (x, z) -> z >= 130 ? 67 : 68));
+        PlannedScene riffling = scene(settings, List.of(stepping), 67, true, List.of(source(68, stepping)));
         assertEquals("held outlet whose 1-block riffle into the junction shows as a 2-block step", List.of(stepping.id()),
-                tongues(settings, stepping, 67, true, List.of(source(68, stepping))));
+                WaterInvariants.confluenceTongues(riffling));
+        assertEquals("and that tongue is a held lip riffling into the junction", List.of(stepping.id()), WaterInvariants.heldLipRiffles(riffling));
         Reach above = outlet(tributary(settings, lip, junction, 2f, (x, z) -> 70));
-        assertEquals("held outlet whose own end stays above the junction", List.of(above.id()),
-                tongues(settings, above, 66, true, List.of(source(70, above))));
+        PlannedScene perched = scene(settings, List.of(above), 66, true, List.of(source(70, above)));
+        assertEquals("held outlet whose own end stays above the junction", List.of(above.id()), WaterInvariants.confluenceTongues(perched));
+        assertEquals("a held outlet ending above the junction is no lip riffle", List.of(), WaterInvariants.heldLipRiffles(perched));
     }
 
     @Test
@@ -144,8 +174,10 @@ public class PlannedSceneTest {
         HydrologySettings settings = PlannedScene.packSettings(SEED);
         Reach outlet = outlet(tributary(settings, new int[]{144, 56}, new int[]{144, 136}, 2f, (x, z) -> z >= 136 ? 66 : 70));
         Pond pond = pond(21L, 70, disk(144, 46, 10), outlet.id());
+        PlannedScene scene = scene(settings, List.of(outlet), 66, true, List.of(pond));
         assertEquals("outlet held only near its pond, cascading into the junction from a perched tail", List.of(outlet.id()),
-                tongues(settings, outlet, 66, true, List.of(pond)));
+                WaterInvariants.confluenceTongues(scene));
+        assertEquals("a perched unheld tail is no lip riffle", List.of(), WaterInvariants.heldLipRiffles(scene));
     }
 
     @Test
@@ -206,15 +238,21 @@ public class PlannedSceneTest {
     }
 
     private static List<Long> tongues(HydrologySettings settings, Reach tributary, int receivingLevel, boolean sibling, List<Pond> ponds) {
+        return WaterInvariants.confluenceTongues(scene(settings, List.of(tributary), receivingLevel, sibling, ponds));
+    }
+
+    private static PlannedScene scene(HydrologySettings settings, List<Reach> upstream, int receivingLevel, boolean sibling, List<Pond> ponds) {
         HydrologyTier river = settings.tiers().get(1);
+        Reach tributary = upstream.get(0);
         int last = tributary.xs().length - 1;
         int[] junction = {Math.round(tributary.xs()[last]), Math.round(tributary.zs()[last])};
         Reach below = straight(302L, river, 0L, 8f, junction, new int[]{junction[0] + 104, junction[1]}, (x, z) -> receivingLevel);
-        List<Reach> reaches = sibling
-                ? List.of(straight(301L, river, below.id(), 8f, new int[]{junction[0] - 112, junction[1]}, junction, (x, z) -> receivingLevel),
-                tributary, below)
-                : List.of(tributary, below);
-        return WaterInvariants.confluenceTongues(PlannedScene.of(SyntheticTerrain.flat(75D), settings, reaches, ponds));
+        List<Reach> reaches = new ArrayList<>(upstream);
+        reaches.add(below);
+        if (sibling) {
+            reaches.add(straight(301L, river, below.id(), 8f, new int[]{junction[0] - 112, junction[1]}, junction, (x, z) -> receivingLevel));
+        }
+        return PlannedScene.of(SyntheticTerrain.flat(75D), settings, reaches, ponds);
     }
 
     private static Reach outlet(Reach reach) {

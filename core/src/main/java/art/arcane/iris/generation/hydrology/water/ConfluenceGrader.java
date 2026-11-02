@@ -9,6 +9,7 @@ public final class ConfluenceGrader {
     public static final float POOL_MARGIN = 2f;
     public static final float POOL_CAP = 64f;
     public static final float APPROACH_SLOPE = 0.25f;
+    public static final int MARGIN_LOWERING = 5;
 
     private ConfluenceGrader() {
     }
@@ -21,7 +22,7 @@ public final class ConfluenceGrader {
         double[] arc = arcFromEnd(feeder);
         int[] settled = lower(grade, grade, last, level);
         int edge = last;
-        for (int point = last - 1; point >= 0 && pooled(feeder, fixed, receiving, arc, point); point--) {
+        for (int point = last - 1; point >= 0 && pooled(feeder, fixed, receiving, arc, point, grade[point] - level); point--) {
             settled = lower(settled, grade, point, level);
             edge = point;
         }
@@ -52,6 +53,7 @@ public final class ConfluenceGrader {
                 ReachDraft draft = drafts.get(feeder);
                 requireJunction(window, draft, downstream);
                 boolean[] fixed = draft.fixed();
+                fixed[0] |= draft.incoming.length > 0;
                 int waterfallMinimumDrop = draft.tier.waterfallMinimumDrop();
                 int[] settled = settle(footprint(draft), draft.grade, fixed, receiving(drafts, downstream, feeder), downstream.grade[0],
                         waterfallMinimumDrop);
@@ -97,17 +99,20 @@ public final class ConfluenceGrader {
                 + feeder.last() + " of its feeder reach " + feeder.id + " at junction " + feeder.xs[end] + "," + feeder.zs[end]);
     }
 
-    private static boolean pooled(Footprint feeder, boolean[] fixed, List<Footprint> receiving, double[] arc, int point) {
+    private static boolean pooled(Footprint feeder, boolean[] fixed, List<Footprint> receiving, double[] arc, int point, int lowering) {
         if (arc[point] > POOL_CAP || fixed[point]) {
             return false;
         }
         double reach = feeder.halfWidth()[point] + POOL_MARGIN;
+        boolean beside = false;
         for (Footprint channel : receiving) {
-            if (edgeDistance(channel, feeder.xs()[point], feeder.zs()[point]) <= reach) {
+            double edge = edgeDistance(channel, feeder.xs()[point], feeder.zs()[point]);
+            if (edge <= 0D) {
                 return true;
             }
+            beside |= edge <= reach;
         }
-        return false;
+        return beside && lowering <= MARGIN_LOWERING;
     }
 
     private static int approach(int[] grade, boolean[] fixed, double[] arc, int edge, int level, int waterfallMinimumDrop) {

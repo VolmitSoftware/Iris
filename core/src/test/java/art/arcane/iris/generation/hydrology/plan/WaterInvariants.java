@@ -56,11 +56,22 @@ final class WaterInvariants {
         int seaLevel = scene.settings().seaLevel();
         List<Long> tongues = new ArrayList<>();
         for (Junction junction : junctions(scene)) {
-            if (perched(scene, junction, seaLevel)) {
+            if (perched(scene, junction, seaLevel, false)) {
                 tongues.add(junction.feeder().id());
             }
         }
         return tongues;
+    }
+
+    static List<Long> heldLipRiffles(PlannedScene scene) {
+        int seaLevel = scene.settings().seaLevel();
+        List<Long> riffles = new ArrayList<>();
+        for (Junction junction : junctions(scene)) {
+            if (perched(scene, junction, seaLevel, false) && !perched(scene, junction, seaLevel, true)) {
+                riffles.add(junction.feeder().id());
+            }
+        }
+        return riffles;
     }
 
     static List<Reach> checkedFeeders(PlannedScene scene) {
@@ -145,10 +156,10 @@ final class WaterInvariants {
             if (downstream == null) {
                 continue;
             }
-            boolean[] pool = pool(feeder, receiving(feeder, downstream, feeders.get(downstream.id())));
+            int level = Math.min(feeder.grade()[feeder.grade().length - 1], downstream.grade()[0]);
+            boolean[] pool = pool(feeder, receiving(feeder, downstream, feeders.get(downstream.id())), level, feeders.containsKey(feeder.id()));
             int[] box = interior(scene, poolBox(feeder, pool));
             if (box != null) {
-                int level = Math.min(feeder.grade()[feeder.grade().length - 1], downstream.grade()[0]);
                 boolean[] held = held(feeder, lips.getOrDefault(feeder.id(), List.of()));
                 junctions.add(new Junction(feeder, WaterHeads.snap(level, seaLevel), pool, held, box));
             }
@@ -156,7 +167,7 @@ final class WaterInvariants {
         return junctions;
     }
 
-    private static boolean perched(PlannedScene scene, Junction junction, int seaLevel) {
+    private static boolean perched(PlannedScene scene, Junction junction, int seaLevel, boolean riffles) {
         Reach feeder = junction.feeder();
         boolean endsAtTheJunction = WaterHeads.snap(feeder.grade()[feeder.grade().length - 1], seaLevel) <= junction.head();
         int[] box = junction.box();
@@ -169,7 +180,7 @@ final class WaterInvariants {
                 if (point < 0 || !junction.pool()[point]) {
                     continue;
                 }
-                if (!endsAtTheJunction || !junction.held()[point] || !fallsToTheJunction(feeder, point, seaLevel)) {
+                if (!endsAtTheJunction || !junction.held()[point] || !fallsToTheJunction(feeder, point, seaLevel, riffles)) {
                     return true;
                 }
             }
@@ -177,15 +188,16 @@ final class WaterInvariants {
         return false;
     }
 
-    private static boolean[] pool(Reach feeder, List<Reach> receiving) {
+    private static boolean[] pool(Reach feeder, List<Reach> receiving, int level, boolean fedStart) {
         int last = feeder.xs().length - 1;
         boolean[] pool = new boolean[last + 1];
         pool[last] = true;
         double arc = 0D;
-        for (int point = last - 1; point >= 0; point--) {
+        for (int point = last - 1; point >= (fedStart ? 1 : 0); point--) {
             arc += Math.hypot(feeder.xs()[point + 1] - feeder.xs()[point], feeder.zs()[point + 1] - feeder.zs()[point]);
-            if (arc > ConfluenceGrader.POOL_CAP
-                    || edgeDistance(receiving, feeder.xs()[point], feeder.zs()[point]) > feeder.halfWidth()[point] + ConfluenceGrader.POOL_MARGIN) {
+            double edge = edgeDistance(receiving, feeder.xs()[point], feeder.zs()[point]);
+            if (arc > ConfluenceGrader.POOL_CAP || edge > feeder.halfWidth()[point] + ConfluenceGrader.POOL_MARGIN
+                    || edge > 0D && feeder.grade()[point] - level > ConfluenceGrader.MARGIN_LOWERING) {
                 return pool;
             }
             pool[point] = true;
@@ -222,11 +234,12 @@ final class WaterInvariants {
         return false;
     }
 
-    private static boolean fallsToTheJunction(Reach feeder, int point, int seaLevel) {
+    private static boolean fallsToTheJunction(Reach feeder, int point, int seaLevel, boolean riffles) {
         for (int next = point + 1; next < feeder.grade().length; next++) {
             boolean step = WaterHeads.snap(feeder.grade()[next], seaLevel) < WaterHeads.snap(feeder.grade()[next - 1], seaLevel);
             ReachStyle style = feeder.style()[next];
-            if (step && style != ReachStyle.CASCADE && style != ReachStyle.WATERFALL) {
+            boolean riffle = riffles && feeder.grade()[next - 1] - feeder.grade()[next] == 1;
+            if (step && style != ReachStyle.CASCADE && style != ReachStyle.WATERFALL && !riffle) {
                 return false;
             }
         }

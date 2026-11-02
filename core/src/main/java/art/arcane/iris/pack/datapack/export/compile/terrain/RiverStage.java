@@ -18,7 +18,6 @@ import java.util.TreeMap;
 
 public final class RiverStage implements CompileStage {
     private static final String ESTIMATE_TAG = "estimate";
-    private static final int MAX_CHILD_HOPS = 4;
 
     @Override
     public String name() {
@@ -72,7 +71,7 @@ public final class RiverStage implements CompileStage {
         for (int index = 1; index < leafFirst.size(); index++) {
             key.append('<').append(leafFirst.get(index).getLoadKey());
         }
-        if (lineages.putIfAbsent(key.toString(), leafFirst) != null || leafFirst.size() > MAX_CHILD_HOPS) {
+        if (lineages.putIfAbsent(key.toString(), leafFirst) != null || leafFirst.size() > IrisBiome.CHILD_HOPS) {
             return;
         }
         IrisBiome leaf = leafFirst.getFirst();

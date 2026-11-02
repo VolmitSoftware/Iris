@@ -147,7 +147,6 @@ public class IrisComplex implements DataProvider {
             IrisGenerator::getLoadKey,
             Comparator.nullsFirst(Comparator.naturalOrder())
     );
-    private static final int CHILD_HOPS = 4;
     private static final ThreadLocal<TerrainBatchScratch> BATCH_SCRATCH = ThreadLocal.withInitial(TerrainBatchScratch::new);
     private static final InferredType[] INFERRED_BIOME_PREPARATION_ORDER = {
             InferredType.LAND,
@@ -281,6 +280,9 @@ public class IrisComplex implements DataProvider {
     @Getter(AccessLevel.NONE)
     @Setter(AccessLevel.NONE)
     private final transient BiomeLineages biomeLineages;
+    @Getter(AccessLevel.NONE)
+    @Setter(AccessLevel.NONE)
+    private final transient boolean shoreBands;
     @Setter(AccessLevel.NONE)
     private final transient SubterrainPlanner subterrainPlanner;
     private transient IrisImageMapRuntime imageMapRuntime;
@@ -502,8 +504,11 @@ public class IrisComplex implements DataProvider {
         hydrologyRuntime = HydrologyRuntime.create(engine, this);
         waterFluidStreams = hydrologyRuntime.enabled() ? createWaterFluidStreams(hydrologyRuntime.settings().fluids(), hydrologyRuntime.settings().seams().values()) : Map.of();
         pondMaterials = hydrologyRuntime.enabled() ? hydrologyRuntime.settings().ponds().materials() : null;
+        KList<IrisRegion> policyRegions = hydrologyRuntime.enabled() ? engine.getDimension().getAllRegions(engine) : new KList<>();
+        KList<IrisBiome> policyBiomes = hydrologyRuntime.enabled() ? engine.getDimension().getReachableBiomes(engine) : new KList<>();
         waterVegetation = hydrologyRuntime.enabled() ? HydrologyVegetationSource.create(engine.getDimension(), hydrologyRuntime.settings(), data,
-                engine.getDimension().getAllRegions(engine), engine.getDimension().getReachableBiomes(engine)) : HydrologyVegetationSource.NONE;
+                policyRegions, policyBiomes) : HydrologyVegetationSource.NONE;
+        shoreBands = hydrologyRuntime.enabled() && HydrologyShoreBiomes.banded(engine.getDimension(), policyRegions, policyBiomes);
         heightStream = new BakedHeightStream(bakeCache, () -> terrainEngine.getPlatformHooks().isMainThread(),
                 this::resolveHydrologyTerrainHeight, this::resolveHydrologyTerrainHeight);
         roundedHeighteightStream = GenerationStreams.contextInjecting(heightStream, engine, (c, x, z) -> c.getHeight().getDouble(x, z))
@@ -1824,6 +1829,9 @@ public class IrisComplex implements DataProvider {
                 || seamWeight(blockX, blockZ) == 0D) {
             return null;
         }
+        if (!shoreBands) {
+            return null;
+        }
         IrisBiome shore = shoreBiomes.select(baseBiomeLineage(blockX, blockZ), regionStream.get(x, z), blockX, blockZ, distance);
         return shore == null ? null : implode(shore, x, z);
     }
@@ -2500,7 +2508,7 @@ public class IrisComplex implements DataProvider {
             return b;
         }
 
-        return implode(b, x, z, CHILD_HOPS - 1);
+        return implode(b, x, z, IrisBiome.CHILD_HOPS - 1);
     }
 
     private IrisBiome implode(IrisBiome b, double x, double z, int max) {
@@ -2525,11 +2533,11 @@ public class IrisComplex implements DataProvider {
     }
 
     private List<IrisBiome> childLineage(IrisBiome biome, int x, int z) {
-        IrisBiome[] rootFirst = new IrisBiome[CHILD_HOPS + 1];
+        IrisBiome[] rootFirst = new IrisBiome[IrisBiome.CHILD_HOPS + 1];
         IrisBiome current = inferredByType.get(bridgeStream.get(x, z)).get(x, z);
         rootFirst[0] = current;
         int size = 1;
-        for (int hop = 0; hop < CHILD_HOPS && !current.getChildren().isEmpty(); hop++) {
+        for (int hop = 0; hop < IrisBiome.CHILD_HOPS && !current.getChildren().isEmpty(); hop++) {
             IrisBiome picked = pickChild(current, x, z);
             if (picked == current) {
                 break;

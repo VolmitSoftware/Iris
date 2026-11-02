@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThrows;
@@ -189,7 +190,31 @@ public class IrisComplexSurfaceBiomeTest {
         ShorePolicyPack pack = new ShorePolicyPack();
         pack.region.setHydrologyPolicy(new IrisHydrologyPolicy().setShoreBiomes(new KList<>("ghost")));
         IllegalStateException failure = assertThrows(IllegalStateException.class, () -> shoreSelect(pack, 1));
-        assertTrue(failure.getMessage(), failure.getMessage().contains("'ghost'") && failure.getMessage().contains("coast"));
+        assertTrue(failure.getMessage(), failure.getMessage().contains("'ghost' listed by region coast for biome plain in region coast"));
+        IrisBiome parent = pack.biome("highland");
+        parent.setHydrologyPolicy(new IrisHydrologyPolicy().setShoreBiomes(new KList<>("phantom")));
+        failure = assertThrows(IllegalStateException.class, () -> shoreSelect(pack, List.of(pack.inland, parent), 1));
+        assertTrue(failure.getMessage(), failure.getMessage().contains("'phantom' listed by biome highland for biome plain in region coast"));
+        pack.region.setHydrologyPolicy(null);
+        pack.dimension.getHydrologyPolicy().setShoreBiomes(new KList<>("wraith"));
+        failure = assertThrows(IllegalStateException.class, () -> shoreSelect(pack, 1));
+        assertTrue(failure.getMessage(), failure.getMessage().contains("'wraith' listed by dimension "));
+    }
+
+    @Test
+    public void shoreBandsNeedAPositiveWidthAtSomeScope() {
+        IrisDimension dimension = new IrisDimension().setHydrologyPolicy(new IrisHydrologyPolicy().setShoreBiomes(new KList<>("dune")));
+        IrisRegion region = new IrisRegion().setHydrologyPolicy(new IrisHydrologyPolicy().setShoreBiomeWidth(0));
+        IrisBiome biome = new IrisBiome();
+        assertFalse(HydrologyShoreBiomes.banded(dimension, List.of(region), List.of(biome)));
+        biome.setHydrologyPolicy(new IrisHydrologyPolicy().setShoreBiomeWidth(3));
+        assertTrue(HydrologyShoreBiomes.banded(dimension, List.of(region), List.of(biome)));
+        biome.setHydrologyPolicy(null);
+        region.getHydrologyPolicy().setShoreBiomeWidth(2);
+        assertTrue(HydrologyShoreBiomes.banded(dimension, List.of(region), List.of(biome)));
+        region.setHydrologyPolicy(null);
+        dimension.getHydrologyPolicy().setShoreBiomeWidth(1);
+        assertTrue(HydrologyShoreBiomes.banded(dimension, List.of(region), List.of(biome)));
     }
 
     private static IrisBiome shoreSelect(ShorePolicyPack pack, int distance) {

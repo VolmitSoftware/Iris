@@ -8,6 +8,7 @@ import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.generation.terrain.IrisRegion;
 import art.arcane.iris.pack.loading.IrisData;
 
+import java.util.Collection;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Objects;
@@ -29,6 +30,23 @@ final class HydrologyShoreBiomes {
         this.dimension = Objects.requireNonNull(dimension, "dimension");
         this.data = data;
         this.seed = seed;
+    }
+
+    static boolean banded(IrisDimension dimension, Collection<IrisRegion> regions, Collection<IrisBiome> biomes) {
+        if (banded(dimension.getHydrologyPolicy())) {
+            return true;
+        }
+        for (IrisRegion region : regions) {
+            if (region != null && banded(region.getHydrologyPolicy())) {
+                return true;
+            }
+        }
+        for (IrisBiome biome : biomes) {
+            if (biome != null && banded(biome.getHydrologyPolicy())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     IrisBiome select(List<IrisBiome> lineage, IrisRegion region, int x, int z, int shoreDistance) {
@@ -76,18 +94,36 @@ final class HydrologyShoreBiomes {
         }
         IrisBiome[] biomes = new IrisBiome[keys.size()];
         for (int index = 0; index < biomes.length; index++) {
-            biomes[index] = load(keys.get(index), lineage.isEmpty() ? null : lineage.getFirst(), region).withInferredType(InferredType.SHORE);
+            biomes[index] = load(keys.get(index), lineage, region).withInferredType(InferredType.SHORE);
         }
         return new Policy(biomes, width);
     }
 
-    private IrisBiome load(String key, IrisBiome biome, IrisRegion region) {
+    private IrisBiome load(String key, List<IrisBiome> lineage, IrisRegion region) {
         IrisBiome loaded = key == null || key.isBlank() || data == null ? null : data.getBiomeLoader().load(key);
         if (loaded == null) {
-            throw new IllegalStateException("Hydrology shore biome '" + key + "' for biome " + (biome == null ? "none" : biome.getLoadKey())
-                    + " in region " + (region == null ? "none" : region.getLoadKey()) + " does not exist");
+            throw new IllegalStateException("Hydrology shore biome '" + key + "' listed by " + listedBy(lineage, region) + " for biome "
+                    + (lineage.isEmpty() ? "none" : lineage.getFirst().getLoadKey()) + " in region " + (region == null ? "none" : region.getLoadKey())
+                    + " does not exist");
         }
         return loaded;
+    }
+
+    private String listedBy(List<IrisBiome> lineage, IrisRegion region) {
+        for (IrisBiome biome : lineage) {
+            if (lists(biome.getHydrologyPolicy())) {
+                return "biome " + biome.getLoadKey();
+            }
+        }
+        return region != null && lists(region.getHydrologyPolicy()) ? "region " + region.getLoadKey() : "dimension " + dimension.getLoadKey();
+    }
+
+    private static boolean lists(IrisHydrologyPolicy policy) {
+        return policy != null && policy.getShoreBiomes() != null;
+    }
+
+    private static boolean banded(IrisHydrologyPolicy policy) {
+        return policy != null && policy.getShoreBiomeWidth() != null && policy.getShoreBiomeWidth() > 0;
     }
 
     private record Policy(IrisBiome[] biomes, int width) {

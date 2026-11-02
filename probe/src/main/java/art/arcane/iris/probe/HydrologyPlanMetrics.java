@@ -33,6 +33,7 @@ final class HydrologyPlanMetrics {
     private final Map<WindowKey, Long> seams = new HashMap<>();
     private final Map<Long, Pond> endPonds = new HashMap<>();
     private final Map<Long, Set<Long>> pondReaches = new HashMap<>();
+    private final Map<Long, Pond> outletPonds = new HashMap<>();
     private final Map<WindowKey, Integer> rivers;
     private final VertexIndex vertices;
 
@@ -53,6 +54,9 @@ final class HydrologyPlanMetrics {
                 }
             }
             for (Pond pond : entry.getValue().ponds()) {
+                if (pond.outletReachId() != 0L) {
+                    outletPonds.putIfAbsent(pond.outletReachId(), pond);
+                }
                 WindowKey owner = pondOwners.putIfAbsent(pond.id(), key);
                 if (owner != null) {
                     seam(key, "pond " + pond.id() + " owned by " + owner + " and " + key);
@@ -72,6 +76,10 @@ final class HydrologyPlanMetrics {
 
     Pond endPond(Reach reach) {
         return endPonds.get(reach.id());
+    }
+
+    Pond outletPond(long reachId) {
+        return outletPonds.get(reachId);
     }
 
     long seams(WindowKey key) {

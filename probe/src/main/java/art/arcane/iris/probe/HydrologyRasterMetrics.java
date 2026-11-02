@@ -4,8 +4,10 @@ import art.arcane.iris.generation.hydrology.plan.HydrologySettings;
 import art.arcane.iris.generation.hydrology.plan.WindowKey;
 import art.arcane.iris.generation.hydrology.plan.WindowPlan;
 import art.arcane.iris.generation.hydrology.raster.ChunkWaterRaster;
+import art.arcane.iris.generation.hydrology.raster.WaterHeads;
 import art.arcane.iris.generation.hydrology.raster.WaterRole;
 import art.arcane.iris.generation.hydrology.water.Pond;
+import art.arcane.iris.generation.hydrology.water.PondKind;
 import art.arcane.iris.generation.hydrology.water.Reach;
 import art.arcane.iris.generation.hydrology.water.ReachStyle;
 import art.arcane.iris.generation.hydrology.raster.NaturalHeights;
@@ -13,6 +15,8 @@ import art.arcane.iris.generation.hydrology.raster.NaturalHeights;
 import java.util.function.Consumer;
 
 final class HydrologyRasterMetrics {
+    private static final int[][] SIDES = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
+
     private final HydrologySettings settings;
     private final HydrologyPlanMetrics plans;
     private final Rasters rasters;
@@ -67,18 +71,18 @@ final class HydrologyRasterMetrics {
                 }
             }
             Pond end = plans.endPond(reach);
-            if (end != null && end.level() > previous) {
+            if (end != null && head(end) > previous) {
                 rising++;
-                examples.accept("rise from reach " + reach.id() + " at " + previous + " into pond " + end.id() + " at " + end.level());
+                examples.accept("rise from reach " + reach.id() + " at " + previous + " into pond " + end.id() + " at " + head(end));
             }
         }
         for (Pond pond : plan.ponds()) {
             Reach outlet = plans.reaches().get(pond.outletReachId());
             if (outlet != null) {
                 int first = first(heads(outlet));
-                if (first != HydrologyVoxels.NO_WATER && first > pond.level()) {
+                if (first != HydrologyVoxels.NO_WATER && first > head(pond)) {
                     rising++;
-                    examples.accept("rise from pond " + pond.id() + " at " + pond.level() + " into outlet " + outlet.id() + " at " + first);
+                    examples.accept("rise from pond " + pond.id() + " at " + head(pond) + " into outlet " + outlet.id() + " at " + first);
                 }
             }
         }
@@ -116,13 +120,36 @@ final class HydrologyRasterMetrics {
                 }
                 int terrain = raster.terrainHeight(x & 15, z & 15);
                 int natural = (int) Math.round(naturalHeight.height(x, z));
-                if (terrain > natural + maxFill) {
+                if (terrain > natural + maxFill && !heldOutletWall(x, z, terrain)) {
                     overCap++;
                     examples.accept("berm raised " + x + "," + z + " from " + natural + " to " + terrain);
                 }
             }
         }
         return overCap;
+    }
+
+    private boolean heldOutletWall(int x, int z, int terrain) {
+        for (int[] side : SIDES) {
+            int nx = x + side[0];
+            int nz = z + side[1];
+            if (!range.containsBlock(nx, nz)) {
+                continue;
+            }
+            ChunkWaterRaster raster = rasters.get(nx >> 4, nz >> 4);
+            if (!raster.role(nx & 15, nz & 15).wet() || raster.waterHead(nx & 15, nz & 15) != terrain) {
+                continue;
+            }
+            Pond pond = plans.outletPond(raster.featureId(nx & 15, nz & 15));
+            if (pond != null && pond.kind() != PondKind.LAKE && head(pond) == terrain) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private int head(Pond pond) {
+        return WaterHeads.snap(pond.level(), settings.seaLevel());
     }
 
     WaterRole role(int x, int z) {

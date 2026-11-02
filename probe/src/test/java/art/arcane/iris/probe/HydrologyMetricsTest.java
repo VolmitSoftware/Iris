@@ -157,6 +157,47 @@ public class HydrologyMetricsTest {
     }
 
     @Test
+    public void aReachEndingInItsPondAtThePondsSnappedHeadDoesNotRise() {
+        Pond odd = pond(10L, 51, square(96, 96, 3), 0L, 100, 100);
+        Reach inflow = reach(4L, STREAM, 0L, 1000f, new int[]{60, 51, 51}, 60f, 100f, 80f, 100f, 100f, 100f);
+        Map<Long, Column> level = new HashMap<>();
+        wet(level, inflow, 60, 50, HydrologyVoxels.NO_WATER);
+        assertRises(0L, null, List.of(inflow), List.of(odd), level);
+        Map<Long, Column> below = new HashMap<>();
+        wet(below, inflow, 60, 48, HydrologyVoxels.NO_WATER);
+        assertRises(1L, "rise from reach 4 at 48 into pond 10 at 50", List.of(inflow), List.of(odd), below);
+    }
+
+    @Test
+    public void bermOverCapSparesOnlyTheWallOfOutletWaterHeldAtItsPondsHead() {
+        int maxFill = SETTINGS.deformation().maxFill();
+        int head = 50;
+        Reach outlet = reach(3L, STREAM, 0L, 1000f, new int[]{51, 51}, 8f, 4f, 20f, 4f);
+        Pond held = pond(10L, 51, square(0, 0, 2), 3L, 4, 4);
+        Map<Long, Column> columns = new HashMap<>();
+        columns.put(HydrologyVoxels.columnKey(10, 4), new Column(WaterRole.CHANNEL, head, head - 2, 3L));
+        columns.put(HydrologyVoxels.columnKey(10, 5), new Column(WaterRole.BANK, HydrologyVoxels.NO_WATER, head, 3L));
+        HydrologyRasterMetrics.Rasters rasters = rasters(columns);
+        int low = head - maxFill - 2;
+        assertEquals(0L, berms(List.of(outlet), List.of(held), rasters, low));
+        assertEquals(1L, berms(List.of(outlet), List.of(pond(10L, 51, square(0, 0, 2), 0L, 4, 4)), rasters(columns), low));
+        assertEquals(1L, berms(List.of(outlet), List.of(pond(10L, 55, square(0, 0, 2), 3L, 4, 4)), rasters(columns), low));
+        columns.put(HydrologyVoxels.columnKey(10, 5), new Column(WaterRole.BANK, HydrologyVoxels.NO_WATER, head + 1, 3L));
+        assertEquals(1L, berms(List.of(outlet), List.of(held), rasters(columns), low));
+    }
+
+    private static long berms(List<Reach> reaches, List<Pond> ponds, HydrologyRasterMetrics.Rasters rasters, int natural) {
+        HydrologyPlanMetrics plans = new HydrologyPlanMetrics(SETTINGS, windows(plan(WEST, reaches, ponds), plan(EAST, List.of(), List.of())),
+                List.of(), BOTH, ignored -> {
+                });
+        List<String> examples = new ArrayList<>();
+        long overCap = new HydrologyRasterMetrics(SETTINGS, plans, rasters, (x, z) -> x == 10 && z == 5 ? natural : NATURAL, BOTH, examples::add)
+                .bermOverCap(WEST);
+        assertEquals(examples.toString(), overCap, examples.size());
+        return overCap;
+    }
+
+    @Test
     public void chunkSeamsFireOnDryColumnsLeftBelowTheirBermAndOnePondAtTwoLevels() {
         HydrologyPlanMetrics plans = new HydrologyPlanMetrics(SETTINGS, windows(plan(WEST, List.of(), List.of()), plan(EAST, List.of(), List.of())),
                 List.of(), BOTH, ignored -> {

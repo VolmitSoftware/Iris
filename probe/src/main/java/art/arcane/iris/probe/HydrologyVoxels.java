@@ -1,10 +1,13 @@
 package art.arcane.iris.probe;
 
+import art.arcane.iris.generation.biome.IrisBiome;
+import art.arcane.iris.generation.decoration.IrisDecorator;
 import art.arcane.iris.generation.hydrology.engine.HydrologyRuntime;
 import art.arcane.iris.generation.hydrology.raster.ChunkWaterRaster;
 import art.arcane.iris.generation.hydrology.raster.WaterRole;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.IrisComplex;
+import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
 import art.arcane.volmlib.util.matter.Matter;
@@ -112,8 +115,13 @@ final class HydrologyVoxels {
                     }
                     int x = (chunkX << 4) + lx;
                     int z = (chunkZ << 4) + lz;
-                    blocks.surfaces()[(lz << 4) | lx] = covered(complex, own, mantle, lx, head, lz, x, z) ? SOLID
-                            : classify(complex.resolveWaterFluid(own.fluid(lx, lz), x, z));
+                    WaterRole role = own.role(lx, lz);
+                    NativeBlockState object = mantle.get(lx, head, lz, NativeBlockState.class);
+                    IrisBiome biome = seaFloor(role) ? complex.getTrueBiomeStream().get(x, z) : null;
+                    boolean seaLayers = biome != null && biome.getSeaLayers().isNotEmpty();
+                    boolean seaDecoration = biome != null && decoratedBy(biome, chunk.blocks().get(lx, head, lz), engine.getData());
+                    blocks.surfaces()[(lz << 4) | lx] = plannedSurface(role, object != null && object.isSolid(), seaLayers, seaDecoration,
+                            classify(complex.resolveWaterFluid(x, z)));
                 }
             }
         } finally {
@@ -122,14 +130,39 @@ final class HydrologyVoxels {
         return blocks;
     }
 
-    private static boolean covered(IrisComplex complex, ChunkWaterRaster raster, MantleChunk<Matter> mantle, int lx, int head, int lz, int x,
-                                   int z) {
-        NativeBlockState object = mantle.get(lx, head, lz, NativeBlockState.class);
-        if (object != null && object.isSolid()) {
-            return true;
+    static byte plannedSurface(WaterRole role, boolean solidObject, boolean seaLayers, boolean seaDecoration, byte fluid) {
+        return solidObject || seaFloor(role) && (seaLayers || seaDecoration) ? SOLID : fluid;
+    }
+
+    static boolean decoratedBy(IrisBiome biome, NativeBlockState state, IrisData data) {
+        if (state == null || state.isAir() || state.key() == null) {
+            return false;
         }
-        return raster.role(lx, lz) == WaterRole.INLET
-                && complex.getTrueBiomeStream().get(x, z).getSeaLayers().isNotEmpty();
+        String block = blockId(state.key());
+        for (IrisDecorator decorator : biome.getDecorators()) {
+            if (places(decorator.getBlockData(data), block) || places(decorator.getBlockDataTops(data), block)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean seaFloor(WaterRole role) {
+        return role == WaterRole.INLET || role == WaterRole.MOUTH;
+    }
+
+    private static boolean places(List<NativeBlockState> palette, String block) {
+        for (NativeBlockState state : palette) {
+            if (state != null && state.key() != null && blockId(state.key()).equals(block)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static String blockId(String key) {
+        int bracket = key.indexOf('[');
+        return bracket < 0 ? key : key.substring(0, bracket);
     }
 
     static int[] effectiveHeads(IrisComplex complex, int chunkX, int chunkZ) {
@@ -287,8 +320,7 @@ final class HydrologyVoxels {
 
     private static byte resolve(NativeBlockState state) {
         String key = state.key();
-        int bracket = key.indexOf('[');
-        String block = bracket < 0 ? key : key.substring(0, bracket);
+        String block = blockId(key);
         if (block.equals("minecraft:water")) {
             return (byte) (WATER + level(key));
         }

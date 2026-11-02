@@ -1,9 +1,18 @@
 package art.arcane.iris.probe;
 
+import art.arcane.iris.generation.biome.IrisBiome;
+import art.arcane.iris.generation.decoration.IrisDecorator;
+import art.arcane.iris.generation.hydrology.raster.WaterRole;
+import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
+import art.arcane.volmlib.util.collection.KList;
 import org.junit.Test;
 
+import java.util.List;
+
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -162,6 +171,36 @@ public class HydrologyVoxelsTest {
         chunk.surfaces()[(4 << 4) | 4] = HydrologyVoxels.SOLID;
         chunk.surfaces()[(3 << 4) | 3] = HydrologyVoxels.SOLID;
         assertEquals(1L, scan(volume(chunk)).missingSurfaces);
+    }
+
+    @Test
+    public void seaFloorHeadsMayHoldTheSeaLayersOrTheDecorationOfTheSeaTheyJoin() {
+        for (WaterRole role : new WaterRole[]{WaterRole.INLET, WaterRole.MOUTH}) {
+            assertEquals(role.name(), HydrologyVoxels.SOLID, HydrologyVoxels.plannedSurface(role, false, true, false, HydrologyVoxels.WATER));
+            assertEquals(role.name(), HydrologyVoxels.SOLID, HydrologyVoxels.plannedSurface(role, false, false, true, HydrologyVoxels.WATER));
+            assertEquals(role.name(), HydrologyVoxels.WATER, HydrologyVoxels.plannedSurface(role, false, false, false, HydrologyVoxels.WATER));
+        }
+        for (WaterRole role : new WaterRole[]{WaterRole.CHANNEL, WaterRole.POND, WaterRole.CASCADE, WaterRole.WATERFALL}) {
+            assertEquals(role.name(), HydrologyVoxels.WATER, HydrologyVoxels.plannedSurface(role, false, true, true, HydrologyVoxels.WATER));
+            assertEquals(role.name(), HydrologyVoxels.LAVA, HydrologyVoxels.plannedSurface(role, false, false, false, HydrologyVoxels.LAVA));
+            assertEquals(role.name(), HydrologyVoxels.SOLID, HydrologyVoxels.plannedSurface(role, true, false, false, HydrologyVoxels.WATER));
+        }
+    }
+
+    @Test
+    public void onlyBlocksTheBiomeDecoratesWithAreItsDecoration() {
+        IrisData data = mock(IrisData.class);
+        NativeBlockState coralBlock = state("minecraft:fire_coral_block", false);
+        NativeBlockState pickles = state("minecraft:sea_pickle[pickles=2,waterlogged=true]", true);
+        IrisDecorator coral = mock(IrisDecorator.class);
+        when(coral.getBlockData(data)).thenReturn(new KList<>(List.of(coralBlock)));
+        when(coral.getBlockDataTops(data)).thenReturn(new KList<>(List.of(pickles)));
+        IrisBiome biome = new IrisBiome().setDecorators(new KList<>(List.of(coral)));
+        assertTrue(HydrologyVoxels.decoratedBy(biome, state("minecraft:fire_coral_block", false), data));
+        assertTrue(HydrologyVoxels.decoratedBy(biome, state("minecraft:sea_pickle[pickles=1,waterlogged=true]", true), data));
+        assertFalse(HydrologyVoxels.decoratedBy(biome, state("minecraft:stone", false), data));
+        assertFalse(HydrologyVoxels.decoratedBy(biome, state("minecraft:fire_coral_block_slab", false), data));
+        assertFalse(HydrologyVoxels.decoratedBy(biome, null, data));
     }
 
     @Test

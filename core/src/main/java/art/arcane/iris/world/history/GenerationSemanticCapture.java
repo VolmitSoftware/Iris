@@ -165,6 +165,7 @@ public final class GenerationSemanticCapture {
             return;
         }
         Map<Long, Set<HydrologyFeatureType>> standing = new HashMap<>();
+        Map<Long, String> reachFluids = new HashMap<>();
         Set<WaterFeature> recorded = new HashSet<>();
         for (int localX = 0; localX < CHUNK_SIZE; localX++) {
             int blockX = minimumX + localX;
@@ -181,8 +182,9 @@ public final class GenerationSemanticCapture {
                 Set<HydrologyFeatureType> types = role == WaterRole.POND
                         ? standing.computeIfAbsent(id, feature -> runtime.standingWaterTypes(chunkX, chunkZ, feature))
                         : flowingTypes(runtime, role, raster.tier(localX, localZ));
-                String fluid = Objects.requireNonNull(raster.fluid(localX, localZ),
-                        "Water column " + blockX + "," + blockZ + " has no fluid profile");
+                String fluid = role == WaterRole.MOUTH
+                        ? reachFluids.computeIfAbsent(id, reach -> runtime.channelFluid(chunkX, chunkZ, reach))
+                        : Objects.requireNonNull(raster.fluid(localX, localZ), "Water column " + blockX + "," + blockZ + " has no fluid profile");
                 int y = Math.addExact((int) Math.round(complex.getWaterHeadStream().getDouble(blockX, blockZ)), minimumY);
                 for (HydrologyFeatureType type : types) {
                     if (recorded.add(new WaterFeature(type, id))) {

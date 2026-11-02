@@ -28,6 +28,7 @@ import art.arcane.iris.generation.hydrology.underground.SeaInlet;
 import art.arcane.iris.generation.hydrology.water.Pond;
 import art.arcane.iris.generation.hydrology.water.PondKind;
 import art.arcane.iris.generation.hydrology.water.Reach;
+import art.arcane.iris.generation.hydrology.water.ReachStyle;
 import art.arcane.iris.testsupport.FakeHydrology;
 import art.arcane.iris.testsupport.WaterScene;
 import art.arcane.iris.generation.mantle.EngineMantle;
@@ -44,6 +45,7 @@ import org.junit.Test;
 import org.mockito.MockedStatic;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -488,6 +490,28 @@ public final class GenerationSemanticCaptureTest {
                 assertEquals(WaterRole.POND, hydrology.runtime.raster(0, 0).role(occurrence.position().x() & 15,
                         occurrence.position().z() & 15));
             }
+        }
+    }
+
+    @Test
+    public void estuaryFeaturesRecordTheFluidOfTheirReach() {
+        HydrologySettings settings = FakeHydrology.settings(WATER_SEA_LEVEL);
+        Reach drawn = WaterScene.line(13L, settings.tiers().getFirst(), 2, 40, 13, 40, (x, z) -> WATER_SEA_LEVEL);
+        ReachStyle[] mouth = new ReachStyle[drawn.style().length];
+        Arrays.fill(mouth, ReachStyle.MOUTH);
+        Reach estuary = new Reach(drawn.id(), drawn.tier(), 0L, drawn.xs(), drawn.zs(), drawn.grade(), drawn.halfWidth(), drawn.depth(), mouth,
+                drawn.catchment());
+        try (FakeHydrology hydrology = new FakeHydrology(() -> false, (x, z) -> 60, WATER_SEA_LEVEL, List.of(estuary), List.of())) {
+            Fixture fixture = new Fixture();
+            fixture.water(hydrology.runtime);
+            assertEquals(HydrologyCaveCell.SEA_FLUID, hydrology.runtime.raster(0, 2).fluid(5, 8));
+
+            assertEquals(Map.of(HydrologyFeatureType.MOUTH, 13L, HydrologyFeatureType.STREAM, 13L), features(fixture, 0, 2));
+            ChunkGenerationSemantics captured = GenerationSemanticCapture.capture(fixture.engine, 0, 2, 5L);
+            for (ChunkGenerationSemantics.RiverFeatureOccurrence occurrence : captured.riverFeatures()) {
+                assertEquals(occurrence.type().name(), "water", occurrence.profileKey());
+            }
+            assertEquals(Set.of("water"), captured.riverProfileKeys());
         }
     }
 

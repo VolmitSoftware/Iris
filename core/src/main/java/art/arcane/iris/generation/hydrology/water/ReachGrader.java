@@ -88,8 +88,8 @@ final class ReachGrader {
             if (point < draft.xs.length - 1) {
                 along += (float) Math.hypot(draft.xs[point + 1] - draft.xs[point], draft.zs[point + 1] - draft.zs[point]);
             }
-            boolean held = draft.held != null && draft.held[point];
-            if (along > length || held || !draft.ocean[point] && draft.bank[point] > highestBank) {
+            boolean fixed = draft.held != null && draft.held[point] || point == 0 && draft.outlet;
+            if (along > length || fixed || !draft.ocean[point] && draft.bank[point] > highestBank) {
                 return;
             }
             draft.ocean[point] = true;

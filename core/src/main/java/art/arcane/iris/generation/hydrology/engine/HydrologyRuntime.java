@@ -69,6 +69,7 @@ public final class HydrologyRuntime {
     private final HydrologySettings settings;
     private final HydrologyPlanCache cache;
     private final ChunkRasterizer rasterizer;
+    private final ChannelFluids channelFluids;
     private final NaturalHeights naturalHeight;
     private final BooleanSupplier mainThread;
     private final RasterLru rasters;
@@ -93,6 +94,7 @@ public final class HydrologyRuntime {
         this.settings = null;
         this.cache = null;
         this.rasterizer = null;
+        this.channelFluids = null;
         this.naturalHeight = null;
         this.mainThread = null;
         this.rasters = null;
@@ -120,6 +122,7 @@ public final class HydrologyRuntime {
                              Function<PreparedHydrologyCacheIdentity, HydrologyPlanStore> stores, boolean caveFluidPolicies) {
         this.settings = Objects.requireNonNull(settings, "settings");
         this.cache = Objects.requireNonNull(cache, "cache");
+        this.channelFluids = Objects.requireNonNull(channelFluids, "channelFluids");
         this.rasterizer = new ChunkRasterizer(settings, channelFluids);
         this.naturalHeight = Objects.requireNonNull(naturalHeight, "naturalHeight");
         this.mainThread = Objects.requireNonNull(mainThread, "mainThread");
@@ -460,6 +463,25 @@ public final class HydrologyRuntime {
             }
         }
         throw new IllegalStateException("Chunk " + chunkX + "," + chunkZ + " holds standing water " + featureId
+                + " that none of its hydrology plans define.");
+    }
+
+    public String channelFluid(int chunkX, int chunkZ, long reachId) {
+        if (cache == null) {
+            throw new IllegalStateException("Hydrology is disabled, so it has no channels.");
+        }
+        if (mainThread.getAsBoolean()) {
+            throw new IllegalStateException("Hydrology channel fluid was requested on the main thread.");
+        }
+        requireOpen();
+        for (CompletableFuture<IndexedWindow> window : plans(neighbourhood(chunkX, chunkZ), List.of(), PlanMode.DEMAND).windowFutures()) {
+            for (Reach reach : cache.awaitPlan(window).plan().reaches()) {
+                if (reach.id() == reachId) {
+                    return channelFluids.reachFluid(reach);
+                }
+            }
+        }
+        throw new IllegalStateException("Chunk " + chunkX + "," + chunkZ + " holds channel water " + reachId
                 + " that none of its hydrology plans define.");
     }
 

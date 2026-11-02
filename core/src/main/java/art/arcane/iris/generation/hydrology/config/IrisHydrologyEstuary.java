@@ -19,6 +19,6 @@ public class IrisHydrologyEstuary {
 
     @MinNumber(1)
     @MaxNumber(4)
-    @Description("Half-width at the mouth of a full-length estuary as a multiple of the channel's own half-width. The channel widens slowly at first and fastest near the mouth and keeps its own depth; an estuary cut short by higher banks widens less. The half-width never passes 64. 1 keeps the channel's width.")
+    @Description("Half-width at the mouth of a full-length estuary as a multiple of the channel's own half-width. The channel widens slowly at first and fastest near the mouth while its depth tapers to one block there; an estuary cut short by higher banks widens less. The half-width never passes 64. 1 keeps the channel's width.")
     private double flare = 2.5D;
 }

@@ -149,10 +149,7 @@ final class RasterComposer {
     }
 
     private String reachFluid(Reach reach) {
-        return reachFluids.computeIfAbsent(reach.id(), id -> {
-            String area = channelFluids.channelFluid((int) Math.floor(reach.xs()[0]), (int) Math.floor(reach.zs()[0]));
-            return area != null ? area : reach.tier().fluid();
-        });
+        return reachFluids.computeIfAbsent(reach.id(), id -> channelFluids.reachFluid(reach));
     }
 
     private int deepestBed(int ownerHead, int surface, int ground, double variation, double detail) {

@@ -24,7 +24,7 @@ public record HydrologyTier(
         List<IrisDecorator> decorators
 ) {
     private static final float CATCHMENT_SCALE = 2500f;
-    private static final float MINIMUM_DEPTH = 1f;
+    static final float MINIMUM_DEPTH = 1f;
 
     public float halfWidth(float catchment) {
         float grown = minHalfWidth + widthFactor * (float) Math.sqrt(Math.max(0f, catchment) / CATCHMENT_SCALE);

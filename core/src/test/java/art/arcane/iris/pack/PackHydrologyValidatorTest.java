@@ -250,15 +250,15 @@ public class PackHydrologyValidatorTest {
                   {"name": "major", "minCatchment": 200000, "halfWidth": [9, 18], "bankBand": 48%s}
                 ]}
                 """;
-        File stale = pack(dimension(written.formatted(", \"deltas\": false", ", \"deltas\": true"), ""));
+        File extra = pack(dimension(written.formatted(", \"notATierField\": false", ", \"notATierField\": {\"depth\": 3}"), ""));
         File current = pack(dimension(written.formatted("", ""), ""));
 
-        PackHydrologyValidator.Validation validation = validate(stale);
+        PackHydrologyValidator.Validation validation = validate(extra);
         assertTrue(validation.errors().toString(), validation.errors().isEmpty());
         assertTrue(validation.warnings().isEmpty());
-        PackValidationResult packaging = PackValidator.validateForPackaging(stale);
+        PackValidationResult packaging = PackValidator.validateForPackaging(extra);
         assertEquals(PackValidator.validateForPackaging(current).getBlockingErrors(), packaging.getBlockingErrors());
-        IrisHydrology loaded = loadHydrology(stale);
+        IrisHydrology loaded = loadHydrology(extra);
         for (IrisHydrologyTier tier : loaded.getTiers()) {
             assertEquals(tier.getName(), 48, tier.getEstuary().getLength());
             assertEquals(tier.getName(), 2.5D, tier.getEstuary().getFlare(), 0D);

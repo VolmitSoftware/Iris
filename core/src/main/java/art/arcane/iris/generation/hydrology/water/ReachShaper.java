@@ -492,7 +492,9 @@ public final class ReachShaper {
         boolean flare = draft.incoming.length > 0 && !draft.outlet;
         boolean taper = !flare && !draft.outlet;
         float[] distance = distances(draft.xs, draft.zs);
-        float[] estuary = estuaryFlare(draft, distance);
+        Opening estuary = draft.chain.end() == ReachTracer.End.OCEAN ? estuaryOpening(draft.tier.estuary(), draft.ocean, distance)
+                : Opening.closed(count);
+        float widening = (draft.tier.estuary().flare() - 1f) * estuary.share();
         float running = upstream;
         draft.halfWidth = new float[count];
         draft.depth = new float[count];
@@ -505,35 +507,36 @@ public final class ReachShaper {
             }
             float lip = draft.held != null && draft.held[point] ? LIP_HALF_WIDTH : 0f;
             float channel = Math.max(Math.max(law, WAIST * running), lip);
-            draft.halfWidth[point] = Math.min(HydrologySettings.MAX_HALF_WIDTH, channel * estuary[point]);
+            float progress = estuary.progress()[point];
+            draft.halfWidth[point] = Math.min(HydrologySettings.MAX_HALF_WIDTH, channel * (1f + widening * progress));
             running = Math.max(running, channel);
-            draft.depth[point] = draft.tier.depth(channel);
+            float depth = draft.tier.depth(channel);
+            draft.depth[point] = depth + (HydrologyTier.MINIMUM_DEPTH - depth) * progress;
         }
         draft.maxHalfWidth = running;
     }
 
-    private static float[] estuaryFlare(ReachDraft draft, float[] distance) {
+    static Opening estuaryOpening(HydrologyTier.Estuary estuary, boolean[] ocean, float[] distance) {
         int count = distance.length;
-        float[] scale = new float[count];
-        Arrays.fill(scale, 1f);
-        if (draft.chain.end() != ReachTracer.End.OCEAN) {
-            return scale;
+        if (estuary.length() == 0) {
+            return Opening.closed(count);
         }
-        HydrologyTier.Estuary estuary = draft.tier.estuary();
         float mouth = distance[count - 1];
         int start = count - 1;
-        while (start > 0 && draft.ocean[start - 1] && mouth - distance[start - 1] <= estuary.length()) {
+        while (start > 0 && ocean[start - 1] && mouth - distance[start - 1] <= estuary.length()) {
             start--;
         }
-        if (start == count - 1) {
-            return scale;
-        }
         float first = towardMouth(mouth - distance[start], estuary.length());
+        float share = 1f - first * first;
+        if (start == count - 1 || share <= 0f) {
+            return Opening.closed(count);
+        }
+        float[] progress = new float[count];
         for (int point = start + 1; point < count; point++) {
             float toward = towardMouth(mouth - distance[point], estuary.length());
-            scale[point] = 1f + (estuary.flare() - 1f) * (toward * toward - first * first);
+            progress[point] = (toward * toward - first * first) / share;
         }
-        return scale;
+        return new Opening(progress, share);
     }
 
     private static float towardMouth(float remaining, int length) {
@@ -647,6 +650,12 @@ public final class ReachShaper {
         if (receivers.length != count || accumulation.length != count || channels.length() > count) {
             throw new IllegalArgumentException("Drainage network does not match the " + count + "-cell grid: receivers=" + receivers.length
                     + " accumulation=" + accumulation.length + " channels=" + channels.length());
+        }
+    }
+
+    record Opening(float[] progress, float share) {
+        static Opening closed(int count) {
+            return new Opening(new float[count], 0f);
         }
     }
 }

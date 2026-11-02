@@ -49,6 +49,7 @@ public class ReachShaperTest {
     private static final int STEP_X = 196;
     private static final int WINDOW_MIN_X = 140;
     private static final int WINDOW_MAX_X = 250;
+    private static final int OUTLET_POND_LEVEL = SEA_LEVEL + 3;
     private static final byte ALLOW_ALL = HydrologySampleBuffer.ALLOW_STREAMS | HydrologySampleBuffer.ALLOW_PONDS;
 
     @Test
@@ -926,10 +927,12 @@ public class ReachShaperTest {
             boolean inside = point >= start;
             assertEquals(estuary + " is a mouth at " + point, inside, estuary.style()[point] == ReachStyle.MOUTH);
             assertTrue(estuary + " grade at " + point, inside ? estuary.grade()[point] == SEA_LEVEL : estuary.grade()[point] > SEA_LEVEL);
-            assertEquals("the estuary keeps the channel depth at " + point, unflared.depth()[point], estuary.depth()[point], 0f);
+            assertEquals("the flare leaves the depth alone at " + point, unflared.depth()[point], estuary.depth()[point], 0f);
             if (point <= start) {
+                assertEquals("full channel depth above the estuary at " + point, mouth.depth()[point], estuary.depth()[point], 0f);
                 assertEquals("no flare above the estuary at " + point, unflared.halfWidth()[point], estuary.halfWidth()[point], 0f);
             } else {
+                assertTrue("the estuary shallows toward the mouth at " + point, estuary.depth()[point] <= mouth.depth()[point]);
                 float ratio = estuary.halfWidth()[point] / unflared.halfWidth()[point];
                 float previous = estuary.halfWidth()[point - 1] / unflared.halfWidth()[point - 1];
                 assertTrue("flare grows toward the mouth at " + point + ": " + previous + " then " + ratio, ratio >= previous - 1e-6f);
@@ -943,6 +946,9 @@ public class ReachShaperTest {
             middle++;
         }
         assertTrue("flare grows slowly at first", estuary.halfWidth()[middle] / unflared.halfWidth()[middle] < 1.75f);
+        assertTrue("the estuary shallows gradually", estuary.depth()[middle] > HydrologyTier.MINIMUM_DEPTH);
+        assertEquals("the estuary bed meets the seabed at the mouth", HydrologyTier.MINIMUM_DEPTH, estuary.depth()[last], 0f);
+        assertTrue("a plain mouth keeps the channel depth", mouth.depth()[last] > 2f * HydrologyTier.MINIMUM_DEPTH);
 
         assertTrue("length 0 ends in a plain mouth", mouth.xs()[last] - mouth.xs()[trailingMouth(mouth)] < 8f);
         assertTrue("length 0 keeps the channel width", Arrays.equals(unflared.halfWidth(), mouth.halfWidth()));
@@ -952,6 +958,74 @@ public class ReachShaperTest {
         assertEquals(0, inland.downstreamId());
         assertNotEquals(ReachStyle.MOUTH, inland.style()[inland.xs().length - 1]);
         assertTrue("a channel that does not reach the sea keeps its width", Arrays.equals(inlandPlain.halfWidth(), inland.halfWidth()));
+    }
+
+    @Test
+    public void estuaryStopsWhereTheBanksRise() {
+        HydrologySettings settings = settings(config -> {
+        });
+        HydrologySettings plainMouth = settings(config -> config.getTiers().forEach(tier -> tier.getEstuary().setLength(0)));
+        double rise = 0.2D;
+        Reach estuary = coastalRun(settings, true, rise);
+        Reach mouth = coastalRun(plainMouth, true, rise);
+        int last = estuary.xs().length - 1;
+        int start = trailingMouth(estuary);
+        float span = estuary.xs()[last] - estuary.xs()[start];
+        int highestBank = SEA_LEVEL + settings.deformation().maxFill();
+        assertTrue("banks above " + highestBank + " stop the estuary " + span + " blocks up, short of its length", span >= 16f && span <= 30f);
+        for (int point = start; point <= last; point++) {
+            double bank = SEA_LEVEL + 1D + rise * (estuary.xs()[last] - estuary.xs()[point]);
+            assertTrue("estuary point " + point + " has a bank at " + bank, bank <= highestBank + 1D);
+            assertEquals(SEA_LEVEL, estuary.grade()[point]);
+        }
+        assertEquals("no flare where the estuary starts", mouth.halfWidth()[start], estuary.halfWidth()[start], 0f);
+        for (int point = start + 1; point <= last; point++) {
+            float ratio = estuary.halfWidth()[point] / mouth.halfWidth()[point];
+            float previous = estuary.halfWidth()[point - 1] / mouth.halfWidth()[point - 1];
+            assertTrue("flare grows toward the mouth at " + point + ": " + previous + " then " + ratio, ratio >= previous - 1e-6f);
+        }
+        float mouthFlare = estuary.halfWidth()[last] / mouth.halfWidth()[last];
+        assertTrue("a short estuary opens less than flare: " + mouthFlare, mouthFlare > 1.5f && mouthFlare < 2.4f);
+        assertEquals("a short estuary still meets the seabed", HydrologyTier.MINIMUM_DEPTH, estuary.depth()[last], 0f);
+    }
+
+    @Test
+    public void estuaryStopsAtAHeldPondLip() {
+        Reach outlet = coastalOutlet(PondKind.NATURAL);
+        PondMask pond = disk(128, 8, 7);
+        int lip = 0;
+        while (lip < outlet.xs().length && ReachShaper.nearLip(pond, outlet.xs()[lip], outlet.zs()[lip], outlet.halfWidth()[lip])) {
+            assertEquals("lip point " + lip + " holds the pond level", OUTLET_POND_LEVEL, outlet.grade()[lip]);
+            assertNotEquals("lip point " + lip, ReachStyle.MOUTH, outlet.style()[lip]);
+            lip++;
+        }
+        assertTrue("points along the lip " + lip, lip >= 4);
+        assertEstuaryInland(outlet);
+    }
+
+    @Test
+    public void lakeOutletLeavesTheLakeAtItsLevelBesideAnEstuary() {
+        Reach outlet = coastalOutlet(PondKind.LAKE);
+        assertEquals("the outlet leaves the lake at its level", OUTLET_POND_LEVEL, outlet.grade()[0]);
+        assertNotEquals(ReachStyle.MOUTH, outlet.style()[0]);
+        assertEstuaryInland(outlet);
+    }
+
+    @Test
+    public void estuaryOpeningStaysFiniteWithoutLengthOrDistance() {
+        boolean[] ocean = {false, true, true};
+        float[] stacked = {0f, 10f, 10f};
+        for (ReachShaper.Opening opening : List.of(ReachShaper.estuaryOpening(new HydrologyTier.Estuary(0, 2.5f), ocean, stacked),
+                ReachShaper.estuaryOpening(new HydrologyTier.Estuary(48, 2.5f), ocean, stacked))) {
+            assertEquals(0f, opening.share(), 0f);
+            for (float progress : opening.progress()) {
+                assertEquals(0f, progress, 0f);
+            }
+        }
+        ReachShaper.Opening half = ReachShaper.estuaryOpening(new HydrologyTier.Estuary(48, 2.5f), ocean, new float[]{0f, 24f, 48f});
+        assertEquals(0.75f, half.share(), 1e-6f);
+        assertEquals(0f, half.progress()[1], 0f);
+        assertEquals(1f, half.progress()[2], 1e-6f);
     }
 
     @Test
@@ -1805,7 +1879,48 @@ public class ReachShaperTest {
         return found;
     }
 
+    private static Reach coastalOutlet(PondKind kind) {
+        HydrologySettings settings = settings(config -> {
+        });
+        int width = 26;
+        DemGrid surface = new DemGrid(0, 0, CELL, width, 3);
+        Arrays.fill(surface.values(), 60f);
+        int[] receivers = new int[width * 3];
+        Arrays.fill(receivers, -1);
+        float[] accumulation = new float[width * 3];
+        BitSet channels = new BitSet(width * 3);
+        for (int i = 0; i < 21; i++) {
+            flow(surface, receivers, accumulation, channels, i, 1, i + 1, 1, 1600f + 10f * i);
+        }
+        surface.set(21, 1, 30f);
+        Pond pond = new Pond(73L, kind, OUTLET_POND_LEVEL, OUTLET_POND_LEVEL - 4, 136, 8, OUTLET_POND_LEVEL + 0.5f, disk(128, 8, 7), 0L, 0,
+                "water", 128, 8);
+        HeightLattice fine = new HeightLattice(new Terrain((x, z) -> x < 160D ? SEA_LEVEL + 4D : SEA_LEVEL - 5D), FINE, false, 1 << 16);
+        ShapedNetwork shaped = new ReachShaper(settings).shape(WINDOW, surface, receivers, accumulation, channels, List.of(pond), fine, SEED);
+        Pond shapedPond = shaped.ponds().get(0);
+        assertEquals(kind + " level", OUTLET_POND_LEVEL, shapedPond.level());
+        Reach outlet = byId(shaped.reaches()).get(shapedPond.outletReachId());
+        assertNotNull(kind + " outlet", outlet);
+        assertEquals(ReachStyle.MOUTH, outlet.style()[outlet.style().length - 1]);
+        return outlet;
+    }
+
+    private static void assertEstuaryInland(Reach outlet) {
+        int inland = 0;
+        for (int point = 0; point < outlet.xs().length; point++) {
+            if (outlet.style()[point] == ReachStyle.MOUTH) {
+                assertEquals(outlet + " at " + point, SEA_LEVEL, outlet.grade()[point]);
+                inland += outlet.xs()[point] < 156f ? 1 : 0;
+            }
+        }
+        assertTrue("estuary points over the low land " + inland, inland > 0);
+    }
+
     private static Reach coastalRun(HydrologySettings settings, boolean ocean) {
+        return coastalRun(settings, ocean, 0.08D);
+    }
+
+    private static Reach coastalRun(HydrologySettings settings, boolean ocean, double rise) {
         int width = 24;
         DemGrid surface = new DemGrid(0, 0, CELL, width, 3);
         Arrays.fill(surface.values(), 60f);
@@ -1825,7 +1940,7 @@ public class ReachShaperTest {
             surface.set(width - 1, 1, 30f);
         }
         float mouthX = (width - 1) * CELL;
-        HeightLattice fine = new HeightLattice(new Terrain((x, z) -> SEA_LEVEL + 1D + 0.08D * Math.max(0D, mouthX - x)), FINE, false, 1 << 16);
+        HeightLattice fine = new HeightLattice(new Terrain((x, z) -> SEA_LEVEL + 1D + rise * Math.max(0D, mouthX - x)), FINE, false, 1 << 16);
         ShapedNetwork shaped = new ReachShaper(settings).shape(WINDOW, surface, receivers, accumulation, channels, List.of(), fine, SEED);
         assertEquals(1, shaped.reaches().size());
         return shaped.reaches().get(0);

@@ -1,5 +1,7 @@
 package art.arcane.iris.generation.stage;
 
+import art.arcane.iris.generation.context.ChunkContext;
+import art.arcane.iris.generation.context.ChunkedDataCache;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveAction;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveCell;
 import art.arcane.iris.generation.hydrology.config.IrisHydrology;
@@ -10,6 +12,7 @@ import art.arcane.iris.generation.hydrology.underground.CarvedTerrain;
 import art.arcane.iris.generation.mantle.CarveOwnership;
 import art.arcane.iris.generation.mantle.CaveTerrainSnapshot;
 import art.arcane.iris.generation.mantle.MantleWriter;
+import art.arcane.iris.generation.runtime.DimensionStackLayout;
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.subterrain.IrisSubterrainFamily;
 import art.arcane.iris.generation.subterrain.SubterrainCell;
@@ -30,9 +33,12 @@ import art.arcane.volmlib.util.stream.ProceduralStream;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.lang.reflect.RecordComponent;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -62,6 +68,7 @@ public class IrisCarveModifierHydrologyTest {
     private static final int SECTIONS = 4;
     private static final int POOL_FLOOR = 50;
     private static final int POOL_TOP = 52;
+    private static final int PROTECTED_FROM = 40;
 
     @BeforeClass
     public static void registerMatter() {
@@ -196,6 +203,87 @@ public class IrisCarveModifierHydrologyTest {
         assertSame(rock, IrisCarveModifier.sealGuardState(gravel, rock));
         assertSame(granite, IrisCarveModifier.sealGuardState(granite, rock));
         assertSame(water, IrisCarveModifier.sealGuardState(water, rock));
+    }
+
+    @Test
+    public void sealGuardsHoldInsideProtectedUpperAndStackRanges() throws Exception {
+        NativeBlockState rock = new KeyedBlockState("minecraft:stone");
+        NativeBlockState caveAir = new KeyedBlockState("minecraft:cave_air");
+        NativeBlockState air = mock(NativeBlockState.class);
+        when(air.isAir()).thenReturn(true);
+        NativeBlockState granite = solid("minecraft:granite");
+        int[] upperSurface = new int[256];
+        Arrays.fill(upperSurface, PROTECTED_FROM);
+        DimensionStackLayout layout = mock(DimensionStackLayout.class);
+        when(layout.isHostFeatureProtectedY(anyInt())).thenAnswer(call -> call.<Integer>getArgument(0) >= PROTECTED_FROM);
+        DimensionStackLayout[] stack = new DimensionStackLayout[256];
+        Arrays.fill(stack, layout);
+        for (boolean upper : new boolean[]{true, false}) {
+            String range = upper ? "upper-dimension range" : "dimension-stack range";
+            Hunk<NativeBlockState> output = Hunk.newArrayHunk(16, SECTIONS * 16, 16);
+            for (int y : new int[]{PROTECTED_FROM - 2, PROTECTED_FROM + 2}) {
+                output.setRaw(3, y, 4, air);
+                output.setRaw(3, y + 1, 4, granite);
+                output.setRaw(3, y + 2, 4, granite);
+            }
+            CarveCall apply = resolver(output, rock, caveAir, upper ? upperSurface : null, upper ? null : stack);
+            for (int y : new int[]{PROTECTED_FROM - 2, PROTECTED_FROM + 2}) {
+                apply.at(3, y, 4, null, HydrologyCaveCell.of(HydrologyCaveAction.SEAL_GUARD));
+                apply.at(3, y + 1, 4, null, HydrologyCaveCell.of(HydrologyCaveAction.DRY_AIR));
+                apply.at(3, y + 2, 4, new MatterCavern(true, "", (byte) 0), null);
+            }
+            assertSame("a seal guard below the " + range + " seals", rock, output.getRaw(3, PROTECTED_FROM - 2, 4));
+            assertSame("inlet air below the " + range + " opens", caveAir, output.getRaw(3, PROTECTED_FROM - 1, 4));
+            assertSame("a seal guard inside the " + range + " still seals", rock, output.getRaw(3, PROTECTED_FROM + 2, 4));
+            assertSame("inlet air does not open inside the " + range, granite, output.getRaw(3, PROTECTED_FROM + 3, 4));
+            assertSame("caves do not open inside the " + range, granite, output.getRaw(3, PROTECTED_FROM + 4, 4));
+        }
+    }
+
+    @FunctionalInterface
+    private interface CarveCall {
+        void at(int x, int y, int z, MatterCavern baseline, HydrologyCaveCell hydrology) throws Exception;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static CarveCall resolver(Hunk<NativeBlockState> output, NativeBlockState rock, NativeBlockState air, int[] upperSurface,
+                                      DimensionStackLayout[] stack) throws Exception {
+        ChunkContext chunkContext = mock(ChunkContext.class);
+        ChunkedDataCache<NativeBlockState> rocks = mock(ChunkedDataCache.class);
+        when(rocks.get(anyInt(), anyInt())).thenReturn(rock);
+        when(chunkContext.getRock()).thenReturn(rocks);
+        IrisCarveScratch scratch = new IrisCarveScratch();
+        Map<String, Object> values = new HashMap<>();
+        values.put("output", output);
+        values.put("chunkContext", chunkContext);
+        values.put("scratch", scratch);
+        values.put("columnMasks", scratch.columnMasks);
+        values.put("upperSurfaceHeights", upperSurface);
+        values.put("stackLayouts", stack);
+        values.put("worldHeightSpan", SECTIONS * 16);
+        Class<?> contextType = Class.forName(IrisCarveModifier.class.getName() + "$CarveResolutionContext");
+        RecordComponent[] components = contextType.getRecordComponents();
+        Class<?>[] types = new Class<?>[components.length];
+        Object[] arguments = new Object[components.length];
+        for (int index = 0; index < components.length; index++) {
+            types[index] = components[index].getType();
+            arguments[index] = values.containsKey(components[index].getName()) ? values.get(components[index].getName())
+                    : types[index] == int.class ? 0 : null;
+        }
+        Constructor<?> contextConstructor = contextType.getDeclaredConstructor(types);
+        contextConstructor.setAccessible(true);
+        Object context = contextConstructor.newInstance(arguments);
+        IrisCarveModifier modifier = mock(IrisCarveModifier.class, CALLS_REAL_METHODS);
+        Field airField = IrisCarveModifier.class.getDeclaredField("AIR");
+        airField.setAccessible(true);
+        airField.set(modifier, air);
+        Class<?> resolverType = Class.forName(IrisCarveModifier.class.getName() + "$CarveResolver");
+        Constructor<?> resolverConstructor = resolverType.getDeclaredConstructor(IrisCarveModifier.class, contextType);
+        resolverConstructor.setAccessible(true);
+        Object resolver = resolverConstructor.newInstance(modifier, context);
+        Method apply = resolverType.getDeclaredMethod("apply", int.class, int.class, int.class, MatterCavern.class, HydrologyCaveCell.class);
+        apply.setAccessible(true);
+        return (x, y, z, baseline, hydrology) -> apply.invoke(resolver, x, y, z, baseline, hydrology);
     }
 
     @Test

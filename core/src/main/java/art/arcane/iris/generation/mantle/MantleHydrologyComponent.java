@@ -79,7 +79,7 @@ public final class MantleHydrologyComponent extends IrisMantleComponent {
         if (!inlets.isEmpty()) {
             SeaInletRasterizer.SubterrainFluid subterrain = subterrainFluid(writer, complex, chunkX, chunkZ);
             for (SeaInlet inlet : inlets) {
-                INLETS.write(inlet, chunkX, chunkZ, writer, HydrologyCaveCell.SEA_FLUID, "", subterrain);
+                INLETS.write(inlet, chunkX, chunkZ, writer, HydrologyCaveCell.SEA_FLUID, "", subterrain, complex::isHistoricalChunk);
             }
         }
         generateFalls(writer, complex, runtime, own, chunkX, chunkZ);

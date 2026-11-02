@@ -1,12 +1,16 @@
 package art.arcane.iris.probe;
 
+import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import org.junit.Test;
 
 import java.util.List;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class CavePoolChecksTest {
     @Test
@@ -29,6 +33,30 @@ public class CavePoolChecksTest {
     }
 
     @Test
+    public void poolCellsThatDidNotStayStillSourcesOfTheirFluidFail() {
+        CavePoolProbe.Counts replaced = new CavePoolProbe.Counts(1, 1, 1, 1, Map.of(), List.of(), List.of(), Map.of(), 0, 0, 0, 0, 0, 0, 0, 0,
+                Map.of("water->minecraft:stone", 2, "lava->null", 1), List.of());
+        assertEquals(3L, replaced.failures());
+        assertEquals(3L, new CavePoolProbe.Gate(replaced, 0).failures());
+    }
+
+    @Test
+    public void poolSourcesMatchTheFluidTheCellResolvesTo() {
+        NativeBlockState water = fluid("minecraft:water", true);
+        NativeBlockState lava = fluid("minecraft:lava", false);
+        assertTrue(CavePoolProbe.source(fluid("minecraft:water", true), water));
+        assertTrue(CavePoolProbe.source(fluid("minecraft:water[level=0]", true), water));
+        assertFalse("flowing water is not a pool source", CavePoolProbe.source(fluid("minecraft:water[level=1]", true), water));
+        assertFalse("lava is not a water pool source", CavePoolProbe.source(fluid("minecraft:lava", false), water));
+        assertTrue(CavePoolProbe.source(fluid("minecraft:lava[level=0]", false), lava));
+        assertFalse(CavePoolProbe.source(fluid("minecraft:water", true), lava));
+        assertFalse(CavePoolProbe.source(null, water));
+        NativeBlockState stone = mock(NativeBlockState.class);
+        when(stone.key()).thenReturn("minecraft:stone");
+        assertFalse(CavePoolProbe.source(stone, water));
+    }
+
+    @Test
     public void orderMismatchesCountChunksWhoseHashesDiffer() {
         assertEquals(0, CavePoolProbe.compare(Map.of(1L, 10L, 2L, 20L), Map.of(2L, 20L, 1L, 10L)));
         assertEquals(1, CavePoolProbe.compare(Map.of(1L, 10L, 2L, 20L), Map.of(1L, 10L, 2L, 21L)));
@@ -39,5 +67,13 @@ public class CavePoolChecksTest {
                                                int gravityCeilings) {
         return new CavePoolProbe.Counts(1, 1, 1, 1, Map.of(), List.of(), List.of(), Map.of(), air, open, sky, foreign, waterlogged, gravity,
                 fluidAbove, gravityCeilings, Map.of(), List.of());
+    }
+
+    private static NativeBlockState fluid(String key, boolean water) {
+        NativeBlockState state = mock(NativeBlockState.class);
+        when(state.key()).thenReturn(key);
+        when(state.isFluid()).thenReturn(true);
+        when(state.isWater()).thenReturn(water);
+        return state;
     }
 }

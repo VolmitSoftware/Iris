@@ -265,19 +265,15 @@ public final class SeaInletProbe {
         }
     }
 
-    record Gate(Checks checks, int orderMismatches, int inletsWithOtherLevel, int waterLeaksOn, int waterLeaksOff) {
-        long addedLeaks() {
-            return Math.max(0, waterLeaksOn - waterLeaksOff);
-        }
-
+    record Gate(Checks checks, int orderMismatches, int inletsWithOtherLevel, int addedLeaks) {
         long failures() {
-            return checks.failures() + orderMismatches + inletsWithOtherLevel + addedLeaks();
+            return checks.failures() + orderMismatches + inletsWithOtherLevel + addedLeaks;
         }
 
         String line() {
             return String.format(Locale.ROOT, "SEA_INLET_GATE status=%s failures=%d checkFailures=%d orderMismatches=%d inletsWithOtherLevel=%d"
                             + " addedLeaks=%d", failures() == 0L ? "PASS" : "FAIL", failures(), checks.failures(), orderMismatches,
-                    inletsWithOtherLevel, addedLeaks());
+                    inletsWithOtherLevel, addedLeaks);
         }
     }
 
@@ -399,8 +395,9 @@ public final class SeaInletProbe {
         }
         Scan scan = new Scan(on, sea, clearance, owned);
         scan.run();
-        int onLeaks = scan.countAllLeaks();
-        int offLeaks = new Scan(off, sea, clearance, owned).countAllLeaks();
+        Set<Long> onLeaks = scan.allLeaks();
+        Set<Long> offLeaks = new Scan(off, sea, clearance, owned).allLeaks();
+        int addedLeaks = addedLeaks(onLeaks, offLeaks);
         int mismatches = mismatches(on.hashes, reverse.hashes);
 
         System.out.println("SEA_INLET_INVENTORY owned=" + owned.size() + " touching=" + touching.size());
@@ -428,7 +425,8 @@ public final class SeaInletProbe {
                 scan.total.missingWater, scan.total.seaPlants, scan.total.seaLayers, scan.total.decorations, scan.total.nonSource,
                 scan.total.waterAbove, scan.total.wet, scan.total.dry);
         System.out.printf(Locale.ROOT, "SEA_INLET_LEVEL sea=%d inletsWithOtherLevel=%d%n", sea, offLevel);
-        System.out.printf(Locale.ROOT, "SEA_INLET_ALL_WATER_LEAKS scanChunks=%d inletsOn=%d inletsOff=%d%n", on.bands.size(), onLeaks, offLeaks);
+        System.out.printf(Locale.ROOT, "SEA_INLET_ALL_WATER_LEAKS scanChunks=%d inletsOn=%d inletsOff=%d added=%d%n", on.bands.size(),
+                onLeaks.size(), offLeaks.size(), addedLeaks);
         System.out.printf(Locale.ROOT, "SEA_INLET_ROOF min=%d violations=%d breaches=%d openRoofViolations=%d coveredColumns=%d openColumns=%d%n",
                 scan.total.roofMin, scan.total.roofViolations, scan.total.roofBreaches, scan.total.openRoofViolations, scan.total.covered,
                 scan.total.open);
@@ -438,7 +436,7 @@ public final class SeaInletProbe {
                 scan.shellOpen, scan.shellLoose, maxOpenLandStations(owned), scan.total.looseBeds);
         System.out.printf(Locale.ROOT, "SEA_INLET_DETERMINISM chunks=%d reverseChunks=%d mismatches=%d crossChunkInlets=%d crossWindowInlets=%d%n",
                 on.hashes.size(), reverse.hashes.size(), mismatches, scan.crossChunk(), scan.crossWindow());
-        Gate gate = new Gate(checks(scan), mismatches, offLevel, onLeaks, offLeaks);
+        Gate gate = new Gate(checks(scan), mismatches, offLevel, addedLeaks);
         System.out.println(gate.line());
         return gate;
     }
@@ -511,6 +509,18 @@ public final class SeaInletProbe {
 
     static int chunkZ(long key) {
         return (int) key;
+    }
+
+    static int addedLeaks(Set<Long> on, Set<Long> off) {
+        int added = 0;
+        for (long leak : on) {
+            added += off.contains(leak) ? 0 : 1;
+        }
+        return added;
+    }
+
+    static long cellKey(int x, int y, int z) {
+        return ((long) x & 0x3FFFFFFL) << 38 | ((long) z & 0x3FFFFFFL) << 12 | (y & 0xFFFL);
     }
 
     static byte classify(NativeBlockState state, String seaFluid) {
@@ -991,8 +1001,8 @@ public final class SeaInletProbe {
             return level >= 0 && level < band.levels && seen[((z & 15) << 4 | (x & 15)) * band.levels + level];
         }
 
-        private int countAllLeaks() {
-            int leaks = 0;
+        private Set<Long> allLeaks() {
+            Set<Long> leaks = new HashSet<>();
             for (Band band : run.bands.values()) {
                 for (int lz = 0; lz < 16; lz++) {
                     for (int lx = 0; lx < 16; lx++) {
@@ -1012,7 +1022,7 @@ public final class SeaInletProbe {
                             byte below = band.at(lx, y - 1, lz);
                             open |= below == AIR || below == OTHER;
                             if (open) {
-                                leaks++;
+                                leaks.add(cellKey(x, y, z));
                             }
                         }
                     }

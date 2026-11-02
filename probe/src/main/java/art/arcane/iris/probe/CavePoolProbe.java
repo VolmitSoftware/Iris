@@ -76,7 +76,12 @@ public final class CavePoolProbe {
                   Map<Integer, Integer> chunkSpans, int airLeaks, int openLeaks, int skyLeaks, int foreignFluid, int waterloggableWalls,
                   int unsupportedGravity, int fluidAbove, int gravityCeilings, Map<String, Integer> replaced, List<String> examples) {
         long failures() {
-            return (long) airLeaks + openLeaks + skyLeaks + foreignFluid + waterloggableWalls + unsupportedGravity + fluidAbove + gravityCeilings;
+            long replacedCells = 0L;
+            for (int cells : replaced.values()) {
+                replacedCells += cells;
+            }
+            return (long) airLeaks + openLeaks + skyLeaks + foreignFluid + waterloggableWalls + unsupportedGravity + fluidAbove + gravityCeilings
+                    + replacedCells;
         }
     }
 
@@ -252,7 +257,8 @@ public final class CavePoolProbe {
                 }
                 pool.add(new Cell(pack((chunkX << 4) + x, y, (chunkZ << 4) + z), cell.fluidProfileKey()));
                 NativeBlockState state = blocks.get(x, y, z);
-                if (!source(state, cell.fluidProfileKey())) {
+                NativeBlockState expected = engine.getComplex().resolveCaveCellFluid(cell.fluidProfileKey(), (chunkX << 4) + x, (chunkZ << 4) + z);
+                if (!source(state, expected)) {
                     replaced.merge(cell.fluidProfileKey() + "->" + (state == null ? "null" : state.key()), 1, Integer::sum);
                 }
             });
@@ -262,14 +268,13 @@ public final class CavePoolProbe {
         return guards[0];
     }
 
-    private static boolean source(NativeBlockState state, String fluid) {
+    static boolean source(NativeBlockState state, NativeBlockState expected) {
         if (state == null || !state.isFluid()) {
             return false;
         }
         String level = IrisProceduralBlocks.propertyValue(state, "level");
         boolean still = level == null || "0".equals(level);
-        boolean matches = "lava".equals(fluid) ? state.key().startsWith("minecraft:lava") : state.isWater();
-        return still && matches;
+        return still && IrisProceduralBlocks.materialKey(state).equals(IrisProceduralBlocks.materialKey(expected));
     }
 
     private static ChunkRecord record(Hunk<NativeBlockState> blocks, int height) {

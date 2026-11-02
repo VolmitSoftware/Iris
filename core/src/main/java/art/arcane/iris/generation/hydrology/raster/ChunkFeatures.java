@@ -317,8 +317,8 @@ final class ChunkFeatures {
         }
 
         private Reach link(Reach reach, WindowKey owner) {
-            Reach linked = feederLink(reach, owner);
             Integer pondLevel = outletLevel(reach, owner);
+            Reach linked = feederLink(reach, owner, pondLevel != null);
             return settle(reach, pondLevel == null ? linked : LinkBlend.clamp(linked, pondLevel), owner);
         }
 
@@ -359,7 +359,7 @@ final class ChunkFeatures {
             return found;
         }
 
-        private Reach feederLink(Reach downstream, WindowKey owner) {
+        private Reach feederLink(Reach downstream, WindowKey owner, boolean outlet) {
             int junction = junction(downstream);
             WindowKey link = windowAt(downstream, junction);
             List<Reach> joining = feeders(link, downstream.id());
@@ -375,7 +375,7 @@ final class ChunkFeatures {
             for (Reach reach : joining) {
                 feeders.add(cornerBlock(reach) == block ? resolve(reach, link) : reach);
             }
-            return link.equals(owner) ? LinkBlend.clamp(downstream, feeders) : LinkBlend.blend(downstream, feeders, junction);
+            return link.equals(owner) || outlet ? LinkBlend.clamp(downstream, feeders) : LinkBlend.blend(downstream, feeders);
         }
 
         private List<Reach> feeders(WindowKey key, long downstreamId) {

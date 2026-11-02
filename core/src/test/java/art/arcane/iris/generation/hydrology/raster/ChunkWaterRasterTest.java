@@ -678,20 +678,23 @@ public class ChunkWaterRasterTest {
     }
 
     @Test
-    public void ledInOutletWidthBlendsFromItsJunctionAcrossAWindowLine() {
+    public void ledInOutletKeepsItsOwnWidthBelowATributaryAcrossAWindowLine() {
         HydrologyTier narrow = tier("river", 1f, 0.5f, 4, IrisBankStyle.SMOOTH);
+        HydrologyTier medium = tier("river", 4f, 0.5f, 4, IrisBankStyle.SMOOTH);
         HydrologyTier wide = tier("river", 8f, 0.5f, 4, IrisBankStyle.SMOOTH);
-        Reach outlet = ledIn(line(211L, narrow, 0L, 508f, 200f, 600f, 200f, (x, z) -> 66), 494f, 200f);
-        Reach feeder = line(212L, wide, outlet.id(), 508f, 120f, 508f, 200f, (x, z) -> 66);
-        Pond pond = new Pond(210L, PondKind.NATURAL, 66, 58, 496, 200, 67.5f, circle(478, 200, 17, 1), outlet.id(), 0, "water", 478, 200);
-        assertTrue("the lead-in starts in the pond", pond.mask().contains(494, 200));
-        assertFalse("the junction lies off the pond", pond.mask().contains(508, 200));
         assertEquals(new WindowKey(0, 0), WindowKey.containing(508, 200));
         assertEquals(new WindowKey(1, 0), WindowKey.containing(600, 200));
-        Scene scene = new Scene(settings(new IrisHydrology()), (x, z) -> 75).reach(outlet).reach(feeder).pond(pond);
-        assertTrue("the outlet is half the feeder's width 8 blocks below the junction", scene.water(516, 204));
-        assertTrue("the outlet is still blending 10 blocks below the junction", scene.water(518, 202));
-        assertFalse("the narrow outlet width returns past the blend", scene.water(530, 202));
+
+        Scene spout = outletBelowATributary(medium, narrow);
+        for (int x = 497; x <= 530; x++) {
+            assertTrue("the outlet keeps its half-width 4 below a narrow tributary at x=" + x, spout.water(x, 203) && spout.water(x, 197));
+            assertFalse("the outlet is no wider than its half-width 4 at x=" + x, spout.water(x, 205));
+        }
+
+        Scene flood = outletBelowATributary(narrow, wide);
+        assertFalse("the outlet keeps its half-width 1 below a wide tributary on the lip", flood.water(500, 205));
+        assertFalse("the outlet keeps its half-width 1 below a wide tributary 9 blocks below the junction", flood.water(517, 202));
+        assertTrue("the outlet centre line stays water", flood.water(517, 200));
     }
 
     @Test
@@ -1181,6 +1184,15 @@ public class ChunkWaterRasterTest {
         depth[0] = depth[1];
         style[0] = style[1];
         return new Reach(reach.id(), reach.tier(), reach.downstreamId(), xs, zs, grade, halfWidth, depth, style, reach.catchment());
+    }
+
+    private static Scene outletBelowATributary(HydrologyTier outletTier, HydrologyTier tributaryTier) {
+        Reach outlet = ledIn(line(211L, outletTier, 0L, 508f, 200f, 600f, 200f, (x, z) -> 66), 494f, 200f);
+        Reach tributary = line(212L, tributaryTier, outlet.id(), 508f, 120f, 508f, 200f, (x, z) -> 66);
+        Pond pond = new Pond(210L, PondKind.NATURAL, 66, 58, 496, 200, 67.5f, circle(478, 200, 17, 1), outlet.id(), 0, "water", 478, 200);
+        assertTrue("the lead-in starts in the pond", pond.mask().contains(494, 200));
+        assertFalse("the junction lies off the pond", pond.mask().contains(508, 200));
+        return new Scene(settings(new IrisHydrology()), (x, z) -> 75).reach(outlet).reach(tributary).pond(pond);
     }
 
     private static Reach flared(Reach reach, float width) {

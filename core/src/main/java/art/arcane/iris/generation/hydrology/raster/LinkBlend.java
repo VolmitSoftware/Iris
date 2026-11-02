@@ -22,7 +22,7 @@ public final class LinkBlend {
         return from + (to - from) * share;
     }
 
-    static Reach blend(Reach downstream, List<Reach> feeders, int junction) {
+    static Reach blend(Reach downstream, List<Reach> feeders) {
         float width = 0f;
         float depth = 0f;
         for (Reach feeder : feeders) {
@@ -34,16 +34,15 @@ public final class LinkBlend {
         float[] zs = downstream.zs();
         float[] halfWidth = downstream.halfWidth().clone();
         float[] depths = downstream.depth().clone();
-        float widthShift = width - halfWidth[junction];
-        float depthShift = depth - depths[junction];
-        float[] along = new float[xs.length];
-        for (int point = 1; point < xs.length; point++) {
-            along[point] = along[point - 1] + (float) Math.hypot(xs[point] - xs[point - 1], zs[point] - zs[point - 1]);
-        }
+        float widthShift = width - halfWidth[0];
+        float depthShift = depth - depths[0];
+        float along = 0f;
         for (int point = 0; point < xs.length; point++) {
-            float fromJunction = along[point] - along[junction];
-            halfWidth[point] += blend(widthShift, 0f, fromJunction);
-            depths[point] += blend(depthShift, 0f, fromJunction);
+            if (point > 0) {
+                along += (float) Math.hypot(xs[point] - xs[point - 1], zs[point] - zs[point - 1]);
+            }
+            halfWidth[point] += blend(widthShift, 0f, along);
+            depths[point] += blend(depthShift, 0f, along);
         }
         return regraded(downstream, clamped(downstream.grade(), lowestEnd(feeders)), halfWidth, depths);
     }

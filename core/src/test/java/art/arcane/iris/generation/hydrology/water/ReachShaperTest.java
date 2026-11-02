@@ -1155,6 +1155,45 @@ public class ReachShaperTest {
     }
 
     @Test
+    public void pondOutletTakingATributaryAtItsExitKeepsItsOwnWidth() {
+        HydrologySettings settings = settings(config -> config.setTiers(new KList<>(
+                new IrisHydrologyTier().setHalfWidth(new KList<>(1D, 3D)),
+                new IrisHydrologyTier().setName("river").setMinCatchment(6000D).setHalfWidth(new KList<>(8D, 12D)))));
+        DemGrid flat = outletGrid();
+        int[] receivers = new int[flat.values().length];
+        Arrays.fill(receivers, -1);
+        float[] accumulation = new float[receivers.length];
+        BitSet channels = new BitSet(receivers.length);
+        for (int i = 0; i < flat.width(); i++) {
+            flow(flat, receivers, accumulation, channels, i, 8, i + 1 < flat.width() ? i + 1 : -1, 8, i < 13 ? 1600f + 10f * i : 6400f);
+        }
+        for (int j = flat.depth() - 1; j > 8; j--) {
+            flow(flat, receivers, accumulation, channels, 13, j, 13, j - 1, 1500f + 10f * (flat.depth() - j));
+        }
+        Pond pond = new Pond(71L, PondKind.NATURAL, 99, 94, 104, 64, 100f, disk(96, 64, 5), 0L, 0, "water", 96, 64);
+        HeightLattice fine = new HeightLattice(new Terrain((x, z) -> Math.hypot(x - 96D, z - 64D) <= 5D ? 94D
+                : x <= 104D ? 100D : 100D - 0.5D * (x - 104D)), FINE, false, 1 << 16);
+        ShapedNetwork shaped = new ReachShaper(settings).shape(flat, receivers, accumulation, channels, List.of(pond), fine, SEED);
+        Reach outlet = byId(shaped.reaches()).get(shaped.ponds().get(0).outletReachId());
+        assertNotNull("the pond drains through an outlet", outlet);
+        assertEquals("the outlet is a river", "river", outlet.tier().name());
+        Reach tributary = null;
+        for (Reach reach : shaped.reaches()) {
+            if (reach.downstreamId() == outlet.id()) {
+                tributary = reach;
+            }
+        }
+        assertNotNull("a tributary joins the outlet at its exit", tributary);
+        float law = outlet.tier().halfWidth(outlet.catchment());
+        float tributaryEnd = tributary.halfWidth()[tributary.halfWidth().length - 1];
+        assertTrue("the tributary " + tributaryEnd + " is narrower than the outlet " + law, tributaryEnd < 0.5f * law);
+        for (int point = 0; point < outlet.xs().length; point++) {
+            assertEquals("outlet half-width at point " + point + " (" + outlet.xs()[point] + "," + outlet.zs()[point] + ")", law,
+                    outlet.halfWidth()[point], 1e-3f);
+        }
+    }
+
+    @Test
     public void reachEndingInOceanOrEdgeHasNoDownstream() {
         HydrologySettings settings = settings(config -> {
         });

@@ -371,6 +371,43 @@ public class ReachShaperTest {
     }
 
     @Test
+    public void gentlerRunsHoldPoolsMeasuredAlongTheChannel() {
+        HydrologyTier tier = settings(config -> {
+        }).tiers().get(2);
+        float[] ground = new float[48];
+        for (int index = 0; index < ground.length; index++) {
+            ground[index] = 200f - 2f * index;
+        }
+        int[] grade = graded(tier, ground);
+        int pools = 0;
+        int first = 0;
+        for (int index = 1; index <= grade.length; index++) {
+            if (index == grade.length || grade[index] < grade[first]) {
+                pools += STATION * (index - 1 - first) >= 8 ? 1 : 0;
+                first = index;
+            }
+        }
+        assertTrue(Arrays.toString(grade) + " pools " + pools, pools >= 3);
+    }
+
+    @Test
+    public void closeFallsStaySeparateWhenTheLowerLandsOnTheEndLevel() {
+        HydrologyTier tier = settings(config -> {
+        }).tiers().get(0);
+        float[] ground = new float[24];
+        for (int index = 0; index < ground.length; index++) {
+            ground[index] = index < 10 ? 160f : index < 12 ? 140f : 130f;
+        }
+        int[] baseline = graded(withSteps(tier, false, 2), ground);
+        int[] grade = graded(tier, ground);
+        String label = Arrays.toString(baseline) + " grouped " + Arrays.toString(grade);
+        assertEquals(label, baseline[10], grade[10]);
+        assertEquals(label, baseline[11], grade[11]);
+        assertEquals(label, baseline[12], grade[12]);
+        assertEquals(label, baseline[23], grade[12]);
+    }
+
+    @Test
     public void tallFallsRollOverAtTheBrinkAndKeepEveryFall() {
         HydrologyTier tier = settings(config -> {
         }).tiers().get(0);

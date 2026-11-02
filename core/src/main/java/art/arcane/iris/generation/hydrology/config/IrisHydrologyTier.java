@@ -44,7 +44,7 @@ public class IrisHydrologyTier {
     @Description("Blocks the water surface sits below the ground it flows through.")
     private int inset = 1;
 
-    @Description("Keeps drops shorter than a waterfall as stepped cascades. When false, drops are spread into a gentler slope where the terrain allows, including the step where a channel joins lower water; drops that cannot be spread, such as a junction right below a pond outlet, stay as small cascades below the waterfall minimum.")
+    @Description("Groups the drops of a run into step-pools: the drops within 2.5 to 5 channel widths, from 6 to 32 blocks, join into one step of up to waterfallMinimumDrop plus 2 blocks, and that limit ends the group early on steep ground. When false, drops are spread into a gentler slope where the terrain allows, including the step where a channel joins lower water; drops that cannot be spread, such as a junction right below a pond outlet, stay as small cascades below the waterfall minimum.")
     private boolean cascades = true;
 
     @MinNumber(2)

@@ -47,7 +47,6 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 public class ChunkWaterRasterTest {
-    private static final double STEP_POOL_MAX = 32D;
     private static final long SEED = 1337L;
     private static final int SEA_LEVEL = 40;
     private static final int MIN_Y = -64;
@@ -1255,12 +1254,22 @@ public class ChunkWaterRasterTest {
 
     @Test
     public void deltaChannelsRenderAsSeaLevelMouthWaterWithoutAGapAtTheBranch() {
-        assertDeltaRendersAtSeaLevel(DeltaCoast.settings(2), DeltaCoast::ground, -1D);
-        assertDeltaRendersAtSeaLevel(DeltaCoast.settings(2), DeltaCoast::cliffBacked, STEP_POOL_MAX);
-        assertDeltaRendersAtSeaLevel(DeltaCoast.ungroupedSettings(2), DeltaCoast::cliffBacked, 0D);
+        assertDeltaRendersAtSeaLevel(DeltaCoast.settings(2), DeltaCoast::ground, false);
+        assertDeltaRendersAtSeaLevel(DeltaCoast.settings(2), DeltaCoast::cliffBacked, true);
+        assertDeltaRendersAtSeaLevel(DeltaCoast.ungroupedSettings(2), DeltaCoast::cliffBacked, true);
+        assertEquals("grouping moves no sea-level head upstream", firstSeaLevelHead(DeltaCoast.ungroupedSettings(2)), firstSeaLevelHead(DeltaCoast.settings(2)), 0f);
     }
 
-    private static void assertDeltaRendersAtSeaLevel(HydrologySettings settings, DoubleBinaryOperator ground, double raisedSlack) {
+    private static float firstSeaLevelHead(HydrologySettings settings) {
+        Reach river = DeltaCoast.river(DeltaCoast.shape(settings, 0, 0, List.of(), DeltaCoast.NO_NEIGHBOUR, DeltaCoast.SEED, DeltaCoast::cliffBacked), DeltaCoast.ROW);
+        int point = 0;
+        while (WaterHeads.snap(river.grade()[point], SEA_LEVEL) > SEA_LEVEL) {
+            point++;
+        }
+        return river.xs()[point];
+    }
+
+    private static void assertDeltaRendersAtSeaLevel(HydrologySettings settings, DoubleBinaryOperator ground, boolean raisedAboveTheEstuary) {
         ShapedNetwork shaped = DeltaCoast.shape(settings, 0, 0, List.of(), DeltaCoast.NO_NEIGHBOUR, DeltaCoast.SEED, ground);
         Reach river = DeltaCoast.river(shaped, DeltaCoast.ROW);
         List<Reach> fan = DeltaCoast.deltaChannels(shaped);
@@ -1293,13 +1302,13 @@ public class ChunkWaterRasterTest {
                     assertTrue("the river stays wet at " + x + "," + z, delta.water(x, z));
                     if (plain.head(x, z) > SEA_LEVEL) {
                         assertEquals("the river above its estuary keeps its head at " + x + "," + z, plain.head(x, z), delta.head(x, z));
-                        raised += Math.hypot(x - fan.get(0).xs()[0], z - fan.get(0).zs()[0]) <= 2D * fan.get(0).halfWidth()[0] + 8D + Math.max(0D, raisedSlack) ? 1 : 0;
+                        raised += Math.hypot(x - fan.get(0).xs()[0], z - fan.get(0).zs()[0]) <= 2D * fan.get(0).halfWidth()[0] + 8D ? 1 : 0;
                     }
                 }
             }
         }
         assertTrue("delta water beyond the estuary " + added, added > 100);
-        assertTrue("river water above the sea next to the branch " + raised, raisedSlack < 0D || raised > 0);
+        assertTrue("river water above the sea next to the branch " + raised, !raisedAboveTheEstuary || raised > 0);
         assertEquals("delta leaks", 0, delta.leaks(minX, minZ, maxX, maxZ));
         Set<Long> reached = wetFrom(delta, Math.round(river.xs()[estuary]) - 16, Math.round(river.zs()[estuary]), minX, minZ, maxX, maxZ);
         for (Reach channel : fan) {

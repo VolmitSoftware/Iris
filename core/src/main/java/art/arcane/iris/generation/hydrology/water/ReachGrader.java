@@ -1,5 +1,7 @@
 package art.arcane.iris.generation.hydrology.water;
 
+import art.arcane.iris.generation.hydrology.raster.WaterHeads;
+
 import java.util.Arrays;
 import java.util.List;
 
@@ -63,7 +65,7 @@ final class ReachGrader {
                 }
                 int cap = draft.ocean[point] ? seaLevel : draft.target[point] + MAX_POOL;
                 int floor = lakeFloor[index] ? draft.floor : Math.max(seaLevel, Math.min(draft.floor, (int) Math.floor(draft.bank[point]) + maxFill));
-                floors[point] = draft.ocean[point] ? floor : Math.max(floor, seaLevel + 1);
+                floors[point] = draft.ocean[point] ? floor : Math.max(floor, WaterHeads.lowestAboveSea(seaLevel));
                 level = Math.min(level, Math.max(floor, Math.min(grade[point], cap)));
                 grade[point] = level;
             }

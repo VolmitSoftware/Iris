@@ -11,7 +11,6 @@ final class SyntheticTerrain implements HydrologyTerrainSource {
     static final int SEA_LEVEL = 40;
     static final int MIN_Y = -64;
     static final int MAX_Y = 320;
-    private static final byte ALLOW_ALL = HydrologySampleBuffer.ALLOW_STREAMS | HydrologySampleBuffer.ALLOW_PONDS;
     private static final double OCEAN_FLOOR = SEA_LEVEL - 30D;
     private static final double BASE_OFFSET = 3D;
     private static final double BASE_WAVELENGTH = 1000D;
@@ -21,38 +20,44 @@ final class SyntheticTerrain implements HydrologyTerrainSource {
     private final DoubleBinaryOperator natural;
     private final DoubleBinaryOperator rainfall;
     private final Area streamsBlocked;
+    private final Area pondsBlocked;
     private final Area land;
     private final AtomicLong baseSamples;
     private final AtomicLong naturalSamples;
 
     private SyntheticTerrain(DoubleBinaryOperator natural) {
-        this(natural, (x, z) -> 1D, (x, z) -> false, (x, z) -> false);
+        this(natural, (x, z) -> 1D, (x, z) -> false, (x, z) -> false, (x, z) -> false);
     }
 
-    private SyntheticTerrain(DoubleBinaryOperator natural, DoubleBinaryOperator rainfall, Area streamsBlocked, Area land) {
+    private SyntheticTerrain(DoubleBinaryOperator natural, DoubleBinaryOperator rainfall, Area streamsBlocked, Area pondsBlocked, Area land) {
         this.natural = natural;
         this.rainfall = rainfall;
         this.streamsBlocked = streamsBlocked;
+        this.pondsBlocked = pondsBlocked;
         this.land = land;
         this.baseSamples = new AtomicLong();
         this.naturalSamples = new AtomicLong();
     }
 
     SyntheticTerrain withRainfall(DoubleBinaryOperator rainfall) {
-        return new SyntheticTerrain(natural, rainfall, streamsBlocked, land);
+        return new SyntheticTerrain(natural, rainfall, streamsBlocked, pondsBlocked, land);
     }
 
     SyntheticTerrain withStreamsBlocked(Area area) {
-        return new SyntheticTerrain(natural, rainfall, area, land);
+        return new SyntheticTerrain(natural, rainfall, area, pondsBlocked, land);
     }
 
     SyntheticTerrain withLand(Area area) {
-        return new SyntheticTerrain(natural, rainfall, streamsBlocked, area);
+        return new SyntheticTerrain(natural, rainfall, streamsBlocked, pondsBlocked, area);
+    }
+
+    SyntheticTerrain withPondsBlocked(Area area) {
+        return new SyntheticTerrain(natural, rainfall, streamsBlocked, area, land);
     }
 
     SyntheticTerrain lowered(double depth) {
         DoubleBinaryOperator inner = natural;
-        return new SyntheticTerrain((x, z) -> inner.applyAsDouble(x, z) - depth, rainfall, streamsBlocked, land);
+        return new SyntheticTerrain((x, z) -> inner.applyAsDouble(x, z) - depth, rainfall, streamsBlocked, pondsBlocked, land);
     }
 
     SyntheticTerrain withPit(double centreX, double centreZ, double radius, double depth) {
@@ -61,7 +66,7 @@ final class SyntheticTerrain implements HydrologyTerrainSource {
             double ratio = Math.hypot(x - centreX, z - centreZ) / radius;
             double height = inner.applyAsDouble(x, z);
             return ratio < 1D ? height - depth * (1D - ratio * ratio) : height;
-        }, rainfall, streamsBlocked, land);
+        }, rainfall, streamsBlocked, pondsBlocked, land);
     }
 
     static SyntheticTerrain valleyLake() {
@@ -319,7 +324,8 @@ final class SyntheticTerrain implements HydrologyTerrainSource {
             out.ocean()[index] = value <= SEA_LEVEL && !land.contains(xs[index], zs[index]);
             out.rainfall()[index] = (float) rainfall.applyAsDouble(xs[index], zs[index]);
             out.pondDensity()[index] = 1f;
-            out.permission()[index] = streamsBlocked.contains(xs[index], zs[index]) ? HydrologySampleBuffer.ALLOW_PONDS : ALLOW_ALL;
+            out.permission()[index] = (byte) ((streamsBlocked.contains(xs[index], zs[index]) ? 0 : HydrologySampleBuffer.ALLOW_STREAMS)
+                    | (pondsBlocked.contains(xs[index], zs[index]) ? 0 : HydrologySampleBuffer.ALLOW_PONDS));
             out.fluidProfile()[index] = null;
         }
     }

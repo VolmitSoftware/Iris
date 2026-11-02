@@ -13,16 +13,14 @@ import java.util.Map;
 
 final class BurnedTrunks {
     private final BitSet cells;
-    private final BitSet hollows;
     private final int[] next;
     private final float[] catchment;
     private final float epsilon;
     private int[] order;
     private BitSet entries;
 
-    private BurnedTrunks(int count, float epsilon, BitSet hollows) {
+    private BurnedTrunks(int count, float epsilon) {
         this.cells = new BitSet(count);
-        this.hollows = hollows;
         this.next = new int[count];
         this.catchment = new float[count];
         this.epsilon = epsilon;
@@ -30,16 +28,18 @@ final class BurnedTrunks {
     }
 
     static BurnedTrunks burn(DemGrid raw, List<Reach> reaches, float depth, float epsilon, BitSet hollows) {
-        BurnedTrunks trunks = new BurnedTrunks(raw.values().length, epsilon, hollows);
+        BurnedTrunks trunks = new BurnedTrunks(raw.values().length, epsilon);
         Map<Long, Reach> byId = new HashMap<>();
         for (Reach reach : reaches) {
             byId.putIfAbsent(reach.id(), reach);
         }
         List<int[]> paths = new ArrayList<>();
         for (Reach reach : reaches) {
-            for (int[] path : TrunkRouter.route(raw, reach, byId.get(reach.downstreamId()))) {
-                trunks.claim(path, reach.catchment());
-                paths.add(path);
+            for (int[] route : TrunkRouter.route(raw, reach, byId.get(reach.downstreamId()))) {
+                for (int[] path : outside(route, hollows)) {
+                    trunks.claim(path, reach.catchment());
+                    paths.add(path);
+                }
             }
         }
         StreamBurner.burn(raw, paths, depth);
@@ -59,7 +59,7 @@ final class BurnedTrunks {
     void descend(float[] heights) {
         for (int cell : order) {
             int successor = next[cell];
-            if (successor >= 0 && !hollows.get(cell)) {
+            if (successor >= 0) {
                 heights[successor] = Math.min(heights[successor], Math.min(heights[cell] - epsilon, Math.nextDown(heights[cell])));
             }
         }
@@ -67,7 +67,7 @@ final class BurnedTrunks {
 
     void route(int[] receivers) {
         for (int cell = cells.nextSetBit(0); cell >= 0; cell = cells.nextSetBit(cell + 1)) {
-            if (next[cell] >= 0 && !hollows.get(cell)) {
+            if (next[cell] >= 0) {
                 receivers[cell] = next[cell];
             }
         }
@@ -83,6 +83,20 @@ final class BurnedTrunks {
         for (int cell = cells.nextSetBit(0); cell >= 0; cell = cells.nextSetBit(cell + 1)) {
             accumulation[cell] = catchment[cell];
         }
+    }
+
+    private static List<int[]> outside(int[] route, BitSet hollows) {
+        List<int[]> runs = new ArrayList<>(1);
+        int from = 0;
+        for (int index = 0; index <= route.length; index++) {
+            if (index == route.length || hollows.get(route[index])) {
+                if (index > from) {
+                    runs.add(Arrays.copyOfRange(route, from, index));
+                }
+                from = index + 1;
+            }
+        }
+        return runs;
     }
 
     private void claim(int[] path, float reachCatchment) {

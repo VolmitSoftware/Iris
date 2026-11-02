@@ -92,6 +92,23 @@ public final class BasinExtractor {
         return inland;
     }
 
+    public static BitSet draining(DemGrid natural, float[] filled, BitSet inland, float minDepth) {
+        float[] heights = natural.values();
+        BitSet basins = new BitSet(heights.length);
+        boolean[] visited = new boolean[heights.length];
+        int[] queue = new int[heights.length];
+        for (int start = inland.nextSetBit(0); start >= 0; start = inland.nextSetBit(start + 1)) {
+            if (visited[start]) {
+                continue;
+            }
+            int tail = component(natural, cell -> inland.get(cell) || filled[cell] - heights[cell] > minDepth, visited, queue, start);
+            for (int index = 0; index < tail; index++) {
+                basins.set(queue[index]);
+            }
+        }
+        return basins;
+    }
+
     public static BitSet hollow(DemGrid natural, BitSet inland, int cell) {
         BitSet hollow = new BitSet(natural.values().length);
         if (!inland.get(cell)) {

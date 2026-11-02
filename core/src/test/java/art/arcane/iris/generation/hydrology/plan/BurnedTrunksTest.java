@@ -12,6 +12,7 @@ import java.util.BitSet;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class BurnedTrunksTest {
@@ -48,35 +49,41 @@ public class BurnedTrunksTest {
     }
 
     @Test
-    public void trunkNeitherDescendsNorDrainsThroughAnInlandHollow() {
+    public void trunkStopsAtAHollowBasinAndRestartsBeyondIt() {
         DemGrid raw = new DemGrid(0, 0, CELL, SIZE, SIZE);
         Arrays.fill(raw.values(), 200f);
-        BitSet hollow = new BitSet(SIZE * SIZE);
+        BitSet basin = new BitSet(SIZE * SIZE);
         for (int i = 0; i < SIZE; i++) {
             boolean inside = i >= HOLLOW_FROM && i <= HOLLOW_TO;
             raw.set(i, TRENCH_ROW, inside ? 10f : 100f);
             if (inside) {
-                hollow.set(raw.index(i, TRENCH_ROW));
+                basin.set(raw.index(i, TRENCH_ROW));
             }
         }
         HydrologyTier major = HydrologySettings.compile(new IrisHydrology(), 1337L, 40, -64, 320).majorTier();
-        BurnedTrunks trunks = BurnedTrunks.burn(raw, List.of(reach(1L, 0L, major, 2, 24)), 3f, 0.001f, hollow);
+        BurnedTrunks trunks = BurnedTrunks.burn(raw, List.of(reach(1L, 0L, major, 2, 24)), 3f, 0.001f, basin);
         int[] receivers = new int[SIZE * SIZE];
         Arrays.fill(receivers, -1);
         trunks.route(receivers);
-        for (int i = 2; i < HOLLOW_FROM; i++) {
-            assertEquals("the trunk above the hollow drains into it at " + i, raw.index(i + 1, TRENCH_ROW), receivers[raw.index(i, TRENCH_ROW)]);
+        for (int i = 2; i < HOLLOW_FROM - 1; i++) {
+            assertEquals("the trunk above the hollow runs on at " + i, raw.index(i + 1, TRENCH_ROW), receivers[raw.index(i, TRENCH_ROW)]);
         }
+        assertEquals("the trunk ends at the hollow basin", -1, receivers[raw.index(HOLLOW_FROM - 1, TRENCH_ROW)]);
         for (int i = HOLLOW_FROM; i <= HOLLOW_TO; i++) {
+            assertFalse("the hollow basin holds no trunk at " + i, trunks.contains(raw.index(i, TRENCH_ROW)));
             assertEquals("the hollow keeps its own drainage at " + i, -1, receivers[raw.index(i, TRENCH_ROW)]);
+            assertEquals("the hollow is not burned at " + i, 10f, raw.values()[raw.index(i, TRENCH_ROW)], 0f);
         }
         for (int i = HOLLOW_TO + 1; i <= 24; i++) {
             float height = raw.values()[raw.index(i, TRENCH_ROW)];
             assertTrue("the trunk beyond the hollow keeps its burned height at " + i + ": " + height, height > 90f);
             if (i < 24) {
-                assertEquals("the trunk beyond the hollow drains on at " + i, raw.index(i + 1, TRENCH_ROW), receivers[raw.index(i, TRENCH_ROW)]);
+                assertEquals("the trunk beyond the hollow runs on at " + i, raw.index(i + 1, TRENCH_ROW), receivers[raw.index(i, TRENCH_ROW)]);
             }
         }
+        float[] weights = new float[SIZE * SIZE];
+        trunks.inject(weights);
+        assertTrue("the trunk beyond the hollow restarts with the river's catchment", weights[raw.index(HOLLOW_TO + 1, TRENCH_ROW)] > 0f);
     }
 
     private static Reach reach(long id, long downstreamId, HydrologyTier tier, int fromI, int toI) {

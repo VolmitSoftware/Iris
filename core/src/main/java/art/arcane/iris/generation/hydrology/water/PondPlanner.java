@@ -274,7 +274,7 @@ public final class PondPlanner {
         float[] ground = box.ground();
         Spill spill = spill(box, ground, floor, null);
         int damRaise = 0;
-        if (settings.ponds().dams().enabled() && spill.height() > ground[floor]) {
+        if (settings.ponds().dams().enabled() && !candidate.basin().belowSea() && spill.height() > ground[floor]) {
             ground = dam(box, ground, floor, spill.height());
             Spill raised = spill(box, ground, floor, null);
             damRaise = (int) Math.floor(raised.height()) - (int) Math.floor(spill.height());

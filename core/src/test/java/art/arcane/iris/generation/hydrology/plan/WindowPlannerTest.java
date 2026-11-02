@@ -63,6 +63,7 @@ public class WindowPlannerTest {
     private static final int DEEP_CUT = 12;
     private static final int SLIVER_REACH = 32;
     private static final int RIM_CUT = 24;
+    private static final double HOLLOW_EDGE = 8D;
     private static final double CRATER_X = 512D;
     private static final double CRATER_Z = 512D;
     private static final int CRATER_SPILL = 75;
@@ -1017,6 +1018,12 @@ public class WindowPlannerTest {
         }
         assertTrue("streams draining into the hollow end in its pond: " + inflows, inflows > 0);
         assertEquals("the inland hollow pond has no outlet", 0L, pond.outletReachId());
+        assertNoSeaLevelCanyon(inland, hollow);
+        PlannedScene valley = PlannedScene.plan(SyntheticTerrain.valleySlope().withLand((x, z) -> true), settings, 2, 2);
+        int beyond = deepCutsBeyond(inland, HOLLOW_X + 1.5D * HOLLOW_RADIUS);
+        int open = deepCutsBeyond(valley, HOLLOW_X + 1.5D * HOLLOW_RADIUS);
+        assertTrue("reach points cut more than " + DEEP_CUT + " deep past the hollow rim: " + beyond + ", in the same valley without the hollow "
+                + open, beyond <= open + open / 50);
         assertEquals("the hollow centre is pond water", WaterRole.POND, inland.role((int) HOLLOW_X, (int) HOLLOW_Z));
         assertEquals("the hollow pond surface", SEA_LEVEL, inland.head((int) HOLLOW_X, (int) HOLLOW_Z));
         for (int z = inland.minZ() + WaterInvariants.EDGE_MARGIN; z <= inland.maxZ() - WaterInvariants.EDGE_MARGIN; z++) {
@@ -1034,6 +1041,56 @@ public class WindowPlannerTest {
             }
         }
         assertTrue("streams entering the sea-intent hollow keep their mouths: " + mouths, mouths > 0);
+    }
+
+    @Test
+    public void pondlessInlandHollowsStopStreamsAtTheirEdge() {
+        HydrologySettings settings = settings(new IrisHydrology());
+        SyntheticTerrain hollow = SyntheticTerrain.valleySlope().withPit(HOLLOW_X, HOLLOW_Z, HOLLOW_RADIUS, HOLLOW_DEPTH).withLand((x, z) -> true)
+                .withPondsBlocked((x, z) -> Math.hypot(x - HOLLOW_X, z - HOLLOW_Z) < HOLLOW_RADIUS);
+        PlannedScene scene = PlannedScene.plan(hollow, settings, 2, 2);
+        assertNull("no pond fills a hollow whose policy blocks ponds", pondAt(scene.ponds(), HOLLOW_X, HOLLOW_Z));
+        int edges = 0;
+        for (Reach reach : scene.reaches()) {
+            for (int point = 0; point < reach.grade().length; point++) {
+                double ground = hollow.natural(reach.xs()[point], reach.zs()[point]);
+                assertNotEquals(reach + " point " + point + " is a sea mouth inland", ReachStyle.MOUTH, reach.style()[point]);
+                assertTrue(reach + " point " + point + " runs into the hollow over ground at " + ground, ground >= SEA_LEVEL - HOLLOW_EDGE);
+            }
+            int last = reach.xs().length - 1;
+            if (reach.downstreamId() == 0L && Math.hypot(reach.xs()[last] - HOLLOW_X, reach.zs()[last] - HOLLOW_Z) < HOLLOW_RADIUS) {
+                edges++;
+                assertTrue(reach + " ends at the hollow edge", hollow.natural(reach.xs()[last], reach.zs()[last]) < SEA_LEVEL + HOLLOW_EDGE);
+            }
+        }
+        assertTrue("streams draining into the hollow end at its edge: " + edges, edges > 0);
+        assertNoSeaLevelCanyon(scene, hollow);
+    }
+
+    private static void assertNoSeaLevelCanyon(PlannedScene scene, SyntheticTerrain terrain) {
+        for (Reach reach : scene.reaches()) {
+            for (int point = 0; point < reach.grade().length; point++) {
+                double ground = terrain.natural(reach.xs()[point], reach.zs()[point]);
+                if (pondAt(scene.ponds(), reach.xs()[point], reach.zs()[point]) == null) {
+                    assertTrue(reach + " point " + point + " is held at the sea under ground at " + ground,
+                            reach.grade()[point] > SEA_LEVEL + 2 || ground < SEA_LEVEL + RIM_CUT);
+                }
+            }
+        }
+    }
+
+    private static int deepCutsBeyond(PlannedScene scene, double minX) {
+        int deep = 0;
+        for (Reach reach : scene.reaches()) {
+            for (int point = 0; point < reach.grade().length; point++) {
+                int x = (int) Math.floor(reach.xs()[point]);
+                int z = (int) Math.floor(reach.zs()[point]);
+                if (x > minX && pondAt(scene.ponds(), x, z) == null && scene.natural(x, z) - reach.grade()[point] > DEEP_CUT) {
+                    deep++;
+                }
+            }
+        }
+        return deep;
     }
 
     @Test

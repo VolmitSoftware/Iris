@@ -72,7 +72,8 @@ public final class DeltaCoast {
             row(surface, receivers, accumulation, channels, neighbourZ);
         }
         HeightLattice fine = new HeightLattice(new Terrain(ground), FINE, false, 1 << 16);
-        return new ReachShaper(settings).shape(WINDOW, surface, receivers, accumulation, channels, sea(surface), ponds, fine, seed);
+        return new ReachShaper(settings).shape(WINDOW, surface, receivers, accumulation, channels, SeaCells.atOrBelow(surface, SEA_LEVEL), ponds,
+                fine, seed);
     }
 
     public static double ground(double x, double z) {
@@ -104,14 +105,6 @@ public final class DeltaCoast {
             }
         }
         return fan;
-    }
-
-    private static boolean[] sea(DemGrid filled) {
-        boolean[] sea = new boolean[filled.values().length];
-        for (int cell = 0; cell < sea.length; cell++) {
-            sea[cell] = filled.values()[cell] <= SEA_LEVEL;
-        }
-        return sea;
     }
 
     private static void row(DemGrid grid, int[] receivers, float[] accumulation, BitSet channels, int z) {

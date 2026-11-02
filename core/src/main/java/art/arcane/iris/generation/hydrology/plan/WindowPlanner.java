@@ -90,10 +90,14 @@ public final class WindowPlanner {
         DemGrid raw = new DemGrid(natural.originX(), natural.originZ(), CELL, SPAN, SPAN);
         System.arraycopy(natural.values(), 0, raw.values(), 0, SPAN * SPAN);
         BitSet inland = BasinExtractor.inland(natural, samples.ocean(), settings.seaLevel());
+        BitSet open = open(samples.ocean());
+        BitSet hollowBasins = inland.isEmpty() ? inland
+                : BasinExtractor.draining(natural, PriorityFlood.fill(natural, open, settings.drainage().fillEpsilon()), inland, BASIN_DEPTH);
         List<Pond> lakes = regionLakes(plans.values());
         BurnedTrunks trunks = BurnedTrunks.burn(raw, majorReaches(key, plans), settings.majorTier().inset(), settings.drainage().fillEpsilon(),
-                inland);
-        BitSet seeds = seeds(samples.ocean(), trunks);
+                hollowBasins);
+        BitSet seeds = trunks.cells();
+        seeds.or(open);
         DemGrid preliminary = new DemGrid(raw.originX(), raw.originZ(), CELL, SPAN, SPAN);
         System.arraycopy(raw.values(), 0, preliminary.values(), 0, SPAN * SPAN);
         DrainContext context = new DrainContext(samples, trunks, inland);
@@ -169,8 +173,8 @@ public final class WindowPlanner {
         return List.copyOf(lakes);
     }
 
-    private static BitSet seeds(boolean[] ocean, BurnedTrunks trunks) {
-        BitSet seeds = trunks.cells();
+    private static BitSet open(boolean[] ocean) {
+        BitSet seeds = new BitSet(ocean.length);
         for (int cell = 0; cell < ocean.length; cell++) {
             int i = cell % SPAN;
             int j = cell / SPAN;
@@ -259,29 +263,8 @@ public final class WindowPlanner {
                 settings.seaLevel());
         BitSet channels = ChannelHeads.keep(surface, samples.height(), receivers, candidates, settings.drainage().headRelief(),
                 context.trunks()::contains, cell -> keepHead(surface, cell, samples.rainfall()[cell]));
-        reachTheSea(channels, surface.values(), receivers, context);
+        LowlandChannels.extend(channels, surface.values(), receivers, samples, context.inland(), settings.seaLevel());
         return channels;
-    }
-
-    private void reachTheSea(BitSet channels, float[] filled, int[] receivers, DrainContext context) {
-        BitSet ends = new BitSet(receivers.length);
-        for (int cell = channels.nextSetBit(0); cell >= 0; cell = channels.nextSetBit(cell + 1)) {
-            int receiver = receivers[cell];
-            if (receiver >= 0 && !channels.get(receiver) && crossable(filled, context, receiver)) {
-                ends.set(cell);
-            }
-        }
-        for (int end = ends.nextSetBit(0); end >= 0; end = ends.nextSetBit(end + 1)) {
-            for (int cell = receivers[end]; cell >= 0 && !channels.get(cell) && crossable(filled, context, cell); cell = receivers[cell]) {
-                channels.set(cell);
-            }
-        }
-    }
-
-    private boolean crossable(float[] filled, DrainContext context, int cell) {
-        HydrologySampleBuffer samples = context.samples();
-        return !samples.ocean()[cell] && filled[cell] <= settings.seaLevel() && !context.inland().get(cell)
-                && (samples.permission()[cell] & HydrologySampleBuffer.ALLOW_STREAMS) != 0;
     }
 
     private boolean keepHead(DemGrid surface, int cell, float rainfall) {

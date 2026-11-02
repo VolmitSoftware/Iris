@@ -1154,17 +1154,64 @@ public class ChunkWaterRasterTest {
 
     @Test
     public void lavaMouthMeetsTheSeaThroughTheSeam() {
+        HydrologySettings settings = settings(lavaAndCrust());
+        IntBinaryOperator coast = (x, z) -> x < 40 ? 44 : SEA_LEVEL - 3;
+        Reach river = mouthed(line(131L, lavaTier(), 0L, -20f, 8f, 56f, 8f, (x, z) -> x < 40f ? 42 : SEA_LEVEL), 40f);
+        assertLavaSealedFromTheSea(new Scene(settings, coast).reach(river), settings, coast);
+    }
+
+    @Test
+    public void lavaFallingIntoItsEstuaryFallsAsTheSeam() {
+        HydrologySettings settings = settings(lavaAndCrust());
+        IntBinaryOperator coast = (x, z) -> x < 40 ? 46 : SEA_LEVEL - 3;
+        Reach river = mouthed(line(132L, lavaTier(), 0L, -20f, 8f, 56f, 8f, (x, z) -> x < 40f ? SEA_LEVEL + 4 : SEA_LEVEL), 40f);
+        Scene scene = new Scene(settings, coast).reach(river);
+        assertLavaSealedFromTheSea(scene, settings, coast);
+        int[][] sides = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
+        int ontoTheSea = 0;
+        for (int x = -16; x <= 52; x++) {
+            for (int z = -8; z <= 24; z++) {
+                if (!scene.water(x, z)) {
+                    continue;
+                }
+                int head = scene.head(x, z);
+                int[] source = null;
+                for (int[] side : sides) {
+                    if (scene.water(x + side[0], z + side[1]) && scene.head(x + side[0], z + side[1]) > head) {
+                        head = scene.head(x + side[0], z + side[1]);
+                        source = side;
+                    }
+                }
+                if (source == null) {
+                    continue;
+                }
+                String landing = scene.fluid(x, z);
+                String falling = FluidSeams.fallingFluid(settings.seams(), scene.fluid(x + source[0], z + source[1]), landing);
+                if (HydrologyCaveCell.SEA_FLUID.equals(landing)) {
+                    ontoTheSea++;
+                    assertEquals("lava falls into the estuary at " + x + "," + z + " as its seam", "crust", falling);
+                }
+                assertTrue("raw lava falls onto " + landing + " at " + x + "," + z, !falling.equals("lava") || landing.equals("lava"));
+            }
+        }
+        assertTrue("falls into the estuary " + ontoTheSea, ontoTheSea > 0);
+    }
+
+    private static IrisHydrology lavaAndCrust() {
         IrisHydrology config = new IrisHydrology();
         config.getFluids().add(new IrisFluidProfile().setName("lava").setSeam("crust")
                 .setPalette(new IrisMaterialPalette().qclear().qadd("minecraft:lava")));
         config.getFluids().add(new IrisFluidProfile().setName("crust")
                 .setPalette(new IrisMaterialPalette().qclear().qadd("minecraft:obsidian")));
-        HydrologySettings settings = settings(config);
-        HydrologyTier lava = new HydrologyTier("lava", 0f, 1.5f, 1.5f, 0f, 0.5f, 1, true, 6, 8, IrisBankStyle.SMOOTH,
+        return config;
+    }
+
+    private static HydrologyTier lavaTier() {
+        return new HydrologyTier("lava", 0f, 1.5f, 1.5f, 0f, 0.5f, 1, true, 6, 8, IrisBankStyle.SMOOTH,
                 new HydrologyTier.Estuary(48, 2.5f), new IrisHydrologyMaterials(), "lava", List.of());
-        IntBinaryOperator coast = (x, z) -> x < 40 ? 44 : SEA_LEVEL - 3;
-        Reach river = mouthed(line(131L, lava, 0L, -20f, 8f, 56f, 8f, (x, z) -> x < 40f ? 42 : SEA_LEVEL), 40f);
-        Scene scene = new Scene(settings, coast).reach(river);
+    }
+
+    private static void assertLavaSealedFromTheSea(Scene scene, HydrologySettings settings, IntBinaryOperator coast) {
         FluidSeams.Columns columns = new FluidSeams.Columns() {
             @Override
             public String fluid(int x, int z) {

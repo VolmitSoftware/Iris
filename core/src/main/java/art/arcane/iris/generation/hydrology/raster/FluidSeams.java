@@ -58,6 +58,14 @@ public final class FluidSeams {
         return sealed;
     }
 
+    public static String fallingFluid(Map<String, String> seams, String source, String landing) {
+        String seam = source == null ? null : seams.get(source);
+        if (seam == null || source.equals(landing) || seam.equals(landing)) {
+            return source;
+        }
+        return seam;
+    }
+
     private static boolean touchesOther(int cell, String[] fluid, Map<String, String> seams, byte[] sea, Columns columns,
                                         int originX, int originZ) {
         String own = fluid[cell];

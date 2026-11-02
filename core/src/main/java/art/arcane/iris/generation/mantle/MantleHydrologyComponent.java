@@ -7,6 +7,7 @@ import art.arcane.iris.generation.hydrology.config.IrisHydrology;
 import art.arcane.iris.generation.hydrology.engine.HydrologyRuntime;
 import art.arcane.iris.generation.hydrology.plan.HydrologySettings;
 import art.arcane.iris.generation.hydrology.raster.ChunkWaterRaster;
+import art.arcane.iris.generation.hydrology.raster.FluidSeams;
 import art.arcane.iris.generation.hydrology.underground.CavePoolFiller;
 import art.arcane.iris.generation.hydrology.underground.SeaInlet;
 import art.arcane.iris.generation.hydrology.underground.SeaInletRasterizer;
@@ -21,6 +22,7 @@ import art.arcane.volmlib.util.matter.slices.UpdateMatter;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 @ComponentFlag(ReservedFlag.RIVER_HYDROLOGY)
 public final class MantleHydrologyComponent extends IrisMantleComponent {
@@ -119,7 +121,7 @@ public final class MantleHydrologyComponent extends IrisMantleComponent {
         complex.effectiveWaterHeads(chunkX, chunkZ, around, heads);
         Falls falls = plan(chunkX, chunkZ, writer.getMantle().getWorldHeight(), heads);
         if (falls != null) {
-            publish(writer, complex, around, falls);
+            publish(writer, complex, runtime.settings().seams(), around, falls);
         }
     }
 
@@ -163,7 +165,7 @@ public final class MantleHydrologyComponent extends IrisMantleComponent {
         return bottom == null ? null : new Falls(chunkX, chunkZ, bottom, top, source);
     }
 
-    private static void publish(MantleWriter writer, IrisComplex complex, ChunkWaterRaster[] around, Falls falls) {
+    private static void publish(MantleWriter writer, IrisComplex complex, Map<String, String> seams, ChunkWaterRaster[] around, Falls falls) {
         SubterrainPlanner planner = complex.getSubterrainPlanner();
         boolean features = planner != null && !planner.isEmpty();
         int minimumY = features ? writer.getEngine().getWorld().minHeight() : 0;
@@ -176,7 +178,8 @@ public final class MantleHydrologyComponent extends IrisMantleComponent {
             int sourceX = falls.sourceX(index);
             int sourceZ = falls.sourceZ(index);
             ChunkWaterRaster sourceRaster = around[((sourceZ >> 4) - falls.chunkZ() + 1) * 3 + (sourceX >> 4) - falls.chunkX() + 1];
-            NativeBlockState falling = fallingFluidState(complex.resolveWaterFluid(sourceRaster.fluid(sourceX & 15, sourceZ & 15), sourceX, sourceZ));
+            String profile = FluidSeams.fallingFluid(seams, sourceRaster.fluid(sourceX & 15, sourceZ & 15), around[4].fluid(x & 15, z & 15));
+            NativeBlockState falling = fallingFluidState(complex.resolveWaterFluid(profile, sourceX, sourceZ));
             for (int y = falls.bottom()[index]; y <= falls.top()[index]; y++) {
                 if (features && planner.sample(x, y + minimumY, z).owned()) {
                     continue;

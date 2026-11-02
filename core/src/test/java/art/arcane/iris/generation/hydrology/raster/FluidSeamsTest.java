@@ -71,6 +71,16 @@ public class FluidSeamsTest {
         assertNull(FluidSeams.seal(LAVA_CRUST, SEED, 6, 0, columns(x -> x < 100 ? "lava" : "crust", x -> false)));
     }
 
+    @Test
+    public void fallingFluidTakesItsSeamWhereItLandsOnAnotherFluid() {
+        assertEquals("crust", FluidSeams.fallingFluid(LAVA_CRUST, "lava", "@sea"));
+        assertEquals("crust", FluidSeams.fallingFluid(LAVA_CRUST, "lava", "water"));
+        assertEquals("lava", FluidSeams.fallingFluid(LAVA_CRUST, "lava", "lava"));
+        assertEquals("lava", FluidSeams.fallingFluid(LAVA_CRUST, "lava", "crust"));
+        assertEquals("water", FluidSeams.fallingFluid(LAVA_CRUST, "water", "lava"));
+        assertEquals("lava", FluidSeams.fallingFluid(Map.of(), "lava", "@sea"));
+    }
+
     private static FluidSeams.Columns columns(IntFunction<String> fluid, IntPredicate sea) {
         return new FluidSeams.Columns() {
             @Override

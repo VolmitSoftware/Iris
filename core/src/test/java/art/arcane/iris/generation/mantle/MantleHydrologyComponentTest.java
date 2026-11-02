@@ -3,8 +3,10 @@ package art.arcane.iris.generation.mantle;
 import art.arcane.iris.generation.context.ChunkContext;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveAction;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveCell;
+import art.arcane.iris.generation.hydrology.config.IrisFluidProfile;
 import art.arcane.iris.generation.hydrology.config.IrisHydrology;
 import art.arcane.iris.generation.hydrology.engine.HydrologyRuntime;
+import art.arcane.iris.generation.hydrology.plan.HydrologySettings;
 import art.arcane.iris.generation.hydrology.raster.ChunkWaterRaster;
 import art.arcane.iris.generation.hydrology.underground.SeaInlet;
 import art.arcane.iris.generation.runtime.Engine;
@@ -13,6 +15,7 @@ import art.arcane.iris.generation.subterrain.SubterrainCell;
 import art.arcane.iris.generation.subterrain.SubterrainPlan;
 import art.arcane.iris.generation.subterrain.SubterrainPlanner;
 import art.arcane.iris.generation.terrain.IrisDimension;
+import art.arcane.iris.generation.terrain.IrisMaterialPalette;
 import art.arcane.iris.world.IrisWorld;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.mantle.flag.ReservedFlag;
@@ -190,6 +193,36 @@ public class MantleHydrologyComponentTest {
     }
 
     @Test
+    public void lavaFallingOntoOtherWaterFallsAsItsSeam() {
+        IrisHydrology lavaAndCrust = new IrisHydrology();
+        lavaAndCrust.getFluids().add(new IrisFluidProfile().setName("lava").setSeam("crust")
+                .setPalette(new IrisMaterialPalette().qclear().qadd("minecraft:lava")));
+        lavaAndCrust.getFluids().add(new IrisFluidProfile().setName("crust")
+                .setPalette(new IrisMaterialPalette().qclear().qadd("minecraft:obsidian")));
+        HydrologySettings settings = HydrologySettings.compile(lavaAndCrust, 1L, 62, 0, WORLD_HEIGHT);
+        for (String landing : List.of(HydrologyCaveCell.SEA_FLUID, "water", "lava")) {
+            NativeBlockState lava = mock(NativeBlockState.class);
+            NativeBlockState crust = mock(NativeBlockState.class);
+            ChunkWaterRaster raster = wetRaster();
+            when(raster.fluid(anyInt(), anyInt())).thenAnswer(call -> call.<Integer>getArgument(0) < 6 ? "lava" : landing);
+            Fixture fixture = new Fixture(raster, channel((x, z) -> x < 6 ? 99 : 79));
+            when(fixture.runtime.settings()).thenReturn(settings);
+            when(fixture.complex.resolveWaterFluid(eq("lava"), anyInt(), anyInt())).thenReturn(lava);
+            when(fixture.complex.resolveWaterFluid(eq("crust"), anyInt(), anyInt())).thenReturn(crust);
+
+            fixture.generate();
+
+            NativeBlockState expected = landing.equals("lava") ? lava : crust;
+            for (int z = 4; z <= 7; z++) {
+                for (int y = 80; y <= 99; y++) {
+                    verify(fixture.writer).setData(6, y, z, expected);
+                }
+            }
+            verify(fixture.writer, times(4 * 20)).setData(anyInt(), anyInt(), anyInt(), any(NativeBlockState.class));
+        }
+    }
+
+    @Test
     public void chunksWithoutWaterNeverReadTheirNeighbours() {
         Fixture empty = new Fixture(ChunkWaterRaster.EMPTY, (x, z) -> 99);
         empty.generate();
@@ -333,6 +366,7 @@ public class MantleHydrologyComponentTest {
             when(complex.allowsMantleChunkWrite(0, 0)).thenReturn(true);
             when(complex.getHydrologyRuntime()).thenReturn(runtime);
             when(runtime.raster(anyInt(), anyInt())).thenReturn(raster);
+            when(runtime.settings()).thenReturn(HydrologySettings.compile(new IrisHydrology(), 1L, 62, 0, WORLD_HEIGHT));
             when(complex.resolveWaterFluid(anyString(), anyInt(), anyInt())).thenReturn(mock(NativeBlockState.class));
             doAnswer(call -> {
                 int[] target = call.getArgument(3);

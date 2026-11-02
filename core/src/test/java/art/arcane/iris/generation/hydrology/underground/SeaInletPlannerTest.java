@@ -8,8 +8,11 @@ import art.arcane.iris.generation.hydrology.water.ShapedNetwork;
 import art.arcane.volmlib.util.collection.KList;
 import org.junit.Test;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
@@ -336,9 +339,73 @@ public class SeaInletPlannerTest {
         assertEquals(first.size(), first.stream().mapToLong(SeaInlet::id).distinct().count());
         InletTerrain terrain = InletTerrain.cliff(30D);
         List<SeaInlet> otherSeed = new SeaInletPlanner(HydrologySettings.compile(new IrisHydrology(), 99L, SEA, InletTerrain.MIN_Y,
-                InletTerrain.MAX_Y)).plan(terrain.grid, terrain.samples, terrain.receivers, terrain.accumulation,
+                InletTerrain.MAX_Y)).plan(terrain.window, terrain.grid, terrain.samples, terrain.receivers, terrain.accumulation,
                 new ShapedNetwork(List.of(), List.of()), 99L);
         assertNotEquals(first, otherSeed);
+    }
+
+    @Test
+    public void inletsAgreeAcrossWindowsOnOpenCoast() {
+        IrisHydrology dense = new IrisHydrology();
+        dense.getUnderground().getSeaInlets().setSpacing(64);
+        HydrologySettings settings = InletTerrain.settings(dense);
+        InletTerrain coast = InletTerrain.openCoast();
+        List<WindowKey> windows = new ArrayList<>(9);
+        for (int wz = 0; wz <= 2; wz++) {
+            for (int wx = 0; wx <= 2; wx++) {
+                windows.add(new WindowKey(wx, wz));
+            }
+        }
+        Map<WindowKey, List<SeaInlet>> views = views(coast, settings, windows);
+        assertEquals("planning the windows in reverse order changes nothing", views, views(coast, settings, windows.reversed()));
+        List<String> disagreements = new ArrayList<>();
+        int owned = 0;
+        int crossing = 0;
+        int seen = 0;
+        for (WindowKey owner : windows) {
+            for (SeaInlet inlet : views.get(owner)) {
+                if (!owner.equals(owner(inlet))) {
+                    continue;
+                }
+                owned++;
+                crossing += leavesWindow(inlet, owner) ? 1 : 0;
+                for (WindowKey view : windows) {
+                    if (view.equals(owner)) {
+                        continue;
+                    }
+                    for (SeaInlet other : views.get(view)) {
+                        if (other.id() != inlet.id()) {
+                            continue;
+                        }
+                        seen++;
+                        if (!other.equals(inlet)) {
+                            disagreements.add(inlet + " of " + owner + " is " + other + " in " + view);
+                        }
+                    }
+                }
+            }
+        }
+        assertTrue(disagreements.size() + " views disagree with the owner: " + disagreements, disagreements.isEmpty());
+        assertTrue("owned inlets " + owned, owned >= 20);
+        assertTrue("owned inlets that neighbouring windows also plan " + seen, seen >= 60);
+        assertTrue("owned inlets crossing a window line " + crossing, crossing > 0);
+    }
+
+    private static Map<WindowKey, List<SeaInlet>> views(InletTerrain coast, HydrologySettings settings, List<WindowKey> order) {
+        Map<WindowKey, List<SeaInlet>> views = new LinkedHashMap<>();
+        for (WindowKey window : order) {
+            views.put(window, coast.span(window).plan(settings));
+        }
+        return views;
+    }
+
+    private static WindowKey owner(SeaInlet inlet) {
+        return WindowKey.containing((int) Math.floor(inlet.xs()[1]), (int) Math.floor(inlet.zs()[1]));
+    }
+
+    private static boolean leavesWindow(SeaInlet inlet, WindowKey owner) {
+        int[] bounds = SeaInletRasterizer.bounds(inlet);
+        return !WindowKey.containing(bounds[0], bounds[1]).equals(owner) || !WindowKey.containing(bounds[2], bounds[3]).equals(owner);
     }
 
     @Test

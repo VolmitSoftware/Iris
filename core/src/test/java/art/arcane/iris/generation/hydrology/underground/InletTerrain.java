@@ -7,6 +7,7 @@ import art.arcane.iris.generation.hydrology.grid.FlowAccumulator;
 import art.arcane.iris.generation.hydrology.grid.HydrologySampleBuffer;
 import art.arcane.iris.generation.hydrology.grid.PriorityFlood;
 import art.arcane.iris.generation.hydrology.plan.HydrologySettings;
+import art.arcane.iris.generation.hydrology.plan.WindowKey;
 import art.arcane.iris.generation.hydrology.water.Reach;
 import art.arcane.iris.generation.hydrology.water.ReachStyle;
 import art.arcane.iris.generation.hydrology.water.ShapedNetwork;
@@ -24,21 +25,24 @@ final class InletTerrain {
     static final int CELL = 8;
     static final int WIDTH = 96;
     static final int DEPTH = 64;
+    static final int SPAN = 3 * WindowKey.SIZE / CELL;
 
     final DoubleBinaryOperator natural;
+    final WindowKey window;
     final DemGrid grid;
     final HydrologySampleBuffer samples;
     final int[] receivers;
     final float[] accumulation;
 
     private InletTerrain(DoubleBinaryOperator natural) {
-        this(natural, 0, 0);
+        this(natural, 0, 0, WIDTH, DEPTH);
     }
 
-    private InletTerrain(DoubleBinaryOperator natural, int originX, int originZ) {
+    private InletTerrain(DoubleBinaryOperator natural, int originX, int originZ, int width, int depth) {
         this.natural = natural;
-        this.grid = new DemGrid(originX, originZ, CELL, WIDTH, DEPTH);
-        int count = WIDTH * DEPTH;
+        this.window = WindowKey.containing(originX + width * CELL / 2, originZ + depth * CELL / 2);
+        this.grid = new DemGrid(originX, originZ, CELL, width, depth);
+        int count = width * depth;
         this.samples = new HydrologySampleBuffer(count);
         BitSet seeds = new BitSet(count);
         for (int cell = 0; cell < count; cell++) {
@@ -48,14 +52,14 @@ final class InletTerrain {
             grid.values()[cell] = height;
             samples.height()[cell] = height;
             samples.ocean()[cell] = Math.round(height) < SEA;
-            int i = cell % WIDTH;
-            int j = cell / WIDTH;
-            if (samples.ocean()[cell] || i == 0 || j == 0 || i == WIDTH - 1 || j == DEPTH - 1) {
+            int i = cell % width;
+            int j = cell / width;
+            if (samples.ocean()[cell] || i == 0 || j == 0 || i == width - 1 || j == depth - 1) {
                 seeds.set(cell);
             }
         }
         float[] filled = PriorityFlood.fill(grid, seeds, 0.001f);
-        DemGrid surface = new DemGrid(originX, originZ, CELL, WIDTH, DEPTH);
+        DemGrid surface = new DemGrid(originX, originZ, CELL, width, depth);
         System.arraycopy(filled, 0, surface.values(), 0, count);
         this.receivers = D8Router.receivers(surface, filled);
         float[] weights = new float[count];
@@ -70,6 +74,13 @@ final class InletTerrain {
 
     static InletTerrain cliff(double cliffHeight) {
         return new InletTerrain((x, z) -> x < COAST_X ? SEA - 20D : SEA + cliffHeight + 0.08D * (x - COAST_X));
+    }
+
+    static InletTerrain openCoast() {
+        return new InletTerrain((x, z) -> {
+            double coast = 768D + 120D * Math.sin(z / 180D) + 40D * Math.sin(z / 53D);
+            return x < coast ? SEA - 20D : SEA + 30D + 0.08D * (x - coast);
+        });
     }
 
     static InletTerrain cliffWithTrough(double cliffHeight, double troughFrom, double troughTo, double troughHeight) {
@@ -124,11 +135,15 @@ final class InletTerrain {
     }
 
     InletTerrain shifted(int originX, int originZ) {
-        return new InletTerrain(natural, originX, originZ);
+        return new InletTerrain(natural, originX, originZ, WIDTH, DEPTH);
+    }
+
+    InletTerrain span(WindowKey window) {
+        return new InletTerrain(natural, (window.wx() - 1) * WindowKey.SIZE, (window.wz() - 1) * WindowKey.SIZE, SPAN, SPAN);
     }
 
     List<SeaInlet> plan(HydrologySettings settings, ShapedNetwork network) {
-        return new SeaInletPlanner(settings).plan(grid, samples, receivers, accumulation, network, SEED);
+        return new SeaInletPlanner(settings).plan(window, grid, samples, receivers, accumulation, network, SEED);
     }
 
     List<SeaInlet> plan(HydrologySettings settings) {

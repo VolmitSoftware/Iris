@@ -149,7 +149,8 @@ final class WaterInvariants {
             boolean[] pool = pool(feeder, receiving(feeder, downstream, feeders.get(downstream.id())), level);
             int[] box = interior(scene, poolBox(feeder, pool));
             if (box != null) {
-                boolean[] held = held(feeder, lips.getOrDefault(feeder.id(), List.of()), feeders.containsKey(feeder.id()));
+                boolean heldStart = feeders.containsKey(feeder.id()) && feeder.grade()[0] - level > ConfluenceGrader.MAX_START_LOWERING;
+                boolean[] held = held(feeder, lips.getOrDefault(feeder.id(), List.of()), heldStart);
                 junctions.add(new Junction(feeder, WaterHeads.snap(level, seaLevel), pool, held, box));
             }
         }
@@ -204,10 +205,10 @@ final class WaterInvariants {
         return lips;
     }
 
-    private static boolean[] held(Reach outlet, List<PondMask> lips, boolean fed) {
+    private static boolean[] held(Reach outlet, List<PondMask> lips, boolean heldStart) {
         boolean[] held = new boolean[outlet.xs().length];
         boolean lip = !lips.isEmpty();
-        held[0] = lip || fed || outlet.style()[0] == ReachStyle.POND_OUTLET;
+        held[0] = lip || heldStart || outlet.style()[0] == ReachStyle.POND_OUTLET;
         for (int point = 1; point < held.length; point++) {
             lip = lip && nearLip(lips, outlet.xs()[point], outlet.zs()[point], outlet.halfWidth()[point]);
             held[point] = lip || outlet.style()[point] == ReachStyle.POND_OUTLET || zoneStep(outlet, held, point);

@@ -959,6 +959,28 @@ public class ChunkWaterRasterTest {
     }
 
     @Test
+    public void crossWindowSettlingHoldsAPondsLipButNotALakes() {
+        HydrologyTier narrow = tier("river", 2f, 0.5f, 4, IrisBankStyle.SMOOTH);
+        HydrologyTier wide = tier("river", 3f, 0.5f, 4, IrisBankStyle.SMOOTH);
+        Reach low = line(342L, wide, 0L, 504f, 200f, 600f, 200f, (x, z) -> 62);
+        Reach shore = line(341L, narrow, low.id(), 486f, 200f, 504f, 200f, (x, z) -> 66);
+        ReachStyle[] style = shore.style().clone();
+        for (int point = 0; point < style.length; point++) {
+            style[point] = shore.xs()[point] - shore.xs()[0] <= 8f ? ReachStyle.POND_OUTLET : style[point];
+        }
+        Reach outlet = new Reach(shore.id(), shore.tier(), shore.downstreamId(), shore.xs(), shore.zs(), shore.grade(), shore.halfWidth(),
+                shore.depth(), style, shore.catchment());
+        Pond pond = new Pond(340L, PondKind.NATURAL, 66, 58, 490, 202, 67.5f, circle(490, 210, 8, 1), outlet.id(), 0, "water", 490, 210);
+        Pond lake = new Pond(340L, PondKind.LAKE, 66, 58, 490, 202, 67.5f, circle(490, 210, 8, 1), outlet.id(), 0, "water", 490, 210);
+        Scene held = new Scene(settings(new IrisHydrology()), (x, z) -> 75).reach(outlet).reach(low).pond(pond);
+        Scene free = new Scene(settings(new IrisHydrology()), (x, z) -> 75).reach(outlet).reach(low).lake(lake);
+        for (int x = 497; x <= 500; x++) {
+            assertEquals("a pond's outlet stays at its level along the lip at x=" + x, pond.level(), held.head(x, 200));
+            assertEquals("a lake's outlet settles to the lower river along the lip at x=" + x, low.grade()[0], free.head(x, 200));
+        }
+    }
+
+    @Test
     public void sharedOutletWithoutALeadInClampsToTheLastPondInItsPlan() {
         HydrologyTier river = tier("river", 2f, 0.5f, 4, IrisBankStyle.SMOOTH);
         Reach outlet = line(311L, river, 0L, 300f, 200f, 380f, 200f, (x, z) -> 68);

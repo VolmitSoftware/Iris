@@ -126,27 +126,35 @@ public class RiffleProfileTest {
         for (int x = -24; x <= 16; x++) {
             assertTrue("the foot at " + x + "," + (-7 - x) + " is carved", surface.bed(x, -7 - x, 96) < 96);
         }
-        for (int chunkX = -2; chunkX <= 1; chunkX++) {
-            for (int chunkZ = -2; chunkZ <= 1; chunkZ++) {
-                RiffleProfile first = new RiffleProfile(chunkX, chunkZ, channel(heads));
-                RiffleProfile east = new RiffleProfile(chunkX + 1, chunkZ, channel(heads));
-                RiffleProfile south = new RiffleProfile(chunkX, chunkZ + 1, channel(heads));
-                for (int edge = 0; edge < 16; edge++) {
-                    for (int original : new int[]{92, 96}) {
-                        int x = (chunkX + 1) << 4;
-                        int z = (chunkZ << 4) + edge;
-                        double variation = BedProfile.variation(1337L, x, z);
-                        assertEquals(first.bed(16, edge, original, heads.applyAsInt(x, z), variation),
-                                east.bed(0, edge, original, heads.applyAsInt(x, z), variation));
-                        x = (chunkX << 4) + edge;
-                        z = (chunkZ + 1) << 4;
-                        variation = BedProfile.variation(1337L, x, z);
-                        assertEquals(first.bed(edge, 16, original, heads.applyAsInt(x, z), variation),
-                                south.bed(edge, 0, original, heads.applyAsInt(x, z), variation));
-                    }
-                }
-            }
+        assertChunkBordersMatch(heads);
+    }
+
+    @Test
+    public void tailoutsMatchAcrossChunkBordersWithADiagonalNextStep() {
+        IntBinaryOperator heads = (x, z) -> x + z < -7 ? 110 : x + z < -1 ? 98 : 96;
+        Surface stepped = new Surface(heads);
+        Surface pool = new Surface((x, z) -> x + z < -7 ? 110 : 98);
+        for (int x = -24; x <= 16; x++) {
+            int z = -2 - x;
+            assertEquals("1-block water over the brink at " + x + "," + z, 97, stepped.bed(x, z, 92));
+            assertTrue("the brink at " + x + "," + z + " would lie in the pool without the next step", pool.bed(x, z, 92) < 97);
+            assertTrue("the foot at " + x + "," + (-7 - x) + " is carved", stepped.bed(x, -7 - x, 96) < 96);
         }
+        assertChunkBordersMatch(heads);
+    }
+
+    @Test
+    public void tailoutsMatchAcrossChunkBordersWithAJoggedNextStep() {
+        IntBinaryOperator heads = (x, z) -> x < -3 ? 110 : x < (z < 0 ? 2 : 0) ? 98 : 96;
+        Surface stepped = new Surface(heads);
+        Surface pool = new Surface((x, z) -> x < -3 ? 110 : 98);
+        for (int z = -8; z <= 8; z++) {
+            int brink = z < 0 ? 1 : -1;
+            assertEquals("1-block water over the brink at " + brink + "," + z, 97, stepped.bed(brink, z, 92));
+            assertTrue("the brink at " + brink + "," + z + " would lie in the pool without the next step", pool.bed(brink, z, 92) < 97);
+            assertTrue("the foot at z " + z + " is carved", stepped.bed(-3, z, 96) < 96);
+        }
+        assertChunkBordersMatch(heads);
     }
 
     @Test
@@ -254,6 +262,30 @@ public class RiffleProfileTest {
 
     private interface Roles {
         WaterRole at(int x, int z);
+    }
+
+    private static void assertChunkBordersMatch(IntBinaryOperator heads) {
+        for (int chunkX = -2; chunkX <= 1; chunkX++) {
+            for (int chunkZ = -2; chunkZ <= 1; chunkZ++) {
+                RiffleProfile first = new RiffleProfile(chunkX, chunkZ, channel(heads));
+                RiffleProfile east = new RiffleProfile(chunkX + 1, chunkZ, channel(heads));
+                RiffleProfile south = new RiffleProfile(chunkX, chunkZ + 1, channel(heads));
+                for (int edge = 0; edge < 16; edge++) {
+                    for (int original : new int[]{92, 96}) {
+                        int x = (chunkX + 1) << 4;
+                        int z = (chunkZ << 4) + edge;
+                        double variation = BedProfile.variation(1337L, x, z);
+                        assertEquals(first.bed(16, edge, original, heads.applyAsInt(x, z), variation),
+                                east.bed(0, edge, original, heads.applyAsInt(x, z), variation));
+                        x = (chunkX << 4) + edge;
+                        z = (chunkZ + 1) << 4;
+                        variation = BedProfile.variation(1337L, x, z);
+                        assertEquals(first.bed(edge, 16, original, heads.applyAsInt(x, z), variation),
+                                south.bed(edge, 0, original, heads.applyAsInt(x, z), variation));
+                    }
+                }
+            }
+        }
     }
 
     private static final class Surface {

@@ -42,6 +42,7 @@ import java.util.Map;
 import java.util.Random;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -59,10 +60,6 @@ public class IrisTerrainNormalActuatorColumnParityTest {
     private static final int HEIGHT = 96;
     private static final int X = 21;
     private static final int Z = -7;
-    private static final Map<WaterRole, String> ROLE_PALETTE = Map.of(
-            WaterRole.CHANNEL, "bed", WaterRole.POND, "bed", WaterRole.MOUTH, "bed", WaterRole.CASCADE, "bed",
-            WaterRole.WATERFALL, "bed", WaterRole.SHORE, "shore", WaterRole.POND_SHORE, "shore",
-            WaterRole.DAM, "shore", WaterRole.BANK, "bank");
 
     @Rule
     public final PlatformBinding platform = PlatformBinding.of(IrisTerrainNormalActuatorColumnParityTest::distinctBlocks);
@@ -70,8 +67,10 @@ public class IrisTerrainNormalActuatorColumnParityTest {
     @Test
     public void paintedColumnsMatchThePerBlockAlgorithm() {
         Random random = new Random(20260928L);
+        int openUnderFallTrials = 0;
         for (int trial = 0; trial < 600; trial++) {
             Fixture fixture = new Fixture(random, trial);
+            openUnderFallTrials += fixture.openUnderFall() ? 1 : 0;
             Hunk<NativeBlockState> painted = Hunk.newArrayHunk(1, HEIGHT, 1);
             new IrisTerrainNormalActuator(fixture.engine).paint(X, Z, painted, fixture.context);
             Hunk<NativeBlockState> expected = Hunk.newArrayHunk(1, HEIGHT, 1);
@@ -81,10 +80,20 @@ public class IrisTerrainNormalActuatorColumnParityTest {
                         key(expected.getRaw(0, y, 0)), key(painted.getRaw(0, y, 0)));
             }
         }
+        assertTrue("trials with open water under a fall " + openUnderFallTrials, openUnderFallTrials > 0);
     }
 
     private static String key(NativeBlockState state) {
         return state == null ? "null" : state.key();
+    }
+
+    private static String rolePalette(WaterRole role) {
+        return switch (role) {
+            case CHANNEL, POND, MOUTH, CASCADE, WATERFALL -> "bed";
+            case SHORE, POND_SHORE, DAM -> "shore";
+            case BANK -> "bank";
+            case NONE, INLET -> null;
+        };
     }
 
     private static IrisPlatform distinctBlocks() {
@@ -215,6 +224,12 @@ public class IrisTerrainNormalActuatorColumnParityTest {
             return description;
         }
 
+        private boolean openUnderFall() {
+            boolean wet = role.wet();
+            boolean seaFloor = !wet || role == WaterRole.INLET || role == WaterRole.MOUTH;
+            return wet && seaFloor && fallRole.wet() && fallHead > surfaceFluid;
+        }
+
         private void reference(Hunk<NativeBlockState> h) {
             int chunkHeight = h.getHeight();
             int xf = 0;
@@ -225,7 +240,7 @@ public class IrisTerrainNormalActuatorColumnParityTest {
             NativeBlockState airState = B.getState("AIR");
             boolean wet = role.wet();
             boolean seaFloor = !wet || role == WaterRole.INLET || role == WaterRole.MOUTH;
-            boolean openUnderFall = wet && seaFloor && fallRole.wet() && fallHead > surfaceFluid;
+            boolean openUnderFall = openUnderFall();
             IrisHydrologyMaterials materials = role == WaterRole.INLET ? null : this.materials;
             int he = Math.min(chunkHeight, this.he);
             int surfaceFluidHeight = Math.min(chunkHeight, this.surfaceFluid);
@@ -241,7 +256,7 @@ public class IrisTerrainNormalActuatorColumnParityTest {
             Terrain3DColumn naturalColumn = exposeStrata ? terrainColumn : null;
             int cut = 0;
             boolean keepGravityAway = materials != null && !materials.isAllowGravityBlocks();
-            String paletteName = materials == null ? null : ROLE_PALETTE.get(role);
+            String paletteName = materials == null ? null : rolePalette(role);
             NativeBlockState paletteBlock = paletteName == null ? null : palettes.get(paletteName);
             int paintDepth = paletteBlock == null ? 0 : paletteName.equals("shore") ? materials.getShoreDepth() : 1;
             NativeBlockState columnFluid = wet ? waterFluid : fluid;

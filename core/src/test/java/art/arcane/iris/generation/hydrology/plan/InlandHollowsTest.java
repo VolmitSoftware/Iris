@@ -22,6 +22,11 @@ public class InlandHollowsTest {
     private static final double PIT_RADIUS = 100D;
     private static final double PIT_DEPTH = 64D;
     private static final int LAKE_STEP = 16;
+    private static final double TRENCH_FROM = 128D;
+    private static final double TRENCH_TO = 7800D;
+    private static final double TRENCH_HALF_WIDTH = 16D;
+    private static final int TRENCH_WINDOW_CELL = 500;
+    private static final long MAX_HOLLOW_SAMPLES = 200_000L;
 
     @Test
     public void hollowCutByTheGridEdgeIsClassifiedLikeAWholeOne() {
@@ -76,6 +81,26 @@ public class InlandHollowsTest {
         InlandHollows.Hollows held = InlandHollows.classify(fine, window.natural, window.ocean, SEA_LEVEL, 0.5f, 0.001f, List.of(lake));
         assertEquals("a region lake holds the hollow, so it is no inland hollow", 0, held.inland().cardinality());
         assertEquals("and its basin keeps the trunk", 0, held.basins().cardinality());
+    }
+
+    @Test
+    public void hollowTooLongForItsBasinBoxIsOpenFromEveryWindow() {
+        SyntheticTerrain terrain = SyntheticTerrain.diagonalTrench(TRENCH_FROM, TRENCH_TO, TRENCH_HALF_WIDTH, SEA_LEVEL - 20D);
+        HeightLattice fine = new HeightLattice(terrain, WindowPlanner.FINE_CELL, false, 1 << 20);
+        for (int cell : new int[]{0, TRENCH_WINDOW_CELL}) {
+            Window window = new Window(fine, cell, cell);
+            int below = 0;
+            for (float height : window.natural.values()) {
+                below += Math.round(height) < SEA_LEVEL ? 1 : 0;
+            }
+            assertTrue("the trench crosses the window at cell " + cell + ": " + below, below > 20);
+            long before = terrain.naturalSamples();
+            InlandHollows.Hollows hollows = window.classify();
+            long sampled = terrain.naturalSamples() - before;
+            assertEquals("the trench is open from the window at cell " + cell, 0, hollows.inland().cardinality());
+            assertEquals("and has no basin there", 0, hollows.basins().cardinality());
+            assertTrue("ground sampled to classify the trench from the window at cell " + cell + ": " + sampled, sampled < MAX_HOLLOW_SAMPLES);
+        }
     }
 
     private static final class Window {

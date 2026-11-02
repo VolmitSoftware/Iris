@@ -17,6 +17,7 @@ import java.util.Set;
 
 final class InlandHollows {
     private static final int MAX_HOLLOW_CELLS = 1 << 14;
+    private static final long MAX_BASIN_CELLS = 1L << 20;
     private static final int BASIN_MARGIN = 64;
     private static final int[] AROUND_X = {-1, 0, 1, -1, 1, -1, 0, 1};
     private static final int[] AROUND_Z = {-1, -1, -1, 0, 0, 1, 1, 1};
@@ -59,11 +60,12 @@ final class InlandHollows {
             if (underLake(local, lakes)) {
                 continue;
             }
-            Set<Long> hollow = enclosed(local);
-            if (hollow == null) {
+            Hollow hollow = enclosed(local);
+            see(hollow.members(), seen);
+            if (hollow.open()) {
                 continue;
             }
-            mark(hollow, inland);
+            mark(hollow.members(), inland);
             mark(basin(hollow, minDepth, epsilon), basins);
         }
         return new Hollows(inland, basins);
@@ -92,10 +94,20 @@ final class InlandHollows {
         return cells;
     }
 
-    private Set<Long> enclosed(List<Long> local) {
+    private Hollow enclosed(List<Long> local) {
         Set<Long> members = new HashSet<>(local);
         Set<Long> checked = new HashSet<>(local);
         List<Long> frontier = new ArrayList<>(local);
+        int minX = Integer.MAX_VALUE;
+        int minZ = Integer.MAX_VALUE;
+        int maxX = Integer.MIN_VALUE;
+        int maxZ = Integer.MIN_VALUE;
+        for (long cell : local) {
+            minX = Math.min(minX, x(cell));
+            minZ = Math.min(minZ, z(cell));
+            maxX = Math.max(maxX, x(cell));
+            maxZ = Math.max(maxZ, z(cell));
+        }
         while (!frontier.isEmpty()) {
             List<Long> around = new ArrayList<>();
             for (long cell : frontier) {
@@ -110,35 +122,29 @@ final class InlandHollows {
             frontier = new ArrayList<>();
             for (long cell : around) {
                 if (oceans.contains(cell)) {
-                    return null;
+                    return new Hollow(members, minX, minZ, maxX, maxZ, true);
                 }
                 if (belowSea(heights.get(cell), false)) {
                     members.add(cell);
                     frontier.add(cell);
+                    minX = Math.min(minX, x(cell));
+                    minZ = Math.min(minZ, z(cell));
+                    maxX = Math.max(maxX, x(cell));
+                    maxZ = Math.max(maxZ, z(cell));
                 }
             }
-            if (members.size() > MAX_HOLLOW_CELLS) {
-                return null;
+            if (members.size() > MAX_HOLLOW_CELLS || basinCells(minX, minZ, maxX, maxZ) > MAX_BASIN_CELLS) {
+                return new Hollow(members, minX, minZ, maxX, maxZ, true);
             }
         }
-        return members;
+        return new Hollow(members, minX, minZ, maxX, maxZ, false);
     }
 
-    private Set<Long> basin(Set<Long> hollow, float minDepth, float epsilon) {
-        int minX = Integer.MAX_VALUE;
-        int minZ = Integer.MAX_VALUE;
-        int maxX = Integer.MIN_VALUE;
-        int maxZ = Integer.MIN_VALUE;
-        for (long cell : hollow) {
-            minX = Math.min(minX, x(cell));
-            minZ = Math.min(minZ, z(cell));
-            maxX = Math.max(maxX, x(cell));
-            maxZ = Math.max(maxZ, z(cell));
-        }
-        int boxX = minX - BASIN_MARGIN;
-        int boxZ = minZ - BASIN_MARGIN;
-        int width = maxX - minX + 1 + 2 * BASIN_MARGIN;
-        int depth = maxZ - minZ + 1 + 2 * BASIN_MARGIN;
+    private Set<Long> basin(Hollow hollow, float minDepth, float epsilon) {
+        int boxX = hollow.minX() - BASIN_MARGIN;
+        int boxZ = hollow.minZ() - BASIN_MARGIN;
+        int width = hollow.maxX() - hollow.minX() + 1 + 2 * BASIN_MARGIN;
+        int depth = hollow.maxZ() - hollow.minZ() + 1 + 2 * BASIN_MARGIN;
         HydrologySampleBuffer samples = new HydrologySampleBuffer(width * depth);
         fine.fill(boxX * stride, boxZ * stride, width, depth, stride, samples);
         DemGrid box = new DemGrid(boxX * natural.cell(), boxZ * natural.cell(), natural.cell(), width, depth);
@@ -153,10 +159,10 @@ final class InlandHollows {
         }
         float[] filled = PriorityFlood.fill(box, seeds, epsilon);
         float[] values = box.values();
-        Set<Long> basin = new HashSet<>(hollow);
+        Set<Long> basin = new HashSet<>(hollow.members());
         ArrayDeque<Integer> queue = new ArrayDeque<>();
         boolean[] seen = new boolean[width * depth];
-        for (long cell : hollow) {
+        for (long cell : hollow.members()) {
             int index = (z(cell) - boxZ) * width + x(cell) - boxX;
             seen[index] = true;
             queue.add(index);
@@ -220,6 +226,15 @@ final class InlandHollows {
         return false;
     }
 
+    private void see(Set<Long> cells, boolean[] seen) {
+        for (long cell : cells) {
+            int index = local(cell);
+            if (index >= 0) {
+                seen[index] = true;
+            }
+        }
+    }
+
     private void mark(Set<Long> cells, BitSet out) {
         for (long cell : cells) {
             int index = local(cell);
@@ -239,6 +254,10 @@ final class InlandHollows {
         return !sea && Math.round(height) < seaLevel;
     }
 
+    private static long basinCells(int minX, int minZ, int maxX, int maxZ) {
+        return (long) (maxX - minX + 1 + 2 * BASIN_MARGIN) * (maxZ - minZ + 1 + 2 * BASIN_MARGIN);
+    }
+
     private static long key(int x, int z) {
         return ((long) x << 32) | (z & 0xFFFFFFFFL);
     }
@@ -252,5 +271,8 @@ final class InlandHollows {
     }
 
     record Hollows(BitSet inland, BitSet basins) {
+    }
+
+    private record Hollow(Set<Long> members, int minX, int minZ, int maxX, int maxZ, boolean open) {
     }
 }

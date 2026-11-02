@@ -303,6 +303,15 @@ final class SyntheticTerrain implements HydrologyTerrainSource {
         });
     }
 
+    static SyntheticTerrain diagonalTrench(double from, double to, double halfWidth, double floor) {
+        double land = SEA_LEVEL + 20D;
+        return new SyntheticTerrain((x, z) -> {
+            double along = 0.5D * (x + z);
+            double across = Math.abs(x - z) / Math.sqrt(2D);
+            return along >= from && along <= to && across <= halfWidth ? floor : land;
+        }).withLand((x, z) -> true);
+    }
+
     private static double valleySlope(double x, double z) {
         return 100D - 0.03D * x + 0.05D * Math.abs(z - VALLEY_AXIS);
     }

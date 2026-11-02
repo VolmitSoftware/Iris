@@ -44,7 +44,7 @@ public class IrisBootstrapWorldStorageContractTest {
 
         IllegalStateException failure = assertThrows(
                 IllegalStateException.class,
-                () -> IrisBootstrap.requireUsableWorldStorage(startupPaths(serverRoot)));
+                () -> IrisBootstrapSequence.requireUsableWorldStorage(startupPaths(serverRoot)));
 
         assertTrue(failure.getMessage(), failure.getMessage().contains("world_iris_orphan2"));
         assertTrue(failure.getMessage(),
@@ -64,7 +64,7 @@ public class IrisBootstrapWorldStorageContractTest {
         writeServerProperties(serverRoot);
         writeBukkitWorlds(serverRoot, "world_iris_husk");
 
-        IrisBootstrap.requireUsableWorldStorage(startupPaths(serverRoot));
+        IrisBootstrapSequence.requireUsableWorldStorage(startupPaths(serverRoot));
 
         assertTrue(MissingWorldStorageLog.hasWarned("world_iris_husk"));
     }
@@ -83,8 +83,8 @@ public class IrisBootstrapWorldStorageContractTest {
         writeBukkitWorlds(serverRoot, "world_iris_husk");
         List<String> warnings = new ArrayList<>();
 
-        IrisBootstrap.quarantineWorthlessHusks(startupPaths(serverRoot), warnings::add);
-        IrisBootstrap.requireUsableWorldStorage(startupPaths(serverRoot));
+        IrisBootstrapSequence.quarantineWorthlessHusks(startupPaths(serverRoot), warnings::add);
+        IrisBootstrapSequence.requireUsableWorldStorage(startupPaths(serverRoot));
 
         assertFalse(Files.exists(serverRoot.resolve("world/dimensions/iris/husk")));
         assertEquals(1, warnings.size());
@@ -106,7 +106,7 @@ public class IrisBootstrapWorldStorageContractTest {
         writeBukkitWorlds(serverRoot);
         List<String> warnings = new ArrayList<>();
 
-        IrisBootstrap.quarantineWorthlessHusks(startupPaths(serverRoot), warnings::add);
+        IrisBootstrapSequence.quarantineWorthlessHusks(startupPaths(serverRoot), warnings::add);
 
         assertFalse(Files.exists(serverRoot.resolve("world/dimensions/iris/husk")));
         assertEquals(1, warnings.size());
@@ -121,13 +121,13 @@ public class IrisBootstrapWorldStorageContractTest {
         writeBukkitWorlds(serverRoot, "world_iris_kept");
         List<String> warnings = new ArrayList<>();
 
-        IrisBootstrap.quarantineWorthlessHusks(startupPaths(serverRoot), warnings::add);
+        IrisBootstrapSequence.quarantineWorthlessHusks(startupPaths(serverRoot), warnings::add);
 
         assertTrue(Files.isDirectory(serverRoot.resolve("world/dimensions/iris/kept")));
         assertTrue(warnings.isEmpty());
         assertThrows(
                 IllegalStateException.class,
-                () -> IrisBootstrap.requireUsableWorldStorage(startupPaths(serverRoot)));
+                () -> IrisBootstrapSequence.requireUsableWorldStorage(startupPaths(serverRoot)));
     }
 
     /**
@@ -142,13 +142,13 @@ public class IrisBootstrapWorldStorageContractTest {
         writeBukkitWorlds(serverRoot, "world_iris_marked");
         List<String> warnings = new ArrayList<>();
 
-        IrisBootstrap.quarantineWorthlessHusks(startupPaths(serverRoot), warnings::add);
+        IrisBootstrapSequence.quarantineWorthlessHusks(startupPaths(serverRoot), warnings::add);
 
         assertTrue(Files.isDirectory(serverRoot.resolve("world/dimensions/iris/marked/iris/engine-data")));
         assertTrue(warnings.isEmpty());
         assertThrows(
                 IllegalStateException.class,
-                () -> IrisBootstrap.requireUsableWorldStorage(startupPaths(serverRoot)));
+                () -> IrisBootstrapSequence.requireUsableWorldStorage(startupPaths(serverRoot)));
     }
 
     @Test
@@ -158,7 +158,7 @@ public class IrisBootstrapWorldStorageContractTest {
         writeServerProperties(serverRoot);
         writeBukkitWorlds(serverRoot, "world_iris_orphan1");
 
-        IrisBootstrap.requireUsableWorldStorage(startupPaths(serverRoot));
+        IrisBootstrapSequence.requireUsableWorldStorage(startupPaths(serverRoot));
 
         assertTrue(MissingWorldStorageLog.hasWarned("world_iris_orphan1"));
     }
@@ -170,7 +170,7 @@ public class IrisBootstrapWorldStorageContractTest {
         writeServerProperties(serverRoot);
         writeBukkitWorlds(serverRoot, "world_iris_moon");
 
-        IrisBootstrap.requireUsableWorldStorage(startupPaths(serverRoot));
+        IrisBootstrapSequence.requireUsableWorldStorage(startupPaths(serverRoot));
 
         assertFalse(MissingWorldStorageLog.hasWarned("world_iris_moon"));
     }
@@ -190,7 +190,7 @@ public class IrisBootstrapWorldStorageContractTest {
 
         IllegalStateException failure = assertThrows(
                 IllegalStateException.class,
-                () -> IrisBootstrap.requireUsableWorldStorage(startupPaths(serverRoot)));
+                () -> IrisBootstrapSequence.requireUsableWorldStorage(startupPaths(serverRoot)));
 
         assertTrue(failure.getMessage(),
                 failure.getMessage().contains(serverRoot.toRealPath().resolve("world/dimensions/minecraft/overworld")
@@ -210,7 +210,7 @@ public class IrisBootstrapWorldStorageContractTest {
 
         IllegalStateException failure = assertThrows(
                 IllegalStateException.class,
-                () -> IrisBootstrap.requireUsableWorldStorage(startupPaths(serverRoot)));
+                () -> IrisBootstrapSequence.requireUsableWorldStorage(startupPaths(serverRoot)));
 
         assertTrue(failure.getMessage(), failure.getMessage().contains("Invalid generation manifest"));
         assertFalse(failure.getMessage(), failure.getMessage().contains("\n"));
@@ -229,7 +229,7 @@ public class IrisBootstrapWorldStorageContractTest {
 
         IllegalStateException failure = assertThrows(
                 IllegalStateException.class,
-                () -> IrisBootstrap.requireUsableWorldStorage(startupPaths(serverRoot)));
+                () -> IrisBootstrapSequence.requireUsableWorldStorage(startupPaths(serverRoot)));
 
         assertTrue(failure.getMessage(), failure.getMessage().contains("worlds.world.generator"));
         assertTrue(failure.getMessage(),
@@ -247,7 +247,7 @@ public class IrisBootstrapWorldStorageContractTest {
         writeServerProperties(serverRoot);
         writeBukkitWorlds(serverRoot);
 
-        IrisBootstrap.requireUsableWorldStorage(startupPaths(serverRoot));
+        IrisBootstrapSequence.requireUsableWorldStorage(startupPaths(serverRoot));
     }
 
     private static BukkitStartupPaths startupPaths(Path serverRoot) throws Exception {

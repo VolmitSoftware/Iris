@@ -175,6 +175,19 @@ def generateNativeRuntime = tasks.register('generateNativeRuntime') {
             nativeRuntimeOutput.get().asFile, nativeRuntimeRules.get().asFile)
     }
 }
+// The Bukkit jar leaves VolmLib's noise natives out and pins them instead; NoiseNatives downloads the
+// platform's binary at startup and verifies it against this manifest.
+def noiseNativesOutput = layout.buildDirectory.dir('generated/noise-natives')
+def generateNoiseNatives = tasks.register('generateNoiseNatives') {
+    inputs.files(included)
+    outputs.dir(noiseNativesOutput)
+    doLast {
+        File manifest = new File(noiseNativesOutput.get().asFile, NoiseNativeArtifacts.MANIFEST)
+        NoiseNativeArtifacts.generate(included.resolve(), localVolmLibCheckout, manifest).each { String warning ->
+            logger.warn(warning)
+        }
+    }
+}
 def jarJar = configurations.create('jarJar')
 dependencies {
     add('included', project(path: ':core', configuration: 'shadow'))
@@ -184,8 +197,9 @@ dependencies {
 
 tasks.named('jar', Jar).configure {
     inputs.files(included)
-    dependsOn(generateNativeRuntime)
+    dependsOn(generateNativeRuntime, generateNoiseNatives)
     from(nativeRuntimeOutput)
+    from(noiseNativesOutput)
     from(tasks.named('generateVolmLibStamp')) {
         into('META-INF/volmit')
     }
@@ -196,6 +210,8 @@ tasks.named('jar', Jar).configure {
         exclude('META-INF/INDEX.LIST')
         exclude('languages/**')
         exclude('com/fren_gor/**')
+        exclude(NoiseNativeArtifacts.RESOURCE_PREFIX + '**')
+        exclude('iris-language-guides/*.txt')
 
     }
     archiveFileName.set(bukkitArtifactName)
@@ -510,6 +526,7 @@ List<String> requiredBukkitArtifactEntries = [
     'slimjar.dat',
     'slimjar-resolutions.dat',
     'META-INF/iris/native-runtime.properties',
+    NoiseNativeArtifacts.MANIFEST,
     'META-INF/volmit/volmlib.properties',
     'iris-language-source.properties',
     'agent.jar',
@@ -547,6 +564,7 @@ tasks.register('verifyBukkitArtifact') {
                 16,
                 runtimeDownloadedPrefixes)
         NativeRuntimeArtifacts.verify(archive, nativeRuntimeModules, embeddedNatives())
+        NoiseNativeArtifacts.verify(archive)
         logger.lifecycle("Verified ${archive.name} packaging and class reference graph")
     }
 }
@@ -735,7 +753,8 @@ pluginPackaging {
             policyName = 'Iris Bukkit'
             packed = true
             packedJarAccessors = ['art/arcane/iris/platform/bukkit/plugin/VolmitPlugin#getJarFile']
-            packedPayloadOnlyPrefixes = ['iris-language-guides/']
+            packedPayloadOnlyPrefixes = ['iris-language-guides/', 'META-INF/iris/generation-kernels/abi-', 'iris/icons/views/', 'iris/datapack/']
+            packedMaximumBootstrapClasses = 90
             stripDirectories = true
             stripLocalVariables = true
             releaseCompression = providers.gradleProperty('compactRelease')

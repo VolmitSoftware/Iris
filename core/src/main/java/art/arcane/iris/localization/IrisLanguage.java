@@ -88,6 +88,7 @@ public final class IrisLanguage {
             new CopyOnWriteArrayList<>();
     private static volatile File dataFolder;
     private static volatile String activeLocale = CATALOG.englishLocale();
+    private static final Set<String> GUIDE_FETCHES = ConcurrentHashMap.newKeySet();
     private static volatile RemoteLanguageCatalog remote;
     private static volatile Path remoteRoot;
     private static volatile PluginLanguageService selections;
@@ -668,11 +669,49 @@ public final class IrisLanguage {
 
     private static void refreshLanguageGuide(File file, String locale) {
         try {
-            IrisLanguageGuide.refresh(file, locale);
+            ClassLoader resources = IrisLanguage.class.getClassLoader();
+            if (!IrisLanguageGuide.refresh(file, locale, resources) && IrisLanguageGuide.fetchable(locale, resources)) {
+                fetchLanguageGuide(file, locale, resources);
+            }
         } catch (IOException failure) {
             IrisLogging.error("Could not update the language guide in " + file.getPath() + ".");
             IrisLogging.reportError(failure);
         }
+    }
+
+    // Jars that leave the guides out (the size-capped Bukkit jar) take this build's guide from the upstream
+    // locale file, once per locale per run; it is cached only when its digest matches the build's guide index.
+    private static void fetchLanguageGuide(File file, String locale, ClassLoader resources) {
+        File root = dataFolder;
+        if (root == null || !GUIDE_FETCHES.add(locale)) {
+            return;
+        }
+        Path cache = IrisLanguageGuide.guideCache(file);
+        Path source = cache.resolve(locale + ".source.toml");
+        try {
+            Files.deleteIfExists(source);
+        } catch (IOException failure) {
+            IrisLogging.debug("Language guide source " + source + " could not be cleared: " + failure.getMessage());
+            return;
+        }
+        remote(root).requestInstallIfMissing(locale, source, IrisLanguage::validateDownload, result -> {
+            try {
+                if (result.successful()
+                        && IrisLanguageGuide.cacheUpstream(cache, locale, Files.readString(source, StandardCharsets.UTF_8), resources)) {
+                    IrisLanguageGuide.refresh(file, locale, resources);
+                } else {
+                    IrisLogging.debug("Language guide for " + locale + " is not available upstream for this build");
+                }
+            } catch (IOException failure) {
+                IrisLogging.debug("Language guide for " + locale + " could not be cached: " + failure.getMessage());
+            } finally {
+                try {
+                    Files.deleteIfExists(source);
+                } catch (IOException ignored) {
+                    IrisLogging.debug("Language guide source " + source + " could not be removed");
+                }
+            }
+        });
     }
 
     private static void createEnglishLanguageIfMissing(File root) throws IOException {

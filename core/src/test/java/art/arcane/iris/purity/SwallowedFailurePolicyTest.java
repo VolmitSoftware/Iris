@@ -54,6 +54,7 @@ public class SwallowedFailurePolicyTest {
             "src/main/java/art/arcane/iris/world/history",
             "../spi/src/main/java",
             "../adapters/bukkit/plugin/src/main/java/art/arcane/iris/Iris.java",
+            "../adapters/bukkit/plugin/src/main/java/art/arcane/iris/IrisRuntime.java",
             "../adapters/bukkit/plugin/src/main/java/art/arcane/iris/world/PendingWorldReplacementManager.java"
     );
     private static final Pattern IGNORED_CATCH = Pattern.compile("^\\s*}?\\s*catch \\([^)]*\\)\\s*\\{\\s*$");

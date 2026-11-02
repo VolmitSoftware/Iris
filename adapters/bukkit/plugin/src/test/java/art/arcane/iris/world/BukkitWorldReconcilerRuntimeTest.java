@@ -107,10 +107,10 @@ public class BukkitWorldReconcilerRuntimeTest {
     public void aRefusedReconcilerCreateIsReportedAsARefusal() throws Exception {
         NamespacedKey key = new NamespacedKey("iris", "probe");
         IllegalStateException refusal = new IllegalStateException("Iris generation history is unusable at /srv/probe.");
-        Iris plugin = mock(Iris.class);
+        IrisWorldGeneratorResolver resolver = mock(IrisWorldGeneratorResolver.class);
         WorldRefusalReporter refusals = mock(WorldRefusalReporter.class);
-        when(plugin.worldRefusals()).thenReturn(refusals);
-        when(plugin.requireWorldGenerator("world_iris_probe", "overworld")).thenThrow(refusal);
+        when(resolver.refusals()).thenReturn(refusals);
+        when(resolver.requireWorldGenerator("world_iris_probe", "overworld")).thenThrow(refusal);
 
         try (MockedStatic<Iris> iris = mockStatic(Iris.class);
              MockedStatic<IrisWorldStorage> storage = mockStatic(IrisWorldStorage.class)) {
@@ -118,7 +118,7 @@ public class BukkitWorldReconcilerRuntimeTest {
             storage.when(() -> IrisWorldStorage.configuredWorldName(key, "world")).thenReturn("world_iris_probe");
             storage.when(() -> IrisWorldStorage.logicalName(key)).thenReturn("probe");
 
-            CompletableFuture<World> created = backend(plugin).createWorld(key, "overworld", 1337L);
+            CompletableFuture<World> created = backend(resolver).createWorld(key, "overworld", 1337L);
 
             ExecutionException failure = assertThrows(ExecutionException.class, created::get);
             assertSame(refusal, failure.getCause());
@@ -165,14 +165,14 @@ public class BukkitWorldReconcilerRuntimeTest {
         when(dimension.getLoadKey()).thenReturn("overworld");
         when(engine.getData()).thenReturn(data);
         when(data.getDataFolder()).thenReturn(pack.toFile());
-        return new RuntimeFixture(backend(mock(Iris.class)), world, key, generator, engine, history, root, pack);
+        return new RuntimeFixture(backend(mock(IrisWorldGeneratorResolver.class)), world, key, generator, engine, history, root, pack);
     }
 
-    private static BukkitWorldReconciler.Backend backend(Iris plugin) throws Exception {
+    private static BukkitWorldReconciler.Backend backend(IrisWorldGeneratorResolver resolver) throws Exception {
         Class<?> backendClass = Class.forName(BukkitWorldReconciler.class.getName() + "$BukkitBackend");
-        Constructor<?> constructor = backendClass.getDeclaredConstructor(Iris.class);
+        Constructor<?> constructor = backendClass.getDeclaredConstructor(IrisWorldGeneratorResolver.class);
         constructor.setAccessible(true);
-        return (BukkitWorldReconciler.Backend) constructor.newInstance(plugin);
+        return (BukkitWorldReconciler.Backend) constructor.newInstance(resolver);
     }
 
     private record RuntimeFixture(BukkitWorldReconciler.Backend backend, World world, NamespacedKey key,

@@ -19,6 +19,7 @@
 package art.arcane.iris.command;
 
 import art.arcane.iris.Iris;
+import art.arcane.iris.IrisRuntime;
 import art.arcane.iris.world.BukkitWorldReconciler;
 import art.arcane.iris.platform.bukkit.BukkitPlatform;
 import art.arcane.iris.configuration.IrisSettings;
@@ -216,7 +217,7 @@ public class CommandIris implements DirectorExecutor {
     ) {
         NamespacedKey worldKey;
         try {
-            worldKey = Iris.instance.pendingWorldReplacements().resolveRequestedWorldKey(target);
+            worldKey = IrisRuntime.require().pendingWorldReplacements().resolveRequestedWorldKey(target);
         } catch (IllegalArgumentException e) {
             sender().sendMessage(C.RED + e.getMessage());
             return;
@@ -240,7 +241,7 @@ public class CommandIris implements DirectorExecutor {
         }
 
         try {
-            PendingWorldReplacementManager.StagedReplacement staged = Iris.instance
+            PendingWorldReplacementManager.StagedReplacement staged = IrisRuntime.require()
                     .pendingWorldReplacements()
                     .stageReplacement(sender(), worldKey, dimension, seed);
             String seedDetail = seed == null
@@ -634,7 +635,7 @@ public class CommandIris implements DirectorExecutor {
 
         VolmitSender responseSender = sender();
         responseSender.sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_IRIS_LOADING_WORLD, MessageArgument.untrusted("logicalWorldName", logicalWorldName)));
-        Iris.instance.worldReconciler()
+        IrisRuntime.require().worldReconciler()
                 .loadWorld(BUKKIT_YML, worldKey.toString())
                 .whenComplete((result, failure) -> {
                     Runnable response = () -> reportLoadWorldResult(

@@ -31,7 +31,7 @@ public class IrisBootstrapFailureContractTest {
         when(context.getLogger()).thenReturn(logger);
         when(context.getLifecycleManager()).thenReturn(manager);
 
-        IrisBootstrap.armStartupFailure(context, cause, eventType);
+        IrisBootstrapSequence.armStartupFailure(context, cause, eventType);
 
         assertSame(eventType, manager.eventType);
         IllegalStateException failure = assertThrows(IllegalStateException.class, manager::runCapturedHandler);
@@ -47,7 +47,7 @@ public class IrisBootstrapFailureContractTest {
         IllegalStateException failure = new IllegalStateException("Iris world storage is unusable",
                 new IOException("Invalid generation manifest: manifest.json"));
 
-        IrisBootstrap.armStartupFailure(context, failure, lifecycleEventType());
+        IrisBootstrapSequence.armStartupFailure(context, failure, lifecycleEventType());
 
         ArgumentCaptor<String> lines = ArgumentCaptor.forClass(String.class);
         verify(logger, atLeastOnce()).error(lines.capture());

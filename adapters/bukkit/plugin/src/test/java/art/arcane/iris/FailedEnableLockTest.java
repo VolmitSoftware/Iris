@@ -148,16 +148,16 @@ public class FailedEnableLockTest {
         try (EnableFixture fixture = new EnableFixture(false)) {
             IllegalStateException failure = assertThrows(IllegalStateException.class, plugin::onEnable);
             assertTrue(failure.getMessage(), failure.getMessage().contains("already bound"));
-            Field failed = Iris.class.getDeclaredField("enableFailed");
+            Field failed = IrisRuntime.class.getDeclaredField("enableFailed");
             failed.setAccessible(true);
-            assertTrue(failed.getBoolean(plugin));
+            assertTrue(failed.getBoolean(plugin.runtime()));
         }
     }
 
     @Test
     public void anUnsupportedServerWithIrisWorldsLocksInsteadOfDisablingIris() throws Exception {
         Iris plugin = plugin();
-        set(plugin, "pendingWorldReplacements", mock(PendingWorldReplacementManager.class));
+        set(IrisRuntime.class, plugin.runtime(), "pendingWorldReplacements", mock(PendingWorldReplacementManager.class));
 
         try (EnableFixture fixture = new EnableFixture(true);
              MockedStatic<INMS> nms = mockStatic(INMS.class);
@@ -208,18 +208,18 @@ public class FailedEnableLockTest {
 
     /**
      * Paper builds plugins through its class loader, so the plugin under test is the real class with its fields
-     * set by hand: the resolver getDefaultWorldGenerator delegates to, and whatever enable touches before failing.
+     * set by hand: the runtime getDefaultWorldGenerator delegates to, and whatever enable touches before failing.
      */
     private static Iris plugin() throws Exception {
         Iris plugin = mock(Iris.class, CALLS_REAL_METHODS);
-        set(plugin, "generatorResolver", new IrisWorldGeneratorResolver(plugin));
+        set(Iris.class, plugin, "runtime", new IrisRuntime(plugin));
         return plugin;
     }
 
-    private static void set(Iris plugin, String name, Object value) throws Exception {
-        Field field = Iris.class.getDeclaredField(name);
+    private static void set(Class<?> owner, Object target, String name, Object value) throws Exception {
+        Field field = owner.getDeclaredField(name);
         field.setAccessible(true);
-        field.set(plugin, value);
+        field.set(target, value);
     }
 
     /**

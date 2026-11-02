@@ -58,6 +58,7 @@ public class SlimJar {
                     })
                     .build();
             nativeProviders = libraries.openProviderLoader(downloadPath);
+            NoiseNatives.provision(downloadPath.resolveSibling("natives"), logger);
             loaded.set(true);
         } finally {
             lock.unlock();
@@ -100,6 +101,22 @@ public class SlimJar {
                     })
                     .build();
             nativeProviders = libraries.openProviderLoader(downloadPath);
+            NoiseNatives.provision(downloadPath.resolveSibling("natives"), new BootstrapLogger() {
+                @Override
+                public void info(String message) {
+                    plugin.getLogger().info(message);
+                }
+
+                @Override
+                public void error(String message) {
+                    plugin.getLogger().warning(message);
+                }
+
+                @Override
+                public void debug(String message) {
+                    SlimJar.debug(plugin, message);
+                }
+            });
             loaded.set(true);
             debug(plugin, "Libraries loaded successfully!");
         } finally {

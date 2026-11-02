@@ -810,6 +810,51 @@ public class WindowPlannerTest {
     }
 
     @Test
+    public void coastalBanksNeverRaiseTheSeaFloor() {
+        PlannedScene scene = PlannedScene.plan(SyntheticTerrain.openFractal(1L).lowered(COAST_DROP), PlannedScene.packSettings(SEED), 2, 2);
+        int banksInTheSea = 0;
+        int raised = 0;
+        int emergent = 0;
+        int holding = 0;
+        String first = null;
+        for (int z = scene.minZ() + WaterInvariants.EDGE_MARGIN; z <= scene.maxZ() - WaterInvariants.EDGE_MARGIN; z++) {
+            for (int x = scene.minX() + WaterInvariants.EDGE_MARGIN; x <= scene.maxX() - WaterInvariants.EDGE_MARGIN; x++) {
+                int natural = scene.natural(x, z);
+                if (natural >= SEA_LEVEL || scene.head(x, z) != Integer.MIN_VALUE) {
+                    continue;
+                }
+                banksInTheSea += scene.role(x, z) == WaterRole.BANK ? 1 : 0;
+                int ground = scene.terrain(x, z);
+                if (ground <= natural) {
+                    continue;
+                }
+                if (holdsWaterAboveTheSea(scene, x, z)) {
+                    holding++;
+                    continue;
+                }
+                raised++;
+                emergent += ground >= SEA_LEVEL ? 1 : 0;
+                if (first == null) {
+                    first = scene.role(x, z) + " at " + x + "," + z + " raised from " + natural + " to " + ground;
+                }
+            }
+        }
+        assertTrue("bank columns in the sea " + banksInTheSea, banksInTheSea >= 1000);
+        assertEquals("sea columns raised " + raised + " (" + emergent + " out of the sea, " + holding + " holding water above the sea), first "
+                + first, 0, raised);
+    }
+
+    private static boolean holdsWaterAboveTheSea(PlannedScene scene, int x, int z) {
+        int[][] sides = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
+        for (int[] side : sides) {
+            if (scene.head(x + side[0], z + side[1]) > SEA_LEVEL) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Test
     public void planWithAMouthBelowSeaFailsClosed() {
         HydrologySettings settings = settings(new IrisHydrology());
         Reach mouth = coastal(4711L, settings.tiers().get(0), SEA_LEVEL - 1, ReachStyle.MOUTH);

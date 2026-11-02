@@ -228,7 +228,7 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<NativeBloc
             WaterRole role = waterRoleStream.get(realX, realZ);
             boolean wet = role.wet();
             boolean submerged = wet && he < surfaceFluidHeight;
-            boolean seaFloor = !wet || role == WaterRole.INLET;
+            boolean seaFloor = !wet || role == WaterRole.INLET || role == WaterRole.MOUTH;
             IrisHydrologyMaterials materials = role == WaterRole.NONE || role == WaterRole.INLET ? null
                     : complex.resolveWaterMaterials(realX, realZ);
             Terrain3DColumn terrainColumn = complex.terrainColumn(realX, realZ);

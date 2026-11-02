@@ -492,6 +492,7 @@ public final class ReachShaper {
         boolean flare = draft.incoming.length > 0 && !draft.outlet;
         boolean taper = !flare && !draft.outlet;
         float[] distance = distances(draft.xs, draft.zs);
+        float[] estuary = estuaryFlare(draft, distance);
         float running = upstream;
         draft.halfWidth = new float[count];
         draft.depth = new float[count];
@@ -503,11 +504,40 @@ public final class ReachShaper {
                 law *= Math.min(1f, distance[point] / TAPER_LENGTH);
             }
             float lip = draft.held != null && draft.held[point] ? LIP_HALF_WIDTH : 0f;
-            draft.halfWidth[point] = Math.max(Math.max(law, WAIST * running), lip);
-            running = Math.max(running, draft.halfWidth[point]);
-            draft.depth[point] = draft.tier.depth(draft.halfWidth[point]);
+            float channel = Math.max(Math.max(law, WAIST * running), lip);
+            draft.halfWidth[point] = Math.min(HydrologySettings.MAX_HALF_WIDTH, channel * estuary[point]);
+            running = Math.max(running, channel);
+            draft.depth[point] = draft.tier.depth(channel);
         }
         draft.maxHalfWidth = running;
+    }
+
+    private static float[] estuaryFlare(ReachDraft draft, float[] distance) {
+        int count = distance.length;
+        float[] scale = new float[count];
+        Arrays.fill(scale, 1f);
+        if (draft.chain.end() != ReachTracer.End.OCEAN) {
+            return scale;
+        }
+        HydrologyTier.Estuary estuary = draft.tier.estuary();
+        float mouth = distance[count - 1];
+        int start = count - 1;
+        while (start > 0 && draft.ocean[start - 1] && mouth - distance[start - 1] <= estuary.length()) {
+            start--;
+        }
+        if (start == count - 1) {
+            return scale;
+        }
+        float first = towardMouth(mouth - distance[start], estuary.length());
+        for (int point = start + 1; point < count; point++) {
+            float toward = towardMouth(mouth - distance[point], estuary.length());
+            scale[point] = 1f + (estuary.flare() - 1f) * (toward * toward - first * first);
+        }
+        return scale;
+    }
+
+    private static float towardMouth(float remaining, int length) {
+        return Math.clamp(1f - remaining / length, 0f, 1f);
     }
 
     public static ReachStyle[] styles(int[] grade, boolean[] ocean, boolean[] outletZone, int waterfallMinimumDrop) {

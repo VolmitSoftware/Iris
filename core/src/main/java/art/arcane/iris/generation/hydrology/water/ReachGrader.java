@@ -50,6 +50,9 @@ final class ReachGrader {
             for (int upstream : draft.incoming) {
                 level = Math.min(level, drafts.get(upstream).last());
             }
+            if (draft.chain.end() == ReachTracer.End.OCEAN) {
+                estuary(draft, seaLevel + maxFill);
+            }
             int[] grade = profile(drafts, draft);
             for (int point = 0; point < grade.length; point++) {
                 if (draft.held != null && draft.held[point] && !draft.ocean[point]) {
@@ -76,6 +79,21 @@ final class ReachGrader {
             lowerIncomingEnds(drafts, draft);
         }
         return levels;
+    }
+
+    private static void estuary(ReachDraft draft, int highestBank) {
+        int length = draft.tier.estuary().length();
+        float along = 0f;
+        for (int point = draft.xs.length - 1; point >= 0; point--) {
+            if (point < draft.xs.length - 1) {
+                along += (float) Math.hypot(draft.xs[point + 1] - draft.xs[point], draft.zs[point + 1] - draft.zs[point]);
+            }
+            boolean held = draft.held != null && draft.held[point];
+            if (along > length || held || !draft.ocean[point] && draft.bank[point] > highestBank) {
+                return;
+            }
+            draft.ocean[point] = true;
+        }
     }
 
     static int[] outletPonds(int[] outletDrafts, int drafts) {

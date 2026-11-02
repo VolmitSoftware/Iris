@@ -45,8 +45,7 @@ public class IrisHydrology {
                     .setHalfWidth(new KList<>(8D, 16D))
                     .setDepthRatio(0.5D)
                     .setInset(3)
-                    .setBankBand(48)
-                    .setDeltas(true));
+                    .setBankBand(48));
 
     @Description("Standing water above sea level: natural hollows, seeded cups and dams.")
     private IrisHydrologyPonds ponds = new IrisHydrologyPonds();

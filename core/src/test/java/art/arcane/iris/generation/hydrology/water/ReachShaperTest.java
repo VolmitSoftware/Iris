@@ -905,6 +905,56 @@ public class ReachShaperTest {
     }
 
     @Test
+    public void oceanReachesFlareOverTheEstuary() {
+        HydrologySettings settings = settings(config -> {
+        });
+        HydrologySettings plain = settings(config -> config.getTiers().forEach(tier -> tier.getEstuary().setFlare(1D)));
+        HydrologySettings plainMouth = settings(config -> config.getTiers().forEach(tier -> tier.getEstuary().setLength(0)));
+        Reach estuary = coastalRun(settings, true);
+        Reach unflared = coastalRun(plain, true);
+        Reach mouth = coastalRun(plainMouth, true);
+        HydrologyTier.Estuary shape = estuary.tier().estuary();
+        assertEquals(48, shape.length());
+        assertEquals(2.5f, shape.flare(), 0f);
+        assertTrue("the same channel line", Arrays.equals(estuary.xs(), unflared.xs()) && Arrays.equals(estuary.xs(), mouth.xs()));
+
+        int last = estuary.xs().length - 1;
+        int start = trailingMouth(estuary);
+        float span = estuary.xs()[last] - estuary.xs()[start];
+        assertTrue("estuary reaches " + span + " blocks up from the mouth", span >= 40f && span <= 52f);
+        for (int point = 0; point <= last; point++) {
+            boolean inside = point >= start;
+            assertEquals(estuary + " is a mouth at " + point, inside, estuary.style()[point] == ReachStyle.MOUTH);
+            assertTrue(estuary + " grade at " + point, inside ? estuary.grade()[point] == SEA_LEVEL : estuary.grade()[point] > SEA_LEVEL);
+            assertEquals("the estuary keeps the channel depth at " + point, unflared.depth()[point], estuary.depth()[point], 0f);
+            if (point <= start) {
+                assertEquals("no flare above the estuary at " + point, unflared.halfWidth()[point], estuary.halfWidth()[point], 0f);
+            } else {
+                float ratio = estuary.halfWidth()[point] / unflared.halfWidth()[point];
+                float previous = estuary.halfWidth()[point - 1] / unflared.halfWidth()[point - 1];
+                assertTrue("flare grows toward the mouth at " + point + ": " + previous + " then " + ratio, ratio >= previous - 1e-6f);
+            }
+        }
+        float mouthFlare = estuary.halfWidth()[last] / unflared.halfWidth()[last];
+        assertTrue("a full-length estuary opens to about flare times the channel: " + mouthFlare, mouthFlare >= 2.45f && mouthFlare <= 2.5f + 1e-4f);
+        float half = estuary.xs()[start] + 0.5f * span;
+        int middle = start;
+        while (estuary.xs()[middle] < half) {
+            middle++;
+        }
+        assertTrue("flare grows slowly at first", estuary.halfWidth()[middle] / unflared.halfWidth()[middle] < 1.75f);
+
+        assertTrue("length 0 ends in a plain mouth", mouth.xs()[last] - mouth.xs()[trailingMouth(mouth)] < 8f);
+        assertTrue("length 0 keeps the channel width", Arrays.equals(unflared.halfWidth(), mouth.halfWidth()));
+
+        Reach inland = coastalRun(settings, false);
+        Reach inlandPlain = coastalRun(plain, false);
+        assertEquals(0, inland.downstreamId());
+        assertNotEquals(ReachStyle.MOUTH, inland.style()[inland.xs().length - 1]);
+        assertTrue("a channel that does not reach the sea keeps its width", Arrays.equals(inlandPlain.halfWidth(), inland.halfWidth()));
+    }
+
+    @Test
     public void groundReadIsSymmetricAroundThePoint() {
         HydrologySettings settings = settings(config -> {
         });
@@ -1753,6 +1803,41 @@ public class ReachShaperTest {
             }
         }
         return found;
+    }
+
+    private static Reach coastalRun(HydrologySettings settings, boolean ocean) {
+        int width = 24;
+        DemGrid surface = new DemGrid(0, 0, CELL, width, 3);
+        Arrays.fill(surface.values(), 60f);
+        int[] receivers = new int[width * 3];
+        Arrays.fill(receivers, -1);
+        float[] accumulation = new float[width * 3];
+        BitSet channels = new BitSet(width * 3);
+        for (int i = 0; i < width; i++) {
+            int cell = surface.index(i, 1);
+            receivers[cell] = i + 1 < width ? surface.index(i + 1, 1) : -1;
+            accumulation[cell] = (i + 1) * 1000f;
+            if (i + 1 < width) {
+                channels.set(cell);
+            }
+        }
+        if (ocean) {
+            surface.set(width - 1, 1, 30f);
+        }
+        float mouthX = (width - 1) * CELL;
+        HeightLattice fine = new HeightLattice(new Terrain((x, z) -> SEA_LEVEL + 1D + 0.08D * Math.max(0D, mouthX - x)), FINE, false, 1 << 16);
+        ShapedNetwork shaped = new ReachShaper(settings).shape(WINDOW, surface, receivers, accumulation, channels, List.of(), fine, SEED);
+        assertEquals(1, shaped.reaches().size());
+        return shaped.reaches().get(0);
+    }
+
+    private static int trailingMouth(Reach reach) {
+        int start = reach.style().length;
+        while (start > 0 && reach.style()[start - 1] == ReachStyle.MOUTH) {
+            start--;
+        }
+        assertTrue(reach + " ends in a mouth", start < reach.style().length);
+        return start;
     }
 
     private static int firstBeyond(Reach reach, float distance) {

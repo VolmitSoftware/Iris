@@ -18,7 +18,7 @@ public record HydrologyTier(
         int waterfallMinimumDrop,
         int bankBand,
         IrisBankStyle bankStyle,
-        boolean deltas,
+        Estuary estuary,
         IrisHydrologyMaterials materials,
         String fluid,
         List<IrisDecorator> decorators
@@ -33,5 +33,8 @@ public record HydrologyTier(
 
     public float depth(float halfWidth) {
         return Math.max(MINIMUM_DEPTH, depthRatio * halfWidth);
+    }
+
+    public record Estuary(int length, float flare) {
     }
 }

@@ -9,6 +9,7 @@ import art.arcane.iris.generation.hydrology.config.IrisHydrologyClimate;
 import art.arcane.iris.generation.hydrology.config.IrisHydrology;
 import art.arcane.iris.generation.hydrology.config.IrisHydrologyDeformation;
 import art.arcane.iris.generation.hydrology.config.IrisHydrologyDrainage;
+import art.arcane.iris.generation.hydrology.config.IrisHydrologyEstuary;
 import art.arcane.iris.generation.hydrology.config.IrisHydrologyLakes;
 import art.arcane.iris.generation.hydrology.config.IrisHydrologyMaterials;
 import art.arcane.iris.generation.hydrology.config.IrisHydrologyPonds;
@@ -36,6 +37,8 @@ import java.util.Objects;
 public final class HydrologySettings {
     private static final Gson PALETTE_JSON = new Gson();
     private static final int MAX_BANK_BAND = 64;
+    private static final int MAX_ESTUARY_LENGTH = 256;
+    private static final double MAX_ESTUARY_FLARE = 4D;
     public static final float MAX_HALF_WIDTH = 64f;
     private static final double MIN_INLET_HALF_WIDTH = 1D;
     private static final double MAX_INLET_HALF_WIDTH = 16D;
@@ -238,9 +241,24 @@ public final class HydrologySettings {
         }
         return new HydrologyTier(config.getName(), (float) config.getMinCatchment(), halfWidth.min(), halfWidth.max(),
                 (float) config.getWidthFactor(), (float) config.getDepthRatio(), config.getInset(), config.isCascades(),
-                config.getWaterfallMinimumDrop(), config.getBankBand(), config.getBankStyle(), config.isDeltas(),
-                materials(config.getMaterials(), field + ".materials"), config.getFluid(),
+                config.getWaterfallMinimumDrop(), config.getBankBand(), config.getBankStyle(),
+                estuary(config.getEstuary(), field + ".estuary"), materials(config.getMaterials(), field + ".materials"), config.getFluid(),
                 decorators(config.getDecorators(), field + ".decorators"));
+    }
+
+    private static HydrologyTier.Estuary estuary(IrisHydrologyEstuary config, String field) {
+        if (config == null) {
+            throw new IllegalArgumentException("Hydrology " + field + " must be an object");
+        }
+        if (config.getLength() < 0 || config.getLength() > MAX_ESTUARY_LENGTH) {
+            throw new IllegalArgumentException("Hydrology " + field + ".length must stay within 0.." + MAX_ESTUARY_LENGTH + ", got "
+                    + config.getLength());
+        }
+        if (!(config.getFlare() >= 1D && config.getFlare() <= MAX_ESTUARY_FLARE)) {
+            throw new IllegalArgumentException("Hydrology " + field + ".flare must stay within 1.." + MAX_ESTUARY_FLARE + ", got "
+                    + config.getFlare());
+        }
+        return new HydrologyTier.Estuary(config.getLength(), (float) config.getFlare());
     }
 
     private static Ponds ponds(IrisHydrologyPonds config) {
@@ -549,7 +567,8 @@ public final class HydrologySettings {
         for (HydrologyTier tier : tiers) {
             hash.add(tier.name()).add(tier.minCatchment()).add(tier.minHalfWidth()).add(tier.maxHalfWidth())
                     .add(tier.widthFactor()).add(tier.depthRatio()).add(tier.inset()).add(tier.cascades())
-                    .add(tier.waterfallMinimumDrop()).add(tier.bankBand()).add(tier.bankStyle()).add(tier.deltas())
+                    .add(tier.waterfallMinimumDrop()).add(tier.bankBand()).add(tier.bankStyle())
+                    .add(tier.estuary().length()).add(tier.estuary().flare())
                     .add(tier.materials()).add(tier.fluid());
         }
     }

@@ -32,7 +32,7 @@ public class HydrologySettingsTest {
     private static final int SEA_LEVEL = 62;
     private static final int MIN_Y = -64;
     private static final int MAX_Y = 320;
-    private static final long DEFAULT_FINGERPRINT = 8818472145657699942L;
+    private static final long DEFAULT_FINGERPRINT = 4889114733390836736L;
 
     @Test
     public void densityIsBoundedAndChangesThePlanIdentity() {
@@ -230,6 +230,14 @@ public class HydrologySettingsTest {
         gravityBlocks.getTiers().get(0).getMaterials().setAllowGravityBlocks(false);
         fingerprints.add(compile(gravityBlocks).fingerprint());
 
+        IrisHydrology estuaryLength = new IrisHydrology();
+        estuaryLength.getTiers().get(2).getEstuary().setLength(64);
+        fingerprints.add(compile(estuaryLength).fingerprint());
+
+        IrisHydrology estuaryFlare = new IrisHydrology();
+        estuaryFlare.getTiers().get(2).getEstuary().setFlare(3D);
+        fingerprints.add(compile(estuaryFlare).fingerprint());
+
         fingerprints.add(HydrologySettings.compile(new IrisHydrology(), SEED + 1L, SEA_LEVEL, MIN_Y, MAX_Y).fingerprint());
         fingerprints.add(HydrologySettings.compile(new IrisHydrology(), SEED, SEA_LEVEL + 1, MIN_Y, MAX_Y).fingerprint());
 
@@ -360,6 +368,31 @@ public class HydrologySettingsTest {
         IrisHydrology widest = new IrisHydrology();
         widest.getTiers().get(1).setBankBand(64);
         assertEquals(64, compile(widest).tiers().get(1).bankBand());
+    }
+
+    @Test
+    public void compileRejectsAnEstuaryOutsideItsBounds() {
+        for (int length : new int[]{-1, 257}) {
+            IrisHydrology config = new IrisHydrology();
+            config.getTiers().get(1).getEstuary().setLength(length);
+            assertRejected(config, "tiers[1].estuary.length");
+        }
+        for (double flare : new double[]{0.99D, 4.01D, Double.NaN}) {
+            IrisHydrology config = new IrisHydrology();
+            config.getTiers().get(2).getEstuary().setFlare(flare);
+            assertRejected(config, "tiers[2].estuary.flare");
+        }
+        IrisHydrology missing = new IrisHydrology();
+        missing.getTiers().get(0).setEstuary(null);
+        assertRejected(missing, "tiers[0].estuary");
+
+        IrisHydrology widest = new IrisHydrology();
+        widest.getTiers().get(0).getEstuary().setLength(0).setFlare(1D);
+        widest.getTiers().get(1).getEstuary().setLength(256).setFlare(4D);
+        HydrologySettings compiled = compile(widest);
+        assertEquals(new HydrologyTier.Estuary(0, 1f), compiled.tiers().get(0).estuary());
+        assertEquals(new HydrologyTier.Estuary(256, 4f), compiled.tiers().get(1).estuary());
+        assertEquals(new HydrologyTier.Estuary(48, 2.5f), compiled.tiers().get(2).estuary());
     }
 
     @Test

@@ -1,6 +1,8 @@
 package art.arcane.iris.pack;
 
 import art.arcane.iris.generation.hydrology.config.IrisHydrology;
+import art.arcane.iris.generation.hydrology.config.IrisHydrologyTier;
+import art.arcane.iris.generation.hydrology.plan.HydrologySettings;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.testsupport.CompatTestPlatform;
 import org.junit.Rule;
@@ -241,6 +243,31 @@ public class PackHydrologyValidatorTest {
     }
 
     @Test
+    public void unknownTierKeysAreIgnoredAndTiersKeepTheDefaultEstuary() throws Exception {
+        String written = """
+                {"enabled": true, "tiers": [
+                  {"name": "stream", "minCatchment": 900, "halfWidth": [0.5, 2.5], "bankBand": 8%s},
+                  {"name": "major", "minCatchment": 200000, "halfWidth": [9, 18], "bankBand": 48%s}
+                ]}
+                """;
+        File stale = pack(dimension(written.formatted(", \"deltas\": false", ", \"deltas\": true"), ""));
+        File current = pack(dimension(written.formatted("", ""), ""));
+
+        PackHydrologyValidator.Validation validation = validate(stale);
+        assertTrue(validation.errors().toString(), validation.errors().isEmpty());
+        assertTrue(validation.warnings().isEmpty());
+        PackValidationResult packaging = PackValidator.validateForPackaging(stale);
+        assertEquals(PackValidator.validateForPackaging(current).getBlockingErrors(), packaging.getBlockingErrors());
+        IrisHydrology loaded = loadHydrology(stale);
+        for (IrisHydrologyTier tier : loaded.getTiers()) {
+            assertEquals(tier.getName(), 48, tier.getEstuary().getLength());
+            assertEquals(tier.getName(), 2.5D, tier.getEstuary().getFlare(), 0D);
+        }
+        assertEquals(HydrologySettings.compile(loadHydrology(current), 1337L, 62, -64, 320).fingerprint(),
+                HydrologySettings.compile(loaded, 1337L, 62, -64, 320).fingerprint());
+    }
+
+    @Test
     public void aMalformedKnownHydrologyValueFailsTheDimensionLoadEvenWhenDisabled() throws Exception {
         File pack = pack(dimension("""
                 {"enabled": false, "tiers": "wide"}
@@ -389,6 +416,17 @@ public class PackHydrologyValidatorTest {
 
         assertFalse(result.isLoadable());
         assertContains(result.getBlockingErrors(), "ponds.freeboard has its min above its max.");
+    }
+
+    private static IrisHydrology loadHydrology(File pack) {
+        IrisData data = IrisData.openDatapackCompiler(pack);
+        try {
+            IrisHydrology hydrology = data.getDimensionLoader().load("main").getHydrology();
+            assertNotNull(hydrology);
+            return hydrology;
+        } finally {
+            data.close();
+        }
     }
 
     private PackHydrologyValidator.Validation validate(File pack) {

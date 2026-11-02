@@ -208,7 +208,7 @@ public class IrisTerrainNormalActuatorColumnParityTest {
             NativeBlockState bedrockState = B.getState("BEDROCK");
             NativeBlockState airState = B.getState("AIR");
             boolean wet = role.wet();
-            boolean seaFloor = !wet || role == WaterRole.INLET;
+            boolean seaFloor = !wet || role == WaterRole.INLET || role == WaterRole.MOUTH;
             IrisHydrologyMaterials materials = role == WaterRole.INLET ? null : this.materials;
             int he = Math.min(chunkHeight, this.he);
             int surfaceFluidHeight = Math.min(chunkHeight, this.surfaceFluid);

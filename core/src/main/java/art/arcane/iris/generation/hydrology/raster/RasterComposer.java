@@ -145,7 +145,7 @@ final class RasterComposer {
         role[cell] = role(reach.style()[point]);
         feature[cell] = reach.id();
         tier[cell] = reach.tier();
-        fluid[cell] = reachFluid(reach);
+        fluid[cell] = role[cell] == WaterRole.MOUTH ? HydrologyCaveCell.SEA_FLUID : reachFluid(reach);
     }
 
     private String reachFluid(Reach reach) {
@@ -190,7 +190,7 @@ final class RasterComposer {
             if (ground >= surface) {
                 double cone = coneSlope(steepestToWater(x, z, bank, bankEdge)) * u * bankTier.bankBand();
                 cut = BankProfile.cut(bankTier.bankStyle(), surface, ground, u, cone, noise(x, z));
-            } else {
+            } else if (ground >= settings.seaLevel()) {
                 raise = BankProfile.levee(bankTier.bankStyle(), surface, ground, u, noise(x, z), settings.deformation().maxFill());
             }
         }

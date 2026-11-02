@@ -351,8 +351,8 @@ public class IrisComplexHeightStreamTest {
             IrisHydrologyMaterials ponds = RASTER_SETTINGS.ponds().materials();
             ChunkWaterRaster raster = mock(ChunkWaterRaster.class);
             IrisHydrologyMaterials tierMaterials = new IrisHydrologyMaterials();
-            HydrologyTier tier = new HydrologyTier("river", 0f, 1f, 2f, 1f, 0.4f, 1, true, 6, 0, IrisBankStyle.SMOOTH, false,
-                    tierMaterials, "water", List.of());
+            HydrologyTier tier = new HydrologyTier("river", 0f, 1f, 2f, 1f, 0.4f, 1, true, 6, 0, IrisBankStyle.SMOOTH,
+                    new HydrologyTier.Estuary(48, 2.5f), tierMaterials, "water", List.of());
             when(raster.waterHead(anyInt(), anyInt())).thenReturn(Integer.MIN_VALUE);
             when(raster.tier(5, 9)).thenReturn(tier);
             when(raster.fluid(5, 9)).thenReturn("molten");

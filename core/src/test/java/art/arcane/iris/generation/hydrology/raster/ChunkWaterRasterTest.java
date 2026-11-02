@@ -2,6 +2,7 @@ package art.arcane.iris.generation.hydrology.raster;
 
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveCell;
 import art.arcane.iris.generation.hydrology.config.IrisBankStyle;
+import art.arcane.iris.generation.hydrology.config.IrisFluidProfile;
 import art.arcane.iris.generation.hydrology.config.IrisHydrology;
 import art.arcane.iris.generation.hydrology.config.IrisHydrologyMaterials;
 import art.arcane.iris.generation.hydrology.plan.HydrologySettings;
@@ -19,6 +20,7 @@ import art.arcane.iris.generation.hydrology.water.PondKind;
 import art.arcane.iris.generation.hydrology.water.PondMask;
 import art.arcane.iris.generation.hydrology.water.Reach;
 import art.arcane.iris.generation.hydrology.water.ReachStyle;
+import art.arcane.iris.generation.terrain.IrisMaterialPalette;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -903,8 +905,8 @@ public class ChunkWaterRasterTest {
 
     @Test
     public void crossWindowJunctionDropsSpreadOnTiersWithoutCascades() {
-        HydrologyTier gentle = new HydrologyTier("stream", 0f, 2f, 2f, 0f, 0.5f, 1, false, 6, 4, IrisBankStyle.SMOOTH, false,
-                new IrisHydrologyMaterials(), "water", List.of());
+        HydrologyTier gentle = new HydrologyTier("stream", 0f, 2f, 2f, 0f, 0.5f, 1, false, 6, 4, IrisBankStyle.SMOOTH,
+                new HydrologyTier.Estuary(48, 2.5f), new IrisHydrologyMaterials(), "water", List.of());
         HydrologyTier wide = tier("river", 3f, 0.5f, 4, IrisBankStyle.SMOOTH);
         Reach low = line(262L, wide, 0L, 504f, 200f, 600f, 200f, (x, z) -> 62);
         Reach steep = line(261L, gentle, low.id(), 440f, 200f, 504f, 200f, (x, z) -> x >= 496f ? 66 : Math.min(80, 66 + (int) ((496f - x) / 2f)));
@@ -1118,16 +1120,116 @@ public class ChunkWaterRasterTest {
                 int ground = scene.terrain(x, z);
                 if (x < 40) {
                     assertTrue(banks + "dry shore at " + x + "," + z + " is cut to " + ground + ", below the sea surface", ground >= SEA_LEVEL);
-                } else if (bankBand == 0) {
-                    assertEquals(banks + "no berm is built in the sea at " + x + "," + z, coast.applyAsInt(x, z), ground);
                 } else {
-                    assertTrue(banks + "the sea floor at " + x + "," + z + " is " + ground + ", cut or raised out of the sea",
-                            ground >= coast.applyAsInt(x, z) && ground < SEA_LEVEL);
+                    assertEquals(banks + "no berm is built in the sea at " + x + "," + z, coast.applyAsInt(x, z), ground);
                 }
             }
         }
         assertTrue(banks + "mouth columns " + mouths, mouths > 20);
         assertEquals(banks + "leaks", 0, scene.leaks(-20, minZ, 56, maxZ));
+    }
+
+    @Test
+    public void mouthColumnsUseTheSeaFluid() {
+        IntBinaryOperator coast = (x, z) -> x < 40 ? 44 : SEA_LEVEL - 10;
+        HydrologyTier stream = tier("stream", 1.5f, 0.5f, 8, IrisBankStyle.SMOOTH);
+        Reach river = mouthed(line(126L, stream, 0L, -20f, 8f, 56f, 8f, (x, z) -> x < 40f ? 42 : SEA_LEVEL), 40f);
+        Scene scene = new Scene(settings(new IrisHydrology()), coast).reach(river);
+        int mouths = 0;
+        int channels = 0;
+        for (int x = -16; x <= 52; x++) {
+            for (int z = 0; z <= 16; z++) {
+                WaterRole role = scene.role(x, z);
+                if (role == WaterRole.MOUTH) {
+                    mouths++;
+                    assertEquals("mouth at " + x + "," + z, HydrologyCaveCell.SEA_FLUID, scene.fluid(x, z));
+                } else if (role == WaterRole.CHANNEL) {
+                    channels++;
+                    assertEquals("channel at " + x + "," + z, "water", scene.fluid(x, z));
+                }
+            }
+        }
+        assertTrue("mouth columns " + mouths + ", channel columns " + channels, mouths > 20 && channels > 20);
+    }
+
+    @Test
+    public void lavaMouthMeetsTheSeaThroughTheSeam() {
+        IrisHydrology config = new IrisHydrology();
+        config.getFluids().add(new IrisFluidProfile().setName("lava").setSeam("crust")
+                .setPalette(new IrisMaterialPalette().qclear().qadd("minecraft:lava")));
+        config.getFluids().add(new IrisFluidProfile().setName("crust")
+                .setPalette(new IrisMaterialPalette().qclear().qadd("minecraft:obsidian")));
+        HydrologySettings settings = settings(config);
+        HydrologyTier lava = new HydrologyTier("lava", 0f, 1.5f, 1.5f, 0f, 0.5f, 1, true, 6, 8, IrisBankStyle.SMOOTH,
+                new HydrologyTier.Estuary(48, 2.5f), new IrisHydrologyMaterials(), "lava", List.of());
+        IntBinaryOperator coast = (x, z) -> x < 40 ? 44 : SEA_LEVEL - 3;
+        Reach river = mouthed(line(131L, lava, 0L, -20f, 8f, 56f, 8f, (x, z) -> x < 40f ? 42 : SEA_LEVEL), 40f);
+        Scene scene = new Scene(settings, coast).reach(river);
+        FluidSeams.Columns columns = new FluidSeams.Columns() {
+            @Override
+            public String fluid(int x, int z) {
+                return scene.role(x, z).wet() ? scene.fluid(x, z) : null;
+            }
+
+            @Override
+            public boolean sea(int x, int z) {
+                return scene.terrain(x, z) < SEA_LEVEL;
+            }
+        };
+        int mouths = 0;
+        int lavaColumns = 0;
+        int sealed = 0;
+        for (int chunkX = -2; chunkX <= 3; chunkX++) {
+            for (int chunkZ = -1; chunkZ <= 1; chunkZ++) {
+                String[] seams = FluidSeams.seal(settings.seams(), SEED, chunkX, chunkZ, columns);
+                for (int lz = 0; lz < 16; lz++) {
+                    for (int lx = 0; lx < 16; lx++) {
+                        int x = chunkX * 16 + lx;
+                        int z = chunkZ * 16 + lz;
+                        String seam = seams == null ? null : seams[lz << 4 | lx];
+                        WaterRole role = scene.role(x, z);
+                        if (role == WaterRole.MOUTH) {
+                            mouths++;
+                            assertEquals("the estuary holds the sea at " + x + "," + z, HydrologyCaveCell.SEA_FLUID, scene.fluid(x, z));
+                            assertNull("the sea itself is never sealed at " + x + "," + z, seam);
+                        } else if (role.wet()) {
+                            lavaColumns++;
+                            assertEquals("upstream of the estuary the river is lava at " + x + "," + z, "lava", scene.fluid(x, z));
+                            if (touchesTheSea(columns, x, z)) {
+                                sealed++;
+                                assertEquals("lava touching the sea is sealed at " + x + "," + z, "crust", seam);
+                            }
+                        } else if (x >= 40) {
+                            assertEquals("no shore rises out of the sea beside the lava at " + x + "," + z, coast.applyAsInt(x, z),
+                                    scene.terrain(x, z));
+                        }
+                    }
+                }
+            }
+        }
+        assertTrue("mouth columns " + mouths + ", lava columns " + lavaColumns + ", sealed " + sealed,
+                mouths > 20 && lavaColumns > 20 && sealed > 0);
+    }
+
+    private static boolean touchesTheSea(FluidSeams.Columns columns, int x, int z) {
+        for (int dz = -1; dz <= 1; dz++) {
+            for (int dx = -1; dx <= 1; dx++) {
+                String fluid = columns.fluid(x + dx, z + dz);
+                if (HydrologyCaveCell.SEA_FLUID.equals(fluid) || fluid == null && columns.sea(x + dx, z + dz)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private static Reach mouthed(Reach drawn, float coastX) {
+        ReachStyle[] style = drawn.style().clone();
+        for (int point = 0; point < style.length; point++) {
+            style[point] = drawn.xs()[point] >= coastX ? ReachStyle.MOUTH : ReachStyle.RUN;
+        }
+        return new Reach(drawn.id(), drawn.tier(), drawn.downstreamId(), drawn.xs(), drawn.zs(), drawn.grade(), drawn.halfWidth(), drawn.depth(),
+                style, drawn.catchment());
     }
 
     private static void assertContained(String name, Scene scene, int minX, int minZ, int maxX, int maxZ, boolean bermed) {
@@ -1158,8 +1260,8 @@ public class ChunkWaterRasterTest {
     }
 
     private static HydrologyTier tier(String name, float halfWidth, float depthRatio, int bankBand, IrisBankStyle style) {
-        return new HydrologyTier(name, 0f, halfWidth, halfWidth, 0f, depthRatio, 1, true, 6, bankBand, style, false,
-                new IrisHydrologyMaterials(), "water", List.of());
+        return new HydrologyTier(name, 0f, halfWidth, halfWidth, 0f, depthRatio, 1, true, 6, bankBand, style,
+                new HydrologyTier.Estuary(48, 2.5f), new IrisHydrologyMaterials(), "water", List.of());
     }
 
     private static Reach line(long id, HydrologyTier tier, long downstreamId, float startX, float startZ, float endX, float endZ, Grade grade) {

@@ -47,6 +47,7 @@ import static org.mockito.Mockito.when;
 public class IrisTerrainNormalActuatorHydrologyTest {
     private static final List<WaterRole> WET = List.of(WaterRole.CHANNEL, WaterRole.POND, WaterRole.MOUTH, WaterRole.CASCADE,
             WaterRole.WATERFALL);
+    private static final List<WaterRole> OWN_FLUID = List.of(WaterRole.CHANNEL, WaterRole.POND, WaterRole.CASCADE, WaterRole.WATERFALL);
     private static final int GROUND = 60;
     private static final int HEAD = 64;
 
@@ -104,7 +105,7 @@ public class IrisTerrainNormalActuatorHydrologyTest {
 
     @Test
     public void wetColumnsFillFromAboveTheGroundToTheHeadWithTheirOwnFluid() {
-        for (WaterRole role : WET) {
+        for (WaterRole role : OWN_FLUID) {
             Painter painter = new Painter(role, HEAD);
 
             Hunk<NativeBlockState> output = painter.paint();
@@ -158,6 +159,34 @@ public class IrisTerrainNormalActuatorHydrologyTest {
         for (int y = GROUND + 1; y <= HEAD; y++) {
             assertSame("the open sea keeps its own thick ice at y " + y, sea.ice, ocean.get(0, y, 0));
         }
+    }
+
+    @Test
+    public void frozenSeaIceContinuesAcrossMouths() {
+        Painter mouth = new Painter(WaterRole.MOUTH, HEAD);
+        when(mouth.complex.resolveWaterFluid(11, -4)).thenReturn(mouth.sea);
+        when(mouth.complex.naturalTrueHeight(11, -4)).thenReturn(GROUND);
+
+        Hunk<NativeBlockState> estuary = mouth.paint();
+
+        assertSame("the mouth takes the sea's top layer", mouth.ice, estuary.get(0, HEAD, 0));
+        for (int y = GROUND + 1; y < HEAD; y++) {
+            assertSame("the mouth holds the sea fluid at y " + y, mouth.sea, estuary.get(0, y, 0));
+        }
+        verify(mouth.biome).generateSeaLayers(anyDouble(), anyDouble(), any(RNG.class), eq(HEAD - GROUND), eq(mouth.data));
+
+        Painter frozenMouth = new Painter(WaterRole.MOUTH, HEAD);
+        when(frozenMouth.complex.resolveWaterFluid(11, -4)).thenReturn(frozenMouth.sea);
+        when(frozenMouth.complex.naturalTrueHeight(11, -4)).thenReturn(GROUND);
+        frozenMouth.thickSeaLayers();
+        Painter frozenSea = new Painter(WaterRole.NONE, HEAD);
+        frozenSea.thickSeaLayers();
+        Hunk<NativeBlockState> frozenEstuary = frozenMouth.paint();
+        Hunk<NativeBlockState> ocean = frozenSea.paint();
+        for (int y = GROUND + 1; y <= HEAD; y++) {
+            assertEquals("the mouth freezes like the sea beside it at y " + y, ocean.get(0, y, 0).key(), frozenEstuary.get(0, y, 0).key());
+        }
+        assertSame(frozenMouth.ice, frozenEstuary.get(0, HEAD, 0));
     }
 
     @Test

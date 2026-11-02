@@ -60,8 +60,8 @@ public class IrisHydrologyTier {
     @Description("Shape of the banks inside the bank band.")
     private IrisBankStyle bankStyle = IrisBankStyle.SMOOTH;
 
-    @Description("Spreads the channel into a delta where it reaches the sea.")
-    private boolean deltas = false;
+    @Description("How the channel widens into an estuary where it reaches the sea.")
+    private IrisHydrologyEstuary estuary = new IrisHydrologyEstuary();
 
     @Description("Blocks painted on the bed, shore and banks of this tier.")
     private IrisHydrologyMaterials materials = new IrisHydrologyMaterials();

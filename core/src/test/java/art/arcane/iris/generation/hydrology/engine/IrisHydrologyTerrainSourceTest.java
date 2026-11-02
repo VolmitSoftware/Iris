@@ -3,6 +3,8 @@ package art.arcane.iris.generation.hydrology.engine;
 import art.arcane.iris.generation.bake.BakePlane;
 import art.arcane.iris.generation.bake.ChunkBakeCache;
 import art.arcane.iris.generation.bake.GeneratorEvaluations;
+import art.arcane.iris.generation.biome.IrisBiome;
+import art.arcane.iris.generation.hydrology.config.IrisFluidProfile;
 import art.arcane.iris.generation.hydrology.config.IrisHydrology;
 import art.arcane.iris.generation.hydrology.config.IrisHydrologyPolicy;
 import art.arcane.iris.generation.hydrology.grid.HeightLattice;
@@ -10,6 +12,7 @@ import art.arcane.iris.generation.hydrology.grid.HydrologySampleBuffer;
 import art.arcane.iris.generation.hydrology.plan.HydrologySettings;
 import art.arcane.iris.generation.stream.ChunkFillableDoubleStream2D;
 import art.arcane.iris.generation.terrain.InferredType;
+import art.arcane.iris.generation.terrain.IrisMaterialPalette;
 import art.arcane.iris.generation.terrain.IrisRegion;
 import art.arcane.iris.testsupport.PlatformLeakGuard;
 import art.arcane.volmlib.util.stream.ProceduralStream;
@@ -173,6 +176,72 @@ public class IrisHydrologyTerrainSourceTest {
             assertTrue("dry columns " + dry + ", wet columns " + wet + ", opted-out columns " + kept,
                     dry > COLUMNS / 20 && wet > COLUMNS / 20 && kept > 0);
         }
+    }
+
+    @Test
+    public void childBiomesInheritTheParentPolicy() throws Exception {
+        Path pack = EngineFixture.pack(temporaryFolder.newFolder().toPath(), false);
+        EngineFixture.extend(pack, "peaks", ",\"hydrologyPolicy\":{\"pondDensity\":5,\"streams\":\"ALLOW\",\"fluid\":\"lava\"}");
+        EngineFixture.extend(pack, "meadow", ",\"children\":[\"glade\"],\"childShrinkFactor\":2.5");
+        EngineFixture.biome(pack, "glade", "[{\"generator\":\"plain\",\"min\":4,\"max\":10}]", "");
+        int side = 96;
+        int[] xs = new int[side * side];
+        int[] zs = new int[side * side];
+        for (int index = 0; index < xs.length; index++) {
+            xs[index] = (index % side) * 9 - 432;
+            zs[index] = (index / side) * 9 - 432;
+        }
+        pool = Executors.newFixedThreadPool(4);
+        try (EngineFixture.Environment ignored = EngineFixture.environment(); EngineFixture fixture = new EngineFixture(pack)) {
+            IrisHydrology config = new IrisHydrology().setEnabled(true).setPersist(false);
+            config.getFluids().add(new IrisFluidProfile().setName("lava").setPalette(new IrisMaterialPalette().qclear().qadd("minecraft:lava")));
+            HydrologySettings settings = HydrologySettings.compile(config, EngineFixture.SEED, fixture.dimension.getFluidHeight(), 0,
+                    EngineFixture.HEIGHT);
+            IrisHydrologyTerrainSource source = new IrisHydrologyTerrainSource(fixture.complex, fixture.dimension, settings, null, 1,
+                    HydrologyBinding.UNBOUND);
+            HydrologySampleBuffer samples = new HydrologySampleBuffer(xs.length);
+            source.sample(xs, zs, samples, false);
+            HydrologySampleBuffer pooled = new HydrologySampleBuffer(xs.length);
+            new IrisHydrologyTerrainSource(fixture.complex, fixture.dimension, settings, pool, 4, HydrologyBinding.UNBOUND).sample(xs, zs, pooled, false);
+            assertSameSamples(samples, pooled, xs.length);
+            Map<String, Integer> chains = new HashMap<>();
+            for (int index = 0; index < xs.length; index++) {
+                int x = xs[index];
+                int z = zs[index];
+                String chain = chain(fixture, x, z);
+                boolean alpha = fixture.complex.getRegionStream().get(x, z).getLoadKey().equals("alpha");
+                boolean peaks = chain.contains("peaks");
+                boolean meadow = chain.contains("meadow");
+                String at = chain + "@" + (alpha ? "alpha" : "beta") + " " + x + "," + z;
+                chains.merge(chain + "@" + (alpha ? "alpha" : "beta"), 1, Integer::sum);
+                assertEquals(at, meadow ? 2f : 0.5f, samples.rainfall()[index], 0f);
+                assertEquals(at, peaks ? 5f : alpha ? 3f : 1f, samples.pondDensity()[index], 0f);
+                int permission = (peaks || !alpha ? HydrologySampleBuffer.ALLOW_STREAMS : 0) | (meadow ? 0 : HydrologySampleBuffer.ALLOW_PONDS);
+                assertEquals(at, permission, samples.permission()[index]);
+                String fluid = peaks ? "lava" : alpha ? "water" : null;
+                assertEquals(at, fluid, samples.fluidProfile()[index]);
+                assertEquals(at, fluid, source.channelFluid(x, z));
+            }
+            assertTrue("sampled chains " + chains, chains.containsKey("meadow<peaks@alpha") && chains.containsKey("glade<meadow<peaks@alpha")
+                    && chains.containsKey("meadow@alpha") && chains.containsKey("meadow@beta") && chains.containsKey("glade<meadow@beta")
+                    && chains.containsKey("peaks@alpha"));
+        }
+    }
+
+    private static String chain(EngineFixture fixture, int x, int z) {
+        IrisBiome leaf = fixture.complex.getBaseBiomeStream().get(x, z);
+        boolean sea = fixture.complex.getBridgeStream().get(x, z) == InferredType.SEA;
+        IrisBiome root = (sea ? fixture.complex.getSeaBiomeStream() : fixture.complex.getLandBiomeStream()).get(x, z);
+        String pair = root.getLoadKey() + ">" + leaf.getLoadKey();
+        return switch (pair) {
+            case "peaks>meadow" -> "meadow<peaks";
+            case "peaks>glade" -> "glade<meadow<peaks";
+            case "meadow>glade" -> "glade<meadow";
+            default -> {
+                assertEquals("a biome outside the child chains at " + x + "," + z, root.getLoadKey(), leaf.getLoadKey());
+                yield leaf.getLoadKey();
+            }
+        };
     }
 
     private static void assertUnknownFluidRejected(EngineFixture fixture, HydrologySettings settings, int[] xs, int[] zs) {

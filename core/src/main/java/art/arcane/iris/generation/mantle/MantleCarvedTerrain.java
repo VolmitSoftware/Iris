@@ -117,7 +117,7 @@ final class MantleCarvedTerrain implements CarvedTerrain {
         IrisBiome biome = engine.getCaveBiomeBelowSurface(x, y, z);
         IrisRegion region = complex.getRegionStream().get(x, z);
         requireFinal(revision, x, z);
-        return IrisHydrologyPolicy.inherited(biome, region, dimension, IrisHydrologyPolicy::getFluid);
+        return IrisHydrologyPolicy.inherited(biome == null ? List.of() : List.of(biome), region, dimension, IrisHydrologyPolicy::getFluid);
     }
 
     private static Collection<SeaInlet> inlets(HydrologyRuntime runtime, int chunkX, int chunkZ) {

@@ -292,10 +292,13 @@ public final class RiverCompiler {
         return new Field.Binary(Field.BinaryOp.MAX, first, second);
     }
 
-    public record Area(IrisRegion region, IrisBiome biome) {
+    public record Area(IrisRegion region, List<IrisBiome> biomes) {
         public Area {
             Objects.requireNonNull(region, "region");
-            Objects.requireNonNull(biome, "biome");
+            biomes = List.copyOf(biomes);
+            if (biomes.isEmpty()) {
+                throw new IllegalArgumentException("A river area in region " + region.getLoadKey() + " needs a biome");
+            }
         }
     }
 

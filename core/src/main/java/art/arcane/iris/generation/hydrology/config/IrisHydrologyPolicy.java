@@ -14,11 +14,12 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
+import java.util.List;
 import java.util.function.Function;
 
 @Accessors(chain = true)
 @NoArgsConstructor
-@Description("Hydrology settings for a dimension, region or biome. A value left unset is inherited from the region, then from the dimension.")
+@Description("Hydrology settings for a dimension, region or biome. A value a biome leaves unset is inherited from the biome it grows inside as a child, up through that biome's own parents, then from the region, then from the dimension.")
 @Data
 public class IrisHydrologyPolicy {
     @MinNumber(0)
@@ -57,11 +58,14 @@ public class IrisHydrologyPolicy {
     @Description("Plants for the rivers, streams, ponds and lakes in this area, replacing the decorators of the tiers and ponds there. Written like the tier and pond decorators: partOf SEA_FLOOR, SEA_SURFACE or SHORE_LINE. An empty list grows no plants here. With no value set anywhere, the tiers and ponds use their own decorators.")
     private KList<IrisDecorator> decorators = null;
 
-    public static <T> T inherited(IrisBiome biome, IrisRegion region, IrisDimension dimension, Function<IrisHydrologyPolicy, T> field) {
-        T value = value(biome == null ? null : biome.getHydrologyPolicy(), field);
-        if (value == null) {
-            value = value(region == null ? null : region.getHydrologyPolicy(), field);
+    public static <T> T inherited(List<IrisBiome> biomes, IrisRegion region, IrisDimension dimension, Function<IrisHydrologyPolicy, T> field) {
+        for (int index = 0; index < biomes.size(); index++) {
+            T value = value(biomes.get(index).getHydrologyPolicy(), field);
+            if (value != null) {
+                return value;
+            }
         }
+        T value = value(region == null ? null : region.getHydrologyPolicy(), field);
         return value != null ? value : value(dimension == null ? null : dimension.getHydrologyPolicy(), field);
     }
 

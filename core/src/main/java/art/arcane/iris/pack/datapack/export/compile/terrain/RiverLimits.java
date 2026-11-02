@@ -1,5 +1,6 @@
 package art.arcane.iris.pack.datapack.export.compile.terrain;
 
+import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.block.IrisBlockData;
 import art.arcane.iris.generation.decoration.IrisDecorator;
 import art.arcane.iris.generation.hydrology.config.IrisHydrologyPermission;
@@ -165,9 +166,11 @@ final class RiverLimits {
     }
 
     private <T> Sourced<T> sourced(RiverCompiler.Area area, Function<IrisHydrologyPolicy, T> field) {
-        T biome = value(area.biome().getHydrologyPolicy(), field);
-        if (biome != null) {
-            return new Sourced<>(new Owner(Owner.BIOME, "biomes/" + area.biome().getLoadKey()), biome);
+        for (IrisBiome biome : area.biomes()) {
+            T value = value(biome.getHydrologyPolicy(), field);
+            if (value != null) {
+                return new Sourced<>(new Owner(Owner.BIOME, "biomes/" + biome.getLoadKey()), value);
+            }
         }
         T region = value(area.region().getHydrologyPolicy(), field);
         if (region != null) {

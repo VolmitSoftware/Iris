@@ -256,6 +256,18 @@ public class MantleCarvedTerrainTest {
                 poolFluids(poolRoom(new Underground(plains, biome("carving/deep-magma", 24, "lava"), temperate, new IrisDimension())).generate(0)));
     }
 
+    @Test
+    public void caveBiomesTakeNoFluidFromBiomesThatListThemAsChildren() {
+        IrisBiome volcanic = biome("tropical/volcanic-plains", 0, "lava").setChildren(new KList<>("carving/hollow"));
+        IrisBiome magma = biome("carving/magma", 0, "lava").setChildren(new KList<>("carving/hollow"));
+        IrisBiome hollow = biome("carving/hollow", 0, null);
+
+        assertEquals("a cave biome under a surface parent that names lava", Set.of("water"),
+                poolFluids(poolRoom(new Underground(volcanic, hollow, region("temperate", null), new IrisDimension())).generate(0)));
+        assertEquals("the parent itself still fills its own pools", Set.of("lava"),
+                poolFluids(poolRoom(new Underground(volcanic, magma, region("temperate", null), new IrisDimension())).generate(0)));
+    }
+
     private static Scene poolRoom(Underground underground) {
         Scene scene = new Scene(underground);
         Matter[] room = scene.chunk(0, 0);

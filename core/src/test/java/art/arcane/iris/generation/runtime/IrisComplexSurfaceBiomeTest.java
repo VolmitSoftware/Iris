@@ -27,6 +27,7 @@ import org.junit.rules.TemporaryFolder;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
@@ -135,14 +136,24 @@ public class IrisComplexSurfaceBiomeTest {
     }
 
     @Test
-    public void shorePolicyInheritsBiomeThenRegionThenDimension() {
+    public void shorePolicyInheritsBiomeThenParentsThenRegionThenDimension() {
         ShorePolicyPack pack = new ShorePolicyPack();
         assertEquals("dune", shoreSelect(pack, 1).getLoadKey());
         pack.region.setHydrologyPolicy(new IrisHydrologyPolicy().setShoreBiomes(new KList<>("sand")));
         assertEquals("sand", shoreSelect(pack, 4).getLoadKey());
         assertNull(shoreSelect(pack, 5));
-        pack.inland.setHydrologyPolicy(new IrisHydrologyPolicy().setShoreBiomes(new KList<>("gravel")).setShoreBiomeWidth(8));
-        assertEquals("gravel", shoreSelect(pack, 8).getLoadKey());
+        IrisBiome parent = pack.biome("highland");
+        parent.setHydrologyPolicy(new IrisHydrologyPolicy().setShoreBiomes(new KList<>("gravel")).setShoreBiomeWidth(6));
+        IrisBiome grandparent = pack.biome("upland");
+        grandparent.setHydrologyPolicy(new IrisHydrologyPolicy().setShoreBiomes(new KList<>("dune")).setShoreBiomeWidth(8));
+        List<IrisBiome> child = List.of(pack.inland, parent, grandparent);
+        assertEquals("gravel", shoreSelect(pack, child, 6).getLoadKey());
+        assertNull(shoreSelect(pack, child, 7));
+        parent.getHydrologyPolicy().setShoreBiomeWidth(null);
+        assertEquals("gravel", shoreSelect(pack, child, 8).getLoadKey());
+        pack.inland.setHydrologyPolicy(new IrisHydrologyPolicy().setShoreBiomes(new KList<>("sand")).setShoreBiomeWidth(8));
+        assertEquals("sand", shoreSelect(pack, 8).getLoadKey());
+        assertEquals("sand", shoreSelect(pack, child, 8).getLoadKey());
         assertSame(InferredType.SHORE, shoreSelect(pack, 8).getInferredType());
     }
 
@@ -152,8 +163,8 @@ public class IrisComplexSurfaceBiomeTest {
         pack.region.setHydrologyPolicy(new IrisHydrologyPolicy().setShoreBiomes(new KList<>()));
         assertNull(shoreSelect(pack, 1));
         pack.region.setHydrologyPolicy(new IrisHydrologyPolicy().setShoreBiomeWidth(0));
-        assertNull(new HydrologyShoreBiomes(pack.dimension, pack.data, 7L).select(pack.inland, pack.region, 0, 0, 1));
-        assertNull(new HydrologyShoreBiomes(new IrisDimension(), pack.data, 7L).select(pack.inland, new IrisRegion(), 0, 0, 1));
+        assertNull(new HydrologyShoreBiomes(pack.dimension, pack.data, 7L).select(List.of(pack.inland), pack.region, 0, 0, 1));
+        assertNull(new HydrologyShoreBiomes(new IrisDimension(), pack.data, 7L).select(List.of(pack.inland), new IrisRegion(), 0, 0, 1));
     }
 
     @Test
@@ -162,11 +173,12 @@ public class IrisComplexSurfaceBiomeTest {
         pack.region.setHydrologyPolicy(new IrisHydrologyPolicy().setShoreBiomes(new KList<>("sand", "dune", "gravel")));
         HydrologyShoreBiomes shores = new HydrologyShoreBiomes(pack.dimension, pack.data, 7L);
         HydrologyShoreBiomes again = new HydrologyShoreBiomes(pack.dimension, pack.data, 7L);
+        List<IrisBiome> inland = List.of(pack.inland);
         Set<String> picked = new HashSet<>();
         for (int patch = -8; patch < 8; patch++) {
-            IrisBiome first = shores.select(pack.inland, pack.region, patch * 64, 0, 2);
-            assertEquals(first.getLoadKey(), shores.select(pack.inland, pack.region, patch * 64 + 63, 63, 2).getLoadKey());
-            assertEquals(first.getLoadKey(), again.select(pack.inland, pack.region, patch * 64 + 17, 40, 1).getLoadKey());
+            IrisBiome first = shores.select(inland, pack.region, patch * 64, 0, 2);
+            assertEquals(first.getLoadKey(), shores.select(inland, pack.region, patch * 64 + 63, 63, 2).getLoadKey());
+            assertEquals(first.getLoadKey(), again.select(inland, pack.region, patch * 64 + 17, 40, 1).getLoadKey());
             picked.add(first.getLoadKey());
         }
         assertTrue(picked.toString(), picked.size() > 1);
@@ -181,7 +193,11 @@ public class IrisComplexSurfaceBiomeTest {
     }
 
     private static IrisBiome shoreSelect(ShorePolicyPack pack, int distance) {
-        return new HydrologyShoreBiomes(pack.dimension, pack.data, 7L).select(pack.inland, pack.region, 10, 20, distance);
+        return shoreSelect(pack, List.of(pack.inland), distance);
+    }
+
+    private static IrisBiome shoreSelect(ShorePolicyPack pack, List<IrisBiome> lineage, int distance) {
+        return new HydrologyShoreBiomes(pack.dimension, pack.data, 7L).select(lineage, pack.region, 10, 20, distance);
     }
 
     private static final class ShorePolicyPack {

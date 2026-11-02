@@ -121,8 +121,8 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiFunction;
 
 @Data
-@EqualsAndHashCode(exclude = {"data", "gridBoundsCache", "sharedCornerBounds", "sharedBaseHeights", "sharedBoundsBiomes", "regionBounds", "contextRegionStream", "terrainProgram", "bakeCache", "regionSource", "baseBiomeSource", "caveSource", "rockSource", "fluidSource", "childStyleSeed", "inferredByType", "naturalHeightSource", "naturalTrueBiomeSource", "trueBiomeSource", "frozenInterpolators", "frozenGenerators", "inferredBiomeStreams", "imageMapRuntime", "terrainEngine", "terrain3D", "hydrologyRuntime", "shoreBiomes", "waterVegetation", "effectiveChunks"})
-@ToString(exclude = {"data", "gridBoundsCache", "sharedCornerBounds", "sharedBaseHeights", "sharedBoundsBiomes", "regionBounds", "contextRegionStream", "terrainProgram", "bakeCache", "regionSource", "baseBiomeSource", "caveSource", "rockSource", "fluidSource", "childStyleSeed", "inferredByType", "naturalHeightSource", "naturalTrueBiomeSource", "trueBiomeSource", "frozenInterpolators", "frozenGenerators", "inferredBiomeStreams", "imageMapRuntime", "terrainEngine", "terrain3D", "hydrologyRuntime", "shoreBiomes", "waterVegetation", "effectiveChunks"})
+@EqualsAndHashCode(exclude = {"data", "gridBoundsCache", "sharedCornerBounds", "sharedBaseHeights", "sharedBoundsBiomes", "regionBounds", "contextRegionStream", "terrainProgram", "bakeCache", "regionSource", "baseBiomeSource", "caveSource", "rockSource", "fluidSource", "childStyleSeed", "inferredByType", "naturalHeightSource", "naturalTrueBiomeSource", "trueBiomeSource", "frozenInterpolators", "frozenGenerators", "inferredBiomeStreams", "imageMapRuntime", "terrainEngine", "terrain3D", "hydrologyRuntime", "shoreBiomes", "waterVegetation", "effectiveChunks", "biomeLineages"})
+@ToString(exclude = {"data", "gridBoundsCache", "sharedCornerBounds", "sharedBaseHeights", "sharedBoundsBiomes", "regionBounds", "contextRegionStream", "terrainProgram", "bakeCache", "regionSource", "baseBiomeSource", "caveSource", "rockSource", "fluidSource", "childStyleSeed", "inferredByType", "naturalHeightSource", "naturalTrueBiomeSource", "trueBiomeSource", "frozenInterpolators", "frozenGenerators", "inferredBiomeStreams", "imageMapRuntime", "terrainEngine", "terrain3D", "hydrologyRuntime", "shoreBiomes", "waterVegetation", "effectiveChunks", "biomeLineages"})
 public class IrisComplex implements DataProvider {
     private static final NoiseBounds ZERO_NOISE_BOUNDS = new NoiseBounds(0D, 0D);
     private static final long NEGATIVE_ZERO_BITS = Double.doubleToRawLongBits(-0D);
@@ -147,6 +147,7 @@ public class IrisComplex implements DataProvider {
             IrisGenerator::getLoadKey,
             Comparator.nullsFirst(Comparator.naturalOrder())
     );
+    private static final int CHILD_HOPS = 4;
     private static final ThreadLocal<TerrainBatchScratch> BATCH_SCRATCH = ThreadLocal.withInitial(TerrainBatchScratch::new);
     private static final InferredType[] INFERRED_BIOME_PREPARATION_ORDER = {
             InferredType.LAND,
@@ -277,6 +278,9 @@ public class IrisComplex implements DataProvider {
     @Getter(AccessLevel.NONE)
     @Setter(AccessLevel.NONE)
     private final transient HydrologyShoreBiomes shoreBiomes;
+    @Getter(AccessLevel.NONE)
+    @Setter(AccessLevel.NONE)
+    private final transient BiomeLineages biomeLineages;
     @Setter(AccessLevel.NONE)
     private final transient SubterrainPlanner subterrainPlanner;
     private transient IrisImageMapRuntime imageMapRuntime;
@@ -494,6 +498,7 @@ public class IrisComplex implements DataProvider {
                 Interpolated.of(value -> 0D, value -> null));
         naturalTrueBiomeStream = new BakedStream<>(bakeCache, BakePlane.NATURAL_TRUE_BIOME, naturalTrueBiomeSource);
         shoreBiomes = new HydrologyShoreBiomes(engine.getDimension(), data, engine.getSeedManager().getBodies());
+        biomeLineages = BiomeLineages.compile(focusedBiomes == null ? baseCapableBiomes(preparedRegions) : List.of(), this);
         hydrologyRuntime = HydrologyRuntime.create(engine, this);
         waterFluidStreams = hydrologyRuntime.enabled() ? createWaterFluidStreams(hydrologyRuntime.settings().fluids(), hydrologyRuntime.settings().seams().values()) : Map.of();
         pondMaterials = hydrologyRuntime.enabled() ? hydrologyRuntime.settings().ponds().materials() : null;
@@ -1400,7 +1405,16 @@ public class IrisComplex implements DataProvider {
             return HydrologyVegetation.Decorators.EMPTY;
         }
         HydrologyTier tier = chunkRasterAt(x, z).tier(x & 15, z & 15);
-        return waterVegetation.decorators(tier, baseBiomeStream.get(x, z), regionStream.get(x, z));
+        return waterVegetation.decorators(tier, baseBiomeLineage(x, z), regionStream.get(x, z));
+    }
+
+    public List<IrisBiome> baseBiomeLineage(int x, int z) {
+        IrisBiome biome = baseBiomeStream.get(x, z);
+        if (!biomeLineages.inherits(biome)
+                || imageMapRuntime.has(IrisImageMapApplication.BIOME) && imageMapRuntime.sampleBiome(x, z) != null) {
+            return biomeLineages.root(biome);
+        }
+        return childLineage(biome, x, z);
     }
 
     private ChunkWaterRaster chunkRasterAt(int blockX, int blockZ) {
@@ -1810,7 +1824,7 @@ public class IrisComplex implements DataProvider {
                 || seamWeight(blockX, blockZ) == 0D) {
             return null;
         }
-        IrisBiome shore = shoreBiomes.select(baseBiomeStream.get(x, z), regionStream.get(x, z), blockX, blockZ, distance);
+        IrisBiome shore = shoreBiomes.select(baseBiomeLineage(blockX, blockZ), regionStream.get(x, z), blockX, blockZ, distance);
         return shore == null ? null : implode(shore, x, z);
     }
 
@@ -2486,7 +2500,7 @@ public class IrisComplex implements DataProvider {
             return b;
         }
 
-        return implode(b, x, z, 3);
+        return implode(b, x, z, CHILD_HOPS - 1);
     }
 
     private IrisBiome implode(IrisBiome b, double x, double z, int max) {
@@ -2498,13 +2512,40 @@ public class IrisComplex implements DataProvider {
             return b;
         }
 
-        CNG childCell = b.getChildrenGenerator(childStyleSeed, b.getChildShrinkFactor());
-        ChildSelectionPlan childSelectionPlan = resolveChildSelectionPlan(b);
-        IrisBiome biome = childSelectionPlan.select(childCell, x, z).withInferredType(b.getInferredType());
+        IrisBiome biome = pickChild(b, x, z);
         if (biome == b && hasFixedNoise(b.getChildStyle())) {
             return biome;
         }
         return implode(biome, x, z, max - 1);
+    }
+
+    private IrisBiome pickChild(IrisBiome parent, double x, double z) {
+        CNG childCell = parent.getChildrenGenerator(childStyleSeed, parent.getChildShrinkFactor());
+        return resolveChildSelectionPlan(parent).select(childCell, x, z).withInferredType(parent.getInferredType());
+    }
+
+    private List<IrisBiome> childLineage(IrisBiome biome, int x, int z) {
+        IrisBiome[] rootFirst = new IrisBiome[CHILD_HOPS + 1];
+        IrisBiome current = inferredByType.get(bridgeStream.get(x, z)).get(x, z);
+        rootFirst[0] = current;
+        int size = 1;
+        for (int hop = 0; hop < CHILD_HOPS && !current.getChildren().isEmpty(); hop++) {
+            IrisBiome picked = pickChild(current, x, z);
+            if (picked == current) {
+                break;
+            }
+            rootFirst[size++] = picked;
+            current = picked;
+        }
+        if (current != biome) {
+            throw new IllegalStateException("The child chain at " + x + "," + z + " ends at biome " + current.getLoadKey()
+                    + ", but the base biome there is " + biome.getLoadKey());
+        }
+        IrisBiome[] leafFirst = new IrisBiome[size];
+        for (int index = 0; index < size; index++) {
+            leafFirst[index] = rootFirst[size - 1 - index];
+        }
+        return biomeLineages.chain(leafFirst);
     }
 
     static boolean hasFixedNaturalBiomeNoise(IrisDimension dimension, Iterable<IrisBiome> biomes) {

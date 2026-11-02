@@ -18,14 +18,22 @@ import art.arcane.iris.generation.hydrology.water.PondMask;
 import art.arcane.iris.generation.hydrology.water.Reach;
 import art.arcane.iris.generation.hydrology.water.ReachStyle;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.function.BooleanSupplier;
 import java.util.function.Predicate;
 
 final class HydrologyFeatureSearch {
@@ -33,12 +41,15 @@ final class HydrologyFeatureSearch {
     private static final Set<HydrologyFeatureType> WINDOW_TYPES = EnumSet.of(HydrologyFeatureType.STREAM, HydrologyFeatureType.RIVER,
             HydrologyFeatureType.MAJOR_RIVER, HydrologyFeatureType.CASCADE, HydrologyFeatureType.WATERFALL, HydrologyFeatureType.MOUTH,
             HydrologyFeatureType.POND, HydrologyFeatureType.DAM, HydrologyFeatureType.SEA_INLET);
+    private static final long POLL_NANOS = TimeUnit.MILLISECONDS.toNanos(50L);
+    static final String OFF = "hydrology is off";
+    private static final String PONDS_OFF = "hydrology.ponds.natural and hydrology.ponds.seeded are disabled";
 
     private final HydrologySettings settings;
     private final HydrologyPlanCache cache;
     private final int originX;
     private final int originZ;
-    private final HydrologyFeatureQuery query;
+    private final Set<HydrologyFeatureType> types;
     private final Predicate<HydrologyFeatureRef> eligible;
     private final int radius;
     private final long radiusSquared;
@@ -51,29 +62,70 @@ final class HydrologyFeatureSearch {
         this.cache = cache;
         this.originX = originX;
         this.originZ = originZ;
-        this.query = query;
+        this.types = enabledTypes(settings, query);
         this.eligible = eligible;
         this.radius = radius;
         this.radiusSquared = (long) radius * radius;
     }
 
-    Optional<HydrologyFeatureRef> nearest() {
+    Optional<HydrologyFeatureRef> nearest(Duration timeout, BooleanSupplier running) throws TimeoutException {
+        Objects.requireNonNull(timeout, "timeout");
+        Objects.requireNonNull(running, "running");
         int rings = Math.ceilDiv(radius, WindowKey.SIZE) + 1;
         long windows = (2L * rings + 1L) * (2L * rings + 1L);
         if (windows > MAX_WINDOWS) {
             throw new IllegalArgumentException("Hydrology feature search radius " + radius + " covers " + windows + " windows, above "
                     + MAX_WINDOWS);
         }
-        if (query.matches(HydrologyFeatureType.LAKE)) {
-            searchLakes();
+        if (types.isEmpty()) {
+            return Optional.empty();
         }
-        if (!Collections.disjoint(query.types(), WINDOW_TYPES)) {
-            searchWindows(rings);
+        Budget budget = new Budget(System.nanoTime() + timeout.toNanos(), timeout, running);
+        if (types.contains(HydrologyFeatureType.LAKE)) {
+            searchLakes(budget);
+        }
+        if (!Collections.disjoint(types, WINDOW_TYPES)) {
+            searchWindows(rings, budget);
         }
         return Optional.ofNullable(best);
     }
 
-    private void searchLakes() {
+    static Optional<String> disabledReason(HydrologySettings settings, HydrologyFeatureType type) {
+        HydrologySettings.Ponds ponds = settings.ponds();
+        boolean anyPonds = ponds.natural().enabled() || ponds.seeded().enabled();
+        String reason = switch (type) {
+            case STREAM, RIVER, MAJOR_RIVER -> hasTier(settings, type) ? null : "it has no " + type.key().replace('_', ' ') + " tier";
+            case CASCADE, WATERFALL, MOUTH -> null;
+            case POND -> anyPonds ? null : PONDS_OFF;
+            case DAM -> !anyPonds ? PONDS_OFF : ponds.dams().enabled() ? null : "hydrology.ponds.dams is disabled";
+            case LAKE -> settings.lakes().enabled() ? null : "hydrology.lakes is disabled";
+            case SEA_INLET -> settings.underground().seaInlets().enabled() ? null : "hydrology.underground.seaInlets is disabled";
+            case CAVE_POOL -> settings.underground().cavePools().enabled() ? null : "hydrology.underground.cavePools is disabled";
+        };
+        return Optional.ofNullable(reason);
+    }
+
+    private static Set<HydrologyFeatureType> enabledTypes(HydrologySettings settings, HydrologyFeatureQuery query) {
+        Set<HydrologyFeatureType> enabled = EnumSet.noneOf(HydrologyFeatureType.class);
+        for (HydrologyFeatureType type : query.types()) {
+            if (disabledReason(settings, type).isEmpty()) {
+                enabled.add(type);
+            }
+        }
+        return enabled;
+    }
+
+    private static boolean hasTier(HydrologySettings settings, HydrologyFeatureType type) {
+        List<HydrologyTier> tiers = settings.tiers();
+        for (int index = 0; index < tiers.size(); index++) {
+            if (channelType(tiers.get(index).name(), index, tiers.size()) == type) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void searchLakes(Budget budget) throws TimeoutException {
         long minX = (long) originX - radius;
         long minZ = (long) originZ - radius;
         long maxX = (long) originX + radius;
@@ -85,7 +137,7 @@ final class HydrologyFeatureSearch {
             plans.add(cache.demandRegion(key));
         }
         for (CompletableFuture<RegionPlan> plan : plans) {
-            for (Pond lake : cache.awaitPlan(plan).lakes()) {
+            for (Pond lake : await(plan, budget).lakes()) {
                 if (seen.add(lake.id())) {
                     pond(lake, HydrologyFeatureType.LAKE);
                 }
@@ -93,7 +145,7 @@ final class HydrologyFeatureSearch {
         }
     }
 
-    private void searchWindows(int rings) {
+    private void searchWindows(int rings, Budget budget) throws TimeoutException {
         WindowKey origin = WindowKey.containing(originX, originZ);
         for (int ring = 0; ring <= rings; ring++) {
             long bound = Math.max(0L, (long) (ring - 2) * WindowKey.SIZE);
@@ -105,8 +157,29 @@ final class HydrologyFeatureSearch {
                 plans.add(cache.demandWindow(key));
             }
             for (CompletableFuture<IndexedWindow> plan : plans) {
-                window(cache.awaitPlan(plan).plan());
+                window(await(plan, budget).plan());
             }
+        }
+    }
+
+    private <T> T await(CompletableFuture<T> plan, Budget budget) throws TimeoutException {
+        CountDownLatch settled = new CountDownLatch(1);
+        plan.whenComplete((value, failure) -> settled.countDown());
+        boolean ready = false;
+        while (!ready) {
+            ready = settle(settled, budget.slice());
+        }
+        return cache.awaitPlan(plan);
+    }
+
+    private static boolean settle(CountDownLatch settled, long nanos) {
+        try {
+            return settled.await(nanos, TimeUnit.NANOSECONDS);
+        } catch (InterruptedException interruption) {
+            Thread.currentThread().interrupt();
+            CancellationException cancelled = new CancellationException("The hydrology feature search was interrupted.");
+            cancelled.initCause(interruption);
+            throw cancelled;
         }
     }
 
@@ -135,7 +208,7 @@ final class HydrologyFeatureSearch {
                 pond(pond, type);
             }
         }
-        if (query.matches(HydrologyFeatureType.SEA_INLET)) {
+        if (types.contains(HydrologyFeatureType.SEA_INLET)) {
             for (SeaInlet inlet : plan.inlets()) {
                 inlet(inlet);
             }
@@ -151,22 +224,22 @@ final class HydrologyFeatureSearch {
 
     private HydrologyFeatureType pondType(Pond pond) {
         if (pond.kind() == PondKind.LAKE) {
-            return query.matches(HydrologyFeatureType.LAKE) ? HydrologyFeatureType.LAKE : null;
+            return types.contains(HydrologyFeatureType.LAKE) ? HydrologyFeatureType.LAKE : null;
         }
-        if (pond.damRaise() > 0 && query.matches(HydrologyFeatureType.DAM)) {
+        if (pond.damRaise() > 0 && types.contains(HydrologyFeatureType.DAM)) {
             return HydrologyFeatureType.DAM;
         }
-        return query.matches(HydrologyFeatureType.POND) ? HydrologyFeatureType.POND : null;
+        return types.contains(HydrologyFeatureType.POND) ? HydrologyFeatureType.POND : null;
     }
 
     private void reach(Reach reach) {
         HydrologyFeatureType channel = channelType(settings, reach.tier());
-        boolean whole = query.matches(channel);
+        boolean whole = types.contains(channel);
         float[] xs = reach.xs();
         float[] zs = reach.zs();
         for (int index = 0; index < xs.length; index++) {
             HydrologyFeatureType point = pointType(reach.style()[index]);
-            HydrologyFeatureType type = point != null && query.matches(point) ? point : whole ? channel : null;
+            HydrologyFeatureType type = point != null && types.contains(point) ? point : whole ? channel : null;
             if (type != null) {
                 offer(reach.id(), type, (int) Math.floor(xs[index]), reach.grade()[index], (int) Math.floor(zs[index]));
             }
@@ -197,10 +270,24 @@ final class HydrologyFeatureSearch {
         if (index < 0) {
             throw new IllegalStateException("Reach tier '" + tier.name() + "' is not one of the hydrology tiers");
         }
-        if (tier.equals(settings.majorTier())) {
-            return HydrologyFeatureType.MAJOR_RIVER;
+        return channelType(tier.name(), index, tiers.size());
+    }
+
+    private static HydrologyFeatureType channelType(String name, int index, int count) {
+        String normalized = name == null ? "" : name.trim().toLowerCase(Locale.ROOT).replace('-', '_').replace(' ', '_');
+        return switch (normalized) {
+            case "stream" -> HydrologyFeatureType.STREAM;
+            case "river" -> HydrologyFeatureType.RIVER;
+            case "major", "major_river" -> HydrologyFeatureType.MAJOR_RIVER;
+            default -> rankType(index, count);
+        };
+    }
+
+    private static HydrologyFeatureType rankType(int index, int count) {
+        if (index == 0) {
+            return HydrologyFeatureType.STREAM;
         }
-        return index == 0 ? HydrologyFeatureType.STREAM : HydrologyFeatureType.RIVER;
+        return index == count - 1 ? HydrologyFeatureType.MAJOR_RIVER : HydrologyFeatureType.RIVER;
     }
 
     private static HydrologyFeatureType pointType(ReachStyle style) {
@@ -238,5 +325,18 @@ final class HydrologyFeatureSearch {
             return type.ordinal() < best.type().ordinal();
         }
         return x != best.x() ? x < best.x() : z < best.z();
+    }
+
+    private record Budget(long deadline, Duration timeout, BooleanSupplier running) {
+        private long slice() throws TimeoutException {
+            if (!running.getAsBoolean()) {
+                throw new CancellationException("The hydrology feature search was cancelled.");
+            }
+            long remaining = deadline - System.nanoTime();
+            if (remaining <= 0L) {
+                throw new TimeoutException("The hydrology feature search ran past its " + timeout.toMillis() + " ms limit.");
+            }
+            return Math.min(remaining, POLL_NANOS);
+        }
     }
 }

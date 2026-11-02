@@ -149,37 +149,30 @@ final class ModdedLocateCommands {
             IrisModdedCommands.fail(source, error.getMessage());
             return 0;
         }
-        String label = featureType.key().replace('_', ' ');
-        int originX = player.blockX();
-        int originZ = player.blockZ();
-        int maximumDistance = GenerationSemanticQueries.RIVER_SEARCH_DISTANCE;
         NativeModdedServer server = source.server();
-        IrisModdedCommands.ok(source, GenerationSemanticQueries.riverSearchMessage(featureType, maximumDistance));
-        MultiBurst.burst.completeValueAsync(() -> GenerationSemanticQueries.nearestRiver(
-                        engine, featureType, originX, originZ, maximumDistance).orElse(null))
-                .whenComplete((GenerationSemanticQueries.RiverResult feature, Throwable error) -> server.execute(() -> {
-                    if (error != null) {
-                        Throwable cause = error instanceof CompletionException && error.getCause() != null ? error.getCause() : error;
-                        ModdedIrisLog.error("Hydrology locate failed for {}", featureType.key(), cause);
-                        IrisModdedCommands.fail(source, "Could not search for " + label + ": " + cause.getClass().getSimpleName()
-                                + (cause.getMessage() == null ? "" : " - " + cause.getMessage()));
-                        return;
+        RiverRequest request = new RiverRequest(source, level, player, featureType);
+        IrisModdedCommands.ok(source, GenerationSemanticQueries.riverSearchMessage(featureType, GenerationSemanticQueries.RIVER_SEARCH_DISTANCE));
+        GenerationSemanticQueries.startRiverSearch(player.id(), MultiBurst.burst, engine, featureType, player.blockX(), player.blockZ())
+                .whenComplete((GenerationSemanticQueries.RiverSearch search, Throwable error) -> {
+                    if (!(error instanceof CancellationException)) {
+                        server.execute(() -> finishRiverSearch(request, search, error));
                     }
-                    if (feature == null) {
-                        IrisModdedCommands.fail(source, GenerationSemanticQueries.riverNotFoundMessage(featureType, maximumDistance));
-                        return;
-                    }
-                    teleportToStructure(
-                            source,
-                            level,
-                            player,
-                            feature.x(),
-                            feature.y() + 2,
-                            feature.z(),
-                            label
-                    );
-                }));
+                });
         return 1;
+    }
+
+    private static void finishRiverSearch(RiverRequest request, GenerationSemanticQueries.RiverSearch search, Throwable error) {
+        if (error != null) {
+            ModdedIrisLog.error("Hydrology locate failed for {}", request.type().key(), error);
+            IrisModdedCommands.fail(request.source(), "Could not search for " + request.label() + ": " + error.getClass().getSimpleName()
+                    + (error.getMessage() == null ? "" : " - " + error.getMessage()));
+            return;
+        }
+        switch (search) {
+            case GenerationSemanticQueries.RiverSearch.Missing missing -> IrisModdedCommands.fail(request.source(), missing.message());
+            case GenerationSemanticQueries.RiverSearch.Found found -> teleportToStructure(request.source(), request.level(),
+                    request.player(), found.feature().x(), found.feature().y() + 2, found.feature().z(), request.label());
+        }
     }
 
     static int gotoStructure(NativeCommandSource source, String keyRaw) {
@@ -704,6 +697,12 @@ final class ModdedLocateCommands {
     }
 
     record CaveDestination(SubterrainPosition target, Optional<SavedBiomeRuntime.ReadSession> read) {
+    }
+
+    private record RiverRequest(NativeCommandSource source, NativeWorld level, NativeProtocolPlayer player, HydrologyFeatureType type) {
+        private String label() {
+            return type.key().replace('_', ' ');
+        }
     }
 
     private record CaveLocateRequest(NativeCommandSource source, NativeWorld level, Engine engine,

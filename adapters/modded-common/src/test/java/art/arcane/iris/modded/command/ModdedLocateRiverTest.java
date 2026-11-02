@@ -19,6 +19,7 @@ import org.mockito.MockedConstruction;
 import org.mockito.MockedStatic;
 
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -41,7 +42,7 @@ public class ModdedLocateRiverTest {
     private static final int DISTANCE = GenerationSemanticQueries.RIVER_SEARCH_DISTANCE;
 
     @Test
-    public void unknownTypeFailsBeforeSearching() {
+    public void unknownTypeFailsBeforeSearching() throws Exception {
         Fixture fixture = new Fixture();
         try (MockedStatic<IrisModdedCommands> commands = fixture.commands()) {
             assertEquals(0, ModdedLocateCommands.gotoRiver(fixture.source, "ocean_trench"));
@@ -49,14 +50,14 @@ public class ModdedLocateRiverTest {
             commands.verify(() -> IrisModdedCommands.fail(eq(fixture.source), anyString()));
             commands.verify(() -> IrisModdedCommands.ok(eq(fixture.source), anyString()), never());
             verify(fixture.server, never()).execute(any());
-            verify(fixture.runtime, never()).nearestFeature(anyInt(), anyInt(), any(), anyInt(), any());
+            verify(fixture.runtime, never()).nearestFeature(anyInt(), anyInt(), any(), anyInt(), any(), any());
         }
     }
 
     @Test
     public void missingFeatureReportsNotFound() throws Exception {
         Fixture fixture = new Fixture();
-        when(fixture.runtime.nearestFeature(anyInt(), anyInt(), any(), anyInt(), any())).thenReturn(Optional.empty());
+        when(fixture.runtime.nearestFeature(anyInt(), anyInt(), any(), anyInt(), any(), any())).thenReturn(Optional.empty());
         try (MockedStatic<IrisModdedCommands> commands = fixture.commands()) {
             assertEquals(1, ModdedLocateCommands.gotoRiver(fixture.source, "river"));
             fixture.finishOnServerThread();
@@ -67,9 +68,23 @@ public class ModdedLocateRiverTest {
     }
 
     @Test
+    public void disabledTypeReportsItsReasonWithoutSearching() throws Exception {
+        Fixture fixture = new Fixture();
+        when(fixture.runtime.unavailable(HydrologyFeatureType.DAM)).thenReturn(Optional.of("hydrology.ponds.dams is disabled"));
+        try (MockedStatic<IrisModdedCommands> commands = fixture.commands()) {
+            assertEquals(1, ModdedLocateCommands.gotoRiver(fixture.source, "dam"));
+            fixture.finishOnServerThread();
+
+            commands.verify(() -> IrisModdedCommands.fail(fixture.source, "No dam forms in this dimension: hydrology.ponds.dams is disabled."));
+            verify(fixture.runtime, never()).nearestFeature(anyInt(), anyInt(), any(), anyInt(), any(), any());
+            verify(fixture.player, never()).teleport(any(), anyDouble(), anyDouble(), anyDouble());
+        }
+    }
+
+    @Test
     public void plannerFailureIsReportedAsAnErrorNotAsNotFound() throws Exception {
         Fixture fixture = new Fixture();
-        when(fixture.runtime.nearestFeature(anyInt(), anyInt(), any(), anyInt(), any()))
+        when(fixture.runtime.nearestFeature(anyInt(), anyInt(), any(), anyInt(), any(), any()))
                 .thenThrow(new IllegalStateException("window planner exploded"));
         try (MockedStatic<IrisModdedCommands> commands = fixture.commands()) {
             assertEquals(1, ModdedLocateCommands.gotoRiver(fixture.source, "major_river"));
@@ -86,7 +101,7 @@ public class ModdedLocateRiverTest {
     @Test
     public void foundFeatureTeleportsAboveItFromThePlayersPosition() throws Exception {
         Fixture fixture = new Fixture();
-        when(fixture.runtime.nearestFeature(anyInt(), anyInt(), any(), anyInt(), any()))
+        when(fixture.runtime.nearestFeature(anyInt(), anyInt(), any(), anyInt(), any(), any()))
                 .thenReturn(Optional.of(new HydrologyFeatureRef(9L, HydrologyFeatureType.WATERFALL, 400, 130, -250)));
         when(fixture.player.teleport(fixture.world, 400.5D, 68D, -249.5D)).thenReturn(true);
         try (MockedStatic<IrisModdedCommands> commands = fixture.commands();
@@ -95,7 +110,7 @@ public class ModdedLocateRiverTest {
             fixture.finishOnServerThread();
 
             ArgumentCaptor<HydrologyFeatureQuery> query = ArgumentCaptor.forClass(HydrologyFeatureQuery.class);
-            verify(fixture.runtime).nearestFeature(eq(120), eq(-75), query.capture(), eq(DISTANCE), any());
+            verify(fixture.runtime).nearestFeature(eq(120), eq(-75), query.capture(), eq(DISTANCE), any(), any());
             assertEquals(HydrologyFeatureQuery.of(HydrologyFeatureType.WATERFALL), query.getValue());
             verify(queries.constructed().getFirst()).loadChunk(400 >> 4, -250 >> 4);
             verify(fixture.player).teleport(fixture.world, 400.5D, 68D, -249.5D);
@@ -119,6 +134,7 @@ public class ModdedLocateRiverTest {
             when(source.player()).thenReturn(player);
             when(source.world()).thenReturn(world);
             when(source.server()).thenReturn(server);
+            when(player.id()).thenReturn(UUID.randomUUID());
             when(player.blockX()).thenReturn(120);
             when(player.blockZ()).thenReturn(-75);
             when(player.connected()).thenReturn(true);

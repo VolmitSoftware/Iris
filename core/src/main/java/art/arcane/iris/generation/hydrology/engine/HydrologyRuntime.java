@@ -37,6 +37,7 @@ import art.arcane.iris.world.IrisWorld;
 import java.io.File;
 import java.io.UncheckedIOException;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -51,6 +52,7 @@ import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BooleanSupplier;
 import java.util.function.Function;
@@ -65,6 +67,7 @@ public final class HydrologyRuntime {
     public static final int MAX_PREGENERATION_REGIONS = 4096;
     private static final int MAX_PREVIEW_REQUESTS = 64;
     private static final int PREFETCH_CAPACITY = 16;
+    public static final Duration FEATURE_SEARCH_TIMEOUT = Duration.ofSeconds(30L);
     private static final HydrologyRuntime DISABLED = new HydrologyRuntime();
 
     private final HydrologySettings settings;
@@ -402,14 +405,17 @@ public final class HydrologyRuntime {
         }
     }
 
-    public Optional<HydrologyFeatureRef> nearestFeature(int blockX, int blockZ, HydrologyFeatureQuery query, int radius) {
-        return nearestFeature(blockX, blockZ, query, radius, feature -> true);
+    public Optional<HydrologyFeatureRef> nearestFeature(int blockX, int blockZ, HydrologyFeatureQuery query, int radius)
+            throws TimeoutException {
+        return nearestFeature(blockX, blockZ, query, radius, feature -> true, () -> true);
     }
 
     public Optional<HydrologyFeatureRef> nearestFeature(int blockX, int blockZ, HydrologyFeatureQuery query, int radius,
-                                                        Predicate<HydrologyFeatureRef> eligible) {
+                                                        Predicate<HydrologyFeatureRef> eligible, BooleanSupplier running)
+            throws TimeoutException {
         Objects.requireNonNull(query, "query");
         Objects.requireNonNull(eligible, "eligible");
+        Objects.requireNonNull(running, "running");
         if (radius < 0) {
             throw new IllegalArgumentException("Hydrology feature search radius must not be negative, got " + radius);
         }
@@ -420,7 +426,15 @@ public final class HydrologyRuntime {
             throw new IllegalStateException("Hydrology feature search was requested on the main thread.");
         }
         requireOpen();
-        return new HydrologyFeatureSearch(settings, cache, blockX, blockZ, query, eligible, radius).nearest();
+        return new HydrologyFeatureSearch(settings, cache, blockX, blockZ, query, eligible, radius).nearest(FEATURE_SEARCH_TIMEOUT, running);
+    }
+
+    public Optional<String> unavailable(HydrologyFeatureType type) {
+        Objects.requireNonNull(type, "type");
+        if (settings == null) {
+            return Optional.of(HydrologyFeatureSearch.OFF);
+        }
+        return HydrologyFeatureSearch.disabledReason(settings, type);
     }
 
     public HydrologyFeatureType channelType(HydrologyTier tier) {

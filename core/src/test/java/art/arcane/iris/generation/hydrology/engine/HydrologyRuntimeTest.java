@@ -62,8 +62,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.FutureTask;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -369,11 +371,11 @@ public class HydrologyRuntimeTest {
         HydrologyRuntime runtime = runtime(planners, () -> false);
 
         HydrologyFeatureRef seeded = runtime.nearestFeature(0, 0, HydrologyFeatureQuery.of(HydrologyFeatureType.POND), 2048,
-                feature -> feature.id() != POND).orElseThrow();
+                feature -> feature.id() != POND, () -> true).orElseThrow();
 
         assertEquals(POND + 1, seeded.id());
         assertEquals(Optional.empty(), runtime.nearestFeature(0, 0, HydrologyFeatureQuery.of(HydrologyFeatureType.POND), 2048,
-                feature -> false));
+                feature -> false, () -> true));
     }
 
     @Test(timeout = 180_000L)
@@ -822,14 +824,13 @@ public class HydrologyRuntimeTest {
         CountDownLatch regions = new CountDownLatch(1);
         planners.regionGate = regions;
         int before = planners.regionArrivals.get();
-        AtomicReference<Optional<HydrologyFeatureRef>> lake = new AtomicReference<>();
-        Thread search = new Thread(() -> lake.set(runtime.nearestFeature(-20_000, -20_000,
-                HydrologyFeatureQuery.of(HydrologyFeatureType.LAKE), 64)));
+        FutureTask<Optional<HydrologyFeatureRef>> lake = new FutureTask<>(() -> runtime.nearestFeature(-20_000, -20_000,
+                HydrologyFeatureQuery.of(HydrologyFeatureType.LAKE), 64));
+        Thread search = new Thread(lake);
         search.start();
         await(() -> planners.regionArrivals.get() - before >= 4, "every lake region to plan at once");
         regions.countDown();
-        search.join(TimeUnit.SECONDS.toMillis(TIMEOUT_SECONDS));
-        assertEquals(Optional.empty(), lake.get());
+        assertEquals(Optional.empty(), lake.get(TIMEOUT_SECONDS, TimeUnit.SECONDS));
     }
 
     @Test(timeout = 180_000L)
@@ -878,7 +879,7 @@ public class HydrologyRuntimeTest {
     }
 
     @Test
-    public void createStaysDisabledWithoutHydrology() {
+    public void createStaysDisabledWithoutHydrology() throws Exception {
         Engine engine = mock(Engine.class);
         IrisComplex complex = mock(IrisComplex.class);
         IrisDimension dimension = new IrisDimension();
@@ -895,7 +896,7 @@ public class HydrologyRuntimeTest {
 
     @Test
     @SuppressWarnings("unchecked")
-    public void createChecksEveryReachableBiomeFluidWhileCavePoolsAreEnabled() {
+    public void createChecksEveryReachableBiomeFluidWhileCavePoolsAreEnabled() throws Exception {
         IrisDimension dimension = new IrisDimension().setRegions(new KList<>("tropical"));
         dimension.setHydrology(new IrisHydrology().setEnabled(true).setDensity(0D));
         IrisRegion tropical = new IrisRegion().setLandBiomes(new KList<>("volcanoes"));
@@ -924,7 +925,7 @@ public class HydrologyRuntimeTest {
     }
 
     @Test
-    public void zeroDensitySkipsRuntimePlanningAfterValidatingSettings() {
+    public void zeroDensitySkipsRuntimePlanningAfterValidatingSettings() throws Exception {
         Engine engine = mock(Engine.class);
         IrisComplex complex = mock(IrisComplex.class);
         IrisDimension dimension = new IrisDimension();
@@ -1059,8 +1060,9 @@ public class HydrologyRuntimeTest {
         }
     }
 
-    private static void assertDisabled(HydrologyRuntime runtime) {
+    private static void assertDisabled(HydrologyRuntime runtime) throws TimeoutException {
         assertFalse(runtime.enabled());
+        assertEquals(Optional.of("hydrology is off"), runtime.unavailable(HydrologyFeatureType.RIVER));
         assertEquals(0L, runtime.previewRevision());
         assertSame(ChunkWaterRaster.EMPTY, runtime.raster(0, 0));
         assertSame(ChunkWaterRaster.EMPTY, runtime.rasterSnapshot(0, 0));

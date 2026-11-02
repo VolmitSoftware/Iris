@@ -70,6 +70,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CancellationException;
 
 @Director(name = "find", origin = DirectorOrigin.PLAYER, description = "Iris Find commands", descriptionKey = "iris.director.commandfind.director.iris_find_commands", aliases = "goto")
 public class CommandFind implements DirectorExecutor {
@@ -218,41 +219,49 @@ public class CommandFind implements DirectorExecutor {
             commandSender.sendMessage(C.RED + error.getMessage());
             return;
         }
-        String label = featureType.key().replace('_', ' ');
         Location origin = target.getLocation();
-        World originWorld = origin.getWorld();
-        int maximumDistance = GenerationSemanticQueries.RIVER_SEARCH_DISTANCE;
-        commandSender.sendMessage(C.GRAY + GenerationSemanticQueries.riverSearchMessage(featureType, maximumDistance));
-        J.a(() -> {
-            try {
-                GenerationSemanticQueries.RiverResult feature = GenerationSemanticQueries.nearestRiver(
-                        activeEngine,
-                        featureType,
-                        origin.getBlockX(),
-                        origin.getBlockZ(),
-                        maximumDistance
-                ).orElse(null);
-                if (feature == null) {
-                    sendStructureMessage(target, commandSender,
-                            C.YELLOW + GenerationSemanticQueries.riverNotFoundMessage(featureType, maximumDistance));
-                    return;
-                }
-                if (!teleport) {
-                    sendStructureMessage(target, commandSender,
-                            C.GREEN + "Found " + label + " at " + feature.x() + ", " + feature.y() + ", " + feature.z() + ".");
-                    return;
-                }
-                Location destination = new Location(
-                        originWorld, feature.x(), feature.y(), feature.z());
-                prepareStructureTeleport(
-                        target, originWorld, commandSender, label, destination, true);
-            } catch (Throwable error) {
-                sendStructureMessage(target, commandSender,
-                        C.RED + "Could not search for " + label + ": " + error.getClass().getSimpleName()
-                                + (error.getMessage() == null ? "" : " - " + error.getMessage()));
-                Iris.reportError("Could not locate hydrology feature '" + featureType.key() + "'.", error);
+        RiverRequest request = new RiverRequest(target, origin.getWorld(), commandSender, featureType, teleport);
+        commandSender.sendMessage(C.GRAY + GenerationSemanticQueries.riverSearchMessage(featureType,
+                GenerationSemanticQueries.RIVER_SEARCH_DISTANCE));
+        GenerationSemanticQueries.startRiverSearch(target.getUniqueId(), J::a, activeEngine, featureType, origin.getBlockX(),
+                        origin.getBlockZ())
+                .whenComplete((search, failure) -> finishRiverSearch(request, search, failure));
+    }
+
+    private void finishRiverSearch(RiverRequest request, GenerationSemanticQueries.RiverSearch search, Throwable failure) {
+        if (failure instanceof CancellationException) {
+            return;
+        }
+        if (failure != null) {
+            reportRiverFailure(request, failure);
+            return;
+        }
+        try {
+            switch (search) {
+                case GenerationSemanticQueries.RiverSearch.Missing missing ->
+                        sendStructureMessage(request.target(), request.sender(), C.YELLOW + missing.message());
+                case GenerationSemanticQueries.RiverSearch.Found found -> arriveAtRiver(request, found.feature());
             }
-        });
+        } catch (RuntimeException error) {
+            reportRiverFailure(request, error);
+        }
+    }
+
+    private void arriveAtRiver(RiverRequest request, GenerationSemanticQueries.RiverResult feature) {
+        if (!request.teleport()) {
+            sendStructureMessage(request.target(), request.sender(),
+                    C.GREEN + "Found " + request.label() + " at " + feature.x() + ", " + feature.y() + ", " + feature.z() + ".");
+            return;
+        }
+        Location destination = new Location(request.world(), feature.x(), feature.y(), feature.z());
+        prepareStructureTeleport(request.target(), request.world(), request.sender(), request.label(), destination, true);
+    }
+
+    private void reportRiverFailure(RiverRequest request, Throwable failure) {
+        sendStructureMessage(request.target(), request.sender(),
+                C.RED + "Could not search for " + request.label() + ": " + failure.getClass().getSimpleName()
+                        + (failure.getMessage() == null ? "" : " - " + failure.getMessage()));
+        Iris.reportError("Could not locate hydrology feature '" + request.type().key() + "'.", failure);
     }
 
     @Director(description = "Find a structure (a vanilla key like minecraft:village_plains or minecraft:stronghold, or an imported iris structure key)", descriptionKey = "iris.director.commandfind.director.find_structure_vanilla_key_like_minecraft_village_plains_minecraft_stronghold_imported_iris", sync = true)
@@ -917,6 +926,12 @@ public class CommandFind implements DirectorExecutor {
             List<StructureExclusion> entries, Set<String> registeredKeys,
             Set<String> configuredImportUrls, int registeredExcluded,
             int configuredUnregistered, int editableUnplaced, int managedUnregistered) {
+    }
+
+    private record RiverRequest(Player target, World world, VolmitSender sender, HydrologyFeatureType type, boolean teleport) {
+        private String label() {
+            return type.key().replace('_', ' ');
+        }
     }
 
     private record ManagedDatapackStructure(String key, Set<String> sourceIds) {

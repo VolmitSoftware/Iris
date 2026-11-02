@@ -17,7 +17,7 @@ import lombok.experimental.Accessors;
 @Data
 public class IrisHydrologyTier {
     @Required
-    @Description("Label for this tier in configuration error messages. Locate, maps and history do not use it: they rank tiers by minCatchment, so the lowest tier is a stream, the highest a major river and any between are rivers.")
+    @Description("Channel type of this tier for locate, maps and history: stream, river or major (also major_river). Any other name takes the type of its rank by minCatchment instead: the lowest tier is a stream, the highest a major river and any between are rivers. Configuration error messages also use the name.")
     private String name = "stream";
 
     @MinNumber(0)

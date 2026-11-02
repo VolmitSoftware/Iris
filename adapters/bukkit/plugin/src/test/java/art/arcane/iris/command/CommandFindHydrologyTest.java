@@ -1,6 +1,7 @@
 package art.arcane.iris.command;
 
 import art.arcane.iris.Iris;
+import art.arcane.iris.generation.hydrology.engine.HydrologyRuntime;
 import art.arcane.iris.generation.hydrology.query.HydrologyFeatureType;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.IrisComplex;
@@ -19,6 +20,7 @@ import org.mockito.MockedStatic;
 
 import java.util.Optional;
 import java.util.OptionalLong;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -126,11 +128,12 @@ public class CommandFindHydrologyTest {
         for (HydrologyFeatureType type : HydrologyFeatureType.values()) {
             try (Fixture fixture = new Fixture()) {
                 fixture.command.river(type.key(), false);
-                fixture.queries.verify(() -> GenerationSemanticQueries.nearestRiver(any(), any(), anyInt(), anyInt(), anyInt()), never());
+                fixture.queries.verify(() -> GenerationSemanticQueries.nearestRiver(any(), any(), anyInt(), anyInt(), anyInt(), any()),
+                        never());
                 fixture.search.get().run();
 
-                fixture.queries.verify(() -> GenerationSemanticQueries.nearestRiver(fixture.engine, type, 0, 0,
-                        GenerationSemanticQueries.RIVER_SEARCH_DISTANCE));
+                fixture.queries.verify(() -> GenerationSemanticQueries.nearestRiver(eq(fixture.engine), eq(type), eq(0), eq(0),
+                        eq(GenerationSemanticQueries.RIVER_SEARCH_DISTANCE), any()));
                 verify(fixture.sender).sendMessage(contains("Found " + type.key().replace('_', ' ') + " at 32, 63, 32."));
             }
         }
@@ -147,10 +150,39 @@ public class CommandFindHydrologyTest {
     }
 
     @Test
+    public void aNewSearchSilentlyReplacesThePlayersRunningSearch() {
+        try (Fixture fixture = new Fixture()) {
+            fixture.command.river("pond", false);
+            Runnable replaced = fixture.search.get();
+            fixture.command.river("river", false);
+            replaced.run();
+
+            fixture.queries.verify(() -> GenerationSemanticQueries.nearestRiver(any(), eq(HydrologyFeatureType.POND), anyInt(), anyInt(),
+                    anyInt(), any()), never());
+            fixture.search.get().run();
+            verify(fixture.sender).sendMessage(contains("Found river at 32, 63, 32."));
+            verify(fixture.sender, never()).sendMessage(contains("Found pond"));
+            verify(fixture.sender, never()).sendMessage(contains("Could not search"));
+        }
+    }
+
+    @Test
+    public void disabledTypeIsReportedWithItsReason() throws Exception {
+        try (Fixture fixture = new Fixture()) {
+            fixture.searchForReal();
+            when(fixture.runtime.unavailable(HydrologyFeatureType.LAKE)).thenReturn(Optional.of("hydrology.lakes is disabled"));
+            fixture.command.river("lake", true);
+            fixture.search.get().run();
+
+            verify(fixture.sender).sendMessage(contains("No lake forms in this dimension: hydrology.lakes is disabled."));
+            verify(fixture.runtime, never()).nearestFeature(anyInt(), anyInt(), any(), anyInt(), any(), any());
+        }
+    }
+
+    @Test
     public void missingCavePoolIsReportedAsNotFoundInGeneratedChunks() {
         try (Fixture fixture = new Fixture()) {
-            fixture.queries.when(() -> GenerationSemanticQueries.nearestRiver(eq(fixture.engine), any(), eq(0), eq(0), anyInt()))
-                    .thenReturn(Optional.empty());
+            fixture.searchForReal();
             fixture.command.river("cave_pool", true);
             fixture.search.get().run();
 
@@ -162,8 +194,7 @@ public class CommandFindHydrologyTest {
     @Test
     public void missingFeatureIsReportedAsNotFound() {
         try (Fixture fixture = new Fixture()) {
-            fixture.queries.when(() -> GenerationSemanticQueries.nearestRiver(eq(fixture.engine), any(), eq(0), eq(0), anyInt()))
-                    .thenReturn(Optional.empty());
+            fixture.searchForReal();
             fixture.command.river("sea_inlet", true);
             fixture.search.get().run();
 
@@ -176,7 +207,7 @@ public class CommandFindHydrologyTest {
     public void plannerFailureIsReportedAsAnErrorNotAsNotFound() {
         try (Fixture fixture = new Fixture()) {
             IllegalStateException failure = new IllegalStateException("window planner exploded");
-            fixture.queries.when(() -> GenerationSemanticQueries.nearestRiver(eq(fixture.engine), any(), eq(0), eq(0), anyInt()))
+            fixture.queries.when(() -> GenerationSemanticQueries.nearestRiver(eq(fixture.engine), any(), eq(0), eq(0), anyInt(), any()))
                     .thenThrow(failure);
             fixture.command.river("lake", true);
             fixture.search.get().run();
@@ -191,6 +222,7 @@ public class CommandFindHydrologyTest {
         private final CommandFind command = mock(CommandFind.class, CALLS_REAL_METHODS);
         private final Engine engine = mock(Engine.class);
         private final IrisComplex complex = mock(IrisComplex.class);
+        private final HydrologyRuntime runtime = mock(HydrologyRuntime.class);
         private final Player player = mock(Player.class);
         private final World world = mock(World.class);
         private final VolmitSender sender = mock(VolmitSender.class);
@@ -208,6 +240,8 @@ public class CommandFindHydrologyTest {
             doReturn(player).when(command).player();
             doReturn(sender).when(command).sender();
             when(engine.getComplex()).thenReturn(complex);
+            when(complex.getHydrologyRuntime()).thenReturn(runtime);
+            when(player.getUniqueId()).thenReturn(UUID.randomUUID());
             when(player.getWorld()).thenReturn(world);
             when(player.getLocation()).thenReturn(new Location(world, 0, 70, 0));
             when(player.isOnline()).thenReturn(true);
@@ -227,10 +261,15 @@ public class CommandFindHydrologyTest {
             });
             platform.when(() -> BukkitPlatform.chunkAtAsync(any(World.class), anyInt(), anyInt(), eq(true))).thenReturn(chunk);
             platform.when(() -> BukkitPlatform.teleportAsync(eq(player), any(Location.class))).thenReturn(teleport);
-            queries.when(() -> GenerationSemanticQueries.nearestRiver(eq(engine), any(), eq(0), eq(0), anyInt()))
-                    .thenReturn(Optional.of(new GenerationSemanticQueries.RiverResult(
+            queries.when(() -> GenerationSemanticQueries.nearestRiver(eq(engine), any(), eq(0), eq(0), anyInt(), any()))
+                    .thenReturn(new GenerationSemanticQueries.RiverSearch.Found(new GenerationSemanticQueries.RiverResult(
                             GenerationSemanticQueries.RiverSource.ACTIVE_PREDICTION,
                             HydrologyFeatureType.RIVER, 1L, 32, 63, 32, OptionalLong.empty())));
+        }
+
+        private void searchForReal() {
+            queries.when(() -> GenerationSemanticQueries.nearestRiver(eq(engine), any(), eq(0), eq(0), anyInt(), any()))
+                    .thenCallRealMethod();
         }
 
         @Override

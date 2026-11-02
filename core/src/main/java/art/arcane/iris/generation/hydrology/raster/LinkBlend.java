@@ -1,6 +1,7 @@
 package art.arcane.iris.generation.hydrology.raster;
 
 import art.arcane.iris.generation.hydrology.water.ConfluenceGrader;
+import art.arcane.iris.generation.hydrology.water.PondMask;
 import art.arcane.iris.generation.hydrology.water.Reach;
 import art.arcane.iris.generation.hydrology.water.ReachShaper;
 import art.arcane.iris.generation.hydrology.water.ReachStyle;
@@ -56,9 +57,9 @@ public final class LinkBlend {
         return grade == downstream.grade() ? downstream : regraded(downstream, grade, downstream.halfWidth(), downstream.depth());
     }
 
-    static Reach settleInto(Reach feeder, int level, List<ConfluenceGrader.Footprint> receiving) {
+    static Reach settleInto(Reach feeder, int level, List<ConfluenceGrader.Footprint> receiving, List<PondMask> lips) {
         int[] grade = feeder.grade();
-        boolean[] fixed = fixed(feeder);
+        boolean[] fixed = fixed(feeder, lips);
         int waterfallMinimumDrop = feeder.tier().waterfallMinimumDrop();
         int[] settled = ConfluenceGrader.settle(footprint(feeder), grade, fixed, receiving, level, waterfallMinimumDrop);
         if (settled == grade) {
@@ -74,14 +75,25 @@ public final class LinkBlend {
         return new ConfluenceGrader.Footprint(reach.xs(), reach.zs(), reach.halfWidth());
     }
 
-    private static boolean[] fixed(Reach feeder) {
+    private static boolean[] fixed(Reach feeder, List<PondMask> lips) {
         ReachStyle[] style = feeder.style();
         boolean[] fixed = new boolean[style.length];
+        boolean held = !lips.isEmpty();
         fixed[0] = true;
         for (int point = 1; point < style.length; point++) {
-            fixed[point] = style[point] == ReachStyle.POND_OUTLET;
+            held = held && nearLip(lips, feeder.xs()[point], feeder.zs()[point], feeder.halfWidth()[point]);
+            fixed[point] = held || style[point] == ReachStyle.POND_OUTLET;
         }
         return fixed;
+    }
+
+    private static boolean nearLip(List<PondMask> lips, float x, float z, float halfWidth) {
+        for (PondMask lip : lips) {
+            if (ReachShaper.nearLip(lip, x, z, halfWidth)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static Reach regraded(Reach reach, int[] grade, float[] halfWidth, float[] depth) {

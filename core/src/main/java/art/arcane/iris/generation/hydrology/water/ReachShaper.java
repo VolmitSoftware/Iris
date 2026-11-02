@@ -289,12 +289,15 @@ public final class ReachShaper {
         draft.held = new boolean[draft.xs.length];
         draft.held[0] = true;
         for (int point = 1; point < draft.xs.length; point++) {
-            float radius = draft.tier.halfWidth(draft.catchments[point]) + 1f + LIP_MARGIN;
-            if (mask.nearest(draft.xs[point], draft.zs[point], radius) == null) {
+            if (!nearLip(mask, draft.xs[point], draft.zs[point], draft.tier.halfWidth(draft.catchments[point]))) {
                 return;
             }
             draft.held[point] = true;
         }
+    }
+
+    public static boolean nearLip(PondMask mask, float x, float z, float halfWidth) {
+        return mask.nearest(x, z, halfWidth + 1f + LIP_MARGIN) != null;
     }
 
     private static void leadIn(ReachDraft draft, PondMask mask) {

@@ -26,6 +26,8 @@ public final class ReachIndex {
     private final Buckets reachBuckets;
     private final Buckets pondBuckets;
     private final Map<Long, List<Reach>> feeders;
+    private final Map<Long, Reach> byId;
+    private final Map<Long, List<Pond>> outlets;
 
     private ReachIndex(List<Reach> reaches, List<Pond> ponds) {
         this.reaches = List.copyOf(reaches);
@@ -53,6 +55,8 @@ public final class ReachIndex {
         this.reachBuckets = buckets(corridors.length, this::visitReach);
         this.pondBuckets = buckets(footprints.length, this::visitPond);
         this.feeders = feeders(this.reaches);
+        this.byId = byId(this.reaches);
+        this.outlets = outlets(this.ponds);
     }
 
     public static ReachIndex build(List<Reach> reaches, List<Pond> ponds) {
@@ -90,6 +94,14 @@ public final class ReachIndex {
         return feeders.getOrDefault(downstreamId, List.of());
     }
 
+    public Reach reach(long id) {
+        return byId.get(id);
+    }
+
+    public List<Pond> outletPonds(long outletReachId) {
+        return outlets.getOrDefault(outletReachId, List.of());
+    }
+
     public static ReachHit nearest(List<Reach> candidates, double x, double z) {
         int segments = 0;
         for (Reach reach : candidates) {
@@ -111,6 +123,30 @@ public final class ReachIndex {
         }
         Map<Long, List<Reach>> frozen = new HashMap<>();
         for (Map.Entry<Long, List<Reach>> entry : grouped.entrySet()) {
+            frozen.put(entry.getKey(), List.copyOf(entry.getValue()));
+        }
+        return Map.copyOf(frozen);
+    }
+
+    private static Map<Long, Reach> byId(List<Reach> reaches) {
+        Map<Long, Reach> byId = new HashMap<>();
+        for (Reach reach : reaches) {
+            if (byId.putIfAbsent(reach.id(), reach) != null) {
+                throw new IllegalStateException("Reach id " + reach.id() + " appears twice in one plan");
+            }
+        }
+        return Map.copyOf(byId);
+    }
+
+    private static Map<Long, List<Pond>> outlets(List<Pond> ponds) {
+        Map<Long, List<Pond>> grouped = new HashMap<>();
+        for (Pond pond : ponds) {
+            if (pond.outletReachId() != 0L) {
+                grouped.computeIfAbsent(pond.outletReachId(), ignored -> new ArrayList<>()).add(pond);
+            }
+        }
+        Map<Long, List<Pond>> frozen = new HashMap<>();
+        for (Map.Entry<Long, List<Pond>> entry : grouped.entrySet()) {
             frozen.put(entry.getKey(), List.copyOf(entry.getValue()));
         }
         return Map.copyOf(frozen);

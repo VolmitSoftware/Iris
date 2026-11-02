@@ -766,6 +766,117 @@ public class ChunkWaterRasterTest {
     }
 
     @Test
+    public void crossWindowFeederSettlesToItsDownstreamOutletsPond() {
+        HydrologyTier river = tier("river", 2f, 0.5f, 4, IrisBankStyle.SMOOTH);
+        Reach outlet = ledIn(line(281L, river, 0L, 508f, 200f, 600f, 200f, (x, z) -> 68), 503f, 200f);
+        Reach feeder = line(282L, river, outlet.id(), 508f, 120f, 508f, 200f, (x, z) -> 68);
+        Pond pond = new Pond(280L, PondKind.NATURAL, 64, 56, 504, 200, 65.5f, circle(488, 200, 16, 1), outlet.id(), 0, "water", 488, 200);
+        assertTrue("the lead-in starts in the pond", pond.mask().contains(503, 200));
+        assertEquals(new WindowKey(0, 0), WindowKey.containing(508, 200));
+        assertEquals(new WindowKey(1, 0), WindowKey.containing(600, 200));
+        assertTrue("the pond sits below the outlet's planned start", pond.level() < outlet.grade()[0]);
+        Scene scene = new Scene(settings(new IrisHydrology()), (x, z) -> 75).reach(outlet).reach(feeder).pond(pond);
+        int previous = Integer.MAX_VALUE;
+        for (int z = 120; z <= 199; z++) {
+            int head = scene.head(508, z);
+            assertNotEquals("feeder centre line is water at z=" + z, Integer.MIN_VALUE, head);
+            assertTrue("water rises from " + previous + " to " + head + " at z=" + z, head <= previous);
+            if (z >= 194) {
+                assertTrue("feeder water at " + head + " above the outlet's pond " + pond.level() + " at z=" + z, head <= pond.level());
+            }
+            previous = head;
+        }
+        for (int x = 508; x <= 600; x++) {
+            assertTrue("outlet water above its pond at x=" + x, scene.head(x, 200) <= pond.level());
+        }
+    }
+
+    @Test
+    public void fullyPooledShortFeederKeepsItsStartForItsOwnFeeders() {
+        HydrologyTier narrow = tier("river", 2f, 0.5f, 4, IrisBankStyle.SMOOTH);
+        HydrologyTier wide = tier("river", 3f, 0.5f, 4, IrisBankStyle.SMOOTH);
+        Reach low = line(292L, wide, 0L, 504f, 200f, 600f, 200f, (x, z) -> 62);
+        Reach stub = line(291L, narrow, low.id(), 498f, 200f, 504f, 200f, (x, z) -> 66);
+        Reach upstream = line(290L, narrow, stub.id(), 440f, 200f, 498f, 200f, (x, z) -> 66);
+        assertEquals(4, stub.xs().length);
+        Scene scene = new Scene(settings(new IrisHydrology()), (x, z) -> 90).reach(upstream).reach(stub).reach(low);
+        assertEquals("the stub keeps its start level for the reach that feeds it", 66, scene.head(498, 200));
+        assertEquals(62, scene.head(499, 200));
+        assertEquals("the stub drops inside itself as a cascade", WaterRole.CASCADE, scene.role(499, 200));
+        int previous = Integer.MAX_VALUE;
+        for (int x = 440; x <= 600; x++) {
+            int head = scene.head(x, 200);
+            assertNotEquals("centre line is water at x=" + x, Integer.MIN_VALUE, head);
+            assertTrue("water rises from " + previous + " to " + head + " at x=" + x, head <= previous);
+            previous = head;
+        }
+    }
+
+    @Test
+    public void crossWindowSettlingKeepsAnOutletsHeldLipAtThePondLevel() {
+        HydrologyTier narrow = tier("river", 2f, 0.5f, 4, IrisBankStyle.SMOOTH);
+        HydrologyTier wide = tier("river", 3f, 0.5f, 4, IrisBankStyle.SMOOTH);
+        Reach low = line(322L, wide, 0L, 504f, 200f, 600f, 200f, (x, z) -> 62);
+        Reach shore = line(321L, narrow, low.id(), 486f, 200f, 504f, 200f, (x, z) -> 66);
+        ReachStyle[] style = shore.style().clone();
+        for (int point = 0; point < style.length; point++) {
+            style[point] = shore.xs()[point] - shore.xs()[0] <= 8f ? ReachStyle.POND_OUTLET : style[point];
+        }
+        Reach outlet = new Reach(shore.id(), shore.tier(), shore.downstreamId(), shore.xs(), shore.zs(), shore.grade(), shore.halfWidth(),
+                shore.depth(), style, shore.catchment());
+        Pond pond = new Pond(320L, PondKind.NATURAL, 66, 58, 490, 202, 67.5f, circle(490, 210, 8, 1), outlet.id(), 0, "water", 490, 210);
+        assertFalse("the outlet is not led in", pond.mask().contains(486, 200));
+        assertEquals("the lip vertices past the outlet zone run", ReachStyle.RUN, outlet.style()[7]);
+        Scene scene = new Scene(settings(new IrisHydrology()), (x, z) -> 75).reach(outlet).reach(low).pond(pond);
+        for (int x = 487; x <= 500; x++) {
+            assertEquals("outlet water along its pond's lip at x=" + x, pond.level(), scene.head(x, 200));
+        }
+        assertEquals("the outlet drops into the lower river past its lip", WaterRole.CASCADE, scene.role(501, 200));
+    }
+
+    @Test
+    public void sharedOutletWithoutALeadInClampsToTheLastPondInItsPlan() {
+        HydrologyTier river = tier("river", 2f, 0.5f, 4, IrisBankStyle.SMOOTH);
+        Reach outlet = line(311L, river, 0L, 300f, 200f, 380f, 200f, (x, z) -> 68);
+        Pond low = new Pond(310L, PondKind.NATURAL, 64, 56, 290, 200, 65.5f, circle(280, 200, 10, 1), outlet.id(), 0, "water", 280, 200);
+        Pond high = new Pond(312L, PondKind.NATURAL, 68, 60, 300, 224, 69.5f, circle(300, 230, 6, 1), outlet.id(), 0, "water", 300, 230);
+        assertFalse(low.mask().contains(300, 200));
+        assertFalse(high.mask().contains(300, 200));
+        for (boolean highLast : new boolean[]{true, false}) {
+            Scene scene = new Scene(settings(new IrisHydrology()), (x, z) -> 75).reach(outlet);
+            if (highLast) {
+                scene.pond(low).pond(high);
+            } else {
+                scene.pond(high).pond(low);
+            }
+            int expected = highLast ? high.level() : low.level();
+            for (int x = 302; x <= 320; x++) {
+                assertEquals("outlet water with the " + (highLast ? "higher" : "lower") + " pond last at x=" + x, expected, scene.head(x, 200));
+            }
+        }
+    }
+
+    @Test
+    public void aDownstreamReachOwnedByTwoWindowsFailsClosed() {
+        HydrologyTier river = tier("river", 2f, 0.5f, 4, IrisBankStyle.SMOOTH);
+        Reach downstream = line(332L, river, 0L, 504f, 200f, 600f, 200f, (x, z) -> 62);
+        Reach feeder = line(331L, river, downstream.id(), 440f, 200f, 504f, 200f, (x, z) -> 66);
+        List<IndexedWindow> windows = new ArrayList<>();
+        for (int dz = -1; dz <= 1; dz++) {
+            for (int dx = -1; dx <= 1; dx++) {
+                WindowKey key = new WindowKey(dx, dz);
+                List<Reach> owned = key.equals(new WindowKey(0, 0)) ? List.of(feeder)
+                        : key.equals(new WindowKey(1, 0)) || key.equals(new WindowKey(1, -1)) ? List.of(downstream) : List.of();
+                windows.add(new IndexedWindow(new WindowPlan(key, owned, List.of(), List.of()), ReachIndex.build(owned, List.of())));
+            }
+        }
+        ChunkRasterizer rasterizer = new ChunkRasterizer(settings(new IrisHydrology()), ChannelFluids.TIER);
+        IllegalStateException failure = assertThrows(IllegalStateException.class,
+                () -> rasterizer.rasterize(31, 12, (x, z) -> 75, windows, regions(31, 12, List.of())));
+        assertTrue(failure.getMessage(), failure.getMessage().contains("Reach " + downstream.id() + " is owned by window"));
+    }
+
+    @Test
     public void crossWindowJunctionDropsSpreadOnTiersWithoutCascades() {
         HydrologyTier gentle = new HydrologyTier("stream", 0f, 2f, 2f, 0f, 0.5f, 1, false, 6, 4, IrisBankStyle.SMOOTH, false,
                 new IrisHydrologyMaterials(), "water", List.of());

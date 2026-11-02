@@ -295,27 +295,11 @@ final class ChunkFeatures {
 
     private static final class Links {
         private final Map<WindowKey, IndexedWindow> windows;
-        private final Map<Long, Reach> owned = new HashMap<>();
-        private final Map<Long, List<Pond>> outletPonds = new HashMap<>();
         private final Map<Long, Reach> resolved = new HashMap<>();
         private final Set<Long> resolving = new HashSet<>();
 
         private Links(Map<WindowKey, IndexedWindow> windows) {
             this.windows = windows;
-            for (IndexedWindow window : windows.values()) {
-                for (Reach reach : window.plan().reaches()) {
-                    Reach other = owned.putIfAbsent(reach.id(), reach);
-                    if (other != null) {
-                        throw new IllegalStateException("Reach " + reach.id() + " is owned by window " + window.plan().key()
-                                + " and by window " + windowAt(other, other.xs().length - 1));
-                    }
-                }
-                for (Pond pond : window.plan().ponds()) {
-                    if (pond.outletReachId() != 0L) {
-                        outletPonds.computeIfAbsent(pond.outletReachId(), ignored -> new ArrayList<>()).add(pond);
-                    }
-                }
-            }
         }
 
         private Reach resolve(Reach reach, WindowKey owner) {
@@ -334,17 +318,18 @@ final class ChunkFeatures {
 
         private Reach link(Reach reach, WindowKey owner) {
             Reach linked = feederLink(reach, owner);
-            Integer pondLevel = outletLevel(reach);
+            Integer pondLevel = outletLevel(reach, owner);
             return settle(reach, pondLevel == null ? linked : LinkBlend.clamp(linked, pondLevel), owner);
         }
 
         private Reach settle(Reach feeder, Reach linked, WindowKey owner) {
-            Reach downstream = owned.get(feeder.downstreamId());
-            if (downstream == null || owner.equals(windowAt(downstream, downstream.xs().length - 1))) {
+            IndexedWindow home = ownerOf(feeder.downstreamId());
+            if (home == null || home.plan().key().equals(owner)) {
                 return linked;
             }
+            Reach downstream = home.index().reach(feeder.downstreamId());
             int level = downstream.grade()[0];
-            Integer pondLevel = outletLevel(downstream);
+            Integer pondLevel = outletLevel(downstream, home.plan().key());
             if (pondLevel != null) {
                 level = Math.min(level, pondLevel);
             }
@@ -356,23 +341,38 @@ final class ChunkFeatures {
                     receiving.add(LinkBlend.footprint(sibling));
                 }
             }
-            return LinkBlend.settleInto(linked, level, receiving);
+            return LinkBlend.settleInto(linked, level, receiving, lips(feeder, owner));
+        }
+
+        private IndexedWindow ownerOf(long id) {
+            IndexedWindow found = null;
+            for (IndexedWindow window : windows.values()) {
+                if (window.index().reach(id) == null) {
+                    continue;
+                }
+                if (found != null) {
+                    throw new IllegalStateException("Reach " + id + " is owned by window " + found.plan().key() + " and by window "
+                            + window.plan().key());
+                }
+                found = window;
+            }
+            return found;
         }
 
         private Reach feederLink(Reach downstream, WindowKey owner) {
             int junction = junction(downstream);
             WindowKey link = windowAt(downstream, junction);
-            List<Reach> owned = feeders(link, downstream.id());
-            if (owned.isEmpty() && junction > 0) {
+            List<Reach> joining = feeders(link, downstream.id());
+            if (joining.isEmpty() && junction > 0) {
                 link = windowAt(downstream, 0);
-                owned = feeders(link, downstream.id());
+                joining = feeders(link, downstream.id());
             }
-            if (owned.isEmpty()) {
+            if (joining.isEmpty()) {
                 return downstream;
             }
             long block = cornerBlock(downstream);
-            List<Reach> feeders = new ArrayList<>(owned.size());
-            for (Reach reach : owned) {
+            List<Reach> feeders = new ArrayList<>(joining.size());
+            for (Reach reach : joining) {
                 feeders.add(cornerBlock(reach) == block ? resolve(reach, link) : reach);
             }
             return link.equals(owner) ? LinkBlend.clamp(downstream, feeders) : LinkBlend.blend(downstream, feeders, junction);
@@ -387,33 +387,62 @@ final class ChunkFeatures {
             return source(reach) == null ? 0 : 1;
         }
 
-        private Integer outletLevel(Reach reach) {
-            List<Pond> ponds = outletPonds.get(reach.id());
-            if (ponds == null) {
-                return null;
+        private Integer outletLevel(Reach outlet, WindowKey owner) {
+            Pond pond = outletPond(outlet, owner);
+            if (pond != null) {
+                return pond.level();
             }
-            Pond source = source(reach);
-            if (source != null) {
-                return source.level();
-            }
-            int level = Integer.MAX_VALUE;
-            for (Pond pond : ponds) {
-                level = Math.min(level, pond.level());
+            Integer level = null;
+            for (IndexedWindow window : windows.values()) {
+                for (Pond shared : window.index().outletPonds(outlet.id())) {
+                    level = level == null ? shared.level() : Math.min(level, shared.level());
+                }
             }
             return level;
         }
 
-        private Pond source(Reach reach) {
-            List<Pond> ponds = outletPonds.get(reach.id());
-            if (ponds == null) {
-                return null;
+        private List<PondMask> lips(Reach outlet, WindowKey owner) {
+            Pond pond = outletPond(outlet, owner);
+            if (pond != null) {
+                return List.of(pond.mask());
             }
-            int x = Math.round(reach.xs()[0]);
-            int z = Math.round(reach.zs()[0]);
+            List<PondMask> lips = new ArrayList<>();
+            for (IndexedWindow window : windows.values()) {
+                for (Pond shared : window.index().outletPonds(outlet.id())) {
+                    lips.add(shared.mask());
+                }
+            }
+            return lips;
+        }
+
+        private Pond outletPond(Reach outlet, WindowKey owner) {
+            Pond source = source(outlet);
+            if (source != null) {
+                return source;
+            }
+            Pond last = null;
+            for (IndexedWindow window : windows.values()) {
+                List<Pond> ponds = window.index().outletPonds(outlet.id());
+                if (ponds.isEmpty()) {
+                    continue;
+                }
+                if (!window.plan().key().equals(owner)) {
+                    return null;
+                }
+                last = ponds.get(ponds.size() - 1);
+            }
+            return last;
+        }
+
+        private Pond source(Reach outlet) {
+            int x = Math.round(outlet.xs()[0]);
+            int z = Math.round(outlet.zs()[0]);
             Pond source = null;
-            for (Pond pond : ponds) {
-                if (pond.mask().contains(x, z) && (source == null || lower(pond, source))) {
-                    source = pond;
+            for (IndexedWindow window : windows.values()) {
+                for (Pond pond : window.index().outletPonds(outlet.id())) {
+                    if (pond.mask().contains(x, z) && (source == null || lower(pond, source))) {
+                        source = pond;
+                    }
                 }
             }
             return source;

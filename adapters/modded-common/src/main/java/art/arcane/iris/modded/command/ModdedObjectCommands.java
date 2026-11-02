@@ -28,6 +28,7 @@ import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.studio.tree.TreePlausibilizeBatch;
 import art.arcane.iris.studio.tree.TreePlausibilizer;
 import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.stream.ProvisionalAnswerException;
 import art.arcane.iris.structure.object.IrisObject;
 import art.arcane.iris.structure.object.IrisObjectPlacement;
 import art.arcane.iris.structure.object.IrisObjectRotation;
@@ -366,6 +367,10 @@ public final class ModdedObjectCommands {
         try {
             object = placement.scaleObject(new RNG(), object, engine == null ? null : engine.getDimension());
             object.place(target.x(), target.y() + object.getCenter().getY(), target.z(), placer, placement, new RNG(), object.getLoader());
+        } catch (ProvisionalAnswerException provisional) {
+            ModdedIrisLog.info("Iris paste of {} at {},{},{} waits for the terrain plan", key, target.x(), target.y(), target.z());
+            IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_OBJECT_COMMANDS_PASTE_WAITS_FOR_TERRAIN_PLAN, MessageArgument.untrusted("value", target.x()), MessageArgument.untrusted("value2", target.y()), MessageArgument.untrusted("value3", target.z())));
+            return 0;
         } catch (Throwable e) {
             ModdedIrisLog.error("Iris paste failed for {}", key, e);
             ModdedObjectUndo.record(player == null ? ModdedObjectUndo.CONSOLE : player.id(), placer.undoSnapshot());

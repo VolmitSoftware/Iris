@@ -1,5 +1,6 @@
 package art.arcane.iris.structure.object;
 
+import art.arcane.iris.generation.hydrology.raster.WaterRole;
 import art.arcane.iris.generation.block.BlockDataMergeSupport;
 import art.arcane.iris.generation.block.IrisBlockData;
 import art.arcane.iris.generation.block.TileData;
@@ -110,8 +111,11 @@ public class ObjectPlacementGoldenTest {
 
         ProceduralStream<NativeBlockState> rock = mock(ProceduralStream.class, withSettings().stubOnly());
         when(rock.get(anyDouble(), anyDouble())).thenAnswer(invocation -> state("minecraft:stone"));
+        ProceduralStream<WaterRole> roles = mock(ProceduralStream.class, withSettings().stubOnly());
+        when(roles.get(anyDouble(), anyDouble())).thenReturn(WaterRole.NONE);
         IrisComplex complex = mock(IrisComplex.class, withSettings().stubOnly());
         when(complex.getRockStream()).thenReturn(rock);
+        when(complex.getWaterRoleStream()).thenReturn(roles);
         IrisDimension dimension = mock(IrisDimension.class, withSettings().stubOnly());
         engine = mock(Engine.class, withSettings().stubOnly());
         when(engine.getHeight()).thenReturn(256);

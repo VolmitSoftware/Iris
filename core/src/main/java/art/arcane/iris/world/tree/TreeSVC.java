@@ -27,6 +27,7 @@ import art.arcane.iris.world.IrisToolbelt;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.EngineLifecycleTasks;
 import art.arcane.iris.generation.decoration.tree.TreeBlockMaterial;
+import art.arcane.iris.generation.stream.ProvisionalAnswerException;
 import art.arcane.iris.structure.object.IObjectPlacer;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.terrain.IrisDimension;
@@ -158,7 +159,6 @@ public class TreeSVC implements IrisService {
             return;
         }
 
-        saplingPlane.forEach(block -> block.setType(Material.AIR));
         IrisObject object = placement.scaleObject(RNG.r,
                 worldAccess.getData().getObjectLoader().load(pool.getRandom(RNG.r)), dimension);
 
@@ -257,17 +257,28 @@ public class TreeSVC implements IrisService {
             }
         };
 
-        object.place(
-                saplingPlane.getCenter().getBlockX(),
-                (saplingPlane.getCenter().getBlockY() + object.getH() / 2),
-                saplingPlane.getCenter().getBlockZ(),
-                placer,
-                placement,
-                RNG.r,
-                Objects.requireNonNull(worldAccess).getData()
-        );
+        try {
+            object.place(
+                    saplingPlane.getCenter().getBlockX(),
+                    (saplingPlane.getCenter().getBlockY() + object.getH() / 2),
+                    saplingPlane.getCenter().getBlockZ(),
+                    placer,
+                    placement,
+                    RNG.r,
+                    Objects.requireNonNull(worldAccess).getData()
+            );
+        } catch (ProvisionalAnswerException provisional) {
+            IrisLogging.debug("Sapling growth at " + event.getLocation() + " waits for the terrain plan: " + provisional.getMessage());
+            event.setCancelled(true);
+            return;
+        }
 
         event.setCancelled(true);
+        if (blockStateList.isEmpty()) {
+            IrisLogging.debug("Tree placement " + object.getLoadKey() + " placed nothing at " + event.getLocation() + "; the sapling stays");
+            return;
+        }
+        saplingPlane.forEach(block -> block.setType(Material.AIR));
 
         Runnable growTask = () -> {
 

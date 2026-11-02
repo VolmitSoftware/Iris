@@ -562,15 +562,7 @@ public class IrisStructureComponent extends IrisMantleComponent {
                             boolean supportNonOccluding) {
         IrisObject object = p.getObject();
         String objectKey = object.getLoadKey();
-        IrisObjectPlacement config = structure.createLootPlacement(objectKey);
-        config.setMode(mode);
-        config.setRotation(p.getRotation());
-        if (!structure.getEdit().isEmpty()) {
-            config.setEdit(structure.getEdit());
-        }
-        if (mode != ObjectPlaceMode.STRUCTURE_PIECE && mode != ObjectPlaceMode.FLOATING) {
-            config.setForcePlace(true);
-        }
+        IrisObjectPlacement config = piecePlacement(structure, p, mode);
         int placeY = (y == -1) ? -1 : y - getEngineMantle().getEngine().getMinHeight();
         String marker = structurePlacementMarker(structure, p, objectKey);
         return object.place(p.getX(), placeY, p.getZ(), writer, config, rng, (position, state) -> {
@@ -581,6 +573,20 @@ public class IrisStructureComponent extends IrisMantleComponent {
                 writer.setData(position.getX(), position.getY(), position.getZ(), marker);
             }
         }, null, getData());
+    }
+
+    static IrisObjectPlacement piecePlacement(IrisStructure structure, PlacedStructurePiece piece, ObjectPlaceMode mode) {
+        IrisObjectPlacement config = structure.createLootPlacement(piece.getObject().getLoadKey());
+        config.setMode(mode);
+        config.setRotation(piece.getRotation());
+        if (!structure.getEdit().isEmpty()) {
+            config.setEdit(structure.getEdit());
+        }
+        if (mode != ObjectPlaceMode.STRUCTURE_PIECE && mode != ObjectPlaceMode.FLOATING) {
+            config.setForcePlace(true);
+            config.setForcedByStructure(true);
+        }
+        return config;
     }
 
     static boolean shouldWriteStructureMarker(NativeBlockState state) {

@@ -382,6 +382,10 @@ public final class BukkitCommandMessagesExtended {
             "iris.bukkit.commandobject.placed",
             C.IRIS + "Placed " + "{object}"
     );
+    public static final TextKey COMMAND_OBJECT_PASTE_WAITS_FOR_TERRAIN_PLAN = TextKey.of(
+            "iris.bukkit.commandobject.paste_waits_for_terrain_plan",
+            C.YELLOW + "The terrain at " + "{x}" + " " + "{y}" + " " + "{z}" + " is still being planned. Nothing was pasted; run the paste again in a moment."
+    );
     public static final TextKey COMMAND_OBJECT_YOU_NEED_HOLD_YOUR_WAND = TextKey.of(
             "iris.bukkit.commandobject.you_need_hold_your_wand",
             C.YELLOW + "You need to hold your wand!"
@@ -899,6 +903,7 @@ public final class BukkitCommandMessagesExtended {
             COMMAND_OBJECT_GIVEN_NEW_WAND_OBJECTS_IOB,
             COMMAND_OBJECT_UPDATED_WAND_OBJECTS_IOB_2,
             COMMAND_OBJECT_PLACED,
+            COMMAND_OBJECT_PASTE_WAITS_FOR_TERRAIN_PLAN,
             COMMAND_OBJECT_YOU_NEED_HOLD_YOUR_WAND,
             COMMAND_OBJECT_FILE_ALREADY_EXISTS_SET_OVERWRITE_TRUE_OVERWRITE_IT,
             COMMAND_OBJECT_FAILED_SAVE_OBJECT_BECAUSE_IOEXCEPTION,

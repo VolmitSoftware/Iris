@@ -3,6 +3,7 @@ package art.arcane.iris.structure.nativegen;
 import art.arcane.volmlib.nativelib.terrain.structure.NativeStructureVolume;
 
 import art.arcane.iris.generation.block.TileData;
+import art.arcane.iris.generation.hydrology.raster.WaterRole;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.structure.object.IObjectPlacer;
 import art.arcane.iris.structure.object.IrisObject;
@@ -30,6 +31,7 @@ import java.util.List;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -52,8 +54,12 @@ public class NativeStructureObjectVetoTest {
         log = state("minecraft:oak_log", true);
         @SuppressWarnings("unchecked")
         ProceduralStream<Double> heightStream = mock(ProceduralStream.class);
+        @SuppressWarnings("unchecked")
+        ProceduralStream<WaterRole> roles = mock(ProceduralStream.class);
+        when(roles.get(anyDouble(), anyDouble())).thenReturn(WaterRole.NONE);
         IrisComplex complex = mock(IrisComplex.class);
         when(complex.getHeightStream()).thenReturn(heightStream);
+        when(complex.getWaterRoleStream()).thenReturn(roles);
         engine = mock(Engine.class);
         when(engine.getHeight()).thenReturn(256);
         when(engine.getHeight(anyInt(), anyInt())).thenReturn(SURFACE_Y);

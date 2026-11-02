@@ -9,6 +9,8 @@ import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.geometry.IrisBlockVector;
+import art.arcane.iris.generation.hydrology.raster.WaterRole;
+import art.arcane.volmlib.util.stream.ProceduralStream;
 
 import java.util.Arrays;
 import java.util.List;
@@ -58,6 +60,21 @@ public final class IrisSurfaceSupport {
             return true;
         }
         return stencil.anyColumnIntersectsHydrology(engine.getComplex(), x, z);
+    }
+
+    public static boolean intersectsUnevenWater(IObjectPlacer placer, int x, int z,
+                                                IrisObjectTranslate translate, IrisObjectRotation rotation,
+                                                int spinX, int spinY, int spinZ,
+                                                List<IrisBlockVector> supportOffsets) {
+        Engine engine = placer.getEngine();
+        if (engine == null || engine.getComplex() == null) {
+            return false;
+        }
+        Stencil stencil = STENCIL.get();
+        if (!stencil.build(supportOffsets, translate, rotation, spinX, spinY, spinZ, 0)) {
+            return true;
+        }
+        return stencil.anyColumnIntersectsUnevenWater(engine.getComplex(), x, z);
     }
 
     private static IrisBlockVector transform(IrisBlockVector offset, IrisObjectTranslate translate,
@@ -226,6 +243,44 @@ public final class IrisSurfaceSupport {
                 }
             }
             return false;
+        }
+
+        private boolean anyColumnIntersectsUnevenWater(IrisComplex complex, int x, int z) {
+            ProceduralStream<WaterRole> roles = complex.getWaterRoleStream();
+            ProceduralStream<Double> heads = complex.getWaterHeadStream();
+            boolean anchorKnown = false;
+            long anchorHead = 0L;
+            for (int stencilX = 0; stencilX < width; stencilX++) {
+                for (int stencilZ = 0; stencilZ < depth; stencilZ++) {
+                    if (!cells[(stencilX * depth) + stencilZ]) {
+                        continue;
+                    }
+                    int columnX = x + minX + stencilX;
+                    int columnZ = z + minZ + stencilZ;
+                    WaterRole role = roles.get(columnX, columnZ);
+                    if (breaksFlatWater(role)) {
+                        return true;
+                    }
+                    if (!role.wet()) {
+                        continue;
+                    }
+                    if (!anchorKnown) {
+                        anchorHead = Math.round(heads.getDouble(x, z));
+                        anchorKnown = true;
+                    }
+                    if (Math.round(heads.getDouble(columnX, columnZ)) != anchorHead) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        private static boolean breaksFlatWater(WaterRole role) {
+            return switch (role) {
+                case DAM, CASCADE, WATERFALL -> true;
+                case NONE, CHANNEL, BANK, SHORE, POND, POND_SHORE, MOUTH, INLET -> false;
+            };
         }
 
         private boolean isColumnUnsupported(IObjectPlacer placer, IrisData data, int x, int z,

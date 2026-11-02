@@ -599,6 +599,10 @@ public final class ModdedCommandMessages {
             "iris.modded.moddedobjectcommands.paste_failed_partial_changes_recorded_undo",
             "Paste failed: " + "{value}" + " (partial changes recorded for undo)"
     );
+    public static final TextKey MODDED_OBJECT_COMMANDS_PASTE_WAITS_FOR_TERRAIN_PLAN = TextKey.of(
+            "iris.modded.moddedobjectcommands.paste_waits_for_terrain_plan",
+            "The terrain at " + "{value}" + " " + "{value2}" + " " + "{value3}" + " is still being planned. Nothing was pasted; run the paste again in a moment."
+    );
     public static final TextKey MODDED_OBJECT_COMMANDS_PLACED_AT_ROT_WRITE_S_NON_AIR = TextKey.of(
             "iris.modded.moddedobjectcommands.placed_at_rot_write_s_non_air",
             "Placed " + "{key}" + " at " + "{value}" + " " + "{value2}" + " " + "{value3}" + " rot=" + "{rotation}" + " (" + "{value4}" + " write(s), " + "{value5}" + " non-air" + "{tileNote}" + ")"
@@ -1438,6 +1442,7 @@ public final class ModdedCommandMessages {
             MODDED_OBJECT_COMMANDS_CONSOLE_MUST_SPECIFY_COORDINATES_IRIS_OBJECT_PASTE_AT_X_Y,
             MODDED_OBJECT_COMMANDS_YOU_ARE_NOT_LOOKING_AT_BLOCK_WITHIN_BLOCKS,
             MODDED_OBJECT_COMMANDS_PASTE_FAILED_PARTIAL_CHANGES_RECORDED_UNDO,
+            MODDED_OBJECT_COMMANDS_PASTE_WAITS_FOR_TERRAIN_PLAN,
             MODDED_OBJECT_COMMANDS_PLACED_AT_ROT_WRITE_S_NON_AIR,
             MODDED_OBJECT_COMMANDS_THIS_COMMAND_CAN_ONLY_BE_USED_BY_PLAYERS,
             MODDED_OBJECT_COMMANDS_HOLD_YOUR_IRIS_WAND_IRIS_WAND_2,

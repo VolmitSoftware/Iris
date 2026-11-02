@@ -201,6 +201,7 @@ public class IrisObjectPlacement {
     @Description("Ignore any placement restrictions for this object")
     @SerializedName(value = "forcePlace", alternate = {"force"})
     private boolean forcePlace = false;
+    private transient boolean forcedByStructure = false;
     private transient AtomicCache<TableCache> cache = new AtomicCache<>();
     private transient AtomicCache<CompatStatus> compatCache = new AtomicCache<>();
     @Getter(AccessLevel.NONE)

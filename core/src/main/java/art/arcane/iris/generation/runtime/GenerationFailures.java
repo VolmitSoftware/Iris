@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.runtime;
 
+import art.arcane.iris.generation.stream.ProvisionalAnswerException;
 import art.arcane.iris.world.history.SavedBiomeUnavailableException;
 import art.arcane.volmlib.util.mantle.MantleClosedException;
 
@@ -25,6 +26,7 @@ public final class GenerationFailures {
     public static boolean isEngineFailure(Throwable failure) {
         return isShutdownFailure(failure) || hasCause(failure, (Throwable cause) -> cause instanceof Error
                 || cause instanceof WrongEngineBroException
+                || cause instanceof ProvisionalAnswerException
                 || cause instanceof SavedBiomeUnavailableException unavailable && unavailable.isLoading()
                 || cause instanceof TimeoutException);
     }

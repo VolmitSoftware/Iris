@@ -1,27 +1,19 @@
 package art.arcane.iris.structure.object;
 
-import art.arcane.iris.generation.block.TileData;
-import art.arcane.iris.generation.runtime.Engine;
-import art.arcane.iris.generation.runtime.IrisComplex;
-import art.arcane.iris.generation.stream.ProvisionalSampling;
-import art.arcane.iris.generation.terrain.IrisDimension;
-import art.arcane.iris.pack.loading.IrisData;
+import art.arcane.iris.generation.hydrology.raster.WaterRole;
+import art.arcane.iris.generation.stream.ProvisionalAnswerException;
 import art.arcane.iris.testsupport.PlatformBinding;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.math.RNG;
-import art.arcane.volmlib.util.stream.ProceduralStream;
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -30,125 +22,133 @@ public class PlacementModuleSurfaceSupportTest {
     @Rule
     public final PlatformBinding platform = PlatformBinding.mockPlatform();
 
-    private static final int LAND_ABOVE_SEA = 17;
-    private static final int WATER_RADIUS = 8;
-
-    private IrisData data;
-    private Engine engine;
-    private IrisComplex complex;
-    private int dimensionFluidHeight;
-    private int waterFloor;
-    private int waterHead;
-    private boolean provisionalWater;
-
-    @Before
-    public void bindEngine() {
-        IrisDimension dimension = new IrisDimension();
-        dimensionFluidHeight = dimension.getFluidHeight();
-        @SuppressWarnings("unchecked")
-        ProceduralStream<Double> waterHeads = mock(ProceduralStream.class);
-        when(waterHeads.get(anyDouble(), anyDouble())).thenAnswer(invocation -> {
-            if (provisionalWater) {
-                ProvisionalSampling.mark();
-            }
-            return (double) headAt((int) Math.floor((double) invocation.getArgument(0)), (int) Math.floor((double) invocation.getArgument(1)));
-        });
-        complex = mock(IrisComplex.class);
-        when(complex.getWaterHeadStream()).thenReturn(waterHeads);
-        when(complex.hasWaterOrShore(anyInt(), anyInt())).thenAnswer(invocation -> {
-            if (provisionalWater) {
-                ProvisionalSampling.mark();
-            }
-            return isWater(invocation.getArgument(0), invocation.getArgument(1));
-        });
-        engine = mock(Engine.class);
-        when(engine.getHeight()).thenReturn(256);
-        when(engine.getComplex()).thenReturn(complex);
-        when(engine.getDimension()).thenReturn(dimension);
-        data = mock(IrisData.class);
-        when(data.getEngine()).thenReturn(engine);
-    }
+    private final HydrologyWaterFixture world = new HydrologyWaterFixture();
 
     @Test
     public void underwaterObjectsPlaceInPonds() {
-        water(7, 13);
-        WaterPlacer placer = new WaterPlacer();
-        IrisObjectPlacement placement = placement();
-        placement.setUnderwater(true);
+        world.water(WaterRole.POND, 7, 13);
+        HydrologyWaterFixture.Placer placer = world.placer();
 
-        assertTrue(place(placer, placement) >= 0);
+        assertTrue(place(HydrologyWaterFixture.pillar(), placer, underwater()) >= 0);
         assertFalse(placer.writes().isEmpty());
-        assertEquals(waterFloor, placer.lowestWrite());
-        assertTrue(placer.highestWrite() < waterHead);
+        assertEquals(world.floorAt(0, 0), placer.lowestWrite());
+        assertTrue(placer.highestWrite() < world.headAt(0, 0));
     }
 
     @Test
-    public void underwaterObjectsNeedWaterAboveTheirBase() {
-        water(12, 13);
-        WaterPlacer placer = new WaterPlacer();
-        IrisObjectPlacement placement = placement();
-        placement.setUnderwater(true);
+    public void underwaterObjectsSkipWaterTooShallowForTheirResolvedY() {
+        world.water(WaterRole.POND, 9, 13);
+        HydrologyWaterFixture.Placer deep = world.placer();
+        assertTrue(place(HydrologyWaterFixture.pillar(), deep, underwater()) >= 0);
 
-        assertEquals(-1, place(placer, placement));
-        assertTrue(placer.writes().isEmpty());
+        world.water(WaterRole.POND, 10, 13);
+        HydrologyWaterFixture.Placer shallow = world.placer();
+        assertEquals(-1, place(HydrologyWaterFixture.pillar(), shallow, underwater()));
+        assertTrue(shallow.writes().isEmpty());
+    }
+
+    @Test
+    public void underwaterObjectsTreatLavaPondsLikeLavaSeas() {
+        NativeBlockState lava = mock(NativeBlockState.class);
+        when(lava.key()).thenReturn("minecraft:lava");
+        when(world.complex().resolveWaterFluid(anyInt(), anyInt())).thenReturn(lava);
+        world.water(WaterRole.POND, 7, 13);
+        HydrologyWaterFixture.Placer placer = world.placer();
+
+        assertTrue(place(HydrologyWaterFixture.pillar(), placer, underwater()) >= 0);
+        assertEquals(world.floorAt(0, 0), placer.lowestWrite());
     }
 
     @Test
     public void onwaterObjectsFloatOnRivers() {
-        water(9, 13);
-        WaterPlacer placer = new WaterPlacer();
-        IrisObjectPlacement placement = placement();
-        placement.setOnwater(true);
+        world.water(WaterRole.CHANNEL, 9, 13);
+        HydrologyWaterFixture.Placer placer = world.placer();
 
-        assertTrue(place(placer, placement) >= 0);
-        assertEquals(waterHead, placer.lowestWrite());
+        assertTrue(place(HydrologyWaterFixture.pillar(), placer, onwater()) >= 0);
+        assertEquals(world.headAt(0, 0), placer.lowestWrite());
     }
 
     @Test
     public void onwaterObjectsSkipDryColumns() {
-        WaterPlacer placer = new WaterPlacer();
-        IrisObjectPlacement placement = placement();
-        placement.setOnwater(true);
+        HydrologyWaterFixture.Placer placer = world.placer();
 
-        assertEquals(-1, place(placer, placement));
+        assertEquals(-1, place(HydrologyWaterFixture.pillar(), placer, onwater()));
         assertTrue(placer.writes().isEmpty());
     }
 
     @Test
     public void forcePlaceObjectsPlaceInRiverWater() {
-        water(9, 13);
-        WaterPlacer placer = new WaterPlacer();
-        IrisObjectPlacement placement = placement();
-        placement.setForcePlace(true);
+        world.water(WaterRole.CHANNEL, 9, 13);
+        HydrologyWaterFixture.Placer placer = world.placer();
 
-        assertTrue(place(placer, placement) >= 0);
-        assertEquals(waterHead, placer.lowestWrite());
+        assertTrue(place(HydrologyWaterFixture.pillar(), placer, forced()) >= 0);
+        assertEquals(world.headAt(0, 0), placer.lowestWrite());
     }
 
     @Test
     public void landObjectsStayOutOfRiverWater() {
-        water(9, 13);
-        WaterPlacer placer = new WaterPlacer();
+        world.water(WaterRole.CHANNEL, 9, 13);
+        HydrologyWaterFixture.Placer placer = world.placer();
 
-        assertEquals(-1, place(placer, placement()));
+        assertEquals(-1, place(HydrologyWaterFixture.pillar(), placer, placement()));
         assertTrue(placer.writes().isEmpty());
     }
 
     @Test
+    public void flatPondsTakeWideWaterObjects() {
+        world.water(WaterRole.POND, 5, 13);
+
+        for (IrisObjectPlacement placement : List.of(underwater(), onwater(), forced())) {
+            HydrologyWaterFixture.Placer placer = world.placer();
+
+            assertTrue(place(HydrologyWaterFixture.raft(), placer, placement) >= 0);
+            assertFalse(placer.writes().isEmpty());
+        }
+    }
+
+    @Test
+    public void onwaterObjectsSkipCascadeSteps() {
+        world.water(WaterRole.CHANNEL, 9, 13);
+        world.column(1, 0, WaterRole.CASCADE, 8, 11);
+        HydrologyWaterFixture.Placer placer = world.placer();
+
+        assertEquals(-1, place(HydrologyWaterFixture.raft(), placer, onwater()));
+        assertTrue(placer.writes().isEmpty());
+    }
+
+    @Test
+    public void underwaterObjectsSkipDamWalls() {
+        world.water(WaterRole.POND, 5, 13);
+        world.column(1, 0, WaterRole.DAM, 14, 0);
+        HydrologyWaterFixture.Placer placer = world.placer();
+
+        assertEquals(-1, place(HydrologyWaterFixture.raft(), placer, underwater()));
+        assertTrue(placer.writes().isEmpty());
+    }
+
+    @Test
+    public void waterObjectsSkipWaterAtAnotherHead() {
+        world.water(WaterRole.CHANNEL, 9, 13);
+        world.column(1, 0, WaterRole.CHANNEL, 8, 12);
+
+        for (IrisObjectPlacement placement : List.of(underwater(), onwater(), forced())) {
+            HydrologyWaterFixture.Placer placer = world.placer();
+
+            assertEquals(-1, place(HydrologyWaterFixture.raft(), placer, placement));
+            assertTrue(placer.writes().isEmpty());
+        }
+    }
+
+    @Test
     public void waterObjectsNeverPlaceOnProvisionalHydrology() {
-        water(7, 13);
-        provisionalWater = true;
-        IrisObjectPlacement underwater = placement();
-        underwater.setUnderwater(true);
-        IrisObjectPlacement onwater = placement();
-        onwater.setOnwater(true);
-        IrisObjectPlacement forced = placement();
-        forced.setForcePlace(true);
+        world.water(WaterRole.POND, 7, 13);
+        world.provisional();
 
-        for (IrisObjectPlacement placement : List.of(underwater, onwater, forced)) {
-            WaterPlacer placer = new WaterPlacer();
+        for (IrisObjectPlacement placement : List.of(underwater(), onwater(), forced())) {
+            HydrologyWaterFixture.Placer placer = world.placer();
 
-            IllegalStateException error = assertThrows(IllegalStateException.class, () -> place(placer, placement));
+            ProvisionalAnswerException error = assertThrows(ProvisionalAnswerException.class,
+                    () -> place(HydrologyWaterFixture.pillar(), placer, placement));
 
             assertTrue(error.getMessage().contains("provisional"));
             assertTrue(placer.writes().isEmpty());
@@ -157,34 +157,36 @@ public class PlacementModuleSurfaceSupportTest {
 
     @Test
     public void landObjectsNeverPlaceOnProvisionalHydrology() {
-        provisionalWater = true;
-        WaterPlacer placer = new WaterPlacer();
+        world.provisional();
+        HydrologyWaterFixture.Placer placer = world.placer();
 
-        IllegalStateException error = assertThrows(IllegalStateException.class, () -> place(placer, placement()));
-
-        assertTrue(error.getMessage().contains("provisional"));
+        assertThrows(ProvisionalAnswerException.class, () -> place(HydrologyWaterFixture.pillar(), placer, placement()));
         assertTrue(placer.writes().isEmpty());
     }
 
-    private void water(int floorAboveSea, int headAboveSea) {
-        waterFloor = dimensionFluidHeight + floorAboveSea;
-        waterHead = dimensionFluidHeight + headAboveSea;
+    @Test
+    public void provisionalAnswersStopABoreBeforeItClearsAir() {
+        world.provisional();
+        HydrologyWaterFixture.Placer placer = world.placer();
+        IrisObjectPlacement placement = placement();
+        placement.setBore(true);
+
+        assertThrows(ProvisionalAnswerException.class, () -> place(HydrologyWaterFixture.pillar(), placer, placement));
+        assertTrue(placer.writes().isEmpty());
     }
 
-    private boolean isWater(int x, int z) {
-        return waterHead > waterFloor && Math.abs(x) <= WATER_RADIUS && Math.abs(z) <= WATER_RADIUS;
+    @Test
+    public void explicitPlacementsIgnoreProvisionalAnswers() {
+        world.provisional();
+        HydrologyWaterFixture.Placer placer = world.placer();
+        int surface = world.floorAt(0, 0);
+
+        assertTrue(HydrologyWaterFixture.pillar().place(0, surface + 1, 0, placer, placement(), new RNG(1234L), world.data()) >= 0);
+        assertFalse(placer.writes().isEmpty());
     }
 
-    private int headAt(int x, int z) {
-        return isWater(x, z) ? waterHead : dimensionFluidHeight;
-    }
-
-    private int floorAt(int x, int z) {
-        return isWater(x, z) ? waterFloor : dimensionFluidHeight + LAND_ABOVE_SEA;
-    }
-
-    private int place(WaterPlacer placer, IrisObjectPlacement placement) {
-        return object().place(0, -1, 0, placer, placement, new RNG(1234L), data);
+    private int place(IrisObject object, HydrologyWaterFixture.Placer placer, IrisObjectPlacement placement) {
+        return object.place(0, -1, 0, placer, placement, new RNG(1234L), world.data());
     }
 
     private static IrisObjectPlacement placement() {
@@ -193,107 +195,21 @@ public class PlacementModuleSurfaceSupportTest {
         return placement;
     }
 
-    private static IrisObject object() {
-        NativeBlockState solid = mock(NativeBlockState.class);
-        when(solid.isSolid()).thenReturn(true);
-        when(solid.key()).thenReturn("minecraft:stone");
-        when(solid.materialKey()).thenReturn("minecraft:stone");
-        IrisObject object = new IrisObject(3, 3, 3);
-        object.setUnsigned(1, 0, 1, solid);
-        object.setUnsigned(1, 1, 1, solid);
-        return object;
+    private static IrisObjectPlacement underwater() {
+        IrisObjectPlacement placement = placement();
+        placement.setUnderwater(true);
+        return placement;
     }
 
-    private final class WaterPlacer implements IObjectPlacer {
-        private final List<Integer> writes = new ArrayList<>();
+    private static IrisObjectPlacement onwater() {
+        IrisObjectPlacement placement = placement();
+        placement.setOnwater(true);
+        return placement;
+    }
 
-        private List<Integer> writes() {
-            return writes;
-        }
-
-        private int lowestWrite() {
-            int lowest = Integer.MAX_VALUE;
-            for (int y : writes) {
-                lowest = Math.min(lowest, y);
-            }
-            return lowest;
-        }
-
-        private int highestWrite() {
-            int highest = Integer.MIN_VALUE;
-            for (int y : writes) {
-                highest = Math.max(highest, y);
-            }
-            return highest;
-        }
-
-        @Override
-        public int getHighest(int x, int z, IrisData data) {
-            return getHighest(x, z, data, false);
-        }
-
-        @Override
-        public int getHighest(int x, int z, IrisData data, boolean ignoreFluid) {
-            int floor = floorAt(x, z);
-            return ignoreFluid ? floor : Math.max(floor, getFluidHeight(x, z));
-        }
-
-        @Override
-        public void set(int x, int y, int z, NativeBlockState state) {
-            writes.add(y);
-        }
-
-        @Override
-        public NativeBlockState get(int x, int y, int z) {
-            return null;
-        }
-
-        @Override
-        public boolean isPreventingDecay() {
-            return false;
-        }
-
-        @Override
-        public boolean isCarved(int x, int y, int z) {
-            return false;
-        }
-
-        @Override
-        public boolean isSolid(int x, int y, int z) {
-            return false;
-        }
-
-        @Override
-        public boolean isUnderwater(int x, int z) {
-            return getHighest(x, z, data, true) < getFluidHeight(x, z);
-        }
-
-        @Override
-        public int getFluidHeight() {
-            return dimensionFluidHeight;
-        }
-
-        @Override
-        public boolean isDebugSmartBore() {
-            return false;
-        }
-
-        @Override
-        public void setTile(int x, int y, int z, TileData tile) {
-        }
-
-        @Override
-        public <T> void setData(int x, int y, int z, T value) {
-        }
-
-        @Override
-        public <T> T getData(int x, int y, int z, Class<T> type) {
-            return null;
-        }
-
-        @Override
-        public Engine getEngine() {
-            return engine;
-        }
+    private static IrisObjectPlacement forced() {
+        IrisObjectPlacement placement = placement();
+        placement.setForcePlace(true);
+        return placement;
     }
 }

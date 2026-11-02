@@ -648,6 +648,7 @@ no_iris_structure_this_pack_2 = "§cEi iirisrakennetta '{structure}Tässä pakka
 structure_assembled_0_pieces = "§cRakenne{structure}' koottu 0 kappaletta"
 placed_pieces_at_your_location = "§aPaikka{structure}' ({value} Palaset) sijaintisi. ({value2} block changes)"
 placement_changed_no_blocks = "§cStructure '{structure}' assembled {value} pieces but changed 0 blocks at your location. Check that the selected variants contain non-air blocks and that the placement is above the world's minimum height."
+place_waits_for_terrain_plan = "§eMaastoa kohdassa {x} {y} {z} suunnitellaan vielä. Jo sijoitetut osat voi poistaa komennolla /iris object undo; suorita sijoitus uudelleen hetken kuluttua."
 
 [iris.bukkit.commandstudio]
 hotloading = "§eLadataan Studiota uudelleen..."

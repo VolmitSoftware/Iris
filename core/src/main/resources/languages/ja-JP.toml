@@ -646,6 +646,7 @@ no_iris_structure_this_pack_2 = "§cこのパックには Iris 構造物 '{struc
 structure_assembled_0_pieces = "§c構造物 '{structure}' は 0 ピースで組み立てられました"
 placed_pieces_at_your_location = "§a現在位置に '{structure}'（{value} ピース）を配置しました。 ({value2} block changes)"
 placement_changed_no_blocks = "§cStructure '{structure}' assembled {value} pieces but changed 0 blocks at your location. Check that the selected variants contain non-air blocks and that the placement is above the world's minimum height."
+place_waits_for_terrain_plan = "§e{x} {y} {z} の地形はまだ計画中です。配置済みのピースは /iris object undo で取り除けます。少し待ってからもう一度配置してください。"
 
 [iris.bukkit.commandstudio]
 hotloading = "§eStudio をホットリロード中..."

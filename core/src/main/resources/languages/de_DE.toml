@@ -643,6 +643,7 @@ no_iris_structure_this_pack_2 = "§cKeine Iris-Struktur '{structure}' in diesem 
 structure_assembled_0_pieces = "§cStruktur '{structure}' wurde aus 0 Teilen zusammengesetzt"
 placed_pieces_at_your_location = "§a'{structure}' ({value} Teile) an deiner Position platziert. ({value2} block changes)"
 placement_changed_no_blocks = "§cStructure '{structure}' assembled {value} pieces but changed 0 blocks at your location. Check that the selected variants contain non-air blocks and that the placement is above the world's minimum height."
+place_waits_for_terrain_plan = "§eDas Gelände bei {x} {y} {z} wird noch geplant. Bereits platzierte Teile lassen sich mit /iris object undo entfernen; führe die Platzierung gleich erneut aus."
 
 [iris.bukkit.commandstudio]
 hotloading = "§eStudio wird im laufenden Betrieb neu geladen..."

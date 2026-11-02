@@ -646,6 +646,7 @@ no_iris_structure_this_pack_2 = "§cKhông có cấu trúc Iris{structure}'Trong
 structure_assembled_0_pieces = "§cCấu trúc{structure}Tập hợp 0 mảnh"
 placed_pieces_at_your_location = "§aĐã đặt '{structure}' ({value} Các mảnh) tại vị trí. ({value2} block changes)"
 placement_changed_no_blocks = "§cStructure '{structure}' assembled {value} pieces but changed 0 blocks at your location. Check that the selected variants contain non-air blocks and that the placement is above the world's minimum height."
+place_waits_for_terrain_plan = "§eĐịa hình tại {x} {y} {z} vẫn đang được lập kế hoạch. Có thể gỡ các mảnh đã đặt bằng /iris object undo; hãy chạy lại lệnh đặt sau giây lát."
 
 [iris.bukkit.commandstudio]
 hotloading = "§eĐang tải lại Studio..."

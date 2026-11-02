@@ -648,6 +648,7 @@ no_iris_structure_this_pack_2 = "§cyok iris structure \"{structure}“Bu pakett
 structure_assembled_0_pieces = "§cYapı \"{structure}\"Bir araya geldi\" 0 parçalar parça parçaları"
 placed_pieces_at_your_location = "§ayerleştirildi ‘{structure}' ({value} parçalar) konumunuzda. ({value2} block changes)"
 placement_changed_no_blocks = "§cStructure '{structure}' assembled {value} pieces but changed 0 blocks at your location. Check that the selected variants contain non-air blocks and that the placement is above the world's minimum height."
+place_waits_for_terrain_plan = "§e{x} {y} {z} konumundaki arazi hâlâ planlanıyor. Yerleştirilmiş parçaları /iris object undo ile kaldırabilirsiniz; yerleştirmeyi birazdan yeniden çalıştırın."
 
 [iris.bukkit.commandstudio]
 hotloading = "§eStudio yeniden yükleniyor..."

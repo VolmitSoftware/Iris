@@ -646,6 +646,7 @@ no_iris_structure_this_pack_2 = "§c無Iris結構 '{structure}\"在這個包裡\
 structure_assembled_0_pieces = "§c結構 '{structure}組裝 0 塊"
 placed_pieces_at_your_location = "§a已放置 '{structure}' ({value}在您的位置。 ({value2} block changes)"
 placement_changed_no_blocks = "§cStructure '{structure}' assembled {value} pieces but changed 0 blocks at your location. Check that the selected variants contain non-air blocks and that the placement is above the world's minimum height."
+place_waits_for_terrain_plan = "§e{x} {y} {z} 處的地形仍在規劃中。已放置的部件可用 /iris object undo 移除；請稍後再次執行放置。"
 
 [iris.bukkit.commandstudio]
 hotloading = "§e正在熱重載 Studio..."

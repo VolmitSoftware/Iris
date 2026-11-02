@@ -648,6 +648,7 @@ no_iris_structure_this_pack_2 = "§cאין מבנה איריס \"{structure}\"ב
 structure_assembled_0_pieces = "§cמבנה \"{structure}התאספו 0 חתיכות"
 placed_pieces_at_your_location = "§aמקום \"{structure}' ({value} חתיכות) במיקום שלך. ({value2} block changes)"
 placement_changed_no_blocks = "§cStructure '{structure}' assembled {value} pieces but changed 0 blocks at your location. Check that the selected variants contain non-air blocks and that the placement is above the world's minimum height."
+place_waits_for_terrain_plan = "§eהשטח ב-{x} {y} {z} עדיין בתכנון. ניתן להסיר את החלקים שכבר הוצבו עם /iris object undo; הרץ את ההצבה שוב בעוד רגע."
 
 [iris.bukkit.commandstudio]
 hotloading = "§eטוען מחדש את Studio..."

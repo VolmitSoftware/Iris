@@ -646,6 +646,7 @@ no_iris_structure_this_pack_2 = "§c아이리스 구조 없음 '{structure}이 �
 structure_assembled_0_pieces = "§c구조물 '{structure}' 조립 결과: 조각 0개"
 placed_pieces_at_your_location = "§a장소 '{structure}' ({value} 당신의 위치에 조각). ({value2} block changes)"
 placement_changed_no_blocks = "§cStructure '{structure}' assembled {value} pieces but changed 0 blocks at your location. Check that the selected variants contain non-air blocks and that the placement is above the world's minimum height."
+place_waits_for_terrain_plan = "§e{x} {y} {z}의 지형은 아직 계획 중입니다. 이미 배치된 조각은 /iris object undo로 제거할 수 있습니다. 잠시 후 다시 배치를 실행하세요."
 
 [iris.bukkit.commandstudio]
 hotloading = "§eStudio 핫 리로드 중..."

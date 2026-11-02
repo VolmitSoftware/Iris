@@ -648,6 +648,7 @@ no_iris_structure_this_pack_2 = "§cНет структуры радужной �
 structure_assembled_0_pieces = "§cСтруктура{structure}собранный 0 части"
 placed_pieces_at_your_location = "§aПомещение '{structure}' ({value} куски) в вашем месте. ({value2} block changes)"
 placement_changed_no_blocks = "§cStructure '{structure}' assembled {value} pieces but changed 0 blocks at your location. Check that the selected variants contain non-air blocks and that the placement is above the world's minimum height."
+place_waits_for_terrain_plan = "§eРельеф в точке {x} {y} {z} ещё планируется. Уже размещённые части можно убрать командой /iris object undo; повторите размещение через мгновение."
 
 [iris.bukkit.commandstudio]
 hotloading = "§eГорячая перезагрузка Studio..."

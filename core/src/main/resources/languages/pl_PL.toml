@@ -648,6 +648,7 @@ no_iris_structure_this_pack_2 = "§cBrak struktury tęczówki \"{structure}'w ty
 structure_assembled_0_pieces = "§cStruktura \"{structure}\"zmontowane 0 kawałki"
 placed_pieces_at_your_location = "§aUmieszczone \"{structure}' ({value} sztuk) w miejscu. ({value2} block changes)"
 placement_changed_no_blocks = "§cStructure '{structure}' assembled {value} pieces but changed 0 blocks at your location. Check that the selected variants contain non-air blocks and that the placement is above the world's minimum height."
+place_waits_for_terrain_plan = "§eTeren w {x} {y} {z} jest nadal planowany. Już postawione części można usunąć poleceniem /iris object undo; uruchom umieszczanie ponownie za chwilę."
 
 [iris.bukkit.commandstudio]
 hotloading = "§ePonowne wczytywanie Studio..."

@@ -1,14 +1,17 @@
 package art.arcane.iris.pack;
 
 import art.arcane.iris.generation.biome.IrisBiome;
+import art.arcane.iris.generation.block.IrisBlockData;
 import art.arcane.iris.generation.decoration.HydrologyVegetation;
 import art.arcane.iris.generation.decoration.IrisDecorator;
+import art.arcane.iris.generation.hydrology.config.IrisFluidProfile;
 import art.arcane.iris.generation.hydrology.config.IrisHydrology;
 import art.arcane.iris.generation.hydrology.config.IrisHydrologyPolicy;
 import art.arcane.iris.generation.hydrology.config.IrisHydrologyTier;
 import art.arcane.iris.generation.hydrology.config.IrisHydrologyWetness;
 import art.arcane.iris.generation.hydrology.plan.HydrologySettings;
 import art.arcane.iris.generation.terrain.IrisDimension;
+import art.arcane.iris.generation.terrain.IrisMaterialPalette;
 import art.arcane.iris.generation.terrain.IrisRegion;
 import art.arcane.iris.generation.terrain.ShoreBiomeLineages;
 import art.arcane.iris.pack.loading.IrisData;
@@ -22,12 +25,15 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.TreeSet;
 
 final class PackHydrologyValidator {
     private static final String CONFIG = "hydrology";
@@ -47,6 +53,7 @@ final class PackHydrologyValidator {
     );
     private static final List<String> FLUID_REFERENCES = List.of("ponds.fluid", "underground.cavePools.fluid");
     private static final IrisHydrologyTier DEFAULT_TIER = new IrisHydrologyTier();
+    private static final Set<String> WATER_BLOCKS = Set.of("minecraft:water");
     private static final String MANTLE_WATER = "the falling water at waterfalls and cascades, sea inlets and cave pools";
 
     private PackHydrologyValidator() {
@@ -105,6 +112,7 @@ final class PackHydrologyValidator {
         warnShoreBiomesWithoutWidth(dimensionKey, loaded, loadedDimension, findings.warnings());
         if (errors.size() == reported && validateCompile(path, loadedDimension, errors)) {
             validateDecoratorBlocks(path, loaded, loadedDimension.getHydrology(), errors);
+            warnFluidsWithoutSeam(dimensionKey, loaded, loadedDimension, findings.warnings());
         }
         return loaded;
     }
@@ -352,6 +360,90 @@ final class PackHydrologyValidator {
             warnings.add(scope + "." + POLICY + ".shoreBiomes lists shore biomes, but no shoreBiomeWidth above 0 applies to them,"
                     + " so none are placed.");
         }
+    }
+
+    private static void warnFluidsWithoutSeam(String dimensionKey, IrisData data, IrisDimension dimension, List<String> warnings) {
+        String path = "Dimension '" + dimensionKey + "'." + CONFIG;
+        Map<String, IrisFluidProfile> profiles = new HashMap<>();
+        for (IrisFluidProfile profile : dimension.getHydrology().getFluids()) {
+            profiles.put(profile.getName(), profile);
+        }
+        Map<String, Set<String>> rivers = riverFluidSources(dimensionKey, data, dimension);
+        rivers.keySet().retainAll(profiles.keySet());
+        for (Map.Entry<String, Set<String>> river : rivers.entrySet()) {
+            IrisFluidProfile profile = profiles.get(river.getKey());
+            Set<String> blocks = blockIds(profile.getPalette());
+            if (hasSeam(profile) || blocks.equals(WATER_BLOCKS)) {
+                continue;
+            }
+            List<String> met = new ArrayList<>();
+            if (dimension.getFluidHeight() > 0 && !blocks.equals(blockIds(dimension.getFluidPalette()))) {
+                met.add("the sea");
+            }
+            for (String other : rivers.keySet()) {
+                IrisFluidProfile otherProfile = profiles.get(other);
+                if (!hasSeam(otherProfile) && !blocks.equals(blockIds(otherProfile.getPalette()))) {
+                    met.add("fluid '" + other + "'");
+                }
+            }
+            if (!met.isEmpty()) {
+                warnings.add(path + ".fluids profile '" + river.getKey() + "' sets no seam, so where its rivers meet " + String.join(" or ", met)
+                        + " the fluids lie side by side. Set seam on the profile to line that edge. Its rivers come from "
+                        + String.join(", ", river.getValue()) + ".");
+            }
+        }
+    }
+
+    private static Map<String, Set<String>> riverFluidSources(String dimensionKey, IrisData data, IrisDimension dimension) {
+        Map<String, Set<String>> sources = new TreeMap<>();
+        List<IrisRegion> regions = new ArrayList<>(dimension.getAllRegions(() -> data));
+        ShoreBiomeLineages.visit(dimension, regions, () -> data, (lineage, region) -> {
+            String fluid = IrisHydrologyPolicy.inherited(lineage, region, dimension, IrisHydrologyPolicy::getFluid);
+            if (fluid == null) {
+                addTierSources(dimensionKey, dimension, sources);
+            } else {
+                sources.computeIfAbsent(fluid, name -> new TreeSet<>()).add(policyFluidOwner(dimensionKey, lineage, region));
+            }
+        });
+        if (sources.isEmpty()) {
+            addTierSources(dimensionKey, dimension, sources);
+        }
+        return sources;
+    }
+
+    private static void addTierSources(String dimensionKey, IrisDimension dimension, Map<String, Set<String>> sources) {
+        List<IrisHydrologyTier> tiers = dimension.getHydrology().getTiers();
+        for (int index = 0; index < tiers.size(); index++) {
+            sources.computeIfAbsent(tiers.get(index).getFluid(), name -> new TreeSet<>())
+                    .add("Dimension '" + dimensionKey + "'." + CONFIG + ".tiers[" + index + "].fluid");
+        }
+    }
+
+    private static String policyFluidOwner(String dimensionKey, List<IrisBiome> lineage, IrisRegion region) {
+        for (IrisBiome biome : lineage) {
+            if (biome.getHydrologyPolicy() != null && biome.getHydrologyPolicy().getFluid() != null) {
+                return "Biome '" + biome.getLoadKey() + "'." + POLICY + ".fluid";
+            }
+        }
+        if (region != null && region.getHydrologyPolicy() != null && region.getHydrologyPolicy().getFluid() != null) {
+            return "Region '" + region.getLoadKey() + "'." + POLICY + ".fluid";
+        }
+        return "Dimension '" + dimensionKey + "'." + POLICY + ".fluid";
+    }
+
+    private static boolean hasSeam(IrisFluidProfile profile) {
+        return profile.getSeam() != null && !profile.getSeam().isBlank();
+    }
+
+    private static Set<String> blockIds(IrisMaterialPalette palette) {
+        Set<String> blocks = new TreeSet<>();
+        for (IrisBlockData block : palette.getPalette()) {
+            String id = block.getBlock().toLowerCase(Locale.ROOT);
+            int state = id.indexOf('[');
+            String name = state < 0 ? id : id.substring(0, state);
+            blocks.add(name.contains(":") ? name : "minecraft:" + name);
+        }
+        return blocks;
     }
 
     private static void requireMultiplier(String field, Double value, List<String> errors) {

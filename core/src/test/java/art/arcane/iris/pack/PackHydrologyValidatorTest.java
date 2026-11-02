@@ -22,6 +22,10 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 public class PackHydrologyValidatorTest {
+    private static final String WATER = "{\"name\": \"water\", \"palette\": {\"palette\": [{\"block\": \"minecraft:water\"}]}}";
+    private static final String LAVA = "{\"name\": \"lava\", \"palette\": {\"palette\": [{\"block\": \"minecraft:lava\"}]}}";
+    private static final String CRUST = "{\"name\": \"crust\", \"palette\": {\"palette\": [{\"block\": \"minecraft:obsidian\"}]}}";
+    private static final String SEA_IS_LAVA = "\"fluidPalette\": {\"palette\": [{\"block\": \"minecraft:lava\"}]},";
     private static final String WATER_ONLY = "{\"enabled\": true, \"fluids\": [{\"name\": \"water\"}]}";
 
     @Rule
@@ -46,7 +50,8 @@ public class PackHydrologyValidatorTest {
                   },
                   "fluids": [
                     {"name": "water", "palette": {"palette": [{"block": "minecraft:water"}]}},
-                    {"name": "lava", "palette": {"palette": [{"block": "minecraft:lava"}]}}
+                    {"name": "lava", "palette": {"palette": [{"block": "minecraft:lava"}]}, "seam": "crust"},
+                    {"name": "crust", "palette": {"palette": [{"block": "minecraft:obsidian"}]}}
                   ]
                 }
                 """, "\"hydrologyPolicy\": {\"fluid\": \"lava\"},")));
@@ -659,6 +664,131 @@ public class PackHydrologyValidatorTest {
                         + " so none are placed."), unset.warnings());
         assertTrue(widened.errors().toString(), widened.errors().isEmpty());
         assertTrue(widened.warnings().toString(), widened.warnings().isEmpty());
+    }
+
+    @Test
+    public void warnsWhenALavaRiverWithoutASeamCanMeetTheSea() throws Exception {
+        File pack = pack(dimension(hydrology("lava", "lava", LAVA), ""));
+
+        PackHydrologyValidator.Validation validation = validate(pack);
+
+        assertTrue(validation.errors().toString(), validation.errors().isEmpty());
+        assertEquals(List.of("Dimension 'main'.hydrology.fluids profile 'lava' sets no seam, so where its rivers meet the sea"
+                + " the fluids lie side by side. Set seam on the profile to line that edge. Its rivers come from"
+                + " Dimension 'main'.hydrology.tiers[0].fluid, Dimension 'main'.hydrology.tiers[1].fluid."), validation.warnings());
+    }
+
+    @Test
+    public void warnsAgainstADifferentRiverFluidAndNamesTheBiomeItComesFrom() throws Exception {
+        File pack = pack(dimension(hydrology("water", "water", WATER + ", " + LAVA), SEA_IS_LAVA));
+        write(pack, "biomes/biome.json", """
+                {"name": "Biome", "hydrologyPolicy": {"fluid": "lava"}}
+                """);
+        write(pack, "regions/region.json", """
+                {"landBiomes": ["biome", "plain"]}
+                """);
+        write(pack, "biomes/plain.json", "{\"name\": \"Plain\"}");
+
+        PackHydrologyValidator.Validation validation = validate(pack);
+
+        assertTrue(validation.errors().toString(), validation.errors().isEmpty());
+        assertEquals(List.of("Dimension 'main'.hydrology.fluids profile 'lava' sets no seam, so where its rivers meet fluid 'water'"
+                + " the fluids lie side by side. Set seam on the profile to line that edge. Its rivers come from"
+                + " Biome 'biome'.hydrologyPolicy.fluid."), validation.warnings());
+    }
+
+    @Test
+    public void aSeamOnTheOtherRiverFluidLinesTheEdgeBetweenThem() throws Exception {
+        String fluids = WATER + ", " + LAVA + ", " + """
+                {"name": "tar", "palette": {"palette": [{"block": "mod:tar"}]}, "seam": "crust"}, %s
+                """.formatted(CRUST);
+        File pack = pack(dimension(hydrology("lava", "tar", fluids), SEA_IS_LAVA));
+
+        PackHydrologyValidator.Validation validation = validate(pack);
+
+        assertTrue(validation.errors().toString(), validation.errors().isEmpty());
+        assertTrue(validation.warnings().toString(), validation.warnings().isEmpty());
+    }
+
+    @Test
+    public void silentWhenTheFluidHasASeam() throws Exception {
+        String fluids = """
+                {"name": "lava", "palette": {"palette": [{"block": "minecraft:lava"}]}, "seam": "crust"}, %s, %s
+                """.formatted(CRUST, WATER);
+        PackHydrologyValidator.Validation validation = validate(pack(dimension(hydrology("lava", "water", fluids), "")));
+
+        assertTrue(validation.errors().toString(), validation.errors().isEmpty());
+        assertTrue(validation.warnings().toString(), validation.warnings().isEmpty());
+    }
+
+    @Test
+    public void silentForWaterRiversWhateverTheProfileIsCalled() throws Exception {
+        String fluids = """
+                {"name": "marsh", "palette": {"palette": [{"block": "water"}]}}, %s
+                """.formatted(WATER);
+        File pack = pack(dimension(hydrology("marsh", "water", fluids), SEA_IS_LAVA));
+
+        PackHydrologyValidator.Validation validation = validate(pack);
+
+        assertTrue(validation.errors().toString(), validation.errors().isEmpty());
+        assertTrue(validation.warnings().toString(), validation.warnings().isEmpty());
+    }
+
+    @Test
+    public void silentWhenTheFluidsAreTheSame() throws Exception {
+        String fluids = LAVA + ", " + """
+                {"name": "magma", "palette": {"palette": [{"block": "lava"}]}}
+                """;
+        PackHydrologyValidator.Validation validation = validate(pack(dimension(hydrology("lava", "magma", fluids), SEA_IS_LAVA)));
+
+        assertTrue(validation.errors().toString(), validation.errors().isEmpty());
+        assertTrue(validation.warnings().toString(), validation.warnings().isEmpty());
+    }
+
+    @Test
+    public void silentWhenAPolicyFluidReplacesEveryTierFluid() throws Exception {
+        String config = hydrology("water", "water", WATER + ", " + LAVA);
+        PackHydrologyValidator.Validation validation = validate(pack(dimension(config,
+                SEA_IS_LAVA + " \"hydrologyPolicy\": {\"fluid\": \"lava\"},")));
+
+        assertTrue(validation.errors().toString(), validation.errors().isEmpty());
+        assertTrue(validation.warnings().toString(), validation.warnings().isEmpty());
+    }
+
+    @Test
+    public void aCaveBiomePolicyFluidIsNotARiverFluid() throws Exception {
+        File pack = pack(dimension(hydrology("water", "water", WATER + ", " + LAVA), ""));
+        write(pack, "regions/region.json", """
+                {"landBiomes": ["biome"], "caveBiomes": ["hollow"]}
+                """);
+        write(pack, "biomes/hollow.json", """
+                {"name": "Hollow", "hydrologyPolicy": {"fluid": "lava"}}
+                """);
+
+        PackHydrologyValidator.Validation validation = validate(pack);
+
+        assertTrue(validation.errors().toString(), validation.errors().isEmpty());
+        assertTrue(validation.warnings().toString(), validation.warnings().isEmpty());
+    }
+
+    @Test
+    public void silentAboutTheSeaWhenTheDimensionHasNoFluidHeight() throws Exception {
+        PackHydrologyValidator.Validation validation = validate(pack(dimension(hydrology("lava", "lava", LAVA), "\"fluidHeight\": -64,")));
+
+        assertTrue(validation.errors().toString(), validation.errors().isEmpty());
+        assertTrue(validation.warnings().toString(), validation.warnings().isEmpty());
+    }
+
+    private static String hydrology(String streamFluid, String riverFluid, String fluids) {
+        return """
+                {"enabled": true,
+                 "tiers": [
+                   {"name": "stream", "minCatchment": 1500, "halfWidth": [0.5, 2], "bankBand": 0, "fluid": "%s"},
+                   {"name": "river", "minCatchment": 20000, "halfWidth": [2, 16], "bankBand": 8, "fluid": "%s"}],
+                 "ponds": {"fluid": "%s"},
+                 "underground": {"cavePools": {"fluid": "%s"}},
+                 "fluids": [%s]}
+                """.formatted(streamFluid, riverFluid, streamFluid, streamFluid, fluids);
     }
 
     private File shorePack(String dimensionWidth) throws Exception {

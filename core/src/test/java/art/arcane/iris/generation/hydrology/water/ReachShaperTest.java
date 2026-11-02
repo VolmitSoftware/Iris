@@ -143,22 +143,22 @@ public class ReachShaperTest {
                     int level = downstream.grade()[0];
                     for (int point = feeder.xs().length - 1; point >= 0; point--) {
                         double clearance = clearance(receiving, feeder.xs()[point], feeder.zs()[point]);
-                        if (clearance > feeder.halfWidth()[point] + 1f || point == 0 && feeders.containsKey(feeder.id())) {
+                        if (clearance > feeder.halfWidth()[point] + 1f) {
                             break;
                         }
                         String at = "seed " + seed + " " + feeder + " into " + downstream + " at point " + point + " with clearance " + clearance;
                         int grade = feeder.grade()[point];
-                        if (clearance <= 0D || grade == level) {
-                            assertEquals(at, level, grade);
-                            pooled++;
-                            inside += clearance <= 0D ? 1 : 0;
-                            continue;
+                        boolean heldStart = point == 0 && feeders.containsKey(feeder.id());
+                        if (grade != level && (heldStart || clearance > 0D && grade - level > ConfluenceGrader.MARGIN_LOWERING)) {
+                            ReachStyle style = feeder.style()[point + 1];
+                            assertTrue(at + " stands " + (grade - level) + " above the junction and drops into it as " + style,
+                                    style == ReachStyle.CASCADE || style == ReachStyle.WATERFALL);
+                            falls++;
+                            break;
                         }
-                        assertTrue(at + " stands " + (grade - level) + " above the junction beside the bank", grade - level > ConfluenceGrader.MARGIN_LOWERING);
-                        ReachStyle style = feeder.style()[point + 1];
-                        assertTrue(at + " drops into the junction as " + style, style == ReachStyle.CASCADE || style == ReachStyle.WATERFALL);
-                        falls++;
-                        break;
+                        assertEquals(at, level, grade);
+                        pooled++;
+                        inside += clearance <= 0D ? 1 : 0;
                     }
                 }
             }
@@ -167,7 +167,7 @@ public class ReachShaperTest {
         }
         assertTrue("pooled points " + pooled + " at " + confluences + " confluences", pooled > 3 * confluences);
         assertTrue("pooled points inside the receiving channel " + inside + " at " + confluences + " confluences", inside > 3 * confluences);
-        assertTrue("falls at the receiving bank " + falls, falls > 0);
+        assertTrue("falls into the junction from beside the bank or a held start " + falls, falls > 0);
     }
 
     @Test

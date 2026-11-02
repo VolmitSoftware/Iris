@@ -61,7 +61,6 @@ public class WindowPlannerTest {
     private static final double PIT_RADIUS = 50D;
     private static final double PIT_DEPTH = 30D;
     private static final int DEEP_CUT = 12;
-    private static final int MAX_LIP_RIFFLES = 3;
     private static final int SLIVER_REACH = 32;
     private static final int RIM_CUT = 24;
     private static final double VALLEY_HALF_WIDTH = 200D;
@@ -654,21 +653,15 @@ public class WindowPlannerTest {
     public void pondOutletsAndConfluencesMeetConnectedWater() {
         int outlets = 0;
         int feeders = 0;
-        int lipRiffles = 0;
         for (long seed = 1L; seed <= 7L; seed++) {
             PlannedScene scene = PlannedScene.plan(SyntheticTerrain.openFractal(seed), PlannedScene.packSettings(SEED), 1, 1);
             assertEquals("detached outlets on openFractal(" + seed + ")", List.of(), WaterInvariants.detachedOutlets(scene));
-            List<Long> riffles = WaterInvariants.heldLipRiffles(scene);
-            List<Long> tongues = new ArrayList<>(WaterInvariants.confluenceTongues(scene));
-            tongues.removeAll(riffles);
-            assertEquals("confluence tongues on openFractal(" + seed + ")", List.of(), tongues);
-            lipRiffles += riffles.size();
+            assertEquals("confluence tongues on openFractal(" + seed + ")", List.of(), WaterInvariants.confluenceTongues(scene));
             outlets += WaterInvariants.checkedPonds(scene).size();
             feeders += WaterInvariants.checkedFeeders(scene).size();
         }
         assertTrue("pond outlets checked " + outlets, outlets >= 50);
         assertTrue("confluence feeders checked " + feeders, feeders >= 300);
-        assertTrue("held outlet lips riffling into their junction " + lipRiffles, lipRiffles <= MAX_LIP_RIFFLES);
     }
 
     private static void assertOutletLeavesAtThePondHead(Pond pond, Reach outlet) {

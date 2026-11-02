@@ -10,6 +10,7 @@ public final class ConfluenceGrader {
     public static final float POOL_CAP = 64f;
     public static final float APPROACH_SLOPE = 0.25f;
     public static final int MARGIN_LOWERING = 5;
+    public static final int MAX_START_LOWERING = 1;
 
     private ConfluenceGrader() {
     }
@@ -53,7 +54,7 @@ public final class ConfluenceGrader {
                 ReachDraft draft = drafts.get(feeder);
                 requireJunction(window, draft, downstream);
                 boolean[] fixed = draft.fixed();
-                fixed[0] |= draft.incoming.length > 0;
+                fixed[0] |= draft.incoming.length > 0 && draft.grade[0] - downstream.grade[0] > MAX_START_LOWERING;
                 int waterfallMinimumDrop = draft.tier.waterfallMinimumDrop();
                 int[] settled = settle(footprint(draft), draft.grade, fixed, receiving(drafts, downstream, feeder), downstream.grade[0],
                         waterfallMinimumDrop);

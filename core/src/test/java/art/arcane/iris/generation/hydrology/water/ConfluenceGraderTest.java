@@ -21,7 +21,7 @@ public class ConfluenceGraderTest {
     private static final int JUNCTION = 100;
     private static final int POOL_EDGE_Z = -12;
     private static final int FEEDER_Z = -48;
-    private static final int STUB_Z = -8;
+    private static final int STUB_Z = -10;
     private static final int BANK_Z = -8;
     private static final int MARGIN_Z = -12;
 
@@ -60,15 +60,11 @@ public class ConfluenceGraderTest {
 
     @Test
     public void aFeederWithItsOwnFeedersKeepsItsStartAtTheirJunction() {
-        HydrologyTier tier = tier(true);
-        ReachDraft upstream = line(tier, 31L, 0f, FEEDER_Z, 0f, STUB_Z, 2f, z -> JUNCTION + 3);
-        ReachDraft stub = line(tier, 32L, 0f, STUB_Z, 0f, 0f, 2f, z -> z == STUB_Z ? JUNCTION + 3 : z == 0 ? JUNCTION : JUNCTION + 2);
-        ReachDraft river = line(tier, 33L, 0f, 0f, 64f, 0f, 8f, z -> JUNCTION);
-        upstream.downstream = 1;
-        stub.incoming = new int[]{0};
-        stub.downstream = 2;
-        river.incoming = new int[]{1};
-        ConfluenceGrader.level(WINDOW, List.of(upstream, stub, river), new int[]{0, 1, 2});
+        List<ReachDraft> drafts = stubbed(JUNCTION + 3);
+        ReachDraft upstream = drafts.get(0);
+        ReachDraft stub = drafts.get(1);
+        assertTrue("the stub starts beside the river, outside its channel",
+                ConfluenceGrader.edgeDistance(footprint(drafts.get(2)), stub.xs[0], stub.zs[0]) > 0D);
         assertEquals("the stub keeps its start for the reach that feeds it " + Arrays.toString(stub.grade), JUNCTION + 3, stub.grade[0]);
         for (int point = 1; point < stub.grade.length; point++) {
             assertEquals("stub point " + point + " pooled " + Arrays.toString(stub.grade), JUNCTION, stub.grade[point]);
@@ -76,6 +72,38 @@ public class ConfluenceGraderTest {
         for (int point = 0; point < upstream.grade.length; point++) {
             assertEquals("upstream point " + point + " " + Arrays.toString(upstream.grade), JUNCTION + 3, upstream.grade[point]);
         }
+    }
+
+    @Test
+    public void aFeederStartingOneBlockAboveItsJunctionJoinsIt() {
+        List<ReachDraft> drafts = stubbed(JUNCTION + ConfluenceGrader.MAX_START_LOWERING);
+        ReachDraft upstream = drafts.get(0);
+        ReachDraft stub = drafts.get(1);
+        for (int point = 0; point < stub.grade.length; point++) {
+            assertEquals("stub point " + point + " " + Arrays.toString(stub.grade), JUNCTION, stub.grade[point]);
+        }
+        assertEquals("the upstream reach meets the lowered start " + Arrays.toString(upstream.grade), JUNCTION, upstream.grade[upstream.grade.length - 1]);
+    }
+
+    private static List<ReachDraft> stubbed(int start) {
+        HydrologyTier tier = tier(true);
+        ReachDraft upstream = line(tier, 31L, 0f, FEEDER_Z, 0f, STUB_Z, 2f, z -> start);
+        ReachDraft stub = line(tier, 32L, 0f, STUB_Z, 0f, 0f, 2f, z -> z == STUB_Z ? start : z == 0 ? JUNCTION : Math.min(start, JUNCTION + 2));
+        ReachDraft river = line(tier, 33L, 0f, 0f, 64f, 0f, 8f, z -> JUNCTION);
+        link(upstream, stub, river);
+        return List.of(upstream, stub, river);
+    }
+
+    private static void link(ReachDraft upstream, ReachDraft stub, ReachDraft river) {
+        upstream.downstream = 1;
+        stub.incoming = new int[]{0};
+        stub.downstream = 2;
+        river.incoming = new int[]{1};
+        ConfluenceGrader.level(WINDOW, List.of(upstream, stub, river), new int[]{0, 1, 2});
+    }
+
+    private static ConfluenceGrader.Footprint footprint(ReachDraft draft) {
+        return new ConfluenceGrader.Footprint(draft.xs, draft.zs, draft.halfWidth);
     }
 
     @Test

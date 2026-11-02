@@ -34,7 +34,8 @@ public class WaterMapProgressTest {
                 .thenReturn(new HydrologyPlanPreview(List.of(reach), List.of(), List.of(), List.of(), true));
         when(runtime.rasterPreview(anyInt(), anyInt())).thenReturn(ChunkWaterRaster.EMPTY);
 
-        WaterMap map = WaterMap.draw(runtime, 32, 0D, 0D, 1D, () -> false);
+        WaterMap map = new WaterMap(runtime, 32, 0D, 0D, 1D);
+        map.advance(() -> false);
 
         assertFalse(map.provisional());
         verifyNoInteractions(reach);
@@ -84,7 +85,8 @@ public class WaterMapProgressTest {
         assertTrue(map.provisional());
         map.advance(() -> false);
         assertFalse(map.provisional());
-        WaterMap expected = WaterMap.draw(runtime, 32, -16.5D, -16.5D, 0.5D, () -> false);
+        WaterMap expected = new WaterMap(runtime, 32, -16.5D, -16.5D, 0.5D);
+        expected.advance(() -> false);
         for (int z = 0; z < 32; z++) {
             for (int x = 0; x < 32; x++) {
                 assertEquals(expected.at(x, z), map.at(x, z));

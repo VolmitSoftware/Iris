@@ -53,12 +53,6 @@ final class WaterMap {
         provisional = true;
     }
 
-    static WaterMap draw(HydrologyRuntime runtime, int resolution, double startX, double startZ, double step, BooleanSupplier cancelled) {
-        WaterMap map = new WaterMap(runtime, resolution, startX, startZ, step);
-        map.advance(cancelled);
-        return map;
-    }
-
     void advance(BooleanSupplier cancelled) {
         if (!provisional) {
             return;

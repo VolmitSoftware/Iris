@@ -23,7 +23,7 @@ import art.arcane.volmlib.util.stream.interpolation.Interpolated;
 import org.junit.Test;
 
 import java.awt.Color;
-import java.awt.image.BufferedImage;
+import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertEquals;
@@ -39,9 +39,9 @@ public class MapHydrologyTest {
             Engine engine = engine(water.runtime, biome());
             MapTileRenderer renderer = new MapTileRenderer(engine);
             MapTile tile = settled(renderer, MapLayer.of(TileType.BIOME));
-            BufferedImage expected = new IrisRenderer(engine).renderStudio(0, 0, 64, 64, RenderType.BIOME, () -> false);
-            assertNotEquals(new Color(0x738249).getRGB(), expected.getRGB(16, 16));
-            assertEquals(expected.getRGB(16, 16), tile.image(MapStyle.PLAIN).getRGB(16, 16));
+            int expected = 0xFF000000 | overlaid(engine, 0x738249)[16 * 64 + 16];
+            assertNotEquals(new Color(0x738249).getRGB(), expected);
+            assertEquals(expected, tile.image(MapStyle.PLAIN).getRGB(16, 16));
             MapTile dry = settled(renderer, MapLayer.biomes(PickDisplay.PICKS, false));
             assertEquals(new Color(0x738249).getRGB(), dry.image(MapStyle.PLAIN).getRGB(16, 16));
             assertNotEquals(MapLayer.biomes(PickDisplay.PICKS, true), MapLayer.biomes(PickDisplay.PICKS, false));
@@ -99,6 +99,21 @@ public class MapHydrologyTest {
             MapTile tile = renderer.renderTile(0, 0, 1, 64, layer, false, () -> false);
             if (revision == ProvisionalSampling.revision()) {
                 return tile;
+            }
+            assertTrue("water never settled", System.nanoTime() < deadline);
+            Thread.sleep(10L);
+        }
+    }
+
+    private static int[] overlaid(Engine engine, int biomeColor) throws Exception {
+        IrisRenderer.WaterTile water = new IrisRenderer(engine).prepareStudioWater(0D, 0D, 1D, 64);
+        int[] base = new int[64 * 64];
+        Arrays.fill(base, biomeColor);
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10L);
+        while (true) {
+            int[] colors = water.render(base, true, () -> false);
+            if (water.complete()) {
+                return colors;
             }
             assertTrue("water never settled", System.nanoTime() < deadline);
             Thread.sleep(10L);

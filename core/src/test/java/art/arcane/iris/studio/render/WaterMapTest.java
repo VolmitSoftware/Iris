@@ -55,6 +55,8 @@ public class WaterMapTest {
         when(runtime.planPreview(anyInt(), anyInt(), anyInt(), anyInt()))
                 .thenReturn(new HydrologyPlanPreview(reaches, ponds, lakes, List.of(), true));
         when(runtime.channelType(any(HydrologyTier.class))).thenReturn(HydrologyFeatureType.STREAM);
-        return WaterMap.draw(runtime, PIXELS, 0D, 0D, MID_STEP, () -> false);
+        WaterMap map = new WaterMap(runtime, PIXELS, 0D, 0D, MID_STEP);
+        map.advance(() -> false);
+        return map;
     }
 }

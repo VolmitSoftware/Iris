@@ -176,14 +176,40 @@ public class HydrologyVoxelsTest {
     @Test
     public void seaFloorHeadsMayHoldTheSeaLayersOrTheDecorationOfTheSeaTheyJoin() {
         for (WaterRole role : new WaterRole[]{WaterRole.INLET, WaterRole.MOUTH}) {
-            assertEquals(role.name(), HydrologyVoxels.SOLID, HydrologyVoxels.plannedSurface(role, false, true, false, HydrologyVoxels.WATER));
-            assertEquals(role.name(), HydrologyVoxels.SOLID, HydrologyVoxels.plannedSurface(role, false, false, true, HydrologyVoxels.WATER));
+            byte cover = HydrologyVoxels.seaCover(HydrologyVoxels.WATER);
+            assertEquals(role.name(), cover, HydrologyVoxels.plannedSurface(role, false, true, false, HydrologyVoxels.WATER));
+            assertEquals(role.name(), cover, HydrologyVoxels.plannedSurface(role, false, false, true, HydrologyVoxels.WATER));
             assertEquals(role.name(), HydrologyVoxels.WATER, HydrologyVoxels.plannedSurface(role, false, false, false, HydrologyVoxels.WATER));
+            assertEquals(role.name(), HydrologyVoxels.SOLID, HydrologyVoxels.plannedSurface(role, true, true, false, HydrologyVoxels.WATER));
         }
         for (WaterRole role : new WaterRole[]{WaterRole.CHANNEL, WaterRole.POND, WaterRole.CASCADE, WaterRole.WATERFALL}) {
             assertEquals(role.name(), HydrologyVoxels.WATER, HydrologyVoxels.plannedSurface(role, false, true, true, HydrologyVoxels.WATER));
             assertEquals(role.name(), HydrologyVoxels.LAVA, HydrologyVoxels.plannedSurface(role, false, false, false, HydrologyVoxels.LAVA));
             assertEquals(role.name(), HydrologyVoxels.SOLID, HydrologyVoxels.plannedSurface(role, true, false, false, HydrologyVoxels.WATER));
+        }
+    }
+
+    @Test
+    public void seaFloorHeadsHoldTheirCoverOrTheirOwnFluid() {
+        HydrologyVoxels.ChunkBlocks chunk = pond(10);
+        for (int z = 3; z <= 5; z++) {
+            for (int x = 3; x <= 5; x++) {
+                chunk.heads()[(z << 4) | x] = 10;
+            }
+        }
+        for (WaterRole role : new WaterRole[]{WaterRole.INLET, WaterRole.MOUTH}) {
+            for (boolean layers : new boolean[]{true, false}) {
+                String cover = role + (layers ? " under sea layers" : " under the sea's decoration");
+                chunk.surfaces()[(4 << 4) | 4] = HydrologyVoxels.plannedSurface(role, false, layers, !layers, HydrologyVoxels.WATER);
+                chunk.set(4, 10, 4, HydrologyVoxels.WATER);
+                assertEquals("open water at the head of a " + cover, 0L, scan(volume(chunk)).missingSurfaces);
+                chunk.set(4, 10, 4, HydrologyVoxels.SOLID);
+                assertEquals("the cover at the head of a " + cover, 0L, scan(volume(chunk)).missingSurfaces);
+                chunk.set(4, 10, 4, HydrologyVoxels.LAVA);
+                HydrologyVoxels.WaterScan scan = scan(volume(chunk));
+                assertEquals("the wrong fluid at the head of a " + cover, 1L, scan.missingSurfaces);
+                assertEquals("missing planned surface at 4,10,4", scan.examples.get(0));
+            }
         }
     }
 

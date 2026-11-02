@@ -191,24 +191,37 @@ public class IrisTerrainNormalActuatorHydrologyTest {
 
     @Test
     public void aFallIntoAFrozenMouthLandsInOpenWater() {
-        Painter fall = frozenMouth();
+        Painter fall = frozenSeaFloor(WaterRole.MOUTH);
         fall.neighbour(12, -4, WaterRole.CHANNEL, HEAD + 1);
         Hunk<NativeBlockState> plunge = fall.paint();
         for (int y = GROUND + 1; y <= HEAD; y++) {
             assertSame("the fall lands in open sea water at y " + y, fall.sea, plunge.get(0, y, 0));
         }
 
-        Painter level = frozenMouth();
+        Painter level = frozenSeaFloor(WaterRole.MOUTH);
         level.neighbour(11, -3, WaterRole.CHANNEL, HEAD);
         assertSame("water beside the mouth at its own level is no fall", level.ice, level.paint().get(0, HEAD, 0));
 
-        Painter dry = frozenMouth();
+        Painter dry = frozenSeaFloor(WaterRole.MOUTH);
         dry.neighbour(10, -4, WaterRole.BANK, HEAD + 4);
         assertSame("a higher dry bank is no fall", dry.ice, dry.paint().get(0, HEAD, 0));
     }
 
-    private static Painter frozenMouth() {
-        Painter painter = new Painter(WaterRole.MOUTH, HEAD);
+    @Test
+    public void aFallIntoAFrozenInletMouthLandsInOpenWater() {
+        Painter fall = frozenSeaFloor(WaterRole.INLET);
+        fall.neighbour(12, -4, WaterRole.CHANNEL, HEAD + 1);
+        Hunk<NativeBlockState> plunge = fall.paint();
+        for (int y = GROUND + 1; y <= HEAD; y++) {
+            assertSame("the fall lands in open sea water at y " + y, fall.sea, plunge.get(0, y, 0));
+        }
+
+        Painter still = frozenSeaFloor(WaterRole.INLET);
+        assertSame("an inlet mouth with no fall keeps its sea layers", still.ice, still.paint().get(0, HEAD, 0));
+    }
+
+    private static Painter frozenSeaFloor(WaterRole role) {
+        Painter painter = new Painter(role, HEAD);
         when(painter.complex.resolveWaterFluid(11, -4)).thenReturn(painter.sea);
         when(painter.complex.naturalTrueHeight(11, -4)).thenReturn(GROUND);
         painter.thickSeaLayers();

@@ -27,6 +27,7 @@ final class HydrologyVoxels {
     static final byte CANE = 2;
     static final byte WATER = 16;
     static final byte LAVA = 32;
+    static final byte SEA_COVER = 64;
     static final int NO_WATER = Integer.MIN_VALUE;
     static final int COLUMNS = 256;
     private static final int FLUID_LEVELS = 16;
@@ -131,7 +132,14 @@ final class HydrologyVoxels {
     }
 
     static byte plannedSurface(WaterRole role, boolean solidObject, boolean seaLayers, boolean seaDecoration, byte fluid) {
-        return solidObject || seaFloor(role) && (seaLayers || seaDecoration) ? SOLID : fluid;
+        if (solidObject) {
+            return SOLID;
+        }
+        return seaFloor(role) && (seaLayers || seaDecoration) ? seaCover(fluid) : fluid;
+    }
+
+    static byte seaCover(byte fluid) {
+        return (byte) (SEA_COVER | fluid);
     }
 
     static boolean decoratedBy(IrisBiome biome, NativeBlockState state, IrisData data) {
@@ -247,7 +255,13 @@ final class HydrologyVoxels {
         }
 
         private static boolean holdsSurface(byte planned, byte voxel) {
-            return planned == SOLID ? voxel == SOLID || fluid(voxel) : sameFluid(planned, voxel);
+            if (planned == SOLID) {
+                return voxel == SOLID || fluid(voxel);
+            }
+            if ((planned & SEA_COVER) != 0) {
+                return voxel == SOLID || sameFluid((byte) (planned & ~SEA_COVER), voxel);
+            }
+            return sameFluid(planned, voxel);
         }
 
         private boolean opensSideways(Volume volume, int x, int y, int z) {

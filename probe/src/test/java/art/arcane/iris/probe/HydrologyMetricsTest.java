@@ -182,6 +182,9 @@ public class HydrologyMetricsTest {
         assertEquals(0L, berms(List.of(outlet), List.of(held), rasters, low));
         assertEquals(1L, berms(List.of(outlet), List.of(pond(10L, 51, square(0, 0, 2), 0L, 4, 4)), rasters(columns), low));
         assertEquals(1L, berms(List.of(outlet), List.of(pond(10L, 55, square(0, 0, 2), 3L, 4, 4)), rasters(columns), low));
+        Pond lake = new Pond(10L, PondKind.LAKE, 51, 47, 4, 4, 52f, square(0, 0, 2), 3L, 0, "minecraft:water", 4, 4);
+        assertEquals("a lake's outlet is never held, so its over-cap wall still counts", 1L,
+                berms(List.of(outlet), List.of(lake), rasters(columns), low));
         columns.put(HydrologyVoxels.columnKey(10, 5), new Column(WaterRole.BANK, HydrologyVoxels.NO_WATER, head + 1, 3L));
         assertEquals(1L, berms(List.of(outlet), List.of(held), rasters(columns), low));
     }

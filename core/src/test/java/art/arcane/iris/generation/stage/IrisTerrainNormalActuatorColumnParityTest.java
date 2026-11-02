@@ -116,6 +116,10 @@ public class IrisTerrainNormalActuatorColumnParityTest {
         private final Map<String, NativeBlockState> palettes = new HashMap<>();
         private final int he;
         private final int surfaceFluid;
+        private final int fallX;
+        private final int fallZ;
+        private final int fallHead;
+        private final WaterRole fallRole;
         private final KList<IrisOreGenerator> biomeSurface = new KList<>();
         private final KList<IrisOreGenerator> biomeUnderground = new KList<>();
         private final KList<IrisOreGenerator> regionSurface = new KList<>();
@@ -158,6 +162,12 @@ public class IrisTerrainNormalActuatorColumnParityTest {
             dimensionOres.addAll(dimensionUnderground);
             dimension = new IrisDimension().setBedrock(bedrock).setHideOresForHiddenOre(false);
             dimension.setOres(dimensionOres);
+            Random fall = new Random(31L * trial + 7L);
+            int side = fall.nextInt(4);
+            fallX = X + (side == 0 ? 1 : side == 1 ? -1 : 0);
+            fallZ = Z + (side == 2 ? 1 : side == 3 ? -1 : 0);
+            fallHead = surfaceFluid - 1 + fall.nextInt(5);
+            fallRole = WaterRole.values()[fall.nextInt(WaterRole.values().length)];
 
             when(engine.getDimension()).thenReturn(dimension);
             when(engine.getComplex()).thenReturn(complex);
@@ -166,8 +176,9 @@ public class IrisTerrainNormalActuatorColumnParityTest {
             IrisImageMapRuntime imageMap = mock(IrisImageMapRuntime.class);
             when(imageMap.sampleSurfaceBlock(anyDouble(), anyDouble())).thenReturn(mapped);
             when(complex.getImageMapRuntime()).thenReturn(imageMap);
-            when(complex.getWaterHeadStream()).thenReturn(ProceduralStream.ofDouble((x, z) -> (double) surfaceFluid));
-            when(complex.getWaterRoleStream()).thenReturn(ProceduralStream.of((x, z) -> role, Interpolated.of(value -> 0D, value -> role)));
+            when(complex.getWaterHeadStream()).thenReturn(ProceduralStream.ofDouble((x, z) -> fallColumn(x, z) ? fallHead : (double) surfaceFluid));
+            when(complex.getWaterRoleStream()).thenReturn(ProceduralStream.of((x, z) -> fallColumn(x, z) ? fallRole : role,
+                    Interpolated.of(value -> 0D, value -> role)));
             when(complex.resolveWaterMaterials(X, Z)).thenReturn(materials);
             when(complex.resolveWaterFluid(X, Z)).thenReturn(waterFluid);
             when(complex.naturalTrueHeight(X, Z)).thenReturn(he + 5);
@@ -191,7 +202,12 @@ public class IrisTerrainNormalActuatorColumnParityTest {
             when(biome.getSurfaceOreBands()).thenReturn(IrisOreBands.of(biomeSurface));
             when(biome.getUndergroundOreBands()).thenReturn(IrisOreBands.of(biomeUnderground));
             description = "he=" + he + " fluid=" + surfaceFluid + " bedrock=" + bedrock + " mapped=" + (mapped != null)
-                    + " layers=" + layerCount + " column=" + terrainColumn + " role=" + role + " materials=" + materials;
+                    + " layers=" + layerCount + " column=" + terrainColumn + " role=" + role + " materials=" + materials
+                    + " neighbour=" + fallX + "," + fallZ + " " + fallRole + "@" + fallHead;
+        }
+
+        private boolean fallColumn(double x, double z) {
+            return (int) Math.floor(x) == fallX && (int) Math.floor(z) == fallZ;
         }
 
         @Override
@@ -209,6 +225,7 @@ public class IrisTerrainNormalActuatorColumnParityTest {
             NativeBlockState airState = B.getState("AIR");
             boolean wet = role.wet();
             boolean seaFloor = !wet || role == WaterRole.INLET || role == WaterRole.MOUTH;
+            boolean openUnderFall = wet && seaFloor && fallRole.wet() && fallHead > surfaceFluid;
             IrisHydrologyMaterials materials = role == WaterRole.INLET ? null : this.materials;
             int he = Math.min(chunkHeight, this.he);
             int surfaceFluidHeight = Math.min(chunkHeight, this.surfaceFluid);
@@ -279,7 +296,7 @@ public class IrisTerrainNormalActuatorColumnParityTest {
                     if (seaFloor && fblocks == null) {
                         fblocks = biome.generateSeaLayers(realX, realZ, rng, hf - he, data);
                     }
-                    h.setRaw(xf, i, zf, HydrologyFluidLayerSelector.select(fblocks, fdepth, columnFluid, !seaFloor));
+                    h.setRaw(xf, i, zf, HydrologyFluidLayerSelector.select(fblocks, fdepth, columnFluid, !seaFloor || openUnderFall));
                     continue;
                 }
                 if (i <= he) {

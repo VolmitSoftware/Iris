@@ -53,13 +53,13 @@ final class RiffleProfile {
         }
         DistanceField distances = new DistanceField(heads);
         for (Map.Entry<Crest, Seeds> crest : crests.entrySet()) {
-            int[] output = distances.measure(crest.getValue(), DistanceField.ANY_LEVEL);
+            int[] output = distances.measure(crest.getValue(), DistanceField.ANY_LEVEL, LIMIT);
             if (output != null) {
                 fields.add(new Field(crest.getKey(), output));
             }
         }
         for (Map.Entry<Fall, Seeds> fall : feet.entrySet()) {
-            int[] output = distances.measure(fall.getValue(), fall.getKey().foot());
+            int[] output = distances.measure(fall.getValue(), fall.getKey().foot(), fall.getKey().reach());
             if (output != null) {
                 plunges.add(new Plunge(fall.getKey(), output));
             }
@@ -191,6 +191,10 @@ final class RiffleProfile {
             return Math.clamp(PLUNGE_RADIUS_RATIO * drop(), PLUNGE_MIN_RADIUS, PLUNGE_MAX_RADIUS);
         }
 
+        int reach() {
+            return (int) Math.ceil(10D * radius());
+        }
+
         @Override
         public int compareTo(Fall other) {
             return foot != other.foot ? Integer.compare(foot, other.foot) : Integer.compare(top, other.top);
@@ -224,13 +228,15 @@ final class RiffleProfile {
         private final int[] previous = new int[GRID * GRID];
         private final int[] first = new int[LIMIT];
         private int level;
+        private int limit;
 
         private DistanceField(int[] heads) {
             this.heads = heads;
         }
 
-        private int[] measure(Seeds seeds, int passable) {
+        private int[] measure(Seeds seeds, int passable, int reach) {
             level = passable;
+            limit = reach;
             Arrays.fill(distances, LIMIT);
             Arrays.fill(next, -1);
             Arrays.fill(previous, -1);
@@ -247,7 +253,7 @@ final class RiffleProfile {
         }
 
         private void offer(int cell, int distance) {
-            if (distance + REMAINING[cell] >= LIMIT) {
+            if (distance + REMAINING[cell] >= limit) {
                 return;
             }
             if (distances[cell] < LIMIT) {
@@ -276,7 +282,7 @@ final class RiffleProfile {
         }
 
         private void spread() {
-            for (int distance = 0; distance < LIMIT; distance++) {
+            for (int distance = 0; distance < limit; distance++) {
                 while (first[distance] >= 0) {
                     int cell = first[distance];
                     remove(cell);

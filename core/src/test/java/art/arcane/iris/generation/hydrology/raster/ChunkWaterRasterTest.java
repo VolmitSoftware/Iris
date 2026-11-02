@@ -19,6 +19,7 @@ import art.arcane.iris.generation.hydrology.water.Pond;
 import art.arcane.iris.generation.hydrology.water.PondKind;
 import art.arcane.iris.generation.hydrology.water.PondMask;
 import art.arcane.iris.generation.hydrology.water.Reach;
+import art.arcane.iris.generation.hydrology.water.ReachShaper;
 import art.arcane.iris.generation.hydrology.water.ReachStyle;
 import art.arcane.iris.generation.hydrology.water.ShapedNetwork;
 import art.arcane.iris.generation.terrain.IrisMaterialPalette;
@@ -909,6 +910,30 @@ public class ChunkWaterRasterTest {
             previous = head;
         }
         assertWindowOrderFree(scene, 27, 37, 12);
+    }
+
+    @Test
+    public void crossWindowSettlingKeepsAStepAtTheEndOfAnOutletZone() {
+        HydrologyTier narrow = tier("river", 2f, 0.5f, 4, IrisBankStyle.SMOOTH);
+        HydrologyTier wide = tier("river", 3f, 0.5f, 4, IrisBankStyle.SMOOTH);
+        Reach low = line(332L, wide, 0L, 504f, 200f, 600f, 200f, (x, z) -> 62);
+        Reach drawn = line(331L, narrow, low.id(), 492f, 200f, 504f, 200f, (x, z) -> x < 500f ? 66 : 65);
+        boolean[] zone = new boolean[drawn.xs().length];
+        for (int point = 0; point < zone.length; point++) {
+            zone[point] = drawn.xs()[point] - drawn.xs()[0] <= 8f;
+        }
+        ReachStyle[] style = ReachShaper.styles(drawn.grade(), new boolean[zone.length], zone, narrow.waterfallMinimumDrop(), SEA_LEVEL);
+        assertEquals("the last outlet zone point steps down one block, shown as two", ReachStyle.CASCADE, style[4]);
+        assertTrue("the step lies at the end of the outlet zone", zone[4] && !zone[5]);
+        Reach outlet = new Reach(drawn.id(), narrow, drawn.downstreamId(), drawn.xs(), drawn.zs(), drawn.grade(), drawn.halfWidth(), drawn.depth(),
+                style, drawn.catchment());
+        Scene scene = new Scene(settings(new IrisHydrology()), (x, z) -> 75).reach(outlet).reach(low);
+        for (int x = 492; x <= 498; x++) {
+            assertEquals("outlet zone water at x=" + x, 66, scene.head(x, 200));
+        }
+        assertEquals("the outlet zone keeps the step at its last point", 64, scene.head(500, 200));
+        assertEquals(62, scene.head(502, 200));
+        assertWindowOrderFree(scene, 30, 32, 12);
     }
 
     @Test

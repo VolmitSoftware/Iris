@@ -82,9 +82,13 @@ public final class LinkBlend {
         fixed[0] = held || heldStart || style[0] == ReachStyle.POND_OUTLET;
         for (int point = 1; point < style.length; point++) {
             held = held && nearLip(lips, feeder.xs()[point], feeder.zs()[point], feeder.halfWidth()[point]);
-            fixed[point] = held || style[point] == ReachStyle.POND_OUTLET;
+            fixed[point] = held || style[point] == ReachStyle.POND_OUTLET || zoneStep(feeder, fixed, point);
         }
         return fixed;
+    }
+
+    private static boolean zoneStep(Reach feeder, boolean[] fixed, int point) {
+        return fixed[point - 1] && feeder.style()[point] == ReachStyle.CASCADE && feeder.grade()[point - 1] - feeder.grade()[point] == 1;
     }
 
     private static boolean nearLip(List<PondMask> lips, float x, float z, float halfWidth) {

@@ -92,6 +92,10 @@ final class PlannedScene {
     }
 
     static HydrologySettings packSettings(long seed) {
+        return HydrologySettings.compile(packConfig(), seed, SyntheticTerrain.SEA_LEVEL, SyntheticTerrain.MIN_Y, SyntheticTerrain.MAX_Y);
+    }
+
+    static IrisHydrology packConfig() {
         IrisHydrology config = new IrisHydrology();
         config.setTiers(new KList<>(
                 new IrisHydrologyTier().setName("stream").setMinCatchment(900D).setHalfWidth(new KList<>(0.5D, 2.5D)).setWidthFactor(1.2D)
@@ -104,7 +108,7 @@ final class PlannedScene {
         config.getPonds().setClimateDrawdown(3);
         config.getPonds().getSeeded().setDensity(10D).setRadius(new KList<>(6, 22)).setMaxSlope(0.7D).setChannelSpacing(new KList<>(80, 192));
         config.getPonds().getShore().setRoundness(0.5D).setShelf(6).setTaper(14).setMaxDepth(8);
-        return HydrologySettings.compile(config, seed, SyntheticTerrain.SEA_LEVEL, SyntheticTerrain.MIN_Y, SyntheticTerrain.MAX_Y);
+        return config;
     }
 
     HydrologySettings settings() {

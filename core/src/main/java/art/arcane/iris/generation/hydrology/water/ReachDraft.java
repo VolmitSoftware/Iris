@@ -36,7 +36,6 @@ final class ReachDraft {
         this.zs = fitted.zs();
         this.catchments = fitted.catchment();
         this.ocean = fitted.ocean();
-        this.ocean[xs.length - 1] |= chain.end() == ReachTracer.End.OCEAN;
         this.target = new int[xs.length];
         for (int point = 0; point < xs.length; point++) {
             target[point] = (int) Math.floor(fitted.ground()[point]) - tier.inset();

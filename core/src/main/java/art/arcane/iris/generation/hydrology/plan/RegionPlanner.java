@@ -130,7 +130,7 @@ public final class RegionPlanner {
         BitSet candidates = ChannelHeads.candidates(surface, accumulation, samples.permission(), settings.majorTier().minCatchment(), settings.seaLevel());
         BitSet channels = ChannelHeads.keep(surface, samples.height(), receivers, candidates, settings.drainage().headRelief(), cell -> false,
                 cell -> CellHash.unit(CellHash.mix(settings.seed(), SALT_HEAD, surface.blockX(cell), surface.blockZ(cell))) < settings.density());
-        return shaper.coarsePaths(surface, receivers, accumulation, channels, settings.seed());
+        return shaper.coarsePaths(surface, receivers, accumulation, channels, samples.ocean(), settings.seed());
     }
 
     private static List<Reach> ownedReaches(RegionKey key, List<Reach> reaches) {

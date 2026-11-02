@@ -1794,8 +1794,7 @@ public class IrisComplex implements DataProvider {
             return false;
         }
         WaterRole role = raster.role(blockX & 15, blockZ & 15);
-        return role.wet() && role != WaterRole.MOUTH && role != WaterRole.INLET && seamWeight(blockX, blockZ) != 0D
-                && raster.waterHead(blockX & 15, blockZ & 15) > transitionFluidHeight(x, z, fluidHeight);
+        return role.wet() && role != WaterRole.MOUTH && role != WaterRole.INLET && seamWeight(blockX, blockZ) != 0D;
     }
 
     private IrisBiome hydrologyShoreBiome(double terrainHeight, double x, double z) {

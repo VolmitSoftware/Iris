@@ -35,9 +35,9 @@ public final class ReachShaper {
         this.deltas = new DeltaPlanner(settings);
     }
 
-    public ShapedNetwork shape(WindowKey window, DemGrid filled, int[] receivers, float[] accumulation, BitSet channels, List<Pond> ponds,
-                               HeightLattice fine, long seed) {
-        requireNetwork(filled, receivers, accumulation, channels);
+    public ShapedNetwork shape(WindowKey window, DemGrid filled, int[] receivers, float[] accumulation, BitSet channels, boolean[] ocean,
+                               List<Pond> ponds, HeightLattice fine, long seed) {
+        requireNetwork(filled, receivers, accumulation, channels, ocean);
         PondLookup lookup = new PondLookup(ponds);
         int[] pondAt = lookup.cells(filled);
         int[] outletCells = outletCells(filled, receivers, accumulation, channels, lookup, pondAt);
@@ -47,7 +47,7 @@ public final class ReachShaper {
                 outlets.set(cell);
             }
         }
-        List<ReachTracer.Chain> chains = ReachTracer.trace(filled, receivers, channels, pondAt, outlets, settings.seaLevel());
+        List<ReachTracer.Chain> chains = ReachTracer.trace(filled, receivers, channels, ocean, pondAt, outlets);
         ReachFitter fitter = new ReachFitter(Objects.requireNonNull(fine, "fine"), lookup);
         List<ReachDraft> drafts = new ArrayList<>(chains.size());
         for (ReachTracer.Chain chain : chains) {
@@ -98,9 +98,9 @@ public final class ReachShaper {
         return new ShapedNetwork(reaches, linked);
     }
 
-    public List<Reach> coarsePaths(DemGrid filled, int[] receivers, float[] accumulation, BitSet channels, long seed) {
-        requireNetwork(filled, receivers, accumulation, channels);
-        List<ReachTracer.Chain> chains = ReachTracer.trace(filled, receivers, channels, null, new BitSet(), settings.seaLevel());
+    public List<Reach> coarsePaths(DemGrid filled, int[] receivers, float[] accumulation, BitSet channels, boolean[] ocean, long seed) {
+        requireNetwork(filled, receivers, accumulation, channels, ocean);
+        List<ReachTracer.Chain> chains = ReachTracer.trace(filled, receivers, channels, ocean, null, new BitSet());
         int[] downstream = ReachTracer.downstream(chains);
         long[] ids = new long[chains.size()];
         for (int index = 0; index < ids.length; index++) {
@@ -143,7 +143,7 @@ public final class ReachShaper {
         float catchment = cellCatchment[cellCatchment.length - 1];
         HydrologyTier tier = settings.tierFor(catchment);
         long shapeSeed = CellHash.mix(seed, SALT_SHAPE, grid.blockX(chain.start()), grid.blockZ(chain.start()));
-        ReachFitter.Fitted fitted = fitter.fit(grid, chain.cells(), cellCatchment, tier, shapeSeed);
+        ReachFitter.Fitted fitted = fitter.fit(grid, chain.cells(), cellCatchment, tier, shapeSeed, chain.end() == ReachTracer.End.OCEAN);
         int endLevel = chain.end() == ReachTracer.End.POND ? ponds.pond(chain.pond()).level() : Integer.MIN_VALUE;
         return new ReachDraft(chain, id(seed, SALT_START, SALT_END, grid, chain), tier, catchment, endLevel, fitted);
     }
@@ -649,11 +649,11 @@ public final class ReachShaper {
         return CellHash.mix(start, endSalt, grid.blockX(chain.last()), grid.blockZ(chain.last()));
     }
 
-    private static void requireNetwork(DemGrid grid, int[] receivers, float[] accumulation, BitSet channels) {
+    private static void requireNetwork(DemGrid grid, int[] receivers, float[] accumulation, BitSet channels, boolean[] ocean) {
         int count = grid.width() * grid.depth();
-        if (receivers.length != count || accumulation.length != count || channels.length() > count) {
+        if (receivers.length != count || accumulation.length != count || channels.length() > count || ocean.length < count) {
             throw new IllegalArgumentException("Drainage network does not match the " + count + "-cell grid: receivers=" + receivers.length
-                    + " accumulation=" + accumulation.length + " channels=" + channels.length());
+                    + " accumulation=" + accumulation.length + " channels=" + channels.length() + " ocean=" + ocean.length);
         }
     }
 

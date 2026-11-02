@@ -1,6 +1,7 @@
 package art.arcane.iris.generation.hydrology.plan;
 
 import art.arcane.iris.generation.hydrology.config.IrisHydrology;
+import art.arcane.iris.generation.hydrology.config.IrisHydrologyTier;
 import art.arcane.iris.generation.hydrology.grid.HeightLattice;
 import art.arcane.iris.generation.hydrology.raster.WaterHeads;
 import art.arcane.iris.generation.hydrology.raster.WaterRole;
@@ -31,7 +32,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -49,6 +52,22 @@ public class WindowPlannerTest {
     private static final int SEAM_DISTANCE = 256;
     private static final double COAST_DROP = 20D;
     private static final double CLIFF_COAST_X = 300D;
+    private static final double HOLLOW_X = 600D;
+    private static final double HOLLOW_Z = 512D;
+    private static final double HOLLOW_RADIUS = 100D;
+    private static final double HOLLOW_DEPTH = 64D;
+    private static final double PIT_X = 900D;
+    private static final double PIT_Z = 512D;
+    private static final double PIT_RADIUS = 50D;
+    private static final double PIT_DEPTH = 30D;
+    private static final int DEEP_CUT = 12;
+    private static final int SLIVER_REACH = 32;
+    private static final int RIM_CUT = 24;
+    private static final double CRATER_X = 512D;
+    private static final double CRATER_Z = 512D;
+    private static final int CRATER_SPILL = 75;
+    private static final double CRATER_RIM = 120D;
+    private static final long DELTA_SEED = 5L;
 
     @Test
     public void zeroDensityRemovesLocalChannelsAndPonds() {
@@ -80,14 +99,14 @@ public class WindowPlannerTest {
         ReachShaper shaper = mock(ReachShaper.class);
         AtomicInteger passes = new AtomicInteger();
         doAnswer(call -> {
-            List<Pond> water = call.getArgument(5);
+            List<Pond> water = call.getArgument(6);
             Pond pond = single(water);
             passes.incrementAndGet();
             int head = pond.level() > 96 ? 96 : 94;
             Reach outlet = new Reach(20L, settings.tiers().get(0), 0L, new float[]{64f, 64f}, new float[]{32f, 96f},
                     new int[]{head, head}, new float[]{2f, 2f}, new float[]{2f, 2f}, new ReachStyle[]{ReachStyle.RUN, ReachStyle.RUN}, 1000f);
             return new ShapedNetwork(List.of(outlet), List.of(pond.withOutletReachId(outlet.id())));
-        }).when(shaper).shape(any(), any(), any(), any(), any(), any(), any(), anyLong());
+        }).when(shaper).shape(any(), any(), any(), any(), any(), any(), any(), any(), anyLong());
         WindowPlanner planner = new WindowPlanner(settings,
                 new HeightLattice(terrain, WindowPlanner.FINE_CELL, false, 1 << 18), ponds, shaper);
 
@@ -577,7 +596,7 @@ public class WindowPlannerTest {
     private static WindowPlanner loweringWatched(HydrologySettings settings, SyntheticTerrain terrain, Set<Long> lowered) {
         ReachShaper shaper = spy(new ReachShaper(settings));
         doAnswer(call -> {
-            List<Pond> planned = call.getArgument(5);
+            List<Pond> planned = call.getArgument(6);
             ShapedNetwork network = (ShapedNetwork) call.callRealMethod();
             Map<Long, Integer> levels = new HashMap<>();
             for (Pond pond : planned) {
@@ -590,7 +609,7 @@ public class WindowPlannerTest {
                 }
             }
             return network;
-        }).when(shaper).shape(any(), any(), any(), any(), any(), any(), any(), anyLong());
+        }).when(shaper).shape(any(), any(), any(), any(), any(), any(), any(), any(), anyLong());
         return new WindowPlanner(settings,
                 new HeightLattice(terrain, WindowPlanner.FINE_CELL, false, 1 << 21), new PondPlanner(settings), shaper);
     }
@@ -855,6 +874,70 @@ public class WindowPlannerTest {
     }
 
     @Test
+    public void coastalDeltasBelongToOneWindowAndPersist() {
+        IrisHydrology config = PlannedScene.packConfig();
+        for (IrisHydrologyTier tier : config.getTiers()) {
+            tier.getDelta().setChannels(2);
+        }
+        HydrologySettings settings = HydrologySettings.compile(config, SEED, SEA_LEVEL, SyntheticTerrain.MIN_Y, SyntheticTerrain.MAX_Y);
+        SyntheticTerrain coast = SyntheticTerrain.boxedFractal(DELTA_SEED, LAND.wx() * WindowKey.SIZE - 2D, LAND.wz() * WindowKey.SIZE - 2D,
+                2 * WindowKey.SIZE);
+        Map<WindowKey, WindowComputation> fanned = coastalWindows(settings, coast);
+        Set<Long> plain = new HashSet<>();
+        for (WindowComputation computation : coastalWindows(PlannedScene.packSettings(SEED), coast).values()) {
+            for (Reach reach : computation.allReaches()) {
+                plain.add(reach.id());
+            }
+        }
+        Map<Long, WindowKey> owners = new HashMap<>();
+        int shared = 0;
+        for (Map.Entry<WindowKey, WindowComputation> entry : fanned.entrySet()) {
+            WindowPlan owned = entry.getValue().owned();
+            for (Reach reach : owned.reaches()) {
+                if (plain.contains(reach.id())) {
+                    continue;
+                }
+                assertNull("delta channel " + reach.id() + " has one owner", owners.put(reach.id(), entry.getKey()));
+                int last = reach.xs().length - 1;
+                assertEquals(reach + " belongs to the window of its sea end", entry.getKey(),
+                        WindowKey.containing((int) Math.floor(reach.xs()[last]), (int) Math.floor(reach.zs()[last])));
+                assertEquals(reach + " drains to the sea", 0L, reach.downstreamId());
+                for (int point = 0; point < reach.grade().length; point++) {
+                    assertEquals(reach + " point " + point, ReachStyle.MOUTH, reach.style()[point]);
+                    assertEquals(reach + " point " + point, SEA_LEVEL, reach.grade()[point]);
+                }
+                for (Map.Entry<WindowKey, WindowComputation> other : fanned.entrySet()) {
+                    if (other.getKey().equals(entry.getKey())) {
+                        continue;
+                    }
+                    for (Reach seen : other.getValue().allReaches()) {
+                        if (seen.id() == reach.id()) {
+                            shared++;
+                            assertEquals(reach + " seen from " + other.getKey(), reach, seen);
+                        }
+                    }
+                }
+            }
+            assertEquals(entry.getKey() + " plan round-trips its delta", owned,
+                    HydrologyPlanCodec.decodeWindow(settings, HydrologyPlanCodec.encode(settings, owned)).orElseThrow());
+        }
+        assertTrue("delta channels on the bounded coast " + owners.size(), owners.size() >= 8);
+        assertTrue("delta channels also planned by a neighbouring window " + shared, shared >= 8);
+    }
+
+    private static Map<WindowKey, WindowComputation> coastalWindows(HydrologySettings settings, SyntheticTerrain terrain) {
+        Map<RegionKey, RegionPlan> regions = new HashMap<>();
+        Map<WindowKey, WindowComputation> computations = new HashMap<>();
+        for (int wz = LAND.wz(); wz <= LAND.wz() + 1; wz++) {
+            for (int wx = LAND.wx(); wx <= LAND.wx() + 1; wx++) {
+                WindowKey key = new WindowKey(wx, wz);
+                computations.put(key, planner(settings, terrain).compute(key, regionPlans(settings, terrain, key, regions)));
+            }
+        }
+        return computations;
+    }
+
+    @Test
     public void planWithAMouthBelowSeaFailsClosed() {
         HydrologySettings settings = settings(new IrisHydrology());
         Reach mouth = coastal(4711L, settings.tiers().get(0), SEA_LEVEL - 1, ReachStyle.MOUTH);
@@ -862,27 +945,134 @@ public class WindowPlannerTest {
     }
 
     @Test
-    public void oceanFlagsInsideAReachDoNotFailClosed() {
+    public void seaSliversInsideAReachLeaveNoMouthsTrenchesOrLostPonds() {
         HydrologySettings settings = settings(new IrisHydrology());
+        PlannedScene dry = PlannedScene.plan(SyntheticTerrain.valleySlope().withPit(PIT_X, PIT_Z, PIT_RADIUS, PIT_DEPTH), settings, 2, 2);
+        int dryCuts = deepCuts(dry);
         for (double stripX : new double[]{817D, 841D}) {
-            SyntheticTerrain terrain = SyntheticTerrain.seaStrip(stripX, 4D).withPit(900D, 512D, 50D, 30D);
-            PlannedScene scene = PlannedScene.plan(terrain, settings, 2, 2);
-            int inner = 0;
+            PlannedScene scene = PlannedScene.plan(SyntheticTerrain.seaStrip(stripX, 4D).withPit(PIT_X, PIT_Z, PIT_RADIUS, PIT_DEPTH), settings, 2, 2);
+            int crossing = 0;
             for (Reach reach : scene.reaches()) {
-                int trailing = reach.grade().length;
-                while (trailing > 0 && reach.style()[trailing - 1] == ReachStyle.MOUTH) {
-                    trailing--;
-                }
-                for (int point = 0; point < trailing; point++) {
-                    inner += reach.style()[point] == ReachStyle.MOUTH && reach.grade()[point] > SEA_LEVEL ? 1 : 0;
+                for (int point = 0; point < reach.style().length; point++) {
+                    assertNotEquals(reach + " point " + point + " over the sliver at x " + stripX + " is a mouth", ReachStyle.MOUTH, reach.style()[point]);
+                    crossing += reach.xs()[point] >= stripX - 2D && reach.xs()[point] < stripX + 6D ? 1 : 0;
                 }
             }
-            assertTrue("mouth points above sea inside reaches crossing the sea strip at x " + stripX + ": " + inner, inner > 0);
+            assertTrue("reach points crossing the sea sliver at x " + stripX + ": " + crossing, crossing > 0);
+            Map<Long, Pond> ponds = new HashMap<>();
+            for (Pond pond : scene.ponds()) {
+                ponds.put(pond.id(), pond);
+            }
+            int away = 0;
+            for (Pond pond : dry.ponds()) {
+                if (Math.abs(pond.floorX() - stripX) <= SLIVER_REACH) {
+                    continue;
+                }
+                away++;
+                Pond kept = ponds.get(pond.id());
+                assertNotNull(pond + " away from the sea sliver at x " + stripX + " is kept", kept);
+                assertEquals(pond + " level with the sea sliver at x " + stripX, pond.level(), kept.level());
+            }
+            assertTrue("ponds away from the sea sliver at x " + stripX + ": " + away, away > 10);
+            int cuts = deepCuts(scene);
+            assertTrue("reach points cut more than " + DEEP_CUT + " below the ground with the sliver at x " + stripX + ": " + cuts + ", without it "
+                    + dryCuts, cuts <= dryCuts + dryCuts / 50);
         }
-        Reach crossing = new Reach(4715L, settings.tiers().get(0), 0L, new float[]{64f, 80f, 96f}, new float[]{64f, 64f, 64f},
-                new int[]{SEA_LEVEL + 6, SEA_LEVEL + 4, SEA_LEVEL + 2}, new float[]{2f, 2f, 2f}, new float[]{1f, 1f, 1f},
-                new ReachStyle[]{ReachStyle.RUN, ReachStyle.MOUTH, ReachStyle.RUN}, 1000f);
-        assertEquals(List.of(crossing), plannerReturning(settings, List.of(crossing), List.of()).plan(ORIGIN, noRegions(ORIGIN)).reaches());
+    }
+
+    private static int deepCuts(PlannedScene scene) {
+        int deep = 0;
+        for (Reach reach : scene.reaches()) {
+            for (int point = 0; point < reach.grade().length; point++) {
+                int x = (int) Math.floor(reach.xs()[point]);
+                int z = (int) Math.floor(reach.zs()[point]);
+                if (pondAt(scene.ponds(), x, z) == null && scene.natural(x, z) - reach.grade()[point] > DEEP_CUT) {
+                    deep++;
+                }
+            }
+        }
+        return deep;
+    }
+
+    @Test
+    public void inlandBelowSeaHollowsHoldPondsNotMouths() {
+        HydrologySettings settings = settings(new IrisHydrology());
+        SyntheticTerrain hollow = SyntheticTerrain.valleySlope().withPit(HOLLOW_X, HOLLOW_Z, HOLLOW_RADIUS, HOLLOW_DEPTH);
+        assertTrue("the hollow floor lies far below the sea", hollow.natural(HOLLOW_X, HOLLOW_Z) < SEA_LEVEL - 20D);
+        PlannedScene inland = PlannedScene.plan(hollow.withLand((x, z) -> true), settings, 2, 2);
+        Pond pond = pondAt(inland.ponds(), HOLLOW_X, HOLLOW_Z);
+        assertNotNull("a pond holds the inland hollow, ponds " + inland.ponds(), pond);
+        assertEquals("the inland hollow holds water at the sea surface " + pond, SEA_LEVEL, pond.level());
+        int inflows = 0;
+        for (Reach reach : inland.reaches()) {
+            for (int point = 0; point < reach.style().length; point++) {
+                assertNotEquals(reach + " point " + point + " is a sea mouth inland", ReachStyle.MOUTH, reach.style()[point]);
+            }
+            int last = reach.xs().length - 1;
+            if (pond.mask().contains((int) Math.floor(reach.xs()[last]), (int) Math.floor(reach.zs()[last]))) {
+                inflows++;
+                assertEquals(reach + " ends in the hollow pond", 0L, reach.downstreamId());
+                assertTrue(reach + " meets the hollow pond at or above its level", reach.grade()[last] >= pond.level());
+            }
+        }
+        assertTrue("streams draining into the hollow end in its pond: " + inflows, inflows > 0);
+        assertEquals("the inland hollow pond has no outlet", 0L, pond.outletReachId());
+        assertEquals("the hollow centre is pond water", WaterRole.POND, inland.role((int) HOLLOW_X, (int) HOLLOW_Z));
+        assertEquals("the hollow pond surface", SEA_LEVEL, inland.head((int) HOLLOW_X, (int) HOLLOW_Z));
+        for (int z = inland.minZ() + WaterInvariants.EDGE_MARGIN; z <= inland.maxZ() - WaterInvariants.EDGE_MARGIN; z++) {
+            for (int x = inland.minX() + WaterInvariants.EDGE_MARGIN; x <= inland.maxX() - WaterInvariants.EDGE_MARGIN; x++) {
+                assertNotEquals("no sea mouth water inland at " + x + "," + z, WaterRole.MOUTH, inland.role(x, z));
+            }
+        }
+        PlannedScene sea = PlannedScene.plan(hollow, settings, 2, 2);
+        assertNull("the same hollow with sea intent is the sea, not a pond", pondAt(sea.ponds(), HOLLOW_X, HOLLOW_Z));
+        int mouths = 0;
+        for (Reach reach : sea.reaches()) {
+            int last = reach.xs().length - 1;
+            if (reach.style()[last] == ReachStyle.MOUTH && Math.hypot(reach.xs()[last] - HOLLOW_X, reach.zs()[last] - HOLLOW_Z) < HOLLOW_RADIUS) {
+                mouths++;
+            }
+        }
+        assertTrue("streams entering the sea-intent hollow keep their mouths: " + mouths, mouths > 0);
+    }
+
+    @Test
+    public void deepInlandHollowsKeepTheirRim() {
+        HydrologySettings settings = settings(new IrisHydrology());
+        SyntheticTerrain crater = SyntheticTerrain.crater(CRATER_X, CRATER_Z, CRATER_SPILL, CRATER_RIM)
+                .withLand((x, z) -> Math.hypot(x - CRATER_X, z - CRATER_Z) < CRATER_RIM + 50D);
+        double floor = crater.natural(CRATER_X, CRATER_Z);
+        assertTrue("the crater floor lies below the sea and deeper than the breach depth under its spill " + floor,
+                floor < SEA_LEVEL && CRATER_SPILL - floor > settings.drainage().breachDepth());
+        PlannedScene scene = PlannedScene.plan(crater, settings, 2, 2);
+        Pond pond = pondAt(scene.ponds(), CRATER_X, CRATER_Z);
+        assertNotNull("a pond holds the crater floor, ponds " + scene.ponds(), pond);
+        assertEquals(pond.toString(), SEA_LEVEL, pond.level());
+        assertEquals("the crater pond has no outlet " + pond, 0L, pond.outletReachId());
+        int rim = 0;
+        for (Reach reach : scene.reaches()) {
+            for (int point = 0; point < reach.grade().length; point++) {
+                double distance = Math.hypot(reach.xs()[point] - CRATER_X, reach.zs()[point] - CRATER_Z);
+                if (distance < 0.5D * CRATER_RIM || distance > CRATER_RIM + 100D) {
+                    continue;
+                }
+                rim++;
+                double ground = crater.natural(reach.xs()[point], reach.zs()[point]);
+                assertNotEquals(reach + " point " + point + " is a sea mouth in the crater", ReachStyle.MOUTH, reach.style()[point]);
+                assertTrue(reach + " point " + point + " cuts through the crater rim, graded " + reach.grade()[point] + " under ground " + ground,
+                        ground - reach.grade()[point] <= RIM_CUT);
+            }
+        }
+        assertTrue("reach points on the crater walls " + rim, rim > 100);
+    }
+
+    private static Pond pondAt(List<Pond> ponds, double x, double z) {
+        for (Pond pond : ponds) {
+            if (pond.mask().contains((int) Math.floor(x), (int) Math.floor(z))) {
+                return pond;
+            }
+        }
+        return null;
     }
 
     @Test
@@ -891,6 +1081,14 @@ public class WindowPlannerTest {
         HydrologyTier stream = settings.tiers().get(0);
         assertFailsClosed(settings, List.of(coastal(4712L, stream, SEA_LEVEL + 1, ReachStyle.MOUTH)), List.of(), "reach 4712");
         assertFailsClosed(settings, List.of(coastal(4713L, stream, SEA_LEVEL - 1, ReachStyle.RUN)), List.of(), "reach 4713");
+        Reach crossing = new Reach(4715L, stream, 0L, new float[]{64f, 80f, 96f}, new float[]{64f, 64f, 64f},
+                new int[]{SEA_LEVEL + 6, SEA_LEVEL + 4, SEA_LEVEL + 2}, new float[]{2f, 2f, 2f}, new float[]{1f, 1f, 1f},
+                new ReachStyle[]{ReachStyle.RUN, ReachStyle.MOUTH, ReachStyle.RUN}, 1000f);
+        assertFailsClosed(settings, List.of(crossing), List.of(), "reach 4715");
+        Reach linked = new Reach(4716L, stream, 4717L, new float[]{64f, 80f, 96f}, new float[]{64f, 64f, 64f},
+                new int[]{SEA_LEVEL + 2, SEA_LEVEL, SEA_LEVEL}, new float[]{2f, 2f, 2f}, new float[]{1f, 1f, 1f},
+                new ReachStyle[]{ReachStyle.RUN, ReachStyle.MOUTH, ReachStyle.MOUTH}, 1000f);
+        assertFailsClosed(settings, List.of(linked), List.of(), "reach 4716");
         int width = 9;
         long[] bits = new long[(width * width + 63) >>> 6];
         for (int cell = 0; cell < width * width; cell++) {
@@ -919,7 +1117,7 @@ public class WindowPlannerTest {
         doReturn(CupSet.EMPTY).when(ponds).subtractCups(any(), any(), any(), any());
         doReturn(water).when(ponds).ponds(any(), any(), any(), any(), any(), any());
         ReachShaper shaper = mock(ReachShaper.class);
-        doReturn(new ShapedNetwork(reaches, water)).when(shaper).shape(any(), any(), any(), any(), any(), any(), any(), anyLong());
+        doReturn(new ShapedNetwork(reaches, water)).when(shaper).shape(any(), any(), any(), any(), any(), any(), any(), any(), anyLong());
         return new WindowPlanner(settings, new HeightLattice(SyntheticTerrain.flat(100D), WindowPlanner.FINE_CELL, false, 1 << 18), ponds, shaper);
     }
 

@@ -13,11 +13,11 @@ final class ReachTracer {
     private ReachTracer() {
     }
 
-    static List<Chain> trace(DemGrid grid, int[] receivers, BitSet channels, int[] pondAt, BitSet outlets, int seaLevel) {
+    static List<Chain> trace(DemGrid grid, int[] receivers, BitSet channels, boolean[] ocean, int[] pondAt, BitSet outlets) {
         BitSet starts = starts(grid, receivers, channels, pondAt, outlets);
         List<Chain> chains = new ArrayList<>(starts.cardinality());
         for (int start = starts.nextSetBit(0); start >= 0; start = starts.nextSetBit(start + 1)) {
-            Chain chain = walk(grid, receivers, channels, pondAt, starts, seaLevel, start);
+            Chain chain = walk(receivers, channels, ocean, pondAt, starts, start);
             if (chain.cells().length >= 2) {
                 chains.add(chain);
             }
@@ -72,7 +72,7 @@ final class ReachTracer {
         return starts;
     }
 
-    private static Chain walk(DemGrid grid, int[] receivers, BitSet channels, int[] pondAt, BitSet starts, int seaLevel, int start) {
+    private static Chain walk(int[] receivers, BitSet channels, boolean[] ocean, int[] pondAt, BitSet starts, int start) {
         int[] path = new int[16];
         int length = 0;
         path[length++] = start;
@@ -91,7 +91,7 @@ final class ReachTracer {
                 return new Chain(Arrays.copyOf(path, length), End.POND, pond);
             }
             if (!channels.get(receiver)) {
-                if (grid.values()[receiver] > seaLevel) {
+                if (!ocean[receiver]) {
                     return new Chain(Arrays.copyOf(path, length), End.EDGE, -1);
                 }
                 path[length++] = receiver;

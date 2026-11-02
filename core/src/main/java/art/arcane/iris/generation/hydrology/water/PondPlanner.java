@@ -106,7 +106,8 @@ public final class PondPlanner {
         List<Candidate> kept = new ArrayList<>();
         List<Pond> measured = new ArrayList<>();
         for (Candidate candidate : candidates) {
-            Pond pond = measure(raw, fine, cups, candidate, Integer.MAX_VALUE);
+            Pond pond = candidate.basin().belowSea() ? enclosed(measure(raw, fine, cups, candidate, settings.seaLevel()))
+                    : measure(raw, fine, cups, candidate, Integer.MAX_VALUE);
             if (pond != null && !overlapsAny(pond, accepted) && !touchesLake(pond, regionLakes)) {
                 accepted.add(pond);
                 kept.add(candidate);
@@ -216,7 +217,7 @@ public final class PondPlanner {
 
     private Candidate candidate(DemGrid raw, Basin basin, CupSet cups, HeightLattice fine) {
         PondKind kind = cups.kind(raw, basin);
-        if (!qualifies(raw, basin, kind)) {
+        if (!basin.belowSea() && !qualifies(raw, basin, kind)) {
             return null;
         }
         int floorX = raw.blockX(basin.floorIndex());
@@ -225,7 +226,7 @@ public final class PondPlanner {
         if ((floor.permission()[0] & HydrologySampleBuffer.ALLOW_PONDS) == 0) {
             return null;
         }
-        if (kind == PondKind.NATURAL && CellHash.unit(CellHash.mix(settings.seed(), SALT_KEEP, floorX, floorZ))
+        if (kind == PondKind.NATURAL && !basin.belowSea() && CellHash.unit(CellHash.mix(settings.seed(), SALT_KEEP, floorX, floorZ))
                 >= Math.clamp(settings.ponds().natural().keep() * floor.pondDensity()[0], 0f, 1f) * settings.density()) {
             return null;
         }
@@ -408,6 +409,11 @@ public final class PondPlanner {
         long id = CellHash.mix(settings.seed(), salt(site.kind()), site.floorX(), site.floorZ());
         return new Pond(id, site.kind(), level, (int) Math.floor(lowest), spill.x(), spill.z(), spill.height(),
                 mask, 0L, damRaise, site.fluid(), site.floorX(), site.floorZ());
+    }
+
+    private static Pond enclosed(Pond pond) {
+        return pond == null ? null : new Pond(pond.id(), pond.kind(), pond.level(), pond.floor(), pond.floorX(), pond.floorZ(), pond.level(),
+                pond.mask(), pond.outletReachId(), pond.damRaise(), pond.fluid(), pond.floorX(), pond.floorZ());
     }
 
     private static boolean covered(DemGrid raw, Basin basin, List<Pond> lakes) {

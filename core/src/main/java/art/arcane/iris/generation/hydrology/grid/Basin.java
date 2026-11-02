@@ -1,6 +1,6 @@
 package art.arcane.iris.generation.hydrology.grid;
 
-public record Basin(int id, int floorIndex, int spillIndex, float spillHeight, float maxDepth, int[] cells) {
+public record Basin(int id, int floorIndex, int spillIndex, float spillHeight, float maxDepth, int[] cells, boolean belowSea) {
     public int span(int width) {
         int minI = Integer.MAX_VALUE;
         int maxI = Integer.MIN_VALUE;

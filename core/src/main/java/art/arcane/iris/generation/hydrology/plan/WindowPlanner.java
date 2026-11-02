@@ -85,14 +85,19 @@ public final class WindowPlanner {
         int cellZ = Math.multiplyExact(key.wz() - 1, WINDOW_CELLS);
         HydrologySampleBuffer samples = new HydrologySampleBuffer(SPAN * SPAN);
         fine.fill(cellX * FINE_STRIDE, cellZ * FINE_STRIDE, SPAN, SPAN, FINE_STRIDE, samples);
-        DemGrid raw = new DemGrid(cellX * CELL, cellZ * CELL, CELL, SPAN, SPAN);
-        System.arraycopy(samples.height(), 0, raw.values(), 0, SPAN * SPAN);
+        DemGrid natural = new DemGrid(cellX * CELL, cellZ * CELL, CELL, SPAN, SPAN);
+        System.arraycopy(samples.height(), 0, natural.values(), 0, SPAN * SPAN);
+        DemGrid raw = new DemGrid(natural.originX(), natural.originZ(), CELL, SPAN, SPAN);
+        System.arraycopy(natural.values(), 0, raw.values(), 0, SPAN * SPAN);
+        BitSet inland = BasinExtractor.inland(natural, samples.ocean(), settings.seaLevel());
         List<Pond> lakes = regionLakes(plans.values());
-        BurnedTrunks trunks = BurnedTrunks.burn(raw, majorReaches(key, plans), settings.majorTier().inset(), settings.drainage().fillEpsilon());
+        BurnedTrunks trunks = BurnedTrunks.burn(raw, majorReaches(key, plans), settings.majorTier().inset(), settings.drainage().fillEpsilon(),
+                inland);
         BitSet seeds = seeds(samples.ocean(), trunks);
         DemGrid preliminary = new DemGrid(raw.originX(), raw.originZ(), CELL, SPAN, SPAN);
         System.arraycopy(raw.values(), 0, preliminary.values(), 0, SPAN * SPAN);
-        Drainage initial = drain(preliminary, seeds, samples, trunks, lakes);
+        DrainContext context = new DrainContext(samples, trunks, inland);
+        Drainage initial = drain(preliminary, seeds, context, lakes);
         BitSet channelHint = (BitSet) initial.channels().clone();
         channelHint.andNot(trunks.cells());
         CupSet cups = ponds.subtractCups(raw, key, samples, channelHint);
@@ -102,12 +107,14 @@ public final class WindowPlanner {
             drainage = initial;
         } else {
             trunks.descend(raw.values());
-            drainage = drain(raw, seeds, samples, trunks, lakes);
+            drainage = drain(raw, seeds, context, lakes);
         }
-        List<Pond> water = new ArrayList<>(ponds.ponds(raw, drainage.filled(), drainage.basins(), lakes, fine, cups));
+        List<Basin> basins = new ArrayList<>(drainage.basins());
+        basins.addAll(BasinExtractor.hollows(natural, inland, drainage.filled(), settings.seaLevel(), basins.size()));
+        List<Pond> water = new ArrayList<>(ponds.ponds(raw, drainage.filled(), basins, lakes, fine, cups));
         water.addAll(lakes);
         ShapedNetwork network = PondChannelSettlement.settle(key, shaper.shape(key, drainage.surface(), drainage.receivers(),
-                drainage.accumulation(), drainage.channels(), water, fine, settings.seed()), settings.seaLevel());
+                drainage.accumulation(), drainage.channels(), samples.ocean(), water, fine, settings.seed()), settings.seaLevel());
         long passes = settlementPasses(water);
         for (long pass = 1; lowered(water, network.ponds()); pass++) {
             if (pass >= passes) {
@@ -115,7 +122,7 @@ public final class WindowPlanner {
             }
             water = replanned(settled(raw, cups, water, network.ponds()));
             network = PondChannelSettlement.settle(key, shaper.shape(key, drainage.surface(), drainage.receivers(),
-                    drainage.accumulation(), drainage.channels(), water, fine, settings.seed()), settings.seaLevel());
+                    drainage.accumulation(), drainage.channels(), samples.ocean(), water, fine, settings.seed()), settings.seaLevel());
         }
         List<Reach> reaches = network.reaches();
         List<Pond> windowPonds = windowPonds(network.ponds());
@@ -174,13 +181,16 @@ public final class WindowPlanner {
         return seeds;
     }
 
-    private Drainage drain(DemGrid raw, BitSet seeds, HydrologySampleBuffer samples, BurnedTrunks trunks, List<Pond> lakes) {
+    private Drainage drain(DemGrid raw, BitSet seeds, DrainContext context, List<Pond> lakes) {
+        HydrologySampleBuffer samples = context.samples();
+        BurnedTrunks trunks = context.trunks();
         float epsilon = settings.drainage().fillEpsilon();
-        float[] filled = PriorityFlood.fill(raw, seeds, epsilon);
+        BitSet sinks = (BitSet) seeds.clone();
+        float[] filled = PriorityFlood.fill(raw, sinks, epsilon);
         List<Basin> basins = BasinExtractor.basins(raw, filled, BASIN_DEPTH, settings.seaLevel());
-        for (int pass = 0; pass < BREACH_PASSES && breach(raw, filled, basins, lakes); pass++) {
+        for (int pass = 0; pass < BREACH_PASSES && breach(raw, filled, basins, lakes, context.inland(), sinks); pass++) {
             trunks.descend(raw.values());
-            filled = PriorityFlood.fill(raw, seeds, epsilon);
+            filled = PriorityFlood.fill(raw, sinks, epsilon);
             basins = BasinExtractor.basins(raw, filled, BASIN_DEPTH, settings.seaLevel());
         }
         DemGrid surface = new DemGrid(raw.originX(), raw.originZ(), CELL, SPAN, SPAN);
@@ -197,19 +207,34 @@ public final class WindowPlanner {
         trunks.inject(weights);
         float[] accumulation = FlowAccumulator.accumulate(receivers, filled, weights, settings.drainage().saturationCatchment());
         trunks.pin(accumulation);
-        BitSet channels = channels(surface, receivers, accumulation, samples, trunks);
+        BitSet channels = channels(surface, receivers, accumulation, context);
         return new Drainage(filled, basins, surface, receivers, accumulation, channels);
     }
 
-    private boolean breach(DemGrid raw, float[] filled, List<Basin> basins, List<Pond> lakes) {
+    private boolean breach(DemGrid raw, float[] filled, List<Basin> basins, List<Pond> lakes, BitSet inland, BitSet sinks) {
         boolean breached = false;
         for (Basin basin : basins) {
             if (oversized(basin) && !underLake(raw, basin, lakes)) {
-                Breacher.breach(raw, filled, basin);
+                BitSet hollow = hollow(raw, basin, inland);
+                if (hollow.isEmpty()) {
+                    Breacher.breach(raw, filled, basin);
+                } else {
+                    sinks.or(hollow);
+                }
                 breached = true;
             }
         }
         return breached;
+    }
+
+    private static BitSet hollow(DemGrid raw, Basin basin, BitSet inland) {
+        BitSet hollow = new BitSet(raw.values().length);
+        for (int cell : basin.cells()) {
+            if (inland.get(cell) && !hollow.get(cell)) {
+                hollow.or(BasinExtractor.hollow(raw, inland, cell));
+            }
+        }
+        return hollow;
     }
 
     private boolean oversized(Basin basin) {
@@ -228,11 +253,35 @@ public final class WindowPlanner {
         return false;
     }
 
-    private BitSet channels(DemGrid surface, int[] receivers, float[] accumulation, HydrologySampleBuffer samples, BurnedTrunks trunks) {
+    private BitSet channels(DemGrid surface, int[] receivers, float[] accumulation, DrainContext context) {
+        HydrologySampleBuffer samples = context.samples();
         BitSet candidates = ChannelHeads.candidates(surface, accumulation, samples.permission(), settings.tiers().get(0).minCatchment(),
                 settings.seaLevel());
-        return ChannelHeads.keep(surface, samples.height(), receivers, candidates, settings.drainage().headRelief(), trunks::contains,
-                cell -> keepHead(surface, cell, samples.rainfall()[cell]));
+        BitSet channels = ChannelHeads.keep(surface, samples.height(), receivers, candidates, settings.drainage().headRelief(),
+                context.trunks()::contains, cell -> keepHead(surface, cell, samples.rainfall()[cell]));
+        reachTheSea(channels, surface.values(), receivers, context);
+        return channels;
+    }
+
+    private void reachTheSea(BitSet channels, float[] filled, int[] receivers, DrainContext context) {
+        BitSet ends = new BitSet(receivers.length);
+        for (int cell = channels.nextSetBit(0); cell >= 0; cell = channels.nextSetBit(cell + 1)) {
+            int receiver = receivers[cell];
+            if (receiver >= 0 && !channels.get(receiver) && crossable(filled, context, receiver)) {
+                ends.set(cell);
+            }
+        }
+        for (int end = ends.nextSetBit(0); end >= 0; end = ends.nextSetBit(end + 1)) {
+            for (int cell = receivers[end]; cell >= 0 && !channels.get(cell) && crossable(filled, context, cell); cell = receivers[cell]) {
+                channels.set(cell);
+            }
+        }
+    }
+
+    private boolean crossable(float[] filled, DrainContext context, int cell) {
+        HydrologySampleBuffer samples = context.samples();
+        return !samples.ocean()[cell] && filled[cell] <= settings.seaLevel() && !context.inland().get(cell)
+                && (samples.permission()[cell] & HydrologySampleBuffer.ALLOW_STREAMS) != 0;
     }
 
     private boolean keepHead(DemGrid surface, int cell, float rainfall) {
@@ -329,16 +378,21 @@ public final class WindowPlanner {
             }
         }
         for (Reach reach : plan.reaches()) {
+            int mouth = reach.grade().length;
+            while (mouth > 0 && reach.style()[mouth - 1] == ReachStyle.MOUTH) {
+                mouth--;
+            }
+            if (mouth < reach.grade().length && reach.downstreamId() != 0L) {
+                throw offSea(plan.key(), reach, mouth, ", but its mouth drains into reach " + reach.downstreamId() + " instead of the sea");
+            }
             for (int point = 0; point < reach.grade().length; point++) {
                 if (reach.grade()[point] < seaLevel) {
                     throw offSea(plan.key(), reach, point, ", below sea level " + seaLevel);
                 }
-            }
-            if (reach.downstreamId() != 0L) {
-                continue;
-            }
-            for (int point = reach.grade().length - 1; point >= 0 && reach.style()[point] == ReachStyle.MOUTH; point--) {
-                if (reach.grade()[point] != seaLevel) {
+                if (point < mouth && reach.style()[point] == ReachStyle.MOUTH) {
+                    throw offSea(plan.key(), reach, point, ", but a mouth lies inside the reach, away from its sea end");
+                }
+                if (point >= mouth && reach.grade()[point] != seaLevel) {
                     throw offSea(plan.key(), reach, point, ", but the mouth must meet the sea at sea level " + seaLevel);
                 }
             }
@@ -357,5 +411,8 @@ public final class WindowPlanner {
     }
 
     private record Drainage(float[] filled, List<Basin> basins, DemGrid surface, int[] receivers, float[] accumulation, BitSet channels) {
+    }
+
+    private record DrainContext(HydrologySampleBuffer samples, BurnedTrunks trunks, BitSet inland) {
     }
 }

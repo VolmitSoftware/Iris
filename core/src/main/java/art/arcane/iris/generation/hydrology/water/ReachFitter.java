@@ -25,7 +25,7 @@ final class ReachFitter {
         this.ponds = ponds;
     }
 
-    Fitted fit(DemGrid grid, int[] cells, float[] cellCatchment, HydrologyTier tier, long shapeSeed) {
+    Fitted fit(DemGrid grid, int[] cells, float[] cellCatchment, HydrologyTier tier, long shapeSeed, boolean drainsToTheSea) {
         float halfWidth = tier.halfWidth(cellCatchment[cellCatchment.length - 1]);
         Line line = resample(grid, cells, cellCatchment);
         meander(line, shapeSeed);
@@ -33,6 +33,7 @@ final class ReachFitter {
         Tangents tangents = tangents(line.xs(), line.zs());
         Reads reads = read(line, tangents, reach);
         Fitted fitted = place(line, tangents, reads, viterbi(reads, line.xs().length, reach), tier);
+        seaEnd(fitted.ocean(), drainsToTheSea);
         lowestNearbyGround(fitted);
         return fitted;
     }
@@ -155,13 +156,26 @@ final class ReachFitter {
         fine.fill(nodeX, nodeZ, samples);
         for (int point = 0; point < points; point++) {
             float lowest = Float.POSITIVE_INFINITY;
+            float lowestLand = Float.POSITIVE_INFINITY;
             for (int node = offsets[point]; node < offsets[point + 1]; node++) {
                 int pond = ponds.at(nodeX[node] * step, nodeZ[node] * step);
                 float height = pond < 0 ? samples.height()[node] : Math.max(samples.height()[node], ponds.pond(pond).level());
                 lowest = Math.min(lowest, height);
+                if (!samples.ocean()[node]) {
+                    lowestLand = Math.min(lowestLand, height);
+                }
             }
-            fitted.ground()[point] = lowest;
+            fitted.ground()[point] = fitted.ocean()[point] || lowestLand == Float.POSITIVE_INFINITY ? lowest : lowestLand;
         }
+    }
+
+    private static void seaEnd(boolean[] ocean, boolean drainsToTheSea) {
+        int start = ocean.length - 1;
+        ocean[start] = drainsToTheSea;
+        while (drainsToTheSea && start > 0 && ocean[start - 1]) {
+            start--;
+        }
+        Arrays.fill(ocean, 0, start, false);
     }
 
     private static int[] viterbi(Reads reads, int count, int reach) {

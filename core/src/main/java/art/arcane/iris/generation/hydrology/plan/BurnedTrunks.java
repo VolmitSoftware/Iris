@@ -13,22 +13,24 @@ import java.util.Map;
 
 final class BurnedTrunks {
     private final BitSet cells;
+    private final BitSet hollows;
     private final int[] next;
     private final float[] catchment;
     private final float epsilon;
     private int[] order;
     private BitSet entries;
 
-    private BurnedTrunks(int count, float epsilon) {
+    private BurnedTrunks(int count, float epsilon, BitSet hollows) {
         this.cells = new BitSet(count);
+        this.hollows = hollows;
         this.next = new int[count];
         this.catchment = new float[count];
         this.epsilon = epsilon;
         Arrays.fill(next, -1);
     }
 
-    static BurnedTrunks burn(DemGrid raw, List<Reach> reaches, float depth, float epsilon) {
-        BurnedTrunks trunks = new BurnedTrunks(raw.values().length, epsilon);
+    static BurnedTrunks burn(DemGrid raw, List<Reach> reaches, float depth, float epsilon, BitSet hollows) {
+        BurnedTrunks trunks = new BurnedTrunks(raw.values().length, epsilon, hollows);
         Map<Long, Reach> byId = new HashMap<>();
         for (Reach reach : reaches) {
             byId.putIfAbsent(reach.id(), reach);
@@ -57,7 +59,7 @@ final class BurnedTrunks {
     void descend(float[] heights) {
         for (int cell : order) {
             int successor = next[cell];
-            if (successor >= 0) {
+            if (successor >= 0 && !hollows.get(cell)) {
                 heights[successor] = Math.min(heights[successor], Math.min(heights[cell] - epsilon, Math.nextDown(heights[cell])));
             }
         }
@@ -65,7 +67,7 @@ final class BurnedTrunks {
 
     void route(int[] receivers) {
         for (int cell = cells.nextSetBit(0); cell >= 0; cell = cells.nextSetBit(cell + 1)) {
-            if (next[cell] >= 0) {
+            if (next[cell] >= 0 && !hollows.get(cell)) {
                 receivers[cell] = next[cell];
             }
         }

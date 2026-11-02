@@ -18,8 +18,13 @@
 
 package art.arcane.iris.generation.mantle;
 
+import art.arcane.iris.generation.hydrology.engine.HydrologyRuntime;
+import art.arcane.iris.generation.hydrology.raster.ChunkWaterRaster;
+import art.arcane.iris.generation.hydrology.raster.WaterRole;
 import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.block.TileData;
+import art.arcane.volmlib.util.stream.ProceduralStream;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.math.BlockPosition;
 import org.junit.Test;
@@ -36,6 +41,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
@@ -48,7 +54,7 @@ public class FloatingObjectPlacementTransactionTest {
     public void canopyCommitRechecksSolidsAndSkipsAssociatedMetadata() {
         IslandObjectPlacer delegate = createPlacer(true);
         FloatingObjectPlacementTransaction transaction = new FloatingObjectPlacementTransaction(delegate,
-                new ObjectContinuationBundle.PlacementKey(ObjectContinuationBundle.Kind.FLOATING, 0, 0, 0));
+                new ObjectContinuationBundle.PlacementKey(ObjectContinuationBundle.Kind.FLOATING, 0, 0, 0), false);
         NativeBlockState canopy = mock(NativeBlockState.class);
         NativeBlockState trunk = mock(NativeBlockState.class);
         when(trunk.isSolid()).thenReturn(true);
@@ -70,7 +76,7 @@ public class FloatingObjectPlacementTransactionTest {
     public void unsupportedFinalTerrainRejectsBlocksTilesAndMarkersTogether() {
         IslandObjectPlacer delegate = createPlacer(false);
         FloatingObjectPlacementTransaction transaction = new FloatingObjectPlacementTransaction(delegate,
-                new ObjectContinuationBundle.PlacementKey(ObjectContinuationBundle.Kind.FLOATING, 0, 0, 0));
+                new ObjectContinuationBundle.PlacementKey(ObjectContinuationBundle.Kind.FLOATING, 0, 0, 0), false);
         NativeBlockState first = mock(NativeBlockState.class);
         NativeBlockState second = mock(NativeBlockState.class);
         TileData tile = mock(TileData.class);
@@ -97,7 +103,7 @@ public class FloatingObjectPlacementTransactionTest {
     public void supportedNeighborChunkCommitsBlocksTilesAndMarkers() {
         IslandObjectPlacer delegate = createPlacer(true);
         FloatingObjectPlacementTransaction transaction = new FloatingObjectPlacementTransaction(delegate,
-                new ObjectContinuationBundle.PlacementKey(ObjectContinuationBundle.Kind.FLOATING, 0, 0, 0));
+                new ObjectContinuationBundle.PlacementKey(ObjectContinuationBundle.Kind.FLOATING, 0, 0, 0), false);
         NativeBlockState first = mock(NativeBlockState.class);
         NativeBlockState second = mock(NativeBlockState.class);
         TileData tile = mock(TileData.class);
@@ -143,7 +149,7 @@ public class FloatingObjectPlacementTransactionTest {
         NativeBlockState state = mock(NativeBlockState.class);
         when(state.key()).thenReturn("minecraft:oak_log");
         ObjectContinuationBundle.PlacementKey key = new ObjectContinuationBundle.PlacementKey(ObjectContinuationBundle.Kind.FLOATING, 0, 0, 7);
-        FloatingObjectPlacementTransaction transaction = new FloatingObjectPlacementTransaction(delegate, key);
+        FloatingObjectPlacementTransaction transaction = new FloatingObjectPlacementTransaction(delegate, key, false);
         transaction.set(15, 101, 8, state);
         transaction.set(16, 101, 8, state);
         transaction.setData(16, 101, 8, "floating-tree@7");
@@ -156,6 +162,55 @@ public class FloatingObjectPlacementTransactionTest {
             assertEquals(key, bundle.fragments().getFirst().key());
             assertEquals(2, bundle.fragments().getFirst().touchedChunks().size());
         }
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void floatingObjectsKeepSolidBlocksOutOfRiverWaterUnlessTheyEnterWater() {
+        IObjectPlacer delegate = mock(IObjectPlacer.class);
+        Engine engine = mock(Engine.class);
+        IrisComplex complex = mock(IrisComplex.class);
+        HydrologyRuntime runtime = mock(HydrologyRuntime.class);
+        ChunkWaterRaster raster = mock(ChunkWaterRaster.class);
+        ProceduralStream<WaterRole> roles = mock(ProceduralStream.class);
+        ProceduralStream<Double> heads = mock(ProceduralStream.class);
+        ProceduralStream<Integer> heights = mock(ProceduralStream.class);
+        when(delegate.getEngine()).thenReturn(engine);
+        when(engine.getComplex()).thenReturn(complex);
+        when(complex.getHydrologyRuntime()).thenReturn(runtime);
+        when(complex.allowsNewDiscreteContentAt(anyInt(), anyInt())).thenReturn(true);
+        when(runtime.enabled()).thenReturn(true);
+        when(runtime.raster(anyInt(), anyInt())).thenReturn(raster);
+        when(raster.role(anyInt(), anyInt())).thenReturn(WaterRole.NONE);
+        when(raster.waterHead(anyInt(), anyInt())).thenReturn(Integer.MIN_VALUE);
+        when(raster.role(3, 3)).thenReturn(WaterRole.CHANNEL);
+        when(raster.waterHead(3, 3)).thenReturn(9);
+        when(raster.terrainHeight(3, 3)).thenReturn(5);
+        when(roles.get(anyDouble(), anyDouble())).thenAnswer(call -> raster.role(local(call.getArgument(0)), local(call.getArgument(1))));
+        when(heads.getDouble(anyDouble(), anyDouble())).thenAnswer(call -> (double) raster.waterHead(local(call.getArgument(0)), local(call.getArgument(1))));
+        when(heights.get(anyDouble(), anyDouble())).thenAnswer(call -> raster.terrainHeight(local(call.getArgument(0)), local(call.getArgument(1))));
+        when(complex.getWaterRoleStream()).thenReturn(roles);
+        when(complex.getWaterHeadStream()).thenReturn(heads);
+        when(complex.getRoundedHeighteightStream()).thenReturn(heights);
+        NativeBlockState stone = mock(NativeBlockState.class);
+        when(stone.isSolid()).thenReturn(true);
+        ObjectContinuationBundle.PlacementKey key = new ObjectContinuationBundle.PlacementKey(ObjectContinuationBundle.Kind.FLOATING, 0, 0, 0);
+
+        FloatingObjectPlacementTransaction land = new FloatingObjectPlacementTransaction(delegate, key, false);
+        land.set(3, 7, 3, stone);
+        land.set(3, 10, 3, stone);
+        assertEquals(FloatingObjectPlacementTransaction.CommitResult.COMMITTED, land.commit());
+        verify(delegate, never()).set(3, 7, 3, stone);
+        verify(delegate).set(3, 10, 3, stone);
+
+        FloatingObjectPlacementTransaction water = new FloatingObjectPlacementTransaction(delegate, key, true);
+        water.set(3, 7, 3, stone);
+        assertEquals(FloatingObjectPlacementTransaction.CommitResult.COMMITTED, water.commit());
+        verify(delegate).set(3, 7, 3, stone);
+    }
+
+    private static int local(Object coordinate) {
+        return (int) Math.floor(((Number) coordinate).doubleValue()) & 15;
     }
 
     @SuppressWarnings("unchecked")

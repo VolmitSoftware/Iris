@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.runtime;
 
+import art.arcane.iris.generation.stream.ProvisionalAnswerException;
 import art.arcane.iris.world.history.SavedBiomeUnavailableException;
 import art.arcane.volmlib.util.mantle.MantleClosedException;
 import org.junit.Test;
@@ -24,6 +25,7 @@ public class GenerationFailuresTest {
         assertTrue(GenerationFailures.isEngineFailure(new SavedBiomeUnavailableException("loading", true)));
         assertTrue(GenerationFailures.isEngineFailure(new GenerationSessionException("sealed", true)));
         assertTrue(GenerationFailures.isEngineFailure(new OutOfMemoryError()));
+        assertTrue(GenerationFailures.isEngineFailure(new ProvisionalAnswerException("water not planned")));
         assertTrue(GenerationFailures.isEngineFailure(new CompletionException(
                 new IllegalStateException("placement failed", new GenerationClosedException("router closed")))));
     }

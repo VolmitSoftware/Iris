@@ -103,7 +103,7 @@ public class MantleObjectComponentEngineFailureTest {
             doAnswer((InvocationOnMock invocation) -> {
                 placements.incrementAndGet();
                 throw placementFailure;
-            }).when(object).place(anyInt(), anyInt(), anyInt(), any(IObjectPlacer.class), any(IrisObjectPlacement.class),
+            }).when(object).place(anyInt(), anyInt(), any(IObjectPlacer.class), any(IrisObjectPlacement.class),
                     any(RNG.class), any(), any(), any());
 
             IrisComplex complex = mock(IrisComplex.class);

@@ -32,6 +32,11 @@ public record NativeStructureStartPlan(
     }
 
     @Override
+    public boolean allowWater() {
+        return placement.isAllowWater();
+    }
+
+    @Override
     public boolean replacesSource() {
         return placement.getNativeSuppression() == NativeStructureSuppression.REPLACE_SOURCE;
     }

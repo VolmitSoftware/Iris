@@ -4,29 +4,53 @@ import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.SeedManager;
 import art.arcane.iris.structure.placement.StructurePlacementGrid;
 
+import art.arcane.iris.generation.hydrology.raster.WaterRole;
 import art.arcane.iris.generation.runtime.IrisComplex;
+import art.arcane.iris.generation.stream.ProvisionalAnswerException;
+import art.arcane.iris.generation.stream.ProvisionalSampling;
 import art.arcane.iris.generation.terrain.IrisDimension;
+import art.arcane.iris.platform.bukkit.nms.BukkitStructureStagePolicy;
 import art.arcane.iris.structure.placement.IrisStructureAnchorMode;
 import art.arcane.iris.structure.placement.IrisStructurePlacement;
 import art.arcane.iris.structure.placement.IrisStructureTerrain;
 import art.arcane.volmlib.util.structure.StructureTerrainMode;
 import art.arcane.iris.structure.placement.StructureDistribution;
+import art.arcane.volmlib.nativelib.terrain.structure.StructureStagePolicy;
+import art.arcane.volmlib.nativelib.terrain.structure.StructureWater;
+import art.arcane.volmlib.nativelib.terrain.structure.StructureWaterColumn;
+import art.arcane.volmlib.nativelib.terrain.structure.StructureWaterRules;
 import art.arcane.volmlib.util.stream.ProceduralStream;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
 import org.junit.Test;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.anyDouble;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class NativeStructurePlacementPlannerTest {
+    private static final int BED = 140;
+    private static final int HEAD = 143;
+    private static final long LAND_IDENTITY = 7387932304999188754L;
+    private static final List<StructureStagePolicy.Footprint> VILLAGE = List.of(
+            new StructureStagePolicy.Footprint(0, 0, 15, 15),
+            new StructureStagePolicy.Footprint(16, 0, 39, 15));
+
     @Test
     public void undergroundPlanIsDeterministicAndUsesConfiguredBand() {
         Engine engine = engine(982374L, -64, 384, 90);
@@ -131,6 +155,134 @@ public class NativeStructurePlacementPlannerTest {
     }
 
     @Test
+    public void structuresAvoidRivers() {
+        Engine engine = engine(77L, -64, 384, 150);
+        Map<Long, WaterRole> roles = new HashMap<>();
+        waterComplex(engine, roles, false);
+        WaterRole[] water = {WaterRole.CHANNEL, WaterRole.POND, WaterRole.CASCADE, WaterRole.WATERFALL};
+        for (int x = 36; x <= 39; x++) {
+            for (int z = 0; z < 16; z++) {
+                roles.put(columnKey(x, z), water[(x + z) & 3]);
+            }
+        }
+        IrisStructurePlacement placement = nativePlacement();
+        NativeStructureStartPlan plan = NativeStructurePlacementPlanner.planAt(engine, placement, 0, 0);
+        StructureWater stageWater = new BukkitStructureStagePolicy(engine).water(engine);
+
+        assertNotNull(plan);
+        assertTrue("64 of 640 piece columns, all beyond the start chunk, are 10% river",
+                StructureWaterRules.admitsStart(plan, stageWater, VILLAGE));
+
+        roles.put(columnKey(35, 15), WaterRole.CHANNEL);
+        assertFalse("65 of 640 piece columns are more than 10% river",
+                StructureWaterRules.admitsStart(plan, stageWater, VILLAGE));
+
+        roles.clear();
+        WaterRole[] dry = {WaterRole.MOUTH, WaterRole.INLET, WaterRole.SHORE, WaterRole.POND_SHORE, WaterRole.BANK, WaterRole.DAM};
+        int column = 0;
+        for (int x = 0; x <= 39; x++) {
+            for (int z = 0; z < 16; z++) {
+                roles.put(columnKey(x, z), dry[column++ % dry.length]);
+            }
+        }
+        assertTrue("mouths, inlets, shores, banks and dams do not count as river water",
+                StructureWaterRules.admitsStart(plan, stageWater, VILLAGE));
+    }
+
+    @Test
+    public void riverInTheStartChunkLeavesTheDecisionToThePieces() {
+        Engine engine = engine(77L, -64, 384, 150);
+        Map<Long, WaterRole> roles = new HashMap<>();
+        waterComplex(engine, roles, false);
+        flood(roles);
+
+        assertNotNull(NativeStructurePlacementPlanner.planAt(engine, nativePlacement(), 0, 0));
+    }
+
+    @Test
+    public void stageWaterReportsWorldHeights() {
+        Engine engine = engine(77L, -64, 384, 150);
+        Map<Long, WaterRole> roles = new HashMap<>();
+        waterComplex(engine, roles, false);
+        roles.put(columnKey(3, 4), WaterRole.MOUTH);
+        roles.put(columnKey(5, 4), WaterRole.POND);
+        StructureWater stageWater = new BukkitStructureStagePolicy(engine).water(engine);
+
+        assertEquals(new StructureWaterColumn(true, false, BED - 64, HEAD - 64), stageWater.column(3, 4));
+        assertEquals(new StructureWaterColumn(true, true, BED - 64, HEAD - 64), stageWater.column(5, 4));
+        assertEquals(StructureWaterColumn.DRY, stageWater.column(6, 4));
+    }
+
+    @Test
+    public void undergroundPlansIgnoreRiversAbove() {
+        Engine engine = engine(982374L, -64, 384, 90);
+        Map<Long, WaterRole> roles = new HashMap<>();
+        waterComplex(engine, roles, false);
+        flood(roles);
+        IrisStructurePlacement placement = nativePlacement()
+                .setUnderground(true)
+                .setMinHeight(-45)
+                .setMaxHeight(-20);
+        NativeStructureStartPlan plan = NativeStructurePlacementPlanner.planAt(engine, placement, 12, -7);
+
+        assertNotNull(plan);
+        assertTrue(StructureWaterRules.admitsStart(plan, new BukkitStructureStagePolicy(engine).water(engine), VILLAGE));
+    }
+
+    @Test
+    public void allowWaterLetsNativeStructuresCoverRivers() {
+        Engine engine = engine(77L, -64, 384, 150);
+        Map<Long, WaterRole> roles = new HashMap<>();
+        waterComplex(engine, roles, false);
+        flood(roles);
+        StructureWater stageWater = new BukkitStructureStagePolicy(engine).water(engine);
+        IrisStructurePlacement placement = nativePlacement();
+
+        assertFalse(StructureWaterRules.admitsStart(
+                NativeStructurePlacementPlanner.planAt(engine, placement, 0, 0), stageWater, VILLAGE));
+
+        placement.setAllowWater(true);
+        NativeStructureStartPlan plan = NativeStructurePlacementPlanner.planAt(engine, placement, 0, 0);
+        assertTrue(plan.allowWater());
+        assertTrue(StructureWaterRules.admitsStart(plan, stageWater, VILLAGE));
+    }
+
+    @Test
+    public void provisionalWaterAnswersNeverPlaceANativeStructure() {
+        Engine engine = engine(77L, -64, 384, 150);
+        IrisComplex complex = waterComplex(engine, new HashMap<>(), true);
+        StructureWater stageWater = new BukkitStructureStagePolicy(engine).water(engine);
+
+        ProvisionalAnswerException failure = assertThrows(ProvisionalAnswerException.class,
+                () -> stageWater.column(20, 3));
+        assertTrue(failure.getMessage().contains("20,3"));
+
+        when(complex.isPlatformMainThread()).thenReturn(true);
+        assertEquals("the server thread answers from what it has, as for heights",
+                StructureWaterColumn.DRY, stageWater.column(20, 3));
+    }
+
+    @Test
+    public void allowWaterSeparatesOtherwiseIdenticalPlacements() {
+        IrisStructurePlacement land = nativePlacement();
+        IrisStructurePlacement water = nativePlacement().setAllowWater(true);
+
+        assertEquals("placements that keep out of water keep their identity",
+                LAND_IDENTITY, StructurePlacementGrid.placementIdentity(land));
+        assertNotEquals(StructurePlacementGrid.placementIdentity(land), StructurePlacementGrid.placementIdentity(water));
+        assertEquals("a placementId stays the whole identity",
+                StructurePlacementGrid.placementIdentity(nativePlacement().setPlacementId("hut")),
+                StructurePlacementGrid.placementIdentity(nativePlacement().setPlacementId("hut").setAllowWater(true)));
+
+        Engine engine = engine(77L, -64, 384, 150);
+        bindPlacements(engine, land, water);
+        IrisStructurePlacement first = NativeStructurePlacementPlanner.plansAt(engine, 0, 0).getFirst().placement();
+        bindPlacements(engine, water, land);
+        assertSame("the deduplicated start does not depend on list order",
+                first, NativeStructurePlacementPlanner.plansAt(engine, 0, 0).getFirst().placement());
+    }
+
+    @Test
     public void duplicateSelectedStructureUsesOneDeterministicPlan() {
         Engine engine = engine(77L, -64, 384, 150);
         IrisStructurePlacement first = nativePlacement().setPlacementId("first");
@@ -216,6 +368,47 @@ public class NativeStructurePlacementPlannerTest {
         when(dimension.getFluidHeight()).thenReturn(64);
         when(engine.getDimension()).thenReturn(dimension);
         return engine;
+    }
+
+    private IrisComplex waterComplex(Engine engine, Map<Long, WaterRole> roles, boolean provisional) {
+        IrisComplex complex = mock(IrisComplex.class);
+        @SuppressWarnings("unchecked")
+        ProceduralStream<Double> heads = mock(ProceduralStream.class);
+        @SuppressWarnings("unchecked")
+        ProceduralStream<WaterRole> roleStream = mock(ProceduralStream.class);
+        when(heads.get(anyDouble(), anyDouble())).thenReturn(0D);
+        when(heads.getDouble(anyDouble(), anyDouble())).thenReturn((double) HEAD);
+        @SuppressWarnings("unchecked")
+        ProceduralStream<Integer> heights = mock(ProceduralStream.class);
+        when(heights.get(anyDouble(), anyDouble())).thenReturn(BED);
+        when(complex.getRoundedHeighteightStream()).thenReturn(heights);
+        when(roleStream.get(anyDouble(), anyDouble())).thenAnswer(call -> {
+            if (provisional) {
+                ProvisionalSampling.mark();
+            }
+            return roles.getOrDefault(columnKey(block(call.getArgument(0)), block(call.getArgument(1))), WaterRole.NONE);
+        });
+        when(complex.getWaterHeadStream()).thenReturn(heads);
+        when(complex.getWaterRoleStream()).thenReturn(roleStream);
+        when(complex.allowsNewGenerationChunk(anyInt(), anyInt())).thenReturn(true);
+        when(engine.getComplex()).thenReturn(complex);
+        return complex;
+    }
+
+    private static void flood(Map<Long, WaterRole> roles) {
+        for (int x = 0; x <= 39; x++) {
+            for (int z = 0; z < 16; z++) {
+                roles.put(columnKey(x, z), WaterRole.CHANNEL);
+            }
+        }
+    }
+
+    private static int block(Object coordinate) {
+        return (int) Math.floor(((Number) coordinate).doubleValue());
+    }
+
+    private static long columnKey(int x, int z) {
+        return ((long) x << 32) ^ (z & 0xffffffffL);
     }
 
     private void bindPlacements(Engine engine, IrisStructurePlacement... placements) {

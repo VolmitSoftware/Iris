@@ -32,7 +32,7 @@ final class PlacementModuleTreeGrounding implements PlacementModule {
     private static boolean isSurfaceTreePlacement(PlacementContext context, PlacementState state) {
         IrisObjectPlacement config = state.config;
         ObjectPlaceMode mode = config.getMode();
-        return context.yv < 0 && config.getCarvingSupport().supportsSurface()
+        return context.automatic && config.getCarvingSupport().supportsSurface()
                 && !config.isForcePlace() && !config.isFromBottom() && !state.ceilingHang
                 && mode != ObjectPlaceMode.PAINT && mode != ObjectPlaceMode.FLOATING
                 && mode != ObjectPlaceMode.STRUCTURE_PIECE;

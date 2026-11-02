@@ -20,7 +20,7 @@ public final class PlacementStage<C> {
     public static final PlacementStage<Void> AFTER_BLOCKS = new PlacementStage<>("after-blocks", 6);
     static final List<PlacementStage<?>> ALL = List.of(PREPARE, HEIGHT, VALIDATE, BEFORE_BLOCKS,
             BLOCK_WRITTEN, BLOCKS, AFTER_BLOCKS);
-    static final List<PlacementStage<Void>> BEFORE_PASS = List.of(PREPARE, HEIGHT, VALIDATE, BEFORE_BLOCKS);
+    static final List<PlacementStage<Void>> DECISION = List.of(PREPARE, HEIGHT, VALIDATE);
 
     private final String name;
     final int order;

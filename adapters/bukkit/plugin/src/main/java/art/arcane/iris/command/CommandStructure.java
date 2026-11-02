@@ -24,6 +24,7 @@ import art.arcane.iris.structure.BulkStructureImporter;
 import art.arcane.iris.structure.StructureCaptureImporter;
 import art.arcane.iris.structure.StructureImporter;
 import art.arcane.iris.structure.StructureIndexService;
+import art.arcane.iris.studio.object.ObjectSVC;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.structure.placement.IrisStructureLocator;
 import art.arcane.iris.structure.nativegen.NativeStructureGenerationPolicy;
@@ -368,6 +369,7 @@ public class CommandStructure implements DirectorExecutor {
             }
             p.getObject().place(p.getX(), p.getY(), p.getZ(), placer, config, rng, null, null, data);
         }
+        J.runGlobal(() -> Iris.service(ObjectSVC.class).addChanges(future));
         int blockChanges = 0;
         for (Map.Entry<Block, BlockData> entry : future.entrySet()) {
             if (!entry.getKey().getBlockData().equals(entry.getValue())) {

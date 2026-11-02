@@ -90,6 +90,11 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
     @Setter(AccessLevel.NONE)
     @EqualsAndHashCode.Exclude
     @ToString.Exclude
+    private final ThreadLocal<ObjectWater> objectWater = new ThreadLocal<>();
+    @Getter(AccessLevel.NONE)
+    @Setter(AccessLevel.NONE)
+    @EqualsAndHashCode.Exclude
+    @ToString.Exclude
     private TerrainAccess terrainAccess;
 
     public MantleWriter(EngineMantle engineMantle, Mantle<Matter> mantle, int x, int z, int radius, boolean multicore) {
@@ -215,6 +220,28 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
         return capture;
     }
 
+    @Override
+    public int beginObjectPlacement(boolean entersWater) {
+        objectWater.set(new ObjectWater(ObjectHydrologyVeto.of(getEngine()), entersWater));
+        return -1;
+    }
+
+    @Override
+    public void endObjectPlacement(int checkpoint) {
+        objectWater.remove();
+    }
+
+    private boolean keepsWater(int x, int y, int z, Object value) {
+        ObjectWater water = objectWater.get();
+        if (water == null) {
+            return false;
+        }
+        if (value instanceof NativeBlockState state) {
+            return water.veto().keepsBlock(x, y, z, state, water.entersWater());
+        }
+        return value instanceof MatterCavern && water.veto().keeps(x, y, z, false, water.entersWater());
+    }
+
     private void recordObjectValue(int x, int y, int z, Class<?> type, Object value) {
         ObjectPlacementCapture capture = objectPlacementCapture.get();
         if (capture != null) {
@@ -241,7 +268,7 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
         MantleChunk<Matter> chunk = acquireChunk(cx, cz);
         if (chunk == null) return;
 
-        if (protectsSubterrainPlacement(x, y, z)) {
+        if (protectsSubterrainPlacement(x, y, z) || keepsWater(x, y, z, t)) {
             return;
         }
         synchronized (chunk) {
@@ -611,7 +638,7 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
         }
 
         MantleChunk<Matter> chunk = acquireChunk(x >> 4, z >> 4);
-        if (chunk == null) {
+        if (chunk == null || keepsWater(x, y, z, baseState)) {
             return;
         }
 
@@ -1005,6 +1032,9 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
                                    boolean naturalOpening, boolean cavern) {
         return CarveOwnership.carved(transformed, y, hydrology, subterrain == null ? null : subterrain[y],
                 naturalOpening ? ALWAYS : NEVER, cavern ? ALWAYS : NEVER) ? (byte) 1 : 0;
+    }
+
+    private record ObjectWater(ObjectHydrologyVeto veto, boolean entersWater) {
     }
 
     public final class ObjectPlacementCapture implements AutoCloseable {

@@ -173,7 +173,7 @@ public class ObjectContinuationCanopyTest {
         when(firstChunk.getOrCreate(0)).thenReturn(first);
         when(secondChunk.getOrCreate(0)).thenReturn(second);
         FloatingObjectPlacementTransaction transaction = new FloatingObjectPlacementTransaction(delegate,
-                new ObjectContinuationBundle.PlacementKey(ObjectContinuationBundle.Kind.FLOATING, 0, 0, 0));
+                new ObjectContinuationBundle.PlacementKey(ObjectContinuationBundle.Kind.FLOATING, 0, 0, 0), false);
         transaction.set(15, 5, 1, trunk);
         assertTrue(transaction.beginTreeCanopy(new BlockPosition(16, 5, 1)));
         transaction.set(16, 5, 1, custom);

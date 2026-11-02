@@ -116,7 +116,7 @@ public class TreeGroundingPlacementTest {
         terrain.heights.put(new Column(1, 0), 70);
         Map<Position, NativeBlockState> observed = new HashMap<>();
 
-        int result = tree(true).place(0, -1, 0, terrain.placer, placement(), new RNG(42L),
+        int result = tree(true).place(0, 0, terrain.placer, placement(), new RNG(42L),
                 (position, state) -> observed.put(new Position(position.getX(), position.getY(), position.getZ()), state),
                 null, data);
 
@@ -143,7 +143,7 @@ public class TreeGroundingPlacementTest {
         placement.setRotation(IrisObjectRotation.of(0, 90, 0));
         placement.setTranslate(new IrisObjectTranslate().setX(2).setY(1).setZ(3));
 
-        int result = tree(true).place(10, -1, 20, terrain.placer, placement, new RNG(42L), data);
+        int result = tree(true).place(10, 20, terrain.placer, placement, new RNG(42L), data);
 
         assertTrue(result >= 0);
         assertSame(wood, terrain.written.get(new Position(13, 81, 18)));
@@ -173,7 +173,7 @@ public class TreeGroundingPlacementTest {
         terrain.heights.put(new Column(1, 0), 77);
         Map<Position, NativeBlockState> observed = new HashMap<>();
 
-        int result = tree(true).place(0, -1, 0, terrain.placer, placement(), new RNG(42L),
+        int result = tree(true).place(0, 0, terrain.placer, placement(), new RNG(42L),
                 (position, state) -> observed.put(new Position(position.getX(), position.getY(), position.getZ()), state),
                 null, data);
 
@@ -322,14 +322,14 @@ public class TreeGroundingPlacementTest {
             Terrain terrain = new Terrain();
             IrisObject earlier = tree(true);
             earlier.getBlocks().put(new IrisBlockVector(0, 1, 0), wood);
-            assertTrue(earlier.place(4, -1, 0, terrain.placer, placement(), new RNG(42L), data) >= 0);
+            assertTrue(earlier.place(4, 0, terrain.placer, placement(), new RNG(42L), data) >= 0);
             IrisObject later = tree(true);
             later.getBlocks().put(new IrisBlockVector(4, 2, 0), leaves);
             later.setTreeGrounding(TreeGrounding.create(later.getTreeGrounding().roots(), 3,
                     Set.of(new TreeBlockCanvas.Vec(4, 1, 0), new TreeBlockCanvas.Vec(4, 2, 0))));
             Map<Position, NativeBlockState> observed = new HashMap<>();
 
-            int result = later.place(0, -1, 0, terrain.placer, placement(), new RNG(42L),
+            int result = later.place(0, 0, terrain.placer, placement(), new RNG(42L),
                     (position, state) -> observed.put(new Position(position.getX(), position.getY(), position.getZ()), state),
                     null, data);
 
@@ -398,7 +398,7 @@ public class TreeGroundingPlacementTest {
     }
 
     private int place(IrisObject tree, Terrain terrain, IrisObjectPlacement placement) {
-        return tree.place(0, -1, 0, terrain.placer, placement, new RNG(42L), data);
+        return tree.place(0, 0, terrain.placer, placement, new RNG(42L), data);
     }
 
     private IrisObjectPlacement placement() {

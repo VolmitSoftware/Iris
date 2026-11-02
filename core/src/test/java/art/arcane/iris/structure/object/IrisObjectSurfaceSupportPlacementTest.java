@@ -68,7 +68,7 @@ public class IrisObjectSurfaceSupportPlacementTest {
             placer.carve(0, SURFACE_Y, 0);
 
             assertEquals("mode " + mode + " must skip over a carved column",
-                    -1, place(placer, placement(mode), -1));
+                    -1, place(placer, placement(mode)));
             assertTrue("mode " + mode + " must not write blocks", placer.written().isEmpty());
         }
     }
@@ -78,7 +78,7 @@ public class IrisObjectSurfaceSupportPlacementTest {
         SurfacePlacer placer = new SurfacePlacer();
         placer.carve(2, SURFACE_Y, 0);
 
-        assertEquals(-1, place(placer, placement(ObjectPlaceMode.CENTER_HEIGHT), -1));
+        assertEquals(-1, place(placer, placement(ObjectPlaceMode.CENTER_HEIGHT)));
     }
 
     @Test
@@ -86,14 +86,14 @@ public class IrisObjectSurfaceSupportPlacementTest {
         SurfacePlacer placer = new SurfacePlacer();
         placer.carve(6, SURFACE_Y, 0);
 
-        assertTrue(place(placer, placement(ObjectPlaceMode.CENTER_HEIGHT), -1) >= 0);
+        assertTrue(place(placer, placement(ObjectPlaceMode.CENTER_HEIGHT)) >= 0);
     }
 
     @Test
     public void solidGroundStillPlaces() {
         SurfacePlacer placer = new SurfacePlacer();
 
-        assertTrue(place(placer, placement(ObjectPlaceMode.CENTER_HEIGHT), -1) >= 0);
+        assertTrue(place(placer, placement(ObjectPlaceMode.CENTER_HEIGHT)) >= 0);
     }
 
     @Test
@@ -101,18 +101,7 @@ public class IrisObjectSurfaceSupportPlacementTest {
         when(complex.hasWaterOrShore(0, 0)).thenReturn(true);
         SurfacePlacer placer = new SurfacePlacer(engine);
 
-        assertEquals(-1, place(placer, placement(ObjectPlaceMode.CENTER_HEIGHT), -1));
-        assertTrue(placer.written().isEmpty());
-    }
-
-    @Test
-    public void automaticForcePlacementCannotOverlapRiverWater() {
-        when(complex.hasWaterOrShore(0, 0)).thenReturn(true);
-        SurfacePlacer placer = new SurfacePlacer(engine);
-        IrisObjectPlacement placement = placement(ObjectPlaceMode.CENTER_HEIGHT);
-        placement.setForcePlace(true);
-
-        assertEquals(-1, place(placer, placement, -1));
+        assertEquals(-1, place(placer, placement(ObjectPlaceMode.CENTER_HEIGHT)));
         assertTrue(placer.written().isEmpty());
     }
 
@@ -140,7 +129,7 @@ public class IrisObjectSurfaceSupportPlacementTest {
         IrisObjectPlacement placement = placement(ObjectPlaceMode.CENTER_HEIGHT);
         placement.setForcePlace(true);
 
-        assertTrue(place(placer, placement, -1) >= 0);
+        assertTrue(place(placer, placement) >= 0);
     }
 
     @Test
@@ -150,7 +139,7 @@ public class IrisObjectSurfaceSupportPlacementTest {
         IrisObjectPlacement placement = placement(ObjectPlaceMode.CENTER_HEIGHT);
         placement.setRequireSurfaceSupport(false);
 
-        assertTrue(place(placer, placement, -1) >= 0);
+        assertTrue(place(placer, placement) >= 0);
     }
 
     @Test
@@ -235,7 +224,11 @@ public class IrisObjectSurfaceSupportPlacementTest {
         IrisObjectPlacement placement = placement(ObjectPlaceMode.FLOATING);
         placement.setTranslate(new IrisObjectTranslate().setY(SURFACE_Y + 40));
 
-        assertTrue(place(placer, placement, -1) >= 0);
+        assertTrue(place(placer, placement) >= 0);
+    }
+
+    private int place(SurfacePlacer placer, IrisObjectPlacement placement) {
+        return object().place(0, 0, placer, placement, new RNG(1234L), data);
     }
 
     private int place(SurfacePlacer placer, IrisObjectPlacement placement, int anchorY) {

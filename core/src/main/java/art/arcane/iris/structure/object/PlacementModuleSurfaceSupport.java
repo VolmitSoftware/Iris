@@ -15,17 +15,13 @@ final class PlacementModuleSurfaceSupport implements PlacementModule {
     public void install(PlacementLifecycleBuilder lifecycle) {
         lifecycle.add(CHECK, PlacementStage.VALIDATE, (context, state, ignored) -> {
             IrisObjectPlacement config = state.config;
-            if (context.yv < 0 && config.getCarvingSupport().supportsSurface()
-                    && config.getMode() != ObjectPlaceMode.FLOATING && config.getMode() != ObjectPlaceMode.STRUCTURE_PIECE
-                    && (state.paintProjection != null
-                    ? IrisSurfaceSupport.intersectsHydrology(context.placer, context.x, context.z, null, null, 0, 0, 0, state.paintSupport)
-                    : IrisSurfaceSupport.intersectsHydrology(context.placer, context.x, context.z, config.getTranslate(),
-                    config.getRotation(), state.spinX, state.spinY, state.spinZ, context.self.getSurfaceSupportOffsets()))) {
-                state.reject("hydrology-support");
+            String hydrologyRejection = hydrologyRejection(context, state);
+            if (hydrologyRejection != null) {
+                state.reject(hydrologyRejection);
                 return;
             }
             boolean rawStructurePiece = config.getMode() == ObjectPlaceMode.STRUCTURE_PIECE;
-            if (context.yv < 0 && !config.isForcePlace() && !config.isFromBottom()
+            if (context.automatic && !config.isForcePlace() && !config.isFromBottom()
                     && config.getMode() != ObjectPlaceMode.FLOATING && !rawStructurePiece
                     && config.getCarvingSupport().supportsSurface() && state.placer.getEngine() != null
                     && state.placer.getEngine().getDimension().isBedrock() && state.y <= 1) {
@@ -33,7 +29,7 @@ final class PlacementModuleSurfaceSupport implements PlacementModule {
                 state.reject("bedrock-anchor");
                 return;
             }
-            boolean surfaceAnchored = context.yv < 0 ? config.getCarvingSupport().supportsSurface()
+            boolean surfaceAnchored = context.automatic ? config.getCarvingSupport().supportsSurface()
                     : config.getCarvingSupport() == CarvingMode.SURFACE_ONLY;
             if (surfaceAnchored && !config.isForcePlace() && !config.isFromBottom()
                     && config.getMode() != ObjectPlaceMode.FLOATING && !rawStructurePiece
@@ -56,6 +52,27 @@ final class PlacementModuleSurfaceSupport implements PlacementModule {
                     || state.placer.isCarved(x, y - 2, z) || state.placer.isCarved(x, y - 3, z));
             case ANYWHERE -> false;
         };
+    }
+
+    private static String hydrologyRejection(PlacementContext context, PlacementState state) {
+        IrisObjectPlacement config = state.config;
+        if (!context.automatic || !config.getCarvingSupport().supportsSurface()
+                || config.getMode() == ObjectPlaceMode.FLOATING || config.getMode() == ObjectPlaceMode.STRUCTURE_PIECE) {
+            return null;
+        }
+        boolean painted = state.paintProjection != null;
+        if (config.entersWater()) {
+            return (painted
+                    ? IrisSurfaceSupport.intersectsUnevenWater(context.placer, context.x, context.z, null, null, 0, 0, 0, state.paintSupport)
+                    : IrisSurfaceSupport.intersectsUnevenWater(context.placer, context.x, context.z, config.getTranslate(),
+                    config.getRotation(), state.spinX, state.spinY, state.spinZ, context.self.getSurfaceSupportOffsets()))
+                    ? "uneven-water" : null;
+        }
+        return (painted
+                ? IrisSurfaceSupport.intersectsHydrology(context.placer, context.x, context.z, null, null, 0, 0, 0, state.paintSupport)
+                : IrisSurfaceSupport.intersectsHydrology(context.placer, context.x, context.z, config.getTranslate(),
+                config.getRotation(), state.spinX, state.spinY, state.spinZ, context.self.getSurfaceSupportOffsets()))
+                ? "hydrology-support" : null;
     }
 
     private static void warnImplausibleBedrockPlacement(IrisObject self, IObjectPlacer placer, IrisObjectPlacement config, int x, int y, int z) {

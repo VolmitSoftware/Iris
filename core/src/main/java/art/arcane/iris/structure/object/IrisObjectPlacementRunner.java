@@ -39,7 +39,15 @@ final class IrisObjectPlacementRunner {
 
     int place(int x, int yv, int z, IObjectPlacer placer, IrisObjectPlacement config, RNG rng,
               BiConsumer<BlockPosition, NativeBlockState> listener, CarveResult cave, IrisData data) {
-        PlacementContext context = new PlacementContext(config, data, placer, cave, rng, self, alignment, x, z, yv, listener);
-        return PlacementLifecycles.defaults().get(config.getMode()).execute(context).heightOrRejected();
+        return execute(new PlacementContext(config, data, placer, cave, rng, self, alignment, x, z, yv, listener));
+    }
+
+    int placeAutomatic(int x, int z, IObjectPlacer placer, IrisObjectPlacement config, RNG rng,
+                       BiConsumer<BlockPosition, NativeBlockState> listener, CarveResult cave, IrisData data) {
+        return execute(PlacementContext.automatic(config, data, placer, cave, rng, self, alignment, x, z, listener));
+    }
+
+    private static int execute(PlacementContext context) {
+        return PlacementLifecycles.defaults().get(context.config.getMode()).execute(context).heightOrRejected();
     }
 }

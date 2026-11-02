@@ -32,7 +32,8 @@ final class ObjectSourcePlan {
     private static final int UNKNOWN_PAYLOAD_BYTES = 256;
     private static final int CUSTOM_BIT = 1 << 8;
     private static final int CANOPY_BIT = 1 << 9;
-    private static final int Y_SHIFT = 10;
+    private static final int ENTERS_WATER_BIT = 1 << 10;
+    private static final int Y_SHIFT = 11;
     private static final int MAXIMUM_Y = (1 << (31 - Y_SHIFT)) - 1;
 
     private final long[] destinations;
@@ -90,7 +91,7 @@ final class ObjectSourcePlan {
                 throw new IllegalArgumentException("Object mutation height is outside the plan range: " + y);
             }
             cells[position] = (y << Y_SHIFT) | (log.custom(logged) ? CUSTOM_BIT : 0) | (log.canopy(logged) ? CANOPY_BIT : 0)
-                    | ((log.z(logged) & 15) << 4) | (log.x(logged) & 15);
+                    | (log.entersWater(logged) ? ENTERS_WATER_BIT : 0) | ((log.z(logged) & 15) << 4) | (log.x(logged) & 15);
             valueIndexes[position] = table.indexOf(log.value(logged));
         }
         values = table.values.toArray();
@@ -239,6 +240,10 @@ final class ObjectSourcePlan {
 
     static boolean isCanopy(int cell) {
         return (cell & CANOPY_BIT) != 0;
+    }
+
+    static boolean entersWater(int cell) {
+        return (cell & ENTERS_WATER_BIT) != 0;
     }
 
     ObjectDestinationTransaction.Mutation mutationAt(int chunkX, int chunkZ, int index) {

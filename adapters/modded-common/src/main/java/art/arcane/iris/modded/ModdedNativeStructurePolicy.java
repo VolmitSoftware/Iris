@@ -12,6 +12,7 @@ import art.arcane.iris.structure.nativegen.NativeStructureStartPlan;
 import art.arcane.iris.structure.nativegen.NativeStructureVolumeIndex;
 import art.arcane.iris.structure.nativegen.StructureLocateSearch;
 import art.arcane.iris.structure.placement.IrisStructureLocator;
+import art.arcane.iris.structure.placement.IrisStructureWater;
 import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeModdedStructureStage;
 import art.arcane.volmlib.nativelib.minecraft26_2.terrain.NativeStructureVolumeSource;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockChangeSet;
@@ -23,6 +24,7 @@ import art.arcane.volmlib.nativelib.terrain.structure.StructurePlacementDecision
 import art.arcane.volmlib.nativelib.terrain.structure.StructureReferencePolicy;
 import art.arcane.volmlib.nativelib.terrain.structure.StructureSeaSurface;
 import art.arcane.volmlib.nativelib.terrain.structure.StructureVolumePolicy;
+import art.arcane.volmlib.nativelib.terrain.structure.StructureWater;
 import art.arcane.volmlib.util.math.RNG;
 
 import java.util.concurrent.ConcurrentHashMap;
@@ -128,6 +130,11 @@ final class ModdedNativeStructurePolicy implements NativeModdedStructureStage.Po
     @Override
     public StructureSeaSurface seaSurface(Engine context) {
         return GenerationWritePolicy.seaSurface(context);
+    }
+
+    @Override
+    public StructureWater water(Engine context) {
+        return IrisStructureWater.world(context);
     }
 
     @Override

@@ -10,7 +10,7 @@ final class PlacementModuleBounds implements PlacementModule {
             IrisObjectPlacement config = state.config;
             if (config.isBore() || (!config.isForcePlace() && config.getMode() != ObjectPlaceMode.STRUCTURE_PIECE
                     && (!config.getAllowedCollisions().isEmpty() || !config.getForbiddenCollisions().isEmpty()))) {
-                state.worldBounds = resolve(context, state, context.yv < 0 && config.getMode() == ObjectPlaceMode.PAINT);
+                state.worldBounds = resolve(context, state, context.automatic && config.getMode() == ObjectPlaceMode.PAINT);
             }
         }, PlacementModuleNativeStructureProtection.CHECK);
     }

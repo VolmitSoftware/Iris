@@ -31,7 +31,7 @@ final class PlacementModuleNativeStructureProtection implements PlacementModule 
         IrisBlockVector translateOffset = state.translateOffset;
         boolean translating = translateOffset != null;
         boolean ceilingHang = state.ceilingHang;
-        boolean paint = context.yv < 0 && config.getMode() == ObjectPlaceMode.PAINT;
+        boolean paint = context.automatic && config.getMode() == ObjectPlaceMode.PAINT;
         int warpMargin = state.warpMargin;
         int x = context.x;
         int y = state.y + state.yrand;

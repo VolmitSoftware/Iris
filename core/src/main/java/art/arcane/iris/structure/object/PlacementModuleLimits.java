@@ -11,13 +11,13 @@ final class PlacementModuleLimits implements PlacementModule {
             if (config.isForcePlace() || config.getMode() == ObjectPlaceMode.STRUCTURE_PIECE) {
                 return;
             }
-            if (context.yv < 0 && config.getMode() != ObjectPlaceMode.FLOATING
+            if (context.automatic && config.getMode() != ObjectPlaceMode.FLOATING
                     && !config.isUnderwater() && !config.isOnwater()
                     && state.placer.isUnderwater(context.x, context.z)) {
                 state.reject("underwater-anchor");
                 return;
             }
-            if (context.yv < 0 && config.getMode() != ObjectPlaceMode.FLOATING
+            if (context.automatic && config.getMode() != ObjectPlaceMode.FLOATING
                     && config.isOnwater() && !state.placer.isUnderwater(context.x, context.z)) {
                 state.reject("onwater-anchor");
                 return;

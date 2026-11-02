@@ -217,9 +217,9 @@ public class MantleFloatingObjectComponent extends IrisMantleComponent {
             int id = rng.i(0, Integer.MAX_VALUE);
 
             FloatingObjectPlacementTransaction transaction = new FloatingObjectPlacementTransaction(
-                    writer, placements.next(minX >> 4, minZ >> 4));
+                    writer, placements.next(minX >> 4, minZ >> 4), placement.entersWater());
             try {
-                int resultY = obj.place(xx, -1, zz, transaction, floatingPlacement, rng, (b, bd) -> {
+                int resultY = obj.place(xx, zz, transaction, floatingPlacement, rng, (b, bd) -> {
                     String marker = placementMarker(obj, id);
                     if (marker != null && shouldWritePlacementMarker(transaction, bd, b.getX(), b.getY(), b.getZ())) {
                         transaction.setData(b.getX(), b.getY(), b.getZ(), marker);
@@ -311,7 +311,8 @@ public class MantleFloatingObjectComponent extends IrisMantleComponent {
             int yv = pickTopY + 1 - fp.getLowestSolidKeyY();
 
             IslandObjectPlacer islandPlacer = IslandObjectPlacer.top(writer, sampleProvider, entry, pickTopY);
-            FloatingObjectPlacementTransaction transaction = new FloatingObjectPlacementTransaction(islandPlacer, placements.next(minX >> 4, minZ >> 4));
+            FloatingObjectPlacementTransaction transaction = new FloatingObjectPlacementTransaction(
+                    islandPlacer, placements.next(minX >> 4, minZ >> 4), placement.entersWater());
             int id = rng.i(0, Integer.MAX_VALUE);
 
             try {
@@ -424,7 +425,8 @@ public class MantleFloatingObjectComponent extends IrisMantleComponent {
             int yv = invertedBaseY(pickBottomY, fp, invertedRotation);
 
             IslandObjectPlacer islandPlacer = IslandObjectPlacer.bottom(writer, sampleProvider, entry, pickBottomY);
-            FloatingObjectPlacementTransaction transaction = new FloatingObjectPlacementTransaction(islandPlacer, placements.next(minX >> 4, minZ >> 4));
+            FloatingObjectPlacementTransaction transaction = new FloatingObjectPlacementTransaction(
+                    islandPlacer, placements.next(minX >> 4, minZ >> 4), placement.entersWater());
             int id = rng.i(0, Integer.MAX_VALUE);
 
             try {

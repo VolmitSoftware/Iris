@@ -19,6 +19,12 @@ import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.math.BlockPosition;
 import art.arcane.iris.structure.object.DecayControlPlacer;
+import art.arcane.iris.structure.object.IrisObject;
+import art.arcane.iris.structure.object.IrisObjectPlacement;
+import art.arcane.iris.structure.object.IrisObjectRotation;
+import art.arcane.iris.structure.object.ObjectPlaceMode;
+import art.arcane.iris.structure.placement.IrisStructure;
+import art.arcane.iris.structure.placement.PlacedStructurePiece;
 import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.iris.testsupport.BukkitTestServer;
 import art.arcane.iris.world.storage.matter.IrisMatterSupport;
@@ -27,6 +33,7 @@ import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
 import art.arcane.volmlib.util.matter.IrisMatter;
 import art.arcane.volmlib.util.matter.Matter;
 import art.arcane.volmlib.util.matter.MatterCavern;
+import art.arcane.volmlib.util.stream.ProceduralStream;
 import org.junit.Test;
 import org.mockito.InOrder;
 
@@ -44,6 +51,7 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
@@ -139,7 +147,7 @@ public class ObjectDestinationTransactionTest {
     }
 
     @Test
-    public void solidObjectBlocksMayDisplaceWaterButNothingOpenOrCarvedBreaksContainment() {
+    public void onlyUnderwaterObjectsDisplaceWaterAndNothingOpenOrCarvedBreaksContainment() {
         MantleWriter writer = writer();
         IrisComplex complex = mock(IrisComplex.class);
         HydrologyRuntime runtime = mock(HydrologyRuntime.class);
@@ -163,6 +171,7 @@ public class ObjectDestinationTransactionTest {
         when(raster.terrainHeight(6, 6)).thenReturn(20);
         when(raster.role(9, 9)).thenReturn(WaterRole.SHORE);
         when(raster.terrainHeight(9, 9)).thenReturn(20);
+        followRasterStreams(complex, raster);
         NativeBlockState pier = mock(NativeBlockState.class);
         when(pier.isSolid()).thenReturn(true);
         NativeBlockState vine = mock(NativeBlockState.class);
@@ -179,10 +188,19 @@ public class ObjectDestinationTransactionTest {
         assertEquals("open blocks and carves stay out of water, its bed and the bank below the head, and nothing enters a fall", start,
                 transaction.mutationCheckpoint());
         transaction.set(3, 10, 3, pier);
+        transaction.set(4, 15, 3, pier);
+        assertEquals("a land object's pier stays out of the river", start, transaction.mutationCheckpoint());
         transaction.set(3, 9, 3, pier);
         transaction.set(6, 18, 6, pier);
+        assertEquals("a pier keeps its blocks on the river bed and the shore", start + 2, transaction.mutationCheckpoint());
+        transaction.beginObjectPlacement(true);
+        transaction.set(3, 10, 3, pier);
         transaction.set(4, 15, 3, pier);
-        assertEquals("a pier into the river keeps its blocks", start + 4, transaction.mutationCheckpoint());
+        assertEquals("an underwater pier keeps its blocks in the river", start + 4, transaction.mutationCheckpoint());
+        transaction.set(3, 12, 3, pier);
+        transaction.set(3, 10, 3, vine);
+        assertEquals("an underwater object still keeps out of falls and open water", start + 4, transaction.mutationCheckpoint());
+        transaction.beginObjectPlacement(false);
         transaction.set(3, 16, 3, vine);
         transaction.set(3, 8, 3, vine);
         transaction.set(6, 19, 6, vine);
@@ -208,6 +226,7 @@ public class ObjectDestinationTransactionTest {
         when(raster.role(3, 3)).thenReturn(WaterRole.INLET);
         when(raster.waterHead(3, 3)).thenReturn(12);
         when(raster.terrainHeight(3, 3)).thenReturn(9);
+        followRasterStreams(complex, raster);
         NativeBlockState boulder = mock(NativeBlockState.class);
         when(boulder.isSolid()).thenReturn(true);
         NativeBlockState leaves = mock(NativeBlockState.class);
@@ -217,14 +236,143 @@ public class ObjectDestinationTransactionTest {
         transaction.set(3, 13, 3, boulder);
         transaction.set(3, 30, 3, boulder);
         transaction.set(3, 14, 3, leaves);
+        transaction.set(3, 10, 3, boulder);
         assertEquals("nothing an object places roofs or fills the slot between its water and the cliff top", start,
                 transaction.mutationCheckpoint());
+        transaction.beginObjectPlacement(true);
         transaction.set(3, 10, 3, boulder);
-        assertEquals("a solid block below the water may still sit on the slot bed", start + 1, transaction.mutationCheckpoint());
+        transaction.set(3, 12, 3, boulder);
+        assertEquals("an underwater object's solid block below the water may still sit on the slot bed", start + 1,
+                transaction.mutationCheckpoint());
+        transaction.beginObjectPlacement(false);
         transaction.set(3, 31, 3, leaves);
         transaction.set(3, 36, 3, leaves);
         transaction.set(3, 33, 3, boulder);
         assertEquals("a tree canopy above the cliff top keeps its leaves and wood", start + 4, transaction.mutationCheckpoint());
+    }
+
+    @Test
+    public void canopiesDoNotFillChannels() {
+        MantleWriter writer = writer();
+        IrisComplex complex = mock(IrisComplex.class);
+        HydrologyRuntime runtime = mock(HydrologyRuntime.class);
+        ChunkWaterRaster raster = mock(ChunkWaterRaster.class);
+        when(writer.getEngine().getComplex()).thenReturn(complex);
+        when(complex.getHydrologyRuntime()).thenReturn(runtime);
+        when(runtime.enabled()).thenReturn(true);
+        when(runtime.raster(anyInt(), anyInt())).thenReturn(raster);
+        when(raster.role(anyInt(), anyInt())).thenReturn(WaterRole.NONE);
+        when(raster.waterHead(anyInt(), anyInt())).thenReturn(Integer.MIN_VALUE);
+        when(raster.terrainHeight(anyInt(), anyInt())).thenReturn(20);
+        when(raster.role(3, 3)).thenReturn(WaterRole.CHANNEL);
+        when(raster.waterHead(3, 3)).thenReturn(14);
+        when(raster.terrainHeight(3, 3)).thenReturn(10);
+        when(raster.role(4, 3)).thenReturn(WaterRole.POND);
+        when(raster.waterHead(4, 3)).thenReturn(14);
+        when(raster.terrainHeight(4, 3)).thenReturn(8);
+        followRasterStreams(complex, raster);
+        NativeBlockState leaves = mock(NativeBlockState.class);
+        when(leaves.isSolid()).thenReturn(true);
+        ObjectDestinationTransaction transaction = new ObjectDestinationTransaction(writer, 0, 0);
+        int start = transaction.mutationCheckpoint();
+        for (int y = 11; y <= 14; y++) {
+            setCanopy(transaction, 3, y, 3, leaves);
+        }
+        for (int y = 9; y <= 14; y++) {
+            setCanopy(transaction, 4, y, 3, leaves);
+        }
+        assertEquals("canopy leaves never fill a channel or pond between its bed and its surface", start,
+                transaction.mutationCheckpoint());
+        setCanopy(transaction, 3, 10, 3, leaves);
+        setCanopy(transaction, 3, 15, 3, leaves);
+        setCanopy(transaction, 4, 8, 3, leaves);
+        setCanopy(transaction, 5, 14, 3, leaves);
+        assertEquals("the bed, the air above the surface and dry land keep their leaves", start + 4,
+                transaction.mutationCheckpoint());
+        int underwater = transaction.beginObjectPlacement(true);
+        transaction.set(3, 12, 3, leaves);
+        transaction.set(4, 9, 3, leaves);
+        assertEquals("an underwater object keeps its solid blocks in the water", underwater + 2,
+                transaction.mutationCheckpoint());
+        transaction.endObjectPlacement(underwater);
+        ObjectDestinationTransaction destination = new ObjectDestinationTransaction(writer, 0, 0);
+        destination.apply(transaction.sourcePlanSince(start));
+        assertEquals("the destination replay keeps the underwater blocks", 6, destination.mutationCheckpoint());
+        assertSame(leaves, destination.get(3, 12, 3));
+        assertSame(leaves, destination.get(4, 9, 3));
+    }
+
+    @Test
+    public void onwaterRaftsAndOwnForcedObjectsKeepTheirLayerOnRiversButForcedStructurePiecesDoNot() {
+        MantleWriter writer = writer();
+        IrisComplex complex = mock(IrisComplex.class);
+        HydrologyRuntime runtime = mock(HydrologyRuntime.class);
+        ChunkWaterRaster raster = mock(ChunkWaterRaster.class);
+        when(writer.getEngine().getComplex()).thenReturn(complex);
+        when(complex.getHydrologyRuntime()).thenReturn(runtime);
+        when(runtime.enabled()).thenReturn(true);
+        when(runtime.raster(anyInt(), anyInt())).thenReturn(raster);
+        when(raster.role(anyInt(), anyInt())).thenReturn(WaterRole.NONE);
+        when(raster.waterHead(anyInt(), anyInt())).thenReturn(Integer.MIN_VALUE);
+        for (int x = 3; x <= 5; x++) {
+            when(raster.role(x, 3)).thenReturn(WaterRole.CHANNEL);
+            when(raster.waterHead(x, 3)).thenReturn(14);
+            when(raster.terrainHeight(x, 3)).thenReturn(10);
+        }
+        followRasterStreams(complex, raster);
+        NativeBlockState plank = mock(NativeBlockState.class);
+        when(plank.isSolid()).thenReturn(true);
+        IrisObjectPlacement raft = new IrisObjectPlacement().setOnwater(true);
+        IrisObjectPlacement forced = new IrisObjectPlacement().setForcePlace(true);
+        IrisObjectPlacement piece = IrisStructureComponent.piecePlacement(new IrisStructure(), new PlacedStructurePiece(null,
+                new IrisObject(1, 1, 1), 4, 14, 3, IrisObjectRotation.of(0, 0, 0), 4, 14, 3, 4, 14, 3), ObjectPlaceMode.CENTER_HEIGHT, false);
+        assertTrue(piece.isForcePlace());
+        ObjectDestinationTransaction transaction = new ObjectDestinationTransaction(writer, 0, 0);
+
+        int raftStart = transaction.beginObjectPlacement(raft.entersWater());
+        for (int x = 3; x <= 5; x++) {
+            transaction.set(x, 14, 3, plank);
+        }
+        assertEquals("a one-block onwater raft keeps its layer on the river surface", raftStart + 3, transaction.mutationCheckpoint());
+        int forcedStart = transaction.beginObjectPlacement(forced.entersWater());
+        transaction.set(3, 13, 3, plank);
+        assertEquals("an object's own forcePlace keeps its solid blocks in the river", forcedStart + 1, transaction.mutationCheckpoint());
+        int pieceStart = transaction.beginObjectPlacement(piece.entersWater());
+        transaction.set(4, 13, 3, plank);
+        transaction.set(5, 11, 3, plank);
+        assertEquals("a forced structure piece still keeps its solid blocks out of the river", pieceStart, transaction.mutationCheckpoint());
+        ObjectDestinationTransaction destination = new ObjectDestinationTransaction(writer, 0, 0);
+        destination.apply(transaction.sourcePlanSince(raftStart));
+        assertEquals("the destination replay keeps the raft and the forced block", 4, destination.mutationCheckpoint());
+    }
+
+    @Test
+    public void endingAWaterPlacementReturnsTheTransactionToLandRules() {
+        MantleWriter writer = writer();
+        IrisComplex complex = mock(IrisComplex.class);
+        HydrologyRuntime runtime = mock(HydrologyRuntime.class);
+        ChunkWaterRaster raster = mock(ChunkWaterRaster.class);
+        when(writer.getEngine().getComplex()).thenReturn(complex);
+        when(complex.getHydrologyRuntime()).thenReturn(runtime);
+        when(runtime.enabled()).thenReturn(true);
+        when(runtime.raster(anyInt(), anyInt())).thenReturn(raster);
+        when(raster.role(anyInt(), anyInt())).thenReturn(WaterRole.NONE);
+        when(raster.waterHead(anyInt(), anyInt())).thenReturn(Integer.MIN_VALUE);
+        when(raster.role(3, 3)).thenReturn(WaterRole.CHANNEL);
+        when(raster.waterHead(3, 3)).thenReturn(14);
+        when(raster.terrainHeight(3, 3)).thenReturn(10);
+        followRasterStreams(complex, raster);
+        NativeBlockState pier = mock(NativeBlockState.class);
+        when(pier.isSolid()).thenReturn(true);
+        ObjectDestinationTransaction transaction = new ObjectDestinationTransaction(writer, 0, 0);
+
+        int raft = transaction.beginObjectPlacement(true);
+        transaction.set(3, 12, 3, pier);
+        transaction.endObjectPlacement(raft);
+        int afterRaft = transaction.mutationCheckpoint();
+        transaction.set(3, 13, 3, pier);
+
+        assertEquals("a write after the water placement ends follows land rules", afterRaft, transaction.mutationCheckpoint());
     }
 
     @Test
@@ -767,6 +915,29 @@ public class ObjectDestinationTransactionTest {
 
         assertThrows(IllegalStateException.class, destination::commit);
         verify(writer).restoreData(0, 4, 0, Identifier.class, originalIdentifier);
+    }
+
+    private static void setCanopy(ObjectDestinationTransaction transaction, int x, int y, int z, NativeBlockState state) {
+        assertTrue(transaction.beginTreeCanopy(new BlockPosition(x, y, z)));
+        transaction.set(x, y, z, state);
+        transaction.endTreeCanopy();
+    }
+
+    @SuppressWarnings("unchecked")
+    private static void followRasterStreams(IrisComplex complex, ChunkWaterRaster raster) {
+        ProceduralStream<WaterRole> roles = mock(ProceduralStream.class);
+        ProceduralStream<Double> heads = mock(ProceduralStream.class);
+        ProceduralStream<Integer> heights = mock(ProceduralStream.class);
+        when(roles.get(anyDouble(), anyDouble())).thenAnswer(call -> raster.role(local(call.getArgument(0)), local(call.getArgument(1))));
+        when(heads.getDouble(anyDouble(), anyDouble())).thenAnswer(call -> (double) raster.waterHead(local(call.getArgument(0)), local(call.getArgument(1))));
+        when(heights.get(anyDouble(), anyDouble())).thenAnswer(call -> raster.terrainHeight(local(call.getArgument(0)), local(call.getArgument(1))));
+        when(complex.getWaterRoleStream()).thenReturn(roles);
+        when(complex.getWaterHeadStream()).thenReturn(heads);
+        when(complex.getRoundedHeighteightStream()).thenReturn(heights);
+    }
+
+    private static int local(Object coordinate) {
+        return (int) Math.floor(((Number) coordinate).doubleValue()) & 15;
     }
 
     @SuppressWarnings("unchecked")

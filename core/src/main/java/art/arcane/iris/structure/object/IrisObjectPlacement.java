@@ -201,6 +201,7 @@ public class IrisObjectPlacement {
     @Description("Ignore any placement restrictions for this object")
     @SerializedName(value = "forcePlace", alternate = {"force"})
     private boolean forcePlace = false;
+    private transient boolean forcedByStructure = false;
     private transient AtomicCache<TableCache> cache = new AtomicCache<>();
     private transient AtomicCache<CompatStatus> compatCache = new AtomicCache<>();
     @Getter(AccessLevel.NONE)
@@ -306,6 +307,10 @@ public class IrisObjectPlacement {
         return place.size() == 1 ? place.getFirst() : place.toString(", ");
     }
 
+    public boolean entersWater() {
+        return underwater || onwater || forcePlace && !forcedByStructure;
+    }
+
     public IrisObjectPlacement toPlacement(String... place) {
         IrisObjectPlacement p = new IrisObjectPlacement();
         p.setPlace(new KList<>(place));
@@ -349,6 +354,7 @@ public class IrisObjectPlacement {
         p.setAllowedCollisions(allowedCollisions);
         p.setForbiddenCollisions(forbiddenCollisions);
         p.setForcePlace(forcePlace);
+        p.setForcedByStructure(forcedByStructure);
         return p;
     }
 

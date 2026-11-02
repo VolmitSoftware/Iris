@@ -35,6 +35,7 @@ import java.util.function.Supplier;
 import java.util.Objects;
 import art.arcane.volmlib.util.matter.IrisMatter;
 import art.arcane.volmlib.util.matter.Matter;
+import art.arcane.volmlib.util.matter.MatterCavern;
 import art.arcane.iris.world.storage.matter.IrisMatterSupport;
 import java.util.Map;
 
@@ -43,14 +44,18 @@ final class FloatingObjectPlacementTransaction implements IObjectPlacer {
     private final ObjectContinuationBundle.PlacementKey placementKey;
     private final KList<BufferedMutation> mutations;
     private final Map<PositionKey, NativeBlockState> bufferedBlocks;
+    private final boolean entersWater;
+    private ObjectHydrologyVeto waterVeto;
     private int blockWrites;
     private BlockPosition canopyPosition;
 
-    FloatingObjectPlacementTransaction(IObjectPlacer delegate, ObjectContinuationBundle.PlacementKey placementKey) {
+    FloatingObjectPlacementTransaction(IObjectPlacer delegate, ObjectContinuationBundle.PlacementKey placementKey,
+                                       boolean entersWater) {
         this.delegate = Objects.requireNonNull(delegate);
         this.placementKey = Objects.requireNonNull(placementKey);
         this.mutations = new KList<>();
         this.bufferedBlocks = new HashMap<>();
+        this.entersWater = entersWater;
     }
 
     CommitResult commit() {
@@ -156,7 +161,7 @@ final class FloatingObjectPlacementTransaction implements IObjectPlacer {
 
     @Override
     public void set(int x, int y, int z, NativeBlockState state) {
-        if (state == null) {
+        if (state == null || waterVeto().keepsBlock(x, y, z, state, entersWater)) {
             return;
         }
         mutations.add(new BlockMutation(x, y, z, state, isCanopy(x, y, z)));
@@ -234,7 +239,7 @@ final class FloatingObjectPlacementTransaction implements IObjectPlacer {
 
     @Override
     public <T> void setData(int x, int y, int z, T data) {
-        if (data == null) {
+        if (data == null || keepsWater(x, y, z, data)) {
             return;
         }
         mutations.add(new DataMutation(x, y, z, data, isCanopy(x, y, z)));
@@ -242,6 +247,20 @@ final class FloatingObjectPlacementTransaction implements IObjectPlacer {
             bufferedBlocks.put(new PositionKey(x, y, z), state);
             blockWrites++;
         }
+    }
+
+    private boolean keepsWater(int x, int y, int z, Object data) {
+        if (data instanceof NativeBlockState state) {
+            return waterVeto().keepsBlock(x, y, z, state, entersWater);
+        }
+        return data instanceof MatterCavern && waterVeto().keeps(x, y, z, false, entersWater);
+    }
+
+    private ObjectHydrologyVeto waterVeto() {
+        if (waterVeto == null) {
+            waterVeto = ObjectHydrologyVeto.of(delegate.getEngine());
+        }
+        return waterVeto;
     }
 
     @Override

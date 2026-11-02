@@ -1,5 +1,7 @@
 package art.arcane.iris.structure.object;
 
+import art.arcane.iris.generation.stream.ProvisionalAnswerException;
+import art.arcane.iris.generation.stream.ProvisionalSampling;
 
 import java.util.List;
 
@@ -15,9 +17,12 @@ public final class PlacementLifecycle {
     /** The block pass and everything after it read one consistent object snapshot. */
     public PlacementState execute(PlacementContext context) {
         PlacementState state = new PlacementState(context);
-        for (PlacementStage<Void> stage : PlacementStage.BEFORE_PASS) {
+        long revision = ProvisionalSampling.revision();
+        for (PlacementStage<Void> stage : PlacementStage.DECISION) {
             run(stage, context, state, null);
         }
+        requireFinalAnswers(context, revision);
+        run(PlacementStage.BEFORE_BLOCKS, context, state, null);
         if (state.isRejected()) {
             return state;
         }
@@ -41,5 +46,14 @@ public final class PlacementLifecycle {
             PlacementFunction<C> function = (PlacementFunction<C>) step.function();
             function.execute(context, state, input);
         }
+    }
+
+    private static void requireFinalAnswers(PlacementContext context, long revision) {
+        if (!context.automatic || ProvisionalSampling.revision() == revision) {
+            return;
+        }
+        String key = context.self.getLoadKey();
+        throw new ProvisionalAnswerException("Object " + (key == null ? "<no loadKey>" : key) + " at " + context.x + "," + context.z
+                + " read a provisional terrain or water answer; automatic placements are only made from final terrain.");
     }
 }

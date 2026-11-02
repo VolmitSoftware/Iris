@@ -158,7 +158,6 @@ public class TreeSVC implements IrisService {
             return;
         }
 
-        saplingPlane.forEach(block -> block.setType(Material.AIR));
         IrisObject object = placement.scaleObject(RNG.r,
                 worldAccess.getData().getObjectLoader().load(pool.getRandom(RNG.r)), dimension);
 
@@ -268,6 +267,11 @@ public class TreeSVC implements IrisService {
         );
 
         event.setCancelled(true);
+        if (blockStateList.isEmpty()) {
+            IrisLogging.debug("Tree placement " + object.getLoadKey() + " placed nothing at " + event.getLocation() + "; the sapling stays");
+            return;
+        }
+        saplingPlane.forEach(block -> block.setType(Material.AIR));
 
         Runnable growTask = () -> {
 

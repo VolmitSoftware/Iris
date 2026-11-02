@@ -26,6 +26,7 @@ import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.SeedManager;
 
 import art.arcane.iris.pack.loading.IrisData;
+import art.arcane.iris.generation.hydrology.raster.WaterRole;
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.structure.graph.StructureGraphCatalog;
 import art.arcane.iris.pack.value.IrisDirection;
@@ -45,6 +46,7 @@ import art.arcane.volmlib.util.math.RNG;
 import art.arcane.volmlib.util.stream.ProceduralStream;
 import org.junit.Test;
 
+import java.util.HashSet;
 import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
@@ -448,6 +450,77 @@ public class IrisStructureLocatorContractTest {
     }
 
     @Test
+    public void irisStructuresAvoidRivers() {
+        Engine engine = densityEngine(1.0, false, -64, 384, -2032, 2032);
+        IrisObject object = engine.getData().load(IrisObject.class, "test:density/object", false);
+        when(object.getW()).thenReturn(10);
+        when(object.getD()).thenReturn(10);
+        Set<Long> river = new HashSet<>();
+        IrisComplex complex = mock(IrisComplex.class);
+        when(engine.getComplex()).thenReturn(complex);
+        when(complex.allowsNewGenerationFootprint(anyInt(), anyInt(), anyInt(), anyInt())).thenReturn(true);
+        @SuppressWarnings("unchecked")
+        ProceduralStream<Double> waterHead = mock(ProceduralStream.class);
+        when(complex.getWaterHeadStream()).thenReturn(waterHead);
+        when(waterHead.get(anyDouble(), anyDouble())).thenReturn(63D);
+        @SuppressWarnings("unchecked")
+        ProceduralStream<WaterRole> roles = mock(ProceduralStream.class);
+        when(complex.getWaterRoleStream()).thenReturn(roles);
+        when(roles.get(anyDouble(), anyDouble())).thenAnswer(call -> river.contains(columnKey(
+                (int) Math.floor(call.<Double>getArgument(0)), (int) Math.floor(call.<Double>getArgument(1))))
+                ? WaterRole.CHANNEL : WaterRole.NONE);
+        @SuppressWarnings("unchecked")
+        ProceduralStream<Integer> beds = mock(ProceduralStream.class);
+        when(beds.get(anyDouble(), anyDouble())).thenReturn(120);
+        when(complex.getRoundedHeighteightStream()).thenReturn(beds);
+        when(waterHead.getDouble(anyDouble(), anyDouble())).thenReturn(124D);
+        when(engine.getHeight(anyInt(), anyInt(), eq(true))).thenReturn(128);
+        when(engine.getDimension().getFluidHeight()).thenReturn(63);
+        IrisStructurePlacement placement = engine.getDimension().getStructures().get(0);
+
+        IrisStructureLocator.ResolvedPlacement dry = IrisStructureLocator.resolvePlacement(engine, placement, 3, 4);
+        assertNotNull(dry);
+        assertEquals(1, dry.pieces().size());
+        PlacedStructurePiece piece = dry.pieces().getFirst();
+        int columns = (piece.getMaxX() - piece.getMinX() + 1) * (piece.getMaxZ() - piece.getMinZ() + 1);
+        int allowed = columns / 10;
+        assertTrue("the footprint must span enough columns to tell 10% apart", allowed >= 4);
+        for (int index = 0; index < allowed; index++) {
+            river.add(columnKey(piece.getMinX() + index, piece.getMinZ()));
+        }
+
+        assertNotNull("a footprint at most 10% river keeps its structure",
+                IrisStructureLocator.resolvePlacement(engine, placement, 3, 4));
+
+        river.add(columnKey(piece.getMinX(), piece.getMaxZ()));
+        assertNull("a footprint more than 10% river is skipped",
+                IrisStructureLocator.resolvePlacement(engine, placement, 3, 4));
+
+        placement.setAllowWater(true);
+        assertNotNull(IrisStructureLocator.resolvePlacement(engine, placement, 3, 4));
+    }
+
+    @Test
+    public void undergroundIrisStructuresIgnoreRiversAbove() {
+        Engine engine = densityEngine(1.0, true, -64, 384, -40, -20);
+        IrisComplex complex = mock(IrisComplex.class);
+        when(engine.getComplex()).thenReturn(complex);
+        when(complex.allowsNewGenerationFootprint(anyInt(), anyInt(), anyInt(), anyInt())).thenReturn(true);
+        @SuppressWarnings("unchecked")
+        ProceduralStream<Double> waterHead = mock(ProceduralStream.class);
+        when(complex.getWaterHeadStream()).thenReturn(waterHead);
+        when(waterHead.get(anyDouble(), anyDouble())).thenReturn(63D);
+        @SuppressWarnings("unchecked")
+        ProceduralStream<WaterRole> roles = mock(ProceduralStream.class);
+        when(complex.getWaterRoleStream()).thenReturn(roles);
+        when(roles.get(anyDouble(), anyDouble())).thenReturn(WaterRole.CHANNEL);
+        when(engine.getHeight(anyInt(), anyInt(), eq(true))).thenReturn(128);
+        IrisStructurePlacement placement = engine.getDimension().getStructures().get(0);
+
+        assertNotNull(IrisStructureLocator.resolvePlacement(engine, placement, 3, 4));
+    }
+
+    @Test
     public void locateRanksEditableStartsByResolvedBlockOrigin() {
         Engine engine = densityEngine(1.0, false, -64, 384, -2032, 2032);
         IrisComplex complex = mock(IrisComplex.class);
@@ -457,6 +530,10 @@ public class IrisStructureLocatorContractTest {
         ProceduralStream<Double> waterHead = mock(ProceduralStream.class);
         when(complex.getWaterHeadStream()).thenReturn(waterHead);
         when(waterHead.get(anyDouble(), anyDouble())).thenReturn(63D);
+        @SuppressWarnings("unchecked")
+        ProceduralStream<WaterRole> roles = mock(ProceduralStream.class);
+        when(complex.getWaterRoleStream()).thenReturn(roles);
+        when(roles.get(anyDouble(), anyDouble())).thenReturn(WaterRole.NONE);
         when(engine.getAllBiomes()).thenReturn(new KList<>());
         when(engine.getHeight(anyInt(), anyInt(), eq(true))).thenReturn(128);
         when(engine.getDimension().getFluidHeight()).thenReturn(63);
@@ -824,6 +901,10 @@ public class IrisStructureLocatorContractTest {
         long dx = (long) resolved.originX() - fromBlockX;
         long dz = (long) resolved.originZ() - fromBlockZ;
         return dx * dx + dz * dz;
+    }
+
+    private static long columnKey(int x, int z) {
+        return ((long) x << 32) ^ (z & 0xffffffffL);
     }
 
     private PlacedStructurePiece piece(int minX, int minY, int minZ, int maxX, int maxY, int maxZ) {

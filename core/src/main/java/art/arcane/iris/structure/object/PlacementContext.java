@@ -19,6 +19,8 @@ public final class PlacementContext {
     public record TransformedBounds(int minX, int maxX, int minY, int maxY, int minZ, int maxZ) {}
     public record WorldBounds(int minX, int maxX, int minY, int maxY, int minZ, int maxZ) {}
 
+    private static final int AUTOMATIC_Y = -1;
+
     final IrisObjectPlacement config;
     final IrisData rdata;
     final IObjectPlacer placer;
@@ -29,6 +31,7 @@ public final class PlacementContext {
     final int x;
     final int z;
     final int yv;
+    final boolean automatic;
     final BiConsumer<BlockPosition, NativeBlockState> listener;
 
     public PlacementContext(IrisObjectPlacement config, IrisData rdata, IObjectPlacer placer,
@@ -40,6 +43,12 @@ public final class PlacementContext {
     public PlacementContext(IrisObjectPlacement config, IrisData rdata, IObjectPlacer placer,
                             CarveResult caveResult, RNG rng, IrisObject self, IrisObjectPlacementAlignment alignment,
                             int x, int z, int yv, BiConsumer<BlockPosition, NativeBlockState> listener) {
+        this(config, rdata, placer, caveResult, rng, self, alignment, x, z, yv, false, listener);
+    }
+
+    private PlacementContext(IrisObjectPlacement config, IrisData rdata, IObjectPlacer placer,
+                             CarveResult caveResult, RNG rng, IrisObject self, IrisObjectPlacementAlignment alignment,
+                             int x, int z, int yv, boolean automatic, BiConsumer<BlockPosition, NativeBlockState> listener) {
         this.placer = Objects.requireNonNull(placer, "Object placer is required.");
         this.config = Objects.requireNonNull(config, "Object placement config is required.");
         this.rng = Objects.requireNonNull(rng, "Object placement RNG is required.");
@@ -50,6 +59,13 @@ public final class PlacementContext {
         this.x = x;
         this.z = z;
         this.yv = yv;
+        this.automatic = automatic;
         this.listener = listener;
+    }
+
+    public static PlacementContext automatic(IrisObjectPlacement config, IrisData rdata, IObjectPlacer placer,
+                                             CarveResult caveResult, RNG rng, IrisObject self, IrisObjectPlacementAlignment alignment,
+                                             int x, int z, BiConsumer<BlockPosition, NativeBlockState> listener) {
+        return new PlacementContext(config, rdata, placer, caveResult, rng, self, alignment, x, z, AUTOMATIC_Y, true, listener);
     }
 }

@@ -19,7 +19,7 @@ import java.util.function.Function;
 
 @Accessors(chain = true)
 @NoArgsConstructor
-@Description("Hydrology settings for a dimension, region or biome. A value a biome leaves unset is inherited from the biome it grows inside as a child, up through that biome's own parents, then from the region, then from the dimension.")
+@Description("Hydrology settings for a dimension, region or biome. A value a biome leaves unset is inherited from the biome it grows inside as a child, up through that biome's own parents, then from the region, then from the dimension, and a value a region leaves unset is inherited from the dimension. wetness is inherited whole: a bound it leaves out is 0 for min and 1 for max. Cave pools take fluid from the cave biome at the pool, then its region, then the dimension, and never from the surface biome above.")
 @Data
 public class IrisHydrologyPolicy {
     public static final double MAX_MULTIPLIER = 16D;
@@ -37,7 +37,7 @@ public class IrisHydrologyPolicy {
     @Description("Whether the dimension's wet and dry zones apply in this area. false keeps this area's full rainfall and pond density even inside a dry zone. With no value set anywhere they apply.")
     private Boolean climateZones = null;
 
-    @Description("Bounds on the wetness of the dimension's wet and dry zones in this area: min keeps a swamp wet inside a dry zone, max keeps a desert mostly dry inside a wet zone. It has no effect where the wet and dry zones are off or climateZones is false. With no value set anywhere the zone wetness applies unchanged.")
+    @Description("Bounds on the wetness of the dimension's wet and dry zones in this area: min keeps a swamp wet inside a dry zone, max keeps a desert mostly dry inside a wet zone. The bounded wetness scales the area's rainfall and pond density and sets how far ponds and lakes whose floor lies here drop below their freeboard. It has no effect where the wet and dry zones are off or climateZones is false. A scope that sets it replaces both bounds, and a bound it leaves out is 0 for min and 1 for max. With no value set anywhere the zone wetness applies unchanged.")
     private IrisHydrologyWetness wetness = null;
 
     @Description("Whether streams and rivers may form in this area. With no value set anywhere they are allowed.")
@@ -46,7 +46,7 @@ public class IrisHydrologyPolicy {
     @Description("Whether ponds may form in this area. With no value set anywhere they are allowed.")
     private IrisHydrologyPermission ponds = null;
 
-    @Description("Name of a fluid profile that fills the water in this area instead of its usual fluid: ponds and lakes whose floor lies here, and every stretch of stream or river that flows through here.")
+    @Description("Name of a fluid profile that fills the water in this area instead of its usual fluid: ponds and lakes whose floor lies here, and every stretch of stream or river whose upstream end lies here, for the whole stretch. A stretch that starts elsewhere keeps its own fluid while it crosses this area. Set on a cave biome, a region or the dimension, it also fills the cave pools there. It cannot name a seam profile.")
     private String fluid = null;
 
     @RegistryListResource(IrisBiome.class)

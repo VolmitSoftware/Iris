@@ -9,12 +9,12 @@ import lombok.experimental.Accessors;
 
 @Accessors(chain = true)
 @NoArgsConstructor
-@Description("Shape of pond and lake shores and floors.")
+@Description("Shape of pond shores and floors. Lakes take only roundness.")
 @Data
 public class IrisPondShore {
     @MinNumber(0)
     @MaxNumber(4)
-    @Description("Strength of the noise that rounds and roughens pond outlines. 0 follows the terrain exactly.")
+    @Description("Strength of the noise that rounds and roughens pond and lake outlines. 0 follows the terrain exactly.")
     private double roundness = 0.5D;
 
     @MinNumber(0)

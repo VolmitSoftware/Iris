@@ -40,7 +40,7 @@ public class IrisCavePools {
 
     @MinNumber(1)
     @MaxNumber(15)
-    @Description("Distance in blocks a pool may spread from its site, at most 15.")
+    @Description("Half-size in blocks of the square box, centered on the site column, inside which a pool settles and spreads, at most 15, so a pool stays within one chunk of the chunk that holds its site.")
     private int radius = 15;
 
     @ArrayType(type = Integer.class, min = 2)

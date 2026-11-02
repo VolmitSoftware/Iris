@@ -6,6 +6,7 @@ import art.arcane.iris.generation.hydrology.water.Pond;
 import art.arcane.iris.generation.hydrology.water.PondPlanner;
 import art.arcane.iris.generation.hydrology.water.Reach;
 import art.arcane.iris.generation.hydrology.water.ReachShaper;
+import org.junit.AfterClass;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -26,10 +27,16 @@ public class ConfluenceIncisionTest {
     private static final double WALL_FACE_REACH = 24D;
     private static final double MAX_WALL_CUT = 24D;
     private static final int MAX_COPY_DIFFERENCE = 4;
+    private static PlannedScene valley;
+
+    @AfterClass
+    public static void dropScene() {
+        valley = null;
+    }
 
     @Test
     public void junctionPoolsNeverTrenchASlopingValley() {
-        PlannedScene scene = PlannedScene.plan(SyntheticTerrain.valleySlope(), settings(), 2, 2);
+        PlannedScene scene = valley();
         int points = 0;
         int deep = 0;
         String worst = "";
@@ -50,6 +57,11 @@ public class ConfluenceIncisionTest {
         }
         assertTrue("reach points checked " + points, points > 10000);
         assertEquals("reach points cut more than " + DEEP_CUT + " below the valley floor, deepest " + worst, 0, deep);
+    }
+
+    @Test
+    public void slopingValleyConfluencesHaveNoTongues() {
+        assertEquals("confluence tongues on the sloping valley over 2x2 windows", List.of(), WaterInvariants.confluenceTongues(valley()));
     }
 
     @Test
@@ -113,6 +125,13 @@ public class ConfluenceIncisionTest {
         }
         assertTrue("reaches both windows shape alike " + copies, copies > 300);
         assertTrue("grades of one reach differ by " + worst + " between the windows that plan it: " + worstCopy, worst <= MAX_COPY_DIFFERENCE);
+    }
+
+    private static synchronized PlannedScene valley() {
+        if (valley == null) {
+            valley = PlannedScene.plan(SyntheticTerrain.valleySlope(), settings(), 2, 2);
+        }
+        return valley;
     }
 
     private static HydrologySettings settings() {

@@ -276,6 +276,28 @@ public class ChunkWaterRasterTest {
     }
 
     @Test
+    public void fallsIntoAPondLeaveItsFloor() {
+        IntBinaryOperator natural = (x, z) -> 70 + ((x - 16) * (x - 16) + (z - 16) * (z - 16)) / 20;
+        Pond pond = pond(21L, PondKind.NATURAL, 75, circle(16, 16, 14, 4), 16, 16, 0);
+        HydrologyTier stream = tier("stream", 1.5f, 0.5f, 4, IrisBankStyle.SMOOTH);
+        Scene level = new Scene(settings(new IrisHydrology()), natural).pond(pond).reach(line(23L, stream, 0L, 16f, -48f, 16f, 6f, (x, z) -> 75));
+        Scene falling = new Scene(settings(new IrisHydrology()), natural).pond(pond).reach(line(23L, stream, 0L, 16f, -48f, 16f, 6f, (x, z) -> 86));
+        int checked = 0;
+        for (int x = -8; x < 40; x++) {
+            for (int z = -8; z < 40; z++) {
+                if (falling.role(x, z) != WaterRole.POND) {
+                    continue;
+                }
+                checked++;
+                assertEquals("pond floor under the fall at " + x + "," + z, level.terrain(x, z), falling.terrain(x, z));
+            }
+        }
+        assertTrue("pond columns " + checked, checked > 400);
+        assertEquals("the stream falls into the pond", 86, falling.head(16, -2));
+        assertEquals(74, falling.head(16, 6));
+    }
+
+    @Test
     public void pondColumnsShareOneLevel() {
         IntBinaryOperator natural = (x, z) -> 70 + ((x - 16) * (x - 16) + (z - 16) * (z - 16)) / 20;
         Pond pond = pond(21L, PondKind.NATURAL, 75, circle(16, 16, 14, 4), 16, 16, 0);
@@ -616,6 +638,26 @@ public class ChunkWaterRasterTest {
     }
 
     @Test
+    public void stepsAtTheEdgeOfALowerChannelAreStyledAsFalls() {
+        HydrologyTier river = tier("river", 8f, 1f, 16, IrisBankStyle.SMOOTH);
+        HydrologyTier stream = tier("stream", 2f, 0.5f, 4, IrisBankStyle.SMOOTH);
+        Reach lower = line(302L, river, 0L, -96f, 8f, 120f, 8f, (x, z) -> 66);
+        Map<Integer, WaterRole> styles = Map.of(68, WaterRole.CASCADE, 70, WaterRole.CASCADE, 72, WaterRole.WATERFALL);
+        for (int level : new int[]{68, 70, 72}) {
+            Reach perched = line(303L, stream, 0L, 16f, -72f, 16f, 8f, (x, z) -> level);
+            Scene scene = new Scene(settings(new IrisHydrology()), (x, z) -> 80).reach(lower).reach(perched);
+            for (int x = 15; x <= 17; x++) {
+                assertEquals(level, scene.head(x, -1));
+                assertEquals(66, scene.head(x, 0));
+                assertEquals("the " + (level - 66) + "-block step onto the lower channel's edge at x " + x, styles.get(level), scene.role(x, 0));
+                assertEquals("the perched channel above the step at x " + x, WaterRole.CHANNEL, scene.role(x, -1));
+            }
+            assertEquals("the lower channel away from the step", WaterRole.CHANNEL, scene.role(40, 0));
+            assertEquals("the lower channel inside the perched channel's footprint", WaterRole.CHANNEL, scene.role(16, 6));
+        }
+    }
+
+    @Test
     public void crossWindowLinkNeverRaisesWaterDownstream() {
         HydrologyTier narrow = tier("river", 2f, 0.5f, 4, IrisBankStyle.SMOOTH);
         HydrologyTier wide = tier("river", 3f, 0.5f, 4, IrisBankStyle.SMOOTH);
@@ -843,6 +885,30 @@ public class ChunkWaterRasterTest {
             assertTrue("water rises from " + previous + " to " + head + " at x=" + x, head <= previous);
             previous = head;
         }
+    }
+
+    @Test
+    public void crossWindowFedStartOneBlockAboveTheJunctionJoinsIt() {
+        HydrologyTier narrow = tier("river", 2f, 0.5f, 4, IrisBankStyle.SMOOTH);
+        HydrologyTier wide = tier("river", 3f, 0.5f, 4, IrisBankStyle.SMOOTH);
+        Reach low = line(342L, wide, 0L, 504f, 200f, 600f, 200f, (x, z) -> 61);
+        Reach stub = line(341L, narrow, low.id(), 498f, 200f, 504f, 200f, (x, z) -> 62);
+        Reach upstream = line(340L, narrow, stub.id(), 440f, 200f, 498f, 200f, (x, z) -> 62);
+        assertEquals(new WindowKey(0, 0), WindowKey.containing(504, 200));
+        assertEquals(new WindowKey(1, 0), WindowKey.containing(600, 200));
+        Scene scene = new Scene(settings(new IrisHydrology()), (x, z) -> 90).reach(upstream).reach(stub).reach(low);
+        assertEquals("the stub's start one block above the junction joins it", 60, scene.head(498, 200));
+        int previous = Integer.MAX_VALUE;
+        for (int x = 440; x <= 600; x++) {
+            int head = scene.head(x, 200);
+            assertNotEquals("centre line is water at x=" + x, Integer.MIN_VALUE, head);
+            assertTrue("water rises from " + previous + " to " + head + " at x=" + x, head <= previous);
+            if (head < previous && previous != Integer.MAX_VALUE) {
+                assertEquals("the step at x=" + x + " is styled", WaterRole.CASCADE, scene.role(x, 200));
+            }
+            previous = head;
+        }
+        assertWindowOrderFree(scene, 27, 37, 12);
     }
 
     @Test
@@ -1119,6 +1185,9 @@ public class ChunkWaterRasterTest {
                 if (scene.role(x, z) == WaterRole.MOUTH) {
                     mouths++;
                     assertEquals(banks + "mouth at sea level at " + x + "," + z, SEA_LEVEL, scene.head(x, z));
+                    if (x >= 40) {
+                        assertEquals(banks + "the fall leaves the sea floor under the mouth at " + x + "," + z, coast.applyAsInt(x, z), scene.terrain(x, z));
+                    }
                 }
                 if (scene.water(x, z)) {
                     continue;

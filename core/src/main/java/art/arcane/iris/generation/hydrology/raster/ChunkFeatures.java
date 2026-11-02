@@ -50,7 +50,7 @@ final class ChunkFeatures {
 
     static ChunkFeatures gather(HydrologySettings settings, int chunkX, int chunkZ, int halo, List<IndexedWindow> windows,
                                 List<RegionPlan> lakeRegionPlans, List<RegionKey> lakeRegions) {
-        Links links = new Links(windowsByKey(chunkX, chunkZ, windows));
+        Links links = new Links(windowsByKey(chunkX, chunkZ, windows), settings.seaLevel());
         List<Reach> reaches = new ArrayList<>();
         List<Pond> ponds = new ArrayList<>();
         List<SeaInlet> inlets = new ArrayList<>();
@@ -296,11 +296,13 @@ final class ChunkFeatures {
 
     private static final class Links {
         private final Map<WindowKey, IndexedWindow> windows;
+        private final int seaLevel;
         private final Map<Long, Reach> resolved = new HashMap<>();
         private final Set<Long> resolving = new HashSet<>();
 
-        private Links(Map<WindowKey, IndexedWindow> windows) {
+        private Links(Map<WindowKey, IndexedWindow> windows, int seaLevel) {
             this.windows = windows;
+            this.seaLevel = seaLevel;
         }
 
         private Reach resolve(Reach reach, WindowKey owner) {
@@ -320,7 +322,7 @@ final class ChunkFeatures {
         private Reach link(Reach reach, WindowKey owner) {
             Integer pondLevel = outletLevel(reach, owner);
             Reach linked = feederLink(reach, owner, pondLevel != null || reach.style()[0] == ReachStyle.POND_OUTLET);
-            return settle(reach, pondLevel == null ? linked : LinkBlend.clamp(linked, pondLevel), owner);
+            return settle(reach, pondLevel == null ? linked : LinkBlend.clamp(linked, pondLevel, seaLevel), owner);
         }
 
         private Reach settle(Reach feeder, Reach linked, WindowKey owner) {
@@ -342,7 +344,7 @@ final class ChunkFeatures {
                     receiving.add(LinkBlend.footprint(sibling));
                 }
             }
-            return LinkBlend.settleInto(linked, level, receiving, lips(feeder, owner));
+            return LinkBlend.settleInto(linked, new LinkBlend.Junction(level, fed(feeder)), receiving, lips(feeder, owner), seaLevel);
         }
 
         private IndexedWindow ownerOf(long id) {
@@ -376,7 +378,12 @@ final class ChunkFeatures {
             for (Reach reach : joining) {
                 feeders.add(cornerBlock(reach) == block ? resolve(reach, link) : reach);
             }
-            return link.equals(owner) || outlet ? LinkBlend.clamp(downstream, feeders) : LinkBlend.blend(downstream, feeders);
+            return link.equals(owner) || outlet ? LinkBlend.clamp(downstream, feeders, seaLevel) : LinkBlend.blend(downstream, feeders, seaLevel);
+        }
+
+        private boolean fed(Reach reach) {
+            int junction = junction(reach);
+            return !feeders(windowAt(reach, junction), reach.id()).isEmpty() || junction > 0 && !feeders(windowAt(reach, 0), reach.id()).isEmpty();
         }
 
         private List<Reach> feeders(WindowKey key, long downstreamId) {

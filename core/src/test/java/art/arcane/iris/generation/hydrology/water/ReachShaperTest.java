@@ -1581,8 +1581,28 @@ public class ReachShaperTest {
 
         int[] grade = {62, 62, 62, 40, 40};
         boolean[] ocean = {false, false, false, true, true};
-        ReachStyle[] styles = ReachShaper.styles(grade, ocean, new boolean[grade.length], 6);
+        ReachStyle[] styles = ReachShaper.styles(grade, ocean, new boolean[grade.length], 6, SEA_LEVEL);
         assertEquals(List.of(ReachStyle.RUN, ReachStyle.RUN, ReachStyle.WATERFALL, ReachStyle.MOUTH, ReachStyle.MOUTH), List.of(styles));
+    }
+
+    @Test
+    public void heldLipStepThatShowsAsTwoBlocksIsACascade() {
+        int[] grade = {76, 76, 76, 75, 75};
+        boolean[] ocean = new boolean[grade.length];
+        boolean[] held = {true, true, true, false, false};
+        assertEquals("a one-block step off a held lip that the even head snap shows as two blocks",
+                List.of(ReachStyle.POND_OUTLET, ReachStyle.POND_OUTLET, ReachStyle.POND_OUTLET, ReachStyle.CASCADE, ReachStyle.RUN),
+                List.of(ReachShaper.styles(grade, ocean, held, 6, SEA_LEVEL)));
+        assertEquals("the same step hidden by the head snap", ReachStyle.RIFFLE, ReachShaper.styles(grade, ocean, held, 6, SEA_LEVEL + 1)[3]);
+        assertEquals("a one-block step that leaves no held lip", ReachStyle.RIFFLE,
+                ReachShaper.styles(grade, ocean, new boolean[grade.length], 6, SEA_LEVEL)[3]);
+        int[] zoned = {78, 78, 77, 77, 77};
+        boolean[] zone = {true, true, true, true, false};
+        assertEquals("a one-block step inside an outlet zone that the head snap shows as two blocks",
+                List.of(ReachStyle.POND_OUTLET, ReachStyle.POND_OUTLET, ReachStyle.CASCADE, ReachStyle.POND_OUTLET, ReachStyle.RUN),
+                List.of(ReachShaper.styles(zoned, ocean, zone, 6, SEA_LEVEL)));
+        assertEquals("the same step inside the zone hidden by the head snap", ReachStyle.POND_OUTLET,
+                ReachShaper.styles(zoned, ocean, zone, 6, SEA_LEVEL + 1)[2]);
     }
 
     @Test

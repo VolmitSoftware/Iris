@@ -42,7 +42,8 @@ final class RasterComposer {
     private final double[] distance = new double[CELLS];
     private final long[] nearFeature = new long[CELLS];
     private final HydrologyTier[] nearTier = new HydrologyTier[CELLS];
-    private final ReachCursor cursor = new ReachCursor();
+    private final ReachGeometry.Lookup brinks;
+    private final ReachCursor cursor;
     private final int[] inletColumn = new int[2];
     private final Map<Long, String> reachFluids = new HashMap<>();
     private NaturalHeights naturalHeight;
@@ -51,6 +52,8 @@ final class RasterComposer {
         this.settings = settings;
         this.features = features;
         this.channelFluids = channelFluids;
+        this.brinks = features.brinks();
+        this.cursor = new ReachCursor(brinks);
         this.originX = chunkX * CHUNK - 1;
         this.originZ = chunkZ * CHUNK - 1;
         Arrays.fill(head, Integer.MIN_VALUE);
@@ -133,15 +136,15 @@ final class RasterComposer {
         if (hit.reach == null) {
             return floor;
         }
-        int ownerHead = WaterHeads.snap(hit.grade(), settings.seaLevel());
+        int ownerHead = brinks.head(hit);
         return Math.min(floor, deepestBed(ownerHead, Math.min(level, ownerHead), ground, variation, detail));
     }
 
     private void channel(int cell, int x, int z, int ground, double variation) {
         ReachCursor.Choice hit = cursor.channel;
         Reach reach = hit.reach;
-        int point = hit.point();
-        head[cell] = WaterHeads.snap(reach.grade()[point], settings.seaLevel());
+        int point = brinks.point(hit);
+        head[cell] = brinks.head(hit);
         terrain[cell] = deepestBed(head[cell], head[cell], ground, variation, BedProfile.detail(settings.seed(), x, z));
         role[cell] = role(reach.style()[point]);
         feature[cell] = reach.id();
@@ -158,7 +161,7 @@ final class RasterComposer {
         int deepest = Integer.MAX_VALUE;
         for (int entry = 0; entry < waters.size(); entry++) {
             ReachCursor.Choice water = waters.get(entry);
-            if (WaterHeads.snap(water.grade(), settings.seaLevel()) == ownerHead) {
+            if (brinks.head(water) == ownerHead) {
                 deepest = Math.min(deepest, bed(water, surface, ground, variation, detail));
             }
         }
@@ -179,7 +182,7 @@ final class RasterComposer {
         ReachCursor.Choice bank = cursor.bank;
         if (bank.reach != null) {
             HydrologyTier bankTier = bank.reach.tier();
-            int surface = WaterHeads.snap(bank.reach.grade()[bank.point()], settings.seaLevel());
+            int surface = brinks.head(bank);
             bankEdge = bank.distance - bank.halfWidth();
             double u = bankEdge / bankTier.bankBand();
             if (bankTier.bankStyle() != IrisBankStyle.CLIFF && bankTier.bankStyle() != IrisBankStyle.TERRACED) {
@@ -349,7 +352,7 @@ final class RasterComposer {
         features.segments().nearest(x, z, ReachSegments.Scope.CHANNEL, cursor);
         ReachCursor.Choice hit = cursor.channel;
         if (hit.reach != null) {
-            sample.set(WaterHeads.snap(hit.grade(), settings.seaLevel()), hit.reach.id(), role(hit.reach.style()[hit.point()]));
+            sample.set(brinks.head(hit), hit.reach.id(), role(hit.reach.style()[brinks.point(hit)]));
         }
     }
 

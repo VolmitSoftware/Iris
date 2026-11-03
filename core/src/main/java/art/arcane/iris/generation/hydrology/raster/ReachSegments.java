@@ -137,7 +137,7 @@ final class ReachSegments {
                 first = end;
             }
         }
-        cursor.waters.resolve(cursor.channel);
+        cursor.resolveChannel();
     }
 
     private int coveredCell(double x, double z) {

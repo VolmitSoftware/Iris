@@ -1,7 +1,13 @@
 package art.arcane.iris.generation.hydrology.raster;
 
 import art.arcane.iris.generation.hydrology.config.IrisBankStyle;
+import art.arcane.iris.generation.hydrology.config.IrisHydrology;
+import art.arcane.iris.generation.hydrology.plan.HydrologySettings;
+import art.arcane.iris.generation.hydrology.plan.IndexedWindow;
+import art.arcane.iris.generation.hydrology.plan.RegionKey;
+import art.arcane.iris.generation.hydrology.plan.RegionPlan;
 import art.arcane.iris.generation.hydrology.plan.WindowKey;
+import art.arcane.iris.generation.hydrology.plan.WindowPlan;
 import art.arcane.iris.generation.hydrology.water.HydrologyTier;
 import art.arcane.iris.generation.hydrology.water.Pond;
 import art.arcane.iris.generation.hydrology.water.PondKind;
@@ -10,15 +16,18 @@ import art.arcane.iris.generation.hydrology.water.Reach;
 import art.arcane.iris.generation.hydrology.water.ReachStyle;
 import org.junit.Test;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class PondChannelSettlementTest {
     private static final WindowKey WINDOW = new WindowKey(0, 0);
     private static final int SEA_LEVEL = 40;
+    private static final long SEED = 1337L;
 
     @Test
     public void aLowerChannelDrainsThePondWhereOnlyItsWidthOverlaps() {
@@ -91,13 +100,46 @@ public class PondChannelSettlementTest {
         Reach lower = line(4L, 17, -20, 17, 20, 4f, 94, 94);
 
         assertArrayEquals(new int[]{96, 94}, PondChannelSettlement.levels(WINDOW, List.of(across, lower), List.of(first, second),
-                new int[]{104, 102}, SEA_LEVEL));
+                new int[]{104, 102}, SEED, SEA_LEVEL));
         assertArrayEquals(new int[]{94, 96}, PondChannelSettlement.levels(WINDOW, List.of(lower, across), List.of(second, first),
-                new int[]{102, 104}, SEA_LEVEL));
+                new int[]{102, 104}, SEED, SEA_LEVEL));
+    }
+
+    @Test
+    public void settlementUsesTheRasterBrinkRule() {
+        Reach river = line(2L, 504, 108, 504, 148, 6f, 100, 88);
+        int curved = 0;
+        for (long seed = 1L; seed <= 24L; seed++) {
+            HydrologySettings settings = HydrologySettings.compile(new IrisHydrology(), seed, SEA_LEVEL, -64, 320);
+            ChunkRasterizer rasterizer = new ChunkRasterizer(settings, ChannelFluids.TIER);
+            IndexedWindow window = new IndexedWindow(new WindowPlan(WINDOW, List.of(river), List.of(), List.of()), ReachIndex.build(WINDOW, List.of(river), List.of()));
+            for (int z = 124; z <= 132; z++) {
+                Pond pond = pond(1L, PondKind.NATURAL, 94, circle(504, z, 0));
+                int lowest = Math.min(94, Math.min(rasterHead(rasterizer, window, 504, z), Math.min(rasterHead(rasterizer, window, 505, z),
+                        Math.min(rasterHead(rasterizer, window, 503, z), Math.min(rasterHead(rasterizer, window, 504, z + 1), rasterHead(rasterizer, window, 504, z - 1))))));
+                int settled = PondChannelSettlement.levels(WINDOW, List.of(river), List.of(pond), new int[]{94}, seed, SEA_LEVEL)[0];
+                assertEquals("seed " + seed + " pond at z " + z, lowest, settled);
+                boolean straightTouches = z >= 127;
+                curved += straightTouches != (settled < 94) ? 1 : 0;
+            }
+        }
+        assertTrue("ponds the curve moved on or off the lower water: " + curved, curved >= 12);
+    }
+
+    private static int rasterHead(ChunkRasterizer rasterizer, IndexedWindow window, int x, int z) {
+        int chunkX = Math.floorDiv(x, 16);
+        int chunkZ = Math.floorDiv(z, 16);
+        List<RegionPlan> regions = new ArrayList<>();
+        for (RegionKey key : ChunkRasterizer.lakeRegions(chunkX, chunkZ)) {
+            regions.add(new RegionPlan(key, List.of(), List.of()));
+        }
+        ChunkWaterRaster raster = rasterizer.rasterize(chunkX, chunkZ, (a, b) -> 110D, List.of(window), regions);
+        int head = raster.waterHead(Math.floorMod(x, 16), Math.floorMod(z, 16));
+        return head == Integer.MIN_VALUE ? Integer.MAX_VALUE : head;
     }
 
     private static int settle(List<Reach> reaches, Pond pond) {
-        return PondChannelSettlement.levels(WINDOW, reaches, List.of(pond), new int[]{pond.level()}, SEA_LEVEL)[0];
+        return PondChannelSettlement.levels(WINDOW, reaches, List.of(pond), new int[]{pond.level()}, SEED, SEA_LEVEL)[0];
     }
 
     private static Pond pond(long id, PondKind kind, int level, PondMask mask) {

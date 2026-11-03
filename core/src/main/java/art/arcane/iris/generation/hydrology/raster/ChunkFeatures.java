@@ -34,12 +34,14 @@ final class ChunkFeatures {
     private final int[] inletBoxes;
     private final int[] lakeBoxes;
     private final ReachSegments segments = new ReachSegments(SEGMENT_CAPACITY);
+    private final ReachGeometry.Lookup brinks;
     private final MaskEdges pondShores = new MaskEdges(MaskEdges.Kind.WATER);
     private final MaskEdges pondBanks = new MaskEdges(MaskEdges.Kind.BANK);
     private final MaskEdges lakeReach = new MaskEdges(MaskEdges.Kind.GROWN_WATER);
     private boolean inert;
 
-    private ChunkFeatures(List<Reach> reaches, List<Pond> ponds, List<Pond> lakes, List<SeaInlet> inlets, int[] inletBoxes) {
+    private ChunkFeatures(HydrologySettings settings, List<Reach> reaches, List<Pond> ponds, List<Pond> lakes, List<SeaInlet> inlets, int[] inletBoxes) {
+        this.brinks = new ReachGeometry.Lookup(settings.seed(), settings.seaLevel());
         this.reaches = reaches;
         this.ponds = ponds;
         this.lakes = lakes;
@@ -73,7 +75,7 @@ final class ChunkFeatures {
             }
         }
         List<Pond> lakes = lakes(chunkX, chunkZ, halo, lakeRegionPlans, lakeRegions);
-        ChunkFeatures features = new ChunkFeatures(reaches, ponds, lakes, inlets, inletBoxes);
+        ChunkFeatures features = new ChunkFeatures(settings, reaches, ponds, lakes, inlets, inletBoxes);
         features.index(settings, chunkX, chunkZ);
         return features;
     }
@@ -94,6 +96,10 @@ final class ChunkFeatures {
             }
         }
         return null;
+    }
+
+    ReachGeometry.Lookup brinks() {
+        return brinks;
     }
 
     ReachSegments segments() {

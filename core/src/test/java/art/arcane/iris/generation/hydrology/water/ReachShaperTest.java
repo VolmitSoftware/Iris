@@ -692,8 +692,8 @@ public class ReachShaperTest {
             }
         }
         assertTrue(label + " grouped below the outlet zone", lowered > 0);
-        List<Pond> groupedPonds = PondChannelSettlement.settle(WINDOW, grouped, SEA_LEVEL).ponds();
-        List<Pond> plainPonds = PondChannelSettlement.settle(WINDOW, plain, SEA_LEVEL).ponds();
+        List<Pond> groupedPonds = PondChannelSettlement.settle(WINDOW, grouped, SEED, SEA_LEVEL).ponds();
+        List<Pond> plainPonds = PondChannelSettlement.settle(WINDOW, plain, SEED, SEA_LEVEL).ponds();
         assertEquals(plainPonds.size(), groupedPonds.size());
         for (int pond = 0; pond < plainPonds.size(); pond++) {
             assertEquals("pond " + pond, plainPonds.get(pond).level(), groupedPonds.get(pond).level());
@@ -826,7 +826,7 @@ public class ReachShaperTest {
         Pond shapedPond = shaped.ponds().get(0);
         assertEquals(99, shapedPond.level());
         assertOutletLeavesAtThePondLevel("lip outlet", shapedPond, byId(shaped.reaches()).get(shapedPond.outletReachId()));
-        assertEquals(99, PondChannelSettlement.settle(WINDOW, shaped, SEA_LEVEL).ponds().get(0).level());
+        assertEquals(99, PondChannelSettlement.settle(WINDOW, shaped, SEED, SEA_LEVEL).ponds().get(0).level());
     }
 
     @Test
@@ -855,7 +855,7 @@ public class ReachShaperTest {
         ReachShaper shaper = new ReachShaper(settings);
         List<Pond> water = List.of(new Pond(41L, PondKind.NATURAL, 99, 93, 104, 64, 100f, disk(96, 64, 5), 0L, 0, "water", 96, 64));
         ShapedNetwork network = PondChannelSettlement.settle(WINDOW, shaper.shape(WINDOW, flat, receivers, accumulation, channels,
-                SeaCells.atOrBelow(flat, SEA_LEVEL), water, fine, SEED), SEA_LEVEL);
+                SeaCells.atOrBelow(flat, SEA_LEVEL), water, fine, SEED), SEED, SEA_LEVEL);
         int lowerings = 0;
         while (network.ponds().get(0).level() < water.get(0).level()) {
             lowerings++;
@@ -864,7 +864,7 @@ public class ReachShaperTest {
             assertNotNull("reflooded pond at " + network.ponds().get(0).level(), reflooded);
             water = List.of(reflooded.withOutletReachId(0L));
             network = PondChannelSettlement.settle(WINDOW, shaper.shape(WINDOW, flat, receivers, accumulation, channels,
-                    SeaCells.atOrBelow(flat, SEA_LEVEL), water, fine, SEED), SEA_LEVEL);
+                    SeaCells.atOrBelow(flat, SEA_LEVEL), water, fine, SEED), SEED, SEA_LEVEL);
         }
         Pond settled = network.ponds().get(0);
         Map<Long, Reach> byId = byId(network.reaches());
@@ -913,7 +913,7 @@ public class ReachShaperTest {
             assertEquals("held grade at " + point, shapedPond.level(), outlet.grade()[point]);
         }
         assertOutletTouchesAtThePondLevel("fallback outlet", shapedPond, outlet);
-        assertEquals(99, PondChannelSettlement.settle(WINDOW, shaped, SEA_LEVEL).ponds().get(0).level());
+        assertEquals(99, PondChannelSettlement.settle(WINDOW, shaped, SEED, SEA_LEVEL).ponds().get(0).level());
     }
 
     @Test

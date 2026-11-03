@@ -10,6 +10,19 @@ final class ReachCursor {
     final Choice nearest = new Choice();
     final Choice edge = new Choice();
     final Waters waters = new Waters();
+    private final ReachGeometry.Lookup brinks;
+
+    ReachCursor() {
+        this(null);
+    }
+
+    ReachCursor(ReachGeometry.Lookup brinks) {
+        this.brinks = brinks;
+    }
+
+    void resolveChannel() {
+        waters.resolve(channel, brinks);
+    }
 
     void reset() {
         channel.reset();
@@ -118,23 +131,23 @@ final class ReachCursor {
             entries[size++].set(reach, segment, index, t, distance);
         }
 
-        void resolve(Choice channel) {
+        private void resolve(Choice channel, ReachGeometry.Lookup brinks) {
             channel.reset();
             if (size == 0) {
                 return;
             }
             Choice owner = entries[0];
             for (int entry = 1; entry < size; entry++) {
-                if (owns(entries[entry], owner)) {
+                if (owns(entries[entry], owner, brinks)) {
                     owner = entries[entry];
                 }
             }
             channel.set(owner.reach, owner.segment, owner.index, owner.t, owner.distance);
         }
 
-        private static boolean owns(Choice candidate, Choice held) {
-            int candidateGrade = candidate.grade();
-            int heldGrade = held.grade();
+        private static boolean owns(Choice candidate, Choice held, ReachGeometry.Lookup brinks) {
+            int candidateGrade = brinks == null ? candidate.grade() : candidate.reach.grade()[brinks.point(candidate)];
+            int heldGrade = brinks == null ? held.grade() : held.reach.grade()[brinks.point(held)];
             if (candidateGrade != heldGrade) {
                 return candidateGrade < heldGrade;
             }

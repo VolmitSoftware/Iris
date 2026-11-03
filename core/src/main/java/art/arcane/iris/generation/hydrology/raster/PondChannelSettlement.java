@@ -17,12 +17,12 @@ public final class PondChannelSettlement {
     private PondChannelSettlement() {
     }
 
-    public static ShapedNetwork settle(WindowKey window, ShapedNetwork network, int seaLevel) {
+    public static ShapedNetwork settle(WindowKey window, ShapedNetwork network, long seed, int seaLevel) {
         int[] initial = new int[network.ponds().size()];
         for (int index = 0; index < initial.length; index++) {
             initial[index] = network.ponds().get(index).level();
         }
-        int[] levels = levels(window, network.reaches(), network.ponds(), initial, seaLevel);
+        int[] levels = levels(window, network.reaches(), network.ponds(), initial, seed, seaLevel);
         List<Pond> water = new ArrayList<>(initial.length);
         for (int index = 0; index < initial.length; index++) {
             Pond pond = network.ponds().get(index);
@@ -32,7 +32,7 @@ public final class PondChannelSettlement {
         return new ShapedNetwork(network.reaches(), water);
     }
 
-    static int[] levels(WindowKey window, List<Reach> reaches, List<Pond> ponds, int[] initial, int seaLevel) {
+    static int[] levels(WindowKey window, List<Reach> reaches, List<Pond> ponds, int[] initial, long seed, int seaLevel) {
         int[] levels = initial.clone();
         if (reaches.isEmpty() || ponds.isEmpty()) {
             return levels;
@@ -45,6 +45,7 @@ public final class PondChannelSettlement {
             return levels;
         }
         ReachIndex index = ReachIndex.build(window, reaches, List.of());
+        ReachGeometry.Lookup brinks = new ReachGeometry.Lookup(seed, seaLevel);
         List<Reach> nearby = new ArrayList<>();
         List<Pond> unused = new ArrayList<>();
         for (int pond = 0; pond < ponds.size(); pond++) {
@@ -60,18 +61,18 @@ public final class PondChannelSettlement {
             nearby.clear();
             index.candidates(chunkX, chunkZ, halo, nearby, unused);
             if (!nearby.isEmpty()) {
-                levels[pond] = lower(nearby, water.mask(), bounds, levels[pond], seaLevel);
+                levels[pond] = lower(nearby, water.mask(), bounds, levels[pond], brinks, seaLevel);
             }
         }
         return levels;
     }
 
-    private static int lower(List<Reach> reaches, PondMask mask, Bounds bounds, int level, int seaLevel) {
+    private static int lower(List<Reach> reaches, PondMask mask, Bounds bounds, int level, ReachGeometry.Lookup brinks, int seaLevel) {
         ReachSegments segments = new ReachSegments(64);
         for (Reach reach : reaches) {
             segments.addNear(reach, bounds.minX() - 1, bounds.minZ() - 1, bounds.maxX() + 1, bounds.maxZ() + 1, 0f);
         }
-        ReachCursor cursor = new ReachCursor();
+        ReachCursor cursor = new ReachCursor(brinks);
         int width = bounds.maxX() - bounds.minX() + 1;
         BitSet visited = new BitSet(width * (bounds.maxZ() - bounds.minZ() + 1));
         for (Reach reach : reaches) {
@@ -91,12 +92,12 @@ public final class PondChannelSettlement {
                             continue;
                         }
                         visited.set(cell);
-                        level = Math.min(level, touchingHead(segments, cursor, x, z, seaLevel, level));
+                        level = Math.min(level, touchingHead(segments, cursor, brinks, x, z, seaLevel, level));
                         for (int[] side : SIDES) {
                             int nx = x + side[0];
                             int nz = z + side[1];
                             if (!mask.contains(nx, nz)) {
-                                level = Math.min(level, touchingHead(segments, cursor, nx, nz, seaLevel, level));
+                                level = Math.min(level, touchingHead(segments, cursor, brinks, nx, nz, seaLevel, level));
                             }
                         }
                     }
@@ -106,13 +107,13 @@ public final class PondChannelSettlement {
         return level;
     }
 
-    private static int touchingHead(ReachSegments segments, ReachCursor cursor, int x, int z, int seaLevel, int level) {
+    private static int touchingHead(ReachSegments segments, ReachCursor cursor, ReachGeometry.Lookup brinks, int x, int z, int seaLevel, int level) {
         segments.nearest(x, z, ReachSegments.Scope.CHANNEL, cursor);
         ReachCursor.Choice channel = cursor.channel;
         if (channel.reach == null) {
             return level;
         }
-        int head = WaterHeads.snap(channel.reach.grade()[channel.point()], seaLevel);
+        int head = brinks.head(channel);
         return head < WaterHeads.snap(level, seaLevel) ? head : level;
     }
 

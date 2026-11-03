@@ -18,7 +18,7 @@ public final class ReachShaper {
     private static final int SMOOTHING_PASSES = 2;
     private static final float TAPER_LENGTH = 24f;
     private static final float WAIST = 0.5f;
-    static final float OUTLET_LENGTH = 8f;
+    public static final float OUTLET_LENGTH = 8f;
     private static final float LIP_MARGIN = 4f;
     private static final int LEAD_IN_REACH = 16;
     private static final float LIP_HALF_WIDTH = 1f;

@@ -126,6 +126,9 @@ final class MantleCarvedTerrain implements CarvedTerrain {
 
     @Override
     public boolean structureNear(int x, int y, int z) {
+        if (dimension.getTerrainTransform() != null) {
+            return true;
+        }
         long revision = ProvisionalSampling.revision();
         boolean near = importedStructureNear(x, y, z) || StructurePlacementScope.startsNear(engine, chunkX, chunkZ, STRUCTURE_REACH_CHUNKS);
         requireFinal(revision, chunkX << 4, chunkZ << 4);

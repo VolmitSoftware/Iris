@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.mantle;
 
+import art.arcane.iris.generation.terrain.transform.IrisTerrainTransform;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveAction;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveCell;
@@ -63,6 +64,8 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class MantleCarvedTerrainTest {
@@ -297,6 +300,14 @@ public class MantleCarvedTerrainTest {
         Scene dense = structureScene();
         dense.engine.getDimension().setStructures(new KList<>(new IrisStructurePlacement().setDistribution(StructureDistribution.DENSITY).setDensity(1D)));
         assertTrue(dense.carved().structureNear(8, 30, 8));
+    }
+
+    @Test
+    public void terrainTransformDimensionsNeverQueryStructuresDuringTerrain() {
+        Scene scene = structureScene();
+        scene.engine.getDimension().setTerrainTransform(new IrisTerrainTransform());
+        assertTrue(scene.carved().structureNear(8, 30, 8));
+        verify(scene.engine, never()).getNativeStructureVolumes(anyInt(), anyInt(), anyInt(), anyInt());
     }
 
     private static boolean nearSeep(NativeStructureVolume... volumes) {

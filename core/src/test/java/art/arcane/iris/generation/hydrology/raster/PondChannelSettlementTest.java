@@ -18,7 +18,9 @@ import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -124,6 +126,82 @@ public class PondChannelSettlementTest {
             }
         }
         assertTrue("ponds the curve moved on or off the lower water: " + curved, curved >= 12);
+    }
+
+    @Test
+    public void settlementFollowsAWideAngledBrink() {
+        Reach river = line(2L, 400, 100, 460, 160, 16f, 100, 88);
+        int moved = 0;
+        for (long seed = 1L; seed <= 24L; seed++) {
+            moved += assertSettlementMatchesTheRaster(seed, river, 418, 442, 118, 142, 3);
+        }
+        assertTrue("ponds on the lower water: " + moved, moved > 0);
+    }
+
+    @Test
+    public void settlementSeesAHorseshoeWhereTheChannelNarrowsAtTheFall() {
+        Reach river = narrowing(2L);
+        int moved = 0;
+        for (long seed = 1L; seed <= 24L; seed++) {
+            moved += assertSettlementMatchesTheRaster(seed, river, 392, 408, 121, 128, 1);
+        }
+        assertTrue("ponds on the lower water: " + moved, moved > 0);
+    }
+
+    private static int assertSettlementMatchesTheRaster(long seed, Reach river, int minX, int maxX, int minZ, int maxZ, int stride) {
+        HydrologySettings settings = HydrologySettings.compile(new IrisHydrology(), seed, SEA_LEVEL, -64, 320);
+        ChunkRasterizer rasterizer = new ChunkRasterizer(settings, ChannelFluids.TIER);
+        IndexedWindow window = new IndexedWindow(new WindowPlan(WINDOW, List.of(river), List.of(), List.of()), ReachIndex.build(WINDOW, List.of(river), List.of()));
+        Map<Long, ChunkWaterRaster> rasters = new HashMap<>();
+        int lowered = 0;
+        for (int x = minX; x <= maxX; x += stride) {
+            for (int z = minZ; z <= maxZ; z += stride) {
+                int lowest = 94;
+                for (int[] column : new int[][]{{0, 0}, {1, 0}, {-1, 0}, {0, 1}, {0, -1}}) {
+                    lowest = Math.min(lowest, rasterHead(rasterizer, window, x + column[0], z + column[1], rasters));
+                }
+                Pond pond = pond(1L, PondKind.NATURAL, 94, circle(x, z, 0));
+                int settled = PondChannelSettlement.levels(WINDOW, List.of(river), List.of(pond), new int[]{94}, seed, SEA_LEVEL)[0];
+                assertEquals("seed " + seed + " pond at " + x + "," + z, lowest, settled);
+                lowered += settled < 94 ? 1 : 0;
+            }
+        }
+        return lowered;
+    }
+
+    private static Reach narrowing(long id) {
+        int points = 21;
+        float[] xs = new float[points];
+        float[] zs = new float[points];
+        int[] grade = new int[points];
+        float[] widths = new float[points];
+        float[] depth = new float[points];
+        ReachStyle[] styles = new ReachStyle[points];
+        for (int point = 0; point < points; point++) {
+            xs[point] = 400f;
+            zs[point] = 108f + 2f * point;
+            grade[point] = zs[point] < 130f ? 100 : 88;
+            widths[point] = zs[point] < 128f ? 40f : 6f;
+            depth[point] = 2f;
+            styles[point] = ReachStyle.RUN;
+        }
+        HydrologyTier tier = new HydrologyTier("river", 0f, 40f, 40f, 0f, 0.5f, 2, true, 6, 0, IrisBankStyle.SMOOTH,
+                new HydrologyTier.Estuary(48, 2.5f), new HydrologyTier.Delta(0, 35f, 64), null, "water", List.of());
+        return new Reach(id, tier, 0L, xs, zs, grade, widths, depth, styles, 1000f);
+    }
+
+    private static int rasterHead(ChunkRasterizer rasterizer, IndexedWindow window, int x, int z, Map<Long, ChunkWaterRaster> rasters) {
+        int chunkX = Math.floorDiv(x, 16);
+        int chunkZ = Math.floorDiv(z, 16);
+        ChunkWaterRaster raster = rasters.computeIfAbsent(((long) chunkX << 32) | (chunkZ & 0xffffffffL), key -> {
+            List<RegionPlan> regions = new ArrayList<>();
+            for (RegionKey region : ChunkRasterizer.lakeRegions(chunkX, chunkZ)) {
+                regions.add(new RegionPlan(region, List.of(), List.of()));
+            }
+            return rasterizer.rasterize(chunkX, chunkZ, (a, b) -> 110D, List.of(window), regions);
+        });
+        int head = raster.waterHead(Math.floorMod(x, 16), Math.floorMod(z, 16));
+        return head == Integer.MIN_VALUE ? Integer.MAX_VALUE : head;
     }
 
     private static int rasterHead(ChunkRasterizer rasterizer, IndexedWindow window, int x, int z) {

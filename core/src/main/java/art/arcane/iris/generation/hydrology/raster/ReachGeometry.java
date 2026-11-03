@@ -113,11 +113,22 @@ final class ReachGeometry {
             return straight;
         }
         double ratio = choice.distance / inner;
-        boolean below = at - shifts[curve] * (1D - ratio * ratio) >= middles[curve];
+        double moved = shifts[curve] * (1D - ratio * ratio);
         if (shifts[curve] > 0D) {
-            return below ? straight : segments[curve];
+            return at - moved >= middles[curve] ? straight : segments[curve];
         }
-        return below ? segments[curve] + 1 : straight;
+        return at - moved > middles[curve] ? segments[curve] + 1 : straight;
+    }
+
+    int lowestGrade(Reach reach, int segment) {
+        int[] grade = reach.grade();
+        int lowest = Math.min(grade[segment], grade[segment + 1]);
+        for (int curve = 0; curve < segments.length; curve++) {
+            if (shifts[curve] < 0D && along[segment] < middles[curve] && along[segment + 1] > starts[curve]) {
+                lowest = Math.min(lowest, grade[segments[curve] + 1]);
+            }
+        }
+        return lowest;
     }
 
     private static double[] along(Reach reach) {
@@ -182,6 +193,10 @@ final class ReachGeometry {
 
         int point(ReachCursor.Choice choice) {
             return of(choice.reach).point(choice);
+        }
+
+        int lowestGrade(Reach reach, int segment) {
+            return of(reach).lowestGrade(reach, segment);
         }
     }
 }

@@ -53,7 +53,7 @@ public class ChunkWaterRasterTest {
     private static final int MAX_Y = 320;
     private static final float SPACING = 2f;
     private static final int GENTLE_STEP = 3;
-    private static final double CELL_LATTICE_BRINK_SPREAD = 1.25D;
+    private static final double BRINK_HALO_LIMIT = 11D;
     private static final double BRINK_SCAN = 0.02D;
 
     @Test
@@ -1267,10 +1267,6 @@ public class ChunkWaterRasterTest {
             for (int offset = -3; offset <= 3; offset++) {
                 positions[offset + 3] = frame.rasterBrink(scene, offset);
             }
-            for (int offset = 0; offset < 6; offset++) {
-                assertTrue(label + "offsets " + (offset - 3) + " and " + (offset - 2) + " step at " + positions[offset] + " and " + positions[offset + 1],
-                        Math.abs(positions[offset] - positions[offset + 1]) <= CELL_LATTICE_BRINK_SPREAD);
-            }
             double centre = positions[3];
             double edges = (positions[0] + positions[6]) / 2D;
             assertTrue(label + "centre " + centre + " against edges " + edges, Math.abs(centre - edges) >= 1D);
@@ -1285,6 +1281,27 @@ public class ChunkWaterRasterTest {
             assertTheRuleCurvesSmoothly(label, frame, reach, seed);
         }
         assertTrue("both tongues and horseshoes across seeds: " + tongues + " and " + horseshoes, tongues >= 4 && horseshoes >= 4);
+    }
+
+    @Test
+    public void squareOnBrinkCellsStepAtMostOneBlockBetweenRows() {
+        HydrologyTier tier = tier("stream", 4f, 0.5f, 8, IrisBankStyle.SMOOTH);
+        Reach reach = line(201L, tier, 0L, -20f, 8f, 60f, 8f, (x, z) -> x < 20f ? 90 : 78);
+        BrinkFrame frame = new BrinkFrame(reach);
+        double displaced = 0D;
+        for (long seed = 1L; seed <= 24L; seed++) {
+            Scene scene = new Scene(seededSettings(seed), (x, z) -> 92).reach(reach);
+            double[] positions = new double[7];
+            for (int offset = -3; offset <= 3; offset++) {
+                positions[offset + 3] = frame.rasterBrink(scene, offset);
+            }
+            for (int offset = 0; offset < 6; offset++) {
+                assertTrue("seed " + seed + " rows " + (offset - 3) + " and " + (offset - 2) + " step at " + positions[offset] + " and " + positions[offset + 1],
+                        Math.abs(positions[offset] - positions[offset + 1]) <= 1D);
+            }
+            displaced = Math.max(displaced, Math.abs(positions[3] - positions[0]));
+        }
+        assertTrue("the centre leaves the edge line: " + displaced, displaced >= 1D);
     }
 
     private static void assertTheRuleCurvesSmoothly(String label, BrinkFrame frame, Reach reach, long seed) {
@@ -1307,6 +1324,8 @@ public class ChunkWaterRasterTest {
             for (int z = minZ; z <= maxZ; z++) {
                 if (scene.water(x, z)) {
                     assertEquals(label + "head at " + x + "," + z, rule.head(x, z), scene.head(x, z));
+                    assertTrue(label + "bed at " + x + "," + z + " is " + scene.terrain(x, z) + " under " + scene.head(x, z), scene.terrain(x, z) < scene.head(x, z));
+                    assertEquals(label + "waterfall role at " + x + "," + z, rule.style(x, z) == ReachStyle.WATERFALL, scene.role(x, z) == WaterRole.WATERFALL);
                 }
             }
         }
@@ -1397,17 +1416,272 @@ public class ChunkWaterRasterTest {
     @Test
     public void wideChannelsKeepTheirBrinkInsideTheCandidateHalo() {
         HydrologyTier tier = tier("river", 40f, 0.5f, 8, IrisBankStyle.SMOOTH);
-        Reach reach = line(199L, tier, 0L, -60f, 8f, 100f, 8f, (x, z) -> x < 20f ? 90 : 78);
-        double widest = 0D;
+        for (float endZ : new float[]{8f, 52f}) {
+            Reach reach = line(199L, tier, 0L, -60f, 8f - (endZ - 8f), 100f, endZ, (x, z) -> x < 20f ? 90 : 78);
+            BrinkFrame frame = new BrinkFrame(reach);
+            double widestTongue = 0D;
+            double widestHorseshoe = 0D;
+            for (long seed = 1L; seed <= 24L; seed++) {
+                BrinkRule rule = new BrinkRule(seed, reach);
+                for (double along = -30D; along <= 30D; along += BRINK_SCAN) {
+                    double x = frame.originX() + along * frame.unitX();
+                    double z = frame.originZ() + along * frame.unitZ();
+                    if (rule.head(x, z) != rule.straightHead(x, z)) {
+                        if (along > 0D) {
+                            widestTongue = Math.max(widestTongue, along);
+                        } else {
+                            widestHorseshoe = Math.max(widestHorseshoe, -along);
+                        }
+                    }
+                }
+            }
+            String label = "line ending at z " + endZ + ": ";
+            assertTrue(label + "tongue " + widestTongue, widestTongue >= BRINK_HALO_LIMIT - 0.5D && widestTongue <= BRINK_HALO_LIMIT + 2D * BRINK_SCAN);
+            assertTrue(label + "horseshoe " + widestHorseshoe, widestHorseshoe >= BRINK_HALO_LIMIT - 0.5D && widestHorseshoe <= BRINK_HALO_LIMIT + 2D * BRINK_SCAN);
+        }
+    }
+
+    @Test
+    public void aSteppedOutletZoneKeepsItsBrinksStraight() {
+        HydrologyTier tier = tier("river", 6f, 0.5f, 8, IrisBankStyle.SMOOTH);
+        Reach byLength = withStartStyle(line(202L, tier, 0L, -20f, 8f, 60f, 8f, (x, z) -> x < -16f ? 100 : x < -10f ? 98 : 88), ReachStyle.POND_OUTLET, 4);
+        Reach byStyle = withStartStyle(line(203L, tier, 0L, -20f, 8f, 60f, 8f, (x, z) -> x < -16f ? 100 : x < 0f ? 98 : 88), ReachStyle.POND_OUTLET, 12);
+        for (long seed = 1L; seed <= 24L; seed++) {
+            assertEverywhereStraight("seed " + seed + " zone by length", new BrinkRule(seed, byLength), -30D, 70D, -3D, 19D);
+            assertEverywhereStraight("seed " + seed + " zone by style", new BrinkRule(seed, byStyle), -30D, 70D, -3D, 19D);
+        }
+    }
+
+    @Test
+    public void aHorseshoeBelowTheOutletZoneStopsAtItsEnd() {
+        HydrologyTier tier = tier("river", 12f, 0.5f, 8, IrisBankStyle.SMOOTH);
+        Reach reach = withStartStyle(line(204L, tier, 0L, -20f, 8f, 60f, 8f, (x, z) -> x < -16f ? 100 : x < 10f ? 98 : 84), ReachStyle.POND_OUTLET, 4);
+        int curved = 0;
         for (long seed = 1L; seed <= 24L; seed++) {
             BrinkRule rule = new BrinkRule(seed, reach);
-            for (double along = -14D; along <= 14D; along += BRINK_SCAN) {
-                if (rule.head(20D + along, 8D) != rule.straightHead(20D + along, 8D)) {
-                    widest = Math.max(widest, Math.abs(along));
+            assertEverywhereStraight("seed " + seed + " inside the zone", rule, -20D, 6D, -3D, 19D);
+            for (double x = 6.25D; x <= 40D; x += 0.25D) {
+                curved += rule.head(x, 8D) != rule.straightHead(x, 8D) ? 1 : 0;
+            }
+        }
+        assertTrue("the fall still curves: " + curved, curved > 0);
+    }
+
+    @Test
+    public void aFeederKeepsAStraightFallOntoItsLandingLevel() {
+        HydrologyTier tier = tier("river", 8f, 0.5f, 8, IrisBankStyle.SMOOTH);
+        Reach single = line(205L, tier, 999L, -20f, 8f, 60f, 8f, (x, z) -> x < 20f ? 90 : 78);
+        Reach chained = line(206L, tier, 999L, -20f, 8f, 60f, 8f, (x, z) -> x < 0f ? 100 : x < 30f ? 90 : 78);
+        int upper = 0;
+        for (long seed = 1L; seed <= 24L; seed++) {
+            assertEverywhereStraight("seed " + seed + " single fall", new BrinkRule(seed, single), -30D, 70D, -6D, 22D);
+            BrinkRule rule = new BrinkRule(seed, chained);
+            assertEverywhereStraight("seed " + seed + " last fall", rule, 15D, 70D, -6D, 22D);
+            for (double x = -15D; x <= 14D; x += 0.25D) {
+                upper += rule.head(x, 8D) != rule.straightHead(x, 8D) ? 1 : 0;
+            }
+        }
+        assertTrue("the fall above the landing still curves: " + upper, upper > 0);
+    }
+
+    @Test
+    public void estuariesKeepTheirFallsStraightAndTonguesStopShort() {
+        HydrologyTier tier = tier("river", 12f, 0.5f, 8, IrisBankStyle.SMOOTH);
+        Reach inside = mouthed(line(207L, tier, 0L, -20f, 8f, 50f, 8f, (x, z) -> x < 20f ? 59 : SEA_LEVEL), 10f);
+        Reach above = mouthed(line(208L, tier, 0L, -20f, 8f, 50f, 8f, (x, z) -> x < 20f ? 70 : 58), 22f);
+        int tongues = 0;
+        for (long seed = 1L; seed <= 24L; seed++) {
+            assertEverywhereStraight("seed " + seed + " fall inside the estuary", new BrinkRule(seed, inside), -30D, 60D, -5D, 21D);
+            BrinkRule rule = new BrinkRule(seed, above);
+            assertEverywhereStraight("seed " + seed + " estuary below a tongue", rule, 22D, 60D, -5D, 21D);
+            for (double x = 19D; x < 22D; x += 0.25D) {
+                tongues += rule.head(x, 8D) == 70 ? 1 : 0;
+            }
+        }
+        assertTrue("tongues still reach toward the estuary: " + tongues, tongues > 0);
+    }
+
+    @Test
+    public void narrowChannelsKeepAStraightBrink() {
+        HydrologyTier tier = tier("stream", 1.5f, 0.5f, 8, IrisBankStyle.SMOOTH);
+        Reach reach = line(209L, tier, 0L, -20f, 8f, 60f, 8f, (x, z) -> x < 20f ? 90 : 78);
+        for (long seed = 1L; seed <= 24L; seed++) {
+            assertEverywhereStraight("seed " + seed, new BrinkRule(seed, reach), -30D, 70D, 5D, 11D);
+        }
+    }
+
+    @Test
+    public void onlyDropsOfTheMinimumCurve() {
+        HydrologyTier tier = tier("river", 8f, 0.5f, 8, IrisBankStyle.SMOOTH);
+        Reach small = line(210L, tier, 0L, -20f, 8f, 60f, 8f, (x, z) -> x < 20f ? 90 : 87);
+        Reach minimum = line(211L, tier, 0L, -20f, 8f, 60f, 8f, (x, z) -> x < 20f ? 90 : 86);
+        Reach mixed = line(216L, tier, 0L, -20f, 8f, 60f, 8f, (x, z) -> x < 0f ? 100 : x < 30f ? 97 : 80);
+        int curved = 0;
+        for (long seed = 1L; seed <= 24L; seed++) {
+            assertEverywhereStraight("seed " + seed + " drop of 3", new BrinkRule(seed, small), -30D, 70D, -3D, 19D);
+            BrinkRule rule = new BrinkRule(seed, minimum);
+            curved += Math.abs(new BrinkFrame(minimum).ruleBrink(minimum, seed, 0)) >= 1D - BRINK_SCAN ? 1 : 0;
+            assertEquals("seed " + seed + " both ends keep their levels", 90, rule.head(-10D, 8D));
+            assertEverywhereStraight("seed " + seed + " drop of 3 above a fall", new BrinkRule(seed, mixed), -30D, 15D, -3D, 19D);
+        }
+        assertEquals("every drop of the minimum curves", 24, curved);
+    }
+
+    @Test
+    public void curvesStayInsideTheEndsOfAShortReach() {
+        HydrologyTier tier = tier("river", 12f, 0.5f, 8, IrisBankStyle.SMOOTH);
+        Reach endFall = line(212L, tier, 0L, -20f, 8f, 24f, 8f, (x, z) -> x < 20f ? 90 : 78);
+        Reach startFall = line(213L, tier, 0L, -20f, 8f, 60f, 8f, (x, z) -> x < -14f ? 90 : 78);
+        int tongues = 0;
+        int horseshoes = 0;
+        for (long seed = 1L; seed <= 24L; seed++) {
+            BrinkRule end = new BrinkRule(seed, endFall);
+            BrinkRule start = new BrinkRule(seed, startFall);
+            assertEquals("seed " + seed + " the reach ends on its lower level", 78, end.head(24D, 8D));
+            assertEquals("seed " + seed + " the reach starts on its upper level", 90, start.head(-20D, 8D));
+            tongues += end.head(21D, 8D) == 90 ? 1 : 0;
+            horseshoes += start.head(-17D, 8D) == 78 ? 1 : 0;
+        }
+        assertTrue("tongues near the end: " + tongues, tongues > 0);
+        assertTrue("horseshoes near the start: " + horseshoes, horseshoes > 0);
+    }
+
+    @Test
+    public void aFallsCurveDependsOnItsPositionAndTheSeedOnly() {
+        HydrologyTier tier = tier("river", 8f, 0.5f, 8, IrisBankStyle.SMOOTH);
+        Reach shortReach = line(214L, tier, 0L, -20f, 8f, 60f, 8f, (x, z) -> x < 20f ? 90 : 78);
+        Reach longReach = line(215L, tier, 0L, -60f, 8f, 60f, 8f, (x, z) -> x < 20f ? 90 : 78);
+        for (long seed = 1L; seed <= 24L; seed++) {
+            BrinkRule first = new BrinkRule(seed, shortReach);
+            BrinkRule second = new BrinkRule(seed, longReach);
+            for (double x = 0D; x <= 40D; x += 0.25D) {
+                for (double z = 1D; z <= 15D; z += 0.5D) {
+                    assertEquals("seed " + seed + " head at " + x + "," + z, first.head(x, z), second.head(x, z));
                 }
             }
         }
-        assertTrue("widest brink shift " + widest, widest > 8D && widest <= ReachGeometry.BRINK_MAX_SHIFT + 2D * BRINK_SCAN);
+    }
+
+    @Test
+    public void aBrinksCurveKeepsItsRangeAndParabola() {
+        HydrologyTier tier = tier("river", 12f, 0.5f, 8, IrisBankStyle.SMOOTH);
+        Reach reach = line(217L, tier, 0L, -40f, 8f, 80f, 8f, (x, z) -> x < 20f ? 90 : 78);
+        BrinkFrame frame = new BrinkFrame(reach);
+        double inner = 12D - ReachGeometry.EDGE_MARGIN;
+        double smallest = Double.POSITIVE_INFINITY;
+        double largest = 0D;
+        for (long seed = 1L; seed <= 24L; seed++) {
+            double centre = Math.abs(frame.ruleBrink(reach, seed, 0));
+            smallest = Math.min(smallest, centre);
+            largest = Math.max(largest, centre);
+            double halfway = Math.abs(frame.ruleBrink(reach, seed, 5));
+            assertEquals("seed " + seed + " at five blocks off the centre", centre * (1D - 25D / (inner * inner)), halfway, 4D * BRINK_SCAN);
+        }
+        assertTrue("smallest centre shift " + smallest, smallest >= 0.25D * inner - BRINK_SCAN && smallest <= 0.33D * inner);
+        assertTrue("largest centre shift " + largest, largest <= 0.6D * inner + BRINK_SCAN && largest >= 0.52D * inner);
+    }
+
+    @Test
+    public void aFallBelowAnEstuaryPointKeepsItsStraightLevels() {
+        HydrologyTier tier = tier("river", 12f, 0.5f, 8, IrisBankStyle.SMOOTH);
+        Reach onUpper = withPointStyle(line(218L, tier, 0L, -20f, 8f, 60f, 8f, (x, z) -> x < 20f ? 90 : 78), 19, ReachStyle.MOUTH);
+        Reach above = withPointStyle(line(219L, tier, 0L, -20f, 8f, 60f, 8f, (x, z) -> x < 20f ? 100 : x < 24f ? 90 : 88), 5, ReachStyle.MOUTH);
+        for (long seed = 1L; seed <= 24L; seed++) {
+            assertEverywhereStraight("seed " + seed + " estuary point on the upper end", new BrinkRule(seed, onUpper), -30D, 70D, -3D, 19D);
+            assertEverywhereStraight("seed " + seed + " estuary point upstream", new BrinkRule(seed, above), 19.25D, 70D, -3D, 19D);
+        }
+    }
+
+    @Test
+    public void aChannelThatPinchesBelowAFallKeepsItsStraightLevel() {
+        HydrologyTier tier = tier("river", 8f, 0.5f, 8, IrisBankStyle.SMOOTH);
+        Reach drawn = line(220L, tier, 0L, -20f, 8f, 60f, 8f, (x, z) -> x < 20f ? 90 : 78);
+        float[] widths = drawn.halfWidth().clone();
+        for (int point = 0; point < widths.length; point++) {
+            widths[point] = drawn.xs()[point] < 20f ? 8f : 0.5f;
+        }
+        Reach pinched = new Reach(drawn.id(), drawn.tier(), drawn.downstreamId(), drawn.xs(), drawn.zs(), drawn.grade(), widths, drawn.depth(), drawn.style(), drawn.catchment());
+        for (long seed = 1L; seed <= 24L; seed++) {
+            assertEverywhereStraight("seed " + seed, new BrinkRule(seed, pinched), 20D, 70D, 7.75D, 8.25D);
+        }
+    }
+
+    @Test
+    public void overlappingChannelsOwnTheCellByTheirCurvedLevels() {
+        HydrologyTier tier = tier("river", 12f, 0.5f, 8, IrisBankStyle.SMOOTH);
+        Reach falling = line(221L, tier, 0L, -40f, 8f, 80f, 8f, (x, z) -> x < 20f ? 90 : 78);
+        Reach beside = line(222L, tier, 0L, -40f, 12f, 80f, 12f, (x, z) -> 84);
+        int moved = 0;
+        for (long seed = 1L; seed <= 24L; seed++) {
+            BrinkRule both = new BrinkRule(seed, falling, beside);
+            BrinkRule alone = new BrinkRule(seed, falling);
+            for (double x = 0D; x <= 40D; x += 0.25D) {
+                for (double z = 2D; z <= 18D; z += 0.5D) {
+                    int own = alone.head(x, z);
+                    int expected = own == Integer.MIN_VALUE ? 84 : Math.min(own, 84);
+                    assertEquals("seed " + seed + " head at " + x + "," + z, expected, both.head(x, z));
+                    moved += own != alone.straightHead(x, z) ? 1 : 0;
+                }
+            }
+        }
+        assertTrue("cells on the curve: " + moved, moved > 0);
+    }
+
+    @Test
+    public void aPondOverAHorseshoeKeepsTheChannelBedBelowIt() {
+        HydrologyTier tier = tier("river", 12f, 2f, 8, IrisBankStyle.SMOOTH);
+        Reach reach = line(223L, tier, 0L, -40f, 8f, 80f, 8f, (x, z) -> x < 20f ? 90 : 78);
+        Pond pond = new Pond(224L, PondKind.NATURAL, 78, 70, 15, 8, 79f, circle(15, 8, 6, 1), 0L, 0, "water", 15, 8);
+        int moved = 0;
+        for (long seed = 1L; seed <= 24L; seed++) {
+            Scene scene = new Scene(seededSettings(seed), (x, z) -> 110).reach(reach).pond(pond);
+            BrinkRule rule = new BrinkRule(seed, reach);
+            for (int x = 9; x <= 21; x++) {
+                for (int z = 4; z <= 12; z++) {
+                    if (scene.role(x, z) == WaterRole.POND && rule.head(x, z) == 78 && rule.straightHead(x, z) == 90) {
+                        assertTrue("seed " + seed + " bed at " + x + "," + z + " is " + scene.terrain(x, z), scene.terrain(x, z) <= 68);
+                        moved++;
+                    }
+                }
+            }
+        }
+        assertTrue("pond cells on the curve: " + moved, moved > 0);
+    }
+
+    @Test
+    public void aTongueAcrossAChunkLineKeepsItsBedContinuous() {
+        HydrologyTier tier = tier("river", 20f, 0.5f, 8, IrisBankStyle.SMOOTH);
+        int line = 32;
+        Reach falling = line(225L, tier, 0L, line - 60f, 8f, line + 60f, 8f, (x, z) -> x < line ? 90 : 78);
+        int checked = 0;
+        int widest = 0;
+        for (long seed = 1L; seed <= 24L; seed++) {
+            BrinkRule rule = new BrinkRule(seed, falling);
+            Scene fall = new Scene(seededSettings(seed), (x, z) -> 110).reach(falling);
+            for (int z = 4; z <= 12; z++) {
+                if (rule.head(line + 7D, z) == 90) {
+                    widest = Math.max(widest, Math.abs(fall.terrain(line - 1, z) - fall.terrain(line, z)));
+                    checked++;
+                }
+            }
+        }
+        assertTrue("cells checked: " + checked, checked > 0);
+        assertTrue("widest bed step at the chunk line: " + widest, widest <= 2);
+    }
+
+    private static Reach withPointStyle(Reach reach, int point, ReachStyle style) {
+        ReachStyle[] styles = reach.style().clone();
+        styles[point] = style;
+        return new Reach(reach.id(), reach.tier(), reach.downstreamId(), reach.xs(), reach.zs(), reach.grade(), reach.halfWidth(), reach.depth(),
+                styles, reach.catchment());
+    }
+
+    private static void assertEverywhereStraight(String label, BrinkRule rule, double minX, double maxX, double minZ, double maxZ) {
+        for (double x = minX; x <= maxX; x += 0.25D) {
+            for (double z = minZ; z <= maxZ; z += 0.25D) {
+                assertEquals(label + " head at " + x + "," + z, rule.straightHead(x, z), rule.head(x, z));
+            }
+        }
     }
 
     @Test
@@ -1426,6 +1700,10 @@ public class ChunkWaterRasterTest {
                     }
                     assertEquals("seed " + seed + " gap " + gap + " ends on the last level at z " + z, 84, last);
                 }
+                double firstLine = 19D;
+                double meeting = firstLine + gap / 2D;
+                assertTrue("seed " + seed + " gap " + gap + " the first fall stops short of the second", rule.head(meeting + 0.2D, 8D) <= 92);
+                assertTrue("seed " + seed + " gap " + gap + " the second fall stops short of the first", rule.head(meeting - 0.2D, 8D) >= 92);
             }
         }
     }
@@ -1472,10 +1750,17 @@ public class ChunkWaterRasterTest {
         private final ReachCursor cursor;
         private final ReachCursor straight = new ReachCursor();
 
-        private BrinkRule(long seed, Reach reach) {
+        private BrinkRule(long seed, Reach... reaches) {
             brinks = new ReachGeometry.Lookup(seed, SEA_LEVEL);
             cursor = new ReachCursor(brinks);
-            segments.addAll(reach);
+            for (Reach reach : reaches) {
+                segments.addAll(reach);
+            }
+        }
+
+        private ReachStyle style(double x, double z) {
+            segments.nearest(x, z, ReachSegments.Scope.CHANNEL, cursor);
+            return cursor.channel.reach.style()[brinks.point(cursor.channel)];
         }
 
         private int head(double x, double z) {
@@ -1547,7 +1832,7 @@ public class ChunkWaterRasterTest {
             BrinkRule rule = new BrinkRule(seed, reach);
             double found = Double.NaN;
             int last = Integer.MAX_VALUE;
-            for (double along = -6D; along <= 6D; along += BRINK_SCAN) {
+            for (double along = -8D; along <= 8D; along += BRINK_SCAN) {
                 double x = originX + along * unitX - offset * unitZ;
                 double z = originZ + along * unitZ + offset * unitX;
                 int head = rule.head(x, z);

@@ -1,7 +1,11 @@
 package art.arcane.iris.generation.hydrology.plan;
 
 import art.arcane.iris.generation.hydrology.config.IrisHydrology;
+import art.arcane.iris.generation.hydrology.grid.D8Router;
+import art.arcane.iris.generation.hydrology.grid.DemGrid;
 import art.arcane.iris.generation.hydrology.grid.HeightLattice;
+import art.arcane.iris.generation.hydrology.grid.HydrologySampleBuffer;
+import art.arcane.iris.generation.hydrology.grid.HydrologyTerrainSource;
 import art.arcane.iris.generation.hydrology.water.HydrologyTier;
 import art.arcane.iris.generation.hydrology.water.LakeCandidate;
 import art.arcane.iris.generation.hydrology.water.Pond;
@@ -11,6 +15,7 @@ import art.arcane.iris.generation.hydrology.water.PondPlanner;
 import art.arcane.iris.generation.hydrology.water.Reach;
 import art.arcane.iris.generation.hydrology.water.ReachShaper;
 import art.arcane.iris.generation.hydrology.water.ReachStyle;
+import java.util.Arrays;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -23,10 +28,15 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
 
 public class RegionPlannerTest {
     private static final long SEED = 1337L;
@@ -318,6 +328,50 @@ public class RegionPlannerTest {
         } finally {
             pool.shutdownNow();
         }
+    }
+
+    @Test
+    public void routesOverTiedGroundFollowTheWorldSeed() {
+        int[] first = tiedRoutes(11L);
+        assertArrayEquals("the same seed takes the same routes", first, tiedRoutes(11L));
+        assertFalse("another seed takes other routes", Arrays.equals(first, tiedRoutes(12L)));
+    }
+
+    private static int[] tiedRoutes(long seed) {
+        HydrologySettings settings = HydrologySettings.compile(new IrisHydrology(), seed, SEA_LEVEL, SyntheticTerrain.MIN_Y, SyntheticTerrain.MAX_Y);
+        SyntheticTerrain pyramid = SyntheticTerrain.pyramid(2048D, 2048D);
+        HydrologyTerrainSource terrain = new HydrologyTerrainSource() {
+            @Override
+            public void sample(int[] xs, int[] zs, HydrologySampleBuffer out, boolean baseOnly) {
+                pyramid.sample(xs, zs, out, false);
+            }
+
+            @Override
+            public int seaLevel() {
+                return pyramid.seaLevel();
+            }
+
+            @Override
+            public int minY() {
+                return pyramid.minY();
+            }
+
+            @Override
+            public int maxY() {
+                return pyramid.maxY();
+            }
+        };
+        ReachShaper shaper = mock(ReachShaper.class);
+        int[][] routes = new int[1][];
+        doAnswer(call -> {
+            DemGrid surface = call.getArgument(0);
+            routes[0] = call.getArgument(1);
+            assertArrayEquals("seed " + seed, D8Router.receivers(surface, surface.values(), seed), routes[0]);
+            return List.of();
+        }).when(shaper).coarsePaths(any(), any(), any(), any(), any(), anyLong());
+        new RegionPlanner(settings, new HeightLattice(terrain, RegionPlanner.CELL, true, 1 << 18), new HeightLattice(terrain, RegionPlanner.FINE_CELL, false, 1 << 20),
+                new PondPlanner(settings), shaper).plan(ORIGIN);
+        return routes[0];
     }
 
     private static HydrologySettings settings() {

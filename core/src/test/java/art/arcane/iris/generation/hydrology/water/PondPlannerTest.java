@@ -358,6 +358,64 @@ public class PondPlannerTest {
     }
 
     @Test
+    public void chainSettlementFollowsTheSeedAcrossATiedFork() {
+        int eastward = 0;
+        for (long seed = 1L; seed <= 24L; seed++) {
+            boolean east = forkLowersEast(seed);
+            assertEquals("seed " + seed + " repeats", east, forkLowersEast(seed));
+            eastward += east ? 1 : 0;
+        }
+        assertTrue("east takes " + eastward + " of 24 seeds", eastward > 0 && eastward < 24);
+    }
+
+    private static boolean forkLowersEast(long seed) {
+        IrisHydrology config = new IrisHydrology();
+        seededOnly(config);
+        config.getPonds().setFreeboard(new KList<>(1, 1));
+        config.getPonds().getShore().setRoundness(0D);
+        HydrologySettings settings = HydrologySettings.compile(config, seed, SEA_LEVEL, MIN_Y, MAX_Y);
+        DemGrid grid = new DemGrid(0, 0, 8, 64, 64);
+        Arrays.fill(grid.values(), 100f);
+        float[] filled = new float[grid.values().length];
+        Arrays.fill(filled, 200f);
+        int upper = grid.index(32, 12);
+        int fork = grid.index(32, 20);
+        filled[upper] = 190f;
+        filled[fork] = 150f;
+        int[] westCells = new int[16];
+        int[] eastCells = new int[16];
+        for (int offset = 0; offset < 16; offset++) {
+            westCells[offset] = grid.index(16 + offset, 20);
+            eastCells[offset] = grid.index(33 + offset, 20);
+            filled[westCells[offset]] = 140f;
+            filled[eastCells[offset]] = 140f;
+        }
+        int westFloor = westCells[0];
+        int eastFloor = eastCells[15];
+        List<Basin> basins = List.of(new Basin(0, upper, fork, 100f, 6f, new int[]{upper}, false),
+                new Basin(1, westFloor, grid.index(16, 21), 100f, 6f, westCells, false),
+                new Basin(2, eastFloor, grid.index(48, 21), 100f, 6f, eastCells, false));
+        CupSet cups = new CupSet(List.of(chainedCup(grid, upper), chainedCup(grid, westFloor), chainedCup(grid, eastFloor)));
+        HeightLattice fine = new HeightLattice(new Terrain((x, z) -> 100D, 1f, ALLOW_ALL, null, MIN_Y, MAX_Y), 4, false, 1 << 20);
+        Map<Integer, Integer> levels = new HashMap<>();
+        for (Pond pond : new PondPlanner(settings).ponds(grid, filled, basins, List.of(), fine, cups)) {
+            levels.put(pond.floorX(), pond.level());
+        }
+        assertEquals(levels.toString(), 3, levels.size());
+        int top = levels.get(grid.blockX(upper));
+        boolean east = D8Router.receivers(grid, filled, seed)[fork] == eastCells[0];
+        int lowered = levels.get(grid.blockX(east ? eastFloor : westFloor));
+        int untouched = levels.get(grid.blockX(east ? westFloor : eastFloor));
+        assertEquals("seed " + seed + " the pond the fork reaches sits below the upper pond", top - 1, lowered);
+        assertEquals("seed " + seed + " the pond off the route keeps its level", top, untouched);
+        return east;
+    }
+
+    private static CupSet.Cup chainedCup(DemGrid grid, int cell) {
+        return new CupSet.Cup(grid.blockX(cell), grid.blockZ(cell), 16, 100f, 6, true);
+    }
+
+    @Test
     public void cupCutNeverExceedsTwiceDepth() {
         HydrologySettings settings = settings(config -> {
             seededOnly(config);

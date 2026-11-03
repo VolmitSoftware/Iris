@@ -649,6 +649,37 @@ public class ReachShaperTest {
         for (int point = 0; point < count; point++) {
             assertEquals("a fall into the sea flares nothing at " + point, 0f, atSea[point], 0f);
         }
+
+        boolean[] estuary = new boolean[count];
+        Arrays.fill(estuary, 5, count, true);
+        float[] aboveEstuary = ReachShaper.plungeFlare(grade, ReachShaper.styles(grade, estuary, noZone, 6, SEA_LEVEL, 2), estuary, distance, 0f, 6);
+        assertTrue("the fall above the estuary flares", aboveEstuary[3] > 0f && aboveEstuary[4] > 0f);
+        for (int point = 5; point < count; point++) {
+            assertEquals("the flare stops where the sea starts, at " + point, 0f, aboveEstuary[point], 0f);
+        }
+    }
+
+    @Test
+    public void plungeFlareStaysOutOfTheRunningMaximum() {
+        HydrologySettings settings = settings(config -> config.getTiers().forEach(tier -> tier.setHalfWidth(new KList<>(2D, 32D))));
+        HydrologyTier tier = settings.tiers().get(0);
+        int points = 64;
+        int foot = 50;
+        float[] ground = new float[points];
+        Arrays.fill(ground, 0, foot, 90f);
+        Arrays.fill(ground, foot, points, 78f);
+        ReachDraft draft = draft(tier, ground);
+        draft.grade = new int[points];
+        Arrays.fill(draft.grade, 0, foot, 90);
+        Arrays.fill(draft.grade, foot, points, 78);
+        draft.catchments = new float[points];
+        Arrays.fill(draft.catchments, 40000f);
+        draft.outletZone = new boolean[points];
+        draft.style = ReachShaper.styles(draft.grade, draft.ocean, draft.outletZone, tier.waterfallMinimumDrop(), SEA_LEVEL, 2);
+        ReachShaper.widths(draft, 0f, 0f);
+        float law = tier.halfWidth(40000f);
+        assertEquals("the foot flares", 1.5f * law, draft.halfWidth[foot], 1e-3f);
+        assertEquals("the channel's own width is what feeds downstream", law, draft.maxHalfWidth, 1e-3f);
     }
 
     private static float[] plungeShare(Reach reach) {

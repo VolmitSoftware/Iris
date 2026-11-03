@@ -493,7 +493,7 @@ public final class ReachShaper {
         }
     }
 
-    private static void widths(ReachDraft draft, float upstream, float feederEnd) {
+    static void widths(ReachDraft draft, float upstream, float feederEnd) {
         int count = draft.xs.length;
         boolean flare = draft.incoming.length > 0 && !draft.outlet;
         boolean taper = !flare && !draft.outlet;

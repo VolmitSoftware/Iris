@@ -54,7 +54,7 @@ public class IrisHydrologyTier {
 
     @MinNumber(1)
     @MaxNumber(2)
-    @Description("Smallest step in blocks between this tier's water surfaces. 2 keeps channel surfaces on every second height above the sea. 1 lets a channel fall one block at a time, and works best with cascades false, which spreads drops into a gentle slope. Falls and plunge pools are unchanged. Ponds and lakes always use 2. A tier cannot use a larger step than the next larger tier.")
+    @Description("Smallest step in blocks between this tier's water surfaces. 2 keeps channel surfaces on every second height above the sea. 1 is experimental: it lets a channel fall one block at a time, and works best with cascades false, which spreads drops into a gentle slope, but on slanted steps the water at inner corners converts to source blocks, so terraces can rise a block and water can reach dry banks. Falls and plunge pools are unchanged. Ponds and lakes always use 2. A tier cannot use a larger step than the next larger tier.")
     private int stepHeight = 2;
 
     @MinNumber(0)

@@ -95,6 +95,10 @@ final class SyntheticTerrain implements HydrologyTerrainSource {
         return new SyntheticTerrain((x, z) -> height);
     }
 
+    static SyntheticTerrain pyramid(double peakX, double peakZ) {
+        return new SyntheticTerrain((x, z) -> 200D - 0.01D * (Math.abs(x - peakX) + Math.abs(z - peakZ)));
+    }
+
     static SyntheticTerrain southSlope(double northHeight, double gradient) {
         return new SyntheticTerrain((x, z) -> northHeight - gradient * z);
     }

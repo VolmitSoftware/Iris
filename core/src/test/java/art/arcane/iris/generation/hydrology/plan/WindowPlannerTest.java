@@ -1167,6 +1167,7 @@ public class WindowPlannerTest {
         config.getLakes().setEnabled(false);
         config.getPonds().getSeeded().setAlongChannels(false);
         config.getTiers().get(0).setMinCatchment(LINE_STREAM_CATCHMENT);
+        config.getUnderground().getSeaInlets().setEnabled(false);
         HydrologySettings settings = settings(config);
         int line = LAND.wx() * WindowKey.SIZE;
         double axis = LAND.wz() * WindowKey.SIZE + SEAM_DISTANCE;

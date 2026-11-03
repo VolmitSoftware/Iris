@@ -278,6 +278,20 @@ final class SyntheticTerrain implements HydrologyTerrainSource {
         return new SyntheticTerrain((x, z) -> x < coastX ? OCEAN_FLOOR : SEA_LEVEL + 30D + 0.05D * (x - coastX) + 3D * Math.sin(z / 40D));
     }
 
+    static SyntheticTerrain lowCoast(double coastX) {
+        return new SyntheticTerrain((x, z) -> {
+            double inland = x - coastX;
+            return inland < 0D ? OCEAN_FLOOR : SEA_LEVEL + 2D + 0.06D * inland + 2.5D * Math.sin(z / 37D) * Math.min(1D, inland / 32D);
+        });
+    }
+
+    static SyntheticTerrain lowIsland(double centreX, double centreZ, double coastRadius, double peakAboveSea) {
+        return new SyntheticTerrain((x, z) -> {
+            double radius = Math.hypot(x - centreX, z - centreZ);
+            return radius > coastRadius ? OCEAN_FLOOR : SEA_LEVEL + 1D + peakAboveSea * (1D - radius / coastRadius);
+        });
+    }
+
     static SyntheticTerrain seaStrip(double stripMinX, double stripWidth) {
         return new SyntheticTerrain((x, z) -> x >= stripMinX && x < stripMinX + stripWidth ? SEA_LEVEL - 2D : valleySlope(x, z));
     }

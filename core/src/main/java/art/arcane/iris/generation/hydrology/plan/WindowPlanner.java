@@ -21,6 +21,7 @@ import art.arcane.iris.generation.hydrology.water.Reach;
 import art.arcane.iris.generation.hydrology.water.ReachShaper;
 import art.arcane.iris.generation.hydrology.water.ReachStyle;
 import art.arcane.iris.generation.hydrology.water.ShapedNetwork;
+import art.arcane.iris.generation.hydrology.water.TidalPlanner;
 
 import java.util.ArrayList;
 import java.util.BitSet;
@@ -47,12 +48,14 @@ public final class WindowPlanner {
     private final HeightLattice fine;
     private final PondPlanner ponds;
     private final ReachShaper shaper;
+    private final TidalPlanner tidal;
 
     public WindowPlanner(HydrologySettings settings, HeightLattice fine, PondPlanner ponds, ReachShaper shaper) {
         this.settings = Objects.requireNonNull(settings, "settings");
         this.fine = Objects.requireNonNull(fine, "fine");
         this.ponds = Objects.requireNonNull(ponds, "ponds");
         this.shaper = Objects.requireNonNull(shaper, "shaper");
+        this.tidal = new TidalPlanner(settings, fine);
         if (fine.cell() != FINE_CELL) {
             throw new IllegalArgumentException("Window fine lattice cell " + fine.cell() + " must be " + FINE_CELL);
         }
@@ -127,7 +130,9 @@ public final class WindowPlanner {
         }
         List<Reach> reaches = network.reaches();
         List<Pond> windowPonds = windowPonds(network.ponds());
-        WindowPlan owned = new WindowPlan(key, ownedReaches(key, reaches), ownedPonds(key, windowPonds));
+        List<Reach> ownedReaches = new ArrayList<>(ownedReaches(key, reaches));
+        ownedReaches.addAll(tidal.plan(key, natural, samples, network));
+        WindowPlan owned = new WindowPlan(key, ownedReaches, ownedPonds(key, windowPonds));
         requireSeaConnectedHeads(owned, settings.seaLevel());
         return new WindowComputation(owned, reaches, windowPonds);
     }

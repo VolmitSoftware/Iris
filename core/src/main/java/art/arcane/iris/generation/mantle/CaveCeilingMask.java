@@ -64,7 +64,7 @@ public final class CaveCeilingMask {
         if (inlets.isEmpty()) {
             return null;
         }
-        int roofClearance = runtime.settings().underground().seaInlets().roofClearance();
+        int roofClearance = 6;
         return fillHeadroom(chunkX, chunkZ, inlets, roofClearance, bands) ? bands : null;
     }
 

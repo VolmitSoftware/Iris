@@ -36,6 +36,14 @@ public final class SeaInletPlanner {
     private static final long SALT_DEPTH = 0x53454144455054L;
     private static final long SALT_DENSITY = 0x53454144454e53L;
     private static final double SQUARED_MARGIN = 1e-9D;
+    private static final int MINIMUM_CLIFF_HEIGHT = 8;
+    private static final float HALF_WIDTH_MIN = 2f;
+    private static final float HALF_WIDTH_MAX = 5f;
+    private static final int HEADROOM_MIN = 4;
+    private static final int HEADROOM_MAX = 10;
+    static final int ROOF_CLEARANCE = 6;
+    private static final int CHAMBER_MIN = 6;
+    private static final int CHAMBER_MAX = 12;
 
     private final HydrologySettings settings;
 
@@ -100,7 +108,7 @@ public final class SeaInletPlanner {
     private Map<Long, List<Integer>> sites(Terrain terrain, HydrologySettings.SeaInlets config) {
         Map<Long, List<Integer>> sites = new TreeMap<>();
         DemGrid grid = terrain.grid;
-        float cliff = settings.seaLevel() + config.minimumCliffHeight();
+        float cliff = settings.seaLevel() + MINIMUM_CLIFF_HEIGHT;
         for (int j = 1; j < grid.depth() - 1; j++) {
             for (int i = 1; i < grid.width() - 1; i++) {
                 int cell = grid.index(i, j);
@@ -193,10 +201,10 @@ public final class SeaInletPlanner {
         int water = settings.seaLevel();
         float chamberCapacity = Float.NaN;
         int radius = 0;
-        int preferred = Math.round(lerp(config.chamberRadius().min(), config.chamberRadius().max(), unit(terrain, SALT_RADIUS, end)));
-        for (int candidate : new int[]{preferred, config.chamberRadius().min()}) {
+        int preferred = Math.round(lerp(CHAMBER_MIN, CHAMBER_MAX, unit(terrain, SALT_RADIUS, end)));
+        for (int candidate : new int[]{preferred, CHAMBER_MIN}) {
             float capacity = capacity(terrain, config, end, chamberRing(candidate, grid.cell()));
-            if (capacity - water >= config.headroom().min()) {
+            if (capacity - water >= HEADROOM_MIN) {
                 radius = candidate;
                 chamberCapacity = capacity;
                 break;
@@ -217,7 +225,6 @@ public final class SeaInletPlanner {
         int[] floor = new int[stations];
         int[] ceiling = new int[stations];
         float travelled = 0f;
-        HydrologySettings.FloatRange widths = config.halfWidth();
         for (int station = 0; station < stations; station++) {
             int cell = path.get(station);
             if (station > 0) {
@@ -225,7 +232,7 @@ public final class SeaInletPlanner {
             }
             xs[station] = grid.blockX(cell);
             zs[station] = grid.blockZ(cell);
-            halfWidth[station] = widths.max() - (widths.max() - widths.min()) * (travelled / total);
+            halfWidth[station] = HALF_WIDTH_MAX - (HALF_WIDTH_MAX - HALF_WIDTH_MIN) * (travelled / total);
             floor[station] = water - Math.round(lerp(config.depth().min(), config.depth().max(), smooth(terrain, SALT_DEPTH, land, travelled)));
             if (open.get(station)) {
                 ceiling[station] = SeaInlet.OPEN;
@@ -238,7 +245,7 @@ public final class SeaInletPlanner {
             if (station + 1 < stations) {
                 room = Math.min(room, capacity[station + 1]);
             }
-            float headroom = lerp(config.headroom().min(), config.headroom().max(), smooth(terrain, SALT_HEADROOM, land, travelled));
+            float headroom = lerp(HEADROOM_MIN, HEADROOM_MAX, smooth(terrain, SALT_HEADROOM, land, travelled));
             ceiling[station] = water + (int) Math.floor(Math.min(headroom, room - water));
         }
         long id = CellHash.mix(CellHash.mix(terrain.seed, SALT_ID, grid.blockX(mouth), grid.blockZ(mouth)), SALT_ID, grid.blockX(land),
@@ -258,7 +265,7 @@ public final class SeaInletPlanner {
     }
 
     private boolean canCover(Terrain terrain, HydrologySettings.SeaInlets config, int cell) {
-        return capacity(terrain, config, cell, 1) - settings.seaLevel() >= config.headroom().min();
+        return capacity(terrain, config, cell, 1) - settings.seaLevel() >= HEADROOM_MIN;
     }
 
     private static float capacity(Terrain terrain, HydrologySettings.SeaInlets config, int cell, int ring) {
@@ -286,7 +293,7 @@ public final class SeaInletPlanner {
             terrain.clipped = true;
             return Float.NEGATIVE_INFINITY;
         }
-        return lowest - config.roofClearance() - ROOF_MARGIN;
+        return lowest - ROOF_CLEARANCE - ROOF_MARGIN;
     }
 
     private static boolean openable(Terrain terrain, int cell) {
@@ -467,7 +474,7 @@ public final class SeaInletPlanner {
         if (columns.first() < 0L || rows.first() < 0L || columns.last() > lastColumn || rows.last() > lastRow) {
             return true;
         }
-        float cliff = settings.seaLevel() + config.minimumCliffHeight();
+        float cliff = settings.seaLevel() + MINIMUM_CLIFF_HEIGHT;
         for (int i = (int) columns.first(); i <= columns.last(); i++) {
             if (rows.first() == 0L && cliffLand(terrain, i, 0, cliff) || rows.last() == lastRow && cliffLand(terrain, i, lastRow, cliff)) {
                 return true;

@@ -250,8 +250,7 @@ public final class SeaInletProbe {
                 throw new IllegalStateException(label + " reported " + reports.size() + " generation errors");
             }
             run.sea = sea;
-            run.roofClearance = engine.getDimension().getHydrology() == null ? 0
-                    : engine.getDimension().getHydrology().getUnderground().getSeaInlets().getRoofClearance();
+            run.roofClearance = 6;
         }
         return run;
     }
@@ -283,8 +282,7 @@ public final class SeaInletProbe {
         }
         Run run = new Run("hydrology");
         run.sea = engine.getDimension().getFluidHeight();
-        run.roofClearance = engine.getDimension().getHydrology() == null ? 0
-                : engine.getDimension().getHydrology().getUnderground().getSeaInlets().getRoofClearance();
+        run.roofClearance = 6;
         int height = engine.getTarget().getHeight();
         Set<Long> chunks = new TreeSet<>();
         for (SeaInlet inlet : inlets) {

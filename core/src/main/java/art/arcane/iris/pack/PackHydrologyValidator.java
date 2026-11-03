@@ -40,15 +40,14 @@ final class PackHydrologyValidator {
             new RangeField("ponds.seeded.depth", Floor.POSITIVE, true),
             new RangeField("ponds.seeded.channelSpacing", Floor.POSITIVE, true),
             new RangeField("underground.seaInlets.length", Floor.POSITIVE, true),
-            new RangeField("underground.seaInlets.halfWidth", Floor.POSITIVE, false),
+            new RangeField("underground.seaInlets.mouthHalfWidth", Floor.POSITIVE, false),
+            new RangeField("underground.seaInlets.headHalfWidth", Floor.POSITIVE, false),
             new RangeField("underground.seaInlets.depth", Floor.POSITIVE, true),
-            new RangeField("underground.seaInlets.headroom", Floor.NON_NEGATIVE, true),
-            new RangeField("underground.seaInlets.chamberRadius", Floor.POSITIVE, true),
             new RangeField("underground.cavePools.freeboard", Floor.NON_NEGATIVE, true)
     );
     private static final List<String> FLUID_REFERENCES = List.of("ponds.fluid", "underground.cavePools.fluid");
     private static final IrisHydrologyTier DEFAULT_TIER = new IrisHydrologyTier();
-    private static final String MANTLE_WATER = "the falling water at waterfalls and cascades, sea inlets and cave pools";
+    private static final String MANTLE_WATER = "the falling water at waterfalls and cascades and cave pools";
 
     private PackHydrologyValidator() {
     }

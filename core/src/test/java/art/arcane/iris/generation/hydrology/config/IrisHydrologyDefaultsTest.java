@@ -33,7 +33,7 @@ public class IrisHydrologyDefaultsTest {
               "lakes": { "enabled": true, "minArea": 65536, "maxArea": 4194304 },
               "deformation": { "maxFill": 6, "bankSlope": 0.2, "bankSteepFactor": 3.5, "bankNoise": 0.2, "caveMask": true },
               "underground": {
-                "seaInlets": { "enabled": true, "spacing": 192, "minimumCliffHeight": 8, "length": [64, 256], "halfWidth": [2, 5], "depth": [2, 5], "headroom": [4, 10], "roofClearance": 6, "chamberRadius": [6, 12] },
+                "seaInlets": { "enabled": true, "spacing": 192, "length": [64, 256], "maximumBankHeight": 28, "mouthHalfWidth": [10, 14], "headHalfWidth": [2, 3], "taper": 1.8, "widthVariation": 0.18, "meanderWidth": 4, "depth": [2, 5], "bankBand": 24, "bankStyle": "SMOOTH" },
                 "cavePools": { "enabled": true, "density": 0.15, "minArea": 6, "maxArea": 400, "maxDepth": 4, "radius": 15, "freeboard": [0, 1], "fluid": "water" }
               },
               "fluids": [ { "name": "water", "palette": { "palette": [ { "block": "minecraft:water" } ] } } ],

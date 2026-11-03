@@ -50,4 +50,12 @@ public class IrisCavePools {
     @Required
     @Description("Name of the fluid profile that fills cave pools. The hydrology policy fluid of the cave biome at the pool replaces it, then that of its region, then that of the dimension. A surface biome's policy never fills cave pools.")
     private String fluid = "water";
+
+    @Description("Name of the fluid profile that fills pools at or below deepFluidMaxY. Unset keeps the same fluid at every depth. A hydrology policy that names a fluid still replaces it.")
+    private String deepFluid;
+
+    @MinNumber(-2032)
+    @MaxNumber(2031)
+    @Description("Highest world Y that deepFluid fills. No pool crosses this height: a pool rising from below stops at it.")
+    private int deepFluidMaxY = -128;
 }

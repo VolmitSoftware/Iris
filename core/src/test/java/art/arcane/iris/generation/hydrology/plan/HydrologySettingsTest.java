@@ -33,7 +33,7 @@ public class HydrologySettingsTest {
     private static final int SEA_LEVEL = 62;
     private static final int MIN_Y = -64;
     private static final int MAX_Y = 320;
-    private static final long DEFAULT_FINGERPRINT = 7576271788988330967L;
+    private static final long DEFAULT_FINGERPRINT = 3280677091802284252L;
 
     @Test
     public void densityIsBoundedAndChangesThePlanIdentity() {
@@ -46,6 +46,43 @@ public class HydrologySettingsTest {
         for (double invalid : new double[]{-0.01D, 1.01D, Double.NaN, Double.POSITIVE_INFINITY}) {
             assertRejected(new IrisHydrology().setDensity(invalid), "density");
         }
+    }
+
+    @Test
+    public void deepFluidIsOptionalChangesThePlanIdentityAndMustBeAFillingFluid() {
+        HydrologySettings plain = compile(new IrisHydrology());
+        assertNull(plain.underground().cavePools().deepFluid());
+        assertEquals(-128, plain.underground().cavePools().deepFluidMaxY());
+
+        IrisHydrology blank = new IrisHydrology();
+        blank.getUnderground().getCavePools().setDeepFluid(" ");
+        assertNull(compile(blank).underground().cavePools().deepFluid());
+        assertEquals(plain.fingerprint(), compile(blank).fingerprint());
+
+        IrisHydrology deep = withLava(new IrisHydrology());
+        deep.getUnderground().getCavePools().setDeepFluid("lava");
+        HydrologySettings lava = compile(deep);
+        assertEquals("lava", lava.underground().cavePools().deepFluid());
+        IrisHydrology moved = withLava(new IrisHydrology());
+        moved.getUnderground().getCavePools().setDeepFluid("lava").setDeepFluidMaxY(-64);
+        assertTrue(lava.fingerprint() != compile(moved).fingerprint());
+        assertTrue(compile(withLava(new IrisHydrology())).fingerprint() != lava.fingerprint());
+
+        IrisHydrology unknown = new IrisHydrology();
+        unknown.getUnderground().getCavePools().setDeepFluid("magma");
+        assertRejected(unknown, "underground.cavePools.deepFluid");
+        IrisHydrology seam = withLava(new IrisHydrology());
+        seam.getFluids().getFirst().setSeam("lava");
+        seam.getUnderground().getCavePools().setDeepFluid("lava");
+        assertRejected(seam, "underground.cavePools.deepFluid");
+        IrisHydrology wild = withLava(new IrisHydrology());
+        wild.getUnderground().getCavePools().setDeepFluid("lava").setDeepFluidMaxY(4000);
+        assertRejected(wild, "underground.cavePools.deepFluidMaxY");
+    }
+
+    private static IrisHydrology withLava(IrisHydrology config) {
+        config.getFluids().add(new IrisFluidProfile().setName("lava").setPalette(new IrisMaterialPalette().qclear().qadd("minecraft:lava")));
+        return config;
     }
 
     @Rule

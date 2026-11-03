@@ -456,7 +456,7 @@ public class MantleCarvedTerrainTest {
                     rasterizer.write(inlet, 0, chunkZ, writer, HydrologyCaveCell.SEA_FLUID, SeaInletRasterizer.SubterrainFluid.NOWHERE,
                             SeaInletRasterizer.HistoricalChunks.NONE);
                 }
-                new CavePoolFiller(settings).fill(0, chunkZ, () -> new MantleCarvedTerrain(writer, complex, engine, 0, chunkZ), writer, SEED);
+                new CavePoolFiller(settings, 0).fill(0, chunkZ, () -> new MantleCarvedTerrain(writer, complex, engine, 0, chunkZ), writer, SEED);
             }
             return cells;
         }

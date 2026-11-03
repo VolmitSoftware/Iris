@@ -61,6 +61,8 @@ public final class HydrologySettings {
     public static final int MAX_CAVE_POOL_RADIUS = 15;
     private static final int CAVE_POOL_SPAN = 2 * MAX_CAVE_POOL_RADIUS + 1;
     private static final int MAX_CAVE_POOL_AREA = CAVE_POOL_SPAN * CAVE_POOL_SPAN;
+    private static final int MIN_DEEP_FLUID_Y = -2032;
+    private static final int MAX_DEEP_FLUID_Y = 2031;
     private static final int MAX_LAKE_AREA = LakeCandidate.MAX_EXTENT * LakeCandidate.MAX_EXTENT;
     private static final int MAX_PREFETCH_RINGS = 4;
     private static final int MAX_SEEDED_DENSITY = 64;
@@ -398,7 +400,11 @@ public final class HydrologySettings {
         return new CavePools(config.isEnabled(), (float) config.getDensity(), config.getMinArea(), config.getMaxArea(),
                 config.getMaxDepth(), config.getRadius(),
                 intRange(config.getFreeboard(), "underground.cavePools.freeboard", RangeFloor.NON_NEGATIVE),
-                config.getFluid());
+                config.getFluid(), blankToNull(config.getDeepFluid()), config.getDeepFluidMaxY());
+    }
+
+    private static String blankToNull(String value) {
+        return value == null || value.isBlank() ? null : value;
     }
 
     private static Map<String, IrisMaterialPalette> fluids(List<IrisFluidProfile> profiles) {
@@ -596,6 +602,9 @@ public final class HydrologySettings {
         if (!pools.enabled()) {
             return;
         }
+        if (pools.deepFluid() != null) {
+            requireWithin(pools.deepFluidMaxY(), MIN_DEEP_FLUID_Y, MAX_DEEP_FLUID_Y, "underground.cavePools.deepFluidMaxY");
+        }
         if (pools.freeboard().max() >= pools.maxDepth()) {
             throw new IllegalArgumentException("Hydrology underground.cavePools.freeboard max " + pools.freeboard().max()
                     + " must stay below maxDepth " + pools.maxDepth());
@@ -643,6 +652,9 @@ public final class HydrologySettings {
         }
         requireFillingFluid(ponds.fluid(), "ponds.fluid");
         requireFillingFluid(underground.cavePools().fluid(), "underground.cavePools.fluid");
+        if (underground.cavePools().deepFluid() != null) {
+            requireFillingFluid(underground.cavePools().deepFluid(), "underground.cavePools.deepFluid");
+        }
     }
 
     public void requireFillingFluid(String name, String field) {
@@ -721,7 +733,8 @@ public final class HydrologySettings {
                 .add(inlets.halfWidth()).add(inlets.depth()).add(inlets.headroom()).add(inlets.roofClearance())
                 .add(inlets.chamberRadius())
                 .add(pools.enabled()).add(pools.density()).add(pools.minArea()).add(pools.maxArea())
-                .add(pools.maxDepth()).add(pools.radius()).add(pools.freeboard()).add(pools.fluid());
+                .add(pools.maxDepth()).add(pools.radius()).add(pools.freeboard()).add(pools.fluid())
+                .add(pools.deepFluid()).add(pools.deepFluidMaxY());
     }
 
     private void addFluids(Fingerprint hash) {
@@ -787,7 +800,7 @@ public final class HydrologySettings {
     }
 
     public record CavePools(boolean enabled, float density, int minArea, int maxArea, int maxDepth, int radius,
-                            IntRange freeboard, String fluid) {
+                            IntRange freeboard, String fluid, String deepFluid, int deepFluidMaxY) {
     }
 
     public record Underground(SeaInlets seaInlets, CavePools cavePools) {

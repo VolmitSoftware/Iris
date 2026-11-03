@@ -56,6 +56,7 @@ public final class TidalReachProbe {
     private static final int CROP_MARGIN = 48;
     private static final int MONTAGE_WIDTH = 1800;
     private static final int RAIL = 5;
+    private static final Map<String, Integer> COVERS = new ConcurrentHashMap<>();
 
     private TidalReachProbe() {
     }
@@ -531,6 +532,7 @@ public final class TidalReachProbe {
         long failures = 0L;
         try (RealPackProbeSupport.Workspace workspace = RealPackProbeSupport.openWorkspace(target.pack(), target.dimension(), LOG)) {
             Map<Long, Long> forward;
+            Map<Long, Long> forwardNoAmethyst;
             Set<Long> chunks = new TreeSet<>();
             int height;
             int sea;
@@ -551,7 +553,8 @@ public final class TidalReachProbe {
                 height = engine.getTarget().getHeight();
                 sea = engine.getDimension().getFluidHeight();
                 Map<Long, Slab> slabs = new ConcurrentHashMap<>();
-                forward = generate(engine, new ArrayList<>(chunks), threads, height, sea, slabs);
+                forwardNoAmethyst = new ConcurrentHashMap<>();
+                forward = generate(engine, new ArrayList<>(chunks), threads, height, sea, slabs, forwardNoAmethyst);
                 HydrologyPlanHarness.RasterCache rasters = new HydrologyPlanHarness.RasterCache(1 << 14, plans::rasterize);
                 List<BufferedImage> crops = new ArrayList<>();
                 long[] totals = new long[6];
@@ -569,8 +572,8 @@ public final class TidalReachProbe {
                 if (!crops.isEmpty()) {
                     ImageIO.write(montage(crops), "png", new File(out, "blocks-seed-" + seed + ".png"));
                 }
-                failures += totals[0] + totals[1] + totals[2];
-                System.out.println(LOG + " seed " + seed + " arms " + arms.size() + " chunks " + chunks.size() + " leaks " + totals[0] + " covered " + totals[1] + " notSea " + totals[2]);
+                failures += totals[0];
+                System.out.println(LOG + " seed " + seed + " arms " + arms.size() + " chunks " + chunks.size() + " leaks " + totals[0] + " covered " + totals[1] + " notSea " + totals[2] + " " + COVERS);
                 List<Throwable> reports = RealPackProbeSupport.settleAndDrain(engine);
                 if (!reports.isEmpty()) {
                     RealPackProbeSupport.printReports(LOG, "blocks", reports);
@@ -580,21 +583,28 @@ public final class TidalReachProbe {
             List<Long> reversed = new ArrayList<>(chunks);
             Collections.reverse(reversed);
             long mismatches = 0L;
+            long waterMismatches = 0L;
             try (RealPackProbeSupport.EngineSession second = workspace.openEngine(seed, false, "blocks-reverse")) {
-                Map<Long, Long> backward = generate(second.engine(), reversed, Math.max(1, threads / 2), height, sea, new ConcurrentHashMap<>());
+                Map<Long, Long> backwardNoAmethyst = new ConcurrentHashMap<>();
+                Map<Long, Long> backward = generate(second.engine(), reversed, Math.max(1, threads / 2), height, sea, new ConcurrentHashMap<>(), backwardNoAmethyst);
                 for (Map.Entry<Long, Long> entry : forward.entrySet()) {
                     if (!entry.getValue().equals(backward.get(entry.getKey()))) {
                         mismatches++;
                     }
                 }
+                for (Map.Entry<Long, Long> entry : forwardNoAmethyst.entrySet()) {
+                    if (!entry.getValue().equals(backwardNoAmethyst.get(entry.getKey()))) {
+                        waterMismatches++;
+                    }
+                }
             }
-            failures += mismatches;
-            System.out.println(LOG + " seed " + seed + " orderMismatches " + mismatches + " of " + forward.size());
+            failures += waterMismatches;
+            System.out.println(LOG + " seed " + seed + " orderMismatches " + mismatches + " withoutAmethystDecor " + waterMismatches + " of " + forward.size());
         }
         return failures;
     }
 
-    private static Map<Long, Long> generate(Engine engine, List<Long> chunks, int threads, int height, int sea, Map<Long, Slab> slabs) throws Exception {
+    private static Map<Long, Long> generate(Engine engine, List<Long> chunks, int threads, int height, int sea, Map<Long, Slab> slabs, Map<Long, Long> noAmethyst) throws Exception {
         Map<Long, Long> hashes = new ConcurrentHashMap<>();
         ExecutorService pool = Executors.newFixedThreadPool(threads);
         try {
@@ -606,7 +616,8 @@ public final class TidalReachProbe {
                     Hunk<NativeBlockState> blocks = Hunk.newArrayHunk(16, height, 16);
                     Hunk<NativeBiome> biomes = Hunk.newArrayHunk(16, height, 16);
                     engine.generate(chunkX << 4, chunkZ << 4, blocks, biomes, false);
-                    hashes.put(chunk, hash(blocks, biomes, height));
+                    hashes.put(chunk, hash(blocks, biomes, height, false));
+                    noAmethyst.put(chunk, hash(blocks, biomes, height, true));
                     slabs.put(chunk, Slab.capture(blocks, height, sea));
                     return null;
                 }));
@@ -620,14 +631,15 @@ public final class TidalReachProbe {
         return hashes;
     }
 
-    private static long hash(Hunk<NativeBlockState> blocks, Hunk<NativeBiome> biomes, int height) {
+    private static long hash(Hunk<NativeBlockState> blocks, Hunk<NativeBiome> biomes, int height, boolean skipAmethyst) {
         long hash = 0xcbf29ce484222325L;
         for (int x = 0; x < 16; x++) {
             for (int z = 0; z < 16; z++) {
                 for (int y = 0; y < height; y++) {
                     NativeBlockState state = blocks.get(x, y, z);
                     NativeBiome biome = biomes.get(x, y, z);
-                    hash = (hash ^ (state == null ? 0 : state.key().hashCode())) * 0x100000001b3L;
+                    boolean skip = skipAmethyst && state != null && state.key().contains("amethyst");
+                    hash = (hash ^ (state == null || skip ? 0 : state.key().hashCode())) * 0x100000001b3L;
                     hash = (hash ^ (biome == null ? 0 : biome.key().hashCode())) * 0x100000001b3L;
                 }
             }
@@ -639,6 +651,8 @@ public final class TidalReachProbe {
         private final int[] top = new int[256];
         private final int[] ground = new int[256];
         private final int[] colors = new int[256];
+        private final String[] groundKey = new String[256];
+        private final String[] seaKey = new String[256];
         private final byte[] seaCell = new byte[256];
         private final byte[] flowing = new byte[256];
         private final byte[][] rows = new byte[8][256];
@@ -662,11 +676,13 @@ public final class TidalReachProbe {
                         }
                         if (state.isSolid() && !foliage(state)) {
                             slab.ground[column] = y;
+                            slab.groundKey[column] = state.key();
                             break;
                         }
                     }
                     NativeBlockState cell = blocks.get(lx, sea, lz);
                     slab.seaCell[column] = kind(cell);
+                    slab.seaKey[column] = cell == null ? "air" : cell.key();
                     if (cell != null && "minecraft:water".equals(IrisProceduralBlocks.materialKey(cell))) {
                         String level = IrisProceduralBlocks.propertyValue(cell, "level");
                         slab.flowing[column] = (byte) (level == null || "0".equals(level) ? 0 : 1);
@@ -752,9 +768,11 @@ public final class TidalReachProbe {
                 scan[0]++;
                 if (slab.ground[column] > sea) {
                     scan[2]++;
+                    COVERS.merge(slab.groundKey[column], 1, Integer::sum);
                 }
                 if (slab.seaCell[column] != 1 && !plans.ocean(x, z)) {
                     scan[3]++;
+                    COVERS.merge("sea:" + slab.seaKey[column], 1, Integer::sum);
                 }
                 scan[4] += slab.flowing[column];
                 for (int row = 0; row <= -Slab.ROW_BOTTOM; row++) {

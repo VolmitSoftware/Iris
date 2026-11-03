@@ -47,6 +47,10 @@ final class PondLookup {
         return ponds.size();
     }
 
+    boolean isEmpty() {
+        return ponds.isEmpty();
+    }
+
     Pond pond(int index) {
         return ponds.get(index);
     }

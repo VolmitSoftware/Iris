@@ -1332,7 +1332,11 @@ public class ChunkWaterRasterTest {
         assertTrue("delta water beyond the estuary " + added, added > 100);
         assertTrue("river water above the sea next to the branch " + raised, !raisedAboveTheEstuary || raised > 0);
         assertEquals("delta leaks", 0, delta.leaks(minX, minZ, maxX, maxZ));
-        Set<Long> reached = wetFrom(delta, Math.round(river.xs()[estuary]) - 16, Math.round(river.zs()[estuary]), minX, minZ, maxX, maxZ);
+        int above = estuary;
+        while (above > 0 && river.xs()[estuary] - river.xs()[above] < 16f) {
+            above--;
+        }
+        Set<Long> reached = wetFrom(delta, Math.round(river.xs()[above]), Math.round(river.zs()[above]), minX, minZ, maxX, maxZ);
         for (Reach channel : fan) {
             for (int point = 0; point < channel.xs().length; point++) {
                 int x = Math.round(channel.xs()[point]);

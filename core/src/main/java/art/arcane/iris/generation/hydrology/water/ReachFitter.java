@@ -9,8 +9,24 @@ import java.util.Arrays;
 
 final class ReachFitter {
     private static final float SPACING = 4f;
-    private static final float MEANDER_AMPLITUDE = 8f;
+    private static final int RELAX_PASSES = 6;
+    private static final float RELAX_MAX_SHIFT = 4f;
+    private static final float RELAX_LAMBDA = 0.5f;
+    private static final float RELAX_MU = -0.53f;
+    private static final double MEANDER_WIDTH_SCALE = 2.5D;
+    private static final double MEANDER_MIN = 2D;
+    private static final double MEANDER_MAX = 16D;
+    private static final double MEANDER_WAVELENGTH_WIDTHS = 12D;
+    private static final double MEANDER_WAVELENGTH_MIN = 24D;
+    private static final double MEANDER_WAVELENGTH_MAX = 192D;
+    private static final double[] MEANDER_WAVE_SCALES = {1D, 0.43D, 1.77D};
+    private static final double[] MEANDER_WAVE_WEIGHTS = {0.5D, 0.3D, 0.2D};
     private static final double MEANDER_SLOPE = 0.2D;
+    private static final double STEEP_MEANDER = 0.4D;
+    private static final float SHORE_MARGIN = 2f;
+    private static final int SHORE_RAMP = 4;
+    private static final int OFFSET_SMOOTHING = 3;
+    private static final float OFFSET_CLAMP = 0.5f;
     private static final float VALLEY_SNAP = 8f;
     private static final float MOVE_PENALTY = 0.25f * SPACING;
     private static final float MIN_ADVANCE = 0.25f * SPACING;
@@ -28,12 +44,12 @@ final class ReachFitter {
 
     Fitted fit(DemGrid grid, int[] cells, float[] cellCatchment, HydrologyTier tier, long shapeSeed, boolean drainsToTheSea) {
         float halfWidth = tier.halfWidth(cellCatchment[cellCatchment.length - 1]);
-        Line line = resample(grid, cells, cellCatchment);
-        meander(line, shapeSeed);
-        int reach = Math.max(2, (int) Math.ceil(Math.max(VALLEY_SNAP, halfWidth + 2f) / SPACING));
+        Line line = relax(resample(grid, cells, cellCatchment));
         Tangents tangents = tangents(line.xs(), line.zs());
+        meander(line, tangents, shapeSeed, halfWidth);
+        int reach = Math.max(2, (int) Math.ceil(Math.max(VALLEY_SNAP, halfWidth + 2f) / SPACING));
         Reads reads = read(line, tangents, reach);
-        Fitted fitted = place(line, tangents, reads, viterbi(reads, line.xs().length, reach), tier);
+        Fitted fitted = place(line, tangents, reads, soften(viterbi(reads, line.xs().length, reach), reads, reach), tier);
         seaEnd(fitted.ocean(), drainsToTheSea);
         lowestCoveredGround(fitted, tier);
         return fitted;
@@ -78,30 +94,130 @@ final class ReachFitter {
         return line;
     }
 
-    private static void meander(Line line, long shapeSeed) {
+    private static Line relax(Line line) {
+        int count = line.xs().length;
+        if (count < 3) {
+            return line;
+        }
+        float[] xs = line.xs().clone();
+        float[] zs = line.zs().clone();
+        for (int pass = 0; pass < RELAX_PASSES; pass++) {
+            laplacian(xs, zs, line, RELAX_LAMBDA);
+            laplacian(xs, zs, line, RELAX_MU);
+        }
+        return respace(line, xs, zs);
+    }
+
+    private static void laplacian(float[] xs, float[] zs, Line origin, float weight) {
+        float[] fromX = xs.clone();
+        float[] fromZ = zs.clone();
+        for (int point = 1; point < xs.length - 1; point++) {
+            float x = fromX[point] + weight * (0.5f * (fromX[point - 1] + fromX[point + 1]) - fromX[point]);
+            float z = fromZ[point] + weight * (0.5f * (fromZ[point - 1] + fromZ[point + 1]) - fromZ[point]);
+            float shiftX = x - origin.xs()[point];
+            float shiftZ = z - origin.zs()[point];
+            float shift = (float) Math.sqrt(shiftX * shiftX + shiftZ * shiftZ);
+            float keep = shift > RELAX_MAX_SHIFT ? RELAX_MAX_SHIFT / shift : 1f;
+            xs[point] = origin.xs()[point] + shiftX * keep;
+            zs[point] = origin.zs()[point] + shiftZ * keep;
+        }
+    }
+
+    private static Line respace(Line line, float[] xs, float[] zs) {
+        int count = xs.length;
+        double[] along = new double[count];
+        for (int point = 1; point < count; point++) {
+            along[point] = along[point - 1] + StrictMath.hypot(xs[point] - xs[point - 1], zs[point] - zs[point - 1]);
+        }
+        double length = along[count - 1];
+        int segments = Math.max(1, (int) Math.round(length / SPACING));
+        Line spaced = new Line(new float[segments + 1], new float[segments + 1], new float[segments + 1], new float[segments + 1],
+                new float[segments + 1], (float) length);
+        int segment = 0;
+        for (int point = 0; point <= segments; point++) {
+            double s = length * point / segments;
+            while (segment < count - 2 && along[segment + 1] < s) {
+                segment++;
+            }
+            double span = along[segment + 1] - along[segment];
+            float t = span > 0D ? (float) ((s - along[segment]) / span) : 0f;
+            spaced.xs()[point] = lerp(xs[segment], xs[segment + 1], t);
+            spaced.zs()[point] = lerp(zs[segment], zs[segment + 1], t);
+            spaced.heights()[point] = lerp(line.heights()[segment], line.heights()[segment + 1], t);
+            spaced.catchment()[point] = lerp(line.catchment()[segment], line.catchment()[segment + 1], t);
+            spaced.distance()[point] = (float) s;
+        }
+        spaced.xs()[0] = xs[0];
+        spaced.zs()[0] = zs[0];
+        spaced.heights()[0] = line.heights()[0];
+        spaced.catchment()[0] = line.catchment()[0];
+        spaced.xs()[segments] = xs[count - 1];
+        spaced.zs()[segments] = zs[count - 1];
+        spaced.heights()[segments] = line.heights()[count - 1];
+        spaced.catchment()[segments] = line.catchment()[count - 1];
+        return spaced;
+    }
+
+    private void meander(Line line, Tangents tangents, long shapeSeed, float halfWidth) {
         int count = line.xs().length;
         if (count < 3) {
             return;
         }
-        double[] phase = new double[3];
+        double[] phase = new double[MEANDER_WAVE_SCALES.length];
         for (int wave = 0; wave < phase.length; wave++) {
             phase[wave] = 2D * Math.PI * CellHash.unit(CellHash.mix(shapeSeed, SALT_MEANDER, wave, 0));
         }
-        Tangents tangents = tangents(line.xs(), line.zs());
+        double amplitude = Math.clamp(MEANDER_WIDTH_SCALE * (halfWidth + 1f), MEANDER_MIN, MEANDER_MAX);
+        double wavelength = Math.clamp(MEANDER_WAVELENGTH_WIDTHS * 2D * (halfWidth + 1f), MEANDER_WAVELENGTH_MIN, MEANDER_WAVELENGTH_MAX);
+        double ramp = Math.min(line.length() / 2D, wavelength / 2D);
+        float[] open = awayFromPonds(line, tangents, (float) amplitude + halfWidth + SHORE_MARGIN);
         float[] offsets = new float[count];
         for (int point = 1; point < count - 1; point++) {
             double s = line.distance()[point];
             double run = Math.max(1e-3D, line.distance()[point + 1] - line.distance()[point - 1]);
             double slope = Math.abs(line.heights()[point + 1] - line.heights()[point - 1]) / run;
-            double damping = Math.clamp(1D - slope / MEANDER_SLOPE, 0D, 1D);
-            double wave = 0.5D * StrictMath.sin(0.03D * s + phase[0]) + 0.3D * StrictMath.sin(0.07D * s + phase[1])
-                    + 0.2D * StrictMath.sin(0.017D * s + phase[2]);
-            offsets[point] = (float) (MEANDER_AMPLITUDE * StrictMath.sin(Math.PI * s / line.length()) * damping * wave);
+            double damping = STEEP_MEANDER + (1D - STEEP_MEANDER) * (1D - smoothstep(slope / MEANDER_SLOPE));
+            double wave = 0D;
+            for (int index = 0; index < phase.length; index++) {
+                wave += MEANDER_WAVE_WEIGHTS[index] * StrictMath.sin(2D * Math.PI * s / (wavelength * MEANDER_WAVE_SCALES[index]) + phase[index]);
+            }
+            double envelope = smoothstep(s / ramp) * smoothstep((line.length() - s) / ramp);
+            offsets[point] = (float) (amplitude * envelope * damping * wave * open[point]);
         }
         for (int point = 1; point < count - 1; point++) {
             line.xs()[point] -= offsets[point] * tangents.z()[point];
             line.zs()[point] += offsets[point] * tangents.x()[point];
         }
+    }
+
+    private float[] awayFromPonds(Line line, Tangents tangents, float reach) {
+        int count = line.xs().length;
+        float[] open = new float[count];
+        Arrays.fill(open, 1f);
+        if (ponds.isEmpty()) {
+            return open;
+        }
+        int nodes = (int) Math.ceil(reach / SPACING);
+        boolean[] beside = new boolean[count];
+        for (int point = 0; point < count; point++) {
+            for (int node = -nodes; node <= nodes && !beside[point]; node++) {
+                float offset = node * SPACING;
+                beside[point] = ponds.at(Math.round(line.xs()[point] - offset * tangents.z()[point]), Math.round(line.zs()[point] + offset * tangents.x()[point])) >= 0;
+            }
+        }
+        for (int point = 0; point < count; point++) {
+            for (int other = Math.max(0, point - SHORE_RAMP); other <= Math.min(count - 1, point + SHORE_RAMP); other++) {
+                if (beside[other]) {
+                    open[point] = Math.min(open[point], (float) smoothstep(Math.abs(other - point) / (double) SHORE_RAMP));
+                }
+            }
+        }
+        return open;
+    }
+
+    private static double smoothstep(double value) {
+        double t = Math.clamp(value, 0D, 1D);
+        return t * t * (3D - 2D * t);
     }
 
     private Reads read(Line line, Tangents tangents, int reach) {
@@ -275,7 +391,30 @@ final class ReachFitter {
         return chosen;
     }
 
-    private static Fitted place(Line line, Tangents tangents, Reads reads, int[] offsets, HydrologyTier tier) {
+    private static float[] soften(int[] chosen, Reads reads, int reach) {
+        int count = chosen.length;
+        float[] offsets = new float[count];
+        for (int point = 0; point < count; point++) {
+            offsets[point] = chosen[point];
+        }
+        for (int pass = 0; pass < OFFSET_SMOOTHING; pass++) {
+            float[] from = offsets.clone();
+            for (int point = 1; point < count - 1; point++) {
+                float smoothed = 0.25f * from[point - 1] + 0.5f * from[point] + 0.25f * from[point + 1];
+                offsets[point] = Math.clamp(smoothed, chosen[point] - OFFSET_CLAMP, chosen[point] + OFFSET_CLAMP);
+            }
+        }
+        for (int point = 1; point < count - 1; point++) {
+            int toward = (int) Math.signum(offsets[point] - chosen[point]);
+            int neighbour = chosen[point] + toward + reach;
+            if (toward != 0 && (neighbour < 0 || neighbour >= reads.span() || reads.blocked()[point * reads.span() + neighbour])) {
+                offsets[point] = chosen[point];
+            }
+        }
+        return offsets;
+    }
+
+    private static Fitted place(Line line, Tangents tangents, Reads reads, float[] offsets, HydrologyTier tier) {
         int count = line.xs().length;
         float[] px = new float[count];
         float[] pz = new float[count];
@@ -299,8 +438,8 @@ final class ReachFitter {
         Fitted fitted = new Fitted(new float[size], new float[size], new float[size], new float[size], new boolean[size], new float[size]);
         for (int index = 0; index < size; index++) {
             int point = kept[index];
-            int chosen = offsets[point] + reads.span() / 2;
-            int read = point * reads.span() + chosen;
+            float chosen = offsets[point] + reads.span() / 2;
+            int read = point * reads.span() + Math.round(chosen);
             float beside = (tier.halfWidth(line.catchment()[point]) + 1f) / SPACING;
             fitted.bank()[index] = Math.min(bank(reads, point, chosen, -beside), bank(reads, point, chosen, beside));
             fitted.xs()[index] = px[point];
@@ -316,7 +455,7 @@ final class ReachFitter {
         return fitted;
     }
 
-    private static float bank(Reads reads, int point, int chosen, float offset) {
+    private static float bank(Reads reads, int point, float chosen, float offset) {
         float position = Math.clamp(chosen + offset, 0f, reads.span() - 1f);
         int near = (int) Math.floor(position);
         int far = Math.min(reads.span() - 1, near + 1);

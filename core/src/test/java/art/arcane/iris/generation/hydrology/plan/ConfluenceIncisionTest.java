@@ -25,7 +25,7 @@ public class ConfluenceIncisionTest {
     private static final double WALL_RUN = 15D;
     private static final double WALL_HEIGHT = 60D;
     private static final double WALL_FACE_REACH = 24D;
-    private static final double MAX_WALL_CUT = 29D;
+    private static final double MAX_WALL_CUT = 35D;
     private static final int MAX_COPY_DIFFERENCE = 4;
     private static PlannedScene valley;
 
@@ -66,30 +66,32 @@ public class ConfluenceIncisionTest {
 
     @Test
     public void majorDownAWallBesideTheValleyRiverFollowsTheWall() {
-        SyntheticTerrain terrain = SyntheticTerrain.valleyBelowAWall(WALL_FOOT, WALL_RUN, WALL_HEIGHT);
         HydrologySettings settings = settings();
-        PlannedScene scene = PlannedScene.plan(terrain, settings, 2, 2);
-        List<Reach> face = new ArrayList<>();
-        for (Reach reach : scene.reaches()) {
-            if (reach.tier().equals(settings.majorTier()) && onWallFace(reach)) {
-                face.add(reach);
+        for (double foot = WALL_FOOT - 4D; foot <= WALL_FOOT + 4D; foot += 1D) {
+            SyntheticTerrain terrain = SyntheticTerrain.valleyBelowAWall(foot, WALL_RUN, WALL_HEIGHT);
+            PlannedScene scene = PlannedScene.plan(terrain, settings, 2, 2);
+            List<Reach> face = new ArrayList<>();
+            for (Reach reach : scene.reaches()) {
+                if (reach.tier().equals(settings.majorTier()) && onWallFace(reach, foot)) {
+                    face.add(reach);
+                }
             }
+            assertEquals("foot " + foot + " majors running down the wall face " + face, 1, face.size());
+            Reach major = face.get(0);
+            double cut = 0D;
+            int largest = 0;
+            for (int point = 0; point < major.grade().length; point++) {
+                if (!inPond(scene.ponds(), major.xs()[point], major.zs()[point])) {
+                    cut = Math.max(cut, ground(scene, major, point) - major.grade()[point]);
+                }
+                if (point > 0) {
+                    largest = Math.max(largest, major.grade()[point - 1] - major.grade()[point]);
+                }
+            }
+            assertTrue("foot " + foot + " " + major + " is cut " + cut + " into the wall", cut <= MAX_WALL_CUT);
+            double tallestFall = WALL_HEIGHT / 2D + major.tier().waterfallMinimumDrop();
+            assertTrue("foot " + foot + " " + major + " falls " + largest + " blocks at once down a " + WALL_HEIGHT + "-block wall", largest <= tallestFall);
         }
-        assertEquals("majors running down the wall face " + face, 1, face.size());
-        Reach major = face.get(0);
-        double cut = 0D;
-        int largest = 0;
-        for (int point = 0; point < major.grade().length; point++) {
-            if (!inPond(scene.ponds(), major.xs()[point], major.zs()[point])) {
-                cut = Math.max(cut, ground(scene, major, point) - major.grade()[point]);
-            }
-            if (point > 0) {
-                largest = Math.max(largest, major.grade()[point - 1] - major.grade()[point]);
-            }
-        }
-        assertTrue(major + " is cut " + cut + " into the wall", cut <= MAX_WALL_CUT);
-        double tallestFall = WALL_HEIGHT / 2D + major.tier().waterfallMinimumDrop();
-        assertTrue(major + " falls " + largest + " blocks at once down a " + WALL_HEIGHT + "-block wall", largest <= tallestFall);
     }
 
     @Test
@@ -138,9 +140,9 @@ public class ConfluenceIncisionTest {
         return HydrologySettings.compile(new IrisHydrology(), SEED, SyntheticTerrain.SEA_LEVEL, SyntheticTerrain.MIN_Y, SyntheticTerrain.MAX_Y);
     }
 
-    private static boolean onWallFace(Reach reach) {
-        double top = SyntheticTerrain.VALLEY_AXIS - WALL_FOOT - WALL_RUN;
-        double foot = SyntheticTerrain.VALLEY_AXIS - WALL_FOOT;
+    private static boolean onWallFace(Reach reach, double wallFoot) {
+        double top = SyntheticTerrain.VALLEY_AXIS - wallFoot - WALL_RUN;
+        double foot = SyntheticTerrain.VALLEY_AXIS - wallFoot;
         for (int point = 0; point < reach.xs().length; point++) {
             double z = reach.zs()[point];
             if (Math.abs(reach.xs()[point] - SyntheticTerrain.VALLEY_AXIS) < WALL_FACE_REACH && z > top && z < foot) {

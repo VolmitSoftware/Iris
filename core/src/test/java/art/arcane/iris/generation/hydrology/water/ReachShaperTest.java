@@ -193,8 +193,8 @@ public class ReachShaperTest {
         for (int point = 0; point < tributary.xs().length; point++) {
             if (tributary.style()[point] == ReachStyle.WATERFALL) {
                 waterfalls++;
-                double edge = ConfluenceGrader.edgeDistance(receiving, tributary.xs()[point], tributary.zs()[point]);
-                assertTrue(tributary + " falls at point " + point + " inside the receiving channel, " + edge + " from its edge", edge > 0D);
+                double edge = ConfluenceGrader.edgeDistance(receiving, tributary.xs()[point - 1], tributary.zs()[point - 1]);
+                assertTrue(tributary + " brink before point " + point + " is inside the receiving channel, " + edge + " from its edge", edge > 0D);
             }
         }
         assertEquals(tributary + " waterfalls", 1, waterfalls);
@@ -406,6 +406,120 @@ public class ReachShaperTest {
         float before = STEP_X - firstAtOrBelow(shape(settings, network(settings, forward, 64, 64, VALLEY_THRESHOLD, false)), 113, true);
         float mirroredBefore = firstAtOrBelow(shape(settings, network(settings, mirrored, 64, 64, VALLEY_THRESHOLD, false)), 113, false) - (504 - STEP_X);
         assertEquals("a step below the waterfall minimum reads the same both ways", before, mirroredBefore, 1e-3f);
+    }
+
+    @Test
+    public void steepPlanarChannelsCurveWithoutLongStraightRunsOrKinks() {
+        HydrologySettings settings = settings(config -> {
+        });
+        double east = Math.cos(Math.toRadians(30D));
+        double south = Math.sin(Math.toRadians(30D));
+        DoubleBinaryOperator terrain = (x, z) -> 300D - 0.6D * (x * east + z * south) + 1.5D * valueNoise(SEED, x / 24D, z / 24D);
+        ShapedNetwork shaped = shape(settings, network(settings, terrain, 64, 64, 2000f, false));
+        int measured = 0;
+        double longestRun = 0D;
+        double sharpest = 0D;
+        for (Reach reach : shaped.reaches()) {
+            assertNoFold("steep", reach);
+            for (int index = 0; index < reach.xs().length; index++) {
+                double natural = Math.max(SEA_LEVEL, terrain.applyAsDouble(reach.xs()[index], reach.zs()[index]));
+                assertTrue(reach + " at " + index + " grade " + reach.grade()[index] + " natural " + natural, reach.grade()[index] <= natural);
+            }
+            float[] distance = ReachShaper.distances(reach.xs(), reach.zs());
+            if (distance[distance.length - 1] < 64f) {
+                continue;
+            }
+            measured++;
+            double[] turns = turnsPerStation(reach, distance, 2 * STATION);
+            double run = 0D;
+            for (double turn : turns) {
+                sharpest = Math.max(sharpest, turn);
+                run = turn < 1.5D ? run + STATION : 0D;
+                longestRun = Math.max(longestRun, run);
+            }
+        }
+        String metric = "reaches " + measured + " longest straight run " + longestRun + " sharpest turn " + sharpest;
+        assertTrue(metric, measured >= 5);
+        assertTrue(metric, longestRun <= 40D);
+        assertTrue(metric, sharpest <= 30D);
+    }
+
+    private static double[] turnsPerStation(Reach reach, float[] distance, float excluded) {
+        double length = distance[distance.length - 1] - 2D * excluded;
+        int stations = (int) Math.floor(length / STATION) + 1;
+        double[] x = new double[stations];
+        double[] z = new double[stations];
+        int segment = 0;
+        for (int station = 0; station < stations; station++) {
+            double along = excluded + station * (double) STATION;
+            while (segment < distance.length - 2 && distance[segment + 1] < along) {
+                segment++;
+            }
+            double t = (along - distance[segment]) / Math.max(1e-6D, distance[segment + 1] - distance[segment]);
+            x[station] = lerp(reach.xs()[segment], reach.xs()[segment + 1], t);
+            z[station] = lerp(reach.zs()[segment], reach.zs()[segment + 1], t);
+        }
+        double[] turns = new double[Math.max(0, stations - 2)];
+        for (int station = 0; station < turns.length; station++) {
+            double first = Math.atan2(z[station + 1] - z[station], x[station + 1] - x[station]);
+            double second = Math.atan2(z[station + 2] - z[station + 1], x[station + 2] - x[station + 1]);
+            turns[station] = Math.abs(Math.toDegrees(Math.IEEEremainder(second - first, 2D * Math.PI)));
+        }
+        return turns;
+    }
+
+    @Test
+    public void shapeIsTranslationInvariant() {
+        HydrologySettings settings = settings(config -> {
+        });
+        int shift = 512;
+        DoubleBinaryOperator eastward = (x, z) -> 240D - 0.3D * z + 16D * Math.abs(Math.sin(Math.PI * (x + 12D * Math.sin(z / 40D)) / 64D));
+        DoubleBinaryOperator southward = (x, z) -> eastward.applyAsDouble(z, x);
+        assertInteriorReachesIgnoreTheGridOrigin(shape(settings, network(settings, eastward, 0, 0, 128, 64, CELL, 1200f, false)),
+                shape(settings, network(settings, eastward, shift, 0, 128, 64, CELL, 1200f, false)), true);
+        assertInteriorReachesIgnoreTheGridOrigin(shape(settings, network(settings, southward, 0, 0, 64, 128, CELL, 1200f, false)),
+                shape(settings, network(settings, southward, 0, shift, 64, 128, CELL, 1200f, false)), false);
+
+        DoubleBinaryOperator moved = (x, z) -> eastward.applyAsDouble(x - shift, z - shift);
+        List<Reach> here = shape(settings, network(settings, eastward, 0, 0, 64, 64, CELL, 1200f, false)).reaches();
+        List<Reach> there = shape(settings, network(settings, moved, shift, shift, 64, 64, CELL, 1200f, false)).reaches();
+        assertEquals(here.size(), there.size());
+        assertEquals(reachEnds(here, 0), reachEnds(there, shift));
+        int bends = 0;
+        for (int index = 0; index < here.size(); index++) {
+            bends += Arrays.equals(here.get(index).zs(), offset(there.get(index).zs(), -shift)) ? 0 : 1;
+        }
+        assertTrue("meander phases are keyed on world position, reaches that moved " + bends + " of " + here.size(), 2 * bends > here.size());
+    }
+
+    private static void assertInteriorReachesIgnoreTheGridOrigin(ShapedNetwork first, ShapedNetwork second, boolean acrossX) {
+        Map<Long, Reach> others = byId(second.reaches());
+        int compared = 0;
+        for (Reach reach : first.reaches()) {
+            float[] across = acrossX ? reach.xs() : reach.zs();
+            if (minimum(across) >= 576f && maximum(across) <= 960f) {
+                assertEquals(reach, others.get(reach.id()));
+                compared++;
+            }
+        }
+        assertTrue("reaches compared " + compared, compared >= 5);
+    }
+
+    private static List<String> reachEnds(List<Reach> reaches, int shift) {
+        List<String> ends = new ArrayList<>();
+        for (Reach reach : reaches) {
+            int last = reach.xs().length - 1;
+            ends.add((reach.xs()[0] - shift) + "," + (reach.zs()[0] - shift) + " to " + (reach.xs()[last] - shift) + "," + (reach.zs()[last] - shift));
+        }
+        return ends;
+    }
+
+    private static float[] offset(float[] values, float by) {
+        float[] moved = values.clone();
+        for (int index = 0; index < moved.length; index++) {
+            moved[index] += by;
+        }
+        return moved;
     }
 
     private static float brinkMidpoint(ShapedNetwork shaped) {
@@ -947,7 +1061,7 @@ public class ReachShaperTest {
                     assertTrue(reach + " at " + x + " grade " + reach.grade()[index] + " pool end " + poolEnd, reach.grade()[index] >= poolEnd - 1);
                 }
                 if (overPit(x, z, pitX)) {
-                    pooled += reach.grade()[index] > (int) Math.floor(shallow.applyAsDouble(pitX, VALLEY_Z)) ? 1 : 0;
+                    pooled += reach.grade()[index] > (int) Math.floor(shallow.applyAsDouble(pitX, VALLEY_Z)) - reach.tier().inset() ? 1 : 0;
                 }
             }
         }
@@ -1432,7 +1546,7 @@ public class ReachShaperTest {
         });
         int inletX = 204;
         DoubleBinaryOperator terrain = (x, z) -> 60D - 0.05D * x + 0.1D * Math.abs(z - VALLEY_Z)
-                - (Math.abs(x - inletX) <= 2D && Math.abs(z - VALLEY_Z) <= 20D ? 10.3D : 0D);
+                - (Math.abs(x - inletX) <= 2D && Math.abs(z - VALLEY_Z) <= 20D ? 12.3D : 0D);
         ShapedNetwork shaped = shape(settings, network(settings, terrain, 64, 64, VALLEY_THRESHOLD, false));
         int crossing = 0;
         int below = 0;
@@ -2627,11 +2741,16 @@ public class ReachShaperTest {
 
     private static Network network(HydrologySettings settings, DoubleBinaryOperator height, int originX, int width, int depth,
                                    int cell, float threshold, boolean withPonds) {
+        return network(settings, height, originX, 0, width, depth, cell, threshold, withPonds);
+    }
+
+    private static Network network(HydrologySettings settings, DoubleBinaryOperator height, int originX, int originZ, int width, int depth,
+                                   int cell, float threshold, boolean withPonds) {
         Terrain terrain = new Terrain(height);
         int count = width * depth;
         HydrologySampleBuffer samples = new HydrologySampleBuffer(count);
-        new HeightLattice(terrain, cell, false, 1 << 20).fill(Math.floorDiv(originX, cell), 0, width, depth, samples);
-        DemGrid raw = new DemGrid(originX, 0, cell, width, depth);
+        new HeightLattice(terrain, cell, false, 1 << 20).fill(Math.floorDiv(originX, cell), Math.floorDiv(originZ, cell), width, depth, samples);
+        DemGrid raw = new DemGrid(originX, originZ, cell, width, depth);
         System.arraycopy(samples.height(), 0, raw.values(), 0, count);
         BitSet seeds = new BitSet(count);
         for (int j = 0; j < depth; j++) {
@@ -2649,7 +2768,7 @@ public class ReachShaperTest {
             List<Basin> basins = BasinExtractor.basins(raw, filled, 0.5f, SEA_LEVEL);
             ponds = new PondPlanner(settings).ponds(raw, filled, basins, List.of(), fine, CupSet.EMPTY);
         }
-        DemGrid surface = new DemGrid(originX, 0, cell, width, depth);
+        DemGrid surface = new DemGrid(originX, originZ, cell, width, depth);
         System.arraycopy(filled, 0, surface.values(), 0, count);
         int[] receivers = D8Router.receivers(surface, filled);
         for (int index = 0; index < count; index++) {

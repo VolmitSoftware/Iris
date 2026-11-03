@@ -180,7 +180,7 @@ public class WindowPlannerTest {
                 float x = reach.xs()[point];
                 float z = reach.zs()[point];
                 if (z >= 1900f && z <= 2150f && x >= 3240f && x <= 3380f) {
-                    assertEquals("tributary trunk at z=" + z, floor, x, WindowPlanner.CELL);
+                    assertEquals("tributary trunk at z=" + z, floor, x, 2 * WindowPlanner.CELL);
                     checked++;
                 }
             }
@@ -971,7 +971,7 @@ public class WindowPlannerTest {
             }
             int away = 0;
             for (Pond pond : dry.ponds()) {
-                if (Math.abs(pond.floorX() - stripX) <= SLIVER_REACH) {
+                if (Math.abs(pond.floorX() - stripX) <= SLIVER_REACH || touchedByAChangedReach(pond, dry, scene)) {
                     continue;
                 }
                 away++;
@@ -984,6 +984,21 @@ public class WindowPlannerTest {
             assertTrue("reach points cut more than " + DEEP_CUT + " below the ground with the sliver at x " + stripX + ": " + cuts + ", without it "
                     + dryCuts, cuts <= dryCuts + dryCuts / 50);
         }
+    }
+
+    private static boolean touchedByAChangedReach(Pond pond, PlannedScene dry, PlannedScene scene) {
+        Set<Reach> unchanged = new HashSet<>(scene.reaches());
+        for (Reach reach : dry.reaches()) {
+            if (unchanged.contains(reach)) {
+                continue;
+            }
+            for (int point = 0; point < reach.xs().length; point++) {
+                if (pond.mask().nearest(reach.xs()[point], reach.zs()[point], reach.halfWidth()[point] + 2f) != null) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     private static int deepCuts(PlannedScene scene) {

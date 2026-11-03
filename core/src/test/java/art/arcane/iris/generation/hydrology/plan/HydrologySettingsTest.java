@@ -35,7 +35,7 @@ public class HydrologySettingsTest {
     private static final int SEA_LEVEL = 62;
     private static final int MIN_Y = -64;
     private static final int MAX_Y = 320;
-    private static final long DEFAULT_FINGERPRINT = -2376958294785826560L;
+    private static final long DEFAULT_FINGERPRINT = -2359553697125315860L;
 
     @Test
     public void densityIsBoundedAndChangesThePlanIdentity() {

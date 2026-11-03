@@ -49,6 +49,20 @@ public final class StructurePlacementScope {
         return placements;
     }
 
+    public static boolean startsNear(Engine engine, int chunkX, int chunkZ, int reachChunks) {
+        long seed = engine.getSeedManager().getMantle();
+        for (int startZ = chunkZ - reachChunks; startZ <= chunkZ + reachChunks; startZ++) {
+            for (int startX = chunkX - reachChunks; startX <= chunkX + reachChunks; startX++) {
+                for (IrisStructurePlacement placement : placementsAt(engine, startX, startZ)) {
+                    if (placement.getDistribution() != null && StructurePlacementGrid.startsInChunk(placement, startX, startZ, seed)) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
     private static ScopeIndex scopeIndex(Engine engine) {
         int revision = engine.getCacheID();
         synchronized (SCOPE_INDEXES) {

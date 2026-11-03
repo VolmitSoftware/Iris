@@ -5,6 +5,7 @@ import art.arcane.iris.generation.hydrology.cave.HydrologyCaveCell;
 import art.arcane.iris.generation.hydrology.grid.CellHash;
 import art.arcane.iris.generation.hydrology.plan.HydrologySettings;
 import art.arcane.iris.generation.mantle.MantleWriter;
+import art.arcane.volmlib.util.matter.slices.UpdateMatter;
 import it.unimi.dsi.fastutil.longs.LongArrayFIFOQueue;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 
@@ -33,11 +34,18 @@ public final class CavePoolFiller {
     private final HydrologySettings.CavePools pools;
     private final Set<String> fluids;
     private final float density;
+    private final int deepLine;
 
-    public CavePoolFiller(HydrologySettings settings) {
+    public CavePoolFiller(HydrologySettings settings, int worldMinimumY) {
         this.pools = settings.underground().cavePools();
         this.fluids = settings.fluids().keySet();
         this.density = settings.density();
+        this.deepLine = pools.deepFluidMaxY() - worldMinimumY;
+        int height = settings.maxY() - settings.minY();
+        if (pools.enabled() && pools.deepFluid() != null && (deepLine < 0 || deepLine >= height)) {
+            throw new IllegalStateException("Hydrology underground.cavePools.deepFluidMaxY " + pools.deepFluidMaxY()
+                    + " is outside this world, which spans Y " + worldMinimumY + " to " + (worldMinimumY + height - 1));
+        }
     }
 
     public void fill(int chunkX, int chunkZ, Supplier<? extends CarvedTerrain> terrain, MantleWriter writer, long seed) {
@@ -167,8 +175,12 @@ public final class CavePoolFiller {
             }
             int y = unpackY(cell);
             HydrologyCaveCell existing = writer.getDataIfPresent(x, y, z, HydrologyCaveCell.class);
-            if (existing == null || replacesSharedWall(existing, value)) {
+            boolean spring = existing != null && existing.action() == HydrologyCaveAction.SPRING_SOURCE;
+            if (existing == null || spring || replacesSharedWall(existing, value)) {
                 writer.setData(x, y, z, value);
+            }
+            if (spring) {
+                writer.setData(x, y, z, UpdateMatter.OFF);
             }
         }
     }
@@ -180,7 +192,10 @@ public final class CavePoolFiller {
 
     private String fluid(CarvedTerrain carved, int x, int y, int z) {
         String policy = carved.caveFluid(x, y, z);
-        return policy != null ? policy : pools.fluid();
+        if (policy != null) {
+            return policy;
+        }
+        return pools.deepFluid() != null && y <= deepLine ? pools.deepFluid() : pools.fluid();
     }
 
     private String siteFluid(CarvedTerrain carved, int x, int y, int z) {

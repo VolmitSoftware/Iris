@@ -4,6 +4,7 @@ import art.arcane.iris.generation.block.IrisBlockData;
 import art.arcane.iris.generation.decoration.IrisDecorationPart;
 import art.arcane.iris.generation.decoration.IrisDecorator;
 import art.arcane.iris.generation.hydrology.config.IrisCavePools;
+import art.arcane.iris.generation.hydrology.config.IrisCaveSprings;
 import art.arcane.iris.generation.hydrology.config.IrisFluidProfile;
 import art.arcane.iris.generation.hydrology.config.IrisHydrologyClimate;
 import art.arcane.iris.generation.hydrology.config.IrisHydrology;
@@ -62,6 +63,10 @@ public final class HydrologySettings {
     public static final int MAX_CAVE_POOL_RADIUS = 15;
     private static final int CAVE_POOL_SPAN = 2 * MAX_CAVE_POOL_RADIUS + 1;
     private static final int MAX_CAVE_POOL_AREA = CAVE_POOL_SPAN * CAVE_POOL_SPAN;
+    private static final int MIN_DEEP_FLUID_Y = -2032;
+    private static final int MAX_DEEP_FLUID_Y = 2031;
+    private static final double MAX_SPRING_DENSITY = 2D;
+    private static final int MAX_SPRING_DEPTH = 256;
     private static final int MAX_LAKE_AREA = LakeCandidate.MAX_EXTENT * LakeCandidate.MAX_EXTENT;
     private static final int MAX_PREFETCH_RINGS = 4;
     private static final int MAX_SEEDED_DENSITY = 64;
@@ -356,7 +361,7 @@ public final class HydrologySettings {
     }
 
     private Underground underground(IrisHydrologyUnderground config) {
-        return new Underground(seaInlets(config.getSeaInlets()), cavePools(config.getCavePools()));
+        return new Underground(seaInlets(config.getSeaInlets()), cavePools(config.getCavePools()), caveSprings(config.getCaveSprings()));
     }
 
     private SeaInlets seaInlets(IrisSeaInlets config) {
@@ -411,7 +416,22 @@ public final class HydrologySettings {
         return new CavePools(config.isEnabled(), (float) config.getDensity(), config.getMinArea(), config.getMaxArea(),
                 config.getMaxDepth(), config.getRadius(),
                 intRange(config.getFreeboard(), "underground.cavePools.freeboard", RangeFloor.NON_NEGATIVE),
-                config.getFluid());
+                config.getFluid(), blankToNull(config.getDeepFluid()), config.getDeepFluidMaxY());
+    }
+
+    private static CaveSprings caveSprings(IrisCaveSprings config) {
+        if (config.isEnabled()) {
+            if (!(Double.isFinite(config.getDensity()) && config.getDensity() >= 0D && config.getDensity() <= MAX_SPRING_DENSITY)) {
+                throw new IllegalArgumentException("Hydrology underground.caveSprings.density must stay within 0.." + MAX_SPRING_DENSITY
+                        + ", got " + config.getDensity());
+            }
+            requireWithin(config.getMinDepthBelowSurface(), 0, MAX_SPRING_DEPTH, "underground.caveSprings.minDepthBelowSurface");
+        }
+        return new CaveSprings(config.isEnabled(), (float) config.getDensity(), config.getFluid(), config.getMinDepthBelowSurface());
+    }
+
+    private static String blankToNull(String value) {
+        return value == null || value.isBlank() ? null : value;
     }
 
     private static Map<String, IrisMaterialPalette> fluids(List<IrisFluidProfile> profiles) {
@@ -610,6 +630,9 @@ public final class HydrologySettings {
         if (!pools.enabled()) {
             return;
         }
+        if (pools.deepFluid() != null) {
+            requireWithin(pools.deepFluidMaxY(), MIN_DEEP_FLUID_Y, MAX_DEEP_FLUID_Y, "underground.cavePools.deepFluidMaxY");
+        }
         if (pools.freeboard().max() >= pools.maxDepth()) {
             throw new IllegalArgumentException("Hydrology underground.cavePools.freeboard max " + pools.freeboard().max()
                     + " must stay below maxDepth " + pools.maxDepth());
@@ -657,6 +680,12 @@ public final class HydrologySettings {
         }
         requireFillingFluid(ponds.fluid(), "ponds.fluid");
         requireFillingFluid(underground.cavePools().fluid(), "underground.cavePools.fluid");
+        if (underground.cavePools().deepFluid() != null) {
+            requireFillingFluid(underground.cavePools().deepFluid(), "underground.cavePools.deepFluid");
+        }
+        if (underground.caveSprings().enabled()) {
+            requireFillingFluid(underground.caveSprings().fluid(), "underground.caveSprings.fluid");
+        }
     }
 
     public void requireFillingFluid(String name, String field) {
@@ -731,11 +760,14 @@ public final class HydrologySettings {
     private void addUnderground(Fingerprint hash) {
         SeaInlets inlets = underground.seaInlets();
         CavePools pools = underground.cavePools();
+        CaveSprings springs = underground.caveSprings();
         hash.add(inlets.enabled()).add(inlets.spacing()).add(inlets.minimumCliffHeight()).add(inlets.length())
                 .add(inlets.halfWidth()).add(inlets.depth()).add(inlets.headroom()).add(inlets.roofClearance())
                 .add(inlets.chamberRadius())
                 .add(pools.enabled()).add(pools.density()).add(pools.minArea()).add(pools.maxArea())
-                .add(pools.maxDepth()).add(pools.radius()).add(pools.freeboard()).add(pools.fluid());
+                .add(pools.maxDepth()).add(pools.radius()).add(pools.freeboard()).add(pools.fluid())
+                .add(pools.deepFluid()).add(pools.deepFluidMaxY())
+                .add(springs.enabled()).add(springs.density()).add(springs.fluid()).add(springs.minDepthBelowSurface());
     }
 
     private void addFluids(Fingerprint hash) {
@@ -801,10 +833,13 @@ public final class HydrologySettings {
     }
 
     public record CavePools(boolean enabled, float density, int minArea, int maxArea, int maxDepth, int radius,
-                            IntRange freeboard, String fluid) {
+                            IntRange freeboard, String fluid, String deepFluid, int deepFluidMaxY) {
     }
 
-    public record Underground(SeaInlets seaInlets, CavePools cavePools) {
+    public record CaveSprings(boolean enabled, float density, String fluid, int minDepthBelowSurface) {
+    }
+
+    public record Underground(SeaInlets seaInlets, CavePools cavePools, CaveSprings caveSprings) {
     }
 
     private enum RangeFloor {

@@ -156,7 +156,7 @@ public final class HydrologyRuntime {
                 engine.getHeight());
         requireBiomeFluids(dimension.getReachableBiomes(engine), settings);
         boolean caveFluidPolicies = requireCaveFluids(dimension, dimension.getAllRegions(engine), dimension.getReachableCaveBiomes(engine), settings)
-                && settings.underground().cavePools().enabled();
+                && (settings.underground().cavePools().enabled() || settings.underground().caveSprings().enabled());
         if (settings.density() == 0D) {
             return DISABLED;
         }

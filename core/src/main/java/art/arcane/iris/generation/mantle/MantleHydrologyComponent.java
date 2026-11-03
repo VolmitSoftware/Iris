@@ -4,11 +4,14 @@ import art.arcane.iris.generation.context.ChunkContext;
 import art.arcane.iris.generation.decoration.IrisProceduralBlocks;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveCell;
 import art.arcane.iris.generation.hydrology.config.IrisHydrology;
+import art.arcane.iris.generation.hydrology.config.IrisHydrologyUnderground;
 import art.arcane.iris.generation.hydrology.engine.HydrologyRuntime;
 import art.arcane.iris.generation.hydrology.plan.HydrologySettings;
 import art.arcane.iris.generation.hydrology.raster.ChunkWaterRaster;
 import art.arcane.iris.generation.hydrology.raster.FluidSeams;
+import art.arcane.iris.generation.hydrology.underground.CarvedTerrain;
 import art.arcane.iris.generation.hydrology.underground.CavePoolFiller;
+import art.arcane.iris.generation.hydrology.underground.CaveSpringPlacer;
 import art.arcane.iris.generation.hydrology.underground.SeaInlet;
 import art.arcane.iris.generation.hydrology.underground.SeaInletRasterizer;
 import art.arcane.iris.generation.runtime.Engine;
@@ -23,6 +26,7 @@ import art.arcane.volmlib.util.matter.slices.UpdateMatter;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
 @ComponentFlag(ReservedFlag.RIVER_HYDROLOGY)
 public final class MantleHydrologyComponent extends IrisMantleComponent {
@@ -44,12 +48,12 @@ public final class MantleHydrologyComponent extends IrisMantleComponent {
 
     @Override
     protected int computeRadius() {
-        return poolsActive() ? CavePoolFiller.REACH : 0;
+        return caveWaterActive() ? CavePoolFiller.REACH : 0;
     }
 
     @Override
     public int getInputRadius() {
-        return poolsActive() ? CavePoolFiller.REACH : 0;
+        return caveWaterActive() ? CavePoolFiller.REACH : 0;
     }
 
     public static boolean isEnabledFor(IrisDimension dimension) {
@@ -58,15 +62,18 @@ public final class MantleHydrologyComponent extends IrisMantleComponent {
                 && !dimension.getDisabledComponents().contains(ReservedFlag.RIVER_HYDROLOGY);
     }
 
-    private static boolean poolsEnabledFor(IrisDimension dimension) {
-        return isEnabledFor(dimension) && dimension.isCarvingEnabled() && !dimension.getDisabledComponents().contains(ReservedFlag.CARVED)
-                && dimension.getHydrology().getUnderground().getCavePools().isEnabled();
+    private static boolean caveWaterEnabledFor(IrisDimension dimension) {
+        if (!isEnabledFor(dimension) || !dimension.isCarvingEnabled() || dimension.getDisabledComponents().contains(ReservedFlag.CARVED)) {
+            return false;
+        }
+        IrisHydrologyUnderground underground = dimension.getHydrology().getUnderground();
+        return underground.getCavePools().isEnabled() || underground.getCaveSprings().isEnabled();
     }
 
-    private boolean poolsActive() {
+    private boolean caveWaterActive() {
         EngineMantle mantle = getEngineMantle();
         Engine engine = mantle == null ? null : mantle.getEngine();
-        return engine != null && engine.getDimension() != null && poolsEnabledFor(engine.getDimension());
+        return engine != null && engine.getDimension() != null && caveWaterEnabledFor(engine.getDimension());
     }
 
     @Override
@@ -85,11 +92,18 @@ public final class MantleHydrologyComponent extends IrisMantleComponent {
             }
         }
         generateFalls(writer, complex, runtime, own, chunkX, chunkZ);
-        if (poolsActive()) {
+        if (caveWaterActive()) {
             HydrologySettings settings = runtime.settings();
             Engine engine = getEngineMantle().getEngine();
-            new CavePoolFiller(settings).fill(chunkX, chunkZ, () -> new MantleCarvedTerrain(writer, complex, engine, chunkX, chunkZ), writer,
-                    settings.seed());
+            CarvedTerrain[] opened = new CarvedTerrain[1];
+            Supplier<CarvedTerrain> carved = () -> {
+                if (opened[0] == null) {
+                    opened[0] = new MantleCarvedTerrain(writer, complex, engine, chunkX, chunkZ);
+                }
+                return opened[0];
+            };
+            new CavePoolFiller(settings, engine.getWorld().minHeight()).fill(chunkX, chunkZ, carved, writer, settings.seed());
+            new CaveSpringPlacer(settings).place(chunkX, chunkZ, carved, writer, settings.seed());
         }
     }
 

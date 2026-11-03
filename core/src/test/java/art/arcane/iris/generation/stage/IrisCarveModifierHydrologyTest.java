@@ -116,6 +116,8 @@ public class IrisCarveModifierHydrologyTest {
                 new HydrologyCaveCell(HydrologyCaveAction.WET_SOURCE, "water"), current, source, air));
         assertSame(source, IrisCarveModifier.resolveHydrologyState(
                 new HydrologyCaveCell(HydrologyCaveAction.POOL_SOURCE, "water"), current, source, air));
+        assertSame(source, IrisCarveModifier.resolveHydrologyState(
+                new HydrologyCaveCell(HydrologyCaveAction.SPRING_SOURCE, "lava"), current, source, air));
         assertSame(air, IrisCarveModifier.resolveHydrologyState(
                 new HydrologyCaveCell(HydrologyCaveAction.DRY_AIR, "water"), current, source, air));
     }
@@ -306,7 +308,7 @@ public class IrisCarveModifierHydrologyTest {
         IrisHydrology config = new IrisHydrology().setEnabled(true);
         config.getUnderground().getCavePools().setDensity(1D).setFreeboard(new KList<>(0, 0));
         Map<Long, HydrologyCaveCell> written = new HashMap<>();
-        new CavePoolFiller(HydrologySettings.compile(config, SEED, 63, 0, 384))
+        new CavePoolFiller(HydrologySettings.compile(config, SEED, 63, 0, 384), 0)
                 .fill(0, 0, SealedRoom::new, recordingWriter(written), SEED);
         Matter[] sections = new Matter[SECTIONS];
         Set<String> wallFluids = new HashSet<>();
@@ -441,6 +443,11 @@ public class IrisCarveModifierHydrologyTest {
         @Override
         public String caveFluid(int x, int y, int z) {
             return null;
+        }
+
+        @Override
+        public boolean structureNear(int x, int y, int z) {
+            return false;
         }
     }
 }

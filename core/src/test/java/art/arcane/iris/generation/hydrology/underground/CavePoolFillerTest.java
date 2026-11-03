@@ -35,12 +35,13 @@ import static org.mockito.Mockito.when;
 public class CavePoolFillerTest {
     private static final long SEED = 1337L;
     private static final int FLOOR = 50;
+    private static final int WORLD_MIN = -256;
 
     @Test
     public void globalDensityThinsCandidateColumnsBeforeSamplingCaves() {
         IrisHydrology config = new IrisHydrology().setDensity(0.5D);
         config.getUnderground().getCavePools().setDensity(8D);
-        CavePoolFiller filler = new CavePoolFiller(HydrologySettings.compile(config, SEED, 63, 0, 384));
+        CavePoolFiller filler = new CavePoolFiller(HydrologySettings.compile(config, SEED, 63, 0, 384), 0);
         CarvedTerrain carved = mock(CarvedTerrain.class);
         MantleWriter writer = mock(MantleWriter.class);
         Set<Long> columns = new HashSet<>();
@@ -67,7 +68,7 @@ public class CavePoolFillerTest {
     public void chunksWithoutAPoolSiteNeverOpenTheirCaves() {
         IrisHydrology config = new IrisHydrology().setDensity(0.5D);
         config.getUnderground().getCavePools().setDensity(0.05D);
-        CavePoolFiller filler = new CavePoolFiller(HydrologySettings.compile(config, SEED, 63, 0, 384));
+        CavePoolFiller filler = new CavePoolFiller(HydrologySettings.compile(config, SEED, 63, 0, 384), 0);
         CarvedTerrain carved = mock(CarvedTerrain.class);
         MantleWriter writer = mock(MantleWriter.class);
         AtomicInteger opened = new AtomicInteger();
@@ -86,7 +87,7 @@ public class CavePoolFillerTest {
     public void zeroGlobalDensityDoesNotReadCaves() {
         IrisHydrology config = new IrisHydrology().setDensity(0D);
         config.getUnderground().getCavePools().setDensity(8D);
-        CavePoolFiller filler = new CavePoolFiller(HydrologySettings.compile(config, SEED, 63, 0, 384));
+        CavePoolFiller filler = new CavePoolFiller(HydrologySettings.compile(config, SEED, 63, 0, 384), 0);
         CarvedTerrain carved = mock(CarvedTerrain.class);
         MantleWriter writer = mock(MantleWriter.class);
         filler.fill(0, 0, () -> carved, writer, SEED);
@@ -163,10 +164,10 @@ public class CavePoolFillerTest {
         MantleWriter forwardWriter = writer(forward);
         MantleWriter reverseWriter = writer(reverse);
         for (int index = 0; index < 9; index++) {
-            new CavePoolFiller(settings).fill(index % 3 - 1, index / 3 - 1, () -> world, forwardWriter, SEED);
+            new CavePoolFiller(settings, 0).fill(index % 3 - 1, index / 3 - 1, () -> world, forwardWriter, SEED);
         }
         for (int index = 8; index >= 0; index--) {
-            new CavePoolFiller(settings).fill(index % 3 - 1, index / 3 - 1, () -> world, reverseWriter, SEED);
+            new CavePoolFiller(settings, 0).fill(index % 3 - 1, index / 3 - 1, () -> world, reverseWriter, SEED);
         }
 
         assertFalse(forward.isEmpty());
@@ -197,10 +198,10 @@ public class CavePoolFillerTest {
 
         Map<Long, HydrologyCaveCell> forward = new HashMap<>();
         Map<Long, HydrologyCaveCell> reverse = new HashMap<>();
-        new CavePoolFiller(settings).fill(0, 0, () -> world, writer(forward), SEED);
-        new CavePoolFiller(settings).fill(1, 0, () -> world, writer(forward), SEED);
-        new CavePoolFiller(settings).fill(1, 0, () -> world, writer(reverse), SEED);
-        new CavePoolFiller(settings).fill(0, 0, () -> world, writer(reverse), SEED);
+        new CavePoolFiller(settings, 0).fill(0, 0, () -> world, writer(forward), SEED);
+        new CavePoolFiller(settings, 0).fill(1, 0, () -> world, writer(forward), SEED);
+        new CavePoolFiller(settings, 0).fill(1, 0, () -> world, writer(reverse), SEED);
+        new CavePoolFiller(settings, 0).fill(0, 0, () -> world, writer(reverse), SEED);
 
         assertFalse(wetCells(forward, "water").isEmpty());
         assertFalse(wetCells(forward, "lava").isEmpty());
@@ -270,6 +271,72 @@ public class CavePoolFillerTest {
     }
 
     @Test
+    public void deepFluidFillsPoolsAtOrBelowTheLineInWorldHeight() {
+        HydrologySettings below = deepSettings(52 + WORLD_MIN);
+        Map<Long, HydrologyCaveCell> deep = fillAt(below, room(0, 15, 0, 15, FLOOR, 52), 0, 0);
+        assertEquals(roomCells(FLOOR, 52), wetCells(deep, "lava"));
+        assertTrue(wetCells(deep, "water").isEmpty());
+
+        HydrologySettings above = deepSettings(FLOOR - 1 + WORLD_MIN);
+        Map<Long, HydrologyCaveCell> shallow = fillAt(above, room(0, 15, 0, 15, FLOOR, 52), 0, 0);
+        assertEquals(roomCells(FLOOR, 52), wetCells(shallow, "water"));
+        assertTrue(wetCells(shallow, "lava").isEmpty());
+    }
+
+    @Test
+    public void poolReachingTheLineStopsAtItAndNeverStraddles() {
+        HydrologySettings settings = deepSettings(51 + WORLD_MIN);
+        Map<Long, HydrologyCaveCell> written = fillAt(settings, roomWithSill(), 0, 0);
+        assertEquals(roomCells(FLOOR, 51), wetCells(written, "lava"));
+        assertTrue(wetCells(written, "water").isEmpty());
+    }
+
+    @Test
+    public void unsetDeepFluidKeepsThePoolFluidAtAnyDepth() {
+        Map<Long, HydrologyCaveCell> written = fillAt(settings(pools -> pools.setFreeboard(new KList<>(0, 0)).setDeepFluidMaxY(300)),
+                roomWithSill(), 0, 0);
+        assertEquals(roomCells(FLOOR, 52), wetCells(written, "water"));
+    }
+
+    @Test
+    public void cavePolicyWinsOverTheDeepFluid() {
+        VoxelWorld world = roomWithSill();
+        world.policyFluid(x -> "water");
+        Map<Long, HydrologyCaveCell> written = fillAt(deepSettings(52 + WORLD_MIN), world, 0, 0);
+        assertEquals(roomCells(FLOOR, 52), wetCells(written, "water"));
+        assertTrue(wetCells(written, "lava").isEmpty());
+    }
+
+    @Test
+    public void deepAndShallowPoolsOverOneAnotherShareOnlyRockWhateverTheChunkOrder() {
+        VoxelWorld world = room(0, 15, 0, 15, FLOOR, 52);
+        world.carve(0, 15, 0, 15, 54, 57);
+        world.carve(16, 16, 8, 8, 57, 58);
+        HydrologySettings settings = HydrologySettings.compile(deepConfig(52 + WORLD_MIN, 8D), SEED, 63, 0, 512);
+        Map<Long, HydrologyCaveCell> forward = new HashMap<>();
+        Map<Long, HydrologyCaveCell> reverse = new HashMap<>();
+        new CavePoolFiller(settings, WORLD_MIN).fill(0, 0, () -> world, writer(forward), SEED);
+        new CavePoolFiller(settings, WORLD_MIN).fill(1, 0, () -> world, writer(forward), SEED);
+        new CavePoolFiller(settings, WORLD_MIN).fill(1, 0, () -> world, writer(reverse), SEED);
+        new CavePoolFiller(settings, WORLD_MIN).fill(0, 0, () -> world, writer(reverse), SEED);
+
+        assertFalse(wetCells(forward, "lava").isEmpty());
+        assertFalse(wetCells(forward, "water").isEmpty());
+        assertGuard(forward, 8, 53, 8);
+        assertEquals(forward, reverse);
+        assertNoMixedBodies(forward);
+    }
+
+    @Test
+    public void deepFluidLineOutsideTheWorldFailsClosed() {
+        HydrologySettings below = deepSettings(WORLD_MIN - 1);
+        assertThrows(IllegalStateException.class, () -> new CavePoolFiller(below, WORLD_MIN));
+        HydrologySettings above = deepSettings(WORLD_MIN + 512);
+        assertThrows(IllegalStateException.class, () -> new CavePoolFiller(above, WORLD_MIN));
+        new CavePoolFiller(deepSettings(WORLD_MIN + 511), WORLD_MIN);
+    }
+
+    @Test
     public void foreignCellsAndDisabledPoolsWriteNothing() {
         VoxelWorld feature = roomWithSill();
         feature.foreign(3, FLOOR, 3);
@@ -324,7 +391,7 @@ public class CavePoolFillerTest {
 
     private static Map<Long, HydrologyCaveCell> fill(HydrologySettings settings, VoxelWorld world, int chunkX, int chunkZ) {
         Map<Long, HydrologyCaveCell> written = new HashMap<>();
-        new CavePoolFiller(settings).fill(chunkX, chunkZ, () -> world, writer(written), SEED);
+        new CavePoolFiller(settings, 0).fill(chunkX, chunkZ, () -> world, writer(written), SEED);
         return written;
     }
 
@@ -348,6 +415,23 @@ public class CavePoolFillerTest {
         config.getFluids().add(new IrisFluidProfile().setName("lava").setPalette(new IrisMaterialPalette().qclear().qadd("minecraft:lava")));
         pools.accept(config.getUnderground().getCavePools().setDensity(1D));
         return HydrologySettings.compile(config, SEED, 63, 0, 384);
+    }
+
+    private static IrisHydrology deepConfig(int deepFluidMaxY, double density) {
+        IrisHydrology config = new IrisHydrology().setEnabled(true);
+        config.getFluids().add(new IrisFluidProfile().setName("lava").setPalette(new IrisMaterialPalette().qclear().qadd("minecraft:lava")));
+        config.getUnderground().getCavePools().setDensity(density).setFreeboard(new KList<>(0, 0)).setDeepFluid("lava").setDeepFluidMaxY(deepFluidMaxY);
+        return config;
+    }
+
+    private static HydrologySettings deepSettings(int deepFluidMaxY) {
+        return HydrologySettings.compile(deepConfig(deepFluidMaxY, 1D), SEED, 63, 0, 512);
+    }
+
+    private static Map<Long, HydrologyCaveCell> fillAt(HydrologySettings settings, VoxelWorld world, int chunkX, int chunkZ) {
+        Map<Long, HydrologyCaveCell> written = new HashMap<>();
+        new CavePoolFiller(settings, WORLD_MIN).fill(chunkX, chunkZ, () -> world, writer(written), SEED);
+        return written;
     }
 
     private static Set<Long> wetCells(Map<Long, HydrologyCaveCell> written, String fluid) {
@@ -429,6 +513,11 @@ public class CavePoolFillerTest {
         @Override
         public String caveFluid(int x, int y, int z) {
             return policyFluid.apply(x);
+        }
+
+        @Override
+        public boolean structureNear(int x, int y, int z) {
+            return false;
         }
     }
 }

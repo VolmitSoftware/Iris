@@ -17,7 +17,7 @@ import java.util.TreeSet;
 import java.util.function.Consumer;
 
 final class HydrologyPlanMetrics {
-    static final float RIVER_LENGTH = 384f;
+    static final float RIVER_LENGTH = 352f;
     static final int PERCHED_HEIGHT = 8;
     private static final int PERCHED_SEARCH = 1024;
     private static final int VERTEX_BUCKET = 64;

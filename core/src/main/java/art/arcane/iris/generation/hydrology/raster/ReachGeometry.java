@@ -33,7 +33,7 @@ final class ReachGeometry {
         this.starts = starts;
     }
 
-    static ReachGeometry of(Reach reach, long seed, int seaLevel) {
+    static ReachGeometry of(Reach reach, Reach linked, long seed, int seaLevel) {
         int[] grade = reach.grade();
         int[] steps = new int[grade.length - 1];
         int count = 0;
@@ -65,7 +65,7 @@ final class ReachGeometry {
             double middle = middle(along, segment);
             int upper = WaterHeads.snap(grade[segment], seaLevel);
             int lower = WaterHeads.snap(grade[segment + 1], seaLevel);
-            if (grade[segment] - grade[segment + 1] < BRINK_MIN_DROP || middle <= held || outlet && upper == start || feeder && lower == landing
+            if (grade[segment] - grade[segment + 1] < BRINK_MIN_DROP || linked.grade()[segment] - linked.grade()[segment + 1] < BRINK_MIN_DROP || middle <= held || outlet && upper == start || feeder && lower == landing
                     || reach.style()[segment] == ReachStyle.MOUTH || reach.style()[segment + 1] == ReachStyle.MOUTH) {
                 continue;
             }
@@ -170,18 +170,25 @@ final class ReachGeometry {
 
     static final class Lookup {
         private final Map<Reach, ReachGeometry> geometries = new IdentityHashMap<>();
+        private final Map<Reach, Reach> plans;
         private final long seed;
         private final int seaLevel;
 
         Lookup(long seed, int seaLevel) {
+            this(seed, seaLevel, Map.of());
+        }
+
+        Lookup(long seed, int seaLevel, Map<Reach, Reach> plans) {
             this.seed = seed;
             this.seaLevel = seaLevel;
+            this.plans = plans;
         }
 
         ReachGeometry of(Reach reach) {
             ReachGeometry known = geometries.get(reach);
             if (known == null) {
-                known = ReachGeometry.of(reach, seed, seaLevel);
+                Reach plan = plans.get(reach);
+                known = ReachGeometry.of(plan == null ? reach : plan, reach, seed, seaLevel);
                 geometries.put(reach, known);
             }
             return known;

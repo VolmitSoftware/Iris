@@ -1733,6 +1733,60 @@ public class ChunkWaterRasterTest {
         assertTrue("curved cells " + curved, curved > 100);
     }
 
+    @Test
+    public void aFeedersFallsCurveTheSameInEveryChunkAcrossAWindowLine() {
+        assertEquals(new WindowKey(0, 0), WindowKey.containing(508, 200));
+        assertEquals(new WindowKey(1, 0), WindowKey.containing(700, 200));
+        assertEquals(new WindowKey(2, 0), WindowKey.containing(1100, 200));
+        int cells = 0;
+        for (float width : new float[]{4f, 8f, 12f, 20f}) {
+            HydrologyTier tier = tier("river", width, 0.5f, 8, IrisBankStyle.SMOOTH);
+            for (int fall : new int[]{498, 502, 506, 508, 512, 516}) {
+                Reach downstream = line(702L, tier, 0L, 700f, 200f, 1100f, 200f, (x, z) -> 94);
+                Reach feeder = line(701L, tier, downstream.id(), 440f, 200f, 700f, 200f, (x, z) -> x < fall ? 110 : 98);
+                for (long seed = 1L; seed <= 24L; seed++) {
+                    cells += assertHeadsFollowThePlan("width " + width + " fall " + fall + " seed " + seed + ": ", feeder, downstream, seed, 480, 540);
+                }
+            }
+        }
+        assertTrue("cells compared " + cells, cells > 10000);
+    }
+
+    @Test
+    public void anUpperFallOfAFeederKeepsItsCurveInEveryChunkAcrossAWindowLine() {
+        HydrologyTier tier = tier("river", 12f, 0.5f, 8, IrisBankStyle.SMOOTH);
+        Reach downstream = line(712L, tier, 0L, 700f, 200f, 1100f, 200f, (x, z) -> 94);
+        Reach feeder = line(711L, tier, downstream.id(), 440f, 200f, 700f, 200f, (x, z) -> x < 508f ? 122 : x < 600f ? 110 : 98);
+        int curved = 0;
+        for (long seed = 1L; seed <= 24L; seed++) {
+            assertHeadsFollowThePlan("seed " + seed + ": ", feeder, downstream, seed, 480, 540);
+            BrinkRule rule = new BrinkRule(seed, feeder);
+            for (int x = 480; x <= 540; x++) {
+                curved += rule.head(x, 200) != rule.straightHead(x, 200) ? 1 : 0;
+            }
+        }
+        assertTrue("the fall above the last one curves: " + curved, curved > 0);
+    }
+
+    private static int assertHeadsFollowThePlan(String label, Reach feeder, Reach downstream, long seed, int minX, int maxX) {
+        Scene scene = new Scene(seededSettings(seed), (x, z) -> 130).reach(feeder).reach(downstream);
+        BrinkRule plan = new BrinkRule(seed, feeder);
+        int reach = (int) feeder.halfWidth()[0];
+        int cells = 0;
+        for (int z = 200 - reach; z <= 200 + reach; z++) {
+            int previous = Integer.MAX_VALUE;
+            for (int x = minX; x <= maxX; x++) {
+                if (scene.water(x, z)) {
+                    assertEquals(label + "head at " + x + "," + z, plan.head(x, z), scene.head(x, z));
+                    assertTrue(label + "water rises from " + previous + " to " + scene.head(x, z) + " at " + x + "," + z, scene.head(x, z) <= previous);
+                    previous = scene.head(x, z);
+                    cells++;
+                }
+            }
+        }
+        return cells;
+    }
+
     private static Reach withStartStyle(Reach reach, ReachStyle style, int points) {
         ReachStyle[] styles = reach.style().clone();
         for (int point = 0; point < points; point++) {

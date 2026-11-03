@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -40,8 +41,9 @@ final class ChunkFeatures {
     private final MaskEdges lakeReach = new MaskEdges(MaskEdges.Kind.GROWN_WATER);
     private boolean inert;
 
-    private ChunkFeatures(HydrologySettings settings, List<Reach> reaches, List<Pond> ponds, List<Pond> lakes, List<SeaInlet> inlets, int[] inletBoxes) {
-        this.brinks = new ReachGeometry.Lookup(settings.seed(), settings.seaLevel());
+    private ChunkFeatures(HydrologySettings settings, List<Reach> reaches, Map<Reach, Reach> plans, List<Pond> ponds, List<Pond> lakes,
+                          List<SeaInlet> inlets, int[] inletBoxes) {
+        this.brinks = new ReachGeometry.Lookup(settings.seed(), settings.seaLevel(), plans);
         this.reaches = reaches;
         this.ponds = ponds;
         this.lakes = lakes;
@@ -54,6 +56,7 @@ final class ChunkFeatures {
                                 List<RegionPlan> lakeRegionPlans, List<RegionKey> lakeRegions) {
         Links links = new Links(windowsByKey(chunkX, chunkZ, windows), settings.seaLevel());
         List<Reach> reaches = new ArrayList<>();
+        Map<Reach, Reach> plans = new IdentityHashMap<>();
         List<Pond> ponds = new ArrayList<>();
         List<SeaInlet> inlets = new ArrayList<>();
         int[] inletBoxes = new int[0];
@@ -71,11 +74,14 @@ final class ChunkFeatures {
             int before = reaches.size();
             window.index().candidates(chunkX, chunkZ, halo, reaches, ponds);
             for (int index = before; index < reaches.size(); index++) {
-                reaches.set(index, links.resolve(reaches.get(index), window.plan().key()));
+                Reach plan = reaches.get(index);
+                Reach linked = links.resolve(plan, window.plan().key());
+                reaches.set(index, linked);
+                plans.put(linked, plan);
             }
         }
         List<Pond> lakes = lakes(chunkX, chunkZ, halo, lakeRegionPlans, lakeRegions);
-        ChunkFeatures features = new ChunkFeatures(settings, reaches, ponds, lakes, inlets, inletBoxes);
+        ChunkFeatures features = new ChunkFeatures(settings, reaches, plans, ponds, lakes, inlets, inletBoxes);
         features.index(settings, chunkX, chunkZ);
         return features;
     }

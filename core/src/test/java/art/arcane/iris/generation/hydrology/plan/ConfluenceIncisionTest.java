@@ -26,6 +26,7 @@ public class ConfluenceIncisionTest {
     private static final double WALL_HEIGHT = 60D;
     private static final double WALL_FACE_REACH = 24D;
     private static final double MAX_WALL_CUT = 35D;
+    private static final double MAX_MEAN_WALL_CUT = 30D;
     private static final int MAX_COPY_DIFFERENCE = 4;
     private static PlannedScene valley;
 
@@ -67,6 +68,8 @@ public class ConfluenceIncisionTest {
     @Test
     public void majorDownAWallBesideTheValleyRiverFollowsTheWall() {
         HydrologySettings settings = settings();
+        double totalCut = 0D;
+        int feet = 0;
         for (double foot = WALL_FOOT - 4D; foot <= WALL_FOOT + 4D; foot += 1D) {
             SyntheticTerrain terrain = SyntheticTerrain.valleyBelowAWall(foot, WALL_RUN, WALL_HEIGHT);
             PlannedScene scene = PlannedScene.plan(terrain, settings, 2, 2);
@@ -91,7 +94,11 @@ public class ConfluenceIncisionTest {
             assertTrue("foot " + foot + " " + major + " is cut " + cut + " into the wall", cut <= MAX_WALL_CUT);
             double tallestFall = WALL_HEIGHT / 2D + major.tier().waterfallMinimumDrop();
             assertTrue("foot " + foot + " " + major + " falls " + largest + " blocks at once down a " + WALL_HEIGHT + "-block wall", largest <= tallestFall);
+            totalCut += cut;
+            feet++;
         }
+        double meanCut = totalCut / feet;
+        assertTrue("mean cut into the wall over " + feet + " feet is " + meanCut, meanCut <= MAX_MEAN_WALL_CUT);
     }
 
     @Test

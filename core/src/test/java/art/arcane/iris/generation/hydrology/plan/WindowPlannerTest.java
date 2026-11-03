@@ -965,20 +965,7 @@ public class WindowPlannerTest {
                 }
             }
             assertTrue("reach points crossing the sea sliver at x " + stripX + ": " + crossing, crossing > 0);
-            Map<Long, Pond> ponds = new HashMap<>();
-            for (Pond pond : scene.ponds()) {
-                ponds.put(pond.id(), pond);
-            }
-            int away = 0;
-            for (Pond pond : dry.ponds()) {
-                if (Math.abs(pond.floorX() - stripX) <= SLIVER_REACH || touchedByAChangedReach(pond, dry, scene)) {
-                    continue;
-                }
-                away++;
-                Pond kept = ponds.get(pond.id());
-                assertNotNull(pond + " away from the sea sliver at x " + stripX + " is kept", kept);
-                assertEquals(pond + " level with the sea sliver at x " + stripX, pond.level(), kept.level());
-            }
+            int away = assertPondsOffTheSliverChainAreKept(dry, scene, stripX);
             assertTrue("ponds away from the sea sliver at x " + stripX + ": " + away, away > 10);
             int cuts = deepCuts(scene);
             assertTrue("reach points cut more than " + DEEP_CUT + " below the ground with the sliver at x " + stripX + ": " + cuts + ", without it "
@@ -986,19 +973,66 @@ public class WindowPlannerTest {
         }
     }
 
-    private static boolean touchedByAChangedReach(Pond pond, PlannedScene dry, PlannedScene scene) {
-        Set<Reach> unchanged = new HashSet<>(scene.reaches());
-        for (Reach reach : dry.reaches()) {
-            if (unchanged.contains(reach)) {
+    private static int assertPondsOffTheSliverChainAreKept(PlannedScene dry, PlannedScene scene, double stripX) {
+        Map<Long, Pond> ponds = new HashMap<>();
+        for (Pond pond : scene.ponds()) {
+            ponds.put(pond.id(), pond);
+        }
+        Set<Long> exempt = pondsDownstreamOfTheSliver(dry, stripX);
+        int away = 0;
+        for (Pond pond : dry.ponds()) {
+            if (exempt.contains(pond.id())) {
                 continue;
             }
-            for (int point = 0; point < reach.xs().length; point++) {
-                if (pond.mask().nearest(reach.xs()[point], reach.zs()[point], reach.halfWidth()[point] + 2f) != null) {
-                    return true;
+            away++;
+            Pond kept = ponds.get(pond.id());
+            assertNotNull(pond + " off the sea sliver's downstream chain at x " + stripX + " is kept", kept);
+            assertEquals(pond + " level with the sea sliver at x " + stripX, pond.level(), kept.level());
+        }
+        return away;
+    }
+
+    private static Set<Long> pondsDownstreamOfTheSliver(PlannedScene dry, double stripX) {
+        Map<Long, Reach> reaches = new HashMap<>();
+        for (Reach reach : dry.reaches()) {
+            reaches.put(reach.id(), reach);
+        }
+        Set<Long> chain = new HashSet<>();
+        List<Reach> frontier = new ArrayList<>();
+        for (Reach reach : dry.reaches()) {
+            for (float x : reach.xs()) {
+                if (Math.abs(x - stripX) <= SLIVER_REACH) {
+                    chain.add(reach.id());
+                    frontier.add(reach);
+                    break;
                 }
             }
         }
-        return false;
+        Set<Long> exempt = new HashSet<>();
+        for (Pond pond : dry.ponds()) {
+            if (Math.abs(pond.floorX() - stripX) <= SLIVER_REACH) {
+                exempt.add(pond.id());
+                follow(reaches.get(pond.outletReachId()), chain, frontier);
+            }
+        }
+        for (int index = 0; index < frontier.size(); index++) {
+            Reach reach = frontier.get(index);
+            follow(reaches.get(reach.downstreamId()), chain, frontier);
+            int last = reach.xs().length - 1;
+            for (Pond pond : dry.ponds()) {
+                if (pond.mask().nearest(reach.xs()[last], reach.zs()[last], reach.halfWidth()[last] + 2f) != null) {
+                    exempt.add(pond.id());
+                    follow(reaches.get(pond.outletReachId()), chain, frontier);
+                }
+            }
+        }
+        return exempt;
+    }
+
+    private static void follow(Reach reach, Set<Long> chain, List<Reach> frontier) {
+        if (reach != null && chain.add(reach.id())) {
+            frontier.add(reach);
+        }
     }
 
     private static int deepCuts(PlannedScene scene) {

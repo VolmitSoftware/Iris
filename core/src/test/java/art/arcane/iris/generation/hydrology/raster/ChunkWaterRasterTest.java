@@ -1285,6 +1285,39 @@ public class ChunkWaterRasterTest {
     }
 
     @Test
+    public void waterfallBrinkCurvesThroughTheGuardOnGroundThatKeepsItsTongues() {
+        int natural = 92;
+        HydrologyTier tier = tier("stream", 4f, 0.5f, 8, IrisBankStyle.SMOOTH);
+        Reach reach = line(191L, tier, 0L, -20f, 8f, 60f, 30f, (x, z) -> x < 20f ? 90 : 78);
+        BrinkFrame frame = new BrinkFrame(reach);
+        int tongues = 0;
+        int horseshoes = 0;
+        for (long seed = 1L; seed <= 24L; seed++) {
+            String label = "seed " + seed + ": ";
+            Reach kept = TongueGuard.guard(reach, (x, z) -> natural, seed, SEA_LEVEL, seededSettings(seed).deformation().maxFill());
+            assertEquals(label + "the guard stops no curve", 0, kept.straightFalls().length);
+            Scene scene = new Scene(seededSettings(seed), (x, z) -> natural).reach(kept);
+            double[] positions = new double[7];
+            for (int offset = -3; offset <= 3; offset++) {
+                positions[offset + 3] = frame.rasterBrink(scene, offset);
+            }
+            double centre = positions[3];
+            double edges = (positions[0] + positions[6]) / 2D;
+            assertTrue(label + "centre " + centre + " against edges " + edges, Math.abs(centre - edges) >= 1D);
+            if (centre > edges) {
+                tongues++;
+            } else {
+                horseshoes++;
+            }
+            assertEquals(label + "leaks", 0, scene.leaks(-30, -10, 70, 50));
+            assertBanksStepOnOneLine(label, frame, scene);
+            assertRasterFollowsTheRule(label, scene, kept, seed, -30, -10, 70, 50);
+            assertTheRuleCurvesSmoothly(label, frame, kept, seed);
+        }
+        assertTrue("both tongues and horseshoes across seeds: " + tongues + " and " + horseshoes, tongues >= 4 && horseshoes >= 4);
+    }
+
+    @Test
     public void squareOnBrinkCellsStepAtMostOneBlockBetweenRows() {
         HydrologyTier tier = tier("stream", 4f, 0.5f, 8, IrisBankStyle.SMOOTH);
         Reach reach = line(201L, tier, 0L, -20f, 8f, 60f, 8f, (x, z) -> x < 20f ? 90 : 78);

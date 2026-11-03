@@ -104,7 +104,7 @@ final class PackHydrologyValidator {
             errors.add(path + " must be an object.");
             return data;
         }
-        rejectUnknownKeys(path, hydrology, IrisHydrology.class, packFolder, errors);
+        warnUnknownKeys(path, hydrology, IrisHydrology.class, packFolder, findings.warnings());
         if (!hydrology.optBoolean("enabled", false)) {
             return data;
         }
@@ -120,7 +120,7 @@ final class PackHydrologyValidator {
             return loaded;
         }
         warnMantleOff("Dimension '" + dimensionKey + "'", loadedDimension, findings.warnings());
-        validatePolicies(path, dimensionKey, loaded, loadedDimension, new PolicyFluids(fluids, seams), errors);
+        validatePolicies(path, dimensionKey, loaded, loadedDimension, new PolicyFluids(fluids, seams), errors, findings.warnings());
         warnShoreBiomesWithoutWidth(dimensionKey, loaded, loadedDimension, findings.warnings());
         if (errors.size() == reported && validateCompile(path, loadedDimension, errors)) {
             validateDecoratorBlocks(path, loaded, loadedDimension.getHydrology(), errors);
@@ -129,45 +129,45 @@ final class PackHydrologyValidator {
         return loaded;
     }
 
-    static void rejectUnknownKeys(String field, Object value, Type type, File packFolder, List<String> errors) {
-        rejectUnknownKeys(field, value, type, new KeyScan(packFolder, errors, new HashSet<>()));
+    static void warnUnknownKeys(String field, Object value, Type type, File packFolder, List<String> warnings) {
+        warnUnknownKeys(field, value, type, new KeyScan(packFolder, warnings, new HashSet<>()));
     }
 
-    private static void rejectUnknownKeys(String field, Object value, Type type, KeyScan scan) {
+    private static void warnUnknownKeys(String field, Object value, Type type, KeyScan scan) {
         Class<?> raw = TypeToken.get(type).getRawType();
         if (value instanceof JSONArray array) {
             Type element = elementType(type, raw);
             for (int index = 0; index < array.length(); index++) {
-                rejectUnknownKeys(field + "[" + index + "]", array.opt(index), element, scan);
+                warnUnknownKeys(field + "[" + index + "]", array.opt(index), element, scan);
             }
         } else if (value instanceof JSONObject object) {
             if (Map.class.isAssignableFrom(raw)) {
                 Type entry = typeArgument(type, 1);
                 for (String key : new TreeSet<>(object.keySet())) {
-                    rejectUnknownKeys(field + "." + key, object.opt(key), entry, scan);
+                    warnUnknownKeys(field + "." + key, object.opt(key), entry, scan);
                 }
             } else if (hasDeclaredKeys(raw)) {
-                rejectUnknownFields(field, object, raw, scan);
+                warnUnknownFields(field, object, raw, scan);
             }
         } else if (value instanceof String reference && reference.startsWith(SNIPPET_ROOT) && raw.isAnnotationPresent(Snippet.class)) {
-            rejectUnknownSnippetKeys(field, reference, raw, scan);
+            warnUnknownSnippetKeys(field, reference, raw, scan);
         }
     }
 
-    private static void rejectUnknownFields(String field, JSONObject object, Class<?> type, KeyScan scan) {
+    private static void warnUnknownFields(String field, JSONObject object, Class<?> type, KeyScan scan) {
         Map<String, Type> declared = declaredKeys(type);
         for (String key : new TreeSet<>(object.keySet())) {
             String child = field + "." + key;
             Type declaredType = declared.get(key);
             if (declaredType == null) {
-                scan.errors().add(child + " is not a known key, so its value would be ignored. Known keys there: " + declared.keySet() + ".");
+                scan.warnings().add(child + " is not a known key, so its value is ignored. Known keys there: " + declared.keySet() + ".");
             } else {
-                rejectUnknownKeys(child, object.opt(key), declaredType, scan);
+                warnUnknownKeys(child, object.opt(key), declaredType, scan);
             }
         }
     }
 
-    private static void rejectUnknownSnippetKeys(String field, String reference, Class<?> type, KeyScan scan) {
+    private static void warnUnknownSnippetKeys(String field, String reference, Class<?> type, KeyScan scan) {
         String base = SNIPPET_ROOT + type.getDeclaredAnnotation(Snippet.class).value() + "/";
         String snippet = reference.startsWith(base) ? reference : base + reference.substring(SNIPPET_ROOT.length());
         if (!scan.activeSnippets().add(snippet)) {
@@ -176,7 +176,7 @@ final class PackHydrologyValidator {
         File file = new File(scan.packFolder(), snippet + ".json");
         JSONObject object = file.isFile() ? PackValidationIo.readJson(file) : null;
         if (object != null) {
-            rejectUnknownFields(field + " (" + snippet + ")", object, type, scan);
+            warnUnknownFields(field + " (" + snippet + ")", object, type, scan);
         }
         scan.activeSnippets().remove(snippet);
     }
@@ -196,7 +196,9 @@ final class PackHydrologyValidator {
     }
 
     private static boolean hasDeclaredKeys(Class<?> type) {
-        return !type.isPrimitive() && !type.isEnum() && !type.isArray() && !type.getPackageName().startsWith("java.");
+        return !type.isPrimitive() && !type.isEnum() && !type.isArray() && !type.isInterface()
+                && !Modifier.isAbstract(type.getModifiers()) && !Collection.class.isAssignableFrom(type)
+                && !type.getPackageName().startsWith("java.");
     }
 
     private static Map<String, Type> declaredKeys(Class<?> type) {
@@ -383,14 +385,14 @@ final class PackHydrologyValidator {
     }
 
     private static void validatePolicies(String path, String dimensionKey, IrisData data, IrisDimension dimension, PolicyFluids fluids,
-                                         List<String> errors) {
-        rejectUnknownPolicyKeys("Dimension '" + dimensionKey + "'." + POLICY, dimension, data, errors);
+                                         List<String> errors, List<String> warnings) {
+        warnUnknownPolicyKeys("Dimension '" + dimensionKey + "'." + POLICY, dimension, data, warnings);
         validatePolicy("Dimension '" + dimensionKey + "'." + POLICY, dimension.getHydrologyPolicy(), data, fluids, path, errors);
         List<IrisRegion> regions = new ArrayList<>(dimension.getAllRegions(() -> data));
         regions.sort(Comparator.comparing(IrisRegion::getLoadKey, Comparator.nullsFirst(Comparator.naturalOrder())));
         for (IrisRegion region : regions) {
             if (region != null) {
-                rejectUnknownPolicyKeys("Region '" + region.getLoadKey() + "'." + POLICY, region, data, errors);
+                warnUnknownPolicyKeys("Region '" + region.getLoadKey() + "'." + POLICY, region, data, warnings);
                 validatePolicy("Region '" + region.getLoadKey() + "'." + POLICY, region.getHydrologyPolicy(), data, fluids, path, errors);
             }
         }
@@ -398,17 +400,17 @@ final class PackHydrologyValidator {
         biomes.sort(Comparator.comparing(IrisBiome::getLoadKey, Comparator.nullsFirst(Comparator.naturalOrder())));
         for (IrisBiome biome : biomes) {
             if (biome != null) {
-                rejectUnknownPolicyKeys("Biome '" + biome.getLoadKey() + "'." + POLICY, biome, data, errors);
+                warnUnknownPolicyKeys("Biome '" + biome.getLoadKey() + "'." + POLICY, biome, data, warnings);
                 validatePolicy("Biome '" + biome.getLoadKey() + "'." + POLICY, biome.getHydrologyPolicy(), data, fluids, path, errors);
             }
         }
     }
 
-    private static void rejectUnknownPolicyKeys(String field, IrisRegistrant owner, IrisData data, List<String> errors) {
+    private static void warnUnknownPolicyKeys(String field, IrisRegistrant owner, IrisData data, List<String> warnings) {
         File file = owner.getLoadFile();
         JSONObject json = file == null ? null : PackValidationIo.readJson(file);
         if (json != null) {
-            rejectUnknownKeys(field, json.opt(POLICY), IrisHydrologyPolicy.class, data.getDataFolder(), errors);
+            warnUnknownKeys(field, json.opt(POLICY), IrisHydrologyPolicy.class, data.getDataFolder(), warnings);
         }
     }
 
@@ -615,6 +617,6 @@ final class PackHydrologyValidator {
     private record Findings(List<String> errors, List<String> warnings) {
     }
 
-    private record KeyScan(File packFolder, List<String> errors, Set<String> activeSnippets) {
+    private record KeyScan(File packFolder, List<String> warnings, Set<String> activeSnippets) {
     }
 }

@@ -217,7 +217,7 @@ public class MantleFloatingObjectComponent extends IrisMantleComponent {
             int id = rng.i(0, Integer.MAX_VALUE);
 
             FloatingObjectPlacementTransaction transaction = new FloatingObjectPlacementTransaction(
-                    writer, placements.next(minX >> 4, minZ >> 4), placement.entersWater());
+                    writer, placements.next(minX >> 4, minZ >> 4), placement.waterRule());
             try {
                 int resultY = obj.place(xx, zz, transaction, floatingPlacement, rng, (b, bd) -> {
                     String marker = placementMarker(obj, id);
@@ -312,7 +312,7 @@ public class MantleFloatingObjectComponent extends IrisMantleComponent {
 
             IslandObjectPlacer islandPlacer = IslandObjectPlacer.top(writer, sampleProvider, entry, pickTopY);
             FloatingObjectPlacementTransaction transaction = new FloatingObjectPlacementTransaction(
-                    islandPlacer, placements.next(minX >> 4, minZ >> 4), placement.entersWater());
+                    islandPlacer, placements.next(minX >> 4, minZ >> 4), placement.waterRule());
             int id = rng.i(0, Integer.MAX_VALUE);
 
             try {
@@ -426,7 +426,7 @@ public class MantleFloatingObjectComponent extends IrisMantleComponent {
 
             IslandObjectPlacer islandPlacer = IslandObjectPlacer.bottom(writer, sampleProvider, entry, pickBottomY);
             FloatingObjectPlacementTransaction transaction = new FloatingObjectPlacementTransaction(
-                    islandPlacer, placements.next(minX >> 4, minZ >> 4), placement.entersWater());
+                    islandPlacer, placements.next(minX >> 4, minZ >> 4), placement.waterRule());
             int id = rng.i(0, Integer.MAX_VALUE);
 
             try {

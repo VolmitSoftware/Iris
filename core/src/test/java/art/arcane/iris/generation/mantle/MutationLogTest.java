@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.mantle;
 
+import art.arcane.iris.structure.object.ObjectWaterRule;
 import art.arcane.iris.testsupport.KeyedBlockState;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import org.junit.Test;
@@ -21,7 +22,8 @@ public class MutationLogTest {
                 new ObjectDestinationTransaction.SetMutation(new ObjectDestinationTransaction.DataKey(3, 70, -2, String.class), "marker", true),
                 new ObjectDestinationTransaction.CustomBlockMutation(new ObjectDestinationTransaction.DataKey(-17, 4, 40, NativeBlockState.class), state, false)));
         for (int index = 0; index < 100; index++) {
-            log.add(index, index + 1, -index, "grow" + index, (index & 1) == 0, (index & 2) == 0, (index & 4) == 0);
+            log.add(index, index + 1, -index, "grow" + index, (index & 1) == 0, (index & 2) == 0,
+                    (index & 4) == 0 ? ObjectWaterRule.ENTERS_WATER : (index & 8) == 0 ? ObjectWaterRule.FORCED : ObjectWaterRule.KEEP_OUT);
         }
 
         assertEquals(102, log.size());
@@ -41,9 +43,10 @@ public class MutationLogTest {
         assertFalse(log.custom(101));
         assertTrue(log.canopy(98));
         assertFalse(log.canopy(100));
-        assertFalse(log.entersWater(0));
-        assertTrue(log.entersWater(98));
-        assertFalse(log.entersWater(6));
+        assertEquals(ObjectWaterRule.KEEP_OUT, log.waterRule(0));
+        assertEquals(ObjectWaterRule.ENTERS_WATER, log.waterRule(98));
+        assertEquals(ObjectWaterRule.FORCED, log.waterRule(6));
+        assertEquals(ObjectWaterRule.KEEP_OUT, log.waterRule(14));
     }
 
     @Test
@@ -62,7 +65,7 @@ public class MutationLogTest {
             int z = (index * 5) - 20;
             String value = "value" + (index % 9);
             boolean canopy = index % 4 == 0;
-            log.add(x, y, z, value, false, canopy, false);
+            log.add(x, y, z, value, false, canopy, ObjectWaterRule.KEEP_OUT);
             if (index >= 10) {
                 tail.add(new ObjectDestinationTransaction.SetMutation(new ObjectDestinationTransaction.DataKey(x, y, z, String.class), value, canopy));
             }

@@ -16,6 +16,7 @@ import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.structure.object.IObjectPlacer;
 import art.arcane.iris.structure.object.IrisObject;
 import art.arcane.iris.structure.object.IrisObjectPlacement;
+import art.arcane.iris.structure.object.ObjectWaterRule;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
 import art.arcane.volmlib.util.matter.MatterCavern;
@@ -273,7 +274,7 @@ public class MantleObjectComponentWaterPlacementTest {
             when(placement.getAllowedCollisions()).thenReturn(new KList<>());
             when(placement.getForbiddenCollisions()).thenReturn(new KList<>());
             when(placement.scaleObject(any(RNG.class), any(), any())).thenReturn(object);
-            when(placement.entersWater()).thenReturn(true);
+            when(placement.waterRule()).thenReturn(ObjectWaterRule.ENTERS_WATER);
             return placement;
         }
 
@@ -283,14 +284,14 @@ public class MantleObjectComponentWaterPlacementTest {
 
         private void assertEndedUnrecorded() {
             InOrder order = inOrder(placer);
-            order.verify(placer).beginObjectPlacement(true);
+            order.verify(placer).beginObjectPlacement(ObjectWaterRule.ENTERS_WATER);
             order.verify(placer).endObjectPlacement();
             verify(placer, never()).recordObjectPlacement(anyInt());
         }
 
         private void assertRecordedThenEnded() {
             InOrder order = inOrder(placer);
-            order.verify(placer).beginObjectPlacement(true);
+            order.verify(placer).beginObjectPlacement(ObjectWaterRule.ENTERS_WATER);
             order.verify(placer).recordObjectPlacement(anyInt());
             order.verify(placer).endObjectPlacement();
         }

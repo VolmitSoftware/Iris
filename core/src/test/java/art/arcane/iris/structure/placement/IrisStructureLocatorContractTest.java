@@ -501,6 +501,46 @@ public class IrisStructureLocatorContractTest {
     }
 
     @Test
+    public void forcedSinglePiecesPlaceInTheMiddleOfARiver() {
+        Engine engine = densityEngine(1.0, false, -64, 384, -2032, 2032);
+        IrisObject object = engine.getData().load(IrisObject.class, "test:density/object", false);
+        when(object.getW()).thenReturn(10);
+        when(object.getD()).thenReturn(10);
+        IrisComplex complex = mock(IrisComplex.class);
+        when(engine.getComplex()).thenReturn(complex);
+        when(complex.allowsNewGenerationFootprint(anyInt(), anyInt(), anyInt(), anyInt())).thenReturn(true);
+        @SuppressWarnings("unchecked")
+        ProceduralStream<Double> waterHead = mock(ProceduralStream.class);
+        when(complex.getWaterHeadStream()).thenReturn(waterHead);
+        when(waterHead.get(anyDouble(), anyDouble())).thenReturn(124D);
+        when(waterHead.getDouble(anyDouble(), anyDouble())).thenReturn(124D);
+        @SuppressWarnings("unchecked")
+        ProceduralStream<WaterRole> roles = mock(ProceduralStream.class);
+        when(complex.getWaterRoleStream()).thenReturn(roles);
+        when(roles.get(anyDouble(), anyDouble())).thenReturn(WaterRole.CHANNEL);
+        @SuppressWarnings("unchecked")
+        ProceduralStream<Integer> beds = mock(ProceduralStream.class);
+        when(beds.get(anyDouble(), anyDouble())).thenReturn(120);
+        when(complex.getRoundedHeighteightStream()).thenReturn(beds);
+        when(engine.getHeight(anyInt(), anyInt(), eq(true))).thenReturn(120);
+        when(engine.getDimension().getFluidHeight()).thenReturn(63);
+        IrisStructurePlacement placement = engine.getDimension().getStructures().get(0);
+        IrisStructure structure = engine.getData().load(IrisStructure.class, "test:density", false);
+
+        assertNull("an unforced structure stays off a submerged start",
+                IrisStructureLocator.resolvePlacement(engine, placement, 3, 4));
+        placement.setUnderwater(true);
+        assertNull("an unforced structure keeps the 10% limit",
+                IrisStructureLocator.resolvePlacement(engine, placement, 3, 4));
+        placement.setUnderwater(false);
+
+        structure.setPlaceMode(ObjectPlaceMode.CENTER_HEIGHT);
+
+        assertNotNull("a forced piece places on a river column and over a river footprint",
+                IrisStructureLocator.resolvePlacement(engine, placement, 3, 4));
+    }
+
+    @Test
     public void undergroundIrisStructuresIgnoreRiversAbove() {
         Engine engine = densityEngine(1.0, true, -64, 384, -40, -20);
         IrisComplex complex = mock(IrisComplex.class);

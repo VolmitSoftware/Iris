@@ -8,6 +8,7 @@ import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.spi.PlatformRegistries;
 import art.arcane.iris.structure.object.IObjectPlacer;
+import art.arcane.iris.structure.object.ObjectWaterRule;
 import art.arcane.iris.testsupport.PlatformLeakGuard;
 import art.arcane.iris.world.storage.matter.IrisMatterSupport;
 import art.arcane.iris.world.storage.matter.TileWrapper;
@@ -173,7 +174,7 @@ public class ObjectContinuationCanopyTest {
         when(firstChunk.getOrCreate(0)).thenReturn(first);
         when(secondChunk.getOrCreate(0)).thenReturn(second);
         FloatingObjectPlacementTransaction transaction = new FloatingObjectPlacementTransaction(delegate,
-                new ObjectContinuationBundle.PlacementKey(ObjectContinuationBundle.Kind.FLOATING, 0, 0, 0), false);
+                new ObjectContinuationBundle.PlacementKey(ObjectContinuationBundle.Kind.FLOATING, 0, 0, 0), ObjectWaterRule.KEEP_OUT);
         transaction.set(15, 5, 1, trunk);
         assertTrue(transaction.beginTreeCanopy(new BlockPosition(16, 5, 1)));
         transaction.set(16, 5, 1, custom);

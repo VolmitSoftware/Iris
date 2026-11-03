@@ -5,6 +5,7 @@ import art.arcane.iris.generation.hydrology.raster.ChunkWaterRaster;
 import art.arcane.iris.generation.hydrology.raster.WaterRole;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.IrisComplex;
+import art.arcane.iris.structure.object.ObjectWaterRule;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 
 final class ObjectHydrologyVeto {
@@ -25,13 +26,13 @@ final class ObjectHydrologyVeto {
         return runtime != null && runtime.enabled() ? new ObjectHydrologyVeto(complex, runtime) : NONE;
     }
 
-    boolean keepsBlock(int x, int y, int z, NativeBlockState state, boolean entersWater) {
+    boolean keepsBlock(int x, int y, int z, NativeBlockState state, ObjectWaterRule rule) {
         NativeBlockState base = state.isCustom() && state.placementBaseState() != null ? state.placementBaseState() : state;
-        return keeps(x, y, z, base.isSolid(), entersWater);
+        return keeps(x, y, z, base.isSolid(), rule);
     }
 
-    boolean keeps(int x, int y, int z, boolean solid, boolean entersWater) {
-        if (runtime == null) {
+    boolean keeps(int x, int y, int z, boolean solid, ObjectWaterRule rule) {
+        if (runtime == null || rule == ObjectWaterRule.FORCED) {
             return false;
         }
         ChunkWaterRaster raster = runtime.raster(x >> 4, z >> 4);
@@ -42,7 +43,7 @@ final class ObjectHydrologyVeto {
         if (role == WaterRole.INLET && y >= raster.waterHead(x & 15, z & 15) && y <= complex.naturalTrueHeight(x, z)) {
             return true;
         }
-        if (solid && !entersWater && fillsWater(x, y, z)) {
+        if (solid && rule != ObjectWaterRule.ENTERS_WATER && fillsWater(x, y, z)) {
             return true;
         }
         if (role.wet()) {

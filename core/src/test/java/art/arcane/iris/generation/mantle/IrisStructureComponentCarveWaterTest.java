@@ -6,6 +6,7 @@ import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.structure.object.ObjectPlaceMode;
+import art.arcane.iris.structure.object.ObjectWaterRule;
 import art.arcane.iris.structure.placement.IrisStructure;
 import art.arcane.iris.structure.placement.IrisStructurePlacement;
 import art.arcane.iris.structure.object.IrisObject;
@@ -121,10 +122,10 @@ public class IrisStructureComponentCarveWaterTest {
         component.placePieces(writer, placement, structure, slab(), new RNG(3L));
 
         InOrder order = inOrder(writer);
-        order.verify(writer).beginObjectPlacement(false);
+        order.verify(writer).beginObjectPlacement(ObjectWaterRule.KEEP_OUT);
         order.verify(writer, calls(1)).set(anyInt(), anyInt(), anyInt(), any(NativeBlockState.class));
         order.verify(writer).endObjectPlacement();
-        order.verify(writer).beginObjectPlacement(true);
+        order.verify(writer).beginObjectPlacement(ObjectWaterRule.ENTERS_WATER);
         order.verify(writer, calls(1)).set(anyInt(), anyInt(), anyInt(), any(NativeBlockState.class));
         order.verify(writer).endObjectPlacement();
     }
@@ -151,7 +152,7 @@ public class IrisStructureComponentCarveWaterTest {
 
         assertSame(failure, thrown);
         InOrder order = inOrder(writer);
-        order.verify(writer).beginObjectPlacement(false);
+        order.verify(writer).beginObjectPlacement(ObjectWaterRule.KEEP_OUT);
         order.verify(writer).endObjectPlacement();
     }
 

@@ -18,6 +18,7 @@
 
 package art.arcane.iris.structure.placement;
 
+import art.arcane.iris.structure.object.ObjectPlaceMode;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.pack.validation.CompatPools;
 import art.arcane.iris.structure.nativegen.IrisNativeStructure;
@@ -150,6 +151,19 @@ public class IrisStructurePlacement {
             return underground ? IrisStructureAnchorMode.HEIGHT_BAND : IrisStructureAnchorMode.SURFACE;
         }
         return anchor;
+    }
+
+    public ObjectPlaceMode pieceMode(IrisStructure structure, int pieces) {
+        ObjectPlaceMode mode = structure.getPlaceMode();
+        if (isAnchoredUnderground()) {
+            return mode == ObjectPlaceMode.ORGANIC_STILT || mode == ObjectPlaceMode.CEILING_HANG
+                    ? mode : ObjectPlaceMode.STRUCTURE_PIECE;
+        }
+        return pieces == 1 && mode != ObjectPlaceMode.FLOATING ? mode : ObjectPlaceMode.STRUCTURE_PIECE;
+    }
+
+    public boolean forcesPieces(IrisStructure structure, int pieces) {
+        return pieceMode(structure, pieces) != ObjectPlaceMode.STRUCTURE_PIECE;
     }
 
     public boolean isAnchoredUnderground() {

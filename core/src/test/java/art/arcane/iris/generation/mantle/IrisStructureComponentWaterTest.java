@@ -13,6 +13,7 @@ import art.arcane.iris.structure.object.IrisObject;
 import art.arcane.iris.structure.object.IrisObjectPlacement;
 import art.arcane.iris.structure.object.IrisObjectRotation;
 import art.arcane.iris.structure.object.ObjectPlaceMode;
+import art.arcane.iris.structure.object.ObjectWaterRule;
 import art.arcane.iris.structure.placement.IrisStructure;
 import art.arcane.iris.structure.placement.IrisStructureLocator;
 import art.arcane.iris.structure.placement.IrisStructurePlacement;
@@ -104,18 +105,19 @@ public class IrisStructureComponentWaterTest {
     }
 
     @Test
-    public void forcedSinglePieceStructureStaysOutOfRiverWater() {
+    public void aForcedPieceFullyInsideARiverWritesEveryBlock() {
         world.water(WaterRole.CHANNEL, 9, 13);
 
         int failed = placeSinglePiece(new IrisStructurePlacement());
 
         assertEquals(0, failed);
-        assertFalse("the part of the piece above the water places", writes.isEmpty());
-        assertNoWaterOverwritten();
+        assertEquals("every block of the raft lands", 10, writes.size());
+        assertEquals(world.headAt(X, Z), lowestWriteAt(X, Z));
+        assertEquals(world.headAt(X - 1, Z - 1), lowestWriteAt(X - 1, Z - 1));
     }
 
     @Test
-    public void forcedSinglePieceStructureTurnedTowardsTheSlopeStaysOutOfRiverWater() {
+    public void aForcedPieceTurnedTowardsTheSlopeWritesThroughTheRiver() {
         world.water(WaterRole.CHANNEL, 9, 13);
         @SuppressWarnings("unchecked")
         ProceduralStream<Double> heights = mock(ProceduralStream.class);
@@ -126,17 +128,16 @@ public class IrisStructureComponentWaterTest {
         IrisObjectPlacement config = IrisStructureComponent.piecePlacement(new IrisStructure(), piece(object), ObjectPlaceMode.CENTER_HEIGHT);
         config.setRotateTowardsSlope(true);
 
-        writer.beginObjectPlacement(false);
+        writer.beginObjectPlacement(config.waterRule());
         int result = object.place(X, Z, writer, config, new RNG(7L), world.data());
         writer.endObjectPlacement();
 
         assertTrue(result >= 0);
-        assertFalse(writes.isEmpty());
-        assertNoWaterOverwritten();
+        assertEquals(10, writes.size());
     }
 
     @Test
-    public void aFewWetSupportColumnsDoNotStopAForcedSinglePiece() {
+    public void aForcedPieceWritesAcrossWetSupportColumns() {
         world.column(X + 1, Z, WaterRole.CHANNEL, 15, 19);
         world.column(X - 1, Z, WaterRole.SHORE, 15, 19);
         world.column(X, Z + 1, WaterRole.DAM, 15, 19);
@@ -145,14 +146,12 @@ public class IrisStructureComponentWaterTest {
 
         assertEquals(0, failed);
         int anchorLayer = lowestWriteAt(X, Z);
-        assertEquals("the anchor column keeps its block", world.floorAt(X, Z), anchorLayer);
-        assertTrue("the anchor layer sits inside the river column's water",
-                anchorLayer > world.floorAt(X + 1, Z) && anchorLayer <= world.headAt(X + 1, Z));
-        assertNoWaterOverwritten();
+        assertEquals(world.floorAt(X, Z), anchorLayer);
+        assertEquals("the river column keeps the piece's block", anchorLayer, lowestWriteAt(X + 1, Z));
     }
 
     @Test
-    public void replaceSourceKeepsAForcedSinglePieceOverWaterWithoutFailingTheChunk() {
+    public void replaceSourceKeepsAForcedPieceOverWaterWithoutFailingTheChunk() {
         world.water(WaterRole.CHANNEL, 9, 13);
         IrisStructurePlacement placement = new IrisStructurePlacement()
                 .setNativeSuppression(NativeStructureSuppression.REPLACE_SOURCE);
@@ -161,36 +160,24 @@ public class IrisStructureComponentWaterTest {
 
         IrisStructureComponent.requireAppliedPieces(resolved(placement), 0, 0, failed);
         assertEquals(0, failed);
-        assertNoWaterOverwritten();
+        assertEquals(10, writes.size());
     }
 
     @Test
-    public void replaceSourceKeepsAWaterPieceOnUnevenWaterWithoutFailingTheChunk() {
+    public void aForcedPieceWritesAcrossAFallWhetherOrNotItAllowsWater() {
         world.water(WaterRole.CHANNEL, 9, 13);
         world.column(X + 1, Z, WaterRole.CHANNEL, 9, 16);
-        IrisStructurePlacement placement = new IrisStructurePlacement()
-                .setNativeSuppression(NativeStructureSuppression.REPLACE_SOURCE)
-                .setAllowWater(true);
 
-        int failed = placeSinglePiece(placement);
+        assertEquals(0, placeSinglePiece(new IrisStructurePlacement()));
+        assertEquals(10, writes.size());
+        writes.clear();
 
-        IrisStructureComponent.requireAppliedPieces(resolved(placement), 0, 0, failed);
-        assertEquals(0, failed);
-        assertEquals("a piece that allows water fills it", world.headAt(X - 1, Z - 1), lowestWriteAt(X - 1, Z - 1));
+        assertEquals(0, placeSinglePiece(new IrisStructurePlacement().setAllowWater(true)));
+        assertEquals(10, writes.size());
     }
 
     @Test
-    public void forcedSinglePieceStructureThatAllowsWaterPlacesOnFlatRiverWater() {
-        world.water(WaterRole.CHANNEL, 9, 13);
-
-        int failed = placeSinglePiece(new IrisStructurePlacement().setAllowWater(true));
-
-        assertEquals(0, failed);
-        assertEquals(world.headAt(X, Z), lowestWriteAt(X, Z));
-    }
-
-    @Test
-    public void forcedSinglePieceStructureStillPlacesOnDryLand() {
+    public void aForcedPiecePlacesOnDryLand() {
         int failed = placeSinglePiece(new IrisStructurePlacement());
 
         assertEquals(0, failed);
@@ -198,12 +185,46 @@ public class IrisStructureComponentWaterTest {
     }
 
     @Test
-    public void objectsThatForcePlaceThemselvesStillStayOffUnevenWater() {
+    public void objectsThatForcePlaceThemselvesWriteThroughUnevenWater() {
         world.water(WaterRole.CHANNEL, 9, 13);
         world.column(X + 1, Z, WaterRole.CHANNEL, 9, 16);
         IrisObject object = HydrologyWaterFixture.raft();
+        IrisObjectPlacement config = new IrisObjectPlacement().setForcePlace(true);
 
-        int result = object.place(X, Z, writer, new IrisObjectPlacement().setForcePlace(true), new RNG(7L), world.data());
+        writer.beginObjectPlacement(config.waterRule());
+        int result = object.place(X, Z, writer, config, new RNG(7L), world.data());
+        writer.endObjectPlacement();
+
+        assertTrue(result >= 0);
+        assertEquals("every block lands over the channel", 10, writes.size());
+        assertEquals(world.headAt(X, Z), lowestWriteAt(X, Z));
+    }
+
+    @Test
+    public void unforcedPiecesKeepTheVeto() {
+        world.water(WaterRole.CHANNEL, 9, 13);
+        IrisObject object = HydrologyWaterFixture.raft();
+        IrisStructure structure = new IrisStructure().setPlaceMode(ObjectPlaceMode.STRUCTURE_PIECE);
+        int head = world.headAt(X, Z);
+        PlacedStructurePiece explicit = new PlacedStructurePiece(null, object, X, head + 1, Z, IrisObjectRotation.of(0, 0, 0),
+                X - 1, head, Z - 1, X + 1, head + 2, Z + 1);
+
+        assertEquals(0, component.placePieces(writer, new IrisStructurePlacement(), structure, new KList<>(explicit), new RNG(7L)));
+
+        assertFalse("the block above the water places", writes.isEmpty());
+        assertNoWaterOverwritten();
+        writes.clear();
+
+        assertEquals(0, component.placePieces(writer, new IrisStructurePlacement().setAllowWater(true), structure, new KList<>(explicit), new RNG(7L)));
+        assertTrue("allowWater fills the water", writes.stream().anyMatch(write -> write.y() == head));
+    }
+
+    @Test
+    public void unforcedObjectsStayOffRiverWater() {
+        world.water(WaterRole.CHANNEL, 9, 13);
+        IrisObject object = HydrologyWaterFixture.raft();
+
+        int result = object.place(X, Z, writer, new IrisObjectPlacement(), new RNG(7L), world.data());
 
         assertEquals(-1, result);
         assertTrue(writes.isEmpty());

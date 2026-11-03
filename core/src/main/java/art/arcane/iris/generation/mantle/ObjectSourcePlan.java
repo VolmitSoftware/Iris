@@ -3,6 +3,7 @@ package art.arcane.iris.generation.mantle;
 import art.arcane.iris.generation.decoration.tree.TreeBlockMaterial;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveCell;
 import art.arcane.iris.integration.Identifier;
+import art.arcane.iris.structure.object.ObjectWaterRule;
 import art.arcane.iris.world.storage.matter.IrisMatterSupport;
 import art.arcane.iris.world.storage.matter.TileWrapper;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
@@ -33,7 +34,8 @@ final class ObjectSourcePlan {
     private static final int CUSTOM_BIT = 1 << 8;
     private static final int CANOPY_BIT = 1 << 9;
     private static final int ENTERS_WATER_BIT = 1 << 10;
-    private static final int Y_SHIFT = 11;
+    private static final int FORCED_BIT = 1 << 11;
+    private static final int Y_SHIFT = 12;
     private static final int MAXIMUM_Y = (1 << (31 - Y_SHIFT)) - 1;
 
     private final long[] destinations;
@@ -91,7 +93,7 @@ final class ObjectSourcePlan {
                 throw new IllegalArgumentException("Object mutation height is outside the plan range: " + y);
             }
             cells[position] = (y << Y_SHIFT) | (log.custom(logged) ? CUSTOM_BIT : 0) | (log.canopy(logged) ? CANOPY_BIT : 0)
-                    | (log.entersWater(logged) ? ENTERS_WATER_BIT : 0) | ((log.z(logged) & 15) << 4) | (log.x(logged) & 15);
+                    | waterBits(log.waterRule(logged)) | ((log.z(logged) & 15) << 4) | (log.x(logged) & 15);
             valueIndexes[position] = table.indexOf(log.value(logged));
         }
         values = table.values.toArray();
@@ -242,8 +244,19 @@ final class ObjectSourcePlan {
         return (cell & CANOPY_BIT) != 0;
     }
 
-    static boolean entersWater(int cell) {
-        return (cell & ENTERS_WATER_BIT) != 0;
+    static ObjectWaterRule waterRule(int cell) {
+        if ((cell & FORCED_BIT) != 0) {
+            return ObjectWaterRule.FORCED;
+        }
+        return (cell & ENTERS_WATER_BIT) != 0 ? ObjectWaterRule.ENTERS_WATER : ObjectWaterRule.KEEP_OUT;
+    }
+
+    private static int waterBits(ObjectWaterRule rule) {
+        return switch (rule) {
+            case KEEP_OUT -> 0;
+            case ENTERS_WATER -> ENTERS_WATER_BIT;
+            case FORCED -> FORCED_BIT;
+        };
     }
 
     ObjectDestinationTransaction.Mutation mutationAt(int chunkX, int chunkZ, int index) {

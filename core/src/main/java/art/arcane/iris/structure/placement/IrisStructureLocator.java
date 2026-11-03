@@ -536,6 +536,11 @@ public final class IrisStructureLocator {
             // Gated out on this Minecraft version; the pack report already says why.
             return null;
         }
+        boolean submerged = !placement.resolvedAnchor().isCave() && !placement.isUnderwater()
+                && NativeStructurePlacementPlanner.isSubmerged(engine, originX, originZ);
+        if (submerged && !placement.forcesPieces(structure, 1)) {
+            return null;
+        }
         StructureGraphCompilation compilation = StructureGraphCatalog.compile(engine.getData(), structure);
         if (!compilation.isAssemblyViable()) {
             throw new IllegalStateException("Iris structure '" + selectedKey
@@ -545,6 +550,9 @@ public final class IrisStructureLocator {
         StructureAssembler assembler = StructureAssembler.forData(
                 engine.getData(), structure, new IrisPosition(originX, baseY, originZ));
         StructureAssemblyResult assembly = assembler.assemble(rng);
+        if (submerged && !placement.forcesPieces(structure, assembly.pieces().size())) {
+            return null;
+        }
         if (!requirePlacementOutput(placement, selectedKey, cx, cz,
                 assembly.hasOutput(), "runtime assembly produced " + assembly.status() + ": " + assembly.detail())) {
             return null;
@@ -593,6 +601,7 @@ public final class IrisStructureLocator {
             return null;
         }
         if (!placement.isAnchoredUnderground() && !placement.isAllowWater()
+                && !placement.forcesPieces(structure, pieces.size())
                 && !StructureWaterRules.admitsFootprint(IrisStructureWater.mantle(engine.getComplex()), pieceFootprints(pieces))) {
             return null;
         }
@@ -685,10 +694,6 @@ public final class IrisStructureLocator {
         int worldMin = engine.getMinHeight() + 1;
         int worldMax = engine.getMinHeight() + engine.getHeight() - 1;
         if (worldMin > worldMax) {
-            return null;
-        }
-        if (!placement.isUnderwater()
-                && NativeStructurePlacementPlanner.isSubmerged(engine, originX, originZ)) {
             return null;
         }
         if (placement.resolvedAnchor() == IrisStructureAnchorMode.SURFACE) {

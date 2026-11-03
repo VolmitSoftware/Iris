@@ -751,7 +751,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
                 try {
                     int placeResult = -1;
                     CaveObjectPlacementTransaction.CommitResult commitResult = CaveObjectPlacementTransaction.CommitResult.EMPTY;
-                    int continuation = writer.beginObjectPlacement(placement.entersWater());
+                    int continuation = writer.beginObjectPlacement(placement.waterRule());
                     if (carving) {
                         int caveFloorY = caveAnchor.y();
                         if (golden) {
@@ -1015,7 +1015,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
             }
             try {
                 String marker = placementMarker(v, id, "surface");
-                int continuation = writer.beginObjectPlacement(effectivePlacement.entersWater());
+                int continuation = writer.beginObjectPlacement(effectivePlacement.waterRule());
                 int result = v.place(xx, zz, placePlacer, effectivePlacement, rng, (b, data) -> {
                     if (marker != null) {
                         writer.setData(b.getX(), b.getY(), b.getZ(), marker);
@@ -1202,7 +1202,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
             IrisObjectPlacement effectivePlacement = resolveCavePlacement(objectPlacement, object, caveProfile);
 
             try {
-                int continuation = writer.beginObjectPlacement(effectivePlacement.entersWater());
+                int continuation = writer.beginObjectPlacement(effectivePlacement.waterRule());
                 ContainedPlacementResult contained = placeContainedCaveObject(
                         writer,
                         object,
@@ -1400,7 +1400,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
             }
             boolean treePlacement = isTreePlacement(v, objectPlacement);
             String marker = placementMarker(v, id, "upper");
-            int continuation = writer.beginObjectPlacement(placement.entersWater());
+            int continuation = writer.beginObjectPlacement(placement.waterRule());
             int result;
             try {
                 result = v.place(xx, anchorY, zz, writer, placement, rng, (b, data) -> {

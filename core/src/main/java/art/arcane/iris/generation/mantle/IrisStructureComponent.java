@@ -166,14 +166,13 @@ public class IrisStructureComponent extends IrisMantleComponent {
                 stilt != null && stilt.isSupportNonOccluding());
         ObjectPlaceMode mode = placement.pieceMode(structure, pieces.size());
         boolean forced = placement.forcesPieces(structure, pieces.size());
-        boolean sampledHeight = forced && !placement.isAnchoredUnderground();
         ObjectWaterRule rule = forced ? ObjectWaterRule.FORCED
                 : placement.isAllowWater() ? ObjectWaterRule.ENTERS_WATER : ObjectWaterRule.KEEP_OUT;
         int failedPieces = 0;
         writer.beginObjectPlacement(rule);
         try {
             for (PlacedStructurePiece p : pieces) {
-                if (placeObject(writer, run, p, mode, sampledHeight) == -1) {
+                if (placeObject(writer, run, p, mode, forced) == -1) {
                     failedPieces++;
                 }
             }

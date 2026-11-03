@@ -220,6 +220,25 @@ public class IrisStructureComponentWaterTest {
     }
 
     @Test
+    public void undergroundPiecesKeepTheVeto() {
+        world.water(WaterRole.CHANNEL, 9, 13);
+        IrisObject object = HydrologyWaterFixture.raft();
+        int head = world.headAt(X, Z);
+        PlacedStructurePiece explicit = new PlacedStructurePiece(null, object, X, head + 1, Z, IrisObjectRotation.of(0, 0, 0),
+                X - 1, head, Z - 1, X + 1, head + 2, Z + 1);
+        for (ObjectPlaceMode mode : List.of(ObjectPlaceMode.ORGANIC_STILT, ObjectPlaceMode.CEILING_HANG)) {
+            writes.clear();
+            IrisStructure structure = new IrisStructure().setPlaceMode(mode);
+            IrisStructurePlacement placement = new IrisStructurePlacement().setUnderground(true);
+
+            assertEquals(mode.name(), 0, component.placePieces(writer, placement, structure, new KList<>(explicit), new RNG(7L)));
+
+            assertFalse(mode.name(), writes.isEmpty());
+            assertNoWaterOverwritten();
+        }
+    }
+
+    @Test
     public void unforcedObjectsStayOffRiverWater() {
         world.water(WaterRole.CHANNEL, 9, 13);
         IrisObject object = HydrologyWaterFixture.raft();

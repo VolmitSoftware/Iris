@@ -47,6 +47,7 @@ import art.arcane.volmlib.util.stream.ProceduralStream;
 import org.junit.Test;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
@@ -54,6 +55,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -502,28 +504,7 @@ public class IrisStructureLocatorContractTest {
 
     @Test
     public void forcedSinglePiecesPlaceInTheMiddleOfARiver() {
-        Engine engine = densityEngine(1.0, false, -64, 384, -2032, 2032);
-        IrisObject object = engine.getData().load(IrisObject.class, "test:density/object", false);
-        when(object.getW()).thenReturn(10);
-        when(object.getD()).thenReturn(10);
-        IrisComplex complex = mock(IrisComplex.class);
-        when(engine.getComplex()).thenReturn(complex);
-        when(complex.allowsNewGenerationFootprint(anyInt(), anyInt(), anyInt(), anyInt())).thenReturn(true);
-        @SuppressWarnings("unchecked")
-        ProceduralStream<Double> waterHead = mock(ProceduralStream.class);
-        when(complex.getWaterHeadStream()).thenReturn(waterHead);
-        when(waterHead.get(anyDouble(), anyDouble())).thenReturn(124D);
-        when(waterHead.getDouble(anyDouble(), anyDouble())).thenReturn(124D);
-        @SuppressWarnings("unchecked")
-        ProceduralStream<WaterRole> roles = mock(ProceduralStream.class);
-        when(complex.getWaterRoleStream()).thenReturn(roles);
-        when(roles.get(anyDouble(), anyDouble())).thenReturn(WaterRole.CHANNEL);
-        @SuppressWarnings("unchecked")
-        ProceduralStream<Integer> beds = mock(ProceduralStream.class);
-        when(beds.get(anyDouble(), anyDouble())).thenReturn(120);
-        when(complex.getRoundedHeighteightStream()).thenReturn(beds);
-        when(engine.getHeight(anyInt(), anyInt(), eq(true))).thenReturn(120);
-        when(engine.getDimension().getFluidHeight()).thenReturn(63);
+        Engine engine = submergedEngine(WaterRole.CHANNEL, false, -2032, 2032);
         IrisStructurePlacement placement = engine.getDimension().getStructures().get(0);
         IrisStructure structure = engine.getData().load(IrisStructure.class, "test:density", false);
 
@@ -538,6 +519,135 @@ public class IrisStructureLocatorContractTest {
 
         assertNotNull("a forced piece places on a river column and over a river footprint",
                 IrisStructureLocator.resolvePlacement(engine, placement, 3, 4));
+    }
+
+    @Test
+    public void forcedSurfacePiecesPlaceOnOpenSea() {
+        Engine engine = submergedEngine(WaterRole.NONE, false, -2032, 2032);
+        IrisStructurePlacement placement = engine.getDimension().getStructures().get(0);
+        IrisStructure structure = engine.getData().load(IrisStructure.class, "test:density", false);
+        assertFalse(placement.isUnderwater());
+
+        assertNull("an unforced structure stays off the sea",
+                IrisStructureLocator.resolvePlacement(engine, placement, 3, 4));
+
+        structure.setPlaceMode(ObjectPlaceMode.CENTER_HEIGHT);
+
+        assertNotNull(IrisStructureLocator.resolvePlacement(engine, placement, 3, 4));
+    }
+
+    @Test
+    public void unforcedMultiPieceStartsStayOffSeaColumns() {
+        Engine engine = submergedEngine(WaterRole.NONE, false, -2032, 2032);
+        IrisStructurePlacement placement = engine.getDimension().getStructures().get(0);
+        IrisStructure structure = engine.getData().load(IrisStructure.class, "test:density", false);
+        structure.setPlaceMode(ObjectPlaceMode.CENTER_HEIGHT);
+        registerTwoPieceGraph(engine.getData(), structure, "test:density");
+
+        placement.setUnderwater(true);
+        IrisStructureLocator.ResolvedPlacement allowed = IrisStructureLocator.resolvePlacement(engine, placement, 3, 4);
+        assertNotNull(allowed);
+        assertEquals(2, allowed.pieces().size());
+        placement.setUnderwater(false);
+
+        assertNull(IrisStructureLocator.resolvePlacement(engine, placement, 3, 4));
+    }
+
+    @Test
+    public void undergroundPiecesKeepTheSubmergedCheck() {
+        for (ObjectPlaceMode mode : List.of(ObjectPlaceMode.ORGANIC_STILT, ObjectPlaceMode.CEILING_HANG)) {
+            Engine engine = submergedEngine(WaterRole.CHANNEL, true, -40, -20);
+            IrisStructurePlacement placement = engine.getDimension().getStructures().get(0);
+            IrisStructure structure = engine.getData().load(IrisStructure.class, "test:density", false);
+            structure.setPlaceMode(mode);
+
+            assertFalse(placement.forcesPieces(structure, 1));
+            assertNull(mode.name(), IrisStructureLocator.resolvePlacement(engine, placement, 3, 4));
+        }
+    }
+
+    @Test
+    public void brokenReferencesOnASubmergedStartReturnNull() {
+        Engine engine = submergedEngine(WaterRole.NONE, false, -2032, 2032);
+        IrisStructurePlacement placement = engine.getDimension().getStructures().get(0);
+        IrisStructure structure = engine.getData().load(IrisStructure.class, "test:density", false);
+        structure.setPlaceMode(ObjectPlaceMode.CENTER_HEIGHT);
+        structure.setStartPool("test:missing-pool");
+
+        assertNull("a graph that cannot assemble", IrisStructureLocator.resolvePlacement(engine, placement, 3, 4));
+
+        placement.getStructures().clear();
+        placement.getStructures().add("test:missing-structure");
+
+        assertNull("a missing structure", IrisStructureLocator.resolvePlacement(engine, placement, 3, 4));
+    }
+
+    @Test
+    public void brokenReferencesOnADryStartStillThrow() {
+        Engine engine = submergedEngine(WaterRole.NONE, false, -2032, 2032);
+        when(engine.getHeight(anyInt(), anyInt(), eq(true))).thenReturn(180);
+        IrisStructurePlacement placement = engine.getDimension().getStructures().get(0);
+        IrisStructure structure = engine.getData().load(IrisStructure.class, "test:density", false);
+        structure.setStartPool("test:missing-pool");
+
+        assertThrows(IllegalStateException.class, () -> IrisStructureLocator.resolvePlacement(engine, placement, 3, 4));
+
+        placement.getStructures().clear();
+        placement.getStructures().add("test:missing-structure");
+
+        assertThrows(IllegalStateException.class, () -> IrisStructureLocator.resolvePlacement(engine, placement, 3, 4));
+    }
+
+    private Engine submergedEngine(WaterRole role, boolean underground, int placementMin, int placementMax) {
+        Engine engine = densityEngine(1.0, underground, -64, 384, placementMin, placementMax);
+        IrisObject object = engine.getData().load(IrisObject.class, "test:density/object", false);
+        when(object.getW()).thenReturn(10);
+        when(object.getD()).thenReturn(10);
+        IrisComplex complex = mock(IrisComplex.class);
+        when(engine.getComplex()).thenReturn(complex);
+        when(complex.allowsNewGenerationFootprint(anyInt(), anyInt(), anyInt(), anyInt())).thenReturn(true);
+        @SuppressWarnings("unchecked")
+        ProceduralStream<Double> waterHead = mock(ProceduralStream.class);
+        when(complex.getWaterHeadStream()).thenReturn(waterHead);
+        when(waterHead.get(anyDouble(), anyDouble())).thenReturn(124D);
+        when(waterHead.getDouble(anyDouble(), anyDouble())).thenReturn(124D);
+        @SuppressWarnings("unchecked")
+        ProceduralStream<WaterRole> roles = mock(ProceduralStream.class);
+        when(complex.getWaterRoleStream()).thenReturn(roles);
+        when(roles.get(anyDouble(), anyDouble())).thenReturn(role);
+        @SuppressWarnings("unchecked")
+        ProceduralStream<Integer> beds = mock(ProceduralStream.class);
+        when(beds.get(anyDouble(), anyDouble())).thenReturn(120);
+        when(complex.getRoundedHeighteightStream()).thenReturn(beds);
+        when(engine.getHeight(anyInt(), anyInt(), eq(true))).thenReturn(120);
+        when(engine.getDimension().getFluidHeight()).thenReturn(63);
+        return engine;
+    }
+
+    private void registerTwoPieceGraph(IrisData data, IrisStructure structure, String prefix) {
+        registerSinglePieceGraph(data, structure, prefix);
+        String targetPool = prefix + "/target";
+        String targetPiece = prefix + "/target-piece";
+        IrisJigsawPiece start = data.load(IrisJigsawPiece.class, prefix + "/piece", false);
+        start.setRotatable(false);
+        start.getConnectors().add(new IrisJigsawConnector()
+                .setPosition(new IrisPosition(0, 0, 0))
+                .setDirection(IrisDirection.EAST_POSITIVE_X)
+                .setPool(targetPool)
+                .setName("source")
+                .setTargetName("door"));
+        IrisJigsawPiece target = new IrisJigsawPiece().setObject(prefix + "/object").setRotatable(false);
+        target.getConnectors().add(new IrisJigsawConnector()
+                .setPosition(new IrisPosition(0, 0, 0))
+                .setDirection(IrisDirection.WEST_NEGATIVE_X)
+                .setPool(targetPool)
+                .setName("door")
+                .setTargetName("unused"));
+        IrisJigsawPool pool = new IrisJigsawPool();
+        pool.getPieces().add(new IrisJigsawPieceEntry(targetPiece, 1));
+        when(data.load(IrisJigsawPool.class, targetPool, false)).thenReturn(pool);
+        when(data.load(IrisJigsawPiece.class, targetPiece, false)).thenReturn(target);
+        structure.setMaxDepth(1);
     }
 
     @Test

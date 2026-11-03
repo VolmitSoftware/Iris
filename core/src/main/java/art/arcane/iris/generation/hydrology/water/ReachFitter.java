@@ -44,10 +44,14 @@ final class ReachFitter {
     }
 
     Fitted fit(DemGrid grid, int[] cells, float[] cellCatchment, HydrologyTier tier, long shapeSeed, boolean drainsToTheSea) {
+        return fit(grid, cells, cellCatchment, tier, shapeSeed, drainsToTheSea, tier.halfWidth(cellCatchment[cellCatchment.length - 1]), MEANDER_WIDTH_SCALE, true);
+    }
+
+    Fitted fit(DemGrid grid, int[] cells, float[] cellCatchment, HydrologyTier tier, long shapeSeed, boolean drainsToTheSea, float meanderWidth, double amplitudeScale, boolean dampOnSlopes) {
         float halfWidth = tier.halfWidth(cellCatchment[cellCatchment.length - 1]);
         Line line = relax(resample(grid, cells, cellCatchment));
         Tangents tangents = tangents(line.xs(), line.zs());
-        meander(line, tangents, shapeSeed, halfWidth);
+        meander(line, tangents, shapeSeed, meanderWidth, amplitudeScale, dampOnSlopes);
         int reach = Math.max(2, (int) Math.ceil(Math.max(VALLEY_SNAP, halfWidth + 2f) / SPACING));
         Reads reads = read(line, tangents, reach);
         Fitted fitted = place(line, tangents, reads, soften(viterbi(reads, line.xs().length, reach), reads, reach), tier);
@@ -159,7 +163,7 @@ final class ReachFitter {
         return spaced;
     }
 
-    private void meander(Line line, Tangents tangents, long shapeSeed, float halfWidth) {
+    private void meander(Line line, Tangents tangents, long shapeSeed, float halfWidth, double amplitudeScale, boolean dampOnSlopes) {
         int count = line.xs().length;
         if (count < 3) {
             return;
@@ -168,11 +172,11 @@ final class ReachFitter {
         for (int wave = 0; wave < phase.length; wave++) {
             phase[wave] = 2D * Math.PI * CellHash.unit(CellHash.mix(shapeSeed, SALT_MEANDER, wave, 0));
         }
-        double amplitude = Math.clamp(MEANDER_WIDTH_SCALE * (halfWidth + 1f), MEANDER_MIN, MEANDER_MAX);
+        double amplitude = Math.clamp(amplitudeScale * (halfWidth + 1f), MEANDER_MIN, MEANDER_MAX);
         double wavelength = Math.clamp(MEANDER_WAVELENGTH_WIDTHS * 2D * (halfWidth + 1f), MEANDER_WAVELENGTH_MIN, MEANDER_WAVELENGTH_MAX);
         double ramp = Math.min(line.length() / 2D, wavelength / 2D);
         float[] open = awayFromPonds(line, tangents, (float) amplitude + halfWidth + SHORE_MARGIN);
-        double[] damping = slopeDamping(line);
+        double[] damping = dampOnSlopes ? slopeDamping(line) : null;
         float[] offsets = new float[count];
         for (int point = 1; point < count - 1; point++) {
             double s = line.distance()[point];
@@ -181,7 +185,7 @@ final class ReachFitter {
                 wave += MEANDER_WAVE_WEIGHTS[index] * StrictMath.sin(2D * Math.PI * s / (wavelength * MEANDER_WAVE_SCALES[index]) + phase[index]);
             }
             double envelope = smoothstep(s / ramp) * smoothstep((line.length() - s) / ramp);
-            offsets[point] = (float) (amplitude * envelope * damping[point] * wave * open[point]);
+            offsets[point] = (float) (amplitude * envelope * (damping == null ? 1D : damping[point]) * wave * open[point]);
         }
         for (int point = 1; point < count - 1; point++) {
             line.xs()[point] -= offsets[point] * tangents.z()[point];

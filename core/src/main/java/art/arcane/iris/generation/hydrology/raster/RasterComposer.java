@@ -178,7 +178,8 @@ final class RasterComposer {
                 u = BedProfile.position(u, -variation);
             }
             if (ground >= surface) {
-                double cone = coneSlope(steepestToWater(x, z, bank, bankEdge)) * u * bankTier.bankBand();
+                double slope = bank.reach.style()[0] == ReachStyle.TIDAL ? settings.deformation().bankSlope() : coneSlope(steepestToWater(x, z, bank, bankEdge));
+                double cone = slope * u * bankTier.bankBand();
                 cut = BankProfile.cut(bankTier.bankStyle(), surface, ground, u, cone, noise(x, z));
             } else if (ground >= settings.seaLevel()) {
                 raise = BankProfile.levee(bankTier.bankStyle(), surface, ground, u, noise(x, z), settings.deformation().maxFill());

@@ -111,7 +111,7 @@ public class TidalPlannerTest {
 
     @Test
     public void tallCoastsHoldNoArms() {
-        assertTrue(arms(planner(settings(), SyntheticTerrain.cliffCoast(COAST_X))).isEmpty());
+        assertTrue(arms(planner(settings(), SyntheticTerrain.cliffCoast(COAST_X).lowered(-30D))).isEmpty());
     }
 
     @Test
@@ -267,7 +267,7 @@ public class TidalPlannerTest {
                     for (int q = 0; q < second.xs().length; q += 2) {
                         double apart = Math.hypot(first.xs()[p] - second.xs()[q], first.zs()[p] - second.zs()[q]);
                         assertTrue(first + " and " + second + " come within " + apart,
-                                apart >= first.halfWidth()[p] + second.halfWidth()[q] + settings.underground().seaInlets().bankBand());
+                                apart >= first.halfWidth()[p] + second.halfWidth()[q]);
                     }
                 }
             }

@@ -38,7 +38,7 @@ public class HydrologySettingsTest {
     private static final int SEA_LEVEL = 62;
     private static final int MIN_Y = -64;
     private static final int MAX_Y = 320;
-    private static final long DEFAULT_FINGERPRINT = -6680786385526424170L;
+    private static final long DEFAULT_FINGERPRINT = 7426172183353655598L;
 
     @Test
     public void densityIsBoundedAndChangesThePlanIdentity() {
@@ -717,10 +717,10 @@ public class HydrologySettingsTest {
         assertTrue(inlets.enabled());
         assertEquals(192, inlets.spacing());
         assertEquals(new HydrologySettings.IntRange(64, 256), inlets.length());
-        assertEquals(28, inlets.maximumBankHeight());
-        assertEquals(new HydrologySettings.FloatRange(10f, 14f), inlets.mouthHalfWidth());
-        assertEquals(new HydrologySettings.FloatRange(2f, 3f), inlets.headHalfWidth());
-        assertEquals(1.8f, inlets.taper(), 0f);
+        assertEquals(40, inlets.maximumBankHeight());
+        assertEquals(new HydrologySettings.FloatRange(13f, 15f), inlets.mouthHalfWidth());
+        assertEquals(new HydrologySettings.FloatRange(2.5f, 3f), inlets.headHalfWidth());
+        assertEquals(1.4f, inlets.taper(), 0f);
         assertEquals(0.18f, inlets.widthVariation(), 1e-6f);
         assertEquals(4f, inlets.meanderWidth(), 0f);
         assertEquals(new HydrologySettings.IntRange(2, 5), inlets.depth());
@@ -766,7 +766,7 @@ public class HydrologySettingsTest {
 
     @Test
     public void overLongSeaInletsFailAtCompile() {
-        compile(inlets(config -> config.setLength(new KList<>(64, 447)).setMouthHalfWidth(new KList<>(10D, 16D)).setBankBand(24)));
+        compile(inlets(config -> config.setLength(new KList<>(64, 447)).setMouthHalfWidth(new KList<>(11D, 16D)).setBankBand(24)));
         IllegalArgumentException failure = assertThrows(IllegalArgumentException.class,
                 () -> compile(inlets(config -> config.setLength(new KList<>(64, 512)))));
         assertTrue(failure.getMessage(), failure.getMessage().contains("underground.seaInlets"));

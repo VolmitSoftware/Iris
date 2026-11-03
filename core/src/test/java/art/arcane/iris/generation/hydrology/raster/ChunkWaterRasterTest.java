@@ -415,6 +415,38 @@ public class ChunkWaterRasterTest {
     }
 
     @Test
+    public void tidalBanksFollowTheBandInsteadOfCuttingRaysToSteepGround() {
+        HydrologySettings settings = settings(new IrisHydrology());
+        int points = 9;
+        float[] xs = new float[points];
+        float[] zs = new float[points];
+        int[] grade = new int[points];
+        float[] halfWidth = new float[points];
+        float[] depth = new float[points];
+        ReachStyle[] style = new ReachStyle[points];
+        for (int point = 0; point < points; point++) {
+            xs[point] = -16f + point * 8f;
+            zs[point] = -8f;
+            grade[point] = SEA_LEVEL;
+            halfWidth[point] = 3f;
+            depth[point] = 3f;
+            style[point] = ReachStyle.TIDAL;
+        }
+        Reach reach = new Reach(71L, settings.tidalTier(), 0L, xs, zs, grade, halfWidth, depth, style, 0f);
+        WindowKey key = new WindowKey(0, 0);
+        IndexedWindow own = new IndexedWindow(new WindowPlan(key, List.of(reach), List.of()), ReachIndex.build(key, List.of(reach), List.of()));
+        ChunkRasterizer rasterizer = new ChunkRasterizer(settings, ChannelFluids.TIER);
+        ChunkWaterRaster ridged = rasterizer.rasterize(0, 0, (x, z) -> SEA_LEVEL + 20 + (Math.floorMod(x, 8) < 2 ? 8 : 0), List.of(own), regions(0, 0, List.of()));
+        ChunkWaterRaster plain = rasterizer.rasterize(0, 0, (x, z) -> SEA_LEVEL + 28, List.of(own), regions(0, 0, List.of()));
+        for (int lz = 0; lz < 16; lz++) {
+            for (int lx = 0; lx < 16; lx++) {
+                assertTrue("a ridge reaches no higher than the same band over plain ground at " + lx + "," + lz + ": "
+                        + ridged.terrainHeight(lx, lz) + " over " + plain.terrainHeight(lx, lz), ridged.terrainHeight(lx, lz) <= plain.terrainHeight(lx, lz));
+            }
+        }
+    }
+
+    @Test
     public void tidalReachColumnsTakeTheInletRoleAtSeaLevelBetweenBanks() {
         HydrologySettings settings = settings(new IrisHydrology());
         int points = 9;

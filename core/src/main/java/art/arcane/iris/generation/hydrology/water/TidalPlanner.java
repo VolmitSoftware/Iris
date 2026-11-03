@@ -11,10 +11,12 @@ import art.arcane.iris.generation.hydrology.plan.WindowPlanner;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.PriorityQueue;
 
 public final class TidalPlanner {
     private static final int CELL = WindowPlanner.CELL;
@@ -24,9 +26,8 @@ public final class TidalPlanner {
     private static final int BUILD_ATTEMPTS = 8;
     private static final int TRIM_PASSES = 3;
     private static final float MOUTH_ZONE = 32f;
-    private static final float END_SHARE = 0.5f;
+    private static final float END_SHARE = 0.4f;
     private static final float DIAGONAL = 1.41421356f;
-    private static final float VALLEY_WEIGHT = 0.5f;
     private static final float BESIDE_SEA_MARGIN = 10f;
     private static final float BESIDE_SEA_SHARE = 0.4f;
     private static final float TIP_LENGTH = 12f;
@@ -34,6 +35,7 @@ public final class TidalPlanner {
     private static final float SHOAL_LENGTH = 16f;
     private static final float DEEP_SHARE = 0.5f;
     private static final float SCAN_STEP = 8f;
+    private static final float HEAD_WOBBLE = 0.4f;
     private static final float WOBBLE_LONG = 57f;
     private static final float WOBBLE_SHORT = 23f;
     private static final float BESIDE_NEAR = 1f;
@@ -42,6 +44,13 @@ public final class TidalPlanner {
     private static final int LOW_RIVER = 2;
     private static final float LOW_RIVER_BAND = 4f;
     private static final float WALK_WIDTH = 4f;
+    private static final float TERRITORY_MARGIN = 8f;
+    private static final float WANDER = 12f;
+    private static final float WANDER_CELLS = 5f;
+    private static final float WAVES_PER_LENGTH = 0.5f;
+    private static final float WAVELENGTH_WIDTHS = 24f;
+    private static final double MEANDER_SCALE = 3.5D;
+    private static final long SALT_WANDER = 0x5449444c574eL;
     private static final long SALT_RANK = 0x5449444c524bL;
     private static final long SALT_ID = 0x5449444c4944L;
     private static final long SALT_SITE = 0x5449444c53L;
@@ -61,6 +70,7 @@ public final class TidalPlanner {
     private final int stride;
     private final long seed;
     private final float territory;
+    private final float mouthSpacing;
     private final Map<Long, Anchor> anchors = new LinkedHashMap<>(MEMO_SITES, 0.75f, true) {
         @Override
         protected boolean removeEldestEntry(Map.Entry<Long, Anchor> eldest) {
@@ -74,7 +84,8 @@ public final class TidalPlanner {
         this.fine = Objects.requireNonNull(fine, "fine");
         this.stride = CELL / fine.cell();
         this.seed = settings.seed();
-        this.territory = 2f * config.mouthHalfWidth().max() + config.bankBand();
+        this.territory = config.mouthHalfWidth().max() + config.headHalfWidth().max() + TERRITORY_MARGIN;
+        this.mouthSpacing = 2f * config.mouthHalfWidth().max() + config.bankBand();
     }
 
     public List<Reach> plan(WindowKey window, DemGrid natural, HydrologySampleBuffer samples, ShapedNetwork network) {
@@ -176,7 +187,7 @@ public final class TidalPlanner {
     }
 
     private List<Anchor> rivals(Anchor anchor) {
-        double reach = 2D * (config.length().max() + 2 * CELL) + territory;
+        double reach = 2D * (config.length().max() + 2 * CELL) + mouthSpacing;
         int spacing = config.spacing();
         int minSiteX = Math.floorDiv((int) Math.floor(anchor.x() - reach), spacing);
         int maxSiteX = Math.floorDiv((int) Math.ceil(anchor.x() + reach), spacing);
@@ -196,7 +207,7 @@ public final class TidalPlanner {
 
     private boolean suppressed(Anchor anchor, List<Anchor> rivals) {
         for (Anchor rival : rivals) {
-            if (rival.rank() < anchor.rank() && Math.hypot(rival.x() - anchor.x(), rival.z() - anchor.z()) < territory) {
+            if (rival.rank() < anchor.rank() && Math.hypot(rival.x() - anchor.x(), rival.z() - anchor.z()) < mouthSpacing) {
                 return true;
             }
         }
@@ -365,17 +376,32 @@ public final class TidalPlanner {
         int mouth = mouth(land, start);
         double unit = CellHash.unit(CellHash.mix(seed, SALT_LENGTH, grid.blockX(start), grid.blockZ(start)));
         float target = (float) (config.length().min() + (config.length().max() - config.length().min()) * unit);
-        List<Integer> path = new ArrayList<>();
-        path.add(mouth);
-        path.add(start);
-        int current = start;
-        float length = CELL;
         float[] height = land.samples().height();
-        while (length < target) {
+        Map<Integer, Step> reached = new HashMap<>();
+        reached.put(start, new Step(-1, 0f, CELL));
+        PriorityQueue<Integer> frontier = new PriorityQueue<>(Comparator.comparingDouble((Integer cell) -> coast[cell]).thenComparingInt(cell -> cell));
+        frontier.add(start);
+        int chosen = start;
+        float chosenCost = Float.POSITIVE_INFINITY;
+        float longest = CELL;
+        while (!frontier.isEmpty()) {
+            int current = frontier.poll();
+            Step step = reached.get(current);
+            if (step.length() >= target) {
+                float cost = step.cost() / step.length();
+                if (longest < target || cost < chosenCost) {
+                    chosen = current;
+                    chosenCost = cost;
+                    longest = step.length();
+                }
+                continue;
+            }
+            if (longest < target && step.length() > longest) {
+                longest = step.length();
+                chosen = current;
+            }
             int i = current % grid.width();
             int j = current / grid.width();
-            int best = -1;
-            float bestScore = Float.POSITIVE_INFINITY;
             for (int dj = -1; dj <= 1; dj++) {
                 for (int di = -1; di <= 1; di++) {
                     int ni = i + di;
@@ -387,28 +413,45 @@ public final class TidalPlanner {
                     if (coast[next] <= coast[current] || wet[next] || !open(land, next) || !inTerritory(anchor, rivals, grid.blockX(next), grid.blockZ(next))) {
                         continue;
                     }
-                    float score = height[next] - VALLEY_WEIGHT * (coast[next] - coast[current]);
-                    if (score < bestScore || score == bestScore && next < best) {
-                        bestScore = score;
-                        best = next;
+                    float span = di != 0 && dj != 0 ? CELL * DIAGONAL : CELL;
+                    float cost = step.cost() + span * (height[next] - settings.seaLevel() + wander(grid.blockX(next), grid.blockZ(next)));
+                    Step known = reached.get(next);
+                    if (known == null) {
+                        frontier.add(next);
+                    }
+                    if (known == null || cost < known.cost()) {
+                        reached.put(next, new Step(current, cost, step.length() + span));
                     }
                 }
             }
-            if (best < 0) {
-                break;
-            }
-            length += (float) Math.hypot(grid.blockX(best) - grid.blockX(current), grid.blockZ(best) - grid.blockZ(current));
-            path.add(best);
-            current = best;
         }
-        if (length < config.length().min() || coast[current] < END_SHARE * length) {
+        float length = reached.get(chosen).length();
+        if (length < config.length().min() || coast[chosen] < END_SHARE * length) {
             return null;
         }
-        int[] cells = new int[path.size()];
-        for (int index = 0; index < cells.length; index++) {
-            cells[index] = path.get(cells.length - 1 - index);
+        List<Integer> path = new ArrayList<>();
+        for (int cell = chosen; cell >= 0; cell = reached.get(cell).from()) {
+            path.add(cell);
         }
+        int[] cells = new int[path.size() + 1];
+        for (int index = 0; index < path.size(); index++) {
+            cells[index] = path.get(index);
+        }
+        cells[path.size()] = mouth;
         return cells;
+    }
+
+    private float wander(int x, int z) {
+        float size = WANDER_CELLS * CELL;
+        int ix = (int) Math.floor(x / size);
+        int iz = (int) Math.floor(z / size);
+        float u = x / size - ix;
+        float v = z / size - iz;
+        float a = (float) CellHash.unit(CellHash.mix(seed, SALT_WANDER, ix, iz));
+        float b = (float) CellHash.unit(CellHash.mix(seed, SALT_WANDER, ix + 1, iz));
+        float c = (float) CellHash.unit(CellHash.mix(seed, SALT_WANDER, ix, iz + 1));
+        float d = (float) CellHash.unit(CellHash.mix(seed, SALT_WANDER, ix + 1, iz + 1));
+        return WANDER * ((a + (b - a) * u) * (1f - v) + (c + (d - c) * u) * v);
     }
 
     private Reach shape(Land land, int[] cells, Anchor anchor, List<Anchor> rivals, ReachFitter fitter, ShapedNetwork network) {
@@ -421,7 +464,12 @@ public final class TidalPlanner {
         long id = CellHash.mix(CellHash.mix(seed, SALT_ID, mouthX, mouthZ), SALT_SITE, startX, startZ);
         long shape = CellHash.mix(id, SALT_SHAPE, 0, 0);
         HydrologyTier tier = settings.tidalTier();
-        ReachFitter.Fitted fitted = fitter.fit(grid, cells, new float[cells.length], tier, shape, true);
+        float walked = 0f;
+        for (int index = 1; index < cells.length; index++) {
+            walked += (float) Math.hypot(grid.blockX(cells[index]) - grid.blockX(cells[index - 1]), grid.blockZ(cells[index]) - grid.blockZ(cells[index - 1]));
+        }
+        float meanderWidth = Math.clamp(walked * WAVES_PER_LENGTH / WAVELENGTH_WIDTHS - 1f, 1f, config.meanderWidth());
+        ReachFitter.Fitted fitted = fitter.fit(grid, cells, new float[cells.length], tier, shape, true, meanderWidth, MEANDER_SCALE, false);
         ReachDraft draft = new ReachDraft(new ReachTracer.Chain(cells, ReachTracer.End.OCEAN, -1), id, tier, 0f, Integer.MIN_VALUE, fitted);
         draft.grade = new int[draft.xs.length];
         Arrays.fill(draft.grade, settings.seaLevel());
@@ -536,7 +584,7 @@ public final class TidalPlanner {
             double funnel = head + (mouth - head) * Math.pow(t, config.taper());
             double wobble = 0.65D * StrictMath.sin(2D * Math.PI * (s / WOBBLE_LONG + phaseLong)) + 0.35D * StrictMath.sin(2D * Math.PI * (s / WOBBLE_SHORT + phaseShort));
             double ends = Math.min(1f, Math.min(s, total - s) / TIP_LENGTH);
-            double shaped = funnel * (1D + config.widthVariation() * ends * wobble);
+            double shaped = funnel * (1D + config.widthVariation() * ends * (HEAD_WOBBLE + (1f - HEAD_WOBBLE) * t) * wobble);
             double tip = TIP_HALF_WIDTH + (shaped - TIP_HALF_WIDTH) * Math.min(1f, s / TIP_LENGTH);
             widths[point] = (float) Math.max(TIP_HALF_WIDTH, point == distance.length - 1 ? mouth : tip);
         }
@@ -601,7 +649,7 @@ public final class TidalPlanner {
                 boolean ocean = samples.ocean()[index];
                 boolean near = index < 4 || index == offsets.length;
                 boolean far = index >= 4 && index < offsets.length;
-                float allowed = far ? limit + 0.5f * band : limit;
+                float allowed = far ? limit + band : limit;
                 bad = !ocean && (samples.height()[index] > allowed || near && total - distance[point] > MOUTH_ZONE && samples.height()[index] < sea);
             }
             if (bad) {
@@ -656,6 +704,9 @@ public final class TidalPlanner {
                 throw new IllegalStateException("Sea inlet " + reach.id() + " of window " + window + " reaches past the next window at point " + point);
             }
         }
+    }
+
+    private record Step(int from, float cost, float length) {
     }
 
     private record Land(DemGrid grid, HydrologySampleBuffer samples) {

@@ -29,20 +29,20 @@ public class IrisSeaInlets {
     @MinNumber(2)
     @MaxNumber(128)
     @Description("Highest ground in blocks above sea level an inlet may cut through. An arm stops where its banks would pass this height, so lower values keep inlets out of hills.")
-    private int maximumBankHeight = 28;
+    private int maximumBankHeight = 40;
 
     @ArrayType(type = Double.class, min = 2)
     @Description("Half-width of the water at the sea in blocks, written as [min, max], each from 2 to 32. The min must not be below headHalfWidth max.")
-    private KList<Double> mouthHalfWidth = new KList<>(10D, 14D);
+    private KList<Double> mouthHalfWidth = new KList<>(13D, 15D);
 
     @ArrayType(type = Double.class, min = 2)
     @Description("Half-width of the water at the inland end in blocks, written as [min, max], each from 1 to 8.")
-    private KList<Double> headHalfWidth = new KList<>(2D, 3D);
+    private KList<Double> headHalfWidth = new KList<>(2.5D, 3D);
 
     @MinNumber(0.5)
     @MaxNumber(4)
     @Description("How the width falls from mouth to head. 1 narrows evenly; above 1 stays narrow further from the head and widens late near the sea; below 1 widens early.")
-    private double taper = 1.8D;
+    private double taper = 1.4D;
 
     @MinNumber(0)
     @MaxNumber(0.5)

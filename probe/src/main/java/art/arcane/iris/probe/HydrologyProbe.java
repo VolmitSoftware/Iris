@@ -167,6 +167,7 @@ public final class HydrologyProbe {
                     HydrologyBlockMetrics.Counts blocks = blockMetrics.count(key);
                     generationErrors += blocks.errors();
                     HydrologyUnderground.Counts underground = underground(key, plan);
+                    System.out.println("IRIS_HYDROLOGY_LINK wx=" + key.wx() + " wz=" + key.wz() + " unlinkedWater=" + rasterMetrics.unlinkedWater(plan));
                     HydrologyColdRuns.ColdRun cold = colds.get(key);
                     measured.add(new HydrologyReport.WindowMetrics(key, cold.millis(), cold.naturalSamples(), cold.baseSamples(),
                             plans.windowCpu(key), plans.regionCpu(key.region()), cold.depth(), plans.landTiles(key), planMetrics.rivers(key),

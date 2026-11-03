@@ -157,6 +157,29 @@ public class HydrologyMetricsTest {
     }
 
     @Test
+    public void waterAlongAReachMustStayWithinTheStreamLinkRadius() {
+        Reach reach = reach(1L, STREAM, 0L, 1000f, new int[]{60, 60}, 10f, 10f, 30f, 10f);
+        Map<Long, Column> linked = new HashMap<>();
+        for (int x = 10; x <= 30; x += 2) {
+            linked.put(HydrologyVoxels.columnKey(x, 10), new Column(WaterRole.CHANNEL, 60, 58, 1L));
+        }
+        assertEquals(0L, unlinked(reach, linked));
+
+        Map<Long, Column> gapped = new HashMap<>(linked);
+        gapped.remove(HydrologyVoxels.columnKey(20, 10));
+        assertEquals(1L, unlinked(reach, gapped));
+    }
+
+    private static long unlinked(Reach reach, Map<Long, Column> columns) {
+        WindowPlan plan = plan(WEST, List.of(reach), List.of());
+        HydrologyPlanMetrics plans = new HydrologyPlanMetrics(SETTINGS, windows(plan, plan(EAST, List.of(), List.of())), List.of(), BOTH, ignored -> {
+        });
+        HydrologyRasterMetrics metrics = new HydrologyRasterMetrics(SETTINGS, plans, rasters(columns), (x, z) -> NATURAL, BOTH, ignored -> {
+        });
+        return metrics.unlinkedWater(plan);
+    }
+
+    @Test
     public void aReachEndingInItsPondAtThePondsSnappedHeadDoesNotRise() {
         Pond odd = pond(10L, 51, square(96, 96, 3), 0L, 100, 100);
         Reach inflow = reach(4L, STREAM, 0L, 1000f, new int[]{60, 51, 51}, 60f, 100f, 80f, 100f, 100f, 100f);

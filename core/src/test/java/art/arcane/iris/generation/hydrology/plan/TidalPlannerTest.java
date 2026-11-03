@@ -180,6 +180,25 @@ public class TidalPlannerTest {
     }
 
     @Test
+    public void armsNeverGradeBanksThroughGroundTooTallForTheBand() {
+        HydrologySettings settings = settings();
+        double wallX = COAST_X + 150D;
+        SyntheticTerrain hill = SyntheticTerrain.lowCoast(COAST_X).rising(wallX, 2D);
+        double graded = 1.5D * settings.underground().seaInlets().maximumBankHeight();
+        List<Reach> arms = arms(planner(settings, hill));
+        assertFalse("a low strip still holds arms", arms.isEmpty());
+        for (Reach arm : arms) {
+            for (int point = 0; point < arm.xs().length; point++) {
+                double side = arm.halfWidth()[point] + settings.underground().seaInlets().bankBand();
+                assertTrue(arm + " grades through " + hill.natural(arm.xs()[point] + side, arm.zs()[point]),
+                        hill.natural(arm.xs()[point] + side, arm.zs()[point]) <= SEA + graded + 1D);
+            }
+            double ahead = arm.halfWidth()[0] + settings.underground().seaInlets().bankBand();
+            assertTrue(arm + " ends against a wall", hill.natural(arm.xs()[0] + ahead, arm.zs()[0]) <= SEA + graded + 1D);
+        }
+    }
+
+    @Test
     public void groundBelowTheSeaBesideAnArmCutsTheArmOffAtIt() {
         SyntheticTerrain plain = SyntheticTerrain.lowCoast(COAST_X);
         List<Reach> clean = arms(planner(settings(), plain));

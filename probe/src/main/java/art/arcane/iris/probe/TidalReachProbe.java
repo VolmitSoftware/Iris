@@ -56,6 +56,10 @@ public final class TidalReachProbe {
     private static final int CROP_MARGIN = 48;
     private static final int MONTAGE_WIDTH = 1800;
     private static final int RAIL = 5;
+    private static final int BAND_MEASURE = 32;
+    private static final int SECTION_BELOW = 12;
+    private static final int SECTION_LEVELS = 92;
+    private static final double SLOT_RISE = 16D;
     private static final Map<String, Integer> COVERS = new ConcurrentHashMap<>();
 
     private TidalReachProbe() {
@@ -73,6 +77,7 @@ public final class TidalReachProbe {
                 case "blocks" -> blocks(target, out, arguments.length > 6 ? Integer.parseInt(arguments[6]) : 6);
                 case "digest" -> digests(target, out);
                 case "rivers" -> rivers(target, out);
+                case "sections" -> sections(target, out, Integer.parseInt(arguments[6]), Integer.parseInt(arguments[7]));
                 default -> throw new IllegalArgumentException("Unknown mode " + mode);
             };
             System.out.println(LOG + " failures=" + failures);
@@ -133,16 +138,18 @@ public final class TidalReachProbe {
             long seed = target.seed();
             long[] armEdges = new long[HISTOGRAM];
             long[] riverEdges = new long[HISTOGRAM];
+            long[] armWalls = new long[HISTOGRAM];
+            long[] riverWalls = new long[HISTOGRAM];
             List<BufferedImage> crops = new ArrayList<>();
             try (PrintWriter writer = new PrintWriter(new File(out, "arms-" + seed + ".tsv"))) {
-                writer.println("seed\tid\tmouthX\tmouthZ\theadX\theadZ\tlength\tsinuosity\tstraight\tturn\tmouthHalf\theadHalf\tbesideShare\twet\tdisconnected\toverlap\tlowerDry\tcut\tseamHead\tseamTerrain\tedgeP90\tedge4");
+                writer.println("seed\tid\tmouthX\tmouthZ\theadX\theadZ\tlength\tsinuosity\tstraight\tturn\tmouthHalf\theadHalf\tbesideShare\twet\tdisconnected\toverlap\tlowerDry\tcut\tseamHead\tseamTerrain\tedgeP90\tedge4\twallP90\twall8\tslotRun\theadRise8\theadSteep");
                 for (Reach arm : arms) {
-                    ArmStats stats = armStats(arm, columns, armEdges);
+                    ArmStats stats = armStats(arm, columns, armEdges, armWalls);
                     int last = arm.xs().length - 1;
-                    writer.printf(Locale.ROOT, "%d\t%d\t%.0f\t%.0f\t%.0f\t%.0f\t%.1f\t%.3f\t%.0f\t%.1f\t%.2f\t%.2f\t%.3f\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%.0f\t%.3f%n", seed, arm.id(), arm.xs()[last], arm.zs()[last],
+                    writer.printf(Locale.ROOT, "%d\t%d\t%.0f\t%.0f\t%.0f\t%.0f\t%.1f\t%.3f\t%.0f\t%.1f\t%.2f\t%.2f\t%.3f\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%.0f\t%.3f\t%.0f\t%.3f\t%.0f\t%d\t%.0f%n", seed, arm.id(), arm.xs()[last], arm.zs()[last],
                             arm.xs()[0], arm.zs()[0], TidalReachMetrics.length(arm.xs(), arm.zs()), TidalReachMetrics.sinuosity(arm.xs(), arm.zs()),
                             TidalReachMetrics.straightRun(arm.xs(), arm.zs()), TidalReachMetrics.sharpestTurn(arm.xs(), arm.zs()), stats.mouthHalf, stats.headHalf,
-                            stats.besideShare, stats.wet, stats.disconnected, stats.overlap, stats.lowerDry, stats.cut, stats.seamHead, stats.seamTerrain, stats.edgeP90, stats.edge4);
+                            stats.besideShare, stats.wet, stats.disconnected, stats.overlap, stats.lowerDry, stats.cut, stats.seamHead, stats.seamTerrain, stats.edgeP90, stats.edge4, stats.wallP90, stats.wall8, stats.slotRun, stats.headRise8, stats.headSteep);
                     crops.add(crop(arm, columns));
                 }
             }
@@ -158,6 +165,7 @@ public final class TidalReachProbe {
                             TidalReachMetrics.straightRun(river.xs(), river.zs()), TidalReachMetrics.sharpestTurn(river.xs(), river.zs()));
                     if (measured++ < 40) {
                         edges(river, columns, riverEdges);
+                        walls(river, columns, riverWalls, BAND_MEASURE);
                     }
                 }
             }
@@ -166,6 +174,8 @@ public final class TidalReachProbe {
                 for (int step = 0; step < HISTOGRAM; step++) {
                     writer.println("arm\t" + step + "\t" + armEdges[step]);
                     writer.println("river\t" + step + "\t" + riverEdges[step]);
+                    writer.println("wallarm\t" + step + "\t" + armWalls[step]);
+                    writer.println("wallriver\t" + step + "\t" + riverWalls[step]);
                 }
             }
             if (!crops.isEmpty()) {
@@ -237,6 +247,11 @@ public final class TidalReachProbe {
         private int seamTerrain;
         private double edgeP90;
         private double edge4;
+        private double wallP90;
+        private double wall8;
+        private double slotRun;
+        private int headRise8;
+        private double headSteep;
     }
 
     private static int[] box(Reach reach, int grow) {
@@ -269,7 +284,7 @@ public final class TidalReachProbe {
         return false;
     }
 
-    private static ArmStats armStats(Reach arm, Columns columns, long[] edgeHistogram) {
+    private static ArmStats armStats(Reach arm, Columns columns, long[] edgeHistogram, long[] wallHistogram) {
         ArmStats stats = new ArmStats();
         float[] widths = arm.halfWidth();
         int points = widths.length;
@@ -349,7 +364,77 @@ public final class TidalReachProbe {
                 break;
             }
         }
+        long[] wallCounts = new long[HISTOGRAM];
+        stats.slotRun = walls(arm, columns, wallCounts, columns.plans.settings().underground().seaInlets().bankBand());
+        long wallTotal = 0L;
+        long wallHigh = 0L;
+        for (int step = 0; step < HISTOGRAM; step++) {
+            wallHistogram[step] += wallCounts[step];
+            wallTotal += wallCounts[step];
+            wallHigh += step >= 8 ? wallCounts[step] : 0L;
+        }
+        stats.wall8 = wallTotal == 0L ? 0D : wallHigh / (double) wallTotal;
+        long wallSeen = 0L;
+        for (int step = 0; step < HISTOGRAM; step++) {
+            wallSeen += wallCounts[step];
+            if (wallSeen >= 0.9D * wallTotal) {
+                stats.wallP90 = step;
+                break;
+            }
+        }
+        double headX = arm.xs()[0];
+        double headZ = arm.zs()[0];
+        int ahead = Math.min(arm.xs().length - 1, 8);
+        double span = Math.max(1e-3D, Math.hypot(headX - arm.xs()[ahead], headZ - arm.zs()[ahead]));
+        int[] forward = profile(columns, headX, headZ, (headX - arm.xs()[ahead]) / span, (headZ - arm.zs()[ahead]) / span, arm.halfWidth()[0], 32);
+        stats.headRise8 = forward[Math.min(8, forward.length - 1)] - columns.sea;
+        stats.headSteep = TidalReachMetrics.steepestRise(forward, 4);
         return stats;
+    }
+
+    private static int[] profile(Columns columns, double x, double z, double nx, double nz, double half, int length) {
+        int[] heights = new int[length + 1];
+        for (int out = 0; out <= length; out++) {
+            double d = half + out;
+            heights[out] = Math.max(columns.sea, columns.height((int) Math.floor(x + nx * d), (int) Math.floor(z + nz * d)));
+        }
+        return heights;
+    }
+
+    private static double walls(Reach reach, Columns columns, long[] histogram, int band) {
+        float[] xs = reach.xs();
+        float[] zs = reach.zs();
+        List<double[]> stations = new ArrayList<>();
+        double next = 0D;
+        double along = 0D;
+        for (int point = 1; point < xs.length; point++) {
+            along += Math.hypot(xs[point] - xs[point - 1], zs[point] - zs[point - 1]);
+            double dx = xs[point] - xs[point - 1];
+            double dz = zs[point] - zs[point - 1];
+            double span = Math.hypot(dx, dz);
+            if (along < next || span <= 0D) {
+                continue;
+            }
+            next = along + 2D;
+            double rise = Double.POSITIVE_INFINITY;
+            double[] sides = new double[2];
+            for (int side = 0; side < 2; side++) {
+                double sign = side == 0 ? 1D : -1D;
+                int[] heights = profile(columns, xs[point], zs[point], -dz / span * sign, dx / span * sign, reach.halfWidth()[point], band);
+                int surface = columns.head((int) Math.floor(xs[point]), (int) Math.floor(zs[point]));
+                int base = surface == Integer.MIN_VALUE ? heights[0] : surface;
+                sides[side] = heights[Math.min(8, band)] - base;
+                histogram[Math.clamp((long) TidalReachMetrics.steepestRise(heights, 4), 0, HISTOGRAM - 1)]++;
+            }
+            stations.add(sides);
+        }
+        double[] left = new double[stations.size()];
+        double[] right = new double[stations.size()];
+        for (int station = 0; station < left.length; station++) {
+            left[station] = stations.get(station)[0];
+            right[station] = stations.get(station)[1];
+        }
+        return TidalReachMetrics.longestSlotRun(left, right, SLOT_RISE, 2D);
     }
 
     private static void seams(Reach arm, Columns columns, int[] box, ArmStats stats) {
@@ -862,6 +947,134 @@ public final class TidalReachProbe {
             System.out.println(LOG + " seed " + target.seed() + " digest " + first + " repeat " + again + " threads " + threaded + " reversed " + reversed + " viewFailures " + viewFailures);
         }
         return failures;
+    }
+
+    private static long sections(HydrologyWindows.Target target, File out, int siteX, int siteZ) throws Exception {
+        try (RealPackProbeSupport.Workspace workspace = RealPackProbeSupport.openWorkspace(target.pack(), target.dimension(), LOG);
+             RealPackProbeSupport.EngineSession session = workspace.openEngine(target.seed(), false, "sections")) {
+            Engine engine = session.engine();
+            HydrologySettings settings = settings(engine);
+            HydrologyPlanHarness.Plans plans = plans(engine, settings, target.windows().grown(1));
+            IrisHydrologyTerrainSource terrain = new IrisHydrologyTerrainSource(engine.getComplex(), engine.getDimension(), settings, MultiBurst.hydrology,
+                    MultiBurst.hydrology.parallelism(), HydrologyBinding.UNBOUND);
+            HydrologyPlanHarness.RasterCache rasters = new HydrologyPlanHarness.RasterCache(1 << 14, plans::rasterize);
+            Columns columns = new Columns(rasters, terrain, plans, settings.seaLevel());
+            List<Reach> arms = new ArrayList<>(owned(plans, target.windows(), true));
+            Map<Long, Integer> cuts = new HashMap<>();
+            for (Reach arm : arms) {
+                cuts.put(arm.id(), armStats(arm, columns, new long[HISTOGRAM], new long[HISTOGRAM]).cut);
+            }
+            arms.sort(Comparator.comparingDouble((Reach arm) -> nearest(arm, siteX, siteZ)));
+            List<Reach> chosen = new ArrayList<>(arms.subList(0, Math.min(1, arms.size())));
+            arms.sort(Comparator.comparingInt((Reach arm) -> -cuts.get(arm.id())));
+            for (Reach arm : arms) {
+                if (chosen.size() < 4 && !chosen.contains(arm)) {
+                    chosen.add(arm);
+                }
+            }
+            int height = engine.getTarget().getHeight();
+            int sea = settings.seaLevel();
+            Set<Long> chunks = new TreeSet<>();
+            for (Reach arm : chosen) {
+                int[] box = box(arm, 64);
+                for (int chunkZ = box[1] >> 4; chunkZ <= box[3] >> 4; chunkZ++) {
+                    for (int chunkX = box[0] >> 4; chunkX <= box[2] >> 4; chunkX++) {
+                        chunks.add(key(chunkX, chunkZ));
+                    }
+                }
+            }
+            Map<Long, Slab> slabs = new ConcurrentHashMap<>();
+            Map<Long, int[]> colors = new ConcurrentHashMap<>();
+            ExecutorService pool = Executors.newFixedThreadPool(6);
+            try {
+                List<Future<?>> futures = new ArrayList<>();
+                for (long chunk : chunks) {
+                    futures.add(pool.submit(() -> {
+                        int chunkX = (int) (chunk >> 32);
+                        int chunkZ = (int) chunk;
+                        Hunk<NativeBlockState> blocks = Hunk.newArrayHunk(16, height, 16);
+                        Hunk<NativeBiome> biomes = Hunk.newArrayHunk(16, height, 16);
+                        engine.generate(chunkX << 4, chunkZ << 4, blocks, biomes, false);
+                        slabs.put(chunk, Slab.capture(blocks, height, sea));
+                        int[] painted = new int[256 * SECTION_LEVELS];
+                        for (int lz = 0; lz < 16; lz++) {
+                            for (int lx = 0; lx < 16; lx++) {
+                                for (int level = 0; level < SECTION_LEVELS; level++) {
+                                    NativeBlockState state = blocks.get(lx, sea - SECTION_BELOW + level, lz);
+                                    painted[(lz << 4 | lx) * SECTION_LEVELS + level] = state == null || state.isAir() ? 0x101820 : Slab.color(state);
+                                }
+                            }
+                        }
+                        colors.put(chunk, painted);
+                        return null;
+                    }));
+                }
+                for (Future<?> future : futures) {
+                    future.get();
+                }
+            } finally {
+                pool.shutdown();
+            }
+            for (Reach arm : chosen) {
+                ImageIO.write(sectionSheet(arm, slabs, colors, sea), "png", new File(out, "sections-" + target.seed() + "-" + Math.round(arm.xs()[0]) + "_" + Math.round(arm.zs()[0]) + ".png"));
+                ArmStats stats = armStats(arm, columns, new long[HISTOGRAM], new long[HISTOGRAM]);
+                int last = arm.xs().length - 1;
+                System.out.printf(Locale.ROOT, "%s SECTION head=%.0f,%.0f mouth=%.0f,%.0f nearestSite=%.0f length=%.0f sinuosity=%.2f cut=%d wallP90=%.0f wall8=%.3f slotRun=%.0f headRise8=%d headSteep=%.0f%n", LOG,
+                        arm.xs()[0], arm.zs()[0], arm.xs()[last], arm.zs()[last], nearest(arm, siteX, siteZ), TidalReachMetrics.length(arm.xs(), arm.zs()), TidalReachMetrics.sinuosity(arm.xs(), arm.zs()),
+                        stats.cut, stats.wallP90, stats.wall8, stats.slotRun, stats.headRise8, stats.headSteep);
+            }
+        }
+        return 0L;
+    }
+
+    private static double nearest(Reach arm, int x, int z) {
+        double best = Double.POSITIVE_INFINITY;
+        for (int point = 0; point < arm.xs().length; point++) {
+            best = Math.min(best, Math.hypot(arm.xs()[point] - x, arm.zs()[point] - z));
+        }
+        return best;
+    }
+
+    private static BufferedImage sectionSheet(Reach arm, Map<Long, Slab> slabs, Map<Long, int[]> colors, int sea) {
+        List<BufferedImage> parts = new ArrayList<>();
+        parts.add(blockCrop(arm, slabs, sea));
+        int last = arm.xs().length - 1;
+        double[] shares = {0.03D, 0.15D, 0.3D, 0.5D, 0.7D, 0.9D};
+        for (double share : shares) {
+            int point = Math.clamp(Math.round(share * last), 1, last);
+            double dx = arm.xs()[point] - arm.xs()[point - 1];
+            double dz = arm.zs()[point] - arm.zs()[point - 1];
+            double span = Math.max(1e-3D, Math.hypot(dx, dz));
+            parts.add(slice(arm.xs()[point], arm.zs()[point], -dz / span, dx / span, -64, 64, colors, Math.round(share * 100) + "% from head"));
+        }
+        int ahead = Math.min(last, 8);
+        double span = Math.max(1e-3D, Math.hypot(arm.xs()[0] - arm.xs()[ahead], arm.zs()[0] - arm.zs()[ahead]));
+        parts.add(slice(arm.xs()[0], arm.zs()[0], (arm.xs()[0] - arm.xs()[ahead]) / span, (arm.zs()[0] - arm.zs()[ahead]) / span, -32, 64, colors, "along the head"));
+        return montage(parts);
+    }
+
+    private static BufferedImage slice(double x, double z, double nx, double nz, int from, int to, Map<Long, int[]> colors, String label) {
+        int width = to - from + 1;
+        int scale = 3;
+        BufferedImage image = new BufferedImage(width * scale, SECTION_LEVELS * scale + 14, BufferedImage.TYPE_INT_RGB);
+        for (int across = 0; across < width; across++) {
+            int cx = (int) Math.floor(x + nx * (from + across));
+            int cz = (int) Math.floor(z + nz * (from + across));
+            int[] painted = colors.get(key(cx >> 4, cz >> 4));
+            for (int level = 0; level < SECTION_LEVELS; level++) {
+                int rgb = painted == null ? 0 : painted[((cz & 15) << 4 | (cx & 15)) * SECTION_LEVELS + level];
+                for (int dx = 0; dx < scale; dx++) {
+                    for (int dy = 0; dy < scale; dy++) {
+                        image.setRGB(across * scale + dx, (SECTION_LEVELS - 1 - level) * scale + dy + 14, rgb);
+                    }
+                }
+            }
+        }
+        Graphics2D graphics = image.createGraphics();
+        graphics.setColor(Color.WHITE);
+        graphics.drawString(label + " at " + Math.round(x) + "," + Math.round(z), 2, 11);
+        graphics.dispose();
+        return image;
     }
 
     private static long rivers(HydrologyWindows.Target target, File out) throws Exception {

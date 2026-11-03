@@ -45,4 +45,18 @@ public class TidalReachMetricsTest {
         assertTrue(TidalReachMetrics.straightRun(xs, zs) < 24D);
         assertEquals(1D, TidalReachMetrics.percentile(new double[]{0D, 1D, 2D}, 0.5D), 0D);
     }
+
+    @Test
+    public void slotRunFindsWallsOnBothSidesAtOnce() {
+        double[] left = {30D, 30D, 30D, 30D, 2D, 30D};
+        double[] right = {30D, 30D, 30D, 30D, 30D, 2D};
+        assertEquals(8D, TidalReachMetrics.longestSlotRun(left, right, 16D, 2D), 0D);
+        assertEquals(0D, TidalReachMetrics.longestSlotRun(new double[]{30D, 2D}, new double[]{2D, 30D}, 16D, 2D), 0D);
+    }
+
+    @Test
+    public void steepestRiseSeesASheerWallNotAGradedBank() {
+        assertEquals(30D, TidalReachMetrics.steepestRise(new int[]{0, 0, 30, 30, 30, 30, 30}, 4), 0D);
+        assertEquals(4D, TidalReachMetrics.steepestRise(new int[]{0, 1, 2, 3, 4, 5, 6}, 4), 0D);
+    }
 }

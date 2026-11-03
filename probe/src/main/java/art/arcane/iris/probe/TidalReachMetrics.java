@@ -82,6 +82,24 @@ final class TidalReachMetrics {
         return difference > 180D ? 360D - difference : difference;
     }
 
+    static double longestSlotRun(double[] left, double[] right, double rise, double step) {
+        double longest = 0D;
+        double run = 0D;
+        for (int station = 0; station < left.length; station++) {
+            run = left[station] >= rise && right[station] >= rise ? run + step : 0D;
+            longest = Math.max(longest, run);
+        }
+        return longest;
+    }
+
+    static double steepestRise(int[] heights, int span) {
+        double steepest = 0D;
+        for (int from = 0; from + span < heights.length; from++) {
+            steepest = Math.max(steepest, heights[from + span] - heights[from]);
+        }
+        return steepest;
+    }
+
     static double percentile(double[] values, double share) {
         if (values.length == 0) {
             return 0D;

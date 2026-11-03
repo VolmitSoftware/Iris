@@ -28,8 +28,8 @@ public class IrisSeaInlets {
 
     @MinNumber(2)
     @MaxNumber(128)
-    @Description("Highest ground in blocks above sea level an inlet may cut through. An arm stops where its banks would pass this height, so lower values keep inlets out of hills.")
-    private int maximumBankHeight = 40;
+    @Description("Highest ground in blocks above sea level an inlet may cut through. An arm also stays under the height its bank band can grade back without a sheer wall, about 1.7 times bankBand. It routes around or stops short of higher ground, so lower values keep inlets out of hills.")
+    private int maximumBankHeight = 44;
 
     @ArrayType(type = Double.class, min = 2)
     @Description("Half-width of the water at the sea in blocks, written as [min, max], each from 2 to 32. The min must not be below headHalfWidth max.")
@@ -61,7 +61,7 @@ public class IrisSeaInlets {
     @MinNumber(4)
     @MaxNumber(64)
     @Description("Width in blocks of the band of ground beside the water that is shaped into banks.")
-    private int bankBand = 24;
+    private int bankBand = 32;
 
     @Description("Profile of the banks across bankBand.")
     private IrisBankStyle bankStyle = IrisBankStyle.SMOOTH;

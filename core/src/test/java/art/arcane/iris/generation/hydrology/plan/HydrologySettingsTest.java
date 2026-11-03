@@ -38,7 +38,7 @@ public class HydrologySettingsTest {
     private static final int SEA_LEVEL = 62;
     private static final int MIN_Y = -64;
     private static final int MAX_Y = 320;
-    private static final long DEFAULT_FINGERPRINT = 7426172183353655598L;
+    private static final long DEFAULT_FINGERPRINT = -2724181682955020615L;
 
     @Test
     public void densityIsBoundedAndChangesThePlanIdentity() {
@@ -717,14 +717,14 @@ public class HydrologySettingsTest {
         assertTrue(inlets.enabled());
         assertEquals(192, inlets.spacing());
         assertEquals(new HydrologySettings.IntRange(64, 256), inlets.length());
-        assertEquals(40, inlets.maximumBankHeight());
+        assertEquals(44, inlets.maximumBankHeight());
         assertEquals(new HydrologySettings.FloatRange(13f, 15f), inlets.mouthHalfWidth());
         assertEquals(new HydrologySettings.FloatRange(2.5f, 3f), inlets.headHalfWidth());
         assertEquals(1.4f, inlets.taper(), 0f);
         assertEquals(0.18f, inlets.widthVariation(), 1e-6f);
         assertEquals(4f, inlets.meanderWidth(), 0f);
         assertEquals(new HydrologySettings.IntRange(2, 5), inlets.depth());
-        assertEquals(24, inlets.bankBand());
+        assertEquals(32, inlets.bankBand());
         assertEquals(IrisBankStyle.SMOOTH, inlets.bankStyle());
     }
 

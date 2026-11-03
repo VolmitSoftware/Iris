@@ -23,8 +23,8 @@ public final class TidalPlanner {
     private static final int[] SIDE_I = {1, -1, 0, 0};
     private static final int[] SIDE_J = {0, 0, 1, -1};
     private static final int MEMO_SITES = 4096;
-    private static final int BUILD_ATTEMPTS = 8;
-    private static final int TRIM_PASSES = 3;
+    private static final int BUILD_ATTEMPTS = 24;
+    private static final int TRIM_PASSES = 8;
     private static final float MOUTH_ZONE = 32f;
     private static final float END_SHARE = 0.4f;
     private static final float DIAGONAL = 1.41421356f;
@@ -39,12 +39,20 @@ public final class TidalPlanner {
     private static final float WOBBLE_LONG = 57f;
     private static final float WOBBLE_SHORT = 23f;
     private static final float BESIDE_NEAR = 1f;
-    private static final float BESIDE_FAR = 4f;
     private static final float CLEARANCE_MARGIN = 4f;
+    private static final int CLEARANCE_BAND = 24;
     private static final int LOW_RIVER = 2;
     private static final float LOW_RIVER_BAND = 4f;
     private static final float WALK_WIDTH = 4f;
+    private static final float MAX_BANK_SLOPE = 2.5f;
+    private static final float SMOOTH_STEEPEST = 1.5f;
+    private static final float BANK_FIELD_SHARE = 0.125f;
+    private static final float FAR_BANK_SHARE = 1.5f;
+    private static final float HEAD_LOOK_BACK = 16f;
     private static final float TERRITORY_MARGIN = 8f;
+    private static final float MOUTH_MARGIN = 18f;
+    private static final int PROFILE_STEP = 4;
+    private static final float CLIFF_RISE = 14f;
     private static final float WANDER = 12f;
     private static final float WANDER_CELLS = 5f;
     private static final float WAVES_PER_LENGTH = 0.5f;
@@ -69,6 +77,7 @@ public final class TidalPlanner {
     private final HeightLattice fine;
     private final int stride;
     private final long seed;
+    private final float gradedHeight;
     private final float territory;
     private final float mouthSpacing;
     private final Map<Long, Anchor> anchors = new LinkedHashMap<>(MEMO_SITES, 0.75f, true) {
@@ -84,8 +93,9 @@ public final class TidalPlanner {
         this.fine = Objects.requireNonNull(fine, "fine");
         this.stride = CELL / fine.cell();
         this.seed = settings.seed();
+        this.gradedHeight = Math.min(config.maximumBankHeight(), MAX_BANK_SLOPE * config.bankBand() / SMOOTH_STEEPEST);
         this.territory = config.mouthHalfWidth().max() + config.headHalfWidth().max() + TERRITORY_MARGIN;
-        this.mouthSpacing = 2f * config.mouthHalfWidth().max() + config.bankBand();
+        this.mouthSpacing = 2f * config.mouthHalfWidth().max() + MOUTH_MARGIN;
     }
 
     public List<Reach> plan(WindowKey window, DemGrid natural, HydrologySampleBuffer samples, ShapedNetwork network) {
@@ -101,6 +111,7 @@ public final class TidalPlanner {
         Land land = new Land(natural, samples);
         float[] coast = coastDistance(land);
         boolean[] wet = wet(natural, network);
+        banked(natural, samples, wet);
         ReachFitter fitter = new ReachFitter(fine, new PondLookup(network.ponds()));
         List<Reach> planned = new ArrayList<>();
         for (Anchor anchor : own) {
@@ -263,7 +274,7 @@ public final class TidalPlanner {
     private boolean[] wet(DemGrid grid, ShapedNetwork network) {
         boolean[] wet = new boolean[grid.values().length];
         for (Reach river : network.reaches()) {
-            float band = Math.min(river.tier().bankBand(), config.bankBand()) + CLEARANCE_MARGIN + WALK_WIDTH;
+            float band = Math.min(river.tier().bankBand(), CLEARANCE_BAND) + CLEARANCE_MARGIN + WALK_WIDTH;
             for (int point = 0; point < river.xs().length; point += 2) {
                 float apart = river.grade()[point] - settings.seaLevel() <= LOW_RIVER ? CLEARANCE_MARGIN + LOW_RIVER_BAND : band;
                 mark(grid, wet, river.xs()[point], river.zs()[point], river.halfWidth()[point] + apart);
@@ -271,7 +282,7 @@ public final class TidalPlanner {
         }
         for (Pond pond : network.ponds()) {
             PondMask mask = pond.mask();
-            float radius = 1.5f * mask.step() + Math.max(settings.ponds().shore().taper(), config.bankBand()) + CLEARANCE_MARGIN;
+            float radius = 1.5f * mask.step() + Math.max(settings.ponds().shore().taper(), CLEARANCE_BAND) + CLEARANCE_MARGIN;
             for (int j = 0; j < mask.depth(); j++) {
                 for (int i = 0; i < mask.width(); i++) {
                     if (mask.node(i, j)) {
@@ -281,6 +292,42 @@ public final class TidalPlanner {
             }
         }
         return wet;
+    }
+
+    private void banked(DemGrid grid, HydrologySampleBuffer samples, boolean[] wet) {
+        int radius = (int) Math.ceil(BANK_FIELD_SHARE * config.bankBand() / CELL);
+        int width = grid.width();
+        int depth = grid.depth();
+        float limit = settings.seaLevel() + gradedHeight;
+        boolean[] high = new boolean[width * depth];
+        for (int cell = 0; cell < high.length; cell++) {
+            high[cell] = !samples.ocean()[cell] && samples.height()[cell] > limit;
+        }
+        boolean[] across = new boolean[high.length];
+        for (int j = 0; j < depth; j++) {
+            int last = Integer.MIN_VALUE / 2;
+            for (int i = 0; i < width; i++) {
+                last = high[j * width + i] ? i : last;
+                across[j * width + i] = i - last <= radius;
+            }
+            last = Integer.MAX_VALUE / 2;
+            for (int i = width - 1; i >= 0; i--) {
+                last = high[j * width + i] ? i : last;
+                across[j * width + i] |= last - i <= radius;
+            }
+        }
+        for (int i = 0; i < width; i++) {
+            int last = Integer.MIN_VALUE / 2;
+            for (int j = 0; j < depth; j++) {
+                last = across[j * width + i] ? j : last;
+                wet[j * width + i] |= j - last <= radius;
+            }
+            last = Integer.MAX_VALUE / 2;
+            for (int j = depth - 1; j >= 0; j--) {
+                last = across[j * width + i] ? j : last;
+                wet[j * width + i] |= last - j <= radius;
+            }
+        }
     }
 
     private static void mark(DemGrid grid, boolean[] wet, float x, float z, float radius) {
@@ -312,7 +359,7 @@ public final class TidalPlanner {
     private boolean open(Land land, int cell) {
         HydrologySampleBuffer samples = land.samples();
         float height = samples.height()[cell];
-        return !samples.ocean()[cell] && height >= settings.seaLevel() + 1 && height <= settings.seaLevel() + config.maximumBankHeight()
+        return !samples.ocean()[cell] && height >= settings.seaLevel() + 1 && height <= settings.seaLevel() + gradedHeight
                 && (samples.permission()[cell] & HydrologySampleBuffer.ALLOW_STREAMS) != 0;
     }
 
@@ -519,7 +566,7 @@ public final class TidalPlanner {
         float[] widths = widths(shape, distance);
         float keep = 0f;
         for (Reach river : network.reaches()) {
-            float band = Math.min(river.tier().bankBand(), config.bankBand()) + CLEARANCE_MARGIN;
+            float band = Math.min(river.tier().bankBand(), CLEARANCE_BAND) + CLEARANCE_MARGIN;
             for (int segment = 0; segment < river.xs().length; segment++) {
                 float apart = river.grade()[segment] - settings.seaLevel() <= LOW_RIVER ? CLEARANCE_MARGIN + LOW_RIVER_BAND : band;
                 keep = Math.max(keep, blocked(xs, zs, widths, distance, river.xs()[segment], river.zs()[segment], river.halfWidth()[segment] + apart));
@@ -527,7 +574,7 @@ public final class TidalPlanner {
         }
         for (Pond pond : network.ponds()) {
             PondMask mask = pond.mask();
-            float radius = 1.5f * mask.step() + Math.max(settings.ponds().shore().taper(), config.bankBand()) + CLEARANCE_MARGIN;
+            float radius = 1.5f * mask.step() + Math.max(settings.ponds().shore().taper(), CLEARANCE_BAND) + CLEARANCE_MARGIN;
             for (int j = 0; j < mask.depth(); j++) {
                 for (int i = 0; i < mask.width(); i++) {
                     if (mask.node(i, j)) {
@@ -610,9 +657,12 @@ public final class TidalPlanner {
         float total = distance[distance.length - 1];
         float[] widths = widths(shape, distance);
         int band = config.bankBand();
-        float limit = settings.seaLevel() + config.maximumBankHeight();
-        int sea = settings.seaLevel();
-        float[] offsets = new float[8];
+        float limit = settings.seaLevel() + gradedHeight;
+        float farLimit = settings.seaLevel() + FAR_BANK_SHARE * gradedHeight;
+        int rings = band / PROFILE_STEP + 1;
+        int[] columnX = new int[2 * rings + 1];
+        int[] columnZ = new int[2 * rings + 1];
+        HydrologySampleBuffer samples = new HydrologySampleBuffer(columnX.length);
         int stops = (int) Math.ceil(total / SCAN_STEP);
         int point = xs.length - 1;
         for (int stop = 0; stop <= stops; stop++) {
@@ -620,37 +670,35 @@ public final class TidalPlanner {
             while (point > 0 && distance[point] > wanted) {
                 point--;
             }
-            float half = widths[point];
-            offsets[0] = half + BESIDE_NEAR;
-            offsets[1] = -offsets[0];
-            offsets[2] = half + BESIDE_FAR;
-            offsets[3] = -offsets[2];
-            offsets[4] = half + 0.5f * band;
-            offsets[5] = -offsets[4];
-            offsets[6] = half + band;
-            offsets[7] = -offsets[6];
             int before = Math.max(0, point - 1);
             int after = Math.min(xs.length - 1, point + 1);
             double length = Math.max(1e-3D, Math.hypot(xs[after] - xs[before], zs[after] - zs[before]));
-            double tx = (xs[after] - xs[before]) / length;
-            double tz = (zs[after] - zs[before]) / length;
-            int[] columnX = new int[offsets.length + 1];
-            int[] columnZ = new int[offsets.length + 1];
-            for (int index = 0; index < offsets.length; index++) {
-                columnX[index] = (int) Math.floor(xs[point] - offsets[index] * tz);
-                columnZ[index] = (int) Math.floor(zs[point] + offsets[index] * tx);
+            double nx = -(zs[after] - zs[before]) / length;
+            double nz = (xs[after] - xs[before]) / length;
+            for (int ring = 0; ring < rings; ring++) {
+                double out = widths[point] + BESIDE_NEAR + ring * PROFILE_STEP;
+                columnX[2 * ring] = (int) Math.floor(xs[point] + out * nx);
+                columnZ[2 * ring] = (int) Math.floor(zs[point] + out * nz);
+                columnX[2 * ring + 1] = (int) Math.floor(xs[point] - out * nx);
+                columnZ[2 * ring + 1] = (int) Math.floor(zs[point] - out * nz);
             }
-            columnX[offsets.length] = (int) Math.floor(xs[point]);
-            columnZ[offsets.length] = (int) Math.floor(zs[point]);
-            HydrologySampleBuffer samples = new HydrologySampleBuffer(columnX.length);
+            columnX[2 * rings] = (int) Math.floor(xs[point]);
+            columnZ[2 * rings] = (int) Math.floor(zs[point]);
             fine.sampleColumns(columnX, columnZ, samples);
-            boolean bad = false;
-            for (int index = 0; index < columnX.length && !bad; index++) {
-                boolean ocean = samples.ocean()[index];
-                boolean near = index < 4 || index == offsets.length;
-                boolean far = index >= 4 && index < offsets.length;
-                float allowed = far ? limit + band : limit;
-                bad = !ocean && (samples.height()[index] > allowed || near && total - distance[point] > MOUTH_ZONE && samples.height()[index] < sea);
+            boolean inland = total - distance[point] > MOUTH_ZONE;
+            boolean bad = !samples.ocean()[2 * rings] && samples.height()[2 * rings] > limit;
+            for (int ring = 0; ring < rings && !bad; ring++) {
+                for (int side = 0; side < 2 && !bad; side++) {
+                    int index = 2 * ring + side;
+                    if (samples.ocean()[index]) {
+                        continue;
+                    }
+                    float height = samples.height()[index];
+                    bad = height > (ring >= rings / 2 ? farLimit : limit) || inland && ring < 2 && height < settings.seaLevel();
+                    if (!bad && ring > 0 && !samples.ocean()[index - 2]) {
+                        bad = height - samples.height()[index - 2] >= CLIFF_RISE;
+                    }
+                }
             }
             if (bad) {
                 float keep = distance[point] + band + widths[point];
@@ -661,7 +709,50 @@ public final class TidalPlanner {
                 return total - distance[head] >= config.length().min() ? head : -1;
             }
         }
-        return 0;
+        return headFacesHighGround(xs, zs, widths, distance, limit) ? headBack(distance, total) : 0;
+    }
+
+    private boolean headFacesHighGround(float[] xs, float[] zs, float[] widths, float[] distance, float limit) {
+        int ahead = 0;
+        while (ahead < xs.length - 1 && distance[ahead] < SCAN_STEP) {
+            ahead++;
+        }
+        double length = Math.max(1e-3D, Math.hypot(xs[0] - xs[ahead], zs[0] - zs[ahead]));
+        double tx = (xs[0] - xs[ahead]) / length;
+        double tz = (zs[0] - zs[ahead]) / length;
+        int rays = 7;
+        int rings = config.bankBand() / PROFILE_STEP;
+        int[] columnX = new int[rays * rings];
+        int[] columnZ = new int[rays * rings];
+        for (int ray = 0; ray < rays; ray++) {
+            double angle = Math.toRadians(-90D + 30D * ray);
+            double dx = tx * Math.cos(angle) - tz * Math.sin(angle);
+            double dz = tx * Math.sin(angle) + tz * Math.cos(angle);
+            for (int ring = 0; ring < rings; ring++) {
+                float out = widths[0] + (ring + 1) * PROFILE_STEP;
+                columnX[ray * rings + ring] = (int) Math.floor(xs[0] + out * dx);
+                columnZ[ray * rings + ring] = (int) Math.floor(zs[0] + out * dz);
+            }
+        }
+        HydrologySampleBuffer samples = new HydrologySampleBuffer(columnX.length);
+        fine.sampleColumns(columnX, columnZ, samples);
+        for (int index = 0; index < columnX.length; index++) {
+            if (samples.ocean()[index]) {
+                continue;
+            }
+            if (samples.height()[index] > limit || index % rings > 0 && !samples.ocean()[index - 1] && samples.height()[index] - samples.height()[index - 1] >= CLIFF_RISE) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private int headBack(float[] distance, float total) {
+        int head = 0;
+        while (head < distance.length - 1 && distance[head] < HEAD_LOOK_BACK) {
+            head++;
+        }
+        return total - distance[head] >= config.length().min() ? head : -1;
     }
 
     private boolean besideSea(Reach reach) {

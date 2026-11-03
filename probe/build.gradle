@@ -326,6 +326,33 @@ tasks.register('generationOrderProbe', JavaExec) {
     }
 }
 
+tasks.register('caveFluidProbe', JavaExec) {
+    group = 'verification'
+    description = 'Generates spaced patches of real pack chunks and reports pools, lava bodies, long bodies and springs per 1000 chunks by depth band.'
+    mainClass = 'art.arcane.iris.probe.CaveFluidProbe'
+    classpath = sourceSets.main.runtimeClasspath
+    jvmArgs('--add-modules', 'jdk.incubator.vector')
+    minHeapSize = '2g'
+    maxHeapSize = '8g'
+    dependsOn(':core:compileJava')
+    doFirst {
+        Provider<String> threads = providers.gradleProperty('probeThreads').orElse('4')
+        Provider<String> patches = providers.gradleProperty('probePatches').orElse('6')
+        Provider<String> work = providers.gradleProperty('probeWork').orElse(System.getProperty('java.io.tmpdir'))
+        Map<String, Provider<String>> required = [
+            probePack: probePack,
+            probeDimension: probeDimension,
+            probeSeed: probeSeed
+        ]
+        required.each { String name, Provider<String> value ->
+            if (!value.isPresent() || value.get().isBlank()) {
+                throw new GradleException("caveFluidProbe requires -P${name}=<value>")
+            }
+        }
+        args(probePack.get(), probeDimension.get(), probeSeed.get(), patches.get(), threads.get(), work.get())
+    }
+}
+
 tasks.register('cavePoolProbe', JavaExec) {
     group = 'verification'
     description = 'Generates real pack chunks with cave pools and reports containment, pool sizes and generation-order hashes.'
@@ -406,7 +433,7 @@ tasks.register('transitionProbe', JavaExec) {
 }
 
 ['transitionProbe', 'hydrologyProbe', 'genProbe', 'generationOrderProbe', 'riverTransectProbe', 'terrain3DProbe',
- 'hydrologyBlockProbe', 'cavePoolProbe', 'seaInletProbe'].each { String taskName ->
+ 'hydrologyBlockProbe', 'cavePoolProbe', 'caveFluidProbe', 'seaInletProbe'].each { String taskName ->
     tasks.named(taskName, JavaExec).configure { JavaExec task ->
         classpath += configurations.studioProbeApi
         doFirst {

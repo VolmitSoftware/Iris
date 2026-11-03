@@ -16,6 +16,7 @@ configurations {
 dependencies {
     implementation(project(':core'))
     compileOnly(libs.spigot)
+    compileOnly(libs.lz4)
     testImplementation('junit:junit:4.13.2')
     testImplementation(libs.mockito.core)
     testImplementation(libs.gson)
@@ -106,6 +107,22 @@ tasks.register('hydrologyProbe', JavaExec) {
         }
         args(probePack.get(), probeDimension.getOrElse('-'), probeSeed.get(), probeWindows.get(),
             providers.gradleProperty('probeThreads').getOrElse('8'), probeStudio.get())
+    }
+}
+
+tasks.register('waterPerchCensus', JavaExec) {
+    group = 'verification'
+    description = 'Reads copied region files and counts source water on a solid bed beside lower ground, inside and outside structure flatten blends.'
+    mainClass = 'art.arcane.iris.probe.WaterPerchCensus'
+    classpath = sourceSets.main.runtimeClasspath
+    maxHeapSize = '6g'
+    dependsOn(':core:compileJava')
+    doFirst {
+        Provider<String> regions = providers.gradleProperty('censusRegions')
+        if (!regions.isPresent() || regions.get().isBlank()) {
+            throw new GradleException('waterPerchCensus requires -PcensusRegions=<copied region folder>')
+        }
+        args(regions.get(), providers.gradleProperty('censusPadding').getOrElse('24'))
     }
 }
 

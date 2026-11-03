@@ -1,6 +1,7 @@
 package art.arcane.iris.nativegen.v26_3_R1;
 
 import art.arcane.volmlib.nativelib.terrain.structure.StructureWater;
+import art.arcane.volmlib.nativelib.terrain.structure.StructureWaterColumn;
 
 import art.arcane.volmlib.nativelib.v26_3_R1.terrain.NativeStructureVerticalPlacer;
 
@@ -241,7 +242,7 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
 
         NativeStructureSurfaceFitter.prepareSurfaceStructures(world(blocks), area,
                 List.of(surfaceTarget(start, StructureTerrainMode.FLATTEN)),
-                (x, z) -> x < 2 ? groundY - 32 : groundY + 32, SeaSurface.NONE);
+                (x, z) -> x < 2 ? groundY - 32 : groundY + 32, SeaSurface.NONE, StructureWater.DRY);
 
         for (int x = 0; x <= 3; x++) {
             assertEquals(Blocks.GRASS_BLOCK.defaultBlockState(), state(blocks, x, groundY, 0));
@@ -269,7 +270,7 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
         put(blocks, 0, groundY - 19, 0, Blocks.DIRT.defaultBlockState());
 
         NativeStructureSurfaceFitter.prepareSurfaceStructures(world(blocks), area,
-                List.of(surfaceTarget(start, StructureTerrainMode.FLATTEN)), (x, z) -> groundY, SeaSurface.NONE);
+                List.of(surfaceTarget(start, StructureTerrainMode.FLATTEN)), (x, z) -> groundY, SeaSurface.NONE, StructureWater.DRY);
 
         for (int y = groundY - 19; y <= groundY; y++) {
             assertEquals(Blocks.DIRT.defaultBlockState(), state(blocks, 0, y, 0));
@@ -295,7 +296,7 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
         NativeStructureTerrainIntegrator.TerrainTarget target = surfaceTarget(start, StructureTerrainMode.FLATTEN);
         ((IrisStructureTerrain) target.terrain()).setHorizontalPadding(24).setFlattenRange(64);
 
-        NativeStructureSurfaceFitter.prepareSurfaceStructures(world(blocks), area, List.of(target), (px, pz) -> groundY, SeaSurface.NONE);
+        NativeStructureSurfaceFitter.prepareSurfaceStructures(world(blocks), area, List.of(target), (px, pz) -> groundY, SeaSurface.NONE, StructureWater.DRY);
 
         for (int y = groundY - 34; y <= groundY - 13; y++) {
             assertEquals("Cave at " + y, Blocks.CAVE_AIR.defaultBlockState(), state(blocks, x, y, z));
@@ -318,7 +319,7 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
         }
 
         NativeStructureSurfaceFitter.prepareSurfaceStructures(world(blocks), area,
-                List.of(surfaceTarget(start, StructureTerrainMode.FLATTEN)), (x, z) -> groundY, SeaSurface.NONE);
+                List.of(surfaceTarget(start, StructureTerrainMode.FLATTEN)), (x, z) -> groundY, SeaSurface.NONE, StructureWater.DRY);
 
         for (int y = groundY - 8; y < groundY; y++) {
             assertEquals("Foundation at " + y, Blocks.STONE.defaultBlockState(), state(blocks, 0, y, 0));
@@ -340,9 +341,9 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
         Map<BlockPos, BlockState> originalSubmerged = new HashMap<>(submerged);
 
         NativeStructureSurfaceFitter.prepareSurfaceStructures(world(buried), area,
-                List.of(surfaceTarget(start, StructureTerrainMode.FLATTEN)), (x, z) -> 100, SeaSurface.NONE);
+                List.of(surfaceTarget(start, StructureTerrainMode.FLATTEN)), (x, z) -> 100, SeaSurface.NONE, StructureWater.DRY);
         NativeStructureSurfaceFitter.prepareSurfaceStructures(world(submerged), area,
-                List.of(surfaceTarget(start, StructureTerrainMode.FLATTEN)), (x, z) -> groundY - 8, SeaSurface.NONE);
+                List.of(surfaceTarget(start, StructureTerrainMode.FLATTEN)), (x, z) -> groundY - 8, SeaSurface.NONE, StructureWater.DRY);
 
         assertEquals(originalBuried, buried);
         assertEquals(originalSubmerged, submerged);
@@ -389,12 +390,60 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
                     return method.invoke(delegate, arguments);
                 });
 
-        NativeStructureSurfaceFitter.prepareSurfaceStructures(bounded, area, List.of(target), (x, z) -> 127, SeaSurface.NONE);
+        NativeStructureSurfaceFitter.prepareSurfaceStructures(bounded, area, List.of(target), (x, z) -> 127, SeaSurface.NONE, StructureWater.DRY);
 
         assertEquals(Blocks.GOLD_BLOCK.defaultBlockState(), state(blocks, 0, 94, 0));
         assertEquals(Blocks.STONE.defaultBlockState(), state(blocks, 0, 95, 0));
         assertEquals(Blocks.STONE.defaultBlockState(), state(blocks, 0, 127, 0));
         assertTrue(state(blocks, 0, 128, 0).isAir());
+    }
+
+    @Test
+    public void flattenKeepsDryBanksAtTheWaterSurface() {
+        StructureStart start = desertStart();
+        int groundY = start.getBoundingBox().minY() - 1;
+        int streamX = start.getBoundingBox().maxX() + 6;
+        NativeStructureTerrainIntegrator.TerrainTarget target = new NativeStructureTerrainIntegrator.TerrainTarget(
+                "minecraft:village_plains", start,
+                new IrisStructureTerrain().setMode(StructureTerrainMode.FLATTEN).setHorizontalPadding(24).setFlattenRange(64));
+        assertStreamStaysBetweenItsBanks(target, streamX, start.getBoundingBox().minZ(), groundY + 8);
+    }
+
+    @Test
+    public void sourceFittingKeepsDryBanksAtTheWaterSurface() {
+        StructureStart start = desertStart(TerrainAdjustment.BEARD_THIN);
+        BoundingBox piece = start.getPieces().getFirst().getBoundingBox();
+        assertStreamStaysBetweenItsBanks(surfaceTarget(start, StructureTerrainMode.SOURCE), piece.maxX() + 3,
+                piece.minZ(), piece.minY() + 7);
+    }
+
+    private static void assertStreamStaysBetweenItsBanks(
+            NativeStructureTerrainIntegrator.TerrainTarget target, int streamX, int z, int bedY) {
+        int waterY = bedY + 1;
+        BoundingBox area = new BoundingBox(streamX - 1, 0, z, streamX + 1, 127, z);
+        Map<BlockPos, BlockState> blocks = new HashMap<>();
+        for (int x = streamX - 1; x <= streamX + 1; x++) {
+            for (int y = 0; y <= (x == streamX ? bedY : waterY); y++) {
+                put(blocks, x, y, z, Blocks.STONE.defaultBlockState());
+            }
+        }
+        put(blocks, streamX, bedY, z, Blocks.SAND.defaultBlockState());
+        put(blocks, streamX, waterY, z, Blocks.WATER.defaultBlockState());
+        StructureWater water = (x, columnZ) -> x == streamX && columnZ == z
+                ? new StructureWaterColumn(true, true, bedY, waterY) : StructureWaterColumn.DRY;
+
+        NativeStructureSurfaceFitter.prepareSurfaceStructures(world(blocks), area, List.of(target),
+                (x, columnZ) -> x == streamX && columnZ == z ? bedY : waterY, SeaSurface.NONE, water);
+
+        int top = waterY;
+        while (top >= 0 && state(blocks, streamX, top, z).getFluidState().isEmpty()) {
+            top--;
+        }
+        assertTrue("the stream goes down with its banks", top >= 0 && top < waterY);
+        assertEquals(Blocks.SAND.defaultBlockState(), state(blocks, streamX, top - 1, z));
+        assertTrue("nothing stands above the lowered water", state(blocks, streamX, waterY, z).isAir());
+        assertFalse("west bank holds the water", state(blocks, streamX - 1, top, z).isAir());
+        assertFalse("east bank holds the water", state(blocks, streamX + 1, top, z).isAir());
     }
 
     @Test
@@ -409,9 +458,9 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
         BoundingBox references = NativeStructureReferenceEnvelope.referenceBounds(start, start.getStructure(), terrain);
 
         assertEquals(-128, references.minX());
-        assertEquals(128, references.maxX());
+        assertEquals(143, references.maxX());
         assertEquals(-128, references.minZ());
-        assertEquals(128, references.maxZ());
+        assertEquals(143, references.maxZ());
         NativeStructureSurfaceFitter.FlattenAnchor anchor = new NativeStructureSurfaceFitter.FlattenAnchor(
                 new NativeStructureSurfaceFitter.SurfaceAnchor(0, 0, 0, 0, 64, 2), 128, 128);
         assertTrue(NativeStructureSurfaceFitter.resolveFlattenSurface(List.of(anchor), 127, 0, 100).range() > 0);
@@ -480,7 +529,7 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
 
         NativeStructureSurfaceFitter.prepareSurfaceStructures(world(blocks), area,
                 List.of(surfaceTarget(start, StructureTerrainMode.FLATTEN)),
-                (x, z) -> x == footprint.minX() ? 80 : 112, SeaSurface.NONE);
+                (x, z) -> x == footprint.minX() ? 80 : 112, SeaSurface.NONE, StructureWater.DRY);
 
         assertEquals(81, piece.getBoundingBox().minY());
         assertTrue(piece.attemptVanillaAlignment());
@@ -514,7 +563,7 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
         WorldGenLevel world = world(blocks);
 
         NativeStructureSurfaceFitter.prepareSurfaceStructures(world, area, List.of(target),
-                (x, z) -> x == 0 || x == 8 ? 64 : 96, SeaSurface.NONE);
+                (x, z) -> x == 0 || x == 8 ? 64 : 96, SeaSurface.NONE, StructureWater.DRY);
         NativeStructureTemplateOccupancy.OccupancyResult occupancy = NativeStructureTemplateOccupancy.resolve(
                 world, path, BlockPos.ZERO, area,
                 NativeStructurePostProcessorSurfaceTerrainTest::forbiddenTemplateManager,
@@ -558,7 +607,7 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
         WorldGenLevel world = world(chunk);
 
         NativeStructureSurfaceFitter.SurfaceTerrainPlan plan = NativeStructureSurfaceFitter.prepareSurfaceStructures(
-                world, area, List.of(target), (x, z) -> x < 4 ? 96 : 32, SeaSurface.NONE);
+                world, area, List.of(target), (x, z) -> x < 4 ? 96 : 32, SeaSurface.NONE, StructureWater.DRY);
 
         assertEquals(96, chunk.getHeight(Heightmap.Types.WORLD_SURFACE_WG, 0, 0));
         assertEquals(32, chunk.getHeight(Heightmap.Types.WORLD_SURFACE_WG, 8, 0));
@@ -618,7 +667,7 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
         WorldGenLevel world = world(chunk);
 
         NativeStructureSurfaceFitter.SurfaceTerrainPlan plan = NativeStructureSurfaceFitter.prepareSurfaceStructures(
-                world, area, List.of(target), (x, z) -> x == 0 || x == 8 ? 64 : 96, SeaSurface.NONE);
+                world, area, List.of(target), (x, z) -> x == 0 || x == 8 ? 64 : 96, SeaSurface.NONE, StructureWater.DRY);
         plan.primeHeightmaps(chunk);
         NativeStructureTemplateOccupancy.OccupancyResult occupancy = NativeStructureTemplateOccupancy.resolve(
                 world, path, BlockPos.ZERO, area,
@@ -673,7 +722,7 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
         }
         NativeStructureSurfaceFitter.SurfaceTerrainPlan plan = NativeStructureSurfaceFitter.prepareSurfaceStructures(
                 world(blocks), area, List.of(target),
-                (x, z) -> (x == 0 || x == 8) && (z == 0 || z == 8) ? 64 : 96, SeaSurface.NONE);
+                (x, z) -> (x == 0 || x == 8) && (z == 0 || z == 8) ? 64 : 96, SeaSurface.NONE, StructureWater.DRY);
 
         for (int x = 0; x <= 8; x++) {
             for (int z = 0; z <= 8; z++) {
@@ -743,7 +792,7 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
 
         NativeStructureSurfaceFitter.prepareSurfaceStructures(
                 world(blocks), area, List.of(surfaceTarget(start)),
-                (x, z) -> 64, SeaSurface.NONE);
+                (x, z) -> 64, SeaSurface.NONE, StructureWater.DRY);
 
         assertEquals(before, blocks);
     }
@@ -869,7 +918,7 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
                         new IrisStructureTerrain().setMode(StructureTerrainMode.SOURCE)));
         NativeStructureSurfaceFitter.prepareSurfaceStructures(
                 world(blocks), area, targets,
-                (x, z) -> 65, SeaSurface.NONE);
+                (x, z) -> 65, SeaSurface.NONE, StructureWater.DRY);
 
         assertEquals(Blocks.GRASS_BLOCK.defaultBlockState(), state(blocks, 1, 71, 1));
         assertEquals(Blocks.GRASS_BLOCK.defaultBlockState(), state(blocks, 11, 71, 1));
@@ -894,7 +943,7 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
 
         NativeStructureSurfaceFitter.prepareSurfaceStructures(
                 world(blocks), area, List.of(surfaceTarget(start)),
-                (x, z) -> 64, SeaSurface.NONE);
+                (x, z) -> 64, SeaSurface.NONE, StructureWater.DRY);
 
         assertEquals(Blocks.GRASS_BLOCK.defaultBlockState(), state(blocks, 0, 68, 0));
         assertEquals(Blocks.GRASS_BLOCK.defaultBlockState(), state(blocks, 15, 64, 0));
@@ -915,7 +964,7 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
 
         NativeStructureSurfaceFitter.prepareSurfaceStructures(
                 world(blocks), area, List.of(surfaceTarget(start)),
-                (x, z) -> 40, SeaSurface.NONE);
+                (x, z) -> 40, SeaSurface.NONE, StructureWater.DRY);
 
         assertEquals(Blocks.GRASS_BLOCK.defaultBlockState(), state(blocks, 0, 46, 0));
         assertEquals(Blocks.AIR.defaultBlockState(), state(blocks, 0, 47, 0));
@@ -947,7 +996,7 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
 
         NativeStructureSurfaceFitter.prepareSurfaceStructures(
                 world(blocks), area, List.of(surfaceTarget(start)),
-                (x, z) -> x == 0 ? 60 : x == 30 ? 72 : 64, SeaSurface.NONE);
+                (x, z) -> x == 0 ? 60 : x == 30 ? 72 : 64, SeaSurface.NONE, StructureWater.DRY);
 
         assertEquals(Blocks.GRASS_BLOCK.defaultBlockState(), state(blocks, 0, 61, 0));
         assertEquals(Blocks.GRASS_BLOCK.defaultBlockState(), state(blocks, 30, 71, 0));
@@ -975,7 +1024,7 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
         NativeStructureSurfaceFitter.prepareSurfaceStructures(
                 world(blocks), area,
                 List.of(surfaceTarget(start, StructureTerrainMode.VACUUM)),
-                (x, z) -> 60, SeaSurface.NONE);
+                (x, z) -> 60, SeaSurface.NONE, StructureWater.DRY);
 
         assertEquals(Blocks.AIR.defaultBlockState(), state(blocks, 0, 64, 0));
         assertEquals(Blocks.GRASS_BLOCK.defaultBlockState(), state(blocks, 0, 63, 0));
@@ -1000,7 +1049,7 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
         NativeStructureSurfaceFitter.prepareSurfaceStructures(
                 world(blocks), area,
                 List.of(surfaceTarget(start, StructureTerrainMode.VACUUM)),
-                (x, z) -> 60, SeaSurface.NONE);
+                (x, z) -> 60, SeaSurface.NONE, StructureWater.DRY);
 
         assertEquals(Blocks.GRASS_BLOCK.defaultBlockState(), state(blocks, 0, 65, 0));
         assertEquals(Blocks.DIRT.defaultBlockState(), state(blocks, 0, 64, 0));
@@ -1021,7 +1070,7 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
         NativeStructureSurfaceFitter.prepareSurfaceStructures(
                 world(blocks), area,
                 List.of(surfaceTarget(start, StructureTerrainMode.VACUUM)),
-                (x, z) -> 80, SeaSurface.NONE);
+                (x, z) -> 80, SeaSurface.NONE, StructureWater.DRY);
 
         for (int y = 61; y <= 74; y++) {
             assertFalse(state(blocks, 0, y, 0).isAir());
@@ -1046,7 +1095,7 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
         NativeStructureSurfaceFitter.prepareSurfaceStructures(
                 world(blocks), area,
                 List.of(surfaceTarget(start, StructureTerrainMode.VACUUM)),
-                (x, z) -> 79, SeaSurface.NONE);
+                (x, z) -> 79, SeaSurface.NONE, StructureWater.DRY);
 
         for (int y = 61; y <= 74; y++) {
             assertFalse(state(blocks, 0, y, 0).isAir());
@@ -1078,7 +1127,7 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
                 NativeStructureSurfaceFitter.prepareSurfaceStructures(
                         world(blocks), area,
                         List.of(surfaceTarget(start, StructureTerrainMode.VACUUM)),
-                        (x, z) -> 60, SeaSurface.NONE);
+                        (x, z) -> 60, SeaSurface.NONE, StructureWater.DRY);
         for (int y = 61; y <= 64; y++) {
             put(blocks, 0, y, 0, Blocks.CAVE_AIR.defaultBlockState());
         }
@@ -1118,7 +1167,7 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
                 NativeStructureSurfaceFitter.prepareSurfaceStructures(
                         world(blocks), area,
                         List.of(surfaceTarget(start, StructureTerrainMode.VACUUM)),
-                        (x, z) -> 60, SeaSurface.NONE);
+                        (x, z) -> 60, SeaSurface.NONE, StructureWater.DRY);
         put(blocks, 0, 65, 0, Blocks.COBBLESTONE.defaultBlockState());
 
         NativeStructureSurfaceFitter.repairVacuumFoundations(
@@ -1148,13 +1197,13 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
 
         NativeStructureSurfaceFitter.SurfaceTerrainPlan widePlan =
                 NativeStructureSurfaceFitter.prepareSurfaceStructures(
-                        world(wideBlocks), wideArea, List.of(target), (x, z) -> 60, SeaSurface.NONE);
+                        world(wideBlocks), wideArea, List.of(target), (x, z) -> 60, SeaSurface.NONE, StructureWater.DRY);
         NativeStructureSurfaceFitter.SurfaceTerrainPlan westPlan =
                 NativeStructureSurfaceFitter.prepareSurfaceStructures(
-                        world(splitBlocks), westArea, List.of(target), (x, z) -> 60, SeaSurface.NONE);
+                        world(splitBlocks), westArea, List.of(target), (x, z) -> 60, SeaSurface.NONE, StructureWater.DRY);
         NativeStructureSurfaceFitter.SurfaceTerrainPlan eastPlan =
                 NativeStructureSurfaceFitter.prepareSurfaceStructures(
-                        world(splitBlocks), eastArea, List.of(target), (x, z) -> 60, SeaSurface.NONE);
+                        world(splitBlocks), eastArea, List.of(target), (x, z) -> 60, SeaSurface.NONE, StructureWater.DRY);
         for (int x = 15; x <= 16; x++) {
             for (int y = 61; y <= 64; y++) {
                 put(wideBlocks, x, y, 0, Blocks.CAVE_AIR.defaultBlockState());
@@ -1189,7 +1238,7 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
         NativeStructureSurfaceFitter.prepareSurfaceStructures(
                 world(blocks), area,
                 List.of(surfaceTarget(start, StructureTerrainMode.VACUUM)),
-                (x, z) -> 60, SeaSurface.NONE);
+                (x, z) -> 60, SeaSurface.NONE, StructureWater.DRY);
 
         assertEquals(originalBlocks, blocks);
     }
@@ -1210,7 +1259,7 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
         NativeStructureSurfaceFitter.prepareSurfaceStructures(
                 world(blocks), area,
                 List.of(surfaceTarget(start, StructureTerrainMode.VACUUM)),
-                (x, z) -> 60, SeaSurface.NONE);
+                (x, z) -> 60, SeaSurface.NONE, StructureWater.DRY);
 
         assertEquals(originalBlocks, blocks);
     }
@@ -1234,7 +1283,7 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
         NativeStructureSurfaceFitter.prepareSurfaceStructures(
                 world(blocks), area,
                 List.of(surfaceTarget(start, StructureTerrainMode.VACUUM)),
-                (x, z) -> 60, SeaSurface.NONE);
+                (x, z) -> 60, SeaSurface.NONE, StructureWater.DRY);
 
         assertEquals(Blocks.GRASS_BLOCK.defaultBlockState(), state(blocks, 1, 66, 0));
         assertEquals(Blocks.AIR.defaultBlockState(), state(blocks, 1, 67, 0));
@@ -1259,7 +1308,7 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
         NativeStructureSurfaceFitter.prepareSurfaceStructures(
                 world(blocks), area,
                 List.of(surfaceTarget(start, StructureTerrainMode.VACUUM)),
-                (x, z) -> 60, SeaSurface.NONE);
+                (x, z) -> 60, SeaSurface.NONE, StructureWater.DRY);
 
         assertEquals(originalBlocks, blocks);
     }
@@ -1279,7 +1328,7 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
         NativeStructureSurfaceFitter.prepareSurfaceStructures(
                 world(blocks), area,
                 List.of(surfaceTarget(start, StructureTerrainMode.VACUUM)),
-                (x, z) -> 60, SeaSurface.NONE);
+                (x, z) -> 60, SeaSurface.NONE, StructureWater.DRY);
 
         assertEquals(Blocks.GRASS_BLOCK.defaultBlockState(), state(blocks, 0, 65, 0));
         assertEquals(Blocks.AIR.defaultBlockState(), state(blocks, 0, 66, 0));
@@ -1304,7 +1353,7 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
         NativeStructureSurfaceFitter.prepareSurfaceStructures(
                 world(blocks), area,
                 List.of(surfaceTarget(start, StructureTerrainMode.VACUUM)),
-                (x, z) -> 60, SeaSurface.NONE);
+                (x, z) -> 60, SeaSurface.NONE, StructureWater.DRY);
 
         assertEquals(originalBlocks, blocks);
     }
@@ -1325,7 +1374,7 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
         NativeStructureSurfaceFitter.prepareSurfaceStructures(
                 world(blocks), area,
                 List.of(surfaceTarget(start, StructureTerrainMode.VACUUM)),
-                (x, z) -> 60, SeaSurface.NONE);
+                (x, z) -> 60, SeaSurface.NONE, StructureWater.DRY);
 
         assertEquals(Blocks.GRASS_BLOCK.defaultBlockState(), state(blocks, 4, 61, 4));
     }
@@ -1343,7 +1392,7 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
         NativeStructureSurfaceFitter.prepareSurfaceStructures(
                 world(blocks), area,
                 List.of(surfaceTarget(start, StructureTerrainMode.VACUUM)),
-                (x, z) -> 50, SeaSurface.NONE);
+                (x, z) -> 50, SeaSurface.NONE, StructureWater.DRY);
 
         assertEquals(originalBlocks, blocks);
     }
@@ -1362,7 +1411,7 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
         NativeStructureSurfaceFitter.prepareSurfaceStructures(
                 world(blocks), area,
                 List.of(surfaceTarget(start, StructureTerrainMode.VACUUM)),
-                (x, z) -> 60, SeaSurface.NONE, 1);
+                (x, z) -> 60, SeaSurface.NONE, StructureWater.DRY, 1);
 
         assertEquals(originalBlocks, blocks);
     }
@@ -1386,7 +1435,7 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
         NativeStructureSurfaceFitter.prepareSurfaceStructures(
                 world(blocks), area,
                 List.of(surfaceTarget(start, StructureTerrainMode.VACUUM)),
-                (x, z) -> 60, SeaSurface.NONE);
+                (x, z) -> 60, SeaSurface.NONE, StructureWater.DRY);
 
         for (int y = 61; y <= 65; y++) {
             assertFalse(state(blocks, 10, y, 0).isAir());
@@ -1414,15 +1463,15 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
         Map<BlockPos, BlockState> reverseSplitBlocks = flatTerrain(wideArea, 60);
 
         NativeStructureSurfaceFitter.prepareSurfaceStructures(
-                world(wideBlocks), wideArea, List.of(target), (x, z) -> 60, SeaSurface.NONE);
+                world(wideBlocks), wideArea, List.of(target), (x, z) -> 60, SeaSurface.NONE, StructureWater.DRY);
         NativeStructureSurfaceFitter.prepareSurfaceStructures(
-                world(splitBlocks), westArea, List.of(target), (x, z) -> 60, SeaSurface.NONE);
+                world(splitBlocks), westArea, List.of(target), (x, z) -> 60, SeaSurface.NONE, StructureWater.DRY);
         NativeStructureSurfaceFitter.prepareSurfaceStructures(
-                world(splitBlocks), eastArea, List.of(target), (x, z) -> 60, SeaSurface.NONE);
+                world(splitBlocks), eastArea, List.of(target), (x, z) -> 60, SeaSurface.NONE, StructureWater.DRY);
         NativeStructureSurfaceFitter.prepareSurfaceStructures(
-                world(reverseSplitBlocks), eastArea, List.of(target), (x, z) -> 60, SeaSurface.NONE);
+                world(reverseSplitBlocks), eastArea, List.of(target), (x, z) -> 60, SeaSurface.NONE, StructureWater.DRY);
         NativeStructureSurfaceFitter.prepareSurfaceStructures(
-                world(reverseSplitBlocks), westArea, List.of(target), (x, z) -> 60, SeaSurface.NONE);
+                world(reverseSplitBlocks), westArea, List.of(target), (x, z) -> 60, SeaSurface.NONE, StructureWater.DRY);
 
         assertEquals(wideBlocks, splitBlocks);
         assertEquals(wideBlocks, reverseSplitBlocks);
@@ -1886,7 +1935,7 @@ public class NativeStructurePostProcessorSurfaceTerrainTest {
         List<NativeStructureTerrainIntegrator.TerrainTarget> targets =
                 List.of(surfaceTarget(start));
         NativeStructureSurfaceFitter.prepareSurfaceStructures(
-                world, area, targets, (x, z) -> 60, SeaSurface.NONE);
+                world, area, targets, (x, z) -> 60, SeaSurface.NONE, StructureWater.DRY);
 
         assertEquals(Blocks.GRASS_BLOCK.defaultBlockState(), state(blocks, 2, 62, 2));
         assertEquals(Blocks.AIR.defaultBlockState(), state(blocks, 2, 65, 2));

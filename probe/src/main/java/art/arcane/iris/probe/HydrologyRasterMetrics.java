@@ -11,7 +11,11 @@ import art.arcane.iris.generation.hydrology.water.PondKind;
 import art.arcane.iris.generation.hydrology.water.Reach;
 import art.arcane.iris.generation.hydrology.water.ReachStyle;
 import art.arcane.iris.generation.hydrology.raster.NaturalHeights;
+import art.arcane.volmlib.nativelib.terrain.structure.StructureStreamLowering;
 
+import java.util.ArrayDeque;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.function.Consumer;
 
 final class HydrologyRasterMetrics {
@@ -22,6 +26,7 @@ final class HydrologyRasterMetrics {
     private final Rasters rasters;
     private final NaturalHeights naturalHeight;
     private final HydrologyWindows.WindowRange range;
+    private static final int LINK_SEARCH = 32;
     private final Consumer<String> examples;
 
     @FunctionalInterface
@@ -87,6 +92,66 @@ final class HydrologyRasterMetrics {
             }
         }
         return rising;
+    }
+
+    long unlinkedWater(WindowPlan plan) {
+        long unlinked = 0L;
+        for (Reach reach : plan.reaches()) {
+            int lastX = 0;
+            int lastZ = 0;
+            boolean wet = false;
+            for (int point = 0; point + 1 < reach.xs().length; point++) {
+                float fromX = reach.xs()[point];
+                float fromZ = reach.zs()[point];
+                float toX = reach.xs()[point + 1];
+                float toZ = reach.zs()[point + 1];
+                int steps = Math.max(1, (int) Math.ceil(Math.max(Math.abs(toX - fromX), Math.abs(toZ - fromZ))));
+                for (int step = 0; step <= steps; step++) {
+                    int x = (int) Math.floor(fromX + (toX - fromX) * step / steps);
+                    int z = (int) Math.floor(fromZ + (toZ - fromZ) * step / steps);
+                    if (!wetInRange(x, z)) {
+                        continue;
+                    }
+                    if (wet && !linkedByWater(lastX, lastZ, x, z)) {
+                        unlinked++;
+                        examples.accept("water gap along reach " + reach.id() + " from " + lastX + "," + lastZ + " to " + x + "," + z);
+                    }
+                    lastX = x;
+                    lastZ = z;
+                    wet = true;
+                }
+            }
+        }
+        return unlinked;
+    }
+
+    private boolean wetInRange(int x, int z) {
+        return range.containsBlock(x, z) && rasters.get(x >> 4, z >> 4).role(x & 15, z & 15).wet();
+    }
+
+    private boolean linkedByWater(int fromX, int fromZ, int toX, int toZ) {
+        Set<Long> seen = new HashSet<>();
+        ArrayDeque<int[]> open = new ArrayDeque<>();
+        open.add(new int[]{fromX, fromZ});
+        seen.add(HydrologyVoxels.columnKey(fromX, fromZ));
+        int limit = StructureStreamLowering.LINK + LINK_SEARCH + Math.max(Math.abs(toX - fromX), Math.abs(toZ - fromZ));
+        while (!open.isEmpty()) {
+            int[] cell = open.poll();
+            if (Math.max(Math.abs(cell[0] - toX), Math.abs(cell[1] - toZ)) <= StructureStreamLowering.LINK) {
+                return true;
+            }
+            for (int dz = -StructureStreamLowering.LINK; dz <= StructureStreamLowering.LINK; dz++) {
+                for (int dx = -StructureStreamLowering.LINK; dx <= StructureStreamLowering.LINK; dx++) {
+                    int x = cell[0] + dx;
+                    int z = cell[1] + dz;
+                    if (Math.max(Math.abs(x - fromX), Math.abs(z - fromZ)) <= limit && wetInRange(x, z)
+                            && seen.add(HydrologyVoxels.columnKey(x, z))) {
+                        open.add(new int[]{x, z});
+                    }
+                }
+            }
+        }
+        return false;
     }
 
     long chunkSeams(WindowKey key) {

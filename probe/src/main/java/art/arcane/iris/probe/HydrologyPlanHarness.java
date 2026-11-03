@@ -227,6 +227,16 @@ final class HydrologyPlanHarness {
         HydrologySettings settings() {
             return settings;
         }
+
+        boolean ocean(int x, int z) {
+            HydrologySampleBuffer sample = new HydrologySampleBuffer(1);
+            planners.fineLattice().sampleColumns(new int[]{x}, new int[]{z}, sample);
+            return sample.ocean()[0];
+        }
+
+        HydrologyPlanners planners() {
+            return planners;
+        }
     }
 
     static final class CountingTerrain implements HydrologyTerrainSource {

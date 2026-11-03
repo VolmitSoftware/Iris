@@ -381,7 +381,7 @@ public class ReachShaperTest {
     public void cliffBetweenLatticeNodesKeepsWaterBelowTheGround() {
         HydrologySettings settings = settings(config -> {
         });
-        int[] brinks = {190, 190, 190, 194, 194, 194, 198};
+        int[] brinks = {190, 190, 190, 194, 194, 194, 194};
         for (int edge = 0; edge < brinks.length; edge++) {
             int cliffX = STEP_X - 3 + edge;
             DoubleBinaryOperator cliff = (x, z) -> (x < 2 * CELL ? 140D : x < cliffX ? 120D : 108D) + 0.1D * Math.abs(z - VALLEY_Z);
@@ -543,6 +543,43 @@ public class ReachShaperTest {
             moved[index] += by;
         }
         return moved;
+    }
+
+    @Test
+    public void cliffBrinkStaysAtTheEdgeOnEverySeed() {
+        for (long seed = 1L; seed <= 24L; seed++) {
+            HydrologySettings settings = HydrologySettings.compile(new IrisHydrology(), seed, SEA_LEVEL, MIN_Y, MAX_Y);
+            for (int edge = STEP_X - 3; edge <= STEP_X + 3; edge++) {
+                int cliffX = edge;
+                DoubleBinaryOperator cliff = (x, z) -> (x < 2 * CELL ? 140D : x < cliffX ? 120D : 108D) + 0.1D * Math.abs(z - VALLEY_Z);
+                ShapedNetwork shaped = shape(settings, network(settings, cliff, 64, 64, VALLEY_THRESHOLD, false), seed);
+                String label = "seed " + seed + " cliff " + cliffX;
+                for (Reach reach : shaped.reaches()) {
+                    for (int index = 0; index < reach.xs().length; index++) {
+                        double natural = cliff.applyAsDouble(reach.xs()[index], reach.zs()[index]);
+                        assertTrue(label + " " + reach + " at " + index + " grade " + reach.grade()[index] + " natural " + natural,
+                                reach.grade()[index] <= natural);
+                    }
+                }
+                float brink = brinkMidpoint(shaped);
+                assertTrue(label + " brink midpoint " + brink, brink >= cliffX - 5 && brink <= cliffX);
+                assertTrue(label + " brink midpoint " + brink, cliffX != STEP_X || brink >= STEP_X - 3);
+                double tilt = brinkTilt(shaped);
+                assertTrue(label + " chord tilt at the fall " + tilt, tilt <= 25D);
+            }
+        }
+    }
+
+    private static double brinkTilt(ShapedNetwork shaped) {
+        for (Reach reach : shaped.reaches()) {
+            for (int index = 1; index < reach.xs().length; index++) {
+                if (reach.xs()[index] >= WINDOW_MIN_X && reach.xs()[index] <= WINDOW_MAX_X
+                        && reach.grade()[index - 1] - reach.grade()[index] >= reach.tier().waterfallMinimumDrop()) {
+                    return Math.toDegrees(Math.atan2(Math.abs(reach.zs()[index] - reach.zs()[index - 1]), Math.abs(reach.xs()[index] - reach.xs()[index - 1])));
+                }
+            }
+        }
+        throw new AssertionError("no fall in the step window");
     }
 
     private static float brinkMidpoint(ShapedNetwork shaped) {
@@ -2753,8 +2790,12 @@ public class ReachShaperTest {
     }
 
     private static ShapedNetwork shape(HydrologySettings settings, Network network) {
+        return shape(settings, network, SEED);
+    }
+
+    private static ShapedNetwork shape(HydrologySettings settings, Network network, long seed) {
         return new ReachShaper(settings).shape(WINDOW, network.grid(), network.receivers(), network.accumulation(), network.channels(),
-                SeaCells.atOrBelow(network.grid(), SEA_LEVEL), network.ponds(), network.fine(), SEED);
+                SeaCells.atOrBelow(network.grid(), SEA_LEVEL), network.ponds(), network.fine(), seed);
     }
 
     private static Network network(HydrologySettings settings, DoubleBinaryOperator height, int width, int depth, float threshold,

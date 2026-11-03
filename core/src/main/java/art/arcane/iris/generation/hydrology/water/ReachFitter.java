@@ -23,6 +23,7 @@ final class ReachFitter {
     private static final double[] MEANDER_WAVE_WEIGHTS = {0.5D, 0.3D, 0.2D};
     private static final double MEANDER_SLOPE = 0.2D;
     private static final double STEEP_MEANDER = 0.4D;
+    private static final int DAMPING_RAMP = 8;
     private static final float SHORE_MARGIN = 2f;
     private static final int SHORE_RAMP = 4;
     private static final int OFFSET_SMOOTHING = 3;
@@ -171,23 +172,41 @@ final class ReachFitter {
         double wavelength = Math.clamp(MEANDER_WAVELENGTH_WIDTHS * 2D * (halfWidth + 1f), MEANDER_WAVELENGTH_MIN, MEANDER_WAVELENGTH_MAX);
         double ramp = Math.min(line.length() / 2D, wavelength / 2D);
         float[] open = awayFromPonds(line, tangents, (float) amplitude + halfWidth + SHORE_MARGIN);
+        double[] damping = slopeDamping(line);
         float[] offsets = new float[count];
         for (int point = 1; point < count - 1; point++) {
             double s = line.distance()[point];
-            double run = Math.max(1e-3D, line.distance()[point + 1] - line.distance()[point - 1]);
-            double slope = Math.abs(line.heights()[point + 1] - line.heights()[point - 1]) / run;
-            double damping = STEEP_MEANDER + (1D - STEEP_MEANDER) * (1D - smoothstep(slope / MEANDER_SLOPE));
             double wave = 0D;
             for (int index = 0; index < phase.length; index++) {
                 wave += MEANDER_WAVE_WEIGHTS[index] * StrictMath.sin(2D * Math.PI * s / (wavelength * MEANDER_WAVE_SCALES[index]) + phase[index]);
             }
             double envelope = smoothstep(s / ramp) * smoothstep((line.length() - s) / ramp);
-            offsets[point] = (float) (amplitude * envelope * damping * wave * open[point]);
+            offsets[point] = (float) (amplitude * envelope * damping[point] * wave * open[point]);
         }
         for (int point = 1; point < count - 1; point++) {
             line.xs()[point] -= offsets[point] * tangents.z()[point];
             line.zs()[point] += offsets[point] * tangents.x()[point];
         }
+    }
+
+    private static double[] slopeDamping(Line line) {
+        int count = line.xs().length;
+        double[] local = new double[count];
+        Arrays.fill(local, 1D);
+        for (int point = 1; point < count - 1; point++) {
+            double run = Math.max(1e-3D, line.distance()[point + 1] - line.distance()[point - 1]);
+            double slope = Math.abs(line.heights()[point + 1] - line.heights()[point - 1]) / run;
+            local[point] = STEEP_MEANDER + (1D - STEEP_MEANDER) * (1D - smoothstep(slope / MEANDER_SLOPE));
+        }
+        double[] damping = new double[count];
+        Arrays.fill(damping, 1D);
+        for (int point = 0; point < count; point++) {
+            for (int other = Math.max(0, point - DAMPING_RAMP); other <= Math.min(count - 1, point + DAMPING_RAMP); other++) {
+                double eased = local[other] + (1D - local[other]) * smoothstep(Math.abs(other - point) / (double) DAMPING_RAMP);
+                damping[point] = Math.min(damping[point], eased);
+            }
+        }
+        return damping;
     }
 
     private float[] awayFromPonds(Line line, Tangents tangents, float reach) {

@@ -978,16 +978,18 @@ public class WindowPlannerTest {
         for (Pond pond : scene.ponds()) {
             ponds.put(pond.id(), pond);
         }
-        Set<Long> exempt = pondsDownstreamOfTheSliver(dry, stripX);
+        Set<Long> chain = pondsDownstreamOfTheSliver(dry, stripX);
         int away = 0;
         for (Pond pond : dry.ponds()) {
-            if (exempt.contains(pond.id())) {
+            if (Math.abs(pond.floorX() - stripX) <= SLIVER_REACH) {
                 continue;
             }
-            away++;
             Pond kept = ponds.get(pond.id());
-            assertNotNull(pond + " off the sea sliver's downstream chain at x " + stripX + " is kept", kept);
-            assertEquals(pond + " level with the sea sliver at x " + stripX, pond.level(), kept.level());
+            assertNotNull(pond + " beyond the sea sliver at x " + stripX + " is kept", kept);
+            if (!chain.contains(pond.id())) {
+                away++;
+                assertEquals(pond + " level with the sea sliver at x " + stripX, pond.level(), kept.level());
+            }
         }
         return away;
     }

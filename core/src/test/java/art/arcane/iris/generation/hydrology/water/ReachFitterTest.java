@@ -81,20 +81,22 @@ public class ReachFitterTest {
     public void cliffsAcrossTheChannelEdgeNeverTrimAboveTheEdgeGround() {
         HydrologyTier major = HydrologySettings.compile(new IrisHydrology(), SEED, SEA_LEVEL, MIN_Y, MAX_Y).tiers().get(2);
         int trimmed = 0;
-        for (int degrees : new int[]{0, 15, 30, 45}) {
-            double east = Math.cos(Math.toRadians(degrees));
-            double south = Math.sin(Math.toRadians(degrees));
-            DoubleBinaryOperator cliff = (x, z) -> (x - 96D) * east + (z - CHAIN_ROW * CELL) * south < 0D ? 120D : 108D;
-            for (int origin = 0; origin < FINE; origin++) {
-                ReachFitter.Fitted fitted = chainFit(cliff, major, 11L, origin, MAJOR_CATCHMENT, false);
-                for (int point = 0; point < fitted.xs().length; point++) {
-                    float full = fullRead(cliff, fitted.xs()[point], fitted.zs()[point]);
-                    float ground = fitted.ground()[point];
-                    if (ground > full) {
-                        trimmed++;
-                        String label = degrees + " degrees origin " + origin + " point " + point + " ground " + ground;
-                        assertTrue(label + " bank " + fitted.bank()[point], ground <= fitted.bank()[point]);
-                        assertTrue(label, ground <= lowestEdgeAhead(cliff, fitted, point, major.halfWidth(MAJOR_CATCHMENT)));
+        for (long shapeSeed = 11L; shapeSeed < 19L; shapeSeed++) {
+            for (int degrees : new int[]{0, 15, 30, 45}) {
+                double east = Math.cos(Math.toRadians(degrees));
+                double south = Math.sin(Math.toRadians(degrees));
+                DoubleBinaryOperator cliff = (x, z) -> (x - 96D) * east + (z - CHAIN_ROW * CELL) * south < 0D ? 120D : 108D;
+                for (int origin = 0; origin < FINE; origin++) {
+                    ReachFitter.Fitted fitted = chainFit(cliff, major, shapeSeed, origin, MAJOR_CATCHMENT, false);
+                    for (int point = 0; point < fitted.xs().length; point++) {
+                        float full = fullRead(cliff, fitted.xs()[point], fitted.zs()[point]);
+                        float ground = fitted.ground()[point];
+                        if (ground > full) {
+                            trimmed++;
+                            String label = "seed " + shapeSeed + " " + degrees + " degrees origin " + origin + " point " + point + " ground " + ground;
+                            assertTrue(label + " bank " + fitted.bank()[point], ground <= fitted.bank()[point]);
+                            assertTrue(label, ground <= lowestEdgeAhead(cliff, fitted, point, major.halfWidth(MAJOR_CATCHMENT)));
+                        }
                     }
                 }
             }

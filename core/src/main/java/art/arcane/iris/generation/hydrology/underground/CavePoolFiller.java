@@ -5,6 +5,7 @@ import art.arcane.iris.generation.hydrology.cave.HydrologyCaveCell;
 import art.arcane.iris.generation.hydrology.grid.CellHash;
 import art.arcane.iris.generation.hydrology.plan.HydrologySettings;
 import art.arcane.iris.generation.mantle.MantleWriter;
+import art.arcane.volmlib.util.matter.slices.UpdateMatter;
 import it.unimi.dsi.fastutil.longs.LongArrayFIFOQueue;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 
@@ -174,8 +175,12 @@ public final class CavePoolFiller {
             }
             int y = unpackY(cell);
             HydrologyCaveCell existing = writer.getDataIfPresent(x, y, z, HydrologyCaveCell.class);
-            if (existing == null || existing.action() == HydrologyCaveAction.SPRING_SOURCE || replacesSharedWall(existing, value)) {
+            boolean spring = existing != null && existing.action() == HydrologyCaveAction.SPRING_SOURCE;
+            if (existing == null || spring || replacesSharedWall(existing, value)) {
                 writer.setData(x, y, z, value);
+            }
+            if (spring) {
+                writer.setData(x, y, z, UpdateMatter.OFF);
             }
         }
     }

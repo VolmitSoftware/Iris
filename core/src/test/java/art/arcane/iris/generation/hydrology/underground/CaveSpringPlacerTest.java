@@ -39,6 +39,7 @@ import static org.mockito.Mockito.when;
 
 public class CaveSpringPlacerTest {
     private static final long SEED = 1337L;
+    private static final long[] SEEDS = {1337L, 42L, 7L, 99L, 2048L, -5L, 31337L, 88L};
     private static final int FLOOR = 50;
     private static final int CEILING = 70;
     private static final int[][] SIDES = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
@@ -47,8 +48,10 @@ public class CaveSpringPlacerTest {
     public void placesOneSourceInARockWallAboveAnOpeningAndAsksForAnUpdate() {
         World world = pillars();
         Recorder recorder = new Recorder();
-        placer(springs -> {
-        }).place(0, 0, () -> world, recorder.writer, SEED);
+        for (long seed : SEEDS) {
+            placer(springs -> {
+            }).place(0, 0, () -> world, recorder.writer, seed);
+        }
 
         assertFalse(recorder.cells.isEmpty());
         for (Map.Entry<Long, HydrologyCaveCell> entry : recorder.cells.entrySet()) {
@@ -122,24 +125,26 @@ public class CaveSpringPlacerTest {
         World world = pillars();
         CaveSpringPlacer placer = placer(springs -> {
         });
-        Recorder forward = new Recorder();
         List<int[]> chunks = new ArrayList<>();
         for (int chunkX = -2; chunkX <= 2; chunkX++) {
             for (int chunkZ = -2; chunkZ <= 2; chunkZ++) {
                 chunks.add(new int[]{chunkX, chunkZ});
             }
         }
-        for (int[] chunk : chunks) {
-            placer.place(chunk[0], chunk[1], () -> world, forward.writer, SEED);
+        for (long seed : SEEDS) {
+            Recorder forward = new Recorder();
+            for (int[] chunk : chunks) {
+                placer.place(chunk[0], chunk[1], () -> world, forward.writer, seed);
+            }
+            Collections.shuffle(chunks, new Random(seed));
+            Recorder shuffled = new Recorder();
+            for (int[] chunk : chunks) {
+                placer.place(chunk[0], chunk[1], () -> world, shuffled.writer, seed);
+            }
+            assertFalse(forward.cells.isEmpty());
+            assertEquals(forward.cells, shuffled.cells);
+            assertEquals(forward.updates.keySet(), shuffled.updates.keySet());
         }
-        Collections.shuffle(chunks, new Random(SEED));
-        Recorder shuffled = new Recorder();
-        for (int[] chunk : chunks) {
-            placer.place(chunk[0], chunk[1], () -> world, shuffled.writer, SEED);
-        }
-        assertFalse(forward.cells.isEmpty());
-        assertEquals(forward.cells, shuffled.cells);
-        assertEquals(forward.updates.keySet(), shuffled.updates.keySet());
     }
 
     @Test
@@ -159,6 +164,110 @@ public class CaveSpringPlacerTest {
         sloped.surfaceAt = (x, z) -> x >= 8 ? FLOOR + 8 : 200;
         assertTrue("the flow reaches ground too close to the surface",
                 place(sloped, springs -> springs.setMinDepthBelowSurface(16)).isEmpty());
+    }
+
+    @Test
+    public void theFlowKeepsMinDepthOnGroundThatStaysAboveIt() {
+        World lowGround = pillars();
+        lowGround.surfaceAt = (x, z) -> x >= 8 ? 60 : 200;
+        assertFalse("the floor at 51 lies 9 under the low ground",
+                place(lowGround, springs -> springs.setMinDepthBelowSurface(9)).isEmpty());
+        assertTrue("the same floor is too shallow for 10",
+                place(lowGround, springs -> springs.setMinDepthBelowSurface(10)).isEmpty());
+    }
+
+    @Test
+    public void aForeignCellBesideTheSeepDropsItEvenWithAnotherSideOpen() {
+        World walled = pillars();
+        for (int x = -16; x < 32; x++) {
+            for (int z = -16; z < 32; z++) {
+                if (Math.floorMod(x + z, 2) == 1 && Math.floorMod(z, 2) == 1) {
+                    for (int y = FLOOR + 2; y <= CEILING; y++) {
+                        walled.foreign(x, y, z);
+                    }
+                }
+            }
+        }
+        assertTrue(place(walled, springs -> {
+        }).isEmpty());
+    }
+
+    @Test
+    public void anOpeningWithNoDropHoldsNoSeep() {
+        World slit = new World();
+        World drop = new World();
+        for (int x = -16; x < 32; x++) {
+            for (int z = -16; z < 32; z++) {
+                if (Math.floorMod(x + z, 2) == 1) {
+                    slit.carve(x, x, z, z, 60, 60);
+                    drop.carve(x, x, z, z, 59, 60);
+                }
+            }
+        }
+        assertTrue(place(slit, springs -> {
+        }).isEmpty());
+        assertFalse(place(drop, springs -> {
+        }).isEmpty());
+    }
+
+    @Test
+    public void aSeepNeedsRockDirectlyAboveAndBelow() {
+        World layered = pillars();
+        for (int x = -16; x < 32; x++) {
+            for (int z = -16; z < 32; z++) {
+                if (Math.floorMod(x + z, 2) == 0) {
+                    for (int y = FLOOR + 4; y <= CEILING; y += 3) {
+                        layered.carve(x, x, z, z, y, y);
+                    }
+                }
+            }
+        }
+        assertTrue("every wall block has air directly above or below it", place(layered, springs -> {
+        }).isEmpty());
+    }
+
+    @Test
+    public void seepsCoverEveryColumnOfTheirChunk() {
+        World world = pillars();
+        CaveSpringPlacer placer = placer(springs -> {
+        });
+        Recorder recorder = new Recorder();
+        for (long seed = 0L; seed < 128L; seed++) {
+            placer.place(0, 0, () -> world, recorder.writer, seed);
+        }
+        Set<Integer> xs = new HashSet<>();
+        Set<Integer> zs = new HashSet<>();
+        for (long cell : recorder.cells.keySet()) {
+            xs.add(x(cell));
+            zs.add(z(cell));
+        }
+        Set<Integer> chunk = new HashSet<>();
+        for (int column = 0; column < 16; column++) {
+            chunk.add(column);
+        }
+        assertEquals(chunk, xs);
+        assertEquals(chunk, zs);
+    }
+
+    @Test
+    public void theFlowIsFollowedFifteenBlocksAndNoFurther() {
+        Consumer<IrisCaveSprings> one = springs -> springs.setDensity(1D);
+        int checked = 0;
+        for (long seed : SEEDS) {
+            Map<Long, HydrologyCaveCell> clean = placeAt(pillars(), seed, one);
+            for (long cell : clean.keySet()) {
+                for (int[] side : SIDES) {
+                    World inside = pillars();
+                    inside.foreign(x(cell) + side[0] * 15, FLOOR, z(cell) + side[1] * 15);
+                    assertTrue(placeAt(inside, seed, one).isEmpty());
+                    World outside = pillars();
+                    outside.foreign(x(cell) + side[0] * 16, FLOOR, z(cell) + side[1] * 16);
+                    assertEquals(clean, placeAt(outside, seed, one));
+                    checked++;
+                }
+            }
+        }
+        assertTrue(checked > 0);
     }
 
     @Test
@@ -194,9 +303,24 @@ public class CaveSpringPlacerTest {
     @Test
     public void structuresNearbyDropTheSpring() {
         World world = pillars();
-        world.structures = true;
+        world.structures = (x, y, z) -> true;
         assertTrue(place(world, springs -> {
         }).isEmpty());
+    }
+
+    @Test
+    public void theStructureCheckIsAskedAboutTheSeepItself() {
+        Consumer<IrisCaveSprings> one = springs -> springs.setDensity(1D);
+        int checked = 0;
+        for (long seed : SEEDS) {
+            for (long cell : placeAt(pillars(), seed, one).keySet()) {
+                World world = pillars();
+                world.structures = (x, y, z) -> key(x, y, z) == cell;
+                assertTrue(placeAt(world, seed, one).isEmpty());
+                checked++;
+            }
+        }
+        assertTrue(checked > 0);
     }
 
     @Test
@@ -218,6 +342,7 @@ public class CaveSpringPlacerTest {
         placer.place(0, 0, () -> world, poolsFirst.writer, SEED);
 
         assertEquals(springsFirst.cells, poolsFirst.cells);
+        assertEquals("a replaced spring asks for no block update", liveUpdates(poolsFirst), liveUpdates(springsFirst));
         Set<Long> replaced = new HashSet<>();
         for (long cell : placed.keySet()) {
             if (springsFirst.cells.get(cell).action() == HydrologyCaveAction.SEAL_GUARD) {
@@ -232,9 +357,27 @@ public class CaveSpringPlacerTest {
     }
 
     private static Map<Long, HydrologyCaveCell> place(World world, Consumer<IrisCaveSprings> springs) {
+        Map<Long, HydrologyCaveCell> written = new HashMap<>();
+        for (long seed : SEEDS) {
+            written.putAll(placeAt(world, seed, springs));
+        }
+        return written;
+    }
+
+    private static Map<Long, HydrologyCaveCell> placeAt(World world, long seed, Consumer<IrisCaveSprings> springs) {
         Recorder recorder = new Recorder();
-        placer(springs).place(0, 0, () -> world, recorder.writer, SEED);
+        placer(springs).place(0, 0, () -> world, recorder.writer, seed);
         return recorder.cells;
+    }
+
+    private static Set<Long> liveUpdates(Recorder recorder) {
+        Set<Long> live = new HashSet<>();
+        for (Map.Entry<Long, MatterUpdate> update : recorder.updates.entrySet()) {
+            if (update.getValue().isUpdate()) {
+                live.add(update.getKey());
+            }
+        }
+        return live;
     }
 
     private static IrisHydrology config(Consumer<IrisCaveSprings> springs) {
@@ -286,6 +429,10 @@ public class CaveSpringPlacerTest {
         int at(int x, int z);
     }
 
+    private interface StructureAt {
+        boolean at(int x, int y, int z);
+    }
+
     private static final class Recorder {
         private final Map<Long, HydrologyCaveCell> cells = new HashMap<>();
         private final Map<Long, MatterUpdate> updates = new HashMap<>();
@@ -318,7 +465,7 @@ public class CaveSpringPlacerTest {
         private SurfaceAt surfaceAt;
         private IntFunction<String> policyFluid = x -> null;
         private int historicMinX = Integer.MAX_VALUE;
-        private boolean structures;
+        private StructureAt structures = (x, y, z) -> false;
 
         void carve(int minX, int maxX, int minZ, int maxZ, int minY, int maxY) {
             for (int x = minX; x <= maxX; x++) {
@@ -364,8 +511,8 @@ public class CaveSpringPlacerTest {
         }
 
         @Override
-        public boolean structureNear() {
-            return structures;
+        public boolean structureNear(int x, int y, int z) {
+            return structures.at(x, y, z);
         }
     }
 }

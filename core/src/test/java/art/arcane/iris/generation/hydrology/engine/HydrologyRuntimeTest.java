@@ -950,6 +950,31 @@ public class HydrologyRuntimeTest {
         assertDisabled(HydrologyRuntime.create(engine, complex));
     }
 
+    @Test(timeout = 180_000L)
+    public void policyFluidsReachSpringsWithCavePoolsOff() throws Exception {
+        try (EngineFixture.Environment ignored = EngineFixture.environment();
+             EngineFixture fixture = new EngineFixture(EngineFixture.pack(temporaryFolder.newFolder().toPath(), false))) {
+            IrisHydrology config = new IrisHydrology().setEnabled(true).setPrefetchRings(0);
+            config.getUnderground().getCavePools().setEnabled(false);
+            config.getUnderground().getCaveSprings().setFluid("water");
+            fixture.dimension.setHydrology(config);
+            fixture.dimension.setHydrologyPolicy(new IrisHydrologyPolicy().setFluid("water"));
+
+            assertFalse(caveFluidPolicies(fixture));
+            config.getUnderground().getCaveSprings().setEnabled(true);
+            assertTrue(caveFluidPolicies(fixture));
+        }
+    }
+
+    private static boolean caveFluidPolicies(EngineFixture fixture) {
+        HydrologyRuntime runtime = HydrologyRuntime.create(fixture.engine, fixture.complex);
+        try {
+            return runtime.caveFluidPolicies();
+        } finally {
+            runtime.close();
+        }
+    }
+
     @Test
     public void zeroDensitySkipsRuntimePlanningAfterValidatingSettings() throws Exception {
         Engine engine = mock(Engine.class);

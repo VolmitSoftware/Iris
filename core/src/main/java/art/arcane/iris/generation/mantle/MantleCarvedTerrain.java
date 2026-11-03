@@ -16,6 +16,7 @@ import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.generation.terrain.IrisRegion;
 import art.arcane.iris.generation.terrain.Terrain3DColumn;
 import art.arcane.iris.structure.placement.StructurePlacementScope;
+import art.arcane.volmlib.nativelib.terrain.structure.NativeStructureVolume;
 import art.arcane.volmlib.util.mantle.flag.MantleFlag;
 import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
 import art.arcane.volmlib.util.matter.Matter;
@@ -31,6 +32,7 @@ final class MantleCarvedTerrain implements CarvedTerrain {
     private static final int SPAN = 48;
     private static final int UNKNOWN = Integer.MIN_VALUE;
     private static final int STRUCTURE_REACH_CHUNKS = 8;
+    private static final int IMPORTED_STRUCTURE_REACH = 32;
 
     private final MantleWriter writer;
     private final IrisComplex complex;
@@ -123,11 +125,25 @@ final class MantleCarvedTerrain implements CarvedTerrain {
     }
 
     @Override
-    public boolean structureNear() {
+    public boolean structureNear(int x, int y, int z) {
         long revision = ProvisionalSampling.revision();
-        boolean near = StructurePlacementScope.startsNear(engine, chunkX, chunkZ, STRUCTURE_REACH_CHUNKS);
+        boolean near = importedStructureNear(x, y, z) || StructurePlacementScope.startsNear(engine, chunkX, chunkZ, STRUCTURE_REACH_CHUNKS);
         requireFinal(revision, chunkX << 4, chunkZ << 4);
         return near;
+    }
+
+    private boolean importedStructureNear(int x, int y, int z) {
+        int minX = x - IMPORTED_STRUCTURE_REACH;
+        int minZ = z - IMPORTED_STRUCTURE_REACH;
+        int maxX = x + IMPORTED_STRUCTURE_REACH;
+        int maxZ = z + IMPORTED_STRUCTURE_REACH;
+        int maxY = y + minimumY + 1;
+        for (NativeStructureVolume volume : engine.getNativeStructureVolumes(minX, minZ, maxX, maxZ)) {
+            if (volume.intersects(minX, minimumY, minZ, maxX, maxY, maxZ)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static Collection<SeaInlet> inlets(HydrologyRuntime runtime, int chunkX, int chunkZ) {

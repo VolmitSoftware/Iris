@@ -516,7 +516,7 @@ public class CavePoolFillerTest {
         }
 
         @Override
-        public boolean structureNear() {
+        public boolean structureNear(int x, int y, int z) {
             return false;
         }
     }

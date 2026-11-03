@@ -8,6 +8,7 @@ import art.arcane.iris.generation.hydrology.config.IrisHydrology;
 import art.arcane.iris.generation.hydrology.engine.HydrologyRuntime;
 import art.arcane.iris.generation.hydrology.plan.HydrologySettings;
 import art.arcane.iris.generation.hydrology.raster.ChunkWaterRaster;
+import art.arcane.iris.generation.hydrology.underground.CavePoolFiller;
 import art.arcane.iris.generation.hydrology.underground.SeaInlet;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.IrisComplex;
@@ -82,6 +83,24 @@ public class MantleHydrologyComponentTest {
 
         dimension.getDisabledComponents().add(ReservedFlag.RIVER_HYDROLOGY);
         assertFalse(MantleHydrologyComponent.isEnabledFor(dimension));
+    }
+
+    @Test
+    public void springsAloneKeepTheCaveWaterReach() {
+        IrisDimension dimension = new IrisDimension();
+        IrisHydrology hydrology = new IrisHydrology().setEnabled(true);
+        hydrology.getUnderground().getCavePools().setEnabled(false);
+        dimension.setHydrology(hydrology);
+        Engine engine = mock(Engine.class);
+        when(engine.getDimension()).thenReturn(dimension);
+        EngineMantle mantle = mock(EngineMantle.class);
+        when(mantle.getEngine()).thenReturn(engine);
+        MantleHydrologyComponent component = new MantleHydrologyComponent(mantle);
+
+        assertEquals(0, component.getInputRadius());
+        hydrology.getUnderground().getCaveSprings().setEnabled(true);
+        assertEquals(CavePoolFiller.REACH, component.getInputRadius());
+        assertEquals(CavePoolFiller.REACH, component.computeRadius());
     }
 
     @Test

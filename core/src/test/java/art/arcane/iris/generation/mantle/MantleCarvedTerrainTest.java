@@ -15,6 +15,7 @@ import art.arcane.iris.generation.hydrology.underground.SeaInletRasterizer;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.EnginePlatformHooks;
 import art.arcane.iris.generation.runtime.IrisComplex;
+import art.arcane.iris.generation.runtime.SeedManager;
 import art.arcane.iris.generation.stream.ProvisionalSampling;
 import art.arcane.iris.generation.subterrain.SubterrainCell;
 import art.arcane.iris.generation.subterrain.SubterrainPlan;
@@ -23,10 +24,13 @@ import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.generation.terrain.IrisMaterialPalette;
 import art.arcane.iris.generation.terrain.IrisRegion;
 import art.arcane.iris.generation.terrain.Terrain3DColumn;
+import art.arcane.iris.structure.placement.IrisStructurePlacement;
+import art.arcane.iris.structure.placement.StructureDistribution;
 import art.arcane.iris.world.IrisWorld;
 import art.arcane.iris.world.storage.matter.IrisMatterSupport;
 import art.arcane.iris.world.storage.matter.PreObjectMatterCell;
 import art.arcane.iris.world.storage.matter.PreObjectMatterTest;
+import art.arcane.volmlib.nativelib.terrain.structure.NativeStructureVolume;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.mantle.flag.MantleFlag;
 import art.arcane.volmlib.util.mantle.runtime.Mantle;
@@ -266,6 +270,60 @@ public class MantleCarvedTerrainTest {
                 poolFluids(poolRoom(new Underground(volcanic, hollow, region("temperate", null), new IrisDimension())).generate(0)));
         assertEquals("the parent itself still fills its own pools", Set.of("lava"),
                 poolFluids(poolRoom(new Underground(volcanic, magma, region("temperate", null), new IrisDimension())).generate(0)));
+    }
+
+    @Test
+    public void importedStructuresWithinTheFlowsReachAndBelowTheSeepTopAreNear() {
+        assertFalse(nearSeep());
+        assertTrue("on the seep", nearSeep(volume(8, -34, 8, 8, -34, 8)));
+        assertTrue("at the bottom of the world", nearSeep(volume(8, -64, 8, 8, -64, 8)));
+        assertTrue("one block above the seep", nearSeep(volume(8, -33, 8, 8, -20, 8)));
+        assertFalse("above that", nearSeep(volume(8, -32, 8, 8, -20, 8)));
+        assertTrue(nearSeep(volume(40, -60, 8, 50, -50, 8)));
+        assertFalse(nearSeep(volume(41, -60, 8, 50, -50, 8)));
+        assertTrue(nearSeep(volume(-30, -60, 8, -24, -50, 8)));
+        assertFalse(nearSeep(volume(-30, -60, 8, -25, -50, 8)));
+        assertTrue(nearSeep(volume(8, -60, 40, 8, -50, 50)));
+        assertFalse(nearSeep(volume(8, -60, 41, 8, -50, 50)));
+        assertTrue(nearSeep(volume(8, -60, -30, 8, -50, -24)));
+        assertFalse(nearSeep(volume(8, -60, -30, 8, -50, -25)));
+    }
+
+    @Test
+    public void placementsThatCanStartNearbyAreNear() {
+        Scene scene = structureScene();
+        assertFalse(scene.carved().structureNear(8, 30, 8));
+
+        Scene dense = structureScene();
+        dense.engine.getDimension().setStructures(new KList<>(new IrisStructurePlacement().setDistribution(StructureDistribution.DENSITY).setDensity(1D)));
+        assertTrue(dense.carved().structureNear(8, 30, 8));
+    }
+
+    private static boolean nearSeep(NativeStructureVolume... volumes) {
+        return structureScene(volumes).carved().structureNear(8, 30, 8);
+    }
+
+    private static NativeStructureVolume volume(int minX, int minY, int minZ, int maxX, int maxY, int maxZ) {
+        return new NativeStructureVolume("minecraft:mineshaft", minX, minY, minZ, maxX, maxY, maxZ, null);
+    }
+
+    private static Scene structureScene(NativeStructureVolume... volumes) {
+        Scene scene = new Scene();
+        IrisWorld world = mock(IrisWorld.class);
+        when(world.minHeight()).thenReturn(-64);
+        when(scene.engine.getWorld()).thenReturn(world);
+        when(scene.engine.getSeedManager()).thenReturn(new SeedManager(SEED));
+        when(scene.engine.getAllBiomes()).thenReturn(new KList<>());
+        when(scene.engine.getNativeStructureVolumes(anyInt(), anyInt(), anyInt(), anyInt())).thenAnswer(invocation -> {
+            KList<NativeStructureVolume> matches = new KList<>();
+            for (NativeStructureVolume volume : volumes) {
+                if (volume.intersectsInfluenceRect(invocation.getArgument(0), invocation.getArgument(1), invocation.getArgument(2), invocation.getArgument(3))) {
+                    matches.add(volume);
+                }
+            }
+            return matches;
+        });
+        return scene;
     }
 
     private static Scene poolRoom(Underground underground) {

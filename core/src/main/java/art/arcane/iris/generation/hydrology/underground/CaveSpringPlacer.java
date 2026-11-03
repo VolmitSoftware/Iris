@@ -46,7 +46,7 @@ public final class CaveSpringPlacer {
             int x = (chunkX << 4) + (int) (column & 15);
             int z = (chunkZ << 4) + (int) ((column >>> 4) & 15);
             int y = seep(carved, x, z, seed);
-            if (y >= 0 && contained(carved, x, y, z) && !carved.structureNear()) {
+            if (y >= 0 && contained(carved, x, y, z) && !carved.structureNear(x, y, z)) {
                 write(chunkX, chunkZ, x, y, z, new HydrologyCaveCell(HydrologyCaveAction.SPRING_SOURCE, fluid(carved, x, y, z)), writer);
             }
         }

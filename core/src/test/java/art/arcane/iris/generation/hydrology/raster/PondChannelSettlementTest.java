@@ -114,7 +114,7 @@ public class PondChannelSettlementTest {
         for (long seed = 1L; seed <= 24L; seed++) {
             HydrologySettings settings = HydrologySettings.compile(new IrisHydrology(), seed, SEA_LEVEL, -64, 320);
             ChunkRasterizer rasterizer = new ChunkRasterizer(settings, ChannelFluids.TIER);
-            IndexedWindow window = new IndexedWindow(new WindowPlan(WINDOW, List.of(river), List.of(), List.of()), ReachIndex.build(WINDOW, List.of(river), List.of()));
+            IndexedWindow window = new IndexedWindow(new WindowPlan(WINDOW, List.of(river), List.of()), ReachIndex.build(WINDOW, List.of(river), List.of()));
             for (int z = 124; z <= 132; z++) {
                 Pond pond = pond(1L, PondKind.NATURAL, 94, circle(504, z, 0));
                 int lowest = Math.min(94, Math.min(rasterHead(rasterizer, window, 504, z), Math.min(rasterHead(rasterizer, window, 505, z),
@@ -163,7 +163,7 @@ public class PondChannelSettlementTest {
     private static int assertSettlementMatchesTheRaster(long seed, Reach river, int minX, int maxX, int minZ, int maxZ, int stride) {
         HydrologySettings settings = HydrologySettings.compile(new IrisHydrology(), seed, SEA_LEVEL, -64, 320);
         ChunkRasterizer rasterizer = new ChunkRasterizer(settings, ChannelFluids.TIER);
-        IndexedWindow window = new IndexedWindow(new WindowPlan(WINDOW, List.of(river), List.of(), List.of()), ReachIndex.build(WINDOW, List.of(river), List.of()));
+        IndexedWindow window = new IndexedWindow(new WindowPlan(WINDOW, List.of(river), List.of()), ReachIndex.build(WINDOW, List.of(river), List.of()));
         Map<Long, ChunkWaterRaster> rasters = new HashMap<>();
         int lowered = 0;
         for (int x = minX; x <= maxX; x += stride) {

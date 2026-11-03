@@ -317,7 +317,7 @@ public class HydrologyPlanCacheTest {
         WindowKey key = new WindowKey(5, -3);
         HydrologyPlanCache cache = new HydrologyPlanCache(planners.settings, planners::region, (window, regions) -> {
             Reach reach = planners.window(window, regions).reaches().get(0);
-            return new WindowPlan(window, List.of(reach, reach), List.of(), List.of());
+            return new WindowPlan(window, List.of(reach, reach), List.of());
         }, pool(1), () -> false);
         caches.add(cache);
         Throwable failure = failureOf(() -> cache.window(key));
@@ -1174,7 +1174,7 @@ public class HydrologyPlanCacheTest {
                 throw new AssertionError("Window " + key + " got region plans " + given + ", needs " + needed);
             }
             hook.accept(key);
-            return new WindowPlan(key, List.of(reach(key)), List.of(), List.of());
+            return new WindowPlan(key, List.of(reach(key)), List.of());
         }
 
         private Reach reach(WindowKey key) {

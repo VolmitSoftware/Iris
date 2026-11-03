@@ -53,7 +53,7 @@ public class WaterMapTest {
     private static WaterMap draw(List<Reach> reaches, List<Pond> ponds, List<Pond> lakes) {
         HydrologyRuntime runtime = mock(HydrologyRuntime.class);
         when(runtime.planPreview(anyInt(), anyInt(), anyInt(), anyInt()))
-                .thenReturn(new HydrologyPlanPreview(reaches, ponds, lakes, List.of(), true));
+                .thenReturn(new HydrologyPlanPreview(reaches, ponds, lakes, true));
         when(runtime.channelType(any(HydrologyTier.class))).thenReturn(HydrologyFeatureType.STREAM);
         WaterMap map = new WaterMap(runtime, PIXELS, 0D, 0D, MID_STEP);
         map.advance(() -> false);

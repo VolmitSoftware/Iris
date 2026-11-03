@@ -7,6 +7,7 @@ import art.arcane.iris.generation.hydrology.query.HydrologyFeatureType;
 import art.arcane.iris.generation.hydrology.raster.ChunkWaterRaster;
 import art.arcane.iris.generation.hydrology.water.Pond;
 import art.arcane.iris.generation.hydrology.water.Reach;
+import art.arcane.iris.generation.hydrology.water.ReachStyle;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.runtime.IrisEngine;
@@ -14,7 +15,6 @@ import art.arcane.iris.world.history.ChunkGenerationSemantics;
 import art.arcane.iris.world.history.GenerationHistory;
 import art.arcane.iris.world.history.GenerationHistoryRuntimeRouter;
 import art.arcane.iris.generation.stream.ProvisionalSampling;
-import art.arcane.iris.generation.hydrology.underground.SeaInlet;
 import art.arcane.iris.testsupport.FakeHydrology;
 import art.arcane.iris.testsupport.WaterScene;
 import org.junit.Test;
@@ -100,7 +100,7 @@ public class IrisRendererRiverTest {
         Pond pond = WaterScene.pond(32L, 62, 16, 16, 10);
         when(runtime.enabled()).thenReturn(true);
         when(runtime.planPreview(anyInt(), anyInt(), anyInt(), anyInt()))
-                .thenReturn(new HydrologyPlanPreview(List.of(), List.of(pond), List.of(), List.of(), true));
+                .thenReturn(new HydrologyPlanPreview(List.of(), List.of(pond), List.of(), true));
         when(runtime.rasterPreview(anyInt(), anyInt())).thenReturn(ChunkWaterRaster.PROVISIONAL);
         IrisRenderer renderer = new IrisRenderer(engine(runtime));
 
@@ -166,23 +166,24 @@ public class IrisRendererRiverTest {
     }
 
     @Test
-    public void planModeDrawsSeaInletPathsUnderground() throws Exception {
-        int stations = 26;
-        float[] xs = new float[stations];
-        float[] zs = new float[stations];
-        float[] halfWidth = new float[stations];
-        int[] floor = new int[stations];
-        int[] ceiling = new int[stations];
-        for (int station = 0; station < stations; station++) {
-            xs[station] = 100f + station * 8f;
-            zs[station] = 200f;
-            halfWidth[station] = 4f;
-            floor[station] = SEA_LEVEL - 3;
-            ceiling[station] = SEA_LEVEL + 5;
+    public void planModeDrawsTidalReachesAsSeaInlets() throws Exception {
+        int points = 26;
+        float[] xs = new float[points];
+        float[] zs = new float[points];
+        int[] grade = new int[points];
+        float[] halfWidth = new float[points];
+        float[] depth = new float[points];
+        ReachStyle[] style = new ReachStyle[points];
+        for (int point = 0; point < points; point++) {
+            xs[point] = 100f + point * 8f;
+            zs[point] = 200f;
+            grade[point] = SEA_LEVEL;
+            halfWidth[point] = 4f;
+            depth[point] = 3f;
+            style[point] = ReachStyle.TIDAL;
         }
-        SeaInlet inlet = new SeaInlet(51L, xs, zs, halfWidth, SEA_LEVEL, floor, ceiling, 300, 200, 8);
-        try (FakeHydrology hydrology = new FakeHydrology(() -> false, (x, z) -> 90, SEA_LEVEL, List.of(), List.of(), List.of(),
-                List.of(inlet))) {
+        Reach tidal = new Reach(51L, FakeHydrology.settings(SEA_LEVEL).tidalTier(), 0L, xs, zs, grade, halfWidth, depth, style, 0f);
+        try (FakeHydrology hydrology = new FakeHydrology(() -> false, (x, z) -> 90, SEA_LEVEL, List.of(tidal), List.of())) {
             HydrologyRuntime runtime = spy(hydrology.runtime);
             int[] plan = settled(engine(runtime), 16D * PIXELS, PIXELS);
             assertEquals(water(HydrologyFeatureType.SEA_INLET), at(plan, PIXELS, 200 / 16, 200 / 16));

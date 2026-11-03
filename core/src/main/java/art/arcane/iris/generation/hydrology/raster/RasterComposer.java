@@ -3,7 +3,6 @@ package art.arcane.iris.generation.hydrology.raster;
 import art.arcane.iris.generation.hydrology.config.IrisBankStyle;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveCell;
 import art.arcane.iris.generation.hydrology.plan.HydrologySettings;
-import art.arcane.iris.generation.hydrology.underground.SeaInlet;
 import art.arcane.iris.generation.hydrology.water.HydrologyTier;
 import art.arcane.iris.generation.hydrology.water.Pond;
 import art.arcane.iris.generation.hydrology.water.Reach;
@@ -44,7 +43,6 @@ final class RasterComposer {
     private final HydrologyTier[] nearTier = new HydrologyTier[CELLS];
     private final ReachGeometry.Lookup brinks;
     private final ReachCursor cursor;
-    private final int[] inletColumn = new int[2];
     private final Map<Long, String> reachFluids = new HashMap<>();
     private NaturalHeights naturalHeight;
 
@@ -89,15 +87,6 @@ final class RasterComposer {
         int x = originX + cell % GRID;
         int z = originZ + cell / GRID;
         int ground = natural[cell];
-        SeaInlet inlet = features.openInletAt(x, z, inletColumn);
-        if (inlet != null) {
-            head[cell] = WaterHeads.standing(inlet.waterLevel(), settings.seaLevel());
-            terrain[cell] = Math.min(Math.min(ground, inletColumn[0]), head[cell] - 1);
-            role[cell] = WaterRole.INLET;
-            feature[cell] = inlet.id();
-            fluid[cell] = HydrologyCaveCell.SEA_FLUID;
-            return;
-        }
         int lake = features.lakeAt(x, z, ground);
         int pondIndex = lake >= 0 ? -1 : features.pondAt(x, z);
         boolean shore = interior(cell) && lake < 0 && pondIndex < 0;
@@ -149,7 +138,7 @@ final class RasterComposer {
         role[cell] = role(reach.style()[point]);
         feature[cell] = reach.id();
         tier[cell] = reach.tier();
-        fluid[cell] = role[cell] == WaterRole.MOUTH ? HydrologyCaveCell.SEA_FLUID : reachFluid(reach);
+        fluid[cell] = role[cell] == WaterRole.MOUTH || role[cell] == WaterRole.INLET ? HydrologyCaveCell.SEA_FLUID : reachFluid(reach);
     }
 
     private String reachFluid(Reach reach) {
@@ -332,11 +321,6 @@ final class RasterComposer {
         if (gx >= 0 && gx < GRID && gz >= 0 && gz < GRID && !corner(gz * GRID + gx)) {
             int cell = gz * GRID + gx;
             sample.set(head[cell], feature[cell], role[cell]);
-            return;
-        }
-        SeaInlet inlet = features.openInletAt(x, z, inletColumn);
-        if (inlet != null) {
-            sample.set(WaterHeads.standing(inlet.waterLevel(), settings.seaLevel()), inlet.id(), WaterRole.INLET);
             return;
         }
         int lake = features.lakeCovers(x, z) ? features.lakeAt(x, z, naturalAt(x, z)) : -1;
@@ -524,6 +508,7 @@ final class RasterComposer {
             case CASCADE -> WaterRole.CASCADE;
             case WATERFALL -> WaterRole.WATERFALL;
             case MOUTH -> WaterRole.MOUTH;
+            case TIDAL -> WaterRole.INLET;
             case RUN, RIFFLE, POND_OUTLET -> WaterRole.CHANNEL;
         };
     }

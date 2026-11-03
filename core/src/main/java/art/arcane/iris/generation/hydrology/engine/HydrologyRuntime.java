@@ -20,7 +20,6 @@ import art.arcane.iris.generation.hydrology.raster.ChunkRasterizer;
 import art.arcane.iris.generation.hydrology.raster.ChunkWaterRaster;
 import art.arcane.iris.generation.hydrology.raster.NaturalHeights;
 import art.arcane.iris.generation.hydrology.underground.SeaInlet;
-import art.arcane.iris.generation.hydrology.underground.SeaInletRasterizer;
 import art.arcane.iris.generation.hydrology.water.HydrologyTier;
 import art.arcane.iris.generation.hydrology.water.Pond;
 import art.arcane.iris.generation.hydrology.water.Reach;
@@ -307,7 +306,6 @@ public final class HydrologyRuntime {
         boolean complete = true;
         List<Reach> reaches = new ArrayList<>();
         List<Pond> ponds = new ArrayList<>();
-        List<SeaInlet> inlets = new ArrayList<>();
         for (int wz = min.wz() - 1; wz <= max.wz() + 1; wz++) {
             for (int wx = min.wx() - 1; wx <= max.wx() + 1; wx++) {
                 WindowKey window = new WindowKey(wx, wz);
@@ -315,7 +313,6 @@ public final class HydrologyRuntime {
                 if (plan.isPresent()) {
                     reaches.addAll(plan.get().plan().reaches());
                     ponds.addAll(plan.get().plan().ponds());
-                    inlets.addAll(plan.get().plan().inlets());
                 } else {
                     complete = false;
                     requestPreview(window, windowPreviewFailures, key(wx, wz), "window " + wx + "," + wz, () -> cache.previewWindow(window));
@@ -335,7 +332,7 @@ public final class HydrologyRuntime {
                         () -> cache.previewRegion(region));
             }
         }
-        return new HydrologyPlanPreview(reaches, ponds, List.copyOf(lakes.values()), inlets, complete);
+        return new HydrologyPlanPreview(reaches, ponds, List.copyOf(lakes.values()), complete);
     }
 
     public ChunkWaterRaster rasterAt(int blockX, int blockZ) {
@@ -442,25 +439,7 @@ public final class HydrologyRuntime {
     }
 
     public List<SeaInlet> inlets(int chunkX, int chunkZ) {
-        if (cache == null) {
-            return List.of();
-        }
-        requireOpen();
-        boolean main = mainThread.getAsBoolean();
-        List<SeaInlet> touching = new ArrayList<>();
-        for (CompletableFuture<IndexedWindow> plan : plans(neighbourhood(chunkX, chunkZ), List.of(), PlanMode.DEMAND).windowFutures()) {
-            if (main && !plan.isDone()) {
-                throw new IllegalStateException("The hydrology windows around chunk " + chunkX + "," + chunkZ
-                        + " are not planned yet, so its sea inlets cannot be generated on the main thread.");
-            }
-            IndexedWindow window = main ? plan.join() : cache.awaitPlan(plan);
-            for (SeaInlet inlet : window.plan().inlets()) {
-                if (SeaInletRasterizer.touches(inlet, chunkX, chunkZ)) {
-                    touching.add(inlet);
-                }
-            }
-        }
-        return touching;
+        return List.of();
     }
 
     public Set<HydrologyFeatureType> standingWaterTypes(int chunkX, int chunkZ, long featureId) {

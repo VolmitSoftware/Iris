@@ -42,6 +42,7 @@ final class HydrologyVegetationSource {
         for (HydrologyTier tier : settings.tiers()) {
             tiers.put(tier, HydrologyVegetation.Decorators.compile(tier.decorators(), data, "Hydrology tier '" + tier.name() + "' decorators"));
         }
+        tiers.put(settings.tidalTier(), tiers.get(settings.tiers().get(Math.min(1, settings.tiers().size() - 1))));
         HydrologyVegetationSource source = new HydrologyVegetationSource(data, dimension, tiers,
                 HydrologyVegetation.Decorators.compile(settings.ponds().decorators(), data, "Hydrology ponds.decorators"));
         source.planted = !source.ponds.empty();

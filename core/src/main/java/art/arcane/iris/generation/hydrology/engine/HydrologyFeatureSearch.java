@@ -11,7 +11,6 @@ import art.arcane.iris.generation.hydrology.query.HydrologyFeatureQuery;
 import art.arcane.iris.generation.hydrology.query.HydrologyFeatureRef;
 import art.arcane.iris.generation.hydrology.query.HydrologyFeatureType;
 import art.arcane.iris.generation.hydrology.query.HydrologySearchTimeoutException;
-import art.arcane.iris.generation.hydrology.underground.SeaInlet;
 import art.arcane.iris.generation.hydrology.water.HydrologyTier;
 import art.arcane.iris.generation.hydrology.water.Pond;
 import art.arcane.iris.generation.hydrology.water.PondKind;
@@ -219,18 +218,6 @@ final class HydrologyFeatureSearch {
                 pond(pond, type);
             }
         }
-        if (types.contains(HydrologyFeatureType.SEA_INLET)) {
-            for (SeaInlet inlet : plan.inlets()) {
-                inlet(inlet);
-            }
-        }
-    }
-
-    private void inlet(SeaInlet inlet) {
-        for (int station = 0; station < inlet.stations(); station++) {
-            offer(inlet.id(), HydrologyFeatureType.SEA_INLET, (int) Math.floor(inlet.xs()[station]), inlet.waterLevel(),
-                    (int) Math.floor(inlet.zs()[station]));
-        }
     }
 
     private HydrologyFeatureType pondType(Pond pond) {
@@ -244,6 +231,12 @@ final class HydrologyFeatureSearch {
     }
 
     private void reach(Reach reach) {
+        if (reach.style()[0] == ReachStyle.TIDAL) {
+            if (types.contains(HydrologyFeatureType.SEA_INLET)) {
+                tidal(reach);
+            }
+            return;
+        }
         HydrologyFeatureType channel = channelType(settings, reach.tier());
         boolean whole = types.contains(channel);
         float[] xs = reach.xs();
@@ -254,6 +247,12 @@ final class HydrologyFeatureSearch {
             if (type != null) {
                 offer(reach.id(), type, (int) Math.floor(xs[index]), reach.grade()[index], (int) Math.floor(zs[index]));
             }
+        }
+    }
+
+    private void tidal(Reach reach) {
+        for (int index = 0; index < reach.xs().length; index++) {
+            offer(reach.id(), HydrologyFeatureType.SEA_INLET, (int) Math.floor(reach.xs()[index]), reach.grade()[index], (int) Math.floor(reach.zs()[index]));
         }
     }
 
@@ -306,7 +305,7 @@ final class HydrologyFeatureSearch {
             case CASCADE -> HydrologyFeatureType.CASCADE;
             case WATERFALL -> HydrologyFeatureType.WATERFALL;
             case MOUTH -> HydrologyFeatureType.MOUTH;
-            case RUN, RIFFLE, POND_OUTLET -> null;
+            case RUN, RIFFLE, POND_OUTLET, TIDAL -> null;
         };
     }
 

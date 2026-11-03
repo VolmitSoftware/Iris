@@ -51,6 +51,8 @@ public final class HydrologySettings {
     private static final int MAX_DELTA_LENGTH = 384;
     public static final float MAX_HALF_WIDTH = 64f;
     public static final int DELTA_STEP = 2;
+    private static final int TIDAL_BASE_TIER = 1;
+    private static final String TIDAL_TIER_NAME = "tidal";
     private static final double MIN_INLET_MOUTH = 2D;
     private static final double MAX_INLET_MOUTH = 32D;
     private static final double MIN_INLET_HEAD = 1D;
@@ -94,6 +96,7 @@ public final class HydrologySettings {
     private final Lakes lakes;
     private final Deformation deformation;
     private final Underground underground;
+    private final HydrologyTier tidalTier;
     private final Map<String, IrisMaterialPalette> fluids;
     private final Map<String, String> seams;
     private final int prefetchRings;
@@ -117,6 +120,7 @@ public final class HydrologySettings {
         this.lakes = lakes(config.getLakes());
         this.deformation = deformation(config.getDeformation());
         this.underground = underground(config.getUnderground());
+        this.tidalTier = tidalTier(tiers.get(Math.min(TIDAL_BASE_TIER, tiers.size() - 1)), underground.seaInlets());
         this.fluids = fluids(config.getFluids());
         this.seams = seams(config.getFluids());
         this.prefetchRings = config.getPrefetchRings();
@@ -136,6 +140,10 @@ public final class HydrologySettings {
 
     public List<HydrologyTier> tiers() {
         return tiers;
+    }
+
+    public HydrologyTier tidalTier() {
+        return tidalTier;
     }
 
     public HydrologyTier majorTier() {
@@ -214,6 +222,12 @@ public final class HydrologySettings {
 
     public boolean persist() {
         return persist;
+    }
+
+    private static HydrologyTier tidalTier(HydrologyTier base, SeaInlets inlets) {
+        return new HydrologyTier(TIDAL_TIER_NAME, base.minCatchment(), inlets.meanderWidth(), inlets.meanderWidth(), 0f, base.depthRatio(), 0, false,
+                base.waterfallMinimumDrop(), base.stepHeight(), inlets.bankBand(), inlets.bankStyle(), new HydrologyTier.Estuary(0, 1f),
+                new HydrologyTier.Delta(0, 0f, 0), base.materials(), base.fluid(), base.decorators());
     }
 
     private static Climate climate(IrisHydrologyClimate config) {

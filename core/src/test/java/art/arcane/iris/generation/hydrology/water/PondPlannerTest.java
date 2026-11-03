@@ -837,7 +837,7 @@ public class PondPlannerTest {
                 long key = ((long) (x >> 4) << 32) | ((z >> 4) & 0xFFFFFFFFL);
                 ChunkWaterRaster raster = rasters.get(key);
                 if (raster == null) {
-                    WindowPlan window = new WindowPlan(WindowKey.containing(x, z), List.of(), List.of(pond), List.of());
+                    WindowPlan window = new WindowPlan(WindowKey.containing(x, z), List.of(), List.of(pond));
                     IndexedWindow indexed = new IndexedWindow(window, ReachIndex.build(window.key(), List.of(), List.of(pond)));
                     List<RegionPlan> regions = new ArrayList<>();
                     for (RegionKey region : ChunkRasterizer.lakeRegions(x >> 4, z >> 4)) {

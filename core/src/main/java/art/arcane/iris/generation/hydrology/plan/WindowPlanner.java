@@ -13,8 +13,6 @@ import art.arcane.iris.generation.hydrology.grid.HydrologySampleBuffer;
 import art.arcane.iris.generation.hydrology.grid.PriorityFlood;
 import art.arcane.iris.generation.hydrology.raster.PondChannelSettlement;
 import art.arcane.iris.generation.hydrology.raster.TongueGuard;
-import art.arcane.iris.generation.hydrology.underground.SeaInlet;
-import art.arcane.iris.generation.hydrology.underground.SeaInletPlanner;
 import art.arcane.iris.generation.hydrology.water.CupSet;
 import art.arcane.iris.generation.hydrology.water.Pond;
 import art.arcane.iris.generation.hydrology.water.PondKind;
@@ -49,14 +47,12 @@ public final class WindowPlanner {
     private final HeightLattice fine;
     private final PondPlanner ponds;
     private final ReachShaper shaper;
-    private final SeaInletPlanner inlets;
 
     public WindowPlanner(HydrologySettings settings, HeightLattice fine, PondPlanner ponds, ReachShaper shaper) {
         this.settings = Objects.requireNonNull(settings, "settings");
         this.fine = Objects.requireNonNull(fine, "fine");
         this.ponds = Objects.requireNonNull(ponds, "ponds");
         this.shaper = Objects.requireNonNull(shaper, "shaper");
-        this.inlets = new SeaInletPlanner(settings);
         if (fine.cell() != FINE_CELL) {
             throw new IllegalArgumentException("Window fine lattice cell " + fine.cell() + " must be " + FINE_CELL);
         }
@@ -131,8 +127,7 @@ public final class WindowPlanner {
         }
         List<Reach> reaches = network.reaches();
         List<Pond> windowPonds = windowPonds(network.ponds());
-        List<SeaInlet> planned = inlets.plan(key, raw, samples, drainage.receivers(), drainage.accumulation(), network, settings.seed());
-        WindowPlan owned = new WindowPlan(key, ownedReaches(key, reaches), ownedPonds(key, windowPonds), ownedInlets(key, planned));
+        WindowPlan owned = new WindowPlan(key, ownedReaches(key, reaches), ownedPonds(key, windowPonds));
         requireSeaConnectedHeads(owned, settings.seaLevel());
         return new WindowComputation(owned, reaches, windowPonds);
     }
@@ -356,24 +351,11 @@ public final class WindowPlanner {
         return owned;
     }
 
-    private static List<SeaInlet> ownedInlets(WindowKey key, List<SeaInlet> planned) {
-        List<SeaInlet> owned = new ArrayList<>();
-        for (SeaInlet inlet : planned) {
-            if (key.equals(WindowKey.containing((int) Math.floor(inlet.xs()[1]), (int) Math.floor(inlet.zs()[1])))) {
-                owned.add(inlet);
-            }
-        }
-        return owned;
-    }
-
-    private static void requireSeaConnectedHeads(WindowPlan plan, int seaLevel) {
-        for (SeaInlet inlet : plan.inlets()) {
-            if (inlet.waterLevel() != seaLevel) {
-                throw new IllegalStateException("Window " + plan.key() + " sea inlet " + inlet.id() + " holds water at " + inlet.waterLevel()
-                        + ", not at sea level " + seaLevel);
-            }
-        }
+    static void requireSeaConnectedHeads(WindowPlan plan, int seaLevel) {
         for (Reach reach : plan.reaches()) {
+            if (requireTidal(plan.key(), reach, seaLevel)) {
+                continue;
+            }
             int mouth = reach.grade().length;
             while (mouth > 0 && reach.style()[mouth - 1] == ReachStyle.MOUTH) {
                 mouth--;
@@ -399,6 +381,30 @@ public final class WindowPlanner {
                         + " stands at " + pond.level() + ", below sea level " + seaLevel);
             }
         }
+    }
+
+    private static boolean requireTidal(WindowKey key, Reach reach, int seaLevel) {
+        boolean any = false;
+        boolean all = true;
+        for (ReachStyle style : reach.style()) {
+            any |= style == ReachStyle.TIDAL;
+            all &= style == ReachStyle.TIDAL;
+        }
+        if (!any) {
+            return false;
+        }
+        if (!all) {
+            throw new IllegalStateException("Window " + key + " sea inlet " + reach.id() + " mixes tidal water with other water styles");
+        }
+        if (reach.downstreamId() != 0L) {
+            throw offSea(key, reach, reach.grade().length - 1, ", but a sea inlet drains into reach " + reach.downstreamId() + " instead of the sea");
+        }
+        for (int point = 0; point < reach.grade().length; point++) {
+            if (reach.grade()[point] != seaLevel) {
+                throw offSea(key, reach, point, ", but a sea inlet stands at sea level " + seaLevel);
+            }
+        }
+        return true;
     }
 
     private static IllegalStateException offSea(WindowKey key, Reach reach, int point, String rule) {

@@ -1,6 +1,5 @@
 package art.arcane.iris.generation.hydrology.plan;
 
-import art.arcane.iris.generation.hydrology.underground.SeaInlet;
 import art.arcane.iris.generation.hydrology.water.HydrologyTier;
 import art.arcane.iris.generation.hydrology.water.Pond;
 import art.arcane.iris.generation.hydrology.water.PondKind;
@@ -26,31 +25,27 @@ public final class HydrologyPlanCodec {
     private static final int POINT_BYTES = 5 * Integer.BYTES + 1;
     private static final int REACH_BYTES = 2 * Long.BYTES + 4 * Integer.BYTES + 2 * POINT_BYTES;
     private static final int POND_BYTES = 2 * Long.BYTES + 1 + 15 * Integer.BYTES;
-    private static final int STATION_BYTES = 5 * Integer.BYTES;
-    private static final int INLET_BYTES = Long.BYTES + 5 * Integer.BYTES + 2 * STATION_BYTES;
 
     private HydrologyPlanCodec() {
     }
 
     public static byte[] encode(HydrologySettings settings, WindowPlan plan) {
-        return encode(settings, WINDOW, plan.key().wx(), plan.key().wz(), plan.reaches(), plan.ponds(), plan.inlets());
+        return encode(settings, WINDOW, plan.key().wx(), plan.key().wz(), plan.reaches(), plan.ponds());
     }
 
     public static byte[] encode(HydrologySettings settings, RegionPlan plan) {
-        return encode(settings, REGION, plan.key().rx(), plan.key().rz(), plan.majorReaches(), plan.lakes(), List.of());
+        return encode(settings, REGION, plan.key().rx(), plan.key().rz(), plan.majorReaches(), plan.lakes());
     }
 
     public static Optional<WindowPlan> decodeWindow(HydrologySettings settings, byte[] data) {
-        return decode(settings, WINDOW, data).map(body -> new WindowPlan(new WindowKey(body.x(), body.z()), body.reaches(), body.ponds(),
-                body.inlets()));
+        return decode(settings, WINDOW, data).map(body -> new WindowPlan(new WindowKey(body.x(), body.z()), body.reaches(), body.ponds()));
     }
 
     public static Optional<RegionPlan> decodeRegion(HydrologySettings settings, byte[] data) {
         return decode(settings, REGION, data).map(body -> new RegionPlan(new RegionKey(body.x(), body.z()), body.reaches(), body.ponds()));
     }
 
-    private static byte[] encode(HydrologySettings settings, byte kind, int x, int z, List<Reach> reaches, List<Pond> ponds,
-                                 List<SeaInlet> inlets) {
+    private static byte[] encode(HydrologySettings settings, byte kind, int x, int z, List<Reach> reaches, List<Pond> ponds) {
         ByteArrayOutputStream bytes = new ByteArrayOutputStream();
         try (DataOutputStream out = new DataOutputStream(bytes)) {
             out.writeInt(MAGIC);
@@ -66,12 +61,6 @@ public final class HydrologyPlanCodec {
             for (Pond pond : ponds) {
                 writePond(out, pond);
             }
-            if (kind == WINDOW) {
-                out.writeInt(inlets.size());
-                for (SeaInlet inlet : inlets) {
-                    writeInlet(out, inlet);
-                }
-            }
         } catch (IOException failure) {
             throw new UncheckedIOException(failure);
         }
@@ -79,6 +68,9 @@ public final class HydrologyPlanCodec {
     }
 
     private static int tierIndex(HydrologySettings settings, Reach reach) {
+        if (reach.tier().equals(settings.tidalTier())) {
+            return settings.tiers().size();
+        }
         int index = settings.tiers().indexOf(reach.tier());
         if (index < 0) {
             throw new IllegalArgumentException("Reach " + reach.id() + " uses tier " + reach.tier().name() + ", which is not in the settings.");
@@ -139,24 +131,6 @@ public final class HydrologyPlanCodec {
         out.writeInt(pond.floorZ());
     }
 
-    private static void writeInlet(DataOutputStream out, SeaInlet inlet) throws IOException {
-        out.writeLong(inlet.id());
-        out.writeInt(inlet.waterLevel());
-        out.writeInt(inlet.chamberX());
-        out.writeInt(inlet.chamberZ());
-        out.writeInt(inlet.chamberRadius());
-        out.writeInt(inlet.stations());
-        writeFloats(out, inlet.xs());
-        writeFloats(out, inlet.zs());
-        writeFloats(out, inlet.halfWidth());
-        for (int floor : inlet.floor()) {
-            out.writeInt(floor);
-        }
-        for (int ceiling : inlet.ceiling()) {
-            out.writeInt(ceiling);
-        }
-    }
-
     private static void writeFloats(DataOutputStream out, float[] values) throws IOException {
         for (float value : values) {
             out.writeInt(Float.floatToRawIntBits(value));
@@ -174,33 +148,28 @@ public final class HydrologyPlanCodec {
             int reachCount = count(in, REACH_BYTES);
             List<Reach> reaches = new ArrayList<>(reachCount);
             for (int index = 0; index < reachCount; index++) {
-                reaches.add(readReach(in, settings.tiers()));
+                reaches.add(readReach(in, settings));
             }
             int pondCount = count(in, POND_BYTES);
             List<Pond> ponds = new ArrayList<>(pondCount);
             for (int index = 0; index < pondCount; index++) {
                 ponds.add(readPond(in));
             }
-            List<SeaInlet> inlets = new ArrayList<>();
-            if (kind == WINDOW) {
-                int inletCount = count(in, INLET_BYTES);
-                for (int index = 0; index < inletCount; index++) {
-                    inlets.add(readInlet(in));
-                }
-            }
             if (in.hasRemaining()) {
                 return Optional.empty();
             }
-            return Optional.of(new Body(x, z, reaches, ponds, inlets));
+            return Optional.of(new Body(x, z, reaches, ponds));
         } catch (BufferUnderflowException | IllegalArgumentException | IllegalStateException malformed) {
             return Optional.empty();
         }
     }
 
-    private static Reach readReach(ByteBuffer in, List<HydrologyTier> tiers) {
+    private static Reach readReach(ByteBuffer in, HydrologySettings settings) {
         long id = in.getLong();
         long downstreamId = in.getLong();
-        HydrologyTier tier = tiers.get(index(in.getInt(), tiers.size()));
+        List<HydrologyTier> tiers = settings.tiers();
+        int tierIndex = index(in.getInt(), tiers.size() + 1);
+        HydrologyTier tier = tierIndex == tiers.size() ? settings.tidalTier() : tiers.get(tierIndex);
         float catchment = Float.intBitsToFloat(in.getInt());
         int points = count(in, POINT_BYTES);
         float[] xs = readFloats(in, points);
@@ -246,27 +215,6 @@ public final class HydrologyPlanCodec {
         return new Pond(id, kind, level, floor, spillX, spillZ, spillHeight, mask, outletReachId, damRaise, fluid, in.getInt(), in.getInt());
     }
 
-    private static SeaInlet readInlet(ByteBuffer in) {
-        long id = in.getLong();
-        int waterLevel = in.getInt();
-        int chamberX = in.getInt();
-        int chamberZ = in.getInt();
-        int chamberRadius = in.getInt();
-        int stations = count(in, STATION_BYTES);
-        float[] xs = readFloats(in, stations);
-        float[] zs = readFloats(in, stations);
-        float[] halfWidth = readFloats(in, stations);
-        int[] floor = new int[stations];
-        for (int station = 0; station < stations; station++) {
-            floor[station] = in.getInt();
-        }
-        int[] ceiling = new int[stations];
-        for (int station = 0; station < stations; station++) {
-            ceiling[station] = in.getInt();
-        }
-        return new SeaInlet(id, xs, zs, halfWidth, waterLevel, floor, ceiling, chamberX, chamberZ, chamberRadius);
-    }
-
     private static String readString(ByteBuffer in) {
         int length = in.getInt();
         if (length == -1) {
@@ -303,6 +251,6 @@ public final class HydrologyPlanCodec {
         return value;
     }
 
-    private record Body(int x, int z, List<Reach> reaches, List<Pond> ponds, List<SeaInlet> inlets) {
+    private record Body(int x, int z, List<Reach> reaches, List<Pond> ponds) {
     }
 }

@@ -225,7 +225,7 @@ public class HydrologyPlanStoreTest {
                 new ReachStyle[]{ReachStyle.RUN, ReachStyle.CASCADE, ReachStyle.RUN}, 1600f);
         Pond pond = new Pond(key.wz() * 17L - key.wx(), PondKind.NATURAL, 72, 68, (int) x, (int) z, 72.25f,
                 new PondMask((int) x, (int) z, 4, 3, 2, new long[]{0b101101L}), reach.id(), 0, "water", (int) x + 4, (int) z);
-        return new WindowPlan(key, List.of(reach), List.of(pond), List.of());
+        return new WindowPlan(key, List.of(reach), List.of(pond));
     }
 
     private static HydrologySettings settings(long seed) {

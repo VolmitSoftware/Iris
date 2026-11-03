@@ -4,11 +4,11 @@ import art.arcane.iris.generation.hydrology.engine.HydrologyPlanPreview;
 import art.arcane.iris.generation.hydrology.engine.HydrologyRuntime;
 import art.arcane.iris.generation.hydrology.query.HydrologyFeatureType;
 import art.arcane.iris.generation.hydrology.raster.ChunkWaterRaster;
-import art.arcane.iris.generation.hydrology.underground.SeaInlet;
 import art.arcane.iris.generation.hydrology.water.HydrologyTier;
 import art.arcane.iris.generation.hydrology.water.Pond;
 import art.arcane.iris.generation.hydrology.water.PondMask;
 import art.arcane.iris.generation.hydrology.water.Reach;
+import art.arcane.iris.generation.hydrology.water.ReachStyle;
 import art.arcane.iris.world.history.ChunkGenerationSemantics;
 
 import java.util.Arrays;
@@ -193,36 +193,20 @@ final class WaterMap {
         for (Pond lake : plans.lakes()) {
             drawMask(lake.mask(), HydrologyFeatureType.LAKE);
         }
-        for (SeaInlet inlet : plans.inlets()) {
-            checkCancelled();
-            drawInlet(inlet);
-        }
-    }
-
-    private void drawInlet(SeaInlet inlet) {
-        float[] xs = inlet.xs();
-        float[] zs = inlet.zs();
-        float[] halfWidth = inlet.halfWidth();
-        for (int station = 0; station + 1 < xs.length; station++) {
-            double radius = Math.max(halfWidth[station], halfWidth[station + 1]) + step / 2D;
-            drawSegment(xs[station], zs[station], xs[station + 1], zs[station + 1], radius, HydrologyFeatureType.SEA_INLET);
-        }
-        drawSegment(inlet.chamberX(), inlet.chamberZ(), inlet.chamberX(), inlet.chamberZ(), inlet.chamberRadius() + step / 2D,
-                HydrologyFeatureType.SEA_INLET);
     }
 
     private void drawReach(Reach reach) {
         float[] xs = reach.xs();
         float[] zs = reach.zs();
         float[] halfWidth = reach.halfWidth();
-        HydrologyFeatureType channel = channel(reach.tier());
+        HydrologyFeatureType channel = reach.style()[0] == ReachStyle.TIDAL ? HydrologyFeatureType.SEA_INLET : channel(reach.tier());
         for (int point = 0; point < xs.length; point++) {
             int next = Math.min(point + 1, xs.length - 1);
             HydrologyFeatureType type = switch (reach.style()[point]) {
                 case CASCADE -> HydrologyFeatureType.CASCADE;
                 case WATERFALL -> HydrologyFeatureType.WATERFALL;
                 case MOUTH -> HydrologyFeatureType.MOUTH;
-                case RUN, RIFFLE, POND_OUTLET -> channel;
+                case RUN, RIFFLE, POND_OUTLET, TIDAL -> channel;
             };
             double radius = Math.max(halfWidth[point], halfWidth[next]) + step / 2D;
             drawSegment(xs[point], zs[point], xs[next], zs[next], radius, type);

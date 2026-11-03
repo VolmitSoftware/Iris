@@ -20,7 +20,7 @@ public final class ChunkRasterizer {
     public ChunkRasterizer(HydrologySettings settings, ChannelFluids channelFluids) {
         this.settings = Objects.requireNonNull(settings, "settings");
         this.channelFluids = Objects.requireNonNull(channelFluids, "channelFluids");
-        float widest = 0f;
+        float widest = settings.underground().seaInlets().mouthHalfWidth().max();
         for (HydrologyTier tier : settings.tiers()) {
             widest = Math.max(widest, tier.maxHalfWidth());
         }

@@ -5,8 +5,6 @@ import art.arcane.iris.generation.hydrology.plan.IndexedWindow;
 import art.arcane.iris.generation.hydrology.plan.RegionKey;
 import art.arcane.iris.generation.hydrology.plan.RegionPlan;
 import art.arcane.iris.generation.hydrology.plan.WindowKey;
-import art.arcane.iris.generation.hydrology.underground.SeaInlet;
-import art.arcane.iris.generation.hydrology.underground.SeaInletRasterizer;
 import art.arcane.iris.generation.hydrology.water.ConfluenceGrader;
 import art.arcane.iris.generation.hydrology.water.Pond;
 import art.arcane.iris.generation.hydrology.water.PondMask;
@@ -14,7 +12,6 @@ import art.arcane.iris.generation.hydrology.water.Reach;
 import art.arcane.iris.generation.hydrology.water.ReachStyle;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
@@ -31,8 +28,6 @@ final class ChunkFeatures {
     private final List<Reach> reaches;
     private final List<Pond> ponds;
     private final List<Pond> lakes;
-    private final List<SeaInlet> inlets;
-    private final int[] inletBoxes;
     private final int[] lakeBoxes;
     private final ReachSegments segments = new ReachSegments(SEGMENT_CAPACITY);
     private final ReachGeometry.Lookup brinks;
@@ -41,14 +36,11 @@ final class ChunkFeatures {
     private final MaskEdges lakeReach = new MaskEdges(MaskEdges.Kind.GROWN_WATER);
     private boolean inert;
 
-    private ChunkFeatures(HydrologySettings settings, List<Reach> reaches, Map<Reach, Reach> plans, List<Pond> ponds, List<Pond> lakes,
-                          List<SeaInlet> inlets, int[] inletBoxes) {
+    private ChunkFeatures(HydrologySettings settings, List<Reach> reaches, Map<Reach, Reach> plans, List<Pond> ponds, List<Pond> lakes) {
         this.brinks = new ReachGeometry.Lookup(settings.seed(), settings.seaLevel(), plans);
         this.reaches = reaches;
         this.ponds = ponds;
         this.lakes = lakes;
-        this.inlets = inlets;
-        this.inletBoxes = inletBoxes;
         this.lakeBoxes = new int[4 * lakes.size()];
     }
 
@@ -58,19 +50,7 @@ final class ChunkFeatures {
         List<Reach> reaches = new ArrayList<>();
         Map<Reach, Reach> plans = new IdentityHashMap<>();
         List<Pond> ponds = new ArrayList<>();
-        List<SeaInlet> inlets = new ArrayList<>();
-        int[] inletBoxes = new int[0];
         for (IndexedWindow window : windows) {
-            for (SeaInlet inlet : window.plan().inlets()) {
-                int[] bounds = SeaInletRasterizer.bounds(inlet);
-                int padding = RiffleProfile.RADIUS + 1;
-                if (bounds[0] <= chunkX * CHUNK + CHUNK - 1 + padding && bounds[2] >= chunkX * CHUNK - padding
-                        && bounds[1] <= chunkZ * CHUNK + CHUNK - 1 + padding && bounds[3] >= chunkZ * CHUNK - padding) {
-                    inletBoxes = Arrays.copyOf(inletBoxes, inletBoxes.length + 4);
-                    System.arraycopy(bounds, 0, inletBoxes, 4 * inlets.size(), 4);
-                    inlets.add(inlet);
-                }
-            }
             int before = reaches.size();
             window.index().candidates(chunkX, chunkZ, halo, reaches, ponds);
             for (int index = before; index < reaches.size(); index++) {
@@ -81,27 +61,13 @@ final class ChunkFeatures {
             }
         }
         List<Pond> lakes = lakes(chunkX, chunkZ, halo, lakeRegionPlans, lakeRegions);
-        ChunkFeatures features = new ChunkFeatures(settings, reaches, plans, ponds, lakes, inlets, inletBoxes);
+        ChunkFeatures features = new ChunkFeatures(settings, reaches, plans, ponds, lakes);
         features.index(settings, chunkX, chunkZ);
         return features;
     }
 
     boolean inert() {
         return inert;
-    }
-
-    SeaInlet openInletAt(int x, int z, int[] column) {
-        for (int index = 0; index < inlets.size(); index++) {
-            int box = 4 * index;
-            if (x < inletBoxes[box] || z < inletBoxes[box + 1] || x > inletBoxes[box + 2] || z > inletBoxes[box + 3]) {
-                continue;
-            }
-            SeaInlet inlet = inlets.get(index);
-            if (SeaInletRasterizer.column(inlet, x, z, column) && column[1] == SeaInlet.OPEN) {
-                return inlet;
-            }
-        }
-        return null;
     }
 
     ReachGeometry.Lookup brinks() {
@@ -120,11 +86,6 @@ final class ChunkFeatures {
         }
         for (Pond lake : lakes) {
             if (WaterHeads.standing(lake.level(), seaLevel) != head) {
-                return false;
-            }
-        }
-        for (SeaInlet inlet : inlets) {
-            if (WaterHeads.standing(inlet.waterLevel(), seaLevel) != head) {
                 return false;
             }
         }
@@ -220,18 +181,9 @@ final class ChunkFeatures {
             lakeReach.collect(mask, minX - shoreReach, minZ - shoreReach, maxX + shoreReach, maxZ + shoreReach);
             System.arraycopy(grownBox(mask), 0, lakeBoxes, 4 * index, 4);
         }
-        inert = segments.isEmpty() && !inletsTouch(minX - 1, minZ - 1, maxX + 1, maxZ + 1)
+        inert = segments.isEmpty()
                 && !pondsTouch(minX - 1 - reach, minZ - 1 - reach, maxX + 1 + reach, maxZ + 1 + reach)
                 && !lakesTouch(minX - 2 - shoreReach, minZ - 2 - shoreReach, maxX + 2 + shoreReach, maxZ + 2 + shoreReach);
-    }
-
-    private boolean inletsTouch(int minX, int minZ, int maxX, int maxZ) {
-        for (int box = 0; box < inletBoxes.length; box += 4) {
-            if (inletBoxes[box] <= maxX && inletBoxes[box + 2] >= minX && inletBoxes[box + 1] <= maxZ && inletBoxes[box + 3] >= minZ) {
-                return true;
-            }
-        }
-        return false;
     }
 
     private boolean pondsTouch(int minX, int minZ, int maxX, int maxZ) {

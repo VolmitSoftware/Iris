@@ -222,12 +222,12 @@ public class HydrologyFeatureSearchTest {
         WindowPlan window(WindowKey key, List<RegionPlan> plans) {
             calls.incrementAndGet();
             if (channelTier != null && key.equals(new WindowKey(0, 0))) {
-                return new WindowPlan(key, List.of(channel(channelTier)), List.of(), List.of());
+                return new WindowPlan(key, List.of(channel(channelTier)), List.of());
             }
             if (Math.max(Math.abs(key.wx()), Math.abs(key.wz())) > openRing) {
                 hold();
             }
-            return new WindowPlan(key, List.of(), List.of(), List.of());
+            return new WindowPlan(key, List.of(), List.of());
         }
 
         private void hold() {

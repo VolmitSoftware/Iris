@@ -23,7 +23,7 @@ final class HydrologyUnderground {
 
     static Source generated(Engine engine, ExecutorService workers) {
         return (key, plan) -> {
-            SeaInletProbe.Checks inlets = SeaInletProbe.check(engine, plan.inlets(), workers);
+            SeaInletProbe.Checks inlets = SeaInletProbe.check(engine, List.of(), workers);
             int minChunkX = key.wx() * HydrologyWindows.CHUNKS;
             int minChunkZ = key.wz() * HydrologyWindows.CHUNKS;
             CavePoolProbe.Counts pools = CavePoolProbe.check(engine, new CavePoolProbe.Area(minChunkX, minChunkX + HydrologyWindows.CHUNKS - 1,

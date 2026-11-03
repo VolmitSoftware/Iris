@@ -18,6 +18,7 @@ public final class ReachShaper {
     private static final int SMOOTHING_PASSES = 2;
     private static final float TAPER_LENGTH = 24f;
     private static final float WAIST = 0.5f;
+    static final float PLUNGE_FLARE = 0.5f;
     public static final float OUTLET_LENGTH = 8f;
     private static final float LIP_MARGIN = 4f;
     private static final int LEAD_IN_REACH = 16;
@@ -380,8 +381,8 @@ public final class ReachShaper {
             upstream = Math.max(upstream, feeder.maxHalfWidth);
             feederEnd = Math.max(feederEnd, feeder.halfWidth[feeder.halfWidth.length - 1]);
         }
-        widths(draft, upstream, feederEnd);
         restyle(draft, seaLevel);
+        widths(draft, upstream, feederEnd);
     }
 
     private static void restyle(ReachDraft draft, int seaLevel) {
@@ -500,6 +501,7 @@ public final class ReachShaper {
         Opening estuary = draft.chain.end() == ReachTracer.End.OCEAN ? estuaryOpening(draft.tier.estuary(), draft.ocean, distance)
                 : Opening.closed(count);
         float widening = (draft.tier.estuary().flare() - 1f) * estuary.share();
+        float[] plunge = plungeFlare(draft.grade, draft.style, draft.ocean, distance, ReachGrader.protectedStart(draft), draft.tier.waterfallMinimumDrop());
         float running = upstream;
         draft.halfWidth = new float[count];
         draft.depth = new float[count];
@@ -512,13 +514,33 @@ public final class ReachShaper {
             }
             float lip = draft.held != null && draft.held[point] ? LIP_HALF_WIDTH : 0f;
             float channel = Math.max(Math.max(law, WAIST * running), lip);
+            float flared = Math.max(channel, Math.min(draft.tier.maxHalfWidth(), channel * (1f + plunge[point])));
             float progress = estuary.progress()[point];
-            draft.halfWidth[point] = Math.min(HydrologySettings.MAX_HALF_WIDTH, channel * (1f + widening * progress));
+            draft.halfWidth[point] = Math.min(HydrologySettings.MAX_HALF_WIDTH, flared * (1f + widening * progress));
             running = Math.max(running, channel);
-            float depth = draft.tier.depth(channel);
+            float depth = draft.tier.depth(flared);
             draft.depth[point] = depth + (HydrologyTier.MINIMUM_DEPTH - depth) * progress;
         }
         draft.maxHalfWidth = running;
+    }
+
+    static float[] plungeFlare(int[] grade, ReachStyle[] style, boolean[] ocean, float[] distance, float protectedLength, int waterfallMinimumDrop) {
+        int count = grade.length;
+        float[] flare = new float[count];
+        for (int foot = 1; foot < count - 1; foot++) {
+            int drop = grade[foot - 1] - grade[foot];
+            if (style[foot] != ReachStyle.WATERFALL || drop < waterfallMinimumDrop) {
+                continue;
+            }
+            float length = StepPools.plungeLength(drop);
+            for (int point = foot; point < count - 1 && !ocean[point] && distance[point] - distance[foot] < length; point++) {
+                if (distance[point] > protectedLength) {
+                    float share = (distance[point] - distance[foot]) / length;
+                    flare[point] = Math.max(flare[point], PLUNGE_FLARE * (1f - share * share * (3f - 2f * share)));
+                }
+            }
+        }
+        return flare;
     }
 
     static Opening estuaryOpening(HydrologyTier.Estuary estuary, boolean[] ocean, float[] distance) {

@@ -582,6 +582,130 @@ public class ReachShaperTest {
         throw new AssertionError("no fall in the step window");
     }
 
+    @Test
+    public void waterfallFootFlaresWithinTierMax() {
+        HydrologySettings open = settings(config -> config.getTiers().forEach(tier -> tier.setHalfWidth(new KList<>(2D, 32D))));
+        HydrologySettings capped = settings(config -> config.getTiers().forEach(tier -> tier.setHalfWidth(new KList<>(3D, 4D))));
+        for (long seed = 1L; seed <= 24L; seed++) {
+            Reach roomy = fallingReach(open, 64, seed);
+            int foot = footOf(roomy);
+            String label = "seed " + seed + " " + Arrays.toString(roomy.halfWidth()) + ": ";
+            float above = roomy.halfWidth()[foot - 1];
+            assertEquals(label + "half as wide again at the foot", 1.5f * above, roomy.halfWidth()[foot], 0.05f * above);
+            assertFlareFades(label, roomy, foot);
+            for (float width : roomy.halfWidth()) {
+                assertTrue(label + "within the tier maximum", width <= roomy.tier().maxHalfWidth());
+            }
+
+            Reach full = fallingReach(capped, 64, seed);
+            int cappedFoot = footOf(full);
+            assertTrue("seed " + seed + " the channel has room to flare", full.halfWidth()[cappedFoot - 1] * 1.5f > full.tier().maxHalfWidth());
+            assertEquals("seed " + seed + " the flare stops at the tier maximum", full.tier().maxHalfWidth(), full.halfWidth()[cappedFoot], 1e-3f);
+
+            Reach ending = fallingReach(open, 26, seed);
+            int last = ending.xs().length - 1;
+            int endFoot = footOf(ending);
+            float below = ReachShaper.distances(ending.xs(), ending.zs())[last] - ReachShaper.distances(ending.xs(), ending.zs())[endFoot];
+            assertTrue("seed " + seed + " the reach ends inside the pool: " + below, below < plungeSpan(ending, endFoot));
+            assertEquals("seed " + seed + " the last point keeps its width, which feeds the next reach", ending.tier().halfWidth(ending.catchment()),
+                    ending.halfWidth()[last], 1e-3f);
+        }
+    }
+
+    @Test
+    public void plungeFlareSkipsTheEndsOutletZonesAndTheSea() {
+        int count = 12;
+        float[] distance = new float[count];
+        for (int point = 0; point < count; point++) {
+            distance[point] = point * 2f;
+        }
+        int[] grade = new int[count];
+        boolean[] noOcean = new boolean[count];
+        boolean[] noZone = new boolean[count];
+        Arrays.fill(grade, 0, 3, 90);
+        Arrays.fill(grade, 3, count, 78);
+        ReachStyle[] style = ReachShaper.styles(grade, noOcean, noZone, 6, SEA_LEVEL);
+        float[] flare = ReachShaper.plungeFlare(grade, style, noOcean, distance, 0f, 6);
+        assertEquals(ReachShaper.PLUNGE_FLARE, flare[3], 0f);
+        assertEquals("nothing above the foot", 0f, flare[2], 0f);
+        assertTrue("fades through the pool", flare[3] > flare[4] && flare[4] > flare[5] && flare[5] > 0f);
+        assertEquals("gone past the pool", 0f, flare[3 + (int) Math.ceil(StepPools.plungeLength(12) / 2f)], 0f);
+
+        assertEquals("the protected outlet does not flare", 0f, ReachShaper.plungeFlare(grade, style, noOcean, distance, 10f, 6)[4], 0f);
+        assertTrue("past the protected outlet it does", ReachShaper.plungeFlare(grade, style, noOcean, distance, 7f, 6)[4] > 0f);
+
+        int[] atFirst = new int[count];
+        Arrays.fill(atFirst, 1, count, -12);
+        atFirst[0] = 0;
+        assertEquals("index 0 never flares", 0f, ReachShaper.plungeFlare(atFirst, ReachShaper.styles(atFirst, noOcean, noZone, 6, -40), noOcean, distance, 0f, 6)[0], 0f);
+        int[] atLast = new int[count];
+        atLast[count - 1] = -12;
+        assertEquals("the last index never flares", 0f, ReachShaper.plungeFlare(atLast, ReachShaper.styles(atLast, noOcean, noZone, 6, -40), noOcean, distance, 0f, 6)[count - 1], 0f);
+
+        boolean[] ocean = new boolean[count];
+        Arrays.fill(ocean, 3, count, true);
+        ReachStyle[] mouth = ReachShaper.styles(grade, ocean, noZone, 6, SEA_LEVEL);
+        float[] atSea = ReachShaper.plungeFlare(grade, mouth, ocean, distance, 0f, 6);
+        for (int point = 0; point < count; point++) {
+            assertEquals("a fall into the sea flares nothing at " + point, 0f, atSea[point], 0f);
+        }
+    }
+
+    private static float[] plungeShare(Reach reach) {
+        boolean[] mouth = new boolean[reach.style().length];
+        for (int point = 0; point < mouth.length; point++) {
+            mouth[point] = reach.style()[point] == ReachStyle.MOUTH;
+        }
+        return ReachShaper.plungeFlare(reach.grade(), reach.style(), mouth, ReachShaper.distances(reach.xs(), reach.zs()), 0f, reach.tier().waterfallMinimumDrop());
+    }
+
+    private static float channelMaximum(Reach reach) {
+        float[] pool = plungeShare(reach);
+        float widest = 0f;
+        for (int point = 0; point < pool.length; point++) {
+            widest = pool[point] > 0f ? widest : Math.max(widest, reach.halfWidth()[point]);
+        }
+        return widest;
+    }
+
+    private static void assertFlareFades(String label, Reach reach, int foot) {
+        float[] along = ReachShaper.distances(reach.xs(), reach.zs());
+        float span = plungeSpan(reach, foot);
+        float channel = reach.halfWidth()[foot - 1];
+        for (int point = foot + 1; point < reach.xs().length; point++) {
+            float below = along[point] - along[foot];
+            if (below >= span) {
+                assertTrue(label + "past the pool at " + point, reach.halfWidth()[point] < 1.1f * channel);
+                break;
+            } else {
+                assertTrue(label + "narrows down the pool at " + point, reach.halfWidth()[point] <= reach.halfWidth()[point - 1] + 0.05f);
+            }
+        }
+    }
+
+    private static float plungeSpan(Reach reach, int foot) {
+        return StepPools.plungeLength(reach.grade()[foot - 1] - reach.grade()[foot]);
+    }
+
+    private static Reach fallingReach(HydrologySettings settings, int cells, long seed) {
+        ShapedNetwork shaped = shape(settings, network(settings, steppedValley(12), cells, 64, VALLEY_THRESHOLD, false), seed);
+        for (Reach reach : shaped.reaches()) {
+            if (footOf(reach) > 0) {
+                return reach;
+            }
+        }
+        throw new AssertionError("no fall in " + shaped.reaches());
+    }
+
+    private static int footOf(Reach reach) {
+        for (int point = 1; point < reach.xs().length; point++) {
+            if (reach.grade()[point - 1] - reach.grade()[point] >= reach.tier().waterfallMinimumDrop()) {
+                return point;
+            }
+        }
+        return -1;
+    }
+
     private static float brinkMidpoint(ShapedNetwork shaped) {
         int falls = 0;
         float midpoint = Float.NaN;
@@ -1822,7 +1946,7 @@ public class ReachShaperTest {
                 if (reach.downstreamId() == 0L) {
                     continue;
                 }
-                float carried = Math.max(upstreamMax.getOrDefault(reach.id(), 0f), maximum(reach.halfWidth()));
+                float carried = Math.max(upstreamMax.getOrDefault(reach.id(), 0f), channelMaximum(reach));
                 if (carried > upstreamMax.getOrDefault(reach.downstreamId(), 0f)) {
                     upstreamMax.put(reach.downstreamId(), carried);
                     changed = true;
@@ -1832,9 +1956,10 @@ public class ReachShaperTest {
         int widened = 0;
         for (Reach reach : shaped.reaches()) {
             float running = upstreamMax.getOrDefault(reach.id(), 0f);
+            float[] pool = plungeShare(reach);
             for (int index = 0; index < reach.halfWidth().length; index++) {
                 assertTrue(reach + " at " + index, reach.halfWidth()[index] >= 0.5f * running - 1e-6f);
-                running = Math.max(running, reach.halfWidth()[index]);
+                running = pool[index] > 0f ? running : Math.max(running, reach.halfWidth()[index]);
                 widened += reach.halfWidth()[index] > reach.tier().maxHalfWidth() ? 1 : 0;
             }
         }
@@ -1928,9 +2053,10 @@ public class ReachShaperTest {
         float law = outlet.tier().halfWidth(outlet.catchment());
         float tributaryEnd = tributary.halfWidth()[tributary.halfWidth().length - 1];
         assertTrue("the tributary " + tributaryEnd + " is narrower than the outlet " + law, tributaryEnd < 0.5f * law);
+        float[] pool = plungeShare(outlet);
         for (int point = 0; point < outlet.xs().length; point++) {
-            assertEquals("outlet half-width at point " + point + " (" + outlet.xs()[point] + "," + outlet.zs()[point] + ")", law,
-                    outlet.halfWidth()[point], 1e-3f);
+            assertEquals("outlet half-width at point " + point + " (" + outlet.xs()[point] + "," + outlet.zs()[point] + ")",
+                    Math.min(outlet.tier().maxHalfWidth(), law * (1f + pool[point])), outlet.halfWidth()[point], 1e-3f);
         }
     }
 

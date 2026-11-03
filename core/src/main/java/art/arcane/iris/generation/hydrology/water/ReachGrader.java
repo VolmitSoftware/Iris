@@ -89,7 +89,7 @@ final class ReachGrader {
         return levels;
     }
 
-    private static float protectedStart(ReachDraft draft) {
+    static float protectedStart(ReachDraft draft) {
         if (!draft.outlet) {
             return 0f;
         }

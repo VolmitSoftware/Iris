@@ -26,6 +26,10 @@ final class StepPools {
         return tier.waterfallMinimumDrop() + STEP_EXTRA;
     }
 
+    static float plungeLength(int drop) {
+        return Math.clamp(drop * PLUNGE_PER_DROP, PLUNGE_MIN, PLUNGE_MAX);
+    }
+
     static void group(int[] grade, int[] floors, float[] xs, float[] zs, float[] catchments, HydrologyTier tier, float protectedLength, long seed) {
         int count = grade.length;
         float[] along = along(xs, zs);
@@ -43,7 +47,7 @@ final class StepPools {
             int first = top - grade[point];
             boolean cliff = first >= tier.waterfallMinimumDrop();
             float width = 2f * (tier.halfWidth(catchments[point]) + 1f);
-            float span = cliff ? Math.clamp(first * PLUNGE_PER_DROP, PLUNGE_MIN, PLUNGE_MAX)
+            float span = cliff ? plungeLength(first)
                     : Math.clamp(width * poolWidths(seed, xs[point], zs[point]), POOL_MIN, POOL_MAX);
             int end = point;
             int highestFloor = Integer.MIN_VALUE;

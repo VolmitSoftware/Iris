@@ -8,8 +8,8 @@ import art.arcane.iris.generation.hydrology.config.IrisHydrology;
 import art.arcane.iris.generation.hydrology.engine.HydrologyRuntime;
 import art.arcane.iris.generation.hydrology.plan.HydrologySettings;
 import art.arcane.iris.generation.hydrology.raster.ChunkWaterRaster;
-import art.arcane.iris.generation.hydrology.underground.SeaInlet;
-import art.arcane.iris.generation.hydrology.underground.SeaInletRasterizer;
+import art.arcane.iris.testsupport.TestPassage;
+import art.arcane.iris.generation.hydrology.underground.PassageRasterizer;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.EngineMetrics;
 import art.arcane.iris.generation.runtime.IrisComplex;
@@ -149,9 +149,9 @@ public class MantleCarvingComponentWaterMaskTest {
     }
 
     @Test
-    public void inletHeadroomJoinsTheProfilePassProtection() throws Exception {
-        SeaInlet inlet = coveredInlet(32, 40, 40);
-        installInlet(inlet);
+    public void passageHeadroomJoinsTheProfilePassProtection() throws Exception {
+        TestPassage passage = coveredPassage(32, 40, 40);
+        installPassage(passage);
         IrisCaveCarver3D carver = installProfile();
         List<long[]> boundaries = new ArrayList<>();
         doAnswer(call -> {
@@ -167,14 +167,14 @@ public class MantleCarvingComponentWaterMaskTest {
         for (int lz = 0; lz < 16; lz++) {
             for (int lx = 0; lx < 16; lx++) {
                 int index = PowerOfTwoCoordinates.packLocal16(lx, lz);
-                if (!SeaInletRasterizer.column(inlet, 32 + lx, 32 + lz, column)) {
+                if (!passage.column(32 + lx, 32 + lz, column)) {
                     continue;
                 }
-                for (int y = inlet.waterLevel() + 1; y <= column[1] + ROOF_CLEARANCE; y++) {
-                    assertTrue("the carver keeps out of the inlet headroom at " + (32 + lx) + "," + y + "," + (32 + lz),
+                for (int y = passage.waterLevel() + 1; y <= column[1] + ROOF_CLEARANCE; y++) {
+                    assertTrue("the carver keeps out of the passage headroom at " + (32 + lx) + "," + y + "," + (32 + lz),
                             SurfaceFluidBoundaryPlan.protects(boundaries.getFirst(), index, y));
                 }
-                assertFalse(SurfaceFluidBoundaryPlan.protects(boundaries.getFirst(), index, inlet.waterLevel()));
+                assertFalse(SurfaceFluidBoundaryPlan.protects(boundaries.getFirst(), index, passage.waterLevel()));
                 covered++;
             }
         }
@@ -182,7 +182,7 @@ public class MantleCarvingComponentWaterMaskTest {
     }
 
     @Test
-    public void subterrainFeaturesStayOutOfInletHeadroom() {
+    public void subterrainFeaturesStayOutOfPassageHeadroom() {
         IrisSubterrainFeature feature = new IrisSubterrainFeature().setId("room").setFamily(IrisSubterrainFamily.CENOTE)
                 .setProbability(1).setLength(64).setRadius(12).setHeight(24).setPillarSpacing(0).setFormationFraction(0)
                 .setWorldYRange(new IrisRange(-48, 60));
@@ -196,40 +196,40 @@ public class MantleCarvingComponentWaterMaskTest {
             List<int[]> open = openedCells(chunkX, chunkZ);
             int[] heights = open.stream().mapToInt(cell -> cell[1]).sorted().toArray();
             int water = heights[heights.length / 4];
-            SeaInlet inlet = coveredInlet(chunkX << 4, (chunkZ << 4) + 8, water);
+            TestPassage passage = coveredPassage(chunkX << 4, (chunkZ << 4) + 8, water);
             int[] column = new int[2];
             int inside = 0;
             for (int[] cell : open) {
-                if (SeaInletRasterizer.column(inlet, cell[0], cell[2], column) && cell[1] > water && cell[1] <= column[1] + ROOF_CLEARANCE) {
+                if (passage.column(cell[0], cell[2], column) && cell[1] > water && cell[1] <= column[1] + ROOF_CLEARANCE) {
                     inside++;
                 }
             }
-            assertTrue("subterrain cells in the headroom before the inlet " + inside, inside > 20);
+            assertTrue("subterrain cells in the headroom before the passage " + inside, inside > 20);
 
-            installInlet(inlet);
+            installPassage(passage);
             List<int[]> sealed = openedCells(chunkX, chunkZ);
             assertTrue(sealed.size() > 0);
             for (int[] cell : sealed) {
-                boolean headroom = SeaInletRasterizer.column(inlet, cell[0], cell[2], column) && cell[1] > water
+                boolean headroom = passage.column(cell[0], cell[2], column) && cell[1] > water
                         && cell[1] <= column[1] + ROOF_CLEARANCE;
-                assertFalse("subterrain opened " + cell[0] + "," + cell[1] + "," + cell[2] + " in the inlet headroom", headroom);
+                assertFalse("subterrain opened " + cell[0] + "," + cell[1] + "," + cell[2] + " in the passage headroom", headroom);
             }
         }
     }
 
-    private void installInlet(SeaInlet inlet) {
-        when(hydrology.inlets(anyInt(), anyInt())).thenAnswer(call -> SeaInletRasterizer.touches(inlet, call.getArgument(0), call.getArgument(1))
-                ? List.of(inlet) : List.of());
+    private void installPassage(TestPassage passage) {
+        when(hydrology.passages(anyInt(), anyInt())).thenAnswer(call -> PassageRasterizer.touches(passage, call.getArgument(0), call.getArgument(1))
+                ? List.of(passage) : List.of());
         when(hydrology.settings()).thenReturn(HydrologySettings.compile(new IrisHydrology().setEnabled(true), 1L, 63, 0, 128));
     }
 
-    private static SeaInlet coveredInlet(int startX, int z, int water) {
+    private static TestPassage coveredPassage(int startX, int z, int water) {
         float[] xs = {startX - 4f, startX + 4f, startX + 12f, startX + 20f};
         float[] zs = {z, z, z, z};
         float[] halfWidth = {4f, 4f, 3.5f, 3f};
         int[] floor = {water - 3, water - 3, water - 3, water - 3};
         int[] ceiling = {water + 5, water + 5, water + 4, water + 4};
-        return new SeaInlet(5L, xs, zs, halfWidth, water, floor, ceiling, startX + 20, z, 3);
+        return new TestPassage(5L, xs, zs, halfWidth, water, floor, ceiling, startX + 20, z, 3);
     }
 
     private List<int[]> openedCells(int chunkX, int chunkZ) {

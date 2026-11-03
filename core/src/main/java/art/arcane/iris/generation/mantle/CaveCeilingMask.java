@@ -2,8 +2,7 @@ package art.arcane.iris.generation.mantle;
 
 import art.arcane.iris.generation.hydrology.engine.HydrologyRuntime;
 import art.arcane.iris.generation.hydrology.raster.ChunkWaterRaster;
-import art.arcane.iris.generation.hydrology.underground.SeaInlet;
-import art.arcane.iris.generation.hydrology.underground.SeaInletRasterizer;
+import art.arcane.iris.generation.hydrology.underground.SealedPassage;
 import art.arcane.volmlib.util.math.PowerOfTwoCoordinates;
 
 import java.util.Arrays;
@@ -60,16 +59,15 @@ public final class CaveCeilingMask {
     }
 
     public static long[] headroom(int chunkX, int chunkZ, HydrologyRuntime runtime, long[] bands) {
-        List<SeaInlet> inlets = runtime.inlets(chunkX, chunkZ);
-        if (inlets.isEmpty()) {
+        List<SealedPassage> passages = runtime.passages(chunkX, chunkZ);
+        if (passages.isEmpty()) {
             return null;
         }
-        int roofClearance = 6;
-        return fillHeadroom(chunkX, chunkZ, inlets, roofClearance, bands) ? bands : null;
+        return fillHeadroom(chunkX, chunkZ, passages, bands) ? bands : null;
     }
 
-    static boolean fillHeadroom(int chunkX, int chunkZ, List<SeaInlet> inlets, int roofClearance, long[] bands) {
-        if (inlets.isEmpty()) {
+    static boolean fillHeadroom(int chunkX, int chunkZ, List<SealedPassage> passages, long[] bands) {
+        if (passages.isEmpty()) {
             return false;
         }
         int originX = (chunkX << 4) - CONTAINMENT;
@@ -80,19 +78,19 @@ public final class CaveCeilingMask {
         Arrays.fill(tops, Integer.MIN_VALUE);
         int[] column = new int[2];
         boolean roofed = false;
-        for (SeaInlet inlet : inlets) {
-            int[] bounds = SeaInletRasterizer.bounds(inlet);
+        for (SealedPassage passage : passages) {
+            int[] bounds = passage.bounds();
             int fromX = Math.max(originX, bounds[0]);
             int toX = Math.min(originX + FIELD - 1, bounds[2]);
             int toZ = Math.min(originZ + FIELD - 1, bounds[3]);
             for (int z = Math.max(originZ, bounds[1]); z <= toZ; z++) {
                 for (int x = fromX; x <= toX; x++) {
-                    if (!SeaInletRasterizer.column(inlet, x, z, column) || column[1] == SeaInlet.OPEN) {
+                    if (!passage.column(x, z, column)) {
                         continue;
                     }
                     int index = (z - originZ) * FIELD + x - originX;
-                    bottoms[index] = Math.min(bottoms[index], inlet.waterLevel() + 1);
-                    tops[index] = Math.max(tops[index], column[1] + roofClearance);
+                    bottoms[index] = Math.min(bottoms[index], passage.waterLevel() + 1);
+                    tops[index] = Math.max(tops[index], column[1] + passage.roofClearance());
                     roofed = true;
                 }
             }

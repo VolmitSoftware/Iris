@@ -9,7 +9,7 @@ import art.arcane.iris.generation.hydrology.engine.HydrologyRuntime;
 import art.arcane.iris.generation.hydrology.plan.HydrologySettings;
 import art.arcane.iris.generation.hydrology.raster.ChunkWaterRaster;
 import art.arcane.iris.generation.hydrology.underground.CavePoolFiller;
-import art.arcane.iris.generation.hydrology.underground.SeaInlet;
+import art.arcane.iris.testsupport.TestPassage;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.subterrain.SubterrainCell;
@@ -263,11 +263,11 @@ public class MantleHydrologyComponentTest {
     }
 
     @Test
-    public void seaInletsAreWrittenEvenWhereNoSurfaceWaterFlows() {
+    public void passagesAreWrittenEvenWhereNoSurfaceWaterFlows() {
         Fixture dry = new Fixture(ChunkWaterRaster.EMPTY, (x, z) -> 99);
-        SeaInlet inlet = new SeaInlet(5L, new float[]{-8f, 8f, 24f}, new float[]{8f, 8f, 8f}, new float[]{4f, 4f, 3f}, 63,
+        TestPassage passage = new TestPassage(5L, new float[]{-8f, 8f, 24f}, new float[]{8f, 8f, 8f}, new float[]{4f, 4f, 3f}, 63,
                 new int[]{60, 60, 59}, new int[]{90, 68, 67}, 24, 8, 6);
-        when(dry.runtime.inlets(0, 0)).thenReturn(List.of(inlet));
+        when(dry.runtime.passages(0, 0)).thenReturn(List.of(passage));
         List<HydrologyCaveCell> written = new ArrayList<>();
         List<Integer> heights = new ArrayList<>();
         doAnswer(call -> {
@@ -286,15 +286,15 @@ public class MantleHydrologyComponentTest {
                 assertTrue(heights.get(index) <= 63);
             }
         }
-        assertTrue("wet inlet cells " + wet, wet > 100);
+        assertTrue("wet passage cells " + wet, wet > 100);
     }
 
     @Test
-    public void subterrainFluidBesideSeaInletAirIsSealedAboveSeaLevel() {
+    public void subterrainFluidBesidePassageAirIsSealedAboveSeaLevel() {
         Fixture dry = new Fixture(ChunkWaterRaster.EMPTY, (x, z) -> 99);
-        SeaInlet inlet = new SeaInlet(5L, new float[]{-8f, 8f, 24f}, new float[]{8f, 8f, 8f}, new float[]{4f, 4f, 3f}, 63,
+        TestPassage passage = new TestPassage(5L, new float[]{-8f, 8f, 24f}, new float[]{8f, 8f, 8f}, new float[]{4f, 4f, 3f}, 63,
                 new int[]{60, 60, 59}, new int[]{90, 68, 67}, 24, 8, 6);
-        when(dry.runtime.inlets(0, 0)).thenReturn(List.of(inlet));
+        when(dry.runtime.passages(0, 0)).thenReturn(List.of(passage));
         SubterrainPlanner planner = mock(SubterrainPlanner.class);
         List<SubterrainPlan> plans = List.of(mock(SubterrainPlan.class));
         SubterrainCell water = new SubterrainCell(SubterrainCell.Kind.WATER, "", null);
@@ -318,7 +318,7 @@ public class MantleHydrologyComponentTest {
 
         dry.generate();
 
-        assertEquals("inlet air keeps its cell", HydrologyCaveAction.DRY_AIR, cells.get(cell(4, 69, 8)).action());
+        assertEquals("passage air keeps its cell", HydrologyCaveAction.DRY_AIR, cells.get(cell(4, 69, 8)).action());
         assertEquals("subterrain water beside the passage", HydrologyCaveAction.SEAL_GUARD, cells.get(cell(8, 69, 13)).action());
         assertEquals("subterrain water over the passage roof", HydrologyCaveAction.SEAL_GUARD, cells.get(cell(12, 69, 8)).action());
         assertNull("subterrain water three blocks from the passage", cells.get(cell(8, 69, 15)));

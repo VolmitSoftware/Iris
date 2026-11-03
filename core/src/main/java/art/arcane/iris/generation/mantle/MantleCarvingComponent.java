@@ -169,9 +169,9 @@ public class MantleCarvingComponent extends IrisMantleComponent {
         );
         int[] caveCeilings = CaveCeilingMask.fill(x, z, complex.getHydrologyRuntime()::raster,
                 blendScratch.caveCeilingField, blendScratch.caveCeilings) ? blendScratch.caveCeilings : null;
-        long[] inletHeadroom = CaveCeilingMask.headroom(x, z, complex.getHydrologyRuntime(), blendScratch.inletHeadroom);
-        if (inletHeadroom != null) {
-            SurfaceFluidBoundaryPlan.join(surfaceFluidBoundaries, inletHeadroom);
+        long[] passageHeadroom = CaveCeilingMask.headroom(x, z, complex.getHydrologyRuntime(), blendScratch.passageHeadroom);
+        if (passageHeadroom != null) {
+            SurfaceFluidBoundaryPlan.join(surfaceFluidBoundaries, passageHeadroom);
         }
         CaveFluidSupportPlan fluidSupportPlan = new CaveFluidSupportPlan();
         for (WeightedProfile weightedProfile : weightedProfiles) {
@@ -194,10 +194,10 @@ public class MantleCarvingComponent extends IrisMantleComponent {
                     caveCeilings
             );
         }
-        rasterizeSubterrain(writer, x, z, complex, caveCeilings, inletHeadroom);
+        rasterizeSubterrain(writer, x, z, complex, caveCeilings, passageHeadroom);
     }
 
-    private void rasterizeSubterrain(MantleWriter writer, int chunkX, int chunkZ, IrisComplex complex, int[] caveCeilings, long[] inletHeadroom) {
+    private void rasterizeSubterrain(MantleWriter writer, int chunkX, int chunkZ, IrisComplex complex, int[] caveCeilings, long[] passageHeadroom) {
         SubterrainPlanner planner = complex.getSubterrainPlanner();
         if (planner == null || planner.isEmpty()) {
             return;
@@ -211,7 +211,7 @@ public class MantleCarvingComponent extends IrisMantleComponent {
             if (cell.solid() && !cell.room().reservedSolid()) {
                 return;
             }
-            if (!cell.solid() && CaveCeilingMask.masked(caveCeilings, inletHeadroom, PowerOfTwoCoordinates.packLocal16(x & 15, z & 15), y)) {
+            if (!cell.solid() && CaveCeilingMask.masked(caveCeilings, passageHeadroom, PowerOfTwoCoordinates.packLocal16(x & 15, z & 15), y)) {
                 return;
             }
             if (cell.solid()) {
@@ -767,7 +767,7 @@ public class MantleCarvingComponent extends IrisMantleComponent {
         private final double[] chunkSurfaceHeightSamples = new double[CHUNK_AREA];
         private final int[] caveCeilingField = new int[CaveCeilingMask.FIELD * CaveCeilingMask.FIELD];
         private final int[] caveCeilings = new int[CHUNK_AREA];
-        private final long[] inletHeadroom = new long[CHUNK_AREA];
+        private final long[] passageHeadroom = new long[CHUNK_AREA];
         private final double[][] neighbourHeights = new double[NEIGHBOURS][CHUNK_AREA];
         private final Object[][] neighbourObjects = new Object[NEIGHBOURS][CHUNK_AREA];
         private final long[][] neighbourSubmerged = new long[NEIGHBOURS][4];

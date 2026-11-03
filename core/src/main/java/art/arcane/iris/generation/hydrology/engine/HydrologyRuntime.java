@@ -19,7 +19,7 @@ import art.arcane.iris.generation.hydrology.raster.ChannelFluids;
 import art.arcane.iris.generation.hydrology.raster.ChunkRasterizer;
 import art.arcane.iris.generation.hydrology.raster.ChunkWaterRaster;
 import art.arcane.iris.generation.hydrology.raster.NaturalHeights;
-import art.arcane.iris.generation.hydrology.underground.SeaInlet;
+import art.arcane.iris.generation.hydrology.underground.SealedPassage;
 import art.arcane.iris.generation.hydrology.water.HydrologyTier;
 import art.arcane.iris.generation.hydrology.water.Pond;
 import art.arcane.iris.generation.hydrology.water.Reach;
@@ -438,7 +438,7 @@ public final class HydrologyRuntime {
         return HydrologyFeatureSearch.channelType(settings, tier);
     }
 
-    public List<SeaInlet> inlets(int chunkX, int chunkZ) {
+    public List<SealedPassage> passages(int chunkX, int chunkZ) {
         return List.of();
     }
 

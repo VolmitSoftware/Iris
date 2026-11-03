@@ -381,8 +381,9 @@ public class ReachShaperTest {
     public void cliffBetweenLatticeNodesKeepsWaterBelowTheGround() {
         HydrologySettings settings = settings(config -> {
         });
-        for (int edge = STEP_X - 3; edge <= STEP_X + 3; edge++) {
-            int cliffX = edge;
+        int[] brinks = {190, 190, 190, 194, 194, 194, 198};
+        for (int edge = 0; edge < brinks.length; edge++) {
+            int cliffX = STEP_X - 3 + edge;
             DoubleBinaryOperator cliff = (x, z) -> (x < 2 * CELL ? 140D : x < cliffX ? 120D : 108D) + 0.1D * Math.abs(z - VALLEY_Z);
             ShapedNetwork shaped = shape(settings, network(settings, cliff, 64, 64, VALLEY_THRESHOLD, false));
             for (Reach reach : shaped.reaches()) {
@@ -392,8 +393,29 @@ public class ReachShaperTest {
                             + " natural " + natural, reach.grade()[index] <= natural);
                 }
             }
-            float brink = brinkMidpoint(shaped);
-            assertTrue("cliff " + cliffX + " brink midpoint " + brink, brink >= cliffX - 5 && brink <= cliffX);
+            assertEquals("cliff " + cliffX + " brink midpoint", brinks[edge], brinkMidpoint(shaped), 0.5f);
+        }
+    }
+
+    @Test
+    public void cliffAtAnyStationPhaseKeepsWaterBelowTheGround() {
+        HydrologySettings settings = settings(config -> {
+        });
+        for (int origin = 0; origin < FINE; origin++) {
+            for (double edge = STEP_X - 2D; edge <= STEP_X + 2D; edge += 0.5D) {
+                double cliffX = edge;
+                DoubleBinaryOperator cliff = (x, z) -> (x < 2 * CELL ? 140D : x < cliffX ? 120D : 108D) + 0.1D * Math.abs(z - VALLEY_Z);
+                ShapedNetwork shaped = shape(settings, network(settings, cliff, origin, 64, 64, CELL, VALLEY_THRESHOLD, false));
+                for (Reach reach : shaped.reaches()) {
+                    for (int index = 0; index < reach.xs().length; index++) {
+                        double natural = cliff.applyAsDouble(reach.xs()[index], reach.zs()[index]);
+                        assertTrue("origin " + origin + " cliff " + cliffX + " " + reach + " at " + index + " x " + reach.xs()[index]
+                                + " grade " + reach.grade()[index] + " natural " + natural, reach.grade()[index] <= natural);
+                    }
+                }
+                float brink = brinkMidpoint(shaped);
+                assertTrue("origin " + origin + " cliff " + cliffX + " brink midpoint " + brink, brink >= cliffX - 5D && brink <= cliffX);
+            }
         }
     }
 
@@ -405,6 +427,7 @@ public class ReachShaperTest {
         DoubleBinaryOperator mirrored = (x, z) -> forward.applyAsDouble(504D - x, z);
         float before = STEP_X - firstAtOrBelow(shape(settings, network(settings, forward, 64, 64, VALLEY_THRESHOLD, false)), 113, true);
         float mirroredBefore = firstAtOrBelow(shape(settings, network(settings, mirrored, 64, 64, VALLEY_THRESHOLD, false)), 113, false) - (504 - STEP_X);
+        assertTrue("the full read starts the lower level 5.5 before the step, the trimmed read 1.5: " + before, before >= 4f);
         assertEquals("a step below the waterfall minimum reads the same both ways", before, mirroredBefore, 1e-3f);
     }
 

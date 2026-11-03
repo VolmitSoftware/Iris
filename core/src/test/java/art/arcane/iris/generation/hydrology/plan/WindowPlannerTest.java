@@ -3,6 +3,7 @@ package art.arcane.iris.generation.hydrology.plan;
 import art.arcane.iris.generation.hydrology.config.IrisHydrology;
 import art.arcane.iris.generation.hydrology.config.IrisHydrologyTier;
 import art.arcane.iris.generation.hydrology.grid.HeightLattice;
+import art.arcane.iris.generation.hydrology.raster.TongueGuard;
 import art.arcane.iris.generation.hydrology.raster.WaterHeads;
 import art.arcane.iris.generation.hydrology.raster.WaterRole;
 import art.arcane.iris.generation.hydrology.underground.SeaInlet;
@@ -126,6 +127,26 @@ public class WindowPlannerTest {
         assertFalse(pond.mask().contains(83, 64));
         assertTrue(pond.mask().contains(64, 64));
         assertEquals(94, settled.allReaches().get(0).grade()[0]);
+    }
+
+    @Test
+    public void planningStopsTonguesThatWouldRaiseTheBedOverMaxFill() {
+        int stopped = 0;
+        SyntheticTerrain terrain = SyntheticTerrain.southSlope(300D, 5D);
+        for (long seed = 1L; seed <= 6L; seed++) {
+            HydrologySettings settings = HydrologySettings.compile(new IrisHydrology(), seed, SyntheticTerrain.SEA_LEVEL, SyntheticTerrain.MIN_Y, SyntheticTerrain.MAX_Y);
+            Reach river = new Reach(30L, settings.tiers().get(0), 0L, new float[]{64f, 64f}, new float[]{20f, 40f}, new int[]{200, 160},
+                    new float[]{8f, 8f}, new float[]{2f, 2f}, new ReachStyle[]{ReachStyle.RUN, ReachStyle.WATERFALL}, 1000f);
+            ReachShaper shaper = mock(ReachShaper.class);
+            doAnswer(call -> new ShapedNetwork(List.of(river), List.of())).when(shaper).shape(any(), any(), any(), any(), any(), any(), any(), any(), anyLong());
+            WindowPlanner planner = new WindowPlanner(settings, new HeightLattice(terrain, WindowPlanner.FINE_CELL, false, 1 << 18), new PondPlanner(settings), shaper);
+            Reach planned = planner.compute(ORIGIN, noRegions(ORIGIN)).allReaches().get(0);
+            ShapedNetwork expected = TongueGuard.guard(new ShapedNetwork(List.of(river), List.of()), (x, z) -> 300D - 5D * z, seed, SyntheticTerrain.SEA_LEVEL,
+                    settings.deformation().maxFill());
+            assertEquals("seed " + seed, expected.reaches().get(0), planned);
+            stopped += planned.straightFalls().length;
+        }
+        assertTrue("stopped tongues " + stopped, stopped > 0);
     }
 
     @Test

@@ -43,6 +43,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
@@ -1785,6 +1786,152 @@ public class ChunkWaterRasterTest {
             }
         }
         return cells;
+    }
+
+    @Test
+    public void aTonguePastACliffNeverRaisesTheBedOverMaxFill() {
+        int maxFill = settings(new IrisHydrology()).deformation().maxFill();
+        int[][] drops = {{78, 80}, {74, 76}, {58, 60}};
+        for (int[] drop : drops) {
+            for (float width : new float[]{3f, 4f, 6f, 9f, 12f, 18f}) {
+                HydrologyTier tier = tier("river", width, 0.5f, 8, IrisBankStyle.SMOOTH);
+                Reach reach = line(721L, tier, 0L, -60f, 8f, 100f, 8f, (x, z) -> x < 20f ? 90 : drop[0]);
+                IntBinaryOperator cliff = (x, z) -> x < 20 ? 92 : drop[1];
+                int guarded = 0;
+                int horseshoes = 0;
+                for (long seed = 1L; seed <= 24L; seed++) {
+                    String label = "drop to " + drop[0] + " width " + width + " seed " + seed + ": ";
+                    BrinkRule before = new BrinkRule(seed, reach);
+                    Reach kept = TongueGuard.guard(reach, cliff::applyAsInt, seed, SEA_LEVEL, maxFill);
+                    BrinkRule after = new BrinkRule(seed, kept);
+                    Scene scene = new Scene(seededSettings(seed), cliff).reach(kept);
+                    boolean tongue = false;
+                    boolean horseshoe = false;
+                    for (int x = -10; x <= 50; x++) {
+                        for (int z = 8 - (int) width; z <= 8 + (int) width; z++) {
+                            int raise = before.head(x, z) - before.straightHead(x, z);
+                            tongue |= raise > 0 && cliff.applyAsInt(x, z) < 89 - maxFill;
+                            horseshoe |= raise < 0;
+                            if (scene.water(x, z)) {
+                                assertTrue(label + "bed " + scene.terrain(x, z) + " over natural " + cliff.applyAsInt(x, z) + " at " + x + "," + z,
+                                        scene.terrain(x, z) - cliff.applyAsInt(x, z) <= maxFill);
+                                assertEquals(label + "head at " + x + "," + z, after.head(x, z), scene.head(x, z));
+                                assertTrue(label + "a tongue past the cliff stays straight at " + x + "," + z,
+                                        after.head(x, z) <= after.straightHead(x, z) || cliff.applyAsInt(x, z) >= 89 - maxFill);
+                            }
+                        }
+                    }
+                    guarded += tongue ? 1 : 0;
+                    horseshoes += horseshoe ? 1 : 0;
+                    assertEquals(label + "only tongues past the cliff are stopped", tongue ? 1 : 0, kept.straightFalls().length);
+                }
+                assertTrue("drop to " + drop[0] + " width " + width + " stops tongues on some seeds: " + guarded, guarded > 0);
+                assertTrue("drop to " + drop[0] + " width " + width + " keeps horseshoes: " + horseshoes, horseshoes > 0);
+            }
+        }
+    }
+
+    @Test
+    public void tonguesKeepTheirCurveWhereTheBedStaysWithinMaxFill() {
+        int maxFill = settings(new IrisHydrology()).deformation().maxFill();
+        for (float width : new float[]{3f, 4f, 8f, 16f}) {
+            HydrologyTier tier = tier("river", width, 0.5f, 8, IrisBankStyle.SMOOTH);
+            Reach tall = line(722L, tier, 0L, -60f, 8f, 100f, 8f, (x, z) -> x < 20f ? 90 : 58);
+            Reach low = line(723L, tier, 0L, -60f, 8f, 100f, 8f, (x, z) -> x < 20f ? 90 : 84);
+            int tongues = 0;
+            for (long seed = 1L; seed <= 24L; seed++) {
+                assertSame("high ground keeps a tall fall's curve", tall, TongueGuard.guard(tall, (x, z) -> 92, seed, SEA_LEVEL, maxFill));
+                assertSame("a large maxFill keeps the curve past a cliff", tall, TongueGuard.guard(tall, (x, z) -> x < 20 ? 92 : 60, seed, SEA_LEVEL, 32));
+                assertSame("a small fall stays within maxFill", low, TongueGuard.guard(low, (x, z) -> x < 20 ? 92 : 86, seed, SEA_LEVEL, maxFill));
+                BrinkRule rule = new BrinkRule(seed, low);
+                for (int x = 18; x <= 40; x++) {
+                    tongues += rule.head(x, 8) > rule.straightHead(x, 8) ? 1 : 0;
+                }
+            }
+            assertTrue("width " + width + " tongues " + tongues, tongues > 0);
+        }
+    }
+
+    @Test
+    public void aTongueStopsOneBlockPastMaxFillAndCountsOnlyItsOwnFall() {
+        int maxFill = settings(new IrisHydrology()).deformation().maxFill();
+        HydrologyTier tier = tier("river", 8f, 0.5f, 8, IrisBankStyle.SMOOTH);
+        Reach reach = line(725L, tier, 0L, -60f, 8f, 100f, 8f, (x, z) -> x < 20f ? 90 : 78);
+        int stopped = 0;
+        for (long seed = 1L; seed <= 24L; seed++) {
+            int crest = 89 - maxFill;
+            BrinkRule rule = new BrinkRule(seed, reach);
+            boolean tongue = false;
+            for (int x = 20; x <= 40; x++) {
+                tongue |= rule.head(x, 8) > rule.straightHead(x, 8);
+            }
+            assertSame("seed " + seed + " a raise of exactly maxFill keeps the curve", reach, TongueGuard.guard(reach, (x, z) -> x < 20 ? 92 : crest, seed, SEA_LEVEL, maxFill));
+            Reach below = TongueGuard.guard(reach, (x, z) -> x < 20 ? 92 : crest - 1, seed, SEA_LEVEL, maxFill);
+            assertEquals("seed " + seed + " one block lower stops only a tongue", tongue ? 1 : 0, below.straightFalls().length);
+            stopped += below.straightFalls().length;
+            assertEquals("seed " + seed + " a stopped tongue is part of the reach's identity", tongue, !reach.equals(below));
+            Reach horseshoeGround = TongueGuard.guard(reach, (x, z) -> x < 19 ? crest - 1 : 92, seed, SEA_LEVEL, maxFill);
+            assertSame("seed " + seed + " low ground above the fall stops nothing", reach, horseshoeGround);
+        }
+        assertTrue("stopped tongues " + stopped, stopped > 0);
+    }
+
+    @Test
+    public void aStoppedTongueLeavesTheOtherFallsCurved() {
+        int maxFill = settings(new IrisHydrology()).deformation().maxFill();
+        HydrologyTier tier = tier("river", 8f, 0.5f, 8, IrisBankStyle.SMOOTH);
+        Reach reach = line(726L, tier, 0L, -60f, 8f, 100f, 8f, (x, z) -> x < -20f ? 110 : x < 20f ? 90 : 78);
+        int both = 0;
+        for (long seed = 1L; seed <= 24L; seed++) {
+            Reach kept = TongueGuard.guard(reach, (x, z) -> x < 20 ? 120 : 80, seed, SEA_LEVEL, maxFill);
+            BrinkRule rule = new BrinkRule(seed, kept);
+            BrinkRule before = new BrinkRule(seed, reach);
+            boolean upperCurved = false;
+            for (int x = -30; x <= -10; x++) {
+                assertEquals("seed " + seed + " upper fall at " + x, before.head(x, 8), rule.head(x, 8));
+                upperCurved |= before.head(x, 8) != before.straightHead(x, 8);
+            }
+            both += upperCurved && kept.straightFalls().length == 1 ? 1 : 0;
+        }
+        assertTrue("seeds with a stopped lower tongue under a curved upper fall: " + both, both > 0);
+    }
+
+    @Test
+    public void aTongueIsNotStoppedByTheNextFallsTongueCloseBelowIt() {
+        int maxFill = settings(new IrisHydrology()).deformation().maxFill();
+        HydrologyTier tier = tier("river", 8f, 0.5f, 8, IrisBankStyle.SMOOTH);
+        Reach reach = line(727L, tier, 0L, -60f, 8f, 100f, 8f, (x, z) -> x < 20f ? 110 : x < 28f ? 90 : 78);
+        int upperFall = 39;
+        int lowerFall = 43;
+        assertEquals(110, reach.grade()[upperFall]);
+        assertEquals(90, reach.grade()[upperFall + 1]);
+        assertEquals(90, reach.grade()[lowerFall]);
+        assertEquals(78, reach.grade()[lowerFall + 1]);
+        int lowerStopped = 0;
+        int bothTongues = 0;
+        for (long seed = 1L; seed <= 24L; seed++) {
+            Reach kept = TongueGuard.guard(reach, (x, z) -> x < 28 ? 120 : 80, seed, SEA_LEVEL, maxFill);
+            assertTrue("seed " + seed + " upper fall stays curved", Arrays.binarySearch(kept.straightFalls(), upperFall) < 0);
+            boolean lower = Arrays.binarySearch(kept.straightFalls(), lowerFall) >= 0;
+            lowerStopped += lower ? 1 : 0;
+            bothTongues += lower && new BrinkRule(seed, kept).head(20, 8) > new BrinkRule(seed, kept).straightHead(20, 8) ? 1 : 0;
+        }
+        assertTrue("stopped lower tongues " + lowerStopped + ", with an upper tongue " + bothTongues, lowerStopped > 0 && bothTongues > 0);
+    }
+
+    @Test
+    public void aStoppedTongueStaysStraightInEveryChunkAcrossAWindowLine() {
+        HydrologyTier tier = tier("river", 12f, 0.5f, 8, IrisBankStyle.SMOOTH);
+        Reach downstream = line(732L, tier, 0L, 700f, 200f, 1100f, 200f, (x, z) -> 94);
+        Reach feeder = line(731L, tier, downstream.id(), 440f, 200f, 700f, 200f, (x, z) -> x < 512f ? 122 : x < 600f ? 110 : 98);
+        NaturalHeights cliff = (x, z) -> x < 512 ? 124 : 112;
+        int stopped = 0;
+        for (long seed = 1L; seed <= 24L; seed++) {
+            Reach kept = TongueGuard.guard(feeder, cliff, seed, SEA_LEVEL, 6);
+            stopped += kept.straightFalls().length;
+            assertHeadsFollowThePlan("seed " + seed + ": ", kept, downstream, seed, 480, 540);
+        }
+        assertTrue("stopped tongues " + stopped, stopped > 0);
     }
 
     private static Reach withStartStyle(Reach reach, ReachStyle style, int points) {

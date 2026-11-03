@@ -13,8 +13,16 @@ public record Reach(
         float[] halfWidth,
         float[] depth,
         ReachStyle[] style,
-        float catchment
+        float catchment,
+        int[] straightFalls
 ) {
+    private static final int[] NO_FALLS = new int[0];
+
+    public Reach(long id, HydrologyTier tier, long downstreamId, float[] xs, float[] zs, int[] grade, float[] halfWidth, float[] depth,
+                 ReachStyle[] style, float catchment) {
+        this(id, tier, downstreamId, xs, zs, grade, halfWidth, depth, style, catchment, NO_FALLS);
+    }
+
     public Reach {
         Objects.requireNonNull(tier, "tier");
         int points = xs.length;
@@ -24,6 +32,15 @@ public record Reach(
                     + " zs=" + zs.length + " grade=" + grade.length + " halfWidth=" + halfWidth.length + " depth=" + depth.length
                     + " style=" + style.length);
         }
+        for (int index = 0; index < straightFalls.length; index++) {
+            if (straightFalls[index] < 0 || straightFalls[index] + 1 >= points || index > 0 && straightFalls[index] <= straightFalls[index - 1]) {
+                throw new IllegalArgumentException("Reach " + id + " has invalid straight falls " + Arrays.toString(straightFalls));
+            }
+        }
+    }
+
+    public Reach withStraightFalls(int[] falls) {
+        return new Reach(id, tier, downstreamId, xs, zs, grade, halfWidth, depth, style, catchment, falls);
     }
 
     @Override
@@ -31,7 +48,8 @@ public record Reach(
         return other instanceof Reach reach && id == reach.id && downstreamId == reach.downstreamId
                 && Float.floatToIntBits(catchment) == Float.floatToIntBits(reach.catchment) && tier.equals(reach.tier)
                 && Arrays.equals(xs, reach.xs) && Arrays.equals(zs, reach.zs) && Arrays.equals(grade, reach.grade)
-                && Arrays.equals(halfWidth, reach.halfWidth) && Arrays.equals(depth, reach.depth) && Arrays.equals(style, reach.style);
+                && Arrays.equals(halfWidth, reach.halfWidth) && Arrays.equals(depth, reach.depth) && Arrays.equals(style, reach.style)
+                && Arrays.equals(straightFalls, reach.straightFalls);
     }
 
     @Override
@@ -44,7 +62,8 @@ public record Reach(
         hash = 31 * hash + Arrays.hashCode(grade);
         hash = 31 * hash + Arrays.hashCode(halfWidth);
         hash = 31 * hash + Arrays.hashCode(depth);
-        return 31 * hash + Arrays.hashCode(style);
+        hash = 31 * hash + Arrays.hashCode(style);
+        return 31 * hash + Arrays.hashCode(straightFalls);
     }
 
     @Override

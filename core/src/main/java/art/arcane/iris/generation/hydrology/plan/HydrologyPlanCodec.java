@@ -24,7 +24,7 @@ public final class HydrologyPlanCodec {
     private static final byte WINDOW = 'W';
     private static final byte REGION = 'R';
     private static final int POINT_BYTES = 5 * Integer.BYTES + 1;
-    private static final int REACH_BYTES = 2 * Long.BYTES + 3 * Integer.BYTES + 2 * POINT_BYTES;
+    private static final int REACH_BYTES = 2 * Long.BYTES + 4 * Integer.BYTES + 2 * POINT_BYTES;
     private static final int POND_BYTES = 2 * Long.BYTES + 1 + 15 * Integer.BYTES;
     private static final int STATION_BYTES = 5 * Integer.BYTES;
     private static final int INLET_BYTES = Long.BYTES + 5 * Integer.BYTES + 2 * STATION_BYTES;
@@ -101,6 +101,10 @@ public final class HydrologyPlanCodec {
         writeFloats(out, reach.depth());
         for (ReachStyle style : reach.style()) {
             out.writeByte(style.code());
+        }
+        out.writeInt(reach.straightFalls().length);
+        for (int fall : reach.straightFalls()) {
+            out.writeInt(fall);
         }
     }
 
@@ -211,7 +215,11 @@ public final class HydrologyPlanCodec {
         for (int point = 0; point < points; point++) {
             style[point] = ReachStyle.fromCode(Byte.toUnsignedInt(in.get()));
         }
-        return new Reach(id, tier, downstreamId, xs, zs, grade, halfWidth, depth, style, catchment);
+        int[] straightFalls = new int[count(in, Integer.BYTES)];
+        for (int fall = 0; fall < straightFalls.length; fall++) {
+            straightFalls[fall] = in.getInt();
+        }
+        return new Reach(id, tier, downstreamId, xs, zs, grade, halfWidth, depth, style, catchment, straightFalls);
     }
 
     private static Pond readPond(ByteBuffer in) {

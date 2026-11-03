@@ -40,7 +40,7 @@ public class HydrologyPlanCodecTest {
             4948595057000000000000000000000002fffffffd000000010000000000000029000000000000006100000000444b20
             0000000006000000004080000041000000414000004180000041a00000c1000000c0c00000c0800000c0000000000000
             0040000000000000480000004700000046000000420000003f0000003e3f8000003fa000003fc000003fe00000400000
-            00402000003f8000003f8000003fc0000040000000400000003f80000000010203040500000004000000000000000500
+            00402000003f8000003f8000003fc0000040000000400000003f8000000001020304050000000000000004000000000000000500
             00000046000000420000000cfffffffc428d0000fffffffc000000080000000400000000000000000000000000000000
             0000002900000000ffffffff0000000afffffffa0000000000000006010000004a000000470000001e00000008429480
             0000000003fffffffd000000010000004000000001000000018000000000000001ffffffffffffffff00000001000000
@@ -62,7 +62,7 @@ public class HydrologyPlanCodecTest {
                 new float[]{1f, Float.POSITIVE_INFINITY, 0.4f, 1e-42f, -0f, 3f},
                 ReachStyle.values(), NEGATIVE_NAN);
         Reach plain = new Reach(77L, tiers.get(0), -9_000_000_000L, new float[]{10f, 11.5f}, new float[]{-3f, -2.5f}, new int[]{70, 69},
-                new float[]{0.5f, 0.75f}, new float[]{1f, 1f}, new ReachStyle[]{ReachStyle.RUN, ReachStyle.MOUTH}, 1501.25f);
+                new float[]{0.5f, 0.75f}, new float[]{1f, 1f}, new ReachStyle[]{ReachStyle.RUN, ReachStyle.MOUTH}, 1501.25f).withStraightFalls(new int[]{0});
         List<Pond> ponds = new ArrayList<>();
         PondKind[] kinds = PondKind.values();
         for (int index = 0; index < kinds.length; index++) {
@@ -204,6 +204,7 @@ public class HydrologyPlanCodecTest {
             assertArrayEquals(rawBits(want.halfWidth()), rawBits(got.halfWidth()));
             assertArrayEquals(rawBits(want.depth()), rawBits(got.depth()));
             assertArrayEquals(want.style(), got.style());
+            assertArrayEquals(want.straightFalls(), got.straightFalls());
         }
     }
 

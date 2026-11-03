@@ -77,6 +77,9 @@ final class ReachGeometry {
                     Math.round((reach.zs()[segment] + reach.zs()[segment + 1]) / 2f));
             double curve = BRINK_CURVE_MIN + (BRINK_CURVE_MAX - BRINK_CURVE_MIN) * CellHash.unit(hash);
             double wanted = Math.min(BRINK_MAX_SHIFT, Math.max(BRINK_MIN_SHIFT, curve * (width - EDGE_MARGIN)));
+            if (Arrays.binarySearch(reach.straightFalls(), segment) >= 0) {
+                continue;
+            }
             boolean tongue = (hash & 1L) == 0L;
             double room = tongue
                     ? Math.min(step + 1 < count ? (middle(along, steps[step + 1]) - middle) / 2D : end - middle, mouth - middle)
@@ -118,6 +121,36 @@ final class ReachGeometry {
             return at - moved >= middles[curve] ? straight : segments[curve];
         }
         return at - moved > middles[curve] ? segments[curve] + 1 : straight;
+    }
+
+    int curvedFall(ReachCursor.Choice choice) {
+        if (segments.length == 0 || point(choice) == choice.point()) {
+            return -1;
+        }
+        double at = along[choice.segment] + choice.t * (along[choice.segment + 1] - along[choice.segment]);
+        int found = Arrays.binarySearch(starts, at);
+        int curve = found >= 0 ? found : -found - 2;
+        return segments[curve];
+    }
+
+    int[] tongueFalls() {
+        int[] falls = new int[segments.length];
+        int count = 0;
+        for (int curve = 0; curve < segments.length; curve++) {
+            if (shifts[curve] > 0D) {
+                falls[count++] = segments[curve];
+            }
+        }
+        return Arrays.copyOf(falls, count);
+    }
+
+    double tongueEnd(int fall) {
+        int curve = Arrays.binarySearch(segments, fall);
+        return middles[curve] + shifts[curve];
+    }
+
+    double along(int point) {
+        return along[point];
     }
 
     int lowestGrade(Reach reach, int segment) {

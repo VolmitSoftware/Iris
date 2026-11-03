@@ -129,6 +129,18 @@ public class PondChannelSettlementTest {
     }
 
     @Test
+    public void settlementTreatsAStoppedTongueAsAStraightFall() {
+        Reach river = line(2L, 504, 108, 504, 148, 6f, 100, 88);
+        int stopped = 0;
+        for (long seed = 1L; seed <= 24L; seed++) {
+            Reach kept = TongueGuard.guard(river, (x, z) -> z < 128 ? 102 : 90, seed, SEA_LEVEL, 6);
+            stopped += kept.straightFalls().length;
+            assertSettlementMatchesTheRaster(seed, kept, 500, 508, 120, 136, 1);
+        }
+        assertTrue("stopped tongues " + stopped, stopped > 0);
+    }
+
+    @Test
     public void settlementFollowsAWideAngledBrink() {
         Reach river = line(2L, 400, 100, 460, 160, 16f, 100, 88);
         int moved = 0;

@@ -12,6 +12,7 @@ import art.arcane.iris.generation.hydrology.grid.HeightLattice;
 import art.arcane.iris.generation.hydrology.grid.HydrologySampleBuffer;
 import art.arcane.iris.generation.hydrology.grid.PriorityFlood;
 import art.arcane.iris.generation.hydrology.raster.PondChannelSettlement;
+import art.arcane.iris.generation.hydrology.raster.TongueGuard;
 import art.arcane.iris.generation.hydrology.underground.SeaInlet;
 import art.arcane.iris.generation.hydrology.underground.SeaInletPlanner;
 import art.arcane.iris.generation.hydrology.water.CupSet;
@@ -117,16 +118,16 @@ public final class WindowPlanner {
         basins.addAll(BasinExtractor.hollows(natural, inland, drainage.filled(), settings.seaLevel(), basins.size()));
         List<Pond> water = new ArrayList<>(ponds.ponds(raw, drainage.filled(), basins, lakes, fine, cups));
         water.addAll(lakes);
-        ShapedNetwork network = PondChannelSettlement.settle(key, shaper.shape(key, drainage.surface(), drainage.receivers(),
-                drainage.accumulation(), drainage.channels(), samples.ocean(), water, fine, settings.seed()), settings.seed(), settings.seaLevel());
+        ShapedNetwork network = PondChannelSettlement.settle(key, guarded(shaper.shape(key, drainage.surface(), drainage.receivers(),
+                drainage.accumulation(), drainage.channels(), samples.ocean(), water, fine, settings.seed())), settings.seed(), settings.seaLevel());
         long passes = settlementPasses(water);
         for (long pass = 1; lowered(water, network.ponds()); pass++) {
             if (pass >= passes) {
                 throw new IllegalStateException("Window " + key + " ponds did not settle within " + passes + " shaping passes");
             }
             water = replanned(settled(raw, cups, water, network.ponds()));
-            network = PondChannelSettlement.settle(key, shaper.shape(key, drainage.surface(), drainage.receivers(),
-                    drainage.accumulation(), drainage.channels(), samples.ocean(), water, fine, settings.seed()), settings.seed(), settings.seaLevel());
+            network = PondChannelSettlement.settle(key, guarded(shaper.shape(key, drainage.surface(), drainage.receivers(),
+                    drainage.accumulation(), drainage.channels(), samples.ocean(), water, fine, settings.seed())), settings.seed(), settings.seaLevel());
         }
         List<Reach> reaches = network.reaches();
         List<Pond> windowPonds = windowPonds(network.ponds());
@@ -134,6 +135,18 @@ public final class WindowPlanner {
         WindowPlan owned = new WindowPlan(key, ownedReaches(key, reaches), ownedPonds(key, windowPonds), ownedInlets(key, planned));
         requireSeaConnectedHeads(owned, settings.seaLevel());
         return new WindowComputation(owned, reaches, windowPonds);
+    }
+
+    private ShapedNetwork guarded(ShapedNetwork shaped) {
+        HydrologySampleBuffer column = new HydrologySampleBuffer(1);
+        int[] columnX = new int[1];
+        int[] columnZ = new int[1];
+        return TongueGuard.guard(shaped, (x, z) -> {
+            columnX[0] = x;
+            columnZ[0] = z;
+            fine.sampleColumns(columnX, columnZ, column);
+            return column.height()[0];
+        }, settings.seed(), settings.seaLevel(), settings.deformation().maxFill());
     }
 
     public WindowPlan plan(WindowKey key, List<RegionPlan> regions) {

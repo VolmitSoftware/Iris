@@ -6,4 +6,6 @@ public interface CarvedTerrain {
     int surface(int x, int z);
 
     String caveFluid(int x, int y, int z);
+
+    boolean structureNear();
 }

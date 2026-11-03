@@ -514,5 +514,10 @@ public class CavePoolFillerTest {
         public String caveFluid(int x, int y, int z) {
             return policyFluid.apply(x);
         }
+
+        @Override
+        public boolean structureNear() {
+            return false;
+        }
     }
 }

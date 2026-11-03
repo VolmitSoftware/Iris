@@ -64,6 +64,7 @@ public class HydrologyCaveMatterTest {
         codes.put(HydrologyCaveAction.DRY_AIR, 3);
         codes.put(HydrologyCaveAction.SEAL_GUARD, 4);
         codes.put(HydrologyCaveAction.POOL_SOURCE, 5);
+        codes.put(HydrologyCaveAction.SPRING_SOURCE, 6);
         assertEquals(List.copyOf(codes.keySet()), List.of(HydrologyCaveAction.values()));
         for (Map.Entry<HydrologyCaveAction, Integer> entry : codes.entrySet()) {
             ByteArrayOutputStream bytes = new ByteArrayOutputStream();
@@ -76,6 +77,10 @@ public class HydrologyCaveMatterTest {
         assertTrue(pool.isWet());
         assertTrue(pool.carves());
         assertTrue(pool.asCavern().isWater());
+        HydrologyCaveCell spring = new HydrologyCaveCell(HydrologyCaveAction.SPRING_SOURCE, "lava");
+        assertTrue(spring.isWet());
+        assertTrue(spring.carves());
+        assertEquals(spring, matter.readNode(new DataInputStream(new ByteArrayInputStream(new byte[]{6, 0, 4, 'l', 'a', 'v', 'a', 0, 0}))));
     }
 
     @Test

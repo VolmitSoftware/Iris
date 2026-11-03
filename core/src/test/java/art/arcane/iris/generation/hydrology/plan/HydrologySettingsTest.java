@@ -33,7 +33,7 @@ public class HydrologySettingsTest {
     private static final int SEA_LEVEL = 62;
     private static final int MIN_Y = -64;
     private static final int MAX_Y = 320;
-    private static final long DEFAULT_FINGERPRINT = 3280677091802284252L;
+    private static final long DEFAULT_FINGERPRINT = 5305026471094945587L;
 
     @Test
     public void densityIsBoundedAndChangesThePlanIdentity() {
@@ -78,6 +78,34 @@ public class HydrologySettingsTest {
         IrisHydrology wild = withLava(new IrisHydrology());
         wild.getUnderground().getCavePools().setDeepFluid("lava").setDeepFluidMaxY(4000);
         assertRejected(wild, "underground.cavePools.deepFluidMaxY");
+    }
+
+    @Test
+    public void caveSpringsAreOffByDefaultJoinThePlanIdentityAndFailClosed() {
+        HydrologySettings plain = compile(new IrisHydrology());
+        assertFalse(plain.underground().caveSprings().enabled());
+        assertEquals(0.05f, plain.underground().caveSprings().density(), 0f);
+        assertEquals("lava", plain.underground().caveSprings().fluid());
+        assertEquals(16, plain.underground().caveSprings().minDepthBelowSurface());
+
+        IrisHydrology on = withLava(new IrisHydrology());
+        on.getUnderground().getCaveSprings().setEnabled(true);
+        assertTrue(compile(on).underground().caveSprings().enabled());
+        assertTrue(compile(withLava(new IrisHydrology())).fingerprint() != compile(on).fingerprint());
+
+        IrisHydrology noLava = new IrisHydrology();
+        noLava.getUnderground().getCaveSprings().setEnabled(true);
+        assertRejected(noLava, "underground.caveSprings.fluid");
+        for (double invalid : new double[]{-0.01D, 2.01D, Double.NaN}) {
+            IrisHydrology dense = withLava(new IrisHydrology());
+            dense.getUnderground().getCaveSprings().setEnabled(true).setDensity(invalid);
+            assertRejected(dense, "underground.caveSprings.density");
+        }
+        for (int invalid : new int[]{-1, 257}) {
+            IrisHydrology deep = withLava(new IrisHydrology());
+            deep.getUnderground().getCaveSprings().setEnabled(true).setMinDepthBelowSurface(invalid);
+            assertRejected(deep, "underground.caveSprings.minDepthBelowSurface");
+        }
     }
 
     private static IrisHydrology withLava(IrisHydrology config) {

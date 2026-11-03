@@ -4,5 +4,6 @@ public enum HydrologyCaveAction {
     WET_SOURCE,
     DRY_AIR,
     SEAL_GUARD,
-    POOL_SOURCE
+    POOL_SOURCE,
+    SPRING_SOURCE
 }

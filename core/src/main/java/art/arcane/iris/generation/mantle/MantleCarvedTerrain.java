@@ -15,6 +15,7 @@ import art.arcane.iris.generation.subterrain.SubterrainPlanner;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.generation.terrain.IrisRegion;
 import art.arcane.iris.generation.terrain.Terrain3DColumn;
+import art.arcane.iris.structure.placement.StructurePlacementScope;
 import art.arcane.volmlib.util.mantle.flag.MantleFlag;
 import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
 import art.arcane.volmlib.util.matter.Matter;
@@ -29,6 +30,7 @@ import java.util.Map;
 final class MantleCarvedTerrain implements CarvedTerrain {
     private static final int SPAN = 48;
     private static final int UNKNOWN = Integer.MIN_VALUE;
+    private static final int STRUCTURE_REACH_CHUNKS = 8;
 
     private final MantleWriter writer;
     private final IrisComplex complex;
@@ -118,6 +120,14 @@ final class MantleCarvedTerrain implements CarvedTerrain {
         IrisRegion region = complex.getRegionStream().get(x, z);
         requireFinal(revision, x, z);
         return IrisHydrologyPolicy.inherited(biome == null ? List.of() : List.of(biome), region, dimension, IrisHydrologyPolicy::getFluid);
+    }
+
+    @Override
+    public boolean structureNear() {
+        long revision = ProvisionalSampling.revision();
+        boolean near = StructurePlacementScope.startsNear(engine, chunkX, chunkZ, STRUCTURE_REACH_CHUNKS);
+        requireFinal(revision, chunkX << 4, chunkZ << 4);
+        return near;
     }
 
     private static Collection<SeaInlet> inlets(HydrologyRuntime runtime, int chunkX, int chunkZ) {

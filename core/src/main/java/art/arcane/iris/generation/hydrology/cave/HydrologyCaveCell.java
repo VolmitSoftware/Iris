@@ -20,7 +20,7 @@ public final class HydrologyCaveCell {
         }
         this.fluidProfileKey = fluidProfileKey.trim();
         this.cavern = switch (action) {
-            case WET_SOURCE, POOL_SOURCE -> new MatterCavern(true, "", LIQUID_FLUID);
+            case WET_SOURCE, POOL_SOURCE, SPRING_SOURCE -> new MatterCavern(true, "", LIQUID_FLUID);
             case DRY_AIR -> new MatterCavern(true, "", LIQUID_FORCED_AIR);
             case SEAL_GUARD -> null;
         };
@@ -31,7 +31,7 @@ public final class HydrologyCaveCell {
     }
 
     public boolean isWet() {
-        return action == HydrologyCaveAction.WET_SOURCE || action == HydrologyCaveAction.POOL_SOURCE;
+        return action == HydrologyCaveAction.WET_SOURCE || action == HydrologyCaveAction.POOL_SOURCE || action == HydrologyCaveAction.SPRING_SOURCE;
     }
 
     public MatterCavern asCavern() {

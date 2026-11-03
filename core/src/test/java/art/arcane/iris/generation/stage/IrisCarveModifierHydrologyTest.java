@@ -116,6 +116,8 @@ public class IrisCarveModifierHydrologyTest {
                 new HydrologyCaveCell(HydrologyCaveAction.WET_SOURCE, "water"), current, source, air));
         assertSame(source, IrisCarveModifier.resolveHydrologyState(
                 new HydrologyCaveCell(HydrologyCaveAction.POOL_SOURCE, "water"), current, source, air));
+        assertSame(source, IrisCarveModifier.resolveHydrologyState(
+                new HydrologyCaveCell(HydrologyCaveAction.SPRING_SOURCE, "lava"), current, source, air));
         assertSame(air, IrisCarveModifier.resolveHydrologyState(
                 new HydrologyCaveCell(HydrologyCaveAction.DRY_AIR, "water"), current, source, air));
     }
@@ -441,6 +443,11 @@ public class IrisCarveModifierHydrologyTest {
         @Override
         public String caveFluid(int x, int y, int z) {
             return null;
+        }
+
+        @Override
+        public boolean structureNear() {
+            return false;
         }
     }
 }

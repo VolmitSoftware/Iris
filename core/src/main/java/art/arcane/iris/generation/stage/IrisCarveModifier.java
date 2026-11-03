@@ -418,7 +418,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<NativeBlockState> 
             return null;
         }
         return switch (hydrology.action()) {
-            case WET_SOURCE, POOL_SOURCE -> fluid;
+            case WET_SOURCE, POOL_SOURCE, SPRING_SOURCE -> fluid;
             case DRY_AIR -> air;
             case SEAL_GUARD -> normalizeWaterlogging(current, null);
         };

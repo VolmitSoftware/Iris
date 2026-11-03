@@ -174,7 +174,7 @@ public final class CavePoolFiller {
             }
             int y = unpackY(cell);
             HydrologyCaveCell existing = writer.getDataIfPresent(x, y, z, HydrologyCaveCell.class);
-            if (existing == null || replacesSharedWall(existing, value)) {
+            if (existing == null || existing.action() == HydrologyCaveAction.SPRING_SOURCE || replacesSharedWall(existing, value)) {
                 writer.setData(x, y, z, value);
             }
         }

@@ -41,8 +41,6 @@ import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.structure.nativegen.IrisNativeStructure;
 import art.arcane.iris.pack.value.IrisPosition;
 import art.arcane.iris.generation.terrain.IrisRegion;
-import art.arcane.iris.generation.runtime.GenerationFailures;
-import art.arcane.iris.generation.stream.ProvisionalAnswerException;
 import art.arcane.iris.structure.nativegen.NativeStructureSuppression;
 import art.arcane.iris.structure.object.ObjectPlaceMode;
 import art.arcane.iris.structure.object.IrisObjectVacuum;
@@ -549,16 +547,7 @@ public final class IrisStructureLocator {
         if (submerged && !placement.forcesPieces(structure, 1)) {
             return null;
         }
-        StructureAssemblyResult assembly;
-        try {
-            assembly = assemble(engine, structure, selectedKey, new IrisPosition(originX, baseY, originZ), rng);
-        } catch (IllegalStateException failure) {
-            GenerationFailures.rethrowEngineFailure(failure);
-            if (!submerged || failure instanceof ProvisionalAnswerException) {
-                throw failure;
-            }
-            return null;
-        }
+        StructureAssemblyResult assembly = assemble(engine, structure, selectedKey, new IrisPosition(originX, baseY, originZ), rng);
         if (submerged && !placement.forcesPieces(structure, assembly.pieces().size())) {
             return null;
         }

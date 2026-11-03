@@ -567,19 +567,34 @@ public class IrisStructureLocatorContractTest {
     }
 
     @Test
-    public void brokenReferencesOnASubmergedStartReturnNull() {
+    public void anUnforcedStructureNeverAssemblesOnASubmergedStart() {
+        Engine engine = submergedEngine(WaterRole.NONE, false, -2032, 2032);
+        IrisStructurePlacement placement = engine.getDimension().getStructures().get(0);
+        IrisStructure structure = engine.getData().load(IrisStructure.class, "test:density", false);
+        structure.setStartPool("test:missing-pool");
+
+        assertNull(IrisStructureLocator.resolvePlacement(engine, placement, 3, 4));
+    }
+
+    @Test
+    public void aForcedModeStructureWithABrokenGraphThrowsOnASubmergedStart() {
         Engine engine = submergedEngine(WaterRole.NONE, false, -2032, 2032);
         IrisStructurePlacement placement = engine.getDimension().getStructures().get(0);
         IrisStructure structure = engine.getData().load(IrisStructure.class, "test:density", false);
         structure.setPlaceMode(ObjectPlaceMode.CENTER_HEIGHT);
         structure.setStartPool("test:missing-pool");
 
-        assertNull("a graph that cannot assemble", IrisStructureLocator.resolvePlacement(engine, placement, 3, 4));
+        assertThrows(IllegalStateException.class, () -> IrisStructureLocator.resolvePlacement(engine, placement, 3, 4));
+    }
 
+    @Test
+    public void aMissingStructureOnASubmergedStartReturnsNull() {
+        Engine engine = submergedEngine(WaterRole.NONE, false, -2032, 2032);
+        IrisStructurePlacement placement = engine.getDimension().getStructures().get(0);
         placement.getStructures().clear();
         placement.getStructures().add("test:missing-structure");
 
-        assertNull("a missing structure", IrisStructureLocator.resolvePlacement(engine, placement, 3, 4));
+        assertNull(IrisStructureLocator.resolvePlacement(engine, placement, 3, 4));
     }
 
     @Test

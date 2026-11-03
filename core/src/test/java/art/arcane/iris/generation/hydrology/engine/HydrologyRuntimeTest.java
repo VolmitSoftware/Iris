@@ -335,6 +335,14 @@ public class HydrologyRuntimeTest {
         HydrologyFeatureRef nearest = runtime.nearestFeature(1050, 405, HydrologyFeatureQuery.of(HydrologyFeatureType.SEA_INLET), 512, ANY,
                 RUNNING).orElseThrow();
         assertEquals(new HydrologyFeatureRef(INLET, HydrologyFeatureType.SEA_INLET, 1048, 40, 400), nearest);
+        HydrologyFeatureRef fromInland = runtime.nearestFeature(960, 400, HydrologyFeatureQuery.of(HydrologyFeatureType.SEA_INLET), 512, ANY,
+                RUNNING).orElseThrow();
+        assertEquals("a search lands in the half of the arm toward the sea", new HydrologyFeatureRef(INLET, HydrologyFeatureType.SEA_INLET, 1040, 40, 400), fromInland);
+        HydrologyFeatureRef fromTheSea = runtime.nearestFeature(1200, 400, HydrologyFeatureQuery.of(HydrologyFeatureType.SEA_INLET), 512, ANY,
+                RUNNING).orElseThrow();
+        assertEquals("a search lands short of the open sea", new HydrologyFeatureRef(INLET, HydrologyFeatureType.SEA_INLET, 1072, 40, 400), fromTheSea);
+        assertEquals("a tidal reach is not a river mouth", Optional.empty(),
+                runtime.nearestFeature(1050, 405, HydrologyFeatureQuery.of(HydrologyFeatureType.MOUTH), 128, ANY, RUNNING));
         assertEquals(Optional.empty(),
                 runtime.nearestFeature(0, 0, HydrologyFeatureQuery.of(HydrologyFeatureType.SEA_INLET), 64, ANY, RUNNING));
         assertEquals(List.of(INLET), runtime.planPreview(900, 300, 1100, 500).reaches().stream().map(Reach::id).filter(id -> id == INLET).toList());

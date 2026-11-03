@@ -40,6 +40,8 @@ final class HydrologyFeatureSearch {
     private static final Set<HydrologyFeatureType> WINDOW_TYPES = EnumSet.of(HydrologyFeatureType.STREAM, HydrologyFeatureType.RIVER,
             HydrologyFeatureType.MAJOR_RIVER, HydrologyFeatureType.CASCADE, HydrologyFeatureType.WATERFALL, HydrologyFeatureType.MOUTH,
             HydrologyFeatureType.POND, HydrologyFeatureType.DAM, HydrologyFeatureType.SEA_INLET);
+    private static final double TIDAL_LANDING_FROM = 0.5D;
+    private static final double TIDAL_LANDING_TO = 0.9D;
     private static final long POLL_NANOS = TimeUnit.MILLISECONDS.toNanos(50L);
     static final String OFF = "hydrology is off";
     private static final String PONDS_OFF = "hydrology.ponds.natural and hydrology.ponds.seeded are disabled";
@@ -251,8 +253,17 @@ final class HydrologyFeatureSearch {
     }
 
     private void tidal(Reach reach) {
-        for (int index = 0; index < reach.xs().length; index++) {
-            offer(reach.id(), HydrologyFeatureType.SEA_INLET, (int) Math.floor(reach.xs()[index]), reach.grade()[index], (int) Math.floor(reach.zs()[index]));
+        float[] xs = reach.xs();
+        float[] zs = reach.zs();
+        double[] along = new double[xs.length];
+        for (int index = 1; index < xs.length; index++) {
+            along[index] = along[index - 1] + Math.hypot(xs[index] - xs[index - 1], zs[index] - zs[index - 1]);
+        }
+        double total = along[xs.length - 1];
+        for (int index = 0; index < xs.length; index++) {
+            if (along[index] >= TIDAL_LANDING_FROM * total && along[index] <= TIDAL_LANDING_TO * total) {
+                offer(reach.id(), HydrologyFeatureType.SEA_INLET, (int) Math.floor(xs[index]), reach.grade()[index], (int) Math.floor(zs[index]));
+            }
         }
     }
 

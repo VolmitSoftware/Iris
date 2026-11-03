@@ -925,7 +925,7 @@ public class ChunkWaterRasterTest {
         for (int point = 0; point < zone.length; point++) {
             zone[point] = drawn.xs()[point] - drawn.xs()[0] <= 8f;
         }
-        ReachStyle[] style = ReachShaper.styles(drawn.grade(), new boolean[zone.length], zone, narrow.waterfallMinimumDrop(), SEA_LEVEL);
+        ReachStyle[] style = ReachShaper.styles(drawn.grade(), new boolean[zone.length], zone, narrow.waterfallMinimumDrop(), SEA_LEVEL, narrow.stepHeight());
         assertEquals("the last outlet zone point steps down one block, shown as two", ReachStyle.CASCADE, style[4]);
         assertTrue("the step lies at the end of the outlet zone", zone[4] && !zone[5]);
         Reach outlet = new Reach(drawn.id(), narrow, drawn.downstreamId(), drawn.xs(), drawn.zs(), drawn.grade(), drawn.halfWidth(), drawn.depth(),
@@ -1027,7 +1027,7 @@ public class ChunkWaterRasterTest {
 
     @Test
     public void crossWindowJunctionDropsSpreadOnTiersWithoutCascades() {
-        HydrologyTier gentle = new HydrologyTier("stream", 0f, 2f, 2f, 0f, 0.5f, 1, false, 6, 4, IrisBankStyle.SMOOTH,
+        HydrologyTier gentle = new HydrologyTier("stream", 0f, 2f, 2f, 0f, 0.5f, 1, false, 6, 2, 4, IrisBankStyle.SMOOTH,
                 new HydrologyTier.Estuary(48, 2.5f), new HydrologyTier.Delta(0, 35f, 64), new IrisHydrologyMaterials(), "water", List.of());
         HydrologyTier wide = tier("river", 3f, 0.5f, 4, IrisBankStyle.SMOOTH);
         Reach low = line(262L, wide, 0L, 504f, 200f, 600f, 200f, (x, z) -> 62);
@@ -2004,7 +2004,7 @@ public class ChunkWaterRasterTest {
 
         private int straightHead(double x, double z) {
             segments.nearest(x, z, ReachSegments.Scope.CHANNEL, straight);
-            return straight.channel.reach == null ? Integer.MIN_VALUE : WaterHeads.snap(straight.channel.grade(), SEA_LEVEL);
+            return straight.channel.reach == null ? Integer.MIN_VALUE : WaterHeads.snap(straight.channel.grade(), SEA_LEVEL, straight.channel.reach.tier().stepHeight());
         }
     }
 
@@ -2133,7 +2133,7 @@ public class ChunkWaterRasterTest {
     private static float firstSeaLevelHead(HydrologySettings settings) {
         Reach river = DeltaCoast.river(DeltaCoast.shape(settings, 0, 0, List.of(), DeltaCoast.NO_NEIGHBOUR, DeltaCoast.SEED, DeltaCoast::cliffBacked), DeltaCoast.ROW);
         int point = 0;
-        while (WaterHeads.snap(river.grade()[point], SEA_LEVEL) > SEA_LEVEL) {
+        while (WaterHeads.snap(river.grade()[point], SEA_LEVEL, river.tier().stepHeight()) > SEA_LEVEL) {
             point++;
         }
         return river.xs()[point];
@@ -2286,7 +2286,7 @@ public class ChunkWaterRasterTest {
     }
 
     private static HydrologyTier lavaTier() {
-        return new HydrologyTier("lava", 0f, 1.5f, 1.5f, 0f, 0.5f, 1, true, 6, 8, IrisBankStyle.SMOOTH,
+        return new HydrologyTier("lava", 0f, 1.5f, 1.5f, 0f, 0.5f, 1, true, 6, 2, 8, IrisBankStyle.SMOOTH,
                 new HydrologyTier.Estuary(48, 2.5f), new HydrologyTier.Delta(0, 35f, 64), new IrisHydrologyMaterials(), "lava", List.of());
     }
 
@@ -2385,8 +2385,49 @@ public class ChunkWaterRasterTest {
         return HydrologySettings.compile(config, SEED, SEA_LEVEL, MIN_Y, MAX_Y);
     }
 
+    @Test
+    public void oneBlockStepsReachTheWorld() {
+        Reach fine = stepped(301L, steppedTier(1));
+        Reach coarse = stepped(301L, steppedTier(2));
+        for (long seed = 1L; seed <= 24L; seed++) {
+            String label = "seed " + seed + ": ";
+            Scene scene = new Scene(seededSettings(seed), (x, z) -> 110).reach(fine);
+            Scene even = new Scene(seededSettings(seed), (x, z) -> 110).reach(coarse);
+            int oneBlockSteps = 0;
+            for (int x = -39; x < 32; x++) {
+                int planned = 100 - Math.floorDiv(x + 40, 8);
+                if (Math.floorMod(x + 40, 8) >= 2 && Math.floorMod(x + 40, 8) <= 5) {
+                    assertEquals(label + "planned level at " + x, planned, scene.head(x, 8));
+                    assertEquals(label + "the 2-block tier snaps at " + x, planned - Math.floorMod(planned - SEA_LEVEL, 2), even.head(x, 8));
+                }
+                oneBlockSteps += scene.head(x - 1, 8) - scene.head(x, 8) == 1 ? 1 : 0;
+            }
+            assertTrue(label + "one-block steps " + oneBlockSteps, oneBlockSteps >= 9);
+            assertEquals(label + "the upper side of a riffle sits one block deep", scene.head(-1, 8) - 1, scene.terrain(-1, 8));
+            int fallCells = 0;
+            for (int x = 34; x <= 48; x++) {
+                for (int z = 3; z <= 13; z++) {
+                    fallCells += scene.role(x, z) == WaterRole.WATERFALL ? 1 : 0;
+                }
+            }
+            assertTrue(label + "the fall keeps its role", fallCells > 0);
+            assertEquals(label + "the fall lands on its level", 83, scene.head(44, 12));
+            assertTrue(label + "the fall still has a plunge pool: bed " + scene.terrain(44, 8), scene.terrain(44, 8) <= 83 - 3);
+            assertEquals(label + "leaks", 0, scene.leaks(-50, -10, 130, 30));
+        }
+    }
+
+    private static HydrologyTier steppedTier(int stepHeight) {
+        return new HydrologyTier("stream", 0f, 5f, 5f, 0f, 0.8f, 1, false, 6, stepHeight, 4, IrisBankStyle.SMOOTH,
+                new HydrologyTier.Estuary(48, 2.5f), new HydrologyTier.Delta(0, 35f, 64), new IrisHydrologyMaterials(), "water", List.of());
+    }
+
+    private static Reach stepped(long id, HydrologyTier tier) {
+        return line(id, tier, 0L, -48f, 8f, 120f, 8f, (x, z) -> x < 40f ? 100 - Math.floorDiv((int) Math.floor(x) + 40, 8) : 83);
+    }
+
     private static HydrologyTier tier(String name, float halfWidth, float depthRatio, int bankBand, IrisBankStyle style) {
-        return new HydrologyTier(name, 0f, halfWidth, halfWidth, 0f, depthRatio, 1, true, 6, bankBand, style,
+        return new HydrologyTier(name, 0f, halfWidth, halfWidth, 0f, depthRatio, 1, true, 6, 2, bankBand, style,
                 new HydrologyTier.Estuary(48, 2.5f), new HydrologyTier.Delta(0, 35f, 64), new IrisHydrologyMaterials(), "water", List.of());
     }
 

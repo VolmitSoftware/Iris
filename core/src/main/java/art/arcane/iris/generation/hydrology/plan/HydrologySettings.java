@@ -23,6 +23,7 @@ import art.arcane.iris.generation.hydrology.config.IrisPondShore;
 import art.arcane.iris.generation.hydrology.config.IrisSeaInlets;
 import art.arcane.iris.generation.hydrology.underground.SeaInletPlanner;
 import art.arcane.iris.generation.hydrology.underground.SeaInletRasterizer;
+import art.arcane.iris.generation.hydrology.raster.WaterHeads;
 import art.arcane.iris.generation.hydrology.water.HydrologyTier;
 import art.arcane.iris.generation.hydrology.water.LakeCandidate;
 import art.arcane.iris.generation.noise.IrisGeneratorStyle;
@@ -232,6 +233,7 @@ public final class HydrologySettings {
         }
         compiled.sort(Comparator.comparingDouble(HydrologyTier::minCatchment));
         requireDistinctCatchments(compiled);
+        requireNoStepUpstream(compiled);
         return List.copyOf(compiled);
     }
 
@@ -242,6 +244,17 @@ public final class HydrologySettings {
             if (lower.minCatchment() == upper.minCatchment()) {
                 throw new IllegalArgumentException("Hydrology tiers '" + lower.name() + "' and '" + upper.name()
                         + "' share minCatchment " + upper.minCatchment() + "; every tier needs its own minCatchment");
+            }
+        }
+    }
+
+    private static void requireNoStepUpstream(List<HydrologyTier> sorted) {
+        for (int index = 1; index < sorted.size(); index++) {
+            HydrologyTier lower = sorted.get(index - 1);
+            HydrologyTier upper = sorted.get(index);
+            if (lower.stepHeight() > upper.stepHeight()) {
+                throw new IllegalArgumentException("Hydrology tier '" + lower.name() + "' has stepHeight " + lower.stepHeight() + " above the larger tier '"
+                        + upper.name() + "' with " + upper.stepHeight() + "; the water it feeds would stand above its own");
             }
         }
     }
@@ -258,7 +271,7 @@ public final class HydrologySettings {
         }
         return new HydrologyTier(config.getName(), (float) config.getMinCatchment(), halfWidth.min(), halfWidth.max(),
                 (float) config.getWidthFactor(), (float) config.getDepthRatio(), config.getInset(), config.isCascades(),
-                config.getWaterfallMinimumDrop(), config.getBankBand(), config.getBankStyle(),
+                config.getWaterfallMinimumDrop(), config.getStepHeight(), config.getBankBand(), config.getBankStyle(),
                 estuary(config.getEstuary(), field + ".estuary"), delta(config, halfWidth.max(), field + ".delta"),
                 materials(config.getMaterials(), field + ".materials"), config.getFluid(), decorators(config.getDecorators(), field + ".decorators"));
     }
@@ -583,6 +596,7 @@ public final class HydrologySettings {
         requireNonNegative(config.getWidthFactor(), field + ".widthFactor");
         requireNonNegative(config.getDepthRatio(), field + ".depthRatio");
         requireAtLeast(config.getWaterfallMinimumDrop(), MIN_WATERFALL_DROP, field + ".waterfallMinimumDrop");
+        requireWithin(config.getStepHeight(), 1, WaterHeads.STANDING_STEP, field + ".stepHeight");
         requireShoreDepth(config.getMaterials(), field + ".materials");
     }
 
@@ -687,7 +701,7 @@ public final class HydrologySettings {
         for (HydrologyTier tier : tiers) {
             hash.add(tier.name()).add(tier.minCatchment()).add(tier.minHalfWidth()).add(tier.maxHalfWidth())
                     .add(tier.widthFactor()).add(tier.depthRatio()).add(tier.inset()).add(tier.cascades())
-                    .add(tier.waterfallMinimumDrop()).add(tier.bankBand()).add(tier.bankStyle())
+                    .add(tier.waterfallMinimumDrop()).add(tier.stepHeight()).add(tier.bankBand()).add(tier.bankStyle())
                     .add(tier.estuary().length()).add(tier.estuary().flare())
                     .add(tier.delta().channels()).add(tier.delta().spreadDegrees()).add(tier.delta().length())
                     .add(tier.materials()).add(tier.fluid());

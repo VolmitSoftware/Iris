@@ -57,9 +57,10 @@ final class ReachSegments {
     boolean hasOnlyLevel(int head, int seaLevel) {
         for (int index = 0; index < size; index++) {
             int[] grade = reaches[index].grade();
+            int stepHeight = reaches[index].tier().stepHeight();
             int start = grade[segments[index]];
             int end = grade[segments[index] + 1];
-            if (WaterHeads.snap(start, seaLevel) != head || WaterHeads.snap(end, seaLevel) != head) {
+            if (WaterHeads.snap(start, seaLevel, stepHeight) != head || WaterHeads.snap(end, seaLevel, stepHeight) != head) {
                 return false;
             }
         }

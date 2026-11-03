@@ -142,7 +142,7 @@ public class HydrologyPlanCodecTest {
             HydrologyPlanCodec.decodeWindow(settings, damaged);
         }
 
-        HydrologyTier foreign = new HydrologyTier("foreign", 0f, 1f, 2f, 1f, 0.4f, 1, true, 6, 0, IrisBankStyle.SMOOTH,
+        HydrologyTier foreign = new HydrologyTier("foreign", 0f, 1f, 2f, 1f, 0.4f, 1, true, 6, 2, 0, IrisBankStyle.SMOOTH,
                 new HydrologyTier.Estuary(48, 2.5f), new HydrologyTier.Delta(0, 35f, 64), new IrisHydrologyMaterials(), "water", List.of());
         Reach stray = new Reach(6L, foreign, -1L, new float[]{1f, 2f}, new float[]{1f, 2f}, new int[]{1, 1}, new float[]{1f, 1f},
                 new float[]{1f, 1f}, new ReachStyle[]{ReachStyle.RUN, ReachStyle.RUN}, 1f);

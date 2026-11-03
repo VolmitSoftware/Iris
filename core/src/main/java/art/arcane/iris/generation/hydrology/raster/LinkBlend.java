@@ -101,19 +101,19 @@ public final class LinkBlend {
     }
 
     private static Reach regraded(Reach reach, int[] grade, float[] halfWidth, float[] depth, int seaLevel) {
-        ReachStyle[] style = grade == reach.grade() ? reach.style() : restyled(reach.style(), grade, reach.tier().waterfallMinimumDrop(), seaLevel);
+        ReachStyle[] style = grade == reach.grade() ? reach.style() : restyled(reach.style(), grade, reach.tier().waterfallMinimumDrop(), seaLevel, reach.tier().stepHeight());
         return new Reach(reach.id(), reach.tier(), reach.downstreamId(), reach.xs(), reach.zs(), grade, halfWidth, depth, style,
                 reach.catchment());
     }
 
-    private static ReachStyle[] restyled(ReachStyle[] style, int[] grade, int waterfallMinimumDrop, int seaLevel) {
+    private static ReachStyle[] restyled(ReachStyle[] style, int[] grade, int waterfallMinimumDrop, int seaLevel, int stepHeight) {
         boolean[] mouth = new boolean[style.length];
         boolean[] outlet = new boolean[style.length];
         for (int point = 0; point < style.length; point++) {
             mouth[point] = style[point] == ReachStyle.MOUTH;
             outlet[point] = style[point] == ReachStyle.POND_OUTLET;
         }
-        return ReachShaper.styles(grade, mouth, outlet, waterfallMinimumDrop, seaLevel);
+        return ReachShaper.styles(grade, mouth, outlet, waterfallMinimumDrop, seaLevel, stepHeight);
     }
 
     private static int lowestEnd(List<Reach> feeders) {

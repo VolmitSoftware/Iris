@@ -149,7 +149,7 @@ final class HydrologyRasterMetrics {
     }
 
     private int head(Pond pond) {
-        return WaterHeads.snap(pond.level(), settings.seaLevel());
+        return WaterHeads.standing(pond.level(), settings.seaLevel());
     }
 
     WaterRole role(int x, int z) {

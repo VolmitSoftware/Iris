@@ -42,7 +42,8 @@ final class ReachGrader {
             int source = outletPond[index];
             if (source >= 0) {
                 settle(drafts, ponds, inflows[source], levels, fed, graded, settled, lakeFloor, source, seaLevel);
-                draft.carry = Math.min(draft.carry, levels[source]);
+                int pondHead = draft.tier.stepHeight() < WaterHeads.STANDING_STEP ? WaterHeads.standing(levels[source], seaLevel) : levels[source];
+                draft.carry = Math.min(draft.carry, pondHead);
                 fed[index] = levels[source];
             }
             for (int upstream : draft.incoming) {
@@ -65,7 +66,7 @@ final class ReachGrader {
                 }
                 int cap = draft.ocean[point] ? seaLevel : draft.target[point] + MAX_POOL;
                 int floor = lakeFloor[index] ? draft.floor : Math.max(seaLevel, Math.min(draft.floor, (int) Math.floor(draft.bank[point]) + maxFill));
-                floors[point] = draft.ocean[point] ? floor : Math.max(floor, WaterHeads.lowestAboveSea(seaLevel));
+                floors[point] = draft.ocean[point] ? floor : Math.max(floor, WaterHeads.lowestAboveSea(seaLevel, draft.tier.stepHeight()));
                 level = Math.min(level, Math.max(floor, Math.min(grade[point], cap)));
                 grade[point] = level;
             }

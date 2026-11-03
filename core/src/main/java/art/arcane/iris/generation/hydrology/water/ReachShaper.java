@@ -386,7 +386,7 @@ public final class ReachShaper {
     }
 
     private static void restyle(ReachDraft draft, int seaLevel) {
-        draft.style = styles(draft.grade, draft.ocean, draft.fixed(), draft.tier.waterfallMinimumDrop(), seaLevel);
+        draft.style = styles(draft.grade, draft.ocean, draft.fixed(), draft.tier.waterfallMinimumDrop(), seaLevel, draft.tier.stepHeight());
     }
 
     private static void chaikin(ReachDraft draft) {
@@ -570,13 +570,13 @@ public final class ReachShaper {
         return Math.clamp(1f - remaining / length, 0f, 1f);
     }
 
-    public static ReachStyle[] styles(int[] grade, boolean[] ocean, boolean[] outletZone, int waterfallMinimumDrop, int seaLevel) {
+    public static ReachStyle[] styles(int[] grade, boolean[] ocean, boolean[] outletZone, int waterfallMinimumDrop, int seaLevel, int stepHeight) {
         ReachStyle[] styles = new ReachStyle[grade.length];
         for (int point = 0; point < grade.length; point++) {
             int drop = point == 0 ? 0 : grade[point - 1] - grade[point];
             styles[point] = style(drop, waterfallMinimumDrop, ocean[point], outletZone[point]);
             if (drop == 1 && !ocean[point] && outletZone[point - 1]
-                    && WaterHeads.snap(grade[point - 1], seaLevel) - WaterHeads.snap(grade[point], seaLevel) >= 2) {
+                    && WaterHeads.snap(grade[point - 1], seaLevel, stepHeight) - WaterHeads.snap(grade[point], seaLevel, stepHeight) >= 2) {
                 styles[point] = ReachStyle.CASCADE;
             }
         }

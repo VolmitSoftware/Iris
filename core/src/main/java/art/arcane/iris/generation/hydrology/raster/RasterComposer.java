@@ -91,7 +91,7 @@ final class RasterComposer {
         int ground = natural[cell];
         SeaInlet inlet = features.openInletAt(x, z, inletColumn);
         if (inlet != null) {
-            head[cell] = WaterHeads.snap(inlet.waterLevel(), settings.seaLevel());
+            head[cell] = WaterHeads.standing(inlet.waterLevel(), settings.seaLevel());
             terrain[cell] = Math.min(Math.min(ground, inletColumn[0]), head[cell] - 1);
             role[cell] = WaterRole.INLET;
             feature[cell] = inlet.id();
@@ -105,15 +105,15 @@ final class RasterComposer {
         double variation = BedProfile.variation(settings.seed(), x, z);
         if (lake >= 0) {
             Pond water = features.lake(lake);
-            standing(cell, water, trench(ground, WaterHeads.snap(water.level(), settings.seaLevel()), ground, variation, BedProfile.detail(settings.seed(), x, z)));
+            standing(cell, water, trench(ground, WaterHeads.standing(water.level(), settings.seaLevel()), ground, variation, BedProfile.detail(settings.seed(), x, z)));
             return;
         }
         if (pondIndex >= 0) {
             Pond water = features.pond(pondIndex);
             pond[cell] = pondIndex;
             double detail = BedProfile.detail(settings.seed(), x, z);
-            int floor = interior(cell) ? pondFloor(pondIndex, WaterHeads.snap(water.level(), settings.seaLevel()), x, z, ground, variation, detail) : ground;
-            standing(cell, water, trench(floor, WaterHeads.snap(water.level(), settings.seaLevel()), ground, variation, detail));
+            int floor = interior(cell) ? pondFloor(pondIndex, WaterHeads.standing(water.level(), settings.seaLevel()), x, z, ground, variation, detail) : ground;
+            standing(cell, water, trench(floor, WaterHeads.standing(water.level(), settings.seaLevel()), ground, variation, detail));
             return;
         }
         if (cursor.channel.reach != null) {
@@ -124,7 +124,7 @@ final class RasterComposer {
     }
 
     private void standing(int cell, Pond water, int floor) {
-        head[cell] = WaterHeads.snap(water.level(), settings.seaLevel());
+        head[cell] = WaterHeads.standing(water.level(), settings.seaLevel());
         terrain[cell] = Math.min(floor, head[cell] - 1);
         role[cell] = WaterRole.POND;
         feature[cell] = water.id();
@@ -206,8 +206,8 @@ final class RasterComposer {
         }
         int taper = settings.ponds().shore().taper();
         boolean tapered = nearPond >= 0 && pondEdge <= taper;
-        if (tapered && ground > WaterHeads.snap(features.pond(nearPond).level(), settings.seaLevel())) {
-            cut = Math.min(cut, taperCut(WaterHeads.snap(features.pond(nearPond).level(), settings.seaLevel()), ground, BedProfile.position(pondEdge / taper, -variation)));
+        if (tapered && ground > WaterHeads.standing(features.pond(nearPond).level(), settings.seaLevel())) {
+            cut = Math.min(cut, taperCut(WaterHeads.standing(features.pond(nearPond).level(), settings.seaLevel()), ground, BedProfile.position(pondEdge / taper, -variation)));
         }
         terrain[cell] = raise == Integer.MIN_VALUE ? cut : Math.max(cut, raise);
         if (bank.reach != null && (!tapered || bankEdge <= pondEdge)) {
@@ -336,17 +336,17 @@ final class RasterComposer {
         }
         SeaInlet inlet = features.openInletAt(x, z, inletColumn);
         if (inlet != null) {
-            sample.set(WaterHeads.snap(inlet.waterLevel(), settings.seaLevel()), inlet.id(), WaterRole.INLET);
+            sample.set(WaterHeads.standing(inlet.waterLevel(), settings.seaLevel()), inlet.id(), WaterRole.INLET);
             return;
         }
         int lake = features.lakeCovers(x, z) ? features.lakeAt(x, z, naturalAt(x, z)) : -1;
         if (lake >= 0) {
-            sample.set(WaterHeads.snap(features.lake(lake).level(), settings.seaLevel()), features.lake(lake).id(), WaterRole.POND);
+            sample.set(WaterHeads.standing(features.lake(lake).level(), settings.seaLevel()), features.lake(lake).id(), WaterRole.POND);
             return;
         }
         int pond = features.pondAt(x, z);
         if (pond >= 0) {
-            sample.set(WaterHeads.snap(features.pond(pond).level(), settings.seaLevel()), features.pond(pond).id(), WaterRole.POND);
+            sample.set(WaterHeads.standing(features.pond(pond).level(), settings.seaLevel()), features.pond(pond).id(), WaterRole.POND);
             return;
         }
         features.segments().nearest(x, z, ReachSegments.Scope.CHANNEL, cursor);
@@ -377,7 +377,7 @@ final class RasterComposer {
                     continue;
                 }
                 Pond held = features.pond(index);
-                int level = WaterHeads.snap(held.level(), settings.seaLevel());
+                int level = WaterHeads.standing(held.level(), settings.seaLevel());
                 if (held.damRaise() > 0 && terrain[cell] < level && level + 1 > crest) {
                     crest = level + 1;
                     dam = held.id();

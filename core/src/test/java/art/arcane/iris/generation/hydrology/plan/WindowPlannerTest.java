@@ -692,7 +692,7 @@ public class WindowPlannerTest {
             leading++;
         }
         assertTrue(pond + " outlet " + outlet.id() + " starts off its shore at " + outlet.xs()[0] + "," + outlet.zs()[0], leading > 0);
-        int head = WaterHeads.snap(pond.level(), SEA_LEVEL);
+        int head = WaterHeads.standing(pond.level(), SEA_LEVEL);
         for (int segment = 0; segment < leading; segment++) {
             int[] box = segmentBox(outlet, segment);
             for (int z = box[1]; z <= box[3]; z++) {
@@ -700,7 +700,7 @@ public class WindowPlannerTest {
                     int[] covering = nearestCovering(outlet, x, z);
                     if (covering[0] == segment && onShore(mask, x, z)) {
                         assertEquals(pond + " outlet " + outlet.id() + " water at " + x + "," + z, head,
-                                WaterHeads.snap(outlet.grade()[covering[1]], SEA_LEVEL));
+                                WaterHeads.snap(outlet.grade()[covering[1]], SEA_LEVEL, outlet.tier().stepHeight()));
                     }
                 }
             }

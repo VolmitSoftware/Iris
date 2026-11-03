@@ -52,6 +52,11 @@ public class IrisHydrologyTier {
     @Description("Smallest drop in blocks that becomes a waterfall.")
     private int waterfallMinimumDrop = 6;
 
+    @MinNumber(1)
+    @MaxNumber(2)
+    @Description("Smallest step in blocks between this tier's water surfaces. 2 keeps channel surfaces on every second height above the sea. 1 lets a channel fall one block at a time, and works best with cascades false, which spreads drops into a gentle slope. Falls and plunge pools are unchanged. Ponds and lakes always use 2. A tier cannot use a larger step than the next larger tier.")
+    private int stepHeight = 2;
+
     @MinNumber(0)
     @MaxNumber(64)
     @Description("Width in blocks of the band beside the water where the ground is reshaped into banks. 0 leaves the ground beside the channel as it is.")

@@ -31,7 +31,7 @@ public final class TongueGuard {
         int[] stopped = new int[tongues.length];
         int count = 0;
         for (int fall : tongues) {
-            int lowestGround = WaterHeads.snap(reach.grade()[fall], seaLevel) - 1 - maxFill;
+            int lowestGround = WaterHeads.snap(reach.grade()[fall], seaLevel, reach.tier().stepHeight()) - 1 - maxFill;
             if (passesTheGround(reach, geometry, segments, cursor, fall, natural, lowestGround)) {
                 stopped[count++] = fall;
             }

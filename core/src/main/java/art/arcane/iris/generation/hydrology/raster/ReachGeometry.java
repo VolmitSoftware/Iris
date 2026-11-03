@@ -35,11 +35,12 @@ final class ReachGeometry {
 
     static ReachGeometry of(Reach reach, Reach linked, long seed, int seaLevel) {
         int[] grade = reach.grade();
+        int stepHeight = reach.tier().stepHeight();
         int[] steps = new int[grade.length - 1];
         int count = 0;
         boolean falls = false;
         for (int segment = 0; segment + 1 < grade.length; segment++) {
-            if (WaterHeads.snap(grade[segment], seaLevel) != WaterHeads.snap(grade[segment + 1], seaLevel)) {
+            if (WaterHeads.snap(grade[segment], seaLevel, stepHeight) != WaterHeads.snap(grade[segment + 1], seaLevel, stepHeight)) {
                 steps[count++] = segment;
                 falls |= grade[segment] - grade[segment + 1] >= BRINK_MIN_DROP;
             }
@@ -56,15 +57,15 @@ final class ReachGeometry {
         double[] shifts = new double[count];
         double[] starts = new double[count];
         int curves = 0;
-        int start = WaterHeads.snap(grade[0], seaLevel);
+        int start = WaterHeads.snap(grade[0], seaLevel, stepHeight);
         boolean outlet = reach.style()[0] == ReachStyle.POND_OUTLET;
         boolean feeder = reach.downstreamId() != 0L;
-        int landing = WaterHeads.snap(grade[grade.length - 1], seaLevel);
+        int landing = WaterHeads.snap(grade[grade.length - 1], seaLevel, stepHeight);
         for (int step = 0; step < count; step++) {
             int segment = steps[step];
             double middle = middle(along, segment);
-            int upper = WaterHeads.snap(grade[segment], seaLevel);
-            int lower = WaterHeads.snap(grade[segment + 1], seaLevel);
+            int upper = WaterHeads.snap(grade[segment], seaLevel, stepHeight);
+            int lower = WaterHeads.snap(grade[segment + 1], seaLevel, stepHeight);
             if (grade[segment] - grade[segment + 1] < BRINK_MIN_DROP || linked.grade()[segment] - linked.grade()[segment + 1] < BRINK_MIN_DROP || middle <= held || outlet && upper == start || feeder && lower == landing
                     || reach.style()[segment] == ReachStyle.MOUTH || reach.style()[segment + 1] == ReachStyle.MOUTH) {
                 continue;

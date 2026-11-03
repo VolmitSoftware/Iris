@@ -624,7 +624,7 @@ public class ReachShaperTest {
         boolean[] noZone = new boolean[count];
         Arrays.fill(grade, 0, 3, 90);
         Arrays.fill(grade, 3, count, 78);
-        ReachStyle[] style = ReachShaper.styles(grade, noOcean, noZone, 6, SEA_LEVEL);
+        ReachStyle[] style = ReachShaper.styles(grade, noOcean, noZone, 6, SEA_LEVEL, 2);
         float[] flare = ReachShaper.plungeFlare(grade, style, noOcean, distance, 0f, 6);
         assertEquals(ReachShaper.PLUNGE_FLARE, flare[3], 0f);
         assertEquals("nothing above the foot", 0f, flare[2], 0f);
@@ -637,14 +637,14 @@ public class ReachShaperTest {
         int[] atFirst = new int[count];
         Arrays.fill(atFirst, 1, count, -12);
         atFirst[0] = 0;
-        assertEquals("index 0 never flares", 0f, ReachShaper.plungeFlare(atFirst, ReachShaper.styles(atFirst, noOcean, noZone, 6, -40), noOcean, distance, 0f, 6)[0], 0f);
+        assertEquals("index 0 never flares", 0f, ReachShaper.plungeFlare(atFirst, ReachShaper.styles(atFirst, noOcean, noZone, 6, -40, 2), noOcean, distance, 0f, 6)[0], 0f);
         int[] atLast = new int[count];
         atLast[count - 1] = -12;
-        assertEquals("the last index never flares", 0f, ReachShaper.plungeFlare(atLast, ReachShaper.styles(atLast, noOcean, noZone, 6, -40), noOcean, distance, 0f, 6)[count - 1], 0f);
+        assertEquals("the last index never flares", 0f, ReachShaper.plungeFlare(atLast, ReachShaper.styles(atLast, noOcean, noZone, 6, -40, 2), noOcean, distance, 0f, 6)[count - 1], 0f);
 
         boolean[] ocean = new boolean[count];
         Arrays.fill(ocean, 3, count, true);
-        ReachStyle[] mouth = ReachShaper.styles(grade, ocean, noZone, 6, SEA_LEVEL);
+        ReachStyle[] mouth = ReachShaper.styles(grade, ocean, noZone, 6, SEA_LEVEL, 2);
         float[] atSea = ReachShaper.plungeFlare(grade, mouth, ocean, distance, 0f, 6);
         for (int point = 0; point < count; point++) {
             assertEquals("a fall into the sea flares nothing at " + point, 0f, atSea[point], 0f);
@@ -2120,7 +2120,7 @@ public class ReachShaperTest {
 
         int[] grade = {62, 62, 62, 40, 40};
         boolean[] ocean = {false, false, false, true, true};
-        ReachStyle[] styles = ReachShaper.styles(grade, ocean, new boolean[grade.length], 6, SEA_LEVEL);
+        ReachStyle[] styles = ReachShaper.styles(grade, ocean, new boolean[grade.length], 6, SEA_LEVEL, 2);
         assertEquals(List.of(ReachStyle.RUN, ReachStyle.RUN, ReachStyle.WATERFALL, ReachStyle.MOUTH, ReachStyle.MOUTH), List.of(styles));
     }
 
@@ -2131,17 +2131,17 @@ public class ReachShaperTest {
         boolean[] held = {true, true, true, false, false};
         assertEquals("a one-block step off a held lip that the even head snap shows as two blocks",
                 List.of(ReachStyle.POND_OUTLET, ReachStyle.POND_OUTLET, ReachStyle.POND_OUTLET, ReachStyle.CASCADE, ReachStyle.RUN),
-                List.of(ReachShaper.styles(grade, ocean, held, 6, SEA_LEVEL)));
-        assertEquals("the same step hidden by the head snap", ReachStyle.RIFFLE, ReachShaper.styles(grade, ocean, held, 6, SEA_LEVEL + 1)[3]);
+                List.of(ReachShaper.styles(grade, ocean, held, 6, SEA_LEVEL, 2)));
+        assertEquals("the same step hidden by the head snap", ReachStyle.RIFFLE, ReachShaper.styles(grade, ocean, held, 6, SEA_LEVEL + 1, 2)[3]);
         assertEquals("a one-block step that leaves no held lip", ReachStyle.RIFFLE,
-                ReachShaper.styles(grade, ocean, new boolean[grade.length], 6, SEA_LEVEL)[3]);
+                ReachShaper.styles(grade, ocean, new boolean[grade.length], 6, SEA_LEVEL, 2)[3]);
         int[] zoned = {78, 78, 77, 77, 77};
         boolean[] zone = {true, true, true, true, false};
         assertEquals("a one-block step inside an outlet zone that the head snap shows as two blocks",
                 List.of(ReachStyle.POND_OUTLET, ReachStyle.POND_OUTLET, ReachStyle.CASCADE, ReachStyle.POND_OUTLET, ReachStyle.RUN),
-                List.of(ReachShaper.styles(zoned, ocean, zone, 6, SEA_LEVEL)));
+                List.of(ReachShaper.styles(zoned, ocean, zone, 6, SEA_LEVEL, 2)));
         assertEquals("the same step inside the zone hidden by the head snap", ReachStyle.POND_OUTLET,
-                ReachShaper.styles(zoned, ocean, zone, 6, SEA_LEVEL + 1)[2]);
+                ReachShaper.styles(zoned, ocean, zone, 6, SEA_LEVEL + 1, 2)[2]);
     }
 
     @Test
@@ -2899,7 +2899,7 @@ public class ReachShaperTest {
 
     private static HydrologyTier withSteps(HydrologyTier tier, boolean cascades, int waterfallMinimumDrop) {
         return new HydrologyTier(tier.name(), tier.minCatchment(), tier.minHalfWidth(), tier.maxHalfWidth(), tier.widthFactor(), tier.depthRatio(),
-                tier.inset(), cascades, waterfallMinimumDrop, tier.bankBand(), tier.bankStyle(), tier.estuary(), tier.delta(), tier.materials(),
+                tier.inset(), cascades, waterfallMinimumDrop, 2, tier.bankBand(), tier.bankStyle(), tier.estuary(), tier.delta(), tier.materials(),
                 tier.fluid(), tier.decorators());
     }
 

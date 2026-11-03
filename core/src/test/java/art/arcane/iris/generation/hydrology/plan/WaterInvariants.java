@@ -33,7 +33,7 @@ final class WaterInvariants {
         List<Long> detached = new ArrayList<>();
         for (Pond pond : checkedPonds(scene)) {
             Reach outlet = reaches.get(pond.outletReachId());
-            if (!floodsIntoOutlet(scene, pond, outlet, WaterHeads.snap(pond.level(), seaLevel))) {
+            if (!floodsIntoOutlet(scene, pond, outlet, WaterHeads.standing(pond.level(), seaLevel))) {
                 detached.add(outlet.id());
             }
         }
@@ -151,7 +151,7 @@ final class WaterInvariants {
             if (box != null) {
                 boolean heldStart = feeders.containsKey(feeder.id()) && feeder.grade()[0] - level > ConfluenceGrader.MAX_START_LOWERING;
                 boolean[] held = held(feeder, lips.getOrDefault(feeder.id(), List.of()), heldStart);
-                junctions.add(new Junction(feeder, WaterHeads.snap(level, seaLevel), pool, held, box));
+                junctions.add(new Junction(feeder, WaterHeads.snap(level, seaLevel, feeder.tier().stepHeight()), pool, held, box));
             }
         }
         return junctions;
@@ -159,7 +159,7 @@ final class WaterInvariants {
 
     private static boolean perched(PlannedScene scene, Junction junction, int seaLevel) {
         Reach feeder = junction.feeder();
-        boolean endsAtTheJunction = WaterHeads.snap(feeder.grade()[feeder.grade().length - 1], seaLevel) <= junction.head();
+        boolean endsAtTheJunction = WaterHeads.snap(feeder.grade()[feeder.grade().length - 1], seaLevel, feeder.tier().stepHeight()) <= junction.head();
         int[] box = junction.box();
         for (int z = box[1]; z <= box[3]; z++) {
             for (int x = box[0]; x <= box[2]; x++) {
@@ -231,7 +231,7 @@ final class WaterInvariants {
 
     private static boolean fallsToTheJunction(Reach feeder, int point, int seaLevel) {
         for (int next = point + 1; next < feeder.grade().length; next++) {
-            boolean step = WaterHeads.snap(feeder.grade()[next], seaLevel) < WaterHeads.snap(feeder.grade()[next - 1], seaLevel);
+            boolean step = WaterHeads.snap(feeder.grade()[next], seaLevel, feeder.tier().stepHeight()) < WaterHeads.snap(feeder.grade()[next - 1], seaLevel, feeder.tier().stepHeight());
             ReachStyle style = feeder.style()[next];
             if (step && style != ReachStyle.CASCADE && style != ReachStyle.WATERFALL) {
                 return false;

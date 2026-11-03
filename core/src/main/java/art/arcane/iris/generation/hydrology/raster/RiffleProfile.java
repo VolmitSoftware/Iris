@@ -108,7 +108,7 @@ final class RiffleProfile {
             if (neighbour == DRY) {
                 continue;
             }
-            crest |= neighbour <= head - 2;
+            crest |= neighbour < head;
             if (flowing[cell] && neighbour - head >= PLUNGE_MIN_DROP) {
                 feet.computeIfAbsent(new Fall(head, neighbour), ignored -> new Seeds()).add(cell);
             }

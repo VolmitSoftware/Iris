@@ -1,5 +1,7 @@
 package art.arcane.iris.generation.hydrology.plan;
 
+import art.arcane.iris.generation.hydrology.config.IrisHydrology;
+import art.arcane.iris.generation.hydrology.raster.WaterHeads;
 import art.arcane.iris.generation.hydrology.water.ConfluenceGrader;
 import art.arcane.iris.generation.hydrology.water.HydrologyTier;
 import art.arcane.iris.generation.hydrology.water.Pond;
@@ -39,6 +41,35 @@ public class PlannedSceneTest {
     public void outletsAreConnected() {
         assertEquals("detached outlets on openFractal(1) with rainfall " + RAINFALL + " over 2x2 windows", List.of(),
                 WaterInvariants.detachedOutlets(openFractal()));
+    }
+
+    @Test
+    public void oneBlockTiersKeepOutletsAndConfluencesConnected() {
+        IrisHydrology config = PlannedScene.packConfig();
+        config.getTiers().forEach(tier -> tier.setStepHeight(1).setCascades(false));
+        HydrologySettings settings = HydrologySettings.compile(config, SEED, SEA_LEVEL, SyntheticTerrain.MIN_Y, SyntheticTerrain.MAX_Y);
+        PlannedScene scene = PlannedScene.plan(SyntheticTerrain.openFractal(1L).withRainfall((x, z) -> RAINFALL), settings, 2, 2);
+        assertEquals("detached outlets", List.of(), WaterInvariants.detachedOutlets(scene));
+        assertEquals("confluence tongues", List.of(), WaterInvariants.confluenceTongues(scene));
+        Map<Long, Reach> byId = new HashMap<>();
+        int oneBlockDrops = 0;
+        for (Reach reach : scene.reaches()) {
+            byId.put(reach.id(), reach);
+            for (int point = 1; point < reach.grade().length; point++) {
+                oneBlockDrops += reach.grade()[point - 1] - reach.grade()[point] == 1 ? 1 : 0;
+            }
+        }
+        assertTrue("one-block drops in the plan " + oneBlockDrops, oneBlockDrops > 100);
+        int outlets = 0;
+        for (Pond pond : scene.ponds()) {
+            Reach outlet = byId.get(pond.outletReachId());
+            if (outlet != null) {
+                outlets++;
+                assertTrue("outlet " + outlet.id() + " starts at " + outlet.grade()[0] + " above its pond's surface " + WaterHeads.standing(pond.level(), SEA_LEVEL),
+                        outlet.grade()[0] <= WaterHeads.standing(pond.level(), SEA_LEVEL));
+            }
+        }
+        assertTrue("outlets checked " + outlets, outlets > 0);
     }
 
     @Test
@@ -308,7 +339,7 @@ public class PlannedSceneTest {
             }
             zone[point] = along <= OUTLET_LENGTH;
         }
-        ReachStyle[] style = ReachShaper.styles(reach.grade(), new boolean[zone.length], zone, reach.tier().waterfallMinimumDrop(), seaLevel);
+        ReachStyle[] style = ReachShaper.styles(reach.grade(), new boolean[zone.length], zone, reach.tier().waterfallMinimumDrop(), seaLevel, reach.tier().stepHeight());
         return new Reach(reach.id(), reach.tier(), reach.downstreamId(), reach.xs(), reach.zs(), reach.grade(), reach.halfWidth(), reach.depth(),
                 style, reach.catchment());
     }

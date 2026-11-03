@@ -17,7 +17,7 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 public class ReachSegmentsTest {
-    private static final HydrologyTier TIER = new HydrologyTier("test", 0f, 1f, 4f, 1f, 0.4f, 1, true, 6, 4, IrisBankStyle.SMOOTH,
+    private static final HydrologyTier TIER = new HydrologyTier("test", 0f, 1f, 4f, 1f, 0.4f, 1, true, 6, 2, 4, IrisBankStyle.SMOOTH,
             new HydrologyTier.Estuary(48, 2.5f), new HydrologyTier.Delta(0, 35f, 64), new IrisHydrologyMaterials(), "water", List.of());
 
     @Test

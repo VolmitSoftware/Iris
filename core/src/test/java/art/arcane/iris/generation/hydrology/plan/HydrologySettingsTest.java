@@ -5,6 +5,7 @@ import art.arcane.iris.generation.decoration.IrisDecorationPart;
 import art.arcane.iris.generation.decoration.IrisDecorator;
 import art.arcane.iris.generation.hydrology.config.IrisFluidProfile;
 import art.arcane.iris.generation.hydrology.config.IrisHydrology;
+import art.arcane.iris.generation.hydrology.config.IrisHydrologyTier;
 import art.arcane.iris.generation.hydrology.config.IrisHydrologyMaterials;
 import art.arcane.iris.generation.hydrology.water.HydrologyTier;
 import art.arcane.iris.generation.terrain.IrisMaterialPalette;
@@ -25,6 +26,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
@@ -33,7 +35,7 @@ public class HydrologySettingsTest {
     private static final int SEA_LEVEL = 62;
     private static final int MIN_Y = -64;
     private static final int MAX_Y = 320;
-    private static final long DEFAULT_FINGERPRINT = 7576271788988330967L;
+    private static final long DEFAULT_FINGERPRINT = -2376958294785826560L;
 
     @Test
     public void densityIsBoundedAndChangesThePlanIdentity() {
@@ -264,6 +266,36 @@ public class HydrologySettingsTest {
         long second = compile(new IrisHydrology()).fingerprint();
         assertEquals(first, second);
         assertEquals("fingerprint must be identical in every JVM run", DEFAULT_FINGERPRINT, first);
+    }
+
+    @Test
+    public void stepHeightIsBoundedAndChangesThePlanIdentity() {
+        HydrologySettings defaults = compile(new IrisHydrology());
+        defaults.tiers().forEach(tier -> assertEquals(tier.name(), 2, tier.stepHeight()));
+        IrisHydrology fine = new IrisHydrology();
+        fine.getTiers().forEach(tier -> tier.setStepHeight(1));
+        HydrologySettings compiled = compile(fine);
+        compiled.tiers().forEach(tier -> assertEquals(tier.name(), 1, tier.stepHeight()));
+        assertNotEquals(defaults.fingerprint(), compiled.fingerprint());
+        for (int outside : new int[]{0, 3}) {
+            IrisHydrology config = new IrisHydrology();
+            config.getTiers().get(0).setStepHeight(outside);
+            IllegalArgumentException failure = assertThrows(IllegalArgumentException.class, () -> compile(config));
+            assertTrue(failure.getMessage(), failure.getMessage().contains("stepHeight"));
+        }
+    }
+
+    @Test
+    public void aLargerTierCannotTakeASmallerStepThanItsFeeders() {
+        IrisHydrology streamsOnly = new IrisHydrology();
+        streamsOnly.setTiers(new KList<>(new IrisHydrologyTier().setName("stream").setStepHeight(1),
+                new IrisHydrologyTier().setName("river").setMinCatchment(20000D).setHalfWidth(new KList<>(2D, 8D)).setStepHeight(2)));
+        assertEquals(1, compile(streamsOnly).tiers().get(0).stepHeight());
+        IrisHydrology upsideDown = new IrisHydrology();
+        upsideDown.setTiers(new KList<>(new IrisHydrologyTier().setName("stream").setStepHeight(2),
+                new IrisHydrologyTier().setName("river").setMinCatchment(20000D).setHalfWidth(new KList<>(2D, 8D)).setStepHeight(1)));
+        IllegalArgumentException failure = assertThrows(IllegalArgumentException.class, () -> compile(upsideDown));
+        assertTrue(failure.getMessage(), failure.getMessage().contains("stepHeight"));
     }
 
     @Test

@@ -16,6 +16,7 @@ public record HydrologyTier(
         int inset,
         boolean cascades,
         int waterfallMinimumDrop,
+        int stepHeight,
         int bankBand,
         IrisBankStyle bankStyle,
         Estuary estuary,

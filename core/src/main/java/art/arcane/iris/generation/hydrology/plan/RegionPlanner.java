@@ -118,7 +118,7 @@ public final class RegionPlanner {
     private List<Reach> majorReaches(DemGrid raw, float[] filled, HydrologySampleBuffer samples) {
         DemGrid surface = new DemGrid(raw.originX(), raw.originZ(), CELL, SPAN, SPAN);
         System.arraycopy(filled, 0, surface.values(), 0, filled.length);
-        int[] receivers = D8Router.receivers(surface, filled);
+        int[] receivers = D8Router.receivers(surface, filled, settings.seed());
         float[] weights = new float[filled.length];
         for (int cell = 0; cell < filled.length; cell++) {
             if (samples.ocean()[cell]) {

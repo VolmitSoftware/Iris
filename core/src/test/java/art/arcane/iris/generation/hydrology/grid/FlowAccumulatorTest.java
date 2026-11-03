@@ -14,7 +14,7 @@ public class FlowAccumulatorTest {
     public void outletTotalsEqualTotalWeight() {
         DemGrid grid = GridFixtures.random(7L, 40, 36);
         float[] filled = PriorityFlood.fill(grid, GridFixtures.edgeSeeds(grid), 1e-3f);
-        int[] receivers = D8Router.receivers(grid, filled);
+        int[] receivers = D8Router.receivers(grid, filled, 11L);
         Random random = new Random(11L);
         float[] weights = new float[receivers.length];
         float sumWeights = 0f;
@@ -49,7 +49,7 @@ public class FlowAccumulatorTest {
         BitSet seeds = new BitSet();
         seeds.set(grid.index(0, 0));
         float[] filled = PriorityFlood.fill(grid, seeds, 1e-3f);
-        int[] receivers = D8Router.receivers(grid, filled);
+        int[] receivers = D8Router.receivers(grid, filled, 11L);
         float[] weights = new float[receivers.length];
         Arrays.fill(weights, 1f);
         assertEquals(256f, FlowAccumulator.accumulate(receivers, filled, weights, Float.POSITIVE_INFINITY)[grid.index(0, 0)], 0f);

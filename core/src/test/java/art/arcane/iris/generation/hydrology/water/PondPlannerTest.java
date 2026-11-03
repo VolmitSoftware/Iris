@@ -736,7 +736,7 @@ public class PondPlannerTest {
 
     private static List<Pond> drainageOrder(Planned planned, int head) {
         DemGrid grid = planned.grid();
-        int[] receivers = D8Router.receivers(grid, planned.filled());
+        int[] receivers = D8Router.receivers(grid, planned.filled(), SEED);
         int[] basinOf = new int[receivers.length];
         Arrays.fill(basinOf, -1);
         for (int index = 0; index < planned.basins().size(); index++) {

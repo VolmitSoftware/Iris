@@ -212,7 +212,7 @@ public final class WindowPlanner {
         }
         DemGrid surface = new DemGrid(raw.originX(), raw.originZ(), CELL, SPAN, SPAN);
         System.arraycopy(filled, 0, surface.values(), 0, filled.length);
-        int[] receivers = D8Router.receivers(surface, filled);
+        int[] receivers = D8Router.receivers(surface, filled, settings.seed());
         trunks.route(receivers);
         float[] weights = new float[filled.length];
         for (int cell = 0; cell < filled.length; cell++) {

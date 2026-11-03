@@ -2960,7 +2960,7 @@ public class ReachShaperTest {
         }
         DemGrid surface = new DemGrid(originX, originZ, cell, width, depth);
         System.arraycopy(filled, 0, surface.values(), 0, count);
-        int[] receivers = D8Router.receivers(surface, filled);
+        int[] receivers = D8Router.receivers(surface, filled, settings.seed());
         for (int index = 0; index < count; index++) {
             if (samples.ocean()[index]) {
                 receivers[index] = -1;

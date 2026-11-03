@@ -65,7 +65,7 @@ final class InletTerrain {
         float[] filled = PriorityFlood.fill(grid, seeds, 0.001f);
         DemGrid surface = new DemGrid(originX, originZ, CELL, width, depth);
         System.arraycopy(filled, 0, surface.values(), 0, count);
-        this.receivers = D8Router.receivers(surface, filled);
+        this.receivers = D8Router.receivers(surface, filled, SEED);
         float[] weights = new float[count];
         for (int cell = 0; cell < count; cell++) {
             if (samples.ocean()[cell]) {

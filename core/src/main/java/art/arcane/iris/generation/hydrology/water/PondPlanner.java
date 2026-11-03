@@ -447,7 +447,7 @@ public final class PondPlanner {
         if (order.size() < 2) {
             return;
         }
-        int[] receivers = D8Router.receivers(raw, filled);
+        int[] receivers = D8Router.receivers(raw, filled, settings.seed());
         order.sort(Comparator.naturalOrder());
         for (long key : order) {
             int index = (int) key;

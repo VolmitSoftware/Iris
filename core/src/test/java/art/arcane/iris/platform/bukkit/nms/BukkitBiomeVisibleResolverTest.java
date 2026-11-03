@@ -10,10 +10,12 @@ import art.arcane.iris.generation.runtime.IrisEngine;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.generation.terrain.IrisDimensionCarvingResolver;
 import art.arcane.iris.pack.loading.IrisData;
+import art.arcane.iris.testsupport.BukkitTestServer;
 import art.arcane.iris.world.IrisWorld;
 import art.arcane.volmlib.nativelib.terrain.NativeBiomeRegistry;
 import art.arcane.volmlib.nativelib.terrain.NativeBiomeSourcePolicy;
 import art.arcane.volmlib.util.collection.KList;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.lang.reflect.Field;
@@ -29,6 +31,11 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class BukkitBiomeVisibleResolverTest {
+    @BeforeClass
+    public static void initializeBukkit() {
+        BukkitTestServer.initializeRegistries();
+    }
+
     @Test
     public void chunkResolverMatchesThePerQuartResolution() throws Exception {
         IrisBiome surface = customBiome("surface", "meadow");

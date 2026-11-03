@@ -8,6 +8,7 @@ import art.arcane.iris.generation.hydrology.config.IrisHydrologyPolicy;
 import art.arcane.iris.generation.hydrology.config.IrisHydrologyTier;
 import art.arcane.iris.generation.hydrology.config.IrisHydrologyWetness;
 import art.arcane.iris.generation.hydrology.plan.HydrologySettings;
+import art.arcane.iris.generation.hydrology.underground.CavePoolFiller;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.generation.terrain.IrisRegion;
 import art.arcane.iris.generation.terrain.ShoreBiomeLineages;
@@ -111,8 +112,9 @@ final class PackHydrologyValidator {
 
     private static boolean validateCompile(String path, IrisDimension dimension, List<String> errors) {
         try {
-            HydrologySettings.compile(dimension.getHydrology(), 0L, dimension.getFluidHeight(), 0,
+            HydrologySettings settings = HydrologySettings.compile(dimension.getHydrology(), 0L, dimension.getFluidHeight(), 0,
                     dimension.getMaxHeight() - dimension.getMinHeight());
+            new CavePoolFiller(settings, dimension.getMinHeight());
             return true;
         } catch (RuntimeException failure) {
             errors.add(path + " does not compile: " + reason(failure));

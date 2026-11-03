@@ -156,6 +156,23 @@ public class PackHydrologyValidatorTest {
     }
 
     @Test
+    public void rejectsADeepFluidLineOutsideTheWorld() throws Exception {
+        String hydrology = """
+                {
+                  "enabled": true,
+                  "underground": {"cavePools": {"deepFluid": "lava", "deepFluidMaxY": %d}},
+                  "fluids": [
+                    {"name": "water"},
+                    {"name": "lava", "palette": {"palette": [{"block": "minecraft:lava"}]}}
+                  ]
+                }
+                """;
+        assertTrue(validate(pack(dimension(hydrology.formatted(-64), ""))).errors().isEmpty());
+        PackHydrologyValidator.Validation outside = validate(pack(dimension(hydrology.formatted(-2000), "")));
+        assertTrue(outside.errors().toString(), outside.errors().toString().contains("deepFluidMaxY"));
+    }
+
+    @Test
     public void rejectsFluidReferencesTheFluidProfilesDoNotDefine() throws Exception {
         File pack = pack(dimension("""
                 {

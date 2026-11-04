@@ -54,7 +54,7 @@ public class GenerationFailuresTest {
         String line = GenerationFailures.skipWarning("decoration", "minecraft:vine", 1, 2, 3, "test/biome",
                 new IllegalArgumentException("Invalid\nblockFace"), 0L);
         assertEquals("Skipped decoration minecraft:vine at 1,2,3 biome test/biome: IllegalArgumentException: Invalid blockFace"
-                + " (GenerationFailuresTest:" + line.substring(line.lastIndexOf(':') + 1), line);
+                + " (GenerationFailuresTest.skipWarningNamesBlockPositionBiomeAndFailureOnOneLine)", line);
     }
 
     @Test

@@ -113,15 +113,25 @@ public final class GenerationFailures {
         StringBuilder line = new StringBuilder("Skipped ").append(kind).append(' ').append(block)
                 .append(" at ").append(x).append(',').append(y).append(',').append(z)
                 .append(" biome ").append(biome).append(": ").append(failure.getClass().getSimpleName()).append(message);
-        StackTraceElement[] frames = failure.getStackTrace();
-        if (frames.length > 0) {
-            String file = frames[0].getFileName() == null ? frames[0].getClassName() : frames[0].getFileName().replace(".java", "");
-            line.append(" (").append(file).append(':').append(frames[0].getLineNumber()).append(')');
+        StackTraceElement origin = origin(failure);
+        if (origin != null) {
+            String className = origin.getClassName();
+            line.append(" (").append(className.substring(className.lastIndexOf('.') + 1)).append('.').append(origin.getMethodName()).append(')');
         }
         if (suppressed > 0L) {
             line.append(", ").append(suppressed).append(" more");
         }
         return line.toString();
+    }
+
+    private static StackTraceElement origin(Throwable failure) {
+        StackTraceElement[] frames = failure.getStackTrace();
+        for (StackTraceElement frame : frames) {
+            if (frame.getClassName().startsWith("art.arcane.")) {
+                return frame;
+            }
+        }
+        return frames.length == 0 ? null : frames[0];
     }
 
     private static final class SkipWarning {

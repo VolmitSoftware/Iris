@@ -34,26 +34,18 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class IrisTerrainNormalActuatorStrataCutTest {
+public class IrisTerrainNormalActuatorBankCutTest {
     @Rule
     public final PlatformBinding platform = PlatformBinding.mockPlatform();
 
     @Test
-    public void exposedBankCutDeeperThanThePaletteShowsTheDeepestAuthoredLayer() {
+    public void aBankCutPaintsTheBiomeLayersFromItsNewSurface() {
         Fixture fixture = new Fixture(WaterRole.BANK);
 
         Hunk<NativeBlockState> output = fixture.actuate();
 
-        assertBlock(fixture.dirt, output.get(0, 40, 0));
+        assertBlock(fixture.grass, output.get(0, 40, 0));
         assertBlock(fixture.dirt, output.get(0, 39, 0));
-    }
-
-    @Test
-    public void exposedBankBelowTheAuthoredSoilStillFallsThroughToRock() {
-        Fixture fixture = new Fixture(WaterRole.BANK);
-
-        Hunk<NativeBlockState> output = fixture.actuate();
-
         assertBlock(fixture.rock, output.get(0, 38, 0));
     }
 
@@ -69,21 +61,9 @@ public class IrisTerrainNormalActuatorStrataCutTest {
     }
 
     @Test
-    public void everyDryWaterRoleExposesItsCutStrata() {
-        for (WaterRole role : List.of(WaterRole.BANK, WaterRole.SHORE, WaterRole.POND_SHORE, WaterRole.DAM)) {
-            Fixture fixture = new Fixture(role);
-
-            Hunk<NativeBlockState> output = fixture.actuate();
-
-            assertBlock(fixture.dirt, output.get(0, 40, 0));
-            assertBlock(fixture.dirt, output.get(0, 39, 0));
-            assertBlock(fixture.rock, output.get(0, 38, 0));
-        }
-    }
-
-    @Test
-    public void wetAndNaturalColumnsKeepTheirPaletteAtTheCut() {
-        for (WaterRole role : List.of(WaterRole.NONE, WaterRole.CHANNEL, WaterRole.POND)) {
+    public void everyRoleKeepsItsPaletteAtTheCut() {
+        for (WaterRole role : List.of(WaterRole.NONE, WaterRole.CHANNEL, WaterRole.POND,
+                WaterRole.BANK, WaterRole.SHORE, WaterRole.POND_SHORE, WaterRole.DAM)) {
             Fixture fixture = new Fixture(role);
 
             Hunk<NativeBlockState> output = fixture.actuate();
@@ -91,47 +71,6 @@ public class IrisTerrainNormalActuatorStrataCutTest {
             assertBlock(fixture.grass, output.get(0, 40, 0));
             assertBlock(fixture.dirt, output.get(0, 39, 0));
             assertBlock(fixture.rock, output.get(0, 38, 0));
-        }
-    }
-
-    @Test
-    public void aSolidCutBankMeasuresItsCutFromTheNaturalHeight() {
-        Fixture fixture = new Fixture(WaterRole.BANK);
-        when(fixture.complex.terrainColumn(11, -4)).thenReturn(null);
-        when(fixture.complex.naturalTerrainColumn(11, -4)).thenReturn(null);
-        when(fixture.complex.naturalTrueHeight(11, -4)).thenReturn(62);
-
-        Hunk<NativeBlockState> output = fixture.actuate();
-
-        assertBlock(fixture.dirt, output.get(0, 60, 0));
-        assertBlock(fixture.dirt, output.get(0, 59, 0));
-        assertBlock(fixture.rock, output.get(0, 58, 0));
-    }
-
-    @Test
-    public void aCutClampsToTheDeepestAuthoredLayerAndNoFurther() {
-        assertEquals(3, IrisTerrainNormalActuator.strataIndex(0, 6, 4));
-        assertEquals(3, IrisTerrainNormalActuator.strataIndex(1, 6, 4));
-        assertEquals(3, IrisTerrainNormalActuator.strataIndex(2, 6, 4));
-        assertEquals(3, IrisTerrainNormalActuator.strataIndex(3, 6, 4));
-        assertEquals(4, IrisTerrainNormalActuator.strataIndex(4, 6, 4));
-    }
-
-    @Test
-    public void aModestCutStillShiftsTheStrataInsteadOfClamping() {
-        assertEquals(1, IrisTerrainNormalActuator.strataIndex(0, 1, 4));
-        assertEquals(2, IrisTerrainNormalActuator.strataIndex(1, 1, 4));
-        assertEquals(3, IrisTerrainNormalActuator.strataIndex(2, 1, 4));
-        assertEquals(3, IrisTerrainNormalActuator.strataIndex(3, 1, 4));
-        assertEquals(4, IrisTerrainNormalActuator.strataIndex(4, 1, 4));
-    }
-
-    @Test
-    public void aZeroCutIndexesTheBiomePaletteByDepthAlone() {
-        for (int paletteSize = 0; paletteSize <= 16; paletteSize++) {
-            for (int depth = 0; depth <= 32; depth++) {
-                assertEquals(depth, IrisTerrainNormalActuator.strataIndex(depth, 0, paletteSize));
-            }
         }
     }
 

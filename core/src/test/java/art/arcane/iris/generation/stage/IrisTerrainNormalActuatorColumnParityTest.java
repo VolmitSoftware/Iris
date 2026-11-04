@@ -252,9 +252,6 @@ public class IrisTerrainNormalActuatorColumnParityTest {
             int terrainSpan = terrainColumn == null ? -1 : terrainColumn.spanCount() - 1;
             int layerSurfaceY = he;
             int layerCeilingY = 0;
-            boolean exposeStrata = role != WaterRole.NONE && seaFloor;
-            Terrain3DColumn naturalColumn = exposeStrata ? terrainColumn : null;
-            int cut = 0;
             boolean keepGravityAway = materials != null && !materials.isAllowGravityBlocks();
             String paletteName = materials == null ? null : rolePalette(role);
             NativeBlockState paletteBlock = paletteName == null ? null : palettes.get(paletteName);
@@ -321,12 +318,8 @@ public class IrisTerrainNormalActuatorColumnParityTest {
                         continue;
                     }
                     if (blocks == null) {
-                        if (exposeStrata) {
-                            int naturalSurfaceY = naturalColumn == null ? he + 5 : naturalColumn.surfaceY(layerSurfaceY);
-                            cut = Math.max(0, naturalSurfaceY - layerSurfaceY);
-                        }
                         blocks = biome.generateLayers(dimension, realX, realZ, rng,
-                                layerSurfaceY + cut, layerSurfaceY + cut, data, complex);
+                                layerSurfaceY, layerSurfaceY, data, complex);
                     }
                     if (layerCeilingY > 0 && depth >= 2 && i - layerCeilingY < 2) {
                         if (ceilingBlocks == null) {
@@ -336,9 +329,8 @@ public class IrisTerrainNormalActuatorColumnParityTest {
                         h.setRaw(xf, i, zf, ceilingBlocks.hasIndex(ceilingDepth) ? ceilingBlocks.get(ceilingDepth) : rock);
                         continue;
                     }
-                    int strataIndex = IrisTerrainNormalActuator.strataIndex(depth, cut, blocks.size());
                     NativeBlockState layerBlock = paletteBlock != null && depth < paintDepth ? paletteBlock
-                            : blocks.hasIndex(strataIndex) ? blocks.get(strataIndex) : null;
+                            : blocks.hasIndex(depth) ? blocks.get(depth) : null;
                     if (layerBlock != null) {
                         if (keepGravityAway && IrisProceduralBlocks.isGravityAffected(layerBlock)) {
                             layerBlock = rock;

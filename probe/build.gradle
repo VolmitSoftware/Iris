@@ -421,6 +421,24 @@ tasks.register('tidalReachProbe', JavaExec) {
     }
 }
 
+tasks.register('uncutTerrainDigest', JavaExec) {
+    group = 'verification'
+    description = 'Prints a per-chunk digest of every generated column except hydrology bank and inlet cuts.'
+    mainClass = 'art.arcane.iris.probe.UncutTerrainDigest'
+    classpath = sourceSets.main.runtimeClasspath
+    jvmArgs('--add-modules', 'jdk.incubator.vector', '-Djava.awt.headless=true')
+    minHeapSize = '2g'
+    maxHeapSize = '6g'
+    dependsOn(':core:compileJava')
+    doFirst {
+        Provider<String> windows = providers.gradleProperty('probeWindows')
+        if (!probePack.isPresent() || !probeDimension.isPresent() || !windows.isPresent() || !probeOutput.isPresent()) {
+            throw new GradleException('uncutTerrainDigest requires probePack, probeDimension, probeWindows=x0..x1,z0..z1 and probeOutput')
+        }
+        args(probePack.get(), probeDimension.get(), probeSeed.orElse('1337').get(), windows.get(), probeOutput.get())
+    }
+}
+
 tasks.register('grottoProbe', JavaExec) {
     group = 'verification'
     description = 'Plans real pack grottos, generates their chunks, checks containment and shape, and renders them.'
@@ -467,7 +485,7 @@ tasks.register('transitionProbe', JavaExec) {
 }
 
 ['transitionProbe', 'hydrologyProbe', 'genProbe', 'generationOrderProbe', 'riverTransectProbe', 'terrain3DProbe',
- 'hydrologyBlockProbe', 'cavePoolProbe', 'caveFluidProbe', 'tidalReachProbe'].each { String taskName ->
+ 'hydrologyBlockProbe', 'cavePoolProbe', 'caveFluidProbe', 'tidalReachProbe', 'uncutTerrainDigest'].each { String taskName ->
     tasks.named(taskName, JavaExec).configure { JavaExec task ->
         classpath += configurations.studioProbeApi
         doFirst {

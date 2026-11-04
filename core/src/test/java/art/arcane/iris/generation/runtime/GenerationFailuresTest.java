@@ -6,12 +6,15 @@ import art.arcane.volmlib.util.mantle.MantleClosedException;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.channels.ClosedByInterruptException;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.RejectedExecutionException;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -28,6 +31,40 @@ public class GenerationFailuresTest {
         assertTrue(GenerationFailures.isEngineFailure(new ProvisionalAnswerException("water not planned")));
         assertTrue(GenerationFailures.isEngineFailure(new CompletionException(
                 new IllegalStateException("placement failed", new GenerationClosedException("router closed")))));
+    }
+
+    @Test
+    public void mantleInputOutputIsAnEngineFailure() {
+        assertTrue(GenerationFailures.isEngineFailure(new UncheckedIOException(new IOException("plate read"))));
+        assertTrue(GenerationFailures.isEngineFailure(new IllegalStateException("placement failed",
+                new IOException("plate read"))));
+    }
+
+    @Test
+    public void skippedPlacementRethrowsEngineFailuresAndReturnsOnContentFailures() {
+        GenerationFailures.skipPlacement(new IllegalArgumentException("Invalid blockFace"),
+                "decoration", "minecraft:vine", 1, 2, 3, "test/biome");
+        GenerationClosedException closed = new GenerationClosedException("router closed");
+        assertSame(closed, assertThrows(GenerationClosedException.class, () -> GenerationFailures.skipPlacement(closed,
+                "decoration", "minecraft:vine", 1, 2, 3, "test/biome")));
+    }
+
+    @Test
+    public void skipWarningNamesBlockPositionBiomeAndFailureOnOneLine() {
+        String line = GenerationFailures.skipWarning("decoration", "minecraft:vine", 1, 2, 3, "test/biome",
+                new IllegalArgumentException("Invalid\nblockFace"), 0L);
+        assertEquals("Skipped decoration minecraft:vine at 1,2,3 biome test/biome: IllegalArgumentException: Invalid blockFace"
+                + " (GenerationFailuresTest.skipWarningNamesBlockPositionBiomeAndFailureOnOneLine)", line);
+    }
+
+    @Test
+    public void repeatedSkipsAreLimitedPerKeyAndCountedOnTheNextLine() {
+        long start = 1_000_000_000L;
+        assertEquals(0L, GenerationFailures.claimSkipWarning("limit-test", start));
+        assertEquals(-1L, GenerationFailures.claimSkipWarning("limit-test", start + 1L));
+        assertEquals(-1L, GenerationFailures.claimSkipWarning("limit-test", start + 2L));
+        assertEquals(0L, GenerationFailures.claimSkipWarning("limit-test-other", start + 2L));
+        assertEquals(2L, GenerationFailures.claimSkipWarning("limit-test", start + GenerationFailures.SKIP_WARNING_NANOS + 1L));
     }
 
     @Test

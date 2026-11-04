@@ -39,7 +39,6 @@ import art.arcane.iris.generation.decoration.IrisDecorationPart;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.generation.biome.IrisFloatingChildBiomes;
 import art.arcane.iris.generation.terrain.IrisSlopeClip;
-import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.generation.block.B;
 import art.arcane.iris.generation.context.ChunkContext;
 import art.arcane.iris.generation.hydrology.raster.WaterRole;
@@ -104,8 +103,7 @@ public class IrisFloatingChildBiomeModifier extends EngineAssignedModifier<Nativ
                 try {
                     generated.add(layer.get(random.nextParallelRNG(i + j), (wx + j) / layer.getZoom(), j, (wz - j) / layer.getZoom(), data));
                 } catch (Throwable e) {
-                    GenerationFailures.rethrowEngineFailure(e);
-                    IrisLogging.reportError(e);
+                    GenerationFailures.skipPlacement(e, "surface layer", "block", (int) wx, -1, (int) wz, "floating");
                 }
             }
 
@@ -364,8 +362,7 @@ public class IrisFloatingChildBiomeModifier extends EngineAssignedModifier<Nativ
                             RNG colRng = rng.nextParallelRNG((int) FloatingIslandSample.columnSeed(baseSeed, wx, wz));
                             FloatingDecorator.decorateColumn(getEngine(), target, IrisDecorationPart.NONE, xf, zf, wx, wz, topY, max, output, colRng, NOOP_DECORATION_MISS);
                         } catch (Throwable e) {
-                            GenerationFailures.rethrowEngineFailure(e);
-                            IrisLogging.reportError(e);
+                            GenerationFailures.skipPlacement(e, "floating decoration", "column", wx, topY, wz, target.getLoadKey());
                         }
                     }
                 }
@@ -399,8 +396,7 @@ public class IrisFloatingChildBiomeModifier extends EngineAssignedModifier<Nativ
                         try {
                             seaSurfaceDecorator.decorate(xf, zf, wx, wx + 1, wx - 1, wz, wz + 1, wz - 1, output, target, fluidTopY, chunkHeight);
                         } catch (Throwable e) {
-                            GenerationFailures.rethrowEngineFailure(e);
-                            IrisLogging.reportError(e);
+                            GenerationFailures.skipPlacement(e, "floating decoration", "sea surface", wx, fluidTopY, wz, target.getLoadKey());
                         }
                     }
                 }
@@ -464,8 +460,7 @@ public class IrisFloatingChildBiomeModifier extends EngineAssignedModifier<Nativ
                 context.floatingBiomes(chunkHeight).record(wx & 15, y, wz & 15, matter.identity());
             }
         } catch (Throwable e) {
-            GenerationFailures.rethrowEngineFailure(e);
-            IrisLogging.reportError(e);
+            GenerationFailures.skipPlacement(e, "floating sky biome", "column", wx, sample.topY(), wz, parent.getLoadKey());
         }
     }
 

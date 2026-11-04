@@ -111,7 +111,12 @@ public final class HydrologyVegetation {
         long choice = seed + part.ordinal();
         int count = 0;
         for (IrisDecorator decorator : bucket) {
-            if (!decorator.passesChanceGate(partRng, column.x, column.z, column.data)) {
+            try {
+                if (!decorator.passesChanceGate(partRng, column.x, column.z, column.data)) {
+                    continue;
+                }
+            } catch (Throwable e) {
+                DecoratorCore.skip(e, decorator, column.data, column.x, column.ground, column.z, null);
                 continue;
             }
             count++;
@@ -230,6 +235,14 @@ public final class HydrologyVegetation {
         }
 
         private void place(IrisDecorator decorator, RNG rng, int baseY, int room, Slot slot, NativeBlockState support) {
+            try {
+                placePicked(decorator, rng, baseY, room, slot, support);
+            } catch (Throwable e) {
+                DecoratorCore.skip(e, decorator, data, x, baseY, z, null);
+            }
+        }
+
+        private void placePicked(IrisDecorator decorator, RNG rng, int baseY, int room, Slot slot, NativeBlockState support) {
             NativeBlockState first = decorator.pickBlockData(rng, data, x, z);
             if (first == null) {
                 return;

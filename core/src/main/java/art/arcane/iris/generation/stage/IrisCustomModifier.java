@@ -2,6 +2,7 @@ package art.arcane.iris.generation.stage;
 
 import art.arcane.iris.integration.Identifier;
 import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.runtime.GenerationFailures;
 import art.arcane.iris.generation.runtime.EngineAssignedModifier;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.concurrent.BurstExecutor;
@@ -39,16 +40,20 @@ public class IrisCustomModifier extends EngineAssignedModifier<NativeBlockState>
                             if (b == null || !b.isCustom()) {
                                 continue;
                             }
-                            String placementKey = b.deferredPlacementKey();
-                            NativeBlockState baseState = b.placementBaseState();
-                            if (placementKey == null || baseState == null) {
-                                continue;
-                            }
+                            try {
+                                String placementKey = b.deferredPlacementKey();
+                                NativeBlockState baseState = b.placementBaseState();
+                                if (placementKey == null || baseState == null) {
+                                    continue;
+                                }
 
-                            mc.getOrCreate(finalY >> 4)
-                                    .slice(Identifier.class)
-                                    .set(rX, finalY & 15, rZ, Identifier.fromString(placementKey));
-                            output.set(rX, finalY, rZ, baseState);
+                                mc.getOrCreate(finalY >> 4)
+                                        .slice(Identifier.class)
+                                        .set(rX, finalY & 15, rZ, Identifier.fromString(placementKey));
+                                output.set(rX, finalY, rZ, baseState);
+                            } catch (Throwable e) {
+                                GenerationFailures.skipPlacement(e, "custom block", b.key(), x + rX, finalY, z + rZ, "none");
+                            }
                         }
                     }
                 });

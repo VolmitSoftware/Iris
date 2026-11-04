@@ -26,7 +26,6 @@ import art.arcane.volmlib.util.documentation.Description;
 import art.arcane.iris.pack.schema.annotation.Snippet;
 import art.arcane.iris.pack.validation.MissingBlockState;
 import art.arcane.iris.platform.bukkit.BukkitBlockState;
-import art.arcane.iris.spi.IrisLogging;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.block.IrisCustomData;
 import art.arcane.iris.generation.geometry.IrisBlockVector;
@@ -443,9 +442,7 @@ public class IrisObjectRotation {
                 }
             }
         } catch (Throwable e) {
-            GenerationFailures.rethrowEngineFailure(e);
-            IrisLogging.reportError(e);
-
+            GenerationFailures.skipPlacement(e, "block rotation", String.valueOf(dd), spinxx, spinyy, spinzz, "none");
         }
 
         return d;

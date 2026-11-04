@@ -838,6 +838,19 @@ public class DecoratorCoreTest {
                 faces(DecoratorCore.fixFacesForHunk(vine, output, 8, 8, 8, 3, 8, null)));
     }
 
+    @Test
+    public void ceilingVineNeverAsksForAFaceItDoesNotAllow() {
+        NativeBlockState lone = facingState(VINE, VINE_FACES, EnumSet.of(BlockFace.UP));
+        Hunk<NativeBlockState> ceiling = Hunk.newArrayHunk(16, 8, 16);
+        ceiling.set(8, 4, 8, sturdyState());
+        assertEquals(EnumSet.of(BlockFace.UP), faces(DecoratorCore.fixFacesForHunk(lone, ceiling, 8, 8, 8, 3, 8, null)));
+
+        NativeBlockState sided = facingState(VINE, VINE_FACES, EnumSet.of(BlockFace.NORTH));
+        ceiling.set(8, 3, 7, sturdyState());
+        assertEquals(EnumSet.of(BlockFace.NORTH, BlockFace.UP),
+                faces(DecoratorCore.fixFacesForHunk(sided, ceiling, 8, 8, 8, 3, 8, null)));
+    }
+
     private NativeBlockState facingState(String material, Set<BlockFace> allowed, Set<BlockFace> faces) {
         MultipleFacing handle = facing(material, allowed, faces);
         String key = handle.getAsString();
@@ -855,7 +868,13 @@ public class DecoratorCoreTest {
         MultipleFacing data = mock(MultipleFacing.class);
         when(data.getAllowedFaces()).thenReturn(allowed);
         when(data.getFaces()).thenAnswer(invocation -> EnumSet.copyOf(current));
-        when(data.hasFace(any(BlockFace.class))).thenAnswer(invocation -> current.contains(invocation.<BlockFace>getArgument(0)));
+        when(data.hasFace(any(BlockFace.class))).thenAnswer(invocation -> {
+            BlockFace face = invocation.getArgument(0);
+            if (!allowed.contains(face)) {
+                throw new IllegalArgumentException("Invalid blockFace, only " + allowed + " are allowed.");
+            }
+            return current.contains(face);
+        });
         doAnswer(invocation -> {
             BlockFace face = invocation.getArgument(0);
             if (!allowed.contains(face)) {

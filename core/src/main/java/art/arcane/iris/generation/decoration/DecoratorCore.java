@@ -23,7 +23,6 @@ import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.mantle.EngineMantle;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.platform.bukkit.BukkitBlockState;
-import art.arcane.iris.spi.IrisLogging;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.block.B;
 import art.arcane.volmlib.util.hunk.Hunk;
@@ -49,6 +48,26 @@ final class DecoratorCore {
 
     static final ThreadLocal<PlaceOpts> SCRATCH_OPTS = ThreadLocal.withInitial(PlaceOpts::new);
 
+
+    static void skip(Throwable failure, IrisDecorator decorator, IrisData data, int x, int y, int z, IrisBiome biome) {
+        GenerationFailures.rethrowEngineFailure(failure);
+        GenerationFailures.skipPlacement(failure, "decoration", paletteLabel(decorator, data),
+                x, y, z, biome == null ? "none" : biome.getLoadKey());
+    }
+
+    private static String paletteLabel(IrisDecorator decorator, IrisData data) {
+        try {
+            NativeBlockState[] palette = decorator.getBlockDataArray(data);
+            if (palette.length == 0) {
+                return "empty palette";
+            }
+            String first = palette[0] == null ? "null" : palette[0].key();
+            return palette.length == 1 ? first : first + " +" + (palette.length - 1);
+        } catch (Throwable unreadable) {
+            GenerationFailures.rethrowEngineFailure(unreadable);
+            return "unreadable palette";
+        }
+    }
 
     static final class PlaceOpts {
         boolean caveSkipFluid;
@@ -91,8 +110,7 @@ final class DecoratorCore {
                     }
                 }
             } catch (Throwable e) {
-                GenerationFailures.rethrowEngineFailure(e);
-                IrisLogging.reportError(e);
+                skip(e, d, data, (int) realX, -1, (int) realZ, biome);
             }
         }
 
@@ -158,8 +176,7 @@ final class DecoratorCore {
                 data.set(x, lowerY, z, lower);
                 data.set(x, upperY, z, IrisProceduralBlocks.normalizeWaterlogging(upper, data.get(x, upperY, z), true));
             } catch (Throwable e) {
-                GenerationFailures.rethrowEngineFailure(e);
-                IrisLogging.reportError(e);
+                skip(e, decorator, irisData, realX, lowerY, realZ, null);
             }
             return;
         }
@@ -366,8 +383,7 @@ final class DecoratorCore {
                 data.set(xf, lowerY, zf, IrisProceduralBlocks.normalizeWaterlogging(lower, data.get(xf, lowerY, zf), true));
                 data.set(xf, upperY, zf, IrisProceduralBlocks.normalizeWaterlogging(upper, data.get(xf, upperY, zf), true));
             } catch (Throwable e) {
-                GenerationFailures.rethrowEngineFailure(e);
-                IrisLogging.reportError(e);
+                skip(e, decorator, irisData, realX, lowerY, realZ, null);
             }
             return;
         }
@@ -460,10 +476,8 @@ final class DecoratorCore {
         if (keepSupportedSides(data, VINE.equals(IrisProceduralBlocks.materialKey(b)), hunk, rX, rZ, x, y, z, mantle)) {
             return BukkitBlockState.of(cloned);
         }
-        for (BlockFace f : Faces.CARTESIAN) {
-            if (data.hasFace(f)) {
-                data.setFace(f, false);
-            }
+        for (BlockFace f : data.getFaces()) {
+            data.setFace(f, false);
         }
 
         boolean found = false;
@@ -487,7 +501,7 @@ final class DecoratorCore {
         boolean ceiling = sturdy(BlockFace.UP, hunk, rX, rZ, x, y, z, mantle);
         boolean side = false;
         for (BlockFace f : Faces.SIDES) {
-            if (!data.hasFace(f)) {
+            if (!data.getAllowedFaces().contains(f) || !data.hasFace(f)) {
                 continue;
             }
             if (sturdy(f, hunk, rX, rZ, x, y, z, mantle) || vine && (ceiling || vineAboveCarries(f, hunk, rX, rZ, x, y, z, mantle))) {
@@ -502,7 +516,7 @@ final class DecoratorCore {
         if (data.getAllowedFaces().contains(BlockFace.UP)) {
             data.setFace(BlockFace.UP, ceiling);
         }
-        if (data.hasFace(BlockFace.DOWN) && !sturdy(BlockFace.DOWN, hunk, rX, rZ, x, y, z, mantle)) {
+        if (data.getAllowedFaces().contains(BlockFace.DOWN) && data.hasFace(BlockFace.DOWN) && !sturdy(BlockFace.DOWN, hunk, rX, rZ, x, y, z, mantle)) {
             data.setFace(BlockFace.DOWN, false);
         }
         return true;

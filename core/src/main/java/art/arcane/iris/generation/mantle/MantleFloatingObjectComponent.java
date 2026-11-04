@@ -235,8 +235,7 @@ public class MantleFloatingObjectComponent extends IrisMantleComponent {
                 throw failure;
             } catch (Throwable e) {
                 transaction.discard();
-                GenerationFailures.rethrowEngineFailure(e);
-                IrisLogging.reportError(e);
+                GenerationFailures.skipPlacement(e, "floating object", obj.getLoadKey(), xx, -1, zz, "floating");
             }
         }
     }
@@ -332,8 +331,7 @@ public class MantleFloatingObjectComponent extends IrisMantleComponent {
                 throw failure;
             } catch (Throwable e) {
                 transaction.discard();
-                GenerationFailures.rethrowEngineFailure(e);
-                IrisLogging.reportError(e);
+                GenerationFailures.skipPlacement(e, "floating object", obj.getLoadKey(), wx, yv, wz, "floating");
             }
         }
     }
@@ -446,8 +444,7 @@ public class MantleFloatingObjectComponent extends IrisMantleComponent {
                 throw failure;
             } catch (Throwable e) {
                 transaction.discard();
-                GenerationFailures.rethrowEngineFailure(e);
-                IrisLogging.reportError(e);
+                GenerationFailures.skipPlacement(e, "floating object", obj.getLoadKey(), wx, yv, wz, "floating");
             }
         }
     }

@@ -53,6 +53,15 @@ public class IrisCeilingDecorator extends IrisEngineDecorator {
             return;
         }
 
+        try {
+            place(decorator, x, z, realX, realZ, data, height, max, caveSkipFluid);
+        } catch (Throwable e) {
+            DecoratorCore.skip(e, decorator, getData(), realX, height, realZ, biome);
+        }
+    }
+
+    private void place(IrisDecorator decorator, int x, int z, int realX, int realZ, Hunk<NativeBlockState> data,
+                       int height, int max, boolean caveSkipFluid) {
         if (!decorator.isStacking()) {
             if (caveSkipFluid) {
                 NativeBlockState state = data.get(x, height, z);

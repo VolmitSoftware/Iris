@@ -66,8 +66,14 @@ public final class StubPlatform implements IrisPlatform {
     }
 
     public static void bindGenerationStateHandlers() {
+        String faultSurface = System.getProperty("iris.probe.faultSurface", "");
         DecoratorPlatformHooks.bind((state, hunk, rX, rZ, x, y, z, mantle) -> state,
-                (surface, upward) -> surface.isOccluding());
+                (surface, upward) -> {
+                    if (!faultSurface.isEmpty() && surface.key().startsWith(faultSurface)) {
+                        throw new IllegalArgumentException("Probe fault on " + surface.key());
+                    }
+                    return surface.isOccluding();
+                });
         IrisObjectRotation.bindPlatformRotator(StubPlatform::rotateState);
         BlockDataMergeSupport.bindPlatformMerger(StubPlatform::mergeStates);
         TileData.bindPlatformReader(StubTileData::read);

@@ -308,6 +308,7 @@ tasks.register('generationOrderProbe', JavaExec) {
     mainClass = 'art.arcane.iris.probe.GenerationOrderProbe'
     classpath = sourceSets.main.runtimeClasspath
     jvmArgs('--add-modules', 'jdk.incubator.vector')
+    systemProperty('iris.probe.faultSurface', providers.gradleProperty('probeFaultSurface').orElse('').get())
     dependsOn(':core:compileJava')
     doFirst {
         Map<String, Provider<String>> required = [

@@ -2,6 +2,7 @@ package art.arcane.iris.generation.stage;
 
 import art.arcane.iris.generation.runtime.IrisEngine;
 import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.runtime.GenerationClosedException;
 import art.arcane.iris.generation.decoration.IrisDepositGenerator;
 import art.arcane.iris.generation.decoration.IrisDepositHeightDistribution;
 import art.arcane.iris.generation.decoration.IrisDepositPlacementScope;
@@ -21,6 +22,7 @@ import art.arcane.volmlib.util.math.RNG;
 import org.junit.ClassRule;
 import org.junit.Test;
 
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -79,9 +81,9 @@ public class IrisDepositModifierContextTest {
     @Test
     public void workerPreparationFailurePropagatesAfterAllScopesClose() throws Exception {
         try (Fixture fixture = new Fixture(mock(IrisEngine.class, RETURNS_DEEP_STUBS), true)) {
-            IllegalStateException failure = new IllegalStateException("worker clump preparation failed");
+            GenerationClosedException failure = new GenerationClosedException("worker clump preparation failed");
             doThrow(failure).when(fixture.dimensionDeposit).getClump(any(), any(), any());
-            assertSame(failure, assertThrows(IllegalStateException.class, () ->
+            assertSame(failure, assertThrows(GenerationClosedException.class, () ->
                     fixture.modifier.modify(32, -48, Hunk.newArrayHunk(16, 16, 16), true, fixture.context)));
             verify(fixture.chunk).release();
             assertEquals(1, fixture.closedScopes.get());
@@ -90,13 +92,23 @@ public class IrisDepositModifierContextTest {
     }
 
     @Test
+    public void contentFailureInOneClumpSkipsItAndTheChunkContinues() throws Exception {
+        try (Fixture fixture = new Fixture(mock(IrisEngine.class, RETURNS_DEEP_STUBS), true)) {
+            doThrow(new IllegalArgumentException("bad clump")).when(fixture.dimensionDeposit).getClump(any(), any(), any());
+            fixture.modifier.modify(32, -48, Hunk.newArrayHunk(16, 16, 16), true, fixture.context);
+            verify(fixture.chunk).release();
+            assertNull(IrisContext.get());
+        }
+    }
+
+    @Test
     public void callerPlanFailureQueuesNoWorkAndRestoresContext() throws Exception {
         try (Fixture fixture = new Fixture(mock(IrisEngine.class, RETURNS_DEEP_STUBS), true)) {
-            IllegalStateException failure = new IllegalStateException("caller deposit plan failed");
+            GenerationClosedException failure = new GenerationClosedException("caller deposit plan failed");
             doThrow(failure).when(fixture.biomeDeposit).getSpawnChance();
             ChunkContext callerContext = mock(ChunkContext.class);
             try (IrisContext.Scope ignored = IrisContext.open(fixture.engine, 19L, callerContext)) {
-                assertSame(failure, assertThrows(IllegalStateException.class, () ->
+                assertSame(failure, assertThrows(GenerationClosedException.class, () ->
                         fixture.modifier.modify(32, -48, Hunk.newArrayHunk(16, 16, 16), true, fixture.context)));
                 assertSame(callerContext, IrisContext.require().getChunkContext());
                 assertEquals(19L, IrisContext.require().getGenerationSessionId());
@@ -111,12 +123,12 @@ public class IrisDepositModifierContextTest {
     @Test
     public void distinctWorkerFailuresAreRetainedAfterDraining() throws Exception {
         try (Fixture fixture = new Fixture(mock(IrisEngine.class, RETURNS_DEEP_STUBS), true)) {
-            IllegalArgumentException firstWorker = new IllegalArgumentException("first worker failure");
-            UnsupportedOperationException secondWorker = new UnsupportedOperationException("second worker failure");
+            GenerationClosedException firstWorker = new GenerationClosedException("first worker failure");
+            RejectedExecutionException secondWorker = new RejectedExecutionException("second worker failure");
             when(fixture.dimensionDeposit.getMinPerChunk()).thenReturn(200);
             when(fixture.dimensionDeposit.getMaxPerChunk()).thenReturn(200);
             doThrow(firstWorker, secondWorker).when(fixture.dimensionDeposit).getClump(any(), any(), any());
-            assertSame(firstWorker, assertThrows(IllegalArgumentException.class, () ->
+            assertSame(firstWorker, assertThrows(GenerationClosedException.class, () ->
                     fixture.modifier.modify(32, -48, Hunk.newArrayHunk(16, 16, 16), true, fixture.context)));
             assertEquals(1, firstWorker.getSuppressed().length);
             assertSame(secondWorker, firstWorker.getSuppressed()[0]);

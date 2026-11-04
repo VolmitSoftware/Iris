@@ -24,6 +24,7 @@ import art.arcane.iris.generation.subterrain.SubterrainPlanner;
 import art.arcane.iris.generation.subterrain.SubterrainRasterizer;
 import art.arcane.iris.generation.subterrain.SubterrainSurfaceMaterials;
 import art.arcane.iris.generation.runtime.DimensionStackContext;
+import art.arcane.iris.generation.runtime.GenerationFailures;
 import art.arcane.iris.generation.runtime.DimensionStackLayout;
 import art.arcane.iris.generation.runtime.UpperDimensionContext;
 import art.arcane.iris.generation.terrain.Terrain3DColumn;
@@ -1173,14 +1174,18 @@ public class IrisCarveModifier extends EngineAssignedModifier<NativeBlockState> 
             NativeBlockState columnFluid = hydrology.isWet()
                     ? getComplex().resolveCaveCellFluid(hydrology.fluidProfileKey(), worldX, worldZ)
                     : null;
-            NativeBlockState normalized = normalizeHydrologyWaterlogging(
-                    current,
-                    baseline,
-                    hydrology,
-                    columnFluid
-            );
-            if (normalized != current) {
-                output.setRaw(localX, y, localZ, normalized);
+            try {
+                NativeBlockState normalized = normalizeHydrologyWaterlogging(
+                        current,
+                        baseline,
+                        hydrology,
+                        columnFluid
+                );
+                if (normalized != current) {
+                    output.setRaw(localX, y, localZ, normalized);
+                }
+            } catch (Throwable e) {
+                GenerationFailures.skipPlacement(e, "waterlogging", current == null ? "null" : current.key(), worldX, y, worldZ, "none");
             }
         }
     }

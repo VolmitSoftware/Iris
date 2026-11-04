@@ -19,6 +19,8 @@ import art.arcane.iris.generation.hydrology.raster.ChannelFluids;
 import art.arcane.iris.generation.hydrology.raster.ChunkRasterizer;
 import art.arcane.iris.generation.hydrology.raster.ChunkWaterRaster;
 import art.arcane.iris.generation.hydrology.raster.NaturalHeights;
+import art.arcane.iris.generation.hydrology.underground.Grotto;
+import art.arcane.iris.generation.hydrology.underground.GrottoRasterizer;
 import art.arcane.iris.generation.hydrology.water.HydrologyTier;
 import art.arcane.iris.generation.hydrology.water.Pond;
 import art.arcane.iris.generation.hydrology.water.Reach;
@@ -305,6 +307,7 @@ public final class HydrologyRuntime {
         boolean complete = true;
         List<Reach> reaches = new ArrayList<>();
         List<Pond> ponds = new ArrayList<>();
+        List<Grotto> grottos = new ArrayList<>();
         for (int wz = min.wz() - 1; wz <= max.wz() + 1; wz++) {
             for (int wx = min.wx() - 1; wx <= max.wx() + 1; wx++) {
                 WindowKey window = new WindowKey(wx, wz);
@@ -312,6 +315,7 @@ public final class HydrologyRuntime {
                 if (plan.isPresent()) {
                     reaches.addAll(plan.get().plan().reaches());
                     ponds.addAll(plan.get().plan().ponds());
+                    grottos.addAll(plan.get().plan().grottos());
                 } else {
                     complete = false;
                     requestPreview(window, windowPreviewFailures, key(wx, wz), "window " + wx + "," + wz, () -> cache.previewWindow(window));
@@ -331,7 +335,7 @@ public final class HydrologyRuntime {
                         () -> cache.previewRegion(region));
             }
         }
-        return new HydrologyPlanPreview(reaches, ponds, List.copyOf(lakes.values()), complete);
+        return new HydrologyPlanPreview(reaches, ponds, List.copyOf(lakes.values()), grottos, complete);
     }
 
     public ChunkWaterRaster rasterAt(int blockX, int blockZ) {
@@ -435,6 +439,28 @@ public final class HydrologyRuntime {
             throw new IllegalStateException("Hydrology is disabled, so it has no channel tiers.");
         }
         return HydrologyFeatureSearch.channelType(settings, tier);
+    }
+
+    public List<Grotto> grottos(int chunkX, int chunkZ) {
+        if (cache == null || !settings.underground().grottos().enabled()) {
+            return List.of();
+        }
+        if (mainThread.getAsBoolean()) {
+            throw new IllegalStateException("Hydrology grottos were requested on the main thread.");
+        }
+        requireOpen();
+        int minX = chunkX << 4;
+        int minZ = chunkZ << 4;
+        int shell = GrottoRasterizer.SHELL;
+        List<Grotto> touching = new ArrayList<>(0);
+        for (CompletableFuture<IndexedWindow> window : plans(neighbourhood(chunkX, chunkZ), List.of(), PlanMode.DEMAND).windowFutures()) {
+            for (Grotto grotto : cache.awaitPlan(window).plan().grottos()) {
+                if (grotto.touches(minX - shell, minZ - shell, minX + 15 + shell, minZ + 15 + shell)) {
+                    touching.add(grotto);
+                }
+            }
+        }
+        return touching;
     }
 
     public Set<HydrologyFeatureType> standingWaterTypes(int chunkX, int chunkZ, long featureId) {

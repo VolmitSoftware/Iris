@@ -30,7 +30,8 @@ public class PersistedCodesTest {
             Map.entry(HydrologyFeatureType.LAKE, 7),
             Map.entry(HydrologyFeatureType.DAM, 8),
             Map.entry(HydrologyFeatureType.SEA_INLET, 9),
-            Map.entry(HydrologyFeatureType.CAVE_POOL, 10));
+            Map.entry(HydrologyFeatureType.CAVE_POOL, 10),
+            Map.entry(HydrologyFeatureType.GROTTO, 11));
     private static final Map<ReachStyle, Integer> REACH_STYLE_CODES = Map.of(
             ReachStyle.RUN, 0,
             ReachStyle.RIFFLE, 1,

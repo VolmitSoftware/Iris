@@ -43,6 +43,10 @@ final class PackHydrologyValidator {
             new RangeField("underground.seaInlets.mouthHalfWidth", Floor.POSITIVE, false),
             new RangeField("underground.seaInlets.headHalfWidth", Floor.POSITIVE, false),
             new RangeField("underground.seaInlets.depth", Floor.POSITIVE, true),
+            new RangeField("underground.grottos.radius", Floor.POSITIVE, false),
+            new RangeField("underground.grottos.headroom", Floor.POSITIVE, true),
+            new RangeField("underground.grottos.mouthWidth", Floor.POSITIVE, false),
+            new RangeField("underground.grottos.length", Floor.POSITIVE, true),
             new RangeField("underground.cavePools.freeboard", Floor.NON_NEGATIVE, true)
     );
     private static final List<String> FLUID_REFERENCES = List.of("ponds.fluid", "underground.cavePools.fluid");

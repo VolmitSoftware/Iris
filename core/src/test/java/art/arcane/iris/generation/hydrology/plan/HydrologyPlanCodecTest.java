@@ -4,6 +4,7 @@ import art.arcane.iris.generation.hydrology.config.IrisBankStyle;
 import art.arcane.iris.generation.hydrology.config.IrisHydrology;
 import art.arcane.iris.generation.hydrology.config.IrisHydrologyMaterials;
 import art.arcane.iris.generation.hydrology.grid.HeightLattice;
+import art.arcane.iris.generation.hydrology.underground.Grotto;
 import art.arcane.iris.generation.hydrology.water.HydrologyTier;
 import art.arcane.iris.generation.hydrology.water.Pond;
 import art.arcane.iris.generation.hydrology.water.PondKind;
@@ -46,7 +47,7 @@ public class HydrologyPlanCodecTest {
             0577617465720000001c000000060000000000000007020000004400000040ffffffec0000001042898000fffffffc00
             00000800000004000000000000000000000000000000000000002900000002000000046c617661ffffffea0000000e00
             0000000000000803000000500000003c00000040ffffffc042a10000fffffffc00000008000000040000000000000000
-            00000000ffffffffffffffff00000000ffffffff0000003cffffffc4
+            00000000ffffffffffffffff00000000ffffffff0000003cffffffc400000000
             """;
 
     @Test
@@ -97,6 +98,17 @@ public class HydrologyPlanCodecTest {
         assertFalse(planned.reaches().isEmpty());
         assertFalse(planned.ponds().isEmpty());
         assertBitExact(planned, HydrologyPlanCodec.decodeWindow(settings, HydrologyPlanCodec.encode(settings, planned)).orElseThrow(), tiers);
+    }
+
+    @Test
+    public void grottosRoundTripBitExact() {
+        HydrologySettings settings = settings(new IrisHydrology());
+        Grotto grotto = new Grotto(99L, 40, 0.6f, 1, new float[]{1.5f, 5.25f, 9f}, new float[]{-2f, -3f, -4f}, new float[]{6f, 7f, 5f}, new float[]{8f, 9f, 6f}, new float[]{3f, 4f, 3f},
+                new float[]{0f, 0f, 2f}, new float[]{5f}, new float[]{-3f}, new float[]{2f}, new int[]{70}, new long[]{Grotto.plug(3, 39, -2), Grotto.plug(4, 39, -2)});
+        WindowPlan window = new WindowPlan(new WindowKey(4, -2), List.of(), List.of(), List.of(grotto));
+        WindowPlan decoded = HydrologyPlanCodec.decodeWindow(settings, HydrologyPlanCodec.encode(settings, window)).orElseThrow();
+        assertEquals(window, decoded);
+        assertEquals(grotto.hashCode(), decoded.grottos().get(0).hashCode());
     }
 
     @Test

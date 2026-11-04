@@ -18,6 +18,7 @@ import art.arcane.iris.generation.hydrology.engine.HydrologyRuntime;
 import art.arcane.iris.generation.hydrology.query.HydrologyFeatureType;
 import art.arcane.iris.generation.hydrology.raster.ChunkWaterRaster;
 import art.arcane.iris.generation.hydrology.raster.WaterRole;
+import art.arcane.iris.generation.hydrology.underground.Grotto;
 import art.arcane.iris.generation.hydrology.water.HydrologyTier;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.terrain.IrisRegion;
@@ -159,6 +160,7 @@ public final class GenerationSemanticCapture {
         int minimumX = Math.multiplyExact(chunkX, CHUNK_SIZE);
         int minimumZ = Math.multiplyExact(chunkZ, CHUNK_SIZE);
         int minimumY = engine.getDimension().getMinHeight();
+        captureGrottoMouths(runtime, chunkX, chunkZ, minimumY, semantics);
         if (raster.empty()) {
             return;
         }
@@ -191,6 +193,15 @@ public final class GenerationSemanticCapture {
                         semantics.addRiverFeature(fluid, type, id, blockX, y, blockZ);
                     }
                 }
+            }
+        }
+    }
+
+    private static void captureGrottoMouths(HydrologyRuntime runtime, int chunkX, int chunkZ, int minimumY, ChunkGenerationSemantics.Builder semantics) {
+        for (Grotto grotto : runtime.grottos(chunkX, chunkZ)) {
+            if (grotto.mouthX() >> 4 == chunkX && grotto.mouthZ() >> 4 == chunkZ) {
+                semantics.addRiverFeature(HydrologyFeatureType.GROTTO.key(), HydrologyFeatureType.GROTTO, grotto.id(), grotto.mouthX(),
+                        Math.addExact(grotto.seaLevel(), minimumY), grotto.mouthZ());
             }
         }
     }

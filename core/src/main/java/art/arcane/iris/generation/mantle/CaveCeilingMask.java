@@ -54,6 +54,40 @@ public final class CaveCeilingMask {
         return masked;
     }
 
+    public static int[] grottoTops(int chunkX, int chunkZ, int shell, ChunkRasters rasters) {
+        int span = CHUNK + 2 * shell;
+        int field = span + 2 * CONTAINMENT;
+        int[] ceilings = new int[field * field];
+        int originX = (chunkX << 4) - shell - CONTAINMENT;
+        int originZ = (chunkZ << 4) - shell - CONTAINMENT;
+        ChunkWaterRaster[] around = new ChunkWaterRaster[9];
+        for (int fz = 0; fz < field; fz++) {
+            int z = originZ + fz;
+            for (int fx = 0; fx < field; fx++) {
+                int x = originX + fx;
+                int slot = ((z >> 4) - chunkZ + 1) * 3 + (x >> 4) - chunkX + 1;
+                if (around[slot] == null) {
+                    around[slot] = ready(rasters.raster(x >> 4, z >> 4), x >> 4, z >> 4);
+                }
+                int ceiling = around[slot].caveCeiling(x & 15, z & 15);
+                ceilings[fz * field + fx] = ceiling == UNMASKED ? UNMASKED : ceiling - ROOF;
+            }
+        }
+        int[] tops = new int[span * span];
+        for (int gz = 0; gz < span; gz++) {
+            for (int gx = 0; gx < span; gx++) {
+                int top = UNMASKED;
+                for (int fz = gz; fz <= gz + 2 * CONTAINMENT; fz++) {
+                    for (int fx = gx; fx <= gx + 2 * CONTAINMENT; fx++) {
+                        top = Math.min(top, ceilings[fz * field + fx]);
+                    }
+                }
+                tops[gz * span + gx] = top;
+            }
+        }
+        return tops;
+    }
+
     public static ChunkWaterRaster ready(ChunkWaterRaster raster, int chunkX, int chunkZ) {
         if (raster.provisional()) {
             throw new IllegalStateException("The water raster for chunk " + chunkX + "," + chunkZ

@@ -70,6 +70,9 @@ final class RiverLimits {
         if (settings.underground().seaInlets().enabled()) {
             add(ExportLimit.SEA_INLET, hydrology, "", "Sea inlets are not exported: low coasts have no tidal arms");
         }
+        if (settings.underground().grottos().enabled()) {
+            add(ExportLimit.GROTTO, hydrology, "", "Grottos are not exported: tall coasts have no sea caves");
+        }
         if (settings.underground().cavePools().enabled() && settings.underground().cavePools().density() > 0.0F) {
             add(ExportLimit.CAVE_POOL, hydrology, "", "Cave pools are not exported: cave floors hold no standing water of their own");
         }

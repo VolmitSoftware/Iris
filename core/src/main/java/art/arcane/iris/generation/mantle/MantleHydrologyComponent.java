@@ -12,6 +12,8 @@ import art.arcane.iris.generation.hydrology.raster.FluidSeams;
 import art.arcane.iris.generation.hydrology.underground.CarvedTerrain;
 import art.arcane.iris.generation.hydrology.underground.CavePoolFiller;
 import art.arcane.iris.generation.hydrology.underground.CaveSpringPlacer;
+import art.arcane.iris.generation.hydrology.underground.Grotto;
+import art.arcane.iris.generation.hydrology.underground.GrottoRasterizer;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.subterrain.SubterrainPlan;
@@ -33,6 +35,7 @@ public final class MantleHydrologyComponent extends IrisMantleComponent {
     private static final int CHUNK = 16;
     private static final int GRID = CHUNK + 2;
     private static final int[] SIDES = {1, -1, GRID, -GRID};
+    private static final GrottoRasterizer GROTTOS = new GrottoRasterizer();
 
     public MantleHydrologyComponent(EngineMantle engineMantle) {
         super(engineMantle, ReservedFlag.RIVER_HYDROLOGY, PRIORITY);
@@ -81,6 +84,13 @@ public final class MantleHydrologyComponent extends IrisMantleComponent {
         }
         HydrologyRuntime runtime = complex.getHydrologyRuntime();
         ChunkWaterRaster own = CaveCeilingMask.ready(runtime.raster(chunkX, chunkZ), chunkX, chunkZ);
+        List<Grotto> grottos = runtime.grottos(chunkX, chunkZ);
+        if (!grottos.isEmpty()) {
+            GrottoRasterizer.Exclusion exclusion = grottoExclusion(writer, complex, runtime, chunkX, chunkZ);
+            for (Grotto grotto : grottos) {
+                GROTTOS.write(grotto, chunkX, chunkZ, writer, HydrologyCaveCell.SEA_FLUID, exclusion);
+            }
+        }
         generateFalls(writer, complex, runtime, own, chunkX, chunkZ);
         if (caveWaterActive()) {
             HydrologySettings settings = runtime.settings();
@@ -95,6 +105,43 @@ public final class MantleHydrologyComponent extends IrisMantleComponent {
             new CavePoolFiller(settings, engine.getWorld().minHeight()).fill(chunkX, chunkZ, carved, writer, settings.seed());
             new CaveSpringPlacer(settings).place(chunkX, chunkZ, carved, writer, settings.seed());
         }
+    }
+
+    private static GrottoRasterizer.Exclusion grottoExclusion(MantleWriter writer, IrisComplex complex, HydrologyRuntime runtime, int chunkX, int chunkZ) {
+        int shell = GrottoRasterizer.SHELL;
+        int span = CHUNK + 2 * shell;
+        int originX = (chunkX << 4) - shell;
+        int originZ = (chunkZ << 4) - shell;
+        int[] tops = CaveCeilingMask.grottoTops(chunkX, chunkZ, shell, runtime::raster);
+        boolean[] historical = new boolean[9];
+        for (int slot = 0; slot < historical.length; slot++) {
+            historical[slot] = complex.isHistoricalChunk(chunkX + slot % 3 - 1, chunkZ + slot / 3 - 1);
+        }
+        SubterrainPlanner planner = complex.getSubterrainPlanner();
+        List<SubterrainPlan> plans = planner == null || planner.isEmpty() ? List.of()
+                : planner.plansForBounds(originX, originZ, originX + span - 1, originZ + span - 1);
+        int minimumY = plans.isEmpty() ? 0 : writer.getEngine().getWorld().minHeight();
+        return (x, y, z) -> {
+            int gx = x - originX;
+            int gz = z - originZ;
+            if (y > tops[gz * span + gx] || besideHistorical(historical, x, z, chunkX, chunkZ, shell)) {
+                return true;
+            }
+            return !plans.isEmpty() && planner.sample(plans, x, y + minimumY, z).owned();
+        };
+    }
+
+    private static boolean besideHistorical(boolean[] historical, int x, int z, int chunkX, int chunkZ, int shell) {
+        for (int dz = -shell; dz <= shell; dz += shell) {
+            for (int dx = -shell; dx <= shell; dx += shell) {
+                int slotX = ((x + dx) >> 4) - chunkX + 1;
+                int slotZ = ((z + dz) >> 4) - chunkZ + 1;
+                if (slotX >= 0 && slotX < 3 && slotZ >= 0 && slotZ < 3 && historical[slotZ * 3 + slotX]) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     private void generateFalls(MantleWriter writer, IrisComplex complex, HydrologyRuntime runtime, ChunkWaterRaster own, int chunkX,

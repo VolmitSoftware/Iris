@@ -1149,9 +1149,7 @@ public final class TidalReachProbe {
             for (Map.Entry<WindowKey, WindowPlan> entry : plans.windowPlans().entrySet()) {
                 String key = entry.getKey().wx() + " " + entry.getKey().wz();
                 for (Reach reach : entry.getValue().reaches()) {
-                    if (!tidal(reach)) {
-                        writer.println("R " + key + " " + reach.id() + " " + reach.xs()[0] + " " + reach.zs()[0] + " " + stable(reach));
-                    }
+                    writer.println((tidal(reach) ? "A " : "R ") + key + " " + reach.id() + " " + reach.xs()[0] + " " + reach.zs()[0] + " " + stable(reach));
                 }
                 for (Pond pond : entry.getValue().ponds()) {
                     writer.println("P " + key + " " + pond.id() + " " + Arrays.toString(new long[]{pond.floorX(), pond.floorZ(), pond.level(), pond.outletReachId(), pond.kind().ordinal()}));

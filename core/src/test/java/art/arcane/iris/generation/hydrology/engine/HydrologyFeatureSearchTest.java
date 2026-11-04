@@ -78,12 +78,15 @@ public class HydrologyFeatureSearchTest {
             config.getPonds().getDams().setEnabled(true);
             config.getUnderground().getSeaInlets().setEnabled(false);
             config.getUnderground().getCavePools().setEnabled(false);
+            config.getUnderground().getGrottos().setEnabled(false);
         });
         String ponds = "hydrology.ponds.natural and hydrology.ponds.seeded are disabled";
         assertEquals(Optional.of(ponds), HydrologyFeatureSearch.disabledReason(dry, HydrologyFeatureType.POND));
         assertEquals(Optional.of(ponds), HydrologyFeatureSearch.disabledReason(dry, HydrologyFeatureType.DAM));
         assertEquals(Optional.of("hydrology.underground.seaInlets is disabled"),
                 HydrologyFeatureSearch.disabledReason(dry, HydrologyFeatureType.SEA_INLET));
+        assertEquals(Optional.of("hydrology.underground.grottos is disabled"),
+                HydrologyFeatureSearch.disabledReason(dry, HydrologyFeatureType.GROTTO));
         assertEquals(Optional.of("hydrology.underground.cavePools is disabled"),
                 HydrologyFeatureSearch.disabledReason(dry, HydrologyFeatureType.CAVE_POOL));
         assertEquals(Optional.empty(), HydrologyFeatureSearch.disabledReason(dry, HydrologyFeatureType.LAKE));

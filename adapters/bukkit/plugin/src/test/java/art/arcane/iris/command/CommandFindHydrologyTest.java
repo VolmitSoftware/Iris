@@ -149,7 +149,7 @@ public class CommandFindHydrologyTest {
         try (Fixture fixture = new Fixture()) {
             fixture.command.river("surface", true);
 
-            verify(fixture.sender).sendMessage(contains("Use one of: stream, river, major_river, cascade, waterfall, mouth, pond, lake, dam, sea_inlet, cave_pool."));
+            verify(fixture.sender).sendMessage(contains("Use one of: stream, river, major_river, cascade, waterfall, mouth, pond, lake, dam, sea_inlet, cave_pool, grotto."));
             assertNull(fixture.search.get());
         }
     }

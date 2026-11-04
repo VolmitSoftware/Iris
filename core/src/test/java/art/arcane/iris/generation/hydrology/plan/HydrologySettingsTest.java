@@ -8,6 +8,7 @@ import art.arcane.iris.generation.hydrology.config.IrisBankStyle;
 import art.arcane.iris.generation.hydrology.config.IrisHydrology;
 import art.arcane.iris.generation.hydrology.config.IrisHydrologyTier;
 import art.arcane.iris.generation.hydrology.config.IrisHydrologyMaterials;
+import art.arcane.iris.generation.hydrology.config.IrisGrottos;
 import art.arcane.iris.generation.hydrology.config.IrisSeaInlets;
 import art.arcane.iris.generation.hydrology.water.HydrologyTier;
 import art.arcane.iris.generation.terrain.IrisMaterialPalette;
@@ -38,7 +39,7 @@ public class HydrologySettingsTest {
     private static final int SEA_LEVEL = 62;
     private static final int MIN_Y = -64;
     private static final int MAX_Y = 320;
-    private static final long DEFAULT_FINGERPRINT = 8483795183515434045L;
+    private static final long DEFAULT_FINGERPRINT = 2652772297681753957L;
 
     @Test
     public void densityIsBoundedAndChangesThePlanIdentity() {
@@ -227,6 +228,12 @@ public class HydrologySettingsTest {
         IrisHydrology seaInlets = new IrisHydrology();
         seaInlets.getUnderground().getSeaInlets().setSpacing(256);
         fingerprints.add(compile(seaInlets).fingerprint());
+        IrisHydrology grottos = new IrisHydrology();
+        grottos.getUnderground().getGrottos().setSpacing(320);
+        fingerprints.add(compile(grottos).fingerprint());
+        IrisHydrology rougher = new IrisHydrology();
+        rougher.getUnderground().getGrottos().setRoughness(0.2D);
+        fingerprints.add(compile(rougher).fingerprint());
 
         IrisHydrology shoreDepth = new IrisHydrology();
         shoreDepth.getPonds().getMaterials().setShoreDepth(3);
@@ -762,6 +769,25 @@ public class HydrologySettingsTest {
         IllegalArgumentException failure = assertThrows(IllegalArgumentException.class,
                 () -> compile(inlets(config -> config.setMouthHalfWidth(new KList<>(4D, 14D)).setHeadHalfWidth(new KList<>(2D, 5D)))));
         assertTrue(failure.getMessage(), failure.getMessage().contains("mouthHalfWidth"));
+    }
+
+    @Test
+    public void grottoKnobsAreBounded() {
+        List<Consumer<IrisGrottos>> bad = List.of(
+                grottos -> grottos.setSpacing(16),
+                grottos -> grottos.setRadius(new KList<>(1D, 7D)),
+                grottos -> grottos.setRadius(new KList<>(4D, 40D)),
+                grottos -> grottos.setHeadroom(new KList<>(1, 7)),
+                grottos -> grottos.setHeadroom(new KList<>(4, 99)),
+                grottos -> grottos.setMouthWidth(new KList<>(1D, 8D)),
+                grottos -> grottos.setLength(new KList<>(32, 600)),
+                grottos -> grottos.setRoughness(1.5D));
+        for (Consumer<IrisGrottos> tweak : bad) {
+            IrisHydrology config = new IrisHydrology();
+            tweak.accept(config.getUnderground().getGrottos());
+            IllegalArgumentException failure = assertThrows(IllegalArgumentException.class, () -> compile(config));
+            assertTrue(failure.getMessage(), failure.getMessage().contains("underground.grottos"));
+        }
     }
 
     @Test

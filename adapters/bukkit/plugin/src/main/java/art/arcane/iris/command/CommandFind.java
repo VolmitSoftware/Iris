@@ -198,7 +198,7 @@ public class CommandFind implements DirectorExecutor {
 
     @Director(description = "Find a hydrology water feature", sync = true)
     public void river(
-            @Param(description = "Feature type: stream, river, major_river, cascade, waterfall, mouth, pond, lake, dam, sea_inlet or cave_pool", customHandler = HydrologyTypeHandler.class)
+            @Param(description = "Feature type: stream, river, major_river, cascade, waterfall, mouth, pond, lake, dam, sea_inlet, grotto or cave_pool", customHandler = HydrologyTypeHandler.class)
             String type,
             @Param(description = "Should you be teleported", defaultValue = "true")
             boolean teleport

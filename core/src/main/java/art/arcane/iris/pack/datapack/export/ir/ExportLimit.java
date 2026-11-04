@@ -37,6 +37,7 @@ public enum ExportLimit {
     RIVER_SHORE_BIOME,
     RIVER_DECORATOR,
     SEA_INLET,
+    GROTTO,
     CAVE_POOL,
     DATAPACK_VERSION,
     DATAPACK_COLLISION,

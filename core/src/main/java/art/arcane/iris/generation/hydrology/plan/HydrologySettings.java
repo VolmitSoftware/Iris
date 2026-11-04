@@ -16,6 +16,7 @@ import art.arcane.iris.generation.hydrology.config.IrisHydrologyLakes;
 import art.arcane.iris.generation.hydrology.config.IrisHydrologyMaterials;
 import art.arcane.iris.generation.hydrology.config.IrisHydrologyPonds;
 import art.arcane.iris.generation.hydrology.config.IrisHydrologyTier;
+import art.arcane.iris.generation.hydrology.config.IrisGrottos;
 import art.arcane.iris.generation.hydrology.config.IrisHydrologyUnderground;
 import art.arcane.iris.generation.hydrology.config.IrisPondDams;
 import art.arcane.iris.generation.hydrology.config.IrisPondNatural;
@@ -68,6 +69,14 @@ public final class HydrologySettings {
     private static final double MAX_INLET_MEANDER_WIDTH = 16D;
     private static final int MIN_INLET_BANK_BAND = 4;
     private static final int MAX_INLET_BANK_BAND = 64;
+    private static final int MIN_GROTTO_SPACING = 64;
+    private static final double MIN_GROTTO_RADIUS = 2D;
+    private static final double MAX_GROTTO_RADIUS = 16D;
+    private static final int MIN_GROTTO_HEADROOM = 3;
+    private static final int MAX_GROTTO_HEADROOM = 32;
+    private static final double MIN_GROTTO_MOUTH = 3D;
+    private static final double MAX_GROTTO_MOUTH = 24D;
+    private static final int MAX_GROTTO_LENGTH = 384;
     private static final int INLET_LAST_STEP = (int) Math.ceil(WindowPlanner.CELL * Math.sqrt(2D));
     private static final double INLET_MEANDER_SCALE = 2.5D;
     private static final double INLET_MEANDER_MAX = 16D;
@@ -384,7 +393,25 @@ public final class HydrologySettings {
     }
 
     private Underground underground(IrisHydrologyUnderground config) {
-        return new Underground(seaInlets(config.getSeaInlets()), cavePools(config.getCavePools()), caveSprings(config.getCaveSprings()));
+        return new Underground(seaInlets(config.getSeaInlets()), grottos(config.getGrottos()), cavePools(config.getCavePools()), caveSprings(config.getCaveSprings()));
+    }
+
+    private Grottos grottos(IrisGrottos config) {
+        Grottos grottos = new Grottos(config.isEnabled(), config.getSpacing(),
+                floatRange(config.getRadius(), "underground.grottos.radius", RangeFloor.POSITIVE),
+                intRange(config.getHeadroom(), "underground.grottos.headroom", RangeFloor.POSITIVE),
+                floatRange(config.getMouthWidth(), "underground.grottos.mouthWidth", RangeFloor.POSITIVE),
+                intRange(config.getLength(), "underground.grottos.length", RangeFloor.POSITIVE), (float) config.getRoughness());
+        requireWithin(grottos.spacing(), MIN_GROTTO_SPACING, Integer.MAX_VALUE, "underground.grottos.spacing");
+        requireWithin(grottos.radius().min(), MIN_GROTTO_RADIUS, MAX_GROTTO_RADIUS, "underground.grottos.radius", config.getRadius());
+        requireWithin(grottos.radius().max(), MIN_GROTTO_RADIUS, MAX_GROTTO_RADIUS, "underground.grottos.radius", config.getRadius());
+        requireWithin(grottos.headroom().min(), MIN_GROTTO_HEADROOM, MAX_GROTTO_HEADROOM, "underground.grottos.headroom");
+        requireWithin(grottos.headroom().max(), MIN_GROTTO_HEADROOM, MAX_GROTTO_HEADROOM, "underground.grottos.headroom");
+        requireWithin(grottos.mouthWidth().min(), MIN_GROTTO_MOUTH, MAX_GROTTO_MOUTH, "underground.grottos.mouthWidth", config.getMouthWidth());
+        requireWithin(grottos.mouthWidth().max(), MIN_GROTTO_MOUTH, MAX_GROTTO_MOUTH, "underground.grottos.mouthWidth", config.getMouthWidth());
+        requireWithin(grottos.length().max(), 1, MAX_GROTTO_LENGTH, "underground.grottos.length");
+        requireScalarWithin(config.getRoughness(), 0D, 1D, "underground.grottos.roughness");
+        return grottos;
     }
 
     private SeaInlets seaInlets(IrisSeaInlets config) {
@@ -792,8 +819,11 @@ public final class HydrologySettings {
 
     private void addUnderground(Fingerprint hash) {
         SeaInlets inlets = underground.seaInlets();
+        Grottos grottos = underground.grottos();
         CavePools pools = underground.cavePools();
         CaveSprings springs = underground.caveSprings();
+        hash.add(grottos.enabled()).add(grottos.spacing()).add(grottos.radius()).add(grottos.headroom()).add(grottos.mouthWidth())
+                .add(grottos.length()).add(grottos.roughness());
         hash.add(inlets.enabled()).add(inlets.spacing()).add(inlets.length()).add(inlets.maximumBankHeight())
                 .add(inlets.mouthHalfWidth()).add(inlets.headHalfWidth()).add(inlets.taper()).add(inlets.widthVariation())
                 .add(inlets.meanderWidth()).add(inlets.depth()).add(inlets.bankBand()).add(inlets.bankStyle())
@@ -866,6 +896,9 @@ public final class HydrologySettings {
                             IrisBankStyle bankStyle) {
     }
 
+    public record Grottos(boolean enabled, int spacing, FloatRange radius, IntRange headroom, FloatRange mouthWidth, IntRange length, float roughness) {
+    }
+
     public record CavePools(boolean enabled, float density, int minArea, int maxArea, int maxDepth, int radius,
                             IntRange freeboard, String fluid, String deepFluid, int deepFluidMaxY) {
     }
@@ -873,7 +906,7 @@ public final class HydrologySettings {
     public record CaveSprings(boolean enabled, float density, String fluid, int minDepthBelowSurface) {
     }
 
-    public record Underground(SeaInlets seaInlets, CavePools cavePools, CaveSprings caveSprings) {
+    public record Underground(SeaInlets seaInlets, Grottos grottos, CavePools cavePools, CaveSprings caveSprings) {
     }
 
     private enum RangeFloor {

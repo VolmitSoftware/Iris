@@ -255,6 +255,7 @@ public class IrisEngine implements Engine {
             GenerationKernelRegistry.Version kernelVersion,
             TransitionGenerationPlan transitionPlan
     ) {
+        GenerationFailures.bindNativeFailures();
         EngineTarget requiredTarget = Objects.requireNonNull(target, "engine target");
         InitializationMode requiredMode = Objects.requireNonNull(initializationMode, "initialization mode");
         this.initializationMode = requiredMode;

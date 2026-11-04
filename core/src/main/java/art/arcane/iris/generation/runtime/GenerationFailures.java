@@ -3,6 +3,7 @@ package art.arcane.iris.generation.runtime;
 import art.arcane.iris.generation.stream.ProvisionalAnswerException;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.world.history.SavedBiomeUnavailableException;
+import art.arcane.volmlib.nativelib.terrain.NativePlacementFailures;
 import art.arcane.volmlib.util.mantle.MantleClosedException;
 
 import java.io.IOException;
@@ -32,12 +33,18 @@ public final class GenerationFailures {
     private GenerationFailures() {
     }
 
+    public static void bindNativeFailures() {
+        NativePlacementFailures.register((Throwable failure, String kind, String id, int x, int z) ->
+                skipPlacement(failure, kind, id, x, -1, z, "none"));
+    }
+
     public static boolean isEngineFailure(Throwable failure) {
         return isShutdownFailure(failure) || hasCause(failure, (Throwable cause) -> cause instanceof Error
                 || cause instanceof WrongEngineBroException
                 || cause instanceof ProvisionalAnswerException
                 || cause instanceof SavedBiomeUnavailableException unavailable && unavailable.isLoading()
                 || cause instanceof GenerationSessionException
+                || cause instanceof HydrologyPlanException
                 || cause instanceof IOException
                 || cause instanceof UncheckedIOException
                 || cause instanceof TimeoutException);
@@ -97,6 +104,41 @@ public final class GenerationFailures {
         if (suppressed >= 0L) {
             IrisLogging.warn(skipWarning(kind, block, x, y, z, biome, failure, suppressed));
         }
+    }
+
+    /**
+     * One failed piece of one structure. The warning counts per structure and failure, however many objects fail.
+     */
+    public static void skipStructurePiece(Throwable failure, String structure, String piece, int x, int y, int z) {
+        rethrowEngineFailure(failure);
+        String key = "structure piece|" + structure + '|' + failure.getClass().getName();
+        long suppressed = claimSkipWarning(key, System.nanoTime());
+        if (suppressed >= 0L) {
+            IrisLogging.warn(skipWarning("structure piece", structure + ' ' + piece, x, y, z, "none", failure, suppressed));
+        }
+    }
+
+    /**
+     * One structure that gave no output without throwing. The cause must stay the same between chunks: it is the
+     * warning's key, and the detail is only printed.
+     */
+    public static void skipStructure(String structure, String cause, String detail, int chunkX, int chunkZ) {
+        long suppressed = claimSkipWarning("structure|" + structure + '|' + cause, System.nanoTime());
+        if (suppressed >= 0L) {
+            IrisLogging.warn(structureWarning(structure, cause, detail, chunkX, chunkZ, suppressed));
+        }
+    }
+
+    static String structureWarning(String structure, String cause, String detail, int chunkX, int chunkZ, long suppressed) {
+        StringBuilder line = new StringBuilder("Skipped structure ").append(structure)
+                .append(" in chunk ").append(chunkX).append(',').append(chunkZ).append(": ").append(cause);
+        if (detail != null && !detail.isBlank()) {
+            line.append(" (").append(detail.replaceAll("\\s+", " ")).append(')');
+        }
+        if (suppressed > 0L) {
+            line.append(", ").append(suppressed).append(" more");
+        }
+        return line.toString();
     }
 
     static long claimSkipWarning(String key, long now) {

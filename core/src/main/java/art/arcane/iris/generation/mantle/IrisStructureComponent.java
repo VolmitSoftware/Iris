@@ -98,9 +98,6 @@ public class IrisStructureComponent extends IrisMantleComponent {
             try {
                 placeFromPlacement(writer, placement, x, z, placementOrdinal);
             } catch (Throwable e) {
-                if (placement.getNativeSuppression() == NativeStructureSuppression.REPLACE_SOURCE) {
-                    throw e;
-                }
                 GenerationFailures.skipPlacement(e, "structure", String.valueOf(placement.getStructures()), x << 4, -1, z << 4, "none");
             }
         }
@@ -160,7 +157,6 @@ public class IrisStructureComponent extends IrisMantleComponent {
             }
 
             int failedPieces = placePieces(writer, placement, structure, pieces, rng);
-            requireAppliedPieces(resolved, cx, cz, failedPieces);
             if (failedPieces == 0) {
                 capture.commit();
             }
@@ -171,7 +167,8 @@ public class IrisStructureComponent extends IrisMantleComponent {
                     KList<PlacedStructurePiece> pieces, RNG rng) {
         IrisStructureStiltSettings stilt = placement.getStilt();
         PieceRun run = new PieceRun(structure, rng, stilt == null ? null : new Long2IntOpenHashMap(),
-                stilt != null && stilt.isSupportNonOccluding(), placement.isAllowWater());
+                stilt != null && stilt.isSupportNonOccluding(), placement.isAllowWater(),
+                placement.getNativeSuppression() == NativeStructureSuppression.REPLACE_SOURCE);
         ObjectPlaceMode mode = structure.getPlaceMode();
         int failedPieces = 0;
         int water = writer.beginObjectPlacement(run.allowWater());
@@ -266,20 +263,12 @@ public class IrisStructureComponent extends IrisMantleComponent {
             return null;
         }
         KList<PlacedStructurePiece> pieces = resolved.pieces();
-        if (!IrisStructureLocator.requirePlacementOutput(
+        if (!IrisStructureLocator.placementOutput(
                 resolved.placement(), resolved.structureKey(), chunkX, chunkZ,
-                pieces != null && !pieces.isEmpty(), "placement application received no assembled pieces")) {
+                pieces != null && !pieces.isEmpty(), "no assembled pieces", null)) {
             return null;
         }
         return pieces;
-    }
-
-    static void requireAppliedPieces(IrisStructureLocator.ResolvedPlacement resolved,
-                                     int chunkX, int chunkZ, int failedPieces) {
-        IrisStructureLocator.requirePlacementOutput(
-                resolved.placement(), resolved.structureKey(), chunkX, chunkZ, failedPieces == 0,
-                "object placement rejected " + failedPieces + " of " + resolved.pieces().size()
-                        + " assembled piece(s)");
     }
 
     void boreStructure(MantleWriter writer, KList<PlacedStructurePiece> pieces,
@@ -589,11 +578,15 @@ public class IrisStructureComponent extends IrisMantleComponent {
             }
         };
         try {
-            return sampledHeight
+            int placed = sampledHeight
                     ? object.place(p.getX(), p.getZ(), writer, config, run.rng(), listener, null, getData())
                     : object.place(p.getX(), p.getY() - getEngineMantle().getEngine().getMinHeight(), p.getZ(), writer, config, run.rng(), listener, null, getData());
+            if (placed == -1 && run.replacesSource()) {
+                GenerationFailures.skipStructure(run.structure().getLoadKey(), "piece rejected", objectKey, p.getX() >> 4, p.getZ() >> 4);
+            }
+            return placed;
         } catch (Throwable e) {
-            GenerationFailures.skipPlacement(e, "structure piece", objectKey, p.getX(), p.getY(), p.getZ(), run.structure().getLoadKey());
+            GenerationFailures.skipStructurePiece(e, run.structure().getLoadKey(), objectKey, p.getX(), p.getY(), p.getZ());
             return -1;
         }
     }
@@ -735,6 +728,6 @@ public class IrisStructureComponent extends IrisMantleComponent {
     }
 
     private record PieceRun(IrisStructure structure, RNG rng, Long2IntOpenHashMap foundationColumns,
-                            boolean supportNonOccluding, boolean allowWater) {
+                            boolean supportNonOccluding, boolean allowWater, boolean replacesSource) {
     }
 }

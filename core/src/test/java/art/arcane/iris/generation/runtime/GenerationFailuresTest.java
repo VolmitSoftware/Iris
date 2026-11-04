@@ -2,6 +2,7 @@ package art.arcane.iris.generation.runtime;
 
 import art.arcane.iris.generation.stream.ProvisionalAnswerException;
 import art.arcane.iris.world.history.SavedBiomeUnavailableException;
+import art.arcane.volmlib.nativelib.terrain.NativePlacementFailures;
 import art.arcane.volmlib.util.mantle.MantleClosedException;
 import org.junit.Test;
 
@@ -47,6 +48,28 @@ public class GenerationFailuresTest {
         GenerationClosedException closed = new GenerationClosedException("router closed");
         assertSame(closed, assertThrows(GenerationClosedException.class, () -> GenerationFailures.skipPlacement(closed,
                 "decoration", "minecraft:vine", 1, 2, 3, "test/biome")));
+    }
+
+    @Test
+    public void hydrologyPlanFailuresAreEngineFailuresEvenInsideAPlacementScope() {
+        HydrologyPlanException plan = new HydrologyPlanException("plan broke", new IllegalStateException("reach 7"));
+        assertTrue(GenerationFailures.isEngineFailure(plan));
+        assertTrue(GenerationFailures.isEngineFailure(new IllegalStateException("decorator failed", plan)));
+        assertSame(plan, assertThrows(HydrologyPlanException.class, () -> GenerationFailures.skipPlacement(plan,
+                "decoration", "minecraft:vine", 1, 2, 3, "test/biome")));
+    }
+
+    @Test
+    public void nativePlacementFailuresFollowTheSameRule() {
+        GenerationFailures.bindNativeFailures();
+        try {
+            NativePlacementFailures.skip(new IllegalArgumentException("bad feature"), "imported feature", "test:feature", 16, 32);
+            GenerationClosedException closed = new GenerationClosedException("router closed");
+            assertSame(closed, assertThrows(GenerationClosedException.class, () -> NativePlacementFailures.skip(closed,
+                    "imported feature", "test:feature", 16, 32)));
+        } finally {
+            NativePlacementFailures.register(null);
+        }
     }
 
     @Test

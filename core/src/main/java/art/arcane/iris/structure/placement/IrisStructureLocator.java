@@ -28,6 +28,7 @@ import art.arcane.volmlib.util.structure.StructureTerrainMode;
 
 import art.arcane.volmlib.util.structure.StructureCarveShape;
 
+import art.arcane.iris.generation.runtime.GenerationFailures;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.SeedManager;
 import art.arcane.iris.structure.nativegen.NativeStructurePlacementPlanner;
@@ -545,15 +546,15 @@ public final class IrisStructureLocator {
         StructureAssembler assembler = StructureAssembler.forData(
                 engine.getData(), structure, new IrisPosition(originX, baseY, originZ));
         StructureAssemblyResult assembly = assembler.assemble(rng);
-        if (!requirePlacementOutput(placement, selectedKey, cx, cz,
-                assembly.hasOutput(), "runtime assembly produced " + assembly.status() + ": " + assembly.detail())) {
+        if (!placementOutput(placement, selectedKey, cx, cz,
+                assembly.hasOutput(), "assembly " + assembly.status(), assembly.detail())) {
             return null;
         }
         KList<PlacedStructurePiece> pieces = new KList<>(assembly.pieces());
         pieces = alignCavePieces(pieces, placement, baseY);
         pieces = alignSurfacePieces(pieces, placement, structure, baseY);
-        if (!requirePlacementOutput(placement, selectedKey, cx, cz,
-                pieces != null && !pieces.isEmpty(), "surface alignment produced no pieces")) {
+        if (!placementOutput(placement, selectedKey, cx, cz,
+                pieces != null && !pieces.isEmpty(), "surface alignment left no pieces", null)) {
             return null;
         }
         boolean exactY = hasExactY(placement, structure, pieces);
@@ -562,8 +563,8 @@ public final class IrisStructureLocator {
         int worldMax = engine.getMinHeight() + engine.getHeight() - 1;
         if (exactY) {
             Integer verticalShift = resolveVerticalShift(pieces, placement, baseY, worldMin, worldMax);
-            if (!requirePlacementOutput(placement, selectedKey, cx, cz, verticalShift != null,
-                    "assembled pieces cannot fit the configured vertical and world bounds")) {
+            if (!placementOutput(placement, selectedKey, cx, cz, verticalShift != null,
+                    "pieces do not fit the vertical bounds", null)) {
                 return null;
             }
             if (verticalShift != 0) {
@@ -574,8 +575,8 @@ public final class IrisStructureLocator {
         if (placement.isAnchoredUnderground() && !placement.resolvedAnchor().isCave()) {
             Integer burialShift = resolveUndergroundBurialShift(
                     engine, pieces, placement, baseY, worldMin, worldMax);
-            if (!requirePlacementOutput(placement, selectedKey, cx, cz, burialShift != null,
-                    "assembled pieces and carving envelope cannot remain fully buried beneath terrain")) {
+            if (!placementOutput(placement, selectedKey, cx, cz, burialShift != null,
+                    "pieces cannot stay buried", null)) {
                 return null;
             }
             if (burialShift != 0) {
@@ -588,8 +589,8 @@ public final class IrisStructureLocator {
         int structureRadius = (int) Math.min(Integer.MAX_VALUE, configuredRadius);
         boolean withinBounds = fitsHorizontalBounds(pieces, originX, originZ, structureRadius)
                 && (!exactY || fitsVerticalBounds(pieces, worldMin, worldMax));
-        if (!requirePlacementOutput(placement, selectedKey, cx, cz, withinBounds,
-                "assembled pieces exceed the configured structure or world bounds")) {
+        if (!placementOutput(placement, selectedKey, cx, cz, withinBounds,
+                "pieces exceed the structure or world bounds", null)) {
             return null;
         }
         if (!placement.isAnchoredUnderground() && !placement.isAllowWater()
@@ -607,23 +608,17 @@ public final class IrisStructureLocator {
         return allowsResolvedFootprint(engine, resolved.placement(), resolved.structure(), resolved.pieces());
     }
 
-    public static boolean requirePlacementOutput(IrisStructurePlacement placement, String structureKey,
-                                                 int chunkX, int chunkZ, boolean outputPresent,
-                                                 String failureReason) {
+    public static boolean placementOutput(IrisStructurePlacement placement, String structureKey, int chunkX, int chunkZ,
+                                          boolean outputPresent, String cause, String detail) {
         if (outputPresent) {
             return true;
         }
-        if (placement == null
-                || NativeStructureSuppression.REPLACE_SOURCE != placement.getNativeSuppression()) {
-            return false;
+        if (placement != null && NativeStructureSuppression.REPLACE_SOURCE == placement.getNativeSuppression()) {
+            String key = structureKey == null || structureKey.isBlank()
+                    ? String.valueOf(placement.getStructures()) : structureKey;
+            GenerationFailures.skipStructure(key, cause, detail, chunkX, chunkZ);
         }
-        String key = structureKey == null || structureKey.isBlank()
-                ? String.valueOf(placement.getStructures()) : structureKey;
-        String reason = failureReason == null || failureReason.isBlank()
-                ? "placement produced no output" : failureReason;
-        throw new IllegalStateException("REPLACE_SOURCE placement for Iris structure '" + key
-                + "' failed in chunk " + chunkX + "," + chunkZ + ": " + reason
-                + ". Native generation is suppressed and will not be used as a fallback");
+        return false;
     }
 
     static boolean fitsWorldBounds(KList<PlacedStructurePiece> pieces, int worldMin, int worldMax,

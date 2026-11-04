@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.hydrology.engine;
 
+import art.arcane.iris.generation.runtime.HydrologyPlanException;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.concurrent.MultiBurst;
 import art.arcane.iris.generation.hydrology.config.IrisHydrology;
@@ -630,7 +631,7 @@ public final class HydrologyRuntime {
             throw cancelled;
         } catch (RuntimeException failure) {
             failures.failed(chunk);
-            throw new IllegalStateException("Hydrology could not build the water raster for chunk " + chunkX + "," + chunkZ + ".", failure);
+            throw new HydrologyPlanException("Hydrology could not build the water raster for chunk " + chunkX + "," + chunkZ + ".", failure);
         }
     }
 

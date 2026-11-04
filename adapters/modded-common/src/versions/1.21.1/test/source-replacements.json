@@ -443,6 +443,48 @@
         "pattern": "\"volmlib\\.entity\\.mixins\\.json/ServerLevelStructureBootstrapMixin\",",
         "replacement": "\"volmlib.entity.mixins.json/ServerLevelStructureBootstrapMixin\",\n            \"volmlib.entity.mixins.json/WorldDimensionsBakeMixin\",\n            \"volmlib.entity.mixins.json/WorldGenSettingsPersistenceMixin\","
       }
+    ],
+    "art/arcane/iris/modded/ModdedPlacementContainmentTest.java": [
+      {
+        "pattern": "manager\\.startsForStructure\\(anyInt\\(\\), anyInt\\(\\), any\\(Structure\\.class\\)\\)",
+        "replacement": "manager.startsForStructure(any(SectionPos.class), any(Structure.class))"
+      },
+      {
+        "pattern": "import net\\.minecraft\\.core\\.Holder;",
+        "replacement": "import net.minecraft.core.Holder;\nimport net.minecraft.core.SectionPos;"
+      },
+      {
+        "pattern": "import net\\.minecraft\\.world\\.level\\.levelgen\\.feature\\.Feature;",
+        "replacement": "import net.minecraft.world.level.levelgen.feature.ConfiguredFeature;\nimport net.minecraft.world.level.levelgen.feature.Feature;\nimport net.minecraft.world.level.levelgen.feature.configurations.NoneFeatureConfiguration;"
+      },
+      {
+        "pattern": "Feature feature = mock\\(Feature\\.class\\);",
+        "replacement": "Feature<NoneFeatureConfiguration> feature = mock(Feature.class);"
+      },
+      {
+        "pattern": "when\\(feature\\.place\\(any\\(\\), any\\(\\), any\\(\\), any\\(\\)\\)\\)",
+        "replacement": "when(feature.place(any(), any(), any(), any(), any()))"
+      },
+      {
+        "pattern": "placement\\.accept\\(invocation\\.getArgument\\(0\\)\\);",
+        "replacement": "placement.accept(invocation.getArgument(1));"
+      },
+      {
+        "pattern": "return new PlacedFeature\\(Holder\\.direct\\(feature\\), List\\.of\\(\\)\\);",
+        "replacement": "return new PlacedFeature(Holder.direct(new ConfiguredFeature<>(feature, NoneFeatureConfiguration.INSTANCE)), List.of());"
+      },
+      {
+        "pattern": "\\.getMinY\\(\\)",
+        "replacement": ".getMinBuildHeight()"
+      },
+      {
+        "pattern": "\\.getMinSectionY\\(\\)",
+        "replacement": ".getMinSection()"
+      },
+      {
+        "pattern": "registries\\.lookupOrThrow\\(",
+        "replacement": "registries.registryOrThrow("
+      }
     ]
   }
 }

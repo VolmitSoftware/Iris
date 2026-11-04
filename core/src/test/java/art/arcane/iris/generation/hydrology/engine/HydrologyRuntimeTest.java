@@ -1,6 +1,7 @@
 package art.arcane.iris.generation.hydrology.engine;
 
 import art.arcane.iris.generation.biome.IrisBiome;
+import art.arcane.iris.generation.runtime.HydrologyPlanException;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveAction;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveCell;
 import art.arcane.iris.generation.hydrology.config.IrisHydrology;
@@ -265,7 +266,7 @@ public class HydrologyRuntimeTest {
         pool.submit(() -> { }).get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
         long planned = runtime.previewRevision();
 
-        assertThrows(IllegalStateException.class, () -> runtime.raster(0, 0));
+        assertThrows(HydrologyPlanException.class, () -> runtime.raster(0, 0));
 
         assertEquals(planned, runtime.previewRevision());
     }

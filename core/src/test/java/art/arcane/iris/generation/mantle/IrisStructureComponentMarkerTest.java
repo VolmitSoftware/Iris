@@ -59,36 +59,14 @@ public class IrisStructureComponentMarkerTest {
                 NativeStructureSuppression.NONE, new KList<>());
 
         assertNull(IrisStructureComponent.resolvedPiecesOrNull(resolved, 4, -3));
-        IrisStructureComponent.requireAppliedPieces(resolvedWithOnePiece(NativeStructureSuppression.NONE),
-                4, -3, 1);
     }
 
     @Test
-    public void emptyResolvedPiecesFailForReplacement() {
+    public void emptyResolvedPiecesAreSkippedForReplacement() {
         IrisStructureLocator.ResolvedPlacement resolved = resolvedPlacement(
                 NativeStructureSuppression.REPLACE_SOURCE, new KList<>());
 
-        assertReplacementFailure(
-                () -> IrisStructureComponent.resolvedPiecesOrNull(resolved, 4, -3),
-                "placement application received no assembled pieces");
-    }
-
-    @Test
-    public void rejectedAppliedPieceFailsForReplacement() {
-        IrisStructureLocator.ResolvedPlacement resolved = resolvedWithOnePiece(
-                NativeStructureSuppression.REPLACE_SOURCE);
-
-        assertReplacementFailure(
-                () -> IrisStructureComponent.requireAppliedPieces(resolved, 4, -3, 1),
-                "object placement rejected 1 of 1 assembled piece(s)");
-    }
-
-    private IrisStructureLocator.ResolvedPlacement resolvedWithOnePiece(
-            NativeStructureSuppression suppression
-    ) {
-        KList<PlacedStructurePiece> pieces = new KList<>();
-        pieces.add(mock(PlacedStructurePiece.class));
-        return resolvedPlacement(suppression, pieces);
+        assertNull(IrisStructureComponent.resolvedPiecesOrNull(resolved, 4, -3));
     }
 
     private IrisStructureLocator.ResolvedPlacement resolvedPlacement(
@@ -101,15 +79,5 @@ public class IrisStructureComponentMarkerTest {
         structure.setLoadKey("test:city");
         return new IrisStructureLocator.ResolvedPlacement(
                 placement, "test:city", structure, pieces, new RNG(1L), 0, 64, 0, false);
-    }
-
-    private void assertReplacementFailure(Runnable operation, String expectedMessage) {
-        try {
-            operation.run();
-        } catch (IllegalStateException e) {
-            assertTrue(e.getMessage(), e.getMessage().contains(expectedMessage));
-            return;
-        }
-        throw new AssertionError("Expected strict native replacement failure containing '" + expectedMessage + "'");
     }
 }

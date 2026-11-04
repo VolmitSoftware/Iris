@@ -349,15 +349,15 @@ public class IrisStructureLocatorContractTest {
     }
 
     @Test
-    public void replacementOutputFailureIncludesStructureAndChunkContext() {
+    public void replacementOutputAbsenceIsSkippedInsteadOfStoppingTheChunk() {
         IrisStructurePlacement placement = new IrisStructurePlacement()
                 .setNativeSuppression(NativeStructureSuppression.REPLACE_SOURCE);
         placement.getStructures().add("test:city");
 
-        assertReplacementFailure(
-                () -> IrisStructureLocator.requirePlacementOutput(
-                        placement, "test:city", 12, -7, false, "runtime assembly produced no pieces"),
-                "structure 'test:city' failed in chunk 12,-7: runtime assembly produced no pieces");
+        assertFalse(IrisStructureLocator.placementOutput(
+                placement, "test:city", 12, -7, false, "no pieces", null));
+        assertTrue(IrisStructureLocator.placementOutput(
+                placement, "test:city", 12, -7, true, "no pieces", null));
     }
 
     @Test
@@ -365,10 +365,10 @@ public class IrisStructureLocatorContractTest {
         IrisStructurePlacement placement = new IrisStructurePlacement();
         placement.getStructures().add("test:city");
 
-        assertFalse(IrisStructureLocator.requirePlacementOutput(
-                placement, "test:city", 12, -7, false, "runtime assembly produced no pieces"));
-        assertTrue(IrisStructureLocator.requirePlacementOutput(
-                placement, "test:city", 12, -7, true, "runtime assembly produced no pieces"));
+        assertFalse(IrisStructureLocator.placementOutput(
+                placement, "test:city", 12, -7, false, "no pieces", null));
+        assertTrue(IrisStructureLocator.placementOutput(
+                placement, "test:city", 12, -7, true, "no pieces", null));
     }
 
     @Test

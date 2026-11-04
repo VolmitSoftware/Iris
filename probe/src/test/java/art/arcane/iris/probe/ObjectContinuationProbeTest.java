@@ -3,6 +3,7 @@ package art.arcane.iris.probe;
 import art.arcane.iris.generation.decoration.tree.TreeBlockMaterial;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.EngineTarget;
+import art.arcane.iris.generation.runtime.GenerationClosedException;
 import art.arcane.iris.generation.runtime.IrisEngine;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.pack.loading.IrisData;
@@ -19,6 +20,7 @@ import art.arcane.iris.world.history.IrisBoundarySignatureSampler;
 import art.arcane.iris.world.history.NativeTerrainReceipt;
 import art.arcane.iris.world.history.SavedTerrainChunk;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
+import art.arcane.volmlib.nativelib.terrain.NativePlacementFailures;
 import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
 import art.arcane.volmlib.util.matter.Matter;
 import org.junit.AfterClass;
@@ -43,6 +45,7 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 public final class ObjectContinuationProbeTest {
@@ -179,11 +182,15 @@ public final class ObjectContinuationProbeTest {
                 data.bindGenerationRegistryContract(reopened.activeEpoch().registryContract());
                 IrisDimension dimension = data.getDimensionLoader().load("transition");
                 assertNotNull(dimension);
+                NativePlacementFailures.register(null);
                 IrisEngine engine = new IrisEngine(new EngineTarget(world, dimension, data),
                         IrisEngine.InitializationMode.RUNTIME,
                         reopened.paths().activationMantleRoot(reopened.activeActivation().activationId()),
                         reopened.activeEpoch().kernelVersion(), reopened.transitionPlan(reopened.activeActivation().activationId()));
                 try {
+                    NativePlacementFailures.skip(new IllegalArgumentException("content"), "imported feature", "probe", 0, 0);
+                    assertThrows(GenerationClosedException.class, () -> NativePlacementFailures.skip(
+                            new GenerationClosedException("closed"), "imported feature", "probe", 0, 0));
                     GenerationHistoryRuntimeRouter router = GenerationHistoryRuntimeRouter.attach(
                             engine, reopened, IrisBoundarySignatureSampler.INSTANCE);
                     router.preloadActiveRuntimes();

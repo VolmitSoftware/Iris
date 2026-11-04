@@ -20,7 +20,7 @@ public class IrisSeaInlets {
     @MinNumber(32)
     @MaxNumber(4096)
     @Description("Size in blocks of the square cells of the site grid. Each cell holds at most one inlet; inlets in neighbouring cells can lie closer than this.")
-    private int spacing = 192;
+    private int spacing = 160;
 
     @ArrayType(type = Integer.class, min = 2)
     @Description("Length of an inlet in blocks along its centre line, written as [min, max]. An arm that cannot reach the min is left out. The max, plus the meander, plus mouthHalfWidth max, plus bankBand must not exceed 512.")

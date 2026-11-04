@@ -38,7 +38,7 @@ public class HydrologySettingsTest {
     private static final int SEA_LEVEL = 62;
     private static final int MIN_Y = -64;
     private static final int MAX_Y = 320;
-    private static final long DEFAULT_FINGERPRINT = -2724181682955020615L;
+    private static final long DEFAULT_FINGERPRINT = 8483795183515434045L;
 
     @Test
     public void densityIsBoundedAndChangesThePlanIdentity() {
@@ -715,7 +715,7 @@ public class HydrologySettingsTest {
     public void seaInletDefaultsDescribeAFunnelReachingInland() {
         HydrologySettings.SeaInlets inlets = compile(new IrisHydrology()).underground().seaInlets();
         assertTrue(inlets.enabled());
-        assertEquals(192, inlets.spacing());
+        assertEquals(160, inlets.spacing());
         assertEquals(new HydrologySettings.IntRange(64, 256), inlets.length());
         assertEquals(44, inlets.maximumBankHeight());
         assertEquals(new HydrologySettings.FloatRange(13f, 15f), inlets.mouthHalfWidth());

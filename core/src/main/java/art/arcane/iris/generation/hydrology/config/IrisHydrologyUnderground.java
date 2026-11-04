@@ -7,10 +7,10 @@ import lombok.experimental.Accessors;
 
 @Accessors(chain = true)
 @NoArgsConstructor
-@Description("Water below the surface: flooded passages that run inland from the sea, pools on cave floors, and springs in cave walls.")
+@Description("Sea inlets on the coast, and water below the surface: pools on cave floors and springs in cave walls.")
 @Data
 public class IrisHydrologyUnderground {
-    @Description("Flooded passages at sea level that run inland from coastal cliffs.")
+    @Description("Tidal arms of the sea that wind inland from low coasts at sea level.")
     private IrisSeaInlets seaInlets = new IrisSeaInlets();
 
     @Description("Standing water on the floors of carved caves.")

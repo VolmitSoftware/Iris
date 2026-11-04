@@ -414,6 +414,54 @@ public class ChunkWaterRasterTest {
         }
     }
 
+    private static Reach straight(long id, HydrologyTier tier, float z, int head, ReachStyle style) {
+        int points = 9;
+        float[] xs = new float[points];
+        float[] zs = new float[points];
+        int[] grade = new int[points];
+        float[] halfWidth = new float[points];
+        float[] depth = new float[points];
+        ReachStyle[] styles = new ReachStyle[points];
+        for (int point = 0; point < points; point++) {
+            xs[point] = -16f + point * 8f;
+            zs[point] = z;
+            grade[point] = head;
+            halfWidth[point] = 3f;
+            depth[point] = 2f;
+            styles[point] = style;
+        }
+        return new Reach(id, tier, 0L, xs, zs, grade, halfWidth, depth, styles, 30000f);
+    }
+
+    private static ChunkWaterRaster rasterOf(HydrologySettings settings, List<Reach> reaches, int ground) {
+        WindowKey key = new WindowKey(0, 0);
+        IndexedWindow own = new IndexedWindow(new WindowPlan(key, reaches, List.of()), ReachIndex.build(key, reaches, List.of()));
+        return new ChunkRasterizer(settings, ChannelFluids.TIER).rasterize(0, 0, (x, z) -> ground, List.of(own), regions(0, 0, List.of()));
+    }
+
+    @Test
+    public void tidalBanksMeetANeighbouringRiverBankWithoutACliff() {
+        HydrologySettings settings = settings(new IrisHydrology());
+        int ground = SEA_LEVEL + 32;
+        Reach arm = straight(71L, settings.tidalTier(), -6f, SEA_LEVEL, ReachStyle.TIDAL);
+        for (int riverHead : new int[]{SEA_LEVEL, SEA_LEVEL + 24}) {
+            for (HydrologyTier tier : settings.tiers()) {
+                Reach river = straight(72L, tier, 22f, riverHead, ReachStyle.RUN);
+                ChunkWaterRaster raster = rasterOf(settings, List.of(arm, river), ground);
+                ChunkWaterRaster alone = rasterOf(settings, List.of(river), ground);
+                for (int lx = 0; lx < 16; lx++) {
+                    for (int lz = 0; lz < 15; lz++) {
+                        int step = Math.abs(raster.terrainHeight(lx, lz + 1) - raster.terrainHeight(lx, lz));
+                        assertTrue(tier.name() + " head " + riverHead + " steps " + step + " at " + lx + "," + lz, step <= 8);
+                    }
+                    for (int lz = 9; lz < 16; lz++) {
+                        assertEquals("the river side is the river's own bank at " + lx + "," + lz, alone.terrainHeight(lx, lz), raster.terrainHeight(lx, lz));
+                    }
+                }
+            }
+        }
+    }
+
     @Test
     public void tidalBanksFollowTheBandInsteadOfCuttingRaysToSteepGround() {
         HydrologySettings settings = settings(new IrisHydrology());

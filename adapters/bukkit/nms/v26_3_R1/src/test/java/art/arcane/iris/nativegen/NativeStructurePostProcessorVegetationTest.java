@@ -207,9 +207,9 @@ public class NativeStructurePostProcessorVegetationTest {
         write(chunk, 4, 106, 4, Blocks.CACTUS_FLOWER.defaultBlockState());
 
         NativeStructureSurfaceFitter.applySurfaceColumn(
-                world(chunk), new BlockPos.MutableBlockPos(), 4, 4, 102, 93, MIN_Y, MAX_Y, false, SeaSurface.NONE);
+                world(chunk), new BlockPos.MutableBlockPos(), 4, 4, 102, 93, MIN_Y, MAX_Y, false, SeaSurface.NONE, PlainSurfaceStrata.STRATA);
 
-        assertEquals(Blocks.SAND.defaultBlockState(), chunk.getBlockState(new BlockPos(4, 93, 4)));
+        assertEquals(Blocks.GRASS_BLOCK.defaultBlockState(), chunk.getBlockState(new BlockPos(4, 93, 4)));
         for (int y = 94; y <= 106; y++) {
             assertTrue("Unsupported decoration at " + y, chunk.getBlockState(new BlockPos(4, y, 4)).isAir());
         }
@@ -228,9 +228,9 @@ public class NativeStructurePostProcessorVegetationTest {
         WorldGenLevel world = world(chunk);
 
         NativeStructureSurfaceFitter.applySurfaceColumn(
-                world, new BlockPos.MutableBlockPos(), 4, 4, 64, 60, MIN_Y, MAX_Y, false, SeaSurface.NONE);
+                world, new BlockPos.MutableBlockPos(), 4, 4, 64, 60, MIN_Y, MAX_Y, false, SeaSurface.NONE, PlainSurfaceStrata.STRATA);
         NativeStructureSurfaceFitter.applySurfaceColumn(
-                world, new BlockPos.MutableBlockPos(), 5, 4, 64, 64, MIN_Y, MAX_Y, false, SeaSurface.NONE);
+                world, new BlockPos.MutableBlockPos(), 5, 4, 64, 64, MIN_Y, MAX_Y, false, SeaSurface.NONE, PlainSurfaceStrata.STRATA);
 
         assertTrue(chunk.getBlockState(new BlockPos(4, 65, 4)).isAir());
         assertTrue(chunk.getBlockState(new BlockPos(4, 66, 4)).isAir());
@@ -250,7 +250,7 @@ public class NativeStructurePostProcessorVegetationTest {
             write(chunk, 4, 67, 4, Blocks.CACTUS_FLOWER.defaultBlockState());
 
             NativeStructureSurfaceFitter.applySurfaceColumn(
-                    world(chunk), new BlockPos.MutableBlockPos(), 4, 4, 64, 60, MIN_Y, MAX_Y, false, SeaSurface.NONE);
+                    world(chunk), new BlockPos.MutableBlockPos(), 4, 4, 64, 60, MIN_Y, MAX_Y, false, SeaSurface.NONE, PlainSurfaceStrata.STRATA);
 
             assertEquals(boundary, chunk.getBlockState(new BlockPos(4, 65, 4)));
             assertEquals(Blocks.CACTUS.defaultBlockState(), chunk.getBlockState(new BlockPos(4, 66, 4)));
@@ -272,11 +272,11 @@ public class NativeStructurePostProcessorVegetationTest {
         WorldGenLevel world = world(chunk);
 
         NativeStructureSurfaceFitter.applySurfaceColumn(
-                world, new BlockPos.MutableBlockPos(), 4, 4, 64, 60, MIN_Y, MAX_Y, false, SeaSurface.NONE);
+                world, new BlockPos.MutableBlockPos(), 4, 4, 64, 60, MIN_Y, MAX_Y, false, SeaSurface.NONE, PlainSurfaceStrata.STRATA);
         NativeStructureSurfaceFitter.applySurfaceColumn(
-                world, new BlockPos.MutableBlockPos(), 5, 4, 64, 64, MIN_Y, MAX_Y, false, SeaSurface.NONE);
+                world, new BlockPos.MutableBlockPos(), 5, 4, 64, 64, MIN_Y, MAX_Y, false, SeaSurface.NONE, PlainSurfaceStrata.STRATA);
 
-        assertEquals(Blocks.SAND.defaultBlockState(), chunk.getBlockState(new BlockPos(4, 60, 4)));
+        assertEquals(Blocks.GRASS_BLOCK.defaultBlockState(), chunk.getBlockState(new BlockPos(4, 60, 4)));
         for (int y = 61; y <= 67; y++) {
             assertTrue(chunk.getBlockState(new BlockPos(4, y, 4)).isAir());
         }

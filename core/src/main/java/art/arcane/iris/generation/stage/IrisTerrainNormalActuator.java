@@ -51,7 +51,6 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<NativeBloc
     private static final BoundBlockState DIRT = BoundBlockState.of("minecraft:dirt");
     private static final BoundBlockState NETHERRACK = BoundBlockState.of("minecraft:netherrack");
     private static final int INLET_SEA_LAYERS = 1;
-    private static final int TIDAL_BANK_SHALLOW_CUT = 16;
     @Getter
     private final RNG rng;
 
@@ -85,16 +84,6 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<NativeBloc
                 painter.paint(xf, zf);
             }
         }
-    }
-
-    /**
-     * The palette index for a column that erosion cut {@code cut} blocks down into. The offset is
-     * clamped to the deepest authored layer so an exposed bank shows soil rather than raw rock,
-     * while a depth past the authored soil still runs off the end and falls through to rock. A
-     * cut of zero collapses to {@code depth}, leaving every uncut column untouched.
-     */
-    static int strataIndex(int depth, int cut, int paletteSize) {
-        return depth + Math.min(cut, Math.max(0, paletteSize - 1 - depth));
     }
 
     private static IrisMaterialPalette rolePalette(WaterRole role, IrisHydrologyMaterials materials) {
@@ -135,7 +124,7 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<NativeBloc
         return painted == null ? layerBlock : painted;
     }
 
-    private static NativeBlockState submergedSoil(NativeBlockState block) {
+    public static NativeBlockState submergedSoil(NativeBlockState block) {
         if (block == null) {
             return null;
         }
@@ -235,9 +224,6 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<NativeBloc
             int terrainSpan = terrainColumn == null ? -1 : terrainColumn.spanCount() - 1;
             int layerSurfaceY = he;
             int layerCeilingY = 0;
-            boolean exposeStrata = role != WaterRole.NONE && seaFloor;
-            Terrain3DColumn naturalColumn = exposeStrata ? complex.naturalTerrainColumn(realX, realZ) : null;
-            int cut = 0;
             boolean keepGravityAway = materials != null && !materials.isAllowGravityBlocks();
             IrisMaterialPalette rolePalette = rolePalette(role, materials);
             int paintDepth = rolePalette == null ? 0 : roleDepth(role, materials);
@@ -310,16 +296,8 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<NativeBloc
                         continue;
                     }
                     if (blocks == null) {
-                        if (exposeStrata) {
-                            int naturalSurfaceY = naturalColumn == null
-                                    ? complex.naturalTrueHeight(realX, realZ) : naturalColumn.surfaceY(layerSurfaceY);
-                            cut = Math.max(0, naturalSurfaceY - layerSurfaceY);
-                        }
                         blocks = biome.generateLayers(dimension, realX, realZ, rng,
-                                layerSurfaceY + cut + 1 - bedrockFloor, layerSurfaceY + cut, data, complex);
-                        if (exposeStrata && cut <= TIDAL_BANK_SHALLOW_CUT && complex.isTidalBank(realX, realZ)) {
-                            cut = 0;
-                        }
+                                layerSurfaceY + 1 - bedrockFloor, layerSurfaceY, data, complex);
                     }
 
                     int deepFloor = Math.max(bedrockFloor, layerCeilingY > 0 ? layerCeilingY + 2 : 0);
@@ -340,9 +318,8 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<NativeBloc
                         continue;
                     }
 
-                    int strataIndex = strataIndex(depth, cut, blocks.size());
                     NativeBlockState layerBlock = paintWaterMaterial(
-                            blocks.hasIndex(strataIndex) ? blocks.get(strataIndex) : null,
+                            blocks.hasIndex(depth) ? blocks.get(depth) : null,
                             rolePalette, paintDepth, depth, rng, realX, i, realZ, data);
                     if (submerged && layerSurfaceY == he) {
                         layerBlock = submergedSoil(layerBlock);

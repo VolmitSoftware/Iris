@@ -137,23 +137,16 @@ public class IrisTerrainNormalActuatorHydrologyTest {
 
         Painter cliff = new Painter(WaterRole.INLET, HEAD);
         when(cliff.complex.naturalTrueHeight(11, -4)).thenReturn(GROUND + 20);
-        assertSame("a slot cut through the cliff shows the strata below the old surface", cliff.dirt, cliff.paint().get(0, GROUND, 0));
+        assertSame("a slot cut through the cliff keeps the submerged soil top", submergedDirt, cliff.paint().get(0, GROUND, 0));
     }
 
     @Test
-    public void shallowTidalBankCutsKeepTheBiomeSurfaceLayer() {
-        Painter cut = new Painter(WaterRole.BANK, 0);
-        when(cut.complex.naturalTrueHeight(11, -4)).thenReturn(GROUND + 3);
-        NativeBlockState stripped = cut.paint().get(0, GROUND, 0);
-        Painter tidal = new Painter(WaterRole.BANK, 0);
-        when(tidal.complex.naturalTrueHeight(11, -4)).thenReturn(GROUND + 3);
-        when(tidal.complex.isTidalBank(11, -4)).thenReturn(true);
-        assertSame("the shallow tidal cut is resurfaced", tidal.grass, tidal.paint().get(0, GROUND, 0));
-        assertSame("a river bank keeps its strata", cut.dirt, stripped);
-        Painter deep = new Painter(WaterRole.BANK, 0);
-        when(deep.complex.naturalTrueHeight(11, -4)).thenReturn(GROUND + 20);
-        when(deep.complex.isTidalBank(11, -4)).thenReturn(true);
-        assertSame("a deep tidal cut shows the strata", deep.dirt, deep.paint().get(0, GROUND, 0));
+    public void bankCutsOfAnyDepthKeepTheBiomeSurfaceLayer() {
+        for (int cut : new int[]{1, 3, 16, 20, 60}) {
+            Painter bank = new Painter(WaterRole.BANK, 0);
+            when(bank.complex.naturalTrueHeight(11, -4)).thenReturn(GROUND + cut);
+            assertSame("a cut of " + cut, bank.grass, bank.paint().get(0, GROUND, 0));
+        }
     }
 
     @Test
@@ -395,7 +388,7 @@ public class IrisTerrainNormalActuatorHydrologyTest {
             materials.setShore(null).setBank(null);
             output = painter.paint();
             assertSame(role.name(), painter.grass, output.get(0, 60, 0));
-            assertSame(role.name(), painter.dirt, output.get(0, 40, 0));
+            assertSame(role.name(), painter.grass, output.get(0, 40, 0));
             assertSame(role.name(), painter.rock, output.get(0, 38, 0));
         }
     }

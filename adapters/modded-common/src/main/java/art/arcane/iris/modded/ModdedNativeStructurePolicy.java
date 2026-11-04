@@ -12,6 +12,7 @@ import art.arcane.iris.structure.nativegen.NativeStructureStartPlan;
 import art.arcane.iris.structure.nativegen.NativeStructureVolumeIndex;
 import art.arcane.iris.structure.nativegen.StructureLocateSearch;
 import art.arcane.iris.structure.placement.IrisStructureLocator;
+import art.arcane.iris.structure.placement.IrisStructureStrata;
 import art.arcane.iris.structure.placement.IrisStructureWater;
 import art.arcane.volmlib.nativelib.minecraft26_2.modded.NativeModdedStructureStage;
 import art.arcane.volmlib.nativelib.minecraft26_2.terrain.NativeStructureVolumeSource;
@@ -24,6 +25,7 @@ import art.arcane.volmlib.nativelib.terrain.structure.StructurePlacementDecision
 import art.arcane.volmlib.nativelib.terrain.structure.StructureReferencePolicy;
 import art.arcane.volmlib.nativelib.terrain.structure.StructureSeaSurface;
 import art.arcane.volmlib.nativelib.terrain.structure.StructureVolumePolicy;
+import art.arcane.volmlib.nativelib.terrain.structure.StructureStrata;
 import art.arcane.volmlib.nativelib.terrain.structure.StructureWater;
 import art.arcane.volmlib.util.math.RNG;
 
@@ -135,6 +137,11 @@ final class ModdedNativeStructurePolicy implements NativeModdedStructureStage.Po
     @Override
     public StructureWater water(Engine context) {
         return IrisStructureWater.world(context);
+    }
+
+    @Override
+    public StructureStrata strata(Engine context) {
+        return IrisStructureStrata.world(context);
     }
 
     @Override

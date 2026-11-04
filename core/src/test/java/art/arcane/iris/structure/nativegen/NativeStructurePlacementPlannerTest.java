@@ -178,15 +178,23 @@ public class NativeStructurePlacementPlannerTest {
                 StructureWaterRules.admitsStart(plan, stageWater, VILLAGE));
 
         roles.clear();
-        WaterRole[] dry = {WaterRole.MOUTH, WaterRole.INLET, WaterRole.SHORE, WaterRole.POND_SHORE, WaterRole.BANK, WaterRole.DAM};
+        WaterRole[] dry = {WaterRole.MOUTH, WaterRole.SHORE, WaterRole.POND_SHORE, WaterRole.BANK, WaterRole.DAM};
         int column = 0;
         for (int x = 0; x <= 39; x++) {
             for (int z = 0; z < 16; z++) {
                 roles.put(columnKey(x, z), dry[column++ % dry.length]);
             }
         }
-        assertTrue("mouths, inlets, shores, banks and dams do not count as river water",
+        assertTrue("mouths, shores, banks and dams do not count as river water",
                 StructureWaterRules.admitsStart(plan, stageWater, VILLAGE));
+
+        roles.clear();
+        for (int x = 0; x <= 39; x++) {
+            for (int z = 0; z < 16; z++) {
+                roles.put(columnKey(x, z), x % 2 == 0 ? WaterRole.INLET : WaterRole.BANK);
+            }
+        }
+        assertFalse("a sea inlet under the pieces counts as river water", StructureWaterRules.admitsStart(plan, stageWater, VILLAGE));
     }
 
     @Test

@@ -44,8 +44,8 @@ public final class IrisStructureWater implements StructureWater {
 
     static boolean river(WaterRole role) {
         return switch (role) {
-            case CHANNEL, POND, CASCADE, WATERFALL -> true;
-            case NONE, BANK, SHORE, POND_SHORE, DAM, MOUTH, INLET -> false;
+            case CHANNEL, POND, CASCADE, WATERFALL, INLET -> true;
+            case NONE, BANK, SHORE, POND_SHORE, DAM, MOUTH -> false;
         };
     }
 }

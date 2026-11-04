@@ -23,6 +23,7 @@ public final class PlacementState {
     int spinY;
     int spinZ;
     boolean ceilingHang;
+    boolean caveUnseated;
     IrisBlockVector translateOffset;
     int rty;
     int ty;

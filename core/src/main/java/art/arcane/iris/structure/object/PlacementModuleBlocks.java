@@ -16,7 +16,10 @@ final class PlacementModuleBlocks implements PlacementModule {
         }, PlacementModuleBore.BORE);
     }
 
-    private static void bake(PlacementContext context, PlacementState state) {
+    static void bake(PlacementContext context, PlacementState state) {
+        if (state.bake != null) {
+            return;
+        }
         state.bake = ObjectPlacementBake.of(context.self, state.spin, state.ceilingHang, state.translateOffset);
         IrisStiltSettings stiltSettings = state.config.getStiltSettings();
         Set<String> excludedStiltMaterials = stiltSettings == null ? Set.of() : stiltSettings.excludedMaterials();

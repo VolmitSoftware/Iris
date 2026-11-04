@@ -2,6 +2,8 @@ package art.arcane.iris.structure.object;
 
 import art.arcane.iris.generation.block.BlockDataMergeSupport;
 import art.arcane.iris.generation.decoration.IrisStiltSettings;
+import art.arcane.iris.generation.hydrology.grid.CellHash;
+import art.arcane.iris.generation.runtime.Engine;
 
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
@@ -9,9 +11,19 @@ import art.arcane.iris.generation.block.B;
 import art.arcane.volmlib.util.noise.CNG;
 import art.arcane.volmlib.util.math.RNG;
 
-/** Repeats the object's stilt layer down to the ground, or up into the ceiling, after the block pass. */
+import java.util.LinkedHashMap;
+import java.util.Map;
+
+/** Repeats the object's stilt layer down to the ground or up into the ceiling; cave placements seat on the carve and fill with rock. */
 public final class PlacementModuleStilt implements PlacementModule {
     static final PlacementLifecycleDependency FILL = new PlacementLifecycleDependency("stilt.fill");
+    static final PlacementLifecycleDependency SEAT = new PlacementLifecycleDependency("stilt.cave-seat");
+
+    private static final int CAVE_SEAT_REACH = 16;
+    private static final int CAVE_FILL_REACH = 8;
+    private static final int NO_GROUND = -1;
+    private static final long CAVE_JITTER_SALT = 0x5ca1ab1e0c5a7e01L;
+    private static final long CAVE_SCRATCH_SALT = 0x5ca1ab1e0c5a7e02L;
 
     private final boolean fast;
     private final Mode mode;
@@ -39,6 +51,9 @@ public final class PlacementModuleStilt implements PlacementModule {
             case DEFAULT, ERODE -> new PlacementModuleHeight(PlacementModuleHeight.Mode.MAX, fast);
         };
         height.install(lifecycle);
+        if (mode == Mode.ORGANIC || mode == Mode.CEILING) {
+            lifecycle.add(SEAT, PlacementStage.BEFORE_BLOCKS, this::seat, PlacementModuleAnchor.FINAL_HEIGHT);
+        }
         lifecycle.add(FILL, PlacementStage.AFTER_BLOCKS, this::fill, PlacementModuleAnchor.HEIGHT,
                 PlacementModuleBlocks.COMPLETE, PlacementModuleTreeGrounding.ROOTS);
     }
@@ -56,7 +71,158 @@ public final class PlacementModuleStilt implements PlacementModule {
         return new StiltLayers(lowest, highest);
     }
 
+    private void seat(PlacementContext context, PlacementState state, Void ignored) {
+        if (state.grounding != null || state.placer.caveCell(context.x, state.y, context.z) == null) {
+            return;
+        }
+        PlacementModuleBlocks.bake(context, state);
+        ObjectPlacementBake bake = state.bake;
+        PlacementPalette palette = state.palette;
+        StiltLayers layers = stiltLayers(bake, palette);
+        if (layers.isEmpty()) {
+            return;
+        }
+        boolean up = mode == Mode.CEILING;
+        int targetLayer = up ? layers.highest() : layers.lowest();
+        IrisStiltSettings settings = state.config.getStiltSettings();
+        int reach = Math.max(CAVE_SEAT_REACH, settings != null ? settings.getOrganicMaxScan() : 0);
+        boolean underwater = state.config.isUnderwater();
+        boolean rock = dominantRock(bake, palette, targetLayer) != null;
+        boolean trunk = false;
+        for (int index = 0; !rock && !trunk && index < bake.count(); index++) {
+            int entry = bake.paletteIndex(index);
+            trunk = bake.layerY(index) == targetLayer && palette.shouldStilt(entry) && IrisObjectShaping.isTrunk(palette.stiltDefault(entry));
+        }
+        int closest = NO_GROUND;
+        boolean candidates = false;
+        boolean buried = false;
+        boolean exposed = false;
+        for (int index = 0; index < bake.count() && closest != 0; index++) {
+            if (bake.layerY(index) != targetLayer || !palette.shouldStilt(bake.paletteIndex(index))) {
+                continue;
+            }
+            candidates = true;
+            if (trunk && !IrisObjectShaping.isTrunk(palette.stiltDefault(bake.paletteIndex(index)))) {
+                continue;
+            }
+            int cellX = context.x + bake.offsetX(index);
+            int cellZ = context.z + bake.offsetZ(index);
+            int startY = targetLayer + state.y;
+            if (!rock && state.placer.caveCell(cellX, startY, cellZ) == IObjectPlacer.CaveCell.GROUND) {
+                buried = true;
+                continue;
+            }
+            exposed = true;
+            int gap = caveGap(state.placer, cellX, startY, cellZ, up, reach, underwater);
+            if (gap != NO_GROUND && (closest == NO_GROUND || gap < closest)) {
+                closest = gap;
+            }
+        }
+        if (buried && !exposed) {
+            return;
+        }
+        if (!candidates) {
+            return;
+        }
+        if (closest == NO_GROUND) {
+            state.caveUnseated = true;
+            return;
+        }
+        state.y += up ? closest : -closest;
+    }
+
+    private static int caveGap(IObjectPlacer placer, int x, int startY, int z, boolean up, int reach, boolean underwater) {
+        if (placer.caveCell(x, startY, z) == IObjectPlacer.CaveCell.GROUND) {
+            return 0;
+        }
+        int direction = up ? 1 : -1;
+        for (int step = 1; step <= reach; step++) {
+            IObjectPlacer.CaveCell cell = placer.caveCell(x, startY + direction * step, z);
+            if (cell == IObjectPlacer.CaveCell.GROUND) {
+                return step - 1;
+            }
+            if (cell == IObjectPlacer.CaveCell.FLUID && !underwater) {
+                return NO_GROUND;
+            }
+        }
+        return NO_GROUND;
+    }
+
+    private static NativeBlockState dominantRock(ObjectPlacementBake bake, PlacementPalette palette, int targetLayer) {
+        Map<NativeBlockState, Integer> counts = new LinkedHashMap<>();
+        for (int index = 0; index < bake.count(); index++) {
+            int entry = bake.paletteIndex(index);
+            if (bake.layerY(index) == targetLayer && palette.shouldStilt(entry)) {
+                NativeBlockState state = palette.stiltDefault(entry);
+                if (IrisObjectShaping.isStiltFiller(state)) {
+                    counts.merge(state, 1, Integer::sum);
+                }
+            }
+        }
+        NativeBlockState best = null;
+        int bestCount = 0;
+        for (Map.Entry<NativeBlockState, Integer> count : counts.entrySet()) {
+            if (count.getValue() > bestCount) {
+                best = count.getKey();
+                bestCount = count.getValue();
+            }
+        }
+        return best;
+    }
+
+    private void fillCaveColumn(PlacementState state, NativeBlockState own, NativeBlockState rock, int x, int startY, int z, long seed, boolean up, boolean waterlogCandidate) {
+        NativeBlockState filler = IrisObjectShaping.isStiltFiller(own) ? own : rock;
+        if (filler == null) {
+            return;
+        }
+        IObjectPlacer placer = state.placer;
+        IrisStiltSettings settings = state.config.getStiltSettings();
+        int maxScan = settings != null ? Math.max(1, settings.getOrganicMaxScan()) : 48;
+        if (placer.caveCell(x, startY, z) == IObjectPlacer.CaveCell.GROUND) {
+            return;
+        }
+        boolean underwater = state.config.isUnderwater();
+        int limit = Math.min(maxScan, CAVE_FILL_REACH);
+        int direction = up ? 1 : -1;
+        int open = 0;
+        boolean grounded = false;
+        for (int step = 1; step <= limit; step++) {
+            IObjectPlacer.CaveCell cell = placer.caveCell(x, startY + direction * step, z);
+            if (cell == IObjectPlacer.CaveCell.GROUND) {
+                grounded = true;
+                break;
+            }
+            if (cell == IObjectPlacer.CaveCell.FLUID && !underwater) {
+                break;
+            }
+            open = step;
+        }
+        int depth = open;
+        double scratch = 0;
+        if (!grounded) {
+            int jitterMax = settings != null ? Math.max(0, settings.getOrganicJitter()) : 3;
+            scratch = settings != null ? Math.max(0, Math.min(1, settings.getOrganicScratch())) : 0.55;
+            depth -= jitterMax > 0 ? Math.floorMod(CellHash.mix(seed, CAVE_JITTER_SALT, x, z), jitterMax + 1) : 0;
+        }
+        long scratchHash = CellHash.mix(seed, CAVE_SCRATCH_SALT, x, z);
+        for (int step = 1; step <= depth; step++) {
+            double ratio = (double) step / depth;
+            if (scratch > 0 && ratio > 1.0 - scratch) {
+                double skipChance = (ratio - (1.0 - scratch)) / scratch;
+                if (CellHash.unit(CellHash.mix(scratchHash, step, x, z)) < skipChance * 0.7) {
+                    break;
+                }
+            }
+            int y = startY + direction * step;
+            placer.set(x, y, z, ObjectBlockPass.normalizePlacedWaterlogging(filler, placer, x, y, z, waterlogCandidate));
+        }
+    }
+
     private void fill(PlacementContext context, PlacementState state, Void ignored) {
+        if (state.caveUnseated) {
+            state.reject("cave-no-ground");
+            return;
+        }
         if (state.grounding != null) {
             return;
         }
@@ -118,6 +284,10 @@ public final class PlacementModuleStilt implements PlacementModule {
         }
 
         int targetLayer = ceilingHang ? topLayer : lowest;
+        boolean cave = organic && placer.caveCell(x, y, z) != null;
+        NativeBlockState caveRock = cave ? dominantRock(bake, palette, targetLayer) : null;
+        Engine engine = placer.getEngine();
+        long caveSeed = cave && engine != null && engine.getSeedManager() != null ? engine.getSeedManager().getComplex() : 0L;
         for (int index = 0; index < count; index++) {
             int entry = bake.paletteIndex(index);
             if (!palette.shouldStilt(entry)) {
@@ -171,6 +341,11 @@ public final class PlacementModuleStilt implements PlacementModule {
                 double exactZ = exact[index * 3 + 2];
                 xx += surfaceWarp.fitDouble(-warpHalf, warpHalf, exactX + x, exactY + y, exactZ + z);
                 zz += surfaceWarp.fitDouble(-warpHalf, warpHalf, exactZ + z, exactY + y, exactX + x);
+            }
+
+            if (cave) {
+                fillCaveColumn(state, d, caveRock, xx, targetLayer + y, zz, caveSeed, ceilingHang, waterlogCandidate);
+                continue;
             }
 
             if (organic) {

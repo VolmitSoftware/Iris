@@ -316,6 +316,27 @@ final class IrisObjectShaping {
                 && !excludedMaterials.contains(materialKey(state));
     }
 
+    static boolean isTrunk(NativeBlockState state) {
+        String material = materialKey(state);
+        return material.endsWith("_stem") || material.endsWith("_log") || material.endsWith("_wood") || material.endsWith("_hyphae");
+    }
+
+    static boolean isStiltFiller(NativeBlockState state) {
+        String material = materialKey(state);
+        String plain = material.substring(material.indexOf(':') + 1);
+        if (plain.endsWith("_bricks") || plain.endsWith("_terracotta") || plain.endsWith("sandstone") || plain.endsWith("_tiles")) {
+            return true;
+        }
+        return switch (plain) {
+            case "stone", "cobblestone", "mossy_cobblestone", "deepslate", "cobbled_deepslate", "andesite", "diorite", "granite",
+                 "tuff", "calcite", "dripstone_block", "basalt", "smooth_basalt", "blackstone", "netherrack", "end_stone",
+                 "obsidian", "crying_obsidian", "terracotta", "clay", "dirt", "coarse_dirt", "rooted_dirt", "mud", "packed_mud",
+                 "gravel", "sand", "red_sand", "suspicious_sand", "moss_block", "snow_block", "ice", "packed_ice", "blue_ice",
+                 "magma_block", "sculk", "soul_sand", "soul_soil", "amethyst_block", "bedrock" -> true;
+            default -> false;
+        };
+    }
+
     static String materialKey(NativeBlockState state) {
         return IrisProceduralBlocks.materialKey(state);
     }

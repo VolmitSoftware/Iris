@@ -480,6 +480,20 @@ tasks.register('mouthProbe', JavaExec) {
     }
 }
 
+tasks.register('caveStiltProbe', JavaExec) {
+    group = 'verification'
+    description = 'Generates real pack chunks and reports vertical block runs, object seating and column digests for cave object placement.'
+    mainClass = 'art.arcane.iris.probe.CaveStiltProbe'
+    classpath = sourceSets.main.runtimeClasspath
+    jvmArgs('--add-modules', 'jdk.incubator.vector', '-Djava.awt.headless=true')
+    minHeapSize = '2g'
+    maxHeapSize = '8g'
+    dependsOn(':core:compileJava')
+    doFirst {
+        args((providers.gradleProperty('probeArgs').get() as String).tokenize(';'))
+    }
+}
+
 tasks.register('transitionProbe', JavaExec) {
     group = 'verification'
     description = 'Exercises a bounded two-pack Studio cutover, transition routing, receipts and semantics with a vanilla-biome pack.'

@@ -45,15 +45,15 @@ public class IrisStiltSettings {
     private KList<String> exclude = new KList<>();
     @MinNumber(1)
     @MaxNumber(256)
-    @Description("For ORGANIC_STILT / CEILING_HANG: the maximum number of blocks to scan toward the cave floor (or ceiling) looking for solid ground before giving up.")
+    @Description("For ORGANIC_STILT / CEILING_HANG: how far to look for solid ground. In caves the object may still move up to 16 blocks to seat, and rock filler never goes beyond this value or 8 blocks.")
     private int organicMaxScan = 48;
     @MinNumber(0)
     @MaxNumber(32)
-    @Description("For ORGANIC_STILT / CEILING_HANG: the maximum number of blocks each column's stilt is randomly shortened by, giving the underside a ragged organic edge instead of a flat disc.")
+    @Description("For ORGANIC_STILT / CEILING_HANG: the maximum number of blocks a column that cannot reach ground is randomly shortened by, giving the underside a ragged organic edge instead of a flat disc.")
     private int organicJitter = 3;
     @MinNumber(0)
     @MaxNumber(1)
-    @Description("For ORGANIC_STILT / CEILING_HANG: in the deepest fraction of each stilt column, blocks are randomly skipped to break the tip up. Higher = more broken and scratchy. 0 disables.")
+    @Description("For ORGANIC_STILT / CEILING_HANG: in the deepest fraction of a column that cannot reach ground, the column randomly ends early to break the tip up. Higher = shorter and rougher. 0 disables.")
     private double organicScratch = 0.55;
 
     public Set<String> excludedMaterials() {

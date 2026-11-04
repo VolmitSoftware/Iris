@@ -29,6 +29,7 @@ import art.arcane.iris.generation.block.TileData;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveCell;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.math.BlockPosition;
+import art.arcane.volmlib.util.matter.MatterCavern;
 import art.arcane.iris.generation.block.B;
 import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
@@ -266,6 +267,34 @@ final class CaveObjectPlacementTransaction implements IObjectPlacer {
     public boolean isSolid(int x, int y, int z) {
         NativeBlockState buffered = bufferedBlocks.isEmpty() ? null : bufferedBlocks.get(bufferKey(x, y, z));
         return buffered == null ? delegate.isSolid(x, y, z) : B.isSolid(buffered);
+    }
+
+    @Override
+    public CaveCell caveCell(int x, int y, int z) {
+        if (engine == null) {
+            return null;
+        }
+        if (y < 0 || y >= worldHeight) {
+            return CaveCell.GROUND;
+        }
+        if (y > getSurfaceHeight(x, z)) {
+            return CaveCell.OPEN;
+        }
+        if (!delegate.isCarved(x, y, z)) {
+            return CaveCell.GROUND;
+        }
+        HydrologyCaveCell hydrology = delegate.getData(x, y, z, HydrologyCaveCell.class);
+        MatterCavern cavern = hydrology == null ? delegate.getData(x, y, z, MatterCavern.class) : hydrology.asCavern();
+        if (cavern == null) {
+            return CaveCell.OPEN;
+        }
+        if (cavern.getLiquid() == MantleObjectComponent.LIQUID_FORCED_AIR) {
+            return CaveCell.OPEN;
+        }
+        if (!cavern.isAir()) {
+            return CaveCell.FLUID;
+        }
+        return engine.getDimension() != null && y <= engine.getDimension().getCaveLavaHeight() ? CaveCell.FLUID : CaveCell.OPEN;
     }
 
     @Override

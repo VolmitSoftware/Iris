@@ -58,6 +58,16 @@ public interface IObjectPlacer {
 
     boolean isSolid(int x, int y, int z);
 
+    default @Nullable CaveCell caveCell(int x, int y, int z) {
+        return null;
+    }
+
+    enum CaveCell {
+        OPEN,
+        GROUND,
+        FLUID
+    }
+
     boolean isUnderwater(int x, int z);
 
     int getFluidHeight();

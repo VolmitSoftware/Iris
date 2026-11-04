@@ -23,6 +23,7 @@ import art.arcane.iris.generation.subterrain.SubterrainCell;
 import art.arcane.iris.generation.subterrain.SubterrainRoom;
 import art.arcane.iris.generation.subterrain.IrisSubterrainFamily;
 import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.volmlib.util.matter.MatterCavern;
 import art.arcane.iris.structure.object.IObjectPlacer;
 import art.arcane.iris.generation.block.TileData;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveAction;
@@ -86,6 +87,27 @@ public class CaveObjectPlacementTransactionTest {
         order.verify(delegate).set(4, 30, 7, state);
         order.verify(delegate).setTile(4, 30, 7, tile);
         order.verify(delegate).setData(4, 30, 7, "object@1");
+    }
+
+    @Test
+    public void caveCellsComeFromTheCarveAndTheSurfaceNotFromMantleBlocks() {
+        Engine engine = mock(Engine.class);
+        when(engine.getHeight()).thenReturn(128);
+        when(engine.getHeight(eq(4), anyInt(), eq(true))).thenReturn(80);
+        IObjectPlacer delegate = mock(IObjectPlacer.class);
+        when(delegate.getEngine()).thenReturn(engine);
+        when(delegate.isSolid(anyInt(), anyInt(), anyInt())).thenReturn(false);
+        when(delegate.isCarved(4, 30, 7)).thenReturn(true);
+        when(delegate.isCarved(4, 29, 7)).thenReturn(false);
+        when(delegate.isCarved(4, 31, 7)).thenReturn(true);
+        MatterCavern water = new MatterCavern(true, "", (byte) 1);
+        when(delegate.getData(4, 31, 7, MatterCavern.class)).thenReturn(water);
+        CaveObjectPlacementTransaction transaction = new CaveObjectPlacementTransaction(delegate, 30, 10);
+
+        assertEquals(IObjectPlacer.CaveCell.OPEN, transaction.caveCell(4, 30, 7));
+        assertEquals(IObjectPlacer.CaveCell.GROUND, transaction.caveCell(4, 29, 7));
+        assertEquals(IObjectPlacer.CaveCell.FLUID, transaction.caveCell(4, 31, 7));
+        assertEquals(IObjectPlacer.CaveCell.OPEN, transaction.caveCell(4, 90, 7));
     }
 
     @Test

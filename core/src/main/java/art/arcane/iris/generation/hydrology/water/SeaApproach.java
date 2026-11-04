@@ -167,7 +167,7 @@ public final class SeaApproach {
         if (reach.style()[point] == ReachStyle.POND_OUTLET || besidePond(reach, point)) {
             return true;
         }
-        if (level - below < reach.tier().waterfallMinimumDrop()) {
+        if (level - below < reach.tier().waterfallMinDrop()) {
             return false;
         }
         return along > COAST_REACH || level - seaLevel >= CLIFF_HEIGHT;
@@ -204,7 +204,7 @@ public final class SeaApproach {
             ocean[point] = reach.style()[point] == ReachStyle.MOUTH;
             outlet[point] = reach.style()[point] == ReachStyle.POND_OUTLET;
         }
-        ReachStyle[] styled = ReachShaper.styles(grade, ocean, outlet, reach.tier().waterfallMinimumDrop(), seaLevel, reach.tier().stepHeight());
+        ReachStyle[] styled = ReachShaper.styles(grade, ocean, outlet, reach.tier().waterfallMinDrop(), seaLevel, reach.tier().stepHeight());
         ReachStyle[] style = reach.style().clone();
         for (int point = 0; point < count; point++) {
             boolean touched = grade[point] != reach.grade()[point] || point > 0 && grade[point - 1] != reach.grade()[point - 1]

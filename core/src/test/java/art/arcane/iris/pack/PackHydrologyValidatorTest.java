@@ -1,10 +1,19 @@
 package art.arcane.iris.pack;
 
+import art.arcane.iris.generation.block.IrisBlockData;
+import art.arcane.iris.generation.decoration.IrisDecorator;
 import art.arcane.iris.generation.hydrology.config.IrisHydrology;
+import art.arcane.iris.generation.hydrology.config.IrisHydrologyPermission;
+import art.arcane.iris.generation.hydrology.config.IrisHydrologyPolicy;
 import art.arcane.iris.generation.hydrology.config.IrisHydrologyTier;
+import art.arcane.iris.generation.hydrology.config.IrisHydrologyWetness;
 import art.arcane.iris.generation.hydrology.plan.HydrologySettings;
+import art.arcane.iris.generation.noise.IrisGeneratorStyle;
+import art.arcane.iris.generation.terrain.IrisMaterialPalette;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.testsupport.CompatTestPlatform;
+import art.arcane.volmlib.util.json.JSONObject;
+import com.google.gson.Gson;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -13,7 +22,9 @@ import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -22,6 +33,10 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 public class PackHydrologyValidatorTest {
+    private static final String WATER = "{\"name\": \"water\", \"palette\": {\"palette\": [{\"block\": \"minecraft:water\"}]}}";
+    private static final String LAVA = "{\"name\": \"lava\", \"palette\": {\"palette\": [{\"block\": \"minecraft:lava\"}]}}";
+    private static final String CRUST = "{\"name\": \"crust\", \"palette\": {\"palette\": [{\"block\": \"minecraft:obsidian\"}]}}";
+    private static final String SEA_IS_LAVA = "\"fluidPalette\": {\"palette\": [{\"block\": \"minecraft:lava\"}]},";
     private static final String WATER_ONLY = "{\"enabled\": true, \"fluids\": [{\"name\": \"water\"}]}";
 
     @Rule
@@ -45,7 +60,8 @@ public class PackHydrologyValidatorTest {
                   },
                   "fluids": [
                     {"name": "water", "palette": {"palette": [{"block": "minecraft:water"}]}},
-                    {"name": "lava", "palette": {"palette": [{"block": "minecraft:lava"}]}}
+                    {"name": "lava", "palette": {"palette": [{"block": "minecraft:lava"}]}, "seam": "crust"},
+                    {"name": "crust", "palette": {"palette": [{"block": "minecraft:obsidian"}]}}
                   ]
                 }
                 """, "\"hydrologyPolicy\": {\"fluid\": \"lava\"},")));
@@ -277,45 +293,214 @@ public class PackHydrologyValidatorTest {
     }
 
     @Test
-    public void unknownHydrologyKeysAreIgnoredAndAMissingEnabledFlagLoadsAsOff() throws Exception {
+    public void warnsAboutAnUnknownKeyAtTheTopOfHydrology() throws Exception {
+        List<String> warnings = unknownKeyWarnings(validate(pack(dimension("{\"enabled\": true, \"unknownSection\": {\"enabled\": true, \"tiers\": 4}}", ""))));
+
+        assertContains(warnings, "Dimension 'main'.hydrology.unknownSection is not a known key, so its value is ignored.");
+        assertContains(warnings, "prefetchRings");
+        assertEquals(warnings.toString(), 1, warnings.size());
+    }
+
+    @Test
+    public void warnsAboutAMisspeltEnabledFlagThoughTheBlockLoadsAsOff() throws Exception {
+        File pack = pack(dimension("{\"enable\": true, \"ponds\": {\"dryDrawdon\": 3}}", ""));
+
+        List<String> warnings = unknownKeyWarnings(validate(pack));
+
+        assertContains(warnings, "Dimension 'main'.hydrology.enable is not a known key");
+        assertContains(warnings, "Dimension 'main'.hydrology.ponds.dryDrawdon is not a known key");
+        assertEquals(warnings.toString(), 2, warnings.size());
+        assertFalse(loadHydrology(pack).isEnabled());
+    }
+
+    @Test
+    public void warnsAboutUnknownKeysInNestedObjects() throws Exception {
+        List<String> warnings = unknownKeyWarnings(validate(pack(dimension("""
+                {
+                  "enabled": true,
+                  "ponds": {"seeded": {"radiusRange": [4, 12]}},
+                  "underground": {"cavePools": {"surface": 3}, "seaInlets": {"length": [24, 96], "chamber": {"radius": 4}}}
+                }
+                """, ""))));
+
+        assertContains(warnings, "Dimension 'main'.hydrology.ponds.seeded.radiusRange is not a known key");
+        assertContains(warnings, "Dimension 'main'.hydrology.underground.cavePools.surface is not a known key");
+        assertContains(warnings, "Dimension 'main'.hydrology.underground.seaInlets.chamber is not a known key");
+        assertEquals(warnings.toString(), 3, warnings.size());
+    }
+
+    @Test
+    public void warnsAboutUnknownKeysInsideTierArrayElements() throws Exception {
         File pack = pack(dimension("""
-                {"unknownSection": {"enabled": true, "tiers": 4}, "unknownList": [{"enabled": true}]}
+                {"enabled": true, "fluids": [{"name": "water", "palette": {"palette": [{"block": "minecraft:water", "bloc": 1}]}, "sealed": true}],
+                 "tiers": [
+                  {"name": "stream", "minCatchment": 900, "halfWidth": [0.5, 2.5], "bankBand": 8},
+                  {"name": "major", "minCatchment": 200000, "halfWidth": [9, 18], "bankBand": 48, "notATierField": {"depth": 3},
+                   "estuary": {"flair": 2},
+                   "decorators": [{"partOf": "SEA_FLOOR", "palette": [{"block": "minecraft:kelp"}], "stacks": 1}]}
+                ]}
                 """, ""));
 
-        assertTrue(validate(pack).errors().isEmpty());
-        IrisData data = IrisData.openDatapackCompiler(pack);
-        try {
-            IrisHydrology hydrology = data.getDimensionLoader().load("main").getHydrology();
-            assertNotNull(hydrology);
-            assertFalse(hydrology.isEnabled());
-        } finally {
-            data.close();
+        List<String> warnings = unknownKeyWarnings(validate(pack));
+
+        assertContains(warnings, "Dimension 'main'.hydrology.tiers[1].notATierField is not a known key");
+        assertContains(warnings, "Dimension 'main'.hydrology.tiers[1].estuary.flair is not a known key");
+        assertContains(warnings, "Dimension 'main'.hydrology.tiers[1].decorators[0].stacks is not a known key");
+        assertContains(warnings, "Dimension 'main'.hydrology.fluids[0].sealed is not a known key");
+        assertContains(warnings, "Dimension 'main'.hydrology.fluids[0].palette.palette[0].bloc is not a known key");
+        assertEquals(warnings.toString(), 5, warnings.size());
+        for (IrisHydrologyTier tier : loadHydrology(pack).getTiers()) {
+            assertEquals(tier.getName(), 48, tier.getEstuary().getLength());
+            assertEquals(tier.getName(), 2.5D, tier.getEstuary().getFlare(), 0D);
         }
     }
 
     @Test
-    public void unknownTierKeysAreIgnoredAndTiersKeepTheDefaultEstuary() throws Exception {
-        String written = """
-                {"enabled": true, "tiers": [
-                  {"name": "stream", "minCatchment": 900, "halfWidth": [0.5, 2.5], "bankBand": 8%s},
-                  {"name": "major", "minCatchment": 200000, "halfWidth": [9, 18], "bankBand": 48%s}
-                ]}
-                """;
-        File extra = pack(dimension(written.formatted(", \"notATierField\": false", ", \"notATierField\": {\"depth\": 3}"), ""));
-        File current = pack(dimension(written.formatted("", ""), ""));
+    public void treatsMapKeysAsDataAndChecksTheObjectsInside() throws Exception {
+        List<String> warnings = new ArrayList<>();
+        JSONObject written = new JSONObject("""
+                {"zones": {"swamp": {"min": 0.7, "max": 1}, "desert": {"minimum": 0.1}}}
+                """);
 
-        PackHydrologyValidator.Validation validation = validate(extra);
-        assertTrue(validation.errors().toString(), validation.errors().isEmpty());
-        assertTrue(validation.warnings().isEmpty());
-        PackValidationResult packaging = PackValidator.validateForPackaging(extra);
-        assertEquals(PackValidator.validateForPackaging(current).getBlockingErrors(), packaging.getBlockingErrors());
-        IrisHydrology loaded = loadHydrology(extra);
-        for (IrisHydrologyTier tier : loaded.getTiers()) {
-            assertEquals(tier.getName(), 48, tier.getEstuary().getLength());
-            assertEquals(tier.getName(), 2.5D, tier.getEstuary().getFlare(), 0D);
+        PackHydrologyValidator.warnUnknownKeys("root", written, NamedZones.class, temporaryFolder.getRoot(), warnings);
+
+        assertContains(warnings, "root.zones.desert.minimum is not a known key");
+        assertEquals(warnings.toString(), 1, warnings.size());
+    }
+
+    @Test
+    public void acceptsAnyKeyInsideABlockDataMap() throws Exception {
+        PackHydrologyValidator.Validation validation = validate(pack(dimension("""
+                {"enabled": true, "fluids": [{"name": "water", "palette": {"palette": [
+                  {"block": "minecraft:water", "data": {"level": 0, "anything": {"at": "all"}}, "tileData": {"SpawnData": {"entity": {}}}}
+                ]}}]}
+                """, "")));
+
+        assertEquals(List.of(), unknownKeyWarnings(validation));
+    }
+
+    @Test
+    public void acceptsEveryKeyGsonWritesForTheConfigClasses() throws Exception {
+        Gson gson = new Gson();
+        PackHydrologyValidator.Validation defaults = validate(pack(dimension(gson.toJson(new IrisHydrology().setEnabled(true)), "")));
+        assertEquals(List.of(), unknownKeyWarnings(defaults));
+
+        IrisHydrology hydrology = new IrisHydrology().setEnabled(true);
+        hydrology.getTiers().get(0).getMaterials().setBed(new IrisMaterialPalette()).setShore(new IrisMaterialPalette()).setBank(new IrisMaterialPalette());
+        IrisDecorator decorator = new IrisDecorator().setForceBlock(new IrisBlockData("minecraft:stone"));
+        decorator.getStyle().setFracture(new IrisGeneratorStyle());
+        hydrology.getTiers().get(0).getDecorators().add(decorator);
+        IrisHydrologyPolicy policy = new IrisHydrologyPolicy().setRainfall(1D).setWetness(new IrisHydrologyWetness()).setStreams(IrisHydrologyPermission.ALLOW);
+
+        PackHydrologyValidator.Validation written = validate(pack(dimension(gson.toJson(hydrology), "\"hydrologyPolicy\": " + gson.toJson(policy) + ",")));
+
+        assertEquals(List.of(), keyWarnings(written));
+    }
+
+    @Test
+    public void warnsAboutEachRenamedKeyByItsOldName() throws Exception {
+        List<String> warnings = unknownKeyWarnings(validate(pack(dimension("""
+                {
+                  "enabled": true,
+                  "drainage": {"minimumHeadKeep": 0.6},
+                  "tiers": [
+                    {"name": "stream", "halfWidth": [0.5, 2], "bankBand": 0, "waterfallMinimumDrop": 6},
+                    {"name": "river", "minCatchment": 20000, "halfWidth": [2, 8], "bankBand": 32, "waterfallMinimumDrop": 8}
+                  ],
+                  "ponds": {"climateDrawdown": 3},
+                  "underground": {"seaInlets": {"minimumCliffHeight": 8}}
+                }
+                """, ""))));
+
+        assertContains(warnings, "Dimension 'main'.hydrology.drainage.minimumHeadKeep is not a known key");
+        assertContains(warnings, "Dimension 'main'.hydrology.tiers[0].waterfallMinimumDrop is not a known key");
+        assertContains(warnings, "Dimension 'main'.hydrology.tiers[1].waterfallMinimumDrop is not a known key");
+        assertContains(warnings, "Dimension 'main'.hydrology.ponds.climateDrawdown is not a known key");
+        assertContains(warnings, "Dimension 'main'.hydrology.underground.seaInlets.minimumCliffHeight is not a known key");
+        assertEquals(warnings.toString(), 5, warnings.size());
+    }
+
+    @Test
+    public void warnsAboutUnknownKeysInHydrologyPoliciesAtEveryScope() throws Exception {
+        File pack = pack(dimension(WATER_ONLY, "\"hydrologyPolicy\": {\"rainFall\": 1},"));
+        write(pack, "regions/region.json", """
+                {"landBiomes": ["biome"], "hydrologyPolicy": {"streamz": "BLOCK"}}
+                """);
+        write(pack, "biomes/biome.json", """
+                {"name": "Biome", "hydrologyPolicy": {"wetness": {"middle": 0.5},
+                 "decorators": [{"partOf": "SHORE_LINE", "palette": [{"block": "minecraft:fern"}], "odds": 2}]}}
+                """);
+
+        List<String> warnings = unknownKeyWarnings(validate(pack));
+
+        assertContains(warnings, "Dimension 'main'.hydrologyPolicy.rainFall is not a known key");
+        assertContains(warnings, "Region 'region'.hydrologyPolicy.streamz is not a known key");
+        assertContains(warnings, "Biome 'biome'.hydrologyPolicy.wetness.middle is not a known key");
+        assertContains(warnings, "Biome 'biome'.hydrologyPolicy.decorators[0].odds is not a known key");
+        assertEquals(warnings.toString(), 4, warnings.size());
+    }
+
+    @Test
+    public void followsSnippetsAndNamesThemInThePath() throws Exception {
+        File pack = pack(dimension("""
+                {"enabled": true, "tiers": [{"name": "stream", "halfWidth": [0.5, 2], "bankBand": 0,
+                 "decorators": ["snippet/reeds", "snippet/decorator/fern", "snippet/decorator/missing"]}]}
+                """, ""));
+        write(pack, "snippet/decorator/reeds.json", """
+                {"partOf": "SHORE_LINE", "palette": [{"block": "minecraft:sugar_cane"}], "odds": 2}
+                """);
+        write(pack, "snippet/decorator/fern.json", """
+                {"partOf": "SHORE_LINE", "palette": [{"block": "minecraft:fern"}]}
+                """);
+
+        List<String> warnings = keyWarnings(validate(pack));
+
+        assertContains(warnings, "Dimension 'main'.hydrology.tiers[0].decorators[0] (snippet/decorator/reeds).odds is not a known key");
+        assertEquals(warnings.toString(), 1, warnings.size());
+    }
+
+    @Test
+    public void aSnippetThatRefersToItselfEnds() throws Exception {
+        File pack = temporaryFolder.newFolder("cycle");
+        write(pack, "snippet/style/loop.json", """
+                {"fracture": "snippet/style/loop", "fractures": 1}
+                """);
+        List<String> warnings = new ArrayList<>();
+
+        PackHydrologyValidator.warnUnknownKeys("style", "snippet/style/loop", IrisGeneratorStyle.class, pack, warnings);
+
+        assertContains(warnings, "style (snippet/style/loop).fractures is not a known key");
+        assertEquals(warnings.toString(), 1, warnings.size());
+    }
+
+    @Test
+    public void leavesKeysOutsideTheHydrologyBlockAlone() throws Exception {
+        File pack = pack("{\"regions\": [\"region\"], \"notADimensionKey\": 1, \"hydrology\": " + WATER_ONLY + "}");
+        write(pack, "biomes/biome.json", "{\"name\": \"Biome\", \"notABiomeKey\": {\"a\": 1}}");
+
+        assertEquals(List.of(), unknownKeyWarnings(validate(pack)));
+    }
+
+    @Test
+    public void unknownKeysNeverBlockAPackOnAnyValidationPath() throws Exception {
+        File pack = pack(dimension("{\"enabled\": true, \"ponds\": {\"climateDrawdown\": 3}}", "\"hydrologyPolicy\": {\"rainFall\": 1},"));
+        String key = "not a known key";
+
+        for (PackValidationResult result : List.of(PackValidator.validate(pack), PackValidator.validateForPackaging(pack), PackValidator.validateForDatapackBootstrap(pack))) {
+            assertFalse(result.getBlockingErrors().toString(), result.getBlockingErrors().stream().anyMatch(message -> message.contains(key)));
+            assertContains(result.getWarnings(), "Dimension 'main'.hydrology.ponds.climateDrawdown is " + key);
+            assertContains(result.getWarnings(), "Dimension 'main'.hydrologyPolicy.rainFall is " + key);
         }
-        assertEquals(HydrologySettings.compile(loadHydrology(current), 1337L, 62, -64, 320).fingerprint(),
-                HydrologySettings.compile(loaded, 1337L, 62, -64, 320).fingerprint());
+    }
+
+    @Test
+    public void anObjectWhereAListIsDeclaredReportsNoListInternals() throws Exception {
+        List<String> warnings = new ArrayList<>();
+        JSONObject written = new JSONObject("{\"tiers\": {\"name\": \"stream\"}, \"fluids\": {\"elementData\": 1}}");
+
+        PackHydrologyValidator.warnUnknownKeys("root", written, IrisHydrology.class, temporaryFolder.getRoot(), warnings);
+
+        assertEquals(List.of(), warnings);
     }
 
     @Test
@@ -525,16 +710,16 @@ public class PackHydrologyValidatorTest {
     }
 
     @Test
-    public void rejectsWaterfallMinimumDropBelowTwo() throws Exception {
+    public void rejectsWaterfallMinDropBelowTwo() throws Exception {
         File pack = pack(dimension("""
                 {"enabled": true, "tiers": [{"name": "stream", "halfWidth": [0.5, 2], "bankBand": 0},
-                  {"name": "river", "minCatchment": 20000, "halfWidth": [2, 8], "bankBand": 32, "waterfallMinimumDrop": 1}]}
+                  {"name": "river", "minCatchment": 20000, "halfWidth": [2, 8], "bankBand": 32, "waterfallMinDrop": 1}]}
                 """, ""));
         write(pack, "dimensions/edge.json", dimension("""
-                {"enabled": true, "tiers": [{"name": "stream", "halfWidth": [0.5, 2], "bankBand": 0, "waterfallMinimumDrop": 2}]}
+                {"enabled": true, "tiers": [{"name": "stream", "halfWidth": [0.5, 2], "bankBand": 0, "waterfallMinDrop": 2}]}
                 """, ""));
 
-        assertEquals(List.of("Dimension 'main'.hydrology does not compile: Hydrology tiers[1].waterfallMinimumDrop must be at least 2, got 1"),
+        assertEquals(List.of("Dimension 'main'.hydrology does not compile: Hydrology tiers[1].waterfallMinDrop must be at least 2, got 1"),
                 validate(pack).errors());
     }
 
@@ -677,6 +862,140 @@ public class PackHydrologyValidatorTest {
         assertTrue(widened.warnings().toString(), widened.warnings().isEmpty());
     }
 
+    @Test
+    public void warnsWhenALavaRiverWithoutASeamCanMeetTheSea() throws Exception {
+        File pack = pack(dimension(hydrology("lava", "lava", LAVA), ""));
+
+        PackHydrologyValidator.Validation validation = validate(pack);
+
+        assertTrue(validation.errors().toString(), validation.errors().isEmpty());
+        assertEquals(List.of("Dimension 'main'.hydrology.fluids profile 'lava' sets no seam, so where its rivers meet the sea"
+                + " the fluids lie side by side. Set seam on the profile to line that edge. Its rivers come from"
+                + " Dimension 'main'.hydrology.tiers[0].fluid, Dimension 'main'.hydrology.tiers[1].fluid."), validation.warnings());
+    }
+
+    @Test
+    public void warnsAgainstADifferentRiverFluidAndNamesTheBiomeItComesFrom() throws Exception {
+        File pack = pack(dimension(hydrology("water", "water", WATER + ", " + LAVA), SEA_IS_LAVA));
+        write(pack, "biomes/biome.json", """
+                {"name": "Biome", "hydrologyPolicy": {"fluid": "lava"}}
+                """);
+        write(pack, "regions/region.json", """
+                {"landBiomes": ["biome", "plain"]}
+                """);
+        write(pack, "biomes/plain.json", "{\"name\": \"Plain\"}");
+
+        PackHydrologyValidator.Validation validation = validate(pack);
+
+        assertTrue(validation.errors().toString(), validation.errors().isEmpty());
+        assertEquals(List.of("Dimension 'main'.hydrology.fluids profile 'lava' sets no seam, so where its rivers meet fluid 'water'"
+                + " the fluids lie side by side. Set seam on the profile to line that edge. Its rivers come from"
+                + " Biome 'biome'.hydrologyPolicy.fluid."), validation.warnings());
+    }
+
+    @Test
+    public void aSeamOnTheOtherRiverFluidLinesTheEdgeBetweenThem() throws Exception {
+        String fluids = WATER + ", " + LAVA + ", " + """
+                {"name": "tar", "palette": {"palette": [{"block": "mod:tar"}]}, "seam": "crust"}, %s
+                """.formatted(CRUST);
+        File pack = pack(dimension(hydrology("lava", "tar", fluids), SEA_IS_LAVA));
+
+        PackHydrologyValidator.Validation validation = validate(pack);
+
+        assertTrue(validation.errors().toString(), validation.errors().isEmpty());
+        assertTrue(validation.warnings().toString(), validation.warnings().isEmpty());
+    }
+
+    @Test
+    public void silentWhenTheFluidHasASeam() throws Exception {
+        String fluids = """
+                {"name": "lava", "palette": {"palette": [{"block": "minecraft:lava"}]}, "seam": "crust"}, %s, %s
+                """.formatted(CRUST, WATER);
+        PackHydrologyValidator.Validation validation = validate(pack(dimension(hydrology("lava", "water", fluids), "")));
+
+        assertTrue(validation.errors().toString(), validation.errors().isEmpty());
+        assertTrue(validation.warnings().toString(), validation.warnings().isEmpty());
+    }
+
+    @Test
+    public void silentForWaterRiversWhateverTheProfileIsCalled() throws Exception {
+        String fluids = """
+                {"name": "marsh", "palette": {"palette": [{"block": "water"}]}}, %s
+                """.formatted(WATER);
+        File pack = pack(dimension(hydrology("marsh", "water", fluids), SEA_IS_LAVA));
+
+        PackHydrologyValidator.Validation validation = validate(pack);
+
+        assertTrue(validation.errors().toString(), validation.errors().isEmpty());
+        assertTrue(validation.warnings().toString(), validation.warnings().isEmpty());
+    }
+
+    @Test
+    public void silentWhenTheFluidsAreTheSame() throws Exception {
+        String fluids = LAVA + ", " + """
+                {"name": "magma", "palette": {"palette": [{"block": "lava"}]}}
+                """;
+        PackHydrologyValidator.Validation validation = validate(pack(dimension(hydrology("lava", "magma", fluids), SEA_IS_LAVA)));
+
+        assertTrue(validation.errors().toString(), validation.errors().isEmpty());
+        assertTrue(validation.warnings().toString(), validation.warnings().isEmpty());
+    }
+
+    @Test
+    public void silentWhenAPolicyFluidReplacesEveryTierFluid() throws Exception {
+        String config = hydrology("water", "water", WATER + ", " + LAVA);
+        PackHydrologyValidator.Validation validation = validate(pack(dimension(config,
+                SEA_IS_LAVA + " \"hydrologyPolicy\": {\"fluid\": \"lava\"},")));
+
+        assertTrue(validation.errors().toString(), validation.errors().isEmpty());
+        assertTrue(validation.warnings().toString(), validation.warnings().isEmpty());
+    }
+
+    @Test
+    public void aCaveBiomePolicyFluidIsNotARiverFluid() throws Exception {
+        File pack = pack(dimension(hydrology("water", "water", WATER + ", " + LAVA), ""));
+        write(pack, "regions/region.json", """
+                {"landBiomes": ["biome"], "caveBiomes": ["hollow"]}
+                """);
+        write(pack, "biomes/hollow.json", """
+                {"name": "Hollow", "hydrologyPolicy": {"fluid": "lava"}}
+                """);
+
+        PackHydrologyValidator.Validation validation = validate(pack);
+
+        assertTrue(validation.errors().toString(), validation.errors().isEmpty());
+        assertTrue(validation.warnings().toString(), validation.warnings().isEmpty());
+    }
+
+    @Test
+    public void silentAboutTheSeaWhenTheDimensionHasNoFluidHeight() throws Exception {
+        PackHydrologyValidator.Validation validation = validate(pack(dimension(hydrology("lava", "lava", LAVA), "\"fluidHeight\": -64,")));
+
+        assertTrue(validation.errors().toString(), validation.errors().isEmpty());
+        assertTrue(validation.warnings().toString(), validation.warnings().isEmpty());
+    }
+
+    @Test
+    public void warnsAboutTheSeaOneBlockAboveTheDimensionFloor() throws Exception {
+        String noInlets = hydrology("lava", "lava", LAVA).replace("\"underground\": {", "\"underground\": {\"seaInlets\": {\"enabled\": false}, ");
+        PackHydrologyValidator.Validation validation = validate(pack(dimension(noInlets, "\"fluidHeight\": -63,")));
+
+        assertTrue(validation.errors().toString(), validation.errors().isEmpty());
+        assertContains(validation.warnings(), "where its rivers meet the sea");
+    }
+
+    private static String hydrology(String streamFluid, String riverFluid, String fluids) {
+        return """
+                {"enabled": true,
+                 "tiers": [
+                   {"name": "stream", "minCatchment": 1500, "halfWidth": [0.5, 2], "bankBand": 0, "fluid": "%s"},
+                   {"name": "river", "minCatchment": 20000, "halfWidth": [2, 16], "bankBand": 8, "fluid": "%s"}],
+                 "ponds": {"fluid": "%s"},
+                 "underground": {"cavePools": {"fluid": "%s"}},
+                 "fluids": [%s]}
+                """.formatted(streamFluid, riverFluid, streamFluid, streamFluid, fluids);
+    }
+
     private File shorePack(String dimensionWidth) throws Exception {
         File pack = pack(dimension(WATER_ONLY, "\"hydrologyPolicy\": {\"shoreBiomes\": [\"beach\"]" + dimensionWidth + "},"));
         write(pack, "regions/region.json", """
@@ -690,6 +1009,10 @@ public class PackHydrologyValidatorTest {
                 """);
         write(pack, "biomes/beach.json", "{\"name\": \"Beach\"}");
         return pack;
+    }
+
+    private static final class NamedZones {
+        private Map<String, IrisHydrologyWetness> zones;
     }
 
     private PackHydrologyValidator.Validation validate(File pack) {
@@ -716,6 +1039,15 @@ public class PackHydrologyValidatorTest {
         write(pack, "biomes/biome.json",
                 "{\"name\":\"Biome\",\"derivative\":\"minecraft:plains\"}");
         return pack;
+    }
+
+    private List<String> unknownKeyWarnings(PackHydrologyValidator.Validation validation) {
+        assertEquals(List.of(), validation.errors());
+        return keyWarnings(validation);
+    }
+
+    private List<String> keyWarnings(PackHydrologyValidator.Validation validation) {
+        return validation.warnings().stream().filter(warning -> warning.contains("not a known key")).toList();
     }
 
     private void assertContains(List<String> messages, String fragment) {

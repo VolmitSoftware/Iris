@@ -8,6 +8,7 @@ import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.integration.Identifier;
+import art.arcane.iris.structure.object.ObjectWaterRule;
 import art.arcane.iris.testsupport.PlatformBinding;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.mantle.runtime.Mantle;
@@ -93,14 +94,14 @@ public class MantleWriterObjectWaterTest {
     @Test
     public void structurePiecesKeepOutOfRiverWaterUnlessTheyAllowIt() {
         MatterCavern cavern = new MatterCavern(true, "", (byte) 3);
-        int land = writer.beginObjectPlacement(false);
+        int land = writer.beginObjectPlacement(ObjectWaterRule.KEEP_OUT);
         writer.set(3, 7, 3, stone);
         writer.set(3, 8, 3, air);
         writer.setData(3, 6, 3, cavern);
         writer.set(3, 5, 3, stone);
         writer.set(3, 10, 3, stone);
         writer.set(8, 7, 8, stone);
-        writer.endObjectPlacement(land);
+        writer.endObjectPlacement();
 
         verify(blocks, never()).set(3, 7, 3, stone);
         verify(blocks, never()).set(3, 8, 3, air);
@@ -109,19 +110,33 @@ public class MantleWriterObjectWaterTest {
         verify(blocks).set(3, 10, 3, stone);
         verify(blocks).set(8, 7, 8, stone);
 
-        int water = writer.beginObjectPlacement(true);
+        int water = writer.beginObjectPlacement(ObjectWaterRule.ENTERS_WATER);
         writer.set(3, 6, 3, stone);
         writer.set(3, 9, 3, air);
-        writer.endObjectPlacement(water);
+        writer.endObjectPlacement();
 
         verify(blocks).set(3, 6, 3, stone);
         verify(blocks, never()).set(3, 9, 3, air);
     }
 
     @Test
+    public void forcedPlacementsWriteThroughRiverWater() {
+        MatterCavern cavern = new MatterCavern(true, "", (byte) 3);
+        writer.beginObjectPlacement(ObjectWaterRule.FORCED);
+        writer.set(3, 7, 3, stone);
+        writer.set(3, 8, 3, air);
+        writer.setData(3, 6, 3, cavern);
+        writer.endObjectPlacement();
+
+        verify(blocks).set(3, 7, 3, stone);
+        verify(blocks).set(3, 8, 3, air);
+        verify(caverns).set(3, 6, 3, cavern);
+    }
+
+    @Test
     public void writesOutsideAnObjectPlacementAreNotVetoed() {
-        int land = writer.beginObjectPlacement(false);
-        writer.endObjectPlacement(land);
+        int land = writer.beginObjectPlacement(ObjectWaterRule.KEEP_OUT);
+        writer.endObjectPlacement();
 
         writer.set(3, 7, 3, stone);
         writer.set(3, 8, 3, air);

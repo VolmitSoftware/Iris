@@ -28,7 +28,7 @@ public class IrisHydrologyDrainage {
     @MinNumber(0)
     @MaxNumber(1)
     @Description("Smallest share of stream heads kept in the driest areas when wetness thinning is on.")
-    private double minimumHeadKeep = 0.25D;
+    private double minHeadKeep = 0.25D;
 
     @MinNumber(0)
     @MaxNumber(64)

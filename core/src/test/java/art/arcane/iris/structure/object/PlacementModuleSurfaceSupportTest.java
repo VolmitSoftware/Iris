@@ -131,12 +131,23 @@ public class PlacementModuleSurfaceSupportTest {
         world.water(WaterRole.CHANNEL, 9, 13);
         world.column(1, 0, WaterRole.CHANNEL, 8, 12);
 
-        for (IrisObjectPlacement placement : List.of(underwater(), onwater(), forced())) {
+        for (IrisObjectPlacement placement : List.of(underwater(), onwater())) {
             HydrologyWaterFixture.Placer placer = world.placer();
 
             assertEquals(-1, place(HydrologyWaterFixture.raft(), placer, placement));
             assertTrue(placer.writes().isEmpty());
         }
+    }
+
+    @Test
+    public void forcedObjectsPlaceOnWaterAtAnotherHeadAndOnDams() {
+        world.water(WaterRole.CHANNEL, 9, 13);
+        world.column(1, 0, WaterRole.CHANNEL, 8, 12);
+        world.column(0, 1, WaterRole.DAM, 8, 12);
+        HydrologyWaterFixture.Placer placer = world.placer();
+
+        assertTrue(place(HydrologyWaterFixture.raft(), placer, forced()) >= 0);
+        assertFalse(placer.writes().isEmpty());
     }
 
     @Test

@@ -198,7 +198,7 @@ public class NativeStructurePlacementPlannerTest {
     }
 
     @Test
-    public void riverInTheStartChunkLeavesTheDecisionToThePieces() {
+    public void waterAroundAStartColumnAboveItsHeadLeavesTheDecisionToThePieces() {
         Engine engine = engine(77L, -64, 384, 150);
         Map<Long, WaterRole> roles = new HashMap<>();
         waterComplex(engine, roles, false);

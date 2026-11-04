@@ -23,7 +23,7 @@ final class StepPools {
     }
 
     static int stepMaxDrop(HydrologyTier tier) {
-        return tier.waterfallMinimumDrop() + STEP_EXTRA;
+        return tier.waterfallMinDrop() + STEP_EXTRA;
     }
 
     static float plungeLength(int drop) {
@@ -45,7 +45,7 @@ final class StepPools {
             }
             int top = grade[point - 1];
             int first = top - grade[point];
-            boolean cliff = first >= tier.waterfallMinimumDrop();
+            boolean cliff = first >= tier.waterfallMinDrop();
             float width = 2f * (tier.halfWidth(catchments[point]) + 1f);
             float span = cliff ? plungeLength(first)
                     : Math.clamp(width * poolWidths(seed, xs[point], zs[point]), POOL_MIN, POOL_MAX);
@@ -56,14 +56,14 @@ final class StepPools {
                 if (grade[next] >= grade[end]) {
                     continue;
                 }
-                int limit = cliff ? grade[point] - tier.waterfallMinimumDrop() : top - stepMaxDrop(tier) - 1;
+                int limit = cliff ? grade[point] - tier.waterfallMinDrop() : top - stepMaxDrop(tier) - 1;
                 if (grade[next] <= limit || highestFloor > grade[next]) {
                     break;
                 }
                 end = next;
             }
             Arrays.fill(grade, point, end, grade[end]);
-            if (cliff && first >= 2 * tier.waterfallMinimumDrop()) {
+            if (cliff && first >= 2 * tier.waterfallMinDrop()) {
                 rollover(grade, floors, along, point, width, start);
             }
             point = end + 1;

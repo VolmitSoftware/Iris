@@ -98,9 +98,9 @@ final class PlannedScene {
                 new IrisHydrologyTier().setName("river").setMinCatchment(5000D).setHalfWidth(new KList<>(2.5D, 9D)).setWidthFactor(1.2D)
                         .setDepthRatio(0.45D).setInset(2).setBankBand(32),
                 new IrisHydrologyTier().setName("major").setMinCatchment(200000D).setHalfWidth(new KList<>(9D, 18D)).setWidthFactor(1.2D)
-                        .setDepthRatio(0.5D).setInset(3).setBankBand(48).setWaterfallMinimumDrop(8)));
+                        .setDepthRatio(0.5D).setInset(3).setBankBand(48).setWaterfallMinDrop(8)));
         config.getPonds().setFreeboard(new KList<>(1, 2));
-        config.getPonds().setClimateDrawdown(3);
+        config.getPonds().setDryDrawdown(3);
         config.getPonds().getSeeded().setDensity(10D).setRadius(new KList<>(6, 22)).setMaxSlope(0.7D).setChannelSpacing(new KList<>(80, 192));
         config.getPonds().getShore().setRoundness(0.5D).setShelf(6).setTaper(14).setMaxDepth(8);
         return config;

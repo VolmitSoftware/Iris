@@ -80,8 +80,8 @@ public class IrisRiverSchemaTest {
             assertTrue(section, properties.getJSONObject(section).has("$ref"));
         }
         assertEquals("array", tier.getJSONObject("halfWidth").getString("type"));
-        assertEquals(2, tier.getJSONObject("waterfallMinimumDrop").getInt("minimum"));
-        assertEquals(64, tier.getJSONObject("waterfallMinimumDrop").getInt("maximum"));
+        assertEquals(2, tier.getJSONObject("waterfallMinDrop").getInt("minimum"));
+        assertEquals(64, tier.getJSONObject("waterfallMinDrop").getInt("maximum"));
         assertEquals(64, tier.getJSONObject("bankBand").getInt("maximum"));
         assertEquals(0.05D, tier.getJSONObject("depthRatio").getDouble("minimum"), 0D);
         assertEquals(List.of("SMOOTH", "LINEAR", "CONCAVE", "TERRACED", "CLIFF"),

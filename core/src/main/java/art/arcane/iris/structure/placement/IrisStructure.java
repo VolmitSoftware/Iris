@@ -100,7 +100,7 @@ public class IrisStructure extends IrisRegistrant {
     @Description("Whether every open connector must close with a real terminal piece through a mandatory direct fallback.")
     private boolean requireCaps = false;
 
-    @Description("The place mode used when stamping each piece object into the world.")
+    @Description("The place mode used when stamping each piece object into the world. A surface structure with a mode other than STRUCTURE_PIECE or FLOATING that assembles to one piece is force placed: it ignores the river limit and the submerged start check and writes through river, pond and sea water.")
     private ObjectPlaceMode placeMode = ObjectPlaceMode.STRUCTURE_PIECE;
 
     @ArrayType(min = 1, type = IrisObjectReplace.class)

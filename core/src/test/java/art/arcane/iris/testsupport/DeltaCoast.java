@@ -51,7 +51,7 @@ public final class DeltaCoast {
         IrisHydrology config = config(channels);
         for (IrisHydrologyTier tier : config.getTiers()) {
             tier.setCascades(false);
-            tier.setWaterfallMinimumDrop(2);
+            tier.setWaterfallMinDrop(2);
         }
         return HydrologySettings.compile(config, SEED, SEA_LEVEL, MIN_Y, MAX_Y);
     }

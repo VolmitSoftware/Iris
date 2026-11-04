@@ -339,7 +339,7 @@ public class PlannedSceneTest {
             }
             zone[point] = along <= OUTLET_LENGTH;
         }
-        ReachStyle[] style = ReachShaper.styles(reach.grade(), new boolean[zone.length], zone, reach.tier().waterfallMinimumDrop(), seaLevel, reach.tier().stepHeight());
+        ReachStyle[] style = ReachShaper.styles(reach.grade(), new boolean[zone.length], zone, reach.tier().waterfallMinDrop(), seaLevel, reach.tier().stepHeight());
         return new Reach(reach.id(), reach.tier(), reach.downstreamId(), reach.xs(), reach.zs(), reach.grade(), reach.halfWidth(), reach.depth(),
                 style, reach.catchment());
     }
@@ -365,7 +365,7 @@ public class PlannedSceneTest {
             halfWidths[point] = halfWidth;
             depths[point] = tier.depth(halfWidth);
             int drop = point == 0 ? 0 : grades[point - 1] - grades[point];
-            styles[point] = drop >= tier.waterfallMinimumDrop() ? ReachStyle.WATERFALL
+            styles[point] = drop >= tier.waterfallMinDrop() ? ReachStyle.WATERFALL
                     : drop >= 2 ? ReachStyle.CASCADE : drop == 1 ? ReachStyle.RIFFLE : ReachStyle.RUN;
         }
         return new Reach(id, tier, downstreamId, xs, zs, grades, halfWidths, depths, styles, 1000f);

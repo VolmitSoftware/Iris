@@ -735,7 +735,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
                 try {
                     int placeResult = -1;
                     CaveObjectPlacementTransaction.CommitResult commitResult = CaveObjectPlacementTransaction.CommitResult.EMPTY;
-                    int continuation = writer.beginObjectPlacement(placement.entersWater());
+                    int continuation = writer.beginObjectPlacement(placement.waterRule());
                     if (carving) {
                         int caveFloorY = caveAnchor.y();
                         if (golden) {
@@ -778,7 +778,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
                         }, null, getData());
                     }
                     if (placeResult >= 0 && (!carving || commitResult == CaveObjectPlacementTransaction.CommitResult.COMMITTED)) {
-                        writer.endObjectPlacement(continuation);
+                        writer.recordObjectPlacement(continuation);
                     }
                     if (golden) {
                         IrisLogging.debug("Goldendebug procedural result: chunk=" + x + "," + z
@@ -791,6 +791,8 @@ public class MantleObjectComponent extends IrisMantleComponent {
                     }
                 } catch (Throwable e) {
                     GenerationFailures.skipPlacement(e, "procedural object", p.getName(), x << 4, -1, z << 4, scope);
+                } finally {
+                    writer.endObjectPlacement();
                 }
             }
         }
@@ -995,7 +997,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
             }
             try {
                 String marker = placementMarker(v, id, "surface");
-                int continuation = writer.beginObjectPlacement(effectivePlacement.entersWater());
+                int continuation = writer.beginObjectPlacement(effectivePlacement.waterRule());
                 int result = v.place(xx, zz, placePlacer, effectivePlacement, rng, (b, data) -> {
                     if (marker != null) {
                         writer.setData(b.getX(), b.getY(), b.getZ(), marker);
@@ -1009,7 +1011,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
                 }, null, getData());
 
                 if (result >= 0) {
-                    writer.endObjectPlacement(continuation);
+                    writer.recordObjectPlacement(continuation);
                     placed++;
                 } else {
                     rejected++;
@@ -1037,6 +1039,8 @@ public class MantleObjectComponent extends IrisMantleComponent {
             } catch (Throwable e) {
                 GenerationFailures.skipPlacement(e, "object", v.getLoadKey(), chunkX << 4, -1, chunkZ << 4, scope);
                 errors++;
+            } finally {
+                writer.endObjectPlacement();
             }
         }
 
@@ -1173,7 +1177,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
             IrisObjectPlacement effectivePlacement = resolveCavePlacement(objectPlacement, object, caveProfile);
 
             try {
-                int continuation = writer.beginObjectPlacement(effectivePlacement.entersWater());
+                int continuation = writer.beginObjectPlacement(effectivePlacement.waterRule());
                 ContainedPlacementResult contained = placeContainedCaveObject(
                         writer,
                         object,
@@ -1191,7 +1195,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
                 int result = contained.resultY();
                 boolean wroteBlocks = contained.commitResult() == CaveObjectPlacementTransaction.CommitResult.COMMITTED;
                 if (wroteBlocks) {
-                    writer.endObjectPlacement(continuation);
+                    writer.recordObjectPlacement(continuation);
                     placed++;
                 } else {
                     rejected++;
@@ -1252,6 +1256,8 @@ public class MantleObjectComponent extends IrisMantleComponent {
                         y,
                         e
                 );
+            } finally {
+                writer.endObjectPlacement();
             }
         }
 
@@ -1356,21 +1362,25 @@ public class MantleObjectComponent extends IrisMantleComponent {
             }
             boolean treePlacement = isTreePlacement(v, objectPlacement);
             String marker = placementMarker(v, id, "upper");
-            int continuation = writer.beginObjectPlacement(placement.entersWater());
-            int result = v.place(xx, anchorY, zz, writer, placement, rng, (b, data) -> {
-                if (marker != null) {
-                    writer.setData(b.getX(), b.getY(), b.getZ(), marker);
+            int continuation = writer.beginObjectPlacement(placement.waterRule());
+            int result;
+            try {
+                result = v.place(xx, anchorY, zz, writer, placement, rng, (b, data) -> {
+                    if (marker != null) {
+                        writer.setData(b.getX(), b.getY(), b.getZ(), marker);
+                    }
+                    if (treePlacement && marker != null) {
+                        writeTreeMaterial(writer, b.getX(), b.getY(), b.getZ(), data);
+                    }
+                    if (placement.isDolphinTarget() && placement.isUnderwater() && B.isStorageChest(data)) {
+                        writer.setData(b.getX(), b.getY(), b.getZ(), MatterStructurePOI.BURIED_TREASURE);
+                    }
+                }, null, getData());
+                if (result >= 0) {
+                    writer.recordObjectPlacement(continuation);
                 }
-                if (treePlacement && marker != null) {
-                    writeTreeMaterial(writer, b.getX(), b.getY(), b.getZ(), data);
-                }
-                if (placement.isDolphinTarget() && placement.isUnderwater() && B.isStorageChest(data)) {
-                    writer.setData(b.getX(), b.getY(), b.getZ(), MatterStructurePOI.BURIED_TREASURE);
-                }
-            }, null, getData());
-
-            if (result >= 0) {
-                writer.endObjectPlacement(continuation);
+            } finally {
+                writer.endObjectPlacement();
             }
             if (traceRegen) {
                 IrisLogging.debug("Upper object placement: chunk=" + chunkX + "," + chunkZ

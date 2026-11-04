@@ -1,6 +1,9 @@
 package art.arcane.iris.structure.object;
 
 import art.arcane.iris.generation.block.TileData;
+import art.arcane.iris.generation.hydrology.engine.HydrologyRuntime;
+import art.arcane.iris.generation.hydrology.raster.ChunkWaterRaster;
+import art.arcane.iris.generation.hydrology.raster.WaterRole;
 import art.arcane.iris.generation.mantle.ObjectContinuationBundle;
 import art.arcane.iris.integration.Identifier;
 import art.arcane.iris.world.storage.matter.IrisMatterSupport;
@@ -32,6 +35,7 @@ import art.arcane.volmlib.util.matter.Matter;
 import art.arcane.volmlib.util.matter.IrisMatter;
 import art.arcane.volmlib.util.mantle.flag.MantleFlag;
 import art.arcane.volmlib.util.matter.MatterSlice;
+import art.arcane.volmlib.util.stream.ProceduralStream;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -50,6 +54,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -204,6 +209,56 @@ public class IrisStaticObjectLayerTest {
         verify(tiles).set(0, 0, 15, null);
         verify(tiles).set(14, 0, 15, null);
         verify(tiles).set(15, 0, 15, null);
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void staticObjectOverPlannedRiverOrPondWaterWritesEveryBlock() {
+        for (WaterRole role : List.of(WaterRole.CHANNEL, WaterRole.POND)) {
+            IrisObject object = object("through-water", 3, 3, 1);
+            for (int x = -1; x <= 1; x++) {
+                for (int y = -1; y <= 1; y++) {
+                    object.getBlocks().put(new IrisBlockVector(x, y, 0), state("minecraft:stone"));
+                }
+            }
+            IrisStaticObjectLayer layer = compile(entry("through-water", 8, 0, 8));
+            Engine engine = mock(Engine.class);
+            IrisComplex complex = mock(IrisComplex.class);
+            HydrologyRuntime runtime = mock(HydrologyRuntime.class);
+            ChunkWaterRaster raster = mock(ChunkWaterRaster.class);
+            ProceduralStream<WaterRole> roles = mock(ProceduralStream.class);
+            ProceduralStream<Double> heads = mock(ProceduralStream.class);
+            ProceduralStream<Integer> floors = mock(ProceduralStream.class);
+            when(engine.getComplex()).thenReturn(complex);
+            when(complex.getHydrologyRuntime()).thenReturn(runtime);
+            when(complex.getWaterRoleStream()).thenReturn(roles);
+            when(complex.getWaterHeadStream()).thenReturn(heads);
+            when(complex.getRoundedHeighteightStream()).thenReturn(floors);
+            when(runtime.enabled()).thenReturn(true);
+            when(runtime.raster(anyInt(), anyInt())).thenReturn(raster);
+            when(raster.role(anyInt(), anyInt())).thenReturn(role);
+            when(raster.waterHead(anyInt(), anyInt())).thenReturn(70);
+            when(raster.terrainHeight(anyInt(), anyInt())).thenReturn(60);
+            when(roles.get(anyDouble(), anyDouble())).thenReturn(role);
+            when(heads.getDouble(anyDouble(), anyDouble())).thenReturn(70D);
+            when(floors.get(anyDouble(), anyDouble())).thenReturn(60);
+            EngineMantle engineMantle = mock(EngineMantle.class);
+            Mantle<Matter> mantle = mock(Mantle.class);
+            MantleChunk<Matter> chunk = mock(MantleChunk.class);
+            when(engine.getMantle()).thenReturn(engineMantle);
+            when(engineMantle.getMantle()).thenReturn(mantle);
+            when(mantle.useChunk(anyInt(), anyInt())).thenReturn(chunk);
+            when(chunk.getOrCreate(anyInt())).thenReturn(mock(Matter.class));
+            Hunk<NativeBlockState> output = Hunk.newArrayHunk(16, 384, 16);
+
+            layer.apply(engine, 0, 0, output);
+
+            for (int x = 7; x <= 9; x++) {
+                for (int y = 63; y <= 65; y++) {
+                    assertSame(role + " " + x + "," + y, state("minecraft:stone"), output.get(x, y, 8));
+                }
+            }
+        }
     }
 
     @Test

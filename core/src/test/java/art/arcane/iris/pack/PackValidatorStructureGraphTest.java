@@ -252,6 +252,38 @@ public class PackValidatorStructureGraphTest {
     }
 
     @Test
+    public void allowWaterMustBeABoolean() throws Exception {
+        File pack = temporaryFolder.newFolder("invalid-allow-water");
+        write(pack, "dimensions/main.json", "{\"structures\":[{"
+                + "\"nativeStructures\":[{\"structure\":\"minecraft:ancient_city\"}],"
+                + "\"allowWater\":\"yes\"}]}");
+
+        List<String> errors = PackObjectSurfaceValidator.validateStructureGraph(pack);
+
+        assertTrue(errors.toString(), errors.stream().anyMatch(message -> message.contains("allowWater must be a boolean")));
+    }
+
+    @Test
+    public void allowWaterSeparatesAnonymousGridsOnlyWhenTrue() throws Exception {
+        File separate = temporaryFolder.newFolder("allow-water-grid");
+        write(separate, "dimensions/main.json", "{\"structures\":[{"
+                + "\"nativeStructures\":[{\"structure\":\"minecraft:ancient_city\"}]}]}");
+        write(separate, "regions/river.json", "{\"structures\":[{\"allowWater\":true,"
+                + "\"nativeStructures\":[{\"structure\":\"minecraft:ancient_city\"}]}]}");
+        File duplicate = temporaryFolder.newFolder("allow-water-false-grid");
+        write(duplicate, "dimensions/main.json", "{\"structures\":[{"
+                + "\"nativeStructures\":[{\"structure\":\"minecraft:ancient_city\"}]}]}");
+        write(duplicate, "regions/river.json", "{\"structures\":[{\"allowWater\":false,"
+                + "\"nativeStructures\":[{\"structure\":\"minecraft:ancient_city\"}]}]}");
+
+        List<String> separateErrors = PackObjectSurfaceValidator.validateStructureGraph(separate);
+        List<String> duplicateErrors = PackObjectSurfaceValidator.validateStructureGraph(duplicate);
+
+        assertTrue(separateErrors.toString(), separateErrors.stream().noneMatch(message -> message.contains("duplicates an anonymous placement grid")));
+        assertTrue(duplicateErrors.toString(), duplicateErrors.stream().anyMatch(message -> message.contains("duplicates an anonymous placement grid")));
+    }
+
+    @Test
     public void rejectsDuplicateEditableStructureKeysIgnoringCase() throws Exception {
         File pack = temporaryFolder.newFolder("duplicate-editable-key");
         write(pack, "dimensions/main.json", "{\"structures\":[{\"structures\":["

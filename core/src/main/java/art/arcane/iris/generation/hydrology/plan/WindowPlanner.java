@@ -294,7 +294,7 @@ public final class WindowPlanner {
 
     private boolean keepHead(DemGrid surface, int cell, float rainfall) {
         HydrologySettings.Drainage drainage = settings.drainage();
-        float keep = drainage.wetnessThinning() ? Math.clamp(Math.max(drainage.minimumHeadKeep(), rainfall), 0f, 1f) : 1f;
+        float keep = drainage.wetnessThinning() ? Math.clamp(Math.max(drainage.minHeadKeep(), rainfall), 0f, 1f) : 1f;
         keep *= settings.density();
         return CellHash.unit(CellHash.mix(settings.seed(), SALT_HEAD, surface.blockX(cell), surface.blockZ(cell))) < keep;
     }

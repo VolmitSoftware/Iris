@@ -18,6 +18,7 @@
 
 package art.arcane.iris.structure.placement;
 
+import art.arcane.iris.structure.object.ObjectPlaceMode;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.pack.validation.CompatPools;
 import art.arcane.iris.structure.nativegen.IrisNativeStructure;
@@ -127,10 +128,10 @@ public class IrisStructurePlacement {
     @Description("Optional foundation columns placed beneath the assembled structure's occupied bottom cells. Columns pass through air and fluids until they reach solid ground, up to maxDepth.")
     private IrisStructureStiltSettings stilt = null;
 
-    @Description("If false, the placement is skipped when its selected surface or cave column is submerged.")
+    @Description("If false, the placement is skipped when its selected surface or cave column is submerged. A force placed surface structure, as described on the structure's placeMode, ignores this.")
     private boolean underwater = false;
 
-    @Description("If true, a surface structure may cover river, stream, pond and lake water, and its pieces and stilts may fill it. If false, a surface placement is skipped when more than 10% of its footprint columns are channel, pond, cascade or waterfall water, and its pieces keep their solid blocks out of the water they touch.")
+    @Description("If true, a surface structure may cover river, stream, pond and lake water, and its pieces and stilts may fill it. If false, a surface placement is skipped when more than 10% of its footprint columns are channel, pond, cascade or waterfall water, and its pieces keep their solid blocks out of the water they touch. A force placed surface structure, as described on the structure's placeMode, ignores the limit and writes through the water whatever this is set to.")
     private boolean allowWater = false;
 
     public IrisStructureTerrain resolvedTerrain() {
@@ -150,6 +151,19 @@ public class IrisStructurePlacement {
             return underground ? IrisStructureAnchorMode.HEIGHT_BAND : IrisStructureAnchorMode.SURFACE;
         }
         return anchor;
+    }
+
+    public ObjectPlaceMode pieceMode(IrisStructure structure, int pieces) {
+        ObjectPlaceMode mode = structure.getPlaceMode();
+        if (isAnchoredUnderground()) {
+            return mode == ObjectPlaceMode.ORGANIC_STILT || mode == ObjectPlaceMode.CEILING_HANG
+                    ? mode : ObjectPlaceMode.STRUCTURE_PIECE;
+        }
+        return pieces == 1 && mode != ObjectPlaceMode.FLOATING ? mode : ObjectPlaceMode.STRUCTURE_PIECE;
+    }
+
+    public boolean forcesPieces(IrisStructure structure, int pieces) {
+        return !isAnchoredUnderground() && pieceMode(structure, pieces) != ObjectPlaceMode.STRUCTURE_PIECE;
     }
 
     public boolean isAnchoredUnderground() {

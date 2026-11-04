@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.mantle;
 
+import art.arcane.iris.structure.object.ObjectWaterRule;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 
 import java.util.Arrays;
@@ -10,6 +11,7 @@ final class MutationLog {
     private static final byte CUSTOM = 1;
     private static final byte CANOPY = 2;
     private static final byte ENTERS_WATER = 4;
+    private static final byte FORCED = 8;
 
     private int size;
     private int[] x = new int[32];
@@ -30,16 +32,16 @@ final class MutationLog {
                         throw new IllegalArgumentException("Object mutation type " + key.type().getName()
                                 + " does not match its value " + value.getClass().getName());
                     }
-                    log.add(key.x(), key.y(), key.z(), value, false, set.canopy(), false);
+                    log.add(key.x(), key.y(), key.z(), value, false, set.canopy(), ObjectWaterRule.KEEP_OUT);
                 }
                 case ObjectDestinationTransaction.CustomBlockMutation block -> log.add(key.x(), key.y(), key.z(),
-                        Objects.requireNonNull(block.state(), "custom block state"), true, block.canopy(), false);
+                        Objects.requireNonNull(block.state(), "custom block state"), true, block.canopy(), ObjectWaterRule.KEEP_OUT);
             }
         }
         return log;
     }
 
-    void add(int blockX, int blockY, int blockZ, Object value, boolean custom, boolean canopy, boolean entersWater) {
+    void add(int blockX, int blockY, int blockZ, Object value, boolean custom, boolean canopy, ObjectWaterRule rule) {
         if (size == values.length) {
             int capacity = size * 2;
             x = Arrays.copyOf(x, capacity);
@@ -52,7 +54,7 @@ final class MutationLog {
         y[size] = blockY;
         z[size] = blockZ;
         values[size] = value;
-        flags[size] = (byte) ((custom ? CUSTOM : 0) | (canopy ? CANOPY : 0) | (entersWater ? ENTERS_WATER : 0));
+        flags[size] = (byte) ((custom ? CUSTOM : 0) | (canopy ? CANOPY : 0) | (rule == ObjectWaterRule.ENTERS_WATER ? ENTERS_WATER : 0) | (rule == ObjectWaterRule.FORCED ? FORCED : 0));
         size++;
     }
 
@@ -84,8 +86,11 @@ final class MutationLog {
         return (flags[index] & CANOPY) != 0;
     }
 
-    boolean entersWater(int index) {
-        return (flags[index] & ENTERS_WATER) != 0;
+    ObjectWaterRule waterRule(int index) {
+        if ((flags[index] & FORCED) != 0) {
+            return ObjectWaterRule.FORCED;
+        }
+        return (flags[index] & ENTERS_WATER) != 0 ? ObjectWaterRule.ENTERS_WATER : ObjectWaterRule.KEEP_OUT;
     }
 
     Class<?> type(int index) {

@@ -56,12 +56,12 @@ final class PlacementModuleSurfaceSupport implements PlacementModule {
 
     private static String hydrologyRejection(PlacementContext context, PlacementState state) {
         IrisObjectPlacement config = state.config;
-        if (!context.automatic || !config.getCarvingSupport().supportsSurface()
+        if (!context.automatic || config.isForcePlace() || !config.getCarvingSupport().supportsSurface()
                 || config.getMode() == ObjectPlaceMode.FLOATING || config.getMode() == ObjectPlaceMode.STRUCTURE_PIECE) {
             return null;
         }
         boolean painted = state.paintProjection != null;
-        if (config.entersWater()) {
+        if (config.waterRule() == ObjectWaterRule.ENTERS_WATER) {
             return (painted
                     ? IrisSurfaceSupport.intersectsUnevenWater(context.placer, context.x, context.z, null, null, 0, 0, 0, state.paintSupport)
                     : IrisSurfaceSupport.intersectsUnevenWater(context.placer, context.x, context.z, config.getTranslate(),

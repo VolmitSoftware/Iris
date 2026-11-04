@@ -20,6 +20,7 @@ package art.arcane.iris.generation.mantle;
 
 
 import art.arcane.iris.spi.IrisLogging;
+import art.arcane.iris.structure.object.ObjectWaterRule;
 import art.arcane.iris.world.storage.matter.TileWrapper;
 import art.arcane.iris.world.storage.matter.PreObjectMatterCell;
 import art.arcane.iris.configuration.IrisSettings;
@@ -221,13 +222,13 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
     }
 
     @Override
-    public int beginObjectPlacement(boolean entersWater) {
-        objectWater.set(new ObjectWater(ObjectHydrologyVeto.of(getEngine()), entersWater));
+    public int beginObjectPlacement(ObjectWaterRule rule) {
+        objectWater.set(new ObjectWater(ObjectHydrologyVeto.of(getEngine()), rule));
         return -1;
     }
 
     @Override
-    public void endObjectPlacement(int checkpoint) {
+    public void endObjectPlacement() {
         objectWater.remove();
     }
 
@@ -237,9 +238,9 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
             return false;
         }
         if (value instanceof NativeBlockState state) {
-            return water.veto().keepsBlock(x, y, z, state, water.entersWater());
+            return water.veto().keepsBlock(x, y, z, state, water.rule());
         }
-        return value instanceof MatterCavern && water.veto().keeps(x, y, z, false, water.entersWater());
+        return value instanceof MatterCavern && water.veto().keeps(x, y, z, false, water.rule());
     }
 
     private void recordObjectValue(int x, int y, int z, Class<?> type, Object value) {
@@ -1034,7 +1035,7 @@ public class MantleWriter implements ObjectPassPlacer, AutoCloseable {
                 naturalOpening ? ALWAYS : NEVER, cavern ? ALWAYS : NEVER) ? (byte) 1 : 0;
     }
 
-    private record ObjectWater(ObjectHydrologyVeto veto, boolean entersWater) {
+    private record ObjectWater(ObjectHydrologyVeto veto, ObjectWaterRule rule) {
     }
 
     public final class ObjectPlacementCapture implements AutoCloseable {

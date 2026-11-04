@@ -297,7 +297,7 @@ final class ReachFitter {
         Tangents tangents = tangents(fitted.xs(), fitted.zs());
         float[] ahead = lowestColumnsAhead(fitted);
         float[] edgesAhead = lowestEdgesAhead(fitted, tangents, tier);
-        float drop = tier.waterfallMinimumDrop();
+        float drop = tier.waterfallMinDrop();
         for (int point = 0; point < points; point++) {
             float lowest = Float.POSITIVE_INFINITY;
             float lowestLand = Float.POSITIVE_INFINITY;

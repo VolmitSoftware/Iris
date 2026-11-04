@@ -1,8 +1,10 @@
 package art.arcane.iris.pack;
 
 import art.arcane.iris.generation.biome.IrisBiome;
+import art.arcane.iris.generation.block.IrisBlockData;
 import art.arcane.iris.generation.decoration.HydrologyVegetation;
 import art.arcane.iris.generation.decoration.IrisDecorator;
+import art.arcane.iris.generation.hydrology.config.IrisFluidProfile;
 import art.arcane.iris.generation.hydrology.config.IrisHydrology;
 import art.arcane.iris.generation.hydrology.config.IrisHydrologyPolicy;
 import art.arcane.iris.generation.hydrology.config.IrisHydrologyTier;
@@ -10,30 +12,45 @@ import art.arcane.iris.generation.hydrology.config.IrisHydrologyWetness;
 import art.arcane.iris.generation.hydrology.plan.HydrologySettings;
 import art.arcane.iris.generation.hydrology.underground.CavePoolFiller;
 import art.arcane.iris.generation.terrain.IrisDimension;
+import art.arcane.iris.generation.terrain.IrisMaterialPalette;
 import art.arcane.iris.generation.terrain.IrisRegion;
 import art.arcane.iris.generation.terrain.ShoreBiomeLineages;
 import art.arcane.iris.pack.loading.IrisData;
+import art.arcane.iris.pack.loading.IrisRegistrant;
+import art.arcane.iris.pack.schema.annotation.Snippet;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.volmlib.util.json.JSONArray;
 import art.arcane.volmlib.util.json.JSONObject;
 import art.arcane.volmlib.util.mantle.flag.ReservedFlag;
+import com.google.gson.annotations.SerializedName;
+import com.google.gson.reflect.TypeToken;
 
 import java.io.File;
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.TreeSet;
 
 final class PackHydrologyValidator {
     private static final String CONFIG = "hydrology";
     private static final String POLICY = "hydrologyPolicy";
     private static final String DEFAULT_FLUID = "water";
+    private static final String SNIPPET_ROOT = "snippet/";
     private static final List<RangeField> RANGES = List.of(
             new RangeField("ponds.freeboard", Floor.NON_NEGATIVE, true),
             new RangeField("ponds.seeded.radius", Floor.POSITIVE, true),
@@ -51,6 +68,7 @@ final class PackHydrologyValidator {
     );
     private static final List<String> FLUID_REFERENCES = List.of("ponds.fluid", "underground.cavePools.fluid");
     private static final IrisHydrologyTier DEFAULT_TIER = new IrisHydrologyTier();
+    private static final Set<String> WATER_BLOCKS = Set.of("minecraft:water");
     private static final String MANTLE_WATER = "the falling water at waterfalls and cascades and cave pools";
 
     private PackHydrologyValidator() {
@@ -90,6 +108,7 @@ final class PackHydrologyValidator {
             errors.add(path + " must be an object.");
             return data;
         }
+        warnUnknownKeys(path, hydrology, IrisHydrology.class, packFolder, findings.warnings());
         if (!hydrology.optBoolean("enabled", false)) {
             return data;
         }
@@ -105,12 +124,105 @@ final class PackHydrologyValidator {
             return loaded;
         }
         warnMantleOff("Dimension '" + dimensionKey + "'", loadedDimension, findings.warnings());
-        validatePolicies(path, dimensionKey, loaded, loadedDimension, new PolicyFluids(fluids, seams), errors);
+        validatePolicies(path, dimensionKey, loaded, loadedDimension, new PolicyFluids(fluids, seams), errors, findings.warnings());
         warnShoreBiomesWithoutWidth(dimensionKey, loaded, loadedDimension, findings.warnings());
         if (errors.size() == reported && validateCompile(path, loadedDimension, errors)) {
             validateDecoratorBlocks(path, loaded, loadedDimension.getHydrology(), errors);
+            warnFluidsWithoutSeam(dimensionKey, loaded, loadedDimension, findings.warnings());
         }
         return loaded;
+    }
+
+    static void warnUnknownKeys(String field, Object value, Type type, File packFolder, List<String> warnings) {
+        warnUnknownKeys(field, value, type, new KeyScan(packFolder, warnings, new HashSet<>()));
+    }
+
+    private static void warnUnknownKeys(String field, Object value, Type type, KeyScan scan) {
+        Class<?> raw = TypeToken.get(type).getRawType();
+        if (value instanceof JSONArray array) {
+            Type element = elementType(type, raw);
+            for (int index = 0; index < array.length(); index++) {
+                warnUnknownKeys(field + "[" + index + "]", array.opt(index), element, scan);
+            }
+        } else if (value instanceof JSONObject object) {
+            if (Map.class.isAssignableFrom(raw)) {
+                Type entry = typeArgument(type, 1);
+                for (String key : new TreeSet<>(object.keySet())) {
+                    warnUnknownKeys(field + "." + key, object.opt(key), entry, scan);
+                }
+            } else if (hasDeclaredKeys(raw)) {
+                warnUnknownFields(field, object, raw, scan);
+            }
+        } else if (value instanceof String reference && reference.startsWith(SNIPPET_ROOT) && raw.isAnnotationPresent(Snippet.class)) {
+            warnUnknownSnippetKeys(field, reference, raw, scan);
+        }
+    }
+
+    private static void warnUnknownFields(String field, JSONObject object, Class<?> type, KeyScan scan) {
+        Map<String, Type> declared = declaredKeys(type);
+        for (String key : new TreeSet<>(object.keySet())) {
+            String child = field + "." + key;
+            Type declaredType = declared.get(key);
+            if (declaredType == null) {
+                scan.warnings().add(child + " is not a known key, so its value is ignored. Known keys there: " + declared.keySet() + ".");
+            } else {
+                warnUnknownKeys(child, object.opt(key), declaredType, scan);
+            }
+        }
+    }
+
+    private static void warnUnknownSnippetKeys(String field, String reference, Class<?> type, KeyScan scan) {
+        String base = SNIPPET_ROOT + type.getDeclaredAnnotation(Snippet.class).value() + "/";
+        String snippet = reference.startsWith(base) ? reference : base + reference.substring(SNIPPET_ROOT.length());
+        if (!scan.activeSnippets().add(snippet)) {
+            return;
+        }
+        File file = new File(scan.packFolder(), snippet + ".json");
+        JSONObject object = file.isFile() ? PackValidationIo.readJson(file) : null;
+        if (object != null) {
+            warnUnknownFields(field + " (" + snippet + ")", object, type, scan);
+        }
+        scan.activeSnippets().remove(snippet);
+    }
+
+    private static Type elementType(Type type, Class<?> raw) {
+        if (raw.isArray()) {
+            return raw.getComponentType();
+        }
+        return Collection.class.isAssignableFrom(raw) ? typeArgument(type, 0) : Object.class;
+    }
+
+    private static Type typeArgument(Type type, int index) {
+        if (type instanceof ParameterizedType parameterized && index < parameterized.getActualTypeArguments().length) {
+            return parameterized.getActualTypeArguments()[index];
+        }
+        return Object.class;
+    }
+
+    private static boolean hasDeclaredKeys(Class<?> type) {
+        return !type.isPrimitive() && !type.isEnum() && !type.isArray() && !type.isInterface()
+                && !Modifier.isAbstract(type.getModifiers()) && !Collection.class.isAssignableFrom(type)
+                && !type.getPackageName().startsWith("java.");
+    }
+
+    private static Map<String, Type> declaredKeys(Class<?> type) {
+        Map<String, Type> keys = new TreeMap<>();
+        for (Class<?> current = type; current != null && current != Object.class; current = current.getSuperclass()) {
+            for (Field field : current.getDeclaredFields()) {
+                int modifiers = field.getModifiers();
+                if (Modifier.isStatic(modifiers) || Modifier.isTransient(modifiers) || field.isSynthetic()) {
+                    continue;
+                }
+                SerializedName serialized = field.getAnnotation(SerializedName.class);
+                keys.putIfAbsent(serialized == null ? field.getName() : serialized.value(), field.getGenericType());
+                if (serialized != null) {
+                    for (String alternate : serialized.alternate()) {
+                        keys.putIfAbsent(alternate, field.getGenericType());
+                    }
+                }
+            }
+        }
+        return keys;
     }
 
     private static boolean validateCompile(String path, IrisDimension dimension, List<String> errors) {
@@ -278,12 +390,14 @@ final class PackHydrologyValidator {
     }
 
     private static void validatePolicies(String path, String dimensionKey, IrisData data, IrisDimension dimension, PolicyFluids fluids,
-                                         List<String> errors) {
+                                         List<String> errors, List<String> warnings) {
+        warnUnknownPolicyKeys("Dimension '" + dimensionKey + "'." + POLICY, dimension, data, warnings);
         validatePolicy("Dimension '" + dimensionKey + "'." + POLICY, dimension.getHydrologyPolicy(), data, fluids, path, errors);
         List<IrisRegion> regions = new ArrayList<>(dimension.getAllRegions(() -> data));
         regions.sort(Comparator.comparing(IrisRegion::getLoadKey, Comparator.nullsFirst(Comparator.naturalOrder())));
         for (IrisRegion region : regions) {
             if (region != null) {
+                warnUnknownPolicyKeys("Region '" + region.getLoadKey() + "'." + POLICY, region, data, warnings);
                 validatePolicy("Region '" + region.getLoadKey() + "'." + POLICY, region.getHydrologyPolicy(), data, fluids, path, errors);
             }
         }
@@ -291,8 +405,17 @@ final class PackHydrologyValidator {
         biomes.sort(Comparator.comparing(IrisBiome::getLoadKey, Comparator.nullsFirst(Comparator.naturalOrder())));
         for (IrisBiome biome : biomes) {
             if (biome != null) {
+                warnUnknownPolicyKeys("Biome '" + biome.getLoadKey() + "'." + POLICY, biome, data, warnings);
                 validatePolicy("Biome '" + biome.getLoadKey() + "'." + POLICY, biome.getHydrologyPolicy(), data, fluids, path, errors);
             }
+        }
+    }
+
+    private static void warnUnknownPolicyKeys(String field, IrisRegistrant owner, IrisData data, List<String> warnings) {
+        File file = owner.getLoadFile();
+        JSONObject json = file == null ? null : PackValidationIo.readJson(file);
+        if (json != null) {
+            warnUnknownKeys(field, json.opt(POLICY), IrisHydrologyPolicy.class, data.getDataFolder(), warnings);
         }
     }
 
@@ -359,6 +482,90 @@ final class PackHydrologyValidator {
         }
     }
 
+    private static void warnFluidsWithoutSeam(String dimensionKey, IrisData data, IrisDimension dimension, List<String> warnings) {
+        String path = "Dimension '" + dimensionKey + "'." + CONFIG;
+        Map<String, IrisFluidProfile> profiles = new HashMap<>();
+        for (IrisFluidProfile profile : dimension.getHydrology().getFluids()) {
+            profiles.put(profile.getName(), profile);
+        }
+        Map<String, Set<String>> rivers = riverFluidSources(dimensionKey, data, dimension);
+        rivers.keySet().retainAll(profiles.keySet());
+        for (Map.Entry<String, Set<String>> river : rivers.entrySet()) {
+            IrisFluidProfile profile = profiles.get(river.getKey());
+            Set<String> blocks = blockIds(profile.getPalette());
+            if (hasSeam(profile) || blocks.equals(WATER_BLOCKS)) {
+                continue;
+            }
+            List<String> met = new ArrayList<>();
+            if (dimension.getFluidHeight() > 0 && !blocks.equals(blockIds(dimension.getFluidPalette()))) {
+                met.add("the sea");
+            }
+            for (String other : rivers.keySet()) {
+                IrisFluidProfile otherProfile = profiles.get(other);
+                if (!hasSeam(otherProfile) && !blocks.equals(blockIds(otherProfile.getPalette()))) {
+                    met.add("fluid '" + other + "'");
+                }
+            }
+            if (!met.isEmpty()) {
+                warnings.add(path + ".fluids profile '" + river.getKey() + "' sets no seam, so where its rivers meet " + String.join(" or ", met)
+                        + " the fluids lie side by side. Set seam on the profile to line that edge. Its rivers come from "
+                        + String.join(", ", river.getValue()) + ".");
+            }
+        }
+    }
+
+    private static Map<String, Set<String>> riverFluidSources(String dimensionKey, IrisData data, IrisDimension dimension) {
+        Map<String, Set<String>> sources = new TreeMap<>();
+        List<IrisRegion> regions = new ArrayList<>(dimension.getAllRegions(() -> data));
+        ShoreBiomeLineages.visit(dimension, regions, () -> data, (lineage, region) -> {
+            String fluid = IrisHydrologyPolicy.inherited(lineage, region, dimension, IrisHydrologyPolicy::getFluid);
+            if (fluid == null) {
+                addTierSources(dimensionKey, dimension, sources);
+            } else {
+                sources.computeIfAbsent(fluid, name -> new TreeSet<>()).add(policyFluidOwner(dimensionKey, lineage, region));
+            }
+        });
+        if (sources.isEmpty()) {
+            addTierSources(dimensionKey, dimension, sources);
+        }
+        return sources;
+    }
+
+    private static void addTierSources(String dimensionKey, IrisDimension dimension, Map<String, Set<String>> sources) {
+        List<IrisHydrologyTier> tiers = dimension.getHydrology().getTiers();
+        for (int index = 0; index < tiers.size(); index++) {
+            sources.computeIfAbsent(tiers.get(index).getFluid(), name -> new TreeSet<>())
+                    .add("Dimension '" + dimensionKey + "'." + CONFIG + ".tiers[" + index + "].fluid");
+        }
+    }
+
+    private static String policyFluidOwner(String dimensionKey, List<IrisBiome> lineage, IrisRegion region) {
+        for (IrisBiome biome : lineage) {
+            if (biome.getHydrologyPolicy() != null && biome.getHydrologyPolicy().getFluid() != null) {
+                return "Biome '" + biome.getLoadKey() + "'." + POLICY + ".fluid";
+            }
+        }
+        if (region != null && region.getHydrologyPolicy() != null && region.getHydrologyPolicy().getFluid() != null) {
+            return "Region '" + region.getLoadKey() + "'." + POLICY + ".fluid";
+        }
+        return "Dimension '" + dimensionKey + "'." + POLICY + ".fluid";
+    }
+
+    private static boolean hasSeam(IrisFluidProfile profile) {
+        return profile.getSeam() != null && !profile.getSeam().isBlank();
+    }
+
+    private static Set<String> blockIds(IrisMaterialPalette palette) {
+        Set<String> blocks = new TreeSet<>();
+        for (IrisBlockData block : palette.getPalette()) {
+            String id = block.getBlock().toLowerCase(Locale.ROOT);
+            int state = id.indexOf('[');
+            String name = state < 0 ? id : id.substring(0, state);
+            blocks.add(name.contains(":") ? name : "minecraft:" + name);
+        }
+        return blocks;
+    }
+
     private static void requireMultiplier(String field, Double value, List<String> errors) {
         if (value != null && !IrisHydrologyPolicy.validMultiplier(value)) {
             errors.add(field + " must be a finite value from 0 to " + (int) IrisHydrologyPolicy.MAX_MULTIPLIER + ", got " + value + ".");
@@ -413,5 +620,8 @@ final class PackHydrologyValidator {
     }
 
     private record Findings(List<String> errors, List<String> warnings) {
+    }
+
+    private record KeyScan(File packFolder, List<String> warnings, Set<String> activeSnippets) {
     }
 }

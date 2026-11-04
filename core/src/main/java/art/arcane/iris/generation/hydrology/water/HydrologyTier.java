@@ -15,7 +15,7 @@ public record HydrologyTier(
         float depthRatio,
         int inset,
         boolean cascades,
-        int waterfallMinimumDrop,
+        int waterfallMinDrop,
         int stepHeight,
         int bankBand,
         IrisBankStyle bankStyle,

@@ -9,7 +9,7 @@ import lombok.experimental.Accessors;
 
 @Accessors(chain = true)
 @NoArgsConstructor
-@Description("Large lakes that fill the biggest hollows in the terrain. Each lake has one water level across its whole surface. A hollow becomes a lake only when it is at least ponds.natural.minDepth deep and no more than 2048 blocks across. Lakes take their freeboard, climateDrawdown, shore roundness, materials, decorators and fluid from ponds.")
+@Description("Large lakes that fill the biggest hollows in the terrain. Each lake has one water level across its whole surface. A hollow becomes a lake only when it is at least ponds.natural.minDepth deep and no more than 2048 blocks across. Lakes take their freeboard, dryDrawdown, shore roundness, materials, decorators and fluid from ponds.")
 @Data
 public class IrisHydrologyLakes {
     @Description("Turns large hollows into lakes.")

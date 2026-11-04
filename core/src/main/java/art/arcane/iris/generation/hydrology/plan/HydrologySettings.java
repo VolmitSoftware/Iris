@@ -235,7 +235,7 @@ public final class HydrologySettings {
 
     private static HydrologyTier tidalTier(HydrologyTier base, SeaInlets inlets) {
         return new HydrologyTier(TIDAL_TIER_NAME, base.minCatchment(), inlets.meanderWidth(), inlets.meanderWidth(), 0f, base.depthRatio(), 0, false,
-                base.waterfallMinimumDrop(), base.stepHeight(), inlets.bankBand(), inlets.bankStyle(), new HydrologyTier.Estuary(0, 1f),
+                base.waterfallMinDrop(), base.stepHeight(), inlets.bankBand(), inlets.bankStyle(), new HydrologyTier.Estuary(0, 1f),
                 new HydrologyTier.Delta(0, 0f, 0), base.materials(), base.fluid(), base.decorators());
     }
 
@@ -257,7 +257,7 @@ public final class HydrologySettings {
 
     private static Drainage drainage(IrisHydrologyDrainage config) {
         return new Drainage((float) config.getFillEpsilon(), config.getBreachDepth(), config.isWetnessThinning(),
-                (float) config.getMinimumHeadKeep(), (float) config.getHeadRelief(), (float) config.getSaturationCatchment());
+                (float) config.getMinHeadKeep(), (float) config.getHeadRelief(), (float) config.getSaturationCatchment());
     }
 
     private static List<HydrologyTier> tiers(List<IrisHydrologyTier> configs) {
@@ -308,7 +308,7 @@ public final class HydrologySettings {
         }
         return new HydrologyTier(config.getName(), (float) config.getMinCatchment(), halfWidth.min(), halfWidth.max(),
                 (float) config.getWidthFactor(), (float) config.getDepthRatio(), config.getInset(), config.isCascades(),
-                config.getWaterfallMinimumDrop(), config.getStepHeight(), config.getBankBand(), config.getBankStyle(),
+                config.getWaterfallMinDrop(), config.getStepHeight(), config.getBankBand(), config.getBankStyle(),
                 estuary(config.getEstuary(), field + ".estuary"), delta(config, halfWidth.max(), field + ".delta"),
                 materials(config.getMaterials(), field + ".materials"), config.getFluid(), decorators(config.getDecorators(), field + ".decorators"));
     }
@@ -360,7 +360,7 @@ public final class HydrologySettings {
         return new Ponds(naturalPonds(config.getNatural()), seededPonds(config.getSeeded()),
                 new PondDams(dams.isEnabled(), dams.getMaxRaise()),
                 intRange(config.getFreeboard(), "ponds.freeboard", RangeFloor.NON_NEGATIVE),
-                config.getClimateDrawdown(), pondShore(config.getShore()), materials(config.getMaterials(), "ponds.materials"), config.getFluid(),
+                config.getDryDrawdown(), pondShore(config.getShore()), materials(config.getMaterials(), "ponds.materials"), config.getFluid(),
                 decorators(config.getDecorators(), "ponds.decorators"));
     }
 
@@ -675,7 +675,7 @@ public final class HydrologySettings {
     private static void requireTierBounds(IrisHydrologyTier config, String field) {
         requireNonNegative(config.getWidthFactor(), field + ".widthFactor");
         requireNonNegative(config.getDepthRatio(), field + ".depthRatio");
-        requireAtLeast(config.getWaterfallMinimumDrop(), MIN_WATERFALL_DROP, field + ".waterfallMinimumDrop");
+        requireAtLeast(config.getWaterfallMinDrop(), MIN_WATERFALL_DROP, field + ".waterfallMinDrop");
         requireWithin(config.getStepHeight(), 1, WaterHeads.STANDING_STEP, field + ".stepHeight");
         requireShoreDepth(config.getMaterials(), field + ".materials");
     }
@@ -782,7 +782,7 @@ public final class HydrologySettings {
 
     private void addDrainage(Fingerprint hash) {
         hash.add(drainage.fillEpsilon()).add(drainage.breachDepth()).add(drainage.wetnessThinning())
-                .add(drainage.minimumHeadKeep()).add(drainage.headRelief()).add(drainage.saturationCatchment());
+                .add(drainage.minHeadKeep()).add(drainage.headRelief()).add(drainage.saturationCatchment());
     }
 
     private void addTiers(Fingerprint hash) {
@@ -790,7 +790,7 @@ public final class HydrologySettings {
         for (HydrologyTier tier : tiers) {
             hash.add(tier.name()).add(tier.minCatchment()).add(tier.minHalfWidth()).add(tier.maxHalfWidth())
                     .add(tier.widthFactor()).add(tier.depthRatio()).add(tier.inset()).add(tier.cascades())
-                    .add(tier.waterfallMinimumDrop()).add(tier.stepHeight()).add(tier.bankBand()).add(tier.bankStyle())
+                    .add(tier.waterfallMinDrop()).add(tier.stepHeight()).add(tier.bankBand()).add(tier.bankStyle())
                     .add(tier.estuary().length()).add(tier.estuary().flare())
                     .add(tier.delta().channels()).add(tier.delta().spreadDegrees()).add(tier.delta().length())
                     .add(tier.materials()).add(tier.fluid());
@@ -806,7 +806,7 @@ public final class HydrologySettings {
                 .add(seeded.enabled()).add(seeded.density()).add(seeded.radius()).add(seeded.depth())
                 .add(seeded.maxSlope()).add(seeded.alongChannels()).add(seeded.channelSpacing())
                 .add(ponds.dams().enabled()).add(ponds.dams().maxRaise())
-                .add(ponds.freeboard()).add(ponds.climateDrawdown())
+                .add(ponds.freeboard()).add(ponds.dryDrawdown())
                 .add(shore.roundness()).add(shore.shelf()).add(shore.taper()).add(shore.maxDepth())
                 .add(ponds.materials()).add(ponds.fluid());
     }
@@ -863,7 +863,7 @@ public final class HydrologySettings {
         }
     }
 
-    public record Drainage(float fillEpsilon, int breachDepth, boolean wetnessThinning, float minimumHeadKeep, float headRelief,
+    public record Drainage(float fillEpsilon, int breachDepth, boolean wetnessThinning, float minHeadKeep, float headRelief,
                            float saturationCatchment) {
     }
 
@@ -881,7 +881,7 @@ public final class HydrologySettings {
     }
 
     public record Ponds(NaturalPonds natural, SeededPonds seeded, PondDams dams, IntRange freeboard,
-                        int climateDrawdown, PondShore shore, IrisHydrologyMaterials materials, String fluid,
+                        int dryDrawdown, PondShore shore, IrisHydrologyMaterials materials, String fluid,
                         List<IrisDecorator> decorators) {
     }
 

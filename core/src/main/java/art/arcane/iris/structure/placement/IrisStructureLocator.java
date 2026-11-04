@@ -524,12 +524,20 @@ public final class IrisStructureLocator {
         originZ = anchor.z();
         int baseY = anchor.y();
 
+        boolean submerged = !placement.resolvedAnchor().isCave() && !placement.isUnderwater()
+                && NativeStructurePlacementPlanner.isSubmerged(engine, originX, originZ);
         String selectedKey = selectStructureKey(placement, rng);
         if (selectedKey == null || selectedKey.isBlank()) {
+            if (submerged) {
+                return null;
+            }
             throw new IllegalStateException("Iris structure placement selected a blank structure key");
         }
         IrisStructure structure = engine.getData().load(IrisStructure.class, selectedKey, false);
         if (structure == null) {
+            if (submerged) {
+                return null;
+            }
             throw new IllegalStateException("Iris structure placement references missing structure '"
                     + selectedKey + "'");
         }
@@ -537,15 +545,13 @@ public final class IrisStructureLocator {
             // Gated out on this Minecraft version; the pack report already says why.
             return null;
         }
-        StructureGraphCompilation compilation = StructureGraphCatalog.compile(engine.getData(), structure);
-        if (!compilation.isAssemblyViable()) {
-            throw new IllegalStateException("Iris structure '" + selectedKey
-                    + "' has no runtime-viable assembly graph");
+        if (submerged && !placement.forcesPieces(structure, 1)) {
+            return null;
         }
-
-        StructureAssembler assembler = StructureAssembler.forData(
-                engine.getData(), structure, new IrisPosition(originX, baseY, originZ));
-        StructureAssemblyResult assembly = assembler.assemble(rng);
+        StructureAssemblyResult assembly = assemble(engine, structure, selectedKey, new IrisPosition(originX, baseY, originZ), rng);
+        if (submerged && !placement.forcesPieces(structure, assembly.pieces().size())) {
+            return null;
+        }
         if (!placementOutput(placement, selectedKey, cx, cz,
                 assembly.hasOutput(), "assembly " + assembly.status(), assembly.detail())) {
             return null;
@@ -594,6 +600,7 @@ public final class IrisStructureLocator {
             return null;
         }
         if (!placement.isAnchoredUnderground() && !placement.isAllowWater()
+                && !placement.forcesPieces(structure, pieces.size())
                 && !StructureWaterRules.admitsFootprint(IrisStructureWater.mantle(engine.getComplex()), pieceFootprints(pieces))) {
             return null;
         }
@@ -601,6 +608,14 @@ public final class IrisStructureLocator {
             return null;
         }
         return new ResolvedPlacement(placement, selectedKey, structure, pieces, rng, originX, baseY, originZ, exactY);
+    }
+
+    private static StructureAssemblyResult assemble(Engine engine, IrisStructure structure, String key, IrisPosition origin, RNG rng) {
+        StructureGraphCompilation compilation = StructureGraphCatalog.compile(engine.getData(), structure);
+        if (!compilation.isAssemblyViable()) {
+            throw new IllegalStateException("Iris structure '" + key + "' has no runtime-viable assembly graph");
+        }
+        return StructureAssembler.forData(engine.getData(), structure, origin).assemble(rng);
     }
 
     public static boolean allowsResolvedFootprint(Engine engine, ResolvedPlacement resolved) {
@@ -680,10 +695,6 @@ public final class IrisStructureLocator {
         int worldMin = engine.getMinHeight() + 1;
         int worldMax = engine.getMinHeight() + engine.getHeight() - 1;
         if (worldMin > worldMax) {
-            return null;
-        }
-        if (!placement.isUnderwater()
-                && NativeStructurePlacementPlanner.isSubmerged(engine, originX, originZ)) {
             return null;
         }
         if (placement.resolvedAnchor() == IrisStructureAnchorMode.SURFACE) {

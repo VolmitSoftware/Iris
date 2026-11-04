@@ -75,7 +75,7 @@ public class ReachShaperTest {
             for (Reach reach : spread.reaches()) {
                 Reach twin = steppedById.get(reach.id());
                 assertNotNull(twin);
-                int fall = reach.tier().waterfallMinimumDrop();
+                int fall = reach.tier().waterfallMinDrop();
                 int junction = twin.downstreamId() == 0L ? Integer.MIN_VALUE : twin.grade()[twin.grade().length - 1];
                 assertTrue("trial " + trial + " " + reach + " gained a waterfall against " + Arrays.toString(twin.grade()),
                         dropsAbove(reach, junction, fall, Integer.MAX_VALUE) <= dropsAbove(twin, Integer.MIN_VALUE, fall, Integer.MAX_VALUE));
@@ -231,7 +231,7 @@ public class ReachShaperTest {
     public void dropAtWaterfallMinimumBecomesWaterfall() {
         HydrologySettings cascading = settings(config -> {
         });
-        int minimum = cascading.tiers().get(1).waterfallMinimumDrop();
+        int minimum = cascading.tiers().get(1).waterfallMinDrop();
         List<Drop> waterfall = drops(cascading, steppedValley(minimum));
         assertEquals("drops " + waterfall, 1, waterfall.size());
         assertEquals(minimum, waterfall.get(0).size());
@@ -294,9 +294,9 @@ public class ReachShaperTest {
         int[] grade = steep.grade;
         for (int index = 1; index < grade.length; index++) {
             int drop = grade[index - 1] - grade[index];
-            assertTrue(Arrays.toString(grade), drop >= 0 && drop < tier.waterfallMinimumDrop());
+            assertTrue(Arrays.toString(grade), drop >= 0 && drop < tier.waterfallMinDrop());
         }
-        assertTrue(Arrays.toString(grade), grade[0] > (int) ground[0] - tier.inset() - tier.waterfallMinimumDrop());
+        assertTrue(Arrays.toString(grade), grade[0] > (int) ground[0] - tier.inset() - tier.waterfallMinDrop());
         assertEquals((int) ground[ground.length - 1] - tier.inset(), grade[grade.length - 1]);
     }
 
@@ -336,9 +336,9 @@ public class ReachShaperTest {
         assertTrue(label + " pools " + pools, pools >= 3);
         assertTrue(label + " drops " + drops, drops <= Math.ceil(STATION * last / StepPools.POOL_MIN));
 
-        int[] spread = graded(withSteps(tier, false, tier.waterfallMinimumDrop()), ground);
+        int[] spread = graded(withSteps(tier, false, tier.waterfallMinDrop()), ground);
         for (int index = 1; index < spread.length; index++) {
-            assertTrue("spread " + Arrays.toString(spread), spread[index - 1] - spread[index] < tier.waterfallMinimumDrop());
+            assertTrue("spread " + Arrays.toString(spread), spread[index - 1] - spread[index] < tier.waterfallMinDrop());
         }
     }
 
@@ -357,7 +357,7 @@ public class ReachShaperTest {
         for (int index = 1; index < grade.length; index++) {
             int drop = grade[index - 1] - grade[index];
             assertTrue(label, drop >= 0);
-            if (drop >= tier.waterfallMinimumDrop()) {
+            if (drop >= tier.waterfallMinDrop()) {
                 falls++;
                 foot = index;
             }
@@ -574,7 +574,7 @@ public class ReachShaperTest {
         for (Reach reach : shaped.reaches()) {
             for (int index = 1; index < reach.xs().length; index++) {
                 if (reach.xs()[index] >= WINDOW_MIN_X && reach.xs()[index] <= WINDOW_MAX_X
-                        && reach.grade()[index - 1] - reach.grade()[index] >= reach.tier().waterfallMinimumDrop()) {
+                        && reach.grade()[index - 1] - reach.grade()[index] >= reach.tier().waterfallMinDrop()) {
                     return Math.toDegrees(Math.atan2(Math.abs(reach.zs()[index] - reach.zs()[index - 1]), Math.abs(reach.xs()[index] - reach.xs()[index - 1])));
                 }
             }
@@ -675,7 +675,7 @@ public class ReachShaperTest {
         draft.catchments = new float[points];
         Arrays.fill(draft.catchments, 40000f);
         draft.outletZone = new boolean[points];
-        draft.style = ReachShaper.styles(draft.grade, draft.ocean, draft.outletZone, tier.waterfallMinimumDrop(), SEA_LEVEL, 2);
+        draft.style = ReachShaper.styles(draft.grade, draft.ocean, draft.outletZone, tier.waterfallMinDrop(), SEA_LEVEL, 2);
         ReachShaper.widths(draft, 0f, 0f);
         float law = tier.halfWidth(40000f);
         assertEquals("the foot flares", 1.5f * law, draft.halfWidth[foot], 1e-3f);
@@ -687,7 +687,7 @@ public class ReachShaperTest {
         for (int point = 0; point < mouth.length; point++) {
             mouth[point] = reach.style()[point] == ReachStyle.MOUTH;
         }
-        return ReachShaper.plungeFlare(reach.grade(), reach.style(), mouth, ReachShaper.distances(reach.xs(), reach.zs()), 0f, reach.tier().waterfallMinimumDrop());
+        return ReachShaper.plungeFlare(reach.grade(), reach.style(), mouth, ReachShaper.distances(reach.xs(), reach.zs()), 0f, reach.tier().waterfallMinDrop());
     }
 
     private static float channelMaximum(Reach reach) {
@@ -730,7 +730,7 @@ public class ReachShaperTest {
 
     private static int footOf(Reach reach) {
         for (int point = 1; point < reach.xs().length; point++) {
-            if (reach.grade()[point - 1] - reach.grade()[point] >= reach.tier().waterfallMinimumDrop()) {
+            if (reach.grade()[point - 1] - reach.grade()[point] >= reach.tier().waterfallMinDrop()) {
                 return point;
             }
         }
@@ -745,7 +745,7 @@ public class ReachShaperTest {
                 if (reach.xs()[index] < WINDOW_MIN_X || reach.xs()[index] > WINDOW_MAX_X) {
                     continue;
                 }
-                if (reach.grade()[index - 1] - reach.grade()[index] >= reach.tier().waterfallMinimumDrop()) {
+                if (reach.grade()[index - 1] - reach.grade()[index] >= reach.tier().waterfallMinDrop()) {
                     falls++;
                     midpoint = (reach.xs()[index - 1] + reach.xs()[index]) / 2f;
                 }
@@ -2279,7 +2279,7 @@ public class ReachShaperTest {
             for (int index = 1; index <= entry && fall < 0; index++) {
                 fall = reach.grade()[index] == SEA_LEVEL ? index : -1;
             }
-            if (reach.grade()[fall - 1] - SEA_LEVEL >= reach.tier().waterfallMinimumDrop()) {
+            if (reach.grade()[fall - 1] - SEA_LEVEL >= reach.tier().waterfallMinDrop()) {
                 falls++;
                 int lip = fall == entry ? entry - 1 : fall;
                 assertEquals(reach.toString(), ReachStyle.WATERFALL, reach.style()[lip]);
@@ -3093,13 +3093,13 @@ public class ReachShaperTest {
     private static void ungrouped(IrisHydrology config) {
         for (IrisHydrologyTier tier : config.getTiers()) {
             tier.setCascades(false);
-            tier.setWaterfallMinimumDrop(2);
+            tier.setWaterfallMinDrop(2);
         }
     }
 
-    private static HydrologyTier withSteps(HydrologyTier tier, boolean cascades, int waterfallMinimumDrop) {
+    private static HydrologyTier withSteps(HydrologyTier tier, boolean cascades, int waterfallMinDrop) {
         return new HydrologyTier(tier.name(), tier.minCatchment(), tier.minHalfWidth(), tier.maxHalfWidth(), tier.widthFactor(), tier.depthRatio(),
-                tier.inset(), cascades, waterfallMinimumDrop, 2, tier.bankBand(), tier.bankStyle(), tier.estuary(), tier.delta(), tier.materials(),
+                tier.inset(), cascades, waterfallMinDrop, 2, tier.bankBand(), tier.bankStyle(), tier.estuary(), tier.delta(), tier.materials(),
                 tier.fluid(), tier.decorators());
     }
 

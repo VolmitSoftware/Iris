@@ -263,7 +263,7 @@ public class IrisHydrologyTerrainSourceTest {
             Pond swamp = floorPond(fixture, settings, column);
             spires.setHydrologyPolicy(new IrisHydrologyPolicy().setPondDensity(16D).setWetness(new IrisHydrologyWetness().setMin(1D)));
             Pond kept = floorPond(fixture, settings, column);
-            int drawdown = settings.ponds().climateDrawdown();
+            int drawdown = settings.ponds().dryDrawdown();
             assertEquals((int) Math.floor(kept.spillHeight()) - 1, kept.level());
             assertEquals(kept.level() - Math.round(drawdown * 0.3f), swamp.level());
             assertEquals(kept.level() - Math.round(drawdown * 0.85f), dry.level());

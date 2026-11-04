@@ -101,7 +101,7 @@ public final class WaterScene {
             halfWidth[point] = tier.minHalfWidth();
             depth[point] = tier.depth(tier.minHalfWidth());
             int drop = point == 0 ? 0 : grades[point - 1] - grades[point];
-            style[point] = drop >= tier.waterfallMinimumDrop() ? ReachStyle.WATERFALL
+            style[point] = drop >= tier.waterfallMinDrop() ? ReachStyle.WATERFALL
                     : drop >= 2 ? ReachStyle.CASCADE : drop == 1 ? ReachStyle.RIFFLE : ReachStyle.RUN;
         }
         return new Reach(id, tier, 0L, xs, zs, grades, halfWidth, depth, style, 1000f);

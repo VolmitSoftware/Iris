@@ -23,6 +23,7 @@ import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.structure.object.IObjectPlacer;
 import art.arcane.iris.generation.block.TileData;
+import art.arcane.iris.structure.object.ObjectWaterRule;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.math.BlockPosition;
 import art.arcane.iris.generation.block.B;
@@ -44,18 +45,18 @@ final class FloatingObjectPlacementTransaction implements IObjectPlacer {
     private final ObjectContinuationBundle.PlacementKey placementKey;
     private final KList<BufferedMutation> mutations;
     private final Map<PositionKey, NativeBlockState> bufferedBlocks;
-    private final boolean entersWater;
+    private final ObjectWaterRule waterRule;
     private ObjectHydrologyVeto waterVeto;
     private int blockWrites;
     private BlockPosition canopyPosition;
 
     FloatingObjectPlacementTransaction(IObjectPlacer delegate, ObjectContinuationBundle.PlacementKey placementKey,
-                                       boolean entersWater) {
+                                       ObjectWaterRule waterRule) {
         this.delegate = Objects.requireNonNull(delegate);
         this.placementKey = Objects.requireNonNull(placementKey);
         this.mutations = new KList<>();
         this.bufferedBlocks = new HashMap<>();
-        this.entersWater = entersWater;
+        this.waterRule = waterRule;
     }
 
     CommitResult commit() {
@@ -161,7 +162,7 @@ final class FloatingObjectPlacementTransaction implements IObjectPlacer {
 
     @Override
     public void set(int x, int y, int z, NativeBlockState state) {
-        if (state == null || waterVeto().keepsBlock(x, y, z, state, entersWater)) {
+        if (state == null || waterVeto().keepsBlock(x, y, z, state, waterRule)) {
             return;
         }
         mutations.add(new BlockMutation(x, y, z, state, isCanopy(x, y, z)));
@@ -251,9 +252,9 @@ final class FloatingObjectPlacementTransaction implements IObjectPlacer {
 
     private boolean keepsWater(int x, int y, int z, Object data) {
         if (data instanceof NativeBlockState state) {
-            return waterVeto().keepsBlock(x, y, z, state, entersWater);
+            return waterVeto().keepsBlock(x, y, z, state, waterRule);
         }
-        return data instanceof MatterCavern && waterVeto().keeps(x, y, z, false, entersWater);
+        return data instanceof MatterCavern && waterVeto().keeps(x, y, z, false, waterRule);
     }
 
     private ObjectHydrologyVeto waterVeto() {

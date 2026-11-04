@@ -322,7 +322,7 @@ final class RasterComposer {
                 continue;
             }
             int drop = 0;
-            int waterfallMinimumDrop = Integer.MAX_VALUE;
+            int waterfallMinDrop = Integer.MAX_VALUE;
             for (int side : SIDES) {
                 int upper = cell + side;
                 if (!role[upper].flowing() || feature[upper] == feature[cell]) {
@@ -331,11 +331,11 @@ final class RasterComposer {
                 int step = head[upper] - head[cell];
                 if (step >= 2 && step > drop) {
                     drop = step;
-                    waterfallMinimumDrop = tier[upper].waterfallMinimumDrop();
+                    waterfallMinDrop = tier[upper].waterfallMinDrop();
                 }
             }
             if (drop > 0) {
-                role[cell] = drop >= waterfallMinimumDrop ? WaterRole.WATERFALL : WaterRole.CASCADE;
+                role[cell] = drop >= waterfallMinDrop ? WaterRole.WATERFALL : WaterRole.CASCADE;
             }
         }
     }

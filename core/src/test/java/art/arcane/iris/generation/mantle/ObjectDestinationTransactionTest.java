@@ -16,6 +16,7 @@ import art.arcane.iris.generation.terrain.IrisDimension;
 import art.arcane.iris.generation.terrain.Terrain3DColumnFixtures;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
+import art.arcane.iris.structure.object.ObjectWaterRule;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.math.BlockPosition;
 import art.arcane.iris.structure.object.DecayControlPlacer;
@@ -193,14 +194,14 @@ public class ObjectDestinationTransactionTest {
         transaction.set(3, 9, 3, pier);
         transaction.set(6, 18, 6, pier);
         assertEquals("a pier keeps its blocks on the river bed and the shore", start + 2, transaction.mutationCheckpoint());
-        transaction.beginObjectPlacement(true);
+        transaction.beginObjectPlacement(ObjectWaterRule.ENTERS_WATER);
         transaction.set(3, 10, 3, pier);
         transaction.set(4, 15, 3, pier);
         assertEquals("an underwater pier keeps its blocks in the river", start + 4, transaction.mutationCheckpoint());
         transaction.set(3, 12, 3, pier);
         transaction.set(3, 10, 3, vine);
         assertEquals("an underwater object still keeps out of falls and open water", start + 4, transaction.mutationCheckpoint());
-        transaction.beginObjectPlacement(false);
+        transaction.beginObjectPlacement(ObjectWaterRule.KEEP_OUT);
         transaction.set(3, 16, 3, vine);
         transaction.set(3, 8, 3, vine);
         transaction.set(6, 19, 6, vine);
@@ -239,12 +240,12 @@ public class ObjectDestinationTransactionTest {
         transaction.set(3, 10, 3, boulder);
         assertEquals("nothing an object places roofs or fills the slot between its water and the cliff top", start,
                 transaction.mutationCheckpoint());
-        transaction.beginObjectPlacement(true);
+        transaction.beginObjectPlacement(ObjectWaterRule.ENTERS_WATER);
         transaction.set(3, 10, 3, boulder);
         transaction.set(3, 12, 3, boulder);
         assertEquals("an underwater object's solid block below the water may still sit on the slot bed", start + 1,
                 transaction.mutationCheckpoint());
-        transaction.beginObjectPlacement(false);
+        transaction.beginObjectPlacement(ObjectWaterRule.KEEP_OUT);
         transaction.set(3, 31, 3, leaves);
         transaction.set(3, 36, 3, leaves);
         transaction.set(3, 33, 3, boulder);
@@ -289,12 +290,13 @@ public class ObjectDestinationTransactionTest {
         setCanopy(transaction, 5, 14, 3, leaves);
         assertEquals("the bed, the air above the surface and dry land keep their leaves", start + 4,
                 transaction.mutationCheckpoint());
-        int underwater = transaction.beginObjectPlacement(true);
+        int underwater = transaction.beginObjectPlacement(ObjectWaterRule.ENTERS_WATER);
         transaction.set(3, 12, 3, leaves);
         transaction.set(4, 9, 3, leaves);
         assertEquals("an underwater object keeps its solid blocks in the water", underwater + 2,
                 transaction.mutationCheckpoint());
-        transaction.endObjectPlacement(underwater);
+        transaction.recordObjectPlacement(underwater);
+        transaction.endObjectPlacement();
         ObjectDestinationTransaction destination = new ObjectDestinationTransaction(writer, 0, 0);
         destination.apply(transaction.sourcePlanSince(start));
         assertEquals("the destination replay keeps the underwater blocks", 6, destination.mutationCheckpoint());
@@ -303,7 +305,7 @@ public class ObjectDestinationTransactionTest {
     }
 
     @Test
-    public void onwaterRaftsAndOwnForcedObjectsKeepTheirLayerOnRiversButForcedStructurePiecesDoNot() {
+    public void onwaterRaftsAndForcedPlacementsKeepTheirWritesThroughReplay() {
         MantleWriter writer = writer();
         IrisComplex complex = mock(IrisComplex.class);
         HydrologyRuntime runtime = mock(HydrologyRuntime.class);
@@ -325,25 +327,32 @@ public class ObjectDestinationTransactionTest {
         IrisObjectPlacement raft = new IrisObjectPlacement().setOnwater(true);
         IrisObjectPlacement forced = new IrisObjectPlacement().setForcePlace(true);
         IrisObjectPlacement piece = IrisStructureComponent.piecePlacement(new IrisStructure(), new PlacedStructurePiece(null,
-                new IrisObject(1, 1, 1), 4, 14, 3, IrisObjectRotation.of(0, 0, 0), 4, 14, 3, 4, 14, 3), ObjectPlaceMode.CENTER_HEIGHT, false);
+                new IrisObject(1, 1, 1), 4, 14, 3, IrisObjectRotation.of(0, 0, 0), 4, 14, 3, 4, 14, 3), ObjectPlaceMode.CENTER_HEIGHT);
         assertTrue(piece.isForcePlace());
         ObjectDestinationTransaction transaction = new ObjectDestinationTransaction(writer, 0, 0);
 
-        int raftStart = transaction.beginObjectPlacement(raft.entersWater());
+        int raftStart = transaction.beginObjectPlacement(raft.waterRule());
         for (int x = 3; x <= 5; x++) {
             transaction.set(x, 14, 3, plank);
         }
         assertEquals("a one-block onwater raft keeps its layer on the river surface", raftStart + 3, transaction.mutationCheckpoint());
-        int forcedStart = transaction.beginObjectPlacement(forced.entersWater());
+        assertEquals(ObjectWaterRule.FORCED, forced.waterRule());
+        assertEquals(ObjectWaterRule.FORCED, piece.waterRule());
+        int forcedStart = transaction.beginObjectPlacement(forced.waterRule());
         transaction.set(3, 13, 3, plank);
-        assertEquals("an object's own forcePlace keeps its solid blocks in the river", forcedStart + 1, transaction.mutationCheckpoint());
-        int pieceStart = transaction.beginObjectPlacement(piece.entersWater());
+        transaction.set(3, 12, 3, mock(NativeBlockState.class));
+        transaction.setData(3, 11, 3, new MatterCavern(true, "", (byte) 3));
+        assertEquals("a forced object writes solid blocks, open blocks and carves through the river", forcedStart + 3, transaction.mutationCheckpoint());
+        int pieceStart = transaction.beginObjectPlacement(piece.waterRule());
         transaction.set(4, 13, 3, plank);
         transaction.set(5, 11, 3, plank);
-        assertEquals("a forced structure piece still keeps its solid blocks out of the river", pieceStart, transaction.mutationCheckpoint());
+        assertEquals("a forced structure piece writes through the river", pieceStart + 2, transaction.mutationCheckpoint());
+        int landStart = transaction.beginObjectPlacement(ObjectWaterRule.KEEP_OUT);
+        transaction.set(4, 12, 3, plank);
+        assertEquals("an unforced object stays out of the river", landStart, transaction.mutationCheckpoint());
         ObjectDestinationTransaction destination = new ObjectDestinationTransaction(writer, 0, 0);
         destination.apply(transaction.sourcePlanSince(raftStart));
-        assertEquals("the destination replay keeps the raft and the forced block", 4, destination.mutationCheckpoint());
+        assertEquals("the destination replay keeps the forced writes beside the raft", 8, destination.mutationCheckpoint());
     }
 
     @Test
@@ -366,13 +375,47 @@ public class ObjectDestinationTransactionTest {
         when(pier.isSolid()).thenReturn(true);
         ObjectDestinationTransaction transaction = new ObjectDestinationTransaction(writer, 0, 0);
 
-        int raft = transaction.beginObjectPlacement(true);
+        int raft = transaction.beginObjectPlacement(ObjectWaterRule.ENTERS_WATER);
         transaction.set(3, 12, 3, pier);
-        transaction.endObjectPlacement(raft);
+        transaction.recordObjectPlacement(raft);
+        transaction.endObjectPlacement();
         int afterRaft = transaction.mutationCheckpoint();
         transaction.set(3, 13, 3, pier);
 
         assertEquals("a write after the water placement ends follows land rules", afterRaft, transaction.mutationCheckpoint());
+    }
+
+    @Test
+    public void aRejectedWaterPlacementReturnsToLandRules() {
+        MantleWriter writer = writer();
+        waterAtColumnThree(writer);
+        NativeBlockState pier = mock(NativeBlockState.class);
+        when(pier.isSolid()).thenReturn(true);
+        ObjectDestinationTransaction transaction = new ObjectDestinationTransaction(writer, 0, 0);
+
+        transaction.beginObjectPlacement(ObjectWaterRule.ENTERS_WATER);
+        transaction.set(3, 12, 3, pier);
+        transaction.endObjectPlacement();
+        int afterRaft = transaction.mutationCheckpoint();
+        transaction.set(3, 13, 3, pier);
+
+        assertEquals("a write after a rejected water placement follows land rules", afterRaft, transaction.mutationCheckpoint());
+    }
+
+    private static void waterAtColumnThree(MantleWriter writer) {
+        IrisComplex complex = mock(IrisComplex.class);
+        HydrologyRuntime runtime = mock(HydrologyRuntime.class);
+        ChunkWaterRaster raster = mock(ChunkWaterRaster.class);
+        when(writer.getEngine().getComplex()).thenReturn(complex);
+        when(complex.getHydrologyRuntime()).thenReturn(runtime);
+        when(runtime.enabled()).thenReturn(true);
+        when(runtime.raster(anyInt(), anyInt())).thenReturn(raster);
+        when(raster.role(anyInt(), anyInt())).thenReturn(WaterRole.NONE);
+        when(raster.waterHead(anyInt(), anyInt())).thenReturn(Integer.MIN_VALUE);
+        when(raster.role(3, 3)).thenReturn(WaterRole.CHANNEL);
+        when(raster.waterHead(3, 3)).thenReturn(14);
+        when(raster.terrainHeight(3, 3)).thenReturn(10);
+        followRasterStreams(complex, raster);
     }
 
     @Test

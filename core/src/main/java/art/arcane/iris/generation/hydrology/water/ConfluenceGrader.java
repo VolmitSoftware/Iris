@@ -18,7 +18,7 @@ public final class ConfluenceGrader {
     public record Footprint(float[] xs, float[] zs, float[] halfWidth) {
     }
 
-    public static int[] settle(Footprint feeder, int[] grade, boolean[] fixed, List<Footprint> receiving, int level, int waterfallMinimumDrop) {
+    public static int[] settle(Footprint feeder, int[] grade, boolean[] fixed, List<Footprint> receiving, int level, int waterfallMinDrop) {
         int last = grade.length - 1;
         double[] arc = arcFromEnd(feeder);
         int[] settled = lower(grade, grade, last, level);
@@ -27,20 +27,20 @@ public final class ConfluenceGrader {
             settled = lower(settled, grade, point, level);
             edge = point;
         }
-        int meet = approach(grade, fixed, arc, edge, level, waterfallMinimumDrop);
+        int meet = approach(grade, fixed, arc, edge, level, waterfallMinDrop);
         for (int point = edge - 1; point > meet; point--) {
             settled = lower(settled, grade, point, envelope(arc, edge, point, level));
         }
         return settled;
     }
 
-    public static void spreadJunction(int[] settled, int[] grade, boolean[] fixed, int waterfallMinimumDrop, int startLimit) {
+    public static void spreadJunction(int[] settled, int[] grade, boolean[] fixed, int waterfallMinDrop, int startLimit) {
         int lowered = 0;
         while (settled[lowered] == grade[lowered]) {
             lowered++;
         }
         for (int point = settled.length - 2; point >= 0; point--) {
-            if (!ReachGrader.spreadPoint(settled, point, waterfallMinimumDrop, startLimit, fixed) && point < lowered) {
+            if (!ReachGrader.spreadPoint(settled, point, waterfallMinDrop, startLimit, fixed) && point < lowered) {
                 return;
             }
         }
@@ -55,14 +55,14 @@ public final class ConfluenceGrader {
                 requireJunction(window, draft, downstream);
                 boolean[] fixed = draft.fixed();
                 fixed[0] |= draft.incoming.length > 0 && draft.grade[0] - downstream.grade[0] > MAX_START_LOWERING;
-                int waterfallMinimumDrop = draft.tier.waterfallMinimumDrop();
+                int waterfallMinDrop = draft.tier.waterfallMinDrop();
                 int[] settled = settle(footprint(draft), draft.grade, fixed, receiving(drafts, downstream, feeder), downstream.grade[0],
-                        waterfallMinimumDrop);
+                        waterfallMinDrop);
                 if (settled == draft.grade) {
                     continue;
                 }
                 if (!draft.tier.cascades()) {
-                    spreadJunction(settled, draft.grade, fixed, waterfallMinimumDrop, ReachGrader.startLimit(drafts, draft));
+                    spreadJunction(settled, draft.grade, fixed, waterfallMinDrop, ReachGrader.startLimit(drafts, draft));
                 }
                 draft.grade = settled;
                 touched[feeder] = true;
@@ -116,8 +116,8 @@ public final class ConfluenceGrader {
         return beside && lowering <= MARGIN_LOWERING;
     }
 
-    private static int approach(int[] grade, boolean[] fixed, double[] arc, int edge, int level, int waterfallMinimumDrop) {
-        double window = (waterfallMinimumDrop - 1) / (double) APPROACH_SLOPE;
+    private static int approach(int[] grade, boolean[] fixed, double[] arc, int edge, int level, int waterfallMinDrop) {
+        double window = (waterfallMinDrop - 1) / (double) APPROACH_SLOPE;
         for (int point = edge - 1; point >= 0 && arc[point] - arc[edge] <= window; point--) {
             if (grade[point] <= envelope(arc, edge, point, level)) {
                 return point;

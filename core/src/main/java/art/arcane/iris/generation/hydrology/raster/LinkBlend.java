@@ -60,13 +60,13 @@ public final class LinkBlend {
         int[] grade = feeder.grade();
         int level = junction.level();
         boolean[] fixed = fixed(feeder, lips, junction.fed() && grade[0] - level > ConfluenceGrader.MAX_START_LOWERING);
-        int waterfallMinimumDrop = feeder.tier().waterfallMinimumDrop();
-        int[] settled = ConfluenceGrader.settle(footprint(feeder), grade, fixed, receiving, level, waterfallMinimumDrop);
+        int waterfallMinDrop = feeder.tier().waterfallMinDrop();
+        int[] settled = ConfluenceGrader.settle(footprint(feeder), grade, fixed, receiving, level, waterfallMinDrop);
         if (settled == grade) {
             return feeder;
         }
         if (!feeder.tier().cascades()) {
-            ConfluenceGrader.spreadJunction(settled, grade, fixed, waterfallMinimumDrop, Integer.MIN_VALUE);
+            ConfluenceGrader.spreadJunction(settled, grade, fixed, waterfallMinDrop, Integer.MIN_VALUE);
         }
         return regraded(feeder, settled, feeder.halfWidth(), feeder.depth(), seaLevel);
     }
@@ -101,19 +101,19 @@ public final class LinkBlend {
     }
 
     private static Reach regraded(Reach reach, int[] grade, float[] halfWidth, float[] depth, int seaLevel) {
-        ReachStyle[] style = grade == reach.grade() ? reach.style() : restyled(reach.style(), grade, reach.tier().waterfallMinimumDrop(), seaLevel, reach.tier().stepHeight());
+        ReachStyle[] style = grade == reach.grade() ? reach.style() : restyled(reach.style(), grade, reach.tier().waterfallMinDrop(), seaLevel, reach.tier().stepHeight());
         return new Reach(reach.id(), reach.tier(), reach.downstreamId(), reach.xs(), reach.zs(), grade, halfWidth, depth, style,
                 reach.catchment());
     }
 
-    private static ReachStyle[] restyled(ReachStyle[] style, int[] grade, int waterfallMinimumDrop, int seaLevel, int stepHeight) {
+    private static ReachStyle[] restyled(ReachStyle[] style, int[] grade, int waterfallMinDrop, int seaLevel, int stepHeight) {
         boolean[] mouth = new boolean[style.length];
         boolean[] outlet = new boolean[style.length];
         for (int point = 0; point < style.length; point++) {
             mouth[point] = style[point] == ReachStyle.MOUTH;
             outlet[point] = style[point] == ReachStyle.POND_OUTLET;
         }
-        return ReachShaper.styles(grade, mouth, outlet, waterfallMinimumDrop, seaLevel, stepHeight);
+        return ReachShaper.styles(grade, mouth, outlet, waterfallMinDrop, seaLevel, stepHeight);
     }
 
     private static int lowestEnd(List<Reach> feeders) {

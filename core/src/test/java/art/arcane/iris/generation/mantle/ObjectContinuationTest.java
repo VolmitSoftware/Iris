@@ -8,6 +8,7 @@ import art.arcane.iris.integration.Identifier;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.pack.loading.IrisRegistrant;
 import art.arcane.iris.pack.loading.ResourceLoader;
+import art.arcane.iris.structure.object.ObjectWaterRule;
 import art.arcane.iris.world.entity.IrisSpawner;
 import art.arcane.iris.world.storage.matter.IrisMatterContext;
 import art.arcane.iris.spi.IrisPlatform;
@@ -58,17 +59,20 @@ public class ObjectContinuationTest {
     public void onlyAcceptedCrossingPlacementsLeaveFutureFragments() throws Exception {
         Fixture fixture = new Fixture();
         ObjectDestinationTransaction source = new ObjectDestinationTransaction(fixture.writer, 0, 0);
-        int checkpoint = source.beginObjectPlacement(false);
+        int checkpoint = source.beginObjectPlacement(ObjectWaterRule.KEEP_OUT);
         source.setData(1, 5, 1, "inside");
-        source.endObjectPlacement(checkpoint);
-        checkpoint = source.beginObjectPlacement(false);
+        source.recordObjectPlacement(checkpoint);
+        source.endObjectPlacement();
+        checkpoint = source.beginObjectPlacement(ObjectWaterRule.KEEP_OUT);
         source.setData(15, 5, 1, "crossing");
         source.setData(16, 5, 1, "crossing");
-        source.endObjectPlacement(checkpoint);
-        checkpoint = source.beginObjectPlacement(false);
+        source.recordObjectPlacement(checkpoint);
+        source.endObjectPlacement();
+        checkpoint = source.beginObjectPlacement(ObjectWaterRule.KEEP_OUT);
         source.setData(32, 5, 1, "unrelated");
         source.setData(48, 5, 1, "unrelated");
-        source.endObjectPlacement(checkpoint);
+        source.recordObjectPlacement(checkpoint);
+        source.endObjectPlacement();
         source.setData(17, 5, 1, "rejected");
         ObjectSourcePlan plan = source.sourcePlanSince(0);
 

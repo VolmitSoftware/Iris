@@ -509,7 +509,7 @@ public class PondPlannerTest {
         Pond dry = single(plan(settings, new Terrain(terrain, 0f, ALLOW_ALL, null, MIN_Y, MAX_Y), 0, 0, 64, 64, null, List.of()));
         Pond damp = single(plan(settings, new Terrain(terrain, 0.5f, ALLOW_ALL, null, MIN_Y, MAX_Y), 0, 0, 64, 64, null, List.of()));
         assertEquals(wet.id(), dry.id());
-        assertEquals(settings.ponds().climateDrawdown(), wet.level() - dry.level());
+        assertEquals(settings.ponds().dryDrawdown(), wet.level() - dry.level());
         assertTrue(damp.level() < wet.level() && damp.level() > dry.level());
         assertContained(dry, terrain);
     }
@@ -518,7 +518,7 @@ public class PondPlannerTest {
     public void drawdownFollowsClimateDryness() {
         HydrologySettings settings = settings(PondPlannerTest::naturalOnly, MIN_Y, MAX_Y);
         DoubleBinaryOperator terrain = bowl(256, 256, 60, 100, 12, 0.1);
-        int drawdown = settings.ponds().climateDrawdown();
+        int drawdown = settings.ponds().dryDrawdown();
         Pond full = single(plan(settings, new Terrain(terrain, 1f, ALLOW_ALL, null, MIN_Y, MAX_Y), 0, 0, 64, 64, null, List.of()));
         Pond wetZone = single(plan(settings, new Terrain(terrain, 0.5f, ALLOW_ALL, null, MIN_Y, MAX_Y).climateZoned((x, z) -> 1D),
                 0, 0, 64, 64, null, List.of()));

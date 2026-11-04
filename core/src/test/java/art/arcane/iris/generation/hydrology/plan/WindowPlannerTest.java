@@ -1204,7 +1204,7 @@ public class WindowPlannerTest {
             int last = feeder.xs().length - 1;
             int drop = feeder.grade()[last] - downstream.grade()[0];
             assertTrue(feeder + " meets " + downstream + " across the window line with a drop of " + drop,
-                    drop >= 0 && drop < downstream.tier().waterfallMinimumDrop());
+                    drop >= 0 && drop < downstream.tier().waterfallMinDrop());
         }
         assertTrue("reaches near the window line " + westOwned.size() + " + " + eastOwned.size(), westOwned.size() + eastOwned.size() >= 3);
         assertTrue("reach links between the two windows' plans " + links, links >= 1);

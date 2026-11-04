@@ -7,6 +7,7 @@ import art.arcane.iris.generation.decoration.tree.TreeBlockMaterial;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveCell;
 import art.arcane.iris.generation.subterrain.SubterrainRasterizer;
 import art.arcane.iris.generation.block.TileData;
+import art.arcane.iris.structure.object.ObjectWaterRule;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.math.BlockPosition;
 import art.arcane.iris.generation.block.B;
@@ -41,7 +42,7 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
     private int subterrainZ;
     private boolean subterrainProtects;
     private ObjectHydrologyVeto waterVeto;
-    private boolean waterPlacement;
+    private ObjectWaterRule waterRule = ObjectWaterRule.KEEP_OUT;
 
     ObjectDestinationTransaction(MantleWriter writer, int destinationChunkX, int destinationChunkZ) {
         this.writer = writer;
@@ -73,17 +74,21 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
     }
 
     @Override
-    public int beginObjectPlacement(boolean entersWater) {
-        waterPlacement = entersWater;
+    public int beginObjectPlacement(ObjectWaterRule rule) {
+        waterRule = rule;
         return log.size();
     }
 
     @Override
-    public void endObjectPlacement(int checkpoint) {
-        waterPlacement = false;
+    public void recordObjectPlacement(int checkpoint) {
         if (checkpoint >= 0 && checkpoint < log.size()) {
             placements.add(new PlacementRange(checkpoint, log.size()));
         }
+    }
+
+    @Override
+    public void endObjectPlacement() {
+        waterRule = ObjectWaterRule.KEEP_OUT;
     }
 
     void apply(ObjectSourcePlan plan) {
@@ -103,7 +108,7 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
             Object value = plan.valueAt(index);
             boolean custom = ObjectSourcePlan.isCustom(cell);
             boolean canopy = ObjectSourcePlan.isCanopy(cell);
-            boolean entersWater = ObjectSourcePlan.entersWater(cell);
+            ObjectWaterRule rule = ObjectSourcePlan.waterRule(cell);
             if (custom || value instanceof NativeBlockState) {
                 NativeBlockState existing = canopy ? get(x, y, z) : null;
                 skipCanopy = existing != null && existing.isSolid();
@@ -112,9 +117,9 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
                 continue;
             }
             if (custom) {
-                set(x, y, z, (NativeBlockState) value, canopy, entersWater);
+                set(x, y, z, (NativeBlockState) value, canopy, rule);
             } else {
-                setData(x, y, z, value, canopy, entersWater);
+                setData(x, y, z, value, canopy, rule);
             }
         }
     }
@@ -179,17 +184,17 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
 
     @Override
     public void set(int x, int y, int z, NativeBlockState state) {
-        set(x, y, z, state, isCanopy(x, y, z), waterPlacement);
+        set(x, y, z, state, isCanopy(x, y, z), waterRule);
     }
 
-    private void set(int x, int y, int z, NativeBlockState state, boolean canopy, boolean entersWater) {
+    private void set(int x, int y, int z, NativeBlockState state, boolean canopy, ObjectWaterRule rule) {
         if (state == null) {
             return;
         }
         String placementKey = state.deferredPlacementKey();
         NativeBlockState baseState = state.placementBaseState();
         if (state.isCustom() && placementKey != null && baseState != null) {
-            if (!canSetBlock(x, y, z) || hydrologyKeeps(x, y, z, baseState.isSolid(), entersWater)) {
+            if (!canSetBlock(x, y, z) || hydrologyKeeps(x, y, z, baseState.isSolid(), rule)) {
                 return;
             }
             Identifier identifier = Identifier.fromString(placementKey);
@@ -197,10 +202,10 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
             cell.block = baseState;
             cell.tile = CLEARED;
             cell.identifier = identifier;
-            log.add(x, y, z, state, true, canopy, entersWater);
+            log.add(x, y, z, state, true, canopy, rule);
             return;
         }
-        setData(x, y, z, state, canopy, entersWater);
+        setData(x, y, z, state, canopy, rule);
     }
 
     @Override
@@ -291,18 +296,18 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
 
     @Override
     public <T> void setData(int x, int y, int z, T data) {
-        setData(x, y, z, data, isCanopy(x, y, z), waterPlacement);
+        setData(x, y, z, data, isCanopy(x, y, z), waterRule);
     }
 
-    private void setData(int x, int y, int z, Object data, boolean canopy, boolean entersWater) {
+    private void setData(int x, int y, int z, Object data, boolean canopy, ObjectWaterRule rule) {
         if (data == null || y < 0 || y >= worldHeight
                 || protectsSubterrain(x, y, z)) {
             return;
         }
-        if (data instanceof NativeBlockState state && (!canSetBlock(x, y, z) || hydrologyKeeps(x, y, z, state.isSolid(), entersWater))) {
+        if (data instanceof NativeBlockState state && (!canSetBlock(x, y, z) || hydrologyKeeps(x, y, z, state.isSolid(), rule))) {
             return;
         }
-        if (data instanceof MatterCavern && (hasProtectedHydrology(x, y, z) || hydrologyKeeps(x, y, z, false, entersWater))) {
+        if (data instanceof MatterCavern && (hasProtectedHydrology(x, y, z) || hydrologyKeeps(x, y, z, false, rule))) {
             return;
         }
         Class<?> type = data instanceof NativeBlockState ? NativeBlockState.class : data.getClass();
@@ -314,7 +319,7 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
         } else {
             cell.put(type, data);
         }
-        log.add(x, y, z, data, false, canopy, entersWater);
+        log.add(x, y, z, data, false, canopy, rule);
     }
 
     @Override
@@ -411,11 +416,11 @@ final class ObjectDestinationTransaction implements ObjectPassPlacer {
                 && !protectsSubterrain(x, y, z);
     }
 
-    private boolean hydrologyKeeps(int x, int y, int z, boolean solid, boolean entersWater) {
+    private boolean hydrologyKeeps(int x, int y, int z, boolean solid, ObjectWaterRule rule) {
         if (waterVeto == null) {
             waterVeto = ObjectHydrologyVeto.of(getEngine());
         }
-        return waterVeto.keeps(x, y, z, solid, entersWater);
+        return waterVeto.keeps(x, y, z, solid, rule);
     }
 
     private boolean protectsSubterrain(int x, int y, int z) {

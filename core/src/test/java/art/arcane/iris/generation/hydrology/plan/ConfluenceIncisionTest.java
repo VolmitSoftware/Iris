@@ -98,7 +98,7 @@ public class ConfluenceIncisionTest {
                 }
                 String label = "seed " + seed + " foot " + foot + " " + major;
                 assertTrue(label + " is cut " + cut + " into the wall", cut <= MAX_WALL_CUT);
-                double tallestFall = WALL_HEIGHT / 2D + major.tier().waterfallMinimumDrop() + (seed == SEED ? 0D : OTHER_SEED_FALL_MARGIN);
+                double tallestFall = WALL_HEIGHT / 2D + major.tier().waterfallMinDrop() + (seed == SEED ? 0D : OTHER_SEED_FALL_MARGIN);
                 assertTrue(label + " falls " + largest + " blocks at once down a " + WALL_HEIGHT + "-block wall", largest <= tallestFall);
                 totalCut += cut;
                 cases++;

@@ -390,7 +390,7 @@ public final class ReachShaper {
     }
 
     private static void restyle(ReachDraft draft, int seaLevel) {
-        draft.style = styles(draft.grade, draft.ocean, draft.fixed(), draft.tier.waterfallMinimumDrop(), seaLevel, draft.tier.stepHeight());
+        draft.style = styles(draft.grade, draft.ocean, draft.fixed(), draft.tier.waterfallMinDrop(), seaLevel, draft.tier.stepHeight());
     }
 
     private static void chaikin(ReachDraft draft) {
@@ -505,7 +505,7 @@ public final class ReachShaper {
         Opening estuary = draft.chain.end() == ReachTracer.End.OCEAN ? estuaryOpening(draft.tier.estuary(), draft.ocean, distance)
                 : Opening.closed(count);
         float widening = (draft.tier.estuary().flare() - 1f) * estuary.share();
-        float[] plunge = plungeFlare(draft.grade, draft.style, draft.ocean, distance, ReachGrader.protectedStart(draft), draft.tier.waterfallMinimumDrop());
+        float[] plunge = plungeFlare(draft.grade, draft.style, draft.ocean, distance, ReachGrader.protectedStart(draft), draft.tier.waterfallMinDrop());
         float running = upstream;
         draft.halfWidth = new float[count];
         draft.depth = new float[count];
@@ -528,12 +528,12 @@ public final class ReachShaper {
         draft.maxHalfWidth = running;
     }
 
-    static float[] plungeFlare(int[] grade, ReachStyle[] style, boolean[] ocean, float[] distance, float protectedLength, int waterfallMinimumDrop) {
+    static float[] plungeFlare(int[] grade, ReachStyle[] style, boolean[] ocean, float[] distance, float protectedLength, int waterfallMinDrop) {
         int count = grade.length;
         float[] flare = new float[count];
         for (int foot = 1; foot < count - 1; foot++) {
             int drop = grade[foot - 1] - grade[foot];
-            if (style[foot] != ReachStyle.WATERFALL || drop < waterfallMinimumDrop) {
+            if (style[foot] != ReachStyle.WATERFALL || drop < waterfallMinDrop) {
                 continue;
             }
             float length = StepPools.plungeLength(drop);
@@ -574,11 +574,11 @@ public final class ReachShaper {
         return Math.clamp(1f - remaining / length, 0f, 1f);
     }
 
-    public static ReachStyle[] styles(int[] grade, boolean[] ocean, boolean[] outletZone, int waterfallMinimumDrop, int seaLevel, int stepHeight) {
+    public static ReachStyle[] styles(int[] grade, boolean[] ocean, boolean[] outletZone, int waterfallMinDrop, int seaLevel, int stepHeight) {
         ReachStyle[] styles = new ReachStyle[grade.length];
         for (int point = 0; point < grade.length; point++) {
             int drop = point == 0 ? 0 : grade[point - 1] - grade[point];
-            styles[point] = style(drop, waterfallMinimumDrop, ocean[point], outletZone[point]);
+            styles[point] = style(drop, waterfallMinDrop, ocean[point], outletZone[point]);
             if (drop == 1 && !ocean[point] && outletZone[point - 1]
                     && WaterHeads.snap(grade[point - 1], seaLevel, stepHeight) - WaterHeads.snap(grade[point], seaLevel, stepHeight) >= 2) {
                 styles[point] = ReachStyle.CASCADE;
@@ -586,18 +586,18 @@ public final class ReachShaper {
         }
         for (int point = 1; point < grade.length; point++) {
             if (styles[point] == ReachStyle.MOUTH && styles[point - 1] != ReachStyle.MOUTH
-                    && grade[point - 1] - grade[point] >= waterfallMinimumDrop) {
+                    && grade[point - 1] - grade[point] >= waterfallMinDrop) {
                 styles[point - 1] = ReachStyle.WATERFALL;
             }
         }
         return styles;
     }
 
-    private static ReachStyle style(int drop, int waterfallMinimumDrop, boolean mouth, boolean outlet) {
+    private static ReachStyle style(int drop, int waterfallMinDrop, boolean mouth, boolean outlet) {
         if (mouth) {
             return ReachStyle.MOUTH;
         }
-        if (drop >= waterfallMinimumDrop) {
+        if (drop >= waterfallMinDrop) {
             return ReachStyle.WATERFALL;
         }
         if (drop >= 2) {

@@ -13,7 +13,7 @@ import lombok.experimental.Accessors;
 
 @Accessors(chain = true)
 @NoArgsConstructor
-@Description("Standing water above sea level. Ponds fill natural hollows, seeded cups and optional dams, each with its own level, so ponds sit at many heights and streams link them into chains. Lakes take their freeboard, climateDrawdown, shore roundness, materials, decorators and fluid from here as well.")
+@Description("Standing water above sea level. Ponds fill natural hollows, seeded cups and optional dams, each with its own level, so ponds sit at many heights and streams link them into chains. Lakes take their freeboard, dryDrawdown, shore roundness, materials, decorators and fluid from here as well.")
 @Data
 public class IrisHydrologyPonds {
     @Description("Ponds that fill hollows already present in the terrain.")
@@ -32,7 +32,7 @@ public class IrisHydrologyPonds {
     @MinNumber(0)
     @MaxNumber(32)
     @Description("Most extra blocks a pond or lake surface drops below its freeboard, in the driest areas. The drop is this value times the dryness at the floor, rounded: one minus the zone wetness, after the area's wetness bounds, where the dimension's wet and dry zones apply, and one minus the area's rainfall elsewhere, so water at a wetness or rainfall of 1 or more stays full.")
-    private int climateDrawdown = 6;
+    private int dryDrawdown = 6;
 
     @Description("Shape of pond shores and floors. Lakes take only its roundness.")
     private IrisPondShore shore = new IrisPondShore();

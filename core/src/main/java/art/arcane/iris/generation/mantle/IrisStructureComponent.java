@@ -28,6 +28,7 @@ import art.arcane.iris.configuration.IrisSettings;
 import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.cache.Cache;
 import art.arcane.iris.generation.runtime.IrisComplex;
+import art.arcane.iris.generation.runtime.GenerationFailures;
 import art.arcane.iris.structure.placement.IrisStructureLocator;
 import art.arcane.iris.structure.placement.IrisStructureWater;
 import art.arcane.iris.structure.placement.PlacedStructurePiece;
@@ -45,6 +46,7 @@ import art.arcane.iris.structure.placement.IrisStructure;
 import art.arcane.volmlib.util.structure.StructureCarveShape;
 import art.arcane.iris.structure.placement.IrisStructurePlacement;
 import art.arcane.iris.structure.placement.IrisStructureStiltSettings;
+import art.arcane.iris.structure.nativegen.NativeStructureSuppression;
 import art.arcane.iris.structure.placement.IrisStructureTerrain;
 import art.arcane.volmlib.util.structure.StructureTerrainMode;
 import art.arcane.iris.spi.IrisLogging;
@@ -93,7 +95,14 @@ public class IrisStructureComponent extends IrisMantleComponent {
             if (!placement.hasIrisStructures()) {
                 continue;
             }
-            placeFromPlacement(writer, placement, x, z, placementOrdinal);
+            try {
+                placeFromPlacement(writer, placement, x, z, placementOrdinal);
+            } catch (Throwable e) {
+                if (placement.getNativeSuppression() == NativeStructureSuppression.REPLACE_SOURCE) {
+                    throw e;
+                }
+                GenerationFailures.skipPlacement(e, "structure", String.valueOf(placement.getStructures()), x << 4, -1, z << 4, "none");
+            }
         }
     }
 
@@ -579,9 +588,14 @@ public class IrisStructureComponent extends IrisMantleComponent {
                 writer.setData(position.getX(), position.getY(), position.getZ(), marker);
             }
         };
-        return sampledHeight
-                ? object.place(p.getX(), p.getZ(), writer, config, run.rng(), listener, null, getData())
-                : object.place(p.getX(), p.getY() - getEngineMantle().getEngine().getMinHeight(), p.getZ(), writer, config, run.rng(), listener, null, getData());
+        try {
+            return sampledHeight
+                    ? object.place(p.getX(), p.getZ(), writer, config, run.rng(), listener, null, getData())
+                    : object.place(p.getX(), p.getY() - getEngineMantle().getEngine().getMinHeight(), p.getZ(), writer, config, run.rng(), listener, null, getData());
+        } catch (Throwable e) {
+            GenerationFailures.skipPlacement(e, "structure piece", objectKey, p.getX(), p.getY(), p.getZ(), run.structure().getLoadKey());
+            return -1;
+        }
     }
 
     static IrisObjectPlacement piecePlacement(IrisStructure structure, PlacedStructurePiece piece, ObjectPlaceMode mode,

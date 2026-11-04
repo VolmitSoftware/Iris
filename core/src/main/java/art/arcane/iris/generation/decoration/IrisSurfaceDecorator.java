@@ -79,6 +79,15 @@ public class IrisSurfaceDecorator extends IrisEngineDecorator {
             return;
         }
 
+        try {
+            place(decorator, x, z, realX, realZ, data, height, max, underwater, fluidHeight, caveSkipFluid);
+        } catch (Throwable e) {
+            DecoratorCore.skip(e, decorator, getData(), realX, height, realZ, biome);
+        }
+    }
+
+    private void place(IrisDecorator decorator, int x, int z, int realX, int realZ, Hunk<NativeBlockState> data,
+                       int height, int max, boolean underwater, int fluidHeight, boolean caveSkipFluid) {
         AquaticPlacementSnapshot aquaticSnapshot = captureAquaticPlacement(
                 decorator, getData(), data, x, z, height, max);
         if (decorator.isStacking()) {

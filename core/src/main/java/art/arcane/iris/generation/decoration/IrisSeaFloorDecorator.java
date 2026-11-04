@@ -48,6 +48,15 @@ public class IrisSeaFloorDecorator extends IrisEngineDecorator {
             return;
         }
 
+        try {
+            place(decorator, x, z, realX, realZ, data, biome, height, max, limit);
+        } catch (Throwable e) {
+            DecoratorCore.skip(e, decorator, getData(), realX, height, realZ, biome);
+        }
+    }
+
+    private void place(IrisDecorator decorator, int x, int z, int realX, int realZ, Hunk<NativeBlockState> data,
+                       IrisBiome biome, int height, int max, int limit) {
         if (!decorator.isStacking()) {
             if (!decorator.isForcePlace() && !decorator.getSlopeCondition().isDefault()
                     && !decorator.getSlopeCondition().isValid(getComplex().getSlopeStream().get(realX, realZ))) {

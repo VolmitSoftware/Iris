@@ -2,14 +2,12 @@ package art.arcane.iris.generation.biome;
 
 import art.arcane.iris.generation.noise.NoiseStyle;
 import art.arcane.iris.generation.terrain.IrisSlopeClip;
-import art.arcane.iris.spi.IrisLogging;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.math.RNG;
 import art.arcane.volmlib.util.noise.CNG;
 import art.arcane.volmlib.util.stream.ProceduralStream;
 import org.junit.Test;
-import org.mockito.MockedStatic;
 
 import java.util.List;
 
@@ -21,7 +19,6 @@ import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -152,16 +149,13 @@ public class IrisBiomeLockedLayerTest {
     }
 
     @Test
-    public void sampledPaletteFailuresAreReported() {
+    public void sampledPaletteFailuresAreSkipped() {
         IrisBiomePaletteLayer layer = spy(palette(1, 1, 1D, mock(NativeBlockState.class)));
         IrisBiome biome = new IrisBiome().setLockLayers(true).setLayers(new KList<>(layer));
         RNG rng = new RNG(37L);
         IllegalStateException failure = new IllegalStateException("Palette unavailable");
         doThrow(failure).when(layer).get(same(rng), anyInt(), anyDouble(), anyDouble(), anyDouble(), isNull());
-        try (MockedStatic<IrisLogging> logging = mockStatic(IrisLogging.class)) {
-            assertTrue(biome.generateLockedLayers(0D, 0D, rng, 7, 64, null, null).isEmpty());
-            logging.verify(() -> IrisLogging.reportError(failure));
-        }
+        assertTrue(biome.generateLockedLayers(0D, 0D, rng, 7, 64, null, null).isEmpty());
     }
 
     private static IrisBiomePaletteLayer palette(int minimum, int maximum, double zoom, NativeBlockState... blocks) {

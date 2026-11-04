@@ -20,6 +20,7 @@ package art.arcane.iris.generation.stage;
 
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.EngineAssignedModifier;
+import art.arcane.iris.generation.runtime.GenerationFailures;
 import art.arcane.iris.generation.mantle.EngineMantle;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.terrain.IrisDimension;
@@ -62,7 +63,11 @@ public class IrisPostModifier extends EngineAssignedModifier<NativeBlockState> {
         boolean slabs = dimension.isPostProcessingSlabs();
         for (int i = 0; i < width; i++) {
             for (int j = 0; j < depth; j++) {
-                post(i, j, sync, i + x, j + z, context, heights, rivers, planeWidth, walls, slabs);
+                try {
+                    post(i, j, sync, i + x, j + z, context, heights, rivers, planeWidth, walls, slabs);
+                } catch (Throwable e) {
+                    GenerationFailures.skipPlacement(e, "post", "column", i + x, -1, j + z, "none");
+                }
             }
         }
 

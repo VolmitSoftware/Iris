@@ -89,6 +89,15 @@ public class IrisShoreLineDecorator extends IrisEngineDecorator {
             return;
         }
 
+        try {
+            placePicked(decorator, x, z, realX, realZ, data, biome, height, max);
+        } catch (Throwable e) {
+            DecoratorCore.skip(e, decorator, getData(), realX, height, realZ, biome);
+        }
+    }
+
+    private void placePicked(IrisDecorator decorator, int x, int z, int realX, int realZ, Hunk<NativeBlockState> data,
+                             IrisBiome biome, int height, int max) {
         NativeBlockState support = data.get(x, height, z);
         if (support == null || !support.isSolid()) {
             return;

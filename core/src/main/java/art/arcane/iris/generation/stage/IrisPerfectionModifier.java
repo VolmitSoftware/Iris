@@ -22,6 +22,7 @@ import art.arcane.iris.generation.chunk.ColumnExtent;
 import art.arcane.iris.generation.chunk.ColumnReadHunk;
 import art.arcane.iris.generation.decoration.IrisSpeleothems;
 import art.arcane.iris.generation.runtime.Engine;
+import art.arcane.iris.generation.runtime.GenerationFailures;
 import art.arcane.iris.generation.runtime.EngineAssignedModifier;
 import art.arcane.iris.generation.decoration.IrisProceduralBlocks;
 import art.arcane.iris.generation.block.BoundBlockState;
@@ -94,14 +95,14 @@ public class IrisPerfectionModifier extends EngineAssignedModifier<NativeBlockSt
         BurstExecutor burst = burst().burst(multicore);
         for (int task = 0; task < tasks; task++) {
             int firstSlice = task * slicesPerTask;
-            burst.queue(() -> perfectSlices(output, firstSlice, firstSlice + slicesPerTask));
+            burst.queue(() -> perfectSlices(output, firstSlice, firstSlice + slicesPerTask, x, z));
         }
         burst.complete();
 
         getEngine().getMetrics().getPerfection().put(p.getMilliseconds());
     }
 
-    private void perfectSlices(Hunk<NativeBlockState> output, int firstSlice, int lastSlice) {
+    private void perfectSlices(Hunk<NativeBlockState> output, int firstSlice, int lastSlice, int originX, int originZ) {
         IntArrayList surfaces = new IntArrayList();
         StateFlags states = new StateFlags();
         NativeBlockState air = AIR.get();
@@ -109,7 +110,11 @@ public class IrisPerfectionModifier extends EngineAssignedModifier<NativeBlockSt
         NativeBlockState[] column = new NativeBlockState[output.getHeight()];
         for (int x = firstSlice; x < lastSlice; x++) {
             for (int z = 0; z < 16; z++) {
-                perfectColumn(output, x, z, surfaces, states, air, water, column);
+                try {
+                    perfectColumn(output, x, z, surfaces, states, air, water, column);
+                } catch (Throwable e) {
+                    GenerationFailures.skipPlacement(e, "perfection", "column", originX + x, -1, originZ + z, "none");
+                }
             }
         }
     }

@@ -27,7 +27,6 @@ import art.arcane.iris.pack.loading.IrisData;
 import art.arcane.iris.generation.runtime.GenerationFailures;
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.runtime.Engine;
-import art.arcane.iris.spi.IrisLogging;
 import art.arcane.volmlib.nativelib.terrain.NativeBlockState;
 import art.arcane.iris.generation.block.B;
 import art.arcane.iris.generation.block.BoundBlockState;
@@ -233,8 +232,7 @@ final class IrisBiomeLayerGenerator {
                 data.add(layer.get(random, layerIndex + offset,
                         (wx + offset) / zoom, offset, (wz - offset) / zoom, rdata));
             } catch (Throwable error) {
-                GenerationFailures.rethrowEngineFailure(error);
-                IrisLogging.reportError(error);
+                GenerationFailures.skipPlacement(error, "surface layer", "block", (int) wx, height - depth, (int) wz, biome.getLoadKey());
             }
         }
 
@@ -335,8 +333,7 @@ final class IrisBiomeLayerGenerator {
                 blocks.add(layer.get(random, layerIndex + offset,
                         (x + offset) / zoom, offset, (z - offset) / zoom, data));
             } catch (Throwable error) {
-                GenerationFailures.rethrowEngineFailure(error);
-                IrisLogging.reportError(error);
+                GenerationFailures.skipPlacement(error, "surface layer", "block", (int) x, -1, (int) z, "none");
             }
         }
     }

@@ -12,6 +12,7 @@ import art.arcane.iris.generation.hydrology.grid.HeightLattice;
 import art.arcane.iris.generation.hydrology.grid.HydrologySampleBuffer;
 import art.arcane.iris.generation.hydrology.grid.PriorityFlood;
 import art.arcane.iris.generation.hydrology.raster.PondChannelSettlement;
+import art.arcane.iris.generation.hydrology.raster.NaturalHeights;
 import art.arcane.iris.generation.hydrology.raster.TongueGuard;
 import art.arcane.iris.generation.hydrology.underground.Grotto;
 import art.arcane.iris.generation.hydrology.underground.GrottoPlanner;
@@ -21,6 +22,7 @@ import art.arcane.iris.generation.hydrology.water.PondKind;
 import art.arcane.iris.generation.hydrology.water.PondPlanner;
 import art.arcane.iris.generation.hydrology.water.Reach;
 import art.arcane.iris.generation.hydrology.water.ReachShaper;
+import art.arcane.iris.generation.hydrology.water.SeaApproach;
 import art.arcane.iris.generation.hydrology.water.ReachStyle;
 import art.arcane.iris.generation.hydrology.water.ShapedNetwork;
 import art.arcane.iris.generation.hydrology.water.TidalPlanner;
@@ -132,7 +134,7 @@ public final class WindowPlanner {
             network = PondChannelSettlement.settle(key, guarded(shaper.shape(key, drainage.surface(), drainage.receivers(),
                     drainage.accumulation(), drainage.channels(), samples.ocean(), water, fine, settings.seed())), settings.seed(), settings.seaLevel());
         }
-        List<Reach> reaches = network.reaches();
+        List<Reach> reaches = guarded(new ShapedNetwork(SeaApproach.apply(network.reaches(), network.ponds(), columnHeights(), settings.seaLevel()), network.ponds())).reaches();
         List<Pond> windowPonds = windowPonds(network.ponds());
         List<Reach> ownedReaches = new ArrayList<>(ownedReaches(key, reaches));
         List<Reach> arms = tidal.plan(key, natural, samples, network);
@@ -144,15 +146,19 @@ public final class WindowPlanner {
     }
 
     private ShapedNetwork guarded(ShapedNetwork shaped) {
+        return TongueGuard.guard(shaped, columnHeights(), settings.seed(), settings.seaLevel(), settings.deformation().maxFill());
+    }
+
+    private NaturalHeights columnHeights() {
         HydrologySampleBuffer column = new HydrologySampleBuffer(1);
         int[] columnX = new int[1];
         int[] columnZ = new int[1];
-        return TongueGuard.guard(shaped, (x, z) -> {
+        return (x, z) -> {
             columnX[0] = x;
             columnZ[0] = z;
             fine.sampleColumns(columnX, columnZ, column);
             return column.height()[0];
-        }, settings.seed(), settings.seaLevel(), settings.deformation().maxFill());
+        };
     }
 
     public WindowPlan plan(WindowKey key, List<RegionPlan> regions) {

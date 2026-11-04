@@ -442,6 +442,26 @@ tasks.register('grottoProbe', JavaExec) {
     }
 }
 
+tasks.register('mouthProbe', JavaExec) {
+    group = 'verification'
+    description = 'Measures how real pack rivers meet the sea, dumps a mouth, renders real block sections, or lists reach digests.'
+    mainClass = 'art.arcane.iris.probe.MouthProbe'
+    classpath = sourceSets.main.runtimeClasspath
+    jvmArgs('--add-modules', 'jdk.incubator.vector', '-Djava.awt.headless=true')
+    minHeapSize = '2g'
+    maxHeapSize = '8g'
+    dependsOn(':core:compileJava')
+    doFirst {
+        Provider<String> windows = providers.gradleProperty('probeWindows')
+        Provider<String> mode = providers.gradleProperty('probeMode').orElse('metrics')
+        if (!probePack.isPresent() || !probeDimension.isPresent() || !windows.isPresent() || !probeOutput.isPresent()) {
+            throw new GradleException('mouthProbe requires probePack, probeDimension, probeWindows=x0..x1,z0..z1 and probeOutput')
+        }
+        List<String> extra = (providers.gradleProperty('probeExtra').orElse('').get() as String).tokenize(',')
+        args([mode.get(), probePack.get(), probeDimension.get(), probeSeed.orElse('1337').get(), windows.get(), probeOutput.get()] + extra)
+    }
+}
+
 tasks.register('transitionProbe', JavaExec) {
     group = 'verification'
     description = 'Exercises a bounded two-pack Studio cutover, transition routing, receipts and semantics with a vanilla-biome pack.'

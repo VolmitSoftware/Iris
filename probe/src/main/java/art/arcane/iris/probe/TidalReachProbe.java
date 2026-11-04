@@ -1089,6 +1089,14 @@ public final class TidalReachProbe {
         return 0L;
     }
 
+    static long blockHash(Hunk<NativeBlockState> blocks, Hunk<NativeBiome> biomes, int height) {
+        return hash(blocks, biomes, height, true);
+    }
+
+    static int blockColor(NativeBlockState state) {
+        return Slab.color(state);
+    }
+
     private static double nearest(Reach arm, int x, int z) {
         double best = Double.POSITIVE_INFINITY;
         for (int point = 0; point < arm.xs().length; point++) {
@@ -1159,7 +1167,7 @@ public final class TidalReachProbe {
         }
     }
 
-    private static int stable(Reach reach) {
+    static int stable(Reach reach) {
         int hash = 31 * Long.hashCode(reach.id()) + Long.hashCode(reach.downstreamId());
         hash = 31 * hash + Float.floatToIntBits(reach.catchment());
         hash = 31 * hash + reach.tier().name().hashCode();
@@ -1217,7 +1225,7 @@ public final class TidalReachProbe {
         return HexFormat.of().formatHex(sha.digest(), 0, 8);
     }
 
-    private static long key(int x, int z) {
+    static long key(int x, int z) {
         return ((long) x << 32) | (z & 0xFFFFFFFFL);
     }
 }

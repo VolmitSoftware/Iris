@@ -1621,6 +1621,145 @@ public class ReachShaperTest {
     }
 
     @Test
+    public void riverOnAPlateauComesDownToTheSeaOverAStretch() {
+        HydrologySettings settings = settings(config -> {
+        });
+        Reach reach = coastalRun(settings, 0, (mouth, x) -> SEA_LEVEL + 1D + Math.min(11D, 0.5D * Math.max(0D, mouth - x)));
+        assertGentleRunToTheSea(reach, settings);
+        int start = trailingMouth(reach);
+        assertEquals("the last water above the sea stands one step up", SEA_LEVEL + reach.tier().stepHeight(), reach.grade()[start - 1]);
+        float run = reach.xs()[start] - reach.xs()[firstPointAbove(reach, start, SEA_LEVEL + 6)];
+        assertTrue("the river takes " + run + " blocks over its last six", run >= 24f);
+    }
+
+    @Test
+    public void riverCommittedToRisingBanksStillArrivesInSmallSteps() {
+        HydrologySettings settings = settings(config -> {
+        });
+        assertGentleRunToTheSea(coastalRun(settings, 0, (mouth, x) -> SEA_LEVEL + 1D + 0.2D * Math.max(0D, mouth - x)), settings);
+    }
+
+    @Test
+    public void shortMouthReachLowersItsFeederToo() {
+        HydrologySettings settings = settings(config -> {
+        });
+        List<Reach> reaches = coastalRuns(settings, 48, (mouth, x) -> SEA_LEVEL + 1D + Math.min(11D, 0.1D * Math.max(0D, mouth - x)));
+        assertEquals(2, reaches.size());
+        Reach feeder = reaches.get(0).style()[reaches.get(0).style().length - 1] == ReachStyle.MOUTH ? reaches.get(1) : reaches.get(0);
+        int last = feeder.grade().length - 1;
+        int above = last - 1;
+        assertTrue("the feeder end " + feeder.grade()[above] + " stands a step above the sea", feeder.grade()[above] - SEA_LEVEL <= feeder.tier().stepHeight());
+        for (int point = 1; point <= last; point++) {
+            if (feeder.xs()[last] - feeder.xs()[point] > 24f) {
+                continue;
+            }
+            assertTrue("feeder step at " + point + ": " + feeder.grade()[point - 1] + " to " + feeder.grade()[point],
+                    feeder.grade()[point - 1] - feeder.grade()[point] <= feeder.tier().stepHeight());
+        }
+    }
+
+    @Test
+    public void highCliffCoastKeepsItsWaterfallIntoTheSea() {
+        HydrologySettings settings = settings(config -> {
+        });
+        Reach reach = coastalRun(settings, 0, (mouth, x) -> x >= mouth - 2D ? SEA_LEVEL - 4D : SEA_LEVEL + 30D);
+        int start = trailingMouth(reach);
+        assertTrue("a high cliff stays a fall: " + reach.grade()[start - 1], reach.grade()[start - 1] >= SEA_LEVEL + 16);
+        assertEquals(ReachStyle.WATERFALL, reach.style()[start - 1]);
+    }
+
+    @Test
+    public void inlandFallAwayFromTheSeaKeepsItsHeight() {
+        HydrologySettings settings = settings(config -> {
+        });
+        Reach reach = coastalRun(settings, 0, (mouth, x) -> mouth - x > 150D ? SEA_LEVEL + 30D : SEA_LEVEL + 5D);
+        int drop = 0;
+        float at = 0f;
+        for (int point = 1; point < reach.grade().length; point++) {
+            if (reach.grade()[point - 1] - reach.grade()[point] > drop) {
+                drop = reach.grade()[point - 1] - reach.grade()[point];
+                at = reach.xs()[reach.xs().length - 1] - reach.xs()[point];
+            }
+        }
+        assertTrue("the fall stays " + drop + " tall at " + at + " from the mouth", drop >= 20 && at > 128f);
+    }
+
+    @Test
+    public void seaApproachLeavesOtherReachesAlone() {
+        HydrologySettings settings = settings(config -> {
+        });
+        Reach inland = coastalRun(settings, false);
+        assertTrue("a reach that does not meet the sea is the same object", inland == SeaApproach.apply(List.of(inland), List.of(), (x, z) -> SEA_LEVEL + 40D, SEA_LEVEL).get(0));
+    }
+
+    @Test
+    public void seaApproachStopsBesideAPond() {
+        HydrologySettings settings = settings(config -> {
+        });
+        DoubleBinaryOperator plateau = (mouth, x) -> SEA_LEVEL + 1D + Math.min(11D, 0.5D * Math.max(0D, mouth - x));
+        Reach open = coastalRun(settings, 0, plateau);
+        Reach plain = plainPlateau(settings, plateau);
+        int start = trailingMouth(open);
+        assertTrue("the open plateau lowers", open.grade()[start - 1] < plain.grade()[start - 1]);
+        float x = plain.xs()[start - 8];
+        float z = plain.zs()[start - 8];
+        int offset = Math.round(plain.halfWidth()[start - 8]) + 4;
+        Pond pond = new Pond(61L, PondKind.NATURAL, plain.grade()[start - 8], plain.grade()[start - 8] - 3, Math.round(x), Math.round(z), plain.grade()[start - 8] + 1f,
+                disk(Math.round(x), Math.round(z) + offset, 4), 0L, 0, "water", Math.round(x), Math.round(z) + offset);
+        Reach beside = SeaApproach.apply(List.of(plain), List.of(pond), (px, pz) -> SEA_LEVEL + 1D, SEA_LEVEL).get(0);
+        assertEquals("water above the pond's reach is left as planned", plain.grade()[0], beside.grade()[0]);
+        for (int point = 1; point < plain.grade().length; point++) {
+            assertTrue("no rise at " + point, beside.grade()[point - 1] >= beside.grade()[point]);
+        }
+        assertEquals("the water beside the pond keeps its level", plain.grade()[start - 8], beside.grade()[start - 8]);
+    }
+
+    private static Reach plainPlateau(HydrologySettings settings, DoubleBinaryOperator profile) {
+        int width = 30;
+        DemGrid surface = new DemGrid(0, 0, CELL, width, 3);
+        Arrays.fill(surface.values(), 90f);
+        int[] receivers = new int[width * 3];
+        Arrays.fill(receivers, -1);
+        float[] accumulation = new float[width * 3];
+        BitSet channels = new BitSet(width * 3);
+        for (int i = 0; i < width; i++) {
+            int cell = surface.index(i, 1);
+            receivers[cell] = i + 1 < width ? surface.index(i + 1, 1) : -1;
+            accumulation[cell] = (i + 1) * 1000f;
+            if (i + 1 < width) {
+                channels.set(cell);
+            }
+        }
+        surface.set(width - 1, 1, 30f);
+        double mouthX = (width - 1) * CELL;
+        HeightLattice fine = new HeightLattice(new Terrain((x, z) -> profile.applyAsDouble(mouthX, x)), FINE, false, 1 << 16);
+        return new ReachShaper(settings).shape(WINDOW, surface, receivers, accumulation, channels,
+                SeaCells.atOrBelow(surface, SEA_LEVEL), List.of(), fine, SEED).reaches().get(0);
+    }
+
+    private static void assertGentleRunToTheSea(Reach reach, HydrologySettings settings) {
+        int start = trailingMouth(reach);
+        assertTrue("the reach ends in an estuary", start > 0);
+        assertTrue("no step of " + (reach.grade()[start - 1] - SEA_LEVEL) + " at the estuary " + Arrays.toString(reach.grade()),
+                reach.grade()[start - 1] - SEA_LEVEL <= reach.tier().stepHeight());
+        float mouthX = reach.xs()[reach.xs().length - 1];
+        for (int point = 1; point <= start; point++) {
+            if (mouthX - reach.xs()[point] <= 96f) {
+                assertTrue("step at " + point + ": " + reach.grade()[point - 1] + " to " + reach.grade()[point] + " in " + Arrays.toString(reach.grade()),
+                        reach.grade()[point - 1] - reach.grade()[point] <= reach.tier().stepHeight());
+            }
+        }
+    }
+
+    private static int firstPointAbove(Reach reach, int from, int level) {
+        int point = from;
+        while (point > 0 && reach.grade()[point] < level) {
+            point--;
+        }
+        return point;
+    }
+
+    @Test
     public void estuaryStopsAtAHeldPondLip() {
         Reach outlet = coastalOutlet(PondKind.NATURAL);
         PondMask pond = disk(128, 8, 7);
@@ -2689,6 +2828,36 @@ public class ReachShaperTest {
             }
         }
         assertTrue("estuary points over the low land " + inland, inland > 0);
+    }
+
+    private static Reach coastalRun(HydrologySettings settings, int originX, DoubleBinaryOperator profile) {
+        List<Reach> reaches = coastalRuns(settings, originX, profile);
+        assertEquals(1, reaches.size());
+        return reaches.get(0);
+    }
+
+    private static List<Reach> coastalRuns(HydrologySettings settings, int originX, DoubleBinaryOperator profile) {
+        int width = 30;
+        DemGrid surface = new DemGrid(originX, 0, CELL, width, 3);
+        Arrays.fill(surface.values(), 90f);
+        int[] receivers = new int[width * 3];
+        Arrays.fill(receivers, -1);
+        float[] accumulation = new float[width * 3];
+        BitSet channels = new BitSet(width * 3);
+        for (int i = 0; i < width; i++) {
+            int cell = surface.index(i, 1);
+            receivers[cell] = i + 1 < width ? surface.index(i + 1, 1) : -1;
+            accumulation[cell] = (i + 1) * 1000f;
+            if (i + 1 < width) {
+                channels.set(cell);
+            }
+        }
+        surface.set(width - 1, 1, 30f);
+        double mouthX = originX + (width - 1) * CELL;
+        HeightLattice fine = new HeightLattice(new Terrain((x, z) -> profile.applyAsDouble(mouthX, x)), FINE, false, 1 << 16);
+        List<Reach> shaped = new ReachShaper(settings).shape(WINDOW, surface, receivers, accumulation, channels,
+                SeaCells.atOrBelow(surface, SEA_LEVEL), List.of(), fine, SEED).reaches();
+        return SeaApproach.apply(shaped, List.of(), (x, z) -> profile.applyAsDouble(mouthX, x), SEA_LEVEL);
     }
 
     private static Reach coastalRun(HydrologySettings settings, boolean ocean) {

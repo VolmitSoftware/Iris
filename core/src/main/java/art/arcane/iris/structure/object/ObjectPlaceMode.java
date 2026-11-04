@@ -68,11 +68,11 @@ public enum ObjectPlaceMode {
 
     ERODE_STILT(() -> new PlacementModuleStilt(PlacementModuleStilt.Mode.ERODE, false)),
 
-    @Description("Organic stilting scans straight down from the bottom of the object to the first solid block (the cave floor, or terrain) and fills the gap with the object's own bottom block. Each column stops at a slightly different, noise-varied depth and the lower portion is randomly broken up, so the underside reads as rough organic roots rather than a flat disc. Designed for objects placed inside caves so they connect to the floor instead of floating. Tune with stilt-settings (organicMaxScan, organicJitter, organicScratch).")
+    @Description("In caves, moves the object down until it rests on the carved floor at its authored size, seating on the stem or trunk when the bottom layer has one. Gaps of up to 8 blocks under rock and soil bottoms are closed with rock, longer drops get a short ragged root, and ore, mushroom, log and leaf blocks are never repeated. A placement with no floor in reach is dropped. Outside caves it extends the bottom block toward solid ground. Tune with stilt-settings (organicMaxScan, organicJitter, organicScratch).")
 
     ORGANIC_STILT(() -> new PlacementModuleStilt(PlacementModuleStilt.Mode.ORGANIC,  false)),
 
-    @Description("Hangs the object upside-down from a cave ceiling. The object is flipped vertically (its tip points down like a stalactite) and its top is anchored to the ceiling, while an organic, noise-varied stilt grows up into the ceiling so it never floats below the roof. Use inside caves; tune with stilt-settings (organicMaxScan, organicJitter, organicScratch).")
+    @Description("Hangs the object upside-down from a cave ceiling. The object is flipped vertically (its tip points down like a stalactite) and moved up until it touches the carved roof. Gaps follow the same rock rules as ORGANIC_STILT, and a placement with no roof in reach is dropped. Use inside caves; tune with stilt-settings (organicMaxScan, organicJitter, organicScratch).")
 
     CEILING_HANG(() -> new PlacementModuleStilt(PlacementModuleStilt.Mode.CEILING, false)),
 

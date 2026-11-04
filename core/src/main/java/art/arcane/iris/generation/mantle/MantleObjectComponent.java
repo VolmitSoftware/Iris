@@ -84,7 +84,7 @@ import java.util.function.BiConsumer;
 public class MantleObjectComponent extends IrisMantleComponent {
     private static final long CAVE_REJECT_LOG_THROTTLE_MS = 5000L;
     private static final int BEDROCK_CLEARANCE = 6;
-    private static final byte LIQUID_FORCED_AIR = 3;
+    static final byte LIQUID_FORCED_AIR = 3;
     private static final Map<String, CaveRejectLogState> CAVE_REJECT_LOG_STATE = new ConcurrentHashMap<>();
     private static final Set<String> MISSING_LOAD_KEY_WARNED = ConcurrentHashMap.newKeySet();
     private static final long SOURCE_PLAN_STATS_INTERVAL_MS = 30_000L;

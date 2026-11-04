@@ -142,18 +142,20 @@ public final class TidalReachProbe {
             long[] riverWalls = new long[HISTOGRAM];
             List<BufferedImage> crops = new ArrayList<>();
             try (PrintWriter writer = new PrintWriter(new File(out, "arms-" + seed + ".tsv"))) {
-                writer.println("seed\tid\tmouthX\tmouthZ\theadX\theadZ\tlength\tsinuosity\tstraight\tturn\tmouthHalf\theadHalf\tbesideShare\twet\tdisconnected\toverlap\tlowerDry\tcut\tseamHead\tseamTerrain\tedgeP90\tedge4\twallP90\twall8\tslotRun\theadRise8\theadSteep");
+                writer.println("seed\tid\tmouthX\tmouthZ\theadX\theadZ\tlength\tsinuosity\tstraight\tturn\tmouthHalf\theadHalf\tbesideShare\twet\tdisconnected\toverlap\tlowerDry\tcut\tseamHead\tseamTerrain\tedgeP90\tedge4\twallP90\twall8\tslotRun\theadRise8\theadSteep\theadWall16\theadWall24\theadWallTall\tmaxBoundary\tboundary8");
                 for (Reach arm : arms) {
                     ArmStats stats = armStats(arm, columns, armEdges, armWalls);
                     int last = arm.xs().length - 1;
-                    writer.printf(Locale.ROOT, "%d\t%d\t%.0f\t%.0f\t%.0f\t%.0f\t%.1f\t%.3f\t%.0f\t%.1f\t%.2f\t%.2f\t%.3f\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%.0f\t%.3f\t%.0f\t%.3f\t%.0f\t%d\t%.0f%n", seed, arm.id(), arm.xs()[last], arm.zs()[last],
+                    writer.printf(Locale.ROOT, "%d\t%d\t%.0f\t%.0f\t%.0f\t%.0f\t%.1f\t%.3f\t%.0f\t%.1f\t%.2f\t%.2f\t%.3f\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%.0f\t%.3f\t%.0f\t%.3f\t%.0f\t%d\t%.0f\t%d\t%d\t%d\t%d\t%d%n", seed, arm.id(), arm.xs()[last], arm.zs()[last],
                             arm.xs()[0], arm.zs()[0], TidalReachMetrics.length(arm.xs(), arm.zs()), TidalReachMetrics.sinuosity(arm.xs(), arm.zs()),
                             TidalReachMetrics.straightRun(arm.xs(), arm.zs()), TidalReachMetrics.sharpestTurn(arm.xs(), arm.zs()), stats.mouthHalf, stats.headHalf,
-                            stats.besideShare, stats.wet, stats.disconnected, stats.overlap, stats.lowerDry, stats.cut, stats.seamHead, stats.seamTerrain, stats.edgeP90, stats.edge4, stats.wallP90, stats.wall8, stats.slotRun, stats.headRise8, stats.headSteep);
+                            stats.besideShare, stats.wet, stats.disconnected, stats.overlap, stats.lowerDry, stats.cut, stats.seamHead, stats.seamTerrain, stats.edgeP90, stats.edge4, stats.wallP90, stats.wall8, stats.slotRun, stats.headRise8, stats.headSteep, stats.headWall16, stats.headWall24, stats.headWallTall, stats.maxBoundary, stats.boundary8);
                     crops.add(crop(arm, columns));
                 }
             }
-            try (PrintWriter writer = new PrintWriter(new File(out, "rivers-" + seed + ".tsv"))) {
+            try (PrintWriter writer = new PrintWriter(new File(out, "rivers-" + seed + ".tsv"));
+                 PrintWriter boundaries = new PrintWriter(new File(out, "river-boundary-" + seed + ".tsv"))) {
+                boundaries.println("seed\tid\tmaxBoundary\tboundary8");
                 writer.println("seed\tid\ttier\tlength\tsinuosity\tstraight\tturn");
                 int measured = 0;
                 for (Reach river : rivers) {
@@ -166,6 +168,9 @@ public final class TidalReachProbe {
                     if (measured++ < 40) {
                         edges(river, columns, riverEdges);
                         walls(river, columns, riverWalls, BAND_MEASURE);
+                        ArmStats riverStats = new ArmStats();
+                        boundary(river, columns, box(river, 40), riverStats);
+                        boundaries.println(seed + "\t" + river.id() + "\t" + riverStats.maxBoundary + "\t" + riverStats.boundary8);
                     }
                 }
             }
@@ -252,6 +257,11 @@ public final class TidalReachProbe {
         private double slotRun;
         private int headRise8;
         private double headSteep;
+        private int headWall16;
+        private int headWall24;
+        private int headWallTall;
+        private int maxBoundary;
+        private int boundary8;
     }
 
     private static int[] box(Reach reach, int grow) {
@@ -389,7 +399,61 @@ public final class TidalReachProbe {
         int[] forward = profile(columns, headX, headZ, (headX - arm.xs()[ahead]) / span, (headZ - arm.zs()[ahead]) / span, arm.halfWidth()[0], 32);
         stats.headRise8 = forward[Math.min(8, forward.length - 1)] - columns.sea;
         stats.headSteep = TidalReachMetrics.steepestRise(forward, 4);
+        headWalls(arm, columns, stats);
+        boundary(arm, columns, box, stats);
         return stats;
+    }
+
+    private static void headWalls(Reach arm, Columns columns, ArmStats stats) {
+        double headX = arm.xs()[0];
+        double headZ = arm.zs()[0];
+        int ahead = Math.min(arm.xs().length - 1, 8);
+        double span = Math.max(1e-3D, Math.hypot(headX - arm.xs()[ahead], headZ - arm.zs()[ahead]));
+        double tx = (headX - arm.xs()[ahead]) / span;
+        double tz = (headZ - arm.zs()[ahead]) / span;
+        int rays = 13;
+        int[] within16 = new int[rays];
+        int[] within24 = new int[rays];
+        for (int ray = 0; ray < rays; ray++) {
+            double angle = Math.toRadians(-90D + 15D * ray);
+            double dx = tx * Math.cos(angle) - tz * Math.sin(angle);
+            double dz = tx * Math.sin(angle) + tz * Math.cos(angle);
+            int[] heights = new int[28];
+            for (int out = 0; out < heights.length; out++) {
+                double reach = arm.halfWidth()[0] + out + 1D;
+                heights[out] = columns.height((int) Math.floor(headX + dx * reach), (int) Math.floor(headZ + dz * reach));
+                if (out >= 4) {
+                    int rise = heights[out] - heights[out - 4];
+                    within24[ray] = Math.max(within24[ray], rise);
+                    within16[ray] = out <= 16 ? Math.max(within16[ray], rise) : within16[ray];
+                }
+            }
+        }
+        stats.headWall16 = TidalReachMetrics.adjacentRaysAtLeast(within16, 16) ? 1 : 0;
+        stats.headWall24 = TidalReachMetrics.adjacentRaysAtLeast(within24, 16) ? 1 : 0;
+        stats.headWallTall = TidalReachMetrics.adjacentRaysAtLeast(within24, 24) ? 1 : 0;
+    }
+
+    private static void boundary(Reach arm, Columns columns, int[] box, ArmStats stats) {
+        for (int z = box[1]; z <= box[3]; z++) {
+            for (int x = box[0]; x <= box[2]; x++) {
+                WaterRole role = columns.role(x, z);
+                if (columns.feature(x, z) != arm.id() || role != WaterRole.BANK && role != WaterRole.SHORE) {
+                    continue;
+                }
+                for (int[] side : SIDES) {
+                    int nx = x + side[0];
+                    int nz = z + side[1];
+                    long other = columns.feature(nx, nz);
+                    if (other == arm.id()) {
+                        continue;
+                    }
+                    int added = Math.abs(columns.height(x, z) - columns.height(nx, nz)) - Math.abs(columns.natural(x, z) - columns.natural(nx, nz));
+                    stats.maxBoundary = Math.max(stats.maxBoundary, added);
+                    stats.boundary8 += added >= 8 ? 1 : 0;
+                }
+            }
+        }
     }
 
     private static int[] profile(Columns columns, double x, double z, double nx, double nz, double half, int length) {
@@ -939,12 +1003,10 @@ public final class TidalReachProbe {
             failures += first.equals(again) ? 0 : 1;
             failures += first.equals(threaded) ? 0 : 1;
             failures += first.equals(reversed) ? 0 : 1;
-            long viewFailures = 0L;
-            failures += viewFailures;
             try (PrintWriter writer = new PrintWriter(new File(out, "digest-" + target.seed() + ".tsv"))) {
-                writer.println(target.seed() + "\t" + first + "\t" + again + "\t" + threaded + "\t" + reversed + "\t" + viewFailures);
+                writer.println(target.seed() + "\t" + first + "\t" + again + "\t" + threaded + "\t" + reversed);
             }
-            System.out.println(LOG + " seed " + target.seed() + " digest " + first + " repeat " + again + " threads " + threaded + " reversed " + reversed + " viewFailures " + viewFailures);
+            System.out.println(LOG + " seed " + target.seed() + " digest " + first + " repeat " + again + " threads " + threaded + " reversed " + reversed);
         }
         return failures;
     }

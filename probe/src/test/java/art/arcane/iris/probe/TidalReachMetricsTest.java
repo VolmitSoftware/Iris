@@ -59,4 +59,10 @@ public class TidalReachMetricsTest {
         assertEquals(30D, TidalReachMetrics.steepestRise(new int[]{0, 0, 30, 30, 30, 30, 30}, 4), 0D);
         assertEquals(4D, TidalReachMetrics.steepestRise(new int[]{0, 1, 2, 3, 4, 5, 6}, 4), 0D);
     }
+
+    @Test
+    public void headWallNeedsTwoAdjacentRays() {
+        assertTrue(TidalReachMetrics.adjacentRaysAtLeast(new int[]{0, 16, 20, 0}, 16));
+        assertTrue(!TidalReachMetrics.adjacentRaysAtLeast(new int[]{16, 0, 20, 0}, 16));
+    }
 }

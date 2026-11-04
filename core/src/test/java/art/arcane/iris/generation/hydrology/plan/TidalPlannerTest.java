@@ -199,6 +199,45 @@ public class TidalPlannerTest {
     }
 
     @Test
+    public void armsTooShortToStopBeforeAWallAreLeftOut() {
+        SyntheticTerrain wall = SyntheticTerrain.lowCoast(COAST_X).rising(COAST_X + 60D, 8D);
+        for (Reach arm : arms(planner(settings(), wall))) {
+            assertTrue(arm + " ends against the wall", arm.xs()[0] + arm.halfWidth()[0] + 16f <= COAST_X + 60D);
+        }
+    }
+
+    @Test
+    public void armsLeaveTheBandOfACliffRunningBesideThem() {
+        HydrologySettings settings = settings();
+        SyntheticTerrain coast = SyntheticTerrain.lowCoast(COAST_X);
+        Reach free = arms(planner(settings, coast)).get(0);
+        float middleZ = free.zs()[free.zs().length / 2];
+        float cliffZ = middleZ + 16f;
+        for (Reach arm : arms(planner(settings, coast.steppedAbove(cliffZ, 20D)))) {
+            for (int point = 0; point < arm.xs().length; point++) {
+                float apart = Math.abs(cliffZ - arm.zs()[point]) - arm.halfWidth()[point];
+                assertTrue(arm + " runs " + apart + " from the cliff at point " + point + ", x " + arm.xs()[point],
+                        arm.xs()[point] < COAST_X + 8f || apart >= settings.underground().seaInlets().bankBand() / 2f);
+            }
+        }
+    }
+
+    @Test
+    public void territoriesKeepCloseMouthsApart() {
+        IrisHydrology dense = new IrisHydrology();
+        dense.getUnderground().getSeaInlets().setSpacing(48).setMouthHalfWidth(new KList<>(3D, 4D)).setHeadHalfWidth(new KList<>(1D, 1.5D)).setMeanderWidth(1D);
+        HydrologySettings settings = settings(dense);
+        List<Reach> arms = arms(planner(settings, SyntheticTerrain.lowCoast(COAST_X)));
+        assertFalse(arms.isEmpty());
+        for (int a = 0; a < arms.size(); a++) {
+            for (int b = a + 1; b < arms.size(); b++) {
+                double apart = Math.hypot(arms.get(a).zs()[last(arms.get(a))] - arms.get(b).zs()[last(arms.get(b))], arms.get(a).xs()[last(arms.get(a))] - arms.get(b).xs()[last(arms.get(b))]);
+                assertTrue("mouths " + apart + " apart", apart >= 13D);
+            }
+        }
+    }
+
+    @Test
     public void groundBelowTheSeaBesideAnArmCutsTheArmOffAtIt() {
         SyntheticTerrain plain = SyntheticTerrain.lowCoast(COAST_X);
         List<Reach> clean = arms(planner(settings(), plain));

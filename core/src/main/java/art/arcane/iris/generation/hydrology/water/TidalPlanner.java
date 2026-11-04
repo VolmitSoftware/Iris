@@ -50,16 +50,14 @@ public final class TidalPlanner {
     private static final float FAR_BANK_SHARE = 1.5f;
     private static final float HEAD_LOOK_BACK = 16f;
     private static final float TERRITORY_MARGIN = 8f;
-    private static final float MOUTH_MARGIN = 18f;
     private static final int PROFILE_STEP = 4;
     private static final float CLIFF_RISE = 14f;
     private static final float WANDER = 12f;
     private static final float WANDER_CELLS = 5f;
     private static final float WAVES_PER_LENGTH = 0.5f;
     private static final float WAVELENGTH_WIDTHS = 24f;
-    private static final double MEANDER_SCALE = 3.5D;
+    private static final double MEANDER_SCALE = 4.5D;
     private static final long SALT_WANDER = 0x5449444c574eL;
-    private static final long SALT_RANK = 0x5449444c524bL;
     private static final long SALT_ID = 0x5449444c4944L;
     private static final long SALT_SITE = 0x5449444c53L;
     private static final long SALT_DENSITY = 0x5449444c444eL;
@@ -79,7 +77,6 @@ public final class TidalPlanner {
     private final long seed;
     private final float gradedHeight;
     private final float territory;
-    private final float mouthSpacing;
     private final Map<Long, Anchor> anchors = new LinkedHashMap<>(MEMO_SITES, 0.75f, true) {
         @Override
         protected boolean removeEldestEntry(Map.Entry<Long, Anchor> eldest) {
@@ -95,7 +92,6 @@ public final class TidalPlanner {
         this.seed = settings.seed();
         this.gradedHeight = Math.min(config.maximumBankHeight(), MAX_BANK_SLOPE * config.bankBand() / SMOOTH_STEEPEST);
         this.territory = config.mouthHalfWidth().max() + config.headHalfWidth().max() + TERRITORY_MARGIN;
-        this.mouthSpacing = 2f * config.mouthHalfWidth().max() + MOUTH_MARGIN;
     }
 
     public List<Reach> plan(WindowKey window, DemGrid natural, HydrologySampleBuffer samples, ShapedNetwork network) {
@@ -116,9 +112,6 @@ public final class TidalPlanner {
         List<Reach> planned = new ArrayList<>();
         for (Anchor anchor : own) {
             List<Anchor> rivals = rivals(anchor);
-            if (suppressed(anchor, rivals)) {
-                continue;
-            }
             Reach reach = site(window, land, coast, wet, anchor, rivals, fitter, network);
             if (reach != null) {
                 requireWithinReach(window, reach);
@@ -168,7 +161,7 @@ public final class TidalPlanner {
         double targetZ = (siteZ + CellHash.unit(CellHash.mix(seed, SALT_TARGET_Z, siteX, siteZ))) * spacing;
         WindowKey owner = WindowKey.containing((int) Math.floor(targetX), (int) Math.floor(targetZ));
         if (settings.density() < 1f && CellHash.unit(CellHash.mix(seed, SALT_DENSITY, siteX, siteZ)) >= settings.density()) {
-            return new Anchor(siteX, siteZ, owner, targetX, targetZ, false, 0, 0, 0L);
+            return new Anchor(siteX, siteZ, owner, targetX, targetZ, false, 0, 0);
         }
         int firstX = Math.ceilDiv(siteX * spacing, CELL) * CELL;
         int firstZ = Math.ceilDiv(siteZ * spacing, CELL) * CELL;
@@ -194,11 +187,11 @@ public final class TidalPlanner {
                 }
             }
         }
-        return new Anchor(siteX, siteZ, owner, targetX, targetZ, best != Double.POSITIVE_INFINITY, bestX, bestZ, CellHash.mix(seed, SALT_RANK, siteX, siteZ));
+        return new Anchor(siteX, siteZ, owner, targetX, targetZ, best != Double.POSITIVE_INFINITY, bestX, bestZ);
     }
 
     private List<Anchor> rivals(Anchor anchor) {
-        double reach = 2D * (config.length().max() + 2 * CELL) + mouthSpacing;
+        double reach = 2D * (config.length().max() + 2 * CELL) + territory;
         int spacing = config.spacing();
         int minSiteX = Math.floorDiv((int) Math.floor(anchor.x() - reach), spacing);
         int maxSiteX = Math.floorDiv((int) Math.ceil(anchor.x() + reach), spacing);
@@ -214,15 +207,6 @@ public final class TidalPlanner {
             }
         }
         return rivals;
-    }
-
-    private boolean suppressed(Anchor anchor, List<Anchor> rivals) {
-        for (Anchor rival : rivals) {
-            if (rival.rank() < anchor.rank() && Math.hypot(rival.x() - anchor.x(), rival.z() - anchor.z()) < mouthSpacing) {
-                return true;
-            }
-        }
-        return false;
     }
 
     private boolean inTerritory(Anchor anchor, List<Anchor> rivals, double x, double z) {
@@ -525,10 +509,11 @@ public final class TidalPlanner {
         float[] xs = draft.xs;
         float[] zs = draft.zs;
         for (int pass = 0; pass < TRIM_PASSES; pass++) {
-            int head = Math.max(groundedHead(xs, zs, id, shape), Math.max(territoryHead(xs, zs, shape, anchor, rivals), clearHead(xs, zs, shape, network)));
-            if (head < 0) {
+            int grounded = groundedHead(xs, zs, id, shape);
+            if (grounded < 0) {
                 return null;
             }
+            int head = Math.max(grounded, Math.max(territoryHead(xs, zs, shape, anchor, rivals), clearHead(xs, zs, shape, network)));
             float[] distance = ReachShaper.distances(xs, zs);
             if (distance[distance.length - 1] - distance[head] < config.length().min()) {
                 return null;
@@ -803,6 +788,6 @@ public final class TidalPlanner {
     private record Land(DemGrid grid, HydrologySampleBuffer samples) {
     }
 
-    private record Anchor(int siteX, int siteZ, WindowKey owner, double targetX, double targetZ, boolean active, int x, int z, long rank) {
+    private record Anchor(int siteX, int siteZ, WindowKey owner, double targetX, double targetZ, boolean active, int x, int z) {
     }
 }

@@ -100,6 +100,15 @@ final class TidalReachMetrics {
         return steepest;
     }
 
+    static boolean adjacentRaysAtLeast(int[] rises, int rise) {
+        for (int ray = 0; ray + 1 < rises.length; ray++) {
+            if (rises[ray] >= rise && rises[ray + 1] >= rise) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     static double percentile(double[] values, double share) {
         if (values.length == 0) {
             return 0D;

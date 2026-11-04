@@ -63,6 +63,11 @@ final class SyntheticTerrain implements HydrologyTerrainSource {
         return new SyntheticTerrain((x, z) -> inner.applyAsDouble(x, z) + Math.max(0D, x - fromX) * slope, rainfall, streamsBlocked, pondsBlocked, land);
     }
 
+    SyntheticTerrain steppedAbove(double fromZ, double rise) {
+        DoubleBinaryOperator inner = natural;
+        return new SyntheticTerrain((x, z) -> inner.applyAsDouble(x, z) + (z >= fromZ ? rise : 0D), rainfall, streamsBlocked, pondsBlocked, land);
+    }
+
     SyntheticTerrain lowered(double depth) {
         DoubleBinaryOperator inner = natural;
         return new SyntheticTerrain((x, z) -> inner.applyAsDouble(x, z) - depth, rainfall, streamsBlocked, pondsBlocked, land);

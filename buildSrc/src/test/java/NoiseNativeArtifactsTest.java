@@ -107,7 +107,7 @@ public class NoiseNativeArtifactsTest {
         Files.write(prebuilt.resolve("windows-x86_64/volmlib_noise.dll"), windows);
         git(root, "init", "-q");
         git(root, "add", ".");
-        git(root, "-c", "user.name=test", "-c", "user.email=test@example.com", "commit", "-q", "-m", "natives");
+        git(root, "-c", "user.name=test", "-c", "user.email=test@example.com", "-c", "commit.gpgSign=false", "commit", "-q", "-m", "natives");
         return root;
     }
 

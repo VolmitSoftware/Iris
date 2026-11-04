@@ -2,8 +2,6 @@ package art.arcane.iris.generation.mantle;
 
 import art.arcane.iris.generation.hydrology.config.IrisHydrology;
 import art.arcane.iris.generation.hydrology.raster.ChunkWaterRaster;
-import art.arcane.iris.testsupport.TestPassage;
-import art.arcane.iris.generation.hydrology.underground.PassageRasterizer;
 import art.arcane.iris.testsupport.WaterScene;
 import art.arcane.volmlib.util.math.PowerOfTwoCoordinates;
 import org.junit.Test;
@@ -99,99 +97,6 @@ public class CaveCeilingMaskTest {
                 assertFalse(CaveCeilingMask.fill(chunkX, chunkZ, scene::raster, field, ceilings));
             }
         }
-    }
-
-    @Test
-    public void cavesStayOutOfPassageHeadroom() {
-        TestPassage passage = passage();
-        int[] bounds = passage.bounds();
-        long[] bands = new long[256];
-        int[] column = new int[2];
-        int covered = 0;
-        int around = 0;
-        for (int chunkZ = (bounds[1] >> 4) - 1; chunkZ <= (bounds[3] >> 4) + 1; chunkZ++) {
-            for (int chunkX = (bounds[0] >> 4) - 1; chunkX <= (bounds[2] >> 4) + 1; chunkX++) {
-                boolean masked = CaveCeilingMask.fillHeadroom(chunkX, chunkZ, List.of(passage), bands);
-                long[] headroom = masked ? bands : null;
-                boolean expectedMasked = false;
-                for (int lz = 0; lz < 16; lz++) {
-                    for (int lx = 0; lx < 16; lx++) {
-                        int x = (chunkX << 4) + lx;
-                        int z = (chunkZ << 4) + lz;
-                        int index = PowerOfTwoCoordinates.packLocal16(lx, lz);
-                        int top = highestRoofWithinTwo(passage, x, z);
-                        if (top == NO_ROOF) {
-                            for (int y = 0; y <= SEA + 64; y++) {
-                                assertFalse("caves stay possible at " + x + "," + y + "," + z + " away from the passage",
-                                        CaveCeilingMask.masked(null, headroom, index, y));
-                            }
-                            continue;
-                        }
-                        expectedMasked = true;
-                        for (int y = passage.waterLevel() + 1; y <= top; y++) {
-                            assertTrue("caves stay out of the passage headroom and roof at " + x + "," + y + "," + z,
-                                    CaveCeilingMask.masked(null, headroom, index, y));
-                        }
-                        assertFalse("the seal holds caves at the water level " + x + "," + z,
-                                CaveCeilingMask.masked(null, headroom, index, passage.waterLevel()));
-                        assertFalse("caves stay possible above the passage roof at " + x + "," + z,
-                                CaveCeilingMask.masked(null, headroom, index, top + 1));
-                        if (passage.column(x, z, column)) {
-                            covered++;
-                        } else {
-                            around++;
-                        }
-                    }
-                }
-                assertEquals("headroom flag for chunk " + chunkX + "," + chunkZ, expectedMasked, masked);
-            }
-        }
-        assertTrue("covered columns " + covered, covered > 300);
-        assertTrue("columns around the passage " + around, around > 100);
-        assertFalse(CaveCeilingMask.fillHeadroom(0, 0, List.of(), bands));
-    }
-
-    @Test
-    public void headroomJoinsTheWaterCeilings() {
-        int[] ceilings = new int[256];
-        Arrays.fill(ceilings, UNMASKED);
-        ceilings[3] = 40;
-        long[] bands = new long[256];
-        assertTrue(CaveCeilingMask.fillHeadroom(0, 0, List.of(passage()), bands));
-        int index = PowerOfTwoCoordinates.packLocal16(12, 6);
-        assertTrue(CaveCeilingMask.masked(ceilings, null, 3, 41));
-        assertFalse(CaveCeilingMask.masked(ceilings, null, 3, 40));
-        assertFalse(CaveCeilingMask.masked(ceilings, bands, index, SEA));
-        assertTrue(CaveCeilingMask.masked(ceilings, bands, index, SEA + 1));
-        assertFalse(CaveCeilingMask.masked(null, null, index, SEA + 1));
-    }
-
-    private static TestPassage passage() {
-        float[] xs = {-8f, 0f, 8f, 16f, 24f, 32f, 40f, 48f};
-        float[] zs = new float[xs.length];
-        float[] halfWidth = new float[xs.length];
-        int[] floor = new int[xs.length];
-        int[] ceiling = new int[xs.length];
-        for (int station = 0; station < xs.length; station++) {
-            zs[station] = 6f + (station % 2 == 0 ? 0f : 3f);
-            halfWidth[station] = 5f - station * 0.4f;
-            floor[station] = SEA - 2 - station % 3;
-            ceiling[station] = SEA + 4 + station % 4;
-        }
-        return new TestPassage(1L, xs, zs, halfWidth, SEA, floor, ceiling, 48, 6, 7);
-    }
-
-    private static int highestRoofWithinTwo(TestPassage passage, int x, int z) {
-        int top = NO_ROOF;
-        int[] column = new int[2];
-        for (int dz = -CaveCeilingMask.CONTAINMENT; dz <= CaveCeilingMask.CONTAINMENT; dz++) {
-            for (int dx = -CaveCeilingMask.CONTAINMENT; dx <= CaveCeilingMask.CONTAINMENT; dx++) {
-                if (passage.column(x + dx, z + dz, column)) {
-                    top = Math.max(top, column[1] + ROOF_CLEARANCE);
-                }
-            }
-        }
-        return top;
     }
 
     static WaterScene scene(IrisHydrology config) {

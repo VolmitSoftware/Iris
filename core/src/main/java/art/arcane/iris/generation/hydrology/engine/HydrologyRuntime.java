@@ -19,7 +19,6 @@ import art.arcane.iris.generation.hydrology.raster.ChannelFluids;
 import art.arcane.iris.generation.hydrology.raster.ChunkRasterizer;
 import art.arcane.iris.generation.hydrology.raster.ChunkWaterRaster;
 import art.arcane.iris.generation.hydrology.raster.NaturalHeights;
-import art.arcane.iris.generation.hydrology.underground.SealedPassage;
 import art.arcane.iris.generation.hydrology.water.HydrologyTier;
 import art.arcane.iris.generation.hydrology.water.Pond;
 import art.arcane.iris.generation.hydrology.water.Reach;
@@ -436,10 +435,6 @@ public final class HydrologyRuntime {
             throw new IllegalStateException("Hydrology is disabled, so it has no channel tiers.");
         }
         return HydrologyFeatureSearch.channelType(settings, tier);
-    }
-
-    public List<SealedPassage> passages(int chunkX, int chunkZ) {
-        return List.of();
     }
 
     public Set<HydrologyFeatureType> standingWaterTypes(int chunkX, int chunkZ, long featureId) {

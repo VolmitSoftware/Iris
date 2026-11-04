@@ -11,9 +11,6 @@ import art.arcane.iris.generation.hydrology.engine.HydrologyRuntime;
 import art.arcane.iris.generation.hydrology.plan.HydrologySettings;
 import art.arcane.iris.generation.hydrology.underground.CavePoolFiller;
 import art.arcane.iris.generation.hydrology.underground.CaveVoxel;
-import art.arcane.iris.testsupport.TestPassage;
-import art.arcane.iris.generation.hydrology.underground.PassageRasterizer;
-import art.arcane.iris.generation.hydrology.underground.SealedPassage;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.EnginePlatformHooks;
 import art.arcane.iris.generation.runtime.IrisComplex;
@@ -190,48 +187,6 @@ public class MantleCarvedTerrainTest {
     }
 
     @Test
-    public void passageSpaceFromEveryNeighbourChunkReadsAsForeignAndPoolsBesideItStayOutInEitherChunkOrder() {
-        Scene probe = passageScene();
-        MantleCarvedTerrain carved = probe.carved();
-        assertEquals("passage water", CaveVoxel.FOREIGN, carved.voxel(7, 28, 21));
-        assertEquals("passage air", CaveVoxel.FOREIGN, carved.voxel(10, 33, 21));
-        assertEquals("seal under the passage", CaveVoxel.FOREIGN, carved.voxel(10, 24, 21));
-        assertEquals("seal beside the passage", CaveVoxel.FOREIGN, carved.voxel(7, 25, 18));
-        assertEquals(CaveVoxel.SOLID, carved.voxel(7, 23, 18));
-        assertEquals(CaveVoxel.AIR, carved.voxel(7, 25, 17));
-        assertEquals(CaveVoxel.SOLID, carved.voxel(10, 34, 21));
-        assertEquals(CaveVoxel.SOLID, carved.voxel(10, 25, 26));
-
-        Map<Long, HydrologyCaveCell> forward = passageScene().generate(0, 1);
-        Map<Long, HydrologyCaveCell> reverse = passageScene().generate(1, 0);
-
-        assertEquals(forward, reverse);
-        int top = Integer.MIN_VALUE;
-        for (Map.Entry<Long, HydrologyCaveCell> entry : forward.entrySet()) {
-            if (entry.getValue().action() != HydrologyCaveAction.POOL_SOURCE) {
-                continue;
-            }
-            long cell = entry.getKey();
-            top = Math.max(top, cellY(cell));
-            for (int[] face : FACES) {
-                HydrologyCaveCell neighbour = forward.get(cell(cellX(cell) + face[0], cellY(cell) + face[1], cellZ(cell) + face[2]));
-                assertFalse("pool water at " + cellX(cell) + "," + cellY(cell) + "," + cellZ(cell) + " touches the passage",
-                        neighbour != null && HydrologyCaveCell.SEA_FLUID.equals(neighbour.fluidProfileKey()));
-            }
-        }
-        assertEquals("the pool stops one level below the passage seal its next level would reach", 24, top);
-        for (int y = 24; y <= 30; y++) {
-            assertPassage(forward, 7, y, 19, HydrologyCaveAction.SEAL_GUARD);
-        }
-        for (int y = 27; y <= 30; y++) {
-            assertPassage(forward, 7, y, 21, HydrologyCaveAction.WET_SOURCE);
-        }
-        for (int y = 31; y <= 33; y++) {
-            assertPassage(forward, 7, y, 21, HydrologyCaveAction.DRY_AIR);
-        }
-    }
-
-    @Test
     public void shallowPoolsUnderVolcanicSurfacesStayWater() {
         IrisBiome volcanoes = biome("tropical/volcanoes", 0, "lava");
         IrisRegion tropical = region("tropical", null);
@@ -379,35 +334,6 @@ public class MantleCarvedTerrainTest {
         return region;
     }
 
-    private static Scene passageScene() {
-        Scene scene = new Scene();
-        Matter[] room = scene.chunk(0, 0);
-        for (int x = 2; x <= 13; x++) {
-            for (int z = 4; z <= 15; z++) {
-                for (int y = 22; y <= 36; y++) {
-                    cavern(room, x, y, z, (byte) 0);
-                }
-            }
-        }
-        Matter[] channel = scene.chunk(0, 1);
-        for (int x = 6; x <= 8; x++) {
-            for (int z = 16; z <= 19; z++) {
-                for (int y = 25; y <= 30; y++) {
-                    cavern(channel, x, y, z, (byte) 0);
-                }
-            }
-        }
-        scene.passages.add(new TestPassage(77L, new float[]{40f, -8f}, new float[]{22f, 22f}, new float[]{2f, 2f}, 30, new int[]{26, 26},
-                new int[]{33, 33}, -8, 22, 2));
-        return scene;
-    }
-
-    private static void assertPassage(Map<Long, HydrologyCaveCell> written, int x, int y, int z, HydrologyCaveAction action) {
-        HydrologyCaveCell cell = written.get(cell(x, y, z));
-        assertTrue("passage " + action + " at " + x + "," + y + "," + z + " but found " + cell,
-                cell != null && cell.action() == action && HydrologyCaveCell.SEA_FLUID.equals(cell.fluidProfileKey()));
-    }
-
     private static long cell(int x, int y, int z) {
         return ((long) (x + 4096) << 40) | ((long) y << 20) | (z + 4096);
     }
@@ -451,7 +377,6 @@ public class MantleCarvedTerrainTest {
         private final MantleWriter writer = mock(MantleWriter.class);
         private final IrisComplex complex = mock(IrisComplex.class);
         private final Engine engine;
-        private final List<TestPassage> passages = new ArrayList<>();
         private final Map<Long, HydrologyCaveCell> cells = new HashMap<>();
 
         private Scene() {
@@ -487,7 +412,6 @@ public class MantleCarvedTerrainTest {
             when(complex.allowsMantleChunkWrite(anyInt(), anyInt())).thenReturn(true);
             HydrologyRuntime runtime = mock(HydrologyRuntime.class);
             when(runtime.caveFluidPolicies()).thenReturn(true);
-            when(runtime.passages(anyInt(), anyInt())).thenAnswer(invocation -> touching(invocation.getArgument(0), invocation.getArgument(1)));
             doAnswer(invocation -> {
                 cells.put(cell(invocation.getArgument(0), invocation.getArgument(1), invocation.getArgument(2)), invocation.getArgument(3));
                 return null;
@@ -505,27 +429,12 @@ public class MantleCarvedTerrainTest {
             return new MantleCarvedTerrain(writer, complex, engine, 0, 0);
         }
 
-        private List<SealedPassage> touching(int chunkX, int chunkZ) {
-            List<SealedPassage> touching = new ArrayList<>();
-            for (TestPassage passage : passages) {
-                if (PassageRasterizer.touches(passage, chunkX, chunkZ)) {
-                    touching.add(passage);
-                }
-            }
-            return touching;
-        }
-
         private Map<Long, HydrologyCaveCell> generate(int... chunkZs) {
             IrisHydrology config = new IrisHydrology().setEnabled(true);
             config.getFluids().add(new IrisFluidProfile().setName("lava").setPalette(new IrisMaterialPalette().qclear().qadd("minecraft:lava")));
             config.getUnderground().getCavePools().setDensity(8D).setFreeboard(new KList<>(0, 0));
             HydrologySettings settings = HydrologySettings.compile(config, SEED, 63, 0, 384);
-            PassageRasterizer rasterizer = new PassageRasterizer();
             for (int chunkZ : chunkZs) {
-                for (SealedPassage passage : complex.getHydrologyRuntime().passages(0, chunkZ)) {
-                    rasterizer.write(passage, 0, chunkZ, writer, HydrologyCaveCell.SEA_FLUID, PassageRasterizer.SubterrainFluid.NOWHERE,
-                            PassageRasterizer.HistoricalChunks.NONE);
-                }
                 new CavePoolFiller(settings, 0).fill(0, chunkZ, () -> new MantleCarvedTerrain(writer, complex, engine, 0, chunkZ), writer, SEED);
             }
             return cells;

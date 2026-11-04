@@ -7,8 +7,6 @@ import art.arcane.iris.generation.hydrology.config.IrisHydrology;
 import art.arcane.iris.generation.hydrology.engine.HydrologyRuntime;
 import art.arcane.iris.generation.hydrology.plan.HydrologySettings;
 import art.arcane.iris.generation.hydrology.raster.ChunkWaterRaster;
-import art.arcane.iris.testsupport.TestPassage;
-import art.arcane.iris.generation.hydrology.underground.PassageRasterizer;
 import art.arcane.iris.generation.mantle.EngineMantle;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.IrisComplex;
@@ -84,56 +82,6 @@ public class IrisCarveModifierSubterrainMaskTest {
             when(hydrology.raster(anyInt(), anyInt())).thenReturn(ChunkWaterRaster.PROVISIONAL);
             assertThrows(IllegalStateException.class, () -> reopened(modifier, planner, blockX, blockZ));
         }
-    }
-
-    @Test
-    public void preservedSubterrainStaysOutOfPassageHeadroom() {
-        IrisSubterrainFeature feature = new IrisSubterrainFeature().setId("room").setFamily(IrisSubterrainFamily.CENOTE)
-                .setProbability(1).setLength(64).setRadius(12).setHeight(24).setPillarSpacing(0).setFormationFraction(0)
-                .setWorldYRange(new IrisRange(-48, 60));
-        SubterrainPlanner planner = new SubterrainPlanner(new SubterrainPlanner.Options(List.of(feature), 83L, MINIMUM_Y, 128, (x, z) -> "region"));
-        SubterrainPlan plan = planner.plansForBounds(-512, -512, 512, 512).getFirst();
-        int blockX = plan.centerX() >> 4 << 4;
-        int blockZ = plan.centerZ() >> 4 << 4;
-        HydrologyRuntime hydrology = mock(HydrologyRuntime.class);
-        when(hydrology.raster(anyInt(), anyInt())).thenReturn(ChunkWaterRaster.EMPTY);
-        IrisCarveModifier modifier = modifier(planner, hydrology);
-        try (MockedStatic<B> blocks = mockStatic(B.class)) {
-            blocks.when(() -> B.getState(anyString())).thenReturn(mock(NativeBlockState.class));
-            List<int[]> open = reopenedCells(modifier, planner, blockX, blockZ);
-            int[] heights = open.stream().mapToInt(cell -> cell[1]).sorted().toArray();
-            int water = heights[heights.length / 4];
-            TestPassage passage = coveredPassage(blockX, blockZ + 8, water);
-            assertTrue("subterrain cells in the headroom before the passage " + inHeadroom(passage, open).size(), inHeadroom(passage, open).size() > 20);
-
-            when(hydrology.passages(anyInt(), anyInt())).thenAnswer(call -> PassageRasterizer.touches(passage, call.getArgument(0),
-                    call.getArgument(1)) ? List.of(passage) : List.of());
-            when(hydrology.settings()).thenReturn(HydrologySettings.compile(new IrisHydrology().setEnabled(true), 1L, 63, 0, 128));
-            List<int[]> sealed = reopenedCells(modifier, planner, blockX, blockZ);
-            assertTrue(sealed.size() > 0);
-            assertEquals("subterrain reopened cells in the passage headroom", List.of(), inHeadroom(passage, sealed));
-        }
-    }
-
-    private static List<String> inHeadroom(TestPassage passage, List<int[]> cells) {
-        List<String> inside = new ArrayList<>();
-        int[] column = new int[2];
-        for (int[] cell : cells) {
-            if (passage.column(cell[0], cell[2], column) && cell[1] > passage.waterLevel()
-                    && cell[1] <= column[1] + ROOF_CLEARANCE) {
-                inside.add(cell[0] + "," + cell[1] + "," + cell[2]);
-            }
-        }
-        return inside;
-    }
-
-    private static TestPassage coveredPassage(int startX, int z, int water) {
-        float[] xs = {startX - 4f, startX + 4f, startX + 12f, startX + 20f};
-        float[] zs = {z, z, z, z};
-        float[] halfWidth = {4f, 4f, 3.5f, 3f};
-        int[] floor = {water - 3, water - 3, water - 3, water - 3};
-        int[] ceiling = {water + 5, water + 5, water + 4, water + 4};
-        return new TestPassage(5L, xs, zs, halfWidth, water, floor, ceiling, startX + 20, z, 3);
     }
 
     @SuppressWarnings("unchecked")

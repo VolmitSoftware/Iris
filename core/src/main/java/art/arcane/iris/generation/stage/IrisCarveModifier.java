@@ -164,8 +164,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<NativeBlockState> 
                     getEngine().getWorld().minHeight(),
                     resolverState.complex,
                     subterrainPlanner == null ? null : subterrainPlanner.chunkSampler(x, z),
-                    subterrain ? caveCeilings(resolverState.complex, x, z) : null,
-                    subterrain ? passageHeadroom(resolverState.complex, x, z) : null
+                    subterrain ? caveCeilings(resolverState.complex, x, z) : null
             );
             CarveResolver carveResolver = new CarveResolver(resolutionContext);
             terrain.forEachCell(carveResolver::apply);
@@ -263,17 +262,16 @@ public class IrisCarveModifier extends EngineAssignedModifier<NativeBlockState> 
         int minimumY = getEngine().getWorld().minHeight();
         SubterrainSurfaceMaterials materials = subterrainMaterials(planner, blockX >> 4, blockZ >> 4);
         int[] caveCeilings = caveCeilings(getComplex(), blockX >> 4, blockZ >> 4);
-        long[] passageHeadroom = passageHeadroom(getComplex(), blockX >> 4, blockZ >> 4);
         MantleChunk<Matter> chunk = getEngine().getMantle().getMantle().useChunk(blockX >> 4, blockZ >> 4);
         try {
-            preserveSubterrain(planner, materials, caveCeilings, passageHeadroom, minimumY, blockX, blockZ, output,
+            preserveSubterrain(planner, materials, caveCeilings, minimumY, blockX, blockZ, output,
                     (worldX, y, worldZ) -> HydrologyCaveStorage.getIfPresent(chunk, worldX, y, worldZ));
         } finally {
             chunk.release();
         }
     }
 
-    private void preserveSubterrain(SubterrainPlanner planner, SubterrainSurfaceMaterials materials, int[] caveCeilings, long[] passageHeadroom,
+    private void preserveSubterrain(SubterrainPlanner planner, SubterrainSurfaceMaterials materials, int[] caveCeilings,
                                     int minimumY, int blockX, int blockZ, Hunk<NativeBlockState> output, HydrologyCells hydrology) {
         SubterrainRasterizer.rasterize(planner, blockX >> 4, blockZ >> 4, (worldX, worldY, worldZ, cell) -> {
             int y = worldY - minimumY;
@@ -282,7 +280,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<NativeBlockState> 
             }
             int x = worldX & 15;
             int z = worldZ & 15;
-            if (!cell.solid() && CaveCeilingMask.masked(caveCeilings, passageHeadroom, PowerOfTwoCoordinates.packLocal16(x, z), y)) {
+            if (!cell.solid() && caveCeilings != null && y > caveCeilings[PowerOfTwoCoordinates.packLocal16(x, z)]) {
                 return;
             }
             if (hydrology.at(worldX, y, worldZ) != null) {
@@ -308,10 +306,6 @@ public class IrisCarveModifier extends EngineAssignedModifier<NativeBlockState> 
         int[] ceilings = new int[256];
         return CaveCeilingMask.fill(chunkX, chunkZ, complex.getHydrologyRuntime()::raster,
                 new int[CaveCeilingMask.FIELD * CaveCeilingMask.FIELD], ceilings) ? ceilings : null;
-    }
-
-    private static long[] passageHeadroom(IrisComplex complex, int chunkX, int chunkZ) {
-        return CaveCeilingMask.headroom(chunkX, chunkZ, complex.getHydrologyRuntime(), new long[256]);
     }
 
     private void restoreSubterrainSolids(Hunk<NativeBlockState> output, int chunkX, int chunkZ, boolean preserveFloorSupports,
@@ -476,7 +470,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<NativeBlockState> 
             CarveOwnership.Owner owner = carveOwner(hydrology, feature,
                     context.terrainColumns() == null ? null : context.terrainColumns()[columnIndex], y);
             if (owner == CarveOwnership.Owner.SUBTERRAIN) {
-                if (!feature.solid() && CaveCeilingMask.masked(context.caveCeilings(), context.passageHeadroom(), columnIndex, y)) {
+                if (!feature.solid() && context.caveCeilings() != null && y > context.caveCeilings()[columnIndex]) {
                     return;
                 }
                 context.output().setRaw(localX, y, localZ, SubterrainRasterizer.state(feature));
@@ -566,8 +560,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<NativeBlockState> 
             int minimumY,
             IrisComplex complex,
             SubterrainPlanner.ChunkSampler subterrainSampler,
-            int[] caveCeilings,
-            long[] passageHeadroom
+            int[] caveCeilings
     ) {
     }
 

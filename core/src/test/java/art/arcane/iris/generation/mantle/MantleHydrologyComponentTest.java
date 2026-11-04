@@ -9,7 +9,6 @@ import art.arcane.iris.generation.hydrology.engine.HydrologyRuntime;
 import art.arcane.iris.generation.hydrology.plan.HydrologySettings;
 import art.arcane.iris.generation.hydrology.raster.ChunkWaterRaster;
 import art.arcane.iris.generation.hydrology.underground.CavePoolFiller;
-import art.arcane.iris.testsupport.TestPassage;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.subterrain.SubterrainCell;
@@ -260,75 +259,6 @@ public class MantleHydrologyComponentTest {
         when(closed.complex.allowsMantleChunkWrite(0, 0)).thenReturn(false);
         closed.generate();
         verifyNoInteractions(closed.writer, closed.runtime);
-    }
-
-    @Test
-    public void passagesAreWrittenEvenWhereNoSurfaceWaterFlows() {
-        Fixture dry = new Fixture(ChunkWaterRaster.EMPTY, (x, z) -> 99);
-        TestPassage passage = new TestPassage(5L, new float[]{-8f, 8f, 24f}, new float[]{8f, 8f, 8f}, new float[]{4f, 4f, 3f}, 63,
-                new int[]{60, 60, 59}, new int[]{90, 68, 67}, 24, 8, 6);
-        when(dry.runtime.passages(0, 0)).thenReturn(List.of(passage));
-        List<HydrologyCaveCell> written = new ArrayList<>();
-        List<Integer> heights = new ArrayList<>();
-        doAnswer(call -> {
-            written.add(call.getArgument(3));
-            heights.add(call.getArgument(1));
-            return null;
-        }).when(dry.writer).setData(anyInt(), anyInt(), anyInt(), any(HydrologyCaveCell.class));
-        dry.generate();
-        verify(dry.complex, never()).effectiveWaterHeads(anyInt(), anyInt(), any(), any());
-        int wet = 0;
-        for (int index = 0; index < written.size(); index++) {
-            HydrologyCaveCell cell = written.get(index);
-            assertEquals(HydrologyCaveCell.SEA_FLUID, cell.fluidProfileKey());
-            if (cell.action() == HydrologyCaveAction.WET_SOURCE) {
-                wet++;
-                assertTrue(heights.get(index) <= 63);
-            }
-        }
-        assertTrue("wet passage cells " + wet, wet > 100);
-    }
-
-    @Test
-    public void subterrainFluidBesidePassageAirIsSealedAboveSeaLevel() {
-        Fixture dry = new Fixture(ChunkWaterRaster.EMPTY, (x, z) -> 99);
-        TestPassage passage = new TestPassage(5L, new float[]{-8f, 8f, 24f}, new float[]{8f, 8f, 8f}, new float[]{4f, 4f, 3f}, 63,
-                new int[]{60, 60, 59}, new int[]{90, 68, 67}, 24, 8, 6);
-        when(dry.runtime.passages(0, 0)).thenReturn(List.of(passage));
-        SubterrainPlanner planner = mock(SubterrainPlanner.class);
-        List<SubterrainPlan> plans = List.of(mock(SubterrainPlan.class));
-        SubterrainCell water = new SubterrainCell(SubterrainCell.Kind.WATER, "", null);
-        when(planner.isEmpty()).thenReturn(false);
-        when(planner.plansForBounds(0, 0, 15, 15)).thenReturn(plans);
-        when(planner.sample(eq(plans), anyInt(), anyInt(), anyInt())).thenAnswer(call ->
-                (int) call.getArgument(2) == 69 + MINIMUM_Y ? water : SubterrainCell.OUTSIDE);
-        when(dry.complex.getSubterrainPlanner()).thenReturn(planner);
-        Engine engine = mock(Engine.class);
-        IrisWorld world = mock(IrisWorld.class);
-        when(dry.writer.getEngine()).thenReturn(engine);
-        when(engine.getWorld()).thenReturn(world);
-        when(world.minHeight()).thenReturn(MINIMUM_Y);
-        Map<Long, HydrologyCaveCell> cells = new HashMap<>();
-        doAnswer(call -> {
-            cells.put(cell(call.getArgument(0), call.getArgument(1), call.getArgument(2)), call.getArgument(3));
-            return null;
-        }).when(dry.writer).setData(anyInt(), anyInt(), anyInt(), any(HydrologyCaveCell.class));
-        when(dry.writer.getDataIfPresent(anyInt(), anyInt(), anyInt(), eq(HydrologyCaveCell.class))).thenAnswer(call ->
-                cells.get(cell(call.getArgument(0), call.getArgument(1), call.getArgument(2))));
-
-        dry.generate();
-
-        assertEquals("passage air keeps its cell", HydrologyCaveAction.DRY_AIR, cells.get(cell(4, 69, 8)).action());
-        assertEquals("subterrain water beside the passage", HydrologyCaveAction.SEAL_GUARD, cells.get(cell(8, 69, 13)).action());
-        assertEquals("subterrain water over the passage roof", HydrologyCaveAction.SEAL_GUARD, cells.get(cell(12, 69, 8)).action());
-        assertNull("subterrain water three blocks from the passage", cells.get(cell(8, 69, 15)));
-        assertNull("rock beside the passage above sea level", cells.get(cell(8, 70, 13)));
-        for (Map.Entry<Long, HydrologyCaveCell> entry : cells.entrySet()) {
-            int y = (int) ((entry.getKey() >>> 20) & 0xFFFFF);
-            if (y > 63 && entry.getValue().action() == HydrologyCaveAction.SEAL_GUARD) {
-                assertEquals(69, y);
-            }
-        }
     }
 
     @Test

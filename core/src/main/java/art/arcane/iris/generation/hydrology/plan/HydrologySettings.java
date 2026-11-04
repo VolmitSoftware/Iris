@@ -21,9 +21,8 @@ import art.arcane.iris.generation.hydrology.config.IrisPondDams;
 import art.arcane.iris.generation.hydrology.config.IrisPondNatural;
 import art.arcane.iris.generation.hydrology.config.IrisPondSeeded;
 import art.arcane.iris.generation.hydrology.config.IrisPondShore;
+import art.arcane.iris.generation.hydrology.config.IrisBankStyle;
 import art.arcane.iris.generation.hydrology.config.IrisSeaInlets;
-import art.arcane.iris.generation.hydrology.underground.SeaInletPlanner;
-import art.arcane.iris.generation.hydrology.underground.SeaInletRasterizer;
 import art.arcane.iris.generation.hydrology.raster.WaterHeads;
 import art.arcane.iris.generation.hydrology.water.HydrologyTier;
 import art.arcane.iris.generation.hydrology.water.LakeCandidate;
@@ -52,14 +51,26 @@ public final class HydrologySettings {
     private static final int MAX_DELTA_LENGTH = 384;
     public static final float MAX_HALF_WIDTH = 64f;
     public static final int DELTA_STEP = 2;
-    private static final double MIN_INLET_HALF_WIDTH = 1D;
-    private static final double MAX_INLET_HALF_WIDTH = 16D;
+    private static final int TIDAL_BASE_TIER = 1;
+    private static final String TIDAL_TIER_NAME = "tidal";
+    private static final double MIN_INLET_MOUTH = 2D;
+    private static final double MAX_INLET_MOUTH = 32D;
+    private static final double MIN_INLET_HEAD = 1D;
+    private static final double MAX_INLET_HEAD = 8D;
     private static final int MIN_INLET_DEPTH = 2;
     private static final int MAX_INLET_DEPTH = 16;
-    private static final int MAX_INLET_HEADROOM = 32;
-    private static final int MAX_INLET_CHAMBER = 32;
+    private static final int MIN_INLET_BANK_HEIGHT = 2;
+    private static final int MAX_INLET_BANK_HEIGHT = 128;
+    private static final double MIN_INLET_TAPER = 0.5D;
+    private static final double MAX_INLET_TAPER = 4D;
+    private static final double MAX_INLET_WIDTH_VARIATION = 0.5D;
+    private static final double MIN_INLET_MEANDER_WIDTH = 1D;
+    private static final double MAX_INLET_MEANDER_WIDTH = 16D;
+    private static final int MIN_INLET_BANK_BAND = 4;
+    private static final int MAX_INLET_BANK_BAND = 64;
     private static final int INLET_LAST_STEP = (int) Math.ceil(WindowPlanner.CELL * Math.sqrt(2D));
-    private static final int INLET_SHELL = SeaInletRasterizer.SHELL;
+    private static final double INLET_MEANDER_SCALE = 2.5D;
+    private static final double INLET_MEANDER_MAX = 16D;
     public static final int MAX_CAVE_POOL_RADIUS = 15;
     private static final int CAVE_POOL_SPAN = 2 * MAX_CAVE_POOL_RADIUS + 1;
     private static final int MAX_CAVE_POOL_AREA = CAVE_POOL_SPAN * CAVE_POOL_SPAN;
@@ -85,6 +96,7 @@ public final class HydrologySettings {
     private final Lakes lakes;
     private final Deformation deformation;
     private final Underground underground;
+    private final HydrologyTier tidalTier;
     private final Map<String, IrisMaterialPalette> fluids;
     private final Map<String, String> seams;
     private final int prefetchRings;
@@ -108,6 +120,7 @@ public final class HydrologySettings {
         this.lakes = lakes(config.getLakes());
         this.deformation = deformation(config.getDeformation());
         this.underground = underground(config.getUnderground());
+        this.tidalTier = tidalTier(tiers.get(Math.min(TIDAL_BASE_TIER, tiers.size() - 1)), underground.seaInlets());
         this.fluids = fluids(config.getFluids());
         this.seams = seams(config.getFluids());
         this.prefetchRings = config.getPrefetchRings();
@@ -127,6 +140,10 @@ public final class HydrologySettings {
 
     public List<HydrologyTier> tiers() {
         return tiers;
+    }
+
+    public HydrologyTier tidalTier() {
+        return tidalTier;
     }
 
     public HydrologyTier majorTier() {
@@ -205,6 +222,12 @@ public final class HydrologySettings {
 
     public boolean persist() {
         return persist;
+    }
+
+    private static HydrologyTier tidalTier(HydrologyTier base, SeaInlets inlets) {
+        return new HydrologyTier(TIDAL_TIER_NAME, base.minCatchment(), inlets.meanderWidth(), inlets.meanderWidth(), 0f, base.depthRatio(), 0, false,
+                base.waterfallMinimumDrop(), base.stepHeight(), inlets.bankBand(), inlets.bankStyle(), new HydrologyTier.Estuary(0, 1f),
+                new HydrologyTier.Delta(0, 0f, 0), base.materials(), base.fluid(), base.decorators());
     }
 
     private static Climate climate(IrisHydrologyClimate config) {
@@ -365,37 +388,47 @@ public final class HydrologySettings {
     }
 
     private SeaInlets seaInlets(IrisSeaInlets config) {
-        SeaInlets inlets = new SeaInlets(config.isEnabled(), config.getSpacing(), config.getMinimumCliffHeight(),
+        SeaInlets inlets = new SeaInlets(config.isEnabled(), config.getSpacing(),
                 intRange(config.getLength(), "underground.seaInlets.length", RangeFloor.POSITIVE),
-                floatRange(config.getHalfWidth(), "underground.seaInlets.halfWidth", RangeFloor.POSITIVE),
+                config.getMaximumBankHeight(),
+                floatRange(config.getMouthHalfWidth(), "underground.seaInlets.mouthHalfWidth", RangeFloor.POSITIVE),
+                floatRange(config.getHeadHalfWidth(), "underground.seaInlets.headHalfWidth", RangeFloor.POSITIVE),
+                (float) config.getTaper(), (float) config.getWidthVariation(), (float) config.getMeanderWidth(),
                 intRange(config.getDepth(), "underground.seaInlets.depth", RangeFloor.POSITIVE),
-                intRange(config.getHeadroom(), "underground.seaInlets.headroom", RangeFloor.NON_NEGATIVE),
-                config.getRoofClearance(),
-                intRange(config.getChamberRadius(), "underground.seaInlets.chamberRadius", RangeFloor.POSITIVE));
-        requireWithin(inlets.halfWidth().min(), MIN_INLET_HALF_WIDTH, MAX_INLET_HALF_WIDTH, "underground.seaInlets.halfWidth", config.getHalfWidth());
-        requireWithin(inlets.halfWidth().max(), MIN_INLET_HALF_WIDTH, MAX_INLET_HALF_WIDTH, "underground.seaInlets.halfWidth", config.getHalfWidth());
+                config.getBankBand(), Objects.requireNonNull(config.getBankStyle(), "Hydrology underground.seaInlets.bankStyle is missing"));
+        requireWithin(inlets.mouthHalfWidth().min(), MIN_INLET_MOUTH, MAX_INLET_MOUTH, "underground.seaInlets.mouthHalfWidth", config.getMouthHalfWidth());
+        requireWithin(inlets.mouthHalfWidth().max(), MIN_INLET_MOUTH, MAX_INLET_MOUTH, "underground.seaInlets.mouthHalfWidth", config.getMouthHalfWidth());
+        requireWithin(inlets.headHalfWidth().min(), MIN_INLET_HEAD, MAX_INLET_HEAD, "underground.seaInlets.headHalfWidth", config.getHeadHalfWidth());
+        requireWithin(inlets.headHalfWidth().max(), MIN_INLET_HEAD, MAX_INLET_HEAD, "underground.seaInlets.headHalfWidth", config.getHeadHalfWidth());
         requireWithin(inlets.depth().min(), MIN_INLET_DEPTH, MAX_INLET_DEPTH, "underground.seaInlets.depth", config.getDepth());
         requireWithin(inlets.depth().max(), MIN_INLET_DEPTH, MAX_INLET_DEPTH, "underground.seaInlets.depth", config.getDepth());
-        requireWithin(inlets.headroom().max(), 0, MAX_INLET_HEADROOM, "underground.seaInlets.headroom", config.getHeadroom());
-        requireWithin(inlets.chamberRadius().max(), 1, MAX_INLET_CHAMBER, "underground.seaInlets.chamberRadius", config.getChamberRadius());
-        if (inlets.enabled() && seaLevel > minY && seaLevel - inlets.depth().max() - INLET_SHELL - 1 <= minY) {
-            throw new IllegalArgumentException("Hydrology underground.seaInlets.depth max " + inlets.depth().max()
-                    + " puts the inlet floor and its seal below the world bottom " + minY + " (sea level " + seaLevel + ")");
+        requireWithin(inlets.maximumBankHeight(), MIN_INLET_BANK_HEIGHT, MAX_INLET_BANK_HEIGHT, "underground.seaInlets.maximumBankHeight");
+        requireScalarWithin(config.getTaper(), MIN_INLET_TAPER, MAX_INLET_TAPER, "underground.seaInlets.taper");
+        requireScalarWithin(config.getWidthVariation(), 0D, MAX_INLET_WIDTH_VARIATION, "underground.seaInlets.widthVariation");
+        requireScalarWithin(config.getMeanderWidth(), MIN_INLET_MEANDER_WIDTH, MAX_INLET_MEANDER_WIDTH, "underground.seaInlets.meanderWidth");
+        requireWithin(inlets.bankBand(), MIN_INLET_BANK_BAND, MAX_INLET_BANK_BAND, "underground.seaInlets.bankBand");
+        if (inlets.mouthHalfWidth().min() < inlets.headHalfWidth().max()) {
+            throw new IllegalArgumentException("Hydrology underground.seaInlets.mouthHalfWidth min " + inlets.mouthHalfWidth().min()
+                    + " must not be below headHalfWidth max " + inlets.headHalfWidth().max() + ": an inlet narrows inland");
         }
-        long extent = (long) inlets.length().max() + INLET_LAST_STEP + Math.max((long) Math.ceil(inlets.halfWidth().max()),
-                inlets.chamberRadius().max()) + 1L + INLET_SHELL;
+        if (inlets.enabled() && seaLevel > minY && seaLevel - inlets.depth().max() - 1 <= minY) {
+            throw new IllegalArgumentException("Hydrology underground.seaInlets.depth max " + inlets.depth().max()
+                    + " puts the inlet floor below the world bottom " + minY + " (sea level " + seaLevel + ")");
+        }
+        long meander = (long) Math.ceil(Math.min(INLET_MEANDER_MAX, INLET_MEANDER_SCALE * (inlets.meanderWidth() + 1f)));
+        long extent = (long) inlets.length().max() + INLET_LAST_STEP + meander + (long) Math.ceil(inlets.mouthHalfWidth().max()) + inlets.bankBand();
         if (extent > WindowKey.SIZE) {
             throw new IllegalArgumentException("Hydrology underground.seaInlets reach " + extent + " blocks from the coast (length max "
-                    + inlets.length().max() + " + " + INLET_LAST_STEP + " for the last step + the wider of halfWidth max and chamberRadius max"
-                    + " + " + (1 + INLET_SHELL) + " for the seal); an inlet must stay within " + WindowKey.SIZE + " blocks");
-        }
-        long lookups = SeaInletPlanner.lookupReach(inlets.length().max(), inlets.chamberRadius().max());
-        if (lookups > WindowKey.SIZE) {
-            throw new IllegalArgumentException("Hydrology underground.seaInlets planning looks " + lookups
-                    + " blocks from the coast (length max " + inlets.length().max() + ", chamberRadius max " + inlets.chamberRadius().max()
-                    + "); it must stay within " + WindowKey.SIZE + " blocks");
+                    + inlets.length().max() + " + " + INLET_LAST_STEP + " for the last step + " + meander + " for the meander + mouthHalfWidth max "
+                    + inlets.mouthHalfWidth().max() + " + bankBand " + inlets.bankBand() + "); an inlet must stay within " + WindowKey.SIZE + " blocks");
         }
         return inlets;
+    }
+
+    private static void requireScalarWithin(double value, double min, double max, String field) {
+        if (!Double.isFinite(value) || value < min || value > max) {
+            throw new IllegalArgumentException("Hydrology " + field + " must stay within " + min + ".." + max + ", got " + value);
+        }
     }
 
     private static void requireWithin(double value, double min, double max, String field, List<? extends Number> written) {
@@ -761,9 +794,9 @@ public final class HydrologySettings {
         SeaInlets inlets = underground.seaInlets();
         CavePools pools = underground.cavePools();
         CaveSprings springs = underground.caveSprings();
-        hash.add(inlets.enabled()).add(inlets.spacing()).add(inlets.minimumCliffHeight()).add(inlets.length())
-                .add(inlets.halfWidth()).add(inlets.depth()).add(inlets.headroom()).add(inlets.roofClearance())
-                .add(inlets.chamberRadius())
+        hash.add(inlets.enabled()).add(inlets.spacing()).add(inlets.length()).add(inlets.maximumBankHeight())
+                .add(inlets.mouthHalfWidth()).add(inlets.headHalfWidth()).add(inlets.taper()).add(inlets.widthVariation())
+                .add(inlets.meanderWidth()).add(inlets.depth()).add(inlets.bankBand()).add(inlets.bankStyle())
                 .add(pools.enabled()).add(pools.density()).add(pools.minArea()).add(pools.maxArea())
                 .add(pools.maxDepth()).add(pools.radius()).add(pools.freeboard()).add(pools.fluid())
                 .add(pools.deepFluid()).add(pools.deepFluidMaxY())
@@ -828,8 +861,9 @@ public final class HydrologySettings {
     public record Deformation(int maxFill, float bankSlope, float bankSteepFactor, float bankNoise, boolean caveMask) {
     }
 
-    public record SeaInlets(boolean enabled, int spacing, int minimumCliffHeight, IntRange length, FloatRange halfWidth,
-                            IntRange depth, IntRange headroom, int roofClearance, IntRange chamberRadius) {
+    public record SeaInlets(boolean enabled, int spacing, IntRange length, int maximumBankHeight, FloatRange mouthHalfWidth,
+                            FloatRange headHalfWidth, float taper, float widthVariation, float meanderWidth, IntRange depth, int bankBand,
+                            IrisBankStyle bankStyle) {
     }
 
     public record CavePools(boolean enabled, float density, int minArea, int maxArea, int maxDepth, int radius,

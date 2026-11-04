@@ -141,6 +141,22 @@ public class IrisTerrainNormalActuatorHydrologyTest {
     }
 
     @Test
+    public void shallowTidalBankCutsKeepTheBiomeSurfaceLayer() {
+        Painter cut = new Painter(WaterRole.BANK, 0);
+        when(cut.complex.naturalTrueHeight(11, -4)).thenReturn(GROUND + 3);
+        NativeBlockState stripped = cut.paint().get(0, GROUND, 0);
+        Painter tidal = new Painter(WaterRole.BANK, 0);
+        when(tidal.complex.naturalTrueHeight(11, -4)).thenReturn(GROUND + 3);
+        when(tidal.complex.isTidalBank(11, -4)).thenReturn(true);
+        assertSame("the shallow tidal cut is resurfaced", tidal.grass, tidal.paint().get(0, GROUND, 0));
+        assertSame("a river bank keeps its strata", cut.dirt, stripped);
+        Painter deep = new Painter(WaterRole.BANK, 0);
+        when(deep.complex.naturalTrueHeight(11, -4)).thenReturn(GROUND + 20);
+        when(deep.complex.isTidalBank(11, -4)).thenReturn(true);
+        assertSame("a deep tidal cut shows the strata", deep.dirt, deep.paint().get(0, GROUND, 0));
+    }
+
+    @Test
     public void openInletSlotsKeepLiquidWaterUnderOnlyTheTopSeaLayer() {
         Painter slot = new Painter(WaterRole.INLET, HEAD);
         when(slot.complex.naturalTrueHeight(11, -4)).thenReturn(GROUND);

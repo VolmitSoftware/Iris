@@ -56,7 +56,7 @@ public class IrisHydrology {
     @Description("How the ground around water is reshaped.")
     private IrisHydrologyDeformation deformation = new IrisHydrologyDeformation();
 
-    @Description("Water below the surface: flooded sea inlets and cave pools.")
+    @Description("Sea inlets on the coast, and pools and springs in caves.")
     private IrisHydrologyUnderground underground = new IrisHydrologyUnderground();
 
     @ArrayType(type = IrisFluidProfile.class, min = 1)

@@ -16,8 +16,6 @@ import art.arcane.iris.generation.hydrology.query.HydrologyFeatureRef;
 import art.arcane.iris.generation.hydrology.query.HydrologyFeatureType;
 import art.arcane.iris.generation.hydrology.raster.ChunkWaterRaster;
 import art.arcane.iris.generation.hydrology.raster.WaterRole;
-import art.arcane.iris.generation.hydrology.underground.SeaInlet;
-import art.arcane.iris.generation.hydrology.underground.SeaInletRasterizer;
 import art.arcane.iris.generation.hydrology.water.Pond;
 import art.arcane.iris.generation.hydrology.water.PondKind;
 import art.arcane.iris.generation.hydrology.water.PondMask;
@@ -331,48 +329,23 @@ public class HydrologyRuntimeTest {
     }
 
     @Test(timeout = 180_000L)
-    public void seaInletsReachChunksPastTheirOwnerAndFailClosedOnTheMainThread() throws Exception {
-        AtomicBoolean main = new AtomicBoolean(true);
+    public void seaInletsAreSearchedAndPreviewedAsTidalReaches() throws Exception {
         FakePlanners planners = new FakePlanners(settings());
-        HydrologyRuntime runtime = runtime(planners, main::get);
-
-        CountDownLatch gate = new CountDownLatch(1);
-        planners.gate = gate;
-        assertThrows(IllegalStateException.class, () -> runtime.inlets(68, 25));
-        gate.countDown();
-        main.set(false);
-        List<SeaInlet> tail = runtime.inlets(68, 25);
-        assertEquals(List.of(FakePlanners.inlet()), tail);
-        assertEquals(new WindowKey(2, 0), WindowKey.containing(68 << 4, 25 << 4));
-        assertEquals(tail, runtime.inlets(62, 25));
-        assertEquals(List.of(), runtime.inlets(75, 25));
-        assertEquals(List.of(), runtime.inlets(68, 30));
-        assertEquals(List.of(), runtime.inlets(0, 0));
-        main.set(true);
-        assertEquals(tail, runtime.inlets(68, 25));
-        main.set(false);
-
-        Map<Long, HydrologyCaveCell> written = new ConcurrentHashMap<>();
-        MantleWriter writer = mock(MantleWriter.class);
-        doAnswer(call -> {
-            HydrologyCaveCell cell = call.getArgument(3);
-            int x = call.getArgument(0);
-            assertEquals(68, x >> 4);
-            written.put(((long) x << 40) ^ ((long) (int) call.getArgument(2) << 20) ^ (int) call.getArgument(1), cell);
-            return null;
-        }).when(writer).setData(anyInt(), anyInt(), anyInt(), any(HydrologyCaveCell.class));
-        new SeaInletRasterizer().write(tail.getFirst(), 68, 25, writer, HydrologyCaveCell.SEA_FLUID, SeaInletRasterizer.SubterrainFluid.NOWHERE,
-                SeaInletRasterizer.HistoricalChunks.NONE);
-        assertTrue("the chunk past the owner window writes inlet water",
-                written.values().stream().anyMatch(cell -> cell.action() == HydrologyCaveAction.WET_SOURCE));
-
+        HydrologyRuntime runtime = runtime(planners, () -> false);
         HydrologyFeatureRef nearest = runtime.nearestFeature(1050, 405, HydrologyFeatureQuery.of(HydrologyFeatureType.SEA_INLET), 512, ANY,
                 RUNNING).orElseThrow();
         assertEquals(new HydrologyFeatureRef(INLET, HydrologyFeatureType.SEA_INLET, 1048, 40, 400), nearest);
+        HydrologyFeatureRef fromInland = runtime.nearestFeature(960, 400, HydrologyFeatureQuery.of(HydrologyFeatureType.SEA_INLET), 512, ANY,
+                RUNNING).orElseThrow();
+        assertEquals("a search lands in the half of the arm toward the sea", new HydrologyFeatureRef(INLET, HydrologyFeatureType.SEA_INLET, 1040, 40, 400), fromInland);
+        HydrologyFeatureRef fromTheSea = runtime.nearestFeature(1200, 400, HydrologyFeatureQuery.of(HydrologyFeatureType.SEA_INLET), 512, ANY,
+                RUNNING).orElseThrow();
+        assertEquals("a search lands short of the open sea", new HydrologyFeatureRef(INLET, HydrologyFeatureType.SEA_INLET, 1072, 40, 400), fromTheSea);
+        assertEquals("a tidal reach is not a river mouth", Optional.empty(),
+                runtime.nearestFeature(1050, 405, HydrologyFeatureQuery.of(HydrologyFeatureType.MOUTH), 128, ANY, RUNNING));
         assertEquals(Optional.empty(),
                 runtime.nearestFeature(0, 0, HydrologyFeatureQuery.of(HydrologyFeatureType.SEA_INLET), 64, ANY, RUNNING));
-        assertEquals(List.of(FakePlanners.inlet()), runtime.planPreview(900, 300, 1100, 500).inlets());
-        assertEquals(List.of(), FakeHydrology.disabled().inlets(0, 0));
+        assertEquals(List.of(INLET), runtime.planPreview(900, 300, 1100, 500).reaches().stream().map(Reach::id).filter(id -> id == INLET).toList());
     }
 
     @Test(timeout = 180_000L)
@@ -548,7 +521,7 @@ public class HydrologyRuntimeTest {
         }
         assertTrue("a released cap admits new previews", preview.complete());
         assertEquals(2, preview.ponds().size());
-        assertEquals(1, preview.reaches().size());
+        assertEquals(2, preview.reaches().size());
     }
 
     @Test(timeout = 180_000L)
@@ -1306,15 +1279,15 @@ public class HydrologyRuntimeTest {
                     throw new IllegalStateException("window planner exploded");
                 }
                 return new WindowPlan(key, List.of(river()), List.of(pond(POND, PondKind.NATURAL, 70, 2, 2, 8),
-                        pond(POND + 1, PondKind.SEEDED, 70, 296, 296, 3)), List.of());
+                        pond(POND + 1, PondKind.SEEDED, 70, 296, 296, 3)));
             }
             if (key.equals(new WindowKey(1, 0))) {
-                return new WindowPlan(key, List.of(), List.of(), List.of(inlet()));
+                return new WindowPlan(key, List.of(tidal()), List.of());
             }
             if (key.equals(new WindowKey(3, 0))) {
-                return new WindowPlan(key, List.of(), List.of(pond(FAR_POND, PondKind.NATURAL, 75, 1700, 100, 3)), List.of());
+                return new WindowPlan(key, List.of(), List.of(pond(FAR_POND, PondKind.NATURAL, 75, 1700, 100, 3)));
             }
-            return new WindowPlan(key, List.of(), List.of(), List.of());
+            return new WindowPlan(key, List.of(), List.of());
         }
 
         private void pass() {
@@ -1335,21 +1308,23 @@ public class HydrologyRuntimeTest {
             }
         }
 
-        private static SeaInlet inlet() {
-            int stations = 13;
-            float[] xs = new float[stations];
-            float[] zs = new float[stations];
-            float[] halfWidth = new float[stations];
-            int[] floor = new int[stations];
-            int[] ceiling = new int[stations];
-            for (int station = 0; station < stations; station++) {
-                xs[station] = 992f + station * 8f;
-                zs[station] = 400f;
-                halfWidth[station] = 3f;
-                floor[station] = 37;
-                ceiling[station] = 45;
+        private Reach tidal() {
+            int points = 13;
+            float[] xs = new float[points];
+            float[] zs = new float[points];
+            int[] grade = new int[points];
+            float[] halfWidth = new float[points];
+            float[] depth = new float[points];
+            ReachStyle[] style = new ReachStyle[points];
+            for (int point = 0; point < points; point++) {
+                xs[point] = 992f + point * 8f;
+                zs[point] = 400f;
+                grade[point] = 40;
+                halfWidth[point] = 3f;
+                depth[point] = 3f;
+                style[point] = ReachStyle.TIDAL;
             }
-            return new SeaInlet(INLET, xs, zs, halfWidth, 40, floor, ceiling, 1088, 400, 6);
+            return new Reach(INLET, settings.tidalTier(), 0L, xs, zs, grade, halfWidth, depth, style, 0f);
         }
 
         private Reach river() {

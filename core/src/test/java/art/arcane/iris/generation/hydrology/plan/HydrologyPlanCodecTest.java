@@ -4,7 +4,6 @@ import art.arcane.iris.generation.hydrology.config.IrisBankStyle;
 import art.arcane.iris.generation.hydrology.config.IrisHydrology;
 import art.arcane.iris.generation.hydrology.config.IrisHydrologyMaterials;
 import art.arcane.iris.generation.hydrology.grid.HeightLattice;
-import art.arcane.iris.generation.hydrology.underground.SeaInlet;
 import art.arcane.iris.generation.hydrology.water.HydrologyTier;
 import art.arcane.iris.generation.hydrology.water.Pond;
 import art.arcane.iris.generation.hydrology.water.PondKind;
@@ -47,7 +46,7 @@ public class HydrologyPlanCodecTest {
             0577617465720000001c000000060000000000000007020000004400000040ffffffec0000001042898000fffffffc00
             00000800000004000000000000000000000000000000000000002900000002000000046c617661ffffffea0000000e00
             0000000000000803000000500000003c00000040ffffffc042a10000fffffffc00000008000000040000000000000000
-            00000000ffffffffffffffff00000000ffffffff0000003cffffffc400000000
+            00000000ffffffffffffffff00000000ffffffff0000003cffffffc4
             """;
 
     @Test
@@ -60,7 +59,7 @@ public class HydrologyPlanCodecTest {
                 new int[]{Integer.MIN_VALUE, -64, 0, 63, 319, Integer.MAX_VALUE},
                 new float[]{0.5f, 1f, 2.75f, NAN_PAYLOAD, 12f, 0f},
                 new float[]{1f, Float.POSITIVE_INFINITY, 0.4f, 1e-42f, -0f, 3f},
-                ReachStyle.values(), NEGATIVE_NAN);
+                Arrays.copyOf(ReachStyle.values(), 6), NEGATIVE_NAN);
         Reach plain = new Reach(77L, tiers.get(0), -9_000_000_000L, new float[]{10f, 11.5f}, new float[]{-3f, -2.5f}, new int[]{70, 69},
                 new float[]{0.5f, 0.75f}, new float[]{1f, 1f}, new ReachStyle[]{ReachStyle.RUN, ReachStyle.MOUTH}, 1501.25f).withStraightFalls(new int[]{0});
         List<Pond> ponds = new ArrayList<>();
@@ -70,12 +69,7 @@ public class HydrologyPlanCodecTest {
                     index == 0 ? NAN_PAYLOAD : 61.5f + index, mask(index), index == 1 ? -1L : 77L, index * 2, fluid(index),
                     -650 + index, 880 + index));
         }
-        SeaInlet oddInlet = new SeaInlet(-5_000_000_000L, new float[]{-0f, NAN_PAYLOAD, 1e-40f}, new float[]{NEGATIVE_NAN, 3.5f, -0f},
-                new float[]{Float.MIN_VALUE, 5f, 2.25f}, 63, new int[]{Integer.MIN_VALUE, 60, 62}, new int[]{63, Integer.MAX_VALUE, 70},
-                -12, 40, 9);
-        SeaInlet plainInlet = new SeaInlet(91L, new float[]{8f, 16f}, new float[]{-24f, -16f}, new float[]{5f, 4f}, 306,
-                new int[]{303, 302}, new int[]{340, 312}, 16, -16, 6);
-        WindowPlan window = new WindowPlan(new WindowKey(-3, 7), List.of(odd, plain), ponds, List.of(oddInlet, plainInlet));
+        WindowPlan window = new WindowPlan(new WindowKey(-3, 7), List.of(odd, plain), ponds);
         WindowPlan decodedWindow = HydrologyPlanCodec.decodeWindow(settings, HydrologyPlanCodec.encode(settings, window)).orElseThrow();
         assertBitExact(window, decodedWindow, tiers);
 
@@ -85,7 +79,7 @@ public class HydrologyPlanCodecTest {
         assertReachesBitExact(region.majorReaches(), decodedRegion.majorReaches(), tiers);
         assertPondsBitExact(region.lakes(), decodedRegion.lakes());
 
-        WindowPlan empty = new WindowPlan(new WindowKey(Integer.MIN_VALUE, Integer.MAX_VALUE), List.of(), List.of(), List.of());
+        WindowPlan empty = new WindowPlan(new WindowKey(Integer.MIN_VALUE, Integer.MAX_VALUE), List.of(), List.of());
         assertEquals(empty, HydrologyPlanCodec.decodeWindow(settings, HydrologyPlanCodec.encode(settings, empty)).orElseThrow());
 
         SyntheticTerrain terrain = SyntheticTerrain.openFractal(SEED);
@@ -106,15 +100,25 @@ public class HydrologyPlanCodecTest {
     }
 
     @Test
+    public void tidalReachesRoundTripOnTheTidalTier() {
+        HydrologySettings settings = settings(new IrisHydrology());
+        int sea = settings.seaLevel();
+        Reach tidal = new Reach(404L, settings.tidalTier(), 0L, new float[]{0f, 8f, 16f}, new float[]{0f, 4f, 2f}, new int[]{sea, sea, sea},
+                new float[]{2f, 6f, 12f}, new float[]{1f, 4f, 1f}, new ReachStyle[]{ReachStyle.TIDAL, ReachStyle.TIDAL, ReachStyle.TIDAL}, 0f);
+        WindowPlan window = new WindowPlan(new WindowKey(0, 0), List.of(tidal), List.of());
+        WindowPlan decoded = HydrologyPlanCodec.decodeWindow(settings, HydrologyPlanCodec.encode(settings, window)).orElseThrow();
+        assertEquals(window, decoded);
+        assertSame(settings.tidalTier(), decoded.reaches().get(0).tier());
+    }
+
+    @Test
     public void codecDecodesMismatchedOrCorruptDataAsEmpty() {
         HydrologySettings settings = settings(new IrisHydrology());
         HydrologyTier tier = settings.tiers().get(1);
         Reach reach = new Reach(5L, tier, -1L, new float[]{1f, 2f, 3f}, new float[]{4f, 5f, 6f}, new int[]{70, 69, 68},
                 new float[]{1f, 1f, 1.5f}, new float[]{1f, 1f, 1f}, new ReachStyle[]{ReachStyle.RUN, ReachStyle.RIFFLE, ReachStyle.MOUTH}, 2000f);
         Pond pond = new Pond(9L, PondKind.SEEDED, 66, 62, 10, 12, 66.5f, mask(3), 5L, 0, "water", 11, 13);
-        SeaInlet inlet = new SeaInlet(12L, new float[]{8f, 16f, 24f}, new float[]{0f, 0f, 8f}, new float[]{5f, 4f, 3f}, 63,
-                new int[]{60, 61, 59}, new int[]{90, 68, 70}, 24, 8, 7);
-        WindowPlan window = new WindowPlan(new WindowKey(1, 2), List.of(reach), List.of(pond), List.of(inlet));
+        WindowPlan window = new WindowPlan(new WindowKey(1, 2), List.of(reach), List.of(pond));
         byte[] encoded = HydrologyPlanCodec.encode(settings, window);
 
         HydrologySettings reseeded = HydrologySettings.compile(new IrisHydrology(), SEED + 1L, SyntheticTerrain.SEA_LEVEL,
@@ -147,7 +151,7 @@ public class HydrologyPlanCodecTest {
         Reach stray = new Reach(6L, foreign, -1L, new float[]{1f, 2f}, new float[]{1f, 2f}, new int[]{1, 1}, new float[]{1f, 1f},
                 new float[]{1f, 1f}, new ReachStyle[]{ReachStyle.RUN, ReachStyle.RUN}, 1f);
         try {
-            HydrologyPlanCodec.encode(settings, new WindowPlan(new WindowKey(0, 0), List.of(stray), List.of(), List.of()));
+            HydrologyPlanCodec.encode(settings, new WindowPlan(new WindowKey(0, 0), List.of(stray), List.of()));
             fail("a tier outside the settings has no index");
         } catch (IllegalArgumentException expected) {
             assertTrue(expected.getMessage(), expected.getMessage().contains("foreign"));
@@ -174,21 +178,13 @@ public class HydrologyPlanCodecTest {
                 new Pond(6L, PondKind.SEEDED, 74, 71, 30, 8, 74.25f, mask(2), -1L, 1, "water", 28, 6),
                 new Pond(7L, PondKind.CHAINED, 68, 64, -20, 16, 68.75f, mask(0), 41L, 2, "lava", -22, 14),
                 new Pond(8L, PondKind.LAKE, 80, 60, 64, -64, 80.5f, mask(0), -1L, 0, null, 60, -60));
-        return new WindowPlan(new WindowKey(2, -3), List.of(reach), ponds, List.of());
+        return new WindowPlan(new WindowKey(2, -3), List.of(reach), ponds);
     }
 
     private static void assertBitExact(WindowPlan expected, WindowPlan actual, List<HydrologyTier> tiers) {
         assertEquals(expected, actual);
         assertReachesBitExact(expected.reaches(), actual.reaches(), tiers);
         assertPondsBitExact(expected.ponds(), actual.ponds());
-        assertEquals(expected.inlets().size(), actual.inlets().size());
-        for (int index = 0; index < expected.inlets().size(); index++) {
-            SeaInlet want = expected.inlets().get(index);
-            SeaInlet got = actual.inlets().get(index);
-            assertArrayEquals(rawBits(want.xs()), rawBits(got.xs()));
-            assertArrayEquals(rawBits(want.zs()), rawBits(got.zs()));
-            assertArrayEquals(rawBits(want.halfWidth()), rawBits(got.halfWidth()));
-        }
     }
 
     private static void assertReachesBitExact(List<Reach> expected, List<Reach> actual, List<HydrologyTier> tiers) {

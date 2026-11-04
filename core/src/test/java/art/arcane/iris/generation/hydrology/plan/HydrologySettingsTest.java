@@ -4,9 +4,11 @@ import art.arcane.iris.generation.block.IrisBlockData;
 import art.arcane.iris.generation.decoration.IrisDecorationPart;
 import art.arcane.iris.generation.decoration.IrisDecorator;
 import art.arcane.iris.generation.hydrology.config.IrisFluidProfile;
+import art.arcane.iris.generation.hydrology.config.IrisBankStyle;
 import art.arcane.iris.generation.hydrology.config.IrisHydrology;
 import art.arcane.iris.generation.hydrology.config.IrisHydrologyTier;
 import art.arcane.iris.generation.hydrology.config.IrisHydrologyMaterials;
+import art.arcane.iris.generation.hydrology.config.IrisSeaInlets;
 import art.arcane.iris.generation.hydrology.water.HydrologyTier;
 import art.arcane.iris.generation.terrain.IrisMaterialPalette;
 import art.arcane.iris.pack.loading.IrisData;
@@ -21,6 +23,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -35,7 +38,7 @@ public class HydrologySettingsTest {
     private static final int SEA_LEVEL = 62;
     private static final int MIN_Y = -64;
     private static final int MAX_Y = 320;
-    private static final long DEFAULT_FINGERPRINT = -2359553697125315860L;
+    private static final long DEFAULT_FINGERPRINT = 8483795183515434045L;
 
     @Test
     public void densityIsBoundedAndChangesThePlanIdentity() {
@@ -709,21 +712,70 @@ public class HydrologySettingsTest {
     }
 
     @Test
+    public void seaInletDefaultsDescribeAFunnelReachingInland() {
+        HydrologySettings.SeaInlets inlets = compile(new IrisHydrology()).underground().seaInlets();
+        assertTrue(inlets.enabled());
+        assertEquals(160, inlets.spacing());
+        assertEquals(new HydrologySettings.IntRange(64, 256), inlets.length());
+        assertEquals(44, inlets.maximumBankHeight());
+        assertEquals(new HydrologySettings.FloatRange(13f, 15f), inlets.mouthHalfWidth());
+        assertEquals(new HydrologySettings.FloatRange(2.5f, 3f), inlets.headHalfWidth());
+        assertEquals(1.4f, inlets.taper(), 0f);
+        assertEquals(0.18f, inlets.widthVariation(), 1e-6f);
+        assertEquals(4f, inlets.meanderWidth(), 0f);
+        assertEquals(new HydrologySettings.IntRange(2, 5), inlets.depth());
+        assertEquals(32, inlets.bankBand());
+        assertEquals(IrisBankStyle.SMOOTH, inlets.bankStyle());
+    }
+
+    @Test
     public void seaInletRangesAreBounded() {
-        compile(inlets(new KList<>(1D, 16D), new KList<>(2, 16)));
-        for (IrisHydrology rejected : List.of(inlets(new KList<>(0.5D, 5D), new KList<>(2, 5)), inlets(new KList<>(2D, 17D), new KList<>(2, 5)),
-                inlets(new KList<>(2D, 5D), new KList<>(2, 17)), inlets(new KList<>(2D, 5D), new KList<>(1, 5)))) {
-            IllegalArgumentException failure = assertThrows(IllegalArgumentException.class, () -> compile(rejected));
+        compile(inlets(config -> config.setMouthHalfWidth(new KList<>(8D, 32D)).setHeadHalfWidth(new KList<>(1D, 8D)).setDepth(new KList<>(2, 16))));
+        List<IrisHydrology> rejected = List.of(
+                inlets(config -> config.setMouthHalfWidth(new KList<>(1.5D, 14D)).setHeadHalfWidth(new KList<>(1D, 1.5D))),
+                inlets(config -> config.setMouthHalfWidth(new KList<>(10D, 33D))),
+                inlets(config -> config.setHeadHalfWidth(new KList<>(0.5D, 3D))),
+                inlets(config -> config.setHeadHalfWidth(new KList<>(2D, 9D))),
+                inlets(config -> config.setDepth(new KList<>(2, 17))),
+                inlets(config -> config.setDepth(new KList<>(1, 5))),
+                inlets(config -> config.setMaximumBankHeight(1)),
+                inlets(config -> config.setMaximumBankHeight(129)),
+                inlets(config -> config.setTaper(0.4D)),
+                inlets(config -> config.setTaper(4.1D)),
+                inlets(config -> config.setWidthVariation(-0.1D)),
+                inlets(config -> config.setWidthVariation(0.6D)),
+                inlets(config -> config.setMeanderWidth(0.5D)),
+                inlets(config -> config.setMeanderWidth(17D)),
+                inlets(config -> config.setBankBand(3)),
+                inlets(config -> config.setBankBand(65)));
+        for (IrisHydrology config : rejected) {
+            IllegalArgumentException failure = assertThrows(IllegalArgumentException.class, () -> compile(config));
             assertTrue(failure.getMessage(), failure.getMessage().contains("underground.seaInlets"));
         }
         IllegalArgumentException belowWorld = assertThrows(IllegalArgumentException.class,
-                () -> HydrologySettings.compile(inlets(new KList<>(2D, 5D), new KList<>(2, 16)), SEED, MIN_Y + 18, MIN_Y, MAX_Y));
+                () -> HydrologySettings.compile(inlets(config -> config.setDepth(new KList<>(2, 16))), SEED, MIN_Y + 16, MIN_Y, MAX_Y));
         assertTrue(belowWorld.getMessage(), belowWorld.getMessage().contains("world bottom"));
     }
 
-    private static IrisHydrology inlets(KList<Double> halfWidth, KList<Integer> depth) {
+    @Test
+    public void seaInletMouthMustBeWiderThanItsHead() {
+        IllegalArgumentException failure = assertThrows(IllegalArgumentException.class,
+                () -> compile(inlets(config -> config.setMouthHalfWidth(new KList<>(4D, 14D)).setHeadHalfWidth(new KList<>(2D, 5D)))));
+        assertTrue(failure.getMessage(), failure.getMessage().contains("mouthHalfWidth"));
+    }
+
+    @Test
+    public void overLongSeaInletsFailAtCompile() {
+        compile(inlets(config -> config.setLength(new KList<>(64, 447)).setMouthHalfWidth(new KList<>(11D, 16D)).setBankBand(24)));
+        IllegalArgumentException failure = assertThrows(IllegalArgumentException.class,
+                () -> compile(inlets(config -> config.setLength(new KList<>(64, 512)))));
+        assertTrue(failure.getMessage(), failure.getMessage().contains("underground.seaInlets"));
+        assertTrue(failure.getMessage(), failure.getMessage().contains(Integer.toString(WindowKey.SIZE)));
+    }
+
+    private static IrisHydrology inlets(Consumer<IrisSeaInlets> tweak) {
         IrisHydrology config = new IrisHydrology();
-        config.getUnderground().getSeaInlets().setHalfWidth(halfWidth).setDepth(depth);
+        tweak.accept(config.getUnderground().getSeaInlets());
         return config;
     }
 

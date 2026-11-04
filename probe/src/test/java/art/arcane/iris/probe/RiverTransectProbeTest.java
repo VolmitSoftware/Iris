@@ -57,7 +57,7 @@ public class RiverTransectProbeTest {
         RiverTransectProbe.Section section = RiverTransectProbe.section(reach, 5,
                 (x, z) -> new RiverTransectProbe.Column(70, 66, Math.abs(z - 100) <= 2 ? 68 : RiverTransectProbe.NO_WATER, WaterRole.CHANNEL));
         List<String> summary = RiverTransectProbe.summary(new WindowKey(0, 0),
-                new WindowPlan(new WindowKey(0, 0), List.of(reach), List.of(), List.of()), List.of(),
+                new WindowPlan(new WindowKey(0, 0), List.of(reach), List.of()), List.of(),
                 List.of(section), settings);
         assertEquals("window 0,0 reaches=1 ponds=0 lakes=0 sections=1", summary.get(0));
         assertTrue(summary.get(1), summary.get(1).startsWith("reach 7 tier=stream length=40 from=0,100@70 to=40,100@60"));

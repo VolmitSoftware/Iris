@@ -5,8 +5,6 @@ import art.arcane.iris.generation.hydrology.config.IrisHydrologyPolicy;
 import art.arcane.iris.generation.hydrology.engine.HydrologyRuntime;
 import art.arcane.iris.generation.hydrology.underground.CarvedTerrain;
 import art.arcane.iris.generation.hydrology.underground.CaveVoxel;
-import art.arcane.iris.generation.hydrology.underground.SeaInlet;
-import art.arcane.iris.generation.hydrology.underground.SeaInletSpace;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.stream.ProvisionalSampling;
@@ -23,10 +21,7 @@ import art.arcane.volmlib.util.matter.Matter;
 import art.arcane.volmlib.util.matter.MatterCavern;
 
 import java.util.Arrays;
-import java.util.Collection;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
 final class MantleCarvedTerrain implements CarvedTerrain {
     private static final int SPAN = 48;
@@ -49,7 +44,6 @@ final class MantleCarvedTerrain implements CarvedTerrain {
     private final SubterrainPlanner planner;
     private final List<SubterrainPlan> features;
     private final boolean terrain3D;
-    private final SeaInletSpace inlets;
     private final MantleChunk<Matter>[] chunks;
     private final boolean[] existing;
     private final int[] surfaces = new int[SPAN * SPAN];
@@ -71,7 +65,6 @@ final class MantleCarvedTerrain implements CarvedTerrain {
         this.minimumY = engine.getWorld().minHeight();
         HydrologyRuntime runtime = complex.getHydrologyRuntime();
         this.caveFluids = runtime.caveFluidPolicies();
-        this.inlets = SeaInletSpace.of(inlets(runtime, chunkX, chunkZ), originX, originZ, SPAN);
         SubterrainPlanner subterrain = complex.getSubterrainPlanner();
         List<SubterrainPlan> plans = subterrain == null || subterrain.isEmpty() ? List.of()
                 : subterrain.plansForBounds(originX, originZ, originX + SPAN - 1, originZ + SPAN - 1);
@@ -88,7 +81,7 @@ final class MantleCarvedTerrain implements CarvedTerrain {
     @Override
     public CaveVoxel voxel(int x, int y, int z) {
         int column = column(x, z);
-        if (y <= 0 || y >= height || existing(x, z) || y > surface(x, z, column) || inlets.contains(x, y, z)) {
+        if (y <= 0 || y >= height || existing(x, z) || y > surface(x, z, column)) {
             return CaveVoxel.FOREIGN;
         }
         if (planner != null && planner.sample(features, x, y + minimumY, z).owned()) {
@@ -147,18 +140,6 @@ final class MantleCarvedTerrain implements CarvedTerrain {
             }
         }
         return false;
-    }
-
-    private static Collection<SeaInlet> inlets(HydrologyRuntime runtime, int chunkX, int chunkZ) {
-        Map<Long, SeaInlet> inlets = new LinkedHashMap<>();
-        for (int offsetZ = -1; offsetZ <= 1; offsetZ++) {
-            for (int offsetX = -1; offsetX <= 1; offsetX++) {
-                for (SeaInlet inlet : runtime.inlets(chunkX + offsetX, chunkZ + offsetZ)) {
-                    inlets.putIfAbsent(inlet.id(), inlet);
-                }
-            }
-        }
-        return inlets.values();
     }
 
     private int surface(int x, int z, int column) {

@@ -37,7 +37,8 @@ public class PersistedCodesTest {
             ReachStyle.CASCADE, 2,
             ReachStyle.WATERFALL, 3,
             ReachStyle.POND_OUTLET, 4,
-            ReachStyle.MOUTH, 5);
+            ReachStyle.MOUTH, 5,
+            ReachStyle.TIDAL, 6);
     private static final Map<PondKind, Integer> POND_KIND_CODES = Map.of(
             PondKind.NATURAL, 0,
             PondKind.SEEDED, 1,

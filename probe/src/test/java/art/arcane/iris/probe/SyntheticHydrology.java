@@ -45,7 +45,7 @@ final class SyntheticHydrology implements AutoCloseable {
     }
 
     HydrologyProbe.Inputs inputs(UnaryOperator<HydrologyVoxels.ChunkBlocks> edit) {
-        return inputs(edit, (key, plan) -> new HydrologyUnderground.Counts(plan.inlets().size(), 0L, 0, 0L, List.of()));
+        return inputs(edit, (key, plan) -> new HydrologyUnderground.Counts(0, 0L, 0, 0L, List.of()));
     }
 
     HydrologyProbe.Inputs inputs(UnaryOperator<HydrologyVoxels.ChunkBlocks> edit, HydrologyUnderground.Source underground) {

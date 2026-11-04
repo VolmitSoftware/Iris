@@ -24,7 +24,6 @@ import art.arcane.iris.generation.hydrology.plan.HydrologySettings;
 import art.arcane.iris.generation.hydrology.query.HydrologyFeatureType;
 import art.arcane.iris.generation.hydrology.raster.ChunkWaterRaster;
 import art.arcane.iris.generation.hydrology.raster.WaterRole;
-import art.arcane.iris.generation.hydrology.underground.SeaInlet;
 import art.arcane.iris.generation.hydrology.water.Pond;
 import art.arcane.iris.generation.hydrology.water.PondKind;
 import art.arcane.iris.generation.hydrology.water.Reach;
@@ -514,23 +513,24 @@ public final class GenerationSemanticCaptureTest {
     }
 
     @Test
-    public void recordsSeaInletsInEveryChunkTheyPassUnderWithTheirOwnProfile() {
-        int stations = 8;
-        float[] xs = new float[stations];
-        float[] zs = new float[stations];
-        float[] halfWidth = new float[stations];
-        int[] floor = new int[stations];
-        int[] ceiling = new int[stations];
-        for (int station = 0; station < stations; station++) {
-            xs[station] = 4f + station * 8f;
-            zs[station] = 24f;
-            halfWidth[station] = 3f;
-            floor[station] = WATER_SEA_LEVEL - 3;
-            ceiling[station] = WATER_SEA_LEVEL + 5;
+    public void recordsTidalReachesInEveryChunkTheyCrossWithTheirOwnProfile() {
+        int points = 8;
+        float[] xs = new float[points];
+        float[] zs = new float[points];
+        int[] grade = new int[points];
+        float[] halfWidth = new float[points];
+        float[] depth = new float[points];
+        ReachStyle[] style = new ReachStyle[points];
+        for (int point = 0; point < points; point++) {
+            xs[point] = 4f + point * 8f;
+            zs[point] = 24f;
+            grade[point] = WATER_SEA_LEVEL;
+            halfWidth[point] = 3f;
+            depth[point] = 3f;
+            style[point] = ReachStyle.TIDAL;
         }
-        SeaInlet inlet = new SeaInlet(41L, xs, zs, halfWidth, WATER_SEA_LEVEL, floor, ceiling, 60, 24, 4);
-        try (FakeHydrology hydrology = new FakeHydrology(() -> false, (x, z) -> 90, WATER_SEA_LEVEL, List.of(), List.of(), List.of(),
-                List.of(inlet))) {
+        Reach tidal = new Reach(41L, FakeHydrology.settings(WATER_SEA_LEVEL).tidalTier(), 0L, xs, zs, grade, halfWidth, depth, style, 0f);
+        try (FakeHydrology hydrology = new FakeHydrology(() -> false, (x, z) -> 90, WATER_SEA_LEVEL, List.of(tidal), List.of())) {
             Fixture fixture = new Fixture();
             fixture.water(hydrology.runtime);
 

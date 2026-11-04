@@ -12,8 +12,6 @@ import art.arcane.iris.generation.hydrology.raster.FluidSeams;
 import art.arcane.iris.generation.hydrology.underground.CarvedTerrain;
 import art.arcane.iris.generation.hydrology.underground.CavePoolFiller;
 import art.arcane.iris.generation.hydrology.underground.CaveSpringPlacer;
-import art.arcane.iris.generation.hydrology.underground.SeaInlet;
-import art.arcane.iris.generation.hydrology.underground.SeaInletRasterizer;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.subterrain.SubterrainPlan;
@@ -35,7 +33,6 @@ public final class MantleHydrologyComponent extends IrisMantleComponent {
     private static final int CHUNK = 16;
     private static final int GRID = CHUNK + 2;
     private static final int[] SIDES = {1, -1, GRID, -GRID};
-    private static final SeaInletRasterizer INLETS = new SeaInletRasterizer();
 
     public MantleHydrologyComponent(EngineMantle engineMantle) {
         super(engineMantle, ReservedFlag.RIVER_HYDROLOGY, PRIORITY);
@@ -84,13 +81,6 @@ public final class MantleHydrologyComponent extends IrisMantleComponent {
         }
         HydrologyRuntime runtime = complex.getHydrologyRuntime();
         ChunkWaterRaster own = CaveCeilingMask.ready(runtime.raster(chunkX, chunkZ), chunkX, chunkZ);
-        List<SeaInlet> inlets = runtime.inlets(chunkX, chunkZ);
-        if (!inlets.isEmpty()) {
-            SeaInletRasterizer.SubterrainFluid subterrain = subterrainFluid(writer, complex, chunkX, chunkZ);
-            for (SeaInlet inlet : inlets) {
-                INLETS.write(inlet, chunkX, chunkZ, writer, HydrologyCaveCell.SEA_FLUID, subterrain, complex::isHistoricalChunk);
-            }
-        }
         generateFalls(writer, complex, runtime, own, chunkX, chunkZ);
         if (caveWaterActive()) {
             HydrologySettings settings = runtime.settings();
@@ -105,19 +95,6 @@ public final class MantleHydrologyComponent extends IrisMantleComponent {
             new CavePoolFiller(settings, engine.getWorld().minHeight()).fill(chunkX, chunkZ, carved, writer, settings.seed());
             new CaveSpringPlacer(settings).place(chunkX, chunkZ, carved, writer, settings.seed());
         }
-    }
-
-    private static SeaInletRasterizer.SubterrainFluid subterrainFluid(MantleWriter writer, IrisComplex complex, int chunkX, int chunkZ) {
-        SubterrainPlanner planner = complex.getSubterrainPlanner();
-        if (planner == null || planner.isEmpty()) {
-            return SeaInletRasterizer.SubterrainFluid.NOWHERE;
-        }
-        List<SubterrainPlan> plans = planner.plansForBounds(chunkX << 4, chunkZ << 4, (chunkX << 4) + 15, (chunkZ << 4) + 15);
-        if (plans.isEmpty()) {
-            return SeaInletRasterizer.SubterrainFluid.NOWHERE;
-        }
-        int minimumY = writer.getEngine().getWorld().minHeight();
-        return (x, y, z) -> planner.sample(plans, x, y + minimumY, z).fluid();
     }
 
     private void generateFalls(MantleWriter writer, IrisComplex complex, HydrologyRuntime runtime, ChunkWaterRaster own, int chunkX,

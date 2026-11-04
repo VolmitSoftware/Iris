@@ -68,7 +68,7 @@ final class RiverLimits {
 
     private void inspectUnderground() {
         if (settings.underground().seaInlets().enabled()) {
-            add(ExportLimit.SEA_INLET, hydrology, "", "Sea inlets are not exported: coastal cliffs have no flooded passages");
+            add(ExportLimit.SEA_INLET, hydrology, "", "Sea inlets are not exported: low coasts have no tidal arms");
         }
         if (settings.underground().cavePools().enabled() && settings.underground().cavePools().density() > 0.0F) {
             add(ExportLimit.CAVE_POOL, hydrology, "", "Cave pools are not exported: cave floors hold no standing water of their own");

@@ -11,8 +11,6 @@ import art.arcane.iris.generation.hydrology.plan.RegionKey;
 import art.arcane.iris.generation.hydrology.plan.RegionPlan;
 import art.arcane.iris.generation.hydrology.plan.WindowKey;
 import art.arcane.iris.generation.hydrology.plan.WindowPlan;
-import art.arcane.iris.generation.hydrology.underground.SeaInlet;
-import art.arcane.iris.generation.hydrology.underground.SeaInletRasterizer;
 import art.arcane.iris.generation.hydrology.water.ConfluenceGrader;
 import art.arcane.iris.generation.hydrology.water.HydrologyTier;
 import art.arcane.iris.generation.hydrology.water.Pond;
@@ -416,49 +414,129 @@ public class ChunkWaterRasterTest {
         }
     }
 
-    @Test
-    public void openSeaInletSlotColumnsTakeTheInletRoleAtSeaLevel() {
-        HydrologySettings settings = settings(new IrisHydrology());
-        int stations = 10;
-        float[] xs = new float[stations];
-        float[] zs = new float[stations];
-        float[] halfWidth = new float[stations];
-        int[] floor = new int[stations];
-        int[] ceiling = new int[stations];
-        for (int station = 0; station < stations; station++) {
-            xs[station] = -8f + station * 8f;
-            zs[station] = 8f;
-            halfWidth[station] = 4f;
-            floor[station] = SEA_LEVEL - 3;
-            ceiling[station] = station < 2 ? SeaInlet.OPEN : SEA_LEVEL + 5;
+    private static Reach straight(long id, HydrologyTier tier, float z, int head, ReachStyle style) {
+        int points = 9;
+        float[] xs = new float[points];
+        float[] zs = new float[points];
+        int[] grade = new int[points];
+        float[] halfWidth = new float[points];
+        float[] depth = new float[points];
+        ReachStyle[] styles = new ReachStyle[points];
+        for (int point = 0; point < points; point++) {
+            xs[point] = -16f + point * 8f;
+            zs[point] = z;
+            grade[point] = head;
+            halfWidth[point] = 3f;
+            depth[point] = 2f;
+            styles[point] = style;
         }
-        SeaInlet inlet = new SeaInlet(71L, xs, zs, halfWidth, SEA_LEVEL, floor, ceiling, 64, 8, 6);
+        return new Reach(id, tier, 0L, xs, zs, grade, halfWidth, depth, styles, 30000f);
+    }
+
+    private static ChunkWaterRaster rasterOf(HydrologySettings settings, List<Reach> reaches, int ground) {
         WindowKey key = new WindowKey(0, 0);
-        IndexedWindow own = new IndexedWindow(new WindowPlan(key, List.of(), List.of(), List.of(inlet)), ReachIndex.build(key, List.of(), List.of()));
-        ChunkRasterizer rasterizer = new ChunkRasterizer(settings, ChannelFluids.TIER);
-        ChunkWaterRaster mouth = rasterizer.rasterize(0, 0, (x, z) -> 70, List.of(own), regions(0, 0, List.of()));
-        int[] column = new int[2];
-        int open = 0;
-        for (int lz = 0; lz < 16; lz++) {
-            for (int lx = 0; lx < 16; lx++) {
-                boolean slot = SeaInletRasterizer.column(inlet, lx, lz, column) && column[1] == SeaInlet.OPEN;
-                if (slot) {
-                    open++;
-                    assertEquals(WaterRole.INLET, mouth.role(lx, lz));
-                    assertEquals(SEA_LEVEL, mouth.waterHead(lx, lz));
-                    assertEquals(SEA_LEVEL - 3, mouth.terrainHeight(lx, lz));
-                    assertEquals(SEA_LEVEL - 4, mouth.caveCeiling(lx, lz));
-                    assertEquals(71L, mouth.featureId(lx, lz));
-                    assertEquals(HydrologyCaveCell.SEA_FLUID, mouth.fluid(lx, lz));
-                } else {
-                    assertEquals(WaterRole.NONE, mouth.role(lx, lz));
-                    assertEquals(70, mouth.terrainHeight(lx, lz));
+        IndexedWindow own = new IndexedWindow(new WindowPlan(key, reaches, List.of()), ReachIndex.build(key, reaches, List.of()));
+        return new ChunkRasterizer(settings, ChannelFluids.TIER).rasterize(0, 0, (x, z) -> ground, List.of(own), regions(0, 0, List.of()));
+    }
+
+    @Test
+    public void tidalBanksMeetANeighbouringRiverBankWithoutACliff() {
+        HydrologySettings settings = settings(new IrisHydrology());
+        int ground = SEA_LEVEL + 32;
+        Reach arm = straight(71L, settings.tidalTier(), -6f, SEA_LEVEL, ReachStyle.TIDAL);
+        for (int riverHead : new int[]{SEA_LEVEL, SEA_LEVEL + 24}) {
+            for (HydrologyTier tier : settings.tiers()) {
+                Reach river = straight(72L, tier, 22f, riverHead, ReachStyle.RUN);
+                ChunkWaterRaster raster = rasterOf(settings, List.of(arm, river), ground);
+                ChunkWaterRaster alone = rasterOf(settings, List.of(river), ground);
+                for (int lx = 0; lx < 16; lx++) {
+                    for (int lz = 0; lz < 15; lz++) {
+                        int step = Math.abs(raster.terrainHeight(lx, lz + 1) - raster.terrainHeight(lx, lz));
+                        assertTrue(tier.name() + " head " + riverHead + " steps " + step + " at " + lx + "," + lz, step <= 8);
+                    }
+                    for (int lz = 9; lz < 16; lz++) {
+                        assertEquals("the river side is the river's own bank at " + lx + "," + lz, alone.terrainHeight(lx, lz), raster.terrainHeight(lx, lz));
+                    }
                 }
             }
         }
-        assertTrue("open slot columns " + open, open > 20);
-        assertTrue("a covered passage leaves the surface alone",
-                rasterizer.rasterize(2, 0, (x, z) -> 70, List.of(own), regions(2, 0, List.of())).empty());
+    }
+
+    @Test
+    public void tidalBanksFollowTheBandInsteadOfCuttingRaysToSteepGround() {
+        HydrologySettings settings = settings(new IrisHydrology());
+        int points = 9;
+        float[] xs = new float[points];
+        float[] zs = new float[points];
+        int[] grade = new int[points];
+        float[] halfWidth = new float[points];
+        float[] depth = new float[points];
+        ReachStyle[] style = new ReachStyle[points];
+        for (int point = 0; point < points; point++) {
+            xs[point] = -16f + point * 8f;
+            zs[point] = -8f;
+            grade[point] = SEA_LEVEL;
+            halfWidth[point] = 3f;
+            depth[point] = 3f;
+            style[point] = ReachStyle.TIDAL;
+        }
+        Reach reach = new Reach(71L, settings.tidalTier(), 0L, xs, zs, grade, halfWidth, depth, style, 0f);
+        WindowKey key = new WindowKey(0, 0);
+        IndexedWindow own = new IndexedWindow(new WindowPlan(key, List.of(reach), List.of()), ReachIndex.build(key, List.of(reach), List.of()));
+        ChunkRasterizer rasterizer = new ChunkRasterizer(settings, ChannelFluids.TIER);
+        ChunkWaterRaster ridged = rasterizer.rasterize(0, 0, (x, z) -> SEA_LEVEL + 20 + (Math.floorMod(x, 8) < 2 ? 8 : 0), List.of(own), regions(0, 0, List.of()));
+        ChunkWaterRaster plain = rasterizer.rasterize(0, 0, (x, z) -> SEA_LEVEL + 28, List.of(own), regions(0, 0, List.of()));
+        for (int lz = 0; lz < 16; lz++) {
+            for (int lx = 0; lx < 16; lx++) {
+                assertTrue("a ridge reaches no higher than the same band over plain ground at " + lx + "," + lz + ": "
+                        + ridged.terrainHeight(lx, lz) + " over " + plain.terrainHeight(lx, lz), ridged.terrainHeight(lx, lz) <= plain.terrainHeight(lx, lz));
+            }
+        }
+    }
+
+    @Test
+    public void tidalReachColumnsTakeTheInletRoleAtSeaLevelBetweenBanks() {
+        HydrologySettings settings = settings(new IrisHydrology());
+        int points = 9;
+        float[] xs = new float[points];
+        float[] zs = new float[points];
+        int[] grade = new int[points];
+        float[] halfWidth = new float[points];
+        float[] depth = new float[points];
+        ReachStyle[] style = new ReachStyle[points];
+        for (int point = 0; point < points; point++) {
+            xs[point] = -16f + point * 8f;
+            zs[point] = 8f;
+            grade[point] = SEA_LEVEL;
+            halfWidth[point] = 3f;
+            depth[point] = 3f;
+            style[point] = ReachStyle.TIDAL;
+        }
+        Reach reach = new Reach(71L, settings.tidalTier(), 0L, xs, zs, grade, halfWidth, depth, style, 0f);
+        WindowKey key = new WindowKey(0, 0);
+        IndexedWindow own = new IndexedWindow(new WindowPlan(key, List.of(reach), List.of()), ReachIndex.build(key, List.of(reach), List.of()));
+        ChunkRasterizer rasterizer = new ChunkRasterizer(settings, ChannelFluids.TIER);
+        ChunkWaterRaster raster = rasterizer.rasterize(0, 0, (x, z) -> SEA_LEVEL + 12, List.of(own), regions(0, 0, List.of()));
+        int wet = 0;
+        int bank = 0;
+        for (int lz = 0; lz < 16; lz++) {
+            for (int lx = 0; lx < 16; lx++) {
+                if (Math.abs(lz - 8) <= 2) {
+                    wet++;
+                    assertEquals(WaterRole.INLET, raster.role(lx, lz));
+                    assertEquals(SEA_LEVEL, raster.waterHead(lx, lz));
+                    assertTrue(raster.terrainHeight(lx, lz) < SEA_LEVEL);
+                    assertEquals(71L, raster.featureId(lx, lz));
+                    assertEquals(HydrologyCaveCell.SEA_FLUID, raster.fluid(lx, lz));
+                } else if (raster.waterHead(lx, lz) == Integer.MIN_VALUE) {
+                    bank++;
+                    assertTrue("shaped ground stays above the water at " + lx + "," + lz, raster.terrainHeight(lx, lz) >= SEA_LEVEL);
+                    assertTrue("the band cuts the bank below the natural ground at " + lx + "," + lz, raster.terrainHeight(lx, lz) < SEA_LEVEL + 12);
+                }
+            }
+        }
+        assertTrue("water columns " + wet, wet > 60);
+        assertTrue("bank columns " + bank, bank > 60);
     }
 
     @Test
@@ -466,7 +544,7 @@ public class ChunkWaterRasterTest {
         HydrologySettings settings = settings(new IrisHydrology());
         Reach far = line(61L, tier("stream", 1.5f, 0.5f, 0, IrisBankStyle.SMOOTH), 0L, 400f, 400f, 480f, 400f, (x, z) -> 69);
         WindowKey key = new WindowKey(0, 0);
-        IndexedWindow own = new IndexedWindow(new WindowPlan(key, List.of(far), List.of(), List.of()), ReachIndex.build(key, List.of(far), List.of()));
+        IndexedWindow own = new IndexedWindow(new WindowPlan(key, List.of(far), List.of()), ReachIndex.build(key, List.of(far), List.of()));
         AtomicInteger samples = new AtomicInteger();
         IntBinaryOperator natural = (x, z) -> {
             samples.incrementAndGet();
@@ -503,7 +581,7 @@ public class ChunkWaterRasterTest {
         Reach outflow = line(61L, stream, 0L, 400f, 403f, 480f, 403f, (x, z) -> 69);
         Reach inflow = line(62L, stream, 0L, 480f, 412f, 400f, 412f, (x, z) -> 69);
         WindowKey key = new WindowKey(0, 0);
-        IndexedWindow own = new IndexedWindow(new WindowPlan(key, List.of(outflow, inflow), List.of(), List.of()),
+        IndexedWindow own = new IndexedWindow(new WindowPlan(key, List.of(outflow, inflow), List.of()),
                 ReachIndex.build(key, List.of(outflow, inflow), List.of()));
         ChannelFluids volcanic = (x, z) -> x < 440 ? "lava" : null;
         ChunkWaterRaster raster = new ChunkRasterizer(settings, volcanic).rasterize(27, 25, (x, z) -> 70, List.of(own), regions(27, 25, List.of()));
@@ -531,7 +609,7 @@ public class ChunkWaterRasterTest {
         HydrologySettings settings = settings(new IrisHydrology());
         Reach river = line(81L, tier("river", 3f, 0.5f, 32, IrisBankStyle.SMOOTH), 0L, 96f, 256f, 416f, 256f, (x, z) -> 69);
         WindowKey key = new WindowKey(0, 0);
-        IndexedWindow own = new IndexedWindow(new WindowPlan(key, List.of(river), List.of(), List.of()), ReachIndex.build(key, List.of(river), List.of()));
+        IndexedWindow own = new IndexedWindow(new WindowPlan(key, List.of(river), List.of()), ReachIndex.build(key, List.of(river), List.of()));
         NaturalHeights natural = (x, z) -> {
             double away = Math.abs(z - 256);
             if (x < 256) {
@@ -1016,7 +1094,7 @@ public class ChunkWaterRasterTest {
                 WindowKey key = new WindowKey(dx, dz);
                 List<Reach> owned = key.equals(new WindowKey(0, 0)) ? List.of(feeder)
                         : key.equals(new WindowKey(1, 0)) || key.equals(new WindowKey(1, -1)) ? List.of(downstream) : List.of();
-                windows.add(new IndexedWindow(new WindowPlan(key, owned, List.of(), List.of()), ReachIndex.build(key, owned, List.of())));
+                windows.add(new IndexedWindow(new WindowPlan(key, owned, List.of()), ReachIndex.build(key, owned, List.of())));
             }
         }
         ChunkRasterizer rasterizer = new ChunkRasterizer(settings(new IrisHydrology()), ChannelFluids.TIER);
@@ -2644,7 +2722,7 @@ public class ChunkWaterRasterTest {
                         ownedPonds.add(pond);
                     }
                 }
-                return new IndexedWindow(new WindowPlan(key, owned, ownedPonds, List.of()), ReachIndex.build(key, owned, ownedPonds));
+                return new IndexedWindow(new WindowPlan(key, owned, ownedPonds), ReachIndex.build(key, owned, ownedPonds));
             });
         }
 

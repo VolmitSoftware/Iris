@@ -9,7 +9,6 @@ import art.arcane.iris.generation.hydrology.plan.RegionPlan;
 import art.arcane.iris.generation.hydrology.plan.WindowKey;
 import art.arcane.iris.generation.hydrology.plan.WindowPlan;
 import art.arcane.iris.generation.hydrology.raster.ChunkWaterRaster;
-import art.arcane.iris.generation.hydrology.underground.SeaInlet;
 import art.arcane.iris.generation.hydrology.water.Pond;
 import art.arcane.iris.generation.hydrology.water.PondKind;
 import art.arcane.iris.generation.hydrology.water.PondMask;
@@ -46,35 +45,28 @@ public final class FakeHydrology implements AutoCloseable {
     private final List<Reach> reaches;
     private final List<Pond> ponds;
     private final List<Pond> lakes;
-    private final List<SeaInlet> inlets;
     private final ExecutorService pool;
     private volatile CountDownLatch gate;
 
     public FakeHydrology(BooleanSupplier mainThread, IntBinaryOperator naturalHeight, int seaLevel, int pondLevel) {
-        this(mainThread, naturalHeight, seaLevel, pondLevel, List.of(), null, List.of(), List.of());
+        this(mainThread, naturalHeight, seaLevel, pondLevel, List.of(), null, List.of());
     }
 
     public FakeHydrology(BooleanSupplier mainThread, IntBinaryOperator naturalHeight, int seaLevel, List<Reach> reaches, List<Pond> ponds) {
-        this(mainThread, naturalHeight, seaLevel, 0, reaches, ponds, List.of(), List.of());
+        this(mainThread, naturalHeight, seaLevel, 0, reaches, ponds, List.of());
     }
 
     public FakeHydrology(BooleanSupplier mainThread, IntBinaryOperator naturalHeight, int seaLevel, List<Reach> reaches, List<Pond> ponds,
                          List<Pond> lakes) {
-        this(mainThread, naturalHeight, seaLevel, 0, reaches, ponds, lakes, List.of());
-    }
-
-    public FakeHydrology(BooleanSupplier mainThread, IntBinaryOperator naturalHeight, int seaLevel, List<Reach> reaches, List<Pond> ponds,
-                         List<Pond> lakes, List<SeaInlet> inlets) {
-        this(mainThread, naturalHeight, seaLevel, 0, reaches, ponds, lakes, inlets);
+        this(mainThread, naturalHeight, seaLevel, 0, reaches, ponds, lakes);
     }
 
     private FakeHydrology(BooleanSupplier mainThread, IntBinaryOperator naturalHeight, int seaLevel, int pondLevel, List<Reach> reaches,
-                          List<Pond> ponds, List<Pond> lakes, List<SeaInlet> inlets) {
+                          List<Pond> ponds, List<Pond> lakes) {
         this.pondLevel = pondLevel;
         this.reaches = List.copyOf(reaches);
         this.ponds = ponds == null ? List.of(pond()) : List.copyOf(ponds);
         this.lakes = List.copyOf(lakes);
-        this.inlets = List.copyOf(inlets);
         AtomicInteger threads = new AtomicInteger();
         this.pool = Executors.newFixedThreadPool(4, runnable -> {
             Thread thread = new Thread(runnable, "fake-hydrology-" + threads.incrementAndGet());
@@ -135,12 +127,12 @@ public final class FakeHydrology implements AutoCloseable {
         windowCalls.incrementAndGet();
         await(gate);
         if (!key.equals(new WindowKey(0, 0))) {
-            return new WindowPlan(key, List.of(), List.of(), List.of());
+            return new WindowPlan(key, List.of(), List.of());
         }
         if (failing.get()) {
             throw new IllegalStateException(FAILURE);
         }
-        return new WindowPlan(key, reaches, ponds, inlets);
+        return new WindowPlan(key, reaches, ponds);
     }
 
     private Pond pond() {

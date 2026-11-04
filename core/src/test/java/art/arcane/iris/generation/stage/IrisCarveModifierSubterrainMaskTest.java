@@ -7,8 +7,6 @@ import art.arcane.iris.generation.hydrology.config.IrisHydrology;
 import art.arcane.iris.generation.hydrology.engine.HydrologyRuntime;
 import art.arcane.iris.generation.hydrology.plan.HydrologySettings;
 import art.arcane.iris.generation.hydrology.raster.ChunkWaterRaster;
-import art.arcane.iris.generation.hydrology.underground.SeaInlet;
-import art.arcane.iris.generation.hydrology.underground.SeaInletRasterizer;
 import art.arcane.iris.generation.mantle.EngineMantle;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.IrisComplex;
@@ -86,56 +84,6 @@ public class IrisCarveModifierSubterrainMaskTest {
         }
     }
 
-    @Test
-    public void preservedSubterrainStaysOutOfInletHeadroom() {
-        IrisSubterrainFeature feature = new IrisSubterrainFeature().setId("room").setFamily(IrisSubterrainFamily.CENOTE)
-                .setProbability(1).setLength(64).setRadius(12).setHeight(24).setPillarSpacing(0).setFormationFraction(0)
-                .setWorldYRange(new IrisRange(-48, 60));
-        SubterrainPlanner planner = new SubterrainPlanner(new SubterrainPlanner.Options(List.of(feature), 83L, MINIMUM_Y, 128, (x, z) -> "region"));
-        SubterrainPlan plan = planner.plansForBounds(-512, -512, 512, 512).getFirst();
-        int blockX = plan.centerX() >> 4 << 4;
-        int blockZ = plan.centerZ() >> 4 << 4;
-        HydrologyRuntime hydrology = mock(HydrologyRuntime.class);
-        when(hydrology.raster(anyInt(), anyInt())).thenReturn(ChunkWaterRaster.EMPTY);
-        IrisCarveModifier modifier = modifier(planner, hydrology);
-        try (MockedStatic<B> blocks = mockStatic(B.class)) {
-            blocks.when(() -> B.getState(anyString())).thenReturn(mock(NativeBlockState.class));
-            List<int[]> open = reopenedCells(modifier, planner, blockX, blockZ);
-            int[] heights = open.stream().mapToInt(cell -> cell[1]).sorted().toArray();
-            int water = heights[heights.length / 4];
-            SeaInlet inlet = coveredInlet(blockX, blockZ + 8, water);
-            assertTrue("subterrain cells in the headroom before the inlet " + inHeadroom(inlet, open).size(), inHeadroom(inlet, open).size() > 20);
-
-            when(hydrology.inlets(anyInt(), anyInt())).thenAnswer(call -> SeaInletRasterizer.touches(inlet, call.getArgument(0),
-                    call.getArgument(1)) ? List.of(inlet) : List.of());
-            when(hydrology.settings()).thenReturn(HydrologySettings.compile(new IrisHydrology().setEnabled(true), 1L, 63, 0, 128));
-            List<int[]> sealed = reopenedCells(modifier, planner, blockX, blockZ);
-            assertTrue(sealed.size() > 0);
-            assertEquals("subterrain reopened cells in the inlet headroom", List.of(), inHeadroom(inlet, sealed));
-        }
-    }
-
-    private static List<String> inHeadroom(SeaInlet inlet, List<int[]> cells) {
-        List<String> inside = new ArrayList<>();
-        int[] column = new int[2];
-        for (int[] cell : cells) {
-            if (SeaInletRasterizer.column(inlet, cell[0], cell[2], column) && cell[1] > inlet.waterLevel()
-                    && cell[1] <= column[1] + ROOF_CLEARANCE) {
-                inside.add(cell[0] + "," + cell[1] + "," + cell[2]);
-            }
-        }
-        return inside;
-    }
-
-    private static SeaInlet coveredInlet(int startX, int z, int water) {
-        float[] xs = {startX - 4f, startX + 4f, startX + 12f, startX + 20f};
-        float[] zs = {z, z, z, z};
-        float[] halfWidth = {4f, 4f, 3.5f, 3f};
-        int[] floor = {water - 3, water - 3, water - 3, water - 3};
-        int[] ceiling = {water + 5, water + 5, water + 4, water + 4};
-        return new SeaInlet(5L, xs, zs, halfWidth, water, floor, ceiling, startX + 20, z, 3);
-    }
-
     @SuppressWarnings("unchecked")
     private static List<int[]> reopenedCells(IrisCarveModifier modifier, SubterrainPlanner planner, int blockX, int blockZ) {
         List<int[]> open = new ArrayList<>();
@@ -155,7 +103,7 @@ public class IrisCarveModifierSubterrainMaskTest {
     }
 
     @Test
-    public void preservedSubterrainLeavesEveryInletCellAlone() {
+    public void preservedSubterrainLeavesEveryPassageCellAlone() {
         IrisSubterrainFeature feature = new IrisSubterrainFeature().setId("room").setFamily(IrisSubterrainFamily.CENOTE)
                 .setProbability(1).setLength(64).setRadius(12).setHeight(24).setPillarSpacing(0).setFormationFraction(0)
                 .setWorldYRange(new IrisRange(-48, 60));
@@ -165,8 +113,8 @@ public class IrisCarveModifierSubterrainMaskTest {
         int blockZ = plan.centerZ() >> 4 << 4;
         HydrologyRuntime hydrology = mock(HydrologyRuntime.class);
         when(hydrology.raster(anyInt(), anyInt())).thenReturn(ChunkWaterRaster.EMPTY);
-        Map<Long, HydrologyCaveCell> inlet = new HashMap<>();
-        IrisCarveModifier modifier = modifier(planner, hydrology, inlet);
+        Map<Long, HydrologyCaveCell> passage = new HashMap<>();
+        IrisCarveModifier modifier = modifier(planner, hydrology, passage);
         try (MockedStatic<B> blocks = mockStatic(B.class)) {
             blocks.when(() -> B.getState(anyString())).thenReturn(mock(NativeBlockState.class));
             Set<Long> room = written(modifier, blockX, blockZ);
@@ -178,14 +126,14 @@ public class IrisCarveModifierSubterrainMaskTest {
                 if (y <= water + 2 && y >= water - 3) {
                     HydrologyCaveAction action = y > water ? HydrologyCaveAction.DRY_AIR
                             : y == water - 3 ? HydrologyCaveAction.SEAL_GUARD : HydrologyCaveAction.WET_SOURCE;
-                    inlet.put(cell, new HydrologyCaveCell(action, HydrologyCaveCell.SEA_FLUID));
+                    passage.put(cell, new HydrologyCaveCell(action, HydrologyCaveCell.SEA_FLUID));
                 }
             }
-            assertTrue("inlet cells crossing the room " + inlet.size(), inlet.size() > 20);
+            assertTrue("passage cells crossing the room " + passage.size(), passage.size() > 20);
             Set<Long> crossed = written(modifier, blockX, blockZ);
-            assertTrue("the room still opens away from the inlet", crossed.size() > 0);
-            for (long cell : inlet.keySet()) {
-                assertFalse("the room reopened inlet cell at y " + SubterrainMaskKeys.y(cell), crossed.contains(cell));
+            assertTrue("the room still opens away from the passage", crossed.size() > 0);
+            for (long cell : passage.keySet()) {
+                assertFalse("the room reopened passage cell at y " + SubterrainMaskKeys.y(cell), crossed.contains(cell));
             }
         }
     }
@@ -195,7 +143,7 @@ public class IrisCarveModifierSubterrainMaskTest {
     }
 
     @SuppressWarnings("unchecked")
-    private static IrisCarveModifier modifier(SubterrainPlanner planner, HydrologyRuntime hydrology, Map<Long, HydrologyCaveCell> inlet) {
+    private static IrisCarveModifier modifier(SubterrainPlanner planner, HydrologyRuntime hydrology, Map<Long, HydrologyCaveCell> passage) {
         Engine engine = mock(Engine.class);
         EngineMantle engineMantle = mock(EngineMantle.class);
         Mantle<Matter> mantle = mock(Mantle.class);
@@ -204,7 +152,7 @@ public class IrisCarveModifierSubterrainMaskTest {
         when(engineMantle.getMantle()).thenReturn(mantle);
         when(mantle.useChunk(anyInt(), anyInt())).thenReturn(chunk);
         when(chunk.exists(anyInt())).thenReturn(true);
-        when(chunk.get(anyInt())).thenAnswer(call -> section(call.getArgument(0), inlet));
+        when(chunk.get(anyInt())).thenAnswer(call -> section(call.getArgument(0), passage));
         IrisComplex complex = mock(IrisComplex.class);
         when(engine.getWorld()).thenReturn(IrisWorld.builder().minHeight(MINIMUM_Y).maxHeight(64).build());
         when(engine.getComplex()).thenReturn(complex);
@@ -218,12 +166,12 @@ public class IrisCarveModifierSubterrainMaskTest {
     }
 
     @SuppressWarnings("unchecked")
-    private static Matter section(int section, Map<Long, HydrologyCaveCell> inlet) {
+    private static Matter section(int section, Map<Long, HydrologyCaveCell> passage) {
         Matter matter = mock(Matter.class);
         MatterSlice<HydrologyCaveCell> slice = mock(MatterSlice.class);
         when(matter.hasSlice(HydrologyCaveCell.class)).thenReturn(true);
         when(matter.getSlice(HydrologyCaveCell.class)).thenReturn(slice);
-        when(slice.get(anyInt(), anyInt(), anyInt())).thenAnswer(call -> inlet.get(SubterrainMaskKeys.key(call.getArgument(0),
+        when(slice.get(anyInt(), anyInt(), anyInt())).thenAnswer(call -> passage.get(SubterrainMaskKeys.key(call.getArgument(0),
                 section * 16 + (int) call.getArgument(1), call.getArgument(2))));
         return matter;
     }

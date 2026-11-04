@@ -17,32 +17,6 @@ public class SurfaceFluidBoundaryPlanTest {
     private static final int FLUID_HEIGHT = 64;
 
     @Test
-    public void joinedBandsWidenTheProtectionToCoverBoth() {
-        long none = SurfaceFluidBoundaryPlan.boundary(SurfaceFluidBoundaryPlan.NO_BOUNDARY, Integer.MIN_VALUE);
-        long[] boundaries = new long[CHUNK_SIZE * CHUNK_SIZE];
-        long[] bands = new long[CHUNK_SIZE * CHUNK_SIZE];
-        Arrays.fill(boundaries, none);
-        Arrays.fill(bands, none);
-        boundaries[0] = SurfaceFluidBoundaryPlan.boundary(60, 64);
-        bands[0] = SurfaceFluidBoundaryPlan.boundary(65, 80);
-        bands[1] = SurfaceFluidBoundaryPlan.boundary(70, 75);
-        boundaries[2] = SurfaceFluidBoundaryPlan.boundary(60, 64);
-
-        SurfaceFluidBoundaryPlan.join(boundaries, bands);
-
-        assertFalse(SurfaceFluidBoundaryPlan.protects(boundaries, 0, 59));
-        assertTrue(SurfaceFluidBoundaryPlan.protects(boundaries, 0, 60));
-        assertTrue(SurfaceFluidBoundaryPlan.protects(boundaries, 0, 80));
-        assertFalse(SurfaceFluidBoundaryPlan.protects(boundaries, 0, 81));
-        assertFalse(SurfaceFluidBoundaryPlan.protects(boundaries, 1, 69));
-        assertTrue(SurfaceFluidBoundaryPlan.protects(boundaries, 1, 70));
-        assertTrue(SurfaceFluidBoundaryPlan.protects(boundaries, 1, 75));
-        assertFalse(SurfaceFluidBoundaryPlan.protects(boundaries, 1, 76));
-        assertEquals(SurfaceFluidBoundaryPlan.boundary(60, 64), boundaries[2]);
-        assertEquals(none, boundaries[3]);
-    }
-
-    @Test
     public void submergedColumnProtectsItsSeabedWithoutBlockingTheCaveBelow() {
         Fixture fixture = new Fixture();
         fixture.setChunkSurface(8, 8, 60);

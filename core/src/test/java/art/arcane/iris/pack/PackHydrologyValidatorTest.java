@@ -40,8 +40,7 @@ public class PackHydrologyValidatorTest {
                   "ponds": {"freeboard": [0, 2], "fluid": "lava",
                             "seeded": {"radius": [4, 12], "depth": [2, 8], "channelSpacing": [48, 160]}},
                   "underground": {
-                    "seaInlets": {"length": [24, 96], "halfWidth": [2, 5.5], "depth": [3, 6], "headroom": [0, 3],
-                                  "chamberRadius": [4, 9]},
+                    "seaInlets": {"length": [24, 96], "mouthHalfWidth": [8, 12.5], "headHalfWidth": [2, 3.5], "depth": [3, 6]},
                     "cavePools": {"freeboard": [0, 1], "fluid": "water"}
                   },
                   "fluids": [
@@ -82,7 +81,7 @@ public class PackHydrologyValidatorTest {
                   "enabled": true,
                   "tiers": [{"name": "stream", "halfWidth": [0, 2]}, {"name": "river", "minCatchment": 9, "halfWidth": [2, 65]}],
                   "ponds": {"freeboard": [-1, 2], "seeded": {"channelSpacing": [0, 160]}},
-                  "underground": {"seaInlets": {"headroom": [0, 3], "chamberRadius": [-2, 9]}, "cavePools": {"freeboard": [-1, 0]}}
+                  "underground": {"seaInlets": {"mouthHalfWidth": [-2, 9]}, "cavePools": {"freeboard": [-1, 0]}}
                 }
                 """, "")));
 
@@ -90,7 +89,7 @@ public class PackHydrologyValidatorTest {
         assertContains(validation.errors(), "tiers[1].halfWidth must not go above 64.");
         assertContains(validation.errors(), "ponds.freeboard must not go below 0.");
         assertContains(validation.errors(), "ponds.seeded.channelSpacing must stay above 0.");
-        assertContains(validation.errors(), "underground.seaInlets.chamberRadius must stay above 0.");
+        assertContains(validation.errors(), "underground.seaInlets.mouthHalfWidth must stay above 0.");
         assertContains(validation.errors(), "underground.cavePools.freeboard must not go below 0.");
         assertEquals(validation.errors().toString(), 6, validation.errors().size());
     }
@@ -655,10 +654,10 @@ public class PackHydrologyValidatorTest {
 
         assertTrue(validation.errors().toString(), validation.errors().isEmpty());
         assertEquals(List.of(
-                "Dimension 'main' sets useMantle to false while hydrology is enabled, so the falling water at waterfalls and cascades,"
-                        + " sea inlets and cave pools are not generated.",
+                "Dimension 'main' sets useMantle to false while hydrology is enabled, so the falling water at waterfalls and cascades"
+                        + " and cave pools are not generated.",
                 "Dimension 'other' disables the RIVER_HYDROLOGY component while hydrology is enabled, so the falling water at waterfalls"
-                        + " and cascades, sea inlets and cave pools are not generated."), validation.warnings());
+                        + " and cascades and cave pools are not generated."), validation.warnings());
     }
 
     @Test

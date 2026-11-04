@@ -1,13 +1,8 @@
 package art.arcane.iris.generation.mantle;
 
-import art.arcane.iris.generation.hydrology.engine.HydrologyRuntime;
 import art.arcane.iris.generation.hydrology.raster.ChunkWaterRaster;
-import art.arcane.iris.generation.hydrology.underground.SeaInlet;
-import art.arcane.iris.generation.hydrology.underground.SeaInletRasterizer;
 import art.arcane.volmlib.util.math.PowerOfTwoCoordinates;
 
-import java.util.Arrays;
-import java.util.List;
 
 public final class CaveCeilingMask {
     static final int CONTAINMENT = 2;
@@ -57,69 +52,6 @@ public final class CaveCeilingMask {
             }
         }
         return masked;
-    }
-
-    public static long[] headroom(int chunkX, int chunkZ, HydrologyRuntime runtime, long[] bands) {
-        List<SeaInlet> inlets = runtime.inlets(chunkX, chunkZ);
-        if (inlets.isEmpty()) {
-            return null;
-        }
-        int roofClearance = runtime.settings().underground().seaInlets().roofClearance();
-        return fillHeadroom(chunkX, chunkZ, inlets, roofClearance, bands) ? bands : null;
-    }
-
-    static boolean fillHeadroom(int chunkX, int chunkZ, List<SeaInlet> inlets, int roofClearance, long[] bands) {
-        if (inlets.isEmpty()) {
-            return false;
-        }
-        int originX = (chunkX << 4) - CONTAINMENT;
-        int originZ = (chunkZ << 4) - CONTAINMENT;
-        int[] bottoms = new int[FIELD * FIELD];
-        int[] tops = new int[FIELD * FIELD];
-        Arrays.fill(bottoms, Integer.MAX_VALUE);
-        Arrays.fill(tops, Integer.MIN_VALUE);
-        int[] column = new int[2];
-        boolean roofed = false;
-        for (SeaInlet inlet : inlets) {
-            int[] bounds = SeaInletRasterizer.bounds(inlet);
-            int fromX = Math.max(originX, bounds[0]);
-            int toX = Math.min(originX + FIELD - 1, bounds[2]);
-            int toZ = Math.min(originZ + FIELD - 1, bounds[3]);
-            for (int z = Math.max(originZ, bounds[1]); z <= toZ; z++) {
-                for (int x = fromX; x <= toX; x++) {
-                    if (!SeaInletRasterizer.column(inlet, x, z, column) || column[1] == SeaInlet.OPEN) {
-                        continue;
-                    }
-                    int index = (z - originZ) * FIELD + x - originX;
-                    bottoms[index] = Math.min(bottoms[index], inlet.waterLevel() + 1);
-                    tops[index] = Math.max(tops[index], column[1] + roofClearance);
-                    roofed = true;
-                }
-            }
-        }
-        if (!roofed) {
-            return false;
-        }
-        boolean masked = false;
-        for (int lz = 0; lz < CHUNK; lz++) {
-            for (int lx = 0; lx < CHUNK; lx++) {
-                int bottom = Integer.MAX_VALUE;
-                int top = Integer.MIN_VALUE;
-                for (int fz = lz; fz <= lz + CONTAINMENT * 2; fz++) {
-                    for (int fx = lx; fx <= lx + CONTAINMENT * 2; fx++) {
-                        bottom = Math.min(bottom, bottoms[fz * FIELD + fx]);
-                        top = Math.max(top, tops[fz * FIELD + fx]);
-                    }
-                }
-                bands[PowerOfTwoCoordinates.packLocal16(lx, lz)] = SurfaceFluidBoundaryPlan.boundary(bottom, top);
-                masked |= bottom <= top;
-            }
-        }
-        return masked;
-    }
-
-    public static boolean masked(int[] ceilings, long[] headroom, int column, int y) {
-        return ceilings != null && y > ceilings[column] || SurfaceFluidBoundaryPlan.protects(headroom, column, y);
     }
 
     public static ChunkWaterRaster ready(ChunkWaterRaster raster, int chunkX, int chunkZ) {

@@ -8,7 +8,6 @@ import art.arcane.iris.generation.hydrology.raster.ChunkRasterizer;
 import art.arcane.iris.generation.hydrology.raster.ChunkWaterRaster;
 import art.arcane.iris.generation.hydrology.raster.ReachIndex;
 import art.arcane.iris.generation.hydrology.raster.WaterRole;
-import art.arcane.iris.generation.hydrology.underground.SeaInlet;
 import art.arcane.iris.generation.hydrology.water.Pond;
 import art.arcane.iris.generation.hydrology.water.PondPlanner;
 import art.arcane.iris.generation.hydrology.water.Reach;
@@ -33,7 +32,6 @@ final class PlannedScene {
     private final Function<RegionKey, RegionPlan> regions;
     private final List<Reach> reaches;
     private final List<Pond> ponds;
-    private final List<SeaInlet> inlets;
     private final ChunkRasterizer rasterizer;
     private final Map<WindowKey, IndexedWindow> windows = new HashMap<>();
     private final Map<Long, ChunkWaterRaster> rasters = new HashMap<>();
@@ -49,15 +47,12 @@ final class PlannedScene {
         this.rasterizer = new ChunkRasterizer(settings, ChannelFluids.TIER);
         List<Reach> ownedReaches = new ArrayList<>();
         List<Pond> ownedPonds = new ArrayList<>();
-        List<SeaInlet> ownedInlets = new ArrayList<>();
         for (WindowPlan plan : plans.values()) {
             ownedReaches.addAll(plan.reaches());
             ownedPonds.addAll(plan.ponds());
-            ownedInlets.addAll(plan.inlets());
         }
         this.reaches = List.copyOf(ownedReaches);
         this.ponds = List.copyOf(ownedPonds);
-        this.inlets = List.copyOf(ownedInlets);
     }
 
     static PlannedScene plan(SyntheticTerrain terrain, HydrologySettings settings, int windowsX, int windowsZ) {
@@ -87,7 +82,7 @@ final class PlannedScene {
             requireOrigin(origin, WindowKey.containing(pond.floorX(), pond.floorZ()), pond);
         }
         Map<WindowKey, WindowPlan> plans = new LinkedHashMap<>();
-        plans.put(origin, new WindowPlan(origin, reaches, ponds, List.of()));
+        plans.put(origin, new WindowPlan(origin, reaches, ponds));
         return new PlannedScene(terrain, settings, 1, 1, plans, key -> new RegionPlan(key, List.of(), List.of()));
     }
 
@@ -121,10 +116,6 @@ final class PlannedScene {
 
     List<Pond> ponds() {
         return ponds;
-    }
-
-    List<SeaInlet> inlets() {
-        return inlets;
     }
 
     int minX() {
@@ -184,7 +175,7 @@ final class PlannedScene {
 
     private IndexedWindow window(WindowKey key) {
         return windows.computeIfAbsent(key, ignored -> {
-            WindowPlan plan = plans.getOrDefault(key, new WindowPlan(key, List.of(), List.of(), List.of()));
+            WindowPlan plan = plans.getOrDefault(key, new WindowPlan(key, List.of(), List.of()));
             return new IndexedWindow(plan, ReachIndex.build(key, plan.reaches(), plan.ponds()));
         });
     }

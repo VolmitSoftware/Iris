@@ -401,27 +401,23 @@ tasks.register('cavePoolProbe', JavaExec) {
     }
 }
 
-tasks.register('seaInletProbe', JavaExec) {
+tasks.register('tidalReachProbe', JavaExec) {
     group = 'verification'
-    description = 'Plans and generates real pack chunks with and without sea inlets and reports containment, seal, roof, sea level, ocean connection and order determinism.'
-    mainClass = 'art.arcane.iris.probe.SeaInletProbe'
+    description = 'Plans real pack sea inlets and reports their shape, or generates their chunks and checks containment and chunk order, or compares plan digests.'
+    mainClass = 'art.arcane.iris.probe.TidalReachProbe'
     classpath = sourceSets.main.runtimeClasspath
     jvmArgs('--add-modules', 'jdk.incubator.vector', '-Djava.awt.headless=true')
     minHeapSize = '2g'
     maxHeapSize = '8g'
     dependsOn(':core:compileJava')
     doFirst {
-        Provider<String> packOff = providers.gradleProperty('probePackOff')
         Provider<String> windows = providers.gradleProperty('probeWindows')
-        Provider<String> mode = providers.gradleProperty('probeMode').orElse('gate')
-        if (!probePack.isPresent() || !packOff.isPresent() || !probeDimension.isPresent() || !windows.isPresent() || !probeOutput.isPresent()) {
-            throw new GradleException('seaInletProbe requires probePack, probePackOff, probeDimension, probeWindows=x0..x1,z0..z1 and probeOutput')
+        Provider<String> mode = providers.gradleProperty('probeMode').orElse('metrics')
+        if (!probePack.isPresent() || !probeDimension.isPresent() || !windows.isPresent() || !probeOutput.isPresent()) {
+            throw new GradleException('tidalReachProbe requires probePack, probeDimension, probeWindows=x0..x1,z0..z1 and probeOutput')
         }
-        String[] axes = windows.get().split(',')
-        String[] xs = axes[0].split('\\.\\.')
-        String[] zs = axes[1].split('\\.\\.')
-        args(probePack.get(), packOff.get(), probeDimension.get(), probeSeed.orElse('1337').get(), xs[0], xs[1], zs[0], zs[1], mode.get(),
-            probeOutput.get(), providers.gradleProperty('probeThreads').orElse('6').get())
+        args(mode.get(), probePack.get(), probeDimension.get(), probeSeed.orElse('1337').get(), windows.get(), probeOutput.get(),
+            providers.gradleProperty('probeThreads').orElse('6').get())
     }
 }
 
@@ -450,7 +446,7 @@ tasks.register('transitionProbe', JavaExec) {
 }
 
 ['transitionProbe', 'hydrologyProbe', 'genProbe', 'generationOrderProbe', 'riverTransectProbe', 'terrain3DProbe',
- 'hydrologyBlockProbe', 'cavePoolProbe', 'caveFluidProbe', 'seaInletProbe'].each { String taskName ->
+ 'hydrologyBlockProbe', 'cavePoolProbe', 'caveFluidProbe', 'tidalReachProbe'].each { String taskName ->
     tasks.named(taskName, JavaExec).configure { JavaExec task ->
         classpath += configurations.studioProbeApi
         doFirst {

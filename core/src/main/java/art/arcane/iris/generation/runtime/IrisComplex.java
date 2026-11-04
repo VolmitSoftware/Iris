@@ -1405,6 +1405,11 @@ public class IrisComplex implements DataProvider {
         return tier == null ? pondMaterials : tier.materials();
     }
 
+    public boolean isTidalBank(int x, int z) {
+        WaterRole role = resolveWaterRole(x, z);
+        return (role == WaterRole.BANK || role == WaterRole.SHORE) && chunkRasterAt(x, z).tier(x & 15, z & 15) == hydrologyRuntime.settings().tidalTier();
+    }
+
     public HydrologyVegetation.Decorators resolveWaterDecorators(int x, int z) {
         if (!waterVegetation.planted()) {
             return HydrologyVegetation.Decorators.EMPTY;

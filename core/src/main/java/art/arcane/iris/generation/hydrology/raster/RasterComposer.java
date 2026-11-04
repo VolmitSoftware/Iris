@@ -3,7 +3,6 @@ package art.arcane.iris.generation.hydrology.raster;
 import art.arcane.iris.generation.hydrology.config.IrisBankStyle;
 import art.arcane.iris.generation.hydrology.cave.HydrologyCaveCell;
 import art.arcane.iris.generation.hydrology.plan.HydrologySettings;
-import art.arcane.iris.generation.hydrology.underground.SeaInlet;
 import art.arcane.iris.generation.hydrology.water.HydrologyTier;
 import art.arcane.iris.generation.hydrology.water.Pond;
 import art.arcane.iris.generation.hydrology.water.Reach;
@@ -44,7 +43,7 @@ final class RasterComposer {
     private final HydrologyTier[] nearTier = new HydrologyTier[CELLS];
     private final ReachGeometry.Lookup brinks;
     private final ReachCursor cursor;
-    private final int[] inletColumn = new int[2];
+    private final ReachCursor.Choice other = new ReachCursor.Choice();
     private final Map<Long, String> reachFluids = new HashMap<>();
     private NaturalHeights naturalHeight;
 
@@ -89,15 +88,6 @@ final class RasterComposer {
         int x = originX + cell % GRID;
         int z = originZ + cell / GRID;
         int ground = natural[cell];
-        SeaInlet inlet = features.openInletAt(x, z, inletColumn);
-        if (inlet != null) {
-            head[cell] = WaterHeads.standing(inlet.waterLevel(), settings.seaLevel());
-            terrain[cell] = Math.min(Math.min(ground, inletColumn[0]), head[cell] - 1);
-            role[cell] = WaterRole.INLET;
-            feature[cell] = inlet.id();
-            fluid[cell] = HydrologyCaveCell.SEA_FLUID;
-            return;
-        }
         int lake = features.lakeAt(x, z, ground);
         int pondIndex = lake >= 0 ? -1 : features.pondAt(x, z);
         boolean shore = interior(cell) && lake < 0 && pondIndex < 0;
@@ -149,7 +139,7 @@ final class RasterComposer {
         role[cell] = role(reach.style()[point]);
         feature[cell] = reach.id();
         tier[cell] = reach.tier();
-        fluid[cell] = role[cell] == WaterRole.MOUTH ? HydrologyCaveCell.SEA_FLUID : reachFluid(reach);
+        fluid[cell] = role[cell] == WaterRole.MOUTH || role[cell] == WaterRole.INLET ? HydrologyCaveCell.SEA_FLUID : reachFluid(reach);
     }
 
     private String reachFluid(Reach reach) {
@@ -176,25 +166,6 @@ final class RasterComposer {
     }
 
     private void dry(int cell, int x, int z, int ground, double variation) {
-        int cut = ground;
-        int raise = Integer.MIN_VALUE;
-        double bankEdge = Double.POSITIVE_INFINITY;
-        ReachCursor.Choice bank = cursor.bank;
-        if (bank.reach != null) {
-            HydrologyTier bankTier = bank.reach.tier();
-            int surface = brinks.head(bank);
-            bankEdge = bank.distance - bank.halfWidth();
-            double u = bankEdge / bankTier.bankBand();
-            if (bankTier.bankStyle() != IrisBankStyle.CLIFF && bankTier.bankStyle() != IrisBankStyle.TERRACED) {
-                u = BedProfile.position(u, -variation);
-            }
-            if (ground >= surface) {
-                double cone = coneSlope(steepestToWater(x, z, bank, bankEdge)) * u * bankTier.bankBand();
-                cut = BankProfile.cut(bankTier.bankStyle(), surface, ground, u, cone, noise(x, z));
-            } else if (ground >= settings.seaLevel()) {
-                raise = BankProfile.levee(bankTier.bankStyle(), surface, ground, u, noise(x, z), settings.deformation().maxFill());
-            }
-        }
         int nearPond = -1;
         double pondEdge = Double.POSITIVE_INFINITY;
         for (int index = 0; index < features.ponds(); index++) {
@@ -202,6 +173,29 @@ final class RasterComposer {
             if (edge < pondEdge || edge == pondEdge && nearPond >= 0 && features.pond(index).id() < features.pond(nearPond).id()) {
                 pondEdge = edge;
                 nearPond = index;
+            }
+        }
+        int cut = ground;
+        int raise = Integer.MIN_VALUE;
+        double bankEdge = Double.POSITIVE_INFINITY;
+        ReachCursor.Choice bank = cursor.bank;
+        if (bank.reach != null) {
+            bankEdge = bank.distance - bank.halfWidth();
+            if (bank.reach.style()[0] == ReachStyle.TIDAL) {
+                cut = tidalBank(bank, x, z, ground, variation, bankEdge, pondEdge);
+            } else {
+                HydrologyTier bankTier = bank.reach.tier();
+                int surface = brinks.head(bank);
+                double u = bankEdge / bankTier.bankBand();
+                if (bankTier.bankStyle() != IrisBankStyle.CLIFF && bankTier.bankStyle() != IrisBankStyle.TERRACED) {
+                    u = BedProfile.position(u, -variation);
+                }
+                if (ground >= surface) {
+                    double cone = coneSlope(steepestToWater(x, z, bank, bankEdge)) * u * bankTier.bankBand();
+                    cut = BankProfile.cut(bankTier.bankStyle(), surface, ground, u, cone, noise(x, z));
+                } else if (ground >= settings.seaLevel()) {
+                    raise = BankProfile.levee(bankTier.bankStyle(), surface, ground, u, noise(x, z), settings.deformation().maxFill());
+                }
             }
         }
         int taper = settings.ponds().shore().taper();
@@ -216,6 +210,47 @@ final class RasterComposer {
             mark(cell, WaterRole.BANK, features.pond(nearPond).id(), null);
         }
         nearestWater(cell, nearPond, pondEdge);
+    }
+
+    private int tidalBank(ReachCursor.Choice bank, int x, int z, int ground, double variation, double bankEdge, double pondEdge) {
+        HydrologyTier tidal = bank.reach.tier();
+        int surface = brinks.head(bank);
+        if (ground < surface) {
+            return ground;
+        }
+        double band = tidal.bankBand();
+        features.segments().nearestOther(x, z, bank.reach.id(), band, other);
+        double otherEdge = other.reach == null ? Double.POSITIVE_INFINITY : other.distance - other.halfWidth();
+        int meet = ground;
+        if (other.reach != null && otherEdge <= other.reach.tier().bankBand()) {
+            meet = Math.min(meet, otherBank(x, z, ground, variation, otherEdge));
+        }
+        double nearest = Math.min(otherEdge, pondEdge);
+        double reach = nearest == Double.POSITIVE_INFINITY ? band : Math.min(band, 0.5D * (bankEdge + nearest));
+        if (bankEdge >= reach) {
+            return Math.max(surface, meet);
+        }
+        double u = bankEdge / reach;
+        if (tidal.bankStyle() != IrisBankStyle.CLIFF && tidal.bankStyle() != IrisBankStyle.TERRACED) {
+            u = BedProfile.position(u, -variation);
+        }
+        double cone = settings.deformation().bankSlope() * u * reach;
+        return Math.min(ground, BankProfile.cut(tidal.bankStyle(), surface, Math.max(surface, meet), u, cone, noise(x, z)));
+    }
+
+    private int otherBank(int x, int z, int ground, double variation, double otherEdge) {
+        HydrologyTier otherTier = other.reach.tier();
+        int surface = brinks.head(other);
+        double u = otherEdge / otherTier.bankBand();
+        if (otherTier.bankStyle() != IrisBankStyle.CLIFF && otherTier.bankStyle() != IrisBankStyle.TERRACED) {
+            u = BedProfile.position(u, -variation);
+        }
+        if (ground < surface) {
+            return ground;
+        }
+        boolean tidal = other.reach.style()[0] == ReachStyle.TIDAL;
+        double slope = tidal ? settings.deformation().bankSlope() : coneSlope(steepestToWater(x, z, other, otherEdge));
+        return BankProfile.cut(otherTier.bankStyle(), surface, ground, u, slope * u * otherTier.bankBand(), noise(x, z));
     }
 
     private void nearestWater(int cell, int nearPond, double pondEdge) {
@@ -332,11 +367,6 @@ final class RasterComposer {
         if (gx >= 0 && gx < GRID && gz >= 0 && gz < GRID && !corner(gz * GRID + gx)) {
             int cell = gz * GRID + gx;
             sample.set(head[cell], feature[cell], role[cell]);
-            return;
-        }
-        SeaInlet inlet = features.openInletAt(x, z, inletColumn);
-        if (inlet != null) {
-            sample.set(WaterHeads.standing(inlet.waterLevel(), settings.seaLevel()), inlet.id(), WaterRole.INLET);
             return;
         }
         int lake = features.lakeCovers(x, z) ? features.lakeAt(x, z, naturalAt(x, z)) : -1;
@@ -524,6 +554,7 @@ final class RasterComposer {
             case CASCADE -> WaterRole.CASCADE;
             case WATERFALL -> WaterRole.WATERFALL;
             case MOUTH -> WaterRole.MOUTH;
+            case TIDAL -> WaterRole.INLET;
             case RUN, RIFFLE, POND_OUTLET -> WaterRole.CHANNEL;
         };
     }

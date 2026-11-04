@@ -8,7 +8,8 @@ public enum ReachStyle {
     CASCADE(2),
     WATERFALL(3),
     POND_OUTLET(4),
-    MOUTH(5);
+    MOUTH(5),
+    TIDAL(6);
 
     private static final PersistedCodes<ReachStyle> CODES = PersistedCodes.of(ReachStyle.class, ReachStyle::code);
 

@@ -18,8 +18,6 @@ import art.arcane.iris.generation.hydrology.engine.HydrologyRuntime;
 import art.arcane.iris.generation.hydrology.query.HydrologyFeatureType;
 import art.arcane.iris.generation.hydrology.raster.ChunkWaterRaster;
 import art.arcane.iris.generation.hydrology.raster.WaterRole;
-import art.arcane.iris.generation.hydrology.underground.SeaInlet;
-import art.arcane.iris.generation.hydrology.underground.SeaInletRasterizer;
 import art.arcane.iris.generation.hydrology.water.HydrologyTier;
 import art.arcane.iris.generation.biome.IrisBiome;
 import art.arcane.iris.generation.terrain.IrisRegion;
@@ -46,6 +44,7 @@ import java.util.Set;
 public final class GenerationSemanticCapture {
     private static final int CHUNK_SIZE = 16;
     private static final String INLET_PROFILE = HydrologyFeatureType.SEA_INLET.key();
+    private static final Set<HydrologyFeatureType> INLET_TYPES = Set.of(HydrologyFeatureType.SEA_INLET);
     private static final long CAVE_POOL_SALT = 0x43415645504f4f4cL;
 
     private GenerationSemanticCapture() {
@@ -160,7 +159,6 @@ public final class GenerationSemanticCapture {
         int minimumX = Math.multiplyExact(chunkX, CHUNK_SIZE);
         int minimumZ = Math.multiplyExact(chunkZ, CHUNK_SIZE);
         int minimumY = engine.getDimension().getMinHeight();
-        captureInlets(complex, runtime.inlets(chunkX, chunkZ), minimumX, minimumZ, minimumY, semantics);
         if (raster.empty()) {
             return;
         }
@@ -175,14 +173,16 @@ public final class GenerationSemanticCapture {
                     continue;
                 }
                 WaterRole role = complex.getWaterRoleStream().get(blockX, blockZ);
-                if (!role.wet() || role == WaterRole.INLET) {
+                if (!role.wet()) {
                     continue;
                 }
                 long id = raster.featureId(localX, localZ);
-                Set<HydrologyFeatureType> types = role == WaterRole.POND
-                        ? standing.computeIfAbsent(id, feature -> runtime.standingWaterTypes(chunkX, chunkZ, feature))
-                        : flowingTypes(runtime, role, raster.tier(localX, localZ));
-                String fluid = role == WaterRole.MOUTH
+                Set<HydrologyFeatureType> types = switch (role) {
+                    case POND -> standing.computeIfAbsent(id, feature -> runtime.standingWaterTypes(chunkX, chunkZ, feature));
+                    case INLET -> INLET_TYPES;
+                    default -> flowingTypes(runtime, role, raster.tier(localX, localZ));
+                };
+                String fluid = role == WaterRole.INLET ? INLET_PROFILE : role == WaterRole.MOUTH
                         ? reachFluids.computeIfAbsent(id, reach -> runtime.channelFluid(chunkX, chunkZ, reach))
                         : Objects.requireNonNull(raster.fluid(localX, localZ), "Water column " + blockX + "," + blockZ + " has no fluid profile");
                 int y = Math.addExact((int) Math.round(complex.getWaterHeadStream().getDouble(blockX, blockZ)), minimumY);
@@ -190,29 +190,6 @@ public final class GenerationSemanticCapture {
                     if (recorded.add(new WaterFeature(type, id))) {
                         semantics.addRiverFeature(fluid, type, id, blockX, y, blockZ);
                     }
-                }
-            }
-        }
-    }
-
-    private static void captureInlets(IrisComplex complex, List<SeaInlet> inlets, int minimumX, int minimumZ, int minimumY,
-                                      ChunkGenerationSemantics.Builder semantics) {
-        for (SeaInlet inlet : inlets) {
-            captureInlet(complex, inlet, minimumX, minimumZ, minimumY, semantics);
-        }
-    }
-
-    private static void captureInlet(IrisComplex complex, SeaInlet inlet, int minimumX, int minimumZ, int minimumY,
-                                     ChunkGenerationSemantics.Builder semantics) {
-        int[] column = new int[2];
-        for (int localX = 0; localX < CHUNK_SIZE; localX++) {
-            for (int localZ = 0; localZ < CHUNK_SIZE; localZ++) {
-                int blockX = minimumX + localX;
-                int blockZ = minimumZ + localZ;
-                if (SeaInletRasterizer.column(inlet, blockX, blockZ, column) && hasFullHydrologyWeight(complex, blockX, blockZ)) {
-                    semantics.addRiverFeature(INLET_PROFILE, HydrologyFeatureType.SEA_INLET, inlet.id(), blockX,
-                            Math.addExact(inlet.waterLevel(), minimumY), blockZ);
-                    return;
                 }
             }
         }

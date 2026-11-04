@@ -141,6 +141,33 @@ final class ReachSegments {
         cursor.resolveChannel();
     }
 
+    void nearestOther(double x, double z, long excluded, double reach, ReachCursor.Choice out) {
+        if (!sealed) {
+            seal();
+        }
+        out.reset();
+        double best = Double.POSITIVE_INFINITY;
+        for (int index = 0; index < size; index++) {
+            if (reaches[index].id() == excluded || beyond(x, z, Math.min(startX[index], endX[index]), Math.min(startZ[index], endZ[index]),
+                    Math.max(startX[index], endX[index]), Math.max(startZ[index], endZ[index]), radius[index] + reach)) {
+                continue;
+            }
+            double ax = startX[index];
+            double az = startZ[index];
+            double dx = endX[index] - ax;
+            double dz = endZ[index] - az;
+            double length = dx * dx + dz * dz;
+            double t = length == 0D ? 0D : Math.clamp(((x - ax) * dx + (z - az) * dz) / length, 0D, 1D);
+            double distance = Math.hypot(x - (ax + t * dx), z - (az + t * dz));
+            double edge = distance - (startWidth[index] + t * (endWidth[index] - startWidth[index]));
+            if (edge < best && edge <= reach) {
+                best = edge;
+                out.reset();
+                out.offer(reaches[index], segments[index], index, t, distance);
+            }
+        }
+    }
+
     private int coveredCell(double x, double z) {
         if (coverStarts == null) {
             return -1;

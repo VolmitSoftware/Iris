@@ -8,7 +8,6 @@ import art.arcane.iris.generation.hydrology.grid.HeightLattice;
 import art.arcane.iris.generation.hydrology.raster.TongueGuard;
 import art.arcane.iris.generation.hydrology.raster.WaterHeads;
 import art.arcane.iris.generation.hydrology.raster.WaterRole;
-import art.arcane.iris.generation.hydrology.underground.SeaInlet;
 import art.arcane.iris.generation.hydrology.water.HydrologyTier;
 import art.arcane.iris.generation.hydrology.water.CupSet;
 import art.arcane.iris.generation.hydrology.water.Pond;
@@ -804,45 +803,22 @@ public class WindowPlannerTest {
     }
 
     @Test
-    public void seaInletsBelongToTheWindowOfTheirFirstLandStationInAnyPlanningOrder() {
+    public void seaConnectedHeadsAcceptWholeTidalReachesAtSeaLevelOnly() {
         HydrologySettings settings = settings(new IrisHydrology());
-        SyntheticTerrain terrain = SyntheticTerrain.cliffCoast(1400D);
-        List<WindowKey> keys = List.of(new WindowKey(2, 0), new WindowKey(3, 0), new WindowKey(2, 1), new WindowKey(3, 1));
-        Map<WindowKey, WindowPlan> forward = new HashMap<>();
-        WindowPlanner first = planner(settings, terrain);
-        for (WindowKey key : keys) {
-            forward.put(key, first.plan(key, noRegions(key)));
-        }
-        Map<WindowKey, WindowPlan> backward = new HashMap<>();
-        WindowPlanner second = planner(settings, terrain);
-        for (int index = keys.size() - 1; index >= 0; index--) {
-            backward.put(keys.get(index), second.plan(keys.get(index), noRegions(keys.get(index))));
-        }
-        assertEquals(forward, backward);
-        int spacing = settings.underground().seaInlets().spacing();
-        Set<Long> sites = new HashSet<>();
-        int inlets = 0;
-        int crossing = 0;
-        for (Map.Entry<WindowKey, WindowPlan> entry : forward.entrySet()) {
-            for (SeaInlet inlet : entry.getValue().inlets()) {
-                inlets++;
-                int landX = (int) Math.floor(inlet.xs()[1]);
-                int landZ = (int) Math.floor(inlet.zs()[1]);
-                assertEquals(inlet + " belongs to the window of its first land station", WindowKey.containing(landX, landZ), entry.getKey());
-                assertTrue(inlet + " is the only inlet of its site", sites.add(((long) Math.floorDiv(landX, spacing) << 32)
-                        | (Math.floorDiv(landZ, spacing) & 0xFFFFFFFFL)));
-                boolean leaves = false;
-                for (int station = 0; station < inlet.stations(); station++) {
-                    leaves |= !WindowKey.containing((int) Math.floor(inlet.xs()[station]), (int) Math.floor(inlet.zs()[station])).equals(entry.getKey());
-                }
-                crossing += leaves ? 1 : 0;
-            }
-        }
-        assertTrue("sea inlets on the cliff coast " + inlets, inlets >= 2);
-        assertTrue("inlets running into the next window " + crossing, crossing > 0);
-        for (WindowKey key : List.of(new WindowKey(3, 0), new WindowKey(3, 1))) {
-            assertTrue("the inland window owns none of the coast's inlets", forward.get(key).inlets().isEmpty());
-        }
+        WindowKey key = new WindowKey(0, 0);
+        int sea = settings.seaLevel();
+        WindowPlanner.requireSeaConnectedHeads(new WindowPlan(key, List.of(tidal(settings, sea, 0L, ReachStyle.TIDAL)), List.of()), sea);
+        assertThrows(IllegalStateException.class,
+                () -> WindowPlanner.requireSeaConnectedHeads(new WindowPlan(key, List.of(tidal(settings, sea + 2, 0L, ReachStyle.TIDAL)), List.of()), sea));
+        assertThrows(IllegalStateException.class,
+                () -> WindowPlanner.requireSeaConnectedHeads(new WindowPlan(key, List.of(tidal(settings, sea, 9L, ReachStyle.TIDAL)), List.of()), sea));
+        assertThrows(IllegalStateException.class,
+                () -> WindowPlanner.requireSeaConnectedHeads(new WindowPlan(key, List.of(tidal(settings, sea, 0L, ReachStyle.RUN)), List.of()), sea));
+    }
+
+    private static Reach tidal(HydrologySettings settings, int grade, long downstream, ReachStyle last) {
+        return new Reach(5L, settings.tidalTier(), downstream, new float[]{0f, 8f}, new float[]{0f, 0f}, new int[]{grade, grade},
+                new float[]{2f, 4f}, new float[]{1f, 1f}, new ReachStyle[]{ReachStyle.TIDAL, last}, 0f);
     }
 
     @Test
@@ -855,8 +831,6 @@ public class WindowPlannerTest {
         assertTrue("mouth vertices on the coastal fractal " + fractalColumns.vertices(), fractalColumns.vertices() >= 100);
         assertTrue("mouth columns on the coastal fractal " + fractalColumns.mouths(), fractalColumns.mouths() >= 1000);
         assertTrue("mouth columns on the cliff coast " + cliffColumns.mouths(), cliffColumns.mouths() >= 1000);
-        assertTrue("sea inlets on the cliff coast " + cliff.inlets().size(), cliff.inlets().size() >= 2);
-        assertTrue("inlet columns on the cliff coast " + cliffColumns.inlets(), cliffColumns.inlets() >= 500);
     }
 
     @Test
@@ -1193,6 +1167,7 @@ public class WindowPlannerTest {
         config.getLakes().setEnabled(false);
         config.getPonds().getSeeded().setAlongChannels(false);
         config.getTiers().get(0).setMinCatchment(LINE_STREAM_CATCHMENT);
+        config.getUnderground().getSeaInlets().setEnabled(false);
         HydrologySettings settings = settings(config);
         int line = LAND.wx() * WindowKey.SIZE;
         double axis = LAND.wz() * WindowKey.SIZE + SEAM_DISTANCE;
@@ -1323,9 +1298,6 @@ public class WindowPlannerTest {
     }
 
     private static SeaColumns assertSeaConnectedHeads(String name, PlannedScene scene) {
-        for (SeaInlet inlet : scene.inlets()) {
-            assertEquals(name + " " + inlet, SEA_LEVEL, inlet.waterLevel());
-        }
         int vertices = 0;
         for (Reach reach : scene.reaches()) {
             for (int point = 0; point < reach.grade().length; point++) {

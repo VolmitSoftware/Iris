@@ -373,7 +373,7 @@ public class HydrologyMetricsTest {
     }
 
     private static WindowPlan plan(WindowKey key, List<Reach> reaches, List<Pond> ponds) {
-        return new WindowPlan(key, reaches, ponds, List.of());
+        return new WindowPlan(key, reaches, ponds);
     }
 
     private static Reach reach(long id, HydrologyTier tier, long downstream, float catchment, int[] grade, float... coordinates) {

@@ -50,7 +50,8 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<NativeBloc
     private static final BoundBlockState AIR = BoundBlockState.of("AIR");
     private static final BoundBlockState DIRT = BoundBlockState.of("minecraft:dirt");
     private static final BoundBlockState NETHERRACK = BoundBlockState.of("minecraft:netherrack");
-    private static final int SLOT_SEA_LAYERS = 1;
+    private static final int INLET_SEA_LAYERS = 1;
+    private static final int TIDAL_BANK_SHALLOW_CUT = 16;
     @Getter
     private final RNG rng;
 
@@ -291,7 +292,7 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<NativeBloc
                 if (i > he && i <= hf) {
                     int fdepth = hf - i;
                     if (seaFloor && fblocks == null) {
-                        fblocks = biome.generateSeaLayers(realX, realZ, rng, role == WaterRole.INLET ? SLOT_SEA_LAYERS : hf - he, data);
+                        fblocks = biome.generateSeaLayers(realX, realZ, rng, role == WaterRole.INLET ? INLET_SEA_LAYERS : hf - he, data);
                     }
                     put(i, HydrologyFluidLayerSelector.select(
                             fblocks,
@@ -316,6 +317,9 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<NativeBloc
                         }
                         blocks = biome.generateLayers(dimension, realX, realZ, rng,
                                 layerSurfaceY + cut + 1 - bedrockFloor, layerSurfaceY + cut, data, complex);
+                        if (exposeStrata && cut <= TIDAL_BANK_SHALLOW_CUT && complex.isTidalBank(realX, realZ)) {
+                            cut = 0;
+                        }
                     }
 
                     int deepFloor = Math.max(bedrockFloor, layerCeilingY > 0 ? layerCeilingY + 2 : 0);

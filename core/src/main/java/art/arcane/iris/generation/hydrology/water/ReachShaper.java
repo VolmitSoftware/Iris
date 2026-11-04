@@ -370,10 +370,7 @@ public final class ReachShaper {
         for (int point = 0; point < distance.length; point++) {
             draft.outletZone[point] = draft.outlet && distance[point] <= OUTLET_LENGTH;
         }
-        for (int pass = 0; pass < SMOOTHING_PASSES; pass++) {
-            chaikin(draft);
-        }
-        unfold(draft);
+        smooth(draft);
         float upstream = 0f;
         float feederEnd = 0f;
         for (int index : draft.incoming) {
@@ -383,6 +380,13 @@ public final class ReachShaper {
         }
         restyle(draft, seaLevel);
         widths(draft, upstream, feederEnd);
+    }
+
+    static void smooth(ReachDraft draft) {
+        for (int pass = 0; pass < SMOOTHING_PASSES; pass++) {
+            chaikin(draft);
+        }
+        unfold(draft);
     }
 
     private static void restyle(ReachDraft draft, int seaLevel) {

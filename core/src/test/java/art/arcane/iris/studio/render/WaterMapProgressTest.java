@@ -31,7 +31,7 @@ public class WaterMapProgressTest {
         HydrologyRuntime runtime = mock(HydrologyRuntime.class);
         Reach reach = mock(Reach.class);
         when(runtime.planPreview(anyInt(), anyInt(), anyInt(), anyInt()))
-                .thenReturn(new HydrologyPlanPreview(List.of(reach), List.of(), List.of(), List.of(), true));
+                .thenReturn(new HydrologyPlanPreview(List.of(reach), List.of(), List.of(), true));
         when(runtime.rasterPreview(anyInt(), anyInt())).thenReturn(ChunkWaterRaster.EMPTY);
 
         WaterMap map = new WaterMap(runtime, 32, 0D, 0D, 1D);

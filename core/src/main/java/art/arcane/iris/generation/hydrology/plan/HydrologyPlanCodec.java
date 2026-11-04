@@ -1,5 +1,6 @@
 package art.arcane.iris.generation.hydrology.plan;
 
+import art.arcane.iris.generation.hydrology.underground.Grotto;
 import art.arcane.iris.generation.hydrology.water.HydrologyTier;
 import art.arcane.iris.generation.hydrology.water.Pond;
 import art.arcane.iris.generation.hydrology.water.PondKind;
@@ -25,27 +26,30 @@ public final class HydrologyPlanCodec {
     private static final int POINT_BYTES = 5 * Integer.BYTES + 1;
     private static final int REACH_BYTES = 2 * Long.BYTES + 4 * Integer.BYTES + 2 * POINT_BYTES;
     private static final int POND_BYTES = 2 * Long.BYTES + 1 + 15 * Integer.BYTES;
+    private static final int GROTTO_POINT_BYTES = 6 * Integer.BYTES;
+    private static final int GROTTO_HOLE_BYTES = 4 * Integer.BYTES;
+    private static final int GROTTO_BYTES = Long.BYTES + 6 * Integer.BYTES + 2 * GROTTO_POINT_BYTES;
 
     private HydrologyPlanCodec() {
     }
 
     public static byte[] encode(HydrologySettings settings, WindowPlan plan) {
-        return encode(settings, WINDOW, plan.key().wx(), plan.key().wz(), plan.reaches(), plan.ponds());
+        return encode(settings, WINDOW, plan.key().wx(), plan.key().wz(), plan.reaches(), plan.ponds(), plan.grottos());
     }
 
     public static byte[] encode(HydrologySettings settings, RegionPlan plan) {
-        return encode(settings, REGION, plan.key().rx(), plan.key().rz(), plan.majorReaches(), plan.lakes());
+        return encode(settings, REGION, plan.key().rx(), plan.key().rz(), plan.majorReaches(), plan.lakes(), List.of());
     }
 
     public static Optional<WindowPlan> decodeWindow(HydrologySettings settings, byte[] data) {
-        return decode(settings, WINDOW, data).map(body -> new WindowPlan(new WindowKey(body.x(), body.z()), body.reaches(), body.ponds()));
+        return decode(settings, WINDOW, data).map(body -> new WindowPlan(new WindowKey(body.x(), body.z()), body.reaches(), body.ponds(), body.grottos()));
     }
 
     public static Optional<RegionPlan> decodeRegion(HydrologySettings settings, byte[] data) {
         return decode(settings, REGION, data).map(body -> new RegionPlan(new RegionKey(body.x(), body.z()), body.reaches(), body.ponds()));
     }
 
-    private static byte[] encode(HydrologySettings settings, byte kind, int x, int z, List<Reach> reaches, List<Pond> ponds) {
+    private static byte[] encode(HydrologySettings settings, byte kind, int x, int z, List<Reach> reaches, List<Pond> ponds, List<Grotto> grottos) {
         ByteArrayOutputStream bytes = new ByteArrayOutputStream();
         try (DataOutputStream out = new DataOutputStream(bytes)) {
             out.writeInt(MAGIC);
@@ -60,6 +64,10 @@ public final class HydrologyPlanCodec {
             out.writeInt(ponds.size());
             for (Pond pond : ponds) {
                 writePond(out, pond);
+            }
+            out.writeInt(grottos.size());
+            for (Grotto grotto : grottos) {
+                writeGrotto(out, grotto);
             }
         } catch (IOException failure) {
             throw new UncheckedIOException(failure);
@@ -131,6 +139,31 @@ public final class HydrologyPlanCodec {
         out.writeInt(pond.floorZ());
     }
 
+    private static void writeGrotto(DataOutputStream out, Grotto grotto) throws IOException {
+        out.writeLong(grotto.id());
+        out.writeInt(grotto.seaLevel());
+        out.writeInt(Float.floatToRawIntBits(grotto.roughness()));
+        out.writeInt(grotto.coast());
+        out.writeInt(grotto.xs().length);
+        writeFloats(out, grotto.xs());
+        writeFloats(out, grotto.zs());
+        writeFloats(out, grotto.halfWidth());
+        writeFloats(out, grotto.roof());
+        writeFloats(out, grotto.floor());
+        writeFloats(out, grotto.lift());
+        out.writeInt(grotto.holeX().length);
+        writeFloats(out, grotto.holeX());
+        writeFloats(out, grotto.holeZ());
+        writeFloats(out, grotto.holeRadius());
+        for (int top : grotto.holeTop()) {
+            out.writeInt(top);
+        }
+        out.writeInt(grotto.plugs().length);
+        for (long plug : grotto.plugs()) {
+            out.writeLong(plug);
+        }
+    }
+
     private static void writeFloats(DataOutputStream out, float[] values) throws IOException {
         for (float value : values) {
             out.writeInt(Float.floatToRawIntBits(value));
@@ -155,13 +188,45 @@ public final class HydrologyPlanCodec {
             for (int index = 0; index < pondCount; index++) {
                 ponds.add(readPond(in));
             }
+            int grottoCount = count(in, GROTTO_BYTES);
+            List<Grotto> grottos = new ArrayList<>(grottoCount);
+            for (int index = 0; index < grottoCount; index++) {
+                grottos.add(readGrotto(in));
+            }
             if (in.hasRemaining()) {
                 return Optional.empty();
             }
-            return Optional.of(new Body(x, z, reaches, ponds));
+            return Optional.of(new Body(x, z, reaches, ponds, grottos));
         } catch (BufferUnderflowException | IllegalArgumentException | IllegalStateException malformed) {
             return Optional.empty();
         }
+    }
+
+    private static Grotto readGrotto(ByteBuffer in) {
+        long id = in.getLong();
+        int seaLevel = in.getInt();
+        float roughness = Float.intBitsToFloat(in.getInt());
+        int coast = in.getInt();
+        int points = count(in, GROTTO_POINT_BYTES);
+        float[] xs = readFloats(in, points);
+        float[] zs = readFloats(in, points);
+        float[] halfWidth = readFloats(in, points);
+        float[] roof = readFloats(in, points);
+        float[] floor = readFloats(in, points);
+        float[] lift = readFloats(in, points);
+        int holes = count(in, GROTTO_HOLE_BYTES);
+        float[] holeX = readFloats(in, holes);
+        float[] holeZ = readFloats(in, holes);
+        float[] holeRadius = readFloats(in, holes);
+        int[] holeTop = new int[holes];
+        for (int hole = 0; hole < holes; hole++) {
+            holeTop[hole] = in.getInt();
+        }
+        long[] plugs = new long[count(in, Long.BYTES)];
+        for (int plug = 0; plug < plugs.length; plug++) {
+            plugs[plug] = in.getLong();
+        }
+        return new Grotto(id, seaLevel, roughness, coast, xs, zs, halfWidth, roof, floor, lift, holeX, holeZ, holeRadius, holeTop, plugs);
     }
 
     private static Reach readReach(ByteBuffer in, HydrologySettings settings) {
@@ -251,6 +316,6 @@ public final class HydrologyPlanCodec {
         return value;
     }
 
-    private record Body(int x, int z, List<Reach> reaches, List<Pond> ponds) {
+    private record Body(int x, int z, List<Reach> reaches, List<Pond> ponds, List<Grotto> grottos) {
     }
 }

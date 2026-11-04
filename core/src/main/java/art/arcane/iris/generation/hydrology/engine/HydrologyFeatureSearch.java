@@ -11,6 +11,7 @@ import art.arcane.iris.generation.hydrology.query.HydrologyFeatureQuery;
 import art.arcane.iris.generation.hydrology.query.HydrologyFeatureRef;
 import art.arcane.iris.generation.hydrology.query.HydrologyFeatureType;
 import art.arcane.iris.generation.hydrology.query.HydrologySearchTimeoutException;
+import art.arcane.iris.generation.hydrology.underground.Grotto;
 import art.arcane.iris.generation.hydrology.water.HydrologyTier;
 import art.arcane.iris.generation.hydrology.water.Pond;
 import art.arcane.iris.generation.hydrology.water.PondKind;
@@ -39,7 +40,7 @@ final class HydrologyFeatureSearch {
     private static final int MAX_WINDOWS = 1089;
     private static final Set<HydrologyFeatureType> WINDOW_TYPES = EnumSet.of(HydrologyFeatureType.STREAM, HydrologyFeatureType.RIVER,
             HydrologyFeatureType.MAJOR_RIVER, HydrologyFeatureType.CASCADE, HydrologyFeatureType.WATERFALL, HydrologyFeatureType.MOUTH,
-            HydrologyFeatureType.POND, HydrologyFeatureType.DAM, HydrologyFeatureType.SEA_INLET);
+            HydrologyFeatureType.POND, HydrologyFeatureType.DAM, HydrologyFeatureType.SEA_INLET, HydrologyFeatureType.GROTTO);
     private static final double TIDAL_LANDING_FROM = 0.5D;
     private static final double TIDAL_LANDING_TO = 0.9D;
     private static final long POLL_NANOS = TimeUnit.MILLISECONDS.toNanos(50L);
@@ -101,6 +102,7 @@ final class HydrologyFeatureSearch {
             case DAM -> !anyPonds ? PONDS_OFF : ponds.dams().enabled() ? null : "hydrology.ponds.dams is disabled";
             case LAKE -> settings.lakes().enabled() ? null : "hydrology.lakes is disabled";
             case SEA_INLET -> settings.underground().seaInlets().enabled() ? null : "hydrology.underground.seaInlets is disabled";
+            case GROTTO -> settings.underground().grottos().enabled() ? null : "hydrology.underground.grottos is disabled";
             case CAVE_POOL -> settings.underground().cavePools().enabled() ? null : "hydrology.underground.cavePools is disabled";
         };
         return Optional.ofNullable(reason);
@@ -218,6 +220,11 @@ final class HydrologyFeatureSearch {
             HydrologyFeatureType type = pondType(pond);
             if (type != null) {
                 pond(pond, type);
+            }
+        }
+        if (types.contains(HydrologyFeatureType.GROTTO)) {
+            for (Grotto grotto : plan.grottos()) {
+                offer(grotto.id(), HydrologyFeatureType.GROTTO, grotto.mouthX(), grotto.seaLevel(), grotto.mouthZ());
             }
         }
     }

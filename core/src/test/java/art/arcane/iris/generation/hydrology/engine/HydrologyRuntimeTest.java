@@ -16,6 +16,7 @@ import art.arcane.iris.generation.hydrology.query.HydrologyFeatureRef;
 import art.arcane.iris.generation.hydrology.query.HydrologyFeatureType;
 import art.arcane.iris.generation.hydrology.raster.ChunkWaterRaster;
 import art.arcane.iris.generation.hydrology.raster.WaterRole;
+import art.arcane.iris.generation.hydrology.underground.Grotto;
 import art.arcane.iris.generation.hydrology.water.Pond;
 import art.arcane.iris.generation.hydrology.water.PondKind;
 import art.arcane.iris.generation.hydrology.water.PondMask;
@@ -346,6 +347,18 @@ public class HydrologyRuntimeTest {
         assertEquals(Optional.empty(),
                 runtime.nearestFeature(0, 0, HydrologyFeatureQuery.of(HydrologyFeatureType.SEA_INLET), 64, ANY, RUNNING));
         assertEquals(List.of(INLET), runtime.planPreview(900, 300, 1100, 500).reaches().stream().map(Reach::id).filter(id -> id == INLET).toList());
+    }
+
+    @Test(timeout = 180_000L)
+    public void grottosAreSearchedAtTheirMouthsAndListedByChunk() throws Exception {
+        FakePlanners planners = new FakePlanners(settings());
+        HydrologyRuntime runtime = runtime(planners, () -> false);
+        Grotto grotto = FakePlanners.grotto();
+        assertEquals(new HydrologyFeatureRef(grotto.id(), HydrologyFeatureType.GROTTO, grotto.mouthX(), grotto.seaLevel(), grotto.mouthZ()),
+                runtime.nearestFeature(1050, 405, HydrologyFeatureQuery.of(HydrologyFeatureType.GROTTO), 512, ANY, RUNNING).orElseThrow());
+        assertEquals(List.of(grotto), runtime.grottos(grotto.mouthX() >> 4, grotto.mouthZ() >> 4));
+        assertEquals(List.of(), runtime.grottos(0, 0));
+        assertEquals(List.of(grotto), runtime.planPreview(900, 300, 1100, 500).grottos());
     }
 
     @Test(timeout = 180_000L)
@@ -1282,7 +1295,7 @@ public class HydrologyRuntimeTest {
                         pond(POND + 1, PondKind.SEEDED, 70, 296, 296, 3)));
             }
             if (key.equals(new WindowKey(1, 0))) {
-                return new WindowPlan(key, List.of(tidal()), List.of());
+                return new WindowPlan(key, List.of(tidal()), List.of(), List.of(grotto()));
             }
             if (key.equals(new WindowKey(3, 0))) {
                 return new WindowPlan(key, List.of(), List.of(pond(FAR_POND, PondKind.NATURAL, 75, 1700, 100, 3)));
@@ -1306,6 +1319,11 @@ public class HydrologyRuntimeTest {
                 Thread.currentThread().interrupt();
                 throw new CancellationException("Planning interrupted.");
             }
+        }
+
+        static Grotto grotto() {
+            return new Grotto(0x47524FL, 40, 0.5f, 1, new float[]{1090f, 1080f, 1070f, 1060f}, new float[]{420f, 420f, 424f, 430f}, new float[]{6f, 6f, 5f, 5f},
+                    new float[]{6f, 6f, 6f, 6f}, new float[]{3f, 3f, 3f, 3f}, new float[]{0f, 0f, 0f, 0f}, new float[0], new float[0], new float[0], new int[0], new long[0]);
         }
 
         private Reach tidal() {

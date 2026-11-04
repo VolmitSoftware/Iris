@@ -23,6 +23,7 @@ public final class TidalPlanner {
     private static final int[] SIDE_I = {1, -1, 0, 0};
     private static final int[] SIDE_J = {0, 0, 1, -1};
     private static final int MEMO_SITES = 4096;
+    private static final int FOREIGN_SITES = 3;
     private static final int BUILD_ATTEMPTS = 24;
     private static final int TRIM_PASSES = 8;
     private static final float MOUTH_ZONE = 32f;
@@ -105,7 +106,7 @@ public final class TidalPlanner {
             return List.of();
         }
         Land land = new Land(natural, samples);
-        float[] coast = coastDistance(land);
+        float[] coast = coastDistance(natural, samples.ocean());
         boolean[] wet = wet(natural, network);
         banked(natural, samples, wet);
         ReachFitter fitter = new ReachFitter(fine, new PondLookup(network.ponds()));
@@ -120,6 +121,48 @@ public final class TidalPlanner {
         }
         planned.sort(Comparator.comparingLong(Reach::id));
         return List.copyOf(planned);
+    }
+
+    public boolean foreignArmMayReach(WindowKey window, double x, double z, float clearance) {
+        if (!config.enabled() || settings.density() <= 0f) {
+            return false;
+        }
+        int spacing = config.spacing();
+        int centreX = Math.floorDiv((int) Math.floor(x), spacing);
+        int centreZ = Math.floorDiv((int) Math.floor(z), spacing);
+        double nearest = Double.POSITIVE_INFINITY;
+        double second = Double.POSITIVE_INFINITY;
+        double nearestForeign = Double.POSITIVE_INFINITY;
+        boolean nearestIsForeign = false;
+        for (int siteZ = centreZ - FOREIGN_SITES; siteZ <= centreZ + FOREIGN_SITES; siteZ++) {
+            for (int siteX = centreX - FOREIGN_SITES; siteX <= centreX + FOREIGN_SITES; siteX++) {
+                Anchor anchor = anchor(siteX, siteZ);
+                if (!anchor.active()) {
+                    continue;
+                }
+                double distance = Math.hypot(x - anchor.x(), z - anchor.z());
+                boolean foreign = !anchor.owner().equals(window);
+                if (foreign) {
+                    nearestForeign = Math.min(nearestForeign, distance);
+                }
+                if (distance < nearest) {
+                    second = nearest;
+                    nearest = distance;
+                    nearestIsForeign = foreign;
+                } else if (distance < second) {
+                    second = distance;
+                }
+            }
+        }
+        if (nearestForeign == Double.POSITIVE_INFINITY) {
+            return false;
+        }
+        double others = nearestIsForeign && nearestForeign == nearest ? second : nearest;
+        return nearestForeign + territory - 2D * clearance <= others;
+    }
+
+    public float armGroundLimit() {
+        return settings.seaLevel() + FAR_BANK_SHARE * gradedHeight;
     }
 
     private List<Anchor> own(WindowKey window) {
@@ -361,9 +404,7 @@ public final class TidalPlanner {
         return -1;
     }
 
-    private static float[] coastDistance(Land land) {
-        DemGrid grid = land.grid();
-        boolean[] ocean = land.samples().ocean();
+    public static float[] coastDistance(DemGrid grid, boolean[] ocean) {
         int width = grid.width();
         int depth = grid.depth();
         float[] distance = new float[width * depth];

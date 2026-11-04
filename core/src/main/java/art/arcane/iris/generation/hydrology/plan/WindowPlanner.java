@@ -13,6 +13,8 @@ import art.arcane.iris.generation.hydrology.grid.HydrologySampleBuffer;
 import art.arcane.iris.generation.hydrology.grid.PriorityFlood;
 import art.arcane.iris.generation.hydrology.raster.PondChannelSettlement;
 import art.arcane.iris.generation.hydrology.raster.TongueGuard;
+import art.arcane.iris.generation.hydrology.underground.Grotto;
+import art.arcane.iris.generation.hydrology.underground.GrottoPlanner;
 import art.arcane.iris.generation.hydrology.water.CupSet;
 import art.arcane.iris.generation.hydrology.water.Pond;
 import art.arcane.iris.generation.hydrology.water.PondKind;
@@ -49,6 +51,7 @@ public final class WindowPlanner {
     private final PondPlanner ponds;
     private final ReachShaper shaper;
     private final TidalPlanner tidal;
+    private final GrottoPlanner grottos;
 
     public WindowPlanner(HydrologySettings settings, HeightLattice fine, PondPlanner ponds, ReachShaper shaper) {
         this.settings = Objects.requireNonNull(settings, "settings");
@@ -56,6 +59,7 @@ public final class WindowPlanner {
         this.ponds = Objects.requireNonNull(ponds, "ponds");
         this.shaper = Objects.requireNonNull(shaper, "shaper");
         this.tidal = new TidalPlanner(settings, fine);
+        this.grottos = new GrottoPlanner(settings, fine, tidal);
         if (fine.cell() != FINE_CELL) {
             throw new IllegalArgumentException("Window fine lattice cell " + fine.cell() + " must be " + FINE_CELL);
         }
@@ -131,8 +135,10 @@ public final class WindowPlanner {
         List<Reach> reaches = network.reaches();
         List<Pond> windowPonds = windowPonds(network.ponds());
         List<Reach> ownedReaches = new ArrayList<>(ownedReaches(key, reaches));
-        ownedReaches.addAll(tidal.plan(key, natural, samples, network));
-        WindowPlan owned = new WindowPlan(key, ownedReaches, ownedPonds(key, windowPonds));
+        List<Reach> arms = tidal.plan(key, natural, samples, network);
+        ownedReaches.addAll(arms);
+        List<Grotto> ownedGrottos = grottos.plan(key, natural, samples, network, arms);
+        WindowPlan owned = new WindowPlan(key, ownedReaches, ownedPonds(key, windowPonds), ownedGrottos);
         requireSeaConnectedHeads(owned, settings.seaLevel());
         return new WindowComputation(owned, reaches, windowPonds);
     }

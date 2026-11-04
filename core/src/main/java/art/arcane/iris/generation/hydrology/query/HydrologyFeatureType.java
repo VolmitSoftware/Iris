@@ -17,7 +17,8 @@ public enum HydrologyFeatureType {
     LAKE(7),
     DAM(8),
     SEA_INLET(9),
-    CAVE_POOL(10);
+    CAVE_POOL(10),
+    GROTTO(11);
 
     private static final List<String> KEYS = keyList();
     private static final PersistedCodes<HydrologyFeatureType> CODES =

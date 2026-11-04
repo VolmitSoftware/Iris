@@ -5,6 +5,7 @@ import art.arcane.iris.generation.hydrology.engine.HydrologyRuntime;
 import art.arcane.iris.generation.hydrology.query.HydrologyFeatureType;
 import art.arcane.iris.generation.hydrology.raster.ChunkWaterRaster;
 import art.arcane.iris.generation.hydrology.water.HydrologyTier;
+import art.arcane.iris.generation.hydrology.underground.Grotto;
 import art.arcane.iris.generation.hydrology.water.Pond;
 import art.arcane.iris.generation.hydrology.water.PondMask;
 import art.arcane.iris.generation.hydrology.water.Reach;
@@ -32,6 +33,7 @@ final class WaterMap {
     private final double startX;
     private final double startZ;
     private final double step;
+    private List<Grotto> grottos = List.of();
     private final int[] ranks;
     private final boolean[] resolved;
     private final IdentityHashMap<HydrologyTier, HydrologyFeatureType> channels = new IdentityHashMap<>();
@@ -70,9 +72,11 @@ final class WaterMap {
                 prepareFallback(plans);
             }
             plansComplete = plans.complete();
+            grottos = plans.grottos();
         }
         if (step <= RASTER_STEP) {
             provisional = drawRasters(plans) || !plansComplete;
+            drawGrottos();
         } else {
             prepareFallback(plans);
             System.arraycopy(plannedRanks, 0, ranks, 0, ranks.length);
@@ -193,6 +197,21 @@ final class WaterMap {
         for (Pond lake : plans.lakes()) {
             drawMask(lake.mask(), HydrologyFeatureType.LAKE);
         }
+        grottos = plans.grottos();
+        drawGrottos();
+    }
+
+    private void drawGrottos() {
+        for (Grotto grotto : grottos) {
+            checkCancelled();
+            float[] xs = grotto.xs();
+            float[] zs = grotto.zs();
+            float[] halfWidth = grotto.halfWidth();
+            for (int point = 0; point + 1 < xs.length; point++) {
+                double radius = Math.max(halfWidth[point], halfWidth[point + 1]) + step / 2D;
+                drawSegment(xs[point], zs[point], xs[point + 1], zs[point + 1], radius, HydrologyFeatureType.GROTTO);
+            }
+        }
     }
 
     private void drawReach(Reach reach) {
@@ -291,10 +310,11 @@ final class WaterMap {
             case RIVER -> 4;
             case STREAM -> 5;
             case SEA_INLET -> 6;
-            case POND -> 7;
-            case LAKE -> 8;
-            case DAM -> 9;
-            case CAVE_POOL -> 10;
+            case GROTTO -> 7;
+            case POND -> 8;
+            case LAKE -> 9;
+            case DAM -> 10;
+            case CAVE_POOL -> 11;
         };
     }
 

@@ -5,6 +5,8 @@ import art.arcane.iris.generation.hydrology.config.IrisHydrologyPolicy;
 import art.arcane.iris.generation.hydrology.engine.HydrologyRuntime;
 import art.arcane.iris.generation.hydrology.underground.CarvedTerrain;
 import art.arcane.iris.generation.hydrology.underground.CaveVoxel;
+import art.arcane.iris.generation.hydrology.underground.Grotto;
+import art.arcane.iris.generation.hydrology.underground.GrottoSpace;
 import art.arcane.iris.generation.runtime.Engine;
 import art.arcane.iris.generation.runtime.IrisComplex;
 import art.arcane.iris.generation.stream.ProvisionalSampling;
@@ -21,7 +23,10 @@ import art.arcane.volmlib.util.matter.Matter;
 import art.arcane.volmlib.util.matter.MatterCavern;
 
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 final class MantleCarvedTerrain implements CarvedTerrain {
     private static final int SPAN = 48;
@@ -44,6 +49,7 @@ final class MantleCarvedTerrain implements CarvedTerrain {
     private final SubterrainPlanner planner;
     private final List<SubterrainPlan> features;
     private final boolean terrain3D;
+    private final GrottoSpace grottos;
     private final MantleChunk<Matter>[] chunks;
     private final boolean[] existing;
     private final int[] surfaces = new int[SPAN * SPAN];
@@ -65,6 +71,7 @@ final class MantleCarvedTerrain implements CarvedTerrain {
         this.minimumY = engine.getWorld().minHeight();
         HydrologyRuntime runtime = complex.getHydrologyRuntime();
         this.caveFluids = runtime.caveFluidPolicies();
+        this.grottos = GrottoSpace.of(grottos(runtime, chunkX, chunkZ), originX, originZ, SPAN);
         SubterrainPlanner subterrain = complex.getSubterrainPlanner();
         List<SubterrainPlan> plans = subterrain == null || subterrain.isEmpty() ? List.of()
                 : subterrain.plansForBounds(originX, originZ, originX + SPAN - 1, originZ + SPAN - 1);
@@ -81,7 +88,7 @@ final class MantleCarvedTerrain implements CarvedTerrain {
     @Override
     public CaveVoxel voxel(int x, int y, int z) {
         int column = column(x, z);
-        if (y <= 0 || y >= height || existing(x, z) || y > surface(x, z, column)) {
+        if (y <= 0 || y >= height || existing(x, z) || y > surface(x, z, column) || grottos.contains(x, y, z)) {
             return CaveVoxel.FOREIGN;
         }
         if (planner != null && planner.sample(features, x, y + minimumY, z).owned()) {
@@ -140,6 +147,18 @@ final class MantleCarvedTerrain implements CarvedTerrain {
             }
         }
         return false;
+    }
+
+    private static Collection<Grotto> grottos(HydrologyRuntime runtime, int chunkX, int chunkZ) {
+        Map<Long, Grotto> grottos = new LinkedHashMap<>();
+        for (int offsetZ = -1; offsetZ <= 1; offsetZ++) {
+            for (int offsetX = -1; offsetX <= 1; offsetX++) {
+                for (Grotto grotto : runtime.grottos(chunkX + offsetX, chunkZ + offsetZ)) {
+                    grottos.putIfAbsent(grotto.id(), grotto);
+                }
+            }
+        }
+        return grottos.values();
     }
 
     private int surface(int x, int z, int column) {

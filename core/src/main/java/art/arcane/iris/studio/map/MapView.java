@@ -30,7 +30,7 @@ enum MapView {
     REGIONS("Regions", "The region each spot belongs to; pick one to see the biomes it places",
             Group.WORLD, TileType.REGION, KeyEvent.VK_2),
     HEIGHT("Height", "Terrain height, from deep water to snowy peaks", Group.WORLD, TileType.HEIGHT, KeyEvent.VK_3),
-    RIVERS("Rivers", "Streams, rivers, falls, ponds, lakes, sea inlets and cave pools from the hydrology",
+    RIVERS("Rivers", "Streams, rivers, falls, ponds, lakes, sea inlets, grottos and cave pools from the hydrology",
             Group.WORLD, TileType.RIVER, KeyEvent.VK_4),
     WORLD_3D("3D world", "The terrain in 3D, coloured by biome or region", Group.WORLD, null, KeyEvent.VK_5),
     LAND_BIOMES("Land biomes", "The land biome each spot would get, also where the sea is",

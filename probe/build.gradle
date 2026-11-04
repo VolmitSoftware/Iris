@@ -421,6 +421,27 @@ tasks.register('tidalReachProbe', JavaExec) {
     }
 }
 
+tasks.register('grottoProbe', JavaExec) {
+    group = 'verification'
+    description = 'Plans real pack grottos, generates their chunks, checks containment and shape, and renders them.'
+    mainClass = 'art.arcane.iris.probe.GrottoProbe'
+    classpath = sourceSets.main.runtimeClasspath
+    jvmArgs('--add-modules', 'jdk.incubator.vector', '-Djava.awt.headless=true')
+    minHeapSize = '2g'
+    maxHeapSize = '8g'
+    dependsOn(':core:compileJava')
+    doFirst {
+        Provider<String> windows = providers.gradleProperty('probeWindows')
+        Provider<String> mode = providers.gradleProperty('probeMode').orElse('plan')
+        if (!probePack.isPresent() || !probeDimension.isPresent() || !windows.isPresent() || !probeOutput.isPresent()) {
+            throw new GradleException('grottoProbe requires probePack, probeDimension, probeWindows=x0..x1,z0..z1 and probeOutput')
+        }
+        List<String> extra = (providers.gradleProperty('probeExtra').orElse('').get() as String).tokenize(',')
+        args([mode.get(), probePack.get(), probeDimension.get(), probeSeed.orElse('1337').get(), windows.get(), probeOutput.get(),
+            providers.gradleProperty('probeThreads').orElse('6').get()] + extra)
+    }
+}
+
 tasks.register('transitionProbe', JavaExec) {
     group = 'verification'
     description = 'Exercises a bounded two-pack Studio cutover, transition routing, receipts and semantics with a vanilla-biome pack.'

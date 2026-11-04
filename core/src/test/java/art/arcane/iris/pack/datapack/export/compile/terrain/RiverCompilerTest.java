@@ -178,7 +178,7 @@ public class RiverCompilerTest {
 
         compile(new Field.Const(SEA_LEVEL + 2.0), overworldHydrology(), registry(), DataVersion.V26_3, diagnostics);
 
-        assertEquals(List.of(ExportLimit.ELEVATED_WATER, ExportLimit.RIVER_DRAINAGE, ExportLimit.SEA_INLET, ExportLimit.CAVE_POOL),
+        assertEquals(List.of(ExportLimit.ELEVATED_WATER, ExportLimit.RIVER_DRAINAGE, ExportLimit.SEA_INLET, ExportLimit.GROTTO, ExportLimit.CAVE_POOL),
                 diagnostics.stream().map(ExportDiagnostic::limit).toList());
         assertEquals("dimensions/rivers/hydrology", diagnostics.getFirst().resource());
     }
@@ -405,6 +405,17 @@ public class RiverCompilerTest {
     }
 
     @Test
+    public void grottosReportADiagnostic() {
+        List<ExportDiagnostic> diagnostics = new ArrayList<>();
+        IrisHydrology hydrology = overworldHydrology();
+        hydrology.getUnderground().getSeaInlets().setEnabled(false);
+        hydrology.getUnderground().getCavePools().setEnabled(false);
+        compile(new Field.Const(SEA_LEVEL + 2.0), hydrology, registry(), DataVersion.V26_3, diagnostics);
+        assertEquals(1, limited(diagnostics, ExportLimit.GROTTO).size());
+        assertEquals("dimensions/rivers/hydrology", limited(diagnostics, ExportLimit.GROTTO).getFirst().resource());
+    }
+
+    @Test
     public void cavePoolsReportADiagnostic() {
         List<ExportDiagnostic> diagnostics = new ArrayList<>();
         IrisHydrology hydrology = overworldHydrology();
@@ -458,7 +469,7 @@ public class RiverCompilerTest {
                 ExportLimit.RIVER_CLIMATE,
                 ExportLimit.RIVER_SHORE_BIOME,
                 ExportLimit.RIVER_DECORATOR, ExportLimit.RIVER_DECORATOR,
-                ExportLimit.SEA_INLET, ExportLimit.CAVE_POOL), forward.stream().map(ExportDiagnostic::limit).toList());
+                ExportLimit.SEA_INLET, ExportLimit.GROTTO, ExportLimit.CAVE_POOL), forward.stream().map(ExportDiagnostic::limit).toList());
         assertEquals(List.of("regions/hot", "regions/wet", "biomes/deep"),
                 limited(forward, ExportLimit.RIVER_POLICY).stream().map(ExportDiagnostic::resource).toList());
         assertEquals(List.of("dimensions/rivers/hydrology", "biomes/marsh"),
@@ -556,6 +567,7 @@ public class RiverCompilerTest {
     private static IrisHydrologyUnderground underground(boolean enabled) {
         IrisHydrologyUnderground underground = new IrisHydrologyUnderground();
         underground.getSeaInlets().setEnabled(enabled);
+        underground.getGrottos().setEnabled(enabled);
         underground.getCavePools().setEnabled(enabled);
         return underground;
     }

@@ -54,6 +54,7 @@ public final class IrisRenderer {
     private static final int WATER_LAKE = new Color(40, 96, 140).getRGB();
     private static final int WATER_DAM = new Color(150, 120, 84).getRGB();
     private static final int WATER_SEA_INLET = new Color(51, 174, 174).getRGB();
+    private static final int WATER_GROTTO = new Color(150, 80, 200).getRGB();
     private static final int WATER_CAVE_POOL = new Color(102, 86, 196).getRGB();
     private static final int NO_RIVER = new Color(28, 31, 38).getRGB();
     private static final double RIVER_OVERLAY = 0.72D;
@@ -143,6 +144,7 @@ public final class IrisRenderer {
             case LAKE -> WATER_LAKE;
             case DAM -> WATER_DAM;
             case SEA_INLET -> WATER_SEA_INLET;
+            case GROTTO -> WATER_GROTTO;
             case CAVE_POOL -> WATER_CAVE_POOL;
         };
     }

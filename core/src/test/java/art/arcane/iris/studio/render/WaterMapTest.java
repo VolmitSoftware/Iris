@@ -3,6 +3,7 @@ package art.arcane.iris.studio.render;
 import art.arcane.iris.generation.hydrology.engine.HydrologyPlanPreview;
 import art.arcane.iris.generation.hydrology.engine.HydrologyRuntime;
 import art.arcane.iris.generation.hydrology.query.HydrologyFeatureType;
+import art.arcane.iris.generation.hydrology.underground.Grotto;
 import art.arcane.iris.generation.hydrology.water.HydrologyTier;
 import art.arcane.iris.generation.hydrology.water.Pond;
 import art.arcane.iris.generation.hydrology.water.Reach;
@@ -48,6 +49,18 @@ public class WaterMapTest {
 
         assertEquals("pond and lake share the pixel", HydrologyFeatureType.POND, map.at(9, 7));
         assertEquals("open lake water", HydrologyFeatureType.LAKE, map.at(13, 7));
+    }
+
+    @Test
+    public void grottosDrawAtMidZoom() {
+        Grotto grotto = new Grotto(9L, LEVEL, 0.5f, 0, new float[]{4f, 60f}, new float[]{POND_Z, POND_Z}, new float[]{4f, 4f}, new float[]{5f, 5f}, new float[]{3f, 3f}, new float[]{0f, 0f},
+                new float[0], new float[0], new float[0], new int[0], new long[0]);
+        HydrologyRuntime runtime = mock(HydrologyRuntime.class);
+        when(runtime.planPreview(anyInt(), anyInt(), anyInt(), anyInt()))
+                .thenReturn(new HydrologyPlanPreview(List.of(), List.of(), List.of(), List.of(grotto), true));
+        WaterMap map = new WaterMap(runtime, PIXELS, 0D, 0D, MID_STEP);
+        map.advance(() -> false);
+        assertEquals(HydrologyFeatureType.GROTTO, map.at((int) (30D / MID_STEP), (int) (POND_Z / MID_STEP)));
     }
 
     private static WaterMap draw(List<Reach> reaches, List<Pond> ponds, List<Pond> lakes) {

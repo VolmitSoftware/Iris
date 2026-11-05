@@ -31,6 +31,7 @@ import art.arcane.volmlib.util.collection.KMap;
 import art.arcane.iris.util.common.plugin.IrisService;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.NamespacedKey;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Entity;
@@ -166,8 +167,26 @@ public class ExternalDataSVC implements IrisService {
         return stack.isEmpty() ? OptionalInt.empty() : OptionalInt.of(stack.get().getType().getMaxDurability());
     }
 
+    /** The block made to never decay by the provider it belongs to, or {@code data} itself. */
+    public BlockData withoutDecay(BlockData data) {
+        for (ExternalDataProvider provider : activeProviders) {
+            BlockData kept = provider.withoutDecay(data);
+            if (kept != data) {
+                return kept;
+            }
+        }
+        return data;
+    }
+
+    /** Whether {@code data} is a provider's block carrying {@code tag}. */
+    public boolean hasBlockTag(BlockData data, NamespacedKey tag) {
+        return activeProviders.stream().anyMatch(provider -> provider.hasBlockTag(data, tag));
+    }
+
+    /** Places the provider block {@code blockId}, which may carry a state like {@code ns:chair[yaw=90]}. */
     public void processUpdate(Engine engine, Block block, Identifier blockId) {
-        Optional<ExternalDataProvider> provider = activeProviders.stream().filter(p -> p.isValidProvider(blockId, DataType.BLOCK)).findFirst();
+        Identifier baseBlockId = withoutState(blockId);
+        Optional<ExternalDataProvider> provider = activeProviders.stream().filter(p -> p.isValidProvider(baseBlockId, DataType.BLOCK)).findFirst();
         if (provider.isEmpty()) {
             IrisLogging.warnOnce("external-provider:block:" + blockId,
                     "No matching Provider found for modded material \"%s\"!", blockId);
@@ -203,6 +222,11 @@ public class ExternalDataSVC implements IrisService {
                         .stream()
                         .map(id -> new Pair<>(id, p.getBlockProperties(id))))
                 .toList();
+    }
+
+    static Identifier withoutState(Identifier key) {
+        int open = key.key().indexOf('[');
+        return open < 0 ? key : new Identifier(key.namespace(), key.key().substring(0, open));
     }
 
     public static Pair<Identifier, KMap<String, String>> parseState(Identifier key) {

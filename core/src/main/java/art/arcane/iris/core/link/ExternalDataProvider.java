@@ -14,6 +14,7 @@ import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.NamespacedKey;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
@@ -112,6 +113,25 @@ public abstract class ExternalDataProvider {
      * @param blockId The blockId to place
      */
     public void processUpdate(@NotNull Engine engine, @NotNull Block block, @NotNull Identifier blockId) {}
+
+    /**
+     * @param data The block to keep
+     * @return The block made to never decay, like custom leaves, or {@code data} itself when it is not one of the
+     * provider's decaying blocks
+     */
+    @NotNull
+    public BlockData withoutDecay(@NotNull BlockData data) {
+        return data;
+    }
+
+    /**
+     * @param data The block to check
+     * @param tag  A block tag, like {@code minecraft:logs}
+     * @return Whether the block is one of the provider's blocks and carries that tag
+     */
+    public boolean hasBlockTag(@NotNull BlockData data, @NotNull NamespacedKey tag) {
+        return false;
+    }
 
     /**
      * Spawns a mob in the specified location using the given engine and entity identifier.

@@ -71,6 +71,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -95,6 +96,7 @@ public class ObjectPlacementRegressionTest {
         IrisPlatforms.unbind();
         PlatformRegistries registries = mock(PlatformRegistries.class);
         when(registries.block(anyString())).thenAnswer(invocation -> registryState(invocation.getArgument(0)));
+        when(registries.blockOrNull(anyString(), anyBoolean())).thenAnswer(invocation -> registryState(invocation.getArgument(0)));
         IrisPlatform platform = mock(IrisPlatform.class);
         when(platform.registries()).thenReturn(registries);
         IrisPlatforms.bind(platform);
@@ -208,6 +210,23 @@ public class ObjectPlacementRegressionTest {
         assertTrue(placer.sampledColumns().contains("-2:-2"));
         assertTrue(placer.sampledColumns().contains("2:2"));
         assertTrue(placer.sampledColumns().size() >= 25);
+    }
+
+    @Test
+    public void leavesNeverCutALogAnotherObjectPlaced() {
+        PlatformBlockState log = registryState("minecraft:oak_log");
+        PlatformBlockState leaves = registryState("minecraft:oak_leaves");
+        RecordingPlacer placer = new RecordingPlacer(null);
+        IrisObject trunk = new IrisObject(1, 1, 1);
+        trunk.setUnsigned(0, 0, 0, log);
+        IrisObject canopy = new IrisObject(1, 1, 1);
+        canopy.setUnsigned(0, 0, 0, leaves);
+
+        placed(trunk, 0, ANCHOR_Y, 0, placer, placement().build(), new RNG(2L), data);
+        placed(canopy, 0, ANCHOR_Y, 0, placer, placement().build(), new RNG(2L), data);
+
+        assertEquals(1, placer.writes().size());
+        assertEquals("minecraft:oak_log", placer.writes().get(0).state().key());
     }
 
     @Test
@@ -732,12 +751,15 @@ public class ObjectPlacementRegressionTest {
         return PlatformBlockStates.namespaced(builtIn.key());
     }
 
+    /** A platform state mock; logs and leaves are told by their key, as the platform tells them by tag. */
     private static PlatformBlockState state(String key, boolean solid) {
         PlatformBlockState state = mock(PlatformBlockState.class);
         when(state.key()).thenReturn(key);
         when(state.materialKey()).thenReturn(key);
         when(state.isSolid()).thenReturn(solid);
         when(state.isOccluding()).thenReturn(solid);
+        when(state.isLog()).thenReturn(key.endsWith("_log"));
+        when(state.isLeaves()).thenReturn(key.endsWith("_leaves"));
         return state;
     }
 

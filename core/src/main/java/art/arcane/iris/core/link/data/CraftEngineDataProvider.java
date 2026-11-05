@@ -8,6 +8,7 @@ import art.arcane.iris.core.nms.container.BlockProperty;
 import art.arcane.iris.core.service.ExternalDataSVC;
 import art.arcane.volmlib.util.cache.CacheKey;
 import art.arcane.iris.engine.framework.Engine;
+import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.util.common.data.IrisCustomData;
 import art.arcane.volmlib.util.collection.KMap;
 import art.arcane.volmlib.util.math.RNG;
@@ -23,6 +24,7 @@ import net.momirealms.craftengine.core.block.property.Property;
 import net.momirealms.craftengine.core.entity.furniture.FurnitureDefinition;
 import net.momirealms.craftengine.core.util.Key;
 import org.bukkit.Location;
+import org.bukkit.NamespacedKey;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.inventory.ItemStack;
@@ -33,10 +35,12 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.MissingResourceException;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
 public class CraftEngineDataProvider extends ExternalDataProvider {
+    private static final String PERSISTENT_PROPERTY = "persistent";
     private static final BlockProperty[] FURNITURE_PROPERTIES = new BlockProperty[]{
             BlockProperty.ofBoolean("randomYaw", false),
             BlockProperty.ofDouble("yaw", 0, 0, 360f, false, true),
@@ -89,41 +93,44 @@ public class CraftEngineDataProvider extends ExternalDataProvider {
     @Override
     public @NotNull BlockData getBlockData(@NotNull Identifier blockId, @NotNull KMap<String, String> state) throws MissingResourceException {
         Key key = Key.of(blockId.namespace(), blockId.key());
-        if (CraftEngineBlocks.byId(key) == null && CraftEngineFurniture.byId(key) == null) {
+        BlockDefinition customBlock = CraftEngineBlocks.byId(key);
+        if (customBlock != null) {
+            return CraftEngineBlocks.getBukkitBlockData(stateOf(customBlock, key, state));
+        }
+        if (CraftEngineFurniture.byId(key) == null) {
             throw new MissingResourceException("Failed to find BlockData!", blockId.namespace(), blockId.key());
         }
 
         return IrisCustomData.of(BukkitBlockResolution.getAir(), ExternalDataSVC.buildState(blockId, state));
     }
 
+    private static ImmutableBlockState stateOf(BlockDefinition block, Key key, Map<String, String> state) {
+        ImmutableBlockState blockState = block.defaultState();
+        for (Map.Entry<String, String> entry : state.entrySet()) {
+            Property<?> property = block.getProperty(entry.getKey());
+            if (property == null) {
+                IrisLogging.warnOnce("craftengine:property:" + key + ":" + entry.getKey(),
+                        "Invalid property %s for block %s", entry.getKey(), key);
+                continue;
+            }
+            Optional<?> value = property.optional(entry.getValue());
+            if (value.isEmpty()) {
+                IrisLogging.warnOnce("craftengine:value:" + key + ":" + entry.getKey() + "=" + entry.getValue(),
+                        "Invalid property %s=%s for block %s", entry.getKey(), entry.getValue(), key);
+                continue;
+            }
+            blockState = ImmutableBlockState.with(blockState, property, value.get());
+        }
+        return blockState;
+    }
+
+    /** Only furniture is placed after generation: blocks resolve to their own block data and generate in place. */
     @Override
     public void processUpdate(@NotNull Engine engine, @NotNull Block block, @NotNull Identifier blockId) {
         art.arcane.iris.core.nms.container.Pair<Identifier, KMap<String, String>> statePair = ExternalDataSVC.parseState(blockId);
         Identifier baseBlockId = statePair.getA();
         KMap<String, String> state = statePair.getB();
         Key key = Key.of(baseBlockId.namespace(), baseBlockId.key());
-
-        BlockDefinition customBlock = CraftEngineBlocks.byId(key);
-        if (customBlock != null) {
-            ImmutableBlockState blockState = customBlock.defaultState();
-
-            for (Map.Entry<String, String> entry : state.entrySet()) {
-                Property<?> property = customBlock.getProperty(entry.getKey());
-                if (property == null) {
-                    continue;
-                }
-
-                Comparable<?> tag = property.optional(entry.getValue()).orElse(null);
-                if (tag == null) {
-                    continue;
-                }
-
-                blockState = ImmutableBlockState.with(blockState, property, tag);
-            }
-
-            CraftEngineBlocks.place(block.getLocation(), blockState, false);
-            return;
-        }
 
         FurnitureDefinition furniture = CraftEngineFurniture.byId(key);
         if (furniture == null) {
@@ -133,6 +140,33 @@ public class CraftEngineDataProvider extends ExternalDataProvider {
         Location location = parseYawAndPitch(engine, block, state);
         String variant = state.getOrDefault("variant", furniture.anyVariantName());
         CraftEngineFurniture.place(location, furniture, variant, false);
+    }
+
+    @Override
+    public @NotNull BlockData withoutDecay(@NotNull BlockData data) {
+        ImmutableBlockState state = customStateOf(data);
+        if (state == null) {
+            return data;
+        }
+        Property<Boolean> persistent = state.getProperty(PERSISTENT_PROPERTY);
+        if (persistent == null || persistent.valueClass() != Boolean.class || state.get(persistent)) {
+            return data;
+        }
+        return CraftEngineBlocks.getBukkitBlockData(state.with(persistent, true));
+    }
+
+    @Override
+    public boolean hasBlockTag(@NotNull BlockData data, @NotNull NamespacedKey tag) {
+        ImmutableBlockState state = customStateOf(data);
+        return state != null && state.settings().tags().contains(Key.of(tag.getNamespace(), tag.getKey()));
+    }
+
+    private static ImmutableBlockState customStateOf(BlockData data) {
+        if (data instanceof IrisCustomData) {
+            return null;
+        }
+        ImmutableBlockState state = CraftEngineBlocks.getCustomBlockState(data);
+        return state == null || state.isEmpty() ? null : state;
     }
 
     private static Location parseYawAndPitch(@NotNull Engine engine, @NotNull Block block, @NotNull Map<String, String> state) {

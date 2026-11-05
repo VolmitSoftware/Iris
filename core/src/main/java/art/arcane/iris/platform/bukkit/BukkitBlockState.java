@@ -19,10 +19,13 @@
 package art.arcane.iris.platform.bukkit;
 
 import art.arcane.iris.core.nms.INMS;
+import art.arcane.iris.core.service.ExternalDataSVC;
+import art.arcane.iris.spi.IrisServices;
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.spi.PlatformFace;
 import art.arcane.iris.util.common.data.IrisCustomData;
 import org.bukkit.Bukkit;
+import org.bukkit.Material;
 import org.bukkit.Tag;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.BlockSupport;
@@ -272,7 +275,7 @@ public final class BukkitBlockState implements PlatformBlockState {
     public boolean isLog() {
         Boolean cached = log;
         if (cached == null) {
-            cached = Tag.LOGS.isTagged(data.getMaterial());
+            cached = hasTag(Tag.LOGS);
             log = cached;
         }
         return cached;
@@ -282,10 +285,19 @@ public final class BukkitBlockState implements PlatformBlockState {
     public boolean isLeaves() {
         Boolean cached = leaves;
         if (cached == null) {
-            cached = Tag.LEAVES.isTagged(data.getMaterial());
+            cached = hasTag(Tag.LEAVES);
             leaves = cached;
         }
         return cached;
+    }
+
+    // A plugin's custom block shows up as some other material, so the plugin is asked for its own tags too.
+    private boolean hasTag(Tag<Material> tag) {
+        if (tag.isTagged(data.getMaterial())) {
+            return true;
+        }
+        ExternalDataSVC external = IrisServices.getOrNull(ExternalDataSVC.class);
+        return external != null && external.hasBlockTag(data, tag.getKey());
     }
 
     @Override

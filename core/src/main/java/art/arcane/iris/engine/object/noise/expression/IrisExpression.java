@@ -54,7 +54,8 @@ public class IrisExpression extends IrisRegistrant {
     private KList<IrisExpressionFunction> functions = new KList<>();
 
     @Required
-    @Desc("The expression. Inherited variables are x, y and z. Avoid using those variable names.")
+    @Desc("The expression. Inherited variables are x, y and z. Avoid using those variable names. "
+            + ExpressionHelpers.DESCRIPTION)
     private String expression;
 
     private transient AtomicCache<Expression> expressionCache = new AtomicCache<>();
@@ -77,6 +78,7 @@ public class IrisExpression extends IrisRegistrant {
                 IrisLogging.reportError("Script variable load failed in " + getLoadFile().getPath() + ".", e);
             }
 
+            ExpressionHelpers.registerOn(parser);
             for (IrisExpressionFunction f : functions) {
                 if (!f.isValid()) continue;
                 f.setData(getLoader());

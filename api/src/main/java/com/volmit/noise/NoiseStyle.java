@@ -10,6 +10,7 @@ import com.volmit.resource.PackResources;
 import com.volmit.resource.ResourceId;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.OptionalLong;
 
 /** How noise is shaped, as packs write it: {@code {"style": "SIMPLEX", "zoom": 4}}, or a snippet under
  * {@code snippet/style/}. The style names one of the host's noise generators ({@link Reference#NOISE_STYLE}); an
@@ -59,6 +60,9 @@ public final class NoiseStyle {
     @Desc("The power the noise is raised to: above 1 favours low values, below 1 high ones.")
     private double exponent = 1;
 
+    @Desc("Rolls this noise from the world seed and this number, so every style with the same seed shares one noise. Child biomes, palettes and decorator placement read a seeded style flat in blocks: zoom is its only scale, so a layer's zoom, childShrinkFactor and the decorator's extra zoom don't apply.")
+    private Long seed;
+
     private NoiseStyle() {
     }
 
@@ -72,6 +76,7 @@ public final class NoiseStyle {
         multiplier = copy.multiplier;
         fracture = copy.fracture;
         exponent = copy.exponent;
+        seed = copy.seed;
     }
 
     /** The host's noise style {@code style}, such as {@code SIMPLEX}, with every other option at its default. */
@@ -85,6 +90,13 @@ public final class NoiseStyle {
     public NoiseStyle withZoom(double zoom) {
         var changed = new NoiseStyle(this);
         changed.zoom = zoom;
+        return changed;
+    }
+
+    /** This style rolled from {@code seed} and the world seed instead of the seed it is asked for; see {@link #seed()}. */
+    public NoiseStyle withSeed(long seed) {
+        var changed = new NoiseStyle(this);
+        changed.seed = seed;
         return changed;
     }
 
@@ -131,6 +143,21 @@ public final class NoiseStyle {
         return exponent;
     }
 
+    /** The style's own seed, when the pack gave it one. A seeded style is one noise per world: {@link NoiseFactory#sampler}
+     * rolls it from this number and the world seed and ignores the seed it is asked for, so every reader of a style with
+     * the same seed and shape gets the same values. Readers that scale coordinates before sampling (a palette layer's
+     * zoom, a decorator's zoom, a child biome's shrink factor) read a seeded style in plain blocks instead, so
+     * {@link #zoom()} is its only scale.
+     */
+    public OptionalLong seed() {
+        return seed == null ? OptionalLong.empty() : OptionalLong.of(seed);
+    }
+
+    /** Whether the pack gave this style its own {@link #seed()}. */
+    public boolean isSeeded() {
+        return seed != null;
+    }
+
     /** Whether the style gives no noise: the {@link #FLAT} base style without an expression or image map. */
     public boolean isFlat() {
         return FLAT.equals(style) && expression == null && imageMap == null;
@@ -143,12 +170,12 @@ public final class NoiseStyle {
                 && Double.compare(cellularZoom, that.cellularZoom) == 0 && Double.compare(zoom, that.zoom) == 0
                 && Objects.equals(expression, that.expression) && Objects.equals(imageMap, that.imageMap)
                 && Double.compare(multiplier, that.multiplier) == 0 && Objects.equals(fracture, that.fracture)
-                && Double.compare(exponent, that.exponent) == 0;
+                && Double.compare(exponent, that.exponent) == 0 && Objects.equals(seed, that.seed);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(style, cellularFrequency, cellularZoom, zoom, expression, imageMap, multiplier, fracture, exponent);
+        return Objects.hash(style, cellularFrequency, cellularZoom, zoom, expression, imageMap, multiplier, fracture, exponent, seed);
     }
 
     @Override

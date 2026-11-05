@@ -52,7 +52,7 @@ import java.util.Set;
  * Module {@code iris:blocks}: writes the object's blocks where the placement puts them, then its markers.
  * Each block is turned with the object, edited, warped, painted onto its column when the mode paints,
  * waterlogged in water and attached to the faces vines can hang from. Air is not written, except by
- * structure pieces, and neither is a vine into a solid block or a melded block into open space.
+ * structure pieces, and neither is a vine into a solid block, leaves onto a log or a melded block into open space.
  */
 public final class BlocksModule implements IrisModule {
     private static final Set<String> AIR_MATERIALS = Set.of("minecraft:air", "minecraft:cave_air");
@@ -156,13 +156,23 @@ public final class BlocksModule implements IrisModule {
         if (world.has(data, BlockTrait.CUSTOM)) {
             return true;
         }
-        boolean vineIntoSolid = world.has(data, BlockTrait.VINE) && world.isSolid(x, y, z);
-        return shouldPlaceObjectBlock(structurePiece, AIR_MATERIALS.contains(data.material().toString()), vineIntoSolid);
+        return shouldPlaceObjectBlock(structurePiece, AIR_MATERIALS.contains(data.material().toString()), keepsExisting(world, data, x, y, z));
     }
 
-    /** Air is written only by structure pieces, and a vine never replaces a solid block. */
-    static boolean shouldPlaceObjectBlock(boolean structurePiece, boolean air, boolean vineIntoSolid) {
-        return !vineIntoSolid && (structurePiece || !air);
+    /**
+     * A vine never replaces a solid block, and leaves never cut a log another object already placed, as in vanilla
+     * trees: the log above the cut would float.
+     */
+    private static boolean keepsExisting(PlacementWorld world, BlockState data, int x, int y, int z) {
+        if (world.has(data, BlockTrait.VINE)) {
+            return world.isSolid(x, y, z);
+        }
+        return world.has(data, BlockTrait.LEAVES) && world.has(world.get(x, y, z), BlockTrait.LOG);
+    }
+
+    /** Air is written only by structure pieces, and nothing is written where the existing block is kept. */
+    static boolean shouldPlaceObjectBlock(boolean structurePiece, boolean air, boolean keepsExisting) {
+        return !keepsExisting && (structurePiece || !air);
     }
 
     /** Whether a waterloggable block lands in water a waterloggable or underwater placement keeps. */

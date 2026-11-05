@@ -29,6 +29,8 @@
     "iris.command.unknown": "Onbekende Iris-opdracht",
     "iris.command.player_only": "Deze opdracht kan alleen door spelers worden gebruikt.",
     "iris.command.iris_world_required": "Deze dimensie is niet door Iris gegenereerd.",
+    "iris.studio.map_ready": "Studio-kaart voor {world}: {link}",
+    "iris.studio.map_failed": "Kan de Studio-kaart niet starten: {value}",
     "iris.command.reload.success": "De instellingen en taal {locale} zijn opnieuw geladen.",
     "iris.command.reload.failed": "De instellingen zijn opnieuw geladen, maar taal {locale} is geweigerd; {activeLocale} blijft actief.",
     "iris.modded.help.unknown_section": "Onbekend Iris help sectie: {section}",

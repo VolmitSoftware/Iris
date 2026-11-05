@@ -38,6 +38,8 @@ public final class IrisMessages {
     public static final TextKey COMMAND_IRIS_WORLD_REQUIRED = text("iris.command.iris_world_required");
     public static final TextKey COMMAND_RELOAD_SUCCESS = text("iris.command.reload.success");
     public static final TextKey COMMAND_RELOAD_FAILED = text("iris.command.reload.failed");
+    public static final TextKey STUDIO_MAP_READY = text("iris.studio.map_ready");
+    public static final TextKey STUDIO_MAP_FAILED = text("iris.studio.map_failed");
     public static final TextKey MODDED_HELP_UNKNOWN_SECTION = text("iris.modded.help.unknown_section");
     public static final TextKey MODDED_HELP_BACK_HOVER = text("iris.modded.help.back_hover");
     public static final TextKey MODDED_HELP_COMMAND_PARAMETER = text("iris.modded.help.command_parameter");

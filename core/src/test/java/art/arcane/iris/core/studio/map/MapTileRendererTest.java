@@ -136,6 +136,10 @@ public class MapTileRendererTest {
         IrisDimension dimension = mock(IrisDimension.class);
         when(dimension.getFluidHeight()).thenReturn(63);
         when(engine.getDimension()).thenReturn(dimension);
+        art.arcane.iris.core.loader.IrisData pack = mock(art.arcane.iris.core.loader.IrisData.class);
+        when(pack.getDataFolder()).thenReturn(new java.io.File("/packs/overworld"));
+        when(engine.getData()).thenReturn(pack);
+        when(desert.getLoadFile()).thenReturn(new java.io.File("/packs/overworld/biomes/desert.json"));
 
         MapHover hover = MapHover.sample(engine, 10D, 0D);
 
@@ -146,6 +150,8 @@ public class MapTileRendererTest {
         assertEquals(complex.getHeightStream().getDouble(10D, 0D), hover.height(), 1e-9);
         assertEquals(63D, hover.fluidHeight(), 0D);
         assertEquals(45D, hover.slopeDegrees(), 1e-9);
+        assertEquals("biomes/desert.json", hover.biomeFile());
+        assertNull("a region without a file has no path", hover.regionFile());
     }
 
     @Test

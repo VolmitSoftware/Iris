@@ -18,6 +18,7 @@
 
 package art.arcane.iris.core.studio.map;
 
+import art.arcane.iris.core.loader.IrisRegistrant;
 import art.arcane.iris.engine.IrisComplex;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.render.RenderType;
@@ -26,15 +27,19 @@ import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
 import art.arcane.iris.spi.PlatformBiome;
 
+import java.nio.file.Path;
+
 /**
  * What the map knows about the column under the cursor.
  *
  * @param biome        the base biome, as the biome view shows it; null where the stream has none, as for the others
  * @param vanillaBiome the platform biome the column gets, such as {@code minecraft:plains}
  * @param slopeDegrees how steep the terrain is, 0 for flat
+ * @param biomeFile    the biome's file within the pack, such as {@code biomes/plains/meadow.json}; null when unknown
  */
 public record MapHover(double worldX, double worldZ, MapLabel biome, MapLabel caveBiome, MapLabel region,
-                       String vanillaBiome, double height, double fluidHeight, double slopeDegrees) {
+                       String vanillaBiome, double height, double fluidHeight, double slopeDegrees,
+                       String biomeFile, String regionFile) {
     // IrisComplex measures slope as the height change over this many blocks.
     private static final double SLOPE_STREAM_RANGE_BLOCKS = 3D;
 
@@ -55,7 +60,18 @@ public record MapHover(double worldX, double worldZ, MapLabel biome, MapLabel ca
                 vanillaBiome == null ? null : vanillaBiome.key(),
                 complex.getHeightStream().getDouble(worldX, worldZ),
                 dimension == null ? 0D : dimension.getFluidHeight(),
-                Math.toDegrees(Math.atan(slope / SLOPE_STREAM_RANGE_BLOCKS))
+                Math.toDegrees(Math.atan(slope / SLOPE_STREAM_RANGE_BLOCKS)),
+                packPath(engine, biome),
+                packPath(engine, region)
         );
+    }
+
+    private static String packPath(Engine engine, IrisRegistrant registrant) {
+        if (registrant == null || registrant.getLoadFile() == null || engine.getData() == null) {
+            return null;
+        }
+        Path pack = engine.getData().getDataFolder().toPath().toAbsolutePath();
+        Path file = registrant.getLoadFile().toPath().toAbsolutePath();
+        return file.startsWith(pack) ? pack.relativize(file).toString().replace('\\', '/') : null;
     }
 }

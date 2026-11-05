@@ -20,6 +20,7 @@ package art.arcane.iris.modded;
 
 import art.arcane.iris.core.gui.GuiHost;
 import art.arcane.iris.core.localization.IrisLanguage;
+import art.arcane.iris.core.studio.bridge.StudioBridges;
 import art.arcane.iris.engine.data.cache.AtomicCacheFailureReporting;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.EngineEffectsProvider;
@@ -174,6 +175,7 @@ public final class ModdedEngineBootstrap {
         failure = runStopStage(failure, "object undo", ModdedObjectUndo::clearAll);
         failure = runStopStage(failure, "wand service", ModdedWandService::clearAll);
         failure = runStopStage(failure, "block break handler", ModdedBlockBreakHandler::clear);
+        failure = runStopStage(failure, "studio bridges", StudioBridges::closeAll);
         failure = runStopStage(failure, "studio commands", ModdedStudioCommands::clear);
         failure = runStopStage(failure, "gui host", ModdedGuiHost::clear);
         failure = runStopStage(failure, "services", () -> services().disableAll());

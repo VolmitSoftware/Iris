@@ -29,6 +29,8 @@
     "iris.command.unknown": "알 수 없는 Iris 명령어",
     "iris.command.player_only": "이 명령어는 플레이어만 사용할 수 있습니다.",
     "iris.command.iris_world_required": "이 차원은 Iris가 생성하지 않았습니다.",
+    "iris.studio.map_ready": "{world}의 Studio 지도: {link}",
+    "iris.studio.map_failed": "Studio 지도를 시작할 수 없습니다: {value}",
     "iris.command.reload.success": "설정과 {locale} 언어를 다시 불러왔습니다.",
     "iris.command.reload.failed": "설정은 다시 불러왔지만 {locale} 언어가 거부되어 {activeLocale}을 계속 사용합니다.",
     "iris.modded.help.unknown_section": "알 수 없는 Iris 도움말 섹션: {section}",

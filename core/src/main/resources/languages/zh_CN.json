@@ -29,6 +29,8 @@
     "iris.command.unknown": "未知的 Iris 命令。",
     "iris.command.player_only": "此命令只能由玩家执行。",
     "iris.command.iris_world_required": "此维度不是由 Iris 生成的。",
+    "iris.studio.map_ready": "{world} 的 Studio 地图：{link}",
+    "iris.studio.map_failed": "无法启动 Studio 地图：{value}",
     "iris.command.reload.success": "设置和语言 {locale} 已重新加载。",
     "iris.command.reload.failed": "设置已重新加载，但语言 {locale} 验证失败；继续使用 {activeLocale}。",
     "iris.modded.help.unknown_section": "未知的 Iris 帮助章节：{section}",

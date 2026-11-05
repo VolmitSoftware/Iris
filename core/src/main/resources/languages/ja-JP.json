@@ -29,6 +29,8 @@
     "iris.command.unknown": "不明な Iris コマンドです",
     "iris.command.player_only": "このコマンドはプレイヤーのみ使用できます。",
     "iris.command.iris_world_required": "このディメンションは Iris によって生成されていません。",
+    "iris.studio.map_ready": "{world} の Studio マップ: {link}",
+    "iris.studio.map_failed": "Studio マップを開始できませんでした: {value}",
     "iris.command.reload.success": "設定と言語 {locale} を再読み込みしました。",
     "iris.command.reload.failed": "設定は再読み込みされましたが、言語 {locale} は拒否されました。引き続き {activeLocale} を使用します。",
     "iris.modded.help.unknown_section": "不明な Iris ヘルプセクション: {section}",

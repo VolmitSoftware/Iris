@@ -29,6 +29,8 @@
     "iris.command.unknown": "פקודת Iris לא מוכרת",
     "iris.command.player_only": "רק שחקנים יכולים להשתמש בפקודה זו.",
     "iris.command.iris_world_required": "ממד זה לא נוצר על ידי Iris.",
+    "iris.studio.map_ready": "מפת Studio עבור {world}: {link}",
+    "iris.studio.map_failed": "לא ניתן להפעיל את מפת ה-Studio: {value}",
     "iris.command.reload.success": "ההגדרות והשפה {locale} נטענו מחדש.",
     "iris.command.reload.failed": "ההגדרות נטענו מחדש, אך השפה {locale} נדחתה; ממשיכים עם {activeLocale}.",
     "iris.modded.help.unknown_section": "לא ידוע Iris עזרה סעיף: {section}",

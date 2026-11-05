@@ -29,6 +29,8 @@
     "iris.command.unknown": "Bilinmeyen Iris komutu",
     "iris.command.player_only": "Bu komutu yalnızca oyuncular kullanabilir.",
     "iris.command.iris_world_required": "Bu boyut Iris tarafından oluşturulmadı.",
+    "iris.studio.map_ready": "{world} için Studio haritası: {link}",
+    "iris.studio.map_failed": "Studio haritası başlatılamadı: {value}",
     "iris.command.reload.success": "Ayarlar ve {locale} dili yeniden yüklendi.",
     "iris.command.reload.failed": "Ayarlar yeniden yüklendi, ancak {locale} dili reddedildi; {activeLocale} kullanılmaya devam ediliyor.",
     "iris.modded.help.unknown_section": "Bilinmeyen Iris Yardım bölümü: {section}",

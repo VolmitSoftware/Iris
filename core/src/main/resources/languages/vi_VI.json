@@ -29,6 +29,8 @@
     "iris.command.unknown": "Lệnh Iris không xác định",
     "iris.command.player_only": "Chỉ người chơi mới có thể sử dụng lệnh này.",
     "iris.command.iris_world_required": "Chiều không gian này không được Iris tạo ra.",
+    "iris.studio.map_ready": "Bản đồ Studio cho {world}: {link}",
+    "iris.studio.map_failed": "Không thể khởi động bản đồ Studio: {value}",
     "iris.command.reload.success": "Đã tải lại cài đặt và ngôn ngữ {locale}.",
     "iris.command.reload.failed": "Đã tải lại cài đặt, nhưng ngôn ngữ {locale} bị từ chối; tiếp tục sử dụng {activeLocale}.",
     "iris.modded.help.unknown_section": "Không rõ Iris Phần trợ giúp: {section}",

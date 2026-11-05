@@ -23,8 +23,10 @@ import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.core.gui.GuiHost;
 import art.arcane.iris.core.gui.ImageMapStudioGUI;
 import art.arcane.iris.core.gui.NoiseExplorerGUI;
-import art.arcane.iris.core.gui.VisionGUI;
 import art.arcane.iris.core.loader.IrisData;
+import art.arcane.iris.core.localization.IrisMessages;
+import art.arcane.iris.core.studio.bridge.StudioBridge;
+import art.arcane.iris.core.studio.bridge.StudioBridges;
 import art.arcane.iris.core.project.IrisProjectCopier;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
@@ -241,15 +243,28 @@ public final class ModdedStudioCommands {
             IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_STUDIO_COMMANDS_THIS_DIMENSION_IS_NOT_GENERATED_BY_IRIS_STAND_IRIS_STUDIO));
             return 0;
         }
-        if (!GuiHost.isAvailable() || !IrisSettings.get().getGui().isUseServerLaunchedGuis()) {
-            IrisModdedCommands.fail(source, guiUnavailableMessage());
+        ServerPlayer player = source.getPlayer();
+        UUID openerId = player == null ? null : player.getUUID();
+        MinecraftServer server = source.getServer();
+        String worldName = level.dimension().identifier().toString();
+        try {
+            StudioBridge bridge = StudioBridges.open(worldName, () -> boundEngine(server, level, openerId), openerId);
+            IrisModdedCommands.ok(source, IrisLanguage.plain(IrisMessages.STUDIO_MAP_READY,
+                    MessageArgument.untrusted("world", worldName), MessageArgument.untrusted("link", bridge.link())));
+            return 1;
+        } catch (IOException error) {
+            IrisModdedCommands.fail(source, IrisLanguage.plain(IrisMessages.STUDIO_MAP_FAILED, MessageArgument.untrusted("value", String.valueOf(error.getMessage()))));
             return 0;
         }
-        ServerPlayer player = source.getPlayer();
-        ModdedGuiHost.bindContext(source.getServer(), level, engine, player == null ? null : player.getUUID());
-        VisionGUI.launch(engine, player == null ? null : player.getUUID());
-        IrisModdedCommands.ok(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_STUDIO_COMMANDS_OPENING_VISION_MAP_ON_SERVER_DISPLAY, MessageArgument.untrusted("value", level.dimension().identifier())));
-        return 1;
+    }
+
+    /** The level's engine now, bound so the studio's players and teleports find its level. */
+    private static Engine boundEngine(MinecraftServer server, ServerLevel level, UUID openerId) {
+        Engine engine = IrisModdedCommands.engineFor(level);
+        if (engine != null) {
+            ModdedGuiHost.bindContext(server, level, engine, openerId);
+        }
+        return engine;
     }
 
     private static int imageMap(CommandSourceStack source) {

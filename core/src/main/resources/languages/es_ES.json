@@ -29,6 +29,8 @@
     "iris.command.unknown": "Comando de Iris desconocido",
     "iris.command.player_only": "Este comando solo puede ser utilizado por jugadores.",
     "iris.command.iris_world_required": "Esta dimensión no fue generada por Iris.",
+    "iris.studio.map_ready": "Mapa de Studio para {world}: {link}",
+    "iris.studio.map_failed": "No se pudo iniciar el mapa de Studio: {value}",
     "iris.command.reload.success": "Se recargaron la configuración y el idioma {locale}.",
     "iris.command.reload.failed": "Se recargó la configuración, pero se rechazó el idioma {locale}; se seguirá usando {activeLocale}.",
     "iris.modded.help.unknown_section": "Sección de ayuda de Iris desconocida: {section}",

@@ -29,6 +29,8 @@
     "iris.command.unknown": "Неизвестная команда Iris",
     "iris.command.player_only": "Эту команду могут использовать только игроки.",
     "iris.command.iris_world_required": "Это измерение не было создано Iris.",
+    "iris.studio.map_ready": "Карта Studio для {world}: {link}",
+    "iris.studio.map_failed": "Не удалось запустить карту Studio: {value}",
     "iris.command.reload.success": "Настройки и язык {locale} были перезагружены.",
     "iris.command.reload.failed": "Настройки были перезагружены, но язык {locale} был отклонён; продолжает использоваться {activeLocale}.",
     "iris.modded.help.unknown_section": "неизвестный Iris Раздел помощи: {section}",

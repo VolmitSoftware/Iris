@@ -18,6 +18,7 @@
 
 package art.arcane.iris.core.service;
 
+import art.arcane.iris.core.studio.bridge.StudioBridges;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.IrisServices;
 import art.arcane.iris.core.IrisSettings;
@@ -118,6 +119,7 @@ public class StudioSVC implements IrisService {
 
     @Override
     public void onDisable() {
+        StudioBridges.closeAll();
         quiesceDownloadsForShutdown();
         IrisLogging.debug("Studio Mode Active: Closing Projects");
         boolean stopping = IrisToolbelt.isServerStopping();

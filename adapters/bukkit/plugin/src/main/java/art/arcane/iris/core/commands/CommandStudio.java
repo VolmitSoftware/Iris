@@ -23,8 +23,10 @@ import art.arcane.iris.platform.bukkit.BukkitPlatform;
 import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.core.gui.ImageMapStudioGUI;
 import art.arcane.iris.core.gui.NoiseExplorerGUI;
-import art.arcane.iris.core.gui.VisionGUI;
 import art.arcane.iris.core.loader.IrisData;
+import art.arcane.iris.core.localization.IrisMessages;
+import art.arcane.iris.core.studio.bridge.StudioBridge;
+import art.arcane.iris.core.studio.bridge.StudioBridges;
 import art.arcane.iris.core.project.IrisProject;
 import art.arcane.iris.core.project.IrisCodeWorkspace;
 import art.arcane.iris.core.localization.RuntimeUiMessages;
@@ -402,16 +404,20 @@ public class CommandStudio implements DirectorExecutor {
             @Param(name = "world", description = "The world to open the generator for", descriptionKey = "iris.director.commandstudio.param.world_open_generator", contextual = true, contextualOverride = true)
             World world
     ) {
-        if (noGUI()) return;
-
         if (!IrisToolbelt.isIrisWorld(world)) {
             sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_STUDIO_YOU_NEED_BE_SPECIFY_IRIS_GENERATED_WORLD));
             return;
         }
 
         UUID openerId = sender().isPlayer() ? player().getUniqueId() : null;
-        VisionGUI.launch(IrisToolbelt.access(world).getEngine(), openerId);
-        sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_STUDIO_OPENING_MAP));
+        PlatformChunkGenerator generator = IrisToolbelt.access(world);
+        try {
+            StudioBridge bridge = StudioBridges.open(world.getName(), generator::getEngine, openerId);
+            sender().sendMessage(IrisLanguage.text(IrisMessages.STUDIO_MAP_READY,
+                    MessageArgument.untrusted("world", world.getName()), MessageArgument.untrusted("link", bridge.link())));
+        } catch (IOException error) {
+            sender().sendMessage(IrisLanguage.text(IrisMessages.STUDIO_MAP_FAILED, MessageArgument.untrusted("value", String.valueOf(error.getMessage()))));
+        }
     }
 
     @Director(description = "Package a dimension into a compressed format", descriptionKey = "iris.director.commandstudio.director.package_dimension_into_compressed_format", aliases = "package")

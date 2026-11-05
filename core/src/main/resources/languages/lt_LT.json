@@ -29,6 +29,8 @@
     "iris.command.unknown": "Nežinoma Iris komanda",
     "iris.command.player_only": "Šią komandą gali naudoti tik žaidėjai.",
     "iris.command.iris_world_required": "Šio matmens nesugeneravo Iris.",
+    "iris.studio.map_ready": "Studio žemėlapis pasauliui {world}: {link}",
+    "iris.studio.map_failed": "Nepavyko paleisti Studio žemėlapio: {value}",
     "iris.command.reload.success": "Nustatymai ir kalba {locale} įkelti iš naujo.",
     "iris.command.reload.failed": "Nustatymai įkelti iš naujo, tačiau kalba {locale} atmesta; toliau naudojama {activeLocale}.",
     "iris.modded.help.unknown_section": "Nežinoma Iris pagalbos skyrius: {section}",

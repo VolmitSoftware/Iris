@@ -3,6 +3,7 @@ import { Kbd } from '@/components/ui/kbd'
 import type { MapHover, MapLabel } from '../bridge/types'
 import { hexColor } from './colors'
 import type { CanvasPoint } from './MapCanvas'
+import { PickRows, replacedParent } from './PickRows'
 import { shortcutFor } from './shortcuts'
 
 interface HoverCardProps {
@@ -43,14 +44,17 @@ export function HoverCard({ hover, point, viewId, detailed, minY }: HoverCardPro
 
   const subject = viewId === 'caveBiomes' ? hover.caveBiome : viewId === 'regions' ? hover.region : hover.biome
   const groups = detailed ? detailGroups(hover, viewId) : []
+  const parent = replacedParent(hover.pickPath)
   return (
     <div
       ref={card}
-      className="pointer-events-none absolute z-10 w-72 rounded-[10px] border border-overlay-border bg-popover px-3.5 py-3 text-popover-foreground shadow-xl backdrop-blur-sm"
+      className="pointer-events-none absolute z-10 w-80 rounded-[10px] border border-overlay-border bg-popover px-3.5 py-3 text-popover-foreground shadow-xl backdrop-blur-sm"
       style={position}
     >
       <Header subject={subject} region={viewId === 'regions' ? null : hover.region} />
-      <p className="mt-0.5 text-[12px] text-secondary-text tabular-nums">{ground(hover, minY)}</p>
+      {parent !== null && <p className="mt-0.5 truncate text-[12px] text-secondary-text">child of {parent}</p>}
+      <p className="mt-0.5 truncate text-[12px] text-secondary-text tabular-nums">{ground(hover, minY)}</p>
+      <PickRows path={hover.pickPath} />
       {groups.map((group) => (
         <section key={group.title} className="mt-2.5">
           <h3 className="text-[11px] font-semibold text-muted-foreground">{group.title}</h3>

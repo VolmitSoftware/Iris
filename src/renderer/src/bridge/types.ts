@@ -43,6 +43,30 @@ export interface MapHover {
   slopeDegrees: number
   biomeFile: string | null
   regionFile: string | null
+  /** How the spot got its region and the biome the view shows, region first. */
+  pickPath: PickStep[]
+}
+
+/** REGION, BIOME and CHILD were picked by noise; IMAGE_MAP and FOCUS were set without a pick. */
+export type PickKind = 'REGION' | 'BIOME' | 'CHILD' | 'IMAGE_MAP' | 'FOCUS'
+
+export interface PickStep {
+  kind: PickKind
+  picked: MapLabel
+  /** The biome list a BIOME step picked from, such as "land". */
+  list: string | null
+  /** The parent name a CHILD step replaced; null when the parent kept the spot. */
+  replaced: string | null
+  /** 0 to 1; null when nothing was picked. */
+  noise: number | null
+  bands: PickBand[]
+}
+
+/** One option's share of a pick noise: picked from `from` up to `to`. */
+export interface PickBand {
+  option: MapLabel
+  from: number
+  to: number
 }
 
 export interface Marker {

@@ -42,8 +42,8 @@ export class BridgeClient {
     return this.json('world')
   }
 
-  hover(worldX: number, worldZ: number, signal?: AbortSignal): Promise<MapHover> {
-    return this.json(`hover?x=${worldX}&z=${worldZ}`, { signal })
+  hover(view: string, worldX: number, worldZ: number, signal?: AbortSignal): Promise<MapHover> {
+    return this.json(`hover?view=${encodeURIComponent(view)}&x=${worldX}&z=${worldZ}`, { signal })
   }
 
   entities(): Promise<Marker[]> {

@@ -71,7 +71,7 @@ export function MapStudio({ client, world, theme, onDisconnect }: MapStudioProps
 
   useServerEvents(client, controller, setPlayers, tell, setConnected)
   useEntities(client, toggles.entities, setEntities)
-  useHover(client, controller, pointer, setHover)
+  useHover(client, controller, viewId, pointer, setHover)
 
   const selectView = useCallback((nextViewId: string) => {
     setViewId(nextViewId)
@@ -297,6 +297,7 @@ function useEntities(client: BridgeClient, visible: boolean, setEntities: (entit
 function useHover(
   client: BridgeClient,
   controller: React.RefObject<MapController | null>,
+  viewId: string,
   pointer: CanvasPoint | null,
   setHover: (hover: MapHover | null) => void
 ): void {
@@ -308,11 +309,11 @@ function useHover(
     const spot = controller.current.worldAt(pointer.x, pointer.y)
     const stop = new AbortController()
     client
-      .hover(Math.floor(spot.x), Math.floor(spot.z), stop.signal)
+      .hover(viewId, Math.floor(spot.x), Math.floor(spot.z), stop.signal)
       .then(setHover)
       .catch(() => undefined)
     return () => stop.abort()
-  }, [client, controller, pointer, setHover])
+  }, [client, controller, viewId, pointer, setHover])
 }
 
 function useKeyboard(

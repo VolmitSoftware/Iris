@@ -246,9 +246,9 @@ public final class BiomeLayers {
 
     /** Adds the layer's block {@code j} blocks down; a layer that fails to pick adds nothing. */
     private void addBlock(KList<BlockState> blocks, ResolvedLayer layer, int index, int j, double wx, double wz, RNG random) {
-        double zoom = layer.zoom();
+        double blocksPerSample = layer.blocksPerSample();
         try {
-            blocks.add(layer.get(random, index + j, (wx + j) / zoom, j, (wz - j) / zoom));
+            blocks.add(layer.get(random, index + j, (wx + j) / blocksPerSample, j, (wz - j) / blocksPerSample));
         } catch (Throwable e) {
             log.error("A biome layer failed to pick a block", e);
         }

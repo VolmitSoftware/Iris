@@ -71,8 +71,8 @@ public final class LayerBlocks {
         if (size <= 1) {
             return size - 1;
         }
-        double zoom = layer.zoom();
-        double noise = layerPicks.noise(parent, signature).sample(x / zoom, y / zoom, z / zoom);
+        NoiseSampler sampler = layerPicks.noise(parent, signature);
+        double noise = layer.style().isSeeded() ? sampler.sample(x, z) : sampler.sample(x / layer.zoom(), y / layer.zoom(), z / layer.zoom());
         int index = (int) Math.round(noise * (size - 1));
         return index < 0 || index >= size ? 0 : index;
     }

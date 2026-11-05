@@ -94,8 +94,11 @@ public final class ResolvedCarvingEntry {
         long idHash = settings.id().trim().hashCode();
         long generatorSeed = seed ^ (idHash << 32) ^ CHILD_GENERATOR_SALT;
         return childGenerators.computeIfAbsent(generatorSeed, key -> {
-            double scale = Math.max(MIN_CHILD_SCALE, settings.childShrinkFactor());
-            return resources.noise().sampler(settings.childStyle(), key + CHILD_GENERATOR_SIGNATURE).scaled(scale);
+            NoiseSampler children = resources.noise().sampler(settings.childStyle(), key + CHILD_GENERATOR_SIGNATURE);
+            if (settings.childStyle().isSeeded()) {
+                return children;
+            }
+            return children.scaled(Math.max(MIN_CHILD_SCALE, settings.childShrinkFactor()));
         });
     }
 }

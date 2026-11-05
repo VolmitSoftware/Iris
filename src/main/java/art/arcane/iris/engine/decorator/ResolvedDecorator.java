@@ -186,8 +186,16 @@ final class ResolvedDecorator {
         if (blocks.isEmpty()) {
             return false;
         }
-        double zoom = settings.style().zoom();
-        return chanceNoise().sample(x / zoom, z / zoom) <= settings.chance();
+        return chanceNoisePlacesAt(x, z);
+    }
+
+    /**
+     * Whether the style noise stays under the chance at the column. A style without a seed divides by its zoom here on top
+     * of its own scale; a seeded one is read in plain blocks.
+     */
+    private boolean chanceNoisePlacesAt(double x, double z) {
+        double blocksPerSample = settings.style().isSeeded() ? 1 : settings.style().zoom();
+        return chanceNoise().sample(x / blocksPerSample, z / blocksPerSample) <= settings.chance();
     }
 
     /** The block of the palette at the position, for decorations that fill a column block by block; null when the palette has no block. */
@@ -210,8 +218,7 @@ final class ResolvedDecorator {
             return blockAt(x, y, z);
         }
 
-        double zoom = settings.style().zoom();
-        if (!(chanceNoise().sample(x / zoom, z / zoom) <= settings.chance())) {
+        if (!chanceNoisePlacesAt(x, z)) {
             return null;
         }
 

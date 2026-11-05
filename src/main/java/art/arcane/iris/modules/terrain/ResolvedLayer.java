@@ -71,6 +71,11 @@ public final class ResolvedLayer {
         return settings.zoom();
     }
 
+    /** How many blocks one step of the layer's block noise spans: its zoom, or 1 for a seeded style, which is read flat. */
+    public double blocksPerSample() {
+        return settings.style().isSeeded() ? 1 : settings.zoom();
+    }
+
     public SlopeClip slopeCondition() {
         return settings.slopeCondition();
     }

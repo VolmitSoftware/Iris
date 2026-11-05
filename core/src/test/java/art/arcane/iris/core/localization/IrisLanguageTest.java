@@ -116,7 +116,7 @@ public class IrisLanguageTest {
     }
 
     @Test
-    public void usesCodeOwnedEnglishWithoutLocaleFile() {
+    public void usesBundledEnglishWithoutLocaleFile() {
         String rendered = IrisLanguage.plain(
                 IrisMessages.COMMAND_PERMISSION_DENIED,
                 MessageArgument.untrusted("permission", "iris.all")

@@ -1,207 +1,160 @@
 package art.arcane.iris.core.localization;
 
-import art.arcane.volmlib.util.localization.MessageKey;
 import art.arcane.volmlib.util.localization.TextKey;
 
-import java.util.List;
+import static art.arcane.iris.core.localization.IrisMessages.text;
 
 public final class DesktopUiMessages {
-    public static final TextKey VISION_TITLE = TextKey.of("iris.desktop.vision.title", "Iris Vision");
-    public static final TextKey VISION_VIEW = TextKey.of("iris.desktop.vision.view", "View:");
-    public static final TextKey VISION_GRID = TextKey.of("iris.desktop.vision.grid", "Grid");
-    public static final TextKey VISION_ENTITIES = TextKey.of("iris.desktop.vision.entities", "Entities");
-    public static final TextKey VISION_FOLLOW = TextKey.of("iris.desktop.vision.follow", "Follow");
-    public static final TextKey VISION_REFRESHING = TextKey.of("iris.desktop.vision.refreshing", "Refreshing");
-    public static final TextKey VISION_FPS = TextKey.of("iris.desktop.vision.fps", "{fps} FPS");
-    public static final TextKey VISION_ZOOM_RESET = TextKey.of("iris.desktop.vision.zoom_reset", "Zoom reset");
-    public static final TextKey VISION_GRID_ENABLED = TextKey.of("iris.desktop.vision.grid_enabled", "Grid enabled");
-    public static final TextKey VISION_GRID_DISABLED = TextKey.of("iris.desktop.vision.grid_disabled", "Grid disabled");
-    public static final TextKey VISION_ENTITIES_ENABLED = TextKey.of("iris.desktop.vision.entities_enabled", "Entities enabled");
-    public static final TextKey VISION_ENTITIES_DISABLED = TextKey.of("iris.desktop.vision.entities_disabled", "Entities disabled");
-    public static final TextKey VISION_FOLLOWING = TextKey.of("iris.desktop.vision.following", "Following {player}");
-    public static final TextKey VISION_NO_PLAYER = TextKey.of("iris.desktop.vision.no_player", "No player in world");
-    public static final TextKey VISION_FOLLOW_DISABLED = TextKey.of("iris.desktop.vision.follow_disabled", "Follow disabled");
-    public static final TextKey VISION_STATUS_LEFT = TextKey.of("iris.desktop.vision.status_left", "{mode}  |  {bpp} bpp  |  {width} x {height} blocks");
-    public static final TextKey VISION_STATUS_RIGHT = TextKey.of("iris.desktop.vision.status_right", "X: {x}  Z: {z}  |  {fps} FPS");
-    public static final TextKey VISION_ENTITY_POSITION = TextKey.of("iris.desktop.vision.entity_position", "Position: {x}, {y}, {z}");
-    public static final TextKey VISION_ENTITY_HEALTH = TextKey.of("iris.desktop.vision.entity_health", "Health: {health} / {maximum}");
-    public static final TextKey VISION_BLOCK_POSITION = TextKey.of("iris.desktop.vision.block_position", "Block {x}, {z}");
-    public static final TextKey VISION_CHUNK_POSITION = TextKey.of("iris.desktop.vision.chunk_position", "Chunk {x}, {z}");
-    public static final TextKey VISION_REGION_POSITION = TextKey.of("iris.desktop.vision.region_position", "Region {x}, {z}");
-    public static final TextKey VISION_BIOME_KEY = TextKey.of("iris.desktop.vision.biome_key", "Key: {key}");
-    public static final TextKey VISION_BIOME_FILE = TextKey.of("iris.desktop.vision.biome_file", "File: {file}");
-    public static final TextKey VISION_VELOCITY = TextKey.of("iris.desktop.vision.velocity", "Velocity: {velocity}");
-    public static final TextKey VISION_TILES = TextKey.of("iris.desktop.vision.tiles", "Atlas pages: {ready} / {total} exact");
-    public static final TextKey VISION_WORKERS = TextKey.of("iris.desktop.vision.workers", "Workers: {active} active / {queued} queued");
-    public static final TextKey VISION_CENTER = TextKey.of("iris.desktop.vision.center", "Center: {x}, {z}");
-    public static final TextKey VISION_HELP_TOGGLE = TextKey.of("iris.desktop.vision.help.toggle", "Toggle help");
-    public static final TextKey VISION_HELP_REFRESH = TextKey.of("iris.desktop.vision.help.refresh", "Refresh tiles");
-    public static final TextKey VISION_HELP_FOLLOW = TextKey.of("iris.desktop.vision.help.follow", "Follow player");
-    public static final TextKey VISION_HELP_ZOOM = TextKey.of("iris.desktop.vision.help.zoom", "Zoom in/out");
-    public static final TextKey VISION_HELP_RESET_ZOOM = TextKey.of("iris.desktop.vision.help.reset_zoom", "Reset zoom");
-    public static final TextKey VISION_HELP_CYCLE_MODE = TextKey.of("iris.desktop.vision.help.cycle_mode", "Cycle render mode");
-    public static final TextKey VISION_HELP_FPS = TextKey.of("iris.desktop.vision.help.fps", "Toggle 30/60 FPS");
-    public static final TextKey VISION_HELP_GRID = TextKey.of("iris.desktop.vision.help.grid", "Toggle grid");
-    public static final TextKey VISION_HELP_BIOME = TextKey.of("iris.desktop.vision.help.biome", "Detailed biome info");
-    public static final TextKey VISION_HELP_TELEPORT = TextKey.of("iris.desktop.vision.help.teleport", "Teleport to cursor");
-    public static final TextKey VISION_HELP_EDITOR = TextKey.of("iris.desktop.vision.help.editor", "Open biome in editor");
-    public static final TextKey VISION_OPENED = TextKey.of("iris.desktop.vision.opened", "Opened {target}");
-    public static final TextKey VISION_TELEPORTING = TextKey.of("iris.desktop.vision.teleporting", "Teleporting to {x}, {z}");
-    public static final TextKey VISION_MODE_BIOME = TextKey.of("iris.desktop.vision.mode.biome", "Biome");
-    public static final TextKey VISION_MODE_BIOME_LAND = TextKey.of("iris.desktop.vision.mode.biome_land", "Biome land");
-    public static final TextKey VISION_MODE_BIOME_SEA = TextKey.of("iris.desktop.vision.mode.biome_sea", "Biome sea");
-    public static final TextKey VISION_MODE_REGION = TextKey.of("iris.desktop.vision.mode.region", "Region");
-    public static final TextKey VISION_MODE_CAVE_LAND = TextKey.of("iris.desktop.vision.mode.cave_land", "Cave land");
-    public static final TextKey VISION_MODE_HEIGHT = TextKey.of("iris.desktop.vision.mode.height", "Height");
-    public static final TextKey VISION_MODE_CONTINENT = TextKey.of("iris.desktop.vision.mode.continent", "Continent");
-    public static final TextKey NOISE_TITLE = TextKey.of("iris.desktop.noise.title", "Noise Explorer");
-    public static final TextKey NOISE_TITLE_GENERATOR = TextKey.of("iris.desktop.noise.title_generator", "Noise Explorer: {generator}");
-    public static final TextKey NOISE_SEARCH = TextKey.of("iris.desktop.noise.search", "Search...");
-    public static final TextKey NOISE_STATUS = TextKey.of("iris.desktop.noise.status", "{name}  |  X: {x}  Z: {z}  |  Zoom: {zoom}  |  Value: {value}  |  {fps} FPS");
-    public static final TextKey NOISE_CATEGORY_CUSTOM = TextKey.of("iris.desktop.noise.category.custom", "Custom");
-    public static final TextKey NOISE_CATEGORY_PACK_GENERATORS = TextKey.of("iris.desktop.noise.category.pack_generators", "Pack Generators");
-    public static final TextKey NOISE_CATEGORY_SIMPLEX = TextKey.of("iris.desktop.noise.category.simplex", "Simplex");
-    public static final TextKey NOISE_CATEGORY_PERLIN = TextKey.of("iris.desktop.noise.category.perlin", "Perlin");
-    public static final TextKey NOISE_CATEGORY_CELLULAR = TextKey.of("iris.desktop.noise.category.cellular", "Cellular");
-    public static final TextKey NOISE_CATEGORY_IRIS = TextKey.of("iris.desktop.noise.category.iris", "Iris");
-    public static final TextKey NOISE_CATEGORY_CLOVER = TextKey.of("iris.desktop.noise.category.clover", "Clover");
-    public static final TextKey NOISE_CATEGORY_HEXAGON = TextKey.of("iris.desktop.noise.category.hexagon", "Hexagon");
-    public static final TextKey NOISE_CATEGORY_VASCULAR = TextKey.of("iris.desktop.noise.category.vascular", "Vascular");
-    public static final TextKey NOISE_CATEGORY_GLOBE = TextKey.of("iris.desktop.noise.category.globe", "Globe");
-    public static final TextKey NOISE_CATEGORY_CUBIC = TextKey.of("iris.desktop.noise.category.cubic", "Cubic");
-    public static final TextKey NOISE_CATEGORY_FRACTAL = TextKey.of("iris.desktop.noise.category.fractal", "Fractal");
-    public static final TextKey NOISE_CATEGORY_STATIC = TextKey.of("iris.desktop.noise.category.static", "Static");
-    public static final TextKey NOISE_CATEGORY_NOWHERE = TextKey.of("iris.desktop.noise.category.nowhere", "Nowhere");
-    public static final TextKey NOISE_CATEGORY_SIERPINSKI = TextKey.of("iris.desktop.noise.category.sierpinski", "Sierpinski");
-    public static final TextKey NOISE_CATEGORY_UTILITY = TextKey.of("iris.desktop.noise.category.utility", "Utility");
-    public static final TextKey NOISE_CATEGORY_OTHER = TextKey.of("iris.desktop.noise.category.other", "Other");
-    public static final TextKey PREGEN_INITIALIZING = TextKey.of("iris.desktop.pregen.initializing", "Initializing...");
-    public static final TextKey PREGEN_TITLE = TextKey.of("iris.desktop.pregen.title", "Pregen View");
-    public static final TextKey PREGEN_METHOD_PENDING = TextKey.of("iris.desktop.pregen.method_pending", "Pending");
-    public static final TextKey PREGEN_PAUSED = TextKey.of("iris.desktop.pregen.paused", "PAUSED");
-    public static final TextKey PREGEN_RESUME_HINT = TextKey.of("iris.desktop.pregen.resume_hint", "Press P to resume");
-    public static final TextKey PREGEN_PAUSE_HINT = TextKey.of("iris.desktop.pregen.pause_hint", "Press P to pause");
-    public static final TextKey PREGEN_PROGRESS_PAUSED = TextKey.of("iris.desktop.pregen.progress_paused", "PAUSED {generated} of {total} ({percent} complete)");
-    public static final TextKey PREGEN_PROGRESS_SAVING = TextKey.of("iris.desktop.pregen.progress_saving", "Saving... {generated} of {total} ({percent} complete)");
-    public static final TextKey PREGEN_PROGRESS_GENERATING = TextKey.of("iris.desktop.pregen.progress_generating", "Generating {generated} of {total} ({percent} complete)");
-    public static final TextKey PREGEN_SPEED = TextKey.of("iris.desktop.pregen.speed", "Speed: overall {overall}, 10s {tenSecond}, 30s {thirtySecond}, 60s {sixtySecond} chunks/s");
-    public static final TextKey PREGEN_SPEED_CACHED = TextKey.of("iris.desktop.pregen.speed_cached", "Speed (cached): overall {overall}, 10s {tenSecond}, 30s {thirtySecond}, 60s {sixtySecond} chunks/s");
-    public static final TextKey PREGEN_TIME = TextKey.of("iris.desktop.pregen.time", "{remaining} remaining ({elapsed} elapsed)");
-    public static final TextKey PREGEN_METHOD = TextKey.of("iris.desktop.pregen.method", "Generation method: {method}");
-    public static final TextKey PREGEN_MEMORY = TextKey.of("iris.desktop.pregen.memory", "Memory: {used} ({usage}) Pressure: {pressure}/s");
-    public static final TextKey IMAGEMAP_TITLE = TextKey.of("iris.desktop.imagemap.title", "Image Map Studio");
-    public static final TextKey IMAGEMAP_PRESET = TextKey.of("iris.desktop.imagemap.preset", "Preset:");
-    public static final TextKey IMAGEMAP_LOAD = TextKey.of("iris.desktop.imagemap.load", "Load");
-    public static final TextKey IMAGEMAP_IMPORT_PNG = TextKey.of("iris.desktop.imagemap.import_png", "Import PNG");
-    public static final TextKey IMAGEMAP_REPLACE_PNG = TextKey.of("iris.desktop.imagemap.replace_png", "Replace PNG");
-    public static final TextKey IMAGEMAP_PREVIEW = TextKey.of("iris.desktop.imagemap.preview", "Preview");
-    public static final TextKey IMAGEMAP_EXPORT = TextKey.of("iris.desktop.imagemap.export", "Export to active pack");
-    public static final TextKey IMAGEMAP_METADATA = TextKey.of("iris.desktop.imagemap.metadata", "Source metadata");
-    public static final TextKey IMAGEMAP_RESOURCE = TextKey.of("iris.desktop.imagemap.resource", "Resource binding");
-    public static final TextKey IMAGEMAP_COORDINATES = TextKey.of("iris.desktop.imagemap.coordinates", "Coordinates and sampling");
-    public static final TextKey IMAGEMAP_BINDING_KEY = TextKey.of("iris.desktop.imagemap.binding_key", "Binding key");
-    public static final TextKey IMAGEMAP_MAP_KEY = TextKey.of("iris.desktop.imagemap.map_key", "Map key");
-    public static final TextKey IMAGEMAP_IMAGE_KEY = TextKey.of("iris.desktop.imagemap.image_key", "Image key");
-    public static final TextKey IMAGEMAP_TYPE = TextKey.of("iris.desktop.imagemap.type", "Type");
-    public static final TextKey IMAGEMAP_APPLICATION = TextKey.of("iris.desktop.imagemap.application", "Application");
-    public static final TextKey IMAGEMAP_BLOCKS_PER_PIXEL = TextKey.of("iris.desktop.imagemap.blocks_per_pixel", "Blocks per pixel");
-    public static final TextKey IMAGEMAP_ORIGIN_X = TextKey.of("iris.desktop.imagemap.origin_x", "World origin X");
-    public static final TextKey IMAGEMAP_ORIGIN_Z = TextKey.of("iris.desktop.imagemap.origin_z", "World origin Z");
-    public static final TextKey IMAGEMAP_SOURCE_ORIGIN_X = TextKey.of("iris.desktop.imagemap.source_origin_x", "Source origin X");
-    public static final TextKey IMAGEMAP_SOURCE_ORIGIN_Z = TextKey.of("iris.desktop.imagemap.source_origin_z", "Source origin Z");
-    public static final TextKey IMAGEMAP_ROTATION = TextKey.of("iris.desktop.imagemap.rotation", "Rotation");
-    public static final TextKey IMAGEMAP_MIRROR_X = TextKey.of("iris.desktop.imagemap.mirror_x", "Mirror X");
-    public static final TextKey IMAGEMAP_MIRROR_Z = TextKey.of("iris.desktop.imagemap.mirror_z", "Mirror Z");
-    public static final TextKey IMAGEMAP_SAMPLING = TextKey.of("iris.desktop.imagemap.sampling", "Sampling");
-    public static final TextKey IMAGEMAP_OUT_OF_BOUNDS = TextKey.of("iris.desktop.imagemap.out_of_bounds", "Out of bounds");
-    public static final TextKey IMAGEMAP_ALPHA = TextKey.of("iris.desktop.imagemap.alpha", "Alpha policy");
-    public static final TextKey IMAGEMAP_FALLBACK_VALUE = TextKey.of("iris.desktop.imagemap.fallback_value", "Fallback value");
-    public static final TextKey IMAGEMAP_FALLBACK_TARGET = TextKey.of("iris.desktop.imagemap.fallback_target", "Fallback target");
-    public static final TextKey IMAGEMAP_MINIMUM_HEIGHT = TextKey.of("iris.desktop.imagemap.minimum_height", "Minimum height");
-    public static final TextKey IMAGEMAP_MAXIMUM_HEIGHT = TextKey.of("iris.desktop.imagemap.maximum_height", "Maximum height");
-    public static final TextKey IMAGEMAP_VERTICAL_OFFSET = TextKey.of("iris.desktop.imagemap.vertical_offset", "Vertical offset");
-    public static final TextKey IMAGEMAP_CLAMP = TextKey.of("iris.desktop.imagemap.clamp", "Clamp height");
-    public static final TextKey IMAGEMAP_INVERTED = TextKey.of("iris.desktop.imagemap.inverted", "Invert values");
-    public static final TextKey IMAGEMAP_CURVE_EXPONENT = TextKey.of("iris.desktop.imagemap.curve_exponent", "Curve exponent");
-    public static final TextKey IMAGEMAP_SMOOTHING_RADIUS = TextKey.of("iris.desktop.imagemap.smoothing_radius", "Smoothing radius");
-    public static final TextKey IMAGEMAP_THRESHOLD = TextKey.of("iris.desktop.imagemap.threshold", "Threshold");
-    public static final TextKey IMAGEMAP_FALLOFF = TextKey.of("iris.desktop.imagemap.falloff", "Falloff");
-    public static final TextKey IMAGEMAP_COLOR_TOLERANCE = TextKey.of("iris.desktop.imagemap.color_tolerance", "Raw sRGB tolerance");
-    public static final TextKey IMAGEMAP_UNKNOWN_COLOR = TextKey.of("iris.desktop.imagemap.unknown_color", "Unknown color");
-    public static final TextKey IMAGEMAP_ADD_COLOR = TextKey.of("iris.desktop.imagemap.add_color", "Add legend color");
-    public static final TextKey IMAGEMAP_REMOVE_COLOR = TextKey.of("iris.desktop.imagemap.remove_color", "Remove selected");
-    public static final TextKey IMAGEMAP_COMPOSED_MASKS = TextKey.of("iris.desktop.imagemap.composed_masks", "Composed masks");
-    public static final TextKey IMAGEMAP_ADD_MASK = TextKey.of("iris.desktop.imagemap.add_mask", "Add mask binding");
-    public static final TextKey IMAGEMAP_HEIGHT = TextKey.of("iris.desktop.imagemap.height", "Height interpretation");
-    public static final TextKey IMAGEMAP_MASK = TextKey.of("iris.desktop.imagemap.mask", "Mask interpretation");
-    public static final TextKey IMAGEMAP_COLOR_MAP = TextKey.of("iris.desktop.imagemap.color_map", "Color legend");
-    public static final TextKey IMAGEMAP_OVERLAYS = TextKey.of("iris.desktop.imagemap.overlays", "World overlays");
-    public static final TextKey IMAGEMAP_CHUNKS = TextKey.of("iris.desktop.imagemap.chunks", "16-block chunks");
-    public static final TextKey IMAGEMAP_REGIONS = TextKey.of("iris.desktop.imagemap.regions", "512-block regions");
-    public static final TextKey IMAGEMAP_BOUNDARY = TextKey.of("iris.desktop.imagemap.boundary", "World boundary");
-    public static final TextKey IMAGEMAP_COVERAGE = TextKey.of("iris.desktop.imagemap.coverage", "Source coverage");
-    public static final TextKey IMAGEMAP_DIAGNOSTICS = TextKey.of("iris.desktop.imagemap.diagnostics", "Diagnostics");
-    public static final TextKey IMAGEMAP_READY = TextKey.of("iris.desktop.imagemap.ready", "Ready");
-    public static final TextKey IMAGEMAP_NO_SOURCE = TextKey.of("iris.desktop.imagemap.no_source", "Import a PNG source to begin.");
-    public static final TextKey IMAGEMAP_LOADING = TextKey.of("iris.desktop.imagemap.loading", "Loading preset...");
-    public static final TextKey IMAGEMAP_LOAD_FAILED = TextKey.of("iris.desktop.imagemap.load_failed", "Preset load failed");
-    public static final TextKey IMAGEMAP_PREVIEWING = TextKey.of("iris.desktop.imagemap.previewing", "Compiling preview...");
-    public static final TextKey IMAGEMAP_PREVIEW_VALID = TextKey.of("iris.desktop.imagemap.preview_valid", "Runtime compiler validation passed.");
-    public static final TextKey IMAGEMAP_PREVIEW_FAILED = TextKey.of("iris.desktop.imagemap.preview_failed", "Preview failed");
-    public static final TextKey IMAGEMAP_EXPORTING = TextKey.of("iris.desktop.imagemap.exporting", "Validating and exporting...");
-    public static final TextKey IMAGEMAP_EXPORTED = TextKey.of("iris.desktop.imagemap.exported", "Exported image map, PNG, and dimension binding atomically.");
-    public static final TextKey IMAGEMAP_EXPORT_FAILED = TextKey.of("iris.desktop.imagemap.export_failed", "Export failed");
-    public static final TextKey IMAGEMAP_SOURCE = TextKey.of("iris.desktop.imagemap.source", "Source pixels");
-    public static final TextKey IMAGEMAP_INTERPRETED = TextKey.of("iris.desktop.imagemap.interpreted", "Runtime interpretation");
-    public static final TextKey IMAGEMAP_NO_PREVIEW = TextKey.of("iris.desktop.imagemap.no_preview", "Compile a valid preview to inspect world output.");
-    public static final TextKey IMAGEMAP_PREVIEW_STATUS = TextKey.of("iris.desktop.imagemap.preview_status", "X {x}  Z {z}  |  {value}  |  {scale} blocks/pixel");
-
-    private static final List<MessageKey> KEYS = List.of(
-            VISION_TITLE, VISION_VIEW, VISION_GRID, VISION_ENTITIES, VISION_FOLLOW,
-            VISION_REFRESHING, VISION_FPS, VISION_ZOOM_RESET, VISION_GRID_ENABLED, VISION_GRID_DISABLED,
-            VISION_ENTITIES_ENABLED, VISION_ENTITIES_DISABLED,
-            VISION_FOLLOWING, VISION_NO_PLAYER, VISION_FOLLOW_DISABLED,
-            VISION_STATUS_LEFT, VISION_STATUS_RIGHT, VISION_ENTITY_POSITION, VISION_ENTITY_HEALTH,
-            VISION_BLOCK_POSITION, VISION_CHUNK_POSITION, VISION_REGION_POSITION, VISION_BIOME_KEY,
-            VISION_BIOME_FILE, VISION_VELOCITY, VISION_TILES, VISION_WORKERS, VISION_CENTER,
-            VISION_HELP_TOGGLE, VISION_HELP_REFRESH, VISION_HELP_FOLLOW, VISION_HELP_ZOOM,
-            VISION_HELP_RESET_ZOOM, VISION_HELP_CYCLE_MODE, VISION_HELP_FPS,
-            VISION_HELP_GRID, VISION_HELP_BIOME, VISION_HELP_TELEPORT, VISION_HELP_EDITOR, VISION_OPENED,
-            VISION_TELEPORTING, VISION_MODE_BIOME, VISION_MODE_BIOME_LAND, VISION_MODE_BIOME_SEA,
-            VISION_MODE_REGION, VISION_MODE_CAVE_LAND, VISION_MODE_HEIGHT,
-            VISION_MODE_CONTINENT, NOISE_TITLE,
-            NOISE_TITLE_GENERATOR, NOISE_SEARCH, NOISE_STATUS, NOISE_CATEGORY_CUSTOM,
-            NOISE_CATEGORY_PACK_GENERATORS, NOISE_CATEGORY_SIMPLEX, NOISE_CATEGORY_PERLIN,
-            NOISE_CATEGORY_CELLULAR, NOISE_CATEGORY_IRIS, NOISE_CATEGORY_CLOVER, NOISE_CATEGORY_HEXAGON,
-            NOISE_CATEGORY_VASCULAR, NOISE_CATEGORY_GLOBE, NOISE_CATEGORY_CUBIC, NOISE_CATEGORY_FRACTAL,
-            NOISE_CATEGORY_STATIC, NOISE_CATEGORY_NOWHERE, NOISE_CATEGORY_SIERPINSKI,
-            NOISE_CATEGORY_UTILITY, NOISE_CATEGORY_OTHER, PREGEN_INITIALIZING, PREGEN_TITLE,
-            PREGEN_METHOD_PENDING, PREGEN_PAUSED, PREGEN_RESUME_HINT, PREGEN_PAUSE_HINT,
-            PREGEN_PROGRESS_PAUSED, PREGEN_PROGRESS_SAVING, PREGEN_PROGRESS_GENERATING, PREGEN_SPEED,
-            PREGEN_SPEED_CACHED, PREGEN_TIME, PREGEN_METHOD, PREGEN_MEMORY,
-            IMAGEMAP_TITLE, IMAGEMAP_PRESET, IMAGEMAP_LOAD, IMAGEMAP_IMPORT_PNG,
-            IMAGEMAP_REPLACE_PNG, IMAGEMAP_PREVIEW, IMAGEMAP_EXPORT, IMAGEMAP_METADATA,
-            IMAGEMAP_RESOURCE, IMAGEMAP_COORDINATES, IMAGEMAP_BINDING_KEY, IMAGEMAP_MAP_KEY,
-            IMAGEMAP_IMAGE_KEY, IMAGEMAP_TYPE, IMAGEMAP_APPLICATION, IMAGEMAP_BLOCKS_PER_PIXEL,
-            IMAGEMAP_ORIGIN_X, IMAGEMAP_ORIGIN_Z, IMAGEMAP_SOURCE_ORIGIN_X, IMAGEMAP_SOURCE_ORIGIN_Z,
-            IMAGEMAP_ROTATION, IMAGEMAP_MIRROR_X, IMAGEMAP_MIRROR_Z, IMAGEMAP_SAMPLING,
-            IMAGEMAP_OUT_OF_BOUNDS, IMAGEMAP_ALPHA, IMAGEMAP_FALLBACK_VALUE, IMAGEMAP_FALLBACK_TARGET,
-            IMAGEMAP_MINIMUM_HEIGHT, IMAGEMAP_MAXIMUM_HEIGHT, IMAGEMAP_VERTICAL_OFFSET, IMAGEMAP_CLAMP,
-            IMAGEMAP_INVERTED, IMAGEMAP_CURVE_EXPONENT, IMAGEMAP_SMOOTHING_RADIUS, IMAGEMAP_THRESHOLD,
-            IMAGEMAP_FALLOFF, IMAGEMAP_COLOR_TOLERANCE, IMAGEMAP_UNKNOWN_COLOR, IMAGEMAP_ADD_COLOR,
-            IMAGEMAP_REMOVE_COLOR, IMAGEMAP_COMPOSED_MASKS, IMAGEMAP_ADD_MASK,
-            IMAGEMAP_HEIGHT, IMAGEMAP_MASK, IMAGEMAP_COLOR_MAP,
-            IMAGEMAP_OVERLAYS, IMAGEMAP_CHUNKS, IMAGEMAP_REGIONS, IMAGEMAP_BOUNDARY,
-            IMAGEMAP_COVERAGE, IMAGEMAP_DIAGNOSTICS, IMAGEMAP_READY, IMAGEMAP_NO_SOURCE,
-            IMAGEMAP_LOADING, IMAGEMAP_LOAD_FAILED, IMAGEMAP_PREVIEWING, IMAGEMAP_PREVIEW_VALID,
-            IMAGEMAP_PREVIEW_FAILED, IMAGEMAP_EXPORTING, IMAGEMAP_EXPORTED, IMAGEMAP_EXPORT_FAILED,
-            IMAGEMAP_SOURCE, IMAGEMAP_INTERPRETED, IMAGEMAP_NO_PREVIEW, IMAGEMAP_PREVIEW_STATUS
-    );
+    public static final TextKey VISION_TITLE = text("iris.desktop.vision.title");
+    public static final TextKey VISION_VIEW = text("iris.desktop.vision.view");
+    public static final TextKey VISION_GRID = text("iris.desktop.vision.grid");
+    public static final TextKey VISION_ENTITIES = text("iris.desktop.vision.entities");
+    public static final TextKey VISION_FOLLOW = text("iris.desktop.vision.follow");
+    public static final TextKey VISION_REFRESHING = text("iris.desktop.vision.refreshing");
+    public static final TextKey VISION_FPS = text("iris.desktop.vision.fps");
+    public static final TextKey VISION_ZOOM_RESET = text("iris.desktop.vision.zoom_reset");
+    public static final TextKey VISION_GRID_ENABLED = text("iris.desktop.vision.grid_enabled");
+    public static final TextKey VISION_GRID_DISABLED = text("iris.desktop.vision.grid_disabled");
+    public static final TextKey VISION_ENTITIES_ENABLED = text("iris.desktop.vision.entities_enabled");
+    public static final TextKey VISION_ENTITIES_DISABLED = text("iris.desktop.vision.entities_disabled");
+    public static final TextKey VISION_FOLLOWING = text("iris.desktop.vision.following");
+    public static final TextKey VISION_NO_PLAYER = text("iris.desktop.vision.no_player");
+    public static final TextKey VISION_FOLLOW_DISABLED = text("iris.desktop.vision.follow_disabled");
+    public static final TextKey VISION_STATUS_LEFT = text("iris.desktop.vision.status_left");
+    public static final TextKey VISION_STATUS_RIGHT = text("iris.desktop.vision.status_right");
+    public static final TextKey VISION_ENTITY_POSITION = text("iris.desktop.vision.entity_position");
+    public static final TextKey VISION_ENTITY_HEALTH = text("iris.desktop.vision.entity_health");
+    public static final TextKey VISION_BLOCK_POSITION = text("iris.desktop.vision.block_position");
+    public static final TextKey VISION_CHUNK_POSITION = text("iris.desktop.vision.chunk_position");
+    public static final TextKey VISION_REGION_POSITION = text("iris.desktop.vision.region_position");
+    public static final TextKey VISION_BIOME_KEY = text("iris.desktop.vision.biome_key");
+    public static final TextKey VISION_BIOME_FILE = text("iris.desktop.vision.biome_file");
+    public static final TextKey VISION_VELOCITY = text("iris.desktop.vision.velocity");
+    public static final TextKey VISION_TILES = text("iris.desktop.vision.tiles");
+    public static final TextKey VISION_WORKERS = text("iris.desktop.vision.workers");
+    public static final TextKey VISION_CENTER = text("iris.desktop.vision.center");
+    public static final TextKey VISION_HELP_TOGGLE = text("iris.desktop.vision.help.toggle");
+    public static final TextKey VISION_HELP_REFRESH = text("iris.desktop.vision.help.refresh");
+    public static final TextKey VISION_HELP_FOLLOW = text("iris.desktop.vision.help.follow");
+    public static final TextKey VISION_HELP_ZOOM = text("iris.desktop.vision.help.zoom");
+    public static final TextKey VISION_HELP_RESET_ZOOM = text("iris.desktop.vision.help.reset_zoom");
+    public static final TextKey VISION_HELP_CYCLE_MODE = text("iris.desktop.vision.help.cycle_mode");
+    public static final TextKey VISION_HELP_FPS = text("iris.desktop.vision.help.fps");
+    public static final TextKey VISION_HELP_GRID = text("iris.desktop.vision.help.grid");
+    public static final TextKey VISION_HELP_BIOME = text("iris.desktop.vision.help.biome");
+    public static final TextKey VISION_HELP_TELEPORT = text("iris.desktop.vision.help.teleport");
+    public static final TextKey VISION_HELP_EDITOR = text("iris.desktop.vision.help.editor");
+    public static final TextKey VISION_OPENED = text("iris.desktop.vision.opened");
+    public static final TextKey VISION_TELEPORTING = text("iris.desktop.vision.teleporting");
+    public static final TextKey VISION_MODE_BIOME = text("iris.desktop.vision.mode.biome");
+    public static final TextKey VISION_MODE_BIOME_LAND = text("iris.desktop.vision.mode.biome_land");
+    public static final TextKey VISION_MODE_BIOME_SEA = text("iris.desktop.vision.mode.biome_sea");
+    public static final TextKey VISION_MODE_REGION = text("iris.desktop.vision.mode.region");
+    public static final TextKey VISION_MODE_CAVE_LAND = text("iris.desktop.vision.mode.cave_land");
+    public static final TextKey VISION_MODE_HEIGHT = text("iris.desktop.vision.mode.height");
+    public static final TextKey VISION_MODE_CONTINENT = text("iris.desktop.vision.mode.continent");
+    public static final TextKey NOISE_TITLE = text("iris.desktop.noise.title");
+    public static final TextKey NOISE_TITLE_GENERATOR = text("iris.desktop.noise.title_generator");
+    public static final TextKey NOISE_SEARCH = text("iris.desktop.noise.search");
+    public static final TextKey NOISE_STATUS = text("iris.desktop.noise.status");
+    public static final TextKey NOISE_CATEGORY_CUSTOM = text("iris.desktop.noise.category.custom");
+    public static final TextKey NOISE_CATEGORY_PACK_GENERATORS = text("iris.desktop.noise.category.pack_generators");
+    public static final TextKey NOISE_CATEGORY_SIMPLEX = text("iris.desktop.noise.category.simplex");
+    public static final TextKey NOISE_CATEGORY_PERLIN = text("iris.desktop.noise.category.perlin");
+    public static final TextKey NOISE_CATEGORY_CELLULAR = text("iris.desktop.noise.category.cellular");
+    public static final TextKey NOISE_CATEGORY_IRIS = text("iris.desktop.noise.category.iris");
+    public static final TextKey NOISE_CATEGORY_CLOVER = text("iris.desktop.noise.category.clover");
+    public static final TextKey NOISE_CATEGORY_HEXAGON = text("iris.desktop.noise.category.hexagon");
+    public static final TextKey NOISE_CATEGORY_VASCULAR = text("iris.desktop.noise.category.vascular");
+    public static final TextKey NOISE_CATEGORY_GLOBE = text("iris.desktop.noise.category.globe");
+    public static final TextKey NOISE_CATEGORY_CUBIC = text("iris.desktop.noise.category.cubic");
+    public static final TextKey NOISE_CATEGORY_FRACTAL = text("iris.desktop.noise.category.fractal");
+    public static final TextKey NOISE_CATEGORY_STATIC = text("iris.desktop.noise.category.static");
+    public static final TextKey NOISE_CATEGORY_NOWHERE = text("iris.desktop.noise.category.nowhere");
+    public static final TextKey NOISE_CATEGORY_SIERPINSKI = text("iris.desktop.noise.category.sierpinski");
+    public static final TextKey NOISE_CATEGORY_UTILITY = text("iris.desktop.noise.category.utility");
+    public static final TextKey NOISE_CATEGORY_OTHER = text("iris.desktop.noise.category.other");
+    public static final TextKey PREGEN_INITIALIZING = text("iris.desktop.pregen.initializing");
+    public static final TextKey PREGEN_TITLE = text("iris.desktop.pregen.title");
+    public static final TextKey PREGEN_METHOD_PENDING = text("iris.desktop.pregen.method_pending");
+    public static final TextKey PREGEN_PAUSED = text("iris.desktop.pregen.paused");
+    public static final TextKey PREGEN_RESUME_HINT = text("iris.desktop.pregen.resume_hint");
+    public static final TextKey PREGEN_PAUSE_HINT = text("iris.desktop.pregen.pause_hint");
+    public static final TextKey PREGEN_PROGRESS_PAUSED = text("iris.desktop.pregen.progress_paused");
+    public static final TextKey PREGEN_PROGRESS_SAVING = text("iris.desktop.pregen.progress_saving");
+    public static final TextKey PREGEN_PROGRESS_GENERATING = text("iris.desktop.pregen.progress_generating");
+    public static final TextKey PREGEN_SPEED = text("iris.desktop.pregen.speed");
+    public static final TextKey PREGEN_SPEED_CACHED = text("iris.desktop.pregen.speed_cached");
+    public static final TextKey PREGEN_TIME = text("iris.desktop.pregen.time");
+    public static final TextKey PREGEN_METHOD = text("iris.desktop.pregen.method");
+    public static final TextKey PREGEN_MEMORY = text("iris.desktop.pregen.memory");
+    public static final TextKey IMAGEMAP_TITLE = text("iris.desktop.imagemap.title");
+    public static final TextKey IMAGEMAP_PRESET = text("iris.desktop.imagemap.preset");
+    public static final TextKey IMAGEMAP_LOAD = text("iris.desktop.imagemap.load");
+    public static final TextKey IMAGEMAP_IMPORT_PNG = text("iris.desktop.imagemap.import_png");
+    public static final TextKey IMAGEMAP_REPLACE_PNG = text("iris.desktop.imagemap.replace_png");
+    public static final TextKey IMAGEMAP_PREVIEW = text("iris.desktop.imagemap.preview");
+    public static final TextKey IMAGEMAP_EXPORT = text("iris.desktop.imagemap.export");
+    public static final TextKey IMAGEMAP_METADATA = text("iris.desktop.imagemap.metadata");
+    public static final TextKey IMAGEMAP_RESOURCE = text("iris.desktop.imagemap.resource");
+    public static final TextKey IMAGEMAP_COORDINATES = text("iris.desktop.imagemap.coordinates");
+    public static final TextKey IMAGEMAP_BINDING_KEY = text("iris.desktop.imagemap.binding_key");
+    public static final TextKey IMAGEMAP_MAP_KEY = text("iris.desktop.imagemap.map_key");
+    public static final TextKey IMAGEMAP_IMAGE_KEY = text("iris.desktop.imagemap.image_key");
+    public static final TextKey IMAGEMAP_TYPE = text("iris.desktop.imagemap.type");
+    public static final TextKey IMAGEMAP_APPLICATION = text("iris.desktop.imagemap.application");
+    public static final TextKey IMAGEMAP_BLOCKS_PER_PIXEL = text("iris.desktop.imagemap.blocks_per_pixel");
+    public static final TextKey IMAGEMAP_ORIGIN_X = text("iris.desktop.imagemap.origin_x");
+    public static final TextKey IMAGEMAP_ORIGIN_Z = text("iris.desktop.imagemap.origin_z");
+    public static final TextKey IMAGEMAP_SOURCE_ORIGIN_X = text("iris.desktop.imagemap.source_origin_x");
+    public static final TextKey IMAGEMAP_SOURCE_ORIGIN_Z = text("iris.desktop.imagemap.source_origin_z");
+    public static final TextKey IMAGEMAP_ROTATION = text("iris.desktop.imagemap.rotation");
+    public static final TextKey IMAGEMAP_MIRROR_X = text("iris.desktop.imagemap.mirror_x");
+    public static final TextKey IMAGEMAP_MIRROR_Z = text("iris.desktop.imagemap.mirror_z");
+    public static final TextKey IMAGEMAP_SAMPLING = text("iris.desktop.imagemap.sampling");
+    public static final TextKey IMAGEMAP_OUT_OF_BOUNDS = text("iris.desktop.imagemap.out_of_bounds");
+    public static final TextKey IMAGEMAP_ALPHA = text("iris.desktop.imagemap.alpha");
+    public static final TextKey IMAGEMAP_FALLBACK_VALUE = text("iris.desktop.imagemap.fallback_value");
+    public static final TextKey IMAGEMAP_FALLBACK_TARGET = text("iris.desktop.imagemap.fallback_target");
+    public static final TextKey IMAGEMAP_MINIMUM_HEIGHT = text("iris.desktop.imagemap.minimum_height");
+    public static final TextKey IMAGEMAP_MAXIMUM_HEIGHT = text("iris.desktop.imagemap.maximum_height");
+    public static final TextKey IMAGEMAP_VERTICAL_OFFSET = text("iris.desktop.imagemap.vertical_offset");
+    public static final TextKey IMAGEMAP_CLAMP = text("iris.desktop.imagemap.clamp");
+    public static final TextKey IMAGEMAP_INVERTED = text("iris.desktop.imagemap.inverted");
+    public static final TextKey IMAGEMAP_CURVE_EXPONENT = text("iris.desktop.imagemap.curve_exponent");
+    public static final TextKey IMAGEMAP_SMOOTHING_RADIUS = text("iris.desktop.imagemap.smoothing_radius");
+    public static final TextKey IMAGEMAP_THRESHOLD = text("iris.desktop.imagemap.threshold");
+    public static final TextKey IMAGEMAP_FALLOFF = text("iris.desktop.imagemap.falloff");
+    public static final TextKey IMAGEMAP_COLOR_TOLERANCE = text("iris.desktop.imagemap.color_tolerance");
+    public static final TextKey IMAGEMAP_UNKNOWN_COLOR = text("iris.desktop.imagemap.unknown_color");
+    public static final TextKey IMAGEMAP_ADD_COLOR = text("iris.desktop.imagemap.add_color");
+    public static final TextKey IMAGEMAP_REMOVE_COLOR = text("iris.desktop.imagemap.remove_color");
+    public static final TextKey IMAGEMAP_COMPOSED_MASKS = text("iris.desktop.imagemap.composed_masks");
+    public static final TextKey IMAGEMAP_ADD_MASK = text("iris.desktop.imagemap.add_mask");
+    public static final TextKey IMAGEMAP_HEIGHT = text("iris.desktop.imagemap.height");
+    public static final TextKey IMAGEMAP_MASK = text("iris.desktop.imagemap.mask");
+    public static final TextKey IMAGEMAP_COLOR_MAP = text("iris.desktop.imagemap.color_map");
+    public static final TextKey IMAGEMAP_OVERLAYS = text("iris.desktop.imagemap.overlays");
+    public static final TextKey IMAGEMAP_CHUNKS = text("iris.desktop.imagemap.chunks");
+    public static final TextKey IMAGEMAP_REGIONS = text("iris.desktop.imagemap.regions");
+    public static final TextKey IMAGEMAP_BOUNDARY = text("iris.desktop.imagemap.boundary");
+    public static final TextKey IMAGEMAP_COVERAGE = text("iris.desktop.imagemap.coverage");
+    public static final TextKey IMAGEMAP_DIAGNOSTICS = text("iris.desktop.imagemap.diagnostics");
+    public static final TextKey IMAGEMAP_READY = text("iris.desktop.imagemap.ready");
+    public static final TextKey IMAGEMAP_NO_SOURCE = text("iris.desktop.imagemap.no_source");
+    public static final TextKey IMAGEMAP_LOADING = text("iris.desktop.imagemap.loading");
+    public static final TextKey IMAGEMAP_LOAD_FAILED = text("iris.desktop.imagemap.load_failed");
+    public static final TextKey IMAGEMAP_PREVIEWING = text("iris.desktop.imagemap.previewing");
+    public static final TextKey IMAGEMAP_PREVIEW_VALID = text("iris.desktop.imagemap.preview_valid");
+    public static final TextKey IMAGEMAP_PREVIEW_FAILED = text("iris.desktop.imagemap.preview_failed");
+    public static final TextKey IMAGEMAP_EXPORTING = text("iris.desktop.imagemap.exporting");
+    public static final TextKey IMAGEMAP_EXPORTED = text("iris.desktop.imagemap.exported");
+    public static final TextKey IMAGEMAP_EXPORT_FAILED = text("iris.desktop.imagemap.export_failed");
+    public static final TextKey IMAGEMAP_SOURCE = text("iris.desktop.imagemap.source");
+    public static final TextKey IMAGEMAP_INTERPRETED = text("iris.desktop.imagemap.interpreted");
+    public static final TextKey IMAGEMAP_NO_PREVIEW = text("iris.desktop.imagemap.no_preview");
+    public static final TextKey IMAGEMAP_PREVIEW_STATUS = text("iris.desktop.imagemap.preview_status");
 
     private DesktopUiMessages() {
-    }
-
-    public static List<MessageKey> keys() {
-        return KEYS;
     }
 }

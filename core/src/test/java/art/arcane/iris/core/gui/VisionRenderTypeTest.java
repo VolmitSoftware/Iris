@@ -1,12 +1,13 @@
 package art.arcane.iris.core.gui;
 
-import art.arcane.iris.core.localization.DesktopUiMessages;
+import art.arcane.iris.core.localization.IrisMessages;
 import art.arcane.iris.engine.framework.render.RenderType;
 import art.arcane.volmlib.util.localization.MessageKey;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertSame;
 
 public class VisionRenderTypeTest {
     @Test
@@ -26,8 +27,6 @@ public class VisionRenderTypeTest {
     }
 
     private static void assertTrueCatalogMember(MessageKey key) {
-        assertEquals(key.id(), 1, DesktopUiMessages.keys().stream()
-                .filter(candidate -> candidate.id().equals(key.id()))
-                .count());
+        assertSame(key.id(), key, IrisMessages.catalog().key(key.id()));
     }
 }

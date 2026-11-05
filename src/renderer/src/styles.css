@@ -1,0 +1,111 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:is(.dark *));
+
+/* The studio's colours, taken from the Swing studio (StudioTheme) so both look alike. */
+:root {
+  --background: #ffffff;
+  --foreground: #000000;
+  --card: #f7f8fa;
+  --card-foreground: #000000;
+  --popover: rgb(255 255 255 / 0.94);
+  --popover-foreground: #000000;
+  --primary: #3574f0;
+  --primary-foreground: #ffffff;
+  --secondary: #dfe1e5;
+  --secondary-foreground: #000000;
+  --muted: #f7f8fa;
+  --muted-foreground: #818594;
+  --secondary-text: #6c707e;
+  --accent: #dfe1e5;
+  --accent-foreground: #000000;
+  --selection: #d4e2ff;
+  --destructive: #db3b4b;
+  --warning: #c27d04;
+  --success: #208a3c;
+  --link: #315fbd;
+  --border: #ebecf0;
+  --input: #c9ccd6;
+  --ring: #3574f0;
+  --overlay-border: #dfe1e5;
+  --map-background: #e4e6eb;
+  --radius: 10px;
+}
+
+.dark {
+  --background: #1e1f22;
+  --foreground: #dfe1e5;
+  --card: #2b2d30;
+  --card-foreground: #dfe1e5;
+  --popover: rgb(43 45 48 / 0.93);
+  --popover-foreground: #dfe1e5;
+  --primary: #3574f0;
+  --primary-foreground: #ffffff;
+  --secondary: #393b40;
+  --secondary-foreground: #dfe1e5;
+  --muted: #2b2d30;
+  --muted-foreground: #6f737a;
+  --secondary-text: #9da0a8;
+  --accent: #393b40;
+  --accent-foreground: #dfe1e5;
+  --selection: #2e436e;
+  --destructive: #f75464;
+  --warning: #f2c55c;
+  --success: #5fb865;
+  --link: #548af7;
+  --border: #1e1f22;
+  --input: #4e5157;
+  --ring: #3574f0;
+  --overlay-border: #43454a;
+  --map-background: #16171a;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-secondary-text: var(--secondary-text);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-selection: var(--selection);
+  --color-destructive: var(--destructive);
+  --color-warning: var(--warning);
+  --color-success: var(--success);
+  --color-link: var(--link);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-overlay-border: var(--overlay-border);
+  --color-map-background: var(--map-background);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --font-sans: "Inter", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  html,
+  body,
+  #root {
+    @apply h-full overflow-hidden;
+  }
+
+  body {
+    @apply bg-background text-foreground text-[13px] antialiased select-none;
+  }
+}

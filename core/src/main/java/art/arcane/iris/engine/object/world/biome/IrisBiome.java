@@ -295,7 +295,8 @@ public class IrisBiome extends IrisRegistrant implements IRare {
     }
 
     public CNG getChildrenGenerator(RNG random, int sig, double scale) {
-        return childrenCell.aquire(() -> getChildStyle().create(random.nextParallelRNG(sig * 2137), getLoader()).bake().scale(scale).bake());
+        double childScale = getChildStyle().isSeeded() ? 1 : scale;
+        return childrenCell.aquire(() -> getChildStyle().create(random.nextParallelRNG(sig * 2137), getLoader()).bake().scale(childScale).bake());
     }
 
     public boolean isLand() {

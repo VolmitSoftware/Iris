@@ -3,6 +3,7 @@ package art.arcane.iris.core.modules;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.loader.ResourceLoader;
 import art.arcane.iris.engine.UsableBlockPlatform;
+import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.object.material.IrisBlockData;
 import art.arcane.iris.engine.object.material.IrisMaterialPalette;
 import art.arcane.iris.engine.object.noise.IrisGeneratorStyle;
@@ -41,6 +42,7 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -127,6 +129,28 @@ public class IrisValuesTest {
             assertEquals(iris.noise(column[0], column[1]), sampler.sample(column[0], column[1]), 0);
             assertEquals(iris.noise(column[0], 64, column[1]), sampler.sample(column[0], 64, column[1]), 0);
         }
+    }
+
+    @Test
+    public void aSeededStyleIgnoresTheSeedItIsAskedForAndFollowsTheWorldSeed() {
+        NoiseStyle seeded = NoiseStyle.of("SIMPLEX").withZoom(40).withSeed(7);
+        IrisData world = packOfWorldSeed(1337L);
+        IrisData otherWorld = packOfWorldSeed(4242L);
+
+        NoiseSampler asked = noiseOf(world).sampler(seeded, 1);
+        NoiseSampler askedOtherwise = noiseOf(world).sampler(seeded, 987_654_321L);
+        NoiseSampler inOtherWorld = noiseOf(otherWorld).sampler(seeded, 1);
+        NoiseSampler otherStyleSeed = noiseOf(world).sampler(seeded.withSeed(8), 1);
+
+        int differsByWorld = 0;
+        int differsByStyleSeed = 0;
+        for (double[] column : COLUMNS) {
+            assertEquals(asked.sample(column[0], column[1]), askedOtherwise.sample(column[0], column[1]), 0);
+            differsByWorld += asked.sample(column[0], column[1]) != inOtherWorld.sample(column[0], column[1]) ? 1 : 0;
+            differsByStyleSeed += asked.sample(column[0], column[1]) != otherStyleSeed.sample(column[0], column[1]) ? 1 : 0;
+        }
+        assertEquals(COLUMNS.length, differsByWorld);
+        assertEquals(COLUMNS.length, differsByStyleSeed);
     }
 
     @Test
@@ -247,6 +271,14 @@ public class IrisValuesTest {
         ResourceLoader<IrisBlockData> blocks = mock(ResourceLoader.class);
         when(data.getBlockLoader()).thenReturn(blocks);
         when(data.getDataFolder()).thenReturn(new java.io.File("test-pack"));
+        return data;
+    }
+
+    private static IrisData packOfWorldSeed(long worldSeed) {
+        IrisData data = packWithoutCustomBlocks();
+        Engine engine = mock(Engine.class, RETURNS_DEEP_STUBS);
+        when(engine.getSeedManager().getSeed()).thenReturn(worldSeed);
+        when(data.getEngine()).thenReturn(engine);
         return data;
     }
 

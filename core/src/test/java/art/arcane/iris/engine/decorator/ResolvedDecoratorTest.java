@@ -87,6 +87,30 @@ public class ResolvedDecoratorTest {
     }
 
     @Test
+    public void theChanceGateReadsASeededStyleInPlainBlocks() {
+        List<String> reads = new ArrayList<>();
+        NoiseFactory recording = (style, seed) -> new NoiseSampler() {
+            @Override
+            public double sample(double worldX, double worldZ) {
+                reads.add(worldX + "," + worldZ);
+                return 0;
+            }
+
+            @Override
+            public double sample(double worldX, double y, double worldZ) {
+                return 0;
+            }
+        };
+        Decorator zoomed = new Gson().fromJson("{\"style\": {\"style\": \"SIMPLEX\", \"zoom\": 4}}", Decorator.class);
+        Decorator seeded = new Gson().fromJson("{\"style\": {\"style\": \"SIMPLEX\", \"zoom\": 4, \"seed\": 3}}", Decorator.class);
+
+        new ResolvedDecorator(zoomed, SEED, recording, state("a"), List.of(), null, List.of(), List.of(), ModuleLogs.discarding(), "test").passesChanceGate(40, -8);
+        new ResolvedDecorator(seeded, SEED, recording, state("a"), List.of(), null, List.of(), List.of(), ModuleLogs.discarding(), "test").passesChanceGate(40, -8);
+
+        assertEquals(List.of("10.0,-2.0", "40.0,-8.0"), reads);
+    }
+
+    @Test
     public void noiseIsOnlyBuiltForWhatIsAskedFor() {
         NoiseFactory refusing = (style, seed) -> {
             throw new IllegalStateException("no noise");

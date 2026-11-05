@@ -85,10 +85,15 @@ public class IrisMaterialPalette {
             return localBlockData.get(0);
         }
 
+        CNG generator = getLayerGenerator(rng, rdata);
+        if (style.isSeeded()) {
+            return generator.fit(localBlockData, x, z);
+        }
+
         double scaledX = x / zoom;
         double scaledY = y / zoom;
         double scaledZ = z / zoom;
-        return getLayerGenerator(rng, rdata).fit(localBlockData, scaledX, scaledY, scaledZ);
+        return generator.fit(localBlockData, scaledX, scaledY, scaledZ);
     }
 
     public Optional<TileData> getTile(RNG rng, double x, double y, double z, IrisData rdata) {

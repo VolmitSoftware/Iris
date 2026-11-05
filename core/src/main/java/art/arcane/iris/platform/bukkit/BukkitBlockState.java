@@ -414,7 +414,21 @@ public final class BukkitBlockState implements PlatformBlockState {
 
     @Override
     public boolean canPlaceOnto(PlatformBlockState onto) {
-        return BukkitBlockResolution.canPlaceOnto(data.getMaterial(), ((BlockData) onto.nativeHandle()).getMaterial());
+        BlockData ground = (BlockData) onto.nativeHandle();
+        if (ground.getMaterial().isAir() || isDeadBushOnGrass(ground)) {
+            return false;
+        }
+        return INMS.get().canSurviveOn(realBlockOf(data), realBlockOf(ground));
+    }
+
+    // Vanilla allows this, but packs mix dead bushes with other plants for their sandy patches, and blacklisting grass
+    // on such a decorator would take the other plants off the grass too.
+    private boolean isDeadBushOnGrass(BlockData ground) {
+        return data.getMaterial() == Material.DEAD_BUSH && ground.getMaterial() == Material.GRASS_BLOCK;
+    }
+
+    private static BlockData realBlockOf(BlockData data) {
+        return data instanceof IrisCustomData custom ? custom.getBase() : data;
     }
 
     @Override

@@ -47,6 +47,8 @@ import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.WorldCreator;
 import org.bukkit.block.Biome;
+import org.bukkit.block.data.BlockData;
+import art.arcane.iris.platform.bukkit.BukkitBlockResolution;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.event.entity.CreatureSpawnEvent;
@@ -275,6 +277,11 @@ public interface INMSBinding {
     }
 
     KMap<Material, List<BlockProperty>> getBlockProperties();
+
+    /** Whether the server lets {@code plant} stand on {@code ground}; without a binding, Iris's own table of plants and grounds answers. */
+    default boolean canSurviveOn(BlockData plant, BlockData ground) {
+        return BukkitBlockResolution.canPlaceOnto(plant.getMaterial(), ground.getMaterial());
+    }
 
     private void validateDimensionTypes(WorldCreator c) {
         if (!(c.generator() instanceof PlatformChunkGenerator generator)) {

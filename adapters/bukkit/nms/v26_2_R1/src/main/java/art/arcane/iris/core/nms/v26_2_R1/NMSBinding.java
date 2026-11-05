@@ -179,6 +179,7 @@ public class NMSBinding implements INMSBinding {
     private final BlockData AIR = Material.AIR.createBlockData();
     private final AtomicCache<MCAIdMap<net.minecraft.world.level.biome.Biome>> biomeMapCache = new AtomicCache<>();
     private final AtomicBoolean injected = new AtomicBoolean();
+    private final GroundSurvival groundSurvival = new GroundSurvival();
     private volatile ResettableClassFileTransformer levelStorageAccessTransformer;
     private volatile ResettableClassFileTransformer serverLevelTransformer;
     private final AtomicCache<MCAIdMapper<BlockState>> registryCache = new AtomicCache<>();
@@ -1640,6 +1641,11 @@ public class NMSBinding implements INMSBinding {
                 timeout,
                 unit
         );
+    }
+
+    @Override
+    public boolean canSurviveOn(BlockData plant, BlockData ground) {
+        return groundSurvival.canSurviveOn(((CraftBlockData) plant).getState(), ((CraftBlockData) ground).getState());
     }
 
     @Override

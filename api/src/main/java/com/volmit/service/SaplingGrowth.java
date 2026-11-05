@@ -67,17 +67,16 @@ public interface SaplingGrowth {
     }
 
     /**
-     * Objects a module places as trees, by the ids {@link com.volmit.resource.PackResources#idOf} gives their keys.
+     * Objects a module places as trees, by the ids {@link com.volmit.resource.PackResources#idOf} gives the names they
+     * are placed under.
      *
-     * @param objects    pack objects its placements mark as trees
-     * @param procedural the objects its procedural trees generate, one per variant
+     * @param objects objects its placements mark as trees, one per variant of an object that bakes several
      */
-    record TreeObjects(Set<ResourceId> objects, Set<ResourceId> procedural) {
-        public static final TreeObjects NONE = new TreeObjects(Set.of(), Set.of());
+    record TreeObjects(Set<ResourceId> objects) {
+        public static final TreeObjects NONE = new TreeObjects(Set.of());
 
         public TreeObjects {
             objects = Set.copyOf(objects);
-            procedural = Set.copyOf(procedural);
         }
     }
 }

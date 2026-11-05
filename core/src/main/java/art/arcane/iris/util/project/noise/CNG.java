@@ -53,6 +53,11 @@ public class CNG {
     public static final NoiseInjector SRC_POW = (s, v) -> new double[]{Math.pow(s, v), 0};
     public static final NoiseInjector DST_MOD = (s, v) -> new double[]{v % s, 0};
     public static final NoiseInjector DST_POW = (s, v) -> new double[]{Math.pow(v, s), 0};
+    // Each axis samples the fracture this far from the previous axis, so the warps are uncorrelated. Sampling swapped
+    // coordinates instead mirrors the warp across x = z. Not a multiple of the 65536-cell hash period.
+    private static final double FRACTURE_AXIS_OFFSET = 10_000.5;
+    private static final double SECOND_AXIS_OFFSET = FRACTURE_AXIS_OFFSET;
+    private static final double THIRD_AXIS_OFFSET = 2 * FRACTURE_AXIS_OFFSET;
     private final double opacity;
     private double scale;
     private double bakedScale;
@@ -666,18 +671,27 @@ public class CNG {
         double z = dim.length > 2 ? dim[2] : 0D;
 
         if (dim.length > 0) {
-            x += (fracture.noise(dim) - 0.5) * fscale;
+            x += axialFractureOffset(0D, dim);
         }
 
         if (dim.length > 1) {
-            y += (fracture.noise(dim[1], dim[0]) - 0.5) * fscale;
+            y += axialFractureOffset(SECOND_AXIS_OFFSET, dim);
         }
 
         if (dim.length > 2) {
-            z += (fracture.noise(dim[2], dim[0], dim[1]) - 0.5) * fscale;
+            z += axialFractureOffset(THIRD_AXIS_OFFSET, dim);
         }
 
         return generator.noise(x * scale, y * scale, z * scale) * opacity;
+    }
+
+    private double axialFractureOffset(double axisOffset, double[] dim) {
+        double sample = switch (dim.length) {
+            case 1 -> fracture.noise(dim[0] + axisOffset);
+            case 2 -> fracture.noise(dim[0] + axisOffset, dim[1] + axisOffset);
+            default -> fracture.noise(dim[0] + axisOffset, dim[1] + axisOffset, dim[2] + axisOffset);
+        };
+        return (sample - 0.5) * fscale;
     }
 
     private double getNoise(double x) {
@@ -701,7 +715,7 @@ public class CNG {
         }
 
         double fx = x + ((fracture.noiseFast2D(x, z) - 0.5D) * fscale);
-        double fz = z + ((fracture.noiseFast2D(z, x) - 0.5D) * fscale);
+        double fz = z + ((fracture.noiseFast2D(x + SECOND_AXIS_OFFSET, z + SECOND_AXIS_OFFSET) - 0.5D) * fscale);
         return generator.noise(fx * scl, fz * scl, 0D) * opacity;
     }
 
@@ -714,8 +728,8 @@ public class CNG {
         }
 
         double fx = x + ((fracture.noiseFast3D(x, y, z) - 0.5D) * fscale);
-        double fy = y + ((fracture.noiseFast2D(y, x) - 0.5D) * fscale);
-        double fz = z + ((fracture.noiseFast3D(z, x, y) - 0.5D) * fscale);
+        double fy = y + ((fracture.noiseFast3D(x + SECOND_AXIS_OFFSET, y + SECOND_AXIS_OFFSET, z + SECOND_AXIS_OFFSET) - 0.5D) * fscale);
+        double fz = z + ((fracture.noiseFast3D(x + THIRD_AXIS_OFFSET, y + THIRD_AXIS_OFFSET, z + THIRD_AXIS_OFFSET) - 0.5D) * fscale);
         return generator.noise(fx * scl, fy * scl, fz * scl) * opacity;
     }
 
@@ -1116,7 +1130,7 @@ public class CNG {
         }
 
         double fx = x + (localFracture.noiseFastSigned2D(x, z) * signedFractureScale);
-        double fz = z + (localFracture.noiseFastSigned2D(z, x) * signedFractureScale);
+        double fz = z + (localFracture.noiseFastSigned2D(x + SECOND_AXIS_OFFSET, z + SECOND_AXIS_OFFSET) * signedFractureScale);
         return signedWithOpacity(localGenerator.noiseSigned(fx * scl, fz * scl, 0D));
     }
 
@@ -1131,8 +1145,8 @@ public class CNG {
         }
 
         double fx = x + (localFracture.noiseFastSigned3D(x, y, z) * signedFractureScale);
-        double fy = y + (localFracture.noiseFastSigned2D(y, x) * signedFractureScale);
-        double fz = z + (localFracture.noiseFastSigned3D(z, x, y) * signedFractureScale);
+        double fy = y + (localFracture.noiseFastSigned3D(x + SECOND_AXIS_OFFSET, y + SECOND_AXIS_OFFSET, z + SECOND_AXIS_OFFSET) * signedFractureScale);
+        double fz = z + (localFracture.noiseFastSigned3D(x + THIRD_AXIS_OFFSET, y + THIRD_AXIS_OFFSET, z + THIRD_AXIS_OFFSET) * signedFractureScale);
         return signedWithOpacity(localGenerator.noiseSigned(fx * scl, fy * scl, fz * scl));
     }
 

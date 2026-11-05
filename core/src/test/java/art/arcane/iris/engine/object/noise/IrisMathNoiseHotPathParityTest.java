@@ -37,17 +37,17 @@ public class IrisMathNoiseHotPathParityTest {
                 .setStyle(NoiseStyle.PERLIN_IRIS.style())
                 .setExponent(1.15D);
 
-        assertEquals(0.3886291844359823D, noiseGenerator.getNoise(9988L, 31.25D, -17.5D, null), 0D);
+        assertEquals(0.5652709414703923D, noiseGenerator.getNoise(9988L, 31.25D, -17.5D, null), 0D);
 
         IrisGeneratorStyle style = NoiseStyle.IRIS_DOUBLE.style();
-        assertEquals(0.8640377573263068D, style.createNoCache(new RNG(112233L), null).noiseFast2D(42.5D, -19.75D), 0D);
+        assertEquals(0.9127657585776476D, style.createNoCache(new RNG(112233L), null).noiseFast2D(42.5D, -19.75D), 0D);
 
         IrisGenerator generator = new IrisGenerator()
                 .setZoom(9.5D)
                 .setOpacity(0.91D)
                 .setComposite(new KList<IrisNoiseGenerator>().qadd(noiseGenerator));
 
-        assertEquals(0.5671980255964687D, generator.getHeight(63.0D, -27.0D, 445566L), 0D);
+        assertEquals(0.44868786951463424D, generator.getHeight(63.0D, -27.0D, 445566L), 0D);
     }
 
     @Test

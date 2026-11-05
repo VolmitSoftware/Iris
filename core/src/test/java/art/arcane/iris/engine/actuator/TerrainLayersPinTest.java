@@ -41,8 +41,8 @@ import static org.mockito.Mockito.when;
  */
 public class TerrainLayersPinTest {
     private static final long TERRAIN_SEED = 1337L;
-    private static final int TRANSCRIPT_LENGTH = 143080;
-    private static final int TRANSCRIPT_HASH = 1726319394;
+    private static final int TRANSCRIPT_LENGTH = 143112;
+    private static final int TRANSCRIPT_HASH = 149645537;
     private static final int COLUMN_STEP_X = 61;
     private static final int COLUMN_STEP_Z = 67;
     private static final int COLUMN_RANGE = 400;

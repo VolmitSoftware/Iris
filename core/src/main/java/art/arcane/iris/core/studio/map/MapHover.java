@@ -28,6 +28,7 @@ import art.arcane.iris.engine.object.world.region.IrisRegion;
 import art.arcane.iris.spi.PlatformBiome;
 
 import java.nio.file.Path;
+import java.util.List;
 
 /**
  * What the map knows about the column under the cursor.
@@ -36,14 +37,15 @@ import java.nio.file.Path;
  * @param vanillaBiome the platform biome the column gets, such as {@code minecraft:plains}
  * @param slopeDegrees how steep the terrain is, 0 for flat
  * @param biomeFile    the biome's file within the pack, such as {@code biomes/plains/meadow.json}; null when unknown
+ * @param pickPath     how the column got the region and the biome the view shows, region first
  */
 public record MapHover(double worldX, double worldZ, MapLabel biome, MapLabel caveBiome, MapLabel region,
                        String vanillaBiome, double height, double fluidHeight, double slopeDegrees,
-                       String biomeFile, String regionFile) {
+                       String biomeFile, String regionFile, List<MapPickPath.PickStep> pickPath) {
     // IrisComplex measures slope as the height change over this many blocks.
     private static final double SLOPE_STREAM_RANGE_BLOCKS = 3D;
 
-    public static MapHover sample(Engine engine, double worldX, double worldZ) {
+    public static MapHover sample(Engine engine, MapView view, double worldX, double worldZ) {
         IrisComplex complex = engine.getComplex();
         IrisBiome biome = complex.getBaseBiomeStream().get(worldX, worldZ);
         IrisBiome caveBiome = complex.getCaveBiomeStream().get(worldX, worldZ);
@@ -62,7 +64,8 @@ public record MapHover(double worldX, double worldZ, MapLabel biome, MapLabel ca
                 dimension == null ? 0D : dimension.getFluidHeight(),
                 Math.toDegrees(Math.atan(slope / SLOPE_STREAM_RANGE_BLOCKS)),
                 packPath(engine, biome),
-                packPath(engine, region)
+                packPath(engine, region),
+                MapPickPath.explain(engine, view, worldX, worldZ)
         );
     }
 

@@ -140,8 +140,11 @@ public class MapTileRendererTest {
         when(pack.getDataFolder()).thenReturn(new java.io.File("/packs/overworld"));
         when(engine.getData()).thenReturn(pack);
         when(desert.getLoadFile()).thenReturn(new java.io.File("/packs/overworld/biomes/desert.json"));
+        when(complex.getFocusRegion()).thenReturn(dry);
+        when(complex.getFocusBiome()).thenReturn(desert);
+        when(desert.getChildren()).thenReturn(new art.arcane.volmlib.util.collection.KList<>());
 
-        MapHover hover = MapHover.sample(engine, 10D, 0D);
+        MapHover hover = MapHover.sample(engine, MapView.BIOMES, 10D, 0D);
 
         assertEquals("desert", hover.biome().key());
         assertEquals("cavern", hover.caveBiome().key());
@@ -152,6 +155,9 @@ public class MapTileRendererTest {
         assertEquals(45D, hover.slopeDegrees(), 1e-9);
         assertEquals("biomes/desert.json", hover.biomeFile());
         assertNull("a region without a file has no path", hover.regionFile());
+        assertEquals("a studio focused on dry and desert picked neither",
+                List.of(MapPickPath.Kind.FOCUS, MapPickPath.Kind.FOCUS),
+                hover.pickPath().stream().map(MapPickPath.PickStep::kind).toList());
     }
 
     @Test

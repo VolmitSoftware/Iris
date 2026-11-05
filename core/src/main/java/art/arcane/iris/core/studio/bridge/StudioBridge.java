@@ -179,7 +179,7 @@ public final class StudioBridge implements AutoCloseable {
         switch (endpoint) {
             case "world" -> sendJson(exchange, STATUS_OK, worldInfo(get(exchange)));
             case "tile" -> sendBytes(exchange, "application/octet-stream", tile(get(exchange), query));
-            case "hover" -> sendJson(exchange, STATUS_OK, MapHover.sample(get(exchange).engine(), query.number("x"), query.number("z")));
+            case "hover" -> sendJson(exchange, STATUS_OK, MapHover.sample(get(exchange).engine(), view(query), query.number("x"), query.number("z")));
             case "entities" -> sendJson(exchange, STATUS_OK, entities(get(exchange)));
             case "events" -> streamEvents(exchange);
             case "teleport" -> teleport(exchange, query);
@@ -231,9 +231,13 @@ public final class StudioBridge implements AutoCloseable {
         );
     }
 
-    private byte[] tile(StudioWorld.Session session, Query query) {
-        MapView view = MapView.byId(query.text("view"))
+    private static MapView view(Query query) {
+        return MapView.byId(query.text("view"))
                 .orElseThrow(() -> new RequestError(STATUS_BAD_REQUEST, "Unknown view: " + query.text("view")));
+    }
+
+    private byte[] tile(StudioWorld.Session session, Query query) {
+        MapView view = view(query);
         int size = query.whole("size", DEFAULT_TILE_SIZE);
         double blocksPerPixel = query.number("scale");
         if (size < 1 || size > LARGEST_TILE_SIZE) {

@@ -25,6 +25,7 @@ import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.image.IrisImageMapRuntime;
 import art.arcane.iris.engine.object.world.biome.InferredType;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
+import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.engine.object.terrain.IrisGenerator;
 import art.arcane.iris.engine.object.noise.IrisInterpolator;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
@@ -55,6 +56,7 @@ import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -63,8 +65,8 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiFunction;
 
 @Data
-@EqualsAndHashCode(exclude = {"data", "gridBoundsCache", "frozenInterpolators", "frozenGenerators", "inferredBiomeStreams", "imageMapRuntime"})
-@ToString(exclude = {"data", "gridBoundsCache", "frozenInterpolators", "frozenGenerators", "inferredBiomeStreams", "imageMapRuntime"})
+@EqualsAndHashCode(exclude = {"data", "gridBoundsCache", "frozenInterpolators", "frozenGenerators", "inferredBiomeStreams", "inferredPickNoiseStreams", "imageMapRuntime"})
+@ToString(exclude = {"data", "gridBoundsCache", "frozenInterpolators", "frozenGenerators", "inferredBiomeStreams", "inferredPickNoiseStreams", "imageMapRuntime"})
 public class IrisComplex implements DataProvider {
     private static final NoiseBounds ZERO_NOISE_BOUNDS = new NoiseBounds(0D, 0D);
     private static final AtomicLong lastBoundsFailureLog = new AtomicLong(0L);
@@ -77,6 +79,10 @@ public class IrisComplex implements DataProvider {
             IrisGenerator::getLoadKey,
             Comparator.nullsFirst(Comparator.naturalOrder())
     );
+    private static final int DEEPEST_CHILD_LEVEL = 3;
+    /** How many levels of children a biome can be replaced through, parent first. */
+    public static final int CHILD_PICK_LEVELS = DEEPEST_CHILD_LEVEL + 1;
+    private static final int CHILD_NOISE_SIGNATURE = 123;
     private static final InferredType[] INFERRED_BIOME_PREPARATION_ORDER = {
             InferredType.LAND,
             InferredType.CAVE,
@@ -91,6 +97,8 @@ public class IrisComplex implements DataProvider {
     private final transient IrisGenerator[][] frozenGenerators;
     @Getter(AccessLevel.NONE)
     private final transient Map<IrisRegion, Map<InferredType, ProceduralStream<IrisBiome>>> inferredBiomeStreams;
+    @Getter(AccessLevel.NONE)
+    private final transient Map<IrisRegion, Map<InferredType, ProceduralStream<Double>>> inferredPickNoiseStreams;
     private RNG rng;
     private double fluidHeight;
     private IrisData data;
@@ -170,9 +178,14 @@ public class IrisComplex implements DataProvider {
             }
             imageMapRuntime.getMappedBiomes().forEach(this::registerGenerators);
         }
+        inferredPickNoiseStreams = compileInferredBiomeStreams(
+                preparedRegions,
+                (region, inferredType) -> compileInferredPickNoise(engine, region, inferredType)
+        );
         inferredBiomeStreams = compileInferredBiomeStreams(
                 preparedRegions,
-                (region, inferredType) -> compileInferredBiomeStream(engine, region, inferredType, emptyBiome)
+                (region, inferredType) -> compileInferredBiomeStream(
+                        preparedInferredBiomeStream(inferredPickNoiseStreams, region, inferredType), region, inferredType, emptyBiome)
         );
         GeneratorGroup[] generatorGroups = freezeGeneratorGroups(generators);
         int interpolatorCount = generatorGroups.length;
@@ -498,49 +511,50 @@ public class IrisComplex implements DataProvider {
         return preparedInferredBiomeStream(inferredBiomeStreams, region, inferredType);
     }
 
+    private ProceduralStream<Double> compileInferredPickNoise(Engine engine, IrisRegion region, InferredType inferredType) {
+        IrisDimension dimension = engine.getDimension();
+        return switch (inferredType) {
+            case CAVE -> dimension.getCaveBiomeStyle()
+                    .create(rng.nextParallelRNG(InferredType.CAVE.ordinal()), getData()).stream()
+                    .zoom(dimension.getBiomeZoom())
+                    .zoom(region.getCaveBiomeZoom());
+            case LAND -> dimension.getLandBiomeStyle()
+                    .create(rng.nextParallelRNG(InferredType.LAND.ordinal()), getData()).stream()
+                    .zoom(dimension.getBiomeZoom())
+                    .zoom(dimension.getLandZoom())
+                    .zoom(region.getLandBiomeZoom());
+            case SEA -> dimension.getSeaBiomeStyle()
+                    .create(rng.nextParallelRNG(InferredType.SEA.ordinal()), getData()).stream()
+                    .zoom(dimension.getBiomeZoom())
+                    .zoom(dimension.getSeaZoom())
+                    .zoom(region.getSeaBiomeZoom());
+            case SHORE -> dimension.getShoreBiomeStyle()
+                    .create(rng.nextParallelRNG(InferredType.SHORE.ordinal()), getData()).stream()
+                    .zoom(dimension.getBiomeZoom())
+                    .zoom(region.getShoreBiomeZoom());
+        };
+    }
+
     private ProceduralStream<IrisBiome> compileInferredBiomeStream(
-            Engine engine,
+            ProceduralStream<Double> pickNoise,
             IrisRegion region,
             InferredType inferredType,
             IrisBiome emptyBiome
     ) {
-        return switch (inferredType) {
-            case CAVE -> engine.getDimension().getCaveBiomeStyle()
-                    .create(rng.nextParallelRNG(InferredType.CAVE.ordinal()), getData()).stream()
-                    .zoom(engine.getDimension().getBiomeZoom())
-                    .zoom(region.getCaveBiomeZoom())
-                    .selectRarity(loadInferredBiomes(region.getCaveBiomes(), InferredType.CAVE))
-                    .onNull(emptyBiome);
-            case LAND -> engine.getDimension().getLandBiomeStyle()
-                    .create(rng.nextParallelRNG(InferredType.LAND.ordinal()), getData()).stream()
-                    .zoom(engine.getDimension().getBiomeZoom())
-                    .zoom(engine.getDimension().getLandZoom())
-                    .zoom(region.getLandBiomeZoom())
-                    .selectRarity(loadInferredBiomes(region.getLandBiomes(), InferredType.LAND));
-            case SEA -> engine.getDimension().getSeaBiomeStyle()
-                    .create(rng.nextParallelRNG(InferredType.SEA.ordinal()), getData()).stream()
-                    .zoom(engine.getDimension().getBiomeZoom())
-                    .zoom(engine.getDimension().getSeaZoom())
-                    .zoom(region.getSeaBiomeZoom())
-                    .selectRarity(loadInferredBiomes(region.getSeaBiomes(), InferredType.SEA));
-            case SHORE -> engine.getDimension().getShoreBiomeStyle()
-                    .create(rng.nextParallelRNG(InferredType.SHORE.ordinal()), getData()).stream()
-                    .zoom(engine.getDimension().getBiomeZoom())
-                    .zoom(region.getShoreBiomeZoom())
-                    .selectRarity(loadInferredBiomes(region.getShoreBiomes(), InferredType.SHORE));
-        };
+        ProceduralStream<IrisBiome> picked = pickNoise.selectRarity(pickableBiomes(region, inferredType));
+        return inferredType == InferredType.CAVE ? picked.onNull(emptyBiome) : picked;
     }
 
-    static Map<IrisRegion, Map<InferredType, ProceduralStream<IrisBiome>>> compileInferredBiomeStreams(
+    static <T> Map<IrisRegion, Map<InferredType, T>> compileInferredBiomeStreams(
             Iterable<IrisRegion> regions,
-            BiFunction<IrisRegion, InferredType, ProceduralStream<IrisBiome>> compiler
+            BiFunction<IrisRegion, InferredType, T> compiler
     ) {
-        IdentityHashMap<IrisRegion, Map<InferredType, ProceduralStream<IrisBiome>>> compiled = new IdentityHashMap<>();
+        IdentityHashMap<IrisRegion, Map<InferredType, T>> compiled = new IdentityHashMap<>();
         for (IrisRegion region : regions) {
             if (compiled.containsKey(region)) {
                 continue;
             }
-            EnumMap<InferredType, ProceduralStream<IrisBiome>> regionStreams = new EnumMap<>(InferredType.class);
+            EnumMap<InferredType, T> regionStreams = new EnumMap<>(InferredType.class);
             for (InferredType inferredType : INFERRED_BIOME_PREPARATION_ORDER) {
                 regionStreams.put(inferredType, Objects.requireNonNull(compiler.apply(region, inferredType)));
             }
@@ -549,12 +563,12 @@ public class IrisComplex implements DataProvider {
         return Collections.unmodifiableMap(compiled);
     }
 
-    static ProceduralStream<IrisBiome> preparedInferredBiomeStream(
-            Map<IrisRegion, Map<InferredType, ProceduralStream<IrisBiome>>> streams,
+    static <T> T preparedInferredBiomeStream(
+            Map<IrisRegion, Map<InferredType, T>> streams,
             IrisRegion region,
             InferredType inferredType
     ) {
-        Map<InferredType, ProceduralStream<IrisBiome>> regionStreams = streams.get(region);
+        Map<InferredType, T> regionStreams = streams.get(region);
         if (regionStreams == null) {
             String regionKey = region == null || region.getLoadKey() == null || region.getLoadKey().isBlank()
                     ? "<unkeyed>"
@@ -562,11 +576,43 @@ public class IrisComplex implements DataProvider {
             throw new IllegalStateException("Inferred-biome streams were not prepared for region '"
                     + regionKey + "'.");
         }
-        ProceduralStream<IrisBiome> stream = regionStreams.get(inferredType);
+        T stream = regionStreams.get(inferredType);
         if (stream == null) {
             throw new IllegalStateException("Inferred-biome stream was not prepared for type " + inferredType + ".");
         }
         return stream;
+    }
+
+    /**
+     * The noise that picks one of the region's biomes of this type, from 0 to 1; {@link #pickableBiomes} split it by
+     * rarity. The biome streams pick from this very stream.
+     */
+    public ProceduralStream<Double> biomePickNoise(IrisRegion region, InferredType inferredType) {
+        return preparedInferredBiomeStream(inferredPickNoiseStreams, region, inferredType);
+    }
+
+    /** The region's biomes of this type, in the order their rarities split {@link #biomePickNoise}. */
+    public KList<IrisBiome> pickableBiomes(IrisRegion region, InferredType inferredType) {
+        KList<String> keys = switch (inferredType) {
+            case CAVE -> region.getCaveBiomes();
+            case LAND -> region.getLandBiomes();
+            case SEA -> region.getSeaBiomes();
+            case SHORE -> region.getShoreBiomes();
+        };
+        return loadInferredBiomes(keys, inferredType);
+    }
+
+    /**
+     * The slots a biome's child noise picks from, in noise order: its children and itself, each as often as its rarity
+     * allows. Slot {@code i} of {@code n} is picked where {@link #childNoise} rounds to {@code i / (n - 1)}.
+     */
+    public List<IrisBiome> childSlots(IrisBiome parent) {
+        return List.of(resolveChildSelectionPlan(parent).mappedBiomes);
+    }
+
+    /** The noise that picks among {@link #childSlots}, read with {@link CNG#noiseFast2D}. */
+    public CNG childNoise(IrisBiome parent) {
+        return parent.getChildrenGenerator(rng, CHILD_NOISE_SIGNATURE, parent.getChildShrinkFactor());
     }
 
     private KList<IrisBiome> loadInferredBiomes(KList<String> keys, InferredType type) {
@@ -680,7 +726,7 @@ public class IrisComplex implements DataProvider {
             return b;
         }
 
-        return implode(b, x, z, 3);
+        return implode(b, x, z, DEEPEST_CHILD_LEVEL);
     }
 
     private IrisBiome implode(IrisBiome b, Double x, Double z, int max) {
@@ -692,7 +738,7 @@ public class IrisComplex implements DataProvider {
             return b;
         }
 
-        CNG childCell = b.getChildrenGenerator(rng, 123, b.getChildShrinkFactor());
+        CNG childCell = childNoise(b);
         ChildSelectionPlan childSelectionPlan = resolveChildSelectionPlan(b);
         IrisBiome biome = childSelectionPlan.select(childCell, x, z).withInferredType(b.getInferredType());
         return implode(biome, x, z, max - 1);

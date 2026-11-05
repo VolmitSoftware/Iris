@@ -70,6 +70,9 @@ public class StudioBridgeTest {
         when(complex.getHeightStream()).thenReturn(heights);
         when(complex.getSlopeStream()).thenReturn(heights);
         when(complex.getTrueBiomeDerivativeStream()).thenReturn(vanilla);
+        when(complex.getFocusRegion()).thenReturn(region);
+        when(complex.getFocusBiome()).thenReturn(plains);
+        when(plains.getChildren()).thenReturn(new art.arcane.volmlib.util.collection.KList<>());
         IrisDimension dimension = mock(IrisDimension.class);
         when(dimension.getLoadKey()).thenReturn("overworld");
         when(dimension.getName()).thenReturn("Overworld");
@@ -154,12 +157,22 @@ public class StudioBridgeTest {
     }
 
     @Test
-    public void theHoverDescribesTheColumn() throws Exception {
-        JsonObject hover = json(get("hover?x=5&z=-3"));
+    public void theHoverDescribesTheColumnAndHowItWasPicked() throws Exception {
+        JsonObject hover = json(get("hover?view=biomes&x=5&z=-3"));
 
         assertEquals("plains", hover.getAsJsonObject("biome").get("key").getAsString());
         assertEquals("temperate", hover.getAsJsonObject("region").get("key").getAsString());
         assertEquals(70D, hover.get("height").getAsDouble(), 0D);
+        JsonObject firstStep = hover.getAsJsonArray("pickPath").get(0).getAsJsonObject();
+        assertEquals("FOCUS", firstStep.get("kind").getAsString());
+        assertEquals("temperate", firstStep.getAsJsonObject("picked").get("key").getAsString());
+    }
+
+    @Test
+    public void aHoverNamesItsView() throws Exception {
+        HttpResponse<String> response = http.send(authorized("hover?x=5&z=-3"), HttpResponse.BodyHandlers.ofString());
+
+        assertEquals(400, response.statusCode());
     }
 
     @Test

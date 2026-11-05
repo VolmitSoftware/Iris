@@ -513,6 +513,61 @@ class PackSchemaTest {
     }
 
     @Test
+    void aClassWithJsonFormsHoldsAnyJsonValueAndIsNeitherCreatedNorWalked() {
+        var pack = pack("forms");
+        module("pack.flora.FloraModule", FLORA,
+                NO_MEMBERS, "registry.registerSettings(FloraSettings.class);")
+                .source("pack.flora.FloraSettings", """
+                        package pack.flora;
+
+                        import com.volmit.config.Level;
+                        import com.volmit.IrisFeature;
+                        import com.volmit.config.Feature;
+                        import java.util.*;
+
+                        @Feature(id = "example:flora", name = "Flora", key = "flora", targets = Level.BIOME)
+                        public final class FloraSettings implements IrisFeature {
+                            private Height height = new Height(4);
+                            private List<Height> steps = List.of();
+                        }
+                        """)
+                .source("pack.flora.Height", """
+                        package pack.flora;
+
+                        import com.volmit.config.JsonForms;
+
+                        @JsonForms(Height.Forms.class)
+                        public final class Height {
+                            private final Thread notASettingsField;
+
+                            Height(double blocks) {
+                                notASettingsField = null;
+                            }
+
+                            public static final class Forms implements JsonForms.Codec<Height> {
+                                @Override
+                                public Height read(Object json) {
+                                    return new Height((Double) json);
+                                }
+
+                                @Override
+                                public Object write(Height value) {
+                                    return 4.0;
+                                }
+                            }
+                        }
+                        """)
+                .writeInto(pack, "flora.jar");
+        var schema = schemaOf(pack, NO_BUILT_INS);
+        var settings = schema.type("pack.flora.FloraSettings");
+
+        assertEquals(new AnyKind(), option(settings, "height").kind());
+        assertEquals(Optional.empty(), option(settings, "height").defaultValue());
+        assertEquals(new ListKind(new AnyKind(), false), option(settings, "steps").kind());
+        assertTrue(schema.types().stream().noneMatch(type -> type.name().equals("pack.flora.Height")), "the host describes no more of it");
+    }
+
+    @Test
     void defaultsLeaveOutWhatJsonCannotHold() {
         var pack = pack("defaults");
         module("pack.flora.FloraModule", FLORA,

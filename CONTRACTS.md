@@ -62,7 +62,7 @@ A pack load works on copies of the module jars, so the originals are never held 
 Modules describe their settings only through their settings classes; jars ship no schema files. The
 pack load turns every catalogued settings type into a `PackSchema` and fails, naming field, settings
 and module, on a field type it cannot describe, a `@Ref` on a field that is not text, a class without
-a working no-argument constructor, a bad or repeated snippet name, or a pack class's snippet name
+a working no-argument constructor (a `@JsonForms` class needs none: it is described as any JSON value), a bad or repeated snippet name, or a pack class's snippet name
 outside its module's folder. Defaults come from an instance made by that constructor. Options are in
 declaration order.
 
@@ -250,6 +250,8 @@ running Iris is the pack publisher's responsibility.
   same one with a higher amplifier.
 - Decode IrisApi's value types like settings: `BlockSpec`, `PaletteSpec`, `NoiseStyle`, `StyledRange`, `Range` and
   `BlockPosition` from the JSON shapes in their docs, `Object` as maps, lists, `Double`s, strings and booleans.
+  Read and write a `@JsonForms` class through its codec, created once with its no-argument constructor, handing it
+  those same plain values; a member written as `null` stays left out and never reaches the codec.
   Read a `"snippet/<name>"` or `"snippet/<folder>/<name>"` string of a `@Snippet` type from
   `snippet/<folder>/<name>.json`. Complete `NOISE_STYLE` references and `@Ref(kind = ...)` of the host kinds
   (`EXPRESSIONS`, `IMAGE_MAPS` among them);

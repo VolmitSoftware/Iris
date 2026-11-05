@@ -2,6 +2,7 @@ package com.volmit.host;
 
 import com.volmit.block.BlockState;
 import com.volmit.config.Desc;
+import com.volmit.config.JsonForms;
 import com.volmit.config.Reference;
 import com.volmit.host.schema.TextFormat;
 import com.volmit.host.schema.ValueKind;
@@ -42,7 +43,7 @@ import java.util.stream.Stream;
 @SuppressWarnings("removal") // host kinds are transitional, until the cut-over
 final class ValueKinds {
     static final String SUPPORTED_TYPES = "settings fields can be booleans, numbers, String, ResourceId, BlockState, enums, "
-            + "lists, sets and arrays of these, Map with String keys, Object for any JSON value and classes with a no-argument constructor";
+            + "lists, sets and arrays of these, Map with String keys, Object for any JSON value, @JsonForms classes and classes with a no-argument constructor";
     private static final Set<Class<?>> BOOLEANS = Set.of(boolean.class, Boolean.class);
     private static final Set<Class<?>> INTEGERS = Set.of(byte.class, short.class, int.class, long.class,
             Byte.class, Short.class, Integer.class, Long.class);
@@ -109,7 +110,7 @@ final class ValueKinds {
         if (INTEGERS.contains(type)) return new IntegerKind();
         if (DECIMALS.contains(type)) return new DecimalKind();
         if (type.isEnum()) return enumKind(type);
-        if (type == Object.class) return new AnyKind();
+        if (type == Object.class || type.isAnnotationPresent(JsonForms.class)) return new AnyKind();
         return objects.apply(type);
     }
 

@@ -74,6 +74,7 @@ import art.arcane.iris.core.service.ObjectSVC;
 import art.arcane.iris.core.service.ObjectStudioSaveService;
 import art.arcane.iris.core.service.PreservationSVC;
 import art.arcane.iris.core.service.StudioSVC;
+import art.arcane.iris.core.studio.bridge.StudioBridges;
 import art.arcane.iris.core.service.TreeFellerSVC;
 import art.arcane.iris.core.service.TreeSVC;
 import art.arcane.iris.core.service.WandSVC;
@@ -968,6 +969,7 @@ public class Iris extends VolmitPlugin implements Listener, ReloadAware {
         if (studioService != null) {
             studioService.quiesceDownloadsForShutdown();
         }
+        StudioBridges.closeAll();
 
         try {
             PregeneratorJob.shutdownAndWait(SERVER_STOP_PREGEN_TIMEOUT_MILLIS);

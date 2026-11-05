@@ -91,6 +91,15 @@ public class StudioBridgeTest {
     }
 
     @Test
+    public void aClosedBridgeStillKnowsItsPortSoItsConnectionFileCanBeRemoved() {
+        int openPort = bridge.port();
+
+        bridge.close();
+
+        assertEquals(openPort, bridge.port());
+    }
+
+    @Test
     public void aRequestWithoutTheTokenIsRefused() throws Exception {
         HttpResponse<String> response = http.send(HttpRequest.newBuilder(uri("world")).timeout(WAIT).build(),
                 HttpResponse.BodyHandlers.ofString());

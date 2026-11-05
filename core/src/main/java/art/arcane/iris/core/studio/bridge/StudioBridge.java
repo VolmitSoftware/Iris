@@ -65,10 +65,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 public final class StudioBridge implements AutoCloseable {
     private static final String API = "/v1/";
     private static final int TOKEN_BYTES = 24;
-    private static final int DEFAULT_TILE_SIZE = 256;
+    private static final int DEFAULT_TILE_SIZE = 128;
     private static final int LARGEST_TILE_SIZE = 512;
     private static final double SMALLEST_BLOCKS_PER_PIXEL = 1D / 16D;
-    private static final double LARGEST_BLOCKS_PER_PIXEL = 1024D;
+    private static final double LARGEST_BLOCKS_PER_PIXEL = 4_096D;
     private static final long ENTITY_WAIT_MILLIS = 3_000L;
     private static final int STATUS_OK = 200;
     private static final int STATUS_NO_CONTENT = 204;
@@ -83,6 +83,7 @@ public final class StudioBridge implements AutoCloseable {
     private final String token;
     private final Gson gson = new Gson();
     private final HttpServer server;
+    private final int port;
     private final ExecutorService workers;
     private final ScheduledExecutorService ticker;
     private final StudioEvents events;
@@ -94,6 +95,7 @@ public final class StudioBridge implements AutoCloseable {
         this.token = newToken();
         this.events = new StudioEvents(world, gson);
         this.server = HttpServer.create(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0), 0);
+        this.port = server.getAddress().getPort();
         this.workers = Executors.newFixedThreadPool(workerCount(), daemonThreads("Iris Studio Bridge"));
         this.ticker = Executors.newSingleThreadScheduledExecutor(daemonThreads("Iris Studio Events"));
         this.hotloadHook = events::hotloaded;
@@ -114,7 +116,7 @@ public final class StudioBridge implements AutoCloseable {
     }
 
     public int port() {
-        return server.getAddress().getPort();
+        return port;
     }
 
     public String token() {
@@ -163,6 +165,8 @@ public final class StudioBridge implements AutoCloseable {
             sendJson(exchange, error.status, new ErrorBody(error.getMessage()));
         } catch (CancellationException stopped) {
             sendJson(exchange, STATUS_UNAVAILABLE, new ErrorBody("The world stopped"));
+        } catch (IOException clientHungUp) {
+            exchange.close();
         } catch (Throwable error) {
             IrisLogging.reportError("Studio bridge request " + exchange.getRequestURI().getPath(), error);
             sendJson(exchange, STATUS_SERVER_ERROR, new ErrorBody(String.valueOf(error.getMessage())));

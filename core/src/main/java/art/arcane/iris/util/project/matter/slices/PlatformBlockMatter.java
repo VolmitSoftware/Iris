@@ -28,7 +28,13 @@ public class PlatformBlockMatter extends RawMatter<PlatformBlockState> {
 
     @Override
     public void writeNode(PlatformBlockState b, DataOutputStream dos) throws IOException {
-        dos.writeUTF(b.key());
+        dos.writeUTF(persistedKey(b));
+    }
+
+    /** A custom block's key is its base block, so it is saved under its custom id, which reads back through its provider. */
+    private static String persistedKey(PlatformBlockState state) {
+        String customKey = state.isCustom() ? state.deferredPlacementKey() : null;
+        return customKey == null ? state.key() : customKey;
     }
 
     @Override

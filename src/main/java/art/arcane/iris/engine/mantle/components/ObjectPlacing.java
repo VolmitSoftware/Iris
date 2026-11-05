@@ -20,7 +20,6 @@ package art.arcane.iris.engine.mantle.components;
 
 import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.builtin.objects.ObjectSettings;
-import art.arcane.iris.modules.objects.EffectiveSettings;
 import art.arcane.iris.modules.objects.ObjectPool;
 import art.arcane.iris.modules.objects.ObjectSeparation;
 import art.arcane.volmlib.util.math.RNG;
@@ -50,7 +49,6 @@ public final class ObjectPlacing {
     private final PackWorld world;
     private final ObjectPool objects;
     private final ObjectSeparation separation;
-    private final EffectiveSettings settings = new EffectiveSettings();
     private final ModuleLog log;
 
     private ObjectPlacing(PackWorld world) {
@@ -67,7 +65,7 @@ public final class ObjectPlacing {
 
     /** Places what originates in the chunk {@code context} generates. */
     void place(MantleStageContext context) {
-        new ChunkObjectPlacing(objects, settings, log, context).place();
+        new ChunkObjectPlacing(objects, log, context).place();
     }
 
     /** The keys of the objects the chunk would get, as far as the chunk's surface objects go. */

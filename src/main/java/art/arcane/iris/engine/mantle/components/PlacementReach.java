@@ -21,19 +21,17 @@ package art.arcane.iris.engine.mantle.components;
 import art.arcane.iris.builtin.anchor.PlaceMode;
 import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.builtin.objects.ObjectSettings;
-import art.arcane.iris.modules.objects.ProceduralObjectSettings;
 import art.arcane.iris.builtin.prepare.AxisRotationClamp;
 import art.arcane.iris.builtin.prepare.ObjectRotation;
 import art.arcane.iris.builtin.prepare.ObjectTranslate;
 import art.arcane.iris.builtin.vacuum.VacuumSettings;
-import art.arcane.iris.engine.object.procedural.ResolvedProceduralObjects;
+import art.arcane.iris.engine.procedural.ProceduralObjectCatalog;
+import art.arcane.iris.engine.procedural.ProceduralVariants;
 import art.arcane.iris.modules.objects.ObjectSize;
-import art.arcane.iris.modules.objects.ProceduralPlacement;
 import com.volmit.ModuleLog;
 import com.volmit.config.FeatureSettings.Entry;
 import com.volmit.config.PackSettings;
 import com.volmit.geometry.BlockBox;
-import com.volmit.object.PlaceableObject;
 import com.volmit.resource.PackResources;
 
 import java.util.HashMap;
@@ -50,23 +48,22 @@ final class PlacementReach {
     private static final double SCALE_PADDING_FACTOR = 2D;
 
     private final PackResources resources;
+    private final ProceduralObjectCatalog procedural;
     private final ModuleLog log;
     private final Map<String, Optional<ObjectSize>> sizes = new HashMap<>();
     private final Set<String> warnedLargeObjects = new HashSet<>();
 
     PlacementReach(PackResources resources, ModuleLog log) {
         this.resources = resources;
+        this.procedural = ProceduralObjectCatalog.detached(resources, log);
         this.log = log;
     }
 
-    /** The largest reach of any object placement or procedural object the pack's regions and biomes declare. */
+    /** The largest reach of any object placement the pack's regions and biomes declare. */
     int ofPack(PackSettings settings) {
         int radius = 0;
         for (Entry<ObjectSettings> entry : settings.declared(ObjectSettings.class)) {
             radius = Math.max(radius, ofPlacements(entry.value().objects()));
-        }
-        for (Entry<ProceduralObjectSettings> entry : settings.declared(ProceduralObjectSettings.class)) {
-            radius = Math.max(radius, ofProcedural(entry.value()));
         }
         return radius;
     }
@@ -86,7 +83,7 @@ final class PlacementReach {
 
     private int ofObject(ObjectPlacement placement, String objectKey) {
         try {
-            Optional<ObjectSize> size = sizes.computeIfAbsent(objectKey, key -> sizeOf(resources, key));
+            Optional<ObjectSize> size = sizes.computeIfAbsent(objectKey, key -> sizeOf(resources, procedural, key));
             if (size.isEmpty()) {
                 return 0;
             }
@@ -101,29 +98,16 @@ final class PlacementReach {
         }
     }
 
-    /** The size of the pack object {@code objectKey} names; empty when the pack has none. */
-    static Optional<ObjectSize> sizeOf(PackResources resources, String objectKey) {
+    /** The size of the object {@code objectKey} names, for a procedural pool its largest variant; empty when the pack has none. */
+    static Optional<ObjectSize> sizeOf(PackResources resources, ProceduralObjectCatalog procedural, String objectKey) {
+        if (ProceduralObjectCatalog.isProceduralKey(objectKey)) {
+            return procedural.variants(objectKey).map(ProceduralVariants::largestSize);
+        }
         return resources.objects().sizeOf(resources.idOf(objectKey)).map(PlacementReach::sizeOf);
     }
 
     private static ObjectSize sizeOf(BlockBox box) {
         return new ObjectSize(box.maxX() - box.minX(), box.maxY() - box.minY(), box.maxZ() - box.minZ());
-    }
-
-    private int ofProcedural(ProceduralObjectSettings settings) {
-        int radius = 0;
-        for (ProceduralPlacement placement : ResolvedProceduralObjects.resolve(settings, resources)) {
-            for (PlaceableObject variant : placement.variants()) {
-                radius = Math.max(radius, of(new ObjectSize(variant.width(), variant.height(), variant.depth()), placement));
-            }
-        }
-        return radius;
-    }
-
-    /** The reach of an object of {@code size} placed with the options a procedural object has. */
-    static int of(ObjectSize size, ProceduralPlacement placement) {
-        return of(size, placement.mode().placeMode(), null, placement.rotation(), placement.translate(), null,
-                placement.vacuumSettings().orElse(null));
     }
 
     static int of(ObjectSize size, ObjectPlacement placement) {

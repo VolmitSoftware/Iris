@@ -70,7 +70,7 @@ import java.util.TreeSet;
 @Snippet("iris/objects/object-placer")
 @Desc("Represents an iris object placer. It places objects.")
 @JsonAdapter(ObjectPlacement.KeepingItsJson.class)
-public final class ObjectPlacement implements PlacementSource {
+public final class ObjectPlacement {
     private static final int DEFAULT_SURFACE_SUPPORT_BUFFER = 2;
     private static final int DEFAULT_SURFACE_SUPPORT_DEPTH = 2;
 
@@ -273,7 +273,6 @@ public final class ObjectPlacement implements PlacementSource {
         return snow;
     }
 
-    @Override
     public boolean isDolphinTarget() {
         return isDolphinTarget;
     }
@@ -286,7 +285,6 @@ public final class ObjectPlacement implements PlacementSource {
         return rotateTowardsSlope;
     }
 
-    @Override
     public double chance() {
         return chance;
     }
@@ -342,17 +340,14 @@ public final class ObjectPlacement implements PlacementSource {
         return boreExtendMinY;
     }
 
-    @Override
     public boolean underwater() {
         return underwater;
     }
 
-    @Override
     public CarvingMode carvingSupport() {
         return carvingSupport;
     }
 
-    @Override
     public int surfaceSupportBuffer() {
         return surfaceSupportBuffer;
     }
@@ -361,12 +356,10 @@ public final class ObjectPlacement implements PlacementSource {
         return surfaceSupportDepth;
     }
 
-    @Override
     public boolean requireSurfaceSupport() {
         return requireSurfaceSupport;
     }
 
-    @Override
     public CaveAnchorMode caveAnchorMode() {
         return caveAnchorMode;
     }
@@ -408,7 +401,6 @@ public final class ObjectPlacement implements PlacementSource {
         return warp;
     }
 
-    @Override
     public ObjectPlaceMode mode() {
         return mode;
     }

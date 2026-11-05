@@ -21,7 +21,7 @@ package art.arcane.iris.engine.mantle.components;
 import art.arcane.iris.builtin.IrisStages;
 import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.builtin.objects.ObjectSettings;
-import art.arcane.iris.modules.objects.ProceduralObjectSettings;
+import art.arcane.iris.engine.procedural.ProceduralObjectCatalog;
 import art.arcane.iris.builtin.objects.RequireSurfaceSupportSettings;
 import art.arcane.iris.builtin.objects.SurfaceSupportBufferSettings;
 import art.arcane.iris.modules.objects.TreeGrowthSettings;
@@ -41,8 +41,9 @@ import com.volmit.world.PackWorld;
 /**
  * Module {@code iris:objects}: the objects the dimension's regions and biomes place, written into the mantle
  * once the caves they may anchor in are planned. A port of what was Iris's object mantle component, its work
- * done by {@link ObjectPlacing}, one per engine runtime, with the noise of its placements and the variants of its procedural
- * objects built ahead of generation ({@link #warmUp}). Its reach is the pack's largest object placement. It tells
+ * done by {@link ObjectPlacing}, one per engine runtime, with the noise of its placements and the variants of the
+ * procedural objects they place ({@link ProceduralObjectCatalog}) built ahead of generation ({@link #warmUp}). Its
+ * reach is the pack's largest object placement. It tells
  * Iris which objects a chunk would get and which biomes and regions place an object ({@link ObjectLocating}), for the
  * object search and studio tools, and grows the trees of saplings ({@link TreeGrowing}).
  */
@@ -63,9 +64,9 @@ public final class ObjectModule implements IrisModule, ModuleLifecycle {
         var registry = setup.registry();
         registry.registerService(ObjectsAt.class, new ObjectLocating());
         registry.registerService(SaplingGrowth.class, new TreeGrowing());
-        registry.registerSettings(ObjectSettings.class, ProceduralObjectSettings.class, TreeGrowthSettings.class,
-                RequireSurfaceSupportSettings.class, SurfaceSupportBufferSettings.class, UpperObjectsSettings.class,
-                UpperObjectsForceSettings.class);
+        registry.registerSettings(ObjectSettings.class, TreeGrowthSettings.class, RequireSurfaceSupportSettings.class,
+                SurfaceSupportBufferSettings.class, UpperObjectsSettings.class, UpperObjectsForceSettings.class);
+        registry.registerResourceKind(ProceduralObjectCatalog.DEFINITIONS);
         registry.registerPlacementType(ObjectPlacement.class, ObjectPlacement.jsonFields());
         registry.registerLifecycle(this);
     }

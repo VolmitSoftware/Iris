@@ -19,30 +19,15 @@
 package art.arcane.iris.modules.objects;
 
 import art.arcane.iris.builtin.objects.ObjectPlacement;
-import art.arcane.iris.builtin.objects.PlacementSource;
 import art.arcane.iris.builtin.prepare.AxisRotationClamp;
 import art.arcane.iris.builtin.prepare.ObjectRotation;
 
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-
-/**
- * The object placement settings a placement is made with: an object placement's own, or the options a procedural object
- * is scattered with, with the changes {@code iris:objects} makes for where it places them. One per world, so each
- * procedural object's options are made once.
- */
+/** The object placement settings a placement is made with: its own, with the changes {@code iris:objects} makes for where it places them. */
 public final class EffectiveSettings {
     private static final double UPSIDE_DOWN_TURN_DEGREES = 180D;
     private static final double QUARTER_TURN_DEGREES = 90D;
 
-    private final Map<ProceduralPlacement, ObjectPlacement> proceduralOptions = new ConcurrentHashMap<>();
-
-    /** The settings {@code placement} places with, with {@code changes} made to a copy of them. */
-    public ObjectPlacement of(PlacementSource placement, PlacementChanges changes) {
-        ObjectPlacement base = placement instanceof ObjectPlacement settings
-                ? settings
-                : proceduralOptions.computeIfAbsent((ProceduralPlacement) placement, EffectiveSettings::optionsOf);
-        return withChanges(base, changes);
+    private EffectiveSettings() {
     }
 
     /** {@code base} with {@code changes} made to a copy of it; {@code base} itself when there are none. */
@@ -73,23 +58,6 @@ public final class EffectiveSettings {
             changed.forcePlace(changes.forcePlace());
         }
         return changed.build();
-    }
-
-    /** The options a procedural object is scattered with, as an object placement. */
-    private static ObjectPlacement optionsOf(ProceduralPlacement procedural) {
-        return ObjectPlacement.builder()
-                .mode(procedural.mode())
-                .rotation(procedural.rotation())
-                .clamp(procedural.clamp())
-                .carvingSupport(procedural.carvingSupport())
-                .underwater(procedural.underwater())
-                .translate(procedural.translate())
-                .stiltSettings(procedural.stiltSettings().orElse(null))
-                .vacuumSettings(procedural.vacuumSettings().orElse(null))
-                .chance(procedural.chance())
-                .density(procedural.density())
-                .surfaceSupportBuffer(procedural.surfaceSupportBuffer())
-                .build();
     }
 
     private static ObjectRotation upsideDownRotation() {

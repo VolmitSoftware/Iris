@@ -20,6 +20,7 @@ package art.arcane.iris.modules.objects;
 
 import com.volmit.block.BlockRegistry;
 import com.volmit.block.BlockState;
+import com.volmit.block.BlockTrait;
 import com.volmit.block.PaletteSpec;
 import com.volmit.object.ObjectBlock;
 import com.volmit.object.PackObjects;
@@ -49,6 +50,11 @@ public final class ObjectBuilder {
     /** The block {@code palette} gives at the position when its noise is seeded with {@code seed}. */
     public BlockState pick(PaletteSpec palette, long seed, int x, int y, int z) {
         return blocks.palette(palette, seed).at(x, y, z);
+    }
+
+    /** Whether the platform gives {@code state} the trait, such as a log or air. */
+    public boolean has(BlockState state, BlockTrait trait) {
+        return blocks.hasTrait(state, trait);
     }
 
     /** {@code state} with the property set, as the platform sets it. */

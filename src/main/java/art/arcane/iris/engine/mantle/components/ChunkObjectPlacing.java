@@ -24,21 +24,17 @@ import art.arcane.iris.builtin.carve.CaveLavaHeightSettings;
 import art.arcane.iris.modules.carve.CaveProfile;
 import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.builtin.objects.ObjectSettings;
-import art.arcane.iris.builtin.objects.PlacementSource;
-import art.arcane.iris.modules.objects.ProceduralObjectSettings;
 import art.arcane.iris.builtin.objects.RequireSurfaceSupportSettings;
 import art.arcane.iris.builtin.objects.SurfaceSupportBufferSettings;
 import art.arcane.iris.builtin.objects.UpperObjectsForceSettings;
 import art.arcane.iris.builtin.objects.UpperObjectsSettings;
-import art.arcane.iris.engine.object.procedural.ResolvedProceduralObjects;
+import art.arcane.iris.engine.procedural.ProceduralObjectCatalog;
 import art.arcane.iris.modules.objects.CavePlacement;
 import art.arcane.iris.modules.objects.TerrainTransaction;
-import art.arcane.iris.modules.objects.EffectiveSettings;
 import art.arcane.iris.modules.objects.ObjectPool;
 import art.arcane.iris.modules.objects.ObjectSeparation;
 import art.arcane.iris.modules.objects.PlacementChanges;
 import art.arcane.iris.modules.objects.PlacementTags;
-import art.arcane.iris.modules.objects.ProceduralPlacement;
 import art.arcane.volmlib.util.math.RNG;
 import com.volmit.IrisFeature;
 import com.volmit.ModuleLog;
@@ -56,8 +52,8 @@ import java.util.Optional;
 import java.util.OptionalInt;
 
 /**
- * Places what the objects of one chunk's region and biomes say: the objects of its surface, caves and the terrain stacked above,
- * and its procedural objects, in that order, all drawing from the one random of the chunk.
+ * Places what the objects of one chunk's region and biomes say: the objects of its surface, caves and the terrain stacked
+ * above, in that order, all drawing from the one random of the chunk.
  */
 final class ChunkObjectPlacing {
     /** Objects read their chunk's settings at local 8, 8 as Iris always did, not at the API's centre column (local 7, 7): moving it would move objects. */
@@ -91,12 +87,12 @@ final class ChunkObjectPlacing {
     private final int worldHeight;
     private final int caveLavaHeight;
 
-    ChunkObjectPlacing(ObjectPool objects, EffectiveSettings settings, ModuleLog log, MantleStageContext context) {
+    ChunkObjectPlacing(ObjectPool objects, ModuleLog log, MantleStageContext context) {
         this.objects = objects;
         this.separation = ObjectSeparation.of(context.world());
         this.log = log;
         this.context = context;
-        this.chunk = new ObjectChunk(context, settings, log);
+        this.chunk = new ObjectChunk(context, log);
         this.terrain = context.terrain();
         this.chunkX = context.chunkX();
         this.chunkZ = context.chunkZ();
@@ -121,7 +117,6 @@ final class ChunkObjectPlacing {
             logLayerStart(column);
         }
         Tally tally = placeObjects(column);
-        placeProceduralObjects(column);
         if (upperObjectsEnabled()) {
             placeUpperObjects(column);
         }
@@ -136,8 +131,7 @@ final class ChunkObjectPlacing {
         ResourceId surface = terrain.surfaceBiome(centerX, centerZ);
         int surfaceY = terrain.surfaceHeight(centerX, centerZ);
         ResourceId cave = resolveCaveObjectBiome(surfaceY, surface);
-        return new Column(region, surface, cave, surfaceY, objectsOf(cave, region, surface), proceduralOf(cave, region, surface),
-                profilesOf(cave, region, surface));
+        return new Column(region, surface, cave, surfaceY, objectsOf(cave, region, surface), profilesOf(cave, region, surface));
     }
 
     private ResourceId resolveCaveObjectBiome(int surfaceY, ResourceId surfaceBiome) {
@@ -167,12 +161,6 @@ final class ChunkObjectPlacing {
         SettingsStack<ObjectSettings> declared = context.settings().at(ObjectSettings.class, centerX, centerZ);
         return new ColumnObjects(levelValue(declared, Level.BIOME), caveSettings(cave, surface, declared, ObjectSettings.class),
                 levelValue(declared, Level.REGION));
-    }
-
-    private ColumnProcedural proceduralOf(ResourceId cave, ResourceId region, ResourceId surface) {
-        SettingsStack<ProceduralObjectSettings> declared = context.settings().at(ProceduralObjectSettings.class, centerX, centerZ);
-        return new ColumnProcedural(levelValue(declared, Level.BIOME),
-                caveSettings(cave, surface, declared, ProceduralObjectSettings.class), levelValue(declared, Level.REGION));
     }
 
     private ColumnProfiles profilesOf(ResourceId cave, ResourceId region, ResourceId surface) {
@@ -415,115 +403,6 @@ final class ChunkObjectPlacing {
         return contained.commit() == TerrainTransaction.Commit.REJECTED ? "CONTAINMENT" : "NO_WRITES";
     }
 
-    private void placeProceduralObjects(Column column) {
-        List<ProceduralPlacement> surface = proceduralPlacements(column.procedural().surface());
-        List<ProceduralPlacement> region = proceduralPlacements(column.procedural().region());
-        CaveProfile surfaceProfile = caves.resolve(column.profiles().surface(), column.profiles().region());
-        CaveProfile regionProfile = caves.resolve(column.profiles().region(), column.profiles().cave());
-        placeProceduralFrom(surface, column.surface().toString(), surfaceProfile, column.surface());
-        placeProceduralFrom(region, column.region().toString(), regionProfile, null);
-        if (!column.cave().equals(column.surface())) {
-            CaveProfile caveProfile = caves.resolve(column.profiles().cave(), column.profiles().region());
-            placeProceduralFrom(proceduralPlacements(column.procedural().cave()), column.cave().toString(), caveProfile, column.cave());
-        }
-    }
-
-    private List<ProceduralPlacement> proceduralPlacements(ProceduralObjectSettings settings) {
-        return settings == null ? List.of() : ResolvedProceduralObjects.of(context.world(), settings);
-    }
-
-    private void placeProceduralFrom(List<ProceduralPlacement> placements, String scope, CaveProfile caveProfile, ResourceId expectedCaveBiome) {
-        if (placements.isEmpty()) {
-            return;
-        }
-        int blockX = context.originX();
-        int blockZ = context.originZ();
-        CaveAnchors anchors = newAnchors();
-        for (ProceduralPlacement placement : placements) {
-            boolean chancePassed = passesProceduralChance(rng, placement.chance());
-            if (golden) {
-                log.debug("Goldendebug procedural chance: chunk=" + chunkX + "," + chunkZ + " scope=" + scope + " placement=" + placement.name() + " passed=" + chancePassed);
-            }
-            if (!chancePassed) {
-                continue;
-            }
-            placeProcedural(placement, scope, caveProfile, expectedCaveBiome, anchors, blockX, blockZ);
-        }
-    }
-
-    private void placeProcedural(ProceduralPlacement placement, String scope, CaveProfile caveProfile, ResourceId expectedCaveBiome,
-                                 CaveAnchors anchors, int blockX, int blockZ) {
-        boolean carving = placement.carvingSupport() == CarvingMode.CARVING_ONLY;
-        CaveAnchors.Search search = caves.searchFor(placement, caveProfile);
-        int density = Math.max(1, placement.density());
-        for (int i = 0; i < density; i++) {
-            Optional<PlaceableObject> picked = placement.variant(rng);
-            if (picked.isEmpty()) {
-                if (golden) {
-                    log.debug("Goldendebug procedural pick: chunk=" + chunkX + "," + chunkZ + " placement=" + placement.name() + " densityIndex=" + i + " variant=null");
-                }
-                continue;
-            }
-            PlaceableObject variant = picked.get();
-            CaveAnchors.Anchor anchor = carving ? anchors.find(rng, blockX, blockZ, search, expectedCaveBiome, placement.underwater()) : null;
-            if (carving && anchor == null) {
-                if (golden) {
-                    log.debug("Goldendebug procedural cave anchor rejected: chunk=" + chunkX + "," + chunkZ + " placement=" + placement.name()
-                            + " minDepthBelowSurface=" + search.minDepthBelowSurface());
-                }
-                continue;
-            }
-            int x = anchor == null ? rng.i(blockX, blockX + CHUNK_WIDTH_BLOCKS) : anchor.x();
-            int z = anchor == null ? rng.i(blockZ, blockZ + CHUNK_WIDTH_BLOCKS) : anchor.z();
-            int id = rng.i(0, Integer.MAX_VALUE);
-            if (golden) {
-                logProceduralPick(placement, variant, i, x, z, carving);
-            }
-            try {
-                placeProceduralVariant(placement, variant, scope, caveProfile, search, anchor, x, z, id);
-            } catch (Throwable failure) {
-                log.error("Failed to place procedural object '" + placement.name() + "' in " + scope, failure);
-            }
-        }
-    }
-
-    private void placeProceduralVariant(ProceduralPlacement placement, PlaceableObject variant, String scope, CaveProfile caveProfile,
-                                        CaveAnchors.Search search, CaveAnchors.Anchor anchor, int x, int z, int id) {
-        String goldenTag = golden ? scope + "/" + placement.name() : null;
-        PlacementTags tags = tags(variant, id, "procedural", placement.tree(), false);
-        int resultY;
-        String commit = "n/a";
-        if (anchor != null) {
-            PlacementChanges changes = effective.forCave(placement, variant, caveProfile);
-            CavePlacement contained = chunk.placeInCave(variant, x, anchor.y(), z, placement, changes, search.minDepthBelowSurface(), tags, goldenTag);
-            resultY = contained.resultY();
-            commit = contained.commit().toString();
-        } else {
-            resultY = chunk.placeOnSurface(variant, x, z, placement, PlacementChanges.NONE, tags, goldenTag);
-        }
-        if (golden) {
-            log.debug("Goldendebug procedural result: chunk=" + chunkX + "," + chunkZ + " placement=" + placement.name()
-                    + " variant=" + variant.name() + " xx=" + x + " zz=" + z + " resultY=" + resultY + " commit=" + commit);
-        }
-    }
-
-    private void logProceduralPick(ProceduralPlacement placement, PlaceableObject variant, int index, int x, int z, boolean carving) {
-        List<PlaceableObject> pool = placement.variants();
-        log.debug("Goldendebug procedural pick: chunk=" + chunkX + "," + chunkZ + " placement=" + placement.name() + " densityIndex=" + index
-                + " variant=" + variant.name() + " variantIndex=" + pool.indexOf(variant) + "/" + pool.size() + " xx=" + x + " zz=" + z
-                + " mode=" + placement.mode() + " carving=" + carving);
-    }
-
-    static boolean passesProceduralChance(RNG rng, double chance) {
-        if (chance <= 0.0) {
-            return false;
-        }
-        if (chance >= 1.0) {
-            return true;
-        }
-        return rng.chance(Math.max(0.0, Math.min(1.0, chance + rng.d(-CHANCE_JITTER, CHANCE_JITTER))));
-    }
-
     private void placeUpperObjects(Column column) {
         SettingsStack<ObjectSettings> upper = terrain.upperDimension()
                 .map(dimension -> dimension.settings().at(ObjectSettings.class, centerX, centerZ))
@@ -593,11 +472,8 @@ final class ChunkObjectPlacing {
         }
     }
 
-    private PlacementTags tags(PlaceableObject object, int id, String context, boolean treePlacement, PlacementSource placement) {
-        return tags(object, id, context, treePlacement, placement.isDolphinTarget() && placement.underwater());
-    }
-
-    private PlacementTags tags(PlaceableObject object, int id, String context, boolean treePlacement, boolean buriedTreasure) {
+    private PlacementTags tags(PlaceableObject object, int id, String context, boolean treePlacement, ObjectPlacement placement) {
+        boolean buriedTreasure = placement.isDolphinTarget() && placement.underwater();
         return new PlacementTags(placementMarker(object, id, context), treePlacement, buriedTreasure);
     }
 
@@ -612,8 +488,12 @@ final class ChunkObjectPlacing {
         return PlacementRecord.of(this.context.world().resources().idOf(key), id);
     }
 
+    /** Objects in {@code trees/} are trees, procedural ones in {@code procedural/trees/} too, and so is anything a placement grows from saplings. */
     private static boolean isTreePlacement(PlaceableObject object, ObjectPlacement placement) {
         String key = object == null ? null : object.name();
+        if (key != null && ProceduralObjectCatalog.isProceduralKey(key)) {
+            key = key.substring(ProceduralObjectCatalog.KEY_PREFIX.length());
+        }
         return (key != null && key.startsWith(TREE_FOLDER)) || (placement != null && !placement.trees().isEmpty());
     }
 
@@ -674,13 +554,10 @@ final class ChunkObjectPlacing {
     }
 
     private record Column(ResourceId region, ResourceId surface, ResourceId cave, int surfaceY, ColumnObjects objects,
-                          ColumnProcedural procedural, ColumnProfiles profiles) {
+                          ColumnProfiles profiles) {
     }
 
     private record ColumnObjects(ObjectSettings surface, ObjectSettings cave, ObjectSettings region) {
-    }
-
-    private record ColumnProcedural(ProceduralObjectSettings surface, ProceduralObjectSettings cave, ProceduralObjectSettings region) {
     }
 
     private record ColumnProfiles(CaveProfile surface, CaveProfile cave, CaveProfile region) {

@@ -21,7 +21,7 @@ package art.arcane.iris.engine.mantle.components;
 import art.arcane.iris.builtin.anchor.PlaceTrait;
 import art.arcane.iris.builtin.carve.CaveAnchorMode;
 import art.arcane.iris.modules.carve.CaveProfile;
-import art.arcane.iris.builtin.objects.PlacementSource;
+import art.arcane.iris.builtin.objects.ObjectPlacement;
 
 /** What a cave object placement takes from the cave profile that applies to it. */
 final class CaveSettings {
@@ -51,7 +51,7 @@ final class CaveSettings {
     }
 
     /** How the placement looks for its anchor in caves: its own mode, else the profile's, else the floor; turned upside down, the ceiling. */
-    CaveAnchors.Search searchFor(PlacementSource placement, CaveProfile profile) {
+    CaveAnchors.Search searchFor(ObjectPlacement placement, CaveProfile profile) {
         CaveAnchorMode mode = anchorMode(placement, profile);
         if (placement.mode().placeMode().has(PlaceTrait.UPSIDE_DOWN)) {
             mode = CaveAnchorMode.CEILING;
@@ -59,7 +59,7 @@ final class CaveSettings {
         return new CaveAnchors.Search(mode, scanStep(profile), minDepthBelowSurface(profile), searchAttempts(profile));
     }
 
-    private static CaveAnchorMode anchorMode(PlacementSource placement, CaveProfile profile) {
+    private static CaveAnchorMode anchorMode(ObjectPlacement placement, CaveProfile profile) {
         CaveAnchorMode placementMode = placement.caveAnchorMode();
         if (placementMode != null && !placementMode.equals(CaveAnchorMode.PROFILE_DEFAULT)) {
             return placementMode;

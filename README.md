@@ -67,8 +67,9 @@ placement itself, read by the module decoder like any settings class, and the on
 stages into the chunk's mantle (on the surface, in a cave inside the cave's bounds, or hung from the terrain above), reading the
 carved space the cave carver planned, and the loot an object placed at a block defines; the layout, the settings of a column and
 the upper dimension's objects come from IrisApi (`TerrainSampler`, `FeatureSettings`, `UpperDimension`). `ObjectPlacing` and its helpers (`ChunkObjectPlacing`,
-`CaveAnchors`, `PlacementReach`) decide what to place and where. The procedural generators (`engine/object/procedural`) stay
-compiled in, behind `ProceduralPlacement`, until they build `GeneratedObject`s instead of Iris objects.
+`CaveAnchors`, `PlacementReach`) decide what to place and where. Procedural objects (`engine/procedural`, resource kind
+`iris:objects/procedural`, folder `procedural`) are definitions of parts that bake into variants; a placement names them as
+`procedural/<path>`, or `procedural/<path>#<index>` for one variant, like any object.
 `iris:loot` owns the loot table resource kind (`LootResources`, folder `loot`), checks the tables and the references to
 them (`LootValidator`), and provides `Loot` (`LootGiving`: which tables a container draws from and the `ItemDrop`s a
 table gives) and `BlockDrops` (`BlockDropping`). `iris:spawn` owns spawners, entities and markers (`SpawnResources`,

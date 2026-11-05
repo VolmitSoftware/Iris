@@ -21,10 +21,9 @@ package art.arcane.iris.engine.mantle.components;
 import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.builtin.objects.ObjectRun;
 import art.arcane.iris.builtin.objects.ObjectSettings;
-import art.arcane.iris.modules.objects.ProceduralObjectSettings;
+import art.arcane.iris.engine.procedural.ProceduralObjectCatalog;
 import art.arcane.iris.modules.objects.TreeGrowthSettings;
 import art.arcane.iris.modules.objects.TreeMode;
-import art.arcane.iris.modules.objects.tree.Tree;
 import art.arcane.iris.engine.loot.BlockBiomes;
 import art.arcane.iris.modules.objects.Declaration;
 import art.arcane.iris.modules.objects.ObjectPool;
@@ -61,6 +60,7 @@ import java.util.stream.Collectors;
 public final class TreeGrowing implements SaplingGrowth {
     private static final int SAPLING_WIDTH = 1;
     private static final int SAPLING_DEPTH = 1;
+    private static final String PROCEDURAL_TREE_FOLDER = ProceduralObjectCatalog.KEY_PREFIX + "trees/";
 
     @Override
     public Optional<Growth> grow(PackWorld world, Sapling sapling, Surroundings surroundings) {
@@ -75,7 +75,7 @@ public final class TreeGrowing implements SaplingGrowth {
             return Optional.empty();
         }
         List<String> keys = placement.get().place();
-        Optional<PlaceableObject> tree = ObjectPool.of(world).object(keys.get(RNG.r.i(keys.size())));
+        Optional<PlaceableObject> tree = ObjectPool.of(world).object(keys.get(RNG.r.i(keys.size())), RNG.r);
         if (tree.isEmpty()) {
             return Optional.empty();
         }
@@ -90,14 +90,24 @@ public final class TreeGrowing implements SaplingGrowth {
     @Override
     public TreeObjects treeObjects(PackWorld world) {
         Set<String> objects = new HashSet<>();
-        Set<String> procedural = new HashSet<>();
         for (Declaration<ObjectSettings> declaration : Declaration.allOf(world, ObjectSettings.class)) {
             collectPlacements(declaration.settings().objects(), objects);
         }
-        for (Declaration<ProceduralObjectSettings> declaration : Declaration.allOf(world, ProceduralObjectSettings.class)) {
-            collectProceduralTrees(declaration.settings().trees(), procedural);
+        return new TreeObjects(idsOf(world, placedNames(world, objects)));
+    }
+
+    /** The names objects are placed under: a procedural pool's are its variants' own. */
+    private static Set<String> placedNames(PackWorld world, Set<String> objectKeys) {
+        ProceduralObjectCatalog procedural = ProceduralObjectCatalog.of(world);
+        Set<String> names = new HashSet<>();
+        for (String key : objectKeys) {
+            if (ProceduralObjectCatalog.isProceduralKey(key)) {
+                procedural.placeable(key).forEach(variant -> names.add(variant.name()));
+            } else {
+                names.add(key);
+            }
         }
-        return new TreeObjects(idsOf(world, objects), idsOf(world, procedural));
+        return names;
     }
 
     private static Set<ResourceId> idsOf(PackWorld world, Set<String> keys) {
@@ -134,29 +144,22 @@ public final class TreeGrowing implements SaplingGrowth {
         return matches;
     }
 
+    /** The objects of tree placements, and procedural objects in {@code procedural/trees/} wherever they are placed. */
     private static void collectPlacements(List<ObjectPlacement> placements, Set<String> objectKeys) {
         for (ObjectPlacement placement : placements) {
-            if (placement == null || placement.trees().isEmpty()) {
+            if (placement == null) {
                 continue;
             }
             for (String objectKey : placement.place()) {
-                if (objectKey != null && !objectKey.isBlank()) {
+                if (objectKey != null && !objectKey.isBlank() && (!placement.trees().isEmpty() || isProceduralTree(objectKey))) {
                     objectKeys.add(objectKey);
                 }
             }
         }
     }
 
-    private static void collectProceduralTrees(List<Tree> trees, Set<String> objectKeys) {
-        for (Tree tree : trees) {
-            if (tree == null || tree.name() == null || tree.name().isBlank()) {
-                continue;
-            }
-            int variants = Math.max(1, tree.variants());
-            for (int index = 0; index < variants; index++) {
-                objectKeys.add(Tree.variantLoadKey(tree.name(), index));
-            }
-        }
+    private static boolean isProceduralTree(String objectKey) {
+        return objectKey.startsWith(PROCEDURAL_TREE_FOLDER);
     }
 
     /**

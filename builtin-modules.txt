@@ -88,7 +88,7 @@ include art/arcane/iris/engine/mantle/components/ObjectLocating*.class
 include art/arcane/iris/engine/mantle/components/TreeGrowing*.class
 include art/arcane/iris/engine/mantle/components/ObjectChunk*.class
 include art/arcane/iris/engine/mantle/components/GoldenDebugTerrain*.class
-include art/arcane/iris/engine/object/procedural/**
+include art/arcane/iris/engine/procedural/**
 module art.arcane.iris.engine.modifier.FloatingModule
 include art/arcane/iris/engine/modifier/FloatingIslands*.class
 include art/arcane/iris/engine/object/terrain/floating/**

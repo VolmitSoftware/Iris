@@ -21,11 +21,8 @@ package art.arcane.iris.engine.mantle.components;
 import art.arcane.iris.builtin.IrisSeedPurposes;
 import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.builtin.objects.ObjectSettings;
-import art.arcane.iris.modules.objects.ProceduralObjectSettings;
-import art.arcane.iris.engine.object.procedural.ResolvedProceduralObjects;
 import art.arcane.iris.modules.objects.Declaration;
 import art.arcane.iris.modules.objects.ObjectPool;
-import art.arcane.iris.modules.objects.ProceduralPlacement;
 import art.arcane.volmlib.util.math.RNG;
 import com.volmit.config.Level;
 import com.volmit.world.PackWorld;
@@ -55,16 +52,10 @@ final class ObjectWarmUp {
 
     void warm() {
         List<Declaration<ObjectSettings>> placements = byKey(Declaration.allOf(world, ObjectSettings.class));
-        List<Declaration<ProceduralObjectSettings>> procedural = byKey(Declaration.allOf(world, ProceduralObjectSettings.class));
         for (Level level : WARMED_LEVELS) {
             for (Declaration<ObjectSettings> declaration : placements) {
                 if (declaration.level() == level) {
                     warmPlacements(declaration.settings().objects());
-                }
-            }
-            for (Declaration<ProceduralObjectSettings> declaration : procedural) {
-                if (declaration.level() == level) {
-                    warmProcedural(declaration.settings());
                 }
             }
         }
@@ -79,12 +70,6 @@ final class ObjectWarmUp {
             if (placement != null) {
                 objects.warm(placement, root.nextParallelRNG(warmed++));
             }
-        }
-    }
-
-    private void warmProcedural(ProceduralObjectSettings settings) {
-        for (ProceduralPlacement placement : ResolvedProceduralObjects.of(world, settings)) {
-            placement.variant(root.nextParallelRNG(warmed++));
         }
     }
 }

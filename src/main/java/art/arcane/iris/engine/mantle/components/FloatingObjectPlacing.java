@@ -24,6 +24,7 @@ import art.arcane.iris.modules.floating.FloatingChildSettings;
 import art.arcane.iris.modules.floating.IslandFootprint;
 import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.builtin.objects.ObjectSettings;
+import art.arcane.iris.engine.procedural.ProceduralObjectCatalog;
 import art.arcane.iris.modules.objects.ObjectPool;
 import art.arcane.iris.modules.objects.ObjectSize;
 import com.volmit.object.PlaceableObject;
@@ -426,6 +427,7 @@ public final class FloatingObjectPlacing {
     /** The reach of floating children's objects, each object sized once. */
     private static final class Reach {
         private final PackResources resources;
+        private final ProceduralObjectCatalog procedural;
         private final Map<ResourceId, ObjectSettings> biomeObjects;
         private final ModuleLog log;
         private final Map<String, Optional<ObjectSize>> sizes = new HashMap<>();
@@ -433,6 +435,7 @@ public final class FloatingObjectPlacing {
 
         private Reach(PackResources resources, Map<ResourceId, ObjectSettings> biomeObjects, ModuleLog log) {
             this.resources = resources;
+            this.procedural = ProceduralObjectCatalog.detached(resources, log);
             this.biomeObjects = biomeObjects;
             this.log = log;
         }
@@ -479,7 +482,7 @@ public final class FloatingObjectPlacing {
 
         private int objectReach(String objectKey, ObjectPlacement placement) {
             try {
-                Optional<ObjectSize> size = sizes.computeIfAbsent(objectKey, key -> PlacementReach.sizeOf(resources, key));
+                Optional<ObjectSize> size = sizes.computeIfAbsent(objectKey, key -> PlacementReach.sizeOf(resources, procedural, key));
                 if (size.isEmpty()) {
                     return 0;
                 }

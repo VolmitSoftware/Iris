@@ -22,6 +22,7 @@ import art.arcane.iris.builtin.LegacyStreams;
 import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.builtin.objects.ObjectScale;
 import art.arcane.iris.builtin.objects.ScaleInterpolation;
+import art.arcane.iris.engine.procedural.ProceduralObjectCatalog;
 import art.arcane.volmlib.util.math.RNG;
 import com.volmit.object.PackObjects;
 import com.volmit.object.PlaceableObject;
@@ -42,15 +43,17 @@ public final class ObjectPool {
 
     private final PackResources resources;
     private final LegacyStreams streams;
+    private final ProceduralObjectCatalog procedural;
 
-    private ObjectPool(PackResources resources, LegacyStreams streams) {
+    private ObjectPool(PackResources resources, LegacyStreams streams, ProceduralObjectCatalog procedural) {
         this.resources = resources;
         this.streams = streams;
+        this.procedural = procedural;
     }
 
-    /** The objects of {@code world}'s pack. */
+    /** The objects of {@code world}'s pack, its procedural objects among them. */
     public static ObjectPool of(PackWorld world) {
-        return new ObjectPool(world.resources(), world.extension(LegacyStreams.class).orElseThrow());
+        return new ObjectPool(world.resources(), world.extension(LegacyStreams.class).orElseThrow(), ProceduralObjectCatalog.of(world));
     }
 
     /** The random a chunk's objects are placed with. */
@@ -58,8 +61,11 @@ public final class ObjectPool {
         return streams.objectChunkRandom(chunkX, chunkZ);
     }
 
-    /** The pack object {@code key} names. */
-    public Optional<PlaceableObject> object(String key) {
+    /** The pack object {@code key} names; for a procedural pool, the variant {@code rng} picks. */
+    public Optional<PlaceableObject> object(String key, RNG rng) {
+        if (ProceduralObjectCatalog.isProceduralKey(key)) {
+            return procedural.object(key, rng);
+        }
         return objects().object(resources.idOf(key));
     }
 
@@ -69,7 +75,7 @@ public final class ObjectPool {
         if (keys.isEmpty()) {
             return Optional.empty();
         }
-        return object(keys.get(rng.nextInt(keys.size()))).map(origin -> scaled(origin, placement.scale(), rng));
+        return object(keys.get(rng.nextInt(keys.size())), rng).map(origin -> scaled(origin, placement.scale(), rng));
     }
 
     /** {@code origin} shrunk or grown by exactly {@code factor}, without filling between its blocks. */
@@ -82,9 +88,10 @@ public final class ObjectPool {
         return streams.density(placement, rng, x, z);
     }
 
-    /** Builds the noise the placement draws its density from, so the first chunk to place it does not wait. */
+    /** Builds the noise the placement draws its density from and bakes its procedural objects, so the first chunk to place it does not wait. */
     public void warm(ObjectPlacement placement, RNG rng) {
         streams.density(placement, rng, 0, 0);
+        placement.place().stream().filter(ProceduralObjectCatalog::isProceduralKey).forEach(procedural::placeable);
     }
 
     private PlaceableObject scaled(PlaceableObject origin, ObjectScale scale, RNG rng) {

@@ -23,15 +23,14 @@ import art.arcane.iris.builtin.anchor.PlaceTrait;
 import art.arcane.iris.builtin.blocks.ObjectMarkers;
 import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.builtin.objects.ObjectRun;
-import art.arcane.iris.builtin.objects.PlacementSource;
 import art.arcane.iris.modules.objects.CarvedSpace;
 import art.arcane.iris.modules.objects.CavePlacement;
 import art.arcane.iris.modules.objects.CaveTransaction;
 import art.arcane.iris.modules.objects.EffectiveSettings;
 import art.arcane.iris.modules.objects.ForwardingTerrain;
 import art.arcane.iris.modules.objects.PlacementChanges;
+import art.arcane.iris.engine.procedural.ProceduralObjectCatalog;
 import art.arcane.iris.modules.objects.PlacementTags;
-import art.arcane.iris.modules.objects.ProceduralPlacement;
 import art.arcane.iris.modules.objects.TerrainTransaction;
 import com.volmit.ModuleLog;
 import com.volmit.block.BlockRegistry;
@@ -55,17 +54,15 @@ final class ObjectChunk {
     private final PackWorld world;
     private final PlacementTerrain terrain;
     private final CarvedSpace carved;
-    private final EffectiveSettings settings;
     private final BlockRegistry blocks;
     private final ModuleLog log;
     private final int worldHeight;
 
-    ObjectChunk(MantleStageContext context, EffectiveSettings settings, ModuleLog log) {
+    ObjectChunk(MantleStageContext context, ModuleLog log) {
         this.world = context.world();
         this.terrain = context.placementTerrain();
         this.worldHeight = context.terrain().bounds().maxY();
         this.carved = new CarvedSpace(context.extension(MatterMantle.class).orElseThrow(), worldHeight);
-        this.settings = settings;
         this.blocks = world.resources().blocks();
         this.log = log;
     }
@@ -86,10 +83,10 @@ final class ObjectChunk {
      * @param goldenTag logs the placement's questions under this tag, or null to leave them
      * @return the height the object was placed at, negative when the placement rejected it
      */
-    int placeOnSurface(PlaceableObject object, int x, int z, PlacementSource placement, PlacementChanges changes,
+    int placeOnSurface(PlaceableObject object, int x, int z, ObjectPlacement placement, PlacementChanges changes,
                        PlacementTags tags, String goldenTag) {
-        PlacementTerrain placer = proceduralTerrain(terrain, placement, goldenTag);
-        return place(ObjectRun.of(object, settings.of(placement, changes), x, SAMPLED_HEIGHT, z), placer, tags);
+        PlacementTerrain placer = proceduralTerrain(terrain, object, goldenTag);
+        return place(ObjectRun.of(object, EffectiveSettings.withChanges(placement, changes), x, SAMPLED_HEIGHT, z), placer, tags);
     }
 
     /**
@@ -98,10 +95,10 @@ final class ObjectChunk {
      *
      * @param goldenTag logs the placement's questions under this tag, or null to leave them
      */
-    CavePlacement placeInCave(PlaceableObject object, int x, int anchorY, int z, PlacementSource placement, PlacementChanges changes,
+    CavePlacement placeInCave(PlaceableObject object, int x, int anchorY, int z, ObjectPlacement placement, PlacementChanges changes,
                               int minDepthBelowSurface, PlacementTags tags, String goldenTag) {
-        ObjectPlacement effective = settings.of(placement, changes);
-        CaveTransaction transaction = new CaveTransaction(proceduralTerrain(terrain, placement, goldenTag), worldHeight, anchorY,
+        ObjectPlacement effective = EffectiveSettings.withChanges(placement, changes);
+        CaveTransaction transaction = new CaveTransaction(proceduralTerrain(terrain, object, goldenTag), worldHeight, anchorY,
                 minDepthBelowSurface);
         int placeY = anchorY;
         if (effective.mode().placeMode().has(PlaceTrait.UPSIDE_DOWN)) {
@@ -131,15 +128,15 @@ final class ObjectChunk {
     }
 
     /**
-     * A procedural object's terrain: its leaves decay when it is meant to look real, and the golden-debug switch logs
-     * its questions. Object placements use the chunk's terrain as it is.
+     * A procedural variant's terrain: it keeps the leaf states the variant baked, persistent or decaying, and the
+     * golden-debug switch logs its questions. Pack objects use the chunk's terrain as it is.
      */
-    private PlacementTerrain proceduralTerrain(PlacementTerrain base, PlacementSource placement, String goldenTag) {
-        if (!(placement instanceof ProceduralPlacement procedural)) {
+    private PlacementTerrain proceduralTerrain(PlacementTerrain base, PlaceableObject object, String goldenTag) {
+        if (!ProceduralObjectCatalog.isProceduralKey(object.name())) {
             return base;
         }
-        PlacementTerrain decaying = procedural.plausible() ? new DecayingTerrain(base) : base;
-        return goldenTag == null ? decaying : new GoldenDebugTerrain(decaying, goldenTag, log);
+        PlacementTerrain keepingBakedLeaves = new DecayingTerrain(base);
+        return goldenTag == null ? keepingBakedLeaves : new GoldenDebugTerrain(keepingBakedLeaves, goldenTag, log);
     }
 
     /** Writes the tags beside each of the object's own blocks. */
@@ -157,7 +154,7 @@ final class ObjectChunk {
         }
     }
 
-    /** A terrain whose leaves decay, for procedural objects meant to look like the real thing. */
+    /** A terrain that leaves non-persistent leaves as they are, so they decay like the real thing. */
     private static final class DecayingTerrain extends ForwardingTerrain {
         private DecayingTerrain(PlacementTerrain delegate) {
             super(delegate);

@@ -64,7 +64,8 @@ import java.util.stream.Stream;
  * keeps its default. A {@link Snippet}
  * type may be written as {@code "snippet/<name>"} or, as Iris's own snippets are, {@code "snippet/<snippet folder>/<name>"},
  * both read from {@code snippet/<snippet folder>/<name>.json}. IrisApi's value types ({@code BlockSpec},
- * {@code NoiseStyle} and the rest) are read like settings, and an {@code Object} as Gson reads any JSON value.
+ * {@code NoiseStyle} and the rest) are read like settings, an {@code Object} as Gson reads any JSON value, and a
+ * {@link com.volmit.config.JsonForms} class through its codec ({@link JsonFormsCodecs}).
  * <p>
  * Settings are written in the one shape their class declares: an object of the class's options or, when the feature
  * names a {@code root} option, exactly that option's value. Iris's own classes that built-in settings hold (see
@@ -93,6 +94,7 @@ public final class ModuleSettingsDecoder {
                 .registerTypeAdapter(ResourceId.class, textAdapter(text -> resourceIdOf(packIds, text), ResourceId::toString))
                 .registerTypeAdapterFactory(new HostTypes())
                 .registerTypeAdapterFactory(new SnippetReferences())
+                .registerTypeAdapterFactory(new JsonFormsCodecs())
                 .create();
         for (Level target : Level.values()) {
             settings.put(target, settingsAt(catalog, target));

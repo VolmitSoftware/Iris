@@ -1,10 +1,12 @@
 package art.arcane.iris.engine.object;
 
+import art.arcane.iris.core.modules.JsonFormsCodecs;
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 /** Settings classes of the built-in modules have no setters; tests write them as the JSON packs hold. */
 public final class TestSettings {
-    private static final Gson GSON = new Gson();
+    private static final Gson GSON = new GsonBuilder().registerTypeAdapterFactory(new JsonFormsCodecs()).create();
 
     private TestSettings() {
     }

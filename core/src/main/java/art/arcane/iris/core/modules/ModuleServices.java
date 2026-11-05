@@ -197,13 +197,10 @@ public final class ModuleServices {
     /** The objects every module places as trees. */
     public static SaplingGrowth.TreeObjects treeObjects(Engine engine) {
         Set<ResourceId> objects = new LinkedHashSet<>();
-        Set<ResourceId> procedural = new LinkedHashSet<>();
         for (Provider<SaplingGrowth> provider : providers(engine, SaplingGrowth.class)) {
-            SaplingGrowth.TreeObjects trees = provider.service().treeObjects(provider.world());
-            objects.addAll(trees.objects());
-            procedural.addAll(trees.procedural());
+            objects.addAll(provider.service().treeObjects(provider.world()).objects());
         }
-        return new SaplingGrowth.TreeObjects(objects, procedural);
+        return new SaplingGrowth.TreeObjects(objects);
     }
 
     /** What the first module with something to spawn at {@code site} plans; empty when none does. */

@@ -4,8 +4,9 @@ import art.arcane.iris.builtin.IrisSeedPurposes;
 import art.arcane.iris.builtin.LegacyStreams;
 import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.builtin.objects.ObjectSettings;
-import art.arcane.iris.modules.objects.ProceduralObjectSettings;
 import art.arcane.iris.engine.object.TestSettings;
+import art.arcane.iris.engine.procedural.ProceduralObjectCatalog;
+import art.arcane.iris.engine.procedural.part.ProceduralObject;
 import art.arcane.volmlib.util.math.RNG;
 import com.volmit.IrisFeature;
 import com.volmit.block.BlockState;
@@ -44,18 +45,19 @@ public class ObjectWarmUpTest {
     private static final ResourceId BIOME = new ResourceId("test", "biome/biome");
 
     @Test
-    public void everyPlacementAndProceduralObjectOfBiomesAndRegionsIsBuilt() {
+    public void everyPlacementOfBiomesAndRegionsIsBuiltWithTheProceduralObjectsItPlaces() {
         LegacyStreams streams = mock(LegacyStreams.class);
         PackResources resources = mock(PackResources.class, RETURNS_DEEP_STUBS);
         PackObjects objects = mock(PackObjects.class, RETURNS_MOCKS);
         when(resources.objects()).thenReturn(objects);
         when(resources.blocks().find(anyString())).thenReturn(Optional.of(BlockState.parse("minecraft:oak_log")));
+        when(resources.idOf(anyString())).thenAnswer(invocation -> new ResourceId("test", invocation.getArgument(0)));
+        when(resources.find(eq(ProceduralObjectCatalog.DEFINITIONS), any())).thenReturn(Optional.of(oneLog()));
         PackSettings settings = mock(PackSettings.class);
         PackWorld world = worldWithStates(settings, resources, streams);
-        ObjectPlacement biomePlacement = placement();
-        ObjectPlacement regionPlacement = placement();
+        ObjectPlacement biomePlacement = placement("procedural/trees/biome-oak");
+        ObjectPlacement regionPlacement = placement("procedural/trees/region-oak");
         declare(settings, ObjectSettings.class, objects(regionPlacement), objects(biomePlacement));
-        declare(settings, ProceduralObjectSettings.class, oneTree("region-oak"), oneTree("biome-oak"));
 
         new ObjectWarmUp(world).warm();
 
@@ -83,12 +85,13 @@ public class ObjectWarmUpTest {
         return world;
     }
 
-    private static ProceduralObjectSettings oneTree(String name) {
-        return TestSettings.of(ProceduralObjectSettings.class, "{\"trees\":[{\"name\":\"" + name + "\"}]}");
+    private static ProceduralObject oneLog() {
+        return TestSettings.of(ProceduralObject.class, "{\"variants\":1,\"materials\":[{\"block\":\"minecraft:oak_log\"}],"
+                + "\"parts\":[{\"stem\":{\"length\":3}}]}");
     }
 
-    private static ObjectPlacement placement() {
-        return TestSettings.of(ObjectPlacement.class, "{\"place\":[\"a\"]}");
+    private static ObjectPlacement placement(String objectKey) {
+        return TestSettings.of(ObjectPlacement.class, "{\"place\":[\"" + objectKey + "\"]}");
     }
 
     private static ObjectSettings objects(ObjectPlacement placement) {

@@ -1,0 +1,22 @@
+{
+    "place": [
+        "procedural/formations/frozen/glacial-crooked-spire"
+    ],
+    "chance": 0.09,
+    "density": 1,
+    "mode": "CENTER_HEIGHT",
+    "carvingSupport": "SURFACE_ONLY",
+    "surfaceSupportBuffer": 1,
+    "rotation": {
+        "enabled": true,
+        "yAxis": {
+            "enabled": true,
+            "min": 0,
+            "max": 360,
+            "interval": 45
+        }
+    },
+    "translate": {
+        "y": -4
+    }
+}

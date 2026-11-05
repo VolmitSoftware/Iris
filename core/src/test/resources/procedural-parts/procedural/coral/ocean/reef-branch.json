@@ -1,0 +1,102 @@
+{
+    "variants": 8,
+    "seed": 9411,
+    "materials": [
+        {
+            "role": "coral",
+            "block": "minecraft:fire_coral_block",
+            "palette": {
+                "style": {
+                    "style": "CELLULAR",
+                    "zoom": 0.3
+                },
+                "palette": [
+                    {
+                        "block": "minecraft:fire_coral_block",
+                        "weight": 3
+                    },
+                    {
+                        "block": "minecraft:tube_coral_block",
+                        "weight": 2
+                    },
+                    {
+                        "block": "minecraft:bubble_coral_block",
+                        "weight": 2
+                    },
+                    {
+                        "block": "minecraft:horn_coral_block",
+                        "weight": 2
+                    },
+                    {
+                        "block": "minecraft:brain_coral_block",
+                        "weight": 2
+                    }
+                ]
+            }
+        }
+    ],
+    "parts": [
+        {
+            "stem": {
+                "length": [
+                    2.0,
+                    4.0
+                ],
+                "sway": 0.5737
+            },
+            "children": [
+                {
+                    "branches": {
+                        "count": 6,
+                        "along": {
+                            "from": 0.85,
+                            "to": 1
+                        },
+                        "azimuth": "GOLDEN",
+                        "pitch": 40,
+                        "part": {
+                            "stem": {
+                                "length": 5.0,
+                                "sway": 0.5737
+                            },
+                            "children": [
+                                {
+                                    "blob": {
+                                        "radius": 1
+                                    }
+                                },
+                                {
+                                    "branches": {
+                                        "count": 2,
+                                        "along": {
+                                            "from": 1,
+                                            "to": 1
+                                        },
+                                        "azimuth": "FAN",
+                                        "fan": 35,
+                                        "pitch": 50,
+                                        "part": {
+                                            "stem": {
+                                                "lengthScale": 0.6,
+                                                "sway": 0.5737
+                                            },
+                                            "children": []
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            ]
+        }
+    ],
+    "decorations": [
+        {
+            "at": "TOP",
+            "chance": 0.25,
+            "block": "minecraft:sea_pickle"
+        }
+    ],
+    "waterlogged": true
+}

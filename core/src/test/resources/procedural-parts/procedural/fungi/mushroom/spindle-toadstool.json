@@ -1,0 +1,126 @@
+{
+    "variants": 6,
+    "seed": 9303,
+    "materials": [
+        {
+            "role": "stem",
+            "block": "minecraft:mushroom_stem",
+            "palette": {
+                "style": {
+                    "style": "SIMPLEX",
+                    "zoom": 0.6
+                },
+                "palette": [
+                    {
+                        "block": "minecraft:mushroom_stem",
+                        "weight": 5
+                    },
+                    {
+                        "block": "minecraft:pale_oak_wood",
+                        "weight": 1
+                    }
+                ]
+            }
+        },
+        {
+            "role": "cap",
+            "block": "minecraft:red_mushroom_block",
+            "rules": [
+                {
+                    "block": "minecraft:shroomlight",
+                    "face": "DOWN",
+                    "chance": 0.6
+                },
+                {
+                    "block": "minecraft:brown_mushroom_block",
+                    "face": "UP",
+                    "chance": 0.25,
+                    "pattern": "PATCHES",
+                    "scale": 2
+                }
+            ]
+        }
+    ],
+    "parts": [
+        {
+            "role": "stem",
+            "stem": {
+                "length": [
+                    6.0,
+                    12.0
+                ],
+                "radius": 0.5,
+                "section": "SQUARE",
+                "lean": 10.0,
+                "leanCurve": {
+                    "shape": "power",
+                    "exponent": 2
+                },
+                "facing": 0,
+                "wave": 0.6,
+                "wavePeriods": 2
+            },
+            "children": [
+                {
+                    "role": "cap",
+                    "blob": {
+                        "radius": [
+                            3.0,
+                            5.0
+                        ],
+                        "height": 2.576,
+                        "depth": 1.6161,
+                        "profile": [
+                            [
+                                0.0,
+                                1.0
+                            ],
+                            [
+                                0.1,
+                                0.94
+                            ],
+                            [
+                                0.2,
+                                0.875
+                            ],
+                            [
+                                0.3,
+                                0.805
+                            ],
+                            [
+                                0.4,
+                                0.73
+                            ],
+                            [
+                                0.5,
+                                0.645
+                            ],
+                            [
+                                0.6,
+                                0.545
+                            ],
+                            [
+                                0.7,
+                                0.435
+                            ],
+                            [
+                                0.8,
+                                0.305
+                            ],
+                            [
+                                0.9,
+                                0.16
+                            ],
+                            [
+                                1.0,
+                                0.0
+                            ]
+                        ],
+                        "shell": 2,
+                        "open": true
+                    }
+                }
+            ]
+        }
+    ]
+}

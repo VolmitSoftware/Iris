@@ -1,0 +1,85 @@
+{
+    "variants": 7,
+    "seed": 9411,
+    "materials": [
+        {
+            "role": "rock",
+            "block": "minecraft:calcite",
+            "palette": {
+                "style": {
+                    "style": "CELLULAR",
+                    "zoom": 0.4
+                },
+                "palette": [
+                    {
+                        "block": "minecraft:calcite",
+                        "weight": 5
+                    },
+                    {
+                        "block": "minecraft:diorite",
+                        "weight": 3
+                    },
+                    {
+                        "block": "minecraft:bone_block",
+                        "weight": 1
+                    }
+                ]
+            }
+        }
+    ],
+    "parts": [
+        {
+            "role": "rock",
+            "stem": {
+                "length": [
+                    8.0,
+                    19.0
+                ],
+                "radius": [
+                    2.0,
+                    5.0
+                ],
+                "taper": [
+                    [
+                        0.0,
+                        1.0
+                    ],
+                    [
+                        0.125,
+                        0.9693
+                    ],
+                    [
+                        0.25,
+                        0.8884
+                    ],
+                    [
+                        0.375,
+                        0.774
+                    ],
+                    [
+                        0.5,
+                        0.6429
+                    ],
+                    [
+                        0.625,
+                        0.5117
+                    ],
+                    [
+                        0.75,
+                        0.3973
+                    ],
+                    [
+                        0.875,
+                        0.3164
+                    ],
+                    [
+                        1.0,
+                        0.2857
+                    ]
+                ],
+                "roughness": 0.65,
+                "jitter": 0.7
+            }
+        }
+    ]
+}

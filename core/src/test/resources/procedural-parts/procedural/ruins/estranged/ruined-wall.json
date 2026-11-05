@@ -1,0 +1,94 @@
+{
+    "variants": 5,
+    "seed": 9102,
+    "materials": [
+        {
+            "role": "stone",
+            "block": "minecraft:cobblestone",
+            "palette": {
+                "style": {
+                    "style": "STATIC"
+                },
+                "palette": [
+                    {
+                        "block": "minecraft:cobblestone",
+                        "weight": 4
+                    },
+                    {
+                        "block": "minecraft:stone_bricks",
+                        "weight": 2
+                    },
+                    {
+                        "block": "minecraft:mossy_cobblestone",
+                        "weight": 2
+                    }
+                ]
+            },
+            "rules": [
+                {
+                    "block": "minecraft:air",
+                    "chance": 0.4,
+                    "height": {
+                        "from": 0.3333,
+                        "to": 1
+                    }
+                },
+                {
+                    "palette": {
+                        "style": {
+                            "style": "STATIC"
+                        },
+                        "palette": [
+                            {
+                                "block": "minecraft:mossy_cobblestone"
+                            },
+                            {
+                                "block": "minecraft:mossy_stone_bricks"
+                            }
+                        ]
+                    },
+                    "chance": [
+                        [
+                            0,
+                            0.5
+                        ],
+                        [
+                            1,
+                            0.2
+                        ]
+                    ],
+                    "pattern": "PATCHES",
+                    "scale": 2.0
+                }
+            ]
+        }
+    ],
+    "parts": [
+        {
+            "blob": {
+                "radius": [
+                    1.5,
+                    3.5
+                ],
+                "stretchZ": 0.05,
+                "height": [
+                    2.0,
+                    5.0
+                ],
+                "depth": 0,
+                "profile": [
+                    [
+                        0,
+                        1
+                    ],
+                    [
+                        1,
+                        1
+                    ]
+                ],
+                "section": "SQUARE"
+            }
+        }
+    ],
+    "sink": 0.25
+}

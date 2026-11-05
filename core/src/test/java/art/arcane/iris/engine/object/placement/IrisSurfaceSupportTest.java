@@ -5,9 +5,6 @@ import com.volmit.resource.PackResources;
 import art.arcane.iris.builtin.prepare.AxisRotationClamp;
 import art.arcane.iris.builtin.prepare.ObjectRotation;
 import art.arcane.iris.builtin.prepare.ObjectTranslate;
-import art.arcane.iris.engine.object.procedural.formation.ResolvedFormation;
-import art.arcane.iris.engine.object.TestSettings;
-import art.arcane.iris.modules.objects.formation.Formation;
 import art.arcane.iris.engine.object.placement.IObjectPlacer;
 import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.engine.object.placement.IrisSurfaceSupport;
@@ -172,15 +169,6 @@ public class IrisSurfaceSupportTest {
         assertEquals(1, updated.size());
         assertEquals(-2, updated.getFirst().getBlockX());
         assertEquals(-4, updated.getFirst().getBlockY());
-    }
-
-    @Test
-    public void formationDefaultsToWiderBufferThanObjectDefault() {
-        assertEquals(2, ObjectPlacement.builder().build().surfaceSupportBuffer());
-        assertEquals(3, new ResolvedFormation(new Formation(), mock(PackResources.class)).surfaceSupportBuffer());
-
-        Formation flush = TestSettings.with(new Formation(), "surfaceSupportBuffer", 0);
-        assertEquals(0, new ResolvedFormation(flush, mock(PackResources.class)).surfaceSupportBuffer());
     }
 
     private static boolean isUnsupported(IObjectPlacer placer, List<IrisBlockVector> footprint,

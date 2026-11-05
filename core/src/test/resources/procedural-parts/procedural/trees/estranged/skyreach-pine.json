@@ -1,0 +1,139 @@
+{
+    "variants": 6,
+    "seed": 8401,
+    "materials": [
+        {
+            "role": "wood",
+            "block": "minecraft:spruce_wood",
+            "palette": {
+                "style": {
+                    "style": "CELLULAR",
+                    "zoom": 0.4
+                },
+                "zoom": 2,
+                "palette": [
+                    {
+                        "block": "minecraft:spruce_wood",
+                        "weight": 6
+                    },
+                    {
+                        "block": "minecraft:dark_oak_wood",
+                        "weight": 1
+                    }
+                ]
+            }
+        },
+        {
+            "role": "leaves",
+            "block": "minecraft:spruce_leaves"
+        }
+    ],
+    "parts": [
+        {
+            "role": "wood",
+            "stem": {
+                "length": [
+                    22.0,
+                    34.0
+                ],
+                "radius": 1.0,
+                "section": "SQUARE"
+            },
+            "children": [
+                {
+                    "role": "wood",
+                    "at": 0,
+                    "stem": {
+                        "pitch": -90,
+                        "length": [
+                            5.0,
+                            7.0
+                        ],
+                        "radius": 1.0,
+                        "section": "SQUARE",
+                        "taper": [
+                            [
+                                0,
+                                1
+                            ],
+                            [
+                                1,
+                                0.4
+                            ]
+                        ]
+                    }
+                },
+                {
+                    "role": "leaves",
+                    "mode": "FILL",
+                    "density": 0.85,
+                    "falloff": 1,
+                    "blob": {
+                        "radius": 1.5,
+                        "height": 2.0,
+                        "depth": 0.0
+                    },
+                    "at": 0.9524
+                },
+                {
+                    "role": "leaves",
+                    "mode": "FILL",
+                    "density": 0.85,
+                    "falloff": 1,
+                    "blob": {
+                        "radius": 3
+                    },
+                    "at": 1
+                },
+                {
+                    "branches": {
+                        "chance": {
+                            "shape": "periodic",
+                            "periods": 8,
+                            "sharpness": 8,
+                            "to": 0.95
+                        },
+                        "azimuth": "WHORL",
+                        "pitch": -6.0,
+                        "part": {
+                            "role": "wood",
+                            "stem": {
+                                "length": [
+                                    [
+                                        0.0,
+                                        3.0
+                                    ],
+                                    [
+                                        1.0,
+                                        7.0
+                                    ]
+                                ],
+                                "radius": 0.5,
+                                "droop": 0.25
+                            },
+                            "children": [
+                                {
+                                    "role": "leaves",
+                                    "mode": "FILL",
+                                    "density": 0.8,
+                                    "falloff": 1,
+                                    "blob": {
+                                        "radius": 2
+                                    }
+                                }
+                            ]
+                        },
+                        "whorl": 5
+                    }
+                }
+            ]
+        }
+    ],
+    "decorations": [
+        {
+            "at": "TOP",
+            "chance": 0.4,
+            "block": "minecraft:snow"
+        }
+    ]
+}

@@ -25,8 +25,6 @@ import art.arcane.iris.modules.deposit.DepositGenerator;
 import art.arcane.iris.modules.deposit.DepositSettings;
 import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.builtin.objects.ObjectSettings;
-import art.arcane.iris.modules.objects.ProceduralObjectSettings;
-import art.arcane.iris.modules.objects.tree.Tree;
 import art.arcane.iris.builtin.structure.StructureSettings;
 import art.arcane.volmlib.util.json.JSONObject;
 import com.google.gson.Gson;
@@ -168,19 +166,18 @@ public class PackBeforeThePortDecodingTest {
     }
 
     @Test
-    public void aBiomeReadsItsProceduralTreesWithTheirPalettes() throws IOException {
+    public void aBiomePlacesItsProceduralTreesLikeAnyObject() throws IOException {
         JSONObject biome = file("biomes/estranged/bloomspire-orchard.json");
 
-        ProceduralObjectSettings procedural = decoder.decode(Level.BIOME, biome, "biome estranged/bloomspire-orchard")
-                .find(ProceduralObjectSettings.class).orElseThrow();
+        List<ObjectPlacement> objects = decoder.decode(Level.BIOME, biome, "biome estranged/bloomspire-orchard")
+                .find(ObjectSettings.class).orElseThrow().objects();
 
-        assertEquals(biome.getJSONObject("proceduralObjects").getJSONArray("trees").length(), procedural.trees().size());
-        Tree tree = procedural.trees().getFirst();
-        assertEquals("bloomspire", tree.name());
-        assertEquals(8501L, tree.seed());
-        assertEquals("minecraft:cherry_wood", tree.trunk());
-        assertEquals(2, tree.trunkPalette().orElseThrow().palette().size());
-        assertEquals("minecraft:cherry_leaves", tree.leaves());
+        ObjectPlacement bloomspire = objects.stream()
+                .filter(placement -> placement.place().equals(List.of("procedural/trees/estranged/bloomspire")))
+                .findFirst().orElseThrow();
+        assertEquals(0.6, bloomspire.chance(), 0);
+        assertEquals(2, bloomspire.density());
+        assertTrue(Files.isRegularFile(packFolder.resolve("procedural/trees/estranged/bloomspire.json")));
     }
 
     @Test

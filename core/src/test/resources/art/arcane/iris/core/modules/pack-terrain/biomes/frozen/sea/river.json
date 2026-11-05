@@ -1,5 +1,4 @@
 {
-    "proceduralObjects": "snippet/iris/objects/procedural-objects/frozen/magical-ice-spikes-surface",
     "name": "Frozen River",
     "color": "#3DB9F5",
     "derivative": "minecraft:frozen_river",
@@ -34,7 +33,13 @@
         }
     ],
     "objects": [
-
+        "snippet/iris/objects/object-placer/procedural/frozen/magical-ice-spikes-surface/glacial-crooked-spire",
+        "snippet/iris/objects/object-placer/procedural/frozen/magical-ice-spikes-surface/glacial-shard-fan",
+        "snippet/iris/objects/object-placer/procedural/frozen/magical-ice-spikes-surface/glacial-spiral",
+        "snippet/iris/objects/object-placer/procedural/frozen/magical-ice-spikes-surface/glacial-overhang",
+        "snippet/iris/objects/object-placer/procedural/frozen/magical-ice-spikes-surface/glacial-drift",
+        "snippet/iris/objects/object-placer/procedural/frozen/magical-ice-spikes-surface/glacial-frost-bloom",
+        "snippet/iris/objects/object-placer/procedural/frozen/magical-ice-spikes-surface/glacial-frost-sprigs"
     ],
     "seaLayers": [
         {

@@ -7,7 +7,9 @@ import com.volmit.geometry.BlockBox;
 import com.volmit.object.PackObjects;
 import com.volmit.object.PlaceableObject;
 import com.volmit.resource.PackResources;
-import art.arcane.iris.modules.objects.ProceduralPlacement;
+import com.volmit.block.BlockState;
+import art.arcane.iris.engine.procedural.ProceduralObjectCatalog;
+import art.arcane.iris.engine.procedural.part.ProceduralObject;
 import art.arcane.iris.builtin.anchor.ObjectPlaceMode;
 import art.arcane.iris.builtin.prepare.ObjectRotation;
 import art.arcane.iris.builtin.prepare.ObjectTranslate;
@@ -39,6 +41,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -65,20 +70,25 @@ public class PlacementReachTest {
     }
 
     @Test
-    public void proceduralTreeTransformsContributeToRadius() {
+    public void aProceduralObjectReachesAsFarAsItsLargestVariantTransformed() {
         PlaceableObject variant = mock(PlaceableObject.class);
         when(variant.width()).thenReturn(5);
         when(variant.height()).thenReturn(48);
         when(variant.depth()).thenReturn(7);
-        ProceduralPlacement procedural = mock(ProceduralPlacement.class);
-        when(procedural.variants()).thenReturn(List.of(variant));
-        when(procedural.mode()).thenReturn(ObjectPlaceMode.CENTER_HEIGHT);
-        when(procedural.rotation()).thenReturn(TestSettings.of(ObjectRotation.class,
-                "{\"xAxis\":{\"enabled\":true,\"min\":90,\"max\":90,\"interval\":90},\"yAxis\":{\"enabled\":false}}"));
-        when(procedural.translate()).thenReturn(TestSettings.of(ObjectTranslate.class, "{\"x\":3,\"y\":4}"));
-        when(procedural.vacuumSettings()).thenReturn(Optional.empty());
+        PackResources resources = mock(PackResources.class, RETURNS_DEEP_STUBS);
+        PackObjects objects = mock(PackObjects.class);
+        when(resources.objects()).thenReturn(objects);
+        when(objects.build(any(), anyInt(), anyInt(), anyInt(), any())).thenReturn(variant);
+        when(resources.blocks().find(anyString())).thenReturn(Optional.of(BlockState.parse("minecraft:oak_log")));
+        when(resources.idOf(anyString())).thenAnswer(invocation -> new ResourceId("test", invocation.getArgument(0)));
+        when(resources.find(eq(ProceduralObjectCatalog.DEFINITIONS), any())).thenReturn(Optional.of(TestSettings.of(ProceduralObject.class,
+                "{\"variants\":1,\"materials\":[{\"block\":\"minecraft:oak_log\"}],\"parts\":[{\"stem\":{\"length\":3}}]}")));
+        ObjectPlacement placement = TestSettings.of(ObjectPlacement.class, "{\"place\":[\"procedural/trees/tall\"],"
+                + "\"rotation\":{\"xAxis\":{\"enabled\":true,\"min\":90,\"max\":90,\"interval\":90},\"yAxis\":{\"enabled\":false}},"
+                + "\"translate\":{\"x\":3,\"y\":4}}");
+        ObjectSettings settings = TestSettings.with(new ObjectSettings(), "objects", List.of(placement));
 
-        assertEquals(53, PlacementReach.of(new ObjectSize(variant.width(), variant.height(), variant.depth()), procedural));
+        assertEquals(53, new PlacementReach(resources, ModuleLogs.discarding()).ofPack(declaring(ObjectSettings.class, settings)));
     }
 
     @Test

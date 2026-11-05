@@ -1,0 +1,54 @@
+{
+    "variants": 6,
+    "seed": 9003,
+    "materials": [
+        {
+            "role": "rock",
+            "block": "minecraft:mossy_cobblestone",
+            "palette": {
+                "style": {
+                    "style": "CELLULAR",
+                    "zoom": 0.4
+                },
+                "palette": [
+                    {
+                        "block": "minecraft:stone",
+                        "weight": 3
+                    },
+                    {
+                        "block": "minecraft:mossy_cobblestone",
+                        "weight": 2
+                    },
+                    {
+                        "block": "minecraft:andesite",
+                        "weight": 2
+                    },
+                    {
+                        "block": "minecraft:cobblestone",
+                        "weight": 1
+                    }
+                ]
+            }
+        }
+    ],
+    "parts": [
+        {
+            "role": "rock",
+            "offset": {
+                "y": 2.25
+            },
+            "blob": {
+                "radius": [
+                    3.0,
+                    6.0
+                ],
+                "height": [
+                    2.0,
+                    3.0
+                ],
+                "stretchZ": 0.95,
+                "roughness": 0.3
+            }
+        }
+    ]
+}

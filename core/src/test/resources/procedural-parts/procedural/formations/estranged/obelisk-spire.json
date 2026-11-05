@@ -1,0 +1,79 @@
+{
+    "variants": 4,
+    "seed": 9001,
+    "materials": [
+        {
+            "role": "rock",
+            "block": "minecraft:stone",
+            "palette": {
+                "style": {
+                    "style": "STATIC"
+                },
+                "palette": [
+                    {
+                        "block": "minecraft:calcite"
+                    },
+                    {
+                        "block": "minecraft:tuff"
+                    }
+                ]
+            },
+            "bands": 2
+        }
+    ],
+    "parts": [
+        {
+            "role": "rock",
+            "stem": {
+                "length": [
+                    14.0,
+                    26.0
+                ],
+                "radius": [
+                    3.0,
+                    5.0
+                ],
+                "taper": [
+                    [
+                        0.0,
+                        1.0
+                    ],
+                    [
+                        0.125,
+                        0.9678
+                    ],
+                    [
+                        0.25,
+                        0.8828
+                    ],
+                    [
+                        0.375,
+                        0.7627
+                    ],
+                    [
+                        0.5,
+                        0.625
+                    ],
+                    [
+                        0.625,
+                        0.4873
+                    ],
+                    [
+                        0.75,
+                        0.3672
+                    ],
+                    [
+                        0.875,
+                        0.2822
+                    ],
+                    [
+                        1.0,
+                        0.25
+                    ]
+                ],
+                "roughness": 0.35,
+                "jitter": 0.3
+            }
+        }
+    ]
+}

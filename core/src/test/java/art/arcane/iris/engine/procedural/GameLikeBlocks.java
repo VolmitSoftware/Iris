@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package art.arcane.iris.engine.object.procedural;
+package art.arcane.iris.engine.procedural;
 
 import art.arcane.iris.spi.PlatformBlockState;
 import art.arcane.iris.spi.PlatformRegistries;
@@ -37,14 +37,14 @@ import static org.mockito.Mockito.withSettings;
  * axis, leaves their distance, persistence and waterlogging, properties are listed by name, and setting a property
  * gives the state with it. A key naming {@code minecraft:missing_*} is a block the platform lacks.
  */
-final class GameLikeBlocks {
+public final class GameLikeBlocks {
     private static final String NAMESPACE = "minecraft:";
     private static final String MISSING = NAMESPACE + "missing_";
 
     private final Map<String, PlatformBlockState> states = new ConcurrentHashMap<>();
     private final PlatformRegistries registries = mock(PlatformRegistries.class, withSettings().stubOnly());
 
-    GameLikeBlocks() {
+    public GameLikeBlocks() {
         when(registries.block(anyString())).thenAnswer(invocation -> {
             PlatformBlockState state = orNull(invocation.getArgument(0));
             return state == null ? state("minecraft:air") : state;
@@ -54,7 +54,7 @@ final class GameLikeBlocks {
         when(registries.air()).thenAnswer(invocation -> state("minecraft:air"));
     }
 
-    PlatformRegistries registries() {
+    public PlatformRegistries registries() {
         return registries;
     }
 

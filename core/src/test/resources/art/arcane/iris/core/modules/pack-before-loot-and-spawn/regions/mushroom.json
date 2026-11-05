@@ -2,125 +2,56 @@
     "name": "Mushroom",
     "color": "#F1C3EF",
     "rarity": 15,
-    "proceduralObjects": {
-        "fungi": [
-            {
-                "name": "red-cap",
-                "chance": 0.05,
-                "density": 2,
-                "variants": 6,
-                "seed": 9301,
-                "stem": "minecraft:mushroom_stem",
-                "cap": "minecraft:red_mushroom_block",
-                "capShape": "DOME",
-                "stemHeightMin": 4,
-                "stemHeightMax": 9,
-                "stemWidth": 2,
-                "stemCurve": 6,
-                "stemWaveAmplitude": 0.4,
-                "stemWavePeriods": 1.5,
-                "capRadiusMin": 3,
-                "capRadiusMax": 5,
-                "capThickness": 2,
-                "capSquish": 0.7,
-                "capDroop": 18,
-                "capOverhang": 2,
-                "gillBlock": "minecraft:mushroom_stem",
-                "gillChance": 0.7,
-                "rotation": {
+    "objects": [
+        {
+            "place": [
+                "procedural/fungi/mushroom/red-cap"
+            ],
+            "chance": 0.05,
+            "density": 2,
+            "rotation": {
+                "enabled": true,
+                "yAxis": {
                     "enabled": true,
-                    "yAxis": {
-                        "enabled": true,
-                        "min": 0,
-                        "max": 360,
-                        "interval": 90
-                    }
-                }
-            },
-            {
-                "name": "brown-table",
-                "chance": 0.05,
-                "density": 2,
-                "variants": 6,
-                "seed": 9302,
-                "stem": "minecraft:mushroom_stem",
-                "cap": "minecraft:brown_mushroom_block",
-                "capShape": "FLAT_WIDE",
-                "stemHeightMin": 5,
-                "stemHeightMax": 11,
-                "stemWidth": 2,
-                "stemCurve": 4,
-                "capRadiusMin": 4,
-                "capRadiusMax": 7,
-                "capThickness": 1,
-                "capSquish": 0.35,
-                "capDroop": 8,
-                "capOverhang": 3,
-                "gillBlock": "minecraft:shroomlight",
-                "gillChance": 0.5,
-                "rotation": {
-                    "enabled": true,
-                    "yAxis": {
-                        "enabled": true,
-                        "min": 0,
-                        "max": 360,
-                        "interval": 90
-                    }
-                }
-            },
-            {
-                "name": "spindle-toadstool",
-                "chance": 0.35,
-                "density": 3,
-                "variants": 6,
-                "seed": 9303,
-                "stem": "minecraft:mushroom_stem",
-                "stemPalette": {
-                    "style": {
-                        "style": "SIMPLEX",
-                        "zoom": 0.6
-                    },
-                    "palette": [
-                        {
-                            "block": "minecraft:mushroom_stem",
-                            "weight": 5
-                        },
-                        {
-                            "block": "minecraft:pale_oak_wood",
-                            "weight": 1
-                        }
-                    ]
-                },
-                "cap": "minecraft:red_mushroom_block",
-                "capShape": "CONICAL",
-                "stemHeightMin": 6,
-                "stemHeightMax": 12,
-                "stemWidth": 1,
-                "stemCurve": 10,
-                "stemWaveAmplitude": 0.6,
-                "stemWavePeriods": 2,
-                "capRadiusMin": 2,
-                "capRadiusMax": 4,
-                "capThickness": 2,
-                "capSquish": 0.9,
-                "capDroop": 22,
-                "capOverhang": 1,
-                "spotBlock": "minecraft:brown_mushroom_block",
-                "spotChance": 0.25,
-                "gillBlock": "minecraft:shroomlight",
-                "gillChance": 0.6,
-                "rotation": {
-                    "enabled": true,
-                    "yAxis": {
-                        "enabled": true,
-                        "min": 0,
-                        "max": 360,
-                        "interval": 90
-                    }
+                    "min": 0,
+                    "max": 360,
+                    "interval": 90
                 }
             }
-        ]
-    },
+        },
+        {
+            "place": [
+                "procedural/fungi/mushroom/brown-table"
+            ],
+            "chance": 0.05,
+            "density": 2,
+            "rotation": {
+                "enabled": true,
+                "yAxis": {
+                    "enabled": true,
+                    "min": 0,
+                    "max": 360,
+                    "interval": 90
+                }
+            }
+        },
+        {
+            "place": [
+                "procedural/fungi/mushroom/spindle-toadstool"
+            ],
+            "chance": 0.35,
+            "density": 3,
+            "rotation": {
+                "enabled": true,
+                "yAxis": {
+                    "enabled": true,
+                    "min": 0,
+                    "max": 360,
+                    "interval": 90
+                }
+            }
+        }
+    ],
     "landBiomes": [
         "mushroom/forest",
         "mushroom/crimson-forest",

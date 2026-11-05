@@ -35,6 +35,7 @@ import art.arcane.iris.modules.objects.CavePlacement;
 import art.arcane.iris.modules.objects.TerrainTransaction;
 import art.arcane.iris.modules.objects.EffectiveSettings;
 import art.arcane.iris.modules.objects.ObjectPool;
+import art.arcane.iris.modules.objects.ObjectSeparation;
 import art.arcane.iris.modules.objects.PlacementChanges;
 import art.arcane.iris.modules.objects.PlacementTags;
 import art.arcane.iris.modules.objects.ProceduralPlacement;
@@ -73,6 +74,7 @@ final class ChunkObjectPlacing {
     private static final String REGEN_THREAD_PREFIX = "Iris-Regen-";
 
     private final ObjectPool objects;
+    private final ObjectSeparation separation;
     private final ModuleLog log;
     private final MantleStageContext context;
     private final ObjectChunk chunk;
@@ -91,6 +93,7 @@ final class ChunkObjectPlacing {
 
     ChunkObjectPlacing(ObjectPool objects, EffectiveSettings settings, ModuleLog log, MantleStageContext context) {
         this.objects = objects;
+        this.separation = ObjectSeparation.of(context.world());
         this.log = log;
         this.context = context;
         this.chunk = new ObjectChunk(context, settings, log);
@@ -241,19 +244,42 @@ final class ChunkObjectPlacing {
     private void placeSurfaceScope(Tally tally, String scope, List<ObjectPlacement> placements, String ownerName) {
         for (ObjectPlacement placement : placements) {
             tally.checked(scope);
-            boolean passes = rng.chance(placement.chance() + rng.d(-CHANCE_JITTER, CHANCE_JITTER));
-            traceChance(scope, passes, placement);
-            if (!passes) {
-                continue;
-            }
-            tally.triggered(scope);
             try {
+                if (placement.isSeparated()) {
+                    placeSeparatedObject(tally, placement, scope);
+                    continue;
+                }
+                boolean passes = rng.chance(separation.chanceAt(placement, centerX, centerZ) + rng.d(-CHANCE_JITTER, CHANCE_JITTER));
+                traceChance(scope, passes, placement);
+                if (!passes) {
+                    continue;
+                }
+                tally.triggered(scope);
                 placeObject(tally, placement, scope);
             } catch (Throwable failure) {
                 tally.errors++;
                 logPlacementFailure("Failed to place objects in the following " + ownerKind(scope) + ": " + ownerName, placement, failure);
             }
         }
+    }
+
+    /** Places the one object the chunk's candidate stands for, when no closer candidate of a lower rank outranks it. */
+    private void placeSeparatedObject(Tally tally, ObjectPlacement placement, String scope) {
+        Optional<ObjectSeparation.Candidate> kept = separation.keptCandidate(chunkX, chunkZ, placement, context.settings());
+        traceChance(scope, kept.isPresent(), placement);
+        if (kept.isEmpty()) {
+            return;
+        }
+        tally.triggered(scope);
+        ObjectSeparation.Candidate candidate = kept.get();
+        tally.attempts++;
+        Optional<PlaceableObject> picked = objects.pickScaled(placement, candidate.rng());
+        if (picked.isEmpty()) {
+            tally.nullObjects++;
+            traceNullObject(scope, 0, 1, placement);
+            return;
+        }
+        placeOnSurfaceAt(tally, placement, scope, picked.get(), candidate.x(), candidate.z(), candidate.rng(), 0, 1);
     }
 
     private void placeCaveScope(Tally tally, String scope, List<ObjectPlacement> placements, CaveProfile profile,
@@ -297,31 +323,35 @@ final class ChunkObjectPlacing {
                 traceNullObject(scope, i, density, placement);
                 continue;
             }
-            PlaceableObject object = picked.get();
             int x = rng.i(blockX, blockX + CHUNK_WIDTH_BLOCKS);
             int z = rng.i(blockZ, blockZ + CHUNK_WIDTH_BLOCKS);
-            PlacementChanges changes = effective.forSurface(placement, object);
-            boolean treePlacement = isTreePlacement(object, placement);
-            int id = rng.i(0, Integer.MAX_VALUE);
-            String goldenTag = golden ? scope + "/" + object.name() : null;
-            if (golden) {
-                log.debug("Goldendebug object attempt: chunk=" + chunkX + "," + chunkZ + " scope=" + scope + " object=" + object.name()
-                        + " densityIndex=" + i + " xx=" + x + " zz=" + z + " mode=" + placement.mode());
+            placeOnSurfaceAt(tally, placement, scope, picked.get(), x, z, rng, i, density);
+        }
+    }
+
+    private void placeOnSurfaceAt(Tally tally, ObjectPlacement placement, String scope, PlaceableObject object, int x, int z,
+                                  RNG placingRng, int densityIndex, int density) {
+        PlacementChanges changes = effective.forSurface(placement, object);
+        boolean treePlacement = isTreePlacement(object, placement);
+        int id = placingRng.i(0, Integer.MAX_VALUE);
+        String goldenTag = golden ? scope + "/" + object.name() : null;
+        if (golden) {
+            log.debug("Goldendebug object attempt: chunk=" + chunkX + "," + chunkZ + " scope=" + scope + " object=" + object.name()
+                    + " densityIndex=" + densityIndex + " xx=" + x + " zz=" + z + " mode=" + placement.mode());
+        }
+        try {
+            PlacementTags tags = tags(object, id, "surface", treePlacement, placement);
+            int result = chunk.placeOnSurface(object, x, z, placement, changes, tags, goldenTag);
+            if (result >= 0) {
+                tally.placed++;
+            } else {
+                tally.rejected++;
             }
-            try {
-                PlacementTags tags = tags(object, id, "surface", treePlacement, placement);
-                int result = chunk.placeOnSurface(object, x, z, placement, changes, tags, goldenTag);
-                if (result >= 0) {
-                    tally.placed++;
-                } else {
-                    tally.rejected++;
-                }
-                traceObjectResult(scope, object, result, x, z, i, density);
-            } catch (Throwable failure) {
-                tally.errors++;
-                log.error("Regen object placement exception: chunk=" + chunkX + "," + chunkZ + " scope=" + scope + " object=" + object.name()
-                        + " densityIndex=" + i + " density=" + density + " error=" + failure.getClass().getSimpleName() + ":" + failure.getMessage(), failure);
-            }
+            traceObjectResult(scope, object, result, x, z, densityIndex, density);
+        } catch (Throwable failure) {
+            tally.errors++;
+            log.error("Regen object placement exception: chunk=" + chunkX + "," + chunkZ + " scope=" + scope + " object=" + object.name()
+                    + " densityIndex=" + densityIndex + " density=" + density + " error=" + failure.getClass().getSimpleName() + ":" + failure.getMessage(), failure);
         }
     }
 

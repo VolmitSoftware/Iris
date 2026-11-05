@@ -98,8 +98,13 @@ public final class ObjectPlacement implements PlacementSource {
     @MaxNumber(1)
     @Desc("The chance for this to place in a chunk. If you need multiple per chunk, set this to 1 and use density.")
     private double chance = 1;
+    @Desc("If set, chance is multiplied by this noise (0 to 1) at the chunk, so objects gather in some areas and thin out in others.")
+    private NoiseStyle chanceStyle = null;
+    @MinNumber(0)
+    @Desc("Keeps objects of this placement at least this many blocks apart, also across chunks and biomes that place the same objects. Each chunk then places at most one. 0 turns it off. Surface placements only.")
+    private int separation = 0;
     @MinNumber(1)
-    @Desc("If the chance check passes, place this many in a single chunk")
+    @Desc("If the chance check passes, place this many in a single chunk. Ignored when separation is set.")
     private int density = 1;
     @Desc("If the chance check passes, and you specify this, it picks a number in the range based on noise, and 'density' is ignored.")
     private StyledRange densityStyle = null;
@@ -199,6 +204,8 @@ public final class ObjectPlacement implements PlacementSource {
         slopeCondition = source.slopeCondition;
         rotateTowardsSlope = source.rotateTowardsSlope;
         chance = source.chance;
+        chanceStyle = source.chanceStyle;
+        separation = source.separation;
         density = source.density;
         densityStyle = source.densityStyle;
         stiltSettings = source.stiltSettings;
@@ -282,6 +289,20 @@ public final class ObjectPlacement implements PlacementSource {
     @Override
     public double chance() {
         return chance;
+    }
+
+    /** The noise, from 0 to 1, that {@link #chance()} is multiplied by at each chunk; empty when the chance is the same everywhere. */
+    public Optional<NoiseStyle> chanceStyle() {
+        return Optional.ofNullable(chanceStyle);
+    }
+
+    /** The least distance in blocks between two objects of placements with the same objects; 0 when they are not kept apart. */
+    public int separation() {
+        return separation;
+    }
+
+    public boolean isSeparated() {
+        return separation > 0;
     }
 
     /** The count of placements when the chance check passes, unless {@link #densityStyle()} picks it. */

@@ -22,8 +22,10 @@ import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.builtin.objects.ObjectSettings;
 import art.arcane.iris.modules.objects.EffectiveSettings;
 import art.arcane.iris.modules.objects.ObjectPool;
+import art.arcane.iris.modules.objects.ObjectSeparation;
 import art.arcane.volmlib.util.math.RNG;
 import com.volmit.ModuleLog;
+import com.volmit.config.FeatureSettings;
 import com.volmit.config.Level;
 import com.volmit.config.SettingsStack;
 import com.volmit.object.PlaceableObject;
@@ -47,12 +49,14 @@ public final class ObjectPlacing {
 
     private final PackWorld world;
     private final ObjectPool objects;
+    private final ObjectSeparation separation;
     private final EffectiveSettings settings = new EffectiveSettings();
     private final ModuleLog log;
 
     private ObjectPlacing(PackWorld world) {
         this.world = world;
         this.objects = ObjectPool.of(world);
+        this.separation = ObjectSeparation.of(world);
         this.log = world.log();
     }
 
@@ -71,20 +75,34 @@ public final class ObjectPlacing {
         RNG rng = objects.chunkRandom(chunkX, chunkZ);
         int centerX = (chunkX << CHUNK_SHIFT) + CHUNK_CENTER_OFFSET_BLOCKS;
         int centerZ = (chunkZ << CHUNK_SHIFT) + CHUNK_CENTER_OFFSET_BLOCKS;
-        SettingsStack<ObjectSettings> declared = world.running().orElseThrow().settings().at(ObjectSettings.class, centerX, centerZ);
+        FeatureSettings worldSettings = world.running().orElseThrow().settings();
+        SettingsStack<ObjectSettings> declared = worldSettings.at(ObjectSettings.class, centerX, centerZ);
         Set<String> keys = new HashSet<>();
         for (Level level : GUESSED_LEVELS) {
-            declared.level(level).ifPresent(settings -> guessFrom(settings, rng, chunkX, chunkZ, keys));
+            declared.level(level).ifPresent(settings -> guessFrom(settings, worldSettings, rng, chunkX, chunkZ, keys));
         }
         return keys;
     }
 
-    private void guessFrom(ObjectSettings settings, RNG rng, int chunkX, int chunkZ, Set<String> keys) {
+    private void guessFrom(ObjectSettings settings, FeatureSettings worldSettings, RNG rng, int chunkX, int chunkZ, Set<String> keys) {
+        int centerX = (chunkX << CHUNK_SHIFT) + CHUNK_CENTER_OFFSET_BLOCKS;
+        int centerZ = (chunkZ << CHUNK_SHIFT) + CHUNK_CENTER_OFFSET_BLOCKS;
         for (ObjectPlacement placement : settings.objects()) {
-            if (placement.carvingSupport().supportsSurface() && rng.chance(placement.chance() + rng.d(-CHANCE_JITTER, CHANCE_JITTER))) {
+            if (!placement.carvingSupport().supportsSurface()) {
+                continue;
+            }
+            if (placement.isSeparated()) {
+                guessSeparatedKey(chunkX, chunkZ, placement, worldSettings).ifPresent(keys::add);
+            } else if (rng.chance(separation.chanceAt(placement, centerX, centerZ) + rng.d(-CHANCE_JITTER, CHANCE_JITTER))) {
                 keys.addAll(guessPlacedKeys(rng, chunkX, chunkZ, placement));
             }
         }
+    }
+
+    private Optional<String> guessSeparatedKey(int chunkX, int chunkZ, ObjectPlacement placement, FeatureSettings worldSettings) {
+        return separation.keptCandidate(chunkX, chunkZ, placement, worldSettings)
+                .flatMap(candidate -> objects.pickScaled(placement, candidate.rng()))
+                .map(PlaceableObject::name);
     }
 
     private Set<String> guessPlacedKeys(RNG rng, int x, int z, ObjectPlacement placement) {

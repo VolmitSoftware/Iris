@@ -38,6 +38,8 @@ public final class IrisSeedPurposes {
     public static final ResourceId MANTLE = purpose("mantle");
     /** The noise that warps the columns of object placements with a surface warp. */
     public static final ResourceId OBJECT_WARP = purpose("object-warp");
+    /** The candidate spots, ranks and chance noise of separated object placements. */
+    public static final ResourceId OBJECT_SEPARATION = purpose("object-separation");
     public static final ResourceId POST = purpose("post");
     public static final ResourceId TERRAIN = purpose("terrain");
 

@@ -546,7 +546,7 @@ public final class EngineBukkitOps {
     }
 
     public static void gotoRegion(Engine engine, IrisRegion r, Player player, boolean teleport) {
-        if (!engine.getDimension().getRegions().contains(r.getLoadKey())) {
+        if (!engine.generatesRegion(r)) {
             ComponentMessenger.sendSection(player, IrisLanguage.text(BukkitRuntimeMessages.ENGINE_BUKKIT_OPS_IS_NOT_DEFINED_DIMENSION, MessageArgument.untrusted("name", String.valueOf(r.getName()))));
             return;
         }

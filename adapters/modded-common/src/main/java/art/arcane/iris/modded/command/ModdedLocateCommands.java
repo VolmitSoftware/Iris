@@ -107,7 +107,7 @@ final class ModdedLocateCommands {
             IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_UNKNOWN_REGION_2, MessageArgument.untrusted("key", key)));
             return 0;
         }
-        if (!engine.getDimension().getRegions().contains(region.getLoadKey())) {
+        if (!engine.generatesRegion(region)) {
             IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.IRIS_MODDED_COMMANDS_IS_NOT_DEFINED_DIMENSION, MessageArgument.untrusted("value", region.getLoadKey())));
             return 0;
         }

@@ -236,8 +236,9 @@ public class IrisComplex implements DataProvider {
                         .bake().scale(1D / engine.getDimension().getContinentZoom()).bake().stream()
                         .convert((v) -> v >= engine.getDimension().getLandChance() ? InferredType.SEA : InferredType.LAND)
                         .cache2D("bridgeStream", engine, cacheSize);
-        ProceduralStream<IrisBiome> proceduralBaseBiomeStream = focusBiome != null ? ProceduralStream.of((x, z) -> focusBiome,
-                Interpolated.of(a -> 0D, a -> focusBiome)) :
+        ProceduralStream<IrisBiome> proceduralBaseBiomeStream = focusBiome != null ? ProceduralStream.of((x, z) -> implode(focusBiome, x, z),
+                        Interpolated.of(a -> 0D, a -> focusBiome))
+                .cache2D("baseBiomeStream-focus", engine, cacheSize) :
                 bridgeStream.convertAware2D((t, x, z) -> inferredStreams.get(t).get(x, z))
                         .convertAware2D(this::implode)
                         .cache2D("baseBiomeStream", engine, cacheSize);
@@ -253,9 +254,7 @@ public class IrisComplex implements DataProvider {
         }, Interpolated.DOUBLE).cache2DDouble("heightStream", engine, cacheSize);
         slopeStream = heightStream.slope(3)
                 .cache2DDouble("slopeStream", engine, cacheSize);
-        trueBiomeStream = focusBiome != null ? ProceduralStream.of((x, y) -> focusBiome, Interpolated.of(a -> 0D,
-                        b -> focusBiome))
-                .cache2D("trueBiomeStream-focus", engine, cacheSize) : heightStream
+        trueBiomeStream = focusBiome != null ? baseBiomeStream : heightStream
                 .convertAware2D((h, x, z) -> {
                     IrisBiome mapped = imageMapRuntime.sampleBiome(x, z);
                     return mapped == null

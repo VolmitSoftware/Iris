@@ -339,6 +339,15 @@ public interface Engine extends DataProvider, Fallible, BlockUpdater, Renderer, 
 
     IrisRegion getFocusRegion();
 
+    /** Whether the world generates {@code region}: a world locked to a focus region generates only that one, which the dimension's region list need not name. */
+    default boolean generatesRegion(IrisRegion region) {
+        IrisRegion focusRegion = getFocusRegion();
+        if (focusRegion != null) {
+            return focusRegion.getLoadKey().equals(region.getLoadKey());
+        }
+        return getDimension().getRegions().contains(region.getLoadKey());
+    }
+
 
     IrisEngineData getEngineData();
 

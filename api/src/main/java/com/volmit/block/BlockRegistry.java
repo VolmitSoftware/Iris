@@ -76,6 +76,8 @@ public interface BlockRegistry {
     /** {@code state} with the property {@code name} set to {@code value}, as the platform sets it. Unlike
      * {@link BlockState#withProperty} it keeps a content plugin's block itself ({@link BlockTrait#CUSTOM}): such a block
      * shares its key with the block it is drawn as, so only the state instance the registry handed out knows it.
+     * {@code state} itself when the block has no property {@code name} or does not accept {@code value}, such as a
+     * {@code facing} of {@code up} for a block that only faces sideways.
      */
     BlockState withProperty(BlockState state, String name, String value);
 

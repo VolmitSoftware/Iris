@@ -1,17 +1,16 @@
 package art.arcane.iris.engine.mantle.components;
 
-import art.arcane.iris.builtin.MatterMantle;
 import art.arcane.iris.builtin.carve.CaveFieldModule;
 import art.arcane.iris.modules.carve.CaveProfile;
 import art.arcane.iris.core.modules.CarveTestWorld;
 import art.arcane.iris.modules.terrain.FluidPaletteSettings;
 import art.arcane.iris.engine.framework.SeedManager;
 import art.arcane.iris.engine.object.TestSettings;
-import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
-import art.arcane.volmlib.util.matter.Matter;
-import art.arcane.volmlib.util.matter.MatterCavern;
-import art.arcane.volmlib.util.matter.MatterSlice;
 import com.volmit.config.Range;
+import com.volmit.geometry.BlockBox;
+import com.volmit.mantle.CarvedVoid;
+import com.volmit.mantle.MantleLayer;
+import com.volmit.mantle.MantleVisitor;
 import com.volmit.noise.NoiseSampler;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -30,11 +29,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.mock;
 
 public class IrisCaveCarver3DNearParityTest {
     private static final int SURFACE_CEILING_FADE_DEPTH = 12;
@@ -50,10 +44,6 @@ public class IrisCaveCarver3DNearParityTest {
     private static Field profileField;
     private static Field surfaceBreakDensityField;
     private static Field thresholdNoiseField;
-    private static Field carveAirField;
-    private static Field carveFluidField;
-    private static Field carveLavaField;
-    private static Field carveForcedAirField;
 
     @BeforeClass
     public static void setupReflection() throws Exception {
@@ -67,14 +57,6 @@ public class IrisCaveCarver3DNearParityTest {
         surfaceBreakDensityField.setAccessible(true);
         thresholdNoiseField = IrisCaveCarver3D.class.getDeclaredField("thresholdNoise");
         thresholdNoiseField.setAccessible(true);
-        carveAirField = IrisCaveCarver3D.class.getDeclaredField("carveAir");
-        carveAirField.setAccessible(true);
-        carveFluidField = IrisCaveCarver3D.class.getDeclaredField("carveFluid");
-        carveFluidField.setAccessible(true);
-        carveLavaField = IrisCaveCarver3D.class.getDeclaredField("carveLava");
-        carveLavaField.setAccessible(true);
-        carveForcedAirField = IrisCaveCarver3D.class.getDeclaredField("carveForcedAir");
-        carveForcedAirField.setAccessible(true);
     }
 
     @Test
@@ -299,7 +281,7 @@ public class IrisCaveCarver3DNearParityTest {
         new IrisCaveCarver3D(engine, supportedProfile).carve(
                 firstCapture.writer, chunkX, chunkZ, fullWeights(), 0D, 0D, null, surfaceHeights, null, null, supportPlan);
         int candidateCount = countLiquid(firstCapture, (byte) 1);
-        supportPlan.resolve(firstCapture.writer.chunk(chunkX, chunkZ));
+        supportPlan.resolve(firstCapture.writer, chunkX << 4, chunkZ << 4, firstCapture.worldHeight);
 
         CaveProfile repeatedProfile = TestSettings.with(createFluidProfile(), "densityThreshold", cupThreshold, "fluidMinDepthBelowSurface", 0, "fluidRequiresFloor", true);
         WriterCapture secondCapture = createWriterCapture(80);
@@ -321,19 +303,15 @@ public class IrisCaveCarver3DNearParityTest {
     @Test
     public void finalFluidSupportRejectsUnknownNeighborChunkEdges() {
         WriterCapture capture = createWriterCapture(80);
-        MantleChunk<Matter> chunk = capture.writer.chunk(0, 0);
-        MatterSlice<MatterCavern> slice = chunk.getOrCreate(3).slice(MatterCavern.class);
-        MatterCavern fluid = new MatterCavern(true, "", (byte) 1);
-        MatterCavern air = new MatterCavern(true, "", (byte) 0);
         int y = 56;
         int z = 8;
-        slice.set(0, y & 15, z, fluid);
-        slice.set(8, y & 15, z, fluid);
+        capture.writer.set(0, y, z, CarvedVoid.FLUID);
+        capture.writer.set(8, y, z, CarvedVoid.FLUID);
         CaveFluidSupportPlan supportPlan = new CaveFluidSupportPlan();
-        supportPlan.add(0, y, z, fluid, air);
-        supportPlan.add(8, y, z, fluid, air);
+        supportPlan.add(0, y, z);
+        supportPlan.add(8, y, z);
 
-        supportPlan.resolve(chunk);
+        supportPlan.resolve(capture.writer, 0, 0, capture.worldHeight);
 
         assertEquals(Byte.valueOf((byte) 0), capture.carvedLiquids.get(cellKey(0, y, z)));
         assertEquals(Byte.valueOf((byte) 1), capture.carvedLiquids.get(cellKey(8, y, z)));
@@ -361,7 +339,7 @@ public class IrisCaveCarver3DNearParityTest {
                 null, Range.of(fluidY - 1D, fluidY - 1D), fluidSupportPlan);
 
         assertEquals(Byte.valueOf((byte) 1), capture.carvedLiquids.get(fluidCell));
-        fluidSupportPlan.resolve(capture.writer.chunk(chunkX, chunkZ));
+        fluidSupportPlan.resolve(capture.writer, chunkX << 4, chunkZ << 4, capture.worldHeight);
         assertEquals(Byte.valueOf((byte) 0), capture.carvedLiquids.get(fluidCell));
     }
 
@@ -500,14 +478,10 @@ public class IrisCaveCarver3DNearParityTest {
         return elapsed;
     }
 
-    private int carveNaiveExact(IrisCaveCarver3D carver, MatterMantle writer, int worldHeight, int chunkX, int chunkZ, double[] columnWeights, Range worldYRange, int[] precomputedSurfaceHeights) throws Exception {
+    private int carveNaiveExact(IrisCaveCarver3D carver, MantleLayer<CarvedVoid> writer, int worldHeight, int chunkX, int chunkZ, double[] columnWeights, Range worldYRange, int[] precomputedSurfaceHeights) throws Exception {
         CaveProfile profile = (CaveProfile) profileField.get(carver);
         NoiseSampler surfaceBreakDensity = (NoiseSampler) surfaceBreakDensityField.get(carver);
         NoiseSampler thresholdNoise = (NoiseSampler) thresholdNoiseField.get(carver);
-        MatterCavern carveAir = (MatterCavern) carveAirField.get(carver);
-        MatterCavern carveFluid = (MatterCavern) carveFluidField.get(carver);
-        MatterCavern carveLava = (MatterCavern) carveLavaField.get(carver);
-        MatterCavern carveForcedAir = (MatterCavern) carveForcedAirField.get(carver);
 
         double[] resolvedWeights = columnWeights;
         if (resolvedWeights == null || resolvedWeights.length < 256) {
@@ -539,7 +513,7 @@ public class IrisCaveCarver3DNearParityTest {
         double[] passThreshold = new double[256];
         double[] verticalEdgeFade = computeVerticalEdgeFade(profile, minY, maxY);
         double[] surfaceClosureThreshold = computeSurfaceClosureThresholds(profile, minY, maxY);
-        MatterCavern[] matterByY = computeMatterByY(profile, carveAir, carveLava, carveForcedAir, minY, maxY);
+        CarvedVoid[] voidByY = computeVoidByY(profile, minY, maxY);
 
         int x0 = chunkX << 4;
         int z0 = chunkZ << 4;
@@ -569,12 +543,6 @@ public class IrisCaveCarver3DNearParityTest {
 
                 passThreshold[columnIndex] = thresholdAt(profile, thresholdNoise, x, z) - profile.thresholdBias();
             }
-        }
-
-        @SuppressWarnings("unchecked")
-        MantleChunk<Matter> chunk = writer.chunk(chunkX, chunkZ);
-        if (chunk == null) {
-            return 0;
         }
 
         int carved = 0;
@@ -608,14 +576,11 @@ public class IrisCaveCarver3DNearParityTest {
                         continue;
                     }
 
-                    Matter sectionMatter = chunk.getOrCreate(y >> 4);
-                    MatterSlice<MatterCavern> cavernSlice = sectionMatter.slice(MatterCavern.class);
-                    MatterCavern verticalMatter = matterByY[y - minY];
-                    boolean aquifer = verticalMatter == carveAir
+                    CarvedVoid verticalVoid = voidByY[y - minY];
+                    boolean aquifer = verticalVoid == CarvedVoid.OPEN
                             && y <= fluidMaxY[columnIndex]
                             && (boolean) aquiferCandidateMethod.invoke(carver, x, y, z, localThreshold);
-                    MatterCavern matter = aquifer ? carveFluid : verticalMatter;
-                    cavernSlice.set(localX, y & 15, localZ, matter);
+                    writer.set(x, y, z, aquifer ? CarvedVoid.FLUID : verticalVoid);
                     carved++;
                 }
             }
@@ -720,26 +685,26 @@ public class IrisCaveCarver3DNearParityTest {
         return verticalEdgeFade;
     }
 
-    private MatterCavern[] computeMatterByY(CaveProfile profile, MatterCavern carveAir, MatterCavern carveLava, MatterCavern carveForcedAir, int minY, int maxY) {
-        MatterCavern[] matterByY = new MatterCavern[Math.max(0, maxY - minY + 1)];
+    private CarvedVoid[] computeVoidByY(CaveProfile profile, int minY, int maxY) {
+        CarvedVoid[] voidByY = new CarvedVoid[Math.max(0, maxY - minY + 1)];
         boolean allowLava = profile.allowLava();
         int lavaHeight = LAVA_HEIGHT;
 
         for (int y = minY; y <= maxY; y++) {
             int offset = y - minY;
             if (allowLava && y <= lavaHeight) {
-                matterByY[offset] = carveLava;
+                voidByY[offset] = CarvedVoid.LAVA;
                 continue;
             }
             if (!allowLava && y <= lavaHeight) {
-                matterByY[offset] = carveForcedAir;
+                voidByY[offset] = CarvedVoid.AIR;
                 continue;
             }
 
-            matterByY[offset] = carveAir;
+            voidByY[offset] = CarvedVoid.OPEN;
         }
 
-        return matterByY;
+        return voidByY;
     }
 
     private CarveWorld createEngine(int worldHeight, int sampledHeight) {
@@ -826,68 +791,62 @@ public class IrisCaveCarver3DNearParityTest {
     }
 
     private WriterCapture createWriterCapture(int worldHeight) {
-        @SuppressWarnings("unchecked")
-        MantleChunk<Matter> chunk = mock(MantleChunk.class);
-        Map<Integer, Matter> sections = new HashMap<>();
-        Map<Integer, Map<Integer, MatterCavern>> sectionCells = new HashMap<>();
         Set<String> carvedCells = new HashSet<>();
         Map<String, Byte> carvedLiquids = new HashMap<>();
-
-        doAnswer(invocation -> sections.get(invocation.getArgument(0, Integer.class))).when(chunk).get(anyInt());
-        doAnswer(invocation -> {
-            int sectionIndex = invocation.getArgument(0);
-            Matter section = sections.get(sectionIndex);
-            if (section != null) {
-                return section;
-            }
-
-            Matter created = createSection(sectionIndex, sectionCells, carvedCells, carvedLiquids);
-            sections.put(sectionIndex, created);
-            return created;
-        }).when(chunk).getOrCreate(anyInt());
-
-        MatterMantle mantle = new MatterMantle() {
-            @Override
-            public MantleChunk<Matter> chunk(int chunkX, int chunkZ) {
-                return chunk;
-            }
-
-            @Override
-            public MantleChunk<Matter> loadedChunk(int chunkX, int chunkZ) {
-                return null;
-            }
-        };
-        return new WriterCapture(mantle, carvedCells, carvedLiquids);
+        return new WriterCapture(new CapturingVoids(carvedCells, carvedLiquids), worldHeight, carvedCells, carvedLiquids);
     }
 
-    private Matter createSection(int sectionIndex, Map<Integer, Map<Integer, MatterCavern>> sectionCells, Set<String> carvedCells, Map<String, Byte> carvedLiquids) {
-        Matter matter = mock(Matter.class);
-        @SuppressWarnings("unchecked")
-        MatterSlice<MatterCavern> slice = mock(MatterSlice.class);
-        Map<Integer, MatterCavern> localCells = sectionCells.computeIfAbsent(sectionIndex, key -> new HashMap<>());
+    /** The carved voids of one chunk, recorded by the chunk's local X and Z and the height, with the carver's liquid code of each fill. */
+    private static final class CapturingVoids implements MantleLayer<CarvedVoid> {
+        private final Map<Long, CarvedVoid> voids = new HashMap<>();
+        private final Set<String> carvedCells;
+        private final Map<String, Byte> carvedLiquids;
 
-        doReturn(slice).when(matter).slice(MatterCavern.class);
-        doReturn(slice).when(matter).getSlice(MatterCavern.class);
-        doAnswer(invocation -> {
-            int localX = invocation.getArgument(0);
-            int localY = invocation.getArgument(1);
-            int localZ = invocation.getArgument(2);
-            return localCells.get(packLocal(localX, localY, localZ));
-        }).when(slice).get(anyInt(), anyInt(), anyInt());
-        doAnswer(invocation -> {
-            int localX = invocation.getArgument(0);
-            int localY = invocation.getArgument(1);
-            int localZ = invocation.getArgument(2);
-            MatterCavern value = invocation.getArgument(3);
-            localCells.put(packLocal(localX, localY, localZ), value);
-            int worldY = (sectionIndex << 4) + localY;
-            String cellKey = cellKey(localX, worldY, localZ);
-            carvedCells.add(cellKey);
-            carvedLiquids.put(cellKey, value.getLiquid());
-            return null;
-        }).when(slice).set(anyInt(), anyInt(), anyInt(), any(MatterCavern.class));
+        private CapturingVoids(Set<String> carvedCells, Map<String, Byte> carvedLiquids) {
+            this.carvedCells = carvedCells;
+            this.carvedLiquids = carvedLiquids;
+        }
 
-        return matter;
+        @Override
+        public CarvedVoid get(int x, int y, int z) {
+            return voids.get(position(x, y, z));
+        }
+
+        @Override
+        public void set(int x, int y, int z, CarvedVoid value) {
+            voids.put(position(x, y, z), value);
+            String cell = x - ((x >> 4) << 4) + ":" + y + ":" + (z - ((z >> 4) << 4));
+            carvedCells.add(cell);
+            carvedLiquids.put(cell, liquidCode(value));
+        }
+
+        @Override
+        public void remove(int x, int y, int z) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void visit(BlockBox area, MantleVisitor<CarvedVoid> visitor) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void clear(BlockBox area) {
+            throw new UnsupportedOperationException();
+        }
+
+        private static long position(int x, int y, int z) {
+            return ((long) x << 40) ^ ((long) y << 20) ^ (z & 0xfffffL);
+        }
+
+        private static byte liquidCode(CarvedVoid value) {
+            return switch (value.fill()) {
+                case OPEN -> 0;
+                case FLUID -> 1;
+                case LAVA -> 2;
+                case AIR -> 3;
+            };
+        }
     }
 
     private double[] fullWeights() {
@@ -1083,12 +1042,14 @@ public class IrisCaveCarver3DNearParityTest {
     }
 
     private static final class WriterCapture {
-        private final MatterMantle writer;
+        private final MantleLayer<CarvedVoid> writer;
+        private final int worldHeight;
         private final Set<String> carvedCells;
         private final Map<String, Byte> carvedLiquids;
 
-        private WriterCapture(MatterMantle writer, Set<String> carvedCells, Map<String, Byte> carvedLiquids) {
+        private WriterCapture(MantleLayer<CarvedVoid> writer, int worldHeight, Set<String> carvedCells, Map<String, Byte> carvedLiquids) {
             this.writer = writer;
+            this.worldHeight = worldHeight;
             this.carvedCells = carvedCells;
             this.carvedLiquids = carvedLiquids;
         }

@@ -18,7 +18,6 @@
 
 package art.arcane.iris.engine.modifier;
 
-import art.arcane.iris.builtin.MatterMantle;
 import art.arcane.iris.core.modules.CarveTestTerrain;
 import art.arcane.iris.core.modules.CarveTestWorld;
 import art.arcane.iris.core.modules.InMemoryMantle;
@@ -26,7 +25,6 @@ import art.arcane.iris.engine.mantle.components.CarveWorld;
 import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
 import art.arcane.volmlib.util.matter.Matter;
 import art.arcane.volmlib.util.matter.MatterCavern;
-import art.arcane.volmlib.util.matter.MatterMarker;
 import com.volmit.block.BlockState;
 import com.volmit.host.ArrayHunk;
 import com.volmit.hunk.Hunk;
@@ -121,48 +119,29 @@ public class CaveApplyingTest {
     }
 
     @Test
-    public void markersAreStampedFromTheSeedAndPositionAlone() {
-        for (int x = 0; x < 16; x++) {
-            for (int z = 0; z < 16; z++) {
-                carve(x, z, CAVE_FLOOR_Y, CAVE_CEILING_Y, AIR_CAVERN);
-            }
-        }
+    public void aCaveInTheNeighbouringChunkWallsTheBorderBlocksNextToIt() {
+        carve(1, 0, 0, CAVE_Z, CAVE_FLOOR_Y, CAVE_CEILING_Y, AIR_CAVERN);
 
         apply(false);
-        int first = markers();
-        blocks = new ArrayHunk<>(BlockState.class, 16, HEIGHT, 16, STONE);
-        apply(false);
 
-        assertTrue("about one in sixteen of the 512 floors and ceilings", first > 0 && first < 128);
-        assertEquals(first, markers());
+        assertEquals("the wall against the neighbour's cave", WALL, blocks.get(15, CAVE_FLOOR_Y + 1, CAVE_Z));
+        assertEquals("rock one block further in", STONE, blocks.get(14, CAVE_FLOOR_Y + 1, CAVE_Z));
+        assertEquals("rock beside the cave's rows", STONE, blocks.get(15, CAVE_FLOOR_Y + 1, CAVE_Z + 3));
     }
 
     private void carve(int x, int z, int floorY, int ceilingY, MatterCavern cavern) {
-        MantleChunk<Matter> chunk = mantle.chunk(0, 0);
+        carve(0, 0, x, z, floorY, ceilingY, cavern);
+    }
+
+    private void carve(int chunkX, int chunkZ, int x, int z, int floorY, int ceilingY, MatterCavern cavern) {
+        MantleChunk<Matter> chunk = mantle.chunk(chunkX, chunkZ);
         for (int y = floorY; y <= ceilingY; y++) {
             chunk.getOrCreate(y >> 4).<MatterCavern>slice(MatterCavern.class).set(x, y & 15, z, cavern);
         }
     }
 
     private void apply(boolean upperDimensionCarving) {
-        MatterMantle matter = new MatterMantle() {
-            @Override
-            public MantleChunk<Matter> chunk(int chunkX, int chunkZ) {
-                return mantle.chunk(chunkX, chunkZ);
-            }
-
-            @Override
-            public MantleChunk<Matter> loadedChunk(int chunkX, int chunkZ) {
-                return null;
-            }
-        };
         CarveWorld carveWorld = new CarveWorld(world.resources().noise(), 1337L, HEIGHT, FLUID_HEIGHT, LAVA_HEIGHT, CarveTestWorld.MIN_HEIGHT);
-        new CaveApplying(world, carveWorld, upperDimensionCarving).apply(matter, terrain, 0, 0, blocks, dressing);
-    }
-
-    private int markers() {
-        int[] count = new int[1];
-        mantle.chunk(0, 0).iterate(MatterMarker.class, (x, y, z, marker) -> count[0]++);
-        return count[0];
+        new CaveApplying(world, carveWorld, upperDimensionCarving).apply(mantle.carved(), terrain, 0, 0, blocks, dressing);
     }
 }

@@ -1,7 +1,7 @@
 package art.arcane.iris.engine.modifier;
 
-import art.arcane.volmlib.util.matter.MatterCavern;
 import com.volmit.block.BlockState;
+import com.volmit.mantle.CarvedVoid;
 import org.junit.Test;
 
 import static org.junit.Assert.assertFalse;
@@ -12,10 +12,10 @@ import static org.junit.Assert.assertTrue;
 public class CaveApplyingFluidIntentTest {
     @Test
     public void explicitCavernIntentsOverrideExistingFluid() {
-        MatterCavern airIntent = new MatterCavern(true, "", (byte) 0);
-        MatterCavern fluidIntent = new MatterCavern(true, "", (byte) 1);
-        MatterCavern lavaIntent = new MatterCavern(true, "", (byte) 2);
-        MatterCavern forcedAirIntent = new MatterCavern(true, "", (byte) 3);
+        CarvedVoid airIntent = CarvedVoid.OPEN;
+        CarvedVoid fluidIntent = CarvedVoid.FLUID;
+        CarvedVoid lavaIntent = CarvedVoid.LAVA;
+        CarvedVoid forcedAirIntent = CarvedVoid.AIR;
         BlockState fluid = new BlockState("minecraft:water");
         BlockState lava = new BlockState("minecraft:lava");
         BlockState air = new BlockState("minecraft:cave_air");

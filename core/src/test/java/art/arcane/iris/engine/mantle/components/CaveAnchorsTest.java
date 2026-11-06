@@ -2,7 +2,7 @@ package art.arcane.iris.engine.mantle.components;
 
 import art.arcane.iris.builtin.carve.CaveAnchorMode;
 import art.arcane.iris.modules.objects.CarvedSpace;
-import art.arcane.iris.modules.objects.Cavern;
+import com.volmit.mantle.CarvedVoid;
 import art.arcane.volmlib.util.math.RNG;
 import com.volmit.resource.ResourceId;
 import com.volmit.world.BiomeSample;
@@ -92,8 +92,8 @@ public class CaveAnchorsTest {
             }
             return column;
         });
-        when(cave.cavernAt(anyInt(), anyInt(), anyInt())).thenAnswer(call ->
-                isCarved(call.getArgument(1)) ? Optional.of(new Cavern(true, (byte) 0)) : Optional.empty());
+        when(cave.voidAt(anyInt(), anyInt(), anyInt())).thenAnswer(call ->
+                isCarved(call.getArgument(1)) ? Optional.of(CarvedVoid.OPEN) : Optional.empty());
         return cave;
     }
 

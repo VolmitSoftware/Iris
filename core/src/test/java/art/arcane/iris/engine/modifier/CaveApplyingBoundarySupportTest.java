@@ -1,16 +1,13 @@
 package art.arcane.iris.engine.modifier;
 
-import art.arcane.iris.builtin.MatterMantle;
 import art.arcane.iris.core.modules.CarveTestWorld;
 import art.arcane.iris.engine.mantle.components.CarveWorld;
-import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
-import art.arcane.volmlib.util.matter.Matter;
-import art.arcane.volmlib.util.matter.MatterCavern;
-import art.arcane.volmlib.util.matter.MatterSlice;
 import com.volmit.block.BlockState;
 import com.volmit.host.ArrayHunk;
 import com.volmit.hunk.Hunk;
 import com.volmit.geometry.BlockBox;
+import com.volmit.mantle.CarvedVoid;
+import com.volmit.mantle.MantleLayer;
 import com.volmit.resource.ResourceId;
 import com.volmit.world.BiomeSample;
 import com.volmit.world.TerrainSample;
@@ -44,25 +41,12 @@ public class CaveApplyingBoundarySupportTest {
     public void boundaryBiomeUsesCustomMatterAtItsOwnY() {
         ResourceId resolvedCeiling = CarveTestWorld.id("cave/ceiling");
         CaveApplying modifier = new CaveApplying(world, new CarveWorld(world.resources().noise(), 1L, 384, 127, 8, CarveTestWorld.MIN_HEIGHT), false);
-        MantleChunk<Matter> mantleChunk = mock(MantleChunk.class);
-        Matter floorMatter = mock(Matter.class);
-        Matter ceilingMatter = mock(Matter.class);
-        MatterSlice<MatterCavern> floorSlice = mock(MatterSlice.class);
-        MatterSlice<MatterCavern> ceilingSlice = mock(MatterSlice.class);
-        doReturn(true).when(mantleChunk).exists(0);
-        doReturn(true).when(mantleChunk).exists(2);
-        doReturn(floorMatter).when(mantleChunk).get(0);
-        doReturn(ceilingMatter).when(mantleChunk).get(2);
-        doReturn(true).when(floorMatter).hasSlice(MatterCavern.class);
-        doReturn(true).when(ceilingMatter).hasSlice(MatterCavern.class);
-        doReturn(floorSlice).when(floorMatter).getSlice(MatterCavern.class);
-        doReturn(ceilingSlice).when(ceilingMatter).getSlice(MatterCavern.class);
-        doReturn(new MatterCavern(true, "custom/floor", (byte) 0)).when(floorSlice).get(1, 6, 2);
-        doReturn(null).when(ceilingSlice).get(1, CEILING_Y & 15, 2);
+        MantleLayer<CarvedVoid> voids = mock(MantleLayer.class);
+        doReturn(CarvedVoid.OPEN.withBiome(CarveTestWorld.id("custom/floor"))).when(voids).get(33, 6, 34);
         TerrainSampler terrain = new CaveBiomeTerrain((x, y, z) -> y == CEILING_Y ? Optional.of(resolvedCeiling) : Optional.empty());
-        CaveApplying.Application application = modifier.new Application(chunkOnly(mantleChunk), mantleChunk, terrain, 2, 2, new ArrayHunk<>(BlockState.class, 16, 64, 16, AIR),
+        CaveApplying.Application application = modifier.new Application(voids, terrain, 2, 2, new ArrayHunk<>(BlockState.class, 16, 64, 16, AIR),
                 new RecordingCaveDressing());
-        Map<String, ResourceId> customBiomeCache = new HashMap<>();
+        Map<ResourceId, ResourceId> customBiomeCache = new HashMap<>();
 
         ResourceId floor = application.resolveCaveBoundaryBiome(1, 6, 2, 40, 44, customBiomeCache);
         ResourceId ceiling = application.resolveCaveBoundaryBiome(1, CEILING_Y, 2, 40, 44, customBiomeCache);
@@ -89,20 +73,6 @@ public class CaveApplyingBoundarySupportTest {
         assertFalse(CaveApplying.hasStableCaveFloorSupport(output, 0, 6, 0, classes));
         output.set(0, 4, 0, STONE);
         assertTrue(CaveApplying.hasStableCaveFloorSupport(output, 0, 6, 0, classes));
-    }
-
-    private static MatterMantle chunkOnly(MantleChunk<Matter> chunk) {
-        return new MatterMantle() {
-            @Override
-            public MantleChunk<Matter> chunk(int chunkX, int chunkZ) {
-                return chunk;
-            }
-
-            @Override
-            public MantleChunk<Matter> loadedChunk(int chunkX, int chunkZ) {
-                return null;
-            }
-        };
     }
 
     /** Terrain that knows cave biomes only. */

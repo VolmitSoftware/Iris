@@ -23,6 +23,7 @@ import art.arcane.iris.util.common.data.B;
 import com.volmit.block.BlockState;
 import com.volmit.host.MantleRegistration;
 import com.volmit.geometry.BlockBox;
+import com.volmit.mantle.CarvedVoid;
 import com.volmit.mantle.Mantle;
 import com.volmit.mantle.MantleEdit;
 import com.volmit.mantle.MantleKey;
@@ -53,7 +54,8 @@ final class PlacementMantle implements Mantle, AutoCloseable {
         this.storedBounds = ApiHeights.columns(engine, area.minX(), area.minZ(), area.maxX(), area.maxZ());
         this.chunks = new PinnedMantleChunks(engine);
         PlannedBlocks plannedBlocks = PlannedBlocks.of(engine, storedBounds, chunks, new PlatformBlockStates(B::getState));
-        this.placement = new IrisModuleMantle(storedBounds, chunks, layers, plannedBlocks).edit();
+        this.placement = new IrisModuleMantle(storedBounds, chunks, layers, plannedBlocks,
+                new PackResourceIds(engine.getData().getDataFolder())).edit();
     }
 
     @Override
@@ -69,6 +71,11 @@ final class PlacementMantle implements Mantle, AutoCloseable {
     @Override
     public MantleLayer<BlockState> blocks() {
         return new StoredRange<>(placement.blocks());
+    }
+
+    @Override
+    public MantleLayer<CarvedVoid> carved() {
+        return new StoredRange<>(placement.carved());
     }
 
     @Override

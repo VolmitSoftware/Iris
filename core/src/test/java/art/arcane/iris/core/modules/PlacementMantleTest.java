@@ -1,7 +1,10 @@
 package art.arcane.iris.core.modules;
 
+import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.UsableBlockPlatform;
 import art.arcane.iris.engine.framework.Engine;
+import art.arcane.volmlib.util.matter.MatterCavern;
+import com.volmit.mantle.CarvedVoid;
 import com.volmit.placement.PlacementTerrain;
 import com.volmit.host.MantleRegistration;
 import com.volmit.geometry.BlockBox;
@@ -14,6 +17,7 @@ import org.junit.Test;
 
 import java.io.DataInput;
 import java.io.DataOutput;
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -21,6 +25,7 @@ import java.util.List;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -55,6 +60,9 @@ public class PlacementMantleTest {
     private Engine engine() {
         Engine engine = mock(Engine.class);
         when(engine.getHeight()).thenReturn(HEIGHT);
+        IrisData data = mock(IrisData.class);
+        when(data.getDataFolder()).thenReturn(new File("pack"));
+        when(engine.getData()).thenReturn(data);
         storage.bindTo(engine);
         return engine;
     }
@@ -65,6 +73,18 @@ public class PlacementMantleTest {
 
     private String stored(int x, int z) {
         return storage.value(MARKS, TEXT, x, Y, z);
+    }
+
+    @Test
+    public void aPlacementReadsTheCarvedVoidsButNeverWritesThem() {
+        storage.chunk(0, 0).getOrCreate(Y >> 4).<MatterCavern>slice(MatterCavern.class).set(1, Y & 15, 1, new MatterCavern(true, "", (byte) 1));
+        TerrainEdit placement = edit(engine());
+
+        assertSame(CarvedVoid.FLUID, placement.mantle().carved().get(1, Y, 1));
+        assertNull(placement.mantle().carved().get(2, Y, 1));
+        assertThrows(UnsupportedOperationException.class, () -> placement.mantle().carved().set(2, Y, 1, CarvedVoid.OPEN));
+        assertThrows(UnsupportedOperationException.class, () -> placement.mantle().carved().remove(1, Y, 1));
+        assertThrows(IndexOutOfBoundsException.class, () -> placement.mantle().carved().get(100, Y, 1));
     }
 
     @Test

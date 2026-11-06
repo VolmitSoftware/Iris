@@ -18,7 +18,6 @@
 
 package art.arcane.iris.core.modules;
 
-import art.arcane.iris.builtin.MatterMantle;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.SeedManager;
@@ -37,7 +36,9 @@ import art.arcane.volmlib.util.mantle.runtime.MantleHooks;
 import art.arcane.volmlib.util.matter.IrisMatter;
 import art.arcane.volmlib.util.matter.Matter;
 import art.arcane.volmlib.util.matter.MatterBiomeInject;
+import art.arcane.volmlib.util.matter.MatterCavern;
 import art.arcane.volmlib.util.matter.MatterSlice;
+import com.volmit.mantle.CarvedVoid;
 import com.volmit.resource.ResourceId;
 import com.volmit.block.BlockState;
 import com.volmit.IrisModule;
@@ -73,7 +74,9 @@ import java.util.Set;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -85,6 +88,7 @@ public class IrisModuleMantleTest {
     private static final int WORLD_MIN_HEIGHT = -64;
     private static final int SECTIONS = 4;
     private static final int HEIGHT = SECTIONS * 16;
+    private static final PackResourceIds IDS = new PackResourceIds(new java.io.File("pack"));
     private static final MantleKey<String> MARKS = new MantleKey<>("iris:marks/mark", String.class);
     private static final MantleKey<Integer> DEPTHS = new MantleKey<>("iris:marks/depth", Integer.class);
     private static final Codec<String> TEXT = new Codec<>() {
@@ -117,7 +121,7 @@ public class IrisModuleMantleTest {
     }
 
     private IrisModuleMantle mantle(BlockBox bounds) {
-        return new IrisModuleMantle(bounds, this::chunk, LAYERS, PlannedBlocks.none(bounds));
+        return new IrisModuleMantle(bounds, this::chunk, LAYERS, PlannedBlocks.none(bounds), IDS);
     }
 
     /** The form the floating islands' sky biomes always had: the platform's id for the biome, as a custom inject, at the height above the bottom. */
@@ -148,22 +152,111 @@ public class IrisModuleMantleTest {
     }
 
     @Test
-    public void theMatterSideGivesTheMantleChunksTheInvocationReachesAndNoOthers() {
-        IrisModuleMantle mantle = mantle(new BlockBox(0, 0, 0, 16, HEIGHT, 16));
-        MatterMantle matter = mantle;
+    public void carvedVoidsAreKeptAsTheCavernsIrisReadsAndReadBackAsTheirFills() {
+        IrisModuleMantle mantle = mantle(new BlockBox(-16, 0, -16, 32, HEIGHT, 32));
 
-        org.junit.Assert.assertSame(chunk(3, 4), matter.chunk(3, 4));
-        org.junit.Assert.assertNull("nothing is loaded that the host did not say is", matter.loadedChunk(3, 4));
+        mantle.carved().set(-3, 7, 20, CarvedVoid.OPEN);
+        mantle.carved().set(5, 40, 5, CarvedVoid.FLUID);
+        mantle.carved().set(6, 40, 5, CarvedVoid.LAVA);
+        mantle.carved().set(7, 40, 5, CarvedVoid.AIR);
+
+        assertEquals(new MatterCavern(true, "", (byte) 0), chunk(-1, 1).get(13, 7, 4, MatterCavern.class));
+        assertEquals(new MatterCavern(true, "", (byte) 1), chunk(0, 0).get(5, 40, 5, MatterCavern.class));
+        assertEquals(new MatterCavern(true, "", (byte) 2), chunk(0, 0).get(6, 40, 5, MatterCavern.class));
+        assertEquals(new MatterCavern(true, "", (byte) 3), chunk(0, 0).get(7, 40, 5, MatterCavern.class));
+        assertSame(CarvedVoid.OPEN, mantle.carved().get(-3, 7, 20));
+        assertSame(CarvedVoid.FLUID, mantle.carved().get(5, 40, 5));
+        assertSame(CarvedVoid.LAVA, mantle.carved().get(6, 40, 5));
+        assertSame(CarvedVoid.AIR, mantle.carved().get(7, 40, 5));
+        assertNull(mantle.carved().get(8, 40, 5));
+        assertTrue(mantle.isCarved(5, 40, 5));
+        assertFalse(mantle.isCarved(8, 40, 5));
     }
 
     @Test
-    public void aChunkInvocationsMatterHoldsItsOwnChunkAndReadsNeighboursOnlyWhenLoaded() {
-        IrisModuleMantle mantle = mantle(new BlockBox(-16, 0, -16, 48, HEIGHT, 48));
-        MatterMantle own = new OwnChunkMatter(mantle, 1, 1);
+    public void cavernsOfAnyOtherLiquidReadAsOpenAndKeepTheirCustomBiomeAsAPackId() {
+        IrisModuleMantle mantle = mantle(new BlockBox(0, 0, 0, 16, HEIGHT, 16));
+        chunk(0, 0).getOrCreate(0).<MatterCavern>slice(MatterCavern.class).set(1, 2, 3, new MatterCavern(true, "", (byte) 9));
+        chunk(0, 0).getOrCreate(0).<MatterCavern>slice(MatterCavern.class).set(2, 2, 3, new MatterCavern(true, "cave/lush", (byte) 3));
 
-        org.junit.Assert.assertSame(chunk(1, 1), own.chunk(1, 1));
-        org.junit.Assert.assertNull("a neighbour is no chunk of the invocation's own", own.chunk(2, 1));
-        org.junit.Assert.assertNull("a neighbour the world does not hold is not read", own.loadedChunk(2, 1));
+        assertSame(CarvedVoid.OPEN, mantle.carved().get(1, 2, 3));
+        assertEquals(CarvedVoid.AIR.withBiome(IDS.of("cave/lush")), mantle.carved().get(2, 2, 3));
+
+        mantle.carved().set(3, 2, 3, CarvedVoid.LAVA.withBiome(IDS.of("cave/lush")));
+        assertEquals(new MatterCavern(true, "cave/lush", (byte) 2), chunk(0, 0).get(3, 2, 3, MatterCavern.class));
+    }
+
+    @Test
+    public void carvedVoidsVisitInOrderAndClearOnlyTheirArea() {
+        IrisModuleMantle mantle = mantle(new BlockBox(-16, 0, -16, 32, HEIGHT, 32));
+        mantle.carved().set(17, 5, 3, CarvedVoid.LAVA);
+        mantle.carved().set(-2, 9, 3, CarvedVoid.OPEN);
+        mantle.carved().set(-2, 4, 20, CarvedVoid.FLUID);
+        mantle.carved().set(-2, 4, 3, CarvedVoid.AIR);
+        List<String> visited = new java.util.ArrayList<>();
+
+        mantle.carved().visit(new BlockBox(-16, 0, -16, 32, HEIGHT, 32), (x, y, z, carved) -> visited.add(x + "," + y + "," + z + " " + carved.fill()));
+
+        assertEquals(List.of("-2,4,3 AIR", "-2,4,20 FLUID", "-2,9,3 OPEN", "17,5,3 LAVA"), visited);
+
+        mantle.carved().clear(new BlockBox(-16, 0, -16, 0, HEIGHT, 32));
+        assertNull(mantle.carved().get(-2, 9, 3));
+        assertSame(CarvedVoid.LAVA, mantle.carved().get(17, 5, 3));
+        mantle.carved().remove(17, 5, 3);
+        assertFalse(mantle.isCarved(17, 5, 3));
+    }
+
+    @Test
+    public void carvedVoidsOfAnAreaTooLargeToLayOutVisitInTheSameOrder() {
+        BlockBox wide = new BlockBox(0, 0, 0, 1024, HEIGHT, 80);
+        IrisModuleMantle mantle = mantle(wide);
+        CarvedVoid lush = CarvedVoid.AIR.withBiome(IDS.of("cave/lush"));
+        mantle.carved().set(1000, 5, 70, CarvedVoid.LAVA);
+        mantle.carved().set(3, 9, 70, lush);
+        mantle.carved().set(3, 9, 5, CarvedVoid.OPEN);
+        mantle.carved().set(3, 2, 75, CarvedVoid.FLUID);
+        mantle.carved().set(500, 63, 0, lush);
+        List<String> visited = new java.util.ArrayList<>();
+
+        mantle.carved().visit(wide, (x, y, z, carved) -> visited.add(x + "," + y + "," + z + " " + carved.fill() + carved.biome().map(id -> " " + id.path()).orElse("")));
+
+        assertEquals(List.of("3,2,75 FLUID", "3,9,5 OPEN", "3,9,70 AIR cave/lush", "500,63,0 AIR cave/lush", "1000,5,70 LAVA"), visited);
+    }
+
+    @Test
+    public void aVisitInsideAVisitReadsItsOwnArea() {
+        IrisModuleMantle mantle = mantle(new BlockBox(0, 0, 0, 16, HEIGHT, 16));
+        mantle.carved().set(1, 2, 3, CarvedVoid.OPEN);
+        mantle.carved().set(4, 5, 6, CarvedVoid.LAVA);
+        List<String> visited = new java.util.ArrayList<>();
+
+        mantle.carved().visit(new BlockBox(0, 0, 0, 16, HEIGHT, 16), (x, y, z, outer) -> {
+            visited.add("outer " + outer.fill());
+            mantle.carved().visit(new BlockBox(4, 5, 6, 5, 6, 7), (nx, ny, nz, inner) -> visited.add("inner " + inner.fill()));
+        });
+
+        assertEquals(List.of("outer OPEN", "inner LAVA", "outer LAVA", "inner LAVA"), visited);
+    }
+
+    @Test
+    public void carvedVoidsStayInsideTheMantleAnInvocationPrepared() {
+        IrisModuleMantle mantle = mantle(new BlockBox(0, 0, 0, 16, HEIGHT, 16));
+
+        assertThrows(IndexOutOfBoundsException.class, () -> mantle.carved().set(16, 5, 5, CarvedVoid.OPEN));
+        assertThrows(IndexOutOfBoundsException.class, () -> mantle.carved().get(5, HEIGHT, 5));
+        assertThrows(IndexOutOfBoundsException.class, () -> mantle.carved().visit(new BlockBox(0, 0, 0, 17, 1, 1), (x, y, z, carved) -> { }));
+    }
+
+    @Test
+    public void anEditOnlyReadsTheCarvedVoids() {
+        IrisModuleMantle mantle = mantle(new BlockBox(0, 0, 0, 16, HEIGHT, 16));
+        mantle.carved().set(1, 2, 3, CarvedVoid.OPEN);
+
+        try (MantleEdit edit = mantle.edit()) {
+            assertSame(CarvedVoid.OPEN, edit.carved().get(1, 2, 3));
+            assertThrows(UnsupportedOperationException.class, () -> edit.carved().set(1, 2, 4, CarvedVoid.OPEN));
+            assertThrows(UnsupportedOperationException.class, () -> edit.carved().remove(1, 2, 3));
+        }
     }
 
     @Test
@@ -278,7 +371,7 @@ public class IrisModuleMantleTest {
     public void aCommitThatCannotReachEveryChunkPublishesNothing() {
         BlockBox bounds = new BlockBox(0, 0, 0, 32, HEIGHT, 16);
         IrisModuleMantle mantle = new IrisModuleMantle(bounds, (chunkX, chunkZ) -> chunkX == 0 ? chunk(chunkX, chunkZ) : null, LAYERS,
-                PlannedBlocks.none(bounds));
+                PlannedBlocks.none(bounds), IDS);
         MantleEdit edit = mantle.edit();
         edit.layer(MARKS).set(1, 4, 1, "first");
         edit.layer(MARKS).set(20, 4, 1, "unprepared");
@@ -344,7 +437,7 @@ public class IrisModuleMantleTest {
                     new IrisMantleChunk(engine, null, 0, 0, null));
 
             BlockBox neighborBounds = new BlockBox(16, 0, 0, 32, HEIGHT, 16);
-            IrisModuleMantle neighbor = new IrisModuleMantle(neighborBounds, this::chunk, pack.catalog().mantle(), PlannedBlocks.none(neighborBounds));
+            IrisModuleMantle neighbor = new IrisModuleMantle(neighborBounds, this::chunk, pack.catalog().mantle(), PlannedBlocks.none(neighborBounds), IDS);
             assertEquals("vein", neighbor.layer(planned).get(20, 34, 3));
         }
         assertTrue(chunks.containsKey(1L << 32));

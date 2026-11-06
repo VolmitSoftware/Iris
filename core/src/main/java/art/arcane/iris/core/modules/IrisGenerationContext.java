@@ -18,7 +18,6 @@
 
 package art.arcane.iris.core.modules;
 
-import art.arcane.iris.builtin.MatterMantle;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.spi.PlatformBlockState;
 import com.volmit.block.BlockState;
@@ -44,7 +43,6 @@ final class IrisGenerationContext implements GenerationContext {
     /** The mantle too reaches this far around the chunk; chunks beyond its own are pinned when a stage first reads them. */
     private static final int MANTLE_MARGIN_BLOCKS = 16;
     private static final int CHUNK_WIDTH = 16;
-    private static final int CHUNK_SHIFT = 4;
 
     private final Engine engine;
     private final int originX;
@@ -73,7 +71,7 @@ final class IrisGenerationContext implements GenerationContext {
         this.settings = new ChunkModuleSettings(engine, ids);
         BlockBox chunk = ApiHeights.columns(engine, originX - MANTLE_MARGIN_BLOCKS, originZ - MANTLE_MARGIN_BLOCKS,
                 originX + CHUNK_WIDTH + MANTLE_MARGIN_BLOCKS, originZ + CHUNK_WIDTH + MANTLE_MARGIN_BLOCKS);
-        this.mantle = new IrisModuleMantle(chunk, mantleChunks, mantleLayers, PlannedBlocks.of(engine, chunk, mantleChunks, states));
+        this.mantle = new IrisModuleMantle(chunk, mantleChunks, mantleLayers, PlannedBlocks.of(engine, chunk, mantleChunks, states), ids);
     }
 
     @Override
@@ -106,14 +104,11 @@ final class IrisGenerationContext implements GenerationContext {
         return blocks;
     }
 
-    /** Iris's own view of the chunk, and the matter of its own chunk with loaded-only reads of its neighbours. */
+    /** Iris's own view of the chunk. */
     @Override
     public <T> Optional<T> extension(Class<T> type) {
         if (type == IrisChunk.class) {
             return HostExtensions.as(type, irisChunk);
-        }
-        if (type == MatterMantle.class) {
-            return HostExtensions.as(type, new OwnChunkMatter(mantle, originX >> CHUNK_SHIFT, originZ >> CHUNK_SHIFT));
         }
         return Optional.empty();
     }

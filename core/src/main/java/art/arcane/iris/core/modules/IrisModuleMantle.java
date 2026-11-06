@@ -27,8 +27,8 @@ import art.arcane.iris.spi.IrisPlatforms;
 import com.volmit.block.BlockState;
 import com.volmit.resource.ResourceId;
 import com.volmit.host.MantleRegistration;
-import art.arcane.iris.builtin.MatterMantle;
 import com.volmit.geometry.BlockBox;
+import com.volmit.mantle.CarvedVoid;
 import com.volmit.mantle.Mantle;
 import com.volmit.data.Codec;
 import com.volmit.mantle.MantleEdit;
@@ -58,7 +58,7 @@ import java.util.stream.Collectors;
  * lose each other's layers. {@link #edit()} buffers changes across layers until they are committed; while an
  * edit is open, the view itself only reads.
  */
-final class IrisModuleMantle implements Mantle, MatterMantle {
+final class IrisModuleMantle implements Mantle {
     private static final int CHUNK_SHIFT = 4;
     private static final int SECTION_SHIFT = 4;
     private static final int LOCAL_MASK = 15;
@@ -70,39 +70,29 @@ final class IrisModuleMantle implements Mantle, MatterMantle {
     /** The mantle chunk at chunk coordinates, or null when it is outside what the invocation prepared. */
     interface Chunks {
         MantleChunk<Matter> chunk(int chunkX, int chunkZ);
-
-        /** The chunk if the world holds it in memory, whether or not the invocation reaches it; never loads one. */
-        default MantleChunk<Matter> loadedChunk(int chunkX, int chunkZ) {
-            return null;
-        }
     }
 
     private final BlockBox bounds;
     private final Chunks chunks;
     private final Map<String, MantleRegistration<?>> registrations;
     private final PlannedBlocks plannedBlocks;
+    private final PackResourceIds ids;
+    private CarvedVoids carved;
+    private CarvedVoids carvedReadOnly;
     private BufferedEdit openEdit;
 
-    IrisModuleMantle(BlockBox bounds, Chunks chunks, Collection<MantleRegistration<?>> registrations, PlannedBlocks plannedBlocks) {
+    IrisModuleMantle(BlockBox bounds, Chunks chunks, Collection<MantleRegistration<?>> registrations, PlannedBlocks plannedBlocks,
+                     PackResourceIds ids) {
         this.bounds = bounds;
         this.chunks = chunks;
         this.registrations = registrations.stream().collect(Collectors.toMap(registration -> registration.key().id(), Function.identity()));
         this.plannedBlocks = plannedBlocks;
+        this.ids = ids;
     }
 
     @Override
     public BlockBox bounds() {
         return bounds;
-    }
-
-    @Override
-    public MantleChunk<Matter> chunk(int chunkX, int chunkZ) {
-        return chunks.chunk(chunkX, chunkZ);
-    }
-
-    @Override
-    public MantleChunk<Matter> loadedChunk(int chunkX, int chunkZ) {
-        return chunks.loadedChunk(chunkX, chunkZ);
     }
 
     @Override
@@ -113,6 +103,22 @@ final class IrisModuleMantle implements Mantle, MatterMantle {
     @Override
     public MantleLayer<BlockState> blocks() {
         return plannedBlocks;
+    }
+
+    @Override
+    public MantleLayer<CarvedVoid> carved() {
+        if (carved == null) {
+            carved = new CarvedVoids(bounds, chunks, ids, true);
+        }
+        return carved;
+    }
+
+    /** What an edit shows of the carved voids: they are planned on the mantle itself, as platform biomes are. */
+    private MantleLayer<CarvedVoid> carvedForEdit() {
+        if (carvedReadOnly == null) {
+            carvedReadOnly = new CarvedVoids(bounds, chunks, ids, false);
+        }
+        return carvedReadOnly;
     }
 
     @Override
@@ -275,6 +281,12 @@ final class IrisModuleMantle implements Mantle, MatterMantle {
         public MantleLayer<BlockState> blocks() {
             requireOpen();
             return plannedBlocks;
+        }
+
+        @Override
+        public MantleLayer<CarvedVoid> carved() {
+            requireOpen();
+            return carvedForEdit();
         }
 
         @Override

@@ -18,7 +18,6 @@
 
 package art.arcane.iris.core.modules;
 
-import art.arcane.iris.builtin.MatterMantle;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.util.common.data.B;
 import com.volmit.config.FeatureSettings;
@@ -67,7 +66,7 @@ final class IrisMantleGenerationContext implements MantleGenerationContext {
         BlockBox reach = ApiHeights.columns(engine, originX - reachBlocks, originZ - reachBlocks,
                 originX + CHUNK_WIDTH + reachBlocks, originZ + CHUNK_WIDTH + reachBlocks);
         PlannedBlocks plannedBlocks = PlannedBlocks.of(engine, reach, chunks, new PlatformBlockStates(B::getState));
-        this.mantle = new IrisModuleMantle(reach, chunks, layers, plannedBlocks);
+        this.mantle = new IrisModuleMantle(reach, chunks, layers, plannedBlocks, ids);
     }
 
     @Override
@@ -95,18 +94,14 @@ final class IrisMantleGenerationContext implements MantleGenerationContext {
         return mantle;
     }
 
-    /** Iris's own view of the chunk, and the matter of the mantle as far as the stage reaches. */
+    /** Iris's own view of the chunk. */
     @Override
     public <T> Optional<T> extension(Class<T> type) {
         if (type == IrisMantleChunk.class) {
             return HostExtensions.as(type, irisChunk);
         }
-        if (type == MatterMantle.class) {
-            return HostExtensions.as(type, mantle);
-        }
         return Optional.empty();
     }
-
 
     /** The chunk's mantle as Iris's object placer writes it, within the chunk's reach. */
     @Override

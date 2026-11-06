@@ -13,9 +13,13 @@ import art.arcane.volmlib.util.matter.IrisMatter;
 import art.arcane.volmlib.util.matter.Matter;
 import art.arcane.volmlib.util.matter.MatterSlice;
 import com.volmit.data.Codec;
+import com.volmit.geometry.BlockBox;
+import com.volmit.mantle.CarvedVoid;
 import com.volmit.mantle.MantleKey;
+import com.volmit.mantle.MantleLayer;
 
 import java.io.DataOutputStream;
+import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -25,6 +29,8 @@ import static org.mockito.Mockito.when;
 
 /** A mantle held in memory, for tests of what stages write into it. Bind an engine to it before the engine's mantle is used. */
 public final class InMemoryMantle {
+    public static final int REACH_BLOCKS = 1024;
+
     private final int sections;
     private final Map<Long, MantleChunk<Matter>> chunks = new HashMap<>();
 
@@ -32,6 +38,12 @@ public final class InMemoryMantle {
     public InMemoryMantle(int sections) {
         IrisMatterSupport.ensureRegistered();
         this.sections = sections;
+    }
+
+    /** The carved voids of this mantle as a mantle stage writes them, over the columns from -{@link #REACH_BLOCKS} up to {@link #REACH_BLOCKS}. */
+    public MantleLayer<CarvedVoid> carved() {
+        BlockBox reach = new BlockBox(-REACH_BLOCKS, 0, -REACH_BLOCKS, REACH_BLOCKS, sections * 16, REACH_BLOCKS);
+        return new CarvedVoids(reach, this::chunk, new PackResourceIds(new File("test")), true);
     }
 
     public MantleChunk<Matter> chunk(int chunkX, int chunkZ) {

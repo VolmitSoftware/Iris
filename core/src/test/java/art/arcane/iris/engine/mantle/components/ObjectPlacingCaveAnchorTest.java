@@ -1,6 +1,6 @@
 package art.arcane.iris.engine.mantle.components;
 
-import art.arcane.iris.modules.objects.Cavern;
+import com.volmit.mantle.CarvedVoid;
 import com.volmit.resource.ResourceId;
 import org.junit.Test;
 
@@ -10,9 +10,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class ObjectPlacingCaveAnchorTest {
-    private static final byte AIR = 0;
-    private static final byte WATER = 1;
-    private static final byte LAVA = 2;
 
     @Test
     public void biomeOwnedPlacementsRejectForeignCaveBands() {
@@ -27,21 +24,17 @@ public class ObjectPlacingCaveAnchorTest {
 
     @Test
     public void dryPlacementsRejectFluidAndDefaultLavaCells() {
-        assertFalse(CaveAnchors.acceptsFluid(false, cavern(WATER), 20, 8));
-        assertFalse(CaveAnchors.acceptsFluid(false, cavern(LAVA), 20, 8));
-        assertFalse(CaveAnchors.acceptsFluid(false, cavern(AIR), 8, 8));
-        assertTrue(CaveAnchors.acceptsFluid(false, cavern(AIR), 9, 8));
+        assertFalse(CaveAnchors.acceptsFluid(false, Optional.of(CarvedVoid.FLUID), 20, 8));
+        assertFalse(CaveAnchors.acceptsFluid(false, Optional.of(CarvedVoid.LAVA), 20, 8));
+        assertFalse(CaveAnchors.acceptsFluid(false, Optional.of(CarvedVoid.OPEN), 8, 8));
+        assertTrue(CaveAnchors.acceptsFluid(false, Optional.of(CarvedVoid.OPEN), 9, 8));
     }
 
     @Test
     public void explicitWetAndForcedAirPlacementsRemainEligible() {
-        assertTrue(CaveAnchors.acceptsFluid(true, cavern(WATER), 20, 8));
-        assertTrue(CaveAnchors.acceptsFluid(false, cavern(Cavern.FORCED_AIR_LIQUID), 0, 8));
+        assertTrue(CaveAnchors.acceptsFluid(true, Optional.of(CarvedVoid.FLUID), 20, 8));
+        assertTrue(CaveAnchors.acceptsFluid(false, Optional.of(CarvedVoid.AIR), 0, 8));
         assertFalse(CaveAnchors.acceptsFluid(true, Optional.empty(), 20, 8));
-    }
-
-    private static Optional<Cavern> cavern(byte liquid) {
-        return Optional.of(new Cavern(liquid == AIR, liquid));
     }
 
     private static ResourceId biome(String key) {

@@ -18,14 +18,11 @@
 
 package art.arcane.iris.engine.mantle.components;
 
-import art.arcane.iris.builtin.MatterMantle;
 import art.arcane.iris.modules.carve.CaveProfile;
 import art.arcane.iris.core.modules.CarveTestTerrain;
 import art.arcane.iris.core.modules.CarveTestWorld;
 import art.arcane.iris.core.modules.InMemoryMantle;
 import art.arcane.iris.engine.object.TestSettings;
-import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
-import art.arcane.volmlib.util.matter.Matter;
 import art.arcane.volmlib.util.matter.MatterCavern;
 import com.volmit.config.Level;
 import com.volmit.config.Range;
@@ -102,20 +99,9 @@ public class CaveCarvingTest {
             BiomeSample sample = new BiomeSample(CarveTestWorld.id("region"), CarveTestWorld.id("plains"), Optional.of(CarveTestWorld.id("cave/lush")));
             return new BiomeSample(sample.region(), sample.surfaceBiome(), Optional.of(caveBiomeOf.apply(sample)));
         });
-        MatterMantle matter = new MatterMantle() {
-            @Override
-            public MantleChunk<Matter> chunk(int chunkX, int chunkZ) {
-                return mantle.chunk(chunkX, chunkZ);
-            }
-
-            @Override
-            public MantleChunk<Matter> loadedChunk(int chunkX, int chunkZ) {
-                return null;
-            }
-        };
         CarveWorld carveWorld = new CarveWorld(world.resources().noise(), 1337L, HEIGHT, FLUID_HEIGHT, LAVA_HEIGHT, CarveTestWorld.MIN_HEIGHT);
 
-        new CaveCarving(world, carveWorld, false, (x, z) -> false).carve(matter, terrain, 0, 0);
+        new CaveCarving(world, carveWorld, false, (x, z) -> false).carve(mantle.carved(), terrain, 0, 0);
 
         int[] count = new int[1];
         mantle.chunk(0, 0).iterate(MatterCavern.class, (x, y, z, cavern) -> count[0]++);

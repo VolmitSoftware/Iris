@@ -1,6 +1,7 @@
 package art.arcane.iris.engine.modifier;
 
-import art.arcane.volmlib.util.matter.MatterCavern;
+import com.volmit.mantle.CarvedVoid;
+import com.volmit.resource.ResourceId;
 import org.junit.Test;
 
 import java.util.HashMap;
@@ -16,27 +17,27 @@ public class IrisCarveScratchTest {
     @Test
     public void wallBufferResizesAndReplacesWithoutLosingEntries() {
         CarveWallBuffer buffer = new CarveWallBuffer(2);
-        Map<String, MatterCavern> expected = new HashMap<>();
+        Map<String, CarvedVoid> expected = new HashMap<>();
         for (int index = 0; index < 24; index++) {
             int x = index & 15;
             int y = 20 + index;
             int z = (index * 3) & 15;
-            MatterCavern cavern = new MatterCavern(true, "cave-" + index, (byte) 0);
+            CarvedVoid cavern = CarvedVoid.OPEN.withBiome(new ResourceId("test", "cave-" + index));
             buffer.put(x, y, z, cavern);
             expected.put(key(x, y, z), cavern);
         }
 
-        MatterCavern replacement = new MatterCavern(true, "replacement", (byte) 0);
+        CarvedVoid replacement = CarvedVoid.OPEN.withBiome(new ResourceId("test", "replacement"));
         buffer.put(5, 25, 15, replacement);
         expected.put(key(5, 25, 15), replacement);
 
         assertSame(replacement, buffer.get(5, 25, 15));
         assertNull(buffer.get(5, 26, 15));
 
-        Map<String, MatterCavern> actual = new HashMap<>();
+        Map<String, CarvedVoid> actual = new HashMap<>();
         buffer.forEach((x, y, z, cavern) -> actual.put(key(x, y, z), cavern));
         assertEquals(expected.keySet(), actual.keySet());
-        for (Map.Entry<String, MatterCavern> entry : expected.entrySet()) {
+        for (Map.Entry<String, CarvedVoid> entry : expected.entrySet()) {
             assertSame(entry.getValue(), actual.get(entry.getKey()));
         }
     }
@@ -44,11 +45,10 @@ public class IrisCarveScratchTest {
     @Test
     public void resetClearsReusableState() {
         IrisCarveScratch scratch = new IrisCarveScratch();
-        MatterCavern cavern = new MatterCavern(true, "cave", (byte) 0);
         scratch.columnMasks[0].add(12);
         scratch.boundaryMasks[0].add(13);
-        scratch.walls.put(1, 12, 2, cavern);
-        scratch.customBiomeCache.put("cave", null);
+        scratch.walls.put(1, 12, 2, CarvedVoid.OPEN);
+        scratch.customBiomeCache.put(new ResourceId("test", "cave"), null);
         scratch.customCaveBiomePresent = true;
 
         scratch.reset();

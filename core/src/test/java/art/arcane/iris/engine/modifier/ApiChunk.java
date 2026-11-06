@@ -18,9 +18,6 @@
 
 package art.arcane.iris.engine.modifier;
 
-import art.arcane.iris.builtin.MatterMantle;
-import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
-import art.arcane.volmlib.util.matter.Matter;
 import com.volmit.noise.NoiseSampler;
 import art.arcane.iris.builtin.IrisStages;
 import art.arcane.iris.builtin.IrisSeedPurposes;
@@ -65,6 +62,7 @@ import com.volmit.host.StageGraphBuilder;
 import com.volmit.host.StageTimings;
 import com.volmit.hunk.Hunk;
 import com.volmit.item.ItemRegistry;
+import com.volmit.mantle.CarvedVoid;
 import com.volmit.mantle.Mantle;
 import com.volmit.mantle.MantleEdit;
 import com.volmit.mantle.MantleKey;
@@ -350,7 +348,7 @@ public final class ApiChunk implements GenerationContext {
 
     @Override
     public <T> Optional<T> extension(Class<T> type) {
-        return type == MatterMantle.class ? Optional.of(type.cast(new ChunkMantle())) : Optional.empty();
+        return Optional.empty();
     }
 
     @Override
@@ -518,20 +516,7 @@ public final class ApiChunk implements GenerationContext {
         }
     }
 
-    private final class ChunkMantle implements Mantle, MatterMantle {
-        private final MantleChunk<Matter> noCaves = mock(MantleChunk.class);
-
-        /** The matter of the chunk: none; a test of caves brings its own mantle. */
-        @Override
-        public MantleChunk<Matter> chunk(int chunkX, int chunkZ) {
-            return noCaves;
-        }
-
-        @Override
-        public MantleChunk<Matter> loadedChunk(int chunkX, int chunkZ) {
-            return null;
-        }
-
+    private final class ChunkMantle implements Mantle {
         @Override
         public BlockBox bounds() {
             return chunkColumns();
@@ -548,6 +533,11 @@ public final class ApiChunk implements GenerationContext {
         }
 
         @Override
+        public MantleLayer<CarvedVoid> carved() {
+            return new CarvedLayer();
+        }
+
+        @Override
         public boolean isCarved(int x, int y, int z) {
             return carved.contains(new BlockPosition(x, y, z));
         }
@@ -560,6 +550,40 @@ public final class ApiChunk implements GenerationContext {
         @Override
         public void setPlatformBiome(int x, int y, int z, ResourceId biome) {
             throw new UnsupportedOperationException("This chunk has no floating islands to paint sky biomes for");
+        }
+    }
+
+    /** The carved positions as open voids; a chunk stage only reads them. */
+    private final class CarvedLayer implements MantleLayer<CarvedVoid> {
+        @Override
+        public CarvedVoid get(int x, int y, int z) {
+            return carved.contains(new BlockPosition(x, y, z)) ? CarvedVoid.OPEN : null;
+        }
+
+        @Override
+        public void set(int x, int y, int z, CarvedVoid value) {
+            throw new UnsupportedOperationException("Carved voids are read-only");
+        }
+
+        @Override
+        public void remove(int x, int y, int z) {
+            throw new UnsupportedOperationException("Carved voids are read-only");
+        }
+
+        @Override
+        public void visit(BlockBox area, MantleVisitor<CarvedVoid> visitor) {
+            List<BlockPosition> positions = new ArrayList<>(carved);
+            positions.sort(VISIT_ORDER);
+            for (BlockPosition position : positions) {
+                if (area.contains(position.x(), position.y(), position.z())) {
+                    visitor.accept(position.x(), position.y(), position.z(), CarvedVoid.OPEN);
+                }
+            }
+        }
+
+        @Override
+        public void clear(BlockBox area) {
+            throw new UnsupportedOperationException("Carved voids are read-only");
         }
     }
 

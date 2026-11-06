@@ -16,6 +16,7 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.SortedSet;
 import java.util.function.Predicate;
 import java.util.jar.JarEntry;
@@ -36,9 +37,11 @@ import java.util.zip.ZipFile;
  *
  * <p>The optional packages are those the jar's manifest lists under {@value #OPTIONAL_PACKAGES_ATTRIBUTE}, separated
  * by spaces or commas: packages, with their subpackages, whose classes the jar uses but expects may be absent.
+ *
+ * <p>The tooling parts are those the manifest lists under {@value ToolingPart#MANIFEST_ATTRIBUTE}, see {@link ToolingPart}.
  */
 record ModuleJar(Path path, String origin, List<String> entryClasses, List<JarClass> classes,
-                 List<PackageName> optionalPackages) {
+                 List<PackageName> optionalPackages, List<ToolingPart> toolingParts) {
     static final String ENTRY_POINT_FILE = "META-INF/services/" + IrisModule.class.getName();
     static final String OPTIONAL_PACKAGES_ATTRIBUTE = "Iris-Optional-Packages";
     private static final String OPTIONAL_PACKAGE_SEPARATORS = "[\\s,]+";
@@ -53,6 +56,7 @@ record ModuleJar(Path path, String origin, List<String> entryClasses, List<JarCl
         entryClasses = List.copyOf(entryClasses);
         classes = List.copyOf(classes);
         optionalPackages = List.copyOf(optionalPackages);
+        toolingParts = List.copyOf(toolingParts);
     }
 
     /** A class in the jar, by binary name, and the binary names of the classes it links against. */
@@ -72,8 +76,10 @@ record ModuleJar(Path path, String origin, List<String> entryClasses, List<JarCl
         try (var file = openAsClassLoaderSeesIt(jar)) {
             var entryClasses = requireEntryClasses(origin, readEntryClasses(file));
             var classEntries = findClassEntries(file);
-            return new ModuleJar(jar, origin, entryClasses, readClasses(origin, file, classEntries),
-                    readOptionalPackages(origin, file.getManifest()));
+            var read = new ModuleJar(jar, origin, entryClasses, readClasses(origin, file, classEntries),
+                    readOptionalPackages(origin, file.getManifest()), ToolingPart.readAll(origin, jar, file.getManifest()));
+            ToolingPart.requireEntryClassesIn(origin, read.toolingParts, Set.copyOf(read.classNames()));
+            return read;
         } catch (IOException exception) {
             throw new ModuleLoadException(null, origin, "Module jar " + origin + " is not a readable jar", exception);
         }

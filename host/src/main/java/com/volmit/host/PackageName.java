@@ -8,7 +8,7 @@ import java.util.Optional;
  * names match: {@code com.volmit} contains {@code com.volmit.stage.Stage} but not
  * {@code com.volmitx.Fake}.
  */
-record PackageName(String name) implements Comparable<PackageName> {
+public record PackageName(String name) implements Comparable<PackageName> {
     private static final char SEPARATOR = '.';
     private static final String SEPARATOR_PATTERN = "\\.";
 

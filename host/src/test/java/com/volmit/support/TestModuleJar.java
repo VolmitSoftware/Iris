@@ -34,7 +34,9 @@ public final class TestModuleJar {
     private final Map<String, String> sources = new LinkedHashMap<>();
     private final Map<String, byte[]> resources = new LinkedHashMap<>();
     private static final String OPTIONAL_PACKAGES_ATTRIBUTE = "Iris-Optional-Packages";
+    private static final String TOOLING_PARTS_ATTRIBUTE = "Iris-Tooling-Parts";
     private boolean multiRelease;
+    private String toolingParts;
     private final List<String> optionalPackages = new ArrayList<>();
     private final List<String> entryPoints = new ArrayList<>();
     private final List<Path> classpath = new ArrayList<>(List.of(classesOf(IrisModule.class)));
@@ -88,6 +90,12 @@ public final class TestModuleJar {
     /** Marks the jar {@code Multi-Release: true}, so its {@code META-INF/versions} entries count. */
     public TestModuleJar multiRelease() {
         multiRelease = true;
+        return this;
+    }
+
+    /** Sets the manifest's {@code Iris-Tooling-Parts} attribute to {@code declaration}, verbatim. */
+    public TestModuleJar toolingParts(String declaration) {
+        toolingParts = declaration;
         return this;
     }
 
@@ -165,6 +173,7 @@ public final class TestModuleJar {
         if (!optionalPackages.isEmpty()) {
             manifest.getMainAttributes().putValue(OPTIONAL_PACKAGES_ATTRIBUTE, String.join(" ", optionalPackages));
         }
+        if (toolingParts != null) manifest.getMainAttributes().putValue(TOOLING_PARTS_ATTRIBUTE, toolingParts);
         return manifest;
     }
 

@@ -20,11 +20,15 @@ package art.arcane.iris.modules.objects;
 
 import art.arcane.iris.engine.procedural.ProceduralObjectCatalog;
 import art.arcane.iris.engine.procedural.ProceduralVariants;
+import art.arcane.iris.engine.procedural.part.ProceduralObject;
 import com.volmit.object.GeneratedObject;
 import com.volmit.object.PlaceableObject;
 import com.volmit.resource.ResourceId;
+import com.volmit.tooling.EditableSceneView;
+import com.volmit.tooling.JsonText;
+import com.volmit.tooling.NodeGraph;
 import com.volmit.tooling.SceneEntry;
-import com.volmit.tooling.SceneView;
+import com.volmit.tooling.SceneFile;
 import com.volmit.world.PackWorld;
 
 import java.util.List;
@@ -32,9 +36,9 @@ import java.util.Optional;
 
 /**
  * The studio's Procedural view: every procedural object of the pack with each of its variants, baked as the world
- * bakes them, so what the studio shows is what generation places.
+ * bakes them, so what the studio shows is what generation places. Each object's file can be edited as nodes.
  */
-public final class ProceduralObjectScenes implements SceneView {
+public final class ProceduralObjectScenes implements EditableSceneView {
     private static final ResourceId ID = ResourceId.parse("iris:objects/procedural");
     private static final char FOLDER_SEPARATOR = '/';
 
@@ -67,6 +71,22 @@ public final class ProceduralObjectScenes implements SceneView {
         return ProceduralObjectCatalog.of(world).variants(ProceduralObjectCatalog.KEY_PREFIX + key)
                 .flatMap(variants -> variants.variant(variant))
                 .map(PlaceableObject::geometry);
+    }
+
+    @Override
+    public Optional<SceneFile> fileOf(PackWorld world, String key) {
+        ResourceId id = world.resources().idOf(key);
+        return world.resources().ids(ProceduralObjectCatalog.DEFINITIONS).contains(id)
+                ? Optional.of(new SceneFile(ProceduralObjectCatalog.DEFINITIONS, id))
+                : Optional.empty();
+    }
+
+    // A file the pack could not read has no parts baked from it, so its nodes are drawn without part ids.
+    @Override
+    public NodeGraph graph(PackWorld world, String key, JsonText text) {
+        ProceduralObject read = world.resources().find(ProceduralObjectCatalog.DEFINITIONS, world.resources().idOf(key))
+                .orElseGet(ProceduralObject::new);
+        return ProceduralObjectGraph.of(key.substring(key.lastIndexOf(FOLDER_SEPARATOR) + 1), text, read);
     }
 
     private static SceneEntry entryOf(ProceduralVariants variants) {

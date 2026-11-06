@@ -2,13 +2,19 @@ import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { cn } from '@/lib/utils'
 import type { BridgeClient } from '../bridge/BridgeClient'
-import type { ModuleViewInfo, SceneEntry } from '../bridge/types'
+import type { JsonPath, SceneEntry, SceneViewInfo } from '../bridge/types'
+import { parsedText } from '../editor/jsonValues'
+import { nodeWithPath } from '../editor/nodeLayout'
+import { useNodeEditor } from '../editor/useNodeEditor'
 import { BlockModels } from '../scene/blockModels'
 import { BridgeAssets } from '../scene/BridgeAssets'
 import { INTS_PER_BLOCK, type BlockScene } from '../scene/sceneDecoding'
 import { buildSceneMesh, type SceneMesh } from '../scene/sceneMesh'
 import { EntryBrowser } from './EntryBrowser'
+import { NodeInspector } from './NodeInspector'
+import { NodePane } from './NodePane'
 import { SceneViewport } from './SceneViewport'
 
 const NUMBER = new Intl.NumberFormat('en-US')
@@ -16,7 +22,7 @@ const DEFAULT_NAMESPACE_PREFIX = 'minecraft:'
 
 interface SceneStudioProps {
   client: BridgeClient
-  view: ModuleViewInfo
+  view: SceneViewInfo
   /** Changes when the pack reloads, so the entries and the scene are read again. */
   packRevision: number
   /** What the status bar says about the scene, or null while none is shown. */
@@ -24,7 +30,10 @@ interface SceneStudioProps {
   tell(message: string): void
 }
 
-/** A scene view: its entries on the right, the chosen one in 3D in the middle, with the blocks it is made of. */
+/**
+ * A scene view: its entries on the right, the chosen one in 3D in the middle, with the blocks it is made of. An
+ * editable view shows the entry's file as nodes under the scene, and the chosen node's settings on the right.
+ */
 export function SceneStudio({ client, view, packRevision, onSummary, tell }: SceneStudioProps): React.JSX.Element {
   const [waiting, setWaiting] = useState<string | null>(null)
   const images = useMemo(() => new BridgeAssets(client, setWaiting), [client])
@@ -40,37 +49,73 @@ export function SceneStudio({ client, view, packRevision, onSummary, tell }: Sce
     }
   }
 
+  const editor = useNodeEditor(client, view.id, view.editable ? (entry?.key ?? null) : null, packRevision, tell)
+  const [selectedPath, setSelectedPath] = useState<JsonPath | null>(null)
+  const selected = editor.state?.roots != null && selectedPath !== null ? nodeWithPath(editor.state.roots, selectedPath) : null
+  const values = useMemo(() => (editor.state === null ? undefined : parsedText(editor.state.text)), [editor.state])
+
   useEffect(() => onSummary(entry === null || scene === null ? null : summaryOf(entry, scene)), [entry, scene, onSummary])
   useEffect(() => () => onSummary(null), [onSummary])
+  useEffect(() => setSelectedPath(null), [entry?.key])
 
   return (
     <>
-      <div className="relative min-w-0 flex-1">
-        <SceneViewport content={mesh?.content ?? null} framing={mesh} />
+      <div className="flex min-w-0 flex-1 flex-col">
+        <SceneArea
+          entry={entry}
+          variant={variant}
+          mesh={mesh}
+          status={building && entry !== null ? (waiting ?? `Building ${entry.name}`) : null}
+          onVariant={chooseVariant}
+        />
+        {view.editable && entry !== null && (
+          <NodePane editor={editor} entryKey={entry.key} selected={selected} onSelect={(node) => setSelectedPath(node?.path ?? null)} />
+        )}
+      </div>
+      <aside className={cn('flex shrink-0 flex-col border-l bg-card', view.editable ? 'w-[300px]' : 'w-[250px]')}>
+        <EntryBrowser className={selected === null ? 'flex-[7]' : 'flex-[3]'} title={view.label} entries={entries} current={entry?.key ?? null} onSelect={(key) => setChosen({ key, variant: 0 })} />
+        {selected !== null && editor.state !== null ? (
+          <NodeInspector key={JSON.stringify(selected.path)} node={selected} state={editor.state} values={values} onEdit={editor.edit} />
+        ) : (
+          <BlockList scene={scene} />
+        )}
+      </aside>
+    </>
+  )
+}
+
+interface SceneAreaProps {
+  entry: SceneEntry | null
+  variant: number
+  mesh: SceneMesh | null
+  /** What is being built, or null when nothing is. */
+  status: string | null
+  onVariant(variant: number): void
+}
+
+function SceneArea({ entry, variant, mesh, status, onVariant }: SceneAreaProps): React.JSX.Element {
+  return (
+    <div className="relative min-h-0 flex-[11]">
+      <SceneViewport content={mesh?.content ?? null} framing={mesh} />
         {entry !== null && entry.variants > 1 && (
           <div className="absolute top-3 left-3 flex items-center gap-1 rounded-md border border-overlay-border bg-card/90 p-1 text-[12px] tabular-nums">
-            <Button variant="ghost" size="icon-sm" title="Previous variant" onClick={() => chooseVariant(variant - 1)}>
+            <Button variant="ghost" size="icon-sm" title="Previous variant" onClick={() => onVariant(variant - 1)}>
               <ChevronLeft />
             </Button>
             <span className="px-1">
               Variant {variant + 1} of {entry.variants}
             </span>
-            <Button variant="ghost" size="icon-sm" title="Next variant" onClick={() => chooseVariant(variant + 1)}>
+            <Button variant="ghost" size="icon-sm" title="Next variant" onClick={() => onVariant(variant + 1)}>
               <ChevronRight />
             </Button>
           </div>
         )}
-        {building && entry !== null && (
+        {status !== null && (
           <div className="pointer-events-none absolute top-3 left-1/2 -translate-x-1/2 rounded-md border border-overlay-border bg-card/90 px-3 py-1.5 text-[12px] text-secondary-text">
-            {waiting ?? `Building ${entry.name}`}
+            {status}
           </div>
         )}
-      </div>
-      <aside className="flex w-[250px] shrink-0 flex-col border-l bg-card">
-        <EntryBrowser className="flex-[7]" title={view.label} entries={entries} current={entry?.key ?? null} onSelect={(key) => setChosen({ key, variant: 0 })} />
-        <BlockList scene={scene} />
-      </aside>
-    </>
+    </div>
   )
 }
 

@@ -33,6 +33,96 @@ export interface SceneEntry {
   variants: number
 }
 
+/** A scene view as the server lists it; `editable` when its entries can be edited as nodes. */
+export interface SceneViewInfo extends ModuleViewInfo {
+  editable: boolean
+}
+
+/** Where a value sits in a JSON file: member names and element indices from the root. */
+export type JsonPath = (string | number)[]
+
+/** An entry's file as the node editor shows it (StudioEditors.EditorState). */
+export interface EditorState {
+  /** Where it is below the pack folder. */
+  file: string
+  /** Tells this text from any other; an edit sent with an older one is refused. */
+  revision: string
+  text: string
+  /** The file as nodes, or null when it can't be read as nodes and `problem` says why. */
+  roots: GraphNode[] | null
+  problem: string | null
+  /** Why the file can't be edited here, such as outside a studio world; null when it can. */
+  locked: string | null
+  types: Record<string, SettingsType>
+}
+
+export interface GraphNode {
+  kind: string
+  title: string
+  path: JsonPath
+  /** The scene part it draws, or NO_PART. */
+  partId: number
+  roles: string[]
+  settings: NodeSettings[]
+  children: { wire: string; node: GraphNode }[]
+  /** The array a node moved under this one joins; null when nothing can move here. */
+  childList: JsonPath | null
+  movable: boolean
+  duplicable: boolean
+  additions: { label: string; list: JsonPath; literal: string }[]
+}
+
+export const NO_PART = -1
+
+/** The settings of the object at `path`, of schema type `type`, without the members shown as nodes. */
+export interface NodeSettings {
+  title: string
+  path: JsonPath
+  type: string
+  shownAsNodes: string[]
+}
+
+/** A settings type of the pack's schema (SchemaTypes.TypeWire). */
+export interface SettingsType {
+  description: string
+  options: SettingOption[]
+}
+
+export interface SettingOption {
+  name: string
+  description: string
+  required: boolean
+  minimum: number | null
+  maximum: number | null
+  minItems: number | null
+  defaultValue: unknown
+  kind: ValueKind
+}
+
+export type ValueKind =
+  | { kind: 'boolean' }
+  | { kind: 'integer' }
+  | { kind: 'decimal' }
+  | { kind: 'text'; format: string }
+  | { kind: 'reference'; reference: string; format: string }
+  | { kind: 'resource'; resource: string }
+  | { kind: 'enum'; constants: { name: string; description: string }[] }
+  | { kind: 'list'; element: ValueKind; unique: boolean }
+  | { kind: 'map'; value: ValueKind }
+  | { kind: 'object'; type: string }
+  | { kind: 'host'; type: string }
+  | { kind: 'any' }
+
+/** One change the node editor makes (GraphEditRequest). */
+export type GraphEdit =
+  | { op: 'set'; object: JsonPath; key: string; literal: string }
+  | { op: 'unset'; object: JsonPath; key: string }
+  | { op: 'append'; list: JsonPath; literal: string }
+  | { op: 'addItem'; list: JsonPath }
+  | { op: 'delete'; path: JsonPath }
+  | { op: 'duplicate'; path: JsonPath }
+  | { op: 'move'; path: JsonPath; toList: JsonPath }
+
 /** Something a pattern view lays out, such as one of a biome's palettes (IrisApi PatternEntry). */
 export interface PatternEntry {
   key: string

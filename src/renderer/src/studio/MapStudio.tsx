@@ -16,7 +16,7 @@ import { PatternStudio } from './PatternStudio'
 import { SavedWorldStudio } from './SavedWorldStudio'
 import { SceneStudio } from './SceneStudio'
 import { WorldStudio3D } from './WorldStudio3D'
-import { actionForKey, viewForKey, type ShortcutAction } from './shortcuts'
+import { actionForKey, isTypingInto, viewForKey, type ShortcutAction } from './shortcuts'
 import { StatusBar } from './StatusBar'
 import { StudioToolbar } from './StudioToolbar'
 import { ViewList } from './ViewList'
@@ -335,8 +335,8 @@ function statusLabel(viewLabel: string, previewName: string | null, sceneSummary
 }
 
 /** Views the pack's modules show, read again after the pack reloads; keep {@code load} stable. */
-function useModuleViews(load: () => Promise<ModuleViewInfo[]>, packRevision: number): ModuleViewInfo[] {
-  const [views, setViews] = useState<ModuleViewInfo[]>([])
+function useModuleViews<View extends ModuleViewInfo>(load: () => Promise<View[]>, packRevision: number): View[] {
+  const [views, setViews] = useState<View[]>([])
   useEffect(() => {
     let active = true
     load()
@@ -503,7 +503,7 @@ function useKeyboard(
       if (event.key === 'Shift') {
         setDetailed(true)
       }
-      if (event.ctrlKey || event.metaKey || event.altKey || event.target instanceof HTMLInputElement) {
+      if (event.ctrlKey || event.metaKey || event.altKey || isTypingInto(event.target)) {
         return
       }
       const viewId = viewForKey(event.key)

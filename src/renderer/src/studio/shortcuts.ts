@@ -70,3 +70,8 @@ export function actionForKey(key: string): ShortcutAction | null {
 export function viewForKey(key: string): string | null {
   return Object.entries(VIEW_KEYS).find(([, viewKey]) => viewKey === key)?.[0] ?? null
 }
+
+/** Whether a key press goes to a field being typed into, so the studio's keys leave it alone. */
+export function isTypingInto(target: EventTarget | null): boolean {
+  return target instanceof HTMLInputElement || target instanceof HTMLSelectElement || target instanceof HTMLTextAreaElement
+}

@@ -4,6 +4,8 @@ import { decodePattern } from './patternDecoding'
 import { decodeSavedTile } from './savedTileDecoding'
 import { decodeTile } from './tileDecoding'
 import type {
+  EditorState,
+  GraphEdit,
   MapHover,
   MapLabel,
   MapTile,
@@ -18,10 +20,12 @@ import type {
   SavedTile,
   SavedWorldInfo,
   SceneEntry,
+  SceneViewInfo,
   WorldInfo
 } from './types'
 
 export const STATUS_NOT_FOUND = 404
+export const STATUS_CONFLICT = 409
 export const STATUS_UNAVAILABLE = 503
 
 export class BridgeError extends Error {
@@ -134,8 +138,23 @@ export class BridgeClient {
   }
 
   /** The scene views the pack's modules show, such as its objects. */
-  sceneViews(): Promise<ModuleViewInfo[]> {
+  sceneViews(): Promise<SceneViewInfo[]> {
     return this.json('scenes')
+  }
+
+  /** An editable entry's file, as nodes. */
+  sceneFile(viewId: string, key: string, signal?: AbortSignal): Promise<EditorState> {
+    return this.json(`scene-file?${new URLSearchParams({ view: viewId, key })}`, { signal })
+  }
+
+  /** Makes {@code edit} on the file as it was at {@code revision} and saves it; refused with STATUS_CONFLICT when it changed since. */
+  sceneEdit(viewId: string, key: string, revision: string, edit: GraphEdit): Promise<EditorState> {
+    return this.json(`scene-edit?${new URLSearchParams({ view: viewId, key })}`, { method: 'POST', body: JSON.stringify({ revision, edit }) })
+  }
+
+  /** Replaces the whole file, as undoing does; refused with STATUS_CONFLICT when it changed since {@code revision}. */
+  sceneWrite(viewId: string, key: string, revision: string, text: string): Promise<EditorState> {
+    return this.json(`scene-write?${new URLSearchParams({ view: viewId, key })}`, { method: 'POST', body: JSON.stringify({ revision, text }) })
   }
 
   sceneEntries(viewId: string): Promise<SceneEntry[]> {

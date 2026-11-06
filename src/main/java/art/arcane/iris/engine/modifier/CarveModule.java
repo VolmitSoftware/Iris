@@ -46,6 +46,7 @@ import com.volmit.stage.MantleStageContext;
 import com.volmit.world.PackWorld;
 import com.volmit.world.TerrainSampler;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 
@@ -68,8 +69,9 @@ public final class CarveModule implements IrisModule {
     @Override
     public void setup(ModuleSetup setup) {
         var registry = setup.registry();
-        registry.registerSettings(CaveProfile.class, CarvingSettings.class, CarvingEnabledSettings.class, CarvingBiomeSettings.class,
-                CaveDepthSettings.class, CaveLavaHeightSettings.class, UpperDimensionCarvingSettings.class);
+        List.of(CaveProfile.class, CarvingSettings.class, CarvingEnabledSettings.class, CarvingBiomeSettings.class,
+                CaveDepthSettings.class, CaveLavaHeightSettings.class, UpperDimensionCarvingSettings.class)
+                .forEach(registry::registerSettings);
         registry.registerService(CaveBiomes.class, new CaveBiomeBands());
 
         var graph = setup.stages();

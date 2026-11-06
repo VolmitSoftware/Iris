@@ -52,7 +52,8 @@ public final class StructureModule implements IrisModule {
                 .reach(StructureModule::reach).run(StructureModule::place);
         var registry = setup.registry();
         StructureResources.kinds().forEach(registry::registerResourceKind);
-        registry.registerSettings(StructureSettings.class, StructurePlacementSettings.class);
+        registry.registerSettings(StructureSettings.class);
+        registry.registerSettings(StructurePlacementSettings.class);
     }
 
     private static void place(MantleStageContext context) {

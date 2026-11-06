@@ -58,7 +58,8 @@ public final class DecorantModule implements IrisModule, ModuleLifecycle {
         // Ordering only: iris:matter ships in the built-ins jar, which a pack may not have.
         setup.stages().define(IrisStages.Decorant.DECORATE).softAfter(IrisStages.Matter.INSERT).run(DecorantModule::decorate);
         var registry = setup.registry();
-        registry.registerSettings(DecorantSettings.class, DecorateSettings.class);
+        registry.registerSettings(DecorantSettings.class);
+        registry.registerSettings(DecorateSettings.class);
         registry.registerLifecycle(this);
     }
 

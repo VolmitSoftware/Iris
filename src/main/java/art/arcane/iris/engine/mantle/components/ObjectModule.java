@@ -40,6 +40,8 @@ import com.volmit.service.SaplingGrowth;
 import com.volmit.stage.MantleStageContext;
 import com.volmit.world.PackWorld;
 
+import java.util.List;
+
 /**
  * Module {@code iris:objects}: the objects the dimension's regions and biomes place, written into the mantle
  * once the caves they may anchor in are planned. A port of what was Iris's object mantle component, its work
@@ -67,8 +69,9 @@ public final class ObjectModule implements IrisModule, ModuleLifecycle {
         var registry = setup.registry();
         registry.registerService(ObjectsAt.class, new ObjectLocating());
         registry.registerService(SaplingGrowth.class, new TreeGrowing());
-        registry.registerSettings(ObjectSettings.class, TreeGrowthSettings.class, RequireSurfaceSupportSettings.class,
-                SurfaceSupportBufferSettings.class, UpperObjectsSettings.class, UpperObjectsForceSettings.class);
+        List.of(ObjectSettings.class, TreeGrowthSettings.class, RequireSurfaceSupportSettings.class,
+                SurfaceSupportBufferSettings.class, UpperObjectsSettings.class, UpperObjectsForceSettings.class)
+                .forEach(registry::registerSettings);
         registry.registerResourceKind(ProceduralObjectCatalog.DEFINITIONS);
         registry.registerPlacementType(ObjectPlacement.class, ObjectPlacement.jsonFields());
         registry.registerLifecycle(this);

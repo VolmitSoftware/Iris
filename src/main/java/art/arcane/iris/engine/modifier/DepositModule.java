@@ -50,7 +50,9 @@ public final class DepositModule implements IrisModule {
     @Override
     public void setup(ModuleSetup setup) {
         var registry = setup.registry();
-        registry.registerSettings(DepositVariantSettings.class, OreFrequencySettings.class, OreSizeSettings.class);
+        registry.registerSettings(DepositVariantSettings.class);
+        registry.registerSettings(OreFrequencySettings.class);
+        registry.registerSettings(OreSizeSettings.class);
 
         setup.stages().define(IrisStages.Deposit.ORES)
                 .when(DepositSettings.class)

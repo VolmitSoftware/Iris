@@ -43,6 +43,8 @@ import com.volmit.world.PackWorld;
 
 import art.arcane.iris.modules.terrain.TerrainPalettes;
 
+import java.util.List;
+
 /**
  * Module {@code iris:terrain}: the chunk's ground, fluids and biome layers. Each column is filled from bedrock up
  * to its height and the fluid height with its biome's layers, with ore generators of the dimension, region and
@@ -61,10 +63,10 @@ public final class TerrainModule implements IrisModule, ModuleLifecycle {
     public void setup(ModuleSetup setup) {
         setup.stages().define(IrisStages.Terrain.SHAPE).run(TerrainModule::shape);
         var registry = setup.registry();
-        registry.registerSettings(LayersSettings.class, SeaLayersSettings.class, CaveCeilingLayersSettings.class, SlabSettings.class,
+        List.of(LayersSettings.class, SeaLayersSettings.class, CaveCeilingLayersSettings.class, SlabSettings.class,
                 WallSettings.class, LockLayersSettings.class, LockLayersMaxSettings.class, RockPaletteSettings.class, FluidPaletteSettings.class,
                 OreSettings.class, HideOresSettings.class, BedrockSettings.class, ExplodeBiomePalettesSettings.class,
-                ExplodeBiomePaletteSizeSettings.class);
+                ExplodeBiomePaletteSizeSettings.class).forEach(registry::registerSettings);
         registry.registerService(ProtectedFloor.class, TerrainModule::protectsFloor);
         registry.registerLifecycle(this);
         setup.tooling().registerView(new BiomePalettes());

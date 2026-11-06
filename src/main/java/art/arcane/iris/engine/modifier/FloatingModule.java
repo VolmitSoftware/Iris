@@ -50,7 +50,8 @@ public final class FloatingModule implements IrisModule {
     public void setup(ModuleSetup setup) {
         log = setup.log();
         var registry = setup.registry();
-        registry.registerSettings(FloatingChildSettings.class, MergeFloatingChildrenSettings.class);
+        registry.registerSettings(FloatingChildSettings.class);
+        registry.registerSettings(MergeFloatingChildrenSettings.class);
 
         var graph = setup.stages();
         graph.define(IrisStages.Floating.OBJECTS).softAfter(IrisStages.Objects.PLACE).reach(this::objectReach)

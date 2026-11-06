@@ -73,15 +73,6 @@ public final class IrisStages {
         }
     }
 
-    /** Module {@code iris:biome}: the biomes a chunk reports to the server. */
-    public static final class Biome {
-        /** Writes every column's biome, sky biome or custom biome, into the chunk. */
-        public static final ChunkStage<Void> WRITE = Stage.chunk("iris:biome/write");
-
-        private Biome() {
-        }
-    }
-
     /** Module {@code iris:terrain}: the solid ground, fluids and biome layers of a chunk. */
     public static final class Terrain {
         /** Fills each column from bedrock up to its height and the fluid height, with its biome's layers. */
@@ -136,15 +127,6 @@ public final class IrisStages {
         public static final ChunkStage<Void> SURFACE = Stage.chunk("iris:perfection/surface");
 
         private Perfection() {
-        }
-    }
-
-    /** Module {@code iris:custom}: blocks of content plugins, which the server places after generation. */
-    public static final class Custom {
-        /** Records the chunk's custom blocks so the server can place them once the chunk exists. */
-        public static final ChunkStage<Void> BLOCKS = Stage.chunk("iris:custom/blocks");
-
-        private Custom() {
         }
     }
 }

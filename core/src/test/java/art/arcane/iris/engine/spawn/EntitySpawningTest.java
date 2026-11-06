@@ -82,6 +82,7 @@ public class EntitySpawningTest {
         IrisData data = mock(IrisData.class);
         when(engine.getData()).thenReturn(data);
         fixture = ModuleResourceFixture.serve(data);
+        ModuleResourceFixture.serveModules(data, new SpawnModule());
         when(data.getPackResources().items()).thenReturn(mock(ItemRegistry.class));
         IrisWorld engineWorld = mock(IrisWorld.class);
         when(engineWorld.platformWorld()).thenReturn(mock(PlatformWorld.class));

@@ -20,6 +20,7 @@ package art.arcane.iris.engine.spawn;
 
 import art.arcane.iris.builtin.spawn.Spawner;
 import art.arcane.iris.core.loader.IrisData;
+import art.arcane.iris.core.modules.ModuleResourceFixture;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.EngineGeneration;
 import art.arcane.iris.engine.object.TestSettings;
@@ -45,6 +46,12 @@ public class SpawnerGateTest {
     private Engine engine;
     private SpawnerGate gate;
 
+    private static IrisData dataWithSpawnModule() {
+        IrisData data = mock(IrisData.class);
+        ModuleResourceFixture.serveModules(data, new SpawnModule());
+        return data;
+    }
+
     @Before
     public void buildEngine() {
         engine = mock(Engine.class);
@@ -54,7 +61,8 @@ public class SpawnerGateTest {
         when(engineWorld.platformWorld()).thenReturn(platformWorld);
         when(engineWorld.worldFolder()).thenReturn(worldFolder.getRoot());
         when(engine.getWorld()).thenReturn(engineWorld);
-        when(engine.getData()).thenReturn(mock(IrisData.class));
+        IrisData spawnData = dataWithSpawnModule();
+        when(engine.getData()).thenReturn(spawnData);
         gate = SpawnerGate.of(new EngineGeneration(engine).world());
     }
 
@@ -122,7 +130,8 @@ public class SpawnerGateTest {
         Engine engine = mock(Engine.class);
         IrisWorld engineWorld = mock(IrisWorld.class);
         when(engineWorld.worldFolder()).thenReturn(worldFolder.getRoot());
-        when(engine.getData()).thenReturn(mock(IrisData.class));
+        IrisData spawnData = dataWithSpawnModule();
+        when(engine.getData()).thenReturn(spawnData);
         when(engine.getWorld()).thenReturn(engineWorld);
 
         assertFalse(SpawnerGate.of(new EngineGeneration(engine).world()).canSpawn("any", spawner("{}"), 0, 0));

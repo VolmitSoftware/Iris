@@ -5,7 +5,12 @@ import com.volmit.geometry.BlockPosition;
 /**
  * An object ready to be placed: one of the pack's, a scaled variant of one, or one a module built
  * ({@link PackObjects}). Its size is the size it was declared with, which boring and terrain bends cover even where it
- * has no block. Immutable; safe to share between threads.
+ * has no block.
+ *
+ * <p>Only the host makes a {@code PlaceableObject}, and only through {@link PackObjects}: a module reads this interface
+ * and does not implement it. {@link PackObjects} rejects an object it did not make with IllegalArgumentException. The
+ * host never changes an object it handed out (scaling or boring one returns another object), so it is safe to share
+ * between threads.
  */
 public interface PlaceableObject {
     /**

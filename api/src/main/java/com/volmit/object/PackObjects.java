@@ -9,7 +9,9 @@ import java.util.Optional;
 /**
  * The pack's objects, ready to place, and the objects made from them: scaled variants and objects a module builds block
  * by block. The host loads, scales and keeps them for the pack snapshot, so asking again is cheap. Reached through
- * {@link com.volmit.resource.PackResources#objects()}; safe for concurrent calls.
+ * {@link com.volmit.resource.PackResources#objects()}; safe for concurrent calls. This is the only source of
+ * {@link PlaceableObject}s: {@link #scaled} and {@link #smartBored} throw IllegalArgumentException for an object that
+ * did not come from here.
  */
 public interface PackObjects {
     /** The pack object {@code id} names, as {@link com.volmit.resource.PackResources#idOf} gives it for the key; empty when the pack has none. */
@@ -25,8 +27,9 @@ public interface PackObjects {
     PlaceableObject scaled(PlaceableObject object, double factor, ScaleMethod method);
 
     /**
-     * {@code object} with air in the rooms and pockets a placement should clear, found by casting rays through it. Done
-     * once per object; the object itself keeps the air, so later placements of it see it too.
+     * A copy of {@code object} with air in the rooms and pockets a placement should clear, found by casting rays through
+     * it; {@code object} itself is not changed. Done once per object, so asking again returns the same copy, and boring
+     * the copy returns the copy.
      */
     PlaceableObject smartBored(PlaceableObject object);
 

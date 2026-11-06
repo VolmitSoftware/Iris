@@ -286,6 +286,8 @@ if (!outcome.isPlaced()) {
 
 - `PackObjects` gives an object of the pack by id, its size without loading it (`sizeOf`, for a reach), a scaled or
   smart-bored copy, and objects a module builds block by block (`build`). The host keeps them per pack snapshot.
+  Only `PackObjects` makes a `PlaceableObject`; a module does not implement it, and the host rejects one it did not
+  make. `scaled` and `smartBored` return other objects and leave the original as it was.
 - `PlacementTerrain` is the world the placement reads and the host writes into once it commits: heights, blocks,
   carved space, fluid, the structures nearby and the placement recorded at a block (`recordPlacement`, `placementAt`;
   `RunningWorld.placementAt` reads it back later, such as for the loot of a placed object). A recorded placement is a

@@ -21,13 +21,13 @@ package art.arcane.iris.builtin.spawn;
 import com.volmit.config.Desc;
 import com.volmit.config.MinNumber;
 import com.volmit.config.Required;
-import com.volmit.config.Ref;
+import com.volmit.config.ResourceRef;
 import com.volmit.config.Snippet;
 
 @Snippet("iris/spawn/entity-spawn")
 @Desc("Represents an entity spawn during initial chunk generation")
 public final class EntitySpawn {
-    @Ref(kind = EntityDefinition.class)
+    @ResourceRef(EntityDefinition.class)
     @Required
     @Desc("The entity")
     private String entity = "";

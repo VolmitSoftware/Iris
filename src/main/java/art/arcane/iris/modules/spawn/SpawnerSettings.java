@@ -24,7 +24,7 @@ import com.volmit.IrisFeature;
 import com.volmit.config.Desc;
 import com.volmit.config.Feature;
 import com.volmit.config.MinItems;
-import com.volmit.config.Ref;
+import com.volmit.config.ResourceRef;
 
 import java.util.Collections;
 import java.util.List;
@@ -37,7 +37,7 @@ import java.util.List;
 @Feature(id = "iris:spawn", name = "Entity spawners", key = "entitySpawners", root = "spawners", targets = {Level.DIMENSION, Level.REGION, Level.BIOME})
 public final class SpawnerSettings implements IrisFeature {
     @MinItems(1)
-    @Ref(kind = Spawner.class)
+    @ResourceRef(Spawner.class)
     @Desc("Entity spawners to add to this area")
     private List<String> spawners = List.of();
 

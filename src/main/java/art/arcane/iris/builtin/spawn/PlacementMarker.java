@@ -24,7 +24,7 @@ import com.volmit.config.MaxNumber;
 import com.volmit.config.MinItems;
 import com.volmit.config.MinNumber;
 import com.volmit.config.Required;
-import com.volmit.config.Ref;
+import com.volmit.config.ResourceRef;
 import com.volmit.config.Snippet;
 
 import java.util.Collections;
@@ -45,7 +45,7 @@ public final class PlacementMarker {
     @Desc("If true, markers will only be placed if the block matches the mark list perfectly.")
     private boolean exact = false;
     @Required
-    @Ref(kind = SpawnMarker.class)
+    @ResourceRef(SpawnMarker.class)
     @Desc("The marker to add")
     private String marker;
 

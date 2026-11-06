@@ -22,7 +22,7 @@ import com.volmit.config.Desc;
 import com.volmit.config.MaxNumber;
 import com.volmit.config.MinItems;
 import com.volmit.config.MinNumber;
-import com.volmit.config.Ref;
+import com.volmit.config.ResourceRef;
 import com.volmit.world.PackBiome;
 
 import java.util.Collections;
@@ -96,7 +96,7 @@ public final class StructurePlacement {
     private StructureAnchorMode anchor = StructureAnchorMode.LEGACY;
 
     @MinItems(1)
-    @Ref(kind = PackBiome.class)
+    @ResourceRef(PackBiome.class)
     @Desc("Optional cave-biome allowlist for cave anchor modes. Empty accepts the cave biome resolved at the selected anchor. Entries match by load key, including prefix matches.")
     private List<String> caveBiomes = List.of();
 

@@ -26,7 +26,7 @@ import java.lang.annotation.Target;
 /**
  * Iris extension: says that a text option names structures of Iris's structure model by key, which Iris completes in
  * studio and carries along when it exports the pack. The structure model is Iris's own resource kind, whose class a
- * module cannot see, so {@code @Ref(kind = ...)} cannot name it; to another host the option is plain text.
+ * module cannot see, so {@code @ResourceRef} cannot name it; to another host the option is plain text.
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.FIELD)

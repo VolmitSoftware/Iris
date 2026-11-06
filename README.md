@@ -302,7 +302,8 @@ if (!outcome.isPlaced()) {
 - A placement commits whole or not at all: blocks, then markers, and only when no stage rejected and none threw.
 - A rotated object turns its blocks with `BlockRegistry.rotate(state, turn)`: the `BlockTurn` says where the rotation
   moves a direction, and the platform turns the state's facing, axis or rotation to the nearest it has. `merge`,
-  `withProperty` and `matches` change and compare states the way the platform does, and the `STORAGE` trait tells a
+  `withPropertyIfAccepted` and `matches` change and compare states the way the platform does (`BlockState.withProperty`
+  only sets the text, unchecked), and the `STORAGE` trait tells a
   container that holds items, such as for loot.
 
 ## Validators

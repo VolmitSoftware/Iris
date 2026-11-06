@@ -49,7 +49,7 @@ public interface SaplingGrowth {
         /** The height of the topmost block at the column, ignoring fluids when {@code ignoreFluid}. */
         int highest(int x, int z, boolean ignoreFluid);
 
-        BlockState blockAt(int x, int y, int z);
+        BlockState get(int x, int y, int z);
     }
 
     /**

@@ -14,7 +14,7 @@ import java.util.Optional;
  *
  * <p>A content plugin's block ({@link BlockTrait#CUSTOM}) has the key of the block it is drawn as. The host knows it by
  * the state instance it handed out, from this registry or from a block it read, so pass that instance on as it is, and
- * change it through {@link #withProperty}, {@link #rotate} and {@link #merge}: a state built from the key is the plain
+ * change it through {@link #withPropertyIfAccepted}, {@link #rotate} and {@link #merge}: a state built from the key is the plain
  * block.
  */
 public interface BlockRegistry {
@@ -79,7 +79,7 @@ public interface BlockRegistry {
      * {@code state} itself when the block has no property {@code name} or does not accept {@code value}, such as a
      * {@code facing} of {@code up} for a block that only faces sideways.
      */
-    BlockState withProperty(BlockState state, String name, String value);
+    BlockState withPropertyIfAccepted(BlockState state, String name, String value);
 
     /** Whether {@code state} matches {@code pattern} as the platform compares them: the same block, and every property
      * {@code pattern} sets equal.

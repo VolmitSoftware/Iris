@@ -28,7 +28,7 @@ types that carry them and lists what the Iris adapter still owes.
 | Area a stage writes | `reach(blocks)`, `reach(PackReach)`, `writesMantle(...)` on stage definitions, `PackSettings` (with `resources()`, for a reach that depends on the size of the pack's objects), host `StageReach`, `ResolvedStage.reachBlocks`, `PipelineReach` |
 | Settings described for studio | `@Desc`, `@Required`, `@MinNumber`, `@MaxNumber`, `@MinItems`, `@Snippet`, `@Ref`/`Reference`, `FeatureRegistry.registerSettings`, host `LoadedPack.schema()` (`PackSchema`, `FeatureSchema`, `ObjectType`, `SchemaOption`, `ValueKind` with `HostKind`), `ModuleHost.describingHostTypesIn` |
 | Geometry and mantle registration | `FeatureRegistry`, host `ModuleRegistry`, `FeatureCatalog` |
-| Block states and palettes | `BlockState`, `BlockRegistry` (`resolve(BlockSpec)`, `find(key)`, `blockEntity`, `hasTrait`, `oreFor`, `rotate(state, BlockTurn)`, `merge`, `withProperty`, `matches`), `BlockTurn`, `BlockTrait` (with `STORAGE`), `BlockSpec`, `PaletteSpec` and `PaletteSampler` (`BlockRegistry.palette`) |
+| Block states and palettes | `BlockState`, `BlockRegistry` (`resolve(BlockSpec)`, `find(key)`, `blockEntity`, `hasTrait`, `oreFor`, `rotate(state, BlockTurn)`, `merge`, `withPropertyIfAccepted`, `matches`), `BlockTurn`, `BlockTrait` (with `STORAGE`), `BlockSpec`, `PaletteSpec` and `PaletteSampler` (`BlockRegistry.palette`) |
 | A pack's objects | `PlaceableObject` (`name`, size, `center`, `geometry`), `PackObjects` (`object`, `sizeOf`, `scaled` with `ScaleMethod`, `smartBored`, `build`), `PackResources.objects()` |
 | Placing through the pack's placement graph | `Placements.place(PlacementRun)` (`PackWorld.placements()`), `PlacementRun` (request, name, settings JSON, area, terrain, input, seed), `PlacementTerrain` (`recordPlacement` / `placementAt` with a `PlacementRecord`), `StructureVolumes`, `PlacedMarker`, `PlacementOutcome`; stages read `PlacementContext.placementTerrain()` and `input(type)`; mantle stages get a terrain from `MantleGenerationContext.placementTerrain()`; `RunningWorld.placementAt` reads what a placement recorded; `FeatureRegistry.registerPlacementType` names the type packs write placements as (host `FeatureCatalog.placementType()`, `PackSchema.placementType()`) |
 | Noise from pack-described styles | `NoiseStyle`, `StyledRange`, `PackResources.noise()`, `NoiseFactory`, `NoiseSampler` |
@@ -220,7 +220,7 @@ running Iris is the pack publisher's responsibility.
   whose existing worlds depend on other seeds; the same world and purpose always get the same seed.
 - Answer `PackWorld.running()` for a world the host runs, empty for a tool's world. Its `layout()` covers every column of
   the world (not one chunk), with the same values chunk stages read; its `settings()` are the settings at a column and a
-  biome's declarations as chunk stages see them; `highestBlock` is the platform's highest block now; `caveFloors` are
+  biome's declarations as chunk stages see them; `highest` is the platform's highest block now; `caveFloors` are
   the cave floor markers of a chunk, in heights above the bottom; `sky()` is empty until the platform has the world.
 - Call the hooks with `LifecycleRunner`: `packLoaded` once per pack snapshot before its first world starts,
   `worldStarted` before the world generates anything, `warmUp` after it (on a thread of your choice, and wait for it before

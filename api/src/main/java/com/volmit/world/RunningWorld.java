@@ -29,7 +29,7 @@ public interface RunningWorld {
     /** The height of the highest block in the column now: the terrain with what objects and structures added.
      * {@code ignoreFluid} skips fluid blocks, so it answers the ground under a sea.
      */
-    int highestBlock(int worldX, int worldZ, boolean ignoreFluid);
+    int highest(int worldX, int worldZ, boolean ignoreFluid);
 
     /** The floors of the caves generation marked in the chunk, as positions of the floor blocks; none on a platform that
      * cannot read them.

@@ -58,7 +58,6 @@ public final class StructureGraphValidation {
     private static final List<Long> GEOMETRY_SAMPLE_SEEDS = List.of(
             0L, 1L, 2L, 3L, 5L, 8L, 13L, 21L, 34L, 55L, 89L, 144L, 233L, 377L, 610L, 987L);
     private static final int GEOMETRY_SAMPLE_ORIGIN_Y = 64;
-    private static final String LEGACY_INDEX_KEY = "structure-index";
     private static final String OBJECTS_FOLDER = "objects";
     private static final String OBJECT_EXTENSION = ".iob";
     private static final String JSON_EXTENSION = ".json";
@@ -79,7 +78,7 @@ public final class StructureGraphValidation {
         PackStructureResolver resolver = new PackStructureResolver(data);
         for (ResourceId id : data.getPackResources().ids(StructureResources.STRUCTURES)) {
             String structureKey = id.path();
-            if (structureKey.equals(LEGACY_INDEX_KEY) || (activeStructureKeys != null && !activeStructureKeys.contains(structureKey))) {
+            if (activeStructureKeys != null && !activeStructureKeys.contains(structureKey)) {
                 continue;
             }
             IrisStructure structure = StructureResources.structure(data.getPackResources(), structureKey);

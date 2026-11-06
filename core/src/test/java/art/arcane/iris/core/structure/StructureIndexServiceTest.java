@@ -14,12 +14,10 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-import org.mockito.InOrder;
 
 import java.io.File;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
@@ -27,9 +25,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -64,73 +60,27 @@ public class StructureIndexServiceTest {
     }
 
     @Test
-    public void legacyIndexPathRemainsExplicitForCleanup() throws Exception {
+    public void writeOnceWaitsForBoundHooksThenWritesOnce() throws Exception {
         File pack = temporaryFolder.newFolder("pack");
-
-        assertEquals(new File(pack, "structures/structure-index.json"),
-                StructureIndexService.legacyIndexFile(pack));
-    }
-
-    @Test
-    public void legacyIndexIsDeletedAndStructureKeysAreRefreshed() throws Exception {
-        File pack = temporaryFolder.newFolder("pack");
-        File legacyIndex = StructureIndexService.legacyIndexFile(pack);
-        Files.createDirectories(legacyIndex.toPath().getParent());
-        Files.writeString(legacyIndex.toPath(), "{}", StandardCharsets.UTF_8);
-        IrisData data = mock(IrisData.class);
-        when(data.getDataFolder()).thenReturn(pack);
-
-        StructureIndexService.removeLegacyIndex(data);
-
-        assertFalse(legacyIndex.exists());
-        verify(data).invalidateStructureResources();
-    }
-
-    @Test
-    public void structureResourcesStayUntouchedWithoutALegacyIndex() throws Exception {
-        File pack = temporaryFolder.newFolder("pack");
-        IrisData data = mock(IrisData.class);
-        when(data.getDataFolder()).thenReturn(pack);
-
-        StructureIndexService.removeLegacyIndex(data);
-
-        verify(data, never()).invalidateStructureResources();
-    }
-
-    @Test
-    public void writeOnceWaitsForBoundHooksThenCleansBeforeEnumerating() throws Exception {
-        File pack = temporaryFolder.newFolder("pack");
-        File legacyIndex = StructureIndexService.legacyIndexFile(pack);
-        Files.createDirectories(legacyIndex.toPath().getParent());
-        Files.writeString(legacyIndex.toPath(), "{}", StandardCharsets.UTF_8);
         IrisData data = mock(IrisData.class);
         IrisPlatform platform = mock(IrisPlatform.class);
         PlatformStructureHooks structureHooks = mock(PlatformStructureHooks.class);
         ModuleResourceFixture.serveModules(data, new StructureModelModule(), new StructureModule());
         when(data.getDataFolder()).thenReturn(pack);
-        ModuleResourceFixture.serve(data)
-                .resource(StructureResources.STRUCTURES, "castle", new IrisStructure())
-                .resource(StructureResources.STRUCTURES, "structure-index", new IrisStructure());
+        ModuleResourceFixture.serve(data).resource(StructureResources.STRUCTURES, "castle", new IrisStructure());
         when(structureHooks.structureKeys()).thenReturn(List.of("minecraft:village", "example:castle"));
         when(structureHooks.structureSetKeys()).thenReturn(List.of("minecraft:villages"));
 
         assertNull(StructureIndexService.writeOnce(data));
-        assertTrue(legacyIndex.exists());
 
         IrisPlatforms.bind(platform);
         assertNull(StructureIndexService.writeOnce(data));
-        assertTrue(legacyIndex.exists());
 
         when(platform.structureHooks()).thenReturn(structureHooks);
         File index = StructureIndexService.writeOnce(data);
 
         assertEquals(StructureIndexService.indexFile(pack), index);
         assertTrue(index.isFile());
-        assertFalse(legacyIndex.exists());
-        InOrder order = inOrder(data, structureHooks);
-        order.verify(data).invalidateStructureResources();
-        order.verify(structureHooks).structureKeys();
-        order.verify(structureHooks).structureSetKeys();
         assertNull(StructureIndexService.writeOnce(data));
         verify(structureHooks, times(1)).structureKeys();
         verify(structureHooks, times(1)).structureSetKeys();

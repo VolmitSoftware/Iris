@@ -37,8 +37,6 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public final class StructureIndexService {
     private static final String INDEX_PATH = ".iris/structure-index.json";
-    private static final String LEGACY_INDEX_PATH = "structures/structure-index.json";
-    private static final String LEGACY_INDEX_KEY = "structure-index";
     private static final Set<String> GENERATED = ConcurrentHashMap.newKeySet();
 
     private StructureIndexService() {
@@ -65,7 +63,6 @@ public final class StructureIndexService {
     }
 
     public static File write(IrisData data) {
-        removeLegacyIndex(data);
         List<String> structures = IrisPlatforms.get().structureHooks().structureKeys();
         List<String> sets = IrisPlatforms.get().structureHooks().structureSetKeys();
 
@@ -90,7 +87,6 @@ public final class StructureIndexService {
         }
 
         List<String> iris = new ArrayList<>(ModuleServices.structureKeys(data));
-        iris.removeIf(LEGACY_INDEX_KEY::equals);
 
         Collections.sort(vanilla);
         Collections.sort(datapack);
@@ -132,21 +128,5 @@ public final class StructureIndexService {
 
     static File indexFile(File dataFolder) {
         return new File(dataFolder, INDEX_PATH);
-    }
-
-    static File legacyIndexFile(File dataFolder) {
-        return new File(dataFolder, LEGACY_INDEX_PATH);
-    }
-
-    static void removeLegacyIndex(IrisData data) {
-        File legacyFile = legacyIndexFile(data.getDataFolder());
-        try {
-            if (Files.deleteIfExists(legacyFile.toPath())) {
-                data.invalidateStructureResources();
-            }
-        } catch (Throwable e) {
-            IrisLogging.reportError("Failed to remove legacy structure index '"
-                    + legacyFile.getAbsolutePath() + "'", e);
-        }
     }
 }

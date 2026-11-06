@@ -12,6 +12,7 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -32,7 +33,9 @@ import java.util.stream.Stream;
  * other or Iris internals. The Iris API is always exposed; the host may expose more packages, such
  * as those of built-in modules whose stages packs may require. Before the loader exists, the load
  * fails if a jar holds classes of an exposed package, if a class is in two jars, or if a class uses
- * a class that Iris hides from modules or that is missing from an exposed package.
+ * a class that Iris hides from modules or that is missing from an exposed package, or if generation code uses a class of a
+ * tooling part ({@link ToolingPart}). On a host that runs on a platform ({@link PlatformApi}) the parts of that platform are
+ * checked too, against what a part may see; the parts of other platforms are not read.
  * Classes that nobody has are not an error, because the JVM only needs them when code that uses
  * them runs; they are reported as {@link #missingClasses()}, except those in the optional packages
  * the jar's manifest declares ({@value ModuleJar#OPTIONAL_PACKAGES_ATTRIBUTE}).
@@ -55,13 +58,20 @@ public final class PackModules implements AutoCloseable {
     private final List<MissingClasses> missingClasses;
     private final URLClassLoader loader;
     private final JarSnapshot snapshot;
+    private final ExposedPackages exposed;
+    private final Optional<PlatformApi> runningPlatform;
+    private final List<ToolingPart> toolingParts;
 
     private PackModules(
-            List<DiscoveredModule> modules, List<MissingClasses> missingClasses, URLClassLoader loader, JarSnapshot snapshot) {
+            List<DiscoveredModule> modules, List<MissingClasses> missingClasses, URLClassLoader loader, JarSnapshot snapshot,
+            ExposedPackages exposed, Optional<PlatformApi> runningPlatform, List<ToolingPart> toolingParts) {
         this.modules = List.copyOf(modules);
         this.missingClasses = List.copyOf(missingClasses);
         this.loader = loader;
         this.snapshot = snapshot;
+        this.exposed = exposed;
+        this.runningPlatform = runningPlatform;
+        this.toolingParts = List.copyOf(toolingParts);
     }
 
     /** Loads the modules of the pack at {@code packRoot}, exposing only the Iris API. */
@@ -96,13 +106,22 @@ public final class PackModules implements AutoCloseable {
      */
     static PackModules load(Path packRoot, Collection<String> exposedHostPackages, List<Path> bundledJars, Path temporaryRoot,
                             System.Logger logger) {
+        return load(packRoot, exposedHostPackages, bundledJars, temporaryRoot, logger, Optional.empty());
+    }
+
+    /** Like {@link #load(Path, Collection, List, Path, System.Logger)} on a host that runs on {@code runningPlatform}, if
+     * any: the pack's tooling parts of that platform are checked at load and can be opened ({@link #openToolingPart}).
+     */
+    static PackModules load(Path packRoot, Collection<String> exposedHostPackages, List<Path> bundledJars, Path temporaryRoot,
+                            System.Logger logger, Optional<PlatformApi> runningPlatform) {
         Objects.requireNonNull(packRoot, "packRoot");
         Objects.requireNonNull(logger, "logger");
+        Objects.requireNonNull(runningPlatform, "runningPlatform");
         var host = new ExposedHostClassLoader(IrisModule.class.getClassLoader(), ExposedPackages.apiAnd(exposedHostPackages));
         StaleJarSnapshots.remove(temporaryRoot);
         var snapshot = JarSnapshot.take(sourceJars(packRoot, bundledJars, findModuleJars(packRoot)), temporaryRoot);
         try {
-            var packModules = loadSnapshot(packRoot, snapshot, host, logger);
+            var packModules = loadSnapshot(packRoot, snapshot, host, logger, runningPlatform);
             logLoad(logger, packName(packRoot), packModules);
             return packModules;
         } catch (RuntimeException failure) {
@@ -127,6 +146,24 @@ public final class PackModules implements AutoCloseable {
         return missingClasses;
     }
 
+    /** The tooling parts the pack's jars declare for the platform the host runs on, in jar file name order and, within a jar,
+     * in the order it lists them. Empty when the host runs on no platform; the parts of other platforms are never loaded.
+     */
+    public List<ToolingPart> toolingParts() {
+        return toolingParts;
+    }
+
+    /** A loader for {@code part}, which this pack's {@link #toolingParts()} lists: a child of the pack's loader that
+     * sees the running platform's api through the {@link PlatformApi} the host runs on. The caller closes it, before the
+     * pack closes.
+     */
+    public ToolingPartLoader openToolingPart(ToolingPart part) {
+        if (!toolingParts.contains(part)) {
+            throw new IllegalArgumentException("Tooling part " + part.declaration() + " of " + part.jarOrigin() + " is not one of this pack's parts");
+        }
+        return ToolingPartLoader.open(part, loader, exposed, runningPlatform.orElseThrow());
+    }
+
     /** Closes the class loader, then deletes the jar copies, which an open loader would keep locked on Windows. */
     @Override
     public void close() {
@@ -144,10 +181,11 @@ public final class PackModules implements AutoCloseable {
         return Path.of(System.getProperty(TEMPORARY_DIRECTORY_PROPERTY));
     }
 
-    private static PackModules loadSnapshot(Path packRoot, JarSnapshot snapshot, ExposedHostClassLoader host, System.Logger logger) {
+    private static PackModules loadSnapshot(
+            Path packRoot, JarSnapshot snapshot, ExposedHostClassLoader host, System.Logger logger, Optional<PlatformApi> runningPlatform) {
         var jars = snapshot.jars().stream().map(ModuleJar::read).toList();
-        var missingClasses = PackClassCheck.requireLinkable(jars, host);
-        return defineModules(packRoot, jars, missingClasses, host, snapshot, logger);
+        var missingClasses = PackClassCheck.requireLinkable(jars, host, runningPlatform);
+        return defineModules(packRoot, jars, missingClasses, host, snapshot, logger, runningPlatform);
     }
 
     private static List<Path> findModuleJars(Path packRoot) {
@@ -183,16 +221,25 @@ public final class PackModules implements AutoCloseable {
     }
 
     private static PackModules defineModules(
-            Path packRoot, List<ModuleJar> jars, List<MissingClasses> missingClasses, ClassLoader host, JarSnapshot snapshot,
-            System.Logger logger) {
+            Path packRoot, List<ModuleJar> jars, List<MissingClasses> missingClasses, ExposedHostClassLoader host, JarSnapshot snapshot,
+            System.Logger logger, Optional<PlatformApi> runningPlatform) {
         var loader = newPackClassLoader(packRoot, jars, host);
         try {
             var modules = createModules(jars, loader, snapshot, logger);
-            return new PackModules(modules, withoutDeclaredOptional(missingClasses, jars), loader, snapshot);
+            return new PackModules(modules, withoutDeclaredOptional(missingClasses, jars), loader, snapshot, host.exposed(),
+                    runningPlatform, partsOf(jars, runningPlatform));
         } catch (RuntimeException | Error failure) {
             closeAfterFailure(loader, failure);
             throw failure;
         }
+    }
+
+    private static List<ToolingPart> partsOf(List<ModuleJar> jars, Optional<PlatformApi> runningPlatform) {
+        var platformName = runningPlatform.map(running -> running.platform().name());
+        return jars.stream()
+                .flatMap(jar -> jar.toolingParts().stream())
+                .filter(part -> platformName.filter(part.platform()::equals).isPresent())
+                .toList();
     }
 
     private static URLClassLoader newPackClassLoader(Path packRoot, List<ModuleJar> jars, ClassLoader host) {

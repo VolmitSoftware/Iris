@@ -9,6 +9,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 /** The checks a pack load makes on a module jar's classes, for a build to run on a jar it has just
  * written: the jar names at least one module, every module class is in the jar, and no class uses
@@ -45,7 +46,7 @@ public final class ModuleJarCheck {
                 HostClassesLeftOut.parse(leftOutClasses));
         var read = ModuleJar.read(new JarSnapshot.CopiedJar(jar.toString(), jar));
         requireEntryClassesInJar(read);
-        PackClassCheck.requireLinkable(List.of(read), host);
+        PackClassCheck.requireLinkable(List.of(read), host, Optional.empty());
         return read.entryClasses();
     }
 

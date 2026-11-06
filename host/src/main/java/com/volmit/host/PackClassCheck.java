@@ -2,6 +2,7 @@ package com.volmit.host;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.Optional;
 
 /** Checks the classes of all jars of one pack before its class loader exists, so a pack that
  * cannot link fails at load with the jar to fix, not later with a {@link NoClassDefFoundError}
@@ -12,13 +13,14 @@ final class PackClassCheck {
 
     /** Fails when a jar holds a class of an exposed host package, when a class is in two jars, or
      * when a class uses a class that Iris hides from modules or that is missing from an exposed
-     * package. Returns the classes that nobody has, per jar; they fail only when code that needs them
-     * runs.
+     * package. Generation code may not use tooling parts, and the parts of {@code runningPlatform}, if the host runs on one,
+     * are checked against what a part may see; the parts of other platforms are skipped. Returns the classes that nobody
+     * has, per jar; they fail only when code that needs them runs.
      */
-    static List<MissingClasses> requireLinkable(List<ModuleJar> jars, ExposedHostClassLoader host) {
+    static List<MissingClasses> requireLinkable(List<ModuleJar> jars, ExposedHostClassLoader host, Optional<PlatformApi> runningPlatform) {
         jars.forEach(jar -> requireNoHostClasses(jar, host.exposed()));
         requireDistinctClasses(jars);
-        return PackReferenceCheck.requireResolvable(jars, host);
+        return PackReferenceCheck.requireResolvable(jars, host, runningPlatform);
     }
 
     /** Exposed packages belong to the host. The pack loader asks the host for their classes first, so

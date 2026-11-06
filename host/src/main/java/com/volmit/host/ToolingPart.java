@@ -60,6 +60,11 @@ public record ToolingPart(String platform, String entryClass, PackageName packag
         return packageName.contains(binaryName);
     }
 
+    /** Whether both entries start the same part: the same platform and the same package. */
+    boolean inSamePartAs(ToolingPart other) {
+        return platform.equals(other.platform) && packageName.equals(other.packageName);
+    }
+
     String declaration() {
         return platform + PLATFORM_SEPARATOR + entryClass;
     }
@@ -92,11 +97,7 @@ public record ToolingPart(String platform, String entryClass, PackageName packag
 
     private boolean sharesClassesWithoutBeingOnePart(ToolingPart other) {
         boolean packagesOverlap = contains(other.entryClass) || other.contains(entryClass);
-        return packagesOverlap && !samePackageOfSamePlatform(other);
-    }
-
-    private boolean samePackageOfSamePlatform(ToolingPart other) {
-        return platform.equals(other.platform) && packageName.equals(other.packageName);
+        return packagesOverlap && !inSamePartAs(other);
     }
 
     private static ModuleLoadException overlappingParts(String origin, ToolingPart first, ToolingPart second) {

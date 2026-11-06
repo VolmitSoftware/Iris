@@ -37,7 +37,7 @@ public final class LoadedPack implements AutoCloseable {
     public static LoadedPack load(Path packRoot, ModuleHost host) {
         Objects.requireNonNull(host, "host");
         var packModules = PackModules.load(packRoot, host.exposedHostPackages(), host.bundledJars(), host.jarCopyRoot(),
-                host.logger());
+                host.logger(), host.platformApi());
         try {
             var loaded = LoadedModules.load(host.withPackModules(packModules.modules()),
                     host.reservedHostFields(), host.hostTypePackages(), host.reservedFolders());
@@ -58,6 +58,16 @@ public final class LoadedPack implements AutoCloseable {
     /** Classes the pack's jars use that nobody has, per jar; see {@link PackModules#missingClasses()}. */
     public List<MissingClasses> missingClasses() {
         return packModules.missingClasses();
+    }
+
+    /** The pack's tooling parts of the platform the host runs on; see {@link PackModules#toolingParts()}. */
+    public List<ToolingPart> toolingParts() {
+        return packModules.toolingParts();
+    }
+
+    /** A loader for one of {@link #toolingParts()}; the caller closes it before this pack; see {@link PackModules#openToolingPart}. */
+    public ToolingPartLoader openToolingPart(ToolingPart part) {
+        return packModules.openToolingPart(part);
     }
 
     public FeatureCatalog catalog() {

@@ -186,13 +186,13 @@ public class BuiltInGenerationGraphTest {
     }
 
     @Test
-    public void depositGeneratorsKeepTheMinimumListLengthsTheOldClassHad() throws IOException {
+    public void depositGeneratorListsDeclareNoMinimumLength() throws IOException {
         try (LoadedPack pack = BuiltInPack.serve(mock(IrisData.class), folder, List.of())) {
             ObjectType generator = pack.schema().type(DepositGenerator.class.getName());
 
             for (String list : List.of("palette", "replaceableBlocks", "includedBiomes", "excludedBiomes")) {
                 SchemaOption option = generator.options().stream().filter(candidate -> candidate.name().equals(list)).findFirst().orElseThrow();
-                assertEquals(list, OptionalInt.of(1), option.minItems());
+                assertEquals(list, OptionalInt.empty(), option.minItems());
             }
         }
     }
@@ -213,18 +213,19 @@ public class BuiltInGenerationGraphTest {
             assertEquals("decorators", option.name());
             assertEquals("decorators are a module class of IrisApi types, not an Iris class",
                     new ValueKind.ListKind(new ValueKind.ObjectKind(Decorator.class.getName()), false), option.kind());
-            assertEquals(OptionalInt.of(1), option.minItems());
+            assertEquals(OptionalInt.empty(), option.minItems());
         }
     }
 
     @Test
-    public void decoratorsKeepTheMinimumListLengthsTheOldClassHad() throws IOException {
+    public void onlyTheDecoratorPaletteNeedsAnEntry() throws IOException {
         try (LoadedPack pack = BuiltInPack.serve(mock(IrisData.class), folder, List.of())) {
             ObjectType decorator = pack.schema().type(Decorator.class.getName());
 
             for (String list : List.of("whitelist", "blacklist", "palette", "topPalette")) {
                 SchemaOption option = decorator.options().stream().filter(candidate -> candidate.name().equals(list)).findFirst().orElseThrow();
-                assertEquals(list, OptionalInt.of(1), option.minItems());
+                OptionalInt expected = list.equals("palette") ? OptionalInt.of(1) : OptionalInt.empty();
+                assertEquals(list, expected, option.minItems());
             }
         }
     }

@@ -229,7 +229,7 @@ public class SchemaBuilderParityTest {
         JSONObject decorators = properties.getJSONObject("decorators");
         assertEquals("array", deposits.getString("type"));
         assertEquals("array", decorators.getString("type"));
-        assertEquals(1, decorators.getInt("minItems"));
+        assertFalse(decorators.has("minItems"));
         assertEquals("module-art-arcane-iris-modules-deposit-depositgenerator", definitionKey(deposits.getJSONObject("items")));
         assertEquals("module-art-arcane-iris-builtin-decorant-decorator", definitionKey(decorators.getJSONObject("items")));
         for (JSONObject rooted : List.of(deposits, decorators)) {
@@ -296,11 +296,11 @@ public class SchemaBuilderParityTest {
                 .getJSONObject("properties");
 
         assertEquals("boolean", settings.getJSONObject("enabled").getString("type"));
-        assertEquals(1, settings.getJSONObject("disabled").getInt("minItems"));
+        assertFalse(settings.getJSONObject("disabled").has("minItems"));
         for (String field : List.of("steps", "disabledSteps")) {
             JSONObject items = settings.getJSONObject(field).getJSONObject("items");
             JSONObject steps = items.has("$ref") ? definitions.getJSONObject(definitionKey(items)) : items;
-            assertEquals(1, settings.getJSONObject(field).getInt("minItems"));
+            assertFalse(settings.getJSONObject(field).has("minItems"));
             assertEquals(Arrays.stream(DecorationStep.values()).map(step -> "\"" + step.name() + "\"").collect(Collectors.joining(",")),
                     steps.getJSONArray("enum").join(","));
             JSONArray descriptions = steps.getJSONArray("enumDescriptions");
@@ -333,7 +333,7 @@ public class SchemaBuilderParityTest {
         assertTrue(terrain.has("lobeFrequency"));
         assertTrue(terrain.has("lobeStrength"));
         assertTrue(terrain.has("encasePalette"));
-        assertEquals(1, settings.getJSONObject("adjustments").getInt("minItems"));
+        assertFalse(settings.getJSONObject("adjustments").has("minItems"));
     }
 
     /**
@@ -413,7 +413,7 @@ public class SchemaBuilderParityTest {
         JSONObject edit = properties.getJSONObject("edit");
         JSONObject replace = definitions.getJSONObject(definitionKey(edit.getJSONObject("items")));
         assertEquals("module-art-arcane-iris-builtin-blocks-objectreplace", definitionKey(edit.getJSONObject("items")));
-        assertEquals(1, replace.getJSONArray("anyOf").getJSONObject(0).getJSONObject("properties").getJSONObject("find").getInt("minItems"));
+        assertFalse(replace.getJSONArray("anyOf").getJSONObject(0).getJSONObject("properties").getJSONObject("find").has("minItems"));
     }
 
     @Test

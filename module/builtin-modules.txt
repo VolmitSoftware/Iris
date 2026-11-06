@@ -1,0 +1,102 @@
+# What goes into build/libs/iris-builtins.jar, the built-in modules as a pack module jar.
+#
+# A line is one of (blank lines and # comments are ignored):
+#
+#   module <binary class name>   an IrisModule class. It is listed in META-INF/services/com.volmit.IrisModule,
+#                                and its nested classes are packaged with it.
+#   include <class pattern>      more classes for the jar, as an Ant pattern relative to the class root, such as
+#                                art/arcane/iris/engine/modifier/carve/**   Settings types, helpers and stage
+#                                constants a listed module owns go here.
+#
+# A class here must be one a pack module may have: it may use only the IrisApi, the packages Iris exposes
+# (art.arcane.iris.builtin), the JDK and the other classes of the jar. `./gradlew builtinModulesJar` checks
+# that with IrisApi's pack class checks and fails naming the class and what it uses.
+#
+# Moving a module here means removing it from IrisModuleHost.generationModules() in Iris.
+
+# The settings and helper types only the jar's modules use, which Iris does not expose.
+include art/arcane/iris/modules/**
+
+module art.arcane.iris.engine.modifier.PostModule
+include art/arcane/iris/engine/modifier/SurfaceSmoothing*.class
+module art.arcane.iris.engine.modifier.PerfectionModule
+module art.arcane.iris.engine.modifier.MatterModule
+module art.arcane.iris.engine.loot.LootModule
+include art/arcane/iris/engine/loot/**
+module art.arcane.iris.engine.spawn.SpawnModule
+include art/arcane/iris/engine/spawn/**
+module art.arcane.iris.engine.object.placement.PrepareModule
+module art.arcane.iris.engine.object.placement.AnchorModule
+module art.arcane.iris.engine.object.placement.ValidateModule
+module art.arcane.iris.engine.object.placement.BoreModule
+module art.arcane.iris.engine.object.placement.BlocksModule
+module art.arcane.iris.engine.object.placement.StiltModule
+module art.arcane.iris.engine.object.placement.VacuumModule
+module art.arcane.iris.engine.object.placement.SnowModule
+include art/arcane/iris/engine/object/placement/PlacementModules.class
+include art/arcane/iris/engine/object/placement/PlacementWorld.class
+include art/arcane/iris/engine/object/placement/WorldVolume.class
+include art/arcane/iris/engine/object/placement/ObjectEdits*.class
+include art/arcane/iris/engine/object/placement/ResolvedReplace*.class
+include art/arcane/iris/engine/object/placement/IrisSurfaceSupport*.class
+include art/arcane/iris/engine/object/placement/IrisObjectVacuum.class
+module art.arcane.iris.engine.framework.vanillafeatures.VanillaFeaturesModule
+include art/arcane/iris/engine/framework/vanillafeatures/**
+module art.arcane.iris.engine.modifier.CarveModule
+include art/arcane/iris/engine/modifier/CaveApplying*.class
+include art/arcane/iris/engine/modifier/CaveDressing.class
+include art/arcane/iris/engine/modifier/BuiltInCaveDressing.class
+include art/arcane/iris/engine/modifier/CaveBiomeBands*.class
+include art/arcane/iris/engine/modifier/CaveBiomeCache.class
+include art/arcane/iris/engine/modifier/CaveBlockClasses.class
+include art/arcane/iris/engine/modifier/CarveColumnMask.class
+include art/arcane/iris/engine/modifier/CarveWallBuffer*.class
+include art/arcane/iris/engine/modifier/IrisCarveScratch.class
+include art/arcane/iris/engine/mantle/components/CarveOrphanSweep*.class
+include art/arcane/iris/engine/mantle/components/CarveWorld.class
+include art/arcane/iris/engine/mantle/components/CaveCarveScratch*.class
+include art/arcane/iris/engine/mantle/components/CaveCarving*.class
+include art/arcane/iris/engine/mantle/components/CaveFieldModuleState.class
+include art/arcane/iris/engine/mantle/components/CaveFloorMarking*.class
+include art/arcane/iris/engine/mantle/components/CaveFluidSupportPlan*.class
+include art/arcane/iris/engine/mantle/components/IrisCaveCarver3D*.class
+include art/arcane/iris/engine/mantle/components/SurfaceFluidBoundaryPlan*.class
+include art/arcane/iris/engine/object/terrain/carving/CarvingResolver*.class
+include art/arcane/iris/engine/object/terrain/carving/CaveProfileSampler*.class
+include art/arcane/iris/engine/object/terrain/carving/DeclaredByLevel.class
+include art/arcane/iris/engine/object/terrain/carving/DeclaredCaveProfiles.class
+include art/arcane/iris/engine/object/terrain/carving/ResolvedCarvingEntry.class
+module art.arcane.iris.engine.modifier.DepositModule
+include art/arcane/iris/engine/modifier/DepositPlacer*.class
+include art/arcane/iris/engine/modifier/DepositClump*.class
+include art/arcane/iris/engine/modifier/ResolvedDeposit*.class
+module art.arcane.iris.engine.actuator.DecorantModule
+include art/arcane/iris/engine/decorator/**
+module art.arcane.iris.engine.actuator.TerrainModule
+include art/arcane/iris/engine/actuator/Terrain*.class
+include art/arcane/iris/engine/actuator/ResolvedOre*.class
+include art/arcane/iris/engine/actuator/OreWarmUp*.class
+module art.arcane.iris.engine.mantle.components.ObjectModule
+include art/arcane/iris/engine/mantle/components/ObjectPlacing*.class
+include art/arcane/iris/engine/mantle/components/ChunkObjectPlacing*.class
+include art/arcane/iris/engine/mantle/components/CaveAnchors*.class
+include art/arcane/iris/engine/mantle/components/CaveSettings*.class
+include art/arcane/iris/engine/mantle/components/CaveRejects*.class
+include art/arcane/iris/engine/mantle/components/EffectivePlacements*.class
+include art/arcane/iris/engine/mantle/components/PlacementReach*.class
+include art/arcane/iris/engine/mantle/components/ObjectWarmUp*.class
+include art/arcane/iris/engine/mantle/components/ObjectLocating*.class
+include art/arcane/iris/engine/mantle/components/TreeGrowing*.class
+include art/arcane/iris/engine/mantle/components/ObjectChunk*.class
+include art/arcane/iris/engine/mantle/components/GoldenDebugTerrain*.class
+include art/arcane/iris/engine/procedural/**
+module art.arcane.iris.engine.modifier.FloatingModule
+include art/arcane/iris/engine/modifier/FloatingIslands*.class
+include art/arcane/iris/engine/object/terrain/floating/**
+include art/arcane/iris/engine/mantle/components/FloatingObjectPlacing*.class
+include art/arcane/iris/engine/mantle/components/FloatingPlacer*.class
+include art/arcane/iris/engine/mantle/components/FloatingIslandSampleResolver*.class
+include art/arcane/iris/engine/mantle/components/IslandFace*.class
+include art/arcane/iris/engine/mantle/components/UndersideTurn*.class
+# iris:structure (art.arcane.iris.engine.mantle.components.StructureModule) is not here: Iris registers it with its own
+# modules, because its jigsaw studio reads the structure resources the module registers.

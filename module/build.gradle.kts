@@ -1,0 +1,179 @@
+import org.gradle.jvm.tasks.Jar
+import java.io.ByteArrayOutputStream
+
+plugins {
+    `java-library`
+}
+
+group = "art.arcane"
+version = "1.0-SNAPSHOT"
+
+base {
+    archivesName.set("iris-module")
+}
+
+java {
+    toolchain.languageVersion.set(JavaLanguageVersion.of(25))
+    withSourcesJar()
+}
+
+repositories {
+    mavenCentral()
+    maven("https://jitpack.io") // VolmLib, when no sibling checkout is found
+}
+
+val volmLibCoordinate = providers.gradleProperty("volmLibCoordinate").get()
+
+// What a module may use: the Iris API, VolmLib and Gson, which every Iris host provides, and the JDK. None of them ships
+// with the module.
+dependencies {
+    compileOnly("com.volmit:iris-api")
+    compileOnly(volmLibCoordinate) {
+        isTransitive = false
+    }
+    compileOnly("com.google.code.gson:gson:2.14.0")
+    compileOnly("org.projectlombok:lombok:1.18.46")
+    annotationProcessor("org.projectlombok:lombok:1.18.46")
+}
+
+// The same options as Iris's own compilation, so the classes, and the built-ins jar made from them, are the ones Iris
+// shipped when it compiled these sources itself.
+tasks.named<JavaCompile>("compileJava") {
+    options.encoding = "UTF-8"
+    options.compilerArgs.add("-parameters")
+    options.debugOptions.debugLevel = "none"
+    // lombok.config decides which members Lombok generates; Gradle does not know it is an input.
+    inputs.file(layout.projectDirectory.file("lombok.config"))
+        .withPropertyName("lombokConfig")
+        .withPathSensitivity(PathSensitivity.NONE)
+}
+
+// The built-ins as a pack module jar, build/libs/iris-builtins.jar. builtin-modules.txt lists what goes in:
+// "module <class>" (an entry point, with its nested classes) or "include <ant pattern>".
+val builtinModulesJarName = "iris-builtins.jar"
+val builtinModuleEntryFile = "com.volmit.IrisModule"
+val builtinModulesFile = layout.projectDirectory.file("builtin-modules.txt").asFile
+// The packages an Iris host exposes to pack modules besides the API (Iris's IrisModuleHost.EXPOSED_PACKAGES).
+val exposedHostPackages = listOf("art.arcane.iris.builtin", "art.arcane.volmlib", "com.google.gson")
+
+data class BuiltinModulesList(val moduleClasses: List<String>, val classPatterns: List<String>)
+
+fun readBuiltinModulesList(): BuiltinModulesList {
+    val moduleClasses = mutableListOf<String>()
+    val classPatterns = mutableListOf<String>()
+    builtinModulesFile.readLines()
+        .map { it.substringBefore('#').trim() }
+        .filter { it.isNotEmpty() }
+        .forEach { line ->
+            val parts = line.split(Regex("\\s+"), limit = 2)
+            if (parts.size < 2 || parts[1].isBlank()) {
+                throw GradleException("${builtinModulesFile.name}: '$line' needs a value after '${parts[0]}'")
+            }
+            when (parts[0]) {
+                "module" -> moduleClasses.add(parts[1].trim())
+                "include" -> classPatterns.add(parts[1].trim())
+                else -> throw GradleException("${builtinModulesFile.name}: unknown line '$line'; start it with 'module' or 'include'")
+            }
+        }
+    return BuiltinModulesList(moduleClasses, classPatterns)
+}
+
+val builtinModulesList = readBuiltinModulesList()
+val builtinPackagedPatterns = builtinModulesList.moduleClasses.flatMap { moduleClass ->
+    val path = moduleClass.replace('.', '/')
+    listOf("$path.class", "$path\$*.class")
+} + builtinModulesList.classPatterns
+val builtinModulesBuild = layout.buildDirectory.dir("builtin-modules")
+
+val writeBuiltinModuleEntries = tasks.register("writeBuiltinModuleEntries") {
+    description = "Writes the built-ins jar's META-INF/services/$builtinModuleEntryFile, one module class per line."
+    val entries = builtinModulesBuild.map { it.file("services/$builtinModuleEntryFile") }
+    inputs.file(builtinModulesFile)
+    outputs.file(entries)
+    doLast {
+        val entriesFile = entries.get().asFile
+        entriesFile.parentFile.mkdirs()
+        entriesFile.writeText(builtinModulesList.moduleClasses.joinToString("\n") + "\n")
+    }
+}
+
+val packageBuiltinModules = tasks.register<Jar>("packageBuiltinModules") {
+    description = "Packages the listed built-in modules and classes before they are checked."
+    archiveFileName.set(builtinModulesJarName)
+    destinationDirectory.set(builtinModulesBuild.map { it.dir("unchecked") })
+    inputs.file(builtinModulesFile)
+    from(sourceSets.main.map { it.java.classesDirectory }) {
+        include(builtinPackagedPatterns)
+    }
+    from(writeBuiltinModuleEntries) {
+        into("META-INF/services")
+    }
+}
+
+// The check runs on the API's host side, which knows the rules of a pack load; the module classes are on its class path as
+// the host's, so a listed class that uses one left out of the jar fails as it would in Iris.
+val builtinModulesCheckClasspath = configurations.create("builtinModulesCheckClasspath") {
+    isCanBeConsumed = false
+    isTransitive = false
+    attributes {
+        attribute(Usage.USAGE_ATTRIBUTE, objects.named(Usage.JAVA_RUNTIME))
+    }
+}
+
+dependencies {
+    builtinModulesCheckClasspath("com.volmit:iris-api")
+    builtinModulesCheckClasspath("com.volmit:iris-host")
+    builtinModulesCheckClasspath(volmLibCoordinate)
+    builtinModulesCheckClasspath("com.google.code.gson:gson:2.14.0")
+}
+
+val builtinModulesJar = tasks.register<JavaExec>("builtinModulesJar") {
+    group = "build"
+    description = "Builds build/libs/$builtinModulesJarName, the built-in modules as a pack module jar, checked with IrisApi's" +
+        " pack class and reference checks as a pack load would."
+    val unchecked = packageBuiltinModules.flatMap { it.archiveFile }
+    val checked = layout.buildDirectory.file("libs/$builtinModulesJarName")
+    classpath = builtinModulesCheckClasspath + files(sourceSets.main.map { it.java.classesDirectory })
+    mainClass.set("com.volmit.host.ModuleJarCheck")
+    inputs.file(unchecked)
+    outputs.file(checked)
+    argumentProviders.add(CommandLineArgumentProvider { listOf(unchecked.get().asFile.absolutePath) + exposedHostPackages })
+    isIgnoreExitValue = true
+    val problems = ByteArrayOutputStream()
+    errorOutput = problems
+    doFirst {
+        // A jar from an earlier run that passed must not survive a run that fails.
+        checked.get().asFile.delete()
+    }
+    doLast {
+        if (executionResult.get().exitValue != 0) {
+            throw GradleException("The built-in modules jar breaks the rules of a pack module jar:\n" + problems.toString().trim() +
+                "\nFix the classes listed in ${builtinModulesFile.name}, or move what they use into the jar or into art.arcane.iris.builtin.")
+        }
+        unchecked.get().asFile.copyTo(checked.get().asFile, overwrite = true)
+    }
+}
+
+// Iris bundles the checked jar into its plugin. It asks for it by this capability of the module's coordinate.
+configurations.create("builtinModulesJarElements") {
+    isCanBeConsumed = true
+    isCanBeResolved = false
+    attributes {
+        attribute(Usage.USAGE_ATTRIBUTE, objects.named(Usage.JAVA_RUNTIME))
+        attribute(Category.CATEGORY_ATTRIBUTE, objects.named(Category.LIBRARY))
+        attribute(LibraryElements.LIBRARY_ELEMENTS_ATTRIBUTE, objects.named(LibraryElements.JAR))
+        attribute(Bundling.BUNDLING_ATTRIBUTE, objects.named(Bundling.EXTERNAL))
+    }
+    outgoing.capability("art.arcane:iris-builtins:${project.version}")
+    outgoing.artifact(builtinModulesJar.map { layout.buildDirectory.file("libs/$builtinModulesJarName").get() }) {
+        builtBy(builtinModulesJar)
+    }
+}
+
+tasks.named("check") {
+    dependsOn(builtinModulesJar)
+}
+
+tasks.named("assemble") {
+    dependsOn(builtinModulesJar)
+}

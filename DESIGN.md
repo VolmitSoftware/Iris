@@ -1325,6 +1325,10 @@ so a host offers what it has and a module states what it requires:
 - **Built-ins only, by convention.** The method is public API, and a pack module can call it; it gets only what the host
   offers, typed by classes in the host's exposed package. Every type offered is a promise, as above.
 
+`Sender.extension(type)` (tooling) is not part of this door and stays when the three methods above are removed: it is a
+deliberate platform-tooling door. A command's platform part asks for the platform's own sender, such as a Bukkit `Player`, and
+no API value can name a platform class.
+
 A module never reaches the host's engine, its data loader or its layout classes; it reads the layout through the API's
 values and its settings through `FeatureSettings`. Iris's mapping from its internals to this surface, with the
 utilities that move into VolmLib, is in its notes (context.md, "How a module reaches the host").

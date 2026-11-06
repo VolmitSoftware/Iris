@@ -22,7 +22,7 @@ import java.util.TreeSet;
  *
  * <pre>{@code
  * var host = ModuleHost.of(builtInModules)
- *         .exposing("art.arcane.iris.engine.modules")
+ *         .exposing("art.arcane.iris.builtin", "art.arcane.volmlib")
  *         .reservingFields(reservedHostFields)
  *         .reservingFolders("biomes", "regions");
  * }</pre>

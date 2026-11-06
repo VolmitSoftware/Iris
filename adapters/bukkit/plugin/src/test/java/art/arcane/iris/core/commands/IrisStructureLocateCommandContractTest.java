@@ -227,23 +227,12 @@ public class IrisStructureLocateCommandContractTest {
     }
 
     @Test
-    public void structureVerifyReportsDensityLimitAndUsesExactLocatedOrigin() throws IOException {
-        String source = Files.readString(Path.of(System.getProperty("iris.commandStructureSource")));
-
-        assertTrue(source.contains("[iris-search-limit]"));
-        assertTrue(source.contains("density searches safety-limited"));
-        assertTrue(source.contains("result.x() + \",\" + result.y() + \",\" + result.z()"));
-        assertFalse(source.contains("at[0] + 8"));
-        assertFalse(source.contains("at[2] + 8"));
-    }
-
-    @Test
     public void bulkStructureImportRestrictsCaptureWithoutChangingStandaloneCapture() throws IOException {
         String source = Files.readString(Path.of(System.getProperty("iris.commandStructureSource")));
         int importStart = source.indexOf("public void importAll(");
         int importEnd = source.indexOf("@Director(name = \"capture\"", importStart);
         int captureStart = source.indexOf("public void capture(", importEnd);
-        int captureEnd = source.indexOf("@Director(description = \"Verify", captureStart);
+        int captureEnd = source.length();
 
         assertTrue(importStart >= 0);
         assertTrue(importEnd > importStart);
@@ -255,23 +244,5 @@ public class IrisStructureLocateCommandContractTest {
         assertTrue(importMethod.contains("jigsaws.captureCandidates()"));
         assertFalse(importMethod.contains("StructureCaptureImporter.importAllStructures("));
         assertTrue(captureMethod.contains("StructureCaptureImporter.importAllStructures("));
-    }
-
-    @Test
-    public void structureVerifyPartitionsPolicyBeforeNativeReachability() throws IOException {
-        String source = Files.readString(Path.of(System.getProperty("iris.commandStructureSource")));
-        int methodStart = source.indexOf("private void runVerification(");
-        int methodEnd = source.indexOf("private void sendVerificationMessages(", methodStart);
-        String method = source.substring(methodStart, methodEnd);
-        int policyResolution = method.indexOf("NativeStructureGenerationPolicy.resolve(engine, keyName)");
-        int nativeRequirement = method.indexOf(
-                "requiresNativeReachability |= !ModuleServices.placesStructure", policyResolution);
-        int reachabilityGuard = method.indexOf("if (requiresNativeReachability)", nativeRequirement);
-        int reachabilityLookup = method.indexOf("StructureReachability.reachableKeys(engine)", reachabilityGuard);
-
-        assertTrue(policyResolution >= 0);
-        assertTrue(nativeRequirement > policyResolution);
-        assertTrue(reachabilityGuard > nativeRequirement);
-        assertTrue(reachabilityLookup > reachabilityGuard);
     }
 }

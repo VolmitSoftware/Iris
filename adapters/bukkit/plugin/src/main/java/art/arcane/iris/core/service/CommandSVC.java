@@ -21,6 +21,8 @@ package art.arcane.iris.core.service;
 import art.arcane.iris.Iris;
 import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.core.commands.CommandIris;
+import art.arcane.iris.core.tooling.ToolingCommands;
+import art.arcane.iris.core.tooling.ToolingSender;
 import art.arcane.volmlib.util.cache.AtomicCache;
 import art.arcane.iris.util.common.director.DirectorContext;
 import art.arcane.iris.util.common.director.DirectorContextHandler;
@@ -54,6 +56,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -65,8 +68,9 @@ import art.arcane.volmlib.util.localization.MessageArgument;
 import art.arcane.volmlib.util.plugin.ComponentMessenger;
 public class CommandSVC implements IrisService, CommandExecutor, TabCompleter, DirectorInvocationHook {
     private static final String ROOT_COMMAND = "iris";
-    private static final String ROOT_PERMISSION = "iris.all";
+    static final String ROOT_PERMISSION = "iris.all";
 
+    private final transient ToolingCommands tooling = ToolingCommands.forBoundPlatform();
     private final transient AtomicCache<DirectorRuntimeEngine> directorCache = new AtomicCache<>();
     private final transient ThreadLocal<CommandSender> dispatchSenders = new ThreadLocal<>();
 
@@ -169,19 +173,32 @@ public class CommandSVC implements IrisService, CommandExecutor, TabCompleter, D
     }
 
     public void executeRoot(CommandSender sender, String label, String[] args) {
+        ToolingSender toolingSender = new BukkitToolingSender(sender);
         if (!sender.hasPermission(ROOT_PERMISSION)) {
-            ComponentMessenger.sendSection(sender, IrisLanguage.text(
-                    IrisMessages.COMMAND_PERMISSION_DENIED,
-                    MessageArgument.trusted("permission", ROOT_PERMISSION)
-            ));
+            J.aBukkit(() -> denyUnlessOpenToEveryone(sender, toolingSender, args));
             return;
         }
 
-        J.aBukkit(() -> executeCommand(sender, label, args));
+        J.aBukkit(() -> executeCommand(sender, toolingSender, label, args));
+    }
+
+    private void denyUnlessOpenToEveryone(CommandSender sender, ToolingSender toolingSender, String[] args) {
+        if (tooling.executeIfOpenToEveryone(toolingSender, Arrays.asList(args))) {
+            return;
+        }
+        ComponentMessenger.sendSection(sender, IrisLanguage.text(
+                IrisMessages.COMMAND_PERMISSION_DENIED,
+                MessageArgument.trusted("permission", ROOT_PERMISSION)
+        ));
     }
 
     public List<String> tabCompleteRoot(CommandSender sender, String alias, String[] args) {
-        List<String> suggestions = runDirectorTab(sender, alias, args);
+        List<String> suggestions = new ArrayList<>(runDirectorTab(sender, alias, args));
+        for (String toolingSuggestion : tooling.complete(new BukkitToolingSender(sender), Arrays.asList(args))) {
+            if (!suggestions.contains(toolingSuggestion)) {
+                suggestions.add(toolingSuggestion);
+            }
+        }
         if (sender instanceof Player player && IrisSettings.get().getGeneral().isCommandSounds()) {
             player.playSound(player.getLocation(), Sound.BLOCK_AMETHYST_BLOCK_CHIME, 0.25f, RNG.r.f(0.125f, 1.95f));
         }
@@ -215,7 +232,7 @@ public class CommandSVC implements IrisService, CommandExecutor, TabCompleter, D
         }
     }
 
-    private void executeCommand(CommandSender sender, String label, String[] args) {
+    private void executeCommand(CommandSender sender, ToolingSender toolingSender, String label, String[] args) {
         if (sendHelpIfRequested(sender, args)) {
             playSuccessSound(sender);
             return;
@@ -224,6 +241,11 @@ public class CommandSVC implements IrisService, CommandExecutor, TabCompleter, D
         DirectorExecutionResult result = runDirector(sender, label, args);
 
         if (result.isSuccess()) {
+            playSuccessSound(sender);
+            return;
+        }
+
+        if (!result.isHandled() && tooling.execute(toolingSender, Arrays.asList(args))) {
             playSuccessSound(sender);
             return;
         }

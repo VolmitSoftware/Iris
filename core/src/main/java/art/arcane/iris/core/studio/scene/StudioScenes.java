@@ -39,7 +39,7 @@ public final class StudioScenes {
         return new StudioScenes(ModuleViews.of(engine, SceneView.class, "scene view"));
     }
 
-    public List<ModuleViews.ViewInfo> views() {
+    public List<ModuleViewInfo> views() {
         return views.infos();
     }
 

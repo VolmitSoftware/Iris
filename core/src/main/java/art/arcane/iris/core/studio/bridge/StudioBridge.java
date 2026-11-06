@@ -33,6 +33,7 @@ import art.arcane.iris.core.studio.saved.SavedBiomeLabels;
 import art.arcane.iris.core.studio.saved.SavedTile;
 import art.arcane.iris.core.studio.saved.SavedWorld;
 import art.arcane.iris.core.studio.saved.SavedWorlds;
+import art.arcane.iris.core.studio.scene.StudioEditors;
 import art.arcane.iris.core.studio.scene.StudioPatterns;
 import art.arcane.iris.core.studio.scene.StudioScenes;
 import art.arcane.iris.engine.framework.Engine;
@@ -42,6 +43,7 @@ import art.arcane.iris.spi.IrisLogging;
 import art.arcane.volmlib.util.function.NoiseProvider;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonParseException;
 import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
@@ -94,6 +96,8 @@ public final class StudioBridge implements AutoCloseable {
     private static final int TOKEN_BYTES = 24;
     private static final int DEFAULT_TILE_SIZE = 128;
     private static final int LARGEST_TILE_SIZE = 512;
+    // A procedural object's file is a few kilobytes; this leaves room for any pack file without holding a flood.
+    private static final int LARGEST_BODY_BYTES = 4 * 1024 * 1024;
     private static final double SMALLEST_BLOCKS_PER_PIXEL = 1D / 16D;
     private static final double LARGEST_BLOCKS_PER_PIXEL = 4_096D;
     // Each pixel reads the chunk it lands in, so a saved world is shown no farther out than a pixel per chunk.
@@ -107,8 +111,10 @@ public final class StudioBridge implements AutoCloseable {
     private static final int STATUS_NO_CONTENT = 204;
     private static final int STATUS_BAD_REQUEST = 400;
     private static final int STATUS_UNAUTHORIZED = 401;
+    private static final int STATUS_FORBIDDEN = 403;
     private static final int STATUS_NOT_FOUND = 404;
     private static final int STATUS_METHOD_NOT_ALLOWED = 405;
+    private static final int STATUS_CONFLICT = 409;
     private static final int STATUS_UNPROCESSABLE = 422;
     private static final int STATUS_SERVER_ERROR = 500;
     private static final int STATUS_UNAVAILABLE = 503;
@@ -222,7 +228,10 @@ public final class StudioBridge implements AutoCloseable {
             case "picks" -> sendJson(exchange, STATUS_OK, picks(get(exchange).engine(), query));
             case "regions" -> sendJson(exchange, STATUS_OK, regions(get(exchange).engine()));
             case "entities" -> sendJson(exchange, STATUS_OK, entities(get(exchange)));
-            case "scenes" -> sendJson(exchange, STATUS_OK, StudioScenes.of(get(exchange).engine()).views());
+            case "scenes" -> sendJson(exchange, STATUS_OK, sceneViews(get(exchange).engine()));
+            case "scene-file" -> sendJson(exchange, STATUS_OK, sceneFile(get(exchange).engine(), query));
+            case "scene-edit" -> sendJson(exchange, STATUS_OK, sceneEdit(exchange, query));
+            case "scene-write" -> sendJson(exchange, STATUS_OK, sceneWrite(exchange, query));
             case "scene-entries" -> sendJson(exchange, STATUS_OK, sceneEntries(get(exchange).engine(), query));
             case "scene" -> sendBytes(exchange, "application/octet-stream", scene(get(exchange).engine(), query));
             case "saved-worlds" -> sendJson(exchange, STATUS_OK, savedWorlds(exchange));
@@ -320,6 +329,63 @@ public final class StudioBridge implements AutoCloseable {
         } catch (IllegalArgumentException badArea) {
             throw new RequestError(STATUS_BAD_REQUEST, badArea.getMessage());
         }
+    }
+
+    private static List<SceneViewInfo> sceneViews(Engine engine) {
+        StudioEditors editors = StudioEditors.of(engine);
+        return StudioScenes.of(engine).views().stream()
+                .map(view -> new SceneViewInfo(view.id(), view.label(), view.description(), editors.edits(view.id())))
+                .toList();
+    }
+
+    private static StudioEditors.EditorState sceneFile(Engine engine, Query query) throws IOException {
+        return editing(() -> StudioEditors.of(engine).read(query.text("view"), query.text("key")));
+    }
+
+    private StudioEditors.EditorState sceneEdit(HttpExchange exchange, Query query) throws IOException {
+        Engine engine = post(exchange).engine();
+        String body = readBody(exchange);
+        return editing(() -> {
+            GraphEditRequest request = GraphEditRequest.parse(body);
+            return StudioEditors.of(engine).edit(query.text("view"), query.text("key"), request.revision(), request.edit());
+        });
+    }
+
+    private StudioEditors.EditorState sceneWrite(HttpExchange exchange, Query query) throws IOException {
+        Engine engine = post(exchange).engine();
+        String body = readBody(exchange);
+        return editing(() -> {
+            GraphEditRequest.FileWrite write = GraphEditRequest.FileWrite.parse(body);
+            return StudioEditors.of(engine).write(query.text("view"), query.text("key"), write.revision(), write.text());
+        });
+    }
+
+    // A refused edit is the user's to fix, so it answers with why rather than as a failure of the bridge.
+    private static StudioEditors.EditorState editing(EditorTask task) throws IOException {
+        try {
+            return task.run();
+        } catch (NoSuchElementException unknown) {
+            throw new RequestError(STATUS_NOT_FOUND, unknown.getMessage());
+        } catch (StudioEditors.StaleEditException stale) {
+            throw new RequestError(STATUS_CONFLICT, stale.getMessage());
+        } catch (StudioEditors.EditsLockedException locked) {
+            throw new RequestError(STATUS_FORBIDDEN, locked.getMessage());
+        } catch (IllegalArgumentException | JsonParseException refused) {
+            throw new RequestError(STATUS_UNPROCESSABLE, refused.getMessage());
+        }
+    }
+
+    @FunctionalInterface
+    private interface EditorTask {
+        StudioEditors.EditorState run() throws IOException;
+    }
+
+    private static String readBody(HttpExchange exchange) throws IOException {
+        byte[] body = exchange.getRequestBody().readNBytes(LARGEST_BODY_BYTES + 1);
+        if (body.length > LARGEST_BODY_BYTES) {
+            throw new RequestError(STATUS_BAD_REQUEST, "The body is over " + LARGEST_BODY_BYTES + " bytes");
+        }
+        return new String(body, StandardCharsets.UTF_8);
     }
 
     private static List<SceneEntry> sceneEntries(Engine engine, Query query) {
@@ -652,6 +718,10 @@ public final class StudioBridge implements AutoCloseable {
     }
 
     private record ErrorBody(String error) {
+    }
+
+    /** A scene view as the studio lists it; {@code editable} when its entries can be edited as nodes. */
+    private record SceneViewInfo(String id, String label, String description, boolean editable) {
     }
 
     private record MessageBody(String message) {

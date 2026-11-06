@@ -40,7 +40,7 @@ public final class StudioPatterns {
         return new StudioPatterns(ModuleViews.of(engine, PatternView.class, "pattern view"));
     }
 
-    public List<ModuleViews.ViewInfo> views() {
+    public List<ModuleViewInfo> views() {
         return views.infos();
     }
 

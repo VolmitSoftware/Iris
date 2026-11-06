@@ -48,9 +48,9 @@ final class ModuleViews<V extends StudioView> {
         return new ModuleViews<>(ofKind, kind, kindName, engine.getGeneration().world());
     }
 
-    List<ViewInfo> infos() {
+    List<ModuleViewInfo> infos() {
         return registrations.stream()
-                .map(registration -> new ViewInfo(registration.view().id().toString(), registration.view().label(), registration.view().description()))
+                .map(registration -> new ModuleViewInfo(registration.view().id().toString(), registration.view().label(), registration.view().description()))
                 .toList();
     }
 
@@ -73,9 +73,5 @@ final class ModuleViews<V extends StudioView> {
 
     PackWorld world() {
         return world;
-    }
-
-    /** A studio view as the studio lists it. */
-    public record ViewInfo(String id, String label, String description) {
     }
 }

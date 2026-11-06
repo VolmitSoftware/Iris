@@ -26,6 +26,8 @@ import art.arcane.iris.core.studio.map.MapLayer;
 import art.arcane.iris.core.studio.map.MapPickInspection;
 import art.arcane.iris.core.studio.map.MapTile;
 import art.arcane.iris.core.studio.map.MapView;
+import art.arcane.iris.core.studio.assets.MinecraftAssets;
+import art.arcane.iris.core.studio.scene.StudioScenes;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.render.RenderType;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
@@ -35,6 +37,8 @@ import com.google.gson.GsonBuilder;
 import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
+import com.volmit.object.GeneratedObject;
+import com.volmit.tooling.SceneEntry;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -51,6 +55,8 @@ import java.util.HashMap;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
@@ -71,6 +77,9 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public final class StudioBridge implements AutoCloseable {
     private static final String API = "/v1/";
+    private static final String ASSETS_ENDPOINT = "assets/";
+    private static final String ASSET_RETRY_SECONDS = "2";
+    private static final long ASSET_CACHE_SECONDS = 86_400L;
     private static final int TOKEN_BYTES = 24;
     private static final int DEFAULT_TILE_SIZE = 128;
     private static final int LARGEST_TILE_SIZE = 512;
@@ -184,6 +193,10 @@ public final class StudioBridge implements AutoCloseable {
     private void route(HttpExchange exchange) throws IOException {
         String endpoint = exchange.getRequestURI().getPath().substring(API.length());
         Query query = Query.of(exchange.getRequestURI());
+        if (endpoint.startsWith(ASSETS_ENDPOINT)) {
+            sendAsset(exchange, endpoint);
+            return;
+        }
         switch (endpoint) {
             case "world" -> sendJson(exchange, STATUS_OK, worldInfo(get(exchange)));
             case "tile" -> sendBytes(exchange, "application/octet-stream", tile(get(exchange), query));
@@ -191,6 +204,9 @@ public final class StudioBridge implements AutoCloseable {
             case "picks" -> sendJson(exchange, STATUS_OK, picks(get(exchange).engine(), query));
             case "regions" -> sendJson(exchange, STATUS_OK, regions(get(exchange).engine()));
             case "entities" -> sendJson(exchange, STATUS_OK, entities(get(exchange)));
+            case "scenes" -> sendJson(exchange, STATUS_OK, StudioScenes.of(get(exchange).engine()).views());
+            case "scene-entries" -> sendJson(exchange, STATUS_OK, sceneEntries(get(exchange).engine(), query));
+            case "scene" -> sendBytes(exchange, "application/octet-stream", scene(get(exchange).engine(), query));
             case "events" -> streamEvents(exchange);
             case "teleport" -> teleport(exchange, query);
             case "open" -> openInEditor(exchange, query);
@@ -278,6 +294,40 @@ public final class StudioBridge implements AutoCloseable {
         } catch (IllegalArgumentException badArea) {
             throw new RequestError(STATUS_BAD_REQUEST, badArea.getMessage());
         }
+    }
+
+    private static List<SceneEntry> sceneEntries(Engine engine, Query query) {
+        try {
+            return StudioScenes.of(engine).entries(query.text("view"));
+        } catch (NoSuchElementException unknown) {
+            throw new RequestError(STATUS_NOT_FOUND, unknown.getMessage());
+        }
+    }
+
+    private byte[] scene(Engine engine, Query query) {
+        String key = query.text("key");
+        Optional<GeneratedObject> scene;
+        try {
+            scene = StudioScenes.of(engine).scene(query.text("view"), key, query.whole("variant", 0));
+        } catch (NoSuchElementException unknown) {
+            throw new RequestError(STATUS_NOT_FOUND, unknown.getMessage());
+        }
+        return SceneEncoding.encode(scene.orElseThrow(() -> new RequestError(STATUS_NOT_FOUND, "No scene " + key)), gson);
+    }
+
+    // Asset paths name one file of one Minecraft version, so a studio may keep what it fetched for as long as it runs.
+    private static void sendAsset(HttpExchange exchange, String endpoint) throws IOException {
+        requireMethod(exchange, "GET");
+        byte[] asset;
+        try {
+            asset = MinecraftAssets.shared().read(endpoint)
+                    .orElseThrow(() -> new RequestError(STATUS_NOT_FOUND, "No asset " + endpoint));
+        } catch (MinecraftAssets.NotReadyException notReady) {
+            exchange.getResponseHeaders().set("Retry-After", ASSET_RETRY_SECONDS);
+            throw new RequestError(STATUS_UNAVAILABLE, notReady.getMessage());
+        }
+        exchange.getResponseHeaders().set("Cache-Control", "max-age=" + ASSET_CACHE_SECONDS + ", immutable");
+        sendBytes(exchange, endpoint.endsWith(".png") ? "image/png" : "application/json", asset);
     }
 
     private static List<MapLabel> regions(Engine engine) {

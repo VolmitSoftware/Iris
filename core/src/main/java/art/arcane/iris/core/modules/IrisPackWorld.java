@@ -40,9 +40,9 @@ public final class IrisPackWorld implements PackWorld {
     private final IrisPackResources resources;
     private final WorldStates states;
     private final ModuleLog log;
-    private volatile IrisRunningWorld running;
+    private final IrisRunningWorld running;
     private final Placements placements;
-    private volatile IrisStructureHost structureHost;
+    private final IrisStructureHost structureHost;
 
     IrisPackWorld(Engine engine) {
         this.engine = engine;
@@ -50,6 +50,8 @@ public final class IrisPackWorld implements PackWorld {
         this.states = new WorldStates();
         this.log = IrisApiLogger.hostLog();
         this.placements = new IrisPlacements(engine.getData(), engine, () -> this);
+        this.running = new IrisRunningWorld(engine, log);
+        this.structureHost = new IrisStructureHost(engine, log);
     }
 
     @Override
@@ -85,20 +87,12 @@ public final class IrisPackWorld implements PackWorld {
 
     @Override
     public Optional<RunningWorld> running() {
-        IrisRunningWorld known = running;
-        if (known == null) {
-            known = new IrisRunningWorld(engine, log);
-            running = known;
-        }
-        return Optional.of(known);
+        return Optional.of(running);
     }
 
     /** Writes what modules saved with this world, if any asked for it. */
     void saveState() {
-        IrisRunningWorld known = running;
-        if (known != null) {
-            known.saveState();
-        }
+        running.saveState();
     }
 
     @Override
@@ -122,18 +116,9 @@ public final class IrisPackWorld implements PackWorld {
             return engine;
         }
         if (type == StructureHost.class) {
-            return structures();
+            return structureHost;
         }
         return null;
-    }
-
-    private StructureHost structures() {
-        IrisStructureHost host = structureHost;
-        if (host == null) {
-            host = new IrisStructureHost(engine, log);
-            structureHost = host;
-        }
-        return host;
     }
 
     /** Whether the pack's resources were reloaded since this world was made, so it generates with an old snapshot. */

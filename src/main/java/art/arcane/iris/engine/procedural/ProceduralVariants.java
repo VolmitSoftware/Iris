@@ -66,6 +66,11 @@ public abstract class ProceduralVariants {
         return key() + ProceduralObjectCatalog.VARIANT_SEPARATOR + index;
     }
 
+    /** How many variants the definition asks for, known without baking; a variant may still bake no blocks. */
+    public int variantCount() {
+        return variantCount;
+    }
+
     /** Every variant, baked on first use. */
     public List<PlaceableObject> variants() {
         List<PlaceableObject> known = baked;

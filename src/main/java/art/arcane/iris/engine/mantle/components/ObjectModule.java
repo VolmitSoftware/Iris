@@ -25,6 +25,7 @@ import art.arcane.iris.engine.procedural.ProceduralObjectCatalog;
 import art.arcane.iris.builtin.objects.RequireSurfaceSupportSettings;
 import art.arcane.iris.builtin.objects.SurfaceSupportBufferSettings;
 import art.arcane.iris.modules.objects.PackObjectScenes;
+import art.arcane.iris.modules.objects.ProceduralObjectScenes;
 import art.arcane.iris.modules.objects.TreeGrowthSettings;
 import art.arcane.iris.builtin.objects.UpperObjectsForceSettings;
 import art.arcane.iris.builtin.objects.UpperObjectsSettings;
@@ -47,7 +48,7 @@ import com.volmit.world.PackWorld;
  * reach is the pack's largest object placement. It tells
  * Iris which objects a chunk would get and which biomes and regions place an object ({@link ObjectLocating}), for the
  * object search and studio tools, grows the trees of saplings ({@link TreeGrowing}), and shows the pack's objects in
- * the studio ({@link PackObjectScenes}).
+ * the studio with every variant of its procedural objects ({@link PackObjectScenes}, {@link ProceduralObjectScenes}).
  */
 public final class ObjectModule implements IrisModule, ModuleLifecycle {
     private static final String VERSION = "built-in";
@@ -72,6 +73,7 @@ public final class ObjectModule implements IrisModule, ModuleLifecycle {
         registry.registerPlacementType(ObjectPlacement.class, ObjectPlacement.jsonFields());
         registry.registerLifecycle(this);
         setup.tooling().registerSceneView(new PackObjectScenes());
+        setup.tooling().registerSceneView(new ProceduralObjectScenes());
     }
 
     @Override

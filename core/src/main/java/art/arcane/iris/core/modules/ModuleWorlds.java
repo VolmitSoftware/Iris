@@ -157,8 +157,20 @@ public final class ModuleWorlds {
     private void stopCurrentWorld() {
         LifecycleRunner lifecycles = startedWith;
         startedWith = null;
-        if (lifecycles != null) {
-            lifecycles.worldStopped(current());
+        try {
+            if (lifecycles != null) {
+                lifecycles.worldStopped(current());
+            }
+        } finally {
+            saveCurrentWorldState();
+        }
+    }
+
+    /** Writes what modules saved with the current world; does nothing when no world was made or none was asked for. */
+    public void saveCurrentWorldState() {
+        IrisPackWorld world = current;
+        if (world != null) {
+            world.saveState();
         }
     }
 

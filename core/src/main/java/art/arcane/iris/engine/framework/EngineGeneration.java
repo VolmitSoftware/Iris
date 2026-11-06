@@ -103,6 +103,11 @@ public final class EngineGeneration {
         return bypass;
     }
 
+    /** Writes what modules saved with the world, as the engine saves its data; see {@link com.volmit.world.RunningWorld#saved}. */
+    public void saveModuleData() {
+        modules.saveCurrentWorldState();
+    }
+
     /** Stops the modules' world and closes the state stages kept, such as actuators that hold engine resources. */
     public void close() {
         modules.close();

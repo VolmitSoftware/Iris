@@ -18,8 +18,6 @@
 
 package art.arcane.iris.core.modules;
 
-import art.arcane.iris.builtin.LegacyStreams;
-import art.arcane.iris.builtin.spawn.SpawnCooldowns;
 import art.arcane.iris.builtin.structure.StructureHost;
 import art.arcane.iris.engine.framework.Engine;
 import com.volmit.ModuleLog;
@@ -35,17 +33,14 @@ import java.util.function.Function;
  * One Iris world as modules see it: an engine runtime generating with one snapshot of its pack's resources, and the
  * state modules keep for it. {@link ModuleWorlds} makes one when the runtime is built and a new one whenever the
  * pack's resources reload under it. Iris's built-in modules reach what they need of Iris through its
- * {@linkplain #extension extensions}: the spawners' cooldowns Iris saves with the world, Iris's legacy random streams,
- * and the structure host.
+ * {@linkplain #extension extensions}: the structure host.
  */
 public final class IrisPackWorld implements PackWorld {
     private final Engine engine;
     private final IrisPackResources resources;
     private final WorldStates states;
     private final ModuleLog log;
-    private final SpawnCooldowns spawnCooldowns;
-    private volatile RunningWorld running;
-    private final LegacyStreams legacyStreams;
+    private volatile IrisRunningWorld running;
     private final Placements placements;
     private volatile IrisStructureHost structureHost;
 
@@ -54,8 +49,6 @@ public final class IrisPackWorld implements PackWorld {
         this.resources = engine.getData().getPackResources();
         this.states = new WorldStates();
         this.log = IrisApiLogger.hostLog();
-        this.spawnCooldowns = new EngineSpawnCooldowns(engine);
-        this.legacyStreams = new IrisLegacyStreams(engine.getData(), engine.getSeedManager());
         this.placements = new IrisPlacements(engine.getData(), engine, () -> this);
     }
 
@@ -92,12 +85,20 @@ public final class IrisPackWorld implements PackWorld {
 
     @Override
     public Optional<RunningWorld> running() {
-        RunningWorld known = running;
+        IrisRunningWorld known = running;
         if (known == null) {
-            known = new IrisRunningWorld(engine);
+            known = new IrisRunningWorld(engine, log);
             running = known;
         }
         return Optional.of(known);
+    }
+
+    /** Writes what modules saved with this world, if any asked for it. */
+    void saveState() {
+        IrisRunningWorld known = running;
+        if (known != null) {
+            known.saveState();
+        }
     }
 
     @Override
@@ -119,12 +120,6 @@ public final class IrisPackWorld implements PackWorld {
     private Object offered(Class<?> type) {
         if (type == Engine.class) {
             return engine;
-        }
-        if (type == SpawnCooldowns.class) {
-            return spawnCooldowns;
-        }
-        if (type == LegacyStreams.class) {
-            return legacyStreams;
         }
         if (type == StructureHost.class) {
             return structures();

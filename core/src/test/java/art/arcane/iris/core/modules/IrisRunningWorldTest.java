@@ -23,7 +23,6 @@ import art.arcane.iris.builtin.loot.ObjectLoot;
 import art.arcane.volmlib.util.mantle.runtime.Mantle;
 import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
 import art.arcane.volmlib.util.matter.Matter;
-import art.arcane.iris.builtin.spawn.SpawnCooldowns;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.loader.IrisRegistrant;
 import art.arcane.iris.engine.UsableBlockPlatform;
@@ -33,7 +32,6 @@ import art.arcane.iris.engine.framework.PlacedObject;
 import art.arcane.iris.engine.mantle.EngineMantle;
 import art.arcane.iris.engine.object.TestSettings;
 import art.arcane.iris.builtin.objects.ObjectPlacement;
-import art.arcane.iris.engine.object.runtime.IrisEngineData;
 import art.arcane.iris.engine.object.value.IrisPosition;
 import art.arcane.iris.engine.object.world.IrisWorld;
 import art.arcane.iris.engine.object.world.biome.InferredType;
@@ -59,12 +57,11 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-/** What services ask a running Iris world: the engine's layout, settings and platform state, its spawners' cooldowns and the loot of its objects. */
+/** What services ask a running Iris world: the engine's layout, settings and platform state and the loot of its objects. */
 public class IrisRunningWorldTest {
     private static final int X = 10;
     private static final int Y = 70;
@@ -186,28 +183,6 @@ public class IrisRunningWorldTest {
                 running.placementAt(X, Y, Z));
         assertTrue("an empty record is no placement", running.placementAt(X + 1, Y, Z).isEmpty());
         assertTrue(running.placementAt(X + 2, Y, Z).isEmpty());
-    }
-
-    @Test
-    public void spawnCooldownsCountPerWorldAndPerChunkAndForgetWhatRanOut() {
-        IrisEngineData saved = new IrisEngineData();
-        when(engine.getEngineData()).thenReturn(saved);
-        SpawnCooldowns cooldowns = world.extension(SpawnCooldowns.class).orElseThrow();
-
-        assertTrue(cooldowns.canSpawn("wolves", 600_000L));
-        cooldowns.spawned("wolves");
-        cooldowns.spawnedInChunk(3, 4, "wolves");
-        cooldowns.spawned("gone");
-
-        assertFalse(cooldowns.canSpawn("wolves", 600_000L));
-        assertFalse(cooldowns.canSpawnInChunk(3, 4, "wolves", 600_000L));
-        assertTrue(cooldowns.canSpawnInChunk(3, 5, "wolves", 600_000L));
-
-        cooldowns.forgetExpired(spawner -> spawner.equals("wolves") ? 600_000L : -1L);
-
-        assertFalse("a cooldown still running stays", cooldowns.canSpawn("wolves", 600_000L));
-        assertFalse(cooldowns.canSpawnInChunk(3, 4, "wolves", 600_000L));
-        assertTrue("a spawner the pack lacks is forgotten", cooldowns.canSpawn("gone", 600_000L));
     }
 
     private <T extends IrisRegistrant> T owner(Class<T> type, String table) {

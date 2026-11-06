@@ -23,33 +23,38 @@ import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.EngineGeneration;
 import art.arcane.iris.engine.object.TestSettings;
-import art.arcane.iris.engine.object.runtime.IrisEngineData;
 import art.arcane.iris.engine.object.world.IrisWorld;
 import art.arcane.iris.spi.PlatformWorld;
 import com.volmit.world.BiomeKind;
 import com.volmit.world.RunningWorld.Sky;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-/** Whether a spawner may fire: the biome kind its group wants, the world's time and weather, and its rates in the engine's data. */
+/** Whether a spawner may fire: the biome kind its group wants, the world's time and weather, and its rates in the world's saved cooldowns. */
 public class SpawnerGateTest {
+    @Rule
+    public TemporaryFolder worldFolder = new TemporaryFolder();
+
+    private Engine engine;
     private SpawnerGate gate;
 
     @Before
     public void buildEngine() {
-        Engine engine = mock(Engine.class);
+        engine = mock(Engine.class);
         IrisWorld engineWorld = mock(IrisWorld.class);
         PlatformWorld platformWorld = mock(PlatformWorld.class);
         when(platformWorld.getTime()).thenReturn(6000L);
         when(engineWorld.platformWorld()).thenReturn(platformWorld);
+        when(engineWorld.worldFolder()).thenReturn(worldFolder.getRoot());
         when(engine.getWorld()).thenReturn(engineWorld);
         when(engine.getData()).thenReturn(mock(IrisData.class));
-        when(engine.getEngineData()).thenReturn(new IrisEngineData());
         gate = SpawnerGate.of(new EngineGeneration(engine).world());
     }
 
@@ -99,10 +104,26 @@ public class SpawnerGateTest {
     }
 
     @Test
+    public void aRateHoldsAfterTheWorldWasStoppedAndStartedAgain() {
+        Spawner limited = spawner("{\"maximumRate\": {\"amount\": 1, \"per\": {\"minutes\": 10}}, \"maximumRatePerChunk\": {\"amount\": 1, \"per\": {\"minutes\": 10}}}");
+        EngineGeneration firstRun = new EngineGeneration(engine);
+        SpawnerGate.of(firstRun.world()).spawned("limited", limited, 3, 4);
+
+        firstRun.close();
+        SpawnerGate restarted = SpawnerGate.of(new EngineGeneration(engine).world());
+
+        assertFalse(restarted.canSpawn("limited", limited, 3, 4));
+        assertFalse(restarted.canSpawn("limited", limited, 9, 9));
+        assertTrue(restarted.canSpawn("other", limited, 3, 4));
+    }
+
+    @Test
     public void aWorldWithoutAPlatformWorldLetsNothingFire() {
         Engine engine = mock(Engine.class);
+        IrisWorld engineWorld = mock(IrisWorld.class);
+        when(engineWorld.worldFolder()).thenReturn(worldFolder.getRoot());
         when(engine.getData()).thenReturn(mock(IrisData.class));
-        when(engine.getWorld()).thenReturn(mock(IrisWorld.class));
+        when(engine.getWorld()).thenReturn(engineWorld);
 
         assertFalse(SpawnerGate.of(new EngineGeneration(engine).world()).canSpawn("any", spawner("{}"), 0, 0));
     }

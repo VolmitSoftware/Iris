@@ -18,36 +18,10 @@
 
 package art.arcane.iris.engine.object.runtime;
 
-import art.arcane.iris.engine.object.entity.spawn.IrisSpawnerCooldowns;
-import art.arcane.volmlib.util.cache.CacheKey;
-import art.arcane.volmlib.util.collection.KMap;
 import lombok.Data;
-import lombok.EqualsAndHashCode;
-
-import java.util.function.ToLongFunction;
 
 @Data
-@EqualsAndHashCode(callSuper = true)
-public class IrisEngineData extends IrisSpawnerCooldowns {
+public class IrisEngineData {
     private IrisEngineStatistics statistics = new IrisEngineStatistics();
-    private KMap<Long, IrisSpawnerCooldowns> chunks = new KMap<>();
     private Long seed = null;
-
-    public void removeChunk(int x, int z) {
-        chunks.remove(CacheKey.key(x, z));
-    }
-
-    public IrisSpawnerCooldowns getChunk(int x, int z) {
-        return chunks.computeIfAbsent(CacheKey.key(x, z), k -> new IrisSpawnerCooldowns());
-    }
-
-    @Override
-    public void cleanup(ToLongFunction<String> intervalMilliseconds) {
-        super.cleanup(intervalMilliseconds);
-
-        chunks.values().removeIf(chunk -> {
-            chunk.cleanup(intervalMilliseconds);
-            return chunk.isEmpty();
-        });
-    }
 }

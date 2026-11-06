@@ -28,7 +28,6 @@ import art.arcane.iris.builtin.spawn.EntityDefinition;
 import art.arcane.iris.builtin.spawn.SpawnMarker;
 import art.arcane.iris.builtin.spawn.Spawner;
 import art.arcane.iris.engine.object.TestSettings;
-import art.arcane.iris.engine.object.runtime.IrisEngineData;
 import art.arcane.iris.engine.object.world.IrisWorld;
 import art.arcane.iris.spi.PlatformWorld;
 import com.volmit.entity.EntitySpec;
@@ -42,7 +41,9 @@ import com.volmit.world.RunningWorld;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 import java.util.List;
 import java.util.Optional;
@@ -57,6 +58,9 @@ import static org.mockito.Mockito.when;
 /** What the spawn module plans for markers, and what its markers mean. */
 public class EntitySpawningTest {
     private static final BlockPosition MARKER_BLOCK = new BlockPosition(40, 70, -12);
+
+    @Rule
+    public TemporaryFolder worldFolder = new TemporaryFolder();
 
     private Engine engine;
     private ModuleResourceFixture fixture;
@@ -82,7 +86,7 @@ public class EntitySpawningTest {
         IrisWorld engineWorld = mock(IrisWorld.class);
         when(engineWorld.platformWorld()).thenReturn(mock(PlatformWorld.class));
         when(engine.getWorld()).thenReturn(engineWorld);
-        when(engine.getEngineData()).thenReturn(new IrisEngineData());
+        when(engineWorld.worldFolder()).thenReturn(worldFolder.getRoot());
         SeedManager seeds = mock(SeedManager.class);
         when(seeds.getEntity()).thenReturn(11L);
         when(engine.getSeedManager()).thenReturn(seeds);

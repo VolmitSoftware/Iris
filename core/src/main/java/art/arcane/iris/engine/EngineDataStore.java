@@ -127,6 +127,7 @@ final class EngineDataStore {
     }
 
     void saveEngineData() {
+        saveModuleData();
         synchronized (engineDataLock) {
             if (storageVanished()) {
                 return;
@@ -141,6 +142,14 @@ final class EngineDataStore {
                 IrisLogging.reportError(e);
                 throw new IllegalStateException("Failed to save Iris engine data: " + f.getAbsolutePath(), e);
             }
+        }
+    }
+
+    /** What modules keep with the world is saved wherever the engine saves its own data. */
+    private void saveModuleData() {
+        EngineRuntime runtime = engine.runtime;
+        if (runtime != null) {
+            runtime.generation().saveModuleData();
         }
     }
 

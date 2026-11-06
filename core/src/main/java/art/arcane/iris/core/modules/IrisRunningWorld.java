@@ -25,11 +25,13 @@ import art.arcane.iris.util.common.scheduling.J;
 import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
 import art.arcane.volmlib.util.matter.Matter;
 import art.arcane.volmlib.util.matter.slices.MarkerMatter;
+import com.volmit.ModuleLog;
 import com.volmit.config.FeatureSettings;
 import com.volmit.geometry.BlockPosition;
 import com.volmit.placement.PlacementRecord;
 import com.volmit.resource.ResourceId;
 import com.volmit.world.RunningWorld;
+import com.volmit.world.SavedKey;
 import com.volmit.world.TerrainSampler;
 
 import java.util.List;
@@ -49,9 +51,21 @@ final class IrisRunningWorld implements RunningWorld {
     private volatile TerrainSampler layout;
     private volatile FeatureSettings settings;
     private volatile Set<ResourceId> platformLootTables;
+    private final SavedWorldState savedState;
 
-    IrisRunningWorld(Engine engine) {
+    IrisRunningWorld(Engine engine, ModuleLog log) {
         this.engine = engine;
+        this.savedState = new SavedWorldState(() -> engine.getWorld().worldFolder(), log);
+    }
+
+    @Override
+    public <T> T saved(SavedKey<T> key) {
+        return savedState.saved(key);
+    }
+
+    /** Writes the values modules keep with this world; the world calls it when it saves and when it stops. */
+    void saveState() {
+        savedState.saveAll();
     }
 
     @Override

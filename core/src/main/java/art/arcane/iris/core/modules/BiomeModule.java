@@ -18,7 +18,6 @@
 
 package art.arcane.iris.core.modules;
 
-import art.arcane.iris.builtin.IrisStages;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.world.biome.custom.IrisBiomeCustom;
@@ -37,13 +36,17 @@ import art.arcane.volmlib.util.matter.slices.BiomeInjectMatter;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
 import com.volmit.ModuleSetup;
+import com.volmit.stage.ChunkStage;
 import com.volmit.stage.ChunkStageContext;
+import com.volmit.stage.Stage;
 
 /**
  * Module {@code iris:biome}: writes each column's biome into the chunk's biome hunk, a custom biome under the
  * dimension's namespace, and records the biome id in the mantle for platforms that inject biomes later.
  */
 public final class BiomeModule implements IrisModule {
+    /** Writes every column's biome, sky biome or custom biome, into the chunk. */
+    public static final ChunkStage<Void> WRITE = Stage.chunk("iris:biome/write");
     private static final String VERSION = "built-in";
 
     @Override
@@ -53,7 +56,7 @@ public final class BiomeModule implements IrisModule {
 
     @Override
     public void setup(ModuleSetup setup) {
-        setup.stages().define(IrisStages.Biome.WRITE).run(BiomeModule::write);
+        setup.stages().define(WRITE).run(BiomeModule::write);
     }
 
     private static void write(ChunkStageContext context) {

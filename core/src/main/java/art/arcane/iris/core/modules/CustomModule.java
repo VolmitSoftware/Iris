@@ -31,7 +31,9 @@ import art.arcane.volmlib.util.matter.Matter;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
 import com.volmit.ModuleSetup;
+import com.volmit.stage.ChunkStage;
 import com.volmit.stage.ChunkStageContext;
+import com.volmit.stage.Stage;
 
 /**
  * Module {@code iris:custom}: records the chunk's content-plugin blocks for the server to place later: each
@@ -39,6 +41,8 @@ import com.volmit.stage.ChunkStageContext;
  * while maintenance regeneration bypasses the mantle.
  */
 public final class CustomModule implements IrisModule {
+    /** Records the chunk's custom blocks so the server can place them once the chunk exists. */
+    public static final ChunkStage<Void> BLOCKS = Stage.chunk("iris:custom/blocks");
     private static final String VERSION = "built-in";
     private static final int CHUNK_SHIFT = 4;
     private static final int SECTION_MASK = 15;
@@ -51,7 +55,7 @@ public final class CustomModule implements IrisModule {
     @Override
     public void setup(ModuleSetup setup) {
         // Ordering only: iris:perfection ships in the built-ins jar, which a pack may not have.
-        setup.stages().define(IrisStages.Custom.BLOCKS).softAfter(IrisStages.Perfection.SURFACE).run(CustomModule::record);
+        setup.stages().define(BLOCKS).softAfter(IrisStages.Perfection.SURFACE).run(CustomModule::record);
     }
 
     private static void record(ChunkStageContext context) {

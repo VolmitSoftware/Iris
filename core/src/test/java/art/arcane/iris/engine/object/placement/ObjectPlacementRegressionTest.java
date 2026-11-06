@@ -18,6 +18,7 @@ import art.arcane.iris.builtin.prepare.ObjectRotation;
 import art.arcane.iris.builtin.prepare.ObjectTranslate;
 import art.arcane.iris.engine.object.prefab.TileData;
 import art.arcane.iris.engine.object.terrain.carving.CarveResult;
+import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.modules.BuiltInPack;
 import art.arcane.iris.core.modules.InMemoryMantle;
@@ -246,16 +247,20 @@ public class ObjectPlacementRegressionTest {
     public void debugPlacementDoesNotMutateSmartBoreCache() {
         IrisObject object = new IrisObject(1, 1, 1);
         object.setUnsigned(0, 0, 0, IrisObject.States.VAIR);
-        object.setSmartBored(true);
         ObjectPlacement.Builder placement = placement();
         placement.smartBore(true);
         RecordingPlacer debug = new RecordingPlacer(engine);
         RecordingPlacer normal = new RecordingPlacer(null);
         SmartBoreDebugSettings shown = TestSettings.of(SmartBoreDebugSettings.class, "{\"show\":true}");
         when(engine.getDimension().getModuleSettings()).thenReturn(BuiltInPack.settings(shown));
-
-        placed(object, 0, ANCHOR_Y, 0, debug, placement.build(), new RNG(2L), data);
-        placed(object, 0, ANCHOR_Y, 0, normal, placement.build(), new RNG(2L), data);
+        IrisSettings previousSettings = IrisSettings.settings;
+        IrisSettings.settings = new IrisSettings();
+        try {
+            placed(object, 0, ANCHOR_Y, 0, debug, placement.build(), new RNG(2L), data);
+            placed(object, 0, ANCHOR_Y, 0, normal, placement.build(), new RNG(2L), data);
+        } finally {
+            IrisSettings.settings = previousSettings;
+        }
 
         PlatformBlockState cachedState = object.getBlocks().get(object.getSigned(0, 0, 0));
         assertSame(IrisObject.States.VAIR, cachedState);

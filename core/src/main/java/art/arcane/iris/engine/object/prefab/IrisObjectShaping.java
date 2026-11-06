@@ -41,51 +41,42 @@ public final class IrisObjectShaping {
     private IrisObjectShaping() {
     }
 
-    public static void ensureSmartBored(IrisObject self) {
-        if (self.smartBored) {
-            return;
-        }
-
-        // Whole computation under the object's write lock: two racing callers would otherwise
-        // both compute, with the loser reading self.blocks while the winner merges into it.
-        self.writeLock.lock();
-        try {
-            if (self.smartBored) {
-                return;
-            }
-            ensureSmartBoredLocked(self);
-        } finally {
-            self.writeLock.unlock();
-        }
-    }
-
-    private static void ensureSmartBoredLocked(IrisObject self) {
+    /**
+     * A copy of {@code self} with air in its rooms and pockets, found by casting rays through it. {@code self} keeps its
+     * blocks, so objects that share it see no change; {@link IrisObject#smartBoredCopy()} keeps the result.
+     * An object without blocks has nothing to bore and is returned as it is.
+     */
+    static IrisObject smartBoredCopyOf(IrisObject self) {
         PrecisionStopwatch p = PrecisionStopwatch.start();
-        PlatformBlockState vair = IrisObject.States.VAIR;
-        AtomicInteger applied = new AtomicInteger();
-        IrisBlockVector max = new IrisBlockVector(Double.MIN_VALUE, Double.MIN_VALUE, Double.MIN_VALUE);
-        IrisBlockVector min = new IrisBlockVector(Double.MAX_VALUE, Double.MAX_VALUE, Double.MAX_VALUE);
-        VectorMap<PlatformBlockState> source;
         self.readLock.lock();
         try {
             if (self.blocks.isEmpty()) {
                 IrisLogging.warn("Cannot Smart Bore " + self.getLoadKey() + " because it has 0 blocks in it.");
-                self.smartBored = true;
-                return;
+                return self;
             }
 
-            source = self.blocks;
-
-            for (IrisBlockVector i : self.blocks.keys()) {
-                max.setX(Math.max(i.getX(), max.getX()));
-                min.setX(Math.min(i.getX(), min.getX()));
-                max.setY(Math.max(i.getY(), max.getY()));
-                min.setY(Math.min(i.getY(), min.getY()));
-                max.setZ(Math.max(i.getZ(), max.getZ()));
-                min.setZ(Math.min(i.getZ(), min.getZ()));
-            }
+            AtomicInteger applied = new AtomicInteger();
+            VectorMap<PlatformBlockState> bore = boreVolume(self.blocks, applied);
+            IrisObject bored = self.copy();
+            bore.forEach((v, s) -> bored.blocks.computeIfAbsent(v, (vv) -> s));
+            IrisLogging.debug("Smart Bore: " + self.getLoadKey() + " in " + Form.duration(p.getMilliseconds(), 2) + " (" + Form.f(applied.get()) + ")");
+            return bored;
         } finally {
             self.readLock.unlock();
+        }
+    }
+
+    private static VectorMap<PlatformBlockState> boreVolume(VectorMap<PlatformBlockState> source, AtomicInteger applied) {
+        PlatformBlockState vair = IrisObject.States.VAIR;
+        IrisBlockVector max = new IrisBlockVector(Double.MIN_VALUE, Double.MIN_VALUE, Double.MIN_VALUE);
+        IrisBlockVector min = new IrisBlockVector(Double.MAX_VALUE, Double.MAX_VALUE, Double.MAX_VALUE);
+        for (IrisBlockVector i : source.keys()) {
+            max.setX(Math.max(i.getX(), max.getX()));
+            min.setX(Math.min(i.getX(), min.getX()));
+            max.setY(Math.max(i.getY(), max.getY()));
+            min.setY(Math.min(i.getY(), min.getY()));
+            max.setZ(Math.max(i.getZ(), max.getZ()));
+            min.setZ(Math.min(i.getZ(), min.getZ()));
         }
 
         VectorMap<PlatformBlockState> bore = new VectorMap<>();
@@ -169,19 +160,7 @@ public final class IrisObjectShaping {
         }
 
         burst.complete();
-
-        self.writeLock.lock();
-        try {
-            if (!self.smartBored) {
-                bore.forEach((v, s) -> self.blocks.computeIfAbsent(v, (vv) -> s));
-                self.forgetDerivedShapes();
-                self.smartBored = true;
-            }
-        } finally {
-            self.writeLock.unlock();
-        }
-
-        IrisLogging.debug("Smart Bore: " + self.getLoadKey() + " in " + Form.duration(p.getMilliseconds(), 2) + " (" + Form.f(applied.get()) + ")");
+        return bore;
     }
 
     private static boolean boreContains(VectorMap<PlatformBlockState> source, VectorMap<PlatformBlockState> bore, IrisBlockVector v) {

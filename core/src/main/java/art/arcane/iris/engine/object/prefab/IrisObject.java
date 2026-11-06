@@ -78,9 +78,7 @@ public class IrisObject extends IrisRegistrant implements PlaceableObject {
     }
     public transient final Lock readLock;
     protected transient final Lock writeLock;
-    @Getter
-    @Setter
-    protected transient volatile boolean smartBored = false;
+    private transient final AtomicCache<IrisObject> smartBoredCopy = new AtomicCache<>();
     @Setter
     protected transient AtomicCache<AxisAlignedBB> aabb = new AtomicCache<>();
     transient final AtomicCache<KList<IrisBlockVector>> surfaceSupportOffsets = new AtomicCache<>();
@@ -290,10 +288,23 @@ public class IrisObject extends IrisRegistrant implements PlaceableObject {
         return geometry.aquireOrThrow(() -> ObjectGeometry.of(this));
     }
 
+    /**
+     * This object with air in its rooms and pockets, a copy made once until the blocks change: this object keeps its blocks,
+     * and asking again costs nothing. The copy is its own smart bored copy.
+     */
+    public IrisObject smartBoredCopy() {
+        return smartBoredCopy.aquireOrThrow(() -> {
+            IrisObject bored = IrisObjectShaping.smartBoredCopyOf(this);
+            bored.smartBoredCopy.aquireOrThrow(() -> bored);
+            return bored;
+        });
+    }
+
     /** Drops what is computed from the blocks, after they change. */
     void forgetDerivedShapes() {
         surfaceSupportOffsets.reset();
         geometry.reset();
+        smartBoredCopy.reset();
     }
 
     public KList<IrisBlockVector> getSurfaceSupportOffsets() {

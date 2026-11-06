@@ -21,7 +21,6 @@ package art.arcane.iris.core.modules;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.object.prefab.IrisObject;
-import art.arcane.iris.engine.object.prefab.IrisObjectShaping;
 import art.arcane.iris.engine.object.prefab.ScaledObjects;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.util.common.data.B;
@@ -84,9 +83,7 @@ final class IrisPackObjects implements PackObjects {
 
     @Override
     public PlaceableObject smartBored(PlaceableObject object) {
-        IrisObject bored = irisObject(object);
-        IrisObjectShaping.ensureSmartBored(bored);
-        return bored;
+        return irisObject(object).smartBoredCopy();
     }
 
     @Override

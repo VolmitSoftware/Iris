@@ -29,13 +29,11 @@ import art.arcane.iris.core.pack.ImageMapPackageClosure;
 import art.arcane.iris.core.pack.ModuleResourceClosure;
 import art.arcane.iris.core.pack.PackValidationResult;
 import art.arcane.iris.core.pack.PackValidator;
-import art.arcane.iris.core.pack.StructurePackageClosure;
 import art.arcane.iris.engine.object.world.biome.IrisBiome;
 import art.arcane.iris.engine.object.material.IrisBlockData;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.engine.object.terrain.IrisGenerator;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
-import art.arcane.iris.engine.object.structure.IrisStructure;
 import art.arcane.iris.spi.IrisLogging;
 import art.arcane.iris.spi.IrisPlatforms;
 import art.arcane.iris.util.common.plugin.VolmitSender;
@@ -101,7 +99,7 @@ public class IrisPackageCompiler {
         KSet<IrisRegion> regions = new KSet<>();
         KSet<IrisBiome> biomes = new KSet<>();
         KSet<IrisGenerator> generators = new KSet<>();
-        ModuleResourceClosure moduleResources = new ModuleResourceClosure(dm).exportingElsewhere(IrisStructure.class);
+        ModuleResourceClosure moduleResources = new ModuleResourceClosure(dm);
         KSet<IrisBlockData> blocks = new KSet<>();
 
         // KSet is ConcurrentHashMap-backed: both add(null) and remove(null) throw NPE, so a
@@ -121,8 +119,7 @@ public class IrisPackageCompiler {
         regions.forEach((r) -> allPlacements.addAll(ObjectPlacements.all(r)));
         biomes.forEach((i) -> allPlacements.addAll(ObjectPlacements.all(i)));
         moduleResources.follow(allPlacements);
-        List<String> structureKeys = moduleResources.keysOf(IrisStructure.class);
-        KList<String> exportedObjectNames = new KList<>();
+        List<String> exportedObjectNames = moduleResources.objectKeys();
         String a;
         StringBuilder b = new StringBuilder();
         StringBuilder c = new StringBuilder();
@@ -130,16 +127,8 @@ public class IrisPackageCompiler {
 
         for (ObjectPlacement j : allPlacements) {
             b.append(Objects.hashCode(j.json()));
-
-            for (String k : j.place()) {
-                if (exportedObjectNames.contains(k)) {
-                    continue;
-                }
-
-                b.append(k);
-                exportedObjectNames.add(k);
-            }
         }
+        exportedObjectNames.forEach(b::append);
 
         StringBuilder gb = new StringBuilder();
         ChronoLatch cl = new ChronoLatch(1000);
@@ -183,11 +172,6 @@ public class IrisPackageCompiler {
         IrisLogging.info("Writing Dimensional Scaffold");
 
         try {
-            StructurePackageClosure structureClosure = StructurePackageClosure.collect(project.getPath(), structureKeys);
-            if (!structureClosure.isValid()) {
-                throw new IOException("Structure package closure is invalid: " + String.join("; ", structureClosure.errors()));
-            }
-            b.append(structureClosure.writeTo(folder, minify));
             b.append(ImageMapPackageClosure.writeAll(dm, folder, minify));
             a = withModuleSettings(dimension, Level.DIMENSION, dm).toString(minify ? 0 : 4);
             IO.writeAll(new File(folder, "dimensions/" + dimension.getLoadKey() + ".json"), a);

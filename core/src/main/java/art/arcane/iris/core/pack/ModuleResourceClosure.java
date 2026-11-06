@@ -29,6 +29,7 @@ import art.arcane.volmlib.util.json.JSONObject;
 import com.google.gson.Gson;
 import com.volmit.config.ResourceRef;
 import com.volmit.host.ResourceKindRegistration;
+import com.volmit.object.GeneratedObject;
 import com.volmit.resource.ResourceKind;
 
 import java.io.File;
@@ -50,8 +51,9 @@ import java.util.TreeSet;
 /**
  * The resources of the pack's module resource kinds that a pack export has to carry: what the settings of the
  * exported dimension, regions and biomes (and anything else handed to {@link #follow}) name by {@link ResourceRef},
- * {@link IrisStructureRef} or {@link RegistryListResource}, and what those resources name in turn. Core does not know the kinds: it follows the
- * references the modules declare on their classes.
+ * {@link IrisStructureRef} or {@link RegistryListResource}, and what those resources name in turn, plus the keys of
+ * the objects all of them name. Core does not know the kinds: it follows the references the modules declare on their
+ * classes.
  */
 public final class ModuleResourceClosure {
     private static final String JAVA_PACKAGE_PREFIX = "java.";
@@ -62,23 +64,13 @@ public final class ModuleResourceClosure {
     private final Map<Class<?>, ResourceKind<?>> kindsByType = new HashMap<>();
     private final Map<ResourceKind<?>, Map<String, Object>> found = new LinkedHashMap<>();
     private final Set<Object> visited = java.util.Collections.newSetFromMap(new IdentityHashMap<>());
-    private final Map<Class<?>, Set<String>> exportedElsewhere = new HashMap<>();
+    private final Set<String> objectKeys = new TreeSet<>();
 
     public ModuleResourceClosure(IrisData data) {
         this.data = data;
         for (ResourceKindRegistration registration : data.getModules().pack().catalog().resourceKinds()) {
             kindsByType.put(registration.kind().type(), registration.kind());
         }
-    }
-
-    /**
-     * Leaves the resources that read into {@code type} to another exporter, such as Iris's structure closure that
-     * copies structures with their pools, pieces and loot: {@link #keysOf} names the ones referenced, but they are
-     * not loaded, followed or written. Call before following anything.
-     */
-    public ModuleResourceClosure exportingElsewhere(Class<?> type) {
-        exportedElsewhere.putIfAbsent(type, new TreeSet<>());
-        return this;
     }
 
     /** Adds the resources that the module settings of {@code owner} reference, and those they reference. */
@@ -122,11 +114,16 @@ public final class ModuleResourceClosure {
 
     /** The keys of the resources found of the kind that reads into {@code type}, in key order. */
     public List<String> keysOf(Class<?> type) {
-        if (exportedElsewhere.containsKey(type)) {
-            return new ArrayList<>(exportedElsewhere.get(type));
-        }
         ResourceKind<?> kind = kindsByType.get(type);
         return kind == null || !found.containsKey(kind) ? List.of() : new ArrayList<>(new TreeMap<>(found.get(kind)).keySet());
+    }
+
+    /**
+     * The keys of the pack objects that what was found references, in key order. Objects are Iris's own files, not a
+     * module kind, so the export copies them itself.
+     */
+    public List<String> objectKeys() {
+        return List.copyOf(objectKeys);
     }
 
     /**
@@ -191,13 +188,15 @@ public final class ModuleResourceClosure {
     }
 
     private void add(Class<?> type, String key) {
-        ResourceKind<?> kind = kindsByType.get(type);
-        if (kind == null || key == null || key.isBlank()) {
+        if (key == null || key.isBlank()) {
             return;
         }
-        Set<String> elsewhere = exportedElsewhere.get(type);
-        if (elsewhere != null) {
-            elsewhere.add(key);
+        if (type == GeneratedObject.class) {
+            objectKeys.add(key);
+            return;
+        }
+        ResourceKind<?> kind = kindsByType.get(type);
+        if (kind == null) {
             return;
         }
         Map<String, Object> ofKind = found.computeIfAbsent(kind, ignored -> new LinkedHashMap<>());

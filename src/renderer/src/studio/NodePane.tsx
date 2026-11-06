@@ -27,9 +27,9 @@ export function NodePane({ editor, entryKey, selected, onSelect }: NodePaneProps
         <span className="min-w-0 truncate text-[11.5px] text-secondary-text">{state?.file ?? entryKey}</span>
         <span className="flex-1" />
         {state?.locked != null && (
-          <span className="flex items-center gap-1 text-[11.5px] text-secondary-text">
+          <span className="flex shrink-0 items-center gap-1 text-[11.5px] whitespace-nowrap text-secondary-text" title={state.locked}>
             <Lock className="size-3.5" />
-            {state.locked}
+            Read only
           </span>
         )}
         {editor.saving && <span className="text-[11.5px] text-secondary-text">Saving…</span>}

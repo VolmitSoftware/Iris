@@ -21,6 +21,7 @@ import com.volmit.host.MantleRunner;
 import com.volmit.host.StageTimings;
 import com.volmit.hunk.Hunk;
 import com.volmit.geometry.BlockBox;
+import com.volmit.mantle.CarvedVoid;
 import com.volmit.mantle.MantleLayer;
 import com.volmit.resource.ResourceId;
 import com.volmit.stage.ChunkStageContext;
@@ -199,6 +200,12 @@ class ChunkPipelineTest {
                 setup.stages().define(probe).run(context -> {
                     carved.add(String.valueOf(context.mantle().isCarved(6, 9, 2)));
                     carved.add(String.valueOf(context.mantle().isCarved(6, 10, 2)));
+                    carved.add(String.valueOf(context.mantle().carved().get(6, 9, 2)));
+                    carved.add(String.valueOf(context.mantle().carved().get(6, 10, 2)));
+                    carved.add(assertThrows(UnsupportedOperationException.class,
+                            () -> context.mantle().carved().set(6, 10, 2, CarvedVoid.AIR)).getMessage());
+                    carved.add(assertThrows(UnsupportedOperationException.class,
+                            () -> context.mantle().carved().remove(6, 9, 2)).getMessage());
                 });
             }
         };
@@ -208,7 +215,8 @@ class ChunkPipelineTest {
                 TestContexts.generation(blocks, ColumnSettings.NONE, mantle.within(chunkArea)), TestContexts.SEED,
                 StageTimings.NONE);
 
-        assertEquals(List.of("true", "false"), carved);
+        var cannotCarve = "Carved voids are planned by mantle stages (Stage.mantle), not by chunk stages";
+        assertEquals(List.of("true", "false", CarvedVoid.OPEN.toString(), "null", cannotCarve, cannotCarve), carved);
     }
 
     @Test

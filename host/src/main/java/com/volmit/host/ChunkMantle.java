@@ -3,6 +3,7 @@ package com.volmit.host;
 import com.volmit.block.BlockState;
 import com.volmit.generation.ChunkContext;
 import com.volmit.geometry.BlockBox;
+import com.volmit.mantle.CarvedVoid;
 import com.volmit.mantle.Mantle;
 import com.volmit.mantle.MantleEdit;
 import com.volmit.mantle.MantleKey;
@@ -21,11 +22,13 @@ final class ChunkMantle implements Mantle {
     private static final String NEIGHBOUR_WRITE = "A chunk stage writes the mantle of its own chunk only;"
             + " write around it from a mantle stage (Stage.mantle), which runs before the chunks it reaches";
     private static final String HOST_BLOCKS = "The mantle's blocks are written by placements, not by stages";
+    private static final String CARVED_VOIDS = "Carved voids are planned by mantle stages (Stage.mantle), not by chunk stages";
 
     private final Mantle mantle;
     private final BlockBox ownChunk;
     private final Map<MantleKey<?>, MantleLayer<?>> layers = new HashMap<>();
     private MantleLayer<BlockState> blocks;
+    private MantleLayer<CarvedVoid> carved;
 
     ChunkMantle(Mantle mantle, int originX, int originZ) {
         this.mantle = mantle;
@@ -47,8 +50,14 @@ final class ChunkMantle implements Mantle {
 
     @Override
     public MantleLayer<BlockState> blocks() {
-        if (blocks == null) blocks = new ReadOnlyLayer<>(mantle.blocks());
+        if (blocks == null) blocks = new ReadOnlyLayer<>(mantle.blocks(), HOST_BLOCKS);
         return blocks;
+    }
+
+    @Override
+    public MantleLayer<CarvedVoid> carved() {
+        if (carved == null) carved = new ReadOnlyLayer<>(mantle.carved(), CARVED_VOIDS);
+        return carved;
     }
 
     @Override
@@ -115,7 +124,7 @@ final class ChunkMantle implements Mantle {
         }
     }
 
-    private record ReadOnlyLayer<T>(MantleLayer<T> layer) implements MantleLayer<T> {
+    private record ReadOnlyLayer<T>(MantleLayer<T> layer, String reason) implements MantleLayer<T> {
         @Override
         public T get(int x, int y, int z) {
             return layer.get(x, y, z);
@@ -123,12 +132,12 @@ final class ChunkMantle implements Mantle {
 
         @Override
         public void set(int x, int y, int z, T value) {
-            throw new UnsupportedOperationException(HOST_BLOCKS);
+            throw new UnsupportedOperationException(reason);
         }
 
         @Override
         public void remove(int x, int y, int z) {
-            throw new UnsupportedOperationException(HOST_BLOCKS);
+            throw new UnsupportedOperationException(reason);
         }
 
         @Override
@@ -138,7 +147,7 @@ final class ChunkMantle implements Mantle {
 
         @Override
         public void clear(BlockBox area) {
-            throw new UnsupportedOperationException(HOST_BLOCKS);
+            throw new UnsupportedOperationException(reason);
         }
     }
 }

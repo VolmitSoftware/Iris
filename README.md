@@ -181,8 +181,9 @@ ground of a biome somewhere else, such as a floating island, shapes and paints i
 block show that platform biome instead of its column's, inside the stage's own chunk.
 `ctx.settings().declaredBy(biomeId, Type.class)` reads what a biome declares itself, such as a cave biome of a `BiomeSample`, which is no level of
 `at(...)`. A mantle stage's `ctx.terrain()` covers the chunk and the larger of its reach and 16 blocks around it; a chunk stage's `ctx.mantle()` covers the same area as its terrain. `ctx.mantle().blocks()` holds the blocks placements wrote into the mantle for the chunks to
-take over, such as objects and structures; a chunk stage copies them in (Iris's `iris:matter`). `ctx.mantle().isCarved(x, y, z)` says whether the cave planner
-carved a void there, whatever the chunk's blocks show. Stages only read both. A chunk stage may write the layers its module registered, inside
+take over, such as objects and structures; a chunk stage copies them in (Iris's `iris:matter`). `ctx.mantle().carved()` is the layer of voids the cave planner carved (`CarvedVoid`: `OPEN`, `FLUID`, `LAVA` or `AIR`, optionally with a biome), and
+`isCarved(x, y, z)` asks whether one is there, whatever the chunk's blocks show. A chunk stage only reads both; a mantle stage plans the voids
+with `carved().set(...)`, and a chunk stage's write throws. A chunk stage may write the layers its module registered, inside
 its own chunk's columns; around it, the mantle stays as the mantle stages left it. `blocks().oreFor(rock, ore)` gives the ore variant that suits the rock
 (deepslate ores in deepslate), which the platform decides, and `PackBiome.vanillaBiome()` the biome vanilla's rules see a pack biome as.
 

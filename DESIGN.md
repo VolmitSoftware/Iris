@@ -625,9 +625,12 @@ made of. A biome that is no column's surface biome, such as the cave biome of a 
 The chunk stage's mantle covers the chunk and the 16 blocks around it like the sampler, so a decoration that attaches to a neighbor sees the blocks
 placements planned there. It writes registered layers inside the chunk's own 16 by 16 columns only: the mantle pipeline has finished around the
 chunk, and a neighbor may already be generated, so its mantle stays as the pipeline left it (a write outside throws, naming `Stage.mantle`).
-`Mantle.isCarved(x, y, z)` is the host's answer whether the cave planner carved a block, as `blocks()` is its read-only layer of planned blocks: a
-void the planner marked need not show in the chunk (under a dimension above, the cave stage leaves it solid), and a stage that places something
-solid asks it. A yes-or-no question rather than a layer, because no module writes it and none needs to visit it.
+`Mantle.carved()` is the host's layer of carved voids (`CarvedVoid`: what fills the void, `OPEN`, `FLUID`, `LAVA` or `AIR`, and optionally the
+biome it shows), as `blocks()` is its layer of planned blocks. It is the one host layer a module writes: a mantle stage plans the voids
+(Iris's cave carver does, thousands per chunk, so the plain fills are shared constants and the host keeps them in its own form), and a chunk
+stage reads them, around its chunk as far as its mantle reaches, and cuts them out of its terrain. A chunk stage's writes throw, as the
+mantle is complete when chunk stages run. A void the planner marked need not show in the chunk (under a dimension above, the cave stage
+leaves it solid), so `Mantle.isCarved(x, y, z)` stays as the short question for a stage that places something solid.
 `Mantle.setPlatformBiome(x, y, z, biome)` is the other way round: modules write it and only the host's biome pass reads it, in the host's own form
 (Iris stores the platform's id for the biome), so it is a write rather than a layer a module could read back. It is general rather than a
 floating-island call: any stage that makes a block belong elsewhere, such as an island floating over another biome, can set the biome it shows.
@@ -961,10 +964,9 @@ Why these lines:
   have to know that rule, so the resources say it; a default method (namespace and key) serves a host without such characters.
 - **`TerrainSampler.caveBiome(x, y, z)`** is `biome(...).caveBiome()` without the region and the surface biome: a cave wall asks for the
   cave biome around it five times per block, and the other two lookups were most of the cost. A default method keeps every sampler valid.
-- **A chunk stage writes its own chunk's mantle.** Iris's cave stage stamps markers into the matter the platform reads, in the chunk it
-  generates. Earlier the chunk's mantle was read-only and a built-in facade reached past the view to the host's mantle; now the view lets
-  any chunk stage write registered layers inside its own columns and reads the neighbors only, so no stage, built-in or not, needs a way
-  around it.
+- **A chunk stage writes its own chunk's mantle.** A chunk stage may need to keep something beside the chunk it generates. Earlier the
+  chunk's mantle was read-only and a built-in facade reached past the view to the host's mantle; now the view lets any chunk stage write
+  registered layers inside its own columns and reads the neighbors only, so no stage, built-in or not, needs a way around it.
 - **One `minWorldY()`, never defaulted**: all heights are above the dimension's bottom, but packs write some settings as
   absolute world Y (cave biome bands, floating island altitudes, structure bands). Those are converted by the module with
   the platform's Y of the bottom. The world, the terrain sampler, platform starts and structure fits once called it
@@ -1333,12 +1335,9 @@ structure placer behind `StructureHost`) are Iris's and live there.
 
 What Iris's built-ins still ask through item 3, and why the API does not answer it yet. Each entry names what would let it go.
 Everything else they once asked a facade (a running world's sky, studio flag, cave floors and loot tables, the world seeds per
-feature, the layout at a column, the declarations of a biome or region, the rock of a column, whether the dimension has bedrock) is
-API now: `world.running()`, `world.seed(purpose)`, `TerrainSampler`, `FeatureSettings`, or the module's own settings.
+feature, the layout at a column, the declarations of a biome or region, the rock of a column, whether the dimension has bedrock, the voids the cave carver plans in the mantle) is
+API now: `world.running()`, `world.seed(purpose)`, `TerrainSampler`, `FeatureSettings`, `Mantle.carved()`, or the module's own settings.
 
-- **`MatterMantle`** (invocation). Carve plans its caves as VolmLib matter slices (`MatterCavern`, markers) that Iris and the
-  platform read back as slices. The API mantle has typed layers but no cavern layer; it goes when carve writes a layer the
-  API defines and Iris reads that instead.
 - **`objects.ObjectRun`** (the input of a placement run, `PlacementRun.input`). The object and the module's own
   `objects.ObjectPlacement` settings that Iris's built-in placement stages read, and what they report back (the anchor
   height, which written blocks are the object's). The placement-level module settings no longer need it: the run carries

@@ -3,6 +3,7 @@ package com.volmit.support;
 import com.volmit.block.BlockState;
 import com.volmit.geometry.BlockBox;
 import com.volmit.geometry.BlockPosition;
+import com.volmit.mantle.CarvedVoid;
 import com.volmit.mantle.Mantle;
 import com.volmit.mantle.MantleEdit;
 import com.volmit.mantle.MantleKey;
@@ -23,7 +24,7 @@ public final class MemoryMantle {
     private static final MantleKey<BlockState> PLANNED_BLOCKS = new MantleKey<>("host:planned-blocks", BlockState.class);
 
     /** Where the carved voids are kept; the host owns them, so no module registers this layer. */
-    private static final MantleKey<Boolean> CAVERNS = new MantleKey<>("host:caverns", Boolean.class);
+    private static final MantleKey<CarvedVoid> CAVERNS = new MantleKey<>("host:caverns", CarvedVoid.class);
 
     /** Where the platform biomes stages set are kept; the host owns them, so no module registers this layer. */
     private static final MantleKey<ResourceId> PLATFORM_BIOMES = new MantleKey<>("host:platform-biomes", ResourceId.class);
@@ -36,6 +37,7 @@ public final class MemoryMantle {
             public BlockBox bounds() { return bounds; }
             public <T> MantleLayer<T> layer(MantleKey<T> key) { return new Layer<>(key, bounds, true); }
             public MantleLayer<BlockState> blocks() { return new Layer<>(PLANNED_BLOCKS, bounds, false); }
+            public MantleLayer<CarvedVoid> carved() { return new Layer<>(CAVERNS, bounds, true); }
             public boolean isCarved(int x, int y, int z) { return new Layer<>(CAVERNS, bounds, false).get(x, y, z) != null; }
             public void setPlatformBiome(int x, int y, int z, ResourceId biome) {
                 if (!bounds.contains(x, y, z)) throw new IndexOutOfBoundsException("Outside the mantle view: " + x + "," + y + "," + z);
@@ -50,9 +52,9 @@ public final class MemoryMantle {
         values(PLANNED_BLOCKS).put(new BlockPosition(x, y, z), block);
     }
 
-    /** Carves a void into the mantle, as the cave planner would; stages only read them. */
+    /** Carves an open void into the mantle, as the cave planner would. */
     public void carve(int x, int y, int z) {
-        values(CAVERNS).put(new BlockPosition(x, y, z), Boolean.TRUE);
+        values(CAVERNS).put(new BlockPosition(x, y, z), CarvedVoid.OPEN);
     }
 
     /** The platform biome a stage set at the block; null where none did. */

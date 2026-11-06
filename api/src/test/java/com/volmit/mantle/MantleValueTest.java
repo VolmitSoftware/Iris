@@ -48,4 +48,26 @@ class MantleValueTest {
         assertThrows(NullPointerException.class, () -> new MantleKey<>("a:b", null));
         assertThrows(IllegalArgumentException.class, () -> new MantleKey<>("a:b", int.class));
     }
+
+    @Test
+    void carvedVoidsOfAPlainFillAreTheSharedConstants() {
+        for (var fill : CarvedVoid.Fill.values()) {
+            assertSame(CarvedVoid.of(fill), CarvedVoid.of(fill));
+            assertEquals(fill, CarvedVoid.of(fill).fill());
+            assertTrue(CarvedVoid.of(fill).biome().isEmpty());
+        }
+        assertSame(CarvedVoid.LAVA, CarvedVoid.of(CarvedVoid.Fill.LAVA));
+    }
+
+    @Test
+    void aCarvedVoidMayShowABiomeAndHasValueEquality() {
+        var biome = new com.volmit.resource.ResourceId("pack", "cave/lush");
+        var lush = CarvedVoid.AIR.withBiome(biome);
+        assertEquals(CarvedVoid.Fill.AIR, lush.fill());
+        assertEquals(biome, lush.biome().orElseThrow());
+        assertEquals(CarvedVoid.AIR.withBiome(biome), lush);
+        assertNotEquals(CarvedVoid.AIR, lush);
+        assertThrows(NullPointerException.class, () -> new CarvedVoid(null, java.util.Optional.empty()));
+        assertThrows(NullPointerException.class, () -> new CarvedVoid(CarvedVoid.Fill.OPEN, null));
+    }
 }

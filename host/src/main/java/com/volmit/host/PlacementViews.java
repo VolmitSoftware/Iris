@@ -2,6 +2,7 @@ package com.volmit.host;
 
 import com.volmit.block.BlockState;
 import com.volmit.geometry.BlockBox;
+import com.volmit.mantle.CarvedVoid;
 import com.volmit.mantle.Mantle;
 import com.volmit.mantle.MantleEdit;
 import com.volmit.mantle.MantleKey;
@@ -99,6 +100,7 @@ final class PlacementViews {
         private final BlockBox allowedBounds;
         private final Map<MantleKey<?>, MantleLayer<?>> layers = new HashMap<>();
         private MantleLayer<BlockState> blocks;
+        private MantleLayer<CarvedVoid> carved;
 
         private RestrictedMantle(Mantle parent, BlockBox allowedBounds) {
             this.parent = Objects.requireNonNull(parent, "parent");
@@ -129,6 +131,13 @@ final class PlacementViews {
             bounds();
             if (blocks == null) blocks = new RestrictedMantleLayer<>(this, parent.blocks());
             return blocks;
+        }
+
+        @Override
+        public MantleLayer<CarvedVoid> carved() {
+            bounds();
+            if (carved == null) carved = new RestrictedMantleLayer<>(this, parent.carved());
+            return carved;
         }
 
         @Override

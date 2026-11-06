@@ -159,8 +159,10 @@ running Iris is the pack publisher's responsibility.
 - Serve `Mantle.blocks()` in every invocation: the blocks placements wrote into the mantle, read-only, none where the
   dimension keeps no mantle or the chunk generates without it. A block a stage reads and writes back unchanged keeps
   the host's own identity of it (a custom block of a content plugin stays one).
-- Answer `Mantle.isCarved(x, y, z)` in every invocation (false where the dimension keeps no mantle) and cover the chunk and the 16 blocks
-  around it in a chunk stage's mantle, as the sampler does.
+- Serve `Mantle.carved()` in every invocation, keeping the voids in the host's own form: a mantle stage's view writes them, a chunk
+  stage's view only reads them (its writes throw UnsupportedOperationException), and a dimension that keeps no mantle holds none. Answer
+  `Mantle.isCarved(x, y, z)` (false where it holds none) and cover the chunk and the 16 blocks around it in a chunk stage's mantle, as the
+  sampler does.
 - Name pack resources to services by `ResourceId` and convert to the host's keys at the host's edge; read a `ResourceId`
   setting written as a bare pack key as the pack's id of that key.
 - Answer `TerrainSampler.surfaceBiome(x, z)` (the id `biome(x, y, z).surfaceBiome()` gives), `surfaceKind`, `minWorldY()`, `surfaceBlock` (empty

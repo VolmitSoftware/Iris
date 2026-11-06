@@ -34,9 +34,16 @@ public interface Mantle {
      */
     MantleLayer<BlockState> blocks();
 
-    /** Whether the mantle holds a carved void at the position for the chunk to take over: a cave's air or fluid, planned
-     * before the chunks were generated. Also true where the chunk's own blocks show no void, such as under a dimension
-     * stacked above. The host owns the carving; stages only ask. A dimension that keeps no mantle carves nothing.
+    /** The voids the mantle holds for chunks to take over: a cave's air or fluid, planned before the chunks were generated.
+     * Mantle stages write it ({@code set} plans a void, {@code remove} takes it back); a chunk stage only reads it, around
+     * its chunk as far as its mantle reaches, and its writes throw UnsupportedOperationException. A chunk stage takes the
+     * voids over into its chunk (Iris's {@code iris:carve} cuts them out of the terrain). The host owns this layer and keeps
+     * it in its own form, so it needs no registration. A dimension that keeps no mantle carves nothing.
+     */
+    MantleLayer<CarvedVoid> carved();
+
+    /** Whether the mantle holds a carved void at the position, whether or not the chunk's own blocks show it, such as
+     * under a dimension stacked above: the same as {@code carved().get(x, y, z) != null}, for a stage that only asks.
      */
     boolean isCarved(int x, int y, int z);
 

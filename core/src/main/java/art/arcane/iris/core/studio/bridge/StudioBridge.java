@@ -27,6 +27,10 @@ import art.arcane.iris.core.studio.map.MapPickInspection;
 import art.arcane.iris.core.studio.map.MapTile;
 import art.arcane.iris.core.studio.map.MapView;
 import art.arcane.iris.core.studio.assets.MinecraftAssets;
+import art.arcane.iris.core.studio.saved.SavedBiomeLabels;
+import art.arcane.iris.core.studio.saved.SavedTile;
+import art.arcane.iris.core.studio.saved.SavedWorld;
+import art.arcane.iris.core.studio.saved.SavedWorlds;
 import art.arcane.iris.core.studio.scene.StudioScenes;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.render.RenderType;
@@ -85,6 +89,8 @@ public final class StudioBridge implements AutoCloseable {
     private static final int LARGEST_TILE_SIZE = 512;
     private static final double SMALLEST_BLOCKS_PER_PIXEL = 1D / 16D;
     private static final double LARGEST_BLOCKS_PER_PIXEL = 4_096D;
+    // Each pixel reads the chunk it lands in, so a saved world is shown no farther out than a pixel per chunk.
+    private static final int LARGEST_SAVED_BLOCKS_PER_PIXEL = 16;
     private static final long ENTITY_WAIT_MILLIS = 3_000L;
     private static final int STATUS_OK = 200;
     private static final int STATUS_NO_CONTENT = 204;
@@ -207,6 +213,9 @@ public final class StudioBridge implements AutoCloseable {
             case "scenes" -> sendJson(exchange, STATUS_OK, StudioScenes.of(get(exchange).engine()).views());
             case "scene-entries" -> sendJson(exchange, STATUS_OK, sceneEntries(get(exchange).engine(), query));
             case "scene" -> sendBytes(exchange, "application/octet-stream", scene(get(exchange).engine(), query));
+            case "saved-worlds" -> sendJson(exchange, STATUS_OK, savedWorlds(exchange));
+            case "saved-start" -> sendJson(exchange, STATUS_OK, savedStart(exchange, query));
+            case "saved-tile" -> sendBytes(exchange, "application/octet-stream", savedTile(get(exchange).engine(), query));
             case "events" -> streamEvents(exchange);
             case "teleport" -> teleport(exchange, query);
             case "open" -> openInEditor(exchange, query);
@@ -313,6 +322,38 @@ public final class StudioBridge implements AutoCloseable {
             throw new RequestError(STATUS_NOT_FOUND, unknown.getMessage());
         }
         return SceneEncoding.encode(scene.orElseThrow(() -> new RequestError(STATUS_NOT_FOUND, "No scene " + key)), gson);
+    }
+
+    private static List<SavedWorlds.Info> savedWorlds(HttpExchange exchange) {
+        requireMethod(exchange, "GET");
+        return SavedWorlds.shared().list();
+    }
+
+    private static SavedWorld.Start savedStart(HttpExchange exchange, Query query) {
+        requireMethod(exchange, "GET");
+        return savedWorld(query).start()
+                .orElseThrow(() -> new RequestError(STATUS_NOT_FOUND, "Nothing finished is saved in " + query.text("world")));
+    }
+
+    private byte[] savedTile(Engine engine, Query query) {
+        int size = query.whole("size", DEFAULT_TILE_SIZE);
+        int blocksPerPixel = query.whole("scale", 1);
+        if (size < 1 || size > LARGEST_TILE_SIZE) {
+            throw new RequestError(STATUS_BAD_REQUEST, "A tile is 1 to " + LARGEST_TILE_SIZE + " pixels");
+        }
+        if (blocksPerPixel < 1 || blocksPerPixel > LARGEST_SAVED_BLOCKS_PER_PIXEL) {
+            throw new RequestError(STATUS_BAD_REQUEST, "The scale is 1 to " + LARGEST_SAVED_BLOCKS_PER_PIXEL + " whole blocks per pixel");
+        }
+        SavedTile tile = SavedTile.sample(savedWorld(query), query.whole("x", 0), query.whole("z", 0), blocksPerPixel, size);
+        return SavedTileEncoding.encode(tile, SavedBiomeLabels.of(engine).labelsOf(tile.biomeNames()), gson);
+    }
+
+    private static SavedWorld savedWorld(Query query) {
+        try {
+            return SavedWorlds.shared().open(query.text("world"));
+        } catch (NoSuchElementException unknown) {
+            throw new RequestError(STATUS_NOT_FOUND, unknown.getMessage());
+        }
     }
 
     // Asset paths name one file of one Minecraft version, so a studio may keep what it fetched for as long as it runs.

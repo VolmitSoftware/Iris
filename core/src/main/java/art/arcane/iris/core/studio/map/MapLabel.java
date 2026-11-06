@@ -32,7 +32,7 @@ import art.arcane.iris.engine.object.world.region.IrisRegion;
 public record MapLabel(Kind kind, String key, String name, int color) {
     private static final int RGB = 0xFFFFFF;
 
-    static MapLabel of(Engine engine, IrisBiome biome, RenderType colorType) {
+    public static MapLabel of(Engine engine, IrisBiome biome, RenderType colorType) {
         return new MapLabel(Kind.BIOME, biome.getLoadKey(), biome.getName(), biome.getColor(engine, colorType).getRGB() & RGB);
     }
 

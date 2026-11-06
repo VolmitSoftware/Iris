@@ -42,7 +42,7 @@ import com.volmit.ModuleSetup;
 import com.volmit.block.BlockState;
 import com.volmit.geometry.BlockPosition;
 import com.volmit.mantle.Mantle;
-import com.volmit.mantle.MantleCodec;
+import com.volmit.data.Codec;
 import com.volmit.mantle.MantleKey;
 import com.volmit.mantle.MantleLifetime;
 import com.volmit.host.LoadedPack;
@@ -469,7 +469,7 @@ public class ObjectPlacementRegressionTest {
     }
 
     private static final MantleKey<String> MARKS = new MantleKey<>("test:mark/spot", String.class);
-    private static final MantleCodec<String> TEXT = new MantleCodec<>() {
+    private static final Codec<String> TEXT = new Codec<>() {
         public int version() { return 1; }
         public void write(java.io.DataOutput output, String value) throws IOException { output.writeUTF(value); }
         public String read(java.io.DataInput input, int storedVersion) throws IOException { return input.readUTF(); }

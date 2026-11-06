@@ -12,7 +12,7 @@ import art.arcane.volmlib.util.mantle.runtime.MantleHooks;
 import art.arcane.volmlib.util.matter.IrisMatter;
 import art.arcane.volmlib.util.matter.Matter;
 import art.arcane.volmlib.util.matter.MatterSlice;
-import com.volmit.mantle.MantleCodec;
+import com.volmit.data.Codec;
 import com.volmit.mantle.MantleKey;
 
 import java.io.DataOutputStream;
@@ -55,7 +55,7 @@ public final class InMemoryMantle {
     }
 
     /** What the layer holds at a block of the mantle's storage coordinates, or null. */
-    public <T> T value(MantleKey<T> key, MantleCodec<T> codec, int x, int mantleY, int z) {
+    public <T> T value(MantleKey<T> key, Codec<T> codec, int x, int mantleY, int z) {
         MantleChunk<Matter> chunk = chunk(x >> 4, z >> 4);
         if (!chunk.exists(mantleY >> 4) || !chunk.get(mantleY >> 4).hasSlice(ModuleLayerValues.class)) {
             return null;

@@ -30,7 +30,7 @@ import com.volmit.host.MantleRegistration;
 import art.arcane.iris.builtin.MatterMantle;
 import com.volmit.geometry.BlockBox;
 import com.volmit.mantle.Mantle;
-import com.volmit.mantle.MantleCodec;
+import com.volmit.data.Codec;
 import com.volmit.mantle.MantleEdit;
 import com.volmit.mantle.MantleKey;
 import com.volmit.mantle.MantleLayer;
@@ -142,7 +142,7 @@ final class IrisModuleMantle implements Mantle, MatterMantle {
     }
 
     @SuppressWarnings("unchecked") // The registration's type was compared with the key's.
-    private <T> MantleCodec<T> codecOf(MantleKey<T> key) {
+    private <T> Codec<T> codecOf(MantleKey<T> key) {
         Objects.requireNonNull(key, "key");
         MantleRegistration<?> registration = registrations.get(key.id());
         if (registration == null) {
@@ -152,16 +152,16 @@ final class IrisModuleMantle implements Mantle, MatterMantle {
             throw new IllegalArgumentException("Mantle layer " + key.id() + " is registered as " + registration.key().type().getName()
                     + ", not " + key.type().getName());
         }
-        return (MantleCodec<T>) registration.codec();
+        return (Codec<T>) registration.codec();
     }
 
     private record Stored<T>(int x, int y, int z, T value) {}
 
     private final class Layer<T> implements MantleLayer<T> {
         private final MantleKey<T> key;
-        private final MantleCodec<T> codec;
+        private final Codec<T> codec;
 
-        Layer(MantleKey<T> key, MantleCodec<T> codec) {
+        Layer(MantleKey<T> key, Codec<T> codec) {
             this.key = key;
             this.codec = codec;
         }
@@ -236,7 +236,7 @@ final class IrisModuleMantle implements Mantle, MatterMantle {
         ModuleLayerValues applyTo(ModuleLayerValues values);
     }
 
-    private record Put<T>(MantleKey<T> key, MantleCodec<T> codec, T value) implements Change {
+    private record Put<T>(MantleKey<T> key, Codec<T> codec, T value) implements Change {
         @Override
         public ModuleLayerValues applyTo(ModuleLayerValues values) {
             return values.with(key, codec, value);

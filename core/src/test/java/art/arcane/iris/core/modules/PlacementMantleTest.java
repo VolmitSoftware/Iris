@@ -5,7 +5,7 @@ import art.arcane.iris.engine.framework.Engine;
 import com.volmit.placement.PlacementTerrain;
 import com.volmit.host.MantleRegistration;
 import com.volmit.geometry.BlockBox;
-import com.volmit.mantle.MantleCodec;
+import com.volmit.data.Codec;
 import com.volmit.mantle.MantleKey;
 import com.volmit.mantle.MantleLifetime;
 import org.junit.After;
@@ -30,7 +30,7 @@ public class PlacementMantleTest {
     private static final int HEIGHT = 64;
     private static final int Y = 20;
     private static final MantleKey<String> MARKS = new MantleKey<>("iris:marks/mark", String.class);
-    private static final MantleCodec<String> TEXT = new MantleCodec<>() {
+    private static final Codec<String> TEXT = new Codec<>() {
         public int version() { return 1; }
         public void write(DataOutput output, String value) throws IOException { output.writeUTF(value); }
         public String read(DataInput input, int storedVersion) throws IOException { return input.readUTF(); }

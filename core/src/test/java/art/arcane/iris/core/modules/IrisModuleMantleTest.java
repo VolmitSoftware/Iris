@@ -47,7 +47,7 @@ import com.volmit.host.LoadedPack;
 import com.volmit.host.MantleRegistration;
 import com.volmit.host.ModuleHost;
 import com.volmit.geometry.BlockBox;
-import com.volmit.mantle.MantleCodec;
+import com.volmit.data.Codec;
 import com.volmit.mantle.MantleEdit;
 import com.volmit.mantle.MantleKey;
 import com.volmit.mantle.MantleLayer;
@@ -87,12 +87,12 @@ public class IrisModuleMantleTest {
     private static final int HEIGHT = SECTIONS * 16;
     private static final MantleKey<String> MARKS = new MantleKey<>("iris:marks/mark", String.class);
     private static final MantleKey<Integer> DEPTHS = new MantleKey<>("iris:marks/depth", Integer.class);
-    private static final MantleCodec<String> TEXT = new MantleCodec<>() {
+    private static final Codec<String> TEXT = new Codec<>() {
         public int version() { return 1; }
         public void write(DataOutput output, String value) throws IOException { output.writeUTF(value); }
         public String read(DataInput input, int storedVersion) throws IOException { return input.readUTF(); }
     };
-    private static final MantleCodec<Integer> NUMBER = new MantleCodec<>() {
+    private static final Codec<Integer> NUMBER = new Codec<>() {
         public int version() { return 0; }
         public void write(DataOutput output, Integer value) throws IOException { output.writeInt(value); }
         public Integer read(DataInput input, int storedVersion) throws IOException { return input.readInt(); }

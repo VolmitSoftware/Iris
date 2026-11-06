@@ -18,7 +18,7 @@
 
 package art.arcane.iris.core.modules;
 
-import com.volmit.mantle.MantleCodec;
+import com.volmit.data.Codec;
 import com.volmit.mantle.MantleKey;
 
 import java.io.ByteArrayInputStream;
@@ -49,7 +49,7 @@ public final class ModuleLayerValues {
     }
 
     /** The value of {@code key}, decoded with {@code codec} if it was read from disk; null when the layer holds none. */
-    public <T> T get(MantleKey<T> key, MantleCodec<T> codec) {
+    public <T> T get(MantleKey<T> key, Codec<T> codec) {
         LayerValue value = layers.get(key.id());
         return value == null ? null : key.type().cast(value.decode(key, codec));
     }
@@ -63,7 +63,7 @@ public final class ModuleLayerValues {
     }
 
     /** These values with {@code key} holding {@code value}. */
-    public <T> ModuleLayerValues with(MantleKey<T> key, MantleCodec<T> codec, T value) {
+    public <T> ModuleLayerValues with(MantleKey<T> key, Codec<T> codec, T value) {
         TreeMap<String, LayerValue> changed = new TreeMap<>(layers);
         changed.put(key.id(), new Decoded<>(value, codec));
         return new ModuleLayerValues(changed);
@@ -118,14 +118,14 @@ public final class ModuleLayerValues {
     }
 
     private sealed interface LayerValue permits Decoded, Encoded {
-        Object decode(MantleKey<?> key, MantleCodec<?> codec);
+        Object decode(MantleKey<?> key, Codec<?> codec);
 
         Encoded encoded() throws IOException;
     }
 
-    private record Decoded<T>(T value, MantleCodec<T> codec) implements LayerValue {
+    private record Decoded<T>(T value, Codec<T> codec) implements LayerValue {
         @Override
-        public Object decode(MantleKey<?> key, MantleCodec<?> requested) {
+        public Object decode(MantleKey<?> key, Codec<?> requested) {
             return value;
         }
 
@@ -152,7 +152,7 @@ public final class ModuleLayerValues {
         }
 
         @Override
-        public Object decode(MantleKey<?> key, MantleCodec<?> codec) {
+        public Object decode(MantleKey<?> key, Codec<?> codec) {
             try {
                 return codec.read(new DataInputStream(new ByteArrayInputStream(payload)), version);
             } catch (IOException failure) {

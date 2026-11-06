@@ -55,7 +55,10 @@ final class CarvedVoids implements MantleLayer<CarvedVoid> {
     private static final int CHUNK_SHIFT = 4;
     private static final int SECTION_SHIFT = 4;
     private static final int LOCAL_MASK = 15;
-    private static final int RECENT_CHUNKS = 8;
+    /** The chunks it remembers are those of a 4 by 4 window, so a chunk and the eight around it never share a place. */
+    private static final int RECENT_SIDE_BITS = 2;
+    private static final int RECENT_SIDE_MASK = (1 << RECENT_SIDE_BITS) - 1;
+    private static final int RECENT_CHUNKS = 1 << (2 * RECENT_SIDE_BITS);
     private static final String READ_ONLY = "This view only reads the carved voids; mantle stages write them on the mantle itself";
 
     private final BlockBox bounds;
@@ -157,7 +160,7 @@ final class CarvedVoids implements MantleLayer<CarvedVoid> {
     }
 
     private ChunkSlices slicesAt(int chunkX, int chunkZ) {
-        int slot = (chunkX * 31 + chunkZ) & (RECENT_CHUNKS - 1);
+        int slot = ((chunkX & RECENT_SIDE_MASK) << RECENT_SIDE_BITS) | (chunkZ & RECENT_SIDE_MASK);
         ChunkSlices known = recent[slot];
         if (known != null && known.chunkX == chunkX && known.chunkZ == chunkZ) {
             return known;

@@ -6,10 +6,8 @@ import com.volmit.config.PackSettings;
 import com.volmit.config.SettingsStack;
 import com.volmit.host.ModuleLogs;
 import com.volmit.host.WorldStates;
-import com.volmit.random.WorldRandom;
 import com.volmit.placement.Placements;
 import com.volmit.resource.PackResources;
-import com.volmit.resource.ResourceId;
 import com.volmit.world.PackWorld;
 import com.volmit.world.RunningWorld;
 import java.util.Optional;
@@ -32,11 +30,6 @@ public final class TestWorld implements PackWorld, AutoCloseable {
     @Override
     public long seed() {
         return TestContexts.SEED;
-    }
-
-    @Override
-    public long seed(ResourceId purpose) {
-        return WorldRandom.purposeSeed(seed(), purpose);
     }
 
     @Override

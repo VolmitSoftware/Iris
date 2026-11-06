@@ -148,9 +148,8 @@ stage uses its own stream within one invocation and must not share or keep it.
 
 A module's own world-wide randoms and noise take `world.seed(purpose)`, the seed the world gives a purpose id such as
 `example:moss/patches`: the same for the same world and purpose, independent across purposes, so two modules never
-mix the world seed into the same value by hand. Hosts answer `WorldRandom.purposeSeed(world.seed(), purpose)`, pinned
-like every other `WorldRandom` value; Iris answers its built-ins' `iris:seed/*` purposes with the seeds its worlds
-always had.
+mix the world seed into the same value by hand. It is `WorldRandom.purposeSeed(world.seed(), purpose)` for every
+purpose and host (a default method of `PackWorld`), pinned like every other `WorldRandom` value.
 
 ## The mantle pipeline and reach
 

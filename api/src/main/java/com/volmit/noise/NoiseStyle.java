@@ -28,7 +28,7 @@ public final class NoiseStyle {
     public static final String FLAT = "FLAT";
 
     @Ref(Reference.NOISE_STYLE)
-    @Desc("The noise generator. Used when neither expression nor imageMap is set, and when an expression fails.")
+    @Desc("The noise generator. Used when neither expression nor imageMap is set.")
     private String style = FLAT;
 
     @Desc("Above 0, the noise is turned into cells of this frequency.")

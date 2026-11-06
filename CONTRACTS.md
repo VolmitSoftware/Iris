@@ -217,8 +217,8 @@ running Iris is the pack publisher's responsibility.
   (`InvocationContext.world()`), to service calls and to hooks. Use `WorldStates` (or the same rules) for its store.
   A placement a tool makes outside those worlds (a studio paste) gets a `PackWorld` of its own: the pack's resources
   and settings, a seed the host picks, a store closed when the placement ends, and no hooks. `world()` never throws.
-- Answer `PackWorld.seed(purpose)` with `WorldRandom.purposeSeed(seed(), purpose)`, except for ids of your own built-ins
-  whose existing worlds depend on other seeds; the same world and purpose always get the same seed.
+- Don't override `PackWorld.seed(purpose)`: its default, `WorldRandom.purposeSeed(seed(), purpose)`, is the rule for
+  every purpose, the host's own built-ins included.
 - Answer `PackWorld.running()` for a world the host runs, empty for a tool's world. Its `layout()` covers every column of
   the world (not one chunk), with the same values chunk stages read; its `settings()` are the settings at a column and a
   biome's declarations as chunk stages see them; `highest` is the platform's highest block now; `caveFloors` are
@@ -259,8 +259,8 @@ running Iris is the pack publisher's responsibility.
   (`EXPRESSIONS`, `IMAGE_MAPS` among them);
   rendering a value type with the host's own description of the same JSON is allowed.
 - Serve `PackResources.noise()`: build each style's noise from the host's generators, expressions and image maps,
-  the same values for the same style and seed, cached per pack snapshot; an unknown style name is flat, a missing
-  expression falls back to the base style, and a missing image map fails.
+  the same values for the same style and seed, cached per pack snapshot; an unknown style name, a missing expression and a
+  missing image map fail.
   Answer `NoiseSampler.signed(...)` with the generator's own signed read (and its per-thread coordinate memo) when it
   has one; the default is `sample * 2 - 1`.
   Answer `NoiseSampler.scaled(factor)` by building the generator again with the factor folded into its scale, leaving the sampler it

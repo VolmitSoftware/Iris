@@ -938,7 +938,8 @@ Why these lines:
   of one field again and again, so the memo is the difference between caves that cost what they always did and caves that
   do not. A default method (`sample * 2 - 1`) keeps every other sampler valid.
 - **Style names are text with `@Ref(NOISE_STYLE)`**, not an enum: the host owns the list, and an API enum would
-  pin it. An unknown name samples flat, as Iris has always read one.
+  pin it. An unknown name fails when the noise is built, as a missing expression or image map does: a silent
+  flat noise hides the pack's typo.
 - **`isFlat()` is stricter than Iris's**: a flat base style with an expression or image map is not flat.
 - **Block properties are text.** `{"waterlogged": true}` decodes to `"true"`, which is what the platform's state
   key holds; the host's studio description may accept the JSON types it accepted before.

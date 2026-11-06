@@ -13,9 +13,8 @@ public interface NoiseFactory {
      * <p>A style with its own seed ({@link NoiseStyle#seed()}) ignores {@code seed}: the host rolls it from that number
      * and the seed of the world the pack generates, so every reader of the same seeded style gets the same noise.
      *
-     * <p>A style name the host does not know samples as {@link NoiseStyle#FLAT}, and an expression the pack does not
-     * have falls back to the base style, as packs have always been read. An image map the pack does not have, or cannot
-     * use as noise, throws {@link IllegalArgumentException}.
+     * <p>A style name the host does not know, an expression the pack does not have, and an image map the pack does not
+     * have or cannot use as noise throw {@link IllegalArgumentException}.
      */
     NoiseSampler sampler(NoiseStyle style, long seed);
 }

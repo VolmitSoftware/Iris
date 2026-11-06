@@ -11,9 +11,7 @@ import com.volmit.generation.GenerationContext;
 import com.volmit.hunk.Hunk;
 import com.volmit.mantle.Mantle;
 import com.volmit.placement.Placements;
-import com.volmit.random.WorldRandom;
 import com.volmit.resource.PackResources;
-import com.volmit.resource.ResourceId;
 import com.volmit.stage.Pipeline;
 import com.volmit.stage.Stage;
 import com.volmit.support.TestContexts;
@@ -84,7 +82,6 @@ class ExtensionsTest {
         }
 
         public long seed() { return TestContexts.SEED; }
-        public long seed(ResourceId purpose) { return WorldRandom.purposeSeed(seed(), purpose); }
         public PackResources resources() { throw new AssertionError("Unused resources"); }
         public PackSettings settings() { throw new AssertionError("Unused settings"); }
         public int minWorldY() { return 0; }

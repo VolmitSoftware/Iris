@@ -36,7 +36,8 @@ import com.volmit.config.FeatureSettings;
 import com.volmit.config.Level;
 import com.volmit.config.SettingsStack;
 import com.volmit.hunk.Hunk;
-import com.volmit.mantle.Mantle;
+import com.volmit.mantle.CarvedVoid;
+import com.volmit.mantle.MantleLayer;
 import com.volmit.resource.PackResources;
 import com.volmit.resource.ResourceId;
 import com.volmit.stage.ChunkStageContext;
@@ -119,7 +120,7 @@ final class DepositPlacer {
         private final Hunk<BlockState> blocks;
         private final TerrainSampler terrain;
         private final FeatureSettings settings;
-        private final Mantle mantle;
+        private final MantleLayer<CarvedVoid> carvedVoids;
         private final int originX;
         private final int originZ;
         private final int worldHeight;
@@ -134,7 +135,7 @@ final class DepositPlacer {
             this.blocks = context.blocks();
             this.terrain = context.terrain();
             this.settings = context.settings();
-            this.mantle = context.mantle();
+            this.carvedVoids = context.mantle().carved();
             this.originX = context.originX();
             this.originZ = context.originZ();
             this.worldHeight = blocks.height();
@@ -248,7 +249,7 @@ final class DepositPlacer {
                     continue;
                 }
 
-                if (!mantle.isCarved(originX + nx, ny, originZ + nz)) {
+                if (carvedVoids.get(originX + nx, ny, originZ + nz) == null) {
                     BlockState ore = clump.blocks().get(j);
                     BlockState remapped = remapped(nx, ny, nz, ore);
                     BlockState finalBlock = remapped != null

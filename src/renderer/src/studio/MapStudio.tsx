@@ -12,6 +12,7 @@ import { MapCanvas, type CanvasPoint } from './MapCanvas'
 import { PickInspector } from './PickInspector'
 import { RegionPreviewList } from './RegionPreviewList'
 import { SceneStudio } from './SceneStudio'
+import { WorldStudio3D } from './WorldStudio3D'
 import { actionForKey, viewForKey, type ShortcutAction } from './shortcuts'
 import { StatusBar } from './StatusBar'
 import { StudioToolbar } from './StudioToolbar'
@@ -59,8 +60,9 @@ export function MapStudio({ client, world, theme, onDisconnect }: MapStudioProps
   const [packRevision, setPackRevision] = useState(0)
   const [sceneSummary, setSceneSummary] = useState<string | null>(null)
   const sceneViews = useSceneViews(client, packRevision)
-  const views = useMemo(() => [...world.views, ...sceneViews.map(asViewInfo)], [world.views, sceneViews])
+  const views = useMemo(() => [...withWorld3D(world.views), ...sceneViews.map(asViewInfo)], [world.views, sceneViews])
   const sceneView = sceneViews.find((candidate) => candidate.id === viewId) ?? null
+  const showsMap = sceneView === null && viewId !== WORLD_3D.id
   const view = views.find((candidate) => candidate.id === viewId) ?? views[0]
   const layer = useMemo<MapLayerQuery>(() => ({ view: viewId, preview: viewId === 'regions' ? preview : null }), [viewId, preview])
   const regions = usePreviewableRegions(client, packRevision)
@@ -200,7 +202,7 @@ export function MapStudio({ client, world, theme, onDisconnect }: MapStudioProps
         world={world}
         toggles={toggles}
         hasPlayers={world.hasPlayers}
-        mapTools={sceneView === null}
+        mapTools={showsMap}
         theme={theme}
         onToggle={toggle}
         onRefresh={() => runShortcut('refresh')}
@@ -214,6 +216,8 @@ export function MapStudio({ client, world, theme, onDisconnect }: MapStudioProps
         </ViewList>
         {sceneView !== null ? (
           <SceneStudio client={client} view={sceneView} packRevision={packRevision} onSummary={setSceneSummary} tell={tell} />
+        ) : viewId === WORLD_3D.id ? (
+          <WorldStudio3D client={client} world={world} mapArea={area} packRevision={packRevision} onSummary={setSceneSummary} tell={tell} />
         ) : (
           <>
         <div className="relative min-w-0 flex-1">
@@ -269,13 +273,26 @@ export function MapStudio({ client, world, theme, onDisconnect }: MapStudioProps
           </>
         )}
       </div>
-      <StatusBar viewLabel={statusLabel(view.label, previewName, sceneView === null ? null : sceneSummary)} status={sceneView === null ? status : null} notice={notice} />
+      <StatusBar viewLabel={statusLabel(view.label, previewName, showsMap ? null : sceneSummary)} status={showsMap ? status : null} notice={notice} />
       <HelpDialog open={helpOpen} onOpenChange={setHelpOpen} views={views} />
     </div>
   )
 }
 
 const SCENE_GROUP = { group: 'BLOCKS', groupLabel: 'Blocks' }
+/** The app draws the 3D world from the server's biome tiles, so the server does not list it among its views. */
+const WORLD_3D: ViewInfo = {
+  id: 'world3d',
+  label: '3D world',
+  description: 'The terrain in 3D, coloured by biome, region or height',
+  group: 'WORLD',
+  groupLabel: 'World'
+}
+
+function withWorld3D(serverViews: ViewInfo[]): ViewInfo[] {
+  const afterHeight = serverViews.findIndex((candidate) => candidate.id === 'height') + 1
+  return [...serverViews.slice(0, afterHeight), WORLD_3D, ...serverViews.slice(afterHeight)]
+}
 
 function asViewInfo(view: SceneViewInfo): ViewInfo {
   return { ...view, ...SCENE_GROUP }

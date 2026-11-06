@@ -1,4 +1,4 @@
-import { Box, Gem, Map as MapIcon, Mountain, Shapes, Sprout, Trees, Waves, type LucideIcon } from 'lucide-react'
+import { Box, Gem, Globe, Map as MapIcon, Mountain, Shapes, Sprout, Trees, Waves, type LucideIcon } from 'lucide-react'
 import { Kbd } from '@/components/ui/kbd'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
@@ -9,6 +9,7 @@ const VIEW_ICONS: Record<string, LucideIcon> = {
   biomes: Trees,
   regions: MapIcon,
   height: Mountain,
+  world3d: Globe,
   landBiomes: Sprout,
   seaBiomes: Waves,
   caveBiomes: Gem,

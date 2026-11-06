@@ -47,7 +47,7 @@ export function SceneStudio({ client, view, packRevision, onSummary, tell }: Sce
   return (
     <>
       <div className="relative min-w-0 flex-1">
-        <SceneViewport mesh={mesh} />
+        <SceneViewport content={mesh?.content ?? null} framing={mesh} />
         {entry !== null && entry.variants > 1 && (
           <div className="absolute top-3 left-3 flex items-center gap-1 rounded-md border border-overlay-border bg-card/90 p-1 text-[12px] tabular-nums">
             <Button variant="ghost" size="icon-sm" title="Previous variant" onClick={() => chooseVariant(variant - 1)}>
@@ -143,8 +143,7 @@ function useSceneMesh(
 }
 
 function disposeMesh(mesh: SceneMesh | null): void {
-  mesh?.geometry.dispose()
-  mesh?.atlas.dispose()
+  mesh?.dispose()
 }
 
 interface EntryBrowserProps {

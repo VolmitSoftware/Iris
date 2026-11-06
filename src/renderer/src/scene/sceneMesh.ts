@@ -1,15 +1,19 @@
-import { BufferAttribute, BufferGeometry } from 'three'
+import { Box3, BufferAttribute, BufferGeometry, Mesh, MeshBasicMaterial } from 'three'
+import type { ViewportContent } from '../studio/SceneViewport'
 import { cubeModel, parseState, type BlockModels, type BlockModel, type Direction, type Quad } from './blockModels'
 import { blockTint } from './blockTints'
 import { INTS_PER_BLOCK, type BlockScene } from './sceneDecoding'
 import { TextureAtlas, type ImageSource } from './textureAtlas'
 
 export interface SceneMesh {
-  geometry: BufferGeometry
-  atlas: TextureAtlas
+  content: ViewportContent
   /** Block states the client has no blockstate file for, drawn as magenta and black cubes. */
   unknownStates: string[]
+  /** Frees the mesh's geometry, material and atlas. */
+  dispose(): void
 }
+
+const CUTOUT_ALPHA = 0.1
 
 /** The light Minecraft gives each side of a block without shadows: the top brightest, the bottom darkest. */
 const FACE_LIGHT: Record<Direction, number> = { up: 1, down: 0.5, north: 0.8, south: 0.8, west: 0.6, east: 0.6 }
@@ -47,7 +51,18 @@ export async function buildSceneMesh(scene: BlockScene, models: BlockModels, ima
     const solid = model.fullCube && model.quads.every((quad) => atlas.cell(quad.texture).solid)
     return { model, name: state.name, properties: state.properties, solid }
   })
-  return { geometry: geometryOf(scene, palette, atlas), atlas, unknownStates }
+  const geometry = geometryOf(scene, palette, atlas)
+  const material = new MeshBasicMaterial({ map: atlas.texture, vertexColors: true, alphaTest: CUTOUT_ALPHA })
+  const bounds = new Box3().setFromBufferAttribute(geometry.getAttribute('position') as BufferAttribute)
+  return {
+    content: { object: new Mesh(geometry, material), bounds },
+    unknownStates,
+    dispose: () => {
+      geometry.dispose()
+      material.dispose()
+      atlas.dispose()
+    }
+  }
 }
 
 // The client draws chests, signs, water and the like without a block model; their break texture stands in for them.

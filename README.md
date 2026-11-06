@@ -300,6 +300,8 @@ if (!outcome.isPlaced()) {
 - `input` is what the module hands its own placement stages (`PlacementContext.input(type)`); other modules' stages do
   not know its type. The area bounds what the placement may write, widened by the reach of the pack's placement stages.
 - A placement commits whole or not at all: blocks, then markers, and only when no stage rejected and none threw.
+- A marker is one of the kinds the host keeps, a `PlacedMarker`: `PackMarker` (a marker the pack declares, by key),
+  `TreeMaterial` (a tree block, for felling and growth) or `BuriedTreasure` (a chest treasure maps lead to).
 - A rotated object turns its blocks with `BlockRegistry.rotate(state, turn)`: the `BlockTurn` says where the rotation
   moves a direction, and the platform turns the state's facing, axis or rotation to the nearest it has. `merge`,
   `withPropertyIfAccepted` and `matches` change and compare states the way the platform does (`BlockState.withProperty`

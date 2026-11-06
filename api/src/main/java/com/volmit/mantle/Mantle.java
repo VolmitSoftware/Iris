@@ -38,14 +38,11 @@ public interface Mantle {
      * Mantle stages write it ({@code set} plans a void, {@code remove} takes it back); a chunk stage only reads it, around
      * its chunk as far as its mantle reaches, and its writes throw UnsupportedOperationException. A chunk stage takes the
      * voids over into its chunk (Iris's {@code iris:carve} cuts them out of the terrain). The host owns this layer and keeps
-     * it in its own form, so it needs no registration. A dimension that keeps no mantle carves nothing.
+     * it in its own form, so it needs no registration. A dimension that keeps no mantle carves nothing. A stage that only
+     * asks whether a position is carved, whether or not the chunk's own blocks show it, such as under a dimension stacked
+     * above, tests {@code carved().get(x, y, z) != null}.
      */
     MantleLayer<CarvedVoid> carved();
-
-    /** Whether the mantle holds a carved void at the position, whether or not the chunk's own blocks show it, such as
-     * under a dimension stacked above: the same as {@code carved().get(x, y, z) != null}, for a stage that only asks.
-     */
-    boolean isCarved(int x, int y, int z);
 
     /** Shows the block as platform biome {@code biome}, such as {@code minecraft:plains} or a pack's custom biome, instead
      * of the biome its column generates as; the host's biome pass reads it when it writes the chunk's biomes. The host

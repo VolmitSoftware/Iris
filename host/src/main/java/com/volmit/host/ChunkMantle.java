@@ -61,11 +61,6 @@ final class ChunkMantle implements Mantle {
     }
 
     @Override
-    public boolean isCarved(int x, int y, int z) {
-        return mantle.isCarved(x, y, z);
-    }
-
-    @Override
     public void setPlatformBiome(int x, int y, int z, ResourceId biome) {
         requireOwnChunk(x, y, z);
         mantle.setPlatformBiome(x, y, z, biome);

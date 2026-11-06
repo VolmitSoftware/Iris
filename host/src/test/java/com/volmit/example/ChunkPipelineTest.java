@@ -198,8 +198,6 @@ class ChunkPipelineTest {
             public ModuleInfo info() { return ModuleInfo.of("test:caves", "Caves", "1"); }
             public void setup(ModuleSetup setup) {
                 setup.stages().define(probe).run(context -> {
-                    carved.add(String.valueOf(context.mantle().isCarved(6, 9, 2)));
-                    carved.add(String.valueOf(context.mantle().isCarved(6, 10, 2)));
                     carved.add(String.valueOf(context.mantle().carved().get(6, 9, 2)));
                     carved.add(String.valueOf(context.mantle().carved().get(6, 10, 2)));
                     carved.add(assertThrows(UnsupportedOperationException.class,
@@ -216,7 +214,7 @@ class ChunkPipelineTest {
                 StageTimings.NONE);
 
         var cannotCarve = "Carved voids are planned by mantle stages (Stage.mantle), not by chunk stages";
-        assertEquals(List.of("true", "false", CarvedVoid.OPEN.toString(), "null", cannotCarve, cannotCarve), carved);
+        assertEquals(List.of(CarvedVoid.OPEN.toString(), "null", cannotCarve, cannotCarve), carved);
     }
 
     @Test

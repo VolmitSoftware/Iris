@@ -141,12 +141,6 @@ final class PlacementViews {
         }
 
         @Override
-        public boolean isCarved(int x, int y, int z) {
-            checkPosition(bounds(), x, y, z);
-            return parent.isCarved(x, y, z);
-        }
-
-        @Override
         public void setPlatformBiome(int x, int y, int z, ResourceId biome) {
             checkPosition(bounds(), x, y, z);
             parent.setPlatformBiome(x, y, z, biome);

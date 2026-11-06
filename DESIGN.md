@@ -630,7 +630,7 @@ biome it shows), as `blocks()` is its layer of planned blocks. It is the one hos
 (Iris's cave carver does, thousands per chunk, so the plain fills are shared constants and the host keeps them in its own form), and a chunk
 stage reads them, around its chunk as far as its mantle reaches, and cuts them out of its terrain. A chunk stage's writes throw, as the
 mantle is complete when chunk stages run. A void the planner marked need not show in the chunk (under a dimension above, the cave stage
-leaves it solid), so `Mantle.isCarved(x, y, z)` stays as the short question for a stage that places something solid.
+leaves it solid), so a stage that places something solid asks `carved().get(x, y, z) != null`; there is no separate `isCarved` on the mantle.
 `Mantle.setPlatformBiome(x, y, z, biome)` is the other way round: modules write it and only the host's biome pass reads it, in the host's own form
 (Iris stores the platform's id for the biome), so it is a write rather than a layer a module could read back. It is general rather than a
 floating-island call: any stage that makes a block belong elsewhere, such as an island floating over another biome, can set the biome it shows.

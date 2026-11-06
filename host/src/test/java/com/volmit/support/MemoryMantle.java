@@ -38,7 +38,6 @@ public final class MemoryMantle {
             public <T> MantleLayer<T> layer(MantleKey<T> key) { return new Layer<>(key, bounds, true); }
             public MantleLayer<BlockState> blocks() { return new Layer<>(PLANNED_BLOCKS, bounds, false); }
             public MantleLayer<CarvedVoid> carved() { return new Layer<>(CAVERNS, bounds, true); }
-            public boolean isCarved(int x, int y, int z) { return new Layer<>(CAVERNS, bounds, false).get(x, y, z) != null; }
             public void setPlatformBiome(int x, int y, int z, ResourceId biome) {
                 if (!bounds.contains(x, y, z)) throw new IndexOutOfBoundsException("Outside the mantle view: " + x + "," + y + "," + z);
                 values(PLATFORM_BIOMES).put(new BlockPosition(x, y, z), biome);

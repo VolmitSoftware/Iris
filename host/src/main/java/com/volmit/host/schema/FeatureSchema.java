@@ -22,7 +22,6 @@ import java.util.Set;
 public record FeatureSchema(
         ResourceId id,
         String name,
-        FeatureRole role,
         ModuleInfo module,
         String key,
         Optional<String> root,
@@ -31,7 +30,6 @@ public record FeatureSchema(
     public FeatureSchema {
         Objects.requireNonNull(id, "id");
         Objects.requireNonNull(name, "name");
-        Objects.requireNonNull(role, "role");
         Objects.requireNonNull(module, "module");
         Objects.requireNonNull(key, "key");
         Objects.requireNonNull(root, "root");

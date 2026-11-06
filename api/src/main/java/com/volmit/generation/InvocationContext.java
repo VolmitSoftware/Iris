@@ -7,7 +7,7 @@ import java.util.Optional;
 /** Host-owned invocation inputs. Views must not be retained or used by detached tasks.
  *
  * <p>There is no shared random stream. A stage draws from {@link com.volmit.stage.StageContext#random()},
- * a stream of its own, and an object generator from {@link com.volmit.object.ObjectGenerationContext#random()}.
+ * a stream of its own.
  */
 public interface InvocationContext {
     /** The world this invocation generates: its seed, the pack snapshot's resources, its settings and the state modules

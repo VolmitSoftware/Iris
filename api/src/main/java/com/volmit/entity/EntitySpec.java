@@ -23,11 +23,10 @@ import java.util.Optional;
  * @param arrival    what happens where it appears
  * @param adjustsProvidedMob whether the rest of the spec also applies to a {@link ContentKey.Provided} mob, which is
  *                   otherwise left as its provider set it up
- * @param extensions values for a particular host, which other hosts ignore; see {@link #extension}
  */
 public record EntitySpec(ContentKey type, Appearance appearance, Behaviour behaviour, Equipment equipment,
                          List<ItemAttribute> attributes, Company company, Drops drops, Arrival arrival,
-                         boolean adjustsProvidedMob, List<Object> extensions) {
+                         boolean adjustsProvidedMob) {
     public EntitySpec {
         Objects.requireNonNull(type, "type");
         Objects.requireNonNull(appearance, "appearance");
@@ -37,12 +36,6 @@ public record EntitySpec(ContentKey type, Appearance appearance, Behaviour behav
         Objects.requireNonNull(company, "company");
         Objects.requireNonNull(drops, "drops");
         Objects.requireNonNull(arrival, "arrival");
-        extensions = List.copyOf(extensions);
-    }
-
-    /** The extension of type {@code type} the module added for its host; empty when it added none. */
-    public <T> Optional<T> extension(Class<T> type) {
-        return extensions.stream().filter(type::isInstance).map(type::cast).findFirst();
     }
 
     /**

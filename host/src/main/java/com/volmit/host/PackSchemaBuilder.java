@@ -1,6 +1,5 @@
 package com.volmit.host;
 
-import com.volmit.host.schema.FeatureRole;
 import com.volmit.host.schema.FeatureSchema;
 import com.volmit.host.schema.ObjectType;
 import com.volmit.host.schema.PackSchema;
@@ -46,7 +45,7 @@ final class PackSchemaBuilder {
     }
 
     private PackSchema describe(FeatureCatalog catalog) {
-        var features = catalogued(catalog).map(this::draft).toList();
+        var features = catalog.settings().stream().map(this::draft).toList();
         var resources = catalog.resourceKinds().stream().map(this::describe).toList();
         requireUniqueSnippets();
         var types = completeTypes();
@@ -78,30 +77,18 @@ final class PackSchemaBuilder {
                 + " the host may use; read the files into a class of the module");
     }
 
-    /** One catalogued settings type and why it is in the catalog. */
-    private record Catalogued(FeatureDescriptor<?> descriptor, FeatureRole role) {}
-
     /** A feature whose settings class is drafted but whose defaults are not converted yet. */
-    private record FeatureDraft(Catalogued catalogued, DiscoveredModule owner) {
+    private record FeatureDraft(FeatureDescriptor<?> descriptor, DiscoveredModule owner) {
         FeatureSchema complete(Map<String, ObjectType> types) {
-            var descriptor = catalogued.descriptor();
-            return new FeatureSchema(descriptor.id(), descriptor.name(), catalogued.role(), owner.info(), descriptor.key(), descriptor.root(),
-                    descriptor.targets(),types.get(descriptor.type().getName()));
+            return new FeatureSchema(descriptor.id(), descriptor.name(), owner.info(), descriptor.key(), descriptor.root(),
+                    descriptor.targets(), types.get(descriptor.type().getName()));
         }
     }
 
-    /** Ordered by feature id, so which settings an error names first never depends on discovery. */
-    private static Stream<Catalogued> catalogued(FeatureCatalog catalog) {
-        var settings = catalog.settings().stream().map(descriptor -> new Catalogued(descriptor, FeatureRole.SETTINGS));
-        var objects = catalog.objects().stream()
-                .map(registration -> new Catalogued(registration.descriptor(), FeatureRole.OBJECT_GENERATOR));
-        return Stream.concat(settings, objects).sorted(Comparator.comparing(catalogued -> catalogued.descriptor().id()));
-    }
-
-    private FeatureDraft draft(Catalogued catalogued) {
-        var owner = ownerOf(catalogued.descriptor());
-        drafts.settings(SchemaSource.settings(catalogued.descriptor(), owner));
-        return new FeatureDraft(catalogued, owner);
+    private FeatureDraft draft(FeatureDescriptor<?> descriptor) {
+        var owner = ownerOf(descriptor);
+        drafts.settings(SchemaSource.settings(descriptor, owner));
+        return new FeatureDraft(descriptor, owner);
     }
 
     /** Registration checked that a module owns every catalogued id; module ids are unique and have no '/', so only one can. */

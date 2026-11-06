@@ -2,9 +2,7 @@ package com.volmit.placement;
 
 import com.volmit.config.FeatureSettings;
 import com.volmit.generation.InvocationContext;
-import com.volmit.object.ObjectTransformer;
 import com.volmit.world.TerrainSampler;
-import com.volmit.world.BlockView;
 
 import java.util.Optional;
 
@@ -14,12 +12,9 @@ import java.util.Optional;
 public interface PlacementContext extends InvocationContext {
     TerrainSampler terrain();
     FeatureSettings settings();
-    ObjectTransformer objects();
-    /** Prepared blocks before this placement. Use stage access for reads of buffered changes. */
-    BlockView blocks();
     /**
      * The world the placement is made in, for the questions about a column the stages ask. Its blocks are the ones before
-     * this placement, like {@link #blocks()}; stages write through their access, never into it.
+     * this placement; stages write through their access, never into it.
      */
     PlacementTerrain placementTerrain();
     /**

@@ -7,7 +7,6 @@ import com.volmit.example.chunk.TerrainModule;
 import com.volmit.example.hosttypes.Palette;
 import com.volmit.example.placement.PlacementModules;
 import com.volmit.example.terrain.LayersModule;
-import com.volmit.host.schema.FeatureRole;
 import com.volmit.host.schema.FeatureSchema;
 import com.volmit.host.schema.ObjectType;
 import com.volmit.host.schema.PackSchema;
@@ -61,7 +60,7 @@ class PackSchemaTest {
     private static final String FLORA_SETUP = """
             registry.registerSettings(WindSettings.class);
             registry.registerSettings(FloraSettings.class);
-            registry.registerObject(BushSettings.class, bush -> context -> null);
+            registry.registerSettings(BushSettings.class);
             graph.define(Stage.chunk("example:flora/plant")).when(FloraSettings.class).run(context -> {});
             """;
 
@@ -208,7 +207,6 @@ class PackSchemaTest {
 
         var flora = schema.features().getFirst();
         assertEquals("Flora", flora.name());
-        assertEquals(FeatureRole.SETTINGS, flora.role());
         assertEquals(FLORA, flora.module().id().toString());
         assertEquals(displayName(FLORA), flora.module().name());
         assertEquals(List.of(Level.REGION, Level.BIOME), List.copyOf(flora.targets()));
@@ -289,19 +287,17 @@ class PackSchemaTest {
     }
 
     @Test
-    void listsSnippetsObjectGeneratorsAndExplicitlyRegisteredSettings() {
+    void listsSnippetsAndExplicitlyRegisteredSettings() {
         var schema = floraSchema();
 
         assertEquals(List.of("example/flora/bush", "example/flora/patch"), schema.snippets().stream().map(type -> type.snippet().orElseThrow()).toList());
         assertEquals(List.of("pack.flora.BushSettings", "pack.flora.Patch"), schema.snippets().stream().map(ObjectType::name).toList());
 
-        var bush = schema.objectGenerators().getFirst();
-        assertEquals(1, schema.objectGenerators().size());
-        assertEquals(FeatureRole.OBJECT_GENERATOR, bush.role());
+        var bush = schema.fields(Level.PLACEMENT).getFirst();
+        assertEquals("example:flora/bush", bush.id().toString());
         assertEquals(Optional.of(2L), option(bush.settings(), "height").defaultValue());
 
         var wind = schema.fields(Level.DIMENSION).getFirst();
-        assertEquals(FeatureRole.SETTINGS, wind.role());
         assertEquals("example:flora/wind", wind.id().toString());
         assertEquals(new SchemaOption("strength", new DecimalKind(), "How far plants sway", false,
                 OptionalDouble.empty(), OptionalDouble.empty(), OptionalInt.empty(), Optional.of(1.5)), option(wind.settings(), "strength"));
@@ -638,8 +634,8 @@ class PackSchemaTest {
     void referencesOnIncompatibleFieldsFailTheLoad() {
         assertLoadFails("Field pack.flora.FloraSettings.count of " + FLORA_SOURCE + " has @Ref(BLOCK) on int, but @Ref fits only String"
                 + " and ResourceId and lists, sets and arrays of them", "@Ref(Reference.BLOCK) private int count;");
-        assertLoadFails("Field pack.flora.FloraSettings.flower of " + FLORA_SOURCE + " has @Ref(BIOME) on BlockState, which always names"
-                + " a block; remove the @Ref or use String or ResourceId", "@Ref(Reference.BIOME) private BlockState flower;");
+        assertLoadFails("Field pack.flora.FloraSettings.flower of " + FLORA_SOURCE + " has @Ref(ITEM) on BlockState, which always names"
+                + " a block; remove the @Ref or use String or ResourceId", "@Ref(Reference.ITEM) private BlockState flower;");
         assertLoadFails("Field pack.flora.FloraSettings.blocks of " + FLORA_SOURCE + " has @Ref(BLOCK) on java.util.Map<java.lang.String,"
                 + " java.lang.String>, but @Ref fits only String and ResourceId and lists, sets and arrays of them",
                 "@Ref(Reference.BLOCK) private Map<String, String> blocks;");

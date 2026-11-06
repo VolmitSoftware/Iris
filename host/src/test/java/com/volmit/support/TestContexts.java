@@ -6,7 +6,6 @@ import com.volmit.generation.GenerationContext;
 import com.volmit.generation.MantleGenerationContext;
 import com.volmit.hunk.Hunk;
 import com.volmit.mantle.Mantle;
-import com.volmit.object.ObjectTransformer;
 import com.volmit.placement.PlacementContext;
 import com.volmit.placement.PlacementTerrain;
 import java.util.Optional;
@@ -62,17 +61,13 @@ public final class TestContexts {
         return placement(null);
     }
 
+    /** A placement whose terrain answers from {@code blocks}; a null {@code blocks} fails when used. */
     public static PlacementContext placement(BlockView blocks) {
         return new PlacementContext() {
             public PackWorld world() { throw new AssertionError("Unused world"); }
             public TerrainSampler terrain() { throw new AssertionError("Unused terrain"); }
             public FeatureSettings settings() { throw new AssertionError("Unused settings"); }
-            public ObjectTransformer objects() { throw new AssertionError("Unused transforms"); }
-            public BlockView blocks() {
-                if (blocks == null) throw new AssertionError("Unused blocks");
-                return blocks;
-            }
-            public PlacementTerrain placementTerrain() { throw new AssertionError("Unused placement terrain"); }
+            public PlacementTerrain placementTerrain() { return new ColumnTerrain(used(blocks, "placement terrain")); }
             public <T> Optional<T> input(Class<T> type) { return Optional.empty(); }
         };
     }

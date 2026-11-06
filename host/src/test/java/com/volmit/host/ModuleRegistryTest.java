@@ -57,25 +57,20 @@ class ModuleRegistryTest {
         var registry = new ModuleRegistry();
         registerAs(registry, "test:core", settings -> settings.registerSettings(One.class));
         registry.registerStageSettings(One.class);
-        registerAs(registry, "test:core", objects -> {
-            objects.registerObject(Two.class, ignored -> context -> null);
-            assertThrows(IllegalArgumentException.class, () -> objects.registerObject(Duplicate.class, ignored -> context -> null));
-            assertThrows(IllegalArgumentException.class, () -> objects.registerObject(One.class, ignored -> context -> null));
+        registerAs(registry, "test:core", settings -> {
+            settings.registerSettings(Two.class);
+            assertThrows(IllegalArgumentException.class, () -> settings.registerSettings(Duplicate.class));
         });
         var catalog = registry.freeze();
-        assertEquals(List.of("test:core/one"), catalog.settings().stream().map(value -> value.id().toString()).toList());
-        assertEquals(List.of("test:core/two"), catalog.objects().stream().map(value -> value.descriptor().id().toString()).toList());
+        assertEquals(List.of("test:core/one", "test:core/two"), catalog.settings().stream().map(value -> value.id().toString()).toList());
     }
 
     @Test
-    void rejectsInvalidFeaturesOrFactories() {
+    void rejectsInvalidFeatures() {
         var registry = new ModuleRegistry();
         assertThrows(IllegalArgumentException.class, () -> registry.registerStageSettings(MissingAnnotation.class));
         assertThrows(IllegalArgumentException.class, () -> registry.registerStageSettings(AbstractFeature.class));
-        registerAs(registry, "test:core", objects -> {
-            assertThrows(NullPointerException.class, () -> objects.registerObject(Two.class, null));
-            objects.registerObject(Two.class, ignored -> context -> null);
-        });
+        registerAs(registry, "test:core", settings -> settings.registerSettings(Two.class));
         assertSame(registry.freeze(), registry.freeze());
         assertThrows(IllegalStateException.class, () -> registry.registerStageSettings(One.class));
     }
@@ -95,16 +90,10 @@ class ModuleRegistryTest {
     }
 
     @Test
-    void objectFeatureIdsAndMantleKeysAreTheRegisteringModulesIdOrBelowIt() {
+    void settingsIdsAndMantleKeysAreTheRegisteringModulesIdOrBelowIt() {
         var registry = new ModuleRegistry();
-        var object = assertThrows(IllegalArgumentException.class, () -> registerAs(registry, "other:objects",
-                objects -> objects.registerObject(Two.class, ignored -> context -> null)));
-        assertEquals("Object generator settings " + Two.class.getName() + " with feature id test:core/two must be "
-                + "other:objects or start with other:objects/, the id of its registering module other:objects from host classpath",
-                object.getMessage());
-
         var sameNamespace = assertThrows(IllegalArgumentException.class, () -> registerAs(registry, "test:other",
-                objects -> objects.registerObject(Two.class, ignored -> context -> null)));
+                settings -> settings.registerSettings(Two.class)));
         assertTrue(sameNamespace.getMessage().contains("must be test:other or start with test:other/"), sameNamespace.getMessage());
 
         var mantle = assertThrows(IllegalArgumentException.class, () -> registerAs(registry, "iris:snow",
@@ -114,7 +103,7 @@ class ModuleRegistryTest {
 
         assertThrows(IllegalStateException.class, () -> registry.registerMantle(new MantleKey<>("test:loose", String.class),
                 MantleLifetime.GENERATION, codec(1)));
-        assertTrue(registry.freeze().objects().isEmpty());
+        assertTrue(registry.freeze().settings().isEmpty());
         assertTrue(registry.freeze().mantle().isEmpty());
     }
 
@@ -187,12 +176,11 @@ class ModuleRegistryTest {
             public ModuleInfo info() { return ModuleInfo.of("test:core", "Conditioned", "1"); }
             public void setup(ModuleSetup setup) {
                 setup.stages().define(WORK).when(One.class).run(context -> {});
-                setup.registry().registerObject(Two.class, ignored -> context -> null);
+                setup.registry().registerSettings(Two.class);
             }
         };
         var loaded = LoadedModules.load(List.of(DiscoveredModule.builtIn(conditioned)), Map.of(), Set.of(), Set.of());
-        assertEquals(List.of("test:core/one"), loaded.catalog().settings().stream().map(value -> value.id().toString()).toList());
-        assertEquals(1, loaded.catalog().objects().size());
+        assertEquals(List.of("test:core/one", "test:core/two"), loaded.catalog().settings().stream().map(value -> value.id().toString()).toList());
         assertEquals(1, loaded.placement().stages().size());
         assertTrue(loaded.chunk().stages().isEmpty());
     }
@@ -261,12 +249,12 @@ class ModuleRegistryTest {
     }
 
     @Test
-    void aClashingObjectGeneratorOrStageSettingsTypeClaimsTheKeyToo() {
+    void aClashingRegisteredOrStageSettingsTypeClaimsTheKeyToo() {
         var registry = new ModuleRegistry();
         registerAs(registry, "test:ores", settings -> settings.registerSettings(Ores.class));
-        var object = assertThrows(IllegalArgumentException.class, () -> registerAs(registry, "test:minerals",
-                objects -> objects.registerObject(Minerals.class, ignored -> context -> null)));
-        assertTrue(object.getMessage().startsWith("region key \"deposits\" is claimed by test:minerals (host classpath) and test:ores"), object.getMessage());
+        var registered = assertThrows(IllegalArgumentException.class, () -> registerAs(registry, "test:minerals",
+                settings -> settings.registerSettings(Minerals.class)));
+        assertTrue(registered.getMessage().startsWith("region key \"deposits\" is claimed by test:minerals (host classpath) and test:ores"), registered.getMessage());
 
         var conditioned = new IrisModule() {
             static final PlacementStage<Void> WORK = Stage.placement("test:minerals/work");
@@ -382,11 +370,11 @@ class ModuleRegistryTest {
                 + "test:other/, the id of its registering module test:other from host classpath", foreign.getMessage());
         assertThrows(IllegalStateException.class, () -> registry.registerSettings(One.class));
 
-        registerAs(registry, "test:core", settings -> settings.registerObject(Two.class, ignored -> context -> null));
+        registerAs(registry, "test:core", settings -> settings.registerSettings(One.class));
         var collision = assertThrows(IllegalArgumentException.class,
-                () -> registerAs(registry, "test:core", settings -> settings.registerSettings(Two.class)));
-        assertEquals("Duplicate feature: test:core/two", collision.getMessage());
-        assertTrue(registry.freeze().settings().isEmpty());
+                () -> registerAs(registry, "test:core", settings -> settings.registerSettings(Duplicate.class)));
+        assertEquals("Duplicate feature: test:core/one", collision.getMessage());
+        assertEquals(List.of(One.class), registry.freeze().settings().stream().map(FeatureDescriptor::type).toList());
     }
 
     @Test

@@ -48,11 +48,6 @@ public record PackSchema(List<FeatureSchema> features, List<ResourceKindSchema> 
                 .toList();
     }
 
-    /** The settings of object generators, by feature id. */
-    public List<FeatureSchema> objectGenerators() {
-        return features.stream().filter(feature -> feature.role() == FeatureRole.OBJECT_GENERATOR).toList();
-    }
-
     /** The type an {@link ValueKind.ObjectKind} names. */
     public ObjectType type(String name) {
         return types.stream()

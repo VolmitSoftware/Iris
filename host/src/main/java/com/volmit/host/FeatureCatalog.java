@@ -1,6 +1,5 @@
 package com.volmit.host;
 
-import com.volmit.IrisFeature;
 import com.volmit.service.Providers;
 import com.volmit.service.Service;
 import java.util.Collection;
@@ -8,7 +7,6 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -33,7 +31,6 @@ public final class FeatureCatalog {
     };
 
     private final Map<Class<?>, FeatureDescriptor<?>> settings;
-    private final Map<Class<?>, ObjectRegistration<?>> objects;
     private final Map<String, MantleRegistration<?>> mantle;
     private final List<ResourceKindRegistration> resourceKinds;
     private final List<ValidatorRegistration> validators;
@@ -45,7 +42,6 @@ public final class FeatureCatalog {
 
     FeatureCatalog(
             Map<Class<?>, FeatureDescriptor<?>> settings,
-            Map<Class<?>, ObjectRegistration<?>> objects,
             Map<String, MantleRegistration<?>> mantle,
             Collection<ResourceKindRegistration> resourceKinds,
             List<ValidatorRegistration> validators,
@@ -56,7 +52,6 @@ public final class FeatureCatalog {
         this.placementType = Optional.ofNullable(placementType);
         this.studioViews = sorted(studioViews, registration -> registration.view().id());
         this.settings = Map.copyOf(settings);
-        this.objects = Map.copyOf(objects);
         this.mantle = Map.copyOf(mantle);
         this.resourceKinds = sorted(resourceKinds, registration -> registration.kind().id());
         this.validators = inModuleOrder(validators, ValidatorRegistration::module);
@@ -68,10 +63,6 @@ public final class FeatureCatalog {
     /** Settings types that activate stages; the host decodes them from pack JSON. */
     public List<FeatureDescriptor<?>> settings() {
         return sorted(settings.values(), FeatureDescriptor::id);
-    }
-
-    public List<ObjectRegistration<?>> objects() {
-        return sorted(objects.values(), registration -> registration.descriptor().id());
     }
 
     public List<MantleRegistration<?>> mantle() {
@@ -167,14 +158,5 @@ public final class FeatureCatalog {
         return registrations.stream()
                 .sorted(Comparator.comparing(key))
                 .toList();
-    }
-
-    @SuppressWarnings("unchecked") // The registry key is the factory's feature type.
-    public <F extends IrisFeature> ObjectRegistration<F> object(Class<F> type) {
-        var registration = objects.get(type);
-        if (registration == null) {
-            throw new NoSuchElementException("No object feature: " + type.getName());
-        }
-        return (ObjectRegistration<F>) registration;
     }
 }

@@ -71,14 +71,6 @@ class ItemAndEntityValuesTest {
     }
 
     @Test
-    void anEntityHandsAHostTheExtensionItReadsAndNothingForAnotherType() {
-        EntitySpec zombie = entity(List.of("iris extras"));
-
-        assertEquals(Optional.of("iris extras"), zombie.extension(String.class));
-        assertEquals(Optional.empty(), zombie.extension(Integer.class));
-    }
-
-    @Test
     void anEntityCarriesWhatOnlyAPlatformHasANameForInsteadOfAnExtension() {
         EntitySpec.Appearance panda = new EntitySpec.Appearance(Optional.empty(), false, false, false, Optional.of("PLAYFUL"),
                 Optional.of("WEAK"));
@@ -125,7 +117,7 @@ class ItemAndEntityValuesTest {
     @Test
     void anAttemptSaysWhetherLightMatters() {
         BlockPosition at = new BlockPosition(1, 2, 3);
-        EntitySpec zombie = entity(List.of());
+        EntitySpec zombie = zombie();
 
         assertFalse(new EntitySpawns.Attempt(at, zombie, EntitySpawns.Surface.LAND, 0, 15, true).restrictsLight());
         assertTrue(new EntitySpawns.Attempt(at, zombie, EntitySpawns.Surface.LAND, 0, 7, true).restrictsLight());
@@ -153,9 +145,9 @@ class ItemAndEntityValuesTest {
         assertThrows(NullPointerException.class, () -> new AmbientEffects.Command(null, 0, 0, 0));
     }
 
-    private static EntitySpec entity(List<Object> extensions) {
+    private static EntitySpec zombie() {
         return new EntitySpec(new ContentKey.Registered(ResourceId.parse("minecraft:zombie")), EntitySpec.Appearance.PLAIN,
                 EntitySpec.Behaviour.NATURAL, EntitySpec.Equipment.NONE, List.of(), EntitySpec.Company.NONE,
-                EntitySpec.Drops.PLATFORM, EntitySpec.Arrival.QUIET, false, extensions);
+                EntitySpec.Drops.PLATFORM, EntitySpec.Arrival.QUIET, false);
     }
 }

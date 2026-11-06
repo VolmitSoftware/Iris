@@ -4,7 +4,6 @@ import com.volmit.IrisFeature;
 import com.volmit.config.FeatureSettings;
 import com.volmit.config.SettingsStack;
 import com.volmit.object.ObjectBlock;
-import com.volmit.object.ObjectTransformer;
 import com.volmit.placement.PlacementAccess;
 import com.volmit.placement.PlacementContext;
 import com.volmit.placement.PlacementRequest;
@@ -13,7 +12,6 @@ import com.volmit.random.WorldRandom;
 import com.volmit.world.PackWorld;
 import com.volmit.stage.BlockStageContext;
 import com.volmit.stage.Stage;
-import com.volmit.world.BlockView;
 import com.volmit.world.TerrainSampler;
 import java.util.Objects;
 import java.util.Optional;
@@ -138,16 +136,6 @@ final class PlacementInvocation implements BlockStageContext {
     @Override
     public FeatureSettings settings() {
         return inputs.settings();
-    }
-
-    @Override
-    public ObjectTransformer objects() {
-        return inputs.objects();
-    }
-
-    @Override
-    public BlockView blocks() {
-        return inputs.blocks();
     }
 
     @Override

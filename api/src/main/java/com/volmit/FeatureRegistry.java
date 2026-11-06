@@ -3,7 +3,6 @@ package com.volmit;
 import com.volmit.mantle.MantleCodec;
 import com.volmit.mantle.MantleKey;
 import com.volmit.mantle.MantleLifetime;
-import com.volmit.object.ObjectGeneratorFactory;
 import com.volmit.resource.ResourceKind;
 import com.volmit.service.Service;
 import com.volmit.stage.StageGraph;
@@ -23,8 +22,6 @@ public interface FeatureRegistry {
      * GENERATION layers also require codecs.
      */
     <T> void registerMantle(MantleKey<T> key, MantleLifetime lifetime, MantleCodec<T> codec);
-
-    <F extends IrisFeature> void registerObject(Class<F> featureType, ObjectGeneratorFactory<F> factory);
 
     /** Catalogs settings types that no stage names in {@code when(...)}, such as ones read only
      * through {@link com.volmit.config.FeatureSettings#at}, so the host decodes them and studio

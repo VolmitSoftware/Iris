@@ -2,8 +2,7 @@ package com.volmit.config;
 
 /** The platform registry a text option names, so studio can offer the matching completion list: entries of the
  * server's registries, such as {@code minecraft:stone}, including those that data packs and mods add, and the host's
- * own noise generators. Resources of the pack are named by their kind instead, {@code @Ref(kind = ...)}. The set is
- * closed: every registry is one the Iris host can list.
+ * own noise generators. Resources of the pack are named by their kind instead, {@code @Ref(kind = ...)}.
  */
 public enum Reference {
     /** A block type, such as {@code minecraft:stone}. {@link com.volmit.block.BlockState} options are block references without {@link Ref}. */
@@ -12,8 +11,6 @@ public enum Reference {
     ITEM,
     /** An entity type, such as {@code minecraft:zombie}. */
     ENTITY,
-    /** A platform biome, such as {@code minecraft:plains}; not a biome of the pack. */
-    BIOME,
     /** A platform structure, such as {@code minecraft:village_plains}. */
     STRUCTURE,
     /** A platform structure or a prefix naming a family of them: {@code minecraft:village_plains},

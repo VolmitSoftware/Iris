@@ -9,8 +9,7 @@ import java.util.RandomAccess;
 
 /** A random stream whose every value is defined here, so the same seed gives the same draws on
  * every machine and every JDK. World generation draws from it: stages through
- * {@link com.volmit.stage.StageContext#random()}, object generators through
- * {@link com.volmit.object.ObjectGenerationContext#random()}.
+ * {@link com.volmit.stage.StageContext#random()}.
  *
  * <p>It deliberately does not implement {@link java.util.random.RandomGenerator}: that interface's
  * default methods, and any a later JDK adds, use algorithms the JDK may change, which would change

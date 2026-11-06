@@ -7,7 +7,6 @@ import com.volmit.config.Level;
 import com.volmit.mantle.MantleCodec;
 import com.volmit.mantle.MantleKey;
 import com.volmit.mantle.MantleLifetime;
-import com.volmit.object.ObjectGeneratorFactory;
 import com.volmit.resource.ResourceId;
 import com.volmit.resource.ResourceKind;
 import com.volmit.service.Providers;
@@ -27,7 +26,7 @@ import java.util.Set;
  * immutable. IDs are unique across feature kinds. A feature's JSON key (see {@link com.volmit.config.Feature#key})
  * is unique per attachment target, and may not equal a host JSON field passed in to reserve it; a clash fails the
  * registration naming the key, the target and both claimants. Modules register during their setup
- * ({@link ModuleSetups#run}); object feature ids, mantle keys, resource kind ids and explicitly registered
+ * ({@link ModuleSetups#run}); mantle keys, resource kind ids and explicitly registered
  * settings ids must be the registering module's id or start with it and '/' ({@link com.volmit.ModuleInfo#ownsId}).
  * Resource kinds have unique ids, types and folders, and no kind may read a folder the host reserves for its own
  * files. Lifecycle hooks and service providers are registered by the module that owns them; a service whose providers
@@ -37,7 +36,6 @@ import java.util.Set;
  */
 public final class ModuleRegistry implements FeatureRegistry, ToolingRegistry {
     private final Map<Class<?>, FeatureDescriptor<?>> settings = new HashMap<>();
-    private final Map<Class<?>, ObjectRegistration<?>> objects = new HashMap<>();
     private final Map<String, MantleRegistration<?>> mantle = new HashMap<>();
     private final Set<ResourceId> featureIds = new HashSet<>();
     private final Set<Class<?>> featureTypes = new HashSet<>();
@@ -80,18 +78,6 @@ public final class ModuleRegistry implements FeatureRegistry, ToolingRegistry {
 
     void endSetup() {
         registering = null;
-    }
-
-    @Override
-    public <F extends IrisFeature> void registerObject(
-            Class<F> featureType,
-            ObjectGeneratorFactory<F> factory) {
-        checkOpen();
-        var descriptor = FeatureDescriptor.of(featureType);
-        requireOwnedId("Object generator settings " + featureType.getName() + " with feature id", descriptor.id());
-        var registration = new ObjectRegistration<>(descriptor, factory);
-        claim(descriptor, registering);
-        objects.put(featureType, registration);
     }
 
     @Override
@@ -233,7 +219,7 @@ public final class ModuleRegistry implements FeatureRegistry, ToolingRegistry {
 
     public FeatureCatalog freeze() {
         if (catalog == null) {
-            catalog = new FeatureCatalog(settings, objects, mantle, resourceKinds.values(), validators, lifecycles, services,
+            catalog = new FeatureCatalog(settings, mantle, resourceKinds.values(), validators, lifecycles, services,
                     placementType, studioViews.values());
         }
         return catalog;

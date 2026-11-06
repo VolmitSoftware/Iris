@@ -7,7 +7,6 @@ import com.volmit.stage.PlacementStage;
 import com.volmit.stage.PlacementStageContext;
 import com.volmit.stage.Stage;
 import com.volmit.geometry.BlockPosition;
-import com.volmit.world.BlockView;
 
 /** Port of PlacementModuleAnchor with center-height sampling: rest the anchor on the surface. */
 public final class AnchorModule implements IrisModule {
@@ -27,17 +26,7 @@ public final class AnchorModule implements IrisModule {
 
     private static AnchorResult restOnSurface(PlacementStageContext context) {
         var requested = context.request().anchor();
-        int surfaceY = firstAirAboveGround(context.blocks(), requested.x(), requested.z());
-        return new AnchorResult(new BlockPosition(requested.x(), surfaceY, requested.z()));
-    }
-
-    private static int firstAirAboveGround(BlockView blocks, int x, int z) {
-        var bounds = blocks.bounds();
-        for (int y = bounds.maxY() - 1; y >= bounds.minY(); y--) {
-            if (!ExampleBlocks.isAir(blocks.get(x, y, z))) {
-                return y + 1;
-            }
-        }
-        return bounds.minY();
+        int firstAirAboveGround = context.placementTerrain().highest(requested.x(), requested.z(), false) + 1;
+        return new AnchorResult(new BlockPosition(requested.x(), firstAirAboveGround, requested.z()));
     }
 }

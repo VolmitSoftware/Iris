@@ -2,7 +2,7 @@ rootProject.name = "IrisModule"
 
 // The built-ins compile against the Iris API alone, from the sibling checkout. Never against iris-host: that is what a host
 // such as Iris uses to load modules, and packs never see it.
-includeBuild("../IrisApi") {
+includeBuild("../api") {
     dependencySubstitution {
         substitute(module("com.volmit:iris-api")).using(project(":api"))
         substitute(module("com.volmit:iris-host")).using(project(":host"))

@@ -30,7 +30,7 @@
  *   -PlocalIrisApiDirectory=<path>    explicit IrisApi checkout (relative paths resolve against the
  *                                     including build's settings directory).
  *   IRISAPI_DIR=<path>                same, via environment.
- *   otherwise                         walk up from settingsDir looking for an `IrisApi` directory
+ *   otherwise                         walk up from settingsDir looking for an `api` directory
  *                                     that contains a settings script.
  *
  * When nothing is found the build fails here, naming where it looked, rather than later with an
@@ -67,7 +67,7 @@ File irisResolveLocalIrisApiDirectory() {
 
     File currentDirectory = settingsDir
     while (currentDirectory != null) {
-        File candidate = new File(currentDirectory, 'IrisApi')
+        File candidate = new File(currentDirectory, 'api')
         if (irisHasIrisApiSettings(candidate)) {
             return candidate
         }
@@ -76,7 +76,7 @@ File irisResolveLocalIrisApiDirectory() {
     }
 
     throw new GradleException("No IrisApi checkout found in ${settingsDir} or its parent directories; "
-        + "clone IrisApi next to Iris, or pass -PlocalIrisApiDirectory=<path> or IRISAPI_DIR")
+        + "expected an `api` folder with a settings script, or pass -PlocalIrisApiDirectory=<path> or IRISAPI_DIR")
 }
 
 includeBuild(irisResolveLocalIrisApiDirectory()) {

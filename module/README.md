@@ -154,14 +154,14 @@ by its stage id, such as `iris:carve/caves`; a name that matches no stage fails 
 ## Building
 
 This is a Gradle build of its own (`art.arcane:iris-module`). Its compile classpath is the Iris API
-(`com.volmit:iris-api`, from the sibling `../IrisApi` checkout; never `iris-host`), VolmLib, Gson, Lombok and the JDK,
+(`com.volmit:iris-api`, from the sibling `../api` folder; never `iris-host`), VolmLib, Gson, Lombok and the JDK,
 all `compileOnly`: a host provides them at runtime. VolmLib comes from a sibling `VolmLib` checkout when there is one,
 found the way Iris finds it (`-PuseLocalVolmLib=false`, `-PlocalVolmLibDirectory=<path>` or `VOLMLIB_DIR`), otherwise
 from the published `volmLibCoordinate` in `gradle.properties`, which matches Iris's. Classes compile with Iris's options
 (`-parameters`, no debug info) and `lombok.config` repeats Iris's, so they are the classes Iris shipped when it
 compiled these sources itself.
 
-Iris includes this build (`includeBuild('../IrisModule')` in its `settings.gradle`) and depends on its classes: Iris
+Iris includes this build (`includeBuild('module')` in its `settings.gradle`) and depends on its classes: Iris
 core and its adapters still name many of them (the cut-over that ends this comes later). Classes that need Iris itself
 are Iris's and live in Iris core: the layout model (`IrisBiome`, `IrisRegion`, `IrisDimension`, generators, noise
 styles, expressions, images), the pack's objects and blocks, the structure assembler, locator, fitting and placer

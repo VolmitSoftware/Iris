@@ -29,8 +29,7 @@ Canonical English is defined in the typed Java catalogs under `core/src/main/jav
 
 Java 25 is required on every platform.
 
-Built-in feature implementations and their pack settings live in the sibling
-[`IrisModule`](../IrisModule/README.md) project. During the extraction stage they retain their
+Built-in feature implementations and their pack settings live in the [`module`](module/README.md) folder. During the extraction stage they retain their
 engine dependencies and compile together with the host; the existing platform artifacts still
 bundle them. Core owns lifecycle, loading, scheduling, storage and platform integration.
 

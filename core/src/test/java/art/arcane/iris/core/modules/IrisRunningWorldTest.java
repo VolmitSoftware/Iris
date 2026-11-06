@@ -40,10 +40,16 @@ import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
 import art.arcane.iris.spi.PlatformWorld;
 import art.arcane.volmlib.util.collection.KList;
+import com.volmit.IrisModule;
+import com.volmit.ModuleInfo;
+import com.volmit.ModuleSetup;
 import com.volmit.config.Level;
 import com.volmit.config.SettingsStack;
+import com.volmit.data.SavedKey;
+import com.volmit.data.StorageCodec;
 import com.volmit.geometry.BlockPosition;
 import com.volmit.placement.PlacementRecord;
+import com.volmit.resource.ResourceId;
 import com.volmit.world.BiomeKind;
 import com.volmit.world.PackWorld;
 import com.volmit.world.RunningWorld;
@@ -51,12 +57,15 @@ import com.volmit.world.RunningWorld.Sky;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 import java.util.List;
 import java.util.Optional;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -68,6 +77,9 @@ public class IrisRunningWorldTest {
     private static final int Z = -20;
     private static final int BOTTOM = -64;
     private static final int HEIGHT = 384;
+
+    @Rule
+    public TemporaryFolder worldFolder = new TemporaryFolder();
 
     private Engine engine;
     private PackWorld world;
@@ -158,6 +170,46 @@ public class IrisRunningWorldTest {
 
         assertEquals(List.of(new BlockPosition(40, 64, 50), new BlockPosition(41, 94, 51)), running.caveFloors(2, 3));
     }
+
+    @Test
+    public void savedStateIsServedForTheKeysTheModulesRegistered() throws java.io.IOException {
+        SavedKey<String> registered = new SavedKey<>(ResourceId.parse("test:saves/note"), String.class, NOTE_CODEC, () -> "empty");
+        SavedKey<String> unregistered = new SavedKey<>(ResourceId.parse("test:saves/other"), String.class, NOTE_CODEC, () -> "empty");
+        ModuleResourceFixture.serveModules(engine.getData(), new IrisModule() {
+            @Override
+            public ModuleInfo info() {
+                return ModuleInfo.of("test:saves", "Saves", "1");
+            }
+
+            @Override
+            public void setup(ModuleSetup setup) {
+                setup.registry().registerSaved(registered);
+            }
+        });
+        IrisWorld irisWorld = mock(IrisWorld.class);
+        when(irisWorld.worldFolder()).thenReturn(worldFolder.newFolder());
+        when(engine.getWorld()).thenReturn(irisWorld);
+
+        assertEquals("empty", running.saved(registered));
+        assertThrows(IllegalArgumentException.class, () -> running.saved(unregistered));
+    }
+
+    private static final StorageCodec<String> NOTE_CODEC = new StorageCodec<>() {
+        @Override
+        public int version() {
+            return 1;
+        }
+
+        @Override
+        public void write(java.io.DataOutput output, String value) throws java.io.IOException {
+            output.writeUTF(value);
+        }
+
+        @Override
+        public String read(java.io.DataInput input, int storedVersion) throws java.io.IOException {
+            return input.readUTF();
+        }
+    };
 
     @Test
     public void aStudioWorldIsADebugWorld() {

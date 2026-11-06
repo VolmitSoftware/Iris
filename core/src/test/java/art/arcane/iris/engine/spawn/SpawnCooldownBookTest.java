@@ -1,6 +1,6 @@
 package art.arcane.iris.engine.spawn;
 
-import com.volmit.data.Codec;
+import com.volmit.data.StorageCodec;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -134,11 +134,11 @@ public class SpawnCooldownBookTest {
 
     @Test
     public void theBookTheWorldKeepsIsSavedWithTheSavedKey() {
-        assertTrue(SpawnCooldownBook.SAVED.id().startsWith("iris:spawn/"));
+        assertTrue(SpawnCooldownBook.SAVED.id().toString().startsWith("iris:spawn/"));
         assertTrue(SpawnCooldownBook.SAVED.initial().get().canSpawn("wolves", TEN_MINUTES));
     }
 
-    private Codec<SpawnCooldownBook> codec() {
+    private StorageCodec<SpawnCooldownBook> codec() {
         return SpawnCooldownBook.codec(now::get);
     }
 

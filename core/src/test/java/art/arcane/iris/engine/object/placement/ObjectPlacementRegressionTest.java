@@ -42,8 +42,9 @@ import com.volmit.ModuleSetup;
 import com.volmit.block.BlockState;
 import com.volmit.geometry.BlockPosition;
 import com.volmit.mantle.Mantle;
-import com.volmit.data.Codec;
+import com.volmit.data.StorageCodec;
 import com.volmit.mantle.MantleKey;
+import com.volmit.resource.ResourceId;
 import com.volmit.mantle.MantleLifetime;
 import com.volmit.host.LoadedPack;
 import com.volmit.stage.PlacementStage;
@@ -468,8 +469,8 @@ public class ObjectPlacementRegressionTest {
         assertEquals(List.of(PackResourceFixture.OAK), found);
     }
 
-    private static final MantleKey<String> MARKS = new MantleKey<>("test:mark/spot", String.class);
-    private static final Codec<String> TEXT = new Codec<>() {
+    private static final MantleKey<String> MARKS = new MantleKey<>(ResourceId.parse("test:mark/spot"), String.class);
+    private static final StorageCodec<String> TEXT = new StorageCodec<>() {
         public int version() { return 1; }
         public void write(java.io.DataOutput output, String value) throws IOException { output.writeUTF(value); }
         public String read(java.io.DataInput input, int storedVersion) throws IOException { return input.readUTF(); }

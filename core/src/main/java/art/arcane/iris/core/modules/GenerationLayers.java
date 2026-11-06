@@ -51,7 +51,7 @@ public final class GenerationLayers {
     public static GenerationLayers of(Collection<MantleRegistration<?>> registrations) {
         Set<String> generation = registrations.stream()
                 .filter(registration -> registration.lifetime() == MantleLifetime.GENERATION)
-                .map(registration -> registration.key().id())
+                .map(registration -> registration.key().id().toString())
                 .collect(Collectors.toUnmodifiableSet());
         return generation.isEmpty() ? NONE : new GenerationLayers(generation);
     }

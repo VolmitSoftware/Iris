@@ -41,8 +41,9 @@ import com.volmit.host.LoadedPack;
 import com.volmit.host.ModuleHost;
 import com.volmit.geometry.BlockBox;
 import com.volmit.geometry.BlockPosition;
-import com.volmit.data.Codec;
+import com.volmit.data.StorageCodec;
 import com.volmit.mantle.MantleKey;
+import com.volmit.resource.ResourceId;
 import com.volmit.mantle.MantleLifetime;
 import com.volmit.placement.PlacedBlock;
 import com.volmit.stage.Stage;
@@ -85,8 +86,8 @@ public class DimensionBottomTest {
     /** A chunk stage sees the terrain of its chunk and of the 16 blocks around it. */
     private static final BlockBox WHOLE_HEIGHT_AROUND_ONE_CHUNK = new BlockBox(-16, BOTTOM, -16, 32, DIMENSION_HEIGHT, 32);
     private static final BlockState STONE = BlockState.parse("minecraft:stone");
-    private static final MantleKey<String> MARKS = new MantleKey<>("test:bottom/mark", String.class);
-    private static final Codec<String> TEXT = new Codec<>() {
+    private static final MantleKey<String> MARKS = new MantleKey<>(ResourceId.parse("test:bottom/mark"), String.class);
+    private static final StorageCodec<String> TEXT = new StorageCodec<>() {
         public int version() { return 1; }
         public void write(DataOutput output, String value) throws IOException { output.writeUTF(value); }
         public String read(DataInput input, int storedVersion) throws IOException { return input.readUTF(); }

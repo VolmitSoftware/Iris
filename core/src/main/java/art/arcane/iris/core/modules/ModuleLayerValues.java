@@ -18,7 +18,7 @@
 
 package art.arcane.iris.core.modules;
 
-import com.volmit.data.Codec;
+import com.volmit.data.StorageCodec;
 import com.volmit.mantle.MantleKey;
 
 import java.io.ByteArrayInputStream;
@@ -49,8 +49,8 @@ public final class ModuleLayerValues {
     }
 
     /** The value of {@code key}, decoded with {@code codec} if it was read from disk; null when the layer holds none. */
-    public <T> T get(MantleKey<T> key, Codec<T> codec) {
-        LayerValue value = layers.get(key.id());
+    public <T> T get(MantleKey<T> key, StorageCodec<T> codec) {
+        LayerValue value = layers.get(key.id().toString());
         return value == null ? null : key.type().cast(value.decode(key, codec));
     }
 
@@ -63,9 +63,9 @@ public final class ModuleLayerValues {
     }
 
     /** These values with {@code key} holding {@code value}. */
-    public <T> ModuleLayerValues with(MantleKey<T> key, Codec<T> codec, T value) {
+    public <T> ModuleLayerValues with(MantleKey<T> key, StorageCodec<T> codec, T value) {
         TreeMap<String, LayerValue> changed = new TreeMap<>(layers);
-        changed.put(key.id(), new Decoded<>(value, codec));
+        changed.put(key.id().toString(), new Decoded<>(value, codec));
         return new ModuleLayerValues(changed);
     }
 
@@ -118,14 +118,14 @@ public final class ModuleLayerValues {
     }
 
     private sealed interface LayerValue permits Decoded, Encoded {
-        Object decode(MantleKey<?> key, Codec<?> codec);
+        Object decode(MantleKey<?> key, StorageCodec<?> codec);
 
         Encoded encoded() throws IOException;
     }
 
-    private record Decoded<T>(T value, Codec<T> codec) implements LayerValue {
+    private record Decoded<T>(T value, StorageCodec<T> codec) implements LayerValue {
         @Override
-        public Object decode(MantleKey<?> key, Codec<?> requested) {
+        public Object decode(MantleKey<?> key, StorageCodec<?> requested) {
             return value;
         }
 
@@ -152,7 +152,7 @@ public final class ModuleLayerValues {
         }
 
         @Override
-        public Object decode(MantleKey<?> key, Codec<?> codec) {
+        public Object decode(MantleKey<?> key, StorageCodec<?> codec) {
             try {
                 return codec.read(new DataInputStream(new ByteArrayInputStream(payload)), version);
             } catch (IOException failure) {

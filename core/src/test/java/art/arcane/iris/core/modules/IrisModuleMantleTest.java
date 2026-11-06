@@ -48,7 +48,7 @@ import com.volmit.host.LoadedPack;
 import com.volmit.host.MantleRegistration;
 import com.volmit.host.ModuleHost;
 import com.volmit.geometry.BlockBox;
-import com.volmit.data.Codec;
+import com.volmit.data.StorageCodec;
 import com.volmit.mantle.MantleEdit;
 import com.volmit.mantle.MantleKey;
 import com.volmit.mantle.MantleLayer;
@@ -89,14 +89,14 @@ public class IrisModuleMantleTest {
     private static final int SECTIONS = 4;
     private static final int HEIGHT = SECTIONS * 16;
     private static final PackResourceIds IDS = new PackResourceIds(new java.io.File("pack"));
-    private static final MantleKey<String> MARKS = new MantleKey<>("iris:marks/mark", String.class);
-    private static final MantleKey<Integer> DEPTHS = new MantleKey<>("iris:marks/depth", Integer.class);
-    private static final Codec<String> TEXT = new Codec<>() {
+    private static final MantleKey<String> MARKS = new MantleKey<>(ResourceId.parse("iris:marks/mark"), String.class);
+    private static final MantleKey<Integer> DEPTHS = new MantleKey<>(ResourceId.parse("iris:marks/depth"), Integer.class);
+    private static final StorageCodec<String> TEXT = new StorageCodec<>() {
         public int version() { return 1; }
         public void write(DataOutput output, String value) throws IOException { output.writeUTF(value); }
         public String read(DataInput input, int storedVersion) throws IOException { return input.readUTF(); }
     };
-    private static final Codec<Integer> NUMBER = new Codec<>() {
+    private static final StorageCodec<Integer> NUMBER = new StorageCodec<>() {
         public int version() { return 0; }
         public void write(DataOutput output, Integer value) throws IOException { output.writeInt(value); }
         public Integer read(DataInput input, int storedVersion) throws IOException { return input.readInt(); }
@@ -300,9 +300,9 @@ public class IrisModuleMantleTest {
         IrisModuleMantle mantle = mantle(new BlockBox(0, 0, 0, 16, HEIGHT, 16));
 
         IllegalArgumentException unregistered = assertThrows(IllegalArgumentException.class,
-                () -> mantle.layer(new MantleKey<>("iris:marks/other", String.class)));
+                () -> mantle.layer(new MantleKey<>(ResourceId.parse("iris:marks/other"), String.class)));
         assertEquals("Mantle layer iris:marks/other is not registered by any module of the pack", unregistered.getMessage());
-        assertThrows(IllegalArgumentException.class, () -> mantle.layer(new MantleKey<>("iris:marks/mark", Integer.class)));
+        assertThrows(IllegalArgumentException.class, () -> mantle.layer(new MantleKey<>(ResourceId.parse("iris:marks/mark"), Integer.class)));
         assertThrows(IndexOutOfBoundsException.class, () -> mantle.layer(MARKS).set(16, 4, 0, "out"));
         assertThrows(IndexOutOfBoundsException.class, () -> mantle.layer(MARKS).visit(new BlockBox(0, 0, 0, 17, HEIGHT, 16), (x, y, z, v) -> { }));
     }
@@ -314,7 +314,7 @@ public class IrisModuleMantleTest {
 
         assertEquals("kept", read.get(MARKS, TEXT));
         assertEquals(Integer.valueOf(4), read.get(DEPTHS, NUMBER));
-        ModuleLayerValues withoutCodecs = ModuleLayerValues.read(input(bytes(written))).without(MARKS.id());
+        ModuleLayerValues withoutCodecs = ModuleLayerValues.read(input(bytes(written))).without(MARKS.id().toString());
         assertArrayEquals(bytes(ModuleLayerValues.EMPTY.with(DEPTHS, NUMBER, 4)), bytes(withoutCodecs));
     }
 
@@ -390,7 +390,7 @@ public class IrisModuleMantleTest {
         mantle.layer(MARKS).set(1, 4, 1, "short-lived");
         mantle.layer(DEPTHS).set(1, 4, 1, 7);
         mantle.layer(MARKS).set(2, 54, 3, "alone");
-        MantleKey<String> unknown = new MantleKey<>("iris:gone/layer", String.class);
+        MantleKey<String> unknown = new MantleKey<>(ResourceId.parse("iris:gone/layer"), String.class);
         ModuleLayerValues fromDisk = ModuleLayerValues.read(input(bytes(ModuleLayerValues.EMPTY.with(unknown, TEXT, "kept")
                 .with(MARKS, TEXT, "old"))));
         chunk(0, 0).getOrCreate(34 >> 4).slice(ModuleLayerValues.class).set(4, 34 & 15, 4, fromDisk);
@@ -408,7 +408,7 @@ public class IrisModuleMantleTest {
 
     @Test
     public void mantleStagesWriteAroundTheirChunkThroughIrisChunks() throws IOException {
-        MantleKey<String> planned = new MantleKey<>("iris:veins/planned", String.class);
+        MantleKey<String> planned = new MantleKey<>(ResourceId.parse("iris:veins/planned"), String.class);
         IrisModule veins = new IrisModule() {
             public ModuleInfo info() { return ModuleInfo.of("iris:veins", "Veins", "1"); }
             public void setup(ModuleSetup setup) {

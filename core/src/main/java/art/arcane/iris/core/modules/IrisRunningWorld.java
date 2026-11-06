@@ -27,11 +27,11 @@ import art.arcane.volmlib.util.matter.Matter;
 import art.arcane.volmlib.util.matter.slices.MarkerMatter;
 import com.volmit.ModuleLog;
 import com.volmit.config.FeatureSettings;
+import com.volmit.data.SavedKey;
 import com.volmit.geometry.BlockPosition;
 import com.volmit.placement.PlacementRecord;
 import com.volmit.resource.ResourceId;
 import com.volmit.world.RunningWorld;
-import com.volmit.world.SavedKey;
 import com.volmit.world.TerrainSampler;
 
 import java.util.List;
@@ -55,7 +55,8 @@ final class IrisRunningWorld implements RunningWorld {
 
     IrisRunningWorld(Engine engine, ModuleLog log) {
         this.engine = engine;
-        this.savedState = new SavedWorldState(() -> engine.getWorld().worldFolder(), log);
+        this.savedState = new SavedWorldState(() -> engine.getWorld().worldFolder(),
+                () -> engine.getData().getModules().pack().catalog().saved(), log);
     }
 
     @Override

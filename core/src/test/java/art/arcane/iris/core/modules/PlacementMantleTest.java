@@ -8,8 +8,9 @@ import com.volmit.mantle.CarvedVoid;
 import com.volmit.placement.PlacementTerrain;
 import com.volmit.host.MantleRegistration;
 import com.volmit.geometry.BlockBox;
-import com.volmit.data.Codec;
+import com.volmit.data.StorageCodec;
 import com.volmit.mantle.MantleKey;
+import com.volmit.resource.ResourceId;
 import com.volmit.mantle.MantleLifetime;
 import org.junit.After;
 import org.junit.Before;
@@ -34,8 +35,8 @@ import static org.mockito.Mockito.when;
 public class PlacementMantleTest {
     private static final int HEIGHT = 64;
     private static final int Y = 20;
-    private static final MantleKey<String> MARKS = new MantleKey<>("iris:marks/mark", String.class);
-    private static final Codec<String> TEXT = new Codec<>() {
+    private static final MantleKey<String> MARKS = new MantleKey<>(ResourceId.parse("iris:marks/mark"), String.class);
+    private static final StorageCodec<String> TEXT = new StorageCodec<>() {
         public int version() { return 1; }
         public void write(DataOutput output, String value) throws IOException { output.writeUTF(value); }
         public String read(DataInput input, int storedVersion) throws IOException { return input.readUTF(); }

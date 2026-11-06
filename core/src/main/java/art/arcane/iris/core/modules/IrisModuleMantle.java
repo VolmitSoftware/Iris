@@ -30,7 +30,7 @@ import com.volmit.host.MantleRegistration;
 import com.volmit.geometry.BlockBox;
 import com.volmit.mantle.CarvedVoid;
 import com.volmit.mantle.Mantle;
-import com.volmit.data.Codec;
+import com.volmit.data.StorageCodec;
 import com.volmit.mantle.MantleEdit;
 import com.volmit.mantle.MantleKey;
 import com.volmit.mantle.MantleLayer;
@@ -74,7 +74,7 @@ final class IrisModuleMantle implements Mantle {
 
     private final BlockBox bounds;
     private final Chunks chunks;
-    private final Map<String, MantleRegistration<?>> registrations;
+    private final Map<ResourceId, MantleRegistration<?>> registrations;
     private final PlannedBlocks plannedBlocks;
     private final PackResourceIds ids;
     private CarvedVoids carved;
@@ -148,7 +148,7 @@ final class IrisModuleMantle implements Mantle {
     }
 
     @SuppressWarnings("unchecked") // The registration's type was compared with the key's.
-    private <T> Codec<T> codecOf(MantleKey<T> key) {
+    private <T> StorageCodec<T> codecOf(MantleKey<T> key) {
         Objects.requireNonNull(key, "key");
         MantleRegistration<?> registration = registrations.get(key.id());
         if (registration == null) {
@@ -158,16 +158,16 @@ final class IrisModuleMantle implements Mantle {
             throw new IllegalArgumentException("Mantle layer " + key.id() + " is registered as " + registration.key().type().getName()
                     + ", not " + key.type().getName());
         }
-        return (Codec<T>) registration.codec();
+        return (StorageCodec<T>) registration.codec();
     }
 
     private record Stored<T>(int x, int y, int z, T value) {}
 
     private final class Layer<T> implements MantleLayer<T> {
         private final MantleKey<T> key;
-        private final Codec<T> codec;
+        private final StorageCodec<T> codec;
 
-        Layer(MantleKey<T> key, Codec<T> codec) {
+        Layer(MantleKey<T> key, StorageCodec<T> codec) {
             this.key = key;
             this.codec = codec;
         }
@@ -188,7 +188,7 @@ final class IrisModuleMantle implements Mantle {
         @Override
         public void remove(int x, int y, int z) {
             requireNoOpenEdit();
-            change(x, y, z, values -> values.without(key.id()));
+            change(x, y, z, values -> values.without(key.id().toString()));
         }
 
         @Override
@@ -227,7 +227,7 @@ final class IrisModuleMantle implements Mantle {
             chunk.iterate(ModuleLayerValues.class, (localX, y, localZ, values) -> {
                 int x = originX + localX;
                 int z = originZ + localZ;
-                if (values.has(key.id()) && area.contains(x, y, z)) {
+                if (values.has(key.id().toString()) && area.contains(x, y, z)) {
                     stored.add(new Stored<>(x, y, z, values.get(key, codec)));
                 }
             });
@@ -242,7 +242,7 @@ final class IrisModuleMantle implements Mantle {
         ModuleLayerValues applyTo(ModuleLayerValues values);
     }
 
-    private record Put<T>(MantleKey<T> key, Codec<T> codec, T value) implements Change {
+    private record Put<T>(MantleKey<T> key, StorageCodec<T> codec, T value) implements Change {
         @Override
         public ModuleLayerValues applyTo(ModuleLayerValues values) {
             return values.with(key, codec, value);
@@ -373,7 +373,7 @@ final class IrisModuleMantle implements Mantle {
             @Override
             public T get(int x, int y, int z) {
                 requireOpen();
-                Change change = changeAt(x, y, z, stored.key.id());
+                Change change = changeAt(x, y, z, stored.key.id().toString());
                 if (change == null) {
                     return stored.get(x, y, z);
                 }
@@ -384,13 +384,13 @@ final class IrisModuleMantle implements Mantle {
             public void set(int x, int y, int z, T value) {
                 requireOpen();
                 requireValue(stored.key, value);
-                buffer(x, y, z, stored.key.id(), new Put<>(stored.key, stored.codec, value));
+                buffer(x, y, z, stored.key.id().toString(), new Put<>(stored.key, stored.codec, value));
             }
 
             @Override
             public void remove(int x, int y, int z) {
                 requireOpen();
-                buffer(x, y, z, stored.key.id(), new Removal(stored.key.id()));
+                buffer(x, y, z, stored.key.id().toString(), new Removal(stored.key.id().toString()));
             }
 
             @Override
@@ -414,7 +414,7 @@ final class IrisModuleMantle implements Mantle {
                     visible.put(new Position(value.x(), value.y(), value.z()), value.value());
                 }
                 changes.forEach((position, blockChanges) -> {
-                    Change change = blockChanges.get(stored.key.id());
+                    Change change = blockChanges.get(stored.key.id().toString());
                     if (change == null || !area.contains(position.x(), position.y(), position.z())) {
                         return;
                     }

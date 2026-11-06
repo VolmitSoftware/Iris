@@ -20,7 +20,8 @@ package art.arcane.iris.core.modules;
 
 import art.arcane.iris.core.lifecycle.VanishedWorldStorage;
 import com.volmit.ModuleLog;
-import com.volmit.world.SavedKey;
+import com.volmit.data.SavedKey;
+import com.volmit.resource.ResourceId;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -33,10 +34,13 @@ import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 /**
  * What modules keep with one running world ({@link com.volmit.world.RunningWorld#saved}): the world's one instance per
@@ -49,25 +53,49 @@ final class SavedWorldState {
     private static final String TEMPORARY_EXTENSION = ".tmp";
 
     private final Supplier<File> worldFolder;
+    private final Supplier<? extends Collection<SavedKey<?>>> registeredKeys;
     private final ModuleLog log;
-    private final Map<String, Saved<?>> values = new ConcurrentHashMap<>();
+    private final Map<ResourceId, Saved<?>> values = new ConcurrentHashMap<>();
     private final Object loading = new Object();
+    private volatile Map<ResourceId, SavedKey<?>> registered;
 
-    SavedWorldState(Supplier<File> worldFolder, ModuleLog log) {
+    /** @param registeredKeys the keys the pack's modules registered, asked for when the first value is */
+    SavedWorldState(Supplier<File> worldFolder, Supplier<? extends Collection<SavedKey<?>>> registeredKeys, ModuleLog log) {
         this.worldFolder = worldFolder;
+        this.registeredKeys = registeredKeys;
         this.log = log;
     }
 
     <T> T saved(SavedKey<T> key) {
+        requireRegistered(key);
         Saved<?> known = values.get(key.id());
         if (known == null) {
             known = loadOnce(key);
         }
-        if (known.key().type() != key.type()) {
-            throw new IllegalArgumentException("Saved state " + key.id() + " is kept as " + known.key().type().getName()
-                    + ", not " + key.type().getName());
-        }
         return key.type().cast(known.value());
+    }
+
+    private void requireRegistered(SavedKey<?> key) {
+        SavedKey<?> registeredKey = registeredById().get(key.id());
+        if (registeredKey == null) {
+            throw new IllegalArgumentException("Saved state " + key.id() + " is not registered by any module of the pack");
+        }
+        if (!registeredKey.equals(key)) {
+            throw new IllegalArgumentException("Saved state " + key.id() + " is registered with another key; use the key the module registered");
+        }
+    }
+
+    private Map<ResourceId, SavedKey<?>> registeredById() {
+        Map<ResourceId, SavedKey<?>> known = registered;
+        if (known != null) {
+            return known;
+        }
+        synchronized (loading) {
+            if (registered == null) {
+                registered = registeredKeys.get().stream().collect(Collectors.toUnmodifiableMap(SavedKey::id, Function.identity()));
+            }
+            return registered;
+        }
     }
 
     /** Writes every value asked for so far; a value that cannot be written is reported and does not stop the others. */
@@ -126,10 +154,8 @@ final class SavedWorldState {
     }
 
     private Path fileOf(SavedKey<?> key) {
-        String id = key.id();
-        String namespace = id.substring(0, id.indexOf(':'));
-        String path = id.substring(id.indexOf(':') + 1);
-        return worldFolder.get().toPath().resolve(STORAGE_DIRECTORY).resolve(namespace).resolve(path + FILE_EXTENSION);
+        ResourceId id = key.id();
+        return worldFolder.get().toPath().resolve(STORAGE_DIRECTORY).resolve(id.namespace()).resolve(id.path() + FILE_EXTENSION);
     }
 
     private static void writeAtomically(Path file, byte[] content) throws IOException {

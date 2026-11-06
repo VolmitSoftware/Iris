@@ -538,11 +538,6 @@ public final class ApiChunk implements GenerationContext {
         }
 
         @Override
-        public boolean isCarved(int x, int y, int z) {
-            return carved.contains(new BlockPosition(x, y, z));
-        }
-
-        @Override
         public MantleEdit edit() {
             throw new UnsupportedOperationException("Chunk stages do not edit the mantle");
         }

@@ -79,14 +79,6 @@ final class PlacementMantle implements Mantle, AutoCloseable {
     }
 
     @Override
-    public boolean isCarved(int x, int y, int z) {
-        if (!bounds.contains(x, y, z)) {
-            throw new IndexOutOfBoundsException("Block " + x + ", " + y + ", " + z + " is outside the placement area " + bounds);
-        }
-        return y >= storedBounds.minY() && y < storedBounds.maxY() && placement.isCarved(x, y, z);
-    }
-
-    @Override
     public MantleEdit edit() {
         throw new UnsupportedOperationException("The placement owns the mantle edit; write through layer()");
     }

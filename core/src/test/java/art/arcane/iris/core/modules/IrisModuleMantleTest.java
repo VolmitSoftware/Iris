@@ -169,8 +169,6 @@ public class IrisModuleMantleTest {
         assertSame(CarvedVoid.LAVA, mantle.carved().get(6, 40, 5));
         assertSame(CarvedVoid.AIR, mantle.carved().get(7, 40, 5));
         assertNull(mantle.carved().get(8, 40, 5));
-        assertTrue(mantle.isCarved(5, 40, 5));
-        assertFalse(mantle.isCarved(8, 40, 5));
     }
 
     @Test
@@ -203,7 +201,7 @@ public class IrisModuleMantleTest {
         assertNull(mantle.carved().get(-2, 9, 3));
         assertSame(CarvedVoid.LAVA, mantle.carved().get(17, 5, 3));
         mantle.carved().remove(17, 5, 3);
-        assertFalse(mantle.isCarved(17, 5, 3));
+        assertNull(mantle.carved().get(17, 5, 3));
     }
 
     @Test

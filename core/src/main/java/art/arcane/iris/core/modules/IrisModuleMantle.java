@@ -121,11 +121,6 @@ final class IrisModuleMantle implements Mantle {
         return carvedReadOnly;
     }
 
-    @Override
-    public boolean isCarved(int x, int y, int z) {
-        return new MantleCaverns(bounds, chunks).isCarved(x, y, z);
-    }
-
     /** Stored as the biome pass reads it: the platform's id for the biome, as a custom biome inject. */
     @Override
     public void setPlatformBiome(int x, int y, int z, ResourceId biome) {
@@ -287,12 +282,6 @@ final class IrisModuleMantle implements Mantle {
         public MantleLayer<CarvedVoid> carved() {
             requireOpen();
             return carvedForEdit();
-        }
-
-        @Override
-        public boolean isCarved(int x, int y, int z) {
-            requireOpen();
-            return new MantleCaverns(bounds, chunks).isCarved(x, y, z);
         }
 
         @Override

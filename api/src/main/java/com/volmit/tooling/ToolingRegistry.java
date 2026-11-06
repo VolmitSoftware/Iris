@@ -11,7 +11,7 @@ public interface ToolingRegistry {
     void registerView(StudioView view);
 
     /**
-     * Mounts {@code command} under the host's command root, such as {@code /iris structure}. The command's name, and each
+     * Mounts {@code command} under the host's module branch, such as {@code /iris module structure}. The command's name, and each
      * of its aliases, is a root name; one that another module of the pack took already fails the pack load, naming
      * both modules.
      */

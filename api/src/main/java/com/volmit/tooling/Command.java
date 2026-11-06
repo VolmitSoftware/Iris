@@ -9,7 +9,7 @@ import java.util.regex.Pattern;
 /**
  * One command: a name, sub-commands, and at most one action over typed arguments. Immutable; each method returns a
  * changed copy. A module registers its root command with {@link ToolingRegistry#registerCommand}, and the host mounts it
- * below its own command root, such as {@code /iris structure list}. A word that names a sub-command always selects it,
+ * below its module branch, such as {@code /iris module structure list}. A word that names a sub-command always selects it,
  * so give a command that has children either no arguments or arguments no child is named like.
  */
 public final class Command {

@@ -533,7 +533,7 @@ final class RuinScenes implements SceneView {
 
 ## Commands
 
-A module adds commands to the host's command root, such as `/iris structure list`, with `registerCommand`. The same
+A module adds commands to the host's module branch, such as `/iris module structure list`, with `registerCommand`. The same
 `Command` runs on every platform; the host parses it, completes it and runs it.
 
 ```java

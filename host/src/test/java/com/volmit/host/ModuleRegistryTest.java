@@ -132,6 +132,56 @@ class ModuleRegistryTest {
         assertTrue(views.get(1).toString().startsWith("pattern view iris:objects/footprints of module"), views.get(1).toString());
     }
 
+    private static IrisModule commandModule(String id, com.volmit.tooling.Command... roots) {
+        return new IrisModule() {
+            public ModuleInfo info() { return ModuleInfo.of(id, id, "1"); }
+            public void setup(ModuleSetup setup) {
+                for (var root : roots) setup.tooling().registerCommand(root);
+            }
+        };
+    }
+
+    @Test
+    void rootCommandsAreCataloguedByNameAndKeepTheirModule() {
+        var registry = new ModuleRegistry();
+        ModuleSetups.run(DiscoveredModule.builtIn(commandModule("test:b",
+                com.volmit.tooling.Command.named("zeta"))), new StageGraphBuilder(), registry);
+        ModuleSetups.run(DiscoveredModule.builtIn(commandModule("test:a",
+                com.volmit.tooling.Command.named("alpha").alias("a"))), new StageGraphBuilder(), registry);
+
+        var commands = registry.freeze().commands();
+        assertEquals(List.of("alpha", "zeta"), commands.stream().map(root -> root.command().name()).toList());
+        assertEquals("test:a", commands.getFirst().module().info().id().toString());
+        assertThrows(IllegalStateException.class,
+                () -> registry.registerCommand(com.volmit.tooling.Command.named("late")));
+    }
+
+    @Test
+    void twoModulesClaimingOneRootNameOrAliasFailNamingBoth() {
+        var registry = new ModuleRegistry();
+        ModuleSetups.run(DiscoveredModule.builtIn(commandModule("test:first",
+                com.volmit.tooling.Command.named("structure").alias("str"))), new StageGraphBuilder(), registry);
+
+        var sameName = assertThrows(IllegalArgumentException.class, () -> ModuleSetups.run(DiscoveredModule.builtIn(
+                commandModule("test:second", com.volmit.tooling.Command.named("structure"))), new StageGraphBuilder(), registry));
+        assertTrue(sameName.getMessage().contains("Command root structure is registered by module"), sameName.getMessage());
+        assertTrue(sameName.getMessage().contains("test:first") && sameName.getMessage().contains("test:second"), sameName.getMessage());
+
+        var aliasOfFirst = assertThrows(IllegalArgumentException.class, () -> ModuleSetups.run(DiscoveredModule.builtIn(
+                commandModule("test:third", com.volmit.tooling.Command.named("str"))), new StageGraphBuilder(), registry));
+        assertTrue(aliasOfFirst.getMessage().contains("Command root str is registered by module"), aliasOfFirst.getMessage());
+        assertEquals(1, registry.freeze().commands().size());
+    }
+
+    @Test
+    void aPackLoadFailsWhenTwoModulesClaimOneRootName() {
+        var failure = assertThrows(ModuleLoadException.class, () -> LoadedModules.load(List.of(
+                DiscoveredModule.builtIn(commandModule("test:first", com.volmit.tooling.Command.named("tools"))),
+                DiscoveredModule.builtIn(commandModule("test:second", com.volmit.tooling.Command.named("tools")))),
+                Map.of(), List.of(), List.of()));
+        assertTrue(failure.getMessage().contains("test:first") && failure.getMessage().contains("test:second"), failure.getMessage());
+    }
+
     private static com.volmit.tooling.PatternView patternView(String id) {
         return new com.volmit.tooling.PatternView() {
             public com.volmit.resource.ResourceId id() { return com.volmit.resource.ResourceId.parse(id); }

@@ -10,6 +10,7 @@ import com.volmit.mantle.MantleLifetime;
 import com.volmit.resource.ResourceId;
 import com.volmit.resource.ResourceKind;
 import com.volmit.service.Providers;
+import com.volmit.tooling.Command;
 import com.volmit.tooling.StudioView;
 import com.volmit.tooling.ToolingRegistry;
 import com.volmit.validation.Validator;
@@ -30,7 +31,8 @@ import java.util.Set;
  * settings ids must be the registering module's id or start with it and '/' ({@link com.volmit.ModuleInfo#ownsId}).
  * Resource kinds have unique ids, types and folders, and no kind may read a folder the host reserves for its own
  * files. Lifecycle hooks and service providers are registered by the module that owns them; a service whose providers
- * are {@link Providers#ONE} has at most one. Studio views have ids unique across their kinds that the registering module owns. A failed
+ * are {@link Providers#ONE} has at most one. Studio views have ids unique across their kinds that the registering module owns.
+ * Root commands have names and aliases unique across the pack's modules. A failed
  * registration leaves the registry unchanged. A failed module callback invalidates the host's whole build. This does
  * not decode JSON, discover modules or instantiate settings.
  */
@@ -46,6 +48,7 @@ public final class ModuleRegistry implements FeatureRegistry, ToolingRegistry {
     private final List<LifecycleRegistration> lifecycles = new ArrayList<>();
     private final List<ServiceRegistration> services = new ArrayList<>();
     private final Map<ResourceId, StudioViewRegistration> studioViews = new HashMap<>();
+    private final List<CommandRegistration> commands = new ArrayList<>();
     private final Set<String> reservedFolders;
     private final List<DiscoveredModule> registered = new ArrayList<>();
     private PlacementTypeRegistration placementType;
@@ -194,6 +197,26 @@ public final class ModuleRegistry implements FeatureRegistry, ToolingRegistry {
         studioViews.put(id, added);
     }
 
+    @Override
+    public void registerCommand(Command command) {
+        checkOpen();
+        Objects.requireNonNull(command, "command");
+        requireRegistering("Command " + command.name());
+        var added = new CommandRegistration(command, registering);
+        for (var existing : commands) {
+            requireDistinctRootNames(existing, added);
+        }
+        commands.add(added);
+    }
+
+    private static void requireDistinctRootNames(CommandRegistration existing, CommandRegistration added) {
+        for (var word : added.command().words()) {
+            if (!existing.command().answersTo(word)) continue;
+            throw new IllegalArgumentException("Command root " + word + " is registered by module " + existing.module()
+                    + " already, and module " + added.module() + " registers it too; give one of them another name or alias");
+        }
+    }
+
     /** Catalogs a settings type named by a stage's when(...), whose owner {@link StageGraphBuilder}
      * has checked. Several stages, and the owner's {@link #registerSettings}, may name one type. Call
      * it after every module has registered, so the owner is known.
@@ -215,7 +238,7 @@ public final class ModuleRegistry implements FeatureRegistry, ToolingRegistry {
     public FeatureCatalog freeze() {
         if (catalog == null) {
             catalog = new FeatureCatalog(settings, mantle, resourceKinds.values(), validators, lifecycles, services,
-                    placementType, studioViews.values());
+                    placementType, studioViews.values(), commands);
         }
         return catalog;
     }

@@ -39,6 +39,7 @@ public final class FeatureCatalog {
     private final Map<Class<?>, List<?>> providersByService;
     private final Optional<PlacementTypeRegistration> placementType;
     private final List<StudioViewRegistration> studioViews;
+    private final List<CommandRegistration> commands;
 
     FeatureCatalog(
             Map<Class<?>, FeatureDescriptor<?>> settings,
@@ -48,9 +49,11 @@ public final class FeatureCatalog {
             List<LifecycleRegistration> lifecycles,
             List<ServiceRegistration> services,
             PlacementTypeRegistration placementType,
-            Collection<StudioViewRegistration> studioViews) {
+            Collection<StudioViewRegistration> studioViews,
+            Collection<CommandRegistration> commands) {
         this.placementType = Optional.ofNullable(placementType);
         this.studioViews = sorted(studioViews, registration -> registration.view().id());
+        this.commands = sorted(commands, registration -> registration.command().name());
         this.settings = Map.copyOf(settings);
         this.mantle = Map.copyOf(mantle);
         this.resourceKinds = sorted(resourceKinds, registration -> registration.kind().id());
@@ -87,6 +90,11 @@ public final class FeatureCatalog {
     /** The studio views modules registered, of every kind, by view id. */
     public List<StudioViewRegistration> studioViews() {
         return studioViews;
+    }
+
+    /** The root commands modules registered, by command name; hosts with tooling mount them, other hosts ignore them. */
+    public List<CommandRegistration> commands() {
+        return commands;
     }
 
     /** The lifecycle hooks modules registered, by module id, each module's in the order it registered them. */

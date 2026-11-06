@@ -147,7 +147,6 @@ final class ModdedCommandHelp {
                 Entry.command("close", "", ModdedHelpMessages.COMMAND_CLOSE_CLOSE_THE_OPEN_STUDIO_DIMENSION_AND_DISCARD_ITS_WORLD, "x"),
                 Entry.command("tpstudio", "", ModdedHelpMessages.COMMAND_TPSTUDIO_TELEPORT_INTO_THE_OPEN_STUDIO_DIMENSION, "stp"),
                 Entry.command("status", "", ModdedHelpMessages.COMMAND_STATUS_SHOW_THE_OPEN_STUDIO_DIMENSION_AND_ITS_PACK),
-                Entry.command("noise", "[generator] [seed]", ModdedHelpMessages.COMMAND_NOISE_OPEN_THE_NOISE_EXPLORER_GUI_ON_THE_SERVER_DISPLAY, "nmap"),
                 Entry.command("map", "", ModdedHelpMessages.COMMAND_MAP_OPEN_THE_VISION_MAP_GUI_ON_THE_SERVER_DISPLAY, "render"),
                 Entry.command("vscode", "[pack]", ModdedHelpMessages.COMMAND_VSCODE_REGENERATE_THE_CODE_WORKSPACE_FOR_A_PACK_AND_OPEN_IT_IN_YOUR, "vsc"),
                 Entry.command("update", "[pack]", ModdedHelpMessages.COMMAND_UPDATE_REGENERATE_THE_CODE_WORKSPACE_FOR_A_PACK),

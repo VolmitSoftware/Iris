@@ -19,10 +19,8 @@
 package art.arcane.iris.modded.command;
 
 import art.arcane.iris.modded.ModdedIrisLog;
-import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.core.gui.GuiHost;
 import art.arcane.iris.core.gui.ImageMapStudioGUI;
-import art.arcane.iris.core.gui.NoiseExplorerGUI;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.localization.IrisMessages;
 import art.arcane.iris.core.studio.bridge.StudioBridge;
@@ -30,7 +28,6 @@ import art.arcane.iris.core.studio.bridge.StudioBridges;
 import art.arcane.iris.core.project.IrisProjectCopier;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
-import art.arcane.iris.engine.object.terrain.IrisGenerator;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
 import art.arcane.iris.modded.ModdedDimensionManager;
 import art.arcane.iris.modded.ModdedEngineBootstrap;
@@ -46,11 +43,8 @@ import com.mojang.brigadier.arguments.LongArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
-import com.mojang.brigadier.suggestion.SuggestionProvider;
-import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
-import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -83,18 +77,6 @@ public final class ModdedStudioCommands {
     private static final UUID CONSOLE_OWNER = new UUID(0L, 0L);
     private static final Map<UUID, String> STUDIOS = new ConcurrentHashMap<>();
     private static final ModdedStudioTransitionQueue TRANSITIONS = new ModdedStudioTransitionQueue();
-    private static final SuggestionProvider<CommandSourceStack> GENERATOR_KEYS = (CommandContext<CommandSourceStack> context, SuggestionsBuilder builder) -> {
-        ModdedCommandFeedback.tab(context.getSource());
-        try {
-            Engine engine = IrisModdedCommands.engineFor(context.getSource().getLevel());
-            if (engine != null) {
-                return SharedSuggestionProvider.suggest(engine.getData().getGeneratorLoader().getPossibleKeys(), builder);
-            }
-        } catch (Throwable e) {
-            IrisModdedCommands.warnTabFailure("generator keys", context.getSource(), e);
-        }
-        return builder.buildFuture();
-    };
 
     private ModdedStudioCommands() {
     }
@@ -136,8 +118,6 @@ public final class ModdedStudioCommands {
         root.then(message("importvanilla", "Vanilla tree/object/structure capture generates features in throwaway Bukkit worlds via NMS; run /iris studio importvanilla on a Bukkit server against this pack, then copy the pack folder over."));
         root.then(message("importv", "Vanilla tree/object/structure capture generates features in throwaway Bukkit worlds via NMS; run /iris studio importvanilla on a Bukkit server against this pack, then copy the pack folder over."));
         root.then(message("iv", "Vanilla tree/object/structure capture generates features in throwaway Bukkit worlds via NMS; run /iris studio importvanilla on a Bukkit server against this pack, then copy the pack folder over."));
-        root.then(noiseTree("noise"));
-        root.then(noiseTree("nmap"));
         root.then(mapTree("map"));
         root.then(mapTree("render"));
         root.then(imageMapTree("imagemap"));
@@ -186,15 +166,6 @@ public final class ModdedStudioCommands {
         return 0;
     }
 
-    private static LiteralArgumentBuilder<CommandSourceStack> noiseTree(String name) {
-        return Commands.literal(name)
-                .executes((CommandContext<CommandSourceStack> context) -> noise(context.getSource(), null, 12345L))
-                .then(Commands.argument("generator", StringArgumentType.word()).suggests(GENERATOR_KEYS)
-                        .executes((CommandContext<CommandSourceStack> context) -> noise(context.getSource(), StringArgumentType.getString(context, "generator"), 12345L))
-                        .then(Commands.argument("seed", LongArgumentType.longArg())
-                                .executes((CommandContext<CommandSourceStack> context) -> noise(context.getSource(), StringArgumentType.getString(context, "generator"), LongArgumentType.getLong(context, "seed")))));
-    }
-
     private static LiteralArgumentBuilder<CommandSourceStack> mapTree(String name) {
         return Commands.literal(name)
                 .executes((CommandContext<CommandSourceStack> context) -> map(context.getSource()));
@@ -203,37 +174,6 @@ public final class ModdedStudioCommands {
     private static LiteralArgumentBuilder<CommandSourceStack> imageMapTree(String name) {
         return Commands.literal(name)
                 .executes((CommandContext<CommandSourceStack> context) -> imageMap(context.getSource()));
-    }
-
-    private static int noise(CommandSourceStack source, String generatorKey, long seed) {
-        ServerLevel level = source.getLevel();
-        Engine engine = IrisModdedCommands.engineFor(level);
-        if (!GuiHost.isAvailable() || !IrisSettings.get().getGui().isUseServerLaunchedGuis()) {
-            IrisModdedCommands.fail(source, guiUnavailableMessage());
-            return 0;
-        }
-        if (engine != null) {
-            ServerPlayer player = source.getPlayer();
-            ModdedGuiHost.bindContext(source.getServer(), level, engine, player == null ? null : player.getUUID());
-        }
-        if (generatorKey == null || generatorKey.isBlank()) {
-            NoiseExplorerGUI.launch();
-            IrisModdedCommands.ok(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_STUDIO_COMMANDS_OPENING_NOISE_EXPLORER_ON_SERVER_DISPLAY));
-            return 1;
-        }
-        if (engine == null) {
-            IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_STUDIO_COMMANDS_THIS_DIMENSION_IS_NOT_GENERATED_BY_IRIS_RUN_IRIS_STUDIO));
-            return 0;
-        }
-        IrisGenerator generator = engine.getData().getGeneratorLoader().load(generatorKey.trim());
-        if (generator == null) {
-            IrisModdedCommands.fail(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_STUDIO_COMMANDS_UNKNOWN_GENERATOR_PACK, MessageArgument.untrusted("generatorKey", generatorKey), MessageArgument.untrusted("value", engine.getDimension().getLoadKey())));
-            return 0;
-        }
-        String selectedGeneratorKey = generatorKey.trim();
-        NoiseExplorerGUI.launchGeneratorKey(selectedGeneratorKey, generator, seed);
-        IrisModdedCommands.ok(source, IrisLanguage.plain(ModdedCommandMessages.MODDED_STUDIO_COMMANDS_OPENING_NOISE_EXPLORER_GENERATOR_SEED, MessageArgument.untrusted("value", generatorKey.trim()), MessageArgument.untrusted("seed", seed)));
-        return 1;
     }
 
     private static int map(CommandSourceStack source) {

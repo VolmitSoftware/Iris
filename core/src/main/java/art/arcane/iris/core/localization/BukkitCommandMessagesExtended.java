@@ -154,7 +154,6 @@ public final class BukkitCommandMessagesExtended {
     public static final TextKey COMMAND_STUDIO_COULD_NOT_RESOLVE_PACK_DIMENSION = text("iris.bukkit.commandstudio.could_not_resolve_pack_dimension");
     public static final TextKey COMMAND_STUDIO_OPENING_VSCODE_PACK = text("iris.bukkit.commandstudio.opening_vscode_pack");
     public static final TextKey COMMAND_STUDIO_PACK_HAS_VERSION = text("iris.bukkit.commandstudio.pack_has_version");
-    public static final TextKey COMMAND_STUDIO_OPENING_NOISE_EXPLORER = text("iris.bukkit.commandstudio.opening_noise_explorer");
     public static final TextKey COMMAND_STUDIO_OPENING_IMAGE_MAP_STUDIO = text("iris.bukkit.commandstudio.opening_image_map_studio");
     public static final TextKey COMMAND_STUDIO_CANNOT_ADD_ITEMS_VIRTUAL_INVENTORY_BECAUSE = text("iris.bukkit.commandstudio.cannot_add_items_virtual_inventory_because");
     public static final TextKey COMMAND_STUDIO_OPENING_INVENTORY_NOW = text("iris.bukkit.commandstudio.opening_inventory_now");

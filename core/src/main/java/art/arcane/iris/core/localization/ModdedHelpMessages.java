@@ -63,7 +63,6 @@ public final class ModdedHelpMessages {
     public static final TextKey COMMAND_CLOSE_CLOSE_THE_OPEN_STUDIO_DIMENSION_AND_DISCARD_ITS_WORLD = text("iris.modded.help.entry.command.close");
     public static final TextKey COMMAND_TPSTUDIO_TELEPORT_INTO_THE_OPEN_STUDIO_DIMENSION = text("iris.modded.help.entry.command.tpstudio");
     public static final TextKey COMMAND_STATUS_SHOW_THE_OPEN_STUDIO_DIMENSION_AND_ITS_PACK = text("iris.modded.help.entry.command.status_studio");
-    public static final TextKey COMMAND_NOISE_OPEN_THE_NOISE_EXPLORER_GUI_ON_THE_SERVER_DISPLAY = text("iris.modded.help.entry.command.noise");
     public static final TextKey COMMAND_MAP_OPEN_THE_VISION_MAP_GUI_ON_THE_SERVER_DISPLAY = text("iris.modded.help.entry.command.map");
     public static final TextKey COMMAND_VSCODE_REGENERATE_THE_CODE_WORKSPACE_FOR_A_PACK_AND_OPEN_IT_IN_YOUR = text("iris.modded.help.entry.command.vscode");
     public static final TextKey COMMAND_UPDATE_REGENERATE_THE_CODE_WORKSPACE_FOR_A_PACK = text("iris.modded.help.entry.command.update");

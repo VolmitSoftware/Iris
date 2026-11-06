@@ -189,9 +189,6 @@ public final class DirectorCommandMessages {
     public static final TextKey COMMAND_STUDIO_PARAM_COPY_CONTENTS_EXISTING_PROJECT_YOUR_PACKS_FOLDER_USE_IT_AS_TEMPLATE_THIS = text("iris.director.commandstudio.param.copy_contents_existing_project_your_packs_folder_use_it_as_template_this");
     public static final TextKey COMMAND_STUDIO_DIRECTOR_GET_VERSION_PACK = text("iris.director.commandstudio.director.get_version_pack");
     public static final TextKey COMMAND_STUDIO_PARAM_DIMENSION_GET_VERSION = text("iris.director.commandstudio.param.dimension_get_version");
-    public static final TextKey COMMAND_STUDIO_DIRECTOR_OPEN_NOISE_EXPLORER_EXTERNAL_GUI = text("iris.director.commandstudio.director.open_noise_explorer_external_gui");
-    public static final TextKey COMMAND_STUDIO_PARAM_OPTIONAL_PACK_GENERATOR_PREVIEW = text("iris.director.commandstudio.param.optional_pack_generator_preview");
-    public static final TextKey COMMAND_STUDIO_PARAM_SEED_PREVIEW_GENERATOR_WITH = text("iris.director.commandstudio.param.seed_preview_generator_with");
     public static final TextKey COMMAND_STUDIO_DIRECTOR_SHOW_LOOT_IF_CHEST_WERE_RIGHT_HERE = text("iris.director.commandstudio.director.show_loot_if_chest_were_right_here");
     public static final TextKey COMMAND_STUDIO_PARAM_FAST_INSERTION_ITEMS_VIRTUAL_INVENTORY_MAY_CAUSE_PERFORMANCE_DROP = text("iris.director.commandstudio.param.fast_insertion_items_virtual_inventory_may_cause_performance_drop");
     public static final TextKey COMMAND_STUDIO_PARAM_WHETHER_NOT_APPEND_INVENTORY_CURRENTLY_OPEN_IF_FALSE_CLEARS_OPENED_INVENTORY = text("iris.director.commandstudio.param.whether_not_append_inventory_currently_open_if_false_clears_opened_inventory");

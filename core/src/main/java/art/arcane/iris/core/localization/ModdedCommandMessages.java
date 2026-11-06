@@ -223,10 +223,6 @@ public final class ModdedCommandMessages {
     public static final TextKey MODDED_STRUCTURE_COMMANDS_PLACE_FAILED_PARTIAL_CHANGES_RECORDED_UNDO = text("iris.modded.moddedstructurecommands.place_failed_partial_changes_recorded_undo");
     public static final TextKey MODDED_STRUCTURE_COMMANDS_PLACED_PIECES_WRITE_S_AT_YOUR_LOCATION_IRIS_OBJECT_UNDO = text("iris.modded.moddedstructurecommands.placed_pieces_write_s_at_your_location_iris_object_undo");
     public static final TextKey MODDED_STUDIO_COMMANDS_PROVIDE_DIMENSION_PACK_IRIS_STUDIO_OPEN_PACK_SEED = text("iris.modded.moddedstudiocommands.provide_dimension_pack_iris_studio_open_pack_seed");
-    public static final TextKey MODDED_STUDIO_COMMANDS_OPENING_NOISE_EXPLORER_ON_SERVER_DISPLAY = text("iris.modded.moddedstudiocommands.opening_noise_explorer_on_server_display");
-    public static final TextKey MODDED_STUDIO_COMMANDS_THIS_DIMENSION_IS_NOT_GENERATED_BY_IRIS_RUN_IRIS_STUDIO = text("iris.modded.moddedstudiocommands.this_dimension_is_not_generated_by_iris_run_iris_studio");
-    public static final TextKey MODDED_STUDIO_COMMANDS_UNKNOWN_GENERATOR_PACK = text("iris.modded.moddedstudiocommands.unknown_generator_pack");
-    public static final TextKey MODDED_STUDIO_COMMANDS_OPENING_NOISE_EXPLORER_GENERATOR_SEED = text("iris.modded.moddedstudiocommands.opening_noise_explorer_generator_seed");
     public static final TextKey MODDED_STUDIO_COMMANDS_THIS_DIMENSION_IS_NOT_GENERATED_BY_IRIS_STAND_IRIS_STUDIO = text("iris.modded.moddedstudiocommands.this_dimension_is_not_generated_by_iris_stand_iris_studio");
     public static final TextKey MODDED_STUDIO_COMMANDS_OPENING_VISION_MAP_ON_SERVER_DISPLAY = text("iris.modded.moddedstudiocommands.opening_vision_map_on_server_display");
     public static final TextKey MODDED_STUDIO_COMMANDS_IMAGE_MAP_REQUIRES_IRIS_DIMENSION = text("iris.modded.moddedstudiocommands.image_map_requires_iris_dimension");

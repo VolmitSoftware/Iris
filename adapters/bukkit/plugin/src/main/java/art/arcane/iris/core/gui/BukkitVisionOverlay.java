@@ -156,8 +156,8 @@ public final class BukkitVisionOverlay implements GuiOverlay {
     public void teleport(double worldX, double worldZ) {
         VisionTeleportRequest request = new VisionTeleportRequest(
                 teleportSequence.incrementAndGet(),
-                VisionGUI.floorWorldCoordinate(worldX),
-                VisionGUI.floorWorldCoordinate(worldZ));
+                (int) StrictMath.floor(worldX),
+                (int) StrictMath.floor(worldZ));
         latestTeleport.set(request);
         startTeleport(request);
     }

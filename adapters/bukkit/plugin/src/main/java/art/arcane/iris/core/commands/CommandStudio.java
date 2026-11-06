@@ -22,7 +22,6 @@ import art.arcane.iris.Iris;
 import art.arcane.iris.platform.bukkit.BukkitPlatform;
 import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.core.gui.ImageMapStudioGUI;
-import art.arcane.iris.core.gui.NoiseExplorerGUI;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.localization.IrisMessages;
 import art.arcane.iris.core.studio.bridge.StudioBridge;
@@ -243,25 +242,6 @@ public class CommandStudio implements DirectorExecutor {
             IrisDimension dimension
     ) {
         sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_STUDIO_PACK_HAS_VERSION, MessageArgument.untrusted("value", dimension.getName()), MessageArgument.untrusted("value2", dimension.getVersion())));
-    }
-
-    @Director(description = "Open the noise explorer (External GUI)", descriptionKey = "iris.director.commandstudio.director.open_noise_explorer_external_gui", aliases = {"nmap"})
-    public void noise(
-            @Param(description = "Optional pack generator to preview", descriptionKey = "iris.director.commandstudio.param.optional_pack_generator_preview", defaultValue = "null", contextual = true, contextualOverride = true)
-            IrisGenerator generator,
-            @Param(description = "The seed to preview the generator with", descriptionKey = "iris.director.commandstudio.param.seed_preview_generator_with", defaultValue = "12345")
-            long seed
-    ) {
-        if (noGUI()) return;
-        sender().sendMessage(IrisLanguage.text(BukkitCommandMessagesExtended.COMMAND_STUDIO_OPENING_NOISE_EXPLORER));
-
-        if (generator == null) {
-            NoiseExplorerGUI.launch();
-            return;
-        }
-
-        String generatorKey = generator.getLoadKey();
-        NoiseExplorerGUI.launchGeneratorKey(generatorKey, generator, seed);
     }
 
     @Director(description = "Open the image-map studio (External GUI)", descriptionKey = "iris.director.commandstudio.director.open_image_map_studio_external_gui", aliases = {"imap"})

@@ -27,7 +27,7 @@ import art.arcane.iris.engine.object.structure.IrisStructure;
 import art.arcane.volmlib.util.io.IO;
 import art.arcane.volmlib.util.json.JSONObject;
 import com.google.gson.Gson;
-import com.volmit.config.Ref;
+import com.volmit.config.ResourceRef;
 import com.volmit.host.ResourceKindRegistration;
 import com.volmit.resource.ResourceKind;
 
@@ -49,7 +49,7 @@ import java.util.TreeSet;
 
 /**
  * The resources of the pack's module resource kinds that a pack export has to carry: what the settings of the
- * exported dimension, regions and biomes (and anything else handed to {@link #follow}) name by {@code @Ref(kind = ...)},
+ * exported dimension, regions and biomes (and anything else handed to {@link #follow}) name by {@link ResourceRef},
  * {@link IrisStructureRef} or {@link RegistryListResource}, and what those resources name in turn. Core does not know the kinds: it follows the
  * references the modules declare on their classes.
  */
@@ -169,9 +169,9 @@ public final class ModuleResourceClosure {
 
     /** The class of the resources the field names by key, or null when it names none. */
     private static Class<?> referencedType(Field field) {
-        Ref reference = field.getAnnotation(Ref.class);
-        if (reference != null && reference.kind() != void.class) {
-            return reference.kind();
+        ResourceRef reference = field.getAnnotation(ResourceRef.class);
+        if (reference != null) {
+            return reference.value();
         }
         if (field.isAnnotationPresent(IrisStructureRef.class)) {
             return IrisStructure.class;

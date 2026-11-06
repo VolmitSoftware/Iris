@@ -216,7 +216,7 @@ public class SchemaBuilderParityTest {
         assertEquals("@IrisStructureRef completes the keys of Iris's structure model",
                 "#/definitions/erz" + StructureResources.STRUCTURES.folder(),
                 properties.getJSONObject("structures").getJSONObject("items").getString("$ref"));
-        assertEquals("@Ref(kind = PackBiome.class) completes the pack's biome keys", "#/definitions/erzbiomes",
+        assertEquals("@ResourceRef(PackBiome.class) completes the pack's biome keys", "#/definitions/erzbiomes",
                 properties.getJSONObject("caveBiomes").getJSONObject("items").getString("$ref"));
         assertFalse(properties.has("scale"));
     }

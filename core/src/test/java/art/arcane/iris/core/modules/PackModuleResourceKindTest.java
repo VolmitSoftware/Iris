@@ -56,7 +56,7 @@ public class PackModuleResourceKindTest {
             public final class Keep {
                 @Desc("Towers on the walls") @MinNumber(1)
                 private int towers = 4;
-                @Ref(kind = Keep.class)
+                @ResourceRef(Keep.class)
                 private String next = "";
 
                 public int towers() { return towers; }

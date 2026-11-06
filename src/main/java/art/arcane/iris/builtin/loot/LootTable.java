@@ -20,7 +20,6 @@ package art.arcane.iris.builtin.loot;
 
 import com.volmit.config.Desc;
 import com.volmit.config.MaxNumber;
-import com.volmit.config.MinItems;
 import com.volmit.config.MinNumber;
 import com.volmit.config.Required;
 
@@ -56,7 +55,6 @@ public final class LootTable {
     @Desc("The maximum amount of tries to generate loot, from 1 to 256")
     private int maxTries = 10;
 
-    @MinItems(1)
     @Desc("The loot in this table")
     private List<LootEntry> loot = List.of();
 

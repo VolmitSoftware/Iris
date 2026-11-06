@@ -22,7 +22,6 @@ import com.volmit.config.Level;
 import com.volmit.IrisFeature;
 import com.volmit.config.Desc;
 import com.volmit.config.Feature;
-import com.volmit.config.MinItems;
 
 import java.util.Collections;
 import java.util.List;
@@ -35,7 +34,6 @@ import java.util.List;
 @Feature(id = "iris:structure/placements", name = "Structure placements", key = "structures", root = "placements",
         targets = {Level.DIMENSION, Level.REGION, Level.BIOME})
 public final class StructurePlacementSettings implements IrisFeature {
-    @MinItems(1)
     @Desc("Iris structure placements, each independent of the others.")
     private List<StructurePlacement> placements = List.of();
 

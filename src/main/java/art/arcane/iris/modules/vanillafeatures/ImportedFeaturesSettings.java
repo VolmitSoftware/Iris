@@ -22,7 +22,6 @@ import com.volmit.config.Level;
 import com.volmit.IrisFeature;
 import com.volmit.config.Desc;
 import com.volmit.config.Feature;
-import com.volmit.config.MinItems;
 import com.volmit.vanilla.DecorationStep;
 
 import java.util.Collections;
@@ -39,15 +38,12 @@ public final class ImportedFeaturesSettings implements IrisFeature {
     @Desc("Master switch. False (the default) means no native placed feature generates and chunk output is identical to a pack without this block at all. True runs the vanilla decoration feature pass over Iris terrain.")
     private boolean enabled = false;
 
-    @MinItems(1)
     @Desc("Placed feature keys to deny explicitly, e.g. 'minecraft:ore_diamond'. A namespace:path prefix also matches, so 'minecraft:ore' denies every vanilla ore and 'minecraft:trees' denies every tree placement. Every key not matched here generates while 'enabled' is true.")
     private List<String> disabled = List.of();
 
-    @MinItems(1)
     @Desc("Restrict feature generation to these decoration steps only. Empty (the default) means every step is eligible. Use this to import ores without importing vegetation: set it to UNDERGROUND_ORES.")
     private List<DecorationStep> steps = List.of();
 
-    @MinItems(1)
     @Desc("Decoration steps to deny. Applied after 'steps', so a step listed here never generates even if 'steps' allows it. VEGETAL_DECORATION is the usual entry for packs that grow their own trees.")
     private List<DecorationStep> disabledSteps = List.of();
 

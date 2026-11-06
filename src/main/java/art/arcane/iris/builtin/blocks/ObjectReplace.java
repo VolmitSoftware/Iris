@@ -22,7 +22,6 @@ import com.volmit.block.BlockSpec;
 import com.volmit.block.PaletteSpec;
 import com.volmit.config.Desc;
 import com.volmit.config.MaxNumber;
-import com.volmit.config.MinItems;
 import com.volmit.config.MinNumber;
 import com.volmit.config.Required;
 import com.volmit.config.Snippet;
@@ -34,7 +33,6 @@ import java.util.List;
 @Snippet("iris/blocks/object-block-replacer")
 @Desc("Find and replace object materials")
 public final class ObjectReplace {
-    @MinItems(1)
     @Required
     @Desc("Find this block")
     private List<BlockSpec> find = List.of();

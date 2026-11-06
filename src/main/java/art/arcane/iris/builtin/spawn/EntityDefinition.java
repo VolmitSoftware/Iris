@@ -22,7 +22,6 @@ import art.arcane.iris.builtin.loot.ItemAttributeModifier;
 import art.arcane.iris.builtin.loot.LootEntry;
 import art.arcane.iris.builtin.loot.LootSettings;
 import com.volmit.config.Desc;
-import com.volmit.config.MinItems;
 import com.volmit.config.Ref;
 import com.volmit.config.Reference;
 import com.volmit.config.Required;
@@ -89,11 +88,9 @@ public final class EntityDefinition {
     @Desc("Entity off hand equipment")
     private LootEntry offHand = null;
 
-    @MinItems(1)
     @Desc("Make other entities ride this entity")
     private List<EntityDefinition> passengers = List.of();
 
-    @MinItems(1)
     @Desc("Attribute modifiers for this entity")
     private List<ItemAttributeModifier> attributes = List.of();
 
@@ -131,7 +128,6 @@ public final class EntityDefinition {
     @Desc("Set to true if you want to apply all of the settings here to the mob, even though an external plugin has already done so.")
     private boolean applySettingsToCustomMobAnyways = false;
 
-    @MinItems(1)
     @Desc("Run raw commands when this entity is spawned. Use {x}, {y}, and {z} for location. /summon pig {x} {y} {z}")
     private List<SpawnCommand> rawCommands = List.of();
 

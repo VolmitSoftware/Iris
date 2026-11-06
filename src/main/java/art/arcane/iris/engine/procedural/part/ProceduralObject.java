@@ -17,7 +17,6 @@
  */
 package art.arcane.iris.engine.procedural.part;
 
-import com.volmit.config.MinItems;
 import com.volmit.config.Desc;
 import com.volmit.config.MaxNumber;
 import com.volmit.config.MinNumber;
@@ -36,15 +35,12 @@ public final class ProceduralObject {
     private long seed = 1337;
 
 
-    @MinItems(1)
     @Desc("The blocks of each role. A part whose role has no material uses the first one.")
     private List<ProceduralMaterial> materials = List.of();
 
-    @MinItems(1)
     @Desc("The parts the object grows from, each starting at the object's base.")
     private List<ProceduralPart> parts = List.of();
 
-    @MinItems(1)
     @Desc("Blocks placed against the finished object, such as vines, moss or fruit.")
     private List<ProceduralDecoration> decorations = List.of();
 

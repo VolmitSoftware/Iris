@@ -18,7 +18,6 @@
 package art.arcane.iris.engine.procedural.part;
 
 import com.volmit.block.PaletteSpec;
-import com.volmit.config.MinItems;
 import com.volmit.config.Desc;
 import com.volmit.config.MaxNumber;
 import com.volmit.config.MinNumber;
@@ -37,7 +36,6 @@ public final class ProceduralDecoration {
     @Desc("A noise palette to place.")
     private PaletteSpec palette;
 
-    @MinItems(1)
     @Desc("The roles to decorate. Empty decorates every block.")
     private List<String> on = List.of();
 

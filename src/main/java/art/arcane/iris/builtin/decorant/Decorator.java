@@ -52,11 +52,9 @@ public final class Decorator {
     @Desc("Forced the surface block of this decorant to be the specified block. Assumes forcePlace.")
     private BlockSpec forceBlock;
 
-    @MinItems(1)
     @Desc("When set, the decorator can only place onto any of these blocks.")
     private List<BlockSpec> whitelist;
 
-    @MinItems(1)
     @Desc("When set, the decorator will never place onto any of these blocks.")
     private List<BlockSpec> blacklist;
 
@@ -102,7 +100,6 @@ public final class Decorator {
     @Desc("The palette of blocks to pick from when this decorator needs to place.")
     private List<BlockSpec> palette = List.of(BlockSpec.of(DEFAULT_BLOCK));
 
-    @MinItems(1)
     @Desc("The palette of blocks used at the very top of a 'stackMax' of higher than 1. For example, bamboo tops.")
     private List<BlockSpec> topPalette = List.of();
 

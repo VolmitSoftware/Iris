@@ -19,7 +19,6 @@
 package art.arcane.iris.builtin.spawn;
 
 import com.volmit.config.Desc;
-import com.volmit.config.MinItems;
 import com.volmit.config.Required;
 import com.volmit.config.Snippet;
 
@@ -30,7 +29,6 @@ import java.util.List;
 @Desc("Represents a set of Iris commands")
 public final class SpawnCommand {
     @Required
-    @MinItems(1)
     @Desc("List of commands. Iris replaces {x} {y} and {z} with the location of the entity spawn")
     private List<String> commands = List.of();
 

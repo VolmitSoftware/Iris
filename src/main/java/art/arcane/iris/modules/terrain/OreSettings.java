@@ -22,7 +22,6 @@ import com.volmit.config.Level;
 import com.volmit.IrisFeature;
 import com.volmit.config.Desc;
 import com.volmit.config.Feature;
-import com.volmit.config.MinItems;
 
 import java.util.Collections;
 import java.util.List;
@@ -35,7 +34,6 @@ import java.util.List;
 @Desc("Collection of ores to be generated")
 @Feature(id = "iris:terrain/ores", name = "Ores", key = "ores", root = "generators", targets = {Level.DIMENSION, Level.REGION, Level.BIOME})
 public final class OreSettings implements IrisFeature {
-    @MinItems(1)
     @Desc("Collection of ores to be generated")
     private List<OreGenerator> generators = List.of();
 

@@ -22,7 +22,6 @@ import com.volmit.config.Level;
 import com.volmit.IrisFeature;
 import com.volmit.config.Desc;
 import com.volmit.config.Feature;
-import com.volmit.config.MinItems;
 
 import java.util.Collections;
 import java.util.List;
@@ -35,7 +34,6 @@ import java.util.List;
 @Feature(id = "iris:deposit/variants", name = "Deposit variants", key = "depositVariants", root = "variants",
         targets = {Level.DIMENSION, Level.REGION, Level.BIOME})
 public final class DepositVariantSettings implements IrisFeature {
-    @MinItems(1)
     @Desc("Deposit ore remap rules. Each entry declares a vertical band and a source->replacement block id map. Applied biome first, then region, then dimension; first matching rule wins.")
     private List<DepositVariant> variants = List.of();
 

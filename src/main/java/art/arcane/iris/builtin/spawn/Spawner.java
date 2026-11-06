@@ -19,7 +19,6 @@
 package art.arcane.iris.builtin.spawn;
 
 import com.volmit.config.Desc;
-import com.volmit.config.MinItems;
 import com.volmit.config.Range;
 
 import java.util.Collections;
@@ -28,11 +27,9 @@ import java.util.List;
 /** A spawner of the pack, one file of {@code spawners/}: which entities appear where, when and how often. */
 @Desc("Represents an entity spawn during initial chunk generation")
 public final class Spawner {
-    @MinItems(1)
     @Desc("The entity spawns to add")
     private List<EntitySpawn> spawns = List.of();
 
-    @MinItems(1)
     @Desc("The entity spawns to add initially. EXECUTES PER CHUNK!")
     private List<EntitySpawn> initialSpawns = List.of();
 

@@ -18,7 +18,6 @@
 package art.arcane.iris.engine.procedural.part;
 
 import com.volmit.block.PaletteSpec;
-import com.volmit.config.MinItems;
 import com.volmit.config.Desc;
 import com.volmit.config.MinNumber;
 import com.volmit.config.Ref;
@@ -45,7 +44,6 @@ public final class ProceduralMaterial {
     @Desc("If above 0, the palette changes every this many blocks of height, for strata.")
     private int bands = 0;
 
-    @MinItems(1)
     @Desc("Swaps for blocks that meet conditions; the first rule that applies wins.")
     private List<MaterialRule> rules = List.of();
 

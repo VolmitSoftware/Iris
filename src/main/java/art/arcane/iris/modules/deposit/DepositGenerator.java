@@ -21,7 +21,6 @@ package art.arcane.iris.modules.deposit;
 import com.volmit.block.BlockSpec;
 import com.volmit.config.Desc;
 import com.volmit.config.MaxNumber;
-import com.volmit.config.MinItems;
 import com.volmit.config.MinNumber;
 import com.volmit.config.Required;
 import com.volmit.config.Snippet;
@@ -105,7 +104,6 @@ public final class DepositGenerator {
     private double discardChanceOnAirExposure = 0;
 
     @Required
-    @MinItems(1)
     @Desc("The palette of blocks to be used in this deposit generator. Each entry is picked uniformly; the per-entry weight field is ignored here.")
     private List<BlockSpec> palette = List.of();
 
@@ -114,18 +112,15 @@ public final class DepositGenerator {
     @Desc("Ore varience is how many different objects clumps iris will create")
     private int varience = 3;
 
-    @MinItems(1)
     @Desc("Optional block ids this deposit may replace. An empty list retains Iris's any-solid behavior.")
     private List<String> replaceableBlocks = List.of();
 
     @Desc("Chooses whether includedBiomes and excludedBiomes inspect the surface biome or the cave biome at the deposit origin.")
     private DepositBiomeScope biomeScope = DepositBiomeScope.CAVE;
 
-    @MinItems(1)
     @Desc("Optional Iris biome keys or vanilla derivative ids allowed for this deposit.")
     private List<String> includedBiomes = List.of();
 
-    @MinItems(1)
     @Desc("Optional Iris biome keys or vanilla derivative ids denied for this deposit.")
     private List<String> excludedBiomes = List.of();
 

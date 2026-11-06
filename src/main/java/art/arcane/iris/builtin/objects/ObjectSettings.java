@@ -22,7 +22,6 @@ import com.volmit.config.Level;
 import com.volmit.IrisFeature;
 import com.volmit.config.Desc;
 import com.volmit.config.Feature;
-import com.volmit.config.MinItems;
 
 import java.util.Collections;
 import java.util.List;
@@ -34,7 +33,6 @@ import java.util.List;
 @Desc("Objects define what schematics (iob files) iris will place here")
 @Feature(id = "iris:objects", name = "Objects", key = "objects", root = "objects", targets = {Level.REGION, Level.BIOME})
 public final class ObjectSettings implements IrisFeature {
-    @MinItems(1)
     @Desc("Objects define what schematics (iob files) iris will place here")
     private List<ObjectPlacement> objects = List.of();
 

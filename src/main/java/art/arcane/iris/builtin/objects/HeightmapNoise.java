@@ -20,7 +20,6 @@ package art.arcane.iris.builtin.objects;
 
 import com.volmit.config.Desc;
 import com.volmit.config.MaxNumber;
-import com.volmit.config.MinItems;
 import com.volmit.config.MinNumber;
 import com.volmit.config.Required;
 import com.volmit.config.Snippet;
@@ -67,7 +66,6 @@ public final class HeightmapNoise {
     @MinNumber(1)
     @Desc("Multiple octaves for multple generators of changing zooms added together")
     private int octaves = 1;
-    @MinItems(1)
     @Desc("Apply a child noise generator to fracture the input coordinates of this generator")
     private List<HeightmapNoise> fracture = List.of();
 

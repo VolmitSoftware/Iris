@@ -22,7 +22,6 @@ import com.volmit.config.Level;
 import com.volmit.IrisFeature;
 import com.volmit.config.Desc;
 import com.volmit.config.Feature;
-import com.volmit.config.MinItems;
 import com.volmit.config.PackSettings;
 import com.volmit.resource.PackResources;
 import com.volmit.resource.ResourceId;
@@ -40,7 +39,6 @@ import java.util.Set;
 @Desc("Dimension-level cave biome carving overrides with absolute world Y ranges")
 @Feature(id = "iris:carve/bands", name = "Cave biome bands", key = "carving", root = "entries", targets = Level.DIMENSION)
 public final class CarvingSettings implements IrisFeature, LinkedBiomes {
-    @MinItems(1)
     @Desc("Dimension-level cave biome carving overrides with absolute world Y ranges")
     private List<CarvingEntry> entries = List.of();
 

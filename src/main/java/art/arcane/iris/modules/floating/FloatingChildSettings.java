@@ -23,7 +23,6 @@ import com.volmit.config.Level;
 import com.volmit.IrisFeature;
 import com.volmit.config.Desc;
 import com.volmit.config.Feature;
-import com.volmit.config.MinItems;
 import com.volmit.config.PackSettings;
 import com.volmit.resource.PackResources;
 import com.volmit.resource.ResourceId;
@@ -42,7 +41,6 @@ import java.util.Set;
 @Desc("Floating child biomes that procedurally generate above this biome's terrain. Each entry references a target biome whose layers, decorators, and objects drive the floating island's visual design, while the config here drives size, shape, altitude, rarity, and water level. Multiple entries are supported and selected by rarity per column unless mergeFloatingChildBiomes is enabled.")
 @Feature(id = "iris:floating/children", name = "Floating child biomes", key = "floatingChildBiomes", root = "children", targets = Level.BIOME)
 public final class FloatingChildSettings implements IrisFeature, LinkedBiomes {
-    @MinItems(1)
     @Desc("Floating child biomes that procedurally generate above this biome's terrain. Each entry references a target biome whose layers, decorators, and objects drive the floating island's visual design, while the config here drives size, shape, altitude, rarity, and water level. Multiple entries are supported and selected by rarity per column unless mergeFloatingChildBiomes is enabled.")
     private List<FloatingChildBiome> children = List.of();
 

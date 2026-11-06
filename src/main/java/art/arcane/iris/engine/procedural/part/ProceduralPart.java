@@ -17,7 +17,6 @@
  */
 package art.arcane.iris.engine.procedural.part;
 
-import com.volmit.config.MinItems;
 import com.volmit.config.Desc;
 import com.volmit.config.MaxNumber;
 import com.volmit.config.MinNumber;
@@ -69,7 +68,6 @@ public final class ProceduralPart {
     @Desc("Copies of a part placed around this spot.")
     private PartCluster cluster;
 
-    @MinItems(1)
     @Desc("The parts that grow from this one.")
     private List<ProceduralPart> children = List.of();
 

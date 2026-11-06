@@ -20,7 +20,6 @@ package art.arcane.iris.builtin.loot;
 
 import com.volmit.block.BlockSpec;
 import com.volmit.config.Desc;
-import com.volmit.config.MinItems;
 import com.volmit.config.MinNumber;
 import com.volmit.config.Required;
 import com.volmit.config.ResourceRef;
@@ -32,7 +31,6 @@ import java.util.List;
 @Snippet("iris/loot/object-loot")
 @Desc("Represents loot within this object")
 public final class ObjectLoot implements ObjectLootEntry {
-    @MinItems(1)
     @Desc("The list of blocks this loot table should apply to")
     private List<BlockSpec> filter = List.of();
     @Desc("Exactly match the block data or not")

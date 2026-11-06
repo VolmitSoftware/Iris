@@ -22,7 +22,6 @@ import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.builtin.terrain.PaletteLayer;
 import com.volmit.config.Desc;
 import com.volmit.config.MaxNumber;
-import com.volmit.config.MinItems;
 import com.volmit.config.MinNumber;
 import com.volmit.config.Ref;
 import com.volmit.config.Reference;
@@ -147,7 +146,6 @@ public final class FloatingChildBiome {
     @Desc("Controls the material palette near the island underside. DEPTH keeps the old top-down depth behavior. MIRROR_TOP uses the target biome's shallow/top palette from the underside upward. CUSTOM uses bottomPalette near the underside while keeping the target biome palette near the top.")
     private FloatingBottomPaletteMode bottomPaletteMode = FloatingBottomPaletteMode.DEPTH;
 
-    @MinItems(1)
     @Desc("Custom palette layers used near the underside when bottomPaletteMode=CUSTOM. The layer format is the same as normal biome layers.")
     private List<PaletteLayer> bottomPalette = List.of();
 
@@ -193,11 +191,9 @@ public final class FloatingChildBiome {
     @Desc("Uniform shrink factor applied to every object placed on this floating island (inherited, extra, and free-floating). 1.0 = native size, 0.5 = half size, 0.25 = quarter. Useful for making small floating biomes feel believable.")
     private double objectShrinkFactor = 1.0;
 
-    @MinItems(1)
     @Desc("Additional object placements anchored to the island top.")
     private List<ObjectPlacement> extraObjects = List.of();
 
-    @MinItems(1)
     @Desc("Additional object placements that float freely in air, independent of the island. Forced to ObjectPlaceMode.FLOATING.")
     private List<ObjectPlacement> floatingObjects = List.of();
 
@@ -210,11 +206,9 @@ public final class FloatingChildBiome {
     @Desc("Controls how bottomObjectOverrides are combined. INHERIT_ONLY (default) = no bottom objects placed (there is no inherited bottom set). MERGE = same as REPLACE for bottom (no inherited source). REPLACE = uses bottomObjectOverrides list only.")
     private OverrideMode bottomObjectMode = OverrideMode.INHERIT_ONLY;
 
-    @MinItems(1)
     @Desc("Object placements that override or supplement the inherited surface objects on the island TOP. Behaviour depends on topObjectMode. INHERIT_ONLY = this list is ignored. MERGE = appended after inherited. REPLACE = used instead of inherited.")
     private List<ObjectPlacement> topObjectOverrides = List.of();
 
-    @MinItems(1)
     @Desc("Object placements anchored to the island BOTTOM face. Each entry is auto-inverted 180 degrees around the X axis and placed flush against the lowest solid face of the island, so objects appear to hang upside-down from the underside. WARNING: directional blocks (stairs, doors, slabs) will not render correctly when flipped — use non-directional content (logs, leaves, stone, mycelium, ice, glass) for bottom placements.")
     private List<ObjectPlacement> bottomObjectOverrides = List.of();
 

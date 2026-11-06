@@ -21,7 +21,6 @@ package art.arcane.iris.builtin.spawn;
 import com.volmit.block.BlockSpec;
 import com.volmit.config.Desc;
 import com.volmit.config.MaxNumber;
-import com.volmit.config.MinItems;
 import com.volmit.config.MinNumber;
 import com.volmit.config.Required;
 import com.volmit.config.ResourceRef;
@@ -34,7 +33,6 @@ import java.util.List;
 @Snippet("iris/spawn/object-marker")
 @Desc("Find blocks to mark")
 public final class PlacementMarker {
-    @MinItems(1)
     @Required
     @Desc("Find block types to mark")
     private List<BlockSpec> mark = List.of();

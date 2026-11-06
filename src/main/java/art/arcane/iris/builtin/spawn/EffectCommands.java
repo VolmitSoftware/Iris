@@ -20,7 +20,6 @@ package art.arcane.iris.builtin.spawn;
 
 import com.volmit.config.Desc;
 import com.volmit.config.MaxNumber;
-import com.volmit.config.MinItems;
 import com.volmit.config.MinNumber;
 import com.volmit.config.Required;
 import com.volmit.config.Snippet;
@@ -32,7 +31,6 @@ import java.util.List;
 @Desc("Represents a casting location for a command")
 public final class EffectCommands {
     @Required
-    @MinItems(1)
     @Desc("Run commands, at the exact location of the player")
     private List<SpawnCommand> rawCommands = List.of();
 

@@ -23,7 +23,6 @@ import com.volmit.IrisFeature;
 import com.volmit.config.Desc;
 import com.volmit.config.Feature;
 import com.volmit.config.MaxNumber;
-import com.volmit.config.MinItems;
 import com.volmit.config.MinNumber;
 import com.volmit.config.Ref;
 import com.volmit.config.Reference;
@@ -40,12 +39,10 @@ import java.util.List;
 @Desc("Controls native vanilla, mod, and ingested datapack structure generation for this dimension. Every registered structure generates through its native placement unless its key matches 'disabled', equals a key in 'disabledExact', or a viable dimension-level Iris placement explicitly replaces its source. Family matching uses namespace, slash, or underscore boundaries, while exact matching compares normalized complete keys only. Run '/iris module structure list' to dump every valid key. Only affects newly generated chunks and is separate from Iris structure placements.")
 @Feature(id = "iris:structure", name = "Structures", key = "importedStructures", targets = Level.DIMENSION)
 public final class StructureSettings implements IrisFeature {
-    @MinItems(1)
     @Ref(Reference.STRUCTURE_PREFIX)
     @Desc("Structure keys to deny explicitly, e.g. 'minecraft:stronghold'. A namespace:path prefix also matches, so 'minecraft:village' disables every village variant and 'minecraft:ruined_portal' disables every ruined portal. Every key not matched here remains enabled.")
     private List<String> disabled = List.of();
 
-    @MinItems(1)
     @Ref(Reference.STRUCTURE)
     @Desc("Exact structure keys to deny after trimming and case normalization. Unlike 'disabled', entries never match key families, so 'minecraft:ruined_portal' does not disable 'minecraft:ruined_portal_nether'.")
     private List<String> disabledExact = List.of();
@@ -58,11 +55,9 @@ public final class StructureSettings implements IrisFeature {
     @Desc("Controls whether ingested datapacks may replace minecraft-namespaced structure definitions, sets, pools, and templates. When false, those overrides are stripped from installed datapack copies so vanilla definitions stay intact. Non-minecraft structures from datapacks and mods remain governed by disabled because namespace alone cannot identify their origin. Resolved globally across loaded packs: if any dimension sets this false, minecraft-namespaced overrides are stripped from every installed datapack copy.")
     private boolean datapackOverrides = true;
 
-    @MinItems(1)
     @Desc("Exact registered structure-set frequency overrides for native generation. The last entry for a normalized structure-set key wins. These do not convert native structures into Iris placements and affect only newly generated chunks.")
     private List<StructureSetFrequency> frequencyOverrides = List.of();
 
-    @MinItems(1)
     @Desc("Per-structure adjustments applied to vanilla, mod, and datapack structures that still generate natively. Vertical shifts from every matching entry stack. A matching preserveSourceY option disables Iris burial repositioning for that structure. The last matching entry with stilt settings controls foundation columns, and likewise for terrain and yBand settings. A structure suppressed by an Iris placement is unaffected.")
     private List<StructureAdjustment> adjustments = List.of();
 

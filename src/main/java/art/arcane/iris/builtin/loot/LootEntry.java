@@ -20,7 +20,6 @@ package art.arcane.iris.builtin.loot;
 
 import com.volmit.config.Desc;
 import com.volmit.config.MaxNumber;
-import com.volmit.config.MinItems;
 import com.volmit.config.MinNumber;
 import com.volmit.config.Ref;
 import com.volmit.config.Reference;
@@ -72,19 +71,15 @@ public final class LootEntry {
     @Desc("Set this to true to prevent it from being broken")
     private boolean unbreakable = false;
 
-    @MinItems(1)
     @Desc("The item flags to add")
     private List<String> itemFlags = List.of();
 
-    @MinItems(1)
     @Desc("Apply enchantments to this item")
     private List<LootEnchantment> enchantments = List.of();
 
-    @MinItems(1)
     @Desc("Apply attribute modifiers to this item")
     private List<ItemAttributeModifier> attributes = List.of();
 
-    @MinItems(1)
     @Desc("Add lore to this item")
     private List<String> lore = List.of();
 

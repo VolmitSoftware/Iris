@@ -19,7 +19,6 @@
 package art.arcane.iris.builtin.objects;
 
 import com.volmit.config.Desc;
-import com.volmit.config.MinItems;
 import com.volmit.config.Required;
 import com.volmit.config.Snippet;
 
@@ -31,12 +30,10 @@ import java.util.List;
 @Desc("Tree replace options for this object placer")
 public final class TreeOverride {
     @Required
-    @MinItems(1)
     @Desc("The types of trees overwritten by this object")
     private List<String> treeTypes = List.of();
 
     @Required
-    @MinItems(1)
     @Desc("The size of the square of saplings this applies to (2 means a 2 * 2 sapling area)")
     private List<TreeSize> sizes = List.of();
 

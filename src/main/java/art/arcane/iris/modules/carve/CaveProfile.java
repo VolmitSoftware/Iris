@@ -26,7 +26,6 @@ import com.volmit.IrisFeature;
 import com.volmit.config.Desc;
 import com.volmit.config.Feature;
 import com.volmit.config.MaxNumber;
-import com.volmit.config.MinItems;
 import com.volmit.config.MinNumber;
 import com.volmit.config.Range;
 import com.volmit.config.Snippet;
@@ -141,7 +140,6 @@ public final class CaveProfile implements IrisFeature {
     @Desc("Minimum depth below terrain surface required for cave-only object anchor placement.")
     private int objectMinDepthBelowSurface = 6;
 
-    @MinItems(1)
     @Desc("Additional layered cave-density modules.")
     private List<CaveFieldModule> modules = List.of();
 

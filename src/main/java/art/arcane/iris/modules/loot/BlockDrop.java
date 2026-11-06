@@ -21,7 +21,6 @@ package art.arcane.iris.modules.loot;
 import art.arcane.iris.builtin.loot.LootEntry;
 import com.volmit.block.BlockSpec;
 import com.volmit.config.Desc;
-import com.volmit.config.MinItems;
 import com.volmit.config.Required;
 import com.volmit.config.Snippet;
 
@@ -32,14 +31,12 @@ import java.util.List;
 @Desc("Represents a block drop list")
 public final class BlockDrop {
     @Required
-    @MinItems(1)
     @Desc("The blocks that drop loot")
     private List<BlockSpec> blocks = List.of();
 
     @Desc("If exact blocks is set to true, minecraft:barrel[axis=x] will only drop for that axis. When exact is false (default) any barrel will drop the defined drops.")
     private boolean exactBlocks = false;
 
-    @MinItems(1)
     @Desc("Add in specific items to drop")
     private List<LootEntry> drops = List.of();
 

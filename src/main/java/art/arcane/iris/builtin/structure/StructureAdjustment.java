@@ -20,7 +20,6 @@ package art.arcane.iris.builtin.structure;
 
 import com.volmit.config.Desc;
 import com.volmit.config.MaxNumber;
-import com.volmit.config.MinItems;
 import com.volmit.config.MinNumber;
 import com.volmit.config.Ref;
 import com.volmit.config.Reference;
@@ -31,7 +30,6 @@ import java.util.Optional;
 /** One entry of {@link StructureSettings#adjustments()}: how the platform's own starts of the structures it matches are moved and fitted. */
 @Desc("A per-structure adjustment applied to vanilla, mod, and datapack structures that still generate natively (those NOT suppressed by an Iris 'structures' placement). Vertical shifts move the structure start, pieces, bounds, and jigsaw metadata together before references and placement. Intersecting trees are cleared automatically inside structure piece envelopes; optional postprocessing can build palette-driven foundation columns.")
 public final class StructureAdjustment {
-    @MinItems(1)
     @Ref(Reference.STRUCTURE_PREFIX)
     @Desc("Structure keys this adjustment applies to, e.g. 'minecraft:stronghold'. A namespace:path prefix also matches, so 'minecraft:village' adjusts every village variant and 'minecraft:ruined_portal' adjusts every ruined portal. Empty matches nothing.")
     private List<String> match = List.of();

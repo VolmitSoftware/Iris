@@ -20,7 +20,6 @@ package art.arcane.iris.builtin.structure;
 
 import com.volmit.config.Desc;
 import com.volmit.config.MaxNumber;
-import com.volmit.config.MinItems;
 import com.volmit.config.MinNumber;
 import com.volmit.config.ResourceRef;
 import com.volmit.world.PackBiome;
@@ -36,12 +35,10 @@ import java.util.Optional;
  */
 @Desc("Attaches structures to a biome, region or dimension and controls where and how often they generate. This is independent of a structure's own native generation, so you can add custom placements in tandem with native generation or instead of it.")
 public final class StructurePlacement {
-    @MinItems(1)
     @IrisStructureRef
     @Desc("Editable Iris assembly resources offered by this placement. Leave empty when nativeStructures supplies the source.")
     private List<String> structures = List.of();
 
-    @MinItems(1)
     @Desc("Live registered vanilla, datapack, and modded structures offered by this placement. Minecraft runs their native generator directly, independent of normal biome or dimension eligibility.")
     private List<NativeStructureSource> nativeStructures = List.of();
 
@@ -95,7 +92,6 @@ public final class StructurePlacement {
     @Desc("Vertical anchor policy. LEGACY preserves the underground boolean. Cave modes search existing carved-space data and implicitly behave as underground placements.")
     private StructureAnchorMode anchor = StructureAnchorMode.LEGACY;
 
-    @MinItems(1)
     @ResourceRef(PackBiome.class)
     @Desc("Optional cave-biome allowlist for cave anchor modes. Empty accepts the cave biome resolved at the selected anchor. Entries match by load key, including prefix matches.")
     private List<String> caveBiomes = List.of();

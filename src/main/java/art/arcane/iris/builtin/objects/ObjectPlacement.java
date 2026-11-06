@@ -42,7 +42,6 @@ import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
 import com.volmit.config.Desc;
 import com.volmit.config.MaxNumber;
-import com.volmit.config.MinItems;
 import com.volmit.config.MinNumber;
 import com.volmit.config.Required;
 import com.volmit.config.ResourceRef;
@@ -75,7 +74,6 @@ public final class ObjectPlacement {
     private static final int DEFAULT_SURFACE_SUPPORT_DEPTH = 2;
 
     @Required
-    @MinItems(1)
     @ResourceRef(GeneratedObject.class)
     @Desc("List of objects to place")
     private List<String> place = List.of();
@@ -116,7 +114,6 @@ public final class ObjectPlacement {
     @MinNumber(0)
     @Desc("When bore is enabled, expand max-y of the cuboid it removes")
     private int boreExtendMaxY = 0;
-    @MinItems(1)
     @Desc("Add markers to blocks in this object")
     private List<PlacementMarker> markers = List.of();
     @MaxNumber(64)
@@ -159,29 +156,23 @@ public final class ObjectPlacement {
     private NoiseStyle warp = NoiseStyle.of(NoiseStyle.FLAT);
     @Desc("The placement mode")
     private ObjectPlaceMode mode = ObjectPlaceMode.CENTER_HEIGHT;
-    @MinItems(1)
     @Desc("Find and replace blocks")
     private List<ObjectReplace> edit = List.of();
     @Desc("Translate this object's placement")
     private ObjectTranslate translate = new ObjectTranslate();
     @Desc("Scale Objects")
     private ObjectScale scale = new ObjectScale();
-    @MinItems(1)
     @Desc("The loot tables to apply to these objects")
     private List<ObjectLoot> loot = List.of();
-    @MinItems(1)
     @Desc("The vanilla loot tables to apply to these objects")
     private List<ObjectVanillaLoot> vanillaLoot = List.of();
     @Desc("Whether the given loot tables override any and all other loot tables available in the dimension, region or biome.")
     private boolean overrideGlobalLoot = false;
-    @MinItems(1)
     @Desc("This object / these objects override the following trees when they grow...")
     private List<TreeOverride> trees = List.of();
-    @MinItems(1)
     @ResourceRef(GeneratedObject.class)
     @Desc("List of objects to this object is allowed to collied with")
     private List<String> allowedCollisions = List.of();
-    @MinItems(1)
     @ResourceRef(GeneratedObject.class)
     @Desc("List of objects to this object is forbidden to collied with")
     private List<String> forbiddenCollisions = List.of();

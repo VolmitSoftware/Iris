@@ -1,0 +1,16 @@
+import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
+import type { StudioHost, ThemeChoice } from '../shared/bridge'
+
+const host: StudioHost = {
+  listBridges: () => ipcRenderer.invoke('studio:list-bridges'),
+  initialLink: () => ipcRenderer.invoke('studio:initial-link'),
+  onLink: (listener) => {
+    const forward = (_event: IpcRendererEvent, link: string): void => listener(link)
+    ipcRenderer.on('studio:link', forward)
+    return () => ipcRenderer.removeListener('studio:link', forward)
+  },
+  setTheme: (theme: ThemeChoice) => ipcRenderer.send('studio:set-theme', theme),
+  copyText: (text: string) => ipcRenderer.send('studio:copy-text', text)
+}
+
+contextBridge.exposeInMainWorld('studio', host)

@@ -19,9 +19,10 @@
 package art.arcane.iris.engine.spawn;
 
 import art.arcane.volmlib.util.cache.CacheKey;
-import com.volmit.data.Codec;
+import com.volmit.data.SavedKey;
+import com.volmit.data.StorageCodec;
+import com.volmit.resource.ResourceId;
 import com.volmit.world.PackWorld;
-import com.volmit.world.SavedKey;
 
 import java.io.DataInput;
 import java.io.DataOutput;
@@ -38,7 +39,7 @@ import java.util.function.ToLongFunction;
  * rates hold across restarts. Spawners count by the key the pack names them by. Safe for concurrent use.
  */
 final class SpawnCooldownBook {
-    static final SavedKey<SpawnCooldownBook> SAVED = new SavedKey<>("iris:spawn/cooldowns", SpawnCooldownBook.class,
+    static final SavedKey<SpawnCooldownBook> SAVED = new SavedKey<>(ResourceId.parse("iris:spawn/cooldowns"), SpawnCooldownBook.class,
             codec(System::currentTimeMillis), () -> new SpawnCooldownBook(System::currentTimeMillis));
 
     private static final int FORMAT_VERSION = 1;
@@ -57,7 +58,7 @@ final class SpawnCooldownBook {
     }
 
     /** How {@link #SAVED} is stored: the books read by this codec count time with {@code clockMilliseconds}. */
-    static Codec<SpawnCooldownBook> codec(LongSupplier clockMilliseconds) {
+    static StorageCodec<SpawnCooldownBook> codec(LongSupplier clockMilliseconds) {
         return new BookCodec(clockMilliseconds);
     }
 
@@ -111,7 +112,7 @@ final class SpawnCooldownBook {
         return firedAt == null || clockMilliseconds.getAsLong() - firedAt > intervalMilliseconds;
     }
 
-    private record BookCodec(LongSupplier clockMilliseconds) implements Codec<SpawnCooldownBook> {
+    private record BookCodec(LongSupplier clockMilliseconds) implements StorageCodec<SpawnCooldownBook> {
         @Override
         public int version() {
             return FORMAT_VERSION;

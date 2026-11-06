@@ -47,6 +47,7 @@ public final class SpawnModule implements IrisModule {
         registry.registerSettings(SpawnerSettings.class);
         registry.registerSettings(EffectSettings.class);
         SpawnResources.kinds().forEach(registry::registerResourceKind);
+        registry.registerSaved(SpawnCooldownBook.SAVED);
         registry.registerService(EntitySpawns.class, new EntitySpawning());
         registry.registerService(AmbientEffects.class, new AmbientEffecting());
     }

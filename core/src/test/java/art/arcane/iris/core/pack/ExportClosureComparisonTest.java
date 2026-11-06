@@ -6,6 +6,7 @@ import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.modules.BuiltInModulesJar;
 import art.arcane.iris.core.modules.IrisPackResources;
 import art.arcane.iris.engine.framework.structure.StructureResources;
+import art.arcane.volmlib.util.json.JSONObject;
 import com.volmit.resource.ResourceId;
 import art.arcane.iris.engine.object.placement.ObjectPlacements;
 import art.arcane.iris.engine.object.structure.IrisStructure;
@@ -32,6 +33,7 @@ import java.util.TreeSet;
 import java.util.stream.Stream;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -56,6 +58,29 @@ public class ExportClosureComparisonTest {
         assertEquals(comparison.previous.loot, comparison.generic.loot);
         assertEquals(Set.of("castle/keep", "tree"), comparison.generic.objects);
         assertEquals(comparison.previous.objects, comparison.generic.objects);
+    }
+
+    @Test
+    public void theGenericClosureWritesTheStructureGraphAsThePackWroteIt() throws Exception {
+        Path pack = fixturePack();
+        IrisData data = IrisData.openValidation(pack.toFile());
+        try {
+            ModuleResourceClosure closure = new ModuleResourceClosure(data);
+            closure.followSettingsOf(data.getDimensionLoader().load("main"));
+            Path target = temporaryFolder.newFolder("export").toPath();
+
+            closure.writeTo(target.toFile(), false);
+
+            assertEquals("castle/start", new JSONObject(Files.readString(target.resolve("structures/castle.json"))).getString("startPool"));
+            assertEquals("castle/end", new JSONObject(Files.readString(target.resolve("jigsaw-pools/castle/start.json"))).getString("fallback"));
+            JSONObject piece = new JSONObject(Files.readString(target.resolve("jigsaw-pieces/castle/keep.json")));
+            assertEquals("castle/keep", piece.getString("object"));
+            assertEquals("castle/end", piece.getJSONArray("connectors").getJSONObject(0).getString("pool"));
+            assertTrue(Files.isRegularFile(target.resolve("loot/castle/chest.json")));
+            assertFalse(Files.exists(target.resolve("structures/unused.json")));
+        } finally {
+            data.close();
+        }
     }
 
     @Test

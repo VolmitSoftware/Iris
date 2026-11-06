@@ -10,6 +10,7 @@ types that carry them and lists what the Iris adapter still owes.
 | Module identity and composition | `IrisModule`, `ModuleInfo`, `StageGraph` |
 | Loading and unloading a pack | host `LoadedPack`, `ModuleHost` |
 | Module jars in a pack | `META-INF/services/com.volmit.IrisModule`, host `PackModules` (jar copies), `DiscoveredModule`, `MissingClasses` |
+| Platform tooling parts of a jar | manifest `Iris-Tooling-Parts`, host `ToolingPart`, `ToolingPlatform`, `PlatformApi`, `ModuleHost.runningOn`, `ToolingPartLoader`, `ModuleJarCheck --platform` |
 | Namespace ownership | module-prefixed stage, feature and mantle ids, `ModuleInfo.ownsStage`/`ownsId`; no reserved namespaces |
 | Randomness independent of other modules | `StageContext.random()`, host `StageStreams`, invocation seed passed to the runners |
 | Random values identical on every JDK | `WorldRandom`, pinned by `WorldRandomTest` |
@@ -84,6 +85,16 @@ module or non-exported JDK package, or one missing from an exposed package fails
 naming the jar and the classes. A class nobody has (an optional dependency) only warns, unless
 its package is one the jar's manifest declares optional (`Iris-Optional-Packages`, read by the host's
 `ModuleJar`). That declaration never excuses a load error.
+
+A jar can carry tooling for one platform, such as Bukkit, as a part named in its manifest (`Iris-Tooling-Parts:
+<platform>=<entry class> ...`): the entry class's package and subpackages. Parts are not generation code. Generation code
+that uses a part class fails the pack load ("Generation code cannot use the bukkit part; move the call into the part").
+A host that runs on a platform (`ModuleHost.runningOn`) checks that platform's parts at pack load: they may use their own
+packages, the platform's api and what modules can use, and not Iris internals, the server's own classes
+(`net.minecraft`, `org.bukkit.craftbukkit`, `com.mojang`), `com.volmit.host` or another part. Other platforms' parts are
+skipped unread. The host opens a part through its own class loader (`ToolingPartLoader`, a child of the pack's), which
+the adapter creates and closes; the generation loader never sees `com.volmit.tooling.<platform>`. Enabling a part,
+and what it mounts, is the adapter's. `ModuleJarCheck --platform=<name>:<platform api jar>` makes a build check the parts.
 
 Stage bodies and service providers keep no state; what a module keeps for a world lives in that world's state store,
 created once per type and world. A world's state lives while the world runs with one pack snapshot: a hotload or a

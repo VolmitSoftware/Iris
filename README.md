@@ -535,7 +535,8 @@ jar, without loading it: for a build that writes a module jar and wants to fail 
 refuse. A build that checks against a full copy of an exposed library, while the host's jar strips some
 of its classes, passes the stripped ones too (`check(jar, exposedHostPackages, leftOutClasses)`, or
 `--left-out=<file>` on the command line; one Ant pattern or class per line): a jar that references one
-fails, naming the class.
+fails, naming the class. `--platform=<name>:<path to the platform api jar>`, such as `--platform=bukkit:libs/paper-api.jar`,
+also checks the jar's tooling parts of that platform (see below); without it parts are skipped and the output lists them.
 
 A module compiles against the Iris API (`com.volmit:iris-api`) as `compileOnly` (Maven: `provided`) and never ships it;
 Iris provides the API at runtime. At runtime a module can use the Iris API (`com.volmit.*` except the host side,
@@ -579,6 +580,36 @@ can use only the packages exported to them: `jdk.internal.misc.Unsafe` fails the
 Iris never downloads modules and does not check which API version a jar was built for. A pack
 ships its module jars, and keeping them compatible with the Iris version it targets is the pack
 publisher's job.
+
+### Tooling parts
+
+A module's commands, editors and importers that need a platform (Bukkit, say) ship in the same jar as a tooling part.
+The manifest names each part's entry class per platform, several entries separated by spaces:
+
+```kotlin
+tasks.jar {
+    manifest { attributes("Iris-Tooling-Parts" to "bukkit=art.arcane.iris.tools.bukkit.StudioPart") }
+}
+```
+
+A part is the entry class's package and its subpackages, and a class belongs to one part at most: entries of different
+platforms, or of nested packages, may not overlap. A malformed entry, or an entry class the jar does not hold, fails the
+pack load naming the jar and the entry.
+
+The jar's classes split in two. Generation code, everything outside the parts, is checked as above, and it may not use a
+part class: the load fails with "Generation code cannot use the bukkit part; move the call into the part", naming both
+classes. Part classes are not generation code. A host that runs on a platform (`ModuleHost.runningOn`) checks that
+platform's parts when the pack loads, and skips the parts of other platforms unread. A part can use its own packages,
+the platform's api, and what generation code can use, including the pack's own generation classes. It cannot use Iris
+internals (`art.arcane.iris.*`, except what the host exposes, such as `art.arcane.iris.builtin`), `net.minecraft`,
+`org.bukkit.craftbukkit`, `com.mojang`, `com.volmit.host`, or another part.
+
+The host loads a part through its own class loader, `ToolingPartLoader`, a child of the pack's. It defines the part's
+classes from the same jar copy, hands the platform's api packages to the platform's loader and everything else to the
+pack's loader, so a part gets the same `Class` objects the modules registered. The adapter opens it
+(`LoadedPack.openToolingPart`) and closes it before the pack; closing it leaves the pack's loader open. The generation
+loader never sees `com.volmit.tooling.<platform>`, the platform parts of the tooling api; `com.volmit.tooling` itself stays
+visible.
 
 ## Settings for studio
 
@@ -854,6 +885,11 @@ describes them for studio and resolves the three pipelines. It returns a complet
 `ModuleLoadException` with nothing left open. `close()`
 releases the pack's class loader and its jar copies. `PackModules` and `LoadedModules`, which it
 uses, stay available for tests and special cases.
+
+A host that runs on a platform tells `ModuleHost.runningOn(new PlatformApi(ToolingPlatform.BUKKIT, loader))` which
+loader holds the platform's api classes. A load then checks the pack's tooling parts of that platform;
+`LoadedPack.toolingParts()` lists them, and `openToolingPart(part)` gives a `ToolingPartLoader` whose
+`loadEntryClass()` is the part to instantiate. Close it before the pack.
 
 The host derives one seed per placement or chunk, from the world seed and the placement's stable
 identity or the chunk position, and passes it to the runner. Each stage's stream comes from that

@@ -83,15 +83,16 @@ API):
    directory means no modules.
 3. Copies them into a fresh temporary directory (see "Jar copies"). Every later step reads the
    copies; messages name the originals.
-4. Reads each jar's entry point file and its class files. Comments (`#`) and blank lines are
-   ignored; zero entry class names fail, several load in the order listed.
+4. Reads each jar's entry point file, its class files and its manifest's tooling parts (see "Tooling parts"). Comments
+   (`#`) and blank lines are ignored; zero entry class names fail, several load in the order listed.
 5. Fails if a jar holds a class of an exposed package, naming the jar and the first such class.
 6. Fails if a class is in two jars, naming the class and both jars.
 7. Resolves every class each class uses (see below). A class that Iris has but hides, a class of a
    JDK module packs cannot see or of a JDK package packs may not use, or a class missing from an
    exposed package fails the load, listing
    each referencing and referenced class per jar and kind. Classes that nobody has are collected
-   per jar. Nothing has been defined up to here.
+   per jar. Generation code that uses a tooling part's class fails too; the classes of a part are judged apart, or
+   skipped (see "Tooling parts"). Nothing has been defined up to here.
 8. Creates one `URLClassLoader` for all copies, parent = `ExposedHostClassLoader`.
 9. Loads each entry class, checks that it implements `IrisModule` and comes from its own jar,
    instantiates it with the public no-argument constructor and calls `info()`, once.
@@ -282,6 +283,51 @@ its origin, the jar path relative to the pack or "host classpath" for built-ins.
 exactly once, when the module is discovered (`DiscoveredModule.builtIn`, or step 9 for a jar), and
 everything afterwards uses the stored value, so a module whose `info()` changes between calls cannot
 give the host two answers. Errors about a module name its origin. Every jar error names the jar.
+
+### Tooling parts
+
+A module's platform tooling (the Bukkit studio, importers that read the server's structure files) cannot live in the pack
+loader, which cannot see the platform: step 7 rejects every class Iris's loader has but does not expose, and Bukkit is
+one. It also must not run on every server. The jar therefore names each part's entry class per platform in its manifest:
+
+```
+Iris-Tooling-Parts: bukkit=art.arcane.iris.tools.bukkit.StudioPart bukkit=art.arcane.iris.tools.bukkit.ImportPart
+```
+
+A part is the entry class's package with its subpackages. Entries of one platform may repeat, even in one package; any
+other overlap fails when the jar is read (step 4), as does a malformed entry or an entry class the jar lacks, so no class
+is ever in two parts. The manifest is right for the same reason as `Iris-Optional-Packages`: the declaration decides
+which loader defines a package, which is class loading mechanics of the jar and not a module's identity. The rejected
+alternatives: a service file per platform cannot name a package, and the class check needs the partition before anything
+loads; an annotation means scanning every class; a second jar per platform makes a module two artifacts and the pack
+loader would still have to skip it.
+
+**The class check partitions the jar** (`ToolingPartition`, used by `PackReferenceCheck`):
+
+- Generation classes are checked as before, and may not use a part class of any platform. The failure names both classes:
+  "Generation code cannot use the bukkit part; move the call into the part."
+- Part classes are not generation code. When the host runs on a platform (`ModuleHost.runningOn(PlatformApi)`), that
+  platform's parts are checked at pack load, so a broken part fails early while its class still loads lazily. The check
+  takes what a part may see: its own packages, generation classes, the platform's api packages (which must exist in the
+  platform's loader), and whatever generation code may see. Denied packages fail first: a part may not use Iris
+  internals, the server's own classes or the host, or another part's classes. A class the host exposes to modules is
+  never denied, which is how `art.arcane.iris.builtin` stays usable inside the denied `art.arcane.iris`.
+- Parts of other platforms are skipped unread, as are all parts when the host runs on no platform. `ModuleJarCheck`
+  does the same at build time, with `--platform=<name>:<platform api jar>` standing in for the platform's loader.
+
+`ToolingPlatform` describes a platform as a value: its name, the package prefixes of its api and the denied prefixes.
+`ToolingPlatform.BUKKIT` is Paper's. `PlatformApi` pairs it with the loader that holds the api classes, which the check
+asks by class file, so nothing loads.
+
+**`ToolingPartLoader`** is a child of the pack's loader, one per part. It defines the part's own packages itself, child
+first, from the same jar copy; refuses denied packages with a `ClassNotFoundException`; hands the platform's api packages
+to the platform's loader; and asks the pack's loader for everything else. Being a child of the pack's loader is the point:
+the part then gets the same `Class` objects the modules registered, where a sibling loader would turn a resource the jar
+defines into a `ClassCastException`. The caller opens and closes it; closing it never closes the pack's loader.
+
+`ExposedPackages` carves out every `com.volmit.tooling.<platform>` package like `com.volmit.host`: only a part sees a
+platform's tooling api. `com.volmit.tooling` itself, the neutral api, stays exposed. Enabling parts lazily, mounting their
+commands and listeners, and disabling them belongs to the platform adapter, not to the host.
 
 ### Namespaces
 

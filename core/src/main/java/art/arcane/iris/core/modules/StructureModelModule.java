@@ -40,6 +40,8 @@ import com.volmit.service.VanillaStructures;
  * ({@link StructureVanillaStructures}): the dimension's {@code importedStructures} settings disable, move, fit and set
  * them up, and the pack's structure placements replace them, place them alongside, start them where their
  * {@code nativeStructures} grids say and fit them into the terrain.
+ * <p>
+ * It mounts {@code /iris structure list|info|verify} ({@link StructureCommands}) through the tooling api.
  */
 public final class StructureModelModule implements IrisModule {
     private static final String VERSION = "built-in";
@@ -55,5 +57,6 @@ public final class StructureModelModule implements IrisModule {
         registry.registerValidator(new StructureValidator());
         registry.registerService(StructureLocator.class, new StructureLocating());
         registry.registerService(VanillaStructures.class, new StructureVanillaStructures());
+        setup.tooling().registerCommand(StructureCommands.root());
     }
 }

@@ -60,7 +60,6 @@ public final class EntitySpawning implements EntitySpawns {
     private static final int BLOCKS_TO_CHUNK_CENTRE = 8;
     private static final int CHUNK_SIZE = 16;
     private static final String CAVE_FLOOR_MARKER = "cave_floor";
-    private static final String CAVE_CEILING_MARKER = "cave_ceiling";
     private static final int AIR_ABOVE_MARKER = 1;
     private static final long COOLDOWN_CLEANUP_INTERVAL_MILLISECONDS = 60_000L;
 
@@ -96,7 +95,7 @@ public final class EntitySpawning implements EntitySpawns {
 
     @Override
     public Optional<MarkerRule> marker(PackWorld world, ResourceId tag) {
-        if (tag.path().equals(CAVE_FLOOR_MARKER) || tag.path().equals(CAVE_CEILING_MARKER)) {
+        if (tag.path().equals(CAVE_FLOOR_MARKER)) {
             return Optional.empty();
         }
         SpawnMarker marker = SpawnResources.marker(world.resources(), tag.path());

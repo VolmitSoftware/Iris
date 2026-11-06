@@ -22,9 +22,7 @@ import com.volmit.resource.ResourceId;
 import com.volmit.world.PackWorld;
 
 /**
- * The purposes Iris's built-in modules ask {@link PackWorld#seed(ResourceId)} for. Iris answers each with the seed its
- * worlds always used for that feature, derived one after another from a shared random rather than by the API's rule,
- * so worlds generated before the features were modules generate the same.
+ * The purposes Iris's built-in modules ask {@link PackWorld#seed(ResourceId)} for, one per feature.
  */
 public final class IrisSeedPurposes {
     public static final ResourceId BIOME = purpose("biome");

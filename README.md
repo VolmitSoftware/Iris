@@ -150,7 +150,7 @@ per target across all modules and Iris's own fields, so a new built-in or pack m
 
 Every built-in stage is a full port: the module owns its logic and per-engine state, and the mantle stages
 work out their reach from the pack when it loads. A dimension's `disabledComponents` turns a mantle stage off
-by its flag (`CARVED`, `OBJECT`, `FLOATING_OBJECT`, `JIGSAW`) or by its stage id.
+by its stage id, such as `iris:carve/caves`; a name that matches no stage fails the world.
 
 ## Building
 
@@ -206,8 +206,8 @@ through the thread or a cast: a module asks `world.extension(X.class)` for what 
 `StructureHost`, `spawn.SpawnCooldowns`), `context.extension(X.class)` for what belongs to one invocation (`MatterMantle`
 in a chunk or mantle stage) and `settings.extension(X.class)` for a reach worked out
 before any world exists, each with `.orElseThrow()`, since a built-in runs only where Iris offers them. Iris's per-feature world seeds are
-IrisApi purpose seeds: `world.seed(IrisSeedPurposes.CARVE)` (`iris:seed/carve`), which Iris answers with the seeds its worlds always
-had, so existing worlds generate the same; `spawn.SpawnCooldowns` (the spawner cooldowns
+IrisApi purpose seeds: `world.seed(IrisSeedPurposes.CARVE)` (`iris:seed/carve`), by the API's rule like any module's;
+`spawn.SpawnCooldowns` (the spawner cooldowns
 Iris saves with the world's data, so they survive a restart),
 `loot.LootResolver` (the random streams loot is drawn from, shared with the hosts that fill containers) and the loot and
 marker lists of an object placement (`loot.ObjectLoot`, `loot.ObjectVanillaLoot`, `spawn.PlacementMarker`). The placement stages need more of the object being

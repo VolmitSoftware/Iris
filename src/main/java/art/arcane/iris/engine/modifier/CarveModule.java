@@ -126,7 +126,7 @@ public final class CarveModule implements IrisModule {
     }
 
     /**
-     * A dimension turns carving off with {@code carvingEnabled}. Listing {@code CARVED} in {@code disabledComponents}
+     * A dimension turns carving off with {@code carvingEnabled}. Listing {@code iris:carve/caves} in {@code disabledComponents}
      * also does: Iris then skips this stage's mantle pass like any disabled component.
      */
     private static boolean carves(ChunkContext context) {

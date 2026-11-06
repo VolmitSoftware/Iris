@@ -11,15 +11,20 @@ import java.util.TreeSet;
  * as the packages of built-in modules whose stages packs may require. A package is exposed with
  * all its subpackages, and only whole package names match: {@code com.volmit} does not expose
  * {@code com.volmitx}. The host side of IrisApi, {@code com.volmit.host}, lies inside the API's
- * root package but is never exposed: it loads and runs modules, and no module may reach it.
+ * root package but is never exposed: it loads and runs modules, and no module may reach it. The
+ * platform packages of the tooling api, {@code com.volmit.tooling.<platform>}, are never exposed either:
+ * only a tooling part may use them. The neutral {@code com.volmit.tooling} stays exposed.
  */
 final class ExposedPackages {
     /** The root package of the Iris API. Module classes must not use it. */
     static final String API_PACKAGE = IrisModule.class.getPackageName();
     /** The host side of IrisApi, which packs never see, though it lies inside {@link #API_PACKAGE}. */
     static final String HOST_PACKAGE = ExposedPackages.class.getPackageName();
+    /** The neutral tooling api. Each platform's own api is a subpackage of it, such as {@code com.volmit.tooling.bukkit}. */
+    static final String TOOLING_PACKAGE = API_PACKAGE + ".tooling";
     private static final PackageName API = new PackageName(API_PACKAGE);
     private static final PackageName HOST = new PackageName(HOST_PACKAGE);
+    private static final PackageName TOOLING = new PackageName(TOOLING_PACKAGE);
     private static final char PACKAGE_SEPARATOR = '.';
     private static final char PATH_SEPARATOR = '/';
 
@@ -50,12 +55,13 @@ final class ExposedPackages {
     }
 
     boolean exposes(String binaryName) {
-        return !HOST.contains(binaryName) && packages.stream().anyMatch(name -> name.contains(binaryName));
+        return reachesPacks(binaryName) && !isToolingPlatformPackage(packageNameOf(binaryName, PACKAGE_SEPARATOR));
     }
 
     /** Whether a resource path, such as {@code com/volmit/IrisModule.class}, lies in an exposed package. */
     boolean exposesResource(String path) {
-        return exposes(path.replace(PATH_SEPARATOR, PACKAGE_SEPARATOR));
+        var directory = packageNameOf(path, PATH_SEPARATOR).replace(PATH_SEPARATOR, PACKAGE_SEPARATOR);
+        return reachesPacks(path.replace(PATH_SEPARATOR, PACKAGE_SEPARATOR)) && !isToolingPlatformPackage(directory);
     }
 
     /** The exposed package a class is in; the most specific one when exposed packages nest. */
@@ -65,6 +71,21 @@ final class ExposedPackages {
                 .map(PackageName::name)
                 .max(Comparator.comparingInt(String::length))
                 .orElseThrow(() -> new IllegalArgumentException(binaryName + " is not in an exposed package"));
+    }
+
+    private boolean reachesPacks(String dottedName) {
+        return !HOST.contains(dottedName) && packages.stream().anyMatch(name -> name.contains(dottedName));
+    }
+
+    /** Whether the package lies below {@code com.volmit.tooling}, where each platform's api has its package. */
+    private static boolean isToolingPlatformPackage(String packageName) {
+        return TOOLING.contains(packageName);
+    }
+
+    /** What precedes the last separator: the package of a class name, or the directory of a resource path. */
+    private static String packageNameOf(String name, char separator) {
+        int lastSeparator = name.lastIndexOf(separator);
+        return lastSeparator < 0 ? "" : name.substring(0, lastSeparator);
     }
 
     private static PackageName requireExposable(PackageName name) {

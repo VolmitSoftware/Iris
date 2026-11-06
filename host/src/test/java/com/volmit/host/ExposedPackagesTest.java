@@ -34,6 +34,28 @@ class ExposedPackagesTest {
     }
 
     @Test
+    void platformToolingPackagesAreNeverExposedButTheNeutralToolingApiIs() {
+        var exposed = ExposedPackages.apiAnd(List.of("com"));
+
+        assertEquals("com.volmit.tooling", ExposedPackages.TOOLING_PACKAGE);
+        assertTrue(exposed.exposes("com.volmit.tooling.Command"));
+        assertTrue(exposed.exposes("com.volmit.tooling.Command$Builder"));
+        assertFalse(exposed.exposes("com.volmit.tooling.bukkit.BukkitToolPart"));
+        assertFalse(exposed.exposes("com.volmit.tooling.modded.deep.ModdedToolPart"));
+        assertTrue(exposed.exposes("com.volmit.toolingx.Other"));
+        assertTrue(exposed.exposes("com.volmit.tool.bukkit.Other"));
+    }
+
+    @Test
+    void platformToolingResourcesAreHiddenLikeTheirClasses() {
+        var exposed = ExposedPackages.apiOnly();
+
+        assertTrue(exposed.exposesResource("com/volmit/tooling/Command.class"));
+        assertFalse(exposed.exposesResource("com/volmit/tooling/bukkit/BukkitToolPart.class"));
+        assertFalse(exposed.exposesResource("com/volmit/tooling/bukkit/part.yml"));
+    }
+
+    @Test
     void onlyWholePackageNamesMatch() {
         var exposed = ExposedPackages.apiAnd(List.of("example.builtin"));
 

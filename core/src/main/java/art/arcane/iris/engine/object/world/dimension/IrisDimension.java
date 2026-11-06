@@ -213,7 +213,7 @@ public class IrisDimension extends IrisRegistrant {
     private KList<String> datapackImports = new KList<>();
     @RegistryListFunction(ComponentFlagFunction.class)
     @ArrayType(type = String.class)
-    @Desc("Mantle passes to skip in this dimension: CARVED (caves), OBJECT (objects), FLOATING_OBJECT (objects on floating islands) or JIGSAW (structures), or the id of a pack module's mantle stage, such as example:moss/veins. A name that matches nothing is warned about and ignored.")
+    @Desc("Mantle passes to skip in this dimension, by the id of their mantle stage, such as iris:carve/caves (caves), iris:objects/place (objects), iris:floating/objects (objects on floating islands), iris:structure/place (structures) or a pack module's example:moss/veins. A name that matches no stage fails the world.")
     private KList<String> disabledComponents = new KList<>();
 
     public int getMaxHeight() {

@@ -35,6 +35,7 @@ import com.volmit.config.Range;
 import com.volmit.noise.StyledRange;
 import com.volmit.geometry.BlockPosition;
 import com.volmit.resource.PackResources;
+import com.volmit.resource.ResourceId;
 
 import java.util.Map;
 import java.util.Optional;
@@ -95,16 +96,17 @@ public final class IrisValues {
     }
 
     /**
-     * {@code style} as the generator style Iris builds noise from; a style name Iris does not know is flat. For behaviour that
-     * reads Iris's generator itself, such as the cave carvers' signed 3D reads, which {@code PackResources.noise()} does not offer.
-     * The expression and image map ids become the pack keys of {@code resources} that have them.
+     * {@code style} as the generator style Iris builds noise from. For behaviour that reads Iris's generator itself, such as
+     * the cave carvers' signed 3D reads, which {@code PackResources.noise()} does not offer. The expression and image map
+     * ids become the pack keys of {@code resources} that have them. A style name Iris does not know, or an expression the
+     * pack does not have, throws {@link IllegalArgumentException}.
      */
     public static IrisGeneratorStyle generatorStyle(com.volmit.noise.NoiseStyle style, IrisPackResources resources) {
         IrisGeneratorStyle iris = new IrisGeneratorStyle(irisStyle(style.style()));
         iris.setCellularFrequency(style.cellularFrequency());
         iris.setCellularZoom(style.cellularZoom());
         iris.setZoom(style.zoom());
-        iris.setExpression(style.expression().map(id -> resources.keyOf(PackResources.EXPRESSIONS, id)).orElse(null));
+        iris.setExpression(style.expression().map(id -> expressionKey(id, resources)).orElse(null));
         iris.setImageMap(style.imageMap().map(id -> resources.keyOf(PackResources.IMAGE_MAPS, id)).orElse(null));
         iris.setMultiplier(style.multiplier());
         iris.setFracture(style.fracture().map(fracture -> generatorStyle(fracture, resources)).orElse(null));
@@ -148,7 +150,14 @@ public final class IrisValues {
         try {
             return NoiseStyle.valueOf(name);
         } catch (IllegalArgumentException unknown) {
-            return NoiseStyle.FLAT;
+            throw new IllegalArgumentException("Iris has no noise style \"" + name + "\"", unknown);
         }
+    }
+
+    private static String expressionKey(ResourceId id, IrisPackResources resources) {
+        if (!resources.ids(PackResources.EXPRESSIONS).contains(id)) {
+            throw new IllegalArgumentException("The pack has no expression " + id);
+        }
+        return resources.keyOf(PackResources.EXPRESSIONS, id);
     }
 }

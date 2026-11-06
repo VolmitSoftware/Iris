@@ -18,13 +18,13 @@ import java.util.List;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 
-/** Studio offers the flags of Iris's own mantle stages for a dimension's disabledComponents, then the pack's mantle stage ids. */
+/** Studio offers the ids of the pack's mantle stages, in their order, for a dimension's disabledComponents. */
 public class ComponentFlagFunctionTest {
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();
 
     @Test
-    public void offersTheFlagsOfIrisMantleStagesInTheirOrderThenThePacksMantleStageIds() throws IOException {
+    public void offersTheIdsOfThePacksMantleStagesInTheirOrder() throws IOException {
         IrisModule moss = new IrisModule() {
             public ModuleInfo info() { return ModuleInfo.of("test:moss", "Moss", "1"); }
             public void setup(ModuleSetup setup) {
@@ -34,7 +34,8 @@ public class ComponentFlagFunctionTest {
         IrisData data = mock(IrisData.class);
 
         try (LoadedPack ignored = BuiltInPack.serve(data, folder, List.of(moss))) {
-            assertEquals(List.of("CARVED", "OBJECT", "FLOATING_OBJECT", "JIGSAW", "test:moss/veins"), new ComponentFlagFunction().apply(data));
+            assertEquals(List.of("iris:carve/caves", "iris:objects/place", "iris:floating/objects", "iris:structure/place", "test:moss/veins"),
+                    new ComponentFlagFunction().apply(data));
         }
     }
 }

@@ -7,6 +7,7 @@ import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.object.material.IrisBlockData;
 import art.arcane.iris.engine.object.material.IrisMaterialPalette;
 import art.arcane.iris.engine.object.noise.IrisGeneratorStyle;
+import art.arcane.iris.engine.object.noise.expression.IrisExpression;
 import art.arcane.iris.engine.object.prefab.TileData;
 import art.arcane.iris.spi.IrisPlatform;
 import art.arcane.iris.spi.IrisPlatforms;
@@ -201,15 +202,29 @@ public class IrisValuesTest {
     }
 
     @Test
-    public void aStyleNameIrisDoesNotKnowIsFlat() {
-        IrisData data = packWithoutCustomBlocks();
-        IrisNoiseFactory noise = noiseOf(data);
-        NoiseSampler unknown = noise.sampler(NoiseStyle.of("NOT_A_STYLE"), 7);
-        NoiseSampler flat = noise.sampler(NoiseStyle.of(NoiseStyle.FLAT), 7);
+    public void aStyleNameIrisDoesNotKnowFails() {
+        IrisNoiseFactory noise = noiseOf(packWithoutCustomBlocks());
 
-        for (double[] column : COLUMNS) {
-            assertEquals(flat.sample(column[0], column[1]), unknown.sample(column[0], column[1]), 0);
-        }
+        IllegalArgumentException failure = assertThrows(IllegalArgumentException.class,
+                () -> noise.sampler(NoiseStyle.of("NOT_A_STYLE"), 7));
+
+        assertEquals("Iris has no noise style \"NOT_A_STYLE\"", failure.getMessage());
+    }
+
+    @Test
+    public void anExpressionThePackDoesNotHaveFails() {
+        IrisData data = packWithoutCustomBlocks();
+        @SuppressWarnings("unchecked")
+        ResourceLoader<IrisExpression> noExpressions = mock(ResourceLoader.class);
+        when(noExpressions.getPossibleKeys()).thenReturn(new String[0]);
+        when(data.getExpressionLoader()).thenReturn(noExpressions);
+        IrisNoiseFactory noise = noiseOf(data);
+        String json = "{\"style\": \"SIMPLEX\", \"expression\": {\"namespace\": \"test\", \"path\": \"missing\"}}";
+
+        IllegalArgumentException failure = assertThrows(IllegalArgumentException.class,
+                () -> noise.sampler(new Gson().fromJson(json, NoiseStyle.class), 7));
+
+        assertEquals("The pack has no expression test:missing", failure.getMessage());
     }
 
     @Test

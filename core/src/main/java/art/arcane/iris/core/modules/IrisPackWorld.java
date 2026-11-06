@@ -26,7 +26,6 @@ import com.volmit.ModuleLog;
 import com.volmit.config.PackSettings;
 import com.volmit.host.WorldStates;
 import com.volmit.placement.Placements;
-import com.volmit.resource.ResourceId;
 import com.volmit.world.PackWorld;
 import com.volmit.world.RunningWorld;
 import java.util.Optional;
@@ -75,10 +74,6 @@ public final class IrisPackWorld implements PackWorld {
         return engine.getSeedManager().getSeed();
     }
 
-    @Override
-    public long seed(ResourceId purpose) {
-        return IrisWorldSeeds.seed(engine.getSeedManager(), purpose);
-    }
 
     @Override
     public IrisPackResources resources() {

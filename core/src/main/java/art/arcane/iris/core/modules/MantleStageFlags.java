@@ -18,45 +18,25 @@
 
 package art.arcane.iris.core.modules;
 
-import art.arcane.iris.builtin.IrisStages;
 import art.arcane.volmlib.util.mantle.flag.MantleFlag;
-import art.arcane.volmlib.util.mantle.flag.ReservedFlag;
 import com.volmit.host.ResolvedStage;
 import com.volmit.resource.ResourceId;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 /**
- * The mantle flag of each mantle stage: it marks a mantle chunk whose stage has run, and names the stage in a
- * dimension's {@code disabledComponents} when it is one of Iris's own. Iris's own mantle stages keep the flags
- * their mantle components had, so packs that disable {@code CARVED} keep doing so and existing worlds stay
- * marked. Every other stage gets a custom flag in resolved order, so adding or removing a pack mantle stage can
- * renumber the stages after it; those flags stay internal and a dimension names such a stage by its id.
+ * The mantle flag of each mantle stage, which marks a mantle chunk whose stage has run. Every stage gets a custom
+ * flag in resolved order, so adding or removing a mantle stage can renumber the stages after it. The flags stay
+ * internal: a dimension names a stage in {@code disabledComponents} by its id.
  */
 public final class MantleStageFlags {
-    private static final List<BuiltIn> BUILT_IN = List.of(
-            new BuiltIn(IrisStages.Carve.CAVES.id(), ReservedFlag.CARVED),
-            new BuiltIn(IrisStages.Objects.PLACE.id(), ReservedFlag.OBJECT),
-            new BuiltIn(IrisStages.Floating.OBJECTS.id(), ReservedFlag.FLOATING_OBJECT),
-            new BuiltIn(IrisStages.Structure.PLACE.id(), ReservedFlag.JIGSAW));
-
     private MantleStageFlags() {
     }
 
-    /** The flags of Iris's own mantle stages, in their order, which a dimension can list in {@code disabledComponents}. */
-    public static List<MantleFlag> builtIn() {
-        return BUILT_IN.stream().map(BuiltIn::flag).toList();
-    }
-
-    /** The ids of the mantle stages that have no flag of their own, which a dimension names by id in {@code disabledComponents}. */
-    public static List<String> packStageIds(List<ResolvedStage> stages) {
-        return stages.stream()
-                .map(stage -> stage.stage().id())
-                .filter(id -> builtInFlag(id).isEmpty())
-                .map(ResourceId::toString)
-                .toList();
+    /** The ids of {@code stages}, which a dimension names in {@code disabledComponents}. */
+    public static List<String> stageIds(List<ResolvedStage> stages) {
+        return stages.stream().map(stage -> stage.stage().id()).map(ResourceId::toString).toList();
     }
 
     /** One flag per stage, in the order of {@code stages}. */
@@ -64,11 +44,6 @@ public final class MantleStageFlags {
         List<MantleFlag> flags = new ArrayList<>(stages.size());
         int nextCustom = MantleFlag.MIN_ORDINAL;
         for (ResolvedStage stage : stages) {
-            Optional<MantleFlag> builtIn = builtInFlag(stage.stage().id());
-            if (builtIn.isPresent()) {
-                flags.add(builtIn.get());
-                continue;
-            }
             if (nextCustom > MantleFlag.MAX_ORDINAL) {
                 throw new IllegalStateException("The pack has more mantle stages than Iris has mantle flags for; stage "
                         + stage.stage().id() + " of module " + stage.module() + " is one too many");
@@ -76,12 +51,5 @@ public final class MantleStageFlags {
             flags.add(MantleFlag.of(nextCustom++));
         }
         return List.copyOf(flags);
-    }
-
-    static Optional<MantleFlag> builtInFlag(ResourceId stage) {
-        return BUILT_IN.stream().filter(builtIn -> builtIn.stage().equals(stage)).map(BuiltIn::flag).findFirst();
-    }
-
-    private record BuiltIn(ResourceId stage, MantleFlag flag) {
     }
 }

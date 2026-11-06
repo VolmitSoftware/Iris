@@ -18,17 +18,13 @@
 
 package art.arcane.iris.core.modules;
 
-import art.arcane.iris.spi.IrisLogging;
 import com.volmit.host.ResolvedStage;
 
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
-/**
- * The names in a dimension's {@code disabledComponents}: the flag of one of Iris's own mantle stages
- * ({@code CARVED}) or the id of any mantle stage ({@code example:moss/veins}).
- */
+/** The names in a dimension's {@code disabledComponents}: ids of mantle stages, such as {@code iris:carve/caves}. */
 final class DisabledComponents {
     private final Set<String> names;
 
@@ -37,23 +33,23 @@ final class DisabledComponents {
     }
 
     boolean disables(ResolvedStage stage) {
-        return names.stream().anyMatch(name -> isNamed(stage, name));
+        return names.contains(stage.stage().id().toString());
     }
 
     /** The names that match none of {@code stages}, sorted. */
     List<String> unknown(List<ResolvedStage> stages) {
-        return names.stream().filter(name -> stages.stream().noneMatch(stage -> isNamed(stage, name))).sorted().toList();
+        List<String> stageIds = MantleStageFlags.stageIds(stages);
+        return names.stream().filter(name -> !stageIds.contains(name)).sorted().toList();
     }
 
-    void warnAboutUnknown(List<ResolvedStage> stages) {
-        for (String name : unknown(stages)) {
-            IrisLogging.warn("disabledComponents names \"%s\", which is neither a mantle flag of Iris (%s) nor the id of a mantle stage of the pack; ignored.",
-                    name, MantleStageFlags.builtIn());
+    /** Fails when a name matches no mantle stage of the pack, listing the ids it could name. */
+    void requireKnown(List<ResolvedStage> stages) {
+        List<String> unknown = unknown(stages);
+        if (unknown.isEmpty()) {
+            return;
         }
-    }
-
-    private static boolean isNamed(ResolvedStage stage, String name) {
-        return stage.stage().id().toString().equals(name)
-                || MantleStageFlags.builtInFlag(stage.stage().id()).filter(flag -> flag.name().equals(name)).isPresent();
+        throw new IllegalArgumentException("disabledComponents names " + unknown + ", which "
+                + (unknown.size() == 1 ? "is not the id" : "are not ids") + " of mantle stages of the pack: "
+                + MantleStageFlags.stageIds(stages));
     }
 }

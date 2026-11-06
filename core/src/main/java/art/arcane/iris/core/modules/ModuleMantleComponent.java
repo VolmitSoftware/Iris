@@ -62,7 +62,7 @@ public final class ModuleMantleComponent implements MantleComponent {
 
     /**
      * One component per mantle stage of the engine's pack, in resolved order, each its own pass. A stage named in
-     * {@code disabledComponents} is turned off; a name that matches no stage is warned about.
+     * {@code disabledComponents} is turned off; a name that matches no stage fails.
      */
     public static List<ModuleMantleComponent> forPack(Engine engine, Collection<String> disabledComponents) {
         return forPack(engine, engine.getData().getModules().pack(), disabledComponents);
@@ -71,7 +71,7 @@ public final class ModuleMantleComponent implements MantleComponent {
     static List<ModuleMantleComponent> forPack(Engine engine, LoadedPack pack, Collection<String> disabledComponents) {
         ResolvedGraph graph = pack.mantle();
         DisabledComponents disabled = new DisabledComponents(disabledComponents);
-        disabled.warnAboutUnknown(graph.stages());
+        disabled.requireKnown(graph.stages());
         MantleRunner runner = new MantleRunner(graph);
         IrisPackSettings settings = new IrisPackSettings(engine);
         List<MantleFlag> flags = MantleStageFlags.assign(graph.stages());

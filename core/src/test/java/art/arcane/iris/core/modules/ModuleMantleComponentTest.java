@@ -23,9 +23,7 @@ import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.EngineGeneration;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
-import art.arcane.iris.spi.IrisLogging;
 import art.arcane.volmlib.util.mantle.flag.MantleFlag;
-import art.arcane.volmlib.util.mantle.flag.ReservedFlag;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
 import com.volmit.ModuleSetup;
@@ -35,19 +33,13 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-import org.mockito.MockedStatic;
 
 import java.io.IOException;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.contains;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.when;
 
 /** Every mantle stage is a mantle pass of its own, in the stage graph's order. */
@@ -78,16 +70,17 @@ public class ModuleMantleComponentTest {
     @Test
     public void everyMantleStageIsAPassOfItsOwnWithItsFlagAndThePacksReach() throws IOException {
         try (LoadedPack ignored = BuiltInPack.serve(data, folder, List.of(marks))) {
-            List<ModuleMantleComponent> components = ModuleMantleComponent.forPack(engine, List.of("CARVED"));
+            List<ModuleMantleComponent> components = ModuleMantleComponent.forPack(engine, List.of("iris:carve/caves"));
 
             assertEquals(List.of("iris:carve/caves", "iris:objects/place", "iris:floating/objects", "iris:structure/place", "test:marks/mark"),
                     components.stream().map(component -> component.stage().stage().id().toString()).toList());
-            assertEquals(List.of(ReservedFlag.CARVED, ReservedFlag.OBJECT, ReservedFlag.FLOATING_OBJECT, ReservedFlag.JIGSAW, MantleFlag.of(MantleFlag.MIN_ORDINAL)),
+            int first = MantleFlag.MIN_ORDINAL;
+            assertEquals(List.of(MantleFlag.of(first), MantleFlag.of(first + 1), MantleFlag.of(first + 2), MantleFlag.of(first + 3), MantleFlag.of(first + 4)),
                     components.stream().map(ModuleMantleComponent::getFlag).toList());
             assertEquals(List.of(0, 1, 2, 3, 4), components.stream().map(ModuleMantleComponent::getPriority).toList());
             assertEquals("a pack without objects or structures: caves 1, floating objects at least 16", List.of(1, 0, 16, 0, MARK_REACH),
                     components.stream().map(ModuleMantleComponent::getRadius).toList());
-            assertEquals("disabledComponents: [CARVED] turns the cave pass off", List.of(false, true, true, true, true),
+            assertEquals("disabledComponents: [iris:carve/caves] turns the cave pass off", List.of(false, true, true, true, true),
                     components.stream().map(ModuleMantleComponent::isEnabled).toList());
         }
     }
@@ -102,28 +95,15 @@ public class ModuleMantleComponentTest {
     }
 
     @Test
-    public void anIrisStageIsDisabledByItsIdAsWellAsByItsFlag() throws IOException {
+    public void aNameThatIsNoStageFailsListingTheStageIds() throws IOException {
         try (LoadedPack ignored = BuiltInPack.serve(data, folder, List.of(marks))) {
-            List<ModuleMantleComponent> byId = ModuleMantleComponent.forPack(engine, List.of("iris:objects/place"));
-            List<ModuleMantleComponent> byFlag = ModuleMantleComponent.forPack(engine, List.of("OBJECT"));
+            List<String> names = List.of("test:marks/missing", "CARVED", "iris:carve/caves");
 
-            assertEquals(List.of(true, false, true, true, true), byId.stream().map(ModuleMantleComponent::isEnabled).toList());
-            assertEquals(List.of(true, false, true, true, true), byFlag.stream().map(ModuleMantleComponent::isEnabled).toList());
-        }
-    }
+            IllegalArgumentException failure = assertThrows(IllegalArgumentException.class,
+                    () -> ModuleMantleComponent.forPack(engine, names));
 
-    @Test
-    public void aNameThatIsNoStageIsWarnedAboutAndDisablesNothing() throws IOException {
-        try (LoadedPack ignored = BuiltInPack.serve(data, folder, List.of(marks));
-             MockedStatic<IrisLogging> logging = mockStatic(IrisLogging.class)) {
-            List<String> names = List.of("test:marks/missing", "CUSTOM:64", "CARVED");
-
-            List<ModuleMantleComponent> components = ModuleMantleComponent.forPack(engine, names);
-
-            assertEquals(List.of(false, true, true, true, true), components.stream().map(ModuleMantleComponent::isEnabled).toList());
-            logging.verify(() -> IrisLogging.warn(contains("disabledComponents names"), eq("CUSTOM:64"), any()), times(1));
-            logging.verify(() -> IrisLogging.warn(contains("disabledComponents names"), eq("test:marks/missing"), any()), times(1));
-            logging.verify(() -> IrisLogging.warn(anyString(), any(Object[].class)), times(2));
+            assertEquals("disabledComponents names [CARVED, test:marks/missing], which are not ids of mantle stages of the pack: "
+                    + "[iris:carve/caves, iris:objects/place, iris:floating/objects, iris:structure/place, test:marks/mark]", failure.getMessage());
         }
     }
 }

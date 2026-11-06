@@ -18,11 +18,9 @@
 
 package art.arcane.iris.core.modules;
 
-import art.arcane.iris.builtin.IrisSeedPurposes;
 import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.engine.framework.Engine;
-import art.arcane.iris.engine.framework.SeedManager;
 import art.arcane.iris.engine.object.world.dimension.IrisDimension;
 import art.arcane.iris.spi.IrisPlatforms;
 import com.volmit.ModuleLog;
@@ -50,7 +48,6 @@ import static org.mockito.Mockito.when;
  */
 public class ModuleLogTest {
     private static final String MODULE = "iris:decorant";
-    private static final long POST_SEED = 9L;
 
     private final ByteArrayOutputStream out = new ByteArrayOutputStream();
     private final ByteArrayOutputStream err = new ByteArrayOutputStream();
@@ -131,17 +128,13 @@ public class ModuleLogTest {
     }
 
     @Test
-    public void theWorldOffersIrissOwnCodeTheEngineAndAnswersItsSeedPurposesWithTheLegacySeeds() {
+    public void theWorldOffersIrissOwnCodeTheEngine() {
         Engine engine = mock(Engine.class);
         when(engine.getData()).thenReturn(mock(IrisData.class));
         when(engine.getDimension()).thenReturn(new IrisDimension());
-        SeedManager seeds = mock(SeedManager.class);
-        when(seeds.getPost()).thenReturn(POST_SEED);
-        when(engine.getSeedManager()).thenReturn(seeds);
         PackWorld world = new IrisPackWorld(engine);
 
         assertSame(engine, world.extension(Engine.class).orElseThrow());
-        assertEquals(POST_SEED, world.seed(IrisSeedPurposes.POST));
         assertTrue("nothing else is offered", world.extension(String.class).isEmpty());
     }
 

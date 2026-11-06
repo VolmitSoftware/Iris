@@ -828,7 +828,7 @@ public final class ApiChunk implements GenerationContext {
         }
 
         @Override
-        public BlockState withProperty(BlockState state, String name, String value) {
+        public BlockState withPropertyIfAccepted(BlockState state, String name, String value) {
             return state.withProperty(name, value);
         }
 

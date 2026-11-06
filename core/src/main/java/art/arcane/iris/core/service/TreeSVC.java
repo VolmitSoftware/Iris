@@ -210,7 +210,7 @@ public class TreeSVC implements IrisService {
         }
 
         @Override
-        public com.volmit.block.BlockState blockAt(int x, int y, int z) {
+        public com.volmit.block.BlockState get(int x, int y, int z) {
             int worldY = y + world.getMinHeight();
             if (saplingPlane.contains(x, worldY, z)) {
                 return AIR;

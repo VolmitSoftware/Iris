@@ -158,7 +158,7 @@ final class IrisBlockRegistry implements BlockRegistry {
     }
 
     @Override
-    public BlockState withProperty(BlockState state, String name, String value) {
+    public BlockState withPropertyIfAccepted(BlockState state, String name, String value) {
         try {
             return apiState(platformState(state).withProperty(name, value));
         } catch (IllegalArgumentException notAccepted) {

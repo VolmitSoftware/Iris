@@ -138,7 +138,7 @@ public class IrisBlockRegistryTest {
         when(sand.withProperty("facing", "up")).thenThrow(new IllegalArgumentException("Could not parse data: minecraft:sand[facing=up]"));
         BlockState sandState = BlockState.parse("minecraft:sand");
 
-        assertEquals(sandState, blocks.withProperty(sandState, "facing", "up"));
+        assertEquals(sandState, blocks.withPropertyIfAccepted(sandState, "facing", "up"));
     }
 
     @Test

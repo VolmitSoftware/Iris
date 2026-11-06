@@ -134,8 +134,8 @@ public class IrisRunningWorldTest {
         when(engine.getHeight(X, Z, true)).thenReturn(60);
         when(engine.getHeight(X, Z, false)).thenReturn(63);
 
-        assertEquals(60, running.highestBlock(X, Z, true));
-        assertEquals(63, running.highestBlock(X, Z, false));
+        assertEquals(60, running.highest(X, Z, true));
+        assertEquals(63, running.highest(X, Z, false));
     }
 
     @Test

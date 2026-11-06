@@ -79,7 +79,7 @@ final class IrisRunningWorld implements RunningWorld {
     }
 
     @Override
-    public int highestBlock(int worldX, int worldZ, boolean ignoreFluid) {
+    public int highest(int worldX, int worldZ, boolean ignoreFluid) {
         return engine.getHeight(worldX, worldZ, ignoreFluid);
     }
 

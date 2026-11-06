@@ -21,15 +21,15 @@ public final class MemoryMantle {
             .thenComparingInt(BlockPosition::y).thenComparingInt(BlockPosition::z);
 
     /** Where the planned blocks are kept; the host owns them, so no module registers this layer. */
-    private static final MantleKey<BlockState> PLANNED_BLOCKS = new MantleKey<>("host:planned-blocks", BlockState.class);
+    private static final MantleKey<BlockState> PLANNED_BLOCKS = new MantleKey<>(ResourceId.parse("host:planned-blocks"),BlockState.class);
 
     /** Where the carved voids are kept; the host owns them, so no module registers this layer. */
-    private static final MantleKey<CarvedVoid> CAVERNS = new MantleKey<>("host:caverns", CarvedVoid.class);
+    private static final MantleKey<CarvedVoid> CAVERNS = new MantleKey<>(ResourceId.parse("host:caverns"),CarvedVoid.class);
 
     /** Where the platform biomes stages set are kept; the host owns them, so no module registers this layer. */
-    private static final MantleKey<ResourceId> PLATFORM_BIOMES = new MantleKey<>("host:platform-biomes", ResourceId.class);
+    private static final MantleKey<ResourceId> PLATFORM_BIOMES = new MantleKey<>(ResourceId.parse("host:platform-biomes"),ResourceId.class);
 
-    private final Map<String, TreeMap<BlockPosition, Object>> layers = new HashMap<>();
+    private final Map<ResourceId, TreeMap<BlockPosition, Object>> layers = new HashMap<>();
 
     /** A view that accepts reads and writes inside {@code bounds} only. */
     public Mantle within(BlockBox bounds) {

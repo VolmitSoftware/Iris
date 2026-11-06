@@ -1148,8 +1148,12 @@ each world a state store and tells modules when worlds start and stop.
   chain instead of recursing or deadlocking. A factory that throws keeps nothing. Reads of existing state take no lock.
   `WorldStates` is the reference store hosts use.
 - **Saved state.** The store is memory, so what must survive a restart goes through `RunningWorld.saved(SavedKey)`
-  instead (the running world, because only it has a folder). A `SavedKey` is a namespaced id, the value class, a
-  `com.volmit.data.Codec` (the one mantle layers use) and an `initial` supplier. The host keeps one instance per key,
+  instead (the running world, because only it has a folder). A `SavedKey` is a `ResourceId`, the value class, a
+  `com.volmit.data.StorageCodec` (the one mantle layers use) and an `initial` supplier. A module registers it in its
+  setup with `FeatureRegistry.registerSaved`, owned like a mantle key (its id is the module's or below it), and `saved`
+  rejects a key nobody registered, so every stored file has a registered owner. `saved` cannot tell which module asks:
+  it accepts exactly the registered key, and rejects a key built with a registered id (such as one forged in another
+  module's namespace). The host keeps one instance per key,
   reads it on the first ask, and writes it when it saves the world and when the world stops, so the world a hotload
   starts reads what the stopped one wrote. The module mutates the value in place and owns its thread safety, so the
   codec's `write` must tolerate concurrent changes. A payload the codec rejects is logged and replaced by `initial`: a

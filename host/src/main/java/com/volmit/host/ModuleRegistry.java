@@ -4,7 +4,8 @@ import com.volmit.FeatureRegistry;
 import com.volmit.IrisFeature;
 import com.volmit.ModuleLifecycle;
 import com.volmit.config.Level;
-import com.volmit.data.Codec;
+import com.volmit.data.SavedKey;
+import com.volmit.data.StorageCodec;
 import com.volmit.mantle.MantleKey;
 import com.volmit.mantle.MantleLifetime;
 import com.volmit.resource.ResourceId;
@@ -27,7 +28,7 @@ import java.util.Set;
  * immutable. IDs are unique across feature kinds. A feature's JSON key (see {@link com.volmit.config.Feature#key})
  * is unique per attachment target, and may not equal a host JSON field passed in to reserve it; a clash fails the
  * registration naming the key, the target and both claimants. Modules register during their setup
- * ({@link ModuleSetups#run}); mantle keys, resource kind ids and explicitly registered
+ * ({@link ModuleSetups#run}); mantle keys, saved keys, resource kind ids and explicitly registered
  * settings ids must be the registering module's id or start with it and '/' ({@link com.volmit.ModuleInfo#ownsId}).
  * Resource kinds have unique ids, types and folders, and no kind may read a folder the host reserves for its own
  * files. Lifecycle hooks and service providers are registered by the module that owns them; a service whose providers
@@ -38,7 +39,8 @@ import java.util.Set;
  */
 public final class ModuleRegistry implements FeatureRegistry, ToolingRegistry {
     private final Map<Class<?>, FeatureDescriptor<?>> settings = new HashMap<>();
-    private final Map<String, MantleRegistration<?>> mantle = new HashMap<>();
+    private final Map<ResourceId, MantleRegistration<?>> mantle = new HashMap<>();
+    private final Map<ResourceId, SavedKey<?>> saved = new HashMap<>();
     private final Set<ResourceId> featureIds = new HashSet<>();
     private final Set<Class<?>> featureTypes = new HashSet<>();
     private final Set<Class<?>> registeredByOwner = new HashSet<>();
@@ -84,15 +86,28 @@ public final class ModuleRegistry implements FeatureRegistry, ToolingRegistry {
     }
 
     @Override
-    public <T> void registerMantle(MantleKey<T> key, MantleLifetime lifetime, Codec<T> codec) {
+    public <T> void registerMantle(MantleKey<T> key, MantleLifetime lifetime, StorageCodec<T> codec) {
         checkOpen();
         Objects.requireNonNull(key, "key");
         Objects.requireNonNull(codec, "codec");
-        requireOwnedId("Mantle layer", ResourceId.parse(key.id()));
+        requireOwnedId("Mantle layer", key.id());
 
         var registration = new MantleRegistration<>(key, lifetime, codec, codec.version());
         if (mantle.putIfAbsent(key.id(), registration) != null) {
             throw new IllegalArgumentException("Duplicate mantle layer: " + key.id());
+        }
+    }
+
+    @Override
+    public void registerSaved(SavedKey<?> key) {
+        checkOpen();
+        Objects.requireNonNull(key, "key");
+        requireOwnedId("Saved value", key.id());
+        if (key.codec().version() < 0) {
+            throw new IllegalArgumentException("Negative saved codec version");
+        }
+        if (saved.putIfAbsent(key.id(), key) != null) {
+            throw new IllegalArgumentException("Duplicate saved value: " + key.id());
         }
     }
 
@@ -237,7 +252,7 @@ public final class ModuleRegistry implements FeatureRegistry, ToolingRegistry {
 
     public FeatureCatalog freeze() {
         if (catalog == null) {
-            catalog = new FeatureCatalog(settings, mantle, resourceKinds.values(), validators, lifecycles, services,
+            catalog = new FeatureCatalog(settings, mantle, saved, resourceKinds.values(), validators, lifecycles, services,
                     placementType, studioViews.values(), commands);
         }
         return catalog;

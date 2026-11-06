@@ -3,8 +3,10 @@ package com.volmit.host;
 import com.volmit.*;
 import com.volmit.config.Feature;
 import com.volmit.config.Level;
-import com.volmit.data.Codec;
+import com.volmit.data.SavedKey;
+import com.volmit.data.StorageCodec;
 import com.volmit.mantle.*;
+import com.volmit.resource.ResourceId;
 import com.volmit.resource.ResourceKind;
 import com.volmit.service.Providers;
 import com.volmit.service.Service;
@@ -79,12 +81,12 @@ class ModuleRegistryTest {
     @Test
     void mantleIdsAreUniqueAndCodecVersionIsSnapshotted() {
         var registry = new ModuleRegistry();
-        var key = new MantleKey<>("test:core/layer", String.class);
+        var key = new MantleKey<>(ResourceId.parse("test:core/layer"), String.class);
         var codec = codec(3);
         registerAs(registry, "test:core", layers -> {
             layers.registerMantle(key, MantleLifetime.GENERATION, codec);
             assertThrows(IllegalArgumentException.class, () -> layers.registerMantle(key, MantleLifetime.PERSISTENT, codec));
-            assertThrows(IllegalArgumentException.class, () -> layers.registerMantle(new MantleKey<>("test:core/bad", String.class), MantleLifetime.GENERATION, codec(-1)));
+            assertThrows(IllegalArgumentException.class, () -> layers.registerMantle(new MantleKey<>(ResourceId.parse("test:core/bad"), String.class), MantleLifetime.GENERATION, codec(-1)));
         });
         assertEquals(3, registry.freeze().mantle().getFirst().version());
         assertEquals(1, registry.freeze().mantle().size());
@@ -98,11 +100,11 @@ class ModuleRegistryTest {
         assertTrue(sameNamespace.getMessage().contains("must be test:other or start with test:other/"), sameNamespace.getMessage());
 
         var mantle = assertThrows(IllegalArgumentException.class, () -> registerAs(registry, "iris:snow",
-                layers -> layers.registerMantle(new MantleKey<>("iris:snowdepth", String.class), MantleLifetime.GENERATION, codec(1))));
+                layers -> layers.registerMantle(new MantleKey<>(ResourceId.parse("iris:snowdepth"), String.class), MantleLifetime.GENERATION, codec(1))));
         assertEquals("Mantle layer iris:snowdepth must be iris:snow or start with iris:snow/, the id of its registering module "
                 + "iris:snow from host classpath", mantle.getMessage());
 
-        assertThrows(IllegalStateException.class, () -> registry.registerMantle(new MantleKey<>("test:loose", String.class),
+        assertThrows(IllegalStateException.class, () -> registry.registerMantle(new MantleKey<>(ResourceId.parse("test:loose"), String.class),
                 MantleLifetime.GENERATION, codec(1)));
         assertTrue(registry.freeze().settings().isEmpty());
         assertTrue(registry.freeze().mantle().isEmpty());
@@ -208,16 +210,37 @@ class ModuleRegistryTest {
         };
     }
 
+    private static SavedKey<String> saved(String id) {
+        return new SavedKey<>(ResourceId.parse(id), String.class, codec(1), () -> "");
+    }
+
+    @Test
+    void savedKeysAreOwnedByTheRegisteringModuleAndUnique() {
+        var registry = new ModuleRegistry();
+        var key = saved("test:core/book");
+        registerAs(registry, "test:core", saves -> {
+            saves.registerSaved(key);
+            assertThrows(IllegalArgumentException.class, () -> saves.registerSaved(saved("test:core/book")));
+            assertThrows(NullPointerException.class, () -> saves.registerSaved(null));
+        });
+        assertEquals(List.of(key), registry.freeze().saved());
+
+        var foreign = assertThrows(IllegalArgumentException.class, () -> registerAs(new ModuleRegistry(), "test:other",
+                saves -> saves.registerSaved(key)));
+        assertTrue(foreign.getMessage().contains("must be test:other or start with test:other/"), foreign.getMessage());
+        assertThrows(IllegalStateException.class, () -> new ModuleRegistry().registerSaved(key));
+    }
+
     @Test
     void moduleMayRegisterItsOwnIdAndIdsBelowIt() {
         var registry = new ModuleRegistry();
         registerAs(registry, "iris:snow", layers -> {
-            layers.registerMantle(new MantleKey<>("iris:snow", String.class), MantleLifetime.GENERATION, codec(1));
-            layers.registerMantle(new MantleKey<>("iris:snow/depth/deep", String.class), MantleLifetime.GENERATION, codec(1));
+            layers.registerMantle(new MantleKey<>(ResourceId.parse("iris:snow"), String.class), MantleLifetime.GENERATION, codec(1));
+            layers.registerMantle(new MantleKey<>(ResourceId.parse("iris:snow/depth/deep"), String.class), MantleLifetime.GENERATION, codec(1));
         });
 
         assertEquals(List.of("iris:snow", "iris:snow/depth/deep"),
-                registry.freeze().mantle().stream().map(layer -> layer.key().id()).sorted().toList());
+                registry.freeze().mantle().stream().map(layer -> layer.key().id().toString()).sorted().toList());
     }
 
     @Test
@@ -592,8 +615,8 @@ class ModuleRegistryTest {
         assertEquals("test:alpha", registrations.getFirst().module().info().id().toString());
     }
 
-    private static Codec<String> codec(int version) {
-        return new Codec<>() {
+    private static StorageCodec<String> codec(int version) {
+        return new StorageCodec<>() {
             public int version() { return version; }
             public void write(DataOutput output, String value) {}
             public String read(DataInput input, int storedVersion) { return ""; }

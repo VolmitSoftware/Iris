@@ -1,5 +1,6 @@
 package com.volmit.host;
 
+import com.volmit.resource.ResourceId;
 import java.util.Collections;
 import java.util.Map;
 import java.util.TreeMap;
@@ -12,7 +13,7 @@ import java.util.TreeMap;
  * @param mantleLayers for each mantle layer some stage writes, by layer id in id order, the largest
  *     reach of the stages that write it
  */
-public record PipelineReach(int blocks, Map<String, Integer> mantleLayers) {
+public record PipelineReach(int blocks, Map<ResourceId, Integer> mantleLayers) {
     public PipelineReach {
         if (blocks < 0) throw new IllegalArgumentException("Negative reach: " + blocks);
         mantleLayers = Collections.unmodifiableMap(new TreeMap<>(mantleLayers));
@@ -20,7 +21,7 @@ public record PipelineReach(int blocks, Map<String, Integer> mantleLayers) {
 
     static PipelineReach of(Iterable<ResolvedStage> stages) {
         int blocks = 0;
-        var layers = new TreeMap<String, Integer>();
+        var layers = new TreeMap<ResourceId, Integer>();
         for (var stage : stages) {
             int stageBlocks = stage.fixedReachBlocks();
             blocks = Math.max(blocks, stageBlocks);

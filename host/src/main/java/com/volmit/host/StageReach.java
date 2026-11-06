@@ -1,6 +1,7 @@
 package com.volmit.host;
 
 import com.volmit.mantle.MantleKey;
+import com.volmit.resource.ResourceId;
 import com.volmit.stage.PackReach;
 import java.util.HashSet;
 import java.util.List;
@@ -22,7 +23,7 @@ public record StageReach(PackReach blocks, List<MantleKey<?>> mantleLayers) {
     public StageReach {
         Objects.requireNonNull(blocks, "blocks");
         mantleLayers = List.copyOf(mantleLayers);
-        var ids = new HashSet<String>();
+        var ids = new HashSet<ResourceId>();
         for (var layer : mantleLayers) {
             if (!ids.add(Objects.requireNonNull(layer, "mantle layer").id())) {
                 throw new IllegalArgumentException("Mantle layer " + layer.id() + " declared twice");

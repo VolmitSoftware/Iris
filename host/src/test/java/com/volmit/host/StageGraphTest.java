@@ -11,7 +11,7 @@ import com.volmit.config.Feature;
 import com.volmit.config.FeatureSettings.Entry;
 import com.volmit.geometry.BlockBox;
 import com.volmit.geometry.BlockPosition;
-import com.volmit.data.Codec;
+import com.volmit.data.StorageCodec;
 import com.volmit.mantle.MantleKey;
 import com.volmit.mantle.MantleLifetime;
 import com.volmit.object.GeneratedObject;
@@ -519,7 +519,7 @@ class StageGraphTest {
 
     @Test
     void onePlacementInvocationMakesItsMantleViewsOnce() {
-        var key = new MantleKey<>("test:views/depth", Integer.class);
+        var key = new MantleKey<>(ResourceId.parse("test:views/depth"),Integer.class);
         var views = new ArrayList<Object>();
         var graph = resolve(Pipeline.PLACEMENT, module("test:views", stages ->
                 stages.define(Stage.placement("test:views/read")).run(context -> {
@@ -569,8 +569,8 @@ class StageGraphTest {
 
     @Test
     void reachIsDeclaredPerStageAndCollectedPerPipelineAndLayer() {
-        var depth = new MantleKey<>("test:reach/depth", Integer.class);
-        var marks = new MantleKey<>("test:reach/marks", String.class);
+        var depth = new MantleKey<>(ResourceId.parse("test:reach/depth"), Integer.class);
+        var marks = new MantleKey<>(ResourceId.parse("test:reach/marks"), String.class);
         var carve = Stage.mantle("test:reach/carve");
         var mark = Stage.mantle("test:reach/mark");
         var plain = Stage.mantle("test:reach/plain");
@@ -585,7 +585,7 @@ class StageGraphTest {
 
         assertEquals(new StageReach(24, List.of(depth)), loaded.mantle().stages().getFirst().reach());
         assertEquals(StageReach.NONE, loaded.mantle().stages().get(2).reach(), "an undeclared reach is 0 with no layers");
-        assertEquals(new PipelineReach(24, Map.of("test:reach/depth", 24, "test:reach/marks", 8)), loaded.mantle().reach());
+        assertEquals(new PipelineReach(24, Map.of(depth.id(), 24, marks.id(), 8)), loaded.mantle().reach());
         assertEquals(new PipelineReach(2, Map.of()), loaded.placement().reach());
         assertEquals(new PipelineReach(0, Map.of()), loaded.chunk().reach());
         assertTrue(loaded.mantle().describe().contains("      reach 24 blocks, writes mantle test:reach/depth\n"), loaded.mantle().describe());
@@ -655,7 +655,7 @@ class StageGraphTest {
 
     @Test
     void reachMustBeValidAndNameRegisteredLayers() {
-        var depth = new MantleKey<>("test:reach/depth", Integer.class);
+        var depth = new MantleKey<>(ResourceId.parse("test:reach/depth"), Integer.class);
         var carve = Stage.mantle("test:reach/carve");
 
         var negative = assertThrows(IllegalArgumentException.class, () -> resolve(Pipeline.MANTLE,
@@ -672,7 +672,7 @@ class StageGraphTest {
         assertEquals("Stage test:reach/carve of module test:reach writes mantle layer test:reach/depth, which no module registers;"
                 + " its owner registers it with FeatureRegistry.registerMantle", unregistered.getMessage());
 
-        var asText = new MantleKey<>("test:reach/depth", String.class);
+        var asText = new MantleKey<>(ResourceId.parse("test:reach/depth"), String.class);
         var mismatch = assertThrows(ModuleLoadException.class, () -> LoadedModules.load(List.of(DiscoveredModule.builtIn(withMantle(
                 module("test:reach", stages -> stages.define(carve).writesMantle(asText).run(context -> {})), depth))), Map.of(), Set.of(), Set.of()));
         assertEquals("Stage test:reach/carve of module test:reach writes mantle layer test:reach/depth as java.lang.String,"
@@ -694,8 +694,8 @@ class StageGraphTest {
         registry.registerMantle(layer, MantleLifetime.GENERATION, codec(layer));
     }
 
-    private static <T> Codec<T> codec(MantleKey<T> layer) {
-        return new Codec<>() {
+    private static <T> StorageCodec<T> codec(MantleKey<T> layer) {
+        return new StorageCodec<>() {
             public int version() { return 0; }
             public void write(java.io.DataOutput output, T value) {}
             public T read(java.io.DataInput input, int storedVersion) { throw new UnsupportedOperationException(); }

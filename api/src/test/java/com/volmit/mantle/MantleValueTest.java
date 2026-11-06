@@ -1,6 +1,7 @@
 package com.volmit.mantle;
 
 import com.volmit.geometry.BlockBox;
+import com.volmit.resource.ResourceId;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -33,20 +34,18 @@ class MantleValueTest {
 
     @Test
     void keysSeparateSameTypedLayersAndHaveValueEquality() {
-        var owner = new MantleKey<>("example:object-owner", String.class);
-        assertEquals(owner, new MantleKey<>("example:object-owner", String.class));
-        assertNotEquals(owner, new MantleKey<>("example:quest/location", String.class));
-        assertNotEquals(owner, new MantleKey<>("example:object-owner", Integer.class));
+        var owner = new MantleKey<>(ResourceId.parse("example:object-owner"), String.class);
+        assertEquals(owner, new MantleKey<>(ResourceId.parse("example:object-owner"), String.class));
+        assertNotEquals(owner, new MantleKey<>(ResourceId.parse("example:quest/location"), String.class));
+        assertNotEquals(owner, new MantleKey<>(ResourceId.parse("example:object-owner"), Integer.class));
     }
 
     @Test
-    void rejectsInvalidKeys() {
-        for (String id : new String[]{"", "owner", ":owner", "example:", "Example:owner", "a:b:c", "a: b"}) {
-            assertThrows(IllegalArgumentException.class, () -> new MantleKey<>(id, String.class));
-        }
+    void rejectsMissingPartsAndPrimitiveTypes() {
+        var id = ResourceId.parse("a:b");
         assertThrows(NullPointerException.class, () -> new MantleKey<>(null, String.class));
-        assertThrows(NullPointerException.class, () -> new MantleKey<>("a:b", null));
-        assertThrows(IllegalArgumentException.class, () -> new MantleKey<>("a:b", int.class));
+        assertThrows(NullPointerException.class, () -> new MantleKey<>(id, null));
+        assertThrows(IllegalArgumentException.class, () -> new MantleKey<>(id, int.class));
     }
 
     @Test

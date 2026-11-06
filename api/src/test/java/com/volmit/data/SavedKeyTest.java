@@ -1,6 +1,6 @@
-package com.volmit.world;
+package com.volmit.data;
 
-import com.volmit.data.Codec;
+import com.volmit.resource.ResourceId;
 import org.junit.jupiter.api.Test;
 
 import java.io.DataInput;
@@ -11,7 +11,9 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class SavedKeyTest {
-    private static final Codec<String> TEXT = new Codec<>() {
+    private static final ResourceId ID = ResourceId.parse("a:b");
+
+    private static final StorageCodec<String> TEXT = new StorageCodec<>() {
         @Override
         public int version() {
             return 1;
@@ -51,10 +53,10 @@ class SavedKeyTest {
     @Test
     void rejectsMissingPartsAndPrimitiveTypes() {
         assertThrows(NullPointerException.class, () -> new SavedKey<>(null, String.class, TEXT, () -> ""));
-        assertThrows(NullPointerException.class, () -> new SavedKey<>("a:b", null, TEXT, () -> ""));
-        assertThrows(NullPointerException.class, () -> new SavedKey<>("a:b", String.class, null, () -> ""));
-        assertThrows(NullPointerException.class, () -> new SavedKey<>("a:b", String.class, TEXT, null));
-        Codec<Integer> number = new Codec<>() {
+        assertThrows(NullPointerException.class, () -> new SavedKey<>(ID, null, TEXT, () -> ""));
+        assertThrows(NullPointerException.class, () -> new SavedKey<>(ID, String.class, null, () -> ""));
+        assertThrows(NullPointerException.class, () -> new SavedKey<>(ID, String.class, TEXT, null));
+        StorageCodec<Integer> number = new StorageCodec<>() {
             @Override
             public int version() {
                 return 1;
@@ -70,10 +72,10 @@ class SavedKeyTest {
                 return input.readInt();
             }
         };
-        assertThrows(IllegalArgumentException.class, () -> new SavedKey<>("a:b", int.class, number, () -> 0));
+        assertThrows(IllegalArgumentException.class, () -> new SavedKey<>(ID, int.class, number, () -> 0));
     }
 
     private static SavedKey<String> key(String id) {
-        return new SavedKey<>(id, String.class, TEXT, () -> "");
+        return new SavedKey<>(ResourceId.parse(id), String.class, TEXT, () -> "");
     }
 }

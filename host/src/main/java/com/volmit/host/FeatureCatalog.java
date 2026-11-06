@@ -1,5 +1,7 @@
 package com.volmit.host;
 
+import com.volmit.data.SavedKey;
+import com.volmit.resource.ResourceId;
 import com.volmit.service.Providers;
 import com.volmit.service.Service;
 import java.util.Collection;
@@ -31,7 +33,8 @@ public final class FeatureCatalog {
     };
 
     private final Map<Class<?>, FeatureDescriptor<?>> settings;
-    private final Map<String, MantleRegistration<?>> mantle;
+    private final Map<ResourceId, MantleRegistration<?>> mantle;
+    private final Map<ResourceId, SavedKey<?>> saved;
     private final List<ResourceKindRegistration> resourceKinds;
     private final List<ValidatorRegistration> validators;
     private final List<LifecycleRegistration> lifecycles;
@@ -43,7 +46,8 @@ public final class FeatureCatalog {
 
     FeatureCatalog(
             Map<Class<?>, FeatureDescriptor<?>> settings,
-            Map<String, MantleRegistration<?>> mantle,
+            Map<ResourceId, MantleRegistration<?>> mantle,
+            Map<ResourceId, SavedKey<?>> saved,
             Collection<ResourceKindRegistration> resourceKinds,
             List<ValidatorRegistration> validators,
             List<LifecycleRegistration> lifecycles,
@@ -56,6 +60,7 @@ public final class FeatureCatalog {
         this.commands = sorted(commands, registration -> registration.command().name());
         this.settings = Map.copyOf(settings);
         this.mantle = Map.copyOf(mantle);
+        this.saved = Map.copyOf(saved);
         this.resourceKinds = sorted(resourceKinds, registration -> registration.kind().id());
         this.validators = inModuleOrder(validators, ValidatorRegistration::module);
         this.lifecycles = inModuleOrder(lifecycles, LifecycleRegistration::module);
@@ -70,6 +75,11 @@ public final class FeatureCatalog {
 
     public List<MantleRegistration<?>> mantle() {
         return sorted(mantle.values(), registration -> registration.key().id());
+    }
+
+    /** The values modules keep with each running world ({@code FeatureRegistry.registerSaved}), by id. */
+    public List<SavedKey<?>> saved() {
+        return sorted(saved.values(), SavedKey::id);
     }
 
     /** The type packs write their object placements as, if a module declared it ({@code FeatureRegistry.registerPlacementType}). */

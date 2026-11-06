@@ -1,6 +1,7 @@
 package com.volmit;
 
-import com.volmit.data.Codec;
+import com.volmit.data.SavedKey;
+import com.volmit.data.StorageCodec;
 import com.volmit.mantle.MantleKey;
 import com.volmit.mantle.MantleLifetime;
 import com.volmit.resource.ResourceKind;
@@ -11,7 +12,7 @@ import java.util.Set;
 
 /** Host implementation collects non-stage registrations before loading pack configuration.
  * Feature IDs must be unique. JSON keys must be unique per {@link com.volmit.config.Level}, including the
- * settings types stages name in {@code when(...)}. Feature IDs, mantle keys and resource kind ids a module
+ * settings types stages name in {@code when(...)}. Feature IDs, mantle keys, saved keys and resource kind ids a module
  * registers are its module id or start with it and {@code /}, such as {@code iris:snow} or {@code iris:snow/depth}.
  */
 public interface FeatureRegistry {
@@ -21,7 +22,13 @@ public interface FeatureRegistry {
      * preserve unknown persisted layers or fail explicitly, never silently discard them.
      * GENERATION layers also require codecs.
      */
-    <T> void registerMantle(MantleKey<T> key, MantleLifetime lifetime, Codec<T> codec);
+    <T> void registerMantle(MantleKey<T> key, MantleLifetime lifetime, StorageCodec<T> codec);
+
+    /** Registers a value the module keeps with each running world across restarts, so
+     * {@link com.volmit.world.RunningWorld#saved} serves it; that method throws IllegalArgumentException for a key
+     * nobody registered. Null arguments throw NullPointerException; a duplicate id throws IllegalArgumentException.
+     */
+    void registerSaved(SavedKey<?> key);
 
     /** Catalogs a settings type that no stage names in {@code when(...)}, such as one read only
      * through {@link com.volmit.config.FeatureSettings#at}, so the host decodes it and studio

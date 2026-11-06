@@ -1,6 +1,7 @@
 package com.volmit.world;
 
 import com.volmit.config.FeatureSettings;
+import com.volmit.data.SavedKey;
 import com.volmit.geometry.BlockPosition;
 import com.volmit.placement.PlacementRecord;
 import com.volmit.resource.ResourceId;
@@ -50,12 +51,14 @@ public interface RunningWorld {
      * {@link PackWorld#state}.
      *
      * <p>The module changes the value in place and owns its thread safety. The host writes it while module threads may
-     * still change it, so {@link com.volmit.data.Codec#write} must read the value safely. A stored payload the codec
+     * still change it, so {@link com.volmit.data.StorageCodec#write} must read the value safely. A stored payload the codec
      * rejects is logged and replaced by {@code key.initial()}; the next save overwrites it. A pack reload or hotload
      * stops the world and starts another over the same storage, so the new world reads what the old one wrote when it
      * stopped.
      *
-     * @throws IllegalArgumentException if another key with the same id but another type was used for this world
+     * @throws IllegalArgumentException if {@code key} is not the key a module registered with
+     *     {@link com.volmit.FeatureRegistry#registerSaved}: an unregistered key, or another key with the id of a
+     *     registered one, such as one that another module built in its namespace
      */
     <T> T saved(SavedKey<T> key);
 

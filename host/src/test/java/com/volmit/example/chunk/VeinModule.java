@@ -7,9 +7,10 @@ import com.volmit.block.BlockState;
 import com.volmit.config.PackSettings;
 import com.volmit.generation.ChunkContext;
 import com.volmit.geometry.BlockBox;
-import com.volmit.data.Codec;
+import com.volmit.data.StorageCodec;
 import com.volmit.mantle.MantleKey;
 import com.volmit.mantle.MantleLifetime;
+import com.volmit.resource.ResourceId;
 import com.volmit.stage.ChunkStage;
 import com.volmit.stage.ChunkStageContext;
 import com.volmit.stage.MantleStage;
@@ -25,7 +26,7 @@ import java.io.IOException;
  * its reach out when the pack loads.
  */
 public final class VeinModule implements IrisModule {
-    public static final MantleKey<Integer> ORE = new MantleKey<>("example:veins/ore", Integer.class);
+    public static final MantleKey<Integer> ORE = new MantleKey<>(ResourceId.parse("example:veins/ore"),Integer.class);
     public static final MantleStage PLAN = Stage.mantle("example:veins/plan");
     public static final ChunkStage<Void> PLACE = Stage.chunk("example:veins/place");
     public static final BlockState ORE_BLOCK = new BlockState("minecraft:iron_ore");
@@ -69,7 +70,7 @@ public final class VeinModule implements IrisModule {
                 blocks.set(x - context.originX(), y, z - context.originZ(), ORE_BLOCK));
     }
 
-    private static final class IntegerCodec implements Codec<Integer> {
+    private static final class IntegerCodec implements StorageCodec<Integer> {
         public int version() { return 0; }
         public void write(DataOutput output, Integer value) throws IOException { output.writeInt(value); }
         public Integer read(DataInput input, int storedVersion) throws IOException { return input.readInt(); }

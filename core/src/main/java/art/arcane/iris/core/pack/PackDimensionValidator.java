@@ -48,7 +48,6 @@ final class PackDimensionValidator {
                 continue;
             }
 
-            validateImportedStructurePolicy(dimensionKey, dimJson, blockingErrors, warnings);
             validateDimensionHeights(packFolder, dimensionKey, dimJson, blockingErrors);
             validateWorldBoundary(dimensionKey, dimJson, blockingErrors);
 
@@ -91,126 +90,6 @@ final class PackDimensionValidator {
 
             if (resolvedRegions == 0) {
                 blockingErrors.add("Dimension '" + dimensionKey + "' has no resolvable regions.");
-            }
-        }
-    }
-
-    /** The dimension's {@code importedStructures} settings of the iris:structure module, which the platform's own structures follow. */
-    static final String STRUCTURE_SETTINGS = "importedStructures";
-
-    static void validateImportedStructurePolicy(String dimensionKey, JSONObject dimension,
-                                                List<String> blockingErrors, List<String> warnings) {
-        if (!dimension.has(STRUCTURE_SETTINGS)) {
-            return;
-        }
-        if (dimension.isNull(STRUCTURE_SETTINGS)) {
-            blockingErrors.add("Dimension '" + dimensionKey + "' importedStructures must be an object.");
-            return;
-        }
-        JSONObject policy = dimension.optJSONObject(STRUCTURE_SETTINGS);
-        if (policy == null) {
-            blockingErrors.add("Dimension '" + dimensionKey + "' importedStructures must be an object.");
-            return;
-        }
-        if (policy.has("mode")) {
-            blockingErrors.add("Dimension '" + dimensionKey
-                    + "' importedStructures.mode is not supported. Native structures are enabled by default; deny families in importedStructures.disabled or complete keys in importedStructures.disabledExact.");
-        }
-        if (policy.has("enabled")) {
-            blockingErrors.add("Dimension '" + dimensionKey
-                    + "' importedStructures.enabled is not supported. Native structures are enabled by default; deny families in importedStructures.disabled or complete keys in importedStructures.disabledExact.");
-        }
-        validateStructureKeyList(dimensionKey, policy, "disabled", blockingErrors);
-        validateStructureKeyList(dimensionKey, policy, "disabledExact", blockingErrors);
-        validateFrequencyOverrides(dimensionKey, policy, blockingErrors);
-        JSONArray adjustments = policy.optJSONArray("adjustments");
-        if (adjustments == null) {
-            if (policy.has("adjustments")) {
-                blockingErrors.add("Dimension '" + dimensionKey
-                        + "' importedStructures.adjustments must be an array.");
-            }
-            return;
-        }
-        for (int index = 0; index < adjustments.length(); index++) {
-            JSONObject adjustment = adjustments.optJSONObject(index);
-            if (adjustment == null) {
-                blockingErrors.add("Dimension '" + dimensionKey
-                        + "' importedStructures.adjustments has a non-object entry at index " + index + ".");
-                continue;
-            }
-            if (adjustment.has("clearVegetation")) {
-                warnings.add("Dimension '" + dimensionKey + "' importedStructures.adjustments[" + index
-                        + "].clearVegetation was removed and is ignored. Vegetation is always cleared inside structure piece envelopes.");
-            }
-            validateStructureKeyList(dimensionKey, adjustment, "match", blockingErrors);
-            validateAdjustmentYBand(dimensionKey, adjustment, index, blockingErrors);
-            PackStructurePlacementValidator.validateNativeTerrain("Dimension '" + dimensionKey
-                    + "' importedStructures.adjustments[" + index + "]", adjustment, blockingErrors);
-        }
-    }
-
-    private static void validateFrequencyOverrides(String dimensionKey, JSONObject policy,
-                                                   List<String> blockingErrors) {
-        if (!policy.has("frequencyOverrides")) {
-            return;
-        }
-        JSONArray overrides = policy.optJSONArray("frequencyOverrides");
-        if (overrides == null) {
-            blockingErrors.add("Dimension '" + dimensionKey
-                    + "' importedStructures.frequencyOverrides must be an array.");
-            return;
-        }
-        for (int index = 0; index < overrides.length(); index++) {
-            JSONObject override = overrides.optJSONObject(index);
-            String path = "Dimension '" + dimensionKey
-                    + "' importedStructures.frequencyOverrides[" + index + "]";
-            if (override == null) {
-                blockingErrors.add(path + " must be an object.");
-                continue;
-            }
-            Object rawKey = override.opt("structureSet");
-            if (!(rawKey instanceof String key)
-                    || key.isBlank()
-                    || !PackValidator.RESOURCE_KEY_PATTERN.matcher(key.trim()).matches()) {
-                blockingErrors.add(path + ".structureSet must be a namespaced registry key.");
-            }
-            PackJsonFieldChecks.validateOptionalDoubleRange(
-                    path, override, "multiplier", 0.01D, 16D, blockingErrors);
-        }
-    }
-
-    private static void validateAdjustmentYBand(String dimensionKey, JSONObject adjustment, int index,
-                                                List<String> blockingErrors) {
-        if (!adjustment.has("yBand") || adjustment.opt("yBand") == JSONObject.NULL) {
-            return;
-        }
-        String path = "Dimension '" + dimensionKey
-                + "' importedStructures.adjustments[" + index + "].yBand";
-        JSONObject band = adjustment.optJSONObject("yBand");
-        if (band == null) {
-            blockingErrors.add(path + " must be an object.");
-            return;
-        }
-        PackJsonFieldChecks.validateOptionalIntegerRange(path, band, "min", -4064, 4064, blockingErrors);
-        PackJsonFieldChecks.validateOptionalIntegerRange(path, band, "max", -4064, 4064, blockingErrors);
-    }
-
-    private static void validateStructureKeyList(String dimensionKey, JSONObject owner, String field,
-                                                 List<String> blockingErrors) {
-        if (!owner.has(field)) {
-            return;
-        }
-        JSONArray keys = owner.optJSONArray(field);
-        if (keys == null) {
-            blockingErrors.add("Dimension '" + dimensionKey + "' structure policy field '"
-                    + field + "' must be an array.");
-            return;
-        }
-        for (int index = 0; index < keys.length(); index++) {
-            Object value = keys.opt(index);
-            if (!(value instanceof String key) || key.isBlank()) {
-                blockingErrors.add("Dimension '" + dimensionKey + "' structure policy field '"
-                        + field + "' has a blank or non-string entry at index " + index + ".");
             }
         }
     }

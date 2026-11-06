@@ -1,7 +1,5 @@
 package art.arcane.iris.core.pack;
 
-import art.arcane.volmlib.util.json.JSONArray;
-import art.arcane.volmlib.util.json.JSONObject;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -72,23 +70,6 @@ public class PackValidatorStructureTerrainBackendTest {
 
             PackStructurePlacementValidator.validateStructurePlacements(
                     pack, Set.of("dimension_city"), false, errors);
-
-            assertTrue(mode + ": " + errors, errors.isEmpty());
-        }
-    }
-
-    @Test
-    public void acceptsNativeOnlyTerrainModesForImportedStructureAdjustments() {
-        for (String mode : List.of("VACUUM", "ENCASE")) {
-            JSONObject policy = new JSONObject().put("adjustments", new JSONArray().put(
-                    new JSONObject()
-                            .put("match", new JSONArray().put("towns_and_towers:"))
-                            .put("terrain", new JSONObject().put("mode", mode))));
-            List<String> errors = new ArrayList<>();
-
-            PackDimensionValidator.validateImportedStructurePolicy(
-                    "overworld", new JSONObject().put("importedStructures", policy),
-                    errors, new ArrayList<>());
 
             assertTrue(mode + ": " + errors, errors.isEmpty());
         }

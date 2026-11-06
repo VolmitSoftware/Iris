@@ -45,8 +45,10 @@ import art.arcane.iris.util.common.parallel.MultiBurst;
 import art.arcane.volmlib.util.scheduling.ChronoLatch;
 import art.arcane.iris.util.common.scheduling.J;
 import art.arcane.volmlib.util.scheduling.PrecisionStopwatch;
+import lombok.AccessLevel;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.Getter;
 import lombok.ToString;
 
 import java.io.DataInputStream;
@@ -66,6 +68,7 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.HexFormat;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -108,6 +111,8 @@ public class ResourceLoader<T extends IrisRegistrant> implements MeteredCache {
     protected ChronoLatch sec;
     private volatile boolean firstAccessOverflowed;
     private final Options options;
+    @Getter(AccessLevel.NONE)
+    private final Map<String, LoadFailure> loadFailures = new ConcurrentHashMap<>();
 
     public ResourceLoader(
             File root,
@@ -414,10 +419,12 @@ public class ResourceLoader<T extends IrisRegistrant> implements MeteredCache {
 
     protected T loadFile(File j, String name) {
         String rawText = null;
+        boolean readAsJson = false;
         try {
             PrecisionStopwatch p = PrecisionStopwatch.start();
             rawText = IO.readAll(j);
             JSONObject parsed = new JSONObject(rawText);
+            readAsJson = true;
             Optional<Level> moduleTarget = ModuleTargets.ofResource(objectClass);
             JsonSchemaValidator.validateTopLevelKeys(parsed, rawText, j, resourceTypeName, objectClass, moduleKeys(moduleTarget));
             T t = getManager().getGson()
@@ -429,12 +436,28 @@ public class ResourceLoader<T extends IrisRegistrant> implements MeteredCache {
             getManager().preprocessObject(t);
             logLoad(j, t);
             tlt.addAndGet(p.getMilliseconds());
+            loadFailures.remove(name);
             return t;
         } catch (Throwable e) {
             IrisLogging.reportError(e);
             failLoad(j, rawText, e);
+            loadFailures.put(name, new LoadFailure(rawText != null && !readAsJson, failureMessage(e)));
             return null;
         }
+    }
+
+    /** Why a file failed to load: it is not JSON, or its JSON does not read into the resource. */
+    public record LoadFailure(boolean invalidJson, String message) {
+    }
+
+    /** The failure of each key whose file failed its last load; a key that loads again leaves it. */
+    public Map<String, LoadFailure> loadFailures() {
+        return Map.copyOf(loadFailures);
+    }
+
+    private static String failureMessage(Throwable failure) {
+        String message = failure.getMessage();
+        return message == null || message.isBlank() ? failure.getClass().getSimpleName() : message;
     }
 
     /** The keys the pack's modules read at {@code target}; none for resources that hold no module settings. */

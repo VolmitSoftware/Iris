@@ -34,8 +34,9 @@ import java.util.List;
  * Runs the validators of a pack's modules, built-in ones included, on the pack as Iris loads it, opened just for
  * this ({@link IrisData#openValidation}) and closed afterwards. Each problem becomes the text
  * {@code <subject>: <message>}; errors block the pack like Iris's own validators' errors, warnings are only shown.
- * A pack whose modules fail to load gets that failure as its error. A validator that throws gets an error naming its
- * module, and the others still run.
+ * A pack whose modules fail to load gets that failure as its error. Before the validators run, every dimension, region
+ * and biome file that does not load is an error ({@link PackLoadFailures}): validators never see its settings. A
+ * validator that throws gets an error naming its module, and the others still run.
  */
 final class ModulePackValidation {
     private ModulePackValidation() {
@@ -65,7 +66,10 @@ final class ModulePackValidation {
         } catch (PackModulesException failure) {
             return new Findings(List.of(failure.getMessage()), List.of());
         }
-        return validate(data, validators);
+        List<String> errors = new ArrayList<>(PackLoadFailures.of(data));
+        Findings modules = validate(data, validators);
+        errors.addAll(modules.errors());
+        return new Findings(errors, modules.warnings());
     }
 
     /** Runs {@code validators} on the pack {@code data} holds, in order. */

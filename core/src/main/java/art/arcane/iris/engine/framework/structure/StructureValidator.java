@@ -34,7 +34,8 @@ import java.util.Set;
 /**
  * Module {@code iris:structure}'s check of a pack: every structure a dimension, region or biome places must assemble
  * ({@link StructureGraphValidation}), and a dimension that replaces a vanilla structure with an Iris one may only use
- * structures that always assemble and fit ({@link NativeReplacementValidation}). Graph diagnostics keep their
+ * structures that always assemble and fit ({@link NativeReplacementValidation}), and its {@code importedStructures}
+ * name real keys ({@link ImportedStructuresValidation}). Graph diagnostics keep their
  * severity; everything else is an error, as when Iris's own pack validator ran these checks.
  */
 public final class StructureValidator implements Validator {
@@ -48,6 +49,7 @@ public final class StructureValidator implements Validator {
         graphs.problems().forEach(pack::report);
         NativeReplacementValidation.validate(data.getDataFolder(), graphs.replacementOutputStructures(), graphs.sampledVerticalEnvelopes())
                 .forEach(pack::report);
+        ImportedStructuresValidation.validate(pack);
     }
 
     /**

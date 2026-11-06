@@ -24,7 +24,9 @@ import art.arcane.volmlib.util.json.JSONTokener;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
+import com.google.gson.JsonParser;
 import com.google.gson.TypeAdapter;
 import com.google.gson.TypeAdapterFactory;
 import com.google.gson.reflect.TypeToken;
@@ -148,6 +150,10 @@ public final class ModuleSettingsDecoder {
         if (decoded == null) {
             throw new JsonParseException("the file holds null");
         }
+        JsonElement written = JsonParser.parseString(json);
+        if (written.isJsonObject()) {
+            DeclaredBounds.require(decoded, written.getAsJsonObject(), "");
+        }
         return decoded;
     }
 
@@ -172,15 +178,31 @@ public final class ModuleSettingsDecoder {
     private IrisFeature read(FeatureDescriptor<?> feature, Object value, String resource) {
         try {
             requireShape(feature, value);
-            IrisFeature decoded = gson.fromJson(settingsJson(feature, value), feature.type());
+            String json = settingsJson(feature, value);
+            IrisFeature decoded = gson.fromJson(json, feature.type());
             if (decoded == null) {
                 throw new JsonParseException("the value is null");
             }
+            requireDeclaredBounds(feature, decoded, JsonParser.parseString(json));
             return decoded;
         } catch (RuntimeException failure) {
             throw new IllegalArgumentException("Cannot read settings " + feature.id() + " under \"" + feature.key() + "\" in "
                     + resource + ": " + failure.getMessage(), failure);
         }
+    }
+
+    /** Checks the bounds of the options the pack wrote; a snippet reference's file is not checked. */
+    private static void requireDeclaredBounds(FeatureDescriptor<?> feature, IrisFeature decoded, JsonElement written) {
+        if (!written.isJsonObject()) {
+            return;
+        }
+        JsonObject options = written.getAsJsonObject();
+        if (feature.root().isEmpty()) {
+            DeclaredBounds.require(decoded, options, feature.key());
+            return;
+        }
+        String root = feature.root().get();
+        DeclaredBounds.requireOption(decoded, rootOption(feature, root).field(), options.get(root), feature.key());
     }
 
     /** The settings object the value stands for: the value itself, or the root option holding it. */

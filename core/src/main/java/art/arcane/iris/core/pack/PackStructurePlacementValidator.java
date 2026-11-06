@@ -490,7 +490,7 @@ final class PackStructurePlacementValidator {
     private static void validateImportedStructureAdjustmentEnvelopes(
             String dimensionKey, JSONObject dimension, RegistrySnapshot registries,
             List<String> blockingErrors) {
-        JSONObject policy = dimension.optJSONObject(PackDimensionValidator.STRUCTURE_SETTINGS);
+        JSONObject policy = dimension.optJSONObject("importedStructures");
         if (policy == null) {
             return;
         }

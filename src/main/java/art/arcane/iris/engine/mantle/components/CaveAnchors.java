@@ -20,9 +20,9 @@ package art.arcane.iris.engine.mantle.components;
 
 import art.arcane.iris.builtin.carve.CaveAnchorMode;
 import art.arcane.iris.modules.objects.CarvedSpace;
-import art.arcane.iris.modules.objects.Cavern;
 import art.arcane.volmlib.util.cache.CacheKey;
 import art.arcane.volmlib.util.math.RNG;
+import com.volmit.mantle.CarvedVoid;
 import com.volmit.resource.ResourceId;
 import com.volmit.world.BiomeSample;
 import com.volmit.world.TerrainSampler;
@@ -76,7 +76,7 @@ final class CaveAnchors {
             int candidateY = anchorY(rng, candidateX, candidateZ, search);
             if (candidateY < 0
                     || biomeConflicts(candidateX, candidateY, candidateZ, expectedCaveBiome)
-                    || !acceptsFluid(underwater, carved.cavernAt(candidateX, candidateY, candidateZ), candidateY, caveLavaHeight)) {
+                    || !acceptsFluid(underwater, carved.voidAt(candidateX, candidateY, candidateZ), candidateY, caveLavaHeight)) {
                 continue;
             }
             return new Anchor(candidateX, candidateY, candidateZ);
@@ -84,14 +84,14 @@ final class CaveAnchors {
         return null;
     }
 
-    static boolean acceptsFluid(boolean underwater, Optional<Cavern> cavern, int y, int lavaHeight) {
-        if (cavern.isEmpty()) {
+    static boolean acceptsFluid(boolean underwater, Optional<CarvedVoid> carvedVoid, int y, int lavaHeight) {
+        if (carvedVoid.isEmpty()) {
             return false;
         }
-        if (underwater || cavern.get().liquid() == Cavern.FORCED_AIR_LIQUID) {
+        if (underwater || carvedVoid.get().fill() == CarvedVoid.Fill.AIR) {
             return true;
         }
-        return cavern.get().air() && y > lavaHeight;
+        return carvedVoid.get().fill() == CarvedVoid.Fill.OPEN && y > lavaHeight;
     }
 
     /** One above the highest height an anchor may sit at, or 0 when none may. */

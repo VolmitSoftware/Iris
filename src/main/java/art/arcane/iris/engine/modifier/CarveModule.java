@@ -20,7 +20,6 @@ package art.arcane.iris.engine.modifier;
 
 import art.arcane.iris.builtin.IrisSeedPurposes;
 import art.arcane.iris.builtin.IrisStages;
-import art.arcane.iris.builtin.MatterMantle;
 import art.arcane.iris.modules.carve.CarvingBiomeSettings;
 import art.arcane.iris.modules.carve.CarvingEnabledSettings;
 import art.arcane.iris.modules.carve.CarvingSettings;
@@ -31,12 +30,15 @@ import art.arcane.iris.modules.carve.UpperDimensionCarvingSettings;
 import art.arcane.iris.modules.terrain.TerrainPalettes;
 import art.arcane.iris.engine.mantle.components.CarveWorld;
 import art.arcane.iris.engine.mantle.components.CaveCarving;
+import art.arcane.iris.engine.mantle.components.CaveFloorMarking;
 import com.volmit.IrisFeature;
 import com.volmit.IrisModule;
 import com.volmit.ModuleInfo;
 import com.volmit.ModuleSetup;
 import com.volmit.generation.ChunkContext;
 import com.volmit.hunk.Hunk;
+import com.volmit.mantle.CarvedVoid;
+import com.volmit.mantle.MantleLayer;
 import com.volmit.block.BlockRegistry;
 import com.volmit.block.BlockState;
 import com.volmit.block.BlockTrait;
@@ -83,14 +85,19 @@ public final class CarveModule implements IrisModule {
         if (!carves(context)) {
             return;
         }
-        MatterMantle mantle = context.extension(MatterMantle.class).orElseThrow();
-        caveCarving(context).carve(mantle, context.terrain(), context.chunkX(), context.chunkZ());
+        MantleLayer<CarvedVoid> voids = context.mantle().carved();
+        caveCarving(context).carve(voids, context.terrain(), context.chunkX(), context.chunkZ());
+        caveFloorMarking(context).mark(voids, context.terrain(), context.placementTerrain(), context.chunkX(), context.chunkZ());
     }
 
     private static void applyCaves(ChunkStageContext context) {
-        MatterMantle mantle = context.extension(MatterMantle.class).orElseThrow();
         Hunk<BlockState> blocks = context.blocks();
-        caveApplying(context).apply(mantle, context.terrain(), context.chunkX(), context.chunkZ(), blocks, CaveDressing.of(context));
+        caveApplying(context).apply(context.mantle().carved(), context.terrain(), context.chunkX(), context.chunkZ(), blocks, CaveDressing.of(context));
+    }
+
+    private static CaveFloorMarking caveFloorMarking(ChunkContext context) {
+        return context.world().state(CaveFloorMarking.class, generating -> new CaveFloorMarking(carveWorld(generating, context.terrain()),
+                upperDimensionCarving(context)));
     }
 
     private static CaveCarving caveCarving(ChunkContext context) {

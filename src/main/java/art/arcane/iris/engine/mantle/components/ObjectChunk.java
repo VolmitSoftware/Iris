@@ -18,7 +18,6 @@
 
 package art.arcane.iris.engine.mantle.components;
 
-import art.arcane.iris.builtin.MatterMantle;
 import art.arcane.iris.builtin.anchor.PlaceTrait;
 import art.arcane.iris.builtin.objects.ObjectPlacement;
 import art.arcane.iris.builtin.objects.ObjectRun;
@@ -62,7 +61,7 @@ final class ObjectChunk {
         this.world = context.world();
         this.terrain = context.placementTerrain();
         this.worldHeight = context.terrain().bounds().maxY();
-        this.carved = new CarvedSpace(context.extension(MatterMantle.class).orElseThrow(), worldHeight);
+        this.carved = new CarvedSpace(context.mantle().carved(), context.mantle().bounds());
         this.blocks = world.resources().blocks();
         this.log = log;
     }

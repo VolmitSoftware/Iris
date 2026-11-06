@@ -18,13 +18,14 @@
 
 package art.arcane.iris.engine.mantle.components;
 
-import art.arcane.iris.builtin.MatterMantle;
 import art.arcane.iris.modules.carve.CaveProfile;
 import art.arcane.iris.engine.object.terrain.carving.CarvingResolver;
 import art.arcane.iris.engine.object.terrain.carving.DeclaredCaveProfiles;
 import art.arcane.iris.engine.object.terrain.carving.ResolvedCarvingEntry;
 import art.arcane.volmlib.util.math.PowerOfTwoCoordinates;
 import com.volmit.config.Range;
+import com.volmit.mantle.CarvedVoid;
+import com.volmit.mantle.MantleLayer;
 import com.volmit.resource.ResourceId;
 import com.volmit.world.BiomeSample;
 import com.volmit.world.PackBiome;
@@ -94,8 +95,8 @@ public class CaveCarving {
         this.upperDimensionCarving = upperDimensionCarving;
     }
 
-    /** Carves the caves of the chunk at chunk coordinates {@code x}, {@code z} into {@code mantle}, reading the terrain around it from {@code terrain}. */
-    public void carve(MatterMantle mantle, TerrainSampler terrain, int x, int z) {
+    /** Carves the caves of the chunk at chunk coordinates {@code x}, {@code z} into {@code voids}, reading the terrain around it from {@code terrain}. */
+    public void carve(MantleLayer<CarvedVoid> voids, TerrainSampler terrain, int x, int z) {
         BlendScratch blendScratch = BLEND_SCRATCH.get();
         int[] chunkSurfaceHeights = prepareChunkSurfaceHeights(x, z, terrain, blendScratch.chunkSurfaceHeights);
         List<WeightedProfile> weightedProfiles = resolveWeightedProfiles(x, z, terrain);
@@ -112,17 +113,19 @@ public class CaveCarving {
         );
         CaveFluidSupportPlan fluidSupportPlan = new CaveFluidSupportPlan();
         for (WeightedProfile weightedProfile : weightedProfiles) {
-            carveProfile(weightedProfile, mantle, x, z, chunkSurfaceHeights, surfaceFluidBoundaryStartY, fluidSupportPlan);
+            carveProfile(weightedProfile, voids, x, z, chunkSurfaceHeights, surfaceFluidBoundaryStartY, fluidSupportPlan);
         }
 
         if (upperDimensionCarving && hasUpperDimension(terrain, x, z)) {
-            carveUpperTerrain(terrain, weightedProfiles, mantle, x, z, fluidSupportPlan);
+            carveUpperTerrain(terrain, weightedProfiles, voids, x, z, fluidSupportPlan);
         }
-        fluidSupportPlan.resolve(mantle.chunk(x, z));
+        fluidSupportPlan.resolve(voids, PowerOfTwoCoordinates.chunkToBlock(x), PowerOfTwoCoordinates.chunkToBlock(z), world.height());
 
         if (!weightedProfiles.isEmpty()) {
             CarveOrphanSweep.sweepChunk(
-                    mantle.chunk(x, z),
+                    voids,
+                    PowerOfTwoCoordinates.chunkToBlock(x),
+                    PowerOfTwoCoordinates.chunkToBlock(z),
                     chunkSurfaceHeights,
                     maxSurfaceBreakDepth(weightedProfiles),
                     world.height() - 1,
@@ -144,16 +147,16 @@ public class CaveCarving {
         return maxDepth;
     }
 
-    private void carveProfile(WeightedProfile weightedProfile, MatterMantle mantle, int cx, int cz,
+    private void carveProfile(WeightedProfile weightedProfile, MantleLayer<CarvedVoid> voids, int cx, int cz,
                               int[] chunkSurfaceHeights, int[] surfaceFluidBoundaryStartY,
                               CaveFluidSupportPlan fluidSupportPlan) {
         IrisCaveCarver3D carver = getCarver(weightedProfile.profile);
-        carver.carve(mantle, cx, cz, weightedProfile.columnWeights, MIN_WEIGHT, THRESHOLD_PENALTY,
+        carver.carve(voids, cx, cz, weightedProfile.columnWeights, MIN_WEIGHT, THRESHOLD_PENALTY,
                 weightedProfile.worldYRange, chunkSurfaceHeights, surfaceFluidBoundaryStartY, null, fluidSupportPlan);
     }
 
     private void carveUpperTerrain(TerrainSampler terrain, List<WeightedProfile> normalProfiles,
-                                   MatterMantle mantle, int cx, int cz,
+                                   MantleLayer<CarvedVoid> voids, int cx, int cz,
                                    CaveFluidSupportPlan fluidSupportPlan) {
         int chunkHeight = world.height();
         int worldMinHeight = world.minHeight();
@@ -198,7 +201,7 @@ public class CaveCarving {
                 constrainedRange = upperYRange;
             }
             IrisCaveCarver3D carver = getCarver(weightedProfile.profile);
-            carver.carve(mantle, cx, cz, weightedProfile.columnWeights, MIN_WEIGHT, THRESHOLD_PENALTY,
+            carver.carve(voids, cx, cz, weightedProfile.columnWeights, MIN_WEIGHT, THRESHOLD_PENALTY,
                     constrainedRange, ceilingSurfaceHeights, null, fullVerticalRange, fluidSupportPlan);
         }
     }

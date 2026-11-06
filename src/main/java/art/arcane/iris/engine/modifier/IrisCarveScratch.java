@@ -28,7 +28,7 @@ final class IrisCarveScratch {
     final CarveColumnMask[] boundaryMasks = new CarveColumnMask[256];
     final int[] surfaceHeights = new int[256];
     final CarveWallBuffer walls = new CarveWallBuffer(512);
-    final Map<String, ResourceId> customBiomeCache = new HashMap<>();
+    final Map<ResourceId, ResourceId> customBiomeCache = new HashMap<>();
     int[] upperSurfaceHeights;
     boolean customCaveBiomePresent;
 

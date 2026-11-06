@@ -18,11 +18,9 @@
 
 package art.arcane.iris.modules.objects;
 
-import art.arcane.iris.builtin.MatterMantle;
-import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
-import art.arcane.volmlib.util.matter.Matter;
-import art.arcane.volmlib.util.matter.MatterCavern;
-import art.arcane.volmlib.util.matter.MatterSlice;
+import com.volmit.geometry.BlockBox;
+import com.volmit.mantle.CarvedVoid;
+import com.volmit.mantle.MantleLayer;
 
 import java.util.Optional;
 
@@ -31,84 +29,36 @@ import java.util.Optional;
  * are above the dimension's bottom; outside the mantle the invocation reaches nothing is carved.
  */
 public final class CarvedSpace {
-    private static final int CHUNK_SHIFT = 4;
-    private static final int SECTION_SHIFT = 4;
-    private static final int SECTION_HEIGHT = 16;
-    private static final int LOCAL_MASK = 15;
-    private static final byte CARVED = 1;
+    private final MantleLayer<CarvedVoid> voids;
+    private final BlockBox reach;
 
-    private final MatterMantle mantle;
-    private final int worldHeight;
-
-    public CarvedSpace(MatterMantle mantle, int worldHeight) {
-        this.mantle = mantle;
-        this.worldHeight = worldHeight;
+    public CarvedSpace(MantleLayer<CarvedVoid> voids, BlockBox reach) {
+        this.voids = voids;
+        this.reach = reach;
     }
 
     /** Whether the position is carved. */
     public boolean isCarved(int x, int y, int z) {
-        return cavernData(x, y, z) != null;
+        return voidAt(x, y, z).isPresent();
     }
 
     /** Whether each height from 0 up to {@code height} is carved at the column, 1 for carved and 0 for not. */
     public byte[] column(int x, int z, int height) {
-        int cappedHeight = Math.min(Math.max(height, 0), worldHeight);
+        int cappedHeight = Math.min(Math.max(height, 0), reach.maxY());
         byte[] carvedColumn = new byte[cappedHeight];
-        if (cappedHeight <= 0) {
-            return carvedColumn;
-        }
-        MantleChunk<Matter> chunk = mantle.chunk(x >> CHUNK_SHIFT, z >> CHUNK_SHIFT);
-        if (chunk == null) {
-            return carvedColumn;
-        }
-        int localX = x & LOCAL_MASK;
-        int localZ = z & LOCAL_MASK;
-        int lastSection = (cappedHeight - 1) >> SECTION_SHIFT;
-        for (int section = 0; section <= lastSection; section++) {
-            MatterSlice<MatterCavern> slice = cavernSlice(chunk, section);
-            if (slice == null) {
-                continue;
-            }
-            int sectionBaseY = section << SECTION_SHIFT;
-            int sectionMaxY = Math.min(cappedHeight, sectionBaseY + SECTION_HEIGHT);
-            for (int y = sectionBaseY; y < sectionMaxY; y++) {
-                if (slice.get(localX, y & LOCAL_MASK, localZ) != null) {
-                    carvedColumn[y] = CARVED;
-                }
+        for (int y = 0; y < cappedHeight; y++) {
+            if (reach.contains(x, y, z) && voids.get(x, y, z) != null) {
+                carvedColumn[y] = 1;
             }
         }
         return carvedColumn;
     }
 
     /** The void at the position; empty where nothing was carved. */
-    public Optional<Cavern> cavernAt(int x, int y, int z) {
-        MatterCavern cavern = cavernData(x, y, z);
-        if (cavern == null || !cavern.isCavern()) {
+    public Optional<CarvedVoid> voidAt(int x, int y, int z) {
+        if (!reach.contains(x, y, z)) {
             return Optional.empty();
         }
-        return Optional.of(new Cavern(cavern.isAir(), cavern.getLiquid()));
-    }
-
-    private MatterCavern cavernData(int x, int y, int z) {
-        if (y < 0 || y >= worldHeight) {
-            return null;
-        }
-        MantleChunk<Matter> chunk = mantle.chunk(x >> CHUNK_SHIFT, z >> CHUNK_SHIFT);
-        if (chunk == null) {
-            return null;
-        }
-        MatterSlice<MatterCavern> slice = cavernSlice(chunk, y >> SECTION_SHIFT);
-        return slice == null ? null : slice.get(x & LOCAL_MASK, y & LOCAL_MASK, z & LOCAL_MASK);
-    }
-
-    private static MatterSlice<MatterCavern> cavernSlice(MantleChunk<Matter> chunk, int section) {
-        if (!chunk.exists(section)) {
-            return null;
-        }
-        Matter matter = chunk.get(section);
-        if (matter == null || !matter.hasSlice(MatterCavern.class)) {
-            return null;
-        }
-        return matter.getSlice(MatterCavern.class);
+        return Optional.ofNullable(voids.get(x, y, z));
     }
 }

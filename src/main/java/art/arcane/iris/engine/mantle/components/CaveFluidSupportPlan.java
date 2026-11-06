@@ -1,6 +1,6 @@
 /*
- * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2022 Arcane Arts (Volmit Software)
+ * Iris is a World Generator for Minecraft Servers
+ * Copyright (c) 2026 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,103 +18,73 @@
 
 package art.arcane.iris.engine.mantle.components;
 
-import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
 import art.arcane.volmlib.util.math.PowerOfTwoCoordinates;
-import art.arcane.volmlib.util.matter.Matter;
-import art.arcane.volmlib.util.matter.MatterCavern;
-import art.arcane.volmlib.util.matter.MatterSlice;
+import com.volmit.mantle.CarvedVoid;
+import com.volmit.mantle.MantleLayer;
 
 import java.util.BitSet;
-import java.util.IdentityHashMap;
-import java.util.Map;
 
+/** The fluid voids a carver planned in one chunk, to be drained back to open voids where no solid cup holds them. */
 final class CaveFluidSupportPlan {
-    private final IdentityHashMap<MatterCavern, FluidCandidateGroup> groups = new IdentityHashMap<>();
+    private static final int MIN_SUPPORTED_NEIGHBOURS = 4;
+    private static final int CHUNK_WIDTH = 16;
+    private static final int COLUMN_BITS = 8;
+    private static final int COLUMN_MASK = (1 << COLUMN_BITS) - 1;
 
-    void add(int localX, int y, int localZ, MatterCavern fluid, MatterCavern air) {
-        FluidCandidateGroup group = groups.computeIfAbsent(fluid, key -> new FluidCandidateGroup(fluid, air));
+    private final BitSet fluidPositions = new BitSet();
+
+    void add(int localX, int y, int localZ) {
         int columnIndex = PowerOfTwoCoordinates.packLocal16(localX, localZ);
-        group.positions.set((y << 8) | columnIndex);
+        fluidPositions.set((y << COLUMN_BITS) | columnIndex);
     }
 
-    void resolve(MantleChunk<Matter> chunk) {
-        if (chunk == null) {
-            groups.clear();
-            return;
-        }
-
-        for (Map.Entry<MatterCavern, FluidCandidateGroup> entry : groups.entrySet()) {
-            FluidCandidateGroup group = entry.getValue();
-            for (int position = group.positions.nextSetBit(0); position >= 0; position = group.positions.nextSetBit(position + 1)) {
-                int y = position >>> 8;
-                int columnIndex = position & 255;
-                int localX = PowerOfTwoCoordinates.unpackLocal16X(columnIndex);
-                int localZ = columnIndex & 15;
-                MatterCavern current = getCavern(chunk, localX, y, localZ);
-                if (current != group.fluid || hasCupSupport(chunk, localX, y, localZ)) {
-                    continue;
-                }
-
-                Matter section = chunk.get(y >> 4);
-                MatterSlice<MatterCavern> cavernSlice = section.getSlice(MatterCavern.class);
-                cavernSlice.set(localX, y & 15, localZ, group.air);
+    /** Turns every planned fluid void of the chunk at block origin {@code originX}, {@code originZ} that is no longer fluid or has no cup under it into an open void. */
+    void resolve(MantleLayer<CarvedVoid> voids, int originX, int originZ, int worldHeight) {
+        for (int position = fluidPositions.nextSetBit(0); position >= 0; position = fluidPositions.nextSetBit(position + 1)) {
+            int y = position >>> COLUMN_BITS;
+            int columnIndex = position & COLUMN_MASK;
+            int localX = PowerOfTwoCoordinates.unpackLocal16X(columnIndex);
+            int localZ = columnIndex & (CHUNK_WIDTH - 1);
+            int x = originX + localX;
+            int z = originZ + localZ;
+            if (voids.get(x, y, z) != CarvedVoid.FLUID || hasCupSupport(voids, originX, originZ, localX, y, localZ, worldHeight)) {
+                continue;
             }
+            voids.set(x, y, z, CarvedVoid.OPEN);
         }
-        groups.clear();
+        fluidPositions.clear();
     }
 
-    private static boolean hasCupSupport(MantleChunk<Matter> chunk, int localX, int y, int localZ) {
-        if (localX <= 0 || localX >= 15 || localZ <= 0 || localZ >= 15
-                || y <= 1 || !isSolid(chunk, localX, y - 1, localZ)
-                || !isSolid(chunk, localX, y - 2, localZ)) {
+    private static boolean hasCupSupport(MantleLayer<CarvedVoid> voids, int originX, int originZ, int localX, int y, int localZ, int worldHeight) {
+        if (localX <= 0 || localX >= CHUNK_WIDTH - 1 || localZ <= 0 || localZ >= CHUNK_WIDTH - 1
+                || y <= 1 || !isSolid(voids, originX, originZ, localX, y - 1, localZ, worldHeight)
+                || !isSolid(voids, originX, originZ, localX, y - 2, localZ, worldHeight)) {
             return false;
         }
 
         int support = 0;
-        if (isSolid(chunk, localX + 1, y, localZ)) {
+        if (isSolid(voids, originX, originZ, localX + 1, y, localZ, worldHeight)) {
             support++;
         }
-        if (isSolid(chunk, localX - 1, y, localZ)) {
+        if (isSolid(voids, originX, originZ, localX - 1, y, localZ, worldHeight)) {
             support++;
         }
-        if (isSolid(chunk, localX, y, localZ + 1)) {
+        if (isSolid(voids, originX, originZ, localX, y, localZ + 1, worldHeight)) {
             support++;
         }
-        if (isSolid(chunk, localX, y, localZ - 1)) {
+        if (isSolid(voids, originX, originZ, localX, y, localZ - 1, worldHeight)) {
             support++;
         }
-        if (isSolid(chunk, localX, y + 1, localZ)) {
+        if (isSolid(voids, originX, originZ, localX, y + 1, localZ, worldHeight)) {
             support++;
         }
-        return support >= 4;
+        return support >= MIN_SUPPORTED_NEIGHBOURS;
     }
 
-    private static boolean isSolid(MantleChunk<Matter> chunk, int localX, int y, int localZ) {
-        if (localX < 0 || localX >= 16 || localZ < 0 || localZ >= 16) {
+    private static boolean isSolid(MantleLayer<CarvedVoid> voids, int originX, int originZ, int localX, int y, int localZ, int worldHeight) {
+        if (localX < 0 || localX >= CHUNK_WIDTH || localZ < 0 || localZ >= CHUNK_WIDTH) {
             return false;
         }
-        MatterCavern cavern = getCavern(chunk, localX, y, localZ);
-        return cavern == null || !cavern.isCavern();
-    }
-
-    private static MatterCavern getCavern(MantleChunk<Matter> chunk, int localX, int y, int localZ) {
-        Matter section = chunk.get(y >> 4);
-        if (section == null) {
-            return null;
-        }
-
-        MatterSlice<MatterCavern> cavernSlice = section.getSlice(MatterCavern.class);
-        return cavernSlice == null ? null : cavernSlice.get(localX, y & 15, localZ);
-    }
-
-    private static final class FluidCandidateGroup {
-        private final MatterCavern fluid;
-        private final MatterCavern air;
-        private final BitSet positions = new BitSet();
-
-        private FluidCandidateGroup(MatterCavern fluid, MatterCavern air) {
-            this.fluid = fluid;
-            this.air = air;
-        }
+        return y >= worldHeight || voids.get(originX + localX, y, originZ + localZ) == null;
     }
 }

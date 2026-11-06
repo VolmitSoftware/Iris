@@ -18,11 +18,9 @@
 
 package art.arcane.iris.engine.mantle.components;
 
-import art.arcane.volmlib.util.mantle.runtime.MantleChunk;
 import art.arcane.volmlib.util.math.PowerOfTwoCoordinates;
-import art.arcane.volmlib.util.matter.Matter;
-import art.arcane.volmlib.util.matter.MatterCavern;
-import art.arcane.volmlib.util.matter.MatterSlice;
+import com.volmit.mantle.CarvedVoid;
+import com.volmit.mantle.MantleLayer;
 
 import java.util.Arrays;
 
@@ -31,7 +29,6 @@ public final class CarveOrphanSweep {
     private static final int CHUNK_AREA = CHUNK_SIZE * CHUNK_SIZE;
     private static final int BAND_FLOOR_MARGIN = 4;
     private static final int MAX_ORPHAN_CELLS = 16;
-    private static final MatterCavern ORPHAN_CAVERN = new MatterCavern(true, "", (byte) 0);
     private static final ThreadLocal<SweepScratch> SCRATCH = ThreadLocal.withInitial(SweepScratch::new);
 
     public interface CarveAccess {
@@ -42,34 +39,24 @@ public final class CarveOrphanSweep {
         default boolean isProtected(int localX, int y, int localZ) {
             return false;
         }
-
-        /**
-         * Cheap pre-check: may any block in [minY, maxY] be carved at all? Default true keeps
-         * every implementor correct; the mantle-backed access answers from section slice
-         * presence so an uncarved chunk skips the full band fill + scan.
-         */
-        default boolean mayContainCarvedCells(int minY, int maxY) {
-            return true;
-        }
     }
 
     private CarveOrphanSweep() {
     }
 
+    /** Sweeps the chunk whose first block is {@code originX}, {@code originZ}. */
     static int sweepChunk(
-            MantleChunk<Matter> chunk,
+            MantleLayer<CarvedVoid> voids,
+            int originX,
+            int originZ,
             int[] surfaceHeights,
             int maxSurfaceBreakDepth,
             int worldCeilingY,
             int[] surfaceFluidBoundaryStartY,
             int fluidHeight
     ) {
-        if (chunk == null) {
-            return 0;
-        }
-
         return sweep(surfaceHeights, maxSurfaceBreakDepth, 0, worldCeilingY,
-                new MantleCarveAccess(chunk, surfaceFluidBoundaryStartY, fluidHeight));
+                new MantleCarveAccess(voids, originX, originZ, surfaceFluidBoundaryStartY, fluidHeight));
     }
 
     public static int sweep(int[] surfaceHeights, int maxSurfaceBreakDepth, int worldFloorY, int worldCeilingY, CarveAccess access) {
@@ -92,12 +79,6 @@ public final class CarveOrphanSweep {
         int bandTop = Math.min(worldCeilingY, maxSurfaceY);
         int bandFloor = Math.max(worldFloorY + 1, minSurfaceY - Math.max(0, maxSurfaceBreakDepth) - BAND_FLOOR_MARGIN);
         if (bandTop < bandFloor) {
-            return 0;
-        }
-
-        if (!access.mayContainCarvedCells(bandFloor, bandTop)) {
-            // Same early return the carvedPresent check reaches, without zero-filling and
-            // scanning the whole band first.
             return 0;
         }
 
@@ -228,64 +209,34 @@ public final class CarveOrphanSweep {
     }
 
     private static final class MantleCarveAccess implements CarveAccess {
-        private final MantleChunk<Matter> chunk;
+        private final MantleLayer<CarvedVoid> voids;
+        private final int originX;
+        private final int originZ;
         private final int[] surfaceFluidBoundaryStartY;
         private final int fluidHeight;
-        private MatterSlice<MatterCavern> cachedSlice;
-        private int cachedSectionIndex = -1;
 
-        private MantleCarveAccess(MantleChunk<Matter> chunk, int[] surfaceFluidBoundaryStartY, int fluidHeight) {
-            this.chunk = chunk;
+        private MantleCarveAccess(MantleLayer<CarvedVoid> voids, int originX, int originZ, int[] surfaceFluidBoundaryStartY, int fluidHeight) {
+            this.voids = voids;
+            this.originX = originX;
+            this.originZ = originZ;
             this.surfaceFluidBoundaryStartY = surfaceFluidBoundaryStartY;
             this.fluidHeight = fluidHeight;
         }
 
         @Override
         public boolean isCarved(int localX, int y, int localZ) {
-            MatterSlice<MatterCavern> cavernSlice = resolveSlice(y >> 4);
-            if (cavernSlice == null) {
-                return false;
-            }
-
-            MatterCavern cavern = cavernSlice.get(localX, y & 15, localZ);
-            return cavern != null && cavern.isCavern();
+            return voids.get(originX + localX, y, originZ + localZ) != null;
         }
 
         @Override
         public void markCarved(int localX, int y, int localZ) {
-            chunk.getOrCreate(y >> 4).slice(MatterCavern.class).set(localX, y & 15, localZ, ORPHAN_CAVERN);
-            cachedSectionIndex = -1;
-            cachedSlice = null;
+            voids.set(originX + localX, y, originZ + localZ, CarvedVoid.OPEN);
         }
 
         @Override
         public boolean isProtected(int localX, int y, int localZ) {
             int columnIndex = PowerOfTwoCoordinates.packLocal16(localX, localZ);
             return SurfaceFluidBoundaryPlan.protects(surfaceFluidBoundaryStartY, columnIndex, y, fluidHeight);
-        }
-
-        @Override
-        public boolean mayContainCarvedCells(int minY, int maxY) {
-            int minSection = Math.max(0, minY >> 4);
-            int maxSection = Math.min(chunk.sectionCount() - 1, maxY >> 4);
-            for (int sectionIndex = minSection; sectionIndex <= maxSection; sectionIndex++) {
-                Matter section = chunk.get(sectionIndex);
-                if (section != null && section.getSlice(MatterCavern.class) != null) {
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        private MatterSlice<MatterCavern> resolveSlice(int sectionIndex) {
-            if (sectionIndex == cachedSectionIndex) {
-                return cachedSlice;
-            }
-
-            Matter section = sectionIndex >= 0 && sectionIndex < chunk.sectionCount() ? chunk.get(sectionIndex) : null;
-            cachedSlice = section == null ? null : section.getSlice(MatterCavern.class);
-            cachedSectionIndex = sectionIndex;
-            return cachedSlice;
         }
     }
 

@@ -18,9 +18,7 @@
 
 package art.arcane.iris.engine.mantle.components;
 
-import art.arcane.volmlib.util.matter.Matter;
-import art.arcane.volmlib.util.matter.MatterCavern;
-import art.arcane.volmlib.util.matter.MatterSlice;
+import com.volmit.mantle.CarvedVoid;
 
 final class CaveCarveScratch {
     final int[] columnMaxY = new int[256];
@@ -64,9 +62,7 @@ final class CaveCarveScratch {
     int activeModuleCount;
     double[] verticalEdgeFade = new double[0];
     double[] surfaceClosureThreshold = new double[0];
-    MatterCavern[] matterByY = new MatterCavern[0];
-    Matter[] sectionMatter = new Matter[0];
-    MatterSlice<?>[] sectionSlices = new MatterSlice<?>[0];
+    CarvedVoid[] voidByY = new CarvedVoid[0];
     int adaptiveGeometryStep = -1;
     int adaptiveGeometryAxisCells = -1;
     boolean fullWeightsInitialized;

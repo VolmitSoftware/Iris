@@ -57,6 +57,7 @@ include art/arcane/iris/engine/mantle/components/CarveWorld.class
 include art/arcane/iris/engine/mantle/components/CaveCarveScratch*.class
 include art/arcane/iris/engine/mantle/components/CaveCarving*.class
 include art/arcane/iris/engine/mantle/components/CaveFieldModuleState.class
+include art/arcane/iris/engine/mantle/components/CaveFloorMarking*.class
 include art/arcane/iris/engine/mantle/components/CaveFluidSupportPlan*.class
 include art/arcane/iris/engine/mantle/components/IrisCaveCarver3D*.class
 include art/arcane/iris/engine/mantle/components/SurfaceFluidBoundaryPlan*.class

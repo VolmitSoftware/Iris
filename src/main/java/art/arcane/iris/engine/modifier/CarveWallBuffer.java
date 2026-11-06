@@ -19,7 +19,7 @@
 package art.arcane.iris.engine.modifier;
 
 import art.arcane.volmlib.util.math.PowerOfTwoCoordinates;
-import art.arcane.volmlib.util.matter.MatterCavern;
+import com.volmit.mantle.CarvedVoid;
 
 import java.util.Arrays;
 
@@ -28,7 +28,7 @@ final class CarveWallBuffer {
     private static final double LOAD_FACTOR = 0.75D;
 
     private int[] keys;
-    private MatterCavern[] values;
+    private CarvedVoid[] values;
     private int mask;
     private int resizeAt;
     private int size;
@@ -42,12 +42,12 @@ final class CarveWallBuffer {
 
         keys = new int[capacity];
         Arrays.fill(keys, EMPTY_KEY);
-        values = new MatterCavern[capacity];
+        values = new CarvedVoid[capacity];
         mask = capacity - 1;
         resizeAt = Math.max(1, (int) (capacity * LOAD_FACTOR));
     }
 
-    void put(int x, int y, int z, MatterCavern value) {
+    void put(int x, int y, int z, CarvedVoid value) {
         int key = pack(x, y, z);
         int index = mix(key) & mask;
 
@@ -72,7 +72,7 @@ final class CarveWallBuffer {
         }
     }
 
-    MatterCavern get(int x, int y, int z) {
+    CarvedVoid get(int x, int y, int z) {
         int key = pack(x, y, z);
         int index = mix(key) & mask;
         while (true) {
@@ -94,9 +94,9 @@ final class CarveWallBuffer {
                 continue;
             }
 
-            MatterCavern cavern = values[index];
-            if (cavern != null) {
-                consumer.accept(unpackX(key), unpackY(key), unpackZ(key), cavern);
+            CarvedVoid carvedVoid = values[index];
+            if (carvedVoid != null) {
+                consumer.accept(unpackX(key), unpackY(key), unpackZ(key), carvedVoid);
             }
         }
     }
@@ -109,25 +109,25 @@ final class CarveWallBuffer {
 
     private void resize() {
         int[] oldKeys = keys;
-        MatterCavern[] oldValues = values;
+        CarvedVoid[] oldValues = values;
         int nextCapacity = oldKeys.length << 1;
         keys = new int[nextCapacity];
         Arrays.fill(keys, EMPTY_KEY);
-        values = new MatterCavern[nextCapacity];
+        values = new CarvedVoid[nextCapacity];
         mask = nextCapacity - 1;
         resizeAt = Math.max(1, (int) (nextCapacity * LOAD_FACTOR));
         size = 0;
 
         for (int index = 0; index < oldKeys.length; index++) {
             int key = oldKeys[index];
-            MatterCavern value = oldValues[index];
+            CarvedVoid value = oldValues[index];
             if (key != EMPTY_KEY && value != null) {
                 reinsert(key, value);
             }
         }
     }
 
-    private void reinsert(int key, MatterCavern value) {
+    private void reinsert(int key, CarvedVoid value) {
         int index = mix(key) & mask;
         while (keys[index] != EMPTY_KEY) {
             index = (index + 1) & mask;
@@ -161,6 +161,6 @@ final class CarveWallBuffer {
 
     @FunctionalInterface
     interface Consumer {
-        void accept(int x, int y, int z, MatterCavern cavern);
+        void accept(int x, int y, int z, CarvedVoid carvedVoid);
     }
 }

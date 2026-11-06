@@ -202,8 +202,8 @@ none of the jar's modules (`IrisModuleHost.JAR_MODULE_IDS`, which a test keeps e
 `art.arcane.iris.builtin` also holds what the compiled-in built-ins and the jar must share, because each sees its own copy of
 every other class. The facades among them are interfaces Iris implements and offers through IrisApi's extension point, never
 through the thread or a cast: a module asks `world.extension(X.class)` for what belongs to a world (`StructureHost`),
-`context.extension(X.class)` for what belongs to one invocation (`MatterMantle`
-in a chunk or mantle stage) and `settings.extension(X.class)` for a reach worked out
+`context.extension(X.class)` for what belongs to one invocation (`IrisChunk` in a chunk stage, `IrisMantleChunk` in a mantle stage) and
+`settings.extension(X.class)` for a reach worked out
 before any world exists, each with `.orElseThrow()`, since a built-in runs only where Iris offers them. Iris's per-feature world seeds are
 IrisApi purpose seeds: `world.seed(IrisSeedPurposes.CARVE)` (`iris:seed/carve`), by the API's rule like any module's. What the
 built-ins keep with a world across restarts, such as the spawner cooldowns (`SpawnCooldownBook`), they save through
@@ -218,10 +218,10 @@ placement's own states). Its types answer with IrisApi, VolmLib and built-in val
 `iris:prepare/transforms`, lives in the exposed package too, because `IrisStages` names it. `iris:post` reads its switches
 (`postProcessingWalls`, `postProcessingSlabs`) and the biome's `wall` and `slab` as module settings through its context.
 
-`iris:carve` also reads the mantle's matter slices through `MatterMantle` (the chunk of `MatterCavern`s and markers it plans and
-applies, which the platform and the rest of Iris read as slices, not as module layers). A mantle stage gets the whole mantle; a
-chunk stage gets its own chunk and the neighbors the world already holds in memory, which is all the cave apply stage ever read,
-so it writes nothing outside its chunk. What a
+`iris:carve` plans its caves in IrisApi's host-owned `Mantle.carved()` layer (`CarvedVoid`: open, fluid, lava or air, and optionally a
+biome), which Iris keeps in its own form for the platform and the rest of Iris to read. The mantle stage writes it; the apply stage
+reads it, and one block beyond its chunk to wall the caves that cross the border. The cave floors the spawners use are marked by the mantle
+stage with `PlacementTerrain.mark(PackMarker("cave_floor"))`. What a
 cave's walls, floor and ceiling get comes from the terrain and decorant built-ins of the same jar (`modules.terrain.BiomeLayers`,
 `modules.terrain.TerrainPalettes`, the biome decorators), through carve's own `CaveDressing`, which tests replace with fixed blocks.
 A cave's dimension, region and biome settings are found by the id the layout's biome samples carry (`DeclaredByLevel`), its

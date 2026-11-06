@@ -236,7 +236,7 @@
     "iris.bukkit.commandstructure.could_not_resolve_pack_dimension_2": "§cPakkausta ei voitu ratkaista mitan vuoksi {value}",
     "iris.bukkit.commandstructure.importing_all_vanilla_datapack_structures_into_overwrite": "§aVanillan tuonti & datapakettiin §f{value}§a (korvaa)...",
     "iris.bukkit.commandstructure.import_complete_structures_objects_written_failed": "§aTuo valmis: §f{imported}§a  structures/objects kirjallinen §f{failed}§a Epäonnistui.",
-    "iris.bukkit.commandstructure.reference_them_from_biome_region_dimension_structures_list_run_iris": "§7Viedään ne biome/alue/ulottuvuus-rakenneluettelosta tai ajetaan /iris structure list {value} Päivittääksesi indeksin.  Luo palasia muutoksia voimaan.",
+    "iris.bukkit.commandstructure.reference_them_from_biome_region_dimension_structures_list_run_iris": "§7Viedään ne biome/alue/ulottuvuus-rakenneluettelosta tai ajetaan /iris module structure list Päivittääksesi indeksin.  Luo palasia muutoksia voimaan.",
     "iris.bukkit.commandstructure.could_not_resolve_pack_dimension_3": "§cPakkausta ei voitu ratkaista mitan vuoksi {value}",
     "iris.bukkit.commandstructure.captured_structures_place_them_from_structures_list_regenerate_chunks_delete": "§7Vangittu {value} rakenteet.  Aseta ne \"rakennelistasta\" ja uudista palasia.  Poista a structures/*.json Saada se takaisin.",
     "iris.bukkit.commandstudio.opening_studio_pack_seed": "§aAvaa studio \"{value}\" pakkaus (siemen: {seed})",

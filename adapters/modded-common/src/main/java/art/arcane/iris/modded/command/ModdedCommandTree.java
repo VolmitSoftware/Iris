@@ -18,6 +18,7 @@
 
 package art.arcane.iris.modded.command;
 
+import art.arcane.iris.core.tooling.ToolingCommands;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.LongArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
@@ -151,7 +152,8 @@ final class ModdedCommandTree {
         root.then(ModdedStructureCommands.tree("str"));
         root.then(ModdedDeveloperCommands.tree("developer"));
         root.then(ModdedDeveloperCommands.tree("dev"));
-        root.then(ModdedToolingTail.after());
+        root.then(ModdedModuleBranch.tree(ToolingCommands.BRANCH));
+        root.then(ModdedModuleBranch.tree(ToolingCommands.BRANCH_ALIAS));
 
         return root;
     }

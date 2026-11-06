@@ -37,7 +37,8 @@ import java.util.function.Supplier;
 
 /**
  * The one dispatcher of the commands modules register ({@link com.volmit.tooling.ToolingRegistry#registerCommand}),
- * which both adapters mount as the tail of their {@code /iris} root. It resolves the pack first, because the commands
+ * which both adapters mount as the {@code /iris module <root> <command...>} branch (alias {@code m}); it takes the words
+ * after the branch word. It resolves the pack first, because the commands
  * belong to one pack's module set: {@code pack=<name>} anywhere in the line, else the pack of the sender's world, else the
  * pack of the sender's open studio. Then it walks the module's command tree, parses the arguments and runs the action on a
  * worker thread, so no command runs on the server's main thread or a region thread.
@@ -46,6 +47,8 @@ import java.util.function.Supplier;
  * remaining words joined by single spaces.
  */
 public final class ToolingCommands {
+    public static final String BRANCH = "module";
+    public static final String BRANCH_ALIAS = "m";
     private static final String NAME_A_PACK = "Name a pack: " + CommandLine.PACK_OPTION + "<name>";
     private static final String WORKER_NAME_PREFIX = "Iris-Tooling-";
 
@@ -70,15 +73,18 @@ public final class ToolingCommands {
         return new ToolingCommands(PackDirectory.ofBoundPlatform(), workers, IrisValidationContext::boundPlatformRegistries);
     }
 
+    /** Whether {@code word} opens the module branch of the {@code /iris} root, {@code module} or its alias {@code m}. */
+    public static boolean isBranchWord(String word) {
+        return BRANCH.equalsIgnoreCase(word) || BRANCH_ALIAS.equalsIgnoreCase(word);
+    }
+
     /**
-     * Runs the command the words name, if some module of the resolved pack registers its root: the pack, the tree and the
-     * arguments are resolved on the calling thread and the action runs on a worker. A problem with the line reaches the
-     * sender as an error.
-     *
-     * @return whether the line was a command of this dispatcher; false leaves the sender without a reply
+     * Runs the command the words after the branch word name: the pack, the tree and the arguments are resolved on the
+     * calling thread and the action runs on a worker. No command word lists the commands of the pack's modules, and a
+     * problem with the line reaches the sender as an error.
      */
-    public boolean execute(ToolingSender sender, List<String> words) {
-        return run(sender, words, false);
+    public void execute(ToolingSender sender, List<String> words) {
+        run(sender, words, false);
     }
 
     /**
@@ -93,11 +99,7 @@ public final class ToolingCommands {
 
     /** Like {@link #execute}, with the resolving done on a worker too, for callers that must not block. */
     public void executeOffThread(ToolingSender sender, List<String> words) {
-        workers.execute(() -> {
-            if (!execute(sender, words)) {
-                sender.error("Unknown command");
-            }
-        });
+        workers.execute(() -> execute(sender, words));
     }
 
     /** The words that can follow {@code words}, whose last word is the one being typed. */
@@ -133,13 +135,21 @@ public final class ToolingCommands {
     private boolean run(ToolingSender sender, List<String> tokens, boolean onlyIfOpenToEveryone) {
         try {
             CommandLine line = CommandLine.of(tokens);
-            if (line.words().isEmpty()) {
+            ResolvedPack pack = resolvePack(sender, line.packName());
+            List<CommandRegistration> roots = rootsOf(pack.served());
+            if (line.words().isEmpty() && onlyIfOpenToEveryone) {
                 return false;
             }
-            ResolvedPack pack = resolvePack(sender, line.packName());
-            Optional<LocatedCommand> located = LocatedCommand.locate(rootsOf(pack.served()), line.words());
-            if (located.isEmpty()) {
+            if (line.words().isEmpty()) {
+                describeMountedRoots(sender, pack.served(), roots);
+                return true;
+            }
+            Optional<LocatedCommand> located = LocatedCommand.locate(roots, line.words());
+            if (located.isEmpty() && onlyIfOpenToEveryone) {
                 return false;
+            }
+            if (located.isEmpty()) {
+                throw new CommandFailure("No module command named " + line.words().getFirst(), "List them with /iris module");
             }
             if (onlyIfOpenToEveryone && !located.get().command().isOpenToEveryone()) {
                 return false;
@@ -274,6 +284,33 @@ public final class ToolingCommands {
             return true;
         } catch (RuntimeException invalid) {
             return false;
+        }
+    }
+
+    private static void describeMountedRoots(ToolingSender sender, ServedPack pack, List<CommandRegistration> roots) {
+        List<String> lines = new ArrayList<>();
+        for (CommandRegistration root : roots) {
+            collectUsageLines(sender, List.of(root.command().name()), root.command(), lines);
+        }
+        if (lines.isEmpty()) {
+            sender.info("No module of pack " + pack.name() + " has commands for you");
+            return;
+        }
+        sender.info("Module commands of pack " + pack.name() + ", run as /iris module <command>:");
+        lines.forEach(line -> sender.info("  " + line));
+    }
+
+    private static void collectUsageLines(ToolingSender sender, List<String> path, Command command, List<String> lines) {
+        if (!mayRun(sender, command)) {
+            return;
+        }
+        if (command.action().isPresent()) {
+            lines.add(LocatedCommand.usageOf(path, command) + (command.description().isEmpty() ? "" : " - " + command.description()));
+        }
+        for (Command child : command.children()) {
+            List<String> childPath = new ArrayList<>(path);
+            childPath.add(child.name());
+            collectUsageLines(sender, childPath, child, lines);
         }
     }
 

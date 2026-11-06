@@ -236,7 +236,7 @@
     "iris.bukkit.commandstructure.could_not_resolve_pack_dimension_2": "§c無法解析大小包 {value}",
     "iris.bukkit.commandstructure.importing_all_vanilla_datapack_structures_into_overwrite": "§a匯入全部原版 & 資料包結構進入 §f{value}§a (覆蓋)...",
     "iris.bukkit.commandstructure.import_complete_structures_objects_written_failed": "§a匯入完成 : §f{imported}§a  structures/objects 寫, §f{failed}§a 失敗 。",
-    "iris.bukkit.commandstructure.reference_them_from_biome_region_dimension_structures_list_run_iris": "§7參考生物群落/ 區域/ 構造列表, 或執行 /iris structure list {value} 用於重新整理索引。  重新生成塊以生效 。",
+    "iris.bukkit.commandstructure.reference_them_from_biome_region_dimension_structures_list_run_iris": "§7參考生物群落/ 區域/ 構造列表, 或執行 /iris module structure list 用於重新整理索引。  重新生成塊以生效 。",
     "iris.bukkit.commandstructure.could_not_resolve_pack_dimension_3": "§c無法解析大小包 {value}",
     "iris.bukkit.commandstructure.captured_structures_place_them_from_structures_list_regenerate_chunks_delete": "§7已捕獲 {value} 結構。  把它們從“ 結構” 列表中放置, 再生塊 。  刪除 a structures/*.json 重新抓起來",
     "iris.bukkit.commandstudio.opening_studio_pack_seed": "§a工作室 \"{value}\" 包(種子: {seed})",

@@ -236,7 +236,7 @@
     "iris.bukkit.commandstructure.could_not_resolve_pack_dimension_2": "§cKhông thể giải quyết gói cho kích thước {value}",
     "iris.bukkit.commandstructure.importing_all_vanilla_datapack_structures_into_overwrite": "§aName & Comment §f{value}§a ( dư viết)...",
     "iris.bukkit.commandstructure.import_complete_structures_objects_written_failed": "§aNhập xong: §f{imported}§a  structures/objects Đã viết, §f{failed}§a bị lỗi.",
-    "iris.bukkit.commandstructure.reference_them_from_biome_region_dimension_structures_list_run_iris": "§7Tham khảo chúng từ danh sách cấu trúc của sinh học/region/dimensision, hoặc chạy /iris structure list {value} để làm lại chỉ mục.  Tạo lại các mảng để thay đổi có tác dụng.",
+    "iris.bukkit.commandstructure.reference_them_from_biome_region_dimension_structures_list_run_iris": "§7Tham khảo chúng từ danh sách cấu trúc của sinh học/region/dimensision, hoặc chạy /iris module structure list để làm lại chỉ mục.  Tạo lại các mảng để thay đổi có tác dụng.",
     "iris.bukkit.commandstructure.could_not_resolve_pack_dimension_3": "§cKhông thể giải quyết gói cho kích thước {value}",
     "iris.bukkit.commandstructure.captured_structures_place_them_from_structures_list_regenerate_chunks_delete": "§7Đã bắt {value} cấu trúc.  Đặt chúng từ một danh sách cấu trúc và tái tạo các mảng.  Xoá structures/*.json Để bắt lại nó.",
     "iris.bukkit.commandstudio.opening_studio_pack_seed": "§aMở studio cho \"{value}\" Gói (dòng dõi: {seed})",

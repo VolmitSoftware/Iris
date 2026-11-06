@@ -236,7 +236,7 @@
     "iris.bukkit.commandstructure.could_not_resolve_pack_dimension_2": "§cNepavyko išspręsti pakuotės dimensijai {value}",
     "iris.bukkit.commandstructure.importing_all_vanilla_datapack_structures_into_overwrite": "§aImportuojama visa vanilla & duomenų kaupimo struktūros į §f{value}§a (perrašyti)...",
     "iris.bukkit.commandstructure.import_complete_structures_objects_written_failed": "§aImportuoti pilną: §f{imported}§a  structures/objects raštu, §f{failed}§a Nepavyko.",
-    "iris.bukkit.commandstructure.reference_them_from_biome_region_dimension_structures_list_run_iris": "§7Nuoroda į juos iš biomo / regiono / dimensijos \"struktūrų\" sąrašo arba paleisti /iris structure list {value} atnaujinti indeksą.  Regeneruoti gabaliukus, kad pakeitimai įsigaliotų.",
+    "iris.bukkit.commandstructure.reference_them_from_biome_region_dimension_structures_list_run_iris": "§7Nuoroda į juos iš biomo / regiono / dimensijos \"struktūrų\" sąrašo arba paleisti /iris module structure list atnaujinti indeksą.  Regeneruoti gabaliukus, kad pakeitimai įsigaliotų.",
     "iris.bukkit.commandstructure.could_not_resolve_pack_dimension_3": "§cNepavyko išspręsti pakuotės dimensijai {value}",
     "iris.bukkit.commandstructure.captured_structures_place_them_from_structures_list_regenerate_chunks_delete": "§7Kapinti {value} struktūros.  Įdėkite juos iš \"struktūrų\" sąrašo ir regeneruoti gabaliukus.  Pašalinti structures/*.json kad jį vėl pagautų.",
     "iris.bukkit.commandstudio.opening_studio_pack_seed": "§aAtidarymo studija \"{value}\"pakuotė (sėkla: {seed})",

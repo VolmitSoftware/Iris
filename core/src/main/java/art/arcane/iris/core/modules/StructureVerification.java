@@ -34,7 +34,7 @@ import java.util.Set;
 import java.util.TreeSet;
 
 /**
- * {@code /iris structure verify}: for every structure the platform registers and every structure the pack's modules place,
+ * {@code /iris module structure verify}: for every structure the platform registers and every structure the pack's modules place,
  * whether it can generate in the world the sender stands in, searching around the world origin for those the pack places.
  * Native eligibility is decided without the platform's blocking locate.
  */

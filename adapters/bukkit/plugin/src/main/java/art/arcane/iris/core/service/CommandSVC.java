@@ -59,6 +59,7 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 
@@ -183,7 +184,7 @@ public class CommandSVC implements IrisService, CommandExecutor, TabCompleter, D
     }
 
     private void denyUnlessOpenToEveryone(CommandSender sender, ToolingSender toolingSender, String[] args) {
-        if (tooling.executeIfOpenToEveryone(toolingSender, Arrays.asList(args))) {
+        if (isModuleBranch(args) && tooling.executeIfOpenToEveryone(toolingSender, wordsAfterBranch(args))) {
             return;
         }
         ComponentMessenger.sendSection(sender, IrisLanguage.text(
@@ -192,15 +193,29 @@ public class CommandSVC implements IrisService, CommandExecutor, TabCompleter, D
         ));
     }
 
+    private static boolean isModuleBranch(String[] args) {
+        return args.length > 0 && ToolingCommands.isBranchWord(args[0]);
+    }
+
+    private static List<String> wordsAfterBranch(String[] args) {
+        return Arrays.asList(args).subList(1, args.length);
+    }
+
     public List<String> tabCompleteRoot(CommandSender sender, String alias, String[] args) {
-        List<String> suggestions = new ArrayList<>(runDirectorTab(sender, alias, args));
-        for (String toolingSuggestion : tooling.complete(new BukkitToolingSender(sender), Arrays.asList(args))) {
-            if (!suggestions.contains(toolingSuggestion)) {
-                suggestions.add(toolingSuggestion);
-            }
-        }
+        List<String> suggestions = isModuleBranch(args) && args.length > 1
+                ? tooling.complete(new BukkitToolingSender(sender), wordsAfterBranch(args))
+                : directorSuggestionsWithModuleBranch(sender, alias, args);
         if (sender instanceof Player player && IrisSettings.get().getGeneral().isCommandSounds()) {
             player.playSound(player.getLocation(), Sound.BLOCK_AMETHYST_BLOCK_CHIME, 0.25f, RNG.r.f(0.125f, 1.95f));
+        }
+        return suggestions;
+    }
+
+    private List<String> directorSuggestionsWithModuleBranch(CommandSender sender, String alias, String[] args) {
+        List<String> suggestions = new ArrayList<>(runDirectorTab(sender, alias, args));
+        boolean typingFirstWord = args.length == 1;
+        if (typingFirstWord && ToolingCommands.BRANCH.startsWith(args[0].toLowerCase(Locale.ROOT))) {
+            suggestions.add(ToolingCommands.BRANCH);
         }
         return suggestions;
     }
@@ -233,6 +248,12 @@ public class CommandSVC implements IrisService, CommandExecutor, TabCompleter, D
     }
 
     private void executeCommand(CommandSender sender, ToolingSender toolingSender, String label, String[] args) {
+        if (isModuleBranch(args)) {
+            tooling.execute(toolingSender, wordsAfterBranch(args));
+            playSuccessSound(sender);
+            return;
+        }
+
         if (sendHelpIfRequested(sender, args)) {
             playSuccessSound(sender);
             return;
@@ -241,11 +262,6 @@ public class CommandSVC implements IrisService, CommandExecutor, TabCompleter, D
         DirectorExecutionResult result = runDirector(sender, label, args);
 
         if (result.isSuccess()) {
-            playSuccessSound(sender);
-            return;
-        }
-
-        if (!result.isHandled() && tooling.execute(toolingSender, Arrays.asList(args))) {
             playSuccessSound(sender);
             return;
         }

@@ -94,8 +94,8 @@ public class ToolingCommandsTest {
         return line.isBlank() ? List.of() : List.of(line.trim().split("\\s+", -1));
     }
 
-    private boolean run(String line) {
-        return dispatcher.execute(sender, words(line));
+    private void run(String line) {
+        dispatcher.execute(sender, words(line));
     }
 
     private List<String> complete(String line) {
@@ -119,8 +119,8 @@ public class ToolingCommandsTest {
                 .runs(context -> seen.add(List.of(context.get(label), context.get(count), context.get(mode)))));
         standIn(packsByName.get("one"));
 
-        assertTrue(run("give apple 3"));
-        assertTrue(run("give pear 7 fast-pass"));
+        run("give apple 3");
+        run("give pear 7 fast-pass");
 
         assertEquals(List.of(List.of("apple", 3L, Mode.SLOW), List.of("pear", 7L, Mode.FAST_PASS)), seen);
         assertTrue(sender.errors.isEmpty());
@@ -132,7 +132,7 @@ public class ToolingCommandsTest {
                 .argument(Argument.word("note").orElse("none")).runs(context -> seen.add("ran")));
         standIn(packsByName.get("one"));
 
-        assertTrue(run("give apple"));
+        run("give apple");
 
         assertEquals(List.of("Missing count"), sender.errors);
         assertEquals(List.of("Use: give <label> <count> [note]"), sender.infos);
@@ -187,8 +187,8 @@ public class ToolingCommandsTest {
                 .child(recording("clear")));
         standIn(packsByName.get("one"));
 
-        assertTrue(run("tools"));
-        assertTrue(run("tools frobnicate"));
+        run("tools");
+        run("tools frobnicate");
 
         assertEquals(List.of("tools: Pack tools", "  tools list [filter] - List things", "  tools clear",
                 "tools: Pack tools", "  tools list [filter] - List things", "  tools clear"), sender.infos);
@@ -196,13 +196,59 @@ public class ToolingCommandsTest {
     }
 
     @Test
-    public void aLineThatNoRootOwnsIsNotHandled() {
+    public void aLineThatNoRootOwnsIsAnErrorThatPointsToTheList() {
         packWith("one", recording("tools"));
         standIn(packsByName.get("one"));
 
-        assertFalse(run("elsewhere now"));
-        assertFalse(run(""));
+        run("elsewhere now");
+
+        assertEquals(List.of("No module command named elsewhere"), sender.errors);
+        assertEquals(List.of("List them with /iris module"), sender.infos);
+        assertTrue(seen.isEmpty());
+    }
+
+    @Test
+    public void theBranchAnswersToModuleAndItsAliasInAnyCase() {
+        assertTrue(ToolingCommands.isBranchWord("module"));
+        assertTrue(ToolingCommands.isBranchWord("M"));
+        assertFalse(ToolingCommands.isBranchWord("structure"));
+        assertFalse(ToolingCommands.isBranchWord("mod"));
+    }
+
+    @Test
+    public void noCommandWordListsTheMountedRootsWithTheirCommandsForTheSender() {
+        packWith("one",
+                Command.named("tools").describe("Pack tools")
+                        .child(Command.named("list").describe("List things").argument(Argument.word("filter").orElse("all"))
+                                .runs(context -> { }))
+                        .child(Command.named("clear").runs(context -> { })),
+                Command.named("ping").describe("Answer").openToEveryone().runs(context -> { }),
+                Command.named("shape").runs(context -> { }));
+        standIn(packsByName.get("one"));
+
+        sender.operator = false;
+        run("pack=one");
+
+        assertEquals(List.of("Module commands of pack one, run as /iris module <command>:", "  ping - Answer"), sender.infos);
         assertTrue(sender.errors.isEmpty());
+    }
+
+    @Test
+    public void theListNamesEveryCommandOfAnOperatorAndSaysSoWhenAPackHasNone() {
+        packWith("one",
+                Command.named("tools")
+                        .child(Command.named("list").describe("List things").argument(Argument.word("filter").orElse("all"))
+                                .runs(context -> { }))
+                        .child(Command.named("clear").runs(context -> { })),
+                Command.named("ping").runs(context -> { }));
+        packWith("bare");
+
+        run("pack=one");
+        run("pack=bare");
+
+        assertEquals(List.of("Module commands of pack one, run as /iris module <command>:",
+                "  ping", "  tools list [filter] - List things", "  tools clear",
+                "No module of pack bare has commands for you"), sender.infos);
     }
 
     @Test
@@ -269,8 +315,8 @@ public class ToolingCommandsTest {
         standIn(packsByName.get("alpha"));
         sender.operator = false;
 
-        assertTrue(run("locked"));
-        assertTrue(run("public"));
+        run("locked");
+        run("public");
         assertFalse(dispatcher.executeIfOpenToEveryone(sender, words("locked")));
         assertTrue(dispatcher.executeIfOpenToEveryone(sender, words("public")));
 
@@ -287,6 +333,7 @@ public class ToolingCommandsTest {
         assertFalse(dispatcher.executeIfOpenToEveryone(sender, words("public 9")));
         assertFalse(dispatcher.executeIfOpenToEveryone(sender, words("missing")));
         assertFalse(dispatcher.executeIfOpenToEveryone(sender, words("public pack=nowhere")));
+        assertFalse(dispatcher.executeIfOpenToEveryone(sender, words("")));
 
         assertTrue(sender.errors.isEmpty());
         assertTrue(sender.infos.isEmpty());
@@ -343,7 +390,7 @@ public class ToolingCommandsTest {
         FakePack broken = new FakePack("broken", null, null);
         packsByName.put("broken", broken);
 
-        assertTrue(run("anything pack=broken"));
+        run("anything pack=broken");
 
         assertEquals(List.of("The modules of pack broken did not load: Command root tools is registered by module a already"),
                 sender.errors);

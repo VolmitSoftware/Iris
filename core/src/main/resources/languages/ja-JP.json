@@ -236,7 +236,7 @@
     "iris.bukkit.commandstructure.could_not_resolve_pack_dimension_2": "§cディメンション {value} のパックを解決できませんでした",
     "iris.bukkit.commandstructure.importing_all_vanilla_datapack_structures_into_overwrite": "§aすべてのバニラおよびデータパック構造物を §f{value}§a にインポートしています（上書き）...",
     "iris.bukkit.commandstructure.import_complete_structures_objects_written_failed": "§aインポート完了: §f{imported}§a 件を structures/objects に書き込み、§f{failed}§a 件が失敗しました。",
-    "iris.bukkit.commandstructure.reference_them_from_biome_region_dimension_structures_list_run_iris": "§7biome/region/dimension の 'structures' リストから参照するか、/iris structure list {value} を実行してインデックスを更新してください。変更を反映するにはチャンクを再生成してください。",
+    "iris.bukkit.commandstructure.reference_them_from_biome_region_dimension_structures_list_run_iris": "§7biome/region/dimension の 'structures' リストから参照するか、/iris module structure list を実行してインデックスを更新してください。変更を反映するにはチャンクを再生成してください。",
     "iris.bukkit.commandstructure.could_not_resolve_pack_dimension_3": "§cディメンション {value} のパックを解決できませんでした",
     "iris.bukkit.commandstructure.captured_structures_place_them_from_structures_list_regenerate_chunks_delete": "§7{value} 件の構造物をキャプチャしました。'structures' リストから配置してチャンクを再生成してください。再キャプチャするには structures/*.json を削除してください。",
     "iris.bukkit.commandstudio.opening_studio_pack_seed": "§aパック \"{value}\" のスタジオを開いています（シード: {seed}）",

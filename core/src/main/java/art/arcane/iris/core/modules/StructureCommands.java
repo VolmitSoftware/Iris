@@ -35,7 +35,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 
-/** The {@code /iris structure} commands of {@link StructureModelModule}: the index, one structure's graph, and the verification of a world's structures. */
+/** The {@code /iris module structure} commands of {@link StructureModelModule}: the index, one structure's graph, and the verification of a world's structures. */
 final class StructureCommands {
     private static final String ROOT_NAME = "structure";
     private static final long INFO_SAMPLE_SEED = 1234L;

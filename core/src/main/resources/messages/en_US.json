@@ -212,7 +212,7 @@
     "iris.bukkit.commandstructure.could_not_resolve_pack_dimension_2": "§cCould not resolve the pack for dimension {value}",
     "iris.bukkit.commandstructure.importing_all_vanilla_datapack_structures_into_overwrite": "§aImporting all vanilla & datapack structures into §f{value}§a (overwrite)...",
     "iris.bukkit.commandstructure.import_complete_structures_objects_written_failed": "§aImport complete: §f{imported}§a structures/objects written, §f{failed}§a failed.",
-    "iris.bukkit.commandstructure.reference_them_from_biome_region_dimension_structures_list_run_iris": "§7Reference them from a biome/region/dimension 'structures' list, or run /iris structure list {value} to refresh the index. Regenerate chunks for changes to take effect.",
+    "iris.bukkit.commandstructure.reference_them_from_biome_region_dimension_structures_list_run_iris": "§7Reference them from a biome/region/dimension 'structures' list, or run /iris module structure list to refresh the index. Regenerate chunks for changes to take effect.",
     "iris.bukkit.commandstructure.could_not_resolve_pack_dimension_3": "§cCould not resolve the pack for dimension {value}",
     "iris.bukkit.commandstructure.captured_structures_place_them_from_structures_list_regenerate_chunks_delete": "§7Captured {value} structures. Place them from a 'structures' list and regenerate chunks. Delete a structures/*.json to re-capture it.",
     "iris.bukkit.commandstudio.opening_studio_pack_seed": "§aOpening studio for the \"{value}\" pack (seed: {seed})",

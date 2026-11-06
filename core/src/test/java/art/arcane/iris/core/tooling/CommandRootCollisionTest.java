@@ -75,7 +75,7 @@ public class CommandRootCollisionTest {
             }
         }, Runnable::run, Optional::empty);
 
-        assertTrue(dispatcher.execute(sender, List.of("structure", "list")));
+        dispatcher.execute(sender, List.of("structure", "list"));
 
         assertEquals(1, sender.errors.size());
         assertTrue(sender.errors.get(0), sender.errors.get(0).startsWith("The modules of pack clashing did not load: Command root structure"));

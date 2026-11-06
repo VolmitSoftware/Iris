@@ -5,7 +5,10 @@ import art.arcane.iris.core.localization.PackDownloadMessages;
 import art.arcane.iris.core.lifecycle.LifecycleOperationCoordinator;
 import art.arcane.iris.core.pack.PackDownloader;
 import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.arguments.StringArgumentType;
+import com.mojang.brigadier.tree.ArgumentCommandNode;
 import com.mojang.brigadier.tree.CommandNode;
+import com.mojang.brigadier.tree.LiteralCommandNode;
 import net.minecraft.SharedConstants;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.server.Bootstrap;
@@ -159,9 +162,37 @@ public class IrisModdedCommandParityTest {
         assertNotNull("iris", iris.getCommand());
         for (String category : new String[]{"help", "find", "goto", "pregen", "pregenerate", "object", "o",
                 "edit", "studio", "std", "s", "pack", "pk", "world", "w", "datapack", "datapacks", "dp",
-                "structure", "struct", "str", "developer", "dev"}) {
+                "structure", "struct", "str", "developer", "dev", "module", "m"}) {
             assertNotNull(category, child(iris, category).getCommand());
         }
+    }
+
+    @Test
+    public void moduleCommandsHaveTheirOwnBranchAndNoTailElsewhere() {
+        CommandNode<CommandSourceStack> iris = irisNode();
+
+        for (CommandNode<CommandSourceStack> node : iris.getChildren()) {
+            assertTrue(node.getName() + " must be a literal", node instanceof LiteralCommandNode);
+        }
+        for (CommandNode<CommandSourceStack> node : child(iris, "structure").getChildren()) {
+            assertTrue("structure " + node.getName() + " must be a literal", node instanceof LiteralCommandNode);
+        }
+        for (String branch : new String[]{"module", "m"}) {
+            CommandNode<CommandSourceStack> module = child(iris, branch);
+            assertNotNull(branch + " lists the mounted commands on its own", module.getCommand());
+            CommandNode<CommandSourceStack> rest = child(module, "command");
+            assertTrue(rest instanceof ArgumentCommandNode);
+            assertEquals(StringArgumentType.StringType.GREEDY_PHRASE, ((StringArgumentType) ((ArgumentCommandNode<?, ?>) rest).getType()).getType());
+            assertNotNull(rest.getCommand());
+        }
+    }
+
+    private static CommandNode<CommandSourceStack> irisNode() {
+        SharedConstants.tryDetectVersion();
+        Bootstrap.bootStrap();
+        CommandDispatcher<CommandSourceStack> dispatcher = new CommandDispatcher<>();
+        IrisModdedCommands.register(dispatcher);
+        return child(dispatcher.getRoot(), "iris");
     }
 
     @Test

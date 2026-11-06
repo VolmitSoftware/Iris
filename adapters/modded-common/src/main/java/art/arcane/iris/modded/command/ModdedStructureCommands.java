@@ -26,7 +26,7 @@ import net.minecraft.commands.Commands;
 
 /**
  * The {@code /iris structure} literals that only explain the Bukkit-only import and capture. The structure module's own
- * commands ({@code list}, {@code info}, {@code verify}) reach the sender through the tooling tail of this node.
+ * commands ({@code list}, {@code info}, {@code verify}) are under {@code /iris module structure}.
  */
 public final class ModdedStructureCommands {
     private static final String IMPORT_EXPLANATION = "Structure import rebuilds vanilla & datapack structures as editable Iris resources through Bukkit/NMS template managers; run /iris structure import on a Bukkit server against this pack, then copy the pack folder over.";
@@ -47,7 +47,6 @@ public final class ModdedStructureCommands {
         root.then(message("all", IMPORT_EXPLANATION));
         root.then(message("capture", CAPTURE_EXPLANATION));
         root.then(message("cap", CAPTURE_EXPLANATION));
-        root.then(ModdedToolingTail.after(name));
 
         return root;
     }

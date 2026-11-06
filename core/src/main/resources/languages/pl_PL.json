@@ -236,7 +236,7 @@
     "iris.bukkit.commandstructure.could_not_resolve_pack_dimension_2": "§cNie można rozwiązać pakietu dla wymiaru {value}",
     "iris.bukkit.commandstructure.importing_all_vanilla_datapack_structures_into_overwrite": "§aImportowanie całej vanilla & struktury datapack do §f{value}§a (nadpisać)...",
     "iris.bukkit.commandstructure.import_complete_structures_objects_written_failed": "§aImport zakończony: §f{imported}§a  structures/objects na piśmie, §f{failed}§a Nie udało się.",
-    "iris.bukkit.commandstructure.reference_them_from_biome_region_dimension_structures_list_run_iris": "§7Odniesienie do nich z listy \"struktur\" / regionu / wymiaru, lub uruchomić /iris structure list {value} aby odświeżyć indeks.  Regeneruj chunki, aby zmiany zaczęły obowiązywać.",
+    "iris.bukkit.commandstructure.reference_them_from_biome_region_dimension_structures_list_run_iris": "§7Odniesienie do nich z listy \"struktur\" / regionu / wymiaru, lub uruchomić /iris module structure list aby odświeżyć indeks.  Regeneruj chunki, aby zmiany zaczęły obowiązywać.",
     "iris.bukkit.commandstructure.could_not_resolve_pack_dimension_3": "§cNie można rozwiązać pakietu dla wymiaru {value}",
     "iris.bukkit.commandstructure.captured_structures_place_them_from_structures_list_regenerate_chunks_delete": "§7Uchwycony {value} struktury.  Umieścić je z listy \"struktur\" i regenerować chunki.  Usuń structures/*.json by go ponownie uchwycić.",
     "iris.bukkit.commandstudio.opening_studio_pack_seed": "§aStudio otwarcia dla \"{value}\"opakowanie (nasiona: {seed})",

@@ -236,7 +236,7 @@
     "iris.bukkit.commandstructure.could_not_resolve_pack_dimension_2": "§cKon het pakket voor dimensie niet oplossen {value}",
     "iris.bukkit.commandstructure.importing_all_vanilla_datapack_structures_into_overwrite": "§aAlle vanilla importeren & datapack structuren in §f{value}§a (overschrijven)...",
     "iris.bukkit.commandstructure.import_complete_structures_objects_written_failed": "§aImporteren voltooid: §f{imported}§a  structures/objects schriftelijk, §f{failed}§a mislukt.",
-    "iris.bukkit.commandstructure.reference_them_from_biome_region_dimension_structures_list_run_iris": "§7Refereer ze vanuit een lijst met biome/regio's/dimensiestructuren, of voer ze uit /iris structure list {value} om de index te vernieuwen.  Regenereer chunks voor veranderingen die van kracht worden.",
+    "iris.bukkit.commandstructure.reference_them_from_biome_region_dimension_structures_list_run_iris": "§7Refereer ze vanuit een lijst met biome/regio's/dimensiestructuren, of voer ze uit /iris module structure list om de index te vernieuwen.  Regenereer chunks voor veranderingen die van kracht worden.",
     "iris.bukkit.commandstructure.could_not_resolve_pack_dimension_3": "§cKon het pakket voor dimensie niet oplossen {value}",
     "iris.bukkit.commandstructure.captured_structures_place_them_from_structures_list_regenerate_chunks_delete": "§7Gevangen {value} structuren.  Plaats ze van een 'structuren' lijst en regenereer chunks.  Verwijderen structures/*.json om het te heroveren.",
     "iris.bukkit.commandstudio.opening_studio_pack_seed": "§aopenen studio voor de \"{value}\" verpakking (zaad: {seed})",

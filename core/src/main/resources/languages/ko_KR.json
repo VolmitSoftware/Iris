@@ -236,7 +236,7 @@
     "iris.bukkit.commandstructure.could_not_resolve_pack_dimension_2": "§c차원을 위한 팩을 해결할 수 없습니다 {value}",
     "iris.bukkit.commandstructure.importing_all_vanilla_datapack_structures_into_overwrite": "§a가져오는 중 모든 바닐라 & 데이터 팩 구조 §f{value}§a (overwrite) ...",
     "iris.bukkit.commandstructure.import_complete_structures_objects_written_failed": "§a가져오기 완료: structures/objects §f{imported}§a개 기록, §f{failed}§a개 실패.",
-    "iris.bukkit.commandstructure.reference_them_from_biome_region_dimension_structures_list_run_iris": "§7biome/region/dimension의 'structures' 목록에서 참조하거나 /iris structure list {value} 명령을 실행하여 인덱스를 새로 고치세요. 변경 사항을 적용하려면 청크를 다시 생성하세요.",
+    "iris.bukkit.commandstructure.reference_them_from_biome_region_dimension_structures_list_run_iris": "§7biome/region/dimension의 'structures' 목록에서 참조하거나 /iris module structure list 명령을 실행하여 인덱스를 새로 고치세요. 변경 사항을 적용하려면 청크를 다시 생성하세요.",
     "iris.bukkit.commandstructure.could_not_resolve_pack_dimension_3": "§c차원을 위한 팩을 해결할 수 없습니다 {value}",
     "iris.bukkit.commandstructure.captured_structures_place_them_from_structures_list_regenerate_chunks_delete": "§7다운로드 {value} 구조.  'structures' 목록에서 배치하고 청크를 재생합니다.  더 알아보기 structures/*.json 다시 캡처합니다.",
     "iris.bukkit.commandstudio.opening_studio_pack_seed": "§a\"를 위한 오프닝 스튜디오{value}\"팩 (seed: {seed})",

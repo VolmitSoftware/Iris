@@ -81,13 +81,13 @@ public class StructureCommandsTest {
         }
     }
 
-    private boolean run(String line) {
-        return dispatcher.execute(sender, List.of(line.split(" ")));
+    private void run(String line) {
+        dispatcher.execute(sender, List.of(line.split(" ")));
     }
 
     @Test
     public void listWritesTheStructureIndexThroughAnEditAndReloadsOnce() throws Exception {
-        assertTrue(run("structure list pack=overworld"));
+        run("structure list pack=overworld");
 
         File index = new File(packFolder, ".iris/structure-index.json");
         assertTrue(index.isFile());
@@ -99,14 +99,14 @@ public class StructureCommandsTest {
 
     @Test
     public void theAliasesOfTheRootAndTheCommandAnswerToo() {
-        assertTrue(run("str ls pack=overworld"));
+        run("str ls pack=overworld");
 
         assertEquals(1, sender.successes.size());
     }
 
     @Test
     public void infoNamesTheStructureByTheResourcesOfThePack() {
-        assertTrue(run("structure info nowhere pack=overworld"));
+        run("structure info nowhere pack=overworld");
 
         assertEquals(List.of("No structures resource 'nowhere' in this pack"), sender.errors);
         assertEquals(List.of("Use: structure info <structure>"), sender.infos);
@@ -114,7 +114,7 @@ public class StructureCommandsTest {
 
     @Test
     public void infoAssemblesTheStructureAndReportsAnInvalidGraphAsTheCommandsFailure() {
-        assertTrue(run("structure info empty-castle pack=overworld"));
+        run("structure info empty-castle pack=overworld");
 
         assertEquals(1, sender.errors.size());
         assertTrue(sender.errors.get(0), sender.errors.get(0).startsWith("structure info failed: "));
@@ -123,14 +123,14 @@ public class StructureCommandsTest {
 
     @Test
     public void verifyNeedsTheWorldOfTheSender() {
-        assertTrue(run("structure verify pack=overworld"));
+        run("structure verify pack=overworld");
 
         assertEquals(List.of("Stand in a world generated with this pack: verify reads the running world"), sender.errors);
     }
 
     @Test
     public void theGroupListsTheThreeCommands() {
-        assertTrue(run("structure pack=overworld"));
+        run("structure pack=overworld");
 
         assertEquals(4, sender.infos.size());
         assertTrue(sender.infos.get(1).startsWith("  structure list"));

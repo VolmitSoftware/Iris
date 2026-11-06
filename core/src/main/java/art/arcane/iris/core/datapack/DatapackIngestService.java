@@ -680,7 +680,7 @@ public final class DatapackIngestService {
             message(sender, C.GRAY + "After the restart they generate natively only in Iris dimensions that declare their source URL - no import needed. To get editable Iris copies (jigsaw pools, pieces & objects written into the pack) run /iris structure import <dimension>, or set general.autoImportDatapackStructures=true to do it on every ingest. Place any registered key directly with a 'structures' placement using nativeStructures.");
             message(sender, C.GRAY + "Datapacks replace matching vanilla structure keys by default. Set 'importedStructures.datapackOverrides' to false to keep minecraft-namespaced structure definitions untouched; deny non-minecraft datapack and mod structure families with importedStructures.disabled or complete keys with importedStructures.disabledExact.");
             if (!restart) {
-                message(sender, C.GRAY + "Run with restart=true to restart now, or restart manually. After restart, run /iris structure list <dimension> to see the new keys.");
+                message(sender, C.GRAY + "Run with restart=true to restart now, or restart manually. After restart, run /iris module structure list to see the new keys.");
             }
         }
 

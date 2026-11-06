@@ -282,12 +282,9 @@ public class IrisModdedStructureCommandTest {
     @Test
     public void structureListInfoAndVerifyBelongToTheStructureModule() throws IOException {
         String source = source("ModdedStructureCommands.java");
-        String tree = source("ModdedCommandTree.java");
 
-        assertTrue(source.contains("ModdedToolingTail.after(name)"));
         assertFalse(source.contains("Commands.literal(\"list\")"));
         assertFalse(source.contains("verifyTree("));
-        assertTrue(tree.contains("root.then(ModdedToolingTail.after())"));
     }
 
     private String source(String fileName) throws IOException {

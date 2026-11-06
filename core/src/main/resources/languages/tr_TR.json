@@ -236,7 +236,7 @@
     "iris.bukkit.commandstructure.could_not_resolve_pack_dimension_2": "§cpaketi boyut için çözemez {value}",
     "iris.bukkit.commandstructure.importing_all_vanilla_datapack_structures_into_overwrite": "§aTüm vanillayı ithal etmek & Datapack yapıları içine §f{value}§a (over write)...",
     "iris.bukkit.commandstructure.import_complete_structures_objects_written_failed": "§aTamam: §f{imported}§a  structures/objects yazılı, §f{failed}§a başarısız oldu.",
-    "iris.bukkit.commandstructure.reference_them_from_biome_region_dimension_structures_list_run_iris": "§7Onları bir biyome/bölge/dimension 'yapılar' listesinden referans edin veya çalıştırın /iris structure list {value} indeksi yenilemek için.  Etkisi almak için değişiklikler için regenerate chunks.",
+    "iris.bukkit.commandstructure.reference_them_from_biome_region_dimension_structures_list_run_iris": "§7Onları bir biyome/bölge/dimension 'yapılar' listesinden referans edin veya çalıştırın /iris module structure list indeksi yenilemek için.  Etkisi almak için değişiklikler için regenerate chunks.",
     "iris.bukkit.commandstructure.could_not_resolve_pack_dimension_3": "§cpaketi boyut için çözemez {value}",
     "iris.bukkit.commandstructure.captured_structures_place_them_from_structures_list_regenerate_chunks_delete": "§7Yakalandı {value} yapılar.  Onları bir 'yapılar' listesinden yerleştirin ve yenidengenerate chunks.  silme structures/*.json Yeniden inşa etmek için.",
     "iris.bukkit.commandstudio.opening_studio_pack_seed": "§aAçılış stüdyosu \"{value}\" paket (seed: {seed})",

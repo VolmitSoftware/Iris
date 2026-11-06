@@ -236,7 +236,7 @@
     "iris.bukkit.commandstructure.could_not_resolve_pack_dimension_2": "§cNão foi possível resolver o pacote para a dimensão {value}",
     "iris.bukkit.commandstructure.importing_all_vanilla_datapack_structures_into_overwrite": "§aImportando toda a vanilla & estruturas do pacote de dados para §f{value}§a (sobrescrever)...",
     "iris.bukkit.commandstructure.import_complete_structures_objects_written_failed": "§aImportação concluída: §f{imported}§a  structures/objects escrita, §f{failed}§a falhou.",
-    "iris.bukkit.commandstructure.reference_them_from_biome_region_dimension_structures_list_run_iris": "§7Referência de uma lista «estruturas» de bioma/região/dimensão ou execução /iris structure list {value} para atualizar o índice.  Regenerar chunks para que as alterações façam efeito.",
+    "iris.bukkit.commandstructure.reference_them_from_biome_region_dimension_structures_list_run_iris": "§7Referência de uma lista «estruturas» de bioma/região/dimensão ou execução /iris module structure list para atualizar o índice.  Regenerar chunks para que as alterações façam efeito.",
     "iris.bukkit.commandstructure.could_not_resolve_pack_dimension_3": "§cNão foi possível resolver o pacote para a dimensão {value}",
     "iris.bukkit.commandstructure.captured_structures_place_them_from_structures_list_regenerate_chunks_delete": "§7Capturado {value} estruturas.  Coloque-os a partir de uma lista de estruturas e regenerar chunks.  Apagar a structures/*.json Para o recapturar.",
     "iris.bukkit.commandstudio.opening_studio_pack_seed": "§aEstúdio de abertura para o \"{value}\" pack (sementes: {seed})",

@@ -236,7 +236,7 @@
     "iris.bukkit.commandstructure.could_not_resolve_pack_dimension_2": "§cלא יכול לפתור את החבילה לממד {value}",
     "iris.bukkit.commandstructure.importing_all_vanilla_datapack_structures_into_overwrite": "§aייבוא כל vanilla & מבנים לתוך §f{value}§a (המשך)...",
     "iris.bukkit.commandstructure.import_complete_structures_objects_written_failed": "§aיבוא שלם: §f{imported}§a  structures/objects כתוב, §f{failed}§a נכשל.",
-    "iris.bukkit.commandstructure.reference_them_from_biome_region_dimension_structures_list_run_iris": "§7הפניה אותם מרשימת ביום/אזור / מידע, או ריצה /iris structure list {value} כדי לרענן את המדד.  לנתח חלקים לשינויים כדי להשפיע.",
+    "iris.bukkit.commandstructure.reference_them_from_biome_region_dimension_structures_list_run_iris": "§7הפניה אותם מרשימת ביום/אזור / מידע, או ריצה /iris module structure list כדי לרענן את המדד.  לנתח חלקים לשינויים כדי להשפיע.",
     "iris.bukkit.commandstructure.could_not_resolve_pack_dimension_3": "§cלא יכול לפתור את החבילה לממד {value}",
     "iris.bukkit.commandstructure.captured_structures_place_them_from_structures_list_regenerate_chunks_delete": "§7נתפס {value} מבנים.  מניחים אותם מתוך רשימת \"בני מבנים\" ו- צור מחדש.  למחוק structures/*.json להחזיר אותו מחדש.",
     "iris.bukkit.commandstudio.opening_studio_pack_seed": "§aסטודיו פתיחה ל\"{value}\"חבילה\" (צילום: {seed})",

@@ -236,7 +236,7 @@
     "iris.bukkit.commandstructure.could_not_resolve_pack_dimension_2": "§cНе удалось решить пакет для измерения {value}",
     "iris.bukkit.commandstructure.importing_all_vanilla_datapack_structures_into_overwrite": "§aИмпорт vanilla & структуры пакета данных в §f{value}§a (перезапись)...",
     "iris.bukkit.commandstructure.import_complete_structures_objects_written_failed": "§aИмпорт полный: §f{imported}§a  structures/objects письменно, §f{failed}§a провалился.",
-    "iris.bukkit.commandstructure.reference_them_from_biome_region_dimension_structures_list_run_iris": "§7Ссылка на них из списка «структур» биома / региона / измерения или запуска /iris structure list {value} Обновить индекс.  Регенерировать чанки, чтобы изменения вступили в силу.",
+    "iris.bukkit.commandstructure.reference_them_from_biome_region_dimension_structures_list_run_iris": "§7Ссылка на них из списка «структур» биома / региона / измерения или запуска /iris module structure list Обновить индекс.  Регенерировать чанки, чтобы изменения вступили в силу.",
     "iris.bukkit.commandstructure.could_not_resolve_pack_dimension_3": "§cНе удалось решить пакет для измерения {value}",
     "iris.bukkit.commandstructure.captured_structures_place_them_from_structures_list_regenerate_chunks_delete": "§7захваченный {value} структур.  Поместите их из списка «структур» и восстановите чанки.  Исключить a structures/*.json Чтобы вернуть его.",
     "iris.bukkit.commandstudio.opening_studio_pack_seed": "§aОткрытие студии для\"{value}\"пак (семя):{seed})",

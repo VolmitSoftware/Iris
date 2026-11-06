@@ -41,7 +41,7 @@ import com.volmit.service.VanillaStructures;
  * them up, and the pack's structure placements replace them, place them alongside, start them where their
  * {@code nativeStructures} grids say and fit them into the terrain.
  * <p>
- * It mounts {@code /iris structure list|info|verify} ({@link StructureCommands}) through the tooling api.
+ * It mounts {@code /iris module structure list|info|verify} ({@link StructureCommands}) through the tooling api.
  */
 public final class StructureModelModule implements IrisModule {
     private static final String VERSION = "built-in";

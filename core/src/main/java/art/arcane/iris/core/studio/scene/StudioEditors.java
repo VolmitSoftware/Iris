@@ -97,8 +97,8 @@ public final class StudioEditors {
         requireStudioWorld();
         Path file = fileOf(viewId, key);
         String text = currentText(file, revision);
-        JsonText source = JsonText.parse(text);
-        String edited = source.apply(edit.splices(source));
+        JsonSplicer splicer = new JsonSplicer(JsonText.parse(text));
+        String edited = splicer.apply(edit.splices(splicer));
         JsonText.parse(edited);
         return save(viewId, key, file, edited);
     }
@@ -199,20 +199,33 @@ public final class StudioEditors {
                               Map<String, SchemaTypes.TypeWire> types) {
     }
 
-    /** A {@link GraphNode} as the studio reads it: paths as arrays of steps, and settings types by their schema name. */
+    /**
+     * A {@link GraphNode} as the studio reads it: paths as arrays of member names and indices, a node that draws no
+     * part as part {@code -1}, and settings types by their schema name.
+     */
     public record NodeWire(String kind, String title, List<Object> path, int partId, List<String> roles, List<SettingsWire> settings,
                            List<LinkWire> children, List<Object> childList, boolean movable, boolean duplicable, List<AdditionWire> additions) {
+        private static final int NO_PART = -1;
+
         static NodeWire of(GraphNode node, Set<String> typeNames) {
             List<SettingsWire> settings = node.settings().stream().map(section -> {
                 typeNames.add(section.type().getName());
-                return new SettingsWire(section.title(), section.path().steps(), section.type().getName(), List.copyOf(section.shownAsNodes()));
+                return new SettingsWire(section.title(), stepsOf(section.path()), section.type().getName(), List.copyOf(section.shownAsNodes()));
             }).toList();
             List<LinkWire> children = node.children().stream().map(link -> new LinkWire(link.wire(), of(link.node(), typeNames))).toList();
-            List<AdditionWire> additions = node.additions().stream()
-                    .map(addition -> new AdditionWire(addition.label(), addition.list().steps(), addition.literal()))
+            GraphNode.Edits edits = node.edits();
+            List<AdditionWire> additions = edits.additions().stream()
+                    .map(addition -> new AdditionWire(addition.label(), stepsOf(addition.list()), addition.literal()))
                     .toList();
-            return new NodeWire(node.kind(), node.title(), node.path().steps(), node.partId(), node.roles(), settings, children,
-                    node.childList().map(JsonPath::steps).orElse(null), node.movable(), node.path().isElement(), additions);
+            return new NodeWire(node.kind(), node.title(), stepsOf(node.path()), node.part().orElse(NO_PART), node.roles(), settings,
+                    children, edits.childList().map(NodeWire::stepsOf).orElse(null), edits.movable(), node.path().isElement(), additions);
+        }
+
+        static List<Object> stepsOf(JsonPath path) {
+            return path.steps().stream().<Object>map(step -> switch (step) {
+                case JsonPath.Key(String name) -> name;
+                case JsonPath.Index(int position) -> position;
+            }).toList();
         }
     }
 

@@ -32,18 +32,19 @@ import java.util.List;
  * <pre>
  * u32 header length | header, UTF-8 JSON | padding to 4 bytes | i16 picks[columns²]
  * </pre>
- * The header holds the columns across, the blocks between columns, and the block keys the picks index; a pick of
- * {@link BlockPattern#NO_BLOCK} is a column the pattern places nothing at.
+ * The header holds the columns across, the blocks between columns, the block keys the picks index, and the pick
+ * ({@code noBlock}) of a column the pattern places nothing at.
  */
 final class PatternEncoding {
     private static final int ALIGNMENT_BYTES = 4;
+    private static final short NO_BLOCK = -1;
 
     private PatternEncoding() {
     }
 
     static byte[] encode(BlockPattern pattern, int blocksPerColumn, Gson gson) {
         List<String> blocks = pattern.blocks().stream().map(BlockState::key).toList();
-        byte[] header = gson.toJson(new Header(pattern.columns(), blocksPerColumn, blocks, BlockPattern.NO_BLOCK))
+        byte[] header = gson.toJson(new Header(pattern.columns(), blocksPerColumn, blocks, NO_BLOCK))
                 .getBytes(StandardCharsets.UTF_8);
         int columns = pattern.columns();
         ByteBuffer buffer = ByteBuffer.allocate(aligned(Integer.BYTES + header.length) + columns * columns * Short.BYTES)
@@ -52,7 +53,7 @@ final class PatternEncoding {
         buffer.position(aligned(buffer.position()));
         for (int row = 0; row < columns; row++) {
             for (int column = 0; column < columns; column++) {
-                buffer.putShort((short) pattern.pickAt(column, row));
+                buffer.putShort((short) pattern.pickAt(column, row).orElse(NO_BLOCK));
             }
         }
         return buffer.array();

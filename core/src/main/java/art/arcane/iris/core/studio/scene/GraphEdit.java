@@ -18,6 +18,7 @@
 
 package art.arcane.iris.core.studio.scene;
 
+import art.arcane.iris.core.studio.scene.JsonSplicer.Splice;
 import com.volmit.tooling.JsonPath;
 import com.volmit.tooling.JsonText;
 
@@ -31,11 +32,11 @@ import java.util.Objects;
  */
 public sealed interface GraphEdit {
     /**
-     * The splices that make the change in {@code source}.
+     * The splices that make the change in {@code file}.
      *
      * @throws IllegalArgumentException naming why, when the file has nothing there to change
      */
-    List<JsonText.Splice> splices(JsonText source);
+    List<Splice> splices(JsonSplicer file);
 
     /** Sets member {@code key} of the object at {@code object} to {@code literal}, writing the object when it is missing. */
     record Set(JsonPath object, String key, String literal) implements GraphEdit {
@@ -48,25 +49,25 @@ public sealed interface GraphEdit {
         }
 
         @Override
-        public List<JsonText.Splice> splices(JsonText source) {
-            if (source.at(object).orElse(null) instanceof JsonText.Obj settings) {
-                return List.of(source.put(settings, key, literal));
+        public List<Splice> splices(JsonSplicer file) {
+            if (file.at(object).orElse(null) instanceof JsonText.Obj settings) {
+                return List.of(file.put(settings, key, literal));
             }
-            if (object.isRoot() || !(object.last() instanceof String member)) {
+            if (object.isRoot() || !(object.last() instanceof JsonPath.Key(String member))) {
                 throw new IllegalArgumentException("Nothing to set " + key + " on at " + object);
             }
-            return new Set(object.parent(), member, "{" + JsonText.quote(key) + ": " + literal + "}").splices(source);
+            return new Set(object.parent(), member, "{" + JsonSplicer.quote(key) + ": " + literal + "}").splices(file);
         }
     }
 
     /** Removes member {@code key} of the object at {@code object}, leaving it at its default. */
     record Unset(JsonPath object, String key) implements GraphEdit {
         @Override
-        public List<JsonText.Splice> splices(JsonText source) {
-            if (!(source.at(object).orElse(null) instanceof JsonText.Obj settings) || settings.member(key).isEmpty()) {
+        public List<Splice> splices(JsonSplicer file) {
+            if (!(file.at(object).orElse(null) instanceof JsonText.Obj settings) || settings.member(key).isEmpty()) {
                 return List.of();
             }
-            return List.of(source.remove(settings, key));
+            return List.of(file.remove(settings, key));
         }
     }
 
@@ -80,20 +81,20 @@ public sealed interface GraphEdit {
         }
 
         @Override
-        public List<JsonText.Splice> splices(JsonText source) {
-            return List.of(appendTo(source, list, literal));
+        public List<Splice> splices(JsonSplicer file) {
+            return List.of(appendTo(file, list, literal));
         }
     }
 
     /** Appends a copy of the last element of the array at {@code list}, so a new item starts out filled in. */
     record AddItem(JsonPath list) implements GraphEdit {
         @Override
-        public List<JsonText.Splice> splices(JsonText source) {
-            if (!(source.at(list).orElse(null) instanceof JsonText.Arr array)) {
+        public List<Splice> splices(JsonSplicer file) {
+            if (!(file.at(list).orElse(null) instanceof JsonText.Arr array)) {
                 throw new IllegalArgumentException("No list at " + list);
             }
-            String copy = array.elements().isEmpty() ? "{}" : source.detachedTextOf(array.elements().getLast());
-            return List.of(source.append(array, copy));
+            String copy = array.elements().isEmpty() ? "{}" : file.detachedTextOf(array.elements().getLast());
+            return List.of(file.append(array, copy));
         }
     }
 
@@ -106,8 +107,8 @@ public sealed interface GraphEdit {
         }
 
         @Override
-        public List<JsonText.Splice> splices(JsonText source) {
-            return List.of(removal(source, path));
+        public List<Splice> splices(JsonSplicer file) {
+            return List.of(removal(file, path));
         }
     }
 
@@ -120,12 +121,12 @@ public sealed interface GraphEdit {
         }
 
         @Override
-        public List<JsonText.Splice> splices(JsonText source) {
-            JsonText.Value element = source.at(path).orElseThrow(() -> new IllegalArgumentException("Nothing at " + path));
-            if (!(source.at(path.parent()).orElse(null) instanceof JsonText.Arr array)) {
+        public List<Splice> splices(JsonSplicer file) {
+            JsonText.Value element = file.at(path).orElseThrow(() -> new IllegalArgumentException("Nothing at " + path));
+            if (!(file.at(path.parent()).orElse(null) instanceof JsonText.Arr array)) {
                 throw new IllegalArgumentException("No list holds " + path);
             }
-            return List.of(source.append(array, source.detachedTextOf(element)));
+            return List.of(file.append(array, file.detachedTextOf(element)));
         }
     }
 
@@ -144,39 +145,40 @@ public sealed interface GraphEdit {
         }
 
         @Override
-        public List<JsonText.Splice> splices(JsonText source) {
-            String moved = source.detachedTextOf(source.at(path).orElseThrow(() -> new IllegalArgumentException("Nothing at " + path)));
-            List<JsonText.Splice> splices = new ArrayList<>();
-            splices.add(removal(source, path));
-            splices.add(appendTo(source, toList, moved));
+        public List<Splice> splices(JsonSplicer file) {
+            String moved = file.detachedTextOf(file.at(path).orElseThrow(() -> new IllegalArgumentException("Nothing at " + path)));
+            List<Splice> splices = new ArrayList<>();
+            splices.add(removal(file, path));
+            splices.add(appendTo(file, toList, moved));
             return splices;
         }
     }
 
-    private static JsonText.Splice appendTo(JsonText source, JsonPath list, String literal) {
-        if (source.at(list).orElse(null) instanceof JsonText.Arr array) {
-            return source.append(array, literal);
+    private static Splice appendTo(JsonSplicer file, JsonPath list, String literal) {
+        if (file.at(list).orElse(null) instanceof JsonText.Arr array) {
+            return file.append(array, literal);
         }
-        if (list.isRoot() || !(list.last() instanceof String member) || !(source.at(list.parent()).orElse(null) instanceof JsonText.Obj owner)) {
+        if (list.isRoot() || !(list.last() instanceof JsonPath.Key(String member))
+                || !(file.at(list.parent()).orElse(null) instanceof JsonText.Obj owner)) {
             throw new IllegalArgumentException("Nothing can be added at " + list);
         }
-        return source.put(owner, member, "[" + literal + "]");
+        return file.put(owner, member, "[" + literal + "]");
     }
 
-    private static JsonText.Splice removal(JsonText source, JsonPath path) {
+    private static Splice removal(JsonSplicer file, JsonPath path) {
         JsonPath holderPath = path.parent();
-        JsonText.Value holder = source.at(holderPath).orElseThrow(() -> new IllegalArgumentException("Nothing at " + path));
-        if (path.last() instanceof String key && holder instanceof JsonText.Obj object) {
-            return source.remove(object, key);
+        JsonText.Value holder = file.at(holderPath).orElseThrow(() -> new IllegalArgumentException("Nothing at " + path));
+        if (path.last() instanceof JsonPath.Key(String key) && holder instanceof JsonText.Obj object) {
+            return file.remove(object, key);
         }
-        if (!(path.last() instanceof Integer index) || !(holder instanceof JsonText.Arr array) || index >= array.elements().size()) {
+        if (!(path.last() instanceof JsonPath.Index(int index)) || !(holder instanceof JsonText.Arr array) || index >= array.elements().size()) {
             throw new IllegalArgumentException("Nothing at " + path);
         }
         boolean onlyElement = array.elements().size() == 1;
-        if (onlyElement && !holderPath.isRoot() && holderPath.last() instanceof String key
-                && source.at(holderPath.parent()).orElse(null) instanceof JsonText.Obj owner) {
-            return source.remove(owner, key);
+        if (onlyElement && !holderPath.isRoot() && holderPath.last() instanceof JsonPath.Key(String key)
+                && file.at(holderPath.parent()).orElse(null) instanceof JsonText.Obj owner) {
+            return file.remove(owner, key);
         }
-        return source.removeElement(array, index);
+        return file.removeElement(array, index);
     }
 }

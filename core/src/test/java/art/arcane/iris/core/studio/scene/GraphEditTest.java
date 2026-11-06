@@ -4,6 +4,7 @@ import com.volmit.tooling.JsonPath;
 import com.volmit.tooling.JsonText;
 import org.junit.Test;
 
+import static art.arcane.iris.core.studio.scene.TestPaths.path;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
@@ -31,42 +32,42 @@ public class GraphEditTest {
             """;
 
     private static JsonText edited(GraphEdit edit) {
-        JsonText source = JsonText.parse(TREE);
-        return JsonText.parse(source.apply(edit.splices(source)));
+        JsonSplicer file = new JsonSplicer(JsonText.parse(TREE));
+        return JsonText.parse(file.apply(edit.splices(file)));
     }
 
     private static String textAt(JsonText source, Object... steps) {
-        return source.textOf(source.at(JsonPath.of(steps)).orElseThrow());
+        return source.textOf(source.at(path(steps)).orElseThrow());
     }
 
     @Test
     public void aNewPartGrowsFromItsParentInAListWrittenForIt() {
-        JsonText result = edited(new GraphEdit.Append(JsonPath.of("parts", 0, "children", 0, "children"), "{\"stem\": {\"length\": 6}}"));
+        JsonText result = edited(new GraphEdit.Append(path("parts", 0, "children", 0, "children"), "{\"stem\": {\"length\": 6}}"));
 
         assertEquals("6", textAt(result, "parts", 0, "children", 0, "children", 0, "stem", "length"));
     }
 
     @Test
     public void deletingTheOnlyChildDropsItsList() {
-        JsonText result = edited(new GraphEdit.Delete(JsonPath.of("parts", 0, "children", 1, "children", 0)));
+        JsonText result = edited(new GraphEdit.Delete(path("parts", 0, "children", 1, "children", 0)));
 
-        assertTrue(result.at(JsonPath.of("parts", 0, "children", 1, "children")).isEmpty());
+        assertTrue(result.at(path("parts", 0, "children", 1, "children")).isEmpty());
         assertEquals("4", textAt(result, "parts", 0, "children", 1, "stem", "length"));
     }
 
     @Test
     public void aMovedPartTakesWhatGrowsFromItAlong() {
-        JsonText result = edited(new GraphEdit.Move(JsonPath.of("parts", 0, "children", 1), JsonPath.of("parts", 0, "children", 0, "children")));
+        JsonText result = edited(new GraphEdit.Move(path("parts", 0, "children", 1), path("parts", 0, "children", 0, "children")));
 
-        assertEquals(1, ((JsonText.Arr) result.at(JsonPath.of("parts", 0, "children")).orElseThrow()).elements().size());
+        assertEquals(1, ((JsonText.Arr) result.at(path("parts", 0, "children")).orElseThrow()).elements().size());
         assertEquals("1", textAt(result, "parts", 0, "children", 0, "children", 0, "children", 0, "blob", "radius"));
     }
 
     @Test
     public void aMovedPartIsIndentedForItsNewPlace() {
-        JsonText source = JsonText.parse(TREE);
+        JsonSplicer file = new JsonSplicer(JsonText.parse(TREE));
 
-        String result = source.apply(new GraphEdit.Move(JsonPath.of("parts", 0, "children", 1), JsonPath.of("parts")).splices(source));
+        String result = file.apply(new GraphEdit.Move(path("parts", 0, "children", 1), path("parts")).splices(file));
 
         assertTrue(result, result.contains("""
                         },
@@ -82,16 +83,16 @@ public class GraphEditTest {
 
     @Test
     public void aDuplicateJoinsTheSameListWithWhatGrowsFromIt() {
-        JsonText result = edited(new GraphEdit.Duplicate(JsonPath.of("parts", 0, "children", 1)));
+        JsonText result = edited(new GraphEdit.Duplicate(path("parts", 0, "children", 1)));
 
-        assertEquals(3, ((JsonText.Arr) result.at(JsonPath.of("parts", 0, "children")).orElseThrow()).elements().size());
+        assertEquals(3, ((JsonText.Arr) result.at(path("parts", 0, "children")).orElseThrow()).elements().size());
         assertEquals("1", textAt(result, "parts", 0, "children", 2, "children", 0, "blob", "radius"));
     }
 
     @Test
     public void settingWritesTheMemberAndAnObjectThatIsMissing() {
-        JsonText lean = edited(new GraphEdit.Set(JsonPath.of("parts", 0, "stem"), "lean", "7"));
-        JsonText offset = edited(new GraphEdit.Set(JsonPath.of("parts", 0, "offset"), "y", "2"));
+        JsonText lean = edited(new GraphEdit.Set(path("parts", 0, "stem"), "lean", "7"));
+        JsonText offset = edited(new GraphEdit.Set(path("parts", 0, "offset"), "y", "2"));
 
         assertEquals("7", textAt(lean, "parts", 0, "stem", "lean"));
         assertEquals("2", textAt(offset, "parts", 0, "offset", "y"));
@@ -99,19 +100,19 @@ public class GraphEditTest {
 
     @Test
     public void unsettingWhatIsNotWrittenChangesNothing() {
-        JsonText source = JsonText.parse(TREE);
+        JsonSplicer file = new JsonSplicer(JsonText.parse(TREE));
 
-        assertTrue(new GraphEdit.Unset(JsonPath.of("parts", 0, "stem"), "lean").splices(source).isEmpty());
-        assertTrue(edited(new GraphEdit.Unset(JsonPath.of("parts", 0, "stem"), "length")).at(JsonPath.of("parts", 0, "stem", "length")).isEmpty());
+        assertTrue(new GraphEdit.Unset(path("parts", 0, "stem"), "lean").splices(file).isEmpty());
+        assertTrue(edited(new GraphEdit.Unset(path("parts", 0, "stem"), "length")).at(path("parts", 0, "stem", "length")).isEmpty());
     }
 
     @Test
     public void aPartCanNotMoveIntoItselfOrWhereItIs() {
-        JsonPath part = JsonPath.of("parts", 0, "children", 1);
+        JsonPath part = path("parts", 0, "children", 1);
 
         assertThrows(IllegalArgumentException.class, () -> new GraphEdit.Move(part, part.member("children")));
-        assertThrows(IllegalArgumentException.class, () -> new GraphEdit.Move(part, JsonPath.of("parts", 0, "children")));
-        assertThrows(IllegalArgumentException.class, () -> new GraphEdit.Move(JsonPath.of("parts", 0, "branches", "part"), JsonPath.of("parts")));
+        assertThrows(IllegalArgumentException.class, () -> new GraphEdit.Move(part, path("parts", 0, "children")));
+        assertThrows(IllegalArgumentException.class, () -> new GraphEdit.Move(path("parts", 0, "branches", "part"), path("parts")));
         assertThrows(IllegalArgumentException.class, () -> new GraphEdit.Set(JsonPath.ROOT, "variants", "eight"));
     }
 }

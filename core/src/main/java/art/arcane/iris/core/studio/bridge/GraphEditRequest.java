@@ -26,9 +26,6 @@ import com.google.gson.JsonParser;
 import com.google.gson.JsonPrimitive;
 import com.volmit.tooling.JsonPath;
 
-import java.util.ArrayList;
-import java.util.List;
-
 /**
  * The body of an edit the studio sends, read into a {@link GraphEdit}:
  * <pre>
@@ -82,13 +79,13 @@ record GraphEditRequest(String revision, GraphEdit edit) {
         if (!(object.get(key) instanceof JsonArray steps)) {
             throw new IllegalArgumentException(key + " must be an array of member names and indices");
         }
-        List<Object> path = new ArrayList<>();
+        JsonPath path = JsonPath.ROOT;
         for (JsonElement step : steps) {
             if (!(step instanceof JsonPrimitive primitive)) {
                 throw new IllegalArgumentException(key + " holds " + step + ", not a name or an index");
             }
-            path.add(primitive.isNumber() ? Integer.valueOf(primitive.getAsInt()) : primitive.getAsString());
+            path = primitive.isNumber() ? path.element(primitive.getAsInt()) : path.member(primitive.getAsString());
         }
-        return new JsonPath(path);
+        return path;
     }
 }

@@ -390,9 +390,9 @@ public final class StudioBridge implements AutoCloseable {
         return new String(body, StandardCharsets.UTF_8);
     }
 
-    private static List<SceneEntry> sceneEntries(Engine engine, Query query) {
+    private static List<SceneEntryWire> sceneEntries(Engine engine, Query query) {
         try {
-            return StudioScenes.of(engine).entries(query.text("view"));
+            return StudioScenes.of(engine).entries(query.text("view")).stream().map(SceneEntryWire::of).toList();
         } catch (NoSuchElementException unknown) {
             throw new RequestError(STATUS_NOT_FOUND, unknown.getMessage());
         }
@@ -409,9 +409,9 @@ public final class StudioBridge implements AutoCloseable {
         return SceneEncoding.encode(scene.orElseThrow(() -> new RequestError(STATUS_NOT_FOUND, "No scene " + key)), gson);
     }
 
-    private static List<PatternEntry> patternEntries(Engine engine, Query query) {
+    private static List<PatternEntryWire> patternEntries(Engine engine, Query query) {
         try {
-            return StudioPatterns.of(engine).entries(query.text("view"));
+            return StudioPatterns.of(engine).entries(query.text("view")).stream().map(PatternEntryWire::of).toList();
         } catch (NoSuchElementException unknown) {
             throw new RequestError(STATUS_NOT_FOUND, unknown.getMessage());
         }
@@ -740,6 +740,20 @@ public final class StudioBridge implements AutoCloseable {
 
     /** A scene view as the studio lists it; {@code editable} when its entries can be edited as nodes. */
     private record SceneViewInfo(String id, String label, String description, boolean editable) {
+    }
+
+    /** A {@link SceneEntry} as the studio reads it, with a blank group for none. */
+    private record SceneEntryWire(String key, String name, String group, int variants) {
+        static SceneEntryWire of(SceneEntry entry) {
+            return new SceneEntryWire(entry.key(), entry.name(), entry.group().orElse(""), entry.variants());
+        }
+    }
+
+    /** A {@link PatternEntry} as the studio reads it, with a blank group for none. */
+    private record PatternEntryWire(String key, String name, String group, int depths, List<String> facts) {
+        static PatternEntryWire of(PatternEntry entry) {
+            return new PatternEntryWire(entry.key(), entry.name(), entry.group().orElse(""), entry.depths(), entry.facts());
+        }
     }
 
     private record MessageBody(String message) {

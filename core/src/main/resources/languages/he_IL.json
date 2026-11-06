@@ -771,7 +771,7 @@
     "iris.director.commandwhat.director.what_region_am_i": "באיזה אזור אני?",
     "iris.director.commandwhat.director.what_block_am_i_looking_at": "איזה בלוק אני מסתכל?",
     "iris.director.commandwhat.director.show_markers_chunk": "הופעות ב-Digital",
-    "iris.director.commandwhat.param.marker_name_such_as_cave_floor_cave_ceiling": "שם סמן כגון cave_floor או cave_ceiling",
+    "iris.director.commandwhat.param.marker_name_such_as_cave_floor": "שם סמן כגון cave_floor",
     "iris.modded.help.entry.command.version": "מידע הדפסה",
     "iris.modded.help.entry.command.info": "רשימה טעון Iris מידות ופרטים לארוז",
     "iris.modded.help.entry.command.what": "עקבו Iris ביום, האזור, הביום המערות, פני השטח ונתח במיקום שלך, הבלוק שאתה מסתכל עליו, הפריט המוחזק שלך או סמנים סמוכים",

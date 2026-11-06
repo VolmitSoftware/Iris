@@ -771,7 +771,7 @@
     "iris.director.commandwhat.director.what_region_am_i": "In welke regio ben ik?",
     "iris.director.commandwhat.director.what_block_am_i_looking_at": "Naar welk blok kijk ik?",
     "iris.director.commandwhat.director.show_markers_chunk": "Markeerders tonen in chunk",
-    "iris.director.commandwhat.param.marker_name_such_as_cave_floor_cave_ceiling": "Markeringsnaam zoals grotvloer of grot plafond",
+    "iris.director.commandwhat.param.marker_name_such_as_cave_floor": "Markeringsnaam zoals cave_floor",
     "iris.modded.help.entry.command.version": "Versie-informatie afdrukken",
     "iris.modded.help.entry.command.info": "Lijst geladen Iris afmetingen en verpakking details",
     "iris.modded.help.entry.command.what": "Controleer de Iris biome, regio, grotbiome, oppervlakte en chunk op uw positie, het blok waar u naar kijkt, uw gehouden item of nabijgelegen markers",

@@ -771,7 +771,7 @@
     "iris.director.commandwhat.director.what_region_am_i": "我在哪個地區?",
     "iris.director.commandwhat.director.what_block_am_i_looking_at": "我在看哪個街區?",
     "iris.director.commandwhat.director.show_markers_chunk": "以塊顯示標記",
-    "iris.director.commandwhat.param.marker_name_such_as_cave_floor_cave_ceiling": "標記名, 如 洞穴  地板或洞穴的天花板",
+    "iris.director.commandwhat.param.marker_name_such_as_cave_floor": "標記名, 如 cave_floor",
     "iris.modded.help.entry.command.version": "顯示版本資訊",
     "iris.modded.help.entry.command.info": "列出已載入的 Iris 維度和包詳細資訊",
     "iris.modded.help.entry.command.what": "檢查目前位置的 Iris 生態域、區域、洞穴生態域、地表和區塊，以及注視的方塊、手持物品或附近標記",

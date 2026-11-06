@@ -771,7 +771,7 @@
     "iris.director.commandwhat.director.what_region_am_i": "현재 리전을 확인합니다",
     "iris.director.commandwhat.director.what_block_am_i_looking_at": "바라보는 블록을 확인합니다",
     "iris.director.commandwhat.director.show_markers_chunk": "청크의 마커를 표시합니다",
-    "iris.director.commandwhat.param.marker_name_such_as_cave_floor_cave_ceiling": "cave_floor 또는 cave_ceiling 같은 마커 이름",
+    "iris.director.commandwhat.param.marker_name_such_as_cave_floor": "cave_floor 같은 마커 이름",
     "iris.modded.help.entry.command.version": "버전 정보를 표시합니다",
     "iris.modded.help.entry.command.info": "로드된 Iris 차원과 팩 세부 정보를 나열합니다",
     "iris.modded.help.entry.command.what": "현재 위치의 Iris 바이옴, 리전, 동굴 바이옴, 지표, 청크와 바라보는 블록, 손에 든 아이템, 주변 마커를 확인합니다",

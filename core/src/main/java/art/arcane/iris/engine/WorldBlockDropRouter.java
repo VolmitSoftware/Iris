@@ -76,7 +76,7 @@ final class WorldBlockDropRouter {
                 }
                 J.a(manager.managedTask("bukkit_world_manager_block_break_marker", () -> {
                     MatterMarker marker = manager.getMantle().get(blockX, mantleY, blockZ, MatterMarker.class);
-                    if (marker == null || marker.getTag().equals("cave_floor") || marker.getTag().equals("cave_ceiling")) {
+                    if (marker == null || marker.getTag().equals("cave_floor")) {
                         return;
                     }
 

@@ -202,7 +202,7 @@ public final class DirectorCommandMessages {
     public static final TextKey COMMAND_WHAT_DIRECTOR_WHAT_REGION_AM_I = text("iris.director.commandwhat.director.what_region_am_i");
     public static final TextKey COMMAND_WHAT_DIRECTOR_WHAT_BLOCK_AM_I_LOOKING_AT = text("iris.director.commandwhat.director.what_block_am_i_looking_at");
     public static final TextKey COMMAND_WHAT_DIRECTOR_SHOW_MARKERS_CHUNK = text("iris.director.commandwhat.director.show_markers_chunk");
-    public static final TextKey COMMAND_WHAT_PARAM_MARKER_NAME_SUCH_AS_CAVE_FLOOR_CAVE_CEILING = text("iris.director.commandwhat.param.marker_name_such_as_cave_floor_cave_ceiling");
+    public static final TextKey COMMAND_WHAT_PARAM_MARKER_NAME_SUCH_AS_CAVE_FLOOR = text("iris.director.commandwhat.param.marker_name_such_as_cave_floor");
 
     private DirectorCommandMessages() {
     }

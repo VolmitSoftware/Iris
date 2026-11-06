@@ -771,7 +771,7 @@
     "iris.director.commandwhat.director.what_region_am_i": "Millä alueella olen?",
     "iris.director.commandwhat.director.what_block_am_i_looking_at": "Mitä korttelia katselen?",
     "iris.director.commandwhat.director.show_markers_chunk": "Näytä merkkiaineet paloina",
-    "iris.director.commandwhat.param.marker_name_such_as_cave_floor_cave_ceiling": "Merkitse nimi kuten luola lattia tai luola  katto",
+    "iris.director.commandwhat.param.marker_name_such_as_cave_floor": "Merkin nimi, kuten cave_floor",
     "iris.modded.help.entry.command.version": "Tulosta versiotiedot",
     "iris.modded.help.entry.command.info": "Luettelo ladattu Iris mitat ja pakkaustiedot",
     "iris.modded.help.entry.command.what": "Tutki Iris biome, alue, luolabiome, pinta ja palan sijainti, lohko katsot, hallussa esine, tai lähellä merkkejä",

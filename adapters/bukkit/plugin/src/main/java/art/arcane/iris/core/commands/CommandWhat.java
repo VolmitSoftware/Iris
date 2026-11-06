@@ -181,7 +181,7 @@ public class CommandWhat implements DirectorExecutor {
     private static final int MARKER_SIGNAL_BATCH = 128;
 
     @Director(description = "Show markers in chunk", descriptionKey = "iris.director.commandwhat.director.show_markers_chunk", origin = DirectorOrigin.PLAYER)
-    public void markers(@Param(description = "Marker name such as cave_floor or cave_ceiling", descriptionKey = "iris.director.commandwhat.param.marker_name_such_as_cave_floor_cave_ceiling") String marker) {
+    public void markers(@Param(description = "Marker name such as cave_floor", descriptionKey = "iris.director.commandwhat.param.marker_name_such_as_cave_floor") String marker) {
         VolmitSender commandSender = sender();
         Player player = player();
         if (player == null) {

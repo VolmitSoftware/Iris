@@ -385,7 +385,7 @@ public final class ModdedWorldManager implements EngineWorldManager {
         KList<IrisPosition> obstructed = new KList<>();
         chunk.iterate(MatterMarker.class, (Integer x, Integer yf, Integer z, MatterMarker marker) -> {
             String tag = marker.getTag();
-            if (tag.equals("cave_floor") || tag.equals("cave_ceiling")) {
+            if (tag.equals("cave_floor")) {
                 return;
             }
             Optional<ContentSpawns.MarkerRule> rule = ContentServices.markerRule(engine, tag);

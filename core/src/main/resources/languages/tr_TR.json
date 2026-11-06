@@ -771,7 +771,7 @@
     "iris.director.commandwhat.director.what_region_am_i": "Hangi bölgedeyim?",
     "iris.director.commandwhat.director.what_block_am_i_looking_at": "Hangi bloklara bakıyorum?",
     "iris.director.commandwhat.director.show_markers_chunk": "chunk",
-    "iris.director.commandwhat.param.marker_name_such_as_cave_floor_cave_ceiling": "Marker, Cave floor veya mağara ceiling gibi isim",
+    "iris.director.commandwhat.param.marker_name_such_as_cave_floor": "cave_floor gibi bir işaretleyici adı",
     "iris.modded.help.entry.command.version": "Yazdır version information",
     "iris.modded.help.entry.command.info": "Liste yüklendi Iris Boyut ve paket detayları",
     "iris.modded.help.entry.command.what": "İnspect  Iris biome, bölge, mağara biyome, yüzey ve pozisyonunuzda chunk, bakdığınız blok veya yakındaki işaretleyiciler",

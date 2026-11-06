@@ -771,7 +771,7 @@
     "iris.director.commandwhat.director.what_region_am_i": "¿En qué región estoy?",
     "iris.director.commandwhat.director.what_block_am_i_looking_at": "¿Qué bloque estoy mirando?",
     "iris.director.commandwhat.director.show_markers_chunk": "Mostrar marcadores en el chunk",
-    "iris.director.commandwhat.param.marker_name_such_as_cave_floor_cave_ceiling": "Nombre del marcador, como cave_floor o cave_ceiling",
+    "iris.director.commandwhat.param.marker_name_such_as_cave_floor": "Nombre del marcador, como cave_floor",
     "iris.modded.help.entry.command.version": "Mostrar información de la versión",
     "iris.modded.help.entry.command.info": "Listar las dimensiones de Iris cargadas y los detalles de sus packs",
     "iris.modded.help.entry.command.what": "Inspeccionar el bioma de Iris, la región, el bioma de cueva, la superficie y el chunk de tu posición, el bloque que miras, el objeto que sostienes o los marcadores cercanos",

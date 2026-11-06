@@ -771,7 +771,7 @@
     "iris.director.commandwhat.director.what_region_am_i": "W jakim jestem regionie?",
     "iris.director.commandwhat.director.what_block_am_i_looking_at": "Na który blok patrzę?",
     "iris.director.commandwhat.director.show_markers_chunk": "Pokaż znaczniki w chunku",
-    "iris.director.commandwhat.param.marker_name_such_as_cave_floor_cave_ceiling": "Nazwa znacznika, taka jak jaskiniowa _ podłoga lub jaskinia _ sufit",
+    "iris.director.commandwhat.param.marker_name_such_as_cave_floor": "Nazwa znacznika, taka jak cave_floor",
     "iris.modded.help.entry.command.version": "Drukuj informacje o wersji",
     "iris.modded.help.entry.command.info": "Lista załadowana Iris wymiary i szczegóły opakowania",
     "iris.modded.help.entry.command.what": "Sprawdzić Iris biome, region, biom jaskini, powierzchnia i kawałek na swojej pozycji, blok, który widzisz, trzymany przedmiot lub pobliskie markery",

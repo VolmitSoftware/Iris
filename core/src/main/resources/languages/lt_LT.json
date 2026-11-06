@@ -771,7 +771,7 @@
     "iris.director.commandwhat.director.what_region_am_i": "Kokiame regione aš esu?",
     "iris.director.commandwhat.director.what_block_am_i_looking_at": "Į kokį kvartalą žiūriu?",
     "iris.director.commandwhat.director.show_markers_chunk": "Rodyti žymeklius gabalėlyje",
-    "iris.director.commandwhat.param.marker_name_such_as_cave_floor_cave_ceiling": "Žymeklio pavadinimas, pavyzdžiui, urvas _ grindys arba lubos",
+    "iris.director.commandwhat.param.marker_name_such_as_cave_floor": "Žymeklio pavadinimas, pavyzdžiui, cave_floor",
     "iris.modded.help.entry.command.version": "Spausdinti versijos informaciją",
     "iris.modded.help.entry.command.info": "Įkeltas sąrašas Iris matmenys ir pakuotės detalės",
     "iris.modded.help.entry.command.what": "Apžiūrėkite Iris biomas, regionas, urvas, paviršius ir krūva jūsų vietoje, į bloką jūs žiūrite, jūsų laikomas elementas, arba netoliese žymekliai",

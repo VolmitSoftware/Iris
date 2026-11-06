@@ -81,7 +81,7 @@ public final class ModdedWhatCommands {
     private static final SuggestionProvider<CommandSourceStack> MARKER_TYPES =
             (CommandContext<CommandSourceStack> context, SuggestionsBuilder builder) ->
                     SharedSuggestionProvider.suggest(
-                            List.of("cave_floor", "cave_ceiling", "object"), builder);
+                            List.of("cave_floor", "object"), builder);
     private static final DustParticleOptions MARKER_DUST = new DustParticleOptions(0x5A8CFF, 1.2F);
     private static final int MAX_MARKERS = 8_192;
     private static final int MARKER_BATCH_SIZE = 128;

@@ -771,7 +771,7 @@
     "iris.director.commandwhat.director.what_region_am_i": "Tôi đang ở vùng nào?",
     "iris.director.commandwhat.director.what_block_am_i_looking_at": "Tôi đang nhìn vào khu vực nào?",
     "iris.director.commandwhat.director.show_markers_chunk": "Hiện dấu hiệu trong đoạn",
-    "iris.director.commandwhat.param.marker_name_such_as_cave_floor_cave_ceiling": "Dấu hiệu tên như hang  tầng hoặc hang  động",
+    "iris.director.commandwhat.param.marker_name_such_as_cave_floor": "Tên dấu hiệu, ví dụ cave_floor",
     "iris.modded.help.entry.command.version": "In thông tin phiên bản",
     "iris.modded.help.entry.command.info": "Danh sách đã tải Iris Kích thước và gói chi tiết",
     "iris.modded.help.entry.command.what": "Kiểm tra Iris Sinh học, khu vực, sinh học hang động, bề mặt và mảng tại vị trí của bạn, khối bạn nhìn vào, mục được giữ, hoặc các điểm gần đó",

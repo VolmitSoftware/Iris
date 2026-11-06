@@ -771,7 +771,7 @@
     "iris.director.commandwhat.director.what_region_am_i": "現在のリージョンを調べます",
     "iris.director.commandwhat.director.what_block_am_i_looking_at": "見ているブロックを調べます",
     "iris.director.commandwhat.director.show_markers_chunk": "チャンク内のマーカーを表示します",
-    "iris.director.commandwhat.param.marker_name_such_as_cave_floor_cave_ceiling": "cave_floor や cave_ceiling などのマーカー名",
+    "iris.director.commandwhat.param.marker_name_such_as_cave_floor": "cave_floor などのマーカー名",
     "iris.modded.help.entry.command.version": "バージョン情報を表示します",
     "iris.modded.help.entry.command.info": "読み込み済みの Iris ディメンションとパック詳細を一覧表示します",
     "iris.modded.help.entry.command.what": "現在位置の Iris バイオーム、リージョン、洞窟バイオーム、地表、チャンク、見ているブロック、手持ちアイテム、周囲のマーカーを調べます",

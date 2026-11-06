@@ -750,7 +750,7 @@
     "iris.director.commandwhat.director.what_region_am_i": "What region am i in?",
     "iris.director.commandwhat.director.what_block_am_i_looking_at": "What block am i looking at?",
     "iris.director.commandwhat.director.show_markers_chunk": "Show markers in chunk",
-    "iris.director.commandwhat.param.marker_name_such_as_cave_floor_cave_ceiling": "Marker name such as cave_floor or cave_ceiling",
+    "iris.director.commandwhat.param.marker_name_such_as_cave_floor": "Marker name such as cave_floor",
     "iris.modded.help.entry.command.version": "Print version information",
     "iris.modded.help.entry.command.info": "List loaded Iris dimensions and pack details",
     "iris.modded.help.entry.command.what": "Inspect the Iris biome, region, cave biome, surface and chunk at your position, the block you look at, your held item, or nearby markers",

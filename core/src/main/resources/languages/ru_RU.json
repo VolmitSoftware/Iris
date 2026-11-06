@@ -771,7 +771,7 @@
     "iris.director.commandwhat.director.what_region_am_i": "В каком регионе я нахожусь?",
     "iris.director.commandwhat.director.what_block_am_i_looking_at": "На какой блок я смотрю?",
     "iris.director.commandwhat.director.show_markers_chunk": "Показать маркеры в куске",
-    "iris.director.commandwhat.param.marker_name_such_as_cave_floor_cave_ceiling": "Имя маркера, например cave_floor или cave_ceiling",
+    "iris.director.commandwhat.param.marker_name_such_as_cave_floor": "Имя маркера, например cave_floor",
     "iris.modded.help.entry.command.version": "Печатная версия Информация",
     "iris.modded.help.entry.command.info": "Список загруженных Iris размеры и детали упаковки",
     "iris.modded.help.entry.command.what": "Проверить Iris Биом, область, пещерный биом, поверхность и кусок в вашем положении, блок, на который вы смотрите, удерживаемый элемент или близлежащие маркеры",

@@ -93,9 +93,9 @@ final class MarkerSpawnScanner {
         return p;
     }
 
-    /** What the modules say the marker means; empty for the cave markers Iris keeps for itself and for markers no module knows. */
+    /** What the modules say the marker means; empty for the cave floor marker Iris keeps for itself and for markers no module knows. */
     private Optional<EntitySpawns.MarkerRule> markerRule(MatterMarker marker) {
-        if (marker.getTag().equals("cave_floor") || marker.getTag().equals("cave_ceiling")) {
+        if (marker.getTag().equals("cave_floor")) {
             return Optional.empty();
         }
         return ModuleServices.markerRule(manager.getEngine(), marker.getTag());

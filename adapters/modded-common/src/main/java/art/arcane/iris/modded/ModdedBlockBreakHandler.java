@@ -212,7 +212,7 @@ public final class ModdedBlockBreakHandler {
             return;
         }
         String tag = marker.getTag();
-        if ("cave_floor".equals(tag) || "cave_ceiling".equals(tag)) {
+        if ("cave_floor".equals(tag)) {
             return;
         }
         if (ContentServices.markerRule(engine, tag).map(ContentSpawns.MarkerRule::removeOnChange).orElse(true)) {

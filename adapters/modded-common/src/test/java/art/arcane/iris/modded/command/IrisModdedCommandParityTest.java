@@ -205,6 +205,31 @@ public class IrisModdedCommandParityTest {
                 line.startsWith("/iris pregen start <radius> [dimension] [at] [x] [z] [gui] [sync] [nocache] - ")));
     }
 
+    @Test
+    public void helpListsOnlyWhatTheTreeHas() {
+        CommandNode<CommandSourceStack> iris = irisNode();
+
+        for (String section : ModdedCommandHelp.sections()) {
+            CommandNode<CommandSourceStack> node = section.isEmpty() ? iris : child(iris, section);
+            for (String word : ModdedCommandHelp.documentedWords(section)) {
+                assertNotNull("/iris " + section + " " + word + " is in the help but not in the tree", node.getChild(word));
+            }
+        }
+    }
+
+    @Test
+    public void everyHelpSectionRendersItsEntries() {
+        for (String section : ModdedCommandHelp.sections()) {
+            assertFalse(section, ModdedCommandHelp.consoleLines(section).isEmpty());
+        }
+    }
+
+    @Test
+    public void structureHelpListsOnlyImportAndCapture() {
+        assertEquals(List.of("import", "import-all", "reimport", "imp", "all", "capture", "cap"),
+                ModdedCommandHelp.documentedWords("structure"));
+    }
+
     private static CommandNode<CommandSourceStack> child(
             CommandNode<CommandSourceStack> parent, String name) {
         CommandNode<CommandSourceStack> child = parent.getChild(name);

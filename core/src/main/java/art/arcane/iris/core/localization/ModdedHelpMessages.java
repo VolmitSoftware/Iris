@@ -26,7 +26,7 @@ public final class ModdedHelpMessages {
     public static final TextKey GROUP_PACK_PACK_VALIDATION_AND_MAINTENANCE = text("iris.modded.help.entry.group.pack");
     public static final TextKey GROUP_WORLD_RUNTIME_IRIS_DIMENSION_CREATION_REMOVAL_AND_STATUS = text("iris.modded.help.entry.group.world");
     public static final TextKey GROUP_DATAPACK_WORLD_DATAPACK_INSTALL_AND_STATUS_HELPERS = text("iris.modded.help.entry.group.datapack");
-    public static final TextKey GROUP_STRUCTURE_IRIS_STRUCTURE_INDEX_INFO_AND_PLACEMENT_TOOLS = text("iris.modded.help.entry.group.structure");
+    public static final TextKey GROUP_STRUCTURE_IRIS_STRUCTURE_IMPORT_AND_CAPTURE_TOOLS = text("iris.modded.help.entry.group.structure");
     public static final TextKey COMMAND_GOLDENHASH_GENERATE_DETERMINISTIC_BLOCK_HASHES_FOR_PARITY_TESTING = text("iris.modded.help.entry.command.goldenhash");
     public static final TextKey GROUP_DEVELOPER_DEVELOPER_DIAGNOSTICS_NETWORK_INTERFACES_REGION_FILE_SCAN = text("iris.modded.help.entry.group.developer");
     public static final TextKey COMMAND_BIOME_FIND_AN_IRIS_BIOME = text("iris.modded.help.entry.command.biome");
@@ -82,12 +82,10 @@ public final class ModdedHelpMessages {
     public static final TextKey COMMAND_LIST_LIST_CONFIGURED_AND_INSTALLED_DATAPACKS = text("iris.modded.help.entry.command.list_datapacks");
     public static final TextKey COMMAND_INGEST_EXPLAIN_BUKKIT_DATAPACK_INGEST_WORKFLOW = text("iris.modded.help.entry.command.ingest");
     public static final TextKey COMMAND_REMOVE_EXPLAIN_DATAPACK_REMOVAL_WORKFLOW = text("iris.modded.help.entry.command.remove");
-    public static final TextKey COMMAND_LIST_REGENERATE_STRUCTURE_INDEX_JSON = text("iris.modded.help.entry.command.list_structures");
-    public static final TextKey COMMAND_INFO_RESOLVE_AN_IRIS_STRUCTURE_GRAPH_AND_REPORT_BOUNDS = text("iris.modded.help.entry.command.info_2");
-    public static final TextKey COMMAND_PLACE_ASSEMBLE_AND_PLACE_AN_IRIS_STRUCTURE_AT_YOUR_LOCATION = text("iris.modded.help.entry.command.place");
     public static final TextKey COMMAND_IMPORT_EXPLAIN_BUKKIT_STRUCTURE_IMPORT_WORKFLOW = text("iris.modded.help.entry.command.import");
     public static final TextKey COMMAND_CAPTURE_EXPLAIN_BUKKIT_STRUCTURE_CAPTURE_WORKFLOW = text("iris.modded.help.entry.command.capture");
-    public static final TextKey COMMAND_VERIFY_REPORT_NATIVE_AND_IRIS_STRUCTURE_REACHABILITY_IN_THE_CURRENT_DIMENSION = text("iris.modded.help.entry.command.verify");
+    public static final TextKey COMMAND_UNREGISTERED_PRINT_EVERY_STRUCTURE_EXCLUDED_FROM_GOTO_COMPLETION = text("iris.modded.help.entry.command.unregistered");
+    public static final TextKey COMMAND_MODULE_RUN_A_MODULE_COMMAND_OR_LIST_THEM = text("iris.modded.help.entry.command.module");
     public static final TextKey COMMAND_NETWORK_LIST_NETWORK_INTERFACES_AND_THEIR_ADDRESSES = text("iris.modded.help.entry.command.network");
     public static final TextKey COMMAND_WHAT_HERE_INSPECT_CURRENT_IRIS_CONTEXT = text("iris.modded.help.entry.command.what.here");
     public static final TextKey COMMAND_WHAT_BIOME_INSPECT_CURRENT_BIOME = text("iris.modded.help.entry.command.what.biome");

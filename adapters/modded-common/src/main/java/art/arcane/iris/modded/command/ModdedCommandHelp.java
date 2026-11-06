@@ -21,6 +21,7 @@ package art.arcane.iris.modded.command;
 import art.arcane.iris.core.localization.IrisLanguage;
 import art.arcane.iris.core.localization.IrisMessages;
 import art.arcane.iris.core.localization.ModdedHelpMessages;
+import art.arcane.iris.core.tooling.ToolingCommands;
 import art.arcane.volmlib.util.director.help.DirectorHelpMessages;
 import art.arcane.volmlib.util.localization.MessageArgument;
 import art.arcane.volmlib.util.localization.TextKey;
@@ -32,9 +33,11 @@ import net.minecraft.network.chat.HoverEvent;
 import net.minecraft.network.chat.MutableComponent;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static art.arcane.iris.modded.command.ModdedCommandFeedback.BACK;
 import static art.arcane.iris.modded.command.ModdedCommandFeedback.CATEGORY;
@@ -54,9 +57,6 @@ import static art.arcane.iris.modded.command.ModdedCommandFeedback.USAGE_ICON;
 final class ModdedCommandHelp {
     private static final int PAGE_SIZE = 17;
     private static final int PAGE_BUTTON_WIDTH = 10;
-    private static final TextKey COMMAND_UNREGISTERED = TextKey.of(
-            "iris.modded.help.entry.command.unregistered",
-            "Print every structure excluded from goto completion and its exact reason to the server console");
     private static final Map<String, List<Entry>> SECTIONS = new LinkedHashMap<>();
 
     static {
@@ -85,7 +85,8 @@ final class ModdedCommandHelp {
                 Entry.group("pack", ModdedHelpMessages.GROUP_PACK_PACK_VALIDATION_AND_MAINTENANCE, "pk"),
                 Entry.group("world", ModdedHelpMessages.GROUP_WORLD_RUNTIME_IRIS_DIMENSION_CREATION_REMOVAL_AND_STATUS, "w"),
                 Entry.group("datapack", ModdedHelpMessages.GROUP_DATAPACK_WORLD_DATAPACK_INSTALL_AND_STATUS_HELPERS, "datapacks", "dp"),
-                Entry.group("structure", ModdedHelpMessages.GROUP_STRUCTURE_IRIS_STRUCTURE_INDEX_INFO_AND_PLACEMENT_TOOLS, "struct", "str"),
+                Entry.group("structure", ModdedHelpMessages.GROUP_STRUCTURE_IRIS_STRUCTURE_IMPORT_AND_CAPTURE_TOOLS, "struct", "str"),
+                Entry.command(ToolingCommands.BRANCH, "<root> <command...>", ModdedHelpMessages.COMMAND_MODULE_RUN_A_MODULE_COMMAND_OR_LIST_THEM, ToolingCommands.BRANCH_ALIAS),
                 Entry.command("goldenhash", "[radius] [threads] [capture|verify]", ModdedHelpMessages.COMMAND_GOLDENHASH_GENERATE_DETERMINISTIC_BLOCK_HASHES_FOR_PARITY_TESTING, "gold"),
                 Entry.group("developer", ModdedHelpMessages.GROUP_DEVELOPER_DEVELOPER_DIAGNOSTICS_NETWORK_INTERFACES_REGION_FILE_SCAN, "dev")
         ));
@@ -101,7 +102,7 @@ final class ModdedCommandHelp {
                 Entry.command("biome", "<key>", ModdedHelpMessages.COMMAND_BIOME_FIND_AN_IRIS_BIOME),
                 Entry.command("region", "<key>", ModdedHelpMessages.COMMAND_REGION_FIND_AN_IRIS_REGION),
                 Entry.command("object", "<key>", ModdedHelpMessages.COMMAND_OBJECT_FIND_AN_OBJECT_PLACEMENT),
-                Entry.command("unregistered", "", COMMAND_UNREGISTERED),
+                Entry.command("unregistered", "", ModdedHelpMessages.COMMAND_UNREGISTERED_PRINT_EVERY_STRUCTURE_EXCLUDED_FROM_GOTO_COMPLETION),
                 Entry.command("structure", "<key>", ModdedHelpMessages.COMMAND_STRUCTURE_FIND_AN_IRIS_PLACED_OR_NATIVE_DATAPACK_STRUCTURE),
                 Entry.command("poi", "<type>", ModdedHelpMessages.COMMAND_POI_FIND_A_SUPPORTED_POINT_OF_INTEREST)
         ));
@@ -185,12 +186,8 @@ final class ModdedCommandHelp {
         SECTIONS.put("datapacks", SECTIONS.get("datapack"));
         SECTIONS.put("dp", SECTIONS.get("datapack"));
         SECTIONS.put("structure", List.of(
-                Entry.command("list", "", ModdedHelpMessages.COMMAND_LIST_REGENERATE_STRUCTURE_INDEX_JSON, "ls"),
-                Entry.command("info", "<key>", ModdedHelpMessages.COMMAND_INFO_RESOLVE_AN_IRIS_STRUCTURE_GRAPH_AND_REPORT_BOUNDS),
-                Entry.command("place", "<key>", ModdedHelpMessages.COMMAND_PLACE_ASSEMBLE_AND_PLACE_AN_IRIS_STRUCTURE_AT_YOUR_LOCATION, "p"),
                 Entry.command("import", "", ModdedHelpMessages.COMMAND_IMPORT_EXPLAIN_BUKKIT_STRUCTURE_IMPORT_WORKFLOW, "import-all", "reimport", "imp", "all"),
-                Entry.command("capture", "", ModdedHelpMessages.COMMAND_CAPTURE_EXPLAIN_BUKKIT_STRUCTURE_CAPTURE_WORKFLOW, "cap"),
-                Entry.command("verify", "[key]", ModdedHelpMessages.COMMAND_VERIFY_REPORT_NATIVE_AND_IRIS_STRUCTURE_REACHABILITY_IN_THE_CURRENT_DIMENSION, "locateall")
+                Entry.command("capture", "", ModdedHelpMessages.COMMAND_CAPTURE_EXPLAIN_BUKKIT_STRUCTURE_CAPTURE_WORKFLOW, "cap")
         ));
         SECTIONS.put("struct", SECTIONS.get("structure"));
         SECTIONS.put("str", SECTIONS.get("structure"));
@@ -201,6 +198,19 @@ final class ModdedCommandHelp {
     }
 
     private ModdedCommandHelp() {
+    }
+
+    static Set<String> sections() {
+        return Set.copyOf(SECTIONS.keySet());
+    }
+
+    static List<String> documentedWords(String section) {
+        List<String> words = new ArrayList<>();
+        for (Entry entry : SECTIONS.getOrDefault(section, List.of())) {
+            words.add(entry.name());
+            words.addAll(Arrays.asList(entry.aliases()));
+        }
+        return words;
     }
 
     static boolean documents(String section, String command) {

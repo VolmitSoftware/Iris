@@ -33,6 +33,7 @@ import art.arcane.iris.core.studio.saved.SavedBiomeLabels;
 import art.arcane.iris.core.studio.saved.SavedTile;
 import art.arcane.iris.core.studio.saved.SavedWorld;
 import art.arcane.iris.core.studio.saved.SavedWorlds;
+import art.arcane.iris.core.studio.scene.StudioPatterns;
 import art.arcane.iris.core.studio.scene.StudioScenes;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.render.RenderType;
@@ -45,6 +46,9 @@ import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 import com.volmit.object.GeneratedObject;
+import com.volmit.tooling.BlockPattern;
+import com.volmit.tooling.PatternArea;
+import com.volmit.tooling.PatternEntry;
 import com.volmit.tooling.SceneEntry;
 
 import java.io.IOException;
@@ -94,6 +98,8 @@ public final class StudioBridge implements AutoCloseable {
     private static final double LARGEST_BLOCKS_PER_PIXEL = 4_096D;
     // Each pixel reads the chunk it lands in, so a saved world is shown no farther out than a pixel per chunk.
     private static final int LARGEST_SAVED_BLOCKS_PER_PIXEL = 16;
+    // A palette is picked block by block, so far out a column stands for the blocks around it; past this it says little.
+    private static final int LARGEST_PATTERN_BLOCKS_PER_COLUMN = 64;
     // Noise has detail finer than a block, so it may be looked at closer than the world.
     private static final double SMALLEST_NOISE_BLOCKS_PER_PIXEL = 1D / 64D;
     private static final long ENTITY_WAIT_MILLIS = 3_000L;
@@ -222,6 +228,9 @@ public final class StudioBridge implements AutoCloseable {
             case "saved-worlds" -> sendJson(exchange, STATUS_OK, savedWorlds(exchange));
             case "saved-start" -> sendJson(exchange, STATUS_OK, savedStart(exchange, query));
             case "saved-tile" -> sendBytes(exchange, "application/octet-stream", savedTile(get(exchange).engine(), query));
+            case "patterns" -> sendJson(exchange, STATUS_OK, StudioPatterns.of(get(exchange).engine()).views());
+            case "pattern-entries" -> sendJson(exchange, STATUS_OK, patternEntries(get(exchange).engine(), query));
+            case "pattern" -> sendBytes(exchange, "application/octet-stream", pattern(get(exchange).engine(), query));
             case "noise-sources" -> sendJson(exchange, STATUS_OK, NoiseSources.of(get(exchange).engine()).list());
             case "noise-tile" -> sendBytes(exchange, "application/octet-stream", noiseTile(get(exchange).engine(), query));
             case "events" -> streamEvents(exchange);
@@ -330,6 +339,35 @@ public final class StudioBridge implements AutoCloseable {
             throw new RequestError(STATUS_NOT_FOUND, unknown.getMessage());
         }
         return SceneEncoding.encode(scene.orElseThrow(() -> new RequestError(STATUS_NOT_FOUND, "No scene " + key)), gson);
+    }
+
+    private static List<PatternEntry> patternEntries(Engine engine, Query query) {
+        try {
+            return StudioPatterns.of(engine).entries(query.text("view"));
+        } catch (NoSuchElementException unknown) {
+            throw new RequestError(STATUS_NOT_FOUND, unknown.getMessage());
+        }
+    }
+
+    private byte[] pattern(Engine engine, Query query) {
+        int columns = query.whole("size", DEFAULT_TILE_SIZE);
+        int blocksPerColumn = query.whole("scale", 1);
+        if (columns < 1 || columns > LARGEST_TILE_SIZE) {
+            throw new RequestError(STATUS_BAD_REQUEST, "A pattern is 1 to " + LARGEST_TILE_SIZE + " columns across");
+        }
+        if (blocksPerColumn < 1 || blocksPerColumn > LARGEST_PATTERN_BLOCKS_PER_COLUMN) {
+            throw new RequestError(STATUS_BAD_REQUEST, "The scale is 1 to " + LARGEST_PATTERN_BLOCKS_PER_COLUMN + " whole blocks per column");
+        }
+        String key = query.text("key");
+        int tileBlocks = columns * blocksPerColumn;
+        PatternArea area = new PatternArea(query.whole("x", 0) * tileBlocks, query.whole("z", 0) * tileBlocks, columns, blocksPerColumn);
+        Optional<BlockPattern> pattern;
+        try {
+            pattern = StudioPatterns.of(engine).pattern(query.text("view"), key, query.whole("depth", 0), area);
+        } catch (NoSuchElementException unknown) {
+            throw new RequestError(STATUS_NOT_FOUND, unknown.getMessage());
+        }
+        return PatternEncoding.encode(pattern.orElseThrow(() -> new RequestError(STATUS_NOT_FOUND, "No pattern " + key)), blocksPerColumn, gson);
     }
 
     private static List<SavedWorlds.Info> savedWorlds(HttpExchange exchange) {

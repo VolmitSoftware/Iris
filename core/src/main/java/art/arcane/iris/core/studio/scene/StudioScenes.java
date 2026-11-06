@@ -19,10 +19,9 @@
 package art.arcane.iris.core.studio.scene;
 
 import art.arcane.iris.engine.framework.Engine;
-import com.volmit.host.SceneViewRegistration;
 import com.volmit.object.GeneratedObject;
 import com.volmit.tooling.SceneEntry;
-import com.volmit.world.PackWorld;
+import com.volmit.tooling.SceneView;
 
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -30,61 +29,31 @@ import java.util.Optional;
 
 /** The studio scene views the modules of an engine's pack registered, asked for that engine's world. */
 public final class StudioScenes {
-    private final List<SceneViewRegistration> registrations;
-    private final PackWorld world;
+    private final ModuleViews<SceneView> views;
 
-    private StudioScenes(List<SceneViewRegistration> registrations, PackWorld world) {
-        this.registrations = registrations;
-        this.world = world;
+    private StudioScenes(ModuleViews<SceneView> views) {
+        this.views = views;
     }
 
     public static StudioScenes of(Engine engine) {
-        return new StudioScenes(engine.getData().getModules().pack().catalog().sceneViews(), engine.getGeneration().world());
+        return new StudioScenes(ModuleViews.of(engine, SceneView.class, "scene view"));
     }
 
-    public List<SceneViewInfo> views() {
-        return registrations.stream()
-                .map(registration -> new SceneViewInfo(registration.view().id().toString(), registration.view().label(),
-                        registration.view().description()))
-                .toList();
+    public List<ModuleViews.ViewInfo> views() {
+        return views.infos();
     }
 
-    /** @throws NoSuchElementException when no module registered a view {@code viewId} */
+    /** @throws NoSuchElementException when no module registered a scene view {@code viewId} */
     public List<SceneEntry> entries(String viewId) {
-        SceneViewRegistration registration = registration(viewId);
-        try {
-            return registration.view().entries(world);
-        } catch (RuntimeException failure) {
-            throw new IllegalStateException(failureOf(registration, "list its entries"), failure);
-        }
+        return views.ask(viewId, "list its entries", view -> view.entries(views.world()));
     }
 
     /**
      * The blocks of one variant of an entry; empty when the view has no such entry or variant.
      *
-     * @throws NoSuchElementException when no module registered a view {@code viewId}
+     * @throws NoSuchElementException when no module registered a scene view {@code viewId}
      */
     public Optional<GeneratedObject> scene(String viewId, String key, int variant) {
-        SceneViewRegistration registration = registration(viewId);
-        try {
-            return registration.view().scene(world, key, variant);
-        } catch (RuntimeException failure) {
-            throw new IllegalStateException(failureOf(registration, "build " + key), failure);
-        }
-    }
-
-    private SceneViewRegistration registration(String viewId) {
-        return registrations.stream()
-                .filter(registration -> registration.view().id().toString().equals(viewId))
-                .findFirst()
-                .orElseThrow(() -> new NoSuchElementException("No module shows a scene view " + viewId));
-    }
-
-    private static String failureOf(SceneViewRegistration registration, String task) {
-        return "The " + registration + " could not " + task;
-    }
-
-    /** A scene view as the studio lists it. */
-    public record SceneViewInfo(String id, String label, String description) {
+        return views.ask(viewId, "build " + key, view -> view.scene(views.world(), key, variant));
     }
 }

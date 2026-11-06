@@ -753,7 +753,7 @@ core engine is modules as well. The host's own JSON fields are not in it; no key
 | `List<E>`, `E[]` | `ListKind(E, false)` |
 | `Set<E>` | `ListKind(E, true)` |
 | `Map<String, V>` | `MapKind(V)` |
-| `String` with `@Ref(kind = Type.class)` | `ResourceReferenceKind(id of the kind read into Type)` |
+| `String` with `@ResourceRef(Type.class)` | `ResourceReferenceKind(id of the kind read into Type)` |
 | a class in a host type package, in built-in settings | `HostKind(class name)` |
 | `Object` | `AnyKind`: any JSON value |
 | any other concrete class | `ObjectKind(class name)` |
@@ -786,17 +786,17 @@ adding anything a pack can write.
 
 ### References
 
-`@Ref` says what a text value names, in one of two ways, and exactly one of them. `@Ref(Reference.X)` names
-something of the platform: the kinds are a closed enum of what the Iris host can list today through its
-`RegistryList*` annotations: blocks, items, entities, platform biomes, structures, potion effects and
-enchantments from the server registries, and the host's noise styles. More come when a module needs one and the
-host can serve it. `@Ref(kind = Type.class)` names a pack resource of the kind read into `Type`, the host's
-(`PackBiome`, `PackRegion`, `GeneratedObject`, `PackExpression`, `PackImageMap`) or a module's, so one mechanism covers
-every resource of the pack (see Module-owned pack resources). It replaced both the `PACK_*` constants of `Reference`
-and a separate `@ResourceRef`: two spellings for "a resource of the pack" made a module author guess which one a kind
-needed. `@Ref` fits `String` and `ResourceId` and lists, sets and
-arrays of them, where it applies to the elements. On any other field, a map included, it fails the
-load. Pack resources are
+Two annotations say what a text value names, one per concept. `@Ref(Reference.X)` names something of the platform:
+the kinds are a closed enum of what the Iris host can list today through its `RegistryList*` annotations: blocks,
+items, entities, platform biomes, structures, potion effects and enchantments from the server registries, and the
+host's noise styles. More come when a module needs one and the host can serve it. `@ResourceRef(Type.class)` names a
+pack resource of the kind read into `Type`, the host's (`PackBiome`, `PackRegion`, `GeneratedObject`,
+`PackExpression`, `PackImageMap`) or a module's, so one mechanism covers every resource of the pack (see Module-owned
+pack resources). There are no `PACK_*` constants in `Reference`, so each concept has one spelling. The split replaced
+an `@Ref` with two attributes, of which exactly one had to be given: a rule checked only at pack load, with an array
+`value` that existed only so it could default to empty. Now a wrong combination does not compile, except giving
+both annotations, which fails the load. Both fit `String` and `ResourceId` and lists, sets and arrays of them,
+where they apply to the elements. On any other field, a map included, they fail the load. Pack resources are
 plain text in the JSON either way: packs name their biomes, regions and objects by path without a namespace, such as
 `desert/dunes`. On a `ResourceId` field the host reads that path as the pack's id of it (`PackResources.idOf`), and a
 value with a namespace as written, so a module can hand the value straight to `PackResources.find`. A resource the
@@ -1034,7 +1034,7 @@ the resources it serves itself.
 - **Lookup.** `PackResources.find(KEEPS, id)` and `ids(KEEPS)` take the kind itself, the constant the module registered, and
   return its type. The host's own kinds are constants of `PackResources` (`BIOMES`, `REGIONS`, `OBJECTS`,
   `EXPRESSIONS`, `IMAGE_MAPS`), so one call shape serves both, and no second key type (it used to be `ResourceKey`, a
-  pair of id and class). One class still backs at most one kind, because `@Ref(kind = ...)` names the kind by its class. The class must be concrete; like settings it
+  pair of id and class). One class still backs at most one kind, because `@ResourceRef(...)` names the kind by its class. The class must be concrete; like settings it
   needs a no-argument constructor, checked when the pack's description is built.
 - **Reading.** The host creates the instance with that constructor and reads the JSON into it under the
   decoding contract, exactly as it decodes settings, so a missing field keeps its default and studio's defaults are what packs get.
@@ -1046,10 +1046,10 @@ the resources it serves itself.
   then renders the host's own description of the class. A pack module's kind of a host type fails the load.
 - **Studio.** `PackSchema.resources()` lists each kind with its folder and the files' type, an `ObjectKind`
   described in `types()` or a `HostKind`. The host writes a schema per kind for the files below its folder. An
-  option that names a resource of a kind carries `@Ref(kind = Keep.class)`: a class, not a kind id, so the
+  option that names a resource of a kind carries `@ResourceRef(Keep.class)`: a class, not a kind id, so the
   reference is checked by the compiler (an annotation cannot hold the kind constant). It becomes
   `ResourceReferenceKind(kindId)`, and studio completes the kind's keys. Keys are pack paths without a
-  namespace in the JSON, like the pack references of `@Ref`; the field may be a `String` or a `ResourceId`, which the
+  namespace in the JSON; the field may be a `String` or a `ResourceId`, which the
   host reads as the pack's id of the key. A class that backs no kind of the host or the pack fails the load.
 
 ## Validators

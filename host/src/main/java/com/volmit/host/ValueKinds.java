@@ -35,7 +35,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-/** Maps a settings field's declared type and {@code @Ref} to the JSON it takes. Host types
+/** Maps a settings field's declared type and {@code @Ref} or {@code @ResourceRef} to the JSON it takes. Host types
  * become host kinds where the settings may use them; other classes that are none of the built-in kinds become
  * object kinds through the given function. Throws {@link SettingsTypeProblem} for a type or reference that does
  * not fit.
@@ -73,7 +73,10 @@ final class ValueKinds {
         return kind(option.type(), new Naming(option.reference(), option.resource()));
     }
 
-    /** What a text option names: the registry or the kind's type of the field's {@code @Ref}, each null when absent. */
+    /**
+     * What a text option names: the registry of the field's {@code @Ref} or the kind's type of its {@code @ResourceRef},
+     * each null when absent.
+     */
     private record Naming(Reference reference, Class<?> resource) {
         static final Naming NONE = new Naming(null, null);
 
@@ -81,10 +84,15 @@ final class ValueKinds {
             return reference == null && resource == null;
         }
 
+        /** The annotation's name, for messages. */
+        String annotation() {
+            return reference != null ? "@Ref" : "@ResourceRef";
+        }
+
         /** The annotation as written, for messages. */
         @Override
         public String toString() {
-            return reference != null ? "@Ref(" + reference + ")" : "@Ref(kind = " + resource.getName() + ")";
+            return reference != null ? "@Ref(" + reference + ")" : "@ResourceRef(" + resource.getName() + ")";
         }
     }
 
@@ -151,7 +159,7 @@ final class ValueKinds {
         var hostKind = HOST_KINDS.get(resource);
         if (hostKind != null) return new ResourceReferenceKind(hostKind);
         return resourceKinds.apply(resource).map(ResourceReferenceKind::new).orElseThrow(() -> new SettingsTypeProblem(
-                "has @Ref(kind = " + resource.getName() + "), but neither the host nor a module of the pack has a resource kind"
+                "has @ResourceRef(" + resource.getName() + "), but neither the host nor a module of the pack has a resource kind"
                         + " read into that class; name the type of a PackResources kind or of a kind registered with"
                         + " FeatureRegistry.registerResourceKind"));
     }
@@ -161,7 +169,7 @@ final class ValueKinds {
             return new ReferenceKind(Reference.BLOCK, TextFormat.BLOCK_STATE);
         }
         throw new SettingsTypeProblem("has " + naming + " on BlockState, which always names a block;"
-                + " remove the @Ref or use String or ResourceId");
+                + " remove the " + naming.annotation() + " or use String or ResourceId");
     }
 
     private static EnumKind enumKind(Class<?> type) {
@@ -184,7 +192,7 @@ final class ValueKinds {
     private static void requireNoNaming(Type type, Naming naming) {
         if (naming.isEmpty()) return;
         throw new SettingsTypeProblem("has " + naming + " on " + type.getTypeName()
-                + ", but @Ref fits only String and ResourceId and lists, sets and arrays of them");
+                + ", but " + naming.annotation() + " fits only String and ResourceId and lists, sets and arrays of them");
     }
 
     private static boolean isCollection(Class<?> type) {

@@ -248,14 +248,14 @@ PackBiome dunes = resources.require(PackResources.BIOMES, resources.idOf("desert
   field names.
 - The kind's id follows the module id. The folder is one folder name directly below the pack root; the module
   chooses it, so a kind that replaces one of Iris's own keeps the folder and file format packs already have.
-- One folder holds one kind and one class backs one kind, which `@Ref(kind = ...)` names by its class. Two kinds
+- One folder holds one kind and one class backs one kind, which `@ResourceRef(...)` names by its class. Two kinds
   claiming one folder, or a folder the host reads itself (`ModuleHost.reservingFolders`), fail the pack load,
   naming both owners.
 - The host creates each resource with the class's no-argument constructor and reads the JSON into it, as it does
   settings, so an omitted field keeps its default. It reads a resource once per pack load and hands every caller
   the same instance, so resources are values nobody may change. A reload (studio hotload) reads them again.
 - Studio describes the files from the class like settings: `@Desc`, `@MinNumber`, `@Required` and the rest. An
-  option that names a resource of a kind carries `@Ref(kind = Keep.class)` on a `String` or `ResourceId`, or a
+  option that names a resource of a kind carries `@ResourceRef(Keep.class)` on a `String` or `ResourceId`, or a
   list, set or array of them, and studio completes the kind's keys. Packs write the key either way; a `ResourceId`
   field holds the pack's id of it. Built-in kinds may read into a class the host describes
   itself, as built-in settings may hold one.
@@ -594,7 +594,7 @@ public final class FloraSettings implements IrisFeature {
     @Desc("Plants per chunk") @Required @MinNumber(0) @MaxNumber(64)
     private int density = 4;                                         // default 4
 
-    @Ref(kind = PackBiome.class)
+    @ResourceRef(PackBiome.class)
     private List<String> biomes = List.of();                         // completes the pack's biomes
 
     private BlockState flower = new BlockState("minecraft:poppy");   // completes blocks without @Ref
@@ -621,12 +621,12 @@ public final class FloraSettings implements IrisFeature {
   (a structure or a family prefix such as `minecraft:village`), `STRUCTURE_SET`, `TEMPLATE_POOL` (a jigsaw template pool),
   `POTION_EFFECT`, `ENCHANTMENT`, `LOOT_TABLE` or `SPECIAL_ENTITY` (a mob of another plugin) from the server's registries, or `NOISE_STYLE` from the host's noise
   styles. `BlockState` fields name blocks without it. `@Ref` on any other field fails the load.
-- `@Ref(kind = Keep.class)` says that a `String` or `ResourceId`, or a list, set or array of them, names a pack resource
-  of the kind read into that class, by its key: a host kind of `PackResources` (`PackBiome`, `PackRegion`,
+- `@ResourceRef(Keep.class)` says that a `String` or `ResourceId`, or a list, set or array of them, names a pack
+  resource of the kind read into that class, by its key: a host kind of `PackResources` (`PackBiome`, `PackRegion`,
   `GeneratedObject`, `PackExpression`, `PackImageMap`) or a module resource kind (see Pack resources of a module).
   Packs write the key in the form they always have (`desert/dunes`); on a `ResourceId` field the host reads that as
-  the pack's id (`resources.idOf(...)`), so the value goes straight to `PackResources.find`. A `@Ref` gives exactly
-  one of a `Reference` and a kind; a class no kind of the host or the pack reads into fails the load.
+  the pack's id (`resources.idOf(...)`), so the value goes straight to `PackResources.find`. A class no kind of the
+  host or the pack reads into fails the load, and so does an option with both `@Ref` and `@ResourceRef`.
 - Packs write settings under the short `key` the feature declares, which is required: a plain JSON field name
   (not blank, no `:`), the same at every target: `"moss": {"amount": 0.5}`. The id (`example:moss`) stays the
   feature's identity in the stage graph, logs and `settings.declared(MossSettings.class)`; packs never write it.
@@ -1057,9 +1057,9 @@ for each unsupported field type, misplaced `@Ref` (pack kinds on `ResourceId` in
 class, bad or repeated snippet name and pack snippet outside its module's folder, host types in built-in
 settings (and the load error when a pack module uses one).
 `PackSchemaTest` also loads a module jar with a resource kind: the kind's files described from its class,
-`@Ref(kind = ...)` options as references to the kind (host kinds included), built-in kinds of host types, the load error for a pack kind
-of a host type, for a folder two kinds claim or the host reserves, for a `@Ref` that gives both or neither of a
-reference and a kind, and for a misplaced `@Ref(kind = ...)`.
+`@ResourceRef` options as references to the kind (host kinds included), built-in kinds of host types, the load error for a pack kind
+of a host type, for a folder two kinds claim or the host reserves, for an option with both `@Ref` and `@ResourceRef`,
+and for a misplaced `@ResourceRef`.
 `ModuleRegistryTest` checks kind ids, types and folders, the validator and lifecycle order, service providers in module
 order, the load error for a second provider of a `ONE` service and for providers of unmarked interfaces or of the
 wrong type. `WorldStatesTest` checks that each state is created once (also when threads race), nested creation, the

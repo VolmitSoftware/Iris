@@ -5,6 +5,7 @@ import com.volmit.config.MaxNumber;
 import com.volmit.config.MinNumber;
 import com.volmit.config.Ref;
 import com.volmit.config.Reference;
+import com.volmit.config.ResourceRef;
 import com.volmit.config.Snippet;
 import com.volmit.resource.PackResources;
 import com.volmit.resource.ResourceId;
@@ -40,11 +41,11 @@ public final class NoiseStyle {
     @Desc("How far the noise is stretched: above 1 wider, below 1 tighter.")
     private double zoom = 1;
 
-    @Ref(kind = PackExpression.class)
+    @ResourceRef(PackExpression.class)
     @Desc("An expression of the pack that gives the noise instead of the style.")
     private ResourceId expression;
 
-    @Ref(kind = PackImageMap.class)
+    @ResourceRef(PackImageMap.class)
     @Desc("An image map of the pack that gives the noise instead of the style, when there is no expression.")
     private ResourceId imageMap;
 

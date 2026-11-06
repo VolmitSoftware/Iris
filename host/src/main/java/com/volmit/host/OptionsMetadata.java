@@ -7,6 +7,7 @@ import com.volmit.config.MinNumber;
 import com.volmit.config.Ref;
 import com.volmit.config.Reference;
 import com.volmit.config.Required;
+import com.volmit.config.ResourceRef;
 import com.volmit.config.Snippet;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
@@ -59,6 +60,7 @@ public record OptionsMetadata(String description, String snippet, List<Option> o
                 var max = field.getAnnotation(MaxNumber.class);
                 var minItems = field.getAnnotation(MinItems.class);
                 var ref = field.getAnnotation(Ref.class);
+                var resourceRef = field.getAnnotation(ResourceRef.class);
                 if ((min != null || max != null) && !isNumeric(field.getType())) {
                     throw new IllegalArgumentException("Numeric bounds on nonnumeric option: " + field.getName());
                 }
@@ -71,15 +73,15 @@ public record OptionsMetadata(String description, String snippet, List<Option> o
                     throw new IllegalArgumentException("Invalid @MinItems on option: " + field.getName()
                             + "; it fits lists, sets and arrays, and its value is not negative");
                 }
-                if (ref != null && ref.value().length + (ref.kind() == void.class ? 0 : 1) != 1) {
-                    throw new IllegalArgumentException("Invalid @Ref on option: " + field.getName()
-                            + "; give exactly one of a Reference or a kind");
+                if (ref != null && resourceRef != null) {
+                    throw new IllegalArgumentException("Option " + field.getName()
+                            + " has both @Ref and @ResourceRef; it names either a registry entry or a pack resource");
                 }
                 options.add(new Option(field, desc == null ? "" : desc.value(), field.isAnnotationPresent(Required.class),
                         min == null ? null : min.value(), max == null ? null : max.value(),
                         minItems == null ? null : minItems.value(),
-                        ref == null || ref.value().length == 0 ? null : ref.value()[0],
-                        ref == null || ref.kind() == void.class ? null : ref.kind()));
+                        ref == null ? null : ref.value(),
+                        resourceRef == null ? null : resourceRef.value()));
             }
         }
         var desc = type.getAnnotation(Desc.class);

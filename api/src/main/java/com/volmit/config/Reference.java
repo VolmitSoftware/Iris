@@ -2,7 +2,7 @@ package com.volmit.config;
 
 /** The platform registry a text option names, so studio can offer the matching completion list: entries of the
  * server's registries, such as {@code minecraft:stone}, including those that data packs and mods add, and the host's
- * own noise generators. Resources of the pack are named by their kind instead, {@code @Ref(kind = ...)}.
+ * own noise generators. Resources of the pack are named by their kind instead, with {@link ResourceRef}.
  */
 public enum Reference {
     /** A block type, such as {@code minecraft:stone}. {@link com.volmit.block.BlockState} options are block references without {@link Ref}. */

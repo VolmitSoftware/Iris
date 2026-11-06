@@ -87,7 +87,7 @@ class PackSchemaTest {
                 private ResourceId palette = ResourceId.parse("example:flora/default");
                 @Ref(Reference.BLOCK)
                 private String ground = "minecraft:grass_block";
-                @Ref(kind = com.volmit.world.PackBiome.class) @MinItems(1)
+                @ResourceRef(com.volmit.world.PackBiome.class) @MinItems(1)
                 private List<String> biomes = List.of("plains", "forest");
                 @Ref(Reference.ITEM)
                 private ResourceId[] drops = {};
@@ -697,8 +697,8 @@ class PackSchemaTest {
 
                         @Feature(id = "example:flora", name = "Flora", key = "flora", targets = Level.BIOME)
                         public final class FloraSettings implements IrisFeature {
-                            @Ref(kind = com.volmit.world.PackBiome.class) private ResourceId home;
-                            @Ref(kind = com.volmit.object.GeneratedObject.class) private List<ResourceId> objects = List.of();
+                            @ResourceRef(com.volmit.world.PackBiome.class) private ResourceId home;
+                            @ResourceRef(com.volmit.object.GeneratedObject.class) private List<ResourceId> objects = List.of();
                         }
                         """)
                 .writeInto(pack, "flora.jar");
@@ -745,7 +745,7 @@ class PackSchemaTest {
                         public final class Keep {
                             @Desc("Towers on the walls") @MinNumber(1)
                             private int towers = 4;
-                            @Ref(kind = Keep.class)
+                            @ResourceRef(Keep.class)
                             private String next = "";
                         }
                         """)
@@ -759,7 +759,7 @@ class PackSchemaTest {
 
                         @Feature(id = "example:castle", name = "Castle", key = "castle", targets = Level.BIOME)
                         public final class CastleSettings implements IrisFeature {
-                            @Ref(kind = Keep.class)
+                            @ResourceRef(Keep.class)
                             private List<String> keeps = List.of("main");
                         }
                         """);
@@ -831,16 +831,15 @@ class PackSchemaTest {
 
     @Test
     void resourceReferencesNameARegisteredKindOnPlainText() {
-        assertLoadFails("Field pack.flora.FloraSettings.keep of " + FLORA_SOURCE + " has @Ref(kind = java.lang.Integer), but"
+        assertLoadFails("Field pack.flora.FloraSettings.keep of " + FLORA_SOURCE + " has @ResourceRef(java.lang.Integer), but"
                 + " neither the host nor a module of the pack has a resource kind read into that class; name the type of a"
                 + " PackResources kind or of a kind registered with FeatureRegistry.registerResourceKind",
-                "@Ref(kind = Integer.class) private String keep;");
-        assertLoadFails("Field pack.flora.FloraSettings.count of " + FLORA_SOURCE + " has @Ref(kind = java.lang.Integer) on int,"
-                + " but @Ref fits only String and ResourceId and lists, sets and arrays of them",
-                "@Ref(kind = Integer.class) private int count;");
-        assertLoadFails("Invalid @Ref on option: keep; give exactly one of a Reference or a kind",
-                "@Ref(value = Reference.BLOCK, kind = Integer.class) private String keep;");
-        assertLoadFails("Invalid @Ref on option: keep; give exactly one of a Reference or a kind", "@Ref private String keep;");
+                "@ResourceRef(Integer.class) private String keep;");
+        assertLoadFails("Field pack.flora.FloraSettings.count of " + FLORA_SOURCE + " has @ResourceRef(java.lang.Integer) on int,"
+                + " but @ResourceRef fits only String and ResourceId and lists, sets and arrays of them",
+                "@ResourceRef(Integer.class) private int count;");
+        assertLoadFails("Option keep has both @Ref and @ResourceRef; it names either a registry entry or a pack resource",
+                "@Ref(Reference.BLOCK) @ResourceRef(Integer.class) private String keep;");
     }
 
     /** A built-in module {@code id} that registers {@code kind}. */

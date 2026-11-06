@@ -26,7 +26,7 @@ types that carry them and lists what the Iris adapter still owes.
 | Annotated settings | `IrisFeature`, `@Feature` (id, short JSON `key`, optional `root`), config annotations, host `OptionsMetadata`, `LinkedBiomes` (`treeBiomes`, `usedBiomes`: pack biomes the settings bring into the layout) |
 | Host facades for the host's own modules | `PackWorld.extension(type)`, `InvocationContext.extension(type)`, `PackSettings.extension(type)` (each an `Optional`, empty by default) |
 | Area a stage writes | `reach(blocks)`, `reach(PackReach)`, `writesMantle(...)` on stage definitions, `PackSettings` (with `resources()`, for a reach that depends on the size of the pack's objects), host `StageReach`, `ResolvedStage.reachBlocks`, `PipelineReach` |
-| Settings described for studio | `@Desc`, `@Required`, `@MinNumber`, `@MaxNumber`, `@MinItems`, `@Snippet`, `@Ref`/`Reference`, `FeatureRegistry.registerSettings`, host `LoadedPack.schema()` (`PackSchema`, `FeatureSchema`, `ObjectType`, `SchemaOption`, `ValueKind` with `HostKind`), `ModuleHost.describingHostTypesIn` |
+| Settings described for studio | `@Desc`, `@Required`, `@MinNumber`, `@MaxNumber`, `@MinItems`, `@Snippet`, `@Ref`/`Reference`, `@ResourceRef`, `FeatureRegistry.registerSettings`, host `LoadedPack.schema()` (`PackSchema`, `FeatureSchema`, `ObjectType`, `SchemaOption`, `ValueKind` with `HostKind`), `ModuleHost.describingHostTypesIn` |
 | Geometry and mantle registration | `FeatureRegistry`, host `ModuleRegistry`, `FeatureCatalog` |
 | Block states and palettes | `BlockState`, `BlockRegistry` (`resolve(BlockSpec)`, `find(key)`, `blockEntity`, `hasTrait`, `oreFor`, `rotate(state, BlockTurn)`, `merge`, `withPropertyIfAccepted`, `matches`), `BlockTurn`, `BlockTrait` (with `STORAGE`), `BlockSpec`, `PaletteSpec` and `PaletteSampler` (`BlockRegistry.palette`) |
 | A pack's objects | `PlaceableObject` (`name`, size, `center`, `geometry`), `PackObjects` (`object`, `sizeOf`, `scaled` with `ScaleMethod`, `smartBored`, `build`), `PackResources.objects()` |
@@ -35,7 +35,7 @@ types that carry them and lists what the Iris adapter still owes.
 | Values in settings | `BlockSpec`, `PaletteSpec`, `NoiseStyle`, `StyledRange`, `Range`, `BlockPosition`, `JigsawOverrides`, `Object` as `ValueKind.AnyKind` |
 | Decisions over and fit of the platform's own structures | service `VanillaStructures` (`rule`, `starts`, `shift`, `reach`, `beforePieces`, `afterPieces`, `setup`), `VanillaStructureRule`, `VanillaStructureContext`, `VanillaStructureStart`, `VanillaStructureStartContext`, `VanillaStructureSetup`, `PlatformStart`, `StartMemo`, `StartReach`, `StructureFit` (`Start`, `Piece`, `ColumnVisitor`), `DecorationStep`, `TerrainAdaptation`, `PieceKind`, `TemplateCells`, `world.BlockAccess`, host `FeatureCatalog.registrations(service)` |
 | Pack-scoped resolution | `ResourceId` (`ofPackKey`, `ofPlatformKey`), `ContentKey`, `PackResources` (`find(kind, id)`, `require`, `ids(kind)`, `idOf`; kinds `BIOMES`, `REGIONS`, `OBJECTS`, `EXPRESSIONS`, `IMAGE_MAPS`), `PackBiome`, `PackRegion`, `PackExpression`, `PackImageMap` |
-| Module-owned pack resources | `ResourceKind`, `FeatureRegistry.registerResourceKind`, `@Ref(kind = ...)`, host `ModuleHost.reservingFolders`, `FeatureCatalog.resourceKinds()`, `ResourceKindSchema`, `ValueKind.ResourceReferenceKind` |
+| Module-owned pack resources | `ResourceKind`, `FeatureRegistry.registerResourceKind`, `@ResourceRef`, host `ModuleHost.reservingFolders`, `FeatureCatalog.resourceKinds()`, `ResourceKindSchema`, `ValueKind.ResourceReferenceKind` |
 | Module-owned pack checks | `Validator`, `ValidationContext`, `Problem`, `Severity`, `Subject`, `FeatureRegistry.registerValidator`, host `FeatureCatalog.validators()` |
 | Per-world module state | `PackWorld` (`state`), `InvocationContext.world()`, host `WorldStates` |
 | Module lifecycle across loads, hotloads and reloads | `ModuleLifecycle`, `PackContext`, `FeatureRegistry.registerLifecycle`, host `FeatureCatalog.lifecycles()`, `LifecycleRunner` |
@@ -62,7 +62,8 @@ A pack load works on copies of the module jars, so the originals are never held 
 
 Modules describe their settings only through their settings classes; jars ship no schema files. The
 pack load turns every catalogued settings type into a `PackSchema` and fails, naming field, settings
-and module, on a field type it cannot describe, a `@Ref` on a field that is not text, a class without
+and module, on a field type it cannot describe, a `@Ref` or `@ResourceRef` on a field that is not text, both on
+one field, a class without
 a working no-argument constructor (a `@JsonForms` class needs none: it is described as any JSON value), a bad or repeated snippet name, or a pack class's snippet name
 outside its module's folder. Defaults come from an instance made by that constructor. Options are in
 declaration order.
@@ -254,7 +255,7 @@ running Iris is the pack publisher's responsibility.
   Read and write a `@JsonForms` class through its codec, created once with its no-argument constructor, handing it
   those same plain values; a member written as `null` stays left out and never reaches the codec.
   Read a `"snippet/<name>"` or `"snippet/<folder>/<name>"` string of a `@Snippet` type from
-  `snippet/<folder>/<name>.json`. Complete `NOISE_STYLE` references and `@Ref(kind = ...)` of the host kinds
+  `snippet/<folder>/<name>.json`. Complete `NOISE_STYLE` references and `@ResourceRef` of the host kinds
   (`EXPRESSIONS`, `IMAGE_MAPS` among them);
   rendering a value type with the host's own description of the same JSON is allowed.
 - Serve `PackResources.noise()`: build each style's noise from the host's generators, expressions and image maps,

@@ -41,6 +41,7 @@ public final class FeatureCatalog {
     private final Map<Class<?>, List<ServiceRegistration>> registrationsByService;
     private final Map<Class<?>, List<?>> providersByService;
     private final Optional<PlacementTypeRegistration> placementType;
+    private final List<SceneViewRegistration> sceneViews;
 
     FeatureCatalog(
             Map<Class<?>, FeatureDescriptor<?>> settings,
@@ -50,8 +51,10 @@ public final class FeatureCatalog {
             List<ValidatorRegistration> validators,
             List<LifecycleRegistration> lifecycles,
             List<ServiceRegistration> services,
-            PlacementTypeRegistration placementType) {
+            PlacementTypeRegistration placementType,
+            Collection<SceneViewRegistration> sceneViews) {
         this.placementType = Optional.ofNullable(placementType);
+        this.sceneViews = sorted(sceneViews, registration -> registration.view().id());
         this.settings = Map.copyOf(settings);
         this.objects = Map.copyOf(objects);
         this.mantle = Map.copyOf(mantle);
@@ -88,6 +91,11 @@ public final class FeatureCatalog {
     /** The validators modules registered, by module id, each module's in the order it registered them. */
     public List<ValidatorRegistration> validators() {
         return validators;
+    }
+
+    /** The studio scene views modules registered, by view id. */
+    public List<SceneViewRegistration> sceneViews() {
+        return sceneViews;
     }
 
     /** The lifecycle hooks modules registered, by module id, each module's in the order it registered them. */

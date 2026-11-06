@@ -119,6 +119,40 @@ class ModuleRegistryTest {
     }
 
     @Test
+    void sceneViewsHaveUniqueIdsTheirModuleOwnsAndAreCataloguedById() {
+        var registry = new ModuleRegistry();
+        ModuleSetups.run(DiscoveredModule.builtIn(new IrisModule() {
+            public ModuleInfo info() { return ModuleInfo.of("iris:objects", "Objects", "1"); }
+            public void setup(ModuleSetup setup) {
+                setup.tooling().registerSceneView(sceneView("iris:objects/procedural"));
+                setup.tooling().registerSceneView(sceneView("iris:objects"));
+                var duplicate = assertThrows(IllegalArgumentException.class,
+                        () -> setup.tooling().registerSceneView(sceneView("iris:objects")));
+                assertTrue(duplicate.getMessage().contains("Scene view iris:objects is registered by module"), duplicate.getMessage());
+                var foreign = assertThrows(IllegalArgumentException.class,
+                        () -> setup.tooling().registerSceneView(sceneView("iris:terrain/palettes")));
+                assertTrue(foreign.getMessage().contains("must be iris:objects or start with iris:objects/"), foreign.getMessage());
+            }
+        }), new StageGraphBuilder(), registry);
+
+        assertThrows(IllegalStateException.class, () -> registry.registerSceneView(sceneView("iris:objects/loose")));
+        assertEquals(List.of("iris:objects", "iris:objects/procedural"),
+                registry.freeze().sceneViews().stream().map(view -> view.view().id().toString()).toList());
+    }
+
+    private static com.volmit.tooling.SceneView sceneView(String id) {
+        return new com.volmit.tooling.SceneView() {
+            public com.volmit.resource.ResourceId id() { return com.volmit.resource.ResourceId.parse(id); }
+            public String label() { return id; }
+            public String description() { return id; }
+            public List<com.volmit.tooling.SceneEntry> entries(com.volmit.world.PackWorld world) { return List.of(); }
+            public Optional<com.volmit.object.GeneratedObject> scene(com.volmit.world.PackWorld world, String key, int variant) {
+                return Optional.empty();
+            }
+        };
+    }
+
+    @Test
     void moduleMayRegisterItsOwnIdAndIdsBelowIt() {
         var registry = new ModuleRegistry();
         registerAs(registry, "iris:snow", layers -> {

@@ -4,6 +4,7 @@ import com.volmit.FeatureRegistry;
 import com.volmit.ModuleLog;
 import com.volmit.ModuleSetup;
 import com.volmit.stage.StageGraph;
+import com.volmit.tooling.ToolingRegistry;
 import java.util.Objects;
 
 /** Runs a module's {@link com.volmit.IrisModule#setup} against one pack load's stage graph and registry. While it
@@ -21,7 +22,7 @@ public final class ModuleSetups {
         registry.beginSetup(discovered);
         boolean completed = false;
         try {
-            discovered.module().setup(new Setup(stages, registry, discovered.log()));
+            discovered.module().setup(new Setup(stages, registry, registry, discovered.log()));
             completed = true;
         } finally {
             registry.endSetup();
@@ -29,5 +30,6 @@ public final class ModuleSetups {
         }
     }
 
-    private record Setup(StageGraph stages, FeatureRegistry registry, ModuleLog log) implements ModuleSetup {}
+    private record Setup(StageGraph stages, FeatureRegistry registry, ToolingRegistry tooling, ModuleLog log)
+            implements ModuleSetup {}
 }

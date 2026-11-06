@@ -1,7 +1,7 @@
 /** The height scale of the map, from deep water to snowy peaks, measured from sea level (v3e HeightColors). */
 
-const DEEPEST_BELOW_SEA_BLOCKS = 90
-const HIGHEST_ABOVE_SEA_BLOCKS = 300
+export const DEEPEST_BELOW_SEA_BLOCKS = 90
+export const HIGHEST_ABOVE_SEA_BLOCKS = 300
 const DEPTH_BLOCKS = [0, 10, 40, DEEPEST_BELOW_SEA_BLOCKS]
 const DEPTH_COLORS = [0x7db8d8, 0x4c8dba, 0x2a5e8f, 0x15304f]
 const ABOVE_SEA_BLOCKS = [0, 8, 30, 70, 130, 200, HIGHEST_ABOVE_SEA_BLOCKS]

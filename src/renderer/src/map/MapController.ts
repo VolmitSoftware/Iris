@@ -1,19 +1,18 @@
 import type { BridgeClient, WorldRect } from '../bridge/BridgeClient'
 import { gridIndex } from '../bridge/tileDecoding'
-import { NO_LABEL, type MapLabel, type Marker, type PickDisplay, type WorldInfo } from '../bridge/types'
+import { NO_LABEL, type MapLabel, type MapTile, type Marker, type PickDisplay, type WorldInfo } from '../bridge/types'
 import { countShares, type PlacedTile, type Share } from './census'
 import { bandIndexOf, HEIGHT_BANDS } from './heightColors'
+import { mapTileSource, type TileLayer } from './mapTileSource'
+import { drawVisibleTiles } from './tileDrawing'
 import type { Highlight, TileStyle } from './tileStyle'
-import { TileStore, type TileLayer } from './TileStore'
+import { TileStore } from './TileStore'
 import {
   clampBlocksPerPixel,
-  coarserTile,
-  previewsFor,
   DEFAULT_BLOCKS_PER_PIXEL,
   renderBlocksPerPixel,
   screenToWorldX,
   screenToWorldZ,
-  visibleTiles,
   worldToScreenX,
   worldToScreenZ,
   type TileAddress,
@@ -53,8 +52,6 @@ export interface MapToggles {
   grid: boolean
 }
 
-// While a tile is on its way, a coarser one already drawn stands in, up to this many zoom levels out.
-const COARSER_FALLBACK_LEVELS = 6
 const CENSUS_INTERVAL_MILLIS = 250
 const CHUNK_BLOCKS = 16
 const REGION_BLOCKS = 512
@@ -73,7 +70,7 @@ const ENTITY_RADIUS_PIXELS = 3
  */
 export class MapController {
   private readonly context: CanvasRenderingContext2D
-  private readonly store: TileStore
+  private readonly store: TileStore<MapTile, TileLayer, TileStyle>
   private readonly view: Viewport = { centerX: 0, centerZ: 0, blocksPerPixel: DEFAULT_BLOCKS_PER_PIXEL, width: 1, height: 1 }
   private layer: TileLayer
   private toggles: MapToggles = { shading: true, regionBorders: false, grid: false }
@@ -96,7 +93,7 @@ export class MapController {
   ) {
     this.context = canvas.getContext('2d')!
     this.layer = { view, preview: null, heights: this.needsHeights(view, this.toggles), pickNoise: false, revision: 0 }
-    this.store = new TileStore(client, world.tileSize, () => this.redraw(), (message) => listener.onError(message))
+    this.store = new TileStore(mapTileSource(client, world.tileSize), () => this.redraw(), (message) => listener.onError(message))
   }
 
   close(): void {
@@ -263,56 +260,17 @@ export class MapController {
     context.fillStyle = getComputedStyle(this.canvas).getPropertyValue('--map-background') || '#16171a'
     context.fillRect(0, 0, this.view.width, this.view.height)
 
-    const scale = this.renderScale()
-    const tiles = visibleTiles(this.view, scale, this.world.tileSize)
     const style = this.style()
-    context.imageSmoothingEnabled = this.view.blocksPerPixel > scale
-    let ready = 0
-    const blank: TileAddress[] = []
-    for (const address of tiles) {
-      const picture = this.store.picture(address, this.layer, style)
-      if (picture !== null) {
-        this.drawTile(picture, address, 0, 0, picture.width)
-        ready++
-      } else if (!this.drawFallback(address, style)) {
-        blank.push(address)
-      }
-    }
-    this.store.want([...previewsFor(blank), ...tiles], this.layer)
+    const drawn = drawVisibleTiles(context, this.view, this.renderScale(), this.world.tileSize, (address) =>
+      this.store.picture(address, this.layer, style)
+    )
+    this.store.want(drawn.wanted, this.layer)
     if (this.toggles.grid) {
       this.drawGrid()
     }
     this.drawMarkers()
-    this.reportStatus(ready, tiles.length)
-    this.scheduleCensus(tiles)
-  }
-
-  /** Draws the part of a tile picture from (sourceX, sourceZ), {@code sourceSize} pixels wide, over {@code address}. */
-  private drawTile(picture: HTMLCanvasElement, address: TileAddress, sourceX: number, sourceZ: number, sourceSize: number): void {
-    const span = this.world.tileSize * address.blocksPerPixel
-    const left = Math.round(worldToScreenX(this.view, address.tileX * span))
-    const top = Math.round(worldToScreenZ(this.view, address.tileZ * span))
-    const right = Math.round(worldToScreenX(this.view, (address.tileX + 1) * span))
-    const bottom = Math.round(worldToScreenZ(this.view, (address.tileZ + 1) * span))
-    this.context.drawImage(picture, sourceX, sourceZ, sourceSize, sourceSize, left, top, right - left, bottom - top)
-  }
-
-  /** Draws the part of a coarser tile that covers {@code address}; false when no coarser tile has arrived either. */
-  private drawFallback(address: TileAddress, style: TileStyle): boolean {
-    for (let levels = 1; levels <= COARSER_FALLBACK_LEVELS; levels++) {
-      const coarser = coarserTile(address, levels)
-      const picture = this.store.picture(coarser, this.layer, style)
-      if (picture === null) {
-        continue
-      }
-      const factor = 2 ** levels
-      const sourceSize = picture.width / factor
-      const sourceX = (address.tileX - coarser.tileX * factor) * sourceSize
-      const sourceZ = (address.tileZ - coarser.tileZ * factor) * sourceSize
-      this.drawTile(picture, address, sourceX, sourceZ, sourceSize)
-      return true
-    }
-    return false
+    this.reportStatus(drawn.ready, drawn.tiles.length)
+    this.scheduleCensus(drawn.tiles)
   }
 
   private drawGrid(): void {

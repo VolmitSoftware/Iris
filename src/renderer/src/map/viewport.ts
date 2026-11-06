@@ -43,9 +43,13 @@ export function worldToScreenZ(view: Viewport, worldZ: number): number {
  * The scale tiles are drawn at for a view: the nearest power of two to one tile pixel per device pixel, so tiles stay
  * sharp on dense screens and every zoom between two levels reuses the same tiles.
  */
-export function renderBlocksPerPixel(viewBlocksPerPixel: number, devicePixelRatio: number): number {
+export function renderBlocksPerPixel(
+  viewBlocksPerPixel: number,
+  devicePixelRatio: number,
+  finestBlocksPerPixel = MINIMUM_RENDER_BLOCKS_PER_PIXEL
+): number {
   const level = 2 ** Math.round(Math.log2(viewBlocksPerPixel / devicePixelRatio))
-  return Math.min(MAXIMUM_BLOCKS_PER_PIXEL, Math.max(MINIMUM_RENDER_BLOCKS_PER_PIXEL, level))
+  return Math.min(MAXIMUM_BLOCKS_PER_PIXEL, Math.max(finestBlocksPerPixel, level))
 }
 
 /** The tiles covering the view, nearest the centre first so the middle of the screen fills in first. */

@@ -1,4 +1,4 @@
-import { Box, Gem, Globe, HardDrive, Map as MapIcon, Mountain, Shapes, Sprout, Trees, Waves, type LucideIcon } from 'lucide-react'
+import { AudioWaveform, Box, Gem, Globe, HardDrive, Map as MapIcon, Mountain, Shapes, Sprout, Trees, Waves, type LucideIcon } from 'lucide-react'
 import { Kbd } from '@/components/ui/kbd'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
@@ -11,6 +11,7 @@ const VIEW_ICONS: Record<string, LucideIcon> = {
   height: Mountain,
   world3d: Globe,
   savedWorld: HardDrive,
+  noise: AudioWaveform,
   landBiomes: Sprout,
   seaBiomes: Waves,
   caveBiomes: Gem,

@@ -7,6 +7,8 @@ import type {
   MapLabel,
   MapTile,
   Marker,
+  NoiseSource,
+  NoiseTile,
   PickInspection,
   SavedStart,
   SavedTile,
@@ -145,6 +147,17 @@ export class BridgeClient {
     const query = new URLSearchParams({ world: worldId, x: String(tileX), z: String(tileZ), scale: String(blocksPerPixel), size: String(size) })
     const response = await this.fetch(`saved-tile?${query}`, { signal })
     return decodeSavedTile(await response.arrayBuffer())
+  }
+
+  /** The pack's generators and expressions, the dimension's overlay noise, and the built-in noise styles. */
+  noiseSources(): Promise<NoiseSource[]> {
+    return this.json('noise-sources')
+  }
+
+  async noiseTile(sourceId: string, seed: string, tileX: number, tileZ: number, blocksPerPixel: number, size: number, signal: AbortSignal): Promise<NoiseTile> {
+    const query = new URLSearchParams({ source: sourceId, seed, x: String(tileX), z: String(tileZ), scale: String(blocksPerPixel), size: String(size) })
+    const response = await this.fetch(`noise-tile?${query}`, { signal })
+    return { size, values: new Float32Array(await response.arrayBuffer()) }
   }
 
   /** A file of the Minecraft client's assets, such as {@code minecraft/blockstates/stone.json}; null when there is none. */

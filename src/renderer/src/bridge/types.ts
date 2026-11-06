@@ -42,6 +42,23 @@ export interface SavedWorldInfo {
   namespace: string
 }
 
+/** One noise the noise view can show. */
+export interface NoiseSource {
+  id: string
+  name: string
+  category: string
+  /** Whether the view's seed changes it; the dimension's overlay keeps the world's. */
+  usesSeed: boolean
+  /** What the noise spans where it is measured in blocks above the fluid; null for noise of 0 to 1. */
+  blockRange: { lowest: number; highest: number } | null
+}
+
+/** A square of noise values, a pixel's value taken at its north west corner, row by row from the north west. */
+export interface NoiseTile {
+  size: number
+  values: Float32Array
+}
+
 /** Where a saved world's view opens: the middle of the region nearest the origin, and how its ground lies there. */
 export interface SavedStart {
   centerX: number

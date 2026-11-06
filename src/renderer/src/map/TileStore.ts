@@ -1,21 +1,18 @@
-import { BridgeError, type BridgeClient } from '../bridge/BridgeClient'
-import type { MapTile } from '../bridge/types'
-import { stylePixels, styleKey, type TileStyle } from './tileStyle'
+import { BridgeError } from '../bridge/BridgeClient'
 import type { TileAddress } from './viewport'
 
-/** What one tile request needs besides where the tile is. */
-export interface TileLayer {
-  view: string
-  /** The region the region view previews everywhere, or null for the world as it is. */
-  preview: string | null
-  heights: boolean
-  pickNoise: boolean
-  /** Bumped when the pack is hotloaded, so older tiles are not used again. */
-  revision: number
+/** What a store's tiles are, where they come from, and how one is drawn in a style. */
+export interface TileSource<Tile, Layer, Style> {
+  /** Tells layers apart; a layer that changes on hotload carries its revision here, so older tiles are not used again. */
+  layerKey(layer: Layer): string
+  fetch(address: TileAddress, layer: Layer, signal: AbortSignal): Promise<Tile>
+  bytesOf(tile: Tile): number
+  styleKey(style: Style): string
+  pixels(tile: Tile, style: Style): ImageData
 }
 
-interface StoredTile {
-  tile: MapTile
+interface StoredTile<Tile> {
+  tile: Tile
   bytes: number
   lastUsed: number
   picture: HTMLCanvasElement | null
@@ -27,32 +24,30 @@ const MAXIMUM_IN_FLIGHT = 6
 const CACHE_BYTES = 256 * 1024 * 1024
 
 /**
- * The map's tiles: fetched from the bridge as the view needs them, kept within a memory budget, and drawn as the
- * current style asks. A tile that leaves the view before it arrives is not fetched.
+ * Tiles fetched from the bridge as a view needs them, kept within a memory budget, and drawn as the current style
+ * asks. A tile that leaves the view before it arrives is not fetched.
  */
-export class TileStore {
-  private readonly tiles = new Map<string, StoredTile>()
+export class TileStore<Tile, Layer, Style> {
+  private readonly tiles = new Map<string, StoredTile<Tile>>()
   private readonly inFlight = new Map<string, AbortController>()
   /** Asked for again only after a refresh, which changes every key, so a broken tile is not fetched on every frame. */
   private readonly failed = new Set<string>()
-  private wanted: { key: string; address: TileAddress; layer: TileLayer }[] = []
+  private wanted: { key: string; address: TileAddress; layer: Layer }[] = []
   private storedBytes = 0
   private useClock = 0
 
   constructor(
-    private readonly client: BridgeClient,
-    private readonly tileSize: number,
+    private readonly source: TileSource<Tile, Layer, Style>,
     private readonly onChange: () => void,
     private readonly onError: (message: string) => void
   ) {}
 
-  key(address: TileAddress, layer: TileLayer): string {
-    const parts = [layer.revision, layer.view, layer.preview ?? '', layer.heights, layer.pickNoise]
-    return `${parts.join('/')}/${address.blocksPerPixel}/${address.tileX}/${address.tileZ}`
+  key(address: TileAddress, layer: Layer): string {
+    return `${this.source.layerKey(layer)}/${address.blocksPerPixel}/${address.tileX}/${address.tileZ}`
   }
 
   /** The tile if it has arrived, marked as just used. */
-  get(address: TileAddress, layer: TileLayer): MapTile | null {
+  get(address: TileAddress, layer: Layer): Tile | null {
     const stored = this.tiles.get(this.key(address, layer))
     if (stored === undefined) {
       return null
@@ -62,23 +57,23 @@ export class TileStore {
   }
 
   /** The tile drawn in {@code style}; restyled only when the style changed since it was last drawn. */
-  picture(address: TileAddress, layer: TileLayer, style: TileStyle): HTMLCanvasElement | null {
+  picture(address: TileAddress, layer: Layer, style: Style): HTMLCanvasElement | null {
     const stored = this.tiles.get(this.key(address, layer))
     if (stored === undefined) {
       return null
     }
     stored.lastUsed = ++this.useClock
-    const wantedStyle = styleKey(style)
+    const wantedStyle = this.source.styleKey(style)
     if (stored.picture === null || stored.pictureStyle !== wantedStyle) {
       stored.picture = stored.picture ?? document.createElement('canvas')
-      paint(stored.picture, stored.tile, style)
+      paint(stored.picture, this.source.pixels(stored.tile, style))
       stored.pictureStyle = wantedStyle
     }
     return stored.picture
   }
 
   /** Fetches the tiles the view shows, in the order given, and gives up on the ones it no longer shows. */
-  want(addresses: TileAddress[], layer: TileLayer): void {
+  want(addresses: TileAddress[], layer: Layer): void {
     this.wanted = addresses
       .map((address) => ({ key: this.key(address, layer), address, layer }))
       .filter((entry) => !this.tiles.has(entry.key) && !this.failed.has(entry.key))
@@ -119,12 +114,11 @@ export class TileStore {
     }
   }
 
-  private fetchTile(key: string, address: TileAddress, layer: TileLayer): void {
+  private fetchTile(key: string, address: TileAddress, layer: Layer): void {
     const controller = new AbortController()
     this.inFlight.set(key, controller)
-    const request = { ...layer, ...address, size: this.tileSize }
-    this.client
-      .tile(request, controller.signal)
+    this.source
+      .fetch(address, layer, controller.signal)
       .then((tile) => this.store(key, tile))
       .catch((error: unknown) => {
         if (!controller.signal.aborted) {
@@ -142,8 +136,8 @@ export class TileStore {
       })
   }
 
-  private store(key: string, tile: MapTile): void {
-    const bytes = tile.subjects.byteLength * 2 + (tile.heights?.byteLength ?? 0) + (tile.pickNoise?.byteLength ?? 0) + tile.size * tile.size * 4
+  private store(key: string, tile: Tile): void {
+    const bytes = this.source.bytesOf(tile)
     this.tiles.set(key, { tile, bytes, lastUsed: ++this.useClock, picture: null, pictureStyle: '' })
     this.storedBytes += bytes
     this.evictOldest()
@@ -164,8 +158,8 @@ export class TileStore {
   }
 }
 
-function paint(canvas: HTMLCanvasElement, tile: MapTile, style: TileStyle): void {
-  canvas.width = tile.size
-  canvas.height = tile.size
-  canvas.getContext('2d')!.putImageData(new ImageData(stylePixels(tile, style), tile.size, tile.size), 0, 0)
+function paint(canvas: HTMLCanvasElement, pixels: ImageData): void {
+  canvas.width = pixels.width
+  canvas.height = pixels.height
+  canvas.getContext('2d')!.putImageData(pixels, 0, 0)
 }

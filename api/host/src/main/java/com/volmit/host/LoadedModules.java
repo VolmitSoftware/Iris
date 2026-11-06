@@ -1,0 +1,109 @@
+package com.volmit.host;
+
+import com.volmit.config.Level;
+import com.volmit.host.schema.PackSchema;
+import com.volmit.stage.Pipeline;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+
+/** Everything one pack load derives from its modules: the frozen feature catalog (including the
+ * settings types stages are conditioned on, resource kinds and validators), its description for studio and one
+ * resolved graph per pipeline.
+ */
+public record LoadedModules(
+        FeatureCatalog catalog, PackSchema schema, ResolvedGraph placement, ResolvedGraph chunk, ResolvedGraph mantle) {
+    public LoadedModules {
+        Objects.requireNonNull(catalog, "catalog");
+        Objects.requireNonNull(schema, "schema");
+        Objects.requireNonNull(placement, "placement");
+        Objects.requireNonNull(chunk, "chunk");
+        Objects.requireNonNull(mantle, "mantle");
+    }
+
+    /** Pass the built-in modules together with {@link PackModules#modules()} of the pack.
+     *
+     * @param reservedHostFields JSON fields the host itself uses, per attachment target, which no settings key may take
+     * @param hostTypePackages packages whose classes the host describes itself, each with its
+     *     subpackages; only built-in modules' settings may use them (see {@link ModuleHost#describingHostTypesIn})
+     * @param reservedFolders pack folders the host reads itself, which no resource kind may read (see
+     *     {@link ModuleHost#reservingFolders})
+     * @throws ModuleLoadException when the modules cannot load, naming the module when the error is one module's
+     */
+    public static LoadedModules load(
+            List<DiscoveredModule> modules,
+            Map<Level, Set<String>> reservedHostFields,
+            Collection<String> hostTypePackages,
+            Collection<String> reservedFolders) {
+        var registry = new ModuleRegistry(reservedHostFields, Set.copyOf(reservedFolders));
+        var stages = new StageGraphBuilder();
+        for (var discovered : modules) {
+            setUpModule(discovered, stages, registry);
+        }
+        try {
+            return assemble(modules, hostTypePackages, registry, stages);
+        } catch (RuntimeException failure) {
+            throw ModuleLoadException.of(failure);
+        }
+    }
+
+    /** Everything after the modules' setup: the catalog, its description and the resolved pipelines. */
+    private static LoadedModules assemble(
+            List<DiscoveredModule> modules, Collection<String> hostTypePackages, ModuleRegistry registry,
+            StageGraphBuilder stages) {
+        stages.settingsTypes(registry::registeredByOwner).forEach(registry::registerStageSettings);
+        var catalog = registry.freeze();
+        var schema = PackSchemaBuilder.describe(catalog, modules, HostTypes.of(hostTypePackages));
+        var placement = stages.resolve(Pipeline.PLACEMENT);
+        var chunk = stages.resolve(Pipeline.CHUNK);
+        var mantle = stages.resolve(Pipeline.MANTLE);
+        requireRegisteredMantleLayers(catalog, placement);
+        requireRegisteredMantleLayers(catalog, mantle);
+        return new LoadedModules(catalog, schema, placement, chunk, mantle);
+    }
+
+    /** A stage's reach names the layers it writes; a layer nobody registered has no codec or lifetime. */
+    private static void requireRegisteredMantleLayers(FeatureCatalog catalog, ResolvedGraph graph) {
+        for (var stage : graph.stages()) {
+            for (var layer : stage.reach().mantleLayers()) {
+                var registered = catalog.mantle().stream()
+                        .map(MantleRegistration::key)
+                        .filter(key -> key.id().equals(layer.id()))
+                        .findFirst()
+                        .orElseThrow(() -> stageError(stage, "Stage " + stage.stage().id() + " of module "
+                                + stage.module() + " writes mantle layer " + layer.id() + ", which no module registers;"
+                                + " its owner registers it with FeatureRegistry.registerMantle"));
+                if (registered.type() != layer.type()) {
+                    throw stageError(stage, "Stage " + stage.stage().id() + " of module " + stage.module()
+                            + " writes mantle layer " + layer.id() + " as " + layer.type().getName()
+                            + ", but it is registered as " + registered.type().getName());
+                }
+            }
+        }
+    }
+
+    private static ModuleLoadException stageError(ResolvedStage stage, String message) {
+        return new ModuleLoadException(stage.module(), null, message, null);
+    }
+
+    /** The pack load checks that every class a module uses exists, not that every method or field
+     * it uses does, so a jar built against another Iris API can still fail to link here. Anything the setup throws is
+     * that module's load error.
+     */
+    private static void setUpModule(DiscoveredModule discovered, StageGraphBuilder stages, ModuleRegistry registry) {
+        try {
+            ModuleSetups.run(discovered, stages, registry);
+        } catch (LinkageError error) {
+            throw new ModuleLoadException(discovered.info().id(), discovered.origin(), "Module " + discovered.info().id()
+                    + " from " + discovered.origin() + " failed to link or initialize a class during setup: " + error
+                    + "; a missing method or field means the jar was built against a different Iris API", error);
+        } catch (IncompleteFeatureException incomplete) {
+            throw new ModuleLoadException(discovered.info().id(), discovered.origin(), "Module " + discovered.info().id()
+                    + " from " + discovered.origin() + ": " + incomplete.getMessage(), incomplete);
+        } catch (RuntimeException failure) {
+            throw ModuleLoadException.of(discovered, failure);
+        }
+    }
+}

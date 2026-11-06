@@ -1,0 +1,24 @@
+package com.volmit.tooling;
+
+import com.volmit.object.GeneratedObject;
+import com.volmit.world.PackWorld;
+
+import java.util.List;
+import java.util.Optional;
+
+/**
+ * A studio view of the block scenes a module builds from the pack, such as its objects: a catalogue of entries, each
+ * with variants the studio draws in 3D.
+ */
+public non-sealed interface SceneView extends StudioView {
+    /** The view's entries in the world's pack, in the order the studio lists them. */
+    List<SceneEntry> entries(PackWorld world);
+
+    /**
+     * The blocks of one variant of the entry named {@code key}, its anchor where the studio centres the scene; empty
+     * when the pack has no such entry, or the entry has fewer variants.
+     *
+     * @param variant from 0 to the entry's {@link SceneEntry#variants()}, exclusive
+     */
+    Optional<GeneratedObject> scene(PackWorld world, String key, int variant);
+}

@@ -1,0 +1,47 @@
+package com.volmit;
+
+import com.volmit.world.PackWorld;
+
+/** What a module does when the host loads a pack and starts or stops a world with it. Every hook does nothing by
+ * default. Modules register it with {@link FeatureRegistry#registerLifecycle}; a module class may implement it and
+ * register itself.
+ *
+ * <p>Order: {@link #packLoaded} for a pack snapshot before the first world using it starts, then
+ * {@link #worldStarted} before that world generates anything, then {@link #warmUp} (a slow worldStarted the host may
+ * run off the main thread), and {@link #worldStopped} when it stops. A hotload, or a
+ * reload of the pack's resources while worlds run, stops each world of the old snapshot, loads the new snapshot and
+ * starts its worlds again, with empty state (see {@link PackWorld}). The host calls the hooks of a pack's modules in
+ * module id order and stops them in reverse, one hook at a time, on the thread that starts or stops the world.
+ *
+ * <p>Hooks keep what they build in the world's state ({@link PackWorld#state}), never in fields: a module instance may
+ * serve several packs and worlds at once.
+ */
+public interface ModuleLifecycle {
+    /** The pack's modules are set up and its resources can be read: {@code pack} gives the resources, every settings
+     * entry of every dimension, region and biome of the pack (as validators see them) and the module's log. A hook that
+     * throws stops the pack's worlds from starting, naming its module.
+     */
+    default void packLoaded(PackContext pack) {}
+
+    /** {@code world} starts, before it generates anything: the place to build state eagerly, such as caches a world
+     * would otherwise build on its first chunk. A hook that throws stops the world from starting, naming its module; the
+     * modules that had started it already get {@link #worldStopped}.
+     */
+    default void worldStarted(PackWorld world) {}
+
+    /** {@code world} started: builds the caches that make its first chunks fast, which may be slow. Runs after
+     * {@link #worldStarted} of every module. The host may run it off the main thread: synchronously for a server's
+     * worlds, in the background for studio. It waits for every module's warm-up before the world's first generation, so
+     * a hook that is slow delays that, not the start of the world. A world that stops before its warm-up runs may skip it.
+     *
+     * <p>Only build caches in the module's world state ({@link PackWorld#state}): nothing here may change what the world
+     * generates, because the module also works when the warm-up never ran. A hook that throws does not stop the world;
+     * the host reports the failure, naming the module, and the cache is built when first needed.
+     */
+    default void warmUp(PackWorld world) {}
+
+    /** {@code world} stops: it generates nothing more with this pack snapshot. Its state is still readable here and is
+     * closed afterwards. The host runs every module's hook even when one throws, then reports the failures.
+     */
+    default void worldStopped(PackWorld world) {}
+}

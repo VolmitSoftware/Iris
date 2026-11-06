@@ -1,0 +1,73 @@
+package com.volmit.host;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Optional;
+
+/** Checks the classes of all jars of one pack before its class loader exists, so a pack that
+ * cannot link fails at load with the jar to fix, not later with a {@link NoClassDefFoundError}
+ * during setup or generation.
+ */
+final class PackClassCheck {
+    private PackClassCheck() {}
+
+    /** Fails when a jar holds a class of an exposed host package, when a class is in two jars, or
+     * when a class uses a class that Iris hides from modules or that is missing from an exposed
+     * package. Generation code may not use tooling parts, and the parts of {@code runningPlatform}, if the host runs on one,
+     * are checked against what a part may see; the parts of other platforms are skipped. Returns the classes that nobody
+     * has, per jar; they fail only when code that needs them runs.
+     */
+    static List<MissingClasses> requireLinkable(List<ModuleJar> jars, ExposedHostClassLoader host, Optional<PlatformApi> runningPlatform) {
+        jars.forEach(jar -> requireNoHostClasses(jar, host.exposed()));
+        requireDistinctClasses(jars);
+        return PackReferenceCheck.requireResolvable(jars, host, runningPlatform);
+    }
+
+    /** Exposed packages belong to the host. The pack loader asks the host for their classes first, so
+     * a packaged copy would be silently replaced by the host's, and a module's own class there could be
+     * replaced by a later host class of that name.
+     */
+    private static void requireNoHostClasses(ModuleJar jar, ExposedPackages exposed) {
+        var hostClasses = jar.classNames().stream()
+                .filter(className -> exposed.exposes(className) || ExposedPackages.isApiClass(className))
+                .toList();
+        if (hostClasses.isEmpty()) return;
+        var apiClasses = hostClasses.stream().filter(ExposedPackages::isApiClass).toList();
+        throw apiClasses.isEmpty() ? shippedHostClasses(jar, hostClasses, exposed) : shippedApiClasses(jar, apiClasses);
+    }
+
+    private static ModuleLoadException shippedApiClasses(ModuleJar jar, List<String> apiClasses) {
+        return ModuleLoadException.ofJar(jar.origin(), "Module jar " + jar.origin() + " contains Iris API class "
+                + firstAndCount(apiClasses) + "; Iris provides the API at runtime, so mark the Iris API dependency"
+                + " compileOnly (Maven: provided) and keep module classes out of " + ExposedPackages.API_PACKAGE + ".*");
+    }
+
+    private static ModuleLoadException shippedHostClasses(ModuleJar jar, List<String> hostClasses, ExposedPackages exposed) {
+        var hostPackage = exposed.packageOf(hostClasses.getFirst());
+        return ModuleLoadException.ofJar(jar.origin(), "Module jar " + jar.origin() + " contains class " + firstAndCount(hostClasses)
+                + " of package " + hostPackage + ", which Iris provides to modules at runtime; compile against it"
+                + " compileOnly (Maven: provided) instead of shipping it, and keep module classes out of " + hostPackage + ".*");
+    }
+
+    private static String firstAndCount(List<String> classNames) {
+        var others = classNames.size() == 1 ? "" : " and " + (classNames.size() - 1) + " more";
+        return classNames.getFirst() + others;
+    }
+
+    /** The shared pack loader would otherwise silently use whichever copy comes first in file name order. */
+    private static void requireDistinctClasses(List<ModuleJar> jars) {
+        var owners = new HashMap<String, ModuleJar>();
+        for (var jar : jars) {
+            for (var className : jar.classNames()) {
+                var owner = owners.putIfAbsent(className, jar);
+                if (owner != null) throw duplicateClass(className, owner, jar);
+            }
+        }
+    }
+
+    private static ModuleLoadException duplicateClass(String className, ModuleJar first, ModuleJar second) {
+        return ModuleLoadException.ofJar(second.origin(), "Class " + className + " is in both module jars " + first.origin()
+                + " and " + second.origin() + "; every class of a pack must come from one jar, so relocate"
+                + " shaded libraries or keep shared classes in one module");
+    }
+}

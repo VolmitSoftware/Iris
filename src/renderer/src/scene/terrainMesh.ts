@@ -1,16 +1,19 @@
-import { Box3, BufferAttribute, BufferGeometry, DoubleSide, Group, Mesh, MeshBasicMaterial, PlaneGeometry, Vector3 } from 'three'
-import { NO_LABEL, type MapTile } from '../bridge/types'
-import { heightColor } from '../map/heightColors'
+import { Box3, BufferAttribute, BufferGeometry, DoubleSide, Group, Mesh, MeshBasicMaterial, Vector3 } from 'three'
 import type { ViewportContent } from '../studio/SceneViewport'
 
-export type TerrainColoring = 'biomes' | 'regions' | 'height'
-
-/** A square of map tiles with heights, row by row from the north west. */
-export interface TerrainArea {
-  tiles: MapTile[][]
-  /** The world spot of the first tile's first pixel. */
-  originX: number
-  originZ: number
+/**
+ * A height field to draw, one vertex per map pixel, row by row from the north west: the ground, the water over it,
+ * and the ground's colour. Where nothing is known, the ground is null and the field has a hole.
+ */
+export interface TerrainSurface {
+  readonly columns: number
+  readonly rows: number
+  worldX(column: number): number
+  worldZ(row: number): number
+  groundAt(column: number, row: number): number | null
+  /** The water's surface over the vertex, or null where it is dry. */
+  waterAt(column: number, row: number): number | null
+  colorAt(column: number, row: number): number
 }
 
 export interface TerrainMesh {
@@ -20,161 +23,199 @@ export interface TerrainMesh {
 
 const WATER_COLOR = 0x3f76e4
 const WATER_OPACITY = 0.55
-const UNLABELLED_COLOR = 0x5a5f6b
 // Light from high in the south west, so slopes read as relief; the darkest side keeps some light.
 const LIGHT = new Vector3(-0.6, 1, 0.4).normalize()
 const AMBIENT_LIGHT = 0.5
 const WALL_DEPTH_BLOCKS = 8
 const WALL_TOP_LIGHT = 0.55
 const WALL_BASE_LIGHT = 0.25
-const SEA_INSET_BLOCKS = 0.05
+const NO_VALUE = Number.NaN
 
-/** The terrain of the area, one vertex per map pixel, with the dimension's sea as a sheet of water at fluid height. */
-export function buildTerrainMesh(area: TerrainArea, coloring: TerrainColoring, fluidHeight: number): TerrainMesh {
-  const grid = TerrainGrid.of(area)
-  const terrain = terrainGeometry(grid, coloring, fluidHeight)
-  const base = Math.min(grid.lowestHeight(), fluidHeight) - WALL_DEPTH_BLOCKS
-  const landWalls = rimWall(grid, terrain, (ground) => ground, () => base)
-  const seaWalls = rimWall(grid, terrain, () => fluidHeight, (ground) => Math.min(ground, fluidHeight))
-  const terrainMaterial = new MeshBasicMaterial({ vertexColors: true, side: DoubleSide })
-  const sea = seaSurface(grid, fluidHeight)
+/**
+ * The surface as ground lit by its slopes, see-through water over it, and walls round the rim down to below the lowest
+ * ground, so the square reads as a solid block cut from the world.
+ */
+export function buildTerrainMesh(surface: TerrainSurface): TerrainMesh {
+  const field = HeightField.of(surface)
+  const base = field.lowest() - WALL_DEPTH_BLOCKS
+  const ground = groundGeometry(field)
+  const water = waterGeometry(field)
+  const landWalls = rimWall(field, (vertex) => field.ground[vertex], () => base)
+  const seaWalls = rimWall(field, (vertex) => field.water[vertex], (vertex) => Math.min(field.ground[vertex], field.water[vertex]))
+  const groundMaterial = new MeshBasicMaterial({ vertexColors: true, side: DoubleSide })
   const waterMaterial = new MeshBasicMaterial({ color: WATER_COLOR, transparent: true, opacity: WATER_OPACITY, depthWrite: false, side: DoubleSide })
   const group = new Group()
-  group.add(new Mesh(terrain, terrainMaterial), new Mesh(landWalls, terrainMaterial), new Mesh(sea, waterMaterial), new Mesh(seaWalls, waterMaterial))
-  const geometries = [terrain, landWalls, sea, seaWalls]
+  group.add(new Mesh(ground, groundMaterial), new Mesh(landWalls, groundMaterial), new Mesh(water, waterMaterial), new Mesh(seaWalls, waterMaterial))
+  const geometries = [ground, water, landWalls, seaWalls]
   return {
-    content: { object: group, bounds: new Box3().setFromObject(group) },
+    content: { object: group, bounds: field.bounds(base) },
     dispose: () => {
       geometries.forEach((geometry) => geometry.dispose())
-      terrainMaterial.dispose()
+      groundMaterial.dispose()
       waterMaterial.dispose()
     }
   }
 }
 
-// Kept a little inside the walls, so its edge does not flicker against them.
-function seaSurface(grid: TerrainGrid, fluidHeight: number): BufferGeometry {
-  const sea = new PlaneGeometry(grid.spanX - 2 * SEA_INSET_BLOCKS, grid.spanZ - 2 * SEA_INSET_BLOCKS).rotateX(-Math.PI / 2)
-  return sea.translate(grid.worldX(0) + grid.spanX / 2, fluidHeight, grid.worldZ(0) + grid.spanZ / 2)
+function groundGeometry(field: HeightField): BufferGeometry {
+  const { surface, ground } = field
+  const positions = new Float32Array(ground.length * 3)
+  const colors = new Float32Array(ground.length * 3)
+  for (let vertex = 0; vertex < ground.length; vertex++) {
+    if (Number.isNaN(ground[vertex])) {
+      continue
+    }
+    const [column, row] = field.columnAndRow(vertex)
+    positions.set([surface.worldX(column), ground[vertex], surface.worldZ(row)], vertex * 3)
+    const light = AMBIENT_LIGHT + (1 - AMBIENT_LIGHT) * Math.max(0, field.normal(column, row).dot(LIGHT))
+    colors.set(rgb(surface.colorAt(column, row), light), vertex * 3)
+  }
+  return indexedGeometry(positions, colors, field.quadsWhere((corners) => corners.every((vertex) => !Number.isNaN(ground[vertex]))))
 }
 
-/**
- * A wall round the terrain's rim, from {@code topAt} down to {@code bottomAt} of the ground height at each rim vertex;
- * in the terrain's colour, darkening downwards, for a material that uses vertex colours.
- */
-function rimWall(grid: TerrainGrid, terrain: BufferGeometry, topAt: (ground: number) => number, bottomAt: (ground: number) => number): BufferGeometry {
-  const rim = grid.rimVertices()
-  const surface = terrain.getAttribute('position')
-  const shade = terrain.getAttribute('color')
+// Only quads holding water of their own; the vertices next to water carry its level, so it meets the shore.
+function waterGeometry(field: HeightField): BufferGeometry {
+  const { surface, water, ownWater } = field
+  const positions = new Float32Array(water.length * 3)
+  for (let vertex = 0; vertex < water.length; vertex++) {
+    if (!Number.isNaN(water[vertex])) {
+      const [column, row] = field.columnAndRow(vertex)
+      positions.set([surface.worldX(column), water[vertex], surface.worldZ(row)], vertex * 3)
+    }
+  }
+  const quads = field.quadsWhere((corners) => corners.every((vertex) => !Number.isNaN(water[vertex])) && corners.some((vertex) => ownWater[vertex]))
+  return indexedGeometry(positions, null, quads)
+}
+
+/** A wall round the field's rim from {@code topOf} down to {@code bottomOf} each rim vertex, darkening downwards. */
+function rimWall(field: HeightField, topOf: (vertex: number) => number, bottomOf: (vertex: number) => number): BufferGeometry {
+  const rim = field.rimVertices()
   const positions = new Float32Array(rim.length * 2 * 3)
   const colors = new Float32Array(rim.length * 2 * 3)
+  // A rim vertex without a top or a bottom, such as dry land for the water's wall, holds no wall and keeps the origin.
+  const standing = rim.map((vertex) => !Number.isNaN(topOf(vertex)) && !Number.isNaN(bottomOf(vertex)))
   rim.forEach((vertex, index) => {
-    const [x, ground, z] = [surface.getX(vertex), surface.getY(vertex), surface.getZ(vertex)]
-    positions.set([x, topAt(ground), z, x, bottomAt(ground), z], index * 6)
-    const [red, green, blue] = [shade.getX(vertex), shade.getY(vertex), shade.getZ(vertex)]
-    colors.set([red * WALL_TOP_LIGHT, green * WALL_TOP_LIGHT, blue * WALL_TOP_LIGHT], index * 6)
-    colors.set([red * WALL_BASE_LIGHT, green * WALL_BASE_LIGHT, blue * WALL_BASE_LIGHT], index * 6 + 3)
+    if (!standing[index]) {
+      return
+    }
+    const [column, row] = field.columnAndRow(vertex)
+    const [x, z] = [field.surface.worldX(column), field.surface.worldZ(row)]
+    positions.set([x, topOf(vertex), z, x, bottomOf(vertex), z], index * 6)
+    const color = field.surface.colorAt(column, row)
+    colors.set([...rgb(color, WALL_TOP_LIGHT), ...rgb(color, WALL_BASE_LIGHT)], index * 6)
   })
   const indices: number[] = []
   for (let index = 0; index < rim.length; index++) {
     const next = (index + 1) % rim.length
-    const [upper, lower, nextUpper, nextLower] = [index * 2, index * 2 + 1, next * 2, next * 2 + 1]
-    indices.push(upper, lower, nextUpper, nextUpper, lower, nextLower)
+    if (standing[index] && standing[next]) {
+      const [upper, lower, nextUpper, nextLower] = [index * 2, index * 2 + 1, next * 2, next * 2 + 1]
+      indices.push(upper, lower, nextUpper, nextUpper, lower, nextLower)
+    }
   }
+  return indexedGeometry(positions, colors, indices)
+}
+
+function indexedGeometry(positions: Float32Array, colors: Float32Array | null, indices: number[] | Uint32Array): BufferGeometry {
   const geometry = new BufferGeometry()
   geometry.setAttribute('position', new BufferAttribute(positions, 3))
-  geometry.setAttribute('color', new BufferAttribute(colors, 3))
-  geometry.setIndex(indices)
+  if (colors !== null) {
+    geometry.setAttribute('color', new BufferAttribute(colors, 3))
+  }
+  geometry.setIndex(new BufferAttribute(indices instanceof Uint32Array ? indices : Uint32Array.from(indices), 1))
   return geometry
 }
 
-function terrainGeometry(grid: TerrainGrid, coloring: TerrainColoring, fluidHeight: number): BufferGeometry {
-  const { columns, rows } = grid
-  const positions = new Float32Array(columns * rows * 3)
-  const colors = new Float32Array(columns * rows * 3)
-  for (let row = 0; row < rows; row++) {
-    for (let column = 0; column < columns; column++) {
-      const vertex = row * columns + column
-      const height = grid.height(column, row)
-      positions.set([grid.worldX(column), height, grid.worldZ(row)], vertex * 3)
-      const color = coloring === 'height' ? heightColor(height, fluidHeight) : grid.labelColor(column, row, coloring)
-      const light = AMBIENT_LIGHT + (1 - AMBIENT_LIGHT) * Math.max(0, grid.normal(column, row).dot(LIGHT))
-      colors.set([(((color >> 16) & 0xff) / 255) * light, (((color >> 8) & 0xff) / 255) * light, ((color & 0xff) / 255) * light], vertex * 3)
-    }
-  }
-  const indices = new Uint32Array((columns - 1) * (rows - 1) * 6)
-  let next = 0
-  for (let row = 0; row < rows - 1; row++) {
-    for (let column = 0; column < columns - 1; column++) {
-      const northWest = row * columns + column
-      const southWest = northWest + columns
-      indices.set([northWest, southWest, northWest + 1, northWest + 1, southWest, southWest + 1], next)
-      next += 6
-    }
-  }
-  const geometry = new BufferGeometry()
-  geometry.setAttribute('position', new BufferAttribute(positions, 3))
-  geometry.setAttribute('color', new BufferAttribute(colors, 3))
-  geometry.setIndex(new BufferAttribute(indices, 1))
-  return geometry
+function rgb(color: number, light: number): [number, number, number] {
+  return [(((color >> 16) & 0xff) / 255) * light, (((color >> 8) & 0xff) / 255) * light, ((color & 0xff) / 255) * light]
 }
 
-/** The area's tiles as one grid of pixels, without the ring each tile carries for its neighbours. */
-class TerrainGrid {
-  readonly columns: number
-  readonly rows: number
-  /** How far the vertices reach, west to east and north to south, in blocks. */
-  readonly spanX: number
-  readonly spanZ: number
-  private readonly size: number
-  private readonly blocksPerPixel: number
+/** The surface's ground and water read once per vertex, with no value as NaN, and how its vertices stand together. */
+class HeightField {
+  readonly ground: Float32Array
+  readonly water: Float32Array
+  readonly ownWater: Uint8Array
 
-  private constructor(private readonly area: TerrainArea) {
-    const first = area.tiles[0][0]
-    this.size = first.size
-    this.blocksPerPixel = first.blocksPerPixel
-    this.columns = area.tiles[0].length * this.size
-    this.rows = area.tiles.length * this.size
-    this.spanX = (this.columns - 1) * this.blocksPerPixel
-    this.spanZ = (this.rows - 1) * this.blocksPerPixel
+  private constructor(readonly surface: TerrainSurface) {
+    const count = surface.columns * surface.rows
+    this.ground = new Float32Array(count)
+    this.water = new Float32Array(count)
+    this.ownWater = new Uint8Array(count)
+    for (let vertex = 0; vertex < count; vertex++) {
+      const [column, row] = this.columnAndRow(vertex)
+      const ground = surface.groundAt(column, row)
+      const water = ground === null ? null : surface.waterAt(column, row)
+      this.ground[vertex] = ground ?? NO_VALUE
+      this.water[vertex] = water ?? NO_VALUE
+      this.ownWater[vertex] = water === null ? 0 : 1
+    }
+    this.extendWaterToShores()
   }
 
-  static of(area: TerrainArea): TerrainGrid {
-    return new TerrainGrid(area)
+  static of(surface: TerrainSurface): HeightField {
+    return new HeightField(surface)
   }
 
-  worldX(column: number): number {
-    return this.area.originX + column * this.blocksPerPixel
+  columnAndRow(vertex: number): [number, number] {
+    return [vertex % this.surface.columns, Math.floor(vertex / this.surface.columns)]
   }
 
-  worldZ(row: number): number {
-    return this.area.originZ + row * this.blocksPerPixel
-  }
-
-  height(column: number, row: number): number {
-    const { tile, cell } = this.cellAt(column, row)
-    return tile.heights![cell]
-  }
-
-  labelColor(column: number, row: number, coloring: 'biomes' | 'regions'): number {
-    const { tile, cell } = this.cellAt(column, row)
-    const index = coloring === 'regions' ? tile.regions[cell] : tile.subjects[cell]
-    return index === NO_LABEL ? UNLABELLED_COLOR : tile.labels[index].color
-  }
-
-  lowestHeight(): number {
+  lowest(): number {
     let lowest = Infinity
-    for (let row = 0; row < this.rows; row++) {
-      for (let column = 0; column < this.columns; column++) {
-        lowest = Math.min(lowest, this.height(column, row))
+    for (let vertex = 0; vertex < this.ground.length; vertex++) {
+      if (!Number.isNaN(this.ground[vertex])) {
+        lowest = Math.min(lowest, this.ground[vertex], Number.isNaN(this.water[vertex]) ? Infinity : this.water[vertex])
       }
     }
-    return lowest
+    return Number.isFinite(lowest) ? lowest : 0
   }
 
-  /** The vertices on the edge of the grid, once each, going round clockwise from the north west corner. */
+  /** The box round the field from {@code base} to its highest ground or water; vertices left out of it do not count. */
+  bounds(base: number): Box3 {
+    let highest = base
+    for (let vertex = 0; vertex < this.ground.length; vertex++) {
+      for (const height of [this.ground[vertex], this.water[vertex]]) {
+        if (!Number.isNaN(height)) {
+          highest = Math.max(highest, height)
+        }
+      }
+    }
+    const { columns, rows } = this.surface
+    return new Box3(
+      new Vector3(this.surface.worldX(0), base, this.surface.worldZ(0)),
+      new Vector3(this.surface.worldX(columns - 1), highest, this.surface.worldZ(rows - 1))
+    )
+  }
+
+  /** The two triangles of each grid square whose four corners pass {@code wanted}. */
+  quadsWhere(wanted: (corners: [number, number, number, number]) => boolean): Uint32Array {
+    const { columns, rows } = this.surface
+    const indices: number[] = []
+    for (let row = 0; row < rows - 1; row++) {
+      for (let column = 0; column < columns - 1; column++) {
+        const northWest = row * columns + column
+        const southWest = northWest + columns
+        if (wanted([northWest, northWest + 1, southWest, southWest + 1])) {
+          indices.push(northWest, southWest, northWest + 1, northWest + 1, southWest, southWest + 1)
+        }
+      }
+    }
+    return Uint32Array.from(indices)
+  }
+
+  normal(column: number, row: number): Vector3 {
+    const { columns, rows } = this.surface
+    const here = this.ground[row * columns + column]
+    const at = (atColumn: number, atRow: number): number => {
+      const height = this.ground[Math.min(rows - 1, Math.max(0, atRow)) * columns + Math.min(columns - 1, Math.max(0, atColumn))]
+      return Number.isNaN(height) ? here : height
+    }
+    const spacing = Math.abs(this.surface.worldX(Math.min(columns - 1, 1)) - this.surface.worldX(0)) || 1
+    return new Vector3(at(column - 1, row) - at(column + 1, row), 2 * spacing, at(column, row - 1) - at(column, row + 1)).normalize()
+  }
+
+  /** The vertices on the edge of the field, once each, going round clockwise from the north west corner. */
   rimVertices(): number[] {
-    const { columns, rows } = this
+    const { columns, rows } = this.surface
     const rim: number[] = []
     for (let column = 0; column < columns - 1; column++) rim.push(column)
     for (let row = 0; row < rows - 1; row++) rim.push(row * columns + columns - 1)
@@ -183,17 +224,31 @@ class TerrainGrid {
     return rim
   }
 
-  normal(column: number, row: number): Vector3 {
-    const west = this.height(Math.max(0, column - 1), row)
-    const east = this.height(Math.min(this.columns - 1, column + 1), row)
-    const north = this.height(column, Math.max(0, row - 1))
-    const south = this.height(column, Math.min(this.rows - 1, row + 1))
-    return new Vector3(west - east, 2 * this.blocksPerPixel, north - south).normalize()
-  }
-
-  private cellAt(column: number, row: number): { tile: MapTile; cell: number } {
-    const tile = this.area.tiles[Math.floor(row / this.size)][Math.floor(column / this.size)]
-    const gridSize = this.size + 2
-    return { tile, cell: ((row % this.size) + 1) * gridSize + (column % this.size) + 1 }
+  // A dry vertex next to water takes the highest water beside it, so the water's edge runs under the shore.
+  private extendWaterToShores(): void {
+    const { columns, rows } = this.surface
+    const own = Float32Array.from(this.water)
+    for (let row = 0; row < rows; row++) {
+      for (let column = 0; column < columns; column++) {
+        const vertex = row * columns + column
+        if (this.ownWater[vertex] === 1 || Number.isNaN(this.ground[vertex])) {
+          continue
+        }
+        let highest = NO_VALUE
+        for (let offsetRow = -1; offsetRow <= 1; offsetRow++) {
+          for (let offsetColumn = -1; offsetColumn <= 1; offsetColumn++) {
+            const [nearColumn, nearRow] = [column + offsetColumn, row + offsetRow]
+            if (nearColumn < 0 || nearRow < 0 || nearColumn >= columns || nearRow >= rows) {
+              continue
+            }
+            const near = own[nearRow * columns + nearColumn]
+            if (!Number.isNaN(near) && (Number.isNaN(highest) || near > highest)) {
+              highest = near
+            }
+          }
+        }
+        this.water[vertex] = highest
+      }
+    }
   }
 }

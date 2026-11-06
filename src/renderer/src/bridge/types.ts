@@ -33,6 +33,43 @@ export interface SceneEntry {
   variants: number
 }
 
+/** A world saved on the server's disk, a dimension folder of region files. */
+export interface SavedWorldInfo {
+  /** Its folder below the server's level folder. */
+  id: string
+  name: string
+  /** Who added the dimension, such as minecraft or iris. */
+  namespace: string
+}
+
+/** Where a saved world's view opens: the middle of the region nearest the origin, and how its ground lies there. */
+export interface SavedStart {
+  centerX: number
+  centerZ: number
+  minY: number
+  lowestGround: number
+  highestGround: number
+  /** The water surface most water lies at, or null where the region holds none. */
+  seaLevel: number | null
+}
+
+/** A square of a saved world, one column per pixel, row by row from the north west. */
+export interface SavedTile {
+  size: number
+  blocksPerPixel: number
+  /** The top block of the ground under any water; {@link noGround} where nothing finished is saved. */
+  groundY: Int16Array
+  /** The top water block over the ground; {@link noWater} where it is dry. */
+  waterSurfaceY: Int16Array
+  /** Indices into {@link blockNames} and {@link biomes}. */
+  blocks: Int16Array
+  biomes: Int16Array
+  blockNames: string[]
+  biomeLabels: MapLabel[]
+  noGround: number
+  noWater: number
+}
+
 export interface WorldInfo {
   world: string
   dimension: string

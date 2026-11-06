@@ -80,7 +80,7 @@ export class TextureAtlas {
 }
 
 /** {@code minecraft:block/stone} lies at {@code minecraft/textures/block/stone.png}. */
-function texturePath(textureId: string): string {
+export function texturePath(textureId: string): string {
   const colon = textureId.indexOf(':')
   return `${textureId.slice(0, colon)}/textures/${textureId.slice(colon + 1)}.png`
 }

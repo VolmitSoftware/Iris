@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import type { BridgeClient, WorldRect } from '../bridge/BridgeClient'
 import type { MapTile, WorldInfo } from '../bridge/types'
-import { buildTerrainMesh, type TerrainArea, type TerrainColoring } from '../scene/terrainMesh'
+import { MapTerrain, type MapTerrainArea, type MapTerrainColoring } from '../scene/mapTerrain'
+import { buildTerrainMesh } from '../scene/terrainMesh'
 import { SceneViewport } from './SceneViewport'
 
 const NUMBER = new Intl.NumberFormat('en-US')
@@ -24,10 +25,10 @@ interface WorldStudio3DProps {
 
 /** The terrain around where the map looked, in 3D, coloured by biome, region or height (v3e's 3D world view). */
 export function WorldStudio3D({ client, world, mapArea, packRevision, onSummary, tell }: WorldStudio3DProps): React.JSX.Element {
-  const [coloring, setColoring] = useState<TerrainColoring>('biomes')
+  const [coloring, setColoring] = useState<MapTerrainColoring>('biomes')
   const centre = useMemo(() => centreOf(mapArea), [mapArea])
   const area = useTerrainArea(client, centre, packRevision, tell)
-  const mesh = useMemo(() => (area === null ? null : buildTerrainMesh(area, coloring, world.fluidHeight)), [area, coloring, world.fluidHeight])
+  const mesh = useMemo(() => (area === null ? null : buildTerrainMesh(new MapTerrain(area, coloring, world.fluidHeight))), [area, coloring, world.fluidHeight])
 
   useEffect(() => () => mesh?.dispose(), [mesh])
   useEffect(() => {
@@ -45,7 +46,7 @@ export function WorldStudio3D({ client, world, mapArea, packRevision, onSummary,
         size="sm"
         className="absolute top-3 left-3 bg-card/90"
         value={coloring}
-        onValueChange={(value) => value !== '' && setColoring(value as TerrainColoring)}
+        onValueChange={(value) => value !== '' && setColoring(value as MapTerrainColoring)}
       >
         <ToggleGroupItem value="biomes" className={COLORING_ITEM}>
           Biomes
@@ -74,8 +75,8 @@ function centreOf(area: WorldRect | null): { x: number; z: number } {
 }
 
 /** The tiles of the square around {@code centre}, with heights; every tile arrives before the square is shown. */
-function useTerrainArea(client: BridgeClient, centre: { x: number; z: number }, packRevision: number, tell: (message: string) => void): TerrainArea | null {
-  const [area, setArea] = useState<TerrainArea | null>(null)
+function useTerrainArea(client: BridgeClient, centre: { x: number; z: number }, packRevision: number, tell: (message: string) => void): MapTerrainArea | null {
+  const [area, setArea] = useState<MapTerrainArea | null>(null)
   useEffect(() => {
     const stop = new AbortController()
     const firstTileX = Math.floor(centre.x / TILE_BLOCKS - TILES_PER_SIDE / 2)

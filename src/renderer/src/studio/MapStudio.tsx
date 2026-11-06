@@ -11,6 +11,7 @@ import { Legend } from './Legend'
 import { MapCanvas, type CanvasPoint } from './MapCanvas'
 import { PickInspector } from './PickInspector'
 import { RegionPreviewList } from './RegionPreviewList'
+import { SavedWorldStudio } from './SavedWorldStudio'
 import { SceneStudio } from './SceneStudio'
 import { WorldStudio3D } from './WorldStudio3D'
 import { actionForKey, viewForKey, type ShortcutAction } from './shortcuts'
@@ -60,9 +61,9 @@ export function MapStudio({ client, world, theme, onDisconnect }: MapStudioProps
   const [packRevision, setPackRevision] = useState(0)
   const [sceneSummary, setSceneSummary] = useState<string | null>(null)
   const sceneViews = useSceneViews(client, packRevision)
-  const views = useMemo(() => [...withWorld3D(world.views), ...sceneViews.map(asViewInfo)], [world.views, sceneViews])
+  const views = useMemo(() => [...withAppViews(world.views), ...sceneViews.map(asViewInfo)], [world.views, sceneViews])
   const sceneView = sceneViews.find((candidate) => candidate.id === viewId) ?? null
-  const showsMap = sceneView === null && viewId !== WORLD_3D.id
+  const showsMap = sceneView === null && !APP_VIEW_IDS.has(viewId)
   const view = views.find((candidate) => candidate.id === viewId) ?? views[0]
   const layer = useMemo<MapLayerQuery>(() => ({ view: viewId, preview: viewId === 'regions' ? preview : null }), [viewId, preview])
   const regions = usePreviewableRegions(client, packRevision)
@@ -218,6 +219,8 @@ export function MapStudio({ client, world, theme, onDisconnect }: MapStudioProps
           <SceneStudio client={client} view={sceneView} packRevision={packRevision} onSummary={setSceneSummary} tell={tell} />
         ) : viewId === WORLD_3D.id ? (
           <WorldStudio3D client={client} world={world} mapArea={area} packRevision={packRevision} onSummary={setSceneSummary} tell={tell} />
+        ) : viewId === SAVED_WORLD.id ? (
+          <SavedWorldStudio client={client} world={world} onSummary={setSceneSummary} tell={tell} />
         ) : (
           <>
         <div className="relative min-w-0 flex-1">
@@ -288,10 +291,18 @@ const WORLD_3D: ViewInfo = {
   group: 'WORLD',
   groupLabel: 'World'
 }
+const SAVED_WORLD: ViewInfo = {
+  id: 'savedWorld',
+  label: 'Saved world',
+  description: 'A world as the server saved it to disk, in 3D',
+  group: 'WORLD',
+  groupLabel: 'World'
+}
+const APP_VIEW_IDS = new Set([WORLD_3D.id, SAVED_WORLD.id])
 
-function withWorld3D(serverViews: ViewInfo[]): ViewInfo[] {
+function withAppViews(serverViews: ViewInfo[]): ViewInfo[] {
   const afterHeight = serverViews.findIndex((candidate) => candidate.id === 'height') + 1
-  return [...serverViews.slice(0, afterHeight), WORLD_3D, ...serverViews.slice(afterHeight)]
+  return [...serverViews.slice(0, afterHeight), WORLD_3D, SAVED_WORLD, ...serverViews.slice(afterHeight)]
 }
 
 function asViewInfo(view: SceneViewInfo): ViewInfo {

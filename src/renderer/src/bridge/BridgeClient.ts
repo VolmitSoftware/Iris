@@ -1,7 +1,20 @@
 import type { BridgeConnection } from '../../../shared/bridge'
 import { decodeScene, type BlockScene } from '../scene/sceneDecoding'
+import { decodeSavedTile } from './savedTileDecoding'
 import { decodeTile } from './tileDecoding'
-import type { MapHover, MapLabel, MapTile, Marker, PickInspection, SceneEntry, SceneViewInfo, WorldInfo } from './types'
+import type {
+  MapHover,
+  MapLabel,
+  MapTile,
+  Marker,
+  PickInspection,
+  SavedStart,
+  SavedTile,
+  SavedWorldInfo,
+  SceneEntry,
+  SceneViewInfo,
+  WorldInfo
+} from './types'
 
 export const STATUS_NOT_FOUND = 404
 export const STATUS_UNAVAILABLE = 503
@@ -116,6 +129,22 @@ export class BridgeClient {
   async scene(viewId: string, key: string, variant: number, signal?: AbortSignal): Promise<BlockScene> {
     const response = await this.fetch(`scene?${new URLSearchParams({ view: viewId, key, variant: String(variant) })}`, { signal })
     return decodeScene(await response.arrayBuffer())
+  }
+
+  /** The worlds saved on the server's disk. */
+  savedWorlds(): Promise<SavedWorldInfo[]> {
+    return this.json('saved-worlds')
+  }
+
+  /** Where a saved world's view opens; reads the region nearest the origin whole, so it can take a second or two. */
+  savedStart(worldId: string, signal?: AbortSignal): Promise<SavedStart> {
+    return this.json(`saved-start?${new URLSearchParams({ world: worldId })}`, { signal })
+  }
+
+  async savedTile(worldId: string, tileX: number, tileZ: number, blocksPerPixel: number, size: number, signal: AbortSignal): Promise<SavedTile> {
+    const query = new URLSearchParams({ world: worldId, x: String(tileX), z: String(tileZ), scale: String(blocksPerPixel), size: String(size) })
+    const response = await this.fetch(`saved-tile?${query}`, { signal })
+    return decodeSavedTile(await response.arrayBuffer())
   }
 
   /** A file of the Minecraft client's assets, such as {@code minecraft/blockstates/stone.json}; null when there is none. */

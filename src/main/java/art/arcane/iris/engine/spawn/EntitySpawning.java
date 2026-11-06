@@ -172,8 +172,8 @@ public final class EntitySpawning implements EntitySpawns {
 
     /** Where a spawner of its group puts an entity at the column; null when it has no place for one. */
     private static BlockPosition spawnPosition(RunningWorld running, Spawner spawner, int chunkX, int chunkZ, int x, int z) {
-        int height = running.highestBlock(x, z, true);
-        int heightWithFluid = running.highestBlock(x, z, false);
+        int height = running.highest(x, z, true);
+        int heightWithFluid = running.highest(x, z, false);
         return switch (spawner.group()) {
             case NORMAL -> new BlockPosition(x, heightWithFluid + 1, z);
             case CAVE -> caveSpawnPosition(running, chunkX, chunkZ);

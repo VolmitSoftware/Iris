@@ -91,7 +91,7 @@ final class ObjectBaker {
 
     private static void waterlog(Map<Long, BlockState> painted, ObjectBuilder blocks) {
         painted.replaceAll((key, state) -> "false".equals(IrisProceduralBlocks.propertyValue(state, "waterlogged"))
-                ? blocks.withProperty(state, "waterlogged", "true") : state);
+                ? blocks.withPropertyIfAccepted(state, "waterlogged", "true") : state);
     }
 
     /** How far the object sinks: a fraction of its height. Heights below it end up underground. */

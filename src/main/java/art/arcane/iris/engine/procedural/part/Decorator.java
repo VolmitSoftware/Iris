@@ -232,13 +232,13 @@ final class Decorator {
     private BlockState attached(BlockState state, BlockFace support) {
         String side = support.name().toLowerCase();
         if ("false".equals(IrisProceduralBlocks.propertyValue(state, side))) {
-            return blocks.withProperty(state, side, "true");
+            return blocks.withPropertyIfAccepted(state, side, "true");
         }
         if (support == BlockFace.UP && IrisProceduralBlocks.hasProperty(state, "hanging")) {
-            return blocks.withProperty(state, "hanging", "true");
+            return blocks.withPropertyIfAccepted(state, "hanging", "true");
         }
         if (IrisProceduralBlocks.hasProperty(state, "facing")) {
-            return blocks.withProperty(state, "facing", opposite(support).name().toLowerCase());
+            return blocks.withPropertyIfAccepted(state, "facing",opposite(support).name().toLowerCase());
         }
         return state;
     }

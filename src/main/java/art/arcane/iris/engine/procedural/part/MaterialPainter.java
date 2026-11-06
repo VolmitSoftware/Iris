@@ -130,6 +130,6 @@ final class MaterialPainter {
         if (axis == PartCanvas.Axis.NONE || !IrisProceduralBlocks.hasProperty(state, "axis")) {
             return state;
         }
-        return blocks.withProperty(state, "axis", axis.name().toLowerCase());
+        return blocks.withPropertyIfAccepted(state, "axis",axis.name().toLowerCase());
     }
 }

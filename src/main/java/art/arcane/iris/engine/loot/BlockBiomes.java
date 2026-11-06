@@ -39,7 +39,7 @@ public final class BlockBiomes {
     public static ResourceId biomeAt(RunningWorld running, int x, int y, int z) {
         TerrainSampler layout = running.layout();
         ResourceId surface = layout.surfaceBiome(x, z);
-        if (!layout.bounds().contains(x, y, z) || y > running.highestBlock(x, z, true) - CAVE_DEPTH_BELOW_HIGHEST_BLOCK) {
+        if (!layout.bounds().contains(x, y, z) || y > running.highest(x, z, true) - CAVE_DEPTH_BELOW_HIGHEST_BLOCK) {
             return surface;
         }
         return layout.caveBiome(x, y, z).orElse(surface);

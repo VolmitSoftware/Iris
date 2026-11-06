@@ -207,7 +207,7 @@ public final class TreeGrowing implements SaplingGrowth {
 
         @Override
         public BlockState get(int x, int y, int z) {
-            return surroundings.blockAt(x, y, z);
+            return surroundings.get(x, y, z);
         }
 
         @Override

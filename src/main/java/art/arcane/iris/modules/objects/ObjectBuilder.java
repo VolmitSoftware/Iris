@@ -57,9 +57,9 @@ public final class ObjectBuilder {
         return blocks.hasTrait(state, trait);
     }
 
-    /** {@code state} with the property set, as the platform sets it. */
-    public BlockState withProperty(BlockState state, String name, String value) {
-        return blocks.withProperty(state, name, value);
+    /** {@code state} with the property set, as the platform sets it; {@code state} itself when the block does not accept it. */
+    public BlockState withPropertyIfAccepted(BlockState state, String name, String value) {
+        return blocks.withPropertyIfAccepted(state, name, value);
     }
 
     /** The object of {@code blocks}, put in their order, {@code width} by {@code height} by {@code depth}, placeable like the pack's objects. */

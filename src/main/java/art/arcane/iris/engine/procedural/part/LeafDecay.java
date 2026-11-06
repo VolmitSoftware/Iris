@@ -122,8 +122,8 @@ final class LeafDecay {
 
     private void setLeafState(long leaf, boolean persistent, int distance) {
         BlockState state = blocks.get(leaf);
-        state = builder.withProperty(state, "persistent", String.valueOf(persistent));
-        blocks.put(leaf, builder.withProperty(state, "distance", String.valueOf(distance)));
+        state = builder.withPropertyIfAccepted(state, "persistent", String.valueOf(persistent));
+        blocks.put(leaf, builder.withPropertyIfAccepted(state, "distance", String.valueOf(distance)));
     }
 
     private static boolean isLeaf(BlockState state) {

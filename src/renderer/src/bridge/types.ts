@@ -18,6 +18,21 @@ export interface ViewInfo {
   groupLabel: string
 }
 
+/** A view of block scenes a module of the pack shows, such as its objects (IrisApi SceneView). */
+export interface SceneViewInfo {
+  id: string
+  label: string
+  description: string
+}
+
+export interface SceneEntry {
+  key: string
+  name: string
+  /** The folder it is listed under; empty for none. */
+  group: string
+  variants: number
+}
+
 export interface WorldInfo {
   world: string
   dimension: string

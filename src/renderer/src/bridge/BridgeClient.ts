@@ -1,6 +1,10 @@
 import type { BridgeConnection } from '../../../shared/bridge'
+import { decodeScene, type BlockScene } from '../scene/sceneDecoding'
 import { decodeTile } from './tileDecoding'
-import type { MapHover, MapLabel, MapTile, Marker, PickInspection, WorldInfo } from './types'
+import type { MapHover, MapLabel, MapTile, Marker, PickInspection, SceneEntry, SceneViewInfo, WorldInfo } from './types'
+
+export const STATUS_NOT_FOUND = 404
+export const STATUS_UNAVAILABLE = 503
 
 export class BridgeError extends Error {
   constructor(
@@ -98,6 +102,32 @@ export class BridgeClient {
     })
     const response = await this.fetch(`tile?${query}`, { signal })
     return decodeTile(await response.arrayBuffer())
+  }
+
+  /** The scene views the pack's modules show, such as its objects. */
+  sceneViews(): Promise<SceneViewInfo[]> {
+    return this.json('scenes')
+  }
+
+  sceneEntries(viewId: string): Promise<SceneEntry[]> {
+    return this.json(`scene-entries?${new URLSearchParams({ view: viewId })}`)
+  }
+
+  async scene(viewId: string, key: string, variant: number, signal?: AbortSignal): Promise<BlockScene> {
+    const response = await this.fetch(`scene?${new URLSearchParams({ view: viewId, key, variant: String(variant) })}`, { signal })
+    return decodeScene(await response.arrayBuffer())
+  }
+
+  /** A file of the Minecraft client's assets, such as {@code minecraft/blockstates/stone.json}; null when there is none. */
+  async asset(path: string): Promise<Response | null> {
+    try {
+      return await this.fetch(`assets/${path}`, {})
+    } catch (error) {
+      if (error instanceof BridgeError && error.status === STATUS_NOT_FOUND) {
+        return null
+      }
+      throw error
+    }
   }
 
   /** Streams the bridge's events until {@code signal} aborts or the bridge goes away. */

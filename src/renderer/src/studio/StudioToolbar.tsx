@@ -15,6 +15,8 @@ interface StudioToolbarProps {
   world: WorldInfo
   toggles: StudioToggles
   hasPlayers: boolean
+  /** Whether the map's buttons apply: a scene view has no map to redraw, zoom or overlay. */
+  mapTools: boolean
   theme: { choice: ThemeChoice; next: () => void }
   onToggle(name: keyof StudioToggles): void
   onRefresh(): void
@@ -27,10 +29,36 @@ const THEME_ICONS: Record<ThemeChoice, ReactNode> = { system: <Monitor />, light
 const THEME_NAMES: Record<ThemeChoice, string> = { system: 'Theme: system', light: 'Theme: light', dark: 'Theme: dark' }
 
 export function StudioToolbar(props: StudioToolbarProps): React.JSX.Element {
-  const { toggles, onToggle } = props
   return (
     <header className="flex h-10 shrink-0 items-center gap-1 border-b bg-card px-2">
       <span className="px-1.5 pr-3 text-[14px] font-semibold">{props.title}</span>
+      {props.mapTools && <MapTools {...props} />}
+
+      <div className="flex-1" />
+      <span className="truncate px-2 text-[12px] text-secondary-text" title={`${props.world.dimensionName} · seed ${props.world.seed}`}>
+        {props.world.world}
+      </span>
+      <IconHint hint={THEME_NAMES[props.theme.choice]}>
+        <Button variant="ghost" size="icon-sm" onClick={props.theme.next}>
+          {THEME_ICONS[props.theme.choice]}
+        </Button>
+      </IconHint>
+      <ToolButton action="help" hint="Show every mouse and key shortcut" onClick={props.onHelp}>
+        <CircleHelp />
+      </ToolButton>
+      <IconHint hint="Back to the world list">
+        <Button variant="ghost" size="icon-sm" onClick={props.onDisconnect}>
+          <LogOut />
+        </Button>
+      </IconHint>
+    </header>
+  )
+}
+
+function MapTools(props: StudioToolbarProps): React.JSX.Element {
+  const { toggles, onToggle } = props
+  return (
+    <>
       <ToolButton action="refresh" hint="Redraw the map with the latest pack files" onClick={props.onRefresh}>
         <RefreshCw />
       </ToolButton>
@@ -53,25 +81,7 @@ export function StudioToolbar(props: StudioToolbarProps): React.JSX.Element {
       <ToolToggle action="borders" hint="Outline the regions on every view" pressed={toggles.regionBorders} onPressed={() => onToggle('regionBorders')}>
         <Spline /> Borders
       </ToolToggle>
-
-      <div className="flex-1" />
-      <span className="truncate px-2 text-[12px] text-secondary-text" title={`${props.world.dimensionName} · seed ${props.world.seed}`}>
-        {props.world.world}
-      </span>
-      <IconHint hint={THEME_NAMES[props.theme.choice]}>
-        <Button variant="ghost" size="icon-sm" onClick={props.theme.next}>
-          {THEME_ICONS[props.theme.choice]}
-        </Button>
-      </IconHint>
-      <ToolButton action="help" hint="Show every mouse and key shortcut" onClick={props.onHelp}>
-        <CircleHelp />
-      </ToolButton>
-      <IconHint hint="Back to the world list">
-        <Button variant="ghost" size="icon-sm" onClick={props.onDisconnect}>
-          <LogOut />
-        </Button>
-      </IconHint>
-    </header>
+    </>
   )
 }
 

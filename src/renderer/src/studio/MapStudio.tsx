@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { ThemeChoice } from '../../../shared/bridge'
 import type { BridgeClient, MapLayerQuery, WorldRect } from '../bridge/BridgeClient'
-import type { MapHover, MapLabel, Marker, PickDisplay, PickInspection, WorldInfo } from '../bridge/types'
+import type { MapHover, MapLabel, Marker, PickDisplay, PickInspection, SceneViewInfo, ViewInfo, WorldInfo } from '../bridge/types'
 import type { Share } from '../map/census'
 import type { MapController, MapStatus, MapToggles } from '../map/MapController'
 import type { Highlight } from '../map/tileStyle'
@@ -11,6 +11,7 @@ import { Legend } from './Legend'
 import { MapCanvas, type CanvasPoint } from './MapCanvas'
 import { PickInspector } from './PickInspector'
 import { RegionPreviewList } from './RegionPreviewList'
+import { SceneStudio } from './SceneStudio'
 import { actionForKey, viewForKey, type ShortcutAction } from './shortcuts'
 import { StatusBar } from './StatusBar'
 import { StudioToolbar } from './StudioToolbar'
@@ -56,7 +57,11 @@ export function MapStudio({ client, world, theme, onDisconnect }: MapStudioProps
   const [pickDisplay, setPickDisplay] = useState<PickDisplay>('picks')
   const [area, setArea] = useState<WorldRect | null>(null)
   const [packRevision, setPackRevision] = useState(0)
-  const view = world.views.find((candidate) => candidate.id === viewId) ?? world.views[0]
+  const [sceneSummary, setSceneSummary] = useState<string | null>(null)
+  const sceneViews = useSceneViews(client, packRevision)
+  const views = useMemo(() => [...world.views, ...sceneViews.map(asViewInfo)], [world.views, sceneViews])
+  const sceneView = sceneViews.find((candidate) => candidate.id === viewId) ?? null
+  const view = views.find((candidate) => candidate.id === viewId) ?? views[0]
   const layer = useMemo<MapLayerQuery>(() => ({ view: viewId, preview: viewId === 'regions' ? preview : null }), [viewId, preview])
   const regions = usePreviewableRegions(client, packRevision)
   const inspectsPicks = PICK_VIEWS.has(viewId)
@@ -115,7 +120,7 @@ export function MapStudio({ client, world, theme, onDisconnect }: MapStudioProps
       const map = controller.current
       switch (action) {
         case 'nextView':
-          selectView(world.views[(world.views.findIndex((candidate) => candidate.id === viewId) + 1) % world.views.length].id)
+          selectView(views[(views.findIndex((candidate) => candidate.id === viewId) + 1) % views.length].id)
           return
         case 'refresh':
           map?.refresh()
@@ -155,7 +160,7 @@ export function MapStudio({ client, world, theme, onDisconnect }: MapStudioProps
           setHelpOpen((open) => !open)
       }
     },
-    [world.views, viewId, selectView, toggle, highlightUnderCursor, tell]
+    [views, viewId, selectView, toggle, highlightUnderCursor, tell]
   )
 
   useKeyboard(runShortcut, selectView, setDetailed, world)
@@ -195,6 +200,7 @@ export function MapStudio({ client, world, theme, onDisconnect }: MapStudioProps
         world={world}
         toggles={toggles}
         hasPlayers={world.hasPlayers}
+        mapTools={sceneView === null}
         theme={theme}
         onToggle={toggle}
         onRefresh={() => runShortcut('refresh')}
@@ -203,9 +209,13 @@ export function MapStudio({ client, world, theme, onDisconnect }: MapStudioProps
         onDisconnect={onDisconnect}
       />
       <div className="flex min-h-0 flex-1">
-        <ViewList views={world.views} current={viewId} onSelect={selectView}>
+        <ViewList views={views} current={viewId} onSelect={selectView}>
           {viewId === 'regions' && regions.length > 1 && <RegionPreviewList regions={regions} current={layer.preview} onSelect={selectPreview} />}
         </ViewList>
+        {sceneView !== null ? (
+          <SceneStudio client={client} view={sceneView} packRevision={packRevision} onSummary={setSceneSummary} tell={tell} />
+        ) : (
+          <>
         <div className="relative min-w-0 flex-1">
           <MapCanvas
             client={client}
@@ -256,11 +266,40 @@ export function MapStudio({ client, world, theme, onDisconnect }: MapStudioProps
             onSelect={(subject) => setHighlight((current) => (sameSubject(current, subject) ? null : subject))}
           />
         </aside>
+          </>
+        )}
       </div>
-      <StatusBar viewLabel={previewName === null ? view.label : `${view.label} · ${previewName}`} status={status} notice={notice} />
-      <HelpDialog open={helpOpen} onOpenChange={setHelpOpen} views={world.views} />
+      <StatusBar viewLabel={statusLabel(view.label, previewName, sceneView === null ? null : sceneSummary)} status={sceneView === null ? status : null} notice={notice} />
+      <HelpDialog open={helpOpen} onOpenChange={setHelpOpen} views={views} />
     </div>
   )
+}
+
+const SCENE_GROUP = { group: 'BLOCKS', groupLabel: 'Blocks' }
+
+function asViewInfo(view: SceneViewInfo): ViewInfo {
+  return { ...view, ...SCENE_GROUP }
+}
+
+function statusLabel(viewLabel: string, previewName: string | null, sceneSummary: string | null): string {
+  const detail = sceneSummary ?? previewName
+  return detail === null ? viewLabel : `${viewLabel} · ${detail}`
+}
+
+/** The scene views the pack's modules show, read again after the pack reloads. */
+function useSceneViews(client: BridgeClient, packRevision: number): SceneViewInfo[] {
+  const [views, setViews] = useState<SceneViewInfo[]>([])
+  useEffect(() => {
+    let active = true
+    client
+      .sceneViews()
+      .then((found) => active && setViews(found))
+      .catch(() => undefined)
+    return () => {
+      active = false
+    }
+  }, [client, packRevision])
+  return views
 }
 
 function sameSubject(first: Highlight | null, second: Highlight | null): boolean {

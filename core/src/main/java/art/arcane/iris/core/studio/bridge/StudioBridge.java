@@ -27,6 +27,8 @@ import art.arcane.iris.core.studio.map.MapPickInspection;
 import art.arcane.iris.core.studio.map.MapTile;
 import art.arcane.iris.core.studio.map.MapView;
 import art.arcane.iris.core.studio.assets.MinecraftAssets;
+import art.arcane.iris.core.studio.noise.NoiseSources;
+import art.arcane.iris.core.studio.noise.NoiseTile;
 import art.arcane.iris.core.studio.saved.SavedBiomeLabels;
 import art.arcane.iris.core.studio.saved.SavedTile;
 import art.arcane.iris.core.studio.saved.SavedWorld;
@@ -36,6 +38,7 @@ import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.framework.render.RenderType;
 import art.arcane.iris.engine.object.world.region.IrisRegion;
 import art.arcane.iris.spi.IrisLogging;
+import art.arcane.volmlib.util.function.NoiseProvider;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.sun.net.httpserver.Headers;
@@ -91,6 +94,8 @@ public final class StudioBridge implements AutoCloseable {
     private static final double LARGEST_BLOCKS_PER_PIXEL = 4_096D;
     // Each pixel reads the chunk it lands in, so a saved world is shown no farther out than a pixel per chunk.
     private static final int LARGEST_SAVED_BLOCKS_PER_PIXEL = 16;
+    // Noise has detail finer than a block, so it may be looked at closer than the world.
+    private static final double SMALLEST_NOISE_BLOCKS_PER_PIXEL = 1D / 64D;
     private static final long ENTITY_WAIT_MILLIS = 3_000L;
     private static final int STATUS_OK = 200;
     private static final int STATUS_NO_CONTENT = 204;
@@ -98,6 +103,7 @@ public final class StudioBridge implements AutoCloseable {
     private static final int STATUS_UNAUTHORIZED = 401;
     private static final int STATUS_NOT_FOUND = 404;
     private static final int STATUS_METHOD_NOT_ALLOWED = 405;
+    private static final int STATUS_UNPROCESSABLE = 422;
     private static final int STATUS_SERVER_ERROR = 500;
     private static final int STATUS_UNAVAILABLE = 503;
 
@@ -216,6 +222,8 @@ public final class StudioBridge implements AutoCloseable {
             case "saved-worlds" -> sendJson(exchange, STATUS_OK, savedWorlds(exchange));
             case "saved-start" -> sendJson(exchange, STATUS_OK, savedStart(exchange, query));
             case "saved-tile" -> sendBytes(exchange, "application/octet-stream", savedTile(get(exchange).engine(), query));
+            case "noise-sources" -> sendJson(exchange, STATUS_OK, NoiseSources.of(get(exchange).engine()).list());
+            case "noise-tile" -> sendBytes(exchange, "application/octet-stream", noiseTile(get(exchange).engine(), query));
             case "events" -> streamEvents(exchange);
             case "teleport" -> teleport(exchange, query);
             case "open" -> openInEditor(exchange, query);
@@ -346,6 +354,31 @@ public final class StudioBridge implements AutoCloseable {
         }
         SavedTile tile = SavedTile.sample(savedWorld(query), query.whole("x", 0), query.whole("z", 0), blocksPerPixel, size);
         return SavedTileEncoding.encode(tile, SavedBiomeLabels.of(engine).labelsOf(tile.biomeNames()), gson);
+    }
+
+    private byte[] noiseTile(Engine engine, Query query) {
+        int size = query.whole("size", DEFAULT_TILE_SIZE);
+        double blocksPerPixel = query.number("scale");
+        if (size < 1 || size > LARGEST_TILE_SIZE) {
+            throw new RequestError(STATUS_BAD_REQUEST, "A tile is 1 to " + LARGEST_TILE_SIZE + " pixels");
+        }
+        if (!(blocksPerPixel >= SMALLEST_NOISE_BLOCKS_PER_PIXEL && blocksPerPixel <= LARGEST_BLOCKS_PER_PIXEL)) {
+            throw new RequestError(STATUS_BAD_REQUEST, "The scale is " + SMALLEST_NOISE_BLOCKS_PER_PIXEL + " to " + LARGEST_BLOCKS_PER_PIXEL + " blocks per pixel");
+        }
+        NoiseProvider noise = noiseSampler(engine, query.text("source"), query.longNumber("seed"));
+        return NoiseTile.sample(noise, query.whole("x", 0), query.whole("z", 0), blocksPerPixel, size,
+                () -> closed || engine.isClosing() || engine.isClosed()).encode();
+    }
+
+    // A source that can't be sampled fails every tile alike, so it is told once to the studio rather than logged per tile.
+    private static NoiseProvider noiseSampler(Engine engine, String source, long seed) {
+        try {
+            return NoiseSources.of(engine).sampler(source, seed);
+        } catch (NoSuchElementException unknown) {
+            throw new RequestError(STATUS_NOT_FOUND, unknown.getMessage());
+        } catch (IllegalStateException unsampleable) {
+            throw new RequestError(STATUS_UNPROCESSABLE, unsampleable.getMessage());
+        }
     }
 
     private static SavedWorld savedWorld(Query query) {
@@ -557,6 +590,14 @@ public final class StudioBridge implements AutoCloseable {
             }
             try {
                 return Integer.parseInt(values.get(name));
+            } catch (NumberFormatException malformed) {
+                throw new RequestError(STATUS_BAD_REQUEST, name + " must be a whole number");
+            }
+        }
+
+        long longNumber(String name) {
+            try {
+                return Long.parseLong(text(name));
             } catch (NumberFormatException malformed) {
                 throw new RequestError(STATUS_BAD_REQUEST, name + " must be a whole number");
             }
